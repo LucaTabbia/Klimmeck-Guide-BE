@@ -1,0 +1,42 @@
+import { registerEnumType } from "@nestjs/graphql";
+
+export enum CityType {
+  drusteaCity,
+  drusteaVillage,
+  drusteaSeaCity,
+  drusteaCapital,
+  harkenCity,
+  necrorianCity,
+  goblinVillage,
+  aarakocraVillage,
+  giantVillage,
+  orcVillage,
+  devilsCity,
+  elfCapital,
+  valanCapital,
+  valanVillage,
+  valanCity,
+  mirwaCapital,
+  mirwaCity,
+  mirwaVillage,
+  desertVillage,
+  tropicalVillage,
+  mountainVillage,
+  northVillage,
+  forestVillage,
+  flameNorthCapital,
+  flameCenterCapital,
+  flameSouthCapital,
+  flameCity,
+  flameVillage,
+  motherCapital,
+  motherCity,
+  motherVillage,
+  liberiaCapital,
+  liberiaCity,
+  liberiaVillage,
+  talmvereVillage,
+}
+
+registerEnumType(CityType, { name: 'CityType' });
+

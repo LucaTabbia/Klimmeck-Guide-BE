@@ -1,0 +1,365 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type ActiveSpell {
+  spell: Spell!
+  usages: Int!
+}
+
+interface AssetItem {
+  buyPrice: Coins
+  id: ID!
+  itemType: String!
+  name: String
+  rarity: String
+  sellPrice: Coins
+}
+
+type AssetQuantity {
+  item: String!
+  quantity: Int!
+}
+
+type BaseDamage {
+  power: Int!
+  type: String!
+}
+
+type Character {
+  assets: CharacterAssets!
+  id: ID!
+  infos: CharacterInfos!
+  quests: CharacterQuests!
+  status: CharacterStatus!
+}
+
+type CharacterAssets {
+  activeSpells: [ActiveSpell!]!
+  ownedEquipments: [AssetQuantity!]!
+  ownedItems: [AssetQuantity!]!
+  pet: Pet
+  wearedEquipment: Equipment!
+}
+
+type CharacterInfos {
+  age: Int!
+  background: String!
+  classType: String!
+  imagePath: String
+  name: String!
+  pronoun: String!
+  race: String!
+  sex: String!
+}
+
+type CharacterQuests {
+  completedQuests: [Quest!]!
+  pendingQuest: PendingQuest
+}
+
+type CharacterStatus {
+  coins: Coins!
+  currentLifePoints: Int!
+  injuries: [InjuryType!]!
+  level: Int!
+  location: LatLng!
+  maxLifePoints: Int!
+  spells: [Spell!]!
+  title: String!
+  xp: Int!
+}
+
+type City {
+  area: LatLngBounds!
+  citySize: CitySizeType!
+  id: ID!
+  image: String!
+  markerLocation: LatLng!
+  name: String!
+  relatedLore: Lore!
+  size: Int!
+  type: CityType!
+}
+
+enum CitySizeType {
+  capital
+  city
+  village
+}
+
+enum CityType {
+  aarakocraVillage
+  desertVillage
+  devilsCity
+  drusteaCapital
+  drusteaCity
+  drusteaSeaCity
+  drusteaVillage
+  elfCapital
+  flameCenterCapital
+  flameCity
+  flameNorthCapital
+  flameSouthCapital
+  flameVillage
+  forestVillage
+  giantVillage
+  goblinVillage
+  harkenCity
+  liberiaCapital
+  liberiaCity
+  liberiaVillage
+  mirwaCapital
+  mirwaCity
+  mirwaVillage
+  motherCapital
+  motherCity
+  motherVillage
+  mountainVillage
+  necrorianCity
+  northVillage
+  orcVillage
+  talmvereVillage
+  tropicalVillage
+  valanCapital
+  valanCity
+  valanVillage
+}
+
+type Coins {
+  copper: Int!
+  gold: Int!
+  silver: Int!
+}
+
+type Damages {
+  base: [BaseDamage!]!
+  energy: [EnergyDamage!]!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Enemy {
+  baseWeaknesses: [String!]!
+  damages: Damages!
+  energyWeaknesses: [String!]!
+  id: ID!
+  imagePath: String!
+  lifePoints: Int!
+  locations: [LatLng!]!
+  name: String!
+  relatedLore: [Lore!]!
+  spells: [Spell!]!
+  xp: Int!
+}
+
+type EnergyDamage {
+  power: Int!
+  type: String!
+}
+
+type Equipment {
+  arms: EquipmentItem
+  chest: EquipmentItem
+  firstAccessory: EquipmentItem
+  foots: EquipmentItem
+  head: EquipmentItem
+  leftHand: EquipmentItem
+  legs: EquipmentItem
+  rightHand: EquipmentItem
+  secondAccessory: EquipmentItem
+}
+
+type EquipmentItem implements AssetItem {
+  addedSpell: Spell
+  buyPrice: Coins
+  damages: Damages!
+  equipType: String!
+  id: ID!
+  itemType: String!
+  name: String
+  rarity: String
+  sellPrice: Coins
+}
+
+enum InjuryType {
+  blackEye
+  blindness
+  brokenLeftArm
+  brokenLeftLeg
+  brokenRightArm
+  brokenRightLeg
+  crushedLeftHand
+  crushedRightHand
+  deepCut
+  fracturedRib
+  frostbite
+  headConcussion
+  infection
+  internalBleeding
+  missingLeftArm
+  missingLeftEye
+  missingLeftHand
+  missingLeftLeg
+  missingRightArm
+  missingRightEye
+  missingRightHand
+  missingRightLeg
+  paralysis
+  poisonInjection
+  puncturedLung
+  severeBurn
+  spinalInjury
+  traumaticBrainInjury
+}
+
+type LatLng {
+  latitude: Float!
+  longitude: Float!
+}
+
+type LatLngBounds {
+  northEast: LatLng!
+  southWest: LatLng!
+}
+
+type LootItem implements AssetItem {
+  buyPrice: Coins
+  effect: String!
+  id: ID!
+  itemType: String!
+  name: String
+  power: Int!
+  rarity: String
+  sellPrice: Coins
+}
+
+type Lore {
+  description: String!
+  id: ID!
+  image: String
+  locations: [LatLng!]!
+  name: String!
+  relatedLore: [Lore!]!
+  type: String!
+  unlocked: Boolean!
+}
+
+type Mutation {
+  createUser(user: UserInput!): User!
+  deleteUser(id: String!): User!
+  updateUser(user: UserInput!): User!
+}
+
+type PendingQuest {
+  id: ID!
+  quest: Quest!
+  startDate: DateTime!
+  waitingTime: Float!
+}
+
+type Pet {
+  buyPrice: Coins!
+  currentLifePoints: Int!
+  damages: Damages!
+  id: ID!
+  imagePath: String!
+  maxLifePoints: Int!
+  maxXp: Int!
+  name: String!
+  sellPrice: Coins!
+  xp: Int!
+}
+
+type Query {
+  character(id: String!): Character!
+  characters: [Character!]!
+  cities: [City!]!
+  city(id: String!): City!
+  enemy(id: String!): Enemy!
+  enemys: [Enemy!]!
+  equipmentItem(id: String!): EquipmentItem!
+  equipmentItems: [EquipmentItem!]!
+  lootItem(id: String!): LootItem!
+  lootItems: [LootItem!]!
+  lore(id: String!): Lore!
+  lores: [Lore!]!
+  pendingQuest(id: String!): PendingQuest!
+  pendingQuests: [PendingQuest!]!
+  pet(id: String!): Pet!
+  pets: [Pet!]!
+  quest(id: String!): Quest!
+  quests: [Quest!]!
+  spell(id: String!): Spell!
+  spells: [Spell!]!
+  user(id: String!): User!
+  users: [User!]!
+}
+
+type Quest {
+  id: ID!
+  infos: QuestInfos!
+  prizes: QuestPrizes!
+  registeredAdventurers: [String!]!
+  requirements: QuestRequirements!
+}
+
+type QuestInfos {
+  area: LatLngBounds!
+  enemy: Enemy
+  markerLocation: LatLng!
+  relatedLore: [Lore!]!
+  timeToComplete: Int!
+  title: String!
+  type: String!
+}
+
+type QuestPrizes {
+  prizeCoins: Coins!
+  prizeItem: AssetItem
+  randomLoot: [AssetQuantity!]!
+  xpPrize: Int
+}
+
+type QuestRequirements {
+  minTitle: String!
+  recommendedLoot: [AssetQuantity!]!
+  requiredAdventurers: Int!
+  requiredPoints: Int
+}
+
+enum RoleType {
+  adventurer
+  guard
+  innkeeper
+}
+
+type Spell {
+  energyDamage: EnergyDamage!
+  id: ID!
+  maxUsages: Int!
+  minXpToLearn: Int!
+  name: String!
+  recoveryTime: Int!
+  requiredLearnTime: Int!
+  useType: String!
+}
+
+type User {
+  currentCharacter: Character
+  id: ID!
+  role: RoleType!
+  twitchId: String!
+  twitchPoints: Int!
+}
+
+input UserInput {
+  currentCharacter: ID
+  id: ID
+  role: RoleType!
+  twitchId: String!
+  twitchPoints: Int! = 0
+}
