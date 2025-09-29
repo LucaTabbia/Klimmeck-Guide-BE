@@ -8,13 +8,11 @@ export class CitiesService {
     constructor(@InjectModel(City.name) private cityModel: Model<CityDocument>) { }
 
     async findAll(): Promise<City[]> {
-        const cities = await this.cityModel.find().exec();
-        console.log(cities)
-        return cities
+        return await this.cityModel.find().populate("relatedLore").exec();
     }
 
     async findOne(id: string): Promise<City> {
-        const city = await this.cityModel.findById(id).exec();
+        const city = await this.cityModel.findById(id).populate("relatedLore").exec();
         if (!city) throw new NotFoundException(`City with id ${id} not found`);
         return city;
     }

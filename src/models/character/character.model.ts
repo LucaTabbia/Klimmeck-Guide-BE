@@ -10,23 +10,22 @@ import { CharacterAssetsSchema, CharacterAssets, CharacterAssetsInput } from './
 @Schema()
 export class Character {
     @Field(() => ID)
-    @Prop({ type: Types.ObjectId })
     id: string;
 
     @Field(() => CharacterInfos)
-    @Prop({ type: CharacterInfosSchema})
+    @Prop({ type: CharacterInfosSchema })
     infos: CharacterInfos;
 
     @Field(() => CharacterStatus)
-    @Prop({ type: CharacterStatusSchema})
+    @Prop({ type: CharacterStatusSchema })
     status: CharacterStatus;
 
     @Field(() => CharacterQuests)
-    @Prop({ type: CharacterQuestsSchema})
+    @Prop({ type: CharacterQuestsSchema })
     quests: CharacterQuests;
 
     @Field(() => CharacterAssets)
-    @Prop({ type: CharacterAssetsSchema})
+    @Prop({ type: CharacterAssetsSchema })
     assets: CharacterAssets;
 }
 

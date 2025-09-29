@@ -8,11 +8,17 @@ export class LootItemsResolver {
 
     @Query(() => [LootItem])
     async lootItems(): Promise<LootItem[]> {
-        return this.lootItemsService.findAll();
+        return await this.lootItemsService.findAll();
     }
 
     @Query(() => LootItem)
     async lootItem(@Args('id') id: string): Promise<LootItem> {
-        return this.lootItemsService.findOne(id);
+        return await this.lootItemsService.findOne(id);
+    }
+
+
+    @Query(() => [LootItem])
+    async lootItemsByIds(@Args('ids', { type: () => [String] }) ids: string[]): Promise<LootItem[]> {
+        return await this.lootItemsService.findByIds(ids);
     }
 }

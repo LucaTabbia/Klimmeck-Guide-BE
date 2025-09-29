@@ -1,18 +1,18 @@
 import { registerEnumType } from "@nestjs/graphql";
 
 export enum ClassType {
-    barbarian,
-    bard,
-    cleric,
-    druid,
-    fighter,
-    monk,
-    paladin,
-    ranger,
-    rogue,
-    sorcerer,
-    warlock,
-    wizard,
+    barbarian = "barbarian",
+    bard = "bard",
+    cleric = "cleric",
+    druid = "druid",
+    fighter = "fighter",
+    monk = "monk",
+    paladin = "paladin",
+    ranger = "ranger",
+    rogue = "rogue",
+    sorcerer = "sorcerer",
+    warlock = "warlock",
+    wizard = "wizard",
 }
 
 registerEnumType(ClassType, { name: 'ClassType' });

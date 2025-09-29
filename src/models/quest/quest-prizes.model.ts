@@ -8,9 +8,9 @@ import { Coins, CoinsInput, CoinsSchema } from '../common/coins.model';
 @ObjectType()
 @Schema({ _id: false })
 export class QuestPrizes {
-    @Field(() => Coins)
-    @Prop({ type: CoinsSchema })
-    prizeCoins: Coins;
+    @Field(() => Coins, { nullable: true })
+    @Prop({ type: CoinsSchema, default: null })
+    prizeCoins?: Coins;
 
     @Field(() => Int, { nullable: true })
     @Prop({ type: Number, default: null })
@@ -30,8 +30,8 @@ export const QuestPrizesSchema = SchemaFactory.createForClass(QuestPrizes);
 
 @InputType()
 export class QuestPrizesInput {
-    @Field(() => CoinsInput)
-    prizeCoins: CoinsInput;
+    @Field(() => CoinsInput, { nullable: true })
+    prizeCoins?: CoinsInput;
 
     @Field(() => Int, { nullable: true })
     xpPrize?: number | null;

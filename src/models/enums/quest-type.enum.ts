@@ -1,19 +1,18 @@
 import { registerEnumType } from "@nestjs/graphql";
 
 export enum QuestType {
-    hunt,
-    aid,
-    enemy,
-    worldMission,
-    boss,
-    dungeon,
-    story,
-    study,
-    heal,
-    job,
-    crime,
-    guard
+    hunt = "hunt",
+    aid = "aid",
+    enemy = "enemy",
+    worldMission = "worldMission",
+    boss = "boss",
+    dungeon = "dungeon",
+    story = "story",
+    study = "study",
+    heal = "heal",
+    job = "job",
+    crime = "crime",
+    guard = "guard",
 }
 
 registerEnumType(QuestType, { name: 'QuestType' });
-

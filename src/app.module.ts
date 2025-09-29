@@ -20,7 +20,6 @@ import { SpellsModule } from './spells/spells.module';
 import { AppService } from './app.service';
 import mongoose from 'mongoose';
 import { idTransformPlugin } from './mongoose.plugins';
-import { CloudinaryController } from './rest/cloudinary/cloudinary.controller';
 import { CloudinaryModule } from './rest/cloudinary/cloudinary.module';
 
 @Module({

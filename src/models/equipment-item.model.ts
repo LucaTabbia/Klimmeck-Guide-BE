@@ -3,10 +3,11 @@ import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { AssetItem } from './interfaces/asset-item.model';
 import { EquipType } from './enums/equip-type.enum';
-import { SpellSchema, Spell, SpellInput } from './spell.model';
+import { SpellSchema, Spell } from './spell.model';
 import { DamagesSchema, Damages, DamagesInput } from './common/damages.model';
+import { Coins } from './common/coins.model';
 
-@ObjectType({ implements: AssetItem })
+@ObjectType()
 @Schema()
 export class EquipmentItem extends AssetItem {
     @Field(() => String)
@@ -35,19 +36,13 @@ export class EquipmentItemInput {
     name: string;
 
     @Field(() => String, { nullable: true })
-    description?: string | null;
-
-    @Field(() => String, { nullable: true })
-    image?: string | null;
-
-    @Field(() => String, { nullable: true })
     rarity?: string | null;
 
-    @Field(() => Number, { nullable: true })
-    buyPrice?: number | null;
+    @Field(() => Coins, { nullable: true })
+    buyPrice?: Coins | null;
 
-    @Field(() => Number, { nullable: true })
-    sellPrice?: number | null;
+    @Field(() => Coins, { nullable: true })
+    sellPrice?: Coins | null;
 
     @Field(() => EquipType)
     equipType: EquipType;

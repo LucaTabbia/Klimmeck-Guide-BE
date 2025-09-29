@@ -1,16 +1,16 @@
 import { registerEnumType } from "@nestjs/graphql";
 
 export enum InjuryEffect {
-    movementImpairment,
-    visionLoss,
-    bleeding,
-    pain,
-    paralysis,
-    infection,
-    consciousnessLoss,
-    staminaDrain,
-    poisoned,
-    burned
+    movementImpairment = "movementImpairment",
+    visionLoss = "visionLoss",
+    bleeding = "bleeding",
+    pain = "pain",
+    paralysis = "paralysis",
+    infection = "infection",
+    consciousnessLoss = "consciousnessLoss",
+    staminaDrain = "staminaDrain",
+    poisoned = "poisoned",
+    burned = "burned",
 }
 
 registerEnumType(InjuryEffect, { name: 'InjuryEffect' });

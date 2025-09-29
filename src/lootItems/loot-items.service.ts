@@ -16,4 +16,9 @@ export class LootItemsService {
         if (!lootItem) throw new NotFoundException(`LootItem with id ${id} not found`);
         return lootItem;
     }
+
+    async findByIds(ids: string[]): Promise<LootItem[]> {
+        const lootItems = await this.lootItemModel.find({ _id: { $in: ids } }).exec();
+        return lootItems;
+    }
 }

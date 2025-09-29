@@ -9,9 +9,20 @@ export class CloudinaryController {
     ) { }
 
     @Post("getUrls")
-    async getUrls(@Body() body: { folder?: string }) {
+    async getUrls(@Body() body: { folder: string }) {
         try {
             const urls = await this.cloudinaryService.listResources(body.folder);
+            return { urls };
+        } catch (e) {
+            return { message: "Failed to fetch Cloudinary URLs", error: e.message };
+        }
+    }
+
+
+    @Post("getSubfoldersUrls")
+    async getSubfoldersUrls(@Body() body: { folder: string }) {
+        try {
+            const urls = await this.cloudinaryService.listSubfoldersResources(body.folder);
             return { urls };
         } catch (e) {
             return { message: "Failed to fetch Cloudinary URLs", error: e.message };

@@ -1,14 +1,14 @@
 import { registerEnumType } from "@nestjs/graphql";
 
 export enum UseType {
-    defense,
-    attack,
-    control,
-    illusion,
-    charm,
-    confuse,
-    enhance,
-    infuse
+    defense = "defense",
+    attack = "attack",
+    control = "control",
+    illusion = "illusion",
+    charm = "charm",
+    confuse = "confuse",
+    enhance = "enhance",
+    infuse = "infuse",
 }
 
 registerEnumType(UseType, { name: 'UseType' });

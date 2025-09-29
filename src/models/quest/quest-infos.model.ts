@@ -10,9 +10,9 @@ import { Lore, LoreInput } from '../lore.model';
 @ObjectType()
 @Schema({ _id: false })
 export class QuestInfos {
-    @Field(() => Int)
-    @Prop({ type: Number })
-    timeToComplete: number;
+    @Field(() => Int, { nullable: true })
+    @Prop({ type: Number, default: null })
+    timeToComplete?: number;
 
     @Field(() => String)
     @Prop({ type: String })
@@ -44,8 +44,8 @@ export const QuestInfosSchema = SchemaFactory.createForClass(QuestInfos);
 
 @InputType()
 export class QuestInfosInput {
-    @Field(() => Int)
-    timeToComplete: number;
+    @Field(() => Int, { nullable: true })
+    timeToComplete?: number;
 
     @Field()
     title: string;

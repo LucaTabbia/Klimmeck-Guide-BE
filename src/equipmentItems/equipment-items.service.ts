@@ -8,12 +8,17 @@ export class EquipmentItemsService {
     constructor(@InjectModel(EquipmentItem.name) private equipmentItemModel: Model<EquipmentItemDocument>) { }
 
     async findAll(): Promise<EquipmentItem[]> {
-        return await this.equipmentItemModel.find().exec();
+        return await this.equipmentItemModel.find().populate("addedSpell").exec();
     }
 
     async findOne(id: string): Promise<EquipmentItem> {
-        const equipmentItem = await this.equipmentItemModel.findById(id).exec();
+        const equipmentItem = await this.equipmentItemModel.findById(id).populate("addedSpell").exec();
         if (!equipmentItem) throw new NotFoundException(`EquipmentItem with id ${id} not found`);
         return equipmentItem;
+    }
+
+    async findByIds(ids: string[]): Promise<EquipmentItem[]> {
+        const equipmentItems = await this.equipmentItemModel.find({ _id: { $in: ids } }).populate("addedSpell").exec();
+        return equipmentItems;
     }
 }

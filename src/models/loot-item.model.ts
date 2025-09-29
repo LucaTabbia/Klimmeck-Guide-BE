@@ -4,7 +4,7 @@ import { Document } from 'mongoose';
 import { AssetItem } from './interfaces/asset-item.model';
 import { EffectType } from './enums/effect-type.enum';
 
-@ObjectType({ implements: AssetItem })
+@ObjectType()
 @Schema()
 export class LootItem extends AssetItem {
     @Field(() => Int)
@@ -26,12 +26,6 @@ export class LootItemInput {
 
     @Field(() => String)
     name: string;
-
-    @Field(() => String, { nullable: true })
-    description?: string | null;
-
-    @Field(() => String, { nullable: true })
-    image?: string | null;
 
     @Field(() => String, { nullable: true })
     rarity?: string | null;

@@ -9,7 +9,6 @@ import { QuestPrizesSchema, QuestPrizes, QuestPrizesInput } from './quest-prizes
 @Schema()
 export class Quest {
     @Field(() => ID)
-    @Prop({ type: Types.ObjectId })
     id: string;
 
     @Field(() => QuestInfos)

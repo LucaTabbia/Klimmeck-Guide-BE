@@ -8,11 +8,16 @@ export class EquipmentItemsResolver {
 
     @Query(() => [EquipmentItem])
     async equipmentItems(): Promise<EquipmentItem[]> {
-        return this.equipmentItemsService.findAll();
+        return await this.equipmentItemsService.findAll();
+    }
+
+    @Query(() => [EquipmentItem])
+    async equipmentItemsByIds(@Args('ids', { type: () => [String] }) ids: string[]): Promise<EquipmentItem[]> {
+        return await this.equipmentItemsService.findByIds(ids);
     }
 
     @Query(() => EquipmentItem)
     async equipmentItem(@Args('id') id: string): Promise<EquipmentItem> {
-        return this.equipmentItemsService.findOne(id);
+        return await this.equipmentItemsService.findOne(id);
     }
 }

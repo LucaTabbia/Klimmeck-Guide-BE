@@ -7,7 +7,7 @@ type ActiveSpell {
   usages: Int!
 }
 
-interface AssetItem {
+type AssetItem {
   buyPrice: Coins
   id: ID!
   itemType: String!
@@ -173,7 +173,7 @@ type Equipment {
   secondAccessory: EquipmentItem
 }
 
-type EquipmentItem implements AssetItem {
+type EquipmentItem {
   addedSpell: Spell
   buyPrice: Coins
   damages: Damages!
@@ -226,7 +226,7 @@ type LatLngBounds {
   southWest: LatLng!
 }
 
-type LootItem implements AssetItem {
+type LootItem {
   buyPrice: Coins
   effect: String!
   id: ID!
@@ -281,10 +281,13 @@ type Query {
   city(id: String!): City!
   enemy(id: String!): Enemy!
   enemys: [Enemy!]!
+  equipment(id: String!): Equipment!
   equipmentItem(id: String!): EquipmentItem!
   equipmentItems: [EquipmentItem!]!
+  equipmentItemsByIds(ids: [String!]!): [EquipmentItem!]!
   lootItem(id: String!): LootItem!
   lootItems: [LootItem!]!
+  lootItemsByIds(ids: [String!]!): [LootItem!]!
   lore(id: String!): Lore!
   lores: [Lore!]!
   pendingQuest(id: String!): PendingQuest!
@@ -312,13 +315,13 @@ type QuestInfos {
   enemy: Enemy
   markerLocation: LatLng!
   relatedLore: [Lore!]!
-  timeToComplete: Int!
+  timeToComplete: Int
   title: String!
   type: String!
 }
 
 type QuestPrizes {
-  prizeCoins: Coins!
+  prizeCoins: Coins
   prizeItem: AssetItem
   randomLoot: [AssetQuantity!]!
   xpPrize: Int

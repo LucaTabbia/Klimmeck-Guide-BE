@@ -1,11 +1,11 @@
 import { registerEnumType } from "@nestjs/graphql";
 
 export enum RarityType {
-    common,
-    uncommon,
-    rare,
-    ultrarare,
-    legendary
+    common = "common",
+    uncommon = "uncommon",
+    rare = "rare",
+    ultrarare = "ultrarare",
+    legendary = "legendary",
 }
 
 registerEnumType(RarityType, { name: 'RarityType' });
