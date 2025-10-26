@@ -3,11 +3,18 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { EquipmentItem } from '../equipment-item.model';
 import { LootItem } from '../loot-item.model';
+import { ItemUnion } from './item.union';
+
+export type ItemReferenceType = 'EquipmentItem' | 'LootItem';
 
 @ObjectType()
 @Schema({ _id: false })
 export class AssetQuantity {
-    @Field(() => String)
+
+    @Prop({ type: String, required: true, enum: ['EquipmentItem', 'LootItem'] })
+    itemType: ItemReferenceType;
+
+    @Field(() => ItemUnion)
     @Prop({ type: Types.ObjectId, refPath: 'itemType' })
     item: EquipmentItem | LootItem;
 

@@ -1,9 +1,8 @@
 // src/cities/models/city.model.ts
-import { ObjectType, Field, ID, Int, InputType } from '@nestjs/graphql';
+import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { CitySizeType } from './enums/city-size-type.enum';
 import { CityType } from './enums/city-type.enum';
-import { Lore, LoreInput } from './lore.model';
+import { Lore } from './lore.model';
 import { LatLngBounds, LatLngBoundsInput, LatLngBoundsSchema } from './common/lat-lng-bounds.model';
 import { LatLng, LatLngInput, LatLngSchema } from './common/lat-lng.model';
 import { Types } from 'mongoose';
@@ -14,17 +13,9 @@ export class City {
     @Field(() => ID)
     id: string;
 
-    @Field(() => String)
-    @Prop({ type: String })
-    image: string;
-
     @Field(() => CityType)
     @Prop({ type: String, enum: Object.values(CityType) })
     type: CityType;
-
-    @Field(() => CitySizeType)
-    @Prop({ type: String, enum: Object.values(CitySizeType) })
-    citySize: CitySizeType;
 
     @Field(() => LatLngBounds)
     @Prop({ type: LatLngBoundsSchema })
@@ -33,10 +24,6 @@ export class City {
     @Field(() => String)
     @Prop({ type: String })
     name: string;
-
-    @Field(() => Int)
-    @Prop({ type: Number })
-    size: number;
 
     @Field(() => LatLng)
     @Prop({ type: LatLngSchema })
@@ -59,20 +46,11 @@ export class CityInput {
     @Field(() => String)
     name: string;
 
-    @Field(() => String)
-    image: string;
-
     @Field(() => CityType)
     type: CityType;
 
-    @Field(() => CitySizeType)
-    citySize: CitySizeType;
-
     @Field(() => LatLngBoundsInput)
     area: LatLngBoundsInput;
-
-    @Field(() => Int)
-    size: number;
 
     @Field(() => LatLngInput)
     markerLocation: LatLngInput;

@@ -1,6 +1,7 @@
 import { Resolver, Query, Args, Mutation } from '@nestjs/graphql';
 import { LootItemsService } from './loot-items.service';
 import { LootItem } from 'src/models/loot-item.model';
+import { AssetQuantity } from 'src/models/common/asset-quantity.model';
 
 @Resolver(() => LootItem)
 export class LootItemsResolver {
@@ -9,6 +10,11 @@ export class LootItemsResolver {
     @Query(() => [LootItem])
     async lootItems(): Promise<LootItem[]> {
         return await this.lootItemsService.findAll();
+    }
+
+    @Query(() => [AssetQuantity])
+    async lootAssetsQuantity(): Promise<AssetQuantity[]> {
+        return await this.lootItemsService.findAllAssetsQuantity();
     }
 
     @Query(() => LootItem)

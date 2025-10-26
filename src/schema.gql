@@ -7,17 +7,13 @@ type ActiveSpell {
   usages: Int!
 }
 
-type AssetItem {
-  buyPrice: Coins
-  id: ID!
-  itemType: String!
-  name: String
-  rarity: String
-  sellPrice: Coins
+type AssetQuantity {
+  item: ItemUnion!
+  quantity: Int!
 }
 
-type AssetQuantity {
-  item: String!
+input AssetQuantityInput {
+  item: ID
   quantity: Int!
 }
 
@@ -72,20 +68,11 @@ type CharacterStatus {
 
 type City {
   area: LatLngBounds!
-  citySize: CitySizeType!
   id: ID!
-  image: String!
   markerLocation: LatLng!
   name: String!
   relatedLore: Lore!
-  size: Int!
   type: CityType!
-}
-
-enum CitySizeType {
-  capital
-  city
-  village
 }
 
 enum CityType {
@@ -127,6 +114,12 @@ enum CityType {
 }
 
 type Coins {
+  copper: Int!
+  gold: Int!
+  silver: Int!
+}
+
+input CoinsInput {
   copper: Int!
   gold: Int!
   silver: Int!
@@ -177,6 +170,7 @@ type EquipmentItem {
   addedSpell: Spell
   buyPrice: Coins
   damages: Damages!
+  description: String!
   equipType: String!
   id: ID!
   itemType: String!
@@ -216,6 +210,8 @@ enum InjuryType {
   traumaticBrainInjury
 }
 
+union ItemUnion = EquipmentItem | LootItem
+
 type LatLng {
   latitude: Float!
   longitude: Float!
@@ -228,6 +224,7 @@ type LatLngBounds {
 
 type LootItem {
   buyPrice: Coins
+  description: String!
   effect: String!
   id: ID!
   itemType: String!
@@ -251,6 +248,7 @@ type Lore {
 type Mutation {
   createUser(user: UserInput!): User!
   deleteUser(id: String!): User!
+  doTransaction(input: TransactionInput!): TransactionResponse!
   updateUser(user: UserInput!): User!
 }
 
@@ -282,9 +280,11 @@ type Query {
   enemy(id: String!): Enemy!
   enemys: [Enemy!]!
   equipment(id: String!): Equipment!
+  equipmentAssetsQuantity: [AssetQuantity!]!
   equipmentItem(id: String!): EquipmentItem!
   equipmentItems: [EquipmentItem!]!
   equipmentItemsByIds(ids: [String!]!): [EquipmentItem!]!
+  lootAssetsQuantity: [AssetQuantity!]!
   lootItem(id: String!): LootItem!
   lootItems: [LootItem!]!
   lootItemsByIds(ids: [String!]!): [LootItem!]!
@@ -322,7 +322,7 @@ type QuestInfos {
 
 type QuestPrizes {
   prizeCoins: Coins
-  prizeItem: AssetItem
+  prizeItem: AssetQuantity
   randomLoot: [AssetQuantity!]!
   xpPrize: Int
 }
@@ -349,6 +349,24 @@ type Spell {
   recoveryTime: Int!
   requiredLearnTime: Int!
   useType: String!
+}
+
+input TransactionInput {
+  boughtItems: TransactionItems!
+  id: String!
+  isTotalPositive: Boolean!
+  soldItems: TransactionItems!
+  total: CoinsInput!
+}
+
+input TransactionItems {
+  equipAssets: [AssetQuantityInput!]!
+  lootAssets: [AssetQuantityInput!]!
+}
+
+type TransactionResponse {
+  response: String!
+  successful: Boolean!
 }
 
 type User {

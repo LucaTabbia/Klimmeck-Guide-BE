@@ -16,9 +16,9 @@ export class QuestPrizes {
     @Prop({ type: Number, default: null })
     xpPrize?: number | null;
 
-    @Field(() => AssetItem, { nullable: true })
-    @Prop({ type: Types.ObjectId, refPath: 'prizeItem.itemType', default: null })
-    prizeItem?: AssetItem | null;
+    @Field(() => AssetQuantity, { nullable: true })
+    @Prop({ type: AssetQuantitySchema })
+    prizeItem?: AssetQuantity | null;
 
     @Field(() => [AssetQuantity])
     @Prop({ type: [AssetQuantitySchema] })

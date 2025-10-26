@@ -38,6 +38,9 @@ export class EquipmentItemInput {
     @Field(() => String, { nullable: true })
     rarity?: string | null;
 
+    @Field(() => String, { nullable: true })
+    description?: string | null;
+
     @Field(() => Coins, { nullable: true })
     buyPrice?: Coins | null;
 

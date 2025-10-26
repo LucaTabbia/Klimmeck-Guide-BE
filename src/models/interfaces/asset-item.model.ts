@@ -18,6 +18,10 @@ export abstract class AssetItem {
     @Prop({ type: String })
     itemType: string;
 
+    @Field(() => String)
+    @Prop({ type: String })
+    description: string;
+
     @Field(() => Coins, { nullable: true })
     @Prop({ type: Coins })
     sellPrice?: Coins;

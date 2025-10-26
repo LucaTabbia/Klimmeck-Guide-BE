@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { AssetQuantity } from 'src/models/common/asset-quantity.model';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 
 @Injectable()
@@ -9,6 +10,18 @@ export class LootItemsService {
 
     async findAll(): Promise<LootItem[]> {
         return await this.lootItemModel.find().exec();
+    }
+
+    async findAllAssetsQuantity(): Promise<AssetQuantity[]> {
+        let loots = await this.lootItemModel.find().exec();
+
+        const assetsQuantity: AssetQuantity[] = loots.map((loot) => ({
+            itemType: 'LootItem',
+            item: loot,
+            quantity: 0,
+        }));
+
+        return assetsQuantity
     }
 
     async findOne(id: string): Promise<LootItem> {
