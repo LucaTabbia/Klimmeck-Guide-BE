@@ -1,46 +1,46 @@
 import { ObjectType, Field, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
-import { EquipmentItemSchema, EquipmentItem, EquipmentItemInput } from '../equipment-item.model';
+import { Document, Types } from 'mongoose';
+import { EquipmentItem } from '../equipment-item.model';
 
 @ObjectType()
 @Schema({ _id: false })
 export class Equipment {
     @Field(() => EquipmentItem, { nullable: true })
-    @Prop({ type: EquipmentItemSchema, default: null })
-    head?: EquipmentItem | null;
+    @Prop({ type: Types.ObjectId, ref: EquipmentItem.name, default: null })
+    head?: Types.ObjectId | EquipmentItem | null;
 
     @Field(() => EquipmentItem, { nullable: true })
-    @Prop({ type: EquipmentItemSchema, default: null })
-    chest?: EquipmentItem | null;
+    @Prop({ type: Types.ObjectId, ref: EquipmentItem.name, default: null })
+    chest?: Types.ObjectId | EquipmentItem | null;
 
     @Field(() => EquipmentItem, { nullable: true })
-    @Prop({ type: EquipmentItemSchema, default: null })
-    arms?: EquipmentItem | null;
+    @Prop({ type: Types.ObjectId, ref: EquipmentItem.name, default: null })
+    arms?: Types.ObjectId | EquipmentItem | null;
 
     @Field(() => EquipmentItem, { nullable: true })
-    @Prop({ type: EquipmentItemSchema, default: null })
-    legs?: EquipmentItem | null;
+    @Prop({ type: Types.ObjectId, ref: EquipmentItem.name, default: null })
+    legs?: Types.ObjectId | EquipmentItem | null;
 
     @Field(() => EquipmentItem, { nullable: true })
-    @Prop({ type: EquipmentItemSchema, default: null })
-    foots?: EquipmentItem | null;
+    @Prop({ type: Types.ObjectId, ref: EquipmentItem.name, default: null })
+    foots?: Types.ObjectId | EquipmentItem | null;
 
     @Field(() => EquipmentItem, { nullable: true })
-    @Prop({ type: EquipmentItemSchema, default: null })
-    leftHand?: EquipmentItem | null;
+    @Prop({ type: Types.ObjectId, ref: EquipmentItem.name, default: null })
+    leftHand?: Types.ObjectId | EquipmentItem | null;
 
     @Field(() => EquipmentItem, { nullable: true })
-    @Prop({ type: EquipmentItemSchema, default: null })
-    rightHand?: EquipmentItem | null;
+    @Prop({ type: Types.ObjectId, ref: EquipmentItem.name, default: null })
+    rightHand?: Types.ObjectId | EquipmentItem | null;
 
     @Field(() => EquipmentItem, { nullable: true })
-    @Prop({ type: EquipmentItemSchema, default: null })
-    firstAccessory?: EquipmentItem | null;
+    @Prop({ type: Types.ObjectId, ref: EquipmentItem.name, default: null })
+    firstAccessory?: Types.ObjectId | EquipmentItem | null;
 
     @Field(() => EquipmentItem, { nullable: true })
-    @Prop({ type: EquipmentItemSchema, default: null })
-    secondAccessory?: EquipmentItem | null;
+    @Prop({ type: Types.ObjectId, ref: EquipmentItem.name, default: null })
+    secondAccessory?: Types.ObjectId | EquipmentItem | null;
 }
 
 export type EquipmentDocument = Equipment & Document;

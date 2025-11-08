@@ -1,11 +1,11 @@
-import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
+import { ObjectType, Field, Int, InputType, ID, Float } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { Coins, CoinsInput, CoinsSchema } from '../common/coins.model';
 import { InjuryType } from '../enums/injury-type.enum';
 import { TitleType } from '../enums/title-type.enum';
-import { Spell, SpellInput } from '../spell.model';
-import { LatLng, LatLngInput, LatLngSchema } from '../common/lat-lng.model';
+import { Spell } from '../spell.model';
+import { PointOfInterest } from '../point-of-interest.model';
 
 @ObjectType()
 @Schema({ _id: false })
@@ -18,9 +18,9 @@ export class CharacterStatus {
     @Prop({ type: Number, default: 0 })
     level: number;
 
-    @Field(() => LatLng)
-    @Prop({ type: LatLngSchema })
-    location: LatLng;
+    @Field(() => PointOfInterest)
+    @Prop({ type: Types.ObjectId, ref: PointOfInterest.name, required: true })
+    location: Types.ObjectId | PointOfInterest;
 
     @Field(() => String)
     @Prop({ type: String, enum: Object.values(TitleType) })
@@ -59,8 +59,8 @@ export class CharacterStatusInput {
     @Field(() => Int, { nullable: true })
     level?: number;
 
-    @Field(() => LatLngInput)
-    location: LatLngInput;
+    @Field(() => ID)
+    location: string;
 
     @Field(() => String, { nullable: true })
     title?: TitleType;

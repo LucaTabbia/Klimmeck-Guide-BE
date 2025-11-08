@@ -1,7 +1,7 @@
 import { Field, ObjectType } from "@nestjs/graphql";
 
 @ObjectType()
-export class TransactionResponse {
+export class CommonResponse {
     @Field(() => String)
     response: String;
 

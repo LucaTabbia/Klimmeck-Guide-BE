@@ -17,6 +17,7 @@ import { Lore, LoreSchema } from "src/models/lore.model";
 import { PendingQuest, PendingQuestSchema } from "src/models/pending-quest.model";
 import { Pet, PetSchema } from "src/models/pet.model";
 import { Quest, QuestSchema } from "src/models/quest/quest.model";
+import { PointOfInterest, PointOfInterestSchema } from "src/models/point-of-interest.model";
 
 
 @Global()
@@ -41,6 +42,7 @@ import { Quest, QuestSchema } from "src/models/quest/quest.model";
             { name: Pet.name, schema: PetSchema },
             { name: Quest.name, schema: QuestSchema },
             { name: Spell.name, schema: SpellSchema },
+            { name: PointOfInterest.name, schema: PointOfInterestSchema },
         ]),
     ],
 

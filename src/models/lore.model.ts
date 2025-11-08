@@ -2,10 +2,9 @@ import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { LoreType } from './enums/lore-type.enum';
-import { LatLng, LatLngInput, LatLngSchema } from './common/lat-lng.model';
 
 @ObjectType()
-@Schema()
+@Schema({ collection: "lore" })
 export class Lore {
     @Field(() => ID)
     id: string;
@@ -17,10 +16,6 @@ export class Lore {
     @Field(() => String, { nullable: true })
     @Prop({ type: String, default: null })
     image?: string | null;
-
-    @Field(() => [LatLng])
-    @Prop({ type: [LatLngSchema], default: [] })
-    locations: LatLng[];
 
     @Field(() => String)
     @Prop({ type: String, default: null })
@@ -53,9 +48,6 @@ export class LoreInput {
 
     @Field(() => String, { nullable: true })
     image?: string;
-
-    @Field(() => [LatLngInput], { nullable: true })
-    locations?: LatLngInput[];
 
     @Field(() => String, { nullable: true })
     name?: string;

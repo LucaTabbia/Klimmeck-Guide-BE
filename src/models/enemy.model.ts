@@ -1,12 +1,12 @@
-import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
+import { ObjectType, Field, Int, ID, InputType, Float } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { EnergyType } from './enums/energy-type.enum';
 import { DamageType } from './enums/damage-type.enum';
 import { SpellSchema, Spell, SpellInput } from './spell.model';
 import { Damages, DamagesInput, DamagesSchema } from './common/damages.model';
-import { LatLng, LatLngInput, LatLngSchema } from './common/lat-lng.model';
 import { Lore, LoreInput } from './lore.model';
+import { PoiType } from './enums/poi-type.enum';
 
 @ObjectType()
 @Schema()
@@ -18,9 +18,9 @@ export class Enemy {
     @Prop({ type: String })
     name: string;
 
-    @Field(() => [LatLng])
-    @Prop({ type: [LatLngSchema] })
-    locations: LatLng[];
+    @Field(() => [PoiType])
+    @Prop({ type: String, enum: Object.values(PoiType) })
+    locations: PoiType[];
 
     @Field(() => [String])
     @Prop({ type: [String], enum: Object.values(EnergyType) })
@@ -66,8 +66,8 @@ export class EnemyInput {
     @Field(() => String)
     name: string;
 
-    @Field(() => [LatLngInput])
-    locations: LatLngInput[];
+    @Field(() => [PoiType])
+    locations: PoiType[];
 
     @Field(() => [EnergyType])
     energyWeaknesses: EnergyType[];

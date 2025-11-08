@@ -1,11 +1,10 @@
-// src/cities/models/city.model.ts
-import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { CityType } from './enums/city-type.enum';
-import { Lore } from './lore.model';
-import { LatLngBounds, LatLngBoundsInput, LatLngBoundsSchema } from './common/lat-lng-bounds.model';
-import { LatLng, LatLngInput, LatLngSchema } from './common/lat-lng.model';
-import { Types } from 'mongoose';
+import { ObjectType, Field, ID, Float, InputType } from "@nestjs/graphql";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Types } from "mongoose";
+import { CityType } from "./enums/city-type.enum";
+import { Lore } from "./lore.model";
+import { PointOfInterest } from "./point-of-interest.model";
+
 
 @ObjectType()
 @Schema()
@@ -17,22 +16,27 @@ export class City {
     @Prop({ type: String, enum: Object.values(CityType) })
     type: CityType;
 
-    @Field(() => LatLngBounds)
-    @Prop({ type: LatLngBoundsSchema })
-    area: LatLngBounds;
+    @Field(() => [[Float]])
+    @Prop({ type: [[Number]], default: [] })
+    area: number[][];
 
     @Field(() => String)
     @Prop({ type: String })
     name: string;
 
-    @Field(() => LatLng)
-    @Prop({ type: LatLngSchema })
-    markerLocation: LatLng;
+    @Field(() => PointOfInterest)
+    @Prop({ type: Types.ObjectId, ref: 'PointOfInterest', required: true })
+    markerLocation: Types.ObjectId | PointOfInterest;
 
-    @Field(() => Lore)
-    @Prop({ type: Types.ObjectId, ref: Lore.name })
-    relatedLore: Lore;
+    @Field(() => Lore, { nullable: true })
+    @Prop({ type: Types.ObjectId, ref: Lore.name, required: false })
+    relatedLore?: Types.ObjectId | Lore | null;
+
+    @Field(() => [PointOfInterest], { nullable: true })
+    @Prop({ type: [{ type: Types.ObjectId, ref: 'PointOfInterest' }], default: [] })
+    pointsOfInterest?: (Types.ObjectId | PointOfInterest)[];
 }
+
 
 export type CityDocument = City & Document;
 export const CitySchema = SchemaFactory.createForClass(City);
@@ -49,13 +53,15 @@ export class CityInput {
     @Field(() => CityType)
     type: CityType;
 
-    @Field(() => LatLngBoundsInput)
-    area: LatLngBoundsInput;
+    @Field(() => [[Float]])
+    area: number[][];
 
-    @Field(() => LatLngInput)
-    markerLocation: LatLngInput;
+    @Field(() => ID)
+    markerLocation: string;
 
     @Field(() => ID, { nullable: true })
     relatedLore?: string | null;
-}
 
+    @Field(() => [ID])
+    pointsOfInterest: string[];
+}

@@ -1,0 +1,35 @@
+import { registerEnumType } from "@nestjs/graphql";
+
+export enum PoiType {
+    battleground = "battleground",
+    all = "all",
+    vulcano = "vulcano",
+    ruins = "ruins",
+    dungeon = "dungeon",
+    city = "city",
+    demonicPortal = "demonicPortal",
+    graveyard = "graveyard",
+    swamp = "swamp",
+    oasis = "oasis",
+    harkenIsland = "harkenIsland",
+    hills = "hills",
+    minnelyForest = "minnelyForest",
+    farNorth = "farNorth",
+    drusteaPlains = "drusteaPlains",
+    undergroundLamstone = "undergroundLamstone",
+    mountainLamstone = "mountainLamstone",
+    glounet = "glounet",
+    desert = "desert",
+    liberiaIsland = "liberiaIsland",
+    valanPlains = "valanPlains",
+    belleholmLake = "belleholmLake",
+    belleholmIsland = "belleholmIsland",
+    temistosLake = "temistosLake",
+    undergroundTemistos = "undergroundTemistos",
+    ladows = "ladows",
+    delants = "delants",
+    mountainTemistos = "mountainTemistos",
+    forest = "forest",
+}
+
+registerEnumType(PoiType, { name: 'PoiType' });

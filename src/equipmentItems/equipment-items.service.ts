@@ -12,8 +12,14 @@ export class EquipmentItemsService {
         return await this.equipmentItemModel.find().populate("addedSpell").exec();
     }
 
-    async findAllAssetsQuantity(): Promise<AssetQuantity[]> {
-        let equipments = await this.equipmentItemModel.find().populate("addedSpell").exec();
+    async findAllAssetsQuantity(sellable: boolean = false): Promise<AssetQuantity[]> {
+        let query = this.equipmentItemModel.find();
+
+        if (sellable) {
+            query = query.where({ sellable: true });
+        }
+
+        let equipments = await query.populate("addedSpell").exec()
 
         const assetsQuantity: AssetQuantity[] = equipments.map((equip) => ({
             itemType: 'EquipmentItem',

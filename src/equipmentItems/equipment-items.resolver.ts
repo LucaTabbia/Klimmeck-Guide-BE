@@ -13,8 +13,8 @@ export class EquipmentItemsResolver {
     }
 
     @Query(() => [AssetQuantity])
-    async equipmentAssetsQuantity(): Promise<AssetQuantity[]> {
-        return await this.equipmentItemsService.findAllAssetsQuantity();
+    async equipmentAssetsQuantity(@Args('sellable', { type: () => Boolean, nullable: true }) sellable?: boolean): Promise<AssetQuantity[]> {
+        return await this.equipmentItemsService.findAllAssetsQuantity(sellable);
     }
 
     @Query(() => [EquipmentItem])

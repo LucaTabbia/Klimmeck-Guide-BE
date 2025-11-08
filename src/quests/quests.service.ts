@@ -8,11 +8,11 @@ export class QuestsService {
     constructor(@InjectModel(Quest.name) private questModel: Model<QuestDocument>) { }
 
     async findAll(): Promise<Quest[]> {
-        return await this.questModel.find().exec();
+        return await this.questModel.find().populate('infos.markerLocation').exec();
     }
 
     async findOne(id: string): Promise<Quest> {
-        const quest = await this.questModel.findById(id).exec();
+        const quest = await this.questModel.findById(id).populate('infos.markerLocation').exec();
         if (!quest) throw new NotFoundException(`Quest with id ${id} not found`);
         return quest;
     }

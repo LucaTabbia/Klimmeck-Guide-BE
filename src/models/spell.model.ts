@@ -15,6 +15,10 @@ export class Spell {
     name: string;
 
     @Field(() => String)
+    @Prop({ type: String })
+    description: string;
+
+    @Field(() => String)
     @Prop({ type: String, enum: Object.values(UseType) })
     useType: UseType;
 
@@ -50,6 +54,9 @@ export class SpellInput {
 
     @Field(() => String)
     name: string;
+
+    @Field(() => String)
+    description: string;
 
     @Field(() => UseType)
     useType: UseType;

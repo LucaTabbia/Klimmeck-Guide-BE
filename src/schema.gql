@@ -59,7 +59,7 @@ type CharacterStatus {
   currentLifePoints: Int!
   injuries: [InjuryType!]!
   level: Int!
-  location: LatLng!
+  location: PointOfInterest!
   maxLifePoints: Int!
   spells: [Spell!]!
   title: String!
@@ -67,37 +67,36 @@ type CharacterStatus {
 }
 
 type City {
-  area: LatLngBounds!
+  area: [[Float!]!]!
   id: ID!
-  markerLocation: LatLng!
+  markerLocation: PointOfInterest!
   name: String!
-  relatedLore: Lore!
+  pointsOfInterest: [PointOfInterest!]
+  relatedLore: Lore
   type: CityType!
 }
 
 enum CityType {
   aarakocraVillage
   desertVillage
-  devilsCity
   drusteaCapital
   drusteaCity
   drusteaSeaCity
   drusteaVillage
   elfCapital
+  ferrionCity
   flameCenterCapital
   flameCity
   flameNorthCapital
   flameSouthCapital
   flameVillage
   forestVillage
-  giantVillage
-  goblinVillage
-  harkenCity
   liberiaCapital
   liberiaCity
   liberiaVillage
   mirwaCapital
   mirwaCity
+  mirwaSeaCity
   mirwaVillage
   motherCapital
   motherCity
@@ -105,11 +104,11 @@ enum CityType {
   mountainVillage
   necrorianCity
   northVillage
-  orcVillage
   talmvereVillage
   tropicalVillage
   valanCapital
   valanCity
+  valanSeaCity
   valanVillage
 }
 
@@ -123,6 +122,11 @@ input CoinsInput {
   copper: Int!
   gold: Int!
   silver: Int!
+}
+
+type CommonResponse {
+  response: String!
+  successful: Boolean!
 }
 
 type Damages {
@@ -142,7 +146,7 @@ type Enemy {
   id: ID!
   imagePath: String!
   lifePoints: Int!
-  locations: [LatLng!]!
+  locations: [PoiType!]!
   name: String!
   relatedLore: [Lore!]!
   spells: [Spell!]!
@@ -152,6 +156,12 @@ type Enemy {
 type EnergyDamage {
   power: Int!
   type: String!
+}
+
+input EquipItemRequest {
+  id: String!
+  itemId: String
+  slotType: SlotType!
 }
 
 type Equipment {
@@ -212,16 +222,6 @@ enum InjuryType {
 
 union ItemUnion = EquipmentItem | LootItem
 
-type LatLng {
-  latitude: Float!
-  longitude: Float!
-}
-
-type LatLngBounds {
-  northEast: LatLng!
-  southWest: LatLng!
-}
-
 type LootItem {
   buyPrice: Coins
   description: String!
@@ -238,7 +238,6 @@ type Lore {
   description: String!
   id: ID!
   image: String
-  locations: [LatLng!]!
   name: String!
   relatedLore: [Lore!]!
   type: String!
@@ -248,8 +247,14 @@ type Lore {
 type Mutation {
   createUser(user: UserInput!): User!
   deleteUser(id: String!): User!
-  doTransaction(input: TransactionInput!): TransactionResponse!
+  doTransaction(request: TransactionRequest!): CommonResponse!
+  equipItem(request: EquipItemRequest!): CommonResponse!
   updateUser(user: UserInput!): User!
+}
+
+type PathResponse {
+  distance: Float!
+  time: Float!
 }
 
 type PendingQuest {
@@ -272,6 +277,46 @@ type Pet {
   xp: Int!
 }
 
+enum PoiType {
+  all
+  battleground
+  belleholmIsland
+  belleholmLake
+  city
+  delants
+  demonicPortal
+  desert
+  drusteaPlains
+  dungeon
+  farNorth
+  forest
+  glounet
+  graveyard
+  harkenIsland
+  hills
+  ladows
+  liberiaIsland
+  minnelyForest
+  mountainLamstone
+  mountainTemistos
+  oasis
+  ruins
+  swamp
+  temistosLake
+  undergroundLamstone
+  undergroundTemistos
+  valanPlains
+  vulcano
+}
+
+type PointOfInterest {
+  city: City
+  id: ID!
+  location: [Float!]!
+  quest: ID
+  type: [PoiType!]!
+}
+
 type Query {
   character(id: String!): Character!
   characters: [Character!]!
@@ -280,10 +325,11 @@ type Query {
   enemy(id: String!): Enemy!
   enemys: [Enemy!]!
   equipment(id: String!): Equipment!
-  equipmentAssetsQuantity: [AssetQuantity!]!
+  equipmentAssetsQuantity(sellable: Boolean): [AssetQuantity!]!
   equipmentItem(id: String!): EquipmentItem!
   equipmentItems: [EquipmentItem!]!
   equipmentItemsByIds(ids: [String!]!): [EquipmentItem!]!
+  getPath(from: ID!, to: ID!): PathResponse!
   lootAssetsQuantity: [AssetQuantity!]!
   lootItem(id: String!): LootItem!
   lootItems: [LootItem!]!
@@ -294,6 +340,8 @@ type Query {
   pendingQuests: [PendingQuest!]!
   pet(id: String!): Pet!
   pets: [Pet!]!
+  pointOfInterest(id: String!): PointOfInterest!
+  pointOfInterests: [PointOfInterest!]!
   quest(id: String!): Quest!
   quests: [Quest!]!
   spell(id: String!): Spell!
@@ -311,9 +359,8 @@ type Quest {
 }
 
 type QuestInfos {
-  area: LatLngBounds!
   enemy: Enemy
-  markerLocation: LatLng!
+  markerLocation: PointOfInterest!
   relatedLore: [Lore!]!
   timeToComplete: Int
   title: String!
@@ -340,7 +387,20 @@ enum RoleType {
   innkeeper
 }
 
+enum SlotType {
+  arms
+  chest
+  firstAccessory
+  foots
+  head
+  leftHand
+  legs
+  rightHand
+  secondAccessory
+}
+
 type Spell {
+  description: String!
   energyDamage: EnergyDamage!
   id: ID!
   maxUsages: Int!
@@ -351,12 +411,8 @@ type Spell {
   useType: String!
 }
 
-input TransactionInput {
-  boughtItems: TransactionItems!
-  id: String!
-  isTotalPositive: Boolean!
-  soldItems: TransactionItems!
-  total: CoinsInput!
+type Subscription {
+  characterUpdated(id: String!): Character!
 }
 
 input TransactionItems {
@@ -364,9 +420,12 @@ input TransactionItems {
   lootAssets: [AssetQuantityInput!]!
 }
 
-type TransactionResponse {
-  response: String!
-  successful: Boolean!
+input TransactionRequest {
+  boughtItems: TransactionItems!
+  id: String!
+  isTotalPositive: Boolean!
+  soldItems: TransactionItems!
+  total: CoinsInput!
 }
 
 type User {

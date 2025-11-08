@@ -1,13 +1,20 @@
-import { Resolver, Query, Args, Mutation } from '@nestjs/graphql';
+import { Resolver, Query, Args, Mutation, Subscription } from '@nestjs/graphql';
 import { CharactersService } from './characters.service';
 import { Character } from 'src/models/character/character.model';
 import { Equipment } from 'src/models/common/equipment.model';
-import { TransactionInput } from 'src/models/common/transaction-input.model';
-import { TransactionResponse } from 'src/models/common/transaction-response.model';
+import { CommonResponse } from 'src/models/common/common-response.model';
+import { Inject } from '@nestjs/common';
+import type { PubSub } from '@graphql-yoga/subscription';
+import { PubSubEvents } from 'src/pubsub.module';
+import { TransactionRequest } from 'src/models/request/transaction-request.model';
+import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 
 @Resolver(() => Character)
 export class CharactersResolver {
-    constructor(private charactersService: CharactersService) { }
+    constructor(
+        private readonly charactersService: CharactersService,
+        @Inject('PUB_SUB') private pubSub: PubSub<PubSubEvents>
+    ) { }
 
     @Query(() => [Character])
     async characters(): Promise<Character[]> {
@@ -24,9 +31,28 @@ export class CharactersResolver {
         return this.charactersService.getEquipment(id);
     }
 
-    @Mutation(() => TransactionResponse)
+    @Mutation(() => CommonResponse)
     async doTransaction(
-        @Args('input', { type: () => TransactionInput }) input: TransactionInput): Promise<TransactionResponse> {
-        return this.charactersService.doTransaction(input);
+        @Args('request', { type: () => TransactionRequest }) request: TransactionRequest,
+    ): Promise<CommonResponse> {
+        return this.charactersService.doTransaction(request);
+    }
+
+
+    @Mutation(() => CommonResponse)
+    async equipItem(
+        @Args('request', { type: () => EquipItemRequest }) request: EquipItemRequest,
+    ): Promise<CommonResponse> {
+        return this.charactersService.equipItem(request);
+    }
+
+    @Subscription(() => Character, {
+        name: 'characterUpdated',
+        filter: (payload, variables) => {
+            return payload.characterUpdated._id.toString() === variables.id;
+        },
+    })
+    characterUpdated(@Args('id') id: string) {
+        return this.pubSub.subscribe('characterUpdated');
     }
 }

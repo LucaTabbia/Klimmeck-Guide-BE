@@ -21,6 +21,9 @@ import { AppService } from './app.service';
 import mongoose from 'mongoose';
 import { idTransformPlugin } from './mongoose.plugins';
 import { CloudinaryModule } from './rest/cloudinary/cloudinary.module';
+import { PubSubModule } from './pubsub.module';
+import { RoadsModule } from './roads/roads.module';
+import { PointOfInterestModule } from './pointsOfInterest/point-of-interest.module';
 
 @Module({
   imports: [
@@ -29,6 +32,7 @@ import { CloudinaryModule } from './rest/cloudinary/cloudinary.module';
       isGlobal: true,
     }),
     MongoModule,
+    PubSubModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       playground: false,
@@ -39,7 +43,6 @@ import { CloudinaryModule } from './rest/cloudinary/cloudinary.module';
       sortSchema: true,
       subscriptions: {
         "graphql-ws": true,
-        "subscriptions-transport-ws": true,
       },
       path: "/api/graphql",
     }),
@@ -54,10 +57,14 @@ import { CloudinaryModule } from './rest/cloudinary/cloudinary.module';
     PetsModule,
     QuestsModule,
     SpellsModule,
+    RoadsModule,
+    PointOfInterestModule,
     CloudinaryModule
   ],
   controllers: [AppController],
-  providers: [AppService]
+  providers: [
+    AppService
+  ]
 })
 export class AppModule {
   constructor() {

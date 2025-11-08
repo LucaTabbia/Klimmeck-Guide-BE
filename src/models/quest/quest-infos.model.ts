@@ -1,11 +1,10 @@
-import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
+import { ObjectType, Field, Int, InputType, ID, Float } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { QuestType } from '../enums/quest-type.enum';
-import { LatLng, LatLngInput, LatLngSchema } from '../common/lat-lng.model';
 import { Enemy } from '../enemy.model';
-import { LatLngBounds, LatLngBoundsInput, LatLngBoundsSchema } from '../common/lat-lng-bounds.model';
-import { Lore, LoreInput } from '../lore.model';
+import { Lore } from '../lore.model';
+import { PointOfInterest } from '../point-of-interest.model';
 
 @ObjectType()
 @Schema({ _id: false })
@@ -26,13 +25,9 @@ export class QuestInfos {
     @Prop({ type: String, enum: Object.values(QuestType) })
     type: QuestType;
 
-    @Field(() => LatLngBounds)
-    @Prop({ type: LatLngBoundsSchema })
-    area: LatLngBounds;
-
-    @Field(() => LatLng)
-    @Prop({ type: LatLngSchema })
-    markerLocation: LatLng;
+    @Field(() => PointOfInterest)
+    @Prop({ type: Types.ObjectId, ref: PointOfInterest.name, required: true })
+    markerLocation: Types.ObjectId | PointOfInterest;
 
     @Field(() => [Lore])
     @Prop({ type: [Types.ObjectId], ref: Lore.name })
@@ -56,11 +51,8 @@ export class QuestInfosInput {
     @Field(() => QuestType)
     type: QuestType;
 
-    @Field(() => LatLngBoundsInput)
-    area: LatLngBoundsInput;
-
-    @Field(() => LatLngInput)
-    markerLocation: LatLngInput;
+    @Field(() => ID)
+    markerLocation: string;
 
     @Field(() => [ID])
     relatedLore: string[];
