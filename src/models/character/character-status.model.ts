@@ -45,11 +45,25 @@ export class CharacterStatus {
     @Field(() => Int)
     @Prop({ type: Number })
     maxLifePoints: number;
+
+    @Field(() => Int)
+    maxActiveSpells: number;
 }
 
 export type CharacterStatusDocument = CharacterStatus & Document;
-export const CharacterStatusSchema = SchemaFactory.createForClass(CharacterStatus);
+export const CharacterStatusSchema = (() => {
+    const schema = SchemaFactory.createForClass(CharacterStatus);
+    schema.virtual('maxActiveSpells').get(function (this: CharacterStatus) {
+        const xp = this.xp ?? 0;
+        if (xp < 20000) return 0;
+        if (xp < 25000) return 1;
+        if (xp < 30000) return 2;
+        if (xp < 40000) return 3;
+        return 4;
+    });
 
+    return schema;
+})();
 
 @InputType()
 export class CharacterStatusInput {

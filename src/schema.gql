@@ -3,7 +3,7 @@
 # ------------------------------------------------------
 
 type ActiveSpell {
-  spell: Spell!
+  spell: Spell
   usages: Int!
 }
 
@@ -60,6 +60,7 @@ type CharacterStatus {
   injuries: [InjuryType!]!
   level: Int!
   location: PointOfInterest!
+  maxActiveSpells: Int!
   maxLifePoints: Int!
   spells: [Spell!]!
   title: String!

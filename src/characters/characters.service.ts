@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, OnModuleInit, Logger, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit, Logger, Inject, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { PubSub } from 'graphql-subscriptions';
@@ -11,6 +11,9 @@ import { EquipmentItem } from 'src/models/equipment-item.model';
 import { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { SlotType } from 'src/models/enums/slot_type.enum';
+import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
+import { Spell } from 'src/models/spell.model';
+import { ActiveSpell } from 'src/models/common/active-spell.model';
 
 @Injectable()
 export class CharactersService implements OnModuleInit {
@@ -62,6 +65,10 @@ export class CharactersService implements OnModuleInit {
                 populate: { path: 'addedSpell' },
             })
             .populate({
+                path: 'status.spells',
+                model: 'Spell',
+            })
+            .populate({
                 path: 'status.location',
             })
             .populate({
@@ -97,6 +104,24 @@ export class CharactersService implements OnModuleInit {
                 }
             }
         });
+
+        const activeSpellMap = new Map<string, number>();
+        character.assets.activeSpells.forEach(a => {
+            if (a.spell instanceof Types.ObjectId) {
+                activeSpellMap.set(a.spell.toString(), a.usages);
+            }
+        });
+
+        const activeSpells: ActiveSpell[] = [];
+
+        character.status.spells.forEach(spell => {
+            const usages = activeSpellMap.get(spell.id);
+            if (usages !== undefined) {
+                activeSpells.push({ spell, usages });
+            }
+        });
+
+        character.assets.activeSpells = activeSpells;
 
         return character;
     }
@@ -171,6 +196,36 @@ export class CharactersService implements OnModuleInit {
         await character.save();
         return {
             response: 'Equipaggiamento cambiato con successo',
+            successful: true,
+        };
+    }
+
+    async equipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
+        const character = await this.characterModel.findById(request.id).exec();
+        if (!character) throw new NotFoundException(`Character with id ${request.id} not found`);
+        if (character.status.maxActiveSpells <= character.assets.activeSpells.length) {
+            throw new BadRequestException(`Character with id ${request.id} has too many active spells`);
+        } else {
+            character.assets.activeSpells = [...character.assets.activeSpells, { spell: new Types.ObjectId(request.spellId), usages: request.usages! }]
+        }
+        await character.save();
+        return {
+            response: 'Magia equipaggiata con successo',
+            successful: true,
+        };
+    }
+
+    async unequipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
+        const character = await this.characterModel.findById(request.id).exec();
+        if (!character) throw new NotFoundException(`Character with id ${request.id} not found`);
+        if (character.assets.activeSpells.length == 0) {
+            throw new NotFoundException(`Character with id ${request.id} has no active spells`);
+        } else {
+            character.assets.activeSpells = character.assets.activeSpells.filter((spell) => spell.spell != new Types.ObjectId(request.spellId))
+        }
+        await character.save();
+        return {
+            response: 'Magia disequipaggiata con successo',
             successful: true,
         };
     }

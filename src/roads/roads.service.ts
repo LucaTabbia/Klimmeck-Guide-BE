@@ -130,19 +130,17 @@ export class RoadsService implements OnModuleInit {
 
         if (!this.graph.hasNode(start)) {
             const nearestStart = this.findNearestNode(startCoord);
-            console.warn(`⚠️ Snapping Start: ${nearestStart}`);
             start = nearestStart;
         }
 
         if (!this.graph.hasNode(end)) {
             const nearestEnd = this.findNearestNode(endCoord);
-            console.warn(`⚠️ Snapping End: ${nearestEnd}`);
             end = nearestEnd;
         }
 
 
         const path = dijkstra.bidirectional(this.graph, start, end, (e, attr) => attr.weight);
-        if (!path || path.length < 2) throw new Error('❌ Nessun percorso trovato tra i due punti');
+        if (!path || path.length < 2) throw new Error('Nessun percorso trovato tra i due punti');
 
         let totalLengthKm = 0;
         let totalTimeHours = 0;

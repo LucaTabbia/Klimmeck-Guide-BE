@@ -6,9 +6,9 @@ import { Spell } from '../spell.model';
 @ObjectType()
 @Schema(({ _id: false }))
 export class ActiveSpell {
-    @Field(() => Spell)
-    @Prop({ type: Types.ObjectId, ref: Spell.name })
-    spell: Spell;
+    @Field(() => Spell, { nullable: true })
+    @Prop({ type: Types.ObjectId, ref: Spell.name, default: null })
+    spell?: Types.ObjectId | Spell | null;
 
     @Field(() => Int)
     @Prop({ type: Number })
