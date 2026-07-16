@@ -41,7 +41,7 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 - [ ] Contratto combat result ibrido: entità `CombatResult` persistita, payload completo su subscription, ID su push FCM, query `combatResult(id)`
 - [ ] Integrità dati: operazioni atomiche (transazioni Mongo/optimistic locking) su coins, twitchPoints, quest accept, spell usages, teleport
 - [ ] Validazione input (class-validator + ValidationPipe globale) e hardening GraphQL (introspection off in prod, error sanitization, CORS esplicito)
-- [ ] Fondazione test TDD: mongodb-memory-server (replica set) + ioredis-mock, fixture/factory, coverage sulle aree critiche
+- [ ] Fondazione test TDD: mongodb-memory-server (replica set), Bull mockato al confine DI (unit) + Redis effimero reale (integration), fixture/factory, coverage sulle aree critiche
 
 ### Out of Scope
 
@@ -80,7 +80,7 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 | Modalità dev auth compatibile con stub FE | Le fasi FE 2–10 usano `DEV_AUTH_ACCESS_TOKEN` statico; il guard BE in dev accetta quell'identità configurata, così l'auth BE può atterrare subito senza bloccare il FE | — Pending |
 | Combat result ibrido (payload su subscription + ID su push + query per requery) | COMBAT-01..07 FE: foreground riceve tutto in un evento, background riquera dall'ID del push; l'entità persistita supporta il queueing (COMBAT-07) | — Pending |
 | Sync punti canale via Twitch EventSub webhook | L'API Twitch non espone il saldo punti dei viewer: le redemption di custom reward sono l'unico segnale. EventSub è real-time e non consuma rate limit; richiede endpoint HTTPS pubblico + verifica firma HMAC | — Pending |
-| Test: mongodb-memory-server (replica set) + ioredis-mock | Veloce, zero Docker in locale e CI; il replica set supporta change stream e transazioni Mongo richieste dalle feature di atomicità | — Pending |
+| Test: mongodb-memory-server (replica set); Bull mockato al confine DI negli unit test + Redis effimero reale nei test di integrazione dei processor | Il replica set supporta change stream e transazioni Mongo richieste dalle feature di atomicità. La scelta iniziale "ioredis-mock" è stata corretta dalla ricerca: non supporta i comandi bloccanti/Lua richiesti da Bull | — Pending |
 | Bull + Redis per job differiti (spell recovery, e in prospettiva travel completion) | Già introdotto nel WIP; scheduling affidabile con delay, sopravvive al restart | — Pending |
 | Backend fonte di verità (ETA viaggi, progressione, combat, slot magie) | Decisione di progetto FE-BE già consolidata; il FE è puramente reattivo | ✓ Good |
 
