@@ -2,7 +2,7 @@
 phase: 1
 slug: fondazione-test-consolidamento-spell-wip
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-07-16
 ---
@@ -38,12 +38,14 @@ created: 2026-07-16
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD (dal planner) | — | — | BE-TEST-01 | — | replSet avvia; transazione Mongo e change stream su Character passano | integration | `npm test -- --selectProjects integration` | ❌ W0 | ⬜ pending |
-| TBD (dal planner) | — | — | BE-TEST-02 | — | service risolto con coda Bull mockata (`getQueueToken`), nessun Redis | unit | `npm test -- characters.service.spec.ts` | ❌ W0 | ⬜ pending |
-| TBD (dal planner) | — | — | BE-TEST-02 | — | processor `spell-recovery` gira contro Redis reale effimero | integration | `npm test -- spell-recovery.processor.spec.ts` | ❌ W0 | ⬜ pending |
-| TBD (dal planner) | — | — | BE-TEST-03 | — | fixture/factory valide per User/Character/Quest/Spell/Road/POI riusate in ≥2 spec | unit + integration | usate dalle spec sopra | ❌ W0 | ⬜ pending |
-| TBD (dal planner) | — | — | BE-TEST-04 | — | `useSpell` verifica la spell prima di decrementare (RED→GREEN) | unit | `npm test -- characters.service.spec.ts -t "useSpell"` | ❌ W0 | ⬜ pending |
-| TBD (dal planner) | — | — | BE-TEST-04 | — | `handleSpellRecovery` incrementa `usages` sul Character | integration | `npm test -- spell-recovery.processor.spec.ts` | ❌ W0 | ⬜ pending |
+| P01-T3 | 01-01 | 1 | BE-TEST-01 | T-01-01/02 | replSet avvia; transazione Mongo (commit+abort) e change stream passano | integration | `npm run test:int -- test/harness/replset.int-spec.ts` | ❌ W0→P01 | ⬜ pending |
+| P01-T1/T2 | 01-01 | 1 | BE-TEST-02 | T-01-03 | split unit/integration via Jest projects; helper Redis effimero (no ioredis-mock) | infra | `npm run test:unit` | ❌ W0→P01 | ⬜ pending |
+| P02-T3 | 01-02 | 2 | BE-TEST-03 | T-01-04/05 | fixture/factory valide per User/Character/Quest/Spell/Road/POI riusate in ≥2 spec | unit + integration | `npm run test:unit -- test/fixtures/fixtures.spec.ts` ; `npm run test:int -- test/fixtures/fixtures.int-spec.ts` | ❌ W0→P02 | ⬜ pending |
+| P03-T1 | 01-03 | 3 | BE-TEST-02 | — | service risolto con coda Bull mockata (`getQueueToken`), nessun Redis | unit | `npm run test:unit -- src/characters/characters.service.spec.ts` | ❌ W0→P03 | ⬜ pending |
+| P03-T1/T2 | 01-03 | 3 | BE-TEST-04 | T-01-06 | `useSpell` verifica la spell prima di decrementare (RED→GREEN) | unit | `npm run test:unit -- src/characters/characters.service.spec.ts -t "useSpell"` | ❌ W0→P03 | ⬜ pending |
+| P03-T3 | 01-03 | 3 | BE-TEST-02, BE-TEST-04 | T-01-07 | processor `spell-recovery` gira su Redis reale; `handleSpellRecovery` incrementa usages | integration | `npm run test:int -- src/characters/spell-recovery.processor.int-spec.ts` | ❌ W0→P03 | ⬜ pending |
+| P03-T3 | 01-03 | 3 | BE-TEST-01 | T-01-07 | change stream Character → PUB_SUB emette `characterUpdated` (D-09) | integration | `npm run test:int -- test/harness/character-changestream.int-spec.ts` | ❌ W0→P03 | ⬜ pending |
+| P04-T1 | 01-04 | 4 | BE-TEST-01 | T-01-09/11 | CI GitHub Actions: lint+unit+integration, Redis container, cache binari Mongo, trigger ogni push | ci | (GitHub Actions run verde) | ❌ W0→P04 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -78,4 +80,4 @@ created: 2026-07-16
 - [ ] Feedback latency < 60s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** map populated by planner (4 plans, 4 waves)
