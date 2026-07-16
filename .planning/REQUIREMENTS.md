@@ -114,27 +114,58 @@ Deferred a post-v1.0. Tracciati ma non nella roadmap corrente.
 
 ## Traceability
 
-Populated during roadmap creation.
+Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esattamente una fase.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BE-TEST-01..04 | TBD | Pending |
-| BE-AUTH-01..06 | TBD | Pending |
-| BE-AUTHZ-01..04 | TBD | Pending |
-| BE-ATOM-01..05 | TBD | Pending |
-| BE-NOTIF-01..03 | TBD | Pending |
-| BE-POINTS-01..03 | TBD | Pending |
-| BE-QUEST-01..04 | TBD | Pending |
-| BE-TRAVEL-01..04 | TBD | Pending |
-| BE-COMBAT-01..03 | TBD | Pending |
-| BE-ADMIN-01..02 | TBD | Pending |
-| BE-HARD-01..04 | TBD | Pending |
+| BE-TEST-01 | Phase 1 | Pending |
+| BE-TEST-02 | Phase 1 | Pending |
+| BE-TEST-03 | Phase 1 | Pending |
+| BE-TEST-04 | Phase 1 | Pending |
+| BE-AUTH-01 | Phase 2 | Pending |
+| BE-AUTH-02 | Phase 2 | Pending |
+| BE-AUTH-03 | Phase 2 | Pending |
+| BE-AUTH-04 | Phase 2 | Pending |
+| BE-AUTH-05 | Phase 2 | Pending |
+| BE-AUTH-06 | Phase 2 | Pending |
+| BE-AUTHZ-01 | Phase 3 | Pending |
+| BE-AUTHZ-02 | Phase 3 | Pending |
+| BE-AUTHZ-03 | Phase 3 | Pending |
+| BE-AUTHZ-04 | Phase 3 | Pending |
+| BE-ATOM-01 | Phase 4 | Pending |
+| BE-ATOM-02 | Phase 4 | Pending |
+| BE-ATOM-03 | Phase 4 | Pending |
+| BE-ATOM-04 | Phase 4 | Pending |
+| BE-ATOM-05 | Phase 4 | Pending |
+| BE-NOTIF-01 | Phase 5 | Pending |
+| BE-NOTIF-02 | Phase 5 | Pending |
+| BE-NOTIF-03 | Phase 5 | Pending |
+| BE-POINTS-01 | Phase 6 | Pending |
+| BE-POINTS-02 | Phase 6 | Pending |
+| BE-POINTS-03 | Phase 6 | Pending |
+| BE-QUEST-01 | Phase 7 | Pending |
+| BE-QUEST-02 | Phase 7 | Pending |
+| BE-QUEST-03 | Phase 7 | Pending |
+| BE-QUEST-04 | Phase 7 | Pending |
+| BE-TRAVEL-01 | Phase 8 | Pending |
+| BE-TRAVEL-02 | Phase 8 | Pending |
+| BE-TRAVEL-03 | Phase 8 | Pending |
+| BE-TRAVEL-04 | Phase 8 | Pending |
+| BE-COMBAT-01 | Phase 9 | Pending |
+| BE-COMBAT-02 | Phase 9 | Pending |
+| BE-COMBAT-03 | Phase 9 | Pending |
+| BE-ADMIN-01 | Phase 9 | Pending |
+| BE-ADMIN-02 | Phase 9 | Pending |
+| BE-HARD-01 | Phase 10 | Pending |
+| BE-HARD-02 | Phase 10 | Pending |
+| BE-HARD-03 | Phase 10 | Pending |
+| BE-HARD-04 | Phase 10 | Pending |
 
 **Coverage:**
 
-- v1 requirements: 38 total
-- Mapped to phases: 0 (pending roadmap)
+- v1 requirements: 42 total (enumerazione effettiva dei BE-* ID; la precedente riga "38 total" era stale)
+- Mapped to phases: 42 / 42 ✓ (nessun orfano, nessun duplicato)
 
 ---
 
-_Requirements defined: 2026-07-16_
+_Requirements defined: 2026-07-16 — Traceability aggiornata in fase di roadmap_
