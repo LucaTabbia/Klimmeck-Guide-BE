@@ -356,22 +356,25 @@ await character.save();
 
 **Nota:** A1 e A3 sono i due assunti da chiudere per primi in planning/implementazione (primo run del replSet).
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Versione MongoDB da pinnare in CI**
    - What we know: il default è serie 8.x/wiredTiger; il caching richiede una versione stabile per una chiave cache deterministica.
    - What's unclear: se pinnare esplicitamente (es. `MONGOMS_VERSION=8.0.x`) o lasciare il default.
    - Recommendation: pinnare esplicitamente in CI per determinismo e stabilità della cache; lasciare libero in locale.
+   - **RESOLVED:** pinnata `MONGOMS_VERSION=8.0.4` nel workflow CI (Plan 01-04 Task 1), lasciata libera in locale.
 
 2. **Meccanismo Redis effimero in CI vs locale**
    - What we know: service container `redis:7` (CI) e `redis-memory-server` (locale) sono entrambi validi; `ioredis-mock` è escluso.
    - What's unclear: se standardizzare su un solo meccanismo per parità dev/CI.
    - Recommendation: service container in CI (fedeltà prod, zero download) + `redis-memory-server` opzionale in locale per chi non ha Docker; astrarre host/port dietro env così il test è agnostico.
+   - **RESOLVED:** helper `test/setup/redis.ts` (Plan 01-01 Task 4) astrae host/port dietro env — service container `redis:7` in CI (Plan 01-04), `redis-memory-server` in locale.
 
 3. **Topologia replSet: globalSetup condiviso vs per-file**
    - What we know: condiviso è più veloce, per-file più isolato.
    - What's unclear: se il cleanup per-collection è sufficiente per tutti i test change-stream.
    - Recommendation: partire condiviso + cleanup; passare a per-file solo se emergono leak di stato.
+   - **RESOLVED:** replSet condiviso via `globalSetup` + cleanup collection in `after-env.ts` (Plan 01-01 Task 2/4); rivalutare per-file solo se emergono leak.
 
 ## Environment Availability
 
