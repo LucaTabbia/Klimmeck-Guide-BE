@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bull';
 import { AppController } from './app.controller';
 import { MongoModule } from './mongo/mongo.module';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -30,6 +31,15 @@ import { PointOfInterestModule } from './pointsOfInterest/point-of-interest.modu
     ConfigModule.forRoot({
       envFilePath: ".env",
       isGlobal: true,
+    }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        redis: {
+          host: config.get<string>('REDIS_HOST', 'localhost'),
+          port: config.get<number>('REDIS_PORT', 6379),
+        },
+      }),
     }),
     MongoModule,
     PubSubModule,
