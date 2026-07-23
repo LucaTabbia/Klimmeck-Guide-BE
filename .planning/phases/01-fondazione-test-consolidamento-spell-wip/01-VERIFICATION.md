@@ -1,153 +1,124 @@
 ---
 phase: 01-fondazione-test-consolidamento-spell-wip
-verified: 2026-07-23T20:15:00Z
-status: gaps_found
-score: 4/6 must-haves verified
+verified: 2026-07-23T22:28:17Z
+status: human_needed
+score: 7/7 must-haves verified (locally/staticamente); 1 elemento richiede conferma su runner GitHub reale
 overrides_applied: 0
-gaps:
-  - truth: "`npm test` (comando aggregato, script `\"test\": \"jest\"`) è verde in modo affidabile"
-    status: partial
-    reason: "Il test bersaglio del criterio (test/harness/replset.int-spec.ts, transazione + change stream) passa in modo consistente (6/6 run). Ma il comando `npm test` nel suo insieme NON è affidabile: eseguendolo ripetutamente (6 run), src/characters/spell-recovery.processor.int-spec.ts fallisce deterministicamente in 6/6 run, e test/harness/character-changestream.int-spec.ts / test/fixtures/fixtures.int-spec.ts falliscono in modo intermittente. Causa: lo script \"test\": \"jest\" esegue i progetti unit+integration con la parallelizzazione di default di Jest (nessun --runInBand), mentre tutti i file *.int-spec.ts condividono lo STESSO MongoMemoryReplSet (avviato una sola volta via globalSetup) e ogni file registra un afterEach globale (test/setup/after-env.ts) che fa `deleteMany({})` su TUTTE le collection della connessione condivisa. Quando due file di integration girano in worker paralleli, l'afterEach di un file cancella a metà esecuzione i documenti che un altro file sta ancora asserendo, producendo `TypeError: Cannot read properties of null` o assert falliti. `npm run test:unit` + `npm run test:int` (che usa --runInBand) restano affidabili (verificato 2 run consecutive, 18/18 + 8/8 verdi)."
-    artifacts:
-      - path: "package.json"
-        issue: "Script \"test\": \"jest\" non serializza il progetto integration (nessun --runInBand/maxWorkers), a differenza di \"test:int\""
-      - path: "test/setup/after-env.ts"
-        issue: "afterEach fa deleteMany({}) su TUTTE le collection della connessione condivisa — sicuro solo se i file *.int-spec.ts non girano mai in parallelo tra loro"
-    missing:
-      - "Serializzare l'esecuzione dei file *.int-spec.ts anche nello script aggregato `test` (es. impostare maxWorkers:1 / runInBand sul progetto \"integration\" dentro jest.projects, non solo nello script test:int), oppure isolare i dati per worker/file (namespace di collection o DB per worker)"
-  - truth: "Esiste una pipeline GitHub Actions che esegue lint + unit + integration su ogni push (BE-TEST-01 \"CI-ready\"; must-have esplicito di 01-04-PLAN.md)"
-    status: failed
-    reason: "`npm run lint` (eseguito localmente, stesso comando invocato dallo step 'Lint' di .github/workflows/ci.yml) fallisce deterministicamente: exit code 1, 471 problemi (466 error, 5 warning), quasi tutti @typescript-eslint/no-unsafe-* su codice `any` nei file di test (test/harness/*.ts, test/setup/*.ts, test/fixtures/*.ts, *.spec.ts, *.int-spec.ts) più errori pre-esistenti in numerosi resolver/model non toccati da questa fase. Il flag --fix non risolve questi errori (sono di tipo unsafe-call/unsafe-member-access, non auto-fixabili). Di conseguenza la pipeline CI creata in 01-04, così com'è, sarebbe rossa allo step 'Lint' su OGNI push, PRIMA di raggiungere gli step unit/integration — contraddicendo l'obiettivo dichiarato 'CI-ready' di BE-TEST-01 e il success criterion del Plan 04 ('.github/workflows/ci.yml esegue lint + unit + integration'). Il problema era già stato notato come rischio in 01-04-SUMMARY.md (\"Deferred Issues\") ma non era stato verificato empiricamente che lint fallisse davvero; qui è confermato con evidenza riproducibile."
-    artifacts:
-      - path: ".github/workflows/ci.yml"
-        issue: "Step 'Lint' (npm run lint) fallirebbe con exit code 1 su ogni run reale della pipeline"
-      - path: "eslint.config.mjs"
-        issue: "Nessuna eccezione/override delle regole @typescript-eslint/no-unsafe-* per i file di test (*.spec.ts, *.int-spec.ts) creati in questa fase"
-    missing:
-      - "Rilassare (override) le regole @typescript-eslint/no-unsafe-* per i file di test in eslint.config.mjs, oppure risolvere gli errori nei file introdotti da questa fase, prima di considerare la pipeline CI effettivamente verde/CI-ready"
-      - "In alternativa: rimuovere/rendere non-bloccante lo step lint fino a una fase dedicata di hardening ESLint, documentando esplicitamente la deroga"
+re_verification:
+  previous_status: gaps_found
+  previous_score: 4/6
+  gaps_closed:
+    - "`npm test` (comando aggregato) è verde in modo affidabile"
+    - "Pipeline GitHub Actions esegue lint + unit + integration su ogni push (BE-TEST-01 CI-ready) — `npm run lint` ora esce 0"
+  gaps_remaining: []
+  regressions: []
+human_verification:
+  - test: "Push del branch `feat/01-fondazione-test-consolidamento-spell-wip` (o apertura PR verso `develop`) e osservazione dell'esecuzione reale di `.github/workflows/ci.yml` su runner GitHub-hosted"
+    expected: "Tutti e tre gli step (Lint, Unit tests, Integration tests) risultano verdi; lo step 'Cache mongodb-memory-server binaries' mostra, nei log 'Post Cache' al secondo run consecutivo, una cache effettivamente popolata (> 0 byte), confermando l'allineamento MONGOMS_DOWNLOAD_DIR / path di actions/cache (WR-06)"
+    why_human: "Il comportamento del service container Docker Redis, dell'ambiente ubuntu-latest e di actions/cache non è riproducibile da questo ambiente di verifica locale; è stato riprodotto localmente solo lo stesso comando (`npm run lint`, `npm test`) invocato dagli step, non l'esecuzione reale del workflow"
 ---
 
 # Phase 01: Fondazione Test & Consolidamento Spell WIP Verification Report
 
 **Phase Goal:** Esiste una fondazione TDD affidabile e il WIP spell nel working tree è consolidato, testato e committato — nulla a valle è testabile senza questo.
-**Verified:** 2026-07-23T20:15:00Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verified:** 2026-07-23T22:28:17Z
+**Status:** human_needed
+**Re-verification:** Yes — dopo gap-closure (Plan 01-05)
 
 ## Goal Achievement
+
+Questa è una ri-verifica dopo la chiusura dei 2 gap identificati dalla verifica precedente (01-VERIFICATION.md, status `gaps_found`, score 4/6), effettuata dal Plan 01-05 (`gap_closure: true`). Entrambi i gap sono stati chiusi con evidenza empirica riprodotta in questa sessione (non solo sulla base del SUMMARY):
+
+- **Gap #1** (`npm test` aggregato flaky): CHIUSO — `npm test` eseguito 3 volte consecutive in questa sessione → exit 0 tutte e 3 le volte (18 unit + 8 integration ogni run, nessuna suite fallita).
+- **Gap #2** (`npm run lint` exit 1, 466 errori): CHIUSO — `npm run lint` (stesso comando dello step CI) eseguito in questa sessione → exit 0, `79 problems (0 errors, 79 warnings)`.
+- **Fold-in WR-06** (cache binari Mongo mai popolata): CHIUSO staticamente — `MONGOMS_DOWNLOAD_DIR` e il `path` di `actions/cache` in `.github/workflows/ci.yml` ora coincidono (`/home/runner/.cache/mongodb-memory-server`); la conferma che la cache si popoli davvero richiede un run reale (vedi Human Verification).
+
+Nessuna regressione rilevata sui 4 truth già VERIFIED nella verifica precedente (fixture, Bull DI-mock/Redis reale, ordine validazione useSpell, working tree pulito).
 
 ### Observable Truths
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | `npm test` avvia un `MongoMemoryReplSet` e un test che esercita una transazione Mongo e un change stream su Character passa (prova la modalità replica set) | ⚠️ PARTIAL | Il test bersaglio (`test/harness/replset.int-spec.ts`: `startTransaction`/`commitTransaction`/`abortTransaction` + `.watch(...)`) passa in 6/6 run di `npm test`. Ma il comando aggregato `npm test` nel suo complesso NON è affidabile: altri file `*.int-spec.ts` falliscono per race condition su collection condivise (vedi gap #1) |
-| 2 | Un unit test risolve un service con la coda Bull mockata al confine DI (`getQueueToken`, nessun Redis), mentre un test di integrazione del processor gira contro un Redis effimero reale (no `ioredis-mock`) | ✓ VERIFIED | `src/characters/characters.service.spec.ts` usa `getQueueToken('spell-recovery')`/`getModelToken` (nessun Redis, nessun `.watch`/`app.init()`); `src/characters/spell-recovery.processor.int-spec.ts` usa `startRedis()` (`redis-memory-server`) + `BullModule.forRoot({redis})`; `ioredis-mock` assente da `package.json`. `npm run test:unit` 18/18 verde, `npm run test:int` 8/8 verde |
-| 3 | Fixture/factory costruiscono istanze valide di User, Character, Quest, Spell, Road, POI riusate in almeno due spec file | ✓ VERIFIED | 6 file `test/fixtures/{spell,user,road,poi,character,quest}.fixture.ts` con `buildX`/`persistX`, re-esportati da `test/fixtures/index.ts`. Riusate in ≥2 spec: `fixtures.spec.ts`, `fixtures.int-spec.ts`, `characters.service.spec.ts`, `spell-recovery.processor.int-spec.ts`, `character-changestream.int-spec.ts` |
-| 4 | `useSpell` verifica l'esistenza della spell prima di decrementare gli usages (test RED prova il vecchio ordine, GREEN dopo il fix) e il processor spell-recovery è coperto da test | ✓ VERIFIED | Codice: `spellModel.findById` (riga 297) precede `activeSpell.usages -= 1` (riga 302) in `characters.service.ts`. Storia commit: `c301a58` test(RED) → `4816229` fix (diff 3+/3-, verificato via `git show`) → GREEN. Processor coperto da `spell-recovery.processor.int-spec.ts` (Redis reale, usages 2→3), verde in `test:int` |
-| 5 | Il working tree è pulito a fine fase: WIP spell use/recovery committato sul branch, dir vuota `src/spellRecovery/` rimossa | ✓ VERIFIED | `git status --porcelain` pulito eccetto `.planning/config.json` (gestito dal workflow, escluso dal criterio come da istruzioni). `src/spellRecovery/` non esiste (`test -d` → false) |
-| 6 | (Plan 01-04 must-have / BE-TEST-01 "CI-ready") Pipeline GitHub Actions esegue lint + unit + integration su ogni push | ✗ FAILED | `.github/workflows/ci.yml` esiste con struttura corretta (redis:7, MONGOMS_VERSION, actions/cache, step lint/test:unit/test:int) ma lo step "Lint" (`npm run lint`) fallisce deterministicamente: exit code 1, 466 errori ESLint. La pipeline sarebbe rossa su ogni push reale (vedi gap #2) |
+| 1 | `npm test` avvia un `MongoMemoryReplSet` e un test che esercita una transazione Mongo e un change stream su Character passa, **ed è affidabile su tutto il comando aggregato** (non solo sul file bersaglio) | ✓ VERIFIED | `npm test` eseguito 3 volte consecutive in questa sessione: 3/3 run exit 0, `Test Suites: 3 passed` (unit) + `Test Suites: 4 passed` (integration, incluso `test/harness/replset.int-spec.ts` con `startTransaction`/`commitTransaction`/`abortTransaction` + `.watch(`), nessuna suite fallita/intermittente su 3 run |
+| 2 | Un unit test risolve un service con la coda Bull mockata al confine DI (`getQueueToken`), mentre un test di integrazione del processor gira contro un Redis effimero reale (no `ioredis-mock`) | ✓ VERIFIED (regressione) | `characters.service.spec.ts:61` usa `provide: getQueueToken('spell-recovery')`; `spell-recovery.processor.int-spec.ts` importa `startRedis` da `test/setup/redis.ts` (`RedisMemoryServer`); `ioredis-mock` assente da `package.json` |
+| 3 | Fixture/factory costruiscono istanze valide di User, Character, Quest, Spell, Road, POI riusate in almeno due spec file | ✓ VERIFIED (regressione) | 6 file `test/fixtures/{character,poi,quest,road,spell,user}.fixture.ts` presenti, invariati |
+| 4 | `useSpell` verifica l'esistenza della spell prima di decrementare gli usages e il processor spell-recovery è coperto da test | ✓ VERIFIED (regressione) | `characters.service.ts:297` (`spellModel.findById`) precede riga 302 (`activeSpell.usages -= 1`); processor coperto da `spell-recovery.processor.int-spec.ts`, verde in `test:int` |
+| 5 | Il working tree è pulito a fine fase: WIP spell use/recovery committato, dir vuota `src/spellRecovery/` rimossa | ✓ VERIFIED (regressione) | `test -d src/spellRecovery` → assente; `git status --porcelain` pulito eccetto i file di workflow planning (`.planning/ROADMAP.md`, `.planning/STATE.md`, `.planning/config.json`), gestiti dal processo GSD e fuori dal criterio |
+| 6 | Pipeline GitHub Actions esegue lint + unit + integration su ogni push, `npm run lint` esce 0 (BE-TEST-01 "CI-ready") | ✓ VERIFIED (staticamente/localmente) | `npm run lint` eseguito in questa sessione con lo stesso comando dello step CI → exit 0, `79 problems (0 errors, 79 warnings)` (0 error confermato anche via `--fix-dry-run -f json`: `errorCount=0`). `.github/workflows/ci.yml` invoca esattamente `npm run lint` / `npm run test:unit` / `npm run test:int`. **Non verificabile**: esecuzione reale su runner GitHub-hosted (Docker, actions/cache) — vedi Human Verification |
+| 7 | I binari mongodb-memory-server vengono scaricati nella directory effettivamente messa in cache (fold-in WR-06) | ✓ VERIFIED (allineamento statico) | `.github/workflows/ci.yml`: `MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-memory-server` (env) e `path: ~/.cache/mongodb-memory-server` (step cache) → stesso path assoluto su `ubuntu-latest`. **Non verificabile**: che la cache si popoli davvero (dimensione > 0 nei log "Post Cache") richiede un run reale — vedi Human Verification |
 
-**Score:** 4/6 truths verified (2 partial/failed — vedi Gaps Summary)
+**Score:** 7/7 truth verificati (localmente/staticamente); 1 elemento (esecuzione reale del workflow su GitHub Actions) resta di competenza umana
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `test/setup/mongo-replset.ts` | start/stop MongoMemoryReplSet condiviso | ✓ VERIFIED | `MongoMemoryReplSet.create({ replSet: { count: 1 } })` presente |
-| `test/setup/global-setup.ts` | globalSetup Jest | ✓ VERIFIED | esporta default, chiama `startReplSet` |
-| `test/setup/global-teardown.ts` | globalTeardown Jest | ✓ VERIFIED | ferma replSet + disconnette mongoose |
-| `test/setup/after-env.ts` | connessione + cleanup tra test | ✓ VERIFIED | `deleteMany({})` in `afterEach` (nota: causa gap #1 se eseguito in parallelo tra file) |
-| `test/setup/redis.ts` | helper Redis effimero | ✓ VERIFIED | `RedisMemoryServer`, legge `REDIS_HOST`/`REDIS_PORT` |
-| `test/harness/replset.int-spec.ts` | prova transazione + change stream | ✓ VERIFIED | `startTransaction`, `commitTransaction`, `abortTransaction`, `.watch(` presenti; verde in isolamento e in `test:int` |
-| `src/characters/spell-recovery.processor.ts` | processor Bull spell-recovery | ✓ VERIFIED | esiste, wired al modulo, coperto da integration test |
-| `src/models/request/use-spell-request.model.ts` | DTO UseSpellRequest | ✓ VERIFIED | esiste, usato da `useSpell` e dai test |
-| `test/fixtures/{spell,user,road,poi,character,quest}.fixture.ts` + `index.ts` | fixture two-tier 6 modelli | ✓ VERIFIED | tutti presenti, `buildX`/`persistX` esportati, `index.ts` re-esporta tutti e 6 |
-| `src/characters/characters.service.spec.ts` | unit spec Bull DI-mock + RED/GREEN | ✓ VERIFIED | `getQueueToken`, assert su `usages` invariato + `NotFoundException` + `queue.add` non chiamato |
-| `src/characters/spell-recovery.processor.int-spec.ts` | integration processor Redis reale | ✓ VERIFIED | `startRedis`, nessun `ioredis-mock`, asserisce incremento 2→3 |
-| `test/harness/character-changestream.int-spec.ts` | change stream Character → PUB_SUB | ✓ VERIFIED | `.watch(` su Character + asserzione su evento `characterUpdated` |
-| `.github/workflows/ci.yml` | pipeline lint+unit+integration, Redis container, cache Mongo | ⚠️ ESISTE MA NON VERDE | contiene tutti gli elementi richiesti strutturalmente, ma lo step lint fallisce deterministicamente (vedi gap #2); inoltre code review WR-06 segnala che il path di cache `~/.cache/mongodb-memory-server` probabilmente non corrisponde al path di download effettivo (`node_modules/.cache/...`), quindi la cache binari Mongo è probabilmente sempre vuota (non verificabile senza un run reale su GitHub Actions) |
-| `src/spellRecovery/` (rimozione) | dir vuota rimossa | ✓ VERIFIED | directory non esiste più |
+| `package.json` (script `test`) | Compone `test:unit && test:int` (serializza l'integration) | ✓ VERIFIED | `"test": "npm run test:unit && npm run test:int"` (riga 16); `test:unit`/`test:int` invariati |
+| `eslint.config.mjs` | Downgrade a `warn` del debito src pre-esistente + override `off` per i file di test | ✓ VERIFIED | Blocco `rules` repo-wide con 13 regole a `warn`; blocco finale `files: ['**/*.spec.ts', '**/*.int-spec.ts', 'test/**/*.ts']` con 6 regole `no-unsafe-*` a `off` |
+| `.github/workflows/ci.yml` | `MONGOMS_DOWNLOAD_DIR` allineato al path di `actions/cache` | ✓ VERIFIED | Env `MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-memory-server` + step cache `path: ~/.cache/mongodb-memory-server` → stesso path espanso |
+| Tutti gli artifact della verifica precedente (harness setup, fixture, processor, DTO, ci.yml struttura) | — | ✓ VERIFIED (regressione, invariati) | Nessuna modifica rilevata rispetto alla verifica precedente su questi file |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|-----|-----|--------|---------|
-| commit feat (characters.service.ts as-is) | fix in 01-03 (riordino validazione) | baseline committato prima del fix | ✓ WIRED | `git show --stat 4816229` → 1 file, 3+/3-; baseline in `feb90dc` (01-01) intatta |
-| package.json (jest.projects) | test/setup/global-setup.ts | globalSetup del progetto integration | ✓ WIRED | confermato in `package.json` `jest.projects[1].globalSetup` |
-| test/setup/global-setup.ts | test/setup/mongo-replset.ts | `startReplSet()` | ✓ WIRED | import e chiamata confermati |
-| characters.service.ts (useSpell) | spellModel.findById | validazione esistenza spell PRIMA del decremento | ✓ WIRED | ordine di riga confermato (297 prima di 302) |
-| spell-recovery.processor.ts | characterModel.save | handleSpellRecovery incrementa usages | ✓ WIRED | confermato da integration test verde (2→3) |
-| .github/workflows/ci.yml | package.json scripts (test:unit, test:int, lint) | step di esecuzione della suite | ✓ WIRED (strutturalmente) | gli step invocano gli script corretti — ma lo step lint fallisce a runtime (vedi gap #2), quindi il link è presente ma il risultato a valle è rosso |
-| .github/workflows/ci.yml (services.redis) | test/setup/redis.ts | REDIS_HOST/REDIS_PORT | ✓ WIRED | env impostati nel workflow, letti da `startRedis()` |
+| `package.json` (script `test`) | `package.json` (script `test:unit` + `test:int`) | composizione `&&` | ✓ WIRED | Verificato eseguendo `npm test` 3 volte: entrambi gli script vengono invocati in sequenza, entrambi verdi |
+| `.github/workflows/ci.yml` (step Lint) | `eslint.config.mjs` | `npm run lint` (eslint --fix) | ✓ WIRED | `npm run lint` eseguito con lo stesso comando dello step → exit 0, 0 error |
+| `.github/workflows/ci.yml` (`actions/cache` path) | `.github/workflows/ci.yml` (env `MONGOMS_DOWNLOAD_DIR`) | path cache == download dir | ✓ WIRED | Entrambi risolvono a `/home/runner/.cache/mongodb-memory-server` su `ubuntu-latest` |
+| (invariati dalla verifica precedente) `characters.service.ts` → `spellModel.findById`, `spell-recovery.processor.ts` → `characterModel.save`, `ci.yml` → `redis.ts` | — | — | ✓ WIRED (regressione) | Nessuna modifica rilevata |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| Unit suite verde, nessun replSet/Redis | `npm run test:unit` | 3 suite, 18/18 test verdi, ~1.1s | ✓ PASS |
-| Integration suite verde (serializzata) | `npm run test:int` | 4 suite, 8/8 test verdi, nessun open handle | ✓ PASS (verificato 2 run consecutive) |
-| Comando `npm test` aggregato affidabile | `npm test` (×6 run) | 1° run: 1 suite fallita; 2° run: 2 suite fallite; 3° run: 3 suite fallite (crescente); pattern riproducibile anche isolando solo il progetto integration senza `--runInBand` | ✗ FAIL (vedi gap #1) |
-| Ordine di validazione `useSpell` (findById prima del decremento) | `grep -n "findById\|usages -= 1" src/characters/characters.service.ts` | riga 297 (`findById`) precede riga 302 (`usages -= 1`) | ✓ PASS |
-| Diff del commit fix limitato al riordino | `git show --stat 4816229` | 1 file, 3 insertion(+), 3 deletion(-) | ✓ PASS |
-| `src/spellRecovery/` rimossa | `test -d src/spellRecovery` | directory assente | ✓ PASS |
-| Lint (stesso comando dello step CI) | `npm run lint` | exit code 1, 471 problemi (466 error, 5 warning) | ✗ FAIL (vedi gap #2) |
+| `npm test` affidabile su ≥3 run consecutivi | `npm test` (×3) | Run 1: 3 suite unit + 4 suite integration, 18+8 test verdi; Run 2: idem; Run 3: idem — nessuna variazione, nessuna suite fallita | ✓ PASS |
+| `npm run lint` (comando reale step CI) esce 0 | `npm run lint` | `79 problems (0 errors, 79 warnings)`, exit 0 | ✓ PASS |
+| Conteggio error ESLint (statico, senza scrivere su disco) | `npx eslint "{src,apps,libs,test}/**/*.ts" --fix-dry-run -f json` | `errorCount=0`, `warningCount=79` | ✓ PASS |
+| Diff prodotto da `npm run lint --fix` è solo formattazione (nessuna modifica semantica) | `git diff src/characters/characters.service.ts` dopo il run reale di lint | Solo re-wrapping prettier (import multi-riga, ecc.), nessuna modifica di logica; modifiche scartate via `git stash`/`drop` per non sporcare il working tree di verifica | ✓ PASS |
+| Allineamento cache Mongo (WR-06) | `grep MONGOMS_DOWNLOAD_DIR / path` in `ci.yml` | Entrambi `/home/runner/.cache/mongodb-memory-server` (dopo espansione `~`) | ✓ PASS (statico) |
+| Ordine di validazione `useSpell` (regressione) | `grep -n "findById\|usages -= 1"` | Riga 297 precede riga 302 | ✓ PASS |
+| `src/spellRecovery/` rimossa (regressione) | `test -d src/spellRecovery` | Assente | ✓ PASS |
+
+Nota: dopo l'esecuzione di `npm run lint` (che usa `--fix` e riformatta l'intero repo con prettier, come già osservato in 01-05-SUMMARY.md), le modifiche di sola formattazione sono state scartate (`git stash` + `git stash drop`) per riportare il working tree allo stato pre-verifica, coerente col vincolo del piano "nessun reformat committato".
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|-------------|-------------|--------|----------|
-| BE-TEST-01 | 01-01, 01-03, 01-04 | Suite Jest contro `mongodb-memory-server` in modalità replica set, setup/teardown condiviso, CI-ready | ⚠️ PARTIAL | Modalità replica-set + change stream + transazioni: VERIFIED. "CI-ready": FAILED (lint step rosso deterministicamente, `npm test` aggregato non affidabile) |
-| BE-TEST-02 | 01-01, 01-03 | Unit Bull DI-mock (getQueueToken) + integration processor Redis reale (no ioredis-mock) | ✓ SATISFIED | Confermato in `characters.service.spec.ts` e `spell-recovery.processor.int-spec.ts` |
-| BE-TEST-03 | 01-02 | Fixture/factory riusabili per i 6 modelli di dominio | ✓ SATISFIED | 6 fixture two-tier, riusate in ≥5 spec file |
-| BE-TEST-04 | 01-03 | WIP spell use/recovery consolidato con TDD, ordine validazione corretto, processor coperto da test | ✓ SATISFIED | Fix RED→GREEN verificato nel codice e nella history commit; processor coperto |
+| BE-TEST-01 | 01-01, 01-03, 01-04, 01-05 | Suite Jest contro `mongodb-memory-server` in modalità replica set, setup/teardown condiviso, CI-ready | ✓ SATISFIED | Modalità replica-set + change stream + transazioni: VERIFIED (invariato). "CI-ready": ora VERIFIED localmente/staticamente (lint exit 0, `npm test` affidabile, cache allineata); conferma su runner reale resta human-verify |
+| BE-TEST-02 | 01-01, 01-03 | Unit Bull DI-mock (`getQueueToken`) + integration processor Redis reale (no `ioredis-mock`) | ✓ SATISFIED | Regressione confermata |
+| BE-TEST-03 | 01-02 | Fixture/factory riusabili per i 6 modelli di dominio | ✓ SATISFIED | Regressione confermata |
+| BE-TEST-04 | 01-03 | WIP spell use/recovery consolidato con TDD, ordine validazione corretto, processor coperto da test | ✓ SATISFIED | Regressione confermata |
 
-Nessun requirement orfano: i 4 ID mappati a Phase 1 in REQUIREMENTS.md corrispondono esattamente ai 4 requirement dichiarati nei frontmatter dei 4 plan.
+Nessun requirement orfano: i 4 ID mappati a Phase 1 in REQUIREMENTS.md (BE-TEST-01..04) corrispondono esattamente ai requirement dichiarati nei frontmatter dei 5 plan della fase (incluso 01-05, `requirements: [BE-TEST-01]`).
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `test/setup/after-env.ts` | 10-15 | `afterEach` fa `deleteMany({})` su tutte le collection della connessione condivisa senza isolamento per file/worker | ⚠️ Warning | Causa la race condition che rompe `npm test` aggregato (gap #1) quando più file `*.int-spec.ts` girano in parallelo |
-| `package.json` | script `"test"` | Nessun `--runInBand`/`maxWorkers` sul progetto integration nello script aggregato, a differenza di `test:int` | ⚠️ Warning | `npm test` eredita il default di parallelismo di Jest, innescando il gap #1 |
-| `eslint.config.mjs` / file di test della fase | — | 466 errori `@typescript-eslint/no-unsafe-*` (in parte pre-esistenti, in parte nei nuovi file di test di questa fase) | 🛑 Blocker (per lo step CI lint) | `npm run lint` fallisce con exit code 1 → pipeline CI rossa su ogni push (gap #2) |
-| `.github/workflows/ci.yml` | 36-40 | Cache path `~/.cache/mongodb-memory-server` probabilmente non corrisponde al path di download reale (`node_modules/.cache/...`), segnalato indipendentemente da 01-REVIEW.md (WR-06) | ℹ️ Info | Cache dei binari Mongo probabilmente sempre vuota in CI (re-download ~500MB ad ogni run) — non blocca la correttezza funzionale ma vanifica l'obiettivo di caching dichiarato |
+| `test/setup/after-env.ts` | 10-15 | `afterEach` fa ancora `deleteMany({})` su tutte le collection della connessione condivisa, senza isolamento per file/worker | ℹ️ Info (mitigato) | Non più causa di fallimento: la serializzazione di `test:int` (`--runInBand`) e la composizione `test:unit && test:int` nello script `test` garantiscono che nessun file di integration giri mai in parallelo con un altro. Rimane un vincolo implicito da rispettare per futuri file `*.int-spec.ts` (non aggiungere parallelismo all'integration senza rivedere questo file) |
+| `eslint.config.mjs` | 27-46 | 76 errori src pre-esistenti declassati a `warn` (non `off`) | ℹ️ Info | Comportamento intenzionale e documentato (non-masking): il debito resta visibile nei log CI, l'hardening reale è assegnato a Phase 10 (BE-HARD) — coerente con CLAUDE.md ("Rules relaxed for flexibility") |
 
-Nessun placeholder/TODO/stub bloccante trovato nel codice di produzione o nei file fixture/harness (`grep` su TODO/FIXME/PLACEHOLDER: nessun match nei file chiave della fase).
+Nessun placeholder/TODO/stub bloccante trovato nei file modificati da 01-05 (`package.json`, `eslint.config.mjs`, `.github/workflows/ci.yml`). Nessuna regressione sui file di produzione/test rispetto alla verifica precedente.
 
 ## Human Verification Required
 
 ### 1. Esecuzione reale della pipeline GitHub Actions
 
 **Test:** Fare push del branch `feat/01-fondazione-test-consolidamento-spell-wip` (o aprire la PR verso `develop`) e osservare l'esecuzione effettiva di `.github/workflows/ci.yml` su un runner GitHub-hosted reale.
-**Expected:** Al momento è atteso che lo step "Lint" fallisca (gap #2, verificato localmente con lo stesso comando). Dopo la correzione, l'intera pipeline (lint + unit + integration) dovrebbe risultare verde, e i log dello step "Cache mongodb-memory-server binaries" dovrebbero mostrare una cache effettivamente popolata (non ~0 byte) per confermare/smentire WR-06.
-**Why human:** Non è possibile eseguire un runner GitHub Actions reale (service container Docker, ambiente Ubuntu, comportamento di `actions/cache`) da questo ambiente di verifica locale.
+**Expected:** Tutti e tre gli step (Lint, Unit tests, Integration tests) risultano verdi (coerente con la riproduzione locale degli stessi comandi in questa verifica). Al secondo run consecutivo, i log dello step "Cache mongodb-memory-server binaries" dovrebbero mostrare una cache effettivamente popolata (non ~0 byte), confermando l'allineamento `MONGOMS_DOWNLOAD_DIR` / path di `actions/cache` (WR-06).
+**Why human:** Il comportamento del service container Docker Redis, dell'ambiente `ubuntu-latest` e di `actions/cache` (espansione `~`, popolamento reale della cache) non è riproducibile da questo ambiente di verifica locale. Questa verifica ha riprodotto localmente gli stessi comandi (`npm test`, `npm run lint`) invocati dagli step del workflow, con esito verde, ma non l'esecuzione del workflow stesso.
 
 ## Gaps Summary
 
-Due gap concreti, entrambi riproducibili con evidenza empirica diretta (non ipotetici):
+Nessun gap residuo bloccante. I 2 gap della verifica precedente sono stati chiusi con evidenza empirica riprodotta in questa sessione:
 
-1. **`npm test` aggregato non affidabile** — il comando esplicitamente nominato dal success criterion 1 del roadmap fallisce in modo riproducibile (osservato in 6/6 run, con un numero crescente di suite fallite) a causa di una race condition tra i file `*.int-spec.ts`, che condividono lo stesso `MongoMemoryReplSet` ma non sono isolati tra loro (ogni file cancella indiscriminatamente TUTTE le collection nel proprio `afterEach`). Gli script dedicati `test:unit`/`test:int` (quest'ultimo con `--runInBand`) restano affidabili e sono quelli effettivamente usati dalla pipeline CI — quindi CI non è esposta a questo problema, ma un qualsiasi sviluppatore che lanci il comando "naturale" `npm test` in locale ottiene fallimenti spuri non correlati a regressioni reali, il che mina la fiducia nella fondazione TDD ("affidabile" è l'aggettivo esplicito del goal di fase).
+1. `npm test` è ora affidabile e ripetibile (3/3 run consecutivi verdi in questa verifica, non solo dichiarato nel SUMMARY).
+2. `npm run lint` esce 0 (verificato con lo stesso comando invocato da `.github/workflows/ci.yml`), senza mascherare il debito di produzione (declassato a `warn`, non `off`).
 
-2. **Pipeline CI non verde per lo step lint** — `npm run lint` (lo stesso comando invocato da `.github/workflows/ci.yml`) fallisce deterministicamente con 466 errori ESLint. Questo era stato segnalato come rischio nel Deferred Issues di 01-04-SUMMARY.md ma non era stato verificato empiricamente; qui è confermato che la pipeline sarebbe rossa su OGNI push, il che contraddice l'obiettivo "CI-ready" di BE-TEST-01.
-
-Entrambi i gap sono stati esplicitamente anticipati/riconosciuti a livello di SUMMARY come rischio potenziale ma non erano stati chiusi né accompagnati da un override formale. Se lo sviluppatore ritiene che questi limiti siano accettabili come debito tecnico intenzionale (parte pre-esistente all'intera codebase, non introdotta da questa fase), può accettarli tramite override nel frontmatter di questo file:
-
-```yaml
-overrides:
-  - must_have: "Pipeline GitHub Actions esegue lint + unit + integration su ogni push (BE-TEST-01 CI-ready)"
-    reason: "Debito ESLint pre-esistente su gran parte del repo (466 errori, in parte nei file di test di questa fase); riconciliazione della config ESLint per i test è pianificata come fase di hardening dedicata, non blocca il consolidamento del WIP spell né la fondazione TDD sostanziale"
-    accepted_by: "<nome>"
-    accepted_at: "<timestamp ISO>"
-  - must_have: "npm test (comando aggregato) è verde in modo affidabile"
-    reason: "CI usa test:unit + test:int (--runInBand), non npm test aggregato; la race condition è nota e limitata al comando aggregato in locale"
-    accepted_by: "<nome>"
-    accepted_at: "<timestamp ISO>"
-```
-
-In alternativa, entrambi i gap sono risolvibili con interventi mirati e di piccola entità (serializzare l'integration project nello script `test`; rilassare le regole ESLint `no-unsafe-*` per i file di test) prima di chiudere la fase.
+Resta un solo elemento non verificabile da ambiente locale: la conferma che la pipeline GitHub Actions sia effettivamente verde su un runner reale e che la cache dei binari Mongo si popoli davvero (WR-06). Questo era già stato flaggato come item di verifica umana nella verifica precedente e non costituisce una regressione né un gap di implementazione — è un limite intrinseco della verifica locale rispetto a infrastruttura CI esterna. Lo stato della fase è quindi `human_needed`, non `gaps_found`: tutti i must-have osservabili localmente sono VERIFIED.
 
 ---
 
-*Verified: 2026-07-23T20:15:00Z*
+*Verified: 2026-07-23T22:28:17Z*
 *Verifier: Claude (gsd-verifier)*
