@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 // Assicurati che questi import siano corretti per i tuoi modelli e librerie
@@ -10,6 +10,7 @@ import { PointOfInterestsService } from 'src/pointsOfInterest/point-of-interest.
 
 @Injectable()
 export class RoadsService implements OnModuleInit {
+    private readonly logger = new Logger(RoadsService.name);
     private graph: Graph;
 
     private readonly R = 127.42;
@@ -112,7 +113,7 @@ export class RoadsService implements OnModuleInit {
         }
 
         this.graph = graph;
-        console.log(`✅ Grafo costruito con ${graph.order} nodi e ${graph.size} archi`);
+        this.logger.log(`Grafo costruito con ${graph.order} nodi e ${graph.size} archi`);
     }
 
 
@@ -160,7 +161,7 @@ export class RoadsService implements OnModuleInit {
                 totalLengthKm += lengthKm;
                 totalTimeHours += lengthKm / speedFactor;
             } else {
-                console.error(`Arco non trovato tra ${sourceNode} e ${targetNode}`);
+                this.logger.error(`Arco non trovato tra ${sourceNode} e ${targetNode}`);
             }
         }
 
