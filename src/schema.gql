@@ -165,6 +165,12 @@ input EquipItemRequest {
   slotType: SlotType!
 }
 
+input EquipSpellRequest {
+  id: String!
+  spellId: String!
+  usages: Int
+}
+
 type Equipment {
   arms: EquipmentItem
   chest: EquipmentItem
@@ -250,7 +256,10 @@ type Mutation {
   deleteUser(id: String!): User!
   doTransaction(request: TransactionRequest!): CommonResponse!
   equipItem(request: EquipItemRequest!): CommonResponse!
+  equipSpell(request: EquipSpellRequest!): CommonResponse!
+  unequipSpell(request: EquipSpellRequest!): CommonResponse!
   updateUser(user: UserInput!): User!
+  useSpell(request: UseSpellRequest!): CommonResponse!
 }
 
 type PathResponse {
@@ -427,6 +436,11 @@ input TransactionRequest {
   isTotalPositive: Boolean!
   soldItems: TransactionItems!
   total: CoinsInput!
+}
+
+input UseSpellRequest {
+  characterId: String!
+  spellId: String!
 }
 
 type User {

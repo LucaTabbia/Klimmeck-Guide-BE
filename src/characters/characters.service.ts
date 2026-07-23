@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException, OnModuleInit, Logger, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit, OnModuleDestroy, Logger, Inject, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import { Model, Types } from 'mongoose';
 import { PubSub } from 'graphql-subscriptions';
 import { Character, CharacterDocument } from 'src/models/character/character.model';
@@ -12,15 +14,20 @@ import { TransactionRequest } from 'src/models/request/transaction-request.model
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
-import { Spell } from 'src/models/spell.model';
+import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
+import { Spell, SpellDocument } from 'src/models/spell.model';
 import { ActiveSpell } from 'src/models/common/active-spell.model';
+import { SpellRecoveryJobData } from './spell-recovery.processor';
 
 @Injectable()
-export class CharactersService implements OnModuleInit {
+export class CharactersService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(CharactersService.name);
+    private changeStream: ReturnType<typeof Model.prototype.watch>;
 
     constructor(
         @InjectModel(Character.name) private characterModel: Model<CharacterDocument>,
+        @InjectModel(Spell.name) private spellModel: Model<SpellDocument>,
+        @InjectQueue('spell-recovery') private spellRecoveryQueue: Queue<SpellRecoveryJobData>,
         @Inject('PUB_SUB') private pubSub: PubSub
     ) { }
 
@@ -32,11 +39,11 @@ export class CharactersService implements OnModuleInit {
     async onModuleInit() {
         const pipeline = [{ $match: { operationType: { $in: ['update', 'replace'] } } }];
 
-        const changeStream = this.characterModel.watch(pipeline, {
+        this.changeStream = this.characterModel.watch(pipeline, {
             fullDocument: 'updateLookup',
         });
 
-        changeStream.on('change', async (change) => {
+        this.changeStream.on('change', async (change) => {
             try {
                 if (change.fullDocument) {
                     const id = change.fullDocument._id;
@@ -50,6 +57,17 @@ export class CharactersService implements OnModuleInit {
                 this.logger.error('Errore nel change stream', err);
             }
         });
+
+        this.changeStream.on('error', (err) => {
+            this.logger.error('Errore nel change stream MongoDB', err);
+        });
+    }
+
+    async onModuleDestroy() {
+        if (this.changeStream) {
+            await this.changeStream.close();
+            this.logger.log('Change stream chiuso correttamente');
+        }
     }
 
     async findAll(): Promise<Character[]> {
@@ -202,12 +220,34 @@ export class CharactersService implements OnModuleInit {
 
     async equipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
         const character = await this.characterModel.findById(request.id).exec();
-        if (!character) throw new NotFoundException(`Character with id ${request.id} not found`);
-        if (character.status.maxActiveSpells <= character.assets.activeSpells.length) {
-            throw new BadRequestException(`Character with id ${request.id} has too many active spells`);
-        } else {
-            character.assets.activeSpells = [...character.assets.activeSpells, { spell: new Types.ObjectId(request.spellId), usages: request.usages! }]
+        if (!character) {
+            throw new NotFoundException(`Character with id ${request.id} not found`);
         }
+
+        const knownSpellIds = character.status.spells.map(s => 
+            s instanceof Types.ObjectId ? s.toString() : s.id?.toString()
+        );
+        if (!knownSpellIds.includes(request.spellId)) {
+            throw new BadRequestException(`Spell ${request.spellId} is not known by character ${request.id}`);
+        }
+
+        const isAlreadyActive = character.assets.activeSpells.some(
+            a => a.spell?.toString() === request.spellId
+        );
+        if (isAlreadyActive) {
+            throw new BadRequestException(`Spell ${request.spellId} is already active`);
+        }
+
+        if (character.status.maxActiveSpells <= character.assets.activeSpells.length) {
+            throw new BadRequestException(`Character ${request.id} has reached the maximum number of active spells`);
+        }
+
+        const usages = request.usages ?? 0;
+        character.assets.activeSpells = [
+            ...character.assets.activeSpells, 
+            { spell: new Types.ObjectId(request.spellId), usages }
+        ];
+
         await character.save();
         return {
             response: 'Magia equipaggiata con successo',
@@ -217,15 +257,70 @@ export class CharactersService implements OnModuleInit {
 
     async unequipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
         const character = await this.characterModel.findById(request.id).exec();
-        if (!character) throw new NotFoundException(`Character with id ${request.id} not found`);
-        if (character.assets.activeSpells.length == 0) {
-            throw new NotFoundException(`Character with id ${request.id} has no active spells`);
-        } else {
-            character.assets.activeSpells = character.assets.activeSpells.filter((spell) => spell.spell != new Types.ObjectId(request.spellId))
+        if (!character) {
+            throw new NotFoundException(`Character with id ${request.id} not found`);
         }
+
+        const activeSpellIndex = character.assets.activeSpells.findIndex(
+            a => a.spell?.toString() === request.spellId
+        );
+        if (activeSpellIndex === -1) {
+            throw new NotFoundException(`Spell ${request.spellId} is not active for character ${request.id}`);
+        }
+
+        character.assets.activeSpells.splice(activeSpellIndex, 1);
+
         await character.save();
         return {
             response: 'Magia disequipaggiata con successo',
+            successful: true,
+        };
+    }
+
+    async useSpell(request: UseSpellRequest): Promise<CommonResponse> {
+        const character = await this.characterModel.findById(request.characterId).exec();
+        if (!character) {
+            throw new NotFoundException(`Character with id ${request.characterId} not found`);
+        }
+
+        const activeSpell = character.assets.activeSpells.find(
+            a => a.spell?.toString() === request.spellId
+        );
+        if (!activeSpell) {
+            throw new BadRequestException(`Spell ${request.spellId} is not active for character ${request.characterId}`);
+        }
+
+        if (activeSpell.usages <= 0) {
+            throw new BadRequestException(`Spell ${request.spellId} has no usages left`);
+        }
+
+        activeSpell.usages -= 1;
+        await character.save();
+
+        const spell = await this.spellModel.findById(request.spellId).exec();
+        if (!spell) {
+            throw new NotFoundException(`Spell ${request.spellId} not found`);
+        }
+
+        const jobId = `${request.characterId}-${request.spellId}-${Date.now()}`;
+        await this.spellRecoveryQueue.add(
+            'recover',
+            {
+                characterId: request.characterId,
+                spellId: request.spellId,
+            },
+            {
+                delay: spell.recoveryTime,
+                jobId,
+                removeOnComplete: true,
+                removeOnFail: false,
+            }
+        );
+
+        this.logger.log(`Spell ${request.spellId} used by character ${request.characterId}. Recovery scheduled in ${spell.recoveryTime}ms`);
+
+        return {
+            response: 'Magia utilizzata con successo',
             successful: true,
         };
     }

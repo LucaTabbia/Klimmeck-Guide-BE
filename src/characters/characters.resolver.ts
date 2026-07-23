@@ -8,6 +8,8 @@ import type { PubSub } from '@graphql-yoga/subscription';
 import { PubSubEvents } from 'src/pubsub.module';
 import { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
+import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
+import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 
 @Resolver(() => Character)
 export class CharactersResolver {
@@ -44,6 +46,27 @@ export class CharactersResolver {
         @Args('request', { type: () => EquipItemRequest }) request: EquipItemRequest,
     ): Promise<CommonResponse> {
         return this.charactersService.equipItem(request);
+    }
+
+    @Mutation(() => CommonResponse)
+    async equipSpell(
+        @Args('request', { type: () => EquipSpellRequest }) request: EquipSpellRequest,
+    ): Promise<CommonResponse> {
+        return this.charactersService.equipSpell(request);
+    }
+
+    @Mutation(() => CommonResponse)
+    async unequipSpell(
+        @Args('request', { type: () => EquipSpellRequest }) request: EquipSpellRequest,
+    ): Promise<CommonResponse> {
+        return this.charactersService.unequipSpell(request);
+    }
+
+    @Mutation(() => CommonResponse)
+    async useSpell(
+        @Args('request', { type: () => UseSpellRequest }) request: UseSpellRequest,
+    ): Promise<CommonResponse> {
+        return this.charactersService.useSpell(request);
     }
 
     @Subscription(() => Character, {
