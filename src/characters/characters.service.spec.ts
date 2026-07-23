@@ -53,7 +53,10 @@ describe('CharactersService (unit — spell mutations)', () => {
                     provide: getModelToken(Character.name),
                     useValue: mockCharacterModel,
                 },
-                { provide: getModelToken(Spell.name), useValue: mockSpellModel },
+                {
+                    provide: getModelToken(Spell.name),
+                    useValue: mockSpellModel,
+                },
                 {
                     provide: getQueueToken('spell-recovery'),
                     useValue: mockQueue,
@@ -137,9 +140,7 @@ describe('CharactersService (unit — spell mutations)', () => {
                     ownedItems: [],
                     wearedEquipment: {},
                     // slot already occupied by another spell
-                    activeSpells: [
-                        { spell: new Types.ObjectId(), usages: 1 },
-                    ],
+                    activeSpells: [{ spell: new Types.ObjectId(), usages: 1 }],
                     pet: null,
                 },
             });
