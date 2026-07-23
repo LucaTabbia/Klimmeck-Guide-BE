@@ -11,6 +11,10 @@ jobs:
     env:
       # Versione MongoDB pinnata (>=7.0, wiredTiger) per cache deterministica dei binari
       MONGOMS_VERSION: '8.0.4'
+      # Forza mongodb-memory-server a scaricare i binari nella dir messa in cache.
+      # Il default (node_modules/.cache/mongodb-memory-server) viene cancellato da `npm ci`,
+      # quindi il path di actions/cache non combaciava mai col download reale (WR-06).
+      MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-memory-server
       # Il service container Redis: test/setup/redis.ts usa questi env invece di redis-memory-server
       REDIS_HOST: localhost
       REDIS_PORT: '6379'
