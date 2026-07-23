@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-07-23T17:17:26.122Z"
+status: verifying
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-07-23T17:20:58.046Z"
 last_activity: 2026-07-23
 progress:
   total_phases: 10
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 Phase: 01 (fondazione-test-consolidamento-spell-wip) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-23
 
 Progress: [░░░░░░░░░░] 0%
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 6 | 4 tasks | 14 files |
 | Phase 01 P02 | 6 | 3 tasks | 10 files |
 | Phase 01 P01-03 | 9 | 3 tasks | 4 files |
+| Phase 01 P04 | 1 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,7 @@ Recent decisions affecting current work:
 - [Phase 01]: Harness test: MongoMemoryReplSet single-node condiviso via globalSetup; split Jest unit/integration via projects; Redis effimero dietro env; pre-create collection prima delle transazioni multi-doc su replSet.
 - [Phase 01]: Fixture two-tier buildX/persistX deterministiche per i 6 modelli; Character con xp:20000 (virtual maxActiveSpells) e location POI reale via persistCharacter
 - [Phase 01]: Fix D-06 minimale (solo riordino validazione useSpell, RED->GREEN); attesa job Bull via polling documento (no job.finished, evita open handle); processor test senza CharactersService per non aprire il change stream
+- [Phase 01]: CI GitHub Actions: lint+unit+integration su ogni push+PR, Redis service container reale (redis:7), cache binari mongodb-memory-server con MONGOMS_VERSION pinnata (8.0.4); dir vuota src/spellRecovery/ rimossa
 
 ### Pending Todos
 
@@ -86,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-23T17:17:17.229Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-07-23T17:20:49.236Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None
