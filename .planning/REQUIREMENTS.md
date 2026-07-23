@@ -17,10 +17,10 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Test Foundation (BE-TEST)
 
-- [ ] **BE-TEST-01**: La suite Jest gira contro `mongodb-memory-server` in modalità replica set (change stream e transazioni funzionanti nei test), con setup/teardown condiviso e CI-ready
-- [ ] **BE-TEST-02**: I test unit mockano le code Bull al confine DI (`getQueueToken`); i test di integrazione dei processor usano un Redis effimero reale (no `ioredis-mock`, incompatibile con Bull)
+- [x] **BE-TEST-01**: La suite Jest gira contro `mongodb-memory-server` in modalità replica set (change stream e transazioni funzionanti nei test), con setup/teardown condiviso e CI-ready
+- [x] **BE-TEST-02**: I test unit mockano le code Bull al confine DI (`getQueueToken`); i test di integrazione dei processor usano un Redis effimero reale (no `ioredis-mock`, incompatibile con Bull)
 - [ ] **BE-TEST-03**: Esistono fixture/factory riusabili per i modelli di dominio (User, Character, Quest, Spell, Road, POI)
-- [ ] **BE-TEST-04**: Il WIP spell use/recovery presente nel working tree è consolidato con TDD e committato: ordine validazione corretto in `useSpell` (spell verificata prima del decremento), processor coperto da test
+- [x] **BE-TEST-04**: Il WIP spell use/recovery presente nel working tree è consolidato con TDD e committato: ordine validazione corretto in `useSpell` (spell verificata prima del decremento), processor coperto da test
 
 ### Authentication (BE-AUTH)
 
@@ -118,10 +118,10 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BE-TEST-01 | Phase 1 | Pending |
-| BE-TEST-02 | Phase 1 | Pending |
+| BE-TEST-01 | Phase 1 | Complete |
+| BE-TEST-02 | Phase 1 | Complete |
 | BE-TEST-03 | Phase 1 | Pending |
-| BE-TEST-04 | Phase 1 | Pending |
+| BE-TEST-04 | Phase 1 | Complete |
 | BE-AUTH-01 | Phase 2 | Pending |
 | BE-AUTH-02 | Phase 2 | Pending |
 | BE-AUTH-03 | Phase 2 | Pending |

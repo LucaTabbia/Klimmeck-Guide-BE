@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-07-16T14:25:52.157Z"
-last_activity: 2026-07-16 — Roadmap creata (10 fasi, 42 requirement mappati)
+status: executing
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-07-23T16:30:29.568Z"
+last_activity: 2026-07-23
 progress:
   total_phases: 10
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 4
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 1 — Fondazione Test & Consolidamento Spell WIP
+**Current focus:** Phase 01 — fondazione-test-consolidamento-spell-wip
 
 ## Current Position
 
-Phase: 1 of 10 (Fondazione Test & Consolidamento Spell WIP)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-07-16 — Roadmap creata (10 fasi, 42 requirement mappati)
+Phase: 01 (fondazione-test-consolidamento-spell-wip) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-07-23
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01 P01 | 6 | 4 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,7 @@ Recent decisions affecting current work:
 - [Phase 1]: Test con mongodb-memory-server in modalità replica set (change stream + transazioni); Bull mockato al confine DI negli unit + Redis effimero reale nei processor test (ioredis-mock NON viabile per Bull).
 - [Phase 2]: Auth = JWT di sessione proprio (scambio `twitchToken → JWT BE` al login); dev bypass fail-closed compatibile con lo stub FE `DEV_AUTH_ACCESS_TOKEN`.
 - [Phase 8]: Il DB (`endTime` persistito) è la fonte di verità dei timer viaggio; il job Bull è solo un trigger + reconciler al boot.
+- [Phase 01]: Harness test: MongoMemoryReplSet single-node condiviso via globalSetup; split Jest unit/integration via projects; Redis effimero dietro env; pre-create collection prima delle transazioni multi-doc su replSet.
 
 ### Pending Todos
 
@@ -80,6 +82,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-16T14:25:52.151Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-fondazione-test-consolidamento-spell-wip/01-CONTEXT.md
+Last session: 2026-07-23T16:30:22.614Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None
