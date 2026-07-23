@@ -294,13 +294,13 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
             throw new BadRequestException(`Spell ${request.spellId} has no usages left`);
         }
 
-        activeSpell.usages -= 1;
-        await character.save();
-
         const spell = await this.spellModel.findById(request.spellId).exec();
         if (!spell) {
             throw new NotFoundException(`Spell ${request.spellId} not found`);
         }
+
+        activeSpell.usages -= 1;
+        await character.save();
 
         const jobId = `${request.characterId}-${request.spellId}-${Date.now()}`;
         await this.spellRecoveryQueue.add(
