@@ -1,10 +1,11 @@
 ---
 phase: 01-fondazione-test-consolidamento-spell-wip
-reviewed: 2026-07-23T17:26:27Z
+reviewed: 2026-07-23T20:42:16Z
 depth: standard
-files_reviewed: 29
+files_reviewed: 30
 files_reviewed_list:
   - .github/workflows/ci.yml
+  - eslint.config.mjs
   - package.json
   - src/app.module.ts
   - src/characters/characters.module.ts
@@ -35,28 +36,32 @@ files_reviewed_list:
   - test/setup/redis.ts
 findings:
   critical: 0
-  warning: 7
-  info: 10
-  total: 17
+  warning: 6
+  info: 13
+  total: 19
 status: issues_found
 ---
 
 # Phase 01: Code Review Report
 
-**Reviewed:** 2026-07-23T17:26:27Z
+**Reviewed:** 2026-07-23T20:42:16Z
 **Depth:** standard
-**Files Reviewed:** 29
+**Files Reviewed:** 30
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the phase 01 deliverables: the consolidated spell WIP (equipSpell/unequipSpell/useSpell mutations, Bull `spell-recovery` processor) and the test foundation (MongoMemoryReplSet harness, unit/integration Jest split, deterministic fixtures, GitHub Actions CI).
+Re-review of the phase 01 deliverables after gap-closure plan 01-05. Scope: the consolidated spell WIP (equipSpell/unequipSpell/useSpell mutations, Bull `spell-recovery` processor), the test foundation (MongoMemoryReplSet harness, unit/integration Jest split, deterministic fixtures, GitHub Actions CI), plus the three files touched by 01-05: `package.json` (serialized `test` script), `eslint.config.mjs` (pre-existing type-safety debt downgraded to `warn` repo-wide, `no-unsafe-*` family off for test files), and `.github/workflows/ci.yml` (MONGOMS_DOWNLOAD_DIR aligned to the actions/cache path).
 
-Overall assessment: the test foundation is solid. The unit/integration split via `testMatch` globs is correct (verified: `*.spec.ts` does NOT accidentally match `*.int-spec.ts`), fixtures are deterministic and well-documented, the change-stream and transaction harness tests are carefully guarded against leaked handles, and the D-06 validation-order bug (spell fetched before usage decrement) is correctly fixed in `useSpell`.
+**Resolved since previous review:** WR-06 (mongodb-memory-server binary cache never populated) is correctly fixed — `MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-memory-server` (ci.yml:17) now matches the `actions/cache` path `~/.cache/mongodb-memory-server` on ubuntu-latest, with the version pinned via `MONGOMS_VERSION` and included in the cache key. The 01-05 changes themselves are sound: the serialized `test` script avoids the parallel unit+integration race, and the ESLint downgrade is explicitly documented as pre-existing debt deferred to Phase 10 (non-masking: still reported as warnings in CI logs).
 
-Key concerns are concentrated in the spell state machine: all usage mutations are non-atomic read-modify-write cycles over `assets.activeSpells`, the recovery increment is uncapped at `maxUsages`, and `equipSpell` trusts a client-supplied `usages` value — a direct tension with the project's core value ("il backend è la fonte di verità... ogni valore mostrato dal frontend è calcolato e garantito server-side"). None of these are exploitable beyond the already-documented absence of an auth layer (planned in a later phase), so they are classified Warning, not Critical — but they should be fixed before the spell economy goes live. One CI issue: the mongodb-memory-server binary cache is very likely never populated.
+Overall assessment unchanged on the core: the test foundation is solid — the unit/integration split via `testMatch` globs is correct, fixtures are deterministic and well-documented, the change-stream and transaction harness tests are carefully guarded against leaked handles, and the D-06 validation-order bug (spell fetched before usage decrement) is correctly fixed in `useSpell`.
 
-No hardcoded secrets, no injection vectors, no unsafe deserialization found. Performance is out of scope per v1.
+Remaining concerns are concentrated in the spell state machine: all usage mutations are non-atomic read-modify-write cycles over `assets.activeSpells`, the recovery increment is uncapped at `maxUsages`, and `equipSpell` trusts a client-supplied `usages` value — a direct tension with the project's core value ("il backend è la fonte di verità... ogni valore mostrato dal frontend è calcolato e garantito server-side"). None of these are exploitable beyond the already-documented absence of an auth layer (planned in a later phase), so they remain Warning, not Critical — but they should be fixed before the spell economy goes live.
+
+New (Info-level) findings from the 01-05 files: no warning ratchet on ESLint (warning count can silently grow in new src code), `test:cov`/`test:watch` run the integration project without `--runInBand`, and the `startRedis` env passthrough combined with `queue.empty()` can wipe a shared local Redis queue.
+
+No hardcoded secrets, no injection vectors, no unsafe deserialization found. Performance is out of scope per v1. Original finding IDs are preserved for traceability with 01-VERIFICATION.md and follow-up plans (WR-06 is retired as resolved).
 
 ## Warnings
 
@@ -114,17 +119,6 @@ export type PubSubEvents = {
 ```
 and align the harness test's `publish` call accordingly.
 
-### WR-06: CI cache for mongodb-memory-server binaries is likely never populated
-
-**File:** `.github/workflows/ci.yml:36-40`
-**Issue:** The cache step targets `~/.cache/mongodb-memory-server`, but mongodb-memory-server's default download directory when a `node_modules` folder exists is `node_modules/.cache/mongodb-memory-server` — which `npm ci` wipes and which is never cached. Result: the ~500MB MongoDB 8.0.4 binary is re-downloaded on every CI run, and the cache key `mongoms-...-8.0.4` restores an empty directory. (Verify via the "Post Cache" step logs: cache size will be ~0.)
-**Fix:** Pin the download dir to the cached path:
-```yaml
-env:
-  MONGOMS_VERSION: '8.0.4'
-  MONGOMS_DOWNLOAD_DIR: /home/runner/.cache/mongodb-memory-server
-```
-
 ### WR-07: `getShortestPath` sums an arbitrary parallel edge on the multigraph
 
 **File:** `src/roads/roads.service.ts:153-162`
@@ -161,7 +155,7 @@ const edgeKey = edgeKeys.reduce((best, k) =>
 
 ### IN-04: CI runs twice per PR, lints with `--fix`, and mixes npm/yarn
 
-**File:** `.github/workflows/ci.yml:3-5,45-46`; `package.json:15,134`
+**File:** `.github/workflows/ci.yml:3-5,49-50`; `package.json:15,134`
 **Issue:** (a) `on: push` + `pull_request` with no branch filter double-runs every PR commit. (b) `npm run lint` invokes eslint with `--fix`, which silently auto-corrects in CI instead of failing on fixable violations. (c) CI uses `npm ci`/npm cache while `package.json` declares `packageManager: yarn@1.22.22` — works today because the lockfile is npm-format, but invites drift.
 **Fix:** Filter push to `develop`/`main`; add a fix-less `lint:check` script for CI; pick one package manager story and align CI, `packageManager`, and lockfile.
 
@@ -201,8 +195,30 @@ const edgeKey = edgeKeys.reduce((best, k) =>
 **Issue:** `installSubscriptionHandlers: true` enables the deprecated `subscriptions-transport-ws` path while `subscriptions: { 'graphql-ws': true }` configures the modern protocol; the legacy flag is redundant (and deprecated in @nestjs/graphql 13).
 **Fix:** Remove `installSubscriptionHandlers: true` after confirming the Flutter client speaks `graphql-ws`.
 
+### IN-11: ESLint downgrade to `warn` has no ratchet — new src violations accumulate silently
+
+**File:** `eslint.config.mjs:27-47`; `.github/workflows/ci.yml:49-50`
+**Issue:** The repo-wide downgrade of the type-safety rules (`no-floating-promises`, `no-unsafe-*`, etc.) to `warn` is a deliberate, well-documented choice for PRE-EXISTING debt (comment references Phase 10 / 01-VERIFICATION.md gap #2). However the override applies to all `src/` code, including code written from now on, and CI runs eslint with its default warning tolerance (no `--max-warnings`, no baseline count). Net effect: a NEW floating promise or unsafe cast introduced tomorrow produces only a log line and a green build — the debt can grow unbounded and Phase 10 inherits a moving target. Particularly relevant for `no-floating-promises`, which catches real bug classes (unawaited `save()`/`queue.add()`) in this async-heavy codebase.
+**Fix:** Freeze the debt with a ratchet: record the current warning count and fail CI when it increases, e.g. a `lint:ci` script that runs `eslint -f json` and compares total warnings against a committed baseline number (or adopt a baseline tool). Cheapest viable option: `--max-warnings <current-count>` in the CI lint step, lowered as debt is paid down.
+
+### IN-12: `test:cov` and `test:watch` run the integration project without `--runInBand`
+
+**File:** `package.json:19-20,103-127`
+**Issue:** The primary scripts are correct after 01-05 (`test` = `test:unit && test:int`, with `test:int` serialized via `--runInBand`). But `test:cov` and `test:watch` run ALL Jest projects — including `integration` — with default parallel workers. All integration workers share one MongoMemoryReplSet URI (globalSetup env propagates to workers) and `after-env.ts:10-15` wipes every collection in `afterEach`, so a worker can delete another worker's in-flight documents mid-test. Coverage runs (and watch-mode reruns) are therefore flaky in a way `npm test` is not.
+**Fix:** Scope the convenience scripts to the safe project or serialize them:
+```json
+"test:watch": "jest --selectProjects unit --watch",
+"test:cov": "jest --coverage --runInBand"
+```
+
+### IN-13: `startRedis` env passthrough + `queue.empty()` can wipe a shared local Redis queue
+
+**File:** `test/setup/redis.ts:6-8`; `src/characters/spell-recovery.processor.int-spec.ts:56-58`
+**Issue:** `startRedis()` short-circuits to `REDIS_HOST`/`REDIS_PORT` whenever both are set — intended for the CI service container, but it also fires on a developer machine where those vars are exported for the dev backend. In that case the integration test attaches to the shared dev Redis and `afterAll` calls `queue.empty()` on the real `spell-recovery` queue, silently destroying any pending recovery jobs of the running dev environment (permanent usage loss per WR-01/WR-04). There is no test-scoped isolation (no dedicated DB index or key prefix).
+**Fix:** Gate the passthrough on an explicit opt-in (e.g. only when `CI=true` or a dedicated `REDIS_TEST_HOST`/`REDIS_TEST_PORT` pair is set), and/or isolate with a Bull key `prefix` (e.g. `bull-test`) so `queue.empty()` cannot touch dev/prod keys.
+
 ---
 
-_Reviewed: 2026-07-23T17:26:27Z_
+_Reviewed: 2026-07-23T20:42:16Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
