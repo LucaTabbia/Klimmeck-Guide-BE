@@ -78,20 +78,25 @@
     "projects": [
       {
         "displayName": "unit",
-        "rootDir": "src",
+        "rootDir": ".",
+        "roots": [
+          "<rootDir>/src",
+          "<rootDir>/test"
+        ],
         "moduleFileExtensions": [
           "js",
           "json",
           "ts"
         ],
         "testMatch": [
-          "<rootDir>/**/*.spec.ts"
+          "<rootDir>/src/**/*.spec.ts",
+          "<rootDir>/test/**/*.spec.ts"
         ],
         "transform": {
           "^.+\\.(t|j)s$": "ts-jest"
         },
         "moduleNameMapper": {
-          "^src/(.*)$": "<rootDir>/$1"
+          "^src/(.*)$": "<rootDir>/src/$1"
         },
         "testEnvironment": "node"
       },
