@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Lint + Unit + Integration
+    runs-on: ubuntu-latest
+    env:
+      # Versione MongoDB pinnata (>=7.0, wiredTiger) per cache deterministica dei binari
+      MONGOMS_VERSION: '8.0.4'
+      # Il service container Redis: test/setup/redis.ts usa questi env invece di redis-memory-server
+      REDIS_HOST: localhost
+      REDIS_PORT: '6379'
+    services:
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Cache mongodb-memory-server binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-memory-server
+          key: mongoms-${{ runner.os }}-${{ env.MONGOMS_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Integration tests
+        run: npm run test:int
