@@ -23,7 +23,8 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 - ✓ Real-time: MongoDB change stream su Character → PubSub → subscription `characterUpdated` filtrata per id — existing
 - ✓ Pathfinding stradale con graphology (grafo POI/strade, calcolo percorso e tempi con `speedFactor`) — existing
 - ✓ Transazioni economiche di base (`doTransaction`: coins, item) e equip/unequip equipment — existing
-- ✓ Equip/unequip/use spell con recovery asincrona via Bull + Redis (WIP nel working tree, da consolidare) — existing
+- ✓ Equip/unequip/use spell con recovery asincrona via Bull + Redis, consolidato per concern con fix ordine-validazione `useSpell` — Validated in Phase 01: Fondazione Test & Consolidamento Spell WIP
+- ✓ Fondazione test TDD: MongoMemoryReplSet condiviso (transazioni + change stream), split Jest unit/integration, Bull DI-mock + Redis effimero reale, fixture two-tier per 6 modelli, CI GitHub Actions (lint + unit + integration) — Validated in Phase 01: Fondazione Test & Consolidamento Spell WIP
 - ✓ Upload immagini via Cloudinary (REST) — existing
 - ✓ Modelli unificati GraphQL ObjectType + Mongoose Schema con `idTransformPlugin` globale — existing
 
@@ -41,7 +42,6 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 - [ ] Contratto combat result ibrido: entità `CombatResult` persistita, payload completo su subscription, ID su push FCM, query `combatResult(id)`
 - [ ] Integrità dati: operazioni atomiche (transazioni Mongo/optimistic locking) su coins, twitchPoints, quest accept, spell usages, teleport
 - [ ] Validazione input (class-validator + ValidationPipe globale) e hardening GraphQL (introspection off in prod, error sanitization, CORS esplicito)
-- [ ] Fondazione test TDD: mongodb-memory-server (replica set), Bull mockato al confine DI (unit) + Redis effimero reale (integration), fixture/factory, coverage sulle aree critiche
 
 ### Out of Scope
 
@@ -114,4 +114,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-07-16 after initialization*
+*Last updated: 2026-07-24 after Phase 01 completion (fondazione TDD + consolidamento spell WIP)*
