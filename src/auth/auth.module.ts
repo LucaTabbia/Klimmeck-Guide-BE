@@ -16,6 +16,8 @@ import { SessionService } from 'src/auth/session/session.service';
 import { AccessTokenService } from 'src/auth/token/access-token.service';
 import { HttpTwitchOAuthClient } from 'src/auth/twitch/http-twitch-oauth.client';
 import { OAuthStateService } from 'src/auth/twitch/oauth-state.service';
+import { TwitchAuthController } from 'src/auth/twitch/twitch-auth.controller';
+import { TwitchLoginService } from 'src/auth/twitch/twitch-login.service';
 import { TwitchOAuthClient } from 'src/auth/twitch/twitch-oauth.client';
 import { WsConnectionAuthenticator } from 'src/auth/ws/ws-connection-authenticator';
 import { AUTH_CONFIG, authConfigProvider } from 'src/config/auth-config';
@@ -31,6 +33,7 @@ import { UsersModule } from 'src/users/users.module';
             { name: LoginTicket.name, schema: LoginTicketSchema },
         ]),
     ],
+    controllers: [TwitchAuthController],
     providers: [
         authConfigProvider,
         { provide: Clock, useClass: SystemClock },
@@ -44,6 +47,7 @@ import { UsersModule } from 'src/users/users.module';
         WsConnectionAuthenticator,
         AuthStartupReporter,
         AuthSessionService,
+        TwitchLoginService,
     ],
     exports: [
         AUTH_CONFIG,
