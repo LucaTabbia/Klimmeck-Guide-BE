@@ -24,6 +24,8 @@ const BEYOND_GRACE_SECONDS = 31;
 const LAST_SECOND_WITHIN_GRACE = 29;
 const SLOW_USER_LOOKUP_SECONDS = 2;
 const STALLED_REQUEST_SECONDS = 10;
+const CLIENT_ROTATES_AGAIN_SECONDS = 5;
+const STALL_RELEASE_SECONDS = 5;
 
 interface AccessClaims {
     sub: string;
@@ -249,9 +251,9 @@ describe('AuthSessionService (harness)', () => {
             expect(stored?.refreshTokenHash).toBe(
                 sha256Hex(first.refreshToken),
             );
-            expect(stored?.retiredRefreshTokenHashes).toEqual([
-                sha256Hex(t0.refreshToken),
-            ]);
+            expect(
+                stored?.retiredRefreshTokens.map((retired) => retired.hash),
+            ).toEqual([sha256Hex(t0.refreshToken)]);
         });
 
         it('reverse order: a stalled refresh completing after its retry returns the token the client holds, which keeps working (WR-05)', async () => {
@@ -274,6 +276,38 @@ describe('AuthSessionService (harness)', () => {
             const next = await service.refresh(retried?.refreshToken ?? '');
 
             expect(stalled.refreshToken).toBe(retried?.refreshToken);
+            expect(decodeClaims(next.accessToken).sid).toBe(sid);
+            const stored = await sessions.findById(sid).exec();
+            expect(stored?.revokedAt).toBeNull();
+            expect(stored?.refreshTokenHash).toBe(sha256Hex(next.refreshToken));
+        });
+
+        it('stalled across two rotations: a stalled refresh completing after the client rotated again returns the token the client holds and does not revoke the session (REVIEW-3 WR-01)', async () => {
+            const t0 = await service.issueForUser(user);
+            const { sid } = decodeClaims(t0.accessToken);
+            const usersService = harness.app.get(UsersService);
+            const findOne = usersService.findOne.bind(usersService);
+            let rotatedAgain: AuthSession | undefined;
+            const stalledLookup = jest
+                .spyOn(usersService, 'findOne')
+                .mockImplementationOnce(async (id: string) => {
+                    clock.advanceSeconds(STALLED_REQUEST_SECONDS);
+                    const retried = await service.refresh(t0.refreshToken);
+                    clock.advanceSeconds(CLIENT_ROTATES_AGAIN_SECONDS);
+                    rotatedAgain = await service.refresh(retried.refreshToken);
+                    clock.advanceSeconds(STALL_RELEASE_SECONDS);
+                    return findOne(id);
+                });
+
+            const stalled = await service.refresh(t0.refreshToken);
+            stalledLookup.mockRestore();
+            clock.advanceSeconds(ACCESS_TOKEN_TTL_MS / 1000);
+            const next = await service.refresh(
+                rotatedAgain?.refreshToken ?? '',
+            );
+
+            expect(stalled.refreshToken).toBe(rotatedAgain?.refreshToken);
+            expect(decodeClaims(stalled.accessToken).sid).toBe(sid);
             expect(decodeClaims(next.accessToken).sid).toBe(sid);
             const stored = await sessions.findById(sid).exec();
             expect(stored?.revokedAt).toBeNull();

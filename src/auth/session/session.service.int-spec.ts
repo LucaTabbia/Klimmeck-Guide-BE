@@ -28,7 +28,7 @@ const SessionModel: Model<SessionDocument> =
 const USER_ID = '64b0000000000000000000b1';
 const REFRESH_TOKEN_TTL_MS = 2_592_000 * 1000;
 const OPAQUE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
-const RETIRED_REFRESH_TOKEN_HASHES_LIMIT = 10;
+const RETIRED_REFRESH_TOKENS_LIMIT = 10;
 const REFRESH_TOKEN_KEY = deriveRefreshTokenKey(TEST_JWT_SECRET);
 const ROTATED_JWT_SECRET = 'rotated-jwt-secret-0123456789abcdef-0123456789';
 const IN_GRACE_RETRIES = 3;
@@ -61,6 +61,10 @@ describe('SessionService (replSet)', () => {
 
     function readSession(sessionId: string) {
         return SessionModel.findById(sessionId).lean().exec();
+    }
+
+    function retiredEntry(token: string, retiredAt: Date) {
+        return { hash: sha256Hex(token), retiredAt };
     }
 
     beforeEach(async () => {
@@ -122,13 +126,13 @@ describe('SessionService (replSet)', () => {
         it('sets a 30-day expiry and no rotation or revocation', async () => {
             const issued = await service.create(USER_ID);
 
-            const stored = await SessionModel.findById(issued.sessionId).exec();
+            const stored = await readSession(issued.sessionId);
 
             expect(stored?.expiresAt.getTime()).toBe(
                 clock.now().getTime() + REFRESH_TOKEN_TTL_MS,
             );
             expect(stored?.revokedAt).toBeNull();
-            expect(stored?.rotatedAt).toBeNull();
+            expect(stored?.retiredRefreshTokens).toEqual([]);
             expect(stored?.userId.toString()).toBe(USER_ID);
         });
 
@@ -175,9 +179,10 @@ describe('SessionService (replSet)', () => {
             const found = await service.findRotatable(t0.refreshToken);
 
             expect(found).toEqual({ sessionId: t0.sessionId, userId: USER_ID });
-            const stored = await SessionModel.findById(t0.sessionId).exec();
+            const stored = await readSession(t0.sessionId);
             expect(stored?.refreshTokenHash).toBe(sha256Hex(t0.refreshToken));
-            expect(stored?.rotatedAt).toBeNull();
+            expect(stored?.rotationCount).toBe(0);
+            expect(stored?.retiredRefreshTokens).toEqual([]);
         });
 
         it('rejects a token that was never issued with SESSION_EXPIRED', async () => {
@@ -201,18 +206,14 @@ describe('SessionService (replSet)', () => {
             expect(t1.refreshToken).not.toBe(t0.refreshToken);
             expect(t1.sessionId).toBe(t0.sessionId);
             expect(t1.userId).toBe(USER_ID);
-            const stored = await SessionModel.findById(t0.sessionId).exec();
+            const stored = await readSession(t0.sessionId);
             expect(stored?.refreshTokenHash).toBe(sha256Hex(t1.refreshToken));
-            expect(stored?.previousRefreshTokenHash).toBe(
-                sha256Hex(t0.refreshToken),
-            );
-            expect(stored?.rotatedAt?.getTime()).toBe(clock.now().getTime());
             expect(stored?.expiresAt.getTime()).toBe(
                 clock.now().getTime() + REFRESH_TOKEN_TTL_MS,
             );
             expect(stored?.rotationCount).toBe(1);
-            expect(stored?.retiredRefreshTokenHashes).toEqual([
-                sha256Hex(t0.refreshToken),
+            expect(stored?.retiredRefreshTokens).toEqual([
+                retiredEntry(t0.refreshToken, clock.now()),
             ]);
             expect(t1.refreshToken).toBe(
                 deriveRefreshToken(
@@ -226,16 +227,18 @@ describe('SessionService (replSet)', () => {
 
         it('chains rotations: the latest token rotates again', async () => {
             const t0 = await service.create(USER_ID);
+            const firstRotationAt = clock.now();
             const t1 = await service.rotate(t0.refreshToken);
             clock.advanceSeconds(60);
 
             const t2 = await service.rotate(t1.refreshToken);
 
-            const stored = await SessionModel.findById(t0.sessionId).exec();
+            const stored = await readSession(t0.sessionId);
             expect(stored?.refreshTokenHash).toBe(sha256Hex(t2.refreshToken));
-            expect(stored?.previousRefreshTokenHash).toBe(
-                sha256Hex(t1.refreshToken),
-            );
+            expect(stored?.retiredRefreshTokens).toEqual([
+                retiredEntry(t0.refreshToken, firstRotationAt),
+                retiredEntry(t1.refreshToken, clock.now()),
+            ]);
         });
 
         it('grace: the previous token within 30s gets the current token back and leaves the session untouched (D-35)', async () => {
@@ -295,8 +298,66 @@ describe('SessionService (replSet)', () => {
             expect(stored?.refreshTokenHash).toBe(sha256Hex(next.refreshToken));
         });
 
+        it('grace: a stalled duplicate processed after the client rotated again gets the current token, writes nothing and leaves the session usable (REVIEW-3 WR-01)', async () => {
+            const t0 = await service.create(USER_ID);
+            const stalledRequestAt = clock.now();
+            await service.findRotatable(t0.refreshToken, stalledRequestAt);
+            clock.advanceSeconds(10);
+            const retried = await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(5);
+            const t2 = await service.rotate(retried.refreshToken);
+            const afterClientRotation = await readSession(t0.sessionId);
+            clock.advanceSeconds(5);
+
+            const stalled = await service.rotate(
+                t0.refreshToken,
+                stalledRequestAt,
+            );
+
+            expect(stalled).toEqual(t2);
+            expect(await readSession(t0.sessionId)).toEqual(
+                afterClientRotation,
+            );
+            clock.advanceSeconds(60);
+            await expect(service.rotate(t2.refreshToken)).resolves.toEqual(
+                expect.objectContaining({ sessionId: t0.sessionId }),
+            );
+        });
+
+        it('grace: a token retired within 30s, older than the previous one, gets the current token back (REVIEW-3 WR-01)', async () => {
+            const t0 = await service.create(USER_ID);
+            const t1 = await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(5);
+            const t2 = await service.rotate(t1.refreshToken);
+            clock.advanceSeconds(24);
+
+            await expect(service.rotate(t0.refreshToken)).resolves.toEqual(t2);
+            await expect(
+                service.findRotatable(t0.refreshToken),
+            ).resolves.toEqual({ sessionId: t0.sessionId, userId: USER_ID });
+        });
+
+        it('reuse: a token retired 31s before the request revokes the whole session, even when a later token is still inside the window (REVIEW-3 WR-01)', async () => {
+            const t0 = await service.create(USER_ID);
+            const t1 = await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(5);
+            const t2 = await service.rotate(t1.refreshToken);
+            clock.advanceSeconds(26);
+
+            await expect(service.rotate(t0.refreshToken)).rejects.toMatchObject(
+                sessionRevoked,
+            );
+
+            const stored = await readSession(t0.sessionId);
+            expect(stored?.revokedAt?.getTime()).toBe(clock.now().getTime());
+            await expect(service.rotate(t2.refreshToken)).rejects.toMatchObject(
+                sessionRevoked,
+            );
+        });
+
         it('grace: after an in-grace re-issue the current token rotates normally and nothing is orphaned (D-35)', async () => {
             const t0 = await service.create(USER_ID);
+            const firstRotationAt = clock.now();
             const t1 = await service.rotate(t0.refreshToken);
             clock.advanceSeconds(10);
             await service.rotate(t0.refreshToken);
@@ -308,9 +369,9 @@ describe('SessionService (replSet)', () => {
             expect(stored?.revokedAt).toBeNull();
             expect(stored?.rotationCount).toBe(2);
             expect(stored?.refreshTokenHash).toBe(sha256Hex(t2.refreshToken));
-            expect(stored?.retiredRefreshTokenHashes).toEqual([
-                sha256Hex(t0.refreshToken),
-                sha256Hex(t1.refreshToken),
+            expect(stored?.retiredRefreshTokens).toEqual([
+                retiredEntry(t0.refreshToken, firstRotationAt),
+                retiredEntry(t1.refreshToken, clock.now()),
             ]);
         });
 
@@ -340,13 +401,9 @@ describe('SessionService (replSet)', () => {
             async (_legacy, overrides) => {
                 const legacy = await persistSession(SessionModel, {
                     refreshTokenHash: sha256Hex('legacy-current-token'),
-                    previousRefreshTokenHash: sha256Hex(
-                        'legacy-previous-token',
-                    ),
-                    retiredRefreshTokenHashes: [
-                        sha256Hex('legacy-previous-token'),
+                    retiredRefreshTokens: [
+                        retiredEntry('legacy-previous-token', clock.now()),
                     ],
-                    rotatedAt: clock.now(),
                     ...overrides,
                 });
                 const before = await readSession(legacy._id.toString());
@@ -407,19 +464,24 @@ describe('SessionService (replSet)', () => {
 
         it('retires only hashes, keeping the last 10 retired tokens', async () => {
             const t0 = await service.create(USER_ID);
+            const createdAt = clock.now().getTime();
             const issued = [t0.refreshToken];
             for (let rotation = 0; rotation < 12; rotation++) {
                 clock.advanceSeconds(60);
                 const next = await service.rotate(issued[issued.length - 1]);
                 issued.push(next.refreshToken);
             }
+            const retiredAtOf = (index: number) =>
+                new Date(createdAt + (index + 1) * 60_000);
 
-            const stored = await SessionModel.findById(t0.sessionId)
-                .lean()
-                .exec();
+            const stored = await readSession(t0.sessionId);
 
-            expect(stored?.retiredRefreshTokenHashes).toEqual(
-                issued.slice(2, 12).map((token) => sha256Hex(token)),
+            expect(stored?.retiredRefreshTokens).toEqual(
+                issued
+                    .slice(2, 12)
+                    .map((token, offset) =>
+                        retiredEntry(token, retiredAtOf(offset + 2)),
+                    ),
             );
             issued.forEach((token) =>
                 expect(JSON.stringify(stored)).not.toContain(token),
@@ -439,7 +501,7 @@ describe('SessionService (replSet)', () => {
 
         it('reuse cap: a token retired more than 10 rotations ago answers SESSION_EXPIRED and the session survives (IN-11)', async () => {
             const issued = await rotateRepeatedly(
-                RETIRED_REFRESH_TOKEN_HASHES_LIMIT + 1,
+                RETIRED_REFRESH_TOKENS_LIMIT + 1,
             );
             const current = issued[issued.length - 1];
 
@@ -458,11 +520,11 @@ describe('SessionService (replSet)', () => {
 
         it('reuse cap: the 10th most recent retired token still revokes the whole session (IN-11)', async () => {
             const issued = await rotateRepeatedly(
-                RETIRED_REFRESH_TOKEN_HASHES_LIMIT + 1,
+                RETIRED_REFRESH_TOKENS_LIMIT + 1,
             );
             const current = issued[issued.length - 1];
             const tenthMostRecentRetired =
-                issued[issued.length - 1 - RETIRED_REFRESH_TOKEN_HASHES_LIMIT];
+                issued[issued.length - 1 - RETIRED_REFRESH_TOKENS_LIMIT];
 
             await expect(
                 service.rotate(tenthMostRecentRetired),
@@ -566,8 +628,8 @@ describe('SessionService (replSet)', () => {
                 sha256Hex(first.refreshToken),
             );
             expect(stored?.rotationCount).toBe(1);
-            expect(stored?.retiredRefreshTokenHashes).toEqual([
-                sha256Hex(t0.refreshToken),
+            expect(stored?.retiredRefreshTokens).toEqual([
+                retiredEntry(t0.refreshToken, clock.now()),
             ]);
             expect(stored?.revokedAt).toBeNull();
         });
@@ -587,11 +649,20 @@ describe('SessionService (replSet)', () => {
             ]);
         });
 
-        it('declares an index on retiredRefreshTokenHashes for reuse detection', () => {
+        it('declares an index on the retired token hashes for grace and reuse detection', () => {
             expect(SessionModel.schema.indexes()).toContainEqual([
-                { retiredRefreshTokenHashes: 1 },
+                { 'retiredRefreshTokens.hash': 1 },
                 expect.anything(),
             ]);
+        });
+
+        it('stores retired tokens without a subdocument _id', async () => {
+            const t0 = await service.create(USER_ID);
+            await service.rotate(t0.refreshToken);
+
+            const stored = await readSession(t0.sessionId);
+
+            expect(stored?.retiredRefreshTokens[0]).not.toHaveProperty('_id');
         });
     });
 

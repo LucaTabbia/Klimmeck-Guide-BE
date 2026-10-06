@@ -13,7 +13,7 @@ import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { AuthConfig } from 'src/config/auth-config';
 
 const MILLISECONDS_PER_SECOND = 1000;
-const RETIRED_REFRESH_TOKEN_HASHES_LIMIT = 10;
+const RETIRED_REFRESH_TOKENS_LIMIT = 10;
 
 export interface IssuedRefreshToken {
     sessionId: string;
@@ -66,7 +66,7 @@ export class SessionService {
             .findOne({
                 $or: [
                     { refreshTokenHash: presentedHash },
-                    this.withinGraceFilter(presentedHash, requestedAt),
+                    this.retiredWithinGraceFilter(presentedHash, requestedAt),
                 ],
                 ...this.activeFilter(now),
             })
@@ -131,17 +131,15 @@ export class SessionService {
                 },
                 {
                     $set: {
-                        previousRefreshTokenHash: presentedHash,
                         refreshTokenHash: sha256Hex(nextToken),
                         tokenSeed,
                         rotationCount,
-                        rotatedAt: now,
                         expiresAt: this.expiresAtFrom(now),
                     },
                     $push: {
-                        retiredRefreshTokenHashes: {
-                            $each: [presentedHash],
-                            $slice: -RETIRED_REFRESH_TOKEN_HASHES_LIMIT,
+                        retiredRefreshTokens: {
+                            $each: [{ hash: presentedHash, retiredAt: now }],
+                            $slice: -RETIRED_REFRESH_TOKENS_LIMIT,
                         },
                     },
                 },
@@ -151,8 +149,10 @@ export class SessionService {
         return rotated ? this.toIssued(rotated, nextToken) : null;
     }
 
-    // ri-emissione idempotente (D-35): il token precedente dentro la grace riceve il token
-    // corrente, ricostruito dal documento così com'è ora, senza alcuna scrittura sulla sessione
+    // ri-emissione idempotente (D-35): qualunque token ritirato meno di 30 s prima dell'arrivo
+    // della richiesta riceve il token corrente, ricostruito dal documento così com'è ora, senza
+    // alcuna scrittura sulla sessione. Rischio accettato (T-2-refresh-replay): chi presenta un
+    // token ritirato dentro la finestra riceve il token corrente (REVIEW-3 WR-01, IN-03).
     private async reissueWithinGrace(
         presentedHash: string,
         now: Date,
@@ -160,7 +160,7 @@ export class SessionService {
     ): Promise<IssuedRefreshToken | null> {
         const session = await this.sessionModel
             .findOne({
-                ...this.withinGraceFilter(presentedHash, requestedAt),
+                ...this.retiredWithinGraceFilter(presentedHash, requestedAt),
                 ...this.activeFilter(now),
             })
             .exec();
@@ -195,7 +195,7 @@ export class SessionService {
         const reused = await this.sessionModel
             .findOneAndUpdate(
                 {
-                    retiredRefreshTokenHashes: presentedHash,
+                    'retiredRefreshTokens.hash': presentedHash,
                     ...this.activeFilter(now),
                 },
                 { $set: { revokedAt: now } },
@@ -219,7 +219,7 @@ export class SessionService {
             .exists({
                 $or: [
                     { refreshTokenHash: presentedHash },
-                    { retiredRefreshTokenHashes: presentedHash },
+                    { 'retiredRefreshTokens.hash': presentedHash },
                 ],
                 revokedAt: { $ne: null },
             })
@@ -251,10 +251,14 @@ export class SessionService {
         };
     }
 
-    private withinGraceFilter(presentedHash: string, requestedAt: Date) {
+    private retiredWithinGraceFilter(presentedHash: string, requestedAt: Date) {
         return {
-            previousRefreshTokenHash: presentedHash,
-            rotatedAt: { $gt: this.graceStartFrom(requestedAt) },
+            retiredRefreshTokens: {
+                $elemMatch: {
+                    hash: presentedHash,
+                    retiredAt: { $gt: this.graceStartFrom(requestedAt) },
+                },
+            },
         };
     }
 
