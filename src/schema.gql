@@ -17,6 +17,13 @@ input AssetQuantityInput {
   quantity: Int!
 }
 
+type AuthSession {
+  accessToken: String!
+  accessTokenExpiresAt: DateTime!
+  refreshToken: String!
+  user: User!
+}
+
 type BaseDamage {
   power: Int!
   type: String!
@@ -257,6 +264,8 @@ type Mutation {
   doTransaction(request: TransactionRequest!): CommonResponse!
   equipItem(request: EquipItemRequest!): CommonResponse!
   equipSpell(request: EquipSpellRequest!): CommonResponse!
+  exchangeLoginTicket(codeVerifier: String!, ticket: String!): AuthSession!
+  refreshSession(refreshToken: String!): AuthSession!
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
   updateUser(user: UserInput!): User!
   useSpell(request: UseSpellRequest!): CommonResponse!
