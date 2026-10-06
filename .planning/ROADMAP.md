@@ -60,7 +60,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — Wave 1: dipendenze (`@nestjs/jwt@^11`, graphql-ws, ws), primitive auth, config fail-closed (`validateEnv`), `.env.example`, upsert User + indice unico twitchId
-- [ ] 02-02-PLAN.md — Wave 2: sessioni rotanti (hash SHA-256, grace 30 s, reuse detection) + verifica al boot dell'indice twitchId
+- [x] 02-02-PLAN.md — Wave 2: sessioni rotanti (hash SHA-256, grace 30 s, reuse detection) + verifica al boot dell'indice twitchId
 - [ ] 02-03-PLAN.md — Wave 2: seam d'identità — access JWT, dev bypass fail-closed, `AuthIdentityResolver`, autenticatore WS (4403/4401)
 - [ ] 02-04-PLAN.md — Wave 2: mattoni login Twitch — ticket monouso S256, client Twitch iniettabile, state OAuth, builder URL
 - [ ] 02-05-PLAN.md — Wave 3: `AuthModule`, `AuthSessionService`, flusso REST `/auth/twitch/start|callback`, harness di test

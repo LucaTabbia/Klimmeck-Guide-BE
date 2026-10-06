@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-10-06T17:44:01.755Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-10-06T17:50:11.716Z"
 last_activity: 2026-10-06
 progress:
   total_phases: 10
   completed_phases: 1
   total_plans: 14
-  completed_plans: 6
-  percent: 43
+  completed_plans: 7
+  percent: 50
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 2 (auth-identity-foundation) — EXECUTING
-Plan: 2 of 9
+Plan: 3 of 9
 Status: Ready to execute
 Last activity: 2026-10-06
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01-03 | 9 | 3 tasks | 4 files |
 | Phase 01 P04 | 1 | 2 tasks | 1 files |
 | Phase 02 P01 | 7 min | 3 tasks | 25 files |
+| Phase 02 P02 | 6 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,9 @@ Recent decisions affecting current work:
 - [Phase 01]: CI GitHub Actions: lint+unit+integration su ogni push+PR, Redis service container reale (redis:7), cache binari mongodb-memory-server con MONGOMS_VERSION pinnata (8.0.4); dir vuota src/spellRecovery/ rimossa
 - [Phase 02]: Boot fail-closed: validateEnv (ConfigModule.forRoot validate) delega a parseAuthConfig puro; JWT_SECRET >= 32, DEV_AUTH_ENABLED solo === 'true' e vietato in production, Twitch opzionale (twitch: null), APP_AUTH_REDIRECT_URL solo deep link
 - [Phase 02]: Identità User: indice unico su twitchId + findOneAndUpdate upsert atomico con un solo retry su E11000 (findOrCreateByTwitchId / upsertWithRole)
+- [Phase 02]: Sessioni BE: solo sha256 del refresh token opaco; rotate atomico (current → grace 30s ancorata alla prima rotazione); riuso fuori grace revoca l'intera sessione (SESSION_REVOKED); ogni query filtra revokedAt null + expiresAt > now
+- [Phase 02]: Riferimenti ObjectId nei @Prop: usare MongooseSchema.Types.ObjectId (Types.ObjectId diventa Mixed in Mongoose 8, niente cast)
+- [Phase 02]: D-32: TwitchIdIndexVerifier al boot logga i twitchId duplicati se l'indice unico non si costruisce, senza bloccare l'avvio
 
 ### Pending Todos
 
@@ -91,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-06T17:44:01.752Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-10-06T17:50:11.713Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
