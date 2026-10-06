@@ -138,3 +138,14 @@ None.
 - FOUND: src/auth/crypto/refresh-token-derivation.ts
 - FOUND: src/auth/crypto/refresh-token-derivation.spec.ts
 - FOUND commits: c9ee8d4, 24611c5, c7d733a, 3f388e0, 69e289c
+
+## Addendum (REVIEW-3)
+
+The "Residual edge" design note above is wrong about the stall length. The case does not need an in-server stall of 15 min or more. It is enough for the client to rotate again before the stalled duplicate is processed, and a FE cold start does that within seconds:
+
+1. R1(T0) stalls after `findRotatable`.
+2. Its retry R2(T0) rotates T0→T1.
+3. The cold start rotates T1→T2.
+4. R1 resumes, finds T0 in the retired list rather than in `previousRefreshTokenHash`, and revokes the session.
+
+So the claim that requests converge "in any order" did not hold. REVIEW-3 WR-01 closes the case: the grace window now applies to every token retired less than 30 s before the request arrived, not only the immediately previous one. Retired tokens are stored as `retiredRefreshTokens: { hash, retiredAt }[]` (last 10), and `previousRefreshTokenHash` and `rotatedAt` are removed. Details are in `02-REVIEW-FIX-3.md` and BACKEND-NOTES §2 and §9 (f, j, k).
