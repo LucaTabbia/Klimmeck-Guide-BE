@@ -1,6 +1,7 @@
 import { getModelToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import mongoose, { Model, Types } from 'mongoose';
+import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import { Clock } from 'src/auth/clock';
 import { sha256Hex } from 'src/auth/crypto/token-crypto';
 import {
@@ -113,6 +114,131 @@ describe('SessionService (replSet)', () => {
             await expect(service.revoke('not-an-object-id')).resolves.toBe(
                 undefined,
             );
+        });
+    });
+
+    describe('rotate', () => {
+        const sessionExpired = { code: AuthErrorCode.SESSION_EXPIRED };
+        const sessionRevoked = { code: AuthErrorCode.SESSION_REVOKED };
+
+        it('issues a new token and slides the expiry on an active session', async () => {
+            const t0 = await service.create(USER_ID);
+            clock.advanceSeconds(60);
+
+            const t1 = await service.rotate(t0.refreshToken);
+
+            expect(t1.refreshToken).toMatch(OPAQUE_TOKEN_PATTERN);
+            expect(t1.refreshToken).not.toBe(t0.refreshToken);
+            expect(t1.sessionId).toBe(t0.sessionId);
+            expect(t1.userId).toBe(USER_ID);
+            const stored = await SessionModel.findById(t0.sessionId).exec();
+            expect(stored?.refreshTokenHash).toBe(sha256Hex(t1.refreshToken));
+            expect(stored?.previousRefreshTokenHash).toBe(
+                sha256Hex(t0.refreshToken),
+            );
+            expect(stored?.rotatedAt?.getTime()).toBe(clock.now().getTime());
+            expect(stored?.expiresAt.getTime()).toBe(
+                clock.now().getTime() + REFRESH_TOKEN_TTL_MS,
+            );
+        });
+
+        it('chains rotations: the latest token rotates again', async () => {
+            const t0 = await service.create(USER_ID);
+            const t1 = await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(60);
+
+            const t2 = await service.rotate(t1.refreshToken);
+
+            const stored = await SessionModel.findById(t0.sessionId).exec();
+            expect(stored?.refreshTokenHash).toBe(sha256Hex(t2.refreshToken));
+            expect(stored?.previousRefreshTokenHash).toBe(
+                sha256Hex(t1.refreshToken),
+            );
+        });
+
+        it('grace: reusing the previous token within 30s issues a fresh token', async () => {
+            const t0 = await service.create(USER_ID);
+            const t1 = await service.rotate(t0.refreshToken);
+            const firstRotationAt = clock.now().getTime();
+            clock.advanceSeconds(10);
+
+            const t2 = await service.rotate(t0.refreshToken);
+
+            expect(t2.refreshToken).not.toBe(t1.refreshToken);
+            expect(t2.sessionId).toBe(t0.sessionId);
+            const stored = await SessionModel.findById(t0.sessionId).exec();
+            expect(stored?.refreshTokenHash).toBe(sha256Hex(t2.refreshToken));
+            expect(stored?.previousRefreshTokenHash).toBe(
+                sha256Hex(t0.refreshToken),
+            );
+            expect(stored?.rotatedAt?.getTime()).toBe(firstRotationAt);
+            expect(stored?.revokedAt).toBeNull();
+            await expect(service.rotate(t1.refreshToken)).rejects.toMatchObject(
+                sessionExpired,
+            );
+        });
+
+        it('reuse: the previous token after 30s revokes the whole session', async () => {
+            const t0 = await service.create(USER_ID);
+            const t1 = await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(31);
+
+            await expect(service.rotate(t0.refreshToken)).rejects.toMatchObject(
+                sessionRevoked,
+            );
+
+            const stored = await SessionModel.findById(t0.sessionId).exec();
+            expect(stored?.revokedAt?.getTime()).toBe(clock.now().getTime());
+            await expect(service.rotate(t1.refreshToken)).rejects.toMatchObject(
+                sessionRevoked,
+            );
+        });
+
+        it('rejects a token that was never issued with SESSION_EXPIRED', async () => {
+            await expect(
+                service.rotate('never-issued-refresh-token'),
+            ).rejects.toMatchObject(sessionExpired);
+        });
+
+        it('rejects the token of an expired session with SESSION_EXPIRED', async () => {
+            await persistSession(SessionModel, {
+                refreshTokenHash: sha256Hex('expired-session-token'),
+                expiresAt: new Date(clock.now().getTime() - 1000),
+            });
+
+            await expect(
+                service.rotate('expired-session-token'),
+            ).rejects.toMatchObject(sessionExpired);
+        });
+
+        it('rejects the current token of a revoked session with SESSION_REVOKED', async () => {
+            const t0 = await service.create(USER_ID);
+            await service.revoke(t0.sessionId);
+
+            await expect(service.rotate(t0.refreshToken)).rejects.toMatchObject(
+                sessionRevoked,
+            );
+        });
+
+        it('concurrent: two rotations of the same token leave one session with one current token', async () => {
+            const t0 = await service.create(USER_ID);
+
+            const [first, second] = await Promise.all([
+                service.rotate(t0.refreshToken),
+                service.rotate(t0.refreshToken),
+            ]);
+
+            expect(await SessionModel.countDocuments()).toBe(1);
+            const stored = await SessionModel.findById(t0.sessionId).exec();
+            const issuedHashes = [first, second].map((issued) =>
+                sha256Hex(issued.refreshToken),
+            );
+            expect(
+                issuedHashes.filter(
+                    (hash) => hash === stored?.refreshTokenHash,
+                ),
+            ).toHaveLength(1);
+            expect(stored?.revokedAt).toBeNull();
         });
     });
 
