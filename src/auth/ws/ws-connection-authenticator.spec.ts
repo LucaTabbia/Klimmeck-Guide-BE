@@ -174,6 +174,25 @@ describe('WsConnectionAuthenticator', () => {
             expect(socket.close).not.toHaveBeenCalled();
         });
 
+        it('prevents the expiry timer when the socket closes while the identity is resolving (IN-02)', async () => {
+            let resolveIdentity: (identity: AuthIdentity) => void = () => {};
+            identityResolver.resolveBearer.mockReturnValue(
+                new Promise<AuthIdentity>((resolve) => {
+                    resolveIdentity = resolve;
+                }),
+            );
+            const context = buildContext({ Authorization: 'Bearer t' });
+
+            const connecting = authenticator.onConnect(context);
+            authenticator.onClose(context);
+            resolveIdentity(buildIdentity());
+            await connecting;
+            jest.advanceTimersByTime(10_000);
+
+            expect(context.extra.expiryTimer).toBeUndefined();
+            expect(socket.close).not.toHaveBeenCalled();
+        });
+
         it('does not throw on a context without a timer', () => {
             expect(() => authenticator.onClose(buildContext())).not.toThrow();
         });

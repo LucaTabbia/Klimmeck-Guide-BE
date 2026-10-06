@@ -11,6 +11,7 @@ import {
 export type AuthenticatedWsExtra = Extra & {
     identity?: AuthIdentity;
     expiryTimer?: NodeJS.Timeout;
+    closed?: boolean;
 };
 
 export type WsConnectionContext = Context<
@@ -30,6 +31,8 @@ export class WsConnectionAuthenticator {
                 readAuthorization(context.connectionParams),
             );
             context.extra.identity = identity;
+            // onConnect è asincrono: se il socket si è chiuso nel frattempo un timer non verrebbe mai ripulito
+            if (context.extra.closed) return true;
             context.extra.expiryTimer = scheduleExpiryClose(
                 context.extra.socket,
                 identity.expiresAt,
@@ -42,6 +45,7 @@ export class WsConnectionAuthenticator {
     }
 
     onClose(context: WsConnectionContext): void {
+        context.extra.closed = true;
         if (context.extra.expiryTimer) clearTimeout(context.extra.expiryTimer);
     }
 }
