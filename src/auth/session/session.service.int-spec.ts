@@ -444,6 +444,34 @@ describe('SessionService (replSet)', () => {
             expect(reissued).toEqual(rotated);
         });
 
+        it('legacy: a raw document without rotationCount and tokenSeed rotates its current token and initializes both fields (REVIEW-3 IN-02)', async () => {
+            const sessionId = new Types.ObjectId();
+            await SessionModel.collection.insertOne({
+                _id: sessionId,
+                userId: new Types.ObjectId(USER_ID),
+                refreshTokenHash: sha256Hex('raw-legacy-current-token'),
+                revokedAt: null,
+                expiresAt: new Date(clock.now().getTime() + 60_000),
+            });
+
+            const rotated = await service.rotate('raw-legacy-current-token');
+
+            const stored = await readSession(sessionId.toString());
+            expect(stored?.rotationCount).toBe(1);
+            expect(stored?.tokenSeed).toMatch(OPAQUE_TOKEN_PATTERN);
+            expect(rotated.refreshToken).toBe(
+                deriveRefreshToken(
+                    REFRESH_TOKEN_KEY,
+                    sessionId.toString(),
+                    1,
+                    stored?.tokenSeed ?? '',
+                ),
+            );
+            expect(stored?.retiredRefreshTokens).toEqual([
+                retiredEntry('raw-legacy-current-token', clock.now()),
+            ]);
+        });
+
         it('reuse: a token retired more than one rotation ago revokes the whole session', async () => {
             const t0 = await service.create(USER_ID);
             const t1 = await service.rotate(t0.refreshToken);

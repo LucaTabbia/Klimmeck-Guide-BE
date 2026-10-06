@@ -116,7 +116,7 @@ export class SessionService {
             .exec();
         if (!session) return null;
         const tokenSeed = session.tokenSeed ?? generateOpaqueToken();
-        const rotationCount = session.rotationCount + 1;
+        const rotationCount = (session.rotationCount ?? 0) + 1;
         const nextToken = this.deriveToken(
             session._id,
             rotationCount,
