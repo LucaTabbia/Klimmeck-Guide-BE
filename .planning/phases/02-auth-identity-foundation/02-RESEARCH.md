@@ -652,12 +652,12 @@ export const safeEqual = (a: string, b: string) =>
 | A6 | Retry server-side Mongo degli upsert su indice unico | Pitfall 7 | Nullo: il retry applicativo copre comunque |
 | A7 | `AuthException` + `formatError` produce `extensions.code` stabile su HTTP e WS | Q8 | Medio: dimostrare con integration test prima di documentare nell'handoff |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Grace window del refresh (A3)** — Cosa sappiamo: strict è conforme alla lettera di D-08; grace riduce logout forzati su mobile. Raccomandazione: implementare grace 30 s, confermare con l'utente in plan-check.
-2. **Logout e access token vivo (A4)** — Raccomandazione: accettare (coerente con D-07/D-10) e documentare; opzionale check `sid` solo in `onConnect`.
-3. **Destinazione del redirect finale** — `APP_DEEP_LINK_SCHEME` (D-23) vs URL completo `APP_AUTH_REDIRECT_URL=klimmeck://auth`. Raccomandazione: una variabile con l'URL completo (default `klimmeck://auth`), validata come non-`http(s)` per evitare open redirect configurazionali.
-4. **`test/app.e2e-spec.ts`** — fuori CI, importa `AppModule` (Redis/Mongo reali). Raccomandazione: rimuoverlo o adattarlo; decidere in plan.
+1. **Grace window del refresh (A3)** — Cosa sappiamo: strict è conforme alla lettera di D-08; grace riduce logout forzati su mobile. Raccomandazione: implementare grace 30 s, confermare con l'utente in plan-check. **RESOLVED:** grace window di 30 s adottata (02-CONTEXT.md D-26); conferma finale dell'utente a fine fase.
+2. **Logout e access token vivo (A4)** — Raccomandazione: accettare (coerente con D-07/D-10) e documentare; opzionale check `sid` solo in `onConnect`. **RESOLVED:** accettato e documentato nell'handoff (02-CONTEXT.md D-27).
+3. **Destinazione del redirect finale** — `APP_DEEP_LINK_SCHEME` (D-23) vs URL completo `APP_AUTH_REDIRECT_URL=klimmeck://auth`. Raccomandazione: una variabile con l'URL completo (default `klimmeck://auth`), validata come non-`http(s)` per evitare open redirect configurazionali. **RESOLVED:** variabile unica `APP_AUTH_REDIRECT_URL` (02-CONTEXT.md D-29).
+4. **`test/app.e2e-spec.ts`** — fuori CI, importa `AppModule` (Redis/Mongo reali). Raccomandazione: rimuoverlo o adattarlo; decidere in plan. **RESOLVED:** rimosso e sostituito da `test/app.int-spec.ts` (plan 02-06, Task 3).
 
 ## Environment Availability
 
