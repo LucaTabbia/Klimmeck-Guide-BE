@@ -227,6 +227,32 @@ describe('AuthSessionService (harness)', () => {
             );
         });
 
+        it('concurrent: two refreshes of the same token both succeed, leaving one session whose current token is one of them (IN-11)', async () => {
+            const t0 = await service.issueForUser(user);
+            const { sid } = decodeClaims(t0.accessToken);
+
+            const outcomes = await Promise.all([
+                service.refresh(t0.refreshToken),
+                service.refresh(t0.refreshToken),
+            ]);
+
+            expect(await sessions.countDocuments()).toBe(1);
+            outcomes.forEach((outcome) =>
+                expect(decodeClaims(outcome.accessToken).sid).toBe(sid),
+            );
+            const stored = await sessions.findById(sid).exec();
+            expect(stored?.revokedAt).toBeNull();
+            const issuedHashes = outcomes.map((outcome) =>
+                sha256Hex(outcome.refreshToken),
+            );
+            const [current, orphaned] =
+                issuedHashes[0] === stored?.refreshTokenHash
+                    ? issuedHashes
+                    : [...issuedHashes].reverse();
+            expect(current).toBe(stored?.refreshTokenHash);
+            expect(stored?.retiredRefreshTokenHashes).toContain(orphaned);
+        });
+
         it('rejects an unknown refresh token as SESSION_EXPIRED', async () => {
             await expect(
                 service.refresh('unknown-refresh-token'),

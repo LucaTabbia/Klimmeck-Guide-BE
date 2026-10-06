@@ -21,6 +21,7 @@ const SessionModel: Model<SessionDocument> =
 const USER_ID = '64b0000000000000000000b1';
 const REFRESH_TOKEN_TTL_MS = 2_592_000 * 1000;
 const OPAQUE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const RETIRED_REFRESH_TOKEN_HASHES_LIMIT = 10;
 
 describe('SessionService (replSet)', () => {
     let service: SessionService;
@@ -247,6 +248,89 @@ describe('SessionService (replSet)', () => {
             );
             issued.forEach((token) =>
                 expect(JSON.stringify(stored)).not.toContain(token),
+            );
+        });
+
+        async function rotateRepeatedly(rotations: number): Promise<string[]> {
+            const t0 = await service.create(USER_ID);
+            const issued = [t0.refreshToken];
+            for (let rotation = 0; rotation < rotations; rotation++) {
+                clock.advanceSeconds(60);
+                const next = await service.rotate(issued[issued.length - 1]);
+                issued.push(next.refreshToken);
+            }
+            return issued;
+        }
+
+        it('reuse cap: a token retired more than 10 rotations ago answers SESSION_EXPIRED and the session survives (IN-11)', async () => {
+            const issued = await rotateRepeatedly(
+                RETIRED_REFRESH_TOKEN_HASHES_LIMIT + 1,
+            );
+            const current = issued[issued.length - 1];
+
+            await expect(service.rotate(issued[0])).rejects.toMatchObject(
+                sessionExpired,
+            );
+
+            const stored = await SessionModel.findOne({
+                refreshTokenHash: sha256Hex(current),
+            }).exec();
+            expect(stored?.revokedAt).toBeNull();
+            await expect(service.rotate(current)).resolves.toMatchObject({
+                sessionId: stored?._id.toString(),
+            });
+        });
+
+        it('reuse cap: the 10th most recent retired token still revokes the whole session (IN-11)', async () => {
+            const issued = await rotateRepeatedly(
+                RETIRED_REFRESH_TOKEN_HASHES_LIMIT + 1,
+            );
+            const current = issued[issued.length - 1];
+            const tenthMostRecentRetired =
+                issued[issued.length - 1 - RETIRED_REFRESH_TOKEN_HASHES_LIMIT];
+
+            await expect(
+                service.rotate(tenthMostRecentRetired),
+            ).rejects.toMatchObject(sessionRevoked);
+
+            const stored = await SessionModel.findOne({
+                refreshTokenHash: sha256Hex(current),
+            }).exec();
+            expect(stored?.revokedAt?.getTime()).toBe(clock.now().getTime());
+            await expect(service.rotate(current)).rejects.toMatchObject(
+                sessionRevoked,
+            );
+        });
+
+        it('a retired token of an already revoked session answers SESSION_REVOKED without touching the revocation (IN-11)', async () => {
+            const t0 = await service.create(USER_ID);
+            await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(60);
+            await service.revoke(t0.sessionId);
+            const revokedAt = clock.now().getTime();
+            clock.advanceSeconds(60);
+
+            await expect(service.rotate(t0.refreshToken)).rejects.toMatchObject(
+                sessionRevoked,
+            );
+
+            const stored = await SessionModel.findById(t0.sessionId).exec();
+            expect(stored?.revokedAt?.getTime()).toBe(revokedAt);
+        });
+
+        it('a retired token of an expired session answers SESSION_EXPIRED and does not revoke it (IN-11)', async () => {
+            const t0 = await service.create(USER_ID);
+            const t1 = await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(REFRESH_TOKEN_TTL_MS / 1000 + 1);
+
+            await expect(service.rotate(t0.refreshToken)).rejects.toMatchObject(
+                sessionExpired,
+            );
+
+            const stored = await SessionModel.findById(t0.sessionId).exec();
+            expect(stored?.revokedAt).toBeNull();
+            await expect(service.rotate(t1.refreshToken)).rejects.toMatchObject(
+                sessionExpired,
             );
         });
 
