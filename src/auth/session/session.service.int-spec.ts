@@ -3,6 +3,10 @@ import { Test } from '@nestjs/testing';
 import mongoose, { Model, Types } from 'mongoose';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import { Clock } from 'src/auth/clock';
+import {
+    deriveRefreshToken,
+    deriveRefreshTokenKey,
+} from 'src/auth/crypto/refresh-token-derivation';
 import { sha256Hex } from 'src/auth/crypto/token-crypto';
 import {
     Session,
@@ -12,7 +16,10 @@ import {
 import { SessionService } from 'src/auth/session/session.service';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import { FixedClock } from '../../../test/auth/fixed-clock';
-import { buildTestAuthConfig } from '../../../test/auth/test-auth-config';
+import {
+    buildTestAuthConfig,
+    TEST_JWT_SECRET,
+} from '../../../test/auth/test-auth-config';
 import { buildSession, persistSession } from '../../../test/fixtures';
 
 const SessionModel: Model<SessionDocument> =
@@ -22,6 +29,9 @@ const USER_ID = '64b0000000000000000000b1';
 const REFRESH_TOKEN_TTL_MS = 2_592_000 * 1000;
 const OPAQUE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const RETIRED_REFRESH_TOKEN_HASHES_LIMIT = 10;
+const REFRESH_TOKEN_KEY = deriveRefreshTokenKey(TEST_JWT_SECRET);
+const ROTATED_JWT_SECRET = 'rotated-jwt-secret-0123456789abcdef-0123456789';
+const IN_GRACE_RETRIES = 3;
 
 describe('SessionService (replSet)', () => {
     let service: SessionService;
@@ -31,8 +41,7 @@ describe('SessionService (replSet)', () => {
         await SessionModel.init();
     });
 
-    beforeEach(async () => {
-        clock = new FixedClock();
+    async function buildService(jwtSecret: string): Promise<SessionService> {
         const moduleRef = await Test.createTestingModule({
             providers: [
                 SessionService,
@@ -41,10 +50,22 @@ describe('SessionService (replSet)', () => {
                     useValue: SessionModel,
                 },
                 { provide: Clock, useValue: clock },
-                { provide: AUTH_CONFIG, useValue: buildTestAuthConfig() },
+                {
+                    provide: AUTH_CONFIG,
+                    useValue: buildTestAuthConfig({ jwtSecret }),
+                },
             ],
         }).compile();
-        service = moduleRef.get(SessionService);
+        return moduleRef.get(SessionService);
+    }
+
+    function readSession(sessionId: string) {
+        return SessionModel.findById(sessionId).lean().exec();
+    }
+
+    beforeEach(async () => {
+        clock = new FixedClock();
+        service = await buildService(TEST_JWT_SECRET);
     });
 
     describe('create', () => {
@@ -67,6 +88,35 @@ describe('SessionService (replSet)', () => {
                 sha256Hex(issued.refreshToken),
             );
             expect(JSON.stringify(stored)).not.toContain(issued.refreshToken);
+        });
+
+        it('derives the refresh token from a random per-session seed and rotation 0 (D-35)', async () => {
+            const issued = await service.create(USER_ID);
+
+            const stored = await readSession(issued.sessionId);
+
+            expect(stored?.rotationCount).toBe(0);
+            expect(stored?.tokenSeed).toMatch(OPAQUE_TOKEN_PATTERN);
+            expect(issued.refreshToken).toBe(
+                deriveRefreshToken(
+                    REFRESH_TOKEN_KEY,
+                    issued.sessionId,
+                    0,
+                    stored?.tokenSeed ?? '',
+                ),
+            );
+        });
+
+        it('uses a different seed for every session', async () => {
+            const first = await service.create(USER_ID);
+            const second = await service.create(USER_ID);
+
+            const [firstStored, secondStored] = await Promise.all([
+                readSession(first.sessionId),
+                readSession(second.sessionId),
+            ]);
+
+            expect(firstStored?.tokenSeed).not.toBe(secondStored?.tokenSeed);
         });
 
         it('sets a 30-day expiry and no rotation or revocation', async () => {
@@ -160,6 +210,18 @@ describe('SessionService (replSet)', () => {
             expect(stored?.expiresAt.getTime()).toBe(
                 clock.now().getTime() + REFRESH_TOKEN_TTL_MS,
             );
+            expect(stored?.rotationCount).toBe(1);
+            expect(stored?.retiredRefreshTokenHashes).toEqual([
+                sha256Hex(t0.refreshToken),
+            ]);
+            expect(t1.refreshToken).toBe(
+                deriveRefreshToken(
+                    REFRESH_TOKEN_KEY,
+                    t0.sessionId,
+                    1,
+                    stored?.tokenSeed ?? '',
+                ),
+            );
         });
 
         it('chains rotations: the latest token rotates again', async () => {
@@ -176,40 +238,153 @@ describe('SessionService (replSet)', () => {
             );
         });
 
-        it('grace: reusing the previous token within 30s issues a fresh token', async () => {
+        it('grace: the previous token within 30s gets the current token back and leaves the session untouched (D-35)', async () => {
             const t0 = await service.create(USER_ID);
             const t1 = await service.rotate(t0.refreshToken);
-            const firstRotationAt = clock.now().getTime();
+            const afterRotation = await readSession(t0.sessionId);
             clock.advanceSeconds(10);
 
-            const t2 = await service.rotate(t0.refreshToken);
+            const reissued = await service.rotate(t0.refreshToken);
 
-            expect(t2.refreshToken).not.toBe(t1.refreshToken);
-            expect(t2.sessionId).toBe(t0.sessionId);
-            const stored = await SessionModel.findById(t0.sessionId).exec();
-            expect(stored?.refreshTokenHash).toBe(sha256Hex(t2.refreshToken));
-            expect(stored?.previousRefreshTokenHash).toBe(
-                sha256Hex(t0.refreshToken),
-            );
-            expect(stored?.rotatedAt?.getTime()).toBe(firstRotationAt);
-            expect(stored?.revokedAt).toBeNull();
+            expect(reissued).toEqual(t1);
+            expect(await readSession(t0.sessionId)).toEqual(afterRotation);
         });
 
-        it('reuse: the token orphaned by a grace rotation revokes the whole session', async () => {
+        it('grace: repeated in-grace retries always get the same token and never write (D-35)', async () => {
+            const t0 = await service.create(USER_ID);
+            const t1 = await service.rotate(t0.refreshToken);
+            const afterRotation = await readSession(t0.sessionId);
+
+            for (let retry = 0; retry < IN_GRACE_RETRIES; retry++) {
+                clock.advanceSeconds(5);
+                await expect(service.rotate(t0.refreshToken)).resolves.toEqual(
+                    t1,
+                );
+            }
+
+            expect(await readSession(t0.sessionId)).toEqual(afterRotation);
+        });
+
+        it('grace: the evaluation uses the request arrival time, not the processing time (WR-04)', async () => {
+            const t0 = await service.create(USER_ID);
+            const t1 = await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(29);
+            const requestedAt = clock.now();
+            clock.advanceSeconds(2);
+
+            await expect(
+                service.rotate(t0.refreshToken, requestedAt),
+            ).resolves.toEqual(t1);
+        });
+
+        it('reverse order: a stale request with the previous token, processed after the retry, gets the token the client holds and that token still rotates (WR-05)', async () => {
+            const t0 = await service.create(USER_ID);
+            const staleRequestAt = clock.now();
+            clock.advanceSeconds(10);
+            const retried = await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(5);
+
+            const stale = await service.rotate(t0.refreshToken, staleRequestAt);
+            clock.advanceSeconds(900);
+            const next = await service.rotate(retried.refreshToken);
+
+            expect(stale.refreshToken).toBe(retried.refreshToken);
+            expect(next.sessionId).toBe(t0.sessionId);
+            const stored = await readSession(t0.sessionId);
+            expect(stored?.revokedAt).toBeNull();
+            expect(stored?.refreshTokenHash).toBe(sha256Hex(next.refreshToken));
+        });
+
+        it('grace: after an in-grace re-issue the current token rotates normally and nothing is orphaned (D-35)', async () => {
             const t0 = await service.create(USER_ID);
             const t1 = await service.rotate(t0.refreshToken);
             clock.advanceSeconds(10);
-            const t2 = await service.rotate(t0.refreshToken);
+            await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(60);
 
-            await expect(service.rotate(t1.refreshToken)).rejects.toMatchObject(
-                sessionRevoked,
-            );
+            const t2 = await service.rotate(t1.refreshToken);
 
-            const stored = await SessionModel.findById(t0.sessionId).exec();
-            expect(stored?.revokedAt?.getTime()).toBe(clock.now().getTime());
-            await expect(service.rotate(t2.refreshToken)).rejects.toMatchObject(
-                sessionRevoked,
+            const stored = await readSession(t0.sessionId);
+            expect(stored?.revokedAt).toBeNull();
+            expect(stored?.rotationCount).toBe(2);
+            expect(stored?.refreshTokenHash).toBe(sha256Hex(t2.refreshToken));
+            expect(stored?.retiredRefreshTokenHashes).toEqual([
+                sha256Hex(t0.refreshToken),
+                sha256Hex(t1.refreshToken),
+            ]);
+        });
+
+        it('grace: a re-issue whose current token cannot be rebuilt after a secret change answers SESSION_EXPIRED without revoking (D-35)', async () => {
+            const t0 = await service.create(USER_ID);
+            const t1 = await service.rotate(t0.refreshToken);
+            const afterRotation = await readSession(t0.sessionId);
+            const serviceWithRotatedSecret =
+                await buildService(ROTATED_JWT_SECRET);
+            clock.advanceSeconds(10);
+
+            await expect(
+                serviceWithRotatedSecret.rotate(t0.refreshToken),
+            ).rejects.toMatchObject(sessionExpired);
+
+            expect(await readSession(t0.sessionId)).toEqual(afterRotation);
+            await expect(
+                serviceWithRotatedSecret.rotate(t1.refreshToken),
+            ).resolves.toMatchObject({ sessionId: t0.sessionId });
+        });
+
+        it.each([
+            ['without a token seed', { tokenSeed: undefined }],
+            ['whose current token was not derived', {}],
+        ] as const)(
+            'grace: a legacy session %s cannot re-issue and answers SESSION_EXPIRED without revoking (D-35)',
+            async (_legacy, overrides) => {
+                const legacy = await persistSession(SessionModel, {
+                    refreshTokenHash: sha256Hex('legacy-current-token'),
+                    previousRefreshTokenHash: sha256Hex(
+                        'legacy-previous-token',
+                    ),
+                    retiredRefreshTokenHashes: [
+                        sha256Hex('legacy-previous-token'),
+                    ],
+                    rotatedAt: clock.now(),
+                    ...overrides,
+                });
+                const before = await readSession(legacy._id.toString());
+                clock.advanceSeconds(10);
+
+                await expect(
+                    service.rotate('legacy-previous-token'),
+                ).rejects.toMatchObject(sessionExpired);
+
+                expect(await readSession(legacy._id.toString())).toEqual(
+                    before,
+                );
+            },
+        );
+
+        it('legacy: rotating the current token of a session without a seed initializes the seed and enables re-issue (D-35)', async () => {
+            const legacy = await persistSession(SessionModel, {
+                refreshTokenHash: sha256Hex('legacy-current-token'),
+                tokenSeed: undefined,
+            });
+            const sessionId = legacy._id.toString();
+
+            const rotated = await service.rotate('legacy-current-token');
+            clock.advanceSeconds(10);
+            const reissued = await service.rotate('legacy-current-token');
+
+            const stored = await readSession(sessionId);
+            expect(stored?.tokenSeed).toMatch(OPAQUE_TOKEN_PATTERN);
+            expect(stored?.rotationCount).toBe(1);
+            expect(rotated.refreshToken).toBe(
+                deriveRefreshToken(
+                    REFRESH_TOKEN_KEY,
+                    sessionId,
+                    1,
+                    stored?.tokenSeed ?? '',
+                ),
             );
+            expect(reissued).toEqual(rotated);
         });
 
         it('reuse: a token retired more than one rotation ago revokes the whole session', async () => {
@@ -376,7 +551,7 @@ describe('SessionService (replSet)', () => {
             );
         });
 
-        it('concurrent: two rotations of the same token leave one session with one current token', async () => {
+        it('concurrent: two rotations of the same token both get the same new token and rotate the session once (D-35)', async () => {
             const t0 = await service.create(USER_ID);
 
             const [first, second] = await Promise.all([
@@ -384,16 +559,16 @@ describe('SessionService (replSet)', () => {
                 service.rotate(t0.refreshToken),
             ]);
 
+            expect(first).toEqual(second);
             expect(await SessionModel.countDocuments()).toBe(1);
-            const stored = await SessionModel.findById(t0.sessionId).exec();
-            const issuedHashes = [first, second].map((issued) =>
-                sha256Hex(issued.refreshToken),
+            const stored = await readSession(t0.sessionId);
+            expect(stored?.refreshTokenHash).toBe(
+                sha256Hex(first.refreshToken),
             );
-            expect(
-                issuedHashes.filter(
-                    (hash) => hash === stored?.refreshTokenHash,
-                ),
-            ).toHaveLength(1);
+            expect(stored?.rotationCount).toBe(1);
+            expect(stored?.retiredRefreshTokenHashes).toEqual([
+                sha256Hex(t0.refreshToken),
+            ]);
             expect(stored?.revokedAt).toBeNull();
         });
     });

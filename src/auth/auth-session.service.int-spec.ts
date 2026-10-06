@@ -3,6 +3,7 @@ import { Model } from 'mongoose';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import type { AuthIdentity } from 'src/auth/auth-identity';
 import { AuthSessionService } from 'src/auth/auth-session.service';
+import type { AuthSession } from 'src/auth/dto/auth-session.model';
 import { s256Challenge, sha256Hex } from 'src/auth/crypto/token-crypto';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
@@ -22,6 +23,7 @@ const TWITCH_ID = 'twitch-session-1';
 const BEYOND_GRACE_SECONDS = 31;
 const LAST_SECOND_WITHIN_GRACE = 29;
 const SLOW_USER_LOOKUP_SECONDS = 2;
+const STALLED_REQUEST_SECONDS = 10;
 
 interface AccessClaims {
     sub: string;
@@ -227,7 +229,7 @@ describe('AuthSessionService (harness)', () => {
             );
         });
 
-        it('concurrent: two refreshes of the same token both succeed, leaving one session whose current token is one of them (IN-11)', async () => {
+        it('concurrent: two refreshes of the same token both succeed with the same refresh token, rotating the session once (D-35)', async () => {
             const t0 = await service.issueForUser(user);
             const { sid } = decodeClaims(t0.accessToken);
 
@@ -240,17 +242,42 @@ describe('AuthSessionService (harness)', () => {
             outcomes.forEach((outcome) =>
                 expect(decodeClaims(outcome.accessToken).sid).toBe(sid),
             );
+            const [first, second] = outcomes;
+            expect(second.refreshToken).toBe(first.refreshToken);
             const stored = await sessions.findById(sid).exec();
             expect(stored?.revokedAt).toBeNull();
-            const issuedHashes = outcomes.map((outcome) =>
-                sha256Hex(outcome.refreshToken),
+            expect(stored?.refreshTokenHash).toBe(
+                sha256Hex(first.refreshToken),
             );
-            const [current, orphaned] =
-                issuedHashes[0] === stored?.refreshTokenHash
-                    ? issuedHashes
-                    : [...issuedHashes].reverse();
-            expect(current).toBe(stored?.refreshTokenHash);
-            expect(stored?.retiredRefreshTokenHashes).toContain(orphaned);
+            expect(stored?.retiredRefreshTokenHashes).toEqual([
+                sha256Hex(t0.refreshToken),
+            ]);
+        });
+
+        it('reverse order: a stalled refresh completing after its retry returns the token the client holds, which keeps working (WR-05)', async () => {
+            const t0 = await service.issueForUser(user);
+            const { sid } = decodeClaims(t0.accessToken);
+            const usersService = harness.app.get(UsersService);
+            const findOne = usersService.findOne.bind(usersService);
+            let retried: AuthSession | undefined;
+            const stalledLookup = jest
+                .spyOn(usersService, 'findOne')
+                .mockImplementationOnce(async (id: string) => {
+                    clock.advanceSeconds(STALLED_REQUEST_SECONDS);
+                    retried = await service.refresh(t0.refreshToken);
+                    return findOne(id);
+                });
+
+            const stalled = await service.refresh(t0.refreshToken);
+            stalledLookup.mockRestore();
+            clock.advanceSeconds(ACCESS_TOKEN_TTL_MS / 1000);
+            const next = await service.refresh(retried?.refreshToken ?? '');
+
+            expect(stalled.refreshToken).toBe(retried?.refreshToken);
+            expect(decodeClaims(next.accessToken).sid).toBe(sid);
+            const stored = await sessions.findById(sid).exec();
+            expect(stored?.revokedAt).toBeNull();
+            expect(stored?.refreshTokenHash).toBe(sha256Hex(next.refreshToken));
         });
 
         it('rejects an unknown refresh token as SESSION_EXPIRED', async () => {
