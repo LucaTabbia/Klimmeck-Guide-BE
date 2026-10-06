@@ -39,15 +39,15 @@ options:
   - B — reuse detection stretta, senza grazia: qualunque riuso di un token ruotato revoca la sessione. È la variante più semplice e più severa; una risposta di refresh persa in rete significa rifare login.
   - C — lasciare com'è: grazia di 30 secondi con il caso limite accettato e documentato.
 why_pending: Scelta di prodotto/sicurezza con compromessi reali; le varianti A e B richiedono un piccolo plan di gap-closure sul backend.
-decision: 2026-10-06 — l'utente ha scelto l'opzione A (02-CONTEXT.md D-35); implementazione nel plan di gap-closure 02-10.
-result: [pending — in implementazione con 02-10]
+decision: 2026-10-06 — l'utente ha scelto l'opzione A (02-CONTEXT.md D-35); implementata dal plan di gap-closure 02-10 e dalle correzioni di 02-REVIEW-3 (finestra estesa a qualunque token ritirato da meno di 30 s).
+result: passed — 2026-10-06: ri-emissione idempotente in produzione nel codice; suite 212 unit + 158 integration verde; nessuna sequenza di richieste trovata che blocchi un client onesto (02-REVIEW-FIX-3.md). Limite residuo documentato: un duplicato di rete che arriva oltre 30 s dopo il ritiro del suo token revoca la sessione (indistinguibile da un furto).
 
 ## Summary
 
 total: 4
-passed: 0
+passed: 1
 issues: 0
-pending: 4
+pending: 3
 skipped: 0
 blocked: 0
 
