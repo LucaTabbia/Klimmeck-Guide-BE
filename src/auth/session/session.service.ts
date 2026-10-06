@@ -16,6 +16,11 @@ export interface IssuedRefreshToken {
     refreshToken: string;
 }
 
+export interface RotatableSession {
+    sessionId: string;
+    userId: string;
+}
+
 @Injectable()
 export class SessionService {
     private readonly logger = new Logger(SessionService.name);
@@ -35,6 +40,30 @@ export class SessionService {
             expiresAt: this.expiresAtFrom(this.clock.now()),
         });
         return { sessionId: session._id.toString(), userId, refreshToken };
+    }
+
+    // sola lettura: nessuna rotazione, così un errore a valle lascia valido il token presentato
+    async findRotatable(refreshToken: string): Promise<RotatableSession> {
+        const now = this.clock.now();
+        const presentedHash = sha256Hex(refreshToken);
+        const session = await this.sessionModel
+            .findOne({
+                $or: [
+                    { refreshTokenHash: presentedHash },
+                    {
+                        previousRefreshTokenHash: presentedHash,
+                        rotatedAt: { $gt: this.graceStartFrom(now) },
+                    },
+                ],
+                revokedAt: null,
+                expiresAt: { $gt: now },
+            })
+            .exec();
+        if (!session) return this.rejectRefresh(presentedHash, now);
+        return {
+            sessionId: session._id.toString(),
+            userId: session.userId.toString(),
+        };
     }
 
     async rotate(refreshToken: string): Promise<IssuedRefreshToken> {

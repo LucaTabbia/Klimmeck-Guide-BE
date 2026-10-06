@@ -5,6 +5,7 @@ import { AuthSession } from 'src/auth/dto/auth-session.model';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
 import { SessionService } from 'src/auth/session/session.service';
 import { AccessTokenService } from 'src/auth/token/access-token.service';
+import type { SignedAccessToken } from 'src/auth/token/access-token.service';
 import { User } from 'src/models/user.model';
 import { UsersService } from 'src/users/users.service';
 
@@ -37,15 +38,18 @@ export class AuthSessionService {
         return this.issueForUser(user);
     }
 
-    // il ruolo è riletto dal DB a ogni refresh (D-10)
+    // il ruolo è riletto dal DB a ogni refresh (D-10); la rotazione è l'ultimo passo fallibile,
+    // così un errore transitorio prima di essa lascia valido il refresh token del client
     async refresh(refreshToken: string): Promise<AuthSession> {
-        const rotated = await this.sessionService.rotate(refreshToken);
-        const user = await this.findUserOrNull(rotated.userId);
+        const session = await this.sessionService.findRotatable(refreshToken);
+        const user = await this.findUserOrNull(session.userId);
         if (!user) {
-            await this.sessionService.revoke(rotated.sessionId);
+            await this.sessionService.revoke(session.sessionId);
             throw AuthException.sessionRevoked();
         }
-        return this.buildSession(user, rotated.sessionId, rotated.refreshToken);
+        const signed = await this.signAccessToken(user, session.sessionId);
+        const rotated = await this.sessionService.rotate(refreshToken);
+        return this.toAuthSession(user, signed, rotated.refreshToken);
     }
 
     // l'access JWT già emesso resta valido fino a exp (≤ 15 min, D-27); le identità dev non hanno sessione
@@ -61,12 +65,27 @@ export class AuthSessionService {
         sessionId: string,
         refreshToken: string,
     ): Promise<AuthSession> {
-        const { accessToken, expiresAt } = await this.accessTokenService.sign({
+        const signed = await this.signAccessToken(user, sessionId);
+        return this.toAuthSession(user, signed, refreshToken);
+    }
+
+    private signAccessToken(
+        user: User,
+        sessionId: string,
+    ): Promise<SignedAccessToken> {
+        return this.accessTokenService.sign({
             userId: user.id,
             twitchId: user.twitchId,
             role: user.role,
             sessionId,
         });
+    }
+
+    private toAuthSession(
+        user: User,
+        { accessToken, expiresAt }: SignedAccessToken,
+        refreshToken: string,
+    ): AuthSession {
         return {
             accessToken,
             accessTokenExpiresAt: expiresAt,

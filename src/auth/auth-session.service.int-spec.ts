@@ -6,9 +6,12 @@ import { AuthSessionService } from 'src/auth/auth-session.service';
 import { s256Challenge } from 'src/auth/crypto/token-crypto';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
+import { AccessTokenService } from 'src/auth/token/access-token.service';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
+import { UsersService } from 'src/users/users.service';
 import { AuthTestApp, createAuthTestApp } from '../../test/auth/auth-test-app';
+import { FixedClock } from '../../test/auth/fixed-clock';
 import { persistUser } from '../../test/fixtures';
 
 const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
@@ -16,6 +19,7 @@ const OPAQUE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const ACCESS_TOKEN_TTL_MS = 900 * 1000;
 const CLOCK_TOLERANCE_MS = 5000;
 const TWITCH_ID = 'twitch-session-1';
+const BEYOND_GRACE_SECONDS = 31;
 
 interface AccessClaims {
     sub: string;
@@ -32,13 +36,15 @@ function decodeClaims(accessToken: string): AccessClaims {
 
 describe('AuthSessionService (harness)', () => {
     let harness: AuthTestApp;
+    let clock: FixedClock;
     let service: AuthSessionService;
     let users: Model<UserDocument>;
     let sessions: Model<SessionDocument>;
     let user: UserDocument;
 
     beforeAll(async () => {
-        harness = await createAuthTestApp();
+        clock = new FixedClock();
+        harness = await createAuthTestApp({ clock });
         service = harness.app.get(AuthSessionService);
         users = harness.connection.model<UserDocument>(User.name);
         sessions = harness.connection.model<SessionDocument>(Session.name);
@@ -162,6 +168,36 @@ describe('AuthSessionService (harness)', () => {
             const stored = await sessions.findById(sid).exec();
             expect(stored?.revokedAt).toBeInstanceOf(Date);
         });
+
+        it.each([
+            ['the user lookup', () => harness.app.get(UsersService), 'findOne'],
+            [
+                'the access token signature',
+                () => harness.app.get(AccessTokenService),
+                'sign',
+            ],
+        ] as const)(
+            'keeps the presented token valid when %s fails transiently (WR-01)',
+            async (_step, dependency, method) => {
+                const issued = await service.issueForUser(user);
+                const failure = jest
+                    .spyOn(dependency(), method)
+                    .mockRejectedValueOnce(new Error('transient failure'));
+
+                await expect(
+                    service.refresh(issued.refreshToken),
+                ).rejects.toThrow('transient failure');
+                failure.mockRestore();
+                clock.advanceSeconds(BEYOND_GRACE_SECONDS);
+
+                const retried = await service.refresh(issued.refreshToken);
+
+                expect(retried.refreshToken).toMatch(OPAQUE_TOKEN_PATTERN);
+                expect(decodeClaims(retried.accessToken).sid).toBe(
+                    decodeClaims(issued.accessToken).sid,
+                );
+            },
+        );
 
         it('rejects an unknown refresh token as SESSION_EXPIRED', async () => {
             await expect(

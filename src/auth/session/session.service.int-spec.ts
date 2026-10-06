@@ -117,6 +117,25 @@ describe('SessionService (replSet)', () => {
         });
     });
 
+    describe('findRotatable', () => {
+        it('resolves the session of a rotatable token without rotating it', async () => {
+            const t0 = await service.create(USER_ID);
+
+            const found = await service.findRotatable(t0.refreshToken);
+
+            expect(found).toEqual({ sessionId: t0.sessionId, userId: USER_ID });
+            const stored = await SessionModel.findById(t0.sessionId).exec();
+            expect(stored?.refreshTokenHash).toBe(sha256Hex(t0.refreshToken));
+            expect(stored?.rotatedAt).toBeNull();
+        });
+
+        it('rejects a token that was never issued with SESSION_EXPIRED', async () => {
+            await expect(
+                service.findRotatable('never-issued-refresh-token'),
+            ).rejects.toMatchObject({ code: AuthErrorCode.SESSION_EXPIRED });
+        });
+    });
+
     describe('rotate', () => {
         const sessionExpired = { code: AuthErrorCode.SESSION_EXPIRED };
         const sessionRevoked = { code: AuthErrorCode.SESSION_REVOKED };
