@@ -61,7 +61,17 @@ describe('createGraphQLOptions', () => {
         expect(Object.keys(options.subscriptions ?? {})).toEqual([
             'graphql-ws',
         ]);
-        expect(options).not.toHaveProperty('installSubscriptionHandlers');
+        expect(Object.keys(options).sort()).toEqual([
+            'autoSchemaFile',
+            'context',
+            'formatError',
+            'introspection',
+            'path',
+            'playground',
+            'plugins',
+            'sortSchema',
+            'subscriptions',
+        ]);
     });
 
     it('delegates onConnect to the ws authenticator and returns its result', async () => {

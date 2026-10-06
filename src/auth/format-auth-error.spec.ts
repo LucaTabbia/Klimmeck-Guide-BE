@@ -20,7 +20,10 @@ function buildFormatted(
 }
 
 function wrapAsResolverError(original: Error): GraphQLError {
-    return new GraphQLError(original.message, { originalError: original });
+    return new GraphQLError(original.message, {
+        path: ['refreshSession'],
+        originalError: original,
+    });
 }
 
 describe('formatAuthError', () => {
