@@ -25,59 +25,59 @@ import { CloudinaryModule } from './rest/cloudinary/cloudinary.module';
 import { PubSubModule } from './pubsub.module';
 import { RoadsModule } from './roads/roads.module';
 import { PointOfInterestModule } from './pointsOfInterest/point-of-interest.module';
+import { validateEnv } from './config/env.validation';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      envFilePath: ".env",
-      isGlobal: true,
-    }),
-    BullModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        redis: {
-          host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
-        },
-      }),
-    }),
-    MongoModule,
-    PubSubModule,
-    GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
-      playground: false,
-      plugins: [ApolloServerPluginLandingPageLocalDefault()],
-      installSubscriptionHandlers: true,
-      introspection: true,
-      autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-      sortSchema: true,
-      subscriptions: {
-        "graphql-ws": true,
-      },
-      path: "/api/graphql",
-    }),
-    UsersModule,
-    CharactersModule,
-    CitiesModule,
-    EnemiesModule,
-    EquipmentItemsModule,
-    LootItemsModule,
-    LoreModule,
-    PendingQuestsModule,
-    PetsModule,
-    QuestsModule,
-    SpellsModule,
-    RoadsModule,
-    PointOfInterestModule,
-    CloudinaryModule
-  ],
-  controllers: [AppController],
-  providers: [
-    AppService
-  ]
+    imports: [
+        ConfigModule.forRoot({
+            envFilePath: '.env',
+            isGlobal: true,
+            validate: validateEnv,
+        }),
+        BullModule.forRootAsync({
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => ({
+                redis: {
+                    host: config.get<string>('REDIS_HOST', 'localhost'),
+                    port: config.get<number>('REDIS_PORT', 6379),
+                },
+            }),
+        }),
+        MongoModule,
+        PubSubModule,
+        GraphQLModule.forRoot<ApolloDriverConfig>({
+            driver: ApolloDriver,
+            playground: false,
+            plugins: [ApolloServerPluginLandingPageLocalDefault()],
+            installSubscriptionHandlers: true,
+            introspection: true,
+            autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+            sortSchema: true,
+            subscriptions: {
+                'graphql-ws': true,
+            },
+            path: '/api/graphql',
+        }),
+        UsersModule,
+        CharactersModule,
+        CitiesModule,
+        EnemiesModule,
+        EquipmentItemsModule,
+        LootItemsModule,
+        LoreModule,
+        PendingQuestsModule,
+        PetsModule,
+        QuestsModule,
+        SpellsModule,
+        RoadsModule,
+        PointOfInterestModule,
+        CloudinaryModule,
+    ],
+    controllers: [AppController],
+    providers: [AppService],
 })
 export class AppModule {
-  constructor() {
-    mongoose.plugin(idTransformPlugin);
-  }
+    constructor() {
+        mongoose.plugin(idTransformPlugin);
+    }
 }
