@@ -555,6 +555,20 @@ describe('SessionService (replSet)', () => {
             expect(stored?.revokedAt?.getTime()).toBe(revokedAt);
         });
 
+        it('a token retired within 30s on an already revoked session answers SESSION_REVOKED and re-issues nothing (REVIEW-3 IN-01)', async () => {
+            const t0 = await service.create(USER_ID);
+            await service.rotate(t0.refreshToken);
+            await service.revoke(t0.sessionId);
+            const afterRevocation = await readSession(t0.sessionId);
+            clock.advanceSeconds(10);
+
+            await expect(service.rotate(t0.refreshToken)).rejects.toMatchObject(
+                sessionRevoked,
+            );
+
+            expect(await readSession(t0.sessionId)).toEqual(afterRevocation);
+        });
+
         it('a retired token of an expired session answers SESSION_EXPIRED and does not revoke it (IN-11)', async () => {
             const t0 = await service.create(USER_ID);
             const t1 = await service.rotate(t0.refreshToken);
