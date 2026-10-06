@@ -1,6 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { AuthException } from 'src/auth/auth.exception';
 import { Clock } from 'src/auth/clock';
 import { generateOpaqueToken, sha256Hex } from 'src/auth/crypto/token-crypto';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
@@ -17,6 +18,8 @@ export interface IssuedRefreshToken {
 
 @Injectable()
 export class SessionService {
+    private readonly logger = new Logger(SessionService.name);
+
     constructor(
         @InjectModel(Session.name)
         private readonly sessionModel: Model<SessionDocument>,
@@ -34,9 +37,20 @@ export class SessionService {
         return { sessionId: session._id.toString(), userId, refreshToken };
     }
 
-    rotate(refreshToken: string): Promise<IssuedRefreshToken> {
-        void refreshToken;
-        return Promise.reject(new Error('not implemented'));
+    async rotate(refreshToken: string): Promise<IssuedRefreshToken> {
+        const now = this.clock.now();
+        const presentedHash = sha256Hex(refreshToken);
+        const nextToken = generateOpaqueToken();
+        const nextHash = sha256Hex(nextToken);
+        const rotated =
+            (await this.rotateCurrent(presentedHash, nextHash, now)) ??
+            (await this.rotateWithinGrace(presentedHash, nextHash, now));
+        if (!rotated) return this.rejectRefresh(presentedHash, now);
+        return {
+            sessionId: rotated._id.toString(),
+            userId: rotated.userId.toString(),
+            refreshToken: nextToken,
+        };
     }
 
     async revoke(sessionId: string): Promise<void> {
@@ -47,6 +61,100 @@ export class SessionService {
                 { $set: { revokedAt: this.clock.now() } },
             )
             .exec();
+    }
+
+    private rotateCurrent(
+        presentedHash: string,
+        nextHash: string,
+        now: Date,
+    ): Promise<SessionDocument | null> {
+        return this.sessionModel
+            .findOneAndUpdate(
+                {
+                    refreshTokenHash: presentedHash,
+                    revokedAt: null,
+                    expiresAt: { $gt: now },
+                },
+                {
+                    $set: {
+                        previousRefreshTokenHash: presentedHash,
+                        refreshTokenHash: nextHash,
+                        rotatedAt: now,
+                        expiresAt: this.expiresAtFrom(now),
+                    },
+                },
+                { new: true },
+            )
+            .exec();
+    }
+
+    // La finestra di grace resta ancorata alla prima rotazione: previousRefreshTokenHash
+    // e rotatedAt non cambiano, e solo il token emesso per ultimo resta valido.
+    private rotateWithinGrace(
+        presentedHash: string,
+        nextHash: string,
+        now: Date,
+    ): Promise<SessionDocument | null> {
+        return this.sessionModel
+            .findOneAndUpdate(
+                {
+                    previousRefreshTokenHash: presentedHash,
+                    rotatedAt: { $gt: this.graceStartFrom(now) },
+                    revokedAt: null,
+                    expiresAt: { $gt: now },
+                },
+                {
+                    $set: {
+                        refreshTokenHash: nextHash,
+                        expiresAt: this.expiresAtFrom(now),
+                    },
+                },
+                { new: true },
+            )
+            .exec();
+    }
+
+    private async rejectRefresh(
+        presentedHash: string,
+        now: Date,
+    ): Promise<never> {
+        const reused = await this.sessionModel
+            .findOneAndUpdate(
+                { previousRefreshTokenHash: presentedHash, revokedAt: null },
+                { $set: { revokedAt: now } },
+            )
+            .exec();
+        if (reused) {
+            this.logger.warn(
+                `Refresh token reuse detected: session ${reused._id.toString()} revoked`,
+            );
+            throw AuthException.sessionRevoked();
+        }
+        if (await this.isRevokedSessionToken(presentedHash))
+            throw AuthException.sessionRevoked();
+        throw AuthException.sessionExpired();
+    }
+
+    private async isRevokedSessionToken(
+        presentedHash: string,
+    ): Promise<boolean> {
+        const revoked = await this.sessionModel
+            .exists({
+                $or: [
+                    { refreshTokenHash: presentedHash },
+                    { previousRefreshTokenHash: presentedHash },
+                ],
+                revokedAt: { $ne: null },
+            })
+            .exec();
+        return revoked !== null;
+    }
+
+    private graceStartFrom(now: Date): Date {
+        return new Date(
+            now.getTime() -
+                this.config.refreshTokenGraceSeconds * MILLISECONDS_PER_SECOND,
+        );
     }
 
     private expiresAtFrom(now: Date): Date {
