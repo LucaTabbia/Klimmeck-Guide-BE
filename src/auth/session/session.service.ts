@@ -3,6 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AuthException } from 'src/auth/auth.exception';
 import { Clock } from 'src/auth/clock';
+import {
+    deriveRefreshToken,
+    deriveRefreshTokenKey,
+} from 'src/auth/crypto/refresh-token-derivation';
 import { generateOpaqueToken, sha256Hex } from 'src/auth/crypto/token-crypto';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
 import { AUTH_CONFIG } from 'src/config/auth-config';
@@ -25,22 +29,30 @@ export interface RotatableSession {
 @Injectable()
 export class SessionService {
     private readonly logger = new Logger(SessionService.name);
+    private readonly refreshTokenKey: Buffer;
 
     constructor(
         @InjectModel(Session.name)
         private readonly sessionModel: Model<SessionDocument>,
         private readonly clock: Clock,
         @Inject(AUTH_CONFIG) private readonly config: AuthConfig,
-    ) {}
+    ) {
+        this.refreshTokenKey = deriveRefreshTokenKey(config.jwtSecret);
+    }
 
     async create(userId: string): Promise<IssuedRefreshToken> {
-        const refreshToken = generateOpaqueToken();
-        const session = await this.sessionModel.create({
+        const sessionId = new Types.ObjectId();
+        const tokenSeed = generateOpaqueToken();
+        const refreshToken = this.deriveToken(sessionId, 0, tokenSeed);
+        await this.sessionModel.create({
+            _id: sessionId,
             userId: new Types.ObjectId(userId),
             refreshTokenHash: sha256Hex(refreshToken),
+            tokenSeed,
+            rotationCount: 0,
             expiresAt: this.expiresAtFrom(this.clock.now()),
         });
-        return { sessionId: session._id.toString(), userId, refreshToken };
+        return { sessionId: sessionId.toString(), userId, refreshToken };
     }
 
     // sola lettura: nessuna rotazione, così un errore a valle lascia valido il token presentato
@@ -54,13 +66,9 @@ export class SessionService {
             .findOne({
                 $or: [
                     { refreshTokenHash: presentedHash },
-                    {
-                        previousRefreshTokenHash: presentedHash,
-                        rotatedAt: { $gt: this.graceStartFrom(requestedAt) },
-                    },
+                    this.withinGraceFilter(presentedHash, requestedAt),
                 ],
-                revokedAt: null,
-                expiresAt: { $gt: now },
+                ...this.activeFilter(now),
             })
             .exec();
         if (!session) return this.rejectRefresh(presentedHash, now);
@@ -71,29 +79,18 @@ export class SessionService {
     }
 
     // la grace è valutata all'arrivo della richiesta (requestedAt): la latenza del server tra
-    // findRotatable e rotate non deve trasformare un retry legittimo in un riuso (WR-04)
+    // findRotatable e rotate non deve trasformare un retry legittimo in un riuso (WR-04).
+    // Chi perde la corsa sulla rotazione ricade sulla ri-emissione e riceve il token del vincitore.
     async rotate(
         refreshToken: string,
         requestedAt: Date = this.clock.now(),
     ): Promise<IssuedRefreshToken> {
         const now = this.clock.now();
         const presentedHash = sha256Hex(refreshToken);
-        const nextToken = generateOpaqueToken();
-        const nextHash = sha256Hex(nextToken);
-        const rotated =
-            (await this.rotateCurrent(presentedHash, nextHash, now)) ??
-            (await this.rotateWithinGrace(
-                presentedHash,
-                nextHash,
-                now,
-                this.graceStartFrom(requestedAt),
-            ));
-        if (!rotated) return this.rejectRefresh(presentedHash, now);
-        return {
-            sessionId: rotated._id.toString(),
-            userId: rotated.userId.toString(),
-            refreshToken: nextToken,
-        };
+        const issued =
+            (await this.rotateCurrent(presentedHash, now)) ??
+            (await this.reissueWithinGrace(presentedHash, now, requestedAt));
+        return issued ?? this.rejectRefresh(presentedHash, now);
     }
 
     async revoke(sessionId: string): Promise<void> {
@@ -106,22 +103,38 @@ export class SessionService {
             .exec();
     }
 
-    private rotateCurrent(
+    // l'hash presentato nel filtro dell'update rende la rotazione atomica: un solo vincitore
+    private async rotateCurrent(
         presentedHash: string,
-        nextHash: string,
         now: Date,
-    ): Promise<SessionDocument | null> {
-        return this.sessionModel
+    ): Promise<IssuedRefreshToken | null> {
+        const session = await this.sessionModel
+            .findOne({
+                refreshTokenHash: presentedHash,
+                ...this.activeFilter(now),
+            })
+            .exec();
+        if (!session) return null;
+        const tokenSeed = session.tokenSeed ?? generateOpaqueToken();
+        const rotationCount = session.rotationCount + 1;
+        const nextToken = this.deriveToken(
+            session._id,
+            rotationCount,
+            tokenSeed,
+        );
+        const rotated = await this.sessionModel
             .findOneAndUpdate(
                 {
+                    _id: session._id,
                     refreshTokenHash: presentedHash,
-                    revokedAt: null,
-                    expiresAt: { $gt: now },
+                    ...this.activeFilter(now),
                 },
                 {
                     $set: {
                         previousRefreshTokenHash: presentedHash,
-                        refreshTokenHash: nextHash,
+                        refreshTokenHash: sha256Hex(nextToken),
+                        tokenSeed,
+                        rotationCount,
                         rotatedAt: now,
                         expiresAt: this.expiresAtFrom(now),
                     },
@@ -135,52 +148,44 @@ export class SessionService {
                 { new: true },
             )
             .exec();
+        return rotated ? this.toIssued(rotated, nextToken) : null;
     }
 
-    // La finestra di grace resta ancorata alla prima rotazione: previousRefreshTokenHash
-    // e rotatedAt non cambiano, e solo il token emesso per ultimo resta valido. Il token
-    // corrente, ora orfano, viene ritirato nella stessa update (pipeline atomica).
-    private rotateWithinGrace(
+    // ri-emissione idempotente (D-35): il token precedente dentro la grace riceve il token
+    // corrente, ricostruito dal documento così com'è ora, senza alcuna scrittura sulla sessione
+    private async reissueWithinGrace(
         presentedHash: string,
-        nextHash: string,
         now: Date,
-        graceStart: Date,
-    ): Promise<SessionDocument | null> {
-        return this.sessionModel
-            .findOneAndUpdate(
-                {
-                    previousRefreshTokenHash: presentedHash,
-                    rotatedAt: { $gt: graceStart },
-                    revokedAt: null,
-                    expiresAt: { $gt: now },
-                },
-                [
-                    {
-                        $set: {
-                            retiredRefreshTokenHashes: {
-                                $slice: [
-                                    {
-                                        $concatArrays: [
-                                            {
-                                                $ifNull: [
-                                                    '$retiredRefreshTokenHashes',
-                                                    [],
-                                                ],
-                                            },
-                                            ['$refreshTokenHash'],
-                                        ],
-                                    },
-                                    -RETIRED_REFRESH_TOKEN_HASHES_LIMIT,
-                                ],
-                            },
-                            refreshTokenHash: nextHash,
-                            expiresAt: this.expiresAtFrom(now),
-                        },
-                    },
-                ],
-                { new: true },
-            )
+        requestedAt: Date,
+    ): Promise<IssuedRefreshToken | null> {
+        const session = await this.sessionModel
+            .findOne({
+                ...this.withinGraceFilter(presentedHash, requestedAt),
+                ...this.activeFilter(now),
+            })
             .exec();
+        if (!session) return null;
+        const currentToken = this.rebuildCurrentToken(session);
+        if (!currentToken) {
+            this.logger.warn(
+                `Refresh token re-issue impossible: session ${session._id.toString()} cannot rebuild its current token`,
+            );
+            throw AuthException.sessionExpired();
+        }
+        return this.toIssued(session, currentToken);
+    }
+
+    // null se la sessione è precedente a D-35 (nessun seed o token non derivato) o se JWT_SECRET è cambiato
+    private rebuildCurrentToken(session: SessionDocument): string | null {
+        if (!session.tokenSeed) return null;
+        const currentToken = this.deriveToken(
+            session._id,
+            session.rotationCount,
+            session.tokenSeed,
+        );
+        return sha256Hex(currentToken) === session.refreshTokenHash
+            ? currentToken
+            : null;
     }
 
     private async rejectRefresh(
@@ -191,8 +196,7 @@ export class SessionService {
             .findOneAndUpdate(
                 {
                     retiredRefreshTokenHashes: presentedHash,
-                    revokedAt: null,
-                    expiresAt: { $gt: now },
+                    ...this.activeFilter(now),
                 },
                 { $set: { revokedAt: now } },
             )
@@ -221,6 +225,41 @@ export class SessionService {
             })
             .exec();
         return revoked !== null;
+    }
+
+    private deriveToken(
+        sessionId: Types.ObjectId,
+        rotationCount: number,
+        tokenSeed: string,
+    ): string {
+        return deriveRefreshToken(
+            this.refreshTokenKey,
+            sessionId.toString(),
+            rotationCount,
+            tokenSeed,
+        );
+    }
+
+    private toIssued(
+        session: SessionDocument,
+        refreshToken: string,
+    ): IssuedRefreshToken {
+        return {
+            sessionId: session._id.toString(),
+            userId: session.userId.toString(),
+            refreshToken,
+        };
+    }
+
+    private withinGraceFilter(presentedHash: string, requestedAt: Date) {
+        return {
+            previousRefreshTokenHash: presentedHash,
+            rotatedAt: { $gt: this.graceStartFrom(requestedAt) },
+        };
+    }
+
+    private activeFilter(now: Date) {
+        return { revokedAt: null, expiresAt: { $gt: now } };
     }
 
     private graceStartFrom(now: Date): Date {
