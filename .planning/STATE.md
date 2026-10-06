@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-10-06T17:55:57.504Z"
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-10-06T18:01:38.479Z"
 last_activity: 2026-10-06
 progress:
   total_phases: 10
   completed_phases: 1
   total_plans: 14
-  completed_plans: 8
-  percent: 57
+  completed_plans: 9
+  percent: 64
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 2 (auth-identity-foundation) — EXECUTING
-Plan: 4 of 9
+Plan: 5 of 9
 Status: Ready to execute
 Last activity: 2026-10-06
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P01 | 7 min | 3 tasks | 25 files |
 | Phase 02 P02 | 6 min | 3 tasks | 9 files |
 | Phase 02 P03 | 10min | 3 tasks | 12 files |
+| Phase 02 P04 | 9 min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,8 @@ Recent decisions affecting current work:
 - [Phase 02]: D-32: TwitchIdIndexVerifier al boot logga i twitchId duplicati se l'indice unico non si costruisce, senza bloccare l'avvio
 - [Phase 02]: Single AuthIdentityResolver (dev strategy first, then HS256 session JWT) is the only bearer-to-identity path for HTTP, REST and WS
 - [Phase 02]: graphql-ws onConnect returns false on any auth failure (close 4403), per-socket timer closes 4401 'Token expired' at JWT exp
+- [Phase 02]: Login ticket monouso: findOneAndDelete atomico con filtro expiresAt > now, consumato prima del controllo S256 del verifier; a DB solo sha256
+- [Phase 02]: TwitchOAuthClient classe astratta come token DI; HttpTwitchOAuthClient normalizza ogni errore (status, rete, timeout, JSON) in TwitchOAuthError senza code/token/secret
 
 ### Pending Todos
 
@@ -98,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-06T17:55:57.500Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-10-06T18:01:38.476Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
