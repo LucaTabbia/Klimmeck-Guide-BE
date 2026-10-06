@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-06-PLAN.md
-last_updated: "2026-10-06T18:17:02.554Z"
+stopped_at: Completed 02-07-PLAN.md
+last_updated: "2026-10-06T18:24:38.873Z"
 last_activity: 2026-10-06
 progress:
   total_phases: 10
   completed_phases: 1
   total_plans: 14
-  completed_plans: 11
-  percent: 79
+  completed_plans: 12
+  percent: 86
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 2 (auth-identity-foundation) — EXECUTING
-Plan: 7 of 9
+Plan: 8 of 9
 Status: Ready to execute
 Last activity: 2026-10-06
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P04 | 9 min | 3 tasks | 12 files |
 | Phase 02 P05 | 10 min | 3 tasks | 13 files |
 | Phase 02 P06 | 8 min | 3 tasks | 16 files |
+| Phase 02 P07 | 7 min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Recent decisions affecting current work:
 - [Phase 02]: AppModule and auth test harness share createGraphQLOptions (forRootAsync + WsConnectionAuthenticator hooks); installSubscriptionHandlers removed
 - [Phase 02]: formatAuthError restores AuthErrorCode on the wire and strips originalError/stacktrace
 - [Phase 02]: Real AppModule boot test loads AppModule via jest.requireActual after setting env (native import() unsupported in Jest CJS)
+- [Phase 02]: AuthGuard is a deny-by-default APP_GUARD; the WS branch trusts only extra.identity (re-checking expiresAt), HTTP/REST reuse AuthIdentityResolver.resolveBearer
+- [Phase 02]: Public whitelist is exactly 5 handlers (AppController.getHello, AuthResolver.exchangeLoginTicket/refreshSession, TwitchAuthController.start/callback), asserted on the real AppModule
 
 ### Pending Todos
 
@@ -108,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-06T18:17:02.551Z
-Stopped at: Completed 02-06-PLAN.md
+Last session: 2026-10-06T18:24:38.870Z
+Stopped at: Completed 02-07-PLAN.md
 Resume file: None
