@@ -4,7 +4,6 @@ import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { RoleType } from './enums/role-type.enum';
 import { Character } from './character/character.model';
 
-
 @ObjectType()
 @Schema()
 export class User {
@@ -12,7 +11,7 @@ export class User {
     id: string;
 
     @Field(() => String)
-    @Prop({ required: true })
+    @Prop({ required: true, unique: true })
     twitchId: string;
 
     @Field(() => Int)
@@ -31,8 +30,8 @@ export class User {
 export type UserDocument = User & Document;
 
 export const UserSchema = SchemaFactory.createForClass(User).set(
-    "versionKey",
-    false
+    'versionKey',
+    false,
 );
 
 @InputType()
