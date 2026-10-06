@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { AuthIdentity } from 'src/auth/auth-identity';
 import { AuthException } from 'src/auth/auth.exception';
+import { Clock } from 'src/auth/clock';
 import { AuthSession } from 'src/auth/dto/auth-session.model';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
 import { SessionService } from 'src/auth/session/session.service';
@@ -16,6 +17,7 @@ export class AuthSessionService {
         private readonly accessTokenService: AccessTokenService,
         private readonly loginTicketService: LoginTicketService,
         private readonly usersService: UsersService,
+        private readonly clock: Clock,
     ) {}
 
     async issueForUser(user: User): Promise<AuthSession> {
@@ -41,14 +43,21 @@ export class AuthSessionService {
     // il ruolo è riletto dal DB a ogni refresh (D-10); la rotazione è l'ultimo passo fallibile,
     // così un errore transitorio prima di essa lascia valido il refresh token del client
     async refresh(refreshToken: string): Promise<AuthSession> {
-        const session = await this.sessionService.findRotatable(refreshToken);
+        const requestedAt = this.clock.now();
+        const session = await this.sessionService.findRotatable(
+            refreshToken,
+            requestedAt,
+        );
         const user = await this.findUserOrNull(session.userId);
         if (!user) {
             await this.sessionService.revoke(session.sessionId);
             throw AuthException.sessionRevoked();
         }
         const signed = await this.signAccessToken(user, session.sessionId);
-        const rotated = await this.sessionService.rotate(refreshToken);
+        const rotated = await this.sessionService.rotate(
+            refreshToken,
+            requestedAt,
+        );
         return this.toAuthSession(user, signed, rotated.refreshToken);
     }
 

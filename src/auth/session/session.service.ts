@@ -44,7 +44,10 @@ export class SessionService {
     }
 
     // sola lettura: nessuna rotazione, così un errore a valle lascia valido il token presentato
-    async findRotatable(refreshToken: string): Promise<RotatableSession> {
+    async findRotatable(
+        refreshToken: string,
+        requestedAt: Date = this.clock.now(),
+    ): Promise<RotatableSession> {
         const now = this.clock.now();
         const presentedHash = sha256Hex(refreshToken);
         const session = await this.sessionModel
@@ -53,7 +56,7 @@ export class SessionService {
                     { refreshTokenHash: presentedHash },
                     {
                         previousRefreshTokenHash: presentedHash,
-                        rotatedAt: { $gt: this.graceStartFrom(now) },
+                        rotatedAt: { $gt: this.graceStartFrom(requestedAt) },
                     },
                 ],
                 revokedAt: null,
@@ -67,14 +70,24 @@ export class SessionService {
         };
     }
 
-    async rotate(refreshToken: string): Promise<IssuedRefreshToken> {
+    // la grace è valutata all'arrivo della richiesta (requestedAt): la latenza del server tra
+    // findRotatable e rotate non deve trasformare un retry legittimo in un riuso (WR-04)
+    async rotate(
+        refreshToken: string,
+        requestedAt: Date = this.clock.now(),
+    ): Promise<IssuedRefreshToken> {
         const now = this.clock.now();
         const presentedHash = sha256Hex(refreshToken);
         const nextToken = generateOpaqueToken();
         const nextHash = sha256Hex(nextToken);
         const rotated =
             (await this.rotateCurrent(presentedHash, nextHash, now)) ??
-            (await this.rotateWithinGrace(presentedHash, nextHash, now));
+            (await this.rotateWithinGrace(
+                presentedHash,
+                nextHash,
+                now,
+                this.graceStartFrom(requestedAt),
+            ));
         if (!rotated) return this.rejectRefresh(presentedHash, now);
         return {
             sessionId: rotated._id.toString(),
@@ -131,12 +144,13 @@ export class SessionService {
         presentedHash: string,
         nextHash: string,
         now: Date,
+        graceStart: Date,
     ): Promise<SessionDocument | null> {
         return this.sessionModel
             .findOneAndUpdate(
                 {
                     previousRefreshTokenHash: presentedHash,
-                    rotatedAt: { $gt: this.graceStartFrom(now) },
+                    rotatedAt: { $gt: graceStart },
                     revokedAt: null,
                     expiresAt: { $gt: now },
                 },

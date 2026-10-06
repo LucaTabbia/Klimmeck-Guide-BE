@@ -3,7 +3,7 @@ import { Model } from 'mongoose';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import type { AuthIdentity } from 'src/auth/auth-identity';
 import { AuthSessionService } from 'src/auth/auth-session.service';
-import { s256Challenge } from 'src/auth/crypto/token-crypto';
+import { s256Challenge, sha256Hex } from 'src/auth/crypto/token-crypto';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
 import { AccessTokenService } from 'src/auth/token/access-token.service';
@@ -20,6 +20,8 @@ const ACCESS_TOKEN_TTL_MS = 900 * 1000;
 const CLOCK_TOLERANCE_MS = 5000;
 const TWITCH_ID = 'twitch-session-1';
 const BEYOND_GRACE_SECONDS = 31;
+const LAST_SECOND_WITHIN_GRACE = 29;
+const SLOW_USER_LOOKUP_SECONDS = 2;
 
 interface AccessClaims {
     sub: string;
@@ -198,6 +200,32 @@ describe('AuthSessionService (harness)', () => {
                 );
             },
         );
+
+        it('evaluates the grace window when the request arrives, not when the rotation is persisted (WR-04)', async () => {
+            const t0 = await service.issueForUser(user);
+            const { sid } = decodeClaims(t0.accessToken);
+            await service.refresh(t0.refreshToken);
+            clock.advanceSeconds(LAST_SECOND_WITHIN_GRACE);
+            const usersService = harness.app.get(UsersService);
+            const findOne = usersService.findOne.bind(usersService);
+            const slowLookup = jest
+                .spyOn(usersService, 'findOne')
+                .mockImplementationOnce((id: string) => {
+                    clock.advanceSeconds(SLOW_USER_LOOKUP_SECONDS);
+                    return findOne(id);
+                });
+
+            const retried = await service.refresh(t0.refreshToken);
+            slowLookup.mockRestore();
+
+            expect(retried.refreshToken).toMatch(OPAQUE_TOKEN_PATTERN);
+            expect(decodeClaims(retried.accessToken).sid).toBe(sid);
+            const stored = await sessions.findById(sid).exec();
+            expect(stored?.revokedAt).toBeNull();
+            expect(stored?.refreshTokenHash).toBe(
+                sha256Hex(retried.refreshToken),
+            );
+        });
 
         it('rejects an unknown refresh token as SESSION_EXPIRED', async () => {
             await expect(
