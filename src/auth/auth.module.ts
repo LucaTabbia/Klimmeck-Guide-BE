@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthIdentityResolver } from 'src/auth/auth-identity.resolver';
+import { AuthSessionService } from 'src/auth/auth-session.service';
 import { AuthStartupReporter } from 'src/auth/auth-startup.reporter';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { DevAuthStrategy } from 'src/auth/dev/dev-auth.strategy';
@@ -42,7 +43,13 @@ import { UsersModule } from 'src/users/users.module';
         AuthIdentityResolver,
         WsConnectionAuthenticator,
         AuthStartupReporter,
+        AuthSessionService,
     ],
-    exports: [AUTH_CONFIG, AuthIdentityResolver, WsConnectionAuthenticator],
+    exports: [
+        AUTH_CONFIG,
+        AuthIdentityResolver,
+        WsConnectionAuthenticator,
+        AuthSessionService,
+    ],
 })
 export class AuthModule {}
