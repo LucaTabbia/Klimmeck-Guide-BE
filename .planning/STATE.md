@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 02-09-PLAN.md
-last_updated: "2026-10-06T18:39:15.388Z"
+status: phase-complete
+stopped_at: Phase 2 complete (verified, human UAT pending)
+last_updated: "2026-10-06T20:32:44.791Z"
 last_activity: 2026-10-06
 progress:
   total_phases: 10
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 2 — auth-identity-foundation
+**Current focus:** Phase 3 — autorizzazione-ownership-ruoli-audit (da discutere/pianificare)
 
 ## Current Position
 
-Phase: 2 (auth-identity-foundation) — EXECUTING
-Plan: 9 of 9
-Status: Phase complete — ready for verification
+Phase: 3
+Plan: Not started
+Status: Phase 2 complete — verifier 5/5, human UAT pending (02-HUMAN-UAT.md); Phase 3 not started
 Last activity: 2026-10-06
 
 Progress: [░░░░░░░░░░] 0%
@@ -36,7 +36,7 @@ Progress: [░░░░░░░░░░] 0%
 
 **Velocity:**
 
-- Total plans completed: 5
+- Total plans completed: 14
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -45,6 +45,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 5 | - | - |
+| 2 | 9 | - | - |
 
 **Recent Trend:**
 
@@ -74,7 +75,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - [Phase 1]: Test con mongodb-memory-server in modalità replica set (change stream + transazioni); Bull mockato al confine DI negli unit + Redis effimero reale nei processor test (ioredis-mock NON viabile per Bull).
-- [Phase 2]: Auth = JWT di sessione proprio (scambio `twitchToken → JWT BE` al login); dev bypass fail-closed compatibile con lo stub FE `DEV_AUTH_ACCESS_TOKEN`.
+- [Phase 2]: Auth = JWT di sessione proprio; il login Twitch è **mediato dal BE** (authorization code scambiato lato server + login ticket monouso legato a challenge S256 — Twitch non supporta PKCE e richiede `client_secret`, D-01); dev bypass fail-closed compatibile con lo stub FE `DEV_AUTH_ACCESS_TOKEN`.
 - [Phase 8]: Il DB (`endTime` persistito) è la fonte di verità dei timer viaggio; il job Bull è solo un trigger + reconciler al boot.
 - [Phase 01]: Harness test: MongoMemoryReplSet single-node condiviso via globalSetup; split Jest unit/integration via projects; Redis effimero dietro env; pre-create collection prima delle transazioni multi-doc su replSet.
 - [Phase 01]: Fixture two-tier buildX/persistX deterministiche per i 6 modelli; Character con xp:20000 (virtual maxActiveSpells) e location POI reale via persistCharacter
@@ -113,9 +114,13 @@ None yet.
 - Conteggio requirement: REQUIREMENTS.md riporta "38 total" nella riga di summary, ma l'enumerazione effettiva dei BE-* ID è **42** (AUTH ha 6, ATOM ha 5, ecc.). La roadmap mappa tutti i 42. La riga di summary in REQUIREMENTS.md è stata corretta a 42.
 - Research flags da approfondire in planning: Phase 1 (replica-set CI flakiness), Phase 2 (context graphql-ws #1756), Phase 6 (Twitch Helix subscription lifecycle).
 - Verificare topologia MongoDB prod (replica set?) prima del layer transazioni; runtime Node prod (18/20 vs 22) per firebase-admin 13 vs 14; policy Redis prod (eviction dei delayed job Bull).
+- **Phase 2 — decisione D-26 in sospeso (finestra di grazia del refresh):** la variante attuale (30 s) ha un caso limite documentato (richiesta bloccata + retry → rotazioni in ordine inverso → logout forzato al refresh successivo; fail-closed). Opzioni A/B/C in `02-HUMAN-UAT.md` §4 e `BACKEND-NOTES.md` §9 (j). Le varianti A e B richiedono un plan di gap-closure.
+- **Phase 2 — UAT umane pendenti** (`02-HUMAN-UAT.md`): login Twitch reale (chiavi non ancora disponibili), pipeline GitHub Actions reale, controllo duplicati `twitchId` sui dati reali.
+- **Branch non pushati:** `feat/01-fondazione-test-consolidamento-spell-wip` e `feat/02-auth-identity-foundation` (la Phase 2 poggia sulla Phase 1, non ancora su `develop`); PR da aprire a mano verso `develop`.
+- `JWT_SECRET` (≥ 32 caratteri) è ora obbligatoria al boot su ogni ambiente; righe `.env` per il dev bypass in `BACKEND-NOTES.md` §7.
 
 ## Session Continuity
 
-Last session: 2026-10-06T18:39:15.384Z
-Stopped at: Completed 02-09-PLAN.md
-Resume file: None
+Last session: 2026-10-06
+Stopped at: Phase 2 complete — verified, reviewed (2 passes), human UAT pending
+Resume file: .planning/phases/02-auth-identity-foundation/02-HUMAN-UAT.md

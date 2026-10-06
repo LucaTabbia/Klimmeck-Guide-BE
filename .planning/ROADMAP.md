@@ -13,7 +13,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 **Branch convention (per PROJECT.md):** ogni fase parte da `develop` con branch `feat/NN-<slug>` e chiude con PR verso `develop` (mai push diretto su `develop`/`main`).
 
 - [ ] **Phase 1: Fondazione Test & Consolidamento Spell WIP** - Harness TDD (replica-set Mongo, Bull DI-mock + Redis effimero, fixture) e consolidamento del WIP spell con fix ordine-validazione
-- [ ] **Phase 2: Auth & Identity Foundation** - JWT di sessione, guard globale HTTP + WS `onConnect`, dev bypass fail-closed, handoff FE
+- [x] **Phase 2: Auth & Identity Foundation** - JWT di sessione, guard globale HTTP + WS `onConnect`, dev bypass fail-closed, handoff FE (completed 2026-10-06)
 - [ ] **Phase 3: Autorizzazione: Ownership, Ruoli, Audit** - Ownership sulle mutation, role guard `@Roles(innkeeper)`, subscription filtrate per identità, audit log admin
 - [ ] **Phase 4: Integrità Economica (Atomics)** - Operazioni atomiche su coins/twitchPoints/quest/equip/spell (no read-modify-write, no stato parziale)
 - [ ] **Phase 5: Infrastruttura Push FCM** - Registro token per-device, servizio push domain-agnostic, pruning token stale
@@ -203,7 +203,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Fondazione Test & Consolidamento Spell WIP | 0/4 | Not started | - |
-| 2. Auth & Identity Foundation | 4/9 | In Progress|  |
+| 2. Auth & Identity Foundation | 9/9 | Complete    | 2026-10-06 |
 | 3. Autorizzazione: Ownership, Ruoli, Audit | 0/TBD | Not started | - |
 | 4. Integrità Economica (Atomics) | 0/TBD | Not started | - |
 | 5. Infrastruttura Push FCM | 0/TBD | Not started | - |
