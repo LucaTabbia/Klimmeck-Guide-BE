@@ -64,7 +64,7 @@ Plans:
 - [x] 02-03-PLAN.md — Wave 2: seam d'identità — access JWT, dev bypass fail-closed, `AuthIdentityResolver`, autenticatore WS (4403/4401)
 - [x] 02-04-PLAN.md — Wave 2: mattoni login Twitch — ticket monouso S256, client Twitch iniettabile, state OAuth, builder URL
 - [x] 02-05-PLAN.md — Wave 3: `AuthModule`, `AuthSessionService`, flusso REST `/auth/twitch/start|callback`, harness di test
-- [ ] 02-06-PLAN.md — Wave 4: `GraphQLModule.forRootAsync` + factory condivisa, `exchangeLoginTicket`/`refreshSession`, boot reale senza chiavi Twitch, schema
+- [x] 02-06-PLAN.md — Wave 4: `GraphQLModule.forRootAsync` + factory condivisa, `exchangeLoginTicket`/`refreshSession`, boot reale senza chiavi Twitch, schema
 - [ ] 02-07-PLAN.md — Wave 5: guard globale `APP_GUARD` + whitelist `@Public`, `me`/`logout`, copertura HTTP/REST/dev bypass e login completo
 - [ ] 02-08-PLAN.md — Wave 6: integration test WS reali (4403, 4401, identità, dev bypass) + CI build e schema aggiornato
 - [ ] 02-09-PLAN.md — Wave 7: handoff `BACKEND-NOTES.md` per il FE (D-24)

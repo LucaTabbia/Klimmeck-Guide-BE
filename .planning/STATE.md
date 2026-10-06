@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-05-PLAN.md
-last_updated: "2026-10-06T18:09:36.600Z"
+stopped_at: Completed 02-06-PLAN.md
+last_updated: "2026-10-06T18:17:02.554Z"
 last_activity: 2026-10-06
 progress:
   total_phases: 10
   completed_phases: 1
   total_plans: 14
-  completed_plans: 10
-  percent: 71
+  completed_plans: 11
+  percent: 79
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 2 (auth-identity-foundation) — EXECUTING
-Plan: 6 of 9
+Plan: 7 of 9
 Status: Ready to execute
 Last activity: 2026-10-06
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P03 | 10min | 3 tasks | 12 files |
 | Phase 02 P04 | 9 min | 3 tasks | 12 files |
 | Phase 02 P05 | 10 min | 3 tasks | 13 files |
+| Phase 02 P06 | 8 min | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,9 @@ Recent decisions affecting current work:
 - [Phase 02]: TwitchOAuthClient classe astratta come token DI; HttpTwitchOAuthClient normalizza ogni errore (status, rete, timeout, JSON) in TwitchOAuthError senza code/token/secret
 - [Phase 02]: AuthModule not imported by AppModule until 02-06; Twitch REST flow always 302s to config.appAuthRedirectUrl with typed error codes
 - [Phase 02]: Auth integration tests use createAuthTestApp (isolated Nest app, fake Twitch, shared auth-test DB dropped on close)
+- [Phase 02]: AppModule and auth test harness share createGraphQLOptions (forRootAsync + WsConnectionAuthenticator hooks); installSubscriptionHandlers removed
+- [Phase 02]: formatAuthError restores AuthErrorCode on the wire and strips originalError/stacktrace
+- [Phase 02]: Real AppModule boot test loads AppModule via jest.requireActual after setting env (native import() unsupported in Jest CJS)
 
 ### Pending Todos
 
@@ -104,6 +108,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-06T18:09:36.597Z
-Stopped at: Completed 02-05-PLAN.md
+Last session: 2026-10-06T18:17:02.551Z
+Stopped at: Completed 02-06-PLAN.md
 Resume file: None
