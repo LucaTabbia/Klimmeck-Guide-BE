@@ -49,8 +49,15 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Build
+        run: npm run build
+
       - name: Unit tests
         run: npm run test:unit
 
       - name: Integration tests
         run: npm run test:int
+
+      # test/app.int-spec.ts avvia il vero AppModule e riscrive src/schema.gql: lo schema committato deve coincidere
+      - name: Schema up to date
+        run: git diff --exit-code src/schema.gql
