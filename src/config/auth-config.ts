@@ -67,6 +67,8 @@ const FORBIDDEN_APP_REDIRECT_PROTOCOLS: readonly string[] = [
     'vbscript:',
     'blob:',
     'about:',
+    'intent:',
+    'android-app:',
 ];
 const LOOPBACK_HOSTNAMES: readonly string[] = ['localhost', '127.0.0.1'];
 const LAST_C0_CONTROL_CODE_POINT = 0x1f;

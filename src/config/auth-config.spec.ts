@@ -200,6 +200,19 @@ describe('parseAuthConfig', () => {
                 /APP_AUTH_REDIRECT_URL/,
             );
         });
+
+        it.each([
+            'intent://x#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fevil.example;end',
+            'INTENT://x#Intent;end',
+            'android-app://com.evil.app/https/evil.example/',
+        ])(
+            'rejects the Android intent scheme %p, which can carry an https fallback (IN-09)',
+            (value) => {
+                expect(() =>
+                    parseWith({ APP_AUTH_REDIRECT_URL: value }),
+                ).toThrow(/APP_AUTH_REDIRECT_URL must be an app deep link/);
+            },
+        );
     });
 });
 

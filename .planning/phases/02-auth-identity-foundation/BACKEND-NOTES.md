@@ -282,7 +282,7 @@ openssl rand -hex 16   # DEV_AUTH_ACCESS_TOKEN (32 caratteri), da copiare identi
 Note:
 - `JWT_SECRET` è **obbligatoria su ogni ambiente**, anche in dev bypass: senza (o sotto i 32 caratteri) il BE esce al boot con `JWT_SECRET is required and must be at least 32 characters`.
 - Con le tre `TWITCH_*` vuote (basta che ne manchi una) il BE parte normalmente e `GET /auth/twitch/start` reindirizza a `klimmeck://auth?error=twitch_not_configured`.
-- `APP_AUTH_REDIRECT_URL` può essere omessa (default `klimmeck://auth`); se valorizzata deve essere un deep link `scheme://…` che `new URL()` sa parsare (schema `[a-z][a-z0-9+.-]*`: niente `_`, es. `klimmeck_app://auth` è rifiutato), senza spazi iniziali/finali né caratteri di controllo, e con uno schema diverso da `http`, `https`, `ws`, `wss`, `ftp`, `javascript`, `data`, `file`, `vbscript`, `blob`, `about`. Un valore non valido ferma il boot con un errore che cita `APP_AUTH_REDIRECT_URL`.
+- `APP_AUTH_REDIRECT_URL` può essere omessa (default `klimmeck://auth`); se valorizzata deve essere un deep link `scheme://…` che `new URL()` sa parsare (schema `[a-z][a-z0-9+.-]*`: niente `_`, es. `klimmeck_app://auth` è rifiutato), senza spazi iniziali/finali né caratteri di controllo, e con uno schema diverso da `http`, `https`, `ws`, `wss`, `ftp`, `javascript`, `data`, `file`, `vbscript`, `blob`, `about`, `intent`, `android-app` (gli URL intent di Android possono portare un fallback `https`). Un valore non valido ferma il boot con un errore che cita `APP_AUTH_REDIRECT_URL`.
 
 ### Righe `.env` dell'app FE corrispondenti
 
