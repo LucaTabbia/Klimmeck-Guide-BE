@@ -22,7 +22,7 @@ result: [pending]
 
 expected: Dopo il push di `feat/02-auth-identity-foundation`, tutti gli step di `.github/workflows/ci.yml` sono verdi, inclusi i nuovi `Build` e `Schema up to date` (`git diff --exit-code src/schema.gql`).
 why_pending: Il branch non è stato pushato; la pipeline non è eseguibile in locale.
-result: [pending]
+result: passed — 2026-10-06: run 37533782574 verde (Lint, Build, Unit, Integration, Schema up to date) in 2m59s dopo due correzioni emerse solo su CI: `REDISMS_DISABLE_POSTINSTALL=true` (il postinstall di redis-memory-server compilava Redis dai sorgenti e falliva sul runner) e `types: ["multer"]` in tsconfig (era `Multer`, risolto solo su filesystem case-insensitive). Cache dei binari Mongo salvata (`mongoms-Linux-8.0.4`); l'hit si osserverà alla prossima esecuzione sullo stesso branch.
 
 ### 3. Controllo dei duplicati su `users.twitchId` nei dati reali
 
@@ -45,9 +45,9 @@ result: passed — 2026-10-06: ri-emissione idempotente in produzione nel codice
 ## Summary
 
 total: 4
-passed: 1
+passed: 2
 issues: 0
-pending: 3
+pending: 2
 skipped: 0
 blocked: 0
 
