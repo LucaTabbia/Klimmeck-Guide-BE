@@ -95,6 +95,24 @@ describe('HttpTwitchOAuthClient', () => {
             expect(message).not.toContain(TEST_CLIENT_SECRET);
         });
 
+        it('wraps a network or timeout failure in a TwitchOAuthError', async () => {
+            fetchSpy.mockRejectedValue(
+                new DOMException('The operation timed out', 'TimeoutError'),
+            );
+
+            await expect(client.exchangeCode(AUTH_CODE)).rejects.toThrow(
+                new TwitchOAuthError('Twitch token exchange request failed'),
+            );
+        });
+
+        it('rejects when the body is not JSON', async () => {
+            fetchSpy.mockResolvedValue(new Response('<html>', { status: 200 }));
+
+            await expect(client.exchangeCode(AUTH_CODE)).rejects.toBeInstanceOf(
+                TwitchOAuthError,
+            );
+        });
+
         it('rejects when the response has no access_token', async () => {
             fetchSpy.mockResolvedValue(jsonResponse(200, { expires_in: 3600 }));
 
