@@ -173,10 +173,12 @@ describe('AccessTokenService', () => {
         });
 
         it('rejects claims without a session id', async () => {
-            const { sid: _sid, ...withoutSid } = VALID_CLAIMS;
-
             await expectUnauthenticated(
-                signRaw({ ...withoutSid, exp: nowSeconds() + 60 }),
+                signRaw({
+                    ...VALID_CLAIMS,
+                    sid: undefined,
+                    exp: nowSeconds() + 60,
+                }),
             );
         });
 
