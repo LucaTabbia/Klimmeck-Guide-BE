@@ -32,7 +32,7 @@ result: [pending]
 
 ### 4. Conferma della decisione D-26 (finestra di grazia del refresh)
 
-expected: L'utente conferma la finestra di grazia di 30 secondi sul refresh token precedente, oppure chiede la variante stretta (riuso immediato = revoca). Nota emersa in esecuzione: dentro la finestra una seconda rotazione con il vecchio token rende inutilizzabile il token emesso dalla prima; un client che avesse già ricevuto quel token riceverebbe `SESSION_EXPIRED` al refresh successivo.
+expected: L'utente conferma la finestra di grazia di 30 secondi sul refresh token precedente, oppure chiede la variante stretta (riuso immediato = revoca). Nota emersa in esecuzione e resa esplicita dalla code review (WR-02, corretto): dentro la finestra una seconda rotazione con il vecchio token ritira il token emesso dalla prima; chi presentasse poi quel token ritirato provoca la revoca dell'intera sessione (`SESSION_REVOKED`) — comportamento voluto dalla reuse detection (D-08), terminale per il FE come `SESSION_EXPIRED`.
 why_pending: Scelta raccomandata dalla research e adottata in modalità auto; richiede conferma esplicita.
 result: [pending]
 
