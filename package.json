@@ -22,6 +22,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@apollo/server": "^4.12.2",
     "@graphql-yoga/subscription": "^5.0.5",
     "@nestjs/apollo": "^13.1.0",
     "@nestjs/bull": "^11.0.3",
@@ -29,6 +30,7 @@
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/graphql": "^13.2.0",
+    "@nestjs/jwt": "^11.0.2",
     "@nestjs/mongoose": "^11.0.3",
     "@nestjs/platform-express": "^11.0.1",
     "bull": "^4.16.5",
@@ -38,6 +40,7 @@
     "graphology-shortest-path": "^2.1.0",
     "graphql": "^16.11.0",
     "graphql-subscriptions": "^3.0.0",
+    "graphql-ws": "6.0.6",
     "ioredis": "^5.7.0",
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.1",
@@ -57,6 +60,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^22.10.7",
     "@types/supertest": "^6.0.2",
+    "@types/ws": "^8.18.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
@@ -72,7 +76,8 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.20.0",
+    "ws": "^8.18.3"
   },
   "jest": {
     "projects": [
