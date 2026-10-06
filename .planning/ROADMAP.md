@@ -51,7 +51,7 @@ Plans:
 **Depends on**: Phase 1
 **Requirements**: BE-AUTH-01, BE-AUTH-02, BE-AUTH-03, BE-AUTH-04, BE-AUTH-05, BE-AUTH-06
 **Success Criteria** (what must be TRUE):
-  1. La mutation di login scambia un token Twitch (validato una tantum su `id.twitch.tv/oauth2/validate`) per un JWT BE a TTL breve con claims `{userId, twitchId, role}`, risolvendo/creando lo User per `twitchId`.
+  1. Il login mediato dal BE (authorization code Twitch scambiato lato server, token validato una tantum su `id.twitch.tv/oauth2/validate`) produce — al riscatto di un login ticket monouso — un JWT BE a TTL breve con claims `{userId, twitchId, role}` e un refresh token rotante, risolvendo/creando lo User per `twitchId`. _(Emendato 2026-10-06: Twitch non supporta PKCE e richiede `client_secret`, vedi 02-CONTEXT.md D-01.)_
   2. Una mutation chiamata senza JWT valido restituisce un errore di auth; un'operazione `@Public()` (es. login) riesce senza JWT — enforced da un `APP_GUARD` globale che copre HTTP e l'endpoint REST Cloudinary.
   3. Una connessione subscription WS con JWT assente/invalido in `connection_init` (`Authorization: Bearer <jwt>`) è rifiutata in `onConnect`; una valida connette e l'identità è disponibile ai resolver (verificato con test di integrazione, non context mockato).
   4. Con `DEV_AUTH_ENABLED=true` il guard accetta l'identità stub FE da `DEV_AUTH_ACCESS_TOKEN`; il bypass è impossibile con `NODE_ENV=production` (test fail-closed).
