@@ -1,10 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, PipelineStage } from 'mongoose';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument, UserInput } from 'src/models/user.model';
 
 const DUPLICATE_KEY_ERROR_CODE = 11000;
+
+const DUPLICATE_TWITCH_IDS_PIPELINE: PipelineStage[] = [
+    { $group: { _id: '$twitchId', count: { $sum: 1 } } },
+    { $match: { count: { $gt: 1 } } },
+    { $sort: { _id: 1 } },
+];
+
+interface TwitchIdGroup {
+    _id: string;
+    count: number;
+}
 
 @Injectable()
 export class UsersService {
@@ -62,6 +73,15 @@ export class UsersService {
                 )
                 .exec(),
         );
+    }
+
+    async findDuplicateTwitchIds(): Promise<
+        Array<{ twitchId: string; count: number }>
+    > {
+        const groups = await this.userModel
+            .aggregate<TwitchIdGroup>(DUPLICATE_TWITCH_IDS_PIPELINE)
+            .exec();
+        return groups.map(({ _id, count }) => ({ twitchId: _id, count }));
     }
 
     async create(userData: Partial<UserInput>): Promise<User> {
