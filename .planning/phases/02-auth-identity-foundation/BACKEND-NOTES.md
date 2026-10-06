@@ -14,7 +14,7 @@
 - **Login mediato dal BE con ticket + binding S256.** L'app apre `GET {BE}/auth/twitch/start?challenge=<S256>` nel browser di sistema, riceve `klimmeck://auth?ticket=<ticket>` e lo riscatta con la mutation `exchangeLoginTicket(ticket, codeVerifier)`. Il binding S256 è **nostro** (app ↔ BE), non è PKCE Twitch.
 - **Nessun token Twitch e nessun `client_secret` arriva mai all'app.** Il BE scambia il code, legge l'identità e revoca subito il token Twitch. Scope Twitch richiesti: **nessuno**.
 - **Bearer ovunque:** `Authorization: Bearer <accessToken>` su GraphQL HTTP e su tutti gli endpoint REST (Cloudinary incluso); su WebSocket il token viaggia nel payload di `connection_init`.
-- **Sessione first-party:** access JWT da **15 min** (`accessTokenExpiresAt` nella risposta) + refresh token opaco **rotante**, scadenza sliding **30 giorni**. `refreshSession(refreshToken)` restituisce sempre una coppia nuova; **solo l'ultima coppia emessa è valida** → single-flight obbligatorio.
+- **Sessione first-party:** access JWT da **15 min** (`accessTokenExpiresAt` nella risposta) + refresh token opaco **rotante**, scadenza sliding **30 giorni**. `refreshSession(refreshToken)` restituisce sempre un access token nuovo e il refresh token corrente (nuovo, oppure — per un retry del token precedente entro 30 s — lo stesso già emesso, D-35); il FE salva sempre quello ricevuto. Single-flight raccomandato.
 - **Codici d'errore stabili** in `errors[0].extensions.code`: `UNAUTHENTICATED`, `SESSION_EXPIRED`, `SESSION_REVOKED`, `LOGIN_TICKET_INVALID`. Su un refresh, **solo** `SESSION_EXPIRED` / `SESSION_REVOKED` sono terminali (anche un refresh token malformato o sconosciuto risponde `SESSION_EXPIRED`).
 - **WebSocket:** subprotocol `graphql-transport-ws`; close **4403** `Forbidden` = rifiutato al connect, **4401** `Token expired` = JWT scaduto su socket vivo → refresh, poi riconnessione con il token corrente.
 - **Dev bypass identico allo stub FE:** stessi nomi `DEV_AUTH_*`, stesso `DEV_AUTH_ACCESS_TOKEN` sui due lati; vale su HTTP, REST e WS. Il BE parte oggi **senza chiavi Twitch** (§7).
@@ -114,22 +114,23 @@ type Query {
 - `role` nel JWT è uno snapshot: un cambio di ruolo a DB diventa effettivo **al refresh successivo** (D-10), quando il ruolo viene riletto dal DB.
 
 **Refresh token** (`refreshToken`):
-- Opaco (256 bit random, base64url), salvato dal BE solo come hash SHA-256 nella collection `sessions`. Una sessione per device (multi-device consentito).
-- Scadenza **sliding 30 giorni** (`REFRESH_TOKEN_TTL_SECONDS = 2_592_000`): ogni rotazione sposta la scadenza.
+- Opaco per il client (43 caratteri base64url, 256 bit): il FE lo tratta come una stringa da conservare e ripresentare, senza interpretarlo. Lato server è **derivato** (D-35): `HMAC-SHA256(chiave, [sessionId, rotationCount, tokenSeed])`, con la chiave derivata da `JWT_SECRET` via HKDF-SHA256 (etichetta dedicata `klimmeck/refresh-token/v1`, mai il secret dei JWT usato direttamente) e un `tokenSeed` casuale per sessione salvato a DB. Per ricostruire un token servono **sia** la chiave (env) **sia** il seed (DB). A DB resta solo l'hash SHA-256 del token, nella collection `sessions`. Una sessione per device (multi-device consentito).
+- Scadenza **sliding 30 giorni** (`REFRESH_TOKEN_TTL_SECONDS = 2_592_000`): ogni rotazione sposta la scadenza (la ri-emissione dentro la grace no).
 - Conservarlo solo in storage cifrato; l'access token può restare in memoria.
 
 **`refreshSession(refreshToken)`** (pubblica, l'header `Authorization` eventualmente presente viene ignorato):
-- Restituisce sempre una **coppia nuova** (access + refresh) e lo `User` aggiornato. Il nuovo refresh token va **persistito prima** di dimenticare il vecchio.
-- **Grace window 30 s** (`REFRESH_TOKEN_GRACE_SECONDS = 30`, D-26): il refresh token *immediatamente precedente* può ancora ruotare entro 30 s dalla prima rotazione (copre la risposta persa su rete mobile). Attenzione: una rotazione in grace **ritira** il token emesso dalla rotazione precedente — resta valido solo l'ultimo emesso, e ripresentare quel token orfano è trattato come riuso (sotto). La finestra è valutata all'**arrivo** della richiesta, non al momento in cui la rotazione viene salvata: la latenza del server non fa scadere un retry arrivato entro i 30 s.
-  - **Limite noto (§9j):** se una richiesta di refresh resta bloccata lato server e il client ritenta, le due rotazioni possono essere applicate in ordine inverso; il client resta con un refresh token ritirato e al refresh successivo la sessione viene revocata (`SESSION_REVOKED`, l'utente deve rifare login). Fail-closed: nessun accesso indebito. In attesa della decisione dell'utente su D-26.
-- **Reuse detection (D-08):** la sessione ricorda gli hash SHA-256 degli ultimi **10** refresh token ritirati (ruotati oppure orfanati da una rotazione in grace). Ripresentarne uno — il token precedente fuori dalla grace, un token più vecchio, o il token orfano di una rotazione in grace, anche entro i 30 s — è trattato come furto: **l'intera sessione viene revocata** e la risposta è `SESSION_REVOKED`. Un token mai emesso, o ritirato da più di 10 rotazioni, risponde `SESSION_EXPIRED`. Per il FE non cambia nulla: entrambi i codici sono già terminali.
-- **Single-flight del refresh lato FE obbligatorio:** un solo refresh in volo per volta, tutte le richieste concorrenti attendono lo stesso risultato. Due refresh paralleli con lo stesso token producono due coppie: il refresh token della prima viene ritirato, e ripresentarlo **revoca l'intera sessione** (reuse detection → `SESSION_REVOKED`), coppia buona inclusa.
+- Restituisce sempre un access token nuovo, il refresh token corrente e lo `User` aggiornato. Il refresh token ricevuto va **persistito prima** di dimenticare il vecchio (anche quando, per un retry in grace, coincide con uno già ricevuto).
+- **Grace window 30 s con ri-emissione idempotente** (`REFRESH_TOKEN_GRACE_SECONDS = 30`, D-26 → D-35): entro 30 s dalla rotazione, il refresh token *immediatamente precedente* riceve **lo stesso refresh token corrente** (più un access JWT appena firmato). La sessione non viene modificata: nessuna nuova rotazione, scadenza invariata. Così una risposta persa, un retry, due refresh concorrenti o una richiesta bloccata e consegnata in ritardo convergono tutti sullo **stesso** token, in qualunque ordine il server li elabori: non esistono token "orfani". La finestra è valutata all'**arrivo** della richiesta, non al momento in cui la rotazione viene salvata: la latenza del server non fa scadere un retry arrivato entro i 30 s.
+  - Se il BE non riesce a ricostruire il token corrente (sessione creata prima di D-35, oppure `JWT_SECRET` cambiato tra la rotazione e il retry, §10), il retry in grace risponde `SESSION_EXPIRED` senza revocare la sessione (fail-closed).
+- **Reuse detection (D-08):** la sessione ricorda gli hash SHA-256 degli ultimi **10** refresh token ritirati dalle rotazioni. Ripresentarne uno — il token precedente fuori dalla grace, oppure un token più vecchio — è trattato come furto: **l'intera sessione viene revocata** e la risposta è `SESSION_REVOKED`. Un token mai emesso, o ritirato da più di 10 rotazioni, risponde `SESSION_EXPIRED`. Per il FE non cambia nulla: entrambi i codici sono già terminali.
+- **Single-flight del refresh lato FE raccomandato:** un solo refresh in volo per volta, con le richieste concorrenti in attesa dello stesso risultato. Non è più una condizione di correttezza: due refresh paralleli con lo stesso token ricevono lo stesso refresh token (D-35). Resta però buona pratica, perché evita richieste e firme inutili.
+- **Per il FE non cambia nulla con D-35:** stesso contratto GraphQL (`src/schema.gql` invariato), stessi codici d'errore, stesso formato del token.
 - Esiti d'errore (verificati in `src/auth/session/session.service.ts` e `src/auth/auth-session.service.ts`):
 
 | Situazione | `extensions.code` |
 |---|---|
-| Token sconosciuto (mai emesso o ritirato da più di 10 rotazioni), **malformato**, stringa vuota, o di una sessione scaduta | `SESSION_EXPIRED` |
-| Token già ritirato (precedente fuori dalla grace, più vecchio, o orfano di una rotazione in grace) riusato (reuse detection → sessione revocata ora) | `SESSION_REVOKED` |
+| Token sconosciuto (mai emesso o ritirato da più di 10 rotazioni), **malformato**, stringa vuota, di una sessione scaduta, o token precedente in grace il cui token corrente non è ricostruibile (§10) | `SESSION_EXPIRED` |
+| Token già ritirato (precedente fuori dalla grace, oppure più vecchio) riusato (reuse detection → sessione revocata ora) | `SESSION_REVOKED` |
 | Token di una sessione già revocata (es. dopo `logout` o dopo una reuse detection) | `SESSION_REVOKED` |
 | Sessione valida ma `User` cancellato dal DB (la sessione viene revocata) | `SESSION_REVOKED` |
 | Errore infrastrutturale (DB giù, timeout, 5xx) | nessun codice auth (`INTERNAL_SERVER_ERROR` o errore di rete) |
@@ -349,11 +350,11 @@ TWITCH_REDIRECT_URI=<identico a uno degli OAuth Redirect URL registrati, es. htt
 - **(c) `createUser` / `updateUser` / `deleteUser` invocabili da QUALUNQUE utente autenticato**, incluso il cambio di `role` e di `twitchId` → ownership e role guard in **Phase 3** (BE-AUTHZ). Lo stesso vale per le altre mutation di gioco: Phase 2 aggiunge solo l'autenticazione (D-15).
 - **(d) Le subscription non filtrano ancora per identità:** `characterUpdated(id)` consegna gli aggiornamenti di qualunque `id` a qualunque socket autenticato → **Phase 3**.
 - **(e) Nessun rate limiting** sugli endpoint pubblici di auth (`/auth/twitch/start`, `/auth/twitch/callback`, `exchangeLoginTicket`, `refreshSession`), né CORS dedicato → **Phase 10**.
-- **(f) Grace window di 30 s sul refresh** (D-26): scelta raccomandata dalla research, **da confermare con l'utente**; cambiarla tocca solo `REFRESH_TOKEN_GRACE_SECONDS`, non il contratto.
+- **(f) Grace window di 30 s sul refresh** (D-26, meccanica sostituita da D-35 con la ri-emissione idempotente): cambiarne la durata tocca solo `REFRESH_TOKEN_GRACE_SECONDS`, non il contratto.
 - **(g) Revoca lato Twitch non rilevata:** i token Twitch non sono conservati, quindi se l'utente revoca l'app da Twitch la sessione BE resta valida fino a scadenza o logout → **Phase 10** (deferred). Il contratto FE non cambierà: arriverà come `SESSION_REVOKED` su un refresh.
 - **(h) Eventi WS persi durante una riconnessione** non vengono ripetuti → refetch-on-reconnect in **Phase 3** (§4).
 - **(i) Nessun "esci da tutti i dispositivi"** né elenco sessioni → backlog.
-- **(j) Retry di un refresh bloccato lato server** (D-26): se una richiesta di refresh resta bloccata lato server e il client ritenta, le due rotazioni possono essere applicate in ordine inverso; il client resta con un refresh token ritirato e al refresh successivo la sessione viene revocata (`SESSION_REVOKED`, l'utente deve rifare login). Fail-closed: nessun accesso indebito. In attesa della decisione dell'utente su D-26.
+- **(j) ~~Retry di un refresh bloccato lato server~~ — chiuso da D-35** (plan 02-10): la richiesta bloccata e il suo retry ricevono lo stesso refresh token in qualunque ordine vengano elaborati, quindi il client non resta più con un token ritirato.
 - **(k) Reuse detection limitata alle ultime 10 rotazioni** (D-08): la sessione ricorda solo gli hash degli ultimi 10 refresh token ritirati. Un token ritirato da più di 10 rotazioni non viene riconosciuto come riuso: risponde `SESSION_EXPIRED` e la sessione **non** viene revocata (quel furto non è rilevato).
 
 ---
@@ -377,7 +378,9 @@ db.users.aggregate([{ $group: { _id: "$twitchId", count: { $sum: 1 } } }, { $mat
 db.users.getIndexes()   // deve comparire { key: { twitchId: 1 }, name: "twitchId_1", unique: true }
 ```
 
-- **`JWT_SECRET` è ora obbligatoria su ogni ambiente** (locale, CI, staging, produzione), almeno 32 caratteri: senza, il BE esce con codice 1. Usare un valore diverso per ogni ambiente; cambiarlo invalida tutti gli access token emessi (i refresh token restano validi e ne emettono di nuovi).
+- **`JWT_SECRET` è ora obbligatoria su ogni ambiente** (locale, CI, staging, produzione), almeno 32 caratteri: senza, il BE esce con codice 1. Usare un valore diverso per ogni ambiente; cambiarlo invalida tutti gli access token emessi (i refresh token correnti restano validi, perché riconosciuti per hash, e ne emettono di nuovi).
+- **Cambio di `JWT_SECRET` e ri-emissione (D-35):** la chiave che deriva i refresh token viene da `JWT_SECRET`. Dopo un cambio del secret il BE non può più ricostruire i token emessi con la chiave precedente: un retry in grace a cavallo del cambio risponde `SESSION_EXPIRED` (nessuna revoca). Il token corrente invece continua a ruotare normalmente.
+- **Sessioni create prima di D-35** (senza `tokenSeed`, o con un token corrente non derivato): non supportano la ri-emissione in grace (retry → `SESSION_EXPIRED`, nessuna revoca) fino alla loro prossima rotazione, che inizializza `tokenSeed` e `rotationCount`. Irrilevante oggi: non esistono ancora sessioni in produzione.
 - **Sessioni ruotate prima del deploy della reuse detection estesa** (`retiredRefreshTokenHashes`): il loro token precedente non è riconosciuto come riuso (risponde `SESSION_EXPIRED` senza revocare) fino alla rotazione successiva. Irrilevante oggi: non esistono ancora sessioni in produzione.
 - **CI:** ogni PR che cambia lo schema GraphQL deve committare `src/schema.gql` rigenerato (lo rigenera `npm run test:int` tramite `test/app.int-spec.ts`); lo step `Schema up to date` di `.github/workflows/ci.yml` fallisce altrimenti. Per il FE: `src/schema.gql` sul branch è sempre lo schema reale.
 
@@ -392,11 +395,14 @@ db.users.getIndexes()   // deve comparire { key: { twitchId: 1 }, name: "twitchI
    - **Open Question #8** (eventi persi nel gap di riconnessione WS) → Phase 3, su entrambi i lati (§4, §9h).
 3. **Le fasi FE 2–10 continuano sullo stub** `DEV_AUTH_ACCESS_TOKEN` grazie a §7, senza chiavi Twitch.
 4. **FE Phase 3 (subscription):** il contratto `connection_init` è stabile (§4); il filtro per identità e il refetch-on-reconnect arrivano con BE Phase 3.
-5. **Test BE che provano ogni punto di questo documento:**
+5. **D-35 (ri-emissione idempotente del refresh token): nessuna modifica richiesta al FE.** Contratto, codici d'errore e formato del token sono invariati (§2).
+6. **Test BE che provano ogni punto di questo documento:**
    - `test/auth/http-guard.int-spec.ts` — bearer su GraphQL HTTP e REST, 401 body, `UNAUTHENTICATED` con `data: null`, dev bypass, `me`, `logout` e finestra dei 15 min dopo logout;
    - `test/auth/ws-auth.int-spec.ts` — `graphql-transport-ws` su socket reali, 4403 al connect, 4401 `Token expired`, legacy subprotocol mai acknowledged, 4406 senza subprotocol, dev token su WS;
    - `test/auth/login-flow.int-spec.ts` — flusso completo start → callback → ticket → `exchangeLoginTicket` → `refreshSession`;
    - `test/app.int-spec.ts` — boot del vero `AppModule` senza chiavi Twitch, whitelist dei 5 handler pubblici, introspection pubblica (limite noto);
    - `src/auth/twitch/twitch-auth.controller.int-spec.ts` — tutti i codici `error=` del redirect, `force_verify`, `scope=` vuoto, revoca del token Twitch;
-   - `src/auth/session/session.service.int-spec.ts` — rotazione, grace 30 s, reuse detection (token precedente, più vecchio e orfano della grace), `SESSION_EXPIRED` per token sconosciuto;
+   - `src/auth/session/session.service.int-spec.ts` — rotazione con token derivati, ri-emissione idempotente in grace 30 s (stesso token, nessuna scrittura, retry ripetuti, rotazioni concorrenti, ordine inverso WR-05), fail-closed per sessioni legacy e cambio di secret, reuse detection (token precedente fuori grace, più vecchio, tetto di 10), `SESSION_EXPIRED` per token sconosciuto;
+   - `src/auth/auth-session.service.int-spec.ts` — `refreshSession` end-to-end lato service: due refresh concorrenti ricevono lo stesso refresh token, richiesta bloccata completata dopo il retry (WR-05), errori transitori (WR-01), grace all'arrivo (WR-04);
+   - `src/auth/crypto/refresh-token-derivation.spec.ts` — derivazione HKDF + HMAC: determinismo, separazione di dominio, input non ambiguo;
    - `src/auth/dev/dev-auth.strategy.int-spec.ts` — upsert dello User stub e regole del bypass.
