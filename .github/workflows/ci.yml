@@ -18,6 +18,9 @@ jobs:
       # Il service container Redis: test/setup/redis.ts usa questi env invece di redis-memory-server
       REDIS_HOST: localhost
       REDIS_PORT: '6379'
+      # In CI Redis è il service container qui sotto: il postinstall di redis-memory-server (che scarica e
+      # compila Redis dai sorgenti, ~8 minuti, e fallisce sul runner) va saltato durante `npm ci`
+      REDISMS_DISABLE_POSTINSTALL: 'true'
     services:
       redis:
         image: redis:7
