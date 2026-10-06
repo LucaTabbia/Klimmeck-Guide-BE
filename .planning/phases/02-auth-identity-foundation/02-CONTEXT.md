@@ -64,12 +64,24 @@ Requirements: BE-AUTH-01, BE-AUTH-02, BE-AUTH-03, BE-AUTH-04, BE-AUTH-05, BE-AUT
 - **D-24:** `BACKEND-NOTES.md` nella phase directory documenta: flusso login completo, shape di `AuthSession`, header HTTP, payload `connection_init`, comportamento a scadenza/refresh, codici d'errore, variabili dev bypass, scope Twitch (nessuno) e redirect URI da registrare nella console Twitch. Chiude le Open Questions #1 e #2 di FE Phase 11 e **segnala esplicitamente che i plan FE Phase 11 basati su PKCE lato app vanno ripianificati**.
 - **D-25:** Aggiornare con nota datata il testo di BE-AUTH-01 in `REQUIREMENTS.md` e il success criterion 1 della Phase 2 in `ROADMAP.md` per riflettere D-01 (fatto in questa sessione di discuss).
 
+### Affinamenti post-research (2026-10-06, auto-accettati — vedi 02-RESEARCH.md)
+
+- **D-26 (affina D-08):** reuse detection con **finestra di grazia di 30 secondi**: il refresh token immediatamente precedente può ancora ruotare entro 30s dalla rotazione (copre la risposta persa su rete mobile); fuori dalla finestra il suo riuso revoca l'intera sessione. Scelta raccomandata dalla research (Assumption A3), **da far confermare all'utente** a fine fase: tornare alla variante stretta significa rimuovere un solo ramo.
+- **D-27 (affina D-09):** dopo `logout` l'access JWT già emesso resta tecnicamente valido fino alla scadenza (≤ 15 min): accettato e documentato nell'handoff (il FE lo scarta subito). Nessun check `sid` per-request in questa fase.
+- **D-28 (chiude la discrezione di D-14):** close code WS **4403** quando la connessione è rifiutata in `onConnect` (si ritorna `false`, **mai `throw`**: il throw chiuderebbe con 4500 esponendo il messaggio d'errore), **4401** con reason `Token expired` quando il JWT scade su un socket vivo (timer per-socket, ripulito in `onClose`).
+- **D-29 (affina D-23):** una sola variabile per la destinazione del redirect finale: `APP_AUTH_REDIRECT_URL` (default `klimmeck://auth`), validata al boot come **non** `http(s)` per evitare open redirect da configurazione. Sostituisce `APP_DEEP_LINK_SCHEME`.
+- **D-30 (affina D-12):** introspection e landing page Apollo non passano dai guard Nest: restano pubbliche fino a Phase 10. Va scritto nell'handoff come limite noto, non corretto qui.
+- **D-31:** `@nestjs/jwt` va fissato a `^11.0.2` (la 12.x è ESM-only e rompe ts-jest in CJS). `graphql-ws` diventa dipendenza dichiarata; `ws` e `@types/ws` devDependencies per i test WS reali.
+- **D-32:** l'indice unico su `User.twitchId` può fallire su dati esistenti con duplicati: il plan deve prevedere una verifica dei duplicati documentata nell'handoff/deploy note.
+- **D-33:** `installSubscriptionHandlers: true` va rimosso (già ignorato quando `subscriptions` è impostato, rimosso in `@nestjs/graphql` v14). `GraphQLModule` passa a `forRootAsync` con una options factory condivisa tra `AppModule` e i test.
+- **D-34:** shape di sessione: `AuthSession { accessToken, accessTokenExpiresAt, refreshToken, user }`.
+
 ### Claude's Discretion
 
 - Libreria JWT: `@nestjs/jwt` con guard custom **oppure** `@nestjs/passport` + `passport-jwt`. Lean: guard custom su `@nestjs/jwt`, dato che il path WS e il dev bypass scavalcano comunque Passport e un solo resolver d'identità serve entrambi i trasporti.
 - Rappresentazione di `state` e login ticket: stateless firmati (JWT con `jti` monouso) vs documenti Mongo con TTL — purché il ticket sia realmente **monouso** e legato al challenge.
 - Naming e layout del modulo (`src/auth/…`), shape esatta dei DTO GraphQL, nome della collection sessioni.
-- Meccanismo di chiusura del socket WS a scadenza e codice di chiusura.
+- Sorte di `test/app.e2e-spec.ts` (scaffold fuori CI che importa `AppModule`): adattarlo o rimuoverlo.
 - Rimozione/riuso del file vuoto `src/rest/auth.controller.ts` (Boy Scout Rule).
 - Validazione della config al boot (schema Joi/zod vs validazione manuale minimale).
 
