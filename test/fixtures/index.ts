@@ -4,3 +4,4 @@ export * from './road.fixture';
 export * from './poi.fixture';
 export * from './character.fixture';
 export * from './quest.fixture';
+export * from './session.fixture';
