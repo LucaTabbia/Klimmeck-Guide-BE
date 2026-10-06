@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthIdentityResolver } from 'src/auth/auth-identity.resolver';
@@ -7,6 +8,7 @@ import { AuthSessionService } from 'src/auth/auth-session.service';
 import { AuthStartupReporter } from 'src/auth/auth-startup.reporter';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { DevAuthStrategy } from 'src/auth/dev/dev-auth.strategy';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 import {
     LoginTicket,
     LoginTicketSchema,
@@ -50,6 +52,7 @@ import { UsersModule } from 'src/users/users.module';
         AuthSessionService,
         TwitchLoginService,
         AuthResolver,
+        { provide: APP_GUARD, useClass: AuthGuard },
     ],
     exports: [
         AUTH_CONFIG,

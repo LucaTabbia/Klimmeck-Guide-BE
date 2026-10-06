@@ -10,6 +10,7 @@ import {
     graphqlRequest,
 } from '../../test/auth/auth-test-app';
 import { FixedClock } from '../../test/auth/fixed-clock';
+import { TEST_DEV_ACCESS_TOKEN } from '../../test/auth/test-auth-config';
 import { persistUser } from '../../test/fixtures';
 
 const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
@@ -200,6 +201,8 @@ describe('AuthResolver (wire)', () => {
         const response = await graphqlRequest(
             harness.app,
             `{ user(id: "${UNKNOWN_OBJECT_ID}") { id } }`,
+            undefined,
+            `Bearer ${TEST_DEV_ACCESS_TOKEN}`,
         );
 
         const [error] = (response.body as WireBody).errors ?? [];
