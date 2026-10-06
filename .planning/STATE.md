@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-10-06T17:50:11.716Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-10-06T17:55:57.504Z"
 last_activity: 2026-10-06
 progress:
   total_phases: 10
   completed_phases: 1
   total_plans: 14
-  completed_plans: 7
-  percent: 50
+  completed_plans: 8
+  percent: 57
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 2 (auth-identity-foundation) — EXECUTING
-Plan: 3 of 9
+Plan: 4 of 9
 Status: Ready to execute
 Last activity: 2026-10-06
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P04 | 1 | 2 tasks | 1 files |
 | Phase 02 P01 | 7 min | 3 tasks | 25 files |
 | Phase 02 P02 | 6 min | 3 tasks | 9 files |
+| Phase 02 P03 | 10min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - [Phase 02]: Sessioni BE: solo sha256 del refresh token opaco; rotate atomico (current → grace 30s ancorata alla prima rotazione); riuso fuori grace revoca l'intera sessione (SESSION_REVOKED); ogni query filtra revokedAt null + expiresAt > now
 - [Phase 02]: Riferimenti ObjectId nei @Prop: usare MongooseSchema.Types.ObjectId (Types.ObjectId diventa Mixed in Mongoose 8, niente cast)
 - [Phase 02]: D-32: TwitchIdIndexVerifier al boot logga i twitchId duplicati se l'indice unico non si costruisce, senza bloccare l'avvio
+- [Phase 02]: Single AuthIdentityResolver (dev strategy first, then HS256 session JWT) is the only bearer-to-identity path for HTTP, REST and WS
+- [Phase 02]: graphql-ws onConnect returns false on any auth failure (close 4403), per-socket timer closes 4401 'Token expired' at JWT exp
 
 ### Pending Todos
 
@@ -95,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-06T17:50:11.713Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-10-06T17:55:57.500Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None
