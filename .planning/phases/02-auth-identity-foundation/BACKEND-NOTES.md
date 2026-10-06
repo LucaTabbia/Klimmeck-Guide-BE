@@ -316,7 +316,7 @@ Checklist da eseguire una volta, nell'ordine:
 1. **Console Twitch** (dev.twitch.tv → Applications → l'app di Klimmeck): registrare gli **OAuth Redirect URLs** del BE (non dell'app):
    - locale: `http://localhost:3000/auth/twitch/callback`
    - staging/prod: `https://<host-staging>/auth/twitch/callback` (e l'equivalente di produzione)
-   - Regole Twitch: match **esatto** (schema, host, porta e path inclusi), solo `https://` oppure `http://localhost`, nessun custom scheme (`klimmeck://` non è accettato: per questo il BE fa da ponte e poi reindirizza al deep link). Il BE valida la stessa regola al boot (`TWITCH_REDIRECT_URI must use https or http://localhost`).
+   - Regole Twitch: match **esatto** (schema, host, porta e path inclusi), solo `https://` oppure `http://localhost`, nessun custom scheme (`klimmeck://` non è accettato: per questo il BE fa da ponte e poi reindirizza al deep link). Il BE valida la regola al boot parsando il valore con `new URL()`: schema `https:` oppure `http:` con host esattamente `localhost` o `127.0.0.1` (quindi `http://localhost.evil.com` o `http://localhost@evil.com` sono rifiutati), senza spazi o caratteri di controllo; altrimenti esce con `TWITCH_REDIRECT_URI must be an https URL or http://localhost / http://127.0.0.1`. La regola si applica solo quando sono valorizzate tutte e tre le `TWITCH_*`.
    - Scope da richiedere: **nessuno**.
 2. **`.env` del BE:** valorizzare le tre variabili (il `client_secret` resta solo sul BE, mai nell'app):
 

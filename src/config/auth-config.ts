@@ -68,6 +68,7 @@ const FORBIDDEN_APP_REDIRECT_PROTOCOLS: readonly string[] = [
     'blob:',
     'about:',
 ];
+const LOOPBACK_HOSTNAMES: readonly string[] = ['localhost', '127.0.0.1'];
 const LAST_C0_CONTROL_CODE_POINT = 0x1f;
 const DELETE_CODE_POINT = 0x7f;
 
@@ -163,16 +164,19 @@ function parseTwitchConfig(env: AuthEnv): TwitchOAuthConfig | null {
     if (!clientId || !clientSecret || !redirectUri) return null;
     if (!isAllowedTwitchRedirectUri(redirectUri)) {
         throw new Error(
-            'TWITCH_REDIRECT_URI must use https or http://localhost',
+            'TWITCH_REDIRECT_URI must be an https URL or http://localhost / http://127.0.0.1',
         );
     }
     return { clientId, clientSecret, redirectUri };
 }
 
 function isAllowedTwitchRedirectUri(redirectUri: string): boolean {
+    if (hasWhitespaceOrControlCharacter(redirectUri)) return false;
+    const url = parseUrl(redirectUri);
+    if (!url) return false;
     return (
-        redirectUri.startsWith('https://') ||
-        redirectUri.startsWith('http://localhost')
+        url.protocol === 'https:' ||
+        (url.protocol === 'http:' && LOOPBACK_HOSTNAMES.includes(url.hostname))
     );
 }
 
@@ -185,7 +189,7 @@ function parseAppAuthRedirectUrl(env: AuthEnv): string {
             'APP_AUTH_REDIRECT_URL must not contain whitespace or control characters',
         );
     }
-    const protocol = parseUrlProtocol(appAuthRedirectUrl);
+    const protocol = parseUrl(appAuthRedirectUrl)?.protocol;
     if (!protocol || !ABSOLUTE_DEEP_LINK_PATTERN.test(appAuthRedirectUrl)) {
         throw new Error(
             'APP_AUTH_REDIRECT_URL must be an absolute deep link (scheme://...)',
@@ -210,9 +214,9 @@ function hasWhitespaceOrControlCharacter(value: string): boolean {
     });
 }
 
-function parseUrlProtocol(value: string): string | null {
+function parseUrl(value: string): URL | null {
     try {
-        return new URL(value).protocol;
+        return new URL(value);
     } catch {
         return null;
     }

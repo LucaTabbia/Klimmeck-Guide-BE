@@ -91,12 +91,28 @@ describe('parseAuthConfig', () => {
             expect(parseWith({ ...TWITCH_ENV, [key]: '' }).twitch).toBe(null);
         });
 
-        it('throws when the redirect uri is neither https nor localhost', () => {
+        it('accepts a http://127.0.0.1 redirect uri', () => {
+            const config = parseWith({
+                ...TWITCH_ENV,
+                TWITCH_REDIRECT_URI:
+                    'http://127.0.0.1:3000/auth/twitch/callback',
+            });
+
+            expect(config.twitch?.redirectUri).toBe(
+                'http://127.0.0.1:3000/auth/twitch/callback',
+            );
+        });
+
+        it.each([
+            'http://api.example.com/callback',
+            'http://localhost.evil.com/auth/twitch/callback',
+            'http://localhost@evil.com/auth/twitch/callback',
+            'https//api.example.com/callback',
+            'klimmeck://auth',
+            ' https://api.example.com/callback',
+        ])('throws when the redirect uri is %p', (value) => {
             expect(() =>
-                parseWith({
-                    ...TWITCH_ENV,
-                    TWITCH_REDIRECT_URI: 'http://api.example.com/callback',
-                }),
+                parseWith({ ...TWITCH_ENV, TWITCH_REDIRECT_URI: value }),
             ).toThrow(/TWITCH_REDIRECT_URI/);
         });
     });
