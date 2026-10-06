@@ -54,6 +54,23 @@ export type AuthEnv = Partial<Record<(typeof AUTH_ENV_KEYS)[number], string>>;
 
 const ROLE_VALUES: readonly string[] = Object.values(RoleType);
 
+const ABSOLUTE_DEEP_LINK_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i;
+const FORBIDDEN_APP_REDIRECT_PROTOCOLS: readonly string[] = [
+    'http:',
+    'https:',
+    'ws:',
+    'wss:',
+    'ftp:',
+    'javascript:',
+    'data:',
+    'file:',
+    'vbscript:',
+    'blob:',
+    'about:',
+];
+const LAST_C0_CONTROL_CODE_POINT = 0x1f;
+const DELETE_CODE_POINT = 0x7f;
+
 export function parseAuthConfig(env: AuthEnv): AuthConfig {
     return {
         jwtSecret: parseJwtSecret(env),
@@ -159,18 +176,44 @@ function isAllowedTwitchRedirectUri(redirectUri: string): boolean {
     );
 }
 
+// validata con lo stesso parser WHATWG usato dal redirect builder: ciò che passa qui non può farlo fallire (D-29)
 function parseAppAuthRedirectUrl(env: AuthEnv): string {
     const appAuthRedirectUrl =
         env.APP_AUTH_REDIRECT_URL || DEFAULT_APP_AUTH_REDIRECT_URL;
-    if (/^https?:/i.test(appAuthRedirectUrl)) {
+    if (hasWhitespaceOrControlCharacter(appAuthRedirectUrl)) {
         throw new Error(
-            'APP_AUTH_REDIRECT_URL must be an app deep link, http(s) is not allowed',
+            'APP_AUTH_REDIRECT_URL must not contain whitespace or control characters',
         );
     }
-    if (!appAuthRedirectUrl.includes('://')) {
+    const protocol = parseUrlProtocol(appAuthRedirectUrl);
+    if (!protocol || !ABSOLUTE_DEEP_LINK_PATTERN.test(appAuthRedirectUrl)) {
         throw new Error(
             'APP_AUTH_REDIRECT_URL must be an absolute deep link (scheme://...)',
         );
     }
+    if (FORBIDDEN_APP_REDIRECT_PROTOCOLS.includes(protocol)) {
+        throw new Error(
+            'APP_AUTH_REDIRECT_URL must be an app deep link, http(s) and browser schemes are not allowed',
+        );
+    }
     return appAuthRedirectUrl;
+}
+
+function hasWhitespaceOrControlCharacter(value: string): boolean {
+    return [...value].some((character) => {
+        const codePoint = character.codePointAt(0) ?? 0;
+        return (
+            character.trim() === '' ||
+            codePoint <= LAST_C0_CONTROL_CODE_POINT ||
+            codePoint === DELETE_CODE_POINT
+        );
+    });
+}
+
+function parseUrlProtocol(value: string): string | null {
+    try {
+        return new URL(value).protocol;
+    } catch {
+        return null;
+    }
 }

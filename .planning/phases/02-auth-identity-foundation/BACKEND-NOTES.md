@@ -33,7 +33,7 @@ Sequenza (`{BE}` = base URL del backend, es. `http://localhost:3000`; nessun pre
 3. **Il BE risponde 302** verso `https://id.twitch.tv/oauth2/authorize` con query `response_type=code`, `client_id`, `redirect_uri` (= `TWITCH_REDIRECT_URI`, la callback del BE), `scope=` **presente e vuoto**, `force_verify=true` (Twitch chiede sempre conferma dell'account → cambio account pulito), `state` = JWT firmato dal BE che contiene il challenge (TTL **600 s**, audience dedicata).
 4. **Twitch reindirizza il browser** su `{BE}/auth/twitch/callback?code=…&state=…` (oppure `?error=access_denied&state=…`).
 5. **Il BE**: verifica `state` (prima di ogni altra azione, anti-CSRF) → scambia il `code` con Twitch → valida il token su `/oauth2/validate` → verifica che il `client_id` restituito coincida con il proprio → risolve o crea lo `User` per `twitchId` (upsert atomico; un utente nuovo nasce con `role: adventurer`, `twitchPoints: 0`, `currentCharacter: null`) → **revoca il token Twitch** (best-effort, mai persistito) → emette un **login ticket** (opaco, TTL **60 s**, monouso, salvato solo come hash) → 302 verso `klimmeck://auth?ticket=<ticket>`.
-   - La base `klimmeck://auth` è `APP_AUTH_REDIRECT_URL` (default `klimmeck://auth`, validata al boot: deve essere un deep link `scheme://…`, mai `http(s)`). La base non arriva mai dalla request (niente open redirect).
+   - La base `klimmeck://auth` è `APP_AUTH_REDIRECT_URL` (default `klimmeck://auth`, validata al boot con lo stesso parser `new URL()` usato per costruire il redirect: deve essere un deep link `scheme://…` con uno schema valido per WHATWG, senza spazi o caratteri di controllo, mai `http(s)` né uno schema da browser). La base non arriva mai dalla request (niente open redirect).
 6. **L'app riscatta il ticket** con la mutation pubblica `exchangeLoginTicket` → `AuthSession`.
    - Il ticket è consumato **prima** del controllo del verifier: un tentativo con verifier errato brucia il ticket (`LOGIN_TICKET_INVALID`) → ricominciare dal punto 1.
 
@@ -282,7 +282,7 @@ openssl rand -hex 16   # DEV_AUTH_ACCESS_TOKEN (32 caratteri), da copiare identi
 Note:
 - `JWT_SECRET` è **obbligatoria su ogni ambiente**, anche in dev bypass: senza (o sotto i 32 caratteri) il BE esce al boot con `JWT_SECRET is required and must be at least 32 characters`.
 - Con le tre `TWITCH_*` vuote (basta che ne manchi una) il BE parte normalmente e `GET /auth/twitch/start` reindirizza a `klimmeck://auth?error=twitch_not_configured`.
-- `APP_AUTH_REDIRECT_URL` può essere omessa (default `klimmeck://auth`); se valorizzata deve essere un deep link `scheme://…`, mai `http(s)`.
+- `APP_AUTH_REDIRECT_URL` può essere omessa (default `klimmeck://auth`); se valorizzata deve essere un deep link `scheme://…` che `new URL()` sa parsare (schema `[a-z][a-z0-9+.-]*`: niente `_`, es. `klimmeck_app://auth` è rifiutato), senza spazi iniziali/finali né caratteri di controllo, e con uno schema diverso da `http`, `https`, `ws`, `wss`, `ftp`, `javascript`, `data`, `file`, `vbscript`, `blob`, `about`. Un valore non valido ferma il boot con un errore che cita `APP_AUTH_REDIRECT_URL`.
 
 ### Righe `.env` dell'app FE corrispondenti
 

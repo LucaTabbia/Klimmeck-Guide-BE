@@ -151,21 +151,39 @@ describe('parseAuthConfig', () => {
             expect(parseWith({}).appAuthRedirectUrl).toBe('klimmeck://auth');
         });
 
-        it('accepts a custom scheme deep link', () => {
-            expect(
-                parseWith({ APP_AUTH_REDIRECT_URL: 'klimmeck://auth' })
-                    .appAuthRedirectUrl,
-            ).toBe('klimmeck://auth');
-        });
-
-        it.each(['https://evil.example/auth', 'http://x', 'klimmeck-auth'])(
-            'rejects %p',
+        it.each(['klimmeck://auth', 'com.klimmeck.app://auth/callback'])(
+            'accepts the custom scheme deep link %p',
             (value) => {
-                expect(() =>
-                    parseWith({ APP_AUTH_REDIRECT_URL: value }),
-                ).toThrow(/APP_AUTH_REDIRECT_URL/);
+                expect(
+                    parseWith({ APP_AUTH_REDIRECT_URL: value })
+                        .appAuthRedirectUrl,
+                ).toBe(value);
             },
         );
+
+        it.each([
+            'https://evil.example/auth',
+            'HTTPS://evil.example/auth',
+            'http://x',
+            'klimmeck-auth',
+            'klimmeck:auth',
+            ' https://evil.example/x',
+            '\thttps://evil.example',
+            ' klimmeck://auth',
+            'klimmeck://auth ',
+            'klimmeck://auth\n',
+            'javascript://%0aalert(1)',
+            'data://text/html,x',
+            'file:///etc/passwd',
+            'vbscript://x',
+            'blob://x',
+            'about://blank',
+            'klimmeck_app://auth',
+        ])('rejects %p', (value) => {
+            expect(() => parseWith({ APP_AUTH_REDIRECT_URL: value })).toThrow(
+                /APP_AUTH_REDIRECT_URL/,
+            );
+        });
     });
 });
 

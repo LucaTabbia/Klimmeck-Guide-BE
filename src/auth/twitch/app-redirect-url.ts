@@ -1,6 +1,7 @@
 import type { TwitchLoginErrorCode } from 'src/auth/twitch/twitch-login-error-code.enum';
 
-// la base arriva solo da config.appAuthRedirectUrl (validata al boot), mai dalla request: niente open redirect
+// la base arriva solo da config.appAuthRedirectUrl (validata al boot con lo stesso new URL(), quindi
+// qui non può lanciare), mai dalla request: niente open redirect
 export function buildAppTicketRedirect(
     appAuthRedirectUrl: string,
     ticket: string,

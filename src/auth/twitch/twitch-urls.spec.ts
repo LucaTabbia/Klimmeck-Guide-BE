@@ -7,6 +7,7 @@ import {
     TWITCH_AUTHORIZE_URL,
 } from 'src/auth/twitch/twitch-authorize-url';
 import { TwitchLoginErrorCode } from 'src/auth/twitch/twitch-login-error-code.enum';
+import { parseAuthConfig } from 'src/config/auth-config';
 import type { TwitchOAuthConfig } from 'src/config/auth-config';
 import { TEST_TWITCH_CLIENT_ID } from '../../../test/auth/test-auth-config';
 
@@ -69,7 +70,34 @@ describe('app redirect urls', () => {
             ),
         ).toBe('klimmeck://auth?error=twitch_not_configured');
     });
+
+    it.each([
+        'klimmeck://auth',
+        'com.klimmeck.app://auth/callback',
+        'klimmeck_app://auth',
+        ' klimmeck://auth',
+        'javascript://%0aalert(1)',
+    ])('never throws for %p once it passed the boot validation', (value) => {
+        const accepted = tryParseAppAuthRedirectUrl(value);
+        if (accepted === null) return;
+
+        expect(() => buildAppTicketRedirect(accepted, 'abc')).not.toThrow();
+        expect(() =>
+            buildAppErrorRedirect(accepted, TwitchLoginErrorCode.ACCESS_DENIED),
+        ).not.toThrow();
+    });
 });
+
+function tryParseAppAuthRedirectUrl(value: string): string | null {
+    try {
+        return parseAuthConfig({
+            JWT_SECRET: 's'.repeat(32),
+            APP_AUTH_REDIRECT_URL: value,
+        }).appAuthRedirectUrl;
+    } catch {
+        return null;
+    }
+}
 
 describe('TwitchLoginErrorCode', () => {
     it('exposes the redirect error codes consumed by the app', () => {
