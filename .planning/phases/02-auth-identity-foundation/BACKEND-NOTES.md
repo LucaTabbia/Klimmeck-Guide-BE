@@ -365,7 +365,9 @@ db.users.aggregate([{ $group: { _id: "$twitchId", count: { $sum: 1 } } }, { $mat
 ```
 
   Risultato vuoto = ok. Altrimenti deduplicare **manualmente** (scegliere lo User da tenere, riassegnare o cancellare gli altri) prima di avviare.
-- All'avvio `TwitchIdIndexVerifier` prova a costruire gli indici; se fallisce non blocca il boot ma logga `Unique index on users.twitchId could not be built. Duplicated twitchId: <id> (<count>), …` → in quel caso il login Twitch su quei `twitchId` non è affidabile finché non si deduplica.
+- All'avvio `TwitchIdIndexVerifier` prova a costruire gli indici; se fallisce non blocca **mai** il boot:
+  - per chiavi duplicate (errore Mongo `11000`) logga `Unique index on users.twitchId could not be built. Duplicated twitchId: <id> (<count>), …` → in quel caso il login Twitch su quei `twitchId` non è affidabile finché non si deduplica;
+  - per qualunque altro errore (permessi, opzioni di indice in conflitto, rete) logga `Indexes on users could not be built (<error name>, code <code>)` con la causa reale, senza attribuirla ai duplicati.
 - Dopo l'avvio verificare:
 
 ```javascript

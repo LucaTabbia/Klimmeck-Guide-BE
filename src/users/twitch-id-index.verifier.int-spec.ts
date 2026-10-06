@@ -94,5 +94,47 @@ describe('TwitchIdIndexVerifier (replSet)', () => {
             expect(message).toContain('twitch-dup-1 (2)');
             expect(message).not.toContain('twitch-ok-1');
         });
+
+        it('logs the real cause without blaming duplicates when the index fails for another reason (IN-03)', async () => {
+            const indexFailure = Object.assign(new Error('not authorized'), {
+                name: 'MongoServerError',
+                code: 13,
+            });
+            jest.spyOn(UserModel, 'createIndexes').mockRejectedValueOnce(
+                indexFailure,
+            );
+            const findDuplicates = jest.spyOn(
+                usersService,
+                'findDuplicateTwitchIds',
+            );
+
+            await expect(verifier.onApplicationBootstrap()).resolves.toBe(
+                undefined,
+            );
+
+            expect(findDuplicates).not.toHaveBeenCalled();
+            expect(errorSpy).toHaveBeenCalledTimes(1);
+            const [message] = errorSpy.mock.calls[0] as [string];
+            expect(message).toContain('MongoServerError');
+            expect(message).toContain('13');
+            expect(message).not.toContain('Duplicated twitchId');
+            findDuplicates.mockRestore();
+        });
+
+        it('never throws at boot when the duplicates cannot be listed (IN-03)', async () => {
+            await insertDuplicatesWithoutIndex();
+            const findDuplicates = jest
+                .spyOn(usersService, 'findDuplicateTwitchIds')
+                .mockRejectedValueOnce(new Error('aggregate failed'));
+
+            await expect(verifier.onApplicationBootstrap()).resolves.toBe(
+                undefined,
+            );
+
+            expect(errorSpy).toHaveBeenCalledTimes(1);
+            const [message] = errorSpy.mock.calls[0] as [string];
+            expect(message).toContain('users.twitchId');
+            findDuplicates.mockRestore();
+        });
     });
 });
