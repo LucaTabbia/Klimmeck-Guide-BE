@@ -30,10 +30,15 @@ expected: Sui dati di dev/staging/prod non esistono `twitchId` duplicati prima d
 why_pending: Richiede accesso al database reale.
 result: [pending]
 
-### 4. Conferma della decisione D-26 (finestra di grazia del refresh)
+### 4. Decisione su D-26 (finestra di grazia del refresh)
 
-expected: L'utente conferma la finestra di grazia di 30 secondi sul refresh token precedente, oppure chiede la variante stretta (riuso immediato = revoca). Nota emersa in esecuzione e resa esplicita dalla code review (WR-02, corretto): dentro la finestra una seconda rotazione con il vecchio token ritira il token emesso dalla prima; chi presentasse poi quel token ritirato provoca la revoca dell'intera sessione (`SESSION_REVOKED`) — comportamento voluto dalla reuse detection (D-08), terminale per il FE come `SESSION_EXPIRED`.
-why_pending: Scelta raccomandata dalla research e adottata in modalità auto; richiede conferma esplicita.
+expected: L'utente sceglie come deve comportarsi il refresh quando lo stesso refresh token arriva due volte in poco tempo.
+context: La variante attuale (grazia di 30 secondi sul token immediatamente precedente, adottata in modalità auto) è implementata e testata, ma la code review ha messo a fuoco un caso limite documentato in BACKEND-NOTES §2 e §9 (j): se una richiesta di refresh resta bloccata lato server e il client ritenta, le due rotazioni possono essere applicate in ordine inverso; il client resta con un refresh token ritirato e al refresh successivo la sessione viene revocata (`SESSION_REVOKED`, l'utente deve rifare login). È fail-closed: nessun accesso indebito, solo un logout forzato. Riguarda solo il backend: il FE tratta già `SESSION_EXPIRED` e `SESSION_REVOKED` come terminali.
+options:
+  - A (raccomandata) — grazia con ri-emissione idempotente: dentro la finestra il token precedente restituisce lo STESSO token corrente (derivato in modo deterministico lato server), così non può esistere un token orfano; elimina il caso limite mantenendo la tolleranza alle risposte perse. Richiede una piccola modifica al modo in cui il BE genera i refresh token.
+  - B — reuse detection stretta, senza grazia: qualunque riuso di un token ruotato revoca la sessione. È la variante più semplice e più severa; una risposta di refresh persa in rete significa rifare login.
+  - C — lasciare com'è: grazia di 30 secondi con il caso limite accettato e documentato.
+why_pending: Scelta di prodotto/sicurezza con compromessi reali; le varianti A e B richiedono un piccolo plan di gap-closure sul backend.
 result: [pending]
 
 ## Summary
