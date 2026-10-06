@@ -76,6 +76,14 @@ Requirements: BE-AUTH-01, BE-AUTH-02, BE-AUTH-03, BE-AUTH-04, BE-AUTH-05, BE-AUT
 - **D-33:** `installSubscriptionHandlers: true` va rimosso (già ignorato quando `subscriptions` è impostato, rimosso in `@nestjs/graphql` v14). `GraphQLModule` passa a `forRootAsync` con una options factory condivisa tra `AppModule` e i test.
 - **D-34:** shape di sessione: `AuthSession { accessToken, accessTokenExpiresAt, refreshToken, user }`.
 
+### Decisione utente su D-26 (2026-10-06) — opzione A: grazia con ri-emissione idempotente
+
+- **D-35 (sostituisce la meccanica di D-26, scelta dall'utente tra tre opzioni):** dentro la finestra di grazia di 30 secondi il refresh token immediatamente precedente **non ruota più una seconda volta**: il BE risponde con **lo stesso refresh token corrente** (più un access JWT appena firmato) e non scrive nulla sulla sessione. Così non può più esistere un token "orfano": due richieste con lo stesso token — retry dopo una risposta persa, richieste concorrenti, richiesta bloccata e poi consegnata in ritardo — convergono tutte sullo stesso token corrente, in qualunque ordine arrivino.
+  - Per poter ri-emettere un token di cui a DB esiste solo l'hash, il refresh token diventa **derivato in modo deterministico**: `base64url(HMAC-SHA256(chiave, sessionId ":" rotationCount ":" tokenSeed))`, dove `chiave` è derivata da `JWT_SECRET` con HKDF-SHA256 e un'etichetta dedicata (separazione di dominio dall'uso come secret dei JWT), `tokenSeed` è un valore casuale per sessione salvato a DB e `rotationCount` un contatore sulla sessione. Per ricostruire un token servono **sia** la chiave (env) **sia** il seed (DB): un leak del solo DB o della sola chiave non basta. A DB continua a esserci solo l'hash SHA-256 del token; il token resta opaco per il client (nessun cambio di contratto, nessuna modifica al FE).
+  - Resta invariato tutto il resto: rotazione a ogni refresh con il token corrente; il token precedente fuori dalla finestra e qualunque token ritirato (ultimi 10) revocano l'intera sessione con `SESSION_REVOKED`; token sconosciuto → `SESSION_EXPIRED`; finestra valutata all'arrivo della richiesta; scadenza sliding 30 giorni (la ri-emissione non la sposta).
+  - Se il token corrente non è ricostruibile (sessione creata prima di questa modifica, oppure `JWT_SECRET` cambiato tra la rotazione e il retry) la ri-emissione non è possibile: risposta `SESSION_EXPIRED` senza revocare (fail-closed).
+  - Chiude il rilievo WR-05 della seconda code review e la voce 4 di `02-HUMAN-UAT.md`. Implementato dal plan di gap-closure `02-10`.
+
 ### Claude's Discretion
 
 - Libreria JWT: `@nestjs/jwt` con guard custom **oppure** `@nestjs/passport` + `passport-jwt`. Lean: guard custom su `@nestjs/jwt`, dato che il path WS e il dev bypass scavalcano comunque Passport e un solo resolver d'identità serve entrambi i trasporti.
