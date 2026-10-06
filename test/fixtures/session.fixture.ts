@@ -13,6 +13,7 @@ export function buildSession(overrides: Record<string, any> = {}) {
     return {
         userId: new Types.ObjectId('64b0000000000000000000a1'),
         refreshTokenHash: sha256Hex('fixture-refresh-token'),
+        retiredRefreshTokenHashes: [],
         rotatedAt: null,
         revokedAt: null,
         expiresAt: new Date(Date.now() + THIRTY_DAYS_MS),

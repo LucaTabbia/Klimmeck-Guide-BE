@@ -192,8 +192,61 @@ describe('SessionService (replSet)', () => {
             );
             expect(stored?.rotatedAt?.getTime()).toBe(firstRotationAt);
             expect(stored?.revokedAt).toBeNull();
+        });
+
+        it('reuse: the token orphaned by a grace rotation revokes the whole session', async () => {
+            const t0 = await service.create(USER_ID);
+            const t1 = await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(10);
+            const t2 = await service.rotate(t0.refreshToken);
+
             await expect(service.rotate(t1.refreshToken)).rejects.toMatchObject(
-                sessionExpired,
+                sessionRevoked,
+            );
+
+            const stored = await SessionModel.findById(t0.sessionId).exec();
+            expect(stored?.revokedAt?.getTime()).toBe(clock.now().getTime());
+            await expect(service.rotate(t2.refreshToken)).rejects.toMatchObject(
+                sessionRevoked,
+            );
+        });
+
+        it('reuse: a token retired more than one rotation ago revokes the whole session', async () => {
+            const t0 = await service.create(USER_ID);
+            const t1 = await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(60);
+            const t2 = await service.rotate(t1.refreshToken);
+            clock.advanceSeconds(60);
+
+            await expect(service.rotate(t0.refreshToken)).rejects.toMatchObject(
+                sessionRevoked,
+            );
+
+            const stored = await SessionModel.findById(t0.sessionId).exec();
+            expect(stored?.revokedAt?.getTime()).toBe(clock.now().getTime());
+            await expect(service.rotate(t2.refreshToken)).rejects.toMatchObject(
+                sessionRevoked,
+            );
+        });
+
+        it('retires only hashes, keeping the last 10 retired tokens', async () => {
+            const t0 = await service.create(USER_ID);
+            const issued = [t0.refreshToken];
+            for (let rotation = 0; rotation < 12; rotation++) {
+                clock.advanceSeconds(60);
+                const next = await service.rotate(issued[issued.length - 1]);
+                issued.push(next.refreshToken);
+            }
+
+            const stored = await SessionModel.findById(t0.sessionId)
+                .lean()
+                .exec();
+
+            expect(stored?.retiredRefreshTokenHashes).toEqual(
+                issued.slice(2, 12).map((token) => sha256Hex(token)),
+            );
+            issued.forEach((token) =>
+                expect(JSON.stringify(stored)).not.toContain(token),
             );
         });
 
@@ -272,6 +325,13 @@ describe('SessionService (replSet)', () => {
             expect(indexes).toContainEqual([
                 { refreshTokenHash: 1 },
                 expect.objectContaining({ unique: true }),
+            ]);
+        });
+
+        it('declares an index on retiredRefreshTokenHashes for reuse detection', () => {
+            expect(SessionModel.schema.indexes()).toContainEqual([
+                { retiredRefreshTokenHashes: 1 },
+                expect.anything(),
             ]);
         });
     });

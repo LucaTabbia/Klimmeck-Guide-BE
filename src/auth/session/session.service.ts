@@ -9,6 +9,7 @@ import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { AuthConfig } from 'src/config/auth-config';
 
 const MILLISECONDS_PER_SECOND = 1000;
+const RETIRED_REFRESH_TOKEN_HASHES_LIMIT = 10;
 
 export interface IssuedRefreshToken {
     sessionId: string;
@@ -111,6 +112,12 @@ export class SessionService {
                         rotatedAt: now,
                         expiresAt: this.expiresAtFrom(now),
                     },
+                    $push: {
+                        retiredRefreshTokenHashes: {
+                            $each: [presentedHash],
+                            $slice: -RETIRED_REFRESH_TOKEN_HASHES_LIMIT,
+                        },
+                    },
                 },
                 { new: true },
             )
@@ -118,7 +125,8 @@ export class SessionService {
     }
 
     // La finestra di grace resta ancorata alla prima rotazione: previousRefreshTokenHash
-    // e rotatedAt non cambiano, e solo il token emesso per ultimo resta valido.
+    // e rotatedAt non cambiano, e solo il token emesso per ultimo resta valido. Il token
+    // corrente, ora orfano, viene ritirato nella stessa update (pipeline atomica).
     private rotateWithinGrace(
         presentedHash: string,
         nextHash: string,
@@ -132,12 +140,30 @@ export class SessionService {
                     revokedAt: null,
                     expiresAt: { $gt: now },
                 },
-                {
-                    $set: {
-                        refreshTokenHash: nextHash,
-                        expiresAt: this.expiresAtFrom(now),
+                [
+                    {
+                        $set: {
+                            retiredRefreshTokenHashes: {
+                                $slice: [
+                                    {
+                                        $concatArrays: [
+                                            {
+                                                $ifNull: [
+                                                    '$retiredRefreshTokenHashes',
+                                                    [],
+                                                ],
+                                            },
+                                            ['$refreshTokenHash'],
+                                        ],
+                                    },
+                                    -RETIRED_REFRESH_TOKEN_HASHES_LIMIT,
+                                ],
+                            },
+                            refreshTokenHash: nextHash,
+                            expiresAt: this.expiresAtFrom(now),
+                        },
                     },
-                },
+                ],
                 { new: true },
             )
             .exec();
@@ -149,7 +175,11 @@ export class SessionService {
     ): Promise<never> {
         const reused = await this.sessionModel
             .findOneAndUpdate(
-                { previousRefreshTokenHash: presentedHash, revokedAt: null },
+                {
+                    retiredRefreshTokenHashes: presentedHash,
+                    revokedAt: null,
+                    expiresAt: { $gt: now },
+                },
                 { $set: { revokedAt: now } },
             )
             .exec();
@@ -171,7 +201,7 @@ export class SessionService {
             .exists({
                 $or: [
                     { refreshTokenHash: presentedHash },
-                    { previousRefreshTokenHash: presentedHash },
+                    { retiredRefreshTokenHashes: presentedHash },
                 ],
                 revokedAt: { $ne: null },
             })

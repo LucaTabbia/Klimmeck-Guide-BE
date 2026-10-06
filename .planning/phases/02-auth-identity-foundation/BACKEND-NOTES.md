@@ -120,15 +120,15 @@ type Query {
 
 **`refreshSession(refreshToken)`** (pubblica, l'header `Authorization` eventualmente presente viene ignorato):
 - Restituisce sempre una **coppia nuova** (access + refresh) e lo `User` aggiornato. Il nuovo refresh token va **persistito prima** di dimenticare il vecchio.
-- **Grace window 30 s** (`REFRESH_TOKEN_GRACE_SECONDS = 30`, D-26): il refresh token *immediatamente precedente* può ancora ruotare entro 30 s dalla prima rotazione (copre la risposta persa su rete mobile). Attenzione: una rotazione in grace **invalida** il token emesso dalla rotazione precedente — resta valido solo l'ultimo emesso.
-- Fuori dalla finestra, il riuso del token precedente è trattato come furto: **l'intera sessione viene revocata** e la risposta è `SESSION_REVOKED`.
+- **Grace window 30 s** (`REFRESH_TOKEN_GRACE_SECONDS = 30`, D-26): il refresh token *immediatamente precedente* può ancora ruotare entro 30 s dalla prima rotazione (copre la risposta persa su rete mobile). Attenzione: una rotazione in grace **ritira** il token emesso dalla rotazione precedente — resta valido solo l'ultimo emesso, e ripresentare quel token orfano è trattato come riuso (sotto).
+- **Reuse detection (D-08):** la sessione ricorda gli hash SHA-256 degli ultimi **10** refresh token ritirati (ruotati oppure orfanati da una rotazione in grace). Ripresentarne uno — il token precedente fuori dalla grace, un token più vecchio, o il token orfano di una rotazione in grace, anche entro i 30 s — è trattato come furto: **l'intera sessione viene revocata** e la risposta è `SESSION_REVOKED`. Un token mai emesso, o ritirato da più di 10 rotazioni, risponde `SESSION_EXPIRED`. Per il FE non cambia nulla: entrambi i codici sono già terminali.
 - **Single-flight del refresh lato FE obbligatorio:** un solo refresh in volo per volta, tutte le richieste concorrenti attendono lo stesso risultato. Due refresh paralleli con lo stesso token producono due coppie, e la prima diventa inutilizzabile.
 - Esiti d'errore (verificati in `src/auth/session/session.service.ts` e `src/auth/auth-session.service.ts`):
 
 | Situazione | `extensions.code` |
 |---|---|
-| Token sconosciuto, **malformato**, stringa vuota, o di una sessione scaduta | `SESSION_EXPIRED` |
-| Token precedente riusato fuori dalla grace (reuse detection → sessione revocata ora) | `SESSION_REVOKED` |
+| Token sconosciuto (mai emesso o ritirato da più di 10 rotazioni), **malformato**, stringa vuota, o di una sessione scaduta | `SESSION_EXPIRED` |
+| Token già ritirato (precedente fuori dalla grace, più vecchio, o orfano di una rotazione in grace) riusato (reuse detection → sessione revocata ora) | `SESSION_REVOKED` |
 | Token di una sessione già revocata (es. dopo `logout` o dopo una reuse detection) | `SESSION_REVOKED` |
 | Sessione valida ma `User` cancellato dal DB (la sessione viene revocata) | `SESSION_REVOKED` |
 | Errore infrastrutturale (DB giù, timeout, 5xx) | nessun codice auth (`INTERNAL_SERVER_ERROR` o errore di rete) |
@@ -392,5 +392,5 @@ db.users.getIndexes()   // deve comparire { key: { twitchId: 1 }, name: "twitchI
    - `test/auth/login-flow.int-spec.ts` — flusso completo start → callback → ticket → `exchangeLoginTicket` → `refreshSession`;
    - `test/app.int-spec.ts` — boot del vero `AppModule` senza chiavi Twitch, whitelist dei 5 handler pubblici, introspection pubblica (limite noto);
    - `src/auth/twitch/twitch-auth.controller.int-spec.ts` — tutti i codici `error=` del redirect, `force_verify`, `scope=` vuoto, revoca del token Twitch;
-   - `src/auth/session/session.service.int-spec.ts` — rotazione, grace 30 s, reuse detection, `SESSION_EXPIRED` per token sconosciuto;
+   - `src/auth/session/session.service.int-spec.ts` — rotazione, grace 30 s, reuse detection (token precedente, più vecchio e orfano della grace), `SESSION_EXPIRED` per token sconosciuto;
    - `src/auth/dev/dev-auth.strategy.int-spec.ts` — upsert dello User stub e regole del bypass.

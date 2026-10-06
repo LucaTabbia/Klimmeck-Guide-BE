@@ -17,6 +17,10 @@ export class Session {
     @Prop({ type: String, index: true, sparse: true })
     previousRefreshTokenHash?: string;
 
+    // hash SHA-256 dei refresh token già ruotati o orfanati, limitati agli ultimi N (reuse detection, D-08)
+    @Prop({ type: [String], default: [], index: true })
+    retiredRefreshTokenHashes: string[];
+
     @Prop({ type: Date, default: null })
     rotatedAt: Date | null;
 
