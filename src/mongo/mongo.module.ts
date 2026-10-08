@@ -3,7 +3,6 @@ import { Global, Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 
 import * as process from "process";
-import { PubSub } from "graphql-subscriptions";
 import { MongoService } from "./mongo.service";
 import { ConfigService } from "@nestjs/config";
 import { User, UserSchema } from "src/models/user.model";
@@ -49,11 +48,7 @@ import { PointOfInterest, PointOfInterestSchema } from "src/models/point-of-inte
     controllers: [],
     providers: [
         MongoService,
-        {
-            provide: "PUB_SUB",
-            useValue: new PubSub(),
-        },
     ],
-    exports: [MongooseModule, "PUB_SUB"],
+    exports: [MongooseModule],
 })
 export class MongoModule { }

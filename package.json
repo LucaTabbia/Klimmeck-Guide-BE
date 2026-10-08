@@ -13,7 +13,9 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
+    "test": "npm run test:unit && npm run test:int",
+    "test:unit": "jest --selectProjects unit",
+    "test:int": "jest --selectProjects integration --runInBand",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
@@ -60,7 +62,9 @@
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^16.0.0",
     "jest": "^30.0.0",
+    "mongodb-memory-server": "^11.2.0",
     "prettier": "^3.4.2",
+    "redis-memory-server": "^0.17.0",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
@@ -71,20 +75,61 @@
     "typescript-eslint": "^8.20.0"
   },
   "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
+    "projects": [
+      {
+        "displayName": "unit",
+        "rootDir": ".",
+        "roots": [
+          "<rootDir>/src",
+          "<rootDir>/test"
+        ],
+        "moduleFileExtensions": [
+          "js",
+          "json",
+          "ts"
+        ],
+        "testMatch": [
+          "<rootDir>/src/**/*.spec.ts",
+          "<rootDir>/test/**/*.spec.ts"
+        ],
+        "transform": {
+          "^.+\\.(t|j)s$": "ts-jest"
+        },
+        "moduleNameMapper": {
+          "^src/(.*)$": "<rootDir>/src/$1"
+        },
+        "testEnvironment": "node"
+      },
+      {
+        "displayName": "integration",
+        "rootDir": ".",
+        "moduleFileExtensions": [
+          "js",
+          "json",
+          "ts"
+        ],
+        "testMatch": [
+          "<rootDir>/src/**/*.int-spec.ts",
+          "<rootDir>/test/**/*.int-spec.ts"
+        ],
+        "transform": {
+          "^.+\\.(t|j)s$": "ts-jest"
+        },
+        "moduleNameMapper": {
+          "^src/(.*)$": "<rootDir>/src/$1"
+        },
+        "testEnvironment": "node",
+        "globalSetup": "<rootDir>/test/setup/global-setup.ts",
+        "globalTeardown": "<rootDir>/test/setup/global-teardown.ts",
+        "setupFilesAfterEnv": [
+          "<rootDir>/test/setup/after-env.ts"
+        ]
+      }
     ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "src/**/*.(t|j)s"
     ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
-  }
+    "coverageDirectory": "coverage"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
