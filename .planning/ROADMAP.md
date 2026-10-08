@@ -14,6 +14,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 
 - [ ] **Phase 1: Fondazione Test & Consolidamento Spell WIP** - Harness TDD (replica-set Mongo, Bull DI-mock + Redis effimero, fixture) e consolidamento del WIP spell con fix ordine-validazione
 - [x] **Phase 2: Auth & Identity Foundation** - JWT di sessione, guard globale HTTP + WS `onConnect`, dev bypass fail-closed, handoff FE (completed 2026-10-06)
+- [ ] **Phase 2.1: Character Creation Contract** (INSERTED 2026-10-09) - Mutation `createCharacter` sull'identità autenticata, tabella età/razza esposta via query, validazione autoritativa e codici d'errore stabili; sblocca FE Phase 2
 - [ ] **Phase 3: Autorizzazione: Ownership, Ruoli, Audit** - Ownership sulle mutation, role guard `@Roles(innkeeper)`, subscription filtrate per identità, audit log admin
 - [ ] **Phase 4: Integrità Economica (Atomics)** - Operazioni atomiche su coins/twitchPoints/quest/equip/spell (no read-modify-write, no stato parziale)
 - [ ] **Phase 5: Infrastruttura Push FCM** - Registro token per-device, servizio push domain-agnostic, pruning token stale
@@ -72,6 +73,21 @@ Plans:
 **Unblocks (FE)**: FE Phase 3 (contratto `connection_init`) e FE Phase 11 (contratto JWT; l'auth BE atterra deliberatamente prima della Phase 11 FE — rationale in PROJECT.md Key Decisions e REQUIREMENTS.md).
 **Research flag**: propagazione del context graphql-ws / @nestjs/apollo@13 (nestjs/graphql#1756) — MEDIUM confidence, fissare con integration test reale.
 **Branch**: `feat/02-auth-identity-foundation` → PR a `develop`. _(Creato sopra `feat/01-fondazione-test-consolidamento-spell-wip` perché la Phase 1 non è ancora su `develop`: aprire la PR della Phase 2 dopo il merge della Phase 1, oppure con base temporanea il branch della Phase 1.)_
+
+### Phase 02.1: Character Creation Contract (INSERTED)
+**Goal**: Un utente autenticato senza personaggio può crearne uno con una sola mutation; il BE definisce lo stato iniziale, valida ogni campo in modo autoritativo (nome, età per razza, background, enum) e assegna `User.currentCharacter` atomicamente. Il FE Phase 2 (pagina di creazione) consuma questo contratto.
+**Depends on**: Phase 2 (identità autenticata via `@CurrentUser()`, guard su GraphQL e REST Cloudinary)
+**Requirements**: BE-CHAR-01, BE-CHAR-02, BE-CHAR-03, BE-CHAR-04, BE-CHAR-05
+**Why inserted**: scoperto nel discuss della FE Phase 2 (2026-10-08): il BE non espone alcuna mutation di creazione personaggio e il FE non può procedere senza. Direttiva utente: costruire il lato BE nella stessa fase, seguendo il GSD del BE.
+**Success Criteria** (what must be TRUE):
+  1. Un utente autenticato con `currentCharacter == null` chiama `createCharacter(input)` e riceve lo `User` aggiornato con `currentCharacter` popolato; il `Character` esiste con lo stato iniziale definito dal BE. Una seconda chiamata risponde `CHARACTER_ALREADY_EXISTS`; due chiamate concorrenti creano esattamente un personaggio.
+  2. Nome non valido (lunghezza, caratteri), nome già in uso (case-insensitive), età fuori dal range della razza, background > 500, enum sconosciuto sono rifiutati con codici stabili in `extensions.code`; nessun documento parziale resta a DB.
+  3. La query `raceTraits` restituisce min/max età per ciascuna delle 9 razze e la stessa tabella è usata dalla validazione (una sola fonte).
+  4. `imagePath` facoltativo accetta l'URL restituito dall'endpoint REST `POST /cloudinary/uploadImage` già esistente; nessun controllo NSFW in questa fase (debito tracciato in BE-HARD).
+  5. `BACKEND-NOTES.md` della fase documenta il contratto (schema, input, codici, esempi, stato iniziale) e `src/schema.gql` è rigenerato.
+**Plans**: TBD
+**Unblocks (FE)**: FE Phase 2 Character Creation (CHAR-01..05, CHAR-07..09). Contratto proposto dal FE in `Klimmeck-Guide/.planning/phases/02-character-creation/BACKEND-NOTES.md`.
+**Branch**: `feat/02.1-character-creation-contract` da `develop` → PR a `develop`.
 
 ### Phase 3: Autorizzazione: Ownership, Ruoli, Audit
 **Goal**: L'autorizzazione è basata sull'identità autenticata: ownership sulle mutation, role guard sulle operazioni admin, subscription filtrate per identità, audit log admin persistente.
