@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: planning
 stopped_at: Completed 02-10-PLAN.md
-last_updated: "2026-10-06T21:02:11.957Z"
-last_activity: 2026-10-06
+last_updated: "2026-10-08T22:30:25.792Z"
+last_activity: 2026-10-09 -- Phase 02.1 inserted and discussed (contract, starting state, lore-aligned age table); branch feat/02.1-character-creation-contract
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 2
   total_plans: 15
   completed_plans: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 3 — autorizzazione-ownership-ruoli-audit (da discutere/pianificare)
+**Current focus:** Phase 02.1 — Character Creation Contract (inserted after Phase 2; context gathered, plan next). Phase 3 follows.
 
 ## Current Position
 
-Phase: 3
+Phase: 02.1 (character-creation-contract) — CONTEXT GATHERED (02.1-CONTEXT.md); planning pending
 Plan: Not started
-Status: Phase 2 complete — verifier 5/5, human UAT pending (02-HUMAN-UAT.md); Phase 3 not started
-Last activity: 2026-10-06
+Status: Phase 02.1 context gathered — ready to plan (Phase 2 complete, human UAT pending in 02-HUMAN-UAT.md; Phase 3 not started)
+Last activity: 2026-10-09 -- Phase 02.1 inserted and discussed (contract, starting state, lore-aligned age table); branch feat/02.1-character-creation-contract
 
 Progress: [░░░░░░░░░░] 0%
 
