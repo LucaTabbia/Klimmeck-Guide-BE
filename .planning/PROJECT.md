@@ -26,15 +26,15 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 - ✓ Equip/unequip/use spell con recovery asincrona via Bull + Redis, consolidato per concern con fix ordine-validazione `useSpell` — Validated in Phase 01: Fondazione Test & Consolidamento Spell WIP
 - ✓ Fondazione test TDD: MongoMemoryReplSet condiviso (transazioni + change stream), split Jest unit/integration, Bull DI-mock + Redis effimero reale, fixture two-tier per 6 modelli, CI GitHub Actions (lint + unit + integration) — Validated in Phase 01: Fondazione Test & Consolidamento Spell WIP
 - ✓ Upload immagini via Cloudinary (REST) — existing
+- ✓ Autenticazione a sessione propria: login Twitch mediato dal BE (authorization code lato server, ticket monouso legato a challenge S256), access JWT 15 min + refresh token rotante con reuse detection, guard globale deny-by-default su REST / GraphQL HTTP / subscription WS con whitelist `@Public()` di 5 handler, `@CurrentUser()`, `me`, `logout`, dev bypass fail-closed compatibile con lo stub FE — Validated in Phase 02: Auth & Identity Foundation (login Twitch reale da verificare all'arrivo delle chiavi)
+- ✓ Contratto `connection_init` per subscription WS autenticate (`Authorization: Bearer <jwt>`, close 4403 al connect, 4401 alla scadenza) documentato nell'handoff `BACKEND-NOTES.md` — Validated in Phase 02
 - ✓ Modelli unificati GraphQL ObjectType + Mongoose Schema con `idTransformPlugin` globale — existing
 
 ### Active
 
 <!-- Gap da chiudere in questa milestone. IDs formali in REQUIREMENTS.md -->
 
-- [ ] Autenticazione: login `twitchToken → JWT di sessione BE` (validazione Twitch una tantum al login), guard globale su HTTP e WS, modalità dev compatibile con lo stub FE (`DEV_AUTH_ACCESS_TOKEN`)
 - [ ] Autorizzazione: ownership (solo il proprietario muta il proprio character) + role guard `@Roles(innkeeper)` sulle operazioni admin + audit log admin (who/what/when)
-- [ ] Contratto `connection_init` per subscription WS autenticate (chiude Open Question #1 della Phase 11 FE)
 - [ ] QUEST-04 (BE): `activeStoryQuest` / `activeWorldMissionQuest` su Character, esposti su schema e subscription — sblocca Phase 6 FE
 - [ ] TRAVEL-01 (BE): `status.activeTravel { road, startTime, endTime, duration }` con lifecycle server-side (ETA, completamento, clear atomico su teleport) — sblocca Phase 7 FE
 - [ ] Sync punti canale: Twitch EventSub webhook per redemption custom reward → accredito `twitchPoints` (1:1)
@@ -76,8 +76,8 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Auth: JWT di sessione proprio (scambio `twitchToken → JWT BE` al login) | Zero chiamate Twitch per-request (rate limit è un constraint); il BE controlla scadenze e claims (userId, twitchId, role). Richiede aggiornamento del contratto Phase 11 FE (che assumeva token Twitch come Bearer) — da comunicare via handoff | — Pending |
-| Modalità dev auth compatibile con stub FE | Le fasi FE 2–10 usano `DEV_AUTH_ACCESS_TOKEN` statico; il guard BE in dev accetta quell'identità configurata, così l'auth BE può atterrare subito senza bloccare il FE | — Pending |
+| Auth: JWT di sessione proprio (in origine: scambio `twitchToken → JWT BE` al login) | Zero chiamate Twitch per-request (rate limit è un constraint); il BE controlla scadenze e claims (userId, twitchId, role). Richiede aggiornamento del contratto Phase 11 FE (che assumeva token Twitch come Bearer) — da comunicare via handoff | ✓ Good — realizzato in Phase 02 con un emendamento: lo scambio è mediato dal BE (authorization code + ticket monouso), perché Twitch non supporta PKCE e richiede `client_secret`; il FE non vede mai un token Twitch |
+| Modalità dev auth compatibile con stub FE | Le fasi FE 2–10 usano `DEV_AUTH_ACCESS_TOKEN` statico; il guard BE in dev accetta quell'identità configurata, così l'auth BE può atterrare subito senza bloccare il FE | ✓ Good — realizzato in Phase 02: bypass fail-closed (flag esplicito + boot rifiutato in produzione), identico su HTTP, REST e WS; resta l'unico modo di autenticarsi finché le chiavi Twitch non sono disponibili |
 | Combat result ibrido (payload su subscription + ID su push + query per requery) | COMBAT-01..07 FE: foreground riceve tutto in un evento, background riquera dall'ID del push; l'entità persistita supporta il queueing (COMBAT-07) | — Pending |
 | Sync punti canale via Twitch EventSub webhook | L'API Twitch non espone il saldo punti dei viewer: le redemption di custom reward sono l'unico segnale. EventSub è real-time e non consuma rate limit; richiede endpoint HTTPS pubblico + verifica firma HMAC | — Pending |
 | Test: mongodb-memory-server (replica set); Bull mockato al confine DI negli unit test + Redis effimero reale nei test di integrazione dei processor | Il replica set supporta change stream e transazioni Mongo richieste dalle feature di atomicità. La scelta iniziale "ioredis-mock" è stata corretta dalla ricerca: non supporta i comandi bloccanti/Lua richiesti da Bull | — Pending |
@@ -114,4 +114,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-07-24 after Phase 01 completion (fondazione TDD + consolidamento spell WIP)*
+*Last updated: 2026-10-06 after Phase 02 completion (auth & identity foundation: sessione propria, guard globale, dev bypass)*

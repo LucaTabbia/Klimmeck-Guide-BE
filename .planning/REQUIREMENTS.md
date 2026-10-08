@@ -24,12 +24,13 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Authentication (BE-AUTH)
 
-- [ ] **BE-AUTH-01**: Mutation di login `twitchAccessToken → JWT di sessione BE`: il BE valida il token una tantum su `id.twitch.tv/oauth2/validate`, risolve/crea lo User per `twitchId` e restituisce un JWT proprio a TTL breve con claims `{userId, twitchId, role}` → sblocca FE Phase 11 (AUTH-01..07)
-- [ ] **BE-AUTH-02**: Guard globale (`APP_GUARD`) su tutte le operazioni GraphQL HTTP: ogni operazione non decorata `@Public()` richiede un JWT valido → FE HARDEN-02
-- [ ] **BE-AUTH-03**: Le subscription WS sono autenticate via `connection_init`: JWT nel payload (chiave `Authorization: Bearer <jwt>`), verificato in `onConnect`, connessione rifiutata se assente/invalido, identità disponibile ai resolver → FE SYNC-06, Phase 3 (chiude Open Question #1 della Phase 11 FE)
-- [ ] **BE-AUTH-04**: Il contratto auth (login, header, connection_init, comportamento dopo token refresh, scope Twitch richiesti) è documentato in un handoff per il FE (`BACKEND-NOTES` della fase) → chiude Open Questions #1 e #2 della Phase 11 FE
-- [ ] **BE-AUTH-05**: Modalità dev fail-closed: con `DEV_AUTH_ENABLED=true` (impossibile in produzione, guard su NODE_ENV) il BE accetta l'identità stub del FE (`DEV_AUTH_ACCESS_TOKEN` → user/role configurati) così le fasi FE 2–10 continuano a funzionare → compatibilità FE DEV-AUTH-01..05
-- [ ] **BE-AUTH-06**: I resolver derivano l'identità dal context autenticato (decorator `@CurrentUser()`), mai da `twitchId`/`userId` passati come argomenti; gli endpoint REST (Cloudinary) sono coperti dallo stesso guard
+- [x] **BE-AUTH-01**: Login `Twitch OAuth → sessione BE`: il BE media l'authorization code flow Twitch (endpoint start/callback, `client_secret` solo lato server), valida il token una tantum su `id.twitch.tv/oauth2/validate`, risolve/crea lo User per `twitchId` e — al riscatto di un login ticket monouso — restituisce un JWT proprio a TTL breve con claims `{userId, twitchId, role}` più un refresh token rotante → sblocca FE Phase 11 (AUTH-01..07)
+  - _Emendato il 2026-10-06 (Phase 2 CONTEXT D-01): la formulazione originale `twitchAccessToken → JWT` presupponeva che il FE potesse completare da solo l'OAuth dance; Twitch non supporta PKCE e richiede `client_secret` per l'authorization code grant, quindi lo scambio avviene sul BE. Intento invariato: una prova d'identità Twitch scambiata una tantum, zero chiamate Twitch per-request._
+- [x] **BE-AUTH-02**: Guard globale (`APP_GUARD`) su tutte le operazioni GraphQL HTTP: ogni operazione non decorata `@Public()` richiede un JWT valido → FE HARDEN-02
+- [x] **BE-AUTH-03**: Le subscription WS sono autenticate via `connection_init`: JWT nel payload (chiave `Authorization: Bearer <jwt>`), verificato in `onConnect`, connessione rifiutata se assente/invalido, identità disponibile ai resolver → FE SYNC-06, Phase 3 (chiude Open Question #1 della Phase 11 FE)
+- [x] **BE-AUTH-04**: Il contratto auth (login, header, connection_init, comportamento dopo token refresh, scope Twitch richiesti) è documentato in un handoff per il FE (`BACKEND-NOTES` della fase) → chiude Open Questions #1 e #2 della Phase 11 FE
+- [x] **BE-AUTH-05**: Modalità dev fail-closed: con `DEV_AUTH_ENABLED=true` (impossibile in produzione, guard su NODE_ENV) il BE accetta l'identità stub del FE (`DEV_AUTH_ACCESS_TOKEN` → user/role configurati) così le fasi FE 2–10 continuano a funzionare → compatibilità FE DEV-AUTH-01..05
+- [x] **BE-AUTH-06**: I resolver derivano l'identità dal context autenticato (decorator `@CurrentUser()`), mai da `twitchId`/`userId` passati come argomenti; gli endpoint REST (Cloudinary) sono coperti dallo stesso guard
 
 ### Authorization & Admin (BE-AUTHZ)
 
@@ -122,12 +123,12 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-TEST-02 | Phase 1 | Complete |
 | BE-TEST-03 | Phase 1 | Complete |
 | BE-TEST-04 | Phase 1 | Complete |
-| BE-AUTH-01 | Phase 2 | Pending |
-| BE-AUTH-02 | Phase 2 | Pending |
-| BE-AUTH-03 | Phase 2 | Pending |
-| BE-AUTH-04 | Phase 2 | Pending |
-| BE-AUTH-05 | Phase 2 | Pending |
-| BE-AUTH-06 | Phase 2 | Pending |
+| BE-AUTH-01 | Phase 2 | Complete |
+| BE-AUTH-02 | Phase 2 | Complete |
+| BE-AUTH-03 | Phase 2 | Complete |
+| BE-AUTH-04 | Phase 2 | Complete |
+| BE-AUTH-05 | Phase 2 | Complete |
+| BE-AUTH-06 | Phase 2 | Complete |
 | BE-AUTHZ-01 | Phase 3 | Pending |
 | BE-AUTHZ-02 | Phase 3 | Pending |
 | BE-AUTHZ-03 | Phase 3 | Pending |

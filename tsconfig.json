@@ -16,7 +16,7 @@
     "outDir": "./dist",
     "types": [
       "node",
-      "Multer"
+      "multer"
     ],
     "baseUrl": "./",
     "incremental": true,

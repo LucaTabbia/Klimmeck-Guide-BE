@@ -13,7 +13,6 @@ import { EnemiesModule } from './enemies/enemies.module';
 import { EquipmentItemsModule } from './equipmentItems/equipment-items.module';
 import { LootItemsModule } from './lootItems/loot-items.module';
 import { LoreModule } from './lore/lore.module';
-import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { PendingQuestsModule } from './pendingQuests/pending-quests.module';
 import { PetsModule } from './pets/pets.module';
 import { QuestsModule } from './quests/quests.module';
@@ -25,59 +24,62 @@ import { CloudinaryModule } from './rest/cloudinary/cloudinary.module';
 import { PubSubModule } from './pubsub.module';
 import { RoadsModule } from './roads/roads.module';
 import { PointOfInterestModule } from './pointsOfInterest/point-of-interest.module';
+import { validateEnv } from './config/env.validation';
+import { AuthModule } from './auth/auth.module';
+import { WsConnectionAuthenticator } from './auth/ws/ws-connection-authenticator';
+import { createGraphQLOptions } from './graphql/graphql-options.factory';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      envFilePath: ".env",
-      isGlobal: true,
-    }),
-    BullModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        redis: {
-          host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
-        },
-      }),
-    }),
-    MongoModule,
-    PubSubModule,
-    GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
-      playground: false,
-      plugins: [ApolloServerPluginLandingPageLocalDefault()],
-      installSubscriptionHandlers: true,
-      introspection: true,
-      autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-      sortSchema: true,
-      subscriptions: {
-        "graphql-ws": true,
-      },
-      path: "/api/graphql",
-    }),
-    UsersModule,
-    CharactersModule,
-    CitiesModule,
-    EnemiesModule,
-    EquipmentItemsModule,
-    LootItemsModule,
-    LoreModule,
-    PendingQuestsModule,
-    PetsModule,
-    QuestsModule,
-    SpellsModule,
-    RoadsModule,
-    PointOfInterestModule,
-    CloudinaryModule
-  ],
-  controllers: [AppController],
-  providers: [
-    AppService
-  ]
+    imports: [
+        ConfigModule.forRoot({
+            envFilePath: '.env',
+            isGlobal: true,
+            validate: validateEnv,
+        }),
+        BullModule.forRootAsync({
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => ({
+                redis: {
+                    host: config.get<string>('REDIS_HOST', 'localhost'),
+                    port: config.get<number>('REDIS_PORT', 6379),
+                },
+            }),
+        }),
+        MongoModule,
+        PubSubModule,
+        AuthModule,
+        GraphQLModule.forRootAsync<ApolloDriverConfig>({
+            driver: ApolloDriver,
+            imports: [AuthModule],
+            inject: [WsConnectionAuthenticator],
+            useFactory: (
+                wsConnectionAuthenticator: WsConnectionAuthenticator,
+            ) =>
+                createGraphQLOptions(
+                    wsConnectionAuthenticator,
+                    join(process.cwd(), 'src/schema.gql'),
+                ),
+        }),
+        UsersModule,
+        CharactersModule,
+        CitiesModule,
+        EnemiesModule,
+        EquipmentItemsModule,
+        LootItemsModule,
+        LoreModule,
+        PendingQuestsModule,
+        PetsModule,
+        QuestsModule,
+        SpellsModule,
+        RoadsModule,
+        PointOfInterestModule,
+        CloudinaryModule,
+    ],
+    controllers: [AppController],
+    providers: [AppService],
 })
 export class AppModule {
-  constructor() {
-    mongoose.plugin(idTransformPlugin);
-  }
+    constructor() {
+        mongoose.plugin(idTransformPlugin);
+    }
 }
