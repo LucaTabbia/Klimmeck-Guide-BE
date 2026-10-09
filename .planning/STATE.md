@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed
-last_updated: "2026-10-09T08:28:59.315Z"
+stopped_at: Completed 02.1-05-PLAN.md
+last_updated: "2026-10-09T08:32:02.009Z"
 last_activity: 2026-10-09
 progress:
   total_phases: 11
   completed_phases: 2
   total_plans: 23
-  completed_plans: 19
-  percent: 83
+  completed_plans: 20
+  percent: 87
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 02.1 (Character Creation Contract) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-10-09
 
@@ -71,6 +71,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02.1 P02 | 4 min | 2 tasks | 7 files |
 | Phase 02.1 P04 | 3 min | 2 tasks | 6 files |
 | Phase 02.1 P03 | 2min | 2 tasks | 7 files |
+| Phase 02.1 P05 | 5min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -114,6 +115,7 @@ Recent decisions affecting current work:
 - [Phase 02.1]: isDuplicateKeyOn riconosce E11000 per path via keyPattern/errorResponse.keyPattern, mai via chiave collation opaca
 - [Phase 02.1]: CharacterCreationException extends BadRequestException (400) con extensions.code; RACE_TRAITS e RACE_HOME_CITY_TYPES in un unico modulo puro src/characters/creation/race-traits.ts
 - [Phase 02.1]: createAuthTestApp accetta imports (moduli feature senza Bull) e overrides generici di provider; fixture City two-tier con POI reale come markerLocation
+- [Phase 02.1]: Starting location: flat pick among existing home cities sorted by _id, only ObjectId markers with existing POI (02.1-05)
 
 ### Pending Todos
 
@@ -135,6 +137,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-09T08:28:59.310Z
-Stopped at: Completed
+Last session: 2026-10-09T08:32:02.002Z
+Stopped at: Completed 02.1-05-PLAN.md
 Resume file: None
