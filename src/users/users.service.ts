@@ -3,8 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage } from 'mongoose';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument, UserInput } from 'src/models/user.model';
-
-const DUPLICATE_KEY_ERROR_CODE = 11000;
+import { isDuplicateKeyError } from 'src/mongo/mongo-errors';
 
 const DUPLICATE_TWITCH_IDS_PIPELINE: PipelineStage[] = [
     { $group: { _id: '$twitchId', count: { $sum: 1 } } },
@@ -106,7 +105,7 @@ export class UsersService {
         return user;
     }
 
-    // Due upsert concorrenti sullo stesso twitchId: uno vince, l'altro riceve E11000.
+    // Due upsert concorrenti sullo stesso twitchId: uno vince, l'altro riceve un errore di chiave duplicata.
     // Il secondo tentativo trova il documento appena creato.
     private async retryOnDuplicateKey<T>(
         operation: () => Promise<T | null>,
@@ -119,12 +118,4 @@ export class UsersService {
             throw new Error('User upsert returned no document');
         return result;
     }
-}
-
-function isDuplicateKeyError(error: unknown): boolean {
-    return (
-        typeof error === 'object' &&
-        error !== null &&
-        (error as { code?: unknown }).code === DUPLICATE_KEY_ERROR_CODE
-    );
 }
