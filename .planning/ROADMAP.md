@@ -91,7 +91,7 @@ Plans:
 - [x] 02.1-04-PLAN.md — Wave 1: harness `createAuthTestApp({ imports, overrides })` + fixture City
 - [x] 02.1-03-PLAN.md — Wave 2: normalizzazione/validità del nome (NFC, ’→', ≥ 1 lettera), validator autoritativo, `CreateCharacterInput` con enum GraphQL
 - [x] 02.1-05-PLAN.md — Wave 2: stato iniziale D-09 (builder puro), `RandomSource`, `StartingLocationService` (città patria D-10)
-- [ ] 02.1-06-PLAN.md — Wave 2: indice unico collation `character_name_ci_unique` + verifier al boot + WARN città patria mancanti
+- [x] 02.1-06-PLAN.md — Wave 2: indice unico collation `character_name_ci_unique` + verifier al boot + WARN città patria mancanti
 - [ ] 02.1-07-PLAN.md — Wave 3: `CharacterCreationModule` (senza Bull), service transazionale claim-then-insert, resolver `createCharacter`/`raceTraits`, integration test sul wire (concorrenza inclusa)
 - [ ] 02.1-08-PLAN.md — Wave 4: cablaggio in `AppModule`, `src/schema.gql` rigenerato, `BACKEND-NOTES.md` per il FE
 **Unblocks (FE)**: FE Phase 2 Character Creation (CHAR-01..05, CHAR-07..09). Contratto proposto dal FE in `Klimmeck-Guide/.planning/phases/02-character-creation/BACKEND-NOTES.md`.
