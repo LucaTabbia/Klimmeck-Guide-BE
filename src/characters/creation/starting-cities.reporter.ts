@@ -34,9 +34,10 @@ export class StartingCitiesReporter implements OnApplicationBootstrap {
             const cityTypes: unknown[] = await this.cityModel
                 .distinct('type')
                 .exec();
-            for (const race of racesWithoutHomeCity(
+            const homelessRaces = racesWithoutHomeCity(
                 cityTypes.filter(isString),
-            )) {
+            );
+            for (const race of homelessRaces) {
                 this.logger.warn(
                     `No home city for race ${race} (expected city type: ${RACE_HOME_CITY_TYPES[race].join(', ')}): createCharacter answers STARTING_LOCATION_UNAVAILABLE for this race until one is seeded.`,
                 );
