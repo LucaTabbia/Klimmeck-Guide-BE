@@ -14,7 +14,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 
 - [ ] **Phase 1: Fondazione Test & Consolidamento Spell WIP** - Harness TDD (replica-set Mongo, Bull DI-mock + Redis effimero, fixture) e consolidamento del WIP spell con fix ordine-validazione
 - [x] **Phase 2: Auth & Identity Foundation** - JWT di sessione, guard globale HTTP + WS `onConnect`, dev bypass fail-closed, handoff FE (completed 2026-10-06)
-- [ ] **Phase 2.1: Character Creation Contract** (INSERTED 2026-10-09) - Mutation `createCharacter` sull'identità autenticata, tabella età/razza esposta via query, validazione autoritativa e codici d'errore stabili; sblocca FE Phase 2
+- [x] **Phase 2.1: Character Creation Contract** (INSERTED 2026-10-09) - Mutation `createCharacter` sull'identità autenticata, tabella età/razza esposta via query, validazione autoritativa e codici d'errore stabili; sblocca FE Phase 2 (completed 2026-10-09)
 - [ ] **Phase 3: Autorizzazione: Ownership, Ruoli, Audit** - Ownership sulle mutation, role guard `@Roles(innkeeper)`, subscription filtrate per identità, audit log admin
 - [ ] **Phase 4: Integrità Economica (Atomics)** - Operazioni atomiche su coins/twitchPoints/quest/equip/spell (no read-modify-write, no stato parziale)
 - [ ] **Phase 5: Infrastruttura Push FCM** - Registro token per-device, servizio push domain-agnostic, pruning token stale
