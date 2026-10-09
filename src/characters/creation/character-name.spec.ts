@@ -15,6 +15,8 @@ describe('normalizeCharacterName', () => {
         ['Élodie', 'Élodie'],
         ['D’Arcy', "D'Arcy"],
         ['Ana Maria', 'Ana Maria'],
+        ['DʼArcy', "D'Arcy"],
+        ['Hawaiʻi', "Hawai'i"],
     ])('normalizes %p to %p', (raw, expected) => {
         expect(normalizeCharacterName(raw)).toBe(expected);
     });
@@ -33,6 +35,7 @@ describe('isValidCharacterName', () => {
         'Aria di Luna',
         'A'.repeat(20),
         ASTRAL_LETTERS_NAME,
+        'スーパー',
     ])('accepts %p', (name) => {
         expect(isValidCharacterName(name)).toBe(true);
     });
@@ -52,6 +55,10 @@ describe('isValidCharacterName', () => {
         'Élodie',
         'D’Arcy',
         JAMO_CLUSTER_NAME,
+        'ʼʼ',
+        'ˈˌ',
+        'ـــ',
+        'ーー',
     ])('rejects %p', (name) => {
         expect(isValidCharacterName(name)).toBe(false);
     });

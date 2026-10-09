@@ -59,13 +59,14 @@ describe('validateCreateCharacterInput', () => {
         it.each([
             ['  Aria   di  Luna ', 'Aria di Luna'],
             ['D’Arcy', "D'Arcy"],
+            ['DʼArcy', "D'Arcy"],
         ])('normalizes %p to %p', (name, expected) => {
             expect(validateCreateCharacterInput({ ...VALID, name }).name).toBe(
                 expected,
             );
         });
 
-        it.each(['A', 'Aria2', '--'])('rejects %p', (name) => {
+        it.each(['A', 'Aria2', '--', 'ˈˌ'])('rejects %p', (name) => {
             expectRejection(
                 { ...VALID, name },
                 CharacterCreationErrorCode.CHARACTER_NAME_INVALID,

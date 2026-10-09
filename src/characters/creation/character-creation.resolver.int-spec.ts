@@ -359,22 +359,25 @@ describe('CharacterCreationResolver (wire)', () => {
             expect(serialized).not.toContain('keyValue');
         });
 
-        it('treats a typographic apostrophe as the same name', async () => {
-            const first = createdCharacterOf(
-                await create({ ...VALID_INPUT, name: "D'Arcy" }),
-            );
-            const { otherBearer } = await signInOtherUser();
+        it.each(['D’Arcy', 'DʼArcy'])(
+            'treats the apostrophe lookalike in %p as the same name',
+            async (lookalike) => {
+                const first = createdCharacterOf(
+                    await create({ ...VALID_INPUT, name: "D'Arcy" }),
+                );
+                const { otherBearer } = await signInOtherUser();
 
-            const body = await create(
-                { ...VALID_INPUT, name: 'D’Arcy' },
-                otherBearer,
-            );
+                const body = await create(
+                    { ...VALID_INPUT, name: lookalike },
+                    otherBearer,
+                );
 
-            expectDomainError(body, 'CHARACTER_NAME_TAKEN');
-            expect(first.infos.name).toBe("D'Arcy");
-            const raw = await rawCharacter(first.id);
-            expect(raw?.infos.name).toBe("D'Arcy");
-        });
+                expectDomainError(body, 'CHARACTER_NAME_TAKEN');
+                expect(first.infos.name).toBe("D'Arcy");
+                const raw = await rawCharacter(first.id);
+                expect(raw?.infos.name).toBe("D'Arcy");
+            },
+        );
 
         it('rejects an invalid name with CHARACTER_NAME_INVALID', async () => {
             const body = await create({ ...VALID_INPUT, name: '--' });
