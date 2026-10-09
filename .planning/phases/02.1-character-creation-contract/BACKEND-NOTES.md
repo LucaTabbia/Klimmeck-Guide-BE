@@ -3,7 +3,7 @@
 - **Fase BE:** 02.1-character-creation-contract (requisiti BE-CHAR-01..05, decisioni D-01..D-21 in `02.1-CONTEXT.md`)
 - **Data:** 2026-10-09
 - **Branch:** `feat/02.1-character-creation-contract` (PR verso `develop`)
-- **Stato:** contratto implementato, montato in `AppModule` e coperto da integration test sul replica set (18 test sul wire per `createCharacter`/`raceTraits`, incluso il test di concorrenza; boot reale in `test/app.int-spec.ts`).
+- **Stato:** contratto implementato, montato in `AppModule` e coperto da integration test sul replica set (20 test sul wire per `createCharacter`/`raceTraits`, incluso il test di concorrenza; boot reale in `test/app.int-spec.ts`).
 - **Consumatori:** FE Phase 2 (`02-character-creation`, pagina di creazione); indirettamente FE Phase 3 (il personaggio creato entra nel flusso `character(id)` + subscription `characterUpdated`).
 - **Fonte:** ogni nome qui sotto (operazioni, argomenti, campi, enum, codici, messaggi, path) è copiato dal codice: `src/schema.gql`, `src/characters/creation/**`, `src/rest/cloudinary/**`. Se questo documento e lo schema divergono, **vince `src/schema.gql`**.
 
@@ -192,7 +192,7 @@ Sempre in `errors[0].extensions.code`. Messaggi copiati dalle factory di `src/ch
 | `CHARACTER_ALREADY_EXISTS` | L'utente ha già un personaggio (secondo submit, doppio tap, altro device) | `Hai già un personaggio` | Riallinearsi con `me` ed entrare nella shell |
 | `STARTING_LOCATION_UNAVAILABLE` | Nessuna città patria per la razza nei dati di gioco (§6) | `Città di partenza non disponibile per la razza scelta` | Errore generico ("riprova più tardi"): sono dati mancanti lato BE, non un errore dell'utente |
 | `BAD_USER_INPUT` | (a) dal BE: background troppo lungo o imagePath non valido; (b) nativo GraphQL: enum sconosciuto, tipo errato, campo obbligatorio mancante | (a) `La storia del personaggio può contenere al massimo 500 caratteri` / `L'immagine deve essere un URL https valido`; (b) messaggio **inglese** di graphql-js, da **NON** mostrare | (a) errore inline sul campo; (b) bug lato app: errore generico |
-| `UNAUTHENTICATED` | Bearer assente, scaduto o falsificato | (pipeline auth Phase 2) | Refresh single-flight e retry, come per ogni operazione autenticata |
+| `UNAUTHENTICATED` | Bearer assente, scaduto, falsificato **o riferito a uno User che non esiste più** (cancellato mentre l'access token era ancora valido) | (pipeline auth Phase 2) | Refresh single-flight e retry, come per ogni operazione autenticata; se anche il refresh fallisce, login |
 
 Il body d'errore non contiene mai dettagli Mongo (`E11000`, `keyValue`, indici).
 
@@ -274,6 +274,7 @@ Se serve mostrare subito qualcosa, si possono aggiungere gli scalari di `infos`:
 - **Un solo personaggio per utente**, garantito da una transazione Mongo: prima il claim condizionato dello `User` (`currentCharacter: null` → id pre-generato), poi l'insert del `Character`.
 - **Doppio tap / due device:** una chiamata riesce, l'altra riceve `CHARACTER_ALREADY_EXISTS`. Verificato con chiamate concorrenti negli integration test.
 - **Nessun documento parziale** in nessun caso d'errore: un nome duplicato annulla anche il claim dello `User`, quindi l'utente può ritentare con un altro nome.
+- **Bearer valido di uno User cancellato:** il claim non trova il documento e la mutation risponde `UNAUTHENTICATED` (non `CHARACTER_ALREADY_EXISTS`), così il FE torna al login invece di cercare con `me` un personaggio che non esiste.
 - **Change stream:** il personaggio appena creato **non** emette `characterUpdated` finché non viene modificato (il change stream osserva update/replace, non insert). Il FE carica lo stato iniziale con `character(id)` e poi si iscrive, come oggi.
 
 ---

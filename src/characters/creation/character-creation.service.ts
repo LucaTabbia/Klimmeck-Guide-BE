@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { Connection, Model, Types } from 'mongoose';
+import { ClientSession, Connection, Model, Types } from 'mongoose';
+import { AuthException } from 'src/auth/auth.exception';
 import { CharacterCreationException } from 'src/characters/creation/character-creation.exception';
 import { validateCreateCharacterInput } from 'src/characters/creation/create-character-input.validator';
 import {
@@ -59,7 +60,7 @@ export class CharacterCreationService {
                         { session, new: true },
                     )
                     .exec();
-                if (!claimed) throw CharacterCreationException.alreadyExists();
+                if (!claimed) throw await this.rejectUnclaimed(userId, session);
                 await this.characterModel.create(
                     [{ _id: characterId, ...character }],
                     { session },
@@ -71,5 +72,19 @@ export class CharacterCreationService {
             }
             throw error;
         }
+    }
+
+    // il claim è nullo anche quando lo User non esiste più (bearer ancora valido di un utente cancellato):
+    // la guard verifica solo il JWT, quindi è qui che il caso si distingue da "hai già un personaggio"
+    private async rejectUnclaimed(
+        userId: Types.ObjectId,
+        session: ClientSession,
+    ): Promise<Error> {
+        const exists = await this.userModel
+            .exists({ _id: userId })
+            .session(session);
+        return exists
+            ? CharacterCreationException.alreadyExists()
+            : AuthException.unauthenticated();
     }
 }

@@ -455,6 +455,15 @@ describe('CharacterCreationResolver (wire)', () => {
             expect(body.errors?.[0].extensions.code).toBe('UNAUTHENTICATED');
             await expectNothingPersisted(user._id);
         });
+
+        it('rejects a valid bearer whose user no longer exists with UNAUTHENTICATED', async () => {
+            await users.deleteOne({ _id: user._id });
+
+            const body = await create(VALID_INPUT);
+
+            expectDomainError(body, 'UNAUTHENTICATED');
+            expect(await characters.countDocuments()).toBe(0);
+        });
     });
 
     describe('raceTraits', () => {
