@@ -86,7 +86,7 @@ Plans:
   4. `imagePath` facoltativo accetta l'URL restituito dall'endpoint REST `POST /cloudinary/uploadImage` già esistente; nessun controllo NSFW in questa fase (debito tracciato in BE-HARD).
   5. `BACKEND-NOTES.md` della fase documenta il contratto (schema, input, codici, esempi, stato iniziale) e `src/schema.gql` è rigenerato.
 **Plans**: 8 plans (4 waves)
-- [ ] 02.1-01-PLAN.md — Wave 1: `formatDomainError` (ogni HttpException codificata conserva il codice) + helper E11000 condivisi `src/mongo/mongo-errors.ts`
+- [x] 02.1-01-PLAN.md — Wave 1: `formatDomainError` (ogni HttpException codificata conserva il codice) + helper E11000 condivisi `src/mongo/mongo-errors.ts`
 - [ ] 02.1-02-PLAN.md — Wave 1: `CharacterCreationException` + codici, tabella `race-traits.ts` (età D-06, patrie D-10), `RaceTraits`, `NormalizedCharacterInput`
 - [ ] 02.1-04-PLAN.md — Wave 1: harness `createAuthTestApp({ imports, overrides })` + fixture City
 - [ ] 02.1-03-PLAN.md — Wave 2: normalizzazione/validità del nome (NFC, ’→', ≥ 1 lettera), validator autoritativo, `CreateCharacterInput` con enum GraphQL
