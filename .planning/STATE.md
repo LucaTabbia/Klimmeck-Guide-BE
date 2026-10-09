@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02.1-02-PLAN.md
-last_updated: "2026-10-09T08:22:20.491Z"
+stopped_at: Completed 02.1-04-PLAN.md
+last_updated: "2026-10-09T08:25:46.697Z"
 last_activity: 2026-10-09
 progress:
   total_phases: 11
   completed_phases: 2
   total_plans: 23
-  completed_plans: 17
-  percent: 74
+  completed_plans: 18
+  percent: 78
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 02.1 (Character Creation Contract) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-10-09
 
@@ -69,6 +69,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P10 | 9 min | 3 tasks | 8 files |
 | Phase 02.1 P01 | 3 min | 2 tasks | 10 files |
 | Phase 02.1 P02 | 4 min | 2 tasks | 7 files |
+| Phase 02.1 P04 | 3 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,7 @@ Recent decisions affecting current work:
 - [Phase 02.1]: formatDomainError: solo HttpException con extensions.code stringa diventano codici di dominio sul wire; fallback body Nest limitato agli AuthErrorCode
 - [Phase 02.1]: isDuplicateKeyOn riconosce E11000 per path via keyPattern/errorResponse.keyPattern, mai via chiave collation opaca
 - [Phase 02.1]: CharacterCreationException extends BadRequestException (400) con extensions.code; RACE_TRAITS e RACE_HOME_CITY_TYPES in un unico modulo puro src/characters/creation/race-traits.ts
+- [Phase 02.1]: createAuthTestApp accetta imports (moduli feature senza Bull) e overrides generici di provider; fixture City two-tier con POI reale come markerLocation
 
 ### Pending Todos
 
@@ -132,6 +134,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-09T08:22:20.487Z
-Stopped at: Completed 02.1-02-PLAN.md
+Last session: 2026-10-09T08:25:46.693Z
+Stopped at: Completed 02.1-04-PLAN.md
 Resume file: None
