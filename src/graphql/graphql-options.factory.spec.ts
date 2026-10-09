@@ -2,7 +2,7 @@ import type {
     WsConnectionAuthenticator,
     WsConnectionContext,
 } from 'src/auth/ws/ws-connection-authenticator';
-import { formatAuthError } from 'src/auth/format-auth-error';
+import { formatDomainError } from 'src/graphql/format-domain-error';
 import { buildGraphQLContext } from 'src/graphql/graphql-context';
 import { createGraphQLOptions } from 'src/graphql/graphql-options.factory';
 
@@ -45,7 +45,7 @@ describe('createGraphQLOptions', () => {
         expect(options.playground).toBe(false);
         expect(options.introspection).toBe(true);
         expect(options.context).toBe(buildGraphQLContext);
-        expect(options.formatError).toBe(formatAuthError);
+        expect(options.formatError).toBe(formatDomainError);
         expect(options.plugins).toHaveLength(1);
     });
 
