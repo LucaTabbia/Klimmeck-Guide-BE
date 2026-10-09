@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 02-10-PLAN.md
-last_updated: "2026-10-09T08:13:59.187Z"
-last_activity: 2026-10-09 -- Phase 02.1 planning complete
+last_updated: "2026-10-09T08:15:24.096Z"
+last_activity: 2026-10-09 -- Phase 02.1 execution started
 progress:
   total_phases: 11
   completed_phases: 2
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 02.1 — Character Creation Contract (inserted after Phase 2; context gathered, plan next). Phase 3 follows.
+**Current focus:** Phase 02.1 — Character Creation Contract
 
 ## Current Position
 
-Phase: 02.1 (character-creation-contract) — CONTEXT GATHERED (02.1-CONTEXT.md); planning pending
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-10-09 -- Phase 02.1 planning complete
+Phase: 02.1 (Character Creation Contract) — EXECUTING
+Plan: 1 of 8
+Status: Executing Phase 02.1
+Last activity: 2026-10-09 -- Phase 02.1 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
