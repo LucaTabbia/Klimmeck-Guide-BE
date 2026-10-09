@@ -150,6 +150,13 @@ describe('validateCreateCharacterInput', () => {
                     .background,
             ).toBe(background);
         });
+
+        it('rejects a single visible character made of thousands of combining marks', () => {
+            expectRejection(
+                { ...VALID, background: 'a' + '́'.repeat(5000) },
+                CharacterCreationErrorCode.BAD_USER_INPUT,
+            );
+        });
     });
 
     describe('imagePath', () => {

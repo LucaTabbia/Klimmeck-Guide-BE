@@ -171,11 +171,11 @@ Ordine dei controlli: nome → età → background → immagine (il primo che fa
   1. normalizzato in **NFC**;
   2. l'apostrofo tipografico `’` diventa `'` (e viene **salvato così**: "D’Arcy" è salvato come "D'Arcy");
   3. trim, spazi interni compressi in uno spazio singolo;
-  4. lunghezza **2–20 caratteri** contati in grafemi (stessa unità dei caratteri visibili);
+  4. lunghezza **2–20 caratteri** contati in grafemi (stessa unità dei caratteri visibili), con un tetto rigido di **40 unità UTF-16** (`CHARACTER_NAME_MAX_CODE_UNITS`) che nessun nome reale raggiunge: ferma i cluster di lettere (es. jamo hangul) che contano pochi grafemi ma pesano chilobyte;
   5. solo lettere Unicode (`\p{L}`), spazio, `'` e `-`, con **almeno una lettera** ("--" è rifiutato);
   6. **unico ignorando maiuscole/minuscole ma NON gli accenti**: `Élan` ed `Elan` convivono, `Élan` ed `ÉLAN` no; "D'Arcy" e "D’Arcy" collidono. L'unicità è garantita dal database (§10), non da un pre-check.
 - **Età:** intera, nel range della razza **estremi inclusi** (tabella §6). Fuori range → `CHARACTER_AGE_OUT_OF_RANGE`.
-- **Background:** facoltativo; trim; massimo **500 grafemi** (stessa unità del `maxLength` Flutter); assente, `null` o vuoto → salvato come stringa vuota `""` (`infos.background` resta `String!`).
+- **Background:** facoltativo; trim; massimo **500 grafemi** (stessa unità del `maxLength` Flutter) e in ogni caso al massimo **4000 unità UTF-16** (`BACKGROUND_MAX_CODE_UNITS`, 8 per grafema: una sequenza emoji ZWJ ne vale ~8–11, un testo reale di 500 grafemi non si avvicina); oltre uno dei due limiti → `BAD_USER_INPUT`; assente, `null` o vuoto → salvato come stringa vuota `""` (`infos.background` resta `String!`).
 - **imagePath:** facoltativo; trim; assente, `null` o vuoto → salvato come `null`; se presente deve essere un URL **`https`** di al massimo **2048** caratteri.
 
 ---
@@ -323,7 +323,7 @@ Precisazioni rispetto alla proposta FE (non divergenze, ma dettagli da recepire)
 2. **Enum GraphQL nell'input** (domanda aperta 2, D-02): inviare i valori via variabili; in lettura `CharacterInfos` resta `String!` con gli stessi nomi.
 3. **Patrie non esposte** da `raceTraits` (domanda aperta 3, D-11).
 4. **Nome:** `’` → `'` salvato così; almeno una lettera; unicità case-insensitive ma sensibile agli accenti (§3).
-5. **Lunghezze in grafemi** sia per il nome sia per il background (allineate al conteggio Flutter).
+5. **Lunghezze in grafemi** sia per il nome sia per il background (allineate al conteggio Flutter), con un tetto rigido in unità UTF-16 (40 per il nome, 4000 per il background) che un input reale non raggiunge: il FE non deve replicarlo.
 6. **Sullo `User` restituito:** selezionare `currentCharacter { id }` (+ eventuali scalari di `infos`), non l'intero personaggio (§7). La proposta FE diceva "`currentCharacter { id … }`": il "…" va limitato a `infos`.
 7. **`BAD_USER_INPUT` nativo** di GraphQL ha messaggio inglese: non mostrarlo (§4).
 8. **Upload:** considerare riuscito l'upload solo se il body contiene `url` (§1.2).

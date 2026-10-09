@@ -3,6 +3,11 @@ import {
     normalizeCharacterName,
 } from 'src/characters/creation/character-name';
 
+// 20 lettere del piano astrale (Deseret): 40 unità UTF-16 ma 20 grafemi, il massimo legittimo
+const ASTRAL_LETTERS_NAME = '\u{10400}'.repeat(20);
+// 100 jamo hangul + 'a': 2 grafemi (GB6 non spezza mai L × L) ma 101 unità UTF-16
+const JAMO_CLUSTER_NAME = 'ᄀ'.repeat(100) + 'a';
+
 describe('normalizeCharacterName', () => {
     it.each([
         ['  Aria  ', 'Aria'],
@@ -27,6 +32,7 @@ describe('isValidCharacterName', () => {
         '李小龍',
         'Aria di Luna',
         'A'.repeat(20),
+        ASTRAL_LETTERS_NAME,
     ])('accepts %p', (name) => {
         expect(isValidCharacterName(name)).toBe(true);
     });
@@ -45,6 +51,7 @@ describe('isValidCharacterName', () => {
         'Ar‍ia',
         'Élodie',
         'D’Arcy',
+        JAMO_CLUSTER_NAME,
     ])('rejects %p', (name) => {
         expect(isValidCharacterName(name)).toBe(false);
     });
