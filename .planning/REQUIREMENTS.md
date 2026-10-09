@@ -34,10 +34,10 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Character Creation (BE-CHAR) — fase inserita 02.1
 
-- [ ] **BE-CHAR-01**: Mutation `createCharacter(input: CreateCharacterInput!): User!` sull'identità autenticata (`@CurrentUser()`, nessun `userId` in input): crea il `Character` con lo stato iniziale definito dal BE e assegna `User.currentCharacter` in modo atomico (una sola creazione per utente; seconda chiamata → `CHARACTER_ALREADY_EXISTS`) → FE CHAR-01, CHAR-07
-- [ ] **BE-CHAR-02**: Validazione autoritativa dell'input: nome 2–20 caratteri dopo trim con sole lettere Unicode/spazi/apostrofi/trattini e **unico case-insensitive**; età intera nel range della razza; background facoltativo ≤ 500 caratteri; enum validi. Errori con codici stabili in `extensions.code` (`CHARACTER_NAME_INVALID`, `CHARACTER_NAME_TAKEN`, `CHARACTER_AGE_OUT_OF_RANGE`, `CHARACTER_ALREADY_EXISTS`) → FE CHAR-02, CHAR-03, CHAR-04, CHAR-09
+- [x] **BE-CHAR-01**: Mutation `createCharacter(input: CreateCharacterInput!): User!` sull'identità autenticata (`@CurrentUser()`, nessun `userId` in input): crea il `Character` con lo stato iniziale definito dal BE e assegna `User.currentCharacter` in modo atomico (una sola creazione per utente; seconda chiamata → `CHARACTER_ALREADY_EXISTS`) → FE CHAR-01, CHAR-07
+- [x] **BE-CHAR-02**: Validazione autoritativa dell'input: nome 2–20 caratteri dopo trim con sole lettere Unicode/spazi/apostrofi/trattini e **unico case-insensitive**; età intera nel range della razza; background facoltativo ≤ 500 caratteri; enum validi. Errori con codici stabili in `extensions.code` (`CHARACTER_NAME_INVALID`, `CHARACTER_NAME_TAKEN`, `CHARACTER_AGE_OUT_OF_RANGE`, `CHARACTER_ALREADY_EXISTS`) → FE CHAR-02, CHAR-03, CHAR-04, CHAR-09
 - [ ] **BE-CHAR-03**: Query `raceTraits` che espone `minAge`/`maxAge` per ogni `RaceType`; la stessa tabella guida la validazione di BE-CHAR-02 (nessuna copia nel FE) → FE CHAR-03 (campo età abilitato dopo la razza)
-- [ ] **BE-CHAR-04**: `imagePath` facoltativo: URL restituito dal REST autenticato `POST /cloudinary/uploadImage` (cartella `characters_profile`, già esistente); nessun controllo NSFW in questa fase — il controllo autoritativo è debito esplicito di BE-HARD → FE CHAR-05 (CHAR-06 rinviato dall'utente il 2026-10-08)
+- [x] **BE-CHAR-04**: `imagePath` facoltativo: URL restituito dal REST autenticato `POST /cloudinary/uploadImage` (cartella `characters_profile`, già esistente); nessun controllo NSFW in questa fase — il controllo autoritativo è debito esplicito di BE-HARD → FE CHAR-05 (CHAR-06 rinviato dall'utente il 2026-10-08)
 - [ ] **BE-CHAR-05**: Handoff `BACKEND-NOTES.md` della fase 02.1 con schema, input, codici d'errore, stato iniziale del personaggio ed esempi → consumato da FE Phase 2
 
 ### Authorization & Admin (BE-AUTHZ)
@@ -137,10 +137,10 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-AUTH-04 | Phase 2 | Complete |
 | BE-AUTH-05 | Phase 2 | Complete |
 | BE-AUTH-06 | Phase 2 | Complete |
-| BE-CHAR-01 | Phase 02.1 | Pending |
-| BE-CHAR-02 | Phase 02.1 | Pending |
+| BE-CHAR-01 | Phase 02.1 | Complete |
+| BE-CHAR-02 | Phase 02.1 | Complete |
 | BE-CHAR-03 | Phase 02.1 | Pending |
-| BE-CHAR-04 | Phase 02.1 | Pending |
+| BE-CHAR-04 | Phase 02.1 | Complete |
 | BE-CHAR-05 | Phase 02.1 | Pending |
 | BE-AUTHZ-01 | Phase 3 | Pending |
 | BE-AUTHZ-02 | Phase 3 | Pending |
