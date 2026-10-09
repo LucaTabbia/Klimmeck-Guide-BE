@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 02.1-07-PLAN.md
-last_updated: "2026-10-09T08:41:48.982Z"
+status: verifying
+stopped_at: Completed 02.1-08-PLAN.md
+last_updated: "2026-10-09T08:47:16.100Z"
 last_activity: 2026-10-09
 progress:
   total_phases: 11
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 23
-  completed_plans: 22
-  percent: 96
+  completed_plans: 23
+  percent: 100
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 Phase: 02.1 (Character Creation Contract) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-09
 
 Progress: [░░░░░░░░░░] 0%
@@ -74,6 +74,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02.1 P05 | 5min | 2 tasks | 7 files |
 | Phase 02.1 P06 | 6min | 2 tasks | 5 files |
 | Phase 02.1 P07 | 3min | 2 tasks | 4 files |
+| Phase 02.1 P08 | 5min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -120,6 +121,8 @@ Recent decisions affecting current work:
 - [Phase 02.1]: Starting location: flat pick among existing home cities sorted by _id, only ObjectId markers with existing POI (02.1-05)
 - [Phase 02.1]: Unicità del nome personaggio = indice unico character_name_ci_unique (collation en/2); il verifier di boot non logga mai i nomi in collisione
 - [Phase 02.1]: createCharacter: transazione claim-then-insert (User con currentCharacter null prima, poi Character con _id pre-generato); nessun pre-check del nome, E11000 su infos.name → CHARACTER_NAME_TAKEN
+- [Phase 02.1]: Nessuna divergenza di nomi con la proposta FE: BACKEND-NOTES FE non toccato (D-13)
+- [Phase 02.1]: Handoff: sullo User restituito da createCharacter selezionare solo currentCharacter { id } + scalari di infos
 
 ### Pending Todos
 
@@ -141,6 +144,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-09T08:41:48.978Z
-Stopped at: Completed 02.1-07-PLAN.md
+Last session: 2026-10-09T08:47:16.096Z
+Stopped at: Completed 02.1-08-PLAN.md
 Resume file: None
