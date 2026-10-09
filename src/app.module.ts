@@ -8,6 +8,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 import { UsersModule } from './users/users.module';
 import { CharactersModule } from './characters/characters.module';
+import { CharacterCreationModule } from './characters/creation/character-creation.module';
 import { CitiesModule } from './cities/cities.module';
 import { EnemiesModule } from './enemies/enemies.module';
 import { EquipmentItemsModule } from './equipmentItems/equipment-items.module';
@@ -62,6 +63,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         }),
         UsersModule,
         CharactersModule,
+        CharacterCreationModule,
         CitiesModule,
         EnemiesModule,
         EquipmentItemsModule,

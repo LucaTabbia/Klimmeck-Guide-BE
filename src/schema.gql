@@ -120,6 +120,21 @@ enum CityType {
   valanVillage
 }
 
+enum ClassType {
+  barbarian
+  bard
+  cleric
+  druid
+  fighter
+  monk
+  paladin
+  ranger
+  rogue
+  sorcerer
+  warlock
+  wizard
+}
+
 type Coins {
   copper: Int!
   gold: Int!
@@ -135,6 +150,17 @@ input CoinsInput {
 type CommonResponse {
   response: String!
   successful: Boolean!
+}
+
+input CreateCharacterInput {
+  age: Int!
+  background: String
+  classType: ClassType!
+  imagePath: String
+  name: String!
+  pronoun: PronounType!
+  race: RaceType!
+  sex: SexType!
 }
 
 type Damages {
@@ -259,6 +285,7 @@ type Lore {
 }
 
 type Mutation {
+  createCharacter(input: CreateCharacterInput!): User!
   createUser(user: UserInput!): User!
   deleteUser(id: String!): User!
   doTransaction(request: TransactionRequest!): CommonResponse!
@@ -337,6 +364,12 @@ type PointOfInterest {
   type: [PoiType!]!
 }
 
+enum PronounType {
+  he
+  she
+  them
+}
+
 type Query {
   character(id: String!): Character!
   characters: [Character!]!
@@ -365,6 +398,7 @@ type Query {
   pointOfInterests: [PointOfInterest!]!
   quest(id: String!): Quest!
   quests: [Quest!]!
+  raceTraits: [RaceTraits!]!
   spell(id: String!): Spell!
   spells: [Spell!]!
   user(id: String!): User!
@@ -402,10 +436,33 @@ type QuestRequirements {
   requiredPoints: Int
 }
 
+type RaceTraits {
+  maxAge: Int!
+  minAge: Int!
+  race: RaceType!
+}
+
+enum RaceType {
+  aarakocra
+  dragonborn
+  dwarf
+  elf
+  gnome
+  halfelf
+  halfling
+  human
+  tiefling
+}
+
 enum RoleType {
   adventurer
   guard
   innkeeper
+}
+
+enum SexType {
+  female
+  male
 }
 
 enum SlotType {
