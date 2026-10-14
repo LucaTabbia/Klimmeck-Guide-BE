@@ -2,6 +2,7 @@
 
 - **Fase BE:** 03-autorizzazione-ownership-ruoli-audit (BE-AUTHZ-01..04, BE-SYNC-01/02; decisioni D-01..D-19 in `03-CONTEXT.md`)
 - **Data:** 2026-10-14 — **bozza** scritta al discuss: il plan di handoff a fine fase la completa con i nomi definitivi e gli esempi verificati. `src/schema.gql` rigenerato vince su questo documento.
+- **Stato (wave 1, 2026-10-14):** contratto real-time sul branch `feat/03-autorizzazione-ownership-ruoli-audit` — `userUpdated`, snapshot su subscribe, rifiuto/filtro di `characterUpdated`; `src/schema.gql` committato (commit d8fd03e). Ownership su mutation/query, ruoli e audit: plan successivi della stessa fase.
 - **Richiesta FE di riferimento:** `Klimmeck-Guide/.planning/phases/03-real-time-sync-foundation/BACKEND-NOTES.md` (domande aperte 1–5 chiuse qui sotto, §4).
 - **Consumatori FE:** FE Phase 3 (sync real-time), FE Phase 6/8 (mutation giocatore sotto ownership), FE Phase 10 (admin: `@Roles`, audit).
 
@@ -20,14 +21,23 @@
 
 ---
 
-## 1. Schema (atteso dopo la wave 1; verificare su `src/schema.gql`)
+## 1. Schema (verificato su `src/schema.gql`, commit d8fd03e)
+
+Blocco `type Subscription` rigenerato (verbatim):
 
 ```graphql
 type Subscription {
-  characterUpdated(id: String!): Character!   # invariata; FORBIDDEN alla subscribe su id altrui (non innkeeper)
-  userUpdated: User!                           # nuova; identità dal bearer del connection_init
+  characterUpdated(id: String!): Character!
+  userUpdated: User!
 }
+```
 
+- `characterUpdated(id: String!)`: firma invariata; `FORBIDDEN` alla subscribe su id altrui (non innkeeper).
+- `userUpdated`: nuova, senza argomenti; identità dal bearer del `connection_init`.
+
+Mutation (le modifiche arrivano con i plan successivi della fase):
+
+```graphql
 type Mutation {
   # rimosse: createUser, updateUser, deleteUser
   # invariate: doTransaction, equipItem, equipSpell, unequipSpell, useSpell, createCharacter, exchangeLoginTicket, refreshSession, logout
@@ -53,6 +63,27 @@ subscription OnUserChanged {
 | `createCharacter` | emette con `currentCharacter { id }` | il FE apre poi la subscription sul nuovo id |
 | Cancellazione / morte (fasi future) | emette con `currentCharacter: null` | nessuna emissione (delete non è nel change stream) |
 | Qualsiasi update del character | — | documento completo |
+| `currentCharacter` cambia a stream aperto (non innkeeper) | emette il nuovo User | gli eventi successivi del vecchio personaggio non arrivano più (filtro per evento) |
+
+#### Forma sul wire di un rifiuto alla subscribe (verificata dai test WS reali)
+
+Subscribe di un non innkeeper a `characterUpdated` con l'id di un personaggio altrui (graphql-ws, nessun messaggio `error`, nessuno snapshot):
+
+```json
+{ "type": "next", "payload": { "errors": [{ "message": "Questo personaggio non ti appartiene", "path": ["characterUpdated"], "extensions": { "code": "FORBIDDEN" } }] } }
+{ "type": "complete" }
+```
+
+Id inesistente o malformato (non innkeeper; per l'innkeeper vale solo l'id malformato: un id esadecimale inesistente oggi fallisce nello snapshot con l'errore non tipizzato di `findOne`, da allineare nei plan di ownership delle query):
+
+```json
+{ "type": "next", "payload": { "errors": [{ "message": "Personaggio non trovato", "path": ["characterUpdated"], "extensions": { "code": "NOT_FOUND" } }] } }
+{ "type": "complete" }
+```
+
+**Il FE non deve ritentare una sottoscrizione chiusa con `FORBIDDEN` o `NOT_FOUND`**, e (FE D-15) non deve contarla come sync degradata ai fini del watchdog dei 3 minuti: la condizione si risolve solo quando cambia `currentCharacter` (via `userUpdated`), e allora il FE apre la subscription sul nuovo id.
+
+Test che lo provano: `src/characters/character-updated.subscription.int-spec.ts` (snapshot, FORBIDDEN per adventurer e guard, NOT_FOUND, innkeeper, isolamento, cambio di proprietà a stream aperto, ri-sottoscrizione) e `src/users/user-updated.subscription.int-spec.ts` (snapshot, isolamento, `createCharacter`, cambio ruolo, ri-sottoscrizione).
 
 ### Autenticazione WS
 
