@@ -10,7 +10,9 @@ import type { AuthIdentity } from 'src/auth/auth-identity';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { CharacterAccessPolicy } from 'src/authz/ownership/character-access.policy';
 import { OwnsCharacter } from 'src/authz/ownership/ownership.decorators';
+import { Roles } from 'src/authz/roles/roles.decorator';
 import { subscribeWithSnapshot } from 'src/graphql/subscribe-with-snapshot';
+import { RoleType } from 'src/models/enums/role-type.enum';
 import { documentIdOf } from 'src/mongo/document-id';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { TransactionRequest } from 'src/models/request/transaction-request.model';
@@ -26,21 +28,25 @@ export class CharactersResolver {
         @Inject(PUB_SUB) private readonly pubSub: PubSub<PubSubEvents>,
     ) {}
 
+    @Roles(RoleType.innkeeper)
     @Query(() => [Character])
     async characters(): Promise<Character[]> {
         return this.charactersService.findAll();
     }
 
+    @OwnsCharacter<{ id: string }>(({ id }) => id)
     @Query(() => Character)
     async character(@Args('id') id: string): Promise<Character> {
         return this.charactersService.findOne(id);
     }
 
+    @OwnsCharacter<{ id: string }>(({ id }) => id)
     @Query(() => Equipment)
     async equipment(@Args('id') id: string): Promise<Equipment> {
         return this.charactersService.getEquipment(id);
     }
 
+    @OwnsCharacter<{ request: TransactionRequest }>(({ request }) => request.id)
     @Mutation(() => CommonResponse)
     async doTransaction(
         @Args('request', { type: () => TransactionRequest })
@@ -49,6 +55,7 @@ export class CharactersResolver {
         return this.charactersService.doTransaction(request);
     }
 
+    @OwnsCharacter<{ request: EquipItemRequest }>(({ request }) => request.id)
     @Mutation(() => CommonResponse)
     async equipItem(
         @Args('request', { type: () => EquipItemRequest })
@@ -57,6 +64,7 @@ export class CharactersResolver {
         return this.charactersService.equipItem(request);
     }
 
+    @OwnsCharacter<{ request: EquipSpellRequest }>(({ request }) => request.id)
     @Mutation(() => CommonResponse)
     async equipSpell(
         @Args('request', { type: () => EquipSpellRequest })
@@ -65,6 +73,7 @@ export class CharactersResolver {
         return this.charactersService.equipSpell(request);
     }
 
+    @OwnsCharacter<{ request: EquipSpellRequest }>(({ request }) => request.id)
     @Mutation(() => CommonResponse)
     async unequipSpell(
         @Args('request', { type: () => EquipSpellRequest })
@@ -73,6 +82,9 @@ export class CharactersResolver {
         return this.charactersService.unequipSpell(request);
     }
 
+    @OwnsCharacter<{ request: UseSpellRequest }>(
+        ({ request }) => request.characterId,
+    )
     @Mutation(() => CommonResponse)
     async useSpell(
         @Args('request', { type: () => UseSpellRequest })

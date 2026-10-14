@@ -194,7 +194,10 @@ describe('CharactersService (unit — spell mutations)', () => {
             ).rejects.toThrow(NotFoundException);
             await expect(
                 service.unequipSpell({ id: 'c1', spellId }),
-            ).rejects.toThrow(/is not active/);
+            ).rejects.toMatchObject({
+                code: 'NOT_FOUND',
+                message: 'Magia non attiva per questo personaggio',
+            });
             expect(character.save).not.toHaveBeenCalled();
         });
     });
@@ -278,6 +281,9 @@ describe('CharactersService (unit — spell mutations)', () => {
             await expect(
                 service.useSpell({ characterId, spellId }),
             ).rejects.toThrow(NotFoundException);
+            await expect(
+                service.useSpell({ characterId, spellId }),
+            ).rejects.toMatchObject({ code: 'NOT_FOUND' });
 
             // usage MUST be untouched and NOT persisted, and no recovery scheduled
             expect(character.assets.activeSpells[0].usages).toBe(3);
