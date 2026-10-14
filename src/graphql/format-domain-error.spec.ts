@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { GraphQLError, type GraphQLFormattedError } from 'graphql';
 import { AuthException } from 'src/auth/auth.exception';
+import { AuthorizationException } from 'src/authz/authorization.exception';
+import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { formatDomainError } from 'src/graphql/format-domain-error';
 
 function buildFormatted(
@@ -166,6 +168,42 @@ describe('formatDomainError', () => {
         const result = formatDomainError(formatted, wrapAsResolverError(error));
 
         expect(result).toBe(formatted);
+    });
+
+    it('exposes only the FORBIDDEN code of a wrapped AuthorizationException', () => {
+        const formatted = buildFormatted({
+            code: 'FORBIDDEN',
+            originalError: { statusCode: 403, code: 'FORBIDDEN' },
+        });
+
+        const result = formatDomainError(
+            formatted,
+            wrapAsResolverError(AuthorizationException.notOwner()),
+        );
+
+        expect(result).toEqual({
+            message: formatted.message,
+            locations: formatted.locations,
+            path: formatted.path,
+            extensions: { code: 'FORBIDDEN' },
+        });
+    });
+
+    it('turns a wrapped ResourceNotFoundException into NOT_FOUND without internals', () => {
+        const formatted = buildFormatted({
+            code: 'INTERNAL_SERVER_ERROR',
+            status: 404,
+            originalError: { statusCode: 404, code: 'NOT_FOUND' },
+        });
+
+        const result = formatDomainError(
+            formatted,
+            wrapAsResolverError(ResourceNotFoundException.character()),
+        );
+
+        expect(result.extensions).toEqual({ code: 'NOT_FOUND' });
+        expect(result.extensions).not.toHaveProperty('originalError');
+        expect(result.extensions).not.toHaveProperty('status');
     });
 
     it('keeps the body fallback limited to auth error codes', () => {

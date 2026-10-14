@@ -1,8 +1,8 @@
 import request from 'supertest';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
+import { Session } from 'src/auth/session/session.model';
 import { OAuthStateService } from 'src/auth/twitch/oauth-state.service';
 import { RoleType } from 'src/models/enums/role-type.enum';
-import { User, UserDocument } from 'src/models/user.model';
 import { AuthProbeResolver } from './auth-probe.resolver';
 import {
     AuthTestApp,
@@ -18,7 +18,6 @@ const DEV_BEARER = `Bearer ${TEST_DEV_ACCESS_TOKEN}`;
 
 const WHO_AM_I = '{ whoAmI }';
 const ME = '{ me { id twitchId role } }';
-const CREATE_INTRUDER = `mutation { createUser(user: { twitchId: "intruder", role: innkeeper }) { id } }`;
 const LOGOUT = 'mutation { logout }';
 const REFRESH = `
     mutation Refresh($refreshToken: String!) {
@@ -81,15 +80,13 @@ describe('Global auth guard over HTTP GraphQL and REST', () => {
         });
 
         it('rejects an existing mutation without a bearer and writes nothing', async () => {
-            expectUnauthenticated(
-                await graphqlRequest(harness.app, CREATE_INTRUDER),
-            );
+            await createAuthenticatedUser(harness);
+            const sessions = harness.connection.model(Session.name);
+            const before = await sessions.countDocuments().exec();
 
-            const intruder = await harness.connection
-                .model<UserDocument>(User.name)
-                .findOne({ twitchId: 'intruder' })
-                .exec();
-            expect(intruder).toBeNull();
+            expectUnauthenticated(await graphqlRequest(harness.app, LOGOUT));
+
+            expect(await sessions.countDocuments().exec()).toBe(before);
         });
 
         it.each(['Token abc', 'Bearer ', 'Bearer not-a-jwt'])(
@@ -159,16 +156,33 @@ describe('Global auth guard over HTTP GraphQL and REST', () => {
                 role: RoleType.adventurer,
             });
 
-            const users = await graphqlRequest(
+            const forbidden = await graphqlRequest(
                 harness.app,
                 '{ users { id } }',
                 undefined,
                 bearer,
             );
+            expect(bodyOf(forbidden).errors?.[0]?.extensions).toEqual({
+                code: 'FORBIDDEN',
+            });
+
+            const innkeeper = await createAuthenticatedUser(harness, {
+                twitchId: 'twitch-http-innkeeper',
+                role: RoleType.innkeeper,
+            });
+            const users = await graphqlRequest(
+                harness.app,
+                '{ users { id } }',
+                undefined,
+                innkeeper.bearer,
+            );
             expect(bodyOf(users).errors).toBeUndefined();
-            expect(bodyOf(users).data?.users).toEqual([
-                { id: String(user._id) },
-            ]);
+            const ids = (bodyOf(users).data?.users as { id: string }[])
+                .map(({ id }) => id)
+                .sort();
+            expect(ids).toEqual(
+                [String(user._id), String(innkeeper.user._id)].sort(),
+            );
         });
 
         it('revokes the session on logout while the issued access token lives until expiry', async () => {

@@ -1,19 +1,19 @@
 import { Global, Module } from '@nestjs/common';
 import { createPubSub } from '@graphql-yoga/subscription';
 import { Character } from 'src/models/character/character.model';
+import { User } from 'src/models/user.model';
 
+export const PUB_SUB = 'PUB_SUB';
+
+// un solo PubSub in memoria (single instance, BE-FUT-02 fuori scope): ogni evento porta il documento completo
 export type PubSubEvents = {
-    characterUpdated: [character: Character];
+    characterUpdated: [payload: { characterUpdated: Character }];
+    userUpdated: [payload: { userUpdated: User }];
 };
 
 @Global()
 @Module({
-    providers: [
-        {
-            provide: 'PUB_SUB',
-            useValue: createPubSub<PubSubEvents>(),
-        },
-    ],
-    exports: ['PUB_SUB'],
+    providers: [{ provide: PUB_SUB, useValue: createPubSub<PubSubEvents>() }],
+    exports: [PUB_SUB],
 })
-export class PubSubModule { }
+export class PubSubModule {}

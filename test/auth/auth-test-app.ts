@@ -20,6 +20,7 @@ import { CloudinaryController } from 'src/rest/cloudinary/cloudinary.controller'
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 import { createGraphQLOptions } from 'src/graphql/graphql-options.factory';
 import { CloudinaryService } from 'src/rest/cloudinary/cloudinary.service';
+import { PubSubModule } from 'src/pubsub.module';
 import { FakeTwitchOAuthClient } from './fake-twitch-oauth.client';
 import { buildTestAuthConfig } from './test-auth-config';
 
@@ -66,7 +67,7 @@ function buildCloudinaryMock(): CloudinaryServiceMock {
 }
 
 // app Nest isolata: niente AppModule (Bull/Redis, change stream, .env), Twitch finto, porta effimera;
-// GraphQL con la stessa factory di AppModule e schema in memoria;
+// GraphQL con la stessa factory di AppModule e schema in memoria; PubSub globale come in AppModule;
 // moduli di feature senza Bull via `imports`, sostituzione di provider via `overrides`
 export async function createAuthTestApp(
     options: AuthTestAppOptions = {},
@@ -81,6 +82,7 @@ export async function createAuthTestApp(
             MongooseModule.forRoot(process.env.MONGO_TEST_URI as string, {
                 dbName: AUTH_TEST_DB_NAME,
             }),
+            PubSubModule,
             AuthModule,
             GraphQLModule.forRootAsync<ApolloDriverConfig>({
                 driver: ApolloDriver,

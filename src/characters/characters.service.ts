@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException, OnModuleInit, OnModuleDestroy, Logger, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { Model, Types } from 'mongoose';
-import { PubSub } from 'graphql-subscriptions';
+import type { PubSub } from '@graphql-yoga/subscription';
+import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { Character, CharacterDocument } from 'src/models/character/character.model';
 import { Equipment } from 'src/models/common/equipment.model';
 import { AssetQuantity, AssetQuantityInput, ItemReferenceType } from 'src/models/common/asset-quantity.model';
@@ -17,6 +18,7 @@ import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model'
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { ActiveSpell } from 'src/models/common/active-spell.model';
+import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { SpellRecoveryJobData } from './spell-recovery.processor';
 
 @Injectable()
@@ -28,13 +30,8 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
         @InjectModel(Character.name) private characterModel: Model<CharacterDocument>,
         @InjectModel(Spell.name) private spellModel: Model<SpellDocument>,
         @InjectQueue('spell-recovery') private spellRecoveryQueue: Queue<SpellRecoveryJobData>,
-        @Inject('PUB_SUB') private pubSub: PubSub
+        @Inject(PUB_SUB) private readonly pubSub: PubSub<PubSubEvents>,
     ) { }
-
-    getPubSub(): PubSub {
-        return this.pubSub;
-    }
-
 
     async onModuleInit() {
         const pipeline = [{ $match: { operationType: { $in: ['update', 'replace'] } } }];
@@ -49,7 +46,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
                     const id = change.fullDocument._id;
 
                     const character = await this.findOne(id)
-                    await this.pubSub.publish('characterUpdated', {
+                    this.pubSub.publish('characterUpdated', {
                         characterUpdated: character,
                     });
                 }
@@ -96,7 +93,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
             .exec();
 
         if (!character) {
-            throw new NotFoundException(`Character with id ${id} not found`);
+            throw ResourceNotFoundException.character();
         }
 
         const ownedEquipmentsMap = new Map<string, EquipmentItem>();
@@ -153,14 +150,14 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
         const character = await query.exec();
 
         if (!character) {
-            throw new NotFoundException(`Character with id ${id} not found`);
+            throw ResourceNotFoundException.character();
         }
         return character.assets.wearedEquipment;
     }
 
     async doTransaction(request: TransactionRequest): Promise<CommonResponse> {
         const character = await this.characterModel.findById(request.id);
-        if (!character) throw new NotFoundException(`Character with id ${request.id} not found`);
+        if (!character) throw ResourceNotFoundException.character();
 
         const coinSign = request.isTotalPositive ? 1 : -1;
         character.status.coins.gold += coinSign * request.total.gold;
@@ -208,7 +205,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
 
     async equipItem(request: EquipItemRequest): Promise<CommonResponse> {
         const character = await this.characterModel.findById(request.id);
-        if (!character) throw new NotFoundException(`Character with id ${request.id} not found`);
+        if (!character) throw ResourceNotFoundException.character();
         const slot = request.slotType as keyof Equipment;
         character.assets.wearedEquipment[slot] = request.itemId != null ? new Types.ObjectId(request.itemId) : null;
         await character.save();
@@ -221,7 +218,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     async equipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
         const character = await this.characterModel.findById(request.id).exec();
         if (!character) {
-            throw new NotFoundException(`Character with id ${request.id} not found`);
+            throw ResourceNotFoundException.character();
         }
 
         const knownSpellIds = character.status.spells.map(s => 
@@ -258,14 +255,14 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     async unequipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
         const character = await this.characterModel.findById(request.id).exec();
         if (!character) {
-            throw new NotFoundException(`Character with id ${request.id} not found`);
+            throw ResourceNotFoundException.character();
         }
 
         const activeSpellIndex = character.assets.activeSpells.findIndex(
             a => a.spell?.toString() === request.spellId
         );
         if (activeSpellIndex === -1) {
-            throw new NotFoundException(`Spell ${request.spellId} is not active for character ${request.id}`);
+            throw ResourceNotFoundException.activeSpell();
         }
 
         character.assets.activeSpells.splice(activeSpellIndex, 1);
@@ -280,7 +277,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     async useSpell(request: UseSpellRequest): Promise<CommonResponse> {
         const character = await this.characterModel.findById(request.characterId).exec();
         if (!character) {
-            throw new NotFoundException(`Character with id ${request.characterId} not found`);
+            throw ResourceNotFoundException.character();
         }
 
         const activeSpell = character.assets.activeSpells.find(
@@ -296,7 +293,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
 
         const spell = await this.spellModel.findById(request.spellId).exec();
         if (!spell) {
-            throw new NotFoundException(`Spell ${request.spellId} not found`);
+            throw ResourceNotFoundException.spell();
         }
 
         activeSpell.usages -= 1;

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: executing
 stopped_at: Completed 02.1-08-PLAN.md
-last_updated: "2026-10-09T09:22:04.586Z"
-last_activity: 2026-10-09
+last_updated: "2026-10-14T12:00:53.613Z"
+last_activity: 2026-10-14
 progress:
   total_phases: 11
-  completed_phases: 3
-  total_plans: 23
-  completed_plans: 23
+  completed_phases: 4
+  total_plans: 33
+  completed_plans: 33
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 02.1 — Character Creation Contract
+**Current focus:** Phase 03 — autorizzazione-ownership-ruoli-audit
 
 ## Current Position
 
-Phase: 3
+Phase: 4
 Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-10-09
+Status: Phase 03 complete — PR #5 open on LucaTabbia/Klimmeck-Guide-BE (feat/03-autorizzazione-ownership-ruoli-audit → develop); merge BEFORE the FE PR LucaTabbia/Klimmeck-Guide#27
+Last activity: 2026-10-14 -- Phase 3 PR #5: 4 review warnings fixed in TDD (03-REVIEW-FIX.md, unit 453 + integration 322 green, build OK); 03-UAT.md pending
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -36,7 +36,7 @@ Progress: [░░░░░░░░░░] 0%
 
 **Velocity:**
 
-- Total plans completed: 22
+- Total plans completed: 32
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -47,6 +47,7 @@ Progress: [░░░░░░░░░░] 0%
 | 01 | 5 | - | - |
 | 2 | 9 | - | - |
 | 02.1 | 8 | - | - |
+| 03 | 10 | - | - |
 
 **Recent Trend:**
 

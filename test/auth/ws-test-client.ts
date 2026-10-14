@@ -1,4 +1,5 @@
 import { createClient } from 'graphql-ws';
+import type { FormattedExecutionResult } from 'graphql-ws';
 import WebSocket from 'ws';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 
@@ -125,5 +126,76 @@ export async function subscribeOnce(
     } finally {
         await iterator.return?.();
         await client.dispose();
+    }
+}
+
+export interface OpenSubscription<T> {
+    next(
+        timeoutMs?: number,
+    ): Promise<IteratorResult<FormattedExecutionResult<T, unknown>>>;
+    dispose(): Promise<void>;
+}
+
+// timer sempre ripulito: nessun handle aperto a fine test
+export async function withTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+): Promise<T> {
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(
+            () =>
+                reject(
+                    new Error(
+                        `subscription result timed out after ${timeoutMs} ms`,
+                    ),
+                ),
+            timeoutMs,
+        );
+    });
+    try {
+        return await Promise.race([promise, timeout]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+// stream WS multi-evento: ogni next() ha il suo timeout, dispose() chiude iteratore e client
+export function openSubscription<T>(
+    url: string,
+    connectionParams: Record<string, unknown>,
+    payload: { query: string; variables?: Record<string, unknown> },
+): OpenSubscription<T> {
+    const client = createClient({
+        url,
+        webSocketImpl: WebSocket,
+        connectionParams,
+        retryAttempts: 0,
+        lazy: true,
+    });
+    const iterator = client.iterate<T>(payload);
+    return {
+        next: (timeoutMs = DEFAULT_TIMEOUT_MS) =>
+            withTimeout(iterator.next(), timeoutMs),
+        async dispose() {
+            await iterator.return?.();
+            await client.dispose();
+        },
+    };
+}
+
+// prova negativa limitata: usare SOLO dopo un evento sentinella già ricevuto altrove (Pitfall 12)
+export async function expectSilence<T>(
+    subscription: OpenSubscription<T>,
+    windowMs = 500,
+): Promise<void> {
+    const outcome = await subscription.next(windowMs).then(
+        (result) => ({ received: result }),
+        () => ({ received: undefined }),
+    );
+    if (outcome.received) {
+        throw new Error(
+            `unexpected subscription result: ${JSON.stringify(outcome.received)}`,
+        );
     }
 }

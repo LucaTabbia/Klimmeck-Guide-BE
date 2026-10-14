@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BullModule } from '@nestjs/bull';
-import { Character, CharacterSchema } from 'src/models/character/character.model';
+import { AuthzModule } from 'src/authz/authz.module';
+import {
+    Character,
+    CharacterSchema,
+} from 'src/models/character/character.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { CharactersResolver } from './characters.resolver';
 import { CharactersService } from './characters.service';
@@ -16,8 +20,9 @@ import { SpellRecoveryProcessor } from './spell-recovery.processor';
         BullModule.registerQueue({
             name: 'spell-recovery',
         }),
+        AuthzModule,
     ],
     providers: [CharactersService, CharactersResolver, SpellRecoveryProcessor],
     exports: [CharactersService],
 })
-export class CharactersModule { }
+export class CharactersModule {}
