@@ -46,7 +46,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
                     const id = change.fullDocument._id;
 
                     const character = await this.findOne(id)
-                    await this.pubSub.publish('characterUpdated', {
+                    this.pubSub.publish('characterUpdated', {
                         characterUpdated: character,
                     });
                 }
