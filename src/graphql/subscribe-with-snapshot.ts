@@ -12,7 +12,9 @@ export async function subscribeWithSnapshot<T>(
     try {
         snapshot = await loadSnapshot();
     } catch (error) {
-        await iterator.return?.();
+        // il live non deve mai diventare un unhandledRejection, né mascherare l'errore dello snapshot
+        firstLive.catch(() => undefined);
+        await iterator.return?.().catch(() => undefined);
         throw error;
     }
     return new Repeater<T>(async (push, stop) => {
@@ -20,7 +22,7 @@ export async function subscribeWithSnapshot<T>(
         const stopped = stop.then(
             (): IteratorResult<T> => ({ done: true, value: undefined }),
         );
-        void stopped.then(() => iterator.return?.());
+        void stopped.then(() => iterator.return?.()).catch(() => undefined);
         await push(snapshot);
         for (
             let result = await Promise.race([firstLive, stopped]);

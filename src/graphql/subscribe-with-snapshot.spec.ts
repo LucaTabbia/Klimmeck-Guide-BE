@@ -71,6 +71,32 @@ describe('subscribeWithSnapshot', () => {
         expect(iterator.return).toHaveBeenCalledTimes(1);
     });
 
+    it('does not leave an unhandled rejection when the live stream fails while the snapshot fails', async () => {
+        const { live, iterator } = fakeLive(
+            jest.fn(() => Promise.reject(new Error('live failed'))),
+        );
+        iterator.return.mockImplementation(() =>
+            Promise.reject(new Error('return failed')),
+        );
+        const failure = new Error('snapshot failed');
+        const unhandled: unknown[] = [];
+        const onUnhandled = (reason: unknown): void => {
+            unhandled.push(reason);
+        };
+        process.on('unhandledRejection', onUnhandled);
+
+        try {
+            await expect(
+                subscribeWithSnapshot(live, () => Promise.reject(failure)),
+            ).rejects.toBe(failure);
+            await new Promise((resolve) => setImmediate(resolve));
+        } finally {
+            process.off('unhandledRejection', onUnhandled);
+        }
+
+        expect(unhandled).toEqual([]);
+    });
+
     it('returns promptly and detaches the live stream when no event arrives', async () => {
         const { live, iterator } = neverResolvingLive();
         const subscription = await subscribeWithSnapshot(live, () =>
