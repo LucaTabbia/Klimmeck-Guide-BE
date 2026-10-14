@@ -35,7 +35,8 @@ describe('Character change stream -> PUB_SUB (D-09)', () => {
         );
         stream.on('change', (change: any) => {
             if (change.fullDocument) {
-                pubSub.publish('characterUpdated', change.fullDocument);
+                const payload = { characterUpdated: change.fullDocument };
+                pubSub.publish('characterUpdated', payload);
             }
         });
 
@@ -68,7 +69,7 @@ describe('Character change stream -> PUB_SUB (D-09)', () => {
             ])) as IteratorResult<any>;
 
             expect(received.value).toBeDefined();
-            expect(received.value._id.toString()).toBe(
+            expect(received.value.characterUpdated._id.toString()).toBe(
                 character._id.toString(),
             );
         } finally {

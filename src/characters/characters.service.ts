@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { Model, Types } from 'mongoose';
-import { PubSub } from 'graphql-subscriptions';
+import type { PubSub } from '@graphql-yoga/subscription';
 import { Character, CharacterDocument } from 'src/models/character/character.model';
 import { Equipment } from 'src/models/common/equipment.model';
 import { AssetQuantity, AssetQuantityInput, ItemReferenceType } from 'src/models/common/asset-quantity.model';
@@ -17,6 +17,7 @@ import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model'
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { ActiveSpell } from 'src/models/common/active-spell.model';
+import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { SpellRecoveryJobData } from './spell-recovery.processor';
 
 @Injectable()
@@ -28,13 +29,8 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
         @InjectModel(Character.name) private characterModel: Model<CharacterDocument>,
         @InjectModel(Spell.name) private spellModel: Model<SpellDocument>,
         @InjectQueue('spell-recovery') private spellRecoveryQueue: Queue<SpellRecoveryJobData>,
-        @Inject('PUB_SUB') private pubSub: PubSub
+        @Inject(PUB_SUB) private readonly pubSub: PubSub<PubSubEvents>,
     ) { }
-
-    getPubSub(): PubSub {
-        return this.pubSub;
-    }
-
 
     async onModuleInit() {
         const pipeline = [{ $match: { operationType: { $in: ['update', 'replace'] } } }];
