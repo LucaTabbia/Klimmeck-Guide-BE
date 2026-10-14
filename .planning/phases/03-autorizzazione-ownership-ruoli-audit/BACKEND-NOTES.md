@@ -11,8 +11,8 @@
 
 1. **Nuova subscription `userUpdated: User!` senza argomenti** — emette lo `User` dell'utente autenticato (`id twitchId twitchPoints role currentCharacter { id … }`) a ogni modifica del documento (`twitchPoints`, `role`, `currentCharacter`), prodotta da un change stream su `users`.
 2. **Snapshot su subscribe** su `userUpdated` e `characterUpdated`: il primo evento di ogni (ri)sottoscrizione è il documento corrente; poi gli eventi live. Nessun replay: il FE ri-sottoscrive al reconnect e riceve lo snapshot.
-3. **`characterUpdated(id: String!)` invariato nel contratto**, ma: id ≠ `currentCharacter` del bearer e bearer non `innkeeper` → la sottoscrizione fallisce subito con `extensions.code = FORBIDDEN`. L'innkeeper può ascoltare qualunque personaggio.
-4. **Ownership sulle mutation giocatore** (`doTransaction`, `equipItem`, `equipSpell`, `unequipSpell`, `useSpell`) e sulle query `character(id)`, `equipment(id)`, `pendingQuest(id)`: contratto invariato, ma su un personaggio non proprio → `FORBIDDEN` (HTTP 403 su REST). L'innkeeper è esente (e auditato). Un id inesistente resta `NOT_FOUND`.
+3. **`characterUpdated(id: String!)` invariato nel contratto**, ma: id ≠ `currentCharacter` del bearer e bearer non `innkeeper` → la sottoscrizione fallisce subito con `extensions.code = FORBIDDEN`. L'innkeeper può ascoltare qualunque personaggio. **Forma sul wire (verificata):** messaggio graphql-ws `next` con `payload.errors[0].extensions.code = "FORBIDDEN"` seguito da `complete`; nessun messaggio `error`. **Il FE non deve ritentare** una sottoscrizione rifiutata con `FORBIDDEN` (il backoff silenzioso diventerebbe un loop): la condizione si risolve solo quando cambia `currentCharacter` (via `userUpdated` / `me`).
+4. **Ownership sulle mutation giocatore** (`doTransaction`, `equipItem`, `equipSpell`, `unequipSpell`, `useSpell`) e sulle query `character(id)`, `equipment(id)`, `pendingQuest(id)`: contratto invariato, ma su un personaggio non proprio → `FORBIDDEN` (HTTP 403 su REST). L'innkeeper è esente (e auditato). Un id inesistente risponde `NOT_FOUND` (nuovo codice tipizzato: oggi `NotFoundException` arriva come `INTERNAL_SERVER_ERROR` con `status 404`).
 5. **Innkeeper-only** (`FORBIDDEN` per gli altri): `users`, `user(id)`, `characters`, `pendingQuests`. **Rimosse dallo schema**: `createUser`, `updateUser`, `deleteUser` (il FE non le usava).
 6. **Nuovo codice d'errore stabile: `FORBIDDEN`** (messaggio italiano). Il FE mappa il codice, mai il messaggio.
 7. **Audit log admin** su collection Mongo con TTL 90 giorni: automatico su ogni mutation `@Roles(innkeeper)` e su ogni azione innkeeper su personaggi altrui. Nessuna query GraphQL di lettura in questa fase.
@@ -65,7 +65,7 @@ Invariata rispetto alla Phase 2: `connection_init` `{ "Authorization": "Bearer <
 | Codice | Quando | HTTP (REST) |
 |---|---|---|
 | `FORBIDDEN` (nuovo) | ownership violata; operazione innkeeper-only chiamata da non innkeeper; subscribe `characterUpdated` su id altrui | 403 |
-| `NOT_FOUND` | id inesistente (invariato) | 404 |
+| `NOT_FOUND` (tipizzato in questa fase sui percorsi protetti) | id inesistente | 404 |
 | `UNAUTHENTICATED`, `SESSION_EXPIRED`, `SESSION_REVOKED`, `LOGIN_TICKET_INVALID` | invariati (Phase 2) | 401 |
 
 ---
@@ -86,6 +86,11 @@ Ogni nuova mutation amministrativa va decorata con `@Roles(RoleType.innkeeper)`:
 
 ---
 
-## 5. Dev bypass
+## 5. Fuori scope dichiarato
+
+- Gli endpoint REST Cloudinary restano accessibili a ogni autenticato (nessuna ownership sull'upload): hardening in Phase 10.
+- Le mutation quest/travel citate da BE-AUTHZ-01 non esistono ancora: la convenzione §3 e un test che enumera gli handler protetti coprono le fasi future.
+
+## 6. Dev bypass
 
 Invariato. Per provare il perimetro admin in locale: `DEV_AUTH_ROLE=innkeeper` sul BE (riavvio richiesto); con `adventurer` si verificano i `FORBIDDEN`.
