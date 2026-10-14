@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 Phase: 4
 Plan: Not started
 Status: Phase 03 complete — PR #5 open on LucaTabbia/Klimmeck-Guide-BE (feat/03-autorizzazione-ownership-ruoli-audit → develop); merge BEFORE the FE PR LucaTabbia/Klimmeck-Guide#27
-Last activity: 2026-10-14 -- Phase 3 PR #5 opened (unit 450 + integration 321 green); 4 review warnings still open in 03-REVIEW.md, 03-UAT.md pending
+Last activity: 2026-10-14 -- Phase 3 PR #5: 4 review warnings fixed in TDD (03-REVIEW-FIX.md, unit 453 + integration 322 green, build OK); 03-UAT.md pending
 
 Progress: [░░░░░░░░░░] 0%
 
