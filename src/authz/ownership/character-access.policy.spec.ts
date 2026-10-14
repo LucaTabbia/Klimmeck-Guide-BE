@@ -14,6 +14,8 @@ import { RoleType } from 'src/models/enums/role-type.enum';
 const OWN_ID = '64b000000000000000000001';
 const FOREIGN_ID = '64b000000000000000000002';
 const USER_ID = '64b0000000000000000000aa';
+const PQ_ID = '64b0000000000000000000b1';
+const FOREIGN_PQ_ID = '64b0000000000000000000b2';
 
 function buildIdentity(role: RoleType = RoleType.adventurer): AuthIdentity {
     return { userId: USER_ID, twitchId: 'twitch-1', role };
@@ -22,7 +24,11 @@ function buildIdentity(role: RoleType = RoleType.adventurer): AuthIdentity {
 describe('CharacterAccessPolicy', () => {
     let userDoc: { currentCharacter: Types.ObjectId | null } | null;
     let userModel: { findById: jest.Mock };
-    let characterModel: { exists: jest.Mock };
+    let characterDoc: {
+        quests: { pendingQuest: Types.ObjectId | null };
+    } | null;
+    let characterModel: { exists: jest.Mock; findById: jest.Mock };
+    let pendingQuestModel: { exists: jest.Mock };
     let policy: CharacterAccessPolicy;
 
     beforeEach(() => {
@@ -32,14 +38,26 @@ describe('CharacterAccessPolicy', () => {
                 lean: () => ({ exec: () => Promise.resolve(userDoc) }),
             })),
         };
+        characterDoc = {
+            quests: { pendingQuest: new Types.ObjectId(PQ_ID) },
+        };
         characterModel = {
             exists: jest
                 .fn()
                 .mockResolvedValue({ _id: new Types.ObjectId(FOREIGN_ID) }),
+            findById: jest.fn().mockImplementation(() => ({
+                lean: () => ({ exec: () => Promise.resolve(characterDoc) }),
+            })),
+        };
+        pendingQuestModel = {
+            exists: jest
+                .fn()
+                .mockResolvedValue({ _id: new Types.ObjectId(FOREIGN_PQ_ID) }),
         };
         policy = new CharacterAccessPolicy(
             userModel as never,
             characterModel as never,
+            pendingQuestModel as never,
         );
     });
 
@@ -155,7 +173,116 @@ describe('CharacterAccessPolicy', () => {
         );
     });
 
+    describe('authorizePendingQuest', () => {
+        it('grants owner access to the adventurer whose character holds the pending quest', async () => {
+            await expect(
+                policy.authorizePendingQuest(buildIdentity(), PQ_ID),
+            ).resolves.toBe(ResourceAccess.owner);
+            expect(userModel.findById).toHaveBeenCalledTimes(1);
+            expect(characterModel.findById).toHaveBeenCalledTimes(1);
+            expect(characterModel.findById).toHaveBeenCalledWith(OWN_ID, {
+                'quests.pendingQuest': 1,
+            });
+            expect(pendingQuestModel.exists).not.toHaveBeenCalled();
+        });
+
+        it('forbids an adventurer reading an existing foreign pending quest', async () => {
+            const result = policy.authorizePendingQuest(
+                buildIdentity(),
+                FOREIGN_PQ_ID,
+            );
+
+            await expect(result).rejects.toBeInstanceOf(AuthorizationException);
+            await expect(result).rejects.toMatchObject({
+                code: AuthorizationErrorCode.FORBIDDEN,
+                message: 'Questa missione non ti appartiene',
+            });
+            expect(pendingQuestModel.exists).toHaveBeenCalledWith({
+                _id: FOREIGN_PQ_ID,
+            });
+        });
+
+        it('reports a missing pending quest as not found for an adventurer', async () => {
+            pendingQuestModel.exists.mockResolvedValue(null);
+
+            const result = policy.authorizePendingQuest(
+                buildIdentity(),
+                FOREIGN_PQ_ID,
+            );
+
+            await expect(result).rejects.toBeInstanceOf(
+                ResourceNotFoundException,
+            );
+            await expect(result).rejects.toMatchObject({
+                code: AuthorizationErrorCode.NOT_FOUND,
+            });
+        });
+
+        it('forbids an adventurer without a character without reading characters', async () => {
+            userDoc = { currentCharacter: null };
+
+            await expect(
+                policy.authorizePendingQuest(buildIdentity(), PQ_ID),
+            ).rejects.toMatchObject({ code: AuthorizationErrorCode.FORBIDDEN });
+            expect(characterModel.findById).not.toHaveBeenCalled();
+        });
+
+        it('forbids an adventurer whose character has no pending quest', async () => {
+            characterDoc = { quests: { pendingQuest: null } };
+
+            await expect(
+                policy.authorizePendingQuest(buildIdentity(), PQ_ID),
+            ).rejects.toMatchObject({ code: AuthorizationErrorCode.FORBIDDEN });
+        });
+
+        it('grants on-behalf access to the innkeeper without any read', async () => {
+            await expect(
+                policy.authorizePendingQuest(
+                    buildIdentity(RoleType.innkeeper),
+                    FOREIGN_PQ_ID,
+                ),
+            ).resolves.toBe(ResourceAccess.onBehalf);
+            expect(userModel.findById).not.toHaveBeenCalled();
+            expect(characterModel.findById).not.toHaveBeenCalled();
+            expect(pendingQuestModel.exists).not.toHaveBeenCalled();
+        });
+
+        it.each([RoleType.adventurer, RoleType.innkeeper])(
+            'reports a malformed id as not found for %s without reading',
+            async (role) => {
+                await expect(
+                    policy.authorizePendingQuest(buildIdentity(role), 'abc'),
+                ).rejects.toMatchObject({
+                    code: AuthorizationErrorCode.NOT_FOUND,
+                });
+                expect(userModel.findById).not.toHaveBeenCalled();
+                expect(characterModel.findById).not.toHaveBeenCalled();
+                expect(pendingQuestModel.exists).not.toHaveBeenCalled();
+            },
+        );
+
+        it('treats the guard role as an adventurer', async () => {
+            await expect(
+                policy.authorizePendingQuest(
+                    buildIdentity(RoleType.guard),
+                    FOREIGN_PQ_ID,
+                ),
+            ).rejects.toMatchObject({ code: AuthorizationErrorCode.FORBIDDEN });
+        });
+    });
+
     describe('authorize', () => {
+        it('delegates the pending quest resource to authorizePendingQuest', async () => {
+            await expect(
+                policy.authorize(
+                    buildIdentity(),
+                    OwnedResource.pendingQuest,
+                    PQ_ID,
+                ),
+            ).resolves.toBe(ResourceAccess.owner);
+            expect(characterModel.findById).toHaveBeenCalledTimes(1);
+        });
+
         it('delegates the character resource to authorizeCharacter', async () => {
             await expect(
                 policy.authorize(

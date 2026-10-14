@@ -13,11 +13,19 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import {
+    PendingQuest,
+    PendingQuestDocument,
+} from 'src/models/pending-quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { isObjectIdHex } from 'src/mongo/document-id';
 
 interface CurrentCharacterProjection {
     currentCharacter: Types.ObjectId | null;
+}
+
+interface PendingQuestProjection {
+    quests?: { pendingQuest?: Types.ObjectId | null };
 }
 
 @Injectable()
@@ -28,6 +36,8 @@ export class CharacterAccessPolicy {
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
         @InjectModel(Character.name)
         private readonly characterModel: Model<CharacterDocument>,
+        @InjectModel(PendingQuest.name)
+        private readonly pendingQuestModel: Model<PendingQuestDocument>,
     ) {}
 
     authorize(
@@ -38,6 +48,8 @@ export class CharacterAccessPolicy {
         switch (resource) {
             case OwnedResource.character:
                 return this.authorizeCharacter(identity, id);
+            case OwnedResource.pendingQuest:
+                return this.authorizePendingQuest(identity, id);
         }
     }
 
@@ -58,6 +70,27 @@ export class CharacterAccessPolicy {
             return ResourceAccess.onBehalf;
         await this.assertCharacterExists(characterId);
         throw AuthorizationException.notOwner();
+    }
+
+    // PendingQuest non referenzia il personaggio: la proprietà si risolve dal personaggio del bearer (D-10)
+    async authorizePendingQuest(
+        identity: AuthIdentity,
+        pendingQuestId: string,
+    ): Promise<ResourceAccess> {
+        if (!isObjectIdHex(pendingQuestId))
+            throw ResourceNotFoundException.pendingQuest();
+        if (identity.role === RoleType.innkeeper)
+            return ResourceAccess.onBehalf;
+        if (
+            (await this.readOwnPendingQuestId(identity.userId)) ===
+            pendingQuestId
+        ) {
+            return ResourceAccess.owner;
+        }
+        if (!(await this.pendingQuestModel.exists({ _id: pendingQuestId }))) {
+            throw ResourceNotFoundException.pendingQuest();
+        }
+        throw AuthorizationException.pendingQuestNotOwned();
     }
 
     // difesa in profondità per ogni evento live: un errore non deve chiudere lo stream né far trapelare l'evento
@@ -89,6 +122,20 @@ export class CharacterAccessPolicy {
             .exec();
         return user?.currentCharacter
             ? String(user.currentCharacter)
+            : undefined;
+    }
+
+    private async readOwnPendingQuestId(
+        userId: string,
+    ): Promise<string | undefined> {
+        const characterId = await this.readCurrentCharacterId(userId);
+        if (!characterId) return undefined;
+        const character = await this.characterModel
+            .findById(characterId, { 'quests.pendingQuest': 1 })
+            .lean<PendingQuestProjection | null>()
+            .exec();
+        return character?.quests?.pendingQuest
+            ? String(character.quests.pendingQuest)
             : undefined;
     }
 

@@ -1,5 +1,6 @@
 export enum OwnedResource {
     character = 'Character',
+    pendingQuest = 'PendingQuest',
 }
 
 export enum ResourceAccess {

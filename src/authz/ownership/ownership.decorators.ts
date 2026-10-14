@@ -10,13 +10,22 @@ export interface OwnershipRule {
 }
 
 // metadata + guard di metodo: gira sempre dopo l'AuthGuard globale, quindi req.user è già valorizzato
-export const OwnsCharacter = <A>(selectId: (args: A) => string) => {
+function ownsResource<A>(
+    resource: OwnedResource,
+    selectId: (args: A) => string,
+) {
     const rule: OwnershipRule = {
-        resource: OwnedResource.character,
+        resource,
         selectId: selectId as unknown as OwnershipRule['selectId'],
     };
     return applyDecorators(
         SetMetadata(OWNERSHIP_KEY, rule),
         UseGuards(OwnershipGuard),
     );
-};
+}
+
+export const OwnsCharacter = <A>(selectId: (args: A) => string) =>
+    ownsResource(OwnedResource.character, selectId);
+
+export const OwnsPendingQuest = <A>(selectId: (args: A) => string) =>
+    ownsResource(OwnedResource.pendingQuest, selectId);
