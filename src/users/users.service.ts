@@ -4,6 +4,7 @@ import { Model, PipelineStage } from 'mongoose';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { User, UserDocument } from 'src/models/user.model';
+import { isObjectIdHex } from 'src/mongo/document-id';
 import { isDuplicateKeyError } from 'src/mongo/mongo-errors';
 
 const DUPLICATE_TWITCH_IDS_PIPELINE: PipelineStage[] = [
@@ -28,6 +29,7 @@ export class UsersService {
     }
 
     async findOne(id: string): Promise<User> {
+        if (!isObjectIdHex(id)) throw ResourceNotFoundException.user();
         const user = await this.userModel
             .findById(id)
             .populate('currentCharacter')

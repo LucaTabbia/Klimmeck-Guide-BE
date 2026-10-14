@@ -166,6 +166,18 @@ describe('Users perimeter (innkeeper-only reads, no client writes)', () => {
                 { code: 'NOT_FOUND' },
             );
         });
+
+        it('answers a typed NOT_FOUND for a malformed id', async () => {
+            expectRejected(
+                await graphqlRequest(
+                    harness.app,
+                    USER,
+                    { id: 'abc' },
+                    oste.bearer,
+                ),
+                { code: 'NOT_FOUND' },
+            );
+        });
     });
 
     it('keeps me available to the adventurer', async () => {
