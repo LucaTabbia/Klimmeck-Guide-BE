@@ -588,16 +588,19 @@ const EXPECTED_INNKEEPER_HANDLERS = [
 | A6 | Testo dei messaggi italiani di `FORBIDDEN` | Pattern 1 | basso: il FE mappa i codici; testo da confermare in review |
 | A7 | Attendere la scrittura dell'audit è compatibile con D-19 ("asincrona rispetto all'esito") | Q6 | basso: l'esito non cambia mai; in alternativa fire-and-forget con test a polling |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`NOT_FOUND` reale sul wire (D-11)**
+   - RESOLVED (2026-10-14): D-11 precisato nel CONTEXT — `ResourceNotFoundException` tipizzata con `extensions.code = NOT_FOUND` nella policy (plan 03-02) e, come pulizia in scope, nei service dei percorsi protetti (`CharactersService`, `PendingQuestsService.findOne`, `UsersService.findOne`: plan 03-07). Il BACKEND-NOTES descrive il codice reale.
    - What we know: oggi `NotFoundException` su GraphQL HTTP esce come `INTERNAL_SERVER_ERROR` + `status: 404` + `originalError` esposto (verificato); su WS senza codice. La bozza di BACKEND-NOTES promette `NOT_FOUND`.
    - What's unclear: se l'utente intendeva "NOT_FOUND come codice" o "come comportamento (404 su REST)".
    - Recommendation: aggiungere `NOT_FOUND` a `AuthorizationErrorCode` con una `ResourceNotFoundException extends NotFoundException` codificata, usata dalla policy (id inesistente o malformato); valutare come Boy Scout la sostituzione dei `NotFoundException` in `CharactersService`/`PendingQuestsService`/`UsersService.findOne`, così il contratto 403/404 è vero su HTTP e WS. Se il planner non lo accetta, il BACKEND-NOTES deve descrivere il comportamento reale.
 2. **Endpoint REST Cloudinary** (`getUrls`, `getSubfoldersUrls`, `uploadImage`)
+   - RESOLVED: fuori scope (Phase 10); dichiarati invariati in BACKEND-NOTES §5 e nel plan 03-10 Task 2.
    - What we know: aperti a ogni autenticato; non citati da D-10/D-14.
    - Recommendation: fuori scope (BE-HARD/Phase 10); citarli nel BACKEND-NOTES come invariati.
 3. **Mutation future "quest" e "travel" di BE-AUTHZ-01**
+   - RESOLVED: convenzione `@OwnsCharacter` + `@Roles` in BACKEND-NOTES §3 e whitelist enumerate degli handler protetti con prova di sensibilità (plan 03-10 Task 1).
    - What we know: non esistono ancora (Phase 7/8).
    - Recommendation: la convenzione `@OwnsCharacter` + `@Roles` entra nel BACKEND-NOTES §3 e nel test enumerato degli handler, così le fasi future la estendono.
 
