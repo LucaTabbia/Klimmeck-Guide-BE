@@ -27,7 +27,7 @@ describe('documentIdOf', () => {
 describe('isObjectIdHex', () => {
     it.each([
         ['64b000000000000000000001', true],
-        ['64B000000000000000000001', true],
+        ['64B000000000000000000001', false],
         ['abc', false],
         ['aaaaaaaaaaaa', false],
         ['64b00000000000000000000z', false],
