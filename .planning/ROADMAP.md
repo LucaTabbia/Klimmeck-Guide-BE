@@ -108,7 +108,18 @@ Plans:
   4. Ogni azione admin scrive un record di audit persistente (who, what, when, target, args completi, esito; TTL 90 giorni) consultabile a DB.
   5. `userUpdated: User!` (senza argomenti) emette all'utente autenticato il proprio `User` a ogni modifica (`twitchPoints`, `role`, `currentCharacter`), prodotto da un change stream su `users`; nessun client può ascoltare un altro utente. *(aggiunto 2026-10-14 — contratto FE Phase 3)*
   6. Ogni (ri)sottoscrizione a `userUpdated` e `characterUpdated` riceve subito il documento corrente (snapshot) e poi gli eventi live; `characterUpdated(id)` su un id altrui da parte di un non-innkeeper è rifiutata con `FORBIDDEN`. Il contratto real-time atterra nella prima wave con `src/schema.gql` rigenerato. *(aggiunto 2026-10-14)*
-**Plans**: TBD
+**Plans**: 10 plans (7 waves; waves 1-3 = contratto real-time per il FE, D-07)
+Plans:
+- [ ] 03-01-PLAN.md — Wave 0: PubSubEvents tipizzato + PUB_SUB, harness con PubSubModule, helper WS multi-evento, fixture createPlayer (BE-SYNC-01/02, BE-AUTHZ-03)
+- [ ] 03-02-PLAN.md — Primitive: readRequestIdentity, eccezioni FORBIDDEN/NOT_FOUND tipizzate, subscribeWithSnapshot, documentIdOf/isObjectIdHex (BE-SYNC-02, BE-AUTHZ-01/03)
+- [ ] 03-03-PLAN.md — userUpdated: change stream su users + subscription senza argomenti con snapshot e filtro identità (BE-SYNC-01/02, BE-AUTHZ-03)
+- [ ] 03-04-PLAN.md — Nucleo ownership: CharacterAccessPolicy, AuthorizationDecisions, @OwnsCharacter/OwnershipGuard, AuthzModule (BE-AUTHZ-01/03)
+- [ ] 03-05-PLAN.md — characterUpdated protetta (FORBIDDEN alla subscribe, snapshot, filtro per evento) + schema.gql rigenerato + handoff wave 1 (BE-AUTHZ-03, BE-SYNC-01/02)
+- [ ] 03-06-PLAN.md — @Roles(innkeeper) + RolesGuard, users/user innkeeper-only, rimozione createUser/updateUser/deleteUser/UserInput (BE-AUTHZ-02)
+- [ ] 03-07-PLAN.md — Ownership su doTransaction/equipItem/equipSpell/unequipSpell/useSpell/character/equipment, characters innkeeper-only, NOT_FOUND tipizzato (BE-AUTHZ-01/02)
+- [ ] 03-08-PLAN.md — pendingQuest(id) via il personaggio del bearer, pendingQuests innkeeper-only (BE-AUTHZ-01/02)
+- [ ] 03-09-PLAN.md — Audit admin: admin_audit_logs con TTL 90 giorni, service best-effort, AdminAuditInterceptor globale (BE-AUTHZ-04)
+- [ ] 03-10-PLAN.md — Whitelist enumerate degli handler protetti, schema finale senza drift, BACKEND-NOTES completo per il FE (tutti)
 **Unblocks (FE)**: **FE Phase 3** (SYNC-01/02/03/06: `userUpdated`, snapshot, filtro identità — in lockstep, decisione 2026-10-14); FE Phase 10 in lockstep (role guard + audit log consegnati in anticipo, non deferiti) → FE ADMIN-07/08, HARDEN-02.
 **Branch**: `feat/03-autorizzazione-ownership-ruoli-audit` da `develop` → PR a `develop` (template `feat/{phase}-{slug}`).
 
