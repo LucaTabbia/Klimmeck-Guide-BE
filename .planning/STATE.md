@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: planning
 stopped_at: Completed 02.1-08-PLAN.md
-last_updated: "2026-10-14T12:00:53.613Z"
-last_activity: 2026-10-14
+last_updated: "2026-10-14T22:15:01.426Z"
+last_activity: "2026-10-15 -- Phase 4 discuss closed: 7th satchel item + PageView tab, parchment sheet, local per-user notification toggles (default on), logout via confirmLogout, deleteCharacter proposed in BACKEND-NOTES and fixed in BE 03.1 CONTEXT; next /gsd-plan-phase 4"
 progress:
-  total_phases: 11
+  total_phases: 12
   completed_phases: 4
   total_plans: 33
   completed_plans: 33
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 4
+Phase: 03.1 (character-deletion-contract) — CONTEXT GATHERED 2026-10-15 (inserted from the FE Phase 4 discuss), branch feat/03.1-character-deletion-contract
 Plan: Not started
-Status: Phase 03 complete — PR #5 open on LucaTabbia/Klimmeck-Guide-BE (feat/03-autorizzazione-ownership-ruoli-audit → develop); merge BEFORE the FE PR LucaTabbia/Klimmeck-Guide#27
-Last activity: 2026-10-14 -- Phase 3 PR #5: 4 review warnings fixed in TDD (03-REVIEW-FIX.md, unit 453 + integration 322 green, build OK); 03-UAT.md pending
+Status: Phase 03 complete (PR #5 merged into develop 2026-10-14; FE PR #27 merged after it) — Phase 03.1 context gathered, ready to plan: /gsd-plan-phase 03.1
+Last activity: 2026-10-15 -- Phase 4 discuss closed: 7th satchel item + PageView tab, parchment sheet, local per-user notification toggles (default on), logout via confirmLogout, deleteCharacter proposed in BACKEND-NOTES and fixed in BE 03.1 CONTEXT; next /gsd-plan-phase 4
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -83,6 +83,7 @@ Progress: [░░░░░░░░░░] 0%
 ### Roadmap Evolution
 
 - Phase 02.1 inserted after Phase 2: Character Creation Contract (URGENT) — 2026-10-09, richiesto dalla FE Phase 2 (nessuna mutation di creazione personaggio esisteva); branch `feat/02.1-character-creation-contract`
+- Phase 03.1 inserted after Phase 3: Character Deletion Contract (URGENT) — 2026-10-15, richiesto dalla FE Phase 4 (SET-05: cancellazione esplicita del personaggio dalle impostazioni; nessuna mutation di cancellazione esisteva); branch `feat/03.1-character-deletion-contract`
 
 ### Decisions
 

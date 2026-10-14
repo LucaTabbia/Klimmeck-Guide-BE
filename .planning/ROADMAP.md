@@ -15,7 +15,8 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [ ] **Phase 1: Fondazione Test & Consolidamento Spell WIP** - Harness TDD (replica-set Mongo, Bull DI-mock + Redis effimero, fixture) e consolidamento del WIP spell con fix ordine-validazione
 - [x] **Phase 2: Auth & Identity Foundation** - JWT di sessione, guard globale HTTP + WS `onConnect`, dev bypass fail-closed, handoff FE (completed 2026-10-06)
 - [x] **Phase 2.1: Character Creation Contract** (INSERTED 2026-10-09) - Mutation `createCharacter` sull'identità autenticata, tabella età/razza esposta via query, validazione autoritativa e codici d'errore stabili; sblocca FE Phase 2 (completed 2026-10-09)
-- [ ] **Phase 3: Autorizzazione: Ownership, Ruoli, Audit** - Ownership sulle mutation, role guard `@Roles(innkeeper)`, subscription filtrate per identità, audit log admin, user stream `userUpdated` + snapshot su subscribe (contratto FE Phase 3, assorbito il 2026-10-14)
+- [x] **Phase 3: Autorizzazione: Ownership, Ruoli, Audit** - Ownership sulle mutation, role guard `@Roles(innkeeper)`, subscription filtrate per identità, audit log admin, user stream `userUpdated` + snapshot su subscribe (contratto FE Phase 3, assorbito il 2026-10-14) (completed 2026-10-14, PR #5)
+- [ ] **Phase 3.1: Character Deletion Contract** (INSERTED 2026-10-15) - Mutation `deleteCharacter` sull'identità autenticata: soft delete del personaggio corrente, unlink atomico di `User.currentCharacter`, nome liberato, codici stabili; sblocca FE Phase 4 (SET-05)
 - [ ] **Phase 4: Integrità Economica (Atomics)** - Operazioni atomiche su coins/twitchPoints/quest/equip/spell (no read-modify-write, no stato parziale)
 - [ ] **Phase 5: Infrastruttura Push FCM** - Registro token per-device, servizio push domain-agnostic, pruning token stale
 - [ ] **Phase 6: EventSub: Punti Canale & Streamer Live** - Webhook Twitch EventSub, credito idempotente 1:1, push streamer-live
@@ -122,6 +123,21 @@ Plans:
 - [x] 03-10-PLAN.md — Whitelist enumerate degli handler protetti, schema finale senza drift, BACKEND-NOTES completo per il FE (tutti)
 **Unblocks (FE)**: **FE Phase 3** (SYNC-01/02/03/06: `userUpdated`, snapshot, filtro identità — in lockstep, decisione 2026-10-14); FE Phase 10 in lockstep (role guard + audit log consegnati in anticipo, non deferiti) → FE ADMIN-07/08, HARDEN-02.
 **Branch**: `feat/03-autorizzazione-ownership-ruoli-audit` da `develop` → PR a `develop` (template `feat/{phase}-{slug}`).
+
+### Phase 03.1: Character Deletion Contract (INSERTED)
+**Goal**: Un utente autenticato può eliminare il proprio personaggio corrente con una sola mutation; il BE lo archivia (soft delete, mai purge), scollega `User.currentCharacter` atomicamente, libera il nome e restituisce lo `User` aggiornato. Il FE Phase 4 (tab Impostazioni, SET-05) consuma questo contratto.
+**Depends on**: Phase 3 (identità, ownership, `userUpdated` con snapshot), Phase 2.1 (pattern claim transazionale su `User.currentCharacter`, indice unico del nome)
+**Requirements**: BE-CHAR-06, BE-CHAR-07, BE-CHAR-08, BE-CHAR-09
+**Why inserted**: scoperto nel discuss della FE Phase 4 (2026-10-15): la FE Phase 3 D-09 prevede la cancellazione esplicita dalle impostazioni, ma il BE non espone alcuna mutation di cancellazione. Direttiva utente: in scope ora, fase BE companion, PR BE prima della PR FE.
+**Success Criteria** (what must be TRUE):
+  1. Un utente autenticato con `currentCharacter` valorizzato chiama `deleteCharacter` e riceve lo `User` con `currentCharacter: null`; il `Character` resta a DB marcato `deletedAt`/`deletionReason: user_request` e scollegato. Una seconda chiamata (o il perdente di due chiamate concorrenti) risponde `CHARACTER_NOT_FOUND`; nessuno stato parziale.
+  2. Il personaggio archiviato è invisibile ai percorsi giocatore: `character(id)` → `NOT_FOUND`, `characterUpdated(id)` rifiutata alla subscribe come un id altrui, mutation sotto ownership rifiutate, processor spell-recovery che lo ignora; nessun evento `characterUpdated` viene emesso per documenti archiviati (nemmeno dall'update di archivio).
+  3. Il nome del personaggio archiviato è riutilizzabile: l'indice unico case-insensitive copre solo i documenti attivi e `createCharacter` con quel nome riesce; il verifier di boot costruisce il nuovo indice senza bloccare l'avvio.
+  4. `userUpdated` emette lo `User` con `currentCharacter: null` dopo la cancellazione (change stream `users` esistente, nessun publish aggiunto) e un nuovo `createCharacter` dello stesso utente riesce.
+  5. `BACKEND-NOTES.md` della fase documenta contratto, codici, semantica dell'archivio e le risposte alle 4 domande aperte del FE; `src/schema.gql` è rigenerato e la CI non rileva drift.
+**Plans**: TBD
+**Unblocks (FE)**: FE Phase 4 Settings Screen (SET-05). Contratto proposto dal FE in `Klimmeck-Guide/.planning/phases/04-settings-screen/BACKEND-NOTES.md`; decisioni in `03.1-CONTEXT.md`.
+**Branch**: `feat/03.1-character-deletion-contract` da `develop` → PR a `develop`.
 
 ### Phase 4: Integrità Economica (Atomics)
 **Goal**: Tutte le scritture di bilancio/inventario/quest/spell/equip sono atomiche — mai read-modify-write, mai stato parziale, safe in concorrenza. Chiude le concern rosse #5 (`useSpell`), #6 (`doTransaction`), #7 (equip).
@@ -242,7 +258,8 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|----------------|--------|-----------|
 | 1. Fondazione Test & Consolidamento Spell WIP | 0/4 | Not started | - |
 | 2. Auth & Identity Foundation | 9/9 | Complete    | 2026-10-06 |
-| 3. Autorizzazione: Ownership, Ruoli, Audit | 0/TBD | Not started | - |
+| 3. Autorizzazione: Ownership, Ruoli, Audit | 10/10 | Complete    | 2026-10-14 |
+| 3.1. Character Deletion Contract | 0/TBD | Not started | - |
 | 4. Integrità Economica (Atomics) | 0/TBD | Not started | - |
 | 5. Infrastruttura Push FCM | 0/TBD | Not started | - |
 | 6. EventSub: Punti Canale & Streamer Live | 0/TBD | Not started | - |
