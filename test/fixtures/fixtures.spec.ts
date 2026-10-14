@@ -1,4 +1,6 @@
+import { Types } from 'mongoose';
 import {
+    buildCity,
     buildSpell,
     buildUser,
     buildRoad,
@@ -73,6 +75,28 @@ describe('fixtures builders', () => {
             expect(quest.infos.type).toBe('hunt');
             expect(quest.infos.markerLocation).toBeDefined();
             expect(quest.registeredAdventurers).toEqual([]);
+        });
+    });
+
+    describe('buildCity', () => {
+        it('sets a valid CityType and the required fields', () => {
+            const city = buildCity();
+            expect(city.type).toBe('drusteaCapital');
+            expect(city.name).toBe('Test City');
+            expect(city.area).toEqual([]);
+            expect(city.pointsOfInterest).toEqual([]);
+            expect(city.relatedLore).toBeNull();
+        });
+
+        it('sets a fresh markerLocation ObjectId on every call', () => {
+            const first = buildCity().markerLocation;
+            const second = buildCity().markerLocation;
+            expect(first).toBeInstanceOf(Types.ObjectId);
+            expect(first.equals(second)).toBe(false);
+        });
+
+        it('applies overrides', () => {
+            expect(buildCity({ type: 'elfCapital' }).type).toBe('elfCapital');
         });
     });
 });

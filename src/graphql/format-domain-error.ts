@@ -1,16 +1,18 @@
 import { unwrapResolverError } from '@apollo/server/errors';
+import { HttpException } from '@nestjs/common';
 import type { GraphQLFormattedError } from 'graphql';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
-import { AuthException } from 'src/auth/auth.exception';
 
 const AUTH_ERROR_CODES: readonly unknown[] = Object.values(AuthErrorCode);
 
-// Nest riscrive ogni 401 in UNAUTHENTICATED prima del formatter utente: qui si ripristina il codice di dominio
-export function formatAuthError(
+type CodedHttpException = HttpException & { extensions: { code: string } };
+
+// Nest riscrive il codice di ogni HttpException prima del formatter utente: qui si ripristina il codice di dominio
+export function formatDomainError(
     formatted: GraphQLFormattedError,
     error: unknown,
 ): GraphQLFormattedError {
-    const code = resolveAuthErrorCode(formatted, error);
+    const code = resolveDomainErrorCode(formatted, error);
     if (!code) return formatted;
     return {
         message: formatted.message,
@@ -20,17 +22,25 @@ export function formatAuthError(
     };
 }
 
-function resolveAuthErrorCode(
+function resolveDomainErrorCode(
     formatted: GraphQLFormattedError,
     error: unknown,
-): AuthErrorCode | undefined {
+): string | undefined {
     const original = unwrapResolverError(error);
-    if (original instanceof AuthException) return original.code;
-    if (error instanceof AuthException) return error.code;
-    return readNestBodyCode(formatted);
+    if (isCodedHttpException(original)) return original.extensions.code;
+    if (isCodedHttpException(error)) return error.extensions.code;
+    return readNestBodyAuthCode(formatted);
 }
 
-function readNestBodyCode(
+function isCodedHttpException(error: unknown): error is CodedHttpException {
+    return (
+        error instanceof HttpException &&
+        typeof (error as { extensions?: { code?: unknown } }).extensions
+            ?.code === 'string'
+    );
+}
+
+function readNestBodyAuthCode(
     formatted: GraphQLFormattedError,
 ): AuthErrorCode | undefined {
     const originalError = formatted.extensions?.originalError as

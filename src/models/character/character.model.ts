@@ -1,10 +1,26 @@
 import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
-import { CharacterInfosSchema, CharacterInfos, CharacterInfosInput } from './character-infos.model';
-import { CharacterStatusSchema, CharacterStatus, CharacterStatusInput } from './character-status.model';
-import { CharacterQuestsSchema, CharacterQuests, CharacterQuestsInput } from './character-quests.model';
-import { CharacterAssetsSchema, CharacterAssets, CharacterAssetsInput } from './character-assets.model';
+import { Document } from 'mongoose';
+import {
+    CharacterInfosSchema,
+    CharacterInfos,
+    CharacterInfosInput,
+} from './character-infos.model';
+import {
+    CharacterStatusSchema,
+    CharacterStatus,
+    CharacterStatusInput,
+} from './character-status.model';
+import {
+    CharacterQuestsSchema,
+    CharacterQuests,
+    CharacterQuestsInput,
+} from './character-quests.model';
+import {
+    CharacterAssetsSchema,
+    CharacterAssets,
+    CharacterAssetsInput,
+} from './character-assets.model';
 
 @ObjectType()
 @Schema()
@@ -32,6 +48,19 @@ export class Character {
 export type CharacterDocument = Character & Document;
 export const CharacterSchema = SchemaFactory.createForClass(Character);
 
+export const CHARACTER_NAME_INDEX = 'character_name_ci_unique';
+export const CHARACTER_NAME_COLLATION = { locale: 'en', strength: 2 } as const;
+
+// unicità case-insensitive garantita dal DB (D-18): strength 2 ignora maiuscole, non gli accenti
+CharacterSchema.index(
+    { 'infos.name': 1 },
+    {
+        unique: true,
+        collation: CHARACTER_NAME_COLLATION,
+        name: CHARACTER_NAME_INDEX,
+    },
+);
+
 @InputType()
 export class CharacterInput {
     @Field(() => ID, { nullable: true })
@@ -49,4 +78,3 @@ export class CharacterInput {
     @Field(() => CharacterAssetsInput)
     assets: CharacterAssetsInput;
 }
-

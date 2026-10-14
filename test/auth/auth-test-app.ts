@@ -1,5 +1,6 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { INestApplication, Provider } from '@nestjs/common';
+import type { InjectionToken, ModuleMetadata } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { getConnectionToken, MongooseModule } from '@nestjs/mongoose';
@@ -24,10 +25,17 @@ import { buildTestAuthConfig } from './test-auth-config';
 
 export const AUTH_TEST_DB_NAME = 'auth-test';
 
+export interface ProviderOverride {
+    token: InjectionToken;
+    useValue: unknown;
+}
+
 export interface AuthTestAppOptions {
     authConfig?: Partial<AuthConfig>;
     clock?: Clock;
     providers?: Provider[];
+    imports?: NonNullable<ModuleMetadata['imports']>;
+    overrides?: ProviderOverride[];
 }
 
 export interface CloudinaryServiceMock {
@@ -58,7 +66,8 @@ function buildCloudinaryMock(): CloudinaryServiceMock {
 }
 
 // app Nest isolata: niente AppModule (Bull/Redis, change stream, .env), Twitch finto, porta effimera;
-// GraphQL con la stessa factory di AppModule e schema in memoria
+// GraphQL con la stessa factory di AppModule e schema in memoria;
+// moduli di feature senza Bull via `imports`, sostituzione di provider via `overrides`
 export async function createAuthTestApp(
     options: AuthTestAppOptions = {},
 ): Promise<AuthTestApp> {
@@ -81,6 +90,7 @@ export async function createAuthTestApp(
                     wsConnectionAuthenticator: WsConnectionAuthenticator,
                 ) => createGraphQLOptions(wsConnectionAuthenticator, true),
             }),
+            ...(options.imports ?? []),
         ],
         controllers: [AppController, CloudinaryController],
         providers: [
@@ -95,6 +105,9 @@ export async function createAuthTestApp(
         .useValue(twitch);
     if (options.clock) {
         builder = builder.overrideProvider(Clock).useValue(options.clock);
+    }
+    for (const { token, useValue } of options.overrides ?? []) {
+        builder = builder.overrideProvider(token).useValue(useValue);
     }
     const moduleRef = await builder.compile();
 
