@@ -46,6 +46,11 @@ export class OwnershipGuard implements CanActivate {
                 type: rule.resource,
                 id: targetId,
             });
+        } else if (access !== ResourceAccess.owner) {
+            // difesa in profondità: un esito non riconosciuto non lascia mai passare
+            throw new Error(
+                `Esito di autorizzazione non riconosciuto: ${String(access)}`,
+            );
         }
         return true;
     }

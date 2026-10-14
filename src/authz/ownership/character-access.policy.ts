@@ -50,6 +50,12 @@ export class CharacterAccessPolicy {
                 return this.authorizeCharacter(identity, id);
             case OwnedResource.pendingQuest:
                 return this.authorizePendingQuest(identity, id);
+            default: {
+                const unsupported: never = resource;
+                throw new Error(
+                    `Risorsa non supportata dalla policy: ${String(unsupported)}`,
+                );
+            }
         }
     }
 

@@ -115,6 +115,17 @@ describe('OwnershipGuard', () => {
         });
     });
 
+    it('rejects an authorization outcome it does not recognise', async () => {
+        policy.authorize.mockResolvedValue(undefined);
+
+        await expect(
+            guard.canActivate(
+                graphqlContext({ req: { user: identity } }, info),
+            ),
+        ).rejects.toThrow('Esito di autorizzazione non riconosciuto');
+        expect(decisions.onBehalfTargetOf(info)).toBeUndefined();
+    });
+
     it('propagates the policy rejection', async () => {
         const rejection = AuthorizationException.notOwner();
         policy.authorize.mockRejectedValue(rejection);

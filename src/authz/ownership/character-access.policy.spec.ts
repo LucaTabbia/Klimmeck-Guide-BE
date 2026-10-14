@@ -293,6 +293,16 @@ describe('CharacterAccessPolicy', () => {
             ).resolves.toBe(ResourceAccess.owner);
             expect(userModel.findById).toHaveBeenCalledTimes(1);
         });
+
+        it('fails closed on a resource the policy does not cover', () => {
+            expect(() =>
+                policy.authorize(
+                    buildIdentity(),
+                    'Unknown' as OwnedResource,
+                    OWN_ID,
+                ),
+            ).toThrow('Risorsa non supportata dalla policy');
+        });
     });
 
     describe('mayReceiveCharacterEvent', () => {
