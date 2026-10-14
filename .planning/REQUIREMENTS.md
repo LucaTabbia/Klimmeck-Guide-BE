@@ -42,10 +42,15 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Authorization & Admin (BE-AUTHZ)
 
-- [ ] **BE-AUTHZ-01**: Ownership enforcement: solo il proprietario può mutare il proprio Character (equip, spell, transazioni, quest, travel); tentativi su character altrui → 403 → FE HARDEN-02
+- [ ] **BE-AUTHZ-01**: Ownership enforcement: solo il proprietario può mutare il proprio Character (equip, spell, transazioni, quest, travel); tentativi su character altrui → 403; l'innkeeper è esente dall'ownership e il bypass è auditato (emendato 2026-10-14) → FE HARDEN-02
 - [ ] **BE-AUTHZ-02**: Role guard `@Roles(innkeeper)` su tutte le operazioni admin (CRUD quest/enemies/POI/roads, teleport, outcome assignment, approve/reject); non-innkeeper → 403 → FE ADMIN-07, HARDEN-02
 - [ ] **BE-AUTHZ-03**: Le subscription filtrano per identità autenticata, non per argomento client: `characterUpdated` emette solo al proprietario (o innkeeper), idem per lo user stream → FE SYNC-01/02 sicuri
-- [ ] **BE-AUTHZ-04**: Ogni azione admin è audit-loggata in collection persistente (who, what, when, target, payload sintetico) → FE ADMIN-08
+- [ ] **BE-AUTHZ-04**: Ogni azione admin è audit-loggata in collection persistente (who, what, when, target, args completi, esito), TTL 90 giorni, consultabile a DB (emendato 2026-10-14) → FE ADMIN-08
+
+### Real-Time Sync (BE-SYNC) — aggiunta 2026-10-14, contratto richiesto dalla FE Phase 3 e assorbito nella Phase 3
+
+- [ ] **BE-SYNC-01**: Subscription `userUpdated: User!` senza argomenti: identità dal bearer del `connection_init`; emette lo `User` dell'utente autenticato a ogni modifica del documento (`twitchPoints`, `role`, `currentCharacter`), prodotta da un change stream su `users` → FE SYNC-01/05/07
+- [ ] **BE-SYNC-02**: Snapshot su subscribe: ogni (ri)sottoscrizione a `userUpdated` e `characterUpdated` riceve immediatamente il documento corrente, poi gli eventi live (chiude il gap di riconnessione WS senza replay) → FE SYNC-03
 
 ### Data Integrity (BE-ATOM)
 
@@ -146,6 +151,8 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-AUTHZ-02 | Phase 3 | Pending |
 | BE-AUTHZ-03 | Phase 3 | Pending |
 | BE-AUTHZ-04 | Phase 3 | Pending |
+| BE-SYNC-01 | Phase 3 | Pending |
+| BE-SYNC-02 | Phase 3 | Pending |
 | BE-ATOM-01 | Phase 4 | Pending |
 | BE-ATOM-02 | Phase 4 | Pending |
 | BE-ATOM-03 | Phase 4 | Pending |
@@ -177,8 +184,8 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 
 **Coverage:**
 
-- v1 requirements: 42 total (enumerazione effettiva dei BE-* ID; la precedente riga "38 total" era stale)
-- Mapped to phases: 42 / 42 ✓ (nessun orfano, nessun duplicato)
+- v1 requirements: 44 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14)
+- Mapped to phases: 44 / 44 ✓ (nessun orfano, nessun duplicato)
 
 ---
 
