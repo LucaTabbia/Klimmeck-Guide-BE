@@ -491,6 +491,7 @@ type Spell {
 
 type Subscription {
   characterUpdated(id: String!): Character!
+  userUpdated: User!
 }
 
 input TransactionItems {

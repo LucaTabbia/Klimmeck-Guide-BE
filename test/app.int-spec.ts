@@ -166,6 +166,13 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('logout: Boolean!');
     });
 
+    it('writes the real-time contract into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain('userUpdated: User!');
+        expect(schema).toContain('characterUpdated(id: String!): Character!');
+    });
+
     it('writes the character creation API into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
