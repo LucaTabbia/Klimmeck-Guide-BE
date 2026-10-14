@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 02.1-08-PLAN.md
-last_updated: "2026-10-14T11:01:09.211Z"
-last_activity: 2026-10-14 -- Phase 3 planning complete (10 plans, 7 waves; waves 1-3 deliver the FE real-time contract); next /gsd-execute-phase 3
+last_updated: "2026-10-14T11:04:52.116Z"
+last_activity: 2026-10-14 -- Phase 03 execution started
 progress:
   total_phases: 11
   completed_phases: 3
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 3 — Autorizzazione: Ownership, Ruoli, Audit (+ contratto real-time FE Phase 3)
+**Current focus:** Phase 03 — autorizzazione-ownership-ruoli-audit
 
 ## Current Position
 
-Phase: 3 (autorizzazione-ownership-ruoli-audit) — PLANNED 2026-10-14: 10 plans in 7 waves, plan-check passed (1 docs blocker fixed; optional warnings accepted: plan 03-02 spans 13 files, npm test as gate in 03-05/03-10); branch feat/03-autorizzazione-ownership-ruoli-audit
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-10-14 -- Phase 3 planning complete (10 plans, 7 waves; waves 1-3 deliver the FE real-time contract); next /gsd-execute-phase 3
+Phase: 03 (autorizzazione-ownership-ruoli-audit) — EXECUTING
+Plan: 1 of 10
+Status: Executing Phase 03
+Last activity: 2026-10-14 -- Phase 03 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
