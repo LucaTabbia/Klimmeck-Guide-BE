@@ -1,0 +1,13 @@
+const OBJECT_ID_HEX = /^[0-9a-f]{24}$/i;
+
+// i payload del PubSub sono documenti idratati: l'idTransformPlugin non è registrato nell'harness, quindi niente toJSON
+export function documentIdOf(document: unknown): string | undefined {
+    const id = (document as { _id?: unknown } | null | undefined)?._id;
+    if (id === undefined || id === null) return undefined;
+    return (id as { toString(): string }).toString();
+}
+
+// Types.ObjectId.isValid accetta qualunque stringa di 12 caratteri: per gli id del client serve l'esadecimale a 24
+export function isObjectIdHex(value: string): boolean {
+    return OBJECT_ID_HEX.test(value);
+}
