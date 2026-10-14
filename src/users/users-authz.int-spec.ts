@@ -27,6 +27,10 @@ function bodyOf(response: request.Response): WireBody {
     return response.body as WireBody;
 }
 
+function extensionsOf(response: request.Response): unknown {
+    return bodyOf(response).errors?.[0]?.extensions;
+}
+
 function expectRejected(
     response: request.Response,
     extensions: Record<string, unknown>,
@@ -76,27 +80,27 @@ describe('Users perimeter (innkeeper-only reads, no client writes)', () => {
 
     describe('users', () => {
         it('forbids the adventurer', async () => {
-            expectRejected(
-                await graphqlRequest(
-                    harness.app,
-                    USERS,
-                    undefined,
-                    adventurer.bearer,
-                ),
-                { code: 'FORBIDDEN' },
+            const response = await graphqlRequest(
+                harness.app,
+                USERS,
+                undefined,
+                adventurer.bearer,
             );
+
+            expect(extensionsOf(response)).toEqual({ code: 'FORBIDDEN' });
+            expect(bodyOf(response).data ?? null).toBeNull();
         });
 
         it('forbids the guard', async () => {
-            expectRejected(
-                await graphqlRequest(
-                    harness.app,
-                    USERS,
-                    undefined,
-                    guardia.bearer,
-                ),
-                { code: 'FORBIDDEN' },
+            const response = await graphqlRequest(
+                harness.app,
+                USERS,
+                undefined,
+                guardia.bearer,
             );
+
+            expect(extensionsOf(response)).toEqual({ code: 'FORBIDDEN' });
+            expect(bodyOf(response).data ?? null).toBeNull();
         });
 
         it('lists every user to the innkeeper', async () => {
@@ -125,15 +129,15 @@ describe('Users perimeter (innkeeper-only reads, no client writes)', () => {
 
     describe('user(id)', () => {
         it('forbids the adventurer even on their own id', async () => {
-            expectRejected(
-                await graphqlRequest(
-                    harness.app,
-                    USER,
-                    { id: idOf(adventurer) },
-                    adventurer.bearer,
-                ),
-                { code: 'FORBIDDEN' },
+            const response = await graphqlRequest(
+                harness.app,
+                USER,
+                { id: idOf(adventurer) },
+                adventurer.bearer,
             );
+
+            expect(extensionsOf(response)).toEqual({ code: 'FORBIDDEN' });
+            expect(bodyOf(response).data ?? null).toBeNull();
         });
 
         it('returns the requested user to the innkeeper', async () => {
