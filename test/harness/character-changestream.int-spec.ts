@@ -1,9 +1,9 @@
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { createPubSub } from '@graphql-yoga/subscription';
 import { CharacterSchema } from 'src/models/character/character.model';
 import { PointOfInterestSchema } from 'src/models/point-of-interest.model';
 import type { PubSubEvents } from 'src/pubsub.module';
-import { persistCharacter } from '../fixtures';
+import { buildCharacter, persistCharacter } from '../fixtures';
 
 /**
  * INTEGRATION (D-09): after the duplicate `PUB_SUB` provider was removed from
@@ -21,6 +21,12 @@ const PoiModel =
     mongoose.model('PointOfInterest', PointOfInterestSchema);
 
 describe('Character change stream -> PUB_SUB (D-09)', () => {
+    // The shared `test` DB may hold leftovers from suites using their own
+    // connection: start from a known-empty collection (integration is serial).
+    beforeAll(async () => {
+        await CharacterModel.deleteMany({});
+    });
+
     it('emits characterUpdated on the PubSub when a Character is updated', async () => {
         const pubSub = createPubSub<PubSubEvents>();
 
@@ -40,17 +46,27 @@ describe('Character change stream -> PUB_SUB (D-09)', () => {
             }
         });
 
-        const character = await persistCharacter(CharacterModel, {}, PoiModel);
-
-        // Trigger an update -> operationType 'update' on the change stream.
-        await CharacterModel.updateOne(
-            { _id: character._id },
-            { $set: { 'status.xp': 25000 } },
-        );
-
         // Guard with a clearable timeout so no timer lingers as an open handle.
         let timer: NodeJS.Timeout | undefined;
         try {
+            // Unique name: never collides with the case-insensitive unique index.
+            const character = await persistCharacter(
+                CharacterModel,
+                {
+                    infos: {
+                        ...buildCharacter().infos,
+                        name: `changestream-hero-${new Types.ObjectId().toString()}`,
+                    },
+                },
+                PoiModel,
+            );
+
+            // Trigger an update -> operationType 'update' on the change stream.
+            await CharacterModel.updateOne(
+                { _id: character._id },
+                { $set: { 'status.xp': 25000 } },
+            );
+
             const timeout = new Promise((_, reject) => {
                 timer = setTimeout(
                     () =>
