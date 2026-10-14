@@ -16,7 +16,8 @@ import { startRedis, stopRedis } from './setup/redis';
 const BOOT_TIMEOUT_MS = 60_000;
 const VALID_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 const SCHEMA_FILE = join(process.cwd(), 'src/schema.gql');
-const CREATE_INTRUDER = `mutation { createUser(user: { twitchId: "intruder", role: innkeeper }) { id } }`;
+const INTRUDER_MUTATION =
+    'mutation { doTransaction(request: { id: "64b000000000000000000001", boughtItems: { equipAssets: [], lootAssets: [] }, soldItems: { equipAssets: [], lootAssets: [] }, total: { gold: 0, silver: 1, copper: 0 }, isTotalPositive: true }) { successful } }';
 const CREATE_CHARACTER = `mutation { createCharacter(input: { name: "Aria", sex: female, pronoun: she, race: human, classType: wizard, age: 25 }) { id } }`;
 const RACE_TRAITS = '{ raceTraits { race } }';
 // whitelist enumerata (D-12): ogni aggiunta di @Public() deve passare da qui
@@ -189,6 +190,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('race: RaceType!');
     });
 
+    it('removes the user CRUD mutations from the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).not.toContain('createUser(');
+        expect(schema).not.toContain('updateUser(');
+        expect(schema).not.toContain('deleteUser(');
+        expect(schema).not.toContain('input UserInput');
+    });
+
     describe('global auth guard', () => {
         it('rejects an existing query without a bearer or with a forged one', async () => {
             const query = '{ users { id } }';
@@ -202,7 +212,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         });
 
         it('rejects an existing mutation without a bearer', async () => {
-            expect(errorCodeOf(await graphqlCall(app, CREATE_INTRUDER))).toBe(
+            expect(errorCodeOf(await graphqlCall(app, INTRUDER_MUTATION))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
         });

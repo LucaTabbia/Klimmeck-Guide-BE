@@ -286,8 +286,6 @@ type Lore {
 
 type Mutation {
   createCharacter(input: CreateCharacterInput!): User!
-  createUser(user: UserInput!): User!
-  deleteUser(id: String!): User!
   doTransaction(request: TransactionRequest!): CommonResponse!
   equipItem(request: EquipItemRequest!): CommonResponse!
   equipSpell(request: EquipSpellRequest!): CommonResponse!
@@ -295,7 +293,6 @@ type Mutation {
   logout: Boolean!
   refreshSession(refreshToken: String!): AuthSession!
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
-  updateUser(user: UserInput!): User!
   useSpell(request: UseSpellRequest!): CommonResponse!
 }
 
@@ -518,12 +515,4 @@ type User {
   role: RoleType!
   twitchId: String!
   twitchPoints: Int!
-}
-
-input UserInput {
-  currentCharacter: ID
-  id: ID
-  role: RoleType!
-  twitchId: String!
-  twitchPoints: Int! = 0
 }

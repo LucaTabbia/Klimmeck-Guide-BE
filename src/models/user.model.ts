@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 import { RoleType } from './enums/role-type.enum';
 import { Character } from './character/character.model';
 
@@ -33,21 +33,3 @@ export const UserSchema = SchemaFactory.createForClass(User).set(
     'versionKey',
     false,
 );
-
-@InputType()
-export class UserInput {
-    @Field(() => ID, { nullable: true })
-    id?: string;
-
-    @Field(() => String)
-    twitchId: string;
-
-    @Field(() => Int, { defaultValue: 0 })
-    twitchPoints: number;
-
-    @Field(() => RoleType)
-    role: RoleType;
-
-    @Field(() => ID, { nullable: true })
-    currentCharacter?: string;
-}
