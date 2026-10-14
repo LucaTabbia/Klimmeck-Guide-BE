@@ -6,6 +6,10 @@ import {
     Character,
     CharacterSchema,
 } from 'src/models/character/character.model';
+import {
+    PendingQuest,
+    PendingQuestSchema,
+} from 'src/models/pending-quest.model';
 import { User, UserSchema } from 'src/models/user.model';
 
 // policy e decisioni esportate: i guard di metodo vengono istanziati nel modulo che ospita il resolver
@@ -14,6 +18,7 @@ import { User, UserSchema } from 'src/models/user.model';
         MongooseModule.forFeature([
             { name: User.name, schema: UserSchema },
             { name: Character.name, schema: CharacterSchema },
+            { name: PendingQuest.name, schema: PendingQuestSchema },
         ]),
     ],
     providers: [CharacterAccessPolicy, AuthorizationDecisions],
