@@ -10,6 +10,8 @@ import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import { IS_PUBLIC_KEY } from 'src/auth/decorators/public.decorator';
 import type { AuthConfig } from 'src/config/auth-config';
 import { AUTH_CONFIG } from 'src/config/auth-config';
+import { OWNERSHIP_KEY } from 'src/authz/ownership/ownership.decorators';
+import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 import { startRedis, stopRedis } from './setup/redis';
 
@@ -28,16 +30,36 @@ const EXPECTED_PUBLIC_HANDLERS = [
     'TwitchAuthController.callback',
     'TwitchAuthController.start',
 ];
+// whitelist enumerate (D-15): ogni nuova operazione admin o sul personaggio deve passare da qui
+const EXPECTED_INNKEEPER_HANDLERS = [
+    'CharactersResolver.characters',
+    'PendingQuestsResolver.pendingQuests',
+    'UsersResolver.user',
+    'UsersResolver.users',
+];
+const EXPECTED_OWNERSHIP_HANDLERS = [
+    'CharactersResolver.character',
+    'CharactersResolver.characterUpdated',
+    'CharactersResolver.doTransaction',
+    'CharactersResolver.equipItem',
+    'CharactersResolver.equipSpell',
+    'CharactersResolver.equipment',
+    'CharactersResolver.unequipSpell',
+    'CharactersResolver.useSpell',
+    'PendingQuestsResolver.pendingQuest',
+];
 
 interface PublicSurface {
     handlers: string[];
     publicClasses: string[];
 }
 
-// legge i descriptor e non prototype[name]: alcuni provider hanno getter che lancerebbero sul prototype
-function collectPublicHandlers(app: INestApplication): PublicSurface {
-    const handlers = new Set<string>();
-    const publicClasses = new Set<string>();
+type MetadataMatcher = (value: unknown) => boolean;
+
+const isDefined: MetadataMatcher = (value) => value !== undefined;
+
+function providerInstancesOf(app: INestApplication): object[] {
+    const instances: object[] = [];
     for (const moduleRef of app.get(ModulesContainer).values()) {
         const wrappers = [
             ...moduleRef.controllers.values(),
@@ -45,29 +67,55 @@ function collectPublicHandlers(app: INestApplication): PublicSurface {
         ];
         for (const wrapper of wrappers) {
             const instance: unknown = wrapper.instance;
-            if (!instance || typeof instance !== 'object') continue;
-            const prototype = Object.getPrototypeOf(instance) as object | null;
-            if (!prototype) continue;
-            const type = instance.constructor;
-            if (Reflect.getMetadata(IS_PUBLIC_KEY, type)) {
-                publicClasses.add(type.name);
-            }
-            for (const name of Object.getOwnPropertyNames(prototype)) {
-                const handler: unknown = Object.getOwnPropertyDescriptor(
-                    prototype,
-                    name,
-                )?.value;
-                if (
-                    typeof handler === 'function' &&
-                    Reflect.getMetadata(IS_PUBLIC_KEY, handler) === true
-                ) {
-                    handlers.add(`${type.name}.${name}`);
-                }
+            if (instance && typeof instance === 'object') {
+                instances.push(instance);
             }
         }
     }
+    return instances;
+}
+
+// legge i descriptor e non prototype[name]: alcuni provider hanno getter che lancerebbero sul prototype
+function collectHandlersWithMetadata(
+    app: INestApplication,
+    metadataKey: string,
+    matches: MetadataMatcher = isDefined,
+): string[] {
+    const handlers = new Set<string>();
+    for (const instance of providerInstancesOf(app)) {
+        const prototype = Object.getPrototypeOf(instance) as object | null;
+        if (!prototype) continue;
+        const type = instance.constructor;
+        for (const name of Object.getOwnPropertyNames(prototype)) {
+            const handler: unknown = Object.getOwnPropertyDescriptor(
+                prototype,
+                name,
+            )?.value;
+            if (
+                typeof handler === 'function' &&
+                matches(Reflect.getMetadata(metadataKey, handler))
+            ) {
+                handlers.add(`${type.name}.${name}`);
+            }
+        }
+    }
+    return [...handlers].sort();
+}
+
+function collectPublicHandlers(app: INestApplication): PublicSurface {
+    const publicClasses = new Set<string>();
+    for (const instance of providerInstancesOf(app)) {
+        const type = instance.constructor;
+        if (Reflect.getMetadata(IS_PUBLIC_KEY, type)) {
+            publicClasses.add(type.name);
+        }
+    }
     return {
-        handlers: [...handlers].sort(),
+        handlers: collectHandlersWithMetadata(
+            app,
+            IS_PUBLIC_KEY,
+            (value) => value === true,
+        ),
         publicClasses: [...publicClasses],
     };
 }
@@ -167,13 +215,6 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('logout: Boolean!');
     });
 
-    it('writes the real-time contract into the generated schema', () => {
-        const schema = readFileSync(SCHEMA_FILE, 'utf8');
-
-        expect(schema).toContain('userUpdated: User!');
-        expect(schema).toContain('characterUpdated(id: String!): Character!');
-    });
-
     it('writes the character creation API into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -190,13 +231,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('race: RaceType!');
     });
 
-    it('removes the user CRUD mutations from the generated schema', () => {
+    it('keeps the real-time and authorization contract in the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
+        expect(schema).toContain('userUpdated: User!');
+        expect(schema).toContain('characterUpdated(id: String!): Character!');
         expect(schema).not.toContain('createUser(');
         expect(schema).not.toContain('updateUser(');
         expect(schema).not.toContain('deleteUser(');
         expect(schema).not.toContain('input UserInput');
+        expect(schema).not.toContain('AdminAuditLog');
+        expect(schema).not.toContain('adminProbe');
     });
 
     describe('global auth guard', () => {
@@ -255,6 +300,20 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
             expect(handlers).toEqual(EXPECTED_PUBLIC_HANDLERS);
             expect(publicClasses).toEqual([]);
+        });
+    });
+
+    describe('authorization surface', () => {
+        it('exposes exactly the enumerated innkeeper-only handlers', () => {
+            expect(collectHandlersWithMetadata(app, ROLES_KEY)).toEqual(
+                EXPECTED_INNKEEPER_HANDLERS,
+            );
+        });
+
+        it('exposes exactly the enumerated ownership-protected handlers', () => {
+            expect(collectHandlersWithMetadata(app, OWNERSHIP_KEY)).toEqual(
+                EXPECTED_OWNERSHIP_HANDLERS,
+            );
         });
     });
 });
