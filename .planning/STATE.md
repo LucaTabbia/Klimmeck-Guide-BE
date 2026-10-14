@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: planning
 stopped_at: Completed 02.1-08-PLAN.md
-last_updated: "2026-10-09T09:22:04.586Z"
-last_activity: 2026-10-09
+last_updated: "2026-10-14T10:13:19.359Z"
+last_activity: 2026-10-14 -- Phase 3 context gathered via discuss-phase (real-time contract absorbed from FE Phase 3); next /gsd-plan-phase 3
 progress:
   total_phases: 11
   completed_phases: 3
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 02.1 — Character Creation Contract
+**Current focus:** Phase 3 — Autorizzazione: Ownership, Ruoli, Audit (+ contratto real-time FE Phase 3)
 
 ## Current Position
 
-Phase: 3
+Phase: 3 (autorizzazione-ownership-ruoli-audit) — CONTEXT GATHERED 2026-10-14 (branch feat/03-autorizzazione-ownership-ruoli-audit)
 Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-10-09
+Status: Phase 3 context captured (D-01..D-19) — ready to plan; wave 1 = userUpdated + snapshot + filtro identità (sblocca FE Phase 3)
+Last activity: 2026-10-14 -- Phase 3 context gathered via discuss-phase (real-time contract absorbed from FE Phase 3); next /gsd-plan-phase 3
 
 Progress: [░░░░░░░░░░] 0%
 
