@@ -142,7 +142,7 @@ Plans:
 - [x] 03.1-03-PLAN.md — invisibilità HTTP: policy e `CharactersService` filtrati, `NOT_FOUND` su id archiviati
 - [x] 03.1-04-PLAN.md — change stream `$match` sugli attivi, rifiuto alla subscribe, spell-recovery che salta gli archiviati
 - [x] 03.1-05-PLAN.md — mutation `deleteCharacter: User!` (transazione di claim inverso), AppModule, `src/schema.gql`
-- [ ] 03.1-06-PLAN.md — `BACKEND-NOTES.md` + gate di regressione
+- [x] 03.1-06-PLAN.md — `BACKEND-NOTES.md` + gate di regressione
 **Unblocks (FE)**: FE Phase 4 Settings Screen (SET-05). Contratto proposto dal FE in `Klimmeck-Guide/.planning/phases/04-settings-screen/BACKEND-NOTES.md`; decisioni in `03.1-CONTEXT.md`.
 **Branch**: `feat/03.1-character-deletion-contract` da `develop` → PR a `develop`.
 
