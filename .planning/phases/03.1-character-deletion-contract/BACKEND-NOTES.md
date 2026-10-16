@@ -137,7 +137,7 @@ Sul WS il rifiuto alla subscribe ha la stessa forma della Phase 3: `next` con `e
 - **Nessun record in `admin_audit_logs`:** non è un'azione admin; `deletedAt` + `deletionReason` sono la traccia.
 - **Lista innkeeper `characters`:** esclude gli archiviati. Nessun argomento `includeArchived`: rinviato alla Phase 9/10 insieme a un eventuale campo `deletedAt` esposto in GraphQL.
 - **Subscription già aperte:** una `characterUpdated` aperta sull'id prima dell'archivio **resta aperta ma silenziosa**: il server non la completa. Il FE la chiude all'unmount della shell.
-- **Riferimento pendente:** se lo `User` punta a un personaggio inesistente o già archiviato, `deleteCharacter` lo **scollega comunque** (risposta di successo, `currentCharacter: null`), non tocca il documento archiviato e logga un `warn` con il solo id utente. Così l'utente non resta bloccato (né creare né eliminare).
+- **Riferimento pendente:** se lo `User` punta a un personaggio inesistente o già archiviato, `deleteCharacter` lo **scollega comunque** (risposta di successo, `currentCharacter: null`), non tocca il documento archiviato e logga un `warn` con il solo id utente. Così l'utente non resta bloccato (né creare né eliminare). In quello stato corrotto (utente ancora collegato a un personaggio archiviato) `me`, `user`, `users` e `userUpdated` mostrano `currentCharacter: null`, mentre `createCharacter` risponde ancora `CHARACTER_ALREADY_EXISTS`: il FE deve chiamare `deleteCharacter`, che scollega il riferimento e riallinea lo stato.
 
 ---
 
