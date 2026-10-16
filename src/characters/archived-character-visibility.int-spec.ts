@@ -254,6 +254,20 @@ describe('Archived characters on player paths (wire)', () => {
         },
     );
 
+    it('resolves me.currentCharacter to null for a user still pointing at an archived character', async () => {
+        await archiveDocument(alice);
+
+        const response = await graphqlRequest(
+            harness.app,
+            '{ me { currentCharacter { id } } }',
+            undefined,
+            alice.bearer,
+        );
+
+        expect(bodyOf(response).errors).toBeUndefined();
+        expect(bodyOf(response).data?.me).toEqual({ currentCharacter: null });
+    });
+
     it('hides archived characters from the innkeeper list', async () => {
         await archive(alice);
 
