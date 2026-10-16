@@ -22,6 +22,7 @@ const INTRUDER_MUTATION =
     'mutation { doTransaction(request: { id: "64b000000000000000000001", boughtItems: { equipAssets: [], lootAssets: [] }, soldItems: { equipAssets: [], lootAssets: [] }, total: { gold: 0, silver: 1, copper: 0 }, isTotalPositive: true }) { successful } }';
 const CREATE_CHARACTER = `mutation { createCharacter(input: { name: "Aria", sex: female, pronoun: she, race: human, classType: wizard, age: 25 }) { id } }`;
 const RACE_TRAITS = '{ raceTraits { race } }';
+const DELETE_CHARACTER = 'mutation { deleteCharacter { id } }';
 // whitelist enumerata (D-12): ogni aggiunta di @Public() deve passare da qui
 const EXPECTED_PUBLIC_HANDLERS = [
     'AppController.getHello',
@@ -231,6 +232,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('race: RaceType!');
     });
 
+    it('writes the character deletion API into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain('deleteCharacter: User!');
+        expect(schema).not.toContain('deletedAt');
+        expect(schema).not.toContain('deletionReason');
+        expect(schema).not.toContain('DeletionReason');
+    });
+
     it('keeps the real-time and authorization contract in the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -267,6 +277,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
                 AuthErrorCode.UNAUTHENTICATED,
             );
             expect(errorCodeOf(await graphqlCall(app, CREATE_CHARACTER))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects deleteCharacter without a bearer', async () => {
+            expect(errorCodeOf(await graphqlCall(app, DELETE_CHARACTER))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
         });
