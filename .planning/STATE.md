@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 02.1-08-PLAN.md
-last_updated: "2026-10-16T10:10:19.577Z"
-last_activity: 2026-10-16 -- Phase 03.1 planning complete
+last_updated: "2026-10-16T10:10:49.302Z"
+last_activity: 2026-10-16 -- Phase 03.1 execution started
 progress:
   total_phases: 12
   completed_phases: 4
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 03 — autorizzazione-ownership-ruoli-audit
+**Current focus:** Phase 03.1 — character-deletion-contract
 
 ## Current Position
 
-Phase: 03.1 (character-deletion-contract) — CONTEXT GATHERED 2026-10-15 (inserted from the FE Phase 4 discuss), branch feat/03.1-character-deletion-contract
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-10-16 -- Phase 03.1 planning complete
+Phase: 03.1 (character-deletion-contract) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 03.1
+Last activity: 2026-10-16 -- Phase 03.1 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
