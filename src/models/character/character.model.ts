@@ -21,6 +21,7 @@ import {
     CharacterAssets,
     CharacterAssetsInput,
 } from './character-assets.model';
+import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 
 @ObjectType()
 @Schema()
@@ -43,6 +44,13 @@ export class Character {
     @Field(() => CharacterAssets)
     @Prop({ type: CharacterAssetsSchema })
     assets: CharacterAssets;
+
+    // archivio (soft delete, D-04): mai esposto in GraphQL; type esplicito, altrimenti Date | null diventa Mixed
+    @Prop({ type: Date, default: null })
+    deletedAt: Date | null;
+
+    @Prop({ type: String, enum: Object.values(DeletionReason), default: null })
+    deletionReason: DeletionReason | null;
 }
 
 export type CharacterDocument = Character & Document;
