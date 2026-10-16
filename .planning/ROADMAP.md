@@ -138,8 +138,8 @@ Plans:
 **Plans**: 6 plans
 Plans:
 - [x] 03.1-01-PLAN.md — fondamenta: `DeletionReason`, `deletedAt`/`deletionReason` @Prop, `ACTIVE_CHARACTER_FILTER`, `CharacterDeletionException`
-- [ ] 03.1-02-PLAN.md — indice parziale `character_name_active_ci_unique` + verifier build-then-drop del legacy
-- [ ] 03.1-03-PLAN.md — invisibilità HTTP: policy e `CharactersService` filtrati, `NOT_FOUND` su id archiviati
+- [x] 03.1-02-PLAN.md — indice parziale `character_name_active_ci_unique` + verifier build-then-drop del legacy
+- [x] 03.1-03-PLAN.md — invisibilità HTTP: policy e `CharactersService` filtrati, `NOT_FOUND` su id archiviati
 - [ ] 03.1-04-PLAN.md — change stream `$match` sugli attivi, rifiuto alla subscribe, spell-recovery che salta gli archiviati
 - [ ] 03.1-05-PLAN.md — mutation `deleteCharacter: User!` (transazione di claim inverso), AppModule, `src/schema.gql`
 - [ ] 03.1-06-PLAN.md — `BACKEND-NOTES.md` + gate di regressione
