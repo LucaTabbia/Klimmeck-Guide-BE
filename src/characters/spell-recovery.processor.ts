@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Job } from 'bull';
 import { Model } from 'mongoose';
+import { activeCharacterById } from 'src/models/character/active-character.filter';
 import {
     Character,
     CharacterDocument,
@@ -30,12 +31,13 @@ export class SpellRecoveryProcessor {
             `Processing spell recovery for character ${characterId}, spell ${spellId}`,
         );
 
+        // un job accodato prima dell'archivio non deve resuscitare il personaggio (03.1 D-06)
         const character = await this.characterModel
-            .findById(characterId)
+            .findOne(activeCharacterById(characterId))
             .exec();
         if (!character) {
             this.logger.warn(
-                `Character ${characterId} not found, skipping recovery`,
+                `Character ${characterId} not found or archived, skipping recovery`,
             );
             return;
         }

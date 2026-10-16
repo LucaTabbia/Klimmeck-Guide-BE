@@ -37,6 +37,7 @@ import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { ActiveSpell } from 'src/models/common/active-spell.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
+import { CHARACTER_CHANGES_PIPELINE } from './character-changes.pipeline';
 import { SpellRecoveryJobData } from './spell-recovery.processor';
 
 @Injectable()
@@ -54,13 +55,10 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     ) {}
 
     async onModuleInit() {
-        const pipeline = [
-            { $match: { operationType: { $in: ['update', 'replace'] } } },
-        ];
-
-        this.changeStream = this.characterModel.watch(pipeline, {
-            fullDocument: 'updateLookup',
-        });
+        this.changeStream = this.characterModel.watch(
+            CHARACTER_CHANGES_PIPELINE,
+            { fullDocument: 'updateLookup' },
+        );
 
         this.changeStream.on('change', async (change) => {
             try {
@@ -73,6 +71,8 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
                     });
                 }
             } catch (err) {
+                // corsa: archiviato tra l'evento e la rilettura → nessun evento, non è un errore
+                if (err instanceof ResourceNotFoundException) return;
                 this.logger.error('Errore nel change stream', err);
             }
         });
