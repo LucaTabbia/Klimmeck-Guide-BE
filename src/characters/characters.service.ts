@@ -5,6 +5,10 @@ import type { Queue } from 'bull';
 import { Model, Types } from 'mongoose';
 import type { PubSub } from '@graphql-yoga/subscription';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
+import {
+    ACTIVE_CHARACTER_FILTER,
+    activeCharacterById,
+} from 'src/models/character/active-character.filter';
 import { Character, CharacterDocument } from 'src/models/character/character.model';
 import { Equipment } from 'src/models/common/equipment.model';
 import { AssetQuantity, AssetQuantityInput, ItemReferenceType } from 'src/models/common/asset-quantity.model';
@@ -67,13 +71,14 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    // letture di gioco solo sugli attivi (03.1 D-06): un archiviato risponde NOT_FOUND come un id inesistente
     async findAll(): Promise<Character[]> {
-        return this.characterModel.find().exec();
+        return this.characterModel.find(ACTIVE_CHARACTER_FILTER).exec();
     }
 
     async findOne(id: string): Promise<Character> {
         const character = await this.characterModel
-            .findById(id)
+            .findOne(activeCharacterById(id))
             .populate({
                 path: 'assets.ownedEquipments.item',
                 model: 'EquipmentItem',
@@ -143,7 +148,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
 
     async getEquipment(id: string): Promise<Equipment> {
 
-        let query = this.characterModel.findById(id);
+        let query = this.characterModel.findOne(activeCharacterById(id));
         for (const slot of Object.values(SlotType)) {
             query = query.populate(`assets.wearedEquipment.${slot}`);
         }
@@ -156,7 +161,9 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async doTransaction(request: TransactionRequest): Promise<CommonResponse> {
-        const character = await this.characterModel.findById(request.id);
+        const character = await this.characterModel
+            .findOne(activeCharacterById(request.id))
+            .exec();
         if (!character) throw ResourceNotFoundException.character();
 
         const coinSign = request.isTotalPositive ? 1 : -1;
@@ -204,7 +211,9 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async equipItem(request: EquipItemRequest): Promise<CommonResponse> {
-        const character = await this.characterModel.findById(request.id);
+        const character = await this.characterModel
+            .findOne(activeCharacterById(request.id))
+            .exec();
         if (!character) throw ResourceNotFoundException.character();
         const slot = request.slotType as keyof Equipment;
         character.assets.wearedEquipment[slot] = request.itemId != null ? new Types.ObjectId(request.itemId) : null;
@@ -216,7 +225,9 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async equipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel.findById(request.id).exec();
+        const character = await this.characterModel
+            .findOne(activeCharacterById(request.id))
+            .exec();
         if (!character) {
             throw ResourceNotFoundException.character();
         }
@@ -253,7 +264,9 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async unequipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel.findById(request.id).exec();
+        const character = await this.characterModel
+            .findOne(activeCharacterById(request.id))
+            .exec();
         if (!character) {
             throw ResourceNotFoundException.character();
         }
@@ -275,7 +288,9 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async useSpell(request: UseSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel.findById(request.characterId).exec();
+        const character = await this.characterModel
+            .findOne(activeCharacterById(request.characterId))
+            .exec();
         if (!character) {
             throw ResourceNotFoundException.character();
         }

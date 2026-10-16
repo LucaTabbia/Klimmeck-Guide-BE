@@ -27,7 +27,7 @@ describe('CharacterAccessPolicy', () => {
     let characterDoc: {
         quests: { pendingQuest: Types.ObjectId | null };
     } | null;
-    let characterModel: { exists: jest.Mock; findById: jest.Mock };
+    let characterModel: { exists: jest.Mock; findOne: jest.Mock };
     let pendingQuestModel: { exists: jest.Mock };
     let policy: CharacterAccessPolicy;
 
@@ -45,7 +45,7 @@ describe('CharacterAccessPolicy', () => {
             exists: jest
                 .fn()
                 .mockResolvedValue({ _id: new Types.ObjectId(FOREIGN_ID) }),
-            findById: jest.fn().mockImplementation(() => ({
+            findOne: jest.fn().mockImplementation(() => ({
                 lean: () => ({ exec: () => Promise.resolve(characterDoc) }),
             })),
         };
@@ -126,6 +126,28 @@ describe('CharacterAccessPolicy', () => {
             });
             expect(characterModel.exists).toHaveBeenCalledWith({
                 _id: FOREIGN_ID,
+                deletedAt: null,
+            });
+        });
+
+        it('reports an archived character as not found for its former owner', async () => {
+            userDoc = { currentCharacter: null };
+            characterModel.exists.mockResolvedValue(null);
+
+            const result = policy.authorizeCharacter(
+                buildIdentity(),
+                FOREIGN_ID,
+            );
+
+            await expect(result).rejects.toBeInstanceOf(
+                ResourceNotFoundException,
+            );
+            await expect(result).rejects.toMatchObject({
+                code: AuthorizationErrorCode.NOT_FOUND,
+            });
+            expect(characterModel.exists).toHaveBeenCalledWith({
+                _id: FOREIGN_ID,
+                deletedAt: null,
             });
         });
 
@@ -179,10 +201,11 @@ describe('CharacterAccessPolicy', () => {
                 policy.authorizePendingQuest(buildIdentity(), PQ_ID),
             ).resolves.toBe(ResourceAccess.owner);
             expect(userModel.findById).toHaveBeenCalledTimes(1);
-            expect(characterModel.findById).toHaveBeenCalledTimes(1);
-            expect(characterModel.findById).toHaveBeenCalledWith(OWN_ID, {
-                'quests.pendingQuest': 1,
-            });
+            expect(characterModel.findOne).toHaveBeenCalledTimes(1);
+            expect(characterModel.findOne).toHaveBeenCalledWith(
+                { _id: OWN_ID, deletedAt: null },
+                { 'quests.pendingQuest': 1 },
+            );
             expect(pendingQuestModel.exists).not.toHaveBeenCalled();
         });
 
@@ -224,7 +247,7 @@ describe('CharacterAccessPolicy', () => {
             await expect(
                 policy.authorizePendingQuest(buildIdentity(), PQ_ID),
             ).rejects.toMatchObject({ code: AuthorizationErrorCode.FORBIDDEN });
-            expect(characterModel.findById).not.toHaveBeenCalled();
+            expect(characterModel.findOne).not.toHaveBeenCalled();
         });
 
         it('forbids an adventurer whose character has no pending quest', async () => {
@@ -243,7 +266,7 @@ describe('CharacterAccessPolicy', () => {
                 ),
             ).resolves.toBe(ResourceAccess.onBehalf);
             expect(userModel.findById).not.toHaveBeenCalled();
-            expect(characterModel.findById).not.toHaveBeenCalled();
+            expect(characterModel.findOne).not.toHaveBeenCalled();
             expect(pendingQuestModel.exists).not.toHaveBeenCalled();
         });
 
@@ -256,7 +279,7 @@ describe('CharacterAccessPolicy', () => {
                     code: AuthorizationErrorCode.NOT_FOUND,
                 });
                 expect(userModel.findById).not.toHaveBeenCalled();
-                expect(characterModel.findById).not.toHaveBeenCalled();
+                expect(characterModel.findOne).not.toHaveBeenCalled();
                 expect(pendingQuestModel.exists).not.toHaveBeenCalled();
             },
         );
@@ -280,7 +303,7 @@ describe('CharacterAccessPolicy', () => {
                     PQ_ID,
                 ),
             ).resolves.toBe(ResourceAccess.owner);
-            expect(characterModel.findById).toHaveBeenCalledTimes(1);
+            expect(characterModel.findOne).toHaveBeenCalledTimes(1);
         });
 
         it('delegates the character resource to authorizeCharacter', async () => {

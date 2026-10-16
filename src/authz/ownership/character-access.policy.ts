@@ -8,6 +8,7 @@ import {
     ResourceAccess,
 } from 'src/authz/ownership/owned-resource';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
+import { activeCharacterById } from 'src/models/character/active-character.filter';
 import {
     Character,
     CharacterDocument,
@@ -137,7 +138,9 @@ export class CharacterAccessPolicy {
         const characterId = await this.readCurrentCharacterId(userId);
         if (!characterId) return undefined;
         const character = await this.characterModel
-            .findById(characterId, { 'quests.pendingQuest': 1 })
+            .findOne(activeCharacterById(characterId), {
+                'quests.pendingQuest': 1,
+            })
             .lean<PendingQuestProjection | null>()
             .exec();
         return character?.quests?.pendingQuest
@@ -145,8 +148,13 @@ export class CharacterAccessPolicy {
             : undefined;
     }
 
+    // un archiviato vale come inesistente (03.1 D-06): NOT_FOUND per tutti, nessun oracolo FORBIDDEN/NOT_FOUND
     private async assertCharacterExists(characterId: string): Promise<void> {
-        if (!(await this.characterModel.exists({ _id: characterId }))) {
+        if (
+            !(await this.characterModel.exists(
+                activeCharacterById(characterId),
+            ))
+        ) {
             throw ResourceNotFoundException.character();
         }
     }
