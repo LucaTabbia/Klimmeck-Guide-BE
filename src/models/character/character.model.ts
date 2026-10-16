@@ -21,6 +21,8 @@ import {
     CharacterAssets,
     CharacterAssetsInput,
 } from './character-assets.model';
+import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
+import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 
 @ObjectType()
 @Schema()
@@ -43,21 +45,32 @@ export class Character {
     @Field(() => CharacterAssets)
     @Prop({ type: CharacterAssetsSchema })
     assets: CharacterAssets;
+
+    // archivio (soft delete, D-04): mai esposto in GraphQL; type esplicito, altrimenti Date | null diventa Mixed
+    @Prop({ type: Date, default: null })
+    deletedAt: Date | null;
+
+    @Prop({ type: String, enum: Object.values(DeletionReason), default: null })
+    deletionReason: DeletionReason | null;
 }
 
 export type CharacterDocument = Character & Document;
 export const CharacterSchema = SchemaFactory.createForClass(Character);
 
-export const CHARACTER_NAME_INDEX = 'character_name_ci_unique';
+export const CHARACTER_NAME_INDEX = 'character_name_active_ci_unique';
+// indice globale della 02.1: il verifier lo elimina al primo boot (stesso nome con nuove opzioni → code 86)
+export const LEGACY_CHARACTER_NAME_INDEX = 'character_name_ci_unique';
 export const CHARACTER_NAME_COLLATION = { locale: 'en', strength: 2 } as const;
 
-// unicità case-insensitive garantita dal DB (D-18): strength 2 ignora maiuscole, non gli accenti
+// unicità case-insensitive garantita dal DB (D-18) solo tra i personaggi attivi (D-09):
+// strength 2 ignora maiuscole, non gli accenti; { deletedAt: null } copre anche i documenti senza il campo
 CharacterSchema.index(
     { 'infos.name': 1 },
     {
         unique: true,
         collation: CHARACTER_NAME_COLLATION,
         name: CHARACTER_NAME_INDEX,
+        partialFilterExpression: ACTIVE_CHARACTER_FILTER,
     },
 );
 

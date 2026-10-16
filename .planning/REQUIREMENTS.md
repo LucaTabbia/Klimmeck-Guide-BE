@@ -40,6 +40,13 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 - [x] **BE-CHAR-04**: `imagePath` facoltativo: URL restituito dal REST autenticato `POST /cloudinary/uploadImage` (cartella `characters_profile`, già esistente); nessun controllo NSFW in questa fase — il controllo autoritativo è debito esplicito di BE-HARD → FE CHAR-05 (CHAR-06 rinviato dall'utente il 2026-10-08)
 - [x] **BE-CHAR-05**: Handoff `BACKEND-NOTES.md` della fase 02.1 con schema, input, codici d'errore, stato iniziale del personaggio ed esempi → consumato da FE Phase 2
 
+### Character Deletion (BE-CHAR) — fase inserita 03.1, richiesta dalla FE Phase 4 (2026-10-15)
+
+- [x] **BE-CHAR-06**: Mutation `deleteCharacter: User!` sull'identità autenticata (nessun argomento): archivia il `currentCharacter` del chiamante (soft delete con `deletedAt`/`deletionReason`), azzera `User.currentCharacter` atomicamente (transazione, una sola archiviazione anche in concorrenza) e restituisce lo `User` aggiornato; senza personaggio corrente → `CHARACTER_NOT_FOUND` → FE SET-05
+- [x] **BE-CHAR-07**: Il personaggio archiviato è invisibile ai percorsi giocatore (`character`, `characterUpdated`, mutation sotto ownership, processor/job) e il suo nome torna disponibile per `createCharacter` (indice unico case-insensitive limitato ai documenti attivi, verifier di boot aggiornato) → FE SET-05, CHAR-04
+- [x] **BE-CHAR-08**: Dopo la cancellazione `userUpdated` emette `currentCharacter: null` (change stream `users` esistente) e nessun `characterUpdated` viene emesso per documenti archiviati; un nuovo `createCharacter` dello stesso utente riesce → FE SYNC-05, SET-05
+- [x] **BE-CHAR-09**: Handoff `BACKEND-NOTES.md` della fase 03.1 con schema, codici, semantica dell'archivio, risposte alle domande aperte del FE ed esempi; `src/schema.gql` rigenerato → consumato da FE Phase 4
+
 ### Authorization & Admin (BE-AUTHZ)
 
 - [x] **BE-AUTHZ-01**: Ownership enforcement: solo il proprietario può mutare il proprio Character (equip, spell, transazioni, quest, travel); tentativi su character altrui → 403; l'innkeeper è esente dall'ownership e il bypass è auditato (emendato 2026-10-14) → FE HARDEN-02
@@ -147,6 +154,10 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-CHAR-03 | Phase 02.1 | Complete |
 | BE-CHAR-04 | Phase 02.1 | Complete |
 | BE-CHAR-05 | Phase 02.1 | Complete |
+| BE-CHAR-06 | Phase 03.1 | Complete |
+| BE-CHAR-07 | Phase 03.1 | Complete |
+| BE-CHAR-08 | Phase 03.1 | Complete |
+| BE-CHAR-09 | Phase 03.1 | Complete |
 | BE-AUTHZ-01 | Phase 3 | Complete |
 | BE-AUTHZ-02 | Phase 3 | Complete |
 | BE-AUTHZ-03 | Phase 3 | Complete |
@@ -184,7 +195,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 
 **Coverage:**
 
-- v1 requirements: 44 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14)
+- v1 requirements: 48 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14)
 - Mapped to phases: 44 / 44 ✓ (nessun orfano, nessun duplicato)
 
 ---

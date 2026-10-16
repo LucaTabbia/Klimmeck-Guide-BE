@@ -1,9 +1,14 @@
 export const DUPLICATE_KEY_ERROR_CODE = 11000;
+export const INDEX_NOT_FOUND_ERROR_CODE = 27;
 
 type KeyPattern = Record<string, unknown>;
 
 export function isDuplicateKeyError(error: unknown): boolean {
     return mongoErrorCodeOf(error) === DUPLICATE_KEY_ERROR_CODE;
+}
+
+export function isIndexNotFoundError(error: unknown): boolean {
+    return mongoErrorCodeOf(error) === INDEX_NOT_FOUND_ERROR_CODE;
 }
 
 // legge solo keyPattern: con un indice collation l'altra chiave del driver è una chiave ICU opaca e non va mai esposta

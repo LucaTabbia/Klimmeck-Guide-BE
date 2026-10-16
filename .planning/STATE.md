@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02.1-08-PLAN.md
-last_updated: "2026-10-14T12:00:53.613Z"
-last_activity: 2026-10-14
+stopped_at: Completed 03.1-06-PLAN.md
+last_updated: "2026-10-16T10:57:57.308Z"
+last_activity: "2026-10-16 -- Phase 03.1 complete: deleteCharacter contract delivered (6/6 plans, verification passed 5/5, security verified threats_open 0, review WR-01 fixed); PR to develop next, before FE Phase 4 PR"
 progress:
-  total_phases: 11
-  completed_phases: 4
-  total_plans: 33
-  completed_plans: 33
+  total_phases: 12
+  completed_phases: 5
+  total_plans: 39
+  completed_plans: 39
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 03 — autorizzazione-ownership-ruoli-audit
+**Current focus:** Phase 03.1 complete (PR to `develop` pending, to be merged before the FE Phase 4 PR) → next Phase 4 — integrità economica (atomics)
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
-Status: Phase 03 complete — PR #5 open on LucaTabbia/Klimmeck-Guide-BE (feat/03-autorizzazione-ownership-ruoli-audit → develop); merge BEFORE the FE PR LucaTabbia/Klimmeck-Guide#27
-Last activity: 2026-10-14 -- Phase 3 PR #5: 4 review warnings fixed in TDD (03-REVIEW-FIX.md, unit 453 + integration 322 green, build OK); 03-UAT.md pending
+Phase: 03.1 (character-deletion-contract) — COMPLETE 2026-10-16, branch feat/03.1-character-deletion-contract
+Plan: 6/6 complete
+Status: Phase 03.1 complete — PR to develop pending; next /gsd-discuss-phase 4 or /gsd-plan-phase 4
+Last activity: 2026-10-16 -- Phase 03.1 complete: deleteCharacter contract (soft delete, atomic unlink, name release, archived invisibility), VERIFICATION passed 5/5, SECURITY threats_open 0, REVIEW 0 critical / 1 warning fixed (WR-01), VALIDATION validated
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -36,7 +36,7 @@ Progress: [░░░░░░░░░░] 0%
 
 **Velocity:**
 
-- Total plans completed: 32
+- Total plans completed: 39
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -48,6 +48,8 @@ Progress: [░░░░░░░░░░] 0%
 | 2 | 9 | - | - |
 | 02.1 | 8 | - | - |
 | 03 | 10 | - | - |
+| 03.1 | 6 | - | - |
+| 03.1 | 6 | - | - |
 
 **Recent Trend:**
 
@@ -83,6 +85,7 @@ Progress: [░░░░░░░░░░] 0%
 ### Roadmap Evolution
 
 - Phase 02.1 inserted after Phase 2: Character Creation Contract (URGENT) — 2026-10-09, richiesto dalla FE Phase 2 (nessuna mutation di creazione personaggio esisteva); branch `feat/02.1-character-creation-contract`
+- Phase 03.1 inserted after Phase 3: Character Deletion Contract (URGENT) — 2026-10-15, richiesto dalla FE Phase 4 (SET-05: cancellazione esplicita del personaggio dalle impostazioni; nessuna mutation di cancellazione esisteva); branch `feat/03.1-character-deletion-contract`
 
 ### Decisions
 

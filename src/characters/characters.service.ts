@@ -1,13 +1,31 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject, BadRequestException } from '@nestjs/common';
+import {
+    Injectable,
+    OnModuleInit,
+    OnModuleDestroy,
+    Logger,
+    Inject,
+    BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { Model, Types } from 'mongoose';
 import type { PubSub } from '@graphql-yoga/subscription';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
-import { Character, CharacterDocument } from 'src/models/character/character.model';
+import {
+    ACTIVE_CHARACTER_FILTER,
+    activeCharacterById,
+} from 'src/models/character/active-character.filter';
+import {
+    Character,
+    CharacterDocument,
+} from 'src/models/character/character.model';
 import { Equipment } from 'src/models/common/equipment.model';
-import { AssetQuantity, AssetQuantityInput, ItemReferenceType } from 'src/models/common/asset-quantity.model';
+import {
+    AssetQuantity,
+    AssetQuantityInput,
+    ItemReferenceType,
+} from 'src/models/common/asset-quantity.model';
 import { CommonResponse } from 'src/models/common/common-response.model';
 import { normalizeCoins } from 'src/utils';
 import { EquipmentItem } from 'src/models/equipment-item.model';
@@ -19,6 +37,7 @@ import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { ActiveSpell } from 'src/models/common/active-spell.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
+import { CHARACTER_CHANGES_PIPELINE } from './character-changes.pipeline';
 import { SpellRecoveryJobData } from './spell-recovery.processor';
 
 @Injectable()
@@ -27,30 +46,33 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     private changeStream: ReturnType<typeof Model.prototype.watch>;
 
     constructor(
-        @InjectModel(Character.name) private characterModel: Model<CharacterDocument>,
+        @InjectModel(Character.name)
+        private characterModel: Model<CharacterDocument>,
         @InjectModel(Spell.name) private spellModel: Model<SpellDocument>,
-        @InjectQueue('spell-recovery') private spellRecoveryQueue: Queue<SpellRecoveryJobData>,
+        @InjectQueue('spell-recovery')
+        private spellRecoveryQueue: Queue<SpellRecoveryJobData>,
         @Inject(PUB_SUB) private readonly pubSub: PubSub<PubSubEvents>,
-    ) { }
+    ) {}
 
     async onModuleInit() {
-        const pipeline = [{ $match: { operationType: { $in: ['update', 'replace'] } } }];
-
-        this.changeStream = this.characterModel.watch(pipeline, {
-            fullDocument: 'updateLookup',
-        });
+        this.changeStream = this.characterModel.watch(
+            CHARACTER_CHANGES_PIPELINE,
+            { fullDocument: 'updateLookup' },
+        );
 
         this.changeStream.on('change', async (change) => {
             try {
                 if (change.fullDocument) {
                     const id = change.fullDocument._id;
 
-                    const character = await this.findOne(id)
+                    const character = await this.findOne(id);
                     this.pubSub.publish('characterUpdated', {
                         characterUpdated: character,
                     });
                 }
             } catch (err) {
+                // corsa: archiviato tra l'evento e la rilettura → nessun evento, non è un errore
+                if (err instanceof ResourceNotFoundException) return;
                 this.logger.error('Errore nel change stream', err);
             }
         });
@@ -67,13 +89,14 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    // letture di gioco solo sugli attivi (03.1 D-06): un archiviato risponde NOT_FOUND come un id inesistente
     async findAll(): Promise<Character[]> {
-        return this.characterModel.find().exec();
+        return this.characterModel.find(ACTIVE_CHARACTER_FILTER).exec();
     }
 
     async findOne(id: string): Promise<Character> {
         const character = await this.characterModel
-            .findById(id)
+            .findOne(activeCharacterById(id))
             .populate({
                 path: 'assets.ownedEquipments.item',
                 model: 'EquipmentItem',
@@ -98,7 +121,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
 
         const ownedEquipmentsMap = new Map<string, EquipmentItem>();
 
-        character.assets.ownedEquipments.forEach(assetQuantity => {
+        character.assets.ownedEquipments.forEach((assetQuantity) => {
             const item = assetQuantity.item as EquipmentItem;
             if (item && item.id) {
                 ownedEquipmentsMap.set(item.id.toString(), item);
@@ -107,11 +130,13 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
 
         const wearedEquipment = character.assets.wearedEquipment;
 
-        Object.values(SlotType).forEach(slot => {
+        Object.values(SlotType).forEach((slot) => {
             const itemId = wearedEquipment[slot];
 
             if (itemId instanceof Types.ObjectId) {
-                const populatedItem = ownedEquipmentsMap.get(itemId.toHexString());
+                const populatedItem = ownedEquipmentsMap.get(
+                    itemId.toHexString(),
+                );
                 if (populatedItem) {
                     wearedEquipment[slot] = populatedItem;
                 } else {
@@ -121,7 +146,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
         });
 
         const activeSpellMap = new Map<string, number>();
-        character.assets.activeSpells.forEach(a => {
+        character.assets.activeSpells.forEach((a) => {
             if (a.spell instanceof Types.ObjectId) {
                 activeSpellMap.set(a.spell.toString(), a.usages);
             }
@@ -129,7 +154,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
 
         const activeSpells: ActiveSpell[] = [];
 
-        character.status.spells.forEach(spell => {
+        character.status.spells.forEach((spell) => {
             const usages = activeSpellMap.get(spell.id);
             if (usages !== undefined) {
                 activeSpells.push({ spell, usages });
@@ -142,8 +167,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async getEquipment(id: string): Promise<Equipment> {
-
-        let query = this.characterModel.findById(id);
+        let query = this.characterModel.findOne(activeCharacterById(id));
         for (const slot of Object.values(SlotType)) {
             query = query.populate(`assets.wearedEquipment.${slot}`);
         }
@@ -156,7 +180,9 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async doTransaction(request: TransactionRequest): Promise<CommonResponse> {
-        const character = await this.characterModel.findById(request.id);
+        const character = await this.characterModel
+            .findOne(activeCharacterById(request.id))
+            .exec();
         if (!character) throw ResourceNotFoundException.character();
 
         const coinSign = request.isTotalPositive ? 1 : -1;
@@ -174,9 +200,13 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
             itemType: ItemReferenceType,
         ) => {
             for (const item of items) {
-                const existing = targetArray.find((a) => a.item.toString() === item.item);
+                const existing = targetArray.find(
+                    (a) => a.item.toString() === item.item,
+                );
                 if (existing) {
-                    existing.quantity += isAdding ? item.quantity : -item.quantity;
+                    existing.quantity += isAdding
+                        ? item.quantity
+                        : -item.quantity;
                     if (existing.quantity <= 0) {
                         const index = targetArray.indexOf(existing);
                         targetArray.splice(index, 1);
@@ -191,10 +221,30 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
             }
         };
 
-        updateAssets(character.assets.ownedItems, request.boughtItems.lootAssets, true, 'LootItem');
-        updateAssets(character.assets.ownedEquipments, request.boughtItems.equipAssets, true, 'EquipmentItem');
-        updateAssets(character.assets.ownedItems, request.soldItems.lootAssets, false, 'LootItem');
-        updateAssets(character.assets.ownedEquipments, request.soldItems.equipAssets, false, 'EquipmentItem');
+        updateAssets(
+            character.assets.ownedItems,
+            request.boughtItems.lootAssets,
+            true,
+            'LootItem',
+        );
+        updateAssets(
+            character.assets.ownedEquipments,
+            request.boughtItems.equipAssets,
+            true,
+            'EquipmentItem',
+        );
+        updateAssets(
+            character.assets.ownedItems,
+            request.soldItems.lootAssets,
+            false,
+            'LootItem',
+        );
+        updateAssets(
+            character.assets.ownedEquipments,
+            request.soldItems.equipAssets,
+            false,
+            'EquipmentItem',
+        );
 
         await character.save();
         return {
@@ -204,10 +254,13 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async equipItem(request: EquipItemRequest): Promise<CommonResponse> {
-        const character = await this.characterModel.findById(request.id);
+        const character = await this.characterModel
+            .findOne(activeCharacterById(request.id))
+            .exec();
         if (!character) throw ResourceNotFoundException.character();
         const slot = request.slotType as keyof Equipment;
-        character.assets.wearedEquipment[slot] = request.itemId != null ? new Types.ObjectId(request.itemId) : null;
+        character.assets.wearedEquipment[slot] =
+            request.itemId != null ? new Types.ObjectId(request.itemId) : null;
         await character.save();
         return {
             response: 'Equipaggiamento cambiato con successo',
@@ -216,33 +269,44 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async equipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel.findById(request.id).exec();
+        const character = await this.characterModel
+            .findOne(activeCharacterById(request.id))
+            .exec();
         if (!character) {
             throw ResourceNotFoundException.character();
         }
 
-        const knownSpellIds = character.status.spells.map(s => 
-            s instanceof Types.ObjectId ? s.toString() : s.id?.toString()
+        const knownSpellIds = character.status.spells.map((s) =>
+            s instanceof Types.ObjectId ? s.toString() : s.id?.toString(),
         );
         if (!knownSpellIds.includes(request.spellId)) {
-            throw new BadRequestException(`Spell ${request.spellId} is not known by character ${request.id}`);
+            throw new BadRequestException(
+                `Spell ${request.spellId} is not known by character ${request.id}`,
+            );
         }
 
         const isAlreadyActive = character.assets.activeSpells.some(
-            a => a.spell?.toString() === request.spellId
+            (a) => a.spell?.toString() === request.spellId,
         );
         if (isAlreadyActive) {
-            throw new BadRequestException(`Spell ${request.spellId} is already active`);
+            throw new BadRequestException(
+                `Spell ${request.spellId} is already active`,
+            );
         }
 
-        if (character.status.maxActiveSpells <= character.assets.activeSpells.length) {
-            throw new BadRequestException(`Character ${request.id} has reached the maximum number of active spells`);
+        if (
+            character.status.maxActiveSpells <=
+            character.assets.activeSpells.length
+        ) {
+            throw new BadRequestException(
+                `Character ${request.id} has reached the maximum number of active spells`,
+            );
         }
 
         const usages = request.usages ?? 0;
         character.assets.activeSpells = [
-            ...character.assets.activeSpells, 
-            { spell: new Types.ObjectId(request.spellId), usages }
+            ...character.assets.activeSpells,
+            { spell: new Types.ObjectId(request.spellId), usages },
         ];
 
         await character.save();
@@ -253,13 +317,15 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async unequipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel.findById(request.id).exec();
+        const character = await this.characterModel
+            .findOne(activeCharacterById(request.id))
+            .exec();
         if (!character) {
             throw ResourceNotFoundException.character();
         }
 
         const activeSpellIndex = character.assets.activeSpells.findIndex(
-            a => a.spell?.toString() === request.spellId
+            (a) => a.spell?.toString() === request.spellId,
         );
         if (activeSpellIndex === -1) {
             throw ResourceNotFoundException.activeSpell();
@@ -275,20 +341,26 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async useSpell(request: UseSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel.findById(request.characterId).exec();
+        const character = await this.characterModel
+            .findOne(activeCharacterById(request.characterId))
+            .exec();
         if (!character) {
             throw ResourceNotFoundException.character();
         }
 
         const activeSpell = character.assets.activeSpells.find(
-            a => a.spell?.toString() === request.spellId
+            (a) => a.spell?.toString() === request.spellId,
         );
         if (!activeSpell) {
-            throw new BadRequestException(`Spell ${request.spellId} is not active for character ${request.characterId}`);
+            throw new BadRequestException(
+                `Spell ${request.spellId} is not active for character ${request.characterId}`,
+            );
         }
 
         if (activeSpell.usages <= 0) {
-            throw new BadRequestException(`Spell ${request.spellId} has no usages left`);
+            throw new BadRequestException(
+                `Spell ${request.spellId} has no usages left`,
+            );
         }
 
         const spell = await this.spellModel.findById(request.spellId).exec();
@@ -311,10 +383,12 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
                 jobId,
                 removeOnComplete: true,
                 removeOnFail: false,
-            }
+            },
         );
 
-        this.logger.log(`Spell ${request.spellId} used by character ${request.characterId}. Recovery scheduled in ${spell.recoveryTime}ms`);
+        this.logger.log(
+            `Spell ${request.spellId} used by character ${request.characterId}. Recovery scheduled in ${spell.recoveryTime}ms`,
+        );
 
         return {
             response: 'Magia utilizzata con successo',

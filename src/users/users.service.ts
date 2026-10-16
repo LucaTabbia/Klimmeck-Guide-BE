@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage } from 'mongoose';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
+import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 import { User, UserDocument } from 'src/models/user.model';
 import { isObjectIdHex } from 'src/mongo/document-id';
 import { isDuplicateKeyError } from 'src/mongo/mongo-errors';
@@ -12,6 +13,12 @@ const DUPLICATE_TWITCH_IDS_PIPELINE: PipelineStage[] = [
     { $match: { count: { $gt: 1 } } },
     { $sort: { _id: 1 } },
 ];
+
+// un riferimento a un personaggio archiviato si risolve a null, come uno pendente (03.1 D-06)
+const CURRENT_CHARACTER_POPULATE = {
+    path: 'currentCharacter',
+    match: ACTIVE_CHARACTER_FILTER,
+} as const;
 
 interface TwitchIdGroup {
     _id: string;
@@ -25,14 +32,17 @@ export class UsersService {
     ) {}
 
     async findAll(): Promise<User[]> {
-        return await this.userModel.find().populate('currentCharacter').exec();
+        return await this.userModel
+            .find()
+            .populate(CURRENT_CHARACTER_POPULATE)
+            .exec();
     }
 
     async findOne(id: string): Promise<User> {
         if (!isObjectIdHex(id)) throw ResourceNotFoundException.user();
         const user = await this.userModel
             .findById(id)
-            .populate('currentCharacter')
+            .populate(CURRENT_CHARACTER_POPULATE)
             .exec();
         if (!user) throw ResourceNotFoundException.user();
         return user;

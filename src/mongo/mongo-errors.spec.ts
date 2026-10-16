@@ -1,8 +1,10 @@
 import {
     DUPLICATE_KEY_ERROR_CODE,
+    INDEX_NOT_FOUND_ERROR_CODE,
     describeMongoError,
     isDuplicateKeyError,
     isDuplicateKeyOn,
+    isIndexNotFoundError,
 } from 'src/mongo/mongo-errors';
 
 const NAME_PATH = 'infos.name';
@@ -69,6 +71,36 @@ describe('mongo-errors', () => {
             };
 
             expect(isDuplicateKeyOn(error, NAME_PATH)).toBe(true);
+        });
+    });
+
+    describe('isIndexNotFoundError', () => {
+        it('exposes the MongoDB IndexNotFound error code', () => {
+            expect(INDEX_NOT_FOUND_ERROR_CODE).toBe(27);
+        });
+
+        it('recognizes an error with the IndexNotFound code', () => {
+            expect(isIndexNotFoundError({ code: 27 })).toBe(true);
+        });
+
+        it('recognizes a MongoServerError with the IndexNotFound code', () => {
+            const error = Object.assign(new Error('index not found'), {
+                name: 'MongoServerError',
+                code: 27,
+            });
+
+            expect(isIndexNotFoundError(error)).toBe(true);
+        });
+
+        it.each([
+            ['a duplicate key error', { code: 11000 }],
+            ['an index key specs conflict', { code: 86 }],
+            ['a string code', { code: '27' }],
+            ['an error without code', new Error('x')],
+            ['null', null],
+            ['undefined', undefined],
+        ])('rejects %s', (_label, error) => {
+            expect(isIndexNotFoundError(error)).toBe(false);
         });
     });
 
