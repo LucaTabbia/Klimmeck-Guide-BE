@@ -286,6 +286,7 @@ type Lore {
 
 type Mutation {
   createCharacter(input: CreateCharacterInput!): User!
+  deleteCharacter: User!
   doTransaction(request: TransactionRequest!): CommonResponse!
   equipItem(request: EquipItemRequest!): CommonResponse!
   equipSpell(request: EquipSpellRequest!): CommonResponse!
