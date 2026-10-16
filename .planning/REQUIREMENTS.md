@@ -42,10 +42,10 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Character Deletion (BE-CHAR) — fase inserita 03.1, richiesta dalla FE Phase 4 (2026-10-15)
 
-- [ ] **BE-CHAR-06**: Mutation `deleteCharacter: User!` sull'identità autenticata (nessun argomento): archivia il `currentCharacter` del chiamante (soft delete con `deletedAt`/`deletionReason`), azzera `User.currentCharacter` atomicamente (transazione, una sola archiviazione anche in concorrenza) e restituisce lo `User` aggiornato; senza personaggio corrente → `CHARACTER_NOT_FOUND` → FE SET-05
-- [ ] **BE-CHAR-07**: Il personaggio archiviato è invisibile ai percorsi giocatore (`character`, `characterUpdated`, mutation sotto ownership, processor/job) e il suo nome torna disponibile per `createCharacter` (indice unico case-insensitive limitato ai documenti attivi, verifier di boot aggiornato) → FE SET-05, CHAR-04
-- [ ] **BE-CHAR-08**: Dopo la cancellazione `userUpdated` emette `currentCharacter: null` (change stream `users` esistente) e nessun `characterUpdated` viene emesso per documenti archiviati; un nuovo `createCharacter` dello stesso utente riesce → FE SYNC-05, SET-05
-- [ ] **BE-CHAR-09**: Handoff `BACKEND-NOTES.md` della fase 03.1 con schema, codici, semantica dell'archivio, risposte alle domande aperte del FE ed esempi; `src/schema.gql` rigenerato → consumato da FE Phase 4
+- [x] **BE-CHAR-06**: Mutation `deleteCharacter: User!` sull'identità autenticata (nessun argomento): archivia il `currentCharacter` del chiamante (soft delete con `deletedAt`/`deletionReason`), azzera `User.currentCharacter` atomicamente (transazione, una sola archiviazione anche in concorrenza) e restituisce lo `User` aggiornato; senza personaggio corrente → `CHARACTER_NOT_FOUND` → FE SET-05
+- [x] **BE-CHAR-07**: Il personaggio archiviato è invisibile ai percorsi giocatore (`character`, `characterUpdated`, mutation sotto ownership, processor/job) e il suo nome torna disponibile per `createCharacter` (indice unico case-insensitive limitato ai documenti attivi, verifier di boot aggiornato) → FE SET-05, CHAR-04
+- [x] **BE-CHAR-08**: Dopo la cancellazione `userUpdated` emette `currentCharacter: null` (change stream `users` esistente) e nessun `characterUpdated` viene emesso per documenti archiviati; un nuovo `createCharacter` dello stesso utente riesce → FE SYNC-05, SET-05
+- [x] **BE-CHAR-09**: Handoff `BACKEND-NOTES.md` della fase 03.1 con schema, codici, semantica dell'archivio, risposte alle domande aperte del FE ed esempi; `src/schema.gql` rigenerato → consumato da FE Phase 4
 
 ### Authorization & Admin (BE-AUTHZ)
 
@@ -154,10 +154,10 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-CHAR-03 | Phase 02.1 | Complete |
 | BE-CHAR-04 | Phase 02.1 | Complete |
 | BE-CHAR-05 | Phase 02.1 | Complete |
-| BE-CHAR-06 | Phase 03.1 | Pending |
-| BE-CHAR-07 | Phase 03.1 | Pending |
-| BE-CHAR-08 | Phase 03.1 | Pending |
-| BE-CHAR-09 | Phase 03.1 | Pending |
+| BE-CHAR-06 | Phase 03.1 | Complete |
+| BE-CHAR-07 | Phase 03.1 | Complete |
+| BE-CHAR-08 | Phase 03.1 | Complete |
+| BE-CHAR-09 | Phase 03.1 | Complete |
 | BE-AUTHZ-01 | Phase 3 | Complete |
 | BE-AUTHZ-02 | Phase 3 | Complete |
 | BE-AUTHZ-03 | Phase 3 | Complete |

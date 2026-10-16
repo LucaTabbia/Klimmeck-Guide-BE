@@ -16,7 +16,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 2: Auth & Identity Foundation** - JWT di sessione, guard globale HTTP + WS `onConnect`, dev bypass fail-closed, handoff FE (completed 2026-10-06)
 - [x] **Phase 2.1: Character Creation Contract** (INSERTED 2026-10-09) - Mutation `createCharacter` sull'identità autenticata, tabella età/razza esposta via query, validazione autoritativa e codici d'errore stabili; sblocca FE Phase 2 (completed 2026-10-09)
 - [x] **Phase 3: Autorizzazione: Ownership, Ruoli, Audit** - Ownership sulle mutation, role guard `@Roles(innkeeper)`, subscription filtrate per identità, audit log admin, user stream `userUpdated` + snapshot su subscribe (contratto FE Phase 3, assorbito il 2026-10-14) (completed 2026-10-14, PR #5)
-- [ ] **Phase 3.1: Character Deletion Contract** (INSERTED 2026-10-15) - Mutation `deleteCharacter` sull'identità autenticata: soft delete del personaggio corrente, unlink atomico di `User.currentCharacter`, nome liberato, codici stabili; sblocca FE Phase 4 (SET-05)
+- [x] **Phase 3.1: Character Deletion Contract** (INSERTED 2026-10-15) - Mutation `deleteCharacter` sull'identità autenticata: soft delete del personaggio corrente, unlink atomico di `User.currentCharacter`, nome liberato, codici stabili; sblocca FE Phase 4 (SET-05) (completed 2026-10-16)
 - [ ] **Phase 4: Integrità Economica (Atomics)** - Operazioni atomiche su coins/twitchPoints/quest/equip/spell (no read-modify-write, no stato parziale)
 - [ ] **Phase 5: Infrastruttura Push FCM** - Registro token per-device, servizio push domain-agnostic, pruning token stale
 - [ ] **Phase 6: EventSub: Punti Canale & Streamer Live** - Webhook Twitch EventSub, credito idempotente 1:1, push streamer-live
@@ -266,7 +266,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 1. Fondazione Test & Consolidamento Spell WIP | 0/4 | Not started | - |
 | 2. Auth & Identity Foundation | 9/9 | Complete    | 2026-10-06 |
 | 3. Autorizzazione: Ownership, Ruoli, Audit | 10/10 | Complete    | 2026-10-14 |
-| 3.1. Character Deletion Contract | 0/TBD | Not started | - |
+| 3.1. Character Deletion Contract | 6/6 | Complete | 2026-10-16 |
 | 4. Integrità Economica (Atomics) | 0/TBD | Not started | - |
 | 5. Infrastruttura Push FCM | 0/TBD | Not started | - |
 | 6. EventSub: Punti Canale & Streamer Live | 0/TBD | Not started | - |
