@@ -56,7 +56,7 @@ function modelOf(
     );
 }
 
-// nome distinto per l'indice unico character_name_ci_unique su infos.name
+// nome distinto per l'indice unico character_name_active_ci_unique su infos.name
 async function persistOwnedCharacter(
     harness: AuthTestApp,
     options: PlayerOptions,
