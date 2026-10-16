@@ -1,7 +1,9 @@
 import mongoose, { Model } from 'mongoose';
 import {
     Character,
+    CHARACTER_NAME_INDEX,
     CharacterSchema,
+    LEGACY_CHARACTER_NAME_INDEX,
 } from 'src/models/character/character.model';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { buildCharacter } from '../../../test/fixtures';
@@ -56,5 +58,33 @@ describe('Character schema archive fields', () => {
             'user_request',
             'death',
         ]);
+    });
+});
+
+describe('character name index', () => {
+    const nameIndexes = () =>
+        CharacterSchema.indexes().filter(
+            ([fields]) =>
+                Object.keys(fields).length === 1 && fields['infos.name'] === 1,
+        );
+
+    it('declares exactly one index on infos.name', () => {
+        expect(nameIndexes()).toHaveLength(1);
+    });
+
+    it('is unique and case-insensitive among active characters only', () => {
+        const [[, options]] = nameIndexes();
+
+        expect(options).toMatchObject({
+            name: 'character_name_active_ci_unique',
+            unique: true,
+            collation: { locale: 'en', strength: 2 },
+            partialFilterExpression: { deletedAt: null },
+        });
+    });
+
+    it('names the partial index and the legacy global index', () => {
+        expect(CHARACTER_NAME_INDEX).toBe('character_name_active_ci_unique');
+        expect(LEGACY_CHARACTER_NAME_INDEX).toBe('character_name_ci_unique');
     });
 });
