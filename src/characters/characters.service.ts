@@ -37,7 +37,20 @@ import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { ActiveSpell } from 'src/models/common/active-spell.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
+import { GameRuleException } from 'src/gameRules/game-rule.exception';
+import { objectIdFromHex } from 'src/mongo/document-id';
 import { CHARACTER_CHANGES_PIPELINE } from './character-changes.pipeline';
+import { requireCharacterObjectId } from './character-id';
+import {
+    ACTIVE_SPELL_SNAPSHOT_PROJECTION,
+    ActiveSpellSnapshot,
+    classifyEquipSpellFailure,
+    classifyUnequipSpellFailure,
+    equipSpellFilter,
+    equipSpellUpdate,
+    unequipSpellFilter,
+    unequipSpellUpdate,
+} from './spells/active-spell.updates';
 import { SpellRecoveryJobData } from './spell-recovery.processor';
 
 @Injectable()
@@ -269,47 +282,29 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async equipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel
-            .findOne(activeCharacterById(request.id))
+        const characterId = requireCharacterObjectId(request.id);
+        const spellId = objectIdFromHex(request.spellId);
+        if (!spellId) throw GameRuleException.spellNotKnown();
+
+        // usages iniziali dal catalogo: il valore del client è ignorato (04 D-11)
+        const spell = await this.spellModel
+            .findById(spellId, { maxUsages: 1 })
+            .lean<{ maxUsages: number } | null>()
             .exec();
-        if (!character) {
-            throw ResourceNotFoundException.character();
-        }
+        if (!spell) throw ResourceNotFoundException.spell();
 
-        const knownSpellIds = character.status.spells.map((s) =>
-            s instanceof Types.ObjectId ? s.toString() : s.id?.toString(),
-        );
-        if (!knownSpellIds.includes(request.spellId)) {
-            throw new BadRequestException(
-                `Spell ${request.spellId} is not known by character ${request.id}`,
+        const equipped = await this.characterModel
+            .updateOne(
+                equipSpellFilter(characterId, spellId),
+                equipSpellUpdate(spellId, spell.maxUsages),
+            )
+            .exec();
+        if (equipped.matchedCount === 0) {
+            throw classifyEquipSpellFailure(
+                await this.readActiveSpellSnapshot(characterId),
+                spellId,
             );
         }
-
-        const isAlreadyActive = character.assets.activeSpells.some(
-            (a) => a.spell?.toString() === request.spellId,
-        );
-        if (isAlreadyActive) {
-            throw new BadRequestException(
-                `Spell ${request.spellId} is already active`,
-            );
-        }
-
-        if (
-            character.status.maxActiveSpells <=
-            character.assets.activeSpells.length
-        ) {
-            throw new BadRequestException(
-                `Character ${request.id} has reached the maximum number of active spells`,
-            );
-        }
-
-        const usages = request.usages ?? 0;
-        character.assets.activeSpells = [
-            ...character.assets.activeSpells,
-            { spell: new Types.ObjectId(request.spellId), usages },
-        ];
-
-        await character.save();
         return {
             response: 'Magia equipaggiata con successo',
             successful: true,
@@ -317,27 +312,38 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async unequipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel
-            .findOne(activeCharacterById(request.id))
+        const characterId = requireCharacterObjectId(request.id);
+        const spellId = objectIdFromHex(request.spellId);
+        if (!spellId) throw GameRuleException.spellNotActive();
+
+        const unequipped = await this.characterModel
+            .updateOne(
+                unequipSpellFilter(characterId, spellId),
+                unequipSpellUpdate(spellId),
+            )
             .exec();
-        if (!character) {
-            throw ResourceNotFoundException.character();
+        if (unequipped.matchedCount === 0) {
+            throw classifyUnequipSpellFailure(
+                await this.readActiveSpellSnapshot(characterId),
+            );
         }
-
-        const activeSpellIndex = character.assets.activeSpells.findIndex(
-            (a) => a.spell?.toString() === request.spellId,
-        );
-        if (activeSpellIndex === -1) {
-            throw ResourceNotFoundException.activeSpell();
-        }
-
-        character.assets.activeSpells.splice(activeSpellIndex, 1);
-
-        await character.save();
         return {
             response: 'Magia disequipaggiata con successo',
             successful: true,
         };
+    }
+
+    // rilettura leggera solo per scegliere il codice d'errore (04 D-10)
+    private readActiveSpellSnapshot(
+        characterId: Types.ObjectId,
+    ): Promise<ActiveSpellSnapshot | null> {
+        return this.characterModel
+            .findOne(
+                activeCharacterById(characterId),
+                ACTIVE_SPELL_SNAPSHOT_PROJECTION,
+            )
+            .lean<ActiveSpellSnapshot | null>()
+            .exec();
     }
 
     async useSpell(request: UseSpellRequest): Promise<CommonResponse> {
