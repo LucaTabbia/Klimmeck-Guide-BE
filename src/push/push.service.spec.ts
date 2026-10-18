@@ -7,8 +7,8 @@ import {
 } from 'src/push/push-device.registry';
 import { streamerLive, travelEnd } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
-import { FixedClock } from 'test/auth/fixed-clock';
-import { FakePushTransport } from 'test/push/fake-push-transport';
+import { FixedClock } from '../../test/auth/fixed-clock';
+import { FakePushTransport } from '../../test/push/fake-push-transport';
 
 const NOW = new Date('2026-10-18T12:00:00.000Z');
 const ALICE_ID = '64b0000000000000000000a1';
@@ -25,10 +25,7 @@ class InMemoryPushDeviceRegistry {
     rows: StoredDevice[] = [];
 
     claim = jest.fn(
-        (
-            registration: DeviceRegistration,
-            _now: Date,
-        ): Promise<string | null> => {
+        (registration: DeviceRegistration): Promise<string | null> => {
             const userId = String(registration.userId);
             const { deviceId, token } = registration;
             this.rows = this.rows.filter(
