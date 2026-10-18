@@ -5,7 +5,7 @@ milestone_name: milestone
 status: verifying
 stopped_at: Completed 04-09-PLAN.md
 last_updated: "2026-10-18T15:54:51.228Z"
-last_activity: 2026-10-18
+last_activity: "2026-10-18 -- Phase 4 complete: atomic wallet/shop/equip/spell/quest-accept primitives delivered (9/9 plans, verification 5/5, review fixed); PR to develop next"
 progress:
   total_phases: 12
   completed_phases: 6
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 4 (Integrità Economica (Atomics)) — VERIFYING
-Plan: 9 of 9
-Status: Phase complete — ready for verification
-Last activity: 2026-10-18 -- Completed 04-09-PLAN.md (phase gate green, BACKEND-NOTES published)
+Phase: 4 (integrita-economica-atomics) — COMPLETE 2026-10-18, branch feat/04-integrita-economica-atomics (9/9 plans; VERIFICATION 5/5, human item = prod replica-set deploy check; REVIEW 0 critical / 4 warnings fixed in TDD + IN-05/IN-06; security audit in progress)
+Plan: 9/9 complete
+Status: Phase 4 complete — security audit then PR to develop; next /gsd-discuss-phase 5 (Infrastruttura Push FCM, unblocks FE Phase 5)
+Last activity: 2026-10-18 -- Phase 4 closed: 645 unit / 479 integration green, schema byte-identical, review fixes WR-01..04 + IN-05/06, BACKEND-NOTES published
 
 Progress: [██████████] 100%
 
