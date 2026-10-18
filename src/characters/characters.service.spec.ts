@@ -368,7 +368,8 @@ describe('CharactersService (unit — spell mutations)', () => {
 
         it('reports an archived character as not found on equipItem', async () => {
             const id = new Types.ObjectId().toString();
-            mockCharacterModel.findOne.mockReturnValue(asQuery(null));
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
+            mockCharacterModel.exists.mockReturnValue(asQuery(null));
 
             await expect(
                 service.equipItem({
@@ -376,10 +377,27 @@ describe('CharactersService (unit — spell mutations)', () => {
                     slotType: SlotType.head,
                 } as EquipItemRequest),
             ).rejects.toMatchObject({ code: 'NOT_FOUND' });
-            expect(mockCharacterModel.findOne).toHaveBeenCalledWith({
-                _id: id,
+            expect(mockCharacterModel.updateOne.mock.calls[0][0]).toMatchObject(
+                { deletedAt: null },
+            );
+            expect(mockCharacterModel.exists).toHaveBeenCalledWith({
+                _id: new Types.ObjectId(id),
                 deletedAt: null,
             });
+        });
+
+        it('equipItem rejects an unowned item with ITEM_NOT_OWNED', async () => {
+            const id = new Types.ObjectId();
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
+            mockCharacterModel.exists.mockReturnValue(asQuery({ _id: id }));
+
+            await expect(
+                service.equipItem({
+                    id: id.toHexString(),
+                    itemId: new Types.ObjectId().toHexString(),
+                    slotType: SlotType.head,
+                }),
+            ).rejects.toMatchObject({ code: 'ITEM_NOT_OWNED' });
         });
     });
 });
