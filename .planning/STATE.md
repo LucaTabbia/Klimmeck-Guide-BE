@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 05-07-PLAN.md
-last_updated: "2026-10-18T19:50:01.048Z"
+status: verifying
+stopped_at: Completed 05-08-PLAN.md
+last_updated: "2026-10-18T19:58:50.853Z"
 last_activity: 2026-10-18
 progress:
   total_phases: 12
   completed_phases: 6
   total_plans: 56
-  completed_plans: 55
-  percent: 98
+  completed_plans: 56
+  percent: 100
 ---
 
 # Project State
@@ -27,16 +27,16 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 Phase: 5 (infrastruttura-push-fcm) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-18
 
-Progress: [██████████] 98%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 55
+- Total plans completed: 56
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -95,6 +95,7 @@ Progress: [██████████] 98%
 | Phase 05 P05 | 4 min | 3 tasks | 5 files |
 | Phase 05 P06 | 9 min | 3 tasks | 6 files |
 | Phase 05 P07 | 4 min | 2 tasks | 3 files |
+| Phase 05 P08 | 7 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -162,6 +163,7 @@ Recent decisions affecting current work:
 - [Phase 05]: 05-05: PushService best-effort (sendToUser batch 500 + pruning con regola del testimone per invalid-argument, broadcast su streamer-live), registerDevice/unregisterDevice con topic best-effort, sendTest PUSH_DISABLED/NOT_FOUND; log solo conteggi/codici/suffisso 6 caratteri
 - [Phase 05]: PushModule registers User locally (forFeature) so consumers do not pull UsersModule and its change stream
 - [Phase 05]: 05-07: PushModule montato in AppModule; src/schema.gql rigenerato con diff solo additivo (3 mutation, PushDeliveryReport, PushEventType, PushPlatform, 2 input); real-boot test con FIREBASE_SERVICE_ACCOUNT vuota → NoopPushTransport
+- [Phase 05]: 05-08: gate di fase verde (unit 66/807, int 43/515, build, eslint, schema drift 0); BACKEND-NOTES Phase 5 pubblicato; fuga di dati tra suite in spell-recovery.processor.int-spec corretta con afterEach
 
 ### Pending Todos
 
@@ -183,6 +185,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-18T19:50:01.045Z
-Stopped at: Completed 05-07-PLAN.md
+Last session: 2026-10-18T19:58:50.849Z
+Stopped at: Completed 05-08-PLAN.md
 Resume file: None
