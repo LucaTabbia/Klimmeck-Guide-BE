@@ -159,17 +159,31 @@ describe('PushService', () => {
             expect(lines.some((line) => line.includes('t2'))).toBe(false);
         });
 
-        it('prunes invalid-argument when another token of the batch was delivered', async () => {
+        it('keeps an invalid-argument token even when another token of the batch was delivered', async () => {
             registry.seed(ALICE_ID, 't1', 't2');
             transport.failToken('t2', 'messaging/invalid-argument');
 
             const report = await service.sendToUser(ALICE, travelEnd('c1'));
 
-            expect(report.pruned).toBe(1);
-            await expect(registry.tokensOf(ALICE)).resolves.toEqual(['t1']);
+            expect(report).toEqual({
+                targeted: 2,
+                sent: 1,
+                pruned: 0,
+                failed: 1,
+            });
+            expect(registry.removeTokens).not.toHaveBeenCalled();
+            await expect(registry.tokensOf(ALICE)).resolves.toEqual([
+                't1',
+                't2',
+            ]);
+            const errors = loggedLines(error);
+            expect(errors).toEqual([
+                expect.stringContaining('messaging/invalid-argument×1'),
+            ]);
+            expect(errors.some((line) => line.includes('t2'))).toBe(false);
         });
 
-        it('never prunes invalid-argument without a delivered witness', async () => {
+        it('never prunes invalid-argument when no token was delivered', async () => {
             registry.seed(ALICE_ID, 't1', 't2');
             transport.failToken('t1', 'messaging/invalid-argument');
             transport.failToken('t2', 'messaging/invalid-argument');

@@ -26,13 +26,8 @@ describe('classifyDeliveryFailure', () => {
         },
     );
 
-    it('treats invalid-argument as a suspect token', () => {
-        expect(classifyDeliveryFailure(INVALID_ARGUMENT)).toBe(
-            DeliveryFailureKind.suspectToken,
-        );
-    });
-
     it.each([
+        INVALID_ARGUMENT,
         'messaging/invalid-payload',
         'messaging/invalid-data-payload-key',
         'messaging/payload-size-limit-exceeded',
@@ -60,23 +55,23 @@ describe('classifyDeliveryFailure', () => {
 });
 
 describe('prunableTokens', () => {
-    it('never prunes invalid-argument when no token of the batch was delivered', () => {
+    it('prunes only the stale token codes', () => {
         expect(
             prunableTokens([
                 { token: 'a', delivered: false, errorCode: NOT_REGISTERED },
-                { token: 'b', delivered: false, errorCode: INVALID_ARGUMENT },
+                { token: 'b', delivered: false, errorCode: INVALID_TOKEN },
+                { token: 'c', delivered: true },
             ]),
-        ).toEqual(['a']);
+        ).toEqual(['a', 'b']);
     });
 
-    it('prunes invalid-argument when the same batch delivered at least one token', () => {
+    it('never prunes invalid-argument, even when the same batch delivered other tokens', () => {
         expect(
             prunableTokens([
                 { token: 'a', delivered: true },
                 { token: 'b', delivered: false, errorCode: INVALID_ARGUMENT },
-                { token: 'c', delivered: false, errorCode: INVALID_TOKEN },
             ]),
-        ).toEqual(['b', 'c']);
+        ).toEqual([]);
     });
 
     it('never prunes transient failures', () => {
