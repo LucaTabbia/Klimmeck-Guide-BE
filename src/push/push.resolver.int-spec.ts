@@ -1,7 +1,14 @@
 import { Model, Types } from 'mongoose';
+import {
+    AdminAuditLog,
+    AdminAuditLogSchema,
+} from 'src/authz/audit/admin-audit-log.model';
 import { PUSH_CONFIG } from 'src/config/push-config';
+import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
 import { PushDevice, PushDeviceDocument } from 'src/push/push-device.model';
+import { PushEventType } from 'src/push/push-event-type.enum';
+import { streamerLive, testPushMessage } from 'src/push/push-events';
 import { PushModule } from 'src/push/push.module';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { AuthTestApp, graphqlRequest } from '../../test/auth/auth-test-app';
@@ -16,6 +23,8 @@ const UNREGISTER =
 const USER_FIELDS = '{ __type(name: "User") { fields { name } } }';
 const PUSH_DEVICE_TYPE = '{ __type(name: "PushDevice") { name } }';
 const ME = '{ me { id } }';
+const SEND =
+    'mutation($input: SendTestPushInput!) { sendTestPush(input: $input) { targeted sent pruned failed } }';
 
 const STREAMER_LIVE = 'streamer-live';
 const LAST_SEEN_GAP_MS = 5;
@@ -46,24 +55,48 @@ const deviceInput = (overrides: Partial<DeviceInput> = {}): DeviceInput => ({
 const pause = (ms: number): Promise<void> =>
     new Promise((resolve) => setTimeout(resolve, ms));
 
+function errorCodeOf(body: WireBody): string | undefined {
+    return body.errors?.[0]?.extensions?.code;
+}
+
+// firebase-admin mai contattato (D-07): il provider sovrascritto non esegue la factory del transport
+function createPushTestApp(transport: FakePushTransport): Promise<AuthTestApp> {
+    return createCharactersTestApp({
+        imports: [PushModule],
+        overrides: [
+            { token: PushTransport, useValue: transport },
+            { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
+        ],
+    });
+}
+
+async function callOn(
+    harness: AuthTestApp,
+    query: string,
+    bearer?: string,
+    variables?: Record<string, unknown>,
+): Promise<WireBody> {
+    const response = await graphqlRequest(
+        harness.app,
+        query,
+        variables,
+        bearer,
+    );
+    return response.body as WireBody;
+}
+
 describe('push device registration (wire)', () => {
     let harness: AuthTestApp;
     let transport: FakePushTransport;
     let devices: Model<PushDeviceDocument>;
     let users: Model<UserDocument>;
 
-    async function call(
+    function call(
         query: string,
         bearer?: string,
         variables?: Record<string, unknown>,
     ): Promise<WireBody> {
-        const response = await graphqlRequest(
-            harness.app,
-            query,
-            variables,
-            bearer,
-        );
-        return response.body as WireBody;
+        return callOn(harness, query, bearer, variables);
     }
 
     function register(
@@ -80,10 +113,6 @@ describe('push device registration (wire)', () => {
         return call(UNREGISTER, player.bearer, { deviceId });
     }
 
-    function errorCodeOf(body: WireBody): string | undefined {
-        return body.errors?.[0]?.extensions?.code;
-    }
-
     function rawDevice(filter: Record<string, unknown>) {
         return devices.collection.findOne(filter);
     }
@@ -94,13 +123,7 @@ describe('push device registration (wire)', () => {
 
     beforeAll(async () => {
         transport = new FakePushTransport();
-        harness = await createCharactersTestApp({
-            imports: [PushModule],
-            overrides: [
-                { token: PushTransport, useValue: transport },
-                { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
-            ],
-        });
+        harness = await createPushTestApp(transport);
         devices = harness.connection.model<PushDeviceDocument>(PushDevice.name);
         users = harness.connection.model<UserDocument>(User.name);
         await devices.init();
@@ -289,5 +312,219 @@ describe('push device registration (wire)', () => {
         expect(deviceType.data?.__type).toBeNull();
         const me = await call(ME, alice.bearer);
         expect(me.errors).toBeUndefined();
+    });
+});
+
+describe('sendTestPush (wire)', () => {
+    let harness: AuthTestApp;
+    let transport: FakePushTransport;
+    let devices: Model<PushDeviceDocument>;
+    let audits: Model<AdminAuditLog>;
+
+    function call(
+        query: string,
+        bearer?: string,
+        variables?: Record<string, unknown>,
+    ): Promise<WireBody> {
+        return callOn(harness, query, bearer, variables);
+    }
+
+    function register(
+        player: TestPlayer,
+        input: DeviceInput,
+    ): Promise<WireBody> {
+        return call(REGISTER, player.bearer, { input });
+    }
+
+    function sendTest(
+        player: TestPlayer,
+        input: Record<string, unknown>,
+    ): Promise<WireBody> {
+        return call(SEND, player.bearer, { input });
+    }
+
+    function reportOf(body: WireBody): unknown {
+        expect(body.errors).toBeUndefined();
+        return body.data?.sendTestPush;
+    }
+
+    function innkeeper(): Promise<TestPlayer> {
+        return createPlayer(harness, {
+            twitchId: 'twitch-push-oste',
+            role: RoleType.innkeeper,
+            withCharacter: false,
+        });
+    }
+
+    function adventurer(twitchId: string): Promise<TestPlayer> {
+        return createPlayer(harness, { twitchId, withCharacter: false });
+    }
+
+    beforeAll(async () => {
+        transport = new FakePushTransport();
+        harness = await createPushTestApp(transport);
+        devices = harness.connection.model<PushDeviceDocument>(PushDevice.name);
+        audits =
+            (harness.connection.models[AdminAuditLog.name] as
+                | Model<AdminAuditLog>
+                | undefined) ??
+            harness.connection.model<AdminAuditLog>(
+                AdminAuditLog.name,
+                AdminAuditLogSchema,
+            );
+        await devices.init();
+    });
+
+    afterEach(async () => {
+        transport.reset();
+        await harness.clearDatabase();
+    });
+
+    afterAll(async () => {
+        await harness.close();
+    });
+
+    it('forbids non-innkeepers without sending or auditing', async () => {
+        const alice = await adventurer('twitch-push-alice');
+
+        const body = await sendTest(alice, { type: 'travelEnd', id: 'c1' });
+
+        expect(errorCodeOf(body)).toBe('FORBIDDEN');
+        expect(await audits.countDocuments()).toBe(0);
+        expect(transport.sent).toEqual([]);
+        expect(transport.topicSends).toEqual([]);
+    });
+
+    it('sends to the caller by default and audits the operation', async () => {
+        const oste = await innkeeper();
+        await register(
+            oste,
+            deviceInput({ deviceId: 'dev-o', token: 'tok-o' }),
+        );
+
+        const body = await sendTest(oste, { type: 'travelEnd', id: 'c1' });
+
+        expect(reportOf(body)).toEqual({
+            targeted: 1,
+            sent: 1,
+            pruned: 0,
+            failed: 0,
+        });
+        expect(transport.sent[0]).toEqual({
+            tokens: ['tok-o'],
+            message: testPushMessage(PushEventType.travelEnd, 'c1'),
+        });
+        const records = await audits.find().lean().exec();
+        expect(records).toHaveLength(1);
+        expect(records[0]).toMatchObject({
+            actor: { userId: String(oste.user._id), role: 'innkeeper' },
+            action: 'sendTestPush',
+            target: { type: 'PushDeliveryReport', id: null },
+            args: { input: { type: 'travelEnd', id: 'c1' } },
+            outcome: 'ok',
+        });
+    });
+
+    it('prunes a not-registered token of the target and reports it (SC3)', async () => {
+        const oste = await innkeeper();
+        const alice = await adventurer('twitch-push-alice');
+        await register(
+            alice,
+            deviceInput({ deviceId: 'dev-1', token: 'tok-live' }),
+        );
+        await register(
+            alice,
+            deviceInput({ deviceId: 'dev-2', token: 'tok-dead' }),
+        );
+        transport.failToken(
+            'tok-dead',
+            'messaging/registration-token-not-registered',
+        );
+
+        const body = await sendTest(oste, {
+            type: 'questEnd',
+            targetUserId: String(alice.user._id),
+        });
+
+        expect(reportOf(body)).toEqual({
+            targeted: 2,
+            sent: 1,
+            pruned: 1,
+            failed: 1,
+        });
+        expect(await devices.countDocuments({ token: 'tok-dead' })).toBe(0);
+        expect(await devices.countDocuments({ token: 'tok-live' })).toBe(1);
+    });
+
+    it('reports an empty delivery for a target without devices', async () => {
+        const oste = await innkeeper();
+
+        const body = await sendTest(oste, { type: 'questEnd' });
+
+        expect(reportOf(body)).toEqual({
+            targeted: 0,
+            sent: 0,
+            pruned: 0,
+            failed: 0,
+        });
+    });
+
+    it('answers NOT_FOUND for a missing or malformed target and audits the outcome', async () => {
+        const oste = await innkeeper();
+
+        const missing = await sendTest(oste, {
+            type: 'questEnd',
+            targetUserId: '64b0000000000000000000ff',
+        });
+        const malformed = await sendTest(oste, {
+            type: 'questEnd',
+            targetUserId: 'nope',
+        });
+
+        expect(errorCodeOf(missing)).toBe('NOT_FOUND');
+        expect(errorCodeOf(malformed)).toBe('NOT_FOUND');
+        const records = await audits.find().lean().exec();
+        expect(records).toHaveLength(2);
+        expect(records[0]).toMatchObject({
+            action: 'sendTestPush',
+            target: { type: 'PushDeliveryReport', id: null },
+            outcome: 'NOT_FOUND',
+        });
+    });
+
+    it('broadcasts streamerLive to the topic and ignores the target', async () => {
+        const oste = await innkeeper();
+
+        const body = await sendTest(oste, {
+            type: 'streamerLive',
+            targetUserId: 'nope',
+        });
+
+        expect(reportOf(body)).toEqual({
+            targeted: 1,
+            sent: 1,
+            pruned: 0,
+            failed: 0,
+        });
+        expect(transport.topicSends).toEqual([
+            { topic: STREAMER_LIVE, message: streamerLive() },
+        ]);
+        expect(transport.sent).toEqual([]);
+    });
+
+    it('answers PUSH_DISABLED when push is not configured and audits the outcome', async () => {
+        const oste = await innkeeper();
+        transport.enabled = false;
+
+        const body = await sendTest(oste, { type: 'travelEnd', id: 'c1' });
+
+        expect(errorCodeOf(body)).toBe('PUSH_DISABLED');
+        const records = await audits.find().lean().exec();
+        expect(records).toHaveLength(1);
+        expect(records[0]).toMatchObject({
+            action: 'sendTestPush',
+            target: { type: 'PushDeliveryReport', id: null },
+            outcome: 'PUSH_DISABLED',
+        });
     });
 });
