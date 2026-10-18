@@ -4,8 +4,8 @@ import {
     OnModuleDestroy,
     Logger,
     Inject,
-    BadRequestException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { InjectModel } from '@nestjs/mongoose';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
@@ -51,12 +51,22 @@ import {
     ActiveSpellSnapshot,
     classifyEquipSpellFailure,
     classifyUnequipSpellFailure,
+    classifyUseSpellFailure,
+    DECREMENT_ACTIVE_SPELL_USAGE,
     equipSpellFilter,
     equipSpellUpdate,
+    INCREMENT_ACTIVE_SPELL_USAGE,
+    recoverSpellFilter,
     unequipSpellFilter,
     unequipSpellUpdate,
+    useSpellFilter,
 } from './spells/active-spell.updates';
 import { SpellRecoveryJobData } from './spell-recovery.processor';
+
+interface SpellRecoveryRule {
+    maxUsages: number;
+    recoveryTime: number;
+}
 
 @Injectable()
 export class CharactersService implements OnModuleInit, OnModuleDestroy {
@@ -363,58 +373,82 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async useSpell(request: UseSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel
-            .findOne(activeCharacterById(request.characterId))
+        const characterId = requireCharacterObjectId(request.characterId);
+        const spellId = objectIdFromHex(request.spellId);
+        if (!spellId) throw GameRuleException.spellNotActive();
+
+        // la spell si valida prima di toccare gli usages (Phase 1 D-06)
+        const spell = await this.spellModel
+            .findById(spellId, { maxUsages: 1, recoveryTime: 1 })
+            .lean<SpellRecoveryRule | null>()
             .exec();
-        if (!character) {
-            throw ResourceNotFoundException.character();
-        }
+        if (!spell) throw ResourceNotFoundException.spell();
 
-        const activeSpell = character.assets.activeSpells.find(
-            (a) => a.spell?.toString() === request.spellId,
-        );
-        if (!activeSpell) {
-            throw new BadRequestException(
-                `Spell ${request.spellId} is not active for character ${request.characterId}`,
+        const used = await this.characterModel
+            .updateOne(
+                useSpellFilter(characterId, spellId),
+                DECREMENT_ACTIVE_SPELL_USAGE,
+            )
+            .exec();
+        if (used.matchedCount === 0) {
+            throw classifyUseSpellFailure(
+                await this.readActiveSpellSnapshot(characterId),
+                spellId,
             );
         }
 
-        if (activeSpell.usages <= 0) {
-            throw new BadRequestException(
-                `Spell ${request.spellId} has no usages left`,
-            );
-        }
-
-        const spell = await this.spellModel.findById(request.spellId).exec();
-        if (!spell) {
-            throw ResourceNotFoundException.spell();
-        }
-
-        activeSpell.usages -= 1;
-        await character.save();
-
-        const jobId = `${request.characterId}-${request.spellId}-${Date.now()}`;
-        await this.spellRecoveryQueue.add(
-            'recover',
-            {
-                characterId: request.characterId,
-                spellId: request.spellId,
-            },
-            {
-                delay: spell.recoveryTime,
-                jobId,
-                removeOnComplete: true,
-                removeOnFail: false,
-            },
-        );
-
+        await this.scheduleRecovery(request, characterId, spellId, spell);
         this.logger.log(
             `Spell ${request.spellId} used by character ${request.characterId}. Recovery scheduled in ${spell.recoveryTime}ms`,
         );
-
         return {
             response: 'Magia utilizzata con successo',
             successful: true,
         };
+    }
+
+    // jobId univoco: Bull scarta in silenzio un add con jobId già esistente (04 Pitfall 5); se l'accodamento fallisce l'usage torna indietro (D-13)
+    private async scheduleRecovery(
+        request: UseSpellRequest,
+        characterId: Types.ObjectId,
+        spellId: Types.ObjectId,
+        spell: SpellRecoveryRule,
+    ): Promise<void> {
+        try {
+            await this.spellRecoveryQueue.add(
+                'recover',
+                { characterId: request.characterId, spellId: request.spellId },
+                {
+                    delay: spell.recoveryTime,
+                    jobId: `${request.characterId}-${request.spellId}-${randomUUID()}`,
+                    removeOnComplete: true,
+                    removeOnFail: false,
+                },
+            );
+        } catch {
+            await this.restoreUsage(characterId, spellId, spell.maxUsages);
+            throw GameRuleException.spellRecoveryUnavailable();
+        }
+    }
+
+    // stesso update idempotente del recovery: mai oltre maxUsages
+    private async restoreUsage(
+        characterId: Types.ObjectId,
+        spellId: Types.ObjectId,
+        maxUsages: number,
+    ): Promise<void> {
+        try {
+            await this.characterModel
+                .updateOne(
+                    recoverSpellFilter(characterId, spellId, maxUsages),
+                    INCREMENT_ACTIVE_SPELL_USAGE,
+                )
+                .exec();
+        } catch (error) {
+            this.logger.error(
+                `Compensazione dell'utilizzo fallita per il personaggio ${characterId.toHexString()} e la magia ${spellId.toHexString()}`,
+                error,
+            );
+        }
     }
 }
