@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: completed
 stopped_at: Completed 05-08-PLAN.md
-last_updated: "2026-10-18T20:09:06.368Z"
-last_activity: "2026-10-18 -- Phase 5 closed: 807 unit / 515 integration green (gate 05-08), schema +33/-0 vs develop, BACKEND-NOTES published, review fixes WR-01/IN-01/IN-04a; security audit + PR pending"
+last_updated: "2026-10-18T20:11:44.577Z"
+last_activity: "2026-10-18 -- Phase 5 complete (verification 4/4, review fixed, security 43/43); BE PR #8 open to develop (merge before FE Phase 5 PR); next Phase 6 EventSub"
 progress:
   total_phases: 12
   completed_phases: 7
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 5 — Infrastruttura Push FCM (chiusura: security audit + PR verso develop)
+**Current focus:** Phase 5 — Infrastruttura Push FCM (PR #8 open to develop); next Phase 6 EventSub
 
 ## Current Position
 
-Phase: 5 (infrastruttura-push-fcm) — COMPLETE 2026-10-18, branch feat/05-infrastruttura-push-fcm (8/8 plans; VERIFICATION 4/4, human item = consegna reale su device rinviata alla UAT FE Phase 5 (05-HUMAN-UAT.md); REVIEW 0 critical / 1 warning → WR-01 + IN-01 + IN-04a fixed in TDD, IN-02/03/04b accepted)
+Phase: 5 (infrastruttura-push-fcm) — COMPLETE 2026-10-18, branch feat/05-infrastruttura-push-fcm (8/8 plans; VERIFICATION 4/4, human item = consegna reale su device rinviata alla UAT FE Phase 5 (05-HUMAN-UAT.md); REVIEW 0 critical / 1 warning → WR-01 + IN-01 + IN-04a fixed in TDD, IN-02/03/04b accepted; security 43/43 closed, PR #8 open)
 Plan: 8/8 complete
-Status: Phase 5 complete — security audit in corso; next: PR to develop (sblocca FE Phase 5 Notifications), poi /gsd-discuss-phase 6 (EventSub: Punti Canale & Streamer Live)
-Last activity: 2026-10-18 -- Phase 5 closed: 807 unit / 515 integration green (gate 05-08), schema +33/-0 vs develop, BACKEND-NOTES published, review fixes WR-01/IN-01/IN-04a; security audit + PR pending
+Status: Phase 5 complete — security 43/43 closed; PR #8 open on LucaTabbia/Klimmeck-Guide-BE (feat/05-infrastruttura-push-fcm → develop), ready for review and merge BEFORE the FE Phase 5 PR; next /gsd-discuss-phase 6 (EventSub: Punti Canale & Streamer Live)
+Last activity: 2026-10-18 -- Phase 5 complete (verification 4/4, review fixed, security 43/43); BE PR #8 open to develop (merge before FE Phase 5 PR); next Phase 6 EventSub
 
 Progress: [██████████] 100%
 
