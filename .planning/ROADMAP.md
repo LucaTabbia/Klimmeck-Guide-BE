@@ -183,7 +183,7 @@ Plans:
 **Plans**: TBD
 **Unblocks (FE)**: FE Phase 5 → FE NOTIF-01/03/04/05.
 **Research flag**: nessuno — firebase-admin è pattern standard (HIGH confidence). Confermare runtime Node prod (18/20 vs 22) per firebase-admin 13 vs 14.
-**Branch**: `feat/05-fcm-infrastructure` da `develop` → PR a `develop`.
+**Branch**: `feat/05-infrastruttura-push-fcm` da `develop` → PR a `develop`.
 
 ### Phase 6: EventSub: Punti Canale & Streamer Live
 **Goal**: Un webhook Twitch EventSub accredita i punti canale 1:1 su `twitchPoints` — HMAC-verificato, challenge-gestito, idempotente e atomico; `stream.online` alimenta il push streamer-live.
