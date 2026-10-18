@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-05-PLAN.md
-last_updated: "2026-10-18T14:57:11.761Z"
+stopped_at: Completed 04-06-PLAN.md
+last_updated: "2026-10-18T15:15:24.887Z"
 last_activity: 2026-10-18
 progress:
   total_phases: 12
   completed_phases: 5
   total_plans: 48
-  completed_plans: 44
-  percent: 92
+  completed_plans: 45
+  percent: 94
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 4 (Integrità Economica (Atomics)) — EXECUTING
-Plan: 6 of 9
+Plan: 7 of 9
 Status: Ready to execute
-Last activity: 2026-10-18 -- Completed 04-05-PLAN.md
+Last activity: 2026-10-18 -- Completed 04-06-PLAN.md
 
-Progress: [█████████░] 92%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 44
+- Total plans completed: 45
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -84,6 +84,7 @@ Progress: [█████████░] 92%
 | Phase 04 P03 | 15 min | 3 tasks | 14 files |
 | Phase 04 P04 | 3 min | 2 tasks | 5 files |
 | Phase 04 P05 | 6 min | 2 tasks | 7 files |
+| Phase 04 P06 | 15 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,7 @@ Recent decisions affecting current work:
 - [Phase 04]: Trade planner puro in src/economy/trade: prezzo solo dal catalogo, totale client solo cross-check, guard $elemMatch $gte per le vendite
 - [Phase 04]: useSpell: spellId malformato → SPELL_NOT_ACTIVE; compensazione con recoverSpellFilter (mai oltre maxUsages), fallimento loggato con soli id
 - [Phase 04]: Payload job spell-recovery invariato (id stringa); il processor salta job malformati con warn
+- [Phase 04]: ShopTransactionService: catalogo e controlli puri fuori dalla transazione, inventario con soldQuantityGuards + delta coins via WalletService nella stessa session (Pattern 3)
 
 ### Pending Todos
 
@@ -161,6 +163,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-18T14:57:11.758Z
-Stopped at: Completed 04-05-PLAN.md
+Last session: 2026-10-18T15:15:24.884Z
+Stopped at: Completed 04-06-PLAN.md
 Resume file: None
