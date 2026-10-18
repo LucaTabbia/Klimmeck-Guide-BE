@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-10-18T19:32:25.685Z"
+stopped_at: Completed 05-04-PLAN.md
+last_updated: "2026-10-18T19:35:57.353Z"
 last_activity: 2026-10-18
 progress:
   total_phases: 12
   completed_phases: 6
   total_plans: 56
-  completed_plans: 51
-  percent: 91
+  completed_plans: 52
+  percent: 93
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 5 (infrastruttura-push-fcm) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
 Last activity: 2026-10-18
 
-Progress: [█████████░] 91%
+Progress: [█████████░] 93%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 51
+- Total plans completed: 52
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -91,6 +91,7 @@ Progress: [█████████░] 91%
 | Phase 05 P01 | 6 min | 3 tasks | 11 files |
 | Phase 05 P02 | 4 min | 3 tasks | 11 files |
 | Phase 05 P03 | 4 min | 3 tasks | 9 files |
+| Phase 05 P04 | 5 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -154,6 +155,7 @@ Recent decisions affecting current work:
 - [Phase 05]: 05-01: parsePushConfig fail-closed (prod senza FIREBASE_SERVICE_ACCOUNT → boot rifiutato, dev/test → serviceAccount null), messaggi fissi senza eco del valore; readEnvKeys condiviso da auth e push
 - [Phase 05]: 05-02: PushException (HttpException, PUSH_INVALID_DEVICE_ID/PUSH_INVALID_TOKEN 400, PUSH_DISABLED 503) con extensions.code; validatore puro deviceId→token; catalogo Record<PushEventType> unico per copy/TTL (1h personali, 15min broadcast), streamerLive senza id
 - [Phase 05]: 05-03: porta PushTransport (classe astratta DI) con NoopPushTransport/FcmPushTransport/FakePushTransport; toFcmBase data-only (Android high ttl ms, APNs background prio 5 + expiration assoluta); FcmPushTransport non lancia mai sugli invii (codici stringa messaging/<code> o transport-error), connect() idempotente su app 'klimmeck-push'
+- [Phase 05]: 05-04: registro push_devices con indici unici (userId,deviceId) e token + TTL 270g su lastSeenAt; claim = deleteMany altri detentori ($nor) → upsert returnDocument before → un retry su E11000; PushDeviceIndexVerifier non bloccante (solo nome+codice errore)
 
 ### Pending Todos
 
@@ -175,6 +177,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-18T19:32:25.681Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-10-18T19:35:57.349Z
+Stopped at: Completed 05-04-PLAN.md
 Resume file: None
