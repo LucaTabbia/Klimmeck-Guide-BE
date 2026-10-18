@@ -284,6 +284,42 @@ describe('ShopTransactionService (replSet)', () => {
             ]);
         });
 
+        it('sells a legacy entry whose item id was stored as a string', async () => {
+            const id = await persistTrader(coins(0, 0, 0));
+            const legacyPotion = idOf(potion).toHexString();
+            await characters.collection.updateOne(
+                { _id: id },
+                {
+                    $set: {
+                        'assets.ownedItems': [
+                            {
+                                itemType: 'LootItem',
+                                item: legacyPotion,
+                                quantity: 2,
+                            },
+                        ],
+                    },
+                },
+            );
+
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        sellLoot: [asset(potion)],
+                        total: coins(0, 0, 10),
+                        isTotalPositive: true,
+                    }),
+                ),
+            ).resolves.toEqual(SUCCESS);
+
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(coins(0, 0, 10));
+            expect(after?.assets.ownedItems).toEqual([
+                { itemType: 'LootItem', item: legacyPotion, quantity: 1 },
+            ]);
+        });
+
         it('nets buys against sells', async () => {
             const id = await persistTrader(coins(0, 1, 20), {
                 ownedItems: [owned('LootItem', potion, 3)],

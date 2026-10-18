@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import {
     documentIdOf,
+    idForms,
     isObjectIdHex,
     objectIdFromHex,
     sameId,
@@ -79,5 +80,14 @@ describe('sameId', () => {
         ['undefined', undefined],
     ])('does not match %s', (_name, value) => {
         expect(sameId(value, id)).toBe(false);
+    });
+});
+
+describe('idForms', () => {
+    it('lists the ObjectId and its hex string, the two stored forms of a ref', () => {
+        const id = new Types.ObjectId('64b0000000000000000000aa');
+
+        expect(idForms(id)).toEqual([id, '64b0000000000000000000aa']);
+        expect(idForms(id)[0]).toBeInstanceOf(Types.ObjectId);
     });
 });

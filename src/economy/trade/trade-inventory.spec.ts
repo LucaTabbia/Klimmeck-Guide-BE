@@ -178,7 +178,7 @@ describe('trade inventory', () => {
             ).toEqual({});
         });
 
-        it('re-asserts every sold quantity with $elemMatch', () => {
+        it('re-asserts every sold quantity with $elemMatch on either id form', () => {
             expect(
                 soldQuantityGuards([
                     line('sell', 'EquipmentItem', sword, 1),
@@ -189,12 +189,18 @@ describe('trade inventory', () => {
                 $and: [
                     {
                         'assets.ownedEquipments': {
-                            $elemMatch: { item: sword, quantity: { $gte: 1 } },
+                            $elemMatch: {
+                                item: { $in: [sword, sword.toHexString()] },
+                                quantity: { $gte: 1 },
+                            },
                         },
                     },
                     {
                         'assets.ownedItems': {
-                            $elemMatch: { item: potion, quantity: { $gte: 2 } },
+                            $elemMatch: {
+                                item: { $in: [potion, potion.toHexString()] },
+                                quantity: { $gte: 2 },
+                            },
                         },
                     },
                 ],
