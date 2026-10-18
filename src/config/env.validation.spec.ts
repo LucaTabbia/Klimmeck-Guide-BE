@@ -33,6 +33,27 @@ describe('validateEnv', () => {
     it('boots without any Twitch key', () => {
         expect(() => validateEnv({ JWT_SECRET: VALID_SECRET })).not.toThrow();
     });
+
+    it('throws in production without FIREBASE_SERVICE_ACCOUNT', () => {
+        expect(() =>
+            validateEnv({ JWT_SECRET: VALID_SECRET, NODE_ENV: 'production' }),
+        ).toThrow(/FIREBASE_SERVICE_ACCOUNT/);
+    });
+
+    it('boots in development without FIREBASE_SERVICE_ACCOUNT (push disabled)', () => {
+        expect(() =>
+            validateEnv({ JWT_SECRET: VALID_SECRET, NODE_ENV: 'development' }),
+        ).not.toThrow();
+    });
+
+    it('rejects a malformed FIREBASE_SERVICE_ACCOUNT in development', () => {
+        expect(() =>
+            validateEnv({
+                JWT_SECRET: VALID_SECRET,
+                FIREBASE_SERVICE_ACCOUNT: 'not base64 !!!',
+            }),
+        ).toThrow(/base64/);
+    });
 });
 
 describe('.env.example', () => {
@@ -48,6 +69,11 @@ describe('.env.example', () => {
 
     it('carries no JWT secret value', () => {
         expect(parsed.JWT_SECRET).toBe('');
+    });
+
+    it('declares an empty FIREBASE_SERVICE_ACCOUNT', () => {
+        expect(parsed).toHaveProperty('FIREBASE_SERVICE_ACCOUNT');
+        expect(parsed.FIREBASE_SERVICE_ACCOUNT).toBe('');
     });
 
     it('passes validateEnv once a JWT_SECRET is provided', () => {
