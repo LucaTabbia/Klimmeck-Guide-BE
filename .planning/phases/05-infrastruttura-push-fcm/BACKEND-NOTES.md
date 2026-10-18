@@ -292,11 +292,12 @@ Codici FCM lato server (**solo log**, mai restituiti al FE; `src/push/push-deliv
 | ---------- | -------------- |
 | `messaging/registration-token-not-registered` | token potato da `push_devices` (`pruned`) |
 | `messaging/invalid-registration-token` | token potato |
-| `messaging/invalid-argument` | potato **solo** se almeno un altro token dello stesso batch è stato consegnato (regola del testimone: senza testimone potrebbe essere un payload malformato) |
-| `messaging/invalid-payload`, `messaging/invalid-data-payload-key`, `messaging/payload-size-limit-exceeded` | ERROR nel log, nessun token potato |
+| `messaging/invalid-argument`, `messaging/invalid-payload`, `messaging/invalid-data-payload-key`, `messaging/payload-size-limit-exceeded` | ERROR nel log (conteggi e codici), **nessun token potato**, contati in `failed`. `invalid-argument` non fa mai pruning (review WR-01): un batch mescola Android e iOS e un payload rifiutato da una sola piattaforma cancellerebbe i token dell'altra |
 | `messaging/mismatched-credential` | WARN senza retry: service account di un progetto Firebase diverso da quello del FE |
 | `messaging/third-party-auth-error` | WARN senza retry: chiave APNs mancante o non valida nella console Firebase |
 | `messaging/server-unavailable`, `messaging/internal-error`, `messaging/message-rate-exceeded` (e ogni altro codice) | WARN senza retry (l'SDK ha già ritentato internamente) |
+
+Il pruning è a sua volta best-effort (review IN-01): se la cancellazione da `push_devices` fallisce dopo che FCM ha accettato i messaggi, il BE logga WARN `pruning failed` e il report mantiene `targeted`/`sent`/`failed` della consegna con `pruned: 0`; i token restano e verranno potati al prossimo invio.
 
 I log riportano solo tipo, conteggi e codici (`failureCodeSummary`), mai i token (al massimo un suffisso di 6 caratteri nei log dei topic).
 
