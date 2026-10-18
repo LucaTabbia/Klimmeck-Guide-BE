@@ -110,13 +110,13 @@ I 15 codici di `GameRuleErrorCode` (HTTP 400, `GameRuleException`) più quelli i
 | `ITEM_NOT_TRADABLE` | `doTransaction` | `buyPrice` (acquisto) o `sellPrice` (vendita) nullo nel catalogo | `Oggetto non scambiabile` | nascondere/disabilitare l'oggetto per quel verso |
 | `ITEM_NOT_OWNED` | `doTransaction` (vendita), `equipItem` | vendita o equip di un oggetto non posseduto (anche `itemId` malformato in `equipItem`) | `Oggetto non posseduto` | riallinearsi con `characterUpdated` / refetch del personaggio |
 | `INSUFFICIENT_ITEM_QUANTITY` | `doTransaction` (vendita) | quantità venduta > posseduta, anche per una vendita concorrente che ha già consumato lo stock | `Quantità posseduta insufficiente` | riallinearsi con lo stato del personaggio |
-| `INVALID_QUANTITY` | `doTransaction` | quantità ≤ 0 o non intera; stesso oggetto ripetuto o presente sia in acquisto sia in vendita; totale fuori dagli interi sicuri | `Quantità non valida` | bug del client: non dovrebbe accadere con la UI attuale |
+| `INVALID_QUANTITY` | `doTransaction` | quantità ≤ 0 o non intera; stesso oggetto ripetuto o presente sia in acquisto sia in vendita; totale fuori dagli interi sicuri; acquisto che porterebbe la quantità posseduta oltre `MAX_ITEM_QUANTITY` (2 147 483 647, il limite di `Int`) | `Quantità non valida` | bug del client: non dovrebbe accadere con la UI attuale |
 | `QUEST_SLOT_BUSY` | **solo primitive interne (Phase 7)**: `QuestAcceptanceService.accept` | `quests.pendingQuest` già occupato (anche dal vincitore di un'accettazione concorrente) | `Hai già una missione in corso` | FE Phase 6, quando la BE Phase 7 esporrà la mutation |
 | `SPELL_NOT_KNOWN` | `equipSpell` | la magia non è in `status.spells` (anche `spellId` malformato) | `Magia non conosciuta` | refetch del personaggio |
 | `SPELL_ALREADY_ACTIVE` | `equipSpell` | la magia è già in `assets.activeSpells` (anche come perdente di un equip concorrente della stessa magia) | `Magia già attiva` | riallinearsi, nessun errore bloccante |
-| `MAX_ACTIVE_SPELLS_REACHED` | `equipSpell` | `activeSpells` ha già `maxActiveSpells` voci (calcolato sull'xp vivo) | `Hai raggiunto il numero massimo di magie attive` | chiedere di disequipaggiarne una |
+| `MAX_ACTIVE_SPELLS_REACHED` | `equipSpell` | `activeSpells` ha già `maxActiveSpells` voci (calcolato sull'xp vivo); anche fallback di contesa (§4) | `Hai raggiunto il numero massimo di magie attive` | chiedere di disequipaggiarne una |
 | `SPELL_NOT_ACTIVE` | `unequipSpell`, `useSpell` | magia non attiva (anche `spellId` malformato); **per `unequipSpell` prima era `NOT_FOUND`** | `Magia non attiva` | riallinearsi con lo stato del personaggio |
-| `SPELL_NO_USAGES_LEFT` | `useSpell` | magia attiva con `usages` = 0 (anche come perdente di un use concorrente sull'ultimo usage) | `Magia senza utilizzi rimasti` | mostrare il recupero in corso |
+| `SPELL_NO_USAGES_LEFT` | `useSpell` | magia attiva con `usages` = 0 (anche come perdente di un use concorrente sull'ultimo usage); anche fallback di contesa (§5) | `Magia senza utilizzi rimasti` | mostrare il recupero in corso |
 | `SPELL_RECOVERY_UNAVAILABLE` | `useSpell` | l'accodamento del job di recupero (Redis/Bull) è fallito: l'usage viene restituito | `Recupero della magia non disponibile, riprova` | messaggio + possibilità di riprovare |
 | `NOT_FOUND` (invariato) | tutte | personaggio inesistente/archiviato/id malformato (`Personaggio non trovato`); spell assente dal catalogo in `equipSpell`/`useSpell` (`Magia non trovata`); quest inesistente in `accept` (`Missione non trovata`); utente inesistente nelle primitive punti (`Utente non trovato`) | vedi colonna Quando | refetch / riallineamento come in Phase 3 |
 | `FORBIDDEN` (invariato, Phase 3) | le 5 mutation | personaggio non del chiamante e chiamante non `innkeeper` | `Questo personaggio non ti appartiene` | come Phase 3 |
@@ -146,16 +146,18 @@ Le primitive interne lanciano anche `RangeError` (mai sul wire, sono errori di p
 2. catalogo: `ITEM_NOT_FOUND`, `ITEM_NOT_TRADABLE`;
 3. controllo incrociato: `TRANSACTION_TOTAL_MISMATCH`;
 4. personaggio (in sessione): `NOT_FOUND`;
-5. possesso: `ITEM_NOT_OWNED`, `INSUFFICIENT_ITEM_QUANTITY`;
+5. possesso: `ITEM_NOT_OWNED`, `INSUFFICIENT_ITEM_QUANTITY`, `INVALID_QUANTITY` per un acquisto oltre `MAX_ITEM_QUANTITY`;
 6. fondi: `INSUFFICIENT_FUNDS`.
 
 L'id malformato del personaggio dà `NOT_FOUND` prima di tutto.
 
-**Un'unica transazione Mongo.** Inventario e coins si scrivono nella stessa `connection.transaction`. La scrittura dell'inventario riafferma nel filtro le quantità vendute (`$elemMatch … quantity: { $gte }`); i coins li muove solo `WalletService` con una guard `$expr` sul rame. Qualunque fallimento annulla tutto: **mai stato parziale** (provato con un fallimento indotto dopo la scrittura dei coins: il documento resta identico).
+**Un'unica transazione Mongo.** Inventario e coins si scrivono nella stessa `connection.transaction`. La scrittura dell'inventario riafferma nel filtro le quantità vendute (`$elemMatch { item: { $in: [ObjectId, hex] }, quantity: { $gte } }`, così una voce legacy con `item` stringa si vende come in memoria; è una rete di sicurezza, la contesa la risolve il `WriteConflict` della transazione); i coins li muove solo `WalletService` con una guard `$expr` sul rame. Qualunque fallimento annulla tutto: **mai stato parziale** (provato con un fallimento indotto dopo la scrittura dei coins: il documento resta identico).
 
-**Semantica degli array (D-08) invariata.** Le voci che scendono a quantità 0 vengono rimosse; un acquisto incrementa la voce esistente o ne inserisce una nuova con l'`itemType` corretto.
+**Semantica degli array (D-08) invariata.** Le voci che scendono a quantità 0 vengono rimosse; un acquisto incrementa la voce esistente o ne inserisce una nuova con l'`itemType` corretto. Una quantità posseduta non supera mai `MAX_ITEM_QUANTITY` (2 147 483 647): oltre, `INVALID_QUANTITY` prima di qualunque scrittura.
 
-**Scambio vuoto a totale zero = no-op valido (A2).** Risponde `successful: true` e non scrive nulla.
+**Vendere l'ultima copia di un equipaggiamento indossato lo sveste.** Ogni slot di `assets.wearedEquipment` che lo referenzia (anche con id stringa legacy) diventa `null` nella stessa scrittura dell'inventario, quindi nella stessa transazione; vendere una copia su due lascia lo slot com'è.
+
+**Scambio vuoto a totale zero = no-op valido (A2).** Risponde `successful: true` senza aprire la transazione e senza leggere o scrivere il personaggio (l'ownership l'ha già verificata il resolver con `@OwnsCharacter`).
 
 **Divergenze dal FE (nessuna richiede modifiche FE oggi):**
 
@@ -178,6 +180,8 @@ La capacità si calcola con un `$switch` sull'xp vivo, con la stessa tabella del
 - Gli usages iniziali valgono sempre `spell.maxUsages` del catalogo: `request.usages` è **ignorato**.
 - Una spell assente dal catalogo dà `NOT_FOUND` (`Magia non trovata`) prima di qualunque scrittura.
 - Se l'update non matcha, una rilettura leggera serve solo a scegliere il codice; se il personaggio non esiste la risposta è `NOT_FOUND`.
+- **Fallback di contesa.** Se la rilettura non mostra nessuna guard violata (conosciuta, non attiva, slot libero sull'xp riletto) lo stato è cambiato fra l'update e la rilettura: il BE rilegge una seconda volta e riclassifica; solo se anche la seconda rilettura non mostra violazioni risponde `MAX_ACTIVE_SPELLS_REACHED`. Il client può riprovare.
+- **Id legacy.** Filtri, `$pull` e classificatori confrontano il ref della magia in entrambe le forme salvate (`$in`/`$nin: [ObjectId, hex]`), quindi un personaggio con un id stringa in `status.spells` o `assets.activeSpells` equipaggia, disequipaggia, usa e recupera come gli altri.
 
 **`unequipSpell`** è un `$pull` condizionato alla magia attiva, altrimenti `SPELL_NOT_ACTIVE` (prima `NOT_FOUND`). Tre unequip concorrenti danno un successo e due `SPELL_NOT_ACTIVE`.
 
@@ -188,7 +192,7 @@ La capacità si calcola con un `$switch` sull'xp vivo, con la stessa tabella del
 ## 5. useSpell e recovery
 
 1. La spell si valida nel catalogo **prima** di toccare gli usages; se manca → `NOT_FOUND`.
-2. Decremento condizionato: `$inc: -1` su `$elemMatch { spell, usages: { $gte: 1 } }`. Gli usages non scendono mai sotto 0 e c'è un solo vincitore per usage. I rifiuti sono `SPELL_NOT_ACTIVE` / `SPELL_NO_USAGES_LEFT`.
+2. Decremento condizionato: `$inc: -1` su `$elemMatch { spell, usages: { $gte: 1 } }`. Gli usages non scendono mai sotto 0 e c'è un solo vincitore per usage. I rifiuti sono `SPELL_NOT_ACTIVE` / `SPELL_NO_USAGES_LEFT`. Se la rilettura mostra la magia attiva con usages ≥ 1, il BE rilegge e riclassifica una seconda volta e solo dopo ripiega su `SPELL_NO_USAGES_LEFT` (stesso fallback di contesa di §4).
 3. Il job di recupero Bull si accoda **dopo** la scrittura, con `jobId = <characterId>-<spellId>-<randomUUID()>`. Prima era `Date.now()`: due usi nello stesso millisecondo perdevano un recupero.
 4. Se l'accodamento fallisce, l'usage viene restituito con lo stesso update idempotente del recovery e la risposta è `SPELL_RECOVERY_UNAVAILABLE` (il client può riprovare). Se fallisce anche la compensazione, il BE registra un `logger.error` con i soli id: è l'unico caso in cui un usage si perde, e resta tracciato.
 5. Il job incrementa solo se `usages < spell.maxUsages` del catalogo: è idempotente e, rieseguito o lanciato in parallelo, non supera mai il massimo. I salti vengono loggati con `warn`:
