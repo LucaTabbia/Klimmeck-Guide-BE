@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-10-18T14:49:38.996Z"
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-10-18T14:57:11.761Z"
 last_activity: 2026-10-18
 progress:
   total_phases: 12
   completed_phases: 5
   total_plans: 48
-  completed_plans: 43
-  percent: 90
+  completed_plans: 44
+  percent: 92
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 4 (Integrità Economica (Atomics)) — EXECUTING
-Plan: 5 of 9
+Plan: 6 of 9
 Status: Ready to execute
-Last activity: 2026-10-18 -- Completed 04-04-PLAN.md
+Last activity: 2026-10-18 -- Completed 04-05-PLAN.md
 
-Progress: [█████████░] 90%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 43
+- Total plans completed: 44
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -83,6 +83,7 @@ Progress: [█████████░] 90%
 | Phase 04 P02 | 10 min | 2 tasks | 3 files |
 | Phase 04 P03 | 15 min | 3 tasks | 14 files |
 | Phase 04 P04 | 3 min | 2 tasks | 5 files |
+| Phase 04 P05 | 6 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,8 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-03: classifyUnequipSpellFailure takes only the snapshot (single guard 'active')
 - [Phase 04]: 04-03: malformed ids short-circuit without DB access: equipSpell SPELL_NOT_KNOWN, unequipSpell SPELL_NOT_ACTIVE, equipItem ITEM_NOT_OWNED, character NOT_FOUND
 - [Phase 04]: Trade planner puro in src/economy/trade: prezzo solo dal catalogo, totale client solo cross-check, guard $elemMatch $gte per le vendite
+- [Phase 04]: useSpell: spellId malformato → SPELL_NOT_ACTIVE; compensazione con recoverSpellFilter (mai oltre maxUsages), fallimento loggato con soli id
+- [Phase 04]: Payload job spell-recovery invariato (id stringa); il processor salta job malformati con warn
 
 ### Pending Todos
 
@@ -158,6 +161,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-18T14:49:38.992Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-10-18T14:57:11.758Z
+Stopped at: Completed 04-05-PLAN.md
 Resume file: None
