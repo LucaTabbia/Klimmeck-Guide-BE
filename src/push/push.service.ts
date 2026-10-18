@@ -36,11 +36,6 @@ import {
     TRANSPORT_ERROR_CODE,
 } from 'src/push/transport/push-transport';
 
-const PAYLOAD_REJECTION_KINDS: ReadonlySet<DeliveryFailureKind> = new Set([
-    DeliveryFailureKind.payload,
-    DeliveryFailureKind.suspectToken,
-]);
-
 const LOGGED_TOKEN_SUFFIX_LENGTH = 6;
 
 const tokenSuffix = (token: string): string =>
@@ -212,10 +207,10 @@ export class PushService {
         const kept = outcomes.filter(
             (outcome) => !outcome.delivered && !pruneSet.has(outcome.token),
         );
-        const rejected = kept.filter((outcome) =>
-            PAYLOAD_REJECTION_KINDS.has(
-                classifyDeliveryFailure(outcome.errorCode),
-            ),
+        const rejected = kept.filter(
+            (outcome) =>
+                classifyDeliveryFailure(outcome.errorCode) ===
+                DeliveryFailureKind.payload,
         );
         const transient = kept.filter(
             (outcome) =>
