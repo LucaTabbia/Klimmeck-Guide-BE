@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CatalogPricesReader } from 'src/economy/trade/catalog-prices.reader';
+import { ShopTransactionService } from 'src/economy/trade/shop-transaction.service';
 import { WalletService } from 'src/economy/wallet.service';
 import {
     Character,
@@ -23,7 +24,7 @@ import { User, UserSchema } from 'src/models/user.model';
             { name: LootItem.name, schema: LootItemSchema },
         ]),
     ],
-    providers: [WalletService, CatalogPricesReader],
-    exports: [WalletService],
+    providers: [WalletService, CatalogPricesReader, ShopTransactionService],
+    exports: [WalletService, ShopTransactionService],
 })
 export class EconomyModule {}
