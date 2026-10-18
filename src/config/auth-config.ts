@@ -1,5 +1,6 @@
 import type { FactoryProvider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { readEnvKeys } from 'src/config/env-keys';
 import { RoleType } from 'src/models/enums/role-type.enum';
 
 export const AUTH_CONFIG = 'AUTH_CONFIG';
@@ -89,13 +90,7 @@ export function parseAuthConfig(env: AuthEnv): AuthConfig {
 }
 
 export function readAuthEnv(source: Record<string, unknown>): AuthEnv {
-    const env: AuthEnv = {};
-    for (const key of AUTH_ENV_KEYS) {
-        const value = source[key];
-        if (!isEnvScalar(value)) continue;
-        env[key] = String(value);
-    }
-    return env;
+    return readEnvKeys(source, AUTH_ENV_KEYS);
 }
 
 export const authConfigProvider: FactoryProvider<AuthConfig> = {
@@ -110,14 +105,6 @@ export const authConfigProvider: FactoryProvider<AuthConfig> = {
             ),
         ),
 };
-
-function isEnvScalar(value: unknown): value is string | number | boolean {
-    return (
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean'
-    );
-}
 
 function parseJwtSecret(env: AuthEnv): string {
     const jwtSecret = env.JWT_SECRET ?? '';
