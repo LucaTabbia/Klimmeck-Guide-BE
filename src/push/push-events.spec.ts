@@ -49,9 +49,14 @@ describe('push event catalog', () => {
         'testPushMessage(%s) reuses the catalog copy',
         (type) => {
             const message = testPushMessage(type, 'abc');
-            const { id: _builderId, ...expectedCopy } = BUILDERS[type]('abc');
+            const built = BUILDERS[type]('abc');
 
-            expect(message).toMatchObject(expectedCopy);
+            expect(message).toMatchObject({
+                type: built.type,
+                title: built.title,
+                body: built.body,
+                ttlSeconds: built.ttlSeconds,
+            });
             if (IDENTIFIED_TYPES.includes(type)) {
                 expect(message.id).toBe('abc');
             } else {
