@@ -36,7 +36,23 @@ const TRADE_SNAPSHOT_PROJECTION = {
     'status.coins': 1,
     'assets.ownedItems': 1,
     'assets.ownedEquipments': 1,
+    'assets.wearedEquipment': 1,
 };
+
+// lo slot svuotato vale null, come lo salva equipItem
+function inventoryChanges(inventory: InventoryOutcome) {
+    const vacated = Object.fromEntries(
+        inventory.vacatedSlots.map((slot) => [
+            `assets.wearedEquipment.${slot}`,
+            null,
+        ]),
+    );
+    return {
+        'assets.ownedItems': inventory.ownedItems,
+        'assets.ownedEquipments': inventory.ownedEquipments,
+        ...vacated,
+    };
+}
 
 // ordine dei rifiuti: id e quantità (puro) → catalogo → cross-check del totale → personaggio → possesso → fondi
 @Injectable()
@@ -113,12 +129,7 @@ export class ShopTransactionService {
                     ...activeCharacterById(characterId),
                     ...soldQuantityGuards(lines),
                 },
-                {
-                    $set: {
-                        'assets.ownedItems': inventory.ownedItems,
-                        'assets.ownedEquipments': inventory.ownedEquipments,
-                    },
-                },
+                { $set: inventoryChanges(inventory) },
                 { session },
             )
             .exec();
