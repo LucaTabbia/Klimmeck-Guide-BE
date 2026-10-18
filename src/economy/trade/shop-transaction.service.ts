@@ -32,6 +32,11 @@ interface TradeSnapshot {
     assets?: InventorySnapshot;
 }
 
+const TRADE_SUCCEEDED: CommonResponse = {
+    response: 'Transazione avvenuta con successo',
+    successful: true,
+};
+
 const TRADE_SNAPSHOT_PROJECTION = {
     'status.coins': 1,
     'assets.ownedItems': 1,
@@ -74,13 +79,12 @@ export class ShopTransactionService {
             await this.catalogPrices.read(lines),
         );
         assertClientTotalMatches(request, netCopper);
+        // scambio vuoto a totale zero (A2): no-op valido, niente transazione; l'ownership l'ha già verificata il resolver
+        if (lines.length === 0) return TRADE_SUCCEEDED;
         await this.connection.transaction((session) =>
             this.applyTrade(characterId, lines, netCopper, session),
         );
-        return {
-            response: 'Transazione avvenuta con successo',
-            successful: true,
-        };
+        return TRADE_SUCCEEDED;
     }
 
     // rieseguibile dal driver sui WriteConflict: niente side effect, niente letture parallele in sessione (04 Pitfall 6)
@@ -103,9 +107,7 @@ export class ShopTransactionService {
         if (toCopper(snapshot.status?.coins) < -netCopper) {
             throw GameRuleException.insufficientFunds();
         }
-        if (lines.length > 0) {
-            await this.writeInventory(characterId, lines, inventory, session);
-        }
+        await this.writeInventory(characterId, lines, inventory, session);
         // l'unico scrittore dei coins (04 D-04): la sua guard $expr è l'autorità dei fondi
         if (netCopper !== 0) {
             await this.wallet.applyCharacterCoinsDelta(
