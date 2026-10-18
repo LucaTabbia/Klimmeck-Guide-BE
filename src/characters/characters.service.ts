@@ -56,6 +56,8 @@ import {
 } from './spells/active-spell.updates';
 import { SpellRecoveryJobData } from './spell-recovery.processor';
 
+const SPELL_FAILURE_CLASSIFICATION_READS = 2;
+
 interface SpellRecoveryRule {
     maxUsages: number;
     recoveryTime: number;
@@ -245,9 +247,10 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
             )
             .exec();
         if (equipped.matchedCount === 0) {
-            throw classifyEquipSpellFailure(
-                await this.readActiveSpellSnapshot(characterId),
-                spellId,
+            throw await this.classifySpellFailure(
+                characterId,
+                (snapshot) => classifyEquipSpellFailure(snapshot, spellId),
+                () => GameRuleException.maxActiveSpellsReached(),
             );
         }
         return {
@@ -276,6 +279,21 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
             response: 'Magia disequipaggiata con successo',
             successful: true,
         };
+    }
+
+    // una seconda rilettura fresca se la prima non mostra guard violate; se lo stato cambia ancora vale il codice di fallback (04 D-10)
+    private async classifySpellFailure(
+        characterId: Types.ObjectId,
+        classify: (snapshot: ActiveSpellSnapshot | null) => Error | undefined,
+        fallback: () => Error,
+    ): Promise<Error> {
+        for (let read = 0; read < SPELL_FAILURE_CLASSIFICATION_READS; read++) {
+            const failure = classify(
+                await this.readActiveSpellSnapshot(characterId),
+            );
+            if (failure) return failure;
+        }
+        return fallback();
     }
 
     // rilettura leggera solo per scegliere il codice d'errore (04 D-10)
@@ -310,9 +328,10 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
             )
             .exec();
         if (used.matchedCount === 0) {
-            throw classifyUseSpellFailure(
-                await this.readActiveSpellSnapshot(characterId),
-                spellId,
+            throw await this.classifySpellFailure(
+                characterId,
+                (snapshot) => classifyUseSpellFailure(snapshot, spellId),
+                () => GameRuleException.spellNoUsagesLeft(),
             );
         }
 
