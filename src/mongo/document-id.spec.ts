@@ -1,5 +1,9 @@
 import { Types } from 'mongoose';
-import { documentIdOf, isObjectIdHex } from 'src/mongo/document-id';
+import {
+    documentIdOf,
+    isObjectIdHex,
+    objectIdFromHex,
+} from 'src/mongo/document-id';
 
 describe('documentIdOf', () => {
     it('stringifies an ObjectId _id', () => {
@@ -33,5 +37,25 @@ describe('isObjectIdHex', () => {
         ['64b00000000000000000000z', false],
     ])('isObjectIdHex(%s) is %s', (value, expected) => {
         expect(isObjectIdHex(value)).toBe(expected);
+    });
+});
+
+describe('objectIdFromHex', () => {
+    it('turns a canonical hex id into an ObjectId', () => {
+        const id = objectIdFromHex('64b0000000000000000000aa');
+
+        expect(id).toBeInstanceOf(Types.ObjectId);
+        expect(id?.toHexString()).toBe('64b0000000000000000000aa');
+    });
+
+    it.each([
+        ['an uppercase hex id', '64B0000000000000000000AA'],
+        ['a short string', 'abc'],
+        ['a 12 character string', 'aaaaaaaaaaaa'],
+        ['an empty string', ''],
+        ['null', null],
+        ['undefined', undefined],
+    ])('returns null for %s', (_name, value) => {
+        expect(objectIdFromHex(value)).toBeNull();
     });
 });
