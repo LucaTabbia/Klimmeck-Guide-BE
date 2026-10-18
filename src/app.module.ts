@@ -27,6 +27,7 @@ import { CloudinaryModule } from './rest/cloudinary/cloudinary.module';
 import { PubSubModule } from './pubsub.module';
 import { RoadsModule } from './roads/roads.module';
 import { PointOfInterestModule } from './pointsOfInterest/point-of-interest.module';
+import { PushModule } from './push/push.module';
 import { validateEnv } from './config/env.validation';
 import { AuthModule } from './auth/auth.module';
 import { AuthzModule } from './authz/authz.module';
@@ -78,6 +79,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         PetsModule,
         QuestsModule,
         QuestAcceptanceModule,
+        PushModule,
         SpellsModule,
         RoadsModule,
         PointOfInterestModule,
