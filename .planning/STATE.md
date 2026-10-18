@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 04-09-PLAN.md
-last_updated: "2026-10-18T15:54:51.228Z"
-last_activity: "2026-10-18 -- Phase 4 complete (verification 5/5, review fixed, security 51/51); BE PR #7 open to develop; next Phase 5 FCM"
+status: planning
+stopped_at: Phase 5 context gathered
+last_updated: "2026-10-18T18:35:43.358Z"
+last_activity: "2026-10-18 -- Phase 5 discuss (--auto): CONTEXT + DISCUSSION-LOG committed (b2770ad); next /gsd-plan-phase 5"
 progress:
   total_phases: 12
   completed_phases: 6
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 4 (integrita-economica-atomics) — COMPLETE 2026-10-18, branch feat/04-integrita-economica-atomics (9/9 plans; VERIFICATION 5/5, human item = prod replica-set deploy check; REVIEW 0 critical / 4 warnings fixed in TDD + IN-05/IN-06; security 51/51 closed, PR #7 open)
-Plan: 9/9 complete
-Status: Phase 4 complete — security 51/51 closed; PR #7 open on LucaTabbia/Klimmeck-Guide-BE (feat/04-integrita-economica-atomics → develop), ready for review and merge (no FE dependency); next /gsd-discuss-phase 5 (Infrastruttura Push FCM, unblocks FE Phase 5)
-Last activity: 2026-10-18 -- Phase 4 closed: 645 unit / 479 integration green, schema byte-identical, review fixes WR-01..04 + IN-05/06, BACKEND-NOTES published
+Phase: 5 (infrastruttura-push-fcm) — CONTEXT GATHERED 2026-10-18 (--auto, D-01..D-18), branch feat/05-infrastruttura-push-fcm off develop @ 630e84c (PR #7 merged)
+Plan: 0/TBD
+Status: Phase 5 context gathered — ready to plan (/gsd-plan-phase 5); unblocks FE Phase 5 (Notifications Infrastructure)
+Last activity: 2026-10-18 -- Phase 5 discuss (--auto): CONTEXT + DISCUSSION-LOG committed (b2770ad); next /gsd-plan-phase 5
 
 Progress: [██████████] 100%
 
