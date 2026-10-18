@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { getQueueToken } from '@nestjs/bull';
 import { Test } from '@nestjs/testing';
@@ -8,14 +8,17 @@ import { SlotType } from 'src/models/enums/slot_type.enum';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { Spell } from 'src/models/spell.model';
-import { buildCharacter, buildSpell } from '../../test/fixtures';
 import { CharactersService } from './characters.service';
 import {
     ACTIVE_SPELL_SNAPSHOT_PROJECTION,
+    DECREMENT_ACTIVE_SPELL_USAGE,
+    INCREMENT_ACTIVE_SPELL_USAGE,
     equipSpellFilter,
     equipSpellUpdate,
+    recoverSpellFilter,
     unequipSpellFilter,
     unequipSpellUpdate,
+    useSpellFilter,
 } from './spells/active-spell.updates';
 
 /**
@@ -35,20 +38,6 @@ const mockCharacterModel = {
 };
 const mockSpellModel = { findById: jest.fn() };
 const mockPubSub = { publish: jest.fn(), subscribe: jest.fn() };
-
-/**
- * Build a plain character usable against the mocked model. `maxActiveSpells` is a
- * Mongoose virtual at runtime, but a plain object here — so we set it explicitly.
- * A `save` jest.fn() lets us assert (non-)persistence.
- */
-function makeCharacter(overrides: Record<string, any> = {}) {
-    const character: any = buildCharacter(overrides);
-    if (character.status.maxActiveSpells === undefined) {
-        character.status.maxActiveSpells = 1;
-    }
-    character.save = jest.fn().mockResolvedValue(undefined);
-    return character;
-}
 
 /** Mongoose findOne(...).exec() shape. */
 function asQuery(doc: any) {
@@ -204,104 +193,121 @@ describe('CharactersService (unit — spell mutations)', () => {
     });
 
     describe('useSpell', () => {
-        it('decrements usages and schedules recovery (happy path)', async () => {
-            const characterId = new Types.ObjectId().toString();
-            const spellId = new Types.ObjectId().toString();
-            const character = makeCharacter({
-                assets: {
-                    ownedEquipments: [],
-                    ownedItems: [],
-                    wearedEquipment: {},
-                    activeSpells: [
-                        { spell: new Types.ObjectId(spellId), usages: 3 },
-                    ],
-                    pet: null,
-                },
-            });
-            const spell = buildSpell({ recoveryTime: 1000 });
-            mockCharacterModel.findOne.mockReturnValue(asQuery(character));
-            mockSpellModel.findById.mockReturnValue(asQuery(spell));
+        const c = new Types.ObjectId();
+        const s = new Types.ObjectId();
+        const request = {
+            characterId: c.toHexString(),
+            spellId: s.toHexString(),
+        };
 
-            const result = await service.useSpell({ characterId, spellId });
+        beforeEach(() => {
+            mockSpellModel.findById.mockReset();
+        });
+
+        function givenCatalogSpell() {
+            mockSpellModel.findById.mockReturnValueOnce(
+                asLeanQuery({ maxUsages: 3, recoveryTime: 1000 }),
+            );
+        }
+
+        it('validates the spell before the conditional decrement', async () => {
+            mockSpellModel.findById.mockReturnValueOnce(asLeanQuery(null));
+
+            await expect(service.useSpell(request)).rejects.toMatchObject({
+                code: 'NOT_FOUND',
+            });
+            expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
+            expect(mockQueue.add).not.toHaveBeenCalled();
+        });
+
+        it('decrements with a single conditional update, then queues the recovery', async () => {
+            givenCatalogSpell();
+            mockCharacterModel.updateOne.mockReturnValueOnce(asUpdate(1));
+            mockQueue.add.mockResolvedValueOnce({});
+
+            const result = await service.useSpell(request);
 
             expect(result.successful).toBe(true);
-            expect(character.assets.activeSpells[0].usages).toBe(2);
-            expect(character.save).toHaveBeenCalledTimes(1);
-            expect(mockQueue.add).toHaveBeenCalledTimes(1);
+            expect(mockCharacterModel.updateOne).toHaveBeenCalledTimes(1);
+            expect(mockCharacterModel.updateOne).toHaveBeenCalledWith(
+                useSpellFilter(c, s),
+                DECREMENT_ACTIVE_SPELL_USAGE,
+            );
+            expect(
+                mockCharacterModel.updateOne.mock.invocationCallOrder[0],
+            ).toBeLessThan(mockQueue.add.mock.invocationCallOrder[0]);
             expect(mockQueue.add).toHaveBeenCalledWith(
                 'recover',
-                { characterId, spellId },
-                expect.objectContaining({ delay: 1000 }),
+                request,
+                expect.objectContaining({
+                    delay: 1000,
+                    jobId: expect.stringMatching(
+                        new RegExp(
+                            `^${c.toHexString()}-${s.toHexString()}-[0-9a-f-]{36}$`,
+                        ),
+                    ),
+                }),
             );
-            expect(mockCharacterModel.findOne).toHaveBeenCalledWith({
-                _id: characterId,
-                deletedAt: null,
-            });
         });
 
-        it('rejects when the active spell has no usages left', async () => {
-            const characterId = new Types.ObjectId().toString();
-            const spellId = new Types.ObjectId().toString();
-            const character = makeCharacter({
-                assets: {
-                    ownedEquipments: [],
-                    ownedItems: [],
-                    wearedEquipment: {},
-                    activeSpells: [
-                        { spell: new Types.ObjectId(spellId), usages: 0 },
-                    ],
-                    pet: null,
-                },
-            });
-            mockCharacterModel.findOne.mockReturnValue(asQuery(character));
+        it('classifies a rejected decrement from a lean reread', async () => {
+            givenCatalogSpell();
+            mockCharacterModel.updateOne.mockReturnValueOnce(asUpdate(0));
+            mockCharacterModel.findOne.mockReturnValueOnce(
+                asLeanQuery({
+                    status: { spells: [s] },
+                    assets: { activeSpells: [{ spell: s, usages: 0 }] },
+                }),
+            );
 
-            await expect(
-                service.useSpell({ characterId, spellId }),
-            ).rejects.toThrow(/no usages left/);
-            expect(character.save).not.toHaveBeenCalled();
-            expect(mockQueue.add).not.toHaveBeenCalled();
-            expect(mockCharacterModel.findOne).toHaveBeenCalledWith({
-                _id: characterId,
-                deletedAt: null,
+            await expect(service.useSpell(request)).rejects.toMatchObject({
+                code: 'SPELL_NO_USAGES_LEFT',
             });
+            expect(mockQueue.add).not.toHaveBeenCalled();
         });
 
-        // RED (bug D-06): the spell existence must be validated BEFORE the
-        // usage is decremented and persisted. With the current (buggy) order the
-        // usage is lost (3 -> 2, saved) even though the spell does not exist.
-        it('validation order: does not lose the usage when the spell does not exist', async () => {
-            const characterId = new Types.ObjectId().toString();
-            const spellId = new Types.ObjectId().toString();
-            const character = makeCharacter({
-                assets: {
-                    ownedEquipments: [],
-                    ownedItems: [],
-                    wearedEquipment: {},
-                    activeSpells: [
-                        { spell: new Types.ObjectId(spellId), usages: 3 },
-                    ],
-                    pet: null,
-                },
-            });
-            mockCharacterModel.findOne.mockReturnValue(asQuery(character));
-            // spell active on the character but missing from the Spell collection
-            mockSpellModel.findById.mockReturnValue(asQuery(null));
+        it('compensates the usage and answers SPELL_RECOVERY_UNAVAILABLE when the queue rejects', async () => {
+            givenCatalogSpell();
+            mockCharacterModel.updateOne
+                .mockReturnValueOnce(asUpdate(1))
+                .mockReturnValueOnce(asUpdate(1));
+            mockQueue.add.mockRejectedValueOnce(new Error('redis down'));
 
-            await expect(
-                service.useSpell({ characterId, spellId }),
-            ).rejects.toThrow(NotFoundException);
-            await expect(
-                service.useSpell({ characterId, spellId }),
-            ).rejects.toMatchObject({ code: 'NOT_FOUND' });
-
-            // usage MUST be untouched and NOT persisted, and no recovery scheduled
-            expect(character.assets.activeSpells[0].usages).toBe(3);
-            expect(character.save).not.toHaveBeenCalled();
-            expect(mockQueue.add).not.toHaveBeenCalled();
-            expect(mockCharacterModel.findOne).toHaveBeenCalledWith({
-                _id: characterId,
-                deletedAt: null,
+            await expect(service.useSpell(request)).rejects.toMatchObject({
+                code: 'SPELL_RECOVERY_UNAVAILABLE',
             });
+            expect(mockCharacterModel.updateOne).toHaveBeenCalledTimes(2);
+            expect(mockCharacterModel.updateOne).toHaveBeenNthCalledWith(
+                2,
+                recoverSpellFilter(c, s, 3),
+                INCREMENT_ACTIVE_SPELL_USAGE,
+            );
+        });
+
+        it('logs and still answers SPELL_RECOVERY_UNAVAILABLE when the compensation fails', async () => {
+            const errorSpy = jest
+                .spyOn(Logger.prototype, 'error')
+                .mockImplementation(() => undefined);
+            givenCatalogSpell();
+            mockCharacterModel.updateOne
+                .mockReturnValueOnce(asUpdate(1))
+                .mockReturnValueOnce({
+                    exec: jest.fn().mockRejectedValue(new Error('mongo down')),
+                });
+            mockQueue.add.mockRejectedValueOnce(new Error('redis down'));
+
+            try {
+                await expect(service.useSpell(request)).rejects.toMatchObject({
+                    code: 'SPELL_RECOVERY_UNAVAILABLE',
+                });
+                expect(errorSpy).toHaveBeenCalledWith(
+                    expect.stringContaining(c.toHexString()),
+                    expect.anything(),
+                );
+                expect(errorSpy.mock.calls[0][0]).toContain(s.toHexString());
+            } finally {
+                errorSpy.mockRestore();
+            }
         });
     });
 
