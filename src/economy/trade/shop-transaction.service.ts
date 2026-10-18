@@ -79,12 +79,24 @@ export class ShopTransactionService {
             await this.catalogPrices.read(lines),
         );
         assertClientTotalMatches(request, netCopper);
-        // scambio vuoto a totale zero (A2): no-op valido, niente transazione; l'ownership l'ha già verificata il resolver
-        if (lines.length === 0) return TRADE_SUCCEEDED;
+        // scambio vuoto a totale zero (A2): no-op valido senza transazione, ma il personaggio deve esistere (l'innkeeper salta l'ownership)
+        if (lines.length === 0) {
+            await this.assertCharacterExists(characterId);
+            return TRADE_SUCCEEDED;
+        }
         await this.connection.transaction((session) =>
             this.applyTrade(characterId, lines, netCopper, session),
         );
         return TRADE_SUCCEEDED;
+    }
+
+    private async assertCharacterExists(
+        characterId: Types.ObjectId,
+    ): Promise<void> {
+        const exists = await this.characterModel
+            .exists(activeCharacterById(characterId))
+            .exec();
+        if (!exists) throw ResourceNotFoundException.character();
     }
 
     // rieseguibile dal driver sui WriteConflict: niente side effect, niente letture parallele in sessione (04 Pitfall 6)

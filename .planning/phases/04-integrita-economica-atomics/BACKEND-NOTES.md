@@ -157,7 +157,7 @@ L'id malformato del personaggio dà `NOT_FOUND` prima di tutto.
 
 **Vendere l'ultima copia di un equipaggiamento indossato lo sveste.** Ogni slot di `assets.wearedEquipment` che lo referenzia (anche con id stringa legacy) diventa `null` nella stessa scrittura dell'inventario, quindi nella stessa transazione; vendere una copia su due lascia lo slot com'è.
 
-**Scambio vuoto a totale zero = no-op valido (A2).** Risponde `successful: true` senza aprire la transazione e senza leggere o scrivere il personaggio (l'ownership l'ha già verificata il resolver con `@OwnsCharacter`).
+**Scambio vuoto a totale zero = no-op valido (A2).** Risponde `successful: true` senza aprire la transazione e senza scrivere nulla; una sola lettura `exists` sul personaggio attivo mantiene `NOT_FOUND` per un id inesistente o archiviato (l'innkeeper non passa dal controllo di ownership).
 
 **Divergenze dal FE (nessuna richiede modifiche FE oggi):**
 
