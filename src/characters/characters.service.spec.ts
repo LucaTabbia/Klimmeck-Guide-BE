@@ -6,7 +6,6 @@ import { Types } from 'mongoose';
 import { Character } from 'src/models/character/character.model';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
-import { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { Spell } from 'src/models/spell.model';
 import { CharactersService } from './characters.service';
 import {
@@ -359,17 +358,11 @@ describe('CharactersService (unit — spell mutations)', () => {
             });
         });
 
-        it('reports an archived character as not found on doTransaction', async () => {
-            const id = new Types.ObjectId().toString();
-            mockCharacterModel.findOne.mockReturnValue(asQuery(null));
-
-            await expect(
-                service.doTransaction({ id } as TransactionRequest),
-            ).rejects.toMatchObject({ code: 'NOT_FOUND' });
-            expect(mockCharacterModel.findOne).toHaveBeenCalledWith({
-                _id: id,
-                deletedAt: null,
-            });
+        // lo scambio vive in src/economy (04 D-05): la copertura dell'archiviato è sul wire
+        it('no longer exposes doTransaction on CharactersService', () => {
+            expect(
+                (service as unknown as Record<string, unknown>).doTransaction,
+            ).toBeUndefined();
         });
 
         it('reports an archived character as not found on equipItem', async () => {
