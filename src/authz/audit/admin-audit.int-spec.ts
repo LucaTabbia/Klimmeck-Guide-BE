@@ -182,14 +182,14 @@ describe('Admin audit log (wire)', () => {
             );
 
             expect(bodyOf(response).errors?.[0]?.extensions).toEqual({
-                code: 'NOT_FOUND',
+                code: 'SPELL_NOT_ACTIVE',
             });
             const records = await audits.find().lean().exec();
             expect(records).toHaveLength(1);
             expect(records[0]).toMatchObject({
                 action: 'unequipSpell',
                 target: { type: 'Character', id: aliceCharId },
-                outcome: 'NOT_FOUND',
+                outcome: 'SPELL_NOT_ACTIVE',
             });
         });
     });

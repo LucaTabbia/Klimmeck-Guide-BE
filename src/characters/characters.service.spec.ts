@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { getQueueToken } from '@nestjs/bull';
 import { Test } from '@nestjs/testing';
@@ -10,6 +10,13 @@ import { TransactionRequest } from 'src/models/request/transaction-request.model
 import { Spell } from 'src/models/spell.model';
 import { buildCharacter, buildSpell } from '../../test/fixtures';
 import { CharactersService } from './characters.service';
+import {
+    ACTIVE_SPELL_SNAPSHOT_PROJECTION,
+    equipSpellFilter,
+    equipSpellUpdate,
+    unequipSpellFilter,
+    unequipSpellUpdate,
+} from './spells/active-spell.updates';
 
 /**
  * UNIT: CharactersService spell mutations with the Bull queue mocked at the DI
@@ -20,7 +27,12 @@ import { CharactersService } from './characters.service';
  */
 
 const mockQueue = { add: jest.fn() };
-const mockCharacterModel = { findOne: jest.fn(), find: jest.fn() };
+const mockCharacterModel = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    updateOne: jest.fn(),
+    exists: jest.fn(),
+};
 const mockSpellModel = { findById: jest.fn() };
 const mockPubSub = { publish: jest.fn(), subscribe: jest.fn() };
 
@@ -41,6 +53,23 @@ function makeCharacter(overrides: Record<string, any> = {}) {
 /** Mongoose findOne(...).exec() shape. */
 function asQuery(doc: any) {
     return { exec: jest.fn().mockResolvedValue(doc) };
+}
+
+/** Mongoose findOne(...).lean().exec() shape. */
+function asLeanQuery(doc: any) {
+    return {
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(doc),
+    };
+}
+
+/** Mongoose updateOne(...).exec() shape. */
+function asUpdate(matchedCount: number) {
+    return {
+        exec: jest
+            .fn()
+            .mockResolvedValue({ matchedCount, modifiedCount: matchedCount }),
+    };
 }
 
 describe('CharactersService (unit — spell mutations)', () => {
@@ -73,155 +102,104 @@ describe('CharactersService (unit — spell mutations)', () => {
     });
 
     describe('equipSpell', () => {
-        it('equips a known spell into a free slot', async () => {
-            const spellId = new Types.ObjectId().toString();
-            const characterId = new Types.ObjectId().toString();
-            const character = makeCharacter({
-                status: {
-                    xp: 20000,
-                    maxActiveSpells: 1,
-                    spells: [new Types.ObjectId(spellId)],
-                    location: new Types.ObjectId(),
-                },
-                assets: {
-                    ownedEquipments: [],
-                    ownedItems: [],
-                    wearedEquipment: {},
-                    activeSpells: [],
-                    pet: null,
-                },
-            });
-            mockCharacterModel.findOne.mockReturnValue(asQuery(character));
+        const c = new Types.ObjectId();
+        const s = new Types.ObjectId();
+
+        it('equipSpell writes the catalog maxUsages with a single conditional update', async () => {
+            mockSpellModel.findById.mockReturnValue(
+                asLeanQuery({ maxUsages: 3 }),
+            );
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(1));
 
             const result = await service.equipSpell({
-                id: characterId,
-                spellId,
-                usages: 3,
+                id: c.toHexString(),
+                spellId: s.toHexString(),
+                usages: 99,
             });
 
             expect(result.successful).toBe(true);
-            expect(character.assets.activeSpells).toHaveLength(1);
-            expect(character.assets.activeSpells[0].spell.toString()).toBe(
-                spellId,
+            expect(mockCharacterModel.updateOne).toHaveBeenCalledTimes(1);
+            const [filter, update] = mockCharacterModel.updateOne.mock.calls[0];
+            expect(filter).toEqual(equipSpellFilter(c, s));
+            expect(update).toEqual(equipSpellUpdate(s, 3));
+            expect(mockCharacterModel.findOne).not.toHaveBeenCalled();
+        });
+
+        it('equipSpell looks the spell up first and answers NOT_FOUND when it is missing', async () => {
+            mockSpellModel.findById.mockReturnValue(asLeanQuery(null));
+
+            await expect(
+                service.equipSpell({
+                    id: c.toHexString(),
+                    spellId: s.toHexString(),
+                }),
+            ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+            expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
+        });
+
+        it('equipSpell rejects a malformed spell id without touching the database', async () => {
+            await expect(
+                service.equipSpell({ id: c.toHexString(), spellId: 'abc' }),
+            ).rejects.toMatchObject({ code: 'SPELL_NOT_KNOWN' });
+            expect(mockSpellModel.findById).not.toHaveBeenCalled();
+            expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
+        });
+
+        it('equipSpell classifies a rejected write from a lean reread', async () => {
+            mockSpellModel.findById.mockReturnValue(
+                asLeanQuery({ maxUsages: 3 }),
             );
-            expect(character.assets.activeSpells[0].usages).toBe(3);
-            expect(character.save).toHaveBeenCalledTimes(1);
-            expect(mockCharacterModel.findOne).toHaveBeenCalledWith({
-                _id: characterId,
-                deletedAt: null,
-            });
-        });
-
-        it('rejects a spell the character does not know', async () => {
-            const spellId = new Types.ObjectId().toString();
-            const character = makeCharacter({
-                status: {
-                    xp: 20000,
-                    maxActiveSpells: 1,
-                    spells: [], // does not know spellId
-                    location: new Types.ObjectId(),
-                },
-            });
-            mockCharacterModel.findOne.mockReturnValue(asQuery(character));
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
+            mockCharacterModel.findOne.mockReturnValue(
+                asLeanQuery({
+                    status: { spells: [] },
+                    assets: { activeSpells: [] },
+                }),
+            );
 
             await expect(
-                service.equipSpell({ id: 'c1', spellId }),
-            ).rejects.toThrow(BadRequestException);
-            await expect(
-                service.equipSpell({ id: 'c1', spellId }),
-            ).rejects.toThrow(/is not known/);
-            expect(character.save).not.toHaveBeenCalled();
-            expect(mockCharacterModel.findOne).toHaveBeenCalledWith({
-                _id: 'c1',
-                deletedAt: null,
-            });
-        });
-
-        it('rejects when the active-spell slots are full', async () => {
-            const spellId = new Types.ObjectId().toString();
-            const character = makeCharacter({
-                status: {
-                    xp: 20000,
-                    maxActiveSpells: 1,
-                    spells: [new Types.ObjectId(spellId)],
-                    location: new Types.ObjectId(),
-                },
-                assets: {
-                    ownedEquipments: [],
-                    ownedItems: [],
-                    wearedEquipment: {},
-                    // slot already occupied by another spell
-                    activeSpells: [{ spell: new Types.ObjectId(), usages: 1 }],
-                    pet: null,
-                },
-            });
-            mockCharacterModel.findOne.mockReturnValue(asQuery(character));
-
-            await expect(
-                service.equipSpell({ id: 'c1', spellId }),
-            ).rejects.toThrow(/maximum number of active spells/);
-            expect(character.save).not.toHaveBeenCalled();
-            expect(mockCharacterModel.findOne).toHaveBeenCalledWith({
-                _id: 'c1',
-                deletedAt: null,
-            });
+                service.equipSpell({
+                    id: c.toHexString(),
+                    spellId: s.toHexString(),
+                }),
+            ).rejects.toMatchObject({ code: 'SPELL_NOT_KNOWN' });
+            expect(mockCharacterModel.findOne).toHaveBeenCalledWith(
+                { _id: c, deletedAt: null },
+                ACTIVE_SPELL_SNAPSHOT_PROJECTION,
+            );
         });
     });
 
     describe('unequipSpell', () => {
-        it('removes an active spell', async () => {
-            const spellId = new Types.ObjectId().toString();
-            const character = makeCharacter({
-                assets: {
-                    ownedEquipments: [],
-                    ownedItems: [],
-                    wearedEquipment: {},
-                    activeSpells: [
-                        { spell: new Types.ObjectId(spellId), usages: 2 },
-                    ],
-                    pet: null,
-                },
-            });
-            mockCharacterModel.findOne.mockReturnValue(asQuery(character));
+        const c = new Types.ObjectId();
+        const s = new Types.ObjectId();
 
-            const result = await service.unequipSpell({ id: 'c1', spellId });
+        it('unequipSpell pulls the spell with a conditional update', async () => {
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(1));
+
+            const result = await service.unequipSpell({
+                id: c.toHexString(),
+                spellId: s.toHexString(),
+            });
 
             expect(result.successful).toBe(true);
-            expect(character.assets.activeSpells).toHaveLength(0);
-            expect(character.save).toHaveBeenCalledTimes(1);
-            expect(mockCharacterModel.findOne).toHaveBeenCalledWith({
-                _id: 'c1',
-                deletedAt: null,
-            });
+            const [filter, update] = mockCharacterModel.updateOne.mock.calls[0];
+            expect(filter).toEqual(unequipSpellFilter(c, s));
+            expect(update).toEqual(unequipSpellUpdate(s));
         });
 
-        it('rejects unequipping a spell that is not active', async () => {
-            const spellId = new Types.ObjectId().toString();
-            const character = makeCharacter({
-                assets: {
-                    ownedEquipments: [],
-                    ownedItems: [],
-                    wearedEquipment: {},
-                    activeSpells: [],
-                    pet: null,
-                },
-            });
-            mockCharacterModel.findOne.mockReturnValue(asQuery(character));
+        it('unequipSpell answers SPELL_NOT_ACTIVE when nothing matched', async () => {
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
+            mockCharacterModel.findOne.mockReturnValue(
+                asLeanQuery({ status: {}, assets: { activeSpells: [] } }),
+            );
 
             await expect(
-                service.unequipSpell({ id: 'c1', spellId }),
-            ).rejects.toThrow(NotFoundException);
-            await expect(
-                service.unequipSpell({ id: 'c1', spellId }),
-            ).rejects.toMatchObject({
-                code: 'NOT_FOUND',
-                message: 'Magia non attiva per questo personaggio',
-            });
-            expect(character.save).not.toHaveBeenCalled();
-            expect(mockCharacterModel.findOne).toHaveBeenCalledWith({
-                _id: 'c1',
-                deletedAt: null,
-            });
+                service.unequipSpell({
+                    id: c.toHexString(),
+                    spellId: s.toHexString(),
+                }),
+            ).rejects.toMatchObject({ code: 'SPELL_NOT_ACTIVE' });
         });
     });
 
