@@ -6,6 +6,7 @@ import {
     describePushError,
     emptyDelivery,
     failureCodeSummary,
+    failuresByKind,
     prunableTokens,
     topicDeliveryCounts,
 } from 'src/push/push-delivery';
@@ -81,6 +82,36 @@ describe('prunableTokens', () => {
                 { token: 'b', delivered: false, errorCode: SERVER_UNAVAILABLE },
             ]),
         ).toEqual([]);
+    });
+});
+
+describe('failuresByKind', () => {
+    it('classifies every failed outcome once and skips delivered ones', () => {
+        const groups = failuresByKind([
+            { token: 'a', delivered: true },
+            { token: 'b', delivered: false, errorCode: NOT_REGISTERED },
+            { token: 'c', delivered: false, errorCode: INVALID_ARGUMENT },
+            { token: 'd', delivered: false, errorCode: SERVER_UNAVAILABLE },
+            { token: 'e', delivered: false },
+        ]);
+
+        expect(
+            groups[DeliveryFailureKind.staleToken].map((o) => o.token),
+        ).toEqual(['b']);
+        expect(groups[DeliveryFailureKind.payload].map((o) => o.token)).toEqual(
+            ['c'],
+        );
+        expect(
+            groups[DeliveryFailureKind.transient].map((o) => o.token),
+        ).toEqual(['d', 'e']);
+    });
+
+    it('returns empty groups when every token was delivered', () => {
+        expect(failuresByKind([{ token: 'a', delivered: true }])).toEqual({
+            [DeliveryFailureKind.staleToken]: [],
+            [DeliveryFailureKind.payload]: [],
+            [DeliveryFailureKind.transient]: [],
+        });
     });
 });
 
