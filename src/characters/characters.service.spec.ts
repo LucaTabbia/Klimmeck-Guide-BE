@@ -156,6 +156,56 @@ describe('CharactersService (unit — spell mutations)', () => {
                 ACTIVE_SPELL_SNAPSHOT_PROJECTION,
             );
         });
+
+        it('equipSpell classifies again on a fresh reread when the first shows no violated guard', async () => {
+            mockSpellModel.findById.mockReturnValue(
+                asLeanQuery({ maxUsages: 3 }),
+            );
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
+            mockCharacterModel.findOne
+                .mockReturnValueOnce(
+                    asLeanQuery({
+                        status: { spells: [s], xp: 20000 },
+                        assets: { activeSpells: [] },
+                    }),
+                )
+                .mockReturnValueOnce(
+                    asLeanQuery({
+                        status: { spells: [s], xp: 20000 },
+                        assets: { activeSpells: [{ spell: s, usages: 3 }] },
+                    }),
+                );
+
+            await expect(
+                service.equipSpell({
+                    id: c.toHexString(),
+                    spellId: s.toHexString(),
+                }),
+            ).rejects.toMatchObject({ code: 'SPELL_ALREADY_ACTIVE' });
+            expect(mockCharacterModel.findOne).toHaveBeenCalledTimes(2);
+        });
+
+        it('equipSpell falls back to MAX_ACTIVE_SPELLS_REACHED when two rereads show no violated guard', async () => {
+            mockSpellModel.findById.mockReturnValue(
+                asLeanQuery({ maxUsages: 3 }),
+            );
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
+            const freeSlot = {
+                status: { spells: [s], xp: 20000 },
+                assets: { activeSpells: [] },
+            };
+            mockCharacterModel.findOne
+                .mockReturnValueOnce(asLeanQuery(freeSlot))
+                .mockReturnValueOnce(asLeanQuery(freeSlot));
+
+            await expect(
+                service.equipSpell({
+                    id: c.toHexString(),
+                    spellId: s.toHexString(),
+                }),
+            ).rejects.toMatchObject({ code: 'MAX_ACTIVE_SPELLS_REACHED' });
+            expect(mockCharacterModel.findOne).toHaveBeenCalledTimes(2);
+        });
     });
 
     describe('unequipSpell', () => {
@@ -262,6 +312,48 @@ describe('CharactersService (unit — spell mutations)', () => {
             await expect(service.useSpell(request)).rejects.toMatchObject({
                 code: 'SPELL_NO_USAGES_LEFT',
             });
+            expect(mockQueue.add).not.toHaveBeenCalled();
+        });
+
+        it('classifies again on a fresh reread when the first shows usages left', async () => {
+            givenCatalogSpell();
+            mockCharacterModel.updateOne.mockReturnValueOnce(asUpdate(0));
+            mockCharacterModel.findOne
+                .mockReturnValueOnce(
+                    asLeanQuery({
+                        status: { spells: [s] },
+                        assets: { activeSpells: [{ spell: s, usages: 1 }] },
+                    }),
+                )
+                .mockReturnValueOnce(
+                    asLeanQuery({
+                        status: { spells: [s] },
+                        assets: { activeSpells: [] },
+                    }),
+                );
+
+            await expect(service.useSpell(request)).rejects.toMatchObject({
+                code: 'SPELL_NOT_ACTIVE',
+            });
+            expect(mockCharacterModel.findOne).toHaveBeenCalledTimes(2);
+            expect(mockQueue.add).not.toHaveBeenCalled();
+        });
+
+        it('falls back to SPELL_NO_USAGES_LEFT when two rereads show usages left', async () => {
+            givenCatalogSpell();
+            mockCharacterModel.updateOne.mockReturnValueOnce(asUpdate(0));
+            const usageLeft = {
+                status: { spells: [s] },
+                assets: { activeSpells: [{ spell: s, usages: 1 }] },
+            };
+            mockCharacterModel.findOne
+                .mockReturnValueOnce(asLeanQuery(usageLeft))
+                .mockReturnValueOnce(asLeanQuery(usageLeft));
+
+            await expect(service.useSpell(request)).rejects.toMatchObject({
+                code: 'SPELL_NO_USAGES_LEFT',
+            });
+            expect(mockCharacterModel.findOne).toHaveBeenCalledTimes(2);
             expect(mockQueue.add).not.toHaveBeenCalled();
         });
 

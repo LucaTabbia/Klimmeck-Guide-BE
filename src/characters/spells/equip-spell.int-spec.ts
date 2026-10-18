@@ -119,6 +119,17 @@ describe('equipSpell / unequipSpell (wire)', () => {
         return String(player.character?._id);
     }
 
+    // scrittura raw: i dati legacy hanno l'id della magia salvato come stringa (04 Pitfall 1)
+    async function storeLegacySpells(
+        player: TestPlayer,
+        legacy: Record<string, unknown>,
+    ): Promise<void> {
+        await characters.collection.updateOne(
+            { _id: new Types.ObjectId(idOf(player)) },
+            { $set: legacy },
+        );
+    }
+
     async function spellNamed(name: string, maxUsages = 3) {
         return (await persistSpell(spells, { name, maxUsages }))
             ._id as Types.ObjectId;
@@ -228,6 +239,45 @@ describe('equipSpell / unequipSpell (wire)', () => {
             );
             expect(await rawCharacter(idOf(full))).toEqual(fullBefore);
             expect(await rawCharacter(idOf(noSlots))).toEqual(noSlotsBefore);
+        });
+
+        it('equips a known spell stored with a legacy string id', async () => {
+            const dardo = await spellNamed('Dardo');
+            const player = await playerWith('twitch-eq-legacy-known', {
+                xp: 20000,
+                spells: [],
+                activeSpells: [],
+            });
+            await storeLegacySpells(player, {
+                'status.spells': [dardo.toHexString()],
+            });
+
+            const body = await equip(player, dardo.toHexString());
+
+            expect(isSuccess(body, 'equipSpell')).toBe(true);
+            expect(
+                (await rawCharacter(idOf(player))).assets.activeSpells,
+            ).toEqual([{ spell: dardo, usages: 3 }]);
+        });
+
+        it('rejects re-equipping a spell active with a legacy string id with SPELL_ALREADY_ACTIVE', async () => {
+            const dardo = await spellNamed('Dardo');
+            const player = await playerWith('twitch-eq-legacy-active', {
+                xp: 25000,
+                spells: [dardo],
+                activeSpells: [],
+            });
+            await storeLegacySpells(player, {
+                'assets.activeSpells': [
+                    { spell: dardo.toHexString(), usages: 1 },
+                ],
+            });
+            const before = await rawCharacter(idOf(player));
+
+            const body = await equip(player, dardo.toHexString());
+
+            expect(codeOf(body)).toBe('SPELL_ALREADY_ACTIVE');
+            expect(await rawCharacter(idOf(player))).toEqual(before);
         });
 
         it('answers NOT_FOUND for a known spell missing from the catalog', async () => {
@@ -354,6 +404,27 @@ describe('equipSpell / unequipSpell (wire)', () => {
                 successful: true,
                 response: 'Magia disequipaggiata con successo',
             });
+            expect(
+                (await rawCharacter(idOf(player))).assets.activeSpells,
+            ).toEqual([]);
+        });
+
+        it('removes an active spell stored with a legacy string id', async () => {
+            const dardo = await spellNamed('Dardo');
+            const player = await playerWith('twitch-uneq-legacy', {
+                xp: 20000,
+                spells: [dardo],
+                activeSpells: [],
+            });
+            await storeLegacySpells(player, {
+                'assets.activeSpells': [
+                    { spell: dardo.toHexString(), usages: 2 },
+                ],
+            });
+
+            const body = await unequip(player, dardo.toHexString());
+
+            expect(isSuccess(body, 'unequipSpell')).toBe(true);
             expect(
                 (await rawCharacter(idOf(player))).assets.activeSpells,
             ).toEqual([]);

@@ -154,6 +154,27 @@ describe('useSpell (wire)', () => {
         );
     });
 
+    it('uses an active spell stored with a legacy string id', async () => {
+        const spellId = await dardo();
+        const player = await playerWith('twitch-use-legacy', [spellId], []);
+        const charId = idOf(player);
+        // scrittura raw: i dati legacy hanno l'id della magia salvato come stringa (04 Pitfall 1)
+        await characters.collection.updateOne(
+            { _id: new Types.ObjectId(charId) },
+            {
+                $set: {
+                    'assets.activeSpells': [{ spell: spellId, usages: 2 }],
+                },
+            },
+        );
+
+        const body = await useSpell(player, spellId);
+
+        expect(isSuccess(body)).toBe(true);
+        expect(await usagesOf(charId)).toBe(1);
+        expect(queue.add).toHaveBeenCalledTimes(1);
+    });
+
     it('leaves usages at 0 with exactly one success under concurrent uses', async () => {
         const spellId = await dardo();
         const player = await playerWith(

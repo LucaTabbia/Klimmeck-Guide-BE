@@ -19,14 +19,16 @@ describe('active spell write builders', () => {
     const c = new Types.ObjectId();
     const s = new Types.ObjectId();
 
-    it('equipSpellFilter guards knowledge, uniqueness and live capacity', () => {
+    const forms = [s, s.toHexString()];
+
+    it('equipSpellFilter guards knowledge, uniqueness and live capacity on either id form', () => {
         const filter = equipSpellFilter(c, s);
 
         expect(filter).toEqual({
             _id: c,
             deletedAt: null,
-            'status.spells': s,
-            'assets.activeSpells.spell': { $ne: s },
+            'status.spells': { $in: forms },
+            'assets.activeSpells.spell': { $nin: forms },
             $expr: {
                 $lt: [
                     { $size: { $ifNull: ['$assets.activeSpells', []] } },
@@ -35,7 +37,7 @@ describe('active spell write builders', () => {
             },
         });
         expect(filter._id).toBeInstanceOf(Types.ObjectId);
-        expect(filter['status.spells']).toBeInstanceOf(Types.ObjectId);
+        expect(filter['status.spells'].$in[0]).toBeInstanceOf(Types.ObjectId);
     });
 
     it('equipSpellUpdate pushes the spell with the given usages', () => {
@@ -44,14 +46,14 @@ describe('active spell write builders', () => {
         });
     });
 
-    it('unequipSpellFilter / unequipSpellUpdate pull an active spell', () => {
+    it('unequipSpellFilter / unequipSpellUpdate pull an active spell stored in either id form', () => {
         expect(unequipSpellFilter(c, s)).toEqual({
             _id: c,
             deletedAt: null,
-            'assets.activeSpells.spell': s,
+            'assets.activeSpells.spell': { $in: forms },
         });
         expect(unequipSpellUpdate(s)).toEqual({
-            $pull: { 'assets.activeSpells': { spell: s } },
+            $pull: { 'assets.activeSpells': { spell: { $in: forms } } },
         });
     });
 
@@ -60,7 +62,7 @@ describe('active spell write builders', () => {
             _id: c,
             deletedAt: null,
             'assets.activeSpells': {
-                $elemMatch: { spell: s, usages: { $gte: 1 } },
+                $elemMatch: { spell: { $in: forms }, usages: { $gte: 1 } },
             },
         });
     });
@@ -70,7 +72,7 @@ describe('active spell write builders', () => {
             _id: c,
             deletedAt: null,
             'assets.activeSpells': {
-                $elemMatch: { spell: s, usages: { $lt: 3 } },
+                $elemMatch: { spell: { $in: forms }, usages: { $lt: 3 } },
             },
         });
     });
@@ -90,8 +92,9 @@ describe('active spell failure classifiers', () => {
     const snapshot = (
         spells: unknown[],
         activeSpells: { spell?: unknown; usages?: number }[],
+        xp?: number,
     ): ActiveSpellSnapshot => ({
-        status: { spells },
+        status: { spells, xp },
         assets: { activeSpells },
     });
 
@@ -117,10 +120,33 @@ describe('active spell failure classifiers', () => {
             ).toMatchObject({ code: 'SPELL_ALREADY_ACTIVE' });
         });
 
-        it('fails closed with MAX_ACTIVE_SPELLS_REACHED when no guard looks violated', () => {
+        it('answers MAX_ACTIVE_SPELLS_REACHED when every slot of the xp tier is taken', () => {
+            const other = new Types.ObjectId();
+
             expect(
                 classifyEquipSpellFailure(snapshot([s], []), s),
             ).toMatchObject({ code: 'MAX_ACTIVE_SPELLS_REACHED' });
+            expect(
+                classifyEquipSpellFailure(
+                    snapshot([s, other], [{ spell: other, usages: 1 }], 20000),
+                    s,
+                ),
+            ).toMatchObject({ code: 'MAX_ACTIVE_SPELLS_REACHED' });
+        });
+
+        it('returns undefined when no guard is violated (state changed after the write)', () => {
+            expect(
+                classifyEquipSpellFailure(snapshot([s], [], 20000), s),
+            ).toBeUndefined();
+        });
+
+        it('recognises a legacy string id as active', () => {
+            expect(
+                classifyEquipSpellFailure(
+                    snapshot([s], [{ spell: s.toHexString(), usages: 1 }]),
+                    s,
+                ),
+            ).toMatchObject({ code: 'SPELL_ALREADY_ACTIVE' });
         });
 
         it('recognises a legacy string id as known', () => {
@@ -159,7 +185,7 @@ describe('active spell failure classifiers', () => {
             );
         });
 
-        it.each([0, 1])(
+        it.each([0, undefined])(
             'answers SPELL_NO_USAGES_LEFT for an active spell with %p usages',
             (usages) => {
                 expect(
@@ -170,6 +196,15 @@ describe('active spell failure classifiers', () => {
                 ).toMatchObject({ code: 'SPELL_NO_USAGES_LEFT' });
             },
         );
+
+        it('returns undefined for an active spell with usages left (state changed after the write)', () => {
+            expect(
+                classifyUseSpellFailure(
+                    snapshot([s], [{ spell: s.toHexString(), usages: 1 }]),
+                    s,
+                ),
+            ).toBeUndefined();
+        });
     });
 
     it('treats missing arrays as empty', () => {
