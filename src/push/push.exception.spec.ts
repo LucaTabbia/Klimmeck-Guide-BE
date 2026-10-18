@@ -8,31 +8,31 @@ describe('PushException', () => {
     it.each([
         [
             'invalidDeviceId',
-            () => PushException.invalidDeviceId(),
             400,
             'Bad Request',
             PushErrorCode.PUSH_INVALID_DEVICE_ID,
             'Identificativo del dispositivo non valido',
+            () => PushException.invalidDeviceId(),
         ],
         [
             'invalidToken',
-            () => PushException.invalidToken(),
             400,
             'Bad Request',
             PushErrorCode.PUSH_INVALID_TOKEN,
             'Token di notifica non valido',
+            () => PushException.invalidToken(),
         ],
         [
             'disabled',
-            () => PushException.disabled(),
             503,
             'Service Unavailable',
             PushErrorCode.PUSH_DISABLED,
             'Notifiche push non configurate sul server',
+            () => PushException.disabled(),
         ],
     ])(
-        '%s is a %i with code %s and an italian message',
-        (_factory, build, status, error, code, message) => {
+        '%s is a %i %s with code %s and an italian message',
+        (_factory, status, error, code, message, build) => {
             const exception = build();
 
             expect(exception).toBeInstanceOf(HttpException);
