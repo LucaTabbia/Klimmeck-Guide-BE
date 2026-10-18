@@ -406,9 +406,10 @@ describe('ShopTransactionService (replSet)', () => {
             ]);
         });
 
-        it('treats an empty zero-total trade as a no-op', async () => {
+        it('answers an empty zero-total trade as a no-op without opening a transaction', async () => {
             const id = await persistTrader(coins(0, 1, 0));
             const before = await raw(id);
+            const transaction = jest.spyOn(connection, 'transaction');
 
             await expect(
                 shop.execute(
@@ -420,6 +421,7 @@ describe('ShopTransactionService (replSet)', () => {
                 ),
             ).resolves.toEqual(SUCCESS);
 
+            expect(transaction).not.toHaveBeenCalled();
             expect(await raw(id)).toEqual(before);
         });
     });
@@ -588,7 +590,8 @@ describe('ShopTransactionService (replSet)', () => {
                 shop.execute(
                     trade({
                         id: new Types.ObjectId(),
-                        total: coins(0, 0, 0),
+                        buyEquip: [asset(sword)],
+                        total: coins(0, 1, 50),
                         isTotalPositive: false,
                     }),
                 ),
