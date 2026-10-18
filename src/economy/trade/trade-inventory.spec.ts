@@ -3,6 +3,7 @@ import type { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum'
 import type { TradeLine } from './trade-line';
 import {
     applyTradeToInventory,
+    MAX_ITEM_QUANTITY,
     soldQuantityGuards,
     type InventoryEntry,
     type InventorySnapshot,
@@ -79,6 +80,47 @@ describe('trade inventory', () => {
                 loot(other, 1),
                 loot(potion, 3),
             ]);
+        });
+
+        it('caps owned quantities at the GraphQL Int limit', () => {
+            expect(MAX_ITEM_QUANTITY).toBe(2_147_483_647);
+        });
+
+        it('accepts a buy that reaches exactly MAX_ITEM_QUANTITY', () => {
+            const outcome = applyTradeToInventory(
+                { ownedItems: [loot(potion, MAX_ITEM_QUANTITY - 2)] },
+                [line('buy', 'LootItem', potion, 2)],
+            );
+
+            expect(outcome.ownedItems).toEqual([
+                loot(potion, MAX_ITEM_QUANTITY),
+            ]);
+        });
+
+        it('rejects a buy that would exceed MAX_ITEM_QUANTITY on an owned entry with INVALID_QUANTITY', () => {
+            expect(
+                codeThrownBy(() =>
+                    applyTradeToInventory(
+                        { ownedItems: [loot(potion, MAX_ITEM_QUANTITY)] },
+                        [line('buy', 'LootItem', potion, 1)],
+                    ),
+                ),
+            ).toBe('INVALID_QUANTITY');
+        });
+
+        it('rejects a new entry above MAX_ITEM_QUANTITY with INVALID_QUANTITY', () => {
+            expect(
+                codeThrownBy(() =>
+                    applyTradeToInventory({}, [
+                        line(
+                            'buy',
+                            'EquipmentItem',
+                            sword,
+                            MAX_ITEM_QUANTITY + 1,
+                        ),
+                    ]),
+                ),
+            ).toBe('INVALID_QUANTITY');
         });
 
         it('decrements a partially sold entry', () => {
