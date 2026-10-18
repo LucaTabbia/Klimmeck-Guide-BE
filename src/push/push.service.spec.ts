@@ -18,6 +18,7 @@ const ALICE = new Types.ObjectId(ALICE_ID);
 const BRUNO_ID = '64b0000000000000000000b2';
 const MISSING_USER_ID = '64b0000000000000000000ff';
 const STREAMER_LIVE = 'streamer-live';
+const LONG_TOKEN = 'secret-prefix-abcdef';
 const EMPTY = { targeted: 0, sent: 0, pruned: 0, failed: 0 };
 
 interface StoredDevice {
@@ -362,14 +363,18 @@ describe('PushService', () => {
             transport.failTopicManagement(new Error('boom'));
 
             await expect(
-                service.registerDevice(ALICE_ID, registration()),
+                service.registerDevice(ALICE_ID, registration(LONG_TOKEN)),
             ).resolves.toBe(true);
             expect(registry.rows).toEqual([
-                { userId: ALICE_ID, deviceId: 'dev-1', token: 'tok-a' },
+                { userId: ALICE_ID, deviceId: 'dev-1', token: LONG_TOKEN },
             ]);
-            expect(warn).toHaveBeenCalled();
+            expect(loggedLines(warn)).toEqual([
+                expect.stringContaining('…abcdef'),
+            ]);
             expect(
-                loggedLines(warn).some((line) => line.includes('tok-a')),
+                loggedLines(warn).some((line) =>
+                    line.includes('secret-prefix'),
+                ),
             ).toBe(false);
         });
 
