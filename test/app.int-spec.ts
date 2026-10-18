@@ -14,6 +14,9 @@ import { OWNERSHIP_KEY } from 'src/authz/ownership/ownership.decorators';
 import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
 import { WalletService } from 'src/economy/wallet.service';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
+import { PushService } from 'src/push/push.service';
+import { NoopPushTransport } from 'src/push/transport/noop-push-transport';
+import { PushTransport } from 'src/push/transport/push-transport';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
 import { startRedis, stopRedis } from './setup/redis';
 
@@ -25,6 +28,8 @@ const INTRUDER_MUTATION =
 const CREATE_CHARACTER = `mutation { createCharacter(input: { name: "Aria", sex: female, pronoun: she, race: human, classType: wizard, age: 25 }) { id } }`;
 const RACE_TRAITS = '{ raceTraits { race } }';
 const DELETE_CHARACTER = 'mutation { deleteCharacter { id } }';
+const REGISTER_PUSH_DEVICE =
+    'mutation { registerPushDevice(input: { deviceId: "d", token: "t", platform: android }) }';
 // whitelist enumerata (D-12): ogni aggiunta di @Public() deve passare da qui
 const EXPECTED_PUBLIC_HANDLERS = [
     'AppController.getHello',
@@ -37,6 +42,7 @@ const EXPECTED_PUBLIC_HANDLERS = [
 const EXPECTED_INNKEEPER_HANDLERS = [
     'CharactersResolver.characters',
     'PendingQuestsResolver.pendingQuests',
+    'PushResolver.sendTestPush',
     'UsersResolver.user',
     'UsersResolver.users',
 ];
@@ -163,6 +169,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             TWITCH_REDIRECT_URI: '',
             APP_AUTH_REDIRECT_URL: 'klimmeck://auth',
             DEV_AUTH_ENABLED: 'false',
+            // Pitfall 11: un .env locale con credenziali reali non deve mai accendere FCM nel test
+            FIREBASE_SERVICE_ACCOUNT: '',
         });
         // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
         const { AppModule } =
@@ -267,6 +275,40 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the push API into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'registerPushDevice(input: RegisterPushDeviceInput!): Boolean!',
+        );
+        expect(schema).toContain(
+            'unregisterPushDevice(deviceId: String!): Boolean!',
+        );
+        expect(schema).toContain(
+            'sendTestPush(input: SendTestPushInput!): PushDeliveryReport!',
+        );
+        expect(schema).toContain('input RegisterPushDeviceInput');
+        expect(schema).toContain('input SendTestPushInput');
+        expect(schema).toContain('enum PushPlatform');
+        expect(schema).toContain('enum PushEventType');
+        expect(schema).toContain('type PushDeliveryReport');
+        expect(schema).toContain('targetUserId: ID');
+        expect(schema).not.toContain('type PushDevice');
+        expect(schema).not.toContain('lastSeenAt');
+        expect(schema).not.toContain('FIREBASE');
+        expect(schema.match(/type User \{[^}]*\}/)?.[0]).not.toMatch(
+            /token|deviceId|push/i,
+        );
+    });
+
+    it('resolves the no-op push transport without Firebase credentials', () => {
+        const transport = app.get(PushTransport);
+
+        expect(transport).toBeInstanceOf(NoopPushTransport);
+        expect(transport.enabled).toBe(false);
+        expect(app.get(PushService)).toBeInstanceOf(PushService);
+    });
+
     describe('global auth guard', () => {
         it('rejects an existing query without a bearer or with a forged one', async () => {
             const query = '{ users { id } }';
@@ -298,6 +340,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             expect(errorCodeOf(await graphqlCall(app, DELETE_CHARACTER))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
+        });
+
+        it('rejects registerPushDevice without a bearer', async () => {
+            expect(
+                errorCodeOf(await graphqlCall(app, REGISTER_PUSH_DEVICE)),
+            ).toBe(AuthErrorCode.UNAUTHENTICATED);
         });
 
         it('answers 401 JSON on cloudinary/getUrls without a bearer', async () => {

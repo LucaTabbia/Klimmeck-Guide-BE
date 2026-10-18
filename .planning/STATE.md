@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 04-09-PLAN.md
-last_updated: "2026-10-18T15:54:51.228Z"
-last_activity: "2026-10-18 -- Phase 4 complete (verification 5/5, review fixed, security 51/51); BE PR #7 open to develop; next Phase 5 FCM"
+stopped_at: Completed 05-08-PLAN.md
+last_updated: "2026-10-18T20:11:44.577Z"
+last_activity: "2026-10-18 -- Phase 5 complete (verification 4/4, review fixed, security 43/43); BE PR #8 open to develop (merge before FE Phase 5 PR); next Phase 6 EventSub"
 progress:
   total_phases: 12
-  completed_phases: 6
-  total_plans: 48
-  completed_plans: 48
+  completed_phases: 7
+  total_plans: 56
+  completed_plans: 56
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 4 — Integrità Economica (Atomics)
+**Current focus:** Phase 5 — Infrastruttura Push FCM (PR #8 open to develop); next Phase 6 EventSub
 
 ## Current Position
 
-Phase: 4 (integrita-economica-atomics) — COMPLETE 2026-10-18, branch feat/04-integrita-economica-atomics (9/9 plans; VERIFICATION 5/5, human item = prod replica-set deploy check; REVIEW 0 critical / 4 warnings fixed in TDD + IN-05/IN-06; security 51/51 closed, PR #7 open)
-Plan: 9/9 complete
-Status: Phase 4 complete — security 51/51 closed; PR #7 open on LucaTabbia/Klimmeck-Guide-BE (feat/04-integrita-economica-atomics → develop), ready for review and merge (no FE dependency); next /gsd-discuss-phase 5 (Infrastruttura Push FCM, unblocks FE Phase 5)
-Last activity: 2026-10-18 -- Phase 4 closed: 645 unit / 479 integration green, schema byte-identical, review fixes WR-01..04 + IN-05/06, BACKEND-NOTES published
+Phase: 5 (infrastruttura-push-fcm) — COMPLETE 2026-10-18, branch feat/05-infrastruttura-push-fcm (8/8 plans; VERIFICATION 4/4, human item = consegna reale su device rinviata alla UAT FE Phase 5 (05-HUMAN-UAT.md); REVIEW 0 critical / 1 warning → WR-01 + IN-01 + IN-04a fixed in TDD, IN-02/03/04b accepted; security 43/43 closed, PR #8 open)
+Plan: 8/8 complete
+Status: Phase 5 complete — security 43/43 closed; PR #8 open on LucaTabbia/Klimmeck-Guide-BE (feat/05-infrastruttura-push-fcm → develop), ready for review and merge BEFORE the FE Phase 5 PR; next /gsd-discuss-phase 6 (EventSub: Punti Canale & Streamer Live)
+Last activity: 2026-10-18 -- Phase 5 complete (verification 4/4, review fixed, security 43/43); BE PR #8 open to develop (merge before FE Phase 5 PR); next Phase 6 EventSub
 
 Progress: [██████████] 100%
 
@@ -36,7 +36,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 48
+- Total plans completed: 64
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -50,6 +50,7 @@ Progress: [██████████] 100%
 | 03 | 10 | - | - |
 | 03.1 | 6 | - | - |
 | 03.1 | 6 | - | - |
+| 5 | 8 | - | - |
 
 **Recent Trend:**
 
@@ -88,6 +89,14 @@ Progress: [██████████] 100%
 | Phase 04 P07 | 12 min | 2 tasks | 5 files |
 | Phase 04 P08 | 12 min | 2 tasks | 9 files |
 | Phase 04 P09 | 6 min | 2 tasks | 3 files |
+| Phase 05 P01 | 6 min | 3 tasks | 11 files |
+| Phase 05 P02 | 4 min | 3 tasks | 11 files |
+| Phase 05 P03 | 4 min | 3 tasks | 9 files |
+| Phase 05 P04 | 5 min | 2 tasks | 5 files |
+| Phase 05 P05 | 4 min | 3 tasks | 5 files |
+| Phase 05 P06 | 9 min | 3 tasks | 6 files |
+| Phase 05 P07 | 4 min | 2 tasks | 3 files |
+| Phase 05 P08 | 7 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -148,6 +157,14 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-07: accettazione quest single-flight in transazione (claim slot pendingQuest null → insert PendingQuest → debito wallet), waitingTime = timeToComplete ?? 0 (A1), nessuna superficie GraphQL (D-09)
 - [Phase 04]: 04-08: doTransaction delega a ShopTransactionService; fixture ownership/archived a scambio vuoto totale zero (A2)
 - [Phase 04]: Phase 4 gate verde (unit 54/625, int 41/472, build, lint 58 file, schema diff 0); BACKEND-NOTES consegnato, BE-ATOM-01..05 Complete
+- [Phase 05]: 05-01: parsePushConfig fail-closed (prod senza FIREBASE_SERVICE_ACCOUNT → boot rifiutato, dev/test → serviceAccount null), messaggi fissi senza eco del valore; readEnvKeys condiviso da auth e push
+- [Phase 05]: 05-02: PushException (HttpException, PUSH_INVALID_DEVICE_ID/PUSH_INVALID_TOKEN 400, PUSH_DISABLED 503) con extensions.code; validatore puro deviceId→token; catalogo Record<PushEventType> unico per copy/TTL (1h personali, 15min broadcast), streamerLive senza id
+- [Phase 05]: 05-03: porta PushTransport (classe astratta DI) con NoopPushTransport/FcmPushTransport/FakePushTransport; toFcmBase data-only (Android high ttl ms, APNs background prio 5 + expiration assoluta); FcmPushTransport non lancia mai sugli invii (codici stringa messaging/<code> o transport-error), connect() idempotente su app 'klimmeck-push'
+- [Phase 05]: 05-04: registro push_devices con indici unici (userId,deviceId) e token + TTL 270g su lastSeenAt; claim = deleteMany altri detentori ($nor) → upsert returnDocument before → un retry su E11000; PushDeviceIndexVerifier non bloccante (solo nome+codice errore)
+- [Phase 05]: 05-05: PushService best-effort (sendToUser batch 500 + pruning con regola del testimone per invalid-argument, broadcast su streamer-live), registerDevice/unregisterDevice con topic best-effort, sendTest PUSH_DISABLED/NOT_FOUND; log solo conteggi/codici/suffisso 6 caratteri
+- [Phase 05]: PushModule registers User locally (forFeature) so consumers do not pull UsersModule and its change stream
+- [Phase 05]: 05-07: PushModule montato in AppModule; src/schema.gql rigenerato con diff solo additivo (3 mutation, PushDeliveryReport, PushEventType, PushPlatform, 2 input); real-boot test con FIREBASE_SERVICE_ACCOUNT vuota → NoopPushTransport
+- [Phase 05]: 05-08: gate di fase verde (unit 66/807, int 43/515, build, eslint, schema drift 0); BACKEND-NOTES Phase 5 pubblicato; fuga di dati tra suite in spell-recovery.processor.int-spec corretta con afterEach
 
 ### Pending Todos
 
@@ -169,6 +186,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-18T15:54:51.224Z
-Stopped at: Completed 04-09-PLAN.md
+Last session: 2026-10-18T19:58:50.849Z
+Stopped at: Completed 05-08-PLAN.md
 Resume file: None

@@ -293,7 +293,10 @@ type Mutation {
   exchangeLoginTicket(codeVerifier: String!, ticket: String!): AuthSession!
   logout: Boolean!
   refreshSession(refreshToken: String!): AuthSession!
+  registerPushDevice(input: RegisterPushDeviceInput!): Boolean!
+  sendTestPush(input: SendTestPushInput!): PushDeliveryReport!
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
+  unregisterPushDevice(deviceId: String!): Boolean!
   useSpell(request: UseSpellRequest!): CommonResponse!
 }
 
@@ -366,6 +369,24 @@ enum PronounType {
   he
   she
   them
+}
+
+type PushDeliveryReport {
+  failed: Int!
+  pruned: Int!
+  sent: Int!
+  targeted: Int!
+}
+
+enum PushEventType {
+  questEnd
+  streamerLive
+  travelEnd
+}
+
+enum PushPlatform {
+  android
+  ios
 }
 
 type Query {
@@ -452,10 +473,22 @@ enum RaceType {
   tiefling
 }
 
+input RegisterPushDeviceInput {
+  deviceId: String!
+  platform: PushPlatform!
+  token: String!
+}
+
 enum RoleType {
   adventurer
   guard
   innkeeper
+}
+
+input SendTestPushInput {
+  id: String
+  targetUserId: ID
+  type: PushEventType!
 }
 
 enum SexType {

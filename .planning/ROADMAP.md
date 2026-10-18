@@ -18,7 +18,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 3: Autorizzazione: Ownership, Ruoli, Audit** - Ownership sulle mutation, role guard `@Roles(innkeeper)`, subscription filtrate per identità, audit log admin, user stream `userUpdated` + snapshot su subscribe (contratto FE Phase 3, assorbito il 2026-10-14) (completed 2026-10-14, PR #5)
 - [x] **Phase 3.1: Character Deletion Contract** (INSERTED 2026-10-15) - Mutation `deleteCharacter` sull'identità autenticata: soft delete del personaggio corrente, unlink atomico di `User.currentCharacter`, nome liberato, codici stabili; sblocca FE Phase 4 (SET-05) (completed 2026-10-16)
 - [x] **Phase 4: Integrità Economica (Atomics)** - Operazioni atomiche su coins/twitchPoints/quest/equip/spell (no read-modify-write, no stato parziale) (completed 2026-10-18)
-- [ ] **Phase 5: Infrastruttura Push FCM** - Registro token per-device, servizio push domain-agnostic, pruning token stale
+- [x] **Phase 5: Infrastruttura Push FCM** - Registro token per-device, servizio push domain-agnostic, pruning token stale (completed 2026-10-18)
 - [ ] **Phase 6: EventSub: Punti Canale & Streamer Live** - Webhook Twitch EventSub, credito idempotente 1:1, push streamer-live
 - [ ] **Phase 7: Quest Lanes (QUEST-04)** - Corsie story/worldMission su schema + subscription, accettazione lane-aware, cost model server-side
 - [ ] **Phase 8: Travel Lifecycle (TRAVEL-01)** - `activeTravel` su schema + subscription, ETA/completamento server-side, teleport atomico
@@ -183,7 +183,7 @@ Plans:
 **Plans**: TBD
 **Unblocks (FE)**: FE Phase 5 → FE NOTIF-01/03/04/05.
 **Research flag**: nessuno — firebase-admin è pattern standard (HIGH confidence). Confermare runtime Node prod (18/20 vs 22) per firebase-admin 13 vs 14.
-**Branch**: `feat/05-fcm-infrastructure` da `develop` → PR a `develop`.
+**Branch**: `feat/05-infrastruttura-push-fcm` da `develop` → PR a `develop`.
 
 ### Phase 6: EventSub: Punti Canale & Streamer Live
 **Goal**: Un webhook Twitch EventSub accredita i punti canale 1:1 su `twitchPoints` — HMAC-verificato, challenge-gestito, idempotente e atomico; `stream.online` alimenta il push streamer-live.
@@ -279,7 +279,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Autorizzazione: Ownership, Ruoli, Audit | 10/10 | Complete    | 2026-10-14 |
 | 3.1. Character Deletion Contract | 6/6 | Complete | 2026-10-16 |
 | 4. Integrità Economica (Atomics) | 9/9 | Complete | 2026-10-18 |
-| 5. Infrastruttura Push FCM | 0/TBD | Not started | - |
+| 5. Infrastruttura Push FCM | 8/8 | Complete    | 2026-10-18 |
 | 6. EventSub: Punti Canale & Streamer Live | 0/TBD | Not started | - |
 | 7. Quest Lanes (QUEST-04) | 0/TBD | Not started | - |
 | 8. Travel Lifecycle (TRAVEL-01) | 0/TBD | Not started | - |
