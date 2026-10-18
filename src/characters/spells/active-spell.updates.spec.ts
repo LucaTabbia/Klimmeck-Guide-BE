@@ -132,7 +132,7 @@ describe('active spell failure classifiers', () => {
 
     describe('classifyUnequipSpellFailure', () => {
         it('answers NOT_FOUND for a missing character', () => {
-            expect(classifyUnequipSpellFailure(null, s)).toMatchObject({
+            expect(classifyUnequipSpellFailure(null)).toMatchObject({
                 code: 'NOT_FOUND',
             });
         });
@@ -141,7 +141,6 @@ describe('active spell failure classifiers', () => {
             expect(
                 classifyUnequipSpellFailure(
                     snapshot([s], [{ spell: s, usages: 1 }]),
-                    s,
                 ),
             ).toMatchObject({ code: 'SPELL_NOT_ACTIVE' });
         });
@@ -183,7 +182,7 @@ describe('active spell failure classifiers', () => {
         expect(classifyUseSpellFailure(bare, s)).toMatchObject({
             code: 'SPELL_NOT_ACTIVE',
         });
-        expect(classifyUnequipSpellFailure(bare, s)).toMatchObject({
+        expect(classifyUnequipSpellFailure(bare)).toMatchObject({
             code: 'SPELL_NOT_ACTIVE',
         });
     });
