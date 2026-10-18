@@ -71,10 +71,7 @@ export class PushService {
                 outcomes.push(...batchOutcomes);
                 prunable.push(...prunableTokens(batchOutcomes));
             }
-            const pruned =
-                prunable.length > 0
-                    ? await this.registry.removeTokens(prunable)
-                    : 0;
+            const pruned = await this.pruneBestEffort(message.type, prunable);
             this.reportFailures(message.type, outcomes, prunable, pruned);
             return deliveryCountsOf(outcomes, pruned);
         } catch (error) {
@@ -169,6 +166,22 @@ export class PushService {
 
     private async userExists(id: Types.ObjectId): Promise<boolean> {
         return (await this.userModel.exists({ _id: id }).exec()) !== null;
+    }
+
+    // FCM ha già accettato i messaggi: un errore del registro non deve cancellare l'esito della consegna (review IN-01)
+    private async pruneBestEffort(
+        type: PushEventType,
+        tokens: string[],
+    ): Promise<number> {
+        if (tokens.length === 0) return 0;
+        try {
+            return await this.registry.removeTokens(tokens);
+        } catch (error) {
+            this.logger.warn(
+                `Push ${type}: pruning failed for ${tokens.length} stale token(s): ${describePushError(error)}`,
+            );
+            return 0;
+        }
     }
 
     // best-effort (D-09): un errore di gestione topic è loggato e non cambia l'esito della mutation
