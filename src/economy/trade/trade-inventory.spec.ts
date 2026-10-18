@@ -52,6 +52,7 @@ describe('trade inventory', () => {
             expect(outcome).toEqual({
                 ownedItems: [],
                 ownedEquipments: [equipment(sword, 1)],
+                vacatedSlots: [],
             });
         });
 
@@ -64,6 +65,7 @@ describe('trade inventory', () => {
             expect(outcome).toEqual({
                 ownedItems: [loot(potion, 2)],
                 ownedEquipments: [],
+                vacatedSlots: [],
             });
         });
 
@@ -141,6 +143,36 @@ describe('trade inventory', () => {
             expect(outcome.ownedEquipments).toEqual([]);
         });
 
+        it('vacates every worn slot of an equipment sold down to zero, in either id form', () => {
+            const outcome = applyTradeToInventory(
+                {
+                    ownedEquipments: [equipment(sword, 1), equipment(other, 1)],
+                    wearedEquipment: {
+                        head: other,
+                        leftHand: sword.toHexString(),
+                        rightHand: sword,
+                        chest: null,
+                    },
+                },
+                [line('sell', 'EquipmentItem', sword, 1)],
+            );
+
+            expect(outcome.ownedEquipments).toEqual([equipment(other, 1)]);
+            expect(outcome.vacatedSlots).toEqual(['leftHand', 'rightHand']);
+        });
+
+        it('keeps the worn slot while copies of the sold equipment remain', () => {
+            const outcome = applyTradeToInventory(
+                {
+                    ownedEquipments: [equipment(sword, 2)],
+                    wearedEquipment: { rightHand: sword },
+                },
+                [line('sell', 'EquipmentItem', sword, 1)],
+            );
+
+            expect(outcome.vacatedSlots).toEqual([]);
+        });
+
         it('rejects selling an item not owned with ITEM_NOT_OWNED', () => {
             expect(
                 codeThrownBy(() =>
@@ -209,7 +241,11 @@ describe('trade inventory', () => {
         it('treats missing arrays as empty', () => {
             expect(
                 applyTradeToInventory({}, [line('buy', 'LootItem', potion, 1)]),
-            ).toEqual({ ownedItems: [loot(potion, 1)], ownedEquipments: [] });
+            ).toEqual({
+                ownedItems: [loot(potion, 1)],
+                ownedEquipments: [],
+                vacatedSlots: [],
+            });
         });
     });
 

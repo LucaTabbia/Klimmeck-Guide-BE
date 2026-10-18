@@ -172,6 +172,7 @@ describe('ShopTransactionService (replSet)', () => {
         inventory: {
             ownedEquipments?: OwnedEntry[];
             ownedItems?: OwnedEntry[];
+            wearedEquipment?: Record<string, Types.ObjectId | null>;
         } = {},
         overrides: Record<string, unknown> = {},
     ): Promise<Types.ObjectId> {
@@ -282,6 +283,66 @@ describe('ShopTransactionService (replSet)', () => {
             expect(after?.assets.ownedItems).toEqual([
                 owned('LootItem', potion, 2),
             ]);
+        });
+
+        it('unequips a worn equipment when its last copy is sold', async () => {
+            const helmet = await persistEquipmentItem(equipment, {
+                name: 'Elmo',
+            });
+            const id = await persistTrader(coins(0, 0, 0), {
+                ownedEquipments: [
+                    owned('EquipmentItem', sword, 1),
+                    owned('EquipmentItem', helmet, 1),
+                ],
+                wearedEquipment: {
+                    rightHand: idOf(sword),
+                    head: idOf(helmet),
+                },
+            });
+
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        sellEquip: [asset(sword)],
+                        total: coins(0, 0, 75),
+                        isTotalPositive: true,
+                    }),
+                ),
+            ).resolves.toEqual(SUCCESS);
+
+            const after = await raw(id);
+            expect(after?.assets.ownedEquipments).toEqual([
+                owned('EquipmentItem', helmet, 1),
+            ]);
+            expect(after?.assets.wearedEquipment.rightHand).toBeNull();
+            expect(after?.assets.wearedEquipment.head).toEqual(idOf(helmet));
+        });
+
+        it('keeps a worn equipment equipped while a copy remains', async () => {
+            const id = await persistTrader(coins(0, 0, 0), {
+                ownedEquipments: [owned('EquipmentItem', sword, 2)],
+                wearedEquipment: { rightHand: idOf(sword) },
+            });
+
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        sellEquip: [asset(sword)],
+                        total: coins(0, 0, 75),
+                        isTotalPositive: true,
+                    }),
+                ),
+            ).resolves.toEqual(SUCCESS);
+
+            const after = await raw(id);
+            expect(after?.assets.ownedEquipments).toEqual([
+                owned('EquipmentItem', sword, 1),
+            ]);
+            expect(after?.assets.wearedEquipment.rightHand).toEqual(
+                idOf(sword),
+            );
         });
 
         it('sells a legacy entry whose item id was stored as a string', async () => {
