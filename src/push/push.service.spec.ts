@@ -5,7 +5,9 @@ import {
     DeviceRegistration,
     PushDeviceRegistry,
 } from 'src/push/push-device.registry';
-import { streamerLive, travelEnd } from 'src/push/push-events';
+import { streamerLive, testPushMessage, travelEnd } from 'src/push/push-events';
+import { PushEventType } from 'src/push/push-event-type.enum';
+import { PushPlatform } from 'src/push/push-platform.enum';
 import { PushService } from 'src/push/push.service';
 import { FixedClock } from '../../test/auth/fixed-clock';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
@@ -13,6 +15,9 @@ import { FakePushTransport } from '../../test/push/fake-push-transport';
 const NOW = new Date('2026-10-18T12:00:00.000Z');
 const ALICE_ID = '64b0000000000000000000a1';
 const ALICE = new Types.ObjectId(ALICE_ID);
+const BRUNO_ID = '64b0000000000000000000b2';
+const MISSING_USER_ID = '64b0000000000000000000ff';
+const STREAMER_LIVE = 'streamer-live';
 const EMPTY = { targeted: 0, sent: 0, pruned: 0, failed: 0 };
 
 interface StoredDevice {
@@ -287,6 +292,213 @@ describe('PushService', () => {
                 EMPTY,
             );
             expect(transport.topicSends).toEqual([]);
+        });
+    });
+    const userExists = (value: unknown) =>
+        users.exists.mockReturnValue({ exec: () => Promise.resolve(value) });
+
+    const registration = (token = 'tok-a', deviceId = 'dev-1') => ({
+        deviceId,
+        token,
+        platform: PushPlatform.android,
+    });
+
+    describe('registerDevice', () => {
+        beforeEach(() => userExists({ _id: ALICE }));
+
+        it('claims the device and subscribes its token to the streamer-live topic', async () => {
+            await expect(
+                service.registerDevice(ALICE_ID, registration()),
+            ).resolves.toBe(true);
+
+            expect(registry.claim).toHaveBeenCalledWith(
+                {
+                    userId: new Types.ObjectId(ALICE_ID),
+                    deviceId: 'dev-1',
+                    token: 'tok-a',
+                    platform: 'android',
+                },
+                NOW,
+            );
+            expect(transport.subscriptions).toEqual([
+                { tokens: ['tok-a'], topic: STREAMER_LIVE },
+            ]);
+        });
+
+        it('rejects an invalid device id before any I/O', async () => {
+            await expect(
+                service.registerDevice(
+                    ALICE_ID,
+                    registration('tok-a', 'bad id'),
+                ),
+            ).rejects.toMatchObject({ code: 'PUSH_INVALID_DEVICE_ID' });
+            expect(users.exists).not.toHaveBeenCalled();
+            expect(registry.claim).not.toHaveBeenCalled();
+        });
+
+        it('rejects an invalid token', async () => {
+            await expect(
+                service.registerDevice(ALICE_ID, registration('tok a')),
+            ).rejects.toMatchObject({ code: 'PUSH_INVALID_TOKEN' });
+        });
+
+        it('rejects a bearer whose user no longer exists', async () => {
+            userExists(null);
+
+            await expect(
+                service.registerDevice(ALICE_ID, registration()),
+            ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
+            expect(registry.claim).not.toHaveBeenCalled();
+        });
+
+        it('rejects a non hexadecimal user id', async () => {
+            await expect(
+                service.registerDevice('not-an-id', registration()),
+            ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
+            expect(registry.claim).not.toHaveBeenCalled();
+        });
+
+        it('registers anyway when the topic subscription fails', async () => {
+            transport.failTopicManagement(new Error('boom'));
+
+            await expect(
+                service.registerDevice(ALICE_ID, registration()),
+            ).resolves.toBe(true);
+            expect(registry.rows).toEqual([
+                { userId: ALICE_ID, deviceId: 'dev-1', token: 'tok-a' },
+            ]);
+            expect(warn).toHaveBeenCalled();
+            expect(
+                loggedLines(warn).some((line) => line.includes('tok-a')),
+            ).toBe(false);
+        });
+
+        it('unsubscribes the previous token when the device rotates it', async () => {
+            await service.registerDevice(ALICE_ID, registration('tok-a'));
+            await service.registerDevice(ALICE_ID, registration('tok-b'));
+
+            expect(transport.unsubscriptions).toEqual([
+                { tokens: ['tok-a'], topic: STREAMER_LIVE },
+            ]);
+        });
+
+        it('does not unsubscribe when the same token is registered again', async () => {
+            await service.registerDevice(ALICE_ID, registration('tok-a'));
+            await service.registerDevice(ALICE_ID, registration('tok-a'));
+
+            expect(transport.unsubscriptions).toEqual([]);
+        });
+    });
+
+    describe('unregisterDevice', () => {
+        beforeEach(() => userExists({ _id: ALICE }));
+
+        it('removes the device and unsubscribes its token', async () => {
+            await service.registerDevice(ALICE_ID, registration());
+
+            await expect(
+                service.unregisterDevice(ALICE_ID, 'dev-1'),
+            ).resolves.toBe(true);
+            expect(registry.rows).toEqual([]);
+            expect(transport.unsubscriptions).toEqual([
+                { tokens: ['tok-a'], topic: STREAMER_LIVE },
+            ]);
+        });
+
+        it('is idempotent for an unknown device', async () => {
+            await expect(
+                service.unregisterDevice(ALICE_ID, 'dev-1'),
+            ).resolves.toBe(true);
+            expect(transport.unsubscriptions).toEqual([]);
+        });
+
+        it('rejects an invalid device id', async () => {
+            await expect(
+                service.unregisterDevice(ALICE_ID, 'bad id'),
+            ).rejects.toMatchObject({ code: 'PUSH_INVALID_DEVICE_ID' });
+        });
+    });
+
+    describe('sendTest', () => {
+        it('rejects with PUSH_DISABLED when push is not configured', async () => {
+            transport.enabled = false;
+
+            await expect(
+                service.sendTest(ALICE_ID, { type: PushEventType.travelEnd }),
+            ).rejects.toMatchObject({ code: 'PUSH_DISABLED' });
+            await expect(
+                service.sendTest(ALICE_ID, {
+                    type: PushEventType.streamerLive,
+                }),
+            ).rejects.toMatchObject({ code: 'PUSH_DISABLED' });
+        });
+
+        it('broadcasts streamerLive ignoring the target user', async () => {
+            const report = await service.sendTest(ALICE_ID, {
+                type: PushEventType.streamerLive,
+                targetUserId: 'nope',
+            });
+
+            expect(transport.topicSends).toHaveLength(1);
+            expect(transport.topicSends[0].message).toEqual(streamerLive());
+            expect(users.exists).not.toHaveBeenCalled();
+            expect(report).toEqual({
+                targeted: 1,
+                sent: 1,
+                pruned: 0,
+                failed: 0,
+            });
+        });
+
+        it('targets the caller when no target user is given', async () => {
+            userExists({ _id: ALICE });
+            registry.seed(ALICE_ID, 'tok-a');
+
+            await service.sendTest(ALICE_ID, {
+                type: PushEventType.travelEnd,
+                id: 'c1',
+            });
+
+            expect(transport.sent[0]).toEqual({
+                tokens: ['tok-a'],
+                message: testPushMessage(PushEventType.travelEnd, 'c1'),
+            });
+        });
+
+        it('sends to the requested target user', async () => {
+            userExists({ _id: new Types.ObjectId(BRUNO_ID) });
+            registry.seed(ALICE_ID, 'tok-a');
+            registry.seed(BRUNO_ID, 'tok-b');
+
+            await service.sendTest(ALICE_ID, {
+                type: PushEventType.questEnd,
+                targetUserId: BRUNO_ID,
+            });
+
+            expect(transport.sent.map((call) => call.tokens)).toEqual([
+                ['tok-b'],
+            ]);
+        });
+
+        it('rejects with NOT_FOUND for a missing target user', async () => {
+            userExists(null);
+
+            await expect(
+                service.sendTest(ALICE_ID, {
+                    type: PushEventType.questEnd,
+                    targetUserId: MISSING_USER_ID,
+                }),
+            ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+        });
+
+        it('rejects with NOT_FOUND for a malformed target user without querying', async () => {
+            await expect(
+                service.sendTest(ALICE_ID, {
+                    type: PushEventType.questEnd,
+                    targetUserId: 'nope',
+                }),
+            ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+            expect(users.exists).not.toHaveBeenCalled();
         });
     });
 });
