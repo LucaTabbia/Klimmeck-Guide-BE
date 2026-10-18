@@ -10,12 +10,12 @@ import { RegisterPushDeviceInput } from 'src/push/dto/register-push-device.input
 import { SendTestPushInput } from 'src/push/dto/send-test-push.input';
 import {
     chunk,
-    classifyDeliveryFailure,
     DeliveryFailureKind,
     deliveryCountsOf,
     describePushError,
     emptyDelivery,
     failureCodeSummary,
+    failuresByKind,
     prunableTokens,
     PushDeliveryCounts,
     topicDeliveryCounts,
@@ -72,7 +72,7 @@ export class PushService {
                 prunable.push(...prunableTokens(batchOutcomes));
             }
             const pruned = await this.pruneBestEffort(message.type, prunable);
-            this.reportFailures(message.type, outcomes, prunable, pruned);
+            this.reportFailures(message.type, outcomes, pruned);
             return deliveryCountsOf(outcomes, pruned);
         } catch (error) {
             this.logger.warn(
@@ -211,25 +211,13 @@ export class PushService {
     private reportFailures(
         type: PushEventType,
         outcomes: readonly TokenDeliveryOutcome[],
-        prunable: readonly string[],
         pruned: number,
     ): void {
         if (pruned > 0)
             this.logger.log(`Push ${type}: pruned ${pruned} stale token(s)`);
-        const pruneSet = new Set(prunable);
-        const kept = outcomes.filter(
-            (outcome) => !outcome.delivered && !pruneSet.has(outcome.token),
-        );
-        const rejected = kept.filter(
-            (outcome) =>
-                classifyDeliveryFailure(outcome.errorCode) ===
-                DeliveryFailureKind.payload,
-        );
-        const transient = kept.filter(
-            (outcome) =>
-                classifyDeliveryFailure(outcome.errorCode) ===
-                DeliveryFailureKind.transient,
-        );
+        const failures = failuresByKind(outcomes);
+        const rejected = failures[DeliveryFailureKind.payload];
+        const transient = failures[DeliveryFailureKind.transient];
         if (rejected.length > 0) {
             this.logger.error(
                 `Push ${type}: ${rejected.length} token(s) rejected the payload (${failureCodeSummary(rejected)}): nothing pruned for them`,

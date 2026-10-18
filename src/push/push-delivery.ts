@@ -52,6 +52,26 @@ export function prunableTokens(
         .map((outcome) => outcome.token);
 }
 
+export type FailuresByKind = Record<
+    DeliveryFailureKind,
+    TokenDeliveryOutcome[]
+>;
+
+export function failuresByKind(
+    outcomes: readonly TokenDeliveryOutcome[],
+): FailuresByKind {
+    const groups: FailuresByKind = {
+        [DeliveryFailureKind.staleToken]: [],
+        [DeliveryFailureKind.payload]: [],
+        [DeliveryFailureKind.transient]: [],
+    };
+    for (const outcome of outcomes) {
+        if (outcome.delivered) continue;
+        groups[classifyDeliveryFailure(outcome.errorCode)].push(outcome);
+    }
+    return groups;
+}
+
 export function chunk<T>(items: readonly T[], size: number): T[][] {
     const batches: T[][] = [];
     for (let start = 0; start < items.length; start += size) {
