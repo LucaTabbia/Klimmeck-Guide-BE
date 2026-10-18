@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 04-09-PLAN.md
-last_updated: "2026-10-18T19:18:33.746Z"
-last_activity: "2026-10-18 -- Phase 5 planning complete: 05-01..05-08 PLAN.md committed, research + VALIDATION validated; next /gsd-execute-phase 5"
+last_updated: "2026-10-18T19:18:49.736Z"
+last_activity: 2026-10-18 -- Phase 5 execution started
 progress:
   total_phases: 12
   completed_phases: 6
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 4 — Integrità Economica (Atomics)
+**Current focus:** Phase 5 — infrastruttura-push-fcm
 
 ## Current Position
 
-Phase: 5 (infrastruttura-push-fcm) — PLANNED 2026-10-18 (8 plans / 6 waves, plan-checker passed, Nyquist validated), branch feat/05-infrastruttura-push-fcm off develop @ 630e84c (PR #7 merged)
-Plan: 0/8
-Status: Ready to execute
-Last activity: 2026-10-18 -- Phase 5 planning complete: 05-01..05-08 PLAN.md committed, research + VALIDATION validated; next /gsd-execute-phase 5
+Phase: 5 (infrastruttura-push-fcm) — EXECUTING
+Plan: 1 of 8
+Status: Executing Phase 5
+Last activity: 2026-10-18 -- Phase 5 execution started
 
 Progress: [██████████] 100%
 
