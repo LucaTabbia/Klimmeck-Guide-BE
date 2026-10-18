@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: completed
 stopped_at: Completed 04-09-PLAN.md
 last_updated: "2026-10-18T15:54:51.228Z"
-last_activity: "2026-10-18 -- Phase 4 complete: atomic wallet/shop/equip/spell/quest-accept primitives delivered (9/9 plans, verification 5/5, review fixed); PR to develop next"
+last_activity: "2026-10-18 -- Phase 4 complete (verification 5/5, review fixed, security 51/51); BE PR #7 open to develop; next Phase 5 FCM"
 progress:
   total_phases: 12
   completed_phases: 6
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 4 (integrita-economica-atomics) — COMPLETE 2026-10-18, branch feat/04-integrita-economica-atomics (9/9 plans; VERIFICATION 5/5, human item = prod replica-set deploy check; REVIEW 0 critical / 4 warnings fixed in TDD + IN-05/IN-06; security audit in progress)
+Phase: 4 (integrita-economica-atomics) — COMPLETE 2026-10-18, branch feat/04-integrita-economica-atomics (9/9 plans; VERIFICATION 5/5, human item = prod replica-set deploy check; REVIEW 0 critical / 4 warnings fixed in TDD + IN-05/IN-06; security 51/51 closed, PR #7 open)
 Plan: 9/9 complete
-Status: Phase 4 complete — security audit then PR to develop; next /gsd-discuss-phase 5 (Infrastruttura Push FCM, unblocks FE Phase 5)
+Status: Phase 4 complete — security 51/51 closed; PR #7 open on LucaTabbia/Klimmeck-Guide-BE (feat/04-integrita-economica-atomics → develop), ready for review and merge (no FE dependency); next /gsd-discuss-phase 5 (Infrastruttura Push FCM, unblocks FE Phase 5)
 Last activity: 2026-10-18 -- Phase 4 closed: 645 unit / 479 integration green, schema byte-identical, review fixes WR-01..04 + IN-05/06, BACKEND-NOTES published
 
 Progress: [██████████] 100%
