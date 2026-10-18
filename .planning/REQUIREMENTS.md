@@ -69,9 +69,9 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Notifications / FCM (BE-NOTIF)
 
-- [ ] **BE-NOTIF-01**: Mutation di registrazione token FCM per-device (upsert per userId+deviceId), con pruning dei token invalidi (`registration-token-not-registered`) → FE NOTIF-01
-- [ ] **BE-NOTIF-02**: Servizio push condiviso domain-agnostic (`sendToUser`, topic broadcast) basato su firebase-admin (FCM HTTP v1); il push è side-channel non autoritativo: porta al massimo un ID, mai stato di gioco
-- [ ] **BE-NOTIF-03**: Push travel-end, quest-end e streamer-live inviati agli utenti interessati come data message (gestibili nei tre app state FE) → FE NOTIF-03/04/05
+- [x] **BE-NOTIF-01**: Mutation di registrazione token FCM per-device (upsert per userId+deviceId), con pruning dei token invalidi (`registration-token-not-registered`) → FE NOTIF-01
+- [x] **BE-NOTIF-02**: Servizio push condiviso domain-agnostic (`sendToUser`, topic broadcast) basato su firebase-admin (FCM HTTP v1); il push è side-channel non autoritativo: porta al massimo un ID, mai stato di gioco
+- [x] **BE-NOTIF-03**: Push travel-end, quest-end e streamer-live inviati agli utenti interessati come data message (gestibili nei tre app state FE) → FE NOTIF-03/04/05
 
 ### Twitch Points Sync (BE-POINTS)
 
@@ -169,9 +169,9 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-ATOM-03 | Phase 4 | Complete |
 | BE-ATOM-04 | Phase 4 | Complete |
 | BE-ATOM-05 | Phase 4 | Complete |
-| BE-NOTIF-01 | Phase 5 | Pending |
-| BE-NOTIF-02 | Phase 5 | Pending |
-| BE-NOTIF-03 | Phase 5 | Pending |
+| BE-NOTIF-01 | Phase 5 | Complete |
+| BE-NOTIF-02 | Phase 5 | Complete |
+| BE-NOTIF-03 | Phase 5 | Complete |
 | BE-POINTS-01 | Phase 6 | Pending |
 | BE-POINTS-02 | Phase 6 | Pending |
 | BE-POINTS-03 | Phase 6 | Pending |
