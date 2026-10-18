@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 03.1-06-PLAN.md
-last_updated: "2026-10-16T10:57:57.308Z"
-last_activity: "2026-10-16 -- Phase 03.1 complete: deleteCharacter contract delivered (6/6 plans, verification passed 5/5, security verified threats_open 0, review WR-01 fixed); PR to develop next, before FE Phase 4 PR"
+status: planning
+stopped_at: Phase 4 context gathered (auto mode)
+last_updated: "2026-10-18T13:33:34.982Z"
+last_activity: 2026-10-18 -- Phase 4 context gathered in auto mode (D-01..D-20); next /gsd-plan-phase 4 --auto
 progress:
   total_phases: 12
   completed_phases: 5
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 03.1 complete (PR to `develop` pending, to be merged before the FE Phase 4 PR) → next Phase 4 — integrità economica (atomics)
+**Current focus:** Phase 4 — integrità economica (atomics): context captured in auto mode, planning next (PR 03.1 #6 merged 2026-10-16)
 
 ## Current Position
 
-Phase: 03.1 (character-deletion-contract) — COMPLETE 2026-10-16, branch feat/03.1-character-deletion-contract
-Plan: 6/6 complete
-Status: Phase 03.1 complete — PR to develop pending; next /gsd-discuss-phase 4 or /gsd-plan-phase 4
-Last activity: 2026-10-16 -- Phase 03.1 complete: deleteCharacter contract (soft delete, atomic unlink, name release, archived invisibility), VERIFICATION passed 5/5, SECURITY threats_open 0, REVIEW 0 critical / 1 warning fixed (WR-01), VALIDATION validated
+Phase: 4 (integrita-economica-atomics) — CONTEXT GATHERED 2026-10-18 (auto mode), branch feat/04-integrita-economica-atomics
+Plan: 0/TBD
+Status: Phase 4 context gathered (auto) — ready to plan: /gsd-plan-phase 4 --auto
+Last activity: 2026-10-18 -- Phase 4 context gathered in auto mode (D-01..D-20); next /gsd-plan-phase 4 --auto
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -149,6 +149,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-09T08:47:16.096Z
-Stopped at: Completed 02.1-08-PLAN.md
-Resume file: None
+Last session: 2026-10-18T13:33:34.884Z
+Stopped at: Phase 4 context gathered (auto mode)
+Resume file: .planning/phases/04-integrita-economica-atomics/04-CONTEXT.md
