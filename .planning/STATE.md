@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-10-18T19:28:05.379Z"
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-10-18T19:32:25.685Z"
 last_activity: 2026-10-18
 progress:
   total_phases: 12
   completed_phases: 6
   total_plans: 56
-  completed_plans: 50
-  percent: 89
+  completed_plans: 51
+  percent: 91
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 5 (infrastruttura-push-fcm) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-10-18
 
-Progress: [█████████░] 89%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 50
+- Total plans completed: 51
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -90,6 +90,7 @@ Progress: [█████████░] 89%
 | Phase 04 P09 | 6 min | 2 tasks | 3 files |
 | Phase 05 P01 | 6 min | 3 tasks | 11 files |
 | Phase 05 P02 | 4 min | 3 tasks | 11 files |
+| Phase 05 P03 | 4 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -152,6 +153,7 @@ Recent decisions affecting current work:
 - [Phase 04]: Phase 4 gate verde (unit 54/625, int 41/472, build, lint 58 file, schema diff 0); BACKEND-NOTES consegnato, BE-ATOM-01..05 Complete
 - [Phase 05]: 05-01: parsePushConfig fail-closed (prod senza FIREBASE_SERVICE_ACCOUNT → boot rifiutato, dev/test → serviceAccount null), messaggi fissi senza eco del valore; readEnvKeys condiviso da auth e push
 - [Phase 05]: 05-02: PushException (HttpException, PUSH_INVALID_DEVICE_ID/PUSH_INVALID_TOKEN 400, PUSH_DISABLED 503) con extensions.code; validatore puro deviceId→token; catalogo Record<PushEventType> unico per copy/TTL (1h personali, 15min broadcast), streamerLive senza id
+- [Phase 05]: 05-03: porta PushTransport (classe astratta DI) con NoopPushTransport/FcmPushTransport/FakePushTransport; toFcmBase data-only (Android high ttl ms, APNs background prio 5 + expiration assoluta); FcmPushTransport non lancia mai sugli invii (codici stringa messaging/<code> o transport-error), connect() idempotente su app 'klimmeck-push'
 
 ### Pending Todos
 
@@ -173,6 +175,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-18T19:28:05.375Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-10-18T19:32:25.681Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
