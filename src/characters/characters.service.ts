@@ -21,15 +21,8 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { Equipment } from 'src/models/common/equipment.model';
-import {
-    AssetQuantity,
-    AssetQuantityInput,
-    ItemReferenceType,
-} from 'src/models/common/asset-quantity.model';
 import { CommonResponse } from 'src/models/common/common-response.model';
-import { normalizeCoins } from 'src/utils';
 import { EquipmentItem } from 'src/models/equipment-item.model';
-import { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
@@ -205,80 +198,6 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
             throw ResourceNotFoundException.character();
         }
         return character.assets.wearedEquipment;
-    }
-
-    async doTransaction(request: TransactionRequest): Promise<CommonResponse> {
-        const character = await this.characterModel
-            .findOne(activeCharacterById(request.id))
-            .exec();
-        if (!character) throw ResourceNotFoundException.character();
-
-        const coinSign = request.isTotalPositive ? 1 : -1;
-        character.status.coins.gold += coinSign * request.total.gold;
-        character.status.coins.silver += coinSign * request.total.silver;
-        character.status.coins.copper += coinSign * request.total.copper;
-
-        normalizeCoins(character.status.coins);
-        character.markModified('status.coins');
-
-        const updateAssets = (
-            targetArray: AssetQuantity[],
-            items: AssetQuantityInput[],
-            isAdding: boolean,
-            itemType: ItemReferenceType,
-        ) => {
-            for (const item of items) {
-                const existing = targetArray.find(
-                    (a) => a.item.toString() === item.item,
-                );
-                if (existing) {
-                    existing.quantity += isAdding
-                        ? item.quantity
-                        : -item.quantity;
-                    if (existing.quantity <= 0) {
-                        const index = targetArray.indexOf(existing);
-                        targetArray.splice(index, 1);
-                    }
-                } else if (isAdding) {
-                    targetArray.push({
-                        itemType,
-                        item: new Types.ObjectId(item.item!),
-                        quantity: item.quantity,
-                    } as unknown as AssetQuantity);
-                }
-            }
-        };
-
-        updateAssets(
-            character.assets.ownedItems,
-            request.boughtItems.lootAssets,
-            true,
-            'LootItem',
-        );
-        updateAssets(
-            character.assets.ownedEquipments,
-            request.boughtItems.equipAssets,
-            true,
-            'EquipmentItem',
-        );
-        updateAssets(
-            character.assets.ownedItems,
-            request.soldItems.lootAssets,
-            false,
-            'LootItem',
-        );
-        updateAssets(
-            character.assets.ownedEquipments,
-            request.soldItems.equipAssets,
-            false,
-            'EquipmentItem',
-        );
-
-        await character.save();
-        return {
-            response: 'Transazione avvenuta con successo',
-            successful: true,
-        };
     }
 
     async equipItem(request: EquipItemRequest): Promise<CommonResponse> {
