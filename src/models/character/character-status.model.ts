@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int, InputType, ID, Float } from '@nestjs/graphql';
+import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { Coins, CoinsInput, CoinsSchema } from '../common/coins.model';
@@ -6,6 +6,7 @@ import { InjuryType } from '../enums/injury-type.enum';
 import { TitleType } from '../enums/title-type.enum';
 import { Spell } from '../spell.model';
 import { PointOfInterest } from '../point-of-interest.model';
+import { maxActiveSpellsFor } from './active-spell-slots';
 
 @ObjectType()
 @Schema({ _id: false })
@@ -54,12 +55,7 @@ export type CharacterStatusDocument = CharacterStatus & Document;
 export const CharacterStatusSchema = (() => {
     const schema = SchemaFactory.createForClass(CharacterStatus);
     schema.virtual('maxActiveSpells').get(function (this: CharacterStatus) {
-        const xp = this.xp ?? 0;
-        if (xp < 20000) return 0;
-        if (xp < 25000) return 1;
-        if (xp < 30000) return 2;
-        if (xp < 40000) return 3;
-        return 4;
+        return maxActiveSpellsFor(this.xp ?? 0);
     });
 
     return schema;
@@ -94,4 +90,3 @@ export class CharacterStatusInput {
     @Field(() => Int, { nullable: true })
     maxLifePoints?: number;
 }
-
