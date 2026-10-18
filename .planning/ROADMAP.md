@@ -279,7 +279,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Autorizzazione: Ownership, Ruoli, Audit | 10/10 | Complete    | 2026-10-14 |
 | 3.1. Character Deletion Contract | 6/6 | Complete | 2026-10-16 |
 | 4. Integrità Economica (Atomics) | 9/9 | Complete | 2026-10-18 |
-| 5. Infrastruttura Push FCM | 5/8 | In Progress | - |
+| 5. Infrastruttura Push FCM | 6/8 | In Progress | - |
 | 6. EventSub: Punti Canale & Streamer Live | 0/TBD | Not started | - |
 | 7. Quest Lanes (QUEST-04) | 0/TBD | Not started | - |
 | 8. Travel Lifecycle (TRAVEL-01) | 0/TBD | Not started | - |
