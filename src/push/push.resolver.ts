@@ -1,7 +1,11 @@
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import type { AuthIdentity } from 'src/auth/auth-identity';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { Roles } from 'src/authz/roles/roles.decorator';
+import { RoleType } from 'src/models/enums/role-type.enum';
+import { PushDeliveryReport } from 'src/push/dto/push-delivery-report.model';
 import { RegisterPushDeviceInput } from 'src/push/dto/register-push-device.input';
+import { SendTestPushInput } from 'src/push/dto/send-test-push.input';
 import { PushService } from 'src/push/push.service';
 
 @Resolver()
@@ -24,5 +28,15 @@ export class PushResolver {
         @Args('deviceId', { type: () => String }) deviceId: string,
     ): Promise<boolean> {
         return this.pushService.unregisterDevice(identity.userId, deviceId);
+    }
+
+    // attrezzo del game master (D-13): FORBIDDEN per gli altri ruoli e audit automatico in admin_audit_logs (Phase 3 D-15/D-16)
+    @Roles(RoleType.innkeeper)
+    @Mutation(() => PushDeliveryReport)
+    sendTestPush(
+        @CurrentUser() identity: AuthIdentity,
+        @Args('input') input: SendTestPushInput,
+    ): Promise<PushDeliveryReport> {
+        return this.pushService.sendTest(identity.userId, input);
     }
 }
