@@ -9,8 +9,9 @@ import {
     Character,
     CharacterSchema,
 } from 'src/models/character/character.model';
+import { Spell, SpellDocument, SpellSchema } from 'src/models/spell.model';
 import { startRedis, stopRedis } from '../../test/setup/redis';
-import { buildCharacter } from '../../test/fixtures';
+import { buildCharacter, persistSpell } from '../../test/fixtures';
 import { SpellRecoveryProcessor } from './spell-recovery.processor';
 
 /**
@@ -27,6 +28,7 @@ describe('SpellRecoveryProcessor (integration — real Redis + replSet)', () => 
     let app: INestApplication;
     let queue: Queue;
     let characterModel: Model<any>;
+    let spellModel: Model<SpellDocument>;
 
     beforeAll(async () => {
         const { host, port } = await startRedis();
@@ -36,6 +38,7 @@ describe('SpellRecoveryProcessor (integration — real Redis + replSet)', () => 
                 MongooseModule.forRoot(process.env.MONGO_TEST_URI as string),
                 MongooseModule.forFeature([
                     { name: Character.name, schema: CharacterSchema },
+                    { name: Spell.name, schema: SpellSchema },
                 ]),
                 BullModule.forRoot({ redis: { host, port } }),
                 BullModule.registerQueue({ name: 'spell-recovery' }),
@@ -49,6 +52,9 @@ describe('SpellRecoveryProcessor (integration — real Redis + replSet)', () => 
         queue = moduleRef.get<Queue>(getQueueToken('spell-recovery'));
         characterModel = moduleRef.get<Model<any>>(
             getModelToken(Character.name),
+        );
+        spellModel = moduleRef.get<Model<SpellDocument>>(
+            getModelToken(Spell.name),
         );
     }, 120000);
 
@@ -65,7 +71,8 @@ describe('SpellRecoveryProcessor (integration — real Redis + replSet)', () => 
     });
 
     it('increments the active spell usages on the persisted character (2 -> 3)', async () => {
-        const spellId = new Types.ObjectId();
+        const spell = await persistSpell(spellModel, { maxUsages: 3 });
+        const spellId = spell._id as Types.ObjectId;
         const base = buildCharacter({
             assets: {
                 ownedEquipments: [],
