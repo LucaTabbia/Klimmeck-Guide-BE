@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 4 context gathered (auto mode)
-last_updated: "2026-10-18T14:27:29.092Z"
-last_activity: 2026-10-18 -- Phase 4 execution started
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-10-18T14:31:36.918Z"
+last_activity: 2026-10-18
 progress:
   total_phases: 12
   completed_phases: 5
   total_plans: 48
-  completed_plans: 39
-  percent: 81
+  completed_plans: 40
+  percent: 83
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 4 (Integrità Economica (Atomics)) — EXECUTING
-Plan: 1 of 9
-Status: Executing Phase 4
-Last activity: 2026-10-18 -- Phase 4 execution started
+Plan: 2 of 9
+Status: Ready to execute
+Last activity: 2026-10-18 -- Completed 04-01-PLAN.md
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -79,6 +79,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02.1 P06 | 6min | 2 tasks | 5 files |
 | Phase 02.1 P07 | 3min | 2 tasks | 4 files |
 | Phase 02.1 P08 | 5min | 2 tasks | 4 files |
+| Phase 04 P01 | 15 min | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -128,6 +129,7 @@ Recent decisions affecting current work:
 - [Phase 02.1]: createCharacter: transazione claim-then-insert (User con currentCharacter null prima, poi Character con _id pre-generato); nessun pre-check del nome, E11000 su infos.name → CHARACTER_NAME_TAKEN
 - [Phase 02.1]: Nessuna divergenza di nomi con la proposta FE: BACKEND-NOTES FE non toccato (D-13)
 - [Phase 02.1]: Handoff: sullo User restituito da createCharacter selezionare solo currentCharacter { id } + scalari di infos
+- [Phase 04]: GameRuleErrorCode è un enum TS puro (nessun registerEnumType); coinsDeltaStages tipizzato UpdateWithAggregationPipeline; limite $toInt 2^31 rame accettato
 
 ### Pending Todos
 
@@ -149,6 +151,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-18T13:33:34.884Z
-Stopped at: Phase 4 context gathered (auto mode)
-Resume file: .planning/phases/04-integrita-economica-atomics/04-CONTEXT.md
+Last session: 2026-10-18T14:31:36.915Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None
