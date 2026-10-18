@@ -31,3 +31,8 @@ export function sameId(value: unknown, id: Types.ObjectId): boolean {
         (value as { toString(): string }).toString() === id.toHexString()
     );
 }
+
+// le due forme salvate di un ref sui path Mixed: per $in/$nin nei filtri, così filtro e confronto in memoria (sameId) coincidono
+export function idForms(id: Types.ObjectId): [Types.ObjectId, string] {
+    return [id, id.toHexString()];
+}

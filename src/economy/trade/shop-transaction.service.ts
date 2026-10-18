@@ -100,7 +100,7 @@ export class ShopTransactionService {
         }
     }
 
-    // le quantità vendute riaffermate nel filtro: uno snapshot superato non scrive
+    // le quantità vendute riaffermate nel filtro (rete di sicurezza): la contesa la risolve il WriteConflict della transazione
     private async writeInventory(
         characterId: Types.ObjectId,
         lines: readonly TradeLine[],

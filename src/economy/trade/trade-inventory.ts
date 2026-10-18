@@ -1,5 +1,5 @@
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
-import { sameId } from 'src/mongo/document-id';
+import { idForms, sameId } from 'src/mongo/document-id';
 import {
     INVENTORY_FIELD,
     type TradeItemKind,
@@ -67,7 +67,7 @@ export function applyTradeToInventory(
     return outcome;
 }
 
-// le quantità vendute riaffermate nel filtro della scrittura in sessione (04 D-07): uno snapshot superato non scrive
+// le quantità vendute riaffermate nel filtro della scrittura in sessione (04 D-07): rete di sicurezza, la contesa la risolve il WriteConflict della transazione
 export function soldQuantityGuards(
     lines: readonly TradeLine[],
 ): Record<string, unknown> {
@@ -76,7 +76,7 @@ export function soldQuantityGuards(
         .map((line) => ({
             [`assets.${INVENTORY_FIELD[line.kind]}`]: {
                 $elemMatch: {
-                    item: line.itemId,
+                    item: { $in: idForms(line.itemId) },
                     quantity: { $gte: line.quantity },
                 },
             },
