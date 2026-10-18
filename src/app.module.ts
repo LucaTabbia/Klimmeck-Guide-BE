@@ -17,6 +17,7 @@ import { LootItemsModule } from './lootItems/loot-items.module';
 import { LoreModule } from './lore/lore.module';
 import { PendingQuestsModule } from './pendingQuests/pending-quests.module';
 import { PetsModule } from './pets/pets.module';
+import { QuestAcceptanceModule } from './quests/acceptance/quest-acceptance.module';
 import { QuestsModule } from './quests/quests.module';
 import { SpellsModule } from './spells/spells.module';
 import { AppService } from './app.service';
@@ -76,6 +77,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         PendingQuestsModule,
         PetsModule,
         QuestsModule,
+        QuestAcceptanceModule,
         SpellsModule,
         RoadsModule,
         PointOfInterestModule,
