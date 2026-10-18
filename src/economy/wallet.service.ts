@@ -13,9 +13,14 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { User, UserDocument } from 'src/models/user.model';
 
 interface CoinsProjection {
     status: { coins: CoinPurse };
+}
+
+interface PointsProjection {
+    twitchPoints: number;
 }
 
 @Injectable()
@@ -23,6 +28,7 @@ export class WalletService {
     constructor(
         @InjectModel(Character.name)
         private readonly characterModel: Model<CharacterDocument>,
+        @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     ) {}
 
     // un solo update condizionale (04 D-02): il filtro è la regola, il server serializza i concorrenti, il saldo non scende mai sotto zero
@@ -64,19 +70,53 @@ export class WalletService {
             : ResourceNotFoundException.character();
     }
 
-    debitUserPoints(
-        _userId: Types.ObjectId,
-        _amount: number,
-        _session?: ClientSession,
+    // $inc condizionale (04 D-03): un utente senza il campo non passa il $gte, quindi non può andare in negativo; la dedup EventSub resta a Phase 6
+    async debitUserPoints(
+        userId: Types.ObjectId,
+        amount: number,
+        session?: ClientSession,
     ): Promise<number> {
-        throw new Error('debitUserPoints: not implemented');
+        assertPositiveAmount(amount);
+        const updated = await this.userModel
+            .findOneAndUpdate(
+                { _id: userId, twitchPoints: { $gte: amount } },
+                { $inc: { twitchPoints: -amount } },
+                { session, new: true, projection: { twitchPoints: 1 } },
+            )
+            .lean<PointsProjection | null>()
+            .exec();
+        if (updated) return updated.twitchPoints;
+        const exists = await this.userModel
+            .exists({ _id: userId })
+            .session(session ?? null)
+            .exec();
+        throw exists
+            ? GameRuleException.insufficientPoints()
+            : ResourceNotFoundException.user();
     }
 
-    creditUserPoints(
-        _userId: Types.ObjectId,
-        _amount: number,
-        _session?: ClientSession,
+    async creditUserPoints(
+        userId: Types.ObjectId,
+        amount: number,
+        session?: ClientSession,
     ): Promise<number> {
-        throw new Error('creditUserPoints: not implemented');
+        assertPositiveAmount(amount);
+        const updated = await this.userModel
+            .findOneAndUpdate(
+                { _id: userId },
+                { $inc: { twitchPoints: amount } },
+                { session, new: true, projection: { twitchPoints: 1 } },
+            )
+            .lean<PointsProjection | null>()
+            .exec();
+        if (!updated) throw ResourceNotFoundException.user();
+        return updated.twitchPoints;
+    }
+}
+
+// $inc accetta anche importi frazionari: la validazione resta nel service
+function assertPositiveAmount(amount: number): void {
+    if (!Number.isSafeInteger(amount) || amount <= 0) {
+        throw new RangeError(`Importo non valido: ${amount}`);
     }
 }
