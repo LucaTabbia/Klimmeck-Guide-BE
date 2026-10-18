@@ -1,3 +1,5 @@
+import { Types } from 'mongoose';
+
 const OBJECT_ID_HEX = /^[0-9a-f]{24}$/;
 
 // i payload del PubSub sono documenti idratati: l'idTransformPlugin non è registrato nell'harness, quindi niente toJSON
@@ -11,4 +13,26 @@ export function documentIdOf(document: unknown): string | undefined {
 // Types.ObjectId.isValid accetta qualunque stringa di 12 caratteri: per gli id del client serve l'esadecimale a 24
 export function isObjectIdHex(value: string): boolean {
     return OBJECT_ID_HEX.test(value);
+}
+
+// i path ref @Prop({ type: Types.ObjectId }) sono Mixed: un id stringa nei filtri non matcha e negli update si salva come String (04 Pitfall 1)
+export function objectIdFromHex(
+    value: string | null | undefined,
+): Types.ObjectId | null {
+    return typeof value === 'string' && isObjectIdHex(value)
+        ? new Types.ObjectId(value)
+        : null;
+}
+
+// le voci legacy possono avere l'id salvato come stringa (04 Pitfall 1): il confronto per esadecimale copre entrambe le forme
+export function sameId(value: unknown, id: Types.ObjectId): boolean {
+    return (
+        value != null &&
+        (value as { toString(): string }).toString() === id.toHexString()
+    );
+}
+
+// le due forme salvate di un ref sui path Mixed: per $in/$nin nei filtri, così filtro e confronto in memoria (sameId) coincidono
+export function idForms(id: Types.ObjectId): [Types.ObjectId, string] {
+    return [id, id.toHexString()];
 }

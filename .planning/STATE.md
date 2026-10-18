@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 03.1-06-PLAN.md
-last_updated: "2026-10-16T10:57:57.308Z"
-last_activity: "2026-10-16 -- Phase 03.1 complete: deleteCharacter contract delivered (6/6 plans, verification passed 5/5, security verified threats_open 0, review WR-01 fixed); PR to develop next, before FE Phase 4 PR"
+status: completed
+stopped_at: Completed 04-09-PLAN.md
+last_updated: "2026-10-18T15:54:51.228Z"
+last_activity: "2026-10-18 -- Phase 4 complete (verification 5/5, review fixed, security 51/51); BE PR #7 open to develop; next Phase 5 FCM"
 progress:
   total_phases: 12
-  completed_phases: 5
-  total_plans: 39
-  completed_plans: 39
+  completed_phases: 6
+  total_plans: 48
+  completed_plans: 48
   percent: 100
 ---
 
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 03.1 complete (PR to `develop` pending, to be merged before the FE Phase 4 PR) → next Phase 4 — integrità economica (atomics)
+**Current focus:** Phase 4 — Integrità Economica (Atomics)
 
 ## Current Position
 
-Phase: 03.1 (character-deletion-contract) — COMPLETE 2026-10-16, branch feat/03.1-character-deletion-contract
-Plan: 6/6 complete
-Status: Phase 03.1 complete — PR to develop pending; next /gsd-discuss-phase 4 or /gsd-plan-phase 4
-Last activity: 2026-10-16 -- Phase 03.1 complete: deleteCharacter contract (soft delete, atomic unlink, name release, archived invisibility), VERIFICATION passed 5/5, SECURITY threats_open 0, REVIEW 0 critical / 1 warning fixed (WR-01), VALIDATION validated
+Phase: 4 (integrita-economica-atomics) — COMPLETE 2026-10-18, branch feat/04-integrita-economica-atomics (9/9 plans; VERIFICATION 5/5, human item = prod replica-set deploy check; REVIEW 0 critical / 4 warnings fixed in TDD + IN-05/IN-06; security 51/51 closed, PR #7 open)
+Plan: 9/9 complete
+Status: Phase 4 complete — security 51/51 closed; PR #7 open on LucaTabbia/Klimmeck-Guide-BE (feat/04-integrita-economica-atomics → develop), ready for review and merge (no FE dependency); next /gsd-discuss-phase 5 (Infrastruttura Push FCM, unblocks FE Phase 5)
+Last activity: 2026-10-18 -- Phase 4 closed: 645 unit / 479 integration green, schema byte-identical, review fixes WR-01..04 + IN-05/06, BACKEND-NOTES published
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 39
+- Total plans completed: 48
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -79,6 +79,15 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02.1 P06 | 6min | 2 tasks | 5 files |
 | Phase 02.1 P07 | 3min | 2 tasks | 4 files |
 | Phase 02.1 P08 | 5min | 2 tasks | 4 files |
+| Phase 04 P01 | 15 min | 3 tasks | 15 files |
+| Phase 04 P02 | 10 min | 2 tasks | 3 files |
+| Phase 04 P03 | 15 min | 3 tasks | 14 files |
+| Phase 04 P04 | 3 min | 2 tasks | 5 files |
+| Phase 04 P05 | 6 min | 2 tasks | 7 files |
+| Phase 04 P06 | 15 min | 2 tasks | 8 files |
+| Phase 04 P07 | 12 min | 2 tasks | 5 files |
+| Phase 04 P08 | 12 min | 2 tasks | 9 files |
+| Phase 04 P09 | 6 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -128,6 +137,17 @@ Recent decisions affecting current work:
 - [Phase 02.1]: createCharacter: transazione claim-then-insert (User con currentCharacter null prima, poi Character con _id pre-generato); nessun pre-check del nome, E11000 su infos.name → CHARACTER_NAME_TAKEN
 - [Phase 02.1]: Nessuna divergenza di nomi con la proposta FE: BACKEND-NOTES FE non toccato (D-13)
 - [Phase 02.1]: Handoff: sullo User restituito da createCharacter selezionare solo currentCharacter { id } + scalari di infos
+- [Phase 04]: GameRuleErrorCode è un enum TS puro (nessun registerEnumType); coinsDeltaStages tipizzato UpdateWithAggregationPipeline; limite $toInt 2^31 rame accettato
+- [Phase 04]: WalletService è l'unico scrittore dei saldi: coins con un solo findOneAndUpdate condizionale (pipeline coinsDeltaStages), twitchPoints con $inc guardato da $gte; session opzionale; importi punti validati nel service (intero > 0)
+- [Phase 04]: 04-03: classifyUnequipSpellFailure takes only the snapshot (single guard 'active')
+- [Phase 04]: 04-03: malformed ids short-circuit without DB access: equipSpell SPELL_NOT_KNOWN, unequipSpell SPELL_NOT_ACTIVE, equipItem ITEM_NOT_OWNED, character NOT_FOUND
+- [Phase 04]: Trade planner puro in src/economy/trade: prezzo solo dal catalogo, totale client solo cross-check, guard $elemMatch $gte per le vendite
+- [Phase 04]: useSpell: spellId malformato → SPELL_NOT_ACTIVE; compensazione con recoverSpellFilter (mai oltre maxUsages), fallimento loggato con soli id
+- [Phase 04]: Payload job spell-recovery invariato (id stringa); il processor salta job malformati con warn
+- [Phase 04]: ShopTransactionService: catalogo e controlli puri fuori dalla transazione, inventario con soldQuantityGuards + delta coins via WalletService nella stessa session (Pattern 3)
+- [Phase 04]: 04-07: accettazione quest single-flight in transazione (claim slot pendingQuest null → insert PendingQuest → debito wallet), waitingTime = timeToComplete ?? 0 (A1), nessuna superficie GraphQL (D-09)
+- [Phase 04]: 04-08: doTransaction delega a ShopTransactionService; fixture ownership/archived a scambio vuoto totale zero (A2)
+- [Phase 04]: Phase 4 gate verde (unit 54/625, int 41/472, build, lint 58 file, schema diff 0); BACKEND-NOTES consegnato, BE-ATOM-01..05 Complete
 
 ### Pending Todos
 
@@ -149,6 +169,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-09T08:47:16.096Z
-Stopped at: Completed 02.1-08-PLAN.md
+Last session: 2026-10-18T15:54:51.224Z
+Stopped at: Completed 04-09-PLAN.md
 Resume file: None

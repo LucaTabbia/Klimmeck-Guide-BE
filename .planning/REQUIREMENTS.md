@@ -61,11 +61,11 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Data Integrity (BE-ATOM)
 
-- [ ] **BE-ATOM-01**: Tutti i debiti/crediti di bilancio (`Character.coins`, `User.twitchPoints`) usano update atomici condizionali (`$inc` con guard `$gte`) o transazioni Mongo: mai read-modify-write; saldo insufficiente → errore, mai negativo
-- [ ] **BE-ATOM-02**: `doTransaction` è atomico: validazione di fattibilità prima dell'esecuzione, coins+items applicati in un'unica unità (transazione), nessuno stato parziale su fallimento
-- [ ] **BE-ATOM-03**: L'accettazione quest è atomica e single-flight: debito del costo e assegnazione della quest in un'unica operazione; doppia accettazione concorrente → una sola vince → FE QUEST-06
-- [ ] **BE-ATOM-04**: Le mutazioni degli array equip/activeSpells usano optimistic concurrency (versionKey) o update atomici: due equip concorrenti non superano `maxActiveSpells`
-- [ ] **BE-ATOM-05**: Gli usages delle spell sono decrementati/ripristinati atomicamente; il recovery job è idempotente e non porta gli usages oltre il massimo
+- [x] **BE-ATOM-01**: Tutti i debiti/crediti di bilancio (`Character.coins`, `User.twitchPoints`) usano update atomici condizionali (`$inc` con guard `$gte`) o transazioni Mongo: mai read-modify-write; saldo insufficiente → errore, mai negativo
+- [x] **BE-ATOM-02**: `doTransaction` è atomico: validazione di fattibilità prima dell'esecuzione, coins+items applicati in un'unica unità (transazione), nessuno stato parziale su fallimento
+- [x] **BE-ATOM-03**: L'accettazione quest è atomica e single-flight: debito del costo e assegnazione della quest in un'unica operazione; doppia accettazione concorrente → una sola vince → FE QUEST-06
+- [x] **BE-ATOM-04**: Le mutazioni degli array equip/activeSpells usano optimistic concurrency (versionKey) o update atomici: due equip concorrenti non superano `maxActiveSpells`
+- [x] **BE-ATOM-05**: Gli usages delle spell sono decrementati/ripristinati atomicamente; il recovery job è idempotente e non porta gli usages oltre il massimo
 
 ### Notifications / FCM (BE-NOTIF)
 
@@ -164,11 +164,11 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-AUTHZ-04 | Phase 3 | Complete |
 | BE-SYNC-01 | Phase 3 | Complete |
 | BE-SYNC-02 | Phase 3 | Complete |
-| BE-ATOM-01 | Phase 4 | Pending |
-| BE-ATOM-02 | Phase 4 | Pending |
-| BE-ATOM-03 | Phase 4 | Pending |
-| BE-ATOM-04 | Phase 4 | Pending |
-| BE-ATOM-05 | Phase 4 | Pending |
+| BE-ATOM-01 | Phase 4 | Complete |
+| BE-ATOM-02 | Phase 4 | Complete |
+| BE-ATOM-03 | Phase 4 | Complete |
+| BE-ATOM-04 | Phase 4 | Complete |
+| BE-ATOM-05 | Phase 4 | Complete |
 | BE-NOTIF-01 | Phase 5 | Pending |
 | BE-NOTIF-02 | Phase 5 | Pending |
 | BE-NOTIF-03 | Phase 5 | Pending |

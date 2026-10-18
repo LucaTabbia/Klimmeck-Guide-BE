@@ -17,7 +17,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 2.1: Character Creation Contract** (INSERTED 2026-10-09) - Mutation `createCharacter` sull'identità autenticata, tabella età/razza esposta via query, validazione autoritativa e codici d'errore stabili; sblocca FE Phase 2 (completed 2026-10-09)
 - [x] **Phase 3: Autorizzazione: Ownership, Ruoli, Audit** - Ownership sulle mutation, role guard `@Roles(innkeeper)`, subscription filtrate per identità, audit log admin, user stream `userUpdated` + snapshot su subscribe (contratto FE Phase 3, assorbito il 2026-10-14) (completed 2026-10-14, PR #5)
 - [x] **Phase 3.1: Character Deletion Contract** (INSERTED 2026-10-15) - Mutation `deleteCharacter` sull'identità autenticata: soft delete del personaggio corrente, unlink atomico di `User.currentCharacter`, nome liberato, codici stabili; sblocca FE Phase 4 (SET-05) (completed 2026-10-16)
-- [ ] **Phase 4: Integrità Economica (Atomics)** - Operazioni atomiche su coins/twitchPoints/quest/equip/spell (no read-modify-write, no stato parziale)
+- [x] **Phase 4: Integrità Economica (Atomics)** - Operazioni atomiche su coins/twitchPoints/quest/equip/spell (no read-modify-write, no stato parziale) (completed 2026-10-18)
 - [ ] **Phase 5: Infrastruttura Push FCM** - Registro token per-device, servizio push domain-agnostic, pruning token stale
 - [ ] **Phase 6: EventSub: Punti Canale & Streamer Live** - Webhook Twitch EventSub, credito idempotente 1:1, push streamer-live
 - [ ] **Phase 7: Quest Lanes (QUEST-04)** - Corsie story/worldMission su schema + subscription, accettazione lane-aware, cost model server-side
@@ -156,9 +156,20 @@ Plans:
   3. Due accettazioni quest concorrenti sulla stessa corsia producono esattamente un successo e un solo debito (single-flight).
   4. Due equip/activeSpells concorrenti non superano mai `maxActiveSpells` (optimistic concurrency / update atomico).
   5. Due `useSpell` concorrenti su una spell con 1 usage lasciano gli usages a 0 con esattamente un successo; il recovery job è idempotente e non porta mai gli usages oltre il massimo.
-**Plans**: TBD
+**Plans**: 9 plans (5 wave; executor sequenziali sul working tree)
+
+Plans:
+- [x] 04-01-PLAN.md — Wave 1: fondamenta pure — `GameRuleErrorCode`/`GameRuleException` (15 codici D-15), `ResourceNotFoundException.quest()`, modulo `coins` + espressioni Mongo (`$toInt`/`$ifNull`), tabella condivisa `maxActiveSpells` (virtual + `$switch`), `objectIdFromHex`
+- [x] 04-02-PLAN.md — Wave 2: `WalletService` + `EconomyModule`, unico scrittore dei saldi (coins: `findOneAndUpdate` condizionale a pipeline; punti: `$inc` con guard), session-aware, test di concorrenza (BE-ATOM-01)
+- [x] 04-03-PLAN.md — Wave 2: builder ObjectId-typed e classificatori per le magie attive; `equipSpell`/`unequipSpell`/`equipItem` come singoli update condizionali, `usages` dal catalogo, 4 equip concorrenti → 1 successo (BE-ATOM-04)
+- [x] 04-04-PLAN.md — Wave 2: planner puro della transazione di negozio — `planTradeLines`, `priceTrade` dal catalogo, `assertClientTotalMatches`, `applyTradeToInventory`, guard sulle quantità vendute (BE-ATOM-02)
+- [x] 04-05-PLAN.md — Wave 3: `useSpell` (catalogo → `$inc -1` condizionato → Bull dopo la scrittura con `randomUUID()`, compensazione + `SPELL_RECOVERY_UNAVAILABLE`), recovery con cap `maxUsages` idempotente (BE-ATOM-05)
+- [x] 04-06-PLAN.md — Wave 3: fixture catalogo con prezzi, `CatalogPricesReader`, `ShopTransactionService` in transazione (inventario con quantità riaffermate → wallet in sessione), fallimento indotto → documento intatto (BE-ATOM-01/02)
+- [x] 04-07-PLAN.md — Wave 3: `QuestAcceptanceService.accept(characterId, questId, costCopper)` single-flight in transazione (claim slot → insert `PendingQuest` → debito), 3 accept concorrenti → 1 solo, montato in `AppModule` senza GraphQL (BE-ATOM-03)
+- [x] 04-08-PLAN.md — Wave 4: `doTransaction` sul wire delegato a `ShopTransactionService`, `EconomyModule` in `CharactersModule` e nell'harness, fixture a totale zero, rimozione di `normalizeCoins`/`src/utils.ts` e di ogni `save()` residuo (BE-ATOM-02)
+- [x] 04-09-PLAN.md — Wave 5: gate trasversale (suite completa, build, eslint/prettier sui file toccati, schema senza diff, grep "mai read-modify-write"), `BACKEND-NOTES.md` per il FE, traceability BE-ATOM-01..05 (tutti)
 **Unblocks (FE)**: nessuna fase FE diretta; prerequisito interno per Phase 6 (credito EventSub), Phase 7 (accept atomico) e Phase 8 (teleport/clear atomico). Supporta FE QUEST-06.
-**Branch**: `feat/04-atomic-operations` da `develop` → PR a `develop`.
+**Branch**: `feat/04-integrita-economica-atomics` da `develop` → PR a `develop` (template `feat/{phase}-{slug}`; in origine `feat/04-atomic-operations`).
 
 ### Phase 5: Infrastruttura Push FCM
 **Goal**: Esiste un'infrastruttura push FCM domain-agnostic: registro token per-device, servizio di invio condiviso, pruning dei token stale; il push è un side-channel non autoritativo.
@@ -267,7 +278,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 2. Auth & Identity Foundation | 9/9 | Complete    | 2026-10-06 |
 | 3. Autorizzazione: Ownership, Ruoli, Audit | 10/10 | Complete    | 2026-10-14 |
 | 3.1. Character Deletion Contract | 6/6 | Complete | 2026-10-16 |
-| 4. Integrità Economica (Atomics) | 0/TBD | Not started | - |
+| 4. Integrità Economica (Atomics) | 9/9 | Complete | 2026-10-18 |
 | 5. Infrastruttura Push FCM | 0/TBD | Not started | - |
 | 6. EventSub: Punti Canale & Streamer Live | 0/TBD | Not started | - |
 | 7. Quest Lanes (QUEST-04) | 0/TBD | Not started | - |

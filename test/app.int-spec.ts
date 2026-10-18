@@ -12,7 +12,9 @@ import type { AuthConfig } from 'src/config/auth-config';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import { OWNERSHIP_KEY } from 'src/authz/ownership/ownership.decorators';
 import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
+import { WalletService } from 'src/economy/wallet.service';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
+import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
 import { startRedis, stopRedis } from './setup/redis';
 
 const BOOT_TIMEOUT_MS = 60_000;
@@ -252,6 +254,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toContain('input UserInput');
         expect(schema).not.toContain('AdminAuditLog');
         expect(schema).not.toContain('adminProbe');
+    });
+
+    it('boots the quest acceptance primitive without a GraphQL surface', () => {
+        expect(app.get(QuestAcceptanceService)).toBeInstanceOf(
+            QuestAcceptanceService,
+        );
+        expect(app.get(WalletService)).toBeInstanceOf(WalletService);
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+        expect(schema).not.toMatch(
+            /acceptQuest|QuestAcceptance|twitchPointsDebit|INSUFFICIENT_FUNDS/,
+        );
     });
 
     describe('global auth guard', () => {

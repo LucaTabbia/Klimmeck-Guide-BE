@@ -38,7 +38,10 @@ interface RawCharacter {
 
 describe('SpellRecoveryProcessor on archived characters (replSet)', () => {
     let warnSpy: jest.SpyInstance;
-    const processor = new SpellRecoveryProcessor(CharacterModel as never);
+    const processor = new SpellRecoveryProcessor(
+        CharacterModel as never,
+        SpellModel as never,
+    );
 
     beforeEach(() => {
         warnSpy = jest

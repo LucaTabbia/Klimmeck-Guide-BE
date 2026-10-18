@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BullModule } from '@nestjs/bull';
 import { AuthzModule } from 'src/authz/authz.module';
+import { EconomyModule } from 'src/economy/economy.module';
 import {
     Character,
     CharacterSchema,
@@ -21,6 +22,7 @@ import { SpellRecoveryProcessor } from './spell-recovery.processor';
             name: 'spell-recovery',
         }),
         AuthzModule,
+        EconomyModule,
     ],
     providers: [CharactersService, CharactersResolver, SpellRecoveryProcessor],
     exports: [CharactersService],

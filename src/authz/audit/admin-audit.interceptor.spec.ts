@@ -191,7 +191,7 @@ describe('AdminAuditInterceptor', () => {
     });
 
     it('rethrows the same error instance and records its code', async () => {
-        const error = ResourceNotFoundException.activeSpell();
+        const error = ResourceNotFoundException.spell();
         const context = graphqlContext(buildInfo(), 'adminMutation');
 
         const thrown = await rejectionOf(
@@ -259,7 +259,7 @@ describe('AdminAuditInterceptor', () => {
 
 describe('outcomeCodeOf', () => {
     it('reads the code from the error extensions', () => {
-        expect(outcomeCodeOf(ResourceNotFoundException.activeSpell())).toBe(
+        expect(outcomeCodeOf(ResourceNotFoundException.spell())).toBe(
             'NOT_FOUND',
         );
     });

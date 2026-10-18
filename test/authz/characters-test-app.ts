@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthzModule } from 'src/authz/authz.module';
 import { CharactersResolver } from 'src/characters/characters.resolver';
 import { CharactersService } from 'src/characters/characters.service';
+import { EconomyModule } from 'src/economy/economy.module';
 import {
     Character,
     CharacterSchema,
@@ -37,6 +38,7 @@ export async function createCharactersTestApp(
                 { name: LootItem.name, schema: LootItemSchema },
                 { name: PointOfInterest.name, schema: PointOfInterestSchema },
             ]),
+            EconomyModule,
             AuthzModule,
             ...(options.imports ?? []),
         ],

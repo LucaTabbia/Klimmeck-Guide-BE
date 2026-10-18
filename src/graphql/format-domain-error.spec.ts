@@ -7,6 +7,7 @@ import { GraphQLError, type GraphQLFormattedError } from 'graphql';
 import { AuthException } from 'src/auth/auth.exception';
 import { AuthorizationException } from 'src/authz/authorization.exception';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
+import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { formatDomainError } from 'src/graphql/format-domain-error';
 
 function buildFormatted(
@@ -204,6 +205,15 @@ describe('formatDomainError', () => {
         expect(result.extensions).toEqual({ code: 'NOT_FOUND' });
         expect(result.extensions).not.toHaveProperty('originalError');
         expect(result.extensions).not.toHaveProperty('status');
+    });
+
+    it('restores the code of a wrapped GameRuleException and strips internals', () => {
+        const result = formatDomainError(
+            buildFormatted(),
+            wrapAsResolverError(GameRuleException.insufficientFunds()),
+        );
+
+        expect(result.extensions).toEqual({ code: 'INSUFFICIENT_FUNDS' });
     });
 
     it('keeps the body fallback limited to auth error codes', () => {

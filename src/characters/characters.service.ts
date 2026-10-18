@@ -4,8 +4,8 @@ import {
     OnModuleDestroy,
     Logger,
     Inject,
-    BadRequestException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { InjectModel } from '@nestjs/mongoose';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
@@ -21,15 +21,8 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { Equipment } from 'src/models/common/equipment.model';
-import {
-    AssetQuantity,
-    AssetQuantityInput,
-    ItemReferenceType,
-} from 'src/models/common/asset-quantity.model';
 import { CommonResponse } from 'src/models/common/common-response.model';
-import { normalizeCoins } from 'src/utils';
 import { EquipmentItem } from 'src/models/equipment-item.model';
-import { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
@@ -37,8 +30,38 @@ import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { ActiveSpell } from 'src/models/common/active-spell.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
+import { GameRuleException } from 'src/gameRules/game-rule.exception';
+import { objectIdFromHex } from 'src/mongo/document-id';
 import { CHARACTER_CHANGES_PIPELINE } from './character-changes.pipeline';
+import { requireCharacterObjectId } from './character-id';
+import {
+    classifyEquipItemFailure,
+    equipItemFilter,
+    equipItemUpdate,
+} from './equipment/equip-item.updates';
+import {
+    ACTIVE_SPELL_SNAPSHOT_PROJECTION,
+    ActiveSpellSnapshot,
+    classifyEquipSpellFailure,
+    classifyUnequipSpellFailure,
+    classifyUseSpellFailure,
+    DECREMENT_ACTIVE_SPELL_USAGE,
+    equipSpellFilter,
+    equipSpellUpdate,
+    INCREMENT_ACTIVE_SPELL_USAGE,
+    recoverSpellFilter,
+    unequipSpellFilter,
+    unequipSpellUpdate,
+    useSpellFilter,
+} from './spells/active-spell.updates';
 import { SpellRecoveryJobData } from './spell-recovery.processor';
+
+const SPELL_FAILURE_CLASSIFICATION_READS = 2;
+
+interface SpellRecoveryRule {
+    maxUsages: number;
+    recoveryTime: number;
+}
 
 @Injectable()
 export class CharactersService implements OnModuleInit, OnModuleDestroy {
@@ -179,89 +202,26 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
         return character.assets.wearedEquipment;
     }
 
-    async doTransaction(request: TransactionRequest): Promise<CommonResponse> {
-        const character = await this.characterModel
-            .findOne(activeCharacterById(request.id))
-            .exec();
-        if (!character) throw ResourceNotFoundException.character();
-
-        const coinSign = request.isTotalPositive ? 1 : -1;
-        character.status.coins.gold += coinSign * request.total.gold;
-        character.status.coins.silver += coinSign * request.total.silver;
-        character.status.coins.copper += coinSign * request.total.copper;
-
-        normalizeCoins(character.status.coins);
-        character.markModified('status.coins');
-
-        const updateAssets = (
-            targetArray: AssetQuantity[],
-            items: AssetQuantityInput[],
-            isAdding: boolean,
-            itemType: ItemReferenceType,
-        ) => {
-            for (const item of items) {
-                const existing = targetArray.find(
-                    (a) => a.item.toString() === item.item,
-                );
-                if (existing) {
-                    existing.quantity += isAdding
-                        ? item.quantity
-                        : -item.quantity;
-                    if (existing.quantity <= 0) {
-                        const index = targetArray.indexOf(existing);
-                        targetArray.splice(index, 1);
-                    }
-                } else if (isAdding) {
-                    targetArray.push({
-                        itemType,
-                        item: new Types.ObjectId(item.item!),
-                        quantity: item.quantity,
-                    } as unknown as AssetQuantity);
-                }
-            }
-        };
-
-        updateAssets(
-            character.assets.ownedItems,
-            request.boughtItems.lootAssets,
-            true,
-            'LootItem',
-        );
-        updateAssets(
-            character.assets.ownedEquipments,
-            request.boughtItems.equipAssets,
-            true,
-            'EquipmentItem',
-        );
-        updateAssets(
-            character.assets.ownedItems,
-            request.soldItems.lootAssets,
-            false,
-            'LootItem',
-        );
-        updateAssets(
-            character.assets.ownedEquipments,
-            request.soldItems.equipAssets,
-            false,
-            'EquipmentItem',
-        );
-
-        await character.save();
-        return {
-            response: 'Transazione avvenuta con successo',
-            successful: true,
-        };
-    }
-
     async equipItem(request: EquipItemRequest): Promise<CommonResponse> {
-        const character = await this.characterModel
-            .findOne(activeCharacterById(request.id))
+        const characterId = requireCharacterObjectId(request.id);
+        const itemId =
+            request.itemId == null ? null : objectIdFromHex(request.itemId);
+        if (request.itemId != null && !itemId)
+            throw GameRuleException.itemNotOwned();
+
+        const equipped = await this.characterModel
+            .updateOne(
+                equipItemFilter(characterId, itemId),
+                equipItemUpdate(request.slotType, itemId),
+            )
             .exec();
-        if (!character) throw ResourceNotFoundException.character();
-        const slot = request.slotType as keyof Equipment;
-        character.assets.wearedEquipment[slot] =
-            request.itemId != null ? new Types.ObjectId(request.itemId) : null;
-        await character.save();
+        if (equipped.matchedCount === 0) {
+            const characterExists =
+                (await this.characterModel
+                    .exists(activeCharacterById(characterId))
+                    .exec()) !== null;
+            throw classifyEquipItemFailure(characterExists);
+        }
         return {
             response: 'Equipaggiamento cambiato con successo',
             successful: true,
@@ -269,47 +229,30 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async equipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel
-            .findOne(activeCharacterById(request.id))
+        const characterId = requireCharacterObjectId(request.id);
+        const spellId = objectIdFromHex(request.spellId);
+        if (!spellId) throw GameRuleException.spellNotKnown();
+
+        // usages iniziali dal catalogo: il valore del client è ignorato (04 D-11)
+        const spell = await this.spellModel
+            .findById(spellId, { maxUsages: 1 })
+            .lean<{ maxUsages: number } | null>()
             .exec();
-        if (!character) {
-            throw ResourceNotFoundException.character();
-        }
+        if (!spell) throw ResourceNotFoundException.spell();
 
-        const knownSpellIds = character.status.spells.map((s) =>
-            s instanceof Types.ObjectId ? s.toString() : s.id?.toString(),
-        );
-        if (!knownSpellIds.includes(request.spellId)) {
-            throw new BadRequestException(
-                `Spell ${request.spellId} is not known by character ${request.id}`,
+        const equipped = await this.characterModel
+            .updateOne(
+                equipSpellFilter(characterId, spellId),
+                equipSpellUpdate(spellId, spell.maxUsages),
+            )
+            .exec();
+        if (equipped.matchedCount === 0) {
+            throw await this.classifySpellFailure(
+                characterId,
+                (snapshot) => classifyEquipSpellFailure(snapshot, spellId),
+                () => GameRuleException.maxActiveSpellsReached(),
             );
         }
-
-        const isAlreadyActive = character.assets.activeSpells.some(
-            (a) => a.spell?.toString() === request.spellId,
-        );
-        if (isAlreadyActive) {
-            throw new BadRequestException(
-                `Spell ${request.spellId} is already active`,
-            );
-        }
-
-        if (
-            character.status.maxActiveSpells <=
-            character.assets.activeSpells.length
-        ) {
-            throw new BadRequestException(
-                `Character ${request.id} has reached the maximum number of active spells`,
-            );
-        }
-
-        const usages = request.usages ?? 0;
-        character.assets.activeSpells = [
-            ...character.assets.activeSpells,
-            { spell: new Types.ObjectId(request.spellId), usages },
-        ];
-
-        await character.save();
         return {
             response: 'Magia equipaggiata con successo',
             successful: true,
@@ -317,82 +260,133 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async unequipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel
-            .findOne(activeCharacterById(request.id))
+        const characterId = requireCharacterObjectId(request.id);
+        const spellId = objectIdFromHex(request.spellId);
+        if (!spellId) throw GameRuleException.spellNotActive();
+
+        const unequipped = await this.characterModel
+            .updateOne(
+                unequipSpellFilter(characterId, spellId),
+                unequipSpellUpdate(spellId),
+            )
             .exec();
-        if (!character) {
-            throw ResourceNotFoundException.character();
+        if (unequipped.matchedCount === 0) {
+            throw classifyUnequipSpellFailure(
+                await this.readActiveSpellSnapshot(characterId),
+            );
         }
-
-        const activeSpellIndex = character.assets.activeSpells.findIndex(
-            (a) => a.spell?.toString() === request.spellId,
-        );
-        if (activeSpellIndex === -1) {
-            throw ResourceNotFoundException.activeSpell();
-        }
-
-        character.assets.activeSpells.splice(activeSpellIndex, 1);
-
-        await character.save();
         return {
             response: 'Magia disequipaggiata con successo',
             successful: true,
         };
     }
 
-    async useSpell(request: UseSpellRequest): Promise<CommonResponse> {
-        const character = await this.characterModel
-            .findOne(activeCharacterById(request.characterId))
+    // una seconda rilettura fresca se la prima non mostra guard violate; se lo stato cambia ancora vale il codice di fallback (04 D-10)
+    private async classifySpellFailure(
+        characterId: Types.ObjectId,
+        classify: (snapshot: ActiveSpellSnapshot | null) => Error | undefined,
+        fallback: () => Error,
+    ): Promise<Error> {
+        for (let read = 0; read < SPELL_FAILURE_CLASSIFICATION_READS; read++) {
+            const failure = classify(
+                await this.readActiveSpellSnapshot(characterId),
+            );
+            if (failure) return failure;
+        }
+        return fallback();
+    }
+
+    // rilettura leggera solo per scegliere il codice d'errore (04 D-10)
+    private readActiveSpellSnapshot(
+        characterId: Types.ObjectId,
+    ): Promise<ActiveSpellSnapshot | null> {
+        return this.characterModel
+            .findOne(
+                activeCharacterById(characterId),
+                ACTIVE_SPELL_SNAPSHOT_PROJECTION,
+            )
+            .lean<ActiveSpellSnapshot | null>()
             .exec();
-        if (!character) {
-            throw ResourceNotFoundException.character();
-        }
+    }
 
-        const activeSpell = character.assets.activeSpells.find(
-            (a) => a.spell?.toString() === request.spellId,
-        );
-        if (!activeSpell) {
-            throw new BadRequestException(
-                `Spell ${request.spellId} is not active for character ${request.characterId}`,
+    async useSpell(request: UseSpellRequest): Promise<CommonResponse> {
+        const characterId = requireCharacterObjectId(request.characterId);
+        const spellId = objectIdFromHex(request.spellId);
+        if (!spellId) throw GameRuleException.spellNotActive();
+
+        // la spell si valida prima di toccare gli usages (Phase 1 D-06)
+        const spell = await this.spellModel
+            .findById(spellId, { maxUsages: 1, recoveryTime: 1 })
+            .lean<SpellRecoveryRule | null>()
+            .exec();
+        if (!spell) throw ResourceNotFoundException.spell();
+
+        const used = await this.characterModel
+            .updateOne(
+                useSpellFilter(characterId, spellId),
+                DECREMENT_ACTIVE_SPELL_USAGE,
+            )
+            .exec();
+        if (used.matchedCount === 0) {
+            throw await this.classifySpellFailure(
+                characterId,
+                (snapshot) => classifyUseSpellFailure(snapshot, spellId),
+                () => GameRuleException.spellNoUsagesLeft(),
             );
         }
 
-        if (activeSpell.usages <= 0) {
-            throw new BadRequestException(
-                `Spell ${request.spellId} has no usages left`,
-            );
-        }
-
-        const spell = await this.spellModel.findById(request.spellId).exec();
-        if (!spell) {
-            throw ResourceNotFoundException.spell();
-        }
-
-        activeSpell.usages -= 1;
-        await character.save();
-
-        const jobId = `${request.characterId}-${request.spellId}-${Date.now()}`;
-        await this.spellRecoveryQueue.add(
-            'recover',
-            {
-                characterId: request.characterId,
-                spellId: request.spellId,
-            },
-            {
-                delay: spell.recoveryTime,
-                jobId,
-                removeOnComplete: true,
-                removeOnFail: false,
-            },
-        );
-
+        await this.scheduleRecovery(request, characterId, spellId, spell);
         this.logger.log(
             `Spell ${request.spellId} used by character ${request.characterId}. Recovery scheduled in ${spell.recoveryTime}ms`,
         );
-
         return {
             response: 'Magia utilizzata con successo',
             successful: true,
         };
+    }
+
+    // jobId univoco: Bull scarta in silenzio un add con jobId già esistente (04 Pitfall 5); se l'accodamento fallisce l'usage torna indietro (D-13)
+    private async scheduleRecovery(
+        request: UseSpellRequest,
+        characterId: Types.ObjectId,
+        spellId: Types.ObjectId,
+        spell: SpellRecoveryRule,
+    ): Promise<void> {
+        try {
+            await this.spellRecoveryQueue.add(
+                'recover',
+                { characterId: request.characterId, spellId: request.spellId },
+                {
+                    delay: spell.recoveryTime,
+                    jobId: `${request.characterId}-${request.spellId}-${randomUUID()}`,
+                    removeOnComplete: true,
+                    removeOnFail: false,
+                },
+            );
+        } catch {
+            await this.restoreUsage(characterId, spellId, spell.maxUsages);
+            throw GameRuleException.spellRecoveryUnavailable();
+        }
+    }
+
+    // stesso update idempotente del recovery: mai oltre maxUsages
+    private async restoreUsage(
+        characterId: Types.ObjectId,
+        spellId: Types.ObjectId,
+        maxUsages: number,
+    ): Promise<void> {
+        try {
+            await this.characterModel
+                .updateOne(
+                    recoverSpellFilter(characterId, spellId, maxUsages),
+                    INCREMENT_ACTIVE_SPELL_USAGE,
+                )
+                .exec();
+        } catch (error) {
+            this.logger.error(
+                `Compensazione dell'utilizzo fallita per il personaggio ${characterId.toHexString()} e la magia ${spellId.toHexString()}`,
+                error,
+            );
+        }
     }
 }

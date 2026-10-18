@@ -24,17 +24,15 @@ export class ResourceNotFoundException extends NotFoundException {
         return new ResourceNotFoundException('Missione in attesa non trovata');
     }
 
+    static quest(): ResourceNotFoundException {
+        return new ResourceNotFoundException('Missione non trovata');
+    }
+
     static user(): ResourceNotFoundException {
         return new ResourceNotFoundException('Utente non trovato');
     }
 
     static spell(): ResourceNotFoundException {
         return new ResourceNotFoundException('Magia non trovata');
-    }
-
-    static activeSpell(): ResourceNotFoundException {
-        return new ResourceNotFoundException(
-            'Magia non attiva per questo personaggio',
-        );
     }
 }
