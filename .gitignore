@@ -57,3 +57,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 #Chiave firebase
 firebase_key.json
+# Service account Firebase (Phase 5, D-17): mai in repo, si passa base64 in FIREBASE_SERVICE_ACCOUNT
+*service-account*.json
+*serviceAccount*.json
+*firebase-adminsdk*.json
