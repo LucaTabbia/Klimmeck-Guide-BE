@@ -615,6 +615,20 @@ describe('ShopTransactionService (replSet)', () => {
             ).rejects.toMatchObject({ code: 'NOT_FOUND' });
             expect(await raw(archived)).toEqual(before);
 
+            const transaction = jest.spyOn(connection, 'transaction');
+            for (const id of [new Types.ObjectId(), archived]) {
+                await expect(
+                    shop.execute(
+                        trade({
+                            id,
+                            total: coins(0, 0, 0),
+                            isTotalPositive: false,
+                        }),
+                    ),
+                ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+            }
+            expect(transaction).not.toHaveBeenCalled();
+
             await expect(
                 shop.execute(
                     trade({
