@@ -42,6 +42,11 @@ import { objectIdFromHex } from 'src/mongo/document-id';
 import { CHARACTER_CHANGES_PIPELINE } from './character-changes.pipeline';
 import { requireCharacterObjectId } from './character-id';
 import {
+    classifyEquipItemFailure,
+    equipItemFilter,
+    equipItemUpdate,
+} from './equipment/equip-item.updates';
+import {
     ACTIVE_SPELL_SNAPSHOT_PROJECTION,
     ActiveSpellSnapshot,
     classifyEquipSpellFailure,
@@ -267,14 +272,25 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
     }
 
     async equipItem(request: EquipItemRequest): Promise<CommonResponse> {
-        const character = await this.characterModel
-            .findOne(activeCharacterById(request.id))
+        const characterId = requireCharacterObjectId(request.id);
+        const itemId =
+            request.itemId == null ? null : objectIdFromHex(request.itemId);
+        if (request.itemId != null && !itemId)
+            throw GameRuleException.itemNotOwned();
+
+        const equipped = await this.characterModel
+            .updateOne(
+                equipItemFilter(characterId, itemId),
+                equipItemUpdate(request.slotType, itemId),
+            )
             .exec();
-        if (!character) throw ResourceNotFoundException.character();
-        const slot = request.slotType as keyof Equipment;
-        character.assets.wearedEquipment[slot] =
-            request.itemId != null ? new Types.ObjectId(request.itemId) : null;
-        await character.save();
+        if (equipped.matchedCount === 0) {
+            const characterExists =
+                (await this.characterModel
+                    .exists(activeCharacterById(characterId))
+                    .exec()) !== null;
+            throw classifyEquipItemFailure(characterExists);
+        }
         return {
             response: 'Equipaggiamento cambiato con successo',
             successful: true,

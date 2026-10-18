@@ -35,10 +35,4 @@ export class ResourceNotFoundException extends NotFoundException {
     static spell(): ResourceNotFoundException {
         return new ResourceNotFoundException('Magia non trovata');
     }
-
-    static activeSpell(): ResourceNotFoundException {
-        return new ResourceNotFoundException(
-            'Magia non attiva per questo personaggio',
-        );
-    }
 }
