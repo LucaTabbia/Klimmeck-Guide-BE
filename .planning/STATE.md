@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 04-08-PLAN.md
-last_updated: "2026-10-18T15:47:20.834Z"
+status: verifying
+stopped_at: Completed 04-09-PLAN.md
+last_updated: "2026-10-18T15:54:51.228Z"
 last_activity: 2026-10-18
 progress:
   total_phases: 12
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 48
-  completed_plans: 47
-  percent: 98
+  completed_plans: 48
+  percent: 100
 ---
 
 # Project State
@@ -25,18 +25,18 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 4 (Integrità Economica (Atomics)) — EXECUTING
+Phase: 4 (Integrità Economica (Atomics)) — VERIFYING
 Plan: 9 of 9
-Status: Ready to execute
-Last activity: 2026-10-18 -- Completed 04-08-PLAN.md
+Status: Phase complete — ready for verification
+Last activity: 2026-10-18 -- Completed 04-09-PLAN.md (phase gate green, BACKEND-NOTES published)
 
-Progress: [██████████] 98%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 47
+- Total plans completed: 48
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -87,6 +87,7 @@ Progress: [██████████] 98%
 | Phase 04 P06 | 15 min | 2 tasks | 8 files |
 | Phase 04 P07 | 12 min | 2 tasks | 5 files |
 | Phase 04 P08 | 12 min | 2 tasks | 9 files |
+| Phase 04 P09 | 6 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -146,6 +147,7 @@ Recent decisions affecting current work:
 - [Phase 04]: ShopTransactionService: catalogo e controlli puri fuori dalla transazione, inventario con soldQuantityGuards + delta coins via WalletService nella stessa session (Pattern 3)
 - [Phase 04]: 04-07: accettazione quest single-flight in transazione (claim slot pendingQuest null → insert PendingQuest → debito wallet), waitingTime = timeToComplete ?? 0 (A1), nessuna superficie GraphQL (D-09)
 - [Phase 04]: 04-08: doTransaction delega a ShopTransactionService; fixture ownership/archived a scambio vuoto totale zero (A2)
+- [Phase 04]: Phase 4 gate verde (unit 54/625, int 41/472, build, lint 58 file, schema diff 0); BACKEND-NOTES consegnato, BE-ATOM-01..05 Complete
 
 ### Pending Todos
 
@@ -167,6 +169,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-18T15:47:20.830Z
-Stopped at: Completed 04-08-PLAN.md
+Last session: 2026-10-18T15:54:51.224Z
+Stopped at: Completed 04-09-PLAN.md
 Resume file: None
