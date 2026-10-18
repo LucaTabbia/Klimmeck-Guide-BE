@@ -8,6 +8,7 @@ import { filter, pipe } from '@graphql-yoga/subscription';
 import type { PubSub } from '@graphql-yoga/subscription';
 import type { AuthIdentity } from 'src/auth/auth-identity';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { ShopTransactionService } from 'src/economy/trade/shop-transaction.service';
 import { CharacterAccessPolicy } from 'src/authz/ownership/character-access.policy';
 import { OwnsCharacter } from 'src/authz/ownership/ownership.decorators';
 import { Roles } from 'src/authz/roles/roles.decorator';
@@ -25,6 +26,7 @@ export class CharactersResolver {
     constructor(
         private readonly charactersService: CharactersService,
         private readonly characterAccess: CharacterAccessPolicy,
+        private readonly shopTransactions: ShopTransactionService,
         @Inject(PUB_SUB) private readonly pubSub: PubSub<PubSubEvents>,
     ) {}
 
@@ -52,7 +54,8 @@ export class CharactersResolver {
         @Args('request', { type: () => TransactionRequest })
         request: TransactionRequest,
     ): Promise<CommonResponse> {
-        return this.charactersService.doTransaction(request);
+        // prezzi dal catalogo e unica transazione (04 D-06/D-07): il resolver resta l'unico punto di ownership
+        return this.shopTransactions.execute(request);
     }
 
     @OwnsCharacter<{ request: EquipItemRequest }>(({ request }) => request.id)
