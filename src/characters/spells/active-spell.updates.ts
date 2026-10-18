@@ -3,6 +3,7 @@ import { ResourceNotFoundException } from 'src/authz/resource-not-found.exceptio
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import { maxActiveSpellsExpression } from 'src/models/character/active-spell-slots';
+import { sameId } from 'src/mongo/document-id';
 
 // il filtro è la regola (04 D-10): conosciuta, non già attiva, capacità valutata sul documento vivo nello stesso update
 export function equipSpellFilter(
@@ -84,14 +85,6 @@ export const ACTIVE_SPELL_SNAPSHOT_PROJECTION = {
 export interface ActiveSpellSnapshot {
     status?: { spells?: unknown[] };
     assets?: { activeSpells?: { spell?: unknown; usages?: number }[] };
-}
-
-// i dati legacy possono avere id stringa: il confronto per esadecimale copre entrambe le forme
-function sameId(value: unknown, id: Types.ObjectId): boolean {
-    return (
-        value != null &&
-        (value as { toString(): string }).toString() === id.toHexString()
-    );
 }
 
 function isKnown(snapshot: ActiveSpellSnapshot, spellId: Types.ObjectId) {

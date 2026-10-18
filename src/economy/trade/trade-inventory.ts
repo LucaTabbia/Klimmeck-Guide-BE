@@ -1,5 +1,5 @@
-import type { Types } from 'mongoose';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
+import { sameId } from 'src/mongo/document-id';
 import {
     INVENTORY_FIELD,
     type TradeItemKind,
@@ -20,14 +20,6 @@ export interface InventorySnapshot {
 export interface InventoryOutcome {
     ownedItems: InventoryEntry[];
     ownedEquipments: InventoryEntry[];
-}
-
-// le voci legacy possono avere l'id salvato come stringa (04 Pitfall 1)
-function sameId(value: unknown, id: Types.ObjectId): boolean {
-    return (
-        value != null &&
-        (value as { toString(): string }).toString() === id.toHexString()
-    );
 }
 
 const copyEntries = (entries: InventoryEntry[] | undefined) =>

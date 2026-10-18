@@ -23,3 +23,11 @@ export function objectIdFromHex(
         ? new Types.ObjectId(value)
         : null;
 }
+
+// le voci legacy possono avere l'id salvato come stringa (04 Pitfall 1): il confronto per esadecimale copre entrambe le forme
+export function sameId(value: unknown, id: Types.ObjectId): boolean {
+    return (
+        value != null &&
+        (value as { toString(): string }).toString() === id.toHexString()
+    );
+}
