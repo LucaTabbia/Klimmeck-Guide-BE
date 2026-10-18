@@ -35,16 +35,18 @@ function sell(entries: InventoryEntry[], index: number, line: TradeLine) {
     if (entry.quantity === 0) entries.splice(index, 1);
 }
 
+// AssetQuantity.quantity è un Int GraphQL: oltre questo limite il personaggio non si serializza più
+export const MAX_ITEM_QUANTITY = 2_147_483_647;
+
 function buy(entries: InventoryEntry[], index: number, line: TradeLine) {
+    const quantity =
+        (index === -1 ? 0 : entries[index].quantity) + line.quantity;
+    if (quantity > MAX_ITEM_QUANTITY) throw GameRuleException.invalidQuantity();
     if (index === -1) {
-        entries.push({
-            itemType: line.kind,
-            item: line.itemId,
-            quantity: line.quantity,
-        });
+        entries.push({ itemType: line.kind, item: line.itemId, quantity });
         return;
     }
-    entries[index].quantity += line.quantity;
+    entries[index].quantity = quantity;
 }
 
 // stato finale calcolato prima della scrittura (04 D-07); le voci a zero spariscono, gli acquisti incrementano o si aggiungono (D-08)
