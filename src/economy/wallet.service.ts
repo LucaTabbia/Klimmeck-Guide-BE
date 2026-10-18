@@ -63,4 +63,20 @@ export class WalletService {
             ? GameRuleException.insufficientFunds()
             : ResourceNotFoundException.character();
     }
+
+    debitUserPoints(
+        _userId: Types.ObjectId,
+        _amount: number,
+        _session?: ClientSession,
+    ): Promise<number> {
+        throw new Error('debitUserPoints: not implemented');
+    }
+
+    creditUserPoints(
+        _userId: Types.ObjectId,
+        _amount: number,
+        _session?: ClientSession,
+    ): Promise<number> {
+        throw new Error('creditUserPoints: not implemented');
+    }
 }
