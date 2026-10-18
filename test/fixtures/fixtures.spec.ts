@@ -7,6 +7,8 @@ import {
     buildPoi,
     buildCharacter,
     buildQuest,
+    buildEquipmentItem,
+    buildLootItem,
 } from './index';
 
 /**
@@ -97,6 +99,34 @@ describe('fixtures builders', () => {
 
         it('applies overrides', () => {
             expect(buildCity({ type: 'elfCapital' }).type).toBe('elfCapital');
+        });
+    });
+    describe('buildEquipmentItem', () => {
+        it('sets prices and valid enums', () => {
+            const sword = buildEquipmentItem();
+            expect(sword.buyPrice).toEqual({ gold: 0, silver: 1, copper: 50 });
+            expect(sword.sellPrice).toEqual({ gold: 0, silver: 0, copper: 75 });
+            expect(sword.equipType).toBe('weapon');
+            expect(sword.rarity).toBe('common');
+            expect(sword.damages).toEqual({ base: [], energy: [] });
+        });
+
+        it('applies overrides', () => {
+            expect(buildEquipmentItem({ buyPrice: null }).buyPrice).toBeNull();
+        });
+    });
+
+    describe('buildLootItem', () => {
+        it('sets prices and valid enums', () => {
+            const potion = buildLootItem();
+            expect(potion.buyPrice).toEqual({ gold: 0, silver: 0, copper: 20 });
+            expect(potion.sellPrice).toEqual({
+                gold: 0,
+                silver: 0,
+                copper: 10,
+            });
+            expect(potion.effect).toBe('heal');
+            expect(potion.power).toBe(1);
         });
     });
 });
