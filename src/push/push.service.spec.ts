@@ -200,6 +200,34 @@ describe('PushService', () => {
             expect(error).toHaveBeenCalledTimes(1);
         });
 
+        it('keeps the delivery report when pruning fails', async () => {
+            registry.seed(ALICE_ID, 't1', 't2');
+            transport.failToken(
+                't2',
+                'messaging/registration-token-not-registered',
+            );
+            registry.removeTokens.mockRejectedValueOnce(
+                new Error('mongo down t2'),
+            );
+
+            const report = await service.sendToUser(ALICE, travelEnd('c1'));
+
+            expect(report).toEqual({
+                targeted: 2,
+                sent: 1,
+                pruned: 0,
+                failed: 1,
+            });
+            const warnings = loggedLines(warn);
+            expect(warnings).toEqual([
+                expect.stringContaining('pruning failed'),
+            ]);
+            expect(warnings.some((line) => line.includes('not sent'))).toBe(
+                false,
+            );
+            expect(warnings.some((line) => line.includes('t2'))).toBe(false);
+        });
+
         it('keeps tokens that failed transiently and warns with the codes', async () => {
             registry.seed(ALICE_ID, 't1', 't2');
             transport.failToken('t1', 'messaging/server-unavailable');
