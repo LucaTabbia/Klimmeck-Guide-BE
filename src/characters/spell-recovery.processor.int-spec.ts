@@ -58,6 +58,14 @@ describe('SpellRecoveryProcessor (integration — real Redis + replSet)', () => 
         );
     }, 120000);
 
+    // documents written through the Nest connection escape the global after-env cleanup
+    afterEach(async () => {
+        await Promise.all([
+            characterModel.deleteMany({}),
+            spellModel.deleteMany({}),
+        ]);
+    });
+
     afterAll(async () => {
         if (queue) {
             await queue.empty();
