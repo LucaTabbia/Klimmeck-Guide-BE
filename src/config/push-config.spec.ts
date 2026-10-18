@@ -147,7 +147,7 @@ describe('parsePushConfig', () => {
         const message = expectRejected(
             encode({
                 ...validAccount,
-                private_key: `-----BEGIN PRIVATE KEY-----\n${LEAK_MARKER}\n-----END PRIVATE KEY-----\n`,
+                private_key: `-----BEGIN PRIVATE KEY-----\nSECRETKEYMATERIAL\n-----END PRIVATE KEY-----\n`,
             }),
             'FIREBASE_SERVICE_ACCOUNT private_key is not a valid PEM private key',
         );
