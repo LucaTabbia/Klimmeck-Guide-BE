@@ -158,7 +158,7 @@ Plans:
   5. Due `useSpell` concorrenti su una spell con 1 usage lasciano gli usages a 0 con esattamente un successo; il recovery job è idempotente e non porta mai gli usages oltre il massimo.
 **Plans**: TBD
 **Unblocks (FE)**: nessuna fase FE diretta; prerequisito interno per Phase 6 (credito EventSub), Phase 7 (accept atomico) e Phase 8 (teleport/clear atomico). Supporta FE QUEST-06.
-**Branch**: `feat/04-atomic-operations` da `develop` → PR a `develop`.
+**Branch**: `feat/04-integrita-economica-atomics` da `develop` → PR a `develop` (template `feat/{phase}-{slug}`; in origine `feat/04-atomic-operations`).
 
 ### Phase 5: Infrastruttura Push FCM
 **Goal**: Esiste un'infrastruttura push FCM domain-agnostic: registro token per-device, servizio di invio condiviso, pruning dei token stale; il push è un side-channel non autoritativo.
