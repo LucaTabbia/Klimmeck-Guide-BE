@@ -197,7 +197,7 @@ Plans:
 **Plans**: TBD
 **Unblocks (FE)**: sync punti live (FE SYNC-01/07) e push streamer-live (FE NOTIF-04).
 **Research flag**: Twitch Helix subscription lifecycle (app access token, expiry/revocation) — approfondire in planning.
-**Branch**: `feat/06-eventsub-points` da `develop` → PR a `develop`.
+**Branch**: `feat/06-eventsub-punti-canale-streamer-live` da `develop` → PR a `develop` (template `feat/{phase}-{slug}`; in origine `feat/06-eventsub-points`, allineato nel discuss del 2026-10-19).
 
 ### Phase 7: Quest Lanes (QUEST-04)
 **Goal**: Corsie quest parallele — active story/worldMission quest sul Character esposte su schema + subscription, accettazione lane-aware, cost model server-side, countdown pending con timestamp server-side.
