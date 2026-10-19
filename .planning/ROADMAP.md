@@ -280,7 +280,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3.1. Character Deletion Contract | 6/6 | Complete | 2026-10-16 |
 | 4. Integrità Economica (Atomics) | 9/9 | Complete | 2026-10-18 |
 | 5. Infrastruttura Push FCM | 8/8 | Complete    | 2026-10-18 |
-| 6. EventSub: Punti Canale & Streamer Live | 3/9 | In Progress | - |
+| 6. EventSub: Punti Canale & Streamer Live | 4/9 | In Progress | - |
 | 7. Quest Lanes (QUEST-04) | 0/TBD | Not started | - |
 | 8. Travel Lifecycle (TRAVEL-01) | 0/TBD | Not started | - |
 | 9. Combat Result & Admin Outcomes | 0/TBD | Not started | - |
