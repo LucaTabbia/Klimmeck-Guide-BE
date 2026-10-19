@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 6 context gathered
-last_updated: "2026-10-19T10:00:00.000Z"
-last_activity: "2026-10-19 -- Phase 6 context gathered (interactive discuss, 20 decisions); branch feat/06-eventsub-punti-canale-streamer-live; next /gsd-plan-phase 6"
+status: executing
+stopped_at: Phase 6 context gathered (2026-10-19)
+last_updated: "2026-10-19T18:11:44.889Z"
+last_activity: 2026-10-19 -- Phase 6 execution started
 progress:
   total_phases: 12
   completed_phases: 7
-  total_plans: 56
+  total_plans: 65
   completed_plans: 56
-  percent: 100
+  percent: 86
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 6 — EventSub: Punti Canale & Streamer Live (context gathered 2026-10-19, ready to plan); Phase 5 merged in PR #8 on 2026-10-18
+**Current focus:** Phase 6 — EventSub: Punti Canale & Streamer Live (executing since 2026-10-19, plan 0 of 9); Phase 5 merged in PR #8 on 2026-10-18
 
 ## Current Position
 
-Phase: 6 (eventsub-punti-canale-streamer-live) — CONTEXT GATHERED 2026-10-19 (interactive discuss, D-01..D-20), branch feat/06-eventsub-punti-canale-streamer-live off develop @ 0828719 (PR #8 merged)
-Plan: 0 of TBD
-Status: Phase 6 context gathered — ready to plan (webhook sincrono in transazione, tutte le custom reward 1:1, viewer senza account ignorati, scope da env TWITCH_LOGIN_SCOPES, config obbligatoria in produzione, reconcile boot + orario, ledger 7 giorni, push su ogni stream.online); next /gsd-plan-phase 6
-Last activity: 2026-10-19 -- Phase 6 discuss closed interactively: 06-CONTEXT.md + 06-DISCUSSION-LOG.md; ROADMAP branch line aligned to the template
+Phase: 6 (eventsub-punti-canale-streamer-live) — EXECUTING since 2026-10-19 (9 plans, 8 sequential waves; branch feat/06-eventsub-punti-canale-streamer-live off develop @ 0828719; plans checked in 2 rounds)
+Plan: 1 of 9
+Status: Executing Phase 6
+Last activity: 2026-10-19 -- Phase 6 execution started
 
 Progress: [██████████] 100% (phases 1–5 complete; Phase 6 planning)
 
