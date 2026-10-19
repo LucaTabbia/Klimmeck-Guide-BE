@@ -18,13 +18,10 @@ function jsonResponse(status: number, body: unknown): Response {
     });
 }
 
-function tokenResponse(
-    accessToken: string,
-    expiresIn: unknown = EXPIRES_IN_SECONDS,
-): Response {
+function tokenResponse(accessToken: string): Response {
     return jsonResponse(200, {
         access_token: accessToken,
-        expires_in: expiresIn,
+        expires_in: EXPIRES_IN_SECONDS,
         token_type: 'bearer',
     });
 }
@@ -139,15 +136,25 @@ describe('TwitchAppTokenCache', () => {
         expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
 
-    it.each([
-        ['missing', undefined],
-        ['zero', 0],
+    it.each<[string, Record<string, unknown>]>([
+        ['missing', {}],
+        ['zero', { expires_in: 0 }],
     ])(
         'does not reuse a token whose expires_in is %s',
-        async (_label, expiresIn) => {
+        async (_label, expiry) => {
             fetchSpy
-                .mockResolvedValueOnce(tokenResponse('app-token-1', expiresIn))
-                .mockResolvedValueOnce(tokenResponse('app-token-2', expiresIn));
+                .mockResolvedValueOnce(
+                    jsonResponse(200, {
+                        access_token: 'app-token-1',
+                        ...expiry,
+                    }),
+                )
+                .mockResolvedValueOnce(
+                    jsonResponse(200, {
+                        access_token: 'app-token-2',
+                        ...expiry,
+                    }),
+                );
             const cache = buildCache();
 
             await expect(cache.getToken()).resolves.toBe('app-token-1');
