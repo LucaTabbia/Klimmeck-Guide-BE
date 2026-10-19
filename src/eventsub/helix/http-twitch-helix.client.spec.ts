@@ -79,7 +79,8 @@ describe('HttpTwitchHelixClient', () => {
         fetchSpy = jest
             .spyOn(global, 'fetch')
             .mockImplementation((input: string | URL | Request) => {
-                const url = String(input);
+                const url =
+                    input instanceof Request ? input.url : input.toString();
                 if (url === TOKEN_URL) {
                     tokenRequests += 1;
                     return Promise.resolve(
