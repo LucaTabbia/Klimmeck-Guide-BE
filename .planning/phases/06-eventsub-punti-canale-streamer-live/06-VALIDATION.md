@@ -3,7 +3,7 @@ phase: 6
 slug: eventsub-punti-canale-streamer-live
 status: approved
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-10-19
 ---
 
@@ -62,8 +62,8 @@ Trappole di tooling (vincolanti, D-18 / RESEARCH Pitfall 17): path jest PRIMA di
 | 06-07-T2 | 06-07 | 6 | BE-POINTS-02/03 SC2/SC3/SC4 (D-07, D-15, C7) | T-06-38 | credito una volta (riconsegna, 5 concorrenti, stesso event.id), push una volta, revocation → delete+create | integration | `npx jest src/eventsub --selectProjects integration --runInBand && npm run test:unit` | ❌ → creato nel task (prova di integrazione su unit già RED) | ✅ green |
 | 06-08-T1 | 06-08 | 7 | BE-POINTS-01..03 (D-01, D-12, D-16, D-17) | T-06-39..T-06-42 | whitelist @Public a 6 voci, disabled con WARN `EventSub disabled` e senza fetch Twitch, 403, schema invariato | integration (real boot) | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` (RED atteso) | ✅ estende test/app.int-spec.ts | ✅ green |
 | 06-08-T2 | 06-08 | 7 | BE-POINTS-01..03 | T-06-42 | suite completa verde col modulo montato | full suite | `npm run test:unit && npm run test:int && npm run build && git diff --exit-code src/schema.gql` | ✅ | ✅ green |
-| 06-09-T1 | 06-09 | 8 | BE-POINTS-01..03 (D-17, D-18) | T-06-43, T-06-44 | gate completo + invarianti (un solo @Public, nessun push atteso, nessun $inc, nessuna dipendenza nuova) | full suite + grep | `npm run test:unit && npm run test:int && npm run build && git diff --exit-code src/schema.gql` + lint filtrato = 0 righe | ✅ | ⬜ pending |
-| 06-09-T2 | 06-09 | 8 | BE-POINTS-01..03 (D-19) | T-06-45, T-06-46, T-06-48 | handoff verificato contro il codice; nessun secret nei documenti; traceability Complete | doc grep | `grep -q "POST /webhooks/twitch/eventsub" .planning/phases/06-eventsub-punti-canale-streamer-live/BACKEND-NOTES.md && grep -c '\| BE-POINTS-0[1-3] \| Phase 6 \| Complete \|' .planning/REQUIREMENTS.md` | ❌ → creati nel task | ⬜ pending |
+| 06-09-T1 | 06-09 | 8 | BE-POINTS-01..03 (D-17, D-18) | T-06-43, T-06-44 | gate completo + invarianti (un solo @Public, nessun push atteso, nessun $inc, nessuna dipendenza nuova) | full suite + grep | `npm run test:unit && npm run test:int && npm run build && git diff --exit-code src/schema.gql` + lint filtrato = 0 righe | ✅ | ✅ green |
+| 06-09-T2 | 06-09 | 8 | BE-POINTS-01..03 (D-19) | T-06-45, T-06-46, T-06-48 | handoff verificato contro il codice; nessun secret nei documenti; traceability Complete | doc grep | `grep -q "POST /webhooks/twitch/eventsub" .planning/phases/06-eventsub-punti-canale-streamer-live/BACKEND-NOTES.md && grep -c '\| BE-POINTS-0[1-3] \| Phase 6 \| Complete \|' .planning/REQUIREMENTS.md` | ✅ creati nel task (traceability REQUIREMENTS dopo il verdetto di 06-09-T3) | ✅ green |
 | 06-09-T3 | 06-09 | 8 | BE-POINTS-01..03 (Twitch reale, C4) | T-06-47 | CLI locale, E2E reale, revoke dello streamer non scioglie l'autorizzazione | manual (checkpoint human-verify) | — (vedi Manual-Only) | n/a | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
@@ -74,8 +74,8 @@ Trappole di tooling (vincolanti, D-18 / RESEARCH Pitfall 17): path jest PRIMA di
 
 Le infrastrutture di test mancanti sono create dentro i task che le usano, sempre nel passo RED prima dell'implementazione:
 
-- [ ] `src/config/eventsub-config.spec.ts` (+ `src/config/url-rules.ts` estratto) → 06-01 Task 1
-- [ ] `test/app.int-spec.ts`: le quattro variabili nuove azzerate → 06-01 Task 3; whitelist RED con `'EventSubController.receive'`, spy su `fetch`, `createNestApplication({ rawBody: true })` → 06-08 Task 1
+- [x] `src/config/eventsub-config.spec.ts` (+ `src/config/url-rules.ts` estratto) → 06-01 Task 1
+- [x] `test/app.int-spec.ts`: le quattro variabili nuove azzerate → 06-01 Task 3; whitelist RED con `'EventSubController.receive'`, spy su `fetch`, `createNestApplication({ rawBody: true })` → 06-08 Task 1
 - [x] `test/eventsub/eventsub-fixtures.ts` (secret/id di test, `signEventSub`, `signedEventSubRequest`, body catturati dalla CLI) → 06-02 Task 1
 - [x] `test/eventsub/fake-twitch-helix.client.ts` + `test/eventsub/test-eventsub-config.ts` (`buildTestEventSubConfig`, `buildLocalEventSubConfig`, `TEST_CALLBACK_URL`) → 06-04 Task 1
 - [x] `test/auth/auth-test-app.ts`: `createNestApplication({ rawBody: true })` retrocompatibile + `test/eventsub/eventsub-test-app.ts` (`createEventSubTestApp`, `postEventSub`) → 06-07 Task 1
@@ -103,3 +103,5 @@ Le infrastrutture di test mancanti sono create dentro i task che le usano, sempr
 - [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** approved by planner 2026-10-19 (9 plan, 22 task, 8 wave)
+
+**Execution sign-off (06-09, 2026-10-19):** Wave 0 completa; 06-01-T1..06-09-T2 green (unit 79 / 1098, integration 46 / 550, build ok, lint filtrato 0 righe, eslint + prettier puliti sui 53 `.ts` toccati, `src/schema.gql` senza diff, invarianti di fase verdi). 06-09-T3 (UAT manuale) in attesa del verdetto umano.

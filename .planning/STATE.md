@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-08-PLAN.md
-last_updated: "2026-10-19T19:30:00.000Z"
-last_activity: 2026-10-19 -- Completed 06-08
+stopped_at: 06-09-PLAN.md at human-verify checkpoint (Task 3)
+last_updated: "2026-10-19T19:45:00.000Z"
+last_activity: 2026-10-19 -- 06-09 Tasks 1-2 done, awaiting human UAT
 progress:
   total_phases: 12
   completed_phases: 7
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 6 (eventsub-punti-canale-streamer-live) — EXECUTING since 2026-10-19 (9 plans, 8 sequential waves; branch feat/06-eventsub-punti-canale-streamer-live off develop @ 0828719; plans checked in 2 rounds)
-Plan: 8 of 9 (06-08 complete; next 06-09)
+Plan: 9 of 9 (06-09 at human-verify checkpoint)
 Status: Executing Phase 6
-Last activity: 2026-10-19 -- Completed 06-08 (EventSubModule mounted in AppModule, rawBody: true in main.ts and in the real boot, @Public whitelist at 6 handlers with EventSubController.receive, real boot proves disabled + boot WARN + no twitch.tv fetch + 403, schema.gql unchanged)
+Last activity: 2026-10-19 -- 06-09 Tasks 1-2 done (phase gate green: unit 79/1098, int 46/550, build, filtered lint 0, eslint + prettier clean on 53 touched .ts, schema.gql unchanged, invariants green; BACKEND-NOTES.md, 06-HUMAN-UAT.md with 3 pending tests, 06-VALIDATION.md wave_0_complete) — awaiting human UAT verdict (Task 3: Twitch CLI local, E2E managed, C4)
 
 Progress: [██████████] 100% (phases 1–5 complete; Phase 6 planning)
 
@@ -202,6 +202,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-19T19:30:00.000Z
-Stopped at: Completed 06-08-PLAN.md
+Last session: 2026-10-19T19:45:00.000Z
+Stopped at: 06-09-PLAN.md Task 3 (checkpoint:human-verify, blocking)
 Resume file: .planning/phases/06-eventsub-punti-canale-streamer-live/06-CONTEXT.md
