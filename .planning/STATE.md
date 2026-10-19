@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-10-19T18:11:44.889Z"
-last_activity: 2026-10-19 -- Completed 06-01
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-10-19T18:27:28.000Z"
+last_activity: 2026-10-19 -- Completed 06-02
 progress:
   total_phases: 12
   completed_phases: 7
   total_plans: 65
-  completed_plans: 57
+  completed_plans: 58
   percent: 86
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 6 — EventSub: Punti Canale & Streamer Live (executing since 2026-10-19, 1 of 9 plans complete); Phase 5 merged in PR #8 on 2026-10-18
+**Current focus:** Phase 6 — EventSub: Punti Canale & Streamer Live (executing since 2026-10-19, 2 of 9 plans complete); Phase 5 merged in PR #8 on 2026-10-18
 
 ## Current Position
 
 Phase: 6 (eventsub-punti-canale-streamer-live) — EXECUTING since 2026-10-19 (9 plans, 8 sequential waves; branch feat/06-eventsub-punti-canale-streamer-live off develop @ 0828719; plans checked in 2 rounds)
-Plan: 1 of 9 (06-01 complete; next 06-02)
+Plan: 2 of 9 (06-02 complete; next 06-03)
 Status: Executing Phase 6
-Last activity: 2026-10-19 -- Completed 06-01 (EventSub config, login scopes, validateEnv)
+Last activity: 2026-10-19 -- Completed 06-02 (EventSub headers, signature verification, payload parsers)
 
 Progress: [██████████] 100% (phases 1–5 complete; Phase 6 planning)
 
@@ -36,7 +36,7 @@ Progress: [██████████] 100% (phases 1–5 complete; Phase 6 
 
 **Velocity:**
 
-- Total plans completed: 65
+- Total plans completed: 66
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -98,6 +98,7 @@ Progress: [██████████] 100% (phases 1–5 complete; Phase 6 
 | Phase 05 P07 | 4 min | 2 tasks | 3 files |
 | Phase 05 P08 | 7 min | 2 tasks | 3 files |
 | Phase 06 P01 | 6 min | 3 tasks | 12 files |
+| Phase 06 P02 | 6 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -167,6 +168,7 @@ Recent decisions affecting current work:
 - [Phase 05]: 05-07: PushModule montato in AppModule; src/schema.gql rigenerato con diff solo additivo (3 mutation, PushDeliveryReport, PushEventType, PushPlatform, 2 input); real-boot test con FIREBASE_SERVICE_ACCOUNT vuota → NoopPushTransport
 - [Phase 05]: 05-08: gate di fase verde (unit 66/807, int 43/515, build, eslint, schema drift 0); BACKEND-NOTES Phase 5 pubblicato; fuga di dati tra suite in spell-recovery.processor.int-spec corretta con afterEach
 - [Phase 06]: 06-01: parseEventSubConfig fail-closed a tre modalità (disabled/local/managed): prod senza EventSub o config parziale → boot rifiutato, callback http loopback fuori prod = local senza Helix, managed legge TWITCH_CLIENT_ID/SECRET direttamente; TWITCH_LOGIN_SCOPES → scope dell'authorize url; url-rules condiviso
+- [Phase 06]: 06-02: funzioni pure del webhook: readEventSubHeaders (4 header stringa singola non vuota ≤ 200, subscription-type ignorato), verifyEventSubSignature HMAC sui byte grezzi + controllo lunghezza + timingSafeEqual + replay 10 min / +60 s, parseNotification a tipo discriminato con dispatch via Map (solo stringhe validate e interi positivi sicuri); fixture firmate condivise in test/eventsub
 
 ### Pending Todos
 
@@ -188,6 +190,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-18T19:58:50.849Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-10-19T18:27:28.000Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: .planning/phases/06-eventsub-punti-canale-streamer-live/06-CONTEXT.md
