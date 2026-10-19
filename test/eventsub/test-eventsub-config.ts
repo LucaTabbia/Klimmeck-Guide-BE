@@ -23,7 +23,6 @@ export function buildTestEventSubConfig(
         clientSecret: TEST_HELIX_CLIENT_SECRET,
         reconcileIntervalMs: 0,
         ...overrides,
-        mode: 'managed',
     };
 }
 
