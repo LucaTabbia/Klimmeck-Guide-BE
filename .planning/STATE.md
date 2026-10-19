@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-07-PLAN.md
-last_updated: "2026-10-19T19:10:00.000Z"
-last_activity: 2026-10-19 -- Completed 06-07
+stopped_at: Completed 06-08-PLAN.md
+last_updated: "2026-10-19T19:30:00.000Z"
+last_activity: 2026-10-19 -- Completed 06-08
 progress:
   total_phases: 12
   completed_phases: 7
   total_plans: 65
-  completed_plans: 63
-  percent: 97
+  completed_plans: 64
+  percent: 98
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 6 — EventSub: Punti Canale & Streamer Live (executing since 2026-10-19, 7 of 9 plans complete); Phase 5 merged in PR #8 on 2026-10-18
+**Current focus:** Phase 6 — EventSub: Punti Canale & Streamer Live (executing since 2026-10-19, 8 of 9 plans complete); Phase 5 merged in PR #8 on 2026-10-18
 
 ## Current Position
 
 Phase: 6 (eventsub-punti-canale-streamer-live) — EXECUTING since 2026-10-19 (9 plans, 8 sequential waves; branch feat/06-eventsub-punti-canale-streamer-live off develop @ 0828719; plans checked in 2 rounds)
-Plan: 7 of 9 (06-07 complete; next 06-08)
+Plan: 8 of 9 (06-08 complete; next 06-09)
 Status: Executing Phase 6
-Last activity: 2026-10-19 -- Completed 06-07 (EventSubController on POST /webhooks/twitch/eventsub with public handler only, EventSubModule with every phase provider, harness rawBody, wire proof of credit/dedup/concurrency/streamer-live push/revocation)
+Last activity: 2026-10-19 -- Completed 06-08 (EventSubModule mounted in AppModule, rawBody: true in main.ts and in the real boot, @Public whitelist at 6 handlers with EventSubController.receive, real boot proves disabled + boot WARN + no twitch.tv fetch + 403, schema.gql unchanged)
 
 Progress: [██████████] 100% (phases 1–5 complete; Phase 6 planning)
 
@@ -36,7 +36,7 @@ Progress: [██████████] 100% (phases 1–5 complete; Phase 6 
 
 **Velocity:**
 
-- Total plans completed: 71
+- Total plans completed: 72
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -104,6 +104,7 @@ Progress: [██████████] 100% (phases 1–5 complete; Phase 6 
 | Phase 06 P05 | 9 min | 2 tasks | 4 files |
 | Phase 06 P06 | 5 min | 2 tasks | 5 files |
 | Phase 06 P07 | 5 min | 2 tasks | 6 files |
+| Phase 06 P08 | 5 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -179,6 +180,7 @@ Recent decisions affecting current work:
 - [Phase 06]: 06-05: planReconciliation pura: per ogni tipo desiderato le subscription possedute (webhook, stesso tipo, stesso broadcaster) ordinate per createdAt/id; si tiene una sola (la più vecchia enabled, altrimenti pending, fra le esatte sul callback normalizzato con new URL().href), tutte le altre possedute rimosse, create se nessuna tenuta, non possedute ignorate; EventSubSubscriptionManager: boot con void reconcileSafely, setInterval unref (0 = nessun timer) pulito in onModuleDestroy, single-flight con un rerun, delete prima delle create, 409 WARN, 403 redemption ERROR con STREAMER_SCOPE_REMEDY, riepilogo solo tipo/id/status, nessuna chiamata Helix fuori da managed
 - [Phase 06]: 06-06: EventSubWebhookService.handle restituisce un WebhookReply discriminato (challenge/noContent/forbidden/retryLater) e non lancia mai (try/catch esterno → retryLater con describeMongoError); disabled → forbidden, poi header e firma prima di ogni ramo (nessun messageId nei log dei rifiuti), routing su messageTypeOf (type guard), revocation → ERROR (+ STREAMER_SCOPE_REMEDY solo per authorization_revoked sulla redemption) e void reconcileSafely, broadcaster diverso → WARN 204, unknownViewer/duplicate solo DEBUG, retryLater solo su errore DB, stream.online recorded → void broadcast(streamerLive()) con catch WARN; EventSubStartupReporter WARN disabled/local, LOG managed, nessun secret
 - [Phase 06]: 06-07: EventSubController sottile (@Res, 200 text/plain col solo challenge, 204/403/500 con end()), decoratore pubblico solo su receive; EventSubModule foglia (EconomyModule, PushModule, forFeature EventSubMessage+User, Clock locale, Helix -> HttpTwitchHelixClient) non ancora in AppModule; harness createAuthTestApp con rawBody: true incondizionato (retrocompatibile, 46 suite verdi); createEventSubTestApp drena il reconcile di boot con manager.reconcile(); prova sul filo: 5 consegne concorrenti e C7 -> un credito, stream.online -> un topicSends streamer-live, revocation -> delete+create
+- [Phase 06]: 06-08: EventSubModule montato in AppModule subito dopo PushModule; NestFactory.create(AppModule, { rawBody: true }) e real boot con createNestApplication({ rawBody: true }) speculare; whitelist @Public a 6 voci con EventSubController.receive, publicClasses vuoto; spie passthrough su fetch e Logger.prototype.warn prima del boot: disabled, WARN `EventSub disabled`, nessuna fetch verso twitch.tv, POST webhook -> 403 body vuoto; schema.gql invariato (D-16)
 
 ### Pending Todos
 
@@ -200,6 +202,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-19T19:10:00.000Z
-Stopped at: Completed 06-07-PLAN.md
+Last session: 2026-10-19T19:30:00.000Z
+Stopped at: Completed 06-08-PLAN.md
 Resume file: .planning/phases/06-eventsub-punti-canale-streamer-live/06-CONTEXT.md
