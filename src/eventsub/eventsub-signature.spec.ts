@@ -68,7 +68,14 @@ describe('verifyEventSubSignature', () => {
     });
 
     it('rejects a missing raw body', () => {
-        expect(verify(headersAt(TS), undefined)).toBe(false);
+        expect(
+            verifyEventSubSignature(
+                headersAt(TS),
+                undefined,
+                TEST_EVENTSUB_SECRET,
+                NOW,
+            ),
+        ).toBe(false);
     });
 
     it('rejects an empty secret', () => {
