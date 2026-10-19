@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-04-PLAN.md
-last_updated: "2026-10-19T18:44:10.000Z"
-last_activity: 2026-10-19 -- Completed 06-04
+stopped_at: Completed 06-05-PLAN.md
+last_updated: "2026-10-19T18:52:03.000Z"
+last_activity: 2026-10-19 -- Completed 06-05
 progress:
   total_phases: 12
   completed_phases: 7
   total_plans: 65
-  completed_plans: 60
-  percent: 92
+  completed_plans: 61
+  percent: 94
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 6 — EventSub: Punti Canale & Streamer Live (executing since 2026-10-19, 4 of 9 plans complete); Phase 5 merged in PR #8 on 2026-10-18
+**Current focus:** Phase 6 — EventSub: Punti Canale & Streamer Live (executing since 2026-10-19, 5 of 9 plans complete); Phase 5 merged in PR #8 on 2026-10-18
 
 ## Current Position
 
 Phase: 6 (eventsub-punti-canale-streamer-live) — EXECUTING since 2026-10-19 (9 plans, 8 sequential waves; branch feat/06-eventsub-punti-canale-streamer-live off develop @ 0828719; plans checked in 2 rounds)
-Plan: 4 of 9 (06-04 complete; next 06-05)
+Plan: 5 of 9 (06-05 complete; next 06-06)
 Status: Executing Phase 6
-Last activity: 2026-10-19 -- Completed 06-04 (Helix port and fake, in-memory app access token cache, HTTP Helix client)
+Last activity: 2026-10-19 -- Completed 06-05 (pure subscription reconciliation plan, EventSubSubscriptionManager with non-blocking boot, unref hourly timer, single flight)
 
 Progress: [██████████] 100% (phases 1–5 complete; Phase 6 planning)
 
@@ -36,7 +36,7 @@ Progress: [██████████] 100% (phases 1–5 complete; Phase 6 
 
 **Velocity:**
 
-- Total plans completed: 68
+- Total plans completed: 69
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -101,6 +101,7 @@ Progress: [██████████] 100% (phases 1–5 complete; Phase 6 
 | Phase 06 P02 | 6 min | 3 tasks | 8 files |
 | Phase 06 P03 | 6 min | 2 tasks | 8 files |
 | Phase 06 P04 | 8 min | 3 tasks | 9 files |
+| Phase 06 P05 | 9 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -173,6 +174,7 @@ Recent decisions affecting current work:
 - [Phase 06]: 06-02: funzioni pure del webhook: readEventSubHeaders (4 header stringa singola non vuota ≤ 200, subscription-type ignorato), verifyEventSubSignature HMAC sui byte grezzi + controllo lunghezza + timingSafeEqual + replay 10 min / +60 s, parseNotification a tipo discriminato con dispatch via Map (solo stringhe validate e interi positivi sicuri); fixture firmate condivise in test/eventsub
 - [Phase 06]: 06-03: ledger eventsub_messages (indice unico messageId, unico parziale {type,eventId} per C7, TTL 604800 s) costruito da EventSubMessageIndexVerifier non bloccante; PointsCreditService: lookup twitchId fuori transazione, poi insert di dedup + WalletService.creditUserPoints nella stessa transazione, E11000 su messageId/eventId ⇒ duplicate, ResourceNotFoundException ⇒ unknownViewer, altri errori rilanciati; StreamOnlineRecorder insert singolo; servizi senza Logger (i log li fa il webhook)
 - [Phase 06]: 06-04: porta astratta TwitchHelixClient (token DI) con TwitchHelixError {status} e describeHelixError (errori estranei ridotti al name); helper twitch-http senza cause; TwitchAppTokenCache client credentials su TWITCH_TOKEN_URL con clientId/clientSecret di EventSubConfig managed, solo in memoria, margine 5 min, single-flight, nessuna promessa fallita in cache, expires_in assente o 0 => nessun riuso; HttpTwitchHelixClient: Bearer + Client-Id, timeout 5 s per richiesta (anche nel retry), cursore con tetto 20 pagine, 401 => invalidate + un retry, DELETE 404 idempotente, 202 senza subscription => errore, mapping difensivo; FakeTwitchHelixClient con gli stessi messaggi del client reale
+- [Phase 06]: 06-05: planReconciliation pura: per ogni tipo desiderato le subscription possedute (webhook, stesso tipo, stesso broadcaster) ordinate per createdAt/id; si tiene una sola (la più vecchia enabled, altrimenti pending, fra le esatte sul callback normalizzato con new URL().href), tutte le altre possedute rimosse, create se nessuna tenuta, non possedute ignorate; EventSubSubscriptionManager: boot con void reconcileSafely, setInterval unref (0 = nessun timer) pulito in onModuleDestroy, single-flight con un rerun, delete prima delle create, 409 WARN, 403 redemption ERROR con STREAMER_SCOPE_REMEDY, riepilogo solo tipo/id/status, nessuna chiamata Helix fuori da managed
 
 ### Pending Todos
 
@@ -194,6 +196,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-19T18:44:10.000Z
-Stopped at: Completed 06-04-PLAN.md
+Last session: 2026-10-19T18:52:03.000Z
+Stopped at: Completed 06-05-PLAN.md
 Resume file: .planning/phases/06-eventsub-punti-canale-streamer-live/06-CONTEXT.md
