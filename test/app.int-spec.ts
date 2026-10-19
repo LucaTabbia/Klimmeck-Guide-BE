@@ -193,7 +193,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         const moduleRef = await Test.createTestingModule({
             imports: [AppModule],
         }).compile();
-        app = moduleRef.createNestApplication();
+        app = moduleRef.createNestApplication({ rawBody: true });
         await app.init();
     }, BOOT_TIMEOUT_MS);
 
