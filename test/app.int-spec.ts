@@ -171,6 +171,11 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             DEV_AUTH_ENABLED: 'false',
             // Pitfall 11: un .env locale con credenziali reali non deve mai accendere FCM nel test
             FIREBASE_SERVICE_ACCOUNT: '',
+            // C2 / Pitfall 13: un .env locale con EventSub parziale non deve rompere il boot reale
+            TWITCH_LOGIN_SCOPES: '',
+            TWITCH_EVENTSUB_SECRET: '',
+            TWITCH_EVENTSUB_CALLBACK_URL: '',
+            TWITCH_BROADCASTER_ID: '',
         });
         // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
         const { AppModule } =
