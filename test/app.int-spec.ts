@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import { ModulesContainer } from '@nestjs/core';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
@@ -10,6 +10,8 @@ import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import { IS_PUBLIC_KEY } from 'src/auth/decorators/public.decorator';
 import type { AuthConfig } from 'src/config/auth-config';
 import { AUTH_CONFIG } from 'src/config/auth-config';
+import type { EventSubConfig } from 'src/config/eventsub-config';
+import { EVENTSUB_CONFIG } from 'src/config/eventsub-config';
 import { OWNERSHIP_KEY } from 'src/authz/ownership/ownership.decorators';
 import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
 import { WalletService } from 'src/economy/wallet.service';
@@ -35,6 +37,7 @@ const EXPECTED_PUBLIC_HANDLERS = [
     'AppController.getHello',
     'AuthResolver.exchangeLoginTicket',
     'AuthResolver.refreshSession',
+    'EventSubController.receive',
     'TwitchAuthController.callback',
     'TwitchAuthController.start',
 ];
@@ -155,8 +158,13 @@ function errorCodeOf(response: request.Response): unknown {
 describe('AppModule (real boot without Twitch credentials)', () => {
     const envSnapshot = { ...process.env };
     let app: INestApplication;
+    let fetchSpy: jest.SpiedFunction<typeof fetch>;
+    let warnSpy: jest.SpiedFunction<Logger['warn']>;
 
     beforeAll(async () => {
+        // spie passthrough attive prima del boot: catturano le chiamate di rete e il WARN di avvio
+        fetchSpy = jest.spyOn(global, 'fetch');
+        warnSpy = jest.spyOn(Logger.prototype, 'warn');
         const redis = await startRedis();
         Object.assign(process.env, {
             MONGO_URI: process.env.MONGO_TEST_URI,
@@ -193,6 +201,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         await app?.get<Connection>(getConnectionToken()).dropDatabase();
         await app?.close();
         await stopRedis();
+        fetchSpy.mockRestore();
+        warnSpy.mockRestore();
         process.env = envSnapshot;
     });
 
@@ -312,6 +322,38 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(transport).toBeInstanceOf(NoopPushTransport);
         expect(transport.enabled).toBe(false);
         expect(app.get(PushService)).toBeInstanceOf(PushService);
+    });
+
+    it('boots EventSub disabled without calling Twitch', () => {
+        const twitchCalls = fetchSpy.mock.calls.filter(([url]) =>
+            /twitch\.tv/.test(String(url)),
+        );
+
+        expect(app.get<EventSubConfig>(EVENTSUB_CONFIG)).toEqual({
+            mode: 'disabled',
+        });
+        expect(twitchCalls).toHaveLength(0);
+        expect(
+            warnSpy.mock.calls.some(([message]) =>
+                String(message).includes('EventSub disabled'),
+            ),
+        ).toBe(true);
+    });
+
+    it('rejects EventSub webhook calls while EventSub is disabled', async () => {
+        const response = await request(app.getHttpServer())
+            .post('/webhooks/twitch/eventsub')
+            .set('Content-Type', 'application/json')
+            .send('{}');
+
+        expect(response.status).toBe(403);
+        expect(response.text).toBe('');
+    });
+
+    it('adds no GraphQL surface for EventSub', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).not.toMatch(/eventsub|EventSub|redemption/i);
     });
 
     describe('global auth guard', () => {
