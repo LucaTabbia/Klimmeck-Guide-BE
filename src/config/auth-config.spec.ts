@@ -1,4 +1,9 @@
-import { AuthEnv, parseAuthConfig, readAuthEnv } from 'src/config/auth-config';
+import {
+    AUTH_ENV_KEYS,
+    AuthEnv,
+    parseAuthConfig,
+    readAuthEnv,
+} from 'src/config/auth-config';
 import { RoleType } from 'src/models/enums/role-type.enum';
 
 const VALID_SECRET = 's'.repeat(32);
@@ -65,6 +70,7 @@ describe('parseAuthConfig', () => {
                 clientId: 'client-id',
                 clientSecret: 'client-secret',
                 redirectUri: 'https://api.example.com/auth/twitch/callback',
+                scopes: [],
             });
         });
 
@@ -114,6 +120,60 @@ describe('parseAuthConfig', () => {
             expect(() =>
                 parseWith({ ...TWITCH_ENV, TWITCH_REDIRECT_URI: value }),
             ).toThrow(/TWITCH_REDIRECT_URI/);
+        });
+    });
+
+    describe('TWITCH_LOGIN_SCOPES', () => {
+        const SCOPES_MESSAGE =
+            'TWITCH_LOGIN_SCOPES must be a space-separated list of Twitch scopes (e.g. channel:read:redemptions)';
+
+        it('splits on whitespace, drops empty entries and deduplicates', () => {
+            const config = parseWith({
+                ...TWITCH_ENV,
+                TWITCH_LOGIN_SCOPES:
+                    '  channel:read:redemptions   channel:read:redemptions ',
+            });
+
+            expect(config.twitch?.scopes).toEqual(['channel:read:redemptions']);
+        });
+
+        it('keeps several scopes in order', () => {
+            const config = parseWith({
+                ...TWITCH_ENV,
+                TWITCH_LOGIN_SCOPES: 'channel:read:redemptions user:read:email',
+            });
+
+            expect(config.twitch?.scopes).toEqual([
+                'channel:read:redemptions',
+                'user:read:email',
+            ]);
+        });
+
+        it.each([
+            'channel:read:redemptions,bits:read',
+            'Channel:Read',
+            'channel::read',
+            'channel:read:redemptions;drop',
+        ])('rejects %p without leaking it', (value) => {
+            let message = '';
+            try {
+                parseWith({ ...TWITCH_ENV, TWITCH_LOGIN_SCOPES: value });
+            } catch (error) {
+                message = (error as Error).message;
+            }
+
+            expect(message).toBe(SCOPES_MESSAGE);
+            expect(message).not.toContain(value);
+        });
+
+        it('rejects a malformed scope even without the Twitch keys', () => {
+            expect(() =>
+                parseWith({ TWITCH_LOGIN_SCOPES: 'Bad Scope!' }),
+            ).toThrow(SCOPES_MESSAGE);
+        });
+
+        it('is declared among the auth env keys', () => {
+            expect(AUTH_ENV_KEYS).toContain('TWITCH_LOGIN_SCOPES');
         });
     });
 
