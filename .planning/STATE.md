@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 05-08-PLAN.md
-last_updated: "2026-10-18T20:11:44.577Z"
-last_activity: "2026-10-18 -- Phase 5 complete (verification 4/4, review fixed, security 43/43); BE PR #8 open to develop (merge before FE Phase 5 PR); next Phase 6 EventSub"
+status: planning
+stopped_at: Phase 6 context gathered
+last_updated: "2026-10-19T10:00:00.000Z"
+last_activity: "2026-10-19 -- Phase 6 context gathered (interactive discuss, 20 decisions); branch feat/06-eventsub-punti-canale-streamer-live; next /gsd-plan-phase 6"
 progress:
   total_phases: 12
   completed_phases: 7
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 5 — Infrastruttura Push FCM (PR #8 open to develop); next Phase 6 EventSub
+**Current focus:** Phase 6 — EventSub: Punti Canale & Streamer Live (context gathered 2026-10-19, ready to plan); Phase 5 merged in PR #8 on 2026-10-18
 
 ## Current Position
 
-Phase: 5 (infrastruttura-push-fcm) — COMPLETE 2026-10-18, branch feat/05-infrastruttura-push-fcm (8/8 plans; VERIFICATION 4/4, human item = consegna reale su device rinviata alla UAT FE Phase 5 (05-HUMAN-UAT.md); REVIEW 0 critical / 1 warning → WR-01 + IN-01 + IN-04a fixed in TDD, IN-02/03/04b accepted; security 43/43 closed, PR #8 open)
-Plan: 8/8 complete
-Status: Phase 5 complete — security 43/43 closed; PR #8 open on LucaTabbia/Klimmeck-Guide-BE (feat/05-infrastruttura-push-fcm → develop), ready for review and merge BEFORE the FE Phase 5 PR; next /gsd-discuss-phase 6 (EventSub: Punti Canale & Streamer Live)
-Last activity: 2026-10-18 -- Phase 5 complete (verification 4/4, review fixed, security 43/43); BE PR #8 open to develop (merge before FE Phase 5 PR); next Phase 6 EventSub
+Phase: 6 (eventsub-punti-canale-streamer-live) — CONTEXT GATHERED 2026-10-19 (interactive discuss, D-01..D-20), branch feat/06-eventsub-punti-canale-streamer-live off develop @ 0828719 (PR #8 merged)
+Plan: 0 of TBD
+Status: Phase 6 context gathered — ready to plan (webhook sincrono in transazione, tutte le custom reward 1:1, viewer senza account ignorati, scope da env TWITCH_LOGIN_SCOPES, config obbligatoria in produzione, reconcile boot + orario, ledger 7 giorni, push su ogni stream.online); next /gsd-plan-phase 6
+Last activity: 2026-10-19 -- Phase 6 discuss closed interactively: 06-CONTEXT.md + 06-DISCUSSION-LOG.md; ROADMAP branch line aligned to the template
 
-Progress: [██████████] 100%
+Progress: [██████████] 100% (phases 1–5 complete; Phase 6 planning)
 
 ## Performance Metrics
 
@@ -187,5 +187,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-10-18T19:58:50.849Z
-Stopped at: Completed 05-08-PLAN.md
-Resume file: None
+Stopped at: Phase 6 context gathered (2026-10-19)
+Resume file: .planning/phases/06-eventsub-punti-canale-streamer-live/06-CONTEXT.md
