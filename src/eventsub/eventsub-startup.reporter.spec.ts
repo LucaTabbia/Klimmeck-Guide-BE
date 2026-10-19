@@ -48,6 +48,7 @@ describe('EventSubStartupReporter', () => {
         expect(message).toContain('TWITCH_BROADCASTER_ID');
         expect(message).toContain('403');
         expect(log).not.toHaveBeenCalled();
+        expectNoSecret();
     });
 
     it('warns that local mode does not manage Helix subscriptions', () => {
