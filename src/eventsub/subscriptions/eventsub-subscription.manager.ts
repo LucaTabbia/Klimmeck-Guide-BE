@@ -86,13 +86,27 @@ export class EventSubSubscriptionManager
         ).unref();
     }
 
+    // un rerun richiesto durante un run fallito parte comunque (D-14): la revocation non aspetta il timer
     private async runUntilSettled(
         config: ManagedEventSubConfig,
     ): Promise<void> {
+        let failure: { error: unknown } | null = null;
         do {
             this.rerunRequested = false;
-            await this.runOnce(config);
+            failure = await this.runCapturingFailure(config);
         } while (this.rerunRequested);
+        if (failure) throw failure.error;
+    }
+
+    private async runCapturingFailure(
+        config: ManagedEventSubConfig,
+    ): Promise<{ error: unknown } | null> {
+        try {
+            await this.runOnce(config);
+            return null;
+        } catch (error) {
+            return { error };
+        }
     }
 
     private async runOnce(config: ManagedEventSubConfig): Promise<void> {

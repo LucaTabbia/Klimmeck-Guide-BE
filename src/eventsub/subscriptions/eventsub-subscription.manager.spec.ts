@@ -182,6 +182,34 @@ describe('EventSubSubscriptionManager', () => {
         expect(listCalls()).toBe(2);
     });
 
+    it('still runs the requested rerun when the current run fails', async () => {
+        const list = jest
+            .spyOn(helix, 'listEventSubSubscriptions')
+            .mockRejectedValueOnce(new Error('list failed'));
+        const manager = createManager();
+
+        const first = manager.reconcile();
+        void manager.reconcile().catch(() => undefined);
+
+        await expect(first).resolves.toBeUndefined();
+        expect(list).toHaveBeenCalledTimes(2);
+        expect(helix.subscriptions.map((item) => item.type)).toEqual([
+            REDEMPTION,
+            STREAM_ONLINE,
+        ]);
+    });
+
+    it('rejects once when the requested rerun fails as well', async () => {
+        helix.failList(503);
+        const manager = createManager();
+
+        const first = manager.reconcile();
+        void manager.reconcile().catch(() => undefined);
+
+        await expect(first).rejects.toThrow('failed with status 503');
+        expect(listCalls()).toBe(2);
+    });
+
     it('starts the boot reconcile without waiting for it', async () => {
         const manager = createManager();
 
