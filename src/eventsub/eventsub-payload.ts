@@ -29,6 +29,7 @@ export type NotificationPayload =
 
 export const UNKNOWN_SUBSCRIPTION_TYPE = 'unknown';
 export const MAX_CHALLENGE_LENGTH = 1000;
+export const MAX_LOGGED_FIELD_LENGTH = 100;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -43,7 +44,7 @@ const NOTIFICATION_PARSERS = new Map<
 // solo stringhe validate e interi positivi sicuri: nessun valore del body arriva grezzo a un filtro Mongo
 export function parseNotification(body: unknown): NotificationPayload {
     const record = asRecord(body);
-    const subscriptionType = nonEmptyString(
+    const subscriptionType = loggableString(
         asRecord(record?.subscription)?.type,
     );
     if (!subscriptionType) return invalid(UNKNOWN_SUBSCRIPTION_TYPE);
@@ -61,9 +62,9 @@ export function parseChallenge(body: unknown): string | null {
 
 export function parseRevocation(body: unknown): RevocationNotice | null {
     const subscription = asRecord(asRecord(body)?.subscription);
-    const subscriptionId = nonEmptyString(subscription?.id);
-    const type = nonEmptyString(subscription?.type);
-    const status = nonEmptyString(subscription?.status);
+    const subscriptionId = loggableString(subscription?.id);
+    const type = loggableString(subscription?.type);
+    const status = loggableString(subscription?.status);
     if (!subscriptionId || !type || !status) return null;
     return { subscriptionId, type, status };
 }
@@ -111,6 +112,13 @@ function asRecord(value: unknown): JsonRecord | null {
 
 function nonEmptyString(value: unknown): string | null {
     return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+// type, id e status della subscription finiscono nei log: il tetto evita righe enormi (body fino a 100 KB) e nessun tipo reale lo supera
+function loggableString(value: unknown): string | null {
+    const text = nonEmptyString(value);
+    if (!text || text.length <= MAX_LOGGED_FIELD_LENGTH) return text;
+    return `${text.slice(0, MAX_LOGGED_FIELD_LENGTH)}…`;
 }
 
 function twitchUserId(value: unknown): string | null {

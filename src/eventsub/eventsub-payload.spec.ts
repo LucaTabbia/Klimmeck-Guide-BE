@@ -1,4 +1,5 @@
 import {
+    MAX_LOGGED_FIELD_LENGTH,
     parseChallenge,
     parseNotification,
     parseRevocation,
@@ -190,6 +191,18 @@ describe('parseNotification', () => {
         ).toEqual({ kind: 'unsupported', subscriptionType: 'stream.offline' });
     });
 
+    it('truncates an oversized subscription type before it reaches the logs', () => {
+        const payload = parseNotification({
+            subscription: { type: 'x'.repeat(5000) },
+            event: {},
+        });
+
+        expect(payload).toEqual({
+            kind: 'unsupported',
+            subscriptionType: `${'x'.repeat(MAX_LOGGED_FIELD_LENGTH)}…`,
+        });
+    });
+
     it.each([
         null,
         [],
@@ -238,6 +251,31 @@ describe('parseRevocation', () => {
             type: REDEMPTION_TYPE,
             status: 'authorization_revoked',
         });
+    });
+
+    it('truncates oversized id, type and status', () => {
+        const long = 'y'.repeat(5000);
+        const truncated = `${'y'.repeat(MAX_LOGGED_FIELD_LENGTH)}…`;
+
+        expect(
+            parseRevocation({
+                subscription: { id: long, type: long, status: long },
+            }),
+        ).toEqual({
+            subscriptionId: truncated,
+            type: truncated,
+            status: truncated,
+        });
+    });
+
+    it('keeps a field of exactly the maximum length', () => {
+        const exact = 'z'.repeat(MAX_LOGGED_FIELD_LENGTH);
+
+        expect(
+            parseRevocation({
+                subscription: { id: exact, type: exact, status: exact },
+            }),
+        ).toEqual({ subscriptionId: exact, type: exact, status: exact });
     });
 
     it.each([
