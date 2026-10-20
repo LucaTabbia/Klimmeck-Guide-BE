@@ -40,7 +40,7 @@ import {
     RETRY_LATER,
 } from 'src/eventsub/webhook-reply';
 import type { WebhookReply } from 'src/eventsub/webhook-reply';
-import { describeMongoError } from 'src/mongo/mongo-errors';
+import { describeError } from 'src/mongo/mongo-errors';
 import { streamerLive } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
 
@@ -96,7 +96,7 @@ export class EventSubWebhookService {
             return await this.route(this.config, headers, rawBody, body);
         } catch (error) {
             this.logger.error(
-                `EventSub message handling failed (${describeMongoError(error)})`,
+                `EventSub message handling failed (${describeError(error)})`,
             );
             return RETRY_LATER;
         }
@@ -218,7 +218,7 @@ export class EventSubWebhookService {
             outcome = await this.credit.credit(event, messageId, now);
         } catch (error) {
             this.logger.error(
-                `EventSub redemption ${messageId} not credited (${describeMongoError(error)}): Twitch will redeliver`,
+                `EventSub redemption ${messageId} not credited (${describeError(error)}): Twitch will redeliver`,
             );
             return RETRY_LATER;
         }
@@ -258,7 +258,7 @@ export class EventSubWebhookService {
             outcome = await this.streamOnline.record(event, messageId, now);
         } catch (error) {
             this.logger.error(
-                `EventSub stream.online ${messageId} not recorded (${describeMongoError(error)}): Twitch will redeliver`,
+                `EventSub stream.online ${messageId} not recorded (${describeError(error)}): Twitch will redeliver`,
             );
             return RETRY_LATER;
         }
@@ -278,7 +278,7 @@ export class EventSubWebhookService {
 
     private readonly logPushFailure = (error: unknown): void => {
         this.logger.warn(
-            `EventSub streamer-live push not sent: ${describeMongoError(error)}`,
+            `EventSub streamer-live push not sent: ${describeError(error)}`,
         );
     };
 }

@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { RACE_HOME_CITY_TYPES } from 'src/characters/creation/race-traits';
 import { City, CityDocument } from 'src/models/city.model';
 import { RaceType } from 'src/models/enums/race-type.enum';
-import { describeMongoError } from 'src/mongo/mongo-errors';
+import { describeError } from 'src/mongo/mongo-errors';
 
 export function racesWithoutHomeCity(
     availableCityTypes: readonly string[],
@@ -44,7 +44,7 @@ export class StartingCitiesReporter implements OnApplicationBootstrap {
             }
         } catch (error) {
             this.logger.error(
-                `Home cities could not be checked at boot (${describeMongoError(error)}).`,
+                `Home cities could not be checked at boot (${describeError(error)}).`,
             );
         }
     }

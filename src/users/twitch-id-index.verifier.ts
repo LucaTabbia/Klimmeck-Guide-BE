@@ -2,10 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from 'src/models/user.model';
-import {
-    describeMongoError,
-    isDuplicateKeyError,
-} from 'src/mongo/mongo-errors';
+import { describeError, isDuplicateKeyError } from 'src/mongo/mongo-errors';
 import { UsersService } from 'src/users/users.service';
 
 // non blocca mai il boot: ogni errore viene solo loggato (deploy note D-32)
@@ -27,7 +24,7 @@ export class TwitchIdIndexVerifier implements OnApplicationBootstrap {
                 return;
             }
             this.logger.error(
-                `Indexes on users could not be built (${describeMongoError(error)}). Twitch login upserts are not guaranteed unique on users.twitchId.`,
+                `Indexes on users could not be built (${describeError(error)}). Twitch login upserts are not guaranteed unique on users.twitchId.`,
             );
         }
     }
@@ -43,7 +40,7 @@ export class TwitchIdIndexVerifier implements OnApplicationBootstrap {
             );
         } catch (error) {
             this.logger.error(
-                `Unique index on users.twitchId could not be built because of duplicated twitchId, and the duplicates could not be listed (${describeMongoError(error)}). Deduplicate users before relying on Twitch login upserts.`,
+                `Unique index on users.twitchId could not be built because of duplicated twitchId, and the duplicates could not be listed (${describeError(error)}). Deduplicate users before relying on Twitch login upserts.`,
             );
         }
     }
