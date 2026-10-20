@@ -252,7 +252,7 @@ describe('HttpTwitchHelixClient', () => {
             );
 
             expect(error.message).toBe(
-                'Helix list subscriptions request failed',
+                'Helix list subscriptions request failed (Error)',
             );
             expect(error.status).toBeUndefined();
         });

@@ -10,8 +10,10 @@ export async function sendTwitchRequest(
 ): Promise<Response> {
     try {
         return await fetch(url, init);
-    } catch {
-        throw new TwitchHelixError(`${operation} request failed`);
+    } catch (error) {
+        throw new TwitchHelixError(
+            `${operation} request failed (${errorNameOf(error)})`,
+        );
     }
 }
 
@@ -32,4 +34,11 @@ export async function readTwitchJson<T>(
     } catch {
         throw new TwitchHelixError(`${operation} response is not valid JSON`);
     }
+}
+
+// solo il name (TimeoutError, AbortError, TypeError), mai il message; letto per forma perché il DOMException può venire da un altro realm
+function errorNameOf(error: unknown): string {
+    if (typeof error !== 'object' || error === null) return 'UnknownError';
+    const { name } = error as { name?: unknown };
+    return typeof name === 'string' && name !== '' ? name : 'UnknownError';
 }

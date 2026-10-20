@@ -78,10 +78,37 @@ describe('twitch http helpers', () => {
             const error = (await failure.catch(
                 (caught: unknown) => caught,
             )) as TwitchHelixError;
-            expect(error.message).toBe('Op request failed');
+            expect(error.message).toBe('Op request failed (Error)');
             expect(error.message).not.toContain('token=abc');
             expect(error.status).toBeUndefined();
             expect(error).not.toHaveProperty('cause');
+        });
+
+        it.each<[string, Error]>([
+            [
+                'TimeoutError',
+                new DOMException('timed out token=abc', 'TimeoutError'),
+            ],
+            ['TypeError', new TypeError('fetch failed token=abc')],
+        ])('names the %s cause without its message', async (name, cause) => {
+            fetchSpy.mockRejectedValue(cause);
+
+            const error = (await sendTwitchRequest('Op', URL_UNDER_TEST, {
+                method: 'GET',
+            }).catch((caught: unknown) => caught)) as TwitchHelixError;
+
+            expect(error.message).toBe(`Op request failed (${name})`);
+            expect(error.message).not.toContain('token=abc');
+        });
+
+        it('names a non error rejection as UnknownError', async () => {
+            fetchSpy.mockRejectedValue('token=abc');
+
+            await expect(
+                sendTwitchRequest('Op', URL_UNDER_TEST, { method: 'GET' }),
+            ).rejects.toThrow(
+                new TwitchHelixError('Op request failed (UnknownError)'),
+            );
         });
 
         it('resolves non-2xx responses and lets the caller decide', async () => {
