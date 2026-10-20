@@ -24,6 +24,7 @@ import {
     EventSubSubscriptionType,
     STREAMER_SCOPE_REMEDY,
 } from 'src/eventsub/eventsub-types';
+import { LogThrottle } from 'src/eventsub/log-throttle';
 import {
     CreditOutcome,
     PointsCreditService,
@@ -58,6 +59,11 @@ const SUBSCRIPTION_TYPE_OF: Record<
 };
 
 const REDEMPTION_TYPE: string = EventSubSubscriptionType.redemptionAdd;
+const REJECTION_LOG_INTERVAL_MS = 60_000;
+const MISSING_HEADERS_REJECTION =
+    'EventSub request rejected: missing EventSub headers';
+const INVALID_SIGNATURE_REJECTION =
+    'EventSub request rejected: invalid signature or outside the replay window';
 
 const MESSAGE_TYPES: ReadonlySet<string> = new Set(
     Object.values(EventSubMessageType),
@@ -70,6 +76,13 @@ function messageTypeOf(value: string): EventSubMessageType | null {
 @Injectable()
 export class EventSubWebhookService {
     private readonly logger = new Logger('EventSub');
+    // l'endpoint è pubblico: i rifiuti non autenticati non devono poter gonfiare i log
+    private readonly missingHeadersLog = new LogThrottle(
+        REJECTION_LOG_INTERVAL_MS,
+    );
+    private readonly invalidSignatureLog = new LogThrottle(
+        REJECTION_LOG_INTERVAL_MS,
+    );
 
     constructor(
         @Inject(EVENTSUB_CONFIG) private readonly config: EventSubConfig,
@@ -108,20 +121,22 @@ export class EventSubWebhookService {
         rawBody: Buffer | undefined,
         body: unknown,
     ): Promise<WebhookReply> {
+        const now = this.clock.now();
         const signed = readEventSubHeaders(headers);
         if (!signed) {
-            this.logger.warn(
-                'EventSub request rejected: missing EventSub headers',
+            return this.reject(
+                this.missingHeadersLog,
+                MISSING_HEADERS_REJECTION,
+                now,
             );
-            return FORBIDDEN;
         }
-        const now = this.clock.now();
         // la firma precede ogni ramo, challenge incluso (D-02)
         if (!verifyEventSubSignature(signed, rawBody, config.secret, now)) {
-            this.logger.warn(
-                'EventSub request rejected: invalid signature or outside the replay window',
+            return this.reject(
+                this.invalidSignatureLog,
+                INVALID_SIGNATURE_REJECTION,
+                now,
             );
-            return FORBIDDEN;
         }
         const { messageId } = signed;
         switch (messageTypeOf(signed.messageType)) {
@@ -137,6 +152,21 @@ export class EventSubWebhookService {
                 );
                 return NO_CONTENT;
         }
+    }
+
+    private reject(
+        throttle: LogThrottle,
+        message: string,
+        now: Date,
+    ): WebhookReply {
+        const suppressed = throttle.admit(now);
+        if (suppressed === null) return FORBIDDEN;
+        const suffix =
+            suppressed > 0
+                ? ` (${suppressed} similar rejections suppressed)`
+                : '';
+        this.logger.warn(`${message}${suffix}`);
+        return FORBIDDEN;
     }
 
     private answerChallenge(messageId: string, body: unknown): WebhookReply {

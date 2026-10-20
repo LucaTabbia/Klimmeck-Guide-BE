@@ -207,6 +207,50 @@ describe('EventSubWebhookService', () => {
             expect(messages).not.toContain(TEST_EVENTSUB_SECRET);
         });
 
+        it('warns about repeated rejections at most once a minute, with the suppressed count', async () => {
+            const service = createService();
+            const forged = (): SignedEventSubRequest =>
+                signedEventSubRequest({
+                    messageType: EventSubMessageType.notification,
+                    body: redemptionNotification(),
+                    secret: 'another-secret-0123456789',
+                });
+
+            await deliver(forged(), service);
+            await deliver(forged(), service);
+            await deliver(forged(), service);
+            clock.advanceSeconds(60);
+            await deliver(forged(), service);
+
+            expect(messagesOf(warn)).toEqual([
+                'EventSub request rejected: invalid signature or outside the replay window',
+                'EventSub request rejected: invalid signature or outside the replay window (2 similar rejections suppressed)',
+            ]);
+        });
+
+        it('throttles missing headers apart from invalid signatures', async () => {
+            const service = createService();
+            const signed = notification(redemptionNotification());
+            const unsigned = lowercased(signed.headers);
+            delete unsigned[EVENTSUB_HEADER.signature];
+
+            await service.handle(unsigned, Buffer.from(signed.body), {});
+            await service.handle(unsigned, Buffer.from(signed.body), {});
+            await deliver(
+                signedEventSubRequest({
+                    messageType: EventSubMessageType.notification,
+                    body: redemptionNotification(),
+                    secret: 'another-secret-0123456789',
+                }),
+                service,
+            );
+
+            expect(messagesOf(warn)).toEqual([
+                'EventSub request rejected: missing EventSub headers',
+                'EventSub request rejected: invalid signature or outside the replay window',
+            ]);
+        });
+
         it('checks the signature before answering a challenge', async () => {
             const signed = signedEventSubRequest({
                 messageType: EventSubMessageType.verification,
