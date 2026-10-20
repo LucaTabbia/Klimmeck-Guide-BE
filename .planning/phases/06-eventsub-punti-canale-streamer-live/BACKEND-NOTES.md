@@ -1,7 +1,7 @@
 # BACKEND-NOTES — Phase 6 EventSub: Punti Canale & Streamer Live (handoff per FE e ops)
 
 - **Fase BE:** 06-eventsub-punti-canale-streamer-live (requisiti BE-POINTS-01, BE-POINTS-02, BE-POINTS-03; decisioni D-01..D-20 in `06-CONTEXT.md`, con i rimedi C1–C7 di `06-RESEARCH.md` §"Conflitti con il CONTEXT").
-- **Data:** 2026-10-19. Documento di fine fase, scritto prima della UAT umana (`06-HUMAN-UAT.md`).
+- **Data:** 2026-10-19. Documento di fine fase, scritto prima della UAT umana (`06-HUMAN-UAT.md`); esito della UAT del 2026-10-20 in §11.
 - **Branch:** `feat/06-eventsub-punti-canale-streamer-live` (PR verso `develop`). **Nessuna dipendenza da una PR FE** (D-20): la PR BE si fonde in autonomia, il FE non deve cambiare nulla.
 - **Schema:** `src/schema.gql` **invariato** rispetto a `develop` (D-16). Il boot reale in `test/app.int-spec.ts` lo rigenera e `git diff --exit-code src/schema.gql` esce 0.
 - **Stato:** implementato e coperto da test. Gate di 06-09: unit **79 suite / 1098 test**, integration **46 suite / 550 test** (replica set + Redis in memoria, `--runInBand`), `npm run build` exit 0, lint filtrato 0 righe, `eslint` e `prettier --check` puliti sui 53 `.ts` toccati dalla fase, nessuna dipendenza nuova in `package.json`. Baseline di inizio fase: unit 66 / 810, integration 43 / 515.
@@ -91,6 +91,8 @@ Messaggi d'errore di boot (verbatim, non contengono mai un valore):
 - [ ] **Ogni custom reward con "Salta la coda delle richieste"** (Pitfall 10). Altrimenti lo streamer può rifiutare la redemption dalla coda: Twitch restituisce i punti canale ma i `twitchPoints` restano accreditati (il BE non ascolta `.update`; il rimborso automatico è BE-FUT-05).
 - [ ] **`.env` locale (C2):** chi ha già `TWITCH_EVENTSUB_SECRET` e `TWITCH_BROADCASTER_ID` deve aggiungere `TWITCH_EVENTSUB_CALLBACK_URL=http://localhost:3000/webhooks/twitch/eventsub` (modalità locale) **oppure** svuotare `TWITCH_EVENTSUB_SECRET` e `TWITCH_BROADCASTER_ID` (disabled). Altrimenti il boot locale viene rifiutato con `EventSub configuration is incomplete: missing TWITCH_EVENTSUB_CALLBACK_URL ...`.
 - [ ] **Log di boot:** in managed compare `EventSub enabled for broadcaster <id> with callback <url>: subscriptions are reconciled at boot and every hour.`, poi `EventSub subscriptions reconciled: kept [...], removed [...], created [...]` con le due subscription (`channel.channel_points_custom_reward_redemption.add` e `stream.online`). Subito dopo la create sono `webhook_callback_verification_pending`; al ciclo successivo (riavvio o timer orario) devono risultare in `kept [...]` con stato `enabled`.
+- [x] **IAM del service account Firebase per i topic FCM (risolto il 2026-10-20 sul progetto `klimmeck-guide-app`).** `firebase-admin` 14.5 iscrive i token ai topic con l'API FCM v1, che richiede il permesso `cloudmessaging.topicSubscriptions.create`. Il service account `firebase-adminsdk-fbsvc@klimmeck-guide-app.iam.gserviceaccount.com` non lo aveva (`subscribeToTopic(streamer-live): 1 token failed (messaging/authentication-error)`) e i broadcast su `streamer-live` non arrivavano. Rimedio: ruolo **Firebase Cloud Messaging API Admin** (`roles/firebasecloudmessaging.admin`); verificato `success=1` sul token reale. **Trappola:** "Firebase Cloud Messaging Admin" (`roles/firebasenotifications.admin`) ha un nome quasi identico ma **non basta**. Per ogni ambiente futuro il service account deve avere `roles/firebasecloudmessaging.admin` (in alternativa il BE dovrebbe ripiegare su `subscribeToTopicLegacy`, utilizzabile fino al 2027-09-29).
+- [ ] **E2E reale e C4 prima della produzione:** test 2 e 3 di `06-HUMAN-UAT.md` (tunnel HTTPS o staging), differiti nella UAT del 2026-10-20 (§11).
 - [ ] **Rotazione del secret (Pitfall 12):** Helix non aggiorna il secret delle subscription esistenti, che continuerebbero a firmare con il vecchio (tutte 403). Procedura: cambiare `TWITCH_EVENTSUB_SECRET`, cancellare le subscription (`twitch api get /eventsub/subscriptions` per gli id, poi `twitch api delete /eventsub/subscriptions -q id=<id>`) e riavviare: il reconcile le ricrea con il secret nuovo.
 
 ---
@@ -251,3 +253,19 @@ Test 3 di `06-HUMAN-UAT.md`. Al login il BE revoca subito il token Twitch dello 
 - **06-07:** harness d'integrazione con `rawBody: true` incondizionato (retrocompatibile); il 413 con stack è annotato in §8.
 - **06-08:** scope del commit RED `test(app)` invece di `test(test)`.
 - Più subject di commit accorciati per stare nei 72 caratteri; nessun impatto sul codice.
+
+---
+
+## 11. Esito UAT (2026-10-20)
+
+Dettaglio in `06-HUMAN-UAT.md` (`status: partial`: 1 passed, 2 skipped, 0 issue).
+
+- **Test A — Twitch CLI locale (mode local): passed.** Eseguito dall'orchestratore con Twitch CLI 1.1.24 contro il BE locale, su autorizzazione dell'utente, con l'account Twitch dell'utente come viewer (`twitchId 113928494`, `twitchPoints` 0 prima della prova). Evidenza HTTP + DB; le righe di log del BE non sono state lette (restano nel terminale dell'utente).
+  - challenge: tre ✔ (body = challenge, `text/plain; charset=utf-8`, 200);
+  - redemption da 250 con `-I dup-1` → 204, `twitchPoints` 0 → 250, un documento `credited`; riconsegna con lo stesso `-I dup-1` → 204, saldo invariato, nessun documento (dedup per `messageId`);
+  - timestamp vecchio → 403; secret sbagliato → 403; in entrambi i casi saldo invariato e nessun documento;
+  - `stream.online` → 204, documento `broadcast`, e **il push `streamerLive` è arrivato al device Android reale dell'utente** via topic `streamer-live` (log FE `FLTFireMsgReceiver: broadcast received` 1 s dopo l'evento): il broadcast è verificato end-to-end su FCM, dopo il fix IAM di §3;
+  - revocation `authorization_revoked` → 204; la riga ERROR con il rimedio non è stata verificata nel log;
+  - stato finale: `twitchPoints=250`, 2 documenti in `eventsub_messages`.
+- **Test B — E2E con Twitch reale (mode managed): skipped**, nessun tunnel HTTPS in sessione. Obbligatorio prima della produzione (§3).
+- **Test C — C4: skipped**, dipende dal test B. Il fallback `revokeQuietly` condizionale resta in §7.
