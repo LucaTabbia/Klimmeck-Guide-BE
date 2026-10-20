@@ -155,6 +155,25 @@ describe('EventSubSubscriptionManager', () => {
         ]);
     });
 
+    it('lists only the successful deletions as removed in the summary', async () => {
+        const stuck = helix.seed({ type: REDEMPTION, status: 'user_removed' });
+        const gone = helix.seed({
+            type: STREAM_ONLINE,
+            status: 'authorization_revoked',
+        });
+        helix.failDelete(stuck.id, 500);
+
+        await createManager().reconcile();
+
+        const summary = messagesOf(log).find((message) =>
+            message.includes('EventSub subscriptions reconciled'),
+        );
+        expect(summary).toContain(`removed [${STREAM_ONLINE} ${gone.id} `);
+        expect(summary).toContain(
+            `removeFailed [${REDEMPTION} ${stuck.id} user_removed]`,
+        );
+    });
+
     it('rejects reconcile when the list fails, while reconcileSafely logs it', async () => {
         helix.failList(503);
         const manager = createManager();

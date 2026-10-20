@@ -116,8 +116,13 @@ export class EventSubSubscriptionManager
             desiredSubscriptions(config.broadcasterId),
             config.callbackUrl,
         );
+        const removed: EventSubSubscription[] = [];
+        const removeFailed: EventSubSubscription[] = [];
         for (const subscription of plan.remove) {
-            await this.removeSubscription(subscription);
+            const outcome = (await this.removeSubscription(subscription))
+                ? removed
+                : removeFailed;
+            outcome.push(subscription);
         }
         const created: EventSubSubscription[] = [];
         for (const wanted of plan.create) {
@@ -129,20 +134,26 @@ export class EventSubSubscriptionManager
                 `EventSub reconcile ignored ${plan.ignored.length} subscriptions it does not own`,
             );
         }
+        const failedSuffix =
+            removeFailed.length > 0
+                ? `, removeFailed [${describeAll(removeFailed)}]`
+                : '';
         this.logger.log(
-            `EventSub subscriptions reconciled: kept [${describeAll(plan.keep)}], removed [${describeAll(plan.remove)}], created [${describeAll(created)}]`,
+            `EventSub subscriptions reconciled: kept [${describeAll(plan.keep)}], removed [${describeAll(removed)}]${failedSuffix}, created [${describeAll(created)}]`,
         );
     }
 
     private async removeSubscription(
         subscription: EventSubSubscription,
-    ): Promise<void> {
+    ): Promise<boolean> {
         try {
             await this.helix.deleteEventSubSubscription(subscription.id);
+            return true;
         } catch (error) {
             this.logger.error(
                 `EventSub subscription ${subscription.type} ${subscription.id} could not be deleted: ${describeHelixError(error)}`,
             );
+            return false;
         }
     }
 
