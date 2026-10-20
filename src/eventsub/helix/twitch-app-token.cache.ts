@@ -56,7 +56,9 @@ export class TwitchAppTokenCache {
         return this.pending;
     }
 
-    invalidate(): void {
+    // scarta solo il token rifiutato: un rinnovo concorrente già in cache resta valido
+    invalidate(rejectedToken: string): void {
+        if (this.cached?.accessToken !== rejectedToken) return;
         this.cached = null;
     }
 

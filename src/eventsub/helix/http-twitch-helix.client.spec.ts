@@ -409,6 +409,15 @@ describe('HttpTwitchHelixClient', () => {
             expect(calls[1].init.signal).not.toBe(calls[0].init.signal);
         });
 
+        it('releases the body of the rejected 401 before retrying', async () => {
+            const unauthorized = jsonResponse(401, { message: 'invalid' });
+            helixResponses.push(unauthorized, listPage([rawSubscription()]));
+
+            await buildClient().listEventSubSubscriptions();
+
+            expect(unauthorized.bodyUsed).toBe(true);
+        });
+
         it('gives up after a second 401', async () => {
             helixResponses.push(
                 emptyResponse(401),

@@ -39,6 +39,11 @@ interface HelixCreateResponse {
     data?: unknown;
 }
 
+interface AuthorizedResponse {
+    response: Response;
+    accessToken: string;
+}
+
 @Injectable()
 export class HttpTwitchHelixClient extends TwitchHelixClient {
     constructor(
@@ -116,20 +121,26 @@ export class HttpTwitchHelixClient extends TwitchHelixClient {
         url: URL,
         init: RequestInit,
     ): Promise<Response> {
-        const response = await this.sendAuthorized(operation, url, init);
+        const { response, accessToken } = await this.sendAuthorized(
+            operation,
+            url,
+            init,
+        );
         if (response.status !== HTTP_UNAUTHORIZED) return response;
-        this.tokens.invalidate();
-        return this.sendAuthorized(operation, url, init);
+        await response.body?.cancel().catch(() => undefined);
+        this.tokens.invalidate(accessToken);
+        const retry = await this.sendAuthorized(operation, url, init);
+        return retry.response;
     }
 
     private async sendAuthorized(
         operation: string,
         url: URL,
         init: RequestInit,
-    ): Promise<Response> {
+    ): Promise<AuthorizedResponse> {
         const clientId = this.requireClientId();
         const accessToken = await this.tokens.getToken();
-        return sendTwitchRequest(operation, url.toString(), {
+        const response = await sendTwitchRequest(operation, url.toString(), {
             ...init,
             headers: {
                 ...(init.headers as Record<string, string> | undefined),
@@ -138,6 +149,7 @@ export class HttpTwitchHelixClient extends TwitchHelixClient {
             },
             signal: AbortSignal.timeout(HELIX_REQUEST_TIMEOUT_MS),
         });
+        return { response, accessToken };
     }
 
     private requireClientId(): string {

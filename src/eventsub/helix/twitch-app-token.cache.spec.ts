@@ -130,7 +130,22 @@ describe('TwitchAppTokenCache', () => {
         const cache = buildCache();
         await cache.getToken();
 
-        cache.invalidate();
+        cache.invalidate('app-token-1');
+
+        await expect(cache.getToken()).resolves.toBe('app-token-2');
+        expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps a renewed token when an older one is invalidated', async () => {
+        fetchSpy
+            .mockResolvedValueOnce(tokenResponse('app-token-1'))
+            .mockResolvedValueOnce(tokenResponse('app-token-2'));
+        const cache = buildCache();
+        await cache.getToken();
+        cache.invalidate('app-token-1');
+        await cache.getToken();
+
+        cache.invalidate('app-token-1');
 
         await expect(cache.getToken()).resolves.toBe('app-token-2');
         expect(fetchSpy).toHaveBeenCalledTimes(2);
