@@ -206,11 +206,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. `Character` espone `activeStoryQuest` e `activeWorldMissionQuest` (PendingQuest opzionali, indipendenti da `pendingQuest`) su schema GraphQL e payload della subscription — su staging prima di FE Phase 6.
   2. Accettare una story quest con un `pendingQuest` standard già presente riesce (corsie parallele); accettare una seconda story quest mentre una è attiva è rifiutato (solo la sua corsia blocca).
-  3. Le quest story/worldMission debitano `User.twitchPoints`, le altre `Character.coins`; eleggibilità e debito sono calcolati server-side e non sovrascrivibili dal client.
+  3. Le quest story/worldMission debitano `User.twitchPoints` (`requiredPoints`); nessuna quest debita `Character.coins` (emendato nel discuss del 2026-10-21); eleggibilità (città del marker, titolo, non ripetibilità, capienza del party per rango) e debito sono calcolati server-side e non sovrascrivibili dal client.
   4. `pendingQuest` è emesso con `startDate` + `waitingTime` server-side così il countdown FE è autoritativo.
 **Plans**: TBD
 **Unblocks (FE)**: **FE Phase 6** (schema + resolver + payload subscription su staging) → FE QUEST-04/05/07.
-**Branch**: `feat/07-quest-lanes` da `develop` → PR a `develop`.
+**Branch**: `feat/07-quest-lanes-quest-04` da `develop` → PR a `develop`.
 
 ### Phase 8: Travel Lifecycle (TRAVEL-01)
 **Goal**: Viaggio server-autoritativo — `activeTravel` su schema + subscription, start ETA-validato, completamento con DB come fonte di verità (Bull come trigger + reconciler al boot), teleport clear atomico.
