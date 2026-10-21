@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 08-14-PLAN.md
+stopped_at: Phase 8 complete (2026-10-22) — PR #11 open
 last_updated: "2026-10-21T22:02:04.491Z"
 last_activity: 2026-10-21
 progress:
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 8 — Travel Lifecycle complete on 2026-10-21 (PR to develop opened 2026-10-22; unblocks FE Phase 7 and the FE Phase 6 final plan 06-12); next Phase 9 — Combat Result & Admin Outcomes
+**Current focus:** Phase 8 — Travel Lifecycle complete on 2026-10-21 (PR #11 to develop opened 2026-10-22; unblocks FE Phase 7 and the FE Phase 6 final plan 06-12); next Phase 9 — Combat Result & Admin Outcomes
 
 ## Current Position
 
 Phase: 8 (travel-lifecycle-travel-01) — COMPLETE 2026-10-21 (14/14 plans; code review 0 critical / 2 warning / 8 info, both warnings + IN-01/IN-07 fixed in TDD; verification passed 4/4 success criteria + D-26..D-32, device UAT deferred to the FE Phase 7 UAT — 08-HUMAN-UAT partial; security audit: 71 minacce, 64 mitigate, 4 accettate, 3 trasferite, 0 aperte)
 Plan: 14 of 14
-Status: Phase 8 complete — PR to develop open, awaiting review/merge; next /gsd-discuss-phase 9
+Status: Phase 8 complete — PR #11 open, awaiting review/merge; next /gsd-discuss-phase 9
 Last activity: 2026-10-22 -- Phase 8 closed: gate green after the review fixes (unit 95 suites / 1416 tests, integration 57 suites / 743 tests, build, lint, schema.gql additive + 3 declared exceptions); BACKEND-NOTES published for FE Phase 6/7; branch pushed, PR opened
 
 Progress: [██████████] 100% (phases 1–8 complete; Phase 9 next)
