@@ -298,16 +298,22 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
-    it('writes the quest party into the generated schema', () => {
+    it('writes the quest rank slots into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestRequirements \{[^}]*\}/)?.[0]).toBe(
-            'type QuestRequirements {\n  minTitle: String!\n  party: [QuestPartySlot!]!\n  recommendedLoot: [AssetQuantity!]!\n  requiredAdventurers: Int!\n  requiredPoints: Int\n}',
+            'type QuestRequirements {\n  minTitle: String!\n  recommendedLoot: [AssetQuantity!]!\n  requiredAdventurers: [QuestPartySlot!]!\n  requiredPoints: Int\n}',
         );
         expect(schema.match(/type QuestPartySlot \{[^}]*\}/)?.[0]).toBe(
-            'type QuestPartySlot {\n  count: Int!\n  title: String!\n}',
+            'type QuestPartySlot {\n  count: Int!\n  title: String\n}',
         );
-        expect(schema).not.toContain('registrations');
+        expect(schema.match(/type QuestRegistration \{[^}]*\}/)?.[0]).toBe(
+            'type QuestRegistration {\n  character: ID!\n  title: String!\n}',
+        );
+        expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+        );
+        expect(schema).not.toMatch(/\bparty\b|registrations/);
     });
 
     it('writes the server time query into the generated schema', () => {
