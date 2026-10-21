@@ -5,6 +5,7 @@ import { Model } from 'mongoose';
 import { Road, RoadDocument } from 'src/models/road.model';
 import Graph from 'graphology';
 import { dijkstra } from 'graphology-shortest-path';
+import { LonLat, RoadRoute } from './road-route';
 import { PathResponse } from 'src/models/path-response.model';
 import { PointOfInterestsService } from 'src/pointsOfInterest/point-of-interest.service'; // Assumi che questo sia corretto
 
@@ -187,5 +188,9 @@ export class RoadsService implements OnModuleInit {
             distance: totalLengthKm,
             time: totalTimeHours,
         };
+    }
+
+    routeBetween(_from: LonLat, _to: LonLat): RoadRoute | null {
+        return null;
     }
 }
