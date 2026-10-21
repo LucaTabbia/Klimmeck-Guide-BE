@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-12-PLAN.md
-last_updated: "2026-10-21T21:13:10.182Z"
+stopped_at: Completed 08-13-PLAN.md
+last_updated: "2026-10-21T21:19:10.184Z"
 last_activity: 2026-10-21
 progress:
   total_phases: 12
   completed_phases: 9
   total_plans: 87
-  completed_plans: 85
-  percent: 98
+  completed_plans: 86
+  percent: 99
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 8 (travel-lifecycle-travel-01) — EXECUTING
-Plan: 13 of 14
+Plan: 14 of 14
 Status: Ready to execute
 Last activity: 2026-10-21
 
@@ -126,6 +126,7 @@ Progress: [██████████] 100% (phases 1–7 complete; Phase 8 
 | Phase 08 P10 | 7 min | 2 tasks | 6 files |
 | Phase 08 P11 | 12 min | 2 tasks | 6 files |
 | Phase 08 P12 | 10 min | 2 tasks | 9 files |
+| Phase 08 P13 | 9 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -223,6 +224,7 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-10: TravelCompletionProcessor (@Processor('travel') @Process('complete')) = solo trigger: travelJobDataOf ⇒ WARN `Job di viaggio <job.id> malformato: ignorato`, endTime > clock ⇒ LOG `Job di viaggio <jobId> in anticipo: lo completerà lo sweep` senza scritture né ri-accodamento (C10), altrimenti TravelCompletionService.complete; TravelModule importa TravelPlanningModule (coda) ed è montato in AppModule dopo QuestAcceptanceModule; real boot con TRAVEL_SWEEP_INTERVAL_MS='0', schema.gql invariato; prova su Redis effimero reale con SystemClock e polling
 - [Phase 08]: 08-11: accept esteso (non duplicato) col viaggio automatico della sola corsia standard — movementTo/planAuto prima della transazione, LaneMovement nello stesso $set del claim (status.activeTravel per il viaggio, status.location = marker per il salto senza strada con WARN coi soli id), PendingQuest con startDate null in viaggio e ora altrimenti (marker = posizione ⇒ nessun movimento), scheduler.schedule dopo il commit (best-effort, lo sweep copre); QuestAcceptanceModule importa TravelPlanningModule, mai PushModule (C6); nessuna asserzione esistente da adattare, schema.gql invariato
 - [Phase 08]: 08-12: startTravel (Mutation) / travelPreview (Query) owner-only (D-18) in TravelResolver, TravelModule importa AuthzModule ed esporta TravelService; avvio = planFree + un solo findOneAndUpdate condizionale + schedule best-effort; preview stesso piano senza scritture; TravelRequest { id, poiId } riusabile dal teleport; poiId malformato ⇒ NOT_FOUND 'Luogo non trovato'; schema.gql solo additivo
+- [Phase 08]: 08-13: teleportCharacter(request: TravelRequest!) @Roles(innkeeper) in TravelAdminResolver; TravelService.teleport = esistenza POI + un solo findOneAndUpdate condizionale (attivo, pendingQuest null) con returnDocument before + scheduler.cancel best-effort dallo startTime before; qualsiasi POI (TravelModule registra PointOfInterest); audit target { type: 'CommonResponse', id: null } con args.request; nessuna push, nessuna scrittura quest; SDL +1 riga
 
 ### Pending Todos
 
@@ -244,6 +246,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T21:13:10.178Z
-Stopped at: Completed 08-12-PLAN.md
+Last session: 2026-10-21T21:19:10.180Z
+Stopped at: Completed 08-13-PLAN.md
 Resume file: None
