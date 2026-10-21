@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose';
+import { Schema, Types } from 'mongoose';
 import {
     AssetQuantitySchema,
     assetQuantitySchemaAt,
@@ -82,6 +82,24 @@ describe('dropOrphanCatalogRefs', () => {
         expect(quest.prizes.prizeItem).toBeNull();
         expect(quest.prizes.randomLoot).toEqual([{ item: B }]);
         expect(quest.infos.relatedLore).toEqual([L]);
+    });
+
+    // itemType assente ⇒ refPath irrisolto ⇒ populate lascia l'ObjectId grezzo (Mongoose 8.18.1)
+    it('drops an item left as a raw ObjectId by an unresolved refPath', () => {
+        const raw = new Types.ObjectId();
+        const quest = {
+            requirements: { recommendedLoot: [{ item: raw }, { item: A }] },
+            prizes: {
+                prizeItem: { item: raw } as { item: unknown } | null,
+                randomLoot: [{ item: B }, { item: raw }],
+            },
+        };
+
+        dropOrphanCatalogRefs(quest);
+
+        expect(quest.requirements.recommendedLoot).toEqual([{ item: A }]);
+        expect(quest.prizes.prizeItem).toBeNull();
+        expect(quest.prizes.randomLoot).toEqual([{ item: B }]);
     });
 
     it('keeps a resolved prize item', () => {

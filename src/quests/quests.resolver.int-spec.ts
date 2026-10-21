@@ -288,6 +288,53 @@ describe('quest catalog (wire)', () => {
         expectFullQuest(quests.find(({ id }) => id === String(healthy._id)));
     });
 
+    // scrittura diretta: itemType è required nello schema, ma le quest a DB si editano a mano (D-28)
+    async function insertQuestWithoutItemType(): Promise<Types.ObjectId> {
+        const base = buildQuest();
+        const _id = new Types.ObjectId();
+        await modelOf(Quest.name, QuestSchema).collection.insertOne({
+            ...base,
+            _id,
+            infos: { ...base.infos, markerLocation: poi._id },
+            requirements: {
+                ...base.requirements,
+                recommendedLoot: [
+                    { item: loot._id, quantity: 1 },
+                    { itemType: 'LootItem', item: loot._id, quantity: 2 },
+                ],
+            },
+            prizes: {
+                ...base.prizes,
+                prizeItem: { item: sword._id, quantity: 1 },
+                randomLoot: [{ item: sword._id, quantity: 1 }],
+            },
+        });
+        return _id;
+    }
+
+    it('keeps the list alive when an item has no itemType', async () => {
+        const brokenId = await insertQuestWithoutItemType();
+        const healthy = await persistFullQuest();
+
+        const body = bodyOf(
+            await graphqlRequest(harness.app, QUESTS, {}, bearer),
+        );
+
+        expect(body.errors).toBeUndefined();
+        const quests = body.data?.quests ?? [];
+        expect(quests).toHaveLength(2);
+        const broken = quests.find(({ id }) => id === String(brokenId));
+        expect(
+            broken?.requirements.recommendedLoot.map(({ quantity, item }) => [
+                quantity,
+                item.id,
+            ]),
+        ).toEqual([[2, String(loot._id)]]);
+        expect(broken?.prizes.prizeItem).toBeNull();
+        expect(broken?.prizes.randomLoot).toEqual([]);
+        expectFullQuest(quests.find(({ id }) => id === String(healthy._id)));
+    });
+
     it('populates the same refs on quest(id)', async () => {
         const quest = await persistFullQuest();
 
