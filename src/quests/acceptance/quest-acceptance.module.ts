@@ -9,16 +9,18 @@ import {
     PendingQuest,
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
+import { City, CitySchema } from 'src/models/city.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
 
-// primitiva interna senza resolver (04 D-09): la Phase 7 la monta nella mutation lane-aware
+// accettazione lane-aware (07 D-18): il resolver acceptQuest arriva in 07-07
 @Module({
     imports: [
         MongooseModule.forFeature([
             { name: Character.name, schema: CharacterSchema },
             { name: Quest.name, schema: QuestSchema },
             { name: PendingQuest.name, schema: PendingQuestSchema },
+            { name: City.name, schema: CitySchema },
         ]),
         EconomyModule,
     ],
