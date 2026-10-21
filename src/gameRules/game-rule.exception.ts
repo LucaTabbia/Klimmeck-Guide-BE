@@ -75,6 +75,41 @@ export class GameRuleException extends BadRequestException {
         );
     }
 
+    static questFull(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.QUEST_FULL,
+            'Non ci sono più posti per il tuo rango',
+        );
+    }
+
+    static questAlreadyTaken(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.QUEST_ALREADY_TAKEN,
+            'Hai già affrontato questa missione',
+        );
+    }
+
+    static questTitleMismatch(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.QUEST_TITLE_MISMATCH,
+            'Il tuo titolo non permette questa missione',
+        );
+    }
+
+    static questNotInCity(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.QUEST_NOT_IN_CITY,
+            'Devi trovarti nella città della missione',
+        );
+    }
+
+    static questNotAcceptable(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.QUEST_NOT_ACCEPTABLE,
+            'Missione non disponibile',
+        );
+    }
+
     static spellNotKnown(): GameRuleException {
         return new GameRuleException(
             GameRuleErrorCode.SPELL_NOT_KNOWN,
