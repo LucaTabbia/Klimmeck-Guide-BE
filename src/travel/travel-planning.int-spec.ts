@@ -347,6 +347,51 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
                 `Nessuna strada dal luogo ${world.markerA.toHexString()} al marker ${world.farQuestPoi.toHexString()} della missione ${questId.toHexString()} per il personaggio ${characterId.toHexString()}: salto istantaneo`,
             );
         });
+
+        // marker senza documento POI = difetto di catalogo (D-27): rifiuto fail-closed, mai un salto su un luogo inesistente
+        it('rejects a marker without a point of interest document with QUEST_NOT_ACCEPTABLE', async () => {
+            const warn = warnSpy();
+            const questId = new Types.ObjectId();
+            const characterId = new Types.ObjectId();
+            const ghost = new Types.ObjectId();
+
+            await expect(
+                planner.planAuto({
+                    questId,
+                    characterId,
+                    from: world.markerA,
+                    to: ghost,
+                    pet: null,
+                }),
+            ).rejects.toMatchObject({ code: 'QUEST_NOT_ACCEPTABLE' });
+
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn).toHaveBeenCalledWith(
+                `Marker ${ghost.toHexString()} della missione ${questId.toHexString()} inesistente: accettazione rifiutata`,
+            );
+            expect(warn.mock.calls[0][0] as string).not.toContain(
+                characterId.toHexString(),
+            );
+        });
+
+        // la partenza pendente è benigna: il salto ripara la posizione (D-03)
+        it('still jumps when only the starting location is missing', async () => {
+            const warn = warnSpy();
+
+            const travel = await planner.planAuto({
+                questId: new Types.ObjectId(),
+                characterId: new Types.ObjectId(),
+                from: new Types.ObjectId(),
+                to: world.questPoi,
+                pet: null,
+            });
+
+            expect(travel).toBeNull();
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls[0][0] as string).toContain(
+                'salto istantaneo',
+            );
+        });
     });
 
     describe('TravelScheduler', () => {

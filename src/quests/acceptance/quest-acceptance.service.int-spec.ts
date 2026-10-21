@@ -921,6 +921,41 @@ describe('QuestAcceptanceService (replSet)', () => {
             );
         });
 
+        // marker nei pointsOfInterest della città ma senza documento POI (D-27): rifiuto prima della transazione, nessuna scrittura
+        it('rejects a marker without a point of interest document with QUEST_NOT_ACCEPTABLE and writes nothing', async () => {
+            const warn = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation();
+            const transaction = jest.spyOn(connection, 'transaction');
+            const ghost = new Types.ObjectId();
+            await cities.collection.updateOne(
+                { _id: travel.cityA },
+                { $push: { pointsOfInterest: ghost } },
+            );
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(travel.markerA);
+            const questId = await huntTo(ghost);
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_NOT_ACCEPTABLE' });
+
+            expect(transaction).not.toHaveBeenCalled();
+            const character = await raw(charId);
+            expect(character?.status.location).toEqual(travel.markerA);
+            expect(character?.status.activeTravel ?? null).toBeNull();
+            expect(character?.quests.pendingQuest).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(queue.added).toEqual([]);
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn).toHaveBeenCalledWith(
+                `Marker ${ghost.toHexString()} della missione ${questId.toHexString()} inesistente: accettazione rifiutata`,
+            );
+            expect(warn.mock.calls[0][0] as string).not.toContain(
+                charId.toHexString(),
+            );
+        });
+
         it('never moves the character for a story or a world mission', async () => {
             const ownerId = await ownerWith(6000);
             const charId = await characterAt(travel.markerA);
