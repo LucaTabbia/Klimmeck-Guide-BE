@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-06-PLAN.md
-last_updated: "2026-10-21T11:56:00.000Z"
-last_activity: 2026-10-21 -- Completed 07-06 (lane-aware quest acceptance)
+stopped_at: Completed 07-07-PLAN.md
+last_updated: "2026-10-21T12:03:00.000Z"
+last_activity: 2026-10-21 -- Completed 07-07 (acceptQuest GraphQL surface)
 progress:
   total_phases: 12
   completed_phases: 8
   total_plans: 73
-  completed_plans: 71
+  completed_plans: 72
   percent: 89
 ---
 
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 7 (quest-lanes-quest-04) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Executing Phase 7
-Last activity: 2026-10-21 -- Completed 07-06 (lane-aware quest acceptance)
+Last activity: 2026-10-21 -- Completed 07-07 (acceptQuest GraphQL surface)
 
-Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 6/8)
+Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 7/8)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 79
+- Total plans completed: 80
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -112,6 +112,7 @@ Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 6
 | Phase 07 P04 | 6 min | 2 tasks | 6 files |
 | Phase 07 P05 | 5 min | 2 tasks | 7 files |
 | Phase 07 P06 | 5 min | 2 tasks | 3 files |
+| Phase 07 P07 | 6 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -195,6 +196,7 @@ Recent decisions affecting current work:
 - [Phase 07]: 07-04: @OwnsCharacter(selectId, { ownerOnly: true }) con ownerOnly in OWNERSHIP_KEY (default false, bypass innkeeper D-09 invariato altrove): innkeeper su personaggio altrui ⇒ FORBIDDEN/NOT_FOUND, mai onBehalf né audit; pendingQuest(id) riconosce il proprietario sulle tre corsie (proiezione da QUEST_LANES, C4)
 - [Phase 07]: 07-05: query serverTime: DateTime! autenticata (AuthGuard globale, nessun @Public, whitelist invariate) in ServerTimeModule con Clock locale (SystemClock), resolver sincrono su Clock.now(); montata in AppModule dopo QuestAcceptanceModule, schema.gql +1 riga (D-15)
 - [Phase 07]: 07-06: QuestAcceptanceService.accept({ ownerId, characterId, questId }) lane-aware: pre-letture lean → regole pure → costo validato prima della transazione (QUEST_NOT_ACCEPTABLE + WARN con solo id e corsia) → città del marker in una query cities.exists → transazione claim → registrazione $expr (solo condivise) → PendingQuest con pointsSpent → debitUserPoints(ownerId, cost, session); Character.coins mai toccato, costCopper rimosso (D-08, D-18)
+- [Phase 07]: 07-07: acceptQuest(request: AcceptQuestRequest { id, questId }): CommonResponse! owner-only in QuestAcceptanceResolver (QuestAcceptanceModule + AuthzModule), resolver senza logica (objectIdFromHex/requireCharacterObjectId ⇒ NOT_FOUND); corsia su characterUpdated, saldo su userUpdated; real boot con EXPECTED_OWNER_ONLY_HANDLERS e SDL additivo (D-11, D-12, C5)
 
 ### Pending Todos
 
@@ -216,6 +218,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T11:56:00.000Z
-Stopped at: Completed 07-06-PLAN.md
-Resume file: .planning/phases/07-quest-lanes-quest-04/07-07-PLAN.md
+Last session: 2026-10-21T12:03:00.000Z
+Stopped at: Completed 07-07-PLAN.md
+Resume file: .planning/phases/07-quest-lanes-quest-04/07-08-PLAN.md
