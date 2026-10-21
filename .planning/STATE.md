@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-10-21T20:11:48.877Z"
+stopped_at: Completed 08-04-PLAN.md
+last_updated: "2026-10-21T20:18:17.670Z"
 last_activity: 2026-10-21
 progress:
   total_phases: 12
   completed_phases: 9
   total_plans: 87
-  completed_plans: 75
-  percent: 86
+  completed_plans: 76
+  percent: 87
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 8 (travel-lifecycle-travel-01) — EXECUTING
-Plan: 3 of 14
+Plan: 4 of 14
 Status: Ready to execute
 Last activity: 2026-10-21
 
@@ -116,6 +116,7 @@ Progress: [██████████] 100% (phases 1–7 complete; Phase 8 
 | Phase 07 P08 | 10 min | 2 tasks | 4 files |
 | Phase 08 P01 | 4 min | 2 tasks | 14 files |
 | Phase 08 P02 | 3 min | 2 tasks | 9 files |
+| Phase 08 P04 | 8 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -203,6 +204,7 @@ Recent decisions affecting current work:
 - [Phase 07]: 07-08: gate di fase verde — unit 85 suite / 1259 test, integration 49 / 606 (dopo l'aggiornamento dell'aspettativa obsoleta delle corsie in character-creation.resolver.int-spec.ts, solo test), build ok, lint filtrato 0 righe, schema.gql senza drift e solo additivo, un solo ownerOnly, @Public 7 = develop, nessuna dipendenza nuova; BACKEND-NOTES.md per FE Phase 6 e BE 8/9, BE-QUEST-01..04 Complete, 07-VALIDATION approved
 - [Phase 08]: 08-01: contratto SDL in Wave 1 — CharacterStatus.activeTravel: ActiveTravel { duration Float! ms, endTime, road: TravelPath { coordinates [[Float!]!]!, distance km }, startTime, to: ID! (hex del POI, nessun populate) }, kind (free|quest) persistito ma mai su GraphQL; PendingQuest.startDate e Pet.speedModifier nullable default null; requiredAdventurers: [QuestPartySlot!]! con title nullable (jolly), registeredAdventurers: [QuestRegistration!]! { character: ID!, title }; party/registrations rimossi; diff SDL vs develop = solo le 5 righe D-20; int-spec di src/quests/acceptance rotte fino a 08-06
 - [Phase 08]: 08-02: codici D-19 (TRAVEL_IN_PROGRESS, TRAVEL_SAME_LOCATION, TRAVEL_DESTINATION_NOT_ALLOWED, TRAVEL_NO_PATH, QUEST_IN_PROGRESS) con messaggi italiani fissi, ResourceNotFoundException.pointOfInterest 'Luogo non trovato', refIdOf condiviso in src/mongo/document-id.ts; quest-capacity.ts puro (slotsOf fail-closed, slotRuleOf, hasSeatFor D-32 slot esatti prima dei jolly, isFullForEveryone, seatAvailableExpr specchio $expr) pronto per 08-06
+- [Phase 08]: 08-04: RoadsService.routeBetween(from, to): RoadRoute | null (mai eccezioni: grafo assente, snap > 5 km, stesso nodo, nessun cammino ⇒ null) su routeOf puro in src/roads/road-route.ts; polilinea orientata con estremi = POI originali, km/ore solo sugli archi; lightestEdge = arco parallelo di peso minimo (graphology elenca i paralleli dal più recente); getShortestPath invariato; RoadsModule registra PointOfInterest (C3)
 
 ### Pending Todos
 
@@ -224,6 +226,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T20:11:48.873Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-10-21T20:18:17.666Z
+Stopped at: Completed 08-04-PLAN.md
 Resume file: None

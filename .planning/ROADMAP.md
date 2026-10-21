@@ -233,7 +233,7 @@ Plans:
 - [x] 08-01-PLAN.md — Wave 1: contratto schema — `CharacterStatus.activeTravel` (`ActiveTravel`, `TravelPath`, `to: ID!`, `kind` interno), `PendingQuest.startDate` nullable, `Pet.speedModifier`, `requiredAdventurers` a slot e `registeredAdventurers` a oggetti (`party`/`registrations` rimossi), SDL nel boot reale, riga Branch allineata (BE-TRAVEL-01)
 - [x] 08-02-PLAN.md — Wave 1: codici `TRAVEL_*`/`QUEST_IN_PROGRESS`, NOT_FOUND del luogo, `refIdOf` condiviso, modulo puro della capienza per rango D-32 con specchio `$expr` (BE-TRAVEL-02/04)
 - [ ] 08-03-PLAN.md — Wave 2: populate del catalogo quest D-31 (enemy, lore, item con refPath assoluto, orfani scartati), `quest(id)` NOT_FOUND tipizzato
-- [ ] 08-04-PLAN.md — Wave 1: `routeOf` puro + `RoadsService.routeBetween` (null mai eccezioni, arco più leggero), `RoadsModule` autosufficiente (BE-TRAVEL-02)
+- [x] 08-04-PLAN.md — Wave 1: `routeOf` puro + `RoadsService.routeBetween` (null mai eccezioni, arco più leggero), `RoadsModule` autosufficiente (BE-TRAVEL-02)
 - [ ] 08-05-PLAN.md — Wave 2: regole pure del viaggio — velocità/durata dal pet, `buildActiveTravel`, ordine dei rifiuti, filtri/update di avvio, completamento, countdown, teleport, scaduti, identità del job, `TRAVEL_SWEEP_INTERVAL_MS` fail-closed (BE-TRAVEL-02/03/04)
 - [ ] 08-06-PLAN.md — Wave 2: emendamenti all'accettazione — guard "non in viaggio" (D-06), story/worldMission da qualunque città, registrazione di enemy/aid a slot D-32, slot invalidi ⇒ `QUEST_NOT_ACCEPTABLE` (BE-TRAVEL-02)
 - [ ] 08-07-PLAN.md — Wave 2: `deleteCharacter` libera i posti nelle quest registrate (D-30)
@@ -304,6 +304,6 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Infrastruttura Push FCM | 8/8 | Complete    | 2026-10-18 |
 | 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
-| 8. Travel Lifecycle (TRAVEL-01) | 2/14 | In Progress | - |
+| 8. Travel Lifecycle (TRAVEL-01) | 3/14 | In Progress | - |
 | 9. Combat Result & Admin Outcomes | 0/TBD | Not started | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
