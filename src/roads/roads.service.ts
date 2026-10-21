@@ -1,13 +1,12 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-// Assicurati che questi import siano corretti per i tuoi modelli e librerie
 import { Road, RoadDocument } from 'src/models/road.model';
 import Graph from 'graphology';
 import { dijkstra } from 'graphology-shortest-path';
 import { LonLat, RoadRoute, RouteEdge, routeOf } from './road-route';
 import { PathResponse } from 'src/models/path-response.model';
-import { PointOfInterestsService } from 'src/pointsOfInterest/point-of-interest.service'; // Assumi che questo sia corretto
+import { PointOfInterestsService } from 'src/pointsOfInterest/point-of-interest.service';
 
 @Injectable()
 export class RoadsService implements OnModuleInit {
