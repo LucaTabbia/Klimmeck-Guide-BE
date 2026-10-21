@@ -110,6 +110,41 @@ export class GameRuleException extends BadRequestException {
         );
     }
 
+    static questInProgress(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.QUEST_IN_PROGRESS,
+            'Non puoi muoverti durante una missione in corso',
+        );
+    }
+
+    static travelInProgress(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.TRAVEL_IN_PROGRESS,
+            'Sei già in viaggio',
+        );
+    }
+
+    static travelSameLocation(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.TRAVEL_SAME_LOCATION,
+            'Sei già in questo luogo',
+        );
+    }
+
+    static travelDestinationNotAllowed(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.TRAVEL_DESTINATION_NOT_ALLOWED,
+            'Puoi viaggiare solo verso una città',
+        );
+    }
+
+    static travelNoPath(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.TRAVEL_NO_PATH,
+            'Nessuna strada porta a questa meta',
+        );
+    }
+
     static spellNotKnown(): GameRuleException {
         return new GameRuleException(
             GameRuleErrorCode.SPELL_NOT_KNOWN,
