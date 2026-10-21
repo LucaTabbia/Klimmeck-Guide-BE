@@ -12,6 +12,14 @@ type ActiveSpell {
   usages: Int!
 }
 
+type ActiveTravel {
+  duration: Float!
+  endTime: DateTime!
+  road: TravelPath!
+  startTime: DateTime!
+  to: ID!
+}
+
 type AssetQuantity {
   item: ItemUnion!
   quantity: Int!
@@ -69,6 +77,7 @@ type CharacterQuests {
 }
 
 type CharacterStatus {
+  activeTravel: ActiveTravel
   coins: Coins!
   currentLifePoints: Int!
   injuries: [InjuryType!]!
@@ -317,7 +326,7 @@ type PendingQuest {
   id: ID!
   pointsSpent: Int!
   quest: Quest!
-  startDate: DateTime!
+  startDate: DateTime
   waitingTime: Float!
 }
 
@@ -331,6 +340,7 @@ type Pet {
   maxXp: Int!
   name: String!
   sellPrice: Coins!
+  speedModifier: Float
   xp: Int!
 }
 
@@ -552,6 +562,11 @@ input TransactionRequest {
   isTotalPositive: Boolean!
   soldItems: TransactionItems!
   total: CoinsInput!
+}
+
+type TravelPath {
+  coordinates: [[Float!]!]!
+  distance: Float!
 }
 
 input UseSpellRequest {

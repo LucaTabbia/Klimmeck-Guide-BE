@@ -9,9 +9,10 @@ export class PendingQuest {
     @Field(() => ID)
     id: string;
 
-    @Field(() => Date)
-    @Prop({ type: Date })
-    startDate: Date;
+    // null = quest accettata, personaggio in viaggio verso il marker: il countdown parte all'arrivo (D-13, D-15)
+    @Field(() => Date, { nullable: true })
+    @Prop({ type: Date, default: null })
+    startDate: Date | null;
 
     @Field(() => Number)
     @Prop({ type: Number })
@@ -35,8 +36,8 @@ export class PendingQuestInput {
     @Field(() => ID, { nullable: true })
     id?: string;
 
-    @Field(() => Date)
-    startDate: Date;
+    @Field(() => Date, { nullable: true })
+    startDate?: Date | null;
 
     @Field(() => Int)
     waitingTime: number;

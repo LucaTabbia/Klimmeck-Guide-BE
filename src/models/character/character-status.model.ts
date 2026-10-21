@@ -7,6 +7,7 @@ import { TitleType } from '../enums/title-type.enum';
 import { Spell } from '../spell.model';
 import { PointOfInterest } from '../point-of-interest.model';
 import { maxActiveSpellsFor } from './active-spell-slots';
+import { ActiveTravel, ActiveTravelSchema } from './active-travel.model';
 
 @ObjectType()
 @Schema({ _id: false })
@@ -22,6 +23,11 @@ export class CharacterStatus {
     @Field(() => PointOfInterest)
     @Prop({ type: Types.ObjectId, ref: PointOfInterest.name, required: true })
     location: Types.ObjectId | PointOfInterest;
+
+    // null = nessun viaggio; scritto solo dal server (startTravel, accettazione quest, completamento, teleport)
+    @Field(() => ActiveTravel, { nullable: true })
+    @Prop({ type: ActiveTravelSchema, default: null })
+    activeTravel?: ActiveTravel | null;
 
     @Field(() => String)
     @Prop({ type: String, enum: Object.values(TitleType) })

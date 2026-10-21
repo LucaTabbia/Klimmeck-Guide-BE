@@ -1,6 +1,6 @@
-import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
+import { ObjectType, Field, Float, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document } from 'mongoose';
 import { DamagesSchema, Damages, DamagesInput } from './common/damages.model';
 import { CoinsSchema, Coins, CoinsInput } from './common/coins.model';
 
@@ -45,6 +45,11 @@ export class Pet {
     @Field(() => String)
     @Prop({ type: String, default: null })
     imagePath: string;
+
+    // modificatore di cavalcatura (D-08): null = non cavalcabile; velocità = 10 × modificatore, valorizzato a DB a mano
+    @Field(() => Float, { nullable: true })
+    @Prop({ type: Number, default: null })
+    speedModifier?: number | null;
 }
 
 export type PetDocument = Pet & Document;
@@ -81,4 +86,7 @@ export class PetInput {
 
     @Field(() => String, { nullable: true })
     imagePath?: string;
+
+    @Field(() => Float, { nullable: true })
+    speedModifier?: number | null;
 }
