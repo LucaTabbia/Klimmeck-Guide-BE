@@ -19,14 +19,17 @@ export class RoadsService implements OnModuleInit {
 
     constructor(
         @InjectModel(Road.name) private roadModel: Model<RoadDocument>,
-        private pointOfInterestsService: PointOfInterestsService
-    ) { }
+        private pointOfInterestsService: PointOfInterestsService,
+    ) {}
 
     async onModuleInit() {
         await this.buildGraph();
     }
 
-    private roundCoord([lon, lat]: [number, number], precision = 7): [number, number] {
+    private roundCoord(
+        [lon, lat]: [number, number],
+        precision = 7,
+    ): [number, number] {
         return [
             parseFloat(lon.toFixed(precision)),
             parseFloat(lat.toFixed(precision)),
@@ -37,7 +40,10 @@ export class RoadsService implements OnModuleInit {
         return degrees * (Math.PI / 180);
     }
 
-    private haversineDistance(a: [number, number], b: [number, number]): number {
+    private haversineDistance(
+        a: [number, number],
+        b: [number, number],
+    ): number {
         const [lon1, lat1] = a;
         const [lon2, lat2] = b;
 
@@ -48,16 +54,16 @@ export class RoadsService implements OnModuleInit {
 
         const a_haversine =
             Math.sin(deltaLat / 2) ** 2 +
-            Math.cos(latRad1) * Math.cos(latRad2) *
-            Math.sin(deltaLon / 2) ** 2;
+            Math.cos(latRad1) * Math.cos(latRad2) * Math.sin(deltaLon / 2) ** 2;
 
-        const c = 2 * Math.atan2(Math.sqrt(a_haversine), Math.sqrt(1 - a_haversine));
+        const c =
+            2 * Math.atan2(Math.sqrt(a_haversine), Math.sqrt(1 - a_haversine));
 
         return this.R * c;
     }
 
     private findNearestNode([lon, lat]: [number, number]): string {
-        let nearestKey: string = "";
+        let nearestKey: string = '';
         let minDist = Infinity;
 
         this.graph.forEachNode((key, attrs) => {
@@ -69,13 +75,14 @@ export class RoadsService implements OnModuleInit {
             }
         });
 
-        if (nearestKey === "") {
-            throw new Error(`Punto troppo lontano (> ${this.MAX_SNAP_DISTANCE_KM} km) per essere agganciato alla rete stradale.`);
+        if (nearestKey === '') {
+            throw new Error(
+                `Punto troppo lontano (> ${this.MAX_SNAP_DISTANCE_KM} km) per essere agganciato alla rete stradale.`,
+            );
         }
 
         return nearestKey;
     }
-
 
     async buildGraph() {
         const roads: Road[] = await this.roadModel.find().exec();
@@ -98,7 +105,10 @@ export class RoadsService implements OnModuleInit {
                     graph.addNode(endKey, { coord: endCoord });
                 }
 
-                const segmentLengthKm = this.haversineDistance(startCoord, endCoord);
+                const segmentLengthKm = this.haversineDistance(
+                    startCoord,
+                    endCoord,
+                );
 
                 const speedFactor = road.speedFactor || 1;
                 const weight = segmentLengthKm / speedFactor;
@@ -113,9 +123,10 @@ export class RoadsService implements OnModuleInit {
         }
 
         this.graph = graph;
-        this.logger.log(`Grafo costruito con ${graph.order} nodi e ${graph.size} archi`);
+        this.logger.log(
+            `Grafo costruito con ${graph.order} nodi e ${graph.size} archi`,
+        );
     }
-
 
     async getShortestPath(from: string, to: string): Promise<PathResponse> {
         if (!this.graph) throw new Error('Graph not built yet');
@@ -139,9 +150,14 @@ export class RoadsService implements OnModuleInit {
             end = nearestEnd;
         }
 
-
-        const path = dijkstra.bidirectional(this.graph, start, end, (e, attr) => attr.weight);
-        if (!path || path.length < 2) throw new Error('Nessun percorso trovato tra i due punti');
+        const path = dijkstra.bidirectional(
+            this.graph,
+            start,
+            end,
+            (e, attr) => attr.weight,
+        );
+        if (!path || path.length < 2)
+            throw new Error('Nessun percorso trovato tra i due punti');
 
         let totalLengthKm = 0;
         let totalTimeHours = 0;
@@ -153,15 +169,17 @@ export class RoadsService implements OnModuleInit {
             const edgeKeys = this.graph.edges(sourceNode, targetNode);
 
             if (edgeKeys && edgeKeys.length > 0) {
-
                 const edgeKey = edgeKeys[0];
 
-                const { lengthKm, speedFactor } = this.graph.getEdgeAttributes(edgeKey);
+                const { lengthKm, speedFactor } =
+                    this.graph.getEdgeAttributes(edgeKey);
 
                 totalLengthKm += lengthKm;
                 totalTimeHours += lengthKm / speedFactor;
             } else {
-                this.logger.error(`Arco non trovato tra ${sourceNode} e ${targetNode}`);
+                this.logger.error(
+                    `Arco non trovato tra ${sourceNode} e ${targetNode}`,
+                );
             }
         }
 

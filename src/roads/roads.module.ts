@@ -9,8 +9,7 @@ import { RoadsService } from './roads.service';
     imports: [
         MongooseModule.forFeature([{ name: Road.name, schema: RoadSchema }]),
     ],
-    providers: [RoadsService, RoadsResolver, PointOfInterestsService
-    ],
+    providers: [RoadsService, RoadsResolver, PointOfInterestsService],
     exports: [RoadsService],
 })
-export class RoadsModule { }
+export class RoadsModule {}
