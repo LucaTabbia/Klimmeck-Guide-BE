@@ -213,7 +213,7 @@ Plans:
 - [x] 07-02-PLAN.md — Wave 1: regole pure testate a tabella — 5 codici `GameRuleErrorCode` nuovi, `quest-lanes.ts` (corsia dal tipo), `quest-eligibility.ts` (titolo, ripetibilità, condivise, costo, `waitingTime`, capienza, ordine di classificazione), `quest-acceptance.updates.ts` (filtri di claim e registrazione con `$expr`) (BE-QUEST-02/03/04)
 - [x] 07-03-PLAN.md — Wave 2: populate «solo il PendingQuest» — helper `primeCharactersChangeStream` condiviso, costante `CHARACTER_QUESTS_POPULATE` (tre corsie + `completedQuests` con `select: '_id'`) in `findOne`/`findAll`, `PendingQuest`/`Quest` registrati in `CharactersModule` e nell'harness, int-spec su `character`, `characters`, `characterUpdated` (BE-QUEST-01)
 - [x] 07-04-PLAN.md — Wave 2: autorizzazione — `@OwnsCharacter(selectId, { ownerOnly: true })` senza bypass innkeeper, `pendingQuest(id)` riconosce le tre corsie (BE-QUEST-02/03)
-- [ ] 07-05-PLAN.md — Wave 2: `serverTime: DateTime!` autenticata — `ServerTimeResolver` sincrono + `ServerTimeModule` con `Clock` locale, montato in `AppModule`, boot reale e schema (BE-QUEST-04)
+- [x] 07-05-PLAN.md — Wave 2: `serverTime: DateTime!` autenticata — `ServerTimeResolver` sincrono + `ServerTimeModule` con `Clock` locale, montato in `AppModule`, boot reale e schema (BE-QUEST-04)
 - [ ] 07-06-PLAN.md — Wave 2: `QuestAcceptanceService.accept({ ownerId, characterId, questId })` generalizzato — pre-letture lean, regole pure, transazione claim → registrazione `$expr` → insert `PendingQuest` → `debitUserPoints(session)`, verifica della città in una query, int-spec con la matrice D-19 e concorrenza, test Phase 4 su `costCopper` sostituiti (BE-QUEST-02/03/04)
 - [ ] 07-07-PLAN.md — Wave 3: superficie GraphQL — `input AcceptQuestRequest { id, questId }`, `QuestAcceptanceResolver.acceptQuest` owner-only in `QuestAcceptanceModule` (+ `AuthzModule`), int-spec sul filo (codici, FORBIDDEN senza audit, id malformati, UNAUTHENTICATED, `characterUpdated` con la corsia popolata), boot reale con `EXPECTED_OWNER_ONLY_HANDLERS` e test negativo riscritto in positivo, schema rigenerato (BE-QUEST-01..04)
 - [ ] 07-08-PLAN.md — Wave 4: gate di fase (suite complete, build, lint filtrato, schema additivo senza drift, invarianti) + `BACKEND-NOTES.md` per la FE Phase 6 + traceability BE-QUEST-01..04 + `07-VALIDATION.md` (BE-QUEST-01..04)
@@ -289,7 +289,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 4. Integrità Economica (Atomics) | 9/9 | Complete | 2026-10-18 |
 | 5. Infrastruttura Push FCM | 8/8 | Complete    | 2026-10-18 |
 | 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
-| 7. Quest Lanes (QUEST-04) | 4/8 | In Progress | - |
+| 7. Quest Lanes (QUEST-04) | 5/8 | In Progress | - |
 | 8. Travel Lifecycle (TRAVEL-01) | 0/TBD | Not started | - |
 | 9. Combat Result & Admin Outcomes | 0/TBD | Not started | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
