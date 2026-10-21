@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { Clock, SystemClock } from 'src/auth/clock';
 import { AuthzModule } from 'src/authz/authz.module';
 import { EconomyModule } from 'src/economy/economy.module';
 import {
@@ -27,7 +28,11 @@ import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.s
         EconomyModule,
         AuthzModule,
     ],
-    providers: [QuestAcceptanceService, QuestAcceptanceResolver],
+    providers: [
+        QuestAcceptanceService,
+        QuestAcceptanceResolver,
+        { provide: Clock, useClass: SystemClock },
+    ],
     exports: [QuestAcceptanceService],
 })
 export class QuestAcceptanceModule {}

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
+import { Clock } from 'src/auth/clock';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { WalletService } from 'src/economy/wallet.service';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
@@ -97,6 +98,7 @@ export class QuestAcceptanceService {
         @InjectModel(City.name)
         private readonly cityModel: Model<CityDocument>,
         private readonly wallet: WalletService,
+        private readonly clock: Clock,
     ) {}
 
     // pre-letture lean → regole pure → una transazione con le guard riaffermate nel filtro (07 D-18): un rifiuto non scrive nulla
@@ -132,7 +134,7 @@ export class QuestAcceptanceService {
                 [
                     {
                         _id: pendingQuestId,
-                        startDate: new Date(),
+                        startDate: this.clock.now(),
                         waitingTime: waitingTimeOf(
                             lane,
                             quest.infos.timeToComplete,

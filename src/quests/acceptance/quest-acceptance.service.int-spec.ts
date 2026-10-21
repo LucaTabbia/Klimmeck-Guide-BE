@@ -6,6 +6,7 @@ import {
 } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import { Connection, Model, Types } from 'mongoose';
+import { Clock } from 'src/auth/clock';
 import {
     Character,
     CharacterDocument,
@@ -22,6 +23,7 @@ import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.mo
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
 import { registrationFilter } from 'src/quests/acceptance/quest-acceptance.updates';
 import { capacityRuleOf } from 'src/quests/acceptance/quest-eligibility';
+import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildCharacter,
     buildQuest,
@@ -32,6 +34,7 @@ import {
 } from '../../../test/fixtures';
 
 const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
+const ACCEPTED_AT = new Date('2026-03-04T05:06:07.000Z');
 const STARTING_COINS = { gold: 1, silver: 2, copper: 3 };
 
 interface World {
@@ -60,7 +63,10 @@ describe('QuestAcceptanceService (replSet)', () => {
                 }),
                 QuestAcceptanceModule,
             ],
-        }).compile();
+        })
+            .overrideProvider(Clock)
+            .useValue(new FixedClock(ACCEPTED_AT))
+            .compile();
         app = moduleRef.createNestApplication();
         await app.init();
         acceptance = app.get(QuestAcceptanceService);
@@ -204,8 +210,6 @@ describe('QuestAcceptanceService (replSet)', () => {
                 { requiredPoints: 5000, minTitle: 'rookie' },
                 { timeToComplete: 60000 },
             );
-            const t0 = new Date();
-
             const pqId = await accept(ownerId, charId, questId);
 
             expect(pqId).toBeInstanceOf(Types.ObjectId);
@@ -219,9 +223,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                 waitingTime: 0,
                 pointsSpent: 5000,
             });
-            const startDate = pending?.startDate as Date;
-            expect(startDate.getTime()).toBeGreaterThanOrEqual(t0.getTime());
-            expect(startDate.getTime()).toBeLessThanOrEqual(Date.now());
+            expect(pending?.startDate).toEqual(ACCEPTED_AT);
             expect(await pointsOf(ownerId)).toBe(1000);
             expect(character?.status.coins).toEqual(STARTING_COINS);
         });
