@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 7 planned, ready to execute
-last_updated: "2026-10-21T11:14:54.807Z"
-last_activity: "2026-10-21 -- Phase 7 planning complete: 8 plans in 4 waves (07-01..07-08) verified by the plan checker (0 blockers after one revision), 07-RESEARCH.md + 07-VALIDATION.md committed, CONTEXT D-11/D-13/D-18/D-19 amended after the research; next: execute Phase 7 on feat/07-quest-lanes-quest-04, then BACKEND-NOTES for FE Phase 6"
+last_updated: "2026-10-21T11:16:33.695Z"
+last_activity: 2026-10-21 -- Phase 7 execution started
 progress:
   total_phases: 12
   completed_phases: 8
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 7 — Quest Lanes (QUEST-04): planned on 2026-10-21, 8 plans in 4 waves on branch `feat/07-quest-lanes-quest-04` (Phase 6 merged as BE PR #9); next `/gsd-execute-phase 7` (unblocks FE Phase 6)
+**Current focus:** Phase 7 — quest-lanes-quest-04
 
 ## Current Position
 
-Phase: 7 (quest-lanes-quest-04) — PLANNED 2026-10-21 (8 plans / 4 waves; research HIGH confidence with empirical probes; CONTEXT D-11/D-13/D-18/D-19 amended after the research: internal `Quest.registrations`, populate of the three lanes + `completedQuests` with `select: '_id'`, `pendingQuest(id)` on the three lanes, boot test rewritten in positive form)
-Plan: 0/8 — next 07-01 (Wave 1: contratto dati GraphQL)
-Status: Ready to execute
-Last activity: 2026-10-21 -- Phase 7 planning complete: 8 plans in 4 waves (07-01..07-08) verified by the plan checker (0 blockers after one revision), 07-RESEARCH.md + 07-VALIDATION.md committed, CONTEXT D-11/D-13/D-18/D-19 amended after the research; next: execute Phase 7 on feat/07-quest-lanes-quest-04, then BACKEND-NOTES for FE Phase 6
+Phase: 7 (quest-lanes-quest-04) — EXECUTING
+Plan: 1 of 8
+Status: Executing Phase 7
+Last activity: 2026-10-21 -- Phase 7 execution started
 
 Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 planned 0/8, ready to execute)
 
