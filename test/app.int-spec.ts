@@ -43,6 +43,10 @@ const REGISTER_PUSH_DEVICE =
     'mutation { registerPushDevice(input: { deviceId: "d", token: "t", platform: android }) }';
 const ACCEPT_QUEST =
     'mutation { acceptQuest(request: { id: "64b000000000000000000001", questId: "64b000000000000000000002" }) { successful } }';
+const START_TRAVEL =
+    'mutation { startTravel(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
+const TRAVEL_PREVIEW =
+    '{ travelPreview(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { duration } }';
 // whitelist enumerata (D-12): ogni aggiunta di @Public() deve passare da qui
 const EXPECTED_PUBLIC_HANDLERS = [
     'AppController.getHello',
@@ -71,9 +75,15 @@ const EXPECTED_OWNERSHIP_HANDLERS = [
     'CharactersResolver.useSpell',
     'PendingQuestsResolver.pendingQuest',
     'QuestAcceptanceResolver.acceptQuest',
+    'TravelResolver.startTravel',
+    'TravelResolver.travelPreview',
 ];
 // nessun bypass innkeeper (07 D-11): ogni handler owner-only deve passare da qui
-const EXPECTED_OWNER_ONLY_HANDLERS = ['QuestAcceptanceResolver.acceptQuest'];
+const EXPECTED_OWNER_ONLY_HANDLERS = [
+    'QuestAcceptanceResolver.acceptQuest',
+    'TravelResolver.startTravel',
+    'TravelResolver.travelPreview',
+];
 
 interface PublicSurface {
     handlers: string[];
@@ -367,6 +377,23 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toMatch(/TravelKind|\bkind\b/);
     });
 
+    it('writes the free travel API into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'startTravel(request: TravelRequest!): CommonResponse!',
+        );
+        expect(schema).toContain(
+            'travelPreview(request: TravelRequest!): TravelPreview!',
+        );
+        expect(schema.match(/input TravelRequest \{[^}]*\}/)?.[0]).toBe(
+            'input TravelRequest {\n  id: String!\n  poiId: String!\n}',
+        );
+        expect(schema.match(/type TravelPreview \{[^}]*\}/)?.[0]).toBe(
+            'type TravelPreview {\n  distance: Float!\n  duration: Float!\n  road: TravelPath!\n}',
+        );
+    });
+
     it('writes the push API into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -485,6 +512,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
         it('rejects acceptQuest without a bearer', async () => {
             expect(errorCodeOf(await graphqlCall(app, ACCEPT_QUEST))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects startTravel and travelPreview without a bearer', async () => {
+            expect(errorCodeOf(await graphqlCall(app, START_TRAVEL))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+            expect(errorCodeOf(await graphqlCall(app, TRAVEL_PREVIEW))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
         });
