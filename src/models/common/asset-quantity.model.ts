@@ -1,6 +1,6 @@
 import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { EquipmentItem } from '../equipment-item.model';
 import { LootItem } from '../loot-item.model';
 import { ItemUnion } from './item.union';
@@ -24,6 +24,11 @@ export class AssetQuantity {
 
 export type AssetQuantityDocument = AssetQuantity & Document;
 export const AssetQuantitySchema = SchemaFactory.createForClass(AssetQuantity);
+
+export function assetQuantitySchemaAt(path: string): MongooseSchema {
+    void path;
+    return AssetQuantitySchema;
+}
 
 @InputType()
 export class AssetQuantityInput {
