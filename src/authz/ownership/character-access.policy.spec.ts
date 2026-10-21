@@ -25,7 +25,7 @@ describe('CharacterAccessPolicy', () => {
     let userDoc: { currentCharacter: Types.ObjectId | null } | null;
     let userModel: { findById: jest.Mock };
     let characterDoc: {
-        quests: { pendingQuest: Types.ObjectId | null };
+        quests: Record<string, Types.ObjectId | null>;
     } | null;
     let characterModel: { exists: jest.Mock; findOne: jest.Mock };
     let pendingQuestModel: { exists: jest.Mock };
@@ -240,10 +240,31 @@ describe('CharacterAccessPolicy', () => {
             expect(characterModel.findOne).toHaveBeenCalledTimes(1);
             expect(characterModel.findOne).toHaveBeenCalledWith(
                 { _id: OWN_ID, deletedAt: null },
-                { 'quests.pendingQuest': 1 },
+                {
+                    'quests.pendingQuest': 1,
+                    'quests.activeStoryQuest': 1,
+                    'quests.activeWorldMissionQuest': 1,
+                },
             );
             expect(pendingQuestModel.exists).not.toHaveBeenCalled();
         });
+
+        it.each(['activeStoryQuest', 'activeWorldMissionQuest'])(
+            'grants owner access when the pending quest sits in %s',
+            async (lane) => {
+                characterDoc = {
+                    quests: {
+                        pendingQuest: null,
+                        [lane]: new Types.ObjectId(PQ_ID),
+                    },
+                };
+
+                await expect(
+                    policy.authorizePendingQuest(buildIdentity(), PQ_ID),
+                ).resolves.toBe(ResourceAccess.owner);
+                expect(pendingQuestModel.exists).not.toHaveBeenCalled();
+            },
+        );
 
         it('forbids an adventurer reading an existing foreign pending quest', async () => {
             const result = policy.authorizePendingQuest(
