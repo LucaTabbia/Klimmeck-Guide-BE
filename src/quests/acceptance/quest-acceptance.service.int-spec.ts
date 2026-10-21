@@ -11,6 +11,7 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { City, CityDocument } from 'src/models/city.model';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import {
     PendingQuest,
     PendingQuestDocument,
@@ -19,6 +20,8 @@ import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
+import { registrationFilter } from 'src/quests/acceptance/quest-acceptance.updates';
+import { capacityRuleOf } from 'src/quests/acceptance/quest-eligibility';
 import {
     buildCharacter,
     buildQuest,
@@ -745,6 +748,60 @@ describe('QuestAcceptanceService (replSet)', () => {
                 (await rawQuest(questId))?.registeredAdventurers,
             ).toHaveLength(2);
             expect(await pendingCount()).toBe(2);
+        });
+
+        async function legacyQuestTakenBy(
+            legacyIds: string[],
+        ): Promise<Types.ObjectId> {
+            const questId = await questOf('worldMission', {
+                requiredPoints: 1000,
+                party: [],
+                requiredAdventurers: 1,
+            });
+            await quests.collection.updateOne(
+                { _id: questId },
+                {
+                    $set: { registeredAdventurers: legacyIds },
+                    $unset: { registrations: '' },
+                },
+            );
+            return questId;
+        }
+
+        it('rejects a legacy world mission whose total is taken by legacy adventurers with QUEST_FULL', async () => {
+            const legacyId = new Types.ObjectId().toHexString();
+            const questId = await legacyQuestTakenBy([legacyId]);
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_FULL' });
+
+            const quest = await rawQuest(questId);
+            expect(quest?.registeredAdventurers).toEqual([legacyId]);
+            expect(quest?.registrations).toBeUndefined();
+            expect(
+                (await raw(charId))?.quests.activeWorldMissionQuest,
+            ).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('the registration filter counts the legacy adventurers in the total', async () => {
+            const questId = await legacyQuestTakenBy([
+                new Types.ObjectId().toHexString(),
+            ]);
+            const filter = registrationFilter(
+                questId,
+                new Types.ObjectId(),
+                capacityRuleOf(
+                    { party: [], requiredAdventurers: 1 },
+                    TitleType.rookie,
+                ),
+            );
+
+            expect(await quests.collection.countDocuments(filter)).toBe(0);
         });
 
         it('leaves no registration when the points are insufficient', async () => {

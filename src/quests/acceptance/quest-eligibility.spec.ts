@@ -11,6 +11,7 @@ import {
     meetsTitle,
     pointsCostOf,
     QuestEligibilitySnapshot,
+    Registration,
     TITLE_RANK,
     waitingTimeOf,
 } from './quest-eligibility';
@@ -204,13 +205,22 @@ describe('quest eligibility rules', () => {
             character: new Types.ObjectId(),
             title,
         });
+        const rosterOf = (...registrations: Registration[]) => ({
+            registrations,
+        });
+        const legacyIds = (count: number) =>
+            Array.from({ length: count }, () =>
+                new Types.ObjectId().toHexString(),
+            );
 
         it('an unlimited quest always has room', () => {
             const many = Array.from({ length: 99 }, () =>
                 registered(TitleType.hero),
             );
 
-            expect(hasCapacity({ kind: 'unlimited' }, many)).toBe(true);
+            expect(hasCapacity({ kind: 'unlimited' }, rosterOf(...many))).toBe(
+                true,
+            );
         });
 
         it('counts only the registrations of the same rank', () => {
@@ -220,17 +230,19 @@ describe('quest eligibility rules', () => {
                 limit: 1,
             } as const;
 
-            expect(hasCapacity(rule, [registered(TitleType.hero)])).toBe(false);
-            expect(hasCapacity(rule, [registered(TitleType.paladin)])).toBe(
-                true,
-            );
+            expect(
+                hasCapacity(rule, rosterOf(registered(TitleType.hero))),
+            ).toBe(false);
+            expect(
+                hasCapacity(rule, rosterOf(registered(TitleType.paladin))),
+            ).toBe(true);
         });
 
         it('a rank with zero seats is always full', () => {
             expect(
                 hasCapacity(
                     { kind: 'perRank', title: TitleType.mage, limit: 0 },
-                    [],
+                    rosterOf(),
                 ),
             ).toBe(false);
         });
@@ -239,19 +251,55 @@ describe('quest eligibility rules', () => {
             const rule = { kind: 'total', limit: 2 } as const;
 
             expect(
-                hasCapacity(rule, [
-                    registered(TitleType.hero),
-                    registered(TitleType.paladin),
-                ]),
+                hasCapacity(
+                    rule,
+                    rosterOf(
+                        registered(TitleType.hero),
+                        registered(TitleType.paladin),
+                    ),
+                ),
             ).toBe(false);
-            expect(hasCapacity(rule, [registered(TitleType.hero)])).toBe(true);
+            expect(
+                hasCapacity(rule, rosterOf(registered(TitleType.hero))),
+            ).toBe(true);
+        });
+
+        it('counts the legacy adventurers for a total limit', () => {
+            const rule = { kind: 'total', limit: 2 } as const;
+
+            expect(
+                hasCapacity(rule, {
+                    registrations: [],
+                    registeredAdventurers: legacyIds(2),
+                }),
+            ).toBe(false);
+            expect(
+                hasCapacity(rule, {
+                    registrations: [registered(TitleType.hero)],
+                    registeredAdventurers: legacyIds(1),
+                }),
+            ).toBe(true);
+        });
+
+        it('ignores the legacy adventurers for a per-rank limit (no title)', () => {
+            expect(
+                hasCapacity(
+                    { kind: 'perRank', title: TitleType.hero, limit: 1 },
+                    { registrations: [], registeredAdventurers: legacyIds(3) },
+                ),
+            ).toBe(true);
         });
 
         it('treats missing registrations as none', () => {
             const rule = { kind: 'total', limit: 1 } as const;
 
-            expect(hasCapacity(rule, null)).toBe(true);
-            expect(hasCapacity(rule, undefined)).toBe(true);
+            expect(
+                hasCapacity(rule, {
+                    registrations: null,
+                    registeredAdventurers: null,
+                }),
+            ).toBe(true);
+            expect(hasCapacity(rule, {})).toBe(true);
         });
     });
 
@@ -452,6 +500,25 @@ describe('quest eligibility rules', () => {
                         registrations: [otherHero],
                     }),
                     characterOf(TitleType.hero),
+                ),
+            ).toMatchObject({ code: 'QUEST_FULL' });
+        });
+
+        it('rejects a legacy world mission whose total is taken by legacy adventurers', () => {
+            expect(
+                classify(
+                    questOf(QuestType.worldMission, {
+                        requirements: {
+                            minTitle: TitleType.rookie,
+                            party: [],
+                            requiredAdventurers: 1,
+                        },
+                        registrations: [],
+                        registeredAdventurers: [
+                            new Types.ObjectId().toHexString(),
+                        ],
+                    }),
+                    characterOf(TitleType.rookie),
                 ),
             ).toMatchObject({ code: 'QUEST_FULL' });
         });

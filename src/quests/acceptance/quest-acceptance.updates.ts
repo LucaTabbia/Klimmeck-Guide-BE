@@ -4,7 +4,7 @@ import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms, sameId } from 'src/mongo/document-id';
-import { CapacityRule, Registration } from './quest-eligibility';
+import { CapacityRule, QuestRoster } from './quest-eligibility';
 import { lanePathOf, QuestLane } from './quest-lanes';
 
 export interface LaneClaimSnapshot {
@@ -22,14 +22,14 @@ export interface UnclaimedSnapshot {
     } | null;
 }
 
-export interface UnregisteredSnapshot {
-    registrations?: readonly Registration[] | null;
-    registeredAdventurers?: readonly string[] | null;
-}
+export type UnregisteredSnapshot = QuestRoster;
 
 type LimitedCapacityRule = Exclude<CapacityRule, { kind: 'unlimited' }>;
 
 const REGISTRATIONS_OR_EMPTY = { $ifNull: ['$registrations', []] };
+const LEGACY_ADVENTURERS_OR_EMPTY = {
+    $ifNull: ['$registeredAdventurers', []],
+};
 
 // ogni regola esprimibile sul documento sta nel filtro (D-18): attivo, corsia libera, titolo e posizione verificati, non ripetibilità
 export function laneClaimFilter(
@@ -60,7 +60,14 @@ export function laneClaimUpdate(
 export function takenCountExpr(
     rule: LimitedCapacityRule,
 ): Record<string, unknown> {
-    if (rule.kind === 'total') return { $size: REGISTRATIONS_OR_EMPTY };
+    // i legacy stanno solo in registeredAdventurers e senza titolo: contano nel totale, non per rango; specchio di hasCapacity
+    if (rule.kind === 'total')
+        return {
+            $max: [
+                { $size: REGISTRATIONS_OR_EMPTY },
+                { $size: LEGACY_ADVENTURERS_OR_EMPTY },
+            ],
+        };
     return {
         $size: {
             $filter: {

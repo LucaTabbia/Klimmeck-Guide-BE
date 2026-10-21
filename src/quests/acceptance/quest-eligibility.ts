@@ -49,12 +49,15 @@ export interface QuestRequirementsSnapshot {
     requiredPoints?: number | null;
 }
 
-export interface QuestEligibilitySnapshot {
+export interface QuestRoster {
+    registrations?: readonly Registration[] | null;
+    registeredAdventurers?: readonly string[] | null;
+}
+
+export interface QuestEligibilitySnapshot extends QuestRoster {
     _id: Types.ObjectId;
     infos: { type: QuestType };
     requirements?: QuestRequirementsSnapshot | null;
-    registrations?: readonly Registration[] | null;
-    registeredAdventurers?: readonly string[] | null;
 }
 
 export interface CharacterEligibilitySnapshot {
@@ -138,17 +141,19 @@ export function capacityRuleOf(
     return total > 0 ? { kind: 'total', limit: total } : { kind: 'unlimited' };
 }
 
-export function hasCapacity(
-    rule: CapacityRule,
-    registrations: readonly Registration[] | null | undefined,
-): boolean {
+// i legacy stanno solo in registeredAdventurers e senza titolo: contano nel totale, non per rango; specchio di takenCountExpr
+export function hasCapacity(rule: CapacityRule, roster: QuestRoster): boolean {
     if (rule.kind === 'unlimited') return true;
-    const all = registrations ?? [];
+    const registrations = roster.registrations ?? [];
     const taken =
         rule.kind === 'perRank'
-            ? all.filter((registration) => registration.title === rule.title)
-                  .length
-            : all.length;
+            ? registrations.filter(
+                  (registration) => registration.title === rule.title,
+              ).length
+            : Math.max(
+                  registrations.length,
+                  roster.registeredAdventurers?.length ?? 0,
+              );
     return taken < rule.limit;
 }
 
@@ -188,7 +193,7 @@ export function classifyEligibility(
         isShared(type) &&
         !hasCapacity(
             capacityRuleOf(quest.requirements, character.status.title),
-            quest.registrations,
+            quest,
         )
     )
         return GameRuleException.questFull();

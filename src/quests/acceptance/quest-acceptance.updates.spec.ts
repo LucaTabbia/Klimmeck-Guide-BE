@@ -83,9 +83,12 @@ describe('quest acceptance write builders', () => {
             });
         });
 
-        it('counts every registration for a total limit', () => {
+        it('counts the longer of registrations and legacy adventurers for a total limit', () => {
             expect(takenCountExpr({ kind: 'total', limit: 2 })).toEqual({
-                $size: { $ifNull: ['$registrations', []] },
+                $max: [
+                    { $size: { $ifNull: ['$registrations', []] } },
+                    { $size: { $ifNull: ['$registeredAdventurers', []] } },
+                ],
             });
         });
     });
