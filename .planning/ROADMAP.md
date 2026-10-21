@@ -229,7 +229,21 @@ Plans:
   2. `startTravel(poiId)` rifiuta se un travel è già attivo, altrimenti calcola percorso/ETA server-side (graphology) e persiste `activeTravel`; esiste una query di preview ETA per la conferma FE.
   3. Alla scadenza di `endTime` il BE cancella `activeTravel`, aggiorna `location` ed emette via subscription + push travel-end; un viaggio scaduto mentre il server era spento viene completato da un reconciler al boot (il DB `endTime` è la fonte di verità, il job Bull è solo un trigger).
   4. Il teleport admin sovrascrive `location` e cancella `activeTravel` (incluso il job Bull pendente) atomicamente in un'unica operazione.
-**Plans**: TBD
+**Plans**: 14 piani in 7 wave (pianificati il 2026-10-21; contratto schema in Wave 1 così la FE Phase 7 può partire)
+- [ ] 08-01-PLAN.md — Wave 1: contratto schema — `CharacterStatus.activeTravel` (`ActiveTravel`, `TravelPath`, `to: ID!`, `kind` interno), `PendingQuest.startDate` nullable, `Pet.speedModifier`, `requiredAdventurers` a slot e `registeredAdventurers` a oggetti (`party`/`registrations` rimossi), SDL nel boot reale, riga Branch allineata (BE-TRAVEL-01)
+- [ ] 08-02-PLAN.md — Wave 1: codici `TRAVEL_*`/`QUEST_IN_PROGRESS`, NOT_FOUND del luogo, `refIdOf` condiviso, modulo puro della capienza per rango D-32 con specchio `$expr` (BE-TRAVEL-02/04)
+- [ ] 08-03-PLAN.md — Wave 2: populate del catalogo quest D-31 (enemy, lore, item con refPath assoluto, orfani scartati), `quest(id)` NOT_FOUND tipizzato
+- [ ] 08-04-PLAN.md — Wave 1: `routeOf` puro + `RoadsService.routeBetween` (null mai eccezioni, arco più leggero), `RoadsModule` autosufficiente (BE-TRAVEL-02)
+- [ ] 08-05-PLAN.md — Wave 2: regole pure del viaggio — velocità/durata dal pet, `buildActiveTravel`, ordine dei rifiuti, filtri/update di avvio, completamento, countdown, teleport, scaduti, identità del job, `TRAVEL_SWEEP_INTERVAL_MS` fail-closed (BE-TRAVEL-02/03/04)
+- [ ] 08-06-PLAN.md — Wave 2: emendamenti all'accettazione — guard "non in viaggio" (D-06), story/worldMission da qualunque città, registrazione di enemy/aid a slot D-32, slot invalidi ⇒ `QUEST_NOT_ACCEPTABLE` (BE-TRAVEL-02)
+- [ ] 08-07-PLAN.md — Wave 2: `deleteCharacter` libera i posti nelle quest registrate (D-30)
+- [ ] 08-08-PLAN.md — Wave 3: `TravelPlanner` (planFree/planAuto) + `TravelScheduler` (coda `travel`, jobId deterministico) in `TravelPlanningModule`, mappa di prova e fake della coda (BE-TRAVEL-02/03)
+- [ ] 08-09-PLAN.md — Wave 3: `TravelCompletionService` idempotente (countdown della quest, push `travelEnd` solo per i viaggi liberi) + `TravelSweeper` (reconciler al boot, sweep periodico) in `TravelModule` (BE-TRAVEL-03)
+- [ ] 08-10-PLAN.md — Wave 4: processor Bull del completamento su Redis reale, `TravelModule` montato nel boot reale (BE-TRAVEL-03)
+- [ ] 08-11-PLAN.md — Wave 4: viaggio automatico all'accettazione della corsia standard (stesso claim, salto senza strada, job dopo il commit), `startDate` null sul filo (BE-TRAVEL-02/03)
+- [ ] 08-12-PLAN.md — Wave 5: `startTravel` e `travelPreview` owner-only, avvio condizionale, prova sul filo fino all'arrivo, whitelist e SDL (BE-TRAVEL-01/02/03)
+- [ ] 08-13-PLAN.md — Wave 6: `teleportCharacter` innkeeper atomico con rimozione del job e audit, whitelist e SDL (BE-TRAVEL-04)
+- [ ] 08-14-PLAN.md — Wave 7: gate di fase + `BACKEND-NOTES.md` per FE Phase 7/6 e BE Phase 9/10 + traceability BE-TRAVEL-01..04 + `08-VALIDATION.md` (BE-TRAVEL-01..04)
 **Unblocks (FE)**: **FE Phase 7** (schema + lifecycle su staging) → FE TRAVEL-01/02/03/04, ADMIN-04.
 **Branch**: `feat/08-travel-lifecycle` da `develop` → PR a `develop`.
 
@@ -290,6 +304,6 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Infrastruttura Push FCM | 8/8 | Complete    | 2026-10-18 |
 | 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
-| 8. Travel Lifecycle (TRAVEL-01) | 0/TBD | Not started | - |
+| 8. Travel Lifecycle (TRAVEL-01) | 0/14 | Not started | - |
 | 9. Combat Result & Admin Outcomes | 0/TBD | Not started | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |

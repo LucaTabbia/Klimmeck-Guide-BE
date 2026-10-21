@@ -313,7 +313,7 @@ travelPreview(…) { … }
 
 @Roles(RoleType.innkeeper)
 @Mutation(() => CommonResponse)
-teleportCharacter(@Args('request', { type: () => TeleportCharacterRequest }) request: TeleportCharacterRequest) { … }
+teleportCharacter(@Args('request', { type: () => TravelRequest }) request: TravelRequest) { … } // planning: riusa TravelRequest { id, poiId } (parsimonia dello schema), nessun TeleportCharacterRequest
 ```
 
 - Il modulo che ospita i resolver importa `AuthzModule` (i guard di metodo si istanziano lì; `quest-acceptance.module.ts:28-30`).
@@ -572,16 +572,21 @@ await this.queue.add('complete', { characterId, startTime: start.getTime(), endT
 | A5 | La produzione ha dati simili al DB di sviluppo | Q1, Inventory | durate e quest legacy diverse in prod: da rimisurare con lo script |
 | A6 | Ordine dei rifiuti proposto (Q5 punto 1, Q9) | Q5, Q9 | solo il codice restituito nei casi multipli |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Scala delle durate (C1, D-07).**
    - What we know: città vicine ~2,7 h, attraversata fino a 82 h, quest intra-città 2,6 h.
    - What's unclear: se l'utente accetta giorni per i viaggi lunghi e 2,6 h prima di ogni quest standard.
    - Recommendation: chiedere all'utente prima del planning; il codice non cambia (si regolano gli `speedFactor` a DB o si emenda D-07).
+   - RESOLVED: D-07 resta invariato (velocità base 10 km/h); le durate misurate e la leva `speedFactor` a DB sono documentate nel handoff BE §8 (08-14).
 2. **Viaggio a durata zero.** Recommendation: `null` da `routeBetween` (A2).
+   - RESOLVED: `routeBetween` restituisce `null` per stesso nodo / cammino vuoto (08-02); nessun viaggio a durata zero.
 3. **Le 4 quest di sviluppo (C2).** Recommendation: comando di aggiornamento nel handoff; l'utente lo esegue al deploy.
+   - RESOLVED: comandi di aggiornamento delle quest nel handoff BE §11 (08-14); l'utente aggiorna il catalogo a DB, nessun seed.
 4. **`TRAVEL_SWEEP_INTERVAL_MS` come env o solo DI.** Recommendation: env opzionale fail-closed + default 60 s (D-12 "configurabile").
+   - RESOLVED: env `TRAVEL_SWEEP_INTERVAL_MS` opzionale fail-closed con default 60 s, introdotta in 08-05.
 5. **Target dell'audit del teleport (C7).** Recommendation: accettare `{ type: 'CommonResponse', id: null }` come `sendTestPush`.
+   - RESOLVED: accettato `{ type: 'CommonResponse', id: null }` come target dell'audit del teleport (08-13).
 
 ## Environment Availability
 
