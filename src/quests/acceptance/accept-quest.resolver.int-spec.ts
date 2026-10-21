@@ -13,6 +13,7 @@ import {
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
+import { QuestsModule } from 'src/quests/quests.module';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import {
     graphqlWsUrl,
@@ -113,7 +114,7 @@ describe('acceptQuest (wire)', () => {
 
     beforeAll(async () => {
         harness = await createCharactersTestApp({
-            imports: [QuestAcceptanceModule],
+            imports: [QuestAcceptanceModule, QuestsModule],
         });
         characters = harness.connection.model<CharacterDocument>(
             Character.name,
