@@ -206,6 +206,8 @@ Follow-up:
 
 **User's directive:** "Vorrei evitare che compaiano nuove voci come registrations o party. Comunque anche QuestPartySlot può essere contenuto dentro requiredAdventurers, così come registrations può essere registeredAdventurers."
 
+**User's note (2026-10-21):** "Cambio io le quest su DB per adattarle al nuovo modello." → nessuno script di seed nella fase; il handoff porta la forma dei documenti.
+
 ## Claude's Discretion
 
 Nomi e collocazione (modulo, tipi, operazioni, campo del pet, coda, codici definitivi); esporre meta e tipo di viaggio su `activeTravel`; identità del job Bull e rimozione best-effort; intervallo dello sweep; ordine dei rifiuti e guard nel filtro; composizione di `RoadsService` con l'accettazione; split in wave con il contratto schema per primo.
