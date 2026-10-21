@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 6 complete (2026-10-21) — PR to develop pending
+stopped_at: Phase 6 complete (2026-10-21) — PR #9 open
 last_updated: "2026-10-21T08:00:00.000Z"
-last_activity: 2026-10-21 -- Phase 6 complete (UAT test A passed, review fixed, verification passed, security audit filed); BE PR to develop pending
+last_activity: 2026-10-21 -- Phase 6 complete; BE PR #9 opened to develop
 progress:
   total_phases: 12
   completed_phases: 8
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 6 — EventSub complete on 2026-10-21 (PR to develop pending); next Phase 7 — Quest Lanes (QUEST-04, unblocks FE Phase 6)
+**Current focus:** Phase 6 — EventSub complete on 2026-10-21 (PR #9 to develop opened 2026-10-21); next Phase 7 — Quest Lanes (QUEST-04, unblocks FE Phase 6)
 
 ## Current Position
 
 Phase: 6 (eventsub-punti-canale-streamer-live) — COMPLETE 2026-10-21 (9/9 plans; UAT test A passed with HTTP + DB evidence and a real streamerLive push on device, tests B/C deferred to pre-production; code review 0 critical / 1 warning fixed; verification passed 4/4; security 47/48 mitigated, T-06-47 open by design until the pre-production E2E)
 Plan: 9 of 9
-Status: Phase 6 complete — PR to develop pending
+Status: Phase 6 complete — PR #9 open, awaiting review/merge
 Last activity: 2026-10-21 -- Phase 6 closed: ROADMAP/STATE/PROJECT updated; integration gate re-run clean (46 suites / 550 tests); next: BE PR to develop, then /gsd-discuss-phase 7 (Quest Lanes, QUEST-04 for FE Phase 6)
 
 Progress: [██████████] 100% (phases 1–6 complete; Phase 7 next)
