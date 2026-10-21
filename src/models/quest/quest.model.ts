@@ -1,9 +1,25 @@
 import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
-import { QuestInfosSchema, QuestInfos, QuestInfosInput } from './quest-infos.model';
-import { QuestRequirementsSchema, QuestRequirements, QuestRequirementsInput } from './quest-requirements.model';
-import { QuestPrizesSchema, QuestPrizes, QuestPrizesInput } from './quest-prizes.model';
+import { Document } from 'mongoose';
+import {
+    QuestInfosSchema,
+    QuestInfos,
+    QuestInfosInput,
+} from './quest-infos.model';
+import {
+    QuestRequirementsSchema,
+    QuestRequirements,
+    QuestRequirementsInput,
+} from './quest-requirements.model';
+import {
+    QuestPrizesSchema,
+    QuestPrizes,
+    QuestPrizesInput,
+} from './quest-prizes.model';
+import {
+    QuestRegistration,
+    QuestRegistrationSchema,
+} from './quest-registration.model';
 
 @ObjectType()
 @Schema()
@@ -26,11 +42,13 @@ export class Quest {
     @Field(() => [String])
     @Prop({ type: [String] })
     registeredAdventurers: string[];
+
+    @Prop({ type: [QuestRegistrationSchema], default: [] })
+    registrations: QuestRegistration[];
 }
 
 export type QuestDocument = Quest & Document;
 export const QuestSchema = SchemaFactory.createForClass(Quest);
-
 
 @InputType()
 export class QuestInput {
@@ -49,4 +67,3 @@ export class QuestInput {
     @Field(() => [ID], { nullable: true })
     registeredAdventurers?: string[];
 }
-

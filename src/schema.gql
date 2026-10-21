@@ -444,6 +444,11 @@ type QuestInfos {
   type: String!
 }
 
+type QuestPartySlot {
+  count: Int!
+  title: String!
+}
+
 type QuestPrizes {
   prizeCoins: Coins
   prizeItem: AssetQuantity
@@ -453,6 +458,7 @@ type QuestPrizes {
 
 type QuestRequirements {
   minTitle: String!
+  party: [QuestPartySlot!]!
   recommendedLoot: [AssetQuantity!]!
   requiredAdventurers: Int!
   requiredPoints: Int
