@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 8 context gathered
-last_updated: "2026-10-21T20:03:03.125Z"
-last_activity: 2026-10-21 -- Phase 8 planning complete
+last_updated: "2026-10-21T20:03:03.589Z"
+last_activity: 2026-10-21 -- Phase 8 execution started
 progress:
   total_phases: 12
   completed_phases: 9
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 7 — Quest Lanes complete on 2026-10-21 (PR #10 to develop opened 2026-10-21; unblocks FE Phase 6); next Phase 8 — Travel Lifecycle (TRAVEL-01, unblocks FE Phase 7)
+**Current focus:** Phase 8 — travel-lifecycle-travel-01
 
 ## Current Position
 
-Phase: 7 (quest-lanes-quest-04) — COMPLETE 2026-10-21 (8/8 plans; code review 0 critical / 1 warning / 4 info fixed in TDD; verification passed, 4/4 success criteria and 8/8 must_haves; security audit: 39 minacce, 33 mitigate, 4 accettate, 2 trasferite, 0 aperte; device UAT deferred to the FE Phase 6 UAT)
-Plan: 8 of 8
-Status: Ready to execute
-Last activity: 2026-10-21 -- Phase 8 planning complete
+Phase: 8 (travel-lifecycle-travel-01) — EXECUTING
+Plan: 1 of 14
+Status: Executing Phase 8
+Last activity: 2026-10-21 -- Phase 8 execution started
 
 Progress: [██████████] 100% (phases 1–7 complete; Phase 8 next)
 
