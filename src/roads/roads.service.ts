@@ -5,7 +5,7 @@ import { Model } from 'mongoose';
 import { Road, RoadDocument } from 'src/models/road.model';
 import Graph from 'graphology';
 import { dijkstra } from 'graphology-shortest-path';
-import { LonLat, RoadRoute } from './road-route';
+import { LonLat, RoadRoute, RouteEdge, routeOf } from './road-route';
 import { PathResponse } from 'src/models/path-response.model';
 import { PointOfInterestsService } from 'src/pointsOfInterest/point-of-interest.service'; // Assumi che questo sia corretto
 
@@ -64,23 +64,29 @@ export class RoadsService implements OnModuleInit {
     }
 
     private findNearestNode([lon, lat]: [number, number]): string {
-        let nearestKey: string = '';
+        const nearestKey = this.nearestNodeWithinSnap([lon, lat]);
+
+        if (nearestKey === null) {
+            throw new Error(
+                `Punto troppo lontano (> ${this.MAX_SNAP_DISTANCE_KM} km) per essere agganciato alla rete stradale.`,
+            );
+        }
+
+        return nearestKey;
+    }
+
+    private nearestNodeWithinSnap(coord: LonLat): string | null {
+        let nearestKey: string | null = null;
         let minDist = Infinity;
 
         this.graph.forEachNode((key, attrs) => {
-            const dist = this.haversineDistance([lon, lat], attrs.coord);
+            const dist = this.haversineDistance(coord, attrs.coord as LonLat);
 
             if (dist < minDist && dist < this.MAX_SNAP_DISTANCE_KM) {
                 minDist = dist;
                 nearestKey = key;
             }
         });
-
-        if (nearestKey === '') {
-            throw new Error(
-                `Punto troppo lontano (> ${this.MAX_SNAP_DISTANCE_KM} km) per essere agganciato alla rete stradale.`,
-            );
-        }
 
         return nearestKey;
     }
@@ -190,7 +196,52 @@ export class RoadsService implements OnModuleInit {
         };
     }
 
-    routeBetween(_from: LonLat, _to: LonLat): RoadRoute | null {
-        return null;
+    // null = nessun percorso (D-03, D-04): mai eccezioni, a differenza di getShortestPath; stesso nodo = viaggio nullo = nessun percorso
+    routeBetween(from: LonLat, to: LonLat): RoadRoute | null {
+        if (!this.graph) return null;
+        const start = this.nodeFor(from);
+        const end = this.nodeFor(to);
+        if (!start || !end || start === end) return null;
+        const nodes = dijkstra.bidirectional(
+            this.graph,
+            start,
+            end,
+            (_edge, attributes) => attributes.weight as number,
+        );
+        if (!nodes || nodes.length < 2) return null;
+        return routeOf(
+            nodes,
+            (a, b) => this.lightestEdge(a, b),
+            (node) => this.graph.getNodeAttribute(node, 'coord') as LonLat,
+            from,
+            to,
+        );
+    }
+
+    private nodeFor(coord: LonLat): string | null {
+        const key = this.roundCoord(coord).join(',');
+        return this.graph.hasNode(key)
+            ? key
+            : this.nearestNodeWithinSnap(coord);
+    }
+
+    // fra archi paralleli del multigrafo quello di peso minimo, lo stesso scelto da Dijkstra (C4)
+    private lightestEdge(a: string, b: string): RouteEdge | null {
+        let lightest: RouteEdge | null = null;
+        let minWeight = Infinity;
+
+        for (const edge of this.graph.edges(a, b)) {
+            const { weight, lengthKm, speedFactor } =
+                this.graph.getEdgeAttributes(edge);
+            if ((weight as number) < minWeight) {
+                minWeight = weight as number;
+                lightest = {
+                    lengthKm: lengthKm as number,
+                    speedFactor: speedFactor as number,
+                };
+            }
+        }
+
+        return lightest;
     }
 }

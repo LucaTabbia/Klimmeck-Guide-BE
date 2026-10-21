@@ -190,17 +190,26 @@ describe('RoadsService.routeBetween (replSet)', () => {
             [20, 20],
             [20, 20.1],
         ];
-        await withRoads(
-            { coordinates: parallel, speedFactor: 1 },
-            { coordinates: parallel, speedFactor: 4 },
-        );
+        // graphology lists parallel edges newest first: both insertion orders must pick speedFactor 4
+        for (const speedFactors of [
+            [1, 4],
+            [4, 1],
+        ]) {
+            await roadModel.deleteMany({});
+            await withRoads(
+                ...speedFactors.map((speedFactor) => ({
+                    coordinates: parallel,
+                    speedFactor,
+                })),
+            );
 
-        const route = roads.routeBetween([20, 20], [20, 20.1]);
+            const route = roads.routeBetween([20, 20], [20, 20.1]);
 
-        expect(route!.baseHours).toBeCloseTo(
-            km(parallel[0], parallel[1]) / 4,
-            9,
-        );
+            expect(route!.baseHours).toBeCloseTo(
+                km(parallel[0], parallel[1]) / 4,
+                9,
+            );
+        }
     });
 
     it('keeps getShortestPath unchanged', async () => {
