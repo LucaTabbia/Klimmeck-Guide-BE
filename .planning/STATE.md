@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 7 planned, ready to execute
-last_updated: "2026-10-21T11:16:33.695Z"
-last_activity: 2026-10-21 -- Phase 7 execution started
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-10-21T11:21:30.000Z"
+last_activity: 2026-10-21 -- Completed 07-01 (quest lanes data contract)
 progress:
   total_phases: 12
   completed_phases: 8
   total_plans: 73
-  completed_plans: 65
+  completed_plans: 66
   percent: 89
 ---
 
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 7 (quest-lanes-quest-04) — EXECUTING
-Plan: 1 of 8
+Plan: 2 of 8
 Status: Executing Phase 7
-Last activity: 2026-10-21 -- Phase 7 execution started
+Last activity: 2026-10-21 -- Completed 07-01 (quest lanes data contract)
 
-Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 planned 0/8, ready to execute)
+Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 1/8)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 73
+- Total plans completed: 74
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -106,6 +106,7 @@ Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 p
 | Phase 06 P07 | 5 min | 2 tasks | 6 files |
 | Phase 06 P08 | 5 min | 2 tasks | 3 files |
 | Phase 06 P09 | 25 min | 3 tasks | 8 files |
+| Phase 07 P01 | 4 min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -183,6 +184,7 @@ Recent decisions affecting current work:
 - [Phase 06]: 06-07: EventSubController sottile (@Res, 200 text/plain col solo challenge, 204/403/500 con end()), decoratore pubblico solo su receive; EventSubModule foglia (EconomyModule, PushModule, forFeature EventSubMessage+User, Clock locale, Helix -> HttpTwitchHelixClient) non ancora in AppModule; harness createAuthTestApp con rawBody: true incondizionato (retrocompatibile, 46 suite verdi); createEventSubTestApp drena il reconcile di boot con manager.reconcile(); prova sul filo: 5 consegne concorrenti e C7 -> un credito, stream.online -> un topicSends streamer-live, revocation -> delete+create
 - [Phase 06]: 06-08: EventSubModule montato in AppModule subito dopo PushModule; NestFactory.create(AppModule, { rawBody: true }) e real boot con createNestApplication({ rawBody: true }) speculare; whitelist @Public a 6 voci con EventSubController.receive, publicClasses vuoto; spie passthrough su fetch e Logger.prototype.warn prima del boot: disabled, WARN `EventSub disabled`, nessuna fetch verso twitch.tv, POST webhook -> 403 body vuoto; schema.gql invariato (D-16)
 - [Phase 06]: 06-09: gate di fase verde (unit 79/1098, int 46/550, build, lint filtrato 0, schema.gql invariato, invarianti); UAT 2026-10-20: test A (Twitch CLI locale) passed, test B (E2E managed) e C (C4) differiti a prima della produzione, 06-HUMAN-UAT `status: partial`; ogni ambiente richiede `roles/firebasecloudmessaging.admin` sul service account Firebase per i topic FCM (`roles/firebasenotifications.admin` non basta)
+- [Phase 07]: 07-01: corsie activeStoryQuest/activeWorldMissionQuest (ref MongooseSchema.Types.ObjectId, default null), PendingQuest.pointsSpent Int! default 0, QuestRequirements.party: [QuestPartySlot!]! (title String! dell'enum TitleType, count min 1, default []), Quest.registrations interno senza @Field (mai in src/schema.gql); schema.gql solo additivo
 
 ### Pending Todos
 
@@ -204,6 +206,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T09:24:20.193Z
-Stopped at: Phase 7 planned, ready to execute
-Resume file: .planning/phases/07-quest-lanes-quest-04/07-01-PLAN.md
+Last session: 2026-10-21T11:21:30.000Z
+Stopped at: Completed 07-01-PLAN.md
+Resume file: .planning/phases/07-quest-lanes-quest-04/07-02-PLAN.md
