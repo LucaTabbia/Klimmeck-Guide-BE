@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: verifying
 stopped_at: Completed 08-14-PLAN.md
-last_updated: "2026-10-21T21:27:28.012Z"
+last_updated: "2026-10-21T22:02:04.491Z"
 last_activity: 2026-10-21
 progress:
   total_phases: 12
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 8 — travel-lifecycle-travel-01
+**Current focus:** Phase 8 — Travel Lifecycle complete on 2026-10-21 (PR to develop opened 2026-10-22; unblocks FE Phase 7 and the FE Phase 6 final plan 06-12); next Phase 9 — Combat Result & Admin Outcomes
 
 ## Current Position
 
-Phase: 8 (travel-lifecycle-travel-01) — EXECUTING
+Phase: 8 (travel-lifecycle-travel-01) — COMPLETE 2026-10-21 (14/14 plans; code review 0 critical / 2 warning / 8 info, both warnings + IN-01/IN-07 fixed in TDD; verification passed 4/4 success criteria + D-26..D-32, device UAT deferred to the FE Phase 7 UAT — 08-HUMAN-UAT partial; security audit in 08-SECURITY.md)
 Plan: 14 of 14
-Status: Phase complete — ready for verification
-Last activity: 2026-10-21
+Status: Phase 8 complete — PR to develop open, awaiting review/merge; next /gsd-discuss-phase 9
+Last activity: 2026-10-22 -- Phase 8 closed: gate green after the review fixes (unit 95 suites / 1416 tests, integration 57 suites / 743 tests, build, lint, schema.gql additive + 3 declared exceptions); BACKEND-NOTES published for FE Phase 6/7; branch pushed, PR opened
 
-Progress: [██████████] 100% (phases 1–7 complete; Phase 8 next)
+Progress: [██████████] 100% (phases 1–8 complete; Phase 9 next)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 83
+- Total plans completed: 97
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -51,6 +51,7 @@ Progress: [██████████] 100% (phases 1–7 complete; Phase 8 
 | 03.1 | 6 | - | - |
 | 03.1 | 6 | - | - |
 | 5 | 8 | - | - |
+| 8 | 14 | - | - |
 
 **Recent Trend:**
 
