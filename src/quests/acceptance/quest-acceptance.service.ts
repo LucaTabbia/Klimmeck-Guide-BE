@@ -9,6 +9,7 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { City, CityDocument } from 'src/models/city.model';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import {
@@ -16,7 +17,7 @@ import {
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
-import { objectIdFromHex } from 'src/mongo/document-id';
+import { idForms, objectIdFromHex } from 'src/mongo/document-id';
 import {
     capacityRuleOf,
     CharacterEligibilitySnapshot,
@@ -94,6 +95,8 @@ export class QuestAcceptanceService {
         private readonly questModel: Model<QuestDocument>,
         @InjectModel(PendingQuest.name)
         private readonly pendingQuestModel: Model<PendingQuestDocument>,
+        @InjectModel(City.name)
+        private readonly cityModel: Model<CityDocument>,
         private readonly wallet: WalletService,
     ) {}
 
@@ -185,13 +188,25 @@ export class QuestAcceptanceService {
         return character;
     }
 
-    private locationInQuestCity(
-        _quest: QuestAcceptanceSnapshot,
+    // la città che contiene il marker della quest nei pointsOfInterest, col personaggio sul suo marker o su un suo POI (07 D-10); fail-closed
+    private async locationInQuestCity(
+        quest: QuestAcceptanceSnapshot,
         character: CharacterAcceptanceSnapshot,
     ): Promise<Types.ObjectId> {
+        const marker = refIdOf(quest.infos.markerLocation);
         const location = refIdOf(character.status.location);
-        if (!location) throw GameRuleException.questNotInCity();
-        return Promise.resolve(location);
+        if (!marker || !location) throw GameRuleException.questNotInCity();
+        const inCity = await this.cityModel
+            .exists({
+                pointsOfInterest: marker,
+                $or: [
+                    { markerLocation: { $in: idForms(location) } },
+                    { pointsOfInterest: location },
+                ],
+            })
+            .exec();
+        if (!inCity) throw GameRuleException.questNotInCity();
+        return location;
     }
 
     private async claimLane(
