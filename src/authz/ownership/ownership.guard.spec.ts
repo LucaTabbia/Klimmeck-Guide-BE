@@ -6,7 +6,11 @@ import type { AuthIdentity } from 'src/auth/auth-identity';
 import { AuthorizationException } from 'src/authz/authorization.exception';
 import { AuthorizationDecisions } from 'src/authz/ownership/authorization-decisions';
 import { ResourceAccess } from 'src/authz/ownership/owned-resource';
-import { OwnsCharacter } from 'src/authz/ownership/ownership.decorators';
+import {
+    OWNERSHIP_KEY,
+    type OwnershipRule,
+    OwnsCharacter,
+} from 'src/authz/ownership/ownership.decorators';
 import { OwnershipGuard } from 'src/authz/ownership/ownership.guard';
 import { RoleType } from 'src/models/enums/role-type.enum';
 
@@ -15,6 +19,11 @@ const FOREIGN_ID = '64b000000000000000000002';
 class ProbeResolver {
     @OwnsCharacter<{ request: { id: string } }>(({ request }) => request.id)
     mutate(): void {}
+
+    @OwnsCharacter<{ request: { id: string } }>(({ request }) => request.id, {
+        ownerOnly: true,
+    })
+    strict(): void {}
 
     plain(): void {}
 }
@@ -97,8 +106,43 @@ describe('OwnershipGuard', () => {
             identity,
             'Character',
             FOREIGN_ID,
+            { ownerOnly: false },
         );
         expect(decisions.onBehalfTargetOf(info)).toBeUndefined();
+    });
+
+    it('passes ownerOnly to the policy for a strict handler', async () => {
+        policy.authorize.mockResolvedValue(ResourceAccess.owner);
+
+        await expect(
+            guard.canActivate(
+                graphqlContext(
+                    { req: { user: identity } },
+                    info,
+                    handlerOf('strict'),
+                ),
+            ),
+        ).resolves.toBe(true);
+        expect(policy.authorize).toHaveBeenCalledWith(
+            identity,
+            'Character',
+            FOREIGN_ID,
+            { ownerOnly: true },
+        );
+        expect(decisions.onBehalfTargetOf(info)).toBeUndefined();
+    });
+
+    it('writes ownerOnly into the ownership metadata', () => {
+        const reflector = new Reflector();
+
+        expect(
+            reflector.get<OwnershipRule>(OWNERSHIP_KEY, handlerOf('strict'))
+                .ownerOnly,
+        ).toBe(true);
+        expect(
+            reflector.get<OwnershipRule>(OWNERSHIP_KEY, handlerOf('mutate'))
+                .ownerOnly,
+        ).toBe(false);
     });
 
     it('records the on-behalf target on the resolve info for the audit', async () => {

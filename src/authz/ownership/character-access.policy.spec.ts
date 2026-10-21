@@ -97,6 +97,42 @@ describe('CharacterAccessPolicy', () => {
             expect(characterModel.exists).not.toHaveBeenCalled();
         });
 
+        it('forbids the innkeeper on an existing foreign character when ownerOnly', async () => {
+            const result = policy.authorizeCharacter(
+                buildIdentity(RoleType.innkeeper),
+                FOREIGN_ID,
+                { ownerOnly: true },
+            );
+
+            await expect(result).rejects.toBeInstanceOf(AuthorizationException);
+            await expect(result).rejects.toMatchObject({
+                code: AuthorizationErrorCode.FORBIDDEN,
+            });
+            expect(characterModel.exists).toHaveBeenCalledTimes(1);
+        });
+
+        it('reports a missing foreign character as not found to the innkeeper when ownerOnly', async () => {
+            characterModel.exists.mockResolvedValue(null);
+
+            await expect(
+                policy.authorizeCharacter(
+                    buildIdentity(RoleType.innkeeper),
+                    FOREIGN_ID,
+                    { ownerOnly: true },
+                ),
+            ).rejects.toMatchObject({ code: AuthorizationErrorCode.NOT_FOUND });
+        });
+
+        it('grants owner access to the innkeeper on its own character when ownerOnly', async () => {
+            await expect(
+                policy.authorizeCharacter(
+                    buildIdentity(RoleType.innkeeper),
+                    OWN_ID,
+                    { ownerOnly: true },
+                ),
+            ).resolves.toBe(ResourceAccess.owner);
+        });
+
         it('forbids an adventurer acting on an existing foreign character', async () => {
             const result = policy.authorizeCharacter(
                 buildIdentity(),
@@ -315,6 +351,17 @@ describe('CharacterAccessPolicy', () => {
                 ),
             ).resolves.toBe(ResourceAccess.owner);
             expect(userModel.findById).toHaveBeenCalledTimes(1);
+        });
+
+        it('forwards ownerOnly to authorizeCharacter', async () => {
+            await expect(
+                policy.authorize(
+                    buildIdentity(RoleType.innkeeper),
+                    OwnedResource.character,
+                    FOREIGN_ID,
+                    { ownerOnly: true },
+                ),
+            ).rejects.toMatchObject({ code: AuthorizationErrorCode.FORBIDDEN });
         });
 
         it('fails closed on a resource the policy does not cover', () => {
