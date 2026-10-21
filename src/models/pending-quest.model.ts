@@ -17,6 +17,11 @@ export class PendingQuest {
     @Prop({ type: Number })
     waitingTime: number;
 
+    // punti canale realmente pagati: il rimborso al rifiuto del GM (Phase 9) usa questa cifra, non il catalogo (D-07)
+    @Field(() => Int)
+    @Prop({ type: Number, default: 0 })
+    pointsSpent: number;
+
     @Field(() => Quest)
     @Prop({ type: Types.ObjectId, ref: Quest.name })
     quest: Quest;
@@ -24,7 +29,6 @@ export class PendingQuest {
 
 export type PendingQuestDocument = PendingQuest & Document;
 export const PendingQuestSchema = SchemaFactory.createForClass(PendingQuest);
-
 
 @InputType()
 export class PendingQuestInput {
@@ -37,7 +41,9 @@ export class PendingQuestInput {
     @Field(() => Int)
     waitingTime: number;
 
+    @Field(() => Int, { nullable: true })
+    pointsSpent?: number;
+
     @Field(() => ID)
     quest: string;
 }
-

@@ -57,6 +57,8 @@ type CharacterInfos {
 }
 
 type CharacterQuests {
+  activeStoryQuest: PendingQuest
+  activeWorldMissionQuest: PendingQuest
   completedQuests: [Quest!]!
   pendingQuest: PendingQuest
 }
@@ -307,6 +309,7 @@ type PathResponse {
 
 type PendingQuest {
   id: ID!
+  pointsSpent: Int!
   quest: Quest!
   startDate: DateTime!
   waitingTime: Float!
