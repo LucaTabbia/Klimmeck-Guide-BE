@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-10-21T20:03:03.589Z"
-last_activity: 2026-10-21 -- Phase 8 execution started
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-10-21T20:08:06.018Z"
+last_activity: 2026-10-21
 progress:
   total_phases: 12
   completed_phases: 9
   total_plans: 87
-  completed_plans: 73
-  percent: 84
+  completed_plans: 74
+  percent: 85
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 8 (travel-lifecycle-travel-01) — EXECUTING
-Plan: 1 of 14
-Status: Executing Phase 8
-Last activity: 2026-10-21 -- Phase 8 execution started
+Plan: 2 of 14
+Status: Ready to execute
+Last activity: 2026-10-21
 
 Progress: [██████████] 100% (phases 1–7 complete; Phase 8 next)
 
@@ -114,6 +114,7 @@ Progress: [██████████] 100% (phases 1–7 complete; Phase 8 
 | Phase 07 P06 | 5 min | 2 tasks | 3 files |
 | Phase 07 P07 | 6 min | 2 tasks | 6 files |
 | Phase 07 P08 | 10 min | 2 tasks | 4 files |
+| Phase 08 P01 | 4 min | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -199,6 +200,7 @@ Recent decisions affecting current work:
 - [Phase 07]: 07-06: QuestAcceptanceService.accept({ ownerId, characterId, questId }) lane-aware: pre-letture lean → regole pure → costo validato prima della transazione (QUEST_NOT_ACCEPTABLE + WARN con solo id e corsia) → città del marker in una query cities.exists → transazione claim → registrazione $expr (solo condivise) → PendingQuest con pointsSpent → debitUserPoints(ownerId, cost, session); Character.coins mai toccato, costCopper rimosso (D-08, D-18)
 - [Phase 07]: 07-07: acceptQuest(request: AcceptQuestRequest { id, questId }): CommonResponse! owner-only in QuestAcceptanceResolver (QuestAcceptanceModule + AuthzModule), resolver senza logica (objectIdFromHex/requireCharacterObjectId ⇒ NOT_FOUND); corsia su characterUpdated, saldo su userUpdated; real boot con EXPECTED_OWNER_ONLY_HANDLERS e SDL additivo (D-11, D-12, C5)
 - [Phase 07]: 07-08: gate di fase verde — unit 85 suite / 1259 test, integration 49 / 606 (dopo l'aggiornamento dell'aspettativa obsoleta delle corsie in character-creation.resolver.int-spec.ts, solo test), build ok, lint filtrato 0 righe, schema.gql senza drift e solo additivo, un solo ownerOnly, @Public 7 = develop, nessuna dipendenza nuova; BACKEND-NOTES.md per FE Phase 6 e BE 8/9, BE-QUEST-01..04 Complete, 07-VALIDATION approved
+- [Phase 08]: 08-01: contratto SDL in Wave 1 — CharacterStatus.activeTravel: ActiveTravel { duration Float! ms, endTime, road: TravelPath { coordinates [[Float!]!]!, distance km }, startTime, to: ID! (hex del POI, nessun populate) }, kind (free|quest) persistito ma mai su GraphQL; PendingQuest.startDate e Pet.speedModifier nullable default null; requiredAdventurers: [QuestPartySlot!]! con title nullable (jolly), registeredAdventurers: [QuestRegistration!]! { character: ID!, title }; party/registrations rimossi; diff SDL vs develop = solo le 5 righe D-20; int-spec di src/quests/acceptance rotte fino a 08-06
 
 ### Pending Todos
 
@@ -220,6 +222,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T17:21:42.243Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-travel-lifecycle-travel-01/08-CONTEXT.md
+Last session: 2026-10-21T20:08:06.014Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None
