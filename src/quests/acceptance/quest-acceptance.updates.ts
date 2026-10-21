@@ -4,12 +4,24 @@ import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms, sameId } from 'src/mongo/document-id';
-import { CapacityRule, QuestRoster } from './quest-eligibility';
-import { lanePathOf, QuestLane } from './quest-lanes';
+import { QuestType } from 'src/models/enums/quest-type.enum';
+import {
+    CapacityRule,
+    isRepeatable,
+    meetsTitle,
+    QuestRoster,
+} from './quest-eligibility';
+import { lanePathOf, laneOf, QuestLane } from './quest-lanes';
 
 export interface LaneClaimSnapshot {
     title: TitleType;
     location: Types.ObjectId;
+}
+
+export interface ClaimedQuest {
+    id: Types.ObjectId;
+    type: QuestType;
+    minTitle?: TitleType | null;
 }
 
 export interface UnclaimedSnapshot {
@@ -109,20 +121,22 @@ export function registrationUpdate(
 
 // rilettura nella session solo per scegliere il codice (Phase 4): il filtro resta la regola
 // dopo un claim fallito la corsia occupata è la causa più probabile (concorrente dello stesso personaggio): SLOT_BUSY prima di ALREADY_TAKEN, a differenza della pre-verifica; solo corse, sempre fail-closed
+// il titolo si giudica con la regola della pre-verifica: un titolo cambiato ma ancora ammesso è una corsa (SLOT_BUSY), non un MISMATCH
 export function classifyUnclaimed(
     fresh: UnclaimedSnapshot | null,
-    lane: QuestLane,
+    quest: ClaimedQuest,
     expected: LaneClaimSnapshot,
-    questId: Types.ObjectId,
-    repeatable: boolean,
 ): Error {
     if (!fresh) return ResourceNotFoundException.character();
-    if (fresh.quests?.[lane] != null) return GameRuleException.questSlotBusy();
+    if (fresh.quests?.[laneOf(quest.type)] != null)
+        return GameRuleException.questSlotBusy();
     const completed = (fresh.quests?.completedQuests ?? []).some((id) =>
-        sameId(id, questId),
+        sameId(id, quest.id),
     );
-    if (!repeatable && completed) return GameRuleException.questAlreadyTaken();
-    if (fresh.status?.title !== expected.title)
+    if (!isRepeatable(quest.type) && completed)
+        return GameRuleException.questAlreadyTaken();
+    const title = fresh.status?.title;
+    if (!title || !meetsTitle(quest.type, title, quest.minTitle))
         return GameRuleException.questTitleMismatch();
     if (!sameId(fresh.status?.location, expected.location))
         return GameRuleException.questNotInCity();

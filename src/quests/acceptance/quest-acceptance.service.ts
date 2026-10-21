@@ -29,6 +29,7 @@ import {
     waitingTimeOf,
 } from './quest-eligibility';
 import {
+    ClaimedQuest,
     classifyUnclaimed,
     classifyUnregistered,
     laneClaimFilter,
@@ -61,10 +62,8 @@ interface CharacterAcceptanceSnapshot extends CharacterEligibilitySnapshot {
 
 interface LaneClaim {
     characterId: Types.ObjectId;
-    lane: QuestLane;
+    quest: ClaimedQuest;
     claim: LaneClaimSnapshot;
-    questId: Types.ObjectId;
-    repeatable: boolean;
     pendingQuestId: Types.ObjectId;
 }
 
@@ -116,18 +115,15 @@ export class QuestAcceptanceService {
             title: character.status.title,
             location: await this.locationInQuestCity(quest, character),
         };
-        const repeatable = isRepeatable(quest.infos.type);
+        const claimed: ClaimedQuest = {
+            id: questId,
+            type: quest.infos.type,
+            minTitle: quest.requirements?.minTitle,
+        };
         const pendingQuestId = new Types.ObjectId();
         await this.connection.transaction(async (session) => {
             await this.claimLane(
-                {
-                    characterId,
-                    lane,
-                    claim,
-                    questId,
-                    repeatable,
-                    pendingQuestId,
-                },
+                { characterId, quest: claimed, claim, pendingQuestId },
                 session,
             );
             if (isShared(quest.infos.type))
@@ -210,19 +206,19 @@ export class QuestAcceptanceService {
     }
 
     private async claimLane(
-        {
-            characterId,
-            lane,
-            claim,
-            questId,
-            repeatable,
-            pendingQuestId,
-        }: LaneClaim,
+        { characterId, quest, claim, pendingQuestId }: LaneClaim,
         session: ClientSession,
     ): Promise<void> {
+        const lane = laneOf(quest.type);
         const claimed = await this.characterModel
             .findOneAndUpdate(
-                laneClaimFilter(characterId, lane, claim, questId, repeatable),
+                laneClaimFilter(
+                    characterId,
+                    lane,
+                    claim,
+                    quest.id,
+                    isRepeatable(quest.type),
+                ),
                 laneClaimUpdate(lane, pendingQuestId),
                 { session, projection: { _id: 1 } },
             )
@@ -234,7 +230,7 @@ export class QuestAcceptanceService {
             .session(session)
             .lean<UnclaimedSnapshot | null>()
             .exec();
-        throw classifyUnclaimed(fresh, lane, claim, questId, repeatable);
+        throw classifyUnclaimed(fresh, quest, claim);
     }
 
     private async register(

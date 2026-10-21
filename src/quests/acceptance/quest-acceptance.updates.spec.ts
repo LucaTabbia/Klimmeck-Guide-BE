@@ -1,6 +1,8 @@
 import { Types } from 'mongoose';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import {
+    ClaimedQuest,
     classifyUnclaimed,
     classifyUnregistered,
     LaneClaimSnapshot,
@@ -141,8 +143,16 @@ describe('quest acceptance write builders', () => {
             };
         }
 
-        const classify = (fresh: UnclaimedSnapshot | null) =>
-            classifyUnclaimed(fresh, QuestLane.story, expected, q, false);
+        const story: ClaimedQuest = {
+            id: q,
+            type: QuestType.story,
+            minTitle: TitleType.rookie,
+        };
+
+        const classify = (
+            fresh: UnclaimedSnapshot | null,
+            quest: ClaimedQuest = story,
+        ) => classifyUnclaimed(fresh, quest, expected);
 
         it('a missing character is NOT_FOUND', () => {
             expect(classify(null)).toMatchObject({
@@ -173,6 +183,40 @@ describe('quest acceptance write builders', () => {
                     freshOf({
                         status: { title: TitleType.adventurer, location: loc },
                     }),
+                ),
+            ).toMatchObject({ code: 'QUEST_TITLE_MISMATCH' });
+        });
+
+        it('a title raised to one the quest still admits is not QUEST_TITLE_MISMATCH', () => {
+            const hunt: ClaimedQuest = {
+                id: q,
+                type: QuestType.hunt,
+                minTitle: TitleType.rookie,
+            };
+
+            expect(
+                classify(
+                    freshOf({
+                        status: { title: TitleType.adventurer, location: loc },
+                    }),
+                    hunt,
+                ),
+            ).toMatchObject({ code: 'QUEST_SLOT_BUSY' });
+        });
+
+        it('a title that no longer meets minTitle is QUEST_TITLE_MISMATCH', () => {
+            const hunt: ClaimedQuest = {
+                id: q,
+                type: QuestType.hunt,
+                minTitle: TitleType.paladin,
+            };
+
+            expect(
+                classify(
+                    freshOf({
+                        status: { title: TitleType.adventurer, location: loc },
+                    }),
+                    hunt,
                 ),
             ).toMatchObject({ code: 'QUEST_TITLE_MISMATCH' });
         });
