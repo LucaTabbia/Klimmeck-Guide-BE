@@ -17,6 +17,7 @@ import { PushPlatform } from 'src/push/push-platform.enum';
 import { PushService } from 'src/push/push.service';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { TravelCompletionService } from './travel-completion.service';
+import { TravelSweeper } from './travel-sweeper';
 import { TravelModule } from './travel.module';
 import { TravelIdentity } from './travel.updates';
 import { AuthTestApp, createAuthTestApp } from '../../test/auth/auth-test-app';
@@ -31,6 +32,13 @@ const START = new Date('2026-10-21T08:00:00.000Z');
 const END = new Date('2026-10-21T09:00:00.000Z');
 const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const STARTED_AT = new Date('2026-10-21T09:30:00.000Z');
+const HOUR_MS = 3_600_000;
+const BOOT_DEADLINE_MS = 10_000;
+const POLL_STEP_MS = 100;
+const BOOT_TEST_TIMEOUT_MS = 30_000;
+
+const pause = (ms: number): Promise<void> =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('TravelCompletionService (replSet)', () => {
     let harness: AuthTestApp;
@@ -42,17 +50,18 @@ describe('TravelCompletionService (replSet)', () => {
     let clock: FixedClock;
     let seq = 0;
     const push = new FakePushTransport();
+    const overrides = [
+        { token: PushTransport, useValue: push },
+        { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
+        { token: TRAVEL_CONFIG, useValue: { sweepIntervalMs: 0 } },
+    ];
 
     beforeAll(async () => {
         clock = new FixedClock(NOW);
         harness = await createAuthTestApp({
             clock,
             imports: [TravelModule],
-            overrides: [
-                { token: PushTransport, useValue: push },
-                { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
-                { token: TRAVEL_CONFIG, useValue: { sweepIntervalMs: 0 } },
-            ],
+            overrides,
         });
         completion = harness.app.get(TravelCompletionService);
         pushService = harness.app.get(PushService);
@@ -118,11 +127,12 @@ describe('TravelCompletionService (replSet)', () => {
 
     async function orphanTraveller(
         destination: Types.ObjectId,
+        travel: Record<string, unknown> = {},
     ): Promise<Types.ObjectId> {
         seq += 1;
         const character = await persistCharacter(characters, {
             infos: { ...buildCharacter().infos, name: `Orfano ${seq}` },
-            status: travelStatus(destination),
+            status: travelStatus(destination, travel),
         });
         return character._id as Types.ObjectId;
     }
@@ -285,5 +295,97 @@ describe('TravelCompletionService (replSet)', () => {
 
         expect([...outcomes].sort()).toEqual(['completed', 'stale']);
         expect(push.sent).toHaveLength(1);
+    });
+    describe('sweep and boot reconciler', () => {
+        let sweeper: TravelSweeper;
+
+        beforeAll(() => {
+            sweeper = harness.app.get(TravelSweeper);
+        });
+
+        it('completes every expired travel and leaves the others', async () => {
+            const firstDestination = new Types.ObjectId();
+            const secondDestination = new Types.ObjectId();
+            const endTime = new Date(NOW.getTime() + HOUR_MS);
+            const expired = await orphanTraveller(firstDestination);
+            const future = await orphanTraveller(secondDestination, {
+                endTime,
+                duration: endTime.getTime() - START.getTime(),
+            });
+            const before = await rawCharacter(future);
+
+            await expect(sweeper.sweep()).resolves.toBe(1);
+
+            expect((await rawCharacter(expired))?.status).toMatchObject({
+                location: firstDestination,
+                activeTravel: null,
+            });
+            expect(await rawCharacter(future)).toEqual(before);
+
+            clock.advanceSeconds(HOUR_MS / 1000);
+            try {
+                await expect(sweeper.sweep()).resolves.toBe(1);
+            } finally {
+                clock.advanceSeconds(-HOUR_MS / 1000);
+            }
+            expect((await rawCharacter(future))?.status).toMatchObject({
+                location: secondDestination,
+                activeTravel: null,
+            });
+        });
+
+        it('covers a lost job', async () => {
+            const destination = new Types.ObjectId();
+            const id = await ownedTraveller(destination);
+
+            await expect(sweeper.sweep()).resolves.toBe(1);
+
+            expect((await rawCharacter(id))?.status.location).toEqual(
+                destination,
+            );
+            expect(push.sent).toEqual([
+                { tokens: ['tok-1'], message: travelEnd(id.toHexString()) },
+            ]);
+        });
+
+        it('pushes once when the sweep races a job trigger', async () => {
+            const id = await ownedTraveller(new Types.ObjectId());
+
+            await Promise.all([
+                sweeper.sweep(),
+                completion.complete(identityOf(id)),
+            ]);
+
+            expect((await rawCharacter(id))?.status.activeTravel).toBeNull();
+            expect(push.sent).toHaveLength(1);
+        });
+
+        it(
+            'completes an expired travel at boot',
+            async () => {
+                const destination = new Types.ObjectId();
+                const id = await orphanTraveller(destination);
+
+                const second = await createAuthTestApp({
+                    clock,
+                    imports: [TravelModule],
+                    overrides,
+                });
+                try {
+                    const deadline = Date.now() + BOOT_DEADLINE_MS;
+                    let raw = await rawCharacter(id);
+                    while (raw?.status.activeTravel && Date.now() < deadline) {
+                        await pause(POLL_STEP_MS);
+                        raw = await rawCharacter(id);
+                    }
+                    expect(raw?.status.activeTravel).toBeNull();
+                    expect(raw?.status.location).toEqual(destination);
+                } finally {
+                    // solo l'app: second.close() cancellerebbe il DB condiviso
+                    await second.app.close();
+                }
+            },
+            BOOT_TEST_TIMEOUT_MS,
+        );
     });
 });

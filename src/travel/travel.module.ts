@@ -13,6 +13,7 @@ import {
 import { User, UserSchema } from 'src/models/user.model';
 import { PushModule } from 'src/push/push.module';
 import { TravelCompletionService } from './travel-completion.service';
+import { TravelSweeper } from './travel-sweeper';
 
 // ciclo di vita del viaggio: completamento, sweep, push (D-12..D-14); montato in AppModule da 08-10
 @Module({
@@ -28,7 +29,8 @@ import { TravelCompletionService } from './travel-completion.service';
         travelConfigProvider,
         { provide: Clock, useClass: SystemClock },
         TravelCompletionService,
+        TravelSweeper,
     ],
-    exports: [TravelCompletionService],
+    exports: [TravelCompletionService, TravelSweeper],
 })
 export class TravelModule {}
