@@ -1,3 +1,4 @@
+import { getQueueToken } from '@nestjs/bull';
 import { INestApplication, Logger } from '@nestjs/common';
 import { ModulesContainer } from '@nestjs/core';
 import { getConnectionToken } from '@nestjs/mongoose';
@@ -23,6 +24,11 @@ import { PushService } from 'src/push/push.service';
 import { NoopPushTransport } from 'src/push/transport/noop-push-transport';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
+import type { TravelConfig } from 'src/config/travel-config';
+import { TRAVEL_CONFIG } from 'src/config/travel-config';
+import { TravelCompletionService } from 'src/travel/travel-completion.service';
+import { TRAVEL_QUEUE } from 'src/travel/travel-job';
+import { TravelSweeper } from 'src/travel/travel-sweeper';
 import { startRedis, stopRedis } from './setup/redis';
 
 const BOOT_TIMEOUT_MS = 60_000;
@@ -192,6 +198,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             TWITCH_EVENTSUB_SECRET: '',
             TWITCH_EVENTSUB_CALLBACK_URL: '',
             TWITCH_BROADCASTER_ID: '',
+            // Pitfall 13: nessun timer dello sweep nel boot reale; il reconciler al boot gira comunque
+            TRAVEL_SWEEP_INTERVAL_MS: '0',
         });
         // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
         const { AppModule } =
@@ -391,6 +399,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(transport).toBeInstanceOf(NoopPushTransport);
         expect(transport.enabled).toBe(false);
         expect(app.get(PushService)).toBeInstanceOf(PushService);
+    });
+
+    it('mounts the travel lifecycle', () => {
+        expect(app.get(TravelSweeper)).toBeInstanceOf(TravelSweeper);
+        expect(app.get(TravelCompletionService)).toBeInstanceOf(
+            TravelCompletionService,
+        );
+        expect(app.get(getQueueToken(TRAVEL_QUEUE))).toBeDefined();
+        expect(app.get<TravelConfig>(TRAVEL_CONFIG)).toEqual({
+            sweepIntervalMs: 0,
+        });
     });
 
     it('boots EventSub disabled without calling Twitch', () => {
