@@ -91,6 +91,36 @@ describe('GameRuleException', () => {
             'Missione non disponibile',
         ],
         [
+            'questInProgress',
+            () => GameRuleException.questInProgress(),
+            GameRuleErrorCode.QUEST_IN_PROGRESS,
+            'Non puoi muoverti durante una missione in corso',
+        ],
+        [
+            'travelInProgress',
+            () => GameRuleException.travelInProgress(),
+            GameRuleErrorCode.TRAVEL_IN_PROGRESS,
+            'Sei già in viaggio',
+        ],
+        [
+            'travelSameLocation',
+            () => GameRuleException.travelSameLocation(),
+            GameRuleErrorCode.TRAVEL_SAME_LOCATION,
+            'Sei già in questo luogo',
+        ],
+        [
+            'travelDestinationNotAllowed',
+            () => GameRuleException.travelDestinationNotAllowed(),
+            GameRuleErrorCode.TRAVEL_DESTINATION_NOT_ALLOWED,
+            'Puoi viaggiare solo verso una città',
+        ],
+        [
+            'travelNoPath',
+            () => GameRuleException.travelNoPath(),
+            GameRuleErrorCode.TRAVEL_NO_PATH,
+            'Nessuna strada porta a questa meta',
+        ],
+        [
             'spellNotKnown',
             () => GameRuleException.spellNotKnown(),
             GameRuleErrorCode.SPELL_NOT_KNOWN,

@@ -20,6 +20,11 @@ describe('ResourceNotFoundException', () => {
         ],
         ['user', () => ResourceNotFoundException.user(), 'Utente non trovato'],
         ['spell', () => ResourceNotFoundException.spell(), 'Magia non trovata'],
+        [
+            'pointOfInterest',
+            () => ResourceNotFoundException.pointOfInterest(),
+            'Luogo non trovato',
+        ],
     ])(
         '%s is a 404 NOT_FOUND with an italian message',
         (_name, factory, message) => {

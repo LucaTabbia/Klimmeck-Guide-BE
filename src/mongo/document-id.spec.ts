@@ -4,6 +4,7 @@ import {
     idForms,
     isObjectIdHex,
     objectIdFromHex,
+    refIdOf,
     sameId,
 } from 'src/mongo/document-id';
 
@@ -89,5 +90,28 @@ describe('idForms', () => {
 
         expect(idForms(id)).toEqual([id, '64b0000000000000000000aa']);
         expect(idForms(id)[0]).toBeInstanceOf(Types.ObjectId);
+    });
+});
+
+describe('refIdOf', () => {
+    const id = new Types.ObjectId();
+
+    it('returns an ObjectId ref as is', () => {
+        expect(refIdOf(id)).toBe(id);
+    });
+
+    it('turns a legacy canonical hex ref into an ObjectId', () => {
+        expect(refIdOf(id.toHexString())).toEqual(id);
+    });
+
+    it.each([
+        ['a short string', 'abc'],
+        ['null', null],
+        ['undefined', undefined],
+        ['a number', 42],
+        ['an object', {}],
+        ['an uppercase hex id', id.toHexString().toUpperCase()],
+    ])('returns null for %s', (_name, value) => {
+        expect(refIdOf(value)).toBeNull();
     });
 });
