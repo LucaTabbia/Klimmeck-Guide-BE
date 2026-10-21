@@ -12,7 +12,9 @@ import {
 } from 'src/models/pending-quest.model';
 import { User, UserSchema } from 'src/models/user.model';
 import { PushModule } from 'src/push/push.module';
+import { TravelCompletionProcessor } from './travel-completion.processor';
 import { TravelCompletionService } from './travel-completion.service';
+import { TravelPlanningModule } from './travel-planning.module';
 import { TravelSweeper } from './travel-sweeper';
 
 // ciclo di vita del viaggio: completamento, sweep, push (D-12..D-14); montato in AppModule da 08-10
@@ -24,12 +26,14 @@ import { TravelSweeper } from './travel-sweeper';
             { name: User.name, schema: UserSchema },
         ]),
         PushModule,
+        TravelPlanningModule,
     ],
     providers: [
         travelConfigProvider,
         { provide: Clock, useClass: SystemClock },
         TravelCompletionService,
         TravelSweeper,
+        TravelCompletionProcessor,
     ],
     exports: [TravelCompletionService, TravelSweeper],
 })
