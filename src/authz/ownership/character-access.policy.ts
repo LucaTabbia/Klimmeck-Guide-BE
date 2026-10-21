@@ -29,6 +29,10 @@ interface PendingQuestProjection {
     quests?: { pendingQuest?: Types.ObjectId | null };
 }
 
+export interface CharacterAccessOptions {
+    ownerOnly?: boolean;
+}
+
 @Injectable()
 export class CharacterAccessPolicy {
     private readonly logger = new Logger(CharacterAccessPolicy.name);
@@ -45,10 +49,11 @@ export class CharacterAccessPolicy {
         identity: AuthIdentity,
         resource: OwnedResource,
         id: string,
+        options: CharacterAccessOptions = {},
     ): Promise<ResourceAccess> {
         switch (resource) {
             case OwnedResource.character:
-                return this.authorizeCharacter(identity, id);
+                return this.authorizeCharacter(identity, id, options);
             case OwnedResource.pendingQuest:
                 return this.authorizePendingQuest(identity, id);
             default: {
@@ -60,11 +65,12 @@ export class CharacterAccessPolicy {
         }
     }
 
-    // il JWT non porta il personaggio: una sola lettura di users per operazione (D-08); innkeeper esente (D-09);
+    // il JWT non porta il personaggio: una sola lettura di users per operazione (D-08); innkeeper esente (D-09) salvo ownerOnly (07 D-11);
     // l'esistenza si controlla solo nel ramo di rifiuto, così 403 e 404 restano distinti (D-11)
     async authorizeCharacter(
         identity: AuthIdentity,
         characterId: string,
+        options: CharacterAccessOptions = {},
     ): Promise<ResourceAccess> {
         if (!isObjectIdHex(characterId))
             throw ResourceNotFoundException.character();
@@ -73,7 +79,7 @@ export class CharacterAccessPolicy {
         ) {
             return ResourceAccess.owner;
         }
-        if (identity.role === RoleType.innkeeper)
+        if (identity.role === RoleType.innkeeper && !options.ownerOnly)
             return ResourceAccess.onBehalf;
         await this.assertCharacterExists(characterId);
         throw AuthorizationException.notOwner();
