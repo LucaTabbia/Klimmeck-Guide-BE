@@ -11,6 +11,10 @@ import {
     PendingQuest,
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
+import {
+    PointOfInterest,
+    PointOfInterestSchema,
+} from 'src/models/point-of-interest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
@@ -30,6 +34,7 @@ import {
     buildCharacter,
     buildQuest,
     persistCity,
+    persistPoi,
     persistQuest,
 } from '../../../test/fixtures';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
@@ -187,10 +192,25 @@ describe('acceptQuest (wire)', () => {
         await harness.close();
     });
 
+    // POI reali (un marker senza documento è rifiutato, D-27), lontani dalla rete del travel world: senza strada la corsia standard salta (D-03)
     async function persistWorld(): Promise<World> {
-        const cityMarker = new Types.ObjectId();
-        const questMarker = new Types.ObjectId();
+        const pois =
+            harness.connection.models[PointOfInterest.name] ??
+            harness.connection.model(
+                PointOfInterest.name,
+                PointOfInterestSchema,
+            );
+        const cityId = new Types.ObjectId();
+        const poiAt = async (
+            location: [number, number],
+            type: string,
+        ): Promise<Types.ObjectId> =>
+            (await persistPoi(pois, { location, type, city: cityId }))
+                ._id as Types.ObjectId;
+        const cityMarker = await poiAt([50, 50], 'city');
+        const questMarker = await poiAt([50.02, 50.02], 'dungeon');
         await persistCity(cities, {
+            _id: cityId,
             markerLocation: cityMarker,
             pointsOfInterest: [cityMarker, questMarker],
         });

@@ -183,7 +183,7 @@ Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` 
 | `TRAVEL_NO_PATH` | `Nessuna strada porta a questa meta` | `startTravel`, `travelPreview` | nessun cammino stradale (o personaggio senza posizione) | mostrare l'errore; **segnalare al GM** (dati stradali) |
 | `QUEST_IN_PROGRESS` | `Non puoi muoverti durante una missione in corso` | `startTravel`, `travelPreview`, `teleportCharacter` | `quests.pendingQuest` popolata (solo la corsia standard; story e worldMission non bloccano) | disabilitare il viaggio finché la corsia standard è occupata; nel pannello admin: teleport non disponibile |
 | `QUEST_FULL` | `Non ci sono più posti per il tuo rango` | `acceptQuest` | quest registrata (worldMission, boss, enemy, aid) senza posto per il titolo del personaggio secondo D-32 (§9) | mostrare la scheda "strappata" |
-| `QUEST_NOT_ACCEPTABLE` | `Missione non disponibile` | `acceptQuest` | catalogo difettoso: story/worldMission senza `requiredPoints` valido, **oppure** quest registrata con `requiredAdventurers` assente, vuoto, numerico o con uno slot non valido | "missione non disponibile" e segnalare al GM (WARN col solo id della quest) |
+| `QUEST_NOT_ACCEPTABLE` | `Missione non disponibile` | `acceptQuest` | catalogo difettoso: story/worldMission senza `requiredPoints` valido, **oppure** quest registrata con `requiredAdventurers` assente, vuoto, numerico o con uno slot non valido, **oppure** (corsia standard) `markerLocation` che punta a un POI senza documento | "missione non disponibile" e segnalare al GM (WARN con i soli id della quest e, per il marker, del POI) |
 | `NOT_FOUND` | `Personaggio non trovato` / `Luogo non trovato` / `Missione non trovata` | tutte | personaggio inesistente o archiviato; POI inesistente; quest inesistente; **anche id malformati**, senza accesso al DB | ricaricare personaggio / mappa / board |
 | `FORBIDDEN` | `Questo personaggio non ti appartiene` / `Operazione riservata al locandiere` | owner-only / `teleportCharacter` | `startTravel`/`travelPreview`/`acceptQuest` su un personaggio che non è il `currentCharacter` del chiamante (**anche per l'innkeeper**); teleport chiamato da un non innkeeper | errore generico; l'innkeeper muove gli altri solo col teleport |
 | `UNAUTHENTICATED` | `Authentication required` | tutte | nessun bearer valido | flusso di refresh/login esistente |
@@ -201,7 +201,7 @@ Restano invariati i codici di Phase 7 su `acceptQuest` (`QUEST_SLOT_BUSY`, `QUES
 **Ordine di valutazione di `acceptQuest`** (Phase 7 emendato, `QuestAcceptanceService.accept`):
 
 1. Guard, ownership owner-only e id malformati come in Phase 7.
-2. Pre-verifica: quest inesistente → `NOT_FOUND` → `QUEST_NOT_ACCEPTABLE` (costo, poi slot) → personaggio inesistente/archiviato `NOT_FOUND` → **`TRAVEL_IN_PROGRESS`** → `QUEST_ALREADY_TAKEN` → `QUEST_TITLE_MISMATCH` → `QUEST_SLOT_BUSY` → `QUEST_FULL` → (solo corsia standard) `QUEST_NOT_IN_CITY`.
+2. Pre-verifica: quest inesistente → `NOT_FOUND` → `QUEST_NOT_ACCEPTABLE` (costo, poi slot) → personaggio inesistente/archiviato `NOT_FOUND` → **`TRAVEL_IN_PROGRESS`** → `QUEST_ALREADY_TAKEN` → `QUEST_TITLE_MISMATCH` → `QUEST_SLOT_BUSY` → `QUEST_FULL` → (solo corsia standard) `QUEST_NOT_IN_CITY` → (solo corsia standard, marker diverso dalla posizione) `QUEST_NOT_ACCEPTABLE` se il marker non ha un documento POI.
 3. Transazione (solo in corsa): claim della corsia (`NOT_FOUND` → `TRAVEL_IN_PROGRESS` → `QUEST_SLOT_BUSY` → `QUEST_ALREADY_TAKEN` → `QUEST_TITLE_MISMATCH` → `QUEST_NOT_IN_CITY` se la posizione era attesa), registrazione (`QUEST_ALREADY_TAKEN` o `QUEST_FULL`), debito (`INSUFFICIENT_POINTS`).
 
 **Ordine di valutazione di `teleportCharacter`:** `UNAUTHENTICATED` → `FORBIDDEN` (non innkeeper) → `poiId` malformato `NOT_FOUND` (`Luogo non trovato`) → `request.id` malformato `NOT_FOUND` → POI inesistente `NOT_FOUND` → personaggio inesistente o archiviato `NOT_FOUND` → `QUEST_IN_PROGRESS`.
@@ -214,7 +214,7 @@ Restano invariati i codici di Phase 7 su `acceptQuest` (`QUEST_SLOT_BUSY`, `QUES
 - **Viaggio automatico da quest (D-02):** accettare una quest della **corsia standard** (`pendingQuest`: hunt, enemy, boss, dungeon, heal, aid, job, study, crime, guard) avvia il viaggio verso `infos.markerLocation`:
   - marker **diverso** dalla posizione → `activeTravel` scritto nello **stesso update** del claim della corsia, `PendingQuest.startDate = null`, job accodato dopo il commit;
   - marker **uguale** alla posizione → nessun viaggio, `startDate` = ora dell'accettazione (countdown subito);
-  - **nessuna strada** verso il marker (D-03) → **salto istantaneo**: `status.location` = marker nello stesso update, nessun `activeTravel`, `startDate` = ora, WARN lato server con i soli id. (Il viaggio libero senza strada invece rifiuta `TRAVEL_NO_PATH`.)
+  - **nessuna strada** verso il marker (D-03) → **salto istantaneo**: `status.location` = marker nello stesso update, nessun `activeTravel`, `startDate` = ora, WARN lato server con i soli id. (Il viaggio libero senza strada invece rifiuta `TRAVEL_NO_PATH`.) Il salto vale **solo se il POI del marker esiste**: un `markerLocation` senza documento POI è un difetto di catalogo e l'accettazione è rifiutata con `QUEST_NOT_ACCEPTABLE` prima della transazione (nessuna scrittura, WARN con gli id di quest e POI).
 - **Story e worldMission** non muovono il personaggio, non bloccano il viaggio libero e sono accettabili da qualunque città (D-26).
 - **Guard sull'accettazione (D-06):** `acceptQuest` con `activeTravel` presente → `TRAVEL_IN_PROGRESS`, su tutte e tre le corsie.
 - **Blocchi del viaggio libero (D-04):** `TRAVEL_IN_PROGRESS` con un viaggio attivo; `QUEST_IN_PROGRESS` con `pendingQuest` popolata (il personaggio resta sul marker finché la Phase 9 non chiude la quest).
@@ -340,7 +340,7 @@ db.quests.insertOne({ infos: { title: 'Cure al tempio', type: 'heal', markerLoca
 db.quests.insertOne({ infos: { title: 'Studio in biblioteca', type: 'study', markerLocation: ObjectId('<markerPoiId>'), timeToComplete: 7200000, enemy: null, relatedLore: [] }, requirements: { minTitle: 'rookie', requiredPoints: null, requiredAdventurers: [], recommendedLoot: [] }, prizes: { prizeCoins: null, xpPrize: 30, prizeItem: null, randomLoot: [] }, registeredAdventurers: [] })
 ```
 
-Note: `minTitle` è `String!` sul filo, quindi va sempre valorizzato; `markerLocation` deve puntare a un POI esistente; `enemy`/`relatedLore`/item possono restare vuoti (orfani tollerati, §9).
+Note: `minTitle` è `String!` sul filo, quindi va sempre valorizzato; `markerLocation` deve puntare a un POI esistente (altrimenti, sulla corsia standard, `acceptQuest` risponde `QUEST_NOT_ACCEPTABLE`); `enemy`/`relatedLore`/item possono restare vuoti (orfani tollerati, §9); ogni voce di `recommendedLoot`/`randomLoot`/`prizeItem` deve avere `itemType` (`'EquipmentItem'` o `'LootItem'`), altrimenti la voce viene scartata come orfana.
 
 ---
 

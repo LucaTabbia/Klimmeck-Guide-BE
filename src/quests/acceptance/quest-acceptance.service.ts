@@ -194,7 +194,8 @@ export class QuestAcceptanceService {
         return pendingQuestId;
     }
 
-    // solo la corsia standard si muove (D-02): marker = posizione ⇒ countdown subito; nessuna strada ⇒ salto (D-03, WARN nel planner)
+    // solo la corsia standard si muove (D-02): marker = posizione ⇒ countdown subito; nessuna strada ⇒ salto (D-03, WARN nel planner);
+    // marker senza documento POI ⇒ QUEST_NOT_ACCEPTABLE dal planner, prima della transazione (D-27)
     private async movementTo(
         quest: QuestAcceptanceSnapshot,
         characterId: Types.ObjectId,

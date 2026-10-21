@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
+import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { TravelKind } from 'src/models/character/active-travel.model';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import {
@@ -121,7 +122,8 @@ export class TravelPlanner {
         return { location: location as Types.ObjectId, travel };
     }
 
-    // viaggio automatico verso il marker della quest (D-02): null = nessuna strada ⇒ salto istantaneo (D-03)
+    // viaggio automatico verso il marker della quest (D-02): null = nessuna strada ⇒ salto istantaneo (D-03);
+    // marker senza documento POI = difetto di catalogo ⇒ rifiuto fail-closed (D-27), mai un salto su un luogo inesistente
     async planAuto(
         request: AutoTravelRequest,
     ): Promise<ActiveTravelDraft | null> {
@@ -129,10 +131,16 @@ export class TravelPlanner {
             this.poiLocationOf(request.from),
             this.poiLocationOf(request.to),
         ]);
-        const route =
-            from && to
-                ? this.roads.routeBetween(from.location, to.location)
-                : null;
+        if (!to) {
+            this.logger.warn(
+                `Marker ${request.to.toHexString()} della missione ${request.questId.toHexString()} inesistente: accettazione rifiutata`,
+            );
+            throw GameRuleException.questNotAcceptable();
+        }
+        // la partenza pendente è benigna: il salto ripara la posizione
+        const route = from
+            ? this.roads.routeBetween(from.location, to.location)
+            : null;
         if (!route) {
             this.logger.warn(
                 `Nessuna strada dal luogo ${request.from.toHexString()} al marker ${request.to.toHexString()} della missione ${request.questId.toHexString()} per il personaggio ${request.characterId.toHexString()}: salto istantaneo`,
