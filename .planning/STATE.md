@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-09-PLAN.md
-last_updated: "2026-10-21T20:53:37.886Z"
+stopped_at: Completed 08-10-PLAN.md
+last_updated: "2026-10-21T21:00:30.000Z"
 last_activity: 2026-10-21
 progress:
   total_phases: 12
   completed_phases: 9
   total_plans: 87
-  completed_plans: 82
-  percent: 94
+  completed_plans: 83
+  percent: 95
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 8 (travel-lifecycle-travel-01) — EXECUTING
-Plan: 10 of 14
+Plan: 11 of 14
 Status: Ready to execute
 Last activity: 2026-10-21
 
@@ -36,7 +36,7 @@ Progress: [██████████] 100% (phases 1–7 complete; Phase 8 
 
 **Velocity:**
 
-- Total plans completed: 81
+- Total plans completed: 82
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -123,6 +123,7 @@ Progress: [██████████] 100% (phases 1–7 complete; Phase 8 
 | Phase 08 P07 | 6 min | 1 tasks | 3 files |
 | Phase 08 P08 | 6 min | 2 tasks | 8 files |
 | Phase 08 P09 | 12 min | 2 tasks | 6 files |
+| Phase 08 P10 | 7 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -217,6 +218,7 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-07: archiveCurrentCharacter libera i posti (D-30) con updateMany + $pull su registeredAdventurers.character nella stessa session dell'archivio, solo se il personaggio è stato archiviato; Quest nel forFeature di CharacterDeletionModule; PendingQuest e activeTravel restano sul documento archiviato
 - [Phase 08]: 08-08: TravelPlanner (planFree lean senza scritture: NOT_FOUND personaggio/luogo, poi classifyFreeTravel, rotta da routeBetween, velocità dal pet con WARN solo per modificatore invalido; planAuto null + WARN coi soli id = salto istantaneo) e TravelScheduler (jobId travel-<hex>-<startMs>, delay max(0, endTime − clock), removeOnComplete, mai throw; cancel best-effort) in TravelPlanningModule (coda 'travel' esportata, RoadsModule, Clock locale, senza PushModule C6); helper di test persistTravelWorld, FakeTravelQueue, buildPet/persistPet
 - [Phase 08]: 08-09: TravelCompletionService.complete = un findOneAndUpdate condizionale (identità startTime+endTime, endTime ≤ clock, attivo) a pipeline in connection.transaction con returnDocument before; countdown quest a endTime pianificato nella stessa session solo se startDate null; push travelEnd solo kind free, dopo il commit, solo dalla chiamata che ha matchato (owner via currentCharacter); TravelSweeper reconciler al boot (void) + setInterval unref single-flight (0 = off), completamenti in serie con errore loggato per id+codice; TravelModule (Character/PendingQuest/User, PushModule, TRAVEL_CONFIG, Clock locale) esporta completion e sweeper, non ancora in AppModule
+- [Phase 08]: 08-10: TravelCompletionProcessor (@Processor('travel') @Process('complete')) = solo trigger: travelJobDataOf ⇒ WARN `Job di viaggio <job.id> malformato: ignorato`, endTime > clock ⇒ LOG `Job di viaggio <jobId> in anticipo: lo completerà lo sweep` senza scritture né ri-accodamento (C10), altrimenti TravelCompletionService.complete; TravelModule importa TravelPlanningModule (coda) ed è montato in AppModule dopo QuestAcceptanceModule; real boot con TRAVEL_SWEEP_INTERVAL_MS='0', schema.gql invariato; prova su Redis effimero reale con SystemClock e polling
 
 ### Pending Todos
 
@@ -238,6 +240,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T20:53:37.882Z
-Stopped at: Completed 08-09-PLAN.md
+Last session: 2026-10-21T21:00:30.000Z
+Stopped at: Completed 08-10-PLAN.md
 Resume file: None
