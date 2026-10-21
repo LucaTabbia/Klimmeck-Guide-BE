@@ -82,4 +82,3 @@ export class PetInput {
     @Field(() => String, { nullable: true })
     imagePath?: string;
 }
-
