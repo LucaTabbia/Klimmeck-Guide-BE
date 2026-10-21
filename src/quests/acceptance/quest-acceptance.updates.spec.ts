@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { TravelKind } from 'src/models/character/active-travel.model';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import {
@@ -68,9 +69,63 @@ describe('quest acceptance write builders', () => {
         });
     });
 
-    it('laneClaimUpdate sets the lane to the new pending quest', () => {
-        expect(laneClaimUpdate(QuestLane.worldMission, p)).toEqual({
-            $set: { 'quests.activeWorldMissionQuest': p },
+    describe('laneClaimUpdate', () => {
+        it('sets the lane to the new pending quest', () => {
+            expect(laneClaimUpdate(QuestLane.worldMission, p)).toEqual({
+                $set: { 'quests.activeWorldMissionQuest': p },
+            });
+        });
+
+        it('sets only the standard lane without a movement', () => {
+            expect(laneClaimUpdate(QuestLane.standard, p)).toEqual({
+                $set: { 'quests.pendingQuest': p },
+            });
+            expect(laneClaimUpdate(QuestLane.standard, p, null)).toEqual({
+                $set: { 'quests.pendingQuest': p },
+            });
+        });
+
+        it('writes the travel to the marker in the same update as the claim (D-21)', () => {
+            const travel = {
+                road: {
+                    coordinates: [
+                        [0, 0],
+                        [0.1, 0],
+                    ] as [number, number][],
+                    distance: 11.1,
+                },
+                startTime: new Date('2026-03-04T05:06:07.000Z'),
+                endTime: new Date('2026-03-04T06:06:07.000Z'),
+                duration: 3_600_000,
+                to: loc,
+                kind: TravelKind.quest,
+            };
+
+            expect(
+                laneClaimUpdate(QuestLane.standard, p, {
+                    kind: 'travel',
+                    travel,
+                }),
+            ).toEqual({
+                $set: {
+                    'quests.pendingQuest': p,
+                    'status.activeTravel': travel,
+                },
+            });
+        });
+
+        it('moves the character onto the marker in the same update as the claim (D-03)', () => {
+            expect(
+                laneClaimUpdate(QuestLane.standard, p, {
+                    kind: 'jump',
+                    marker: loc,
+                }),
+            ).toEqual({
+                $set: {
+                    'quests.pendingQuest': p,
+                    'status.location': loc,
+                },
+            });
         });
     });
 

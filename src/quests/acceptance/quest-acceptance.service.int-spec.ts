@@ -1,3 +1,4 @@
+import { getQueueToken } from '@nestjs/bull';
 import { INestApplication, Logger } from '@nestjs/common';
 import {
     getConnectionToken,
@@ -28,6 +29,8 @@ import {
     seatAvailableExpr,
     slotRuleOf,
 } from 'src/quests/acceptance/quest-capacity';
+import { RoadsService } from 'src/roads/roads.service';
+import { TRAVEL_QUEUE, travelJobId } from 'src/travel/travel-job';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildCharacter,
@@ -37,10 +40,17 @@ import {
     persistQuest,
     persistUser,
 } from '../../../test/fixtures';
+import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
+import {
+    persistTravelWorld,
+    TravelWorld,
+} from '../../../test/travel/travel-world';
 
 const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const ACCEPTED_AT = new Date('2026-03-04T05:06:07.000Z');
 const STARTING_COINS = { gold: 1, silver: 2, copper: 3 };
+// collection della mappa del viaggio: pre-create per le transazioni e svuotate dopo ogni test
+const TRAVEL_COLLECTIONS = ['pets', 'pointsofinterest', 'roads'];
 
 interface World {
     cityMarker: Types.ObjectId;
@@ -59,6 +69,7 @@ describe('QuestAcceptanceService (replSet)', () => {
     let cities: Model<CityDocument>;
     let world: World;
     let seq = 0;
+    const queue = new FakeTravelQueue();
 
     beforeAll(async () => {
         const moduleRef = await Test.createTestingModule({
@@ -69,6 +80,8 @@ describe('QuestAcceptanceService (replSet)', () => {
                 QuestAcceptanceModule,
             ],
         })
+            .overrideProvider(getQueueToken(TRAVEL_QUEUE))
+            .useValue(queue)
             .overrideProvider(Clock)
             .useValue(new FixedClock(ACCEPTED_AT))
             .compile();
@@ -92,6 +105,9 @@ describe('QuestAcceptanceService (replSet)', () => {
             pendingQuests.init(),
             users.init(),
             cities.init(),
+            ...TRAVEL_COLLECTIONS.map((name) =>
+                connection.createCollection(name).catch(() => undefined),
+            ),
         ]);
     });
 
@@ -101,7 +117,11 @@ describe('QuestAcceptanceService (replSet)', () => {
 
     afterEach(async () => {
         jest.restoreAllMocks();
+        queue.reset();
         await Promise.all([
+            ...TRAVEL_COLLECTIONS.map((name) =>
+                connection.collection(name).deleteMany({}),
+            ),
             characters.deleteMany({}),
             quests.deleteMany({}),
             pendingQuests.deleteMany({}),
@@ -791,6 +811,200 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect((await raw(charId))?.quests.pendingQuest).toBeNull();
             expect(await pendingCount()).toBe(0);
             expect(await pointsOf(ownerId)).toBe(6000);
+        });
+    });
+
+    describe('automatic travel to the quest marker (D-02, D-03, D-21)', () => {
+        let travel: TravelWorld;
+
+        beforeEach(async () => {
+            travel = await persistTravelWorld(
+                connection,
+                app.get(RoadsService),
+            );
+        });
+
+        function huntTo(
+            marker: Types.ObjectId,
+            requirements: Record<string, unknown> = {},
+            type = 'hunt',
+        ): Promise<Types.ObjectId> {
+            return questOf(type, requirements, {
+                markerLocation: marker,
+                timeToComplete: 60000,
+            });
+        }
+
+        it('starts the travel to the marker in the same claim', async () => {
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(travel.markerA);
+            const questId = await huntTo(travel.questPoi);
+
+            const pqId = await accept(ownerId, charId, questId);
+
+            const character = await raw(charId);
+            expect(character?.quests.pendingQuest).toEqual(pqId);
+            const active = character?.status.activeTravel;
+            expect(active).toMatchObject({
+                kind: 'quest',
+                to: travel.questPoi,
+                startTime: ACCEPTED_AT,
+            });
+            expect(active.road.coordinates[0]).toEqual([0, 0]);
+            expect(active.road.coordinates.at(-1)).toEqual([0.1, 0]);
+            expect(active.endTime.getTime() - active.startTime.getTime()).toBe(
+                active.duration,
+            );
+            expect(character?.status.location).toEqual(travel.markerA);
+            const pending = await pendingOf(pqId);
+            expect(pending?.startDate).toBeNull();
+            expect(pending?.waitingTime).toBe(60000);
+            expect(queue.added).toHaveLength(1);
+            expect(queue.added[0].options).toMatchObject({
+                jobId: travelJobId(charId, ACCEPTED_AT),
+                delay: active.duration,
+            });
+        });
+
+        it('refuses a second standard quest while travelling to the first', async () => {
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(travel.markerA);
+            const firstId = await huntTo(travel.questPoi);
+            const secondId = await huntTo(travel.questPoi);
+            const pqId = await accept(ownerId, charId, firstId);
+
+            await expect(
+                accept(ownerId, charId, secondId),
+            ).rejects.toMatchObject({ code: 'TRAVEL_IN_PROGRESS' });
+
+            const character = await raw(charId);
+            expect(character?.quests.pendingQuest).toEqual(pqId);
+            expect(await pendingCount()).toBe(1);
+            expect(queue.added).toHaveLength(1);
+        });
+
+        it('starts the countdown at once when the character already stands on the marker', async () => {
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(travel.questPoi);
+            const questId = await huntTo(travel.questPoi);
+
+            const pqId = await accept(ownerId, charId, questId);
+
+            const character = await raw(charId);
+            expect(character?.status.activeTravel ?? null).toBeNull();
+            expect(character?.status.location).toEqual(travel.questPoi);
+            expect((await pendingOf(pqId))?.startDate).toEqual(ACCEPTED_AT);
+            expect(queue.added).toEqual([]);
+        });
+
+        it('jumps to the marker when no road reaches it', async () => {
+            const warn = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation();
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(travel.markerA);
+            const questId = await huntTo(travel.farQuestPoi);
+
+            const pqId = await accept(ownerId, charId, questId);
+
+            const character = await raw(charId);
+            expect(character?.status.location).toEqual(travel.farQuestPoi);
+            expect(character?.status.activeTravel ?? null).toBeNull();
+            expect((await pendingOf(pqId))?.startDate).toEqual(ACCEPTED_AT);
+            expect(queue.added).toEqual([]);
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn).toHaveBeenCalledWith(
+                `Nessuna strada dal luogo ${travel.markerA.toHexString()} al marker ${travel.farQuestPoi.toHexString()} della missione ${questId.toHexString()} per il personaggio ${charId.toHexString()}: salto istantaneo`,
+            );
+            expect(warn.mock.calls[0][0] as string).not.toContain(
+                ownerId.toHexString(),
+            );
+        });
+
+        it('never moves the character for a story or a world mission', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(travel.markerA);
+            const storyId = await huntTo(
+                travel.questPoi,
+                { requiredPoints: 1000, minTitle: 'rookie' },
+                'story',
+            );
+            const missionId = await huntTo(
+                travel.questPoi,
+                { requiredPoints: 1000, requiredAdventurers: ANY_THREE },
+                'worldMission',
+            );
+
+            const storyPq = await accept(ownerId, charId, storyId);
+            const missionPq = await accept(ownerId, charId, missionId);
+
+            const character = await raw(charId);
+            expect(character?.quests.activeStoryQuest).toEqual(storyPq);
+            expect(character?.quests.activeWorldMissionQuest).toEqual(
+                missionPq,
+            );
+            expect(character?.status.location).toEqual(travel.markerA);
+            expect(character?.status.activeTravel ?? null).toBeNull();
+            expect((await pendingOf(storyPq))?.startDate).toEqual(ACCEPTED_AT);
+            expect(queue.added).toEqual([]);
+        });
+
+        it('leaves neither travel nor job when the claim is rejected in the transaction', async () => {
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(travel.markerA);
+            const questId = await huntTo(
+                travel.questPoi,
+                { requiredAdventurers: [{ title: null, count: 1 }] },
+                'enemy',
+            );
+            const transaction = interleaveBeforeTransaction(() =>
+                quests.collection.updateOne(
+                    { _id: questId },
+                    {
+                        $push: {
+                            registeredAdventurers: {
+                                character: new Types.ObjectId(),
+                                title: 'rookie',
+                            },
+                        },
+                    },
+                ),
+            );
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_FULL' });
+
+            expect(transaction).toHaveBeenCalledTimes(1);
+            const character = await raw(charId);
+            expect(character?.status.activeTravel ?? null).toBeNull();
+            expect(character?.status.location).toEqual(travel.markerA);
+            expect(character?.quests.pendingQuest).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(queue.added).toEqual([]);
+        });
+
+        it('keeps the acceptance when the queue is unavailable', async () => {
+            const warn = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation();
+            queue.failAdd = true;
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(travel.markerA);
+            const questId = await huntTo(travel.questPoi);
+
+            const pqId = await accept(ownerId, charId, questId);
+
+            const character = await raw(charId);
+            expect(character?.quests.pendingQuest).toEqual(pqId);
+            expect(character?.status.activeTravel).toMatchObject({
+                kind: 'quest',
+                to: travel.questPoi,
+            });
+            expect((await pendingOf(pqId))?.startDate).toBeNull();
+            expect(warn).toHaveBeenCalledWith(
+                `Accodamento del viaggio ${travelJobId(charId, ACCEPTED_AT)} fallito: lo completerà lo sweep`,
+            );
         });
     });
 
