@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 6 complete (2026-10-21) — PR #9 open
-last_updated: "2026-10-21T08:00:00.000Z"
-last_activity: 2026-10-21 -- Phase 6 complete; BE PR #9 opened to develop
+status: planning
+stopped_at: Phase 7 context gathered
+last_updated: "2026-10-21T09:24:20.204Z"
+last_activity: "2026-10-21 -- Phase 7 discuss closed: 07-CONTEXT.md + 07-DISCUSSION-LOG.md committed on feat/07-quest-lanes-quest-04 (off develop after the Phase 6 merge, BE PR #9); next: /gsd-plan-phase 7, then execute, then BACKEND-NOTES for FE Phase 6"
 progress:
   total_phases: 12
   completed_phases: 8
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 6 — EventSub complete on 2026-10-21 (PR #9 to develop opened 2026-10-21); next Phase 7 — Quest Lanes (QUEST-04, unblocks FE Phase 6)
+**Current focus:** Phase 7 — Quest Lanes (QUEST-04): context gathered on 2026-10-21 (branch `feat/07-quest-lanes-quest-04`, Phase 6 merged as BE PR #9); next `/gsd-plan-phase 7` (unblocks FE Phase 6)
 
 ## Current Position
 
-Phase: 6 (eventsub-punti-canale-streamer-live) — COMPLETE 2026-10-21 (9/9 plans; UAT test A passed with HTTP + DB evidence and a real streamerLive push on device, tests B/C deferred to pre-production; code review 0 critical / 1 warning fixed; verification passed 4/4; security 47/48 mitigated, T-06-47 open by design until the pre-production E2E)
-Plan: 9 of 9
-Status: Phase 6 complete — PR #9 open, awaiting review/merge
-Last activity: 2026-10-21 -- Phase 6 closed: ROADMAP/STATE/PROJECT updated; integration gate re-run clean (46 suites / 550 tests); next: BE PR to develop, then /gsd-discuss-phase 7 (Quest Lanes, QUEST-04 for FE Phase 6)
+Phase: 7 (quest-lanes-quest-04) — CONTEXT GATHERED 2026-10-21 (22 decisions, 4 areas discussed interactively; BE-QUEST-03 and ROADMAP criterion 3 emended: no coins cost, requiredPoints mandatory for story/worldMission, acceptance only in the marker's city, owner-only mutation)
+Plan: not yet planned
+Status: Phase 7 context gathered — ready to plan
+Last activity: 2026-10-21 -- Phase 7 discuss closed: 07-CONTEXT.md + 07-DISCUSSION-LOG.md committed on feat/07-quest-lanes-quest-04 (off develop after the Phase 6 merge, BE PR #9); next: /gsd-plan-phase 7, then execute, then BACKEND-NOTES for FE Phase 6
 
-Progress: [██████████] 100% (phases 1–6 complete; Phase 7 next)
+Progress: [██████████] 100% (phases 1–6 complete; Phase 7 discussed, ready to plan)
 
 ## Performance Metrics
 
@@ -204,6 +204,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-20T18:10:00.000Z
-Stopped at: Completed 06-09-PLAN.md
-Resume file: .planning/phases/06-eventsub-punti-canale-streamer-live/06-CONTEXT.md
+Last session: 2026-10-21T09:24:20.193Z
+Stopped at: Phase 7 context gathered
+Resume file: .planning/phases/07-quest-lanes-quest-04/07-CONTEXT.md
