@@ -38,7 +38,7 @@ const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const pause = (ms: number): Promise<void> =>
     new Promise((resolve) => setTimeout(resolve, ms));
 
-// polling con deadline: mai job.finished() (open handle, Phase 1 D-06)
+// polling con deadline, mai la promessa di fine job di Bull (open handle, Phase 1 D-06)
 async function waitFor(
     predicate: () => Promise<boolean> | boolean,
     timeoutMs = WAIT_DEADLINE_MS,
