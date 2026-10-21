@@ -1,5 +1,9 @@
 import { getQueueToken } from '@nestjs/bull';
 import { Types, type Model } from 'mongoose';
+import {
+    AdminAuditLog,
+    AdminAuditLogSchema,
+} from 'src/authz/audit/admin-audit-log.model';
 import { PUSH_CONFIG } from 'src/config/push-config';
 import { TRAVEL_CONFIG } from 'src/config/travel-config';
 import {
@@ -14,8 +18,13 @@ import { TravelCompletionService } from './travel-completion.service';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
 import { TravelModule } from './travel.module';
 import { TravelService } from './travel.service';
-import { AuthTestApp } from '../../test/auth/auth-test-app';
+import { AuthTestApp, graphqlRequest } from '../../test/auth/auth-test-app';
 import { FixedClock } from '../../test/auth/fixed-clock';
+import {
+    graphqlWsUrl,
+    OpenSubscription,
+    openSubscription,
+} from '../../test/auth/ws-test-client';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
 import { primeCharactersChangeStream } from '../../test/characters/characters-change-stream';
@@ -30,6 +39,33 @@ import {
 const STARTED_AT = new Date('2026-10-21T10:00:00.000Z');
 const MISSING_ID = '64b0000000000000000000ff';
 const MS_PER_SECOND = 1000;
+const MALFORMED_ID = 'abc';
+const TELEPORT =
+    'mutation Teleport($request: TravelRequest!) { teleportCharacter(request: $request) { response successful } }';
+const TELEPORT_SUBSCRIPTION =
+    'subscription OnTeleport($id: String!) { characterUpdated(id: $id) { id status { location { id } activeTravel { startTime } } } }';
+
+interface WireError {
+    message: string;
+    extensions: Record<string, unknown>;
+}
+
+interface WireBody {
+    data?: {
+        teleportCharacter?: { response: string; successful: boolean } | null;
+    } | null;
+    errors?: WireError[];
+}
+
+interface WireTeleportCharacter {
+    id: string;
+    status: {
+        location: { id: string } | null;
+        activeTravel: { startTime: string } | null;
+    };
+}
+
+type TeleportUpdatedResult = { characterUpdated: WireTeleportCharacter };
 
 describe('teleportCharacter', () => {
     let harness: AuthTestApp;
@@ -258,6 +294,197 @@ describe('teleportCharacter', () => {
 
             expect(push.sent).toEqual([]);
             expect(push.topicSends).toEqual([]);
+        });
+    });
+
+    describe('teleportCharacter (wire)', () => {
+        let audits: Model<AdminAuditLog>;
+        const opened: OpenSubscription<unknown>[] = [];
+
+        beforeAll(() => {
+            audits =
+                (harness.connection.models[AdminAuditLog.name] as
+                    | Model<AdminAuditLog>
+                    | undefined) ??
+                harness.connection.model<AdminAuditLog>(
+                    AdminAuditLog.name,
+                    AdminAuditLogSchema,
+                );
+        });
+
+        afterEach(async () => {
+            await Promise.all(
+                opened.splice(0).map((subscription) => subscription.dispose()),
+            );
+        });
+
+        async function teleportOnWire(
+            request: { id: string; poiId: string },
+            bearer: string,
+        ): Promise<WireBody> {
+            const response = await graphqlRequest(
+                harness.app,
+                TELEPORT,
+                { request },
+                bearer,
+            );
+            return response.body as WireBody;
+        }
+
+        function innkeeper(): Promise<TestPlayer> {
+            return playerAt(world.markerA, { role: RoleType.innkeeper });
+        }
+
+        function expectRejected(body: WireBody, code: string, message: string) {
+            expect(body.data ?? null).toBeNull();
+            expect(body.errors?.[0]?.extensions).toEqual({ code });
+            expect(body.errors?.[0]?.message).toBe(message);
+        }
+
+        it('lets the innkeeper teleport a traveller and audits it', async () => {
+            const alice = await playerAt(world.markerA);
+            await travellingToB(alice);
+            const oste = await innkeeper();
+            const request = {
+                id: characterIdOf(alice).toHexString(),
+                poiId: world.questPoi.toHexString(),
+            };
+
+            const body = await teleportOnWire(request, oste.bearer);
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.teleportCharacter).toEqual({
+                response: 'Personaggio teletrasportato',
+                successful: true,
+            });
+            const raw = await rawCharacter(alice);
+            expect(raw?.status.location).toEqual(world.questPoi);
+            expect(raw?.status.activeTravel).toBeNull();
+            const records = await audits.find().lean().exec();
+            expect(records).toHaveLength(1);
+            expect(records[0]).toMatchObject({
+                actor: { userId: String(oste.user._id), role: 'innkeeper' },
+                action: 'teleportCharacter',
+                target: { type: 'CommonResponse', id: null },
+                args: { request },
+                outcome: 'ok',
+            });
+            expect(push.sent).toEqual([]);
+        });
+
+        it('audits a rejected teleport with its code', async () => {
+            const alice = await playerAt(world.markerA, {
+                pendingQuest: new Types.ObjectId(),
+            });
+            const oste = await innkeeper();
+            const before = await rawCharacter(alice);
+            const request = {
+                id: characterIdOf(alice).toHexString(),
+                poiId: world.questPoi.toHexString(),
+            };
+
+            expectRejected(
+                await teleportOnWire(request, oste.bearer),
+                'QUEST_IN_PROGRESS',
+                'Non puoi muoverti durante una missione in corso',
+            );
+
+            expect(await rawCharacter(alice)).toEqual(before);
+            const records = await audits.find().lean().exec();
+            expect(records).toHaveLength(1);
+            expect(records[0]).toMatchObject({
+                action: 'teleportCharacter',
+                target: { type: 'CommonResponse', id: null },
+                args: { request },
+                outcome: 'QUEST_IN_PROGRESS',
+            });
+        });
+
+        it('forbids a non-innkeeper', async () => {
+            const alice = await playerAt(world.markerA);
+
+            const body = await teleportOnWire(
+                {
+                    id: characterIdOf(alice).toHexString(),
+                    poiId: world.questPoi.toHexString(),
+                },
+                alice.bearer,
+            );
+
+            expect(body.data ?? null).toBeNull();
+            expect(body.errors?.[0]?.extensions).toEqual({
+                code: 'FORBIDDEN',
+            });
+            expect((await rawCharacter(alice))?.status.location).toEqual(
+                world.markerA,
+            );
+            expect(await audits.countDocuments()).toBe(0);
+        });
+
+        it('answers NOT_FOUND for malformed ids', async () => {
+            const alice = await playerAt(world.markerA);
+            const oste = await innkeeper();
+
+            expectRejected(
+                await teleportOnWire(
+                    {
+                        id: characterIdOf(alice).toHexString(),
+                        poiId: MALFORMED_ID,
+                    },
+                    oste.bearer,
+                ),
+                'NOT_FOUND',
+                'Luogo non trovato',
+            );
+            expectRejected(
+                await teleportOnWire(
+                    { id: MALFORMED_ID, poiId: world.questPoi.toHexString() },
+                    oste.bearer,
+                ),
+                'NOT_FOUND',
+                'Personaggio non trovato',
+            );
+            expect((await rawCharacter(alice))?.status.location).toEqual(
+                world.markerA,
+            );
+        });
+
+        it('streams the new location on characterUpdated', async () => {
+            const alice = await playerAt(world.markerA);
+            await travellingToB(alice);
+            const oste = await innkeeper();
+            const subscription = openSubscription<TeleportUpdatedResult>(
+                graphqlWsUrl(harness.port),
+                { Authorization: alice.bearer },
+                {
+                    query: TELEPORT_SUBSCRIPTION,
+                    variables: { id: characterIdOf(alice).toHexString() },
+                },
+            );
+            opened.push(subscription);
+            const snapshot = await subscription.next();
+            expect(snapshot.done).toBe(false);
+
+            const body = await teleportOnWire(
+                {
+                    id: characterIdOf(alice).toHexString(),
+                    poiId: world.questPoi.toHexString(),
+                },
+                oste.bearer,
+            );
+            expect(body.errors).toBeUndefined();
+
+            for (;;) {
+                const result = await subscription.next();
+                if (result.done) throw new Error('subscription ended');
+                expect(result.value.errors).toBeUndefined();
+                const character = result.value.data?.characterUpdated;
+                if (character?.status.activeTravel !== null) continue;
+                expect(character.status.location?.id).toBe(
+                    world.questPoi.toHexString(),
+                );
+                break;
+            }
         });
     });
 });

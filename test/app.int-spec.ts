@@ -47,6 +47,8 @@ const START_TRAVEL =
     'mutation { startTravel(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
 const TRAVEL_PREVIEW =
     '{ travelPreview(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { duration } }';
+const TELEPORT_CHARACTER =
+    'mutation { teleportCharacter(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
 // whitelist enumerata (D-12): ogni aggiunta di @Public() deve passare da qui
 const EXPECTED_PUBLIC_HANDLERS = [
     'AppController.getHello',
@@ -61,6 +63,7 @@ const EXPECTED_INNKEEPER_HANDLERS = [
     'CharactersResolver.characters',
     'PendingQuestsResolver.pendingQuests',
     'PushResolver.sendTestPush',
+    'TravelAdminResolver.teleportCharacter',
     'UsersResolver.user',
     'UsersResolver.users',
 ];
@@ -394,6 +397,18 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the teleport API into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'teleportCharacter(request: TravelRequest!): CommonResponse!',
+        );
+        expect(schema).toContain(
+            'input TravelRequest {\n  id: String!\n  poiId: String!\n}',
+        );
+        expect(schema).not.toContain('TeleportCharacterRequest');
+    });
+
     it('writes the push API into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -523,6 +538,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             expect(errorCodeOf(await graphqlCall(app, TRAVEL_PREVIEW))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
+        });
+
+        it('rejects teleportCharacter without a bearer', async () => {
+            expect(
+                errorCodeOf(await graphqlCall(app, TELEPORT_CHARACTER)),
+            ).toBe(AuthErrorCode.UNAUTHENTICATED);
         });
 
         it('rejects serverTime without a bearer', async () => {
