@@ -290,6 +290,18 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the quest party into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type QuestRequirements \{[^}]*\}/)?.[0]).toBe(
+            'type QuestRequirements {\n  minTitle: String!\n  party: [QuestPartySlot!]!\n  recommendedLoot: [AssetQuantity!]!\n  requiredAdventurers: Int!\n  requiredPoints: Int\n}',
+        );
+        expect(schema.match(/type QuestPartySlot \{[^}]*\}/)?.[0]).toBe(
+            'type QuestPartySlot {\n  count: Int!\n  title: String!\n}',
+        );
+        expect(schema).not.toContain('registrations');
+    });
+
     it('boots the quest acceptance primitive without a GraphQL surface', () => {
         expect(app.get(QuestAcceptanceService)).toBeInstanceOf(
             QuestAcceptanceService,
