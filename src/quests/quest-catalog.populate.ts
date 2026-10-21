@@ -1,4 +1,4 @@
-import type { PopulateOptions } from 'mongoose';
+import { Types, type PopulateOptions } from 'mongoose';
 import { Enemy } from 'src/models/enemy.model';
 import { Lore } from 'src/models/lore.model';
 
@@ -25,7 +25,11 @@ export interface CatalogRefsHolder {
     } | null;
 }
 
-const isResolved = (entry: CatalogItemEntry): boolean => entry.item != null;
+// risolto = documento popolato; un ObjectId grezzo è un ref rimasto tale perché itemType manca (refPath irrisolto, D-28) e sul filo farebbe fallire ItemUnion
+const isResolved = (entry: CatalogItemEntry): boolean =>
+    entry.item != null &&
+    typeof entry.item === 'object' &&
+    !(entry.item instanceof Types.ObjectId);
 
 // AssetQuantity.item è ItemUnion!: un orfano dentro [AssetQuantity!]! annullerebbe l'intera lista quests sul filo
 export function dropOrphanCatalogRefs(quest: CatalogRefsHolder): void {

@@ -288,7 +288,9 @@ describe('quest catalog (wire)', () => {
         expectFullQuest(quests.find(({ id }) => id === String(healthy._id)));
     });
 
-    // scrittura diretta: itemType è required nello schema, ma le quest a DB si editano a mano (D-28)
+    // scrittura diretta: itemType è required nello schema, ma le quest a DB si editano a mano (D-28);
+    // senza itemType il refPath non si risolve e populate lascia l'ObjectId grezzo (in un array misto
+    // Mongoose riusa il modello dei fratelli: qui una voce sola per path, così l'esito è deterministico)
     async function insertQuestWithoutItemType(): Promise<Types.ObjectId> {
         const base = buildQuest();
         const _id = new Types.ObjectId();
@@ -298,10 +300,7 @@ describe('quest catalog (wire)', () => {
             infos: { ...base.infos, markerLocation: poi._id },
             requirements: {
                 ...base.requirements,
-                recommendedLoot: [
-                    { item: loot._id, quantity: 1 },
-                    { itemType: 'LootItem', item: loot._id, quantity: 2 },
-                ],
+                recommendedLoot: [{ item: loot._id, quantity: 1 }],
             },
             prizes: {
                 ...base.prizes,
@@ -324,12 +323,7 @@ describe('quest catalog (wire)', () => {
         const quests = body.data?.quests ?? [];
         expect(quests).toHaveLength(2);
         const broken = quests.find(({ id }) => id === String(brokenId));
-        expect(
-            broken?.requirements.recommendedLoot.map(({ quantity, item }) => [
-                quantity,
-                item.id,
-            ]),
-        ).toEqual([[2, String(loot._id)]]);
+        expect(broken?.requirements.recommendedLoot).toEqual([]);
         expect(broken?.prizes.prizeItem).toBeNull();
         expect(broken?.prizes.randomLoot).toEqual([]);
         expectFullQuest(quests.find(({ id }) => id === String(healthy._id)));
