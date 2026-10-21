@@ -16,6 +16,7 @@ import { TravelCompletionProcessor } from './travel-completion.processor';
 import { TravelCompletionService } from './travel-completion.service';
 import { TravelPlanningModule } from './travel-planning.module';
 import { TravelSweeper } from './travel-sweeper';
+import { TravelService } from './travel.service';
 
 // ciclo di vita del viaggio: completamento, sweep, push (D-12..D-14); montato in AppModule da 08-10
 @Module({
@@ -34,7 +35,8 @@ import { TravelSweeper } from './travel-sweeper';
         TravelCompletionService,
         TravelSweeper,
         TravelCompletionProcessor,
+        TravelService,
     ],
-    exports: [TravelCompletionService, TravelSweeper],
+    exports: [TravelCompletionService, TravelSweeper, TravelService],
 })
 export class TravelModule {}
