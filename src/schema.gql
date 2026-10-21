@@ -2,6 +2,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AcceptQuestRequest {
+  id: String!
+  questId: String!
+}
+
 type ActiveSpell {
   spell: Spell
   usages: Int!
@@ -287,6 +292,7 @@ type Lore {
 }
 
 type Mutation {
+  acceptQuest(request: AcceptQuestRequest!): CommonResponse!
   createCharacter(input: CreateCharacterInput!): User!
   deleteCharacter: User!
   doTransaction(request: TransactionRequest!): CommonResponse!
