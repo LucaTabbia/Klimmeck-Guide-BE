@@ -1,9 +1,9 @@
 ---
 phase: 7
 slug: quest-lanes-quest-04
-status: draft
+status: approved
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-10-21
 ---
 
@@ -58,8 +58,8 @@ Trappole di tooling (vincolanti, D-20 / RESEARCH Pitfall 10–13): path jest PRI
 | 07-06-T2 | 07-06 | 2 | BE-QUEST-03 SC3 (D-03..D-06, D-10, D-18, D-19) | T-07-21, T-07-23, T-07-24 | città del marker, non ripetibilità, titolo, slot per rango atomici sotto concorrenza; nessuna registrazione al rifiuto | integration (replSet) | `npx jest src/quests/acceptance/quest-acceptance.service.int-spec.ts --selectProjects integration --runInBand && npm run build` | ✅ estende lo spec del T1 | ✅ green |
 | 07-07-T1 | 07-07 | 3 | BE-QUEST-01..04 SC1–SC4 (D-11, D-12, D-14) | T-07-27, T-07-28, T-07-29, T-07-30, T-07-32, T-07-33 | owner-only sul filo (innkeeper altrui ⇒ FORBIDDEN, nessun audit); id malformati ⇒ NOT_FOUND; `{ code }` esatto; `characterUpdated` con la corsia popolata | integration (wire HTTP + WS) | `npx jest src/quests/acceptance/accept-quest.resolver.int-spec.ts src/quests/acceptance/quest-acceptance.service.int-spec.ts --selectProjects integration --runInBand && npm run build` | ❌ W0 → `accept-quest.resolver.int-spec.ts` creato nel task (RED) | ✅ green |
 | 07-07-T2 | 07-07 | 3 | BE-QUEST-01..04 (D-11, D-19, D-20, C5) | T-07-27, T-07-30, T-07-31 | whitelist ownership + owner-only enumerate; divieti `QuestAcceptance`, `twitchPointsDebit`, `INSUFFICIENT_FUNDS`, `registrations`; `UNAUTHENTICATED` senza bearer; SDL additivo | integration (real boot) + CI | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql && npm run build` | ✅ estende `test/app.int-spec.ts` (test negativo riscritto in positivo) | ✅ green |
-| 07-08-T1 | 07-08 | 4 | BE-QUEST-01..04 (D-19, D-20) | T-07-34, T-07-35, T-07-36, T-07-37 | gate completo + invarianti (schema additivo, un solo owner-only, nessuna moneta né `$inc` in `src/quests`, `@Public` invariato, nessuna dipendenza nuova) | full suite + grep | `npm run test:unit && npm run test:int && npm run build && git diff --exit-code src/schema.gql` + lint filtrato = 0 righe | ✅ | ⬜ pending |
-| 07-08-T2 | 07-08 | 4 | BE-QUEST-01..04 (D-21) | T-07-38, T-07-39 | handoff verificato contro il codice; nessun segreto nel documento; traceability Complete | doc grep | `grep -q "acceptQuest(request: AcceptQuestRequest!): CommonResponse!" .planning/phases/07-quest-lanes-quest-04/BACKEND-NOTES.md` + conteggio delle 4 righe Complete di BE-QUEST in `.planning/REQUIREMENTS.md` (comando completo nel `<verify>` di 07-08 Task 2) | ❌ → `BACKEND-NOTES.md` creato nel task | ⬜ pending |
+| 07-08-T1 | 07-08 | 4 | BE-QUEST-01..04 (D-19, D-20) | T-07-34, T-07-35, T-07-36, T-07-37 | gate completo + invarianti (schema additivo, un solo owner-only, nessuna moneta né `$inc` in `src/quests`, `@Public` invariato, nessuna dipendenza nuova) | full suite + grep | `npm run test:unit && npm run test:int && npm run build && git diff --exit-code src/schema.gql` + lint filtrato = 0 righe | ✅ | ✅ green |
+| 07-08-T2 | 07-08 | 4 | BE-QUEST-01..04 (D-21) | T-07-38, T-07-39 | handoff verificato contro il codice; nessun segreto nel documento; traceability Complete | doc grep | `grep -q "acceptQuest(request: AcceptQuestRequest!): CommonResponse!" .planning/phases/07-quest-lanes-quest-04/BACKEND-NOTES.md` + conteggio delle 4 righe Complete di BE-QUEST in `.planning/REQUIREMENTS.md` (comando completo nel `<verify>` di 07-08 Task 2) | ✅ `BACKEND-NOTES.md` creato nel task | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -69,13 +69,13 @@ Trappole di tooling (vincolanti, D-20 / RESEARCH Pitfall 10–13): path jest PRI
 
 Le infrastrutture di test mancanti sono create dentro i task che le usano, sempre nel passo RED prima dell'implementazione:
 
-- [ ] `src/models/quest-lanes.schema.spec.ts` (schemi di corsie, `pointsSpent`, party, registrazioni) → 07-01 Task 1/2
-- [ ] `test/fixtures/quest.fixture.ts`: `requirements.party: []` e `registrations: []` in `buildQuest` → 07-01 Task 2
-- [ ] `test/app.int-spec.ts`: blocchi SDL esatti (07-01), `serverTime` + `UNAUTHENTICATED` (07-05), whitelist ownership + `EXPECTED_OWNER_ONLY_HANDLERS` e test negativo riscritto in positivo (07-07, C5)
-- [ ] spec unit RED: `quest-lanes.spec.ts`, `quest-eligibility.spec.ts` (07-02 Task 2), `quest-acceptance.updates.spec.ts` (07-02 Task 3), `server-time.resolver.spec.ts` (07-05 Task 1)
-- [ ] `test/characters/characters-change-stream.ts` (`primeCharactersChangeStream` condiviso) → 07-03 Task 1
-- [ ] `test/authz/characters-test-app.ts` e `CharactersModule`: `PendingQuest` e `Quest` nel `forFeature` (C6) → 07-03 Task 2
-- [ ] int-spec nuovi: `src/characters/character-quest-lanes.int-spec.ts` (07-03), `src/time/server-time.int-spec.ts` (07-05), `src/quests/acceptance/accept-quest.resolver.int-spec.ts` (07-07); `quest-acceptance.service.int-spec.ts` riscritto (07-06, Pitfall 7)
+- [x] `src/models/quest-lanes.schema.spec.ts` (schemi di corsie, `pointsSpent`, party, registrazioni) → 07-01 Task 1/2
+- [x] `test/fixtures/quest.fixture.ts`: `requirements.party: []` e `registrations: []` in `buildQuest` → 07-01 Task 2
+- [x] `test/app.int-spec.ts`: blocchi SDL esatti (07-01), `serverTime` + `UNAUTHENTICATED` (07-05), whitelist ownership + `EXPECTED_OWNER_ONLY_HANDLERS` e test negativo riscritto in positivo (07-07, C5)
+- [x] spec unit RED: `quest-lanes.spec.ts`, `quest-eligibility.spec.ts` (07-02 Task 2), `quest-acceptance.updates.spec.ts` (07-02 Task 3), `server-time.resolver.spec.ts` (07-05 Task 1)
+- [x] `test/characters/characters-change-stream.ts` (`primeCharactersChangeStream` condiviso) → 07-03 Task 1
+- [x] `test/authz/characters-test-app.ts` e `CharactersModule`: `PendingQuest` e `Quest` nel `forFeature` (C6) → 07-03 Task 2
+- [x] int-spec nuovi: `src/characters/character-quest-lanes.int-spec.ts` (07-03), `src/time/server-time.int-spec.ts` (07-05), `src/quests/acceptance/accept-quest.resolver.int-spec.ts` (07-07); `quest-acceptance.service.int-spec.ts` riscritto (07-06, Pitfall 7)
 - Framework install: none (Jest, supertest, harness replica set, ws client già presenti; nessuna dipendenza nuova)
 
 ---
@@ -99,4 +99,6 @@ Le infrastrutture di test mancanti sono create dentro i task che le usano, sempr
 - [x] Feedback latency < 60s (singoli spec e real boot; suite completa solo in 07-08)
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** approved by planner 2026-10-21 (8 plan, 17 task, 4 wave)
+**Approval:** approved by planner 2026-10-21 (8 plan, 17 task, 4 wave); approved after execution 2026-10-21 (17/17 task ✅ green)
+
+**Execution sign-off (07-08, 2026-10-21):** unit **85 suite / 1259 test** verdi (baseline 80 / 1114); integration **49 suite / 606 test** verdi con `--runInBand` (~79 s, baseline 46 / 550) dopo l'aggiornamento dell'aspettativa obsoleta di `character-creation.resolver.int-spec.ts` (commit `abb8788`); `npm run build` exit 0; lint filtrato 0 righe; `npx eslint` (0 errori, 11 warning preesistenti in `characters.service.ts`) e `npx prettier --check` puliti sui 45 `.ts` toccati; `git diff --exit-code src/schema.gql` exit 0, diff vs `origin/develop` solo additivo, divieti `QuestAcceptance|twitchPointsDebit|INSUFFICIENT_FUNDS|registrations` = 0; un solo `ownerOnly: true`, `@Public()` 7 = 7 di `develop`, nessuna moneta né `$inc` in `src/quests`, nessuna dipendenza nuova, nessun `jest.mock(`, nessun trailer `Co-Authored-By`.
