@@ -18,7 +18,7 @@ export function isDuplicateKeyOn(error: unknown, path: string): boolean {
     return keyPattern !== undefined && Object.hasOwn(keyPattern, path);
 }
 
-export function describeMongoError(error: unknown): string {
+export function describeError(error: unknown): string {
     const name = error instanceof Error ? error.name : 'UnknownError';
     const code = mongoErrorCodeOf(error);
     return code === undefined ? name : `${name}, code ${code}`;

@@ -113,7 +113,8 @@ export async function createAuthTestApp(
     }
     const moduleRef = await builder.compile();
 
-    const app = moduleRef.createNestApplication();
+    // rawBody come main.ts: il webhook EventSub firma i byte grezzi (06 D-02)
+    const app = moduleRef.createNestApplication({ rawBody: true });
     await app.listen(0, '127.0.0.1');
     const port = (app.getHttpServer().address() as AddressInfo).port;
     const connection = app.get<Connection>(getConnectionToken());

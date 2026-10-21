@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 05-08-PLAN.md
-last_updated: "2026-10-18T20:11:44.577Z"
-last_activity: "2026-10-18 -- Phase 5 complete (verification 4/4, review fixed, security 43/43); BE PR #8 open to develop (merge before FE Phase 5 PR); next Phase 6 EventSub"
+stopped_at: Phase 6 complete (2026-10-21) — PR #9 open
+last_updated: "2026-10-21T08:00:00.000Z"
+last_activity: 2026-10-21 -- Phase 6 complete; BE PR #9 opened to develop
 progress:
   total_phases: 12
-  completed_phases: 7
-  total_plans: 56
-  completed_plans: 56
+  completed_phases: 8
+  total_plans: 65
+  completed_plans: 65
   percent: 100
 ---
 
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 5 — Infrastruttura Push FCM (PR #8 open to develop); next Phase 6 EventSub
+**Current focus:** Phase 6 — EventSub complete on 2026-10-21 (PR #9 to develop opened 2026-10-21); next Phase 7 — Quest Lanes (QUEST-04, unblocks FE Phase 6)
 
 ## Current Position
 
-Phase: 5 (infrastruttura-push-fcm) — COMPLETE 2026-10-18, branch feat/05-infrastruttura-push-fcm (8/8 plans; VERIFICATION 4/4, human item = consegna reale su device rinviata alla UAT FE Phase 5 (05-HUMAN-UAT.md); REVIEW 0 critical / 1 warning → WR-01 + IN-01 + IN-04a fixed in TDD, IN-02/03/04b accepted; security 43/43 closed, PR #8 open)
-Plan: 8/8 complete
-Status: Phase 5 complete — security 43/43 closed; PR #8 open on LucaTabbia/Klimmeck-Guide-BE (feat/05-infrastruttura-push-fcm → develop), ready for review and merge BEFORE the FE Phase 5 PR; next /gsd-discuss-phase 6 (EventSub: Punti Canale & Streamer Live)
-Last activity: 2026-10-18 -- Phase 5 complete (verification 4/4, review fixed, security 43/43); BE PR #8 open to develop (merge before FE Phase 5 PR); next Phase 6 EventSub
+Phase: 6 (eventsub-punti-canale-streamer-live) — COMPLETE 2026-10-21 (9/9 plans; UAT test A passed with HTTP + DB evidence and a real streamerLive push on device, tests B/C deferred to pre-production; code review 0 critical / 1 warning fixed; verification passed 4/4; security 47/48 mitigated, T-06-47 open by design until the pre-production E2E)
+Plan: 9 of 9
+Status: Phase 6 complete — PR #9 open, awaiting review/merge
+Last activity: 2026-10-21 -- Phase 6 closed: ROADMAP/STATE/PROJECT updated; integration gate re-run clean (46 suites / 550 tests); next: BE PR to develop, then /gsd-discuss-phase 7 (Quest Lanes, QUEST-04 for FE Phase 6)
 
-Progress: [██████████] 100%
+Progress: [██████████] 100% (phases 1–6 complete; Phase 7 next)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 64
+- Total plans completed: 73
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -97,6 +97,15 @@ Progress: [██████████] 100%
 | Phase 05 P06 | 9 min | 3 tasks | 6 files |
 | Phase 05 P07 | 4 min | 2 tasks | 3 files |
 | Phase 05 P08 | 7 min | 2 tasks | 3 files |
+| Phase 06 P01 | 6 min | 3 tasks | 12 files |
+| Phase 06 P02 | 6 min | 3 tasks | 8 files |
+| Phase 06 P03 | 6 min | 2 tasks | 8 files |
+| Phase 06 P04 | 8 min | 3 tasks | 9 files |
+| Phase 06 P05 | 9 min | 2 tasks | 4 files |
+| Phase 06 P06 | 5 min | 2 tasks | 5 files |
+| Phase 06 P07 | 5 min | 2 tasks | 6 files |
+| Phase 06 P08 | 5 min | 2 tasks | 3 files |
+| Phase 06 P09 | 25 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -165,6 +174,15 @@ Recent decisions affecting current work:
 - [Phase 05]: PushModule registers User locally (forFeature) so consumers do not pull UsersModule and its change stream
 - [Phase 05]: 05-07: PushModule montato in AppModule; src/schema.gql rigenerato con diff solo additivo (3 mutation, PushDeliveryReport, PushEventType, PushPlatform, 2 input); real-boot test con FIREBASE_SERVICE_ACCOUNT vuota → NoopPushTransport
 - [Phase 05]: 05-08: gate di fase verde (unit 66/807, int 43/515, build, eslint, schema drift 0); BACKEND-NOTES Phase 5 pubblicato; fuga di dati tra suite in spell-recovery.processor.int-spec corretta con afterEach
+- [Phase 06]: 06-01: parseEventSubConfig fail-closed a tre modalità (disabled/local/managed): prod senza EventSub o config parziale → boot rifiutato, callback http loopback fuori prod = local senza Helix, managed legge TWITCH_CLIENT_ID/SECRET direttamente; TWITCH_LOGIN_SCOPES → scope dell'authorize url; url-rules condiviso
+- [Phase 06]: 06-02: funzioni pure del webhook: readEventSubHeaders (4 header stringa singola non vuota ≤ 200, subscription-type ignorato), verifyEventSubSignature HMAC sui byte grezzi + controllo lunghezza + timingSafeEqual + replay 10 min / +60 s, parseNotification a tipo discriminato con dispatch via Map (solo stringhe validate e interi positivi sicuri); fixture firmate condivise in test/eventsub
+- [Phase 06]: 06-03: ledger eventsub_messages (indice unico messageId, unico parziale {type,eventId} per C7, TTL 604800 s) costruito da EventSubMessageIndexVerifier non bloccante; PointsCreditService: lookup twitchId fuori transazione, poi insert di dedup + WalletService.creditUserPoints nella stessa transazione, E11000 su messageId/eventId ⇒ duplicate, ResourceNotFoundException ⇒ unknownViewer, altri errori rilanciati; StreamOnlineRecorder insert singolo; servizi senza Logger (i log li fa il webhook)
+- [Phase 06]: 06-04: porta astratta TwitchHelixClient (token DI) con TwitchHelixError {status} e describeHelixError (errori estranei ridotti al name); helper twitch-http senza cause; TwitchAppTokenCache client credentials su TWITCH_TOKEN_URL con clientId/clientSecret di EventSubConfig managed, solo in memoria, margine 5 min, single-flight, nessuna promessa fallita in cache, expires_in assente o 0 => nessun riuso; HttpTwitchHelixClient: Bearer + Client-Id, timeout 5 s per richiesta (anche nel retry), cursore con tetto 20 pagine, 401 => invalidate + un retry, DELETE 404 idempotente, 202 senza subscription => errore, mapping difensivo; FakeTwitchHelixClient con gli stessi messaggi del client reale
+- [Phase 06]: 06-05: planReconciliation pura: per ogni tipo desiderato le subscription possedute (webhook, stesso tipo, stesso broadcaster) ordinate per createdAt/id; si tiene una sola (la più vecchia enabled, altrimenti pending, fra le esatte sul callback normalizzato con new URL().href), tutte le altre possedute rimosse, create se nessuna tenuta, non possedute ignorate; EventSubSubscriptionManager: boot con void reconcileSafely, setInterval unref (0 = nessun timer) pulito in onModuleDestroy, single-flight con un rerun, delete prima delle create, 409 WARN, 403 redemption ERROR con STREAMER_SCOPE_REMEDY, riepilogo solo tipo/id/status, nessuna chiamata Helix fuori da managed
+- [Phase 06]: 06-06: EventSubWebhookService.handle restituisce un WebhookReply discriminato (challenge/noContent/forbidden/retryLater) e non lancia mai (try/catch esterno → retryLater con describeMongoError); disabled → forbidden, poi header e firma prima di ogni ramo (nessun messageId nei log dei rifiuti), routing su messageTypeOf (type guard), revocation → ERROR (+ STREAMER_SCOPE_REMEDY solo per authorization_revoked sulla redemption) e void reconcileSafely, broadcaster diverso → WARN 204, unknownViewer/duplicate solo DEBUG, retryLater solo su errore DB, stream.online recorded → void broadcast(streamerLive()) con catch WARN; EventSubStartupReporter WARN disabled/local, LOG managed, nessun secret
+- [Phase 06]: 06-07: EventSubController sottile (@Res, 200 text/plain col solo challenge, 204/403/500 con end()), decoratore pubblico solo su receive; EventSubModule foglia (EconomyModule, PushModule, forFeature EventSubMessage+User, Clock locale, Helix -> HttpTwitchHelixClient) non ancora in AppModule; harness createAuthTestApp con rawBody: true incondizionato (retrocompatibile, 46 suite verdi); createEventSubTestApp drena il reconcile di boot con manager.reconcile(); prova sul filo: 5 consegne concorrenti e C7 -> un credito, stream.online -> un topicSends streamer-live, revocation -> delete+create
+- [Phase 06]: 06-08: EventSubModule montato in AppModule subito dopo PushModule; NestFactory.create(AppModule, { rawBody: true }) e real boot con createNestApplication({ rawBody: true }) speculare; whitelist @Public a 6 voci con EventSubController.receive, publicClasses vuoto; spie passthrough su fetch e Logger.prototype.warn prima del boot: disabled, WARN `EventSub disabled`, nessuna fetch verso twitch.tv, POST webhook -> 403 body vuoto; schema.gql invariato (D-16)
+- [Phase 06]: 06-09: gate di fase verde (unit 79/1098, int 46/550, build, lint filtrato 0, schema.gql invariato, invarianti); UAT 2026-10-20: test A (Twitch CLI locale) passed, test B (E2E managed) e C (C4) differiti a prima della produzione, 06-HUMAN-UAT `status: partial`; ogni ambiente richiede `roles/firebasecloudmessaging.admin` sul service account Firebase per i topic FCM (`roles/firebasenotifications.admin` non basta)
 
 ### Pending Todos
 
@@ -186,6 +204,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-18T19:58:50.849Z
-Stopped at: Completed 05-08-PLAN.md
-Resume file: None
+Last session: 2026-10-20T18:10:00.000Z
+Stopped at: Completed 06-09-PLAN.md
+Resume file: .planning/phases/06-eventsub-punti-canale-streamer-live/06-CONTEXT.md

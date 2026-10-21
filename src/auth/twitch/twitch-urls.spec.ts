@@ -15,6 +15,7 @@ const TWITCH: TwitchOAuthConfig = {
     clientId: TEST_TWITCH_CLIENT_ID,
     clientSecret: 'test-client-secret',
     redirectUri: 'http://localhost:3000/auth/twitch/callback',
+    scopes: [],
 };
 
 describe('buildTwitchAuthorizeUrl', () => {
@@ -48,6 +49,32 @@ describe('buildTwitchAuthorizeUrl', () => {
         expect(
             authorizeUrl.includes('scope=&') || authorizeUrl.endsWith('scope='),
         ).toBe(true);
+    });
+
+    it('sends the configured login scope', () => {
+        const url = buildTwitchAuthorizeUrl(
+            { ...TWITCH, scopes: ['channel:read:redemptions'] },
+            'st',
+        );
+
+        expect(new URL(url).searchParams.get('scope')).toBe(
+            'channel:read:redemptions',
+        );
+        expect(url).toContain('scope=channel%3Aread%3Aredemptions');
+    });
+
+    it('joins several login scopes with a space', () => {
+        const url = buildTwitchAuthorizeUrl(
+            {
+                ...TWITCH,
+                scopes: ['channel:read:redemptions', 'user:read:email'],
+            },
+            'st',
+        );
+
+        expect(url).toContain(
+            'scope=channel%3Aread%3Aredemptions+user%3Aread%3Aemail',
+        );
     });
 
     it('never leaks the client secret', () => {

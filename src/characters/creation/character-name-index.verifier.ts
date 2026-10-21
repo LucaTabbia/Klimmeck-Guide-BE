@@ -8,7 +8,7 @@ import {
     LEGACY_CHARACTER_NAME_INDEX,
 } from 'src/models/character/character.model';
 import {
-    describeMongoError,
+    describeError,
     isDuplicateKeyError,
     isIndexNotFoundError,
 } from 'src/mongo/mongo-errors';
@@ -33,7 +33,7 @@ export class CharacterNameIndexVerifier implements OnApplicationBootstrap {
             this.logger.error(
                 isDuplicateKeyError(error)
                     ? DUPLICATED_NAMES_MESSAGE
-                    : `Indexes on characters could not be built (${describeMongoError(error)}). Character names are not guaranteed unique on characters.infos.name.`,
+                    : `Indexes on characters could not be built (${describeError(error)}). Character names are not guaranteed unique on characters.infos.name.`,
             );
             // il vecchio indice resta: meglio nomi archiviati riservati che nessuna unicità
             return;
@@ -52,7 +52,7 @@ export class CharacterNameIndexVerifier implements OnApplicationBootstrap {
         } catch (error) {
             if (isIndexNotFoundError(error)) return;
             this.logger.error(
-                `Legacy index ${LEGACY_CHARACTER_NAME_INDEX} could not be dropped (${describeMongoError(error)}). Names of archived characters stay reserved until it is dropped.`,
+                `Legacy index ${LEGACY_CHARACTER_NAME_INDEX} could not be dropped (${describeError(error)}). Names of archived characters stay reserved until it is dropped.`,
             );
         }
     }

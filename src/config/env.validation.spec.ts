@@ -1,10 +1,23 @@
 import { parse } from 'dotenv';
+import { generateKeyPairSync } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AUTH_ENV_KEYS } from 'src/config/auth-config';
 import { validateEnv } from 'src/config/env.validation';
 
 const VALID_SECRET = 's'.repeat(40);
+const EVENTSUB_SECRET = 'e'.repeat(64);
+
+function encodedServiceAccount(privateKey: string): string {
+    return Buffer.from(
+        JSON.stringify({
+            type: 'service_account',
+            project_id: 'klimmeck-test',
+            client_email: 'push@klimmeck-test.iam.gserviceaccount.com',
+            private_key: privateKey,
+        }),
+    ).toString('base64');
+}
 
 describe('validateEnv', () => {
     it('returns the same env object when valid', () => {
@@ -46,6 +59,56 @@ describe('validateEnv', () => {
         ).not.toThrow();
     });
 
+    describe('EventSub', () => {
+        let encoded: string;
+
+        beforeAll(() => {
+            encoded = encodedServiceAccount(
+                generateKeyPairSync('rsa', {
+                    modulusLength: 2048,
+                    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+                    publicKeyEncoding: { type: 'spki', format: 'pem' },
+                }).privateKey,
+            );
+        });
+
+        it('throws in production without the EventSub variables', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    NODE_ENV: 'production',
+                    FIREBASE_SERVICE_ACCOUNT: encoded,
+                }),
+            ).toThrow(/TWITCH_EVENTSUB_SECRET/);
+        });
+
+        it('boots in production with the full EventSub configuration', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    NODE_ENV: 'production',
+                    FIREBASE_SERVICE_ACCOUNT: encoded,
+                    TWITCH_CLIENT_ID: 'client-id',
+                    TWITCH_CLIENT_SECRET: 'client-secret',
+                    TWITCH_EVENTSUB_SECRET: EVENTSUB_SECRET,
+                    TWITCH_EVENTSUB_CALLBACK_URL:
+                        'https://api.klimmeck.test/webhooks/twitch/eventsub',
+                    TWITCH_BROADCASTER_ID: '11111',
+                }),
+            ).not.toThrow();
+        });
+
+        it('rejects the partial local EventSub configuration (secret and broadcaster without callback)', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    TWITCH_EVENTSUB_SECRET: EVENTSUB_SECRET,
+                    TWITCH_BROADCASTER_ID: '11111',
+                }),
+            ).toThrow(/TWITCH_EVENTSUB_CALLBACK_URL/);
+        });
+    });
+
     it('rejects a malformed FIREBASE_SERVICE_ACCOUNT in development', () => {
         expect(() =>
             validateEnv({
@@ -74,6 +137,18 @@ describe('.env.example', () => {
     it('declares an empty FIREBASE_SERVICE_ACCOUNT', () => {
         expect(parsed).toHaveProperty('FIREBASE_SERVICE_ACCOUNT');
         expect(parsed.FIREBASE_SERVICE_ACCOUNT).toBe('');
+    });
+
+    it('declares the EventSub and login scope keys empty', () => {
+        for (const key of [
+            'TWITCH_LOGIN_SCOPES',
+            'TWITCH_EVENTSUB_SECRET',
+            'TWITCH_EVENTSUB_CALLBACK_URL',
+            'TWITCH_BROADCASTER_ID',
+        ]) {
+            expect(parsed).toHaveProperty(key);
+            expect(parsed[key]).toBe('');
+        }
     });
 
     it('passes validateEnv once a JWT_SECRET is provided', () => {

@@ -19,7 +19,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 3.1: Character Deletion Contract** (INSERTED 2026-10-15) - Mutation `deleteCharacter` sull'identità autenticata: soft delete del personaggio corrente, unlink atomico di `User.currentCharacter`, nome liberato, codici stabili; sblocca FE Phase 4 (SET-05) (completed 2026-10-16)
 - [x] **Phase 4: Integrità Economica (Atomics)** - Operazioni atomiche su coins/twitchPoints/quest/equip/spell (no read-modify-write, no stato parziale) (completed 2026-10-18)
 - [x] **Phase 5: Infrastruttura Push FCM** - Registro token per-device, servizio push domain-agnostic, pruning token stale (completed 2026-10-18)
-- [ ] **Phase 6: EventSub: Punti Canale & Streamer Live** - Webhook Twitch EventSub, credito idempotente 1:1, push streamer-live
+- [x] **Phase 6: EventSub: Punti Canale & Streamer Live** - Webhook Twitch EventSub, credito idempotente 1:1, push streamer-live (completed 2026-10-21)
 - [ ] **Phase 7: Quest Lanes (QUEST-04)** - Corsie story/worldMission su schema + subscription, accettazione lane-aware, cost model server-side
 - [ ] **Phase 8: Travel Lifecycle (TRAVEL-01)** - `activeTravel` su schema + subscription, ETA/completamento server-side, teleport atomico
 - [ ] **Phase 9: Combat Result & Admin Outcomes** - `CombatResult` persistito con delivery ibrida, outcome admin-mediati, coda pending innkeeper
@@ -197,7 +197,7 @@ Plans:
 **Plans**: TBD
 **Unblocks (FE)**: sync punti live (FE SYNC-01/07) e push streamer-live (FE NOTIF-04).
 **Research flag**: Twitch Helix subscription lifecycle (app access token, expiry/revocation) — approfondire in planning.
-**Branch**: `feat/06-eventsub-points` da `develop` → PR a `develop`.
+**Branch**: `feat/06-eventsub-punti-canale-streamer-live` da `develop` → PR a `develop` (template `feat/{phase}-{slug}`; in origine `feat/06-eventsub-points`, allineato nel discuss del 2026-10-19).
 
 ### Phase 7: Quest Lanes (QUEST-04)
 **Goal**: Corsie quest parallele — active story/worldMission quest sul Character esposte su schema + subscription, accettazione lane-aware, cost model server-side, countdown pending con timestamp server-side.
@@ -280,7 +280,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3.1. Character Deletion Contract | 6/6 | Complete | 2026-10-16 |
 | 4. Integrità Economica (Atomics) | 9/9 | Complete | 2026-10-18 |
 | 5. Infrastruttura Push FCM | 8/8 | Complete    | 2026-10-18 |
-| 6. EventSub: Punti Canale & Streamer Live | 0/TBD | Not started | - |
+| 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
 | 7. Quest Lanes (QUEST-04) | 0/TBD | Not started | - |
 | 8. Travel Lifecycle (TRAVEL-01) | 0/TBD | Not started | - |
 | 9. Combat Result & Admin Outcomes | 0/TBD | Not started | - |

@@ -21,6 +21,7 @@ export function buildTestAuthConfig(
             clientId: TEST_TWITCH_CLIENT_ID,
             clientSecret: 'test-client-secret',
             redirectUri: 'http://localhost:3000/auth/twitch/callback',
+            scopes: [],
         },
         devAuth: {
             accessToken: TEST_DEV_ACCESS_TOKEN,

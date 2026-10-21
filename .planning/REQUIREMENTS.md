@@ -75,9 +75,9 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Twitch Points Sync (BE-POINTS)
 
-- [ ] **BE-POINTS-01**: Endpoint webhook EventSub (REST, `@Public()`, `rawBody: true`) con verifica firma HMAC-SHA256 su `message_id + timestamp + raw_body`, gestione challenge e rifiuto messaggi fuori dalla replay window → SYNC punti FE
-- [ ] **BE-POINTS-02**: Accredito `twitchPoints` idempotente: dedup per `message_id` (delivery at-least-once) + `$inc` atomico; la redemption della custom reward accredita 1:1 → FE SYNC-01/07
-- [ ] **BE-POINTS-03**: Lifecycle delle subscription EventSub gestito (app access token, creazione/verifica/rinnovo di `channel_points_custom_reward_redemption.add` e `stream.online`); `stream.online` alimenta il push streamer-live → FE NOTIF-04
+- [x] **BE-POINTS-01**: Endpoint webhook EventSub (REST, `@Public()`, `rawBody: true`) con verifica firma HMAC-SHA256 su `message_id + timestamp + raw_body`, gestione challenge e rifiuto messaggi fuori dalla replay window → SYNC punti FE
+- [x] **BE-POINTS-02**: Accredito `twitchPoints` idempotente: dedup per `message_id` (delivery at-least-once) + `$inc` atomico; la redemption della custom reward accredita 1:1 → FE SYNC-01/07
+- [x] **BE-POINTS-03**: Lifecycle delle subscription EventSub gestito (app access token, creazione/verifica/rinnovo di `channel_points_custom_reward_redemption.add` e `stream.online`); `stream.online` alimenta il push streamer-live → FE NOTIF-04
 
 ### Quest Lanes (BE-QUEST)
 
@@ -172,9 +172,9 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-NOTIF-01 | Phase 5 | Complete |
 | BE-NOTIF-02 | Phase 5 | Complete |
 | BE-NOTIF-03 | Phase 5 | Complete |
-| BE-POINTS-01 | Phase 6 | Pending |
-| BE-POINTS-02 | Phase 6 | Pending |
-| BE-POINTS-03 | Phase 6 | Pending |
+| BE-POINTS-01 | Phase 6 | Complete |
+| BE-POINTS-02 | Phase 6 | Complete |
+| BE-POINTS-03 | Phase 6 | Complete |
 | BE-QUEST-01 | Phase 7 | Pending |
 | BE-QUEST-02 | Phase 7 | Pending |
 | BE-QUEST-03 | Phase 7 | Pending |

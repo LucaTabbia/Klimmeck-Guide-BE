@@ -1,7 +1,7 @@
 import {
     DUPLICATE_KEY_ERROR_CODE,
     INDEX_NOT_FOUND_ERROR_CODE,
-    describeMongoError,
+    describeError,
     isDuplicateKeyError,
     isDuplicateKeyOn,
     isIndexNotFoundError,
@@ -104,26 +104,26 @@ describe('mongo-errors', () => {
         });
     });
 
-    describe('describeMongoError', () => {
+    describe('describeError', () => {
         it('names the error and its code', () => {
             const error = Object.assign(new Error('not authorized'), {
                 name: 'MongoServerError',
                 code: 13,
             });
 
-            expect(describeMongoError(error)).toBe('MongoServerError, code 13');
+            expect(describeError(error)).toBe('MongoServerError, code 13');
         });
 
         it('names an error without code', () => {
-            expect(describeMongoError(new Error('x'))).toBe('Error');
+            expect(describeError(new Error('x'))).toBe('Error');
         });
 
         it('describes a non-error value as unknown', () => {
-            expect(describeMongoError('boom')).toBe('UnknownError');
+            expect(describeError('boom')).toBe('UnknownError');
         });
 
         it('keeps the code of a non-error object', () => {
-            expect(describeMongoError({ code: 'ECONNRESET' })).toBe(
+            expect(describeError({ code: 'ECONNRESET' })).toBe(
                 'UnknownError, code ECONNRESET',
             );
         });

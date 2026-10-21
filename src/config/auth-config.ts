@@ -1,6 +1,11 @@
 import type { FactoryProvider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readEnvKeys } from 'src/config/env-keys';
+import {
+    hasWhitespaceOrControlCharacter,
+    LOOPBACK_HOSTNAMES,
+    parseUrl,
+} from 'src/config/url-rules';
 import { RoleType } from 'src/models/enums/role-type.enum';
 
 export const AUTH_CONFIG = 'AUTH_CONFIG';
@@ -18,6 +23,7 @@ export interface TwitchOAuthConfig {
     clientId: string;
     clientSecret: string;
     redirectUri: string;
+    scopes: readonly string[];
 }
 
 export interface DevAuthConfig {
@@ -49,11 +55,14 @@ export const AUTH_ENV_KEYS = [
     'DEV_AUTH_ACCESS_TOKEN',
     'DEV_AUTH_TWITCH_ID',
     'DEV_AUTH_ROLE',
+    'TWITCH_LOGIN_SCOPES',
 ] as const;
 
 export type AuthEnv = Partial<Record<(typeof AUTH_ENV_KEYS)[number], string>>;
 
 const ROLE_VALUES: readonly string[] = Object.values(RoleType);
+
+const TWITCH_SCOPE_PATTERN = /^[a-z0-9_]+(:[a-z0-9_]+)*$/;
 
 const ABSOLUTE_DEEP_LINK_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i;
 const FORBIDDEN_APP_REDIRECT_PROTOCOLS: readonly string[] = [
@@ -71,9 +80,6 @@ const FORBIDDEN_APP_REDIRECT_PROTOCOLS: readonly string[] = [
     'intent:',
     'android-app:',
 ];
-const LOOPBACK_HOSTNAMES: readonly string[] = ['localhost', '127.0.0.1'];
-const LAST_C0_CONTROL_CODE_POINT = 0x1f;
-const DELETE_CODE_POINT = 0x7f;
 
 export function parseAuthConfig(env: AuthEnv): AuthConfig {
     return {
@@ -147,6 +153,7 @@ function parseDevAuthConfig(env: AuthEnv): DevAuthConfig | null {
 }
 
 function parseTwitchConfig(env: AuthEnv): TwitchOAuthConfig | null {
+    const scopes = parseLoginScopes(env);
     const clientId = env.TWITCH_CLIENT_ID;
     const clientSecret = env.TWITCH_CLIENT_SECRET;
     const redirectUri = env.TWITCH_REDIRECT_URI;
@@ -156,7 +163,21 @@ function parseTwitchConfig(env: AuthEnv): TwitchOAuthConfig | null {
             'TWITCH_REDIRECT_URI must be an https URL or http://localhost / http://127.0.0.1',
         );
     }
-    return { clientId, clientSecret, redirectUri };
+    return { clientId, clientSecret, redirectUri, scopes };
+}
+
+function parseLoginScopes(env: AuthEnv): string[] {
+    const scopes = [
+        ...new Set(
+            (env.TWITCH_LOGIN_SCOPES ?? '').split(/\s+/).filter(Boolean),
+        ),
+    ];
+    if (!scopes.every((scope) => TWITCH_SCOPE_PATTERN.test(scope))) {
+        throw new Error(
+            'TWITCH_LOGIN_SCOPES must be a space-separated list of Twitch scopes (e.g. channel:read:redemptions)',
+        );
+    }
+    return scopes;
 }
 
 function isAllowedTwitchRedirectUri(redirectUri: string): boolean {
@@ -190,23 +211,4 @@ function parseAppAuthRedirectUrl(env: AuthEnv): string {
         );
     }
     return appAuthRedirectUrl;
-}
-
-function hasWhitespaceOrControlCharacter(value: string): boolean {
-    return [...value].some((character) => {
-        const codePoint = character.codePointAt(0) ?? 0;
-        return (
-            character.trim() === '' ||
-            codePoint <= LAST_C0_CONTROL_CODE_POINT ||
-            codePoint === DELETE_CODE_POINT
-        );
-    });
-}
-
-function parseUrl(value: string): URL | null {
-    try {
-        return new URL(value);
-    } catch {
-        return null;
-    }
 }

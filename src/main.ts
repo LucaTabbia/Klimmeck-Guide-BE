@@ -3,7 +3,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+    // rawBody: il webhook EventSub verifica l'HMAC sui byte grezzi (06 D-02)
+    const app = await NestFactory.create(AppModule, { rawBody: true });
     await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 
