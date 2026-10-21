@@ -155,6 +155,27 @@ Follow-up:
 
 ---
 
+## Emendamenti alla Phase 7 (dal discuss della FE Phase 6, stesso giorno)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Nella BE Phase 8 | Esenzione dal vincolo di città per story/worldMission qui | ✓ |
+| Fase BE decimale 7.1 | Fase urgente dedicata | |
+| Solo FE per ora | | |
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| worldMission, boss, enemy, aid | Registrazione con capienza anche per enemy e aid | ✓ |
+| Solo worldMission e boss | Come Phase 7 | |
+| Tutti i tipi con requiredAdventurers > 0 | | |
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Oggetti { character, title } | registeredAdventurers con rango; registrations rimosso | ✓ |
+| Tenere gli id, esporre registrations | Due campi ridondanti | |
+
+**User's notes:** "si poteva modificare registeredAdventurers in modo da essere un array di oggetti contenenti rango e ids"; catena fallimento → quest aid automatica → morte (Phase 9).
+
 ## Claude's Discretion
 
 Nomi e collocazione (modulo, tipi, operazioni, campo del pet, coda, codici definitivi); esporre meta e tipo di viaggio su `activeTravel`; identità del job Bull e rimozione best-effort; intervallo dello sweep; ordine dei rifiuti e guard nel filtro; composizione di `RoadsService` con l'accettazione; split in wave con il contratto schema per primo.
