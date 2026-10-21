@@ -5,6 +5,7 @@ import { activeCharacterById } from 'src/models/character/active-character.filte
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms, sameId } from 'src/mongo/document-id';
 import { QuestType } from 'src/models/enums/quest-type.enum';
+import type { ActiveTravelDraft } from 'src/travel/travel-timing';
 import { SlotRule, seatAvailableExpr } from './quest-capacity';
 import { isRepeatable, meetsTitle, QuestRoster } from './quest-eligibility';
 import { lanePathOf, laneOf, QuestLane } from './quest-lanes';
@@ -59,11 +60,27 @@ export function laneClaimFilter(
     };
 }
 
+// movimento verso il marker scritto nello stesso update del claim (D-21): viaggio (D-02) o salto istantaneo (D-03)
+export type LaneMovement =
+    | { kind: 'travel'; travel: ActiveTravelDraft }
+    | { kind: 'jump'; marker: Types.ObjectId };
+
 export function laneClaimUpdate(
     lane: QuestLane,
     pendingQuestId: Types.ObjectId,
+    movement: LaneMovement | null = null,
 ) {
-    return { $set: { [lanePathOf(lane)]: pendingQuestId } };
+    return {
+        $set: {
+            [lanePathOf(lane)]: pendingQuestId,
+            ...(movement?.kind === 'travel'
+                ? { 'status.activeTravel': movement.travel }
+                : {}),
+            ...(movement?.kind === 'jump'
+                ? { 'status.location': movement.marker }
+                : {}),
+        },
+    };
 }
 
 // stesso findOneAndUpdate per anti-duplicato e capienza: i concorrenti vanno in WriteConflict e il filtro rivalutato non matcha (RESEARCH Q1)

@@ -18,7 +18,9 @@ import {
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
-import { idForms, refIdOf } from 'src/mongo/document-id';
+import { idForms, refIdOf, sameId } from 'src/mongo/document-id';
+import { TravelPlanner } from 'src/travel/travel-planner.service';
+import { TravelScheduler } from 'src/travel/travel-scheduler.service';
 import { SlotRule } from './quest-capacity';
 import {
     CharacterEligibilitySnapshot,
@@ -36,6 +38,7 @@ import {
     laneClaimFilter,
     laneClaimUpdate,
     LaneClaimSnapshot,
+    LaneMovement,
     registrationFilter,
     registrationUpdate,
     UnclaimedSnapshot,
@@ -59,6 +62,7 @@ interface QuestAcceptanceSnapshot extends QuestEligibilitySnapshot {
 
 interface CharacterAcceptanceSnapshot extends CharacterEligibilitySnapshot {
     status: { title: TitleType; location?: unknown; activeTravel?: unknown };
+    assets?: { pet?: unknown } | null;
 }
 
 interface LaneClaim {
@@ -66,6 +70,7 @@ interface LaneClaim {
     quest: ClaimedQuest;
     claim: LaneClaimSnapshot;
     pendingQuestId: Types.ObjectId;
+    movement: LaneMovement | null;
 }
 
 const QUEST_PROJECTION = {
@@ -82,6 +87,7 @@ const CHARACTER_PROJECTION = {
     'status.location': 1,
     'status.activeTravel.endTime': 1,
     quests: 1,
+    'assets.pet': 1,
 };
 
 @Injectable()
@@ -100,6 +106,8 @@ export class QuestAcceptanceService {
         private readonly cityModel: Model<CityDocument>,
         private readonly wallet: WalletService,
         private readonly clock: Clock,
+        private readonly planner: TravelPlanner,
+        private readonly scheduler: TravelScheduler,
     ) {}
 
     // pre-letture lean → regole pure → una transazione con le guard riaffermate nel filtro (07 D-18): un rifiuto non scrive nulla
@@ -120,6 +128,15 @@ export class QuestAcceptanceService {
             lane === QuestLane.standard
                 ? await this.locationInQuestCity(quest, character)
                 : undefined;
+        // percorso e velocità prima della transazione (D-21): nel callback solo scritture
+        const movement = location
+            ? await this.movementTo(
+                  quest,
+                  characterId,
+                  location,
+                  character.assets?.pet,
+              )
+            : null;
         const claim: LaneClaimSnapshot = {
             title: character.status.title,
             ...(location ? { location } : {}),
@@ -132,7 +149,13 @@ export class QuestAcceptanceService {
         const pendingQuestId = new Types.ObjectId();
         await this.connection.transaction(async (session) => {
             await this.claimLane(
-                { characterId, quest: claimed, claim, pendingQuestId },
+                {
+                    characterId,
+                    quest: claimed,
+                    claim,
+                    pendingQuestId,
+                    movement,
+                },
                 session,
             );
             if (rule)
@@ -147,7 +170,11 @@ export class QuestAcceptanceService {
                 [
                     {
                         _id: pendingQuestId,
-                        startDate: this.clock.now(),
+                        // in viaggio il countdown parte all'arrivo (D-15)
+                        startDate:
+                            movement?.kind === 'travel'
+                                ? null
+                                : this.clock.now(),
                         waitingTime: waitingTimeOf(
                             lane,
                             quest.infos.timeToComplete,
@@ -161,7 +188,29 @@ export class QuestAcceptanceService {
             if (cost > 0)
                 await this.wallet.debitUserPoints(ownerId, cost, session);
         });
+        // job dopo il commit (D-21): best-effort, lo sweep copre un accodamento fallito
+        if (movement?.kind === 'travel')
+            await this.scheduler.schedule(characterId, movement.travel);
         return pendingQuestId;
+    }
+
+    // solo la corsia standard si muove (D-02): marker = posizione ⇒ countdown subito; nessuna strada ⇒ salto (D-03, WARN nel planner)
+    private async movementTo(
+        quest: QuestAcceptanceSnapshot,
+        characterId: Types.ObjectId,
+        location: Types.ObjectId,
+        pet: unknown,
+    ): Promise<LaneMovement | null> {
+        const marker = refIdOf(quest.infos.markerLocation);
+        if (!marker || sameId(location, marker)) return null;
+        const travel = await this.planner.planAuto({
+            questId: quest._id,
+            characterId,
+            from: location,
+            to: marker,
+            pet,
+        });
+        return travel ? { kind: 'travel', travel } : { kind: 'jump', marker };
     }
 
     private async readQuest(
@@ -231,7 +280,7 @@ export class QuestAcceptanceService {
     }
 
     private async claimLane(
-        { characterId, quest, claim, pendingQuestId }: LaneClaim,
+        { characterId, quest, claim, pendingQuestId, movement }: LaneClaim,
         session: ClientSession,
     ): Promise<void> {
         const lane = laneOf(quest.type);
@@ -244,7 +293,7 @@ export class QuestAcceptanceService {
                     quest.id,
                     isRepeatable(quest.type),
                 ),
-                laneClaimUpdate(lane, pendingQuestId),
+                laneClaimUpdate(lane, pendingQuestId, movement),
                 { session, projection: { _id: 1 } },
             )
             .lean()

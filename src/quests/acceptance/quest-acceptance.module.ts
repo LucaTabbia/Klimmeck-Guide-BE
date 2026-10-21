@@ -15,6 +15,7 @@ import { City, CitySchema } from 'src/models/city.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { QuestAcceptanceResolver } from 'src/quests/acceptance/quest-acceptance.resolver';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
+import { TravelPlanningModule } from 'src/travel/travel-planning.module';
 
 // accettazione lane-aware (07 D-18); AuthzModule serve al guard owner-only del resolver (07 D-11)
 @Module({
@@ -27,6 +28,8 @@ import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.s
         ]),
         EconomyModule,
         AuthzModule,
+        // TravelPlanningModule: piano e job del viaggio automatico (D-21); senza il modulo push (C6)
+        TravelPlanningModule,
     ],
     providers: [
         QuestAcceptanceService,
