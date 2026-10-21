@@ -312,6 +312,7 @@ type Mutation {
   refreshSession(refreshToken: String!): AuthSession!
   registerPushDevice(input: RegisterPushDeviceInput!): Boolean!
   sendTestPush(input: SendTestPushInput!): PushDeliveryReport!
+  startTravel(request: TravelRequest!): CommonResponse!
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
   unregisterPushDevice(deviceId: String!): Boolean!
   useSpell(request: UseSpellRequest!): CommonResponse!
@@ -440,6 +441,7 @@ type Query {
   serverTime: DateTime!
   spell(id: String!): Spell!
   spells: [Spell!]!
+  travelPreview(request: TravelRequest!): TravelPreview!
   user(id: String!): User!
   users: [User!]!
 }
@@ -571,6 +573,17 @@ input TransactionRequest {
 type TravelPath {
   coordinates: [[Float!]!]!
   distance: Float!
+}
+
+type TravelPreview {
+  distance: Float!
+  duration: Float!
+  road: TravelPath!
+}
+
+input TravelRequest {
+  id: String!
+  poiId: String!
 }
 
 input UseSpellRequest {

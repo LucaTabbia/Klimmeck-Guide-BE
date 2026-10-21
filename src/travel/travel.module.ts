@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
+import { AuthzModule } from 'src/authz/authz.module';
 import { travelConfigProvider } from 'src/config/travel-config';
 import {
     Character,
@@ -16,9 +17,10 @@ import { TravelCompletionProcessor } from './travel-completion.processor';
 import { TravelCompletionService } from './travel-completion.service';
 import { TravelPlanningModule } from './travel-planning.module';
 import { TravelSweeper } from './travel-sweeper';
+import { TravelResolver } from './travel.resolver';
 import { TravelService } from './travel.service';
 
-// ciclo di vita del viaggio: completamento, sweep, push (D-12..D-14); montato in AppModule da 08-10
+// ciclo di vita del viaggio: avvio e anteprima owner-only (D-11, D-18), completamento, sweep, push (D-12..D-14); montato in AppModule da 08-10
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -26,6 +28,7 @@ import { TravelService } from './travel.service';
             { name: PendingQuest.name, schema: PendingQuestSchema },
             { name: User.name, schema: UserSchema },
         ]),
+        AuthzModule,
         PushModule,
         TravelPlanningModule,
     ],
@@ -36,6 +39,7 @@ import { TravelService } from './travel.service';
         TravelSweeper,
         TravelCompletionProcessor,
         TravelService,
+        TravelResolver,
     ],
     exports: [TravelCompletionService, TravelSweeper, TravelService],
 })
