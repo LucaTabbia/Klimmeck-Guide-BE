@@ -4,6 +4,7 @@ import {
     readEventSubEnv,
 } from 'src/config/eventsub-config';
 import { parsePushConfig, readPushEnv } from 'src/config/push-config';
+import { parseTravelConfig, readTravelEnv } from 'src/config/travel-config';
 
 export function validateEnv(
     env: Record<string, unknown>,
@@ -11,5 +12,6 @@ export function validateEnv(
     parseAuthConfig(readAuthEnv(env));
     parsePushConfig(readPushEnv(env));
     parseEventSubConfig(readEventSubEnv(env));
+    parseTravelConfig(readTravelEnv(env));
     return env;
 }
