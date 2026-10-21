@@ -1,3 +1,4 @@
+import { getQueueToken } from '@nestjs/bull';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { PUSH_CONFIG } from 'src/config/push-config';
@@ -17,6 +18,7 @@ import { PushPlatform } from 'src/push/push-platform.enum';
 import { PushService } from 'src/push/push.service';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { TravelCompletionService } from './travel-completion.service';
+import { TRAVEL_QUEUE } from './travel-job';
 import { TravelSweeper } from './travel-sweeper';
 import { TravelModule } from './travel.module';
 import { TravelIdentity } from './travel.updates';
@@ -26,6 +28,7 @@ import { createPlayer } from '../../test/authz/player-fixture';
 import { buildCharacter, persistCharacter } from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
 import { buildActiveTravelDoc } from '../../test/travel/active-travel.fixture';
+import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
 
 const NOW = new Date('2026-10-21T10:00:00.000Z');
 const START = new Date('2026-10-21T08:00:00.000Z');
@@ -54,6 +57,8 @@ describe('TravelCompletionService (replSet)', () => {
         { token: PushTransport, useValue: push },
         { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
         { token: TRAVEL_CONFIG, useValue: { sweepIntervalMs: 0 } },
+        // TravelModule registra la coda via TravelPlanningModule: niente Redis nell'harness (vale anche per l'app del boot)
+        { token: getQueueToken(TRAVEL_QUEUE), useValue: new FakeTravelQueue() },
     ];
 
     beforeAll(async () => {
