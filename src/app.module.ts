@@ -20,6 +20,7 @@ import { PetsModule } from './pets/pets.module';
 import { QuestAcceptanceModule } from './quests/acceptance/quest-acceptance.module';
 import { QuestsModule } from './quests/quests.module';
 import { SpellsModule } from './spells/spells.module';
+import { ServerTimeModule } from './time/server-time.module';
 import { AppService } from './app.service';
 import mongoose from 'mongoose';
 import { idTransformPlugin } from './mongoose.plugins';
@@ -80,6 +81,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         PetsModule,
         QuestsModule,
         QuestAcceptanceModule,
+        ServerTimeModule,
         PushModule,
         EventSubModule,
         SpellsModule,

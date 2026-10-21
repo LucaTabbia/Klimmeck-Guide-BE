@@ -421,6 +421,7 @@ type Query {
   quest(id: String!): Quest!
   quests: [Quest!]!
   raceTraits: [RaceTraits!]!
+  serverTime: DateTime!
   spell(id: String!): Spell!
   spells: [Spell!]!
   user(id: String!): User!
