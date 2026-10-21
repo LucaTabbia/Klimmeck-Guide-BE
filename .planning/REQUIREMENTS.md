@@ -81,10 +81,11 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Quest Lanes (BE-QUEST)
 
-- [ ] **BE-QUEST-01**: `Character` espone `activeStoryQuest` e `activeWorldMissionQuest` (PendingQuest opzionali, indipendenti da `pendingQuest`) su schema GraphQL e payload della subscription → FE QUEST-04, sblocca Phase 6 FE (staging)
-- [ ] **BE-QUEST-02**: Le mutation di accettazione rispettano le corsie parallele: story/worldMission convivono col `pendingQuest` standard; una corsia occupata rifiuta solo la propria tipologia → FE QUEST-04
-- [ ] **BE-QUEST-03**: Cost model server-side: quest `story`/`worldMission` debitano `User.twitchPoints`, le altre debitano `Character.coins`; eleggibilità e debito sono autoritativi lato BE → FE QUEST-05
-- [ ] **BE-QUEST-04**: `pendingQuest` (startDate + waitingTime) è emesso con timestamp server-side coerenti per il countdown FE → FE QUEST-07
+- [x] **BE-QUEST-01**: `Character` espone `activeStoryQuest` e `activeWorldMissionQuest` (PendingQuest opzionali, indipendenti da `pendingQuest`) su schema GraphQL e payload della subscription → FE QUEST-04, sblocca Phase 6 FE (staging)
+- [x] **BE-QUEST-02**: Le mutation di accettazione rispettano le corsie parallele: story/worldMission convivono col `pendingQuest` standard; una corsia occupata rifiuta solo la propria tipologia → FE QUEST-04
+- [x] **BE-QUEST-03**: Cost model server-side: quest `story`/`worldMission` debitano `User.twitchPoints`, le altre debitano `Character.coins`; eleggibilità e debito sono autoritativi lato BE → FE QUEST-05
+  - _Emendato il 2026-10-21 (Phase 7 CONTEXT D-08/D-09): **nessuna quest costa monete** (`Character.coins` non viene mai debitato); solo `story`/`worldMission` debitano `requirements.requiredPoints` punti canale dell'utente proprietario. L'eleggibilità server-side comprende corsia libera, posizione nella città del marker, titolo (esatto per le story), non ripetibilità, capienza del party per rango._
+- [x] **BE-QUEST-04**: `pendingQuest` (startDate + waitingTime) è emesso con timestamp server-side coerenti per il countdown FE → FE QUEST-07
 
 ### Travel (BE-TRAVEL)
 
@@ -175,10 +176,10 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-POINTS-01 | Phase 6 | Complete |
 | BE-POINTS-02 | Phase 6 | Complete |
 | BE-POINTS-03 | Phase 6 | Complete |
-| BE-QUEST-01 | Phase 7 | Pending |
-| BE-QUEST-02 | Phase 7 | Pending |
-| BE-QUEST-03 | Phase 7 | Pending |
-| BE-QUEST-04 | Phase 7 | Pending |
+| BE-QUEST-01 | Phase 7 | Complete |
+| BE-QUEST-02 | Phase 7 | Complete |
+| BE-QUEST-03 | Phase 7 | Complete |
+| BE-QUEST-04 | Phase 7 | Complete |
 | BE-TRAVEL-01 | Phase 8 | Pending |
 | BE-TRAVEL-02 | Phase 8 | Pending |
 | BE-TRAVEL-03 | Phase 8 | Pending |

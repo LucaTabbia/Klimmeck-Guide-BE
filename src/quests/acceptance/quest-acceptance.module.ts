@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { Clock, SystemClock } from 'src/auth/clock';
+import { AuthzModule } from 'src/authz/authz.module';
 import { EconomyModule } from 'src/economy/economy.module';
 import {
     Character,
@@ -9,20 +11,28 @@ import {
     PendingQuest,
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
+import { City, CitySchema } from 'src/models/city.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
+import { QuestAcceptanceResolver } from 'src/quests/acceptance/quest-acceptance.resolver';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
 
-// primitiva interna senza resolver (04 D-09): la Phase 7 la monta nella mutation lane-aware
+// accettazione lane-aware (07 D-18); AuthzModule serve al guard owner-only del resolver (07 D-11)
 @Module({
     imports: [
         MongooseModule.forFeature([
             { name: Character.name, schema: CharacterSchema },
             { name: Quest.name, schema: QuestSchema },
             { name: PendingQuest.name, schema: PendingQuestSchema },
+            { name: City.name, schema: CitySchema },
         ]),
         EconomyModule,
+        AuthzModule,
     ],
-    providers: [QuestAcceptanceService],
+    providers: [
+        QuestAcceptanceService,
+        QuestAcceptanceResolver,
+        { provide: Clock, useClass: SystemClock },
+    ],
     exports: [QuestAcceptanceService],
 })
 export class QuestAcceptanceModule {}

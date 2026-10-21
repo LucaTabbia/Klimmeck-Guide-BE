@@ -2,6 +2,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AcceptQuestRequest {
+  id: String!
+  questId: String!
+}
+
 type ActiveSpell {
   spell: Spell
   usages: Int!
@@ -57,6 +62,8 @@ type CharacterInfos {
 }
 
 type CharacterQuests {
+  activeStoryQuest: PendingQuest
+  activeWorldMissionQuest: PendingQuest
   completedQuests: [Quest!]!
   pendingQuest: PendingQuest
 }
@@ -285,6 +292,7 @@ type Lore {
 }
 
 type Mutation {
+  acceptQuest(request: AcceptQuestRequest!): CommonResponse!
   createCharacter(input: CreateCharacterInput!): User!
   deleteCharacter: User!
   doTransaction(request: TransactionRequest!): CommonResponse!
@@ -307,6 +315,7 @@ type PathResponse {
 
 type PendingQuest {
   id: ID!
+  pointsSpent: Int!
   quest: Quest!
   startDate: DateTime!
   waitingTime: Float!
@@ -418,6 +427,7 @@ type Query {
   quest(id: String!): Quest!
   quests: [Quest!]!
   raceTraits: [RaceTraits!]!
+  serverTime: DateTime!
   spell(id: String!): Spell!
   spells: [Spell!]!
   user(id: String!): User!
@@ -441,6 +451,11 @@ type QuestInfos {
   type: String!
 }
 
+type QuestPartySlot {
+  count: Int!
+  title: String!
+}
+
 type QuestPrizes {
   prizeCoins: Coins
   prizeItem: AssetQuantity
@@ -450,6 +465,7 @@ type QuestPrizes {
 
 type QuestRequirements {
   minTitle: String!
+  party: [QuestPartySlot!]!
   recommendedLoot: [AssetQuantity!]!
   requiredAdventurers: Int!
   requiredPoints: Int

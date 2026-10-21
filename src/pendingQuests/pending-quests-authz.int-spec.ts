@@ -117,6 +117,49 @@ describe('Pending quests perimeter (owner or innkeeper)', () => {
             });
         });
 
+        it.each(['activeStoryQuest', 'activeWorldMissionQuest'])(
+            'returns the own %s pending quest to the adventurer',
+            async (lane) => {
+                const pq = await persistPendingQuest();
+                const carla = await createPlayer(harness, {
+                    twitchId: `twitch-pq-carla-${lane}`,
+                    characterOverrides: {
+                        quests: {
+                            completedQuests: [],
+                            pendingQuest: null,
+                            [lane]: pq._id,
+                        },
+                    },
+                });
+
+                const response = await readPendingQuest(String(pq._id), carla);
+
+                expect(bodyOf(response).errors).toBeUndefined();
+                expect(bodyOf(response).data?.pendingQuest).toEqual({
+                    id: String(pq._id),
+                    waitingTime: 60,
+                });
+            },
+        );
+
+        it('still forbids a foreign story lane pending quest', async () => {
+            const pq = await persistPendingQuest();
+            await createPlayer(harness, {
+                twitchId: 'twitch-pq-dario',
+                characterOverrides: {
+                    quests: {
+                        completedQuests: [],
+                        pendingQuest: null,
+                        activeStoryQuest: pq._id,
+                    },
+                },
+            });
+
+            const response = await readPendingQuest(String(pq._id), alice);
+
+            expect(extensionsOf(response)).toEqual({ code: 'FORBIDDEN' });
+        });
+
         it('forbids the adventurer on a foreign pending quest', async () => {
             const response = await readPendingQuest(String(pqBruno._id), alice);
 

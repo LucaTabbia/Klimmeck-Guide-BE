@@ -40,6 +40,7 @@ export class OwnershipGuard implements CanActivate {
             identity,
             rule.resource,
             targetId,
+            { ownerOnly: rule.ownerOnly },
         );
         if (access === ResourceAccess.onBehalf) {
             this.decisions.recordOnBehalf(gql.getInfo<GraphQLResolveInfo>(), {

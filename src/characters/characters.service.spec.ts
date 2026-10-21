@@ -7,6 +7,7 @@ import { Character } from 'src/models/character/character.model';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { Spell } from 'src/models/spell.model';
+import { CHARACTER_QUESTS_POPULATE } from './character-quests.populate';
 import { CharactersService } from './characters.service';
 import {
     ACTIVE_SPELL_SNAPSHOT_PROJECTION,
@@ -411,13 +412,62 @@ describe('CharactersService (unit — spell mutations)', () => {
         }
 
         it('lists only active characters', async () => {
-            mockCharacterModel.find.mockReturnValue(asQuery([]));
+            const query = asPopulatableQuery([]);
+            mockCharacterModel.find.mockReturnValue(query);
 
             await service.findAll();
 
             expect(mockCharacterModel.find).toHaveBeenCalledWith({
                 deletedAt: null,
             });
+            expect(query.populate).toHaveBeenCalledWith(
+                CHARACTER_QUESTS_POPULATE,
+            );
+        });
+
+        it('populates the quest lanes and the completed quests with the quest id only', async () => {
+            const query = asPopulatableQuery({
+                assets: {
+                    ownedEquipments: [],
+                    wearedEquipment: {},
+                    activeSpells: [],
+                },
+                status: { spells: [] },
+            });
+            mockCharacterModel.findOne.mockReturnValue(query);
+
+            await service.findOne(new Types.ObjectId().toString());
+
+            expect(query.populate).toHaveBeenCalledWith(
+                CHARACTER_QUESTS_POPULATE,
+            );
+            const questIdOnly = {
+                path: 'quest',
+                model: 'Quest',
+                select: '_id',
+            };
+            expect(CHARACTER_QUESTS_POPULATE).toEqual([
+                {
+                    path: 'quests.pendingQuest',
+                    model: 'PendingQuest',
+                    populate: questIdOnly,
+                },
+                {
+                    path: 'quests.activeStoryQuest',
+                    model: 'PendingQuest',
+                    populate: questIdOnly,
+                },
+                {
+                    path: 'quests.activeWorldMissionQuest',
+                    model: 'PendingQuest',
+                    populate: questIdOnly,
+                },
+                {
+                    path: 'quests.completedQuests',
+                    model: 'Quest',
+                    select: '_id',
+                },
+            ]);
         });
 
         it('reports an archived character as not found on findOne', async () => {

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 6 complete (2026-10-21) — PR #9 open
-last_updated: "2026-10-21T08:00:00.000Z"
-last_activity: 2026-10-21 -- Phase 6 complete; BE PR #9 opened to develop
+stopped_at: Phase 7 complete (2026-10-21) — PR #10 open
+last_updated: "2026-10-21T13:30:00.000Z"
+last_activity: 2026-10-21 -- Phase 7 complete (review fixed in TDD, verification passed 4/4, security audit filed, device UAT deferred to FE Phase 6); BE PR #10 opened to develop
 progress:
   total_phases: 12
-  completed_phases: 8
-  total_plans: 65
-  completed_plans: 65
-  percent: 100
+  completed_phases: 9
+  total_plans: 73
+  completed_plans: 73
+  percent: 89
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 6 — EventSub complete on 2026-10-21 (PR #9 to develop opened 2026-10-21); next Phase 7 — Quest Lanes (QUEST-04, unblocks FE Phase 6)
+**Current focus:** Phase 7 — Quest Lanes complete on 2026-10-21 (PR #10 to develop opened 2026-10-21; unblocks FE Phase 6); next Phase 8 — Travel Lifecycle (TRAVEL-01, unblocks FE Phase 7)
 
 ## Current Position
 
-Phase: 6 (eventsub-punti-canale-streamer-live) — COMPLETE 2026-10-21 (9/9 plans; UAT test A passed with HTTP + DB evidence and a real streamerLive push on device, tests B/C deferred to pre-production; code review 0 critical / 1 warning fixed; verification passed 4/4; security 47/48 mitigated, T-06-47 open by design until the pre-production E2E)
-Plan: 9 of 9
-Status: Phase 6 complete — PR #9 open, awaiting review/merge
-Last activity: 2026-10-21 -- Phase 6 closed: ROADMAP/STATE/PROJECT updated; integration gate re-run clean (46 suites / 550 tests); next: BE PR to develop, then /gsd-discuss-phase 7 (Quest Lanes, QUEST-04 for FE Phase 6)
+Phase: 7 (quest-lanes-quest-04) — COMPLETE 2026-10-21 (8/8 plans; code review 0 critical / 1 warning / 4 info fixed in TDD; verification passed, 4/4 success criteria and 8/8 must_haves; security audit: 39 minacce, 33 mitigate, 4 accettate, 2 trasferite, 0 aperte; device UAT deferred to the FE Phase 6 UAT)
+Plan: 8 of 8
+Status: Phase 7 complete — PR #10 open, awaiting review/merge
+Last activity: 2026-10-21 -- Phase 7 closed: ROADMAP/STATE/PROJECT updated; final gate re-run clean after the review fixes (unit 85 suites / 1264 tests, integration 49 suites / 610 tests); next: BE PR to develop, then /gsd-discuss-phase 8 (Travel Lifecycle, TRAVEL-01 for FE Phase 7)
 
-Progress: [██████████] 100% (phases 1–6 complete; Phase 7 next)
+Progress: [██████████] 100% (phases 1–7 complete; Phase 8 next)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 73
+- Total plans completed: 81
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -106,6 +106,14 @@ Progress: [██████████] 100% (phases 1–6 complete; Phase 7 
 | Phase 06 P07 | 5 min | 2 tasks | 6 files |
 | Phase 06 P08 | 5 min | 2 tasks | 3 files |
 | Phase 06 P09 | 25 min | 3 tasks | 8 files |
+| Phase 07 P01 | 4 min | 2 tasks | 10 files |
+| Phase 07 P02 | 6 min | 3 tasks | 9 files |
+| Phase 07 P03 | 7 min | 2 tasks | 9 files |
+| Phase 07 P04 | 6 min | 2 tasks | 6 files |
+| Phase 07 P05 | 5 min | 2 tasks | 7 files |
+| Phase 07 P06 | 5 min | 2 tasks | 3 files |
+| Phase 07 P07 | 6 min | 2 tasks | 6 files |
+| Phase 07 P08 | 10 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -183,6 +191,14 @@ Recent decisions affecting current work:
 - [Phase 06]: 06-07: EventSubController sottile (@Res, 200 text/plain col solo challenge, 204/403/500 con end()), decoratore pubblico solo su receive; EventSubModule foglia (EconomyModule, PushModule, forFeature EventSubMessage+User, Clock locale, Helix -> HttpTwitchHelixClient) non ancora in AppModule; harness createAuthTestApp con rawBody: true incondizionato (retrocompatibile, 46 suite verdi); createEventSubTestApp drena il reconcile di boot con manager.reconcile(); prova sul filo: 5 consegne concorrenti e C7 -> un credito, stream.online -> un topicSends streamer-live, revocation -> delete+create
 - [Phase 06]: 06-08: EventSubModule montato in AppModule subito dopo PushModule; NestFactory.create(AppModule, { rawBody: true }) e real boot con createNestApplication({ rawBody: true }) speculare; whitelist @Public a 6 voci con EventSubController.receive, publicClasses vuoto; spie passthrough su fetch e Logger.prototype.warn prima del boot: disabled, WARN `EventSub disabled`, nessuna fetch verso twitch.tv, POST webhook -> 403 body vuoto; schema.gql invariato (D-16)
 - [Phase 06]: 06-09: gate di fase verde (unit 79/1098, int 46/550, build, lint filtrato 0, schema.gql invariato, invarianti); UAT 2026-10-20: test A (Twitch CLI locale) passed, test B (E2E managed) e C (C4) differiti a prima della produzione, 06-HUMAN-UAT `status: partial`; ogni ambiente richiede `roles/firebasecloudmessaging.admin` sul service account Firebase per i topic FCM (`roles/firebasenotifications.admin` non basta)
+- [Phase 07]: 07-01: corsie activeStoryQuest/activeWorldMissionQuest (ref MongooseSchema.Types.ObjectId, default null), PendingQuest.pointsSpent Int! default 0, QuestRequirements.party: [QuestPartySlot!]! (title String! dell'enum TitleType, count min 1, default []), Quest.registrations interno senza @Field (mai in src/schema.gql); schema.gql solo additivo
+- [Phase 07]: 07-02: regole pure di accettazione in src/quests/acceptance (corsia dal solo QuestType, titolo esatto per story e >= altrove, costo intero 1..2147483647 altrimenti invalid, slot esatti per rango), 5 codici nuovi (QUEST_FULL, QUEST_ALREADY_TAKEN, QUEST_TITLE_MISMATCH, QUEST_NOT_IN_CITY, QUEST_NOT_ACCEPTABLE); ordine pre-verifica ALREADY_TAKEN → TITLE_MISMATCH → SLOT_BUSY → FULL, dopo un claim fallito SLOT_BUSY per primo
+- [Phase 07]: 07-03: CHARACTER_QUESTS_POPULATE (corsie da QUEST_LANES come PendingQuest con quest select '_id', completedQuests select '_id') in findOne/findAll: character, characters e characterUpdated risolvono quest { id }; ref orfano ⇒ null, elemento orfano scartato; PendingQuest/Quest in CharactersModule e harness; primeCharactersChangeStream condiviso in test/characters
+- [Phase 07]: 07-04: @OwnsCharacter(selectId, { ownerOnly: true }) con ownerOnly in OWNERSHIP_KEY (default false, bypass innkeeper D-09 invariato altrove): innkeeper su personaggio altrui ⇒ FORBIDDEN/NOT_FOUND, mai onBehalf né audit; pendingQuest(id) riconosce il proprietario sulle tre corsie (proiezione da QUEST_LANES, C4)
+- [Phase 07]: 07-05: query serverTime: DateTime! autenticata (AuthGuard globale, nessun @Public, whitelist invariate) in ServerTimeModule con Clock locale (SystemClock), resolver sincrono su Clock.now(); montata in AppModule dopo QuestAcceptanceModule, schema.gql +1 riga (D-15)
+- [Phase 07]: 07-06: QuestAcceptanceService.accept({ ownerId, characterId, questId }) lane-aware: pre-letture lean → regole pure → costo validato prima della transazione (QUEST_NOT_ACCEPTABLE + WARN con solo id e corsia) → città del marker in una query cities.exists → transazione claim → registrazione $expr (solo condivise) → PendingQuest con pointsSpent → debitUserPoints(ownerId, cost, session); Character.coins mai toccato, costCopper rimosso (D-08, D-18)
+- [Phase 07]: 07-07: acceptQuest(request: AcceptQuestRequest { id, questId }): CommonResponse! owner-only in QuestAcceptanceResolver (QuestAcceptanceModule + AuthzModule), resolver senza logica (objectIdFromHex/requireCharacterObjectId ⇒ NOT_FOUND); corsia su characterUpdated, saldo su userUpdated; real boot con EXPECTED_OWNER_ONLY_HANDLERS e SDL additivo (D-11, D-12, C5)
+- [Phase 07]: 07-08: gate di fase verde — unit 85 suite / 1259 test, integration 49 / 606 (dopo l'aggiornamento dell'aspettativa obsoleta delle corsie in character-creation.resolver.int-spec.ts, solo test), build ok, lint filtrato 0 righe, schema.gql senza drift e solo additivo, un solo ownerOnly, @Public 7 = develop, nessuna dipendenza nuova; BACKEND-NOTES.md per FE Phase 6 e BE 8/9, BE-QUEST-01..04 Complete, 07-VALIDATION approved
 
 ### Pending Todos
 
@@ -204,6 +220,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-20T18:10:00.000Z
-Stopped at: Completed 06-09-PLAN.md
-Resume file: .planning/phases/06-eventsub-punti-canale-streamer-live/06-CONTEXT.md
+Last session: 2026-10-21T12:15:00.000Z
+Stopped at: Phase 7 complete (2026-10-21) — PR #10 open
+Resume file: .planning/phases/07-quest-lanes-quest-04/BACKEND-NOTES.md

@@ -1,6 +1,6 @@
 import { ObjectType, Field, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { Quest } from '../quest/quest.model';
 import { PendingQuest } from '../pending-quest.model';
 
@@ -14,10 +14,28 @@ export class CharacterQuests {
     @Field(() => PendingQuest, { nullable: true })
     @Prop({ type: Types.ObjectId, ref: PendingQuest.name, default: null })
     pendingQuest?: PendingQuest;
+
+    // corsie parallele (D-01): la corsia si sceglie dal tipo della quest, mai dal client; ref castati (Phase 2)
+    @Field(() => PendingQuest, { nullable: true })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: PendingQuest.name,
+        default: null,
+    })
+    activeStoryQuest?: PendingQuest | null;
+
+    @Field(() => PendingQuest, { nullable: true })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: PendingQuest.name,
+        default: null,
+    })
+    activeWorldMissionQuest?: PendingQuest | null;
 }
 
 export type CharacterQuestsDocument = CharacterQuests & Document;
-export const CharacterQuestsSchema = SchemaFactory.createForClass(CharacterQuests);
+export const CharacterQuestsSchema =
+    SchemaFactory.createForClass(CharacterQuests);
 
 @InputType()
 export class CharacterQuestsInput {
@@ -26,5 +44,10 @@ export class CharacterQuestsInput {
 
     @Field(() => ID, { nullable: true })
     pendingQuest?: string | null;
-}
 
+    @Field(() => ID, { nullable: true })
+    activeStoryQuest?: string | null;
+
+    @Field(() => ID, { nullable: true })
+    activeWorldMissionQuest?: string | null;
+}

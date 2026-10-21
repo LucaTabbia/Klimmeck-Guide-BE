@@ -20,6 +20,7 @@ export function buildQuest(overrides: Record<string, any> = {}) {
             requiredPoints: null,
             requiredAdventurers: 0,
             recommendedLoot: [],
+            party: [],
             minTitle: 'rookie', // TitleType.rookie
         },
         prizes: {
@@ -29,6 +30,7 @@ export function buildQuest(overrides: Record<string, any> = {}) {
             randomLoot: [],
         },
         registeredAdventurers: [],
+        registrations: [],
         ...overrides,
     };
 }

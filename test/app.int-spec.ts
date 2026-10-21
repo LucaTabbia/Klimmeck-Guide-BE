@@ -12,7 +12,10 @@ import type { AuthConfig } from 'src/config/auth-config';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { EventSubConfig } from 'src/config/eventsub-config';
 import { EVENTSUB_CONFIG } from 'src/config/eventsub-config';
-import { OWNERSHIP_KEY } from 'src/authz/ownership/ownership.decorators';
+import {
+    OWNERSHIP_KEY,
+    type OwnershipRule,
+} from 'src/authz/ownership/ownership.decorators';
 import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
 import { WalletService } from 'src/economy/wallet.service';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
@@ -32,6 +35,8 @@ const RACE_TRAITS = '{ raceTraits { race } }';
 const DELETE_CHARACTER = 'mutation { deleteCharacter { id } }';
 const REGISTER_PUSH_DEVICE =
     'mutation { registerPushDevice(input: { deviceId: "d", token: "t", platform: android }) }';
+const ACCEPT_QUEST =
+    'mutation { acceptQuest(request: { id: "64b000000000000000000001", questId: "64b000000000000000000002" }) { successful } }';
 // whitelist enumerata (D-12): ogni aggiunta di @Public() deve passare da qui
 const EXPECTED_PUBLIC_HANDLERS = [
     'AppController.getHello',
@@ -59,7 +64,10 @@ const EXPECTED_OWNERSHIP_HANDLERS = [
     'CharactersResolver.unequipSpell',
     'CharactersResolver.useSpell',
     'PendingQuestsResolver.pendingQuest',
+    'QuestAcceptanceResolver.acceptQuest',
 ];
+// nessun bypass innkeeper (07 D-11): ogni handler owner-only deve passare da qui
+const EXPECTED_OWNER_ONLY_HANDLERS = ['QuestAcceptanceResolver.acceptQuest'];
 
 interface PublicSurface {
     handlers: string[];
@@ -279,14 +287,51 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toContain('adminProbe');
     });
 
-    it('boots the quest acceptance primitive without a GraphQL surface', () => {
+    it('writes the quest lanes into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type CharacterQuests \{[^}]*\}/)?.[0]).toBe(
+            'type CharacterQuests {\n  activeStoryQuest: PendingQuest\n  activeWorldMissionQuest: PendingQuest\n  completedQuests: [Quest!]!\n  pendingQuest: PendingQuest\n}',
+        );
+        expect(schema.match(/type PendingQuest \{[^}]*\}/)?.[0]).toBe(
+            'type PendingQuest {\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime!\n  waitingTime: Float!\n}',
+        );
+    });
+
+    it('writes the quest party into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type QuestRequirements \{[^}]*\}/)?.[0]).toBe(
+            'type QuestRequirements {\n  minTitle: String!\n  party: [QuestPartySlot!]!\n  recommendedLoot: [AssetQuantity!]!\n  requiredAdventurers: Int!\n  requiredPoints: Int\n}',
+        );
+        expect(schema.match(/type QuestPartySlot \{[^}]*\}/)?.[0]).toBe(
+            'type QuestPartySlot {\n  count: Int!\n  title: String!\n}',
+        );
+        expect(schema).not.toContain('registrations');
+    });
+
+    it('writes the server time query into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain('  serverTime: DateTime!\n');
+    });
+
+    it('writes the quest acceptance API into the generated schema', () => {
         expect(app.get(QuestAcceptanceService)).toBeInstanceOf(
             QuestAcceptanceService,
         );
         expect(app.get(WalletService)).toBeInstanceOf(WalletService);
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'acceptQuest(request: AcceptQuestRequest!): CommonResponse!',
+        );
+        expect(schema.match(/input AcceptQuestRequest \{[^}]*\}/)?.[0]).toBe(
+            'input AcceptQuestRequest {\n  id: String!\n  questId: String!\n}',
+        );
+        expect(schema).toContain('serverTime: DateTime!');
         expect(schema).not.toMatch(
-            /acceptQuest|QuestAcceptance|twitchPointsDebit|INSUFFICIENT_FUNDS/,
+            /QuestAcceptance|twitchPointsDebit|INSUFFICIENT_FUNDS|registrations/,
         );
     });
 
@@ -395,6 +440,18 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             ).toBe(AuthErrorCode.UNAUTHENTICATED);
         });
 
+        it('rejects acceptQuest without a bearer', async () => {
+            expect(errorCodeOf(await graphqlCall(app, ACCEPT_QUEST))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects serverTime without a bearer', async () => {
+            expect(errorCodeOf(await graphqlCall(app, '{ serverTime }'))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
         it('answers 401 JSON on cloudinary/getUrls without a bearer', async () => {
             const response = await request(app.getHttpServer())
                 .post('/cloudinary/getUrls')
@@ -438,6 +495,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             expect(collectHandlersWithMetadata(app, OWNERSHIP_KEY)).toEqual(
                 EXPECTED_OWNERSHIP_HANDLERS,
             );
+        });
+
+        it('exposes exactly the enumerated owner-only handlers', () => {
+            expect(
+                collectHandlersWithMetadata(
+                    app,
+                    OWNERSHIP_KEY,
+                    (rule) =>
+                        (rule as OwnershipRule | undefined)?.ownerOnly === true,
+                ),
+            ).toEqual(EXPECTED_OWNER_ONLY_HANDLERS);
         });
     });
 });

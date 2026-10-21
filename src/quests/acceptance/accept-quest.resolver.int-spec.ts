@@ -1,0 +1,558 @@
+import { Types, type Model } from 'mongoose';
+import { AdminAuditLog } from 'src/authz/audit/admin-audit-log.model';
+import {
+    Character,
+    CharacterDocument,
+} from 'src/models/character/character.model';
+import { City, CityDocument } from 'src/models/city.model';
+import { RoleType } from 'src/models/enums/role-type.enum';
+import {
+    PendingQuest,
+    PendingQuestDocument,
+} from 'src/models/pending-quest.model';
+import { Quest, QuestDocument } from 'src/models/quest/quest.model';
+import { User, UserDocument } from 'src/models/user.model';
+import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
+import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
+import {
+    graphqlWsUrl,
+    OpenSubscription,
+    openSubscription,
+} from '../../../test/auth/ws-test-client';
+import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
+import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
+import { primeCharactersChangeStream } from '../../../test/characters/characters-change-stream';
+import {
+    buildCharacter,
+    buildQuest,
+    persistCity,
+    persistQuest,
+} from '../../../test/fixtures';
+
+const ACCEPT =
+    'mutation Accept($request: AcceptQuestRequest!) { acceptQuest(request: $request) { response successful } }';
+const LANES_SUBSCRIPTION =
+    'subscription OnLanes($id: String!) { characterUpdated(id: $id) { id quests { pendingQuest { id } activeStoryQuest { id startDate waitingTime pointsSpent quest { id } } } } }';
+const MISSING_QUEST_ID = '64b0000000000000000000ff';
+const MALFORMED_ID = 'abc';
+const FORBIDDEN_MESSAGE = 'Questo personaggio non ti appartiene';
+const STORY_COST = 5000;
+const RICH_BALANCE = 6000;
+
+interface WireError {
+    message: string;
+    extensions: Record<string, unknown>;
+}
+
+interface WireBody {
+    data?: {
+        acceptQuest?: { response: string; successful: boolean } | null;
+    } | null;
+    errors?: WireError[];
+}
+
+interface WireLane {
+    id: string;
+    startDate: string;
+    waitingTime: number;
+    pointsSpent: number;
+    quest: { id: string };
+}
+
+interface WireCharacter {
+    id: string;
+    quests: {
+        pendingQuest: { id: string } | null;
+        activeStoryQuest: WireLane | null;
+    };
+}
+
+type LanesUpdatedResult = { characterUpdated: WireCharacter };
+
+interface World {
+    cityMarker: Types.ObjectId;
+    questMarker: Types.ObjectId;
+}
+
+interface AcceptRequest {
+    id: string;
+    questId: string;
+}
+
+interface Rejection {
+    name: string;
+    code: string;
+    message: string;
+    arrange: () => Promise<{ player: TestPlayer; request: AcceptRequest }>;
+}
+
+describe('acceptQuest (wire)', () => {
+    let harness: AuthTestApp;
+    let characters: Model<CharacterDocument>;
+    let quests: Model<QuestDocument>;
+    let pendingQuests: Model<PendingQuestDocument>;
+    let users: Model<UserDocument>;
+    let cities: Model<CityDocument>;
+    let world: World;
+    const opened: OpenSubscription<LanesUpdatedResult>[] = [];
+
+    beforeAll(async () => {
+        harness = await createCharactersTestApp({
+            imports: [QuestAcceptanceModule],
+        });
+        characters = harness.connection.model<CharacterDocument>(
+            Character.name,
+        );
+        quests = harness.connection.model<QuestDocument>(Quest.name);
+        pendingQuests = harness.connection.model<PendingQuestDocument>(
+            PendingQuest.name,
+        );
+        users = harness.connection.model<UserDocument>(User.name);
+        cities = harness.connection.model<CityDocument>(City.name);
+        // collection pronte prima delle transazioni multi-documento (Pitfall 5)
+        await Promise.all([
+            characters.init(),
+            quests.init(),
+            pendingQuests.init(),
+            users.init(),
+            cities.init(),
+        ]);
+        await primeCharactersChangeStream(harness);
+    });
+
+    beforeEach(async () => {
+        world = await persistWorld();
+    });
+
+    afterEach(async () => {
+        await Promise.all(
+            opened.splice(0).map((subscription) => subscription.dispose()),
+        );
+        await harness.clearDatabase();
+    });
+
+    afterAll(async () => {
+        await harness.close();
+    });
+
+    async function persistWorld(): Promise<World> {
+        const cityMarker = new Types.ObjectId();
+        const questMarker = new Types.ObjectId();
+        await persistCity(cities, {
+            markerLocation: cityMarker,
+            pointsOfInterest: [cityMarker, questMarker],
+        });
+        return { cityMarker, questMarker };
+    }
+
+    async function playerWith(
+        name: string,
+        options: {
+            twitchPoints?: number;
+            role?: RoleType;
+            title?: string;
+            location?: Types.ObjectId;
+            completedQuests?: Types.ObjectId[];
+        } = {},
+    ): Promise<TestPlayer> {
+        const base = buildCharacter();
+        const player = await createPlayer(harness, {
+            twitchId: `twitch-accept-${name}`,
+            role: options.role,
+            characterOverrides: {
+                infos: { ...base.infos, name: `Eroe ${name}` },
+                status: {
+                    ...base.status,
+                    location: options.location ?? world.cityMarker,
+                    title: options.title ?? 'rookie',
+                },
+                quests: {
+                    completedQuests: options.completedQuests ?? [],
+                    pendingQuest: null,
+                },
+            },
+        });
+        await users.updateOne(
+            { _id: player.user._id },
+            { $set: { twitchPoints: options.twitchPoints ?? RICH_BALANCE } },
+        );
+        return player;
+    }
+
+    async function questOf(
+        type: string,
+        requirements: Record<string, unknown> = {},
+    ): Promise<string> {
+        const base = buildQuest();
+        const quest = await persistQuest(quests, {
+            infos: {
+                ...base.infos,
+                type,
+                markerLocation: world.questMarker,
+            },
+            requirements: { ...base.requirements, ...requirements },
+        });
+        return String(quest._id);
+    }
+
+    function storyOf(minTitle = 'rookie'): Promise<string> {
+        return questOf('story', { requiredPoints: STORY_COST, minTitle });
+    }
+
+    function characterIdOf(player: TestPlayer): string {
+        return String(player.character?._id);
+    }
+
+    async function accept(
+        request: AcceptRequest,
+        bearer?: string,
+    ): Promise<WireBody> {
+        const response = await graphqlRequest(
+            harness.app,
+            ACCEPT,
+            { request },
+            bearer,
+        );
+        return response.body as WireBody;
+    }
+
+    function rawCharacter(player: TestPlayer) {
+        return characters.collection.findOne({ _id: player.character?._id });
+    }
+
+    async function pointsOf(player: TestPlayer): Promise<number> {
+        const user = await users.collection.findOne({ _id: player.user._id });
+        return user?.twitchPoints as number;
+    }
+
+    function expectRejected(body: WireBody, code: string, message: string) {
+        expect(body.data ?? null).toBeNull();
+        expect(body.errors?.[0]?.extensions).toEqual({ code });
+        expect(body.errors?.[0]?.message).toBe(message);
+    }
+
+    function subscribeToLanes(
+        player: TestPlayer,
+    ): OpenSubscription<LanesUpdatedResult> {
+        const subscription = openSubscription<LanesUpdatedResult>(
+            graphqlWsUrl(harness.port),
+            { Authorization: player.bearer },
+            {
+                query: LANES_SUBSCRIPTION,
+                variables: { id: characterIdOf(player) },
+            },
+        );
+        opened.push(subscription);
+        return subscription;
+    }
+
+    async function nextLanes(
+        subscription: OpenSubscription<LanesUpdatedResult>,
+    ): Promise<WireCharacter> {
+        const result = await subscription.next();
+        if (result.done) throw new Error('subscription ended');
+        expect(result.value.errors).toBeUndefined();
+        return result.value.data?.characterUpdated as WireCharacter;
+    }
+
+    it('accepts a story for the owner and moves the points', async () => {
+        const alice = await playerWith('alice');
+        const storyId = await storyOf();
+
+        const body = await accept(
+            { id: characterIdOf(alice), questId: storyId },
+            alice.bearer,
+        );
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.acceptQuest).toEqual({
+            response: 'Missione accettata',
+            successful: true,
+        });
+        expect((await rawCharacter(alice))?.quests.activeStoryQuest).toEqual(
+            expect.any(Types.ObjectId),
+        );
+        expect(await pointsOf(alice)).toBe(RICH_BALANCE - STORY_COST);
+    });
+
+    const REJECTIONS: Rejection[] = [
+        {
+            name: 'a second story while one is active',
+            code: 'QUEST_SLOT_BUSY',
+            message: 'Hai già una missione in corso',
+            arrange: async () => {
+                const player = await playerWith('busy', {
+                    twitchPoints: 2 * STORY_COST,
+                });
+                const firstId = await storyOf();
+                const first = await accept(
+                    { id: characterIdOf(player), questId: firstId },
+                    player.bearer,
+                );
+                expect(first.errors).toBeUndefined();
+                return {
+                    player,
+                    request: {
+                        id: characterIdOf(player),
+                        questId: await storyOf(),
+                    },
+                };
+            },
+        },
+        {
+            name: 'a story above the character title',
+            code: 'QUEST_TITLE_MISMATCH',
+            message: 'Il tuo titolo non permette questa missione',
+            arrange: async () => {
+                const player = await playerWith('rookie');
+                return {
+                    player,
+                    request: {
+                        id: characterIdOf(player),
+                        questId: await storyOf('adventurer'),
+                    },
+                };
+            },
+        },
+        {
+            name: 'a character in another city',
+            code: 'QUEST_NOT_IN_CITY',
+            message: 'Devi trovarti nella città della missione',
+            arrange: async () => {
+                const elsewhere = new Types.ObjectId();
+                await persistCity(cities, {
+                    markerLocation: elsewhere,
+                    pointsOfInterest: [elsewhere],
+                });
+                const player = await playerWith('traveller', {
+                    location: elsewhere,
+                });
+                return {
+                    player,
+                    request: {
+                        id: characterIdOf(player),
+                        questId: await storyOf(),
+                    },
+                };
+            },
+        },
+        {
+            name: 'a story without a points cost',
+            code: 'QUEST_NOT_ACCEPTABLE',
+            message: 'Missione non disponibile',
+            arrange: async () => {
+                const player = await playerWith('uncosted');
+                return {
+                    player,
+                    request: {
+                        id: characterIdOf(player),
+                        questId: await questOf('story', {
+                            requiredPoints: null,
+                            minTitle: 'rookie',
+                        }),
+                    },
+                };
+            },
+        },
+        {
+            name: 'a balance below the story cost',
+            code: 'INSUFFICIENT_POINTS',
+            message: 'Punti canale insufficienti',
+            arrange: async () => {
+                const player = await playerWith('poor', { twitchPoints: 100 });
+                return {
+                    player,
+                    request: {
+                        id: characterIdOf(player),
+                        questId: await storyOf(),
+                    },
+                };
+            },
+        },
+        {
+            name: 'a story already completed',
+            code: 'QUEST_ALREADY_TAKEN',
+            message: 'Hai già affrontato questa missione',
+            arrange: async () => {
+                const storyId = await storyOf();
+                const player = await playerWith('veteran', {
+                    completedQuests: [new Types.ObjectId(storyId)],
+                });
+                return {
+                    player,
+                    request: { id: characterIdOf(player), questId: storyId },
+                };
+            },
+        },
+        {
+            name: 'a world mission without a slot for the rank',
+            code: 'QUEST_FULL',
+            message: 'Non ci sono più posti per il tuo rango',
+            arrange: async () => {
+                const player = await playerWith('outranked');
+                return {
+                    player,
+                    request: {
+                        id: characterIdOf(player),
+                        questId: await questOf('worldMission', {
+                            requiredPoints: 3000,
+                            party: [{ title: 'hero', count: 1 }],
+                        }),
+                    },
+                };
+            },
+        },
+        {
+            name: 'a missing quest',
+            code: 'NOT_FOUND',
+            message: 'Missione non trovata',
+            arrange: async () => {
+                const player = await playerWith('missing');
+                return {
+                    player,
+                    request: {
+                        id: characterIdOf(player),
+                        questId: MISSING_QUEST_ID,
+                    },
+                };
+            },
+        },
+        {
+            name: 'a malformed quest id',
+            code: 'NOT_FOUND',
+            message: 'Missione non trovata',
+            arrange: async () => {
+                const player = await playerWith('malformed-quest');
+                return {
+                    player,
+                    request: {
+                        id: characterIdOf(player),
+                        questId: MALFORMED_ID,
+                    },
+                };
+            },
+        },
+        {
+            name: 'a malformed character id',
+            code: 'NOT_FOUND',
+            message: 'Personaggio non trovato',
+            arrange: async () => {
+                const player = await playerWith('malformed-character');
+                return {
+                    player,
+                    request: { id: MALFORMED_ID, questId: await storyOf() },
+                };
+            },
+        },
+    ];
+
+    it.each(REJECTIONS)(
+        'rejects $name with $code',
+        async ({ code, message, arrange }) => {
+            const { player, request } = await arrange();
+
+            const body = await accept(request, player.bearer);
+
+            expectRejected(body, code, message);
+        },
+    );
+
+    it('forbids the innkeeper on a foreign character and writes nothing', async () => {
+        const alice = await playerWith('alice');
+        const oste = await playerWith('oste', { role: RoleType.innkeeper });
+        const storyId = await storyOf();
+
+        const body = await accept(
+            { id: characterIdOf(alice), questId: storyId },
+            oste.bearer,
+        );
+
+        expectRejected(body, 'FORBIDDEN', FORBIDDEN_MESSAGE);
+        expect(
+            (await rawCharacter(alice))?.quests.activeStoryQuest ?? null,
+        ).toBeNull();
+        expect(await pendingQuests.countDocuments()).toBe(0);
+        expect(await pointsOf(alice)).toBe(RICH_BALANCE);
+        expect(await pointsOf(oste)).toBe(RICH_BALANCE);
+        expect(
+            await harness.connection.model(AdminAuditLog.name).countDocuments(),
+        ).toBe(0);
+    });
+
+    it('lets the innkeeper accept for its own character', async () => {
+        const oste = await playerWith('oste', { role: RoleType.innkeeper });
+        const storyId = await storyOf();
+
+        const body = await accept(
+            { id: characterIdOf(oste), questId: storyId },
+            oste.bearer,
+        );
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.acceptQuest?.successful).toBe(true);
+    });
+
+    it('forbids an adventurer on a foreign character', async () => {
+        const alice = await playerWith('alice');
+        const bob = await playerWith('bob');
+        const storyId = await storyOf();
+
+        const body = await accept(
+            { id: characterIdOf(alice), questId: storyId },
+            bob.bearer,
+        );
+
+        expectRejected(body, 'FORBIDDEN', FORBIDDEN_MESSAGE);
+        expect(await pendingQuests.countDocuments()).toBe(0);
+    });
+
+    it('stays unauthenticated without a bearer', async () => {
+        const alice = await playerWith('alice');
+        const storyId = await storyOf();
+
+        const body = await accept({
+            id: characterIdOf(alice),
+            questId: storyId,
+        });
+
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'UNAUTHENTICATED',
+        });
+        expect(await pendingQuests.countDocuments()).toBe(0);
+    });
+
+    it('emits the populated lane on characterUpdated after acceptQuest', async () => {
+        const alice = await playerWith('alice');
+        const storyId = await storyOf();
+        const subscription = subscribeToLanes(alice);
+        const snapshot = await nextLanes(subscription);
+        expect(snapshot.quests.activeStoryQuest).toBeNull();
+        const t0 = new Date();
+
+        const body = await accept(
+            { id: characterIdOf(alice), questId: storyId },
+            alice.bearer,
+        );
+        expect(body.errors).toBeUndefined();
+
+        const changed = await nextLanes(subscription);
+        const lane = (await rawCharacter(alice))?.quests
+            .activeStoryQuest as Types.ObjectId;
+        expect(changed.quests.pendingQuest).toBeNull();
+        expect(changed.quests.activeStoryQuest).toEqual({
+            id: lane.toHexString(),
+            startDate: expect.any(String) as string,
+            waitingTime: 0,
+            pointsSpent: STORY_COST,
+            quest: { id: storyId },
+        });
+        const startDate = new Date(
+            changed.quests.activeStoryQuest?.startDate as string,
+        );
+        expect(startDate.toISOString()).toBe(
+            changed.quests.activeStoryQuest?.startDate,
+        );
+        expect(startDate.getTime()).toBeGreaterThanOrEqual(t0.getTime());
+        expect(startDate.getTime()).toBeLessThanOrEqual(Date.now());
+    });
+});

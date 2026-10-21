@@ -28,6 +28,7 @@ import { SlotType } from 'src/models/enums/slot_type.enum';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
+import { CHARACTER_QUESTS_POPULATE } from './character-quests.populate';
 import { ActiveSpell } from 'src/models/common/active-spell.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
@@ -114,7 +115,10 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
 
     // letture di gioco solo sugli attivi (03.1 D-06): un archiviato risponde NOT_FOUND come un id inesistente
     async findAll(): Promise<Character[]> {
-        return this.characterModel.find(ACTIVE_CHARACTER_FILTER).exec();
+        return this.characterModel
+            .find(ACTIVE_CHARACTER_FILTER)
+            .populate(CHARACTER_QUESTS_POPULATE)
+            .exec();
     }
 
     async findOne(id: string): Promise<Character> {
@@ -136,6 +140,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
                 path: 'assets.ownedItems.item',
                 model: 'LootItem',
             })
+            .populate(CHARACTER_QUESTS_POPULATE)
             .exec();
 
         if (!character) {

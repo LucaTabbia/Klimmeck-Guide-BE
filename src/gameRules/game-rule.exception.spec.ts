@@ -61,6 +61,36 @@ describe('GameRuleException', () => {
             'Hai già una missione in corso',
         ],
         [
+            'questFull',
+            () => GameRuleException.questFull(),
+            GameRuleErrorCode.QUEST_FULL,
+            'Non ci sono più posti per il tuo rango',
+        ],
+        [
+            'questAlreadyTaken',
+            () => GameRuleException.questAlreadyTaken(),
+            GameRuleErrorCode.QUEST_ALREADY_TAKEN,
+            'Hai già affrontato questa missione',
+        ],
+        [
+            'questTitleMismatch',
+            () => GameRuleException.questTitleMismatch(),
+            GameRuleErrorCode.QUEST_TITLE_MISMATCH,
+            'Il tuo titolo non permette questa missione',
+        ],
+        [
+            'questNotInCity',
+            () => GameRuleException.questNotInCity(),
+            GameRuleErrorCode.QUEST_NOT_IN_CITY,
+            'Devi trovarti nella città della missione',
+        ],
+        [
+            'questNotAcceptable',
+            () => GameRuleException.questNotAcceptable(),
+            GameRuleErrorCode.QUEST_NOT_ACCEPTABLE,
+            'Missione non disponibile',
+        ],
+        [
             'spellNotKnown',
             () => GameRuleException.spellNotKnown(),
             GameRuleErrorCode.SPELL_NOT_KNOWN,

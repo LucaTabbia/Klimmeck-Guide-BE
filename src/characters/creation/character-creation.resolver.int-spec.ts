@@ -249,6 +249,8 @@ describe('CharacterCreationResolver (wire)', () => {
             });
             await expectLocation(character, drustea);
             expect(raw?.quests).toEqual({
+                activeStoryQuest: null,
+                activeWorldMissionQuest: null,
                 completedQuests: [],
                 pendingQuest: null,
             });

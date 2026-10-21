@@ -20,7 +20,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 4: Integrità Economica (Atomics)** - Operazioni atomiche su coins/twitchPoints/quest/equip/spell (no read-modify-write, no stato parziale) (completed 2026-10-18)
 - [x] **Phase 5: Infrastruttura Push FCM** - Registro token per-device, servizio push domain-agnostic, pruning token stale (completed 2026-10-18)
 - [x] **Phase 6: EventSub: Punti Canale & Streamer Live** - Webhook Twitch EventSub, credito idempotente 1:1, push streamer-live (completed 2026-10-21)
-- [ ] **Phase 7: Quest Lanes (QUEST-04)** - Corsie story/worldMission su schema + subscription, accettazione lane-aware, cost model server-side
+- [x] **Phase 7: Quest Lanes (QUEST-04)** - Corsie story/worldMission su schema + subscription, accettazione lane-aware, cost model server-side (completed 2026-10-21)
 - [ ] **Phase 8: Travel Lifecycle (TRAVEL-01)** - `activeTravel` su schema + subscription, ETA/completamento server-side, teleport atomico
 - [ ] **Phase 9: Combat Result & Admin Outcomes** - `CombatResult` persistito con delivery ibrida, outcome admin-mediati, coda pending innkeeper
 - [ ] **Phase 10: Hardening Trasversale** - Validazione input, introspection off/CORS/sanitization, `.env.example`, coverage aree critiche
@@ -206,11 +206,19 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. `Character` espone `activeStoryQuest` e `activeWorldMissionQuest` (PendingQuest opzionali, indipendenti da `pendingQuest`) su schema GraphQL e payload della subscription — su staging prima di FE Phase 6.
   2. Accettare una story quest con un `pendingQuest` standard già presente riesce (corsie parallele); accettare una seconda story quest mentre una è attiva è rifiutato (solo la sua corsia blocca).
-  3. Le quest story/worldMission debitano `User.twitchPoints`, le altre `Character.coins`; eleggibilità e debito sono calcolati server-side e non sovrascrivibili dal client.
+  3. Le quest story/worldMission debitano `User.twitchPoints` (`requiredPoints`); nessuna quest debita `Character.coins` (emendato nel discuss del 2026-10-21); eleggibilità (città del marker, titolo, non ripetibilità, capienza del party per rango) e debito sono calcolati server-side e non sovrascrivibili dal client.
   4. `pendingQuest` è emesso con `startDate` + `waitingTime` server-side così il countdown FE è autoritativo.
-**Plans**: TBD
+**Plans**: 8 piani in 4 wave (pianificati il 2026-10-21; contratto schema nelle prime wave così la FE Phase 6 può partire)
+- [x] 07-01-PLAN.md — Wave 1: contratto dati — `CharacterQuests.activeStoryQuest`/`activeWorldMissionQuest`, `PendingQuest.pointsSpent: Int!`, `QuestRequirements.party: [QuestPartySlot!]!`, campo interno `Quest.registrations` (mai su GraphQL), fixture, SDL nel boot reale e `src/schema.gql` additivo (BE-QUEST-01, BE-QUEST-03)
+- [x] 07-02-PLAN.md — Wave 1: regole pure testate a tabella — 5 codici `GameRuleErrorCode` nuovi, `quest-lanes.ts` (corsia dal tipo), `quest-eligibility.ts` (titolo, ripetibilità, condivise, costo, `waitingTime`, capienza, ordine di classificazione), `quest-acceptance.updates.ts` (filtri di claim e registrazione con `$expr`) (BE-QUEST-02/03/04)
+- [x] 07-03-PLAN.md — Wave 2: populate «solo il PendingQuest» — helper `primeCharactersChangeStream` condiviso, costante `CHARACTER_QUESTS_POPULATE` (tre corsie + `completedQuests` con `select: '_id'`) in `findOne`/`findAll`, `PendingQuest`/`Quest` registrati in `CharactersModule` e nell'harness, int-spec su `character`, `characters`, `characterUpdated` (BE-QUEST-01)
+- [x] 07-04-PLAN.md — Wave 2: autorizzazione — `@OwnsCharacter(selectId, { ownerOnly: true })` senza bypass innkeeper, `pendingQuest(id)` riconosce le tre corsie (BE-QUEST-02/03)
+- [x] 07-05-PLAN.md — Wave 2: `serverTime: DateTime!` autenticata — `ServerTimeResolver` sincrono + `ServerTimeModule` con `Clock` locale, montato in `AppModule`, boot reale e schema (BE-QUEST-04)
+- [x] 07-06-PLAN.md — Wave 2: `QuestAcceptanceService.accept({ ownerId, characterId, questId })` generalizzato — pre-letture lean, regole pure, transazione claim → registrazione `$expr` → insert `PendingQuest` → `debitUserPoints(session)`, verifica della città in una query, int-spec con la matrice D-19 e concorrenza, test Phase 4 su `costCopper` sostituiti (BE-QUEST-02/03/04)
+- [x] 07-07-PLAN.md — Wave 3: superficie GraphQL — `input AcceptQuestRequest { id, questId }`, `QuestAcceptanceResolver.acceptQuest` owner-only in `QuestAcceptanceModule` (+ `AuthzModule`), int-spec sul filo (codici, FORBIDDEN senza audit, id malformati, UNAUTHENTICATED, `characterUpdated` con la corsia popolata), boot reale con `EXPECTED_OWNER_ONLY_HANDLERS` e test negativo riscritto in positivo, schema rigenerato (BE-QUEST-01..04)
+- [x] 07-08-PLAN.md — Wave 4: gate di fase (suite complete, build, lint filtrato, schema additivo senza drift, invarianti) + `BACKEND-NOTES.md` per la FE Phase 6 + traceability BE-QUEST-01..04 + `07-VALIDATION.md` (BE-QUEST-01..04)
 **Unblocks (FE)**: **FE Phase 6** (schema + resolver + payload subscription su staging) → FE QUEST-04/05/07.
-**Branch**: `feat/07-quest-lanes` da `develop` → PR a `develop`.
+**Branch**: `feat/07-quest-lanes-quest-04` da `develop` → PR a `develop`.
 
 ### Phase 8: Travel Lifecycle (TRAVEL-01)
 **Goal**: Viaggio server-autoritativo — `activeTravel` su schema + subscription, start ETA-validato, completamento con DB come fonte di verità (Bull come trigger + reconciler al boot), teleport clear atomico.
@@ -281,7 +289,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 4. Integrità Economica (Atomics) | 9/9 | Complete | 2026-10-18 |
 | 5. Infrastruttura Push FCM | 8/8 | Complete    | 2026-10-18 |
 | 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
-| 7. Quest Lanes (QUEST-04) | 0/TBD | Not started | - |
+| 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
 | 8. Travel Lifecycle (TRAVEL-01) | 0/TBD | Not started | - |
 | 9. Combat Result & Admin Outcomes | 0/TBD | Not started | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
