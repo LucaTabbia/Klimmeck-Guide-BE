@@ -461,6 +461,83 @@ describe('QuestAcceptanceService (replSet)', () => {
     });
 
     describe('concurrency (SC2/SC3)', () => {
+        // lo stato cambia fra la pre-verifica e la transazione: il rifiuto può venire solo dal filtro (IN-04)
+        function interleaveBeforeTransaction(
+            interlude: () => Promise<unknown>,
+        ): jest.SpyInstance {
+            const transaction = connection.transaction.bind(connection);
+            return jest
+                .spyOn(connection, 'transaction')
+                .mockImplementationOnce(async (fn, options) => {
+                    await interlude();
+                    return transaction(fn, options);
+                });
+        }
+
+        it('rejects with QUEST_SLOT_BUSY when the lane is taken after the pre-check, writing nothing', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            const questId = await questOf('story', {
+                requiredPoints: 5000,
+                minTitle: 'rookie',
+            });
+            const rivalLane = new Types.ObjectId();
+            const transaction = interleaveBeforeTransaction(() =>
+                characters.collection.updateOne(
+                    { _id: charId },
+                    { $set: { 'quests.activeStoryQuest': rivalLane } },
+                ),
+            );
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_SLOT_BUSY' });
+
+            expect(transaction).toHaveBeenCalledTimes(1);
+            expect((await raw(charId))?.quests.activeStoryQuest).toEqual(
+                rivalLane,
+            );
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('rejects with QUEST_FULL when the rank fills after the pre-check, writing nothing', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker, 'hero');
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                party: [{ title: 'hero', count: 1 }],
+            });
+            const rival = new Types.ObjectId();
+            const transaction = interleaveBeforeTransaction(() =>
+                quests.collection.updateOne(
+                    { _id: questId },
+                    {
+                        $push: {
+                            registrations: { character: rival, title: 'hero' },
+                        },
+                        $addToSet: {
+                            registeredAdventurers: rival.toHexString(),
+                        },
+                    },
+                ),
+            );
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_FULL' });
+
+            expect(transaction).toHaveBeenCalledTimes(1);
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual([
+                rival.toHexString(),
+            ]);
+            expect(
+                (await raw(charId))?.quests.activeWorldMissionQuest,
+            ).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
         it('lets exactly one of three concurrent story accepts win', async () => {
             const ownerId = await ownerWith(6000);
             const charId = await characterAt(world.cityMarker);
