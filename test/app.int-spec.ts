@@ -294,7 +294,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type CharacterQuests {\n  activeStoryQuest: PendingQuest\n  activeWorldMissionQuest: PendingQuest\n  completedQuests: [Quest!]!\n  pendingQuest: PendingQuest\n}',
         );
         expect(schema.match(/type PendingQuest \{[^}]*\}/)?.[0]).toBe(
-            'type PendingQuest {\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime!\n  waitingTime: Float!\n}',
+            'type PendingQuest {\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime\n  waitingTime: Float!\n}',
         );
     });
 
@@ -333,6 +333,24 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toMatch(
             /QuestAcceptance|twitchPointsDebit|INSUFFICIENT_FUNDS|registrations/,
         );
+    });
+
+    it('writes the travel contract into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type ActiveTravel \{[^}]*\}/)?.[0]).toBe(
+            'type ActiveTravel {\n  duration: Float!\n  endTime: DateTime!\n  road: TravelPath!\n  startTime: DateTime!\n  to: ID!\n}',
+        );
+        expect(schema.match(/type TravelPath \{[^}]*\}/)?.[0]).toBe(
+            'type TravelPath {\n  coordinates: [[Float!]!]!\n  distance: Float!\n}',
+        );
+        expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
+            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spells: [Spell!]!\n  title: String!\n  xp: Int!\n}',
+        );
+        expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
+            'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  speedModifier: Float\n  xp: Int!\n}',
+        );
+        expect(schema).not.toMatch(/TravelKind|\bkind\b/);
     });
 
     it('writes the push API into the generated schema', () => {
