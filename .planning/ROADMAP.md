@@ -245,7 +245,7 @@ Plans:
 - [ ] 08-13-PLAN.md — Wave 6: `teleportCharacter` innkeeper atomico con rimozione del job e audit, whitelist e SDL (BE-TRAVEL-04)
 - [ ] 08-14-PLAN.md — Wave 7: gate di fase + `BACKEND-NOTES.md` per FE Phase 7/6 e BE Phase 9/10 + traceability BE-TRAVEL-01..04 + `08-VALIDATION.md` (BE-TRAVEL-01..04)
 **Unblocks (FE)**: **FE Phase 7** (schema + lifecycle su staging) → FE TRAVEL-01/02/03/04, ADMIN-04.
-**Branch**: `feat/08-travel-lifecycle` da `develop` → PR a `develop`.
+**Branch**: `feat/08-travel-lifecycle-travel-01` da `develop` → PR a `develop` (template `feat/{phase}-{slug}`; in origine `feat/08-travel-lifecycle`, allineato nel planning del 2026-10-21, D-25).
 
 ### Phase 9: Combat Result & Admin Outcomes
 **Goal**: Risultati di combattimento persistiti con delivery ibrida, outcome di combat admin-mediati, e la coda pending dell'innkeeper con approve/reject role-guarded e audit-loggati.
