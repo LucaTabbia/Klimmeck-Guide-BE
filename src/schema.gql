@@ -448,7 +448,7 @@ type Quest {
   id: ID!
   infos: QuestInfos!
   prizes: QuestPrizes!
-  registeredAdventurers: [String!]!
+  registeredAdventurers: [QuestRegistration!]!
   requirements: QuestRequirements!
 }
 
@@ -463,7 +463,7 @@ type QuestInfos {
 
 type QuestPartySlot {
   count: Int!
-  title: String!
+  title: String
 }
 
 type QuestPrizes {
@@ -473,11 +473,15 @@ type QuestPrizes {
   xpPrize: Int
 }
 
+type QuestRegistration {
+  character: ID!
+  title: String!
+}
+
 type QuestRequirements {
   minTitle: String!
-  party: [QuestPartySlot!]!
   recommendedLoot: [AssetQuantity!]!
-  requiredAdventurers: Int!
+  requiredAdventurers: [QuestPartySlot!]!
   requiredPoints: Int
 }
 

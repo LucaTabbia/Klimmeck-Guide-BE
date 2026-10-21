@@ -20,18 +20,14 @@ export class QuestRequirements {
     @Prop({ type: Number, default: null })
     requiredPoints?: number | null;
 
-    @Field(() => Int)
-    @Prop({ type: Number })
-    requiredAdventurers: number;
+    // capienza delle quest registrate (worldMission, boss, enemy, aid): totale = Σ count; ignorata dagli altri tipi (D-27, D-28b)
+    @Field(() => [QuestPartySlot])
+    @Prop({ type: [QuestPartySlotSchema], default: [] })
+    requiredAdventurers: QuestPartySlot[];
 
     @Field(() => [AssetQuantity])
     @Prop({ type: [AssetQuantitySchema], default: [] })
     recommendedLoot: AssetQuantity[];
-
-    // vuoto = dato legacy: capienza = requiredAdventurers totale se > 0, altrimenti nessun limite (D-04)
-    @Field(() => [QuestPartySlot])
-    @Prop({ type: [QuestPartySlotSchema], default: [] })
-    party: QuestPartySlot[];
 
     @Field(() => String)
     @Prop({ type: String, enum: Object.values(TitleType) })
@@ -47,14 +43,11 @@ export class QuestRequirementsInput {
     @Field(() => Int, { nullable: true })
     requiredPoints?: number | null;
 
-    @Field(() => Int)
-    requiredAdventurers: number;
+    @Field(() => [QuestPartySlotInput], { nullable: true })
+    requiredAdventurers?: QuestPartySlotInput[];
 
     @Field(() => [AssetQuantityInput], { nullable: true })
     recommendedLoot?: AssetQuantityInput[];
-
-    @Field(() => [QuestPartySlotInput], { nullable: true })
-    party?: QuestPartySlotInput[];
 
     @Field(() => TitleType)
     minTitle: TitleType;

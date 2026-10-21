@@ -1,10 +1,13 @@
+import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Schema as MongooseSchema, Types } from 'mongoose';
 import { TitleType } from '../enums/title-type.enum';
 
-// stato interno della capienza per rango (C1): mai esposto su GraphQL, scritto nello stesso update di registeredAdventurers
+// un posto occupato sulla quest registrata (D-27, D-28a): character e rango al momento dell'accettazione
+@ObjectType()
 @Schema({ _id: false })
 export class QuestRegistration {
+    @Field(() => ID)
     @Prop({
         type: MongooseSchema.Types.ObjectId,
         ref: 'Character',
@@ -12,6 +15,7 @@ export class QuestRegistration {
     })
     character: Types.ObjectId;
 
+    @Field(() => String)
     @Prop({ type: String, enum: Object.values(TitleType), required: true })
     title: TitleType;
 }

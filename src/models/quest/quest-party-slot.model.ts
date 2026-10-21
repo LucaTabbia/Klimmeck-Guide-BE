@@ -2,13 +2,13 @@ import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { TitleType } from '../enums/title-type.enum';
 
-// slot esatti per titolo (D-04): un avventuriero occupa solo lo slot del proprio status.title
+// slot per rango (D-28b): title null = qualsiasi rango; gli slot esatti si riempiono prima dei jolly (D-32)
 @ObjectType()
 @Schema({ _id: false })
 export class QuestPartySlot {
-    @Field(() => String)
-    @Prop({ type: String, enum: Object.values(TitleType), required: true })
-    title: TitleType;
+    @Field(() => String, { nullable: true })
+    @Prop({ type: String, enum: Object.values(TitleType), default: null })
+    title: TitleType | null;
 
     @Field(() => Int)
     @Prop({ type: Number, required: true, min: 1 })
@@ -20,8 +20,8 @@ export const QuestPartySlotSchema =
 
 @InputType()
 export class QuestPartySlotInput {
-    @Field(() => TitleType)
-    title: TitleType;
+    @Field(() => TitleType, { nullable: true })
+    title?: TitleType | null;
 
     @Field(() => Int)
     count: number;
