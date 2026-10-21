@@ -6,6 +6,7 @@ import {
     Character,
     CharacterSchema,
 } from 'src/models/character/character.model';
+import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { User, UserSchema } from 'src/models/user.model';
 import { UsersModule } from 'src/users/users.module';
 
@@ -15,6 +16,8 @@ import { UsersModule } from 'src/users/users.module';
         MongooseModule.forFeature([
             { name: User.name, schema: UserSchema },
             { name: Character.name, schema: CharacterSchema },
+            // Quest: rilascio dei posti alla cancellazione (D-30)
+            { name: Quest.name, schema: QuestSchema },
         ]),
         UsersModule,
     ],

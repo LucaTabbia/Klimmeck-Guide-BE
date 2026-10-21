@@ -9,6 +9,7 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
+import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { UsersService } from 'src/users/users.service';
 
@@ -25,6 +26,8 @@ export class CharacterDeletionService {
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
         @InjectModel(Character.name)
         private readonly characterModel: Model<CharacterDocument>,
+        @InjectModel(Quest.name)
+        private readonly questModel: Model<QuestDocument>,
         private readonly usersService: UsersService,
     ) {}
 
@@ -70,7 +73,25 @@ export class CharacterDeletionService {
                 this.logger.warn(
                     `User ${String(userId)} pointed to a missing or archived character: unlinked anyway`,
                 );
+                return;
             }
+            // posti liberati nella stessa transazione (D-30): la quest torna disponibile per tutti; la morte (Phase 9) riusa questa routine
+            await this.questModel
+                .updateMany(
+                    {
+                        'registeredAdventurers.character':
+                            unlinked.currentCharacter,
+                    },
+                    {
+                        $pull: {
+                            registeredAdventurers: {
+                                character: unlinked.currentCharacter,
+                            },
+                        },
+                    },
+                    { session },
+                )
+                .exec();
         });
     }
 
