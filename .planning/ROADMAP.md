@@ -241,7 +241,7 @@ Plans:
 - [x] 08-09-PLAN.md — Wave 3: `TravelCompletionService` idempotente (countdown della quest, push `travelEnd` solo per i viaggi liberi) + `TravelSweeper` (reconciler al boot, sweep periodico) in `TravelModule` (BE-TRAVEL-03)
 - [x] 08-10-PLAN.md — Wave 4: processor Bull del completamento su Redis reale, `TravelModule` montato nel boot reale (BE-TRAVEL-03)
 - [x] 08-11-PLAN.md — Wave 4: viaggio automatico all'accettazione della corsia standard (stesso claim, salto senza strada, job dopo il commit), `startDate` null sul filo (BE-TRAVEL-02/03)
-- [ ] 08-12-PLAN.md — Wave 5: `startTravel` e `travelPreview` owner-only, avvio condizionale, prova sul filo fino all'arrivo, whitelist e SDL (BE-TRAVEL-01/02/03)
+- [x] 08-12-PLAN.md — Wave 5: `startTravel` e `travelPreview` owner-only, avvio condizionale, prova sul filo fino all'arrivo, whitelist e SDL (BE-TRAVEL-01/02/03)
 - [ ] 08-13-PLAN.md — Wave 6: `teleportCharacter` innkeeper atomico con rimozione del job e audit, whitelist e SDL (BE-TRAVEL-04)
 - [ ] 08-14-PLAN.md — Wave 7: gate di fase + `BACKEND-NOTES.md` per FE Phase 7/6 e BE Phase 9/10 + traceability BE-TRAVEL-01..04 + `08-VALIDATION.md` (BE-TRAVEL-01..04)
 **Unblocks (FE)**: **FE Phase 7** (schema + lifecycle su staging) → FE TRAVEL-01/02/03/04, ADMIN-04.
@@ -304,6 +304,6 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Infrastruttura Push FCM | 8/8 | Complete    | 2026-10-18 |
 | 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
-| 8. Travel Lifecycle (TRAVEL-01) | 11/14 | In Progress | - |
+| 8. Travel Lifecycle (TRAVEL-01) | 12/14 | In Progress | - |
 | 9. Combat Result & Admin Outcomes | 0/TBD | Not started | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
