@@ -1,3 +1,4 @@
+import { getQueueToken } from '@nestjs/bull';
 import { Types, type Model } from 'mongoose';
 import { AdminAuditLog } from 'src/authz/audit/admin-audit-log.model';
 import {
@@ -14,6 +15,8 @@ import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
 import { QuestsModule } from 'src/quests/quests.module';
+import { RoadsService } from 'src/roads/roads.service';
+import { TRAVEL_QUEUE } from 'src/travel/travel-job';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import {
     graphqlWsUrl,
@@ -29,11 +32,15 @@ import {
     persistCity,
     persistQuest,
 } from '../../../test/fixtures';
+import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
+import { persistTravelWorld } from '../../../test/travel/travel-world';
 
 const ACCEPT =
     'mutation Accept($request: AcceptQuestRequest!) { acceptQuest(request: $request) { response successful } }';
 const LANES_SUBSCRIPTION =
     'subscription OnLanes($id: String!) { characterUpdated(id: $id) { id quests { pendingQuest { id } activeStoryQuest { id startDate waitingTime pointsSpent quest { id } } } } }';
+const TRAVEL_SUBSCRIPTION =
+    'subscription OnTravel($id: String!) { characterUpdated(id: $id) { id status { location { id } activeTravel { road { coordinates distance } startTime endTime duration to } } quests { pendingQuest { id startDate waitingTime } } } }';
 const QUESTS_QUERY =
     'query { quests { id registeredAdventurers { character title } requirements { requiredAdventurers { title count } } } }';
 const MISSING_QUEST_ID = '64b0000000000000000000ff';
@@ -85,6 +92,29 @@ interface WireCharacter {
 
 type LanesUpdatedResult = { characterUpdated: WireCharacter };
 
+interface WireTravelCharacter {
+    id: string;
+    status: {
+        location: { id: string } | null;
+        activeTravel: {
+            road: { coordinates: number[][]; distance: number };
+            startTime: string;
+            endTime: string;
+            duration: number;
+            to: string;
+        } | null;
+    };
+    quests: {
+        pendingQuest: {
+            id: string;
+            startDate: string | null;
+            waitingTime: number;
+        } | null;
+    };
+}
+
+type TravelUpdatedResult = { characterUpdated: WireTravelCharacter };
+
 interface World {
     cityMarker: Types.ObjectId;
     questMarker: Types.ObjectId;
@@ -110,11 +140,16 @@ describe('acceptQuest (wire)', () => {
     let users: Model<UserDocument>;
     let cities: Model<CityDocument>;
     let world: World;
-    const opened: OpenSubscription<LanesUpdatedResult>[] = [];
+    const opened: OpenSubscription<unknown>[] = [];
+    const queue = new FakeTravelQueue();
 
     beforeAll(async () => {
         harness = await createCharactersTestApp({
             imports: [QuestAcceptanceModule, QuestsModule],
+            // coda del viaggio automatico senza Redis
+            overrides: [
+                { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+            ],
         });
         characters = harness.connection.model<CharacterDocument>(
             Character.name,
@@ -145,6 +180,7 @@ describe('acceptQuest (wire)', () => {
             opened.splice(0).map((subscription) => subscription.dispose()),
         );
         await harness.clearDatabase();
+        queue.reset();
     });
 
     afterAll(async () => {
@@ -686,5 +722,64 @@ describe('acceptQuest (wire)', () => {
         );
         expect(startDate.getTime()).toBeGreaterThanOrEqual(t0.getTime());
         expect(startDate.getTime()).toBeLessThanOrEqual(Date.now());
+    });
+
+    it('streams the automatic travel and a null startDate on characterUpdated', async () => {
+        const travel = await persistTravelWorld(
+            harness.connection,
+            harness.app.get(RoadsService),
+        );
+        const alice = await playerWith('traveller', {
+            location: travel.markerA,
+        });
+        const base = buildQuest();
+        const quest = await persistQuest(quests, {
+            infos: {
+                ...base.infos,
+                type: 'hunt',
+                markerLocation: travel.questPoi,
+                timeToComplete: 60000,
+            },
+            requirements: base.requirements,
+        });
+        const subscription = openSubscription<TravelUpdatedResult>(
+            graphqlWsUrl(harness.port),
+            { Authorization: alice.bearer },
+            {
+                query: TRAVEL_SUBSCRIPTION,
+                variables: { id: characterIdOf(alice) },
+            },
+        );
+        opened.push(subscription);
+        const first = await subscription.next();
+        expect(first.done).toBe(false);
+
+        const body = await accept(
+            { id: characterIdOf(alice), questId: String(quest._id) },
+            alice.bearer,
+        );
+        expect(body.errors).toBeUndefined();
+
+        let changed: WireTravelCharacter | undefined;
+        while (!changed?.quests.pendingQuest) {
+            const result = await subscription.next();
+            if (result.done) throw new Error('subscription ended');
+            expect(result.value.errors).toBeUndefined();
+            changed = result.value.data?.characterUpdated;
+        }
+        const wire = changed.status.activeTravel;
+        expect(wire?.to).toBe(travel.questPoi.toHexString());
+        expect(wire?.road.coordinates[0]).toEqual([0, 0]);
+        expect(wire?.road.coordinates.at(-1)).toEqual([0.1, 0]);
+        expect(wire?.duration).toBe(
+            Date.parse(wire?.endTime as string) -
+                Date.parse(wire?.startTime as string),
+        );
+        expect(changed.quests.pendingQuest).toMatchObject({
+            startDate: null,
+            waitingTime: 60000,
+        });
+        expect(changed.status.location?.id).toBe(travel.markerA.toHexString());
+        expect(queue.added).toHaveLength(1);
     });
 });
