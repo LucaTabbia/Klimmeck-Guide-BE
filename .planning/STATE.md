@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
+status: executing
 stopped_at: Phase 8 context gathered
-last_updated: "2026-10-21T17:21:42.255Z"
-last_activity: "2026-10-21 -- Phase 7 closed: ROADMAP/STATE/PROJECT updated; final gate re-run clean after the review fixes (unit 85 suites / 1264 tests, integration 49 suites / 610 tests); next: BE PR to develop, then /gsd-discuss-phase 8 (Travel Lifecycle, TRAVEL-01 for FE Phase 7)"
+last_updated: "2026-10-21T20:03:03.125Z"
+last_activity: 2026-10-21 -- Phase 8 planning complete
 progress:
   total_phases: 12
   completed_phases: 9
-  total_plans: 73
+  total_plans: 87
   completed_plans: 73
-  percent: 100
+  percent: 84
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 Phase: 7 (quest-lanes-quest-04) — COMPLETE 2026-10-21 (8/8 plans; code review 0 critical / 1 warning / 4 info fixed in TDD; verification passed, 4/4 success criteria and 8/8 must_haves; security audit: 39 minacce, 33 mitigate, 4 accettate, 2 trasferite, 0 aperte; device UAT deferred to the FE Phase 6 UAT)
 Plan: 8 of 8
-Status: Phase 7 complete — PR #10 open, awaiting review/merge
-Last activity: 2026-10-21 -- Phase 7 closed: ROADMAP/STATE/PROJECT updated; final gate re-run clean after the review fixes (unit 85 suites / 1264 tests, integration 49 suites / 610 tests); next: BE PR to develop, then /gsd-discuss-phase 8 (Travel Lifecycle, TRAVEL-01 for FE Phase 7)
+Status: Ready to execute
+Last activity: 2026-10-21 -- Phase 8 planning complete
 
 Progress: [██████████] 100% (phases 1–7 complete; Phase 8 next)
 
