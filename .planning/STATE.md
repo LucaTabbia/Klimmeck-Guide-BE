@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-05-PLAN.md
-last_updated: "2026-10-21T11:50:00.000Z"
-last_activity: 2026-10-21 -- Completed 07-05 (authenticated serverTime query)
+stopped_at: Completed 07-06-PLAN.md
+last_updated: "2026-10-21T11:56:00.000Z"
+last_activity: 2026-10-21 -- Completed 07-06 (lane-aware quest acceptance)
 progress:
   total_phases: 12
   completed_phases: 8
   total_plans: 73
-  completed_plans: 70
+  completed_plans: 71
   percent: 89
 ---
 
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 7 (quest-lanes-quest-04) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Executing Phase 7
-Last activity: 2026-10-21 -- Completed 07-05 (authenticated serverTime query)
+Last activity: 2026-10-21 -- Completed 07-06 (lane-aware quest acceptance)
 
-Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 5/8)
+Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 6/8)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 78
+- Total plans completed: 79
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -111,6 +111,7 @@ Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 5
 | Phase 07 P03 | 7 min | 2 tasks | 9 files |
 | Phase 07 P04 | 6 min | 2 tasks | 6 files |
 | Phase 07 P05 | 5 min | 2 tasks | 7 files |
+| Phase 07 P06 | 5 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -193,6 +194,7 @@ Recent decisions affecting current work:
 - [Phase 07]: 07-03: CHARACTER_QUESTS_POPULATE (corsie da QUEST_LANES come PendingQuest con quest select '_id', completedQuests select '_id') in findOne/findAll: character, characters e characterUpdated risolvono quest { id }; ref orfano ⇒ null, elemento orfano scartato; PendingQuest/Quest in CharactersModule e harness; primeCharactersChangeStream condiviso in test/characters
 - [Phase 07]: 07-04: @OwnsCharacter(selectId, { ownerOnly: true }) con ownerOnly in OWNERSHIP_KEY (default false, bypass innkeeper D-09 invariato altrove): innkeeper su personaggio altrui ⇒ FORBIDDEN/NOT_FOUND, mai onBehalf né audit; pendingQuest(id) riconosce il proprietario sulle tre corsie (proiezione da QUEST_LANES, C4)
 - [Phase 07]: 07-05: query serverTime: DateTime! autenticata (AuthGuard globale, nessun @Public, whitelist invariate) in ServerTimeModule con Clock locale (SystemClock), resolver sincrono su Clock.now(); montata in AppModule dopo QuestAcceptanceModule, schema.gql +1 riga (D-15)
+- [Phase 07]: 07-06: QuestAcceptanceService.accept({ ownerId, characterId, questId }) lane-aware: pre-letture lean → regole pure → costo validato prima della transazione (QUEST_NOT_ACCEPTABLE + WARN con solo id e corsia) → città del marker in una query cities.exists → transazione claim → registrazione $expr (solo condivise) → PendingQuest con pointsSpent → debitUserPoints(ownerId, cost, session); Character.coins mai toccato, costCopper rimosso (D-08, D-18)
 
 ### Pending Todos
 
@@ -214,6 +216,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T11:50:00.000Z
-Stopped at: Completed 07-05-PLAN.md
-Resume file: .planning/phases/07-quest-lanes-quest-04/07-06-PLAN.md
+Last session: 2026-10-21T11:56:00.000Z
+Stopped at: Completed 07-06-PLAN.md
+Resume file: .planning/phases/07-quest-lanes-quest-04/07-07-PLAN.md
