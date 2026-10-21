@@ -2,7 +2,11 @@ import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { AssetItem } from '../interfaces/asset-item.model';
-import { AssetQuantity, AssetQuantityInput, AssetQuantitySchema } from '../common/asset-quantity.model';
+import {
+    AssetQuantity,
+    AssetQuantityInput,
+    AssetQuantitySchema,
+} from '../common/asset-quantity.model';
 import { Coins, CoinsInput, CoinsSchema } from '../common/coins.model';
 
 @ObjectType()
@@ -42,4 +46,3 @@ export class QuestPrizesInput {
     @Field(() => [AssetQuantityInput], { nullable: true })
     randomLoot?: AssetQuantityInput[];
 }
-

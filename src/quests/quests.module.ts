@@ -6,11 +6,9 @@ import { QuestsService } from './quests.service';
 
 @Module({
     imports: [
-        MongooseModule.forFeature([
-            { name: Quest.name, schema: QuestSchema },
-        ]),
+        MongooseModule.forFeature([{ name: Quest.name, schema: QuestSchema }]),
     ],
     providers: [QuestsService, QuestsResolver],
     exports: [QuestsService],
 })
-export class QuestsModule { }
+export class QuestsModule {}

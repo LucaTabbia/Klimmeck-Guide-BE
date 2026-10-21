@@ -10,7 +10,6 @@ export type ItemReferenceType = 'EquipmentItem' | 'LootItem';
 @ObjectType()
 @Schema({ _id: false })
 export class AssetQuantity {
-
     @Prop({ type: String, required: true, enum: ['EquipmentItem', 'LootItem'] })
     itemType: ItemReferenceType;
 
@@ -26,7 +25,6 @@ export class AssetQuantity {
 export type AssetQuantityDocument = AssetQuantity & Document;
 export const AssetQuantitySchema = SchemaFactory.createForClass(AssetQuantity);
 
-
 @InputType()
 export class AssetQuantityInput {
     @Field(() => ID, { nullable: true })
@@ -35,4 +33,3 @@ export class AssetQuantityInput {
     @Field(() => Int)
     quantity: number;
 }
-
