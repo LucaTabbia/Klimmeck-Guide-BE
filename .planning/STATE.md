@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 7 context gathered
-last_updated: "2026-10-21T09:24:20.204Z"
-last_activity: "2026-10-21 -- Phase 7 discuss closed: 07-CONTEXT.md + 07-DISCUSSION-LOG.md committed on feat/07-quest-lanes-quest-04 (off develop after the Phase 6 merge, BE PR #9); next: /gsd-plan-phase 7, then execute, then BACKEND-NOTES for FE Phase 6"
+status: executing
+stopped_at: Phase 7 planned, ready to execute
+last_updated: "2026-10-21T11:14:54.807Z"
+last_activity: "2026-10-21 -- Phase 7 planning complete: 8 plans in 4 waves (07-01..07-08) verified by the plan checker (0 blockers after one revision), 07-RESEARCH.md + 07-VALIDATION.md committed, CONTEXT D-11/D-13/D-18/D-19 amended after the research; next: execute Phase 7 on feat/07-quest-lanes-quest-04, then BACKEND-NOTES for FE Phase 6"
 progress:
   total_phases: 12
   completed_phases: 8
-  total_plans: 65
+  total_plans: 73
   completed_plans: 65
-  percent: 100
+  percent: 89
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 7 — Quest Lanes (QUEST-04): context gathered on 2026-10-21 (branch `feat/07-quest-lanes-quest-04`, Phase 6 merged as BE PR #9); next `/gsd-plan-phase 7` (unblocks FE Phase 6)
+**Current focus:** Phase 7 — Quest Lanes (QUEST-04): planned on 2026-10-21, 8 plans in 4 waves on branch `feat/07-quest-lanes-quest-04` (Phase 6 merged as BE PR #9); next `/gsd-execute-phase 7` (unblocks FE Phase 6)
 
 ## Current Position
 
-Phase: 7 (quest-lanes-quest-04) — CONTEXT GATHERED 2026-10-21 (22 decisions, 4 areas discussed interactively; BE-QUEST-03 and ROADMAP criterion 3 emended: no coins cost, requiredPoints mandatory for story/worldMission, acceptance only in the marker's city, owner-only mutation)
-Plan: not yet planned
-Status: Phase 7 context gathered — ready to plan
-Last activity: 2026-10-21 -- Phase 7 discuss closed: 07-CONTEXT.md + 07-DISCUSSION-LOG.md committed on feat/07-quest-lanes-quest-04 (off develop after the Phase 6 merge, BE PR #9); next: /gsd-plan-phase 7, then execute, then BACKEND-NOTES for FE Phase 6
+Phase: 7 (quest-lanes-quest-04) — PLANNED 2026-10-21 (8 plans / 4 waves; research HIGH confidence with empirical probes; CONTEXT D-11/D-13/D-18/D-19 amended after the research: internal `Quest.registrations`, populate of the three lanes + `completedQuests` with `select: '_id'`, `pendingQuest(id)` on the three lanes, boot test rewritten in positive form)
+Plan: 0/8 — next 07-01 (Wave 1: contratto dati GraphQL)
+Status: Ready to execute
+Last activity: 2026-10-21 -- Phase 7 planning complete: 8 plans in 4 waves (07-01..07-08) verified by the plan checker (0 blockers after one revision), 07-RESEARCH.md + 07-VALIDATION.md committed, CONTEXT D-11/D-13/D-18/D-19 amended after the research; next: execute Phase 7 on feat/07-quest-lanes-quest-04, then BACKEND-NOTES for FE Phase 6
 
-Progress: [██████████] 100% (phases 1–6 complete; Phase 7 discussed, ready to plan)
+Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 planned 0/8, ready to execute)
 
 ## Performance Metrics
 
@@ -205,5 +205,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-10-21T09:24:20.193Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-quest-lanes-quest-04/07-CONTEXT.md
+Stopped at: Phase 7 planned, ready to execute
+Resume file: .planning/phases/07-quest-lanes-quest-04/07-01-PLAN.md
