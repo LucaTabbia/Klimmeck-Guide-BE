@@ -5,17 +5,14 @@ import { activeCharacterById } from 'src/models/character/active-character.filte
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms, sameId } from 'src/mongo/document-id';
 import { QuestType } from 'src/models/enums/quest-type.enum';
-import {
-    CapacityRule,
-    isRepeatable,
-    meetsTitle,
-    QuestRoster,
-} from './quest-eligibility';
+import { SlotRule, seatAvailableExpr } from './quest-capacity';
+import { isRepeatable, meetsTitle, QuestRoster } from './quest-eligibility';
 import { lanePathOf, laneOf, QuestLane } from './quest-lanes';
 
 export interface LaneClaimSnapshot {
     title: TitleType;
-    location: Types.ObjectId;
+    // location solo per la corsia standard (D-26, C8): story e worldMission si accettano da qualunque città
+    location?: Types.ObjectId;
 }
 
 export interface ClaimedQuest {
@@ -25,7 +22,11 @@ export interface ClaimedQuest {
 }
 
 export interface UnclaimedSnapshot {
-    status?: { title?: TitleType; location?: unknown } | null;
+    status?: {
+        title?: TitleType;
+        location?: unknown;
+        activeTravel?: unknown;
+    } | null;
     quests?: {
         completedQuests?: readonly unknown[] | null;
         pendingQuest?: unknown;
@@ -36,14 +37,7 @@ export interface UnclaimedSnapshot {
 
 export type UnregisteredSnapshot = QuestRoster;
 
-type LimitedCapacityRule = Exclude<CapacityRule, { kind: 'unlimited' }>;
-
-const REGISTRATIONS_OR_EMPTY = { $ifNull: ['$registrations', []] };
-const LEGACY_ADVENTURERS_OR_EMPTY = {
-    $ifNull: ['$registeredAdventurers', []],
-};
-
-// ogni regola esprimibile sul documento sta nel filtro (D-18): attivo, corsia libera, titolo e posizione verificati, non ripetibilità
+// ogni regola esprimibile sul documento sta nel filtro (D-18): attivo, corsia libera, non in viaggio (D-06), titolo e posizione verificati, non ripetibilità
 export function laneClaimFilter(
     characterId: Types.ObjectId,
     lane: QuestLane,
@@ -54,8 +48,11 @@ export function laneClaimFilter(
     return {
         ...activeCharacterById(characterId),
         [lanePathOf(lane)]: null,
+        'status.activeTravel': null,
         'status.title': snapshot.title,
-        'status.location': { $in: idForms(snapshot.location) },
+        ...(snapshot.location
+            ? { 'status.location': { $in: idForms(snapshot.location) } }
+            : {}),
         ...(repeatable
             ? {}
             : { 'quests.completedQuests': { $nin: idForms(questId) } }),
@@ -69,43 +66,17 @@ export function laneClaimUpdate(
     return { $set: { [lanePathOf(lane)]: pendingQuestId } };
 }
 
-export function takenCountExpr(
-    rule: LimitedCapacityRule,
-): Record<string, unknown> {
-    // i legacy stanno solo in registeredAdventurers e senza titolo: contano nel totale, non per rango; specchio di hasCapacity
-    if (rule.kind === 'total')
-        return {
-            $max: [
-                { $size: REGISTRATIONS_OR_EMPTY },
-                { $size: LEGACY_ADVENTURERS_OR_EMPTY },
-            ],
-        };
-    return {
-        $size: {
-            $filter: {
-                input: REGISTRATIONS_OR_EMPTY,
-                as: 'registration',
-                cond: { $eq: ['$$registration.title', rule.title] },
-            },
-        },
-    };
-}
-
 // stesso findOneAndUpdate per anti-duplicato e capienza: i concorrenti vanno in WriteConflict e il filtro rivalutato non matcha (RESEARCH Q1)
 export function registrationFilter(
     questId: Types.ObjectId,
     characterId: Types.ObjectId,
-    rule: CapacityRule,
+    rule: SlotRule,
+    title: TitleType,
 ): Record<string, unknown> {
-    const notRegistered = {
-        _id: questId,
-        'registrations.character': { $ne: characterId },
-        registeredAdventurers: { $ne: characterId.toHexString() },
-    };
-    if (rule.kind === 'unlimited') return notRegistered;
     return {
-        ...notRegistered,
-        $expr: { $lt: [takenCountExpr(rule), rule.limit] },
+        _id: questId,
+        'registeredAdventurers.character': { $ne: characterId },
+        $expr: seatAvailableExpr(rule, title),
     };
 }
 
@@ -114,8 +85,7 @@ export function registrationUpdate(
     title: TitleType,
 ) {
     return {
-        $push: { registrations: { character: characterId, title } },
-        $addToSet: { registeredAdventurers: characterId.toHexString() },
+        $push: { registeredAdventurers: { character: characterId, title } },
     };
 }
 
@@ -128,6 +98,8 @@ export function classifyUnclaimed(
     expected: LaneClaimSnapshot,
 ): Error {
     if (!fresh) return ResourceNotFoundException.character();
+    if (fresh.status?.activeTravel != null)
+        return GameRuleException.travelInProgress();
     if (fresh.quests?.[laneOf(quest.type)] != null)
         return GameRuleException.questSlotBusy();
     const completed = (fresh.quests?.completedQuests ?? []).some((id) =>
@@ -138,7 +110,7 @@ export function classifyUnclaimed(
     const title = fresh.status?.title;
     if (!title || !meetsTitle(quest.type, title, quest.minTitle))
         return GameRuleException.questTitleMismatch();
-    if (!sameId(fresh.status?.location, expected.location))
+    if (expected.location && !sameId(fresh.status?.location, expected.location))
         return GameRuleException.questNotInCity();
     return GameRuleException.questSlotBusy();
 }
@@ -148,11 +120,9 @@ export function classifyUnregistered(
     characterId: Types.ObjectId,
 ): Error {
     if (!fresh) return ResourceNotFoundException.quest();
-    const registered =
-        (fresh.registrations ?? []).some((registration) =>
-            sameId(registration.character, characterId),
-        ) ||
-        (fresh.registeredAdventurers ?? []).includes(characterId.toHexString());
+    const registered = (fresh.registeredAdventurers ?? []).some((entry) =>
+        sameId(entry.character, characterId),
+    );
     return registered
         ? GameRuleException.questAlreadyTaken()
         : GameRuleException.questFull();

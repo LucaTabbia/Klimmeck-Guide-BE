@@ -19,14 +19,14 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { idForms, objectIdFromHex } from 'src/mongo/document-id';
+import { SlotRule } from './quest-capacity';
 import {
-    capacityRuleOf,
     CharacterEligibilitySnapshot,
     classifyEligibility,
     isRepeatable,
-    isShared,
     pointsCostOf,
     QuestEligibilitySnapshot,
+    registrationRuleOf,
     waitingTimeOf,
 } from './quest-eligibility';
 import {
@@ -73,7 +73,6 @@ const QUEST_PROJECTION = {
     'infos.markerLocation': 1,
     'infos.timeToComplete': 1,
     requirements: 1,
-    registrations: 1,
     registeredAdventurers: 1,
 };
 
@@ -110,8 +109,9 @@ export class QuestAcceptanceService {
         const quest = await this.readQuest(questId);
         const lane = laneOf(quest.infos.type);
         const cost = this.costOrReject(quest, lane);
+        const rule = this.seatRuleOrReject(quest);
         const character = await this.readCharacter(characterId);
-        const rejection = classifyEligibility(quest, character, lane);
+        const rejection = classifyEligibility(quest, character, lane, rule);
         if (rejection) throw rejection;
         const claim: LaneClaimSnapshot = {
             title: character.status.title,
@@ -128,8 +128,14 @@ export class QuestAcceptanceService {
                 { characterId, quest: claimed, claim, pendingQuestId },
                 session,
             );
-            if (isShared(quest.infos.type))
-                await this.register(quest, characterId, claim.title, session);
+            if (rule)
+                await this.register(
+                    quest,
+                    characterId,
+                    claim.title,
+                    rule,
+                    session,
+                );
             await this.pendingQuestModel.create(
                 [
                     {
@@ -172,6 +178,12 @@ export class QuestAcceptanceService {
         this.logger.warn(
             `Missione ${quest._id.toHexString()} non accettabile: requiredPoints non valido per la corsia ${lane}`,
         );
+        throw GameRuleException.questNotAcceptable();
+    }
+
+    private seatRuleOrReject(quest: QuestAcceptanceSnapshot): SlotRule | null {
+        const rule = registrationRuleOf(quest.infos.type, quest.requirements);
+        if (rule !== 'invalid') return rule;
         throw GameRuleException.questNotAcceptable();
     }
 
@@ -239,12 +251,12 @@ export class QuestAcceptanceService {
         quest: QuestAcceptanceSnapshot,
         characterId: Types.ObjectId,
         title: TitleType,
+        rule: SlotRule,
         session: ClientSession,
     ): Promise<void> {
-        const rule = capacityRuleOf(quest.requirements, title);
         const registered = await this.questModel
             .findOneAndUpdate(
-                registrationFilter(quest._id, characterId, rule),
+                registrationFilter(quest._id, characterId, rule, title),
                 registrationUpdate(characterId, title),
                 { session, projection: { _id: 1 } },
             )
@@ -252,7 +264,7 @@ export class QuestAcceptanceService {
             .exec();
         if (registered) return;
         const fresh = await this.questModel
-            .findById(quest._id, { registrations: 1, registeredAdventurers: 1 })
+            .findById(quest._id, { registeredAdventurers: 1 })
             .session(session)
             .lean<UnregisteredSnapshot | null>()
             .exec();
