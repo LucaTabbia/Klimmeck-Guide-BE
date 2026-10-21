@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-10-21T11:21:30.000Z"
-last_activity: 2026-10-21 -- Completed 07-01 (quest lanes data contract)
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-10-21T11:30:21.000Z"
+last_activity: 2026-10-21 -- Completed 07-02 (pure quest acceptance rules)
 progress:
   total_phases: 12
   completed_phases: 8
   total_plans: 73
-  completed_plans: 66
+  completed_plans: 67
   percent: 89
 ---
 
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 7 (quest-lanes-quest-04) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Executing Phase 7
-Last activity: 2026-10-21 -- Completed 07-01 (quest lanes data contract)
+Last activity: 2026-10-21 -- Completed 07-02 (pure quest acceptance rules)
 
-Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 1/8)
+Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 2/8)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 74
+- Total plans completed: 75
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -107,6 +107,7 @@ Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 1
 | Phase 06 P08 | 5 min | 2 tasks | 3 files |
 | Phase 06 P09 | 25 min | 3 tasks | 8 files |
 | Phase 07 P01 | 4 min | 2 tasks | 10 files |
+| Phase 07 P02 | 6 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -185,6 +186,7 @@ Recent decisions affecting current work:
 - [Phase 06]: 06-08: EventSubModule montato in AppModule subito dopo PushModule; NestFactory.create(AppModule, { rawBody: true }) e real boot con createNestApplication({ rawBody: true }) speculare; whitelist @Public a 6 voci con EventSubController.receive, publicClasses vuoto; spie passthrough su fetch e Logger.prototype.warn prima del boot: disabled, WARN `EventSub disabled`, nessuna fetch verso twitch.tv, POST webhook -> 403 body vuoto; schema.gql invariato (D-16)
 - [Phase 06]: 06-09: gate di fase verde (unit 79/1098, int 46/550, build, lint filtrato 0, schema.gql invariato, invarianti); UAT 2026-10-20: test A (Twitch CLI locale) passed, test B (E2E managed) e C (C4) differiti a prima della produzione, 06-HUMAN-UAT `status: partial`; ogni ambiente richiede `roles/firebasecloudmessaging.admin` sul service account Firebase per i topic FCM (`roles/firebasenotifications.admin` non basta)
 - [Phase 07]: 07-01: corsie activeStoryQuest/activeWorldMissionQuest (ref MongooseSchema.Types.ObjectId, default null), PendingQuest.pointsSpent Int! default 0, QuestRequirements.party: [QuestPartySlot!]! (title String! dell'enum TitleType, count min 1, default []), Quest.registrations interno senza @Field (mai in src/schema.gql); schema.gql solo additivo
+- [Phase 07]: 07-02: regole pure di accettazione in src/quests/acceptance (corsia dal solo QuestType, titolo esatto per story e >= altrove, costo intero 1..2147483647 altrimenti invalid, slot esatti per rango), 5 codici nuovi (QUEST_FULL, QUEST_ALREADY_TAKEN, QUEST_TITLE_MISMATCH, QUEST_NOT_IN_CITY, QUEST_NOT_ACCEPTABLE); ordine pre-verifica ALREADY_TAKEN → TITLE_MISMATCH → SLOT_BUSY → FULL, dopo un claim fallito SLOT_BUSY per primo
 
 ### Pending Todos
 
@@ -206,6 +208,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T11:21:30.000Z
-Stopped at: Completed 07-01-PLAN.md
-Resume file: .planning/phases/07-quest-lanes-quest-04/07-02-PLAN.md
+Last session: 2026-10-21T11:30:21.000Z
+Stopped at: Completed 07-02-PLAN.md
+Resume file: .planning/phases/07-quest-lanes-quest-04/07-03-PLAN.md
