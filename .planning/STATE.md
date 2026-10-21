@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-07-PLAN.md
-last_updated: "2026-10-21T12:03:00.000Z"
-last_activity: 2026-10-21 -- Completed 07-07 (acceptQuest GraphQL surface)
+stopped_at: Completed 07-08-PLAN.md
+last_updated: "2026-10-21T12:15:00.000Z"
+last_activity: 2026-10-21 -- Completed 07-08 (phase gate + BACKEND-NOTES handoff)
 progress:
   total_phases: 12
   completed_phases: 8
   total_plans: 73
-  completed_plans: 72
+  completed_plans: 73
   percent: 89
 ---
 
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 7 (quest-lanes-quest-04) — EXECUTING
-Plan: 8 of 8
+Plan: 8 of 8 — all plans executed
 Status: Executing Phase 7
-Last activity: 2026-10-21 -- Completed 07-07 (acceptQuest GraphQL surface)
+Last activity: 2026-10-21 -- Completed 07-08 (phase gate + BACKEND-NOTES handoff)
 
-Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 7/8)
+Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 8/8, awaiting verification)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 80
+- Total plans completed: 81
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -113,6 +113,7 @@ Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 7
 | Phase 07 P05 | 5 min | 2 tasks | 7 files |
 | Phase 07 P06 | 5 min | 2 tasks | 3 files |
 | Phase 07 P07 | 6 min | 2 tasks | 6 files |
+| Phase 07 P08 | 10 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -197,6 +198,7 @@ Recent decisions affecting current work:
 - [Phase 07]: 07-05: query serverTime: DateTime! autenticata (AuthGuard globale, nessun @Public, whitelist invariate) in ServerTimeModule con Clock locale (SystemClock), resolver sincrono su Clock.now(); montata in AppModule dopo QuestAcceptanceModule, schema.gql +1 riga (D-15)
 - [Phase 07]: 07-06: QuestAcceptanceService.accept({ ownerId, characterId, questId }) lane-aware: pre-letture lean → regole pure → costo validato prima della transazione (QUEST_NOT_ACCEPTABLE + WARN con solo id e corsia) → città del marker in una query cities.exists → transazione claim → registrazione $expr (solo condivise) → PendingQuest con pointsSpent → debitUserPoints(ownerId, cost, session); Character.coins mai toccato, costCopper rimosso (D-08, D-18)
 - [Phase 07]: 07-07: acceptQuest(request: AcceptQuestRequest { id, questId }): CommonResponse! owner-only in QuestAcceptanceResolver (QuestAcceptanceModule + AuthzModule), resolver senza logica (objectIdFromHex/requireCharacterObjectId ⇒ NOT_FOUND); corsia su characterUpdated, saldo su userUpdated; real boot con EXPECTED_OWNER_ONLY_HANDLERS e SDL additivo (D-11, D-12, C5)
+- [Phase 07]: 07-08: gate di fase verde — unit 85 suite / 1259 test, integration 49 / 606 (dopo l'aggiornamento dell'aspettativa obsoleta delle corsie in character-creation.resolver.int-spec.ts, solo test), build ok, lint filtrato 0 righe, schema.gql senza drift e solo additivo, un solo ownerOnly, @Public 7 = develop, nessuna dipendenza nuova; BACKEND-NOTES.md per FE Phase 6 e BE 8/9, BE-QUEST-01..04 Complete, 07-VALIDATION approved
 
 ### Pending Todos
 
@@ -218,6 +220,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T12:03:00.000Z
-Stopped at: Completed 07-07-PLAN.md
-Resume file: .planning/phases/07-quest-lanes-quest-04/07-08-PLAN.md
+Last session: 2026-10-21T12:15:00.000Z
+Stopped at: Completed 07-08-PLAN.md
+Resume file: .planning/phases/07-quest-lanes-quest-04/BACKEND-NOTES.md
