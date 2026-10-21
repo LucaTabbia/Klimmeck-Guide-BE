@@ -302,6 +302,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toContain('registrations');
     });
 
+    it('writes the server time query into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain('  serverTime: DateTime!\n');
+    });
+
     it('boots the quest acceptance primitive without a GraphQL surface', () => {
         expect(app.get(QuestAcceptanceService)).toBeInstanceOf(
             QuestAcceptanceService,
@@ -416,6 +422,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             expect(
                 errorCodeOf(await graphqlCall(app, REGISTER_PUSH_DEVICE)),
             ).toBe(AuthErrorCode.UNAUTHENTICATED);
+        });
+
+        it('rejects serverTime without a bearer', async () => {
+            expect(errorCodeOf(await graphqlCall(app, '{ serverTime }'))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
         });
 
         it('answers 401 JSON on cloudinary/getUrls without a bearer', async () => {
