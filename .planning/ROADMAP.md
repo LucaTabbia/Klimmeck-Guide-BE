@@ -237,7 +237,7 @@ Plans:
 - [x] 08-05-PLAN.md — Wave 2: regole pure del viaggio — velocità/durata dal pet, `buildActiveTravel`, ordine dei rifiuti, filtri/update di avvio, completamento, countdown, teleport, scaduti, identità del job, `TRAVEL_SWEEP_INTERVAL_MS` fail-closed (BE-TRAVEL-02/03/04)
 - [x] 08-06-PLAN.md — Wave 2: emendamenti all'accettazione — guard "non in viaggio" (D-06), story/worldMission da qualunque città, registrazione di enemy/aid a slot D-32, slot invalidi ⇒ `QUEST_NOT_ACCEPTABLE` (BE-TRAVEL-02)
 - [x] 08-07-PLAN.md — Wave 2: `deleteCharacter` libera i posti nelle quest registrate (D-30)
-- [ ] 08-08-PLAN.md — Wave 3: `TravelPlanner` (planFree/planAuto) + `TravelScheduler` (coda `travel`, jobId deterministico) in `TravelPlanningModule`, mappa di prova e fake della coda (BE-TRAVEL-02/03)
+- [x] 08-08-PLAN.md — Wave 3: `TravelPlanner` (planFree/planAuto) + `TravelScheduler` (coda `travel`, jobId deterministico) in `TravelPlanningModule`, mappa di prova e fake della coda (BE-TRAVEL-02/03)
 - [ ] 08-09-PLAN.md — Wave 3: `TravelCompletionService` idempotente (countdown della quest, push `travelEnd` solo per i viaggi liberi) + `TravelSweeper` (reconciler al boot, sweep periodico) in `TravelModule` (BE-TRAVEL-03)
 - [ ] 08-10-PLAN.md — Wave 4: processor Bull del completamento su Redis reale, `TravelModule` montato nel boot reale (BE-TRAVEL-03)
 - [ ] 08-11-PLAN.md — Wave 4: viaggio automatico all'accettazione della corsia standard (stesso claim, salto senza strada, job dopo il commit), `startDate` null sul filo (BE-TRAVEL-02/03)
@@ -304,6 +304,6 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Infrastruttura Push FCM | 8/8 | Complete    | 2026-10-18 |
 | 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
-| 8. Travel Lifecycle (TRAVEL-01) | 7/14 | In Progress | - |
+| 8. Travel Lifecycle (TRAVEL-01) | 8/14 | In Progress | - |
 | 9. Combat Result & Admin Outcomes | 0/TBD | Not started | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
