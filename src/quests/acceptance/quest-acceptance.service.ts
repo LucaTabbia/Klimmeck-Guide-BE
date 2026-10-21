@@ -18,7 +18,7 @@ import {
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
-import { idForms, objectIdFromHex } from 'src/mongo/document-id';
+import { idForms, refIdOf } from 'src/mongo/document-id';
 import { SlotRule } from './quest-capacity';
 import {
     CharacterEligibilitySnapshot,
@@ -58,7 +58,7 @@ interface QuestAcceptanceSnapshot extends QuestEligibilitySnapshot {
 }
 
 interface CharacterAcceptanceSnapshot extends CharacterEligibilitySnapshot {
-    status: { title: TitleType; location?: unknown };
+    status: { title: TitleType; location?: unknown; activeTravel?: unknown };
 }
 
 interface LaneClaim {
@@ -76,9 +76,11 @@ const QUEST_PROJECTION = {
     registeredAdventurers: 1,
 };
 
+// della polilinea del viaggio basta la presenza: endTime evita di leggere le coordinate
 const CHARACTER_PROJECTION = {
     'status.title': 1,
     'status.location': 1,
+    'status.activeTravel.endTime': 1,
     quests: 1,
 };
 
@@ -113,9 +115,14 @@ export class QuestAcceptanceService {
         const character = await this.readCharacter(characterId);
         const rejection = classifyEligibility(quest, character, lane, rule);
         if (rejection) throw rejection;
+        // solo la corsia standard è legata alla città del marker (D-26)
+        const location =
+            lane === QuestLane.standard
+                ? await this.locationInQuestCity(quest, character)
+                : undefined;
         const claim: LaneClaimSnapshot = {
             title: character.status.title,
-            location: await this.locationInQuestCity(quest, character),
+            ...(location ? { location } : {}),
         };
         const claimed: ClaimedQuest = {
             id: questId,
@@ -181,9 +188,13 @@ export class QuestAcceptanceService {
         throw GameRuleException.questNotAcceptable();
     }
 
+    // prima della transazione (D-27, C2): una quest registrata senza slot validi è un difetto di catalogo, mai capienza illimitata; nel log solo l'id
     private seatRuleOrReject(quest: QuestAcceptanceSnapshot): SlotRule | null {
         const rule = registrationRuleOf(quest.infos.type, quest.requirements);
         if (rule !== 'invalid') return rule;
+        this.logger.warn(
+            `Missione ${quest._id.toHexString()} non accettabile: requiredAdventurers non valido`,
+        );
         throw GameRuleException.questNotAcceptable();
     }
 
@@ -270,11 +281,4 @@ export class QuestAcceptanceService {
             .exec();
         throw classifyUnregistered(fresh, characterId);
     }
-}
-
-// i ref sui path Mixed arrivano come ObjectId o, da dati legacy, come stringa esadecimale (04 Pitfall 1)
-function refIdOf(value: unknown): Types.ObjectId | null {
-    return value instanceof Types.ObjectId
-        ? value
-        : objectIdFromHex(typeof value === 'string' ? value : null);
 }
