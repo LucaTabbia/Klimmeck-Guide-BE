@@ -176,6 +176,36 @@ Follow-up:
 
 **User's notes:** "si poteva modificare registeredAdventurers in modo da essere un array di oggetti contenenti rango e ids"; catena fallimento → quest aid automatica → morte (Phase 9).
 
+## Follow-up (stessa sessione): forma dei campi e casi limite
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Slot { title, count }, title nullable | requiredAdventurers a slot, title null = qualsiasi rango; party rimosso | ✓ |
+| Slot con title obbligatorio | Uno slot per ogni titolo ammesso | |
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Conversione automatica al boot | Verifier una tantum | |
+| A mano a DB | Script mongosh | |
+| Lettura tollerante, nessuna migrazione | Due forme per sempre | |
+
+**User's choice (free text):** "Non abbiamo missioni nel DB attualmente" → nessuna migrazione.
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Capienza 1, qualsiasi rango | Default per enemy/aid | |
+| Nessun limite | Come Phase 7 D-04 legacy | |
+| Rifiuto QUEST_NOT_ACCEPTABLE | Quest registrata senza slot = difetto di catalogo | ✓ |
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Liberati subito (BE Phase 8) | deleteCharacter toglie il personaggio dalle registrazioni | ✓ (free text) |
+| Lasciare alla Phase 9 | | |
+
+**User's choice (free text):** "Il personaggio muore solo quando la quest riceve il risultato. Se l'utente cancella il proprio personaggio mentre è in una quest, allora la quest torna disponibile per tutti."
+
+**User's directive:** "Vorrei evitare che compaiano nuove voci come registrations o party. Comunque anche QuestPartySlot può essere contenuto dentro requiredAdventurers, così come registrations può essere registeredAdventurers."
+
 ## Claude's Discretion
 
 Nomi e collocazione (modulo, tipi, operazioni, campo del pet, coda, codici definitivi); esporre meta e tipo di viaggio su `activeTravel`; identità del job Bull e rimozione best-effort; intervallo dello sweep; ordine dei rifiuti e guard nel filtro; composizione di `RoadsService` con l'accettazione; split in wave con il contratto schema per primo.
