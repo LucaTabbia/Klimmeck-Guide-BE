@@ -19,12 +19,13 @@ import { User, UserSchema } from 'src/models/user.model';
 import { PushModule } from 'src/push/push.module';
 import { TravelCompletionProcessor } from './travel-completion.processor';
 import { TravelCompletionService } from './travel-completion.service';
+import { TravelAdminResolver } from './travel-admin.resolver';
 import { TravelPlanningModule } from './travel-planning.module';
 import { TravelSweeper } from './travel-sweeper';
 import { TravelResolver } from './travel.resolver';
 import { TravelService } from './travel.service';
 
-// ciclo di vita del viaggio: avvio e anteprima owner-only (D-11, D-18), completamento, sweep, push (D-12..D-14); montato in AppModule da 08-10
+// ciclo di vita del viaggio: avvio e anteprima owner-only (D-11, D-18), teleport innkeeper (D-16), completamento, sweep, push (D-12..D-14); montato in AppModule da 08-10
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -45,6 +46,7 @@ import { TravelService } from './travel.service';
         TravelCompletionProcessor,
         TravelService,
         TravelResolver,
+        TravelAdminResolver,
     ],
     exports: [TravelCompletionService, TravelSweeper, TravelService],
 })

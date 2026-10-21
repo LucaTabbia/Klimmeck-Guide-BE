@@ -313,6 +313,7 @@ type Mutation {
   registerPushDevice(input: RegisterPushDeviceInput!): Boolean!
   sendTestPush(input: SendTestPushInput!): PushDeliveryReport!
   startTravel(request: TravelRequest!): CommonResponse!
+  teleportCharacter(request: TravelRequest!): CommonResponse!
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
   unregisterPushDevice(deviceId: String!): Boolean!
   useSpell(request: UseSpellRequest!): CommonResponse!
