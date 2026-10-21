@@ -15,6 +15,12 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 
+export interface AcceptQuestCommand {
+    ownerId: Types.ObjectId;
+    characterId: Types.ObjectId;
+    questId: Types.ObjectId;
+}
+
 interface QuestTiming {
     infos?: { timeToComplete?: number | null };
 }
@@ -32,54 +38,8 @@ export class QuestAcceptanceService {
         private readonly wallet: WalletService,
     ) {}
 
-    // single-flight (04 D-09): claim condizionale dello slot, insert e debito nella stessa transazione; il perdente non lascia orfani.
-    // Il costo è un parametro: cost model per tipologia e corsie story/worldMission sono Phase 7
-    async accept(
-        characterId: Types.ObjectId,
-        questId: Types.ObjectId,
-        costCopper: number,
-    ): Promise<Types.ObjectId> {
-        assertValidCost(costCopper);
-        const quest = await this.questModel
-            .findById(questId, { 'infos.timeToComplete': 1 })
-            .lean<QuestTiming | null>()
-            .exec();
-        if (!quest) throw ResourceNotFoundException.quest();
-        const pendingQuestId = new Types.ObjectId();
-        await this.connection.transaction(async (session) => {
-            const claimed = await this.characterModel
-                .findOneAndUpdate(
-                    {
-                        ...activeCharacterById(characterId),
-                        'quests.pendingQuest': null,
-                    },
-                    { $set: { 'quests.pendingQuest': pendingQuestId } },
-                    { session, projection: { _id: 1 } },
-                )
-                .lean()
-                .exec();
-            if (!claimed)
-                throw await this.rejectUnclaimed(characterId, session);
-            await this.pendingQuestModel.create(
-                [
-                    {
-                        _id: pendingQuestId,
-                        startDate: new Date(),
-                        waitingTime: waitingTimeOf(quest),
-                        quest: questId,
-                    },
-                ],
-                { session },
-            );
-            if (costCopper > 0) {
-                await this.wallet.applyCharacterCoinsDelta(
-                    characterId,
-                    -costCopper,
-                    session,
-                );
-            }
-        });
-        return pendingQuestId;
+    async accept(command: AcceptQuestCommand): Promise<Types.ObjectId> {
+        throw new Error('accept: not implemented');
     }
 
     private async rejectUnclaimed(
