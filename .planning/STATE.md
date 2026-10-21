@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 7 complete (2026-10-21) — PR to develop pending
+stopped_at: Phase 7 complete (2026-10-21) — PR #10 open
 last_updated: "2026-10-21T13:30:00.000Z"
-last_activity: 2026-10-21 -- Phase 7 complete (review fixed in TDD, verification passed 4/4, security audit filed, device UAT deferred to FE Phase 6); BE PR to develop pending
+last_activity: 2026-10-21 -- Phase 7 complete (review fixed in TDD, verification passed 4/4, security audit filed, device UAT deferred to FE Phase 6); BE PR #10 opened to develop
 progress:
   total_phases: 12
   completed_phases: 9
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 7 — Quest Lanes complete on 2026-10-21 (PR to develop pending; unblocks FE Phase 6); next Phase 8 — Travel Lifecycle (TRAVEL-01, unblocks FE Phase 7)
+**Current focus:** Phase 7 — Quest Lanes complete on 2026-10-21 (PR #10 to develop opened 2026-10-21; unblocks FE Phase 6); next Phase 8 — Travel Lifecycle (TRAVEL-01, unblocks FE Phase 7)
 
 ## Current Position
 
 Phase: 7 (quest-lanes-quest-04) — COMPLETE 2026-10-21 (8/8 plans; code review 0 critical / 1 warning / 4 info fixed in TDD; verification passed, 4/4 success criteria and 8/8 must_haves; security audit: 39 minacce, 33 mitigate, 4 accettate, 2 trasferite, 0 aperte; device UAT deferred to the FE Phase 6 UAT)
 Plan: 8 of 8
-Status: Phase 7 complete — PR to develop pending
+Status: Phase 7 complete — PR #10 open, awaiting review/merge
 Last activity: 2026-10-21 -- Phase 7 closed: ROADMAP/STATE/PROJECT updated; final gate re-run clean after the review fixes (unit 85 suites / 1264 tests, integration 49 suites / 610 tests); next: BE PR to develop, then /gsd-discuss-phase 8 (Travel Lifecycle, TRAVEL-01 for FE Phase 7)
 
 Progress: [██████████] 100% (phases 1–7 complete; Phase 8 next)
@@ -221,5 +221,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-10-21T12:15:00.000Z
-Stopped at: Phase 7 complete (2026-10-21) — PR to develop pending
+Stopped at: Phase 7 complete (2026-10-21) — PR #10 open
 Resume file: .planning/phases/07-quest-lanes-quest-04/BACKEND-NOTES.md
