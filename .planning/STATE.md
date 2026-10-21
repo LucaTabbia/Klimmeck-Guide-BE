@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-10-21T11:30:21.000Z"
-last_activity: 2026-10-21 -- Completed 07-02 (pure quest acceptance rules)
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-10-21T11:40:00.000Z"
+last_activity: 2026-10-21 -- Completed 07-03 (quest lanes populate)
 progress:
   total_phases: 12
   completed_phases: 8
   total_plans: 73
-  completed_plans: 67
+  completed_plans: 68
   percent: 89
 ---
 
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 7 (quest-lanes-quest-04) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Executing Phase 7
-Last activity: 2026-10-21 -- Completed 07-02 (pure quest acceptance rules)
+Last activity: 2026-10-21 -- Completed 07-03 (quest lanes populate)
 
-Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 2/8)
+Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 3/8)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 75
+- Total plans completed: 76
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -108,6 +108,7 @@ Progress: [█████████░] 90% (phases 1–6 complete; Phase 7 2
 | Phase 06 P09 | 25 min | 3 tasks | 8 files |
 | Phase 07 P01 | 4 min | 2 tasks | 10 files |
 | Phase 07 P02 | 6 min | 3 tasks | 9 files |
+| Phase 07 P03 | 7 min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -187,6 +188,7 @@ Recent decisions affecting current work:
 - [Phase 06]: 06-09: gate di fase verde (unit 79/1098, int 46/550, build, lint filtrato 0, schema.gql invariato, invarianti); UAT 2026-10-20: test A (Twitch CLI locale) passed, test B (E2E managed) e C (C4) differiti a prima della produzione, 06-HUMAN-UAT `status: partial`; ogni ambiente richiede `roles/firebasecloudmessaging.admin` sul service account Firebase per i topic FCM (`roles/firebasenotifications.admin` non basta)
 - [Phase 07]: 07-01: corsie activeStoryQuest/activeWorldMissionQuest (ref MongooseSchema.Types.ObjectId, default null), PendingQuest.pointsSpent Int! default 0, QuestRequirements.party: [QuestPartySlot!]! (title String! dell'enum TitleType, count min 1, default []), Quest.registrations interno senza @Field (mai in src/schema.gql); schema.gql solo additivo
 - [Phase 07]: 07-02: regole pure di accettazione in src/quests/acceptance (corsia dal solo QuestType, titolo esatto per story e >= altrove, costo intero 1..2147483647 altrimenti invalid, slot esatti per rango), 5 codici nuovi (QUEST_FULL, QUEST_ALREADY_TAKEN, QUEST_TITLE_MISMATCH, QUEST_NOT_IN_CITY, QUEST_NOT_ACCEPTABLE); ordine pre-verifica ALREADY_TAKEN → TITLE_MISMATCH → SLOT_BUSY → FULL, dopo un claim fallito SLOT_BUSY per primo
+- [Phase 07]: 07-03: CHARACTER_QUESTS_POPULATE (corsie da QUEST_LANES come PendingQuest con quest select '_id', completedQuests select '_id') in findOne/findAll: character, characters e characterUpdated risolvono quest { id }; ref orfano ⇒ null, elemento orfano scartato; PendingQuest/Quest in CharactersModule e harness; primeCharactersChangeStream condiviso in test/characters
 
 ### Pending Todos
 
@@ -208,6 +210,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T11:30:21.000Z
-Stopped at: Completed 07-02-PLAN.md
-Resume file: .planning/phases/07-quest-lanes-quest-04/07-03-PLAN.md
+Last session: 2026-10-21T11:40:00.000Z
+Stopped at: Completed 07-03-PLAN.md
+Resume file: .planning/phases/07-quest-lanes-quest-04/07-04-PLAN.md
