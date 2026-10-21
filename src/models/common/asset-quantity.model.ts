@@ -25,9 +25,11 @@ export class AssetQuantity {
 export type AssetQuantityDocument = AssetQuantity & Document;
 export const AssetQuantitySchema = SchemaFactory.createForClass(AssetQuantity);
 
+// il refPath relativo non risolve negli array di sotto-documenti (probe Mongoose 8.18.1): ogni uso nel catalogo quest dichiara il proprio path assoluto
 export function assetQuantitySchemaAt(path: string): MongooseSchema {
-    void path;
-    return AssetQuantitySchema;
+    const schema = AssetQuantitySchema.clone();
+    schema.path('item').options.refPath = `${path}.itemType`;
+    return schema;
 }
 
 @InputType()

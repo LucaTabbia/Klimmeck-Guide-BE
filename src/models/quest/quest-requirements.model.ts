@@ -4,7 +4,7 @@ import { Document } from 'mongoose';
 import {
     AssetQuantity,
     AssetQuantityInput,
-    AssetQuantitySchema,
+    assetQuantitySchemaAt,
 } from '../common/asset-quantity.model';
 import { TitleType } from '../enums/title-type.enum';
 import {
@@ -26,7 +26,10 @@ export class QuestRequirements {
     requiredAdventurers: QuestPartySlot[];
 
     @Field(() => [AssetQuantity])
-    @Prop({ type: [AssetQuantitySchema], default: [] })
+    @Prop({
+        type: [assetQuantitySchemaAt('requirements.recommendedLoot')],
+        default: [],
+    })
     recommendedLoot: AssetQuantity[];
 
     @Field(() => String)

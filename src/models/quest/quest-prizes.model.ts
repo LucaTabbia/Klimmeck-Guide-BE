@@ -1,11 +1,10 @@
 import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
-import { AssetItem } from '../interfaces/asset-item.model';
+import { Document } from 'mongoose';
 import {
     AssetQuantity,
     AssetQuantityInput,
-    AssetQuantitySchema,
+    assetQuantitySchemaAt,
 } from '../common/asset-quantity.model';
 import { Coins, CoinsInput, CoinsSchema } from '../common/coins.model';
 
@@ -20,12 +19,13 @@ export class QuestPrizes {
     @Prop({ type: Number, default: null })
     xpPrize?: number | null;
 
+    // path assoluti legati ai nomi dei campi di Quest (requirements, prizes): rinominarli richiede di aggiornare anche questi
     @Field(() => AssetQuantity, { nullable: true })
-    @Prop({ type: AssetQuantitySchema })
+    @Prop({ type: assetQuantitySchemaAt('prizes.prizeItem') })
     prizeItem?: AssetQuantity | null;
 
     @Field(() => [AssetQuantity])
-    @Prop({ type: [AssetQuantitySchema] })
+    @Prop({ type: [assetQuantitySchemaAt('prizes.randomLoot')] })
     randomLoot: AssetQuantity[];
 }
 
