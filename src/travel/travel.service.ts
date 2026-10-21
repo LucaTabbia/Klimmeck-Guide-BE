@@ -67,4 +67,14 @@ export class TravelService {
         }
         await this.scheduler.schedule(characterId, plan.travel);
     }
+
+    async teleport(
+        characterId: Types.ObjectId,
+        poiId: Types.ObjectId,
+    ): Promise<void> {
+        void characterId;
+        void poiId;
+        await Promise.resolve();
+        throw new Error('not implemented');
+    }
 }
