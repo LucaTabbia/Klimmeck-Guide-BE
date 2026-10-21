@@ -487,4 +487,320 @@ describe('QuestAcceptanceService (replSet)', () => {
             );
         });
     });
+
+    function rawQuest(id: Types.ObjectId) {
+        return quests.collection.findOne({ _id: id });
+    }
+
+    async function heroesRacing(
+        count: number,
+        title: string,
+    ): Promise<{ owners: Types.ObjectId[]; chars: Types.ObjectId[] }> {
+        const owners: Types.ObjectId[] = [];
+        const chars: Types.ObjectId[] = [];
+        for (let i = 0; i < count; i++) {
+            owners.push(await ownerWith(6000));
+            chars.push(await characterAt(world.cityMarker, title));
+        }
+        return { owners, chars };
+    }
+
+    describe('eligibility', () => {
+        it('rejects an already completed story with QUEST_ALREADY_TAKEN and writes nothing', async () => {
+            const ownerId = await ownerWith(6000);
+            const questId = await questOf('story', {
+                requiredPoints: 1000,
+                minTitle: 'rookie',
+            });
+            const charId = await characterAt(world.cityMarker, 'rookie', {
+                completedQuests: [questId],
+            });
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_ALREADY_TAKEN' });
+
+            expect((await raw(charId))?.quests.activeStoryQuest).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('rejects a story completed under a legacy hex id with QUEST_ALREADY_TAKEN', async () => {
+            const ownerId = await ownerWith(6000);
+            const questId = await questOf('story', {
+                requiredPoints: 1000,
+                minTitle: 'rookie',
+            });
+            const charId = await characterAt(world.cityMarker);
+            await characters.collection.updateOne(
+                { _id: charId },
+                { $set: { 'quests.completedQuests': [questId.toHexString()] } },
+            );
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_ALREADY_TAKEN' });
+
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('accepts a completed hunt again', async () => {
+            const ownerId = await ownerWith(0);
+            const questId = await questOf('hunt');
+            const charId = await characterAt(world.cityMarker, 'rookie', {
+                completedQuests: [questId],
+            });
+
+            const pqId = await accept(ownerId, charId, questId);
+
+            expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+        });
+
+        it('rejects a world mission the character already joined with QUEST_ALREADY_TAKEN', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+            });
+            await accept(ownerId, charId, questId);
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_ALREADY_TAKEN' });
+
+            expect(await pendingCount()).toBe(1);
+            expect(await pointsOf(ownerId)).toBe(3000);
+        });
+
+        it.each([
+            ['adventurer', 'rookie'],
+            ['rookie', 'adventurer'],
+        ])(
+            'rejects a story for minTitle %s and title %s with QUEST_TITLE_MISMATCH',
+            async (minTitle, title) => {
+                const ownerId = await ownerWith(6000);
+                const charId = await characterAt(world.cityMarker, title);
+                const questId = await questOf('story', {
+                    requiredPoints: 1000,
+                    minTitle,
+                });
+
+                await expect(
+                    accept(ownerId, charId, questId),
+                ).rejects.toMatchObject({ code: 'QUEST_TITLE_MISMATCH' });
+
+                expect((await raw(charId))?.quests.activeStoryQuest).toBeNull();
+                expect(await pendingCount()).toBe(0);
+                expect(await pointsOf(ownerId)).toBe(6000);
+            },
+        );
+
+        it('accepts a hunt for a hero when minTitle is paladin', async () => {
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(world.cityMarker, 'hero');
+            const questId = await questOf('hunt', { minTitle: 'paladin' });
+
+            const pqId = await accept(ownerId, charId, questId);
+
+            expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+        });
+    });
+
+    describe('city of the marker', () => {
+        it('accepts from a point of interest of the quest city', async () => {
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(world.cityPoi);
+            const questId = await questOf('hunt');
+
+            const pqId = await accept(ownerId, charId, questId);
+
+            expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+        });
+
+        it('rejects from another city with QUEST_NOT_IN_CITY and writes nothing', async () => {
+            const otherMarker = new Types.ObjectId();
+            await persistCity(cities, {
+                markerLocation: otherMarker,
+                pointsOfInterest: [otherMarker],
+            });
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(otherMarker);
+            const questId = await questOf('story', {
+                requiredPoints: 1000,
+                minTitle: 'rookie',
+            });
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_NOT_IN_CITY' });
+
+            expect((await raw(charId))?.quests.activeStoryQuest).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('rejects a quest whose marker belongs to no city with QUEST_NOT_IN_CITY', async () => {
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(world.cityMarker);
+            const questId = await questOf(
+                'hunt',
+                {},
+                { markerLocation: new Types.ObjectId() },
+            );
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_NOT_IN_CITY' });
+
+            expect((await raw(charId))?.quests.pendingQuest).toBeNull();
+            expect(await pendingCount()).toBe(0);
+        });
+    });
+
+    describe('shared quests', () => {
+        it('registers the world mission adventurer by rank', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker, 'hero');
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                party: [{ title: 'hero', count: 1 }],
+            });
+
+            await accept(ownerId, charId, questId);
+
+            const quest = await rawQuest(questId);
+            expect(quest?.registeredAdventurers).toEqual([
+                charId.toHexString(),
+            ]);
+            expect(quest?.registrations).toEqual([
+                { character: charId, title: 'hero' },
+            ]);
+        });
+
+        it('lets one of two concurrent heroes take the only hero slot', async () => {
+            const { owners, chars } = await heroesRacing(2, 'hero');
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                party: [{ title: 'hero', count: 1 }],
+            });
+
+            const results = await Promise.allSettled(
+                chars.map((charId, i) => accept(owners[i], charId, questId)),
+            );
+
+            const winners = results.filter((r) => r.status === 'fulfilled');
+            expect(winners).toHaveLength(1);
+            const loserIndex = results.findIndex(
+                (r) => r.status === 'rejected',
+            );
+            expect(codeOf(results[loserIndex])).toBe('QUEST_FULL');
+            expect((await rawQuest(questId))?.registrations).toHaveLength(1);
+            expect(await pendingCount()).toBe(1);
+            const points = await Promise.all(owners.map((id) => pointsOf(id)));
+            expect(points[0] + points[1]).toBe(12000 - 3000);
+            expect(
+                (await raw(chars[loserIndex]))?.quests.activeWorldMissionQuest,
+            ).toBeNull();
+        });
+
+        it('rejects a paladin on a hero-only party with QUEST_FULL and writes nothing', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker, 'paladin');
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                party: [{ title: 'hero', count: 1 }],
+            });
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_FULL' });
+
+            expect(
+                (await raw(charId))?.quests.activeWorldMissionQuest,
+            ).toBeNull();
+            expect((await rawQuest(questId))?.registrations).toEqual([]);
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('fills a legacy world mission up to requiredAdventurers', async () => {
+            const { owners, chars } = await heroesRacing(3, 'rookie');
+            const questId = await questOf('worldMission', {
+                requiredPoints: 1000,
+                party: [],
+                requiredAdventurers: 2,
+            });
+
+            const results = await Promise.allSettled(
+                chars.map((charId, i) => accept(owners[i], charId, questId)),
+            );
+
+            expect(
+                results.filter((r) => r.status === 'fulfilled'),
+            ).toHaveLength(2);
+            const losers = results.filter((r) => r.status === 'rejected');
+            expect(losers.map(codeOf)).toEqual(['QUEST_FULL']);
+            expect(
+                (await rawQuest(questId))?.registeredAdventurers,
+            ).toHaveLength(2);
+            expect(await pendingCount()).toBe(2);
+        });
+
+        it('leaves no registration when the points are insufficient', async () => {
+            const ownerId = await ownerWith(100);
+            const charId = await characterAt(world.cityMarker);
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+            });
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'INSUFFICIENT_POINTS' });
+
+            const quest = await rawQuest(questId);
+            expect(quest?.registrations).toEqual([]);
+            expect(quest?.registeredAdventurers).toEqual([]);
+            expect(
+                (await raw(charId))?.quests.activeWorldMissionQuest,
+            ).toBeNull();
+            expect(await pendingCount()).toBe(0);
+        });
+
+        it('registers a boss in the standard lane without any cost', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            const questId = await questOf('boss', {
+                party: [{ title: 'rookie', count: 2 }],
+                requiredPoints: 4000,
+            });
+
+            const pqId = await accept(ownerId, charId, questId);
+
+            expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+            expect((await pendingOf(pqId))?.pointsSpent).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual([
+                charId.toHexString(),
+            ]);
+        });
+
+        it('never registers story adventurers', async () => {
+            const questId = await questOf('story', {
+                requiredPoints: 1000,
+                minTitle: 'rookie',
+                requiredAdventurers: 1,
+            });
+            const { owners, chars } = await heroesRacing(2, 'rookie');
+
+            for (const [i, charId] of chars.entries()) {
+                await accept(owners[i], charId, questId);
+            }
+
+            expect(await pendingCount()).toBe(2);
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual(
+                [],
+            );
+        });
+    });
 });
