@@ -279,6 +279,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toContain('adminProbe');
     });
 
+    it('writes the quest lanes into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type CharacterQuests \{[^}]*\}/)?.[0]).toBe(
+            'type CharacterQuests {\n  activeStoryQuest: PendingQuest\n  activeWorldMissionQuest: PendingQuest\n  completedQuests: [Quest!]!\n  pendingQuest: PendingQuest\n}',
+        );
+        expect(schema.match(/type PendingQuest \{[^}]*\}/)?.[0]).toBe(
+            'type PendingQuest {\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime!\n  waitingTime: Float!\n}',
+        );
+    });
+
     it('boots the quest acceptance primitive without a GraphQL surface', () => {
         expect(app.get(QuestAcceptanceService)).toBeInstanceOf(
             QuestAcceptanceService,
