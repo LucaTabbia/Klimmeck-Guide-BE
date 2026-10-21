@@ -17,6 +17,11 @@ import {
     PointOfInterest,
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
+import {
+    PendingQuest,
+    PendingQuestSchema,
+} from 'src/models/pending-quest.model';
+import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import {
     AuthTestApp,
@@ -37,6 +42,8 @@ export async function createCharactersTestApp(
                 { name: EquipmentItem.name, schema: EquipmentItemSchema },
                 { name: LootItem.name, schema: LootItemSchema },
                 { name: PointOfInterest.name, schema: PointOfInterestSchema },
+                { name: PendingQuest.name, schema: PendingQuestSchema },
+                { name: Quest.name, schema: QuestSchema },
             ]),
             EconomyModule,
             AuthzModule,
