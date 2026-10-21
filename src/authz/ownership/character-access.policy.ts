@@ -20,14 +20,24 @@ import {
 } from 'src/models/pending-quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { isObjectIdHex } from 'src/mongo/document-id';
+import {
+    QUEST_LANES,
+    QuestLane,
+    lanePathOf,
+} from 'src/quests/acceptance/quest-lanes';
 
 interface CurrentCharacterProjection {
     currentCharacter: Types.ObjectId | null;
 }
 
 interface PendingQuestProjection {
-    quests?: { pendingQuest?: Types.ObjectId | null };
+    quests?: Partial<Record<QuestLane, Types.ObjectId | null>>;
 }
+
+// le tre corsie (07 D-11, C4): proprietario di un PendingQuest è chi lo ha in una qualunque corsia del proprio personaggio
+const OWN_PENDING_QUESTS_PROJECTION = Object.fromEntries(
+    QUEST_LANES.map((lane) => [lanePathOf(lane), 1]),
+);
 
 export interface CharacterAccessOptions {
     ownerOnly?: boolean;
@@ -95,8 +105,9 @@ export class CharacterAccessPolicy {
         if (identity.role === RoleType.innkeeper)
             return ResourceAccess.onBehalf;
         if (
-            (await this.readOwnPendingQuestId(identity.userId)) ===
-            pendingQuestId
+            (await this.readOwnPendingQuestIds(identity.userId)).includes(
+                pendingQuestId,
+            )
         ) {
             return ResourceAccess.owner;
         }
@@ -138,20 +149,19 @@ export class CharacterAccessPolicy {
             : undefined;
     }
 
-    private async readOwnPendingQuestId(
-        userId: string,
-    ): Promise<string | undefined> {
+    private async readOwnPendingQuestIds(userId: string): Promise<string[]> {
         const characterId = await this.readCurrentCharacterId(userId);
-        if (!characterId) return undefined;
+        if (!characterId) return [];
         const character = await this.characterModel
-            .findOne(activeCharacterById(characterId), {
-                'quests.pendingQuest': 1,
-            })
+            .findOne(
+                activeCharacterById(characterId),
+                OWN_PENDING_QUESTS_PROJECTION,
+            )
             .lean<PendingQuestProjection | null>()
             .exec();
-        return character?.quests?.pendingQuest
-            ? String(character.quests.pendingQuest)
-            : undefined;
+        return QUEST_LANES.map((lane) => character?.quests?.[lane])
+            .filter((id): id is Types.ObjectId => id != null)
+            .map(String);
     }
 
     // un archiviato vale come inesistente (03.1 D-06): NOT_FOUND per tutti, nessun oracolo FORBIDDEN/NOT_FOUND
