@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-06-PLAN.md
-last_updated: "2026-10-21T20:38:05.414Z"
+stopped_at: Completed 08-07-PLAN.md
+last_updated: "2026-10-21T20:41:01.183Z"
 last_activity: 2026-10-21
 progress:
   total_phases: 12
   completed_phases: 9
   total_plans: 87
-  completed_plans: 79
-  percent: 91
+  completed_plans: 80
+  percent: 92
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 8 (travel-lifecycle-travel-01) — EXECUTING
-Plan: 7 of 14
+Plan: 8 of 14
 Status: Ready to execute
 Last activity: 2026-10-21
 
@@ -120,6 +120,7 @@ Progress: [██████████] 100% (phases 1–7 complete; Phase 8 
 | Phase 08 P03 | 6 min | 2 tasks | 8 files |
 | Phase 08 P05 | 6 min | 3 tasks | 13 files |
 | Phase 08 P06 | 9 min | 3 tasks | 7 files |
+| Phase 08 P07 | 6 min | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -211,6 +212,7 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-03: catalogo quest D-31 — QUEST_CATALOG_POPULATE (markerLocation, enemy, relatedLore, item di recommendedLoot/prizeItem/randomLoot) con cloni assetQuantitySchemaAt(path) a refPath assoluto (AssetQuantitySchema originale invariato), dropOrphanCatalogRefs (enemy null, voci orfane scartate, prizeItem null), quest(id) malformato/inesistente ⇒ NOT_FOUND 'Missione non trovata', QuestsModule registra i 6 modelli; schema.gql invariato
 - [Phase 08]: 08-05: regole pure del viaggio in src/travel — speedOf (10 × speedModifier, fallback 10 con invalid), durationMsOf round(baseHours×3.6e6×10/speed), buildActiveTravel (duration = endTime − startTime), classifyFreeTravel DESTINATION_NOT_ALLOWED → TRAVEL_IN_PROGRESS → QUEST_IN_PROGRESS → SAME_LOCATION → NO_PATH; filtri puri di avvio/completamento (identità startTime+endTime, endTime ≤ now, pipeline $status.activeTravel.to)/countdown/teleport (solo pendingQuest blocca)/scaduti, mai $$NOW; job Bull coda 'travel', job 'complete', jobId travel-<hex>-<startMs>, travelJobDataOf valida i dati; TRAVEL_SWEEP_INTERVAL_MS opzionale fail-closed (vuota 60000, 0 = off, max 2147483647)
 - [Phase 08]: 08-06: accettazione a slot D-32 — REGISTERED_TYPES { worldMission, boss, enemy, aid }, registrationRuleOf ('invalid' ⇒ QUEST_NOT_ACCEPTABLE prima della transazione, WARN con solo id), TRAVEL_IN_PROGRESS prima regola e 'status.activeTravel': null nel filtro di ogni corsia, città del marker solo per QuestLane.standard (story/worldMission da qualunque città), registrationFilter $expr = seatAvailableExpr su registeredAdventurers { character, title }; int-spec di src/quests/acceptance di nuovo verdi
+- [Phase 08]: 08-07: archiveCurrentCharacter libera i posti (D-30) con updateMany + $pull su registeredAdventurers.character nella stessa session dell'archivio, solo se il personaggio è stato archiviato; Quest nel forFeature di CharacterDeletionModule; PendingQuest e activeTravel restano sul documento archiviato
 
 ### Pending Todos
 
@@ -232,6 +234,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T20:38:05.410Z
-Stopped at: Completed 08-06-PLAN.md
+Last session: 2026-10-21T20:41:01.179Z
+Stopped at: Completed 08-07-PLAN.md
 Resume file: None
