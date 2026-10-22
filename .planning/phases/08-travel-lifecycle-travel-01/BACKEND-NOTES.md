@@ -251,6 +251,7 @@ Restano invariati i codici di Phase 7 su `acceptQuest` (`QUEST_SLOT_BUSY`, `QUES
 
 - **DB fonte di verità:** il completamento è un solo update condizionale sul personaggio (attivo, stesso viaggio per `startTime`/`endTime`, `endTime ≤ now`) che imposta `status.location` = meta e `activeTravel` = `null`; il change stream emette `characterUpdated`.
 - **Trigger:** job Bull `complete` sulla coda `travel` con delay fino a `endTime` (jobId deterministico `travel-<characterId>-<startTimeMs>`); **reconciler al boot** che completa ogni viaggio scaduto; **sweep periodico** ogni `TRAVEL_SWEEP_INTERVAL_MS` (default 60 000 ms, `0` = sweep spento, il reconciler al boot gira sempre). Job duplicati, rieseguiti od obsoleti sono no-op; un job arrivato prima di `endTime` non scrive e lascia il lavoro allo sweep (C10).
+- **Redis irraggiungibile (UAT 2026-10-22):** ogni chiamata alla coda (accodamento e rimozione del job) ha un timeout di 2 s (`QUEUE_CALL_TIMEOUT_MS`): con Redis giù `acceptQuest`, `startTravel` e `teleportCharacter` rispondono comunque entro ~2 s; il viaggio resta valido e il job non accodato è coperto dal reconciler al boot e dallo sweep (D-21); un job non rimosso si neutralizza da solo (D-12).
 - **Push `travelEnd`** (payload di Phase 5 §2: `type: "travelEnd"`, `title: "Viaggio completato"`, `body: "Il tuo personaggio è arrivato a destinazione."`, `sentAt`, `id` = **characterId**, TTL 1 h) al proprietario **solo per i viaggi liberi**, una volta sola, best-effort dopo il commit; **mai** per i viaggi da quest né per il teleport.
 - **Viaggio da quest:** nella stessa transazione del completamento `PendingQuest.startDate` = **`endTime` pianificato** (se ancora `null`): il countdown della quest parte dall'arrivo previsto e non perde tempo per un downtime del server. Il FE riceve `characterUpdated` con `pendingQuest.startDate` valorizzato e mostra il countdown `startDate + waitingTime` (Phase 7 §5).
 
@@ -424,6 +425,7 @@ db.characters.updateOne({ _id: ObjectId('<characterId>') }, { $set: { 'assets.pe
 - **Coda Redis nuova:** `bull:travel:*` (job `complete` con delay fino a `endTime`).
 - **Redis in produzione:** verificare la **`maxmemory-policy`** (blocker in STATE): con una policy di eviction i delayed job possono sparire; lo sweep li compensa entro un intervallo. Consigliata `noeviction`.
 - con `TRAVEL_SWEEP_INTERVAL_MS=0` un job arrivato in anticipo per skew dell'orologio resta incompleto fino al prossimo boot: in produzione tenere lo sweep attivo.
+- **Redis giù:** le mutation di viaggio rispondono comunque entro ~2 s; il job non accodato è coperto dallo sweep (tenerlo attivo). In produzione monitorare i WARN `Redis non raggiungibile (<code>)` (una volta per processo) e `Accodamento del viaggio … non confermato entro 2000 ms`. Nessuna variabile nuova.
 - **Nessuna migrazione:** aggiornamento dati **manuale** dell'utente (§11), subito dopo il deploy. I documenti legacy leggono i default (`activeTravel: null`; i `PendingQuest` esistenti restano con `startDate` valorizzato).
 - **Nessuna dipendenza nuova**, **nessun indice nuovo**.
 - Moduli: `TravelModule` (completamento, sweep, processor, resolver `startTravel`/`travelPreview`/`teleportCharacter`) montato in `AppModule` dopo `QuestAcceptanceModule`; `TravelPlanningModule` (planner, scheduler, coda `travel`, senza il modulo push) importato da `QuestAcceptanceModule` e da `TravelModule`; `RoadsModule` e `QuestsModule` ora registrano da sé i modelli che usano.
@@ -455,3 +457,4 @@ db.characters.updateOne({ _id: ObjectId('<characterId>') }, { $set: { 'assets.pe
 - Scala delle durate: decisione dell'utente (§8).
 - UAT su device: dopo la FE Phase 7, con i dati di §11 (vedi `08-VALIDATION.md`, Manual-Only Verifications).
 - Fuori fase: annullamento/cambio meta (escluso by design), admin CRUD di pet/strade/POI, velocità base come attributo del personaggio, ricalcolo dell'ETA al cambio pet.
+- **Incidente UAT su device (2026-10-22):** con Redis spento `acceptQuest` committava ma non rispondeva (attesa infinita di `queue.add`, client in errore dopo ~100 s); risolto nel quick task 261022-rhs con il timeout sulle chiamate alla coda.
