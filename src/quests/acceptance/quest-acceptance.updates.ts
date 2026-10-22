@@ -12,7 +12,7 @@ import { lanePathOf, laneOf, QuestLane } from './quest-lanes';
 
 export interface LaneClaimSnapshot {
     title: TitleType;
-    // location solo per la corsia standard (D-26, C8): story e worldMission si accettano da qualunque città
+    // location per la corsia standard e per la worldMission (D-26 emendata 2026-10-22): solo la story si accetta da qualunque città
     location?: Types.ObjectId;
 }
 

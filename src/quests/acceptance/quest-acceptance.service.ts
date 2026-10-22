@@ -123,20 +123,21 @@ export class QuestAcceptanceService {
         const character = await this.readCharacter(characterId);
         const rejection = classifyEligibility(quest, character, lane, rule);
         if (rejection) throw rejection;
-        // solo la corsia standard è legata alla città del marker (D-26)
+        // solo la story si accetta da qualunque città: standard e worldMission sono legate alla città del marker (D-26 emendata 2026-10-22)
         const location =
-            lane === QuestLane.standard
+            lane !== QuestLane.story
                 ? await this.locationInQuestCity(quest, character)
                 : undefined;
-        // percorso e velocità prima della transazione (D-21): nel callback solo scritture
-        const movement = location
-            ? await this.movementTo(
-                  quest,
-                  characterId,
-                  location,
-                  character.assets?.pet,
-              )
-            : null;
+        // viaggio automatico solo per la corsia standard (D-02); percorso e velocità prima della transazione (D-21): nel callback solo scritture
+        const movement =
+            lane === QuestLane.standard && location
+                ? await this.movementTo(
+                      quest,
+                      characterId,
+                      location,
+                      character.assets?.pet,
+                  )
+                : null;
         const claim: LaneClaimSnapshot = {
             title: character.status.title,
             ...(location ? { location } : {}),
