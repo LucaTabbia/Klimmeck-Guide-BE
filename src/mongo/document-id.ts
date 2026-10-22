@@ -36,3 +36,10 @@ export function sameId(value: unknown, id: Types.ObjectId): boolean {
 export function idForms(id: Types.ObjectId): [Types.ObjectId, string] {
     return [id, id.toHexString()];
 }
+
+// i ref sui path Mixed arrivano come ObjectId o, da dati legacy, come stringa esadecimale (04 Pitfall 1)
+export function refIdOf(value: unknown): Types.ObjectId | null {
+    return value instanceof Types.ObjectId
+        ? value
+        : objectIdFromHex(typeof value === 'string' ? value : null);
+}

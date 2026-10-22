@@ -10,6 +10,7 @@ import {
 import { City, CityDocument } from 'src/models/city.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
+import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
@@ -24,7 +25,9 @@ import { createCharactersTestApp } from '../../../test/authz/characters-test-app
 import { createPlayer } from '../../../test/authz/player-fixture';
 import {
     buildCharacter,
+    buildQuest,
     persistCity,
+    persistQuest,
     persistUser,
 } from '../../../test/fixtures';
 
@@ -104,6 +107,7 @@ describe('deleteCharacter (wire)', () => {
     let characters: Model<CharacterDocument>;
     let cities: Model<CityDocument>;
     let pois: Model<PointOfInterest>;
+    let quests: Model<QuestDocument>;
     const opened: OpenSubscription<UserUpdatedResult>[] = [];
 
     async function call(
@@ -166,11 +170,16 @@ describe('deleteCharacter (wire)', () => {
         );
         cities = harness.connection.model<CityDocument>(City.name);
         pois = harness.connection.model<PointOfInterest>(PointOfInterest.name);
+        quests = harness.connection.model<QuestDocument>(Quest.name);
         // indici e collection prima delle transazioni (Pitfall 9)
         await Promise.all(
-            [User.name, Character.name, City.name, PointOfInterest.name].map(
-                (name) => harness.connection.model(name).init(),
-            ),
+            [
+                User.name,
+                Character.name,
+                City.name,
+                PointOfInterest.name,
+                Quest.name,
+            ].map((name) => harness.connection.model(name).init()),
         );
         await primeUsersChangeStream(harness);
     });
@@ -449,6 +458,144 @@ describe('deleteCharacter (wire)', () => {
         expect(update.value.data?.userUpdated).toEqual({
             id: String(alice.user._id),
             currentCharacter: null,
+        });
+    });
+
+    describe('seat release (D-30)', () => {
+        function persistRegisteredQuest(
+            type: string,
+            registeredAdventurers: {
+                character: Types.ObjectId;
+                title: string;
+            }[],
+        ) {
+            const base = buildQuest();
+            return persistQuest(quests, {
+                infos: { ...base.infos, type },
+                registeredAdventurers,
+            });
+        }
+
+        function rawSeats(id: Types.ObjectId) {
+            return quests.collection
+                .findOne({ _id: id })
+                .then((quest) => quest?.registeredAdventurers);
+        }
+
+        function activeTravel(): Record<string, unknown> {
+            const startTime = new Date('2026-10-21T10:00:00.000Z');
+            return {
+                road: {
+                    coordinates: [
+                        [0, 0],
+                        [0, 0.2],
+                    ],
+                    distance: 0.44,
+                },
+                startTime,
+                endTime: new Date(startTime.getTime() + 3_600_000),
+                duration: 3_600_000,
+                to: new Types.ObjectId(),
+                kind: 'free',
+            };
+        }
+
+        it('frees the seats of the deleted character on every quest', async () => {
+            const alice = await createPlayer(harness, {
+                twitchId: 'twitch-del-alice',
+            });
+            const deleted = alice.character?._id as Types.ObjectId;
+            const other = new Types.ObjectId();
+            const seats = [
+                { character: deleted, title: 'rookie' },
+                { character: other, title: 'hero' },
+            ];
+            const enemy = await persistRegisteredQuest('enemy', seats);
+            const worldMission = await persistRegisteredQuest(
+                'worldMission',
+                seats,
+            );
+            const untouched = await persistRegisteredQuest('boss', [
+                { character: other, title: 'hero' },
+            ]);
+
+            deletedUserOf(await deleteAs(alice.bearer));
+
+            for (const quest of [enemy, worldMission, untouched]) {
+                expect(await rawSeats(quest._id)).toEqual([
+                    { character: other, title: 'hero' },
+                ]);
+            }
+        });
+
+        it('leaves the quests untouched when the deletion is rejected', async () => {
+            const { bearer } = await createPlayer(harness, {
+                twitchId: 'twitch-del-empty',
+                withCharacter: false,
+            });
+            const someone = new Types.ObjectId();
+            const quest = await persistRegisteredQuest('enemy', [
+                { character: someone, title: 'rookie' },
+            ]);
+
+            const body = await deleteAs(bearer);
+
+            expect(errorCodeOf(body)).toBe('CHARACTER_NOT_FOUND');
+            expect(await rawSeats(quest._id)).toEqual([
+                { character: someone, title: 'rookie' },
+            ]);
+        });
+
+        it('keeps the pending quest and the active travel on the archived character', async () => {
+            const pq = new Types.ObjectId();
+            const travel = activeTravel();
+            const base = buildCharacter();
+            const alice = await createPlayer(harness, {
+                twitchId: 'twitch-del-alice',
+                characterOverrides: {
+                    status: { ...base.status, activeTravel: travel },
+                    quests: { ...base.quests, pendingQuest: pq },
+                },
+            });
+            const deleted = alice.character?._id as Types.ObjectId;
+            const quest = await persistRegisteredQuest('enemy', [
+                { character: deleted, title: 'rookie' },
+            ]);
+
+            deletedUserOf(await deleteAs(alice.bearer));
+
+            const raw = await rawCharacter(deleted);
+            expect(raw?.deletedAt).toBeInstanceOf(Date);
+            expect(raw?.quests.pendingQuest).toEqual(pq);
+            expect(raw?.status.activeTravel).toEqual(travel);
+            expect(await rawSeats(quest._id)).toEqual([]);
+        });
+
+        it('releases the seats once under concurrent deletions', async () => {
+            const alice = await createPlayer(harness, {
+                twitchId: 'twitch-del-alice',
+            });
+            const deleted = alice.character?._id as Types.ObjectId;
+            const other = new Types.ObjectId();
+            const quest = await persistRegisteredQuest('worldMission', [
+                { character: deleted, title: 'rookie' },
+                { character: other, title: 'hero' },
+            ]);
+
+            const bodies = await Promise.all([
+                deleteAs(alice.bearer),
+                deleteAs(alice.bearer),
+            ]);
+
+            const winners = bodies.filter((body) => body.errors === undefined);
+            const losers = bodies.filter((body) => body.errors !== undefined);
+            expect(winners).toHaveLength(1);
+            expect(losers).toHaveLength(1);
+            expect(errorCodeOf(losers[0])).toBe('CHARACTER_NOT_FOUND');
+            expect(await archivedCount()).toBe(1);
+            expect(await rawSeats(quest._id)).toEqual([
+                { character: other, title: 'hero' },
+            ]);
         });
     });
 });

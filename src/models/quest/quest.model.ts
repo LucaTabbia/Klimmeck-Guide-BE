@@ -39,12 +39,10 @@ export class Quest {
     @Prop({ type: QuestPrizesSchema })
     prizes: QuestPrizes;
 
-    @Field(() => [String])
-    @Prop({ type: [String] })
-    registeredAdventurers: string[];
-
+    // una sola fonte dei posti occupati (D-28a): scritta solo dall'accettazione, liberata dalla cancellazione (D-30)
+    @Field(() => [QuestRegistration])
     @Prop({ type: [QuestRegistrationSchema], default: [] })
-    registrations: QuestRegistration[];
+    registeredAdventurers: QuestRegistration[];
 }
 
 export type QuestDocument = Quest & Document;
@@ -63,7 +61,4 @@ export class QuestInput {
 
     @Field(() => QuestPrizesInput)
     prizes: QuestPrizesInput;
-
-    @Field(() => [ID], { nullable: true })
-    registeredAdventurers?: string[];
 }

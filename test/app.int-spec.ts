@@ -1,3 +1,4 @@
+import { getQueueToken } from '@nestjs/bull';
 import { INestApplication, Logger } from '@nestjs/common';
 import { ModulesContainer } from '@nestjs/core';
 import { getConnectionToken } from '@nestjs/mongoose';
@@ -23,6 +24,11 @@ import { PushService } from 'src/push/push.service';
 import { NoopPushTransport } from 'src/push/transport/noop-push-transport';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
+import type { TravelConfig } from 'src/config/travel-config';
+import { TRAVEL_CONFIG } from 'src/config/travel-config';
+import { TravelCompletionService } from 'src/travel/travel-completion.service';
+import { TRAVEL_QUEUE } from 'src/travel/travel-job';
+import { TravelSweeper } from 'src/travel/travel-sweeper';
 import { startRedis, stopRedis } from './setup/redis';
 
 const BOOT_TIMEOUT_MS = 60_000;
@@ -37,6 +43,12 @@ const REGISTER_PUSH_DEVICE =
     'mutation { registerPushDevice(input: { deviceId: "d", token: "t", platform: android }) }';
 const ACCEPT_QUEST =
     'mutation { acceptQuest(request: { id: "64b000000000000000000001", questId: "64b000000000000000000002" }) { successful } }';
+const START_TRAVEL =
+    'mutation { startTravel(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
+const TRAVEL_PREVIEW =
+    '{ travelPreview(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { duration } }';
+const TELEPORT_CHARACTER =
+    'mutation { teleportCharacter(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
 // whitelist enumerata (D-12): ogni aggiunta di @Public() deve passare da qui
 const EXPECTED_PUBLIC_HANDLERS = [
     'AppController.getHello',
@@ -51,6 +63,7 @@ const EXPECTED_INNKEEPER_HANDLERS = [
     'CharactersResolver.characters',
     'PendingQuestsResolver.pendingQuests',
     'PushResolver.sendTestPush',
+    'TravelAdminResolver.teleportCharacter',
     'UsersResolver.user',
     'UsersResolver.users',
 ];
@@ -65,9 +78,15 @@ const EXPECTED_OWNERSHIP_HANDLERS = [
     'CharactersResolver.useSpell',
     'PendingQuestsResolver.pendingQuest',
     'QuestAcceptanceResolver.acceptQuest',
+    'TravelResolver.startTravel',
+    'TravelResolver.travelPreview',
 ];
 // nessun bypass innkeeper (07 D-11): ogni handler owner-only deve passare da qui
-const EXPECTED_OWNER_ONLY_HANDLERS = ['QuestAcceptanceResolver.acceptQuest'];
+const EXPECTED_OWNER_ONLY_HANDLERS = [
+    'QuestAcceptanceResolver.acceptQuest',
+    'TravelResolver.startTravel',
+    'TravelResolver.travelPreview',
+];
 
 interface PublicSurface {
     handlers: string[];
@@ -192,6 +211,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             TWITCH_EVENTSUB_SECRET: '',
             TWITCH_EVENTSUB_CALLBACK_URL: '',
             TWITCH_BROADCASTER_ID: '',
+            // Pitfall 13: nessun timer dello sweep nel boot reale; il reconciler al boot gira comunque
+            TRAVEL_SWEEP_INTERVAL_MS: '0',
         });
         // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
         const { AppModule } =
@@ -294,20 +315,26 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type CharacterQuests {\n  activeStoryQuest: PendingQuest\n  activeWorldMissionQuest: PendingQuest\n  completedQuests: [Quest!]!\n  pendingQuest: PendingQuest\n}',
         );
         expect(schema.match(/type PendingQuest \{[^}]*\}/)?.[0]).toBe(
-            'type PendingQuest {\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime!\n  waitingTime: Float!\n}',
+            'type PendingQuest {\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime\n  waitingTime: Float!\n}',
         );
     });
 
-    it('writes the quest party into the generated schema', () => {
+    it('writes the quest rank slots into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestRequirements \{[^}]*\}/)?.[0]).toBe(
-            'type QuestRequirements {\n  minTitle: String!\n  party: [QuestPartySlot!]!\n  recommendedLoot: [AssetQuantity!]!\n  requiredAdventurers: Int!\n  requiredPoints: Int\n}',
+            'type QuestRequirements {\n  minTitle: String!\n  recommendedLoot: [AssetQuantity!]!\n  requiredAdventurers: [QuestPartySlot!]!\n  requiredPoints: Int\n}',
         );
         expect(schema.match(/type QuestPartySlot \{[^}]*\}/)?.[0]).toBe(
-            'type QuestPartySlot {\n  count: Int!\n  title: String!\n}',
+            'type QuestPartySlot {\n  count: Int!\n  title: String\n}',
         );
-        expect(schema).not.toContain('registrations');
+        expect(schema.match(/type QuestRegistration \{[^}]*\}/)?.[0]).toBe(
+            'type QuestRegistration {\n  character: ID!\n  title: String!\n}',
+        );
+        expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+        );
+        expect(schema).not.toMatch(/\bparty\b|registrations/);
     });
 
     it('writes the server time query into the generated schema', () => {
@@ -333,6 +360,53 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toMatch(
             /QuestAcceptance|twitchPointsDebit|INSUFFICIENT_FUNDS|registrations/,
         );
+    });
+
+    it('writes the travel contract into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type ActiveTravel \{[^}]*\}/)?.[0]).toBe(
+            'type ActiveTravel {\n  duration: Float!\n  endTime: DateTime!\n  road: TravelPath!\n  startTime: DateTime!\n  to: ID!\n}',
+        );
+        expect(schema.match(/type TravelPath \{[^}]*\}/)?.[0]).toBe(
+            'type TravelPath {\n  coordinates: [[Float!]!]!\n  distance: Float!\n}',
+        );
+        expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
+            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spells: [Spell!]!\n  title: String!\n  xp: Int!\n}',
+        );
+        expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
+            'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  speedModifier: Float\n  xp: Int!\n}',
+        );
+        expect(schema).not.toMatch(/TravelKind|\bkind\b/);
+    });
+
+    it('writes the free travel API into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'startTravel(request: TravelRequest!): CommonResponse!',
+        );
+        expect(schema).toContain(
+            'travelPreview(request: TravelRequest!): TravelPreview!',
+        );
+        expect(schema.match(/input TravelRequest \{[^}]*\}/)?.[0]).toBe(
+            'input TravelRequest {\n  id: String!\n  poiId: String!\n}',
+        );
+        expect(schema.match(/type TravelPreview \{[^}]*\}/)?.[0]).toBe(
+            'type TravelPreview {\n  distance: Float!\n  duration: Float!\n  road: TravelPath!\n}',
+        );
+    });
+
+    it('writes the teleport API into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'teleportCharacter(request: TravelRequest!): CommonResponse!',
+        );
+        expect(schema).toContain(
+            'input TravelRequest {\n  id: String!\n  poiId: String!\n}',
+        );
+        expect(schema).not.toContain('TeleportCharacterRequest');
     });
 
     it('writes the push API into the generated schema', () => {
@@ -367,6 +441,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(transport).toBeInstanceOf(NoopPushTransport);
         expect(transport.enabled).toBe(false);
         expect(app.get(PushService)).toBeInstanceOf(PushService);
+    });
+
+    it('mounts the travel lifecycle', () => {
+        expect(app.get(TravelSweeper)).toBeInstanceOf(TravelSweeper);
+        expect(app.get(TravelCompletionService)).toBeInstanceOf(
+            TravelCompletionService,
+        );
+        expect(app.get(getQueueToken(TRAVEL_QUEUE))).toBeDefined();
+        expect(app.get<TravelConfig>(TRAVEL_CONFIG)).toEqual({
+            sweepIntervalMs: 0,
+        });
     });
 
     it('boots EventSub disabled without calling Twitch', () => {
@@ -444,6 +529,21 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             expect(errorCodeOf(await graphqlCall(app, ACCEPT_QUEST))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
+        });
+
+        it('rejects startTravel and travelPreview without a bearer', async () => {
+            expect(errorCodeOf(await graphqlCall(app, START_TRAVEL))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+            expect(errorCodeOf(await graphqlCall(app, TRAVEL_PREVIEW))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects teleportCharacter without a bearer', async () => {
+            expect(
+                errorCodeOf(await graphqlCall(app, TELEPORT_CHARACTER)),
+            ).toBe(AuthErrorCode.UNAUTHENTICATED);
         });
 
         it('rejects serverTime without a bearer', async () => {

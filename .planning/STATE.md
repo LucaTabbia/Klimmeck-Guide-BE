@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 7 complete (2026-10-21) — PR #10 open
-last_updated: "2026-10-21T13:30:00.000Z"
-last_activity: 2026-10-21 -- Phase 7 complete (review fixed in TDD, verification passed 4/4, security audit filed, device UAT deferred to FE Phase 6); BE PR #10 opened to develop
+status: verifying
+stopped_at: Phase 8 complete (2026-10-22) — PR #11 open
+last_updated: "2026-10-21T22:02:04.491Z"
+last_activity: 2026-10-21
 progress:
   total_phases: 12
-  completed_phases: 9
-  total_plans: 73
-  completed_plans: 73
-  percent: 89
+  completed_phases: 10
+  total_plans: 87
+  completed_plans: 87
+  percent: 100
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 7 — Quest Lanes complete on 2026-10-21 (PR #10 to develop opened 2026-10-21; unblocks FE Phase 6); next Phase 8 — Travel Lifecycle (TRAVEL-01, unblocks FE Phase 7)
+**Current focus:** Phase 8 — Travel Lifecycle complete on 2026-10-21 (PR #11 to develop opened 2026-10-22; unblocks FE Phase 7 and the FE Phase 6 final plan 06-12); next Phase 9 — Combat Result & Admin Outcomes
 
 ## Current Position
 
-Phase: 7 (quest-lanes-quest-04) — COMPLETE 2026-10-21 (8/8 plans; code review 0 critical / 1 warning / 4 info fixed in TDD; verification passed, 4/4 success criteria and 8/8 must_haves; security audit: 39 minacce, 33 mitigate, 4 accettate, 2 trasferite, 0 aperte; device UAT deferred to the FE Phase 6 UAT)
-Plan: 8 of 8
-Status: Phase 7 complete — PR #10 open, awaiting review/merge
-Last activity: 2026-10-21 -- Phase 7 closed: ROADMAP/STATE/PROJECT updated; final gate re-run clean after the review fixes (unit 85 suites / 1264 tests, integration 49 suites / 610 tests); next: BE PR to develop, then /gsd-discuss-phase 8 (Travel Lifecycle, TRAVEL-01 for FE Phase 7)
+Phase: 8 (travel-lifecycle-travel-01) — COMPLETE 2026-10-21 (14/14 plans; code review 0 critical / 2 warning / 8 info, both warnings + IN-01/IN-07 fixed in TDD; verification passed 4/4 success criteria + D-26..D-32, device UAT deferred to the FE Phase 7 UAT — 08-HUMAN-UAT partial; security audit: 71 minacce, 64 mitigate, 4 accettate, 3 trasferite, 0 aperte)
+Plan: 14 of 14
+Status: Phase 8 complete — PR #11 open, awaiting review/merge; next /gsd-discuss-phase 9
+Last activity: 2026-10-22 -- Completed quick task 261022-f0n: worldMission accettabile solo dalla sua città (D-26 emendata, acceptance 164 unit / 84 integration verdi, SDL invariato); Phase 8 complete, PR #11 open
 
-Progress: [██████████] 100% (phases 1–7 complete; Phase 8 next)
+Progress: [██████████] 100% (phases 1–8 complete; Phase 9 next)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 81
+- Total plans completed: 97
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -51,6 +51,7 @@ Progress: [██████████] 100% (phases 1–7 complete; Phase 8 
 | 03.1 | 6 | - | - |
 | 03.1 | 6 | - | - |
 | 5 | 8 | - | - |
+| 8 | 14 | - | - |
 
 **Recent Trend:**
 
@@ -114,6 +115,20 @@ Progress: [██████████] 100% (phases 1–7 complete; Phase 8 
 | Phase 07 P06 | 5 min | 2 tasks | 3 files |
 | Phase 07 P07 | 6 min | 2 tasks | 6 files |
 | Phase 07 P08 | 10 min | 2 tasks | 4 files |
+| Phase 08 P01 | 4 min | 2 tasks | 14 files |
+| Phase 08 P02 | 3 min | 2 tasks | 9 files |
+| Phase 08 P04 | 8 min | 2 tasks | 6 files |
+| Phase 08 P03 | 6 min | 2 tasks | 8 files |
+| Phase 08 P05 | 6 min | 3 tasks | 13 files |
+| Phase 08 P06 | 9 min | 3 tasks | 7 files |
+| Phase 08 P07 | 6 min | 1 tasks | 3 files |
+| Phase 08 P08 | 6 min | 2 tasks | 8 files |
+| Phase 08 P09 | 12 min | 2 tasks | 6 files |
+| Phase 08 P10 | 7 min | 2 tasks | 6 files |
+| Phase 08 P11 | 12 min | 2 tasks | 6 files |
+| Phase 08 P12 | 10 min | 2 tasks | 9 files |
+| Phase 08 P13 | 9 min | 2 tasks | 6 files |
+| Phase 08 P14 | 14 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -199,6 +214,20 @@ Recent decisions affecting current work:
 - [Phase 07]: 07-06: QuestAcceptanceService.accept({ ownerId, characterId, questId }) lane-aware: pre-letture lean → regole pure → costo validato prima della transazione (QUEST_NOT_ACCEPTABLE + WARN con solo id e corsia) → città del marker in una query cities.exists → transazione claim → registrazione $expr (solo condivise) → PendingQuest con pointsSpent → debitUserPoints(ownerId, cost, session); Character.coins mai toccato, costCopper rimosso (D-08, D-18)
 - [Phase 07]: 07-07: acceptQuest(request: AcceptQuestRequest { id, questId }): CommonResponse! owner-only in QuestAcceptanceResolver (QuestAcceptanceModule + AuthzModule), resolver senza logica (objectIdFromHex/requireCharacterObjectId ⇒ NOT_FOUND); corsia su characterUpdated, saldo su userUpdated; real boot con EXPECTED_OWNER_ONLY_HANDLERS e SDL additivo (D-11, D-12, C5)
 - [Phase 07]: 07-08: gate di fase verde — unit 85 suite / 1259 test, integration 49 / 606 (dopo l'aggiornamento dell'aspettativa obsoleta delle corsie in character-creation.resolver.int-spec.ts, solo test), build ok, lint filtrato 0 righe, schema.gql senza drift e solo additivo, un solo ownerOnly, @Public 7 = develop, nessuna dipendenza nuova; BACKEND-NOTES.md per FE Phase 6 e BE 8/9, BE-QUEST-01..04 Complete, 07-VALIDATION approved
+- [Phase 08]: 08-01: contratto SDL in Wave 1 — CharacterStatus.activeTravel: ActiveTravel { duration Float! ms, endTime, road: TravelPath { coordinates [[Float!]!]!, distance km }, startTime, to: ID! (hex del POI, nessun populate) }, kind (free|quest) persistito ma mai su GraphQL; PendingQuest.startDate e Pet.speedModifier nullable default null; requiredAdventurers: [QuestPartySlot!]! con title nullable (jolly), registeredAdventurers: [QuestRegistration!]! { character: ID!, title }; party/registrations rimossi; diff SDL vs develop = solo le 5 righe D-20; int-spec di src/quests/acceptance rotte fino a 08-06
+- [Phase 08]: 08-02: codici D-19 (TRAVEL_IN_PROGRESS, TRAVEL_SAME_LOCATION, TRAVEL_DESTINATION_NOT_ALLOWED, TRAVEL_NO_PATH, QUEST_IN_PROGRESS) con messaggi italiani fissi, ResourceNotFoundException.pointOfInterest 'Luogo non trovato', refIdOf condiviso in src/mongo/document-id.ts; quest-capacity.ts puro (slotsOf fail-closed, slotRuleOf, hasSeatFor D-32 slot esatti prima dei jolly, isFullForEveryone, seatAvailableExpr specchio $expr) pronto per 08-06
+- [Phase 08]: 08-04: RoadsService.routeBetween(from, to): RoadRoute | null (mai eccezioni: grafo assente, snap > 5 km, stesso nodo, nessun cammino ⇒ null) su routeOf puro in src/roads/road-route.ts; polilinea orientata con estremi = POI originali, km/ore solo sugli archi; lightestEdge = arco parallelo di peso minimo (graphology elenca i paralleli dal più recente); getShortestPath invariato; RoadsModule registra PointOfInterest (C3)
+- [Phase 08]: 08-03: catalogo quest D-31 — QUEST_CATALOG_POPULATE (markerLocation, enemy, relatedLore, item di recommendedLoot/prizeItem/randomLoot) con cloni assetQuantitySchemaAt(path) a refPath assoluto (AssetQuantitySchema originale invariato), dropOrphanCatalogRefs (enemy null, voci orfane scartate, prizeItem null), quest(id) malformato/inesistente ⇒ NOT_FOUND 'Missione non trovata', QuestsModule registra i 6 modelli; schema.gql invariato
+- [Phase 08]: 08-05: regole pure del viaggio in src/travel — speedOf (10 × speedModifier, fallback 10 con invalid), durationMsOf round(baseHours×3.6e6×10/speed), buildActiveTravel (duration = endTime − startTime), classifyFreeTravel DESTINATION_NOT_ALLOWED → TRAVEL_IN_PROGRESS → QUEST_IN_PROGRESS → SAME_LOCATION → NO_PATH; filtri puri di avvio/completamento (identità startTime+endTime, endTime ≤ now, pipeline $status.activeTravel.to)/countdown/teleport (solo pendingQuest blocca)/scaduti, mai $$NOW; job Bull coda 'travel', job 'complete', jobId travel-<hex>-<startMs>, travelJobDataOf valida i dati; TRAVEL_SWEEP_INTERVAL_MS opzionale fail-closed (vuota 60000, 0 = off, max 2147483647)
+- [Phase 08]: 08-06: accettazione a slot D-32 — REGISTERED_TYPES { worldMission, boss, enemy, aid }, registrationRuleOf ('invalid' ⇒ QUEST_NOT_ACCEPTABLE prima della transazione, WARN con solo id), TRAVEL_IN_PROGRESS prima regola e 'status.activeTravel': null nel filtro di ogni corsia, città del marker solo per QuestLane.standard (story/worldMission da qualunque città), registrationFilter $expr = seatAvailableExpr su registeredAdventurers { character, title }; int-spec di src/quests/acceptance di nuovo verdi
+- [Phase 08]: 08-07: archiveCurrentCharacter libera i posti (D-30) con updateMany + $pull su registeredAdventurers.character nella stessa session dell'archivio, solo se il personaggio è stato archiviato; Quest nel forFeature di CharacterDeletionModule; PendingQuest e activeTravel restano sul documento archiviato
+- [Phase 08]: 08-08: TravelPlanner (planFree lean senza scritture: NOT_FOUND personaggio/luogo, poi classifyFreeTravel, rotta da routeBetween, velocità dal pet con WARN solo per modificatore invalido; planAuto null + WARN coi soli id = salto istantaneo) e TravelScheduler (jobId travel-<hex>-<startMs>, delay max(0, endTime − clock), removeOnComplete, mai throw; cancel best-effort) in TravelPlanningModule (coda 'travel' esportata, RoadsModule, Clock locale, senza PushModule C6); helper di test persistTravelWorld, FakeTravelQueue, buildPet/persistPet
+- [Phase 08]: 08-09: TravelCompletionService.complete = un findOneAndUpdate condizionale (identità startTime+endTime, endTime ≤ clock, attivo) a pipeline in connection.transaction con returnDocument before; countdown quest a endTime pianificato nella stessa session solo se startDate null; push travelEnd solo kind free, dopo il commit, solo dalla chiamata che ha matchato (owner via currentCharacter); TravelSweeper reconciler al boot (void) + setInterval unref single-flight (0 = off), completamenti in serie con errore loggato per id+codice; TravelModule (Character/PendingQuest/User, PushModule, TRAVEL_CONFIG, Clock locale) esporta completion e sweeper, non ancora in AppModule
+- [Phase 08]: 08-10: TravelCompletionProcessor (@Processor('travel') @Process('complete')) = solo trigger: travelJobDataOf ⇒ WARN `Job di viaggio <job.id> malformato: ignorato`, endTime > clock ⇒ LOG `Job di viaggio <jobId> in anticipo: lo completerà lo sweep` senza scritture né ri-accodamento (C10), altrimenti TravelCompletionService.complete; TravelModule importa TravelPlanningModule (coda) ed è montato in AppModule dopo QuestAcceptanceModule; real boot con TRAVEL_SWEEP_INTERVAL_MS='0', schema.gql invariato; prova su Redis effimero reale con SystemClock e polling
+- [Phase 08]: 08-11: accept esteso (non duplicato) col viaggio automatico della sola corsia standard — movementTo/planAuto prima della transazione, LaneMovement nello stesso $set del claim (status.activeTravel per il viaggio, status.location = marker per il salto senza strada con WARN coi soli id), PendingQuest con startDate null in viaggio e ora altrimenti (marker = posizione ⇒ nessun movimento), scheduler.schedule dopo il commit (best-effort, lo sweep copre); QuestAcceptanceModule importa TravelPlanningModule, mai PushModule (C6); nessuna asserzione esistente da adattare, schema.gql invariato
+- [Phase 08]: 08-12: startTravel (Mutation) / travelPreview (Query) owner-only (D-18) in TravelResolver, TravelModule importa AuthzModule ed esporta TravelService; avvio = planFree + un solo findOneAndUpdate condizionale + schedule best-effort; preview stesso piano senza scritture; TravelRequest { id, poiId } riusabile dal teleport; poiId malformato ⇒ NOT_FOUND 'Luogo non trovato'; schema.gql solo additivo
+- [Phase 08]: 08-13: teleportCharacter(request: TravelRequest!) @Roles(innkeeper) in TravelAdminResolver; TravelService.teleport = esistenza POI + un solo findOneAndUpdate condizionale (attivo, pendingQuest null) con returnDocument before + scheduler.cancel best-effort dallo startTime before; qualsiasi POI (TravelModule registra PointOfInterest); audit target { type: 'CommonResponse', id: null } con args.request; nessuna push, nessuna scrittura quest; SDL +1 riga
+- [Phase 08]: 08-14: gate finale verde senza fix (unit 95/1415, int 57/739); BACKEND-NOTES con dati UAT in §11 e scala delle durate (speedFactor e geometria come sole leve) in §8; BE-TRAVEL-01..04 Complete
 
 ### Pending Todos
 
@@ -218,8 +247,14 @@ None yet.
 - **Branch non pushati:** `feat/01-fondazione-test-consolidamento-spell-wip` e `feat/02-auth-identity-foundation` (la Phase 2 poggia sulla Phase 1, non ancora su `develop`); PR da aprire a mano verso `develop`.
 - `JWT_SECRET` (≥ 32 caratteri) è ora obbligatoria al boot su ogni ambiente; righe `.env` per il dev bypass in `BACKEND-NOTES.md` §7.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 261022-f0n | worldMission accettabile solo dalla sua città (D-26 emendata: solo la story da qualunque città; correzione utente) | 2026-10-22 | bc7b7f7 | [261022-f0n-worldmission-accettabile-solo-dalla-sua-](./quick/261022-f0n-worldmission-accettabile-solo-dalla-sua-/) |
+
 ## Session Continuity
 
-Last session: 2026-10-21T12:15:00.000Z
-Stopped at: Phase 7 complete (2026-10-21) — PR #10 open
-Resume file: .planning/phases/07-quest-lanes-quest-04/BACKEND-NOTES.md
+Last session: 2026-10-21T21:27:28.008Z
+Stopped at: Completed 08-14-PLAN.md
+Resume file: None

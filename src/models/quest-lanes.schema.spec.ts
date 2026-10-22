@@ -45,55 +45,83 @@ describe('quest lanes schemas', () => {
     });
 });
 
-describe('quest party and registrations schemas', () => {
-    it('defaults the quest party to an empty list', () => {
-        expect(QuestRequirementsSchema.path('party').instance).toBe('Array');
+describe('quest rank slots and registered adventurers schemas', () => {
+    it('stores the required adventurers as rank slots defaulting to an empty list', () => {
+        expect(
+            QuestRequirementsSchema.path('requiredAdventurers').instance,
+        ).toBe('Array');
+        expect(QuestRequirementsSchema.path('party')).toBeUndefined();
 
-        const Probe = model('QuestRequirementsProbe', QuestRequirementsSchema);
-        const requirements = new Probe({
-            requiredAdventurers: 0,
-            minTitle: 'rookie',
-        });
+        const Probe = model(
+            'QuestRequirementsSlotsProbe',
+            QuestRequirementsSchema,
+        );
 
-        expect(requirements.toObject().party).toEqual([]);
+        expect(
+            new Probe({ minTitle: 'rookie' }).toObject().requiredAdventurers,
+        ).toEqual([]);
     });
 
-    it('accepts only party slots with a known title and a positive count', () => {
-        const Slot = model('QuestPartySlotProbe', QuestPartySlotSchema);
+    it('accepts rank slots with a known or null title and a positive count', () => {
+        const Slot = model('QuestRankSlotProbe', QuestPartySlotSchema);
 
         expect(
             new Slot({ title: 'hero', count: 5 }).validateSync(),
         ).toBeUndefined();
         expect(
-            new Slot({ title: 'hero', count: 0 }).validateSync()?.errors.count,
-        ).toBeDefined();
+            new Slot({ title: null, count: 1 }).validateSync(),
+        ).toBeUndefined();
+
+        const anyRank = new Slot({ count: 2 });
+
+        expect(anyRank.validateSync()).toBeUndefined();
+        expect(anyRank.title).toBeNull();
         expect(
             new Slot({ title: 'king', count: 1 }).validateSync()?.errors.title,
         ).toBeDefined();
         expect(
-            new Slot({ count: 1 }).validateSync()?.errors.title,
+            new Slot({ title: 'hero', count: 0 }).validateSync()?.errors.count,
+        ).toBeDefined();
+        expect(
+            new Slot({ title: 'hero' }).validateSync()?.errors.count,
         ).toBeDefined();
     });
 
-    it('stores each registration as a cast character ref with its title', () => {
-        const registrations = (
-            QuestSchema.path('registrations') as unknown as { schema: Schema }
+    it('stores each registered adventurer as a cast character ref with its title', () => {
+        expect(QuestSchema.path('registrations')).toBeUndefined();
+
+        const registered = (
+            QuestSchema.path('registeredAdventurers') as unknown as {
+                schema: Schema;
+            }
         ).schema;
 
-        expect(registrations.path('character').instance).toBe('ObjectId');
-        expect(registrations.path('title').instance).toBe('String');
+        expect(registered.path('character').instance).toBe('ObjectId');
+        expect(registered.path('title').instance).toBe('String');
     });
 
-    it('defaults the quest registrations to an empty list', () => {
-        const Probe = model('QuestProbe', QuestSchema);
+    it('defaults the registered adventurers to an empty list and validates their title', () => {
+        const Probe = model('QuestRegisteredProbe', QuestSchema);
 
-        expect(new Probe(buildQuest()).get('registrations')).toHaveLength(0);
+        expect(
+            new Probe(buildQuest()).get('registeredAdventurers'),
+        ).toHaveLength(0);
+        expect(
+            new Probe(
+                buildQuest({
+                    registeredAdventurers: [
+                        { character: new Types.ObjectId(), title: 'king' },
+                    ],
+                }),
+            ).validateSync()?.errors['registeredAdventurers.0.title'],
+        ).toBeDefined();
     });
 
-    it('builds a quest fixture with an empty party and no registrations', () => {
+    it('builds a quest fixture with empty rank slots and no party or registrations', () => {
         const quest = buildQuest();
 
-        expect(quest.requirements.party).toEqual([]);
-        expect(quest.registrations).toEqual([]);
+        expect(quest.requirements.requiredAdventurers).toEqual([]);
+        expect('party' in quest.requirements).toBe(false);
+        expect('registrations' in quest).toBe(false);
     });
 });

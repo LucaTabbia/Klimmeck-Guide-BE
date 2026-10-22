@@ -35,4 +35,8 @@ export class ResourceNotFoundException extends NotFoundException {
     static spell(): ResourceNotFoundException {
         return new ResourceNotFoundException('Magia non trovata');
     }
+
+    static pointOfInterest(): ResourceNotFoundException {
+        return new ResourceNotFoundException('Luogo non trovato');
+    }
 }

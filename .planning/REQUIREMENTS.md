@@ -89,10 +89,10 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Travel (BE-TRAVEL)
 
-- [ ] **BE-TRAVEL-01**: `Character.status` espone `activeTravel { road, startTime, endTime, duration }` su schema e subscription → FE TRAVEL-01, sblocca Phase 7 FE (staging)
-- [ ] **BE-TRAVEL-02**: Mutation `startTravel(poiId)`: valida che il character sia libero (no travel attivo), calcola percorso/ETA server-side via graphology e persiste `activeTravel`; esiste una query di preview ETA per la conferma FE → FE TRAVEL-02
-- [ ] **BE-TRAVEL-03**: Completamento server-side: alla scadenza di `endTime` il BE cancella `activeTravel`, aggiorna `location` ed emette via subscription + push travel-end. Il DB è la fonte di verità dei timer (endTime persistito): job Bull come trigger + reconciler al boot per i viaggi scaduti → FE TRAVEL-03/04
-- [ ] **BE-TRAVEL-04**: Teleport admin atomico: override di `location` e clear di `activeTravel` (incluso il job pendente) in un'unica operazione → FE ADMIN-04
+- [x] **BE-TRAVEL-01**: `Character.status` espone `activeTravel { road, startTime, endTime, duration }` su schema e subscription → FE TRAVEL-01, sblocca Phase 7 FE (staging)
+- [x] **BE-TRAVEL-02**: Mutation `startTravel(poiId)`: valida che il character sia libero (no travel attivo), calcola percorso/ETA server-side via graphology e persiste `activeTravel`; esiste una query di preview ETA per la conferma FE → FE TRAVEL-02
+- [x] **BE-TRAVEL-03**: Completamento server-side: alla scadenza di `endTime` il BE cancella `activeTravel`, aggiorna `location` ed emette via subscription + push travel-end. Il DB è la fonte di verità dei timer (endTime persistito): job Bull come trigger + reconciler al boot per i viaggi scaduti → FE TRAVEL-03/04
+- [x] **BE-TRAVEL-04**: Teleport admin atomico: override di `location` e clear di `activeTravel` (incluso il job pendente) in un'unica operazione → FE ADMIN-04
 
 ### Combat Result (BE-COMBAT)
 
@@ -119,6 +119,7 @@ Deferred a post-v1.0. Tracciati ma non nella roadmap corrente.
 - **BE-FUT-01**: Refresh/rotazione del JWT di sessione (per v1.0: TTL breve + re-login trasparente FE)
 - **BE-FUT-02**: Redis PubSub adapter per scaling orizzontale delle subscription
 - **BE-FUT-03**: Pet/mount speed modifiers su `activeTravel.duration` (FE FUT-02)
+  _Anticipato nella Phase 8 (D-08, 2026-10-21): `Pet.speedModifier` modifica la durata di ogni viaggio._
 - **BE-FUT-04**: Combat log round-per-round (FE FUT-01)
 - **BE-FUT-05**: Riconciliazione/refund redemption EventSub (reject della redemption su Twitch quando il credito fallisce)
 
@@ -180,10 +181,10 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-QUEST-02 | Phase 7 | Complete |
 | BE-QUEST-03 | Phase 7 | Complete |
 | BE-QUEST-04 | Phase 7 | Complete |
-| BE-TRAVEL-01 | Phase 8 | Pending |
-| BE-TRAVEL-02 | Phase 8 | Pending |
-| BE-TRAVEL-03 | Phase 8 | Pending |
-| BE-TRAVEL-04 | Phase 8 | Pending |
+| BE-TRAVEL-01 | Phase 8 | Complete |
+| BE-TRAVEL-02 | Phase 8 | Complete |
+| BE-TRAVEL-03 | Phase 8 | Complete |
+| BE-TRAVEL-04 | Phase 8 | Complete |
 | BE-COMBAT-01 | Phase 9 | Pending |
 | BE-COMBAT-02 | Phase 9 | Pending |
 | BE-COMBAT-03 | Phase 9 | Pending |

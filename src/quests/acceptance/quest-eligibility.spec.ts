@@ -2,16 +2,14 @@ import { Types } from 'mongoose';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import {
-    capacityRuleOf,
     CharacterEligibilitySnapshot,
     classifyEligibility,
-    hasCapacity,
+    isRegistered,
     isRepeatable,
-    isShared,
     meetsTitle,
     pointsCostOf,
     QuestEligibilitySnapshot,
-    Registration,
+    registrationRuleOf,
     TITLE_RANK,
     waitingTimeOf,
 } from './quest-eligibility';
@@ -79,10 +77,58 @@ describe('quest eligibility rules', () => {
         },
     );
 
-    it.each(Object.values(QuestType))('isShared(%s)', (type) => {
-        expect(isShared(type)).toBe(
-            type === QuestType.worldMission || type === QuestType.boss,
+    it.each([
+        QuestType.worldMission,
+        QuestType.boss,
+        QuestType.enemy,
+        QuestType.aid,
+    ])('isRegistered(%s) is true', (type) => {
+        expect(isRegistered(type)).toBe(true);
+    });
+
+    it.each([
+        QuestType.hunt,
+        QuestType.dungeon,
+        QuestType.job,
+        QuestType.heal,
+        QuestType.study,
+        QuestType.story,
+        QuestType.crime,
+        QuestType.guard,
+    ])('isRegistered(%s) is false', (type) => {
+        expect(isRegistered(type)).toBe(false);
+    });
+
+    describe('registrationRuleOf', () => {
+        it('has no rule for a quest without registration', () => {
+            expect(
+                registrationRuleOf(QuestType.hunt, {
+                    requiredAdventurers: 'qualsiasi',
+                }),
+            ).toBeNull();
+        });
+
+        it('builds the slot rule of a registered quest', () => {
+            expect(
+                registrationRuleOf(QuestType.enemy, {
+                    requiredAdventurers: [{ title: null, count: 1 }],
+                }),
+            ).toEqual({ seats: {}, wildcard: 1, total: 1 });
+        });
+
+        it.each([[{ requiredAdventurers: [] }], [{ requiredAdventurers: 1 }]])(
+            'an enemy with %p is invalid',
+            (requirements) => {
+                expect(registrationRuleOf(QuestType.enemy, requirements)).toBe(
+                    'invalid',
+                );
+            },
         );
+
+        it('a registered quest without requirements is invalid', () => {
+            expect(registrationRuleOf(QuestType.enemy, null)).toBe('invalid');
+            expect(registrationRuleOf(QuestType.aid, {})).toBe('invalid');
+        });
     });
 
     describe('pointsCostOf', () => {
@@ -150,159 +196,6 @@ describe('quest eligibility rules', () => {
         );
     });
 
-    describe('capacityRuleOf', () => {
-        const party = [
-            { title: TitleType.hero, count: 1 },
-            { title: TitleType.paladin, count: 1 },
-        ];
-
-        it('uses the exact slot of the rank', () => {
-            expect(capacityRuleOf({ party }, TitleType.hero)).toEqual({
-                kind: 'perRank',
-                title: 'hero',
-                limit: 1,
-            });
-        });
-
-        it('gives zero seats to a rank missing from the party', () => {
-            expect(capacityRuleOf({ party }, TitleType.mage)).toEqual({
-                kind: 'perRank',
-                title: 'mage',
-                limit: 0,
-            });
-        });
-
-        it('falls back to requiredAdventurers with an empty or missing party', () => {
-            expect(
-                capacityRuleOf(
-                    { party: [], requiredAdventurers: 2 },
-                    TitleType.hero,
-                ),
-            ).toEqual({ kind: 'total', limit: 2 });
-            expect(
-                capacityRuleOf({ requiredAdventurers: 2 }, TitleType.hero),
-            ).toEqual({ kind: 'total', limit: 2 });
-        });
-
-        it('is unlimited without party and without requiredAdventurers', () => {
-            expect(
-                capacityRuleOf(
-                    { party: [], requiredAdventurers: 0 },
-                    TitleType.hero,
-                ),
-            ).toEqual({ kind: 'unlimited' });
-            expect(capacityRuleOf(null, TitleType.hero)).toEqual({
-                kind: 'unlimited',
-            });
-            expect(capacityRuleOf(undefined, TitleType.hero)).toEqual({
-                kind: 'unlimited',
-            });
-        });
-    });
-
-    describe('hasCapacity', () => {
-        const registered = (title: TitleType) => ({
-            character: new Types.ObjectId(),
-            title,
-        });
-        const rosterOf = (...registrations: Registration[]) => ({
-            registrations,
-        });
-        const legacyIds = (count: number) =>
-            Array.from({ length: count }, () =>
-                new Types.ObjectId().toHexString(),
-            );
-
-        it('an unlimited quest always has room', () => {
-            const many = Array.from({ length: 99 }, () =>
-                registered(TitleType.hero),
-            );
-
-            expect(hasCapacity({ kind: 'unlimited' }, rosterOf(...many))).toBe(
-                true,
-            );
-        });
-
-        it('counts only the registrations of the same rank', () => {
-            const rule = {
-                kind: 'perRank',
-                title: TitleType.hero,
-                limit: 1,
-            } as const;
-
-            expect(
-                hasCapacity(rule, rosterOf(registered(TitleType.hero))),
-            ).toBe(false);
-            expect(
-                hasCapacity(rule, rosterOf(registered(TitleType.paladin))),
-            ).toBe(true);
-        });
-
-        it('a rank with zero seats is always full', () => {
-            expect(
-                hasCapacity(
-                    { kind: 'perRank', title: TitleType.mage, limit: 0 },
-                    rosterOf(),
-                ),
-            ).toBe(false);
-        });
-
-        it('counts every registration for a total limit', () => {
-            const rule = { kind: 'total', limit: 2 } as const;
-
-            expect(
-                hasCapacity(
-                    rule,
-                    rosterOf(
-                        registered(TitleType.hero),
-                        registered(TitleType.paladin),
-                    ),
-                ),
-            ).toBe(false);
-            expect(
-                hasCapacity(rule, rosterOf(registered(TitleType.hero))),
-            ).toBe(true);
-        });
-
-        it('counts the legacy adventurers for a total limit', () => {
-            const rule = { kind: 'total', limit: 2 } as const;
-
-            expect(
-                hasCapacity(rule, {
-                    registrations: [],
-                    registeredAdventurers: legacyIds(2),
-                }),
-            ).toBe(false);
-            expect(
-                hasCapacity(rule, {
-                    registrations: [registered(TitleType.hero)],
-                    registeredAdventurers: legacyIds(1),
-                }),
-            ).toBe(true);
-        });
-
-        it('ignores the legacy adventurers for a per-rank limit (no title)', () => {
-            expect(
-                hasCapacity(
-                    { kind: 'perRank', title: TitleType.hero, limit: 1 },
-                    { registrations: [], registeredAdventurers: legacyIds(3) },
-                ),
-            ).toBe(true);
-        });
-
-        it('treats missing registrations as none', () => {
-            const rule = { kind: 'total', limit: 1 } as const;
-
-            expect(
-                hasCapacity(rule, {
-                    registrations: null,
-                    registeredAdventurers: null,
-                }),
-            ).toBe(true);
-            expect(hasCapacity(rule, {})).toBe(true);
-        });
-    });
-
     describe('classifyEligibility', () => {
         const questId = new Types.ObjectId();
         const characterId = new Types.ObjectId();
@@ -314,8 +207,7 @@ describe('quest eligibility rules', () => {
             return {
                 _id: questId,
                 infos: { type },
-                requirements: { minTitle: TitleType.rookie, party: [] },
-                registrations: [],
+                requirements: { minTitle: TitleType.rookie },
                 registeredAdventurers: [],
                 ...overrides,
             };
@@ -326,10 +218,11 @@ describe('quest eligibility rules', () => {
             quests: Partial<
                 NonNullable<CharacterEligibilitySnapshot['quests']>
             > = {},
+            activeTravel: unknown = null,
         ): CharacterEligibilitySnapshot {
             return {
                 _id: characterId,
-                status: { title },
+                status: { title, activeTravel },
                 quests: {
                     completedQuests: [],
                     pendingQuest: null,
@@ -340,6 +233,15 @@ describe('quest eligibility rules', () => {
             };
         }
 
+        function ruleOf(quest: QuestEligibilitySnapshot) {
+            const rule = registrationRuleOf(
+                quest.infos.type,
+                quest.requirements,
+            );
+            if (rule === 'invalid') throw new Error('invalid slots in test');
+            return rule;
+        }
+
         function classify(
             quest: QuestEligibilitySnapshot,
             character: CharacterEligibilitySnapshot,
@@ -348,17 +250,65 @@ describe('quest eligibility rules', () => {
                 quest,
                 character,
                 laneOf(quest.infos.type),
+                ruleOf(quest),
             );
         }
 
-        const heroParty = {
+        const heroSlot = {
             minTitle: TitleType.rookie,
-            party: [{ title: TitleType.hero, count: 1 }],
+            requiredAdventurers: [{ title: TitleType.hero, count: 1 }],
         };
         const otherHero = {
             character: new Types.ObjectId(),
             title: TitleType.hero,
         };
+        const travelling = { endTime: new Date('2026-10-21T12:00:00Z') };
+
+        it('rejects a travelling character before every other rule', () => {
+            const completedBusy = characterOf(
+                TitleType.rookie,
+                {
+                    completedQuests: [questId],
+                    activeStoryQuest: new Types.ObjectId(),
+                },
+                travelling,
+            );
+
+            expect(
+                classify(questOf(QuestType.story), completedBusy),
+            ).toMatchObject({ code: 'TRAVEL_IN_PROGRESS' });
+            expect(
+                classify(
+                    questOf(QuestType.story, {
+                        requirements: { minTitle: TitleType.hero },
+                    }),
+                    characterOf(TitleType.rookie, {}, travelling),
+                ),
+            ).toMatchObject({ code: 'TRAVEL_IN_PROGRESS' });
+            expect(
+                classify(
+                    questOf(QuestType.hunt),
+                    characterOf(
+                        TitleType.rookie,
+                        { pendingQuest: new Types.ObjectId() },
+                        travelling,
+                    ),
+                ),
+            ).toMatchObject({ code: 'TRAVEL_IN_PROGRESS' });
+        });
+
+        it('applies the following rules when the character is not travelling', () => {
+            const absent: CharacterEligibilitySnapshot = {
+                _id: characterId,
+                status: { title: TitleType.rookie },
+                quests: { activeStoryQuest: new Types.ObjectId() },
+            };
+
+            expect(classify(questOf(QuestType.hunt), characterOf())).toBeNull();
+            expect(classify(questOf(QuestType.story), absent)).toMatchObject({
+                code: 'QUEST_SLOT_BUSY',
+            });
+        });
 
         it('rejects a completed story (ObjectId form)', () => {
             expect(
@@ -394,24 +344,36 @@ describe('quest eligibility rules', () => {
         });
 
         it('rejects a world mission the character already joined, even with the lane busy', () => {
-            const busy = { activeWorldMissionQuest: new Types.ObjectId() };
-
             expect(
                 classify(
                     questOf(QuestType.worldMission, {
-                        registeredAdventurers: [characterId.toHexString()],
-                    }),
-                    characterOf(TitleType.rookie, busy),
-                ),
-            ).toMatchObject({ code: 'QUEST_ALREADY_TAKEN' });
-            expect(
-                classify(
-                    questOf(QuestType.worldMission, {
-                        registrations: [
-                            { character: characterId, title: TitleType.rookie },
+                        requirements: heroSlot,
+                        registeredAdventurers: [
+                            { character: characterId, title: TitleType.hero },
                         ],
                     }),
-                    characterOf(TitleType.rookie, busy),
+                    characterOf(TitleType.hero, {
+                        activeWorldMissionQuest: new Types.ObjectId(),
+                    }),
+                ),
+            ).toMatchObject({ code: 'QUEST_ALREADY_TAKEN' });
+        });
+
+        it('rejects an enemy the character already joined', () => {
+            expect(
+                classify(
+                    questOf(QuestType.enemy, {
+                        requirements: {
+                            requiredAdventurers: [{ title: null, count: 3 }],
+                        },
+                        registeredAdventurers: [
+                            {
+                                character: characterId.toHexString(),
+                                title: TitleType.hero,
+                            },
+                        ],
+                    }),
+                    characterOf(TitleType.hero),
                 ),
             ).toMatchObject({ code: 'QUEST_ALREADY_TAKEN' });
         });
@@ -444,8 +406,8 @@ describe('quest eligibility rules', () => {
             expect(
                 classify(
                     questOf(QuestType.worldMission, {
-                        requirements: heroParty,
-                        registrations: [otherHero],
+                        requirements: heroSlot,
+                        registeredAdventurers: [otherHero],
                     }),
                     characterOf(TitleType.hero, {
                         activeWorldMissionQuest: new Types.ObjectId(),
@@ -473,67 +435,81 @@ describe('quest eligibility rules', () => {
             ).toBeNull();
         });
 
-        it('rejects a world mission whose rank is full or missing', () => {
-            const quest = questOf(QuestType.worldMission, {
-                requirements: heroParty,
-                registrations: [otherHero],
-            });
-
-            expect(classify(quest, characterOf(TitleType.hero))).toMatchObject({
-                code: 'QUEST_FULL',
-            });
+        it('rejects a world mission without a seat for the rank', () => {
             expect(
                 classify(
                     questOf(QuestType.worldMission, {
-                        requirements: heroParty,
+                        requirements: heroSlot,
+                        registeredAdventurers: [otherHero],
                     }),
+                    characterOf(TitleType.hero),
+                ),
+            ).toMatchObject({ code: 'QUEST_FULL' });
+            expect(
+                classify(
+                    questOf(QuestType.worldMission, { requirements: heroSlot }),
                     characterOf(TitleType.paladin),
                 ),
             ).toMatchObject({ code: 'QUEST_FULL' });
         });
 
-        it('rejects a boss whose rank is full', () => {
+        it.each([QuestType.boss, QuestType.enemy, QuestType.aid])(
+            'rejects a full %s',
+            (type) => {
+                expect(
+                    classify(
+                        questOf(type, {
+                            requirements: {
+                                requiredAdventurers: [
+                                    { title: null, count: 1 },
+                                ],
+                            },
+                            registeredAdventurers: [otherHero],
+                        }),
+                        characterOf(TitleType.hero),
+                    ),
+                ).toMatchObject({ code: 'QUEST_FULL' });
+            },
+        );
+
+        it('applies the canonical case shared with the FE (D-32)', () => {
+            const quest = questOf(QuestType.worldMission, {
+                requirements: {
+                    requiredAdventurers: [
+                        { title: TitleType.hero, count: 1 },
+                        { title: null, count: 2 },
+                    ],
+                },
+                registeredAdventurers: [
+                    {
+                        character: new Types.ObjectId(),
+                        title: TitleType.paladin,
+                    },
+                    { character: new Types.ObjectId(), title: TitleType.mage },
+                ],
+            });
+
             expect(
-                classify(
-                    questOf(QuestType.boss, {
-                        requirements: heroParty,
-                        registrations: [otherHero],
-                    }),
-                    characterOf(TitleType.hero),
-                ),
+                classify(quest, characterOf(TitleType.paladin)),
             ).toMatchObject({ code: 'QUEST_FULL' });
+            expect(classify(quest, characterOf(TitleType.hero))).toBeNull();
         });
 
-        it('rejects a legacy world mission whose total is taken by legacy adventurers', () => {
-            expect(
-                classify(
-                    questOf(QuestType.worldMission, {
-                        requirements: {
-                            minTitle: TitleType.rookie,
-                            party: [],
-                            requiredAdventurers: 1,
-                        },
-                        registrations: [],
-                        registeredAdventurers: [
-                            new Types.ObjectId().toHexString(),
-                        ],
-                    }),
-                    characterOf(TitleType.rookie),
-                ),
-            ).toMatchObject({ code: 'QUEST_FULL' });
-        });
+        it('never applies a capacity without a rule', () => {
+            const quest = questOf(QuestType.hunt, {
+                requirements: {
+                    minTitle: TitleType.rookie,
+                    requiredAdventurers: 1,
+                },
+                registeredAdventurers: [otherHero],
+            });
 
-        it('never applies a capacity to a story', () => {
             expect(
-                classify(
-                    questOf(QuestType.story, {
-                        requirements: {
-                            minTitle: TitleType.rookie,
-                            requiredAdventurers: 1,
-                        },
-                        registrations: [otherHero],
-                    }),
+                classifyEligibility(
+                    quest,
                     characterOf(TitleType.rookie),
+                    QuestLane.standard,
+                    null,
                 ),
             ).toBeNull();
         });
@@ -541,9 +517,7 @@ describe('quest eligibility rules', () => {
         it('accepts when everything is free', () => {
             expect(
                 classify(
-                    questOf(QuestType.worldMission, {
-                        requirements: heroParty,
-                    }),
+                    questOf(QuestType.worldMission, { requirements: heroSlot }),
                     characterOf(TitleType.hero),
                 ),
             ).toBeNull();

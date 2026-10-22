@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { TravelKind } from 'src/models/character/active-travel.model';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import {
@@ -10,9 +11,9 @@ import {
     laneClaimUpdate,
     registrationFilter,
     registrationUpdate,
-    takenCountExpr,
     UnclaimedSnapshot,
 } from './quest-acceptance.updates';
+import { seatAvailableExpr, slotRuleOf } from './quest-capacity';
 import { QuestLane } from './quest-lanes';
 
 describe('quest acceptance write builders', () => {
@@ -27,11 +28,31 @@ describe('quest acceptance write builders', () => {
     };
 
     describe('laneClaimFilter', () => {
-        it('reasserts lane, title, location and non repeatability on the active character', () => {
+        it('reasserts lane, travel, title and location on the active character for the standard lane', () => {
+            const filter = laneClaimFilter(
+                c,
+                QuestLane.standard,
+                expected,
+                q,
+                true,
+            );
+
+            expect(filter).toEqual({
+                _id: c,
+                deletedAt: null,
+                'quests.pendingQuest': null,
+                'status.activeTravel': null,
+                'status.title': 'rookie',
+                'status.location': { $in: [loc, loc.toHexString()] },
+            });
+            expect(filter._id).toBeInstanceOf(Types.ObjectId);
+        });
+
+        it('has no location only for the story lane and keeps the completed guard', () => {
             const filter = laneClaimFilter(
                 c,
                 QuestLane.story,
-                expected,
+                { title: TitleType.rookie },
                 q,
                 false,
             );
@@ -40,90 +61,105 @@ describe('quest acceptance write builders', () => {
                 _id: c,
                 deletedAt: null,
                 'quests.activeStoryQuest': null,
+                'status.activeTravel': null,
                 'status.title': 'rookie',
-                'status.location': { $in: [loc, loc.toHexString()] },
                 'quests.completedQuests': { $nin: [q, q.toHexString()] },
             });
-            expect(filter._id).toBeInstanceOf(Types.ObjectId);
+            expect(filter).not.toHaveProperty(['status.location']);
         });
 
-        it('drops the completed guard for a repeatable quest', () => {
+        it('reasserts the location for the world mission lane', () => {
             expect(
-                laneClaimFilter(c, QuestLane.standard, expected, q, true),
+                laneClaimFilter(c, QuestLane.worldMission, expected, q, true),
             ).toEqual({
                 _id: c,
                 deletedAt: null,
-                'quests.pendingQuest': null,
+                'quests.activeWorldMissionQuest': null,
+                'status.activeTravel': null,
                 'status.title': 'rookie',
                 'status.location': { $in: [loc, loc.toHexString()] },
             });
         });
     });
 
-    it('laneClaimUpdate sets the lane to the new pending quest', () => {
-        expect(laneClaimUpdate(QuestLane.worldMission, p)).toEqual({
-            $set: { 'quests.activeWorldMissionQuest': p },
+    describe('laneClaimUpdate', () => {
+        it('sets the lane to the new pending quest', () => {
+            expect(laneClaimUpdate(QuestLane.worldMission, p)).toEqual({
+                $set: { 'quests.activeWorldMissionQuest': p },
+            });
         });
-    });
 
-    describe('takenCountExpr', () => {
-        it('counts the registrations of the rank', () => {
+        it('sets only the standard lane without a movement', () => {
+            expect(laneClaimUpdate(QuestLane.standard, p)).toEqual({
+                $set: { 'quests.pendingQuest': p },
+            });
+            expect(laneClaimUpdate(QuestLane.standard, p, null)).toEqual({
+                $set: { 'quests.pendingQuest': p },
+            });
+        });
+
+        it('writes the travel to the marker in the same update as the claim (D-21)', () => {
+            const travel = {
+                road: {
+                    coordinates: [
+                        [0, 0],
+                        [0.1, 0],
+                    ] as [number, number][],
+                    distance: 11.1,
+                },
+                startTime: new Date('2026-03-04T05:06:07.000Z'),
+                endTime: new Date('2026-03-04T06:06:07.000Z'),
+                duration: 3_600_000,
+                to: loc,
+                kind: TravelKind.quest,
+            };
+
             expect(
-                takenCountExpr({
-                    kind: 'perRank',
-                    title: TitleType.hero,
-                    limit: 2,
+                laneClaimUpdate(QuestLane.standard, p, {
+                    kind: 'travel',
+                    travel,
                 }),
             ).toEqual({
-                $size: {
-                    $filter: {
-                        input: { $ifNull: ['$registrations', []] },
-                        as: 'registration',
-                        cond: { $eq: ['$$registration.title', 'hero'] },
-                    },
+                $set: {
+                    'quests.pendingQuest': p,
+                    'status.activeTravel': travel,
                 },
             });
         });
 
-        it('counts the longer of registrations and legacy adventurers for a total limit', () => {
-            expect(takenCountExpr({ kind: 'total', limit: 2 })).toEqual({
-                $max: [
-                    { $size: { $ifNull: ['$registrations', []] } },
-                    { $size: { $ifNull: ['$registeredAdventurers', []] } },
-                ],
+        it('moves the character onto the marker in the same update as the claim (D-03)', () => {
+            expect(
+                laneClaimUpdate(QuestLane.standard, p, {
+                    kind: 'jump',
+                    marker: loc,
+                }),
+            ).toEqual({
+                $set: {
+                    'quests.pendingQuest': p,
+                    'status.location': loc,
+                },
             });
         });
     });
 
     describe('registrationFilter', () => {
-        it('guards duplicates and live capacity in the same filter', () => {
-            const rule = {
-                kind: 'perRank',
-                title: TitleType.hero,
-                limit: 2,
-            } as const;
+        it('guards duplicates and the live seats in the same filter', () => {
+            const rule = slotRuleOf([
+                { title: TitleType.hero, count: 1 },
+                { title: null, count: 2 },
+            ]);
 
-            expect(registrationFilter(q, c, rule)).toEqual({
+            expect(registrationFilter(q, c, rule, TitleType.hero)).toEqual({
                 _id: q,
-                'registrations.character': { $ne: c },
-                registeredAdventurers: { $ne: c.toHexString() },
-                $expr: { $lt: [takenCountExpr(rule), 2] },
-            });
-        });
-
-        it('has no capacity guard for an unlimited quest', () => {
-            expect(registrationFilter(q, c, { kind: 'unlimited' })).toEqual({
-                _id: q,
-                'registrations.character': { $ne: c },
-                registeredAdventurers: { $ne: c.toHexString() },
+                'registeredAdventurers.character': { $ne: c },
+                $expr: seatAvailableExpr(rule, TitleType.hero),
             });
         });
     });
 
     it('registrationUpdate records the character with its title', () => {
-        expect(registrationUpdate(c, TitleType.paladin)).toEqual({
-            $push: { registrations: { character: c, title: 'paladin' } },
-            $addToSet: { registeredAdventurers: c.toHexString() },
+        expect(registrationUpdate(c, TitleType.hero)).toEqual({
+            $push: { registeredAdventurers: { character: c, title: 'hero' } },
         });
     });
 
@@ -159,6 +195,20 @@ describe('quest acceptance write builders', () => {
                 code: 'NOT_FOUND',
                 message: 'Personaggio non trovato',
             });
+        });
+
+        it('a travelling character is TRAVEL_IN_PROGRESS before a busy lane', () => {
+            expect(
+                classify(
+                    freshOf({
+                        status: {
+                            title: TitleType.rookie,
+                            activeTravel: { endTime: new Date() },
+                        },
+                        quests: { activeStoryQuest: new Types.ObjectId() },
+                    }),
+                ),
+            ).toMatchObject({ code: 'TRAVEL_IN_PROGRESS' });
         });
 
         it('a busy lane is QUEST_SLOT_BUSY', () => {
@@ -221,7 +271,13 @@ describe('quest acceptance write builders', () => {
             ).toMatchObject({ code: 'QUEST_TITLE_MISMATCH' });
         });
 
-        it('a changed location is QUEST_NOT_IN_CITY', () => {
+        it('a changed location is QUEST_NOT_IN_CITY for the standard lane', () => {
+            const hunt: ClaimedQuest = {
+                id: q,
+                type: QuestType.hunt,
+                minTitle: TitleType.rookie,
+            };
+
             expect(
                 classify(
                     freshOf({
@@ -230,8 +286,44 @@ describe('quest acceptance write builders', () => {
                             location: new Types.ObjectId(),
                         },
                     }),
+                    hunt,
                 ),
             ).toMatchObject({ code: 'QUEST_NOT_IN_CITY' });
+        });
+
+        it('a changed location is QUEST_NOT_IN_CITY for the world mission lane', () => {
+            const worldMission: ClaimedQuest = {
+                id: q,
+                type: QuestType.worldMission,
+                minTitle: TitleType.rookie,
+            };
+
+            expect(
+                classify(
+                    freshOf({
+                        status: {
+                            title: TitleType.rookie,
+                            location: new Types.ObjectId(),
+                        },
+                    }),
+                    worldMission,
+                ),
+            ).toMatchObject({ code: 'QUEST_NOT_IN_CITY' });
+        });
+
+        it('a changed location without an expected one falls back to QUEST_SLOT_BUSY', () => {
+            expect(
+                classifyUnclaimed(
+                    freshOf({
+                        status: {
+                            title: TitleType.rookie,
+                            location: new Types.ObjectId(),
+                        },
+                    }),
+                    story,
+                    { title: TitleType.rookie },
+                ),
+            ).toMatchObject({ code: 'QUEST_SLOT_BUSY' });
         });
 
         it('the same location saved as a string is still in the city', () => {
@@ -266,36 +358,32 @@ describe('quest acceptance write builders', () => {
             expect(
                 classifyUnregistered(
                     {
-                        registrations: [
+                        registeredAdventurers: [
                             { character: c, title: TitleType.hero },
                         ],
                     },
                     c,
                 ),
             ).toMatchObject({ code: 'QUEST_ALREADY_TAKEN' });
-            expect(
-                classifyUnregistered(
-                    { registeredAdventurers: [c.toHexString()] },
-                    c,
-                ),
-            ).toMatchObject({ code: 'QUEST_ALREADY_TAKEN' });
         });
 
-        it('otherwise the rank is full', () => {
+        it('otherwise there is no seat', () => {
             expect(
                 classifyUnregistered(
                     {
-                        registrations: [
+                        registeredAdventurers: [
                             {
                                 character: new Types.ObjectId(),
                                 title: TitleType.hero,
                             },
                         ],
-                        registeredAdventurers: [],
                     },
                     c,
                 ),
             ).toMatchObject({ code: 'QUEST_FULL' });
+            expect(classifyUnregistered({}, c)).toMatchObject({
+                code: 'QUEST_FULL',
+            });
         });
     });
 });

@@ -7,3 +7,4 @@ export * from './character.fixture';
 export * from './quest.fixture';
 export * from './session.fixture';
 export * from './catalog-item.fixture';
+export * from './pet.fixture';

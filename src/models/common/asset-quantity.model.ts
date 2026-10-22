@@ -1,6 +1,6 @@
 import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { EquipmentItem } from '../equipment-item.model';
 import { LootItem } from '../loot-item.model';
 import { ItemUnion } from './item.union';
@@ -10,7 +10,6 @@ export type ItemReferenceType = 'EquipmentItem' | 'LootItem';
 @ObjectType()
 @Schema({ _id: false })
 export class AssetQuantity {
-
     @Prop({ type: String, required: true, enum: ['EquipmentItem', 'LootItem'] })
     itemType: ItemReferenceType;
 
@@ -26,6 +25,12 @@ export class AssetQuantity {
 export type AssetQuantityDocument = AssetQuantity & Document;
 export const AssetQuantitySchema = SchemaFactory.createForClass(AssetQuantity);
 
+// il refPath relativo non risolve negli array di sotto-documenti (probe Mongoose 8.18.1): ogni uso nel catalogo quest dichiara il proprio path assoluto
+export function assetQuantitySchemaAt(path: string): MongooseSchema {
+    const schema = AssetQuantitySchema.clone();
+    schema.path('item').options.refPath = `${path}.itemType`;
+    return schema;
+}
 
 @InputType()
 export class AssetQuantityInput {
@@ -35,4 +40,3 @@ export class AssetQuantityInput {
     @Field(() => Int)
     quantity: number;
 }
-
