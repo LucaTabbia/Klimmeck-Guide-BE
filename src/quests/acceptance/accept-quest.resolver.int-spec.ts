@@ -605,6 +605,25 @@ describe('acceptQuest (wire)', () => {
         });
     });
 
+    it('rejects a world mission from another city on the wire', async () => {
+        const p = await playerWith('wandering-hero', {
+            location: await otherCityMarker(),
+        });
+        const questId = await questOf('worldMission', {
+            requiredPoints: 3000,
+            requiredAdventurers: [{ title: null, count: 3 }],
+        });
+
+        const body = await accept({ id: characterIdOf(p), questId }, p.bearer);
+
+        expectRejected(
+            body,
+            'QUEST_NOT_IN_CITY',
+            'Devi trovarti nella città della missione',
+        );
+        expect(await pointsOf(p)).toBe(RICH_BALANCE);
+    });
+
     it('exposes the registered adventurers and the rank slots on quests', async () => {
         const first = await playerWith('first');
         const second = await playerWith('second');

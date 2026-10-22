@@ -48,7 +48,7 @@ describe('quest acceptance write builders', () => {
             expect(filter._id).toBeInstanceOf(Types.ObjectId);
         });
 
-        it('has no location for the any-city lanes and keeps the completed guard', () => {
+        it('has no location only for the story lane and keeps the completed guard', () => {
             const filter = laneClaimFilter(
                 c,
                 QuestLane.story,
@@ -66,6 +66,19 @@ describe('quest acceptance write builders', () => {
                 'quests.completedQuests': { $nin: [q, q.toHexString()] },
             });
             expect(filter).not.toHaveProperty(['status.location']);
+        });
+
+        it('reasserts the location for the world mission lane', () => {
+            expect(
+                laneClaimFilter(c, QuestLane.worldMission, expected, q, true),
+            ).toEqual({
+                _id: c,
+                deletedAt: null,
+                'quests.activeWorldMissionQuest': null,
+                'status.activeTravel': null,
+                'status.title': 'rookie',
+                'status.location': { $in: [loc, loc.toHexString()] },
+            });
         });
     });
 
@@ -274,6 +287,26 @@ describe('quest acceptance write builders', () => {
                         },
                     }),
                     hunt,
+                ),
+            ).toMatchObject({ code: 'QUEST_NOT_IN_CITY' });
+        });
+
+        it('a changed location is QUEST_NOT_IN_CITY for the world mission lane', () => {
+            const worldMission: ClaimedQuest = {
+                id: q,
+                type: QuestType.worldMission,
+                minTitle: TitleType.rookie,
+            };
+
+            expect(
+                classify(
+                    freshOf({
+                        status: {
+                            title: TitleType.rookie,
+                            location: new Types.ObjectId(),
+                        },
+                    }),
+                    worldMission,
                 ),
             ).toMatchObject({ code: 'QUEST_NOT_IN_CITY' });
         });

@@ -1081,7 +1081,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect(await pointsOf(ownerId)).toBe(5000);
         });
 
-        it('accepts a world mission from another city', async () => {
+        it('rejects a world mission from another city with QUEST_NOT_IN_CITY and writes nothing', async () => {
             const ownerId = await ownerWith(6000);
             const charId = await characterAt(await otherCityMarker());
             const questId = await questOf('worldMission', {
@@ -1089,11 +1089,37 @@ describe('QuestAcceptanceService (replSet)', () => {
                 requiredAdventurers: ANY_THREE,
             });
 
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_NOT_IN_CITY' });
+
+            expect(
+                (await raw(charId))?.quests.activeWorldMissionQuest ?? null,
+            ).toBeNull();
+            expect(
+                (await rawQuest(questId))?.registeredAdventurers ?? [],
+            ).toEqual([]);
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('accepts a world mission from a point of interest of the quest city', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityPoi);
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                requiredAdventurers: ANY_THREE,
+            });
+
             const pqId = await accept(ownerId, charId, questId);
 
-            expect((await raw(charId))?.quests.activeWorldMissionQuest).toEqual(
-                pqId,
-            );
+            const character = await raw(charId);
+            expect(character?.quests.activeWorldMissionQuest).toEqual(pqId);
+            expect(character?.status.location).toEqual(world.cityPoi);
+            expect(character?.status.activeTravel ?? null).toBeNull();
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual([
+                { character: charId, title: 'rookie' },
+            ]);
             expect(await pointsOf(ownerId)).toBe(3000);
         });
 
