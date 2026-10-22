@@ -31,7 +31,7 @@ Nota di design: la rimozione del job è best-effort. L'atomicità è del DB, e i
 
 | Decisione | Stato | Evidenza |
 |-----------|-------|----------|
-| D-26 story/worldMission da qualunque città | VERIFIED | `quest-eligibility.ts` / `quest-acceptance.updates.ts` (suite `quest-eligibility.spec`, `quest-lanes.spec` verdi) |
+| D-26 (emendata 2026-10-22) solo story da qualunque città; worldMission legata alla città | VERIFIED | `quest-acceptance.service.ts` / `quest-acceptance.updates.ts` (spec `rejects a world mission from another city with QUEST_NOT_IN_CITY and writes nothing`, `accepts a world mission from a point of interest of the quest city`, `rejects a world mission from another city on the wire`, `accepts a story from another city` verdi) |
 | D-27 registrazione enemy/aid con capienza | VERIFIED | `quest-capacity.ts`, `quest-acceptance.service.ts`; `QUEST_FULL` / `QUEST_NOT_ACCEPTABLE` |
 | D-28 nuovi tipi senza campi extra | VERIFIED | SDL: `registeredAdventurers: [QuestRegistration!]!`, `requiredAdventurers: [QuestPartySlot!]!` (title nullable), `party` rimosso, `registrations` assente |
 | D-29/D-32 regola e algoritmo di capienza | VERIFIED | `quest-capacity.spec` verde (esempio canonico), espressione `$expr` nel claim |

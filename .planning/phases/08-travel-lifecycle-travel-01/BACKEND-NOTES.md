@@ -188,7 +188,7 @@ Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` 
 | `FORBIDDEN` | `Questo personaggio non ti appartiene` / `Operazione riservata al locandiere` | owner-only / `teleportCharacter` | `startTravel`/`travelPreview`/`acceptQuest` su un personaggio che non è il `currentCharacter` del chiamante (**anche per l'innkeeper**); teleport chiamato da un non innkeeper | errore generico; l'innkeeper muove gli altri solo col teleport |
 | `UNAUTHENTICATED` | `Authentication required` | tutte | nessun bearer valido | flusso di refresh/login esistente |
 
-Restano invariati i codici di Phase 7 su `acceptQuest` (`QUEST_SLOT_BUSY`, `QUEST_ALREADY_TAKEN`, `QUEST_TITLE_MISMATCH`, `QUEST_NOT_IN_CITY` — quest'ultimo **solo per la corsia standard**, §10 —, `INSUFFICIENT_POINTS`).
+Restano invariati i codici di Phase 7 su `acceptQuest` (`QUEST_SLOT_BUSY`, `QUEST_ALREADY_TAKEN`, `QUEST_TITLE_MISMATCH`, `QUEST_NOT_IN_CITY` — quest'ultimo **per la corsia standard e la worldMission; esente solo la story**, §10 —, `INSUFFICIENT_POINTS`).
 
 **Ordine di valutazione di `startTravel` / `travelPreview`** (guard, resolver, `TravelPlanner.planFree` + `classifyFreeTravel`, poi `classifyUnstarted`):
 
@@ -201,8 +201,8 @@ Restano invariati i codici di Phase 7 su `acceptQuest` (`QUEST_SLOT_BUSY`, `QUES
 **Ordine di valutazione di `acceptQuest`** (Phase 7 emendato, `QuestAcceptanceService.accept`):
 
 1. Guard, ownership owner-only e id malformati come in Phase 7.
-2. Pre-verifica: quest inesistente → `NOT_FOUND` → `QUEST_NOT_ACCEPTABLE` (costo, poi slot) → personaggio inesistente/archiviato `NOT_FOUND` → **`TRAVEL_IN_PROGRESS`** → `QUEST_ALREADY_TAKEN` → `QUEST_TITLE_MISMATCH` → `QUEST_SLOT_BUSY` → `QUEST_FULL` → (solo corsia standard) `QUEST_NOT_IN_CITY` → (solo corsia standard, marker diverso dalla posizione) `QUEST_NOT_ACCEPTABLE` se il marker non ha un documento POI.
-3. Transazione (solo in corsa): claim della corsia (`NOT_FOUND` → `TRAVEL_IN_PROGRESS` → `QUEST_SLOT_BUSY` → `QUEST_ALREADY_TAKEN` → `QUEST_TITLE_MISMATCH` → `QUEST_NOT_IN_CITY` se la posizione era attesa), registrazione (`QUEST_ALREADY_TAKEN` o `QUEST_FULL`), debito (`INSUFFICIENT_POINTS`).
+2. Pre-verifica: quest inesistente → `NOT_FOUND` → `QUEST_NOT_ACCEPTABLE` (costo, poi slot) → personaggio inesistente/archiviato `NOT_FOUND` → **`TRAVEL_IN_PROGRESS`** → `QUEST_ALREADY_TAKEN` → `QUEST_TITLE_MISMATCH` → `QUEST_SLOT_BUSY` → `QUEST_FULL` → (corsia standard e worldMission) `QUEST_NOT_IN_CITY` → (solo corsia standard, marker diverso dalla posizione) `QUEST_NOT_ACCEPTABLE` se il marker non ha un documento POI.
+3. Transazione (solo in corsa): claim della corsia (`NOT_FOUND` → `TRAVEL_IN_PROGRESS` → `QUEST_SLOT_BUSY` → `QUEST_ALREADY_TAKEN` → `QUEST_TITLE_MISMATCH` → `QUEST_NOT_IN_CITY` se la posizione era attesa (corsia standard e worldMission)), registrazione (`QUEST_ALREADY_TAKEN` o `QUEST_FULL`), debito (`INSUFFICIENT_POINTS`).
 
 **Ordine di valutazione di `teleportCharacter`:** `UNAUTHENTICATED` → `FORBIDDEN` (non innkeeper) → `poiId` malformato `NOT_FOUND` (`Luogo non trovato`) → `request.id` malformato `NOT_FOUND` → POI inesistente `NOT_FOUND` → personaggio inesistente o archiviato `NOT_FOUND` → `QUEST_IN_PROGRESS`.
 
@@ -216,7 +216,7 @@ Restano invariati i codici di Phase 7 su `acceptQuest` (`QUEST_SLOT_BUSY`, `QUES
   - marker **uguale** alla posizione → nessun viaggio, `startDate` = ora dell'accettazione (countdown subito);
   - **nessuna strada** verso il marker (D-03) → **salto istantaneo**: `status.location` = marker nello stesso update, nessun `activeTravel`, `startDate` = ora, WARN lato server con i soli id. (Il viaggio libero senza strada invece rifiuta `TRAVEL_NO_PATH`.) Il salto vale **solo se il POI del marker esiste**: un `markerLocation` senza documento POI è un difetto di catalogo e l'accettazione è rifiutata con `QUEST_NOT_ACCEPTABLE` prima della transazione (nessuna scrittura, WARN con gli id di quest e POI).
 - **Stesso nodo stradale = nessun percorso.** `routeBetween` aggancia ogni POI al nodo del grafo più vicino (nodo esatto, altrimenti entro 5 km): due POI distinti che agganciano **lo stesso nodo** non hanno rotta (`null`, come "nessuna strada"). Effetti: il viaggio libero risponde `TRAVEL_NO_PATH`; il viaggio da quest **salta istantaneamente** con il WARN di D-03. Un marker di quest che aggancia lo stesso nodo del marker della sua città (es. entro 5 km senza un nodo stradale più vicino) salta quindi **by design**, a ogni accettazione: per avere un viaggio reale il marker deve stare su (o agganciare) un nodo stradale **diverso** da quello della città.
-- **Story e worldMission** non muovono il personaggio, non bloccano il viaggio libero e sono accettabili da qualunque città (D-26).
+- **Story e worldMission** non muovono il personaggio e non bloccano il viaggio libero; la story è accettabile da qualunque città, la worldMission solo dalla città del suo marker (D-26 emendata 2026-10-22).
 - **Guard sull'accettazione (D-06):** `acceptQuest` con `activeTravel` presente → `TRAVEL_IN_PROGRESS`, su tutte e tre le corsie.
 - **Blocchi del viaggio libero (D-04):** `TRAVEL_IN_PROGRESS` con un viaggio attivo; `QUEST_IN_PROGRESS` con `pendingQuest` popolata (il personaggio resta sul marker finché la Phase 9 non chiude la quest).
 - **Nessun annullamento né cambio meta (D-05).**
@@ -300,7 +300,7 @@ Lettura: i viaggi fra città vicine stanno "in ore"; l'attraversata della mappa 
 - **Algoritmo di capienza per rango (D-32), riferimento unico BE/FE** — verbatim: dati `requiredAdventurers = [{ title, count }]`: `exact(T)` = somma dei `count` degli slot con `title = T`; `any` = somma dei `count` degli slot con `title` nullo; `reg(T)` = registrati di titolo `T`; `overflow` = Σ_T max(0, reg(T) − exact(T)). Un personaggio di titolo `T` può registrarsi se **`reg(T) < exact(T)` oppure `overflow < any`**; altrimenti `QUEST_FULL`. Totale = Σ `count`; la quest è piena per tutti quando Σ_T reg(T) ≥ totale. (Gli slot esatti si riempiono prima dei jolly.)
   - **Caso canonico** (test nominato lato BE, da replicare lato FE): slot `[{ hero, 1 }, { null, 2 }]`, registrati `[paladin, mage]` → `overflow` = 2 = `any`: un terzo **`paladin` riceve `QUEST_FULL`**, un **`hero` riesce** (`reg(hero)` 0 < `exact(hero)` 1).
   - Scheda "strappata per tutti" se Σ reg ≥ totale; "strappata per me" se il mio titolo non ha posto secondo la regola sopra; altrimenti intera.
-- **D-26:** story e worldMission sono accettabili **da qualunque città** (nessun controllo di posizione); il vincolo `QUEST_NOT_IN_CITY` resta solo per la corsia standard.
+- **D-26 (emendata 2026-10-22):** solo la story è accettabile **da qualunque città**; la worldMission, come la corsia standard, richiede di essere nella città del marker (`QUEST_NOT_IN_CITY`).
 - **Selezioni:** `registeredAdventurers { character title }` (`character` = id del personaggio, `title` = rango al momento della registrazione) e `requiredAdventurers { title count }` (`title` nullo = qualsiasi rango). `party` e `registrations` non esistono più: i modelli FE `QuestRequirements` / `Quest.fromJson` vanno adeguati.
 
 ---
@@ -309,7 +309,7 @@ Lettura: i viaggi fra città vicine stanno "in ore"; l'attraversata della mappa 
 
 Il handoff Phase 7 §2/§6 è **superato** sul vincolo di città per story/worldMission e sulla forma di `party` / `registeredAdventurers` / `requiredAdventurers`.
 
-- **D-26 — città:** story e worldMission accettabili da qualunque città; la definizione "in città" (marker della città o uno dei suoi `pointsOfInterest`) vale solo per la corsia standard.
+- **D-26 — città (emendata 2026-10-22):** solo la story è accettabile da qualunque città; la definizione "in città" (marker della città o uno dei suoi `pointsOfInterest`) vale per la corsia standard e per la worldMission.
 - **D-27 — tipi registrati:** **registrati** (posto sulla Quest, capienza, `QUEST_FULL`): `worldMission`, `boss`, `enemy`, `aid`. **Non registrati** (nessuna capienza, più personaggi in contemporanea): `hunt`, `dungeon`, `job`, `heal`, `study` (e `crime`, `guard`). Story: corsia propria, non registrata. Una quest registrata **senza slot validi** (`requiredAdventurers` assente, `[]`, numerico legacy, `count` non intero ≥ 1, `title` non in `rookie|adventurer|paladin|mage|hero|legend|null`) → **`QUEST_NOT_ACCEPTABLE`** fail-closed, nessuna scrittura, WARN con il solo id. I tipi non registrati ignorano gli slot.
 - **D-28 — forme:** `registeredAdventurers: [{ character, title }]` (unica fonte, `registrations` rimosso); `requiredAdventurers: [{ title, count }]` (`party` rimosso), `title: null` = qualsiasi rango. Esempi: enemy `[{ title: null, count: 1 }]`; worldMission `[{ title: 'hero', count: 5 }, { title: 'paladin', count: 4 }]`.
 - **Slot esatti prima dei jolly (D-32, §9):** un hero occupa prima un posto `hero`, poi un jolly; un paladin senza slot `paladin` occupa solo un jolly.
@@ -383,6 +383,7 @@ db.characters.updateOne({ _id: ObjectId('<characterId>') }, { $set: { 'assets.pe
 - `Road.speedFactor` numerico > 0 su ogni strada (oggi 3–7, §8); è l'unica leva di durata a DB. Dopo una modifica: **riavviare il server** (il grafo si costruisce all'avvio).
 - Ogni città ha un `markerLocation` che è un POI nella propria lista `pointsOfInterest` (167/167 oggi): i marker delle città sono le sole mete del viaggio libero.
 - Il `markerLocation` di ogni quest della corsia standard deve essere un POI **esistente** (altrimenti `QUEST_NOT_ACCEPTABLE`), tra i `pointsOfInterest` di una città (altrimenti `QUEST_NOT_IN_CITY`), agganciabile alla rete stradale entro 5 km e su un nodo stradale **diverso** da quello del marker della città (altrimenti salto istantaneo, §3/§8).
+- Il `markerLocation` di ogni worldMission deve stare tra i `pointsOfInterest` di una città (altrimenti `QUEST_NOT_IN_CITY`); la worldMission non fa viaggiare il personaggio, quindi non serve l'aggancio alla rete stradale.
 - Il personaggio di prova deve avere `status.location` su un POI (es. il marker di una città), altrimenti il viaggio libero risponde `TRAVEL_NO_PATH`.
 
 **(d) Checklist UAT manuale** (dopo la FE Phase 7):
