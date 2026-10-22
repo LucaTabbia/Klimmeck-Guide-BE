@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 Phase: 8 (travel-lifecycle-travel-01) — COMPLETE 2026-10-21 (14/14 plans; code review 0 critical / 2 warning / 8 info, both warnings + IN-01/IN-07 fixed in TDD; verification passed 4/4 success criteria + D-26..D-32, device UAT deferred to the FE Phase 7 UAT — 08-HUMAN-UAT partial; security audit: 71 minacce, 64 mitigate, 4 accettate, 3 trasferite, 0 aperte)
 Plan: 14 of 14
 Status: Phase 8 complete — PR #11 open, awaiting review/merge; next /gsd-discuss-phase 9
-Last activity: 2026-10-22 -- Phase 8 closed: gate green after the review fixes (unit 95 suites / 1416 tests, integration 57 suites / 743 tests, build, lint, schema.gql additive + 3 declared exceptions); BACKEND-NOTES published for FE Phase 6/7; branch pushed, PR opened
+Last activity: 2026-10-22 -- Completed quick task 261022-f0n: worldMission accettabile solo dalla sua città (D-26 emendata, acceptance 164 unit / 84 integration verdi, SDL invariato); Phase 8 complete, PR #11 open
 
 Progress: [██████████] 100% (phases 1–8 complete; Phase 9 next)
 
@@ -246,6 +246,12 @@ None yet.
 - **Phase 2 — UAT umane pendenti** (`02-HUMAN-UAT.md`): login Twitch reale (chiavi non ancora disponibili), pipeline GitHub Actions reale, controllo duplicati `twitchId` sui dati reali.
 - **Branch non pushati:** `feat/01-fondazione-test-consolidamento-spell-wip` e `feat/02-auth-identity-foundation` (la Phase 2 poggia sulla Phase 1, non ancora su `develop`); PR da aprire a mano verso `develop`.
 - `JWT_SECRET` (≥ 32 caratteri) è ora obbligatoria al boot su ogni ambiente; righe `.env` per il dev bypass in `BACKEND-NOTES.md` §7.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 261022-f0n | worldMission accettabile solo dalla sua città (D-26 emendata: solo la story da qualunque città; correzione utente) | 2026-10-22 | bc7b7f7 | [261022-f0n-worldmission-accettabile-solo-dalla-sua-](./quick/261022-f0n-worldmission-accettabile-solo-dalla-sua-/) |
 
 ## Session Continuity
 
