@@ -15,6 +15,7 @@ import { User, UserDocument } from 'src/models/user.model';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { RoadsService } from 'src/roads/roads.service';
 import { TravelCompletionService } from './travel-completion.service';
+import { QUEUE_CALL_TIMEOUT } from './queue-call-timeout';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
 import { TravelModule } from './travel.module';
 import { TravelService } from './travel.service';
@@ -83,6 +84,7 @@ describe('teleportCharacter', () => {
             imports: [TravelModule],
             overrides: [
                 { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+                { token: QUEUE_CALL_TIMEOUT, useValue: 50 },
                 { token: PushTransport, useValue: push },
                 { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
                 { token: TRAVEL_CONFIG, useValue: { sweepIntervalMs: 0 } },
@@ -370,6 +372,30 @@ describe('teleportCharacter', () => {
                 outcome: 'ok',
             });
             expect(push.sent).toEqual([]);
+        });
+
+        it('answers the teleport even when the job removal hangs', async () => {
+            const alice = await playerAt(world.markerA);
+            await travellingToB(alice);
+            queue.hangRemove = true;
+            const oste = await innkeeper();
+
+            const body = await teleportOnWire(
+                {
+                    id: characterIdOf(alice).toHexString(),
+                    poiId: world.questPoi.toHexString(),
+                },
+                oste.bearer,
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.teleportCharacter).toEqual({
+                response: 'Personaggio teletrasportato',
+                successful: true,
+            });
+            const raw = await rawCharacter(alice);
+            expect(raw?.status.location).toEqual(world.questPoi);
+            expect(raw?.status.activeTravel).toBeNull();
         });
 
         it('audits a rejected teleport with its code', async () => {
