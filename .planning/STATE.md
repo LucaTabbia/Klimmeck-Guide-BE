@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 Phase: 8 (travel-lifecycle-travel-01) — COMPLETE 2026-10-21 (14/14 plans; code review 0 critical / 2 warning / 8 info, both warnings + IN-01/IN-07 fixed in TDD; verification passed 4/4 success criteria + D-26..D-32, device UAT deferred to the FE Phase 7 UAT — 08-HUMAN-UAT partial; security audit: 71 minacce, 64 mitigate, 4 accettate, 3 trasferite, 0 aperte)
 Plan: 14 of 14
 Status: Phase 8 complete — PR #11 open, awaiting review/merge; next /gsd-discuss-phase 9
-Last activity: 2026-10-22 -- Completed quick task 261022-f0n: worldMission accettabile solo dalla sua città (D-26 emendata, acceptance 164 unit / 84 integration verdi, SDL invariato); Phase 8 complete, PR #11 open
+Last activity: 2026-10-22 -- Quick task 261022-rhs: travel scheduler bounded with a timeout after the device UAT incident (Redis down → mutation hung); PR fix/travel-scheduler-redis-timeout to develop; FE Phase 6 device UAT 12/12 passed
 
 Progress: [██████████] 100% (phases 1–8 complete; Phase 9 next)
 
@@ -258,3 +258,4 @@ None yet.
 Last session: 2026-10-21T21:27:28.008Z
 Stopped at: Completed 08-14-PLAN.md
 Resume file: None
+| 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |
