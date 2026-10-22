@@ -13,6 +13,10 @@ import {
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
 import { RoadsModule } from 'src/roads/roads.module';
+import {
+    QUEUE_CALL_TIMEOUT,
+    QUEUE_CALL_TIMEOUT_MS,
+} from './queue-call-timeout';
 import { TRAVEL_QUEUE } from './travel-job';
 import { TravelPlanner } from './travel-planner.service';
 import { TravelScheduler } from './travel-scheduler.service';
@@ -37,6 +41,7 @@ const TRAVEL_QUEUE_REGISTRATION = BullModule.registerQueue({
         TravelPlanner,
         TravelScheduler,
         { provide: Clock, useClass: SystemClock },
+        { provide: QUEUE_CALL_TIMEOUT, useValue: QUEUE_CALL_TIMEOUT_MS },
     ],
     exports: [TravelPlanner, TravelScheduler, TRAVEL_QUEUE_REGISTRATION],
 })
