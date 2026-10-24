@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-08-PLAN.md
-last_updated: "2026-10-24T15:40:00.000Z"
-last_activity: 2026-10-24 -- Completed 09-08 (awaiting aid guards, concluded quests, injury slowdown)
+stopped_at: Completed 09-09-PLAN.md
+last_updated: "2026-10-24T15:48:00.000Z"
+last_activity: 2026-10-24 -- Completed 09-09 (shop guard SHOP_NOT_IN_CITY at a city marker)
 progress:
   total_phases: 12
   completed_phases: 10
   total_plans: 103
-  completed_plans: 89
+  completed_plans: 90
   percent: 85
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 7 of 16
-Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 6 of 16 complete (09-01..09-04, 09-06, 09-08)
-Last activity: 2026-10-24 -- Completed 09-08 (AWAITING_AID on startTravel/travelPreview/acceptQuest in pre-check and update filter, GM teleport unchanged, injuries slow every travel via travelSpeedFactorOf, concluded quests hidden from quests/quest(id) and not acceptable, prizes.spell proven on the wire)
+Plan: 8 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 7 of 16 complete (09-01..09-04, 09-06, 09-08, 09-09)
+Last activity: 2026-10-24 -- Completed 09-09 (doTransaction answers SHOP_NOT_IN_CITY off a city marker, while travelling or awaiting aid, empty trade included; pre-check in the trade session reaffirmed in the inventory write filter; EconomyModule registers City; shop suites place traders in a city via placeInCity, C4)
 
-Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 6/16)
+Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 7/16)
 
 ## Performance Metrics
 
