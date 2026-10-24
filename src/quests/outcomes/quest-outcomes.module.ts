@@ -36,6 +36,7 @@ import {
 import { BossResolutionService } from './boss-resolution.service';
 import { ChanceSource, MathChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
+import { GmCompletionService } from './gm-completion.service';
 import { PlaceholderCombatResolver } from './combat/placeholder-combat-resolver';
 import { OutcomeWriter } from './outcome-writer.service';
 import { QuestResolutionProcessor } from './quest-resolution.processor';
@@ -79,7 +80,13 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         QuestResolutionProcessor,
         questConfigProvider,
         QuestResolutionSweeper,
+        GmCompletionService,
     ],
-    exports: [OutcomeWriter, QuestResolutionService, QuestResolutionSweeper],
+    exports: [
+        OutcomeWriter,
+        QuestResolutionService,
+        QuestResolutionSweeper,
+        GmCompletionService,
+    ],
 })
 export class QuestOutcomesModule {}
