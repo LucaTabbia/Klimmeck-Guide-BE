@@ -56,6 +56,8 @@ const TRAVEL_PREVIEW =
     '{ travelPreview(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { duration } }';
 const QUEST_RESULT = '{ questResult(id: "64b000000000000000000001") { id } }';
 const PENDING_REQUESTS = '{ pendingRequests { id } }';
+const COMPLETE_PENDING_REQUEST =
+    'mutation { completePendingRequest(input: { pendingQuestId: "64b000000000000000000001" }) { id } }';
 const TELEPORT_CHARACTER =
     'mutation { teleportCharacter(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
 // whitelist enumerata (D-12): ogni aggiunta di @Public() deve passare da qui
@@ -71,6 +73,7 @@ const EXPECTED_PUBLIC_HANDLERS = [
 const EXPECTED_INNKEEPER_HANDLERS = [
     'CharactersResolver.characters',
     'PendingQuestsResolver.pendingQuests',
+    'PendingRequestsResolver.completePendingRequest',
     'PendingRequestsResolver.pendingRequests',
     'PendingRequestsResolver.pendingRequestsUpdated',
     'PushResolver.sendTestPush',
@@ -489,6 +492,33 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toMatch(/\bkind\b|\bgrade\b|TravelKind/);
     });
 
+    it('writes the game master completion into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            '  completePendingRequest(input: CompletePendingRequestInput!): [QuestResult!]!\n',
+        );
+        expect(
+            schema.match(/input CompletePendingRequestInput \{[^}]*\}/)?.[0],
+        ).toBe(
+            'input CompletePendingRequestInput {\n  outcomes: [ParticipantOverrideInput!]\n  pendingQuestId: ID!\n}',
+        );
+        expect(schema.match(/input ItemUsageInput \{[^}]*\}/)?.[0]).toBe(
+            'input ItemUsageInput {\n  item: ID!\n  quantity: Int!\n}',
+        );
+        expect(
+            schema.match(/input ParticipantOverrideInput \{[^}]*\}/)?.[0],
+        ).toBe(
+            'input ParticipantOverrideInput {\n  characterId: ID!\n  consumablesUsed: [ItemUsageInput!]\n  hpAfter: Int\n  injuries: [InjuryType!]\n  spellsUsed: [SpellUsageInput!]\n}',
+        );
+        expect(schema.match(/input SpellUsageInput \{[^}]*\}/)?.[0]).toBe(
+            'input SpellUsageInput {\n  spell: ID!\n  usages: Int!\n}',
+        );
+        expect(schema).not.toMatch(
+            /\bgrade\b|approvePendingRequest|rejectPendingRequest/,
+        );
+    });
+
     it('writes the push API into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -652,6 +682,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             expect(errorCodeOf(await graphqlCall(app, PENDING_REQUESTS))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
+        });
+
+        it('rejects completePendingRequest without a bearer', async () => {
+            expect(
+                errorCodeOf(await graphqlCall(app, COMPLETE_PENDING_REQUEST)),
+            ).toBe(AuthErrorCode.UNAUTHENTICATED);
         });
 
         it('rejects serverTime without a bearer', async () => {
