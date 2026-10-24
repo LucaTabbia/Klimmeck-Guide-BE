@@ -156,6 +156,30 @@ describe('GameRuleException', () => {
             GameRuleErrorCode.SPELL_RECOVERY_UNAVAILABLE,
             'Recupero della magia non disponibile, riprova',
         ],
+        [
+            'awaitingAid',
+            () => GameRuleException.awaitingAid(),
+            GameRuleErrorCode.AWAITING_AID,
+            'Il tuo personaggio è in attesa di soccorso',
+        ],
+        [
+            'shopNotInCity',
+            () => GameRuleException.shopNotInCity(),
+            GameRuleErrorCode.SHOP_NOT_IN_CITY,
+            'Il negozio è disponibile solo in città',
+        ],
+        [
+            'outcomeNotParticipant',
+            () => GameRuleException.outcomeNotParticipant(),
+            GameRuleErrorCode.OUTCOME_NOT_PARTICIPANT,
+            'Il personaggio non partecipa a questa missione',
+        ],
+        [
+            'outcomeOverrideInvalid',
+            () => GameRuleException.outcomeOverrideInvalid(),
+            GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+            'Esito non valido per questo personaggio',
+        ],
     ];
 
     it.each(cases)(
