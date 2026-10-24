@@ -39,6 +39,7 @@ import { PlaceholderCombatResolver } from './combat/placeholder-combat-resolver'
 import { OutcomeWriter } from './outcome-writer.service';
 import { QuestResolutionService } from './quest-resolution.service';
 import { ResolutionLoader } from './resolution-loader.service';
+import { RescueResolutionService } from './rescue-resolution.service';
 import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-scheduling.module';
 
 // esiti delle missioni (D-21): nessun change stream qui (i processor test non ne aprono); porte sostituibili via DI
@@ -70,6 +71,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         OutcomeWriter,
         ResolutionLoader,
         BossResolutionService,
+        RescueResolutionService,
         QuestResolutionService,
     ],
     exports: [OutcomeWriter, QuestResolutionService],
