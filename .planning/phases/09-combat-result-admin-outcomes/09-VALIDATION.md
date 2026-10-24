@@ -1,9 +1,9 @@
 ---
 phase: 9
 slug: combat-result-admin-outcomes
-status: draft
+status: approved
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-10-24
 ---
 
@@ -82,8 +82,8 @@ Trappole di tooling (vincolanti, D-26 / RESEARCH Q10 e Pitfall 1–13): path jes
 | 09-15-T1 | 09-15 | 7 | BE-ADMIN-02 (D-04, Open Q 14) | T-09-73 | override limitati a HP/ferite/consumi/magie e al posseduto | unit | `npx jest src/quests/outcomes/gm-overrides.spec.ts --selectProjects unit` | ❌ W0 (RED) | ✅ green |
 | 09-15-T2 | 09-15 | 7 | BE-COMBAT-01/03, BE-ADMIN-02 (D-03, D-04, D-06, D-14) | T-09-74, T-09-76, T-09-77 | nessuna scrittura con override non valido, completamento concorrente unico | integration (replSet) | `npx jest src/quests/outcomes/gm-completion.service.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 (RED) | ✅ green |
 | 09-15-T3 | 09-15 | 7 | BE-ADMIN-02 (D-23) | T-09-72, T-09-75 | innkeeper-only, audit con outcome, whitelist enumerata | integration (wire + real boot) | `npx jest src/quests/pending-requests --selectProjects integration --runInBand && npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` | ❌ W0 → `complete-pending-request.resolver.int-spec.ts` (RED) | ✅ green |
-| 09-16-T1 | 09-16 | 8 | BE-COMBAT-01..03, BE-ADMIN-01..02 (D-26, D-28) | T-09-78..T-09-80 | suite complete, SDL additivo, invarianti | full suite + CI | `npm run test:unit && npm run test:int && npm run build && git diff --exit-code src/schema.gql` | ✅ | ⬜ pending |
-| 09-16-T2 | 09-16 | 8 | BE-COMBAT-01..03, BE-ADMIN-01..02 (D-27, D-29) | T-09-81, T-09-82 | handoff senza segreti, comandi dati con placeholder | doc check | vedi `<verify>` del task (grep su BACKEND-NOTES, REQUIREMENTS, VALIDATION, Phase 5 notes) | ❌ → `BACKEND-NOTES.md` creato | ⬜ pending |
+| 09-16-T1 | 09-16 | 8 | BE-COMBAT-01..03, BE-ADMIN-01..02 (D-26, D-28) | T-09-78..T-09-80 | suite complete, SDL additivo, invarianti | full suite + CI | `npm run test:unit && npm run test:int && npm run build && git diff --exit-code src/schema.gql` | ✅ | ✅ green |
+| 09-16-T2 | 09-16 | 8 | BE-COMBAT-01..03, BE-ADMIN-01..02 (D-27, D-29) | T-09-81, T-09-82 | handoff senza segreti, comandi dati con placeholder | doc check | vedi `<verify>` del task (grep su BACKEND-NOTES, REQUIREMENTS, VALIDATION, Phase 5 notes) | ✅ `BACKEND-NOTES.md` creato | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -93,7 +93,7 @@ Trappole di tooling (vincolanti, D-26 / RESEARCH Q10 e Pitfall 1–13): path jes
 
 Nessuna wave dedicata: ogni spec nuova nasce RED nel task che la consuma (TDD per task). Helper e file di test creati durante la fase:
 
-- [ ] `src/models/character/awaiting-aid.schema.spec.ts`, `src/models/quest/quest-outcome-fields.schema.spec.ts`, `src/models/quest-result/quest-result.schema.spec.ts` (09-01)
+- [x] `src/models/character/awaiting-aid.schema.spec.ts`, `src/models/quest/quest-outcome-fields.schema.spec.ts`, `src/models/quest-result/quest-result.schema.spec.ts` (09-01)
 - [x] `src/quests/outcomes/progression/*.spec.ts` (09-02)
 - [x] `test/quests/sequence-chance.ts` (fake di `ChanceSource`), `src/quests/outcomes/{rewards,aid,injuries}/*.spec.ts` (09-03)
 - [x] `test/quests/scripted-combat-resolver.ts`, `test/fixtures/enemy.fixture.ts` (+ export e casi in `fixtures.spec.ts`/`fixtures.int-spec.ts`), `src/quests/outcomes/combat/*.spec.ts` (09-04)
@@ -134,4 +134,6 @@ Nessuna wave dedicata: ogni spec nuova nasce RED nel task che la consuma (TDD pe
 - [x] Feedback latency ≤ 60 s per spec singola (eccezioni dichiarate: task di real boot, processor con Redis, gate 09-16)
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Execution sign-off (09-16, 2026-10-24):** gate di fase verde sul branch `feat/09-combat-result-admin-outcomes` — `npm run test:unit` **121 suite / 1765 test** (baseline 96 / 1424), `npm run test:int` **72 suite / 913 test** (~160 s, `--runInBand`; baseline 57 suite), `npm run build` exit 0, lint filtrato 0 righe, `eslint` e `prettier --check` puliti sui 174 `.ts` toccati, `git diff --exit-code src/schema.gql` pulito, diff dello schema vs `origin/develop` senza righe rimosse, letterali vietati assenti, invarianti di fase verdi (`@Public()` 7 = 7, 3 `@Roles(innkeeper)` nella coda, formula confinata nei due file segnaposto, nessun `$inc` sui saldi fuori dal wallet, unico scrittore di `level`/`maxLifePoints`, nessuna dipendenza nuova, nessun `jest.mock(`, nessun trailer). Flaky 09-14 del boot reale non riprodotto (suite completa + 2 run isolati, 43/43). Handoff in `BACKEND-NOTES.md`; restano manual-only le verifiche della tabella sopra (UAT FE Phase 7/9/10, dati a DB, conferma C5, policy Redis).
+
+**Approval:** approved 2026-10-24 (execution gate 09-16)

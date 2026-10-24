@@ -96,14 +96,14 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Combat Result (BE-COMBAT)
 
-- [ ] **BE-COMBAT-01**: Entità `CombatResult` persistita: HP prima/dopo, consumabili usati, spell usate, injuries, rewards (equipment/items/coins), XP → FE COMBAT-02..05 _(realizzata come `QuestResult` e query `questResult(id)`, 09-CONTEXT D-19/D-20)_
-- [ ] **BE-COMBAT-02**: Delivery ibrida: la subscription emette il payload completo in foreground; il push FCM (data message) porta solo `resultId`; esiste la query `combatResult(id)` per il requery → FE COMBAT-01, contratto chiuso per la Phase 9 FE _(realizzata come `QuestResult` e query `questResult(id)`, 09-CONTEXT D-19/D-20)_
-- [ ] **BE-COMBAT-03**: Gli esiti delle quest sono server-side: la corsia standard si risolve da sola alla scadenza del countdown (quest senza nemico = successo con premi; con nemico = motore di combattimento dietro una porta sostituibile, regole segnaposto) e l'innkeeper completa story/worldMission solo con esito positivo tramite mutation role-guarded, con override opzionali per personaggio (HP, ferite, consumi, magie) e nessun grade; ogni esito produce un risultato per personaggio e aggiorna il Character atomicamente → FE ADMIN-05/06 _(emendato 2026-10-24, 09-CONTEXT D-01..D-04)_
+- [x] **BE-COMBAT-01**: Entità `CombatResult` persistita: HP prima/dopo, consumabili usati, spell usate, injuries, rewards (equipment/items/coins), XP → FE COMBAT-02..05 _(realizzata come `QuestResult` e query `questResult(id)`, 09-CONTEXT D-19/D-20)_
+- [x] **BE-COMBAT-02**: Delivery ibrida: la subscription emette il payload completo in foreground; il push FCM (data message) porta solo `resultId`; esiste la query `combatResult(id)` per il requery → FE COMBAT-01, contratto chiuso per la Phase 9 FE _(realizzata come `QuestResult` e query `questResult(id)`, 09-CONTEXT D-19/D-20)_
+- [x] **BE-COMBAT-03**: Gli esiti delle quest sono server-side: la corsia standard si risolve da sola alla scadenza del countdown (quest senza nemico = successo con premi; con nemico = motore di combattimento dietro una porta sostituibile, regole segnaposto) e l'innkeeper completa story/worldMission solo con esito positivo tramite mutation role-guarded, con override opzionali per personaggio (HP, ferite, consumi, magie) e nessun grade; ogni esito produce un risultato per personaggio e aggiorna il Character atomicamente → FE ADMIN-05/06 _(emendato 2026-10-24, 09-CONTEXT D-01..D-04)_
 
 ### Admin Queue (BE-ADMIN)
 
-- [ ] **BE-ADMIN-01**: L'innkeeper ha una vista live (query + subscription) delle pending request story/worldMission, con i dati necessari al filtro FE su `activeTravel` → FE ADMIN-02
-- [ ] **BE-ADMIN-02**: Mutation di completamento (solo esito positivo, nessun reject né rimborso) per le pending request story/worldMission, role-guarded e audit-loggata, con override opzionali per personaggio → FE ADMIN-03 _(emendato 2026-10-24, 09-CONTEXT D-03/D-04)_
+- [x] **BE-ADMIN-01**: L'innkeeper ha una vista live (query + subscription) delle pending request story/worldMission, con i dati necessari al filtro FE su `activeTravel` → FE ADMIN-02
+- [x] **BE-ADMIN-02**: Mutation di completamento (solo esito positivo, nessun reject né rimborso) per le pending request story/worldMission, role-guarded e audit-loggata, con override opzionali per personaggio → FE ADMIN-03 _(emendato 2026-10-24, 09-CONTEXT D-03/D-04)_
 
 ### Hardening (BE-HARD)
 
@@ -185,11 +185,11 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-TRAVEL-02 | Phase 8 | Complete |
 | BE-TRAVEL-03 | Phase 8 | Complete |
 | BE-TRAVEL-04 | Phase 8 | Complete |
-| BE-COMBAT-01 | Phase 9 | Pending |
-| BE-COMBAT-02 | Phase 9 | Pending |
-| BE-COMBAT-03 | Phase 9 | Pending |
-| BE-ADMIN-01 | Phase 9 | Pending |
-| BE-ADMIN-02 | Phase 9 | Pending |
+| BE-COMBAT-01 | Phase 9 | Complete |
+| BE-COMBAT-02 | Phase 9 | Complete |
+| BE-COMBAT-03 | Phase 9 | Complete |
+| BE-ADMIN-01 | Phase 9 | Complete |
+| BE-ADMIN-02 | Phase 9 | Complete |
 | BE-HARD-01 | Phase 10 | Pending |
 | BE-HARD-02 | Phase 10 | Pending |
 | BE-HARD-03 | Phase 10 | Pending |
