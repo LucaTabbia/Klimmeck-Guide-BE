@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 3 of 16
-Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, plan 3 of 16 next
-Last activity: 2026-10-24 -- Completed 09-02 (LEVEL_TABLE + progressionAfter, nextTitleAfterStory, starting life points 1000, codes AWAITING_AID/SHOP_NOT_IN_CITY/OUTCOME_NOT_PARTICIPANT/OUTCOME_OVERRIDE_INVALID)
+Plan: 4 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, plan 4 of 16 next
+Last activity: 2026-10-24 -- Completed 09-03 (ChanceSource + cascading loot/rewards, aid clone + 7-day rescue timeout with C5 suspension, placeholder injury rules + travel speed factor)
 
-Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 2/16)
+Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 3/16)
 
 ## Performance Metrics
 
