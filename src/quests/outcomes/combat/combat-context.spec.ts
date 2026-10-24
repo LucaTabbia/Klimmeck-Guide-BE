@@ -119,16 +119,14 @@ describe('normalizeDamages', () => {
 });
 
 describe('combatCatalogRefsOf', () => {
-    it('collects worn equipment, active spells and owned loot ids, deduplicated', () => {
+    it('collects worn equipment, active spells and owned loot ids, deduplicated, skipping empty stacks', () => {
         const refs = combatCatalogRefsOf([heroA(), heroA(), heroB()]);
 
         expect(refs.equipmentIds.map(String).sort()).toEqual(
             [swordId, shieldId].map(String).sort(),
         );
         expect(refs.spellIds.map(String)).toEqual([String(fireballId)]);
-        expect(refs.lootIds.map(String).sort()).toEqual(
-            [potionId, herbId].map(String).sort(),
-        );
+        expect(refs.lootIds.map(String)).toEqual([String(potionId)]);
         refs.equipmentIds.forEach((ref) =>
             expect(ref).toBeInstanceOf(Types.ObjectId),
         );
