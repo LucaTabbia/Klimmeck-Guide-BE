@@ -186,4 +186,36 @@ export class GameRuleException extends BadRequestException {
             'Recupero della magia non disponibile, riprova',
         );
     }
+
+    // in attesa di soccorso (D-07): blocca viaggio e accettazione, non il teleport del GM
+    static awaitingAid(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.AWAITING_AID,
+            'Il tuo personaggio è in attesa di soccorso',
+        );
+    }
+
+    // negozio solo nel marker di una città, fuori dal viaggio e dal soccorso (D-18)
+    static shopNotInCity(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.SHOP_NOT_IN_CITY,
+            'Il negozio è disponibile solo in città',
+        );
+    }
+
+    // override del GM su un personaggio fuori dalla richiesta (D-04)
+    static outcomeNotParticipant(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.OUTCOME_NOT_PARTICIPANT,
+            'Il personaggio non partecipa a questa missione',
+        );
+    }
+
+    // override del GM fuori dai limiti dello snapshot (D-04, Open Q 14)
+    static outcomeOverrideInvalid(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+            'Esito non valido per questo personaggio',
+        );
+    }
 }
