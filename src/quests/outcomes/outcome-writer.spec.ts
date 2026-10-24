@@ -4,7 +4,11 @@ import { Types } from 'mongoose';
 import { questEnd } from 'src/push/push-events';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 import type { ParticipantPlan } from './outcome-plan';
-import { OutcomeWriter, StaleResolution } from './outcome-writer.service';
+import {
+    emptyCommitted,
+    OutcomeWriter,
+    StaleResolution,
+} from './outcome-writer.service';
 
 const NOW = new Date('2026-10-24T12:00:00.000Z');
 const TIMEOUT_MS = 50;
@@ -268,6 +272,28 @@ describe('OutcomeWriter', () => {
             await writer.updateQuest({ _id: 'q' }, null, SESSION, 'claim');
 
             expect(models.quest.updateOne).not.toHaveBeenCalled();
+        });
+    });
+});
+
+describe('emptyCommitted', () => {
+    it('hands out fresh arrays so one outcome never leaks into the next', () => {
+        const first = emptyCommitted();
+        first.results.push({
+            resultId: new Types.ObjectId(),
+            userId: new Types.ObjectId(),
+        });
+        first.aids.push({ aidQuestId: new Types.ObjectId(), since: NOW });
+        first.spellRecoveries.push({
+            characterId: 'c',
+            spellId: 's',
+            delayMs: 1,
+        });
+
+        expect(emptyCommitted()).toEqual({
+            results: [],
+            aids: [],
+            spellRecoveries: [],
         });
     });
 });
