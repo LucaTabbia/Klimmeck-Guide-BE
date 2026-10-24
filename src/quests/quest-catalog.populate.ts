@@ -1,6 +1,7 @@
 import { Types, type PopulateOptions } from 'mongoose';
 import { Enemy } from 'src/models/enemy.model';
 import { Lore } from 'src/models/lore.model';
+import { Spell } from 'src/models/spell.model';
 
 // tutti i ref che il FE seleziona sul catalogo (D-31): SDL invariato, solo comportamento
 export const QUEST_CATALOG_POPULATE: PopulateOptions[] = [
@@ -10,6 +11,7 @@ export const QUEST_CATALOG_POPULATE: PopulateOptions[] = [
     { path: 'requirements.recommendedLoot.item' },
     { path: 'prizes.prizeItem.item' },
     { path: 'prizes.randomLoot.item' },
+    { path: 'prizes.spell', model: Spell.name },
 ];
 
 interface CatalogItemEntry {

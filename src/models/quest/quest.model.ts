@@ -20,6 +20,7 @@ import {
     QuestRegistration,
     QuestRegistrationSchema,
 } from './quest-registration.model';
+import { QuestRescue, QuestRescueSchema } from './quest-rescue.model';
 
 @ObjectType()
 @Schema()
@@ -43,6 +44,14 @@ export class Quest {
     @Field(() => [QuestRegistration])
     @Prop({ type: [QuestRegistrationSchema], default: [] })
     registeredAdventurers: QuestRegistration[];
+
+    // marcatore globale (D-06): una quest registrata vinta (o una aid risolta) sparisce dalla board per tutti; interno, mai sul filo
+    @Prop({ type: Date, default: null })
+    concludedAt?: Date | null;
+
+    // solo sulle aid automatiche (D-08): interno, mai sul filo
+    @Prop({ type: QuestRescueSchema, default: null })
+    rescue?: QuestRescue | null;
 }
 
 export type QuestDocument = Quest & Document;

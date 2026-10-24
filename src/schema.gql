@@ -37,6 +37,12 @@ type AuthSession {
   user: User!
 }
 
+type AwaitingAid {
+  aidQuest: ID!
+  quest: ID!
+  since: DateTime!
+}
+
 type BaseDamage {
   power: Int!
   type: String!
@@ -78,6 +84,7 @@ type CharacterQuests {
 
 type CharacterStatus {
   activeTravel: ActiveTravel
+  awaitingAid: AwaitingAid
   coins: Coins!
   currentLifePoints: Int!
   injuries: [InjuryType!]!
@@ -473,6 +480,7 @@ type QuestPrizes {
   prizeCoins: Coins
   prizeItem: AssetQuantity
   randomLoot: [AssetQuantity!]!
+  spell: Spell
   xpPrize: Int
 }
 

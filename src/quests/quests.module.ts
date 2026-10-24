@@ -12,6 +12,7 @@ import {
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
+import { Spell, SpellSchema } from 'src/models/spell.model';
 import { QuestsResolver } from './quests.resolver';
 import { QuestsService } from './quests.service';
 
@@ -25,6 +26,7 @@ import { QuestsService } from './quests.service';
             { name: Lore.name, schema: LoreSchema },
             { name: EquipmentItem.name, schema: EquipmentItemSchema },
             { name: LootItem.name, schema: LootItemSchema },
+            { name: Spell.name, schema: SpellSchema },
         ]),
     ],
     providers: [QuestsService, QuestsResolver],
