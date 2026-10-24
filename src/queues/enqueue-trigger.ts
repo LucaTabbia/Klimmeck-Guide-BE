@@ -4,7 +4,7 @@ import type { Clock } from 'src/auth/clock';
 import {
     QUEUE_CALL_TIMED_OUT,
     withinTimeout,
-} from 'src/travel/queue-call-timeout';
+} from 'src/queues/queue-call-timeout';
 
 export interface TriggerJob<T> {
     name: string;

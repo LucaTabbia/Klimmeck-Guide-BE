@@ -8,7 +8,7 @@ import {
     QUEUE_CALL_TIMED_OUT,
     QUEUE_CALL_TIMEOUT,
     withinTimeout,
-} from './queue-call-timeout';
+} from 'src/queues/queue-call-timeout';
 import {
     TRAVEL_COMPLETE_JOB,
     TRAVEL_QUEUE,

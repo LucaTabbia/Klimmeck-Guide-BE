@@ -20,7 +20,7 @@ import type { RoadRoute } from 'src/roads/road-route';
 import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
 import { RoadsService } from 'src/roads/roads.service';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
-import { QUEUE_CALL_TIMEOUT } from './queue-call-timeout';
+import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
 import { TravelPlanner } from './travel-planner.service';
 import { TravelPlanningModule } from './travel-planning.module';

@@ -20,7 +20,7 @@ import { User, UserDocument } from 'src/models/user.model';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
 import { QuestsModule } from 'src/quests/quests.module';
 import { RoadsService } from 'src/roads/roads.service';
-import { QUEUE_CALL_TIMEOUT } from 'src/travel/queue-call-timeout';
+import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { TRAVEL_QUEUE } from 'src/travel/travel-job';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';

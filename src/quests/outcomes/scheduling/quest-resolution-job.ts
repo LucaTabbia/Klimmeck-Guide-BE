@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { objectIdFromHex } from 'src/mongo/document-id';
-import { isEpochMs } from 'src/travel/travel-job';
+import { isEpochMs } from 'src/queues/epoch-ms';
 
 export const QUEST_RESOLUTION_QUEUE = 'quest-resolution';
 export const RESOLVE_QUEST_JOB = 'resolve';

@@ -29,7 +29,7 @@ import {
     QUEUE_CALL_TIMED_OUT,
     QUEUE_CALL_TIMEOUT,
     withinTimeout,
-} from 'src/travel/queue-call-timeout';
+} from 'src/queues/queue-call-timeout';
 import type { AidQuestDraft } from './aid/aid-quest';
 import type {
     ParticipantPlan,

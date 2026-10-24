@@ -16,7 +16,7 @@ import { PushTransport } from 'src/push/transport/push-transport';
 import { RoadsService } from 'src/roads/roads.service';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { TravelCompletionService } from './travel-completion.service';
-import { QUEUE_CALL_TIMEOUT } from './queue-call-timeout';
+import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
 import { TravelModule } from './travel.module';
 import { TravelService } from './travel.service';

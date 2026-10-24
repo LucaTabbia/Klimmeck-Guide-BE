@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { objectIdFromHex } from 'src/mongo/document-id';
+import { isEpochMs } from 'src/queues/epoch-ms';
 import { TravelIdentity } from './travel.updates';
 
 export const TRAVEL_QUEUE = 'travel';
@@ -23,12 +24,6 @@ export function travelJobId(
             : characterId.toHexString();
     const ms = typeof startTime === 'number' ? startTime : startTime.getTime();
     return `travel-${id}-${ms}`;
-}
-
-export function isEpochMs(value: unknown): value is number {
-    return (
-        typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
-    );
 }
 
 // dati dalla coda = input non fidato: id esadecimale e interi non negativi, startTime ≤ endTime

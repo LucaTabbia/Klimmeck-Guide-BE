@@ -16,7 +16,7 @@ import { RoadsModule } from 'src/roads/roads.module';
 import {
     QUEUE_CALL_TIMEOUT,
     QUEUE_CALL_TIMEOUT_MS,
-} from './queue-call-timeout';
+} from 'src/queues/queue-call-timeout';
 import { TRAVEL_QUEUE } from './travel-job';
 import { TravelPlanner } from './travel-planner.service';
 import { TravelScheduler } from './travel-scheduler.service';

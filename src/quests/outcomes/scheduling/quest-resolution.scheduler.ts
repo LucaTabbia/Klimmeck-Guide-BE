@@ -4,7 +4,7 @@ import type { Queue } from 'bull';
 import { Clock } from 'src/auth/clock';
 import { aidTimeoutDueAt } from 'src/quests/outcomes/aid/aid-timeout';
 import { enqueueTrigger, TriggerContext } from 'src/queues/enqueue-trigger';
-import { QUEUE_CALL_TIMEOUT } from 'src/travel/queue-call-timeout';
+import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import {
     AID_TIMEOUT_JOB,
     AidTimeoutJobData,

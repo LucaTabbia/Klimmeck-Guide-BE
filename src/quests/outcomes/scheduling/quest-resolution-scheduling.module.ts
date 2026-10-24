@@ -4,7 +4,7 @@ import { Clock, SystemClock } from 'src/auth/clock';
 import {
     QUEUE_CALL_TIMEOUT,
     QUEUE_CALL_TIMEOUT_MS,
-} from 'src/travel/queue-call-timeout';
+} from 'src/queues/queue-call-timeout';
 import { QUEST_RESOLUTION_QUEUE } from './quest-resolution-job';
 import { QuestResolutionScheduler } from './quest-resolution.scheduler';
 
