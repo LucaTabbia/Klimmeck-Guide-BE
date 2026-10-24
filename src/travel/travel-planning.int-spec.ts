@@ -18,6 +18,7 @@ import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Road } from 'src/models/road.model';
 import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
+import { QUEUE_CALL_TIMEOUT } from './queue-call-timeout';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
 import { TravelPlanner } from './travel-planner.service';
 import { TravelPlanningModule } from './travel-planning.module';
@@ -38,6 +39,7 @@ import {
 const PLANNED_AT = new Date('2026-10-21T10:00:00.000Z');
 const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const MINUTE_MS = 60_000;
+const QUEUE_TIMEOUT_MS = 50;
 
 describe('TravelPlanner and TravelScheduler (replSet)', () => {
     let app: INestApplication;
@@ -69,6 +71,8 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
             .useValue(queue)
             .overrideProvider(Clock)
             .useValue(new FixedClock(PLANNED_AT))
+            .overrideProvider(QUEUE_CALL_TIMEOUT)
+            .useValue(QUEUE_TIMEOUT_MS)
             .compile();
         app = moduleRef.createNestApplication();
         await app.init();
@@ -469,6 +473,55 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
             expect(warn).toHaveBeenCalledTimes(1);
             expect(warn).toHaveBeenCalledWith(
                 `Rimozione del job ${jobId} non riuscita: il job si neutralizza da solo`,
+            );
+        });
+
+        it('answers within the timeout when the enqueue hangs', async () => {
+            queue.hangAdd = true;
+            const warn = warnSpy();
+
+            await expect(
+                scheduler.schedule(characterId, travel),
+            ).resolves.toBeUndefined();
+            expect(queue.add).toHaveBeenCalledTimes(1);
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn).toHaveBeenCalledWith(
+                `Accodamento del viaggio ${jobId} non confermato entro ${QUEUE_TIMEOUT_MS} ms: lo completerà lo sweep`,
+            );
+        });
+
+        it('answers within the timeout when the job removal hangs', async () => {
+            await scheduler.schedule(characterId, travel);
+            queue.hangRemove = true;
+            const warn = warnSpy();
+
+            await expect(
+                scheduler.cancel(characterId, travel.startTime),
+            ).resolves.toBeUndefined();
+            expect(queue.removed).toEqual([]);
+            expect(warn).toHaveBeenCalledWith(
+                `Rimozione del job ${jobId} non confermata entro ${QUEUE_TIMEOUT_MS} ms: il job si neutralizza da solo`,
+            );
+        });
+
+        it('warns once on a Redis connection error without connection details', () => {
+            const warn = warnSpy();
+
+            queue.emit(
+                'error',
+                Object.assign(
+                    new Error('connect ECONNREFUSED 127.0.0.1:6379'),
+                    { code: 'ECONNREFUSED' },
+                ),
+            );
+            queue.emit('error', new Error('Connection is closed.'));
+
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn).toHaveBeenCalledWith(
+                'Redis non raggiungibile (ECONNREFUSED): i job di viaggio partiranno al riconnesso, lo sweep copre',
+            );
+            expect(String(warn.mock.calls[0][0])).not.toMatch(
+                /127\.0\.0\.1|6379/,
             );
         });
     });

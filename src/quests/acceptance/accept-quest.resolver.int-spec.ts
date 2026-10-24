@@ -20,6 +20,7 @@ import { User, UserDocument } from 'src/models/user.model';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
 import { QuestsModule } from 'src/quests/quests.module';
 import { RoadsService } from 'src/roads/roads.service';
+import { QUEUE_CALL_TIMEOUT } from 'src/travel/queue-call-timeout';
 import { TRAVEL_QUEUE } from 'src/travel/travel-job';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import {
@@ -154,6 +155,7 @@ describe('acceptQuest (wire)', () => {
             // coda del viaggio automatico senza Redis
             overrides: [
                 { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+                { token: QUEUE_CALL_TIMEOUT, useValue: 50 },
             ],
         });
         characters = harness.connection.model<CharacterDocument>(
@@ -820,5 +822,45 @@ describe('acceptQuest (wire)', () => {
         });
         expect(changed.status.location?.id).toBe(travel.markerA.toHexString());
         expect(queue.added).toHaveLength(1);
+    });
+
+    it('answers acceptQuest even when the travel queue hangs (UAT 2026-10-22)', async () => {
+        const travel = await persistTravelWorld(
+            harness.connection,
+            harness.app.get(RoadsService),
+        );
+        const alice = await playerWith('traveller', {
+            location: travel.markerA,
+        });
+        const base = buildQuest();
+        const quest = await persistQuest(quests, {
+            infos: {
+                ...base.infos,
+                type: 'hunt',
+                markerLocation: travel.questPoi,
+                timeToComplete: 60000,
+            },
+            requirements: base.requirements,
+        });
+        queue.hangAdd = true;
+
+        const body = await accept(
+            { id: characterIdOf(alice), questId: String(quest._id) },
+            alice.bearer,
+        );
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.acceptQuest).toEqual({
+            response: 'Missione accettata',
+            successful: true,
+        });
+        expect(queue.added).toEqual([]);
+        const raw = await rawCharacter(alice);
+        expect(raw?.status.activeTravel).not.toBeNull();
+        expect(raw?.quests.pendingQuest).not.toBeNull();
+        const pending = await pendingQuests.collection.findOne({
+            _id: raw?.quests.pendingQuest,
+        });
+        expect(pending?.startDate).toBeNull();
     });
 });

@@ -21,6 +21,7 @@ import { PushService } from 'src/push/push.service';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
 import { RoadsService } from 'src/roads/roads.service';
+import { QUEUE_CALL_TIMEOUT } from './queue-call-timeout';
 import { TRAVEL_QUEUE } from './travel-job';
 import { TravelSweeper } from './travel-sweeper';
 import { TravelModule } from './travel.module';
@@ -127,6 +128,7 @@ describe('startTravel and travelPreview (wire)', () => {
             imports: [TravelModule, QuestAcceptanceModule],
             overrides: [
                 { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+                { token: QUEUE_CALL_TIMEOUT, useValue: 50 },
                 { token: PushTransport, useValue: push },
                 { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
                 { token: TRAVEL_CONFIG, useValue: { sweepIntervalMs: 0 } },
@@ -458,6 +460,21 @@ describe('startTravel and travelPreview (wire)', () => {
             expect(queue.added).toEqual([]);
         },
     );
+
+    it('answers startTravel even when the queue hangs (Redis down)', async () => {
+        queue.hangAdd = true;
+        const alice = await playerAt(world.markerA);
+
+        const body = await start(requestOf(alice, world.markerB), alice.bearer);
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.startTravel).toEqual({
+            response: 'Viaggio iniziato',
+            successful: true,
+        });
+        expect((await rawCharacter(alice))?.status.activeTravel).not.toBeNull();
+        expect(queue.added).toEqual([]);
+    });
 
     it('previews on the wire with the same numbers and writes nothing', async () => {
         const alice = await playerAt(world.markerA);
