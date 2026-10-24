@@ -24,6 +24,13 @@ import { PushService } from 'src/push/push.service';
 import { NoopPushTransport } from 'src/push/transport/noop-push-transport';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
+import type { QuestConfig } from 'src/config/quest-config';
+import { QUEST_CONFIG } from 'src/config/quest-config';
+import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
+import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholder-combat-resolver';
+import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
+import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import type { TravelConfig } from 'src/config/travel-config';
 import { TRAVEL_CONFIG } from 'src/config/travel-config';
 import { TravelCompletionService } from 'src/travel/travel-completion.service';
@@ -221,6 +228,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             TWITCH_BROADCASTER_ID: '',
             // Pitfall 13: nessun timer dello sweep nel boot reale; il reconciler al boot gira comunque
             TRAVEL_SWEEP_INTERVAL_MS: '0',
+            QUEST_SWEEP_INTERVAL_MS: '0',
         });
         // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
         const { AppModule } =
@@ -524,6 +532,22 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get<TravelConfig>(TRAVEL_CONFIG)).toEqual({
             sweepIntervalMs: 0,
         });
+    });
+
+    it('mounts the quest outcome lifecycle', () => {
+        expect(app.get(QuestResolutionSweeper)).toBeInstanceOf(
+            QuestResolutionSweeper,
+        );
+        expect(app.get(QuestResolutionService)).toBeInstanceOf(
+            QuestResolutionService,
+        );
+        expect(app.get(getQueueToken(QUEST_RESOLUTION_QUEUE))).toBeDefined();
+        expect(app.get<QuestConfig>(QUEST_CONFIG)).toEqual({
+            sweepIntervalMs: 0,
+        });
+        expect(app.get(CombatResolver)).toBeInstanceOf(
+            PlaceholderCombatResolver,
+        );
     });
 
     it('boots EventSub disabled without calling Twitch', () => {
