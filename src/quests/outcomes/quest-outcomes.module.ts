@@ -37,6 +37,7 @@ import { ChanceSource, MathChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
 import { PlaceholderCombatResolver } from './combat/placeholder-combat-resolver';
 import { OutcomeWriter } from './outcome-writer.service';
+import { QuestResolutionProcessor } from './quest-resolution.processor';
 import { QuestResolutionService } from './quest-resolution.service';
 import { ResolutionLoader } from './resolution-loader.service';
 import { RescueResolutionService } from './rescue-resolution.service';
@@ -73,6 +74,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         BossResolutionService,
         RescueResolutionService,
         QuestResolutionService,
+        QuestResolutionProcessor,
     ],
     exports: [OutcomeWriter, QuestResolutionService],
 })

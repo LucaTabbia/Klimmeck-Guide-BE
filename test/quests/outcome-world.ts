@@ -76,7 +76,7 @@ export function outcomeModels(harness: AuthTestApp): OutcomeModels {
 }
 
 // collection pronte prima delle transazioni multi-documento (Pitfall 5)
-async function initOutcomeCollections(
+export async function initOutcomeCollections(
     harness: AuthTestApp,
     models: OutcomeModels,
 ): Promise<void> {
