@@ -8,7 +8,7 @@ import {
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { User, UserSchema } from 'src/models/user.model';
 
-// senza UsersModule: nessun change stream degli utenti nei moduli degli esiti (RESEARCH Q4)
+// senza il modulo degli utenti: nessun change stream degli utenti nei moduli degli esiti (RESEARCH Q4)
 @Module({
     imports: [
         MongooseModule.forFeature([
