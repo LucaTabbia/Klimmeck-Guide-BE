@@ -259,7 +259,7 @@ Plans:
   5. Le mutation approve/reject sulle pending request story/worldMission sono role-guarded e audit-loggate.
 **Plans**: TBD
 **Unblocks (FE)**: FE Phase 9 (contratto combat) e FE Phase 10 (operazioni admin) → FE COMBAT-01..05, ADMIN-02/03/05/06.
-**Branch**: `feat/09-combat-admin` da `develop` → PR a `develop`.
+**Branch**: `feat/09-combat-result-admin-outcomes` da `develop` → PR a `develop` (allineato al template `feat/{phase}-{slug}`, 2026-10-24).
 
 ### Phase 10: Hardening Trasversale
 **Goal**: Hardening trasversale — validazione input, introspection off/CORS/error sanitization in prod, igiene dei secret, e coverage di test sulle aree critiche.
