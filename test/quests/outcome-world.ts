@@ -26,6 +26,7 @@ import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
 import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
+import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import {
     type AuthTestApp,
@@ -37,9 +38,23 @@ import { buildCharacter, buildQuest, persistQuest } from '../fixtures';
 import { FakePushTransport } from '../push/fake-push-transport';
 import { FakeTravelQueue } from '../travel/fake-travel-queue';
 
-// ogni harness che monta QuestOutcomesModule o PendingRequestsModule lo usa: nessuno sweep periodico né reconciler concorrente con il setup dei test (09-14 lo estende con uno sweeper inerte)
+// solo lo sweep periodico spento: il reconciler al boot gira ancora (la int-spec dello sweeper)
+export const QUIET_SWEEP_CONFIG: ProviderOverride = {
+    token: QUEST_CONFIG,
+    useValue: { sweepIntervalMs: 0 },
+};
+
+// nessun reconciler al boot negli harness che risolvono a mano
+export const IDLE_QUEST_SWEEPER = {
+    onApplicationBootstrap: () => undefined,
+    onModuleDestroy: () => undefined,
+    sweep: () => Promise.resolve({ resolved: 0, timedOut: 0 }),
+};
+
+// ogni harness che monta QuestOutcomesModule o PendingRequestsModule lo usa: nessuno sweep periodico né reconciler concorrente con il setup dei test
 export const QUIET_OUTCOME_OVERRIDES: ProviderOverride[] = [
-    { token: QUEST_CONFIG, useValue: { sweepIntervalMs: 0 } },
+    QUIET_SWEEP_CONFIG,
+    { token: QuestResolutionSweeper, useValue: IDLE_QUEST_SWEEPER },
 ];
 
 export const OUTCOME_START = new Date('2026-10-24T10:00:00.000Z');
@@ -88,6 +103,8 @@ export interface OutcomeHarnessOptions {
     clock: Clock;
     chance: ChanceSource;
     combat?: CombatResolver;
+    // default QUIET_OUTCOME_OVERRIDES; la int-spec dello sweeper tiene lo sweeper vero
+    quiet?: ProviderOverride[];
 }
 
 export interface OutcomeHarness {
@@ -110,7 +127,7 @@ export async function createOutcomeHarness(
         clock: options.clock,
         imports: [QuestOutcomesModule],
         overrides: [
-            ...QUIET_OUTCOME_OVERRIDES,
+            ...(options.quiet ?? QUIET_OUTCOME_OVERRIDES),
             { token: PushTransport, useValue: push },
             { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
             {

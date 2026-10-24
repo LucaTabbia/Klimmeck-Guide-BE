@@ -2,6 +2,7 @@ import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
+import { questConfigProvider } from 'src/config/quest-config';
 import { CharacterArchiveModule } from 'src/characters/deletion/character-archive.module';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { EconomyModule } from 'src/economy/economy.module';
@@ -39,6 +40,7 @@ import { PlaceholderCombatResolver } from './combat/placeholder-combat-resolver'
 import { OutcomeWriter } from './outcome-writer.service';
 import { QuestResolutionProcessor } from './quest-resolution.processor';
 import { QuestResolutionService } from './quest-resolution.service';
+import { QuestResolutionSweeper } from './quest-resolution.sweeper';
 import { ResolutionLoader } from './resolution-loader.service';
 import { RescueResolutionService } from './rescue-resolution.service';
 import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-scheduling.module';
@@ -75,7 +77,9 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         RescueResolutionService,
         QuestResolutionService,
         QuestResolutionProcessor,
+        questConfigProvider,
+        QuestResolutionSweeper,
     ],
-    exports: [OutcomeWriter, QuestResolutionService],
+    exports: [OutcomeWriter, QuestResolutionService, QuestResolutionSweeper],
 })
 export class QuestOutcomesModule {}
