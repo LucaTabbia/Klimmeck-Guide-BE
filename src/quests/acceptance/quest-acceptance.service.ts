@@ -61,7 +61,13 @@ interface QuestAcceptanceSnapshot extends QuestEligibilitySnapshot {
 }
 
 interface CharacterAcceptanceSnapshot extends CharacterEligibilitySnapshot {
-    status: { title: TitleType; location?: unknown; activeTravel?: unknown };
+    status: {
+        title: TitleType;
+        location?: unknown;
+        awaitingAid?: unknown;
+        activeTravel?: unknown;
+        injuries?: unknown[];
+    };
     assets?: { pet?: unknown } | null;
 }
 
@@ -86,6 +92,8 @@ const CHARACTER_PROJECTION = {
     'status.title': 1,
     'status.location': 1,
     'status.activeTravel.endTime': 1,
+    'status.awaitingAid': 1,
+    'status.injuries': 1,
     quests: 1,
     'assets.pet': 1,
 };
@@ -131,12 +139,7 @@ export class QuestAcceptanceService {
         // viaggio automatico solo per la corsia standard (D-02); percorso e velocità prima della transazione (D-21): nel callback solo scritture
         const movement =
             lane === QuestLane.standard && location
-                ? await this.movementTo(
-                      quest,
-                      characterId,
-                      location,
-                      character.assets?.pet,
-                  )
+                ? await this.movementTo(quest, characterId, location, character)
                 : null;
         const claim: LaneClaimSnapshot = {
             title: character.status.title,
@@ -201,7 +204,7 @@ export class QuestAcceptanceService {
         quest: QuestAcceptanceSnapshot,
         characterId: Types.ObjectId,
         location: Types.ObjectId,
-        pet: unknown,
+        character: CharacterAcceptanceSnapshot,
     ): Promise<LaneMovement | null> {
         const marker = refIdOf(quest.infos.markerLocation);
         if (!marker || sameId(location, marker)) return null;
@@ -210,7 +213,8 @@ export class QuestAcceptanceService {
             characterId,
             from: location,
             to: marker,
-            pet,
+            pet: character.assets?.pet,
+            injuries: character.status.injuries,
         });
         return travel ? { kind: 'travel', travel } : { kind: 'jump', marker };
     }
@@ -218,8 +222,9 @@ export class QuestAcceptanceService {
     private async readQuest(
         questId: Types.ObjectId,
     ): Promise<QuestAcceptanceSnapshot> {
+        // le quest concluse non esistono per la board (D-06, C9)
         const quest = await this.questModel
-            .findById(questId, QUEST_PROJECTION)
+            .findOne({ _id: questId, concludedAt: null }, QUEST_PROJECTION)
             .lean<QuestAcceptanceSnapshot | null>()
             .exec();
         if (!quest) throw ResourceNotFoundException.quest();
@@ -326,7 +331,7 @@ export class QuestAcceptanceService {
             .exec();
         if (registered) return;
         const fresh = await this.questModel
-            .findById(quest._id, { registeredAdventurers: 1 })
+            .findById(quest._id, { registeredAdventurers: 1, concludedAt: 1 })
             .session(session)
             .lean<UnregisteredSnapshot | null>()
             .exec();

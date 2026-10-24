@@ -30,8 +30,10 @@ import {
     seatAvailableExpr,
     slotRuleOf,
 } from 'src/quests/acceptance/quest-capacity';
+import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
 import { TRAVEL_QUEUE, travelJobId } from 'src/travel/travel-job';
+import { BASE_SPEED, durationMsOf } from 'src/travel/travel-timing';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildCharacter,
@@ -1034,9 +1036,18 @@ describe('QuestAcceptanceService (replSet)', () => {
             await accept(ownerId, healthyId, await huntTo(travel.questPoi));
             await accept(ownerId, injuredId, await huntTo(travel.questPoi));
 
+            const route = app
+                .get(RoadsService)
+                .routeBetween([0, 0], [0.1, 0]) as RoadRoute;
             const healthy = (await raw(healthyId))?.status.activeTravel;
             const injured = (await raw(injuredId))?.status.activeTravel;
-            expect(injured.duration / healthy.duration).toBeCloseTo(1.25, 6);
+            expect(healthy.duration).toBe(
+                durationMsOf(route.baseHours, BASE_SPEED),
+            );
+            expect(injured.duration).toBe(
+                durationMsOf(route.baseHours, BASE_SPEED * 0.8),
+            );
+            expect(injured.duration / healthy.duration).toBeCloseTo(1.25, 4);
             expect(
                 injured.endTime.getTime() - injured.startTime.getTime(),
             ).toBe(injured.duration);

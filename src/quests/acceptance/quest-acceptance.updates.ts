@@ -26,6 +26,7 @@ export interface UnclaimedSnapshot {
     status?: {
         title?: TitleType;
         location?: unknown;
+        awaitingAid?: unknown;
         activeTravel?: unknown;
     } | null;
     quests?: {
@@ -36,9 +37,9 @@ export interface UnclaimedSnapshot {
     } | null;
 }
 
-export type UnregisteredSnapshot = QuestRoster;
+export type UnregisteredSnapshot = QuestRoster & { concludedAt?: Date | null };
 
-// ogni regola esprimibile sul documento sta nel filtro (D-18): attivo, corsia libera, non in viaggio (D-06), titolo e posizione verificati, non ripetibilità
+// ogni regola esprimibile sul documento sta nel filtro (D-18): attivo, corsia libera, non in attesa di soccorso (D-07), non in viaggio (D-06), titolo e posizione verificati, non ripetibilità
 export function laneClaimFilter(
     characterId: Types.ObjectId,
     lane: QuestLane,
@@ -49,6 +50,7 @@ export function laneClaimFilter(
     return {
         ...activeCharacterById(characterId),
         [lanePathOf(lane)]: null,
+        'status.awaitingAid': null,
         'status.activeTravel': null,
         'status.title': snapshot.title,
         ...(snapshot.location
@@ -92,6 +94,8 @@ export function registrationFilter(
 ): Record<string, unknown> {
     return {
         _id: questId,
+        // una quest conclusa non accetta registrazioni (D-06, C9)
+        concludedAt: null,
         'registeredAdventurers.character': { $ne: characterId },
         $expr: seatAvailableExpr(rule, title),
     };
@@ -115,6 +119,8 @@ export function classifyUnclaimed(
     expected: LaneClaimSnapshot,
 ): Error {
     if (!fresh) return ResourceNotFoundException.character();
+    if (fresh.status?.awaitingAid != null)
+        return GameRuleException.awaitingAid();
     if (fresh.status?.activeTravel != null)
         return GameRuleException.travelInProgress();
     if (fresh.quests?.[laneOf(quest.type)] != null)
@@ -136,7 +142,8 @@ export function classifyUnregistered(
     fresh: UnregisteredSnapshot | null,
     characterId: Types.ObjectId,
 ): Error {
-    if (!fresh) return ResourceNotFoundException.quest();
+    if (!fresh || fresh.concludedAt != null)
+        return ResourceNotFoundException.quest();
     const registered = (fresh.registeredAdventurers ?? []).some((entry) =>
         sameId(entry.character, characterId),
     );
