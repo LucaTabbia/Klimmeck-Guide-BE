@@ -17,7 +17,11 @@ export interface TravelIdentity {
 }
 
 export interface UnstartedSnapshot {
-    status?: { activeTravel?: unknown; location?: unknown } | null;
+    status?: {
+        awaitingAid?: unknown;
+        activeTravel?: unknown;
+        location?: unknown;
+    } | null;
     quests?: { pendingQuest?: unknown } | null;
 }
 
@@ -37,6 +41,7 @@ export function startTravelFilter(
 ): Record<string, unknown> {
     return {
         ...activeCharacterById(characterId),
+        'status.awaitingAid': null,
         'status.activeTravel': null,
         'quests.pendingQuest': null,
         'status.location': { $in: idForms(location) },
@@ -50,6 +55,8 @@ export function startTravelUpdate(travel: ActiveTravelDraft) {
 // rilettura solo per scegliere il codice: una posizione cambiata senza viaggio né quest è un movimento concorrente
 export function classifyUnstarted(fresh: UnstartedSnapshot | null): Error {
     if (!fresh) return ResourceNotFoundException.character();
+    if (fresh.status?.awaitingAid != null)
+        return GameRuleException.awaitingAid();
     if (fresh.status?.activeTravel != null)
         return GameRuleException.travelInProgress();
     if (fresh.quests?.pendingQuest != null)
@@ -97,6 +104,7 @@ export function questCountdownUpdate(endTime: Date) {
 }
 
 // solo la corsia standard blocca il teleport (D-17); un viaggio libero in corso viene cancellato
+// il soccorso non blocca il teleport del GM (D-07)
 export function teleportFilter(
     characterId: Types.ObjectId,
 ): Record<string, unknown> {
