@@ -32,15 +32,16 @@ const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
     PushEventType.questEnd,
 ]);
 
-// Phase 8 (fine viaggio), Phase 9 (fine quest), Phase 6 (stream.online) chiamano PushService con questi builder (D-12)
+// Phase 8 (fine viaggio), Phase 9 (esiti delle missioni, OutcomeWriter), Phase 6 (stream.online) chiamano PushService con questi builder (D-12)
 export const travelEnd = (characterId: string): PushMessage => ({
     ...CATALOG[PushEventType.travelEnd],
     id: characterId,
 });
 
-export const questEnd = (pendingQuestId: string): PushMessage => ({
+// id = id del risultato (D-20): a esito avvenuto la PendingQuest non esiste più; emenda il handoff Phase 5 §2
+export const questEnd = (resultId: string): PushMessage => ({
     ...CATALOG[PushEventType.questEnd],
-    id: pendingQuestId,
+    id: resultId,
 });
 
 export const streamerLive = (): PushMessage => ({
