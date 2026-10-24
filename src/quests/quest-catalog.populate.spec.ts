@@ -56,6 +56,7 @@ describe('QUEST_CATALOG_POPULATE', () => {
             { path: 'requirements.recommendedLoot.item' },
             { path: 'prizes.prizeItem.item' },
             { path: 'prizes.randomLoot.item' },
+            { path: 'prizes.spell', model: 'Spell' },
         ]);
     });
 });

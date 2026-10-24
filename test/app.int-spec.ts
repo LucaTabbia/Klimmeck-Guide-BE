@@ -372,7 +372,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type TravelPath {\n  coordinates: [[Float!]!]!\n  distance: Float!\n}',
         );
         expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
-            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spells: [Spell!]!\n  title: String!\n  xp: Int!\n}',
+            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spells: [Spell!]!\n  title: String!\n  xp: Int!\n}',
         );
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
             'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  speedModifier: Float\n  xp: Int!\n}',
@@ -407,6 +407,21 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'input TravelRequest {\n  id: String!\n  poiId: String!\n}',
         );
         expect(schema).not.toContain('TeleportCharacterRequest');
+    });
+
+    it('writes the quest outcome fields into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type AwaitingAid \{[^}]*\}/)?.[0]).toBe(
+            'type AwaitingAid {\n  aidQuest: ID!\n  quest: ID!\n  since: DateTime!\n}',
+        );
+        expect(schema.match(/type QuestPrizes \{[^}]*\}/)?.[0]).toBe(
+            'type QuestPrizes {\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
+        );
+        expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+        );
+        expect(schema).not.toMatch(/concludedAt|\brescue\b|\bgrade\b/);
     });
 
     it('writes the push API into the generated schema', () => {
