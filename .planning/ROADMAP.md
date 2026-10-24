@@ -248,15 +248,15 @@ Plans:
 **Branch**: `feat/08-travel-lifecycle-travel-01` da `develop` → PR a `develop` (template `feat/{phase}-{slug}`; in origine `feat/08-travel-lifecycle`, allineato nel planning del 2026-10-21, D-25).
 
 ### Phase 9: Combat Result & Admin Outcomes
-**Goal**: Risultati di combattimento persistiti con delivery ibrida, outcome di combat admin-mediati, e la coda pending dell'innkeeper con approve/reject role-guarded e audit-loggati.
+**Goal**: Esiti delle quest risolti dal server (corsia standard alla scadenza, motore di combattimento sostituibile) e completati dal GM per story/worldMission, con un risultato persistito per personaggio consegnato in modo ibrido e la coda live dell'innkeeper con completamento role-guarded e audit-loggato _(emendato 2026-10-24, 09-CONTEXT D-01..D-04)_.
 **Depends on**: Phase 3 (role guard + audit), Phase 4 (update character atomico), Phase 5 (push combat)
 **Requirements**: BE-COMBAT-01, BE-COMBAT-02, BE-COMBAT-03, BE-ADMIN-01, BE-ADMIN-02
 **Success Criteria** (what must be TRUE):
   1. Un'entità `CombatResult` persiste HP prima/dopo, consumabili/spell usate, injuries, rewards (equipment/items/coins) e XP.
-  2. Su un outcome la subscription emette il payload completo in foreground, il data message FCM porta solo `resultId`, e `combatResult(id)` ritorna lo stesso risultato al requery.
-  3. L'innkeeper registra un outcome via mutation role-guarded che crea il CombatResult e aggiorna il Character atomicamente.
+  2. Su un outcome la subscription emette il payload completo in foreground, il data message FCM porta solo `resultId`, e `questResult(id)` ritorna lo stesso risultato al requery.
+  3. L'innkeeper completa una richiesta story/worldMission via mutation role-guarded (solo esito positivo, override opzionali per personaggio, nessun grade) che crea un risultato per personaggio e aggiorna i Character atomicamente; la corsia standard è risolta dal server alla scadenza.
   4. L'innkeeper ha una vista live (query + subscription) delle pending request story/worldMission con i dati che servono al filtro FE su `activeTravel`.
-  5. Le mutation approve/reject sulle pending request story/worldMission sono role-guarded e audit-loggate.
+  5. La mutation di completamento delle pending request story/worldMission è role-guarded e audit-loggata (nessun approve/reject, nessun rimborso).
 **Plans**: 16 plans (8 waves)
 
 Plans:
