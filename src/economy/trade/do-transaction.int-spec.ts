@@ -14,12 +14,14 @@ import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
-import { placeInCity } from '../../../test/economy/place-in-city';
+import { cityModelOf, placeInCity } from '../../../test/economy/place-in-city';
 import {
     buildCharacter,
+    persistCity,
     persistEquipmentItem,
     persistLootItem,
 } from '../../../test/fixtures';
+import { buildActiveTravelDoc } from '../../../test/travel/active-travel.fixture';
 
 const DO_TRANSACTION =
     'mutation($request: TransactionRequest!) { doTransaction(request: $request) { successful response } }';
@@ -28,6 +30,8 @@ const SUCCESS = {
     successful: true,
     response: 'Transazione avvenuta con successo',
 };
+
+const SHOP_NOT_IN_CITY_MESSAGE = 'Il negozio è disponibile solo in città';
 
 interface WireBody {
     data?: {
@@ -192,20 +196,35 @@ describe('doTransaction (wire)', () => {
     let loot: Model<LootItemDocument>;
     let catalog: Catalog;
 
-    // il negozio risponde solo in città (D-18): ogni giocatore della suite sta sul marker di una città
+    function playerOutsideCity(
+        twitchId: string,
+        purse: CoinPurse,
+        inventory: Inventory = {},
+        status: Record<string, unknown> = {},
+    ): Promise<TestPlayer> {
+        const base = buildCharacter();
+        return createPlayer(harness, {
+            twitchId,
+            characterOverrides: {
+                status: { ...base.status, coins: purse, ...status },
+                assets: { ...base.assets, ...inventory },
+            },
+        });
+    }
+
+    // il negozio risponde solo in città (D-18): il giocatore sta sul marker di una città
     async function playerWith(
         twitchId: string,
         purse: CoinPurse,
         inventory: Inventory = {},
+        status: Record<string, unknown> = {},
     ): Promise<TestPlayer> {
-        const base = buildCharacter();
-        const player = await createPlayer(harness, {
+        const player = await playerOutsideCity(
             twitchId,
-            characterOverrides: {
-                status: { ...base.status, coins: purse },
-                assets: { ...base.assets, ...inventory },
-            },
-        });
+            purse,
+            inventory,
+            status,
+        );
         await placeInCity(harness, player.character!);
         return player;
     }
@@ -351,5 +370,111 @@ describe('doTransaction (wire)', () => {
         expect(body.errors).toBeUndefined();
         expect(body.data?.doTransaction).toEqual(SUCCESS);
         expect(await raw(player)).toEqual(before);
+    });
+
+    describe('shop city guard', () => {
+        const buySword = (): TradeInput => ({
+            buyEquip: [asset(catalog.sword)],
+            total: coins(0, 1, 50),
+            isTotalPositive: false,
+        });
+
+        async function expectShopNotInCity(
+            player: TestPlayer,
+            trade: TradeInput,
+        ): Promise<void> {
+            const before = await raw(player);
+
+            const body = await doTransaction(player, trade);
+
+            expect(body.data?.doTransaction ?? null).toBeNull();
+            expect(body.errors?.[0]?.extensions).toEqual({
+                code: 'SHOP_NOT_IN_CITY',
+            });
+            expect(body.errors?.[0]?.message).toBe(SHOP_NOT_IN_CITY_MESSAGE);
+            expect(await raw(player)).toEqual(before);
+        }
+
+        it('rejects a character on a point of interest that marks no city', async () => {
+            const player = await playerOutsideCity(
+                'twitch-shop-wild',
+                coins(0, 5, 0),
+            );
+
+            await expectShopNotInCity(player, buySword());
+        });
+
+        it('rejects a character at a city marker while travelling', async () => {
+            const player = await playerWith(
+                'twitch-shop-travel',
+                coins(0, 5, 0),
+                {},
+                { activeTravel: buildActiveTravelDoc() },
+            );
+
+            await expectShopNotInCity(player, buySword());
+        });
+
+        it('rejects a character at a city marker while awaiting aid', async () => {
+            const player = await playerWith(
+                'twitch-shop-aid',
+                coins(0, 5, 0),
+                {},
+                {
+                    awaitingAid: {
+                        quest: new Types.ObjectId(),
+                        aidQuest: new Types.ObjectId(),
+                        since: new Date('2026-10-24T08:00:00.000Z'),
+                    },
+                },
+            );
+
+            await expectShopNotInCity(player, buySword());
+        });
+
+        it('rejects a character on a point of interest of a city that is not its marker', async () => {
+            const player = await playerOutsideCity(
+                'twitch-shop-district',
+                coins(0, 5, 0),
+            );
+            await persistCity(cityModelOf(harness), {
+                name: 'Borgo del Mercato',
+                markerLocation: new Types.ObjectId(),
+                pointsOfInterest: [player.character!.status.location],
+            });
+
+            await expectShopNotInCity(player, buySword());
+        });
+
+        it('rejects an empty zero-total trade outside a city', async () => {
+            const player = await playerOutsideCity(
+                'twitch-shop-empty-wild',
+                coins(0, 5, 0),
+            );
+
+            await expectShopNotInCity(player, {
+                total: coins(0, 0, 0),
+                isTotalPositive: false,
+            });
+        });
+
+        it('keeps ITEM_NOT_FOUND ahead of the city guard', async () => {
+            const player = await playerOutsideCity(
+                'twitch-shop-unknown-wild',
+                coins(0, 5, 0),
+            );
+
+            const body = await doTransaction(player, {
+                buyEquip: [
+                    { item: new Types.ObjectId().toHexString(), quantity: 1 },
+                ],
+                total: coins(0, 0, 0),
+                isTotalPositive: false,
+            });
+
+            expect(body.errors?.[0]?.extensions).toEqual({
+                code: 'ITEM_NOT_FOUND',
+            });
+        });
     });
 });

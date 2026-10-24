@@ -22,13 +22,15 @@ import {
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 import type { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { User, UserDocument } from 'src/models/user.model';
-import { placeInCity } from '../../../test/economy/place-in-city';
+import { cityModelOf, placeInCity } from '../../../test/economy/place-in-city';
 import {
     buildCharacter,
     persistCharacter,
+    persistCity,
     persistEquipmentItem,
     persistLootItem,
 } from '../../../test/fixtures';
+import { buildActiveTravelDoc } from '../../../test/travel/active-travel.fixture';
 
 const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const SUCCESS = {
@@ -154,7 +156,7 @@ describe('ShopTransactionService (replSet)', () => {
             users.deleteMany({}),
             equipment.deleteMany({}),
             loot.deleteMany({}),
-            connection.collection('cities').deleteMany({}),
+            cityModelOf({ connection }).deleteMany({}),
         ]);
     });
 
@@ -169,22 +171,52 @@ describe('ShopTransactionService (replSet)', () => {
         quantity: number,
     ): OwnedEntry => ({ itemType, item: idOf(document), quantity });
 
-    async function persistTrader(
+    interface TraderInventory {
+        ownedEquipments?: OwnedEntry[];
+        ownedItems?: OwnedEntry[];
+        wearedEquipment?: Record<string, Types.ObjectId | null>;
+    }
+
+    function persistCharacterOutsideCity(
         purse: CoinPurse,
-        inventory: {
-            ownedEquipments?: OwnedEntry[];
-            ownedItems?: OwnedEntry[];
-            wearedEquipment?: Record<string, Types.ObjectId | null>;
-        } = {},
+        inventory: TraderInventory = {},
         overrides: Record<string, unknown> = {},
-    ): Promise<Types.ObjectId> {
+        status: Record<string, unknown> = {},
+    ): Promise<CharacterDocument> {
         const base = buildCharacter();
-        const character = await persistCharacter(characters, {
-            status: { ...base.status, coins: purse },
+        return persistCharacter(characters, {
+            status: { ...base.status, coins: purse, ...status },
             assets: { ...base.assets, ...inventory },
             ...overrides,
-        });
-        // il negozio risponde solo in città (D-18): ogni trader della suite sta sul marker di una città
+        }) as Promise<CharacterDocument>;
+    }
+
+    async function persistTraderOutsideCity(
+        purse: CoinPurse,
+        status: Record<string, unknown> = {},
+    ): Promise<Types.ObjectId> {
+        const character = await persistCharacterOutsideCity(
+            purse,
+            {},
+            {},
+            status,
+        );
+        return character._id as Types.ObjectId;
+    }
+
+    // il negozio risponde solo in città (D-18): il trader sta sul marker di una città
+    async function persistTrader(
+        purse: CoinPurse,
+        inventory: TraderInventory = {},
+        overrides: Record<string, unknown> = {},
+        status: Record<string, unknown> = {},
+    ): Promise<Types.ObjectId> {
+        const character = await persistCharacterOutsideCity(
+            purse,
+            inventory,
+            overrides,
+            status,
+        );
         await placeInCity({ connection }, character);
         return character._id as Types.ObjectId;
     }
@@ -642,6 +674,183 @@ describe('ShopTransactionService (replSet)', () => {
                     }),
                 ),
             ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+        });
+    });
+
+    describe('shop city guard', () => {
+        const buySword = (id: Types.ObjectId) =>
+            trade({
+                id,
+                buyEquip: [asset(sword)],
+                total: coins(0, 1, 50),
+                isTotalPositive: false,
+            });
+
+        async function expectShopNotInCity(
+            id: Types.ObjectId,
+            request: TransactionRequest,
+        ): Promise<void> {
+            const before = await raw(id);
+
+            await expect(shop.execute(request)).rejects.toMatchObject({
+                code: 'SHOP_NOT_IN_CITY',
+            });
+
+            expect(await raw(id)).toEqual(before);
+        }
+
+        it('rejects a character on a point of interest that marks no city and writes nothing', async () => {
+            const id = await persistTraderOutsideCity(coins(0, 5, 0));
+
+            await expectShopNotInCity(id, buySword(id));
+        });
+
+        it('rejects a character at a city marker while travelling', async () => {
+            const id = await persistTrader(
+                coins(0, 5, 0),
+                {},
+                {},
+                { activeTravel: buildActiveTravelDoc() },
+            );
+
+            await expectShopNotInCity(id, buySword(id));
+        });
+
+        it('rejects a character at a city marker while awaiting aid', async () => {
+            const id = await persistTrader(
+                coins(0, 5, 0),
+                {},
+                {},
+                {
+                    awaitingAid: {
+                        quest: new Types.ObjectId(),
+                        aidQuest: new Types.ObjectId(),
+                        since: new Date('2026-10-24T08:00:00.000Z'),
+                    },
+                },
+            );
+
+            await expectShopNotInCity(id, buySword(id));
+        });
+
+        it('honours only the city marker, not the other points of interest of the city', async () => {
+            const character = await persistCharacterOutsideCity(coins(0, 5, 0));
+            await persistCity(cityModelOf({ connection }), {
+                name: 'Borgo del Mercato',
+                markerLocation: new Types.ObjectId(),
+                pointsOfInterest: [character.status.location],
+            });
+            const id = character._id as Types.ObjectId;
+
+            await expectShopNotInCity(id, buySword(id));
+        });
+
+        it('matches a legacy marker stored as a hex string', async () => {
+            const character = await persistCharacterOutsideCity(coins(0, 5, 0));
+            await cityModelOf({ connection }).collection.insertOne({
+                name: 'Borgo Antico',
+                markerLocation: (
+                    character.status.location as Types.ObjectId
+                ).toHexString(),
+                pointsOfInterest: [],
+            });
+            const id = character._id as Types.ObjectId;
+
+            await expect(shop.execute(buySword(id))).resolves.toEqual(SUCCESS);
+        });
+
+        it('rejects an empty zero-total trade outside a city without opening a transaction', async () => {
+            const id = await persistTraderOutsideCity(coins(0, 1, 0));
+            const transaction = jest.spyOn(connection, 'transaction');
+
+            await expectShopNotInCity(
+                id,
+                trade({ id, total: coins(0, 0, 0), isTotalPositive: false }),
+            );
+
+            expect(transaction).not.toHaveBeenCalled();
+        });
+
+        it('rejects an empty zero-total trade of a character awaiting aid at a city marker', async () => {
+            const id = await persistTrader(
+                coins(0, 1, 0),
+                {},
+                {},
+                {
+                    awaitingAid: {
+                        quest: new Types.ObjectId(),
+                        aidQuest: new Types.ObjectId(),
+                        since: new Date('2026-10-24T08:00:00.000Z'),
+                    },
+                },
+            );
+
+            await expectShopNotInCity(
+                id,
+                trade({ id, total: coins(0, 0, 0), isTotalPositive: false }),
+            );
+        });
+
+        it('keeps ITEM_NOT_FOUND and NOT_FOUND ahead of the city guard', async () => {
+            const id = await persistTraderOutsideCity(coins(0, 5, 0));
+
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        buyEquip: [
+                            {
+                                item: new Types.ObjectId().toHexString(),
+                                quantity: 1,
+                            },
+                        ],
+                        total: coins(0, 1, 50),
+                        isTotalPositive: false,
+                    }),
+                ),
+            ).rejects.toMatchObject({ code: 'ITEM_NOT_FOUND' });
+            for (const request of [
+                buySword(new Types.ObjectId()),
+                trade({
+                    id: new Types.ObjectId(),
+                    total: coins(0, 0, 0),
+                    isTotalPositive: false,
+                }),
+            ]) {
+                await expect(shop.execute(request)).rejects.toMatchObject({
+                    code: 'NOT_FOUND',
+                });
+            }
+        });
+
+        it('rejects a travel that starts between the city check and the write', async () => {
+            const id = await persistTrader(coins(0, 5, 0));
+            const before = await raw(id);
+            const travel = buildActiveTravelDoc();
+            const cities = cityModelOf({ connection });
+            const realExists = cities.exists.bind(cities);
+            jest.spyOn(cities, 'exists').mockImplementationOnce((filter) => {
+                const query = realExists(filter);
+                const exec = query.exec.bind(query);
+                query.exec = async () => {
+                    const found = await exec();
+                    await characters.collection.updateOne(
+                        { _id: id },
+                        { $set: { 'status.activeTravel': travel } },
+                    );
+                    return found;
+                };
+                return query;
+            });
+
+            await expect(shop.execute(buySword(id))).rejects.toMatchObject({
+                code: 'SHOP_NOT_IN_CITY',
+            });
+
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(before?.status.coins);
+            expect(after?.assets).toEqual(before?.assets);
+            expect(after?.status.activeTravel).toEqual(travel);
         });
     });
 
