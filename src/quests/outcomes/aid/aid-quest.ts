@@ -1,8 +1,9 @@
 import { Types } from 'mongoose';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { refIdOf } from 'src/mongo/document-id';
 
-export const AID_TITLE_PREFIX = '';
+export const AID_TITLE_PREFIX = 'Soccorso: ';
 
 export interface AidSourceQuest {
     _id: Types.ObjectId;
@@ -55,13 +56,54 @@ export interface AidQuestDraft {
     rescue: { character: Types.ObjectId; failedQuest: Types.ObjectId };
 }
 
+function aidTitleOf(title: string): string {
+    return title.startsWith(AID_TITLE_PREFIX)
+        ? title
+        : AID_TITLE_PREFIX + title;
+}
+
+function clonedPrizesOf(
+    prizes: AidSourceQuest['prizes'],
+): AidQuestDraft['prizes'] {
+    return {
+        prizeCoins: prizes?.prizeCoins ?? null,
+        xpPrize: prizes?.xpPrize ?? null,
+        prizeItem: prizes?.prizeItem ?? null,
+        randomLoot: [...(prizes?.randomLoot ?? [])],
+        spell: prizes?.spell ?? null,
+    };
+}
+
+// clone della quest fallita (D-08): una aid per ferito, mai ripetibile; in una catena si clona sempre l'originale (D-09)
 export function buildAidQuest(
     original: AidSourceQuest,
     injuredId: Types.ObjectId,
     aidId: Types.ObjectId,
 ): AidQuestDraft {
-    void original;
-    void injuredId;
-    void aidId;
-    throw new Error('not implemented');
+    const { infos, requirements } = original;
+    return {
+        _id: aidId,
+        infos: {
+            title: aidTitleOf(infos.title),
+            type: QuestType.aid,
+            markerLocation:
+                refIdOf(infos.markerLocation) ?? infos.markerLocation,
+            enemy: refIdOf(infos.enemy),
+            timeToComplete: infos.timeToComplete ?? null,
+            relatedLore: [...(infos.relatedLore ?? [])],
+        },
+        requirements: {
+            minTitle: requirements?.minTitle ?? null,
+            requiredPoints: null,
+            requiredAdventurers: [{ title: null, count: 1 }],
+            recommendedLoot: [...(requirements?.recommendedLoot ?? [])],
+        },
+        prizes: clonedPrizesOf(original.prizes),
+        registeredAdventurers: [],
+        concludedAt: null,
+        rescue: {
+            character: injuredId,
+            failedQuest: refIdOf(original.rescue?.failedQuest) ?? original._id,
+        },
+    };
 }
