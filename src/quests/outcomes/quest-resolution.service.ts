@@ -63,16 +63,6 @@ export class QuestResolutionService {
         }
     }
 
-    // individuale: enemy, hunt, dungeon e aid senza soccorso
-    async resolveIndividual(
-        trigger: StandardTrigger,
-    ): Promise<ResolutionOutcome> {
-        const now = this.clock.now();
-        const loaded = await this.load(trigger, now);
-        if (typeof loaded === 'string') return loaded;
-        return this.resolveLoadedIndividual(loaded, now);
-    }
-
     private async load(
         trigger: StandardTrigger,
         now: Date,
@@ -86,6 +76,7 @@ export class QuestResolutionService {
         return loaded;
     }
 
+    // individuale: enemy, hunt, dungeon e aid senza soccorso
     private async resolveLoadedIndividual(
         loaded: StandardLoad,
         now: Date,

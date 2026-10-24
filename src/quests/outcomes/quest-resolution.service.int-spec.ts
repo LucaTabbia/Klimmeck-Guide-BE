@@ -32,7 +32,7 @@ const FRESH_STATUS = {
     coins: { gold: 0, silver: 0, copper: 0 },
 };
 
-describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', () => {
+describe('QuestResolutionService.resolveStandard (individual) without an enemy (replSet)', () => {
     let world: OutcomeHarness;
     let service: QuestResolutionService;
     let writer: OutcomeWriter;
@@ -138,9 +138,9 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
             }),
         });
 
-        await expect(
-            service.resolveIndividual(triggerOf(subject)),
-        ).resolves.toBe('resolved');
+        await expect(service.resolveStandard(triggerOf(subject))).resolves.toBe(
+            'resolved',
+        );
 
         const character = await characterOf(subject);
         expect(character.quests.pendingQuest).toBeNull();
@@ -207,9 +207,9 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
             },
         });
 
-        await expect(
-            service.resolveIndividual(triggerOf(subject)),
-        ).resolves.toBe('resolved');
+        await expect(service.resolveStandard(triggerOf(subject))).resolves.toBe(
+            'resolved',
+        );
 
         const [result] = await resultsOf(subject);
         expect(result).toMatchObject({ outcome: 'success', enemy: null });
@@ -229,7 +229,7 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
             },
         });
 
-        await service.resolveIndividual(triggerOf(subject));
+        await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
         expect(character.status.injuries).toEqual([]);
@@ -249,7 +249,7 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
             ),
         });
 
-        await service.resolveIndividual(triggerOf(subject));
+        await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
         expect(character.status.spells.map(String)).toEqual([
@@ -270,7 +270,7 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
             ),
         });
 
-        await service.resolveIndividual(triggerOf(subject));
+        await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
         expect(character.status.spells).toEqual([]);
@@ -287,7 +287,7 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
             }),
         });
 
-        await service.resolveIndividual(triggerOf(subject));
+        await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
         expect(character.assets.ownedItems).toEqual([
@@ -304,10 +304,10 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
             questOverrides: jobQuest({ prizeCoins: COINS_PRIZE }),
         });
 
-        await service.resolveIndividual(triggerOf(subject));
-        await expect(
-            service.resolveIndividual(triggerOf(subject)),
-        ).resolves.toBe('stale');
+        await service.resolveStandard(triggerOf(subject));
+        await expect(service.resolveStandard(triggerOf(subject))).resolves.toBe(
+            'stale',
+        );
 
         expect(await resultsOf(subject)).toHaveLength(1);
         expect(questEndPushes()).toHaveLength(1);
@@ -319,8 +319,8 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
         });
 
         const outcomes = await Promise.all([
-            service.resolveIndividual(triggerOf(subject)),
-            service.resolveIndividual(triggerOf(subject)),
+            service.resolveStandard(triggerOf(subject)),
+            service.resolveStandard(triggerOf(subject)),
         ]);
 
         expect([...outcomes].sort()).toEqual(['resolved', 'stale']);
@@ -337,7 +337,7 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
         clock.advanceSeconds(-60);
         try {
             await expect(
-                service.resolveIndividual(triggerOf(subject)),
+                service.resolveStandard(triggerOf(subject)),
             ).resolves.toBe('waiting');
         } finally {
             clock.advanceSeconds(60);
@@ -350,7 +350,7 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
         const subject = await quester({ questOverrides: jobQuest({}) });
 
         await expect(
-            service.resolveIndividual(
+            service.resolveStandard(
                 triggerOf(subject, new Date(OUTCOME_START.getTime() + 1000)),
             ),
         ).resolves.toBe('stale');
@@ -364,9 +364,9 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
             startDate: null,
         });
 
-        await expect(
-            service.resolveIndividual(triggerOf(subject)),
-        ).resolves.toBe('stale');
+        await expect(service.resolveStandard(triggerOf(subject))).resolves.toBe(
+            'stale',
+        );
 
         await expectUntouched(subject);
     });
@@ -378,16 +378,16 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
             { $set: { deletedAt: ARCHIVED_AT, deletionReason: 'voluntary' } },
         );
 
-        await expect(
-            service.resolveIndividual(triggerOf(subject)),
-        ).resolves.toBe('stale');
+        await expect(service.resolveStandard(triggerOf(subject))).resolves.toBe(
+            'stale',
+        );
 
         await expectUntouched(subject);
     });
 
     it('ignores a missing pending quest', async () => {
         await expect(
-            service.resolveIndividual({
+            service.resolveStandard({
                 pendingQuestId: new Types.ObjectId(),
                 startDate: OUTCOME_START,
             }),
@@ -411,7 +411,7 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
                 await original(committed);
             });
 
-        await service.resolveIndividual(triggerOf(subject));
+        await service.resolveStandard(triggerOf(subject));
 
         expect(deliver).toHaveBeenCalledTimes(1);
         expect(committedBefore).toEqual([expect.anything()]);
@@ -427,9 +427,9 @@ describe('QuestResolutionService.resolveIndividual without an enemy (replSet)', 
         );
         const deliver = jest.spyOn(writer, 'deliver');
 
-        await expect(
-            service.resolveIndividual(triggerOf(subject)),
-        ).resolves.toBe('stale');
+        await expect(service.resolveStandard(triggerOf(subject))).resolves.toBe(
+            'stale',
+        );
 
         expect(deliver).not.toHaveBeenCalled();
         await expectUntouched(subject);

@@ -34,7 +34,7 @@ const FRESH_STATUS = {
 };
 const ONE_SEAT = [{ title: null, count: 1 }];
 
-describe('QuestResolutionService.resolveIndividual with an enemy (replSet)', () => {
+describe('QuestResolutionService.resolveStandard (individual) with an enemy (replSet)', () => {
     let world: OutcomeHarness;
     let service: QuestResolutionService;
     let warn: jest.SpyInstance;
@@ -115,7 +115,7 @@ describe('QuestResolutionService.resolveIndividual with an enemy (replSet)', () 
     }
 
     const resolve = (subject: Quester) =>
-        service.resolveIndividual({
+        service.resolveStandard({
             pendingQuestId: subject.pendingQuest._id as Types.ObjectId,
             startDate: OUTCOME_START,
         });
