@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 4 of 16
-Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, plan 4 of 16 next
-Last activity: 2026-10-24 -- Completed 09-03 (ChanceSource + cascading loot/rewards, aid clone + 7-day rescue timeout with C5 suspension, placeholder injury rules + travel speed factor)
+Plan: 5 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, plan 5 of 16 next
+Last activity: 2026-10-24 -- Completed 09-04 (CombatResolver port + pure hydrated context with damage normalization, PROVVISORIO placeholder resolver, ScriptedCombatResolver fake, Enemy fixture)
 
-Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 3/16)
+Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 4/16)
 
 ## Performance Metrics
 
