@@ -25,7 +25,7 @@ describe('push event catalog', () => {
         });
     });
 
-    it('builds questEnd with the pending quest id and a 1 h ttl', () => {
+    it('builds questEnd with the quest result id and a 1 h ttl', () => {
         expect(questEnd('64b0000000000000000000d1')).toEqual({
             type: PushEventType.questEnd,
             id: '64b0000000000000000000d1',
