@@ -8,3 +8,4 @@ export * from './quest.fixture';
 export * from './session.fixture';
 export * from './catalog-item.fixture';
 export * from './pet.fixture';
+export * from './enemy.fixture';

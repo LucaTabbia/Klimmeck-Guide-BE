@@ -1,5 +1,6 @@
 import mongoose, { Types } from 'mongoose';
 import { CharacterStatusSchema } from 'src/models/character/character-status.model';
+import { EnemySchema } from 'src/models/enemy.model';
 import {
     buildCity,
     buildSpell,
@@ -10,6 +11,7 @@ import {
     buildQuest,
     buildEquipmentItem,
     buildLootItem,
+    buildEnemy,
 } from './index';
 
 /**
@@ -143,6 +145,28 @@ describe('fixtures builders', () => {
             });
             expect(potion.effect).toBe('heal');
             expect(potion.power).toBe(1);
+        });
+    });
+
+    describe('buildEnemy', () => {
+        const EnemyProbe =
+            mongoose.models.EnemyFixtureProbe ??
+            mongoose.model('EnemyFixtureProbe', EnemySchema);
+
+        it('builds a valid enemy at the D-12 scale', () => {
+            const enemy = buildEnemy();
+
+            expect(new EnemyProbe(enemy).validateSync()).toBeUndefined();
+            expect(enemy.lifePoints).toBe(1000);
+            expect(enemy.xp).toBe(100);
+            expect(enemy.damages.base).toEqual([{ type: 'cut', power: 100 }]);
+        });
+
+        it('applies overrides', () => {
+            const enemy = buildEnemy({ name: 'Ogre', lifePoints: 3000 });
+
+            expect(enemy.name).toBe('Ogre');
+            expect(enemy.lifePoints).toBe(3000);
         });
     });
 });

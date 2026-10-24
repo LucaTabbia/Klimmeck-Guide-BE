@@ -3,7 +3,13 @@ import { CitySchema } from 'src/models/city.model';
 import { SpellSchema } from 'src/models/spell.model';
 import { PointOfInterestSchema } from 'src/models/point-of-interest.model';
 import { CharacterSchema } from 'src/models/character/character.model';
-import { persistSpell, persistCharacter, persistCity } from './index';
+import { EnemySchema } from 'src/models/enemy.model';
+import {
+    persistSpell,
+    persistCharacter,
+    persistCity,
+    persistEnemy,
+} from './index';
 
 /**
  * INTEGRATION: persistX round-trips fixtures on the shared MongoMemoryReplSet.
@@ -18,6 +24,8 @@ const PoiModel =
 const CharacterModel =
     mongoose.models.Character || mongoose.model('Character', CharacterSchema);
 const CityModel = mongoose.models.City || mongoose.model('City', CitySchema);
+const EnemyModel =
+    mongoose.models.Enemy || mongoose.model('Enemy', EnemySchema);
 
 describe('fixtures persistence (replSet)', () => {
     describe('persistSpell', () => {
@@ -79,6 +87,16 @@ describe('fixtures persistence (replSet)', () => {
 
             expect(city.markerLocation.equals(markerLocation)).toBe(true);
             expect(await PoiModel.countDocuments()).toBe(0);
+        });
+    });
+
+    describe('persistEnemy', () => {
+        it('writes a valid enemy document', async () => {
+            const enemy = await persistEnemy(EnemyModel);
+
+            expect(enemy._id).toBeDefined();
+            expect(enemy.lifePoints).toBe(1000);
+            expect(enemy.damages.base[0].power).toBe(100);
         });
     });
 });
