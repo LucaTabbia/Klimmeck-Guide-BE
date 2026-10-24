@@ -17,6 +17,20 @@ interface DueAid {
     status: { awaitingAid: { aidQuest: Types.ObjectId } };
 }
 
+function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (error: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
+    return { promise, resolve, reject };
+}
+
+const flushMicrotasks = async () => {
+    for (let turn = 0; turn < 10; turn++) await Promise.resolve();
+};
+
 function dueQuest(): DueStandardQuest {
     return {
         _id: new Types.ObjectId(),
@@ -113,7 +127,7 @@ describe('QuestResolutionSweeper', () => {
         jest.advanceTimersByTime(2 * EVERY_MINUTE_MS);
         expect(sweep).toHaveBeenCalledTimes(3);
 
-        sweeper.onModuleDestroy();
+        void sweeper.onModuleDestroy();
         jest.advanceTimersByTime(2 * EVERY_MINUTE_MS);
         expect(sweep).toHaveBeenCalledTimes(3);
     });
@@ -193,5 +207,58 @@ describe('QuestResolutionSweeper', () => {
             expect(message).toContain('code 112');
             expect(message).not.toContain('raw driver message');
         }
+    });
+    it('waits for the sweep in flight before the module is destroyed', async () => {
+        const due = deferred<DueStandardQuest[]>();
+        aggregate = aggregateResolving(due.promise);
+        const sweeper = sweeperWith(0);
+        const sweep = sweeper.sweep();
+        let destroyed = false;
+
+        const destroy = sweeper.onModuleDestroy().then(() => {
+            destroyed = true;
+        });
+        await flushMicrotasks();
+        expect(destroyed).toBe(false);
+
+        due.resolve([]);
+        await destroy;
+
+        expect(find).toHaveBeenCalledTimes(1);
+        await expect(sweep).resolves.toEqual({ resolved: 0, timedOut: 0 });
+    });
+
+    it('shuts down cleanly when the sweep in flight fails', async () => {
+        const due = deferred<DueStandardQuest[]>();
+        aggregate = aggregateResolving(due.promise);
+        const sweeper = sweeperWith(0);
+        const sweep = sweeper.sweep();
+        sweep.catch(() => undefined);
+
+        const destroy = sweeper.onModuleDestroy();
+        due.reject(new Error('connection closed'));
+
+        await expect(destroy).resolves.toBeUndefined();
+    });
+
+    it('starts no further resolution once the shutdown has begun', async () => {
+        const quests = [dueQuest(), dueQuest()];
+        aggregate = aggregateResolving(Promise.resolve(quests));
+        find = findResolving(Promise.resolve([dueAid()]));
+        const first = deferred<string>();
+        resolveStandard.mockReturnValueOnce(first.promise);
+        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+        const sweeper = sweeperWith(0);
+        const sweep = sweeper.sweep();
+        await flushMicrotasks();
+        expect(resolveStandard).toHaveBeenCalledTimes(1);
+
+        const destroy = sweeper.onModuleDestroy();
+        first.resolve('resolved');
+        await destroy;
+
+        expect(resolveStandard).toHaveBeenCalledTimes(1);
+        expect(timeoutAid).not.toHaveBeenCalled();
+        await expect(sweep).resolves.toEqual({ resolved: 1, timedOut: 0 });
     });
 });
