@@ -9,7 +9,8 @@ import type {
 import { objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 import type { ParticipantOutcome } from './combat/combat-resolver';
 import { MIN_LIFE_POINTS } from './progression/level-table';
-import { type OutcomeCharacterSnapshot, statusFactsOf } from './outcome-plan';
+import type { OutcomeCharacterSnapshot } from './outcome-plan';
+import { statusFactsOf } from './progression/status-facts';
 
 // limiti di un partecipante letti dallo snapshot (Open Q 14): chiavi esadecimali
 export interface OverrideParticipant {

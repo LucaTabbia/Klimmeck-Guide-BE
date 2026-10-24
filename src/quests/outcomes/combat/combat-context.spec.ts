@@ -9,7 +9,7 @@ import {
     combatCatalogRefsOf,
     normalizeDamages,
 } from './combat-context';
-import { statusFactsOf } from '../outcome-plan';
+import { statusFactsOf } from '../progression/status-facts';
 
 const id = (hex: string) => new Types.ObjectId(hex.padStart(24, '0'));
 

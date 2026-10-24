@@ -15,11 +15,8 @@ import type { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms, objectIdFromHex, sameId } from 'src/mongo/document-id';
 import { lanePathOf, type QuestLane } from 'src/quests/acceptance/quest-lanes';
 import type { ParticipantOutcome } from './combat/combat-resolver';
-import {
-    levelRowFor,
-    MIN_LIFE_POINTS,
-    progressionAfter,
-} from './progression/level-table';
+import { MIN_LIFE_POINTS, progressionAfter } from './progression/level-table';
+import { statusFactsOf } from './progression/status-facts';
 import { nextTitleAfterStory } from './progression/title-progression';
 import {
     canLearnSpell,
@@ -126,29 +123,6 @@ export interface ParticipantPlan {
     coinsDelta: number;
     result: QuestResultDraft;
     spellRecoveries: SpellRecovery[];
-}
-
-export interface StatusFacts {
-    xp: number;
-    level: number;
-    title: TitleType;
-    currentLifePoints: number;
-    maxLifePoints: number;
-}
-
-// valori "prima" del foglio esiti: i campi mancanti di un legacy si leggono dalla tabella unica
-export function statusFactsOf(snapshot: OutcomeCharacterSnapshot): StatusFacts {
-    const { status } = snapshot;
-    const xp = status.xp ?? 0;
-    const row = levelRowFor(xp);
-    const maxLifePoints = status.maxLifePoints ?? row.maxLifePoints;
-    return {
-        xp,
-        level: status.level ?? row.level,
-        title: status.title,
-        currentLifePoints: status.currentLifePoints ?? maxLifePoints,
-        maxLifePoints,
-    };
 }
 
 export function questFactsOf(

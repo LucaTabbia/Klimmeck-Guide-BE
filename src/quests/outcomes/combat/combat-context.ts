@@ -5,6 +5,7 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
+import { statusFactsOf } from '../progression/status-facts';
 import {
     CombatContext,
     CombatDamages,
@@ -17,6 +18,7 @@ export interface CombatCharacterSnapshot {
     _id: Types.ObjectId;
     status: {
         title: TitleType;
+        xp?: number;
         level?: number;
         currentLifePoints?: number;
         maxLifePoints?: number;
@@ -142,54 +144,60 @@ export function combatCatalogRefsOf(
 const effectOf = (value: unknown): EffectType | null =>
     KNOWN_EFFECTS.has(value) ? (value as EffectType) : null;
 
+// HP e livello dagli stessi fatti del piano esiti (WR-01): il resolver vede gli stessi "prima" del foglio
 const participantOf = (
     snapshot: CombatCharacterSnapshot,
     hydration: CombatHydration,
-): CombatParticipant => ({
-    characterId: snapshot._id.toHexString(),
-    title: snapshot.status.title,
-    level: numberOr(snapshot.status.level, 0),
-    currentLifePoints: numberOr(snapshot.status.currentLifePoints, 1),
-    maxLifePoints: numberOr(snapshot.status.maxLifePoints, 0),
-    injuries: [...(snapshot.status.injuries ?? [])],
-    equipment: wornOf(snapshot).flatMap(({ slot, itemId }) => {
-        const item = hydration.equipment.get(itemId.toHexString());
-        return item
-            ? [
-                  {
-                      itemId: itemId.toHexString(),
-                      slot,
-                      damages: normalizeDamages(item.damages),
-                  },
-              ]
-            : [];
-    }),
-    activeSpells: activeSpellsOf(snapshot).flatMap(({ spellId, usages }) => {
-        const spell = hydration.spells.get(spellId.toHexString());
-        return spell
-            ? [
-                  {
-                      spellId: spellId.toHexString(),
-                      usages,
-                      damage: damageEntryOf(spell.energyDamage),
-                  },
-              ]
-            : [];
-    }),
-    consumables: ownedLootOf(snapshot).flatMap(({ itemId, quantity }) => {
-        const loot = hydration.loot.get(itemId.toHexString());
-        return loot
-            ? [
-                  {
-                      itemId: itemId.toHexString(),
-                      quantity,
-                      effect: effectOf(loot.effect),
-                      power: numberOr(loot.power, 0),
-                  },
-              ]
-            : [];
-    }),
-});
+): CombatParticipant => {
+    const facts = statusFactsOf(snapshot);
+    return {
+        characterId: snapshot._id.toHexString(),
+        title: snapshot.status.title,
+        level: facts.level,
+        currentLifePoints: facts.currentLifePoints,
+        maxLifePoints: facts.maxLifePoints,
+        injuries: [...(snapshot.status.injuries ?? [])],
+        equipment: wornOf(snapshot).flatMap(({ slot, itemId }) => {
+            const item = hydration.equipment.get(itemId.toHexString());
+            return item
+                ? [
+                      {
+                          itemId: itemId.toHexString(),
+                          slot,
+                          damages: normalizeDamages(item.damages),
+                      },
+                  ]
+                : [];
+        }),
+        activeSpells: activeSpellsOf(snapshot).flatMap(
+            ({ spellId, usages }) => {
+                const spell = hydration.spells.get(spellId.toHexString());
+                return spell
+                    ? [
+                          {
+                              spellId: spellId.toHexString(),
+                              usages,
+                              damage: damageEntryOf(spell.energyDamage),
+                          },
+                      ]
+                    : [];
+            },
+        ),
+        consumables: ownedLootOf(snapshot).flatMap(({ itemId, quantity }) => {
+            const loot = hydration.loot.get(itemId.toHexString());
+            return loot
+                ? [
+                      {
+                          itemId: itemId.toHexString(),
+                          quantity,
+                          effect: effectOf(loot.effect),
+                          power: numberOr(loot.power, 0),
+                      },
+                  ]
+                : [];
+        }),
+    };
+};
 
 const enemyOf = (enemy: CombatEnemySnapshot): CombatEnemy => ({
     id: enemy._id.toHexString(),

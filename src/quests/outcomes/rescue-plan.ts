@@ -7,8 +7,8 @@ import {
     type OutcomeQuestSnapshot,
     questFactsOf,
     type QuestResultDraft,
-    statusFactsOf,
 } from './outcome-plan';
+import { statusFactsOf } from './progression/status-facts';
 
 export interface RescuedPlanInput {
     resultId: Types.ObjectId;
