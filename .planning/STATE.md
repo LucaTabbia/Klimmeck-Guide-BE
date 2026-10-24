@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 09-16-PLAN.md
-last_updated: "2026-10-24T17:52:00.000Z"
-last_activity: 2026-10-24 -- Completed 09-16 (phase gate green: unit 121 suites / 1765 tests, integration 72 suites / 913 tests, build, filtered lint 0, eslint and prettier clean on the 174 touched .ts, schema additive vs develop, invariants green, flaky 09-14 not reproduced; BACKEND-NOTES.md handoff for FE Phase 9/10/7 and BE Phase 10; Phase 5 notes amended (questEnd id = QuestResult id); BE-COMBAT-01..03 and BE-ADMIN-01..02 traced Complete; Key Decision 'Combat result ibrido' realised; 09-VALIDATION approved)
+status: completed
+stopped_at: Phase 9 complete (2026-10-24) — PR to develop pending
+last_updated: "2026-10-24T18:20:00.000Z"
+last_activity: 2026-10-24 -- Phase 9 closed: 16/16 plans, gate green after the review fixes (unit 121 suites / 1775 tests, integration 72 suites / 915 tests, build, filtered lint 0, schema additive vs develop), verification passed 5/5, code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, security audit in 09-SECURITY.md; PR to develop next
 progress:
   total_phases: 12
   completed_phases: 10
   total_plans: 103
-  completed_plans: 99
-  percent: 96
+  completed_plans: 103
+  percent: 100
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 9 — Combat Result & Admin Outcomes: EXECUTING 16 plans in 8 waves on feat/09-combat-result-admin-outcomes (09-CONTEXT amended after the research C1–C10; plan-checker passed after one revision); C5 (aid timeout suspended while a rescuer is registered) and A3 (boss concluded if at least one wins) are technical defaults to confirm with the user before the PR
+**Current focus:** Phase 9 — Combat Result & Admin Outcomes complete on 2026-10-24 (PR to develop pending; unblocks FE Phase 9 foglio esiti and FE Phase 10 pannello admin; FE Phase 7 gets `SHOP_NOT_IN_CITY`/`AWAITING_AID`); technical defaults to confirm with the user: C5 (aid timeout suspended while a rescuer is registered), A3 (boss concluded if at least one wins), placeholder resolver/injury/drop-rate values; next Phase 10 — Hardening Trasversale
 
 ## Current Position
 
-Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 16 of 16 (all plans complete, phase pending review/verification)
-Status: Phase 9 — all 16 plans complete (09-01..09-16); pending code review, verification and phase close; C5 and A3 to confirm with the user before the PR
-Last activity: 2026-10-24 -- Completed 09-16 (phase gate green: unit 121 suites / 1765 tests, integration 72 suites / 913 tests, build, filtered lint 0, eslint and prettier clean on the 174 touched .ts, schema additive vs develop, invariants green, flaky 09-14 not reproduced; BACKEND-NOTES.md handoff for FE Phase 9/10/7 and BE Phase 10; Phase 5 notes amended (questEnd id = QuestResult id); BE-COMBAT-01..03 and BE-ADMIN-01..02 traced Complete; Key Decision 'Combat result ibrido' realised; 09-VALIDATION approved)
+Phase: 9 (Combat Result & Admin Outcomes) — COMPLETE 2026-10-24 (16/16 plans; code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, 1 sub-point deferred to Phase 10; verification passed 5/5 success criteria + D-01..D-29 (C1–C10); device UAT deferred to the FE Phase 9/10 UAT; security audit in 09-SECURITY.md)
+Plan: 16 of 16 (complete)
+Status: Phase 9 complete — PR to develop pending; next /gsd-discuss-phase 10 (Hardening Trasversale)
+Last activity: 2026-10-24 -- Phase 9 closed: 16/16 plans, gate green after the review fixes (unit 121 suites / 1775 tests, integration 72 suites / 915 tests, build, filtered lint 0, schema additive vs develop), verification passed 5/5, review fixed, security audit in 09-SECURITY.md; PR to develop next
 
-Progress: [█████████░] 96% (phases 1–8 complete; Phase 9 16/16 plans, pending review/verification)
+Progress: [██████████] 100% (phases 1–9 complete; Phase 10 next)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 99
+- Total plans completed: 103
 - Average duration: - min
 - Total execution time: 0 hours
 
