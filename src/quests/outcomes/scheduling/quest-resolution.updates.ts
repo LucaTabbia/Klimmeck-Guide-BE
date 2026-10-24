@@ -9,7 +9,7 @@ export interface DueStandardQuest {
     waitingTime: number;
 }
 
-// solo la corsia standard dei personaggi attivi (Pitfall 2): le PendingQuest GM hanno waitingTime 0 e risulterebbero scadute; now dal Clock, mai $$NOW
+// solo la corsia standard dei personaggi attivi (Pitfall 2): le PendingQuest GM hanno waitingTime 0 e risulterebbero scadute; now dal Clock, mai la variabile NOW del server Mongo
 export function dueStandardQuestsPipeline(now: Date): PipelineStage[] {
     return [
         {
