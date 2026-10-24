@@ -1,6 +1,8 @@
 import { Types } from 'mongoose';
 import { maxActiveSpellsExpression } from 'src/models/character/active-spell-slots';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import {
+    ACTIVE_SPELL_SNAPSHOT_PROJECTION,
     ActiveSpellSnapshot,
     classifyEquipSpellFailure,
     classifyUnequipSpellFailure,
@@ -93,9 +95,16 @@ describe('active spell failure classifiers', () => {
         spells: unknown[],
         activeSpells: { spell?: unknown; usages?: number }[],
         xp?: number,
+        title?: TitleType,
     ): ActiveSpellSnapshot => ({
-        status: { spells, xp },
+        status: { spells, xp, title },
         assets: { activeSpells },
+    });
+
+    it('reads the title with the snapshot', () => {
+        expect(ACTIVE_SPELL_SNAPSHOT_PROJECTION).toMatchObject({
+            'status.title': 1,
+        });
     });
 
     describe('classifyEquipSpellFailure', () => {
@@ -134,9 +143,21 @@ describe('active spell failure classifiers', () => {
             ).toMatchObject({ code: 'MAX_ACTIVE_SPELLS_REACHED' });
         });
 
+        it('answers MAX_ACTIVE_SPELLS_REACHED below the mage rank whatever the xp', () => {
+            expect(
+                classifyEquipSpellFailure(
+                    snapshot([s], [], 40000, TitleType.rookie),
+                    s,
+                ),
+            ).toMatchObject({ code: 'MAX_ACTIVE_SPELLS_REACHED' });
+        });
+
         it('returns undefined when no guard is violated (state changed after the write)', () => {
             expect(
-                classifyEquipSpellFailure(snapshot([s], [], 20000), s),
+                classifyEquipSpellFailure(
+                    snapshot([s], [], 20000, TitleType.mage),
+                    s,
+                ),
             ).toBeUndefined();
         });
 

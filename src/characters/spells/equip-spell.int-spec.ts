@@ -8,6 +8,7 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
@@ -39,6 +40,7 @@ interface RawCharacter {
 
 interface Loadout {
     xp: number;
+    title?: TitleType;
     spells: Types.ObjectId[];
     activeSpells: { spell: Types.ObjectId; usages: number }[];
 }
@@ -65,12 +67,18 @@ describe('equipSpell / unequipSpell (wire)', () => {
 
     function playerWith(
         twitchId: string,
-        { xp, spells: known, activeSpells }: Loadout,
+        { xp, title = TitleType.mage, spells: known, activeSpells }: Loadout,
     ): Promise<TestPlayer> {
+        // le suite delle magie giocano da mage (D-13): gli slot si aprono dal rango mage
         return createPlayer(harness, {
             twitchId,
             characterOverrides: {
-                status: { ...buildCharacter().status, xp, spells: known },
+                status: {
+                    ...buildCharacter().status,
+                    title,
+                    xp,
+                    spells: known,
+                },
                 assets: { ...buildCharacter().assets, activeSpells },
             },
         });
@@ -241,6 +249,23 @@ describe('equipSpell / unequipSpell (wire)', () => {
             expect(await rawCharacter(idOf(noSlots))).toEqual(noSlotsBefore);
         });
 
+        it('rejects equipSpell below the mage rank with MAX_ACTIVE_SPELLS_REACHED', async () => {
+            const dardo = await spellNamed('Dardo');
+            const player = await playerWith('twitch-eq-rookie', {
+                xp: 40000,
+                title: TitleType.rookie,
+                spells: [dardo],
+                activeSpells: [],
+            });
+
+            const body = await equip(player, dardo.toHexString());
+
+            expect(codeOf(body)).toBe('MAX_ACTIVE_SPELLS_REACHED');
+            expect(
+                (await rawCharacter(idOf(player))).assets.activeSpells,
+            ).toEqual([]);
+        });
+
         it('equips a known spell stored with a legacy string id', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-eq-legacy-known', {
@@ -356,35 +381,43 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toBe(2);
         });
 
-        it('evaluates the capacity expression exactly like maxActiveSpellsFor', async () => {
+        it('evaluates the capacity expression exactly like maxActiveSpellsFor across xp and titles', async () => {
             const xps = [
                 0, 19999, 20000, 24999, 25000, 29999, 30000, 39999, 40000,
             ];
+            const titles = Object.values(TitleType);
             const ids: Types.ObjectId[] = [];
             for (const xp of xps) {
-                const created = await persistCharacter(characters, {
-                    infos: { ...buildCharacter().infos, name: `Parity ${xp}` },
-                    status: { ...buildCharacter().status, xp },
-                });
-                ids.push(created._id as Types.ObjectId);
+                for (const title of titles) {
+                    const created = await persistCharacter(characters, {
+                        infos: {
+                            ...buildCharacter().infos,
+                            name: `Parity ${xp} ${title}`,
+                        },
+                        status: { ...buildCharacter().status, xp, title },
+                    });
+                    ids.push(created._id as Types.ObjectId);
+                }
             }
 
             const rows = await characters.aggregate<{
                 xp: number;
+                title: TitleType;
                 slots: number;
             }>([
                 { $match: { _id: { $in: ids } } },
                 {
                     $project: {
                         xp: '$status.xp',
+                        title: '$status.title',
                         slots: maxActiveSpellsExpression(),
                     },
                 },
             ]);
 
-            expect(rows).toHaveLength(xps.length);
+            expect(rows).toHaveLength(xps.length * titles.length);
             for (const row of rows) {
-                expect(row.slots).toBe(maxActiveSpellsFor(row.xp));
+                expect(row.slots).toBe(maxActiveSpellsFor(row.xp, row.title));
             }
         });
     });

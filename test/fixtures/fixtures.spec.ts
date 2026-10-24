@@ -1,4 +1,5 @@
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
+import { CharacterStatusSchema } from 'src/models/character/character-status.model';
 import {
     buildCity,
     buildSpell,
@@ -57,8 +58,23 @@ describe('fixtures builders', () => {
     });
 
     describe('buildCharacter', () => {
-        it('defaults xp to 20000 so maxActiveSpells virtual yields one slot', () => {
-            expect(buildCharacter().status.xp).toBe(20000);
+        it('defaults to a rookie with 20000 xp: no spell slot until the mage rank', () => {
+            const StatusProbe =
+                mongoose.models.FixtureStatusSlotsProbe ??
+                mongoose.model(
+                    'FixtureStatusSlotsProbe',
+                    CharacterStatusSchema,
+                );
+            const status = buildCharacter().status;
+
+            expect(status.xp).toBe(20000);
+            expect(status.title).toBe('rookie');
+            expect(new StatusProbe(status).get('maxActiveSpells')).toBe(0);
+            expect(
+                new StatusProbe({ ...status, title: 'mage' }).get(
+                    'maxActiveSpells',
+                ),
+            ).toBe(1);
         });
 
         it('sets a required location ObjectId', () => {

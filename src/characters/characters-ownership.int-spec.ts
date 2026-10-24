@@ -156,6 +156,7 @@ describe('Character ownership on mutations and queries (wire)', () => {
         const richCharacter = {
             status: {
                 ...buildCharacter().status,
+                title: 'mage',
                 xp: 25000,
                 spells: [spellA._id, spellB._id],
             },
