@@ -316,7 +316,9 @@ describe('pendingRequests / pendingRequestsUpdated (wire)', () => {
                     id: String(bram.character?._id),
                     name: 'Eroe twitch-pr-bram',
                     title: TitleType.rookie,
-                    location: String(bram.character?.status.location),
+                    location: (
+                        bram.character?.status.location as Types.ObjectId
+                    ).toHexString(),
                     activeTravel: null,
                     awaitingAid: null,
                 },

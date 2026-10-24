@@ -339,6 +339,37 @@ type PendingQuest {
   waitingTime: Float!
 }
 
+type PendingRequest {
+  character: PendingRequestCharacter!
+  id: ID!
+  pointsSpent: Int!
+  quest: PendingRequestQuest!
+  startDate: DateTime
+  user: PendingRequestUser!
+}
+
+type PendingRequestCharacter {
+  activeTravel: ActiveTravel
+  awaitingAid: AwaitingAid
+  id: ID!
+  location: ID!
+  name: String!
+  title: String!
+}
+
+type PendingRequestQuest {
+  id: ID!
+  registeredAdventurers: [QuestRegistration!]!
+  requiredAdventurers: [QuestPartySlot!]!
+  title: String!
+  type: String!
+}
+
+type PendingRequestUser {
+  id: ID!
+  twitchId: String!
+}
+
 type Pet {
   buyPrice: Coins!
   currentLifePoints: Int!
@@ -439,6 +470,7 @@ type Query {
   me: User!
   pendingQuest(id: String!): PendingQuest!
   pendingQuests: [PendingQuest!]!
+  pendingRequests: [PendingRequest!]!
   pet(id: String!): Pet!
   pets: [Pet!]!
   pointOfInterest(id: String!): PointOfInterest!
@@ -614,6 +646,7 @@ type SpellUsage {
 
 type Subscription {
   characterUpdated(id: String!): Character!
+  pendingRequestsUpdated: [PendingRequest!]!
   questResultReceived(characterId: String!): QuestResult!
   userUpdated: User!
 }
