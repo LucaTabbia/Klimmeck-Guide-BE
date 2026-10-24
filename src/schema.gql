@@ -175,6 +175,11 @@ type CommonResponse {
   successful: Boolean!
 }
 
+input CompletePendingRequestInput {
+  outcomes: [ParticipantOverrideInput!]
+  pendingQuestId: ID!
+}
+
 input CreateCharacterInput {
   age: Int!
   background: String
@@ -285,6 +290,11 @@ enum InjuryType {
 
 union ItemUnion = EquipmentItem | LootItem
 
+input ItemUsageInput {
+  item: ID!
+  quantity: Int!
+}
+
 type LootItem {
   buyPrice: Coins
   description: String!
@@ -309,6 +319,7 @@ type Lore {
 
 type Mutation {
   acceptQuest(request: AcceptQuestRequest!): CommonResponse!
+  completePendingRequest(input: CompletePendingRequestInput!): [QuestResult!]!
   createCharacter(input: CreateCharacterInput!): User!
   deleteCharacter: User!
   doTransaction(request: TransactionRequest!): CommonResponse!
@@ -324,6 +335,14 @@ type Mutation {
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
   unregisterPushDevice(deviceId: String!): Boolean!
   useSpell(request: UseSpellRequest!): CommonResponse!
+}
+
+input ParticipantOverrideInput {
+  characterId: ID!
+  consumablesUsed: [ItemUsageInput!]
+  hpAfter: Int
+  injuries: [InjuryType!]
+  spellsUsed: [SpellUsageInput!]
 }
 
 type PathResponse {
@@ -641,6 +660,11 @@ type Spell {
 
 type SpellUsage {
   spell: Spell
+  usages: Int!
+}
+
+input SpellUsageInput {
+  spell: ID!
   usages: Int!
 }
 

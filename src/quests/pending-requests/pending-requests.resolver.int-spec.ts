@@ -1,7 +1,10 @@
+import { getQueueToken } from '@nestjs/bull';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import type request from 'supertest';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
+import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
+import { PUSH_CONFIG } from 'src/config/push-config';
 import {
     Character,
     CharacterDocument,
@@ -13,6 +16,8 @@ import {
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
+import { PushTransport } from 'src/push/transport/push-transport';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { PendingRequestsModule } from 'src/quests/pending-requests/pending-requests.module';
 import {
     AuthTestApp,
@@ -26,7 +31,10 @@ import {
 } from '../../../test/auth/ws-test-client';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
 import { persistQuest } from '../../../test/fixtures';
+import { FakePushTransport } from '../../../test/push/fake-push-transport';
+import { QUIET_OUTCOME_OVERRIDES } from '../../../test/quests/outcome-world';
 import { primePendingRequestsChangeStream } from '../../../test/quests/pending-requests-change-stream';
+import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 
 const REQUEST_FIELDS =
     'id startDate pointsSpent quest { id type title requiredAdventurers { title count } registeredAdventurers { character title } } character { id name title location activeTravel { endTime } awaitingAid { aidQuest } } user { id twitchId }';
@@ -212,8 +220,22 @@ describe('pendingRequests / pendingRequestsUpdated (wire)', () => {
     }
 
     beforeAll(async () => {
+        // PendingRequestsModule monta QuestOutcomesModule (09-15): push e code finte, nessuno sweep
         harness = await createAuthTestApp({
             imports: [PendingRequestsModule],
+            overrides: [
+                ...QUIET_OUTCOME_OVERRIDES,
+                { token: PushTransport, useValue: new FakePushTransport() },
+                { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
+                {
+                    token: getQueueToken(QUEST_RESOLUTION_QUEUE),
+                    useValue: new FakeTravelQueue(),
+                },
+                {
+                    token: getQueueToken(SPELL_RECOVERY_QUEUE),
+                    useValue: new FakeTravelQueue(),
+                },
+            ],
         });
         url = graphqlWsUrl(harness.port);
         characters = modelOf<CharacterDocument>(Character.name);

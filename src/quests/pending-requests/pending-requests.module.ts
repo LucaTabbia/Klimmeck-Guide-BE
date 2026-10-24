@@ -11,6 +11,8 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { User, UserSchema } from 'src/models/user.model';
+import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
+import { QuestResultsReadModule } from 'src/quests/results/quest-results-read.module';
 import { PendingRequestsPublisher } from './pending-requests.publisher';
 import { PendingRequestsResolver } from './pending-requests.resolver';
 import { PendingRequestsService } from './pending-requests.service';
@@ -24,6 +26,8 @@ import { PendingRequestsService } from './pending-requests.service';
             { name: User.name, schema: UserSchema },
         ]),
         AuthzModule,
+        QuestOutcomesModule,
+        QuestResultsReadModule,
     ],
     providers: [
         PendingRequestsService,
