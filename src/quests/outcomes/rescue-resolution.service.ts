@@ -198,8 +198,9 @@ export class RescueResolutionService {
             .exec();
         const injuredId = refIdOf(aid?.rescue?.character);
         if (!aid || aid.concludedAt || !injuredId) return 'stale';
+        // lo sweep lo ripete a ogni giro finché il soccorritore resta registrato: debug, non rumore operativo
         if (aidTimeoutSuspended(aid)) {
-            this.logger.log(
+            this.logger.debug(
                 `Soccorso ${aidHex}: un soccorritore è registrato, timeout sospeso`,
             );
             return 'waiting';
