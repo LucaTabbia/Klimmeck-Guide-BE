@@ -19,6 +19,7 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { idForms, refIdOf, sameId } from 'src/mongo/document-id';
+import { QuestResolutionScheduler } from 'src/quests/outcomes/scheduling/quest-resolution.scheduler';
 import { TravelPlanner } from 'src/travel/travel-planner.service';
 import { TravelScheduler } from 'src/travel/travel-scheduler.service';
 import { SlotRule } from './quest-capacity';
@@ -116,6 +117,7 @@ export class QuestAcceptanceService {
         private readonly clock: Clock,
         private readonly planner: TravelPlanner,
         private readonly scheduler: TravelScheduler,
+        private readonly questScheduler: QuestResolutionScheduler,
     ) {}
 
     // pre-letture lean → regole pure → una transazione con le guard riaffermate nel filtro (07 D-18): un rifiuto non scrive nulla
@@ -151,6 +153,9 @@ export class QuestAcceptanceService {
             minTitle: quest.requirements?.minTitle,
         };
         const pendingQuestId = new Types.ObjectId();
+        // in viaggio il countdown parte all'arrivo (D-15)
+        const startDate = movement?.kind === 'travel' ? null : this.clock.now();
+        const waitingTime = waitingTimeOf(lane, quest.infos.timeToComplete);
         await this.connection.transaction(async (session) => {
             await this.claimLane(
                 {
@@ -174,15 +179,8 @@ export class QuestAcceptanceService {
                 [
                     {
                         _id: pendingQuestId,
-                        // in viaggio il countdown parte all'arrivo (D-15)
-                        startDate:
-                            movement?.kind === 'travel'
-                                ? null
-                                : this.clock.now(),
-                        waitingTime: waitingTimeOf(
-                            lane,
-                            quest.infos.timeToComplete,
-                        ),
+                        startDate,
+                        waitingTime,
                         pointsSpent: cost,
                         quest: questId,
                     },
@@ -193,8 +191,15 @@ export class QuestAcceptanceService {
                 await this.wallet.debitUserPoints(ownerId, cost, session);
         });
         // job dopo il commit (D-21): best-effort, lo sweep copre un accodamento fallito
+        // scadenza accodata dove si scrive startDate (D-24, C8): story e worldMission non scadono mai (D-03)
         if (movement?.kind === 'travel')
             await this.scheduler.schedule(characterId, movement.travel);
+        else if (lane === QuestLane.standard && startDate)
+            await this.questScheduler.scheduleResolution({
+                pendingQuestId,
+                startDate,
+                waitingTime,
+            });
         return pendingQuestId;
     }
 
