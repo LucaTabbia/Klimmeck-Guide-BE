@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-10-PLAN.md
-last_updated: "2026-10-24T16:30:00.000Z"
-last_activity: 2026-10-24 -- Completed 09-10 (quest-resolution queue, scheduler, QUEST_SWEEP_INTERVAL_MS, jobs where startDate is written)
+stopped_at: Completed 09-12-PLAN.md
+last_updated: "2026-10-24T16:42:00.000Z"
+last_activity: 2026-10-24 -- Completed 09-12 (OutcomeWriter, QuestOutcomesModule, resolveIndividual with and without an enemy, questEnd(resultId))
 progress:
   total_phases: 12
   completed_phases: 10
   total_plans: 103
-  completed_plans: 94
-  percent: 91
+  completed_plans: 95
+  percent: 92
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 12 of 16
-Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 11 of 16 complete (09-01..09-11)
-Last activity: 2026-10-24 -- Completed 09-10 (Bull queue quest-resolution with deterministic jobs resolve quest-<pqId>-<startMs> and aid-timeout aid-<aidQuestId>; QuestResolutionScheduler + QuestResolutionSchedulingModule without Push; shared best-effort enqueueTrigger also used by TravelScheduler; optional fail-closed QUEST_SWEEP_INTERVAL_MS with the sweep interval parser shared with travel; resolve job enqueued after the commit in acceptQuest (standard lane without travel) and at a quest travel arrival; no SDL change)
+Plan: 13 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 12 of 16 complete (09-01..09-12)
+Last activity: 2026-10-24 -- Completed 09-12 (OutcomeWriter: session writes with the StaleResolution sentinel, coins only through WalletService, delivery after the commit — questEnd(resultId) push, aid-timeout, spell-recovery recover jobs; QuestOutcomesModule without change streams, not yet in AppModule; resolveIndividual: stale/early/archived triggers are no-ops, no enemy or orphan enemy = automatic success (C6), enemy fought through CombatResolver, defeat = awaitingAid + cloned aid; QUIET_OUTCOME_OVERRIDES + createOutcomeHarness in test/quests/outcome-world.ts; no SDL change)
 
-Progress: [█████████░] 91% (phases 1–8 complete; Phase 9 executing 11/16)
+Progress: [█████████░] 92% (phases 1–8 complete; Phase 9 executing 12/16)
 
 ## Performance Metrics
 
@@ -129,6 +129,7 @@ Progress: [█████████░] 91% (phases 1–8 complete; Phase 9 e
 | Phase 08 P12 | 10 min | 2 tasks | 9 files |
 | Phase 08 P13 | 9 min | 2 tasks | 6 files |
 | Phase 08 P14 | 14 min | 2 tasks | 3 files |
+| Phase 09 P12 | 11 min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -231,6 +232,7 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-01: SDL additivo di Wave 1 — CharacterStatus.awaitingAid (AwaitingAid { aidQuest, quest, since }) e QuestPrizes.spell (populate prizes.spell, Spell registrato in QuestsModule); Quest.concludedAt/rescue interni senza @Field; QuestResult (collection questresults, 7 ref MongooseSchema.Types.ObjectId, refPath assoluti) + enum QuestOutcome, non ancora nello schema (09-06); slot magia solo da mage (maxActiveSpellsFor(xp, title), $cond sul titolo vivo nel filtro, proiezione status.title), fixture resta rookie e le suite delle magie passano title mage
 - [Phase 09]: 09-08: AWAITING_AID nel viaggio dopo la meta ammessa (classifyFreeTravel, startTravelFilter 'status.awaitingAid': null, classifyUnstarted) e come prima regola dell'accettazione (classifyEligibility, laneClaimFilter, classifyUnclaimed); teleportFilter invariato (D-07); velocità = pet × travelSpeedFactorOf(injuries) su planFree e planAuto (AutoTravelRequest.injuries, D-15); readQuest/registrationFilter/QuestsService con concludedAt: null, classifyUnregistered → NOT_FOUND su quest conclusa (D-06, C9)
 - [Phase 09]: 09-07: coda live dell'innkeeper — read model piatto PendingRequest* (nessun @Schema, nessun populate) da quattro letture lean (personaggi attivi con corsia story/worldMission, PendingQuest, quest, utenti per currentCharacter con idForms); voci con PendingQuest/quest/utente/location mancanti saltate con WARN di soli id; pendingRequests + pendingRequestsUpdated (subscribeWithSnapshot) @Roles(innkeeper) in PendingRequestsResolver; PendingRequestsPublisher su change stream insert/delete di pendingquests con ricalcolo single-flight con rerun; PendingRequestsModule in AppModule dopo QuestResultsModule, esporta il servizio per 09-15
+- [Phase 09]: 09-12: OutcomeWriter è l'unico punto delle scritture dell'esito (findOneAndUpdate condizionale → StaleResolution, WalletService con session, QuestResult nella stessa session, deleteOne della PendingQuest, updateQuest claim|bestEffort, createAid) e della consegna dopo il commit (push questEnd(resultId) per risultato, aid-timeout, recover sulla coda spell-recovery con withinTimeout, best-effort per voce); QuestResolutionService.resolveIndividual rilegge il trigger dal DB (startDate uguale, scadenza ≤ Clock, personaggio attivo in corsia, proprietario), cataloghi fuori dalla transazione, combattimento dalla porta dentro il callback (esito per characterId), sconfitta = awaitingAid + aid clonata; QuestOutcomesModule senza change stream, non montato (09-14); ogni harness degli esiti usa QUIET_OUTCOME_OVERRIDES (createOutcomeHarness)
 
 ### Pending Todos
 
@@ -258,7 +260,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-24T16:13:00.000Z
-Stopped at: Completed 09-07-PLAN.md
+Last session: 2026-10-24T16:42:00.000Z
+Stopped at: Completed 09-12-PLAN.md
 Resume file: None
 | 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |
