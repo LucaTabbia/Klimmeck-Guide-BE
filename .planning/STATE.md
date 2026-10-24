@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-14-PLAN.md
-last_updated: "2026-10-24T14:37:22.254Z"
-last_activity: 2026-10-24 -- Phase 9 execution started
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-10-24T14:50:00.000Z"
+last_activity: 2026-10-24 -- Completed 09-01 (models contract)
 progress:
   total_phases: 12
   completed_phases: 10
   total_plans: 103
-  completed_plans: 87
-  percent: 84
+  completed_plans: 88
+  percent: 85
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 1 of 16
-Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, plan 1 of 16 starting
-Last activity: 2026-10-24 -- Phase 9 execution started
+Plan: 2 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, plan 2 of 16 next
+Last activity: 2026-10-24 -- Completed 09-01 (awaitingAid, prizes.spell, QuestResult/QuestOutcome, mage gate on spell slots, BE-COMBAT-03/BE-ADMIN-02 amended)
 
-Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 0/16)
+Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 1/16)
 
 ## Performance Metrics
 
@@ -228,6 +228,7 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-12: startTravel (Mutation) / travelPreview (Query) owner-only (D-18) in TravelResolver, TravelModule importa AuthzModule ed esporta TravelService; avvio = planFree + un solo findOneAndUpdate condizionale + schedule best-effort; preview stesso piano senza scritture; TravelRequest { id, poiId } riusabile dal teleport; poiId malformato ⇒ NOT_FOUND 'Luogo non trovato'; schema.gql solo additivo
 - [Phase 08]: 08-13: teleportCharacter(request: TravelRequest!) @Roles(innkeeper) in TravelAdminResolver; TravelService.teleport = esistenza POI + un solo findOneAndUpdate condizionale (attivo, pendingQuest null) con returnDocument before + scheduler.cancel best-effort dallo startTime before; qualsiasi POI (TravelModule registra PointOfInterest); audit target { type: 'CommonResponse', id: null } con args.request; nessuna push, nessuna scrittura quest; SDL +1 riga
 - [Phase 08]: 08-14: gate finale verde senza fix (unit 95/1415, int 57/739); BACKEND-NOTES con dati UAT in §11 e scala delle durate (speedFactor e geometria come sole leve) in §8; BE-TRAVEL-01..04 Complete
+- [Phase 09]: 09-01: SDL additivo di Wave 1 — CharacterStatus.awaitingAid (AwaitingAid { aidQuest, quest, since }) e QuestPrizes.spell (populate prizes.spell, Spell registrato in QuestsModule); Quest.concludedAt/rescue interni senza @Field; QuestResult (collection questresults, 7 ref MongooseSchema.Types.ObjectId, refPath assoluti) + enum QuestOutcome, non ancora nello schema (09-06); slot magia solo da mage (maxActiveSpellsFor(xp, title), $cond sul titolo vivo nel filtro, proiezione status.title), fixture resta rookie e le suite delle magie passano title mage
 
 ### Pending Todos
 
@@ -255,7 +256,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T21:27:28.008Z
-Stopped at: Completed 08-14-PLAN.md
+Last session: 2026-10-24T14:50:00.000Z
+Stopped at: Completed 09-01-PLAN.md
 Resume file: None
 | 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |
