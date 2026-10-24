@@ -1,11 +1,12 @@
 import {
     Inject,
     Injectable,
+    Logger,
     OnApplicationBootstrap,
     OnModuleDestroy,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { QUEST_CONFIG } from 'src/config/quest-config';
 import type { QuestConfig } from 'src/config/quest-config';
@@ -13,18 +14,35 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { refIdOf } from 'src/mongo/document-id';
+import { describeError } from 'src/mongo/mongo-errors';
 import { QuestResolutionService } from './quest-resolution.service';
 import { RescueResolutionService } from './rescue-resolution.service';
+import {
+    DUE_AID_TIMEOUT_PROJECTION,
+    DueStandardQuest,
+    dueAidTimeoutsFilter,
+    dueStandardQuestsPipeline,
+} from './scheduling/quest-resolution.updates';
 
 export interface QuestSweepCounts {
     resolved: number;
     timedOut: number;
 }
 
+interface DueAidTimeout {
+    _id: Types.ObjectId;
+    status: { awaitingAid?: { aidQuest?: unknown } | null };
+}
+
 @Injectable()
 export class QuestResolutionSweeper
     implements OnApplicationBootstrap, OnModuleDestroy
 {
+    private readonly logger = new Logger(QuestResolutionSweeper.name);
+    private timer: NodeJS.Timeout | null = null;
+    private inFlight: Promise<QuestSweepCounts> | null = null;
+
     constructor(
         @Inject(QUEST_CONFIG) private readonly config: QuestConfig,
         @InjectModel(Character.name)
@@ -34,11 +52,94 @@ export class QuestResolutionSweeper
         private readonly clock: Clock,
     ) {}
 
-    onApplicationBootstrap(): void {}
+    // il DB decide (STATE [Phase 8]): reconciler sempre al boot, mai atteso; 0 spegne solo lo sweep periodico (D-24)
+    onApplicationBootstrap(): void {
+        if (this.config.sweepIntervalMs > 0) {
+            this.timer = setInterval(
+                () => void this.sweepSafely(),
+                this.config.sweepIntervalMs,
+            ).unref();
+        }
+        void this.sweepSafely();
+    }
 
-    onModuleDestroy(): void {}
+    onModuleDestroy(): void {
+        if (this.timer) clearInterval(this.timer);
+        this.timer = null;
+    }
 
+    // single-flight: un tick saltato è recuperato dal successivo; copre i job persi per eviction Redis (blocker STATE)
     sweep(): Promise<QuestSweepCounts> {
-        return Promise.resolve({ resolved: 0, timedOut: 0 });
+        this.inFlight ??= this.runOnce().finally(() => {
+            this.inFlight = null;
+        });
+        return this.inFlight;
+    }
+
+    private async runOnce(): Promise<QuestSweepCounts> {
+        const now = this.clock.now();
+        const resolved = await this.resolveDueQuests(now);
+        const timedOut = await this.timeOutDueAids(now);
+        if (resolved + timedOut > 0) {
+            this.logger.log(
+                `Sweep delle missioni: ${resolved} risolte, ${timedOut} soccorsi scaduti`,
+            );
+        }
+        return { resolved, timedOut };
+    }
+
+    // solo la corsia standard (Pitfall 2): story e worldMission restano al GM
+    private async resolveDueQuests(now: Date): Promise<number> {
+        const due = await this.characterModel
+            .aggregate<DueStandardQuest>(dueStandardQuestsPipeline(now))
+            .exec();
+        let resolved = 0;
+        // in serie: ogni risoluzione è una transazione sullo stesso pool, nessun picco al boot
+        for (const { pendingQuestId, startDate } of due) {
+            try {
+                const outcome = await this.resolution.resolveStandard({
+                    pendingQuestId,
+                    startDate,
+                });
+                if (outcome === 'resolved') resolved++;
+            } catch (error) {
+                this.logger.error(
+                    `Risoluzione della missione in attesa ${pendingQuestId.toHexString()} fallita: ${describeError(error)}`,
+                );
+            }
+        }
+        return resolved;
+    }
+
+    // 7 giorni senza soccorso (D-10): stessa funzione del job aid-timeout
+    private async timeOutDueAids(now: Date): Promise<number> {
+        const due = await this.characterModel
+            .find(dueAidTimeoutsFilter(now), DUE_AID_TIMEOUT_PROJECTION)
+            .lean<DueAidTimeout[]>()
+            .exec();
+        let timedOut = 0;
+        for (const character of due) {
+            const aidQuestId = refIdOf(character.status.awaitingAid?.aidQuest);
+            if (!aidQuestId) continue;
+            try {
+                const outcome = await this.rescue.timeoutAid({ aidQuestId });
+                if (outcome === 'resolved') timedOut++;
+            } catch (error) {
+                this.logger.error(
+                    `Timeout del soccorso ${aidQuestId.toHexString()} fallito: ${describeError(error)}`,
+                );
+            }
+        }
+        return timedOut;
+    }
+
+    private sweepSafely(): Promise<void> {
+        return this.sweep().then(
+            () => undefined,
+            (error: unknown) =>
+                this.logger.error(
+                    `Sweep delle missioni fallito: ${describeError(error)}`,
+                ),
+        );
     }
 }
