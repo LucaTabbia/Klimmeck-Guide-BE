@@ -6,6 +6,7 @@ import { isRegistered } from 'src/quests/acceptance/quest-eligibility';
 export interface QuestUpdateInput {
     type: QuestType;
     verdicts: { characterId: Types.ObjectId; verdict: QuestOutcome }[];
+    dropped?: readonly Types.ObjectId[];
     now: Date;
 }
 

@@ -77,6 +77,40 @@ describe('questUpdateOf', () => {
         });
     });
 
+    it('drops incoherent registrants together with the losers (Pitfall 8)', () => {
+        expect(
+            questUpdateOf({
+                type: QuestType.boss,
+                verdicts: [won(WINNER_ID), lost(LOSER_ID)],
+                dropped: [OTHER_ID],
+                now: NOW,
+            }),
+        ).toEqual({
+            $pull: {
+                registeredAdventurers: {
+                    character: { $in: [LOSER_ID, OTHER_ID] },
+                },
+            },
+            $set: { concludedAt: NOW },
+        });
+    });
+
+    it('drops incoherent registrants of a boss won by everyone', () => {
+        expect(
+            questUpdateOf({
+                type: QuestType.boss,
+                verdicts: [won(WINNER_ID)],
+                dropped: [OTHER_ID],
+                now: NOW,
+            }),
+        ).toEqual({
+            $pull: {
+                registeredAdventurers: { character: { $in: [OTHER_ID] } },
+            },
+            $set: { concludedAt: NOW },
+        });
+    });
+
     it('keeps a boss lost by everyone on the board', () => {
         expect(
             questUpdateOf({
