@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-11-PLAN.md
-last_updated: "2026-10-24T15:55:00.000Z"
-last_activity: 2026-10-24 -- Completed 09-11 (CharacterArchiver.archiveWithin inside the caller transaction, C1)
+stopped_at: Completed 09-05-PLAN.md
+last_updated: "2026-10-24T16:04:00.000Z"
+last_activity: 2026-10-24 -- Completed 09-05 (pure outcome plan, rescue/death, registered quest update)
 progress:
   total_phases: 12
   completed_phases: 10
   total_plans: 103
-  completed_plans: 91
-  percent: 85
+  completed_plans: 92
+  percent: 89
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 9 of 16
-Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 8 of 16 complete (09-01..09-04, 09-06, 09-08, 09-09, 09-11)
-Last activity: 2026-10-24 -- Completed 09-11 (CharacterArchiver.archiveWithin(session, { userId, characterId, reason, now }) archives inside the caller transaction: unlink only if the user points at that character (idForms), archive, free seats, close open aids; aborted outer transaction leaves nothing; not-linked outcome for the death no-op; archiveCurrentCharacter reuses it with the 03.1 contract unchanged; CharacterArchiveModule without UsersModule)
+Plan: 10 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 9 of 16 complete (09-01..09-06, 09-08, 09-09, 09-11)
+Last activity: 2026-10-24 -- Completed 09-05 (pure outcome plan: planParticipant → filter with lane and expected xp, single $set of the final state with progressionAfter as sole level/maxLifePoints writer, applyTradeToInventory for consumables and prizes, spell usages and recoveries, awaitingAid on failure; planRescued/deathResultOf; questUpdateOf/questClaimFilter)
 
-Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 8/16)
+Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 9/16)
 
 ## Performance Metrics
 

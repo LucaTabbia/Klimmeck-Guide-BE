@@ -264,7 +264,7 @@ Plans:
 - [x] 09-02-PLAN.md — Wave 1: tabella livelli/HP, progressione del titolo, HP iniziali 1000, codici nuovi (BE-COMBAT-01/03, BE-ADMIN-02)
 - [x] 09-03-PLAN.md — Wave 1: `ChanceSource`, loot a cascata, premi, clone della aid, timeout di soccorso (C5), tabella segnaposto delle ferite (BE-COMBAT-01/03)
 - [x] 09-04-PLAN.md — Wave 2: porta `CombatResolver`, contesto idratato, resolver segnaposto, fake e fixture `Enemy` (BE-COMBAT-03)
-- [ ] 09-05-PLAN.md — Wave 3: piano puro dell'esito, soccorso/morte, update della quest registrata (BE-COMBAT-01/03, BE-ADMIN-02)
+- [x] 09-05-PLAN.md — Wave 3: piano puro dell'esito, soccorso/morte, update della quest registrata (BE-COMBAT-01/03, BE-ADMIN-02)
 - [x] 09-06-PLAN.md — Wave 2: proprietà per utente, query `questResult`, subscription `questResultReceived`, SDL del risultato (BE-COMBAT-01/02)
 - [ ] 09-07-PLAN.md — Wave 3: coda live `pendingRequests`/`pendingRequestsUpdated` innkeeper (BE-ADMIN-01)
 - [x] 09-08-PLAN.md — Wave 2: guard `AWAITING_AID`, quest concluse fuori dalla board, rallentamento da ferite (BE-COMBAT-03)
@@ -323,5 +323,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
-| 9. Combat Result & Admin Outcomes | 8/16 | In Progress | - |
+| 9. Combat Result & Admin Outcomes | 9/16 | In Progress | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
