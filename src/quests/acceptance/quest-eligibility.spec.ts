@@ -264,6 +264,48 @@ describe('quest eligibility rules', () => {
         };
         const travelling = { endTime: new Date('2026-10-21T12:00:00Z') };
 
+        // in attesa di soccorso nessuna corsia si accetta (D-07), prima ancora del viaggio
+        it.each([QuestType.hunt, QuestType.story, QuestType.worldMission])(
+            'rejects a character awaiting aid on a %s before every other rule',
+            (type) => {
+                const awaiting = characterOf(
+                    TitleType.rookie,
+                    {
+                        completedQuests: [questId],
+                        pendingQuest: new Types.ObjectId(),
+                        activeStoryQuest: new Types.ObjectId(),
+                        activeWorldMissionQuest: new Types.ObjectId(),
+                    },
+                    travelling,
+                );
+                awaiting.status.awaitingAid = {
+                    quest: new Types.ObjectId(),
+                    aidQuest: new Types.ObjectId(),
+                    since: new Date('2026-10-21T10:00:00Z'),
+                };
+
+                expect(
+                    classify(
+                        questOf(type, {
+                            requirements: {
+                                ...heroSlot,
+                                minTitle: TitleType.hero,
+                            },
+                            registeredAdventurers: [otherHero],
+                        }),
+                        awaiting,
+                    ),
+                ).toMatchObject({ code: 'AWAITING_AID' });
+            },
+        );
+
+        it('ignores a null aid wait', () => {
+            const character = characterOf();
+            character.status.awaitingAid = null;
+
+            expect(classify(questOf(QuestType.hunt), character)).toBeNull();
+        });
+
         it('rejects a travelling character before every other rule', () => {
             const completedBusy = characterOf(
                 TitleType.rookie,

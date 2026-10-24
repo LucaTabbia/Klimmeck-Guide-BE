@@ -228,6 +228,7 @@ describe('acceptQuest (wire)', () => {
             location?: Types.ObjectId;
             completedQuests?: Types.ObjectId[];
             activeTravel?: Record<string, unknown>;
+            awaitingAid?: Record<string, unknown>;
         } = {},
     ): Promise<TestPlayer> {
         const base = buildCharacter();
@@ -241,6 +242,7 @@ describe('acceptQuest (wire)', () => {
                     location: options.location ?? world.cityMarker,
                     title: options.title ?? 'rookie',
                     activeTravel: options.activeTravel ?? null,
+                    awaitingAid: options.awaitingAid ?? null,
                 },
                 quests: {
                     completedQuests: options.completedQuests ?? [],
@@ -424,6 +426,28 @@ describe('acceptQuest (wire)', () => {
             arrange: async () => {
                 const player = await playerWith('elsewhere', {
                     location: await otherCityMarker(),
+                });
+                return {
+                    player,
+                    request: {
+                        id: characterIdOf(player),
+                        questId: await questOf('hunt'),
+                    },
+                };
+            },
+        },
+        {
+            name: 'a character awaiting aid, even travelling',
+            code: 'AWAITING_AID',
+            message: 'Il tuo personaggio è in attesa di soccorso',
+            arrange: async () => {
+                const player = await playerWith('wounded', {
+                    activeTravel: activeTravel(),
+                    awaitingAid: {
+                        quest: new Types.ObjectId(),
+                        aidQuest: new Types.ObjectId(),
+                        since: new Date(),
+                    },
                 });
                 return {
                     player,

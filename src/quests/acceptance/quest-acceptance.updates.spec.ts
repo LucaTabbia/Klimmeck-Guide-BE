@@ -28,7 +28,7 @@ describe('quest acceptance write builders', () => {
     };
 
     describe('laneClaimFilter', () => {
-        it('reasserts lane, travel, title and location on the active character for the standard lane', () => {
+        it('reasserts lane, aid wait, travel, title and location on the active character for the standard lane', () => {
             const filter = laneClaimFilter(
                 c,
                 QuestLane.standard,
@@ -41,6 +41,7 @@ describe('quest acceptance write builders', () => {
                 _id: c,
                 deletedAt: null,
                 'quests.pendingQuest': null,
+                'status.awaitingAid': null,
                 'status.activeTravel': null,
                 'status.title': 'rookie',
                 'status.location': { $in: [loc, loc.toHexString()] },
@@ -61,6 +62,7 @@ describe('quest acceptance write builders', () => {
                 _id: c,
                 deletedAt: null,
                 'quests.activeStoryQuest': null,
+                'status.awaitingAid': null,
                 'status.activeTravel': null,
                 'status.title': 'rookie',
                 'quests.completedQuests': { $nin: [q, q.toHexString()] },
@@ -75,6 +77,7 @@ describe('quest acceptance write builders', () => {
                 _id: c,
                 deletedAt: null,
                 'quests.activeWorldMissionQuest': null,
+                'status.awaitingAid': null,
                 'status.activeTravel': null,
                 'status.title': 'rookie',
                 'status.location': { $in: [loc, loc.toHexString()] },
@@ -143,7 +146,7 @@ describe('quest acceptance write builders', () => {
     });
 
     describe('registrationFilter', () => {
-        it('guards duplicates and the live seats in the same filter', () => {
+        it('guards a concluded quest, duplicates and the live seats in the same filter', () => {
             const rule = slotRuleOf([
                 { title: TitleType.hero, count: 1 },
                 { title: null, count: 2 },
@@ -151,6 +154,7 @@ describe('quest acceptance write builders', () => {
 
             expect(registrationFilter(q, c, rule, TitleType.hero)).toEqual({
                 _id: q,
+                concludedAt: null,
                 'registeredAdventurers.character': { $ne: c },
                 $expr: seatAvailableExpr(rule, TitleType.hero),
             });
@@ -195,6 +199,21 @@ describe('quest acceptance write builders', () => {
                 code: 'NOT_FOUND',
                 message: 'Personaggio non trovato',
             });
+        });
+
+        it('a character awaiting aid is AWAITING_AID before a running travel', () => {
+            expect(
+                classify(
+                    freshOf({
+                        status: {
+                            title: TitleType.rookie,
+                            awaitingAid: { aidQuest: new Types.ObjectId() },
+                            activeTravel: { endTime: new Date() },
+                        },
+                        quests: { activeStoryQuest: new Types.ObjectId() },
+                    }),
+                ),
+            ).toMatchObject({ code: 'AWAITING_AID' });
         });
 
         it('a travelling character is TRAVEL_IN_PROGRESS before a busy lane', () => {
@@ -349,6 +368,18 @@ describe('quest acceptance write builders', () => {
     describe('classifyUnregistered', () => {
         it('a missing quest is NOT_FOUND', () => {
             expect(classifyUnregistered(null, c)).toMatchObject({
+                code: 'NOT_FOUND',
+                message: 'Missione non trovata',
+            });
+        });
+
+        it('a quest concluded meanwhile is NOT_FOUND (D-06, C9)', () => {
+            expect(
+                classifyUnregistered(
+                    { registeredAdventurers: [], concludedAt: new Date() },
+                    c,
+                ),
+            ).toMatchObject({
                 code: 'NOT_FOUND',
                 message: 'Missione non trovata',
             });

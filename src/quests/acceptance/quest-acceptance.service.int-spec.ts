@@ -827,6 +827,148 @@ describe('QuestAcceptanceService (replSet)', () => {
         });
     });
 
+    function awaitAid(charId: Types.ObjectId) {
+        return characters.collection.updateOne(
+            { _id: charId },
+            {
+                $set: {
+                    'status.awaitingAid': {
+                        quest: new Types.ObjectId(),
+                        aidQuest: new Types.ObjectId(),
+                        since: ACCEPTED_AT,
+                    },
+                },
+            },
+        );
+    }
+
+    function conclude(questId: Types.ObjectId) {
+        return quests.collection.updateOne(
+            { _id: questId },
+            { $set: { concludedAt: ACCEPTED_AT } },
+        );
+    }
+
+    describe('aid wait guard (D-07)', () => {
+        it('rejects every lane of a character awaiting aid with AWAITING_AID and writes nothing', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            await awaitAid(charId);
+            const questIds = [
+                await questOf('hunt'),
+                await questOf('story', {
+                    requiredPoints: 1000,
+                    minTitle: 'rookie',
+                }),
+                await questOf('worldMission', {
+                    requiredPoints: 3000,
+                    requiredAdventurers: ANY_THREE,
+                }),
+                await questOf('aid', { requiredAdventurers: ANY_THREE }),
+            ];
+            const before = await raw(charId);
+
+            for (const questId of questIds)
+                await expect(
+                    accept(ownerId, charId, questId),
+                ).rejects.toMatchObject({
+                    code: 'AWAITING_AID',
+                    message: 'Il tuo personaggio è in attesa di soccorso',
+                });
+
+            expect(await raw(charId)).toEqual(before);
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+            for (const questId of questIds)
+                expect(
+                    (await rawQuest(questId))?.registeredAdventurers,
+                ).toEqual([]);
+            expect(queue.added).toEqual([]);
+        });
+
+        it('rejects with AWAITING_AID when the aid wait starts after the pre-check', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                requiredAdventurers: ANY_THREE,
+            });
+            const transaction = interleaveBeforeTransaction(() =>
+                awaitAid(charId),
+            );
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'AWAITING_AID' });
+
+            expect(transaction).toHaveBeenCalledTimes(1);
+            const character = await raw(charId);
+            expect(
+                character?.quests.activeWorldMissionQuest ?? null,
+            ).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual(
+                [],
+            );
+        });
+    });
+
+    describe('concluded quests (D-06, C9)', () => {
+        it('answers NOT_FOUND for a concluded quest and writes nothing', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            const questId = await questOf('aid', {
+                requiredAdventurers: ANY_THREE,
+            });
+            await conclude(questId);
+            const before = await raw(charId);
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({
+                code: 'NOT_FOUND',
+                message: 'Missione non trovata',
+            });
+
+            expect(await raw(charId)).toEqual(before);
+            expect(await pendingCount()).toBe(0);
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual(
+                [],
+            );
+        });
+
+        it('answers NOT_FOUND when the quest concludes after the pre-check, writing nothing', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                requiredAdventurers: ANY_THREE,
+            });
+            const transaction = interleaveBeforeTransaction(() =>
+                conclude(questId),
+            );
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({
+                code: 'NOT_FOUND',
+                message: 'Missione non trovata',
+            });
+
+            expect(transaction).toHaveBeenCalledTimes(1);
+            const character = await raw(charId);
+            expect(
+                character?.quests.activeWorldMissionQuest ?? null,
+            ).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual(
+                [],
+            );
+        });
+    });
+
     describe('automatic travel to the quest marker (D-02, D-03, D-21)', () => {
         let travel: TravelWorld;
 
@@ -877,6 +1019,27 @@ describe('QuestAcceptanceService (replSet)', () => {
                 jobId: travelJobId(charId, ACCEPTED_AT),
                 delay: active.duration,
             });
+        });
+
+        // velocità fotografata alla partenza: le ferite valgono anche sul viaggio automatico (D-15)
+        it('slows the automatic travel of an injured character', async () => {
+            const ownerId = await ownerWith(0);
+            const healthyId = await characterAt(travel.markerA);
+            const injuredId = await characterAt(travel.markerA);
+            await characters.collection.updateOne(
+                { _id: injuredId },
+                { $set: { 'status.injuries': ['brokenLeftLeg'] } },
+            );
+
+            await accept(ownerId, healthyId, await huntTo(travel.questPoi));
+            await accept(ownerId, injuredId, await huntTo(travel.questPoi));
+
+            const healthy = (await raw(healthyId))?.status.activeTravel;
+            const injured = (await raw(injuredId))?.status.activeTravel;
+            expect(injured.duration / healthy.duration).toBeCloseTo(1.25, 6);
+            expect(
+                injured.endTime.getTime() - injured.startTime.getTime(),
+            ).toBe(injured.duration);
         });
 
         it('refuses a second standard quest while travelling to the first', async () => {
