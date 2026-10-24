@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
+import { Clock } from 'src/auth/clock';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import {
@@ -14,6 +15,11 @@ import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
 import { buildAidQuest } from './aid/aid-quest';
+import {
+    aidTimeoutClaimFilter,
+    aidTimeoutSuspended,
+    isAidTimeoutDue,
+} from './aid/aid-timeout';
 import { ChanceSource } from './chance-source';
 import {
     CombatResolver,
@@ -26,6 +32,7 @@ import {
 } from './outcome-plan';
 import {
     type CommittedOutcome,
+    EMPTY_COMMITTED,
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
@@ -46,6 +53,30 @@ const ORIGINAL_QUEST_PROJECTION = {
     requirements: 1,
     prizes: 1,
 } as const;
+
+const AID_TIMEOUT_PROJECTION = {
+    infos: 1,
+    rescue: 1,
+    concludedAt: 1,
+    registeredAdventurers: 1,
+} as const;
+
+const awaitingSinceOf = (
+    injured: OutcomeCharacterSnapshot | null,
+): Date | null => {
+    const awaiting = injured?.status.awaitingAid as
+        | { since?: unknown }
+        | null
+        | undefined;
+    return awaiting?.since instanceof Date ? awaiting.since : null;
+};
+
+interface DeathRequest {
+    injured: OutcomeCharacterSnapshot;
+    aid: ResolutionQuest;
+    resultId: Types.ObjectId;
+    now: Date;
+}
 
 interface ReturnCity {
     marker: Types.ObjectId | null;
@@ -98,6 +129,7 @@ export class RescueResolutionService {
         private readonly archiver: CharacterArchiver,
         private readonly combat: CombatResolver,
         private readonly chance: ChanceSource,
+        private readonly clock: Clock,
     ) {}
 
     async resolveRescue(
@@ -154,10 +186,84 @@ export class RescueResolutionService {
         return 'resolved';
     }
 
-    timeoutAid(
-        _trigger: Pick<AidTimeoutTrigger, 'aidQuestId'>,
-    ): Promise<ResolutionOutcome> {
-        return Promise.reject(new Error('not implemented'));
+    // D-10: 7 giorni senza esito ⇒ morte; sospeso finché la aid ha un soccorritore registrato (C5, default da confermare)
+    async timeoutAid({
+        aidQuestId,
+    }: Pick<AidTimeoutTrigger, 'aidQuestId'>): Promise<ResolutionOutcome> {
+        const now = this.clock.now();
+        const aidHex = aidQuestId.toHexString();
+        const aid = await this.questModel
+            .findById(aidQuestId, AID_TIMEOUT_PROJECTION)
+            .lean<ResolutionQuest | null>()
+            .exec();
+        const injuredId = refIdOf(aid?.rescue?.character);
+        if (!aid || aid.concludedAt || !injuredId) return 'stale';
+        if (aidTimeoutSuspended(aid)) {
+            this.logger.log(
+                `Soccorso ${aidHex}: un soccorritore è registrato, timeout sospeso`,
+            );
+            return 'waiting';
+        }
+        const injured = await this.characterModel
+            .findOne(
+                {
+                    ...activeCharacterById(injuredId),
+                    'status.awaitingAid.aidQuest': { $in: idForms(aidQuestId) },
+                },
+                OUTCOME_CHARACTER_PROJECTION,
+            )
+            .lean<OutcomeCharacterSnapshot | null>()
+            .exec();
+        const since = awaitingSinceOf(injured);
+        if (!injured || !since) return 'stale';
+        if (!isAidTimeoutDue(since, now)) return 'waiting';
+        const resultId = new Types.ObjectId();
+        const state: { committed: CommittedOutcome | null; died: boolean } = {
+            committed: null,
+            died: false,
+        };
+        try {
+            await this.connection.transaction(async (session) => {
+                // il callback viene rieseguito sui WriteConflict: l'esito riparte da zero
+                state.committed = null;
+                state.died = false;
+                const claimed = await this.questModel
+                    .findOneAndUpdate(
+                        aidTimeoutClaimFilter(aidQuestId),
+                        { $set: { concludedAt: now } },
+                        { session, projection: { _id: 1 } },
+                    )
+                    .lean()
+                    .exec();
+                if (!claimed) throw new StaleResolution();
+                const death = await this.dieWithin(session, {
+                    injured,
+                    aid,
+                    resultId,
+                    now,
+                });
+                state.died = death !== null;
+                state.committed = {
+                    ...EMPTY_COMMITTED,
+                    results: death ? [death] : [],
+                };
+            });
+        } catch (error) {
+            if (!(error instanceof StaleResolution)) throw error;
+            this.logger.log(
+                `Soccorso ${aidHex} già concluso o con un soccorritore: nessuna scrittura`,
+            );
+            return 'stale';
+        }
+        if (!state.committed) return 'stale';
+        if (!state.died) {
+            this.logger.log(
+                `Ferito ${injuredId.toHexString()} già scollegato: nessuna morte da registrare, soccorso ${aidHex} concluso`,
+            );
+        }
+        await this.writer.deliver(state.committed);
+        this.logger.log(`Soccorso ${aidHex} scaduto dopo 7 giorni`);
+        return 'resolved';
     }
 
     // soccorritore come nel ramo individuale, poi il ferito; una sconfitta apre una nuova aid clonata dall'originale (D-09)
@@ -277,44 +383,55 @@ export class RescueResolutionService {
         return { resultId: context.injuredResultId, userId: injuredOwner };
     }
 
-    // morte nella stessa transazione dell'esito (D-09, C1): un ferito già scollegato è un no-op loggato
+    // aid fallita (D-09): il ferito muore; un ferito già scollegato è un no-op loggato (C1)
     private async kill({
         context,
         snapshot,
         session,
         notes,
     }: InjuredStep): Promise<InjuredResult> {
-        const { injuredId, now } = context;
-        const owner = snapshot
-            ? await this.ownerInSession(injuredId, session)
+        const death = snapshot
+            ? await this.dieWithin(session, {
+                  injured: snapshot,
+                  aid: context.loaded.quest,
+                  resultId: context.injuredResultId,
+                  now: context.now,
+              })
             : null;
-        const archived =
-            snapshot && owner
-                ? await this.archiver.archiveWithin(session, {
-                      userId: owner,
-                      characterId: injuredId,
-                      reason: DeletionReason.death,
-                      now,
-                  })
-                : 'not-linked';
-        if (!snapshot || !owner || archived !== 'archived') {
+        if (!death) {
             notes.push({
                 warn: false,
-                message: `Ferito ${injuredId.toHexString()} già scollegato: nessuna morte da registrare`,
+                message: `Ferito ${context.injuredId.toHexString()} già scollegato: nessuna morte da registrare`,
             });
-            return null;
         }
+        return death;
+    }
+
+    // morte nella stessa transazione dell'esito (D-09, D-10): proprietario letto in sessione prima dell'archivio, risultato del suo utente
+    private async dieWithin(
+        session: ClientSession,
+        { injured, aid, resultId, now }: DeathRequest,
+    ): Promise<InjuredResult> {
+        const owner = await this.ownerInSession(injured._id, session);
+        if (!owner) return null;
+        const archived = await this.archiver.archiveWithin(session, {
+            userId: owner,
+            characterId: injured._id,
+            reason: DeletionReason.death,
+            now,
+        });
+        if (archived !== 'archived') return null;
         await this.writer.writeResult(
             deathResultOf({
-                resultId: context.injuredResultId,
-                snapshot,
-                quest: context.loaded.quest,
+                resultId,
+                snapshot: injured,
+                quest: aid,
                 userId: owner,
                 now,
             }),
             session,
         );
-        return { resultId: context.injuredResultId, userId: owner };
+        return { resultId, userId: owner };
     }
 
     // il combattimento passa solo dalla porta (D-02)
