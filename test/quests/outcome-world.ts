@@ -159,6 +159,8 @@ export async function registerDevice(
 export interface QuesterOptions {
     twitchId: string;
     questOverrides?: Record<string, any>;
+    // quest già persistita (gruppo boss): nessuna quest nuova, il personaggio si registra su questa
+    quest?: { _id: unknown };
     characterOverrides?: Record<string, any>;
     startDate?: Date | null;
     waitingTime?: number;
@@ -197,10 +199,12 @@ export async function persistQuester(
 ): Promise<Quester> {
     const models = outcomeModels(harness);
     const lane = options.lane ?? QuestLane.standard;
-    const quest = await persistQuest(models.quests, {
-        ...buildQuest(),
-        ...options.questOverrides,
-    });
+    const quest =
+        options.quest ??
+        (await persistQuest(models.quests, {
+            ...buildQuest(),
+            ...options.questOverrides,
+        }));
     const pendingQuest = await models.pendingQuests.create({
         startDate:
             options.startDate === undefined ? OUTCOME_START : options.startDate,
@@ -217,7 +221,8 @@ export async function persistQuester(
         ),
     });
     const characterId = player.character!._id as Types.ObjectId;
-    const type = quest.infos.type as QuestType;
+    const type = (await models.quests.findById(quest._id).lean<any>().exec())
+        .infos.type as QuestType;
     if (options.registered ?? isRegistered(type)) {
         await models.quests.updateOne(
             { _id: quest._id },

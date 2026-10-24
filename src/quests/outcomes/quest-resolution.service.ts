@@ -162,6 +162,10 @@ export class QuestResolutionService {
         private readonly clock: Clock,
     ) {}
 
+    resolveStandard(_trigger: StandardTrigger): Promise<ResolutionOutcome> {
+        return Promise.reject(new Error('not implemented'));
+    }
+
     // individuale: enemy, hunt, dungeon e aid senza soccorso; boss di gruppo e catena di soccorso in resolveStandard (09-13)
     async resolveIndividual(
         trigger: StandardTrigger,
