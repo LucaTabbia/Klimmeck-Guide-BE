@@ -39,6 +39,7 @@ import {
     type StandardLoad,
 } from './resolution-loader.service';
 import { deathResultOf, planRescued } from './rescue-plan';
+import type { AidTimeoutTrigger } from './scheduling/quest-resolution-job';
 
 const ORIGINAL_QUEST_PROJECTION = {
     infos: 1,
@@ -151,6 +152,12 @@ export class RescueResolutionService {
             `Soccorso ${aid._id.toHexString()} risolto per il ferito ${injuredId.toHexString()}`,
         );
         return 'resolved';
+    }
+
+    timeoutAid(
+        _trigger: Pick<AidTimeoutTrigger, 'aidQuestId'>,
+    ): Promise<ResolutionOutcome> {
+        return Promise.reject(new Error('not implemented'));
     }
 
     // soccorritore come nel ramo individuale, poi il ferito; una sconfitta apre una nuova aid clonata dall'originale (D-09)
