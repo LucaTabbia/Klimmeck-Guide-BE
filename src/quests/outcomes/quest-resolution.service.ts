@@ -25,18 +25,24 @@ import { Spell, SpellDocument } from 'src/models/spell.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
 import { lanePathOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
-import type { AidSourceQuest } from './aid/aid-quest';
+import { type AidSourceQuest, buildAidQuest } from './aid/aid-quest';
 import { ChanceSource } from './chance-source';
 import {
+    buildCombatContext,
     type CombatCharacterSnapshot,
     combatCatalogRefsOf,
     type CombatEnemySnapshot,
 } from './combat/combat-context';
-import { CombatResolver } from './combat/combat-resolver';
+import {
+    CombatResolver,
+    type ParticipantOutcome,
+} from './combat/combat-resolver';
 import {
     OUTCOME_CHARACTER_PROJECTION,
     type OutcomeCharacterSnapshot,
     type OutcomeQuestSnapshot,
+    type ParticipantPlan,
+    type ParticipantPlanInput,
     planParticipant,
 } from './outcome-plan';
 import {
@@ -47,6 +53,7 @@ import {
 import { questUpdateOf } from './quest-outcome-plan';
 import {
     drawRewards,
+    NO_REWARDS,
     type PrizesSnapshot,
     type RewardCatalog,
     rewardRefsOf,
@@ -88,6 +95,22 @@ export interface ResolutionCatalog {
     spells: ReadonlyMap<string, { energyDamage?: unknown }>;
     loot: ReadonlyMap<string, { effect?: unknown; power?: unknown }>;
     recoveryTimes: ReadonlyMap<string, number>;
+}
+
+interface IndividualPlanInput {
+    loaded: StandardLoad;
+    catalog: ResolutionCatalog;
+    snapshot: ResolutionCharacter;
+    resultId: Types.ObjectId;
+    aidQuestId: Types.ObjectId;
+    pendingQuestId: Types.ObjectId;
+    now: Date;
+}
+
+interface IndividualPlan {
+    plan: ParticipantPlan;
+    verdict: QuestOutcome.success | QuestOutcome.failure;
+    aid: ParticipantPlanInput['aid'];
 }
 
 type CatalogEntry<T> = T & { _id: Types.ObjectId };
@@ -156,6 +179,7 @@ export class QuestResolutionService {
             loaded.character,
         ]);
         const resultId = new Types.ObjectId();
+        const aidQuestId = new Types.ObjectId();
         const outcome: {
             committed: CommittedOutcome | null;
             verdict: QuestOutcome | null;
@@ -170,24 +194,13 @@ export class QuestResolutionService {
                     trigger.pendingQuestId,
                     session,
                 );
-                const verdict = QuestOutcome.success;
-                const plan = planParticipant({
-                    resultId,
+                const { plan, verdict, aid } = this.planIndividual({
+                    loaded,
+                    catalog,
                     snapshot,
-                    quest: loaded.quest,
-                    lane: QuestLane.standard,
+                    resultId,
+                    aidQuestId,
                     pendingQuestId: trigger.pendingQuestId,
-                    userId: loaded.ownerId,
-                    verdict,
-                    battle: null,
-                    enemy: null,
-                    rewards: drawRewards(
-                        loaded.quest.prizes,
-                        catalog.rewards,
-                        this.chance,
-                    ),
-                    aid: null,
-                    spellRecoveryTimes: catalog.recoveryTimes,
                     now,
                 });
                 await this.writer.writeParticipant(plan, session);
@@ -205,10 +218,16 @@ export class QuestResolutionService {
                     session,
                     'bestEffort',
                 );
+                if (aid) {
+                    await this.writer.createAid(
+                        buildAidQuest(loaded.quest, snapshot._id, aidQuestId),
+                        session,
+                    );
+                }
                 outcome.verdict = verdict;
                 outcome.committed = {
                     results: [{ resultId, userId: loaded.ownerId }],
-                    aids: [],
+                    aids: aid ? [{ aidQuestId, since: now }] : [],
                     spellRecoveries: plan.spellRecoveries,
                 };
             });
@@ -225,6 +244,72 @@ export class QuestResolutionService {
             `Missione in attesa ${pendingQuestId} risolta: ${outcome.verdict}`,
         );
         return 'resolved';
+    }
+
+    // calcolo puro dentro il callback: il combattimento passa solo dalla porta (D-02), la sconfitta apre la aid (D-06..D-08)
+    private planIndividual(input: IndividualPlanInput): IndividualPlan {
+        const { loaded, catalog, snapshot } = input;
+        const battle = this.fight(input);
+        const verdict =
+            battle?.outcome === 'failure'
+                ? QuestOutcome.failure
+                : QuestOutcome.success;
+        const won = verdict === QuestOutcome.success;
+        const aid = won
+            ? null
+            : {
+                  aidQuestId: input.aidQuestId,
+                  failedQuestId:
+                      refIdOf(loaded.quest.rescue?.failedQuest) ??
+                      loaded.quest._id,
+              };
+        const plan = planParticipant({
+            resultId: input.resultId,
+            snapshot,
+            quest: loaded.quest,
+            lane: QuestLane.standard,
+            pendingQuestId: input.pendingQuestId,
+            userId: loaded.ownerId,
+            verdict,
+            battle,
+            enemy: catalog.enemy
+                ? {
+                      id: catalog.enemy._id,
+                      xp: isFiniteNumber(catalog.enemy.xp)
+                          ? catalog.enemy.xp
+                          : 0,
+                  }
+                : null,
+            rewards: won
+                ? drawRewards(loaded.quest.prizes, catalog.rewards, this.chance)
+                : NO_REWARDS,
+            aid,
+            spellRecoveryTimes: catalog.recoveryTimes,
+            now: input.now,
+        });
+        return { plan, verdict, aid };
+    }
+
+    // nessun nemico (o nemico orfano, C6) = nessun combattimento: successo automatico (D-01)
+    private fight({
+        loaded,
+        catalog,
+        snapshot,
+    }: IndividualPlanInput): ParticipantOutcome | null {
+        if (!catalog.enemy) return null;
+        const context = buildCombatContext({
+            quest: loaded.quest,
+            enemy: catalog.enemy,
+            participants: [snapshot],
+            equipment: catalog.equipment,
+            spells: catalog.spells,
+            loot: catalog.loot,
+        });
+        const characterId = snapshot._id.toHexString();
+        const outcomes = this.combat.resolve(context, this.chance);
+        return (
+            outcomes.find((entry) => entry.characterId === characterId) ?? null
+        );
     }
 
     // pre-letture lean fuori dalla transazione: solo id e stato, la transazione rilegge il personaggio in sessione
