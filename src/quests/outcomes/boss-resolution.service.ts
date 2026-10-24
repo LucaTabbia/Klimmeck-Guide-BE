@@ -19,6 +19,7 @@ import { battleOf, combatContextOf, planCombatant } from './combatant-plan';
 import { OUTCOME_CHARACTER_PROJECTION } from './outcome-plan';
 import {
     type CommittedOutcome,
+    emptyCommitted,
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
@@ -211,11 +212,7 @@ export class BossResolutionService {
                 const outcomes = context
                     ? this.combat.resolve(context, this.chance)
                     : [];
-                const committed: CommittedOutcome = {
-                    results: [],
-                    aids: [],
-                    spellRecoveries: [],
-                };
+                const committed = emptyCommitted();
                 const verdicts: Parameters<
                     typeof questUpdateOf
                 >[0]['verdicts'] = [];

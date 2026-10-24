@@ -36,6 +36,7 @@ import {
 } from './outcome-plan';
 import {
     type CommittedOutcome,
+    emptyCommitted,
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
@@ -252,11 +253,7 @@ export class GmCompletionService {
                     overrides,
                     snapshots.map(overrideParticipantOf),
                 );
-                const committed: CommittedOutcome = {
-                    results: [],
-                    aids: [],
-                    spellRecoveries: [],
-                };
+                const committed = emptyCommitted();
                 const drafts: QuestResultDraft[] = [];
                 const verdicts: Parameters<
                     typeof questUpdateOf

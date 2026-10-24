@@ -51,11 +51,12 @@ export interface CommittedOutcome {
     spellRecoveries: SpellRecovery[];
 }
 
-export const EMPTY_COMMITTED: CommittedOutcome = {
+// una factory, non una costante: ogni esito riempie i propri array
+export const emptyCommitted = (): CommittedOutcome => ({
     results: [],
     aids: [],
     spellRecoveries: [],
-};
+});
 
 // claim = la scrittura della Quest decide chi risolve; bestEffort = la quest può mancare senza bloccare l'esito
 export type QuestWriteMode = 'claim' | 'bestEffort';

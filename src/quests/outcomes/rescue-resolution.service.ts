@@ -32,7 +32,7 @@ import {
 } from './outcome-plan';
 import {
     type CommittedOutcome,
-    EMPTY_COMMITTED,
+    emptyCommitted,
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
@@ -244,7 +244,7 @@ export class RescueResolutionService {
                 });
                 state.died = death !== null;
                 state.committed = {
-                    ...EMPTY_COMMITTED,
+                    ...emptyCommitted(),
                     results: death ? [death] : [],
                 };
             });
