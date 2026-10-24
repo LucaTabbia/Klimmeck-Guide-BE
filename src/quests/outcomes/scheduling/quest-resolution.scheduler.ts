@@ -41,7 +41,7 @@ export class QuestResolutionScheduler implements OnModuleInit {
     }
 
     async scheduleResolution(trigger: ResolutionTrigger): Promise<void> {
-        await enqueueTrigger<QuestResolutionJobData>(
+        await enqueueTrigger(
             this.queue,
             {
                 name: RESOLVE_QUEST_JOB,
@@ -62,7 +62,7 @@ export class QuestResolutionScheduler implements OnModuleInit {
 
     // 7 giorni dalla aid senza esito (D-10)
     async scheduleAidTimeout(trigger: AidTimeoutTrigger): Promise<void> {
-        await enqueueTrigger<QuestResolutionJobData>(
+        await enqueueTrigger(
             this.queue,
             {
                 name: AID_TIMEOUT_JOB,
