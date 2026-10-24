@@ -1,4 +1,5 @@
 import { getQueueToken } from '@nestjs/bull';
+import { Logger } from '@nestjs/common';
 import type { Model } from 'mongoose';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import {
@@ -10,7 +11,7 @@ import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue
 import { PUSH_CONFIG } from 'src/config/push-config';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { PushTransport } from 'src/push/transport/push-transport';
-import { QuestLane } from 'src/quests/acceptance/quest-lanes';
+import { lanePathOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { PendingRequestsModule } from 'src/quests/pending-requests/pending-requests.module';
 import {
@@ -153,6 +154,67 @@ describe('completePendingRequest (wire)', () => {
             args: { input },
             outcome: AUDIT_OUTCOME_OK,
         });
+    });
+
+    it('answers with the committed results when reading them back fails after the commit', async () => {
+        const subject = await storyQuester();
+        const oste = await playerWithRole(RoleType.innkeeper);
+        const models = outcomeModels(harness);
+        const readFailure = () => {
+            throw new Error('transient read failure');
+        };
+        const resultReads = [
+            jest
+                .spyOn(models.questResults, 'findById')
+                .mockImplementation(readFailure),
+            jest
+                .spyOn(models.questResults, 'findOne')
+                .mockImplementation(readFailure),
+            jest
+                .spyOn(models.questResults, 'find')
+                .mockImplementation(readFailure),
+        ];
+        const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+
+        let body: WireBody;
+        try {
+            body = await completeOnWire(
+                { pendingQuestId: String(subject.pendingQuest._id) },
+                oste.bearer,
+            );
+        } finally {
+            resultReads.forEach((spy) => spy.mockRestore());
+            warn.mockRestore();
+        }
+
+        expect(body.errors).toBeUndefined();
+        const stored = await models.questResults.find().lean().exec();
+        expect(stored).toHaveLength(1);
+        expect(body.data?.completePendingRequest).toEqual([
+            {
+                id: String(stored[0]._id),
+                outcome: 'gmCompleted',
+                hpAfter: 1000,
+                titleAfter: 'adventurer',
+                quest: { type: 'story' },
+            },
+        ]);
+        expect(
+            await models.pendingQuests.countDocuments({
+                _id: subject.pendingQuest._id,
+            }),
+        ).toBe(0);
+        const character = await models.characters
+            .findById(subject.characterId)
+            .lean()
+            .exec();
+        expect(
+            (character as { quests: Record<string, unknown> }).quests[
+                lanePathOf(QuestLane.story).split('.')[1]
+            ] ?? null,
+        ).toBeNull();
+        const [record] = await audits.find().lean().exec();
+        expect(record).toMatchObject({ outcome: AUDIT_OUTCOME_OK });
     });
 
     it('rejects an invalid override with its code and audits it', async () => {
