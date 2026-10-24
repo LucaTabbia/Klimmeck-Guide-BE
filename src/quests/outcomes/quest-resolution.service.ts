@@ -4,6 +4,7 @@ import { Connection, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { buildAidQuest } from './aid/aid-quest';
+import { BossResolutionService } from './boss-resolution.service';
 import { ChanceSource } from './chance-source';
 import {
     CombatResolver,
@@ -24,6 +25,7 @@ import {
     type StandardLoad,
     type StandardTrigger,
 } from './resolution-loader.service';
+import { resolutionKindOf } from './resolution-kind';
 
 export type { ResolutionOutcome, StandardTrigger };
 
@@ -35,30 +37,51 @@ export class QuestResolutionService {
     constructor(
         @InjectConnection() private readonly connection: Connection,
         private readonly loader: ResolutionLoader,
+        private readonly boss: BossResolutionService,
         private readonly writer: OutcomeWriter,
         private readonly combat: CombatResolver,
         private readonly chance: ChanceSource,
         private readonly clock: Clock,
     ) {}
 
-    resolveStandard(_trigger: StandardTrigger): Promise<ResolutionOutcome> {
-        return Promise.reject(new Error('not implemented'));
+    // unico ingresso dei trigger della corsia standard: smista su individuale, gruppo boss o soccorso (D-01, D-05, D-09)
+    async resolveStandard(
+        trigger: StandardTrigger,
+    ): Promise<ResolutionOutcome> {
+        const now = this.clock.now();
+        const loaded = await this.load(trigger, now);
+        if (typeof loaded === 'string') return loaded;
+        switch (resolutionKindOf(loaded.quest)) {
+            case 'group':
+                return this.boss.resolveGroup(loaded, now);
+            case 'rescue':
+                return this.resolveLoadedIndividual(loaded, now);
+            case 'individual':
+                return this.resolveLoadedIndividual(loaded, now);
+        }
     }
 
-    // individuale: enemy, hunt, dungeon e aid senza soccorso; boss di gruppo e catena di soccorso in resolveStandard (09-13)
+    // individuale: enemy, hunt, dungeon e aid senza soccorso
     async resolveIndividual(
         trigger: StandardTrigger,
     ): Promise<ResolutionOutcome> {
-        const pendingQuestId = trigger.pendingQuestId.toHexString();
         const now = this.clock.now();
+        const loaded = await this.load(trigger, now);
+        if (typeof loaded === 'string') return loaded;
+        return this.resolveLoadedIndividual(loaded, now);
+    }
+
+    private async load(
+        trigger: StandardTrigger,
+        now: Date,
+    ): Promise<StandardLoad | 'stale' | 'waiting'> {
         const loaded = await this.loader.loadStandardTrigger(trigger, now);
         if (loaded === 'stale' || loaded === 'waiting') {
             this.logger.log(
-                `Missione in attesa ${pendingQuestId}: ${loaded === 'stale' ? 'trigger obsoleto' : 'non ancora scaduta'}, nessuna scrittura`,
+                `Missione in attesa ${trigger.pendingQuestId.toHexString()}: ${loaded === 'stale' ? 'trigger obsoleto' : 'non ancora scaduta'}, nessuna scrittura`,
             );
-            return loaded;
         }
-        return this.resolveLoadedIndividual(loaded, now);
+        return loaded;
     }
 
     private async resolveLoadedIndividual(

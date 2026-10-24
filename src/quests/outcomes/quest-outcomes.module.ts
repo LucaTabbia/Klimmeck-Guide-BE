@@ -32,6 +32,7 @@ import {
     QUEUE_CALL_TIMEOUT,
     QUEUE_CALL_TIMEOUT_MS,
 } from 'src/travel/queue-call-timeout';
+import { BossResolutionService } from './boss-resolution.service';
 import { ChanceSource, MathChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
 import { PlaceholderCombatResolver } from './combat/placeholder-combat-resolver';
@@ -68,6 +69,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         { provide: ChanceSource, useClass: MathChanceSource },
         OutcomeWriter,
         ResolutionLoader,
+        BossResolutionService,
         QuestResolutionService,
     ],
     exports: [OutcomeWriter, QuestResolutionService],

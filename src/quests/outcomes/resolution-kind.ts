@@ -1,10 +1,15 @@
-import type { QuestType } from 'src/models/enums/quest-type.enum';
+import { QuestType } from 'src/models/enums/quest-type.enum';
+import { refIdOf } from 'src/mongo/document-id';
 
 export type ResolutionKind = 'individual' | 'group' | 'rescue';
 
-export function resolutionKindOf(_quest: {
+// boss = gruppo (D-05); aid automatica con il ferito = catena di soccorso (D-09); il resto, aid fatte a mano comprese, è individuale
+export function resolutionKindOf(quest: {
     infos: { type: QuestType };
     rescue?: { character?: unknown } | null;
 }): ResolutionKind {
-    throw new Error('not implemented');
+    if (quest.infos.type === QuestType.boss) return 'group';
+    if (quest.infos.type === QuestType.aid && refIdOf(quest.rescue?.character))
+        return 'rescue';
+    return 'individual';
 }

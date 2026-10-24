@@ -15,9 +15,13 @@ export function questUpdateOf(
     input: QuestUpdateInput,
 ): Record<string, unknown> | null {
     if (!isRegistered(input.type)) return null;
-    const failed = input.verdicts
-        .filter(({ verdict }) => verdict === QuestOutcome.failure)
-        .map(({ characterId }) => characterId);
+    // un registrato incoerente esce insieme ai falliti: un difetto di dati non blocca il gruppo (Pitfall 8)
+    const failed = [
+        ...input.verdicts
+            .filter(({ verdict }) => verdict === QuestOutcome.failure)
+            .map(({ characterId }) => characterId),
+        ...(input.dropped ?? []),
+    ];
     const someoneWon = input.verdicts.some(
         ({ verdict }) =>
             verdict === QuestOutcome.success ||
