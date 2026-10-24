@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 5 of 16
-Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, plan 5 of 16 next
-Last activity: 2026-10-24 -- Completed 09-04 (CombatResolver port + pure hydrated context with damage normalization, PROVVISORIO placeholder resolver, ScriptedCombatResolver fake, Enemy fixture)
+Plan: 6 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 5 of 16 complete (09-01..09-04, 09-06)
+Last activity: 2026-10-24 -- Completed 09-06 (quest result ownership by user, populated questResult(id) query, questResultReceived owner-only subscription from an insert change stream, result SDL from the real boot)
 
-Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 4/16)
+Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 5/16)
 
 ## Performance Metrics
 
