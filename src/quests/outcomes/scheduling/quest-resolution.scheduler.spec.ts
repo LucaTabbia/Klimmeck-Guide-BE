@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
-import { FixedClock } from 'test/auth/fixed-clock';
-import { FakeTravelQueue } from 'test/travel/fake-travel-queue';
+import { FixedClock } from '../../../../test/auth/fixed-clock';
+import { FakeTravelQueue } from '../../../../test/travel/fake-travel-queue';
 import { QuestResolutionScheduler } from './quest-resolution.scheduler';
 
 const NOW = new Date('2026-10-24T12:00:00.000Z');
