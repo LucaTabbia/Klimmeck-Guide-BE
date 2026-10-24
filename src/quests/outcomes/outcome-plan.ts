@@ -15,7 +15,9 @@ import type { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms, objectIdFromHex, sameId } from 'src/mongo/document-id';
 import { lanePathOf, type QuestLane } from 'src/quests/acceptance/quest-lanes';
 import type { ParticipantOutcome } from './combat/combat-resolver';
-import { MIN_LIFE_POINTS, progressionAfter } from './progression/level-table';
+import { isInjuryType } from './injuries/injury-rules';
+import { isPositiveInteger } from './outcome-numbers';
+import { lifePointsWithin, progressionAfter } from './progression/level-table';
 import { statusFactsOf } from './progression/status-facts';
 import { nextTitleAfterStory } from './progression/title-progression';
 import {
@@ -131,23 +133,12 @@ export function questFactsOf(
     return { id: quest._id, type: quest.infos.type, title: quest.infos.title };
 }
 
-const isPositiveInteger = (value: unknown): value is number =>
-    Number.isSafeInteger(value) && (value as number) > 0;
-
-// il resolver o il GM possono sbagliare: HP fra 1 e il massimo prima della ricompensa (D-07, T-09-22)
-const hpWithin = (hp: number, max: number): number =>
-    Number.isFinite(hp)
-        ? Math.min(max, Math.max(MIN_LIFE_POINTS, Math.floor(hp)))
-        : MIN_LIFE_POINTS;
-
-const KNOWN_INJURIES: ReadonlySet<string> = new Set(Object.values(InjuryType));
-
 function woundsAfter(
     existing: readonly InjuryType[],
     added: readonly InjuryType[],
 ): { injuries: InjuryType[]; added: InjuryType[] } {
     const fresh = [...new Set(added)].filter(
-        (injury) => KNOWN_INJURIES.has(injury) && !existing.includes(injury),
+        (injury) => isInjuryType(injury) && !existing.includes(injury),
     );
     return { injuries: [...existing, ...fresh], added: fresh };
 }
@@ -264,7 +255,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     }
     const before = statusFactsOf(snapshot);
     const hpFought = battle
-        ? hpWithin(battle.hpAfter, before.maxLifePoints)
+        ? lifePointsWithin(battle.hpAfter, before.maxLifePoints)
         : before.currentLifePoints;
     const xpEarned = won ? rewards.xpPrize + (input.enemy?.xp ?? 0) : 0;
     const progression = progressionAfter(

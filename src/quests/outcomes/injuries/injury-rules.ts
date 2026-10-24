@@ -81,7 +81,7 @@ export const MIN_INJURY_FACTOR = 0.1;
 
 const KNOWN_INJURIES: ReadonlySet<unknown> = new Set(Object.values(InjuryType));
 
-const isInjuryType = (value: unknown): value is InjuryType =>
+export const isInjuryType = (value: unknown): value is InjuryType =>
     KNOWN_INJURIES.has(value);
 
 // ogni ferita conta una volta; le stringhe legacy ignote sono ignorate

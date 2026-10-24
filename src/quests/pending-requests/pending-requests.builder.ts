@@ -1,6 +1,6 @@
 import type { Types } from 'mongoose';
 import { refIdOf } from 'src/mongo/document-id';
-import { QuestLane } from 'src/quests/acceptance/quest-lanes';
+import { GM_LANES } from 'src/quests/acceptance/quest-lanes';
 import type { ActiveTravel } from 'src/models/character/active-travel.model';
 import type { AwaitingAid } from 'src/models/character/awaiting-aid.model';
 import type {
@@ -58,9 +58,6 @@ export interface PendingRequestsBuild {
     requests: PendingRequest[];
     skipped: SkippedRequest[];
 }
-
-// solo le corsie che il GM completa a mano (D-22): la standard si risolve da sola alla scadenza
-const GM_LANES = [QuestLane.story, QuestLane.worldMission] as const;
 
 interface LaneEntry {
     character: RequestCharacterSnapshot;

@@ -51,6 +51,11 @@ export interface StandardTrigger {
 export type ResolutionCharacter = OutcomeCharacterSnapshot &
     CombatCharacterSnapshot;
 
+// snapshot con la corsia che lo lega alla PendingQuest (standard per il boss, story/worldMission per il GM)
+export type LaneCharacter<L extends QuestLane> = ResolutionCharacter & {
+    quests?: Partial<Record<L, unknown>> | null;
+};
+
 export type ResolutionQuest = OutcomeQuestSnapshot &
     AidSourceQuest & {
         prizes?: PrizesSnapshot | null;

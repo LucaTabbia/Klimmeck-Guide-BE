@@ -8,6 +8,8 @@ import type {
 } from 'src/models/request/complete-pending-request.model';
 import { objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 import type { ParticipantOutcome } from './combat/combat-resolver';
+import { isInjuryType } from './injuries/injury-rules';
+import { isPositiveInteger } from './outcome-numbers';
 import { MIN_LIFE_POINTS } from './progression/level-table';
 import type { OutcomeCharacterSnapshot } from './outcome-plan';
 import { statusFactsOf } from './progression/status-facts';
@@ -20,11 +22,6 @@ export interface OverrideParticipant {
     ownedLoot: ReadonlyMap<string, number>;
     activeSpells: ReadonlyMap<string, number>;
 }
-
-const KNOWN_INJURIES: ReadonlySet<string> = new Set(Object.values(InjuryType));
-
-const isPositiveInteger = (value: unknown): value is number =>
-    Number.isSafeInteger(value) && (value as number) > 0;
 
 function addTo(totals: Map<string, number>, key: string, amount: number) {
     totals.set(key, (totals.get(key) ?? 0) + amount);
@@ -76,7 +73,7 @@ function hpAfterOf(
 
 function injuriesOf(override: ParticipantOverrideInput): InjuryType[] {
     const injuries = [...new Set(override.injuries ?? [])];
-    if (injuries.some((injury) => !KNOWN_INJURIES.has(injury)))
+    if (injuries.some((injury) => !isInjuryType(injury)))
         throw GameRuleException.outcomeOverrideInvalid();
     return injuries;
 }

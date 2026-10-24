@@ -48,7 +48,8 @@ export function levelRowFor(xp: number): LevelRow {
     return row;
 }
 
-const lifePointsWithin = (hp: number, max: number): number =>
+// il resolver o il GM possono sbagliare: HP fra 1 e il massimo, mai NaN (D-07, T-09-22)
+export const lifePointsWithin = (hp: number, max: number): number =>
     Number.isFinite(hp)
         ? Math.min(max, Math.max(MIN_LIFE_POINTS, Math.floor(hp)))
         : MIN_LIFE_POINTS;

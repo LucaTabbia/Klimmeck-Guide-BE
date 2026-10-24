@@ -19,6 +19,9 @@ import type {
 } from 'src/models/request/complete-pending-request.model';
 import { idForms, objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 import {
+    GM_LANES,
+    type GmLane,
+    isGmLane,
     laneOf,
     lanePathOf,
     QuestLane,
@@ -39,6 +42,7 @@ import {
 import { questUpdateOf } from './quest-outcome-plan';
 import {
     type PendingQuestSnapshot,
+    type LaneCharacter,
     type ResolutionCatalog,
     type ResolutionCharacter,
     ResolutionLoader,
@@ -46,11 +50,7 @@ import {
 } from './resolution-loader.service';
 import { drawRewards } from './rewards/quest-rewards';
 
-type GmLane = QuestLane.story | QuestLane.worldMission;
-
-type LaneCharacter = ResolutionCharacter & {
-    quests?: Partial<Record<GmLane, unknown>> | null;
-};
+type GmLaneCharacter = LaneCharacter<GmLane>;
 
 interface GmSeat {
     character: ResolutionCharacter;
@@ -77,11 +77,6 @@ interface GmCompletion {
     recoveryTimes: ReadonlyMap<string, number>;
     now: Date;
 }
-
-const GM_LANES: readonly GmLane[] = [QuestLane.story, QuestLane.worldMission];
-
-const isGmLane = (lane: QuestLane): lane is GmLane =>
-    (GM_LANES as readonly QuestLane[]).includes(lane);
 
 const spellIdsOf = (
     overrides: readonly ParticipantOverrideInput[] | null | undefined,
@@ -159,7 +154,7 @@ export class GmCompletionService {
                 },
                 OUTCOME_CHARACTER_PROJECTION,
             )
-            .lean<LaneCharacter | null>()
+            .lean<GmLaneCharacter | null>()
             .exec();
         if (!holder) throw ResourceNotFoundException.pendingQuest();
         const quest = await this.loader.readQuest(pendingQuest);
@@ -178,7 +173,7 @@ export class GmCompletionService {
     // tutti i personaggi attivi con una PendingQuest di questa worldMission nella propria corsia (D-04, D-06)
     private async worldMissionHolders(
         questId: Types.ObjectId,
-    ): Promise<LaneCharacter[]> {
+    ): Promise<GmLaneCharacter[]> {
         const pendingQuests = await this.pendingQuestModel
             .find({ quest: { $in: idForms(questId) } }, { _id: 1 })
             .lean<{ _id: Types.ObjectId }[]>()
@@ -193,13 +188,13 @@ export class GmCompletionService {
                 },
                 OUTCOME_CHARACTER_PROJECTION,
             )
-            .lean<LaneCharacter[]>()
+            .lean<GmLaneCharacter[]>()
             .exec();
     }
 
     // un partecipante senza proprietario non ha a chi consegnare il risultato: escluso con un WARN di soli id
     private async seatsOf(
-        holders: readonly LaneCharacter[],
+        holders: readonly GmLaneCharacter[],
         lane: GmLane,
     ): Promise<GmSeat[]> {
         const owners = await this.loader.ownersOf(

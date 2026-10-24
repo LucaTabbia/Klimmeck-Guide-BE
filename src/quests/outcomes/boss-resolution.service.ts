@@ -24,6 +24,7 @@ import {
 } from './outcome-writer.service';
 import { questClaimFilter, questUpdateOf } from './quest-outcome-plan';
 import {
+    type LaneCharacter,
     type PendingQuestSnapshot,
     type ResolutionCatalog,
     type ResolutionCharacter,
@@ -31,10 +32,6 @@ import {
     type ResolutionOutcome,
     type StandardLoad,
 } from './resolution-loader.service';
-
-type LaneCharacter = ResolutionCharacter & {
-    quests?: { pendingQuest?: unknown } | null;
-};
 
 interface GroupSeat {
     character: ResolutionCharacter;
@@ -142,7 +139,7 @@ export class BossResolutionService {
                 },
                 OUTCOME_CHARACTER_PROJECTION,
             )
-            .lean<LaneCharacter[]>()
+            .lean<LaneCharacter<QuestLane.standard>[]>()
             .exec();
         const lanes = characters.flatMap(
             (character) => refIdOf(character.quests?.pendingQuest) ?? [],
