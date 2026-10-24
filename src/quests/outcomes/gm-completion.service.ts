@@ -26,7 +26,11 @@ import {
 import { ChanceSource } from './chance-source';
 import { enemyFactsOf } from './combatant-plan';
 import { overrideParticipantOf, validateOverrides } from './gm-overrides';
-import { OUTCOME_CHARACTER_PROJECTION, planParticipant } from './outcome-plan';
+import {
+    OUTCOME_CHARACTER_PROJECTION,
+    planParticipant,
+    type QuestResultDraft,
+} from './outcome-plan';
 import {
     type CommittedOutcome,
     OutcomeWriter,
@@ -59,6 +63,11 @@ interface GmRequest {
     quest: ResolutionQuest;
     lane: GmLane;
     seats: GmSeat[];
+}
+
+interface GmCommit {
+    outcome: CommittedOutcome;
+    drafts: QuestResultDraft[];
 }
 
 interface GmCompletion {
@@ -98,9 +107,10 @@ export class GmCompletionService {
         private readonly clock: Clock,
     ) {}
 
+    // i risultati committati tornano dalle bozze scritte in transazione: la risposta non dipende da una rilettura (WR-03)
     async complete(
         input: CompletePendingRequestInput,
-    ): Promise<Types.ObjectId[]> {
+    ): Promise<QuestResultDraft[]> {
         const request = await this.readRequest(input.pendingQuestId);
         // override validati prima di ogni scrittura: un rifiuto non lascia side effect (T-09-74)
         validateOverrides(
@@ -126,8 +136,8 @@ export class GmCompletionService {
         });
         // completamento concorrente già committato: il perdente vede la richiesta sparita (T-09-76)
         if (!committed) throw ResourceNotFoundException.pendingQuest();
-        await this.writer.deliver(committed);
-        return request.seats.map(({ resultId }) => resultId);
+        await this.writer.deliver(committed.outcome);
+        return committed.drafts;
     }
 
     // solo le corsie del GM: una PendingQuest standard, inesistente o malformata è NOT_FOUND (T-09-77)
@@ -223,9 +233,9 @@ export class GmCompletionService {
         catalog,
         recoveryTimes,
         now,
-    }: GmCompletion): Promise<CommittedOutcome | null> {
+    }: GmCompletion): Promise<GmCommit | null> {
         const { quest, lane, seats } = request;
-        const state: { committed: CommittedOutcome | null } = {
+        const state: { committed: GmCommit | null } = {
             committed: null,
         };
         try {
@@ -252,6 +262,7 @@ export class GmCompletionService {
                     aids: [],
                     spellRecoveries: [],
                 };
+                const drafts: QuestResultDraft[] = [];
                 const verdicts: Parameters<
                     typeof questUpdateOf
                 >[0]['verdicts'] = [];
@@ -290,6 +301,7 @@ export class GmCompletionService {
                         userId: seat.ownerId,
                     });
                     committed.spellRecoveries.push(...plan.spellRecoveries);
+                    drafts.push(plan.result);
                 }
                 // la worldMission sparisce per tutti (D-06); la story non è registrata e non ha nulla da aggiornare
                 await this.writer.updateQuest(
@@ -298,7 +310,7 @@ export class GmCompletionService {
                     session,
                     'bestEffort',
                 );
-                state.committed = committed;
+                state.committed = { outcome: committed, drafts };
             });
         } catch (error) {
             if (!(error instanceof StaleResolution)) throw error;

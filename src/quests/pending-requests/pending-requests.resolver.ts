@@ -48,9 +48,7 @@ export class PendingRequestsResolver {
         @Args('input', { type: () => CompletePendingRequestInput })
         input: CompletePendingRequestInput,
     ): Promise<QuestResult[]> {
-        const resultIds = await this.completion.complete(input);
-        return Promise.all(
-            resultIds.map((id) => this.results.findOne(id.toHexString())),
-        );
+        const drafts = await this.completion.complete(input);
+        return this.results.readCommitted(drafts);
     }
 }

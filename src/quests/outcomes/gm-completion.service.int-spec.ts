@@ -153,9 +153,9 @@ describe('GmCompletionService.complete (replSet)', () => {
     it('completes a story with the catalog prizes and the next title (D-14)', async () => {
         const subject = await storyQuester();
 
-        const ids = await service.complete(inputOf(subject));
+        const drafts = await service.complete(inputOf(subject));
 
-        expect(ids).toHaveLength(1);
+        expect(drafts).toHaveLength(1);
         const character = await characterOf(subject);
         expect(character.quests.activeStoryQuest).toBeNull();
         expect(character.status.title).toBe('adventurer');
@@ -173,7 +173,7 @@ describe('GmCompletionService.complete (replSet)', () => {
         expect(await pendingQuestExists(subject)).toBe(false);
         const [result, ...others] = await resultsOf(subject);
         expect(others).toHaveLength(0);
-        expect(String(result._id)).toBe(String(ids[0]));
+        expect(String(result._id)).toBe(String(drafts[0]._id));
         expect(result).toMatchObject({
             outcome: QuestOutcome.gmCompleted,
             titleBefore: 'rookie',
@@ -214,7 +214,7 @@ describe('GmCompletionService.complete (replSet)', () => {
             quest: first.quest,
         });
 
-        const ids = await service.complete(
+        const drafts = await service.complete(
             inputOf(third, [
                 {
                     characterId: String(first.characterId),
@@ -228,8 +228,8 @@ describe('GmCompletionService.complete (replSet)', () => {
             ]),
         );
 
-        expect(ids).toHaveLength(3);
-        expect(new Set(ids.map(String)).size).toBe(3);
+        expect(drafts).toHaveLength(3);
+        expect(new Set(drafts.map(({ _id }) => String(_id))).size).toBe(3);
         const [firstResult] = await resultsOf(first);
         expect(firstResult).toMatchObject({
             outcome: QuestOutcome.gmCompleted,
@@ -440,9 +440,11 @@ describe('GmCompletionService.complete (replSet)', () => {
             ),
         });
 
-        const [id] = await service.complete(inputOf(subject));
+        const [draft] = await service.complete(inputOf(subject));
 
-        const result = await world.models.questResults.findById(id).lean<any>();
+        const result = await world.models.questResults
+            .findById(draft._id)
+            .lean<any>();
         expect(result.xpGained).toBe(500);
         expect(String(result.enemy)).toBe(String(enemy._id));
     });
