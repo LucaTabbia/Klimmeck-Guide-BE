@@ -184,6 +184,73 @@ describe('validateOverrides', () => {
         expectInvalid([overrideOf({ spellsUsed: [{ spell, usages }] })]);
     });
 
+    describe('caps every override list', () => {
+        const LIMIT = 50;
+        const generous: OverrideParticipant[] = [
+            {
+                ...participants[0],
+                ownedLoot: new Map([[POTION, 1_000]]),
+                activeSpells: new Map([[S1, 1_000]]),
+            },
+        ];
+        const times = <T>(count: number, entry: T): T[] =>
+            Array.from({ length: count }, () => entry);
+        const codeWith = (overrides: ParticipantOverrideInput[]) =>
+            codeOf(() => validateOverrides(overrides, generous));
+
+        it('accepts lists at the limit', () => {
+            expect(
+                codeWith([
+                    overrideOf({
+                        injuries: times(LIMIT, InjuryType.deepCut),
+                        consumablesUsed: times(LIMIT, {
+                            item: POTION,
+                            quantity: 1,
+                        }),
+                        spellsUsed: times(LIMIT, { spell: S1, usages: 1 }),
+                    }),
+                ]),
+            ).toBeUndefined();
+        });
+
+        it.each([
+            [
+                'injuries',
+                overrideOf({ injuries: times(LIMIT + 1, InjuryType.deepCut) }),
+            ],
+            [
+                'consumables',
+                overrideOf({
+                    consumablesUsed: times(LIMIT + 1, {
+                        item: POTION,
+                        quantity: 1,
+                    }),
+                }),
+            ],
+            [
+                'spells',
+                overrideOf({
+                    spellsUsed: times(LIMIT + 1, { spell: S1, usages: 1 }),
+                }),
+            ],
+        ])('rejects too many %s', (_label, override) => {
+            expect(codeWith([override])).toBe(
+                GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+            );
+        });
+
+        it('rejects too many participant overrides before looking them up', () => {
+            expect(
+                codeWith(
+                    times(
+                        LIMIT + 1,
+                        overrideOf({ characterId: STRANGER_ID.toHexString() }),
+                    ),
+                ),
+            ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
+        });
+    });
+
     it('rejects an injury outside the catalog', () => {
         expectInvalid([
             overrideOf({ injuries: ['scratch' as unknown as InjuryType] }),
