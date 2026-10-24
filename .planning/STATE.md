@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 9 context gathered (2026-10-24) — ready to plan
-last_updated: "2026-10-24T14:30:00.000Z"
-last_activity: 2026-10-24
+status: executing
+stopped_at: Completed 08-14-PLAN.md
+last_updated: "2026-10-24T14:37:22.254Z"
+last_activity: 2026-10-24 -- Phase 9 execution started
 progress:
   total_phases: 12
   completed_phases: 10
-  total_plans: 87
+  total_plans: 103
   completed_plans: 87
-  percent: 100
+  percent: 84
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 9 — Combat Result & Admin Outcomes: context gathered 2026-10-24 (09-CONTEXT D-01..D-29), ready to plan on branch feat/09-combat-result-admin-outcomes; Phase 8 merged (PR #11) with the scheduler timeout fix (PR #12)
+**Current focus:** Phase 9 — Combat Result & Admin Outcomes: EXECUTING 16 plans in 8 waves on feat/09-combat-result-admin-outcomes (09-CONTEXT amended after the research C1–C10; plan-checker passed after one revision); C5 (aid timeout suspended while a rescuer is registered) and A3 (boss concluded if at least one wins) are technical defaults to confirm with the user before the PR
 
 ## Current Position
 
-Phase: 9 (combat-result-admin-outcomes) — CONTEXT GATHERED 2026-10-24 (interactive discuss, 09-CONTEXT D-01..D-29: server-side resolution at the countdown end behind a pluggable combat resolver with placeholder rules, GM completion of story/worldMission with a positive outcome only, awaiting-aid state with cloned aid quests, death via the aid chain or a 7-day timeout, XP/level/HP tables to level 20 and 50 000 XP, cascading-rolls loot, prizes.spell on study quests, one result per participant on a dedicated subscription + questEnd push with the result id, pendingRequests queue with snapshot, SHOP_NOT_IN_CITY guard)
-Plan: 0 of TBD
-Status: Phase 9 context gathered — ready to plan (/gsd-plan-phase 9) on branch feat/09-combat-result-admin-outcomes
-Last activity: 2026-10-24 -- Phase 9 discuss completed in the same session as the FE Phase 7 discuss; PR #12 (travel scheduler timeout) merged 2026-10-24
+Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
+Plan: 1 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, plan 1 of 16 starting
+Last activity: 2026-10-24 -- Phase 9 execution started
 
-Progress: [██████████] 100% (phases 1–8 complete; Phase 9 in planning)
+Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 0/16)
 
 ## Performance Metrics
 
