@@ -273,7 +273,7 @@ Plans:
 - [x] 09-11-PLAN.md — Wave 2: `CharacterArchiver.archiveWithin` (morte nella transazione dell'esito, C1) (BE-COMBAT-03)
 - [x] 09-12-PLAN.md — Wave 4: writer degli esiti, risoluzione individuale senza nemico e con combattimento, push `questEnd(resultId)` (BE-COMBAT-01/02/03)
 - [x] 09-13-PLAN.md — Wave 5: dispatcher `resolveStandard`, boss di gruppo, catena di soccorso, timeout di 7 giorni (BE-COMBAT-01/03)
-- [ ] 09-14-PLAN.md — Wave 6: processor, reconciler + sweep, montaggio nel boot reale (BE-COMBAT-03)
+- [x] 09-14-PLAN.md — Wave 6: processor, reconciler + sweep, montaggio nel boot reale (BE-COMBAT-03)
 - [ ] 09-15-PLAN.md — Wave 7: `completePendingRequest` con override, audit, SDL (BE-COMBAT-01/03, BE-ADMIN-02)
 - [ ] 09-16-PLAN.md — Wave 8: gate di fase + `BACKEND-NOTES.md` per FE Phase 9/10/7 e BE Phase 10 + traceability + `09-VALIDATION.md` (BE-COMBAT-01..03, BE-ADMIN-01..02)
 **Unblocks (FE)**: FE Phase 9 (contratto combat) e FE Phase 10 (operazioni admin) → FE COMBAT-01..05, ADMIN-02/03/05/06.
@@ -323,5 +323,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
-| 9. Combat Result & Admin Outcomes | 13/16 | In Progress | - |
+| 9. Combat Result & Admin Outcomes | 14/16 | In Progress | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |

@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 14 of 16
-Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 13 of 16 complete (09-01..09-13)
-Last activity: 2026-10-24 -- Completed 09-13 (resolveStandard is the single entry of the standard triggers: resolutionKindOf → individual | group | rescue; ResolutionLoader + combatant-plan shared by the three branches; boss resolved once per group when every registrant is due, one transaction, claim questClaimFilter $all + $size, concluded if one wins (A3), losers freed with their own aid, incoherent registrants pulled with a WARN; rescue success frees the injured at the marker city with a 'rescued' result, failure archives the injured via archiveWithin in the same transaction ('death' result) and chains a new aid cloned from the original; timeoutAid kills after 7 days, suspended while a rescuer is registered (C5); no SDL change)
+Plan: 15 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 14 of 16 complete (09-01..09-14)
+Last activity: 2026-10-24 -- Completed 09-14 (QuestResolutionProcessor consumes the 'resolve' and 'aid-timeout' jobs: malformed → WARN, early → LOG, never requeued, then resolveStandard / timeoutAid; QuestResolutionSweeper runs the boot reconciler never awaited and an optional periodic sweep (QUEST_SWEEP_INTERVAL_MS, 0 = off, unref timer), single-flight and in series over due standard lanes and rescues past 7 days, never story/worldMission; QuestOutcomesModule mounted in AppModule with QUEST_CONFIG; harnesses get an idle sweeper via QUIET_OUTCOME_OVERRIDES; no SDL change)
 
-Progress: [█████████░] 92% (phases 1–8 complete; Phase 9 executing 13/16)
+Progress: [█████████░] 93% (phases 1–8 complete; Phase 9 executing 14/16)
 
 ## Performance Metrics
 
@@ -262,7 +262,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-24T17:00:00.000Z
-Stopped at: Completed 09-13-PLAN.md
+Last session: 2026-10-24T17:12:00.000Z
+Stopped at: Completed 09-14-PLAN.md
 Resume file: None
 | 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |
