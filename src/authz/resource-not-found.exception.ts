@@ -39,4 +39,8 @@ export class ResourceNotFoundException extends NotFoundException {
     static pointOfInterest(): ResourceNotFoundException {
         return new ResourceNotFoundException('Luogo non trovato');
     }
+
+    static questResult(): ResourceNotFoundException {
+        return new ResourceNotFoundException('Risultato non trovato');
+    }
 }
