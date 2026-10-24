@@ -25,7 +25,7 @@ export function travelJobId(
     return `travel-${id}-${ms}`;
 }
 
-function isEpochMs(value: unknown): value is number {
+export function isEpochMs(value: unknown): value is number {
     return (
         typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
     );
