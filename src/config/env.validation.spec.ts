@@ -129,6 +129,26 @@ describe('validateEnv', () => {
         });
     });
 
+    describe('quest sweep', () => {
+        it('throws on a malformed QUEST_SWEEP_INTERVAL_MS', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    QUEST_SWEEP_INTERVAL_MS: 'abc',
+                }),
+            ).toThrow(/QUEST_SWEEP_INTERVAL_MS/);
+        });
+
+        it('boots with the periodic quest sweep disabled', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    QUEST_SWEEP_INTERVAL_MS: '0',
+                }),
+            ).not.toThrow();
+        });
+    });
+
     it('rejects a malformed FIREBASE_SERVICE_ACCOUNT in development', () => {
         expect(() =>
             validateEnv({
@@ -174,6 +194,11 @@ describe('.env.example', () => {
     it('declares an empty TRAVEL_SWEEP_INTERVAL_MS', () => {
         expect(parsed).toHaveProperty('TRAVEL_SWEEP_INTERVAL_MS');
         expect(parsed.TRAVEL_SWEEP_INTERVAL_MS).toBe('');
+    });
+
+    it('declares an empty QUEST_SWEEP_INTERVAL_MS', () => {
+        expect(parsed).toHaveProperty('QUEST_SWEEP_INTERVAL_MS');
+        expect(parsed.QUEST_SWEEP_INTERVAL_MS).toBe('');
     });
 
     it('passes validateEnv once a JWT_SECRET is provided', () => {
