@@ -48,6 +48,7 @@ const START_TRAVEL =
 const TRAVEL_PREVIEW =
     '{ travelPreview(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { duration } }';
 const QUEST_RESULT = '{ questResult(id: "64b000000000000000000001") { id } }';
+const PENDING_REQUESTS = '{ pendingRequests { id } }';
 const TELEPORT_CHARACTER =
     'mutation { teleportCharacter(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
 // whitelist enumerata (D-12): ogni aggiunta di @Public() deve passare da qui
@@ -63,6 +64,8 @@ const EXPECTED_PUBLIC_HANDLERS = [
 const EXPECTED_INNKEEPER_HANDLERS = [
     'CharactersResolver.characters',
     'PendingQuestsResolver.pendingQuests',
+    'PendingRequestsResolver.pendingRequests',
+    'PendingRequestsResolver.pendingRequestsUpdated',
     'PushResolver.sendTestPush',
     'TravelAdminResolver.teleportCharacter',
     'UsersResolver.user',
@@ -454,6 +457,30 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toMatch(/\bkind\b|\bgrade\b|CombatResolver/);
     });
 
+    it('writes the innkeeper queue into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type PendingRequest \{[^}]*\}/)?.[0]).toBe(
+            'type PendingRequest {\n  character: PendingRequestCharacter!\n  id: ID!\n  pointsSpent: Int!\n  quest: PendingRequestQuest!\n  startDate: DateTime\n  user: PendingRequestUser!\n}',
+        );
+        expect(
+            schema.match(/type PendingRequestCharacter \{[^}]*\}/)?.[0],
+        ).toBe(
+            'type PendingRequestCharacter {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  id: ID!\n  location: ID!\n  name: String!\n  title: String!\n}',
+        );
+        expect(schema.match(/type PendingRequestQuest \{[^}]*\}/)?.[0]).toBe(
+            'type PendingRequestQuest {\n  id: ID!\n  registeredAdventurers: [QuestRegistration!]!\n  requiredAdventurers: [QuestPartySlot!]!\n  title: String!\n  type: String!\n}',
+        );
+        expect(schema.match(/type PendingRequestUser \{[^}]*\}/)?.[0]).toBe(
+            'type PendingRequestUser {\n  id: ID!\n  twitchId: String!\n}',
+        );
+        expect(schema).toContain('  pendingRequests: [PendingRequest!]!\n');
+        expect(schema).toContain(
+            '  pendingRequestsUpdated: [PendingRequest!]!\n',
+        );
+        expect(schema).not.toMatch(/\bkind\b|\bgrade\b|TravelKind/);
+    });
+
     it('writes the push API into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -593,6 +620,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
         it('rejects questResult without a bearer', async () => {
             expect(errorCodeOf(await graphqlCall(app, QUEST_RESULT))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects pendingRequests without a bearer', async () => {
+            expect(errorCodeOf(await graphqlCall(app, PENDING_REQUESTS))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
         });
