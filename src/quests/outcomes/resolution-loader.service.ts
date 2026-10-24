@@ -93,8 +93,6 @@ export const RESOLUTION_QUEST_PROJECTION = {
     concludedAt: 1,
 } as const;
 
-const STANDARD_LANE_PATH = lanePathOf(QuestLane.standard);
-
 export const isFiniteNumber = (value: unknown): value is number =>
     typeof value === 'number' && Number.isFinite(value);
 
@@ -103,15 +101,31 @@ const byHex = <T extends { _id: Types.ObjectId }>(
 ): Map<string, T> =>
     new Map(entries.map((entry) => [entry._id.toHexString(), entry]));
 
-// personaggio attivo con la corsia standard sulla PendingQuest attesa: la corsia decide chi risolve (T-09-54)
-export function standardLaneFilter(
+const recoveryTimesFrom = (
+    spells: readonly CatalogEntry<{ recoveryTime?: unknown }>[],
+): Map<string, number> =>
+    new Map(
+        spells.flatMap(({ _id, recoveryTime }) =>
+            isFiniteNumber(recoveryTime)
+                ? [[_id.toHexString(), recoveryTime] as const]
+                : [],
+        ),
+    );
+
+// personaggio attivo con la corsia sulla PendingQuest attesa: la corsia decide chi risolve (T-09-54)
+export function laneFilter(
     pendingQuestId: Types.ObjectId,
+    lane: QuestLane,
 ): Record<string, unknown> {
     return {
         ...ACTIVE_CHARACTER_FILTER,
-        [STANDARD_LANE_PATH]: { $in: idForms(pendingQuestId) },
+        [lanePathOf(lane)]: { $in: idForms(pendingQuestId) },
     };
 }
+
+export const standardLaneFilter = (
+    pendingQuestId: Types.ObjectId,
+): Record<string, unknown> => laneFilter(pendingQuestId, QuestLane.standard);
 
 // letture comuni dei rami della risoluzione (individuale, gruppo, soccorso): trigger, catalogo, proprietari, snapshot in sessione
 @Injectable()
@@ -203,10 +217,11 @@ export class ResolutionLoader {
         characterId: Types.ObjectId,
         pendingQuestId: Types.ObjectId,
         session: ClientSession,
+        lane: QuestLane = QuestLane.standard,
     ): Promise<ResolutionCharacter> {
         const snapshot = await this.characterModel
             .findOne(
-                { ...standardLaneFilter(pendingQuestId), _id: characterId },
+                { ...laneFilter(pendingQuestId, lane), _id: characterId },
                 OUTCOME_CHARACTER_PROJECTION,
             )
             .session(session)
@@ -260,17 +275,23 @@ export class ResolutionLoader {
             equipment: byHex(equipment),
             spells: byHex(spells),
             loot: byHex(loot),
-            recoveryTimes: new Map(
-                spells.flatMap(({ _id, recoveryTime }) =>
-                    isFiniteNumber(recoveryTime)
-                        ? [[_id.toHexString(), recoveryTime] as const]
-                        : [],
-                ),
-            ),
+            recoveryTimes: recoveryTimesFrom(spells),
         };
     }
 
-    private async readQuest(
+    // tempi di recupero delle magie usate fuori dal combattimento (consumi riportati dal GM): un job per uso come useSpell
+    async recoveryTimesOf(
+        spellIds: readonly Types.ObjectId[],
+    ): Promise<Map<string, number>> {
+        if (spellIds.length === 0) return new Map();
+        const spells = await this.spellModel
+            .find({ _id: { $in: spellIds } }, { recoveryTime: 1 })
+            .lean<CatalogEntry<{ recoveryTime?: unknown }>[]>()
+            .exec();
+        return recoveryTimesFrom(spells);
+    }
+
+    async readQuest(
         pendingQuest: PendingQuestSnapshot,
     ): Promise<ResolutionQuest | null> {
         const questId = refIdOf(pendingQuest.quest);

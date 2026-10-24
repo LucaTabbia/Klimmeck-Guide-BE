@@ -58,6 +58,15 @@ export function combatContextOf(
     });
 }
 
+// XP del nemico sommata al premio di chi vince (D-11): un valore non numerico vale 0
+export function enemyFactsOf(
+    catalog: ResolutionCatalog,
+): ParticipantPlanInput['enemy'] {
+    if (!catalog.enemy) return null;
+    const { _id, xp } = catalog.enemy;
+    return { id: _id, xp: isFiniteNumber(xp) ? xp : 0 };
+}
+
 // l'esito si prende per characterId, mai per posizione: un gruppo riceve un esito per partecipante (D-05)
 export function battleOf(
     outcomes: readonly ParticipantOutcome[],
@@ -90,12 +99,7 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
         userId: input.userId,
         verdict,
         battle,
-        enemy: catalog.enemy
-            ? {
-                  id: catalog.enemy._id,
-                  xp: isFiniteNumber(catalog.enemy.xp) ? catalog.enemy.xp : 0,
-              }
-            : null,
+        enemy: enemyFactsOf(catalog),
         rewards: won
             ? drawRewards(quest.prizes, catalog.rewards, input.chance)
             : NO_REWARDS,
