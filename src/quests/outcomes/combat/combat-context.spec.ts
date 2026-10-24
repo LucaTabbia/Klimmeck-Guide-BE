@@ -9,6 +9,7 @@ import {
     combatCatalogRefsOf,
     normalizeDamages,
 } from './combat-context';
+import { statusFactsOf } from '../outcome-plan';
 
 const id = (hex: string) => new Types.ObjectId(hex.padStart(24, '0'));
 
@@ -204,9 +205,9 @@ describe('buildCombatContext', () => {
         expect(rookie).toEqual({
             characterId: id('a2').toHexString(),
             title: TitleType.rookie,
-            level: 0,
-            currentLifePoints: 1,
-            maxLifePoints: 0,
+            level: 1,
+            currentLifePoints: 1000,
+            maxLifePoints: 1000,
             injuries: [],
             equipment: [],
             activeSpells: [],
@@ -221,6 +222,49 @@ describe('buildCombatContext', () => {
             baseWeaknesses: [],
             energyWeaknesses: [],
         });
+    });
+
+    it('reads the life points of a legacy character from the level table, like the outcome plan', () => {
+        const legacy = {
+            _id: id('a3'),
+            status: { title: TitleType.rookie, xp: 900 },
+            assets: null,
+        };
+        const wounded = {
+            _id: id('a4'),
+            status: {
+                title: TitleType.rookie,
+                xp: 900,
+                currentLifePoints: 400,
+            },
+            assets: null,
+        };
+        const source = hydration();
+        source.participants = [legacy, wounded];
+
+        const [veteran, hurt] = buildCombatContext(source).participants;
+
+        expect(veteran).toMatchObject({
+            level: 3,
+            currentLifePoints: 1600,
+            maxLifePoints: 1600,
+        });
+        expect(hurt).toMatchObject({
+            level: 3,
+            currentLifePoints: 400,
+            maxLifePoints: 1600,
+        });
+        for (const [participant, snapshot] of [
+            [veteran, legacy],
+            [hurt, wounded],
+        ] as const) {
+            const facts = statusFactsOf(snapshot);
+            expect(participant).toMatchObject({
+                level: facts.level,
+                currentLifePoints: facts.currentLifePoints,
+                maxLifePoints: facts.maxLifePoints,
+            });
+        }
     });
 
     it('maps an unknown effect to null and a non numeric power to 0', () => {
