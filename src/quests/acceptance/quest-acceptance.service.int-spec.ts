@@ -32,6 +32,7 @@ import {
 } from 'src/quests/acceptance/quest-capacity';
 import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { TRAVEL_QUEUE, travelJobId } from 'src/travel/travel-job';
 import { BASE_SPEED, durationMsOf } from 'src/travel/travel-timing';
 import { FixedClock } from '../../../test/auth/fixed-clock';
@@ -75,6 +76,7 @@ describe('QuestAcceptanceService (replSet)', () => {
     let world: World;
     let seq = 0;
     const queue = new FakeTravelQueue();
+    const questQueue = new FakeTravelQueue();
 
     beforeAll(async () => {
         const moduleRef = await Test.createTestingModule({
@@ -87,6 +89,8 @@ describe('QuestAcceptanceService (replSet)', () => {
         })
             .overrideProvider(getQueueToken(TRAVEL_QUEUE))
             .useValue(queue)
+            .overrideProvider(getQueueToken(QUEST_RESOLUTION_QUEUE))
+            .useValue(questQueue)
             .overrideProvider(Clock)
             .useValue(new FixedClock(ACCEPTED_AT))
             .compile();
@@ -124,6 +128,7 @@ describe('QuestAcceptanceService (replSet)', () => {
     afterEach(async () => {
         jest.restoreAllMocks();
         queue.reset();
+        questQueue.reset();
         await Promise.all([
             ...TRAVEL_COLLECTIONS.map((name) =>
                 connection.collection(name).deleteMany({}),
@@ -1227,6 +1232,128 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect(warn).toHaveBeenCalledWith(
                 `Accodamento del viaggio ${travelJobId(charId, ACCEPTED_AT)} fallito: lo completerà lo sweep`,
             );
+        });
+
+        describe('resolution job where the countdown starts (D-24, C8)', () => {
+            function resolveJobOf(pqId: Types.ObjectId, waitingTime: number) {
+                const hex = pqId.toHexString();
+                return {
+                    name: 'resolve',
+                    data: {
+                        pendingQuestId: hex,
+                        startDate: ACCEPTED_AT.getTime(),
+                        waitingTime,
+                    },
+                    options: {
+                        jobId: `quest-${hex}-${ACCEPTED_AT.getTime()}`,
+                        delay: waitingTime,
+                        removeOnComplete: true,
+                        removeOnFail: false,
+                    },
+                };
+            }
+
+            it('enqueues the resolution when the character stands on the marker', async () => {
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(travel.questPoi);
+
+                const pqId = await accept(
+                    ownerId,
+                    charId,
+                    await huntTo(travel.questPoi),
+                );
+
+                expect(questQueue.added).toEqual([resolveJobOf(pqId, 60000)]);
+                const { startDate } = questQueue.added[0].data as {
+                    startDate: number;
+                };
+                expect((await pendingOf(pqId))?.startDate).toEqual(
+                    new Date(startDate),
+                );
+            });
+
+            it('enqueues the resolution after a jump without road', async () => {
+                jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(travel.markerA);
+
+                const pqId = await accept(
+                    ownerId,
+                    charId,
+                    await huntTo(travel.farQuestPoi),
+                );
+
+                expect(questQueue.added).toEqual([resolveJobOf(pqId, 60000)]);
+            });
+
+            it('waits for the arrival when the acceptance starts a travel', async () => {
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(travel.markerA);
+
+                await accept(ownerId, charId, await huntTo(travel.questPoi));
+
+                expect(queue.added).toHaveLength(1);
+                expect(questQueue.added).toEqual([]);
+            });
+
+            it('never enqueues a resolution for a story or a world mission', async () => {
+                const ownerId = await ownerWith(6000);
+                const charId = await characterAt(travel.questPoi);
+                const storyId = await huntTo(
+                    travel.questPoi,
+                    { requiredPoints: 1000, minTitle: 'rookie' },
+                    'story',
+                );
+                const missionId = await huntTo(
+                    travel.questPoi,
+                    { requiredPoints: 1000, requiredAdventurers: ANY_THREE },
+                    'worldMission',
+                );
+
+                await accept(ownerId, charId, storyId);
+                await accept(ownerId, charId, missionId);
+
+                expect(questQueue.added).toEqual([]);
+            });
+
+            it('enqueues nothing when the acceptance is rejected', async () => {
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(travel.questPoi);
+                const firstPq = await accept(
+                    ownerId,
+                    charId,
+                    await huntTo(travel.questPoi),
+                );
+
+                await expect(
+                    accept(ownerId, charId, await huntTo(travel.questPoi)),
+                ).rejects.toMatchObject({ code: 'QUEST_SLOT_BUSY' });
+
+                expect(questQueue.added).toEqual([
+                    resolveJobOf(firstPq, 60000),
+                ]);
+            });
+
+            it('keeps the acceptance when the resolution queue is unavailable', async () => {
+                const warn = jest
+                    .spyOn(Logger.prototype, 'warn')
+                    .mockImplementation();
+                questQueue.failAdd = true;
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(travel.questPoi);
+
+                const pqId = await accept(
+                    ownerId,
+                    charId,
+                    await huntTo(travel.questPoi),
+                );
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+                expect((await pendingOf(pqId))?.startDate).toEqual(ACCEPTED_AT);
+                expect(warn).toHaveBeenCalledWith(
+                    `Accodamento della risoluzione quest-${pqId.toHexString()}-${ACCEPTED_AT.getTime()} fallito: lo risolverà lo sweep`,
+                );
+            });
         });
     });
 

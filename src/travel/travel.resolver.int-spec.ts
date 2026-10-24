@@ -21,6 +21,7 @@ import { PushService } from 'src/push/push.service';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
 import { RoadsService } from 'src/roads/roads.service';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { QUEUE_CALL_TIMEOUT } from './queue-call-timeout';
 import { TRAVEL_QUEUE } from './travel-job';
 import { TravelSweeper } from './travel-sweeper';
@@ -119,6 +120,7 @@ describe('startTravel and travelPreview (wire)', () => {
     let seq = 0;
     const clock = new FixedClock(STARTED_AT);
     const queue = new FakeTravelQueue();
+    const questQueue = new FakeTravelQueue();
     const push = new FakePushTransport();
     const opened: OpenSubscription<unknown>[] = [];
 
@@ -128,6 +130,10 @@ describe('startTravel and travelPreview (wire)', () => {
             imports: [TravelModule, QuestAcceptanceModule],
             overrides: [
                 { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+                {
+                    token: getQueueToken(QUEST_RESOLUTION_QUEUE),
+                    useValue: questQueue,
+                },
                 { token: QUEUE_CALL_TIMEOUT, useValue: 50 },
                 { token: PushTransport, useValue: push },
                 { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
@@ -166,6 +172,7 @@ describe('startTravel and travelPreview (wire)', () => {
         );
         await harness.clearDatabase();
         queue.reset();
+        questQueue.reset();
         push.reset();
     });
 

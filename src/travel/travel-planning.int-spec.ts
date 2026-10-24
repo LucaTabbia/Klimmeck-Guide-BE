@@ -19,6 +19,7 @@ import { Road } from 'src/models/road.model';
 import type { RoadRoute } from 'src/roads/road-route';
 import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
 import { RoadsService } from 'src/roads/roads.service';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { QUEUE_CALL_TIMEOUT } from './queue-call-timeout';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
 import { TravelPlanner } from './travel-planner.service';
@@ -60,6 +61,7 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
     let expected: number;
     let seq = 0;
     const queue = new FakeTravelQueue();
+    const questQueue = new FakeTravelQueue();
 
     beforeAll(async () => {
         const moduleRef = await Test.createTestingModule({
@@ -72,6 +74,8 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
         })
             .overrideProvider(getQueueToken(TRAVEL_QUEUE))
             .useValue(queue)
+            .overrideProvider(getQueueToken(QUEST_RESOLUTION_QUEUE))
+            .useValue(questQueue)
             .overrideProvider(Clock)
             .useValue(new FixedClock(PLANNED_AT))
             .overrideProvider(QUEUE_CALL_TIMEOUT)
@@ -102,6 +106,7 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
         ]);
         world = await persistTravelWorld(connection, roads);
         queue.reset();
+        questQueue.reset();
         route = roads.routeBetween([0, 0], [0, 0.2]) as RoadRoute;
         expected = durationMsOf(route.baseHours, BASE_SPEED);
     });

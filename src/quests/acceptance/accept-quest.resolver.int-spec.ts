@@ -21,6 +21,7 @@ import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.mo
 import { QuestsModule } from 'src/quests/quests.module';
 import { RoadsService } from 'src/roads/roads.service';
 import { QUEUE_CALL_TIMEOUT } from 'src/travel/queue-call-timeout';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { TRAVEL_QUEUE } from 'src/travel/travel-job';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import {
@@ -148,6 +149,7 @@ describe('acceptQuest (wire)', () => {
     let world: World;
     const opened: OpenSubscription<unknown>[] = [];
     const queue = new FakeTravelQueue();
+    const questQueue = new FakeTravelQueue();
 
     beforeAll(async () => {
         harness = await createCharactersTestApp({
@@ -155,6 +157,10 @@ describe('acceptQuest (wire)', () => {
             // coda del viaggio automatico senza Redis
             overrides: [
                 { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+                {
+                    token: getQueueToken(QUEST_RESOLUTION_QUEUE),
+                    useValue: questQueue,
+                },
                 { token: QUEUE_CALL_TIMEOUT, useValue: 50 },
             ],
         });
@@ -188,6 +194,7 @@ describe('acceptQuest (wire)', () => {
         );
         await harness.clearDatabase();
         queue.reset();
+        questQueue.reset();
     });
 
     afterAll(async () => {

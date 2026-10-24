@@ -14,6 +14,7 @@ import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { RoadsService } from 'src/roads/roads.service';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { TravelCompletionService } from './travel-completion.service';
 import { QUEUE_CALL_TIMEOUT } from './queue-call-timeout';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
@@ -76,6 +77,7 @@ describe('teleportCharacter', () => {
     let seq = 0;
     const clock = new FixedClock(STARTED_AT);
     const queue = new FakeTravelQueue();
+    const questQueue = new FakeTravelQueue();
     const push = new FakePushTransport();
 
     beforeAll(async () => {
@@ -84,6 +86,10 @@ describe('teleportCharacter', () => {
             imports: [TravelModule],
             overrides: [
                 { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+                {
+                    token: getQueueToken(QUEST_RESOLUTION_QUEUE),
+                    useValue: questQueue,
+                },
                 { token: QUEUE_CALL_TIMEOUT, useValue: 50 },
                 { token: PushTransport, useValue: push },
                 { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
@@ -108,6 +114,7 @@ describe('teleportCharacter', () => {
     afterEach(async () => {
         await harness.clearDatabase();
         queue.reset();
+        questQueue.reset();
         push.reset();
     });
 
