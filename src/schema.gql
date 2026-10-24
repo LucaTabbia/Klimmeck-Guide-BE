@@ -444,6 +444,7 @@ type Query {
   pointOfInterest(id: String!): PointOfInterest!
   pointOfInterests: [PointOfInterest!]!
   quest(id: String!): Quest!
+  questResult(id: String!): QuestResult!
   quests: [Quest!]!
   raceTraits: [RaceTraits!]!
   serverTime: DateTime!
@@ -471,6 +472,14 @@ type QuestInfos {
   type: String!
 }
 
+enum QuestOutcome {
+  death
+  failure
+  gmCompleted
+  rescued
+  success
+}
+
 type QuestPartySlot {
   count: Int!
   title: String
@@ -494,6 +503,43 @@ type QuestRequirements {
   recommendedLoot: [AssetQuantity!]!
   requiredAdventurers: [QuestPartySlot!]!
   requiredPoints: Int
+}
+
+type QuestResult {
+  character: ID!
+  consumablesUsed: [AssetQuantity!]!
+  enemy: Enemy
+  hpAfter: Int!
+  hpBefore: Int!
+  id: ID!
+  injuriesAdded: [InjuryType!]!
+  levelAfter: Int!
+  levelBefore: Int!
+  maxLifePoints: Int!
+  outcome: QuestOutcome!
+  quest: QuestResultQuest!
+  rescuedCharacter: ID
+  resolvedAt: DateTime!
+  rewards: QuestRewards!
+  spellLearned: Spell
+  spellsUsed: [SpellUsage!]!
+  titleAfter: String!
+  titleBefore: String!
+  user: ID!
+  xpAfter: Int!
+  xpBefore: Int!
+  xpGained: Int!
+}
+
+type QuestResultQuest {
+  id: ID!
+  title: String!
+  type: String!
+}
+
+type QuestRewards {
+  coins: Coins!
+  items: [AssetQuantity!]!
 }
 
 type RaceTraits {
@@ -561,8 +607,14 @@ type Spell {
   useType: String!
 }
 
+type SpellUsage {
+  spell: Spell
+  usages: Int!
+}
+
 type Subscription {
   characterUpdated(id: String!): Character!
+  questResultReceived(characterId: String!): QuestResult!
   userUpdated: User!
 }
 

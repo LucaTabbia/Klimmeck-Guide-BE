@@ -35,6 +35,11 @@ type QuestResultReceived = { questResultReceived: WireQuestResult };
 type QuestResultSubscription = OpenSubscription<QuestResultReceived>;
 type PendingResult = ReturnType<QuestResultSubscription['next']>;
 
+// avvolto: una funzione async che restituisse la promise pendente la adotterebbe, attendendo l'evento
+interface LiveSubscription {
+    pending: PendingResult;
+}
+
 describe('questResultReceived subscription (wire)', () => {
     let harness: AuthTestApp;
     let url: string;
@@ -63,7 +68,7 @@ describe('questResultReceived subscription (wire)', () => {
     async function subscribeWithoutSnapshot(
         bearer: string,
         characterId: string,
-    ): Promise<PendingResult> {
+    ): Promise<LiveSubscription> {
         const first = subscribeTo(bearer, characterId).next();
         const early = await Promise.race([
             first.then(() => 'received'),
@@ -72,12 +77,12 @@ describe('questResultReceived subscription (wire)', () => {
             ),
         ]);
         expect(early).toBe('silent');
-        return first;
+        return { pending: first };
     }
 
-    async function receivedResult(
-        pending: PendingResult,
-    ): Promise<WireQuestResult> {
+    async function receivedResult({
+        pending,
+    }: LiveSubscription): Promise<WireQuestResult> {
         const result = await pending;
         expect(result.done).toBe(false);
         expect(result.value.errors).toBeUndefined();
@@ -143,10 +148,7 @@ describe('questResultReceived subscription (wire)', () => {
     });
 
     it('sends no snapshot and then the full result inserted for the owner', async () => {
-        const pending = await subscribeWithoutSnapshot(
-            alice.bearer,
-            aliceCharId,
-        );
+        const live = await subscribeWithoutSnapshot(alice.bearer, aliceCharId);
 
         const inserted = await persistResultOf(alice, {
             hpAfter: 700,
@@ -157,7 +159,7 @@ describe('questResultReceived subscription (wire)', () => {
             },
         });
 
-        expect(await receivedResult(pending)).toEqual({
+        expect(await receivedResult(live)).toEqual({
             id: String(inserted._id),
             outcome: 'success',
             hpAfter: 700,
@@ -166,16 +168,13 @@ describe('questResultReceived subscription (wire)', () => {
     });
 
     it('filters out results of another user, even on the same character', async () => {
-        const pending = await subscribeWithoutSnapshot(
-            alice.bearer,
-            aliceCharId,
-        );
+        const live = await subscribeWithoutSnapshot(alice.bearer, aliceCharId);
 
         await persistResultOf(bruno);
         await persistResultOf(alice, { user: bruno.user._id });
         const own = await persistResultOf(alice);
 
-        expect((await receivedResult(pending)).id).toBe(String(own._id));
+        expect((await receivedResult(live)).id).toBe(String(own._id));
     });
 
     it('rejects another adventurer subscribing to the character with FORBIDDEN', async () => {
@@ -195,10 +194,7 @@ describe('questResultReceived subscription (wire)', () => {
     });
 
     it('still delivers the death result after the character was unlinked', async () => {
-        const pending = await subscribeWithoutSnapshot(
-            alice.bearer,
-            aliceCharId,
-        );
+        const live = await subscribeWithoutSnapshot(alice.bearer, aliceCharId);
 
         await harness.connection
             .collection('users')
@@ -211,7 +207,7 @@ describe('questResultReceived subscription (wire)', () => {
             hpAfter: 0,
         });
 
-        expect(await receivedResult(pending)).toMatchObject({
+        expect(await receivedResult(live)).toMatchObject({
             id: String(death._id),
             outcome: 'death',
             hpAfter: 0,
@@ -220,10 +216,7 @@ describe('questResultReceived subscription (wire)', () => {
 
     it('emits on inserts only, not on updates of an existing result', async () => {
         const existing = await persistResultOf(alice);
-        const pending = await subscribeWithoutSnapshot(
-            alice.bearer,
-            aliceCharId,
-        );
+        const live = await subscribeWithoutSnapshot(alice.bearer, aliceCharId);
 
         await results.updateOne(
             { _id: existing._id },
@@ -231,6 +224,6 @@ describe('questResultReceived subscription (wire)', () => {
         );
         const inserted = await persistResultOf(alice);
 
-        expect((await receivedResult(pending)).id).toBe(String(inserted._id));
+        expect((await receivedResult(live)).id).toBe(String(inserted._id));
     });
 });

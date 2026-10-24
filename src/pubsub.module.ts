@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { createPubSub } from '@graphql-yoga/subscription';
 import { Character } from 'src/models/character/character.model';
+import { QuestResult } from 'src/models/quest-result/quest-result.model';
 import { User } from 'src/models/user.model';
 
 export const PUB_SUB = 'PUB_SUB';
@@ -9,6 +10,7 @@ export const PUB_SUB = 'PUB_SUB';
 export type PubSubEvents = {
     characterUpdated: [payload: { characterUpdated: Character }];
     userUpdated: [payload: { userUpdated: User }];
+    questResultReceived: [payload: { questResultReceived: QuestResult }];
 };
 
 @Global()
