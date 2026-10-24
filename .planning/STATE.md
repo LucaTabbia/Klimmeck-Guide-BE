@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-12-PLAN.md
-last_updated: "2026-10-24T16:42:00.000Z"
-last_activity: 2026-10-24 -- Completed 09-12 (OutcomeWriter, QuestOutcomesModule, resolveIndividual with and without an enemy, questEnd(resultId))
+stopped_at: Completed 09-13-PLAN.md
+last_updated: "2026-10-24T17:00:00.000Z"
+last_activity: 2026-10-24 -- Completed 09-13 (resolveStandard dispatcher, boss group resolution, rescue chain with liberation or death, 7-day aid timeout with C5)
 progress:
   total_phases: 12
   completed_phases: 10
   total_plans: 103
-  completed_plans: 95
+  completed_plans: 96
   percent: 92
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 13 of 16
-Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 12 of 16 complete (09-01..09-12)
-Last activity: 2026-10-24 -- Completed 09-12 (OutcomeWriter: session writes with the StaleResolution sentinel, coins only through WalletService, delivery after the commit — questEnd(resultId) push, aid-timeout, spell-recovery recover jobs; QuestOutcomesModule without change streams, not yet in AppModule; resolveIndividual: stale/early/archived triggers are no-ops, no enemy or orphan enemy = automatic success (C6), enemy fought through CombatResolver, defeat = awaitingAid + cloned aid; QUIET_OUTCOME_OVERRIDES + createOutcomeHarness in test/quests/outcome-world.ts; no SDL change)
+Plan: 14 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 13 of 16 complete (09-01..09-13)
+Last activity: 2026-10-24 -- Completed 09-13 (resolveStandard is the single entry of the standard triggers: resolutionKindOf → individual | group | rescue; ResolutionLoader + combatant-plan shared by the three branches; boss resolved once per group when every registrant is due, one transaction, claim questClaimFilter $all + $size, concluded if one wins (A3), losers freed with their own aid, incoherent registrants pulled with a WARN; rescue success frees the injured at the marker city with a 'rescued' result, failure archives the injured via archiveWithin in the same transaction ('death' result) and chains a new aid cloned from the original; timeoutAid kills after 7 days, suspended while a rescuer is registered (C5); no SDL change)
 
-Progress: [█████████░] 92% (phases 1–8 complete; Phase 9 executing 12/16)
+Progress: [█████████░] 92% (phases 1–8 complete; Phase 9 executing 13/16)
 
 ## Performance Metrics
 
@@ -130,6 +130,7 @@ Progress: [█████████░] 92% (phases 1–8 complete; Phase 9 e
 | Phase 08 P13 | 9 min | 2 tasks | 6 files |
 | Phase 08 P14 | 14 min | 2 tasks | 3 files |
 | Phase 09 P12 | 11 min | 3 tasks | 10 files |
+| Phase 09 P13 | 17 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -233,6 +234,7 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-08: AWAITING_AID nel viaggio dopo la meta ammessa (classifyFreeTravel, startTravelFilter 'status.awaitingAid': null, classifyUnstarted) e come prima regola dell'accettazione (classifyEligibility, laneClaimFilter, classifyUnclaimed); teleportFilter invariato (D-07); velocità = pet × travelSpeedFactorOf(injuries) su planFree e planAuto (AutoTravelRequest.injuries, D-15); readQuest/registrationFilter/QuestsService con concludedAt: null, classifyUnregistered → NOT_FOUND su quest conclusa (D-06, C9)
 - [Phase 09]: 09-07: coda live dell'innkeeper — read model piatto PendingRequest* (nessun @Schema, nessun populate) da quattro letture lean (personaggi attivi con corsia story/worldMission, PendingQuest, quest, utenti per currentCharacter con idForms); voci con PendingQuest/quest/utente/location mancanti saltate con WARN di soli id; pendingRequests + pendingRequestsUpdated (subscribeWithSnapshot) @Roles(innkeeper) in PendingRequestsResolver; PendingRequestsPublisher su change stream insert/delete di pendingquests con ricalcolo single-flight con rerun; PendingRequestsModule in AppModule dopo QuestResultsModule, esporta il servizio per 09-15
 - [Phase 09]: 09-12: OutcomeWriter è l'unico punto delle scritture dell'esito (findOneAndUpdate condizionale → StaleResolution, WalletService con session, QuestResult nella stessa session, deleteOne della PendingQuest, updateQuest claim|bestEffort, createAid) e della consegna dopo il commit (push questEnd(resultId) per risultato, aid-timeout, recover sulla coda spell-recovery con withinTimeout, best-effort per voce); QuestResolutionService.resolveIndividual rilegge il trigger dal DB (startDate uguale, scadenza ≤ Clock, personaggio attivo in corsia, proprietario), cataloghi fuori dalla transazione, combattimento dalla porta dentro il callback (esito per characterId), sconfitta = awaitingAid + aid clonata; QuestOutcomesModule senza change stream, non montato (09-14); ogni harness degli esiti usa QUIET_OUTCOME_OVERRIDES (createOutcomeHarness)
+- [Phase 09]: 09-13: resolveStandard è l'unico ingresso dei trigger standard (resolutionKindOf: boss → gruppo, aid con rescue → soccorso, resto → individuale); il boss si risolve in una transazione per gruppo con claim questClaimFilter + $size in modalità 'claim', esiti per characterId, registrati incoerenti o senza proprietario rimossi con WARN (questUpdateOf dropped); soccorso riuscito = ferito liberato al marker della città con HP invariati e risultato 'rescued'; soccorso fallito = dieWithin (proprietario in sessione, archiveWithin death, risultato 'death') e nuova aid al soccorritore clonata dall'originale (o dalla aid se l'originale non c'è); timeoutAid = claim aidTimeoutClaimFilter + dieWithin, sospeso con un soccorritore registrato (C5); ferito già scollegato = no-op loggato (C1)
 
 ### Pending Todos
 
@@ -260,7 +262,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-24T16:42:00.000Z
-Stopped at: Completed 09-12-PLAN.md
+Last session: 2026-10-24T17:00:00.000Z
+Stopped at: Completed 09-13-PLAN.md
 Resume file: None
 | 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |
