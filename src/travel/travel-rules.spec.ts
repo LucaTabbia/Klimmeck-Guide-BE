@@ -3,6 +3,7 @@ import { classifyFreeTravel, FreeTravelFacts } from './travel-rules';
 
 const OK: FreeTravelFacts = {
     destinationIsCityMarker: true,
+    awaitingAid: false,
     travelling: false,
     onQuest: false,
     sameLocation: false,
@@ -24,6 +25,7 @@ describe('classifyFreeTravel', () => {
             { destinationIsCityMarker: false },
             GameRuleErrorCode.TRAVEL_DESTINATION_NOT_ALLOWED,
         ],
+        ['awaiting aid', { awaitingAid: true }, GameRuleErrorCode.AWAITING_AID],
         [
             'travelling',
             { travelling: true },
@@ -45,12 +47,24 @@ describe('classifyFreeTravel', () => {
             'every defect',
             {
                 destinationIsCityMarker: false,
+                awaitingAid: true,
                 travelling: true,
                 onQuest: true,
                 sameLocation: true,
                 hasRoute: false,
             },
             GameRuleErrorCode.TRAVEL_DESTINATION_NOT_ALLOWED,
+        ],
+        [
+            'awaiting aid while travelling, on quest and without a route',
+            {
+                awaitingAid: true,
+                travelling: true,
+                onQuest: true,
+                sameLocation: true,
+                hasRoute: false,
+            },
+            GameRuleErrorCode.AWAITING_AID,
         ],
         [
             'travelling, on quest and same location',

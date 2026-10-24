@@ -179,6 +179,7 @@ describe('startTravel and travelPreview (wire)', () => {
             role?: RoleType;
             activeTravel?: Record<string, unknown> | null;
             pendingQuest?: Types.ObjectId | null;
+            awaitingAid?: Record<string, unknown> | null;
         } = {},
     ): Promise<TestPlayer> {
         seq += 1;
@@ -193,6 +194,7 @@ describe('startTravel and travelPreview (wire)', () => {
                     location,
                     title: 'rookie',
                     activeTravel: options.activeTravel ?? null,
+                    awaitingAid: options.awaitingAid ?? null,
                 },
                 quests: {
                     completedQuests: [],
@@ -222,6 +224,14 @@ describe('startTravel and travelPreview (wire)', () => {
             duration: 3_600_000,
             to: world.markerB,
             kind: 'free',
+        };
+    }
+
+    function awaitingAid(): Record<string, unknown> {
+        return {
+            quest: new Types.ObjectId(),
+            aidQuest: new Types.ObjectId(),
+            since: clock.now(),
         };
     }
 
@@ -384,6 +394,17 @@ describe('startTravel and travelPreview (wire)', () => {
             arrange: async () => {
                 const player = await playerAt(world.markerA);
                 return { player, request: requestOf(player, world.markerC) };
+            },
+        },
+        {
+            name: 'a character awaiting aid',
+            code: 'AWAITING_AID',
+            message: 'Il tuo personaggio è in attesa di soccorso',
+            arrange: async () => {
+                const player = await playerAt(world.markerA, {
+                    awaitingAid: awaitingAid(),
+                });
+                return { player, request: requestOf(player, world.markerB) };
             },
         },
         {

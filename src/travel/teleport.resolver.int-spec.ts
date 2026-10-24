@@ -122,6 +122,7 @@ describe('teleportCharacter', () => {
             pendingQuest?: Types.ObjectId | null;
             activeStoryQuest?: Types.ObjectId | null;
             activeWorldMissionQuest?: Types.ObjectId | null;
+            awaitingAid?: Record<string, unknown> | null;
         } = {},
     ): Promise<TestPlayer> {
         seq += 1;
@@ -136,6 +137,7 @@ describe('teleportCharacter', () => {
                     location,
                     title: 'rookie',
                     activeTravel: null,
+                    awaitingAid: options.awaitingAid ?? null,
                 },
                 quests: {
                     completedQuests: [],
@@ -372,6 +374,34 @@ describe('teleportCharacter', () => {
                 outcome: 'ok',
             });
             expect(push.sent).toEqual([]);
+        });
+
+        // il soccorso non blocca il teleport del GM (D-07): la posizione cambia, l'attesa resta
+        it('lets the innkeeper teleport a character awaiting aid without touching the wait', async () => {
+            const awaitingAid = {
+                quest: new Types.ObjectId(),
+                aidQuest: new Types.ObjectId(),
+                since: STARTED_AT,
+            };
+            const alice = await playerAt(world.markerA, { awaitingAid });
+            const oste = await innkeeper();
+
+            const body = await teleportOnWire(
+                {
+                    id: characterIdOf(alice).toHexString(),
+                    poiId: world.markerB.toHexString(),
+                },
+                oste.bearer,
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.teleportCharacter).toEqual({
+                response: 'Personaggio teletrasportato',
+                successful: true,
+            });
+            const raw = await rawCharacter(alice);
+            expect(raw?.status.location).toEqual(world.markerB);
+            expect(raw?.status.awaitingAid).toEqual(awaitingAid);
         });
 
         it('answers the teleport even when the job removal hangs', async () => {

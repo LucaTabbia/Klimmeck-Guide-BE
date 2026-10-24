@@ -17,6 +17,7 @@ import { Pet } from 'src/models/pet.model';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Road } from 'src/models/road.model';
 import type { RoadRoute } from 'src/roads/road-route';
+import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
 import { RoadsService } from 'src/roads/roads.service';
 import { QUEUE_CALL_TIMEOUT } from './queue-call-timeout';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
@@ -40,6 +41,8 @@ const PLANNED_AT = new Date('2026-10-21T10:00:00.000Z');
 const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const MINUTE_MS = 60_000;
 const QUEUE_TIMEOUT_MS = 50;
+const ONE_LEG = ['brokenLeftLeg'];
+const NO_LEGS = ['missingLeftLeg', 'missingRightLeg'];
 
 describe('TravelPlanner and TravelScheduler (replSet)', () => {
     let app: INestApplication;
@@ -210,6 +213,56 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
             expect(warn).not.toHaveBeenCalled();
         });
 
+        it('slows an injured traveller by the injury speed factor (D-15)', async () => {
+            const id = await characterAt(world.markerA, {
+                status: { injuries: ONE_LEG },
+            });
+
+            const plan = await planner.planFree(id, world.markerB);
+
+            expect(travelSpeedFactorOf(ONE_LEG)).toBe(0.8);
+            expect(plan.travel.duration).toBe(
+                durationMsOf(route.baseHours, BASE_SPEED * 0.8),
+            );
+            expect(plan.travel.duration).toBeGreaterThan(expected);
+            expect(plan.travel.endTime.getTime()).toBe(
+                PLANNED_AT.getTime() + plan.travel.duration,
+            );
+        });
+
+        it('multiplies the mount speed by the injury factor', async () => {
+            const pet = await persistPet(pets, { speedModifier: 2 });
+            const id = await characterAt(world.markerA, {
+                status: { injuries: ONE_LEG },
+                assets: { pet: pet._id },
+            });
+
+            const plan = await planner.planFree(id, world.markerB);
+
+            expect(plan.travel.duration).toBe(
+                durationMsOf(route.baseHours, 20 * 0.8),
+            );
+        });
+
+        it('rejects a character awaiting aid with AWAITING_AID before the running travel', async () => {
+            const id = await characterAt(world.markerA, {
+                status: {
+                    awaitingAid: {
+                        quest: new Types.ObjectId(),
+                        aidQuest: new Types.ObjectId(),
+                        since: PLANNED_AT,
+                    },
+                },
+                quests: { pendingQuest: new Types.ObjectId() },
+            });
+            const before = await rawCharacter(id);
+
+            await expect(
+                planner.planFree(id, world.markerB),
+            ).rejects.toMatchObject({ code: 'AWAITING_AID' });
+            expect(await rawCharacter(id)).toEqual(before);
+        });
+
         it('rejects a destination that is not a city marker', async () => {
             const id = await characterAt(world.markerA);
 
@@ -330,6 +383,32 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
                 durationMsOf(questRoute.baseHours, BASE_SPEED),
             );
             expect(travel?.startTime).toEqual(PLANNED_AT);
+        });
+
+        it('slows the automatic travel by the injuries of the request (D-15)', async () => {
+            const travel = await planner.planAuto({
+                questId: new Types.ObjectId(),
+                characterId: new Types.ObjectId(),
+                from: world.markerA,
+                to: world.questPoi,
+                pet: null,
+                injuries: NO_LEGS,
+            });
+
+            const questRoute = roads.routeBetween(
+                [0, 0],
+                [0.1, 0],
+            ) as RoadRoute;
+            expect(travelSpeedFactorOf(NO_LEGS)).toBeCloseTo(0.64);
+            expect(travel?.duration).toBe(
+                durationMsOf(
+                    questRoute.baseHours,
+                    BASE_SPEED * travelSpeedFactorOf(NO_LEGS),
+                ),
+            );
+            expect(travel?.duration).toBeGreaterThan(
+                durationMsOf(questRoute.baseHours, BASE_SPEED),
+            );
         });
 
         it('answers null and warns when no road reaches the marker', async () => {
