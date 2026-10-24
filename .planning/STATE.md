@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-05-PLAN.md
-last_updated: "2026-10-24T16:04:00.000Z"
-last_activity: 2026-10-24 -- Completed 09-05 (pure outcome plan, rescue/death, registered quest update)
+stopped_at: Completed 09-07-PLAN.md
+last_updated: "2026-10-24T16:13:00.000Z"
+last_activity: 2026-10-24 -- Completed 09-07 (live innkeeper queue pendingRequests/pendingRequestsUpdated)
 progress:
   total_phases: 12
   completed_phases: 10
   total_plans: 103
-  completed_plans: 92
+  completed_plans: 93
   percent: 89
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 10 of 16
-Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 9 of 16 complete (09-01..09-06, 09-08, 09-09, 09-11)
-Last activity: 2026-10-24 -- Completed 09-05 (pure outcome plan: planParticipant → filter with lane and expected xp, single $set of the final state with progressionAfter as sole level/maxLifePoints writer, applyTradeToInventory for consumables and prizes, spell usages and recoveries, awaitingAid on failure; planRescued/deathResultOf; questUpdateOf/questClaimFilter)
+Plan: 11 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 10 of 16 complete (09-01..09-09, 09-11)
+Last activity: 2026-10-24 -- Completed 09-07 (live innkeeper queue: PendingRequest* flat read model from lean reads, entries with missing data skipped with an id-only WARN; pendingRequests query and pendingRequestsUpdated subscription with snapshot, both @Roles(innkeeper); change stream insert/delete on pendingquests with single-flight recompute; schema +33 lines additive)
 
-Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 9/16)
+Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 10/16)
 
 ## Performance Metrics
 
@@ -230,6 +230,7 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-14: gate finale verde senza fix (unit 95/1415, int 57/739); BACKEND-NOTES con dati UAT in §11 e scala delle durate (speedFactor e geometria come sole leve) in §8; BE-TRAVEL-01..04 Complete
 - [Phase 09]: 09-01: SDL additivo di Wave 1 — CharacterStatus.awaitingAid (AwaitingAid { aidQuest, quest, since }) e QuestPrizes.spell (populate prizes.spell, Spell registrato in QuestsModule); Quest.concludedAt/rescue interni senza @Field; QuestResult (collection questresults, 7 ref MongooseSchema.Types.ObjectId, refPath assoluti) + enum QuestOutcome, non ancora nello schema (09-06); slot magia solo da mage (maxActiveSpellsFor(xp, title), $cond sul titolo vivo nel filtro, proiezione status.title), fixture resta rookie e le suite delle magie passano title mage
 - [Phase 09]: 09-08: AWAITING_AID nel viaggio dopo la meta ammessa (classifyFreeTravel, startTravelFilter 'status.awaitingAid': null, classifyUnstarted) e come prima regola dell'accettazione (classifyEligibility, laneClaimFilter, classifyUnclaimed); teleportFilter invariato (D-07); velocità = pet × travelSpeedFactorOf(injuries) su planFree e planAuto (AutoTravelRequest.injuries, D-15); readQuest/registrationFilter/QuestsService con concludedAt: null, classifyUnregistered → NOT_FOUND su quest conclusa (D-06, C9)
+- [Phase 09]: 09-07: coda live dell'innkeeper — read model piatto PendingRequest* (nessun @Schema, nessun populate) da quattro letture lean (personaggi attivi con corsia story/worldMission, PendingQuest, quest, utenti per currentCharacter con idForms); voci con PendingQuest/quest/utente/location mancanti saltate con WARN di soli id; pendingRequests + pendingRequestsUpdated (subscribeWithSnapshot) @Roles(innkeeper) in PendingRequestsResolver; PendingRequestsPublisher su change stream insert/delete di pendingquests con ricalcolo single-flight con rerun; PendingRequestsModule in AppModule dopo QuestResultsModule, esporta il servizio per 09-15
 
 ### Pending Todos
 
@@ -257,7 +258,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-24T15:40:00.000Z
-Stopped at: Completed 09-08-PLAN.md
+Last session: 2026-10-24T16:13:00.000Z
+Stopped at: Completed 09-07-PLAN.md
 Resume file: None
 | 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |
