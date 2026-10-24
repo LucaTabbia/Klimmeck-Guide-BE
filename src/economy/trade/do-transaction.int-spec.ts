@@ -14,6 +14,7 @@ import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
+import { placeInCity } from '../../../test/economy/place-in-city';
 import {
     buildCharacter,
     persistEquipmentItem,
@@ -191,19 +192,22 @@ describe('doTransaction (wire)', () => {
     let loot: Model<LootItemDocument>;
     let catalog: Catalog;
 
-    function playerWith(
+    // il negozio risponde solo in città (D-18): ogni giocatore della suite sta sul marker di una città
+    async function playerWith(
         twitchId: string,
         purse: CoinPurse,
         inventory: Inventory = {},
     ): Promise<TestPlayer> {
         const base = buildCharacter();
-        return createPlayer(harness, {
+        const player = await createPlayer(harness, {
             twitchId,
             characterOverrides: {
                 status: { ...base.status, coins: purse },
                 assets: { ...base.assets, ...inventory },
             },
         });
+        await placeInCity(harness, player.character!);
+        return player;
     }
 
     function characterIdOf(player: TestPlayer): Types.ObjectId {

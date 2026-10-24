@@ -22,6 +22,7 @@ import {
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 import type { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { User, UserDocument } from 'src/models/user.model';
+import { placeInCity } from '../../../test/economy/place-in-city';
 import {
     buildCharacter,
     persistCharacter,
@@ -153,6 +154,7 @@ describe('ShopTransactionService (replSet)', () => {
             users.deleteMany({}),
             equipment.deleteMany({}),
             loot.deleteMany({}),
+            connection.collection('cities').deleteMany({}),
         ]);
     });
 
@@ -182,6 +184,8 @@ describe('ShopTransactionService (replSet)', () => {
             assets: { ...base.assets, ...inventory },
             ...overrides,
         });
+        // il negozio risponde solo in città (D-18): ogni trader della suite sta sul marker di una città
+        await placeInCity({ connection }, character);
         return character._id as Types.ObjectId;
     }
 
