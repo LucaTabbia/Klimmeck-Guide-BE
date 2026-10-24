@@ -28,7 +28,7 @@ export interface CatalogRefsHolder {
 }
 
 // risolto = documento popolato; un ObjectId grezzo è un ref rimasto tale perché itemType manca (refPath irrisolto, D-28) e sul filo farebbe fallire ItemUnion
-const isResolved = (entry: CatalogItemEntry): boolean =>
+export const isResolvedItemEntry = (entry: CatalogItemEntry): boolean =>
     entry.item != null &&
     typeof entry.item === 'object' &&
     !(entry.item instanceof Types.ObjectId);
@@ -41,14 +41,14 @@ export function dropOrphanCatalogRefs(quest: CatalogRefsHolder): void {
     }
     if (requirements?.recommendedLoot) {
         requirements.recommendedLoot =
-            requirements.recommendedLoot.filter(isResolved);
+            requirements.recommendedLoot.filter(isResolvedItemEntry);
     }
     if (prizes) {
-        if (prizes.prizeItem && !isResolved(prizes.prizeItem)) {
+        if (prizes.prizeItem && !isResolvedItemEntry(prizes.prizeItem)) {
             prizes.prizeItem = null;
         }
         if (prizes.randomLoot) {
-            prizes.randomLoot = prizes.randomLoot.filter(isResolved);
+            prizes.randomLoot = prizes.randomLoot.filter(isResolvedItemEntry);
         }
     }
 }
