@@ -178,6 +178,34 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
         await expectUntouched(subject);
     });
 
+    it('logs a suspended timeout at debug level only, since the sweep retries it every tick', async () => {
+        const subject = await timeoutWorld();
+        await world.models.quests.updateOne(
+            { _id: subject.aidId },
+            {
+                $push: {
+                    registeredAdventurers: {
+                        character: new Types.ObjectId(),
+                        title: 'rookie',
+                    },
+                },
+            },
+        );
+        const debug = jest
+            .spyOn(Logger.prototype, 'debug')
+            .mockImplementation(() => undefined);
+
+        await timeout(subject);
+        await timeout(subject);
+
+        const suspended = (calls: unknown[][]) =>
+            calls.filter(([message]) =>
+                String(message).includes('timeout sospeso'),
+            );
+        expect(suspended(log.mock.calls)).toHaveLength(0);
+        expect(suspended(debug.mock.calls)).toHaveLength(2);
+    });
+
     it('turns a second timeout into a no-op', async () => {
         const subject = await timeoutWorld();
 
