@@ -42,6 +42,7 @@ export class QuestResolutionSweeper
     private readonly logger = new Logger(QuestResolutionSweeper.name);
     private timer: NodeJS.Timeout | null = null;
     private inFlight: Promise<QuestSweepCounts> | null = null;
+    private stopping = false;
 
     constructor(
         @Inject(QUEST_CONFIG) private readonly config: QuestConfig,
@@ -63,9 +64,12 @@ export class QuestResolutionSweeper
         void this.sweepSafely();
     }
 
-    onModuleDestroy(): void {
+    // lo sweep in corso finisce prima che Mongoose e le code chiudano; nessuna nuova risoluzione dopo lo stop
+    async onModuleDestroy(): Promise<void> {
+        this.stopping = true;
         if (this.timer) clearInterval(this.timer);
         this.timer = null;
+        await this.inFlight?.catch(() => undefined);
     }
 
     // single-flight: un tick saltato è recuperato dal successivo; copre i job persi per eviction Redis (blocker STATE)
@@ -96,6 +100,7 @@ export class QuestResolutionSweeper
         let resolved = 0;
         // in serie: ogni risoluzione è una transazione sullo stesso pool, nessun picco al boot
         for (const { pendingQuestId, startDate } of due) {
+            if (this.stopping) break;
             try {
                 const outcome = await this.resolution.resolveStandard({
                     pendingQuestId,
@@ -113,12 +118,14 @@ export class QuestResolutionSweeper
 
     // 7 giorni senza soccorso (D-10): stessa funzione del job aid-timeout
     private async timeOutDueAids(now: Date): Promise<number> {
+        if (this.stopping) return 0;
         const due = await this.characterModel
             .find(dueAidTimeoutsFilter(now), DUE_AID_TIMEOUT_PROJECTION)
             .lean<DueAidTimeout[]>()
             .exec();
         let timedOut = 0;
         for (const character of due) {
+            if (this.stopping) break;
             const aidQuestId = refIdOf(character.status.awaitingAid?.aidQuest);
             if (!aidQuestId) continue;
             try {

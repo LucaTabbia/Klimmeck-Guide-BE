@@ -212,7 +212,11 @@ describe('QuestResolutionSweeper', () => {
         const due = deferred<DueStandardQuest[]>();
         aggregate = aggregateResolving(due.promise);
         const sweeper = sweeperWith(0);
-        const sweep = sweeper.sweep();
+        let swept = false;
+        const sweep = sweeper.sweep().then((counts) => {
+            swept = true;
+            return counts;
+        });
         let destroyed = false;
 
         const destroy = sweeper.onModuleDestroy().then(() => {
@@ -224,7 +228,7 @@ describe('QuestResolutionSweeper', () => {
         due.resolve([]);
         await destroy;
 
-        expect(find).toHaveBeenCalledTimes(1);
+        expect(swept).toBe(true);
         await expect(sweep).resolves.toEqual({ resolved: 0, timedOut: 0 });
     });
 
