@@ -26,6 +26,7 @@ import {
     type StandardTrigger,
 } from './resolution-loader.service';
 import { resolutionKindOf } from './resolution-kind';
+import { RescueResolutionService } from './rescue-resolution.service';
 
 export type { ResolutionOutcome, StandardTrigger };
 
@@ -38,6 +39,7 @@ export class QuestResolutionService {
         @InjectConnection() private readonly connection: Connection,
         private readonly loader: ResolutionLoader,
         private readonly boss: BossResolutionService,
+        private readonly rescue: RescueResolutionService,
         private readonly writer: OutcomeWriter,
         private readonly combat: CombatResolver,
         private readonly chance: ChanceSource,
@@ -55,7 +57,7 @@ export class QuestResolutionService {
             case 'group':
                 return this.boss.resolveGroup(loaded, now);
             case 'rescue':
-                return this.resolveLoadedIndividual(loaded, now);
+                return this.rescue.resolveRescue(loaded, now);
             case 'individual':
                 return this.resolveLoadedIndividual(loaded, now);
         }
