@@ -1,6 +1,10 @@
+import { getQueueToken } from '@nestjs/bull';
 import { getModelToken } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import { Types } from 'mongoose';
+import type { Clock } from 'src/auth/clock';
+import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
+import { PUSH_CONFIG } from 'src/config/push-config';
 import { QUEST_CONFIG } from 'src/config/quest-config';
 import { Character } from 'src/models/character/character.model';
 import { City } from 'src/models/city.model';
@@ -13,11 +17,25 @@ import { QuestResult } from 'src/models/quest-result/quest-result.model';
 import { Quest } from 'src/models/quest/quest.model';
 import { Spell } from 'src/models/spell.model';
 import { User } from 'src/models/user.model';
+import { PushDevice } from 'src/push/push-device.model';
+import { PushPlatform } from 'src/push/push-platform.enum';
+import { PushService } from 'src/push/push.service';
+import { PushTransport } from 'src/push/transport/push-transport';
 import { isRegistered } from 'src/quests/acceptance/quest-eligibility';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
-import type { AuthTestApp, ProviderOverride } from '../auth/auth-test-app';
+import { ChanceSource } from 'src/quests/outcomes/chance-source';
+import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
+import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
+import {
+    type AuthTestApp,
+    createAuthTestApp,
+    type ProviderOverride,
+} from '../auth/auth-test-app';
 import { createPlayer, TestPlayer } from '../authz/player-fixture';
 import { buildCharacter, buildQuest, persistQuest } from '../fixtures';
+import { FakePushTransport } from '../push/fake-push-transport';
+import { FakeTravelQueue } from '../travel/fake-travel-queue';
 
 // ogni harness che monta QuestOutcomesModule o PendingRequestsModule lo usa: nessuno sweep periodico né reconciler concorrente con il setup dei test (09-14 lo estende con uno sweeper inerte)
 export const QUIET_OUTCOME_OVERRIDES: ProviderOverride[] = [
@@ -58,10 +76,84 @@ export function outcomeModels(harness: AuthTestApp): OutcomeModels {
 }
 
 // collection pronte prima delle transazioni multi-documento (Pitfall 5)
-export async function initOutcomeCollections(
+async function initOutcomeCollections(
+    harness: AuthTestApp,
     models: OutcomeModels,
 ): Promise<void> {
     for (const model of Object.values(models)) await model.init();
+    await harness.connection.model(PushDevice.name).init();
+}
+
+export interface OutcomeHarnessOptions {
+    clock: Clock;
+    chance: ChanceSource;
+    combat?: CombatResolver;
+}
+
+export interface OutcomeHarness {
+    harness: AuthTestApp;
+    models: OutcomeModels;
+    push: FakePushTransport;
+    questQueue: FakeTravelQueue;
+    spellQueue: FakeTravelQueue;
+    reset(): Promise<void>;
+}
+
+// QuestOutcomesModule senza Redis né FCM: push e code finte, porte del caso e del combattimento sostituite
+export async function createOutcomeHarness(
+    options: OutcomeHarnessOptions,
+): Promise<OutcomeHarness> {
+    const push = new FakePushTransport();
+    const questQueue = new FakeTravelQueue();
+    const spellQueue = new FakeTravelQueue();
+    const harness = await createAuthTestApp({
+        clock: options.clock,
+        imports: [QuestOutcomesModule],
+        overrides: [
+            ...QUIET_OUTCOME_OVERRIDES,
+            { token: PushTransport, useValue: push },
+            { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
+            {
+                token: getQueueToken(QUEST_RESOLUTION_QUEUE),
+                useValue: questQueue,
+            },
+            {
+                token: getQueueToken(SPELL_RECOVERY_QUEUE),
+                useValue: spellQueue,
+            },
+            { token: ChanceSource, useValue: options.chance },
+            ...(options.combat
+                ? [{ token: CombatResolver, useValue: options.combat }]
+                : []),
+        ],
+    });
+    const models = outcomeModels(harness);
+    await initOutcomeCollections(harness, models);
+    return {
+        harness,
+        models,
+        push,
+        questQueue,
+        spellQueue,
+        async reset() {
+            await harness.clearDatabase();
+            push.reset();
+            questQueue.reset();
+            spellQueue.reset();
+        },
+    };
+}
+
+// un device per l'utente: la push questEnd arriva al trasporto finto
+export async function registerDevice(
+    harness: AuthTestApp,
+    player: TestPlayer,
+): Promise<void> {
+    await harness.app.get(PushService).registerDevice(String(player.user._id), {
+        deviceId: 'dev-1',
+        token: `tok-${String(player.user._id)}`,
+        platform: PushPlatform.android,
+    });
 }
 
 export interface QuesterOptions {

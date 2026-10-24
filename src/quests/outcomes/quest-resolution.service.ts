@@ -1,5 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import type { Types } from 'mongoose';
 
-// i metodi della risoluzione arrivano con la corsia standard (09-12 Task 2)
+export type ResolutionOutcome = 'resolved' | 'stale' | 'waiting';
+
+export interface StandardTrigger {
+    pendingQuestId: Types.ObjectId;
+    startDate: Date;
+}
+
 @Injectable()
-export class QuestResolutionService {}
+export class QuestResolutionService {
+    resolveIndividual(_trigger: StandardTrigger): Promise<ResolutionOutcome> {
+        throw new Error('not implemented');
+    }
+}
