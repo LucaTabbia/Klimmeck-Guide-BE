@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 9 complete (2026-10-24) — PR to develop pending
+stopped_at: Phase 9 complete (2026-10-24) — PR #13 to develop open
 last_updated: "2026-10-24T18:20:00.000Z"
-last_activity: 2026-10-24 -- Phase 9 closed: 16/16 plans, gate green after the review fixes (unit 121 suites / 1775 tests, integration 72 suites / 915 tests, build, filtered lint 0, schema additive vs develop), verification passed 5/5, code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, security audit in 09-SECURITY.md; PR to develop next
+last_activity: 2026-10-24 -- Phase 9 closed: 16/16 plans, gate green after the review fixes (unit 121 suites / 1775 tests, integration 72 suites / 915 tests, build, filtered lint 0, schema additive vs develop), verification passed 5/5, code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, security verified 82/82 (09-SECURITY.md); branch pushed, PR #13 opened
 progress:
   total_phases: 12
   completed_phases: 10
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 9 — Combat Result & Admin Outcomes complete on 2026-10-24 (PR to develop pending; unblocks FE Phase 9 foglio esiti and FE Phase 10 pannello admin; FE Phase 7 gets `SHOP_NOT_IN_CITY`/`AWAITING_AID`); technical defaults to confirm with the user: C5 (aid timeout suspended while a rescuer is registered), A3 (boss concluded if at least one wins), placeholder resolver/injury/drop-rate values; next Phase 10 — Hardening Trasversale
+**Current focus:** Phase 9 — Combat Result & Admin Outcomes complete on 2026-10-24 (PR #13 to develop open 2026-10-24; unblocks FE Phase 9 foglio esiti and FE Phase 10 pannello admin; FE Phase 7 gets `SHOP_NOT_IN_CITY`/`AWAITING_AID`); technical defaults to confirm with the user: C5 (aid timeout suspended while a rescuer is registered), A3 (boss concluded if at least one wins), placeholder resolver/injury/drop-rate values; next Phase 10 — Hardening Trasversale
 
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — COMPLETE 2026-10-24 (16/16 plans; code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, 1 sub-point deferred to Phase 10; verification passed 5/5 success criteria + D-01..D-29 (C1–C10); device UAT deferred to the FE Phase 9/10 UAT; security audit in 09-SECURITY.md)
 Plan: 16 of 16 (complete)
-Status: Phase 9 complete — PR to develop pending; next /gsd-discuss-phase 10 (Hardening Trasversale)
-Last activity: 2026-10-24 -- Phase 9 closed: 16/16 plans, gate green after the review fixes (unit 121 suites / 1775 tests, integration 72 suites / 915 tests, build, filtered lint 0, schema additive vs develop), verification passed 5/5, review fixed, security audit in 09-SECURITY.md; PR to develop next
+Status: Phase 9 complete — PR #13 (feat/09-combat-result-admin-outcomes → develop) open, awaiting review/merge; next /gsd-discuss-phase 10 (Hardening Trasversale)
+Last activity: 2026-10-24 -- Phase 9 closed: 16/16 plans, gate green after the review fixes (unit 121 suites / 1775 tests, integration 72 suites / 915 tests, build, filtered lint 0, schema additive vs develop), verification passed 5/5, review fixed, security verified 82/82 (09-SECURITY.md); branch pushed, PR #13 opened
 
 Progress: [██████████] 100% (phases 1–9 complete; Phase 10 next)
 
