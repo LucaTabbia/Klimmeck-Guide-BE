@@ -270,7 +270,7 @@ Plans:
 - [x] 09-08-PLAN.md — Wave 2: guard `AWAITING_AID`, quest concluse fuori dalla board, rallentamento da ferite (BE-COMBAT-03)
 - [x] 09-09-PLAN.md — Wave 2: guard del negozio `SHOP_NOT_IN_CITY` (BE-COMBAT-03)
 - [ ] 09-10-PLAN.md — Wave 3: coda `quest-resolution`, scheduler, env `QUEST_SWEEP_INTERVAL_MS`, accodamento dove si scrive `startDate` (BE-COMBAT-03)
-- [ ] 09-11-PLAN.md — Wave 2: `CharacterArchiver.archiveWithin` (morte nella transazione dell'esito, C1) (BE-COMBAT-03)
+- [x] 09-11-PLAN.md — Wave 2: `CharacterArchiver.archiveWithin` (morte nella transazione dell'esito, C1) (BE-COMBAT-03)
 - [ ] 09-12-PLAN.md — Wave 4: writer degli esiti, risoluzione individuale senza nemico e con combattimento, push `questEnd(resultId)` (BE-COMBAT-01/02/03)
 - [ ] 09-13-PLAN.md — Wave 5: dispatcher `resolveStandard`, boss di gruppo, catena di soccorso, timeout di 7 giorni (BE-COMBAT-01/03)
 - [ ] 09-14-PLAN.md — Wave 6: processor, reconciler + sweep, montaggio nel boot reale (BE-COMBAT-03)
@@ -323,5 +323,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
-| 9. Combat Result & Admin Outcomes | 7/16 | In Progress | - |
+| 9. Combat Result & Admin Outcomes | 8/16 | In Progress | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |

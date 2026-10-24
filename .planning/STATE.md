@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-09-PLAN.md
-last_updated: "2026-10-24T15:48:00.000Z"
-last_activity: 2026-10-24 -- Completed 09-09 (shop guard SHOP_NOT_IN_CITY at a city marker)
+stopped_at: Completed 09-11-PLAN.md
+last_updated: "2026-10-24T15:55:00.000Z"
+last_activity: 2026-10-24 -- Completed 09-11 (CharacterArchiver.archiveWithin inside the caller transaction, C1)
 progress:
   total_phases: 12
   completed_phases: 10
   total_plans: 103
-  completed_plans: 90
+  completed_plans: 91
   percent: 85
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9 (Combat Result & Admin Outcomes) — EXECUTING
-Plan: 8 of 16
-Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 7 of 16 complete (09-01..09-04, 09-06, 09-08, 09-09)
-Last activity: 2026-10-24 -- Completed 09-09 (doTransaction answers SHOP_NOT_IN_CITY off a city marker, while travelling or awaiting aid, empty trade included; pre-check in the trade session reaffirmed in the inventory write filter; EconomyModule registers City; shop suites place traders in a city via placeInCity, C4)
+Plan: 9 of 16
+Status: Executing Phase 9 — 16 plans in 8 waves, sequential executors, 8 of 16 complete (09-01..09-04, 09-06, 09-08, 09-09, 09-11)
+Last activity: 2026-10-24 -- Completed 09-11 (CharacterArchiver.archiveWithin(session, { userId, characterId, reason, now }) archives inside the caller transaction: unlink only if the user points at that character (idForms), archive, free seats, close open aids; aborted outer transaction leaves nothing; not-linked outcome for the death no-op; archiveCurrentCharacter reuses it with the 03.1 contract unchanged; CharacterArchiveModule without UsersModule)
 
-Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 7/16)
+Progress: [█████████░] 90% (phases 1–8 complete; Phase 9 executing 8/16)
 
 ## Performance Metrics
 
