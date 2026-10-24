@@ -147,7 +147,9 @@ describe('PendingRequestsService (replSet)', () => {
                 id: String(aria.character._id),
                 name: 'Aria',
                 title: 'rookie',
-                location: String(aria.character.status.location),
+                location: (
+                    aria.character.status.location as Types.ObjectId
+                ).toHexString(),
                 activeTravel: null,
                 awaitingAid: null,
             },

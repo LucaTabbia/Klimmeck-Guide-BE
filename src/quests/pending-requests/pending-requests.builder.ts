@@ -1,7 +1,13 @@
 import type { Types } from 'mongoose';
+import { refIdOf } from 'src/mongo/document-id';
+import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import type { ActiveTravel } from 'src/models/character/active-travel.model';
 import type { AwaitingAid } from 'src/models/character/awaiting-aid.model';
-import type { PendingRequest } from 'src/models/pending-request.model';
+import type {
+    PendingRequest,
+    PendingRequestCharacter,
+} from 'src/models/pending-request.model';
+import type { QuestPartySlot } from 'src/models/quest/quest-party-slot.model';
 import type { QuestRegistration } from 'src/models/quest/quest-registration.model';
 
 export interface RequestCharacterSnapshot {
@@ -53,9 +59,101 @@ export interface PendingRequestsBuild {
     skipped: SkippedRequest[];
 }
 
+// solo le corsie che il GM completa a mano (D-22): la standard si risolve da sola alla scadenza
+const GM_LANES = [QuestLane.story, QuestLane.worldMission] as const;
+
+interface LaneEntry {
+    character: RequestCharacterSnapshot;
+    pendingQuestId: Types.ObjectId;
+}
+
+function byHex<T>(items: T[], idOf: (item: T) => unknown): Map<string, T> {
+    const map = new Map<string, T>();
+    for (const item of items) {
+        const id = refIdOf(idOf(item));
+        if (id) map.set(id.toHexString(), item);
+    }
+    return map;
+}
+
+function gmLaneEntries(characters: RequestCharacterSnapshot[]): LaneEntry[] {
+    return characters.flatMap((character) =>
+        GM_LANES.flatMap((lane) => {
+            const pendingQuestId = refIdOf(character.quests?.[lane]);
+            return pendingQuestId ? [{ character, pendingQuestId }] : [];
+        }),
+    );
+}
+
+// catalogo legacy: requiredAdventurers poteva essere un numero
+function requiredAdventurersOf(quest: RequestQuestSnapshot): QuestPartySlot[] {
+    const required = quest.requirements?.requiredAdventurers;
+    return Array.isArray(required) ? (required as QuestPartySlot[]) : [];
+}
+
+function characterEntryOf(
+    character: RequestCharacterSnapshot,
+): PendingRequestCharacter | null {
+    const location = refIdOf(character.status?.location);
+    if (!location) return null;
+    return {
+        id: character._id.toHexString(),
+        name: character.infos?.name ?? '',
+        title: character.status?.title ?? '',
+        location: location.toHexString(),
+        activeTravel: character.status?.activeTravel ?? null,
+        awaitingAid: character.status?.awaitingAid ?? null,
+    };
+}
+
+// startDate crescente, null in coda (in viaggio verso il marker), poi id per un ordine stabile
+function compareRequests(a: PendingRequest, b: PendingRequest): number {
+    const aTime = a.startDate?.getTime() ?? Number.POSITIVE_INFINITY;
+    const bTime = b.startDate?.getTime() ?? Number.POSITIVE_INFINITY;
+    if (aTime !== bTime) return aTime < bTime ? -1 : 1;
+    return a.id.localeCompare(b.id);
+}
+
 export function buildPendingRequests(
     input: PendingRequestsInput,
 ): PendingRequestsBuild {
-    void input;
-    return { requests: [], skipped: [] };
+    const pendingQuests = byHex(input.pendingQuests, (pq) => pq._id);
+    const quests = byHex(input.quests, (quest) => quest._id);
+    const users = byHex(input.users, (user) => user.currentCharacter);
+    const requests: PendingRequest[] = [];
+    const skipped: SkippedRequest[] = [];
+
+    for (const { character, pendingQuestId } of gmLaneEntries(
+        input.characters,
+    )) {
+        const characterId = character._id.toHexString();
+        const pendingQuest = pendingQuests.get(pendingQuestId.toHexString());
+        const questId = refIdOf(pendingQuest?.quest);
+        const quest = questId ? quests.get(questId.toHexString()) : undefined;
+        const user = users.get(characterId);
+        const characterEntry = characterEntryOf(character);
+        if (!pendingQuest || !quest || !user || !characterEntry) {
+            skipped.push({
+                characterId,
+                pendingQuestId: pendingQuestId.toHexString(),
+            });
+            continue;
+        }
+        requests.push({
+            id: pendingQuest._id.toHexString(),
+            startDate: pendingQuest.startDate ?? null,
+            pointsSpent: pendingQuest.pointsSpent ?? 0,
+            quest: {
+                id: quest._id.toHexString(),
+                type: quest.infos?.type ?? '',
+                title: quest.infos?.title ?? '',
+                requiredAdventurers: requiredAdventurersOf(quest),
+                registeredAdventurers: quest.registeredAdventurers ?? [],
+            },
+            character: characterEntry,
+            user: { id: user._id.toHexString(), twitchId: user.twitchId },
+        });
+    }
+
+    return { requests: requests.sort(compareRequests), skipped };
 }
