@@ -25,6 +25,11 @@ describe('ResourceNotFoundException', () => {
             () => ResourceNotFoundException.pointOfInterest(),
             'Luogo non trovato',
         ],
+        [
+            'questResult',
+            () => ResourceNotFoundException.questResult(),
+            'Risultato non trovato',
+        ],
     ])(
         '%s is a 404 NOT_FOUND with an italian message',
         (_name, factory, message) => {
