@@ -67,7 +67,7 @@ export type CharacterStatusDocument = CharacterStatus & Document;
 export const CharacterStatusSchema = (() => {
     const schema = SchemaFactory.createForClass(CharacterStatus);
     schema.virtual('maxActiveSpells').get(function (this: CharacterStatus) {
-        return maxActiveSpellsFor(this.xp ?? 0);
+        return maxActiveSpellsFor(this.xp ?? 0, this.title);
     });
 
     return schema;

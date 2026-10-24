@@ -166,13 +166,13 @@ describe('CharactersService (unit — spell mutations)', () => {
             mockCharacterModel.findOne
                 .mockReturnValueOnce(
                     asLeanQuery({
-                        status: { spells: [s], xp: 20000 },
+                        status: { spells: [s], xp: 20000, title: 'mage' },
                         assets: { activeSpells: [] },
                     }),
                 )
                 .mockReturnValueOnce(
                     asLeanQuery({
-                        status: { spells: [s], xp: 20000 },
+                        status: { spells: [s], xp: 20000, title: 'mage' },
                         assets: { activeSpells: [{ spell: s, usages: 3 }] },
                     }),
                 );
@@ -192,7 +192,7 @@ describe('CharactersService (unit — spell mutations)', () => {
             );
             mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
             const freeSlot = {
-                status: { spells: [s], xp: 20000 },
+                status: { spells: [s], xp: 20000, title: 'mage' },
                 assets: { activeSpells: [] },
             };
             mockCharacterModel.findOne

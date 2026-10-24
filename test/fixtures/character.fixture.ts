@@ -5,9 +5,9 @@ import { persistPoi } from './poi.fixture';
  * Two-tier Character fixture — valid against src/models/character/**.
  *
  * Two schema traps handled here (Pitfall #5):
- *  - status.xp defaults to 20000 so the `maxActiveSpells` virtual returns 1
- *    (one usable spell slot for equipSpell tests). Bump xp via overrides for
- *    more slots: <20000→0, <25000→1, <30000→2, <40000→3, else 4.
+ *  - status.xp defaults to 20000 with title 'rookie': no spell slot until the
+ *    mage rank (D-13); pass title 'mage' (or above) for equipSpell tests:
+ *    <20000→0, <25000→1, <30000→2, <40000→3, else 4.
  *  - status.location is a REQUIRED ref to PointOfInterest. buildCharacter uses a
  *    throwaway ObjectId; persistCharacter creates a real POI when none is given.
  */
@@ -24,7 +24,7 @@ export function buildCharacter(overrides: Record<string, any> = {}) {
             imagePath: null,
         },
         status: {
-            xp: 20000, // virtual maxActiveSpells === 1
+            xp: 20000, // maxActiveSpells 0 as rookie, 1 from the mage rank
             level: 1,
             location: new Types.ObjectId(), // ref POI (required) — replaced in persist
             title: 'rookie', // TitleType.rookie
