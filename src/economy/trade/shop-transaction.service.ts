@@ -11,8 +11,10 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { City, CityDocument } from 'src/models/city.model';
 import type { CommonResponse } from 'src/models/common/common-response.model';
 import type { TransactionRequest } from 'src/models/request/transaction-request.model';
+import { idForms, refIdOf } from 'src/mongo/document-id';
 import { CatalogPricesReader } from './catalog-prices.reader';
 import type { TradeLine } from './trade-line';
 import {
@@ -28,8 +30,18 @@ import {
 } from './trade-pricing';
 
 interface TradeSnapshot {
-    status?: { coins?: CoinPurse };
+    status?: {
+        coins?: CoinPurse;
+        location?: unknown;
+        activeTravel?: unknown;
+        awaitingAid?: unknown;
+    };
     assets?: InventorySnapshot;
+}
+
+interface TraderAtShop {
+    characterId: Types.ObjectId;
+    location: Types.ObjectId;
 }
 
 const TRADE_SUCCEEDED: CommonResponse = {
@@ -39,6 +51,9 @@ const TRADE_SUCCEEDED: CommonResponse = {
 
 const TRADE_SNAPSHOT_PROJECTION = {
     'status.coins': 1,
+    'status.location': 1,
+    'status.activeTravel.endTime': 1,
+    'status.awaitingAid': 1,
     'assets.ownedItems': 1,
     'assets.ownedEquipments': 1,
     'assets.wearedEquipment': 1,
@@ -59,13 +74,15 @@ function inventoryChanges(inventory: InventoryOutcome) {
     };
 }
 
-// ordine dei rifiuti: id e quantità (puro) → catalogo → cross-check del totale → personaggio → possesso → fondi
+// ordine dei rifiuti: id e quantità (puro) → catalogo → cross-check del totale → personaggio → città (D-18) → possesso → fondi
 @Injectable()
 export class ShopTransactionService {
     constructor(
         @InjectConnection() private readonly connection: Connection,
         @InjectModel(Character.name)
         private readonly characterModel: Model<CharacterDocument>,
+        @InjectModel(City.name)
+        private readonly cityModel: Model<CityDocument>,
         private readonly catalogPrices: CatalogPricesReader,
         private readonly wallet: WalletService,
     ) {}
@@ -79,9 +96,9 @@ export class ShopTransactionService {
             await this.catalogPrices.read(lines),
         );
         assertClientTotalMatches(request, netCopper);
-        // scambio vuoto a totale zero (A2): no-op valido senza transazione, ma il personaggio deve esistere (l'innkeeper salta l'ownership)
+        // scambio vuoto a totale zero (A2): no-op valido senza transazione, ma il personaggio deve esistere (l'innkeeper salta l'ownership) e stare in città
         if (lines.length === 0) {
-            await this.assertCharacterExists(characterId);
+            await this.assertCharacterCanTrade(characterId);
             return TRADE_SUCCEEDED;
         }
         await this.connection.transaction((session) =>
@@ -90,13 +107,40 @@ export class ShopTransactionService {
         return TRADE_SUCCEEDED;
     }
 
-    private async assertCharacterExists(
+    // stesso esito della transazione per il FE (D-18), senza sessione: nessuna scrittura da proteggere
+    private async assertCharacterCanTrade(
         characterId: Types.ObjectId,
     ): Promise<void> {
-        const exists = await this.characterModel
-            .exists(activeCharacterById(characterId))
+        const snapshot = await this.characterModel
+            .findOne(
+                activeCharacterById(characterId),
+                TRADE_SNAPSHOT_PROJECTION,
+            )
+            .lean<TradeSnapshot | null>()
             .exec();
-        if (!exists) throw ResourceNotFoundException.character();
+        if (!snapshot) throw ResourceNotFoundException.character();
+        await this.shopLocationOrReject(snapshot, null);
+    }
+
+    // negozio solo sul marker di una città, fuori dal viaggio e dal soccorso (D-18); session null per lo scambio vuoto
+    private async shopLocationOrReject(
+        snapshot: TradeSnapshot,
+        session: ClientSession | null,
+    ): Promise<Types.ObjectId> {
+        const location = refIdOf(snapshot.status?.location);
+        if (
+            !location ||
+            snapshot.status?.activeTravel != null ||
+            snapshot.status?.awaitingAid != null
+        ) {
+            throw GameRuleException.shopNotInCity();
+        }
+        const inCity = await this.cityModel
+            .exists({ markerLocation: { $in: idForms(location) } })
+            .session(session)
+            .exec();
+        if (!inCity) throw GameRuleException.shopNotInCity();
+        return location;
     }
 
     // rieseguibile dal driver sui WriteConflict: niente side effect, niente letture parallele in sessione (04 Pitfall 6)
@@ -115,11 +159,17 @@ export class ShopTransactionService {
             .lean<TradeSnapshot | null>()
             .exec();
         if (!snapshot) throw ResourceNotFoundException.character();
+        const location = await this.shopLocationOrReject(snapshot, session);
         const inventory = applyTradeToInventory(snapshot.assets ?? {}, lines);
         if (toCopper(snapshot.status?.coins) < -netCopper) {
             throw GameRuleException.insufficientFunds();
         }
-        await this.writeInventory(characterId, lines, inventory, session);
+        await this.writeInventory(
+            { characterId, location },
+            lines,
+            inventory,
+            session,
+        );
         // l'unico scrittore dei coins (04 D-04): la sua guard $expr è l'autorità dei fondi
         if (netCopper !== 0) {
             await this.wallet.applyCharacterCoinsDelta(
@@ -130,9 +180,9 @@ export class ShopTransactionService {
         }
     }
 
-    // le quantità vendute riaffermate nel filtro (rete di sicurezza): la contesa la risolve il WriteConflict della transazione
+    // città e quantità vendute riaffermate nel filtro (rete di sicurezza, 04 D-10): la contesa la risolve il WriteConflict della transazione
     private async writeInventory(
-        characterId: Types.ObjectId,
+        { characterId, location }: TraderAtShop,
         lines: readonly TradeLine[],
         inventory: InventoryOutcome,
         session: ClientSession,
@@ -141,6 +191,9 @@ export class ShopTransactionService {
             .updateOne(
                 {
                     ...activeCharacterById(characterId),
+                    'status.location': { $in: idForms(location) },
+                    'status.activeTravel': null,
+                    'status.awaitingAid': null,
                     ...soldQuantityGuards(lines),
                 },
                 { $set: inventoryChanges(inventory) },
