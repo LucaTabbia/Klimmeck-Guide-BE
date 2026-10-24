@@ -23,6 +23,17 @@ export interface OverrideParticipant {
     activeSpells: ReadonlyMap<string, number>;
 }
 
+// la mutation è dell'innkeeper, ma un input enorme non deve mai arrivare alla transazione
+export const MAX_OVERRIDE_ENTRIES = 50;
+
+const withinCap = (list: readonly unknown[] | null | undefined): boolean =>
+    (list?.length ?? 0) <= MAX_OVERRIDE_ENTRIES;
+
+const overrideWithinCap = (override: ParticipantOverrideInput): boolean =>
+    withinCap(override.injuries) &&
+    withinCap(override.consumablesUsed) &&
+    withinCap(override.spellsUsed);
+
 function addTo(totals: Map<string, number>, key: string, amount: number) {
     totals.set(key, (totals.get(key) ?? 0) + amount);
 }
@@ -145,6 +156,8 @@ export function validateOverrides(
             null,
         ]),
     );
+    if (!withinCap(overrides) || !(overrides ?? []).every(overrideWithinCap))
+        throw GameRuleException.outcomeOverrideInvalid();
     const seen = new Set<string>();
     for (const override of overrides ?? []) {
         const key = objectIdFromHex(override.characterId)?.toHexString();

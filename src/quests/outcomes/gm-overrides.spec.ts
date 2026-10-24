@@ -4,6 +4,7 @@ import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import type { ParticipantOverrideInput } from 'src/models/request/complete-pending-request.model';
 import {
+    MAX_OVERRIDE_ENTRIES,
     type OverrideParticipant,
     overrideParticipantOf,
     validateOverrides,
@@ -185,7 +186,7 @@ describe('validateOverrides', () => {
     });
 
     describe('caps every override list', () => {
-        const LIMIT = 50;
+        const LIMIT = MAX_OVERRIDE_ENTRIES;
         const generous: OverrideParticipant[] = [
             {
                 ...participants[0],
