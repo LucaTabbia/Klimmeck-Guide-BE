@@ -290,11 +290,14 @@ describe('QuestResolutionSweeper', () => {
         arrived = Promise.resolve([
             { questId: fresh._id, pendingQuestId: new Types.ObjectId() },
         ]);
-        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+        const log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
 
         await sweeperWith(0).sweep();
 
         expect(backfillRegisteredAt).toHaveBeenCalledWith(NOW);
+        expect(String(log.mock.calls[0][0])).toContain(
+            '1 quest con registrazioni retrodatate',
+        );
         expect(disband.mock.calls).toEqual([[{ questId: expired._id }]]);
         expect(order).toEqual(['backfill', 'start', 'disband']);
     });

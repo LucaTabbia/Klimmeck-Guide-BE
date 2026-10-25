@@ -154,7 +154,7 @@ export class PartyTimeoutService {
         return released;
     }
 
-    // registrazioni legacy senza registeredAt: retrodatate a now una sola volta, così anche loro scadono (T-09-95)
+    // registrazioni legacy senza registeredAt: retrodatate a now una sola volta, così anche loro scadono (T-09-95); conta le quest toccate
     async backfillRegisteredAt(now: Date): Promise<number> {
         const result = await this.questModel
             .updateMany(

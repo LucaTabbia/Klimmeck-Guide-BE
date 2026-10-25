@@ -128,7 +128,7 @@ export class QuestResolutionSweeper
         const timedOut = await this.timeOutDueAids(now);
         if (backfilled + started + disbanded + resolved + timedOut > 0) {
             this.logger.log(
-                `Sweep delle missioni: ${backfilled} registrazioni retrodatate, ${started} avviate, ${disbanded} party sciolti, ${resolved} risolte, ${timedOut} soccorsi scaduti`,
+                `Sweep delle missioni: ${backfilled} quest con registrazioni retrodatate, ${started} avviate, ${disbanded} party sciolti, ${resolved} risolte, ${timedOut} soccorsi scaduti`,
             );
         }
         return { resolved, timedOut };
