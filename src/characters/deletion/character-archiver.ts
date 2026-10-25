@@ -85,6 +85,18 @@ export class CharacterArchiver {
                 { session },
             )
             .exec();
+        // una quest avviata rimasta senza nessuno torna non avviata: un nuovo party può formarsi (utente 2026-10-25)
+        await this.questModel
+            .updateMany(
+                {
+                    concludedAt: null,
+                    startedAt: { $ne: null },
+                    registeredAdventurers: { $size: 0 },
+                },
+                { $set: { startedAt: null } },
+                { session },
+            )
+            .exec();
         const aids = await this.questModel
             .find(
                 { 'rescue.characters': characterId, concludedAt: null },

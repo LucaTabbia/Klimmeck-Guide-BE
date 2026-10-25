@@ -61,6 +61,7 @@ export type ResolutionQuest = OutcomeQuestSnapshot &
     AidSourceQuest & {
         prizes?: PrizesSnapshot | null;
         concludedAt?: Date | null;
+        startedAt?: Date | null;
         registeredAdventurers?: { character?: unknown }[] | null;
         rescue?: {
             characters?: unknown[] | null;

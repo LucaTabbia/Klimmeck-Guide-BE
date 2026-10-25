@@ -3,6 +3,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
+import { PartyTimeoutService } from 'src/quests/party/party-timeout.service';
 import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 import {
     Character,
@@ -55,6 +56,7 @@ const AID_TIMEOUT_PROJECTION = {
     infos: 1,
     rescue: 1,
     concludedAt: 1,
+    startedAt: 1,
     registeredAdventurers: 1,
 } as const;
 
@@ -151,10 +153,11 @@ export class RescueResolutionService {
         private readonly archiver: CharacterArchiver,
         private readonly combat: CombatResolver,
         private readonly chance: ChanceSource,
+        private readonly partyTimeout: PartyTimeoutService,
         private readonly clock: Clock,
     ) {}
 
-    // stessa regola del boss: si risolve quando tutti i soccorritori registrati hanno finito il countdown, senza aspettare che i posti si riempiano
+    // stessa regola del boss: si risolve quando tutti i soccorritori hanno finito il countdown, che parte solo a party completo (utente 2026-10-25)
     async resolveRescue(
         loaded: StandardLoad,
         now: Date,
@@ -228,7 +231,7 @@ export class RescueResolutionService {
         return 'resolved';
     }
 
-    // D-10: 7 giorni senza esito ⇒ morte di tutti i feriti; sospeso finché la aid ha un soccorritore registrato (C5, confermata dall'utente il 2026-10-25)
+    // D-10: 7 giorni senza esito ⇒ morte di tutti i feriti; sospeso solo dal soccorso avviato con soccorritori (C5 rivista, utente 2026-10-25: "Il timer si cancella solo a party completo."); i soccorritori di un party incompleto sono liberati
     async timeoutAid({
         aidQuestId,
     }: Pick<AidTimeoutTrigger, 'aidQuestId'>): Promise<ResolutionOutcome> {
@@ -241,10 +244,10 @@ export class RescueResolutionService {
         if (!aid || aid.concludedAt) return 'stale';
         const woundedIds = woundedIdsOf(aid);
         if (woundedIds.length === 0) return 'stale';
-        // lo sweep lo ripete a ogni giro finché il soccorritore resta registrato: debug, non rumore operativo
+        // lo sweep lo ripete a ogni giro finché il soccorso è in corso: debug, non rumore operativo
         if (aidTimeoutSuspended(aid)) {
             this.logger.debug(
-                `Soccorso ${aidHex}: un soccorritore è registrato, timeout sospeso`,
+                `Soccorso ${aidHex}: soccorso avviato con soccorritori registrati, timeout sospeso`,
             );
             return 'waiting';
         }
@@ -262,12 +265,14 @@ export class RescueResolutionService {
         const state: {
             committed: CommittedOutcome | null;
             unlinked: Types.ObjectId[];
-        } = { committed: null, unlinked: [] };
+            released: Types.ObjectId[];
+        } = { committed: null, unlinked: [], released: [] };
         try {
             await this.connection.transaction(async (session) => {
                 // il callback viene rieseguito sui WriteConflict: l'esito riparte da zero
                 state.committed = null;
                 state.unlinked = [];
+                state.released = [];
                 // claim prima della morte: l'archivio toglie il morto da rescue.characters e a lista vuota concluderebbe la aid, facendo fallire il claim
                 const claimed = await this.questModel
                     .findOneAndUpdate(
@@ -289,12 +294,17 @@ export class RescueResolutionService {
                     if (death) committed.results.push(death);
                     else state.unlinked.push(injured._id);
                 }
+                // soccorritori di un party incompleto riletti in sessione: corsia e PendingQuest liberate
+                state.released = await this.partyTimeout.releaseRegistered(
+                    aidQuestId,
+                    session,
+                );
                 state.committed = committed;
             });
         } catch (error) {
             if (!(error instanceof StaleResolution)) throw error;
             this.logger.log(
-                `Soccorso ${aidHex} già concluso o con un soccorritore: nessuna scrittura`,
+                `Soccorso ${aidHex} già concluso o in corso: nessuna scrittura`,
             );
             return 'stale';
         }
@@ -305,7 +315,10 @@ export class RescueResolutionService {
             );
         }
         await this.writer.deliver(state.committed);
-        this.logger.log(`Soccorso ${aidHex} scaduto dopo 7 giorni`);
+        await this.partyTimeout.notifyCancelled(aidQuestId, state.released);
+        this.logger.log(
+            `Soccorso ${aidHex} scaduto dopo 7 giorni: ${state.released.length} soccorritori liberati`,
+        );
         return 'resolved';
     }
 
