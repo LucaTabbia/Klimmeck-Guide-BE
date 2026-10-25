@@ -29,6 +29,7 @@ import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { User, UserSchema } from 'src/models/user.model';
 import { PushModule } from 'src/push/push.module';
+import { PartyModule } from 'src/quests/party/party.module';
 import {
     QUEUE_CALL_TIMEOUT,
     QUEUE_CALL_TIMEOUT_MS,
@@ -65,6 +66,8 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         PushModule,
         CharacterArchiveModule,
         QuestResolutionSchedulingModule,
+        // avvii mancati recuperati dallo sweep (utente 2026-10-25)
+        PartyModule,
         BullModule.registerQueue({ name: SPELL_RECOVERY_QUEUE }),
     ],
     providers: [

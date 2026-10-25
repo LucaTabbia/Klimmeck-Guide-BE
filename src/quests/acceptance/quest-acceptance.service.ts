@@ -20,6 +20,8 @@ import {
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { idForms, refIdOf, sameId } from 'src/mongo/document-id';
 import { QuestResolutionScheduler } from 'src/quests/outcomes/scheduling/quest-resolution.scheduler';
+import { initialLaneDatesOf } from 'src/quests/party/party-rules';
+import { QuestStartService } from 'src/quests/party/quest-start.service';
 import { TravelPlanner } from 'src/travel/travel-planner.service';
 import { TravelScheduler } from 'src/travel/travel-scheduler.service';
 import { SlotRule } from './quest-capacity';
@@ -72,6 +74,12 @@ interface CharacterAcceptanceSnapshot extends CharacterEligibilitySnapshot {
     assets?: { pet?: unknown } | null;
 }
 
+interface Registrant {
+    characterId: Types.ObjectId;
+    title: TitleType;
+    now: Date;
+}
+
 interface LaneClaim {
     characterId: Types.ObjectId;
     quest: ClaimedQuest;
@@ -118,6 +126,7 @@ export class QuestAcceptanceService {
         private readonly planner: TravelPlanner,
         private readonly scheduler: TravelScheduler,
         private readonly questScheduler: QuestResolutionScheduler,
+        private readonly questStart: QuestStartService,
     ) {}
 
     // pre-letture lean → regole pure → una transazione con le guard riaffermate nel filtro (07 D-18): un rifiuto non scrive nulla
@@ -153,10 +162,14 @@ export class QuestAcceptanceService {
             minTitle: quest.requirements?.minTitle,
         };
         const pendingQuestId = new Types.ObjectId();
-        // in viaggio il countdown parte all'arrivo (D-15)
-        const startDate = movement?.kind === 'travel' ? null : this.clock.now();
+        const now = this.clock.now();
+        // arrivo ≠ avvio (utente 2026-10-25): sulla corsia standard startDate lo scrive solo QuestStartService
+        const dates = initialLaneDatesOf(lane, movement, now);
         const waitingTime = waitingTimeOf(lane, quest.infos.timeToComplete);
+        const registration: { before: number | null } = { before: null };
         await this.connection.transaction(async (session) => {
+            // il callback viene rieseguito sui WriteConflict: lo stato riparte da zero
+            registration.before = null;
             await this.claimLane(
                 {
                     characterId,
@@ -168,10 +181,9 @@ export class QuestAcceptanceService {
                 session,
             );
             if (rule)
-                await this.register(
+                registration.before = await this.register(
                     quest,
-                    characterId,
-                    claim.title,
+                    { characterId, title: claim.title, now },
                     rule,
                     session,
                 );
@@ -179,7 +191,7 @@ export class QuestAcceptanceService {
                 [
                     {
                         _id: pendingQuestId,
-                        startDate,
+                        ...dates,
                         waitingTime,
                         pointsSpent: cost,
                         quest: questId,
@@ -190,16 +202,12 @@ export class QuestAcceptanceService {
             if (cost > 0)
                 await this.wallet.debitUserPoints(ownerId, cost, session);
         });
-        // job dopo il commit (D-21): best-effort, lo sweep copre un accodamento fallito
-        // scadenza accodata dove si scrive startDate (D-24, C8): story e worldMission non scadono mai (D-03)
+        // job e avvio dopo il commit (D-21): best-effort, lo sweep copre un accodamento fallito; story e worldMission non scadono mai (D-03)
         if (movement?.kind === 'travel')
             await this.scheduler.schedule(characterId, movement.travel);
-        else if (lane === QuestLane.standard && startDate)
-            await this.questScheduler.scheduleResolution({
-                pendingQuestId,
-                startDate,
-                waitingTime,
-            });
+        else if (lane === QuestLane.standard)
+            await this.questStart.tryStart({ questId, pendingQuestId });
+        // 09-19 Task 4: schedulePartyTimeout alla prima registrazione
         return pendingQuestId;
     }
 
@@ -319,24 +327,32 @@ export class QuestAcceptanceService {
         throw classifyUnclaimed(fresh, quest, claim);
     }
 
+    // ritorna i registrati prima della scrittura: la prima registrazione apre la finestra delle 24 ore
     private async register(
         quest: QuestAcceptanceSnapshot,
-        characterId: Types.ObjectId,
-        title: TitleType,
+        { characterId, title, now }: Registrant,
         rule: SlotRule,
         session: ClientSession,
-    ): Promise<void> {
-        const registered = await this.questModel
+    ): Promise<number> {
+        const before = await this.questModel
             .findOneAndUpdate(
                 registrationFilter(quest._id, characterId, rule, title),
-                registrationUpdate(characterId, title),
-                { session, projection: { _id: 1 } },
+                registrationUpdate(characterId, title, now),
+                {
+                    session,
+                    returnDocument: 'before',
+                    projection: { registeredAdventurers: 1 },
+                },
             )
-            .lean()
+            .lean<{ registeredAdventurers?: unknown[] | null } | null>()
             .exec();
-        if (registered) return;
+        if (before) return (before.registeredAdventurers ?? []).length;
         const fresh = await this.questModel
-            .findById(quest._id, { registeredAdventurers: 1, concludedAt: 1 })
+            .findById(quest._id, {
+                registeredAdventurers: 1,
+                concludedAt: 1,
+                startedAt: 1,
+            })
             .session(session)
             .lean<UnregisteredSnapshot | null>()
             .exec();

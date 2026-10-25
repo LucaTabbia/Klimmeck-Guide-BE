@@ -37,6 +37,10 @@ export function questUpdateOf(
               }
             : {}),
         ...(concludes ? { $set: { concludedAt: input.now } } : {}),
+        // fallimento senza conclusione: la quest torna non avviata, un nuovo party può formarsi (utente 2026-10-25)
+        ...(!concludes && failed.length > 0
+            ? { $set: { startedAt: null } }
+            : {}),
     };
     return Object.keys(update).length > 0 ? update : null;
 }

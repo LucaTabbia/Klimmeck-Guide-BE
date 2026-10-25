@@ -13,8 +13,10 @@ import {
 } from 'src/models/pending-quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
-import { QuestResolutionScheduler } from 'src/quests/outcomes/scheduling/quest-resolution.scheduler';
-import { ResolutionTrigger } from 'src/quests/outcomes/scheduling/quest-resolution-job';
+import {
+    QuestStartService,
+    StartTrigger,
+} from 'src/quests/party/quest-start.service';
 import { travelEnd } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
 import { travelJobId } from './travel-job';
@@ -23,8 +25,8 @@ import {
     COMPLETION_UPDATE,
     CompletedSnapshot,
     completionFilter,
-    questCountdownFilter,
-    questCountdownUpdate,
+    questArrivalFilter,
+    questArrivalUpdate,
     TravelIdentity,
 } from './travel.updates';
 
@@ -43,7 +45,7 @@ export class TravelCompletionService {
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
         private readonly push: PushService,
         private readonly clock: Clock,
-        private readonly questScheduler: QuestResolutionScheduler,
+        private readonly questStart: QuestStartService,
     ) {}
 
     // trigger idempotente (D-12): il filtro d'identità decide; solo chi ha matchato invia la push (Pitfall 11)
@@ -51,12 +53,12 @@ export class TravelCompletionService {
         const now = this.clock.now();
         const outcome: {
             completed: CompletedSnapshot | null;
-            countdown: ResolutionTrigger | null;
-        } = { completed: null, countdown: null };
+            arrival: StartTrigger | null;
+        } = { completed: null, arrival: null };
         await this.connection.transaction(async (session) => {
             // il callback viene rieseguito sui WriteConflict: l'esito riparte da zero
             outcome.completed = null;
-            outcome.countdown = null;
+            outcome.arrival = null;
             const before = await this.characterModel
                 .findOneAndUpdate(
                     completionFilter(identity, now),
@@ -76,29 +78,17 @@ export class TravelCompletionService {
                 before.status?.activeTravel?.kind === TravelKind.quest &&
                 pendingQuestId
             ) {
-                // countdown dall'arrivo pianificato (D-13): un downtime del server non toglie tempo alla quest
-                const started = await this.pendingQuestModel
+                // una PendingQuest assente (party sciolto) lascia un viaggio da quest senza countdown
+                const arrived = await this.pendingQuestModel
                     .findOneAndUpdate(
-                        questCountdownFilter(pendingQuestId),
-                        questCountdownUpdate(identity.endTime),
-                        {
-                            session,
-                            returnDocument: 'after',
-                            projection: { startDate: 1, waitingTime: 1 },
-                        },
+                        questArrivalFilter(pendingQuestId),
+                        questArrivalUpdate(identity.endTime),
+                        { session, projection: { quest: 1 } },
                     )
-                    .lean<{
-                        _id: Types.ObjectId;
-                        startDate: Date;
-                        waitingTime?: number | null;
-                    } | null>()
+                    .lean<{ quest?: unknown } | null>()
                     .exec();
-                if (started)
-                    outcome.countdown = {
-                        pendingQuestId: started._id,
-                        startDate: started.startDate,
-                        waitingTime: started.waitingTime ?? 0,
-                    };
+                const questId = refIdOf(arrived?.quest);
+                if (questId) outcome.arrival = { questId, pendingQuestId };
             }
         });
         const jobId = travelJobId(identity.characterId, identity.startTime);
@@ -110,9 +100,8 @@ export class TravelCompletionService {
             return 'stale';
         }
         this.logger.log(`Viaggio ${jobId} completato`);
-        // scadenza accodata dopo il commit dell'arrivo (D-24, C8): solo un countdown appena partito
-        if (outcome.countdown)
-            await this.questScheduler.scheduleResolution(outcome.countdown);
+        // avvio dopo il commit dell'arrivo (D-24 emendata): QuestStartService decide e accoda la scadenza
+        if (outcome.arrival) await this.questStart.tryStart(outcome.arrival);
         if (completed.status?.activeTravel?.kind === TravelKind.free) {
             await this.notifyOwner(identity.characterId);
         }

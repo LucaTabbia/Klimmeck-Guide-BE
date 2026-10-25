@@ -17,7 +17,7 @@ import {
 } from 'src/models/point-of-interest.model';
 import { User, UserSchema } from 'src/models/user.model';
 import { PushModule } from 'src/push/push.module';
-import { QuestResolutionSchedulingModule } from 'src/quests/outcomes/scheduling/quest-resolution-scheduling.module';
+import { PartyModule } from 'src/quests/party/party.module';
 import { TravelCompletionProcessor } from './travel-completion.processor';
 import { TravelCompletionService } from './travel-completion.service';
 import { TravelAdminResolver } from './travel-admin.resolver';
@@ -38,8 +38,8 @@ import { TravelService } from './travel.service';
         AuthzModule,
         PushModule,
         TravelPlanningModule,
-        // job di scadenza dove si scrive startDate (C8); nessun ciclo: lo scheduling non importa né viaggio né accettazione
-        QuestResolutionSchedulingModule,
+        // avvio all'arrivo (utente 2026-10-25): PartyModule accoda la scadenza, nessun ciclo con viaggio o accettazione
+        PartyModule,
     ],
     providers: [
         travelConfigProvider,

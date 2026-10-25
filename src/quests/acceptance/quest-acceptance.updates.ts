@@ -37,7 +37,10 @@ export interface UnclaimedSnapshot {
     } | null;
 }
 
-export type UnregisteredSnapshot = QuestRoster & { concludedAt?: Date | null };
+export type UnregisteredSnapshot = QuestRoster & {
+    concludedAt?: Date | null;
+    startedAt?: Date | null;
+};
 
 // ogni regola esprimibile sul documento sta nel filtro (D-18): attivo, corsia libera, non in attesa di soccorso (D-07), non in viaggio (D-06), titolo e posizione verificati, non ripetibilità
 export function laneClaimFilter(
@@ -96,17 +99,27 @@ export function registrationFilter(
         _id: questId,
         // una quest conclusa non accetta registrazioni (D-06, C9)
         concludedAt: null,
+        // né una quest avviata: il party è chiuso e un posto liberato non fa entrare nessuno (utente 2026-10-25)
+        startedAt: null,
         'registeredAdventurers.character': { $ne: characterId },
         $expr: seatAvailableExpr(rule, title),
     };
 }
 
+// registeredAt apre la finestra di 24 ore del party (utente 2026-10-25)
 export function registrationUpdate(
     characterId: Types.ObjectId,
     title: TitleType,
+    now: Date,
 ) {
     return {
-        $push: { registeredAdventurers: { character: characterId, title } },
+        $push: {
+            registeredAdventurers: {
+                character: characterId,
+                title,
+                registeredAt: now,
+            },
+        },
     };
 }
 
@@ -144,6 +157,7 @@ export function classifyUnregistered(
 ): Error {
     if (!fresh || fresh.concludedAt != null)
         return ResourceNotFoundException.quest();
+    if (fresh.startedAt != null) return GameRuleException.questFull();
     const registered = (fresh.registeredAdventurers ?? []).some((entry) =>
         sameId(entry.character, characterId),
     );

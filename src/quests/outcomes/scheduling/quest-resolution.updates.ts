@@ -1,5 +1,6 @@
 import { PipelineStage, Types } from 'mongoose';
 import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { AID_TIMEOUT_MS } from 'src/quests/outcomes/aid/aid-timeout';
 
 export interface DueStandardQuest {
@@ -9,24 +10,34 @@ export interface DueStandardQuest {
     waitingTime: number;
 }
 
+const PARTY_TYPES: readonly QuestType[] = [
+    QuestType.boss,
+    QuestType.aid,
+    QuestType.enemy,
+];
+
+const STANDARD_LANE_LOOKUP: PipelineStage[] = [
+    {
+        $match: {
+            ...ACTIVE_CHARACTER_FILTER,
+            'quests.pendingQuest': { $ne: null },
+        },
+    },
+    {
+        $lookup: {
+            from: 'pendingquests',
+            localField: 'quests.pendingQuest',
+            foreignField: '_id',
+            as: 'pq',
+        },
+    },
+    { $unwind: '$pq' },
+];
+
 // solo la corsia standard dei personaggi attivi (Pitfall 2): le PendingQuest GM hanno waitingTime 0 e risulterebbero scadute; now dal Clock, mai la variabile NOW del server Mongo
 export function dueStandardQuestsPipeline(now: Date): PipelineStage[] {
     return [
-        {
-            $match: {
-                ...ACTIVE_CHARACTER_FILTER,
-                'quests.pendingQuest': { $ne: null },
-            },
-        },
-        {
-            $lookup: {
-                from: 'pendingquests',
-                localField: 'quests.pendingQuest',
-                foreignField: '_id',
-                as: 'pq',
-            },
-        },
-        { $unwind: '$pq' },
+        ...STANDARD_LANE_LOOKUP,
         {
             $match: {
                 'pq.startDate': { $ne: null },
@@ -45,6 +56,43 @@ export function dueStandardQuestsPipeline(now: Date): PipelineStage[] {
         },
     ];
 }
+
+export interface ArrivedUnstartedQuest {
+    questId: unknown;
+    pendingQuestId: Types.ObjectId;
+}
+
+export interface FormingParty {
+    _id: Types.ObjectId;
+    registeredAdventurers?: { registeredAt?: Date | null }[] | null;
+}
+
+// arrivati sul marker ma non avviati (utente 2026-10-25): l'avvio mancato dopo un crash lo recupera lo sweep
+export function arrivedUnstartedPipeline(): PipelineStage[] {
+    return [
+        ...STANDARD_LANE_LOOKUP,
+        { $match: { 'pq.startDate': null, 'pq.arrivedAt': { $ne: null } } },
+        {
+            $project: {
+                _id: 0,
+                questId: '$pq.quest',
+                pendingQuestId: '$pq._id',
+            },
+        },
+    ];
+}
+
+// party in formazione: quest registrate aperte, non avviate, con almeno un registrato (finestra delle 24 ore)
+export function formingPartiesFilter(): Record<string, unknown> {
+    return {
+        'infos.type': { $in: PARTY_TYPES },
+        concludedAt: null,
+        startedAt: null,
+        'registeredAdventurers.0': { $exists: true },
+    };
+}
+
+export const FORMING_PARTY_PROJECTION = { registeredAdventurers: 1 } as const;
 
 // il timeout di 7 giorni parte da status.awaitingAid.since (D-10)
 export function dueAidTimeoutsFilter(now: Date): Record<string, unknown> {

@@ -16,9 +16,12 @@ import {
 } from 'src/models/character/character.model';
 import { refIdOf } from 'src/mongo/document-id';
 import { describeError } from 'src/mongo/mongo-errors';
+import { QuestStartService } from 'src/quests/party/quest-start.service';
 import { QuestResolutionService } from './quest-resolution.service';
 import { RescueResolutionService } from './rescue-resolution.service';
 import {
+    ArrivedUnstartedQuest,
+    arrivedUnstartedPipeline,
     DUE_AID_TIMEOUT_PROJECTION,
     DueStandardQuest,
     dueAidTimeoutsFilter,
@@ -60,6 +63,7 @@ export class QuestResolutionSweeper
         private readonly characterModel: Model<CharacterDocument>,
         private readonly resolution: QuestResolutionService,
         private readonly rescue: RescueResolutionService,
+        private readonly questStart: QuestStartService,
         private readonly clock: Clock,
     ) {}
 
@@ -92,14 +96,42 @@ export class QuestResolutionSweeper
 
     private async runOnce(): Promise<QuestSweepCounts> {
         const now = this.clock.now();
+        const started = await this.startPendingQuests();
         const resolved = await this.resolveDueQuests(now);
         const timedOut = await this.timeOutDueAids(now);
-        if (resolved + timedOut > 0) {
+        if (started + resolved + timedOut > 0) {
             this.logger.log(
-                `Sweep delle missioni: ${resolved} risolte, ${timedOut} soccorsi scaduti`,
+                `Sweep delle missioni: ${started} avviate, ${resolved} risolte, ${timedOut} soccorsi scaduti`,
             );
         }
         return { resolved, timedOut };
+    }
+
+    // avvii mancati (utente 2026-10-25): un solo tryStart per quest, il party parte tutto insieme
+    private async startPendingQuests(): Promise<number> {
+        const arrived = await this.characterModel
+            .aggregate<ArrivedUnstartedQuest>(arrivedUnstartedPipeline())
+            .exec();
+        const seen = new Set<string>();
+        let started = 0;
+        for (const { questId: ref, pendingQuestId } of arrived) {
+            if (this.stopping) break;
+            const questId = refIdOf(ref);
+            if (!questId || seen.has(questId.toHexString())) continue;
+            seen.add(questId.toHexString());
+            try {
+                const outcome = await this.questStart.tryStart({
+                    questId,
+                    pendingQuestId,
+                });
+                if (outcome === 'started') started++;
+            } catch (error) {
+                this.logger.error(
+                    `Avvio della missione ${questId.toHexString()} fallito: ${describeError(error)}`,
+                );
+            }
+        }
+        return started;
     }
 
     // solo la corsia standard (Pitfall 2): story e worldMission restano al GM

@@ -16,6 +16,7 @@ import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { QuestAcceptanceResolver } from 'src/quests/acceptance/quest-acceptance.resolver';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
 import { QuestResolutionSchedulingModule } from 'src/quests/outcomes/scheduling/quest-resolution-scheduling.module';
+import { PartyModule } from 'src/quests/party/party.module';
 import { TravelPlanningModule } from 'src/travel/travel-planning.module';
 
 // accettazione lane-aware (07 D-18); AuthzModule serve al guard owner-only del resolver (07 D-11)
@@ -33,6 +34,8 @@ import { TravelPlanningModule } from 'src/travel/travel-planning.module';
         TravelPlanningModule,
         // job di scadenza dove si scrive startDate (C8); nessun ciclo: lo scheduling non importa né viaggio né accettazione
         QuestResolutionSchedulingModule,
+        // avvio sul marker (utente 2026-10-25): PartyModule non importa il push, l'harness nudo dell'accettazione resta senza ConfigModule
+        PartyModule,
     ],
     providers: [
         QuestAcceptanceService,
