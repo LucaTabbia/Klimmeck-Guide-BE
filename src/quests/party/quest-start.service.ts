@@ -150,15 +150,40 @@ export class QuestStartService {
             return 'stale';
         }
         const { members, dropped } = await this.readParty(quest);
-        if (dropped.length > 0) {
-            this.logger.warn(
-                `Missione ${quest._id.toHexString()}: registrati senza una missione in attesa coerente (${dropped.map((id) => id.toHexString()).join(', ')}), avvio rinviato`,
-            );
-            return 'waiting';
-        }
+        if (dropped.length > 0)
+            return this.dropIncoherent(quest._id, members, dropped);
         const readiness = partyReadinessOf(rule.total, members);
         if (readiness.state !== 'ready') return 'waiting';
         return this.commitStart(quest._id, members, readiness.startDate);
+    }
+
+    // un difetto di dati non blocca il gruppo (Pitfall 8, come questUpdateOf): il posto torna libero, il party si riempie o scade a 24 ore.
+    // claim per identità e $pull nello stesso update atomico, startedAt non scritto; dopo il $pull il WARN non si ripete
+    private async dropIncoherent(
+        questId: Types.ObjectId,
+        members: readonly PartyMember[],
+        dropped: readonly Types.ObjectId[],
+    ): Promise<StartOutcome> {
+        const registered = [
+            ...members.map(({ characterId }) => characterId),
+            ...dropped,
+        ];
+        const { modifiedCount } = await this.questModel
+            .updateOne(partyClaimFilter(questId, registered), {
+                $pull: {
+                    registeredAdventurers: {
+                        character: {
+                            $in: dropped.flatMap((id) => idForms(id)),
+                        },
+                    },
+                },
+            })
+            .exec();
+        if (modifiedCount === 0) return 'stale';
+        this.logger.warn(
+            `Missione ${questId.toHexString()}: registrati senza una missione in attesa coerente (${dropped.map((id) => id.toHexString()).join(', ')}) rimossi dal party`,
+        );
+        return 'waiting';
     }
 
     // stessi filtri del roster di gruppo (ResolutionLoader.readGroupRoster): registrati attivi in corsia standard con una PendingQuest di questa quest
