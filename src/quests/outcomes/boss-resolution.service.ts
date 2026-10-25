@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection, Types } from 'mongoose';
-import { refIdOf } from 'src/mongo/document-id';
+import { registeredIdsOf } from 'src/quests/party/party-rules';
 import { buildAidQuest } from './aid/aid-quest';
 import { ChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
@@ -48,9 +48,7 @@ export class BossResolutionService {
         now: Date,
     ): Promise<ResolutionOutcome> {
         const questId = loaded.quest._id.toHexString();
-        const registered = (loaded.quest.registeredAdventurers ?? []).flatMap(
-            (seat) => refIdOf(seat.character) ?? [],
-        );
+        const registered = registeredIdsOf(loaded.quest.registeredAdventurers);
         const roster = await this.loader.readGroupRoster(
             loaded.quest._id,
             registered,

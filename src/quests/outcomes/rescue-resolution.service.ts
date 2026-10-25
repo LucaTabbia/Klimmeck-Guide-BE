@@ -3,6 +3,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
+import { registeredIdsOf } from 'src/quests/party/party-rules';
 import { PartyTimeoutService } from 'src/quests/party/party-timeout.service';
 import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 import {
@@ -164,9 +165,7 @@ export class RescueResolutionService {
     ): Promise<ResolutionOutcome> {
         const aid = loaded.quest;
         const aidHex = aid._id.toHexString();
-        const registered = (aid.registeredAdventurers ?? []).flatMap(
-            (seat) => refIdOf(seat.character) ?? [],
-        );
+        const registered = registeredIdsOf(aid.registeredAdventurers);
         const roster = await this.loader.readGroupRoster(
             aid._id,
             registered,

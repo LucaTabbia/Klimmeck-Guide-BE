@@ -30,6 +30,7 @@ import {
     isPartyExpired,
     partyClaimFilter,
     partyFormingSinceOf,
+    registeredIdsOf,
 } from './party-rules';
 
 export type DisbandOutcome = 'disbanded' | 'waiting' | 'stale';
@@ -59,11 +60,6 @@ const FORMING_QUEST_PROJECTION = {
     concludedAt: 1,
     startedAt: 1,
 } as const;
-
-const registeredIdsOf = (
-    registrations: readonly Registration[] | null | undefined,
-): Types.ObjectId[] =>
-    (registrations ?? []).flatMap(({ character }) => refIdOf(character) ?? []);
 
 // utente 2026-10-25: "Se entro 24 ore i posti non diventano pieni, allora la missione viene annullata in automatico per tutti. Il timer si cancella solo a party completo."
 @Injectable()

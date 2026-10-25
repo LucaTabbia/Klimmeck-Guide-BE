@@ -10,6 +10,7 @@ import {
     type PartyMember,
     partyReadinessOf,
     partyTimeoutDueAt,
+    registeredIdsOf,
 } from './party-rules';
 
 const TEN = new Date('2026-10-25T10:00:00.000Z');
@@ -26,6 +27,21 @@ function member(arrivedAt: Date | null): PartyMember {
 }
 
 describe('party rules', () => {
+    it('reads the registered ids, legacy hex included, skipping the invalid ones', () => {
+        const id = new Types.ObjectId();
+        const legacy = new Types.ObjectId();
+
+        expect(
+            registeredIdsOf([
+                { character: id },
+                { character: legacy.toHexString() },
+                { character: 'not-an-id' },
+                {},
+            ]),
+        ).toEqual([id, legacy]);
+        expect(registeredIdsOf(null)).toEqual([]);
+    });
+
     it('gives the party 24 hours to fill its seats', () => {
         expect(PARTY_TIMEOUT_MS).toBe(24 * 60 * 60 * 1000);
     });

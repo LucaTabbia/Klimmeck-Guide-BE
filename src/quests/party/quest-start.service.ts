@@ -26,7 +26,12 @@ import {
 } from 'src/quests/acceptance/quest-lanes';
 import { StaleResolution } from 'src/quests/outcomes/outcome-writer.service';
 import { QuestResolutionScheduler } from 'src/quests/outcomes/scheduling/quest-resolution.scheduler';
-import { partyClaimFilter, PartyMember, partyReadinessOf } from './party-rules';
+import {
+    partyClaimFilter,
+    PartyMember,
+    partyReadinessOf,
+    registeredIdsOf,
+} from './party-rules';
 
 export type StartOutcome = 'started' | 'waiting' | 'stale';
 
@@ -188,9 +193,7 @@ export class QuestStartService {
 
     // stessi filtri del roster di gruppo (ResolutionLoader.readGroupRoster): registrati attivi in corsia standard con una PendingQuest di questa quest
     private async readParty(quest: StartQuestSnapshot): Promise<PartyRead> {
-        const registered = (quest.registeredAdventurers ?? []).flatMap(
-            ({ character }) => refIdOf(character) ?? [],
-        );
+        const registered = registeredIdsOf(quest.registeredAdventurers);
         const characters = await this.characterModel
             .find(
                 {

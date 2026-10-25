@@ -1,5 +1,5 @@
 import type { Types } from 'mongoose';
-import { idForms } from 'src/mongo/document-id';
+import { idForms, refIdOf } from 'src/mongo/document-id';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 
 // utente 2026-10-25: "Se entro 24 ore i posti non diventano pieni, allora la missione viene annullata in automatico per tutti."
@@ -20,6 +20,15 @@ export type PartyReadiness =
 export interface LaneDates {
     startDate: Date | null;
     arrivedAt: Date | null;
+}
+
+// id dei registrati sulla quest: le voci senza un id valido restano fuori
+export function registeredIdsOf(
+    registrations: readonly { character?: unknown }[] | null | undefined,
+): Types.ObjectId[] {
+    return (registrations ?? []).flatMap(
+        ({ character }) => refIdOf(character) ?? [],
+    );
 }
 
 // posti pieni e tutti sul marker; startDate = arrivo più tardo, mai l'ora di elaborazione (D-13)
