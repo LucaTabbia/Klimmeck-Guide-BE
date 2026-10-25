@@ -13,7 +13,7 @@ human_verification:
     expected: "Il foglio esiti mostra HP prima/dopo, consumi, ferite, premi e XP del personaggio; il push porta solo resultId; l'innkeeper completa story/worldMission e ogni partecipante riceve il proprio risultato"
     why_human: "Le FE Phase 9 e 10 non esistono ancora; verifica umana differita alla UAT FE (come nelle Phase 7/8 BE). Richiede dati a DB preparati dall'utente (BACKEND-NOTES §12) e push reali"
   - test: "Conferma dei default tecnici: C5 (timeout di 7 giorni sospeso se esiste un soccorritore registrato), A3 (boss concluso se almeno un partecipante vince), valori segnaposto (tabella ferite, resolver segnaposto, tabella livelli/HP)"
-    expected: "L'utente conferma o corregge i default; la porta CombatResolver resta sostituibile senza toccare il resto"
+    expected: "RISOLTO 2026-10-25: C5 confermata, A3 corretta (verdetto unico, piano 09-17), A2 lasciata provvisoria dall'utente"
     why_human: "Sono decisioni di game design adottate come default tecnici, non verificabili da codice"
 ---
 
@@ -99,3 +99,9 @@ Differita alla UAT FE (FE Phase 9 e 10 non esistono ancora); vedi `human_verific
 
 _Verified: 2026-10-24T20:00:00Z_
 _Verifier: Claude (gsd-verifier)_
+
+## Emendamento 2026-10-25 (piano 09-17)
+
+- **Decisioni dell'utente:** C5 confermata ("Il timeout parte alla sconfitta dell'avventuriero. Quei 7 giorni sono i giorni in cui un altro avventuriero può accettare la quest aid. Se non accetta nessuno la quest prima dello scadere del timer, l'avventuriero muore, altrimenti il timeout viene cancellato."); A3 corretta ("il risultato di una quest boss è lo stesso per tutti. Se uno è vittorioso, lo sono tutti. Cambiano i drop per avventuriero, le ferite subite e così via. Un avventuriero potrebbe essere con 1HP, un altro invece stare bene."); A2 provvisoria ("I valori segnaposto verranno risolti da me in futuro."). Sulla aid del boss perso: "Non deve comparire una missione aid per ogni personaggio, ma solo una missione aid. Le missioni aid per le missioni boss andate male devono accettare lo stesso numero di partecipanti della missione boss" — implementata dal piano 09-18; a fine 09-17 il boss perso libera tutti i posti e crea ancora una aid per partecipante (transitorio).
+- **Codice:** `CombatResolver.resolve` restituisce `CombatResolution { verdict, participants: ParticipantEffects[] }` (l'esito misto non è rappresentabile); il segnaposto tira la vittoria una volta per combattimento; `battleOf` abbina il verdetto agli effetti del partecipante; il boss vinto si conclude per tutti; C5 marcata confermata nei commenti; `src/schema.gql` invariato.
+- **Gate rieseguito:** `npm run test:unit` 121 suite / 1776 test, `npm run test:int` 72 suite / 915 test, `npm run build` exit 0, `git diff --exit-code src/schema.gql` pulito.

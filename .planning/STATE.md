@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 9 complete (2026-10-24) — PR #13 to develop open
-last_updated: "2026-10-24T18:20:00.000Z"
-last_activity: 2026-10-24 -- Phase 9 closed: 16/16 plans, gate green after the review fixes (unit 121 suites / 1775 tests, integration 72 suites / 915 tests, build, filtered lint 0, schema additive vs develop), verification passed 5/5, code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, security verified 82/82 (09-SECURITY.md); branch pushed, PR #13 opened
+stopped_at: Phase 9 complete (17/17, 2026-10-25) — PR #13 to develop open
+last_updated: "2026-10-25T12:35:40.000Z"
+last_activity: 2026-10-25 -- Phase 9 plan 09-17: shared combat verdict (A3), C5 confirmed by the user, placeholders stay provisional; gate green; PR #13 to be updated by the orchestrator
 progress:
   total_phases: 12
   completed_phases: 10
-  total_plans: 103
-  completed_plans: 103
+  total_plans: 104
+  completed_plans: 104
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 9 — Combat Result & Admin Outcomes complete on 2026-10-24 (PR #13 to develop open 2026-10-24; unblocks FE Phase 9 foglio esiti and FE Phase 10 pannello admin; FE Phase 7 gets `SHOP_NOT_IN_CITY`/`AWAITING_AID`); technical defaults to confirm with the user: C5 (aid timeout suspended while a rescuer is registered), A3 (boss concluded if at least one wins), placeholder resolver/injury/drop-rate values; next Phase 10 — Hardening Trasversale
+**Current focus:** Phase 9 — Combat Result & Admin Outcomes complete on 2026-10-24 (PR #13 to develop open 2026-10-24; unblocks FE Phase 9 foglio esiti and FE Phase 10 pannello admin; FE Phase 7 gets `SHOP_NOT_IN_CITY`/`AWAITING_AID`); user decisions 2026-10-25: C5 confirmed, A3 corrected (one verdict per fight, plan 09-17), placeholder values stay provisional; one group aid for a lost boss (seats = boss seats, user 2026-10-25) comes with plan 09-18; next Phase 10 — Hardening Trasversale
 
 ## Current Position
 
-Phase: 9 (Combat Result & Admin Outcomes) — COMPLETE 2026-10-24 (16/16 plans; code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, 1 sub-point deferred to Phase 10; verification passed 5/5 success criteria + D-01..D-29 (C1–C10); device UAT deferred to the FE Phase 9/10 UAT; security audit in 09-SECURITY.md)
-Plan: 16 of 16 (complete)
-Status: Phase 9 complete — PR #13 (feat/09-combat-result-admin-outcomes → develop) open, awaiting review/merge; next /gsd-discuss-phase 10 (Hardening Trasversale)
-Last activity: 2026-10-24 -- Phase 9 closed: 16/16 plans, gate green after the review fixes (unit 121 suites / 1775 tests, integration 72 suites / 915 tests, build, filtered lint 0, schema additive vs develop), verification passed 5/5, review fixed, security verified 82/82 (09-SECURITY.md); branch pushed, PR #13 opened
+Phase: 9 (Combat Result & Admin Outcomes) — COMPLETE 2026-10-25 (17/17 plans; 09-17 shared combat verdict A3 + C5 confirmed; code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, 1 sub-point deferred to Phase 10; verification passed 5/5 success criteria + D-01..D-29 (C1–C10); device UAT deferred to the FE Phase 9/10 UAT; security audit in 09-SECURITY.md)
+Plan: 17 of 17 (complete)
+Status: Phase 9 complete (17/17) — PR #13 (feat/09-combat-result-admin-outcomes → develop) open, to be updated by the orchestrator with 09-17; plan 09-18 (one group aid for a lost boss) next, then /gsd-discuss-phase 10 (Hardening Trasversale)
+Last activity: 2026-10-25 -- Phase 9 plan 09-17: shared combat verdict (A3), C5 confirmed by the user, placeholders stay provisional; gate green (unit 121 suites / 1776 tests, integration 72 suites / 915 tests, build 0, schema unchanged)
 
 Progress: [██████████] 100% (phases 1–9 complete; Phase 10 next)
 
@@ -36,7 +36,7 @@ Progress: [██████████] 100% (phases 1–9 complete; Phase 10
 
 **Velocity:**
 
-- Total plans completed: 103
+- Total plans completed: 104
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -237,6 +237,7 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-13: resolveStandard è l'unico ingresso dei trigger standard (resolutionKindOf: boss → gruppo, aid con rescue → soccorso, resto → individuale); il boss si risolve in una transazione per gruppo con claim questClaimFilter + $size in modalità 'claim', esiti per characterId, registrati incoerenti o senza proprietario rimossi con WARN (questUpdateOf dropped); soccorso riuscito = ferito liberato al marker della città con HP invariati e risultato 'rescued'; soccorso fallito = dieWithin (proprietario in sessione, archiveWithin death, risultato 'death') e nuova aid al soccorritore clonata dall'originale (o dalla aid se l'originale non c'è); timeoutAid = claim aidTimeoutClaimFilter + dieWithin, sospeso con un soccorritore registrato (C5); ferito già scollegato = no-op loggato (C1)
 - [Phase 09]: 09-15: completePendingRequest (innkeeper, audit automatico con target QuestResult) chiama GmCompletionService: story = il solo titolare, worldMission = tutti i personaggi attivi con una PendingQuest della quest in corsia; override del GM (hpAfter 1..maxLifePoints, ferite, consumi e magie entro il posseduto) validati da validateOverrides prima di ogni scrittura e di nuovo sugli snapshot in sessione, poi passati come ParticipantOutcome 'success' a planParticipant (verdetto gmCompleted, aid null); una transazione per l'intera richiesta, StaleResolution ⇒ NOT_FOUND al perdente; le magie degli override ricevono il job di recupero anche senza nemico (recoveryTimesOf); PendingRequestsModule importa QuestOutcomesModule e QuestResultsReadModule, ogni suo harness usa push/code finte e QUIET_OUTCOME_OVERRIDES
 - [Phase 09]: 09-16: gate di fase verde senza correzioni di codice; handoff BACKEND-NOTES.md (SDL verbatim, codici, esiti, regole segnaposto, dati UAT mongosh con placeholder); handoff Phase 5 emendato (questEnd con l'id del risultato, nessun combatResult); traceability BE-COMBAT-01..03 / BE-ADMIN-01..02 Complete; la morte ha un unico punto archiveWithin (dieWithin) per aid fallita e timeout
+- [Phase 09]: 09-17: CombatResolver returns CombatResolution { verdict, participants: ParticipantEffects[] } — one verdict per fight (A3, user 2026-10-25), effects per participant; placeholder rolls victory once; ScriptedCombatResolver.willEnd; C5 confirmed (suspension = cancellation while a rescuer is registered); A2 placeholders stay provisional
 
 ### Pending Todos
 

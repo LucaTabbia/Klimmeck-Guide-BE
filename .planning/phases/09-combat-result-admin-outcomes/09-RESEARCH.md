@@ -645,8 +645,8 @@ export function rollLoot<T extends { rarity?: RarityType | null }>(entries: read
 |---|-------|---------|---------------|
 | A1 | Testi italiani dei quattro codici nuovi | Contratto SDL | basso: solo copy |
 | A2 | Valori segnaposto (drop rate, probabilità ferite, fattore viaggio, regola del resolver) | Q8, Code Examples | basso: dichiarati provvisori, sostituibili |
-| A3 | Boss concluso se almeno un partecipante vince | Q4 | medio: regola di gioco non decisa dall'utente |
-| A4 | Timeout aid sospeso con un soccorritore registrato | C5 | medio: da confermare |
+| A3 | Boss concluso se almeno un partecipante vince | Q4 | medio: regola di gioco non decisa dall'utente — **esito 2026-10-25:** A3 corretta dall'utente (verdetto unico, piano 09-17); A4/C5 confermata |
+| A4 | Timeout aid sospeso con un soccorritore registrato | C5 | medio: da confermare — **esito 2026-10-25:** A3 corretta dall'utente (verdetto unico, piano 09-17); A4/C5 confermata |
 | A5 | Nemico orfano = quest senza nemico | C6 | basso: dati di sviluppo da correggere comunque |
 | A6 | Mongoose 8 crea le collection all'avvio (`autoCreate`) in produzione | Pitfall 5 | basso: se no, la prima transazione fallisce e lo sweep riprova; mitigabile con `init()` al boot |
 | A7 | `hpAfter` degli override validato contro il massimo **prima** della ricompensa | Open Q | basso |
@@ -665,7 +665,7 @@ export function rollLoot<T extends { rarity?: RarityType | null }>(entries: read
 10. **Le quest concluse sono accettabili?** — RESOLVED: no, `readQuest` e `registrationFilter` filtrano `concludedAt: null` (C9).
 11. **Timeout aid con soccorritore registrato?** — RESOLVED (da confermare con l'utente, C5): sospeso finché c'è un registrato.
 12. **Nemico orfano?** — RESOLVED: quest senza nemico + WARN (C6).
-13. **Esito del boss con risultati misti?** — RESOLVED: concluso se ≥ 1 successo; i falliti ricevono ciascuno la propria aid (Q4, A3).
+13. **Esito del boss con risultati misti?** — RESOLVED: concluso se ≥ 1 successo; i falliti ricevono ciascuno la propria aid (Q4, A3). **Superata il 2026-10-25:** il verdetto del combattimento è unico (A3, utente); il boss si conclude se il gruppo vince, altrimenti tutti i posti si liberano e la aid del gruppo perso diventa **una sola aid con gli stessi posti del boss** (decisione dell'utente del 2026-10-25, piano 09-18).
 14. **Override `hpAfter`: limite prima o dopo il level up?** — RESOLVED: `1..maxLifePoints` dello snapshot **prima** della ricompensa (il combattimento avviene prima del premio); dopo il level up il massimo cresce e l'HP resta (nessuna cura). Override duplicati per lo stesso personaggio, consumabili non posseduti, magie non attive o usi oltre il disponibile → `OUTCOME_OVERRIDE_INVALID`; personaggio non partecipante → `OUTCOME_NOT_PARTICIPANT`; `pendingQuestId` malformato, inesistente o della corsia standard → `NOT_FOUND` (`ResourceNotFoundException.pendingQuest()`); nessuna scrittura in tutti i casi.
 15. **Completamento GM di un partecipante in viaggio?** — RESOLVED: nessun blocco lato BE (il filtro su `activeTravel` è UX del pannello, ADMIN-02); l'esito non cambia la posizione.
 16. **Lista `questResults` del personaggio?** — RESOLVED: non necessaria (YAGNI): il requery usa l'id dalla push o dalla subscription; eventualmente in Phase 10.

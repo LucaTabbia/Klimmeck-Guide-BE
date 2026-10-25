@@ -4,7 +4,7 @@
 - **Data:** 2026-10-24. Documento di fine fase, scritto prima della UAT su device (manual-only: richiede la FE Phase 9/10 e i dati di §12).
 - **Branch:** `feat/09-combat-result-admin-outcomes` (PR verso `develop`). **Nessuna dipendenza da una PR FE** (D-28): le FE Phase 7, 9 e 10 consumano lo schema dopo la merge.
 - **Schema:** `src/schema.gql` è **solo additivo** rispetto a `develop` (`git diff origin/develop...HEAD -- src/schema.gql | grep -cE '^-[^-]'` = 0). Il boot reale in `test/app.int-spec.ts` lo rigenera e `git diff --exit-code src/schema.gql` esce 0. Nello schema non compaiono `grade`, `concludedAt`, `rescue`, `CombatResolver`, `approvePendingRequest`, `rejectPendingRequest`, `combatResult`.
-- **Stato:** implementato e coperto da test. Gate di fine fase (09-16): unit **121 suite / 1765 test**, integration **72 suite / 913 test** (replica set + Redis effimero, `--runInBand`, ~160 s), `npm run build` exit 0, lint filtrato 0 righe, `eslint` e `prettier --check` puliti sui 174 `.ts` toccati dalla fase, nessuna dipendenza nuova in `package.json`. Baseline di inizio fase: unit 96 / 1424, integration 57 suite.
+- **Stato:** implementato e coperto da test. Gate di fine fase (09-16): unit **121 suite / 1765 test**, integration **72 suite / 913 test** (replica set + Redis effimero, `--runInBand`, ~160 s), `npm run build` exit 0, lint filtrato 0 righe, `eslint` e `prettier --check` puliti sui 174 `.ts` toccati dalla fase, nessuna dipendenza nuova in `package.json`. Baseline di inizio fase: unit 96 / 1424, integration 57 suite. Gate rieseguito dopo 09-17 (verdetto unico, A3): unit **121 suite / 1776 test**, integration **72 suite / 915 test**, build exit 0, `src/schema.gql` senza diff.
 - **Fonte:** ogni nome, codice, messaggio e riga di SDL qui sotto è copiato dal codice: `src/schema.gql`, `src/gameRules/game-rule-error-code.enum.ts`, `src/gameRules/game-rule.exception.ts`, `src/authz/resource-not-found.exception.ts`, `src/authz/authorization.exception.ts`, `src/auth/auth.exception.ts`, `src/quests/outcomes/**`, `src/quests/results/**`, `src/quests/pending-requests/**`, `src/config/quest-config.ts`, `src/push/push-events.ts`. **Lo schema vince su questo documento.**
 
 ---
@@ -310,9 +310,9 @@ Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` 
 - **Scadenza della corsia standard** = `PendingQuest.startDate + waitingTime`. Con `startDate: null` (personaggio in viaggio verso il marker) la scadenza non esiste ancora: il countdown parte all'arrivo (`startDate` = `endTime` pianificato, Phase 8 §6).
 - **Trigger:** job Bull `resolve` sulla coda `quest-resolution` alla scadenza (jobId `quest-<pendingQuestId>-<startMs>`), accodato dove si scrive `startDate` (accettazione senza viaggio e arrivo del viaggio da quest); **reconciler al boot** e **sweep periodico** ogni `QUEST_SWEEP_INTERVAL_MS` (default 60 000 ms). Job duplicati, obsoleti o in anticipo sono no-op; un job mancato è coperto dallo sweep entro un intervallo.
 - **Quest senza nemico** (`infos.enemy` nullo: job, heal, study e qualunque altra) → **successo** con premi. Un ref `infos.enemy` **orfano** vale come quest senza nemico (WARN lato server con i soli id, C6).
-- **Quest con nemico** → motore di combattimento (§11, regola **segnaposto**): esito per partecipante, `success` o `failure`.
+- **Quest con nemico** → motore di combattimento (§11, regola **segnaposto**): esito unico del combattimento per chi combatte insieme (`success` o `failure`), effetti per partecipante.
 - **heal** completata: tutte le ferite tolte e HP al massimo.
-- **Boss di gruppo:** si risolve quando **tutti i registrati** hanno finito il countdown (uno ancora in viaggio o nel countdown → si attende; non si aspetta che gli slot si riempiano). Un solo combattimento con tutti, **un risultato per ciascuno**, esiti anche diversi. Il boss è **concluso se almeno uno vince** (default tecnico A3, §11); i falliti ricevono ciascuno la propria aid.
+- **Boss di gruppo:** si risolve quando **tutti i registrati** hanno finito il countdown (uno ancora in viaggio o nel countdown → si attende; non si aspetta che gli slot si riempiano). Un solo combattimento con tutti e **un solo verdetto** (se uno vince, vincono tutti — decisione utente 2026-10-25), **un risultato per ciascuno** diverso negli effetti (HP, ferite, consumi, loot, premi). Boss vinto → concluso per tutti; boss perso → tutti i posti liberati. La forma della aid del gruppo perso è **una sola aid con gli stessi posti del boss** (decisione dell'utente del 2026-10-25) e arriva con il piano **09-18**: a fine 09-17 il codice crea ancora una aid per partecipante, comportamento transitorio.
 - **Registrate (enemy, boss, worldMission, aid):** successo → la quest **sparisce dalla board per tutti** e non è più accettabile (`NOT_FOUND`); fallimento → posto liberato, quest di nuovo disponibile, nasce la aid. Una aid si conclude sempre (riuscita o fallita).
 - **Ripetibili (hunt, dungeon e le altre non registrate):** restano sulla board; un fallimento con nemico crea comunque la aid per il ferito.
 - **Story e worldMission** non sono mai risolte dal server: restano nella coda del GM finché non le completa (§9).
@@ -325,12 +325,12 @@ Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` 
 
 - **`status.awaitingAid { quest, aidQuest, since }`**: `quest` = quest fallita, `aidQuest` = id della aid creata per il ferito, `since` = istante del fallimento. Default `null` (documenti legacy inclusi).
 - Il ferito **resta sul marker** della quest con gli HP dell'esito; non può viaggiare, accettare quest né usare il negozio. **Il teleport del GM resta ammesso** (sposta il personaggio ma non lo libera: `awaitingAid` resta).
-- **La aid:** quest `type: aid`, titolo `"Soccorso: <titolo originale>"` (il prefisso non si raddoppia nelle catene), stesso marker, nemico, `minTitle`, `timeToComplete` e premi della quest originale, **un posto** (`requiredAdventurers: [{ title: null, count: 1 }]`), **gratuita** (`requiredPoints: null`), appare sulla board come le altre. Una aid per ferito, mai ripetibile.
+- **La aid:** quest `type: aid`, titolo `"Soccorso: <titolo originale>"` (il prefisso non si raddoppia nelle catene), stesso marker, nemico, `minTitle`, `timeToComplete` e premi della quest originale, **un posto** (`requiredAdventurers: [{ title: null, count: 1 }]`), **gratuita** (`requiredPoints: null`), appare sulla board come le altre. Una aid per ferito, mai ripetibile (per il boss perso la aid di gruppo unica, con gli stessi posti del boss, arriva con il piano 09-18, §5).
 - **Aid riuscita:** il soccorritore riceve premi e `success` con `rescuedCharacter`; il ferito riceve `rescued`, `awaitingAid` = `null`, **nessuna cura**, `status.location` = marker della città i cui `pointsOfInterest` contengono il marker della aid (se nessuna città lo contiene resta dov'è, WARN lato server).
 - **Aid fallita:** il ferito **muore** (archivio con `DeletionReason.death` nella **stessa transazione** dell'esito: posti liberati, aid aperte chiuse, `currentCharacter` = `null`) e riceve `death`; il soccorritore diventa a sua volta ferito (`failure`) con una **nuova aid** clonata dalla quest **originale** (catena).
 - **Ferito già scollegato** (es. l'utente ha cancellato il personaggio): nessuna morte da registrare, no-op loggato.
 - **Timeout:** 7 giorni da `awaitingAid.since` senza esito → **morte** del ferito (`death`, push al defunto) e aid conclusa. Trigger: job `aid-timeout` (jobId `aid-<aidQuestId>`) + reconciler + sweep.
-  - **Precisazione C5 — DEFAULT DA CONFERMARE CON L'UTENTE:** il timeout **non scatta finché la aid ha un soccorritore registrato** (il soccorso in corso decide l'esito; altrimenti il soccorritore combatterebbe per un ferito già morto); lo sweep ricontrolla a ogni giro. Per la lettura letterale dei 7 giorni: togliere `AID_TIMEOUT_REQUIRES_NO_RESCUER` (e il suo uso in `aidTimeoutClaimFilter`/`aidTimeoutSuspended`) in `src/quests/outcomes/aid/aid-timeout.ts` e il test nominato `keeps the rescue timeout suspended while a rescuer is registered (C5)` in `src/quests/outcomes/aid/aid-timeout.spec.ts` (più il caso C5 di `src/quests/outcomes/aid-timeout.int-spec.ts`).
+  - **Precisazione C5 (confermata dall'utente il 2026-10-25):** il timeout **non scatta finché la aid ha un soccorritore registrato** (il soccorso in corso decide l'esito; altrimenti il soccorritore combatterebbe per un ferito già morto); lo sweep ricontrolla a ogni giro; se il soccorritore sparisse il timeout torna valutabile. Lettura dell'utente: "Il timeout parte alla sconfitta dell'avventuriero. Quei 7 giorni sono i giorni in cui un altro avventuriero può accettare la quest aid. Se non accetta nessuno la quest prima dello scadere del timer, l'avventuriero muore, altrimenti il timeout viene cancellato" — la sospensione equivale alla cancellazione. Regola in `AID_TIMEOUT_REQUIRES_NO_RESCUER` (`src/quests/outcomes/aid/aid-timeout.ts`), test nominato `keeps the rescue timeout suspended while a rescuer is registered (C5)`.
 
 ---
 
@@ -463,11 +463,9 @@ Variabili di esempio:
 
 | Cosa | Dove | Valore attuale | Come sostituirlo |
 |------|------|----------------|------------------|
-| Regola del combattimento | `src/quests/outcomes/combat/placeholder-combat-resolver.ts` (`PlaceholderCombatResolver`, `PLACEHOLDER_RULES`) | probabilità di vittoria = potenza del gruppo (danni di equipaggiamento indossato + magie attive con usi, × `damageFactor` delle ferite) / (potenza + HP del nemico); HP persi = danni del nemico divisi fra i partecipanti (× 0,5 in vittoria, × 1 in sconfitta, / `lifePointsFactor`), mai sotto 1; ferita nuova al 20%; pozione heal sotto il 30% degli HP; una carica per ogni magia attiva con usi | scrivere un'altra classe che estende `CombatResolver` (`src/quests/outcomes/combat/combat-resolver.ts`: contesto puro idratato → un `ParticipantOutcome` per partecipante, `hpAfter ≥ 1`, RNG solo dal `ChanceSource` iniettato) e cambiare il provider `{ provide: CombatResolver, useClass: … }` in `src/quests/outcomes/quest-outcomes.module.ts` |
+| Regola del combattimento | `src/quests/outcomes/combat/placeholder-combat-resolver.ts` (`PlaceholderCombatResolver`, `PLACEHOLDER_RULES`) | probabilità di vittoria tirata **una volta per combattimento** = potenza del gruppo (danni di equipaggiamento indossato + magie attive con usi, × `damageFactor` delle ferite) / (potenza + HP del nemico); HP persi = danni del nemico divisi fra i partecipanti (× 0,5 in vittoria, × 1 in sconfitta, / `lifePointsFactor`), mai sotto 1; ferita nuova al 20%; pozione heal sotto il 30% degli HP; una carica per ogni magia attiva con usi | scrivere un'altra classe che estende `CombatResolver` (`src/quests/outcomes/combat/combat-resolver.ts`: contesto puro idratato → `CombatResolution` (un `verdict` per il combattimento + un `ParticipantEffects` per partecipante, `hpAfter ≥ 1`), RNG solo dal `ChanceSource` iniettato) e cambiare il provider `{ provide: CombatResolver, useClass: … }` in `src/quests/outcomes/quest-outcomes.module.ts` |
 | Ferite → effetti → malus e fattore di viaggio | `src/quests/outcomes/injuries/injury-rules.ts` (`INJURY_EFFECTS`, `EFFECT_MODIFIERS`, `MIN_INJURY_FACTOR`) | 28 ferite → 10 effetti → `{ damageFactor, lifePointsFactor, speedFactor }` (es. `movementImpairment` velocità 0,8, `paralysis` danni 0,8 e velocità 0,9), prodotto con minimo 0,1 | cambiare le tabelle (le funzioni `injuryModifiersOf` / `travelSpeedFactorOf` restano) |
 | Drop rate del loot | `src/quests/outcomes/rewards/cascading-loot.ts` (`DROP_RATES`) | legendary 0,02 · ultrarare 0,05 · rare 0,15 · uncommon 0,35 · common 0,6 | cambiare i valori |
-| Boss concluso se almeno uno vince (A3) | `questUpdateOf` in `src/quests/outcomes/quest-outcome-plan.ts` | `concludedAt` se almeno un `success`/`gmCompleted` (o se la quest è una aid) | cambiare la condizione `someoneWon` |
-| Timeout sospeso con un soccorritore (C5) | `AID_TIMEOUT_REQUIRES_NO_RESCUER` in `src/quests/outcomes/aid/aid-timeout.ts` | sospeso finché la aid ha un registrato | togliere la costante e il test nominato (§6) |
 
 Testi italiani dei quattro codici nuovi (A1): `src/gameRules/game-rule.exception.ts`; cambiarli non cambia il contratto (il FE mappa il codice).
 
@@ -574,7 +572,7 @@ db.characters.updateOne({ _id: ObjectId('<characterId>') }, { $set: { 'status.aw
 
 ## 16. Deviazioni e punti aperti
 
-**Deviazioni registrate nei SUMMARY 09-01..09-15** (nessuna cambia il contratto o una decisione utente):
+**Deviazioni registrate nei SUMMARY 09-01..09-15 e 09-17** (nessuna cambia il contratto o una decisione utente):
 
 - 09-01: commento dell'enum riformulato (grep); `characters.service.spec.ts` con `title: 'mage'` per il gate degli slot; `QuestPrizesInput.spell` aggiunto ma non stampato (input non referenziato).
 - 09-02: nessuna deviazione.
@@ -591,11 +589,12 @@ db.characters.updateOne({ _id: ObjectId('<characterId>') }, { $set: { 'status.aw
 - 09-13: piano per combattente condiviso in `combatant-plan.ts`; `$pull` degli incoerenti come opzione di `questUpdateOf`; **un solo punto di morte** (`dieWithin` → `archiveWithin`) per aid fallita e timeout.
 - 09-14: helper di harness esportati; flaky del boot reale annotato (§14).
 - 09-15: tempi di recupero delle magie degli override letti con `recoveryTimesOf` (senza, gli usi non sarebbero mai tornati); override più severi (ferite fuori catalogo, `hpAfter` negativo); audit `outcome: 'ok'`.
+- 09-17: porta ridisegnata (CombatResolution, verdetto unico A3), fake con willEnd, C5 marcata confermata; nessun cambiamento di SDL.
 
-**Punti aperti (da confermare con l'utente):**
+**Decisioni dell'utente (2026-10-25):** C5 confermata (§6); A3 corretta — verdetto unico del combattimento (§5, piano 09-17); A2 — i valori segnaposto (§11) restano **provvisori**: li definirà l'utente ("I valori segnaposto verranno risolti da me in futuro.").
 
-- **C5** — timeout del soccorso sospeso con un soccorritore registrato (§6, §11): **DEFAULT DA CONFERMARE CON L'UTENTE** prima della PR.
+**Ancora aperti:**
+
+- **09-18** — una sola aid di gruppo per il boss perso, posti = posti del boss (decisione dell'utente del 2026-10-25, §5).
 - **A1** — testi italiani dei codici nuovi (§2).
-- **A2** — valori segnaposto: regola del combattimento, tabella delle ferite, fattore di viaggio, drop rate (§11).
-- **A3** — boss concluso se almeno un partecipante vince (§5, §11).
-- UAT su device: dopo la FE Phase 9/10, con i dati di §12 (vedi `09-VALIDATION.md`, Manual-Only Verifications).
+- UAT su device dopo la FE Phase 9/10 (§12, §13; vedi `09-VALIDATION.md`, Manual-Only Verifications).
