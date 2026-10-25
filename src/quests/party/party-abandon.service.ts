@@ -23,8 +23,6 @@ export interface AbandonQuestCommand {
 
 interface WaitingSnapshot {
     quest?: unknown;
-    startDate?: Date | null;
-    arrivedAt?: Date | null;
 }
 
 // utente 2026-10-25: "bisogna dare la possibilità di abbandonare la quest boss durante il momento dell'attesa"
@@ -103,7 +101,7 @@ export class PartyAbandonService {
         session: ClientSession,
     ): Promise<Error> {
         const fresh = await this.pendingQuestModel
-            .findById(pendingQuestId, { quest: 1, startDate: 1, arrivedAt: 1 })
+            .findById(pendingQuestId, { quest: 1 })
             .session(session)
             .lean<WaitingSnapshot | null>()
             .exec();

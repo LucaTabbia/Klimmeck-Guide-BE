@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Clock, SystemClock } from 'src/auth/clock';
 import {
     Character,
     CharacterSchema,
@@ -23,7 +22,7 @@ import { QuestStartService } from './quest-start.service';
         ]),
         QuestResolutionSchedulingModule,
     ],
-    providers: [QuestStartService, { provide: Clock, useClass: SystemClock }],
+    providers: [QuestStartService],
     exports: [QuestStartService],
 })
 export class PartyModule {}
