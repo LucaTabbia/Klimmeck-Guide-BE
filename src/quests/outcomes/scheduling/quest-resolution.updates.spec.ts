@@ -58,7 +58,7 @@ describe('quest resolution updates', () => {
     });
 
     describe('arrivedUnstartedPipeline', () => {
-        it('selects the standard quests of active characters arrived on the marker but not started', () => {
+        it('selects the standard quests of active characters arrived on the marker but not started, with the quest type', () => {
             expect(arrivedUnstartedPipeline()).toEqual([
                 {
                     $match: {
@@ -82,10 +82,19 @@ describe('quest resolution updates', () => {
                     },
                 },
                 {
+                    $lookup: {
+                        from: 'quests',
+                        localField: 'pq.quest',
+                        foreignField: '_id',
+                        as: 'quest',
+                    },
+                },
+                {
                     $project: {
                         _id: 0,
                         questId: '$pq.quest',
                         pendingQuestId: '$pq._id',
+                        type: { $arrayElemAt: ['$quest.infos.type', 0] },
                     },
                 },
             ]);
