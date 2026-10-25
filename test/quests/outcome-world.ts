@@ -1,4 +1,5 @@
 import { getQueueToken } from '@nestjs/bull';
+import type { ModuleMetadata } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import { Types } from 'mongoose';
@@ -105,6 +106,8 @@ export interface OutcomeHarnessOptions {
     combat?: CombatResolver;
     // default QUIET_OUTCOME_OVERRIDES; la int-spec dello sweeper tiene lo sweeper vero
     quiet?: ProviderOverride[];
+    // moduli in più accanto a QuestOutcomesModule (party: avvio, abbandono, scioglimento)
+    imports?: ModuleMetadata['imports'];
 }
 
 export interface OutcomeHarness {
@@ -125,7 +128,7 @@ export async function createOutcomeHarness(
     const spellQueue = new FakeTravelQueue();
     const harness = await createAuthTestApp({
         clock: options.clock,
-        imports: [QuestOutcomesModule],
+        imports: [QuestOutcomesModule, ...(options.imports ?? [])],
         overrides: [
             ...(options.quiet ?? QUIET_OUTCOME_OVERRIDES),
             { token: PushTransport, useValue: push },
@@ -180,6 +183,8 @@ export interface QuesterOptions {
     quest?: { _id: unknown };
     characterOverrides?: Record<string, any>;
     startDate?: Date | null;
+    // arrivo sul marker: default startDate ?? OUTCOME_START; null = ancora in viaggio
+    arrivedAt?: Date | null;
     waitingTime?: number;
     lane?: QuestLane;
     registered?: boolean;
@@ -222,9 +227,14 @@ export async function persistQuester(
             ...buildQuest(),
             ...options.questOverrides,
         }));
+    const startDate =
+        options.startDate === undefined ? OUTCOME_START : options.startDate;
     const pendingQuest = await models.pendingQuests.create({
-        startDate:
-            options.startDate === undefined ? OUTCOME_START : options.startDate,
+        startDate,
+        arrivedAt:
+            options.arrivedAt === undefined
+                ? (startDate ?? OUTCOME_START)
+                : options.arrivedAt,
         waitingTime: options.waitingTime ?? OUTCOME_WAITING_TIME_MS,
         pointsSpent: 0,
         quest: quest._id,
@@ -240,6 +250,7 @@ export async function persistQuester(
     const characterId = player.character!._id as Types.ObjectId;
     const type = (await models.quests.findById(quest._id).lean<any>().exec())
         .infos.type as QuestType;
+    // registrazione senza registeredAt (forma legacy); un membro già avviato marca anche la quest avviata
     if (options.registered ?? isRegistered(type)) {
         await models.quests.updateOne(
             { _id: quest._id },
@@ -250,6 +261,7 @@ export async function persistQuester(
                         title: player.character!.status.title,
                     },
                 },
+                ...(startDate ? { $set: { startedAt: startDate } } : {}),
             },
         );
     }

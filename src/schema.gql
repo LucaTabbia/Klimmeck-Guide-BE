@@ -351,6 +351,7 @@ type PathResponse {
 }
 
 type PendingQuest {
+  arrivedAt: DateTime
   id: ID!
   pointsSpent: Int!
   quest: Quest!
@@ -546,6 +547,7 @@ type QuestPrizes {
 
 type QuestRegistration {
   character: ID!
+  registeredAt: DateTime
   title: String!
 }
 

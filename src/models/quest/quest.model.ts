@@ -49,6 +49,10 @@ export class Quest {
     @Prop({ type: Date, default: null })
     concludedAt?: Date | null;
 
+    // avvio del party a posti pieni e tutti sul marker (utente 2026-10-25: "per poterle cominciare il party dev'essere al completo"): claim di QuestStartService; interno, mai sul filo
+    @Prop({ type: Date, default: null })
+    startedAt?: Date | null;
+
     // solo sulle aid automatiche (D-08): interno, mai sul filo
     @Prop({ type: QuestRescueSchema, default: null })
     rescue?: QuestRescue | null;
