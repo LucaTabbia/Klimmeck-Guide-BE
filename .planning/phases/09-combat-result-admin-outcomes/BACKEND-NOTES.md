@@ -3,8 +3,8 @@
 - **Fase BE:** 09-combat-result-admin-outcomes (requisiti BE-COMBAT-01, BE-COMBAT-02, BE-COMBAT-03, BE-ADMIN-01, BE-ADMIN-02; BE-COMBAT-03 e BE-ADMIN-02 emendati il 2026-10-24; decisioni D-01..D-29 in `09-CONTEXT.md`, con i rulings C1–C10 di `09-RESEARCH.md` §"Conflitti con il CONTEXT").
 - **Data:** 2026-10-24. Documento di fine fase, scritto prima della UAT su device (manual-only: richiede la FE Phase 9/10 e i dati di §12).
 - **Branch:** `feat/09-combat-result-admin-outcomes` (PR verso `develop`). **Nessuna dipendenza da una PR FE** (D-28): le FE Phase 7, 9 e 10 consumano lo schema dopo la merge.
-- **Schema:** `src/schema.gql` è **solo additivo** rispetto a `develop` (`git diff origin/develop...HEAD -- src/schema.gql | grep -cE '^-[^-]'` = 0). Il boot reale in `test/app.int-spec.ts` lo rigenera e `git diff --exit-code src/schema.gql` esce 0. Nello schema non compaiono `grade`, `concludedAt`, `rescue`, `CombatResolver`, `approvePendingRequest`, `rejectPendingRequest`, `combatResult`.
-- **Stato:** implementato e coperto da test. Gate di fine fase (09-16): unit **121 suite / 1765 test**, integration **72 suite / 913 test** (replica set + Redis effimero, `--runInBand`, ~160 s), `npm run build` exit 0, lint filtrato 0 righe, `eslint` e `prettier --check` puliti sui 174 `.ts` toccati dalla fase, nessuna dipendenza nuova in `package.json`. Baseline di inizio fase: unit 96 / 1424, integration 57 suite. Gate rieseguito dopo 09-17 (verdetto unico, A3): unit **121 suite / 1776 test**, integration **72 suite / 915 test**, build exit 0, `src/schema.gql` senza diff. Gate rieseguito dopo 09-18 (aid di gruppo): unit **121 suite / 1790 test**, integration **72 suite / 924 test**, build exit 0, `src/schema.gql` rigenerato dal boot reale (il riferimento singolo al salvato diventa la lista `rescuedCharacters`; era nato in questa PR, quindi il diff vs `develop` resta additivo).
+- **Schema:** `src/schema.gql` è **solo additivo** rispetto a `develop` (`git diff origin/develop...HEAD -- src/schema.gql | grep -cE '^-[^-]'` = 0). Il boot reale in `test/app.int-spec.ts` lo rigenera e `git diff --exit-code src/schema.gql` esce 0. Nello schema non compaiono `grade`, `concludedAt`, `startedAt`, `rescue`, `CombatResolver`, `approvePendingRequest`, `rejectPendingRequest`, `combatResult`.
+- **Stato:** implementato e coperto da test. Gate di fine fase (09-16): unit **121 suite / 1765 test**, integration **72 suite / 913 test** (replica set + Redis effimero, `--runInBand`, ~160 s), `npm run build` exit 0, lint filtrato 0 righe, `eslint` e `prettier --check` puliti sui 174 `.ts` toccati dalla fase, nessuna dipendenza nuova in `package.json`. Baseline di inizio fase: unit 96 / 1424, integration 57 suite. Gate rieseguito dopo 09-17 (verdetto unico, A3): unit **121 suite / 1776 test**, integration **72 suite / 915 test**, build exit 0, `src/schema.gql` senza diff. Gate rieseguito dopo 09-18 (aid di gruppo): unit **121 suite / 1790 test**, integration **72 suite / 924 test**, build exit 0, `src/schema.gql` rigenerato dal boot reale (il riferimento singolo al salvato diventa la lista `rescuedCharacters`; era nato in questa PR, quindi il diff vs `develop` resta additivo). Gate rieseguito dopo 09-19 (avvio a party completo): unit **122 suite / 1827 test**, integration **75 suite / 967 test**, build exit 0, `src/schema.gql` rigenerato dal boot reale con le sole aggiunte di §1 (attesa del gruppo).
 - **Fonte:** ogni nome, codice, messaggio e riga di SDL qui sotto è copiato dal codice: `src/schema.gql`, `src/gameRules/game-rule-error-code.enum.ts`, `src/gameRules/game-rule.exception.ts`, `src/authz/resource-not-found.exception.ts`, `src/authz/authorization.exception.ts`, `src/auth/auth.exception.ts`, `src/quests/outcomes/**`, `src/quests/results/**`, `src/quests/pending-requests/**`, `src/config/quest-config.ts`, `src/push/push-events.ts`. **Lo schema vince su questo documento.**
 
 ---
@@ -19,6 +19,7 @@
 6. **`status.awaitingAid`** non nullo = personaggio ferito in attesa di soccorso: blocca viaggio, preview, accettazione e negozio (`AWAITING_AID`, `SHOP_NOT_IN_CITY`); il teleport del GM resta ammesso. Un combattimento perso genera **una sola aid** per tutti i feriti, con tanti posti quanti la quest fallita; il foglio di ogni soccorritore vittorioso elenca i salvati in `rescuedCharacters: [ID!]!`.
 7. **Negozio solo sul marker di una città** (`SHOP_NOT_IN_CITY`), mai in viaggio, mai in attesa di soccorso.
 8. **Coda del GM** (`pendingRequests` / `pendingRequestsUpdated`) e **`completePendingRequest`** per il pannello admin (FE Phase 10).
+9. **Attesa del gruppo (piano 09-19):** boss, aid ed enemy cominciano solo a posti pieni e con tutti sul marker. `PendingQuest.startDate == null && arrivedAt != null` = in attesa del gruppo; `abandonQuest` lascia il gruppo; dopo 24 ore senza posti pieni il party è sciolto con push `questCancelled` (§5).
 
 ---
 
@@ -183,6 +184,46 @@ Righe nuove di `type Subscription`:
 
 Tipi esistenti riusati (invariati): `AssetQuantity { item: ItemUnion! quantity: Int! }`, `Coins { copper gold silver }`, `Spell`, `Enemy`, `ActiveTravel`, `QuestRegistration`, `QuestPartySlot`, `InjuryType`.
 
+**Attesa del gruppo (piano 09-19, aggiunte additive copiate da `src/schema.gql`):**
+
+```graphql
+type PendingQuest {
+  arrivedAt: DateTime
+  id: ID!
+  pointsSpent: Int!
+  quest: Quest!
+  startDate: DateTime
+  waitingTime: Float!
+}
+
+type QuestRegistration {
+  character: ID!
+  registeredAt: DateTime
+  title: String!
+}
+
+input AbandonQuestRequest {
+  id: String!
+  questId: String!
+}
+
+enum PushEventType {
+  questCancelled
+  questEnd
+  streamerLive
+  travelEnd
+}
+```
+
+```graphql
+type Mutation {
+  abandonQuest(request: AbandonQuestRequest!): CommonResponse!
+}
+```
+
+- `abandonQuest` è **owner-only** (nessun bypass innkeeper, come `acceptQuest`): `id` = personaggio, `questId` = quest della corsia standard; risponde `{ successful: true, response: "Missione abbandonata" }`.
+- `arrivedAt`: arrivo sul marker (accettazione sul marker o arrivo del viaggio da quest); `startDate`: avvio della quest. `registeredAt`: istante della registrazione (assente sulle registrazioni precedenti al deploy finché lo sweep non le retrodata). Il marcatore di avvio della quest (`startedAt`) è interno e non compare nello schema.
+
 **Nessuna riga rimossa (D-28).** Campi interni mai sul filo: il marcatore di quest conclusa e il riferimento di soccorso della aid restano solo a DB (il boot reale verifica che non compaiano nello schema).
 
 **Documenti FE di esempio** (frammento completo del foglio esiti):
@@ -246,6 +287,9 @@ Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` 
 | `FORBIDDEN` | `Questo risultato non ti appartiene` | `questResult` | il risultato è di un altro utente (**anche per l'innkeeper**: nessun bypass) | errore generico |
 | `FORBIDDEN` | `Questo personaggio non ti appartiene` | `questResultReceived` | `characterId` non è il personaggio del chiamante (**anche per l'innkeeper**) | errore generico |
 | `FORBIDDEN` | `Operazione riservata al locandiere` | `pendingRequests`, `pendingRequestsUpdated`, `completePendingRequest` | chiamante non innkeeper (alla subscribe: nessuno snapshot) | nascondere il pannello admin |
+| `QUEST_NOT_WAITING` | `La missione non è in attesa del gruppo` | `abandonQuest` | la PendingQuest della corsia standard è già avviata (`startDate` valorizzato) o il personaggio è ancora in viaggio (`arrivedAt` nullo) | nascondere "Abbandona il gruppo" fuori dall'attesa; ricaricare il personaggio |
+| `NOT_FOUND` | `Missione non trovata` | `abandonQuest` | nessuna corsia standard, oppure la PendingQuest della corsia è di un'altra quest (anche un abbandono concorrente già riuscito) | ricaricare il personaggio |
+| `QUEST_FULL` | (Phase 7) | `acceptQuest` | **anche** quando la quest registrata è già avviata (piano 09-19): un posto liberato dopo l'avvio non fa entrare nessuno | ricaricare la board |
 | `UNAUTHENTICATED` | `Authentication required` | tutte | nessun bearer valido | flusso di refresh/login esistente |
 
 **Ordine di valutazione di `acceptQuest`** (emenda Phase 8 §2): guard e ownership come prima → pre-verifica: quest inesistente **o conclusa** `NOT_FOUND` → `QUEST_NOT_ACCEPTABLE` → personaggio `NOT_FOUND` → **`AWAITING_AID`** → `TRAVEL_IN_PROGRESS` → `QUEST_ALREADY_TAKEN` → `QUEST_TITLE_MISMATCH` → `QUEST_SLOT_BUSY` → `QUEST_FULL` → `QUEST_NOT_IN_CITY` → marker senza POI `QUEST_NOT_ACCEPTABLE`. In transazione (solo in corsa) il claim della corsia rinomina **`AWAITING_AID` prima di `TRAVEL_IN_PROGRESS`**; una quest registrata conclusa nel frattempo → `NOT_FOUND`.
@@ -302,17 +346,20 @@ Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` 
 - Best-effort **dopo il commit**: mai su una transazione abortita; un fallimento del push non annulla l'esito.
 - **Nessun tipo push nuovo** (il `combatResult` previsto in Phase 5 §8 non esiste) e **nessun toggle nuovo** lato FE.
 - `sendTestPush(input: { type: questEnd, id: "<questResultId>" })` per la prova E2E.
+- **Push `questCancelled` (piano 09-19):** party sciolto dopo 24 ore senza posti pieni, o soccorritori liberati alla scadenza del timeout della aid. `data.id` = **id della quest** (o della aid); `title: "Missione annullata"`, `body: "Il gruppo non si è formato in tempo: la missione è stata annullata."`, TTL 1 h, data-only, a ogni proprietario dei personaggi liberati, best-effort dopo il commit. Al tap: mappa. `sendTestPush(input: { type: questCancelled, id: "<questId>" })` per la prova.
 
 ---
 
 ## 5. Ciclo di vita degli esiti
 
-- **Scadenza della corsia standard** = `PendingQuest.startDate + waitingTime`. Con `startDate: null` (personaggio in viaggio verso il marker) la scadenza non esiste ancora: il countdown parte all'arrivo (`startDate` = `endTime` pianificato, Phase 8 §6).
-- **Trigger:** job Bull `resolve` sulla coda `quest-resolution` alla scadenza (jobId `quest-<pendingQuestId>-<startMs>`), accodato dove si scrive `startDate` (accettazione senza viaggio e arrivo del viaggio da quest); **reconciler al boot** e **sweep periodico** ogni `QUEST_SWEEP_INTERVAL_MS` (default 60 000 ms). Job duplicati, obsoleti o in anticipo sono no-op; un job mancato è coperto dallo sweep entro un intervallo.
+- **Scadenza della corsia standard** = `PendingQuest.startDate + waitingTime`. Con `startDate: null` la scadenza non esiste ancora (personaggio in viaggio, o in attesa del gruppo).
+- **Avvio (piano 09-19, utente 2026-10-25: "Per quanto riguarda le missioni boss: per poterle cominciare il party dev'essere al completo, quindi tutti restano in attesa. Lo stesso vale per le missioni aid legate a chi fallisce la missione boss."):** una quest registrata della corsia standard (boss, aid, enemy) comincia quando tutti i posti sono pieni e tutti sono sul marker; `PendingQuest.arrivedAt` = arrivo (accettazione sul marker o `endTime` pianificato del viaggio, D-13), `startDate` = avvio, uguale per tutto il party, = arrivo più tardo (default tecnico proposto all'utente, 2026-10-25); per hunt/dungeon/job/heal/study avvio = arrivo; story/worldMission invariate (`startDate` = accettazione). Una enemy ha un posto: comincia all'arrivo. Una quest avviata non accetta altre registrazioni (`QUEST_FULL`), e un posto liberato dopo l'avvio non la ferma (si combatte con chi resta). Fonte unica: `QuestStartService` (`src/quests/party/quest-start.service.ts`), chiamato dall'accettazione, dall'arrivo del viaggio e dallo sweep. Phase 8 §6 (countdown all'arrivo) va letto con questo emendamento.
+- **Attesa (utente 2026-10-25: "bisogna dare la possibilità di abbandonare la quest boss durante il momento dell'attesa. Se entro 24 ore i posti non diventano pieni, allora la missione viene annullata in automatico per tutti. Il timer si cancella solo a party completo."):** `startDate` null e `arrivedAt` valorizzato = in attesa del gruppo (`registeredAdventurers` dice quanti sono); `abandonQuest` ammesso solo in questo stato (PendingQuest cancellata, corsia svuotata, posto liberato, nessun esito né rimborso); **24 ore** dalla prima registrazione del party corrente (`QuestRegistration.registeredAt`) senza posti pieni ⇒ party sciolto (corsie svuotate, PendingQuest cancellate, registrazioni azzerate, push `questCancelled`), quest ancora sulla board; chi era in viaggio arriva comunque, come viaggio da quest senza countdown. Un party pieno con un membro ancora in viaggio non scade. La finestra non si riavvia dopo un abbandono (default tecnico proposto all'utente, 2026-10-25). Trigger: job `party-timeout` (jobId `party-<questId>-<sinceMs>`) alla prima registrazione + sweep.
+- **Trigger:** job Bull `resolve` sulla coda `quest-resolution` alla scadenza (jobId `quest-<pendingQuestId>-<startMs>`), accodato da `QuestStartService` quando scrive `startDate` (piano 09-19); **reconciler al boot** e **sweep periodico** ogni `QUEST_SWEEP_INTERVAL_MS` (default 60 000 ms). Job duplicati, obsoleti o in anticipo sono no-op; un job mancato è coperto dallo sweep entro un intervallo.
 - **Quest senza nemico** (`infos.enemy` nullo: job, heal, study e qualunque altra) → **successo** con premi. Un ref `infos.enemy` **orfano** vale come quest senza nemico (WARN lato server con i soli id, C6).
 - **Quest con nemico** → motore di combattimento (§11, regola **segnaposto**): esito unico del combattimento per chi combatte insieme (`success` o `failure`), effetti per partecipante.
 - **heal** completata: tutte le ferite tolte e HP al massimo.
-- **Boss di gruppo:** si risolve quando **tutti i registrati** hanno finito il countdown (uno ancora in viaggio o nel countdown → si attende; non si aspetta che gli slot si riempiano). Un solo combattimento con tutti e **un solo verdetto** (se uno vince, vincono tutti — decisione utente 2026-10-25), **un risultato per ciascuno** diverso negli effetti (HP, ferite, consumi, loot, premi). Boss vinto → concluso per tutti; boss perso ⇒ tutti i posti liberati e **una sola aid** con i posti del boss (decisione dell'utente del 2026-10-25, piano 09-18). Scadenza del gruppo: comportamento transitorio di 09-18: boss e aid di gruppo si risolvono quando tutti i registrati sono scaduti; la regola dell'utente del 2026-10-25 — il party deve essere al completo per cominciare, tutti restano in attesa, anche per le aid del boss — arriva con il piano 09-19.
+- **Boss di gruppo:** comincia a party completo (sopra) e si risolve quando **tutti i registrati** hanno finito il countdown, che è lo stesso per tutti. Un solo combattimento con tutti e **un solo verdetto** (se uno vince, vincono tutti — decisione utente 2026-10-25), **un risultato per ciascuno** diverso negli effetti (HP, ferite, consumi, loot, premi). Boss vinto → concluso per tutti; boss perso ⇒ tutti i posti liberati, quest di nuovo non avviata (un nuovo party può formarsi) e **una sola aid** con i posti del boss (decisione dell'utente del 2026-10-25, piano 09-18).
 - **Registrate (enemy, boss, worldMission, aid):** successo → la quest **sparisce dalla board per tutti** e non è più accettabile (`NOT_FOUND`); fallimento → posto liberato, quest di nuovo disponibile, nasce la aid. Una aid si conclude sempre (riuscita o fallita).
 - **Ripetibili (hunt, dungeon e le altre non registrate):** restano sulla board; un fallimento con nemico crea comunque la aid per il ferito (un posto).
 - **Story e worldMission** non sono mai risolte dal server: restano nella coda del GM finché non le completa (§9).
@@ -325,13 +372,14 @@ Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` 
 
 - **`status.awaitingAid { quest, aidQuest, since }`**: `quest` = quest fallita, `aidQuest` = id della aid creata per il combattimento perso, **condiviso dai feriti dello stesso combattimento**, `since` = istante del fallimento. Default `null` (documenti legacy inclusi).
 - Il ferito **resta sul marker** della quest con gli HP dell'esito; non può viaggiare, accettare quest né usare il negozio. **Il teleport del GM resta ammesso** (sposta il personaggio ma non lo libera: `awaitingAid` resta).
-- **La aid:** una sola per combattimento perso, riferita a tutti i feriti (`rescue { characters, failedQuest }`, interno, mai sul filo) — utente 2026-10-25: "Non deve comparire una missione aid per ogni personaggio, ma solo una missione aid. Adesso che ci penso, le missioni aid per le missioni boss andate male devono accettare lo stesso numero di partecipanti della missione boss". Quest `type: aid`, titolo `"Soccorso: <titolo originale>"` (il prefisso non si raddoppia nelle catene), stesso marker, nemico, `minTitle`, `timeToComplete` e premi della quest originale, **tanti posti quanti la quest fallita** (`[{ title: null, count: n }]`, n = somma dei `count` di `requiredAdventurers` dell'originale, minimo 1; posti tutti jolly: default tecnico proposto all'utente, 2026-10-25), **gratuita** (`requiredPoints: null`), appare sulla board come le altre, mai ripetibile. Si risolve come il boss, con un solo combattimento e un solo verdetto: comportamento transitorio di 09-18: boss e aid di gruppo si risolvono quando tutti i registrati sono scaduti; la regola dell'utente del 2026-10-25 — il party deve essere al completo per cominciare, tutti restano in attesa, anche per le aid del boss — arriva con il piano 09-19.
+- **La aid:** una sola per combattimento perso, riferita a tutti i feriti (`rescue { characters, failedQuest }`, interno, mai sul filo) — utente 2026-10-25: "Non deve comparire una missione aid per ogni personaggio, ma solo una missione aid. Adesso che ci penso, le missioni aid per le missioni boss andate male devono accettare lo stesso numero di partecipanti della missione boss". Quest `type: aid`, titolo `"Soccorso: <titolo originale>"` (il prefisso non si raddoppia nelle catene), stesso marker, nemico, `minTitle`, `timeToComplete` e premi della quest originale, **tanti posti quanti la quest fallita** (`[{ title: null, count: n }]`, n = somma dei `count` di `requiredAdventurers` dell'originale, minimo 1; posti tutti jolly: default tecnico proposto all'utente, 2026-10-25), **gratuita** (`requiredPoints: null`), appare sulla board come le altre, mai ripetibile. Si risolve come il boss, con un solo combattimento e un solo verdetto, e **comincia con le stesse regole** (piano 09-19): party dei soccorritori completo e sul marker, 24 ore per riempire i posti — scaduto il termine il party dei soccorritori è sciolto con push `questCancelled` e la aid **resta aperta**, i feriti continuano ad attendere —, abbandono durante l'attesa.
 - **Aid riuscita:** ogni soccorritore riceve premi e `success` con `rescuedCharacters`; ogni ferito riceve `rescued`, `awaitingAid` = `null`, **nessuna cura**, `status.location` = marker della città i cui `pointsOfInterest` contengono il marker della aid (se nessuna città lo contiene resta dov'è, WARN lato server).
 - **Aid fallita:** tutti i feriti **muoiono** (archivio con `DeletionReason.death` nella **stessa transazione** dell'esito: posti liberati, `currentCharacter` = `null`) e ricevono `death`; i soccorritori diventano a loro volta feriti (`failure`) con **una** nuova aid clonata dalla quest **originale** (catena, stessi posti). Il claim della aid precede liberazioni e morti.
 - **Ferito già scollegato** (es. l'utente punta a un altro personaggio): nessuna liberazione o morte da registrare, no-op loggato con i soli id.
 - **Ferito cancellato:** tolto da `rescue.characters`; la aid resta aperta finché c'è qualcuno da soccorrere; senza più feriti è conclusa e un soccorritore già in corsia si risolve come individuale.
 - **Timeout:** 7 giorni dal `since` più vecchio fra i feriti della aid senza esito → **morte** di **tutti** i feriti della aid (`death`, push a ogni defunto) e aid conclusa (lo sweep valuta ogni aid una volta sola). Trigger: job `aid-timeout` (jobId `aid-<aidQuestId>`) + reconciler + sweep.
-  - **Precisazione C5 (confermata dall'utente il 2026-10-25):** il timeout **non scatta finché la aid ha un soccorritore registrato** (il soccorso in corso decide l'esito; altrimenti il soccorritore combatterebbe per un ferito già morto); lo sweep ricontrolla a ogni giro; se il soccorritore sparisse il timeout torna valutabile. Lettura dell'utente: "Il timeout parte alla sconfitta dell'avventuriero. Quei 7 giorni sono i giorni in cui un altro avventuriero può accettare la quest aid. Se non accetta nessuno la quest prima dello scadere del timer, l'avventuriero muore, altrimenti il timeout viene cancellato" — la sospensione equivale alla cancellazione. Regola in `AID_TIMEOUT_REQUIRES_NO_RESCUER` (`src/quests/outcomes/aid/aid-timeout.ts`), test nominato `keeps the rescue timeout suspended while a rescuer is registered (C5)`.
+  - **C5 rivista (piano 09-19, utente 2026-10-25: "Il timer si cancella solo a party completo."):** il timeout resta sospeso **solo dalla aid in corso** — avviata e con soccorritori registrati (`AID_TIMEOUT_NOT_IN_PROGRESS`, `aidTimeoutSuspended` in `src/quests/outcomes/aid/aid-timeout.ts`). Alla scadenza con party incompleto (o avviato ma svuotato dall'archivio) i feriti muoiono, la aid si conclude e i soccorritori registrati sono liberati (corsia e PendingQuest) con push `questCancelled`, senza un risultato. Test: `keeps the rescue timeout suspended only while the rescue is in progress (C5 rivista 2026-10-25)`, `releases an incomplete rescue party when the timeout expires`, `times out a started rescue whose rescuers were all archived`.
+  - **Testo precedente (C5 confermata il 2026-10-25, superato da 09-19):** il timeout **non scatta finché la aid ha un soccorritore registrato** (il soccorso in corso decide l'esito; altrimenti il soccorritore combatterebbe per un ferito già morto); lo sweep ricontrolla a ogni giro; se il soccorritore sparisse il timeout torna valutabile. Lettura dell'utente: "Il timeout parte alla sconfitta dell'avventuriero. Quei 7 giorni sono i giorni in cui un altro avventuriero può accettare la quest aid. Se non accetta nessuno la quest prima dello scadere del timer, l'avventuriero muore, altrimenti il timeout viene cancellato" — la sospensione equivale alla cancellazione. Regola allora in `AID_TIMEOUT_REQUIRES_NO_RESCUER`, sostituita da `AID_TIMEOUT_NOT_IN_PROGRESS`.
 
 ---
 
@@ -455,6 +503,8 @@ Variabili di esempio:
 - **`AWAITING_AID`** su `startTravel`, `travelPreview` e `acceptQuest` (§2 per l'ordine): il FE disabilita viaggio e board quando `status.awaitingAid` non è nullo.
 - **Rallentamento da ferite:** ogni viaggio (libero e da quest) moltiplica la velocità per il fattore delle ferite (`travelSpeedFactorOf`, valore **segnaposto**, §11), fotografato alla partenza come il pet: es. una gamba rotta → velocità × 0,8 (durata × 1,25); due gambe mancanti → × 0,64. La durata della preview lo include già.
 - **Board:** le quest concluse non compaiono più in `quests`/`quest(id)` (`NOT_FOUND`); le aid "Soccorso: …" compaiono come quest `aid`.
+- **Attesa del gruppo (piano 09-19; FE Phase 6/7, **in corso sul branch FE `feat/party-waiting`**):** `startDate == null && arrivedAt != null` ⇒ "In attesa del gruppo (k/N)"; pulsante "Abbandona il gruppo" (`abandonQuest`) solo in quello stato; `characterUpdated` con `pendingQuest: null` senza esito (party sciolto); push `questCancelled` (tap ⇒ mappa). `registeredAt` e `arrivedAt` sono additivi.
+- **Follow-up BE/FE — contatore del party live:** "In attesa del gruppo k/N" legge `registeredAdventurers` dalla lista quest, che non ha subscription (riletta quando la corsia entra in attesa, poi ferma fino al reload); opzioni future: `characterUpdated` a tutti i membri a ogni registrazione/abbandono, `registeredCount`/`seatsTotal` sulla `PendingQuest`, o una subscription `questUpdated(questId)`; decisione rimandata (Phase 10 o UI phase), dettagli in §16.
 
 ---
 
@@ -523,10 +573,22 @@ db.quests.updateOne({ _id: ObjectId('<questId>') }, { $set: { 'prizes.xpPrize': 
 
 **(g) Primo boot dopo il deploy:** il personaggio di sviluppo ha tre corsie occupate e scadute. Il **reconciler** risolve subito la corsia standard (`job`, senza nemico) → successo, premi, push `questEnd`; story e worldMission compaiono nella **coda del GM** (§9) e restano lì finché non vengono completate.
 
-**(h) Provare il timeout di soccorso** senza aspettare 7 giorni: con un personaggio in attesa di soccorso e la sua aid **senza soccorritori registrati** (C5), retrodatare `since` di ogni ferito della aid e attendere lo sweep (≤ 60 s con il default):
+**(h) Provare il timeout di soccorso** senza aspettare 7 giorni: con un personaggio in attesa di soccorso e la sua aid **non in corso** (nessun soccorritore, oppure un party di soccorritori incompleto: alla scadenza i soccorritori sono liberati con push `questCancelled`; C5 rivista, piano 09-19), retrodatare `since` di ogni ferito della aid e attendere lo sweep (≤ 60 s con il default):
 
 ```js
 db.characters.updateMany({ _id: { $in: [ObjectId('<characterId>'), ObjectId('<otherCharacterId>')] } }, { $set: { 'status.awaitingAid.since': new Date(Date.now() - 7 * 24 * 3600 * 1000 - 60000) } })
+```
+
+**(i) Provare l'attesa del gruppo** (piano 09-19): un boss a 2 posti (`requirements.requiredAdventurers: [{ title: null, count: 2 }]`) accettato da un solo personaggio sul marker ⇒ la sua PendingQuest ha `arrivedAt` valorizzato e `startDate: null`; registrare il secondo personaggio sul marker ⇒ `startDate` uguale per entrambi (= arrivo più tardo) e countdown in corso.
+
+```js
+db.pendingquests.find({ quest: ObjectId('<bossId>') }, { arrivedAt: 1, startDate: 1 })
+```
+
+**(j) Provare lo scioglimento a 24 ore:** con un party incompleto in attesa, retrodatare `registeredAt` delle registrazioni e attendere lo sweep (≤ 60 s): corsie svuotate, PendingQuest cancellate, registrazioni azzerate, push `questCancelled`.
+
+```js
+db.quests.updateOne({ _id: ObjectId('<bossId>') }, { $set: { 'registeredAdventurers.$[].registeredAt': new Date(Date.now() - 24 * 3600 * 1000 - 60000) } })
 ```
 
 ---
@@ -537,19 +599,22 @@ db.characters.updateMany({ _id: { $in: [ObjectId('<characterId>'), ObjectId('<ot
 2. **Background:** app in background allo scadere; push "Missione conclusa"; al tap il foglio si apre da `questResult(data.id)`.
 3. **Coda di più risultati:** boss con due personaggi (o reconciler al boot con più scadenze): i fogli si mostrano uno dopo l'altro, senza interrompere un modal (COMBAT-07), dismiss solo col tap (COMBAT-06).
 4. **Fallimento:** combattimento perso → `failure`, `awaitingAid` valorizzato, viaggio/board/negozio bloccati (`AWAITING_AID`, `SHOP_NOT_IN_CITY`), aid "Soccorso: …" sulla board.
-5. **Soccorso:** uno o più personaggi vincono la aid → ogni soccorritore `success` con `rescuedCharacters`, ogni ferito `rescued` e riportato in città; con un boss perso da più personaggi la aid è una sola, con i posti del boss.
+5. **Soccorso:** uno o più personaggi vincono la aid → ogni soccorritore `success` con `rescuedCharacters`, ogni ferito `rescued` e riportato in città; con un boss perso da più personaggi la aid è una sola, con i posti del boss, e comincia solo quando i posti dei soccorritori sono pieni (09-19).
 6. **Morte:** la aid fallisce (o timeout, §12 h) → `death`, popup di morte, `currentCharacter: null`, flusso di creazione personaggio.
 7. **Study a Valantar** con `prizes.spell` → `spellLearned` sul foglio.
 8. **Coda del GM live** (FE Phase 10): accettare una story e una worldMission con due personaggi → voci nella coda in tempo reale; filtro su `activeTravel`.
 9. **Completamento:** story senza override (titolo successivo se è la story del titolo esatto); worldMission con override diversi per personaggio → risultati diversi, quest sparita dalla board per tutti; override su un personaggio non registrato → `OUTCOME_NOT_PARTICIPANT`, `hpAfter: 0` → `OUTCOME_OVERRIDE_INVALID`.
 10. **Teleport** di un personaggio in attesa di soccorso: spostato, ancora in attesa.
 11. **FE Phase 7:** `doTransaction` dal POI di una quest o in viaggio → banner `SHOP_NOT_IN_CITY`.
+12. **Attesa del gruppo (09-19):** boss a 2 posti con un solo registrato ⇒ "In attesa del gruppo (1/2)", nessun countdown; il secondo registrato sul marker ⇒ countdown uguale per entrambi (§12 i).
+13. **Abbandono:** dall'attesa "Abbandona il gruppo" ⇒ corsia libera, posto liberato, nessun foglio; in viaggio o dopo l'avvio ⇒ `QUEST_NOT_WAITING`.
+14. **Scioglimento a 24 ore:** §12 j ⇒ push "Missione annullata", corsia libera, quest ancora sulla board.
 
 ---
 
 ## 14. Note per la BE Phase 10
 
-- **Indici** per lo sweep e le letture, se i volumi crescono (oggi scansione accettabile): `pendingquests.startDate`, `characters.status.awaitingAid.since`, `questresults.user` / `questresults.character`.
+- **Indici** per lo sweep e le letture, se i volumi crescono (oggi scansione accettabile): `pendingquests.startDate`, `characters.status.awaitingAid.since`, `questresults.user` / `questresults.character`; dal piano 09-19 anche le query dello sweep sui party (`pendingquests.arrivedAt`, `quests.startedAt` con `infos.type`, `registeredAdventurers.registeredAt`).
 - **Validazione input** GraphQL (`ValidationPipe` / class-validator): oggi `CompletePendingRequestInput` è validato a mano in `src/quests/outcomes/gm-overrides.ts`.
 - **Ritipizzazione dei ref `Mixed`** (`PendingQuest.quest`, `User.currentCharacter`, `QuestInfos.enemy`, `status.location`, `quests.*`) a `MongooseSchema.Types.ObjectId`: oggi letti con `refIdOf`/`idForms`.
 - **Bug `Enemy.locations`** (`deferred-items.md`, 09-04): `src/models/enemy.model.ts` dichiara `@Prop({ type: String, enum: Object.values(PoiType) })` mentre TS e GraphQL vogliono `[PoiType]`; un array fallisce il cast e un valore stringa romperebbe il campo lista sul filo. Fix atteso: `@Prop({ type: [String], enum: Object.values(PoiType), default: [] })` (file non Prettier-clean: commit `style(...)` separato prima). Fino ad allora il FE non seleziona `enemy.locations`.
@@ -562,7 +627,7 @@ db.characters.updateMany({ _id: { $in: [ObjectId('<characterId>'), ObjectId('<ot
 ## 15. Deploy
 
 - **Variabile nuova, opzionale:** `QUEST_SWEEP_INTERVAL_MS` (già in `.env.example`, vuota = 60 000 ms; `0` spegne lo sweep periodico, il reconciler al boot gira sempre; valore malformato → boot rifiutato). Non è un segreto. In produzione tenere lo sweep attivo.
-- **Coda Redis nuova:** `bull:quest-resolution:*` (job `resolve` e `aid-timeout`); job `recover` aggiuntivi su `bull:spell-recovery:*` per le magie usate negli esiti.
+- **Coda Redis nuova:** `bull:quest-resolution:*` (job `resolve`, `aid-timeout` e, dal piano 09-19, `party-timeout`); job `recover` aggiuntivi su `bull:spell-recovery:*` per le magie usate negli esiti.
 - **Redis in produzione:** verificare la **`maxmemory-policy`** (blocker in STATE): con una policy di eviction i delayed job possono sparire; reconciler e sweep li compensano. Consigliata `noeviction`.
 - **Redis giù:** accettazione e arrivo vanno a buon fine comunque (timeout di coda 2 s, WARN); gli esiti arrivano con lo sweep.
 - **Nessuna migrazione** (D-29): dati a mano, §12. **Nessuna dipendenza nuova**, **nessun indice nuovo**.
@@ -591,14 +656,20 @@ db.characters.updateMany({ _id: { $in: [ObjectId('<characterId>'), ObjectId('<ot
 - 09-14: helper di harness esportati; flaky del boot reale annotato (§14).
 - 09-15: tempi di recupero delle magie degli override letti con `recoveryTimesOf` (senza, gli usi non sarebbero mai tornati); override più severi (ferite fuori catalogo, `hpAfter` negativo); audit `outcome: 'ok'`.
 - 09-17: porta ridisegnata (CombatResolution, verdetto unico A3), fake con willEnd, C5 marcata confermata; nessun cambiamento di SDL.
+- 09-19: vedi la riga 09-19 qui sotto e `09-19-SUMMARY.md`.
 - 09-18: una sola aid per combattimento perso (rescue.characters, posti = posti della quest fallita), soccorso di gruppo sul roster condiviso, rescuedCharacters nel risultato (SDL additivo vs develop). La aid vecchia di un soccorso fallito conserva `rescue.characters` come storico (il claim la conclude prima che l'archivio passi); `quest-outcome-fields.schema.spec.ts` aggiornato fuori dalla lista del piano.
 
-**Decisioni dell'utente (2026-10-25):** C5 confermata (§6); A3 corretta — verdetto unico del combattimento (§5, piano 09-17); A2 — i valori segnaposto (§11) restano **provvisori**: li definirà l'utente ("I valori segnaposto verranno risolti da me in futuro.").
+**Decisioni dell'utente (2026-10-25):** avvio a party completo, abbandono durante l'attesa, 24 ore per riempire i posti, timer della aid sospeso solo a party completo (piano 09-19, §5/§6: "Per quanto riguarda le missioni boss: per poterle cominciare il party dev'essere al completo, quindi tutti restano in attesa. Lo stesso vale per le missioni aid legate a chi fallisce la missione boss." e "bisogna dare la possibilità di abbandonare la quest boss durante il momento dell'attesa. Se entro 24 ore i posti non diventano pieni, allora la missione viene annullata in automatico per tutti. Il timer si cancella solo a party completo."); C5 confermata e poi rivista da 09-19 (§6); A3 corretta — verdetto unico del combattimento (§5, piano 09-17); A2 — i valori segnaposto (§11) restano **provvisori**: li definirà l'utente ("I valori segnaposto verranno risolti da me in futuro.").
 
 **Default tecnico di 09-18 (proposto all'utente il 2026-10-25, non vetato):** posti della aid tutti jolly (`title: null`) anziché i vincoli di rango del boss.
 
+**Riga 09-19 (avvio a party completo):** `QuestStartService` unico scrittore di `startDate` della corsia standard, `arrivedAt`/`registeredAt` sul filo, `startedAt` interno, `abandonQuest`, job `party-timeout` e scioglimento, push `questCancelled`, C5 rivista, archivio che azzera `startedAt` a roster vuoto. Default tecnici proposti all'utente il 2026-10-25: `startDate` = arrivo più tardo; abbandono solo sul marker; finestra ancorata alla registrazione più vecchia, non riavviata dopo un abbandono, legacy retrodatate a `now` una volta; party pieno con un membro in viaggio non scade; posto liberato dopo l'avvio non ferma la quest; arrivo dopo uno scioglimento senza countdown; `tryStart` su quest inesistente ⇒ WARN con soli id.
+- **Query dello sweep non indicizzate:** indici differiti alla Phase 10 (§14).
+- **Nota di deploy:** i party in volo prima di 09-19 (membri con `startDate` scritto e `startedAt` nullo) vanno ripuliti a mano con mongosh o allineati con `startedAt = max(startDate)` — lo scioglimento a 24 h non tocca le corsie dei membri con `startDate` scritto.
+- **La board mostra ancora le quest avviate con posti liberi:** l'accettazione risponde `QUEST_FULL` — nascondere le avviate è un follow-up FE/BE.
+
 **Ancora aperti:**
 
-- **09-19** — avvio di boss e aid di gruppo solo a party completo (countdown di gruppo). Utente 2026-10-25: "Per quanto riguarda le missioni boss: per poterle cominciare il party dev'essere al completo, quindi tutti restano in attesa. Lo stesso vale per le missioni aid legate a chi fallisce la missione boss." Fino ad allora: comportamento transitorio di 09-18: boss e aid di gruppo si risolvono quando tutti i registrati sono scaduti; la regola dell'utente del 2026-10-25 — il party deve essere al completo per cominciare, tutti restano in attesa, anche per le aid del boss — arriva con il piano 09-19.
+- **Follow-up BE/FE — contatore del party live:** il FE mostra "In attesa del gruppo k/N" leggendo `registeredAdventurers` dalla lista quest, che non ha subscription: oggi rilegge la lista quando la corsia entra in attesa, poi il numero resta fermo finché non ricarica. Opzioni future: `characterUpdated` a tutti i membri del party a ogni registrazione/abbandono (la corsia non cambia, ma il FE rilegge), oppure `registeredCount`/`seatsTotal` sulla `PendingQuest`, oppure una subscription `questUpdated(questId)`. Decisione rimandata (Phase 10 o UI phase).
 - **A1** — testi italiani dei codici nuovi (§2).
 - UAT su device dopo la FE Phase 9/10 (§12, §13; vedi `09-VALIDATION.md`, Manual-Only Verifications).

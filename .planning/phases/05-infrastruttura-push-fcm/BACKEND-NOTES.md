@@ -121,11 +121,11 @@ Il FE mappa `extensions.code`, mai il messaggio.
 
 | Chiave | Sempre | Contenuto |
 | ------ | ------ | --------- |
-| `type` | sì | `travelEnd` / `questEnd` / `streamerLive` (valori di `PushEventType`) |
+| `type` | sì | `travelEnd` / `questEnd` / `streamerLive` / `questCancelled` (valori di `PushEventType`; `questCancelled` aggiunto dalla Phase 9, 09-19) |
 | `title` | sì | titolo in italiano dal catalogo `push-events.ts` |
 | `body` | sì | testo in italiano dal catalogo |
 | `sentAt` | sì | istante di invio, ISO 8601 UTC (`Date.toISOString()`) |
-| `id` | solo `travelEnd`/`questEnd` | id da ri-interrogare via GraphQL; la chiave è **assente** (non vuota) quando non c'è |
+| `id` | solo `travelEnd`/`questEnd`/`questCancelled` | id da ri-interrogare via GraphQL; la chiave è **assente** (non vuota) quando non c'è |
 
 ### Un esempio per tipo
 
@@ -165,6 +165,20 @@ Il FE mappa `extensions.code`, mai il messaggio.
   "sentAt": "2026-10-18T12:00:00.000Z"
 }
 ```
+
+`questCancelled` (aggiunto dalla Phase 9, 09-19; personale, `id` = id della quest — o della aid — il cui party è stato sciolto, TTL 1 h):
+
+```json
+{
+  "type": "questCancelled",
+  "title": "Missione annullata",
+  "body": "Il gruppo non si è formato in tempo: la missione è stata annullata.",
+  "sentAt": "2026-10-18T12:00:00.000Z",
+  "id": "6712a0c4e1b2c3d4e5f6071a"
+}
+```
+
+> **Aggiunto dalla Phase 9 (09-19, 2026-10-25):** inviato a ogni proprietario dei personaggi liberati quando un party non si riempie entro 24 ore o quando il timeout di una aid libera i soccorritori di un party incompleto. Al tap: mappa. Vedi `.planning/phases/09-combat-result-admin-outcomes/BACKEND-NOTES.md` §4.
 
 ### Opzioni di consegna (verbatim da `src/push/transport/fcm-message.ts`)
 

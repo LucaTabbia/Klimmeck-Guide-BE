@@ -89,6 +89,12 @@ Trappole di tooling (vincolanti, D-26 / RESEARCH Q10 e Pitfall 1–13): path jes
 | 09-18-T1 | 09-18 | 10 | BE-COMBAT-01/03 (D-08, D-19 emendate) | T-09-86 | rescue.characters, posti = posti della quest fallita, rescuedCharacters nello schema | unit + integration + real boot | `npx jest src/quests/outcomes src/models src/characters --selectProjects unit && npx jest src/quests/results src/characters/deletion test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 (RED) | ✅ green |
 | 09-18-T2 | 09-18 | 10 | BE-COMBAT-03 (D-05, D-09, D-10 emendate) | T-09-87, T-09-88 | una aid per boss perso, soccorso di gruppo, timeout su tutti i feriti | integration (replSet) | `npx jest src/quests/outcomes/boss-resolution.int-spec.ts src/quests/outcomes/aid-rescue.int-spec.ts src/quests/outcomes/aid-timeout.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 (RED) | ✅ green |
 | 09-18-T3 | 09-18 | 10 | BE-COMBAT-01/03 | — | documenti allineati | doc check | grep "rescuedCharacters" su BACKEND-NOTES §1/§3 | ✅ | ✅ green |
+| 09-19-T1 | 09-19 | 11 | BE-COMBAT-03 (D-05 emendata) | T-09-90, T-09-96 | arrivedAt/registeredAt/startedAt, regole del party, QuestStartService | unit + integration + real boot | `npx jest src/quests/party src/models --selectProjects unit && npx jest src/quests/party src/quests/outcomes src/characters/deletion test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 (RED) | ✅ green |
+| 09-19-T2 | 09-19 | 11 | BE-COMBAT-03 (D-05, D-06, D-24 emendate) | T-09-94 | avvio dall'accettazione, dall'arrivo e dallo sweep; QUEST_FULL su quest avviata | unit + integration | `npx jest src/quests src/travel --selectProjects unit && npx jest src/quests/acceptance src/travel src/quests/outcomes src/characters/deletion --selectProjects integration --runInBand` | ❌ W0 (RED) | ✅ green |
+| 09-19-T3 | 09-19 | 11 | BE-COMBAT-03 | T-09-91 | abandonQuest owner-only, QUEST_NOT_WAITING | integration + real boot | `npx jest src/quests/party test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 (RED) | ✅ green |
+| 09-19-T4 | 09-19 | 11 | BE-COMBAT-03 | T-09-92, T-09-95 | job party-timeout, scioglimento a 24 h, push questCancelled, backfill | unit + integration | `npx jest src/push src/quests/outcomes/scheduling src/quests/party --selectProjects unit && npx jest src/quests/party src/quests/acceptance src/quests/outcomes/quest-resolution.processor.int-spec.ts src/quests/outcomes/quest-resolution.sweeper.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 (RED) | ✅ green |
+| 09-19-T5 | 09-19 | 11 | BE-COMBAT-03 (D-10 C5 rivista) | T-09-93 | timer della aid solo dalla aid in corso, soccorritori liberati, archivio che azzera startedAt; gate completo | unit + integration (gate) | `npm run test:unit && npm run test:int && npm run build && git diff --exit-code src/schema.gql` | ❌ W0 (RED) | ✅ green |
+| 09-19-T6 | 09-19 | 11 | BE-COMBAT-03 | — | documenti e handoff allineati | doc check | grep "abandonQuest(request: AbandonQuestRequest!): CommonResponse!" e "QUEST_NOT_WAITING" su BACKEND-NOTES, "questCancelled" su Phase 5 BACKEND-NOTES | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -114,6 +120,7 @@ Nessuna wave dedicata: ogni spec nuova nasce RED nel task che la consuma (TDD pe
 - [x] `src/quests/outcomes/gm-overrides.spec.ts`, `gm-completion.service.int-spec.ts`, `src/quests/pending-requests/complete-pending-request.resolver.int-spec.ts` (09-15)
 - [x] `test/quests/scripted-combat-resolver.ts` con willEnd, `placeholder-combat-resolver.spec.ts` casi A3 (09-17)
 - [x] src/quests/outcomes/group-roster.ts (tipi del roster condiviso), casi di gruppo in aid-rescue.int-spec.ts e aid-timeout.int-spec.ts (09-18)
+- [x] `src/quests/party/*.spec.ts` (`party-rules.spec.ts`) e `*.int-spec.ts` (`quest-start`, `party-abandon`, `party-timeout`); `OutcomeHarnessOptions.imports` e `QuesterOptions.arrivedAt` in `test/quests/outcome-world.ts` (09-19)
 - Framework install: nessuno (stack e harness esistenti, nessuna dipendenza nuova).
 
 ---
@@ -128,7 +135,8 @@ Nessuna wave dedicata: ogni spec nuova nasce RED nel task che la consuma (TDD pe
 | Dati di catalogo alla scala nuova (HP 1000, nemici riscalati, 2 ref `infos.enemy` orfani, `prizes.spell` sulle study di Valantar, una quest per tipo) | D-29 | decisione utente: nessuna migrazione né seed | BACKEND-NOTES §12: comandi `mongosh` dopo il deploy |
 | Timeout di soccorso reale | D-10 | 7 giorni reali | `mongosh`: retrodatare `status.awaitingAid.since` di 7 giorni e attendere lo sweep (≤ 60 s) |
 | ~~Conferma del default C5~~ — **confermato dall'utente il 2026-10-25** (A3 corretta nel piano 09-17, A2 resta provvisorio) | D-10 | scelta di game design dell'utente | chiusa; la aid unica di gruppo per il boss perso (decisione dell'utente del 2026-10-25) è implementata dal piano 09-18 |
-| Soccorso di gruppo su device: più soccorritori sulla stessa aid, `rescuedCharacters` sul foglio | D-08, D-09 emendate (09-18) | richiede la FE Phase 9 su device | BACKEND-NOTES §13 punto 5. Comportamento transitorio di 09-18: boss e aid di gruppo si risolvono quando tutti i registrati sono scaduti; la regola dell'utente del 2026-10-25 — il party deve essere al completo per cominciare, tutti restano in attesa, anche per le aid del boss — arriva con il piano 09-19 |
+| Soccorso di gruppo su device: più soccorritori sulla stessa aid, `rescuedCharacters` sul foglio | D-08, D-09 emendate (09-18) | richiede la FE Phase 9 su device | BACKEND-NOTES §13 punto 5; dal piano 09-19 il soccorso di gruppo comincia solo a party completo |
+| Attesa del gruppo, abbandono e scioglimento a 24 ore su device (etichetta "In attesa del gruppo", "Abbandona il gruppo", push `questCancelled`) | D-05, D-08, D-10 emendate (09-19) | richiede la FE (`feat/party-waiting`) su device e 24 ore reali | BACKEND-NOTES §12 (i) e (j): `mongosh` per vedere `arrivedAt`/`startDate` e retrodatare `registeredAdventurers.$[].registeredAt`, poi attendere lo sweep (≤ 60 s); §13 punti 12–14 |
 | Policy Redis di produzione (`maxmemory-policy`) | D-24 | configurazione dell'infrastruttura | BACKEND-NOTES §15 |
 
 ---
@@ -149,3 +157,5 @@ Nessuna wave dedicata: ogni spec nuova nasce RED nel task che la consuma (TDD pe
 **Execution sign-off (09-18, 2026-10-25):** `npm run test:unit` **121 suite / 1790 test**, `npm run test:int` **72 suite / 924 test** (`--runInBand`, foreground, nessun flaky), build 0, schema rigenerato dal boot reale (diff vs develop additivo: rescuedCharacter → rescuedCharacters, nato in questa PR).
 
 **Approval:** approved 2026-10-24 (execution gate 09-16)
+
+**Execution sign-off (09-19, 2026-10-25):** `npm run test:unit` **122 suite / 1827 test**, `npm run test:int` **75 suite / 967 test** (`--runInBand`, foreground, nessun flaky), `npm run build` exit 0, `git diff --exit-code src/schema.gql` pulito, schema rigenerato dal boot reale con sole aggiunte (`arrivedAt`, `registeredAt`, `abandonQuest`, `AbandonQuestRequest`, `questCancelled`), `startedAt` assente dallo schema.

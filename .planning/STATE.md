@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 9 complete (18/18, 2026-10-25) — PR #13 to develop open
-last_updated: "2026-10-25T13:59:41.000Z"
-last_activity: 2026-10-25 -- Phase 9 plan 09-18: one group aid per lost fight (seats = failed quest seats), group rescue, rescuedCharacters; gate green; PR #13 to be updated by the orchestrator
+stopped_at: Phase 9 complete (19/19, 2026-10-25) — PR #13 to develop open
+last_updated: "2026-10-25T15:24:50.000Z"
+last_activity: 2026-10-25 -- Phase 9 plan 09-19: party-complete start, abandonQuest, 24h disband, aid timer suspended only while the rescue runs; gate green; PR #13 to be updated by the orchestrator
 progress:
   total_phases: 12
   completed_phases: 10
-  total_plans: 105
-  completed_plans: 105
+  total_plans: 106
+  completed_plans: 106
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 9 — Combat Result & Admin Outcomes complete on 2026-10-24 (PR #13 to develop open 2026-10-24; unblocks FE Phase 9 foglio esiti and FE Phase 10 pannello admin; FE Phase 7 gets `SHOP_NOT_IN_CITY`/`AWAITING_AID`); user decisions 2026-10-25: C5 confirmed, A3 corrected (one verdict per fight, plan 09-17), placeholder values stay provisional; one group aid per lost fight (seats = failed quest seats, user 2026-10-25) done in plan 09-18; transitional behaviour of 09-18: boss and group aids resolve when every registered adventurer is due — the user rule of 2026-10-25 (the party must be complete to start, everyone waits, boss aids included) comes with plan 09-19; next Phase 10 — Hardening Trasversale
+**Current focus:** Phase 9 — Combat Result & Admin Outcomes complete on 2026-10-24 (PR #13 to develop open 2026-10-24; unblocks FE Phase 9 foglio esiti and FE Phase 10 pannello admin; FE Phase 7 gets `SHOP_NOT_IN_CITY`/`AWAITING_AID`); user decisions 2026-10-25: C5 confirmed, A3 corrected (one verdict per fight, plan 09-17), placeholder values stay provisional; one group aid per lost fight (seats = failed quest seats, user 2026-10-25) done in plan 09-18; party-complete start, abandon while waiting, 24h disband with questCancelled and aid timer suspended only while the rescue runs (user 2026-10-25) done in plan 09-19; next Phase 10 — Hardening Trasversale
 
 ## Current Position
 
-Phase: 9 (Combat Result & Admin Outcomes) — COMPLETE 2026-10-25 (18/18 plans; 09-17 shared combat verdict A3 + C5 confirmed; 09-18 one group aid per lost fight + group rescue + rescuedCharacters; code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, 1 sub-point deferred to Phase 10; verification passed 5/5 success criteria + D-01..D-29 (C1–C10); device UAT deferred to the FE Phase 9/10 UAT; security audit in 09-SECURITY.md)
-Plan: 18 of 18 (complete)
-Status: Phase 9 complete (18/18) — PR #13 (feat/09-combat-result-admin-outcomes → develop) open, to be updated by the orchestrator with 09-17 and 09-18; plan 09-19 (boss and group aids start only with a complete party) next, then /gsd-discuss-phase 10 (Hardening Trasversale)
-Last activity: 2026-10-25 -- Phase 9 plan 09-17: shared combat verdict (A3), C5 confirmed by the user, placeholders stay provisional; gate green (unit 121 suites / 1776 tests, integration 72 suites / 915 tests, build 0, schema unchanged)
+Phase: 9 (Combat Result & Admin Outcomes) — COMPLETE 2026-10-25 (19/19 plans; 09-17 shared combat verdict A3 + C5 confirmed; 09-18 one group aid per lost fight + group rescue + rescuedCharacters; 09-19 party-complete start + abandonQuest + 24h disband + C5 revised; code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, 1 sub-point deferred to Phase 10; verification passed 5/5 success criteria + D-01..D-29 (C1–C10); device UAT deferred to the FE Phase 9/10 UAT; security audit in 09-SECURITY.md)
+Plan: 19 of 19 (complete)
+Status: Phase 9 complete (19/19) — PR #13 (feat/09-combat-result-admin-outcomes → develop) open, to be updated by the orchestrator with 09-17, 09-18 and 09-19; next /gsd-discuss-phase 10 (Hardening Trasversale)
+Last activity: 2026-10-25 -- Phase 9 plan 09-19: party-complete start (arrivedAt/startedAt, QuestStartService), abandonQuest, 24h disband with questCancelled, aid timer suspended only while the rescue runs; gate green (unit 122 suites / 1827 tests, integration 75 suites / 967 tests, build 0, schema additive)
 
 Progress: [██████████] 100% (phases 1–9 complete; Phase 10 next)
 
@@ -36,7 +36,7 @@ Progress: [██████████] 100% (phases 1–9 complete; Phase 10
 
 **Velocity:**
 
-- Total plans completed: 105
+- Total plans completed: 106
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -239,6 +239,7 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-16: gate di fase verde senza correzioni di codice; handoff BACKEND-NOTES.md (SDL verbatim, codici, esiti, regole segnaposto, dati UAT mongosh con placeholder); handoff Phase 5 emendato (questEnd con l'id del risultato, nessun combatResult); traceability BE-COMBAT-01..03 / BE-ADMIN-01..02 Complete; la morte ha un unico punto archiveWithin (dieWithin) per aid fallita e timeout
 - [Phase 09]: 09-17: CombatResolver returns CombatResolution { verdict, participants: ParticipantEffects[] } — one verdict per fight (A3, user 2026-10-25), effects per participant; placeholder rolls victory once; ScriptedCombatResolver.willEnd; C5 confirmed (suspension = cancellation while a rescuer is registered); A2 placeholders stay provisional
 - [Phase 09]: 09-18: one aid per lost fight — Quest.rescue { characters: [Character], failedQuest }, aid seats = Σ count of the failed quest's requiredAdventurers (min 1, wildcard), group rescue on the shared roster reader (resolves when every registered rescuer is due, one verdict), success frees every wounded (rescuedCharacters on each rescuer's result), failure kills every wounded and chains ONE new aid for the rescuers, timeout kills every wounded, archiver pulls the wounded and concludes the aid only when none is left; SDL rescuedCharacter → rescuedCharacters (born in this PR, additive vs develop); resolving without a full party is transitional until plan 09-19 (user rule 2026-10-25: the party must be complete to start)
+- [Phase 09]: 09-19: registered standard quests (boss, aid, enemy) start only with every seat taken and everyone on the marker — PendingQuest.arrivedAt (wire) marks the arrival, QuestStartService is the only writer of the standard lane startDate (same startDate = latest arrival, internal Quest.startedAt identity claim, resolve jobs only there), started quests take no registration (QUEST_FULL), a lost boss resets startedAt; abandonQuest owner-only while waiting on the marker (QUEST_NOT_WAITING otherwise); QuestRegistration.registeredAt (wire) opens a 24h window (party-timeout job + sweep with one-time legacy backfill) after which the party is disbanded with push questCancelled (id = quest id) and the quest stays on the board, rescuer parties included; aid timer suspended only by a started rescue with rescuers (C5 revised), an expired incomplete rescue party is released; the archive resets startedAt on open quests left empty; technical defaults proposed to the user 2026-10-25 in 09-CONTEXT
 
 ### Pending Todos
 
@@ -257,6 +258,7 @@ None yet.
 - **Phase 2 — UAT umane pendenti** (`02-HUMAN-UAT.md`): login Twitch reale (chiavi non ancora disponibili), pipeline GitHub Actions reale, controllo duplicati `twitchId` sui dati reali.
 - **Branch non pushati:** `feat/01-fondazione-test-consolidamento-spell-wip` e `feat/02-auth-identity-foundation` (la Phase 2 poggia sulla Phase 1, non ancora su `develop`); PR da aprire a mano verso `develop`.
 - `JWT_SECRET` (≥ 32 caratteri) è ora obbligatoria al boot su ogni ambiente; righe `.env` per il dev bypass in `BACKEND-NOTES.md` §7.
+- FE: branch `feat/party-waiting` (etichetta "In attesa del gruppo", abbandono, push questCancelled) da mergiare dopo la PR FE Phase 7 e la PR BE #13.
 
 ### Quick Tasks Completed
 
@@ -266,7 +268,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-24T17:52:00.000Z
-Stopped at: Completed 09-16-PLAN.md
+Last session: 2026-10-25T15:24:50.000Z
+Stopped at: Completed 09-19-PLAN.md
 Resume file: None
 | 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |
