@@ -569,7 +569,7 @@ type QuestResult {
   maxLifePoints: Int!
   outcome: QuestOutcome!
   quest: QuestResultQuest!
-  rescuedCharacter: ID
+  rescuedCharacters: [ID!]!
   resolvedAt: DateTime!
   rewards: QuestRewards!
   spellLearned: Spell

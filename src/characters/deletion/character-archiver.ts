@@ -68,7 +68,7 @@ export class CharacterArchiver {
         return 'archived';
     }
 
-    // posti liberati (Phase 8 D-30) e aid che lo riguardano chiuse (D-09): nessuna aid orfana sulla board
+    // posti liberati (Phase 8 D-30); il ferito esce dalle aid aperte che lo soccorrono e la aid resta aperta finché c'è qualcuno da soccorrere (D-09): nessuna aid orfana sulla board
     private async releaseQuestsOf(
         characterId: Types.ObjectId,
         now: Date,
@@ -85,9 +85,30 @@ export class CharacterArchiver {
                 { session },
             )
             .exec();
+        const aids = await this.questModel
+            .find(
+                { 'rescue.characters': characterId, concludedAt: null },
+                { _id: 1 },
+                { session },
+            )
+            .lean<{ _id: Types.ObjectId }[]>()
+            .exec();
+        if (aids.length === 0) return;
+        const aidIds = aids.map(({ _id }) => _id);
         await this.questModel
             .updateMany(
-                { 'rescue.character': characterId, concludedAt: null },
+                { _id: { $in: aidIds } },
+                { $pull: { 'rescue.characters': characterId } },
+                { session },
+            )
+            .exec();
+        await this.questModel
+            .updateMany(
+                {
+                    _id: { $in: aidIds },
+                    concludedAt: null,
+                    'rescue.characters': { $size: 0 },
+                },
                 { $set: { concludedAt: now } },
                 { session },
             )
