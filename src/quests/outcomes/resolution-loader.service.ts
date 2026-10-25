@@ -24,6 +24,7 @@ import { User, UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
 import { lanePathOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
 import type { AidSourceQuest } from './aid/aid-quest';
+import type { GroupRoster, GroupSeat } from './group-roster';
 import {
     type CombatCharacterSnapshot,
     combatCatalogRefsOf,
@@ -131,6 +132,13 @@ export function laneFilter(
     };
 }
 
+const STANDARD_LANE_PATH = lanePathOf(QuestLane.standard);
+
+const isDue = (pendingQuest: PendingQuestSnapshot, now: Date): boolean =>
+    pendingQuest.startDate !== null &&
+    pendingQuest.startDate.getTime() + (pendingQuest.waitingTime ?? 0) <=
+        now.getTime();
+
 export const standardLaneFilter = (
     pendingQuestId: Types.ObjectId,
 ): Record<string, unknown> => laneFilter(pendingQuestId, QuestLane.standard);
@@ -196,6 +204,57 @@ export class ResolutionLoader {
             return 'stale';
         }
         return { pendingQuest, character, quest, ownerId };
+    }
+
+    // pre-letture lean del gruppo (boss, soccorso): registrati attivi in corsia con una PendingQuest di questa quest; chi non ce l'ha (o non ha utente) esce (Pitfall 8)
+    async readGroupRoster(
+        questId: Types.ObjectId,
+        registered: readonly Types.ObjectId[],
+        now: Date,
+    ): Promise<GroupRoster> {
+        const characters = await this.characterModel
+            .find(
+                {
+                    ...ACTIVE_CHARACTER_FILTER,
+                    _id: { $in: registered.flatMap((id) => idForms(id)) },
+                    [STANDARD_LANE_PATH]: { $ne: null },
+                },
+                OUTCOME_CHARACTER_PROJECTION,
+            )
+            .lean<LaneCharacter<QuestLane.standard>[]>()
+            .exec();
+        const lanes = characters.flatMap(
+            (character) => refIdOf(character.quests?.pendingQuest) ?? [],
+        );
+        const pendingQuests = await this.pendingQuestModel
+            .find(
+                { _id: { $in: lanes }, quest: { $in: idForms(questId) } },
+                { startDate: 1, waitingTime: 1, quest: 1 },
+            )
+            .lean<PendingQuestSnapshot[]>()
+            .exec();
+        const owners = await this.ownersOf(characters.map(({ _id }) => _id));
+        const seats: GroupSeat[] = [];
+        let waiting = false;
+        for (const character of characters) {
+            const lane = refIdOf(character.quests?.pendingQuest);
+            const pendingQuest = pendingQuests.find(
+                ({ _id }) => lane !== null && _id.equals(lane),
+            );
+            const ownerId = owners.get(character._id.toHexString());
+            if (!pendingQuest || !ownerId) continue;
+            if (!isDue(pendingQuest, now)) waiting = true;
+            seats.push({
+                character,
+                pendingQuestId: pendingQuest._id,
+                ownerId,
+                resultId: new Types.ObjectId(),
+            });
+        }
+        const dropped = registered.filter(
+            (id) => !seats.some(({ character }) => character._id.equals(id)),
+        );
+        return { seats, dropped, waiting };
     }
 
     // proprietario = utente che punta al personaggio; un personaggio senza utente resta fuori dalla mappa
