@@ -18,11 +18,17 @@ import {
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
 import { primeQuestResultsChangeStream } from '../../../test/quests/quest-results-change-stream';
 import { persistQuestResult } from '../../../test/quests/quest-result.fixture';
+import type { PubSub } from '@graphql-yoga/subscription';
+import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
+import { withTimeout } from '../../../test/auth/ws-test-client';
 
 const QUEST_RESULT_RECEIVED =
     'subscription OnQuestResult($characterId: String!) { questResultReceived(characterId: $characterId) { id outcome hpAfter quest { title } } }';
 // nessuno snapshot: la finestra di silenzio lascia anche aprire la subscription prima della prima scrittura
 const NO_SNAPSHOT_WINDOW_MS = 300;
+// l'evento del change stream arriva in modo asincrono: un inserto fatto prima della subscription va atteso sul PubSub
+// interno, altrimenti su una CI lenta la subscription lo riceverebbe come finto snapshot
+const PUBLISHED_WAIT_MS = 2000;
 
 interface WireQuestResult {
     id: string;
@@ -113,6 +119,20 @@ describe('questResultReceived subscription (wire)', () => {
             user: player.user._id,
             ...overrides,
         });
+    }
+
+    // persiste un risultato e attende che il change stream lo abbia pubblicato: solo allora la subscription sotto test può aprirsi
+    async function persistPublishedResultOf(player: TestPlayer) {
+        const pubSub = harness.app.get<PubSub<PubSubEvents>>(PUB_SUB);
+        const live = pubSub.subscribe('questResultReceived');
+        const published = live.next();
+        try {
+            const persisted = await persistResultOf(player);
+            await withTimeout(published, PUBLISHED_WAIT_MS);
+            return persisted;
+        } finally {
+            await live.return?.();
+        }
     }
 
     beforeAll(async () => {
@@ -215,7 +235,7 @@ describe('questResultReceived subscription (wire)', () => {
     });
 
     it('emits on inserts only, not on updates of an existing result', async () => {
-        const existing = await persistResultOf(alice);
+        const existing = await persistPublishedResultOf(alice);
         const live = await subscribeWithoutSnapshot(alice.bearer, aliceCharId);
 
         await results.updateOne(
