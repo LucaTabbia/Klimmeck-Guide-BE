@@ -226,6 +226,15 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
             expect(boss?.startedAt).toEqual(STARTED_AT);
         });
 
+        it('leaves alone a started quest the character was not registered on', async () => {
+            const scene = await persistScene();
+            const foreignId = await startedBoss([]);
+
+            await archiveInTransaction(scene.userId, scene.characterId);
+
+            expect((await rawQuest(foreignId))?.startedAt).toEqual(STARTED_AT);
+        });
+
         it('leaves a concluded quest untouched', async () => {
             const scene = await persistScene();
             const bossId = await startedBoss([scene.characterId], YESTERDAY);
