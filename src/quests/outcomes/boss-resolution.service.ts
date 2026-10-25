@@ -6,7 +6,7 @@ import { buildAidQuest } from './aid/aid-quest';
 import { ChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
 import { battleOf, combatContextOf, planCombatant } from './combatant-plan';
-import type { GroupRoster, GroupSeat } from './group-roster';
+import type { GroupRoster } from './group-roster';
 import {
     type CommittedOutcome,
     emptyCommitted,
@@ -101,8 +101,8 @@ export class BossResolutionService {
         now,
     }: GroupResolution): Promise<CommittedOutcome | null> {
         const { quest } = loaded;
-        // transitorio: 09-18 Task 2
-        const aidQuestIds = roster.seats.map(() => new Types.ObjectId());
+        // una sola aid per il gruppo che perde (D-08 emendata, utente 2026-10-25)
+        const aidQuestId = new Types.ObjectId();
         const state: { committed: CommittedOutcome | null } = {
             committed: null,
         };
@@ -128,10 +128,7 @@ export class BossResolutionService {
                 const verdicts: Parameters<
                     typeof questUpdateOf
                 >[0]['verdicts'] = [];
-                const failed: {
-                    seat: GroupSeat;
-                    aidQuestId: Types.ObjectId;
-                }[] = [];
+                const failed: Types.ObjectId[] = [];
                 for (const [index, seat] of roster.seats.entries()) {
                     const snapshot = snapshots[index];
                     const { plan, verdict, aid } = planCombatant({
@@ -140,7 +137,7 @@ export class BossResolutionService {
                         snapshot,
                         battle: battleOf(resolution, snapshot._id),
                         resultId: seat.resultId,
-                        aidQuestId: aidQuestIds[index],
+                        aidQuestId,
                         pendingQuestId: seat.pendingQuestId,
                         userId: seat.ownerId,
                         chance: this.chance,
@@ -157,8 +154,7 @@ export class BossResolutionService {
                         userId: seat.ownerId,
                     });
                     committed.spellRecoveries.push(...plan.spellRecoveries);
-                    if (aid)
-                        failed.push({ seat, aidQuestId: aidQuestIds[index] });
+                    if (aid) failed.push(snapshot._id);
                 }
                 // claim del gruppo (D-05, D-21): un secondo trigger o un nuovo iscritto ⇒ WriteConflict o 0 match ⇒ no-op, lo sweep riprova
                 await this.writer.updateQuest(
@@ -178,10 +174,10 @@ export class BossResolutionService {
                     session,
                     'claim',
                 );
-                for (const { seat, aidQuestId } of failed) {
-                    // transitorio: 09-18 Task 2
+                // tutti i falliti in UNA aid con i posti del boss: un solo timeout per il gruppo
+                if (failed.length > 0) {
                     await this.writer.createAid(
-                        buildAidQuest(quest, [seat.character._id], aidQuestId),
+                        buildAidQuest(quest, failed, aidQuestId),
                         session,
                     );
                     committed.aids.push({ aidQuestId, since: now });

@@ -3,14 +3,13 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
-import { activeCharacterById } from 'src/models/character/active-character.filter';
+import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { City, CityDocument } from 'src/models/city.model';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
-import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
@@ -22,12 +21,8 @@ import {
 } from './aid/aid-timeout';
 import { ChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
-import {
-    battleOf,
-    type CombatantBattle,
-    combatContextOf,
-    planCombatant,
-} from './combatant-plan';
+import { battleOf, combatContextOf, planCombatant } from './combatant-plan';
+import type { GroupRoster } from './group-roster';
 import {
     OUTCOME_CHARACTER_PROJECTION,
     type OutcomeCharacterSnapshot,
@@ -38,7 +33,7 @@ import {
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
-import { questUpdateOf } from './quest-outcome-plan';
+import { questClaimFilter, questUpdateOf } from './quest-outcome-plan';
 import {
     type ResolutionCatalog,
     type ResolutionCharacter,
@@ -63,15 +58,35 @@ const AID_TIMEOUT_PROJECTION = {
     registeredAdventurers: 1,
 } as const;
 
-const awaitingSinceOf = (
-    injured: OutcomeCharacterSnapshot | null,
-): Date | null => {
-    const awaiting = injured?.status.awaitingAid as
+const awaitingSinceOf = (injured: OutcomeCharacterSnapshot): Date | null => {
+    const awaiting = injured.status.awaitingAid as
         | { since?: unknown }
         | null
         | undefined;
     return awaiting?.since instanceof Date ? awaiting.since : null;
 };
+
+// id dei feriti della aid in ogni forma salvata (ref ObjectId o stringa legacy)
+const woundedIdsOf = (aid: ResolutionQuest): Types.ObjectId[] =>
+    (aid.rescue?.characters ?? []).flatMap((character) => {
+        const id = refIdOf(character);
+        return id ? [id] : [];
+    });
+
+const resultIdsFor = (
+    ids: readonly Types.ObjectId[],
+): Map<string, Types.ObjectId> =>
+    new Map(ids.map((id) => [id.toHexString(), new Types.ObjectId()]));
+
+// il ferito più vecchio decide la scadenza: la aid è una sola per tutti
+const oldestSinceOf = (
+    wounded: readonly OutcomeCharacterSnapshot[],
+): Date | null =>
+    wounded.reduce<Date | null>((oldest, injured) => {
+        const since = awaitingSinceOf(injured);
+        if (!since) return oldest;
+        return !oldest || since < oldest ? since : oldest;
+    }, null);
 
 interface DeathRequest {
     injured: OutcomeCharacterSnapshot;
@@ -87,14 +102,14 @@ interface ReturnCity {
 
 interface RescueContext {
     loaded: StandardLoad;
-    injuredId: Types.ObjectId;
-    injuredOwner: Types.ObjectId | null;
+    roster: GroupRoster;
+    registeredCount: number;
+    woundedIds: Types.ObjectId[];
+    woundedResultIds: Map<string, Types.ObjectId>;
     original: ResolutionQuest | null;
     returnCity: ReturnCity;
     catalog: ResolutionCatalog;
-    resultId: Types.ObjectId;
-    injuredResultId: Types.ObjectId;
-    aidQuestId: Types.ObjectId;
+    nextAidId: Types.ObjectId;
     now: Date;
 }
 
@@ -104,16 +119,21 @@ interface RescueNote {
     message: string;
 }
 
-interface InjuredStep {
+interface Wounded {
+    snapshot: OutcomeCharacterSnapshot;
+    ownerId: Types.ObjectId | null;
+}
+
+interface WoundedStep {
     context: RescueContext;
-    snapshot: OutcomeCharacterSnapshot | null;
+    wounded: Wounded[];
     session: ClientSession;
     notes: RescueNote[];
 }
 
-type InjuredResult = CommittedOutcome['results'][number] | null;
+type WoundedResult = CommittedOutcome['results'][number];
 
-// catena di soccorso (D-09): l'esito del soccorritore decide liberazione o morte del ferito nella stessa transazione
+// soccorso di gruppo (D-09 emendata il 2026-10-25): i soccorritori registrati combattono insieme come nel boss (D-05), un solo verdetto libera o uccide tutti i feriti della aid nella stessa transazione
 @Injectable()
 export class RescueResolutionService {
     private readonly logger = new Logger(RescueResolutionService.name);
@@ -134,25 +154,42 @@ export class RescueResolutionService {
         private readonly clock: Clock,
     ) {}
 
+    // stessa regola del boss: si risolve quando tutti i soccorritori registrati hanno finito il countdown, senza aspettare che i posti si riempiano
     async resolveRescue(
         loaded: StandardLoad,
         now: Date,
     ): Promise<ResolutionOutcome> {
         const aid = loaded.quest;
-        // transitorio: 09-18 Task 2
-        const injuredId = refIdOf(aid.rescue?.characters?.[0]);
-        if (!injuredId) return 'stale';
-        const owners = await this.loader.ownersOf([injuredId]);
+        const aidHex = aid._id.toHexString();
+        const registered = (aid.registeredAdventurers ?? []).flatMap(
+            (seat) => refIdOf(seat.character) ?? [],
+        );
+        const roster = await this.loader.readGroupRoster(
+            aid._id,
+            registered,
+            now,
+        );
+        if (roster.waiting) {
+            this.logger.log(
+                `Soccorso ${aidHex}: non tutti i soccorritori hanno finito il countdown, si attende`,
+            );
+            return 'waiting';
+        }
+        if (roster.seats.length === 0) return 'stale';
+        const woundedIds = woundedIdsOf(aid);
         const context: RescueContext = {
             loaded,
-            injuredId,
-            injuredOwner: owners.get(injuredId.toHexString()) ?? null,
+            roster,
+            registeredCount: (aid.registeredAdventurers ?? []).length,
+            woundedIds,
+            woundedResultIds: resultIdsFor(woundedIds),
             original: await this.readOriginal(aid),
             returnCity: await this.returnCityOf(aid),
-            catalog: await this.loader.readCatalog(aid, [loaded.character]),
-            resultId: new Types.ObjectId(),
-            injuredResultId: new Types.ObjectId(),
-            aidQuestId: new Types.ObjectId(),
+            catalog: await this.loader.readCatalog(
+                aid,
+                roster.seats.map(({ character }) => character),
+            ),
+            nextAidId: new Types.ObjectId(),
             now,
         };
         const state: {
@@ -173,23 +210,25 @@ export class RescueResolutionService {
         } catch (error) {
             if (!(error instanceof StaleResolution)) throw error;
             this.logger.log(
-                `Soccorso ${aid._id.toHexString()} già risolto o cambiato: nessuna scrittura`,
+                `Soccorso ${aidHex} già risolto o cambiato: nessuna scrittura`,
             );
             return 'stale';
         }
         if (!state.committed) return 'stale';
-        for (const { warn, message } of state.notes) {
-            if (warn) this.logger.warn(message);
-            else this.logger.log(message);
+        this.writeNotes(state.notes);
+        for (const characterId of roster.dropped) {
+            this.logger.warn(
+                `Registrato ${characterId.toHexString()} del soccorso ${aidHex} senza missione in attesa coerente: rimosso`,
+            );
         }
         await this.writer.deliver(state.committed);
         this.logger.log(
-            `Soccorso ${aid._id.toHexString()} risolto per il ferito ${injuredId.toHexString()}`,
+            `Soccorso ${aidHex} risolto per ${roster.seats.length} soccorritori e ${woundedIds.length} feriti`,
         );
         return 'resolved';
     }
 
-    // D-10: 7 giorni senza esito ⇒ morte; sospeso finché la aid ha un soccorritore registrato (C5, confermata dall'utente il 2026-10-25)
+    // D-10: 7 giorni senza esito ⇒ morte di tutti i feriti; sospeso finché la aid ha un soccorritore registrato (C5, confermata dall'utente il 2026-10-25)
     async timeoutAid({
         aidQuestId,
     }: Pick<AidTimeoutTrigger, 'aidQuestId'>): Promise<ResolutionOutcome> {
@@ -199,9 +238,9 @@ export class RescueResolutionService {
             .findById(aidQuestId, AID_TIMEOUT_PROJECTION)
             .lean<ResolutionQuest | null>()
             .exec();
-        // transitorio: 09-18 Task 2
-        const injuredId = refIdOf(aid?.rescue?.characters?.[0]);
-        if (!aid || aid.concludedAt || !injuredId) return 'stale';
+        if (!aid || aid.concludedAt) return 'stale';
+        const woundedIds = woundedIdsOf(aid);
+        if (woundedIds.length === 0) return 'stale';
         // lo sweep lo ripete a ogni giro finché il soccorritore resta registrato: debug, non rumore operativo
         if (aidTimeoutSuspended(aid)) {
             this.logger.debug(
@@ -209,29 +248,27 @@ export class RescueResolutionService {
             );
             return 'waiting';
         }
-        const injured = await this.characterModel
-            .findOne(
-                {
-                    ...activeCharacterById(injuredId),
-                    'status.awaitingAid.aidQuest': { $in: idForms(aidQuestId) },
-                },
+        const wounded = await this.characterModel
+            .find(
+                this.woundedFilter(woundedIds, aidQuestId),
                 OUTCOME_CHARACTER_PROJECTION,
             )
-            .lean<OutcomeCharacterSnapshot | null>()
+            .lean<OutcomeCharacterSnapshot[]>()
             .exec();
-        const since = awaitingSinceOf(injured);
-        if (!injured || !since) return 'stale';
+        const since = oldestSinceOf(wounded);
+        if (!since) return 'stale';
         if (!isAidTimeoutDue(since, now)) return 'waiting';
-        const resultId = new Types.ObjectId();
-        const state: { committed: CommittedOutcome | null; died: boolean } = {
-            committed: null,
-            died: false,
-        };
+        const resultIds = resultIdsFor(wounded.map(({ _id }) => _id));
+        const state: {
+            committed: CommittedOutcome | null;
+            unlinked: Types.ObjectId[];
+        } = { committed: null, unlinked: [] };
         try {
             await this.connection.transaction(async (session) => {
                 // il callback viene rieseguito sui WriteConflict: l'esito riparte da zero
                 state.committed = null;
-                state.died = false;
+                state.unlinked = [];
+                // claim prima della morte: l'archivio toglie il morto da rescue.characters e a lista vuota concluderebbe la aid, facendo fallire il claim
                 const claimed = await this.questModel
                     .findOneAndUpdate(
                         aidTimeoutClaimFilter(aidQuestId),
@@ -241,17 +278,18 @@ export class RescueResolutionService {
                     .lean()
                     .exec();
                 if (!claimed) throw new StaleResolution();
-                const death = await this.dieWithin(session, {
-                    injured,
-                    aid,
-                    resultId,
-                    now,
-                });
-                state.died = death !== null;
-                state.committed = {
-                    ...emptyCommitted(),
-                    results: death ? [death] : [],
-                };
+                const committed = emptyCommitted();
+                for (const injured of wounded) {
+                    const death = await this.dieWithin(session, {
+                        injured,
+                        aid,
+                        resultId: resultIds.get(injured._id.toHexString())!,
+                        now,
+                    });
+                    if (death) committed.results.push(death);
+                    else state.unlinked.push(injured._id);
+                }
+                state.committed = committed;
             });
         } catch (error) {
             if (!(error instanceof StaleResolution)) throw error;
@@ -261,7 +299,7 @@ export class RescueResolutionService {
             return 'stale';
         }
         if (!state.committed) return 'stale';
-        if (!state.died) {
+        for (const injuredId of state.unlinked) {
             this.logger.log(
                 `Ferito ${injuredId.toHexString()} già scollegato: nessuna morte da registrare, soccorso ${aidHex} concluso`,
             );
@@ -271,154 +309,173 @@ export class RescueResolutionService {
         return 'resolved';
     }
 
-    // soccorritore come nel ramo individuale, poi il ferito; una sconfitta apre una nuova aid clonata dall'originale (D-09)
+    // un solo combattimento per i soccorritori, poi la aid (claim), poi i feriti; una sconfitta apre UNA nuova aid clonata dall'originale (D-09)
     private async commitRescue(
         context: RescueContext,
         session: ClientSession,
         notes: RescueNote[],
     ): Promise<CommittedOutcome> {
-        const { loaded, injuredId, now } = context;
+        const { loaded, roster, catalog, now } = context;
         const aid = loaded.quest;
-        const rescuer = await this.loader.snapshotInSession(
-            loaded.character._id,
-            loaded.pendingQuest._id,
-            session,
+        const rescuers: ResolutionCharacter[] = [];
+        for (const seat of roster.seats) {
+            rescuers.push(
+                await this.loader.snapshotInSession(
+                    seat.character._id,
+                    seat.pendingQuestId,
+                    session,
+                ),
+            );
+        }
+        const wounded = await this.woundedInSession(context, session, notes);
+        const rescuable = wounded.flatMap(({ snapshot, ownerId }) =>
+            ownerId ? [snapshot._id] : [],
         );
-        const injured = await this.injuredInSession(
-            injuredId,
-            aid._id,
-            session,
-        );
-        const {
-            plan,
-            verdict,
-            aid: nextAid,
-        } = planCombatant({
-            quest: aid,
-            catalog: context.catalog,
-            snapshot: rescuer,
-            battle: this.fight(aid, context.catalog, rescuer),
-            resultId: context.resultId,
-            aidQuestId: context.aidQuestId,
-            pendingQuestId: loaded.pendingQuest._id,
-            userId: loaded.ownerId,
-            chance: this.chance,
-            // transitorio: 09-18 Task 2
-            rescuedCharacters: injured ? [injuredId] : [],
-            now,
-        });
-        await this.writer.writeParticipant(plan, session);
-        await this.writer.deletePendingQuest(loaded.pendingQuest._id, session);
+        const combatContext = combatContextOf(aid, catalog, rescuers);
+        const resolution = combatContext
+            ? this.combat.resolve(combatContext, this.chance)
+            : null;
+        const committed = emptyCommitted();
+        const verdicts: Parameters<typeof questUpdateOf>[0]['verdicts'] = [];
+        const fallen: Types.ObjectId[] = [];
+        for (const [index, seat] of roster.seats.entries()) {
+            const snapshot = rescuers[index];
+            const {
+                plan,
+                verdict,
+                aid: nextAid,
+            } = planCombatant({
+                quest: aid,
+                catalog,
+                snapshot,
+                battle: battleOf(resolution, snapshot._id),
+                resultId: seat.resultId,
+                aidQuestId: context.nextAidId,
+                pendingQuestId: seat.pendingQuestId,
+                userId: seat.ownerId,
+                chance: this.chance,
+                rescuedCharacters: rescuable,
+                now,
+            });
+            await this.writer.writeParticipant(plan, session);
+            await this.writer.deletePendingQuest(seat.pendingQuestId, session);
+            verdicts.push({ characterId: snapshot._id, verdict });
+            committed.results.push({
+                resultId: seat.resultId,
+                userId: seat.ownerId,
+            });
+            committed.spellRecoveries.push(...plan.spellRecoveries);
+            if (nextAid) fallen.push(snapshot._id);
+        }
+        // claim prima della morte: l'archivio toglie il morto da rescue.characters e a lista vuota concluderebbe la aid, facendo fallire il claim
         await this.writer.updateQuest(
-            { _id: aid._id },
+            {
+                ...questClaimFilter(
+                    aid._id,
+                    roster.seats.map(({ character }) => character._id),
+                ),
+                registeredAdventurers: { $size: context.registeredCount },
+            },
             questUpdateOf({
                 type: aid.infos.type,
-                verdicts: [{ characterId: rescuer._id, verdict }],
+                verdicts,
+                dropped: roster.dropped,
                 now,
             }),
             session,
-            'bestEffort',
+            'claim',
         );
-        const step: InjuredStep = {
-            context,
-            snapshot: injured,
-            session,
-            notes,
-        };
-        const injuredResult =
-            verdict === QuestOutcome.success
-                ? await this.liberate(step)
-                : await this.kill(step);
-        if (nextAid) {
-            await this.writer.createAid(
-                // transitorio: 09-18 Task 2
-                buildAidQuest(
-                    context.original ?? aid,
-                    [rescuer._id],
-                    context.aidQuestId,
-                ),
-                session,
-            );
+        const step: WoundedStep = { context, wounded, session, notes };
+        if (fallen.length === 0) {
+            committed.results.push(...(await this.liberate(step)));
+            return committed;
         }
-        return {
-            results: [
-                { resultId: context.resultId, userId: loaded.ownerId },
-                ...(injuredResult ? [injuredResult] : []),
-            ],
-            aids: nextAid
-                ? [{ aidQuestId: context.aidQuestId, since: now }]
-                : [],
-            spellRecoveries: plan.spellRecoveries,
-        };
+        committed.results.push(...(await this.kill(step)));
+        await this.writer.createAid(
+            buildAidQuest(context.original ?? aid, fallen, context.nextAidId),
+            session,
+        );
+        committed.aids.push({ aidQuestId: context.nextAidId, since: now });
+        return committed;
     }
 
-    // liberato con gli HP che ha e riportato al marker della città (D-09): nessuna cura, nessun viaggio
+    // liberati con gli HP che hanno e riportati al marker della città (D-09): nessuna cura, nessun viaggio
     private async liberate({
         context,
-        snapshot,
+        wounded,
         session,
         notes,
-    }: InjuredStep): Promise<InjuredResult> {
-        const { injuredId, injuredOwner, returnCity } = context;
-        if (!snapshot || !injuredOwner) {
-            notes.push({
-                warn: false,
-                message: `Ferito ${injuredId.toHexString()} già scollegato: nessuna liberazione da registrare`,
+    }: WoundedStep): Promise<WoundedResult[]> {
+        const { returnCity, loaded } = context;
+        const results: WoundedResult[] = [];
+        for (const { snapshot, ownerId } of wounded) {
+            const injuredHex = snapshot._id.toHexString();
+            if (!ownerId) {
+                notes.push({
+                    warn: false,
+                    message: `Ferito ${injuredHex} già scollegato: nessuna liberazione da registrare`,
+                });
+                continue;
+            }
+            if (!returnCity.cityMarker) {
+                notes.push({
+                    warn: true,
+                    message: `Marker ${returnCity.marker?.toHexString() ?? 'assente'} della aid ${loaded.quest._id.toHexString()} in nessuna città: ferito ${injuredHex} liberato dove si trova`,
+                });
+            }
+            const resultId = context.woundedResultIds.get(injuredHex)!;
+            const rescued = planRescued({
+                resultId,
+                snapshot,
+                aidQuest: loaded.quest,
+                userId: ownerId,
+                cityMarker: returnCity.cityMarker,
+                now: context.now,
             });
-            return null;
+            await this.writer.writeCharacterUpdate(
+                rescued.filter,
+                rescued.update,
+                session,
+            );
+            await this.writer.writeResult(rescued.result, session);
+            results.push({ resultId, userId: ownerId });
         }
-        if (!returnCity.cityMarker) {
-            notes.push({
-                warn: true,
-                message: `Marker ${returnCity.marker?.toHexString() ?? 'assente'} della aid ${context.loaded.quest._id.toHexString()} in nessuna città: ferito ${injuredId.toHexString()} liberato dove si trova`,
-            });
-        }
-        const rescued = planRescued({
-            resultId: context.injuredResultId,
-            snapshot,
-            aidQuest: context.loaded.quest,
-            userId: injuredOwner,
-            cityMarker: returnCity.cityMarker,
-            now: context.now,
-        });
-        await this.writer.writeCharacterUpdate(
-            rescued.filter,
-            rescued.update,
-            session,
-        );
-        await this.writer.writeResult(rescued.result, session);
-        return { resultId: context.injuredResultId, userId: injuredOwner };
+        return results;
     }
 
-    // aid fallita (D-09): il ferito muore; un ferito già scollegato è un no-op loggato (C1)
+    // aid fallita (D-09): tutti i feriti muoiono; un ferito già scollegato è un no-op loggato (C1)
     private async kill({
         context,
-        snapshot,
+        wounded,
         session,
         notes,
-    }: InjuredStep): Promise<InjuredResult> {
-        const death = snapshot
-            ? await this.dieWithin(session, {
-                  injured: snapshot,
-                  aid: context.loaded.quest,
-                  resultId: context.injuredResultId,
-                  now: context.now,
-              })
-            : null;
-        if (!death) {
+    }: WoundedStep): Promise<WoundedResult[]> {
+        const results: WoundedResult[] = [];
+        for (const { snapshot } of wounded) {
+            const injuredHex = snapshot._id.toHexString();
+            const death = await this.dieWithin(session, {
+                injured: snapshot,
+                aid: context.loaded.quest,
+                resultId: context.woundedResultIds.get(injuredHex)!,
+                now: context.now,
+            });
+            if (death) {
+                results.push(death);
+                continue;
+            }
             notes.push({
                 warn: false,
-                message: `Ferito ${context.injuredId.toHexString()} già scollegato: nessuna morte da registrare`,
+                message: `Ferito ${injuredHex} già scollegato: nessuna morte da registrare`,
             });
         }
-        return death;
+        return results;
     }
 
     // morte nella stessa transazione dell'esito (D-09, D-10): proprietario letto in sessione prima dell'archivio, risultato del suo utente
     private async dieWithin(
         session: ClientSession,
         { injured, aid, resultId, now }: DeathRequest,
-    ): Promise<InjuredResult> {
+    ): Promise<WoundedResult | null> {
         const owner = await this.ownerInSession(injured._id, session);
         if (!owner) return null;
         const archived = await this.archiver.archiveWithin(session, {
@@ -441,34 +498,55 @@ export class RescueResolutionService {
         return { resultId, userId: owner };
     }
 
-    // il combattimento passa solo dalla porta (D-02)
-    private fight(
-        aid: ResolutionQuest,
-        catalog: ResolutionCatalog,
-        rescuer: ResolutionCharacter,
-    ): CombatantBattle | null {
-        const context = combatContextOf(aid, catalog, [rescuer]);
-        if (!context) return null;
-        return battleOf(this.combat.resolve(context, this.chance), rescuer._id);
+    // feriti ancora di questa aid: attivi e con awaitingAid.aidQuest = aid
+    private woundedFilter(
+        woundedIds: readonly Types.ObjectId[],
+        aidQuestId: Types.ObjectId,
+    ): Record<string, unknown> {
+        return {
+            ...ACTIVE_CHARACTER_FILTER,
+            _id: { $in: woundedIds.flatMap((id) => idForms(id)) },
+            'status.awaitingAid.aidQuest': { $in: idForms(aidQuestId) },
+        };
     }
 
-    // il ferito è ancora quello di questa aid: attivo e con awaitingAid.aidQuest = aid
-    private injuredInSession(
-        injuredId: Types.ObjectId,
-        aidQuestId: Types.ObjectId,
+    // letti in sessione con il proprietario; chi non è più in attesa di questa aid resta fuori con una nota di soli id
+    private async woundedInSession(
+        context: RescueContext,
         session: ClientSession,
-    ): Promise<OutcomeCharacterSnapshot | null> {
-        return this.characterModel
-            .findOne(
-                {
-                    ...activeCharacterById(injuredId),
-                    'status.awaitingAid.aidQuest': { $in: idForms(aidQuestId) },
-                },
+        notes: RescueNote[],
+    ): Promise<Wounded[]> {
+        const aidId = context.loaded.quest._id;
+        const snapshots = await this.characterModel
+            .find(
+                this.woundedFilter(context.woundedIds, aidId),
                 OUTCOME_CHARACTER_PROJECTION,
             )
             .session(session)
-            .lean<OutcomeCharacterSnapshot | null>()
+            .lean<OutcomeCharacterSnapshot[]>()
             .exec();
+        for (const id of context.woundedIds) {
+            if (snapshots.some(({ _id }) => _id.equals(id))) continue;
+            notes.push({
+                warn: false,
+                message: `Ferito ${id.toHexString()} non più in attesa del soccorso ${aidId.toHexString()}: escluso`,
+            });
+        }
+        const wounded: Wounded[] = [];
+        for (const snapshot of snapshots) {
+            wounded.push({
+                snapshot,
+                ownerId: await this.ownerInSession(snapshot._id, session),
+            });
+        }
+        return wounded;
+    }
+
+    private writeNotes(notes: readonly RescueNote[]): void {
+        for (const { warn, message } of notes) {
+            if (warn) this.logger.warn(message);
+            else this.logger.log(message);
+        }
     }
 
     // proprietario letto in sessione prima dell'archivio: dopo l'archivio currentCharacter è null

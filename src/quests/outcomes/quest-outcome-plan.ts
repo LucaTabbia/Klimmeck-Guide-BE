@@ -41,16 +41,20 @@ export function questUpdateOf(
     return Object.keys(update).length > 0 ? update : null;
 }
 
-// claim del gruppo (D-05, D-21): la scrittura della Quest nella stessa transazione esclude un secondo trigger (WriteConflict)
+// claim del gruppo (boss D-05, soccorso di gruppo D-09; D-21): la scrittura della Quest nella stessa transazione esclude un secondo trigger (WriteConflict)
 export function questClaimFilter(
     questId: Types.ObjectId,
-    participantIds: Types.ObjectId[] | null,
+    participantIds: readonly Types.ObjectId[] | null,
 ): Record<string, unknown> {
     return {
         _id: questId,
         concludedAt: null,
         ...(participantIds
-            ? { 'registeredAdventurers.character': { $all: participantIds } }
+            ? {
+                  'registeredAdventurers.character': {
+                      $all: [...participantIds],
+                  },
+              }
             : {}),
     };
 }

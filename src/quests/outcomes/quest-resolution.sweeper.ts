@@ -35,6 +35,16 @@ interface DueAidTimeout {
     status: { awaitingAid?: { aidQuest?: unknown } | null };
 }
 
+// i feriti dello stesso combattimento condividono la aid: un solo timeout per aid, non uno per ferito
+function distinctAidsOf(due: readonly DueAidTimeout[]): Types.ObjectId[] {
+    const aids = new Map<string, Types.ObjectId>();
+    for (const character of due) {
+        const aidQuestId = refIdOf(character.status.awaitingAid?.aidQuest);
+        if (aidQuestId) aids.set(aidQuestId.toHexString(), aidQuestId);
+    }
+    return [...aids.values()];
+}
+
 @Injectable()
 export class QuestResolutionSweeper
     implements OnApplicationBootstrap, OnModuleDestroy
@@ -124,10 +134,8 @@ export class QuestResolutionSweeper
             .lean<DueAidTimeout[]>()
             .exec();
         let timedOut = 0;
-        for (const character of due) {
+        for (const aidQuestId of distinctAidsOf(due)) {
             if (this.stopping) break;
-            const aidQuestId = refIdOf(character.status.awaitingAid?.aidQuest);
-            if (!aidQuestId) continue;
             try {
                 const outcome = await this.rescue.timeoutAid({ aidQuestId });
                 if (outcome === 'resolved') timedOut++;
