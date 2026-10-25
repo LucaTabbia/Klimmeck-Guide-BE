@@ -18,6 +18,7 @@ import {
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
+import { ownersOf } from 'src/mongo/owners-of';
 import { questCancelled } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
 import {
@@ -179,7 +180,7 @@ export class PartyTimeoutService {
         characterIds: readonly Types.ObjectId[],
     ): Promise<void> {
         if (characterIds.length === 0) return;
-        const owners = await this.ownersOf(characterIds);
+        const owners = await ownersOf(this.userModel, characterIds);
         const message = questCancelled(questId.toHexString());
         for (const ownerId of owners.values()) {
             await this.push.sendToUser(ownerId, message);
@@ -236,30 +237,5 @@ export class PartyTimeoutService {
             released.push(character._id);
         }
         return released;
-    }
-
-    // proprietario = utente che punta al personaggio (come ResolutionLoader.ownersOf, non importabile qui)
-    private async ownersOf(
-        characterIds: readonly Types.ObjectId[],
-    ): Promise<Map<string, Types.ObjectId>> {
-        const users = await this.userModel
-            .find(
-                {
-                    currentCharacter: {
-                        $in: characterIds.flatMap((id) => idForms(id)),
-                    },
-                },
-                { _id: 1, currentCharacter: 1 },
-            )
-            .lean<{ _id: Types.ObjectId; currentCharacter: unknown }[]>()
-            .exec();
-        return new Map(
-            users.flatMap(({ _id, currentCharacter }) => {
-                const characterId = refIdOf(currentCharacter);
-                return characterId
-                    ? [[characterId.toHexString(), _id] as const]
-                    : [];
-            }),
-        );
     }
 }

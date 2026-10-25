@@ -22,6 +22,7 @@ import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
+import { ownersOf } from 'src/mongo/owners-of';
 import { lanePathOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
 import type { AidSourceQuest } from './aid/aid-quest';
 import type { GroupRoster, GroupSeat } from './group-roster';
@@ -258,26 +259,10 @@ export class ResolutionLoader {
         return { seats, dropped, waiting };
     }
 
-    // proprietario = utente che punta al personaggio; un personaggio senza utente resta fuori dalla mappa
-    async ownersOf(
+    ownersOf(
         characterIds: readonly Types.ObjectId[],
     ): Promise<Map<string, Types.ObjectId>> {
-        const forms = characterIds.flatMap((id) => idForms(id));
-        const users = await this.userModel
-            .find(
-                { currentCharacter: { $in: forms } },
-                { _id: 1, currentCharacter: 1 },
-            )
-            .lean<{ _id: Types.ObjectId; currentCharacter: unknown }[]>()
-            .exec();
-        return new Map(
-            users.flatMap(({ _id, currentCharacter }) => {
-                const characterId = refIdOf(currentCharacter);
-                return characterId
-                    ? [[characterId.toHexString(), _id] as const]
-                    : [];
-            }),
-        );
+        return ownersOf(this.userModel, characterIds);
     }
 
     // stesso filtro della pre-lettura, in sessione: un partecipante sparito o cambiato rende il trigger obsoleto
