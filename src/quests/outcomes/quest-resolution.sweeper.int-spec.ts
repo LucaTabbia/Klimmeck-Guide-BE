@@ -264,6 +264,60 @@ describe('QuestResolutionSweeper (replSet)', () => {
         });
     });
 
+    describe('party timeout (utente 2026-10-25)', () => {
+        const waitingBoss = () =>
+            quester({
+                startDate: null,
+                arrivedAt: OUTCOME_START,
+                questOverrides: {
+                    infos: { ...buildQuest().infos, type: 'boss' },
+                    requirements: {
+                        ...buildQuest().requirements,
+                        requiredAdventurers: [{ title: null, count: 3 }],
+                    },
+                },
+            });
+
+        const questOf = (subject: Quester) =>
+            world.models.quests.findById(subject.quest._id).lean<any>();
+
+        it('disbands a party not full after 24 hours', async () => {
+            const waiting = await waitingBoss();
+            await world.models.quests.updateOne(
+                { _id: waiting.quest._id },
+                {
+                    $set: {
+                        'registeredAdventurers.$[].registeredAt': new Date(
+                            NOW.getTime() - 25 * 60 * 60 * 1000,
+                        ),
+                    },
+                },
+            );
+
+            await expect(sweeper.sweep()).resolves.toEqual(NOTHING_DONE);
+
+            expect((await questOf(waiting)).registeredAdventurers).toEqual([]);
+            expect(
+                await world.models.pendingQuests.exists({
+                    _id: waiting.pendingQuest._id,
+                }),
+            ).toBeNull();
+            expect(
+                (await characterOf(waiting.characterId)).quests.pendingQuest,
+            ).toBeNull();
+        });
+
+        it('backdates a legacy registration without registeredAt to now, once', async () => {
+            const waiting = await waitingBoss();
+
+            await expect(sweeper.sweep()).resolves.toEqual(NOTHING_DONE);
+
+            const [seat] = (await questOf(waiting)).registeredAdventurers;
+            expect(seat.registeredAt).toEqual(NOW);
+            await expectUntouched(waiting);
+        });
+    });
+
     it('times out a rescue nobody took after seven days', async () => {
         const subject = await injured();
 

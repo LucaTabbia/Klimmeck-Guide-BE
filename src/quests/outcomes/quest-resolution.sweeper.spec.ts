@@ -1,6 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { CharacterDocument } from 'src/models/character/character.model';
+import { QuestDocument } from 'src/models/quest/quest.model';
+import { PartyTimeoutService } from '../party/party-timeout.service';
 import { QuestStartService } from '../party/quest-start.service';
 import { QuestResolutionService } from './quest-resolution.service';
 import { QuestResolutionSweeper } from './quest-resolution.sweeper';
@@ -61,6 +63,9 @@ describe('QuestResolutionSweeper', () => {
     let resolveStandard: jest.Mock;
     let timeoutAid: jest.Mock;
     let tryStart: jest.Mock;
+    let disband: jest.Mock;
+    let backfillRegisteredAt: jest.Mock;
+    let forming: Promise<unknown[]>;
     let arrived: Promise<ArrivedUnstartedQuest[]>;
 
     function sweeperWith(sweepIntervalMs: number): QuestResolutionSweeper {
@@ -68,12 +73,20 @@ describe('QuestResolutionSweeper', () => {
             aggregate,
             find,
         } as unknown as Model<CharacterDocument>;
+        const questModel = {
+            find: jest.fn(() => ({ lean: () => ({ exec: () => forming }) })),
+        } as unknown as Model<QuestDocument>;
         return new QuestResolutionSweeper(
             { sweepIntervalMs },
             characterModel,
+            questModel,
             { resolveStandard } as unknown as QuestResolutionService,
             { timeoutAid } as unknown as RescueResolutionService,
             { tryStart } as unknown as QuestStartService,
+            {
+                disband,
+                backfillRegisteredAt,
+            } as unknown as PartyTimeoutService,
             new FixedClock(NOW),
         );
     }
@@ -92,6 +105,9 @@ describe('QuestResolutionSweeper', () => {
         jest.useFakeTimers();
         arrived = Promise.resolve([]);
         tryStart = jest.fn().mockResolvedValue('started');
+        disband = jest.fn().mockResolvedValue('disbanded');
+        backfillRegisteredAt = jest.fn().mockResolvedValue(0);
+        forming = Promise.resolve([]);
         aggregate = aggregateResolving(Promise.resolve([]));
         find = findResolving(Promise.resolve([]));
         resolveStandard = jest.fn().mockResolvedValue('resolved');
@@ -148,16 +164,14 @@ describe('QuestResolutionSweeper', () => {
     });
 
     it('runs a single sweep at a time', () => {
-        aggregate = aggregateResolving(
-            new Promise<DueStandardQuest[]>(() => undefined),
-        );
+        backfillRegisteredAt.mockReturnValue(new Promise(() => undefined));
         const sweeper = sweeperWith(0);
 
         const first = sweeper.sweep();
         const second = sweeper.sweep();
 
         expect(second).toBe(first);
-        expect(aggregate).toHaveBeenCalledTimes(1);
+        expect(backfillRegisteredAt).toHaveBeenCalledTimes(1);
     });
 
     it('resolves due quests then times out due rescues, in series', async () => {
@@ -215,6 +229,49 @@ describe('QuestResolutionSweeper', () => {
 
         expect(tryStart.mock.calls).toEqual([[entries[0]], [entries[1]]]);
         expect(order).toEqual(['start', 'start', 'resolve']);
+    });
+
+    it('backfills, starts, then disbands only the expired parties (utente 2026-10-25)', async () => {
+        const expired = {
+            _id: new Types.ObjectId(),
+            registeredAdventurers: [
+                { registeredAt: new Date(NOW.getTime() - 86_400_000) },
+            ],
+        };
+        const fresh = {
+            _id: new Types.ObjectId(),
+            registeredAdventurers: [
+                { registeredAt: new Date(NOW.getTime() - 60_000) },
+            ],
+        };
+        const legacy = {
+            _id: new Types.ObjectId(),
+            registeredAdventurers: [{}],
+        };
+        forming = Promise.resolve([expired, fresh, legacy]);
+        const order: string[] = [];
+        backfillRegisteredAt.mockImplementation(() => {
+            order.push('backfill');
+            return Promise.resolve(1);
+        });
+        tryStart.mockImplementation(() => {
+            order.push('start');
+            return Promise.resolve('waiting');
+        });
+        disband.mockImplementation(() => {
+            order.push('disband');
+            return Promise.resolve('disbanded');
+        });
+        arrived = Promise.resolve([
+            { questId: fresh._id, pendingQuestId: new Types.ObjectId() },
+        ]);
+        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+
+        await sweeperWith(0).sweep();
+
+        expect(backfillRegisteredAt).toHaveBeenCalledWith(NOW);
+        expect(disband.mock.calls).toEqual([[{ questId: expired._id }]]);
+        expect(order).toEqual(['backfill', 'start', 'disband']);
     });
 
     it('keeps sweeping after a failure and logs only the id and the error name', async () => {

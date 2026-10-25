@@ -136,6 +136,39 @@ describe('QuestResolutionScheduler', () => {
         });
     });
 
+    describe('schedulePartyTimeout', () => {
+        const questId = new Types.ObjectId();
+        const questHex = questId.toHexString();
+
+        it('enqueues the party timeout 24 hours after the first registration', async () => {
+            await scheduler.schedulePartyTimeout({ questId, since: NOW });
+
+            expect(queue.added).toEqual([
+                {
+                    name: 'party-timeout',
+                    data: { questId: questHex, since: NOW.getTime() },
+                    options: {
+                        jobId: `party-${questHex}-${NOW.getTime()}`,
+                        delay: 86_400_000,
+                        removeOnComplete: true,
+                        removeOnFail: false,
+                    },
+                },
+            ]);
+        });
+
+        it('warns without throwing when the queue rejects', async () => {
+            queue.failAdd = true;
+
+            await scheduler.schedulePartyTimeout({ questId, since: NOW });
+
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(String(warn.mock.calls[0][0])).toContain(
+                'lo risolverà lo sweep',
+            );
+        });
+    });
+
     describe('onModuleInit', () => {
         it('warns once on Redis errors without connection details', () => {
             scheduler.onModuleInit();

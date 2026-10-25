@@ -31,6 +31,8 @@ import { CombatResolver } from './combat/combat-resolver';
 import { QuestOutcomesModule } from './quest-outcomes.module';
 import {
     AID_TIMEOUT_JOB,
+    PARTY_TIMEOUT_JOB,
+    partyTimeoutJobId,
     QUEST_RESOLUTION_QUEUE,
     questResolutionJobId,
     RESOLVE_QUEST_JOB,
@@ -281,6 +283,71 @@ describe('QuestResolutionProcessor (real Redis)', () => {
             expect(await resultsOf(injuredId)).toEqual([
                 expect.objectContaining({ outcome: 'death' }),
             ]);
+        },
+        TEST_TIMEOUT_MS,
+    );
+
+    // boss a 2 posti con un solo registrato sul marker, registrato a `since`
+    async function formingParty(since: Date) {
+        seq += 1;
+        const created = await persistQuester(harness, {
+            twitchId: `tw-processor-${seq}`,
+            questOverrides: {
+                infos: { ...buildQuest().infos, type: 'boss' },
+                requirements: {
+                    ...buildQuest().requirements,
+                    requiredAdventurers: [{ title: null, count: 2 }],
+                },
+            },
+            startDate: null,
+            arrivedAt: since,
+        });
+        await models.quests.updateOne(
+            { _id: created.quest._id },
+            { $set: { 'registeredAdventurers.$[].registeredAt': since } },
+        );
+        return created;
+    }
+
+    it(
+        'disbands an expired party when the party timeout job fires',
+        async () => {
+            const since = new Date(Date.now() - DAY_MS - HOUR_MS);
+            const subject = await formingParty(since);
+
+            await queue.add(PARTY_TIMEOUT_JOB, {
+                questId: String(subject.quest._id),
+                since: since.getTime(),
+            });
+
+            expect(
+                await waitFor(async () => !(await pendingQuestExists(subject))),
+            ).toBe(true);
+            expect(
+                (await models.quests.findById(subject.quest._id).lean<any>())
+                    .registeredAdventurers,
+            ).toEqual([]);
+        },
+        TEST_TIMEOUT_MS,
+    );
+
+    it(
+        'leaves an early party timeout job to the sweep',
+        async () => {
+            const log = jest.spyOn(Logger.prototype, 'log');
+            const since = new Date();
+            const subject = await formingParty(since);
+            const questId = subject.quest._id as Types.ObjectId;
+            const message = `Job di timeout del party ${partyTimeoutJobId(questId, since)} in anticipo: lo risolverà lo sweep`;
+
+            await queue.add(PARTY_TIMEOUT_JOB, {
+                questId: questId.toHexString(),
+                since: since.getTime(),
+            });
+
+            expect(await waitFor(() => logged(log, message))).toBe(true);
+            await pause(NEGATIVE_WAIT_MS);
+            expect(await pendingQuestExists(subject)).toBe(true);
         },
         TEST_TIMEOUT_MS,
     );

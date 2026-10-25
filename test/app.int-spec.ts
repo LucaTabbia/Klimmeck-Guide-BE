@@ -552,6 +552,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('input SendTestPushInput');
         expect(schema).toContain('enum PushPlatform');
         expect(schema).toContain('enum PushEventType');
+        expect(schema).toContain('  questCancelled\n');
         expect(schema).toContain('type PushDeliveryReport');
         expect(schema).toContain('targetUserId: ID');
         expect(schema).not.toContain('type PushDevice');

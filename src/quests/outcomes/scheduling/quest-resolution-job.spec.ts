@@ -3,6 +3,9 @@ import {
     AID_TIMEOUT_JOB,
     aidTimeoutJobDataOf,
     aidTimeoutJobId,
+    PARTY_TIMEOUT_JOB,
+    partyTimeoutJobDataOf,
+    partyTimeoutJobId,
     QUEST_RESOLUTION_QUEUE,
     questResolutionJobId,
     RESOLVE_QUEST_JOB,
@@ -20,6 +23,42 @@ describe('quest resolution job', () => {
         expect(QUEST_RESOLUTION_QUEUE).toBe('quest-resolution');
         expect(RESOLVE_QUEST_JOB).toBe('resolve');
         expect(AID_TIMEOUT_JOB).toBe('aid-timeout');
+        expect(PARTY_TIMEOUT_JOB).toBe('party-timeout');
+    });
+
+    describe('party timeout (utente 2026-10-25)', () => {
+        const questId = new Types.ObjectId();
+        const questHex = questId.toHexString();
+
+        it('derives the id from the quest and the start of the party window', () => {
+            expect(partyTimeoutJobId(questId, new Date(3_000))).toBe(
+                `party-${questHex}-3000`,
+            );
+            expect(partyTimeoutJobId(questId, new Date(3_000))).not.toContain(
+                ':',
+            );
+        });
+
+        it('turns valid data into the party timeout trigger', () => {
+            const trigger = partyTimeoutJobDataOf({
+                questId: questHex,
+                since: 3000,
+            });
+
+            expect(trigger).toEqual({ questId, since: new Date(3000) });
+            expect(trigger?.questId).toBeInstanceOf(Types.ObjectId);
+        });
+
+        it.each([
+            null,
+            7,
+            { questId: 'not-hex', since: 3000 },
+            { questId: questHex, since: -1 },
+            { questId: questHex, since: 1.5 },
+            { questId: questHex },
+        ])('rejects untrusted data %p', (data) => {
+            expect(partyTimeoutJobDataOf(data)).toBeNull();
+        });
     });
 
     describe('job ids', () => {

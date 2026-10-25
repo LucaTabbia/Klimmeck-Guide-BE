@@ -1849,6 +1849,42 @@ describe('QuestAcceptanceService (replSet)', () => {
                 expect(resolveJobs()).toHaveLength(1);
             });
 
+            const partyTimeoutJobs = () =>
+                questQueue.added.filter(({ name }) => name === 'party-timeout');
+
+            it('opens the 24 hour window at the first registration only', async () => {
+                const { owners, chars } = await heroesRacing(3, 'rookie');
+                const questId = await questOf('boss', {
+                    requiredAdventurers: [{ title: null, count: 3 }],
+                });
+
+                await accept(owners[0], chars[0], questId);
+                await accept(owners[1], chars[1], questId);
+
+                const hex = questId.toHexString();
+                expect(partyTimeoutJobs()).toEqual([
+                    {
+                        name: 'party-timeout',
+                        data: { questId: hex, since: ACCEPTED_AT.getTime() },
+                        options: expect.objectContaining({
+                            jobId: `party-${hex}-${ACCEPTED_AT.getTime()}`,
+                        }),
+                    },
+                ]);
+            });
+
+            it('opens no window for a single seat enemy', async () => {
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(world.cityMarker);
+                const questId = await questOf('enemy', {
+                    requiredAdventurers: [{ title: null, count: 1 }],
+                });
+
+                await accept(ownerId, charId, questId);
+
+                expect(partyTimeoutJobs()).toEqual([]);
+            });
+
             it('rejects a registration on a started quest with QUEST_FULL and writes nothing', async () => {
                 const ownerId = await ownerWith(0);
                 const charId = await characterAt(world.cityMarker);
