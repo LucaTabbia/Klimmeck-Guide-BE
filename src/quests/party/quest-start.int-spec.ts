@@ -185,6 +185,39 @@ describe('QuestStartService.tryStart (replSet)', () => {
         expect(resolveJobs()).toHaveLength(2);
     });
 
+    it('starts nothing when a member abandons between the read and the claim', async () => {
+        const { a, b } = await pair('boss', 2, [TEN, TEN_THIRTY]);
+        const questId = a.quest._id as Types.ObjectId;
+        const connection = world.harness.connection;
+        const transaction = connection.transaction.bind(connection);
+        jest.spyOn(connection, 'transaction').mockImplementationOnce(
+            async (fn, options) => {
+                await world.models.quests.updateOne(
+                    { _id: questId },
+                    {
+                        $pull: {
+                            registeredAdventurers: { character: b.characterId },
+                        },
+                    },
+                );
+                await world.models.pendingQuests.deleteOne({
+                    _id: b.pendingQuest._id,
+                });
+                await world.models.characters.updateOne(
+                    { _id: b.characterId },
+                    { $set: { 'quests.pendingQuest': null } },
+                );
+                return transaction(fn, options);
+            },
+        );
+
+        await expect(service.tryStart(triggerOf(a))).resolves.toBe('stale');
+
+        expect((await pendingQuestOf(a)).startDate).toBeNull();
+        expect((await questById(questId)).startedAt).toBeNull();
+        expect(world.questQueue.added).toEqual([]);
+    });
+
     it('ignores a concluded, an already started or a missing quest', async () => {
         const concluded = await quester({
             questOverrides: { ...questOf('boss', 1), concludedAt: NOW },
