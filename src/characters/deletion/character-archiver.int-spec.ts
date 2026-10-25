@@ -185,6 +185,59 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
         );
     });
 
+    describe('started quests left without anyone (utente 2026-10-25)', () => {
+        const STARTED_AT = new Date(NOW.getTime() - 60 * 60 * 1000);
+
+        async function startedBoss(
+            registered: Types.ObjectId[],
+            concludedAt: Date | null = null,
+        ): Promise<Types.ObjectId> {
+            const quest = await persistQuest(quests, {
+                infos: { ...buildQuest().infos, type: 'boss' },
+                registeredAdventurers: registered.map((character) => ({
+                    character,
+                    title: 'rookie',
+                })),
+                startedAt: STARTED_AT,
+                concludedAt,
+            });
+            return quest._id as Types.ObjectId;
+        }
+
+        it('lets a started boss without registered adventurers start again', async () => {
+            const scene = await persistScene();
+            const bossId = await startedBoss([scene.characterId]);
+
+            await archiveInTransaction(scene.userId, scene.characterId);
+
+            const boss = await rawQuest(bossId);
+            expect(boss?.registeredAdventurers).toEqual([]);
+            expect(boss?.startedAt).toBeNull();
+        });
+
+        it('keeps a started boss going with the adventurers left', async () => {
+            const scene = await persistScene();
+            const bossId = await startedBoss([scene.characterId, scene.other]);
+
+            await archiveInTransaction(scene.userId, scene.characterId);
+
+            const boss = await rawQuest(bossId);
+            expect(boss?.registeredAdventurers).toHaveLength(1);
+            expect(boss?.startedAt).toEqual(STARTED_AT);
+        });
+
+        it('leaves a concluded quest untouched', async () => {
+            const scene = await persistScene();
+            const bossId = await startedBoss([scene.characterId], YESTERDAY);
+
+            await archiveInTransaction(scene.userId, scene.characterId);
+
+            const boss = await rawQuest(bossId);
+            expect(boss?.startedAt).toEqual(STARTED_AT);
+            expect(boss?.concludedAt).toEqual(YESTERDAY);
+        });
+    });
+
     it('keeps an aid with two wounded open for the one left to rescue', async () => {
         const scene = await persistScene();
 

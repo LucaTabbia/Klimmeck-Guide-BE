@@ -10,6 +10,8 @@ import { buildCharacter, buildQuest } from '../../../test/fixtures';
 import {
     createOutcomeHarness,
     type OutcomeHarness,
+    persistQuester,
+    type Quester,
     registerDevice,
 } from '../../../test/quests/outcome-world';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
@@ -20,6 +22,7 @@ import { RescueResolutionService } from './rescue-resolution.service';
 const NOW = new Date('2026-10-24T12:00:00.000Z');
 const SEVEN_DAYS_AGO = new Date(NOW.getTime() - AID_TIMEOUT_MS);
 const ALREADY_CONCLUDED = new Date('2026-10-24T08:00:00.000Z');
+const HOUR_AGO = new Date(NOW.getTime() - 60 * 60 * 1000);
 
 interface TimeoutWorld {
     aidId: Types.ObjectId;
@@ -61,6 +64,7 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
     // ferito X in attesa di soccorso dalla aid A, nessun soccorritore registrato
     async function timeoutWorld(
         since: Date = SEVEN_DAYS_AGO,
+        seats = 1,
     ): Promise<TimeoutWorld> {
         seq += 1;
         const original = await world.models.quests.create(
@@ -69,6 +73,10 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
                     ...buildQuest().infos,
                     type: 'enemy',
                     title: 'Il bandito del passo',
+                },
+                requirements: {
+                    ...buildQuest().requirements,
+                    requiredAdventurers: [{ title: null, count: seats }],
                 },
             }),
         );
@@ -92,6 +100,46 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
             buildAidQuest(original.toObject() as never, [injuredId], aidId),
         );
         return { aidId, injured, injuredId };
+    }
+
+    // soccorritore registrato sulla aid: avviato (startDate, la aid è in corso) o in attesa del gruppo sul marker
+    async function rescuer(
+        subject: TimeoutWorld,
+        startDate: Date | null,
+    ): Promise<Quester> {
+        seq += 1;
+        const created = await persistQuester(world.harness, {
+            twitchId: `tw-timeout-${seq}`,
+            quest: { _id: subject.aidId },
+            startDate,
+            arrivedAt: HOUR_AGO,
+        });
+        await registerDevice(world.harness, created.player);
+        return created;
+    }
+
+    async function secondWounded(subject: TimeoutWorld) {
+        seq += 1;
+        const other = await createPlayer(world.harness, {
+            twitchId: `tw-timeout-${seq}`,
+            characterOverrides: {
+                status: {
+                    ...buildCharacter().status,
+                    awaitingAid: {
+                        quest: new Types.ObjectId(),
+                        aidQuest: subject.aidId,
+                        since: SEVEN_DAYS_AGO,
+                    },
+                },
+            },
+        });
+        const otherId = other.character!._id as Types.ObjectId;
+        await registerDevice(world.harness, other);
+        await world.models.quests.updateOne(
+            { _id: subject.aidId },
+            { $push: { 'rescue.characters': otherId } },
+        );
+        return otherId;
     }
 
     const timeout = ({ aidId }: TimeoutWorld) =>
@@ -218,19 +266,9 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
         await expectUntouched(subject);
     });
 
-    it('does not let a rescue time out while a rescuer is registered (C5)', async () => {
+    it('keeps the rescue timeout suspended only while the rescue is in progress (C5 rivista 2026-10-25)', async () => {
         const subject = await timeoutWorld();
-        await world.models.quests.updateOne(
-            { _id: subject.aidId },
-            {
-                $push: {
-                    registeredAdventurers: {
-                        character: new Types.ObjectId(),
-                        title: 'rookie',
-                    },
-                },
-            },
-        );
+        await rescuer(subject, HOUR_AGO);
 
         await expect(timeout(subject)).resolves.toBe('waiting');
 
@@ -239,17 +277,7 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
 
     it('logs a suspended timeout at debug level only, since the sweep retries it every tick', async () => {
         const subject = await timeoutWorld();
-        await world.models.quests.updateOne(
-            { _id: subject.aidId },
-            {
-                $push: {
-                    registeredAdventurers: {
-                        character: new Types.ObjectId(),
-                        title: 'rookie',
-                    },
-                },
-            },
-        );
+        await rescuer(subject, HOUR_AGO);
         const debug = jest
             .spyOn(Logger.prototype, 'debug')
             .mockImplementation(() => undefined);
@@ -259,10 +287,68 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
 
         const suspended = (calls: unknown[][]) =>
             calls.filter(([message]) =>
-                String(message).includes('timeout sospeso'),
+                String(message).includes('soccorso avviato'),
             );
         expect(suspended(log.mock.calls)).toHaveLength(0);
         expect(suspended(debug.mock.calls)).toHaveLength(2);
+    });
+
+    it('releases an incomplete rescue party when the timeout expires', async () => {
+        const subject = await timeoutWorld(SEVEN_DAYS_AGO, 3);
+        const otherId = await secondWounded(subject);
+        const waiting = await rescuer(subject, null);
+
+        await expect(timeout(subject)).resolves.toBe('resolved');
+
+        for (const id of [subject.injuredId, otherId]) {
+            expect((await characterOf(id)).deletionReason).toBe('death');
+        }
+        const aid = await aidOf(subject);
+        expect(aid.concludedAt).toEqual(NOW);
+        expect(aid.registeredAdventurers).toEqual([]);
+        expect(
+            (await characterOf(waiting.characterId)).quests.pendingQuest,
+        ).toBeNull();
+        expect(
+            await world.models.pendingQuests.exists({
+                _id: waiting.pendingQuest._id,
+            }),
+        ).toBeNull();
+        expect(
+            await world.models.questResults.countDocuments({
+                character: waiting.characterId,
+            }),
+        ).toBe(0);
+        expect(
+            world.push.sent
+                .filter(
+                    ({ message }) =>
+                        message.type === PushEventType.questCancelled,
+                )
+                .map(({ tokens, message }) => [tokens, message.id]),
+        ).toEqual([
+            [[`tok-${String(waiting.player.user._id)}`], String(subject.aidId)],
+        ]);
+        expect(
+            world.push.sent.filter(
+                ({ message }) => message.type === PushEventType.questEnd,
+            ),
+        ).toHaveLength(2);
+    });
+
+    it('times out a started rescue whose rescuers were all archived', async () => {
+        const subject = await timeoutWorld();
+        await world.models.quests.updateOne(
+            { _id: subject.aidId },
+            { $set: { startedAt: HOUR_AGO, registeredAdventurers: [] } },
+        );
+
+        await expect(timeout(subject)).resolves.toBe('resolved');
+
+        expect((await characterOf(subject.injuredId)).deletionReason).toBe(
+            'death',
+        );
+        expect((await aidOf(subject)).concludedAt).toEqual(NOW);
     });
 
     it('turns a second timeout into a no-op', async () => {

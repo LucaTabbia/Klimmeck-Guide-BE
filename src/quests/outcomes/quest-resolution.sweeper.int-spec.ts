@@ -332,7 +332,7 @@ describe('QuestResolutionSweeper (replSet)', () => {
         ]);
     });
 
-    it('does not time out a rescue with a registered rescuer (C5)', async () => {
+    it('does not time out a rescue in progress (C5 rivista 2026-10-25)', async () => {
         const subject = await injured();
         await world.models.quests.updateOne(
             { _id: subject.aidId },
@@ -343,6 +343,7 @@ describe('QuestResolutionSweeper (replSet)', () => {
                         title: 'rookie',
                     },
                 },
+                $set: { startedAt: new Date(NOW.getTime() - HALF_HOUR_MS) },
             },
         );
 
