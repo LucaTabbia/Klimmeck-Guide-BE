@@ -32,7 +32,7 @@ export class QuestResolutionProcessor {
     constructor(
         private readonly resolution: QuestResolutionService,
         private readonly rescue: RescueResolutionService,
-        private readonly partyTimeout: PartyTimeoutService,
+        private readonly parties: PartyTimeoutService,
         private readonly clock: Clock,
     ) {}
 
@@ -78,7 +78,7 @@ export class QuestResolutionProcessor {
 
     // 24 ore senza posti pieni (utente 2026-10-25): il servizio rilegge il party e decide
     @Process(PARTY_TIMEOUT_JOB)
-    async partyTimeoutJob(job: Job<PartyTimeoutJobData>): Promise<void> {
+    async partyTimeout(job: Job<PartyTimeoutJobData>): Promise<void> {
         const trigger = partyTimeoutJobDataOf(job.data);
         if (!trigger) {
             this.warnMalformed('di timeout del party', job);
@@ -94,7 +94,7 @@ export class QuestResolutionProcessor {
         ) {
             return;
         }
-        await this.partyTimeout.disband({ questId: trigger.questId });
+        await this.parties.disband({ questId: trigger.questId });
     }
 
     private warnMalformed(subject: string, job: Job): void {
