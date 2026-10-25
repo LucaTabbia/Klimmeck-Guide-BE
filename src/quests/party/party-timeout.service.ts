@@ -183,7 +183,7 @@ export class PartyTimeoutService {
         }
     }
 
-    // solo PendingQuest di questa quest ancora non avviate: un membro legacy con startDate scritto resta intatto
+    // solo PendingQuest di questa quest ancora non avviate: un membro legacy con startDate scritto resta intatto, con un WARN per la pulizia a mano (BACKEND-NOTES §16)
     private async releaseMembers(
         questId: Types.ObjectId,
         members: readonly Types.ObjectId[],
@@ -219,7 +219,12 @@ export class PartyTimeoutService {
                     { session },
                 )
                 .exec();
-            if (deleted.deletedCount !== 1) continue;
+            if (deleted.deletedCount !== 1) {
+                this.logger.warn(
+                    `Registrato ${character._id.toHexString()} della missione ${questId.toHexString()} non liberato: la missione in attesa ${pendingQuestId.toHexString()} è già avviata o di un'altra missione (dato legacy, pulizia manuale)`,
+                );
+                continue;
+            }
             await this.characterModel
                 .updateOne(
                     {
