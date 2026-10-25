@@ -133,17 +133,12 @@ export class QuestResolutionSweeper
             const questId = refIdOf(ref);
             if (!questId || seen.has(questId.toHexString())) continue;
             seen.add(questId.toHexString());
-            try {
-                const outcome = await this.questStart.tryStart({
-                    questId,
-                    pendingQuestId,
-                });
-                if (outcome === 'started') started++;
-            } catch (error) {
-                this.logger.error(
-                    `Avvio della missione ${questId.toHexString()} fallito: ${describeError(error)}`,
-                );
-            }
+            // tryStart non lancia: logga l'errore e risponde 'stale'
+            const outcome = await this.questStart.tryStart({
+                questId,
+                pendingQuestId,
+            });
+            if (outcome === 'started') started++;
         }
         return started;
     }

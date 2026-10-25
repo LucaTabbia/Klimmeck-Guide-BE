@@ -13,6 +13,7 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
+import { describeError } from 'src/mongo/mongo-errors';
 import {
     isRegistered,
     QuestRequirementsSnapshot,
@@ -80,7 +81,19 @@ export class QuestStartService {
         private readonly scheduler: QuestResolutionScheduler,
     ) {}
 
+    // unico ingresso dopo un commit (accettazione, arrivo, sweep): un errore qui non annulla quanto già scritto, lo sweep riprova
     async tryStart(trigger: StartTrigger): Promise<StartOutcome> {
+        try {
+            return await this.start(trigger);
+        } catch (error) {
+            this.logger.error(
+                `Avvio della missione ${trigger.questId.toHexString()} (missione in attesa ${trigger.pendingQuestId?.toHexString() ?? '-'}) fallito: ${describeError(error)}; lo sweep riprova`,
+            );
+            return 'stale';
+        }
+    }
+
+    private async start(trigger: StartTrigger): Promise<StartOutcome> {
         const quest = await this.questModel
             .findById(trigger.questId, START_QUEST_PROJECTION)
             .lean<StartQuestSnapshot | null>()
