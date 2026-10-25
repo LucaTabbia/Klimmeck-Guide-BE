@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Connection, Model, Types } from 'mongoose';
-import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 import {
     Character,
     CharacterDocument,
@@ -12,7 +11,7 @@ import {
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
-import { idForms, refIdOf } from 'src/mongo/document-id';
+import { idForms } from 'src/mongo/document-id';
 import { describeError } from 'src/mongo/mongo-errors';
 import {
     isRegistered,
@@ -32,6 +31,11 @@ import {
     partyReadinessOf,
     registeredIdsOf,
 } from './party-rules';
+import {
+    LaneCharacterRef,
+    laneMembersOf,
+    LaneProjections,
+} from './lane-members';
 
 export type StartOutcome = 'started' | 'waiting' | 'stale';
 
@@ -68,7 +72,10 @@ const START_QUEST_PROJECTION = {
     startedAt: 1,
 } as const;
 
-const STANDARD_LANE_PATH = lanePathOf(QuestLane.standard);
+const PARTY_PROJECTIONS: LaneProjections = {
+    character: { [lanePathOf(QuestLane.standard)]: 1 },
+    pendingQuest: { arrivedAt: 1, waitingTime: 1 },
+};
 
 // unico scrittore di startDate della corsia standard e unico punto che accoda i job di risoluzione (D-24 emendata 2026-10-25)
 @Injectable()
@@ -191,54 +198,29 @@ export class QuestStartService {
         return 'waiting';
     }
 
-    // stessi filtri del roster di gruppo (ResolutionLoader.readGroupRoster): registrati attivi in corsia standard con una PendingQuest di questa quest
+    // stessa lettura del roster di gruppo (ResolutionLoader.readGroupRoster)
     private async readParty(quest: StartQuestSnapshot): Promise<PartyRead> {
-        const registered = registeredIdsOf(quest.registeredAdventurers);
-        const characters = await this.characterModel
-            .find(
-                {
-                    ...ACTIVE_CHARACTER_FILTER,
-                    _id: { $in: registered.flatMap((id) => idForms(id)) },
-                    [STANDARD_LANE_PATH]: { $ne: null },
-                },
-                { [STANDARD_LANE_PATH]: 1 },
-            )
-            .lean<
-                { _id: Types.ObjectId; quests?: { pendingQuest?: unknown } }[]
-            >()
-            .exec();
-        const lanes = characters.flatMap(
-            (character) => refIdOf(character.quests?.pendingQuest) ?? [],
+        const { members, dropped } = await laneMembersOf<
+            LaneCharacterRef,
+            MemberPendingQuest
+        >(
+            {
+                characters: this.characterModel,
+                pendingQuests: this.pendingQuestModel,
+            },
+            quest._id,
+            registeredIdsOf(quest.registeredAdventurers),
+            PARTY_PROJECTIONS,
         );
-        const pendingQuests = await this.pendingQuestModel
-            .find(
-                { _id: { $in: lanes }, quest: { $in: idForms(quest._id) } },
-                { arrivedAt: 1, waitingTime: 1 },
-            )
-            .lean<MemberPendingQuest[]>()
-            .exec();
-        const members: PartyMember[] = [];
-        const dropped: Types.ObjectId[] = [];
-        for (const characterId of registered) {
-            const character = characters.find(({ _id }) =>
-                _id.equals(characterId),
-            );
-            const lane = refIdOf(character?.quests?.pendingQuest);
-            const pendingQuest = pendingQuests.find(
-                ({ _id }) => lane !== null && _id.equals(lane),
-            );
-            if (!pendingQuest) {
-                dropped.push(characterId);
-                continue;
-            }
-            members.push({
-                characterId,
+        return {
+            members: members.map(({ character, pendingQuest }) => ({
+                characterId: character._id,
                 pendingQuestId: pendingQuest._id,
                 arrivedAt: pendingQuest.arrivedAt ?? null,
                 waitingTime: pendingQuest.waitingTime ?? 0,
-            });
-        }
-        return { members, dropped };
+            })),
+            dropped,
+        };
     }
 
     // claim per identità nella stessa transazione dell'updateMany (T-09-90): stesso startDate per tutti; job solo dopo il commit

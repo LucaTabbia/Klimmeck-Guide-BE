@@ -24,6 +24,7 @@ import { User, UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
 import { ownersOf } from 'src/mongo/owners-of';
 import { lanePathOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
+import { laneMembersOf, LaneProjections } from 'src/quests/party/lane-members';
 import type { AidSourceQuest } from './aid/aid-quest';
 import type { GroupRoster, GroupSeat } from './group-roster';
 import {
@@ -134,7 +135,10 @@ export function laneFilter(
     };
 }
 
-const STANDARD_LANE_PATH = lanePathOf(QuestLane.standard);
+const ROSTER_PROJECTIONS: LaneProjections = {
+    character: OUTCOME_CHARACTER_PROJECTION,
+    pendingQuest: { startDate: 1, waitingTime: 1, quest: 1 },
+};
 
 const isDue = (pendingQuest: PendingQuestSnapshot, now: Date): boolean =>
     pendingQuest.startDate !== null &&
@@ -214,37 +218,26 @@ export class ResolutionLoader {
         registered: readonly Types.ObjectId[],
         now: Date,
     ): Promise<GroupRoster> {
-        const characters = await this.characterModel
-            .find(
-                {
-                    ...ACTIVE_CHARACTER_FILTER,
-                    _id: { $in: registered.flatMap((id) => idForms(id)) },
-                    [STANDARD_LANE_PATH]: { $ne: null },
-                },
-                OUTCOME_CHARACTER_PROJECTION,
-            )
-            .lean<LaneCharacter<QuestLane.standard>[]>()
-            .exec();
-        const lanes = characters.flatMap(
-            (character) => refIdOf(character.quests?.pendingQuest) ?? [],
+        const { members } = await laneMembersOf<
+            LaneCharacter<QuestLane.standard>,
+            PendingQuestSnapshot
+        >(
+            {
+                characters: this.characterModel,
+                pendingQuests: this.pendingQuestModel,
+            },
+            questId,
+            registered,
+            ROSTER_PROJECTIONS,
         );
-        const pendingQuests = await this.pendingQuestModel
-            .find(
-                { _id: { $in: lanes }, quest: { $in: idForms(questId) } },
-                { startDate: 1, waitingTime: 1, quest: 1 },
-            )
-            .lean<PendingQuestSnapshot[]>()
-            .exec();
-        const owners = await this.ownersOf(characters.map(({ _id }) => _id));
+        const owners = await this.ownersOf(
+            members.map(({ character }) => character._id),
+        );
         const seats: GroupSeat[] = [];
         let waiting = false;
-        for (const character of characters) {
-            const lane = refIdOf(character.quests?.pendingQuest);
-            const pendingQuest = pendingQuests.find(
-                ({ _id }) => lane !== null && _id.equals(lane),
-            );
+        for (const { character, pendingQuest } of members) {
             const ownerId = owners.get(character._id.toHexString());
-            if (!pendingQuest || !ownerId) continue;
+            if (!ownerId) continue;
             if (!isDue(pendingQuest, now)) waiting = true;
             seats.push({
                 character,
