@@ -86,6 +86,9 @@ Trappole di tooling (vincolanti, D-26 / RESEARCH Q10 e Pitfall 1–13): path jes
 | 09-16-T2 | 09-16 | 8 | BE-COMBAT-01..03, BE-ADMIN-01..02 (D-27, D-29) | T-09-81, T-09-82 | handoff senza segreti, comandi dati con placeholder | doc check | vedi `<verify>` del task (grep su BACKEND-NOTES, REQUIREMENTS, VALIDATION, Phase 5 notes) | ✅ `BACKEND-NOTES.md` creato | ✅ green |
 | 09-17-T1 | 09-17 | 9 | BE-COMBAT-03 (D-05 emendata, A3) | T-09-61 | verdetto unico del combattimento, effetti per partecipante | unit + integration | `npx jest src/quests/outcomes --selectProjects unit && npx jest src/quests/outcomes/boss-resolution.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 (RED) | ✅ green |
 | 09-17-T2 | 09-17 | 9 | BE-COMBAT-03 (D-10 C5 confermata, A2) | — | documenti allineati alle decisioni dell'utente | doc check | grep "confermata dall'utente il 2026-10-25" su CONTEXT e BACKEND-NOTES | ✅ | ✅ green |
+| 09-18-T1 | 09-18 | 10 | BE-COMBAT-01/03 (D-08, D-19 emendate) | T-09-86 | rescue.characters, posti = posti della quest fallita, rescuedCharacters nello schema | unit + integration + real boot | `npx jest src/quests/outcomes src/models src/characters --selectProjects unit && npx jest src/quests/results src/characters/deletion test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 (RED) | ✅ green |
+| 09-18-T2 | 09-18 | 10 | BE-COMBAT-03 (D-05, D-09, D-10 emendate) | T-09-87, T-09-88 | una aid per boss perso, soccorso di gruppo, timeout su tutti i feriti | integration (replSet) | `npx jest src/quests/outcomes/boss-resolution.int-spec.ts src/quests/outcomes/aid-rescue.int-spec.ts src/quests/outcomes/aid-timeout.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 (RED) | ✅ green |
+| 09-18-T3 | 09-18 | 10 | BE-COMBAT-01/03 | — | documenti allineati | doc check | grep "rescuedCharacters" su BACKEND-NOTES §1/§3 | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -110,6 +113,7 @@ Nessuna wave dedicata: ogni spec nuova nasce RED nel task che la consuma (TDD pe
 - [x] `src/quests/outcomes/quest-resolution.processor.int-spec.ts`, `quest-resolution.sweeper.spec.ts`, `quest-resolution.sweeper.int-spec.ts` (09-14)
 - [x] `src/quests/outcomes/gm-overrides.spec.ts`, `gm-completion.service.int-spec.ts`, `src/quests/pending-requests/complete-pending-request.resolver.int-spec.ts` (09-15)
 - [x] `test/quests/scripted-combat-resolver.ts` con willEnd, `placeholder-combat-resolver.spec.ts` casi A3 (09-17)
+- [x] src/quests/outcomes/group-roster.ts (tipi del roster condiviso), casi di gruppo in aid-rescue.int-spec.ts e aid-timeout.int-spec.ts (09-18)
 - Framework install: nessuno (stack e harness esistenti, nessuna dipendenza nuova).
 
 ---
@@ -123,7 +127,8 @@ Nessuna wave dedicata: ogni spec nuova nasce RED nel task che la consuma (TDD pe
 | `SHOP_NOT_IN_CITY` e `AWAITING_AID` gestiti dalla UI | D-18, D-07 (consumo FE Phase 7) | richiede la FE Phase 7 su device | BACKEND-NOTES §10 |
 | Dati di catalogo alla scala nuova (HP 1000, nemici riscalati, 2 ref `infos.enemy` orfani, `prizes.spell` sulle study di Valantar, una quest per tipo) | D-29 | decisione utente: nessuna migrazione né seed | BACKEND-NOTES §12: comandi `mongosh` dopo il deploy |
 | Timeout di soccorso reale | D-10 | 7 giorni reali | `mongosh`: retrodatare `status.awaitingAid.since` di 7 giorni e attendere lo sweep (≤ 60 s) |
-| ~~Conferma del default C5~~ — **confermato dall'utente il 2026-10-25** (A3 corretta nel piano 09-17, A2 resta provvisorio) | D-10 | scelta di game design dell'utente | chiusa; la aid unica di gruppo per il boss perso (decisione dell'utente del 2026-10-25) arriva con il piano 09-18 |
+| ~~Conferma del default C5~~ — **confermato dall'utente il 2026-10-25** (A3 corretta nel piano 09-17, A2 resta provvisorio) | D-10 | scelta di game design dell'utente | chiusa; la aid unica di gruppo per il boss perso (decisione dell'utente del 2026-10-25) è implementata dal piano 09-18 |
+| Soccorso di gruppo su device: più soccorritori sulla stessa aid, `rescuedCharacters` sul foglio | D-08, D-09 emendate (09-18) | richiede la FE Phase 9 su device | BACKEND-NOTES §13 punto 5. Comportamento transitorio di 09-18: boss e aid di gruppo si risolvono quando tutti i registrati sono scaduti; la regola dell'utente del 2026-10-25 — il party deve essere al completo per cominciare, tutti restano in attesa, anche per le aid del boss — arriva con il piano 09-19 |
 | Policy Redis di produzione (`maxmemory-policy`) | D-24 | configurazione dell'infrastruttura | BACKEND-NOTES §15 |
 
 ---
@@ -140,5 +145,7 @@ Nessuna wave dedicata: ogni spec nuova nasce RED nel task che la consuma (TDD pe
 **Execution sign-off (09-16, 2026-10-24):** gate di fase verde sul branch `feat/09-combat-result-admin-outcomes` — `npm run test:unit` **121 suite / 1765 test** (baseline 96 / 1424), `npm run test:int` **72 suite / 913 test** (~160 s, `--runInBand`; baseline 57 suite), `npm run build` exit 0, lint filtrato 0 righe, `eslint` e `prettier --check` puliti sui 174 `.ts` toccati, `git diff --exit-code src/schema.gql` pulito, diff dello schema vs `origin/develop` senza righe rimosse, letterali vietati assenti, invarianti di fase verdi (`@Public()` 7 = 7, 3 `@Roles(innkeeper)` nella coda, formula confinata nei due file segnaposto, nessun `$inc` sui saldi fuori dal wallet, unico scrittore di `level`/`maxLifePoints`, nessuna dipendenza nuova, nessun `jest.mock(`, nessun trailer). Flaky 09-14 del boot reale non riprodotto (suite completa + 2 run isolati, 43/43). Handoff in `BACKEND-NOTES.md`; restano manual-only le verifiche della tabella sopra (UAT FE Phase 7/9/10, dati a DB, conferma C5, policy Redis).
 
 **Execution sign-off (09-17, 2026-10-25):** gate verde dopo il verdetto unico — `npm run test:unit` **121 suite / 1776 test**, `npm run test:int` **72 suite / 915 test** (`--runInBand`, foreground), build 0, schema senza diff.
+
+**Execution sign-off (09-18, 2026-10-25):** `npm run test:unit` **121 suite / 1790 test**, `npm run test:int` **72 suite / 924 test** (`--runInBand`, foreground, nessun flaky), build 0, schema rigenerato dal boot reale (diff vs develop additivo: rescuedCharacter → rescuedCharacters, nato in questa PR).
 
 **Approval:** approved 2026-10-24 (execution gate 09-16)

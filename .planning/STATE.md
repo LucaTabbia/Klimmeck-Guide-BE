@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 9 complete (17/17, 2026-10-25) — PR #13 to develop open
-last_updated: "2026-10-25T12:35:40.000Z"
-last_activity: 2026-10-25 -- Phase 9 plan 09-17: shared combat verdict (A3), C5 confirmed by the user, placeholders stay provisional; gate green; PR #13 to be updated by the orchestrator
+stopped_at: Phase 9 complete (18/18, 2026-10-25) — PR #13 to develop open
+last_updated: "2026-10-25T13:59:41.000Z"
+last_activity: 2026-10-25 -- Phase 9 plan 09-18: one group aid per lost fight (seats = failed quest seats), group rescue, rescuedCharacters; gate green; PR #13 to be updated by the orchestrator
 progress:
   total_phases: 12
   completed_phases: 10
-  total_plans: 104
-  completed_plans: 104
+  total_plans: 105
+  completed_plans: 105
   percent: 100
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 9 — Combat Result & Admin Outcomes complete on 2026-10-24 (PR #13 to develop open 2026-10-24; unblocks FE Phase 9 foglio esiti and FE Phase 10 pannello admin; FE Phase 7 gets `SHOP_NOT_IN_CITY`/`AWAITING_AID`); user decisions 2026-10-25: C5 confirmed, A3 corrected (one verdict per fight, plan 09-17), placeholder values stay provisional; one group aid for a lost boss (seats = boss seats, user 2026-10-25) comes with plan 09-18; next Phase 10 — Hardening Trasversale
+**Current focus:** Phase 9 — Combat Result & Admin Outcomes complete on 2026-10-24 (PR #13 to develop open 2026-10-24; unblocks FE Phase 9 foglio esiti and FE Phase 10 pannello admin; FE Phase 7 gets `SHOP_NOT_IN_CITY`/`AWAITING_AID`); user decisions 2026-10-25: C5 confirmed, A3 corrected (one verdict per fight, plan 09-17), placeholder values stay provisional; one group aid per lost fight (seats = failed quest seats, user 2026-10-25) done in plan 09-18; transitional behaviour of 09-18: boss and group aids resolve when every registered adventurer is due — the user rule of 2026-10-25 (the party must be complete to start, everyone waits, boss aids included) comes with plan 09-19; next Phase 10 — Hardening Trasversale
 
 ## Current Position
 
-Phase: 9 (Combat Result & Admin Outcomes) — COMPLETE 2026-10-25 (17/17 plans; 09-17 shared combat verdict A3 + C5 confirmed; code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, 1 sub-point deferred to Phase 10; verification passed 5/5 success criteria + D-01..D-29 (C1–C10); device UAT deferred to the FE Phase 9/10 UAT; security audit in 09-SECURITY.md)
-Plan: 17 of 17 (complete)
-Status: Phase 9 complete (17/17) — PR #13 (feat/09-combat-result-admin-outcomes → develop) open, to be updated by the orchestrator with 09-17; plan 09-18 (one group aid for a lost boss) next, then /gsd-discuss-phase 10 (Hardening Trasversale)
+Phase: 9 (Combat Result & Admin Outcomes) — COMPLETE 2026-10-25 (18/18 plans; 09-17 shared combat verdict A3 + C5 confirmed; 09-18 one group aid per lost fight + group rescue + rescuedCharacters; code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, 1 sub-point deferred to Phase 10; verification passed 5/5 success criteria + D-01..D-29 (C1–C10); device UAT deferred to the FE Phase 9/10 UAT; security audit in 09-SECURITY.md)
+Plan: 18 of 18 (complete)
+Status: Phase 9 complete (18/18) — PR #13 (feat/09-combat-result-admin-outcomes → develop) open, to be updated by the orchestrator with 09-17 and 09-18; plan 09-19 (boss and group aids start only with a complete party) next, then /gsd-discuss-phase 10 (Hardening Trasversale)
 Last activity: 2026-10-25 -- Phase 9 plan 09-17: shared combat verdict (A3), C5 confirmed by the user, placeholders stay provisional; gate green (unit 121 suites / 1776 tests, integration 72 suites / 915 tests, build 0, schema unchanged)
 
 Progress: [██████████] 100% (phases 1–9 complete; Phase 10 next)
@@ -36,7 +36,7 @@ Progress: [██████████] 100% (phases 1–9 complete; Phase 10
 
 **Velocity:**
 
-- Total plans completed: 104
+- Total plans completed: 105
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -238,6 +238,7 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-15: completePendingRequest (innkeeper, audit automatico con target QuestResult) chiama GmCompletionService: story = il solo titolare, worldMission = tutti i personaggi attivi con una PendingQuest della quest in corsia; override del GM (hpAfter 1..maxLifePoints, ferite, consumi e magie entro il posseduto) validati da validateOverrides prima di ogni scrittura e di nuovo sugli snapshot in sessione, poi passati come ParticipantOutcome 'success' a planParticipant (verdetto gmCompleted, aid null); una transazione per l'intera richiesta, StaleResolution ⇒ NOT_FOUND al perdente; le magie degli override ricevono il job di recupero anche senza nemico (recoveryTimesOf); PendingRequestsModule importa QuestOutcomesModule e QuestResultsReadModule, ogni suo harness usa push/code finte e QUIET_OUTCOME_OVERRIDES
 - [Phase 09]: 09-16: gate di fase verde senza correzioni di codice; handoff BACKEND-NOTES.md (SDL verbatim, codici, esiti, regole segnaposto, dati UAT mongosh con placeholder); handoff Phase 5 emendato (questEnd con l'id del risultato, nessun combatResult); traceability BE-COMBAT-01..03 / BE-ADMIN-01..02 Complete; la morte ha un unico punto archiveWithin (dieWithin) per aid fallita e timeout
 - [Phase 09]: 09-17: CombatResolver returns CombatResolution { verdict, participants: ParticipantEffects[] } — one verdict per fight (A3, user 2026-10-25), effects per participant; placeholder rolls victory once; ScriptedCombatResolver.willEnd; C5 confirmed (suspension = cancellation while a rescuer is registered); A2 placeholders stay provisional
+- [Phase 09]: 09-18: one aid per lost fight — Quest.rescue { characters: [Character], failedQuest }, aid seats = Σ count of the failed quest's requiredAdventurers (min 1, wildcard), group rescue on the shared roster reader (resolves when every registered rescuer is due, one verdict), success frees every wounded (rescuedCharacters on each rescuer's result), failure kills every wounded and chains ONE new aid for the rescuers, timeout kills every wounded, archiver pulls the wounded and concludes the aid only when none is left; SDL rescuedCharacter → rescuedCharacters (born in this PR, additive vs develop); resolving without a full party is transitional until plan 09-19 (user rule 2026-10-25: the party must be complete to start)
 
 ### Pending Todos
 
