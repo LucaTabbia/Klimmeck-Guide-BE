@@ -62,7 +62,10 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
         characterId: Types.ObjectId;
         seatedQuest: Types.ObjectId;
         openAid: Types.ObjectId;
+        sharedAid: Types.ObjectId;
+        unrelatedAid: Types.ObjectId;
         concludedAid: Types.ObjectId;
+        other: Types.ObjectId;
     }
 
     async function persistScene(
@@ -84,22 +87,25 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
                 { character: other, title: 'hero' },
             ],
         });
-        const openAid = await persistQuest(quests, {
-            infos: { ...buildQuest().infos, type: 'aid' },
-            rescue: { character: characterId, failedQuest: seated._id },
-            concludedAt: null,
-        });
-        const concludedAid = await persistQuest(quests, {
-            infos: { ...buildQuest().infos, type: 'aid' },
-            rescue: { character: characterId, failedQuest: seated._id },
-            concludedAt: YESTERDAY,
-        });
+        const aidOf = (wounded: Types.ObjectId[], concludedAt: Date | null) =>
+            persistQuest(quests, {
+                infos: { ...buildQuest().infos, type: 'aid' },
+                rescue: { characters: wounded, failedQuest: seated._id },
+                concludedAt,
+            });
+        const openAid = await aidOf([characterId], null);
+        const sharedAid = await aidOf([characterId, other], null);
+        const unrelatedAid = await aidOf([other], null);
+        const concludedAid = await aidOf([characterId], YESTERDAY);
         return {
             userId: user._id as Types.ObjectId,
             characterId,
             seatedQuest: seated._id as Types.ObjectId,
             openAid: openAid._id as Types.ObjectId,
+            sharedAid: sharedAid._id as Types.ObjectId,
+            unrelatedAid: unrelatedAid._id as Types.ObjectId,
             concludedAid: concludedAid._id as Types.ObjectId,
+            other,
         };
     }
 
@@ -137,15 +143,25 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
         );
     }
 
+    function woundedOf(id: Types.ObjectId): Promise<string[]> {
+        return rawQuest(id).then((quest) =>
+            ((quest?.rescue?.characters ?? []) as unknown[]).map(String),
+        );
+    }
+
     async function expectUntouched(scene: Scene): Promise<void> {
         expect((await rawCharacter(scene.characterId))?.deletedAt).toBeNull();
         expect(await seatedCharacters(scene.seatedQuest)).toContain(
             String(scene.characterId),
         );
         expect((await rawQuest(scene.openAid))?.concludedAt).toBeNull();
+        expect(await woundedOf(scene.sharedAid)).toEqual([
+            String(scene.characterId),
+            String(scene.other),
+        ]);
     }
 
-    it('archives the character, unlinks the user, frees seats and closes open aids', async () => {
+    it('archives the character, unlinks the user, frees seats and closes the aids left without wounded', async () => {
         const scene = await persistScene();
 
         const outcome = await archiveInTransaction(
@@ -163,9 +179,33 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
         );
         expect(await seatedCharacters(scene.seatedQuest)).toHaveLength(1);
         expect((await rawQuest(scene.openAid))?.concludedAt).toEqual(NOW);
+        expect(await woundedOf(scene.openAid)).toEqual([]);
         expect((await rawQuest(scene.concludedAid))?.concludedAt).toEqual(
             YESTERDAY,
         );
+    });
+
+    it('keeps an aid with two wounded open for the one left to rescue', async () => {
+        const scene = await persistScene();
+
+        await archiveInTransaction(scene.userId, scene.characterId);
+
+        expect(await woundedOf(scene.sharedAid)).toEqual([String(scene.other)]);
+        expect((await rawQuest(scene.sharedAid))?.concludedAt).toBeNull();
+    });
+
+    it('leaves untouched an aid that does not rescue the archived character', async () => {
+        const scene = await persistScene();
+
+        await archiveInTransaction(scene.userId, scene.characterId);
+
+        expect(await woundedOf(scene.unrelatedAid)).toEqual([
+            String(scene.other),
+        ]);
+        expect((await rawQuest(scene.unrelatedAid))?.concludedAt).toBeNull();
+        expect(await woundedOf(scene.concludedAid)).toEqual([
+            String(scene.characterId),
+        ]);
     });
 
     it('matches a legacy current character saved as a hex string', async () => {

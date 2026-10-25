@@ -3,7 +3,7 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { resolutionKindOf } from './resolution-kind';
 
 const RESCUE = {
-    character: new Types.ObjectId(),
+    characters: [new Types.ObjectId(), new Types.ObjectId()],
     failedQuest: new Types.ObjectId(),
 };
 
@@ -30,6 +30,30 @@ describe('resolutionKindOf', () => {
         expect(
             resolutionKindOf({ infos: { type: QuestType.aid }, rescue: null }),
         ).toBe('individual');
+    });
+
+    it('resolves an aid left without wounded individually', () => {
+        expect(
+            resolutionKindOf({
+                infos: { type: QuestType.aid },
+                rescue: { characters: [], failedQuest: RESCUE.failedQuest },
+            }),
+        ).toBe('individual');
+        expect(
+            resolutionKindOf({
+                infos: { type: QuestType.aid },
+                rescue: { characters: [null, 'not-an-id'] },
+            }),
+        ).toBe('individual');
+    });
+
+    it('accepts a wounded saved as a hex string', () => {
+        expect(
+            resolutionKindOf({
+                infos: { type: QuestType.aid },
+                rescue: { characters: [RESCUE.characters[0].toHexString()] },
+            }),
+        ).toBe('rescue');
     });
 
     it('ignores a rescue reference on a quest that is not an aid', () => {

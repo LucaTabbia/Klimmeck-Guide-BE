@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import {
     AID_TITLE_PREFIX,
     AidSourceQuest,
+    aidSeatsOf,
     buildAidQuest,
 } from 'src/quests/outcomes/aid/aid-quest';
 import { QuestType } from 'src/models/enums/quest-type.enum';
@@ -16,6 +17,7 @@ const AID_ID = new Types.ObjectId('64b0000000000000000000c6');
 const RESCUER_ID = new Types.ObjectId('64b0000000000000000000c7');
 const NEXT_AID_ID = new Types.ObjectId('64b0000000000000000000c8');
 const LOOT_ID = new Types.ObjectId('64b0000000000000000000c9');
+const OTHER_INJURED_ID = new Types.ObjectId('64b0000000000000000000ca');
 
 const lootEntry = { itemType: 'LootItem', item: LOOT_ID, quantity: 1 };
 
@@ -45,7 +47,7 @@ const original: AidSourceQuest = {
 };
 
 describe('buildAidQuest', () => {
-    const aid = buildAidQuest(original, INJURED_ID, AID_ID);
+    const aid = buildAidQuest(original, [INJURED_ID, OTHER_INJURED_ID], AID_ID);
 
     it('clones the failed quest as an aid titled after it', () => {
         expect(aid._id).toBe(AID_ID);
@@ -57,11 +59,11 @@ describe('buildAidQuest', () => {
         expect(aid.infos.relatedLore).toEqual([LORE_ID]);
     });
 
-    it('opens one wildcard seat at no cost, keeping the minimum title', () => {
+    it('opens as many wildcard seats as the failed quest, at no cost, keeping the minimum title', () => {
         expect(aid.requirements).toEqual({
             minTitle: 'hero',
             requiredPoints: null,
-            requiredAdventurers: [{ title: null, count: 1 }],
+            requiredAdventurers: [{ title: null, count: 5 }],
             recommendedLoot: [],
         });
     });
@@ -72,29 +74,42 @@ describe('buildAidQuest', () => {
         expect(aid.prizes.randomLoot).not.toBe(original.prizes?.randomLoot);
     });
 
-    it('starts open, empty and linked to the injured character', () => {
+    it('starts open, empty and linked to every wounded of the lost fight', () => {
         expect(aid.registeredAdventurers).toEqual([]);
         expect(aid.concludedAt).toBeNull();
         expect(aid.rescue).toEqual({
-            character: INJURED_ID,
+            characters: [INJURED_ID, OTHER_INJURED_ID],
             failedQuest: ORIGINAL_ID,
         });
     });
 
-    it('always points a chained aid back to the original failed quest', () => {
+    it('does not share the wounded list with the caller', () => {
+        const injured = [INJURED_ID];
+
+        const single = buildAidQuest(original, injured, AID_ID);
+
+        expect(single.rescue.characters).toEqual(injured);
+        expect(single.rescue.characters).not.toBe(injured);
+    });
+
+    it('always points a chained aid back to the original failed quest, keeping the seats', () => {
         const chained = buildAidQuest(
             {
                 ...original,
                 _id: AID_ID,
                 infos: { ...original.infos, title: aid.infos.title },
+                requirements: aid.requirements,
                 rescue: { failedQuest: ORIGINAL_ID },
             },
-            RESCUER_ID,
+            [RESCUER_ID],
             NEXT_AID_ID,
         );
 
         expect(chained.rescue.failedQuest).toEqual(ORIGINAL_ID);
-        expect(chained.rescue.character).toBe(RESCUER_ID);
+        expect(chained.rescue.characters).toEqual([RESCUER_ID]);
+        expect(chained.requirements.requiredAdventurers).toEqual([
+            { title: null, count: 5 },
+        ]);
         expect(chained.infos.title).toBe(
             `${AID_TITLE_PREFIX}Il drago di Valantar`,
         );
@@ -110,11 +125,14 @@ describe('buildAidQuest', () => {
                     enemy: null,
                 },
             },
-            INJURED_ID,
+            [INJURED_ID],
             AID_ID,
         );
 
         expect(bare.infos.enemy).toBeNull();
+        expect(bare.requirements.requiredAdventurers).toEqual([
+            { title: null, count: 1 },
+        ]);
         expect(bare.infos.timeToComplete).toBeNull();
         expect(bare.prizes).toEqual({
             prizeCoins: null,
@@ -124,4 +142,34 @@ describe('buildAidQuest', () => {
             spell: null,
         });
     });
+});
+
+describe('aidSeatsOf', () => {
+    it('sums the seats of every slot of the failed quest', () => {
+        expect(aidSeatsOf([{ title: TitleType.hero, count: 5 }])).toBe(5);
+        expect(
+            aidSeatsOf([
+                { title: TitleType.paladin, count: 1 },
+                { title: null, count: 2 },
+            ]),
+        ).toBe(3);
+    });
+
+    it('opens one seat for a single-adventurer quest', () => {
+        expect(aidSeatsOf([{ title: null, count: 1 }])).toBe(1);
+    });
+
+    it.each([
+        ['missing', undefined],
+        ['null', null],
+        ['empty', []],
+        ['a legacy number', 3],
+        ['an invalid slot', [{ title: null, count: 0 }]],
+        ['an unknown title', [{ title: 'emperor', count: 2 }]],
+    ])(
+        'falls back to one seat when the slots are %s (T-09-86)',
+        (_label, value) => {
+            expect(aidSeatsOf(value)).toBe(1);
+        },
+    );
 });

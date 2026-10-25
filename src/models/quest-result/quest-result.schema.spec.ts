@@ -39,15 +39,19 @@ describe('quest result schema', () => {
     });
 
     it('stores every ref as a cast ObjectId', () => {
-        for (const path of [
-            'character',
-            'user',
-            'spellLearned',
-            'enemy',
-            'rescuedCharacter',
-        ]) {
+        for (const path of ['character', 'user', 'spellLearned', 'enemy']) {
             expect(QuestResultSchema.path(path).instance).toBe('ObjectId');
         }
+    });
+
+    it('stores the rescued characters as a list of cast ObjectIds', () => {
+        const path = QuestResultSchema.path('rescuedCharacters') as unknown as {
+            instance: string;
+            caster: { instance: string };
+        };
+
+        expect(path.instance).toBe('Array');
+        expect(path.caster.instance).toBe('ObjectId');
     });
 
     it('uses absolute refPaths for the consumed and rewarded items', () => {
@@ -69,7 +73,7 @@ describe('quest result schema', () => {
         expect(result.spellsUsed).toEqual([]);
         expect(result.spellLearned).toBeNull();
         expect(result.enemy).toBeNull();
-        expect(result.rescuedCharacter).toBeNull();
+        expect(result.rescuedCharacters).toEqual([]);
     });
 
     it('rejects unknown outcomes and injuries', () => {

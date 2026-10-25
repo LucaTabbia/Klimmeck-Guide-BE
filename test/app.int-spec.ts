@@ -447,7 +447,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemy: Enemy\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  levelAfter: Int!\n  levelBefore: Int!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest!\n  rescuedCharacter: ID\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemy: Enemy\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  levelAfter: Int!\n  levelBefore: Int!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest!\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
         );
         expect(schema.match(/type QuestResultQuest \{[^}]*\}/)?.[0]).toBe(
             'type QuestResultQuest {\n  id: ID!\n  title: String!\n  type: String!\n}',

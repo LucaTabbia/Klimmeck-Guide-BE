@@ -35,7 +35,7 @@ describe('rescue timeout', () => {
         expect(aidTimeoutClaimFilter(AID_ID)).toEqual({
             _id: AID_ID,
             concludedAt: null,
-            'rescue.character': { $ne: null },
+            'rescue.characters.0': { $exists: true },
             registeredAdventurers: { $size: 0 },
         });
     });

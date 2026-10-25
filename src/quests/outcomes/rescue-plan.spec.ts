@@ -69,7 +69,7 @@ const unchangedSheet = {
     titleAfter: TitleType.adventurer,
     spellLearned: null,
     enemy: null,
-    rescuedCharacter: null,
+    rescuedCharacters: [],
 };
 
 describe('planRescued', () => {

@@ -26,7 +26,7 @@ import {
 import { persistQuestResult } from '../../../test/quests/quest-result.fixture';
 
 // selezione del foglio esiti (FE COMBAT-02..05)
-const QUEST_RESULT = `query QuestResult($id: String!) { questResult(id: $id) { id character user outcome resolvedAt hpBefore hpAfter maxLifePoints injuriesAdded xpGained xpBefore xpAfter levelBefore levelAfter titleBefore titleAfter rescuedCharacter quest { id type title } rewards { coins { gold silver copper } items { quantity item { ... on LootItem { id name } ... on EquipmentItem { id name } } } } consumablesUsed { quantity item { ... on LootItem { id name } } } spellsUsed { usages spell { id name } } spellLearned { id name } enemy { id name } } }`;
+const QUEST_RESULT = `query QuestResult($id: String!) { questResult(id: $id) { id character user outcome resolvedAt hpBefore hpAfter maxLifePoints injuriesAdded xpGained xpBefore xpAfter levelBefore levelAfter titleBefore titleAfter rescuedCharacters quest { id type title } rewards { coins { gold silver copper } items { quantity item { ... on LootItem { id name } ... on EquipmentItem { id name } } } } consumablesUsed { quantity item { ... on LootItem { id name } } } spellsUsed { usages spell { id name } } spellLearned { id name } enemy { id name } } }`;
 const MISSING_ID = '64b0000000000000000000ff';
 
 interface WireBody {
@@ -123,6 +123,7 @@ describe('questResult(id) (wire)', () => {
         const enemy = await persistTestEnemy();
         const questId = new Types.ObjectId();
         const rescued = new Types.ObjectId();
+        const alsoRescued = new Types.ObjectId();
         const result = await persistAliceResult({
             quest: { id: questId, type: 'job', title: 'Bandits at the gate' },
             hpBefore: 1000,
@@ -136,7 +137,7 @@ describe('questResult(id) (wire)', () => {
             levelAfter: 2,
             titleBefore: 'rookie',
             titleAfter: 'adventurer',
-            rescuedCharacter: rescued,
+            rescuedCharacters: [rescued, alsoRescued],
             rewards: {
                 coins: { gold: 1, silver: 2, copper: 3 },
                 items: [
@@ -172,7 +173,7 @@ describe('questResult(id) (wire)', () => {
             levelAfter: 2,
             titleBefore: 'rookie',
             titleAfter: 'adventurer',
-            rescuedCharacter: String(rescued),
+            rescuedCharacters: [String(rescued), String(alsoRescued)],
             quest: {
                 id: String(questId),
                 type: 'job',

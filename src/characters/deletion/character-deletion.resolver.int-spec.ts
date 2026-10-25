@@ -578,7 +578,7 @@ describe('deleteCharacter (wire)', () => {
             expect(await rawSeats(quest._id)).toEqual([]);
         });
 
-        it('closes the open aid quests of the deleted character', async () => {
+        it('closes the aids left without wounded and keeps the shared ones open', async () => {
             const alice = await createPlayer(harness, {
                 twitchId: 'twitch-del-alice',
             });
@@ -586,7 +586,16 @@ describe('deleteCharacter (wire)', () => {
             const aid = await persistQuest(quests, {
                 infos: { ...buildQuest().infos, type: 'aid' },
                 rescue: {
-                    character: deleted,
+                    characters: [deleted],
+                    failedQuest: new Types.ObjectId(),
+                },
+                concludedAt: null,
+            });
+            const someoneElse = new Types.ObjectId();
+            const sharedAid = await persistQuest(quests, {
+                infos: { ...buildQuest().infos, type: 'aid' },
+                rescue: {
+                    characters: [deleted, someoneElse],
                     failedQuest: new Types.ObjectId(),
                 },
                 concludedAt: null,
@@ -606,6 +615,11 @@ describe('deleteCharacter (wire)', () => {
                 (quest) => quest.id,
             );
             expect(listedIds).not.toContain(String(aid._id));
+            const shared = await quests.collection.findOne({
+                _id: sharedAid._id,
+            });
+            expect(shared?.concludedAt).toBeNull();
+            expect(shared?.rescue?.characters).toEqual([someoneElse]);
         });
 
         it('releases the seats once under concurrent deletions', async () => {

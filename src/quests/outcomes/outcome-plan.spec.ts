@@ -31,6 +31,7 @@ const FAILED_ID = new Types.ObjectId('64b0000000000000000000e9');
 const SPELL_ID = new Types.ObjectId('64b0000000000000000000ea');
 const LEARNED_SPELL_ID = new Types.ObjectId('64b0000000000000000000eb');
 const INJURED_ID = new Types.ObjectId('64b0000000000000000000ec');
+const OTHER_INJURED_ID = new Types.ObjectId('64b0000000000000000000ed');
 const OTHER_ITEM_ID = new Types.ObjectId('64b0000000000000000000ed');
 const OTHER_SPELL_ID = new Types.ObjectId('64b0000000000000000000ee');
 
@@ -198,7 +199,7 @@ describe('planParticipant', () => {
                 titleAfter: TitleType.rookie,
                 spellLearned: null,
                 enemy: null,
-                rescuedCharacter: null,
+                rescuedCharacters: [],
             });
         });
     });
@@ -579,14 +580,31 @@ describe('planParticipant', () => {
         expect(plan.result.xpBefore).toBe(0);
     });
 
-    it('names the rescued character on the rescuer sheet', () => {
+    it('names every rescued character on the rescuer sheet', () => {
         const plan = planParticipant(
             inputWith({
                 quest: questOf(QuestType.aid),
-                rescuedCharacter: INJURED_ID,
+                rescuedCharacters: [INJURED_ID, OTHER_INJURED_ID],
             }),
         );
 
-        expect(plan.result.rescuedCharacter).toBe(INJURED_ID);
+        expect(plan.result.rescuedCharacters).toEqual([
+            INJURED_ID,
+            OTHER_INJURED_ID,
+        ]);
+    });
+
+    it('names nobody on the sheet of a lost rescue', () => {
+        const plan = planParticipant(
+            inputWith({
+                quest: questOf(QuestType.aid),
+                verdict: QuestOutcome.failure,
+                battle: battleWith({ hpAfter: 300 }),
+                aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                rescuedCharacters: [INJURED_ID, OTHER_INJURED_ID],
+            }),
+        );
+
+        expect(plan.result.rescuedCharacters).toEqual([]);
     });
 });
