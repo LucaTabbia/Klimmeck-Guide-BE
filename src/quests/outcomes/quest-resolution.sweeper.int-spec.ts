@@ -225,6 +225,40 @@ describe('QuestResolutionSweeper (replSet)', () => {
             expect(resolveJobs()).toHaveLength(1);
         });
 
+        it('starts two hunts arrived on the same quest in the same sweep', async () => {
+            const a = await quester({
+                startDate: null,
+                arrivedAt: ARRIVED,
+                questOverrides: {
+                    infos: { ...buildQuest().infos, type: 'hunt' },
+                },
+            });
+            const b = await quester({
+                quest: a.quest,
+                startDate: null,
+                arrivedAt: ARRIVED,
+            });
+
+            await expect(sweeper.sweep()).resolves.toEqual(NOTHING_DONE);
+
+            for (const subject of [a, b]) {
+                const pendingQuest = await world.models.pendingQuests
+                    .findById(subject.pendingQuest._id)
+                    .lean<any>();
+                expect(pendingQuest.startDate).toEqual(ARRIVED);
+            }
+            expect(
+                resolveJobs()
+                    .map(({ data }) => (data as any).pendingQuestId)
+                    .sort(),
+            ).toEqual(
+                [
+                    a.pendingQuest._id.toHexString(),
+                    b.pendingQuest._id.toHexString(),
+                ].sort(),
+            );
+        });
+
         it('starts a ready boss party once', async () => {
             const tryStart = jest.spyOn(
                 world.harness.app.get(QuestStartService),

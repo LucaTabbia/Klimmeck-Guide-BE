@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { CharacterDocument } from 'src/models/character/character.model';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { QuestDocument } from 'src/models/quest/quest.model';
 import { PartyTimeoutService } from '../party/party-timeout.service';
 import { QuestStartService } from '../party/quest-start.service';
@@ -204,13 +205,31 @@ describe('QuestResolutionSweeper', () => {
         );
     });
 
-    it('starts the arrived quests first, once per quest (utente 2026-10-25)', async () => {
+    it('starts the arrived quests first, once per registered quest (utente 2026-10-25)', async () => {
         const bossId = new Types.ObjectId();
         const huntId = new Types.ObjectId();
         const entries: ArrivedUnstartedQuest[] = [
-            { questId: bossId, pendingQuestId: new Types.ObjectId() },
+            {
+                questId: bossId,
+                pendingQuestId: new Types.ObjectId(),
+                type: QuestType.boss,
+            },
+            {
+                questId: huntId,
+                pendingQuestId: new Types.ObjectId(),
+                type: QuestType.hunt,
+            },
+            {
+                questId: bossId,
+                pendingQuestId: new Types.ObjectId(),
+                type: QuestType.boss,
+            },
+            {
+                questId: huntId,
+                pendingQuestId: new Types.ObjectId(),
+                type: QuestType.hunt,
+            },
             { questId: huntId, pendingQuestId: new Types.ObjectId() },
-            { questId: bossId, pendingQuestId: new Types.ObjectId() },
         ];
         arrived = Promise.resolve(entries);
         const order: string[] = [];
@@ -227,8 +246,14 @@ describe('QuestResolutionSweeper', () => {
 
         await sweeperWith(0).sweep();
 
-        expect(tryStart.mock.calls).toEqual([[entries[0]], [entries[1]]]);
-        expect(order).toEqual(['start', 'start', 'resolve']);
+        const triggerOf = ({
+            questId,
+            pendingQuestId,
+        }: ArrivedUnstartedQuest) => [{ questId, pendingQuestId }];
+        expect(tryStart.mock.calls).toEqual(
+            [entries[0], entries[1], entries[3], entries[4]].map(triggerOf),
+        );
+        expect(order).toEqual(['start', 'start', 'start', 'start', 'resolve']);
     });
 
     it('backfills, starts, then disbands only the expired parties (utente 2026-10-25)', async () => {
