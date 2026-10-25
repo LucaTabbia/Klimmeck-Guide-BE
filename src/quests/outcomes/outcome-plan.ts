@@ -14,7 +14,7 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms, objectIdFromHex, sameId } from 'src/mongo/document-id';
 import { lanePathOf, type QuestLane } from 'src/quests/acceptance/quest-lanes';
-import type { ParticipantOutcome } from './combat/combat-resolver';
+import type { ParticipantEffects } from './combat/combat-resolver';
 import { isInjuryType } from './injuries/injury-rules';
 import { isPositiveInteger } from './outcome-numbers';
 import { lifePointsWithin, progressionAfter } from './progression/level-table';
@@ -104,7 +104,7 @@ export interface ParticipantPlanInput {
     pendingQuestId: Types.ObjectId;
     userId: Types.ObjectId;
     verdict: PlanVerdict;
-    battle: ParticipantOutcome | null;
+    battle: ParticipantEffects | null;
     enemy: { id: Types.ObjectId; xp: number } | null;
     rewards: DrawnRewards;
     aid: { aidQuestId: Types.ObjectId; failedQuestId: Types.ObjectId } | null;
@@ -146,7 +146,7 @@ function woundsAfter(
 // consumi clampati al posseduto (T-09-23): un oggetto non posseduto si ignora, mai un'eccezione
 function consumablesSpent(
     owned: readonly InventoryEntry[] | undefined,
-    used: ParticipantOutcome['consumablesUsed'],
+    used: ParticipantEffects['consumablesUsed'],
 ): ConsumableUsage[] {
     const spent: ConsumableUsage[] = [];
     for (const { itemId, quantity } of used) {
@@ -189,7 +189,7 @@ interface SpellsSpent {
 function spellsSpent(
     characterId: Types.ObjectId,
     active: readonly ActiveSpellEntry[] | undefined,
-    requested: ParticipantOutcome['spellsUsed'],
+    requested: ParticipantEffects['spellsUsed'],
     recoveryTimes: ReadonlyMap<string, number>,
 ): SpellsSpent {
     const activeSpells = (active ?? []).map((entry) => ({ ...entry }));

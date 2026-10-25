@@ -3,8 +3,7 @@ import { Types } from 'mongoose';
 // 7 giorni dalla creazione della aid senza esito ⇒ morte del ferito (D-10): costante, nessuna env
 export const AID_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000;
 
-// C5 (default tecnico provvisorio da confermare con l'utente): il timeout resta sospeso finché la aid ha un soccorritore registrato,
-// il soccorso in corso decide l'esito (D-09). Per la lettura letterale dei 7 giorni togliere questa riga e il test nominato.
+// C5 (confermato dall'utente il 2026-10-25): il timeout resta sospeso finché la aid ha un soccorritore registrato — il soccorso in corso decide l'esito (D-09); se il soccorritore sparisse, il timeout torna valutabile dallo sweep
 export const AID_TIMEOUT_REQUIRES_NO_RESCUER = {
     registeredAdventurers: { $size: 0 },
 } as const;

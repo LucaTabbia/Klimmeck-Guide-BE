@@ -10,7 +10,7 @@ export interface QuestUpdateInput {
     now: Date;
 }
 
-// regola di gioco (A3, RESEARCH Q4): la quest registrata si conclude se almeno un partecipante vince; ogni fallito libera il posto; una aid si conclude sempre
+// regola di gioco (A3, utente 2026-10-25): il verdetto di un combattimento è unico per chi combatte insieme, quindi la quest registrata si conclude se il combattimento è vinto (o se il GM la completa); ogni fallito libera il posto; una aid si conclude sempre
 export function questUpdateOf(
     input: QuestUpdateInput,
 ): Record<string, unknown> | null {
@@ -22,12 +22,12 @@ export function questUpdateOf(
             .map(({ characterId }) => characterId),
         ...(input.dropped ?? []),
     ];
-    const someoneWon = input.verdicts.some(
+    const won = input.verdicts.some(
         ({ verdict }) =>
             verdict === QuestOutcome.success ||
             verdict === QuestOutcome.gmCompleted,
     );
-    const concludes = input.type === QuestType.aid || someoneWon;
+    const concludes = input.type === QuestType.aid || won;
     const update = {
         ...(failed.length > 0
             ? {

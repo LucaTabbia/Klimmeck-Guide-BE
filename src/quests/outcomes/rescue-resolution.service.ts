@@ -21,11 +21,13 @@ import {
     isAidTimeoutDue,
 } from './aid/aid-timeout';
 import { ChanceSource } from './chance-source';
+import { CombatResolver } from './combat/combat-resolver';
 import {
-    CombatResolver,
-    type ParticipantOutcome,
-} from './combat/combat-resolver';
-import { battleOf, combatContextOf, planCombatant } from './combatant-plan';
+    battleOf,
+    type CombatantBattle,
+    combatContextOf,
+    planCombatant,
+} from './combatant-plan';
 import {
     OUTCOME_CHARACTER_PROJECTION,
     type OutcomeCharacterSnapshot,
@@ -186,7 +188,7 @@ export class RescueResolutionService {
         return 'resolved';
     }
 
-    // D-10: 7 giorni senza esito ⇒ morte; sospeso finché la aid ha un soccorritore registrato (C5, default da confermare)
+    // D-10: 7 giorni senza esito ⇒ morte; sospeso finché la aid ha un soccorritore registrato (C5, confermata dall'utente il 2026-10-25)
     async timeoutAid({
         aidQuestId,
     }: Pick<AidTimeoutTrigger, 'aidQuestId'>): Promise<ResolutionOutcome> {
@@ -440,11 +442,10 @@ export class RescueResolutionService {
         aid: ResolutionQuest,
         catalog: ResolutionCatalog,
         rescuer: ResolutionCharacter,
-    ): ParticipantOutcome | null {
+    ): CombatantBattle | null {
         const context = combatContextOf(aid, catalog, [rescuer]);
         if (!context) return null;
-        const outcomes = this.combat.resolve(context, this.chance);
-        return battleOf(outcomes, rescuer._id);
+        return battleOf(this.combat.resolve(context, this.chance), rescuer._id);
     }
 
     // il ferito è ancora quello di questa aid: attivo e con awaitingAid.aidQuest = aid

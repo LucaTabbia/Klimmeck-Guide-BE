@@ -7,7 +7,7 @@ import type {
     SpellUsageInput,
 } from 'src/models/request/complete-pending-request.model';
 import { objectIdFromHex, refIdOf } from 'src/mongo/document-id';
-import type { ParticipantOutcome } from './combat/combat-resolver';
+import type { ParticipantEffects } from './combat/combat-resolver';
 import { isInjuryType } from './injuries/injury-rules';
 import { isPositiveInteger } from './outcome-numbers';
 import { MIN_LIFE_POINTS } from './progression/level-table';
@@ -109,7 +109,7 @@ function usagesWithin(
 const consumablesOf = (
     used: readonly ItemUsageInput[],
     participant: OverrideParticipant,
-): ParticipantOutcome['consumablesUsed'] =>
+): ParticipantEffects['consumablesUsed'] =>
     [
         ...usagesWithin(
             used.map(({ item, quantity }) => ({ id: item, amount: quantity })),
@@ -120,7 +120,7 @@ const consumablesOf = (
 const spellsOf = (
     used: readonly SpellUsageInput[],
     participant: OverrideParticipant,
-): ParticipantOutcome['spellsUsed'] =>
+): ParticipantEffects['spellsUsed'] =>
     [
         ...usagesWithin(
             used.map(({ spell, usages }) => ({ id: spell, amount: usages })),
@@ -128,13 +128,12 @@ const spellsOf = (
         ),
     ].map(([spellId, usages]) => ({ spellId, usages }));
 
-function outcomeOf(
+function effectsOf(
     override: ParticipantOverrideInput,
     participant: OverrideParticipant,
-): ParticipantOutcome {
+): ParticipantEffects {
     return {
         characterId: participant.characterId.toHexString(),
-        outcome: 'success',
         hpAfter: hpAfterOf(override, participant),
         injuriesAdded: injuriesOf(override),
         consumablesUsed: consumablesOf(
@@ -149,8 +148,8 @@ function outcomeOf(
 export function validateOverrides(
     overrides: readonly ParticipantOverrideInput[] | null | undefined,
     participants: readonly OverrideParticipant[],
-): Map<string, ParticipantOutcome | null> {
-    const outcomes = new Map<string, ParticipantOutcome | null>(
+): Map<string, ParticipantEffects | null> {
+    const effects = new Map<string, ParticipantEffects | null>(
         participants.map(({ characterId }) => [
             characterId.toHexString(),
             null,
@@ -168,7 +167,7 @@ export function validateOverrides(
             throw GameRuleException.outcomeNotParticipant();
         if (seen.has(key)) throw GameRuleException.outcomeOverrideInvalid();
         seen.add(key);
-        outcomes.set(key, outcomeOf(override, participant));
+        effects.set(key, effectsOf(override, participant));
     }
-    return outcomes;
+    return effects;
 }

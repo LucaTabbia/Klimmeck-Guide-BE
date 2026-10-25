@@ -64,14 +64,19 @@ export interface CombatContext {
 
 export type CombatVerdict = 'success' | 'failure';
 
-// un esito per partecipante (D-02, D-05): hpAfter ≥ 1 (D-07), clampato anche dal piano dell'esito (difesa in profondità)
-export interface ParticipantOutcome {
+// gli effetti del combattimento su un partecipante (D-02, D-05): hpAfter ≥ 1 (D-07), clampato anche dal piano dell'esito (difesa in profondità)
+export interface ParticipantEffects {
     characterId: string;
-    outcome: CombatVerdict;
     hpAfter: number;
     injuriesAdded: InjuryType[];
     consumablesUsed: { itemId: string; quantity: number }[];
     spellsUsed: { spellId: string; usages: number }[];
+}
+
+// un solo verdetto per combattimento (A3, utente 2026-10-25): chi combatte insieme vince o perde insieme; gli effetti restano per partecipante
+export interface CombatResolution {
+    verdict: CombatVerdict;
+    participants: ParticipantEffects[];
 }
 
 // la porta (D-02): contesto puro già idratato in ingresso, nessun I/O; le regole sono dell'utente e sostituiscono il segnaposto via DI
@@ -79,5 +84,5 @@ export abstract class CombatResolver {
     abstract resolve(
         context: CombatContext,
         chance: ChanceSource,
-    ): ParticipantOutcome[];
+    ): CombatResolution;
 }

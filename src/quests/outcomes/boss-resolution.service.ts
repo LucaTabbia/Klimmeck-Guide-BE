@@ -63,7 +63,7 @@ const isDue = (pendingQuest: PendingQuestSnapshot, now: Date): boolean =>
     pendingQuest.startDate.getTime() + (pendingQuest.waitingTime ?? 0) <=
         now.getTime();
 
-// boss di gruppo (D-05): si risolve una volta sola quando tutti i registrati hanno finito il countdown, un esito per partecipante
+// boss di gruppo (D-05 emendata, A3): si risolve una volta sola quando tutti i registrati hanno finito il countdown, un verdetto per il gruppo, effetti per partecipante
 @Injectable()
 export class BossResolutionService {
     private readonly logger = new Logger(BossResolutionService.name);
@@ -209,9 +209,9 @@ export class BossResolutionService {
                     );
                 }
                 const context = combatContextOf(quest, catalog, snapshots);
-                const outcomes = context
+                const resolution = context
                     ? this.combat.resolve(context, this.chance)
-                    : [];
+                    : null;
                 const committed = emptyCommitted();
                 const verdicts: Parameters<
                     typeof questUpdateOf
@@ -223,7 +223,7 @@ export class BossResolutionService {
                         quest,
                         catalog,
                         snapshot,
-                        battle: battleOf(outcomes, snapshot._id),
+                        battle: battleOf(resolution, snapshot._id),
                         resultId: seat.resultId,
                         aidQuestId: seat.aidQuestId,
                         pendingQuestId: seat.pendingQuestId,

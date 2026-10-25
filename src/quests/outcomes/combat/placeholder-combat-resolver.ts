@@ -9,8 +9,9 @@ import {
     CombatContext,
     CombatDamages,
     CombatParticipant,
+    CombatResolution,
     CombatResolver,
-    ParticipantOutcome,
+    ParticipantEffects,
 } from './combat-resolver';
 
 export const PLACEHOLDER_RULES = {
@@ -86,31 +87,32 @@ const healPotionOf = (
 
 @Injectable()
 export class PlaceholderCombatResolver extends CombatResolver {
-    resolve(
-        context: CombatContext,
-        chance: ChanceSource,
-    ): ParticipantOutcome[] {
+    // A3: la vittoria si tira una volta sola per il gruppo, poi danni, ferite e pozioni per partecipante
+    resolve(context: CombatContext, chance: ChanceSource): CombatResolution {
         const winChance = winChanceOf(context);
         const enemyDamage = damagePower(context.enemy.damages);
         const share = Math.max(1, context.participants.length);
-        return [...context.participants]
-            .sort((a, b) => a.characterId.localeCompare(b.characterId))
-            .map((participant) =>
-                this.resolveParticipant(participant, {
-                    chance,
-                    winChance,
-                    enemyDamage: enemyDamage / share,
-                }),
-            );
+        const victory = chance.next() < winChance;
+        return {
+            verdict: victory ? 'success' : 'failure',
+            participants: [...context.participants]
+                .sort((a, b) => a.characterId.localeCompare(b.characterId))
+                .map((participant) =>
+                    this.resolveParticipant(participant, {
+                        chance,
+                        victory,
+                        enemyDamage: enemyDamage / share,
+                    }),
+                ),
+        };
     }
 
     private resolveParticipant(
         participant: CombatParticipant,
-        round: { chance: ChanceSource; winChance: number; enemyDamage: number },
-    ): ParticipantOutcome {
+        round: { chance: ChanceSource; victory: boolean; enemyDamage: number },
+    ): ParticipantEffects {
         const { maxLifePoints } = participant;
-        const victory = round.chance.next() < round.winChance;
-        const lossFactor = victory
+        const lossFactor = round.victory
             ? PLACEHOLDER_RULES.victoryHpLossFactor
             : PLACEHOLDER_RULES.defeatHpLossFactor;
         const loss = Math.round(
@@ -134,7 +136,6 @@ export class PlaceholderCombatResolver extends CombatResolver {
         }
         return {
             characterId: participant.characterId,
-            outcome: victory ? 'success' : 'failure',
             hpAfter,
             injuriesAdded,
             consumablesUsed: potion

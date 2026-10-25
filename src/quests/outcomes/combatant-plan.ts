@@ -6,7 +6,9 @@ import type { ChanceSource } from './chance-source';
 import { buildCombatContext } from './combat/combat-context';
 import type {
     CombatContext,
-    ParticipantOutcome,
+    CombatResolution,
+    CombatVerdict,
+    ParticipantEffects,
 } from './combat/combat-resolver';
 import {
     type ParticipantPlan,
@@ -21,11 +23,16 @@ import {
 } from './resolution-loader.service';
 import { drawRewards, NO_REWARDS } from './rewards/quest-rewards';
 
+export interface CombatantBattle {
+    verdict: CombatVerdict;
+    effects: ParticipantEffects | null;
+}
+
 export interface CombatantPlanInput {
     quest: ResolutionQuest;
     catalog: ResolutionCatalog;
     snapshot: ResolutionCharacter;
-    battle: ParticipantOutcome | null;
+    battle: CombatantBattle | null;
     resultId: Types.ObjectId;
     aidQuestId: Types.ObjectId;
     pendingQuestId: Types.ObjectId;
@@ -67,20 +74,27 @@ export function enemyFactsOf(
     return { id: _id, xp: isFiniteNumber(xp) ? xp : 0 };
 }
 
-// l'esito si prende per characterId, mai per posizione: un gruppo riceve un esito per partecipante (D-05)
+// il verdetto è del combattimento (A3), gli effetti si prendono per characterId, mai per posizione (D-05); null = nessun combattimento
 export function battleOf(
-    outcomes: readonly ParticipantOutcome[],
+    resolution: CombatResolution | null,
     characterId: Types.ObjectId,
-): ParticipantOutcome | null {
+): CombatantBattle | null {
+    if (!resolution) return null;
     const hex = characterId.toHexString();
-    return outcomes.find((entry) => entry.characterId === hex) ?? null;
+    return {
+        verdict: resolution.verdict,
+        effects:
+            resolution.participants.find(
+                (entry) => entry.characterId === hex,
+            ) ?? null,
+    };
 }
 
 // calcolo puro dentro il callback: la sconfitta apre la aid riferita alla quest originale (D-06..D-09)
 export function planCombatant(input: CombatantPlanInput): CombatantPlan {
     const { quest, catalog, snapshot, battle } = input;
     const verdict =
-        battle?.outcome === 'failure'
+        battle?.verdict === 'failure'
             ? QuestOutcome.failure
             : QuestOutcome.success;
     const won = verdict === QuestOutcome.success;
@@ -98,7 +112,7 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
         pendingQuestId: input.pendingQuestId,
         userId: input.userId,
         verdict,
-        battle,
+        battle: battle?.effects ?? null,
         enemy: enemyFactsOf(catalog),
         rewards: won
             ? drawRewards(quest.prizes, catalog.rewards, input.chance)

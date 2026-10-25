@@ -6,11 +6,13 @@ import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { buildAidQuest } from './aid/aid-quest';
 import { BossResolutionService } from './boss-resolution.service';
 import { ChanceSource } from './chance-source';
+import { CombatResolver } from './combat/combat-resolver';
 import {
-    CombatResolver,
-    type ParticipantOutcome,
-} from './combat/combat-resolver';
-import { battleOf, combatContextOf, planCombatant } from './combatant-plan';
+    battleOf,
+    type CombatantBattle,
+    combatContextOf,
+    planCombatant,
+} from './combatant-plan';
 import {
     type CommittedOutcome,
     OutcomeWriter,
@@ -158,10 +160,12 @@ export class QuestResolutionService {
         loaded: StandardLoad,
         catalog: ResolutionCatalog,
         snapshot: ResolutionCharacter,
-    ): ParticipantOutcome | null {
+    ): CombatantBattle | null {
         const context = combatContextOf(loaded.quest, catalog, [snapshot]);
         if (!context) return null;
-        const outcomes = this.combat.resolve(context, this.chance);
-        return battleOf(outcomes, snapshot._id);
+        return battleOf(
+            this.combat.resolve(context, this.chance),
+            snapshot._id,
+        );
     }
 }
