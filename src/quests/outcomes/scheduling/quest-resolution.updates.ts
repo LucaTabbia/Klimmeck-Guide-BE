@@ -60,6 +60,8 @@ export function dueStandardQuestsPipeline(now: Date): PipelineStage[] {
 export interface ArrivedUnstartedQuest {
     questId: unknown;
     pendingQuestId: Types.ObjectId;
+    // assente se la quest non esiste più o il ref è legacy (stringa)
+    type?: QuestType | null;
 }
 
 export interface FormingParty {
@@ -67,16 +69,25 @@ export interface FormingParty {
     registeredAdventurers?: { registeredAt?: Date | null }[] | null;
 }
 
-// arrivati sul marker ma non avviati (utente 2026-10-25): l'avvio mancato dopo un crash lo recupera lo sweep
+// arrivati sul marker ma non avviati (utente 2026-10-25): l'avvio mancato dopo un crash lo recupera lo sweep; il tipo decide il dedupe del party
 export function arrivedUnstartedPipeline(): PipelineStage[] {
     return [
         ...STANDARD_LANE_LOOKUP,
         { $match: { 'pq.startDate': null, 'pq.arrivedAt': { $ne: null } } },
         {
+            $lookup: {
+                from: 'quests',
+                localField: 'pq.quest',
+                foreignField: '_id',
+                as: 'quest',
+            },
+        },
+        {
             $project: {
                 _id: 0,
                 questId: '$pq.quest',
                 pendingQuestId: '$pq._id',
+                type: { $arrayElemAt: ['$quest.infos.type', 0] },
             },
         },
     ];

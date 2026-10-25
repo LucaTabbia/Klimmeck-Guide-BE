@@ -14,9 +14,11 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { refIdOf } from 'src/mongo/document-id';
 import { describeError } from 'src/mongo/mongo-errors';
+import { isRegistered } from 'src/quests/acceptance/quest-eligibility';
 import {
     isPartyExpired,
     partyFormingSinceOf,
@@ -55,6 +57,17 @@ function distinctAidsOf(due: readonly DueAidTimeout[]): Types.ObjectId[] {
         if (aidQuestId) aids.set(aidQuestId.toHexString(), aidQuestId);
     }
     return [...aids.values()];
+}
+
+// tryStart avvia tutto il party di una quest registrata, ma solo la PendingQuest passata per hunt, dungeon, job, heal e study
+function startKeyOf(
+    questId: Types.ObjectId,
+    pendingQuestId: Types.ObjectId,
+    type: QuestType | null | undefined,
+): string {
+    return type && isRegistered(type)
+        ? questId.toHexString()
+        : pendingQuestId.toHexString();
 }
 
 @Injectable()
@@ -121,18 +134,20 @@ export class QuestResolutionSweeper
         return { resolved, timedOut };
     }
 
-    // avvii mancati (utente 2026-10-25): un solo tryStart per quest, il party parte tutto insieme
+    // avvii mancati (utente 2026-10-25): un tryStart per party registrato (parte tutto insieme), uno per PendingQuest altrimenti
     private async startPendingQuests(): Promise<number> {
         const arrived = await this.characterModel
             .aggregate<ArrivedUnstartedQuest>(arrivedUnstartedPipeline())
             .exec();
         const seen = new Set<string>();
         let started = 0;
-        for (const { questId: ref, pendingQuestId } of arrived) {
+        for (const { questId: ref, pendingQuestId, type } of arrived) {
             if (this.stopping) break;
             const questId = refIdOf(ref);
-            if (!questId || seen.has(questId.toHexString())) continue;
-            seen.add(questId.toHexString());
+            if (!questId) continue;
+            const key = startKeyOf(questId, pendingQuestId, type);
+            if (seen.has(key)) continue;
+            seen.add(key);
             // tryStart non lancia: logga l'errore e risponde 'stale'
             const outcome = await this.questStart.tryStart({
                 questId,
