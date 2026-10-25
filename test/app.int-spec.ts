@@ -50,6 +50,8 @@ const REGISTER_PUSH_DEVICE =
     'mutation { registerPushDevice(input: { deviceId: "d", token: "t", platform: android }) }';
 const ACCEPT_QUEST =
     'mutation { acceptQuest(request: { id: "64b000000000000000000001", questId: "64b000000000000000000002" }) { successful } }';
+const ABANDON_QUEST =
+    'mutation { abandonQuest(request: { id: "64b000000000000000000001", questId: "64b000000000000000000002" }) { successful } }';
 const START_TRAVEL =
     'mutation { startTravel(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
 const TRAVEL_PREVIEW =
@@ -90,6 +92,7 @@ const EXPECTED_OWNERSHIP_HANDLERS = [
     'CharactersResolver.equipment',
     'CharactersResolver.unequipSpell',
     'CharactersResolver.useSpell',
+    'PartyResolver.abandonQuest',
     'PendingQuestsResolver.pendingQuest',
     'QuestAcceptanceResolver.acceptQuest',
     'QuestResultsResolver.questResult',
@@ -99,6 +102,7 @@ const EXPECTED_OWNERSHIP_HANDLERS = [
 ];
 // nessun bypass innkeeper (07 D-11): ogni handler owner-only deve passare da qui
 const EXPECTED_OWNER_ONLY_HANDLERS = [
+    'PartyResolver.abandonQuest',
     'QuestAcceptanceResolver.acceptQuest',
     'QuestResultsResolver.questResult',
     'QuestResultsResolver.questResultReceived',
@@ -381,6 +385,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the party abandon API into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'abandonQuest(request: AbandonQuestRequest!): CommonResponse!',
+        );
+        expect(schema.match(/input AbandonQuestRequest \{[^}]*\}/)?.[0]).toBe(
+            'input AbandonQuestRequest {\n  id: String!\n  questId: String!\n}',
+        );
+    });
+
     it('writes the travel contract into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -655,6 +670,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
         it('rejects acceptQuest without a bearer', async () => {
             expect(errorCodeOf(await graphqlCall(app, ACCEPT_QUEST))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects abandonQuest without a bearer', async () => {
+            expect(errorCodeOf(await graphqlCall(app, ABANDON_QUEST))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
         });

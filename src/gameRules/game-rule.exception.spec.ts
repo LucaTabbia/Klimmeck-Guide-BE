@@ -163,6 +163,12 @@ describe('GameRuleException', () => {
             'Il tuo personaggio è in attesa di soccorso',
         ],
         [
+            'questNotWaiting',
+            () => GameRuleException.questNotWaiting(),
+            GameRuleErrorCode.QUEST_NOT_WAITING,
+            'La missione non è in attesa del gruppo',
+        ],
+        [
             'shopNotInCity',
             () => GameRuleException.shopNotInCity(),
             GameRuleErrorCode.SHOP_NOT_IN_CITY,
