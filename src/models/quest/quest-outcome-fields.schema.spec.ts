@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { model, Schema, Types } from 'mongoose';
 import { buildQuest } from '../../../test/fixtures/quest.fixture';
 import { QuestPrizesSchema } from './quest-prizes.model';
 import { QuestSchema } from './quest.model';
@@ -17,8 +17,29 @@ describe('quest outcome fields', () => {
             QuestSchema.path('rescue') as unknown as { schema: Schema }
         ).schema;
 
-        expect(rescue.path('character').instance).toBe('ObjectId');
+        const characters = rescue.path('characters') as unknown as {
+            instance: string;
+            caster: { instance: string };
+        };
+        expect(characters.instance).toBe('Array');
+        expect(characters.caster.instance).toBe('ObjectId');
         expect(rescue.path('failedQuest').instance).toBe('ObjectId');
+    });
+
+    it('requires the wounded list on a rescue, an empty one left by the archiver included', () => {
+        const failedQuest = new Types.ObjectId();
+        const withRescue = (rescue: Record<string, unknown>) =>
+            new Probe({ ...buildQuest(), rescue }).validateSync()?.errors ?? {};
+
+        expect(withRescue({ failedQuest })['rescue.characters']).toBeDefined();
+        expect(
+            withRescue({ characters: [], failedQuest })['rescue.characters'],
+        ).toBeUndefined();
+        expect(
+            withRescue({ characters: [new Types.ObjectId()], failedQuest })[
+                'rescue.characters'
+            ],
+        ).toBeUndefined();
     });
 
     it('stores a nullable spell prize as a cast ref', () => {

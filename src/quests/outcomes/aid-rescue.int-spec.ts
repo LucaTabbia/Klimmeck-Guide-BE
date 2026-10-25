@@ -135,7 +135,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
         const injuredId = injured.character!._id as Types.ObjectId;
         await registerDevice(world.harness, injured);
         const aid = await world.models.quests.create(
-            buildAidQuest(original.toObject() as never, injuredId, aidId),
+            buildAidQuest(original.toObject() as never, [injuredId], aidId),
         );
         const rescuer = await persistQuester(world.harness, {
             twitchId: `tw-rescuer-${seq}`,

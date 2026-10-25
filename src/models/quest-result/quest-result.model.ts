@@ -170,14 +170,14 @@ export class QuestResult {
     })
     enemy?: Types.ObjectId | Enemy | null;
 
-    // "hai salvato X" sul foglio del soccorritore
-    @Field(() => ID, { nullable: true })
+    // "avete salvato X, Y" sul foglio di ogni soccorritore
+    @Field(() => [ID])
     @Prop({
-        type: MongooseSchema.Types.ObjectId,
+        type: [MongooseSchema.Types.ObjectId],
         ref: 'Character',
-        default: null,
+        default: [],
     })
-    rescuedCharacter?: Types.ObjectId | null;
+    rescuedCharacters: Types.ObjectId[];
 }
 
 export type QuestResultDocument = QuestResult & Document;

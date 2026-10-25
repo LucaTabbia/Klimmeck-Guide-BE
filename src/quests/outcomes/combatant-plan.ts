@@ -38,7 +38,8 @@ export interface CombatantPlanInput {
     pendingQuestId: Types.ObjectId;
     userId: Types.ObjectId;
     chance: ChanceSource;
-    rescuedCharacter?: Types.ObjectId | null;
+    // vuoto se il verdetto è failure (planParticipant lo azzera)
+    rescuedCharacters?: readonly Types.ObjectId[];
     now: Date;
 }
 
@@ -119,7 +120,7 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
             : NO_REWARDS,
         aid,
         spellRecoveryTimes: catalog.recoveryTimes,
-        rescuedCharacter: won ? (input.rescuedCharacter ?? null) : null,
+        rescuedCharacters: input.rescuedCharacters,
         now: input.now,
     });
     return { plan, verdict, aid };

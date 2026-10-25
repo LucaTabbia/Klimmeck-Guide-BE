@@ -254,7 +254,7 @@ describe('QuestResolutionProcessor (real Redis)', () => {
             });
             const injuredId = injured.character!._id as Types.ObjectId;
             await models.quests.create(
-                buildAidQuest(original.toObject() as never, injuredId, aidId),
+                buildAidQuest(original.toObject() as never, [injuredId], aidId),
             );
             expect(since.getTime() + AID_TIMEOUT_MS).toBeLessThan(Date.now());
 

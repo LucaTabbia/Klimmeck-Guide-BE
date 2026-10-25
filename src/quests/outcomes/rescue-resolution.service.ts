@@ -139,7 +139,8 @@ export class RescueResolutionService {
         now: Date,
     ): Promise<ResolutionOutcome> {
         const aid = loaded.quest;
-        const injuredId = refIdOf(aid.rescue?.character);
+        // transitorio: 09-18 Task 2
+        const injuredId = refIdOf(aid.rescue?.characters?.[0]);
         if (!injuredId) return 'stale';
         const owners = await this.loader.ownersOf([injuredId]);
         const context: RescueContext = {
@@ -198,7 +199,8 @@ export class RescueResolutionService {
             .findById(aidQuestId, AID_TIMEOUT_PROJECTION)
             .lean<ResolutionQuest | null>()
             .exec();
-        const injuredId = refIdOf(aid?.rescue?.character);
+        // transitorio: 09-18 Task 2
+        const injuredId = refIdOf(aid?.rescue?.characters?.[0]);
         if (!aid || aid.concludedAt || !injuredId) return 'stale';
         // lo sweep lo ripete a ogni giro finché il soccorritore resta registrato: debug, non rumore operativo
         if (aidTimeoutSuspended(aid)) {
@@ -301,7 +303,8 @@ export class RescueResolutionService {
             pendingQuestId: loaded.pendingQuest._id,
             userId: loaded.ownerId,
             chance: this.chance,
-            rescuedCharacter: injured ? injuredId : null,
+            // transitorio: 09-18 Task 2
+            rescuedCharacters: injured ? [injuredId] : [],
             now,
         });
         await this.writer.writeParticipant(plan, session);
@@ -328,9 +331,10 @@ export class RescueResolutionService {
                 : await this.kill(step);
         if (nextAid) {
             await this.writer.createAid(
+                // transitorio: 09-18 Task 2
                 buildAidQuest(
                     context.original ?? aid,
-                    rescuer._id,
+                    [rescuer._id],
                     context.aidQuestId,
                 ),
                 session,

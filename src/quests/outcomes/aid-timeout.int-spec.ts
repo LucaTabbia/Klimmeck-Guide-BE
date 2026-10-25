@@ -89,7 +89,7 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
         const injuredId = injured.character!._id as Types.ObjectId;
         await registerDevice(world.harness, injured);
         await world.models.quests.create(
-            buildAidQuest(original.toObject() as never, injuredId, aidId),
+            buildAidQuest(original.toObject() as never, [injuredId], aidId),
         );
         return { aidId, injured, injuredId };
     }

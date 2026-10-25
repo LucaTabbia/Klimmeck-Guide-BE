@@ -134,7 +134,7 @@ describe('QuestResolutionSweeper (replSet)', () => {
         });
         const id = player.character!._id as Types.ObjectId;
         await world.models.quests.create(
-            buildAidQuest(original.toObject() as never, id, aidId),
+            buildAidQuest(original.toObject() as never, [id], aidId),
         );
         return { id, aidId };
     }

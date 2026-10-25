@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
+import { slotRuleOf, slotsOf } from 'src/quests/acceptance/quest-capacity';
 
 export const AID_TITLE_PREFIX = 'Soccorso: ';
 
@@ -16,6 +17,7 @@ export interface AidSourceQuest {
     };
     requirements?: {
         minTitle?: TitleType | null;
+        requiredAdventurers?: unknown;
         recommendedLoot?: unknown[] | null;
     } | null;
     prizes?: {
@@ -41,7 +43,7 @@ export interface AidQuestDraft {
     requirements: {
         minTitle: TitleType | null;
         requiredPoints: null;
-        requiredAdventurers: { title: null; count: 1 }[];
+        requiredAdventurers: { title: null; count: number }[];
         recommendedLoot: unknown[];
     };
     prizes: {
@@ -53,7 +55,7 @@ export interface AidQuestDraft {
     };
     registeredAdventurers: [];
     concludedAt: null;
-    rescue: { character: Types.ObjectId; failedQuest: Types.ObjectId };
+    rescue: { characters: Types.ObjectId[]; failedQuest: Types.ObjectId };
 }
 
 function aidTitleOf(title: string): string {
@@ -74,10 +76,17 @@ function clonedPrizesOf(
     };
 }
 
-// clone della quest fallita (D-08): una aid per ferito, mai ripetibile; in una catena si clona sempre l'originale (D-09)
+// posti della aid = posti della quest fallita, tutti jolly (default tecnico proposto all'utente, 2026-10-25); slot non validi ⇒ 1, mai una aid inaccettabile (T-09-86)
+export function aidSeatsOf(requiredAdventurers: unknown): number {
+    const slots = slotsOf(requiredAdventurers);
+    if (slots === 'invalid') return 1;
+    return Math.max(1, slotRuleOf(slots).total);
+}
+
+// clone della quest fallita (D-08 emendata il 2026-10-25): una aid per combattimento perso, posti = posti della quest fallita, mai ripetibile; in una catena si clona sempre l'originale (D-09)
 export function buildAidQuest(
     original: AidSourceQuest,
-    injuredId: Types.ObjectId,
+    injuredIds: readonly Types.ObjectId[],
     aidId: Types.ObjectId,
 ): AidQuestDraft {
     const { infos, requirements } = original;
@@ -95,14 +104,19 @@ export function buildAidQuest(
         requirements: {
             minTitle: requirements?.minTitle ?? null,
             requiredPoints: null,
-            requiredAdventurers: [{ title: null, count: 1 }],
+            requiredAdventurers: [
+                {
+                    title: null,
+                    count: aidSeatsOf(requirements?.requiredAdventurers),
+                },
+            ],
             recommendedLoot: [...(requirements?.recommendedLoot ?? [])],
         },
         prizes: clonedPrizesOf(original.prizes),
         registeredAdventurers: [],
         concludedAt: null,
         rescue: {
-            character: injuredId,
+            characters: [...injuredIds],
             failedQuest: refIdOf(original.rescue?.failedQuest) ?? original._id,
         },
     };

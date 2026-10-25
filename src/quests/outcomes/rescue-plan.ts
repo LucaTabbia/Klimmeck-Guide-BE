@@ -66,7 +66,7 @@ function unchangedResult(
         titleAfter: status.title,
         spellLearned: null,
         enemy: null,
-        rescuedCharacter: null,
+        rescuedCharacters: [],
     };
 }
 

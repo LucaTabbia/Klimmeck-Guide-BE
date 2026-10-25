@@ -61,7 +61,10 @@ export type ResolutionQuest = OutcomeQuestSnapshot &
         prizes?: PrizesSnapshot | null;
         concludedAt?: Date | null;
         registeredAdventurers?: { character?: unknown }[] | null;
-        rescue?: { character?: unknown; failedQuest?: unknown } | null;
+        rescue?: {
+            characters?: unknown[] | null;
+            failedQuest?: unknown;
+        } | null;
     };
 
 export interface PendingQuestSnapshot {

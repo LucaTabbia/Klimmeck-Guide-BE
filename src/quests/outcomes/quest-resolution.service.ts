@@ -129,7 +129,7 @@ export class QuestResolutionService {
                 );
                 if (aid) {
                     await this.writer.createAid(
-                        buildAidQuest(loaded.quest, snapshot._id, aidQuestId),
+                        buildAidQuest(loaded.quest, [snapshot._id], aidQuestId),
                         session,
                     );
                 }

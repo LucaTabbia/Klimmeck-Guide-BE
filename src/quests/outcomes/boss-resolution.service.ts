@@ -263,10 +263,11 @@ export class BossResolutionService {
                     'claim',
                 );
                 for (const seat of failed) {
+                    // transitorio: 09-18 Task 2
                     await this.writer.createAid(
                         buildAidQuest(
                             quest,
-                            seat.character._id,
+                            [seat.character._id],
                             seat.aidQuestId,
                         ),
                         session,

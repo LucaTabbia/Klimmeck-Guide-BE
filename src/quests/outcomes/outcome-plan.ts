@@ -88,7 +88,7 @@ export interface QuestResultDraft {
     titleAfter: TitleType;
     spellLearned: Types.ObjectId | null;
     enemy: Types.ObjectId | null;
-    rescuedCharacter: Types.ObjectId | null;
+    rescuedCharacters: Types.ObjectId[];
 }
 
 export type PlanVerdict =
@@ -109,7 +109,7 @@ export interface ParticipantPlanInput {
     rewards: DrawnRewards;
     aid: { aidQuestId: Types.ObjectId; failedQuestId: Types.ObjectId } | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
-    rescuedCharacter?: Types.ObjectId | null;
+    rescuedCharacters?: readonly Types.ObjectId[];
     now: Date;
 }
 
@@ -363,7 +363,11 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             titleAfter,
             spellLearned,
             enemy: input.enemy?.id ?? null,
-            rescuedCharacter: input.rescuedCharacter ?? null,
+            // solo chi ha vinto il soccorso ha salvato qualcuno
+            rescuedCharacters:
+                input.verdict === QuestOutcome.success
+                    ? [...(input.rescuedCharacters ?? [])]
+                    : [],
         },
         spellRecoveries: spells.recoveries,
     };
