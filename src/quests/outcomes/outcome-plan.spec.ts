@@ -5,7 +5,7 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms } from 'src/mongo/document-id';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
-import { ParticipantOutcome } from 'src/quests/outcomes/combat/combat-resolver';
+import { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
 import {
     OutcomeCharacterSnapshot,
     OutcomeQuestSnapshot,
@@ -77,10 +77,9 @@ const rewardsWith = (overrides: Partial<DrawnRewards> = {}): DrawnRewards => ({
 });
 
 const battleWith = (
-    overrides: Partial<ParticipantOutcome> = {},
-): ParticipantOutcome => ({
+    overrides: Partial<ParticipantEffects> = {},
+): ParticipantEffects => ({
     characterId: CHARACTER_ID.toHexString(),
-    outcome: 'success',
     hpAfter: 1000,
     injuriesAdded: [],
     consumablesUsed: [],
@@ -271,7 +270,7 @@ describe('planParticipant', () => {
                 inputWith({
                     quest: questOf(QuestType.enemy),
                     verdict: QuestOutcome.failure,
-                    battle: battleWith({ outcome: 'failure', hpAfter: 300 }),
+                    battle: battleWith({ hpAfter: 300 }),
                     enemy: { id: ENEMY_ID, xp: 100 },
                     rewards: rewardsWith({ coinsCopper: 150, xpPrize: 300 }),
                     aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
@@ -309,7 +308,7 @@ describe('planParticipant', () => {
             planParticipant(
                 inputWith({
                     verdict: QuestOutcome.failure,
-                    battle: battleWith({ outcome: 'failure', hpAfter: 300 }),
+                    battle: battleWith({ hpAfter: 300 }),
                 }),
             ),
         ).toThrow('failure outcome requires an aid quest');
@@ -356,7 +355,7 @@ describe('planParticipant', () => {
 
     describe('consumables', () => {
         const withPotions = (
-            consumablesUsed: ParticipantOutcome['consumablesUsed'],
+            consumablesUsed: ParticipantEffects['consumablesUsed'],
         ) =>
             planParticipant(
                 inputWith({
@@ -405,7 +404,7 @@ describe('planParticipant', () => {
 
     describe('spells', () => {
         const withActiveSpell = (
-            spellsUsed: ParticipantOutcome['spellsUsed'],
+            spellsUsed: ParticipantEffects['spellsUsed'],
             recoveryTimes: [string, number][] = [
                 [SPELL_ID.toHexString(), 5000],
             ],

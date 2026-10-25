@@ -171,8 +171,9 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
     it('resolves the whole group once everyone is due, one result each', async () => {
         const { a, b } = await group({ startDate: LATER_START });
         scripted
-            .willResolve(a.characterId, { outcome: 'success', hpAfter: 800 })
-            .willResolve(b.characterId, { outcome: 'failure', hpAfter: 200 });
+            .willEnd('success')
+            .willResolve(a.characterId, { hpAfter: 800 })
+            .willResolve(b.characterId, { hpAfter: 1 });
         clock.advanceSeconds(60 * 60);
         try {
             await expect(service.resolveStandard(triggerOf(b))).resolves.toBe(
@@ -192,36 +193,33 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         ).toEqual(
             [
                 [String(a.characterId), 'success'],
-                [String(b.characterId), 'failure'],
+                [String(b.characterId), 'success'],
             ].sort(),
         );
         const quest = await questOf(a.quest._id);
         expect(quest.concludedAt).toEqual(
             new Date(NOW.getTime() + 60 * 60 * 1000),
         );
-        expect(seatsOf(quest)).toEqual([String(a.characterId)]);
-        const winner = await characterOf(a);
-        expect(winner.status.currentLifePoints).toBe(800);
-        expect(winner.status.xp).toBe(150);
-        expect(winner.quests.pendingQuest).toBeNull();
-        expect(winner.quests.completedQuests.map(String)).toContain(
-            String(a.quest._id),
-        );
-        const loser = await characterOf(b);
-        expect(loser.status.currentLifePoints).toBe(200);
-        expect(loser.quests.pendingQuest).toBeNull();
-        expect(String(loser.status.awaitingAid.quest)).toBe(
-            String(a.quest._id),
-        );
-        const [aid] = await aids();
-        expect(String(aid._id)).toBe(String(loser.status.awaitingAid.aidQuest));
-        expect(String(aid.rescue.character)).toBe(String(b.characterId));
-        expect(aid.infos.title).toBe(`Soccorso: ${BOSS_TITLE}`);
+        expect(seatsOf(quest)).toEqual([
+            String(a.characterId),
+            String(b.characterId),
+        ]);
+        const unharmed = await characterOf(a);
+        const wounded = await characterOf(b);
+        expect(unharmed.status.currentLifePoints).toBe(800);
+        expect(wounded.status.currentLifePoints).toBe(1);
+        for (const member of [unharmed, wounded]) {
+            expect(member.status.xp).toBe(150);
+            expect(member.status.awaitingAid ?? null).toBeNull();
+            expect(member.quests.pendingQuest).toBeNull();
+            expect(member.quests.completedQuests.map(String)).toContain(
+                String(a.quest._id),
+            );
+        }
+        expect(await aids()).toEqual([]);
         expect(await world.models.pendingQuests.countDocuments()).toBe(0);
         expect(questEndPushes()).toHaveLength(2);
-        expect(world.questQueue.added).toEqual([
-            expect.objectContaining({ name: 'aid-timeout' }),
-        ]);
+        expect(world.questQueue.added).toEqual([]);
 
         await expect(service.resolveStandard(triggerOf(a))).resolves.toBe(
             'stale',
@@ -229,11 +227,9 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         expect(await world.models.questResults.countDocuments()).toBe(2);
     });
 
-    it('leaves the boss open when everyone loses', async () => {
+    it('leaves the boss open when the party loses, one aid each', async () => {
         const { a, b } = await group();
-        scripted
-            .willResolve(a.characterId, { outcome: 'failure' })
-            .willResolve(b.characterId, { outcome: 'failure' });
+        scripted.willEnd('failure');
 
         await expect(service.resolveStandard(triggerOf(a))).resolves.toBe(
             'resolved',
@@ -246,6 +242,15 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         expect(
             created.map((aid) => String(aid.rescue.character)).sort(),
         ).toEqual([String(a.characterId), String(b.characterId)].sort());
+        for (const member of [await characterOf(a), await characterOf(b)]) {
+            expect(String(member.status.awaitingAid.quest)).toBe(
+                String(a.quest._id),
+            );
+        }
+        expect(world.questQueue.added).toEqual([
+            expect.objectContaining({ name: 'aid-timeout' }),
+            expect.objectContaining({ name: 'aid-timeout' }),
+        ]);
     });
 
     it('resolves once under concurrent triggers of the group', async () => {

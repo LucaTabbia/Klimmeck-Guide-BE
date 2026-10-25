@@ -62,7 +62,7 @@ describe('questUpdateOf', () => {
         });
     });
 
-    it('concludes a boss with one winner and frees the losers', () => {
+    it('concludes a registered quest when the fight is won and frees any loser', () => {
         expect(
             questUpdateOf({
                 type: QuestType.boss,

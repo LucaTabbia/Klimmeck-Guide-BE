@@ -149,10 +149,7 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
                 assets: { wearedEquipment: { rightHand: sword._id } },
             },
         });
-        scripted.willResolve(subject.characterId, {
-            outcome: 'success',
-            hpAfter: 700,
-        });
+        scripted.willResolve(subject.characterId, { hpAfter: 700 });
 
         await expect(resolve(subject)).resolves.toBe('resolved');
 
@@ -191,10 +188,9 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
                 prizeCoins: { gold: 0, silver: 2, copper: 0 },
             }),
         });
-        scripted.willResolve(subject.characterId, {
-            outcome: 'failure',
-            hpAfter: 300,
-        });
+        scripted
+            .willEnd('failure')
+            .willResolve(subject.characterId, { hpAfter: 300 });
 
         await expect(resolve(subject)).resolves.toBe('resolved');
 
@@ -247,10 +243,9 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
     it('never drops the hit points below 1', async () => {
         const foe = await enemy();
         const subject = await fighter('enemy', foe._id);
-        scripted.willResolve(subject.characterId, {
-            outcome: 'failure',
-            hpAfter: 0,
-        });
+        scripted
+            .willEnd('failure')
+            .willResolve(subject.characterId, { hpAfter: 0 });
 
         await resolve(subject);
 
@@ -272,7 +267,7 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
     it('creates an aid for a lost hunt too', async () => {
         const foe = await enemy();
         const subject = await fighter('hunt', foe._id);
-        scripted.willResolve(subject.characterId, { outcome: 'failure' });
+        scripted.willEnd('failure');
 
         await resolve(subject);
 

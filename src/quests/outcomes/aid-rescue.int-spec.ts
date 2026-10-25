@@ -187,7 +187,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
     it('frees the injured in the marker city when the rescue succeeds', async () => {
         const rescue = await rescueWorld();
         const { rescuer, injuredId } = rescue;
-        scripted.willResolve(rescuer.characterId, { outcome: 'success' });
+        scripted.willEnd('success');
 
         await expect(resolve(rescue)).resolves.toBe('resolved');
 
@@ -247,10 +247,9 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
                 ],
             }),
         );
-        scripted.willResolve(rescuer.characterId, {
-            outcome: 'failure',
-            hpAfter: 200,
-        });
+        scripted
+            .willEnd('failure')
+            .willResolve(rescuer.characterId, { hpAfter: 200 });
 
         await expect(resolve(rescue)).resolves.toBe('resolved');
 
@@ -309,7 +308,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
             { _id: rescue.aid._id },
             { $set: { concludedAt: ARCHIVED_AT } },
         );
-        scripted.willResolve(rescuer.characterId, { outcome: 'failure' });
+        scripted.willEnd('failure');
 
         await expect(resolve(rescue)).resolves.toBe('resolved');
 
@@ -331,7 +330,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
         const rescue = await rescueWorld();
         const { rescuer } = rescue;
         await world.models.quests.deleteOne({ _id: rescue.original._id });
-        scripted.willResolve(rescuer.characterId, { outcome: 'failure' });
+        scripted.willEnd('failure');
 
         await expect(resolve(rescue)).resolves.toBe('resolved');
 
@@ -367,7 +366,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
         'delivers once, after the %s of the rescue is committed',
         async (outcome, injuredOutcome) => {
             const rescue = await rescueWorld();
-            scripted.willResolve(rescue.rescuer.characterId, { outcome });
+            scripted.willEnd(outcome);
             const original = writer.deliver.bind(writer);
             const seen: unknown[] = [];
             const deliver = jest
@@ -393,7 +392,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
     it('leaves no side effect when the death aborts the transaction', async () => {
         const rescue = await rescueWorld();
         const { rescuer, injuredId } = rescue;
-        scripted.willResolve(rescuer.characterId, { outcome: 'failure' });
+        scripted.willEnd('failure');
         jest.spyOn(archiver, 'archiveWithin').mockRejectedValueOnce(
             new StaleResolution(),
         );

@@ -79,24 +79,30 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
         resolver.resolve(context, new SequenceChance(values));
 
     it('loses with no gear: full enemy damage, no injury', () => {
-        const [result] = resolve(contextOf([participant()]), [0.0, 0.9]);
-
-        expect(result).toEqual({
-            characterId: hex('a1'),
-            outcome: 'failure',
-            hpAfter: 900,
-            injuriesAdded: [],
-            consumablesUsed: [],
-            spellsUsed: [],
+        expect(resolve(contextOf([participant()]), [0.0, 0.9])).toEqual({
+            verdict: 'failure',
+            participants: [
+                {
+                    characterId: hex('a1'),
+                    hpAfter: 900,
+                    injuriesAdded: [],
+                    consumablesUsed: [],
+                    spellsUsed: [],
+                },
+            ],
         });
     });
 
     it('wins below the win chance and loses half the enemy damage', () => {
         const hero = participant({ equipment: [weapon(1000)] });
 
-        const [result] = resolve(contextOf([hero]), [0.4, 0.9]);
+        const { verdict, participants } = resolve(
+            contextOf([hero]),
+            [0.4, 0.9],
+        );
+        const [result] = participants;
 
-        expect(result.outcome).toBe('success');
+        expect(verdict).toBe('success');
         expect(result.hpAfter).toBe(950);
         expect(result.injuriesAdded).toEqual([]);
     });
@@ -107,9 +113,13 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
             consumables: [potion(200)],
         });
 
-        const [result] = resolve(contextOf([hero]), [0.5, 0.9]);
+        const { verdict, participants } = resolve(
+            contextOf([hero]),
+            [0.5, 0.9],
+        );
+        const [result] = participants;
 
-        expect(result.outcome).toBe('failure');
+        expect(verdict).toBe('failure');
         expect(result.hpAfter).toBe(201);
         expect(result.consumablesUsed).toEqual([
             { itemId: hex('71'), quantity: 1 },
@@ -119,7 +129,7 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
     it('stays at 1 HP without a potion', () => {
         const hero = participant({ currentLifePoints: 30 });
 
-        const [result] = resolve(contextOf([hero]), [0.5, 0.9]);
+        const [result] = resolve(contextOf([hero]), [0.5, 0.9]).participants;
 
         expect(result.hpAfter).toBe(1);
         expect(result.consumablesUsed).toEqual([]);
@@ -131,7 +141,7 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
             consumables: [{ ...potion(), effect: EffectType.hunger }],
         });
 
-        const [result] = resolve(contextOf([hero]), [0.5, 0.9]);
+        const [result] = resolve(contextOf([hero]), [0.5, 0.9]).participants;
 
         expect(result.hpAfter).toBe(1);
         expect(result.consumablesUsed).toEqual([]);
@@ -145,14 +155,16 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
         });
 
         expect(
-            resolve(contextOf([fresh]), [0.4, 0.1, 0.0])[0].injuriesAdded,
+            resolve(contextOf([fresh]), [0.4, 0.1, 0.0]).participants[0]
+                .injuriesAdded,
         ).toEqual([InjuryType.headConcussion]);
         expect(
-            resolve(contextOf([concussed]), [0.4, 0.1, 0.0])[0].injuriesAdded,
+            resolve(contextOf([concussed]), [0.4, 0.1, 0.0]).participants[0]
+                .injuriesAdded,
         ).toEqual([InjuryType.traumaticBrainInjury]);
     });
 
-    it('gives each participant its own outcome, ordered by character id (D-05)', () => {
+    it('shares one verdict with the whole party, effects ordered by character id (A3)', () => {
         const first = participant({
             characterId: hex('a1'),
             equipment: [weapon(500)],
@@ -162,14 +174,35 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
             equipment: [weapon(500)],
         });
 
-        const results = resolve(
+        const { verdict, participants } = resolve(
             contextOf([second, first]),
-            [0.1, 0.9, 0.9, 0.9],
+            [0.1, 0.9, 0.9],
         );
 
-        expect(results.map((r) => [r.characterId, r.outcome])).toEqual([
-            [hex('a1'), 'success'],
-            [hex('a2'), 'failure'],
+        expect(verdict).toBe('success');
+        expect(participants.map((r) => r.characterId)).toEqual([
+            hex('a1'),
+            hex('a2'),
+        ]);
+        expect(participants.flatMap((r) => r.injuriesAdded)).toEqual([]);
+    });
+
+    it('lets one adventurer end at 1 HP while another is unharmed under the same verdict (A3)', () => {
+        const wounded = participant({
+            characterId: hex('a1'),
+            currentLifePoints: 30,
+        });
+        const unharmed = participant({ characterId: hex('a2') });
+
+        const { verdict, participants } = resolve(
+            contextOf([wounded, unharmed]),
+            [0.5, 0.9, 0.9],
+        );
+
+        expect(verdict).toBe('failure');
+        expect(participants.map((r) => [r.characterId, r.hpAfter])).toEqual([
+            [hex('a1'), 1],
+            [hex('a2'), 950],
         ]);
     });
 
@@ -178,7 +211,7 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
             activeSpells: [spell('51', 2), spell('52', 0)],
         });
 
-        const [result] = resolve(contextOf([hero]), [0.9, 0.9]);
+        const [result] = resolve(contextOf([hero]), [0.9, 0.9]).participants;
 
         expect(result.spellsUsed).toEqual([{ spellId: hex('51'), usages: 1 }]);
     });
@@ -229,7 +262,7 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
             );
             const values = Array.from({ length: 8 }, () => random());
 
-            for (const result of resolve(context, values)) {
+            for (const result of resolve(context, values).participants) {
                 expect(result.hpAfter).toBeGreaterThanOrEqual(1);
                 expect(result.hpAfter).toBeLessThanOrEqual(maxLifePoints);
                 expect(Number.isInteger(result.hpAfter)).toBe(true);

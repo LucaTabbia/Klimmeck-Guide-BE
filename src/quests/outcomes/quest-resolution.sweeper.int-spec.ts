@@ -100,7 +100,7 @@ describe('QuestResolutionSweeper (replSet)', () => {
                 prizes: { ...buildQuest().prizes, randomLoot: [] },
             },
         });
-        combat.willResolve(subject.characterId, { outcome: 'success' });
+        combat.willEnd('success');
         return subject;
     }
 

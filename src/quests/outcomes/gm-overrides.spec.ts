@@ -62,17 +62,17 @@ describe('validateOverrides', () => {
     it.each([undefined, null, []])(
         'leaves every participant without a fight when overrides are %p',
         (overrides) => {
-            const outcomes = validateOverrides(overrides, participants);
+            const effects = validateOverrides(overrides, participants);
 
-            expect([...outcomes.entries()]).toEqual([
+            expect([...effects.entries()]).toEqual([
                 [A, null],
                 [B, null],
             ]);
         },
     );
 
-    it('turns a full override into the participant outcome', () => {
-        const outcomes = validateOverrides(
+    it('turns a full override into the participant effects', () => {
+        const effects = validateOverrides(
             [
                 overrideOf({
                     hpAfter: 300,
@@ -84,26 +84,24 @@ describe('validateOverrides', () => {
             participants,
         );
 
-        expect(outcomes.get(A)).toEqual({
+        expect(effects.get(A)).toEqual({
             characterId: A,
-            outcome: 'success',
             hpAfter: 300,
             injuriesAdded: [InjuryType.deepCut],
             consumablesUsed: [{ itemId: POTION, quantity: 1 }],
             spellsUsed: [{ spellId: S1, usages: 2 }],
         });
-        expect(outcomes.get(B)).toBeNull();
+        expect(effects.get(B)).toBeNull();
     });
 
     it('keeps the current life points when the override has only injuries', () => {
-        const outcomes = validateOverrides(
+        const effects = validateOverrides(
             [overrideOf({ injuries: [InjuryType.fracturedRib] })],
             participants,
         );
 
-        expect(outcomes.get(A)).toEqual({
+        expect(effects.get(A)).toEqual({
             characterId: A,
-            outcome: 'success',
             hpAfter: 600,
             injuriesAdded: [InjuryType.fracturedRib],
             consumablesUsed: [],
@@ -159,7 +157,7 @@ describe('validateOverrides', () => {
     });
 
     it('merges two entries of the same potion within the owned quantity', () => {
-        const outcomes = validateOverrides(
+        const effects = validateOverrides(
             [
                 overrideOf({
                     consumablesUsed: [
@@ -171,7 +169,7 @@ describe('validateOverrides', () => {
             participants,
         );
 
-        expect(outcomes.get(A)?.consumablesUsed).toEqual([
+        expect(effects.get(A)?.consumablesUsed).toEqual([
             { itemId: POTION, quantity: 2 },
         ]);
     });
