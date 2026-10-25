@@ -334,7 +334,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type CharacterQuests {\n  activeStoryQuest: PendingQuest\n  activeWorldMissionQuest: PendingQuest\n  completedQuests: [Quest!]!\n  pendingQuest: PendingQuest\n}',
         );
         expect(schema.match(/type PendingQuest \{[^}]*\}/)?.[0]).toBe(
-            'type PendingQuest {\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime\n  waitingTime: Float!\n}',
+            'type PendingQuest {\n  arrivedAt: DateTime\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime\n  waitingTime: Float!\n}',
         );
     });
 
@@ -348,7 +348,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type QuestPartySlot {\n  count: Int!\n  title: String\n}',
         );
         expect(schema.match(/type QuestRegistration \{[^}]*\}/)?.[0]).toBe(
-            'type QuestRegistration {\n  character: ID!\n  title: String!\n}',
+            'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
             'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
@@ -440,7 +440,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
             'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
         );
-        expect(schema).not.toMatch(/concludedAt|\brescue\b|\bgrade\b/);
+        expect(schema).not.toMatch(
+            /concludedAt|startedAt|\brescue\b|\bgrade\b/,
+        );
     });
 
     it('writes the quest result contract into the generated schema', () => {
