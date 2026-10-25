@@ -163,6 +163,30 @@ describe('PartyTimeoutService.disband (replSet)', () => {
         expect(cancelledPushes()).toHaveLength(2);
     });
 
+    it('warns with ids only about a legacy member it cannot release', async () => {
+        const waiting = await member({ questOverrides: bossOf(3) });
+        const legacy = await member({
+            quest: waiting.quest,
+            startDate: OUTCOME_START,
+        });
+        const questId = waiting.quest._id as Types.ObjectId;
+        await world.models.quests.updateOne(
+            { _id: questId },
+            { $set: { startedAt: null } },
+        );
+        await registeredSince(questId, DAY_AGO);
+        const warn = jest.spyOn(Logger.prototype, 'warn');
+
+        await expect(service.disband({ questId })).resolves.toBe('disbanded');
+
+        expect(await pendingQuestExists(waiting)).toBe(false);
+        expect(await pendingQuestExists(legacy)).toBe(true);
+        expect(warn.mock.calls.map(([message]) => String(message))).toEqual([
+            `Registrato ${legacy.characterId.toHexString()} della missione ${questId.toHexString()} non liberato: la missione in attesa ${String(legacy.pendingQuest._id)} è già avviata o di un'altra missione (dato legacy, pulizia manuale)`,
+        ]);
+        expect(cancelledPushes()).toHaveLength(1);
+    });
+
     it('keeps a full party waiting for a member still travelling', async () => {
         const waiting = await member({ questOverrides: bossOf(2) });
         const travelling = await member({
