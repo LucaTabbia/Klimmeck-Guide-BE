@@ -227,7 +227,7 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         expect(await world.models.questResults.countDocuments()).toBe(2);
     });
 
-    it('leaves the boss open when the party loses, one aid each', async () => {
+    it('leaves the boss open when the party loses, one aid for the whole party', async () => {
         const { a, b } = await group();
         scripted.willEnd('failure');
 
@@ -239,18 +239,38 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         expect(quest.concludedAt).toBeNull();
         expect(seatsOf(quest)).toEqual([]);
         const created = await aids();
-        expect(
-            created.map((aid) => String(aid.rescue.character)).sort(),
-        ).toEqual([String(a.characterId), String(b.characterId)].sort());
+        expect(created).toHaveLength(1);
+        const [aid] = created;
+        expect(aid.requirements.requiredAdventurers).toEqual([
+            { title: null, count: 3 },
+        ]);
+        expect(aid.rescue.characters.map(String).sort()).toEqual(
+            [String(a.characterId), String(b.characterId)].sort(),
+        );
+        expect(String(aid.rescue.failedQuest)).toBe(String(a.quest._id));
+        expect(aid.infos.title).toBe(`Soccorso: ${BOSS_TITLE}`);
         for (const member of [await characterOf(a), await characterOf(b)]) {
             expect(String(member.status.awaitingAid.quest)).toBe(
                 String(a.quest._id),
             );
+            expect(String(member.status.awaitingAid.aidQuest)).toBe(
+                String(aid._id),
+            );
         }
         expect(world.questQueue.added).toEqual([
-            expect.objectContaining({ name: 'aid-timeout' }),
-            expect.objectContaining({ name: 'aid-timeout' }),
+            expect.objectContaining({
+                name: 'aid-timeout',
+                options: expect.objectContaining({
+                    jobId: `aid-${String(aid._id)}`,
+                }),
+            }),
         ]);
+        const results = await world.models.questResults.find().lean<any[]>();
+        expect(results.map(({ outcome }) => outcome)).toEqual([
+            'failure',
+            'failure',
+        ]);
+        expect(questEndPushes()).toHaveLength(2);
     });
 
     it('resolves once under concurrent triggers of the group', async () => {

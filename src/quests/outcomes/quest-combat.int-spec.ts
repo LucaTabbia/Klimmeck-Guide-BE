@@ -217,7 +217,9 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
             expect.objectContaining({ title: null, count: 1 }),
         ]);
         expect(aid.requirements.requiredPoints).toBeNull();
-        expect(String(aid.rescue.character)).toBe(String(subject.characterId));
+        expect(aid.rescue.characters.map(String)).toEqual([
+            String(subject.characterId),
+        ]);
         expect(String(aid.rescue.failedQuest)).toBe(String(subject.quest._id));
         const result = await resultOf(subject);
         expect(result).toMatchObject({ outcome: 'failure', xpGained: 0 });

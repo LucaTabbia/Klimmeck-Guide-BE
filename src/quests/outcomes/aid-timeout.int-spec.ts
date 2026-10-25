@@ -149,6 +149,65 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
         ]);
     });
 
+    it('kills every wounded of a group aid after seven days without a rescue', async () => {
+        const subject = await timeoutWorld();
+        seq += 1;
+        const other = await createPlayer(world.harness, {
+            twitchId: `tw-timeout-${seq}`,
+            characterOverrides: {
+                status: {
+                    ...buildCharacter().status,
+                    awaitingAid: {
+                        quest: new Types.ObjectId(),
+                        aidQuest: subject.aidId,
+                        since: new Date(SEVEN_DAYS_AGO.getTime() + 1),
+                    },
+                },
+            },
+        });
+        const otherId = other.character!._id as Types.ObjectId;
+        await registerDevice(world.harness, other);
+        await world.models.quests.updateOne(
+            { _id: subject.aidId },
+            { $push: { 'rescue.characters': otherId } },
+        );
+
+        await expect(timeout(subject)).resolves.toBe('resolved');
+
+        for (const id of [subject.injuredId, otherId]) {
+            const dead = await characterOf(id);
+            expect(dead.deletedAt).toEqual(NOW);
+            expect(dead.deletionReason).toBe('death');
+        }
+        const results = await world.models.questResults.find().lean<any[]>();
+        expect(results).toHaveLength(2);
+        expect(results.map(({ outcome }) => outcome)).toEqual([
+            'death',
+            'death',
+        ]);
+        expect(results.map(({ quest }) => String(quest.id))).toEqual([
+            String(subject.aidId),
+            String(subject.aidId),
+        ]);
+        expect(
+            results.map(({ character }) => String(character)).sort(),
+        ).toEqual([String(subject.injuredId), String(otherId)].sort());
+        expect((await aidOf(subject)).concludedAt).toEqual(NOW);
+        expect(
+            world.push.sent
+                .filter(
+                    ({ message }) => message.type === PushEventType.questEnd,
+                )
+                .flatMap(({ tokens }) => tokens)
+                .sort(),
+        ).toEqual(
+            [
+                `tok-${String(subject.injured.user._id)}`,
+                `tok-${String(other.user._id)}`,
+            ].sort(),
+        );
+    });
+
     it('waits until the seven days are over', async () => {
         const subject = await timeoutWorld(
             new Date(SEVEN_DAYS_AGO.getTime() + 1),
