@@ -208,12 +208,12 @@ export class QuestAcceptanceService {
         else if (lane === QuestLane.standard)
             await this.questStart.tryStart({ questId, pendingQuestId });
         // la prima registrazione che non riempie il party apre le 24 ore (utente 2026-10-25); story e worldMission no (D-03)
-        if (
+        const opensPartyWindow =
             lane === QuestLane.standard &&
-            rule &&
+            rule !== null &&
             registration.before === 0 &&
-            registration.before + 1 < rule.total
-        )
+            rule.total > 1;
+        if (opensPartyWindow)
             await this.questScheduler.schedulePartyTimeout({
                 questId,
                 since: now,
@@ -221,7 +221,7 @@ export class QuestAcceptanceService {
         return pendingQuestId;
     }
 
-    // solo la corsia standard si muove (D-02): marker = posizione ⇒ countdown subito; nessuna strada ⇒ salto (D-03, WARN nel planner);
+    // solo la corsia standard si muove (D-02): marker = posizione ⇒ arrivo immediato (l'avvio lo decide QuestStartService); nessuna strada ⇒ salto (D-03, WARN nel planner);
     // marker senza documento POI ⇒ QUEST_NOT_ACCEPTABLE dal planner, prima della transazione (D-27)
     private async movementTo(
         quest: QuestAcceptanceSnapshot,
