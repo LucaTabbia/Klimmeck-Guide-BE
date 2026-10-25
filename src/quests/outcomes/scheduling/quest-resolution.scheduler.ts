@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import type { Queue } from 'bull';
 import { Clock } from 'src/auth/clock';
 import { aidTimeoutDueAt } from 'src/quests/outcomes/aid/aid-timeout';
+import { partyTimeoutDueAt } from 'src/quests/party/party-rules';
 import { enqueueTrigger, TriggerContext } from 'src/queues/enqueue-trigger';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import {
@@ -10,6 +11,10 @@ import {
     AidTimeoutJobData,
     AidTimeoutTrigger,
     aidTimeoutJobId,
+    PARTY_TIMEOUT_JOB,
+    PartyTimeoutJobData,
+    partyTimeoutJobId,
+    PartyTimeoutTrigger,
     QUEST_RESOLUTION_QUEUE,
     questResolutionJobId,
     RESOLVE_QUEST_JOB,
@@ -18,7 +23,10 @@ import {
     ResolutionTrigger,
 } from './quest-resolution-job';
 
-type QuestResolutionJobData = ResolveQuestJobData | AidTimeoutJobData;
+type QuestResolutionJobData =
+    | ResolveQuestJobData
+    | AidTimeoutJobData
+    | PartyTimeoutJobData;
 
 const SWEEP_FALLBACK = 'lo risolverà lo sweep';
 
@@ -74,6 +82,23 @@ export class QuestResolutionScheduler implements OnModuleInit {
                 dueAt: aidTimeoutDueAt(trigger.since),
             },
             this.context('del timeout di soccorso'),
+        );
+    }
+
+    // 24 ore dalla prima registrazione del party corrente (utente 2026-10-25)
+    async schedulePartyTimeout(trigger: PartyTimeoutTrigger): Promise<void> {
+        await enqueueTrigger(
+            this.queue,
+            {
+                name: PARTY_TIMEOUT_JOB,
+                data: {
+                    questId: trigger.questId.toHexString(),
+                    since: trigger.since.getTime(),
+                },
+                jobId: partyTimeoutJobId(trigger.questId, trigger.since),
+                dueAt: partyTimeoutDueAt(trigger.since),
+            },
+            this.context('del timeout del party'),
         );
     }
 

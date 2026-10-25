@@ -63,6 +63,7 @@ describe('PushException', () => {
             'travelEnd',
             'questEnd',
             'streamerLive',
+            'questCancelled',
         ]);
     });
 });

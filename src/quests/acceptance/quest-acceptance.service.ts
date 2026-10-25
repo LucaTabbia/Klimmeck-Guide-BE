@@ -207,7 +207,17 @@ export class QuestAcceptanceService {
             await this.scheduler.schedule(characterId, movement.travel);
         else if (lane === QuestLane.standard)
             await this.questStart.tryStart({ questId, pendingQuestId });
-        // 09-19 Task 4: schedulePartyTimeout alla prima registrazione
+        // la prima registrazione che non riempie il party apre le 24 ore (utente 2026-10-25); story e worldMission no (D-03)
+        if (
+            lane === QuestLane.standard &&
+            rule &&
+            registration.before === 0 &&
+            registration.before + 1 < rule.total
+        )
+            await this.questScheduler.schedulePartyTimeout({
+                questId,
+                since: now,
+            });
         return pendingQuestId;
     }
 

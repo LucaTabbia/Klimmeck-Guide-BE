@@ -14,8 +14,14 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { refIdOf } from 'src/mongo/document-id';
 import { describeError } from 'src/mongo/mongo-errors';
+import {
+    isPartyExpired,
+    partyFormingSinceOf,
+} from 'src/quests/party/party-rules';
+import { PartyTimeoutService } from 'src/quests/party/party-timeout.service';
 import { QuestStartService } from 'src/quests/party/quest-start.service';
 import { QuestResolutionService } from './quest-resolution.service';
 import { RescueResolutionService } from './rescue-resolution.service';
@@ -26,6 +32,9 @@ import {
     DueStandardQuest,
     dueAidTimeoutsFilter,
     dueStandardQuestsPipeline,
+    FORMING_PARTY_PROJECTION,
+    FormingParty,
+    formingPartiesFilter,
 } from './scheduling/quest-resolution.updates';
 
 export interface QuestSweepCounts {
@@ -61,9 +70,12 @@ export class QuestResolutionSweeper
         @Inject(QUEST_CONFIG) private readonly config: QuestConfig,
         @InjectModel(Character.name)
         private readonly characterModel: Model<CharacterDocument>,
+        @InjectModel(Quest.name)
+        private readonly questModel: Model<QuestDocument>,
         private readonly resolution: QuestResolutionService,
         private readonly rescue: RescueResolutionService,
         private readonly questStart: QuestStartService,
+        private readonly partyTimeout: PartyTimeoutService,
         private readonly clock: Clock,
     ) {}
 
@@ -96,12 +108,14 @@ export class QuestResolutionSweeper
 
     private async runOnce(): Promise<QuestSweepCounts> {
         const now = this.clock.now();
+        const backfilled = await this.partyTimeout.backfillRegisteredAt(now);
         const started = await this.startPendingQuests();
+        const disbanded = await this.disbandExpiredParties(now);
         const resolved = await this.resolveDueQuests(now);
         const timedOut = await this.timeOutDueAids(now);
-        if (started + resolved + timedOut > 0) {
+        if (backfilled + started + disbanded + resolved + timedOut > 0) {
             this.logger.log(
-                `Sweep delle missioni: ${started} avviate, ${resolved} risolte, ${timedOut} soccorsi scaduti`,
+                `Sweep delle missioni: ${backfilled} registrazioni retrodatate, ${started} avviate, ${disbanded} party sciolti, ${resolved} risolte, ${timedOut} soccorsi scaduti`,
             );
         }
         return { resolved, timedOut };
@@ -132,6 +146,34 @@ export class QuestResolutionSweeper
             }
         }
         return started;
+    }
+
+    // 24 ore senza posti pieni (utente 2026-10-25): il job party-timeout può essere andato perso
+    private async disbandExpiredParties(now: Date): Promise<number> {
+        if (this.stopping) return 0;
+        const forming = await this.questModel
+            .find(formingPartiesFilter(), FORMING_PARTY_PROJECTION)
+            .lean<FormingParty[]>()
+            .exec();
+        let disbanded = 0;
+        for (const party of forming) {
+            if (this.stopping) break;
+            const since = partyFormingSinceOf(
+                party.registeredAdventurers ?? [],
+            );
+            if (!since || !isPartyExpired(since, now)) continue;
+            try {
+                const outcome = await this.partyTimeout.disband({
+                    questId: party._id,
+                });
+                if (outcome === 'disbanded') disbanded++;
+            } catch (error) {
+                this.logger.error(
+                    `Scioglimento del party della missione ${party._id.toHexString()} fallito: ${describeError(error)}`,
+                );
+            }
+        }
+        return disbanded;
     }
 
     // solo la corsia standard (Pitfall 2): story e worldMission restano al GM

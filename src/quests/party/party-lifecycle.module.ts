@@ -15,9 +15,10 @@ import { User, UserSchema } from 'src/models/user.model';
 import { PushModule } from 'src/push/push.module';
 import { PartyAbandonService } from './party-abandon.service';
 import { PartyModule } from './party.module';
+import { PartyTimeoutService } from './party-timeout.service';
 import { PartyResolver } from './party.resolver';
 
-// ciclo di vita del party (utente 2026-10-25): abbandono durante l'attesa; il push resta qui, fuori da PartyModule
+// ciclo di vita del party (utente 2026-10-25): abbandono durante l'attesa, scioglimento dopo 24 ore; il push resta qui, fuori da PartyModule
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -33,8 +34,10 @@ import { PartyResolver } from './party.resolver';
     ],
     providers: [
         PartyAbandonService,
+        PartyTimeoutService,
         PartyResolver,
         { provide: Clock, useClass: SystemClock },
     ],
+    exports: [PartyTimeoutService],
 })
 export class PartyLifecycleModule {}

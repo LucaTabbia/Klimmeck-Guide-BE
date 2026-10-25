@@ -464,6 +464,7 @@ type PushDeliveryReport {
 }
 
 enum PushEventType {
+  questCancelled
   questEnd
   streamerLive
   travelEnd

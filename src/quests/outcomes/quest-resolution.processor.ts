@@ -2,6 +2,8 @@ import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import type { Job } from 'bull';
 import { Clock } from 'src/auth/clock';
+import { partyTimeoutDueAt } from 'src/quests/party/party-rules';
+import { PartyTimeoutService } from 'src/quests/party/party-timeout.service';
 import { aidTimeoutDueAt } from './aid/aid-timeout';
 import { QuestResolutionService } from './quest-resolution.service';
 import { RescueResolutionService } from './rescue-resolution.service';
@@ -10,6 +12,10 @@ import {
     AidTimeoutJobData,
     aidTimeoutJobDataOf,
     aidTimeoutJobId,
+    PARTY_TIMEOUT_JOB,
+    PartyTimeoutJobData,
+    partyTimeoutJobDataOf,
+    partyTimeoutJobId,
     QUEST_RESOLUTION_QUEUE,
     questResolutionJobId,
     RESOLVE_QUEST_JOB,
@@ -26,6 +32,7 @@ export class QuestResolutionProcessor {
     constructor(
         private readonly resolution: QuestResolutionService,
         private readonly rescue: RescueResolutionService,
+        private readonly partyTimeout: PartyTimeoutService,
         private readonly clock: Clock,
     ) {}
 
@@ -67,6 +74,27 @@ export class QuestResolutionProcessor {
             return;
         }
         await this.rescue.timeoutAid({ aidQuestId: trigger.aidQuestId });
+    }
+
+    // 24 ore senza posti pieni (utente 2026-10-25): il servizio rilegge il party e decide
+    @Process(PARTY_TIMEOUT_JOB)
+    async partyTimeoutJob(job: Job<PartyTimeoutJobData>): Promise<void> {
+        const trigger = partyTimeoutJobDataOf(job.data);
+        if (!trigger) {
+            this.warnMalformed('di timeout del party', job);
+            return;
+        }
+        const jobId = partyTimeoutJobId(trigger.questId, trigger.since);
+        if (
+            this.isEarly(
+                partyTimeoutDueAt(trigger.since),
+                'di timeout del party',
+                jobId,
+            )
+        ) {
+            return;
+        }
+        await this.partyTimeout.disband({ questId: trigger.questId });
     }
 
     private warnMalformed(subject: string, job: Job): void {

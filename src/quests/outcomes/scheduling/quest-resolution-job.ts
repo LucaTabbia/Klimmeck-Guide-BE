@@ -5,6 +5,7 @@ import { isEpochMs } from 'src/queues/epoch-ms';
 export const QUEST_RESOLUTION_QUEUE = 'quest-resolution';
 export const RESOLVE_QUEST_JOB = 'resolve';
 export const AID_TIMEOUT_JOB = 'aid-timeout';
+export const PARTY_TIMEOUT_JOB = 'party-timeout';
 
 // epoch ms: niente Date serializzate in JSON nella coda
 export interface ResolveQuestJobData {
@@ -15,6 +16,11 @@ export interface ResolveQuestJobData {
 
 export interface AidTimeoutJobData {
     aidQuestId: string;
+    since: number;
+}
+
+export interface PartyTimeoutJobData {
+    questId: string;
     since: number;
 }
 
@@ -29,6 +35,12 @@ export interface AidTimeoutTrigger {
     since: Date;
 }
 
+// finestra delle 24 ore del party corrente (utente 2026-10-25)
+export interface PartyTimeoutTrigger {
+    questId: Types.ObjectId;
+    since: Date;
+}
+
 // deterministici (D-24): Bull ignora un secondo add dello stesso trigger; niente ':' (chiavi bull:<queue>:<id>)
 export function questResolutionJobId(
     pendingQuestId: Types.ObjectId,
@@ -39,6 +51,14 @@ export function questResolutionJobId(
 
 export function aidTimeoutJobId(aidQuestId: Types.ObjectId): string {
     return `aid-${aidQuestId.toHexString()}`;
+}
+
+// un party nuovo dopo uno scioglimento ha un'altra finestra, quindi un altro job
+export function partyTimeoutJobId(
+    questId: Types.ObjectId,
+    since: Date,
+): string {
+    return `party-${questId.toHexString()}-${since.getTime()}`;
 }
 
 // dati dalla coda = input non fidato: id esadecimale e interi non negativi; il processor rilegge comunque il DB (D-01)
@@ -68,6 +88,18 @@ export function aidTimeoutJobDataOf(data: unknown): AidTimeoutTrigger | null {
     );
     if (!id || !isEpochMs(since)) return null;
     return { aidQuestId: id, since: new Date(since) };
+}
+
+export function partyTimeoutJobDataOf(
+    data: unknown,
+): PartyTimeoutTrigger | null {
+    if (typeof data !== 'object' || data === null) return null;
+    const { questId, since } = data as Partial<
+        Record<keyof PartyTimeoutJobData, unknown>
+    >;
+    const id = objectIdFromHex(typeof questId === 'string' ? questId : null);
+    if (!id || !isEpochMs(since)) return null;
+    return { questId: id, since: new Date(since) };
 }
 
 export function resolutionDueAt(trigger: ResolutionTrigger): Date {
