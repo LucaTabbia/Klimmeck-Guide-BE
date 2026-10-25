@@ -576,6 +576,49 @@ describe('TravelCompletionService (replSet)', () => {
                 error.mockRestore();
             });
 
+            it('completes the travel without countdown, job or push after the party was disbanded', async () => {
+                const destination = new Types.ObjectId();
+                const id = await ownedTraveller(destination, {
+                    travel: { kind: 'quest' },
+                    character: {
+                        quests: { completedQuests: [], pendingQuest: null },
+                    },
+                });
+
+                await expect(completion.complete(identityOf(id))).resolves.toBe(
+                    'completed',
+                );
+
+                const character = await rawCharacter(id);
+                expect(character?.status.activeTravel).toBeNull();
+                expect(character?.status.location).toEqual(destination);
+                expect(questQueue.added).toEqual([]);
+                expect(push.sent).toEqual([]);
+            });
+
+            it('completes the travel without a job when the pending quest is gone', async () => {
+                const destination = new Types.ObjectId();
+                const id = await ownedTraveller(destination, {
+                    travel: { kind: 'quest' },
+                    character: {
+                        quests: {
+                            completedQuests: [],
+                            pendingQuest: new Types.ObjectId(),
+                        },
+                    },
+                });
+
+                await expect(completion.complete(identityOf(id))).resolves.toBe(
+                    'completed',
+                );
+
+                const character = await rawCharacter(id);
+                expect(character?.status.activeTravel).toBeNull();
+                expect(character?.status.location).toEqual(destination);
+                expect(questQueue.added).toEqual([]);
+                expect(push.sent).toEqual([]);
+            });
+
             it('completes the travel without a job when the quest is gone', async () => {
                 const warn = jest
                     .spyOn(Logger.prototype, 'warn')
