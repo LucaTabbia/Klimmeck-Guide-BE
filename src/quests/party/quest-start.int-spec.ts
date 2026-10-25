@@ -214,20 +214,42 @@ describe('QuestStartService.tryStart (replSet)', () => {
         expect(missingWarns).toHaveLength(1);
     });
 
-    it('waits when a registered member has no coherent pending quest', async () => {
+    it('drops a registered member without a coherent pending quest, then starts with a new member', async () => {
         const { a, b } = await pair('boss', 2, [TEN, TEN]);
         await world.models.pendingQuests.deleteOne({ _id: b.pendingQuest._id });
+        const questId = a.quest._id as Types.ObjectId;
+        const droppedWarns = () =>
+            warn.mock.calls
+                .map(([message]) => String(message))
+                .filter((message) =>
+                    message.includes(b.characterId.toHexString()),
+                );
 
         await expect(service.tryStart(triggerOf(a))).resolves.toBe('waiting');
 
+        const quest = await questById(questId);
+        expect(quest.startedAt).toBeNull();
+        expect(
+            quest.registeredAdventurers.map(({ character }) =>
+                String(character),
+            ),
+        ).toEqual([a.characterId.toHexString()]);
         expect((await pendingQuestOf(a)).startDate).toBeNull();
         expect(world.questQueue.added).toEqual([]);
-        const messages = warn.mock.calls.map(([message]) => String(message));
-        expect(
-            messages.some((message) =>
-                message.includes(b.characterId.toHexString()),
-            ),
-        ).toBe(true);
+        expect(droppedWarns()).toEqual([
+            `Missione ${questId.toHexString()}: registrati senza una missione in attesa coerente (${b.characterId.toHexString()}) rimossi dal party`,
+        ]);
+
+        await expect(service.tryStart(triggerOf(a))).resolves.toBe('waiting');
+        expect(droppedWarns()).toHaveLength(1);
+
+        const c = await quester({ quest: a.quest, arrivedAt: TEN_THIRTY });
+        await expect(service.tryStart(triggerOf(c))).resolves.toBe('started');
+
+        expect((await questById(questId)).startedAt).toEqual(TEN_THIRTY);
+        expect((await pendingQuestOf(a)).startDate).toEqual(TEN_THIRTY);
+        expect((await pendingQuestOf(c)).startDate).toEqual(TEN_THIRTY);
+        expect(resolveJobs()).toHaveLength(2);
     });
 
     it('starts a single seat enemy at the arrival', async () => {
