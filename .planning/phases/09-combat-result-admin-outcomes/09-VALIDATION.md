@@ -159,3 +159,5 @@ Nessuna wave dedicata: ogni spec nuova nasce RED nel task che la consuma (TDD pe
 **Approval:** approved 2026-10-24 (execution gate 09-16)
 
 **Execution sign-off (09-19, 2026-10-25):** `npm run test:unit` **122 suite / 1827 test**, `npm run test:int` **75 suite / 967 test** (`--runInBand`, foreground, nessun flaky), `npm run build` exit 0, `git diff --exit-code src/schema.gql` pulito, schema rigenerato dal boot reale con sole aggiunte (`arrivedAt`, `registeredAt`, `abandonQuest`, `AbandonQuestRequest`, `questCancelled`), `startedAt` assente dallo schema.
+
+**Execution sign-off (review 09-17/18/19, 2026-10-25):** correzioni di `09-REVIEW-AMENDMENTS.md` (WR-01..03, IN-01/03/04/05/07..12/14; report `09-REVIEW-AMENDMENTS-FIX.md`) — `npm run test:unit` **122 suite / 1829 test**, `npm run test:int` **75 suite / 975 test** (`--runInBand`, foreground, ~162 s, nessun flaky), `npm run build` exit 0, `git diff --exit-code src/schema.gql` pulito (nessun cambiamento di SDL).
