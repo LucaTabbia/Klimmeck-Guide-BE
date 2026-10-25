@@ -68,20 +68,23 @@ export class CharacterArchiver {
         return 'archived';
     }
 
-    // posti liberati (Phase 8 D-30); il ferito esce dalle aid aperte che lo soccorrono e la aid resta aperta finché c'è qualcuno da soccorrere (D-09): nessuna aid orfana sulla board
-    private async releaseQuestsOf(
+    // solo le quest lette in sessione prima del $pull: nessuna scansione della collection, nessun documento estraneo
+    private async releaseSeatsOf(
         characterId: Types.ObjectId,
-        now: Date,
         session: ClientSession,
     ): Promise<void> {
+        const character = { $in: idForms(characterId) };
+        const seated = await this.questModel
+            .find({ 'registeredAdventurers.character': character }, { _id: 1 })
+            .session(session)
+            .lean<{ _id: Types.ObjectId }[]>()
+            .exec();
+        if (seated.length === 0) return;
+        const seatedIds = seated.map(({ _id }) => _id);
         await this.questModel
             .updateMany(
-                { 'registeredAdventurers.character': characterId },
-                {
-                    $pull: {
-                        registeredAdventurers: { character: characterId },
-                    },
-                },
+                { _id: { $in: seatedIds } },
+                { $pull: { registeredAdventurers: { character } } },
                 { session },
             )
             .exec();
@@ -89,6 +92,7 @@ export class CharacterArchiver {
         await this.questModel
             .updateMany(
                 {
+                    _id: { $in: seatedIds },
                     concludedAt: null,
                     startedAt: { $ne: null },
                     registeredAdventurers: { $size: 0 },
@@ -97,6 +101,15 @@ export class CharacterArchiver {
                 { session },
             )
             .exec();
+    }
+
+    // posti liberati (Phase 8 D-30); il ferito esce dalle aid aperte che lo soccorrono e la aid resta aperta finché c'è qualcuno da soccorrere (D-09): nessuna aid orfana sulla board
+    private async releaseQuestsOf(
+        characterId: Types.ObjectId,
+        now: Date,
+        session: ClientSession,
+    ): Promise<void> {
+        await this.releaseSeatsOf(characterId, session);
         const aids = await this.questModel
             .find(
                 { 'rescue.characters': characterId, concludedAt: null },
