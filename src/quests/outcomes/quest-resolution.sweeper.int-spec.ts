@@ -22,6 +22,7 @@ import { SequenceChance } from '../../../test/quests/sequence-chance';
 import { QuestLane } from '../acceptance/quest-lanes';
 import { AID_TIMEOUT_MS } from './aid/aid-timeout';
 import { buildAidQuest } from './aid/aid-quest';
+import { QuestStartService } from '../party/quest-start.service';
 import { QuestResolutionSweeper } from './quest-resolution.sweeper';
 
 // OUTCOME_START + OUTCOME_WAITING_TIME_MS: le corsie standard del fixture sono appena scadute
@@ -199,11 +200,68 @@ describe('QuestResolutionSweeper (replSet)', () => {
     });
 
     it('leaves a standard quest still on the road untouched', async () => {
-        const travelling = await quester({ startDate: null });
+        const travelling = await quester({ startDate: null, arrivedAt: null });
 
         await expect(sweeper.sweep()).resolves.toEqual(NOTHING_DONE);
 
         await expectUntouched(travelling);
+    });
+
+    describe('party start (utente 2026-10-25)', () => {
+        const ARRIVED = new Date(NOW.getTime() - HALF_HOUR_MS);
+
+        const resolveJobs = () =>
+            world.questQueue.added.filter(({ name }) => name === 'resolve');
+
+        it('starts an unregistered quest that arrived but never started', async () => {
+            const job = await quester({ startDate: null, arrivedAt: ARRIVED });
+
+            await expect(sweeper.sweep()).resolves.toEqual(NOTHING_DONE);
+
+            const pendingQuest = await world.models.pendingQuests
+                .findById(job.pendingQuest._id)
+                .lean<any>();
+            expect(pendingQuest.startDate).toEqual(ARRIVED);
+            expect(resolveJobs()).toHaveLength(1);
+        });
+
+        it('starts a ready boss party once', async () => {
+            const tryStart = jest.spyOn(
+                world.harness.app.get(QuestStartService),
+                'tryStart',
+            );
+            const a = await quester({
+                startDate: null,
+                arrivedAt: ARRIVED,
+                questOverrides: {
+                    infos: { ...buildQuest().infos, type: 'boss' },
+                    requirements: {
+                        ...buildQuest().requirements,
+                        requiredAdventurers: [{ title: null, count: 2 }],
+                    },
+                },
+            });
+            const b = await quester({
+                quest: a.quest,
+                startDate: null,
+                arrivedAt: ARRIVED,
+            });
+
+            await expect(sweeper.sweep()).resolves.toEqual(NOTHING_DONE);
+
+            expect(tryStart).toHaveBeenCalledTimes(1);
+            for (const subject of [a, b]) {
+                const pendingQuest = await world.models.pendingQuests
+                    .findById(subject.pendingQuest._id)
+                    .lean<any>();
+                expect(pendingQuest.startDate).toEqual(ARRIVED);
+            }
+            expect(
+                (await world.models.quests.findById(a.quest._id).lean<any>())
+                    .startedAt,
+            ).toEqual(ARRIVED);
+            expect(resolveJobs()).toHaveLength(2);
+        });
     });
 
     it('times out a rescue nobody took after seven days', async () => {

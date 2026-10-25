@@ -146,7 +146,7 @@ describe('quest acceptance write builders', () => {
     });
 
     describe('registrationFilter', () => {
-        it('guards a concluded quest, duplicates and the live seats in the same filter', () => {
+        it('guards a concluded or started quest, duplicates and the live seats in the same filter', () => {
             const rule = slotRuleOf([
                 { title: TitleType.hero, count: 1 },
                 { title: null, count: 2 },
@@ -155,15 +155,24 @@ describe('quest acceptance write builders', () => {
             expect(registrationFilter(q, c, rule, TitleType.hero)).toEqual({
                 _id: q,
                 concludedAt: null,
+                startedAt: null,
                 'registeredAdventurers.character': { $ne: c },
                 $expr: seatAvailableExpr(rule, TitleType.hero),
             });
         });
     });
 
-    it('registrationUpdate records the character with its title', () => {
-        expect(registrationUpdate(c, TitleType.hero)).toEqual({
-            $push: { registeredAdventurers: { character: c, title: 'hero' } },
+    it('registrationUpdate records the character with its title and the registration time', () => {
+        const now = new Date('2026-10-25T10:00:00.000Z');
+
+        expect(registrationUpdate(c, TitleType.hero, now)).toEqual({
+            $push: {
+                registeredAdventurers: {
+                    character: c,
+                    title: 'hero',
+                    registeredAt: now,
+                },
+            },
         });
     });
 
@@ -383,6 +392,15 @@ describe('quest acceptance write builders', () => {
                 code: 'NOT_FOUND',
                 message: 'Missione non trovata',
             });
+        });
+
+        it('a started quest takes no one else: QUEST_FULL (utente 2026-10-25)', () => {
+            expect(
+                classifyUnregistered(
+                    { startedAt: new Date(), registeredAdventurers: [] },
+                    c,
+                ),
+            ).toMatchObject({ code: 'QUEST_FULL' });
         });
 
         it('a registered character is QUEST_ALREADY_TAKEN', () => {

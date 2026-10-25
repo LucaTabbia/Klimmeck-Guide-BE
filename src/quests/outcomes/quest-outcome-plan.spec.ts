@@ -48,7 +48,7 @@ describe('questUpdateOf', () => {
         ).toEqual({ $set: { concludedAt: NOW } });
     });
 
-    it('frees the seat of a lost enemy quest', () => {
+    it('frees the seat of a lost enemy quest and lets a new party start it', () => {
         expect(
             questUpdateOf({
                 type: QuestType.enemy,
@@ -59,6 +59,7 @@ describe('questUpdateOf', () => {
             $pull: {
                 registeredAdventurers: { character: { $in: [LOSER_ID] } },
             },
+            $set: { startedAt: null },
         });
     });
 
@@ -111,7 +112,7 @@ describe('questUpdateOf', () => {
         });
     });
 
-    it('keeps a boss lost by everyone on the board', () => {
+    it('keeps a boss lost by everyone on the board, not started (utente 2026-10-25)', () => {
         expect(
             questUpdateOf({
                 type: QuestType.boss,
@@ -124,7 +125,18 @@ describe('questUpdateOf', () => {
                     character: { $in: [LOSER_ID, OTHER_ID] },
                 },
             },
+            $set: { startedAt: null },
         });
+    });
+
+    it('never resets the start of a concluded quest', () => {
+        const update = questUpdateOf({
+            type: QuestType.boss,
+            verdicts: [won(WINNER_ID), lost(LOSER_ID)],
+            now: NOW,
+        });
+
+        expect(update?.$set).toEqual({ concludedAt: NOW });
     });
 
     it('always concludes a lost aid', () => {

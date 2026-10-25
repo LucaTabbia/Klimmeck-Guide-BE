@@ -12,8 +12,8 @@ import {
     completionFilter,
     DUE_TRAVEL_PROJECTION,
     dueTravelsFilter,
-    questCountdownFilter,
-    questCountdownUpdate,
+    questArrivalFilter,
+    questArrivalUpdate,
     startTravelFilter,
     startTravelUpdate,
     TELEPORT_PROJECTION,
@@ -152,16 +152,17 @@ describe('travel write builders', () => {
             });
         });
 
-        it('questCountdownFilter matches the pending quest whose countdown has not started', () => {
-            expect(questCountdownFilter(pending)).toEqual({
+        it('questArrivalFilter matches the pending quest not yet arrived', () => {
+            expect(questArrivalFilter(pending)).toEqual({
                 _id: pending,
-                startDate: null,
+                arrivedAt: null,
             });
         });
 
-        it('questCountdownUpdate starts the countdown at the arrival', () => {
-            expect(questCountdownUpdate(end)).toEqual({
-                $set: { startDate: end },
+        // arrivo ≠ avvio (utente 2026-10-25): startDate lo scrive solo QuestStartService
+        it('questArrivalUpdate marks the planned arrival, not the start', () => {
+            expect(questArrivalUpdate(end)).toEqual({
+                $set: { arrivedAt: end },
             });
         });
     });

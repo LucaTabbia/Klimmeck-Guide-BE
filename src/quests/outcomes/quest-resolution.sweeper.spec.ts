@@ -1,10 +1,14 @@
 import { Logger } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { CharacterDocument } from 'src/models/character/character.model';
+import { QuestStartService } from '../party/quest-start.service';
 import { QuestResolutionService } from './quest-resolution.service';
 import { QuestResolutionSweeper } from './quest-resolution.sweeper';
 import { RescueResolutionService } from './rescue-resolution.service';
-import type { DueStandardQuest } from './scheduling/quest-resolution.updates';
+import type {
+    ArrivedUnstartedQuest,
+    DueStandardQuest,
+} from './scheduling/quest-resolution.updates';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 
 const NOW = new Date('2026-10-24T12:00:00.000Z');
@@ -40,6 +44,10 @@ function dueQuest(): DueStandardQuest {
     };
 }
 
+// la pipeline degli avvii si riconosce dal filtro su arrivedAt
+const isStartPipeline = (pipeline: unknown): boolean =>
+    JSON.stringify(pipeline).includes('arrivedAt');
+
 function dueAid(): DueAid {
     return {
         _id: new Types.ObjectId(),
@@ -52,6 +60,8 @@ describe('QuestResolutionSweeper', () => {
     let find: jest.Mock;
     let resolveStandard: jest.Mock;
     let timeoutAid: jest.Mock;
+    let tryStart: jest.Mock;
+    let arrived: Promise<ArrivedUnstartedQuest[]>;
 
     function sweeperWith(sweepIntervalMs: number): QuestResolutionSweeper {
         const characterModel = {
@@ -63,12 +73,15 @@ describe('QuestResolutionSweeper', () => {
             characterModel,
             { resolveStandard } as unknown as QuestResolutionService,
             { timeoutAid } as unknown as RescueResolutionService,
+            { tryStart } as unknown as QuestStartService,
             new FixedClock(NOW),
         );
     }
 
     function aggregateResolving(result: Promise<DueStandardQuest[]>) {
-        return jest.fn(() => ({ exec: () => result }));
+        return jest.fn((pipeline: unknown) => ({
+            exec: () => (isStartPipeline(pipeline) ? arrived : result),
+        }));
     }
 
     function findResolving(result: Promise<DueAid[]>) {
@@ -77,6 +90,8 @@ describe('QuestResolutionSweeper', () => {
 
     beforeEach(() => {
         jest.useFakeTimers();
+        arrived = Promise.resolve([]);
+        tryStart = jest.fn().mockResolvedValue('started');
         aggregate = aggregateResolving(Promise.resolve([]));
         find = findResolving(Promise.resolve([]));
         resolveStandard = jest.fn().mockResolvedValue('resolved');
@@ -173,6 +188,33 @@ describe('QuestResolutionSweeper', () => {
                 { aidQuestId: aid.status.awaitingAid.aidQuest },
             ]),
         );
+    });
+
+    it('starts the arrived quests first, once per quest (utente 2026-10-25)', async () => {
+        const bossId = new Types.ObjectId();
+        const huntId = new Types.ObjectId();
+        const entries: ArrivedUnstartedQuest[] = [
+            { questId: bossId, pendingQuestId: new Types.ObjectId() },
+            { questId: huntId, pendingQuestId: new Types.ObjectId() },
+            { questId: bossId, pendingQuestId: new Types.ObjectId() },
+        ];
+        arrived = Promise.resolve(entries);
+        const order: string[] = [];
+        tryStart.mockImplementation(() => {
+            order.push('start');
+            return Promise.resolve('started');
+        });
+        resolveStandard.mockImplementation(() => {
+            order.push('resolve');
+            return Promise.resolve('resolved');
+        });
+        aggregate = aggregateResolving(Promise.resolve([dueQuest()]));
+        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+
+        await sweeperWith(0).sweep();
+
+        expect(tryStart.mock.calls).toEqual([[entries[0]], [entries[1]]]);
+        expect(order).toEqual(['start', 'start', 'resolve']);
     });
 
     it('keeps sweeping after a failure and logs only the id and the error name', async () => {

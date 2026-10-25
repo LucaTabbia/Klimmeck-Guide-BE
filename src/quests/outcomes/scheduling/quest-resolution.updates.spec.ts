@@ -1,7 +1,10 @@
 import {
+    arrivedUnstartedPipeline,
     DUE_AID_TIMEOUT_PROJECTION,
     dueAidTimeoutsFilter,
     dueStandardQuestsPipeline,
+    FORMING_PARTY_PROJECTION,
+    formingPartiesFilter,
 } from './quest-resolution.updates';
 
 describe('quest resolution updates', () => {
@@ -51,6 +54,58 @@ describe('quest resolution updates', () => {
             expect(
                 JSON.stringify(dueStandardQuestsPipeline(NOW)),
             ).not.toContain('$$NOW');
+        });
+    });
+
+    describe('arrivedUnstartedPipeline', () => {
+        it('selects the standard quests of active characters arrived on the marker but not started', () => {
+            expect(arrivedUnstartedPipeline()).toEqual([
+                {
+                    $match: {
+                        deletedAt: null,
+                        'quests.pendingQuest': { $ne: null },
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'pendingquests',
+                        localField: 'quests.pendingQuest',
+                        foreignField: '_id',
+                        as: 'pq',
+                    },
+                },
+                { $unwind: '$pq' },
+                {
+                    $match: {
+                        'pq.startDate': null,
+                        'pq.arrivedAt': { $ne: null },
+                    },
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        questId: '$pq.quest',
+                        pendingQuestId: '$pq._id',
+                    },
+                },
+            ]);
+        });
+    });
+
+    describe('formingPartiesFilter', () => {
+        it('selects the open, not started registered quests with someone waiting', () => {
+            expect(formingPartiesFilter()).toEqual({
+                'infos.type': { $in: ['boss', 'aid', 'enemy'] },
+                concludedAt: null,
+                startedAt: null,
+                'registeredAdventurers.0': { $exists: true },
+            });
+        });
+
+        it('projects only the registrations', () => {
+            expect(FORMING_PARTY_PROJECTION).toEqual({
+                registeredAdventurers: 1,
+            });
         });
     });
 
