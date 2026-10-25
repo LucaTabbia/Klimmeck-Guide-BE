@@ -1,6 +1,8 @@
 import { PipelineStage, Types } from 'mongoose';
 import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 import { QuestType } from 'src/models/enums/quest-type.enum';
+import { isRegistered } from 'src/quests/acceptance/quest-eligibility';
+import { laneOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { AID_TIMEOUT_MS } from 'src/quests/outcomes/aid/aid-timeout';
 
 export interface DueStandardQuest {
@@ -10,11 +12,10 @@ export interface DueStandardQuest {
     waitingTime: number;
 }
 
-const PARTY_TYPES: readonly QuestType[] = [
-    QuestType.boss,
-    QuestType.aid,
-    QuestType.enemy,
-];
+// party = tipi registrati della corsia standard (gli stessi che QuestStartService avvia come party): un tipo nuovo entra da solo nello sweep
+export const PARTY_TYPES: readonly QuestType[] = Object.values(
+    QuestType,
+).filter((type) => isRegistered(type) && laneOf(type) === QuestLane.standard);
 
 const STANDARD_LANE_LOOKUP: PipelineStage[] = [
     {

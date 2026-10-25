@@ -5,6 +5,7 @@ import {
     dueStandardQuestsPipeline,
     FORMING_PARTY_PROJECTION,
     formingPartiesFilter,
+    PARTY_TYPES,
 } from './quest-resolution.updates';
 
 describe('quest resolution updates', () => {
@@ -104,11 +105,15 @@ describe('quest resolution updates', () => {
     describe('formingPartiesFilter', () => {
         it('selects the open, not started registered quests with someone waiting', () => {
             expect(formingPartiesFilter()).toEqual({
-                'infos.type': { $in: ['boss', 'aid', 'enemy'] },
+                'infos.type': { $in: PARTY_TYPES },
                 concludedAt: null,
                 startedAt: null,
                 'registeredAdventurers.0': { $exists: true },
             });
+        });
+
+        it('derives the party types from the registered types of the standard lane', () => {
+            expect([...PARTY_TYPES].sort()).toEqual(['aid', 'boss', 'enemy']);
         });
 
         it('projects only the registrations', () => {
