@@ -195,6 +195,14 @@ export class GameRuleException extends BadRequestException {
         );
     }
 
+    // abbandono solo sul marker in attesa del gruppo: né in viaggio né dopo l'avvio (utente 2026-10-25)
+    static questNotWaiting(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.QUEST_NOT_WAITING,
+            'La missione non è in attesa del gruppo',
+        );
+    }
+
     // negozio solo nel marker di una città, fuori dal viaggio e dal soccorso (D-18)
     static shopNotInCity(): GameRuleException {
         return new GameRuleException(

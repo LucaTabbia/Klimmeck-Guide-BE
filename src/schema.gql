@@ -2,6 +2,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AbandonQuestRequest {
+  id: String!
+  questId: String!
+}
+
 input AcceptQuestRequest {
   id: String!
   questId: String!
@@ -318,6 +323,7 @@ type Lore {
 }
 
 type Mutation {
+  abandonQuest(request: AbandonQuestRequest!): CommonResponse!
   acceptQuest(request: AcceptQuestRequest!): CommonResponse!
   completePendingRequest(input: CompletePendingRequestInput!): [QuestResult!]!
   createCharacter(input: CreateCharacterInput!): User!
