@@ -1885,6 +1885,38 @@ describe('QuestAcceptanceService (replSet)', () => {
                 expect(partyTimeoutJobs()).toEqual([]);
             });
 
+            it('keeps the acceptance and opens the window when the start fails after the commit', async () => {
+                const error = jest
+                    .spyOn(Logger.prototype, 'error')
+                    .mockImplementation();
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(world.cityMarker);
+                const questId = await questOf('boss', {
+                    requiredAdventurers: TWO_SEATS,
+                });
+                const failure = Object.assign(new Error('raw driver message'), {
+                    code: 112,
+                });
+                jest.spyOn(quests, 'findById').mockImplementationOnce(() => {
+                    throw failure;
+                });
+
+                const pqId = await accept(ownerId, charId, questId);
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+                expect((await pendingOf(pqId))?.arrivedAt).toEqual(ACCEPTED_AT);
+                expect(partyTimeoutJobs()).toHaveLength(1);
+                const messages = error.mock.calls.map(([value]) =>
+                    String(value),
+                );
+                expect(messages).toEqual([
+                    expect.stringContaining(questId.toHexString()),
+                ]);
+                expect(messages[0]).toContain(pqId.toHexString());
+                expect(messages[0]).toContain('code 112');
+                expect(messages[0]).not.toContain('raw driver message');
+            });
+
             it('rejects a registration on a started quest with QUEST_FULL and writes nothing', async () => {
                 const ownerId = await ownerWith(0);
                 const charId = await characterAt(world.cityMarker);

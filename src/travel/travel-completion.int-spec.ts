@@ -537,6 +537,45 @@ describe('TravelCompletionService (replSet)', () => {
                 expect(questQueue.added).toEqual([]);
             });
 
+            it('completes the travel when the start fails after the commit', async () => {
+                const error = jest
+                    .spyOn(Logger.prototype, 'error')
+                    .mockImplementation();
+                const { questId, travellerPq, traveller } =
+                    await bossParty(START);
+                const findById = jest
+                    .spyOn(quests, 'findById')
+                    .mockImplementationOnce(() => {
+                        throw Object.assign(new Error('raw driver message'), {
+                            code: 112,
+                        });
+                    });
+
+                await expect(
+                    completion.complete(identityOf(traveller)),
+                ).resolves.toBe('completed');
+
+                expect(
+                    (await rawCharacter(traveller))?.status.activeTravel,
+                ).toBeNull();
+                const arrived = await pendingQuests.collection.findOne({
+                    _id: travellerPq._id,
+                });
+                expect(arrived?.arrivedAt).toEqual(END);
+                expect(arrived?.startDate).toBeNull();
+                expect(questQueue.added).toEqual([]);
+                const messages = error.mock.calls.map(([value]) =>
+                    String(value),
+                );
+                expect(messages).toEqual([
+                    expect.stringContaining(questId.toHexString()),
+                ]);
+                expect(messages[0]).toContain('code 112');
+                expect(messages[0]).not.toContain('raw driver message');
+                findById.mockRestore();
+                error.mockRestore();
+            });
+
             it('completes the travel without a job when the quest is gone', async () => {
                 const warn = jest
                     .spyOn(Logger.prototype, 'warn')
