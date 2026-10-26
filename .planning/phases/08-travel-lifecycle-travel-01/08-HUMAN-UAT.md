@@ -26,13 +26,13 @@ passi:
 - g. innkeeper: `teleportCharacter` su un personaggio in viaggio libero → `activeTravel: null`, `location` = POI, audit scritto; con una `pendingQuest` attiva → `QUEST_IN_PROGRESS`
 - h. spegnere il BE con un viaggio in corso e riavviarlo dopo `endTime` → il reconciler al boot completa il viaggio
 expected: il marker si sposta solo all'evento `characterUpdated` con `activeTravel: null`; push solo per i viaggi liberi; nessun calcolo di ETA lato client.
-result: pass (FE Phase 7 device UAT 2026-10-26: a–g tutti verificati, nessun difetto BE)
+result: pass (FE Phase 7 device UAT 2026-10-26: a–g tutti verificati, nessun difetto BE; h non esercitato sul viaggio — il reconciler al boot è stato osservato risolvere una quest scaduta al riavvio del BE)
 why_human: richiede la FE Phase 7, notifiche push reali e dati a DB preparati dall'utente (BACKEND-NOTES §11); dichiarato manual-only nel gate 08-14.
 
 ## Summary
 
 total: 1
-passed: 0
+passed: 1
 issues: 0
 pending: 0
 skipped: 0
