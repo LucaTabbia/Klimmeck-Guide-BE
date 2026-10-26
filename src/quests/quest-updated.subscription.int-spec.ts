@@ -46,8 +46,11 @@ describe('questUpdated subscription (wire)', () => {
     let quests: Model<QuestDocument>;
     let alice: TestPlayer;
     let bruno: TestPlayer;
-    let seq = 0;
+    let lastId = 0;
     const opened: QuestUpdatedSubscription[] = [];
+
+    // un solo contatore per titoli e twitchId: ogni chiamata dà un valore nuovo, chiunque la faccia
+    const nextId = () => (lastId += 1);
 
     const registrationOf = (character: Types.ObjectId) => ({
         character,
@@ -56,13 +59,12 @@ describe('questUpdated subscription (wire)', () => {
     });
 
     function persistPartyQuest(registered: Types.ObjectId[] = []) {
-        seq += 1;
         return quests.create(
             buildQuest({
                 infos: {
                     ...buildQuest().infos,
                     type: 'boss',
-                    title: `Il drago ${seq}`,
+                    title: `Il drago ${nextId()}`,
                 },
                 requirements: {
                     ...buildQuest().requirements,
@@ -139,9 +141,12 @@ describe('questUpdated subscription (wire)', () => {
     });
 
     beforeEach(async () => {
-        alice = await createPlayer(harness, { twitchId: `twitch-qu-a-${seq}` });
-        bruno = await createPlayer(harness, { twitchId: `twitch-qu-b-${seq}` });
-        seq += 1;
+        alice = await createPlayer(harness, {
+            twitchId: `twitch-qu-a-${nextId()}`,
+        });
+        bruno = await createPlayer(harness, {
+            twitchId: `twitch-qu-b-${nextId()}`,
+        });
     });
 
     afterEach(async () => {
