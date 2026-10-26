@@ -482,6 +482,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain(
             'questResultReceived(characterId: String!): QuestResult!',
         );
+        expect(schema).toContain('questUpdated(questId: String!): Quest!');
         expect(schema).not.toMatch(/\bkind\b|\bgrade\b|CombatResolver/);
     });
 
