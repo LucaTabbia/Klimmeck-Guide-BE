@@ -3,6 +3,7 @@ import type { PubSub } from '@graphql-yoga/subscription';
 import type { Model } from 'mongoose';
 import type { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import type { PubSubEvents } from 'src/pubsub.module';
+import type { SubscriberRegistry } from 'src/subscriber-registry';
 import { QuestsPublisher } from './quests.publisher';
 import type { QuestsService } from './quests.service';
 
@@ -40,6 +41,7 @@ class FakeChangeStream extends EventEmitter {
 describe('QuestsPublisher', () => {
     let findOne: jest.Mock<Promise<Quest>, [string]>;
     let publish: jest.Mock;
+    let hasSubscribers: jest.Mock<boolean, [string]>;
     let stream: FakeChangeStream;
     let publisher: QuestsPublisher;
 
@@ -50,6 +52,7 @@ describe('QuestsPublisher', () => {
         findOne = jest.fn();
         // publish del PubSub ritorna void: la spy non restituisce nulla da attendere
         publish = jest.fn().mockReturnValue(undefined);
+        hasSubscribers = jest.fn().mockReturnValue(true);
         stream = new FakeChangeStream();
         publisher = new QuestsPublisher(
             {
@@ -57,6 +60,7 @@ describe('QuestsPublisher', () => {
             } as unknown as Model<QuestDocument>,
             { findOne } as unknown as QuestsService,
             { publish } as unknown as PubSub<PubSubEvents>,
+            { hasSubscribers } as unknown as SubscriberRegistry,
         );
         publisher.onModuleInit();
     });
@@ -82,7 +86,7 @@ describe('QuestsPublisher', () => {
         await settle();
 
         expect(findOne).toHaveBeenCalledTimes(2);
-        expect(publish).toHaveBeenLastCalledWith('questUpdated', {
+        expect(publish).toHaveBeenLastCalledWith('questUpdated', QUEST_ID, {
             questUpdated: questState(QUEST_ID, 'fresh'),
         });
     });
@@ -98,7 +102,7 @@ describe('QuestsPublisher', () => {
         await settle();
 
         expect(findOne).toHaveBeenCalledTimes(2);
-        expect(publish).toHaveBeenLastCalledWith('questUpdated', {
+        expect(publish).toHaveBeenLastCalledWith('questUpdated', QUEST_ID, {
             questUpdated: questState(QUEST_ID, 'last'),
         });
     });
@@ -114,10 +118,24 @@ describe('QuestsPublisher', () => {
         await settle();
 
         expect(findOne.mock.calls).toEqual([[QUEST_ID], [OTHER_QUEST_ID]]);
-        expect(publish).toHaveBeenCalledWith('questUpdated', {
+        expect(publish).toHaveBeenCalledWith('questUpdated', OTHER_QUEST_ID, {
             questUpdated: questState(OTHER_QUEST_ID, 'other'),
         });
         slow.resolve(questState(QUEST_ID, 'slow'));
         await settle();
+    });
+
+    it('skips the read of a quest nobody subscribed to', async () => {
+        hasSubscribers.mockImplementation(
+            (topic) => topic === `questUpdated:${OTHER_QUEST_ID}`,
+        );
+        findOne.mockResolvedValue(questState(OTHER_QUEST_ID, 'watched'));
+
+        updateOf(QUEST_ID);
+        updateOf(OTHER_QUEST_ID);
+        await settle();
+
+        expect(findOne.mock.calls).toEqual([[OTHER_QUEST_ID]]);
+        expect(publish).toHaveBeenCalledTimes(1);
     });
 });
