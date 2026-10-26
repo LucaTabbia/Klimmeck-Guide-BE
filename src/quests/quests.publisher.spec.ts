@@ -138,4 +138,27 @@ describe('QuestsPublisher', () => {
         expect(findOne.mock.calls).toEqual([[OTHER_QUEST_ID]]);
         expect(publish).toHaveBeenCalledTimes(1);
     });
+
+    it('closes the stream and stops listening to updates at shutdown', async () => {
+        await publisher.onModuleDestroy();
+        updateOf(QUEST_ID);
+        await settle();
+
+        expect(stream.close).toHaveBeenCalledTimes(1);
+        expect(stream.listenerCount('change')).toBe(0);
+        expect(findOne).not.toHaveBeenCalled();
+    });
+
+    it('drops a read that completes after shutdown started', async () => {
+        const late = deferred<Quest>();
+        findOne.mockReturnValueOnce(late.promise);
+
+        updateOf(QUEST_ID);
+        await settle();
+        await publisher.onModuleDestroy();
+        late.resolve(questState(QUEST_ID, 'late'));
+        await settle();
+
+        expect(publish).not.toHaveBeenCalled();
+    });
 });
