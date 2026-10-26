@@ -257,7 +257,7 @@ Plans:
   3. L'innkeeper completa una richiesta story/worldMission via mutation role-guarded (solo esito positivo, override opzionali per personaggio, nessun grade) che crea un risultato per personaggio e aggiorna i Character atomicamente; la corsia standard è risolta dal server alla scadenza.
   4. L'innkeeper ha una vista live (query + subscription) delle pending request story/worldMission con i dati che servono al filtro FE su `activeTravel`.
   5. La mutation di completamento delle pending request story/worldMission è role-guarded e audit-loggata (nessun approve/reject, nessun rimborso).
-**Plans**: 19 plans (11 waves)
+**Plans**: 20 plans (12 waves)
 
 Plans:
 - [x] 09-01-PLAN.md — Wave 1: contratto dei modelli (`awaitingAid`, `concludedAt`/`rescue` interni, `prizes.spell`, `QuestResult` + `QuestOutcome`), slot magia dal rango mage, emendamenti BE-COMBAT-03/BE-ADMIN-02 (BE-COMBAT-01/03, BE-ADMIN-02)
@@ -279,6 +279,7 @@ Plans:
 - [x] 09-17-PLAN.md — Wave 9: verdetto unico del combattimento (D-05 emendata, A3 decisa dall'utente il 2026-10-25), C5 confermata, segnaposto provvisori (BE-COMBAT-03)
 - [x] 09-18-PLAN.md — Wave 10: una sola aid per combattimento perso con i posti della quest fallita, soccorso di gruppo, rescuedCharacters (decisione utente 2026-10-25) (BE-COMBAT-01/03)
 - [x] 09-19-PLAN.md — Wave 11: avvio delle quest registrate solo a party completo (arrivedAt/startedAt), abandonQuest, scioglimento a 24 ore con push questCancelled, timer della aid sospeso solo dalla aid in corso (decisioni utente 2026-10-25) (BE-COMBAT-03)
+- [x] 09-20-PLAN.md — Wave 12: posti della aid identici all'originale, subscription questUpdated per il contatore del party (decisioni utente 2026-10-26) (BE-COMBAT-03)
 **Unblocks (FE)**: FE Phase 9 (contratto combat) e FE Phase 10 (operazioni admin) → FE COMBAT-01..05, ADMIN-02/03/05/06.
 **Branch**: `feat/09-combat-result-admin-outcomes` da `develop` → PR a `develop` (allineato al template `feat/{phase}-{slug}`, 2026-10-24).
 
@@ -326,5 +327,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
-| 9. Combat Result & Admin Outcomes | 19/19 | Complete    | 2026-10-25 |
+| 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |

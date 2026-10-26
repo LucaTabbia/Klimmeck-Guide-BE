@@ -95,6 +95,9 @@ Trappole di tooling (vincolanti, D-26 / RESEARCH Q10 e Pitfall 1–13): path jes
 | 09-19-T4 | 09-19 | 11 | BE-COMBAT-03 | T-09-92, T-09-95 | job party-timeout, scioglimento a 24 h, push questCancelled, backfill | unit + integration | `npx jest src/push src/quests/outcomes/scheduling src/quests/party --selectProjects unit && npx jest src/quests/party src/quests/acceptance src/quests/outcomes/quest-resolution.processor.int-spec.ts src/quests/outcomes/quest-resolution.sweeper.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 (RED) | ✅ green |
 | 09-19-T5 | 09-19 | 11 | BE-COMBAT-03 (D-10 C5 rivista) | T-09-93 | timer della aid solo dalla aid in corso, soccorritori liberati, archivio che azzera startedAt; gate completo | unit + integration (gate) | `npm run test:unit && npm run test:int && npm run build && git diff --exit-code src/schema.gql` | ❌ W0 (RED) | ✅ green |
 | 09-19-T6 | 09-19 | 11 | BE-COMBAT-03 | — | documenti e handoff allineati | doc check | grep "abandonQuest(request: AbandonQuestRequest!): CommonResponse!" e "QUEST_NOT_WAITING" su BACKEND-NOTES, "questCancelled" su Phase 5 BACKEND-NOTES | ✅ | ✅ green |
+| 09-20-T1 | 09-20 | 12 | BE-COMBAT-03 (D-08 emendata 2026-10-26) | T-09-99 | posti della aid identici a quelli della quest fallita (copia degli slot), fallback a un posto jolly | unit + integration | `npx jest src/quests/outcomes/aid --selectProjects unit`; `npx jest src/quests/outcomes/boss-resolution.int-spec.ts src/quests/outcomes/aid-rescue.int-spec.ts src/quests/outcomes/aid-timeout.int-spec.ts src/quests/party --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 09-20-T2 | 09-20 | 12 | BE-COMBAT-03 (D-05 emendata 2026-10-26) | T-09-97, T-09-98 | subscription questUpdated(questId) con snapshot, change stream su quests, NOT_FOUND su conclusa/malformata, 4403 senza bearer; gate completo | integration + real boot | `npx jest src/quests/quest-updated.subscription.int-spec.ts src/quests/quests.resolver.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 09-20-T3 | 09-20 | 12 | BE-COMBAT-03 | — | documenti e handoff allineati | doc check | grep "questUpdated(questId: String!): Quest!" su BACKEND-NOTES, frase verbatim su 09-CONTEXT, nessun «tutti jolly» residuo | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -121,6 +124,7 @@ Nessuna wave dedicata: ogni spec nuova nasce RED nel task che la consuma (TDD pe
 - [x] `test/quests/scripted-combat-resolver.ts` con willEnd, `placeholder-combat-resolver.spec.ts` casi A3 (09-17)
 - [x] src/quests/outcomes/group-roster.ts (tipi del roster condiviso), casi di gruppo in aid-rescue.int-spec.ts e aid-timeout.int-spec.ts (09-18)
 - [x] `src/quests/party/*.spec.ts` (`party-rules.spec.ts`) e `*.int-spec.ts` (`quest-start`, `party-abandon`, `party-timeout`); `OutcomeHarnessOptions.imports` e `QuesterOptions.arrivedAt` in `test/quests/outcome-world.ts` (09-19)
+- [x] `src/quests/quest-updated.subscription.int-spec.ts` (harness WS, priming del change stream delle quest con una quest sentinella) (09-20)
 - Framework install: nessuno (stack e harness esistenti, nessuna dipendenza nuova).
 
 ---
@@ -161,3 +165,5 @@ Nessuna wave dedicata: ogni spec nuova nasce RED nel task che la consuma (TDD pe
 **Execution sign-off (09-19, 2026-10-25):** `npm run test:unit` **122 suite / 1827 test**, `npm run test:int` **75 suite / 967 test** (`--runInBand`, foreground, nessun flaky), `npm run build` exit 0, `git diff --exit-code src/schema.gql` pulito, schema rigenerato dal boot reale con sole aggiunte (`arrivedAt`, `registeredAt`, `abandonQuest`, `AbandonQuestRequest`, `questCancelled`), `startedAt` assente dallo schema.
 
 **Execution sign-off (review 09-17/18/19, 2026-10-25):** correzioni di `09-REVIEW-AMENDMENTS.md` (WR-01..03, IN-01/03/04/05/07..12/14; report `09-REVIEW-AMENDMENTS-FIX.md`) — `npm run test:unit` **122 suite / 1829 test**, `npm run test:int` **75 suite / 975 test** (`--runInBand`, foreground, ~162 s, nessun flaky), `npm run build` exit 0, `git diff --exit-code src/schema.gql` pulito (nessun cambiamento di SDL).
+
+**Execution sign-off (09-20, 2026-10-26):** `npm run test:unit` **122 suite / 1832 test** (prima 122 / 1829), `npm run test:int` **76 suite / 983 test** (prima 75 / 975; `--runInBand`, foreground, ~170 s, nessun flaky), `npm run build` exit 0, `git diff --exit-code src/schema.gql` pulito dopo la rigenerazione, `git diff origin/develop -- src/schema.gql` senza righe rimosse (aggiunta `questUpdated(questId: String!): Quest!`), letterali vietati assenti dallo schema.
