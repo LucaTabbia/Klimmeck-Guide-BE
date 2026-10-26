@@ -1,10 +1,8 @@
 import { Inject } from '@nestjs/common';
 import { Args, Query, Resolver, Subscription } from '@nestjs/graphql';
-import { filter, pipe } from '@graphql-yoga/subscription';
 import type { PubSub } from '@graphql-yoga/subscription';
 import { subscribeWithSnapshot } from 'src/graphql/subscribe-with-snapshot';
 import { Quest } from 'src/models/quest/quest.model';
-import { documentIdOf } from 'src/mongo/document-id';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { QuestsService } from './quests.service';
 
@@ -32,13 +30,7 @@ export class QuestsResolver {
         @Args('questId') questId: string,
     ): Promise<AsyncIterableIterator<{ questUpdated: Quest }>> {
         return subscribeWithSnapshot(
-            pipe(
-                this.pubSub.subscribe('questUpdated'),
-                filter(
-                    ({ questUpdated }) =>
-                        documentIdOf(questUpdated) === questId,
-                ),
-            ),
+            this.pubSub.subscribe('questUpdated', questId),
             async () => ({
                 questUpdated: await this.questsService.findOne(questId),
             }),

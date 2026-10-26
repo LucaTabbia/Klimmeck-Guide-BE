@@ -78,7 +78,7 @@ describe('questUpdated subscription (wire)', () => {
     async function primeQuestsChangeStream(): Promise<void> {
         const pubSub = harness.app.get<PubSub<PubSubEvents>>(PUB_SUB);
         const sentinel = await persistPartyQuest();
-        const live = pubSub.subscribe('questUpdated');
+        const live = pubSub.subscribe('questUpdated', String(sentinel._id));
         const received = live.next();
         try {
             for (let attempt = 1; attempt <= PRIMING_ATTEMPTS; attempt++) {
@@ -292,7 +292,7 @@ describe('questUpdated subscription (wire)', () => {
         );
         await nextQuest(subscription);
         const pubSub = harness.app.get<PubSub<PubSubEvents>>(PUB_SUB);
-        const internal = pubSub.subscribe('questUpdated');
+        const internal = pubSub.subscribe('questUpdated', String(other._id));
         const published = internal.next();
 
         try {

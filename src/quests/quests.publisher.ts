@@ -12,6 +12,7 @@ import { ResourceNotFoundException } from 'src/authz/resource-not-found.exceptio
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { documentIdOf } from 'src/mongo/document-id';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
+import { SubscriberRegistry } from 'src/subscriber-registry';
 import { QuestsService } from './quests.service';
 
 const QUEST_UPDATES_PIPELINE = [
@@ -32,6 +33,7 @@ export class QuestsPublisher implements OnModuleInit, OnModuleDestroy {
         private readonly questModel: Model<QuestDocument>,
         private readonly quests: QuestsService,
         @Inject(PUB_SUB) private readonly pubSub: PubSub<PubSubEvents>,
+        private readonly subscribers: SubscriberRegistry,
     ) {}
 
     onModuleInit(): void {
@@ -71,10 +73,13 @@ export class QuestsPublisher implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    // lo stream resta sempre aperto (aprirlo al primo subscriber perderebbe gli update fra snapshot e cursore, Pitfall 9):
+    // si salta solo la rilettura popolata quando nessuno ascolta quella quest
     private async publishUpdated(questId: string): Promise<void> {
+        if (!this.subscribers.hasSubscribers(`questUpdated:${questId}`)) return;
         try {
             const questUpdated = await this.quests.findOne(questId);
-            this.pubSub.publish('questUpdated', { questUpdated });
+            this.pubSub.publish('questUpdated', questId, { questUpdated });
         } catch (error) {
             if (error instanceof ResourceNotFoundException) {
                 this.logger.debug(
