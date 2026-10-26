@@ -15,13 +15,12 @@ import {
 } from '../../test/auth/ws-test-client';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
 import { buildQuest } from '../../test/fixtures';
+import { primeQuestsChangeStream } from '../../test/quests/quests-change-stream';
 
 const QUEST_UPDATED =
     'subscription OnQuestUpdated($questId: String!) { questUpdated(questId: $questId) { id registeredAdventurers { character title } requirements { requiredAdventurers { title count } } infos { title } } }';
 const PARTY_SEATS = [{ title: null, count: 3 }];
 const MALFORMED_QUEST_ID = 'not-a-quest-id';
-const PRIMING_ATTEMPTS = 25;
-const PRIMING_WAIT_MS = 200;
 const PUBLISHED_WAIT_MS = 2000;
 const TRAILING_WINDOW_MS = 500;
 const FORBIDDEN_CLOSE_CODE = 4403;
@@ -72,31 +71,6 @@ describe('questUpdated subscription (wire)', () => {
                 registeredAdventurers: registered.map(registrationOf),
             }),
         );
-    }
-
-    // Pitfall 9: il cursore del change stream si apre in modo asincrono; si aggiorna una quest sentinella finché un evento arriva
-    async function primeQuestsChangeStream(): Promise<void> {
-        const pubSub = harness.app.get<PubSub<PubSubEvents>>(PUB_SUB);
-        const sentinel = await persistPartyQuest();
-        const live = pubSub.subscribe('questUpdated', String(sentinel._id));
-        const received = live.next();
-        try {
-            for (let attempt = 1; attempt <= PRIMING_ATTEMPTS; attempt++) {
-                await quests.updateOne(
-                    { _id: sentinel._id },
-                    { $set: { 'infos.title': `Sentinella ${attempt}` } },
-                );
-                const delivered = await withTimeout(
-                    received,
-                    PRIMING_WAIT_MS,
-                ).catch(() => undefined);
-                if (delivered) return;
-            }
-            throw new Error('change stream on quests never delivered an event');
-        } finally {
-            await live.return?.();
-            await quests.deleteOne({ _id: sentinel._id });
-        }
     }
 
     function subscribeTo(
@@ -161,7 +135,7 @@ describe('questUpdated subscription (wire)', () => {
         quests = harness.connection.model<QuestDocument>(Quest.name);
         await quests.createCollection();
         await harness.clearDatabase();
-        await primeQuestsChangeStream();
+        await primeQuestsChangeStream(harness);
     });
 
     beforeEach(async () => {

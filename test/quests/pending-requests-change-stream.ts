@@ -51,7 +51,8 @@ async function deliverSentinel(
     throw new Error('change stream on pendingquests never delivered an event');
 }
 
-async function waitForQuiet(live: AsyncIterableIterator<unknown>) {
+// gli eventi tardivi di una raffica arrivano ancora dopo il primo: si attende che smettano
+export async function waitForQuiet(live: AsyncIterableIterator<unknown>) {
     let pending = live.next();
     for (;;) {
         const delivered = await withTimeout(pending, QUIET_WINDOW_MS).catch(
