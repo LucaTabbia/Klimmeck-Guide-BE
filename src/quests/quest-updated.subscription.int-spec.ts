@@ -23,6 +23,7 @@ const MALFORMED_QUEST_ID = 'not-a-quest-id';
 const PRIMING_ATTEMPTS = 25;
 const PRIMING_WAIT_MS = 200;
 const PUBLISHED_WAIT_MS = 2000;
+const TRAILING_WINDOW_MS = 500;
 const FORBIDDEN_CLOSE_CODE = 4403;
 const FORBIDDEN_REASON = 'Forbidden';
 const STARTED_AT = new Date('2026-10-26T10:00:00.000Z');
@@ -120,6 +121,20 @@ describe('questUpdated subscription (wire)', () => {
         return result.value.data?.questUpdated as WireQuest;
     }
 
+    // dopo l'evento sentinella (Pitfall 12): raccoglie quello che arriva ancora entro la finestra
+    async function trailingQuests(
+        subscription: QuestUpdatedSubscription,
+    ): Promise<WireQuest[]> {
+        const trailing: WireQuest[] = [];
+        for (;;) {
+            const result = await subscription
+                .next(TRAILING_WINDOW_MS)
+                .catch(() => undefined);
+            if (!result || result.done) return trailing;
+            trailing.push(result.value.data?.questUpdated as WireQuest);
+        }
+    }
+
     const charactersOf = (quest: WireQuest) =>
         quest.registeredAdventurers.map(({ character }) => character);
 
@@ -209,6 +224,37 @@ describe('questUpdated subscription (wire)', () => {
         expect(charactersOf(await nextQuest(subscription))).toEqual([
             String(characterIdOf(alice)),
         ]);
+    });
+
+    it('publishes the latest state last on back-to-back updates of the same quest', async () => {
+        const quest = await persistPartyQuest([characterIdOf(alice)]);
+        const subscription = subscribeTo(String(quest._id));
+        await nextQuest(subscription);
+        const onlyAlice = [String(characterIdOf(alice))];
+
+        await quests.updateOne(
+            { _id: quest._id },
+            {
+                $push: {
+                    registeredAdventurers: registrationOf(characterIdOf(bruno)),
+                },
+            },
+        );
+        await quests.updateOne(
+            { _id: quest._id },
+            {
+                $pull: {
+                    registeredAdventurers: { character: characterIdOf(bruno) },
+                },
+            },
+        );
+
+        let seen = charactersOf(await nextQuest(subscription));
+        if (seen.length > 1) seen = charactersOf(await nextQuest(subscription));
+        expect(seen).toEqual(onlyAlice);
+        for (const late of await trailingQuests(subscription)) {
+            expect(charactersOf(late)).toEqual(onlyAlice);
+        }
     });
 
     it('emits once for the start and once for the released seats', async () => {
