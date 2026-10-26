@@ -24,6 +24,8 @@ const QUEST_UPDATES_PIPELINE = [
 export class QuestsPublisher implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(QuestsPublisher.name);
     private changeStream?: ReturnType<Model<QuestDocument>['watch']>;
+    private readonly inFlight = new Map<string, Promise<void>>();
+    private readonly dirty = new Set<string>();
 
     constructor(
         @InjectModel(Quest.name)
@@ -34,10 +36,8 @@ export class QuestsPublisher implements OnModuleInit, OnModuleDestroy {
 
     onModuleInit(): void {
         this.changeStream = this.questModel.watch(QUEST_UPDATES_PIPELINE);
-        this.changeStream.on(
-            'change',
-            (change: { documentKey?: unknown }) =>
-                void this.publishUpdated(documentIdOf(change.documentKey)),
+        this.changeStream.on('change', (change: { documentKey?: unknown }) =>
+            this.requestPublish(documentIdOf(change.documentKey)),
         );
         this.changeStream.on('error', (error: unknown) =>
             this.logger.error(
@@ -51,8 +51,27 @@ export class QuestsPublisher implements OnModuleInit, OnModuleDestroy {
         await this.changeStream?.close();
     }
 
-    private async publishUpdated(questId: string | undefined): Promise<void> {
+    // single-flight per quest con rerun (come PendingRequestsPublisher): una raffica sulla stessa quest costa al più
+    // una lettura in corso e una in coda, e l'ultimo evento pubblicato è sempre lo stato più recente
+    private requestPublish(questId: string | undefined): void {
         if (!questId) return;
+        this.dirty.add(questId);
+        if (!this.inFlight.has(questId)) {
+            this.inFlight.set(questId, this.drain(questId));
+        }
+    }
+
+    private async drain(questId: string): Promise<void> {
+        try {
+            while (this.dirty.delete(questId)) {
+                await this.publishUpdated(questId);
+            }
+        } finally {
+            this.inFlight.delete(questId);
+        }
+    }
+
+    private async publishUpdated(questId: string): Promise<void> {
         try {
             const questUpdated = await this.quests.findOne(questId);
             this.pubSub.publish('questUpdated', { questUpdated });
