@@ -320,9 +320,14 @@ describe('questUpdated subscription (wire)', () => {
         const quest = await persistPartyQuest([characterIdOf(alice)]);
         const subscription = subscribeTo(String(quest._id));
         await nextQuest(subscription);
-        const debug = jest
-            .spyOn(Logger.prototype, 'debug')
-            .mockImplementation(() => undefined);
+        // sentinella (Pitfall 12): il publisher ha visto l'update e scartato la quest conclusa
+        const discarded = new Promise<void>((resolve) => {
+            jest.spyOn(Logger.prototype, 'debug').mockImplementation(
+                (message: unknown) => {
+                    if (String(message).includes(String(quest._id))) resolve();
+                },
+            );
+        });
         const error = jest
             .spyOn(Logger.prototype, 'error')
             .mockImplementation(() => undefined);
@@ -331,11 +336,9 @@ describe('questUpdated subscription (wire)', () => {
             { _id: quest._id },
             { $set: { concludedAt: CONCLUDED_AT } },
         );
+        await withTimeout(discarded, PUBLISHED_WAIT_MS);
         await expectSilence(subscription);
 
-        expect(debug).toHaveBeenCalledWith(
-            expect.stringContaining(String(quest._id)),
-        );
         expect(error).not.toHaveBeenCalled();
         await expectNotFound(subscribeTo(String(quest._id)));
     });
