@@ -13,6 +13,7 @@ import {
 } from 'src/models/point-of-interest.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
+import { QuestsPublisher } from './quests.publisher';
 import { QuestsResolver } from './quests.resolver';
 import { QuestsService } from './quests.service';
 
@@ -29,7 +30,7 @@ import { QuestsService } from './quests.service';
             { name: Spell.name, schema: SpellSchema },
         ]),
     ],
-    providers: [QuestsService, QuestsResolver],
+    providers: [QuestsService, QuestsResolver, QuestsPublisher],
     exports: [QuestsService],
 })
 export class QuestsModule {}

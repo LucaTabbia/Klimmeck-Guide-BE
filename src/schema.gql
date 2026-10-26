@@ -681,6 +681,7 @@ type Subscription {
   characterUpdated(id: String!): Character!
   pendingRequestsUpdated: [PendingRequest!]!
   questResultReceived(characterId: String!): QuestResult!
+  questUpdated(questId: String!): Quest!
   userUpdated: User!
 }
 

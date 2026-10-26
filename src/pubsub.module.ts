@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { createPubSub } from '@graphql-yoga/subscription';
 import { Character } from 'src/models/character/character.model';
 import { PendingRequest } from 'src/models/pending-request.model';
+import { Quest } from 'src/models/quest/quest.model';
 import { QuestResult } from 'src/models/quest-result/quest-result.model';
 import { User } from 'src/models/user.model';
 
@@ -15,6 +16,7 @@ export type PubSubEvents = {
     pendingRequestsUpdated: [
         payload: { pendingRequestsUpdated: PendingRequest[] },
     ];
+    questUpdated: [payload: { questUpdated: Quest }];
 };
 
 @Global()

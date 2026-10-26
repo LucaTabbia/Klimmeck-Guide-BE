@@ -22,6 +22,7 @@ const PARTY_SEATS = [{ title: null, count: 3 }];
 const MALFORMED_QUEST_ID = 'not-a-quest-id';
 const PRIMING_ATTEMPTS = 25;
 const PRIMING_WAIT_MS = 200;
+const PUBLISHED_WAIT_MS = 2000;
 const FORBIDDEN_CLOSE_CODE = 4403;
 const FORBIDDEN_REASON = 'Forbidden';
 const STARTED_AT = new Date('2026-10-26T10:00:00.000Z');
@@ -244,31 +245,29 @@ describe('questUpdated subscription (wire)', () => {
             },
         );
         await nextQuest(subscription);
+        const pubSub = harness.app.get<PubSub<PubSubEvents>>(PUB_SUB);
+        const internal = pubSub.subscribe('questUpdated');
+        const published = internal.next();
 
-        await quests.updateOne(
-            { _id: other._id },
-            {
-                $push: {
-                    registeredAdventurers: registrationOf(characterIdOf(bruno)),
+        try {
+            await quests.updateOne(
+                { _id: other._id },
+                {
+                    $push: {
+                        registeredAdventurers: registrationOf(
+                            characterIdOf(bruno),
+                        ),
+                    },
                 },
-            },
-        );
+            );
+            const event = await withTimeout(published, PUBLISHED_WAIT_MS);
+            expect(String(event.value?.questUpdated._id)).toBe(
+                String(other._id),
+            );
+        } finally {
+            await internal.return?.();
+        }
         await expectSilence(subscription);
-
-        await quests.updateOne(
-            { _id: quest._id },
-            {
-                $push: {
-                    registeredAdventurers: registrationOf(characterIdOf(bruno)),
-                },
-            },
-        );
-        const own = await nextQuest(subscription);
-        expect(own.id).toBe(String(quest._id));
-        expect(charactersOf(own)).toEqual([
-            String(characterIdOf(alice)),
-            String(characterIdOf(bruno)),
-        ]);
     });
 
     it('stops emitting once the quest is concluded and answers NOT_FOUND afterwards', async () => {
