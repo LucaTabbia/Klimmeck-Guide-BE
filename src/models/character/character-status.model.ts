@@ -8,6 +8,7 @@ import { Spell } from '../spell.model';
 import { PointOfInterest } from '../point-of-interest.model';
 import { maxActiveSpellsFor } from './active-spell-slots';
 import { ActiveTravel, ActiveTravelSchema } from './active-travel.model';
+import { AwaitingAid, AwaitingAidSchema } from './awaiting-aid.model';
 
 @ObjectType()
 @Schema({ _id: false })
@@ -28,6 +29,11 @@ export class CharacterStatus {
     @Field(() => ActiveTravel, { nullable: true })
     @Prop({ type: ActiveTravelSchema, default: null })
     activeTravel?: ActiveTravel | null;
+
+    // null = libero; valorizzato al combattimento perso, azzerato dal soccorso riuscito (D-07, D-09)
+    @Field(() => AwaitingAid, { nullable: true })
+    @Prop({ type: AwaitingAidSchema, default: null })
+    awaitingAid?: AwaitingAid | null;
 
     @Field(() => String)
     @Prop({ type: String, enum: Object.values(TitleType) })
@@ -61,7 +67,7 @@ export type CharacterStatusDocument = CharacterStatus & Document;
 export const CharacterStatusSchema = (() => {
     const schema = SchemaFactory.createForClass(CharacterStatus);
     schema.virtual('maxActiveSpells').get(function (this: CharacterStatus) {
-        return maxActiveSpellsFor(this.xp ?? 0);
+        return maxActiveSpellsFor(this.xp ?? 0, this.title);
     });
 
     return schema;

@@ -4,6 +4,7 @@ import {
     readEventSubEnv,
 } from 'src/config/eventsub-config';
 import { parsePushConfig, readPushEnv } from 'src/config/push-config';
+import { parseQuestConfig, readQuestEnv } from 'src/config/quest-config';
 import { parseTravelConfig, readTravelEnv } from 'src/config/travel-config';
 
 export function validateEnv(
@@ -13,5 +14,6 @@ export function validateEnv(
     parsePushConfig(readPushEnv(env));
     parseEventSubConfig(readEventSubEnv(env));
     parseTravelConfig(readTravelEnv(env));
+    parseQuestConfig(readQuestEnv(env));
     return env;
 }

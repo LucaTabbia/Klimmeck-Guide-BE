@@ -17,6 +17,10 @@ import {
     PendingQuest,
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
+import {
+    QuestResult,
+    QuestResultSchema,
+} from 'src/models/quest-result/quest-result.model';
 import { User, UserSchema } from 'src/models/user.model';
 
 // policy e decisioni esportate: i guard di metodo vengono istanziati nel modulo che ospita il resolver;
@@ -27,6 +31,7 @@ import { User, UserSchema } from 'src/models/user.model';
             { name: User.name, schema: UserSchema },
             { name: Character.name, schema: CharacterSchema },
             { name: PendingQuest.name, schema: PendingQuestSchema },
+            { name: QuestResult.name, schema: QuestResultSchema },
             { name: AdminAuditLog.name, schema: AdminAuditLogSchema },
         ]),
     ],

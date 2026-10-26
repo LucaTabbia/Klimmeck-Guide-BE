@@ -1,4 +1,5 @@
 import { getQueueToken } from '@nestjs/bull';
+import { Logger } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { PUSH_CONFIG } from 'src/config/push-config';
@@ -11,12 +12,14 @@ import {
     PendingQuest,
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
+import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { PushDevice } from 'src/push/push-device.model';
 import { travelEnd } from 'src/push/push-events';
 import { PushPlatform } from 'src/push/push-platform.enum';
 import { PushService } from 'src/push/push.service';
 import { PushTransport } from 'src/push/transport/push-transport';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { TravelCompletionService } from './travel-completion.service';
 import { TRAVEL_QUEUE } from './travel-job';
 import { TravelSweeper } from './travel-sweeper';
@@ -25,7 +28,12 @@ import { TravelIdentity } from './travel.updates';
 import { AuthTestApp, createAuthTestApp } from '../../test/auth/auth-test-app';
 import { FixedClock } from '../../test/auth/fixed-clock';
 import { createPlayer } from '../../test/authz/player-fixture';
-import { buildCharacter, persistCharacter } from '../../test/fixtures';
+import {
+    buildCharacter,
+    buildQuest,
+    persistCharacter,
+    persistQuest,
+} from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
 import { buildActiveTravelDoc } from '../../test/travel/active-travel.fixture';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
@@ -49,16 +57,19 @@ describe('TravelCompletionService (replSet)', () => {
     let pushService: PushService;
     let characters: Model<CharacterDocument>;
     let pendingQuests: Model<PendingQuestDocument>;
+    let quests: Model<QuestDocument>;
     let users: Model<UserDocument>;
     let clock: FixedClock;
     let seq = 0;
     const push = new FakePushTransport();
+    const questQueue = new FakeTravelQueue();
     const overrides = [
         { token: PushTransport, useValue: push },
         { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
         { token: TRAVEL_CONFIG, useValue: { sweepIntervalMs: 0 } },
         // TravelModule registra la coda via TravelPlanningModule: niente Redis nell'harness (vale anche per l'app del boot)
         { token: getQueueToken(TRAVEL_QUEUE), useValue: new FakeTravelQueue() },
+        { token: getQueueToken(QUEST_RESOLUTION_QUEUE), useValue: questQueue },
     ];
 
     beforeAll(async () => {
@@ -76,11 +87,15 @@ describe('TravelCompletionService (replSet)', () => {
         pendingQuests = harness.app.get<Model<PendingQuestDocument>>(
             getModelToken(PendingQuest.name),
         );
+        quests = harness.app.get<Model<QuestDocument>>(
+            getModelToken(Quest.name),
+        );
         users = harness.app.get<Model<UserDocument>>(getModelToken(User.name));
         // collection pronte prima delle transazioni multi-documento (Pitfall 5)
         await Promise.all([
             characters.init(),
             pendingQuests.init(),
+            quests.init(),
             users.init(),
             harness.connection.model(PushDevice.name).init(),
         ]);
@@ -89,6 +104,7 @@ describe('TravelCompletionService (replSet)', () => {
     beforeEach(async () => {
         await harness.clearDatabase();
         push.reset();
+        questQueue.reset();
     });
 
     afterAll(async () => {
@@ -153,12 +169,20 @@ describe('TravelCompletionService (replSet)', () => {
         return characters.collection.findOne({ _id: id });
     }
 
-    function persistPendingQuest(startDate: Date | null) {
+    // una hunt vera dietro la PendingQuest: l'avvio all'arrivo rilegge la quest (QuestStartService)
+    async function persistPendingQuest(
+        startDate: Date | null,
+        waitingTime = 3_600_000,
+        questId?: Types.ObjectId,
+    ) {
+        const quest =
+            questId ?? ((await persistQuest(quests))._id as Types.ObjectId);
         return pendingQuests.create({
             startDate,
-            waitingTime: 3_600_000,
+            arrivedAt: startDate,
+            waitingTime,
             pointsSpent: 0,
-            quest: new Types.ObjectId(),
+            quest,
         });
     }
 
@@ -253,6 +277,7 @@ describe('TravelCompletionService (replSet)', () => {
         const quest = await pendingQuests.collection.findOne({
             _id: pending._id,
         });
+        expect(quest?.arrivedAt).toEqual(END);
         expect(quest?.startDate).toEqual(END);
         expect((await rawCharacter(id))?.status.location).toEqual(destination);
         expect(push.sent).toEqual([]);
@@ -301,6 +326,335 @@ describe('TravelCompletionService (replSet)', () => {
         expect([...outcomes].sort()).toEqual(['completed', 'stale']);
         expect(push.sent).toHaveLength(1);
     });
+    describe('resolution job at the arrival (D-24, C8)', () => {
+        async function questTraveller(
+            waitingTime: number,
+        ): Promise<{ id: Types.ObjectId; pqId: Types.ObjectId }> {
+            const pending = await persistPendingQuest(null, waitingTime);
+            const id = await ownedTraveller(new Types.ObjectId(), {
+                travel: { kind: 'quest' },
+                character: {
+                    quests: { completedQuests: [], pendingQuest: pending._id },
+                },
+            });
+            return { id, pqId: pending._id as Types.ObjectId };
+        }
+
+        it('enqueues the resolution from the planned arrival', async () => {
+            const waitingTime = 2 * HOUR_MS;
+            const { id, pqId } = await questTraveller(waitingTime);
+
+            await completion.complete(identityOf(id));
+
+            const hex = pqId.toHexString();
+            expect(questQueue.added).toEqual([
+                {
+                    name: 'resolve',
+                    data: {
+                        pendingQuestId: hex,
+                        startDate: END.getTime(),
+                        waitingTime,
+                    },
+                    options: {
+                        jobId: `quest-${hex}-${END.getTime()}`,
+                        delay: END.getTime() + waitingTime - NOW.getTime(),
+                        removeOnComplete: true,
+                        removeOnFail: false,
+                    },
+                },
+            ]);
+        });
+
+        it('fires at once when the countdown has already run out', async () => {
+            const { id } = await questTraveller(HOUR_MS / 2);
+
+            await completion.complete(identityOf(id));
+
+            expect(questQueue.added).toHaveLength(1);
+            expect(questQueue.added[0].options.delay).toBe(0);
+        });
+
+        it('enqueues nothing for a free travel', async () => {
+            const id = await ownedTraveller(new Types.ObjectId());
+
+            await completion.complete(identityOf(id));
+
+            expect(questQueue.added).toEqual([]);
+        });
+
+        it('enqueues nothing for a stale completion', async () => {
+            const { id } = await questTraveller(HOUR_MS);
+
+            await expect(
+                completion.complete(
+                    identityOf(id, {
+                        startTime: new Date(START.getTime() + 1),
+                    }),
+                ),
+            ).resolves.toBe('stale');
+
+            expect(questQueue.added).toEqual([]);
+        });
+
+        it('enqueues nothing when the countdown had already started', async () => {
+            const pending = await persistPendingQuest(STARTED_AT);
+            const id = await ownedTraveller(new Types.ObjectId(), {
+                travel: { kind: 'quest' },
+                character: {
+                    quests: { completedQuests: [], pendingQuest: pending._id },
+                },
+            });
+
+            await completion.complete(identityOf(id));
+
+            expect(questQueue.added).toEqual([]);
+        });
+
+        it('completes the travel when the resolution queue is unavailable', async () => {
+            const warn = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation();
+            questQueue.failAdd = true;
+            const { id, pqId } = await questTraveller(HOUR_MS);
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            expect((await rawCharacter(id))?.status.activeTravel).toBeNull();
+            const quest = await pendingQuests.collection.findOne({ _id: pqId });
+            expect(quest?.startDate).toEqual(END);
+            expect(warn).toHaveBeenCalledWith(
+                `Accodamento della risoluzione quest-${pqId.toHexString()}-${END.getTime()} fallito: lo risolverà lo sweep`,
+            );
+            warn.mockRestore();
+        });
+
+        describe('party start at the arrival (utente 2026-10-25)', () => {
+            const LATER_END = new Date(NOW.getTime() + HOUR_MS);
+
+            // boss a 2 posti: il viaggiatore arriva ora, l'altro registrato è sul marker (arrivedAt) o ancora in viaggio (null)
+            async function bossParty(otherArrivedAt: Date | null) {
+                const quest = await persistQuest(quests, {
+                    infos: { ...buildQuest().infos, type: 'boss' },
+                    requirements: {
+                        ...buildQuest().requirements,
+                        requiredAdventurers: [{ title: null, count: 2 }],
+                    },
+                });
+                const questId = quest._id as Types.ObjectId;
+                const otherPq = await pendingQuests.create({
+                    startDate: null,
+                    arrivedAt: otherArrivedAt,
+                    waitingTime: HOUR_MS,
+                    pointsSpent: 0,
+                    quest: questId,
+                });
+                const travellerPq = await persistPendingQuest(
+                    null,
+                    HOUR_MS,
+                    questId,
+                );
+                const other = await ownedTraveller(new Types.ObjectId(), {
+                    travel: {
+                        kind: 'quest',
+                        endTime: LATER_END,
+                        duration: LATER_END.getTime() - START.getTime(),
+                    },
+                    character: {
+                        quests: {
+                            completedQuests: [],
+                            pendingQuest: otherPq._id,
+                        },
+                    },
+                });
+                if (otherArrivedAt)
+                    await characters.collection.updateOne(
+                        { _id: other },
+                        { $set: { 'status.activeTravel': null } },
+                    );
+                const traveller = await ownedTraveller(new Types.ObjectId(), {
+                    travel: { kind: 'quest' },
+                    character: {
+                        quests: {
+                            completedQuests: [],
+                            pendingQuest: travellerPq._id,
+                        },
+                    },
+                });
+                await quests.updateOne(
+                    { _id: questId },
+                    {
+                        $push: {
+                            registeredAdventurers: {
+                                $each: [
+                                    { character: other, title: 'rookie' },
+                                    { character: traveller, title: 'rookie' },
+                                ],
+                            },
+                        },
+                    },
+                );
+                return { questId, otherPq, travellerPq, traveller };
+            }
+
+            it('starts the whole party at the arrival of the last member', async () => {
+                const { questId, otherPq, travellerPq, traveller } =
+                    await bossParty(START);
+
+                await expect(
+                    completion.complete(identityOf(traveller)),
+                ).resolves.toBe('completed');
+
+                const other = await pendingQuests.collection.findOne({
+                    _id: otherPq._id,
+                });
+                const arrived = await pendingQuests.collection.findOne({
+                    _id: travellerPq._id,
+                });
+                expect(arrived?.arrivedAt).toEqual(END);
+                expect(arrived?.startDate).toEqual(END);
+                expect(other?.startDate).toEqual(END);
+                expect(
+                    (await quests.collection.findOne({ _id: questId }))
+                        ?.startedAt,
+                ).toEqual(END);
+                expect(
+                    questQueue.added.map(({ data }) => (data as any).startDate),
+                ).toEqual([END.getTime(), END.getTime()]);
+            });
+
+            it('marks the arrival and waits while another member is travelling', async () => {
+                const { travellerPq, traveller } = await bossParty(null);
+
+                await completion.complete(identityOf(traveller));
+
+                const arrived = await pendingQuests.collection.findOne({
+                    _id: travellerPq._id,
+                });
+                expect(arrived?.arrivedAt).toEqual(END);
+                expect(arrived?.startDate).toBeNull();
+                expect(questQueue.added).toEqual([]);
+            });
+
+            it('completes the travel when the start fails after the commit', async () => {
+                const error = jest
+                    .spyOn(Logger.prototype, 'error')
+                    .mockImplementation();
+                const { questId, travellerPq, traveller } =
+                    await bossParty(START);
+                const findById = jest
+                    .spyOn(quests, 'findById')
+                    .mockImplementationOnce(() => {
+                        throw Object.assign(new Error('raw driver message'), {
+                            code: 112,
+                        });
+                    });
+
+                await expect(
+                    completion.complete(identityOf(traveller)),
+                ).resolves.toBe('completed');
+
+                expect(
+                    (await rawCharacter(traveller))?.status.activeTravel,
+                ).toBeNull();
+                const arrived = await pendingQuests.collection.findOne({
+                    _id: travellerPq._id,
+                });
+                expect(arrived?.arrivedAt).toEqual(END);
+                expect(arrived?.startDate).toBeNull();
+                expect(questQueue.added).toEqual([]);
+                const messages = error.mock.calls.map(([value]) =>
+                    String(value),
+                );
+                expect(messages).toEqual([
+                    expect.stringContaining(questId.toHexString()),
+                ]);
+                expect(messages[0]).toContain('code 112');
+                expect(messages[0]).not.toContain('raw driver message');
+                findById.mockRestore();
+                error.mockRestore();
+            });
+
+            it('completes the travel without countdown, job or push after the party was disbanded', async () => {
+                const destination = new Types.ObjectId();
+                const id = await ownedTraveller(destination, {
+                    travel: { kind: 'quest' },
+                    character: {
+                        quests: { completedQuests: [], pendingQuest: null },
+                    },
+                });
+
+                await expect(completion.complete(identityOf(id))).resolves.toBe(
+                    'completed',
+                );
+
+                const character = await rawCharacter(id);
+                expect(character?.status.activeTravel).toBeNull();
+                expect(character?.status.location).toEqual(destination);
+                expect(questQueue.added).toEqual([]);
+                expect(push.sent).toEqual([]);
+            });
+
+            it('completes the travel without a job when the pending quest is gone', async () => {
+                const destination = new Types.ObjectId();
+                const id = await ownedTraveller(destination, {
+                    travel: { kind: 'quest' },
+                    character: {
+                        quests: {
+                            completedQuests: [],
+                            pendingQuest: new Types.ObjectId(),
+                        },
+                    },
+                });
+
+                await expect(completion.complete(identityOf(id))).resolves.toBe(
+                    'completed',
+                );
+
+                const character = await rawCharacter(id);
+                expect(character?.status.activeTravel).toBeNull();
+                expect(character?.status.location).toEqual(destination);
+                expect(questQueue.added).toEqual([]);
+                expect(push.sent).toEqual([]);
+            });
+
+            it('completes the travel without a job when the quest is gone', async () => {
+                const warn = jest
+                    .spyOn(Logger.prototype, 'warn')
+                    .mockImplementation();
+                const missingQuest = new Types.ObjectId();
+                const pending = await persistPendingQuest(
+                    null,
+                    HOUR_MS,
+                    missingQuest,
+                );
+                const id = await ownedTraveller(new Types.ObjectId(), {
+                    travel: { kind: 'quest' },
+                    character: {
+                        quests: {
+                            completedQuests: [],
+                            pendingQuest: pending._id,
+                        },
+                    },
+                });
+
+                await expect(completion.complete(identityOf(id))).resolves.toBe(
+                    'completed',
+                );
+
+                expect(
+                    (await rawCharacter(id))?.status.activeTravel,
+                ).toBeNull();
+                expect(questQueue.added).toEqual([]);
+                expect(warn).toHaveBeenCalledWith(
+                    `Missione ${missingQuest.toHexString()} inesistente: nessun avvio`,
+                );
+                warn.mockRestore();
+            });
+        });
+    });
+
     describe('sweep and boot reconciler', () => {
         let sweeper: TravelSweeper;
 

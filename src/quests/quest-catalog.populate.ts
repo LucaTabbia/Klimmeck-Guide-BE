@@ -1,6 +1,7 @@
 import { Types, type PopulateOptions } from 'mongoose';
 import { Enemy } from 'src/models/enemy.model';
 import { Lore } from 'src/models/lore.model';
+import { Spell } from 'src/models/spell.model';
 
 // tutti i ref che il FE seleziona sul catalogo (D-31): SDL invariato, solo comportamento
 export const QUEST_CATALOG_POPULATE: PopulateOptions[] = [
@@ -10,6 +11,7 @@ export const QUEST_CATALOG_POPULATE: PopulateOptions[] = [
     { path: 'requirements.recommendedLoot.item' },
     { path: 'prizes.prizeItem.item' },
     { path: 'prizes.randomLoot.item' },
+    { path: 'prizes.spell', model: Spell.name },
 ];
 
 interface CatalogItemEntry {
@@ -26,7 +28,7 @@ export interface CatalogRefsHolder {
 }
 
 // risolto = documento popolato; un ObjectId grezzo è un ref rimasto tale perché itemType manca (refPath irrisolto, D-28) e sul filo farebbe fallire ItemUnion
-const isResolved = (entry: CatalogItemEntry): boolean =>
+export const isResolvedItemEntry = (entry: CatalogItemEntry): boolean =>
     entry.item != null &&
     typeof entry.item === 'object' &&
     !(entry.item instanceof Types.ObjectId);
@@ -39,14 +41,14 @@ export function dropOrphanCatalogRefs(quest: CatalogRefsHolder): void {
     }
     if (requirements?.recommendedLoot) {
         requirements.recommendedLoot =
-            requirements.recommendedLoot.filter(isResolved);
+            requirements.recommendedLoot.filter(isResolvedItemEntry);
     }
     if (prizes) {
-        if (prizes.prizeItem && !isResolved(prizes.prizeItem)) {
+        if (prizes.prizeItem && !isResolvedItemEntry(prizes.prizeItem)) {
             prizes.prizeItem = null;
         }
         if (prizes.randomLoot) {
-            prizes.randomLoot = prizes.randomLoot.filter(isResolved);
+            prizes.randomLoot = prizes.randomLoot.filter(isResolvedItemEntry);
         }
     }
 }

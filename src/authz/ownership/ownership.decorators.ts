@@ -40,3 +40,7 @@ export const OwnsCharacter = <A>(
 
 export const OwnsPendingQuest = <A>(selectId: (args: A) => string) =>
     ownsResource(OwnedResource.pendingQuest, selectId, false);
+
+// owner-only per utente (D-20, C10): entra sia nelle ownership sia nelle owner-only del boot reale
+export const OwnsQuestResult = <A>(selectId: (args: A) => string) =>
+    ownsResource(OwnedResource.questResult, selectId, true);

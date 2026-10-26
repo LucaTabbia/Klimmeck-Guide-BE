@@ -18,6 +18,10 @@ import {
     PendingQuest,
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
+import {
+    QuestResult,
+    QuestResultDocument,
+} from 'src/models/quest-result/quest-result.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { isObjectIdHex } from 'src/mongo/document-id';
 import {
@@ -28,6 +32,10 @@ import {
 
 interface CurrentCharacterProjection {
     currentCharacter: Types.ObjectId | null;
+}
+
+interface QuestResultOwnerProjection {
+    user?: unknown;
 }
 
 interface PendingQuestProjection {
@@ -53,6 +61,8 @@ export class CharacterAccessPolicy {
         private readonly characterModel: Model<CharacterDocument>,
         @InjectModel(PendingQuest.name)
         private readonly pendingQuestModel: Model<PendingQuestDocument>,
+        @InjectModel(QuestResult.name)
+        private readonly questResultModel: Model<QuestResultDocument>,
     ) {}
 
     authorize(
@@ -66,6 +76,8 @@ export class CharacterAccessPolicy {
                 return this.authorizeCharacter(identity, id, options);
             case OwnedResource.pendingQuest:
                 return this.authorizePendingQuest(identity, id);
+            case OwnedResource.questResult:
+                return this.authorizeQuestResult(identity, id);
             default: {
                 const unsupported: never = resource;
                 throw new Error(
@@ -115,6 +127,23 @@ export class CharacterAccessPolicy {
             throw ResourceNotFoundException.pendingQuest();
         }
         throw AuthorizationException.pendingQuestNotOwned();
+    }
+
+    // proprietario = utente del risultato (D-20): vale anche dopo la morte, quando currentCharacter è null; nessun bypass innkeeper (C10)
+    async authorizeQuestResult(
+        identity: AuthIdentity,
+        resultId: string,
+    ): Promise<ResourceAccess> {
+        if (!isObjectIdHex(resultId))
+            throw ResourceNotFoundException.questResult();
+        const result = await this.questResultModel
+            .findById(resultId, { user: 1 })
+            .lean<QuestResultOwnerProjection | null>()
+            .exec();
+        if (!result) throw ResourceNotFoundException.questResult();
+        if (String(result.user) === identity.userId)
+            return ResourceAccess.owner;
+        throw AuthorizationException.questResultNotOwned();
     }
 
     // difesa in profondità per ogni evento live: un errore non deve chiudere lo stream né far trapelare l'evento

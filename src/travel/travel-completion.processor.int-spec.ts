@@ -21,6 +21,7 @@ import { travelEnd } from 'src/push/push-events';
 import { PushPlatform } from 'src/push/push-platform.enum';
 import { PushService } from 'src/push/push.service';
 import { PushTransport } from 'src/push/transport/push-transport';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { TRAVEL_COMPLETE_JOB, TRAVEL_QUEUE, travelJobId } from './travel-job';
 import { TravelModule } from './travel.module';
 import { buildCharacter, persistCharacter } from '../../test/fixtures';
@@ -121,6 +122,7 @@ describe('TravelCompletionProcessor (real Redis)', () => {
         // Redis condiviso in CI (Pitfall 6): nessun job residuo per le suite successive
         if (queue) await queue.empty();
         if (app) {
+            await app.get<Queue>(getQueueToken(QUEST_RESOLUTION_QUEUE)).empty();
             await connection.dropDatabase();
             await app.close();
         }

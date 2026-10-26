@@ -1,4 +1,5 @@
 import {
+    questCancelled,
     questEnd,
     streamerLive,
     testPushMessage,
@@ -11,8 +12,13 @@ const BUILDERS: Record<PushEventType, (id: string) => PushMessage> = {
     [PushEventType.travelEnd]: travelEnd,
     [PushEventType.questEnd]: questEnd,
     [PushEventType.streamerLive]: () => streamerLive(),
+    [PushEventType.questCancelled]: questCancelled,
 };
-const IDENTIFIED_TYPES = [PushEventType.travelEnd, PushEventType.questEnd];
+const IDENTIFIED_TYPES = [
+    PushEventType.travelEnd,
+    PushEventType.questEnd,
+    PushEventType.questCancelled,
+];
 
 describe('push event catalog', () => {
     it('builds travelEnd with the character id and a 1 h ttl', () => {
@@ -25,12 +31,23 @@ describe('push event catalog', () => {
         });
     });
 
-    it('builds questEnd with the pending quest id and a 1 h ttl', () => {
+    it('builds questEnd with the quest result id and a 1 h ttl', () => {
         expect(questEnd('64b0000000000000000000d1')).toEqual({
             type: PushEventType.questEnd,
             id: '64b0000000000000000000d1',
             title: 'Missione conclusa',
             body: "La tua missione è terminata: scopri com'è andata.",
+            ttlSeconds: 3600,
+        });
+    });
+
+    // party sciolto dopo 24 ore senza posti pieni (utente 2026-10-25): id = id della quest
+    it('builds questCancelled with the quest id and a 1 h ttl', () => {
+        expect(questCancelled('64b0000000000000000000e1')).toEqual({
+            type: PushEventType.questCancelled,
+            id: '64b0000000000000000000e1',
+            title: 'Missione annullata',
+            body: 'Il gruppo non si è formato in tempo: la missione è stata annullata.',
             ttlSeconds: 3600,
         });
     });
@@ -93,6 +110,11 @@ describe('push event catalog', () => {
         [
             'testPushMessage(questEnd)',
             testPushMessage(PushEventType.questEnd, 'a'),
+            ['body', 'id', 'title', 'ttlSeconds', 'type'],
+        ],
+        [
+            'questCancelled',
+            questCancelled('a'),
             ['body', 'id', 'title', 'ttlSeconds', 'type'],
         ],
         [

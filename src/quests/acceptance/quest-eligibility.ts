@@ -60,7 +60,7 @@ export interface QuestEligibilitySnapshot extends QuestRoster {
 
 export interface CharacterEligibilitySnapshot {
     _id: Types.ObjectId;
-    status: { title: TitleType; activeTravel?: unknown };
+    status: { title: TitleType; awaitingAid?: unknown; activeTravel?: unknown };
     quests?: {
         completedQuests?: readonly unknown[] | null;
         pendingQuest?: unknown;
@@ -144,13 +144,16 @@ function alreadyTaken(
     );
 }
 
-// ordine fisso (RESEARCH Q7/Q14): viaggio → ripetibilità → titolo → corsia → capienza; la città è una lettura e la verifica il service
+// ordine fisso (RESEARCH Q7/Q14): soccorso → viaggio → ripetibilità → titolo → corsia → capienza; la città è una lettura e la verifica il service
 export function classifyEligibility(
     quest: QuestEligibilitySnapshot,
     character: CharacterEligibilitySnapshot,
     lane: QuestLane,
     rule: SlotRule | null,
 ): GameRuleException | null {
+    // in attesa di soccorso nessuna corsia si accetta (D-07): lo stato blocca tutto, prima del viaggio
+    if (character.status.awaitingAid != null)
+        return GameRuleException.awaitingAid();
     // in viaggio nessuna corsia si accetta (D-06): lo stato blocca tutto
     if (character.status.activeTravel != null)
         return GameRuleException.travelInProgress();

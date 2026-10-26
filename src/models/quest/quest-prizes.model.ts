@@ -1,12 +1,13 @@
 import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import {
     AssetQuantity,
     AssetQuantityInput,
     assetQuantitySchemaAt,
 } from '../common/asset-quantity.model';
 import { Coins, CoinsInput, CoinsSchema } from '../common/coins.model';
+import { Spell } from '../spell.model';
 
 @ObjectType()
 @Schema({ _id: false })
@@ -27,6 +28,15 @@ export class QuestPrizes {
     @Field(() => [AssetQuantity])
     @Prop({ type: [assetQuantitySchemaAt('prizes.randomLoot')] })
     randomLoot: AssetQuantity[];
+
+    // magia insegnata da una study (D-17): il catalogo la mette solo sulle study di Valantar; orfano = null sul filo
+    @Field(() => Spell, { nullable: true })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Spell.name,
+        default: null,
+    })
+    spell?: Types.ObjectId | Spell | null;
 }
 
 export type QuestPrizesDocument = QuestPrizes & Document;
@@ -45,4 +55,7 @@ export class QuestPrizesInput {
 
     @Field(() => [AssetQuantityInput], { nullable: true })
     randomLoot?: AssetQuantityInput[];
+
+    @Field(() => ID, { nullable: true })
+    spell?: string | null;
 }

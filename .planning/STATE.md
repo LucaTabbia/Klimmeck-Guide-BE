@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 8 complete (2026-10-22) — PR #11 open
-last_updated: "2026-10-21T22:02:04.491Z"
-last_activity: 2026-10-21
+status: completed
+stopped_at: Phase 9 complete (20/20, 2026-10-26) — PR #13 to develop open
+last_updated: "2026-10-26T19:45:00.000Z"
+last_activity: 2026-10-26 -- Phase 9 plan 09-20: aid seats identical to the failed quest, questUpdated subscription for the live party counter; gate green; PR #13 to be updated by the orchestrator
 progress:
   total_phases: 12
   completed_phases: 10
-  total_plans: 87
-  completed_plans: 87
+  total_plans: 107
+  completed_plans: 107
   percent: 100
 ---
 
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 8 — Travel Lifecycle complete on 2026-10-21 (PR #11 to develop opened 2026-10-22; unblocks FE Phase 7 and the FE Phase 6 final plan 06-12); next Phase 9 — Combat Result & Admin Outcomes
+**Current focus:** Phase 9 — Combat Result & Admin Outcomes complete on 2026-10-24 (PR #13 to develop open 2026-10-24; unblocks FE Phase 9 foglio esiti and FE Phase 10 pannello admin; FE Phase 7 gets `SHOP_NOT_IN_CITY`/`AWAITING_AID`); user decisions 2026-10-25: C5 confirmed, A3 corrected (one verdict per fight, plan 09-17), placeholder values stay provisional; one group aid per lost fight (seats = failed quest seats, user 2026-10-25) done in plan 09-18; party-complete start, abandon while waiting, 24h disband with questCancelled and aid timer suspended only while the rescue runs (user 2026-10-25) done in plan 09-19; aid seats identical to the failed quest and live party counter via questUpdated (user 2026-10-26) done in plan 09-20; next Phase 10 — Hardening Trasversale
 
 ## Current Position
 
-Phase: 8 (travel-lifecycle-travel-01) — COMPLETE 2026-10-21 (14/14 plans; code review 0 critical / 2 warning / 8 info, both warnings + IN-01/IN-07 fixed in TDD; verification passed 4/4 success criteria + D-26..D-32, device UAT deferred to the FE Phase 7 UAT — 08-HUMAN-UAT partial; security audit: 71 minacce, 64 mitigate, 4 accettate, 3 trasferite, 0 aperte)
-Plan: 14 of 14
-Status: Phase 8 complete — PR #11 open, awaiting review/merge; next /gsd-discuss-phase 9
-Last activity: 2026-10-22 -- Quick task 261022-rhs: travel scheduler bounded with a timeout after the device UAT incident (Redis down → mutation hung); PR fix/travel-scheduler-redis-timeout to develop; FE Phase 6 device UAT 12/12 passed
+Phase: 9 (Combat Result & Admin Outcomes) — COMPLETE 2026-10-26 (20/20 plans; 09-17 shared combat verdict A3 + C5 confirmed; 09-18 one group aid per lost fight + group rescue + rescuedCharacters; 09-19 party-complete start + abandonQuest + 24h disband + C5 revised; 09-20 aid seats identical to the failed quest + questUpdated(questId) subscription; code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, 1 sub-point deferred to Phase 10; verification passed 5/5 success criteria + D-01..D-29 (C1–C10); device UAT deferred to the FE Phase 9/10 UAT; security audit in 09-SECURITY.md)
+Plan: 20 of 20 (complete)
+Status: Phase 9 complete (20/20) — PR #13 (feat/09-combat-result-admin-outcomes → develop) open, to be updated by the orchestrator with 09-20; next /gsd-discuss-phase 10 (Hardening Trasversale)
+Last activity: 2026-10-26 -- Phase 9 plan 09-20: aid seats identical to the failed quest (aidSlotsOf), questUpdated(questId: String!): Quest! with snapshot and change stream on quests; gate green (unit 122 suites / 1832 tests, integration 76 suites / 983 tests, build 0, schema additive)
 
-Progress: [██████████] 100% (phases 1–8 complete; Phase 9 next)
+Progress: [██████████] 100% (phases 1–9 complete; Phase 10 next)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 97
+- Total plans completed: 107
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -129,6 +129,8 @@ Progress: [██████████] 100% (phases 1–8 complete; Phase 9 
 | Phase 08 P12 | 10 min | 2 tasks | 9 files |
 | Phase 08 P13 | 9 min | 2 tasks | 6 files |
 | Phase 08 P14 | 14 min | 2 tasks | 3 files |
+| Phase 09 P12 | 11 min | 3 tasks | 10 files |
+| Phase 09 P13 | 17 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -228,6 +230,17 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-12: startTravel (Mutation) / travelPreview (Query) owner-only (D-18) in TravelResolver, TravelModule importa AuthzModule ed esporta TravelService; avvio = planFree + un solo findOneAndUpdate condizionale + schedule best-effort; preview stesso piano senza scritture; TravelRequest { id, poiId } riusabile dal teleport; poiId malformato ⇒ NOT_FOUND 'Luogo non trovato'; schema.gql solo additivo
 - [Phase 08]: 08-13: teleportCharacter(request: TravelRequest!) @Roles(innkeeper) in TravelAdminResolver; TravelService.teleport = esistenza POI + un solo findOneAndUpdate condizionale (attivo, pendingQuest null) con returnDocument before + scheduler.cancel best-effort dallo startTime before; qualsiasi POI (TravelModule registra PointOfInterest); audit target { type: 'CommonResponse', id: null } con args.request; nessuna push, nessuna scrittura quest; SDL +1 riga
 - [Phase 08]: 08-14: gate finale verde senza fix (unit 95/1415, int 57/739); BACKEND-NOTES con dati UAT in §11 e scala delle durate (speedFactor e geometria come sole leve) in §8; BE-TRAVEL-01..04 Complete
+- [Phase 09]: 09-01: SDL additivo di Wave 1 — CharacterStatus.awaitingAid (AwaitingAid { aidQuest, quest, since }) e QuestPrizes.spell (populate prizes.spell, Spell registrato in QuestsModule); Quest.concludedAt/rescue interni senza @Field; QuestResult (collection questresults, 7 ref MongooseSchema.Types.ObjectId, refPath assoluti) + enum QuestOutcome, non ancora nello schema (09-06); slot magia solo da mage (maxActiveSpellsFor(xp, title), $cond sul titolo vivo nel filtro, proiezione status.title), fixture resta rookie e le suite delle magie passano title mage
+- [Phase 09]: 09-08: AWAITING_AID nel viaggio dopo la meta ammessa (classifyFreeTravel, startTravelFilter 'status.awaitingAid': null, classifyUnstarted) e come prima regola dell'accettazione (classifyEligibility, laneClaimFilter, classifyUnclaimed); teleportFilter invariato (D-07); velocità = pet × travelSpeedFactorOf(injuries) su planFree e planAuto (AutoTravelRequest.injuries, D-15); readQuest/registrationFilter/QuestsService con concludedAt: null, classifyUnregistered → NOT_FOUND su quest conclusa (D-06, C9)
+- [Phase 09]: 09-07: coda live dell'innkeeper — read model piatto PendingRequest* (nessun @Schema, nessun populate) da quattro letture lean (personaggi attivi con corsia story/worldMission, PendingQuest, quest, utenti per currentCharacter con idForms); voci con PendingQuest/quest/utente/location mancanti saltate con WARN di soli id; pendingRequests + pendingRequestsUpdated (subscribeWithSnapshot) @Roles(innkeeper) in PendingRequestsResolver; PendingRequestsPublisher su change stream insert/delete di pendingquests con ricalcolo single-flight con rerun; PendingRequestsModule in AppModule dopo QuestResultsModule, esporta il servizio per 09-15
+- [Phase 09]: 09-12: OutcomeWriter è l'unico punto delle scritture dell'esito (findOneAndUpdate condizionale → StaleResolution, WalletService con session, QuestResult nella stessa session, deleteOne della PendingQuest, updateQuest claim|bestEffort, createAid) e della consegna dopo il commit (push questEnd(resultId) per risultato, aid-timeout, recover sulla coda spell-recovery con withinTimeout, best-effort per voce); QuestResolutionService.resolveIndividual rilegge il trigger dal DB (startDate uguale, scadenza ≤ Clock, personaggio attivo in corsia, proprietario), cataloghi fuori dalla transazione, combattimento dalla porta dentro il callback (esito per characterId), sconfitta = awaitingAid + aid clonata; QuestOutcomesModule senza change stream, non montato (09-14); ogni harness degli esiti usa QUIET_OUTCOME_OVERRIDES (createOutcomeHarness)
+- [Phase 09]: 09-13: resolveStandard è l'unico ingresso dei trigger standard (resolutionKindOf: boss → gruppo, aid con rescue → soccorso, resto → individuale); il boss si risolve in una transazione per gruppo con claim questClaimFilter + $size in modalità 'claim', esiti per characterId, registrati incoerenti o senza proprietario rimossi con WARN (questUpdateOf dropped); soccorso riuscito = ferito liberato al marker della città con HP invariati e risultato 'rescued'; soccorso fallito = dieWithin (proprietario in sessione, archiveWithin death, risultato 'death') e nuova aid al soccorritore clonata dall'originale (o dalla aid se l'originale non c'è); timeoutAid = claim aidTimeoutClaimFilter + dieWithin, sospeso con un soccorritore registrato (C5); ferito già scollegato = no-op loggato (C1)
+- [Phase 09]: 09-15: completePendingRequest (innkeeper, audit automatico con target QuestResult) chiama GmCompletionService: story = il solo titolare, worldMission = tutti i personaggi attivi con una PendingQuest della quest in corsia; override del GM (hpAfter 1..maxLifePoints, ferite, consumi e magie entro il posseduto) validati da validateOverrides prima di ogni scrittura e di nuovo sugli snapshot in sessione, poi passati come ParticipantOutcome 'success' a planParticipant (verdetto gmCompleted, aid null); una transazione per l'intera richiesta, StaleResolution ⇒ NOT_FOUND al perdente; le magie degli override ricevono il job di recupero anche senza nemico (recoveryTimesOf); PendingRequestsModule importa QuestOutcomesModule e QuestResultsReadModule, ogni suo harness usa push/code finte e QUIET_OUTCOME_OVERRIDES
+- [Phase 09]: 09-16: gate di fase verde senza correzioni di codice; handoff BACKEND-NOTES.md (SDL verbatim, codici, esiti, regole segnaposto, dati UAT mongosh con placeholder); handoff Phase 5 emendato (questEnd con l'id del risultato, nessun combatResult); traceability BE-COMBAT-01..03 / BE-ADMIN-01..02 Complete; la morte ha un unico punto archiveWithin (dieWithin) per aid fallita e timeout
+- [Phase 09]: 09-17: CombatResolver returns CombatResolution { verdict, participants: ParticipantEffects[] } — one verdict per fight (A3, user 2026-10-25), effects per participant; placeholder rolls victory once; ScriptedCombatResolver.willEnd; C5 confirmed (suspension = cancellation while a rescuer is registered); A2 placeholders stay provisional
+- [Phase 09]: 09-18: one aid per lost fight — Quest.rescue { characters: [Character], failedQuest }, aid seats = Σ count of the failed quest's requiredAdventurers (min 1, wildcard), group rescue on the shared roster reader (resolves when every registered rescuer is due, one verdict), success frees every wounded (rescuedCharacters on each rescuer's result), failure kills every wounded and chains ONE new aid for the rescuers, timeout kills every wounded, archiver pulls the wounded and concludes the aid only when none is left; SDL rescuedCharacter → rescuedCharacters (born in this PR, additive vs develop); resolving without a full party is transitional until plan 09-19 (user rule 2026-10-25: the party must be complete to start)
+- [Phase 09]: 09-19: registered standard quests (boss, aid, enemy) start only with every seat taken and everyone on the marker — PendingQuest.arrivedAt (wire) marks the arrival, QuestStartService is the only writer of the standard lane startDate (same startDate = latest arrival, internal Quest.startedAt identity claim, resolve jobs only there), started quests take no registration (QUEST_FULL), a lost boss resets startedAt; abandonQuest owner-only while waiting on the marker (QUEST_NOT_WAITING otherwise); QuestRegistration.registeredAt (wire) opens a 24h window (party-timeout job + sweep with one-time legacy backfill) after which the party is disbanded with push questCancelled (id = quest id) and the quest stays on the board, rescuer parties included; aid timer suspended only by a started rescue with rescuers (C5 revised), an expired incomplete rescue party is released; the archive resets startedAt on open quests left empty; technical defaults proposed to the user 2026-10-25 in 09-CONTEXT
+- [Phase 09]: 09-20: user decisions 2026-10-26 — the aid copies the failed quest's requiredAdventurers as they are (aidSlotsOf, rank slots included, fresh objects; no valid slots ⇒ [{ title: null, count: 1 }]), superseding the 09-18 wildcard-sum default; live party counter via questUpdated(questId: String!): Quest! (snapshot at subscribe through subscribeWithSnapshot, QuestsPublisher change stream on quests update/replace re-reading QuestsService.findOne, concluded ⇒ debug + no publish, NOT_FOUND on concluded/malformed id, any authenticated user, 4403 without bearer); abandon only on the marker confirmed
 
 ### Pending Todos
 
@@ -246,6 +259,7 @@ None yet.
 - **Phase 2 — UAT umane pendenti** (`02-HUMAN-UAT.md`): login Twitch reale (chiavi non ancora disponibili), pipeline GitHub Actions reale, controllo duplicati `twitchId` sui dati reali.
 - **Branch non pushati:** `feat/01-fondazione-test-consolidamento-spell-wip` e `feat/02-auth-identity-foundation` (la Phase 2 poggia sulla Phase 1, non ancora su `develop`); PR da aprire a mano verso `develop`.
 - `JWT_SECRET` (≥ 32 caratteri) è ora obbligatoria al boot su ogni ambiente; righe `.env` per il dev bypass in `BACKEND-NOTES.md` §7.
+- FE: branch `feat/party-waiting` (etichetta "In attesa del gruppo", abbandono, push questCancelled) da mergiare dopo la PR FE Phase 7 e la PR BE #13.
 
 ### Quick Tasks Completed
 
@@ -255,7 +269,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-21T21:27:28.008Z
-Stopped at: Completed 08-14-PLAN.md
+Last session: 2026-10-26T19:45:00.000Z
+Stopped at: Completed 09-20-PLAN.md
 Resume file: None
 | 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |

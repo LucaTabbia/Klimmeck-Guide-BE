@@ -5,7 +5,7 @@
 - **Branch:** `feat/05-infrastruttura-push-fcm` (PR verso `develop`). **La PR BE si fonde PRIMA della PR FE Phase 5** (D-18): il FE verifica i propri documenti GraphQL contro `src/schema.gql` rigenerato.
 - **Schema:** `src/schema.gql` cambia in modo **solo additivo** (33 righe aggiunte, 0 rimosse rispetto a `develop`). Commit di riferimento: `e12053b`. Il boot reale in `test/app.int-spec.ts` lo rigenera e `git diff --exit-code src/schema.gql` esce 0. **Lo schema vince su questo documento.**
 - **Stato:** implementato e coperto da test (66 suite / 807 unit, 43 suite / 515 di integrazione su replica set + Redis in memoria). Modulo nuovo: `PushModule` (`src/push/`, montato in `AppModule` subito dopo `QuestAcceptanceModule`, esporta solo `PushService`). Collection nuova: `push_devices`.
-- **Consumatori:** FE Phase 5 (registrazione device, ricezione data message nei tre app state, E2E con `sendTestPush`); BE Phase 6 (`stream.online` → `streamerLive`), BE Phase 8 (fine viaggio → `travelEnd`, BE-TRAVEL-03), BE Phase 9 (fine quest → `questEnd`, poi `combatResult`).
+- **Consumatori:** FE Phase 5 (registrazione device, ricezione data message nei tre app state, E2E con `sendTestPush`); BE Phase 6 (`stream.online` → `streamerLive`), BE Phase 8 (fine viaggio → `travelEnd`, BE-TRAVEL-03), BE Phase 9 (fine quest → `questEnd` con l'id del risultato; nessun `combatResult`, emendato 2026-10-24).
 - **Fonte:** ogni nome qui sotto (operazioni, codici, messaggi, firme, copy, TTL) è copiato dal codice: `src/schema.gql`, `src/push/push-events.ts`, `src/push/push-message.ts`, `src/push/transport/fcm-message.ts`, `src/push/push-error-code.enum.ts`, `src/push/push.exception.ts`, `src/push/push-delivery.ts`, `src/push/push.service.ts`, `src/push/push.resolver.ts`, `src/push/push.module.ts`, `src/push/push-device-input.validator.ts`, `src/push/push-device.model.ts`, `src/push/push-startup.reporter.ts`, `src/config/push-config.ts`, `src/authz/resource-not-found.exception.ts`, `src/authz/authorization.exception.ts`, `src/auth/auth.exception.ts`, `.env.example`.
 
 ---
@@ -121,11 +121,11 @@ Il FE mappa `extensions.code`, mai il messaggio.
 
 | Chiave | Sempre | Contenuto |
 | ------ | ------ | --------- |
-| `type` | sì | `travelEnd` / `questEnd` / `streamerLive` (valori di `PushEventType`) |
+| `type` | sì | `travelEnd` / `questEnd` / `streamerLive` / `questCancelled` (valori di `PushEventType`; `questCancelled` aggiunto dalla Phase 9, 09-19) |
 | `title` | sì | titolo in italiano dal catalogo `push-events.ts` |
 | `body` | sì | testo in italiano dal catalogo |
 | `sentAt` | sì | istante di invio, ISO 8601 UTC (`Date.toISOString()`) |
-| `id` | solo `travelEnd`/`questEnd` | id da ri-interrogare via GraphQL; la chiave è **assente** (non vuota) quando non c'è |
+| `id` | solo `travelEnd`/`questEnd`/`questCancelled` | id da ri-interrogare via GraphQL; la chiave è **assente** (non vuota) quando non c'è |
 
 ### Un esempio per tipo
 
@@ -141,7 +141,7 @@ Il FE mappa `extensions.code`, mai il messaggio.
 }
 ```
 
-`questEnd` (Phase 9; `id` = `pendingQuestId`, TTL 1 h):
+`questEnd` (Phase 9; `id` = id del risultato — in origine `pendingQuestId`, vedi l'emendamento sotto —, TTL 1 h):
 
 ```json
 {
@@ -153,6 +153,8 @@ Il FE mappa `extensions.code`, mai il messaggio.
 }
 ```
 
+> **Emendato dalla Phase 9 (2026-10-24, D-20):** `id` è l'id del risultato (`QuestResult`), non il pendingQuestId: a esito avvenuto la PendingQuest non esiste più. Al tap ri-interrogare `questResult(id: data.id)`. Vedi `.planning/phases/09-combat-result-admin-outcomes/BACKEND-NOTES.md` §4.
+
 `streamerLive` (Phase 6; broadcast sul topic `streamer-live`, nessun `id`, TTL 15 min):
 
 ```json
@@ -163,6 +165,20 @@ Il FE mappa `extensions.code`, mai il messaggio.
   "sentAt": "2026-10-18T12:00:00.000Z"
 }
 ```
+
+`questCancelled` (aggiunto dalla Phase 9, 09-19; personale, `id` = id della quest — o della aid — il cui party è stato sciolto, TTL 1 h):
+
+```json
+{
+  "type": "questCancelled",
+  "title": "Missione annullata",
+  "body": "Il gruppo non si è formato in tempo: la missione è stata annullata.",
+  "sentAt": "2026-10-18T12:00:00.000Z",
+  "id": "6712a0c4e1b2c3d4e5f6071a"
+}
+```
+
+> **Aggiunto dalla Phase 9 (09-19, 2026-10-25):** inviato a ogni proprietario dei personaggi liberati quando un party non si riempie entro 24 ore o quando il timeout di una aid libera i soccorritori di un party incompleto. Al tap: mappa. Vedi `.planning/phases/09-combat-result-admin-outcomes/BACKEND-NOTES.md` §4.
 
 ### Opzioni di consegna (verbatim da `src/push/transport/fcm-message.ts`)
 
@@ -228,7 +244,7 @@ apns: {
 5. **Logout** → `unregisterPushDevice(deviceId)` **PRIMA** di `logout` (la mutation richiede il bearer). Un fallimento non deve bloccare il logout: la riga verrà comunque spostata dal prossimo login o potata dal primo invio fallito.
 6. **Cambio account sullo stesso device** → unregister con il **vecchio** bearer, poi register con il **nuovo**. Se l'unregister viene dimenticato, il nuovo register sposta comunque il token (un token appartiene a una sola riga), quindi il vecchio utente non riceve più push su quel device.
 7. **Ricezione:** gestire `data.type` nei tre app state (foreground, background, terminated), applicare il toggle del tipo e, se attivo, mostrare la notifica locale con `data.title` / `data.body`.
-8. **Tap sulla notifica** → navigare in base a `type` e ri-interrogare GraphQL (`character(id: data.id)` per `travelEnd`, `pendingQuest(id: data.id)` per `questEnd`). Il payload non contiene mai stato.
+8. **Tap sulla notifica** → navigare in base a `type` e ri-interrogare GraphQL (`character(id: data.id)` per `travelEnd`, `questResult(id: data.id)` per `questEnd`, emendato dalla Phase 9: `data.id` è l'id del risultato). Il payload non contiene mai stato.
 9. **`PUSH_INVALID_DEVICE_ID` / `PUSH_INVALID_TOKEN` = bug FE**: loggare, non ritentare con lo stesso input.
 
 Nota: le richieste di registrazione sono invisibili all'utente (regola FE "no loading bloccanti in sessione attiva"): vanno eseguite in background, senza spinner.
@@ -249,7 +265,7 @@ mutation { sendTestPush(input: { type: travelEnd, id: "<characterId>" }) { targe
 ```
 
 ```graphql
-mutation { sendTestPush(input: { type: questEnd, id: "<pendingQuestId>" }) { targeted sent pruned failed } }
+mutation { sendTestPush(input: { type: questEnd, id: "<questResultId>" }) { targeted sent pruned failed } }
 ```
 
 ```graphql
@@ -321,9 +337,9 @@ async broadcast(message: PushMessage): Promise<PushDeliveryCounts> {
 
 - **Builder del catalogo** (`src/push/push-events.ts`, unica fonte di copy e TTL):
   - `travelEnd(characterId)` → `sendToUser(ownerId, travelEnd(String(character._id)))` — Phase 8, BE-TRAVEL-03;
-  - `questEnd(pendingQuestId)` → `sendToUser(ownerId, questEnd(String(pendingQuest._id)))` — Phase 9;
+  - `questEnd(resultId)` → `sendToUser(result.user, questEnd(String(result._id)))` — Phase 9 (emendato: id del risultato, una push per risultato);
   - `streamerLive()` → `broadcast(streamerLive())` — Phase 6, evento EventSub `stream.online`.
-- **Phase 9** aggiungerà `PushEventType.combatResult` e il relativo builder **nel catalogo** (l'unico posto): il `Record<PushEventType, CatalogEntry>` è esaustivo, quindi il compilatore obbliga a definirne copy e TTL. Lo schema cambierà in modo additivo (nuovo valore dell'enum).
+- **Phase 9** (emendato 2026-10-24, D-20): **nessun tipo push nuovo**, il risultato viaggia su `questEnd` con l'id del risultato. Un eventuale tipo futuro va aggiunto **nel catalogo** (l'unico posto): il `Record<PushEventType, CatalogEntry>` è esaustivo, quindi il compilatore obbliga a definirne copy e TTL; lo schema cambierebbe in modo additivo (nuovo valore dell'enum).
 - **Chiamare `PushService` DOPO il commit, MAI dentro `connection.transaction(...)`:** il callback della transazione si ripete sui WriteConflict (push duplicati) e un invio può durare decine di secondi per i retry dell'SDK (timeout 15 s × fino a 4 retry con backoff). Il push è un side-channel non autoritativo: lo stato vero resta nel DB e il FE lo ri-interroga.
 - **`await` sicuro:** `sendToUser` e `broadcast` **non lanciano mai** (best-effort, D-08): transport disabilitato → report vuoto; errori → WARN e report vuoto/fallito. Il flusso di dominio non deve gestire eccezioni del push. Se la latenza nel flusso chiamante è un problema, si può non attendere il risultato (`void this.push.sendToUser(...)`).
 - **Mai stato di gioco nel payload:** solo builder del catalogo, che portano al massimo un id.

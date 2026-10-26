@@ -27,6 +27,7 @@ import {
 } from './travel.updates';
 
 const UNSTARTED_PROJECTION = {
+    'status.awaitingAid': 1,
     'status.activeTravel.endTime': 1,
     'status.location': 1,
     'quests.pendingQuest': 1,

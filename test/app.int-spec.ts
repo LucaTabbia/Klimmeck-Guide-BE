@@ -24,6 +24,13 @@ import { PushService } from 'src/push/push.service';
 import { NoopPushTransport } from 'src/push/transport/noop-push-transport';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
+import type { QuestConfig } from 'src/config/quest-config';
+import { QUEST_CONFIG } from 'src/config/quest-config';
+import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
+import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholder-combat-resolver';
+import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
+import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import type { TravelConfig } from 'src/config/travel-config';
 import { TRAVEL_CONFIG } from 'src/config/travel-config';
 import { TravelCompletionService } from 'src/travel/travel-completion.service';
@@ -43,10 +50,16 @@ const REGISTER_PUSH_DEVICE =
     'mutation { registerPushDevice(input: { deviceId: "d", token: "t", platform: android }) }';
 const ACCEPT_QUEST =
     'mutation { acceptQuest(request: { id: "64b000000000000000000001", questId: "64b000000000000000000002" }) { successful } }';
+const ABANDON_QUEST =
+    'mutation { abandonQuest(request: { id: "64b000000000000000000001", questId: "64b000000000000000000002" }) { successful } }';
 const START_TRAVEL =
     'mutation { startTravel(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
 const TRAVEL_PREVIEW =
     '{ travelPreview(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { duration } }';
+const QUEST_RESULT = '{ questResult(id: "64b000000000000000000001") { id } }';
+const PENDING_REQUESTS = '{ pendingRequests { id } }';
+const COMPLETE_PENDING_REQUEST =
+    'mutation { completePendingRequest(input: { pendingQuestId: "64b000000000000000000001" }) { id } }';
 const TELEPORT_CHARACTER =
     'mutation { teleportCharacter(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
 // whitelist enumerata (D-12): ogni aggiunta di @Public() deve passare da qui
@@ -62,6 +75,9 @@ const EXPECTED_PUBLIC_HANDLERS = [
 const EXPECTED_INNKEEPER_HANDLERS = [
     'CharactersResolver.characters',
     'PendingQuestsResolver.pendingQuests',
+    'PendingRequestsResolver.completePendingRequest',
+    'PendingRequestsResolver.pendingRequests',
+    'PendingRequestsResolver.pendingRequestsUpdated',
     'PushResolver.sendTestPush',
     'TravelAdminResolver.teleportCharacter',
     'UsersResolver.user',
@@ -76,14 +92,20 @@ const EXPECTED_OWNERSHIP_HANDLERS = [
     'CharactersResolver.equipment',
     'CharactersResolver.unequipSpell',
     'CharactersResolver.useSpell',
+    'PartyResolver.abandonQuest',
     'PendingQuestsResolver.pendingQuest',
     'QuestAcceptanceResolver.acceptQuest',
+    'QuestResultsResolver.questResult',
+    'QuestResultsResolver.questResultReceived',
     'TravelResolver.startTravel',
     'TravelResolver.travelPreview',
 ];
 // nessun bypass innkeeper (07 D-11): ogni handler owner-only deve passare da qui
 const EXPECTED_OWNER_ONLY_HANDLERS = [
+    'PartyResolver.abandonQuest',
     'QuestAcceptanceResolver.acceptQuest',
+    'QuestResultsResolver.questResult',
+    'QuestResultsResolver.questResultReceived',
     'TravelResolver.startTravel',
     'TravelResolver.travelPreview',
 ];
@@ -213,6 +235,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             TWITCH_BROADCASTER_ID: '',
             // Pitfall 13: nessun timer dello sweep nel boot reale; il reconciler al boot gira comunque
             TRAVEL_SWEEP_INTERVAL_MS: '0',
+            QUEST_SWEEP_INTERVAL_MS: '0',
         });
         // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
         const { AppModule } =
@@ -315,7 +338,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type CharacterQuests {\n  activeStoryQuest: PendingQuest\n  activeWorldMissionQuest: PendingQuest\n  completedQuests: [Quest!]!\n  pendingQuest: PendingQuest\n}',
         );
         expect(schema.match(/type PendingQuest \{[^}]*\}/)?.[0]).toBe(
-            'type PendingQuest {\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime\n  waitingTime: Float!\n}',
+            'type PendingQuest {\n  arrivedAt: DateTime\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime\n  waitingTime: Float!\n}',
         );
     });
 
@@ -329,7 +352,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type QuestPartySlot {\n  count: Int!\n  title: String\n}',
         );
         expect(schema.match(/type QuestRegistration \{[^}]*\}/)?.[0]).toBe(
-            'type QuestRegistration {\n  character: ID!\n  title: String!\n}',
+            'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
             'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
@@ -362,6 +385,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the party abandon API into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'abandonQuest(request: AbandonQuestRequest!): CommonResponse!',
+        );
+        expect(schema.match(/input AbandonQuestRequest \{[^}]*\}/)?.[0]).toBe(
+            'input AbandonQuestRequest {\n  id: String!\n  questId: String!\n}',
+        );
+    });
+
     it('writes the travel contract into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -372,7 +406,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type TravelPath {\n  coordinates: [[Float!]!]!\n  distance: Float!\n}',
         );
         expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
-            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spells: [Spell!]!\n  title: String!\n  xp: Int!\n}',
+            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spells: [Spell!]!\n  title: String!\n  xp: Int!\n}',
         );
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
             'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  speedModifier: Float\n  xp: Int!\n}',
@@ -409,6 +443,100 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toContain('TeleportCharacterRequest');
     });
 
+    it('writes the quest outcome fields into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type AwaitingAid \{[^}]*\}/)?.[0]).toBe(
+            'type AwaitingAid {\n  aidQuest: ID!\n  quest: ID!\n  since: DateTime!\n}',
+        );
+        expect(schema.match(/type QuestPrizes \{[^}]*\}/)?.[0]).toBe(
+            'type QuestPrizes {\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
+        );
+        expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+        );
+        expect(schema).not.toMatch(
+            /concludedAt|startedAt|\brescue\b|\bgrade\b/,
+        );
+    });
+
+    it('writes the quest result contract into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
+            'type QuestResult {\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemy: Enemy\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  levelAfter: Int!\n  levelBefore: Int!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest!\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+        );
+        expect(schema.match(/type QuestResultQuest \{[^}]*\}/)?.[0]).toBe(
+            'type QuestResultQuest {\n  id: ID!\n  title: String!\n  type: String!\n}',
+        );
+        expect(schema.match(/type QuestRewards \{[^}]*\}/)?.[0]).toBe(
+            'type QuestRewards {\n  coins: Coins!\n  items: [AssetQuantity!]!\n}',
+        );
+        expect(schema.match(/type SpellUsage \{[^}]*\}/)?.[0]).toBe(
+            'type SpellUsage {\n  spell: Spell\n  usages: Int!\n}',
+        );
+        expect(schema.match(/enum QuestOutcome \{[^}]*\}/)?.[0]).toBe(
+            'enum QuestOutcome {\n  death\n  failure\n  gmCompleted\n  rescued\n  success\n}',
+        );
+        expect(schema).toContain('questResult(id: String!): QuestResult!');
+        expect(schema).toContain(
+            'questResultReceived(characterId: String!): QuestResult!',
+        );
+        expect(schema).toContain('questUpdated(questId: String!): Quest!');
+        expect(schema).not.toMatch(/\bkind\b|\bgrade\b|CombatResolver/);
+    });
+
+    it('writes the innkeeper queue into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type PendingRequest \{[^}]*\}/)?.[0]).toBe(
+            'type PendingRequest {\n  character: PendingRequestCharacter!\n  id: ID!\n  pointsSpent: Int!\n  quest: PendingRequestQuest!\n  startDate: DateTime\n  user: PendingRequestUser!\n}',
+        );
+        expect(
+            schema.match(/type PendingRequestCharacter \{[^}]*\}/)?.[0],
+        ).toBe(
+            'type PendingRequestCharacter {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  id: ID!\n  location: ID!\n  name: String!\n  title: String!\n}',
+        );
+        expect(schema.match(/type PendingRequestQuest \{[^}]*\}/)?.[0]).toBe(
+            'type PendingRequestQuest {\n  id: ID!\n  registeredAdventurers: [QuestRegistration!]!\n  requiredAdventurers: [QuestPartySlot!]!\n  title: String!\n  type: String!\n}',
+        );
+        expect(schema.match(/type PendingRequestUser \{[^}]*\}/)?.[0]).toBe(
+            'type PendingRequestUser {\n  id: ID!\n  twitchId: String!\n}',
+        );
+        expect(schema).toContain('  pendingRequests: [PendingRequest!]!\n');
+        expect(schema).toContain(
+            '  pendingRequestsUpdated: [PendingRequest!]!\n',
+        );
+        expect(schema).not.toMatch(/\bkind\b|\bgrade\b|TravelKind/);
+    });
+
+    it('writes the game master completion into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            '  completePendingRequest(input: CompletePendingRequestInput!): [QuestResult!]!\n',
+        );
+        expect(
+            schema.match(/input CompletePendingRequestInput \{[^}]*\}/)?.[0],
+        ).toBe(
+            'input CompletePendingRequestInput {\n  outcomes: [ParticipantOverrideInput!]\n  pendingQuestId: ID!\n}',
+        );
+        expect(schema.match(/input ItemUsageInput \{[^}]*\}/)?.[0]).toBe(
+            'input ItemUsageInput {\n  item: ID!\n  quantity: Int!\n}',
+        );
+        expect(
+            schema.match(/input ParticipantOverrideInput \{[^}]*\}/)?.[0],
+        ).toBe(
+            'input ParticipantOverrideInput {\n  characterId: ID!\n  consumablesUsed: [ItemUsageInput!]\n  hpAfter: Int\n  injuries: [InjuryType!]\n  spellsUsed: [SpellUsageInput!]\n}',
+        );
+        expect(schema.match(/input SpellUsageInput \{[^}]*\}/)?.[0]).toBe(
+            'input SpellUsageInput {\n  spell: ID!\n  usages: Int!\n}',
+        );
+        expect(schema).not.toMatch(
+            /\bgrade\b|approvePendingRequest|rejectPendingRequest/,
+        );
+    });
+
     it('writes the push API into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -425,6 +553,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('input SendTestPushInput');
         expect(schema).toContain('enum PushPlatform');
         expect(schema).toContain('enum PushEventType');
+        expect(schema).toContain('  questCancelled\n');
         expect(schema).toContain('type PushDeliveryReport');
         expect(schema).toContain('targetUserId: ID');
         expect(schema).not.toContain('type PushDevice');
@@ -452,6 +581,22 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get<TravelConfig>(TRAVEL_CONFIG)).toEqual({
             sweepIntervalMs: 0,
         });
+    });
+
+    it('mounts the quest outcome lifecycle', () => {
+        expect(app.get(QuestResolutionSweeper)).toBeInstanceOf(
+            QuestResolutionSweeper,
+        );
+        expect(app.get(QuestResolutionService)).toBeInstanceOf(
+            QuestResolutionService,
+        );
+        expect(app.get(getQueueToken(QUEST_RESOLUTION_QUEUE))).toBeDefined();
+        expect(app.get<QuestConfig>(QUEST_CONFIG)).toEqual({
+            sweepIntervalMs: 0,
+        });
+        expect(app.get(CombatResolver)).toBeInstanceOf(
+            PlaceholderCombatResolver,
+        );
     });
 
     it('boots EventSub disabled without calling Twitch', () => {
@@ -531,6 +676,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             );
         });
 
+        it('rejects abandonQuest without a bearer', async () => {
+            expect(errorCodeOf(await graphqlCall(app, ABANDON_QUEST))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
         it('rejects startTravel and travelPreview without a bearer', async () => {
             expect(errorCodeOf(await graphqlCall(app, START_TRAVEL))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
@@ -543,6 +694,24 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         it('rejects teleportCharacter without a bearer', async () => {
             expect(
                 errorCodeOf(await graphqlCall(app, TELEPORT_CHARACTER)),
+            ).toBe(AuthErrorCode.UNAUTHENTICATED);
+        });
+
+        it('rejects questResult without a bearer', async () => {
+            expect(errorCodeOf(await graphqlCall(app, QUEST_RESULT))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects pendingRequests without a bearer', async () => {
+            expect(errorCodeOf(await graphqlCall(app, PENDING_REQUESTS))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects completePendingRequest without a bearer', async () => {
+            expect(
+                errorCodeOf(await graphqlCall(app, COMPLETE_PENDING_REQUEST)),
             ).toBe(AuthErrorCode.UNAUTHENTICATED);
         });
 

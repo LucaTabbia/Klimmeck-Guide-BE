@@ -25,22 +25,36 @@ const CATALOG: Record<PushEventType, CatalogEntry> = {
         body: "Lo streamer è in diretta: unisciti all'avventura!",
         ttlSeconds: BROADCAST_TTL_SECONDS,
     },
+    [PushEventType.questCancelled]: {
+        type: PushEventType.questCancelled,
+        title: 'Missione annullata',
+        body: 'Il gruppo non si è formato in tempo: la missione è stata annullata.',
+        ttlSeconds: PERSONAL_TTL_SECONDS,
+    },
 };
 
 const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
     PushEventType.travelEnd,
     PushEventType.questEnd,
+    PushEventType.questCancelled,
 ]);
 
-// Phase 8 (fine viaggio), Phase 9 (fine quest), Phase 6 (stream.online) chiamano PushService con questi builder (D-12)
+// Phase 8 (fine viaggio), Phase 9 (esiti delle missioni, OutcomeWriter), Phase 6 (stream.online) chiamano PushService con questi builder (D-12)
 export const travelEnd = (characterId: string): PushMessage => ({
     ...CATALOG[PushEventType.travelEnd],
     id: characterId,
 });
 
-export const questEnd = (pendingQuestId: string): PushMessage => ({
+// id = id del risultato (D-20): a esito avvenuto la PendingQuest non esiste più; emenda il handoff Phase 5 §2
+export const questEnd = (resultId: string): PushMessage => ({
     ...CATALOG[PushEventType.questEnd],
-    id: pendingQuestId,
+    id: resultId,
+});
+
+// id = id della quest (utente 2026-10-25: "Se entro 24 ore i posti non diventano pieni, allora la missione viene annullata in automatico per tutti.")
+export const questCancelled = (questId: string): PushMessage => ({
+    ...CATALOG[PushEventType.questCancelled],
+    id: questId,
 });
 
 export const streamerLive = (): PushMessage => ({

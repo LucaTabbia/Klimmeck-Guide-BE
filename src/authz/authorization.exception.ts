@@ -29,4 +29,8 @@ export class AuthorizationException extends ForbiddenException {
     static pendingQuestNotOwned(): AuthorizationException {
         return new AuthorizationException('Questa missione non ti appartiene');
     }
+
+    static questResultNotOwned(): AuthorizationException {
+        return new AuthorizationException('Questo risultato non ti appartiene');
+    }
 }

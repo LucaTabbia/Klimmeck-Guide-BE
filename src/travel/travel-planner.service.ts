@@ -17,6 +17,7 @@ import {
     PointOfInterestDocument,
 } from 'src/models/point-of-interest.model';
 import { idForms, refIdOf, sameId } from 'src/mongo/document-id';
+import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
 import type { LonLat, RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
 import { classifyFreeTravel } from './travel-rules';
@@ -38,10 +39,16 @@ export interface AutoTravelRequest {
     from: Types.ObjectId;
     to: Types.ObjectId;
     pet: unknown;
+    injuries?: readonly unknown[] | null;
 }
 
 interface CharacterTravelSnapshot {
-    status?: { location?: unknown; activeTravel?: unknown };
+    status?: {
+        location?: unknown;
+        activeTravel?: unknown;
+        awaitingAid?: unknown;
+        injuries?: unknown[];
+    };
     quests?: { pendingQuest?: unknown };
     assets?: { pet?: unknown };
 }
@@ -60,6 +67,8 @@ const CHARACTER_PROJECTION = {
     'status.activeTravel.endTime': 1,
     'quests.pendingQuest': 1,
     'assets.pet': 1,
+    'status.awaitingAid': 1,
+    'status.injuries': 1,
 };
 
 const POI_LOCATION_PROJECTION = { location: 1 };
@@ -105,13 +114,17 @@ export class TravelPlanner {
                 : null;
         const rejection = classifyFreeTravel({
             destinationIsCityMarker,
+            awaitingAid: character.status?.awaitingAid != null,
             travelling: character.status?.activeTravel != null,
             onQuest: character.quests?.pendingQuest != null,
             sameLocation,
             hasRoute: route !== null,
         });
         if (rejection) throw rejection;
-        const speed = await this.speedFor(character.assets?.pet);
+        const speed = await this.speedFor(
+            character.assets?.pet,
+            character.status?.injuries,
+        );
         const travel = buildActiveTravel({
             route: route as RoadRoute,
             speed,
@@ -149,7 +162,7 @@ export class TravelPlanner {
         }
         return buildActiveTravel({
             route,
-            speed: await this.speedFor(request.pet),
+            speed: await this.speedFor(request.pet, request.injuries),
             now: this.clock.now(),
             to: request.to,
             kind: TravelKind.quest,
@@ -175,8 +188,16 @@ export class TravelPlanner {
             : null;
     }
 
-    // velocità fotografata alla partenza (D-09); pet assente o non trovato ⇒ velocità base
-    private async speedFor(pet: unknown): Promise<number> {
+    // velocità fotografata alla partenza: pet × ferite (Phase 8 D-09, D-15)
+    private async speedFor(
+        pet: unknown,
+        injuries: readonly unknown[] | null | undefined,
+    ): Promise<number> {
+        return (await this.petSpeedOf(pet)) * travelSpeedFactorOf(injuries);
+    }
+
+    // pet assente o non trovato ⇒ velocità base
+    private async petSpeedOf(pet: unknown): Promise<number> {
         const petId = refIdOf(pet);
         if (!petId) return BASE_SPEED;
         const document = await this.petModel

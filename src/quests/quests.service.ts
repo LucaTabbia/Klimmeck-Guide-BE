@@ -15,9 +15,10 @@ export class QuestsService {
         @InjectModel(Quest.name) private questModel: Model<QuestDocument>,
     ) {}
 
+    // una quest conclusa sparisce dalla board per tutti (D-06): legacy senza campo = null
     async findAll(): Promise<Quest[]> {
         const quests = await this.questModel
-            .find()
+            .find({ concludedAt: null })
             .populate(QUEST_CATALOG_POPULATE)
             .exec();
         quests.forEach((quest) => dropOrphanCatalogRefs(quest));
@@ -29,7 +30,7 @@ export class QuestsService {
         const questId = objectIdFromHex(id);
         if (!questId) throw ResourceNotFoundException.quest();
         const quest = await this.questModel
-            .findById(questId)
+            .findOne({ _id: questId, concludedAt: null })
             .populate(QUEST_CATALOG_POPULATE)
             .exec();
         if (!quest) throw ResourceNotFoundException.quest();

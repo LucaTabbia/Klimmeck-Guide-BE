@@ -6,6 +6,7 @@ import {
     maxActiveSpellsExpression,
     maxActiveSpellsFor,
 } from 'src/models/character/active-spell-slots';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms, sameId } from 'src/mongo/document-id';
 
 // il filtro è la regola (04 D-10): conosciuta, non già attiva, capacità valutata sul documento vivo nello stesso update
@@ -92,11 +93,12 @@ export const INCREMENT_ACTIVE_SPELL_USAGE = {
 export const ACTIVE_SPELL_SNAPSHOT_PROJECTION = {
     'status.spells': 1,
     'status.xp': 1,
+    'status.title': 1,
     'assets.activeSpells': 1,
 };
 
 export interface ActiveSpellSnapshot {
-    status?: { spells?: unknown[]; xp?: number };
+    status?: { spells?: unknown[]; xp?: number; title?: TitleType };
     assets?: { activeSpells?: { spell?: unknown; usages?: number }[] };
 }
 
@@ -115,7 +117,7 @@ function activeEntryOf(snapshot: ActiveSpellSnapshot, spellId: Types.ObjectId) {
 function hasNoFreeSlot(snapshot: ActiveSpellSnapshot) {
     return (
         (snapshot.assets?.activeSpells ?? []).length >=
-        maxActiveSpellsFor(snapshot.status?.xp ?? 0)
+        maxActiveSpellsFor(snapshot.status?.xp ?? 0, snapshot.status?.title)
     );
 }
 

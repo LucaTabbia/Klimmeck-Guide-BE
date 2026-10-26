@@ -11,6 +11,7 @@ import { Spell, SpellDocument } from 'src/models/spell.model';
 import { AuthTestApp, graphqlRequest } from '../../test/auth/auth-test-app';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
+import { placeInCity } from '../../test/economy/place-in-city';
 import { buildCharacter, persistSpell } from '../../test/fixtures';
 
 const MISSING_CHARACTER_ID = '64b0000000000000000000ff';
@@ -156,6 +157,7 @@ describe('Character ownership on mutations and queries (wire)', () => {
         const richCharacter = {
             status: {
                 ...buildCharacter().status,
+                title: 'mage',
                 xp: 25000,
                 spells: [spellA._id, spellB._id],
             },
@@ -181,6 +183,8 @@ describe('Character ownership on mutations and queries (wire)', () => {
             role: RoleType.innkeeper,
             withCharacter: false,
         });
+        // doTransaction dell'owner e dell'innkeeper: il negozio risponde solo in città (D-18)
+        await placeInCity(harness, alice.character!);
         aliceCharId = String(alice.character?._id);
     });
 

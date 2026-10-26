@@ -40,8 +40,8 @@ describe('buildStartingCharacter', () => {
                 injuries: [],
                 spells: [],
                 coins: { gold: 0, silver: 5, copper: 0 },
-                currentLifePoints: 100,
-                maxLifePoints: 100,
+                currentLifePoints: 1000,
+                maxLifePoints: 1000,
             },
             quests: { completedQuests: [], pendingQuest: null },
             assets: {

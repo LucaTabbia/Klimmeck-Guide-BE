@@ -7,6 +7,7 @@ import {
     Character,
     CharacterSchema,
 } from 'src/models/character/character.model';
+import { City, CitySchema } from 'src/models/city.model';
 import {
     EquipmentItem,
     EquipmentItemSchema,
@@ -14,7 +15,7 @@ import {
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { User, UserSchema } from 'src/models/user.model';
 
-// unico scrittore dei saldi (04 D-04): coins del personaggio e twitchPoints dell'utente; il catalogo è solo letto per i prezzi
+// unico scrittore dei saldi (04 D-04): coins del personaggio e twitchPoints dell'utente; catalogo e città solo letti (prezzi, guard del negozio D-18)
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -22,6 +23,7 @@ import { User, UserSchema } from 'src/models/user.model';
             { name: User.name, schema: UserSchema },
             { name: EquipmentItem.name, schema: EquipmentItemSchema },
             { name: LootItem.name, schema: LootItemSchema },
+            { name: City.name, schema: CitySchema },
         ]),
     ],
     providers: [WalletService, CatalogPricesReader, ShopTransactionService],

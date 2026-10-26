@@ -3,11 +3,12 @@ import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import type { Queue } from 'bull';
 import { Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
+import { enqueueTrigger } from 'src/queues/enqueue-trigger';
 import {
     QUEUE_CALL_TIMED_OUT,
     QUEUE_CALL_TIMEOUT,
     withinTimeout,
-} from './queue-call-timeout';
+} from 'src/queues/queue-call-timeout';
 import {
     TRAVEL_COMPLETE_JOB,
     TRAVEL_QUEUE,
@@ -37,38 +38,26 @@ export class TravelScheduler implements OnModuleInit {
         characterId: Types.ObjectId,
         travel: { startTime: Date; endTime: Date },
     ): Promise<void> {
-        const jobId = travelJobId(characterId, travel.startTime);
-        try {
-            const outcome = await withinTimeout(
-                this.queue.add(
-                    TRAVEL_COMPLETE_JOB,
-                    {
-                        characterId: characterId.toHexString(),
-                        startTime: travel.startTime.getTime(),
-                        endTime: travel.endTime.getTime(),
-                    },
-                    {
-                        jobId,
-                        delay: Math.max(
-                            0,
-                            travel.endTime.getTime() -
-                                this.clock.now().getTime(),
-                        ),
-                        removeOnComplete: true,
-                        removeOnFail: false,
-                    },
-                ),
-                this.timeoutMs,
-            );
-            if (outcome === QUEUE_CALL_TIMED_OUT)
-                this.logger.warn(
-                    `Accodamento del viaggio ${jobId} non confermato entro ${this.timeoutMs} ms: lo completerà lo sweep`,
-                );
-        } catch {
-            this.logger.warn(
-                `Accodamento del viaggio ${jobId} fallito: lo completerà lo sweep`,
-            );
-        }
+        await enqueueTrigger(
+            this.queue,
+            {
+                name: TRAVEL_COMPLETE_JOB,
+                data: {
+                    characterId: characterId.toHexString(),
+                    startTime: travel.startTime.getTime(),
+                    endTime: travel.endTime.getTime(),
+                },
+                jobId: travelJobId(characterId, travel.startTime),
+                dueAt: travel.endTime,
+            },
+            {
+                clock: this.clock,
+                timeoutMs: this.timeoutMs,
+                logger: this.logger,
+                subject: 'del viaggio',
+                fallback: 'lo completerà lo sweep',
+            },
+        );
     }
 
     // best-effort (D-16): un job attivo o una coda che non risponde entro il timeout non bloccano, al fire il job non trova più il viaggio (filtro d'identità, D-12)

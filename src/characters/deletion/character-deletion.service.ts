@@ -1,33 +1,24 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { AuthException } from 'src/auth/auth.exception';
+import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
 import { CharacterDeletionException } from 'src/characters/deletion/character-deletion.exception';
-import { activeCharacterById } from 'src/models/character/active-character.filter';
-import {
-    Character,
-    CharacterDocument,
-} from 'src/models/character/character.model';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
-import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
+import { refIdOf } from 'src/mongo/document-id';
 import { UsersService } from 'src/users/users.service';
 
-interface UnlinkedUser {
-    currentCharacter: Types.ObjectId | null;
+interface LinkedUser {
+    currentCharacter: unknown;
 }
 
 @Injectable()
 export class CharacterDeletionService {
-    private readonly logger = new Logger(CharacterDeletionService.name);
-
     constructor(
         @InjectConnection() private readonly connection: Connection,
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
-        @InjectModel(Character.name)
-        private readonly characterModel: Model<CharacterDocument>,
-        @InjectModel(Quest.name)
-        private readonly questModel: Model<QuestDocument>,
+        private readonly archiver: CharacterArchiver,
         private readonly usersService: UsersService,
     ) {}
 
@@ -39,59 +30,29 @@ export class CharacterDeletionService {
         return this.usersService.findOne(userId);
     }
 
-    // claim inverso (03.1 D-05): solo chi ha ancora un personaggio lo scollega; il driver ritenta i WriteConflict
-    // e il perdente concorrente trova currentCharacter a null → CHARACTER_NOT_FOUND. Riusato dalla Phase 9 con DeletionReason.death
+    // il driver ritenta i WriteConflict: il perdente concorrente rilegge currentCharacter a null e risponde CHARACTER_NOT_FOUND;
+    // la morte (Phase 9) usa CharacterArchiver.archiveWithin nella transazione dell'esito, non questo metodo
     async archiveCurrentCharacter(
         userId: Types.ObjectId,
         reason: DeletionReason,
     ): Promise<void> {
         await this.connection.transaction(async (session) => {
-            const unlinked = await this.userModel
-                .findOneAndUpdate(
-                    { _id: userId, currentCharacter: { $ne: null } },
-                    { $set: { currentCharacter: null } },
-                    {
-                        session,
-                        returnDocument: 'before',
-                        projection: { currentCharacter: 1 },
-                    },
-                )
-                .lean<UnlinkedUser | null>()
+            const user = await this.userModel
+                .findById(userId, { currentCharacter: 1 })
+                .session(session)
+                .lean<LinkedUser | null>()
                 .exec();
-            if (!unlinked?.currentCharacter) {
+            const characterId = refIdOf(user?.currentCharacter);
+            if (!characterId) throw await this.rejectUnlinked(userId, session);
+            const outcome = await this.archiver.archiveWithin(session, {
+                userId,
+                characterId,
+                reason,
+                now: new Date(),
+            });
+            if (outcome === 'not-linked') {
                 throw await this.rejectUnlinked(userId, session);
             }
-            const archived = await this.characterModel
-                .updateOne(
-                    activeCharacterById(unlinked.currentCharacter),
-                    { $set: { deletedAt: new Date(), deletionReason: reason } },
-                    { session },
-                )
-                .exec();
-            if (archived.matchedCount === 0) {
-                // riferimento pendente o già archiviato: si scollega comunque, altrimenti l'utente non potrebbe né creare né eliminare
-                this.logger.warn(
-                    `User ${String(userId)} pointed to a missing or archived character: unlinked anyway`,
-                );
-                return;
-            }
-            // posti liberati nella stessa transazione (D-30): la quest torna disponibile per tutti; la morte (Phase 9) riusa questa routine
-            await this.questModel
-                .updateMany(
-                    {
-                        'registeredAdventurers.character':
-                            unlinked.currentCharacter,
-                    },
-                    {
-                        $pull: {
-                            registeredAdventurers: {
-                                character: unlinked.currentCharacter,
-                            },
-                        },
-                    },
-                    { session },
-                )
-                .exec();
         });
     }
 

@@ -20,6 +20,10 @@ import { PetsModule } from './pets/pets.module';
 import { QuestAcceptanceModule } from './quests/acceptance/quest-acceptance.module';
 import { QuestsModule } from './quests/quests.module';
 import { TravelModule } from './travel/travel.module';
+import { QuestOutcomesModule } from './quests/outcomes/quest-outcomes.module';
+import { QuestResultsModule } from './quests/results/quest-results.module';
+import { PartyLifecycleModule } from './quests/party/party-lifecycle.module';
+import { PendingRequestsModule } from './quests/pending-requests/pending-requests.module';
 import { SpellsModule } from './spells/spells.module';
 import { ServerTimeModule } from './time/server-time.module';
 import { AppService } from './app.service';
@@ -83,6 +87,10 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         QuestsModule,
         QuestAcceptanceModule,
         TravelModule,
+        QuestOutcomesModule,
+        PartyLifecycleModule,
+        QuestResultsModule,
+        PendingRequestsModule,
         ServerTimeModule,
         PushModule,
         EventSubModule,

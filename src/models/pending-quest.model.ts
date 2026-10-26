@@ -9,10 +9,15 @@ export class PendingQuest {
     @Field(() => ID)
     id: string;
 
-    // null = quest accettata, personaggio in viaggio verso il marker: il countdown parte all'arrivo (D-13, D-15)
+    // null = in viaggio verso il marker (D-15) o, per le quest registrate, in attesa del gruppo: lo scrive solo QuestStartService (utente 2026-10-25: "per poterle cominciare il party dev'essere al completo")
     @Field(() => Date, { nullable: true })
     @Prop({ type: Date, default: null })
     startDate: Date | null;
+
+    // arrivo sul marker (D-13 emendata 2026-10-25): per la corsia standard startDate resta nullo finché la quest non comincia (QuestStartService)
+    @Field(() => Date, { nullable: true })
+    @Prop({ type: Date, default: null })
+    arrivedAt: Date | null;
 
     @Field(() => Number)
     @Prop({ type: Number })

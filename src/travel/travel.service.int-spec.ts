@@ -10,6 +10,7 @@ import {
 import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
 import { PushTransport } from 'src/push/transport/push-transport';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
 import { TravelPlanner } from './travel-planner.service';
 import { BASE_SPEED, durationMsOf } from './travel-timing';
@@ -37,6 +38,7 @@ describe('TravelService (replSet)', () => {
     let world: TravelWorld;
     let seq = 0;
     const queue = new FakeTravelQueue();
+    const questQueue = new FakeTravelQueue();
 
     beforeAll(async () => {
         harness = await createAuthTestApp({
@@ -44,6 +46,10 @@ describe('TravelService (replSet)', () => {
             imports: [TravelModule],
             overrides: [
                 { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+                {
+                    token: getQueueToken(QUEST_RESOLUTION_QUEUE),
+                    useValue: questQueue,
+                },
                 { token: PushTransport, useValue: new FakePushTransport() },
                 { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
                 { token: TRAVEL_CONFIG, useValue: { sweepIntervalMs: 0 } },
@@ -62,6 +68,7 @@ describe('TravelService (replSet)', () => {
         await harness.clearDatabase();
         world = await persistTravelWorld(harness.connection, roads);
         queue.reset();
+        questQueue.reset();
     });
 
     afterEach(() => {

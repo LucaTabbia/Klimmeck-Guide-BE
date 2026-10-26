@@ -21,7 +21,8 @@ import { PushService } from 'src/push/push.service';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
 import { RoadsService } from 'src/roads/roads.service';
-import { QUEUE_CALL_TIMEOUT } from './queue-call-timeout';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
+import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { TRAVEL_QUEUE } from './travel-job';
 import { TravelSweeper } from './travel-sweeper';
 import { TravelModule } from './travel.module';
@@ -119,6 +120,7 @@ describe('startTravel and travelPreview (wire)', () => {
     let seq = 0;
     const clock = new FixedClock(STARTED_AT);
     const queue = new FakeTravelQueue();
+    const questQueue = new FakeTravelQueue();
     const push = new FakePushTransport();
     const opened: OpenSubscription<unknown>[] = [];
 
@@ -128,6 +130,10 @@ describe('startTravel and travelPreview (wire)', () => {
             imports: [TravelModule, QuestAcceptanceModule],
             overrides: [
                 { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+                {
+                    token: getQueueToken(QUEST_RESOLUTION_QUEUE),
+                    useValue: questQueue,
+                },
                 { token: QUEUE_CALL_TIMEOUT, useValue: 50 },
                 { token: PushTransport, useValue: push },
                 { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
@@ -166,6 +172,7 @@ describe('startTravel and travelPreview (wire)', () => {
         );
         await harness.clearDatabase();
         queue.reset();
+        questQueue.reset();
         push.reset();
     });
 
@@ -179,6 +186,7 @@ describe('startTravel and travelPreview (wire)', () => {
             role?: RoleType;
             activeTravel?: Record<string, unknown> | null;
             pendingQuest?: Types.ObjectId | null;
+            awaitingAid?: Record<string, unknown> | null;
         } = {},
     ): Promise<TestPlayer> {
         seq += 1;
@@ -193,6 +201,7 @@ describe('startTravel and travelPreview (wire)', () => {
                     location,
                     title: 'rookie',
                     activeTravel: options.activeTravel ?? null,
+                    awaitingAid: options.awaitingAid ?? null,
                 },
                 quests: {
                     completedQuests: [],
@@ -222,6 +231,14 @@ describe('startTravel and travelPreview (wire)', () => {
             duration: 3_600_000,
             to: world.markerB,
             kind: 'free',
+        };
+    }
+
+    function awaitingAid(): Record<string, unknown> {
+        return {
+            quest: new Types.ObjectId(),
+            aidQuest: new Types.ObjectId(),
+            since: clock.now(),
         };
     }
 
@@ -384,6 +401,17 @@ describe('startTravel and travelPreview (wire)', () => {
             arrange: async () => {
                 const player = await playerAt(world.markerA);
                 return { player, request: requestOf(player, world.markerC) };
+            },
+        },
+        {
+            name: 'a character awaiting aid',
+            code: 'AWAITING_AID',
+            message: 'Il tuo personaggio è in attesa di soccorso',
+            arrange: async () => {
+                const player = await playerAt(world.markerA, {
+                    awaitingAid: awaitingAid(),
+                });
+                return { player, request: requestOf(player, world.markerB) };
             },
         },
         {

@@ -1,10 +1,12 @@
 import { Types } from 'mongoose';
 import { NormalizedCharacterInput } from 'src/characters/creation/normalized-character-input';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { LEVEL_TABLE } from 'src/quests/outcomes/progression/level-table';
 
-const STARTING_LEVEL = 1;
+const STARTING_LEVEL = LEVEL_TABLE[0].level;
 const STARTING_XP = 0;
-const STARTING_LIFE_POINTS = 100;
+// 1000 (D-12): stessa tabella degli esiti
+const STARTING_LIFE_POINTS = LEVEL_TABLE[0].maxLifePoints;
 const STARTING_SILVER = 5;
 
 export interface StartingCharacter {

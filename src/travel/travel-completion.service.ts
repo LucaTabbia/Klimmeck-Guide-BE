@@ -13,6 +13,10 @@ import {
 } from 'src/models/pending-quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
+import {
+    QuestStartService,
+    StartTrigger,
+} from 'src/quests/party/quest-start.service';
 import { travelEnd } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
 import { travelJobId } from './travel-job';
@@ -21,8 +25,8 @@ import {
     COMPLETION_UPDATE,
     CompletedSnapshot,
     completionFilter,
-    questCountdownFilter,
-    questCountdownUpdate,
+    questArrivalFilter,
+    questArrivalUpdate,
     TravelIdentity,
 } from './travel.updates';
 
@@ -41,17 +45,20 @@ export class TravelCompletionService {
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
         private readonly push: PushService,
         private readonly clock: Clock,
+        private readonly questStart: QuestStartService,
     ) {}
 
     // trigger idempotente (D-12): il filtro d'identità decide; solo chi ha matchato invia la push (Pitfall 11)
     async complete(identity: TravelIdentity): Promise<CompletionOutcome> {
         const now = this.clock.now();
-        const outcome: { completed: CompletedSnapshot | null } = {
-            completed: null,
-        };
+        const outcome: {
+            completed: CompletedSnapshot | null;
+            arrival: StartTrigger | null;
+        } = { completed: null, arrival: null };
         await this.connection.transaction(async (session) => {
             // il callback viene rieseguito sui WriteConflict: l'esito riparte da zero
             outcome.completed = null;
+            outcome.arrival = null;
             const before = await this.characterModel
                 .findOneAndUpdate(
                     completionFilter(identity, now),
@@ -71,14 +78,17 @@ export class TravelCompletionService {
                 before.status?.activeTravel?.kind === TravelKind.quest &&
                 pendingQuestId
             ) {
-                // countdown dall'arrivo pianificato (D-13): un downtime del server non toglie tempo alla quest
-                await this.pendingQuestModel
-                    .updateOne(
-                        questCountdownFilter(pendingQuestId),
-                        questCountdownUpdate(identity.endTime),
-                        { session },
+                // una PendingQuest assente (party sciolto) lascia un viaggio da quest senza countdown
+                const arrived = await this.pendingQuestModel
+                    .findOneAndUpdate(
+                        questArrivalFilter(pendingQuestId),
+                        questArrivalUpdate(identity.endTime),
+                        { session, projection: { quest: 1 } },
                     )
+                    .lean<{ quest?: unknown } | null>()
                     .exec();
+                const questId = refIdOf(arrived?.quest);
+                if (questId) outcome.arrival = { questId, pendingQuestId };
             }
         });
         const jobId = travelJobId(identity.characterId, identity.startTime);
@@ -90,6 +100,8 @@ export class TravelCompletionService {
             return 'stale';
         }
         this.logger.log(`Viaggio ${jobId} completato`);
+        // avvio dopo il commit dell'arrivo (D-24 emendata): QuestStartService decide e accoda la scadenza
+        if (outcome.arrival) await this.questStart.tryStart(outcome.arrival);
         if (completed.status?.activeTravel?.kind === TravelKind.free) {
             await this.notifyOwner(identity.characterId);
         }

@@ -18,6 +18,11 @@ export class QuestRegistration {
     @Field(() => String)
     @Prop({ type: String, enum: Object.values(TitleType), required: true })
     title: TitleType;
+
+    // apre la finestra di 24 ore del party (utente 2026-10-25: "Se entro 24 ore i posti non diventano pieni, allora la missione viene annullata in automatico per tutti."); senza default: lo scrive solo la registrazione nuova
+    @Field(() => Date, { nullable: true })
+    @Prop({ type: Date })
+    registeredAt?: Date | null;
 }
 
 export const QuestRegistrationSchema =

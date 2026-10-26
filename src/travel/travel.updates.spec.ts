@@ -12,8 +12,8 @@ import {
     completionFilter,
     DUE_TRAVEL_PROJECTION,
     dueTravelsFilter,
-    questCountdownFilter,
-    questCountdownUpdate,
+    questArrivalFilter,
+    questArrivalUpdate,
     startTravelFilter,
     startTravelUpdate,
     TELEPORT_PROJECTION,
@@ -36,12 +36,13 @@ describe('travel write builders', () => {
     const now = new Date('2026-10-21T11:00:05.000Z');
 
     describe('start', () => {
-        it('startTravelFilter reasserts no travel, no standard quest and the snapshot position on the active character', () => {
+        it('startTravelFilter reasserts no aid wait, no travel, no standard quest and the snapshot position on the active character', () => {
             const filter = startTravelFilter(id, loc);
 
             expect(filter).toEqual({
                 _id: id,
                 deletedAt: null,
+                'status.awaitingAid': null,
                 'status.activeTravel': null,
                 'quests.pendingQuest': null,
                 'status.location': { $in: [loc, loc.toHexString()] },
@@ -70,6 +71,19 @@ describe('travel write builders', () => {
             expect(error).toBeInstanceOf(ResourceNotFoundException);
             expect(codeOf(error)).toBe(AuthorizationErrorCode.NOT_FOUND);
             expect(error.message).toBe('Personaggio non trovato');
+        });
+
+        it('classifyUnstarted: an aid wait → AWAITING_AID, before a running travel', () => {
+            expect(
+                codeOf(
+                    classifyUnstarted({
+                        status: {
+                            awaitingAid: { aidQuest: pending },
+                            activeTravel: { endTime: end },
+                        },
+                    }),
+                ),
+            ).toBe(GameRuleErrorCode.AWAITING_AID);
         });
 
         it('classifyUnstarted: a travel already running → TRAVEL_IN_PROGRESS', () => {
@@ -138,22 +152,24 @@ describe('travel write builders', () => {
             });
         });
 
-        it('questCountdownFilter matches the pending quest whose countdown has not started', () => {
-            expect(questCountdownFilter(pending)).toEqual({
+        it('questArrivalFilter matches the pending quest not yet arrived', () => {
+            expect(questArrivalFilter(pending)).toEqual({
                 _id: pending,
-                startDate: null,
+                arrivedAt: null,
             });
         });
 
-        it('questCountdownUpdate starts the countdown at the arrival', () => {
-            expect(questCountdownUpdate(end)).toEqual({
-                $set: { startDate: end },
+        // arrivo ≠ avvio (utente 2026-10-25): startDate lo scrive solo QuestStartService
+        it('questArrivalUpdate marks the planned arrival, not the start', () => {
+            expect(questArrivalUpdate(end)).toEqual({
+                $set: { arrivedAt: end },
             });
         });
     });
 
     describe('teleport', () => {
-        it('teleportFilter only requires an active character without a standard quest', () => {
+        // il soccorso non blocca il teleport del GM (D-07)
+        it('teleportFilter only requires an active character without a standard quest, even awaiting aid', () => {
             expect(teleportFilter(id)).toEqual({
                 _id: id,
                 deletedAt: null,

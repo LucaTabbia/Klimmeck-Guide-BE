@@ -14,6 +14,7 @@ import {
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
+import { Spell, SpellSchema } from 'src/models/spell.model';
 import { QuestsModule } from 'src/quests/quests.module';
 import {
     AuthTestApp,
@@ -27,6 +28,7 @@ import {
     persistLootItem,
     persistPoi,
     persistQuest,
+    persistSpell,
 } from '../../test/fixtures';
 
 // selezioni FE verbatim (FE 06-12, lib/graphql/queries/quest_queries.dart)
@@ -39,6 +41,10 @@ const QUEST_FIELDS = `id infos { markerLocation { id } enemy { id name imagePath
 const QUESTS = `query { quests { ${QUEST_FIELDS} } }`;
 const QUEST = `query Quest($id: String!) { quest(id: $id) { ${QUEST_FIELDS} } }`;
 const MISSING_QUEST_ID = '64b0000000000000000000ff';
+const QUEST_IDS = 'query { quests { id } }';
+const QUEST_SPELLS =
+    'query { quests { id prizes { spell { id name minXpToLearn } } } }';
+const CONCLUDED_AT = new Date('2026-10-24T10:00:00.000Z');
 
 interface WireItem {
     id: string;
@@ -66,6 +72,17 @@ interface WireQuest {
         prizeItem: WireAssetQuantity | null;
         randomLoot: WireAssetQuantity[];
     };
+}
+
+interface WireSpell {
+    id: string;
+    name: string;
+    minXpToLearn: number;
+}
+
+interface WireQuestSpell {
+    id: string;
+    prizes: { spell: WireSpell | null };
 }
 
 interface WireBody {
@@ -355,6 +372,100 @@ describe('quest catalog (wire)', () => {
             expect(body.errors?.[0]?.extensions).toEqual({ code: 'NOT_FOUND' });
             expect(body.errors?.[0]?.message).toBe('Missione non trovata');
         }
+    });
+
+    function conclude(questId: Types.ObjectId) {
+        return modelOf(Quest.name, QuestSchema).collection.updateOne(
+            { _id: questId },
+            { $set: { concludedAt: CONCLUDED_AT } },
+        );
+    }
+
+    // quest legacy senza il campo concludedAt: per la board vale null (D-06)
+    async function insertLegacyQuest(): Promise<Types.ObjectId> {
+        const base = buildQuest();
+        const _id = new Types.ObjectId();
+        await modelOf(Quest.name, QuestSchema).collection.insertOne({
+            ...base,
+            _id,
+            infos: { ...base.infos, markerLocation: poi._id },
+        });
+        return _id;
+    }
+
+    // una quest conclusa sparisce dalla board per tutti (D-06, C9)
+    it('hides a concluded quest from quests and answers NOT_FOUND on quest(id)', async () => {
+        const concluded = await persistCatalogQuest();
+        await conclude(concluded._id as Types.ObjectId);
+        const open = await persistCatalogQuest();
+        const legacyId = await insertLegacyQuest();
+
+        const list = bodyOf(
+            await graphqlRequest(harness.app, QUEST_IDS, {}, bearer),
+        );
+        const single = bodyOf(
+            await graphqlRequest(
+                harness.app,
+                QUEST,
+                { id: String(concluded._id) },
+                bearer,
+            ),
+        );
+
+        expect(list.errors).toBeUndefined();
+        expect((list.data?.quests ?? []).map(({ id }) => id).sort()).toEqual(
+            [String(open._id), String(legacyId)].sort(),
+        );
+        expect(single.errors?.[0]?.extensions).toEqual({ code: 'NOT_FOUND' });
+        expect(single.errors?.[0]?.message).toBe('Missione non trovata');
+    });
+
+    it('still serves a legacy quest without concludedAt on quest(id)', async () => {
+        const legacyId = await insertLegacyQuest();
+
+        const body = bodyOf(
+            await graphqlRequest(
+                harness.app,
+                QUEST,
+                { id: String(legacyId) },
+                bearer,
+            ),
+        );
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.quest?.id).toBe(String(legacyId));
+    });
+
+    // la magia del premio arriva popolata; un ref orfano vale null senza annullare la lista (D-17)
+    it('populates prizes.spell and tolerates an orphan spell', async () => {
+        const spell = await persistSpell(modelOf(Spell.name, SpellSchema), {
+            name: 'Palla di fuoco',
+            minXpToLearn: 40000,
+        });
+        const withSpell = await persistCatalogQuest({
+            prizes: { ...buildQuest().prizes, spell: spell._id },
+        });
+        const orphan = await persistCatalogQuest({
+            prizes: {
+                ...buildQuest().prizes,
+                spell: new Types.ObjectId(),
+            },
+        });
+
+        const body = bodyOf(
+            await graphqlRequest(harness.app, QUEST_SPELLS, {}, bearer),
+        );
+
+        expect(body.errors).toBeUndefined();
+        const quests = (body.data?.quests ?? []) as unknown as WireQuestSpell[];
+        const spellOf = (id: unknown) =>
+            quests.find((quest) => quest.id === String(id))?.prizes.spell;
+        expect(spellOf(withSpell._id)).toEqual({
+            id: String(spell._id),
+            name: 'Palla di fuoco',
+            minXpToLearn: 40000,
+        });
+        expect(spellOf(orphan._id)).toBeNull();
     });
 
     it('requires a bearer', async () => {

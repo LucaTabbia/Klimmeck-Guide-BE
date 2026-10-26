@@ -22,7 +22,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 6: EventSub: Punti Canale & Streamer Live** - Webhook Twitch EventSub, credito idempotente 1:1, push streamer-live (completed 2026-10-21)
 - [x] **Phase 7: Quest Lanes (QUEST-04)** - Corsie story/worldMission su schema + subscription, accettazione lane-aware, cost model server-side (completed 2026-10-21)
 - [x] **Phase 8: Travel Lifecycle (TRAVEL-01)** - `activeTravel` su schema + subscription, ETA/completamento server-side, teleport atomico (completed 2026-10-21)
-- [ ] **Phase 9: Combat Result & Admin Outcomes** - `CombatResult` persistito con delivery ibrida, outcome admin-mediati, coda pending innkeeper
+- [x] **Phase 9: Combat Result & Admin Outcomes** - `QuestResult` persistito con delivery ibrida (subscription owner-only + push `questEnd` + query), corsia standard risolta server-side dietro `CombatResolver` (segnaposto), catena aid/morte, coda live innkeeper + `completePendingRequest`, guard `SHOP_NOT_IN_CITY` (completed 2026-10-24)
 - [ ] **Phase 10: Hardening Trasversale** - Validazione input, introspection off/CORS/sanitization, `.env.example`, coverage aree critiche
 
 ## Phase Details
@@ -248,18 +248,40 @@ Plans:
 **Branch**: `feat/08-travel-lifecycle-travel-01` da `develop` → PR a `develop` (template `feat/{phase}-{slug}`; in origine `feat/08-travel-lifecycle`, allineato nel planning del 2026-10-21, D-25).
 
 ### Phase 9: Combat Result & Admin Outcomes
-**Goal**: Risultati di combattimento persistiti con delivery ibrida, outcome di combat admin-mediati, e la coda pending dell'innkeeper con approve/reject role-guarded e audit-loggati.
+**Goal**: Esiti delle quest risolti dal server (corsia standard alla scadenza, motore di combattimento sostituibile) e completati dal GM per story/worldMission, con un risultato persistito per personaggio consegnato in modo ibrido e la coda live dell'innkeeper con completamento role-guarded e audit-loggato _(emendato 2026-10-24, 09-CONTEXT D-01..D-04)_.
 **Depends on**: Phase 3 (role guard + audit), Phase 4 (update character atomico), Phase 5 (push combat)
 **Requirements**: BE-COMBAT-01, BE-COMBAT-02, BE-COMBAT-03, BE-ADMIN-01, BE-ADMIN-02
 **Success Criteria** (what must be TRUE):
   1. Un'entità `CombatResult` persiste HP prima/dopo, consumabili/spell usate, injuries, rewards (equipment/items/coins) e XP.
-  2. Su un outcome la subscription emette il payload completo in foreground, il data message FCM porta solo `resultId`, e `combatResult(id)` ritorna lo stesso risultato al requery.
-  3. L'innkeeper registra un outcome via mutation role-guarded che crea il CombatResult e aggiorna il Character atomicamente.
+  2. Su un outcome la subscription emette il payload completo in foreground, il data message FCM porta solo `resultId`, e `questResult(id)` ritorna lo stesso risultato al requery.
+  3. L'innkeeper completa una richiesta story/worldMission via mutation role-guarded (solo esito positivo, override opzionali per personaggio, nessun grade) che crea un risultato per personaggio e aggiorna i Character atomicamente; la corsia standard è risolta dal server alla scadenza.
   4. L'innkeeper ha una vista live (query + subscription) delle pending request story/worldMission con i dati che servono al filtro FE su `activeTravel`.
-  5. Le mutation approve/reject sulle pending request story/worldMission sono role-guarded e audit-loggate.
-**Plans**: TBD
+  5. La mutation di completamento delle pending request story/worldMission è role-guarded e audit-loggata (nessun approve/reject, nessun rimborso).
+**Plans**: 20 plans (12 waves)
+
+Plans:
+- [x] 09-01-PLAN.md — Wave 1: contratto dei modelli (`awaitingAid`, `concludedAt`/`rescue` interni, `prizes.spell`, `QuestResult` + `QuestOutcome`), slot magia dal rango mage, emendamenti BE-COMBAT-03/BE-ADMIN-02 (BE-COMBAT-01/03, BE-ADMIN-02)
+- [x] 09-02-PLAN.md — Wave 1: tabella livelli/HP, progressione del titolo, HP iniziali 1000, codici nuovi (BE-COMBAT-01/03, BE-ADMIN-02)
+- [x] 09-03-PLAN.md — Wave 1: `ChanceSource`, loot a cascata, premi, clone della aid, timeout di soccorso (C5), tabella segnaposto delle ferite (BE-COMBAT-01/03)
+- [x] 09-04-PLAN.md — Wave 2: porta `CombatResolver`, contesto idratato, resolver segnaposto, fake e fixture `Enemy` (BE-COMBAT-03)
+- [x] 09-05-PLAN.md — Wave 3: piano puro dell'esito, soccorso/morte, update della quest registrata (BE-COMBAT-01/03, BE-ADMIN-02)
+- [x] 09-06-PLAN.md — Wave 2: proprietà per utente, query `questResult`, subscription `questResultReceived`, SDL del risultato (BE-COMBAT-01/02)
+- [x] 09-07-PLAN.md — Wave 3: coda live `pendingRequests`/`pendingRequestsUpdated` innkeeper (BE-ADMIN-01)
+- [x] 09-08-PLAN.md — Wave 2: guard `AWAITING_AID`, quest concluse fuori dalla board, rallentamento da ferite (BE-COMBAT-03)
+- [x] 09-09-PLAN.md — Wave 2: guard del negozio `SHOP_NOT_IN_CITY` (BE-COMBAT-03)
+- [x] 09-10-PLAN.md — Wave 3: coda `quest-resolution`, scheduler, env `QUEST_SWEEP_INTERVAL_MS`, accodamento dove si scrive `startDate` (BE-COMBAT-03)
+- [x] 09-11-PLAN.md — Wave 2: `CharacterArchiver.archiveWithin` (morte nella transazione dell'esito, C1) (BE-COMBAT-03)
+- [x] 09-12-PLAN.md — Wave 4: writer degli esiti, risoluzione individuale senza nemico e con combattimento, push `questEnd(resultId)` (BE-COMBAT-01/02/03)
+- [x] 09-13-PLAN.md — Wave 5: dispatcher `resolveStandard`, boss di gruppo, catena di soccorso, timeout di 7 giorni (BE-COMBAT-01/03)
+- [x] 09-14-PLAN.md — Wave 6: processor, reconciler + sweep, montaggio nel boot reale (BE-COMBAT-03)
+- [x] 09-15-PLAN.md — Wave 7: `completePendingRequest` con override, audit, SDL (BE-COMBAT-01/03, BE-ADMIN-02)
+- [x] 09-16-PLAN.md — Wave 8: gate di fase + `BACKEND-NOTES.md` per FE Phase 9/10/7 e BE Phase 10 + traceability + `09-VALIDATION.md` (BE-COMBAT-01..03, BE-ADMIN-01..02)
+- [x] 09-17-PLAN.md — Wave 9: verdetto unico del combattimento (D-05 emendata, A3 decisa dall'utente il 2026-10-25), C5 confermata, segnaposto provvisori (BE-COMBAT-03)
+- [x] 09-18-PLAN.md — Wave 10: una sola aid per combattimento perso con i posti della quest fallita, soccorso di gruppo, rescuedCharacters (decisione utente 2026-10-25) (BE-COMBAT-01/03)
+- [x] 09-19-PLAN.md — Wave 11: avvio delle quest registrate solo a party completo (arrivedAt/startedAt), abandonQuest, scioglimento a 24 ore con push questCancelled, timer della aid sospeso solo dalla aid in corso (decisioni utente 2026-10-25) (BE-COMBAT-03)
+- [x] 09-20-PLAN.md — Wave 12: posti della aid identici all'originale, subscription questUpdated per il contatore del party (decisioni utente 2026-10-26) (BE-COMBAT-03)
 **Unblocks (FE)**: FE Phase 9 (contratto combat) e FE Phase 10 (operazioni admin) → FE COMBAT-01..05, ADMIN-02/03/05/06.
-**Branch**: `feat/09-combat-admin` da `develop` → PR a `develop`.
+**Branch**: `feat/09-combat-result-admin-outcomes` da `develop` → PR a `develop` (allineato al template `feat/{phase}-{slug}`, 2026-10-24).
 
 ### Phase 10: Hardening Trasversale
 **Goal**: Hardening trasversale — validazione input, introspection off/CORS/error sanitization in prod, igiene dei secret, e coverage di test sulle aree critiche.
@@ -305,5 +327,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 6. EventSub: Punti Canale & Streamer Live | 9/9 | Complete    | 2026-10-21 |
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
-| 9. Combat Result & Admin Outcomes | 0/TBD | Not started | - |
+| 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |

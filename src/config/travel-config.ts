@@ -1,11 +1,13 @@
 import type { FactoryProvider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readEnvKeys } from 'src/config/env-keys';
+import {
+    DEFAULT_SWEEP_INTERVAL_MS,
+    parseSweepIntervalMs,
+} from 'src/config/sweep-interval';
 
 export const TRAVEL_CONFIG = 'TRAVEL_CONFIG';
-export const DEFAULT_TRAVEL_SWEEP_INTERVAL_MS = 60_000;
-const MAX_TIMER_MS = 2_147_483_647; // oltre, setInterval di Node scatta subito
-const DIGITS = /^\d+$/;
+export const DEFAULT_TRAVEL_SWEEP_INTERVAL_MS = DEFAULT_SWEEP_INTERVAL_MS;
 
 export const TRAVEL_ENV_KEYS = ['TRAVEL_SWEEP_INTERVAL_MS'] as const;
 
@@ -19,14 +21,12 @@ export interface TravelConfig {
 
 // opzionale con default; 0 spegne solo lo sweep periodico, il reconciler al boot gira sempre (D-12); messaggio senza valore
 export function parseTravelConfig(env: TravelEnv): TravelConfig {
-    const value = (env.TRAVEL_SWEEP_INTERVAL_MS ?? '').trim();
-    if (!value) return { sweepIntervalMs: DEFAULT_TRAVEL_SWEEP_INTERVAL_MS };
-    if (!DIGITS.test(value) || Number(value) > MAX_TIMER_MS) {
-        throw new Error(
-            'TRAVEL_SWEEP_INTERVAL_MS must be an integer between 0 and 2147483647 milliseconds (0 disables the periodic sweep)',
-        );
-    }
-    return { sweepIntervalMs: Number(value) };
+    return {
+        sweepIntervalMs: parseSweepIntervalMs(
+            'TRAVEL_SWEEP_INTERVAL_MS',
+            env.TRAVEL_SWEEP_INTERVAL_MS,
+        ),
+    };
 }
 
 export function readTravelEnv(source: Record<string, unknown>): TravelEnv {

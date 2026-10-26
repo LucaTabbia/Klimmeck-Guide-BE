@@ -2,6 +2,11 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AbandonQuestRequest {
+  id: String!
+  questId: String!
+}
+
 input AcceptQuestRequest {
   id: String!
   questId: String!
@@ -35,6 +40,12 @@ type AuthSession {
   accessTokenExpiresAt: DateTime!
   refreshToken: String!
   user: User!
+}
+
+type AwaitingAid {
+  aidQuest: ID!
+  quest: ID!
+  since: DateTime!
 }
 
 type BaseDamage {
@@ -78,6 +89,7 @@ type CharacterQuests {
 
 type CharacterStatus {
   activeTravel: ActiveTravel
+  awaitingAid: AwaitingAid
   coins: Coins!
   currentLifePoints: Int!
   injuries: [InjuryType!]!
@@ -166,6 +178,11 @@ input CoinsInput {
 type CommonResponse {
   response: String!
   successful: Boolean!
+}
+
+input CompletePendingRequestInput {
+  outcomes: [ParticipantOverrideInput!]
+  pendingQuestId: ID!
 }
 
 input CreateCharacterInput {
@@ -278,6 +295,11 @@ enum InjuryType {
 
 union ItemUnion = EquipmentItem | LootItem
 
+input ItemUsageInput {
+  item: ID!
+  quantity: Int!
+}
+
 type LootItem {
   buyPrice: Coins
   description: String!
@@ -301,7 +323,9 @@ type Lore {
 }
 
 type Mutation {
+  abandonQuest(request: AbandonQuestRequest!): CommonResponse!
   acceptQuest(request: AcceptQuestRequest!): CommonResponse!
+  completePendingRequest(input: CompletePendingRequestInput!): [QuestResult!]!
   createCharacter(input: CreateCharacterInput!): User!
   deleteCharacter: User!
   doTransaction(request: TransactionRequest!): CommonResponse!
@@ -319,17 +343,57 @@ type Mutation {
   useSpell(request: UseSpellRequest!): CommonResponse!
 }
 
+input ParticipantOverrideInput {
+  characterId: ID!
+  consumablesUsed: [ItemUsageInput!]
+  hpAfter: Int
+  injuries: [InjuryType!]
+  spellsUsed: [SpellUsageInput!]
+}
+
 type PathResponse {
   distance: Float!
   time: Float!
 }
 
 type PendingQuest {
+  arrivedAt: DateTime
   id: ID!
   pointsSpent: Int!
   quest: Quest!
   startDate: DateTime
   waitingTime: Float!
+}
+
+type PendingRequest {
+  character: PendingRequestCharacter!
+  id: ID!
+  pointsSpent: Int!
+  quest: PendingRequestQuest!
+  startDate: DateTime
+  user: PendingRequestUser!
+}
+
+type PendingRequestCharacter {
+  activeTravel: ActiveTravel
+  awaitingAid: AwaitingAid
+  id: ID!
+  location: ID!
+  name: String!
+  title: String!
+}
+
+type PendingRequestQuest {
+  id: ID!
+  registeredAdventurers: [QuestRegistration!]!
+  requiredAdventurers: [QuestPartySlot!]!
+  title: String!
+  type: String!
+}
+
+type PendingRequestUser {
+  id: ID!
+  twitchId: String!
 }
 
 type Pet {
@@ -400,6 +464,7 @@ type PushDeliveryReport {
 }
 
 enum PushEventType {
+  questCancelled
   questEnd
   streamerLive
   travelEnd
@@ -432,11 +497,13 @@ type Query {
   me: User!
   pendingQuest(id: String!): PendingQuest!
   pendingQuests: [PendingQuest!]!
+  pendingRequests: [PendingRequest!]!
   pet(id: String!): Pet!
   pets: [Pet!]!
   pointOfInterest(id: String!): PointOfInterest!
   pointOfInterests: [PointOfInterest!]!
   quest(id: String!): Quest!
+  questResult(id: String!): QuestResult!
   quests: [Quest!]!
   raceTraits: [RaceTraits!]!
   serverTime: DateTime!
@@ -464,6 +531,14 @@ type QuestInfos {
   type: String!
 }
 
+enum QuestOutcome {
+  death
+  failure
+  gmCompleted
+  rescued
+  success
+}
+
 type QuestPartySlot {
   count: Int!
   title: String
@@ -473,11 +548,13 @@ type QuestPrizes {
   prizeCoins: Coins
   prizeItem: AssetQuantity
   randomLoot: [AssetQuantity!]!
+  spell: Spell
   xpPrize: Int
 }
 
 type QuestRegistration {
   character: ID!
+  registeredAt: DateTime
   title: String!
 }
 
@@ -486,6 +563,43 @@ type QuestRequirements {
   recommendedLoot: [AssetQuantity!]!
   requiredAdventurers: [QuestPartySlot!]!
   requiredPoints: Int
+}
+
+type QuestResult {
+  character: ID!
+  consumablesUsed: [AssetQuantity!]!
+  enemy: Enemy
+  hpAfter: Int!
+  hpBefore: Int!
+  id: ID!
+  injuriesAdded: [InjuryType!]!
+  levelAfter: Int!
+  levelBefore: Int!
+  maxLifePoints: Int!
+  outcome: QuestOutcome!
+  quest: QuestResultQuest!
+  rescuedCharacters: [ID!]!
+  resolvedAt: DateTime!
+  rewards: QuestRewards!
+  spellLearned: Spell
+  spellsUsed: [SpellUsage!]!
+  titleAfter: String!
+  titleBefore: String!
+  user: ID!
+  xpAfter: Int!
+  xpBefore: Int!
+  xpGained: Int!
+}
+
+type QuestResultQuest {
+  id: ID!
+  title: String!
+  type: String!
+}
+
+type QuestRewards {
+  coins: Coins!
+  items: [AssetQuantity!]!
 }
 
 type RaceTraits {
@@ -553,8 +667,21 @@ type Spell {
   useType: String!
 }
 
+type SpellUsage {
+  spell: Spell
+  usages: Int!
+}
+
+input SpellUsageInput {
+  spell: ID!
+  usages: Int!
+}
+
 type Subscription {
   characterUpdated(id: String!): Character!
+  pendingRequestsUpdated: [PendingRequest!]!
+  questResultReceived(characterId: String!): QuestResult!
+  questUpdated(questId: String!): Quest!
   userUpdated: User!
 }
 

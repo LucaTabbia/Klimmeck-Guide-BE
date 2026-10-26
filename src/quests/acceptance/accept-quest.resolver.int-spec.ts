@@ -20,7 +20,8 @@ import { User, UserDocument } from 'src/models/user.model';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
 import { QuestsModule } from 'src/quests/quests.module';
 import { RoadsService } from 'src/roads/roads.service';
-import { QUEUE_CALL_TIMEOUT } from 'src/travel/queue-call-timeout';
+import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { TRAVEL_QUEUE } from 'src/travel/travel-job';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import {
@@ -148,6 +149,7 @@ describe('acceptQuest (wire)', () => {
     let world: World;
     const opened: OpenSubscription<unknown>[] = [];
     const queue = new FakeTravelQueue();
+    const questQueue = new FakeTravelQueue();
 
     beforeAll(async () => {
         harness = await createCharactersTestApp({
@@ -155,6 +157,10 @@ describe('acceptQuest (wire)', () => {
             // coda del viaggio automatico senza Redis
             overrides: [
                 { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+                {
+                    token: getQueueToken(QUEST_RESOLUTION_QUEUE),
+                    useValue: questQueue,
+                },
                 { token: QUEUE_CALL_TIMEOUT, useValue: 50 },
             ],
         });
@@ -188,6 +194,7 @@ describe('acceptQuest (wire)', () => {
         );
         await harness.clearDatabase();
         queue.reset();
+        questQueue.reset();
     });
 
     afterAll(async () => {
@@ -228,6 +235,7 @@ describe('acceptQuest (wire)', () => {
             location?: Types.ObjectId;
             completedQuests?: Types.ObjectId[];
             activeTravel?: Record<string, unknown>;
+            awaitingAid?: Record<string, unknown>;
         } = {},
     ): Promise<TestPlayer> {
         const base = buildCharacter();
@@ -241,6 +249,7 @@ describe('acceptQuest (wire)', () => {
                     location: options.location ?? world.cityMarker,
                     title: options.title ?? 'rookie',
                     activeTravel: options.activeTravel ?? null,
+                    awaitingAid: options.awaitingAid ?? null,
                 },
                 quests: {
                     completedQuests: options.completedQuests ?? [],
@@ -424,6 +433,28 @@ describe('acceptQuest (wire)', () => {
             arrange: async () => {
                 const player = await playerWith('elsewhere', {
                     location: await otherCityMarker(),
+                });
+                return {
+                    player,
+                    request: {
+                        id: characterIdOf(player),
+                        questId: await questOf('hunt'),
+                    },
+                };
+            },
+        },
+        {
+            name: 'a character awaiting aid, even travelling',
+            code: 'AWAITING_AID',
+            message: 'Il tuo personaggio è in attesa di soccorso',
+            arrange: async () => {
+                const player = await playerWith('wounded', {
+                    activeTravel: activeTravel(),
+                    awaitingAid: {
+                        quest: new Types.ObjectId(),
+                        aidQuest: new Types.ObjectId(),
+                        since: new Date(),
+                    },
                 });
                 return {
                     player,

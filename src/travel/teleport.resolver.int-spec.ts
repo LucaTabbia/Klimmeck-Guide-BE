@@ -14,8 +14,9 @@ import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { RoadsService } from 'src/roads/roads.service';
+import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { TravelCompletionService } from './travel-completion.service';
-import { QUEUE_CALL_TIMEOUT } from './queue-call-timeout';
+import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
 import { TravelModule } from './travel.module';
 import { TravelService } from './travel.service';
@@ -76,6 +77,7 @@ describe('teleportCharacter', () => {
     let seq = 0;
     const clock = new FixedClock(STARTED_AT);
     const queue = new FakeTravelQueue();
+    const questQueue = new FakeTravelQueue();
     const push = new FakePushTransport();
 
     beforeAll(async () => {
@@ -84,6 +86,10 @@ describe('teleportCharacter', () => {
             imports: [TravelModule],
             overrides: [
                 { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+                {
+                    token: getQueueToken(QUEST_RESOLUTION_QUEUE),
+                    useValue: questQueue,
+                },
                 { token: QUEUE_CALL_TIMEOUT, useValue: 50 },
                 { token: PushTransport, useValue: push },
                 { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
@@ -108,6 +114,7 @@ describe('teleportCharacter', () => {
     afterEach(async () => {
         await harness.clearDatabase();
         queue.reset();
+        questQueue.reset();
         push.reset();
     });
 
@@ -122,6 +129,7 @@ describe('teleportCharacter', () => {
             pendingQuest?: Types.ObjectId | null;
             activeStoryQuest?: Types.ObjectId | null;
             activeWorldMissionQuest?: Types.ObjectId | null;
+            awaitingAid?: Record<string, unknown> | null;
         } = {},
     ): Promise<TestPlayer> {
         seq += 1;
@@ -136,6 +144,7 @@ describe('teleportCharacter', () => {
                     location,
                     title: 'rookie',
                     activeTravel: null,
+                    awaitingAid: options.awaitingAid ?? null,
                 },
                 quests: {
                     completedQuests: [],
@@ -372,6 +381,34 @@ describe('teleportCharacter', () => {
                 outcome: 'ok',
             });
             expect(push.sent).toEqual([]);
+        });
+
+        // il soccorso non blocca il teleport del GM (D-07): la posizione cambia, l'attesa resta
+        it('lets the innkeeper teleport a character awaiting aid without touching the wait', async () => {
+            const awaitingAid = {
+                quest: new Types.ObjectId(),
+                aidQuest: new Types.ObjectId(),
+                since: STARTED_AT,
+            };
+            const alice = await playerAt(world.markerA, { awaitingAid });
+            const oste = await innkeeper();
+
+            const body = await teleportOnWire(
+                {
+                    id: characterIdOf(alice).toHexString(),
+                    poiId: world.markerB.toHexString(),
+                },
+                oste.bearer,
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.teleportCharacter).toEqual({
+                response: 'Personaggio teletrasportato',
+                successful: true,
+            });
+            const raw = await rawCharacter(alice);
+            expect(raw?.status.location).toEqual(world.markerB);
+            expect(raw?.status.awaitingAid).toEqual(awaitingAid);
         });
 
         it('answers the teleport even when the job removal hangs', async () => {

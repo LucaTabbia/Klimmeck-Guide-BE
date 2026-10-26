@@ -16,6 +16,7 @@ const FOREIGN_ID = '64b000000000000000000002';
 const USER_ID = '64b0000000000000000000aa';
 const PQ_ID = '64b0000000000000000000b1';
 const FOREIGN_PQ_ID = '64b0000000000000000000b2';
+const RESULT_ID = '64b0000000000000000000c1';
 
 function buildIdentity(role: RoleType = RoleType.adventurer): AuthIdentity {
     return { userId: USER_ID, twitchId: 'twitch-1', role };
@@ -29,6 +30,8 @@ describe('CharacterAccessPolicy', () => {
     } | null;
     let characterModel: { exists: jest.Mock; findOne: jest.Mock };
     let pendingQuestModel: { exists: jest.Mock };
+    let resultDoc: { user: Types.ObjectId } | null;
+    let questResultModel: { findById: jest.Mock };
     let policy: CharacterAccessPolicy;
 
     beforeEach(() => {
@@ -54,10 +57,17 @@ describe('CharacterAccessPolicy', () => {
                 .fn()
                 .mockResolvedValue({ _id: new Types.ObjectId(FOREIGN_PQ_ID) }),
         };
+        resultDoc = { user: new Types.ObjectId(USER_ID) };
+        questResultModel = {
+            findById: jest.fn().mockImplementation(() => ({
+                lean: () => ({ exec: () => Promise.resolve(resultDoc) }),
+            })),
+        };
         policy = new CharacterAccessPolicy(
             userModel as never,
             characterModel as never,
             pendingQuestModel as never,
+            questResultModel as never,
         );
     });
 
@@ -351,7 +361,74 @@ describe('CharacterAccessPolicy', () => {
         });
     });
 
+    describe('authorizeQuestResult', () => {
+        it('reports a malformed id as not found without reading', async () => {
+            await expect(
+                policy.authorizeQuestResult(buildIdentity(), 'not-an-id'),
+            ).rejects.toMatchObject({ code: AuthorizationErrorCode.NOT_FOUND });
+            expect(questResultModel.findById).not.toHaveBeenCalled();
+        });
+
+        it('reports a missing result as not found', async () => {
+            resultDoc = null;
+
+            const result = policy.authorizeQuestResult(
+                buildIdentity(),
+                RESULT_ID,
+            );
+
+            await expect(result).rejects.toBeInstanceOf(
+                ResourceNotFoundException,
+            );
+            await expect(result).rejects.toMatchObject({
+                code: AuthorizationErrorCode.NOT_FOUND,
+                message: 'Risultato non trovato',
+            });
+        });
+
+        it('grants owner access to the user of the result with a single projected read', async () => {
+            await expect(
+                policy.authorizeQuestResult(buildIdentity(), RESULT_ID),
+            ).resolves.toBe(ResourceAccess.owner);
+            expect(questResultModel.findById).toHaveBeenCalledWith(RESULT_ID, {
+                user: 1,
+            });
+            expect(userModel.findById).not.toHaveBeenCalled();
+        });
+
+        it.each([RoleType.adventurer, RoleType.innkeeper])(
+            'forbids the %s on a result of another user',
+            async (role) => {
+                resultDoc = { user: new Types.ObjectId(FOREIGN_ID) };
+
+                const result = policy.authorizeQuestResult(
+                    buildIdentity(role),
+                    RESULT_ID,
+                );
+
+                await expect(result).rejects.toBeInstanceOf(
+                    AuthorizationException,
+                );
+                await expect(result).rejects.toMatchObject({
+                    code: AuthorizationErrorCode.FORBIDDEN,
+                    message: 'Questo risultato non ti appartiene',
+                });
+            },
+        );
+    });
+
     describe('authorize', () => {
+        it('delegates the quest result resource to authorizeQuestResult', async () => {
+            await expect(
+                policy.authorize(
+                    buildIdentity(),
+                    OwnedResource.questResult,
+                    RESULT_ID,
+                ),
+            ).resolves.toBe(ResourceAccess.owner);
+            expect(questResultModel.findById).toHaveBeenCalledTimes(1);
+        });
+
         it('delegates the pending quest resource to authorizePendingQuest', async () => {
             await expect(
                 policy.authorize(

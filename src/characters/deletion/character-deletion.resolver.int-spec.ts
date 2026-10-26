@@ -13,6 +13,7 @@ import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
+import { QuestsModule } from 'src/quests/quests.module';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { createAuthenticatedUser } from '../../../test/auth/test-tokens';
 import {
@@ -46,6 +47,8 @@ const CREATE_CHARACTER = `
 `;
 
 const CHARACTER_QUERY = 'query($id: String!) { character(id: $id) { id } }';
+
+const QUESTS_QUERY = 'query { quests { id } }';
 
 const USER_UPDATED =
     'subscription { userUpdated { id currentCharacter { id } } }';
@@ -162,7 +165,11 @@ describe('deleteCharacter (wire)', () => {
 
     beforeAll(async () => {
         harness = await createCharactersTestApp({
-            imports: [CharacterDeletionModule, CharacterCreationModule],
+            imports: [
+                CharacterDeletionModule,
+                CharacterCreationModule,
+                QuestsModule,
+            ],
         });
         users = harness.connection.model<UserDocument>(User.name);
         characters = harness.connection.model<CharacterDocument>(
@@ -569,6 +576,50 @@ describe('deleteCharacter (wire)', () => {
             expect(raw?.quests.pendingQuest).toEqual(pq);
             expect(raw?.status.activeTravel).toEqual(travel);
             expect(await rawSeats(quest._id)).toEqual([]);
+        });
+
+        it('closes the aids left without wounded and keeps the shared ones open', async () => {
+            const alice = await createPlayer(harness, {
+                twitchId: 'twitch-del-alice',
+            });
+            const deleted = alice.character?._id as Types.ObjectId;
+            const aid = await persistQuest(quests, {
+                infos: { ...buildQuest().infos, type: 'aid' },
+                rescue: {
+                    characters: [deleted],
+                    failedQuest: new Types.ObjectId(),
+                },
+                concludedAt: null,
+            });
+            const someoneElse = new Types.ObjectId();
+            const sharedAid = await persistQuest(quests, {
+                infos: { ...buildQuest().infos, type: 'aid' },
+                rescue: {
+                    characters: [deleted, someoneElse],
+                    failedQuest: new Types.ObjectId(),
+                },
+                concludedAt: null,
+            });
+            const t0 = new Date();
+
+            deletedUserOf(await deleteAs(alice.bearer));
+
+            const raw = await quests.collection.findOne({ _id: aid._id });
+            expect(raw?.concludedAt).toBeInstanceOf(Date);
+            expect((raw?.concludedAt as Date).getTime()).toBeGreaterThanOrEqual(
+                t0.getTime(),
+            );
+            const listed = await call(QUESTS_QUERY, alice.bearer);
+            expect(listed.errors).toBeUndefined();
+            const listedIds = (listed.data?.quests as { id: string }[]).map(
+                (quest) => quest.id,
+            );
+            expect(listedIds).not.toContain(String(aid._id));
+            const shared = await quests.collection.findOne({
+                _id: sharedAid._id,
+            });
+            expect(shared?.concludedAt).toBeNull();
+            expect(shared?.rescue?.characters).toEqual([someoneElse]);
         });
 
         it('releases the seats once under concurrent deletions', async () => {

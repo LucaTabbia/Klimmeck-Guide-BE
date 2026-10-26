@@ -13,6 +13,17 @@ export const QUEST_LANES: readonly QuestLane[] = [
     QuestLane.worldMission,
 ];
 
+// solo le corsie che il GM completa a mano (D-22): la standard si risolve da sola alla scadenza
+export type GmLane = QuestLane.story | QuestLane.worldMission;
+
+export const GM_LANES: readonly GmLane[] = [
+    QuestLane.story,
+    QuestLane.worldMission,
+];
+
+export const isGmLane = (lane: QuestLane): lane is GmLane =>
+    (GM_LANES as readonly QuestLane[]).includes(lane);
+
 export type QuestLanePath = `quests.${QuestLane}`;
 
 export function laneOf(type: QuestType): QuestLane {
