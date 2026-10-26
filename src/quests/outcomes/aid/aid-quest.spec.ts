@@ -2,7 +2,7 @@ import { Types } from 'mongoose';
 import {
     AID_TITLE_PREFIX,
     AidSourceQuest,
-    aidSeatsOf,
+    aidSlotsOf,
     buildAidQuest,
 } from 'src/quests/outcomes/aid/aid-quest';
 import { QuestType } from 'src/models/enums/quest-type.enum';
@@ -59,13 +59,20 @@ describe('buildAidQuest', () => {
         expect(aid.infos.relatedLore).toEqual([LORE_ID]);
     });
 
-    it('opens as many wildcard seats as the failed quest, at no cost, keeping the minimum title', () => {
+    it('opens the same seats as the failed quest, at no cost, keeping the minimum title', () => {
         expect(aid.requirements).toEqual({
             minTitle: 'hero',
             requiredPoints: null,
-            requiredAdventurers: [{ title: null, count: 5 }],
+            requiredAdventurers: [{ title: 'hero', count: 5 }],
             recommendedLoot: [],
         });
+    });
+
+    it('copies the seats without sharing references', () => {
+        const source = original.requirements?.requiredAdventurers as unknown[];
+
+        expect(aid.requirements.requiredAdventurers).not.toBe(source);
+        expect(aid.requirements.requiredAdventurers[0]).not.toBe(source[0]);
     });
 
     it('copies the prizes without sharing references', () => {
@@ -108,7 +115,7 @@ describe('buildAidQuest', () => {
         expect(chained.rescue.failedQuest).toEqual(ORIGINAL_ID);
         expect(chained.rescue.characters).toEqual([RESCUER_ID]);
         expect(chained.requirements.requiredAdventurers).toEqual([
-            { title: null, count: 5 },
+            { title: 'hero', count: 5 },
         ]);
         expect(chained.infos.title).toBe(
             `${AID_TITLE_PREFIX}Il drago di Valantar`,
@@ -144,19 +151,27 @@ describe('buildAidQuest', () => {
     });
 });
 
-describe('aidSeatsOf', () => {
-    it('sums the seats of every slot of the failed quest', () => {
-        expect(aidSeatsOf([{ title: TitleType.hero, count: 5 }])).toBe(5);
-        expect(
-            aidSeatsOf([
+describe('aidSlotsOf', () => {
+    it.each([
+        ['a single rank slot', [{ title: TitleType.hero, count: 5 }]],
+        [
+            'rank and wildcard slots',
+            [
                 { title: TitleType.paladin, count: 1 },
                 { title: null, count: 2 },
-            ]),
-        ).toBe(3);
+            ],
+        ],
+        ['a single-adventurer quest', [{ title: null, count: 1 }]],
+    ])('copies the seats of %s', (_label, slots) => {
+        const copied = aidSlotsOf(slots);
+
+        expect(copied).toEqual(slots);
+        expect(copied).not.toBe(slots);
+        copied.forEach((slot, index) => expect(slot).not.toBe(slots[index]));
     });
 
-    it('opens one seat for a single-adventurer quest', () => {
-        expect(aidSeatsOf([{ title: null, count: 1 }])).toBe(1);
+    it('reads a missing title as a wildcard seat', () => {
+        expect(aidSlotsOf([{ count: 2 }])).toEqual([{ title: null, count: 2 }]);
     });
 
     it.each([
@@ -167,9 +182,9 @@ describe('aidSeatsOf', () => {
         ['an invalid slot', [{ title: null, count: 0 }]],
         ['an unknown title', [{ title: 'emperor', count: 2 }]],
     ])(
-        'falls back to one seat when the slots are %s (T-09-86)',
+        'falls back to one wildcard seat when the slots are %s (T-09-86)',
         (_label, value) => {
-            expect(aidSeatsOf(value)).toBe(1);
+            expect(aidSlotsOf(value)).toEqual([{ title: null, count: 1 }]);
         },
     );
 });

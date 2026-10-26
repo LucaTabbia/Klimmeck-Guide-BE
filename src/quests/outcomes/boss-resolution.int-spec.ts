@@ -28,6 +28,10 @@ const FRESH_STATUS = {
     coins: { gold: 0, silver: 0, copper: 0 },
 };
 const THREE_SEATS = [{ title: null, count: 3 }];
+const RANKED_SEATS = [
+    { title: 'rookie', count: 2 },
+    { title: null, count: 1 },
+];
 
 describe('QuestResolutionService.resolveStandard for a boss group (replSet)', () => {
     let world: OutcomeHarness;
@@ -60,7 +64,7 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         await world.harness.close();
     });
 
-    async function bossQuest() {
+    async function bossQuest(seats: unknown[] = THREE_SEATS) {
         const foe = (await persistEnemy(world.models.enemies, {
             xp: 100,
         })) as { _id: Types.ObjectId };
@@ -73,7 +77,7 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
             },
             requirements: {
                 ...buildQuest().requirements,
-                requiredAdventurers: THREE_SEATS,
+                requiredAdventurers: seats,
             },
             prizes: { ...buildQuest().prizes, xpPrize: 50 },
         };
@@ -228,7 +232,10 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
     });
 
     it('leaves the boss open when the party loses, one aid for the whole party', async () => {
-        const { a, b } = await group();
+        const a = await quester({
+            questOverrides: await bossQuest(RANKED_SEATS),
+        });
+        const b = await quester({ quest: a.quest });
         scripted.willEnd('failure');
 
         await expect(service.resolveStandard(triggerOf(a))).resolves.toBe(
@@ -241,9 +248,7 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         const created = await aids();
         expect(created).toHaveLength(1);
         const [aid] = created;
-        expect(aid.requirements.requiredAdventurers).toEqual([
-            { title: null, count: 3 },
-        ]);
+        expect(aid.requirements.requiredAdventurers).toEqual(RANKED_SEATS);
         expect(aid.rescue.characters.map(String).sort()).toEqual(
             [String(a.characterId), String(b.characterId)].sort(),
         );
