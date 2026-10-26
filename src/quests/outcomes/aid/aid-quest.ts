@@ -2,14 +2,9 @@ import { Types } from 'mongoose';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
-import { slotsOf } from 'src/quests/acceptance/quest-capacity';
+import { RankSlot, slotsOf } from 'src/quests/acceptance/quest-capacity';
 
 export const AID_TITLE_PREFIX = 'Soccorso: ';
-
-export interface AidSlot {
-    title: TitleType | null;
-    count: number;
-}
 
 export interface AidSourceQuest {
     _id: Types.ObjectId;
@@ -48,7 +43,7 @@ export interface AidQuestDraft {
     requirements: {
         minTitle: TitleType | null;
         requiredPoints: null;
-        requiredAdventurers: AidSlot[];
+        requiredAdventurers: RankSlot[];
         recommendedLoot: unknown[];
     };
     prizes: {
@@ -82,7 +77,7 @@ function clonedPrizesOf(
 }
 
 // posti della aid identici a quelli della quest fallita (utente 2026-10-26: "I posti della aid sono identici a quelli della missione da cui è nata."); slot assenti o non validi ⇒ un posto jolly, mai una aid inaccettabile (T-09-86)
-export function aidSlotsOf(requiredAdventurers: unknown): AidSlot[] {
+export function aidSlotsOf(requiredAdventurers: unknown): RankSlot[] {
     const slots = slotsOf(requiredAdventurers);
     if (slots === 'invalid') return [{ title: null, count: 1 }];
     return slots.map(({ title, count }) => ({ title, count }));
