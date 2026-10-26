@@ -24,6 +24,7 @@ export abstract class ChangeStreamPublisher<TDocument>
 {
     protected readonly logger = new Logger(this.constructor.name);
     private changeStream?: ReturnType<Model<TDocument>['watch']>;
+    private closing = false;
 
     protected constructor(
         private readonly model: Model<TDocument>,
@@ -36,9 +37,9 @@ export abstract class ChangeStreamPublisher<TDocument>
         this.changeStream = options
             ? this.model.watch(pipeline, options)
             : this.model.watch(pipeline);
-        this.changeStream.on('change', (change: ChangeStreamEvent) =>
-            this.onChange(change),
-        );
+        this.changeStream.on('change', (change: ChangeStreamEvent) => {
+            if (!this.closing) this.onChange(change);
+        });
         this.changeStream.on('error', (error: unknown) =>
             this.logger.error(
                 `Errore nel change stream ${subject}: ${describeError(error)}`,
@@ -46,14 +47,22 @@ export abstract class ChangeStreamPublisher<TDocument>
         );
     }
 
+    // una lettura già partita non pubblica su un'app in chiusura; il listener di error resta (un error senza listener abbatte il processo)
     async onModuleDestroy(): Promise<void> {
+        this.closing = true;
         await this.changeStream?.close();
+        this.changeStream?.removeAllListeners('change');
+    }
+
+    protected get stopping(): boolean {
+        return this.closing;
     }
 
     protected publish<TKey extends PubSubKey>(
         routingKey: TKey,
         ...args: PubSubEvents[TKey]
     ): void {
+        if (this.closing) return;
         this.pubSub.publish(routingKey, ...args);
     }
 

@@ -44,6 +44,7 @@ export class PendingRequestsPublisher extends ChangeStreamPublisher<PendingQuest
     }
 
     private async publishOnce(): Promise<void> {
+        if (this.stopping) return;
         try {
             const pendingRequestsUpdated = await this.requests.list();
             this.publish('pendingRequestsUpdated', { pendingRequestsUpdated });

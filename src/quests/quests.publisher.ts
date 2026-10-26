@@ -46,6 +46,7 @@ export class QuestsPublisher extends ChangeStreamPublisher<QuestDocument> {
     // lo stream resta sempre aperto (aprirlo al primo subscriber perderebbe gli update fra snapshot e cursore, Pitfall 9):
     // si salta solo la rilettura popolata quando nessuno ascolta quella quest
     private async publishUpdated(questId: string): Promise<void> {
+        if (this.stopping) return;
         if (!this.subscribers.hasSubscribers(`questUpdated:${questId}`)) return;
         try {
             const questUpdated = await this.quests.findOne(questId);
