@@ -297,7 +297,14 @@ Plans:
   4. L'archivio di un personaggio registrato a una quest **avviata** lascia la registrazione come segnaposto (posti pieni, `QUEST_FULL`, `questUpdated` emesso con il segnaposto) e la quest si risolve con chi resta; prima dell'avvio il posto è liberato come oggi; un roster di soli segnaposto riporta la quest a non avviata.
   5. `src/schema.gql` cambia solo in modo additivo e il handoff risponde alle domande della FE (`Klimmeck-Guide/.planning/phases/09-combat-result-sheet/BACKEND-NOTES.md` §2.5).
   6. La morte di un personaggio (aid fallita o timeout) lo archivia **senza** staccare `User.currentCharacter`; la conferma del suo risultato `death` lo stacca nella stessa transazione e solo allora `userUpdated` emette `currentCharacter: null`; `createCharacter` resta rifiutato fino alla conferma; `me` restituisce il morto come corrente nel frattempo. _(Utente 2026-10-27, D-12.)_
-**Plans**: TBD
+**Plans**: 7 plans
+- [ ] 09.2-01-PLAN.md — Wave 1: RED del contratto nel boot reale (Wave 0), campo di conferma con default null, indice, marcatore del segnaposto (BE-RESULT-01, BE-RESULT-04)
+- [ ] 09.2-02-PLAN.md — Wave 2: lista dei non confermati dell'utente e conferma owner-only idempotente (BE-RESULT-01, BE-RESULT-02)
+- [ ] 09.2-03-PLAN.md — Wave 2: archivio con segnaposto sulle quest avviate, archivi concorrenti, questUpdated (BE-RESULT-03)
+- [ ] 09.2-04-PLAN.md — Wave 3: indice e backfill al boot mai bloccanti, campo sulle letture (BE-RESULT-01, BE-RESULT-04)
+- [ ] 09.2-05-PLAN.md — Wave 3: risoluzione con segnaposto, conferma nulla su ogni esito, regola dei posti sul filo (BE-RESULT-01, BE-RESULT-03)
+- [ ] 09.2-06-PLAN.md — Wave 4: il morto resta corrente fino alla conferma della morte (D-12) (BE-RESULT-02)
+- [ ] 09.2-07-PLAN.md — Wave 5: gate, handoff FE Phase 9, emendamenti 09/03.1, traceability (BE-RESULT-01..04)
 **Unblocks (FE)**: FE Phase 9 Combat Result Sheet (COMBAT-09 risultati mai persi, COMBAT-10 quest avviate strappate). Contratto proposto dal FE in `Klimmeck-Guide/.planning/phases/09-combat-result-sheet/BACKEND-NOTES.md`; decisioni in `09.2-CONTEXT.md`.
 **Branch**: `feat/09.2-quest-result-delivery-contract` da `develop` → PR a `develop`; la Phase 10 (`feat/10-hardening`) si sposta sopra questo branch (stacked) e apre la PR dopo la merge.
 
@@ -347,5 +354,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
-| 9.2. Quest Result Delivery Contract | 0/TBD | Not started | - |
+| 9.2. Quest Result Delivery Contract | 0/7 | Not started | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |

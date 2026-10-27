@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 9.2 context gathered (2026-10-27) on feat/09.2-quest-result-delivery-contract; Phase 10 context gathered on feat/10-hardening (to restack on 9.2), to plan after the 9.2 PR
-last_updated: "2026-10-27T20:30:00.000Z"
-last_activity: "2026-10-27 -- Phase 9.2 inserted and context gathered (unacknowledged results + ack + acknowledgedAt, seats of started quests kept); 9.1 merged (PR #14)"
+status: executing
+stopped_at: Phase 9.2 planned (2026-10-27), ready to execute on feat/09.2-quest-result-delivery-contract; Phase 10 context gathered on feat/10-hardening (stacked on 9.2)
+last_updated: "2026-10-27T20:42:32.984Z"
+last_activity: "2026-10-27 -- Phase 9.2 planned: 7 plans in 5 waves (unconfirmed-results list, idempotent confirmation with the deferred unlink at death, placeholder seats on started quests, maintenance provider, gate)"
 progress:
   total_phases: 13
-  completed_phases: 12
-  total_plans: 117
-  completed_plans: 117
-  percent: 100
+  completed_phases: 11
+  total_plans: 114
+  completed_plans: 107
+  percent: 94
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 9.2 (Quest Result Delivery Contract) — CONTEXT GATHERED (2026-10-27) on `feat/09.2-quest-result-delivery-contract` off `develop`; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, to restack on 9.2
-Plan: Not started
-Status: Phase 9.2 context gathered (2026-10-27, D-01..D-11) — ready to plan (`/gsd-plan-phase 9.2`); Phase 10 ready to plan after the 9.2 PR (rebase `feat/10-hardening` on the 9.2 branch first); Phase 9.1 merged on `develop` (PR #14)
-Last activity: 2026-10-27 -- Phase 9.2 inserted and context gathered; 9.1 merged (PR #14)
+Phase: 9.2 (Quest Result Delivery Contract) — PLANNED (2026-10-27): 7 plans in 5 waves on `feat/09.2-quest-result-delivery-contract` off `develop`; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2
+Plan: 0 of 7
+Status: Phase 9.2 planned (2026-10-27: 7 plans / 5 waves, passed the plan-checker after one revision round) — ready to execute with `/gsd-execute-phase 9.2`; Phase 10 to plan after the 9.2 PR
+Last activity: 2026-10-27 -- Phase 9.2 planned: 7 plans in 5 waves (unconfirmed-results list, idempotent confirmation with the deferred unlink at death, placeholder seats on started quests, maintenance provider, gate)
 
 Progress: [██████████] 100% (phases 1–9 and 9.1 complete; 9.2 and 10 to plan — 9.2 first, 10 stacked on it)
 
