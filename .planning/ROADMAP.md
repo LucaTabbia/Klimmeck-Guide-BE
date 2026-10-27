@@ -305,7 +305,7 @@ Plans:
 - [x] 09.1-09-PLAN.md — Wave 3: esiti in spesa (`spellsSpent` sullo stato con `dueAt`, mirror) e `OutcomeWriter` con `enqueueTrigger` e `jobId` deterministico
 - [x] 09.1-05-PLAN.md — Wave 4: `equipSpell` con update pipeline (usi dallo stato) e `unequipSpell` neutro
 - [x] 09.1-06-PLAN.md — Wave 5: `useSpell` su stato e mirror con trigger best-effort, fixture su `spellBook`, rimozione dei vecchi builder e di `SPELL_RECOVERY_UNAVAILABLE`
-- [ ] 09.1-07-PLAN.md — Wave 6: `spellsOnTheWire` in `findOne` (usi dallo stato, orfani scartati), prove su `character` e `characterUpdated`
+- [x] 09.1-07-PLAN.md — Wave 6: `spellsOnTheWire` in `findOne` (usi dallo stato, orfani scartati), prove su `character` e `characterUpdated`
 - [ ] 09.1-10-PLAN.md — Wave 7: gate (suite complete, schema additivo), handoff `BACKEND-NOTES.md` per la FE Phase 8, traceability
 **Unblocks (FE)**: FE Phase 8 (SPELL-05 countdown; il piano finale della FE seleziona `spellStates` solo dopo questa PR).
 **Branch**: `feat/09.1-spell-state-and-recovery-contract` da `develop` → PR a `develop`; la Phase 10 parte da questo branch (stacked).
@@ -355,5 +355,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
-| 9.1. Spell State and Recovery Contract | 8/10 | In Progress | - |
+| 9.1. Spell State and Recovery Contract | 9/10 | In Progress | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
