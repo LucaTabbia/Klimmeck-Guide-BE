@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import { Types, UpdateWithAggregationPipeline } from 'mongoose';
 import { idForms } from 'src/mongo/document-id';
 
 // il FE riceve al più un arretrato di 50 fogli e conferma ognuno alla chiusura (D-02)
@@ -42,6 +42,6 @@ export const LEGACY_RESULTS_FILTER = {
 } as const;
 
 // il primo cold start del FE non deve ricevere lo storico: confermati all'istante della risoluzione
-export function legacyResultsBackfill() {
+export function legacyResultsBackfill(): UpdateWithAggregationPipeline {
     return [{ $set: { acknowledgedAt: '$resolvedAt' } }];
 }

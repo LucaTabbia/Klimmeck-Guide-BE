@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, UpdateWithAggregationPipeline } from 'mongoose';
+import { Model } from 'mongoose';
 import {
     QuestResult,
     QuestResultDocument,
@@ -49,10 +49,7 @@ export class QuestResultMaintenance implements OnApplicationBootstrap {
 
     async backfill(): Promise<number> {
         const { modifiedCount } = await this.questResultModel
-            .updateMany(
-                LEGACY_RESULTS_FILTER,
-                legacyResultsBackfill() as unknown as UpdateWithAggregationPipeline,
-            )
+            .updateMany(LEGACY_RESULTS_FILTER, legacyResultsBackfill())
             .exec();
         return modifiedCount;
     }
