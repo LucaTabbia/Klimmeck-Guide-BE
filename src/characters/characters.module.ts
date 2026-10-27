@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BullModule } from '@nestjs/bull';
+import { Clock, SystemClock } from 'src/auth/clock';
 import { AuthzModule } from 'src/authz/authz.module';
 import { EconomyModule } from 'src/economy/economy.module';
 import {
@@ -13,6 +14,10 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
+import {
+    QUEUE_CALL_TIMEOUT,
+    QUEUE_CALL_TIMEOUT_MS,
+} from 'src/queues/queue-call-timeout';
 import { CharactersResolver } from './characters.resolver';
 import { CharactersService } from './characters.service';
 import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
@@ -29,7 +34,12 @@ import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
         AuthzModule,
         EconomyModule,
     ],
-    providers: [CharactersService, CharactersResolver],
+    providers: [
+        CharactersService,
+        CharactersResolver,
+        { provide: Clock, useClass: SystemClock },
+        { provide: QUEUE_CALL_TIMEOUT, useValue: QUEUE_CALL_TIMEOUT_MS },
+    ],
     exports: [CharactersService],
 })
 export class CharactersModule {}
