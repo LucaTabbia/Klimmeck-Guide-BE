@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import type { Job } from 'bull';
 import mongoose, { Model, Types } from 'mongoose';
 import {
     Character,
@@ -13,7 +14,10 @@ import {
     spellBook,
     SpellBookEntry,
 } from '../../../test/fixtures';
+import { SpellRecoveryJobData, spellRecoveryJobId } from './spell-recovery-job';
+import { SpellRecoveryProcessor } from './spell-recovery.processor';
 import { SpellRecoveryService } from './spell-recovery.service';
+import { Sleeper } from './sleeper';
 import { SpellStateMigrator } from './spell-state.migrator';
 
 const CharacterModel: Model<CharacterDocument> =
@@ -360,6 +364,61 @@ describe('SpellRecoveryService (replSet)', () => {
             );
 
             expect(await service.recoverLegacy(id, a)).toBe(false);
+        });
+    });
+
+    describe('processor job early within the clock tolerance', () => {
+        // l'attesa finta fa avanzare lo stesso orologio del credito
+        function processorOn(clock: FixedClock): SpellRecoveryProcessor {
+            const sleeper = {
+                sleep: (ms: number) => {
+                    clock.advanceSeconds(ms / SECOND);
+                    return Promise.resolve();
+                },
+            } as Sleeper;
+            return new SpellRecoveryProcessor(
+                new SpellRecoveryService(
+                    CharacterModel as never,
+                    SpellModel as never,
+                    migrator,
+                    clock,
+                ),
+                clock,
+                sleeper,
+            );
+        }
+
+        it('«Il timer di recupero non si interrompe mai»: waits for the instant, credits it once and stays idempotent under replay', async () => {
+            const dueAt = at(2 * SECOND);
+            const id = await insertBook([
+                {
+                    spell: a,
+                    usages: 1,
+                    recoveries: [dueAt, at(HOUR)],
+                    active: true,
+                },
+            ]);
+            const job = {
+                id: spellRecoveryJobId(id, a, dueAt),
+                data: {
+                    characterId: id.toHexString(),
+                    spellId: a.toHexString(),
+                    dueAt: dueAt.getTime(),
+                },
+            } as Job<SpellRecoveryJobData>;
+            const processor = processorOn(new FixedClock(T));
+
+            await processor.recover(job);
+            const credited = await rawOf(id);
+            await processor.recover(job);
+
+            expect(credited.status.spellStates).toEqual([
+                { spell: a, usages: 2, recoveries: [at(HOUR)] },
+            ]);
+            expect(credited.assets.activeSpells).toEqual([
+                { spell: a, usages: 2 },
+            ]);
+            expect(await rawOf(id)).toEqual(credited);
         });
     });
 });
