@@ -30,7 +30,7 @@ Plan: Not started
 Status: Phase 9.2 context gathered (2026-10-27, D-01..D-11) — ready to plan (`/gsd-plan-phase 9.2`); Phase 10 ready to plan after the 9.2 PR (rebase `feat/10-hardening` on the 9.2 branch first); Phase 9.1 merged on `develop` (PR #14)
 Last activity: 2026-10-27 -- Phase 9.2 inserted and context gathered; 9.1 merged (PR #14)
 
-Progress: [██████████] 100% (phases 1–9 and 9.1 complete; 10 to plan after the 9.1 PR merge)
+Progress: [██████████] 100% (phases 1–9 and 9.1 complete; 9.2 and 10 to plan — 9.2 first, 10 stacked on it)
 
 ## Performance Metrics
 
