@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9.1 (Spell State and Recovery Contract) — EXECUTING (started 2026-10-27), 10 plans in 7 waves; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27), to plan after the 9.1 PR
-Plan: 7 of 10
+Plan: 8 of 10
 Status: Executing Phase 9.1 — sequential executors on `feat/09.1-spell-state-and-recovery-contract`, PR to develop before the FE Phase 8 gate plan 08-12
 Last activity: 2026-10-27 -- Phase 9.1 execution started: 10 plans in 7 waves, sequential executors (PR before the FE Phase 8 gate plan)
 
