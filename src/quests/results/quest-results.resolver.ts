@@ -9,6 +9,7 @@ import {
     OwnsQuestResult,
 } from 'src/authz/ownership/ownership.decorators';
 import { QuestResult } from 'src/models/quest-result/quest-result.model';
+import { objectIdFromHex } from 'src/mongo/document-id';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { QuestResultsService } from './quest-results.service';
 
@@ -24,6 +25,16 @@ export class QuestResultsResolver {
     @Query(() => QuestResult)
     questResult(@Args('id') id: string): Promise<QuestResult> {
         return this.results.findOne(id);
+    }
+
+    // i fogli che il giocatore non ha ancora chiuso, anche dopo la morte del personaggio (D-02): solo i propri, innkeeper compreso
+    @Query(() => [QuestResult])
+    unacknowledgedQuestResults(
+        @CurrentUser() identity: AuthIdentity,
+    ): Promise<QuestResult[]> {
+        const userId = objectIdFromHex(identity.userId);
+        if (!userId) return Promise.resolve([]);
+        return this.results.findUnacknowledged(userId);
     }
 
     // owner-only alla subscribe (C10), nessuno snapshot (D-20): il filtro per evento guarda utente e personaggio del risultato,

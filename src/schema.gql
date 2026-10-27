@@ -511,6 +511,7 @@ type Query {
   spell(id: String!): Spell!
   spells: [Spell!]!
   travelPreview(request: TravelRequest!): TravelPreview!
+  unacknowledgedQuestResults: [QuestResult!]!
   user(id: String!): User!
   users: [User!]!
 }
