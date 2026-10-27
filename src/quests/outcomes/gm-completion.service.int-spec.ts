@@ -11,6 +11,7 @@ import {
     persistEnemy,
     persistLootItem,
     persistSpell,
+    spellBook,
 } from '../../../test/fixtures';
 import {
     createOutcomeHarness,
@@ -24,6 +25,14 @@ import { SequenceChance } from '../../../test/quests/sequence-chance';
 import { GmCompletionService } from './gm-completion.service';
 
 const NOW = new Date('2026-10-24T12:00:00.000Z');
+// mirror e stato coerenti (D-03): gli usi della magia attiva stanno nella voce di stato
+const knowingSpell = (spell: Types.ObjectId, usages: number) => {
+    const book = spellBook([{ spell, usages, active: true }]);
+    return {
+        status: { spells: book.spells, spellStates: book.spellStates },
+        assets: { activeSpells: book.activeSpells },
+    };
+};
 const FRESH_STATUS = {
     xp: 0,
     level: 1,
@@ -271,9 +280,7 @@ describe('GmCompletionService.complete (replSet)', () => {
             recoveryTime: 5000,
         });
         const subject = await storyQuester({
-            characterOverrides: {
-                assets: { activeSpells: [{ spell: spell._id, usages: 2 }] },
-            },
+            characterOverrides: knowingSpell(spell._id, 2),
         });
 
         await service.complete(
