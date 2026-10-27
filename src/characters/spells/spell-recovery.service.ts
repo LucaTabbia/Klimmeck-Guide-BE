@@ -7,7 +7,8 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
-import { isUsageCount, SpellStateMigrator } from './spell-state.migrator';
+import { SpellStateMigrator } from './spell-state.migrator';
+import { isUsageCount } from './spell-state.snapshot';
 import {
     CREDIT_DUE_USAGE,
     CREDIT_LEGACY_USAGE,

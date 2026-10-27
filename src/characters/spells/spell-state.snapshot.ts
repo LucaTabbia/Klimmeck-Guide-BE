@@ -23,6 +23,11 @@ export interface LearnedSpellState {
     recoveries: Date[];
 }
 
+// maxUsages del catalogo utilizzabile: intero non negativo (il catalogo non ha validazione lato DB)
+export function isUsageCount(value: unknown): value is number {
+    return Number.isSafeInteger(value) && (value as number) >= 0;
+}
+
 // per chi legge solo le magie attive (usi dal mirror nella base migrata): nessun catalogo necessario
 export const NO_SPELL_MAX_USAGES: ReadonlyMap<string, number> = new Map();
 

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
+import { isUsageCount } from 'src/characters/spells/spell-state.snapshot';
 import { priceKey } from 'src/economy/trade/trade-line';
-import { isUsageCount } from 'src/characters/spells/spell-state.migrator';
 import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 import {
     Character,

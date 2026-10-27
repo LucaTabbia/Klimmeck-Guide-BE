@@ -7,6 +7,7 @@ import {
 } from 'src/models/character/character.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { describeError } from 'src/mongo/mongo-errors';
+import { isUsageCount } from './spell-state.snapshot';
 import {
     inconsistentFilter,
     isSpellStateOutOfRange,
@@ -167,9 +168,4 @@ export class SpellStateMigrator implements OnApplicationBootstrap {
             isUsageCount(maxUsages) ? [{ id: _id, maxUsages }] : [],
         );
     }
-}
-
-// maxUsages del catalogo utilizzabile: intero non negativo (il catalogo non ha validazione lato DB)
-export function isUsageCount(value: unknown): value is number {
-    return Number.isSafeInteger(value) && (value as number) >= 0;
 }
