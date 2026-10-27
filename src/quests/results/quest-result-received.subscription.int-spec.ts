@@ -23,7 +23,7 @@ import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { withTimeout } from '../../../test/auth/ws-test-client';
 
 const QUEST_RESULT_RECEIVED =
-    'subscription OnQuestResult($characterId: String!) { questResultReceived(characterId: $characterId) { id outcome hpAfter quest { title } } }';
+    'subscription OnQuestResult($characterId: String!) { questResultReceived(characterId: $characterId) { id outcome hpAfter acknowledgedAt quest { title } } }';
 // nessuno snapshot: la finestra di silenzio lascia anche aprire la subscription prima della prima scrittura
 const NO_SNAPSHOT_WINDOW_MS = 300;
 // l'evento del change stream arriva in modo asincrono: un inserto fatto prima della subscription va atteso sul PubSub
@@ -183,7 +183,19 @@ describe('questResultReceived subscription (wire)', () => {
             id: String(inserted._id),
             outcome: 'success',
             hpAfter: 700,
+            acknowledgedAt: null,
             quest: { title: 'Bandits at the gate' },
+        });
+    });
+
+    it('delivers the new result unconfirmed', async () => {
+        const live = await subscribeWithoutSnapshot(alice.bearer, aliceCharId);
+
+        const inserted = await persistResultOf(alice);
+
+        expect(await receivedResult(live)).toMatchObject({
+            id: String(inserted._id),
+            acknowledgedAt: null,
         });
     });
 
