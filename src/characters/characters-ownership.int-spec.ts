@@ -333,7 +333,11 @@ describe('Character ownership on mutations and queries (wire)', () => {
         expect(queue.add).toHaveBeenCalledTimes(1);
         expect(queue.add).toHaveBeenCalledWith(
             'recover',
-            { characterId: aliceCharId, spellId: spellIds.spellB },
+            {
+                characterId: aliceCharId,
+                spellId: spellIds.spellB,
+                dueAt: expect.any(Number),
+            },
             expect.any(Object),
         );
     });
