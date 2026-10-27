@@ -1,6 +1,10 @@
 // stato finale calcolato prima della scrittura (Phase 4 applyTrade): un solo $set condizionale, unico scrittore di level/maxLifePoints (D-12, D-21)
 import type { Types } from 'mongoose';
-import type { SpellStateEntry } from 'src/characters/spells/spell-state.snapshot';
+import {
+    learnedSpellState,
+    type SpellStateEntry,
+    spellStatesOrMigrated,
+} from 'src/characters/spells/spell-state.snapshot';
 import { type CoinPurse, fromCopper } from 'src/economy/coins';
 import {
     applyTradeToInventory,
@@ -111,6 +115,7 @@ export interface ParticipantPlanInput {
     rewards: DrawnRewards;
     aid: { aidQuestId: Types.ObjectId; failedQuestId: Types.ObjectId } | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
+    spellMaxUsages: ReadonlyMap<string, number>;
     rescuedCharacters?: readonly Types.ObjectId[];
     now: Date;
 }
@@ -297,6 +302,8 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         input.spellRecoveryTimes,
     );
     const knownSpells = snapshot.status.spells ?? [];
+    // base migrata in memoria se lo snapshot precede la migrazione (F6): mai una lista parziale nel $set
+    const knownStates = spellStatesOrMigrated(snapshot, input.spellMaxUsages);
     const spellLearned = won
         ? canLearnSpell(rewards.spellCandidate, progression.xp, knownSpells)
         : null;
@@ -319,8 +326,18 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         ...(spells.activeSpells
             ? { 'assets.activeSpells': spells.activeSpells }
             : {}),
-        ...(spellLearned
-            ? { 'status.spells': [...knownSpells, spellLearned] }
+        // la magia imparata entra nello stato nello stesso $set (D-03, D-07): usi pieni, nessun recupero
+        ...(spellLearned && rewards.spellCandidate
+            ? {
+                  'status.spells': [...knownSpells, spellLearned],
+                  'status.spellStates': [
+                      ...knownStates,
+                      learnedSpellState(
+                          spellLearned,
+                          rewards.spellCandidate.maxUsages,
+                      ),
+                  ],
+              }
             : {}),
         ...(completedQuests
             ? { 'quests.completedQuests': completedQuests }
