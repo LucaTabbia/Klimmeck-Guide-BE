@@ -279,7 +279,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
         const injuredUser = await world.models.users
             .findById(rescue.injured.user._id)
             .lean<any>();
-        expect(injuredUser.currentCharacter).toBeNull();
+        expect(String(injuredUser.currentCharacter)).toBe(String(injuredId));
         expect(seatsOf(await questOf(elsewhere._id))).toEqual([]);
         const [death] = await resultsOf(injuredId);
         expect(death.outcome).toBe('death');
@@ -672,7 +672,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
                 const user = await world.models.users
                     .findById(group.wounded[index].user._id)
                     .lean<any>();
-                expect(user.currentCharacter).toBeNull();
+                expect(String(user.currentCharacter)).toBe(String(id));
                 const [result] = await resultsOf(id);
                 expect(result.outcome).toBe('death');
             }

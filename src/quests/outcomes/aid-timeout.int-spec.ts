@@ -186,7 +186,7 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
         const user = await world.models.users
             .findById(subject.injured.user._id)
             .lean<any>();
-        expect(user.currentCharacter).toBeNull();
+        expect(String(user.currentCharacter)).toBe(String(subject.injuredId));
         const results = await world.models.questResults
             .find({ character: subject.injuredId })
             .lean<any[]>();

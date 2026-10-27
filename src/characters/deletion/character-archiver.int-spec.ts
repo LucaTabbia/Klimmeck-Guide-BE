@@ -152,12 +152,13 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
     function archiveInTransaction(
         userId: Types.ObjectId,
         characterId: Types.ObjectId,
+        reason: DeletionReason = DeletionReason.user_request,
     ): Promise<ArchiveOutcome> {
         return harness.connection.transaction((session) =>
             archiver.archiveWithin(session, {
                 userId,
                 characterId,
-                reason: DeletionReason.death,
+                reason,
                 now: NOW,
             }),
         );
@@ -213,7 +214,7 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
         expect((await rawUser(scene.userId))?.currentCharacter).toBeNull();
         const archived = await rawCharacter(scene.characterId);
         expect(archived?.deletedAt).toEqual(NOW);
-        expect(archived?.deletionReason).toBe('death');
+        expect(archived?.deletionReason).toBe('user_request');
         expect(await seatedCharacters(scene.seatedQuest)).not.toContain(
             String(scene.characterId),
         );
@@ -223,6 +224,115 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
         expect((await rawQuest(scene.concludedAid))?.concludedAt).toEqual(
             YESTERDAY,
         );
+    });
+
+    describe('death (D-12)', () => {
+        it('keeps the user linked to a character archived by death until the confirmation', async () => {
+            const scene = await persistScene();
+            const userBefore = await rawUser(scene.userId);
+
+            const outcome = await archiveInTransaction(
+                scene.userId,
+                scene.characterId,
+                DeletionReason.death,
+            );
+
+            expect(outcome).toBe('archived');
+            expect(await rawUser(scene.userId)).toEqual(userBefore);
+            expect((await rawUser(scene.userId))?.currentCharacter).toEqual(
+                scene.characterId,
+            );
+            const dead = await rawCharacter(scene.characterId);
+            expect(dead?.deletedAt).toEqual(NOW);
+            expect(dead?.deletionReason).toBe('death');
+            expect(await seatedCharacters(scene.seatedQuest)).toEqual([
+                String(scene.other),
+            ]);
+            expect((await rawQuest(scene.openAid))?.concludedAt).toEqual(NOW);
+            expect(await woundedOf(scene.sharedAid)).toEqual([
+                String(scene.other),
+            ]);
+        });
+
+        it('answers not-linked to a death of a character the user no longer points to and writes nothing', async () => {
+            const scene = await persistScene();
+            const elsewhere = new Types.ObjectId();
+            await users.updateOne(
+                { _id: scene.userId },
+                { $set: { currentCharacter: elsewhere } },
+            );
+
+            const outcome = await archiveInTransaction(
+                scene.userId,
+                scene.characterId,
+                DeletionReason.death,
+            );
+
+            expect(outcome).toBe('not-linked');
+            expect((await rawUser(scene.userId))?.currentCharacter).toEqual(
+                elsewhere,
+            );
+            await expectUntouched(scene);
+        });
+
+        it('records no death for a character already archived and warns with ids only', async () => {
+            const warnSpy = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation(() => undefined);
+            const scene = await persistScene({
+                deletedAt: ARCHIVED_AT,
+                deletionReason: 'user_request',
+            });
+
+            const outcome = await archiveInTransaction(
+                scene.userId,
+                scene.characterId,
+                DeletionReason.death,
+            );
+
+            expect(outcome).toBe('not-linked');
+            expect((await rawUser(scene.userId))?.currentCharacter).toEqual(
+                scene.characterId,
+            );
+            const raw = await rawCharacter(scene.characterId);
+            expect(raw?.deletedAt).toEqual(ARCHIVED_AT);
+            expect(raw?.deletionReason).toBe('user_request');
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining(scene.characterId.toHexString()),
+            );
+        });
+
+        it('archives a dying character once under a concurrent deletion of the same character', async () => {
+            for (let i = 0; i < CONCURRENT_ITERATIONS; i++) {
+                const scene = await persistScene();
+
+                const outcomes = await Promise.all([
+                    archiveInTransaction(
+                        scene.userId,
+                        scene.characterId,
+                        DeletionReason.death,
+                    ),
+                    archiveInTransaction(
+                        scene.userId,
+                        scene.characterId,
+                        DeletionReason.user_request,
+                    ),
+                ]);
+
+                const archived = await rawCharacter(scene.characterId);
+                expect(archived?.deletedAt).toEqual(NOW);
+                expect(
+                    (await rawUser(scene.userId))?.currentCharacter,
+                ).toBeNull();
+                if (archived?.deletionReason === 'death') {
+                    expect(outcomes).toEqual(['archived', 'unlinked']);
+                } else {
+                    expect(archived?.deletionReason).toBe('user_request');
+                    expect(outcomes).toEqual(['not-linked', 'archived']);
+                }
+                await harness.clearDatabase();
+            }
+        });
     });
 
     describe('started quests left without anyone (utente 2026-10-25)', () => {
