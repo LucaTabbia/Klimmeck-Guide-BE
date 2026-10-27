@@ -135,6 +135,28 @@ describe('CharactersService (unit — spell mutations)', () => {
             expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
         });
 
+        it.each([
+            ['missing', {}],
+            ['not a number', { maxUsages: 'three' }],
+            ['negative', { maxUsages: -1 }],
+            ['fractional', { maxUsages: 1.5 }],
+        ])(
+            'equipSpell answers NOT_FOUND without writing for a catalog spell whose maxUsages is %s',
+            async (_, catalogEntry) => {
+                mockSpellModel.findById.mockReturnValue(
+                    asLeanQuery(catalogEntry),
+                );
+
+                await expect(
+                    service.equipSpell({
+                        id: c.toHexString(),
+                        spellId: s.toHexString(),
+                    }),
+                ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+                expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
+            },
+        );
+
         it('equipSpell rejects a malformed spell id without touching the database', async () => {
             await expect(
                 service.equipSpell({ id: c.toHexString(), spellId: 'abc' }),
