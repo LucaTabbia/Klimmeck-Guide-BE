@@ -129,6 +129,8 @@ Sul WS il rifiuto alla subscribe ha la stessa forma della Phase 3: `next` con `e
 
 ## 4. Semantica dell'archivio
 
+> **Emendato dalla Phase 9.2 (2026-10-27):** l'archivio per morte non stacca più `User.currentCharacter` (lo stacca la conferma del risultato `death`) e `me`/`userUpdated` risolvono il morto in attesa di conferma; la cancellazione volontaria è invariata. Vedi `.planning/phases/09.2-quest-result-delivery-contract/BACKEND-NOTES.md` §3.
+
 - **Soft delete, mai purge.** Il documento `Character` resta nella collection `characters`; non esiste cancellazione fisica.
 - **Campi di archivio solo a DB:** `deletedAt: Date` e `deletionReason` (`user_request` oggi; `death` riservato alla Phase 9). Default `null` su ogni nuovo documento; i documenti legacy senza il campo valgono come attivi. **Non esposti in GraphQL.**
 - **Nient'altro cambia sul documento archiviato:** nome (`infos.name`), status, quests (incluso `quests.pendingQuest`), assets, equipaggiamento restano leggibili a DB per audit e meccaniche future.

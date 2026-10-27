@@ -114,10 +114,10 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Quest Result Delivery (BE-RESULT) — fase inserita 9.2, richiesta dalla FE Phase 9 (2026-10-27)
 
-- [ ] **BE-RESULT-01**: `unacknowledgedQuestResults: [QuestResult!]!` — i risultati dell'utente autenticato con `acknowledgedAt` nullo, in ordine di `resolvedAt` crescente con un tetto, compresi quelli del personaggio archiviato (`death`); nessun bypass innkeeper; `QuestResult.acknowledgedAt: DateTime` additivo, nullo a ogni insert → FE COMBAT-09
-- [ ] **BE-RESULT-02**: `acknowledgeQuestResult(id: String!): CommonResponse!` idempotente (update condizionale su `acknowledgedAt` nullo; già confermato ⇒ `successful: true`), riservata al proprietario del risultato (`FORBIDDEN` anche per l'innkeeper), `NOT_FOUND` per id malformato/inesistente, nessun audit; per un risultato `death` la conferma stacca anche `User.currentCharacter` nella stessa transazione e la morte non lo stacca più («currentCharacter resta sul morto fino alla conferma», utente 2026-10-27) → FE COMBAT-09
-- [ ] **BE-RESULT-03**: Dopo l'avvio di una quest registrata l'archivio di un partecipante non libera il suo posto (registrazione mantenuta come segnaposto fino alla conclusione; la quest si risolve con chi resta; roster di soli segnaposto ⇒ quest di nuovo non avviata); prima dell'avvio la regola di Phase 8 D-30 resta — «finché una missione non è conclusa il foglio resta strappato sulla board una volta che i posti sono pieni» (utente 2026-10-27) → FE COMBAT-10
-- [ ] **BE-RESULT-04**: `src/schema.gql` rigenerato in modo additivo, indice per la lista dei non confermati, backfill idempotente al boot dei risultati precedenti al deploy, handoff `BACKEND-NOTES.md` per la FE Phase 9 con SDL, esempi, codici e dati UAT; emendamenti datati al handoff Phase 9 (§3, §14, §16)
+- [x] **BE-RESULT-01**: `unacknowledgedQuestResults: [QuestResult!]!` — i risultati dell'utente autenticato con `acknowledgedAt` nullo, in ordine di `resolvedAt` crescente con un tetto, compresi quelli del personaggio archiviato (`death`); nessun bypass innkeeper; `QuestResult.acknowledgedAt: DateTime` additivo, nullo a ogni insert → FE COMBAT-09
+- [x] **BE-RESULT-02**: `acknowledgeQuestResult(id: String!): CommonResponse!` idempotente (update condizionale su `acknowledgedAt` nullo; già confermato ⇒ `successful: true`), riservata al proprietario del risultato (`FORBIDDEN` anche per l'innkeeper), `NOT_FOUND` per id malformato/inesistente, nessun audit; per un risultato `death` la conferma stacca anche `User.currentCharacter` nella stessa transazione e la morte non lo stacca più («currentCharacter resta sul morto fino alla conferma», utente 2026-10-27) → FE COMBAT-09
+- [x] **BE-RESULT-03**: Dopo l'avvio di una quest registrata l'archivio di un partecipante non libera il suo posto (registrazione mantenuta come segnaposto fino alla conclusione; la quest si risolve con chi resta; roster di soli segnaposto ⇒ quest di nuovo non avviata); prima dell'avvio la regola di Phase 8 D-30 resta — «finché una missione non è conclusa il foglio resta strappato sulla board una volta che i posti sono pieni» (utente 2026-10-27) → FE COMBAT-10
+- [x] **BE-RESULT-04**: `src/schema.gql` rigenerato in modo additivo, indice per la lista dei non confermati, backfill idempotente al boot dei risultati precedenti al deploy, handoff `BACKEND-NOTES.md` per la FE Phase 9 con SDL, esempi, codici e dati UAT; emendamenti datati al handoff Phase 9 (§3, §14, §16)
 
 ### Hardening (BE-HARD)
 
@@ -208,10 +208,10 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-SPELL-02 | Phase 09.1 | Complete |
 | BE-SPELL-03 | Phase 09.1 | Complete |
 | BE-SPELL-04 | Phase 09.1 | Complete |
-| BE-RESULT-01 | Phase 09.2 | Pending |
-| BE-RESULT-02 | Phase 09.2 | Pending |
-| BE-RESULT-03 | Phase 09.2 | Pending |
-| BE-RESULT-04 | Phase 09.2 | Pending |
+| BE-RESULT-01 | Phase 09.2 | Complete |
+| BE-RESULT-02 | Phase 09.2 | Complete |
+| BE-RESULT-03 | Phase 09.2 | Complete |
+| BE-RESULT-04 | Phase 09.2 | Complete |
 | BE-HARD-01 | Phase 10 | Pending |
 | BE-HARD-02 | Phase 10 | Pending |
 | BE-HARD-03 | Phase 10 | Pending |

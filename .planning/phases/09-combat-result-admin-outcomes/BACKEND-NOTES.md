@@ -323,6 +323,8 @@ Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` 
 
 ## 3. Foglio esiti (FE Phase 9)
 
+> **Emendato dalla Phase 9.2 (2026-10-27):** «nessuno snapshot, nessuna lista» è superato: la lista dei non confermati (`unacknowledgedQuestResults`) e la conferma idempotente (`acknowledgeQuestResult`) consegnano ogni risultato anche ad app chiusa; ogni risultato nasce con la conferma nulla. La morte non porta più `currentCharacter` a `null`: lo stacco avviene alla conferma del risultato `death`. Vedi `.planning/phases/09.2-quest-result-delivery-contract/BACKEND-NOTES.md` §0–§3.
+
 **Semantica di `outcome`:**
 
 | `outcome` | Chi lo riceve | Significato | Campi notevoli |
@@ -389,6 +391,8 @@ Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` 
 ---
 
 ## 6. Soccorso e morte
+
+> **Emendato dalla Phase 9.2 (2026-10-27):** alla morte (aid fallita o timeout) il personaggio è archiviato ma resta `currentCharacter` del suo utente fino alla conferma del risultato `death`, che lo stacca nella stessa transazione; dopo l'avvio l'archivio non libera più i posti (segnaposto). Vedi `.planning/phases/09.2-quest-result-delivery-contract/BACKEND-NOTES.md` §3 e §5.
 
 - **`status.awaitingAid { quest, aidQuest, since }`**: `quest` = quest fallita, `aidQuest` = id della aid creata per il combattimento perso, **condiviso dai feriti dello stesso combattimento**, `since` = istante del fallimento. Default `null` (documenti legacy inclusi).
 - Il ferito **resta sul marker** della quest con gli HP dell'esito; non può viaggiare, accettare quest né usare il negozio. **Il teleport del GM resta ammesso** (sposta il personaggio ma non lo libera: `awaitingAid` resta).
@@ -634,6 +638,8 @@ db.quests.updateOne({ _id: ObjectId('<bossId>') }, { $set: { 'registeredAdventur
 
 ## 14. Note per la BE Phase 10
 
+> **Emendato dalla Phase 9.2 (2026-10-27):** la lista `questResults` resta YAGNI, ma la lista dei non confermati dell'utente esiste, con l'indice `quest_result_unacknowledged` su `questresults`. Vedi `.planning/phases/09.2-quest-result-delivery-contract/BACKEND-NOTES.md` §6 e §10.
+
 - **Indici** per lo sweep e le letture, se i volumi crescono (oggi scansione accettabile): `pendingquests.startDate`, `characters.status.awaitingAid.since`, `questresults.user` / `questresults.character`; dal piano 09-19 anche le query dello sweep sui party (`pendingquests.arrivedAt`, `quests.startedAt` con `infos.type`, `registeredAdventurers.registeredAt`).
 - **Validazione input** GraphQL (`ValidationPipe` / class-validator): oggi `CompletePendingRequestInput` è validato a mano in `src/quests/outcomes/gm-overrides.ts`.
 - **Ritipizzazione dei ref `Mixed`** (`PendingQuest.quest`, `User.currentCharacter`, `QuestInfos.enemy`, `status.location`, `quests.*`) a `MongooseSchema.Types.ObjectId`: oggi letti con `refIdOf`/`idForms`.
@@ -659,6 +665,8 @@ db.quests.updateOne({ _id: ObjectId('<bossId>') }, { $set: { 'registeredAdventur
 ---
 
 ## 16. Deviazioni e punti aperti
+
+> **Emendato dalla Phase 9.2 (2026-10-27):** il punto delle quest avviate con posti liberati dall'archivio è chiuso dalla regola del segnaposto («Il BE non libera i posti delle quest avviate», utente 2026-10-27). Vedi `.planning/phases/09.2-quest-result-delivery-contract/BACKEND-NOTES.md` §5.
 
 **Deviazioni registrate nei SUMMARY 09-01..09-15, 09-17 e 09-18** (nessuna cambia il contratto o una decisione utente):
 

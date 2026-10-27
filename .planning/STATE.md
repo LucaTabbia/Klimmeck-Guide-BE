@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 9.2 executing (started 2026-10-27) on feat/09.2-quest-result-delivery-contract; Phase 10 context gathered on feat/10-hardening (stacked on 9.2)
 last_updated: "2026-10-27T22:26:19.395Z"
-last_activity: "2026-10-27 -- Phase 9.2 execution started: 7 plans in 5 waves on feat/09.2-quest-result-delivery-contract, one executor at a time; PR before the FE Phase 9 gate"
+last_activity: "2026-10-28 -- Phase 9.2 plan 07: gate verde, handoff per la FE Phase 9, BE-RESULT-01..04 completi; restano code review, verifier e security audit"
 progress:
   total_phases: 13
   completed_phases: 11
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9.2 (Quest Result Delivery Contract) — EXECUTING (started 2026-10-27): 7 plans in 5 waves on `feat/09.2-quest-result-delivery-contract` off `develop`; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2
-Plan: 6 of 7
-Status: Executing Phase 9.2 — one executor at a time on the main working tree; Phase 10 to plan after the 9.2 PR
-Last activity: 2026-10-28 -- Plan 09.2-06 complete: death archives the character without unlinking the user, `me`/`userUpdated`/`users` resolve the dead character until its death result is confirmed, the confirmation unlinks it in the same transaction only if still linked; createCharacter refused until then; SDL unchanged
+Plan: 7 of 7
+Status: Phase 9.2 executing — 7/7 plans done, gate passed, awaiting code review / verifier / security audit before the PR
+Last activity: 2026-10-28 -- Plan 09.2-07 complete: phase gate green (unit 135/1991, integration 82/1096, build, eslint/prettier on the 38 touched .ts, SDL +3 additive lines), handoff BACKEND-NOTES.md for the FE Phase 9 written, Phase 9 and 03.1 handoffs amended, BE-RESULT-01..04 complete
 
 Progress: [██████████] 100% (phases 1–9 and 9.1 complete; 9.2 and 10 to plan — 9.2 first, 10 stacked on it)
 
