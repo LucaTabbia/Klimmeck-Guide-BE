@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 9.1 executing (started 2026-10-27, plan 0 of 10); Phase 10 context gathered on the stacked branch
-last_updated: "2026-10-27T12:31:33.272Z"
-last_activity: "2026-10-27 -- Phase 9.1 execution started: 10 plans in 7 waves, sequential executors (PR before the FE Phase 8 gate plan)"
+status: planning
+stopped_at: Phase 9.1 complete (2026-10-27), PR to develop open; Phase 10 context gathered on feat/10-hardening (stacked on 9.1), to plan after the merge
+last_updated: "2026-10-27T15:10:10.637Z"
+last_activity: "2026-10-27 -- Phase 9.1 complete: 10/10 plans, review fixed (6), verification passed 5/5, security 43/43; PR to develop"
 progress:
   total_phases: 13
-  completed_phases: 11
+  completed_phases: 12
   total_plans: 117
-  completed_plans: 107
-  percent: 91
+  completed_plans: 117
+  percent: 100
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 9.1 — Spell State and Recovery Contract (inserted 2026-10-27 from the FE Phase 8 discuss: usi e recuperi per magia conosciuta, il recupero non si interrompe mai; executing on `feat/09.1-spell-state-and-recovery-contract` since 2026-10-27); then Phase 10 — Hardening Trasversale (context gathered 2026-10-27 on `feat/10-hardening`, stacked on 9.1: ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9 deferred debts incl. `Mixed` refs, Sightengine image moderation fail-closed)
+**Current focus:** Phase 9.1 — Spell State and Recovery Contract — COMPLETE (2026-10-27: usi e recuperi per magia conosciuta, il recupero non si interrompe mai; PR `feat/09.1-spell-state-and-recovery-contract` → `develop` open, to merge BEFORE the FE Phase 8 gate plan 08-12); next Phase 10 — Hardening Trasversale (context gathered 2026-10-27 on `feat/10-hardening`, stacked on 9.1: ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9 deferred debts incl. `Mixed` refs, Sightengine image moderation fail-closed)
 
 ## Current Position
 
-Phase: 9.1 (Spell State and Recovery Contract) — EXECUTING (started 2026-10-27), 10 plans in 7 waves; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27), to plan after the 9.1 PR
-Plan: 10 of 10
-Status: Phase 9.1 execution complete — all 10 plans done, awaiting verification and the PR to develop
-Last activity: 2026-10-27 -- Phase 9.1 execution started: 10 plans in 7 waves, sequential executors (PR before the FE Phase 8 gate plan)
+Phase: 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.1
+Plan: Not started
+Status: Phase 9.1 complete (2026-10-27: 10/10 plans, code review 3 WR/5 IN → 6 fixed + 2 not needed, verification passed 5/5, security 43/43 closed) — PR to develop open; Phase 10 ready to plan after the 9.1 merge (rebase `feat/10-hardening` on `develop` first)
+Last activity: 2026-10-27 -- Phase 9.1 complete: 10/10 plans, review fixed (6), verification passed 5/5, security 43/43; PR to develop
 
-Progress: [██████████] 100% (phases 1–9 complete; 9.1 executing 0/10; 10 to plan after the 9.1 PR)
+Progress: [██████████] 100% (phases 1–9 and 9.1 complete; 10 to plan after the 9.1 PR merge)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 107
+- Total plans completed: 117
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -52,6 +52,7 @@ Progress: [██████████] 100% (phases 1–9 complete; 9.1 exec
 | 03.1 | 6 | - | - |
 | 5 | 8 | - | - |
 | 8 | 14 | - | - |
+| 09.1 | 10 | - | - |
 
 **Recent Trend:**
 
