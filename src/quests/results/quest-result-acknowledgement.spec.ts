@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import {
     acknowledgementFilterOf,
     acknowledgementUpdateOf,
+    deathUnlinkOf,
     LEGACY_RESULTS_FILTER,
     legacyResultsBackfill,
     UNACKNOWLEDGED_RESULTS_LIMIT,
@@ -58,5 +59,19 @@ describe('quest result confirmation builders', () => {
         expect(legacyResultsBackfill()).toEqual([
             { $set: { acknowledgedAt: '$resolvedAt' } },
         ]);
+    });
+
+    it('unlinks only the character of the confirmed death', () => {
+        const characterId = new Types.ObjectId();
+
+        expect(deathUnlinkOf(userId, characterId)).toEqual({
+            filter: {
+                _id: userId,
+                currentCharacter: {
+                    $in: [characterId, characterId.toHexString()],
+                },
+            },
+            update: { $set: { currentCharacter: null } },
+        });
     });
 });
