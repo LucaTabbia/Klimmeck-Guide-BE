@@ -43,6 +43,9 @@ interface RawFixture {
     deletedAt?: Date;
 }
 
+// nome unico: l'indice character_name_active_ci_unique vale anche per gli insert grezzi
+let heroes = 0;
+
 // documento grezzo: senza spellStates quando assente, come i personaggi scritti prima della fase (nessun default di Mongoose)
 function rawCharacter({
     spells,
@@ -51,12 +54,14 @@ function rawCharacter({
     deletedAt,
 }: RawFixture) {
     const base = buildCharacter();
+    heroes += 1;
     const status: Record<string, unknown> = { ...base.status, spells };
     if (spellStates === undefined) delete status.spellStates;
     else status.spellStates = spellStates;
     return {
         _id: new Types.ObjectId(),
         ...base,
+        infos: { ...base.infos, name: `Hero ${heroes}` },
         status,
         assets,
         ...(deletedAt ? { deletedAt } : {}),
@@ -128,7 +133,7 @@ describe('SpellStateMigrator (replSet)', () => {
             true,
         );
         for (const message of about) {
-            expect(message).not.toContain('Test Hero');
+            expect(message).not.toContain('Hero');
             expect(message).not.toContain('recoveries');
             expect(message).not.toContain(T.toISOString().slice(0, 10));
         }
