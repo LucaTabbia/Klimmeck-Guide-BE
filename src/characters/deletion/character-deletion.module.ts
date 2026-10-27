@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { Clock, SystemClock } from 'src/auth/clock';
 import { CharacterArchiveModule } from 'src/characters/deletion/character-archive.module';
 import { CharacterDeletionResolver } from 'src/characters/deletion/character-deletion.resolver';
 import { CharacterDeletionService } from 'src/characters/deletion/character-deletion.service';
@@ -14,6 +15,10 @@ import { UsersModule } from 'src/users/users.module';
         CharacterArchiveModule,
         UsersModule,
     ],
-    providers: [CharacterDeletionResolver, CharacterDeletionService],
+    providers: [
+        CharacterDeletionResolver,
+        CharacterDeletionService,
+        { provide: Clock, useClass: SystemClock },
+    ],
 })
 export class CharacterDeletionModule {}
