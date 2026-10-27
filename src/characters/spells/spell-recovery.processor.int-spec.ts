@@ -29,6 +29,7 @@ import {
 } from './spell-recovery-queue';
 import { SpellRecoveryProcessor } from './spell-recovery.processor';
 import { SpellRecoveryService } from './spell-recovery.service';
+import { Sleeper, TimerSleeper } from './sleeper';
 import { SpellStateMigrator } from './spell-state.migrator';
 
 const WAIT_DEADLINE_MS = 10_000;
@@ -93,6 +94,7 @@ describe('SpellRecoveryProcessor (real Redis)', () => {
                 SpellRecoveryService,
                 SpellStateMigrator,
                 { provide: Clock, useClass: SystemClock },
+                { provide: Sleeper, useClass: TimerSleeper },
             ],
         }).compile();
 

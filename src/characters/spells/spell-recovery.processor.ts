@@ -12,6 +12,10 @@ import {
     SPELL_RECOVERY_QUEUE,
 } from './spell-recovery-queue';
 import { SpellRecoveryService } from './spell-recovery.service';
+import { Sleeper } from './sleeper';
+
+// Bull calcola il ritardo sull'orologio di Redis: entro questo anticipo è skew, oltre il job non viene da dueAt e resta allo sweep
+export const EARLY_RECOVERY_TOLERANCE_MS = 5_000;
 
 @Processor(SPELL_RECOVERY_QUEUE)
 export class SpellRecoveryProcessor {
@@ -20,6 +24,7 @@ export class SpellRecoveryProcessor {
     constructor(
         private readonly recovery: SpellRecoveryService,
         private readonly clock: Clock,
+        private readonly sleeper: Sleeper,
     ) {}
 
     // il job è solo un trigger (D-06, STATE [Phase 8]): dati validati, mai prima di dueAt, mai ri-accodato; il DB decide quanti usi tornano
@@ -39,12 +44,14 @@ export class SpellRecoveryProcessor {
             );
             return;
         }
-        if (trigger.dueAt.getTime() > this.clock.now().getTime()) {
+        const earlyByMs = trigger.dueAt.getTime() - this.clock.now().getTime();
+        if (earlyByMs > EARLY_RECOVERY_TOLERANCE_MS) {
             this.logger.log(
                 `Job di recupero ${spellRecoveryJobId(trigger.characterId, trigger.spellId, trigger.dueAt)} in anticipo: lo restituirà lo sweep`,
             );
             return;
         }
+        if (earlyByMs > 0) await this.sleeper.sleep(earlyByMs);
         await this.recovery.recoverDue(trigger.characterId, trigger.spellId);
     }
 }
