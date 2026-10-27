@@ -326,6 +326,7 @@ type Lore {
 type Mutation {
   abandonQuest(request: AbandonQuestRequest!): CommonResponse!
   acceptQuest(request: AcceptQuestRequest!): CommonResponse!
+  acknowledgeQuestResult(id: String!): CommonResponse!
   completePendingRequest(input: CompletePendingRequestInput!): [QuestResult!]!
   createCharacter(input: CreateCharacterInput!): User!
   deleteCharacter: User!
