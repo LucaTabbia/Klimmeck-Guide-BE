@@ -43,7 +43,48 @@ export class CharacterArchiver {
         session: ClientSession,
         { userId, characterId, reason, now }: ArchiveRequest,
     ): Promise<ArchiveOutcome> {
-        // claim inverso (03.1 D-05): solo l'utente che punta proprio a questo personaggio viene scollegato
+        const dying = reason === DeletionReason.death;
+        const linked = dying
+            ? await this.confirmLinkOf(userId, characterId, session)
+            : await this.unlinkOf(userId, characterId, session);
+        if (!linked) return 'not-linked';
+        const archived = await this.characterModel
+            .updateOne(
+                activeCharacterById(characterId),
+                { $set: { deletedAt: now, deletionReason: reason } },
+                { session },
+            )
+            .exec();
+        if (archived.matchedCount === 0) {
+            return dying
+                ? this.deathAlreadyRecorded(userId, characterId)
+                : this.unlinkedAnyway(userId, characterId);
+        }
+        await this.releaseQuestsOf(characterId, now, session);
+        return 'archived';
+    }
+
+    // la morte non stacca il personaggio corrente: lo stacca la conferma del suo foglio (D-12); solo verifica in sessione
+    private async confirmLinkOf(
+        userId: Types.ObjectId,
+        characterId: Types.ObjectId,
+        session: ClientSession,
+    ): Promise<boolean> {
+        const linked = await this.userModel
+            .exists({
+                _id: userId,
+                currentCharacter: { $in: idForms(characterId) },
+            })
+            .session(session);
+        return linked !== null;
+    }
+
+    // claim inverso (03.1 D-05): solo l'utente che punta proprio a questo personaggio viene scollegato
+    private async unlinkOf(
+        userId: Types.ObjectId,
+        characterId: Types.ObjectId,
+        session: ClientSession,
+    ): Promise<boolean> {
         const unlinked = await this.userModel
             .findOneAndUpdate(
                 {
@@ -55,23 +96,29 @@ export class CharacterArchiver {
             )
             .lean()
             .exec();
-        if (!unlinked) return 'not-linked';
-        const archived = await this.characterModel
-            .updateOne(
-                activeCharacterById(characterId),
-                { $set: { deletedAt: now, deletionReason: reason } },
-                { session },
-            )
-            .exec();
-        if (archived.matchedCount === 0) {
-            // riferimento pendente o già archiviato: si scollega comunque, altrimenti l'utente non potrebbe né creare né eliminare
-            this.logger.warn(
-                `User ${userId.toHexString()} pointed to a missing or archived character ${characterId.toHexString()}: unlinked anyway`,
-            );
-            return 'unlinked';
-        }
-        await this.releaseQuestsOf(characterId, now, session);
-        return 'archived';
+        return unlinked !== null;
+    }
+
+    // già archiviato: nessuna morte registrata e nessuno stacco
+    private deathAlreadyRecorded(
+        userId: Types.ObjectId,
+        characterId: Types.ObjectId,
+    ): ArchiveOutcome {
+        this.logger.warn(
+            `Character ${characterId.toHexString()} of user ${userId.toHexString()} was already archived: no death recorded`,
+        );
+        return 'not-linked';
+    }
+
+    // riferimento pendente o già archiviato: si scollega comunque, altrimenti l'utente non potrebbe né creare né eliminare
+    private unlinkedAnyway(
+        userId: Types.ObjectId,
+        characterId: Types.ObjectId,
+    ): ArchiveOutcome {
+        this.logger.warn(
+            `User ${userId.toHexString()} pointed to a missing or archived character ${characterId.toHexString()}: unlinked anyway`,
+        );
+        return 'unlinked';
     }
 
     // solo le quest lette in sessione: nessuna scansione della collection, nessun documento estraneo;
