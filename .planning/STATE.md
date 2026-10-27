@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9.2 (Quest Result Delivery Contract) — EXECUTING (started 2026-10-27): 7 plans in 5 waves on `feat/09.2-quest-result-delivery-contract` off `develop`; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Executing Phase 9.2 — one executor at a time on the main working tree; Phase 10 to plan after the 9.2 PR
-Last activity: 2026-10-28 -- Plan 09.2-05 complete: regression specs with the real archiver prove that started quests with placeholder seats resolve with the members left (boss won and lost, group aid, timeout of a reset aid), every outcome is written unconfirmed and deleteCharacter keeps the started seat; no production change; SDL unchanged
+Last activity: 2026-10-28 -- Plan 09.2-06 complete: death archives the character without unlinking the user, `me`/`userUpdated`/`users` resolve the dead character until its death result is confirmed, the confirmation unlinks it in the same transaction only if still linked; createCharacter refused until then; SDL unchanged
 
 Progress: [██████████] 100% (phases 1–9 and 9.1 complete; 9.2 and 10 to plan — 9.2 first, 10 stacked on it)
 
