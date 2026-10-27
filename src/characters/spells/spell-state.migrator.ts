@@ -162,7 +162,8 @@ export class SpellStateMigrator implements OnApplicationBootstrap {
     }
 }
 
-function isUsageCount(value: unknown): value is number {
+// maxUsages del catalogo utilizzabile: intero non negativo (il catalogo non ha validazione lato DB)
+export function isUsageCount(value: unknown): value is number {
     return Number.isSafeInteger(value) && (value as number) >= 0;
 }
 
