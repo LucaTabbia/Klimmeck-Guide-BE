@@ -20,3 +20,13 @@ export function acknowledgementFilterOf(
 export function acknowledgementUpdateOf(now: Date) {
     return { $set: { acknowledgedAt: now } };
 }
+
+// risultati scritti prima della conferma: il campo manca del tutto (D-04)
+export const LEGACY_RESULTS_FILTER = {
+    acknowledgedAt: { $exists: false },
+} as const;
+
+// il primo cold start del FE non deve ricevere lo storico: confermati all'istante della risoluzione
+export function legacyResultsBackfill() {
+    return [{ $set: { acknowledgedAt: '$resolvedAt' } }];
+}

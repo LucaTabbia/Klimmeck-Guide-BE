@@ -7,6 +7,7 @@ import {
     QuestResultSchema,
 } from 'src/models/quest-result/quest-result.model';
 import { QuestResultAcknowledgementService } from './quest-result-acknowledgement.service';
+import { QuestResultMaintenance } from './quest-result-maintenance';
 import { QuestResultsReadModule } from './quest-results-read.module';
 import { QuestResultsPublisher } from './quest-results.publisher';
 import { QuestResultsResolver } from './quest-results.resolver';
@@ -24,6 +25,7 @@ import { QuestResultsResolver } from './quest-results.resolver';
         QuestResultsResolver,
         QuestResultsPublisher,
         QuestResultAcknowledgementService,
+        QuestResultMaintenance,
         { provide: Clock, useClass: SystemClock },
     ],
 })
