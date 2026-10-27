@@ -23,6 +23,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 7: Quest Lanes (QUEST-04)** - Corsie story/worldMission su schema + subscription, accettazione lane-aware, cost model server-side (completed 2026-10-21)
 - [x] **Phase 8: Travel Lifecycle (TRAVEL-01)** - `activeTravel` su schema + subscription, ETA/completamento server-side, teleport atomico (completed 2026-10-21)
 - [x] **Phase 9: Combat Result & Admin Outcomes** - `QuestResult` persistito con delivery ibrida (subscription owner-only + push `questEnd` + query), corsia standard risolta server-side dietro `CombatResolver` (segnaposto), catena aid/morte, coda live innkeeper + `completePendingRequest`, guard `SHOP_NOT_IN_CITY` (completed 2026-10-24)
+- [ ] **Phase 9.1: Spell State and Recovery Contract** (INSERTED 2026-10-27) - Stato per magia conosciuta `status.spellStates { spell, usages, recoveries }` che sopravvive a equip/disequip, recupero che non si interrompe mai (regola dell'utente), processor idempotente + reconciler/sweep, migrazione al boot; sblocca FE Phase 8 (SPELL-05)
 - [ ] **Phase 10: Hardening Trasversale** - Validazione input, introspection off/CORS/sanitization, `.env.example`, coverage aree critiche
 
 ## Phase Details
@@ -283,6 +284,20 @@ Plans:
 **Unblocks (FE)**: FE Phase 9 (contratto combat) e FE Phase 10 (operazioni admin) → FE COMBAT-01..05, ADMIN-02/03/05/06.
 **Branch**: `feat/09-combat-result-admin-outcomes` da `develop` → PR a `develop` (allineato al template `feat/{phase}-{slug}`, 2026-10-24).
 
+### Phase 09.1: Spell State and Recovery Contract (INSERTED 2026-10-27)
+**Goal**: Usi e recuperi delle magie appartengono alla magia conosciuta, non allo slot: `CharacterStatus.spellStates { spell, usages, recoveries }` (additivo) espone per ogni magia gli usi rimasti e gli istanti in cui ogni uso torna; `equipSpell`/`unequipSpell` non toccano lo stato e il recupero prosegue anche fuori dagli slot («Il timer di recupero non si interrompe mai», utente 2026-10-27; Phase 4 D-11 superata); `useSpell` e i consumi degli esiti scrivono stato e `dueAt` in un solo update; processor idempotente, reconciler al boot + sweep (`SPELL_RECOVERY_SWEEP_INTERVAL_MS`) con il DB come fonte di verità; migrazione idempotente al boot; handoff per la FE Phase 8.
+**Depends on**: Phase 4 (atomics delle magie), Phase 9 (consumi degli esiti, `spellLearned`)
+**Requirements**: BE-SPELL-01, BE-SPELL-02, BE-SPELL-03, BE-SPELL-04
+**Success Criteria** (what must be TRUE):
+  1. `characterUpdated` e `character` portano `status.spellStates` con una voce per ogni magia conosciuta, `recoveries` crescente e `recoveries.length == maxUsages − usages` per ogni uso tracciato; `ActiveSpell.usages` coincide sempre con lo stato.
+  2. Disequipaggiare e riequipaggiare una magia non cambia né gli usi né i recuperi; una magia disequipaggiata recupera un uso allo scadere del suo istante.
+  3. Un job di recupero rieseguito, perso o in ritardo non supera mai `maxUsages` e non lascia istanti scaduti: reconciler e sweep restituiscono gli usi scaduti entro un giro.
+  4. I personaggi esistenti ricevono `spellStates` coerente al primo boot senza downtime; i job legacy in Redis continuano a funzionare.
+  5. `src/schema.gql` cambia solo in modo additivo e il handoff risponde alle domande della FE (`Klimmeck-Guide/.planning/phases/08-spells-section-journal-tab/BACKEND-NOTES.md` §6).
+**Plans**: TBD
+**Unblocks (FE)**: FE Phase 8 (SPELL-05 countdown; il piano finale della FE seleziona `spellStates` solo dopo questa PR).
+**Branch**: `feat/09.1-spell-state-and-recovery-contract` da `develop` → PR a `develop`; la Phase 10 parte da questo branch (stacked).
+
 ### Phase 10: Hardening Trasversale
 **Goal**: Hardening trasversale — validazione input, introspection off/CORS/error sanitization in prod, igiene dei secret, e coverage di test sulle aree critiche.
 **Depends on**: Phases 2-9 (indurisce le superfici che aggiungono)
@@ -328,4 +343,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
+| 9.1. Spell State and Recovery Contract | 0/TBD | Not started | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
