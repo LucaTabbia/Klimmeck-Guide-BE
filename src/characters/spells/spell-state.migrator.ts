@@ -9,6 +9,7 @@ import { Spell, SpellDocument } from 'src/models/spell.model';
 import { describeError } from 'src/mongo/mongo-errors';
 import {
     inconsistentFilter,
+    isSpellStateOutOfRange,
     outOfRangeFilter,
     SpellCatalogEntry,
     spellStatesRepairPipeline,
@@ -123,7 +124,13 @@ export class SpellStateMigrator implements OnApplicationBootstrap {
             .toArray();
         for (const character of characters as OutOfRangeCharacter[]) {
             for (const state of character.status?.spellStates ?? []) {
-                if (!isOutOfRange(state, maxUsagesOf)) continue;
+                if (
+                    !isSpellStateOutOfRange(
+                        state,
+                        maxUsagesOf.get(String(state.spell)),
+                    )
+                )
+                    continue;
                 this.logger.warn(
                     `Stato della magia ${String(state.spell)} del personaggio ${character._id.toHexString()} fuori dai limiti del catalogo: istanti in eccesso scartati, usi invariati`,
                 );
@@ -165,17 +172,4 @@ export class SpellStateMigrator implements OnApplicationBootstrap {
 // maxUsages del catalogo utilizzabile: intero non negativo (il catalogo non ha validazione lato DB)
 export function isUsageCount(value: unknown): value is number {
     return Number.isSafeInteger(value) && (value as number) >= 0;
-}
-
-function isOutOfRange(
-    state: StoredSpellState,
-    maxUsagesOf: ReadonlyMap<string, number>,
-): boolean {
-    const maxUsages = maxUsagesOf.get(String(state.spell));
-    if (maxUsages === undefined || typeof state.usages !== 'number')
-        return false;
-    const recoveries = Array.isArray(state.recoveries)
-        ? state.recoveries.length
-        : 0;
-    return state.usages > maxUsages || recoveries > maxUsages - state.usages;
 }
