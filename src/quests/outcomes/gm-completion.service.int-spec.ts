@@ -193,6 +193,11 @@ describe('GmCompletionService.complete (replSet)', () => {
             xpGained: 400,
         });
         expect(String(result.user)).toBe(String(subject.player.user._id));
+        const written = await world.models.questResults.find().lean<any[]>();
+        expect(written).toHaveLength(1);
+        expect(written.map((result) => result.acknowledgedAt)).toEqual(
+            written.map(() => null),
+        );
         expect(questEndPushes()).toEqual([
             expect.objectContaining({
                 message: expect.objectContaining({ id: String(result._id) }),

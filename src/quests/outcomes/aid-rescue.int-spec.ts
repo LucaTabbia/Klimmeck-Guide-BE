@@ -225,6 +225,11 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
         expect(String(injuredResults[0].user)).toBe(
             String(rescue.injured.user._id),
         );
+        const written = await world.models.questResults.find().lean<any[]>();
+        expect(written).toHaveLength(2);
+        expect(written.map((result) => result.acknowledgedAt)).toEqual(
+            written.map(() => null),
+        );
         const aid = await questOf(rescue.aid._id);
         expect(aid.concludedAt).toEqual(NOW);
         expect(questEndTokens()).toEqual(
@@ -279,6 +284,11 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
         const [death] = await resultsOf(injuredId);
         expect(death.outcome).toBe('death');
         expect(String(death.user)).toBe(String(rescue.injured.user._id));
+        const written = await world.models.questResults.find().lean<any[]>();
+        expect(written).toHaveLength(2);
+        expect(written.map((result) => result.acknowledgedAt)).toEqual(
+            written.map(() => null),
+        );
         const fallen = await characterOf(rescuer.characterId);
         expect(fallen.status.currentLifePoints).toBe(200);
         const { awaitingAid } = fallen.status;

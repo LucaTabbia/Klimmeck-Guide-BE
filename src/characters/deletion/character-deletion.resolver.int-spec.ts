@@ -535,6 +535,48 @@ describe('deleteCharacter (wire)', () => {
             }
         });
 
+        it('keeps the seat of the deleted character on a started quest («Il BE non libera i posti delle quest avviate»)', async () => {
+            const alice = await createPlayer(harness, {
+                twitchId: 'twitch-del-alice',
+            });
+            const bob = await createPlayer(harness, {
+                twitchId: 'twitch-del-bob',
+            });
+            const deleted = alice.character?._id as Types.ObjectId;
+            const kept = bob.character?._id as Types.ObjectId;
+            const seats = [
+                { character: deleted, title: 'rookie' },
+                { character: kept, title: 'rookie' },
+            ];
+            const boss = await persistRegisteredQuest('boss', seats);
+            await quests.updateOne(
+                { _id: boss._id },
+                { $set: { startedAt: new Date('2026-10-21T10:00:00.000Z') } },
+            );
+            const enemy = await persistRegisteredQuest('enemy', seats);
+            const t0 = new Date();
+
+            deletedUserOf(await deleteAs(alice.bearer));
+
+            const held = await rawSeats(boss._id);
+            expect(held).toHaveLength(2);
+            const [placeholder, other] = held;
+            expect(Object.keys(placeholder).sort()).toEqual([
+                'archivedAt',
+                'character',
+                'title',
+            ]);
+            expect(placeholder.character).toEqual(deleted);
+            expect(placeholder.archivedAt).toBeInstanceOf(Date);
+            expect(
+                (placeholder.archivedAt as Date).getTime(),
+            ).toBeGreaterThanOrEqual(t0.getTime());
+            expect(other).toEqual({ character: kept, title: 'rookie' });
+            expect(await rawSeats(enemy._id)).toEqual([
+                { character: kept, title: 'rookie' },
+            ]);
+        });
+
         it('leaves the quests untouched when the deletion is rejected', async () => {
             const { bearer } = await createPlayer(harness, {
                 twitchId: 'twitch-del-empty',
