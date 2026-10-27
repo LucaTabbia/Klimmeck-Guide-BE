@@ -1,20 +1,17 @@
 import { Types } from 'mongoose';
 import { maxActiveSpellsExpression } from 'src/models/character/active-spell-slots';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import * as activeSpellUpdates from './active-spell.updates';
 import {
     ACTIVE_SPELL_SNAPSHOT_PROJECTION,
     ActiveSpellSnapshot,
     classifyEquipSpellFailure,
     classifyUnequipSpellFailure,
     classifyUseSpellFailure,
-    DECREMENT_ACTIVE_SPELL_USAGE,
     equipSpellFilter,
     equipSpellUpdate,
-    INCREMENT_ACTIVE_SPELL_USAGE,
-    recoverSpellFilter,
     unequipSpellFilter,
     unequipSpellUpdate,
-    useSpellFilter,
 } from './active-spell.updates';
 
 describe('active spell write builders', () => {
@@ -121,33 +118,17 @@ describe('active spell write builders', () => {
         });
     });
 
-    it('useSpellFilter requires at least one usage left', () => {
-        expect(useSpellFilter(c, s)).toEqual({
-            _id: c,
-            deletedAt: null,
-            'assets.activeSpells': {
-                $elemMatch: { spell: { $in: forms }, usages: { $gte: 1 } },
-            },
-        });
-    });
-
-    it('recoverSpellFilter never exceeds the catalog maximum', () => {
-        expect(recoverSpellFilter(c, s, 3)).toEqual({
-            _id: c,
-            deletedAt: null,
-            'assets.activeSpells': {
-                $elemMatch: { spell: { $in: forms }, usages: { $lt: 3 } },
-            },
-        });
-    });
-
-    it('exposes positional usage increments', () => {
-        expect(DECREMENT_ACTIVE_SPELL_USAGE).toEqual({
-            $inc: { 'assets.activeSpells.$.usages': -1 },
-        });
-        expect(INCREMENT_ACTIVE_SPELL_USAGE).toEqual({
-            $inc: { 'assets.activeSpells.$.usages': 1 },
-        });
+    it('exposes only the slot builders and classifiers: usages are spent and credited on the spell state', () => {
+        expect(Object.keys(activeSpellUpdates).sort()).toEqual([
+            'ACTIVE_SPELL_SNAPSHOT_PROJECTION',
+            'classifyEquipSpellFailure',
+            'classifyUnequipSpellFailure',
+            'classifyUseSpellFailure',
+            'equipSpellFilter',
+            'equipSpellUpdate',
+            'unequipSpellFilter',
+            'unequipSpellUpdate',
+        ]);
     });
 });
 
@@ -163,9 +144,24 @@ describe('active spell failure classifiers', () => {
         assets: { activeSpells },
     });
 
-    it('reads the title with the snapshot', () => {
-        expect(ACTIVE_SPELL_SNAPSHOT_PROJECTION).toMatchObject({
+    const useSnapshot = (
+        activeSpells: { spell?: unknown; usages?: number }[],
+        usages: number | undefined,
+    ): ActiveSpellSnapshot => ({
+        status: {
+            spells: [s],
+            spellStates: [{ spell: s, usages, recoveries: [] }],
+        },
+        assets: { activeSpells },
+    });
+
+    it('reads the title and the spell state with the snapshot', () => {
+        expect(ACTIVE_SPELL_SNAPSHOT_PROJECTION).toEqual({
+            'status.spells': 1,
+            'status.xp': 1,
             'status.title': 1,
+            'status.spellStates': 1,
+            'assets.activeSpells': 1,
         });
     });
 
@@ -268,22 +264,37 @@ describe('active spell failure classifiers', () => {
             );
         });
 
+        it('answers SPELL_NOT_ACTIVE for a known spell with usages in its state but out of the slots', () => {
+            expect(
+                classifyUseSpellFailure(useSnapshot([], 3), s),
+            ).toMatchObject({ code: 'SPELL_NOT_ACTIVE' });
+        });
+
         it.each([0, undefined])(
-            'answers SPELL_NO_USAGES_LEFT for an active spell with %p usages',
+            'answers SPELL_NO_USAGES_LEFT for an active spell with %p usages in its state',
             (usages) => {
                 expect(
                     classifyUseSpellFailure(
-                        snapshot([s], [{ spell: s, usages }]),
+                        useSnapshot([{ spell: s, usages: 3 }], usages),
                         s,
                     ),
                 ).toMatchObject({ code: 'SPELL_NO_USAGES_LEFT' });
             },
         );
 
-        it('returns undefined for an active spell with usages left (state changed after the write)', () => {
+        it('answers SPELL_NO_USAGES_LEFT for an active spell without a spell state entry', () => {
             expect(
                 classifyUseSpellFailure(
-                    snapshot([s], [{ spell: s.toHexString(), usages: 1 }]),
+                    snapshot([s], [{ spell: s, usages: 3 }]),
+                    s,
+                ),
+            ).toMatchObject({ code: 'SPELL_NO_USAGES_LEFT' });
+        });
+
+        it('returns undefined when the spell state still holds usages, whatever the mirror says (state changed after the write)', () => {
+            expect(
+                classifyUseSpellFailure(
+                    useSnapshot([{ spell: s.toHexString(), usages: 0 }], 2),
                     s,
                 ),
             ).toBeUndefined();
