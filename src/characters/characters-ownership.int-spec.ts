@@ -12,7 +12,7 @@ import { AuthTestApp, graphqlRequest } from '../../test/auth/auth-test-app';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
 import { placeInCity } from '../../test/economy/place-in-city';
-import { buildCharacter, persistSpell } from '../../test/fixtures';
+import { buildCharacter, persistSpell, spellBook } from '../../test/fixtures';
 
 const MISSING_CHARACTER_ID = '64b0000000000000000000ff';
 const MALFORMED_CHARACTER_ID = 'abc';
@@ -154,16 +154,21 @@ describe('Character ownership on mutations and queries (wire)', () => {
         const spellA = await persistSpell(spells, { name: 'Dardo' });
         const spellB = await persistSpell(spells, { name: 'Scudo' });
         spellIds = { spellA: String(spellA._id), spellB: String(spellB._id) };
+        const book = spellBook([
+            { spell: spellA._id, usages: 3 },
+            { spell: spellB._id, usages: 1, active: true },
+        ]);
         const richCharacter = {
             status: {
                 ...buildCharacter().status,
                 title: 'mage',
                 xp: 25000,
-                spells: [spellA._id, spellB._id],
+                spells: book.spells,
+                spellStates: book.spellStates,
             },
             assets: {
                 ...buildCharacter().assets,
-                activeSpells: [{ spell: spellB._id, usages: 1 }],
+                activeSpells: book.activeSpells,
             },
         };
         alice = await createPlayer(harness, {
