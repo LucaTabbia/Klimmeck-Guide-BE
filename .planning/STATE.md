@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 9.1 context gathered (2026-10-27) — ready to plan; Phase 10 context gathered on the stacked branch
-last_updated: "2026-10-27T12:00:00.000Z"
-last_activity: 2026-10-27 -- Phase 9.1 (Spell State and Recovery Contract) inserted from the FE Phase 8 discuss with its CONTEXT; Phase 10 (Hardening Trasversale) discussed interactively
+status: executing
+stopped_at: Phase 9.1 planned (2026-10-27) — ready to execute; Phase 10 context gathered on the stacked branch
+last_updated: "2026-10-27T12:11:29.784Z"
+last_activity: "2026-10-27 -- Phase 9.1 planned: 10 plans in 7 waves (PR before the FE Phase 8 gate plan)"
 progress:
-  total_phases: 12
-  completed_phases: 10
-  total_plans: 107
+  total_phases: 13
+  completed_phases: 11
+  total_plans: 117
   completed_plans: 107
-  percent: 100
+  percent: 91
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 9.1 (Spell State and Recovery Contract) — CONTEXT GATHERED (2026-10-27), ready to plan; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27), to plan after the 9.1 PR
-Plan: 0 of TBD
-Status: Phase 9.1 context gathered — ready to plan (`/gsd-plan-phase 09.1` on `feat/09.1-spell-state-and-recovery-contract`; PR to develop before the FE Phase 8 final plan); Phase 10 context gathered on `feat/10-hardening` (stacked on 9.1, rebase after its merge)
-Last activity: 2026-10-27 -- Phase 9.1 inserted (user rule: «Il timer di recupero non si interrompe mai», state per known spell `status.spellStates`, processor + reconciler/sweep, boot migration) and Phase 10 discussed (validation, surface hardening, secrets, coverage, deferred debts, Sightengine moderation)
+Phase: 9.1 (Spell State and Recovery Contract) — PLANNED (2026-10-27), 10 plans in 7 waves, ready to execute; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27), to plan after the 9.1 PR
+Plan: 0 of 10
+Status: Phase 9.1 planned — ready to execute (`/gsd-execute-phase 09.1` on `feat/09.1-spell-state-and-recovery-contract`, sequential executors; before starting, stash the user's `.env.example` hunk and restore it on `feat/10-hardening`; research + CONTEXT amended F1–F11, VALIDATION.md template, 10 plans passed the plan-checker after one revision round: 0 blockers, 0 warnings; PR to develop before the FE Phase 8 gate plan 08-12)
+Last activity: 2026-10-27 -- Phase 9.1 planned: 10 plans in 7 waves (PR before the FE Phase 8 gate plan)
 
-Progress: [██████████] 100% (phases 1–9 complete; 9.1 and 10 to plan)
+Progress: [██████████] 100% (phases 1–9 complete; 9.1 planned 0/10; 10 to plan after the 9.1 PR)
 
 ## Performance Metrics
 
