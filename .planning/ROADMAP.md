@@ -24,7 +24,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 8: Travel Lifecycle (TRAVEL-01)** - `activeTravel` su schema + subscription, ETA/completamento server-side, teleport atomico (completed 2026-10-21)
 - [x] **Phase 9: Combat Result & Admin Outcomes** - `QuestResult` persistito con delivery ibrida (subscription owner-only + push `questEnd` + query), corsia standard risolta server-side dietro `CombatResolver` (segnaposto), catena aid/morte, coda live innkeeper + `completePendingRequest`, guard `SHOP_NOT_IN_CITY` (completed 2026-10-24)
 - [x] **Phase 9.1: Spell State and Recovery Contract** (INSERTED 2026-10-27) - Stato per magia conosciuta `status.spellStates { spell, usages, recoveries }` che sopravvive a equip/disequip, recupero che non si interrompe mai (regola dell'utente), processor idempotente + reconciler/sweep, migrazione al boot; sblocca FE Phase 8 (SPELL-05) (completed 2026-10-27)
-- [ ] **Phase 9.2: Quest Result Delivery Contract** (INSERTED 2026-10-27) - Query dei risultati non confermati dell'utente, mutation di conferma idempotente, `QuestResult.acknowledgedAt` additivo, posti delle quest avviate non più liberati dall'archivio (regola dell'utente); sblocca FE Phase 9 (COMBAT-09/10)
+- [x] **Phase 9.2: Quest Result Delivery Contract** (INSERTED 2026-10-27) - Query dei risultati non confermati dell'utente, mutation di conferma idempotente, `QuestResult.acknowledgedAt` additivo, posti delle quest avviate non più liberati dall'archivio (regola dell'utente), il morto resta corrente fino alla conferma (D-12); sblocca FE Phase 9 (COMBAT-09/10) (completed 2026-10-28)
 - [ ] **Phase 10: Hardening Trasversale** - Validazione input, introspection off/CORS/sanitization, `.env.example`, coverage aree critiche
 
 ## Phase Details
@@ -354,5 +354,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
-| 9.2. Quest Result Delivery Contract | 7/7 | In Progress | - |
+| 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
