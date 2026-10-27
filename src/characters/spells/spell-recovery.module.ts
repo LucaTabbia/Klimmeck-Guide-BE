@@ -11,6 +11,7 @@ import { Spell, SpellSchema } from 'src/models/spell.model';
 import { SPELL_RECOVERY_QUEUE } from './spell-recovery-queue';
 import { SpellRecoveryProcessor } from './spell-recovery.processor';
 import { SpellRecoveryService } from './spell-recovery.service';
+import { SpellRecoverySweeper } from './spell-recovery.sweeper';
 import { SpellStateMigrator } from './spell-state.migrator';
 
 // trigger, credito, migrazione e sweep dei recuperi: fuori da CharactersModule così gli harness delle mutation non ereditano boot hook né Bull
@@ -26,6 +27,7 @@ import { SpellStateMigrator } from './spell-state.migrator';
         SpellStateMigrator,
         SpellRecoveryService,
         SpellRecoveryProcessor,
+        SpellRecoverySweeper,
         spellRecoveryConfigProvider,
         { provide: Clock, useClass: SystemClock },
     ],
