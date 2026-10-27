@@ -12,6 +12,7 @@ import {
     buildEquipmentItem,
     buildLootItem,
     buildEnemy,
+    spellBook,
 } from './index';
 
 /**
@@ -86,6 +87,58 @@ describe('fixtures builders', () => {
         it('applies top-level overrides', () => {
             const hero = buildCharacter({ infos: { name: 'Override Hero' } });
             expect(hero.infos.name).toBe('Override Hero');
+        });
+
+        it('starts with empty spell states (D-03)', () => {
+            expect(buildCharacter().status.spellStates).toEqual([]);
+        });
+    });
+
+    describe('spellBook', () => {
+        const first = new Types.ObjectId();
+        const second = new Types.ObjectId();
+        const earlier = new Date('2026-10-27T10:00:00.000Z');
+        const later = new Date('2026-10-27T10:05:00.000Z');
+
+        it('builds spells, spell states and active spells in the same order', () => {
+            expect(
+                spellBook([
+                    {
+                        spell: first,
+                        usages: 1,
+                        recoveries: [later, earlier],
+                        active: true,
+                    },
+                    { spell: second, usages: 3 },
+                ]),
+            ).toEqual({
+                spells: [first, second],
+                spellStates: [
+                    { spell: first, usages: 1, recoveries: [later, earlier] },
+                    { spell: second, usages: 3, recoveries: [] },
+                ],
+                activeSpells: [{ spell: first, usages: 1 }],
+            });
+        });
+
+        it('keeps a legacy string ref on spells and active spells and casts it on the state', () => {
+            const legacy = new Types.ObjectId().toHexString();
+            const book = spellBook([
+                { spell: legacy, usages: 2, active: true },
+            ]);
+
+            expect(book.spells[0]).toBe(legacy);
+            expect(book.activeSpells[0].spell).toBe(legacy);
+            expect(book.spellStates[0].spell).toBeInstanceOf(Types.ObjectId);
+            expect(book.spellStates[0].spell.toHexString()).toBe(legacy);
+        });
+
+        it('copies the given recoveries', () => {
+            const recoveries = [earlier];
+            const book = spellBook([{ spell: first, usages: 0, recoveries }]);
+
+            expect(book.spellStates[0].recoveries).toEqual(recoveries);
+            expect(book.spellStates[0].recoveries).not.toBe(recoveries);
         });
     });
 

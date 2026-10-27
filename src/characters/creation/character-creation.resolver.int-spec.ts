@@ -247,6 +247,7 @@ describe('CharacterCreationResolver (wire)', () => {
                 injuries: [],
                 spells: [],
             });
+            expect(raw?.status.spellStates).toEqual([]);
             await expectLocation(character, drustea);
             expect(raw?.quests).toEqual({
                 activeStoryQuest: null,
