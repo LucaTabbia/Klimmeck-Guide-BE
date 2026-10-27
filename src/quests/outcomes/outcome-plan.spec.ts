@@ -103,6 +103,7 @@ const inputWith = (
     rewards: NO_REWARDS,
     aid: null,
     spellRecoveryTimes: new Map(),
+    spellMaxUsages: new Map(),
     now: NOW,
     ...overrides,
 });
@@ -157,6 +158,7 @@ describe('planParticipant', () => {
                 'status.awaitingAid',
                 'status.title',
                 'status.spells',
+                'status.spellStates',
                 'assets.activeSpells',
             ]) {
                 expect(plan.update.$set).not.toHaveProperty([key]);
@@ -484,43 +486,112 @@ describe('planParticipant', () => {
     });
 
     describe('spell learning on a won study', () => {
-        const studyWith = (minXpToLearn: number, spells: unknown[] = []) =>
+        const RECOVERY_AT = new Date('2026-10-24T11:00:00.000Z');
+        const learnedState = {
+            spell: LEARNED_SPELL_ID,
+            usages: 4,
+            recoveries: [],
+        };
+        const studyWith = (
+            minXpToLearn: number,
+            snapshot: SnapshotOverrides = {},
+            overrides: Partial<ParticipantPlanInput> = {},
+        ) =>
             planParticipant(
                 inputWith({
                     quest: questOf(QuestType.study),
-                    snapshot: snapshotWith({ status: { spells } }),
+                    snapshot: snapshotWith(snapshot),
                     rewards: rewardsWith({
                         xpPrize: 300,
                         spellCandidate: {
                             spellId: LEARNED_SPELL_ID,
                             minXpToLearn,
+                            maxUsages: 4,
                         },
                     }),
+                    ...overrides,
                 }),
             );
+        const expectNothingLearned = (plan: ParticipantPlan) => {
+            const keys = Object.keys(plan.update.$set);
+            expect(keys).not.toContain('status.spells');
+            expect(keys).not.toContain('status.spellStates');
+            expect(plan.result.spellLearned).toBeNull();
+        };
 
-        it('learns the spell when the xp after the prize is enough', () => {
-            const plan = studyWith(300, [SPELL_ID]);
+        it('learns the spell with a full spell state in the same $set', () => {
+            const known = {
+                spell: SPELL_ID,
+                usages: 1,
+                recoveries: [RECOVERY_AT],
+            };
+            const snapshot = {
+                status: { spells: [SPELL_ID], spellStates: [known] },
+            };
+
+            const plan = studyWith(300, snapshot);
 
             expect(plan.update.$set['status.spells']).toEqual([
                 SPELL_ID,
                 LEARNED_SPELL_ID,
             ]);
+            expect(plan.update.$set['status.spellStates']).toEqual([
+                { spell: SPELL_ID, usages: 1, recoveries: [RECOVERY_AT] },
+                learnedState,
+            ]);
             expect(plan.result.spellLearned).toBe(LEARNED_SPELL_ID);
+            expect(snapshot.status.spellStates).toEqual([known]);
+        });
+
+        it('writes the whole migrated spell state for a character not migrated yet', () => {
+            const plan = studyWith(
+                300,
+                {
+                    status: { spells: [SPELL_ID, OTHER_SPELL_ID] },
+                    assets: {
+                        ownedItems: [],
+                        ownedEquipments: [],
+                        activeSpells: [{ spell: SPELL_ID, usages: 1 }],
+                    },
+                },
+                {
+                    spellMaxUsages: new Map([
+                        [SPELL_ID.toHexString(), 3],
+                        [OTHER_SPELL_ID.toHexString(), 2],
+                    ]),
+                },
+            );
+
+            expect(plan.update.$set['status.spellStates']).toEqual([
+                { spell: SPELL_ID, usages: 1, recoveries: [] },
+                { spell: OTHER_SPELL_ID, usages: 2, recoveries: [] },
+                learnedState,
+            ]);
         });
 
         it('only grants xp when the xp is not enough', () => {
-            const plan = studyWith(400);
-
-            expect(plan.update.$set).not.toHaveProperty(['status.spells']);
-            expect(plan.result.spellLearned).toBeNull();
+            expectNothingLearned(studyWith(400));
         });
 
         it('does not learn a spell already known as a legacy string', () => {
-            const plan = studyWith(300, [LEARNED_SPELL_ID.toHexString()]);
+            expectNothingLearned(
+                studyWith(300, {
+                    status: { spells: [LEARNED_SPELL_ID.toHexString()] },
+                }),
+            );
+        });
 
-            expect(plan.update.$set).not.toHaveProperty(['status.spells']);
-            expect(plan.result.spellLearned).toBeNull();
+        it('learns nothing from a lost fight', () => {
+            expectNothingLearned(
+                studyWith(
+                    0,
+                    {},
+                    {
+                        verdict: QuestOutcome.failure,
+                        aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                    },
+                ),
+            );
         });
     });
 

@@ -6,6 +6,7 @@ import {
     buildQuest,
     persistLootItem,
     persistSpell,
+    spellBook,
 } from '../../../test/fixtures';
 import {
     createOutcomeHarness,
@@ -239,9 +240,48 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
     });
 
     it('teaches the study spell when the xp after the prize is enough', async () => {
+        const recoveryAt = new Date('2026-10-24T13:00:00.000Z');
+        const known = await persistSpell(world.models.spells);
+        const spell = await persistSpell(world.models.spells, {
+            minXpToLearn: 200,
+            maxUsages: 4,
+        });
+        const book = spellBook([
+            { spell: known._id, usages: 1, recoveries: [recoveryAt] },
+        ]);
+        const subject = await quester({
+            questOverrides: jobQuest(
+                { xpPrize: 300, spell: spell._id },
+                'study',
+            ),
+            characterOverrides: {
+                status: { spells: book.spells, spellStates: book.spellStates },
+            },
+        });
+
+        await service.resolveStandard(triggerOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.status.spells.map(String)).toEqual([
+            String(known._id),
+            String(spell._id),
+        ]);
+        expect(character.status.spellStates).toEqual([
+            { spell: known._id, usages: 1, recoveries: [recoveryAt] },
+            { spell: spell._id, usages: 4, recoveries: [] },
+        ]);
+        const [result] = await resultsOf(subject);
+        expect(String(result.spellLearned)).toBe(String(spell._id));
+    });
+
+    it('teaches no spell whose catalog entry has no max usages', async () => {
         const spell = await persistSpell(world.models.spells, {
             minXpToLearn: 200,
         });
+        await world.models.spells.collection.updateOne(
+            { _id: spell._id },
+            { $unset: { maxUsages: '' } },
+        );
         const subject = await quester({
             questOverrides: jobQuest(
                 { xpPrize: 300, spell: spell._id },
@@ -252,11 +292,10 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells.map(String)).toEqual([
-            String(spell._id),
-        ]);
+        expect(character.status.spells).toEqual([]);
+        expect(character.status.spellStates).toEqual([]);
         const [result] = await resultsOf(subject);
-        expect(String(result.spellLearned)).toBe(String(spell._id));
+        expect(result.spellLearned).toBeNull();
     });
 
     it('teaches nothing when the xp after the prize is not enough', async () => {

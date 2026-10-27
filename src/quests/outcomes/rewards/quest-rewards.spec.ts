@@ -23,7 +23,9 @@ const catalog: RewardCatalog = {
         [`LootItem:${POTION_ID.toHexString()}`, RarityType.uncommon],
         [`LootItem:${BONE_ID.toHexString()}`, RarityType.common],
     ]),
-    spells: new Map([[SPELL_ID.toHexString(), { minXpToLearn: 4000 }]]),
+    spells: new Map([
+        [SPELL_ID.toHexString(), { minXpToLearn: 4000, maxUsages: 4 }],
+    ]),
 };
 
 const prizesWith = (overrides: PrizesSnapshot): PrizesSnapshot => ({
@@ -145,6 +147,7 @@ describe('drawRewards', () => {
         expect(rewards.spellCandidate).toEqual({
             spellId: SPELL_ID,
             minXpToLearn: 4000,
+            maxUsages: 4,
         });
     });
 
@@ -160,7 +163,7 @@ describe('drawRewards', () => {
 });
 
 describe('canLearnSpell', () => {
-    const candidate = { spellId: SPELL_ID, minXpToLearn: 4000 };
+    const candidate = { spellId: SPELL_ID, minXpToLearn: 4000, maxUsages: 4 };
 
     it('teaches the spell once the experience reaches the threshold', () => {
         expect(canLearnSpell(candidate, 4000, [])).toBe(SPELL_ID);
