@@ -98,6 +98,11 @@ export class QuestResult {
     @Prop({ type: Date, required: true })
     resolvedAt: Date;
 
+    // nullo finché il giocatore non chiude il foglio (D-04): il default lo scrive l'unico scrittore dei risultati
+    @Field(() => Date, { nullable: true })
+    @Prop({ type: Date, default: null })
+    acknowledgedAt?: Date | null;
+
     @Field(() => Int)
     @Prop({ type: Number, required: true })
     hpBefore: number;
@@ -182,3 +187,10 @@ export class QuestResult {
 
 export type QuestResultDocument = QuestResult & Document;
 export const QuestResultSchema = SchemaFactory.createForClass(QuestResult);
+
+export const QUEST_RESULT_UNACKNOWLEDGED_INDEX = 'quest_result_unacknowledged';
+// lista dei non confermati per utente, dal più vecchio, senza ordinamento in memoria (D-05)
+QuestResultSchema.index(
+    { user: 1, acknowledgedAt: 1, resolvedAt: 1, _id: 1 },
+    { name: QUEST_RESULT_UNACKNOWLEDGED_INDEX },
+);

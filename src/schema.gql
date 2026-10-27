@@ -567,6 +567,7 @@ type QuestRequirements {
 }
 
 type QuestResult {
+  acknowledgedAt: DateTime
   character: ID!
   consumablesUsed: [AssetQuantity!]!
   enemy: Enemy

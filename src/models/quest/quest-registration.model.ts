@@ -23,6 +23,10 @@ export class QuestRegistration {
     @Field(() => Date, { nullable: true })
     @Prop({ type: Date })
     registeredAt?: Date | null;
+
+    // marcatore interno del segnaposto (D-07): istante dell'archivio del personaggio dopo l'avvio, mai sul filo
+    @Prop({ type: Date })
+    archivedAt?: Date | null;
 }
 
 export const QuestRegistrationSchema =
