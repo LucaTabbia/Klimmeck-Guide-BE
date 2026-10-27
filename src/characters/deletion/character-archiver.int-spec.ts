@@ -302,6 +302,36 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
             );
         });
 
+        // la cancellazione è la via d'uscita documentata per una morte mai confermata: nessun WARN
+        it('unlinks on deletion a user still bound to a dead character at log level with ids only', async () => {
+            const warnSpy = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation(() => undefined);
+            const logSpy = jest
+                .spyOn(Logger.prototype, 'log')
+                .mockImplementation(() => undefined);
+            const scene = await persistScene({
+                deletedAt: ARCHIVED_AT,
+                deletionReason: 'death',
+            });
+
+            const outcome = await archiveInTransaction(
+                scene.userId,
+                scene.characterId,
+            );
+
+            expect(outcome).toBe('unlinked');
+            expect((await rawUser(scene.userId))?.currentCharacter).toBeNull();
+            const raw = await rawCharacter(scene.characterId);
+            expect(raw?.deletedAt).toEqual(ARCHIVED_AT);
+            expect(raw?.deletionReason).toBe('death');
+            expect(warnSpy).not.toHaveBeenCalled();
+            expect(logSpy).toHaveBeenCalledTimes(1);
+            expect(logSpy).toHaveBeenCalledWith(
+                `Utente ${scene.userId.toHexString()} scollegato dal personaggio morto ${scene.characterId.toHexString()} senza conferma`,
+            );
+        });
+
         it('archives a dying character once under a concurrent deletion of the same character', async () => {
             for (let i = 0; i < CONCURRENT_ITERATIONS; i++) {
                 const scene = await persistScene();
