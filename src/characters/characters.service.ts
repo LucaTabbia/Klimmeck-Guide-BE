@@ -59,7 +59,7 @@ import {
     spellRecoveryTrigger,
 } from './spells/spell-recovery-job';
 import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
-import { recoveryDueAt } from './spells/spell-state.snapshot';
+import { isUsageCount, recoveryDueAt } from './spells/spell-state.snapshot';
 import { spellsOnTheWire } from './spells/spell-state.mapper';
 import {
     spellStateArrayFilters,
@@ -244,14 +244,16 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
         // usi copiati dalla voce di stato (D-01, D-07): il valore del client è ignorato; maxUsages del catalogo solo come fallback della pipeline
         const spell = await this.spellModel
             .findById(spellId, { maxUsages: 1 })
-            .lean<{ maxUsages: number } | null>()
+            .lean<{ maxUsages?: unknown } | null>()
             .exec();
-        if (!spell) throw ResourceNotFoundException.spell();
+        // un maxUsages malformato vale come magia assente, come recoveryTime in useSpell: il fallback non scrive mai un uso nullo
+        const maxUsages = spell?.maxUsages;
+        if (!isUsageCount(maxUsages)) throw ResourceNotFoundException.spell();
 
         const equipped = await this.characterModel
             .updateOne(
                 equipSpellFilter(characterId, spellId),
-                equipSpellUpdate(spellId, spell.maxUsages),
+                equipSpellUpdate(spellId, maxUsages),
             )
             .exec();
         if (equipped.matchedCount === 0) {

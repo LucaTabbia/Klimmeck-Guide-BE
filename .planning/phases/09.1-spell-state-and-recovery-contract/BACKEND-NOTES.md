@@ -202,7 +202,7 @@ Payload reale registrato dal test `carries the spell states with their future in
 | `MAX_ACTIVE_SPELLS_REACHED` | `Hai raggiunto il numero massimo di magie attive` | `equipSpell` | slot pieni sull'xp vivo (anche `maxActiveSpells == 0`); è anche il fallback dopo due riletture di contesa |
 | `SPELL_NOT_ACTIVE` | `Magia non attiva` | `unequipSpell`, `useSpell` | la magia non è in uno slot (anche se conosciuta e con usi nello stato); per `useSpell` anche un `spellId` malformato |
 | `SPELL_NO_USAGES_LEFT` | `Magia senza utilizzi rimasti` | `useSpell` | zero usi nella voce di stato (fallback dopo due riletture) |
-| `NOT_FOUND` | `Personaggio non trovato` / `Magia non trovata` | tutte e tre | personaggio assente o archiviato; magia assente dal catalogo; per `useSpell` anche `recoveryTime` non numerico nel catalogo |
+| `NOT_FOUND` | `Personaggio non trovato` / `Magia non trovata` | tutte e tre | personaggio assente o archiviato; magia assente dal catalogo; per `useSpell` anche `recoveryTime` non numerico nel catalogo; per `equipSpell` anche `maxUsages` non intero ≥ 0 nel catalogo (nulla viene scritto) |
 | `FORBIDDEN` | `Questo personaggio non ti appartiene` | tutte e tre | `@OwnsCharacter`: il personaggio non è dell'utente (l'innkeeper agisce per conto del proprietario) |
 | `UNAUTHENTICATED` | (invariato, Phase 2) | tutte e tre | token assente o scaduto: agisce il flusso di sessione |
 
