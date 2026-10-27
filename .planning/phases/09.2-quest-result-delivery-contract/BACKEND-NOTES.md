@@ -188,7 +188,7 @@ Sequenza dal punto di vista del FE (aid fallita o timeout dei 7 giorni):
 4. **Seconda conferma della stessa morte:** nessuna scrittura, nessun evento, `successful: true`.
 5. **Conferma di un risultato non `death`:** non tocca mai il personaggio corrente.
 
-**Nessuna rete di sicurezza oltre la conferma in questa fase:** una morte mai confermata lascia l'utente collegato al morto. Via d'uscita già esistente: `deleteCharacter` su un utente collegato a un morto lo scollega con il ramo della Phase 3.1 (risposta normale di successo, WARN lato server con soli id), poi `createCharacter` funziona. Uno sweep di sicurezza è annotato per la Phase 10 (§10).
+**Nessuna rete di sicurezza oltre la conferma in questa fase:** una morte mai confermata lascia l'utente collegato al morto. Via d'uscita già esistente: `deleteCharacter` su un utente collegato a un morto lo scollega con il ramo della Phase 3.1 (risposta normale di successo; lato server un log di livello informativo con soli id, «Utente <id> scollegato dal personaggio morto <id> senza conferma», non un WARN: è la via d'uscita prevista, non un'anomalia; il WARN resta per un riferimento a un personaggio mancante o cancellato), poi `createCharacter` funziona. Uno sweep di sicurezza è annotato per la Phase 10 (§10).
 
 **Compatibilità col FE vecchio:** fra il deploy BE e il rilascio della FE Phase 9 un giocatore che muore resta collegato al morto e il FE vecchio non conferma: il FE vecchio vede un personaggio che risponde `NOT_FOUND` e la creazione rifiutata. Può uscirne solo con `deleteCharacter` dalle Impostazioni o con il comando mongosh del §7. Per questo BE e FE Phase 9 vanno rilasciati il più vicini possibile (§8).
 

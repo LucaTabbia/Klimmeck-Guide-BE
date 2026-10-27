@@ -58,7 +58,7 @@ export class CharacterArchiver {
         if (archived.matchedCount === 0) {
             return dying
                 ? this.deathAlreadyRecorded(userId, characterId)
-                : this.unlinkedAnyway(userId, characterId);
+                : this.unlinkedAnyway(userId, characterId, session);
         }
         await this.releaseQuestsOf(characterId, now, session);
         return 'archived';
@@ -110,15 +110,33 @@ export class CharacterArchiver {
         return 'not-linked';
     }
 
-    // riferimento pendente o già archiviato: si scollega comunque, altrimenti l'utente non potrebbe né creare né eliminare
-    private unlinkedAnyway(
+    // riferimento pendente o già archiviato: si scollega comunque, altrimenti l'utente non potrebbe né creare né eliminare;
+    // il morto mai confermato è la via d'uscita documentata (D-12), non un'anomalia
+    private async unlinkedAnyway(
         userId: Types.ObjectId,
         characterId: Types.ObjectId,
-    ): ArchiveOutcome {
+        session: ClientSession,
+    ): Promise<ArchiveOutcome> {
+        if (await this.diedOf(characterId, session)) {
+            this.logger.log(
+                `Utente ${userId.toHexString()} scollegato dal personaggio morto ${characterId.toHexString()} senza conferma`,
+            );
+            return 'unlinked';
+        }
         this.logger.warn(
             `User ${userId.toHexString()} pointed to a missing or archived character ${characterId.toHexString()}: unlinked anyway`,
         );
         return 'unlinked';
+    }
+
+    private async diedOf(
+        characterId: Types.ObjectId,
+        session: ClientSession,
+    ): Promise<boolean> {
+        const dead = await this.characterModel
+            .exists({ _id: characterId, deletionReason: DeletionReason.death })
+            .session(session);
+        return dead !== null;
     }
 
     // solo le quest lette in sessione: nessuna scansione della collection, nessun documento estraneo;
