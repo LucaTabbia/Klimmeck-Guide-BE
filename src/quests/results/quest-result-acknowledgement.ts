@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { idForms } from 'src/mongo/document-id';
 
 // il FE riceve al più un arretrato di 50 fogli e conferma ognuno alla chiusura (D-02)
 export const UNACKNOWLEDGED_RESULTS_LIMIT = 50;
@@ -19,6 +20,20 @@ export function acknowledgementFilterOf(
 
 export function acknowledgementUpdateOf(now: Date) {
     return { $set: { acknowledgedAt: now } };
+}
+
+// solo se l'utente punta ancora al morto del risultato: mai staccare un personaggio diverso (D-12)
+export function deathUnlinkOf(
+    userId: Types.ObjectId,
+    characterId: Types.ObjectId,
+) {
+    return {
+        filter: {
+            _id: userId,
+            currentCharacter: { $in: idForms(characterId) },
+        },
+        update: { $set: { currentCharacter: null } },
+    };
 }
 
 // risultati scritti prima della conferma: il campo manca del tutto (D-04)

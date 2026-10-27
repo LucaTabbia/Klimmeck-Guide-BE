@@ -52,6 +52,7 @@ const USER_UPDATED =
     'subscription { userUpdated { id currentCharacter { id } } }';
 const CONFIRMED = { response: 'Risultato confermato', successful: true };
 const SILENCE_WINDOW_MS = 1500;
+const STREAM_TEST_TIMEOUT_MS = 15_000;
 const PRIMING_ATTEMPTS = 25;
 const PRIMING_WAIT_MS = 200;
 
@@ -261,22 +262,32 @@ describe('death confirmation (wire)', () => {
         expect(await currentOnWire(alice)).toBeNull();
     });
 
-    it('streams nothing at the death and the unlinked user once the death is confirmed', async () => {
-        const subscription = subscribeAs(alice.bearer);
-        expect((await nextUser(subscription)).currentCharacter).toEqual({
-            id: String(aliceCharId),
-        });
+    // la lettura scaduta della prova di silenzio consumerebbe l'evento successivo: la conferma si osserva su una seconda subscription
+    it(
+        'streams nothing at the death and the unlinked user once the death is confirmed',
+        async () => {
+            const atDeath = subscribeAs(alice.bearer);
+            expect((await nextUser(atDeath)).currentCharacter).toEqual({
+                id: String(aliceCharId),
+            });
 
-        const deathId = await persistDeath();
-        await expectSilence(subscription, SILENCE_WINDOW_MS);
+            const deathId = await persistDeath();
+            await expectSilence(atDeath, SILENCE_WINDOW_MS);
 
-        await confirm(deathId);
+            const atConfirmation = subscribeAs(alice.bearer);
+            expect(await nextUser(atConfirmation)).toEqual({
+                id: String(alice.user._id),
+                currentCharacter: { id: String(aliceCharId) },
+            });
+            await confirm(deathId);
 
-        expect(await nextUser(subscription)).toEqual({
-            id: String(alice.user._id),
-            currentCharacter: null,
-        });
-    });
+            expect(await nextUser(atConfirmation)).toEqual({
+                id: String(alice.user._id),
+                currentCharacter: null,
+            });
+        },
+        STREAM_TEST_TIMEOUT_MS,
+    );
 
     it('allows a new character after the death is confirmed', async () => {
         const deathId = await persistDeath();

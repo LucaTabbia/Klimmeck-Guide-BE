@@ -225,6 +225,7 @@ describe('quest result confirmation (wire)', () => {
                 { _id: alice.character?._id },
                 { $set: { deletedAt: NOW, deletionReason: 'death' } },
             );
+        // utente già scollegato da deleteCharacter dopo la morte: la conferma resta possibile (il caso collegato è in death-acknowledgement)
         await harness.connection
             .collection('users')
             .updateOne(
