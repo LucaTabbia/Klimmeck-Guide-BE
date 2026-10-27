@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 Phase: 9.1 (Spell State and Recovery Contract) — PLANNED (2026-10-27), 10 plans in 7 waves, ready to execute; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27), to plan after the 9.1 PR
 Plan: 0 of 10
-Status: Phase 9.1 planned — ready to execute (`/gsd-execute-phase 09.1` on `feat/09.1-spell-state-and-recovery-contract`, sequential executors; before starting, stash the user's `.env.example` hunk and restore it on `feat/10-hardening`; research + CONTEXT amended F1–F11, VALIDATION.md template, 10 plans passed the plan-checker after one revision round: 0 blockers, 0 warnings; PR to develop before the FE Phase 8 gate plan 08-12)
+Status: Phase 9.1 planned — ready to execute (`/gsd-execute-phase 09.1` on `feat/09.1-spell-state-and-recovery-contract`, sequential executors; research + CONTEXT amended F1–F11, VALIDATION.md template, 10 plans passed the plan-checker after one revision round: 0 blockers, 0 warnings; PR to develop before the FE Phase 8 gate plan 08-12)
 Last activity: 2026-10-27 -- Phase 9.1 planned: 10 plans in 7 waves (PR before the FE Phase 8 gate plan)
 
 Progress: [██████████] 100% (phases 1–9 complete; 9.1 planned 0/10; 10 to plan after the 9.1 PR)
