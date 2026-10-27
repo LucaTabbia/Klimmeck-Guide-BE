@@ -17,6 +17,7 @@ import {
     createAuthTestApp,
 } from '../../../test/auth/auth-test-app';
 import {
+    buildCharacter,
     buildQuest,
     persistCharacter,
     persistQuest,
@@ -26,6 +27,7 @@ import {
 const NOW = new Date('2026-10-24T10:00:00.000Z');
 const YESTERDAY = new Date('2026-10-23T10:00:00.000Z');
 const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
+const STARTED_AT = new Date(NOW.getTime() - 60 * 60 * 1000);
 
 describe('CharacterArchiver.archiveWithin (replSet)', () => {
     let harness: AuthTestApp;
@@ -80,7 +82,7 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
             twitchId: 'twitch-archive',
             currentCharacter: characterId,
         });
-        const other = new Types.ObjectId();
+        const other = await persistNamedCharacter('Other Hero');
         const seated = await persistQuest(quests, {
             registeredAdventurers: [
                 { character: characterId, title: 'rookie' },
@@ -107,6 +109,43 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
             concludedAid: concludedAid._id as Types.ObjectId,
             other,
         };
+    }
+
+    async function persistNamedCharacter(
+        name: string,
+    ): Promise<Types.ObjectId> {
+        const character = await persistCharacter(characters, {
+            infos: { ...buildCharacter().infos, name },
+        });
+        return character._id as Types.ObjectId;
+    }
+
+    async function persistLinkedCharacter(
+        name: string,
+        twitchId: string,
+    ): Promise<{ userId: Types.ObjectId; characterId: Types.ObjectId }> {
+        const characterId = await persistNamedCharacter(name);
+        const user = await persistUser(users, {
+            twitchId,
+            currentCharacter: characterId,
+        });
+        return { userId: user._id as Types.ObjectId, characterId };
+    }
+
+    async function startedBoss(
+        registered: Types.ObjectId[],
+        concludedAt: Date | null = null,
+    ): Promise<Types.ObjectId> {
+        const quest = await persistQuest(quests, {
+            infos: { ...buildQuest().infos, type: 'boss' },
+            registeredAdventurers: registered.map((character) => ({
+                character,
+                title: 'rookie',
+            })),
+            startedAt: STARTED_AT,
+            concludedAt,
+        });
+        return quest._id as Types.ObjectId;
     }
 
     function archiveInTransaction(
@@ -186,24 +225,6 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
     });
 
     describe('started quests left without anyone (utente 2026-10-25)', () => {
-        const STARTED_AT = new Date(NOW.getTime() - 60 * 60 * 1000);
-
-        async function startedBoss(
-            registered: Types.ObjectId[],
-            concludedAt: Date | null = null,
-        ): Promise<Types.ObjectId> {
-            const quest = await persistQuest(quests, {
-                infos: { ...buildQuest().infos, type: 'boss' },
-                registeredAdventurers: registered.map((character) => ({
-                    character,
-                    title: 'rookie',
-                })),
-                startedAt: STARTED_AT,
-                concludedAt,
-            });
-            return quest._id as Types.ObjectId;
-        }
-
         it('lets a started boss without registered adventurers start again', async () => {
             const scene = await persistScene();
             const bossId = await startedBoss([scene.characterId]);
@@ -215,15 +236,118 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
             expect(boss?.startedAt).toBeNull();
         });
 
-        it('keeps a started boss going with the adventurers left', async () => {
+        it('keeps the seat of a started boss as a placeholder for the adventurers left («Il BE non libera i posti delle quest avviate»)', async () => {
             const scene = await persistScene();
             const bossId = await startedBoss([scene.characterId, scene.other]);
 
             await archiveInTransaction(scene.userId, scene.characterId);
 
             const boss = await rawQuest(bossId);
-            expect(boss?.registeredAdventurers).toHaveLength(1);
+            const [archivedSeat, otherSeat] = boss?.registeredAdventurers ?? [];
+            expect(boss?.registeredAdventurers).toHaveLength(2);
+            expect(archivedSeat.character).toEqual(scene.characterId);
+            expect(archivedSeat.archivedAt).toEqual(NOW);
+            expect(otherSeat.character).toEqual(scene.other);
+            expect(Object.keys(otherSeat).sort()).toEqual([
+                'character',
+                'title',
+            ]);
             expect(boss?.startedAt).toEqual(STARTED_AT);
+        });
+
+        it('frees the seat on a quest not started yet as before (Phase 8 D-30)', async () => {
+            const scene = await persistScene();
+
+            await archiveInTransaction(scene.userId, scene.characterId);
+
+            const seats = (await rawQuest(scene.seatedQuest))
+                ?.registeredAdventurers;
+            expect(seats).toHaveLength(1);
+            expect(seats[0].character).toEqual(scene.other);
+            expect(Object.keys(seats[0]).sort()).toEqual([
+                'character',
+                'title',
+            ]);
+        });
+
+        it('frees the seat on a world mission, which never starts', async () => {
+            const scene = await persistScene();
+            const mission = await persistQuest(quests, {
+                infos: { ...buildQuest().infos, type: 'worldMission' },
+                registeredAdventurers: [
+                    { character: scene.characterId, title: 'rookie' },
+                    { character: scene.other, title: 'hero' },
+                ],
+                startedAt: null,
+            });
+
+            await archiveInTransaction(scene.userId, scene.characterId);
+
+            expect(
+                (await rawQuest(mission._id as Types.ObjectId))
+                    ?.registeredAdventurers,
+            ).toEqual([{ character: scene.other, title: 'hero' }]);
+        });
+
+        it('returns a started boss to not started once every registrant is a placeholder («Il BE non libera i posti delle quest avviate»)', async () => {
+            const scene = await persistScene();
+            const second = await persistLinkedCharacter(
+                'Second Hero',
+                'twitch-archive-second',
+            );
+            const bossId = await startedBoss([
+                scene.characterId,
+                second.characterId,
+            ]);
+
+            await archiveInTransaction(second.userId, second.characterId);
+            const afterFirst = await rawQuest(bossId);
+            expect(afterFirst?.registeredAdventurers).toHaveLength(2);
+            expect(afterFirst?.startedAt).toEqual(STARTED_AT);
+
+            await archiveInTransaction(scene.userId, scene.characterId);
+
+            const boss = await rawQuest(bossId);
+            expect(boss?.registeredAdventurers).toEqual([]);
+            expect(boss?.startedAt).toBeNull();
+        });
+
+        it('returns a started boss to not started when the other registrant is a dangling id', async () => {
+            const scene = await persistScene();
+            const bossId = await startedBoss([
+                scene.characterId,
+                new Types.ObjectId(),
+            ]);
+
+            await archiveInTransaction(scene.userId, scene.characterId);
+
+            const boss = await rawQuest(bossId);
+            expect(boss?.registeredAdventurers).toEqual([]);
+            expect(boss?.startedAt).toBeNull();
+        });
+
+        it('returns a started aid with archived rescuers only to not started and keeps its wounded', async () => {
+            const scene = await persistScene();
+            const aid = await persistQuest(quests, {
+                infos: { ...buildQuest().infos, type: 'aid' },
+                rescue: {
+                    characters: [scene.other],
+                    failedQuest: scene.seatedQuest,
+                },
+                registeredAdventurers: [
+                    { character: scene.characterId, title: 'rookie' },
+                ],
+                startedAt: STARTED_AT,
+                concludedAt: null,
+            });
+
+            await archiveInTransaction(scene.userId, scene.characterId);
+
+            const raw = await rawQuest(aid._id as Types.ObjectId);
+            expect(raw?.startedAt).toBeNull();
+            expect(raw?.registeredAdventurers).toEqual([]);
+            expect(raw?.rescue?.characters).toEqual([scene.other]);
+            expect(raw?.concludedAt).toBeNull();
         });
 
         it('leaves alone a started quest the character was not registered on', async () => {
@@ -244,6 +368,9 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
             const boss = await rawQuest(bossId);
             expect(boss?.startedAt).toEqual(STARTED_AT);
             expect(boss?.concludedAt).toEqual(YESTERDAY);
+            expect(boss?.registeredAdventurers).toEqual([
+                { character: scene.characterId, title: 'rookie' },
+            ]);
         });
     });
 
@@ -289,6 +416,7 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
 
     it('writes nothing when the caller transaction aborts after archiving', async () => {
         const scene = await persistScene();
+        const bossId = await startedBoss([scene.characterId, scene.other]);
 
         await expect(
             harness.connection.transaction(async (session) => {
@@ -306,6 +434,12 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
             scene.characterId,
         );
         await expectUntouched(scene);
+        const boss = await rawQuest(bossId);
+        expect(boss?.registeredAdventurers).toEqual([
+            { character: scene.characterId, title: 'rookie' },
+            { character: scene.other, title: 'rookie' },
+        ]);
+        expect(boss?.startedAt).toEqual(STARTED_AT);
     });
 
     it('answers not-linked and writes nothing when the user points elsewhere', async () => {
