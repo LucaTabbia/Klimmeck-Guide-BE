@@ -149,6 +149,26 @@ describe('validateEnv', () => {
         });
     });
 
+    describe('spell recovery sweep', () => {
+        it('rejects the boot with a malformed SPELL_RECOVERY_SWEEP_INTERVAL_MS', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    SPELL_RECOVERY_SWEEP_INTERVAL_MS: 'abc',
+                }),
+            ).toThrow(/SPELL_RECOVERY_SWEEP_INTERVAL_MS/);
+        });
+
+        it('boots with the periodic spell recovery sweep disabled', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    SPELL_RECOVERY_SWEEP_INTERVAL_MS: '0',
+                }),
+            ).not.toThrow();
+        });
+    });
+
     it('rejects a malformed FIREBASE_SERVICE_ACCOUNT in development', () => {
         expect(() =>
             validateEnv({
@@ -199,6 +219,11 @@ describe('.env.example', () => {
     it('declares an empty QUEST_SWEEP_INTERVAL_MS', () => {
         expect(parsed).toHaveProperty('QUEST_SWEEP_INTERVAL_MS');
         expect(parsed.QUEST_SWEEP_INTERVAL_MS).toBe('');
+    });
+
+    it('declares an empty SPELL_RECOVERY_SWEEP_INTERVAL_MS', () => {
+        expect(parsed).toHaveProperty('SPELL_RECOVERY_SWEEP_INTERVAL_MS');
+        expect(parsed.SPELL_RECOVERY_SWEEP_INTERVAL_MS).toBe('');
     });
 
     it('passes validateEnv once a JWT_SECRET is provided', () => {
