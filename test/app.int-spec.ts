@@ -37,6 +37,7 @@ import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
 import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholder-combat-resolver';
 import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
+import { QuestResultMaintenance } from 'src/quests/results/quest-result-maintenance';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import type { TravelConfig } from 'src/config/travel-config';
 import { TRAVEL_CONFIG } from 'src/config/travel-config';
@@ -632,6 +633,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         });
         expect(app.get(CombatResolver)).toBeInstanceOf(
             PlaceholderCombatResolver,
+        );
+    });
+
+    it('mounts the quest result maintenance', () => {
+        expect(app.get(QuestResultMaintenance)).toBeInstanceOf(
+            QuestResultMaintenance,
         );
     });
 

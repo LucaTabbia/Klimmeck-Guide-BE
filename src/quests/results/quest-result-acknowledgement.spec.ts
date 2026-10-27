@@ -2,6 +2,8 @@ import { Types } from 'mongoose';
 import {
     acknowledgementFilterOf,
     acknowledgementUpdateOf,
+    LEGACY_RESULTS_FILTER,
+    legacyResultsBackfill,
     UNACKNOWLEDGED_RESULTS_LIMIT,
     UNACKNOWLEDGED_RESULTS_SORT,
     unacknowledgedResultsFilterOf,
@@ -44,5 +46,17 @@ describe('quest result confirmation builders', () => {
         expect(acknowledgementUpdateOf(now)).toEqual({
             $set: { acknowledgedAt: now },
         });
+    });
+
+    it('selects only the results stored before the confirmation existed', () => {
+        expect(LEGACY_RESULTS_FILTER).toEqual({
+            acknowledgedAt: { $exists: false },
+        });
+    });
+
+    it('copies the resolution time into the confirmation of a legacy result', () => {
+        expect(legacyResultsBackfill()).toEqual([
+            { $set: { acknowledgedAt: '$resolvedAt' } },
+        ]);
     });
 });
