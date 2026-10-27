@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
+import {
+    activeRegistrantFilterOf,
+    placeholderMarkOf,
+    startedQuestResetOf,
+    unstartedSeatReleaseOf,
+} from 'src/characters/deletion/seat-release';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import {
     Character,
@@ -68,39 +74,75 @@ export class CharacterArchiver {
         return 'archived';
     }
 
-    // solo le quest lette in sessione prima del $pull: nessuna scansione della collection, nessun documento estraneo
+    // solo le quest lette in sessione: nessuna scansione della collection, nessun documento estraneo;
+    // dopo l'avvio il posto resta come segnaposto fino alla conclusione (utente 2026-10-27);
+    // una quest avviata senza nessun personaggio attivo torna non avviata
     private async releaseSeatsOf(
         characterId: Types.ObjectId,
+        now: Date,
         session: ClientSession,
     ): Promise<void> {
-        const character = { $in: idForms(characterId) };
         const seated = await this.questModel
-            .find({ 'registeredAdventurers.character': character }, { _id: 1 })
+            .find(
+                {
+                    'registeredAdventurers.character': {
+                        $in: idForms(characterId),
+                    },
+                },
+                { _id: 1 },
+            )
             .session(session)
             .lean<{ _id: Types.ObjectId }[]>()
             .exec();
         if (seated.length === 0) return;
         const seatedIds = seated.map(({ _id }) => _id);
+        const release = unstartedSeatReleaseOf(seatedIds, characterId);
         await this.questModel
-            .updateMany(
-                { _id: { $in: seatedIds } },
-                { $pull: { registeredAdventurers: { character } } },
-                { session },
-            )
+            .updateMany(release.filter, release.update, { session })
             .exec();
-        // una quest avviata rimasta senza nessuno torna non avviata: un nuovo party può formarsi (utente 2026-10-25)
+        const mark = placeholderMarkOf(seatedIds, characterId, now);
         await this.questModel
-            .updateMany(
+            .updateMany(mark.filter, mark.update, {
+                session,
+                arrayFilters: mark.arrayFilters,
+            })
+            .exec();
+        await this.resetQuestsWithoutActiveRegistrants(seatedIds, session);
+    }
+
+    private async resetQuestsWithoutActiveRegistrants(
+        questIds: Types.ObjectId[],
+        session: ClientSession,
+    ): Promise<void> {
+        const started = await this.questModel
+            .find(
                 {
-                    _id: { $in: seatedIds },
+                    _id: { $in: questIds },
                     concludedAt: null,
                     startedAt: { $ne: null },
-                    registeredAdventurers: { $size: 0 },
                 },
-                { $set: { startedAt: null } },
-                { session },
+                { registeredAdventurers: 1 },
             )
+            .session(session)
+            .lean<
+                {
+                    _id: Types.ObjectId;
+                    registeredAdventurers?: { character?: unknown }[];
+                }[]
+            >()
             .exec();
+        for (const quest of started) {
+            const active = await this.characterModel
+                .exists(
+                    activeRegistrantFilterOf(quest.registeredAdventurers ?? []),
+                )
+                .session(session);
+            if (active) continue;
+            const reset = startedQuestResetOf(quest._id);
+            await this.questModel
+                .updateOne(reset.filter, reset.update, { session })
+                .exec();
+        }
     }
 
     // posti liberati (Phase 8 D-30); il ferito esce dalle aid aperte che lo soccorrono e la aid resta aperta finché c'è qualcuno da soccorrere (D-09): nessuna aid orfana sulla board
@@ -109,7 +151,7 @@ export class CharacterArchiver {
         now: Date,
         session: ClientSession,
     ): Promise<void> {
-        await this.releaseSeatsOf(characterId, session);
+        await this.releaseSeatsOf(characterId, now, session);
         const aids = await this.questModel
             .find(
                 { 'rescue.characters': characterId, concludedAt: null },
