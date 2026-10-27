@@ -646,6 +646,8 @@ db.quests.updateOne({ _id: ObjectId('<bossId>') }, { $set: { 'registeredAdventur
 
 ## 15. Deploy
 
+> **Emendato dalla Phase 9.1 (2026-10-27):** i job `recover` degli esiti portano `dueAt` e un `jobId` deterministico; gli usi spesi negli esiti sono istanti in `status.spellStates`, restituiti anche dallo sweep.
+
 - **Variabile nuova, opzionale:** `QUEST_SWEEP_INTERVAL_MS` (già in `.env.example`, vuota = 60 000 ms; `0` spegne lo sweep periodico, il reconciler al boot gira sempre; valore malformato → boot rifiutato). Non è un segreto. In produzione tenere lo sweep attivo.
 - **Coda Redis nuova:** `bull:quest-resolution:*` (job `resolve`, `aid-timeout` e, dal piano 09-19, `party-timeout`); job `recover` aggiuntivi su `bull:spell-recovery:*` per le magie usate negli esiti.
 - **Redis in produzione:** verificare la **`maxmemory-policy`** (blocker in STATE): con una policy di eviction i delayed job possono sparire; reconciler e sweep li compensano. Consigliata `noeviction`.

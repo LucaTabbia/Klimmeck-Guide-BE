@@ -169,6 +169,8 @@ L'id malformato del personaggio dà `NOT_FOUND` prima di tutto.
 
 ## 4. Equip e magie attive
 
+> **Emendato dalla Phase 9.1 (2026-10-27):** usi e recuperi appartengono alla magia conosciuta (`status.spellStates`); equip non riporta più gli usi a `maxUsages` (D-11 superata), `useSpell` registra l'istante di recupero e accoda un trigger best-effort senza compensazione; il codice del recupero non disponibile è rimosso. Vedi `.planning/phases/09.1-spell-state-and-recovery-contract/BACKEND-NOTES.md`.
+
 **`equipSpell`** è un solo `updateOne` condizionale. Nello stesso update verifica:
 
 - la magia è conosciuta (`status.spells`), altrimenti `SPELL_NOT_KNOWN`;
@@ -190,6 +192,8 @@ La capacità si calcola con un `$switch` sull'xp vivo, con la stessa tabella del
 ---
 
 ## 5. useSpell e recovery
+
+> **Emendato dalla Phase 9.1 (2026-10-27):** usi e recuperi appartengono alla magia conosciuta (`status.spellStates`); equip non riporta più gli usi a `maxUsages` (D-11 superata), `useSpell` registra l'istante di recupero e accoda un trigger best-effort senza compensazione; il codice del recupero non disponibile è rimosso. Vedi `.planning/phases/09.1-spell-state-and-recovery-contract/BACKEND-NOTES.md`.
 
 1. La spell si valida nel catalogo **prima** di toccare gli usages; se manca → `NOT_FOUND`.
 2. Decremento condizionato: `$inc: -1` su `$elemMatch { spell, usages: { $gte: 1 } }`. Gli usages non scendono mai sotto 0 e c'è un solo vincitore per usage. I rifiuti sono `SPELL_NOT_ACTIVE` / `SPELL_NO_USAGES_LEFT`. Se la rilettura mostra la magia attiva con usages ≥ 1, il BE rilegge e riclassifica una seconda volta e solo dopo ripiega su `SPELL_NO_USAGES_LEFT` (stesso fallback di contesa di §4).
