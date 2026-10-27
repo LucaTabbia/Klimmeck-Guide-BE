@@ -94,7 +94,7 @@ describe('CharactersService (unit — spell mutations)', () => {
         const c = new Types.ObjectId();
         const s = new Types.ObjectId();
 
-        it('equipSpell writes the catalog maxUsages with a single conditional update', async () => {
+        it('equipSpell copies the state usages with a single conditional pipeline update', async () => {
             mockSpellModel.findById.mockReturnValue(
                 asLeanQuery({ maxUsages: 3 }),
             );
@@ -111,6 +111,7 @@ describe('CharactersService (unit — spell mutations)', () => {
             const [filter, update] = mockCharacterModel.updateOne.mock.calls[0];
             expect(filter).toEqual(equipSpellFilter(c, s));
             expect(update).toEqual(equipSpellUpdate(s, 3));
+            expect(Array.isArray(update)).toBe(true);
             expect(mockCharacterModel.findOne).not.toHaveBeenCalled();
         });
 

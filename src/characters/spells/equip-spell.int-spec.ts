@@ -17,6 +17,8 @@ import {
     buildCharacter,
     persistCharacter,
     persistSpell,
+    spellBook,
+    SpellBookEntry,
 } from '../../../test/fixtures';
 
 const EQUIP_SPELL =
@@ -34,15 +36,27 @@ interface RawActiveSpell {
     usages: number;
 }
 
+interface RawSpellState {
+    spell: unknown;
+    usages: number;
+    recoveries: Date[];
+}
+
 interface RawCharacter {
+    status: { spellStates: RawSpellState[] };
     assets: { activeSpells: RawActiveSpell[] };
 }
 
 interface Loadout {
     xp: number;
     title?: TitleType;
-    spells: Types.ObjectId[];
-    activeSpells: { spell: Types.ObjectId; usages: number }[];
+    book: SpellBookEntry[];
+}
+
+const MINUTE_MS = 60 * 1000;
+
+function minutesFromNow(minutes: number): Date {
+    return new Date(Date.now() + minutes * MINUTE_MS);
 }
 
 function codeOf(body: WireBody): unknown {
@@ -67,9 +81,10 @@ describe('equipSpell / unequipSpell (wire)', () => {
 
     function playerWith(
         twitchId: string,
-        { xp, title = TitleType.mage, spells: known, activeSpells }: Loadout,
+        { xp, title = TitleType.mage, book }: Loadout,
     ): Promise<TestPlayer> {
         // le suite delle magie giocano da mage (D-13): gli slot si aprono dal rango mage
+        const shelf = spellBook(book);
         return createPlayer(harness, {
             twitchId,
             characterOverrides: {
@@ -77,9 +92,13 @@ describe('equipSpell / unequipSpell (wire)', () => {
                     ...buildCharacter().status,
                     title,
                     xp,
-                    spells: known,
+                    spells: shelf.spells,
+                    spellStates: shelf.spellStates,
                 },
-                assets: { ...buildCharacter().assets, activeSpells },
+                assets: {
+                    ...buildCharacter().assets,
+                    activeSpells: shelf.activeSpells,
+                },
             },
         });
     }
@@ -161,13 +180,19 @@ describe('equipSpell / unequipSpell (wire)', () => {
     });
 
     describe('equipSpell', () => {
-        it('equips a known spell with the catalog maxUsages, ignoring the client usages', async () => {
+        it('«Il recupero vale sempre, che la magia venga equipaggiata o disequipaggiata»: equips a known spell with the usages of its state, ignoring the client usages', async () => {
             const dardo = await spellNamed('Dardo', 3);
-            const player = await playerWith('twitch-eq-catalog', {
+            const player = await playerWith('twitch-eq-state', {
                 xp: 20000,
-                spells: [dardo],
-                activeSpells: [],
+                book: [
+                    {
+                        spell: dardo,
+                        usages: 1,
+                        recoveries: [minutesFromNow(2), minutesFromNow(30)],
+                    },
+                ],
             });
+            const before = await rawCharacter(idOf(player));
 
             const body = await equip(player, dardo.toHexString(), {
                 usages: 99,
@@ -179,8 +204,12 @@ describe('equipSpell / unequipSpell (wire)', () => {
                 response: 'Magia equipaggiata con successo',
             });
             const raw = await rawCharacter(idOf(player));
-            expect(raw.assets.activeSpells).toHaveLength(1);
-            expect(raw.assets.activeSpells[0].usages).toBe(3);
+            expect(raw.assets.activeSpells).toEqual([
+                { spell: dardo, usages: 1 },
+            ]);
+            expect(raw.status.spellStates).toEqual(before.status.spellStates);
+            expect(raw.status.spellStates[0].usages).toBe(1);
+            expect(raw.status.spellStates[0].recoveries).toHaveLength(2);
             expect(
                 await characters.collection.countDocuments({
                     _id: new Types.ObjectId(idOf(player)),
@@ -189,12 +218,32 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toBe(1);
         });
 
+        it('falls back to the catalog maxUsages when the spell has no state entry', async () => {
+            const dardo = await spellNamed('Dardo', 3);
+            const player = await playerWith('twitch-eq-no-state', {
+                xp: 20000,
+                book: [],
+            });
+            await storeLegacySpells(player, {
+                'status.spells': [dardo],
+                'status.spellStates': [],
+            });
+
+            const body = await equip(player, dardo.toHexString());
+
+            expect(isSuccess(body, 'equipSpell')).toBe(true);
+            const raw = await rawCharacter(idOf(player));
+            expect(raw.assets.activeSpells).toEqual([
+                { spell: dardo, usages: 3 },
+            ]);
+            expect(raw.status.spellStates).toEqual([]);
+        });
+
         it('rejects a spell the character does not know with SPELL_NOT_KNOWN', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-eq-unknown', {
                 xp: 20000,
-                spells: [],
-                activeSpells: [],
+                book: [],
             });
             const before = await rawCharacter(idOf(player));
 
@@ -212,8 +261,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-eq-active', {
                 xp: 25000,
-                spells: [dardo],
-                activeSpells: [{ spell: dardo, usages: 1 }],
+                book: [{ spell: dardo, usages: 1, active: true }],
             });
             const before = await rawCharacter(idOf(player));
 
@@ -228,13 +276,14 @@ describe('equipSpell / unequipSpell (wire)', () => {
             const scudo = await spellNamed('Scudo');
             const full = await playerWith('twitch-eq-full', {
                 xp: 20000,
-                spells: [dardo, scudo],
-                activeSpells: [{ spell: dardo, usages: 1 }],
+                book: [
+                    { spell: dardo, usages: 1, active: true },
+                    { spell: scudo, usages: 3 },
+                ],
             });
             const noSlots = await playerWith('twitch-eq-noslots', {
                 xp: 19999,
-                spells: [dardo],
-                activeSpells: [],
+                book: [{ spell: dardo, usages: 3 }],
             });
             const fullBefore = await rawCharacter(idOf(full));
             const noSlotsBefore = await rawCharacter(idOf(noSlots));
@@ -254,8 +303,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             const player = await playerWith('twitch-eq-rookie', {
                 xp: 40000,
                 title: TitleType.rookie,
-                spells: [dardo],
-                activeSpells: [],
+                book: [{ spell: dardo, usages: 3 }],
             });
 
             const body = await equip(player, dardo.toHexString());
@@ -270,8 +318,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-eq-legacy-known', {
                 xp: 20000,
-                spells: [],
-                activeSpells: [],
+                book: [{ spell: dardo, usages: 3 }],
             });
             await storeLegacySpells(player, {
                 'status.spells': [dardo.toHexString()],
@@ -289,8 +336,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-eq-legacy-active', {
                 xp: 25000,
-                spells: [dardo],
-                activeSpells: [],
+                book: [{ spell: dardo, usages: 1 }],
             });
             await storeLegacySpells(player, {
                 'assets.activeSpells': [
@@ -309,8 +355,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             const ghost = new Types.ObjectId();
             const player = await playerWith('twitch-eq-ghost', {
                 xp: 20000,
-                spells: [ghost],
-                activeSpells: [],
+                book: [{ spell: ghost, usages: 3 }],
             });
             const before = await rawCharacter(idOf(player));
 
@@ -325,8 +370,10 @@ describe('equipSpell / unequipSpell (wire)', () => {
             const scudo = await spellNamed('Scudo');
             const player = await playerWith('twitch-eq-race-1', {
                 xp: 20000,
-                spells: [dardo, scudo],
-                activeSpells: [],
+                book: [
+                    { spell: dardo, usages: 3 },
+                    { spell: scudo, usages: 3 },
+                ],
             });
             const [a, b] = [dardo.toHexString(), scudo.toHexString()];
 
@@ -361,8 +408,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ];
             const player = await playerWith('twitch-eq-race-2', {
                 xp: 25000,
-                spells: ids,
-                activeSpells: [],
+                book: ids.map((spell) => ({ spell, usages: 3 })),
             });
             const hexes = ids.map((id) => id.toHexString());
 
@@ -427,8 +473,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-uneq-ok', {
                 xp: 20000,
-                spells: [dardo],
-                activeSpells: [{ spell: dardo, usages: 2 }],
+                book: [{ spell: dardo, usages: 2, active: true }],
             });
 
             const body = await unequip(player, dardo.toHexString());
@@ -442,12 +487,75 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toEqual([]);
         });
 
+        it('«Il timer di recupero non si interrompe mai»: unequipSpell leaves usages and recoveries of the spell untouched', async () => {
+            const dardo = await spellNamed('Dardo', 3);
+            const player = await playerWith('twitch-uneq-state', {
+                xp: 20000,
+                book: [
+                    {
+                        spell: dardo,
+                        usages: 1,
+                        recoveries: [minutesFromNow(2), minutesFromNow(30)],
+                        active: true,
+                    },
+                ],
+            });
+            const before = await rawCharacter(idOf(player));
+
+            const body = await unequip(player, dardo.toHexString());
+
+            expect(isSuccess(body, 'unequipSpell')).toBe(true);
+            const raw = await rawCharacter(idOf(player));
+            expect(raw.assets.activeSpells).toEqual([]);
+            expect(raw.status.spellStates).toEqual(before.status.spellStates);
+        });
+
+        it('unequip then equip never resets the usages (Phase 4 D-11 superseded)', async () => {
+            const dardo = await spellNamed('Dardo', 3);
+            const player = await playerWith('twitch-uneq-reequip', {
+                xp: 20000,
+                book: [
+                    {
+                        spell: dardo,
+                        usages: 0,
+                        recoveries: [
+                            minutesFromNow(2),
+                            minutesFromNow(10),
+                            minutesFromNow(30),
+                        ],
+                        active: true,
+                    },
+                ],
+            });
+            const before = await rawCharacter(idOf(player));
+
+            expect(
+                isSuccess(
+                    await unequip(player, dardo.toHexString()),
+                    'unequipSpell',
+                ),
+            ).toBe(true);
+            expect(
+                isSuccess(
+                    await equip(player, dardo.toHexString()),
+                    'equipSpell',
+                ),
+            ).toBe(true);
+
+            const raw = await rawCharacter(idOf(player));
+            expect(raw.assets.activeSpells).toEqual([
+                { spell: dardo, usages: 0 },
+            ]);
+            expect(raw.status.spellStates).toEqual(before.status.spellStates);
+            expect(raw.status.spellStates[0].usages).toBe(0);
+            expect(raw.status.spellStates[0].recoveries).toHaveLength(3);
+        });
+
         it('removes an active spell stored with a legacy string id', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-uneq-legacy', {
                 xp: 20000,
-                spells: [dardo],
-                activeSpells: [],
+                book: [{ spell: dardo, usages: 2 }],
             });
             await storeLegacySpells(player, {
                 'assets.activeSpells': [
@@ -467,8 +575,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-uneq-inactive', {
                 xp: 20000,
-                spells: [dardo],
-                activeSpells: [],
+                book: [{ spell: dardo, usages: 3 }],
             });
 
             const body = await unequip(player, dardo.toHexString());
@@ -484,8 +591,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-uneq-race', {
                 xp: 20000,
-                spells: [dardo],
-                activeSpells: [{ spell: dardo, usages: 1 }],
+                book: [{ spell: dardo, usages: 1, active: true }],
             });
             const a = dardo.toHexString();
 

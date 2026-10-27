@@ -42,10 +42,72 @@ describe('active spell write builders', () => {
         expect(filter['status.spells'].$in[0]).toBeInstanceOf(Types.ObjectId);
     });
 
-    it('equipSpellUpdate pushes the spell with the given usages', () => {
-        expect(equipSpellUpdate(s, 3)).toEqual({
-            $push: { 'assets.activeSpells': { spell: s, usages: 3 } },
-        });
+    it('«Il recupero vale sempre, che la magia venga equipaggiata o disequipaggiata»: equipSpellUpdate copies the usages of the spell state into the slot', () => {
+        const update = equipSpellUpdate(s, 3);
+
+        expect(update).toEqual([
+            {
+                $set: {
+                    'assets.activeSpells': {
+                        $concatArrays: [
+                            { $ifNull: ['$assets.activeSpells', []] },
+                            [
+                                {
+                                    spell: s,
+                                    usages: {
+                                        $ifNull: [
+                                            {
+                                                $let: {
+                                                    vars: {
+                                                        state: {
+                                                            $arrayElemAt: [
+                                                                {
+                                                                    $filter: {
+                                                                        input: {
+                                                                            $ifNull:
+                                                                                [
+                                                                                    '$status.spellStates',
+                                                                                    [],
+                                                                                ],
+                                                                        },
+                                                                        cond: {
+                                                                            $eq: [
+                                                                                '$$this.spell',
+                                                                                s,
+                                                                            ],
+                                                                        },
+                                                                    },
+                                                                },
+                                                                0,
+                                                            ],
+                                                        },
+                                                    },
+                                                    in: '$$state.usages',
+                                                },
+                                            },
+                                            3,
+                                        ],
+                                    },
+                                },
+                            ],
+                        ],
+                    },
+                },
+            },
+        ]);
+        expect(Array.isArray(update)).toBe(true);
+        expect(update).toMatchObject([
+            {
+                $set: {
+                    'assets.activeSpells': {
+                        $concatArrays: [
+                            expect.anything(),
+                            [{ spell: expect.any(Types.ObjectId) }],
+                        ],
+                    },
+                },
+            },
+        ]);
     });
 
     it('unequipSpellFilter / unequipSpellUpdate pull an active spell stored in either id form', () => {
