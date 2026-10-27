@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 9 complete (20/20, 2026-10-26) — PR #13 to develop open
-last_updated: "2026-10-26T19:45:00.000Z"
-last_activity: 2026-10-26 -- Phase 9 plan 09-20: aid seats identical to the failed quest, questUpdated subscription for the live party counter; gate green; PR #13 to be updated by the orchestrator
+status: planning
+stopped_at: Phase 9.1 context gathered (2026-10-27) — ready to plan; Phase 10 context gathered on the stacked branch
+last_updated: "2026-10-27T12:00:00.000Z"
+last_activity: 2026-10-27 -- Phase 9.1 (Spell State and Recovery Contract) inserted from the FE Phase 8 discuss with its CONTEXT; Phase 10 (Hardening Trasversale) discussed interactively
 progress:
   total_phases: 12
   completed_phases: 10
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 9 — Combat Result & Admin Outcomes complete on 2026-10-24 (PR #13 to develop open 2026-10-24; unblocks FE Phase 9 foglio esiti and FE Phase 10 pannello admin; FE Phase 7 gets `SHOP_NOT_IN_CITY`/`AWAITING_AID`); user decisions 2026-10-25: C5 confirmed, A3 corrected (one verdict per fight, plan 09-17), placeholder values stay provisional; one group aid per lost fight (seats = failed quest seats, user 2026-10-25) done in plan 09-18; party-complete start, abandon while waiting, 24h disband with questCancelled and aid timer suspended only while the rescue runs (user 2026-10-25) done in plan 09-19; aid seats identical to the failed quest and live party counter via questUpdated (user 2026-10-26) done in plan 09-20; next Phase 10 — Hardening Trasversale
+**Current focus:** Phase 9.1 — Spell State and Recovery Contract (inserted 2026-10-27 from the FE Phase 8 discuss: usi e recuperi per magia conosciuta, il recupero non si interrompe mai; context gathered, ready to plan on `feat/09.1-spell-state-and-recovery-contract`); then Phase 10 — Hardening Trasversale (context gathered 2026-10-27 on `feat/10-hardening`, stacked on 9.1: ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9 deferred debts incl. `Mixed` refs, Sightengine image moderation fail-closed)
 
 ## Current Position
 
-Phase: 9 (Combat Result & Admin Outcomes) — COMPLETE 2026-10-26 (20/20 plans; 09-17 shared combat verdict A3 + C5 confirmed; 09-18 one group aid per lost fight + group rescue + rescuedCharacters; 09-19 party-complete start + abandonQuest + 24h disband + C5 revised; 09-20 aid seats identical to the failed quest + questUpdated(questId) subscription; code review 0 critical / 3 warning / 9 info → 9 fixed, 3 not needed, 1 sub-point deferred to Phase 10; verification passed 5/5 success criteria + D-01..D-29 (C1–C10); device UAT deferred to the FE Phase 9/10 UAT; security audit in 09-SECURITY.md)
-Plan: 20 of 20 (complete)
-Status: Phase 9 complete (20/20) — PR #13 (feat/09-combat-result-admin-outcomes → develop) open, to be updated by the orchestrator with 09-20; next /gsd-discuss-phase 10 (Hardening Trasversale)
-Last activity: 2026-10-26 -- Phase 9 plan 09-20: aid seats identical to the failed quest (aidSlotsOf), questUpdated(questId: String!): Quest! with snapshot and change stream on quests; gate green (unit 122 suites / 1832 tests, integration 76 suites / 983 tests, build 0, schema additive)
+Phase: 9.1 (Spell State and Recovery Contract) — CONTEXT GATHERED (2026-10-27), ready to plan; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27), to plan after the 9.1 PR
+Plan: 0 of TBD
+Status: Phase 9.1 context gathered — ready to plan (`/gsd-plan-phase 09.1` on `feat/09.1-spell-state-and-recovery-contract`; PR to develop before the FE Phase 8 final plan); Phase 10 context gathered on `feat/10-hardening` (stacked on 9.1, rebase after its merge)
+Last activity: 2026-10-27 -- Phase 9.1 inserted (user rule: «Il timer di recupero non si interrompe mai», state per known spell `status.spellStates`, processor + reconciler/sweep, boot migration) and Phase 10 discussed (validation, surface hardening, secrets, coverage, deferred debts, Sightengine moderation)
 
-Progress: [██████████] 100% (phases 1–9 complete; Phase 10 next)
+Progress: [██████████] 100% (phases 1–9 complete; 9.1 and 10 to plan)
 
 ## Performance Metrics
 
