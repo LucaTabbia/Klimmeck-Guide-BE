@@ -1,7 +1,7 @@
 # Phase 10: Hardening Trasversale - Context
 
 **Gathered:** 2026-10-27 (discuss interattivo, nella stessa sessione del discuss FE Phase 8 e dell'inserimento della BE Phase 9.1)
-**Status:** Ready for planning — da pianificare ed eseguire **dopo** la PR della Phase 9.1 (branch `feat/10-hardening` stacked su `feat/09.1-spell-state-and-recovery-contract`, D-19)
+**Status:** Ready for planning — da pianificare ed eseguire **dopo** la PR della Phase 9.2 (branch `feat/10-hardening` stacked su `feat/09.2-quest-result-delivery-contract` dal 2026-10-27, dopo il merge della 9.1; D-19)
 
 <domain>
 ## Phase Boundary
@@ -49,7 +49,7 @@ Fuori scope: nuovi campi o mutation di gioco, cambi di forma dello schema visibi
 - **D-18:** checklist di deploy nel README/handoff: `NODE_ENV=production`, chiavi obbligatorie (Firebase, Sightengine, JWT, Twitch, EventSub), Redis `maxmemory-policy noeviction`, rotazione dei secret (D-10); flaky del boot reale (09 deferred): se riappare in CI si cattura l'errore, altrimenti nessuna azione.
 
 ### Processo
-- **D-19:** branch `feat/10-hardening` **stacked su `feat/09.1-spell-state-and-recovery-contract`** (condividono `.env.example`, `validateEnv`, STATE/ROADMAP); PR a `develop` dopo il merge della 9.1 (rebase). Wave suggerite al planner: 1 validazione + `BAD_USER_INPUT`; 2 superficie (introspection, CORS, errori, throttler); 3 secret/env/CI; 4 moderazione immagini; 5 resilienza + indici + bug di schema; 6 refactor; 7 coverage; 8 ref `Mixed` (gate); 9 handoff + traceability. Schema solo additivo; `test/app.int-spec.ts` aggiornato prima di montare moduli nuovi (RED); lint/prettier solo sui file toccati; nessun trailer `Co-Authored-By`; subject ≤ 72.
+- **D-19:** branch `feat/10-hardening` **stacked su `feat/09.2-quest-result-delivery-contract`** (dal 2026-10-27; prima su `feat/09.1-spell-state-and-recovery-contract`, mergiata con la PR #14) (condividono `.env.example`, `validateEnv`, STATE/ROADMAP); PR a `develop` dopo il merge della 9.2 (rebase). Wave suggerite al planner: 1 validazione + `BAD_USER_INPUT`; 2 superficie (introspection, CORS, errori, throttler); 3 secret/env/CI; 4 moderazione immagini; 5 resilienza + indici + bug di schema; 6 refactor; 7 coverage; 8 ref `Mixed` (gate); 9 handoff + traceability. Schema solo additivo; `test/app.int-spec.ts` aggiornato prima di montare moduli nuovi (RED); lint/prettier solo sui file toccati; nessun trailer `Co-Authored-By`; subject ≤ 72.
 - **D-20:** handoff `BACKEND-NOTES.md` per il FE (Phase 12 e quick task): `BAD_USER_INPUT`, `TOO_MANY_REQUESTS`, `IMAGE_REJECTED`, `IMAGE_MODERATION_UNAVAILABLE`, `INTERNAL_SERVER_ERROR` + `requestId`, tabelle dei codici emendate, checklist di deploy.
 
 ### Claude's Discretion

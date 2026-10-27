@@ -227,8 +227,8 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 
 **Coverage:**
 
-- v1 requirements: 52 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14 + BE-SPELL-01..04 della 9.1 + BE-RESULT-01..04 della 9.2, 2026-10-27)
-- Mapped to phases: 48 / 48 ✓ (nessun orfano, nessun duplicato)
+- v1 requirements: 54 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14 + BE-SPELL-01..04 della 9.1 + BE-RESULT-01..04 della 9.2 + BE-HARD-05/06 della Phase 10, 2026-10-27)
+- Mapped to phases: 50 / 50 ✓ (nessun orfano, nessun duplicato)
 
 ---
 

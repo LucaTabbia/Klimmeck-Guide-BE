@@ -310,7 +310,7 @@ Plans:
 
 ### Phase 10: Hardening Trasversale
 **Goal**: Hardening trasversale — validazione input, introspection off/CORS/error sanitization in prod, igiene dei secret, e coverage di test sulle aree critiche.
-**Depends on**: Phases 2-9.1 (indurisce le superfici che aggiungono; branch stacked su `feat/09.1-spell-state-and-recovery-contract`, emendato 2026-10-27)
+**Depends on**: Phases 2-9.2 (indurisce le superfici che aggiungono; branch stacked su `feat/09.2-quest-result-delivery-contract` dal 2026-10-27, prima su `feat/09.1-spell-state-and-recovery-contract`, mergiata)
 **Requirements**: BE-HARD-01, BE-HARD-02, BE-HARD-03, BE-HARD-04, BE-HARD-05, BE-HARD-06
 **Success Criteria** (what must be TRUE):
   1. Tutti gli input GraphQL/REST sono validati da class-validator + `ValidationPipe` globale: ID Mongo invalidi, quantità negative e stringhe fuori lunghezza sono rifiutati prima di raggiungere un service.
@@ -322,7 +322,7 @@ Plans:
   7. I debiti di BE-HARD-06 sono chiusi con test: change stream riaperti dopo un errore, job falliti non accumulati, nessuna gara sugli utenti, indici presenti, ref tipizzati dopo una migrazione idempotente. _(2026-10-27)_
 **Plans**: TBD
 **Unblocks (FE)**: mirror di FE Phase 12 (hardening).
-**Branch**: `feat/10-hardening` da `develop` → PR a `develop`. _(Emendato 2026-10-27: creato sopra `feat/09.1-spell-state-and-recovery-contract`; PR dopo il merge della 9.1, con rebase.)_
+**Branch**: `feat/10-hardening` da `develop` → PR a `develop`. _(Emendato 2026-10-27: creato sopra `feat/09.1-spell-state-and-recovery-contract`; spostato sopra `feat/09.2-quest-result-delivery-contract` dopo il merge della 9.1; PR dopo il merge della 9.2, con rebase.)_
 
 ## Backend ↔ Frontend alignment
 
