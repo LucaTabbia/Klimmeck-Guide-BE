@@ -29,7 +29,6 @@ import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model'
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { CHARACTER_QUESTS_POPULATE } from './character-quests.populate';
-import { ActiveSpell } from 'src/models/common/active-spell.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { objectIdFromHex } from 'src/mongo/document-id';
@@ -61,6 +60,7 @@ import {
 } from './spells/spell-recovery-job';
 import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
 import { recoveryDueAt } from './spells/spell-state.snapshot';
+import { spellsOnTheWire } from './spells/spell-state.mapper';
 import {
     spellStateArrayFilters,
     spendUsagesUpdate,
@@ -145,6 +145,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
                 path: 'status.spells',
                 model: 'Spell',
             })
+            .populate({ path: 'status.spellStates.spell', model: 'Spell' })
             .populate({
                 path: 'status.location',
             })
@@ -185,23 +186,13 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
             }
         });
 
-        const activeSpellMap = new Map<string, number>();
-        character.assets.activeSpells.forEach((a) => {
-            if (a.spell instanceof Types.ObjectId) {
-                activeSpellMap.set(a.spell.toString(), a.usages);
-            }
-        });
-
-        const activeSpells: ActiveSpell[] = [];
-
-        character.status.spells.forEach((spell) => {
-            const usages = activeSpellMap.get(spell.id);
-            if (usages !== undefined) {
-                activeSpells.push({ spell, usages });
-            }
-        });
-
-        character.assets.activeSpells = activeSpells;
+        // usi dallo stato, ordine degli slot, orfani fuori dal filo (D-04a, D-05)
+        const wire = spellsOnTheWire(
+            character.status,
+            character.assets.activeSpells,
+        );
+        character.status.spellStates = wire.spellStates;
+        character.assets.activeSpells = wire.activeSpells;
 
         return character;
     }
