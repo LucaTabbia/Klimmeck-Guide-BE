@@ -89,6 +89,13 @@ export class SpellRecoverySweeper
             for (const state of character.status.spellStates ?? []) {
                 if (this.stopping) return credited;
                 if (!isDue(state.recoveries?.[0], now)) continue;
+                if (
+                    this.recovery.isKnownUncreditable(
+                        character._id,
+                        state.spell,
+                    )
+                )
+                    continue;
                 credited += await this.recoverSafely(
                     character._id,
                     state.spell,

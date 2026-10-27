@@ -16,10 +16,17 @@ import {
     spellStateArrayFilters,
 } from './spell-state.updates';
 
+// coppie (personaggio, magia) ricordate per processo: oltre il limite la più vecchia esce e verrà segnalata di nuovo
+const UNCREDITABLE_MEMORY_LIMIT = 1_000;
+
+const pairKey = (characterId: Types.ObjectId, spellId: Types.ObjectId) =>
+    `${characterId.toHexString()}:${spellId.toHexString()}`;
+
 // unico punto del credito per processor e sweep: nessun filtro sullo slot, la magia recupera anche fuori dagli slot (D-01)
 @Injectable()
 export class SpellRecoveryService {
     private readonly logger = new Logger(SpellRecoveryService.name);
+    private readonly uncreditable = new Set<string>();
 
     constructor(
         @InjectModel(Character.name)
@@ -80,6 +87,14 @@ export class SpellRecoveryService {
         return credit.modifiedCount === 1;
     }
 
+    // la voce resta nel DB con i suoi usi (D-05): lo sweep smette solo di chiederne il credito fino al prossimo processo
+    isKnownUncreditable(
+        characterId: Types.ObjectId,
+        spellId: Types.ObjectId,
+    ): boolean {
+        return this.uncreditable.has(pairKey(characterId, spellId));
+    }
+
     private async maxUsagesOf(
         characterId: Types.ObjectId,
         spellId: Types.ObjectId,
@@ -90,9 +105,27 @@ export class SpellRecoveryService {
             .exec();
         const maxUsages = spell?.maxUsages;
         if (isUsageCount(maxUsages)) return maxUsages;
-        this.logger.warn(
-            `Magia ${spellId.toHexString()} assente dal catalogo: nessun recupero per il personaggio ${characterId.toHexString()}`,
-        );
+        this.rememberUncreditable(characterId, spellId, spell !== null);
         return null;
+    }
+
+    private rememberUncreditable(
+        characterId: Types.ObjectId,
+        spellId: Types.ObjectId,
+        inCatalog: boolean,
+    ): void {
+        const key = pairKey(characterId, spellId);
+        if (this.uncreditable.has(key)) return;
+        if (this.uncreditable.size >= UNCREDITABLE_MEMORY_LIMIT) {
+            const [oldest] = this.uncreditable;
+            this.uncreditable.delete(oldest);
+        }
+        this.uncreditable.add(key);
+        const reason = inCatalog
+            ? 'con maxUsages non valido nel catalogo'
+            : 'assente dal catalogo';
+        this.logger.warn(
+            `Magia ${spellId.toHexString()} ${reason}: nessun recupero per il personaggio ${characterId.toHexString()}`,
+        );
     }
 }
