@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 9.2 (Quest Result Delivery Contract) — EXECUTING (started 2026-10-27): 7 plans in 5 waves on `feat/09.2-quest-result-delivery-contract` off `develop`; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2
-Plan: 0 of 7
+Plan: 1 of 7
 Status: Executing Phase 9.2 — one executor at a time on the main working tree; Phase 10 to plan after the 9.2 PR
-Last activity: 2026-10-27 -- Phase 9.2 execution started: 7 plans in 5 waves on feat/09.2-quest-result-delivery-contract, one executor at a time; PR before the FE Phase 9 gate
+Last activity: 2026-10-27 -- Plan 09.2-01 complete: real-boot RED of the delivery contract (Wave 0), confirmation field with null default and list index on QuestResult, internal seat marker on QuestRegistration, SDL +1 additive line
 
 Progress: [██████████] 100% (phases 1–9 and 9.1 complete; 9.2 and 10 to plan — 9.2 first, 10 stacked on it)
 
