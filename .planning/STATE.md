@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 9.2 planned (2026-10-27), ready to execute on feat/09.2-quest-result-delivery-contract; Phase 10 context gathered on feat/10-hardening (stacked on 9.2)
-last_updated: "2026-10-27T20:42:32.984Z"
-last_activity: "2026-10-27 -- Phase 9.2 planned: 7 plans in 5 waves (unconfirmed-results list, idempotent confirmation with the deferred unlink at death, placeholder seats on started quests, maintenance provider, gate)"
+stopped_at: Phase 9.2 executing (started 2026-10-27) on feat/09.2-quest-result-delivery-contract; Phase 10 context gathered on feat/10-hardening (stacked on 9.2)
+last_updated: "2026-10-27T22:26:19.395Z"
+last_activity: "2026-10-27 -- Phase 9.2 execution started: 7 plans in 5 waves on feat/09.2-quest-result-delivery-contract, one executor at a time; PR before the FE Phase 9 gate"
 progress:
   total_phases: 13
   completed_phases: 11
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 9.2 — Quest Result Delivery Contract — CONTEXT GATHERED (2026-10-27, dal discuss della FE Phase 9: `unacknowledgedQuestResults`, `acknowledgeQuestResult` idempotente, `QuestResult.acknowledgedAt` additivo, posti delle quest avviate mantenuti dall'archivio; branch `feat/09.2-quest-result-delivery-contract` da `develop`, PR prima del gate FE); poi Phase 10 — Hardening Trasversale. Precedente: Phase 9.1 — Spell State and Recovery Contract — COMPLETE (2026-10-27: usi e recuperi per magia conosciuta, il recupero non si interrompe mai; PR `feat/09.1-spell-state-and-recovery-contract` → `develop` open, to merge BEFORE the FE Phase 8 gate plan 08-12); next Phase 10 — Hardening Trasversale (context gathered 2026-10-27 on `feat/10-hardening`, stacked on 9.1: ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9 deferred debts incl. `Mixed` refs, Sightengine image moderation fail-closed)
+**Current focus:** Phase 9.2 — Quest Result Delivery Contract — EXECUTING (started 2026-10-27, dal discuss della FE Phase 9: `unacknowledgedQuestResults`, `acknowledgeQuestResult` idempotente, `QuestResult.acknowledgedAt` additivo, posti delle quest avviate mantenuti dall'archivio, il morto resta corrente fino alla conferma; branch `feat/09.2-quest-result-delivery-contract` da `develop`, PR prima del gate FE); poi Phase 10 — Hardening Trasversale (context gathered 2026-10-27 on `feat/10-hardening`, stacked on 9.2: ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9 deferred debts incl. `Mixed` refs, Sightengine image moderation fail-closed). Precedente: Phase 9.1 — Spell State and Recovery Contract — COMPLETE (2026-10-27, PR #14 merged on `develop`).
 
 ## Current Position
 
-Phase: 9.2 (Quest Result Delivery Contract) — PLANNED (2026-10-27): 7 plans in 5 waves on `feat/09.2-quest-result-delivery-contract` off `develop`; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2
+Phase: 9.2 (Quest Result Delivery Contract) — EXECUTING (started 2026-10-27): 7 plans in 5 waves on `feat/09.2-quest-result-delivery-contract` off `develop`; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2
 Plan: 0 of 7
-Status: Phase 9.2 planned (2026-10-27: 7 plans / 5 waves, passed the plan-checker after one revision round) — ready to execute with `/gsd-execute-phase 9.2`; Phase 10 to plan after the 9.2 PR
-Last activity: 2026-10-27 -- Phase 9.2 planned: 7 plans in 5 waves (unconfirmed-results list, idempotent confirmation with the deferred unlink at death, placeholder seats on started quests, maintenance provider, gate)
+Status: Executing Phase 9.2 — one executor at a time on the main working tree; Phase 10 to plan after the 9.2 PR
+Last activity: 2026-10-27 -- Phase 9.2 execution started: 7 plans in 5 waves on feat/09.2-quest-result-delivery-contract, one executor at a time; PR before the FE Phase 9 gate
 
 Progress: [██████████] 100% (phases 1–9 and 9.1 complete; 9.2 and 10 to plan — 9.2 first, 10 stacked on it)
 
