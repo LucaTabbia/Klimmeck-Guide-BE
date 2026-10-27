@@ -292,7 +292,12 @@ describe('GmCompletionService.complete (replSet)', () => {
             ]),
         );
 
+        // istante dell'esito = NOW del FixedClock dell'harness
+        const dueAt = new Date(NOW.getTime() + 5000);
         const character = await characterOf(subject);
+        expect(character.status.spellStates).toEqual([
+            { spell: spell._id, usages: 1, recoveries: [dueAt] },
+        ]);
         expect(character.assets.activeSpells).toEqual([
             expect.objectContaining({ spell: spell._id, usages: 1 }),
         ]);
@@ -301,6 +306,7 @@ describe('GmCompletionService.complete (replSet)', () => {
                 data: {
                     characterId: String(subject.characterId),
                     spellId: String(spell._id),
+                    dueAt: dueAt.getTime(),
                 },
                 options: expect.objectContaining({ delay: 5000 }),
             }),
