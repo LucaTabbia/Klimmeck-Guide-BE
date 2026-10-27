@@ -301,7 +301,7 @@ Plans:
 - [x] 09.2-01-PLAN.md — Wave 1: RED del contratto nel boot reale (Wave 0), campo di conferma con default null, indice, marcatore del segnaposto (BE-RESULT-01, BE-RESULT-04)
 - [x] 09.2-02-PLAN.md — Wave 2: lista dei non confermati dell'utente e conferma owner-only idempotente (BE-RESULT-01, BE-RESULT-02)
 - [x] 09.2-03-PLAN.md — Wave 2: archivio con segnaposto sulle quest avviate, archivi concorrenti, questUpdated (BE-RESULT-03)
-- [ ] 09.2-04-PLAN.md — Wave 3: indice e backfill al boot mai bloccanti, campo sulle letture (BE-RESULT-01, BE-RESULT-04)
+- [x] 09.2-04-PLAN.md — Wave 3: indice e backfill al boot mai bloccanti, campo sulle letture (BE-RESULT-01, BE-RESULT-04)
 - [ ] 09.2-05-PLAN.md — Wave 3: risoluzione con segnaposto, conferma nulla su ogni esito, regola dei posti sul filo (BE-RESULT-01, BE-RESULT-03)
 - [ ] 09.2-06-PLAN.md — Wave 4: il morto resta corrente fino alla conferma della morte (D-12) (BE-RESULT-02)
 - [ ] 09.2-07-PLAN.md — Wave 5: gate, handoff FE Phase 9, emendamenti 09/03.1, traceability (BE-RESULT-01..04)
@@ -354,5 +354,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
-| 9.2. Quest Result Delivery Contract | 3/7 | In Progress | - |
+| 9.2. Quest Result Delivery Contract | 4/7 | In Progress | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
