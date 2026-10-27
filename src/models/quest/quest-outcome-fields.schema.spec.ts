@@ -1,6 +1,7 @@
 import { model, Schema, Types } from 'mongoose';
 import { buildQuest } from '../../../test/fixtures/quest.fixture';
 import { QuestPrizesSchema } from './quest-prizes.model';
+import { QuestRegistrationSchema } from './quest-registration.model';
 import { QuestSchema } from './quest.model';
 
 describe('quest outcome fields', () => {
@@ -47,5 +48,23 @@ describe('quest outcome fields', () => {
         expect(
             new (model('QuestPrizesSpellProbe', QuestPrizesSchema))({}).spell,
         ).toBeNull();
+    });
+
+    it('declares the internal placeholder marker on a registration without a default', () => {
+        expect(QuestRegistrationSchema.path('archivedAt').instance).toBe(
+            'Date',
+        );
+
+        const quest = new Probe(
+            buildQuest({
+                registeredAdventurers: [
+                    { character: new Types.ObjectId(), title: 'rookie' },
+                ],
+            }),
+        ).toObject();
+        expect(Object.keys(quest.registeredAdventurers[0]).sort()).toEqual([
+            'character',
+            'title',
+        ]);
     });
 });

@@ -64,6 +64,9 @@ const START_TRAVEL =
 const TRAVEL_PREVIEW =
     '{ travelPreview(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { duration } }';
 const QUEST_RESULT = '{ questResult(id: "64b000000000000000000001") { id } }';
+const UNACKNOWLEDGED_QUEST_RESULTS = '{ unacknowledgedQuestResults { id } }';
+const ACKNOWLEDGE_QUEST_RESULT =
+    'mutation { acknowledgeQuestResult(id: "64b000000000000000000001") { successful } }';
 const PENDING_REQUESTS = '{ pendingRequests { id } }';
 const COMPLETE_PENDING_REQUEST =
     'mutation { completePendingRequest(input: { pendingQuestId: "64b000000000000000000001" }) { id } }';
@@ -102,6 +105,7 @@ const EXPECTED_OWNERSHIP_HANDLERS = [
     'PartyResolver.abandonQuest',
     'PendingQuestsResolver.pendingQuest',
     'QuestAcceptanceResolver.acceptQuest',
+    'QuestResultsResolver.acknowledgeQuestResult',
     'QuestResultsResolver.questResult',
     'QuestResultsResolver.questResultReceived',
     'TravelResolver.startTravel',
@@ -111,6 +115,7 @@ const EXPECTED_OWNERSHIP_HANDLERS = [
 const EXPECTED_OWNER_ONLY_HANDLERS = [
     'PartyResolver.abandonQuest',
     'QuestAcceptanceResolver.acceptQuest',
+    'QuestResultsResolver.acknowledgeQuestResult',
     'QuestResultsResolver.questResult',
     'QuestResultsResolver.questResultReceived',
     'TravelResolver.startTravel',
@@ -474,8 +479,11 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
             'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
         );
+        expect(schema.match(/type QuestRegistration \{[^}]*\}/)?.[0]).toBe(
+            'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
+        );
         expect(schema).not.toMatch(
-            /concludedAt|startedAt|\brescue\b|\bgrade\b/,
+            /concludedAt|startedAt|archivedAt|\brescue\b|\bgrade\b/,
         );
     });
 
@@ -483,7 +491,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemy: Enemy\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  levelAfter: Int!\n  levelBefore: Int!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest!\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  acknowledgedAt: DateTime\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemy: Enemy\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  levelAfter: Int!\n  levelBefore: Int!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest!\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
         );
         expect(schema.match(/type QuestResultQuest \{[^}]*\}/)?.[0]).toBe(
             'type QuestResultQuest {\n  id: ID!\n  title: String!\n  type: String!\n}',
@@ -503,6 +511,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
         expect(schema).toContain('questUpdated(questId: String!): Quest!');
         expect(schema).not.toMatch(/\bkind\b|\bgrade\b|CombatResolver/);
+    });
+
+    it('writes the quest result delivery API into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain('unacknowledgedQuestResults: [QuestResult!]!');
+        expect(schema).toContain(
+            'acknowledgeQuestResult(id: String!): CommonResponse!',
+        );
     });
 
     it('writes the innkeeper queue into the generated schema', () => {
@@ -737,6 +754,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             expect(errorCodeOf(await graphqlCall(app, QUEST_RESULT))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
+        });
+
+        it('rejects the unconfirmed results list and the confirmation without a bearer', async () => {
+            expect(
+                errorCodeOf(
+                    await graphqlCall(app, UNACKNOWLEDGED_QUEST_RESULTS),
+                ),
+            ).toBe(AuthErrorCode.UNAUTHENTICATED);
+            expect(
+                errorCodeOf(await graphqlCall(app, ACKNOWLEDGE_QUEST_RESULT)),
+            ).toBe(AuthErrorCode.UNAUTHENTICATED);
         });
 
         it('rejects pendingRequests without a bearer', async () => {
