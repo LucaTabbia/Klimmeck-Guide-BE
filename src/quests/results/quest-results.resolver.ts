@@ -56,7 +56,7 @@ export class QuestResultsResolver {
     }
 
     // owner-only alla subscribe (C10), nessuno snapshot (D-20): il filtro per evento guarda utente e personaggio del risultato,
-    // non currentCharacter, così il risultato di morte arriva anche dopo lo scollegamento (Pitfall 3)
+    // non currentCharacter, così il risultato di morte arriva anche dopo l'archivio, con o senza collegamento (Pitfall 3)
     @OwnsCharacter<{ characterId: string }>(({ characterId }) => characterId, {
         ownerOnly: true,
     })

@@ -108,7 +108,7 @@ export class TravelCompletionService {
         return 'completed';
     }
 
-    // best-effort dopo il commit (D-14): un archiviato ha currentCharacter null ⇒ nessuna push
+    // best-effort dopo il commit (D-14): il viaggio si completa solo per un personaggio attivo, quindi un morto ancora collegato non riceve push
     private async notifyOwner(characterId: Types.ObjectId): Promise<void> {
         const owner = await this.userModel
             .findOne(
