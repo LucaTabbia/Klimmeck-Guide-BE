@@ -87,6 +87,7 @@ describe('SpellRecoverySweeper (replSet)', () => {
     );
     let sweeper: SpellRecoverySweeper;
     let spell: Types.ObjectId;
+    let warnSpy: jest.SpyInstance;
 
     beforeEach(async () => {
         sweeper = new SpellRecoverySweeper(
@@ -102,9 +103,9 @@ describe('SpellRecoverySweeper (replSet)', () => {
             })
         )._id as Types.ObjectId;
         jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
-        jest.spyOn(Logger.prototype, 'warn').mockImplementation(
-            () => undefined,
-        );
+        warnSpy = jest
+            .spyOn(Logger.prototype, 'warn')
+            .mockImplementation(() => undefined);
     });
 
     afterEach(async () => {
@@ -183,5 +184,32 @@ describe('SpellRecoverySweeper (replSet)', () => {
             { spell, usages: 3, recoveries: [] },
         ]);
         expect(after.assets.activeSpells).toEqual([{ spell, usages: 3 }]);
+    });
+
+    it('warns once about a spell missing from the catalog and stops asking for its credit, leaving the entry in place', async () => {
+        const orphan = new Types.ObjectId();
+        const id = await insertBook([
+            { spell: orphan, usages: 0, recoveries: [at(-SECOND)] },
+            { spell, usages: 1, recoveries: [at(-SECOND), at(HOUR)] },
+        ]);
+        const recoverDue = jest.spyOn(service, 'recoverDue');
+        const warnsAboutOrphan = () =>
+            warnSpy.mock.calls.filter(([message]) =>
+                String(message).includes(orphan.toHexString()),
+            );
+
+        expect(await sweeper.sweep()).toBe(1);
+        expect(await sweeper.sweep()).toBe(0);
+
+        expect(warnsAboutOrphan()).toHaveLength(1);
+        expect(
+            recoverDue.mock.calls.filter(([, spellId]) =>
+                spellId.equals(orphan),
+            ),
+        ).toHaveLength(1);
+        expect((await rawOf(id)).status.spellStates).toEqual([
+            { spell: orphan, usages: 0, recoveries: [at(-SECOND)] },
+            { spell, usages: 2, recoveries: [at(HOUR)] },
+        ]);
     });
 });

@@ -281,6 +281,33 @@ describe('SpellRecoveryService (replSet)', () => {
             );
         });
 
+        it('warns once per character and spell, telling an invalid maxUsages apart from a missing spell', async () => {
+            const invalid = new Types.ObjectId();
+            await SpellModel.collection.insertOne({
+                _id: invalid,
+                name: 'Broken',
+                maxUsages: 'three',
+            } as never);
+            const missing = new Types.ObjectId();
+            const id = await insertBook([
+                { spell: invalid, usages: 0, recoveries: [at(-SECOND)] },
+                { spell: missing, usages: 0, recoveries: [at(-SECOND)] },
+            ]);
+
+            for (let replay = 0; replay < 3; replay++) {
+                expect(await service.recoverDue(id, invalid)).toBe(0);
+                expect(await service.recoverDue(id, missing)).toBe(0);
+            }
+
+            expect(warnSpy.mock.calls.map(([value]) => String(value))).toEqual([
+                `Magia ${invalid.toHexString()} con maxUsages non valido nel catalogo: nessun recupero per il personaggio ${id.toHexString()}`,
+                `Magia ${missing.toHexString()} assente dal catalogo: nessun recupero per il personaggio ${id.toHexString()}`,
+            ]);
+            expect(service.isKnownUncreditable(id, invalid)).toBe(true);
+            expect(service.isKnownUncreditable(id, missing)).toBe(true);
+            expect(service.isKnownUncreditable(id, a)).toBe(false);
+        });
+
         it('credits a character whose slots array was never written', async () => {
             const book = spellBook([
                 { spell: a, usages: 1, recoveries: [at(-SECOND)] },

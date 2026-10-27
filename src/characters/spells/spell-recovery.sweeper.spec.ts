@@ -40,13 +40,17 @@ function characterWith(
 describe('SpellRecoverySweeper', () => {
     let find: jest.Mock;
     let recoverDue: jest.Mock;
+    let isKnownUncreditable: jest.Mock;
     let due: Promise<DueCharacter[]>;
 
     function sweeperWith(sweepIntervalMs: number): SpellRecoverySweeper {
         return new SpellRecoverySweeper(
             { sweepIntervalMs },
             { find } as unknown as Model<CharacterDocument>,
-            { recoverDue } as unknown as SpellRecoveryService,
+            {
+                recoverDue,
+                isKnownUncreditable,
+            } as unknown as SpellRecoveryService,
             new FixedClock(NOW),
         );
     }
@@ -56,6 +60,7 @@ describe('SpellRecoverySweeper', () => {
         due = Promise.resolve([]);
         find = jest.fn(() => ({ lean: () => ({ exec: () => due }) }));
         recoverDue = jest.fn().mockResolvedValue(1);
+        isKnownUncreditable = jest.fn(() => false);
     });
 
     afterEach(() => {
@@ -153,6 +158,25 @@ describe('SpellRecoverySweeper', () => {
         expect(log.mock.calls.map(([value]) => String(value))).toEqual([
             'Sweep dei recuperi delle magie: 3 usi restituiti',
         ]);
+    });
+
+    it('skips the entries the credit already knows it cannot give back', async () => {
+        const orphan = new Types.ObjectId();
+        const known = new Types.ObjectId();
+        const character = characterWith(
+            { spell: orphan, recoveries: [before(1000)] },
+            { spell: known, recoveries: [before(1000)] },
+        );
+        due = Promise.resolve([character]);
+        isKnownUncreditable.mockImplementation(
+            (_: Types.ObjectId, spellId: Types.ObjectId) =>
+                spellId.equals(orphan),
+        );
+        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+
+        await expect(sweeperWith(0).sweep()).resolves.toBe(1);
+
+        expect(recoverDue.mock.calls).toEqual([[character._id, known]]);
     });
 
     it('stays silent when nothing is given back', async () => {
