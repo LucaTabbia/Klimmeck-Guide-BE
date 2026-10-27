@@ -18,6 +18,7 @@ export interface StartingCharacter {
         location: Types.ObjectId;
         injuries: never[];
         spells: never[];
+        spellStates: never[];
         coins: { gold: number; silver: number; copper: number };
         currentLifePoints: number;
         maxLifePoints: number;
@@ -57,6 +58,7 @@ export function buildStartingCharacter(
             location: locationId,
             injuries: [],
             spells: [],
+            spellStates: [],
             coins: { gold: 0, silver: STARTING_SILVER, copper: 0 },
             currentLifePoints: STARTING_LIFE_POINTS,
             maxLifePoints: STARTING_LIFE_POINTS,
