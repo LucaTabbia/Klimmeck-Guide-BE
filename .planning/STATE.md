@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 9.1 planned (2026-10-27) — ready to execute; Phase 10 context gathered on the stacked branch
-last_updated: "2026-10-27T12:11:29.784Z"
-last_activity: "2026-10-27 -- Phase 9.1 planned: 10 plans in 7 waves (PR before the FE Phase 8 gate plan)"
+stopped_at: Phase 9.1 executing (started 2026-10-27, plan 0 of 10); Phase 10 context gathered on the stacked branch
+last_updated: "2026-10-27T12:31:33.272Z"
+last_activity: "2026-10-27 -- Phase 9.1 execution started: 10 plans in 7 waves, sequential executors (PR before the FE Phase 8 gate plan)"
 progress:
   total_phases: 13
   completed_phases: 11
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 9.1 — Spell State and Recovery Contract (inserted 2026-10-27 from the FE Phase 8 discuss: usi e recuperi per magia conosciuta, il recupero non si interrompe mai; context gathered, ready to plan on `feat/09.1-spell-state-and-recovery-contract`); then Phase 10 — Hardening Trasversale (context gathered 2026-10-27 on `feat/10-hardening`, stacked on 9.1: ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9 deferred debts incl. `Mixed` refs, Sightengine image moderation fail-closed)
+**Current focus:** Phase 9.1 — Spell State and Recovery Contract (inserted 2026-10-27 from the FE Phase 8 discuss: usi e recuperi per magia conosciuta, il recupero non si interrompe mai; executing on `feat/09.1-spell-state-and-recovery-contract` since 2026-10-27); then Phase 10 — Hardening Trasversale (context gathered 2026-10-27 on `feat/10-hardening`, stacked on 9.1: ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9 deferred debts incl. `Mixed` refs, Sightengine image moderation fail-closed)
 
 ## Current Position
 
-Phase: 9.1 (Spell State and Recovery Contract) — PLANNED (2026-10-27), 10 plans in 7 waves, ready to execute; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27), to plan after the 9.1 PR
+Phase: 9.1 (Spell State and Recovery Contract) — EXECUTING (started 2026-10-27), 10 plans in 7 waves; Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27), to plan after the 9.1 PR
 Plan: 0 of 10
-Status: Phase 9.1 planned — ready to execute (`/gsd-execute-phase 09.1` on `feat/09.1-spell-state-and-recovery-contract`, sequential executors; research + CONTEXT amended F1–F11, VALIDATION.md template, 10 plans passed the plan-checker after one revision round: 0 blockers, 0 warnings; PR to develop before the FE Phase 8 gate plan 08-12)
-Last activity: 2026-10-27 -- Phase 9.1 planned: 10 plans in 7 waves (PR before the FE Phase 8 gate plan)
+Status: Executing Phase 9.1 — sequential executors on `feat/09.1-spell-state-and-recovery-contract`, PR to develop before the FE Phase 8 gate plan 08-12
+Last activity: 2026-10-27 -- Phase 9.1 execution started: 10 plans in 7 waves, sequential executors (PR before the FE Phase 8 gate plan)
 
-Progress: [██████████] 100% (phases 1–9 complete; 9.1 planned 0/10; 10 to plan after the 9.1 PR)
+Progress: [██████████] 100% (phases 1–9 complete; 9.1 executing 0/10; 10 to plan after the 9.1 PR)
 
 ## Performance Metrics
 
