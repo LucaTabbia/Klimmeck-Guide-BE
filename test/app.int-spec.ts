@@ -31,6 +31,7 @@ import { SPELL_RECOVERY_CONFIG } from 'src/config/spell-recovery-config';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { SpellRecoveryProcessor } from 'src/characters/spells/spell-recovery.processor';
 import { SpellRecoveryService } from 'src/characters/spells/spell-recovery.service';
+import { SpellRecoverySweeper } from 'src/characters/spells/spell-recovery.sweeper';
 import { SpellStateMigrator } from 'src/characters/spells/spell-state.migrator';
 import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
 import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholder-combat-resolver';
@@ -625,6 +626,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             SpellRecoveryService,
         );
         expect(app.get(SpellStateMigrator)).toBeInstanceOf(SpellStateMigrator);
+        expect(app.get(SpellRecoverySweeper)).toBeInstanceOf(
+            SpellRecoverySweeper,
+        );
         expect(app.get(getQueueToken(SPELL_RECOVERY_QUEUE))).toBeDefined();
         expect(app.get<SpellRecoveryConfig>(SPELL_RECOVERY_CONFIG)).toEqual({
             sweepIntervalMs: 0,
