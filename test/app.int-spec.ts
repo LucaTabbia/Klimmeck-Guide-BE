@@ -26,6 +26,12 @@ import { PushTransport } from 'src/push/transport/push-transport';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
 import type { QuestConfig } from 'src/config/quest-config';
 import { QUEST_CONFIG } from 'src/config/quest-config';
+import type { SpellRecoveryConfig } from 'src/config/spell-recovery-config';
+import { SPELL_RECOVERY_CONFIG } from 'src/config/spell-recovery-config';
+import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
+import { SpellRecoveryProcessor } from 'src/characters/spells/spell-recovery.processor';
+import { SpellRecoveryService } from 'src/characters/spells/spell-recovery.service';
+import { SpellStateMigrator } from 'src/characters/spells/spell-state.migrator';
 import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
 import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholder-combat-resolver';
 import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
@@ -236,6 +242,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             // Pitfall 13: nessun timer dello sweep nel boot reale; il reconciler al boot gira comunque
             TRAVEL_SWEEP_INTERVAL_MS: '0',
             QUEST_SWEEP_INTERVAL_MS: '0',
+            SPELL_RECOVERY_SWEEP_INTERVAL_MS: '0',
         });
         // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
         const { AppModule } =
@@ -608,6 +615,20 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(CombatResolver)).toBeInstanceOf(
             PlaceholderCombatResolver,
         );
+    });
+
+    it('mounts the spell recovery lifecycle', () => {
+        expect(app.get(SpellRecoveryProcessor)).toBeInstanceOf(
+            SpellRecoveryProcessor,
+        );
+        expect(app.get(SpellRecoveryService)).toBeInstanceOf(
+            SpellRecoveryService,
+        );
+        expect(app.get(SpellStateMigrator)).toBeInstanceOf(SpellStateMigrator);
+        expect(app.get(getQueueToken(SPELL_RECOVERY_QUEUE))).toBeDefined();
+        expect(app.get<SpellRecoveryConfig>(SPELL_RECOVERY_CONFIG)).toEqual({
+            sweepIntervalMs: 0,
+        });
     });
 
     it('boots EventSub disabled without calling Twitch', () => {
