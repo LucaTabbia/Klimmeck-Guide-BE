@@ -169,7 +169,7 @@ La stessa risposta arriva alla seconda chiamata sullo stesso id (nessuna scrittu
 
 - `null` alla creazione per ogni esito (`success`, `failure`, `rescued`, `death`, `gmCompleted`): c'è un solo scrittore dei risultati e il default del modello basta.
 - `questResult(id)` e `questResultReceived` lo restituiscono come ogni altro campo: `null` per un risultato nuovo, l'istante della conferma dopo, l'istante di `resolvedAt` per un risultato precedente al deploy (backfill, §6 Domanda 2).
-- `questResultReceived` resta senza snapshot: una subscription già aperta sul personaggio riceve anche il risultato della sua morte; una nuova subscribe su un personaggio morto risponde `NOT_FOUND` «Personaggio non trovato» (Phase 9, invariato). Per questo la lista è la fonte al cold start.
+- `questResultReceived` resta senza snapshot: una subscription già aperta sul personaggio riceve anche il risultato della sua morte. Una **nuova** subscribe su un personaggio morto ma ancora corrente (morte non confermata, §3) è **accettata** e resta muta (nessuno snapshot, nessun evento spontaneo); risponde `NOT_FOUND` «Personaggio non trovato» solo dopo che la conferma della morte ha staccato il personaggio. Il FE non deve contare su quel `NOT_FOUND`: la lista è la fonte al cold start.
 
 ---
 
@@ -180,7 +180,8 @@ Sequenza dal punto di vista del FE (aid fallita o timeout dei 7 giorni):
 1. **Alla morte:** il personaggio è archiviato (invisibile come da Phase 3.1) e il suo utente riceve un risultato `death` non confermato (push `questEnd`, `questResultReceived` se la subscription è già aperta). Il documento `users` **non cambia**: nessun `userUpdated` alla morte.
 2. **Fino alla conferma:**
    - `me.currentCharacter` e `userUpdated.currentCharacter` restituiscono il **morto**: l'intero `Character` (id compreso) com'era all'archivio. Lo stesso vale per la lista `users` dell'innkeeper.
-   - Ogni altro percorso lo vede inesistente: `character(id)`, `characterUpdated` (subscribe nuova), `equipment` e ogni mutation owner sul personaggio rispondono `NOT_FOUND` «Personaggio non trovato»; la lista `characters` dell'innkeeper non lo mostra; una nuova subscribe a `questResultReceived` sul suo id risponde `NOT_FOUND`.
+   - Ogni altro percorso lo vede inesistente: `character(id)`, `characterUpdated` (subscribe nuova), `equipment` e ogni mutation owner sul personaggio rispondono `NOT_FOUND` «Personaggio non trovato»; la lista `characters` dell'innkeeper non lo mostra.
+   - **Eccezione:** una nuova subscribe a `questResultReceived` sul suo id è **accettata** e resta muta (il guard riconosce il proprietario del personaggio corrente; senza snapshot non c'è nulla da rifiutare). Risponde `NOT_FOUND` solo dopo la conferma della morte, che stacca il personaggio. Il FE non deve contare su un `NOT_FOUND` da questa subscription: il recupero dei risultati non confermati viene dal `NOT_FOUND` di `character(id)` al cold start e dalla lista dei non confermati.
    - `createCharacter` risponde `CHARACTER_ALREADY_EXISTS` «Hai già un personaggio».
    - **Come il FE riconosce «morto, foglio in attesa»:** nella lista dei non confermati (o sull'evento) c'è un risultato `outcome: death` il cui `character` è uguale all'id di `me.currentCharacter`.
 3. **Alla conferma del risultato `death`:** nella stessa transazione della conferma il BE stacca il personaggio corrente, **solo se l'utente punta ancora a quel personaggio** (mai un personaggio diverso). Il change stream degli utenti emette `userUpdated` con `currentCharacter: null`; `me` risponde `currentCharacter: null`; `createCharacter` torna possibile. Il FE passa alla creazione su questo evento (nessun hold lato FE).
@@ -205,7 +206,8 @@ Codici in `extensions.code`, messaggi fissi copiati dal codice.
 | `FORBIDDEN` | «Questo risultato non ti appartiene» | conferma (e `questResult`, invariato) | risultato di un altro utente, **innkeeper compreso** |
 | `UNAUTHENTICATED` | messaggio del guard globale, invariato | lista e conferma | richiesta senza bearer o con un bearer non valido |
 | `CHARACTER_ALREADY_EXISTS` | «Hai già un personaggio» | `createCharacter` | l'utente è ancora collegato al morto: la sua morte non è stata confermata |
-| `NOT_FOUND` | «Personaggio non trovato» | `character(id)`, `characterUpdated`, `equipment`, mutation owner, `questResultReceived` | personaggio morto (o cancellato), anche se ancora corrente (§3) |
+| `NOT_FOUND` | «Personaggio non trovato» | `character(id)`, `characterUpdated`, `equipment`, mutation owner | personaggio morto (o cancellato), anche se ancora corrente (§3) |
+| `NOT_FOUND` | «Personaggio non trovato» | nuova subscribe a `questResultReceived` | personaggio cancellato, o morto **dopo** la conferma che lo ha staccato; un morto ancora corrente è accettato e la subscription resta muta (§3) |
 
 La lista non ha rifiuti propri oltre a `UNAUTHENTICATED`: senza risultati risponde `[]`.
 
