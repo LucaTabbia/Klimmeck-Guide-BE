@@ -1,6 +1,9 @@
 import { Logger } from '@nestjs/common';
 import type { PubSub } from '@graphql-yoga/subscription';
 import { Model, Types } from 'mongoose';
+import { CharacterArchiveModule } from 'src/characters/deletion/character-archive.module';
+import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
+import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { QuestsModule } from 'src/quests/quests.module';
@@ -27,6 +30,7 @@ const FORBIDDEN_CLOSE_CODE = 4403;
 const FORBIDDEN_REASON = 'Forbidden';
 const STARTED_AT = new Date('2026-10-26T10:00:00.000Z');
 const CONCLUDED_AT = new Date('2026-10-26T11:00:00.000Z');
+const ARCHIVED_AT = new Date(STARTED_AT.getTime() + 60 * 60 * 1000);
 
 interface WireQuest {
     id: string;
@@ -58,9 +62,13 @@ describe('questUpdated subscription (wire)', () => {
         registeredAt: STARTED_AT,
     });
 
-    function persistPartyQuest(registered: Types.ObjectId[] = []) {
+    function persistPartyQuest(
+        registered: Types.ObjectId[] = [],
+        startedAt: Date | null = null,
+    ) {
         return quests.create(
             buildQuest({
+                startedAt,
                 infos: {
                     ...buildQuest().infos,
                     type: 'boss',
@@ -131,8 +139,21 @@ describe('questUpdated subscription (wire)', () => {
     const characterIdOf = (player: TestPlayer) =>
         player.character?._id as Types.ObjectId;
 
+    function archive(player: TestPlayer) {
+        return harness.connection.transaction((session) =>
+            harness.app.get(CharacterArchiver).archiveWithin(session, {
+                userId: player.user._id as Types.ObjectId,
+                characterId: characterIdOf(player),
+                reason: DeletionReason.user_request,
+                now: ARCHIVED_AT,
+            }),
+        );
+    }
+
     beforeAll(async () => {
-        harness = await createAuthTestApp({ imports: [QuestsModule] });
+        harness = await createAuthTestApp({
+            imports: [QuestsModule, CharacterArchiveModule],
+        });
         url = graphqlWsUrl(harness.port);
         quests = harness.connection.model<QuestDocument>(Quest.name);
         await quests.createCollection();
@@ -254,6 +275,23 @@ describe('questUpdated subscription (wire)', () => {
             { $set: { registeredAdventurers: [] } },
         );
         expect(charactersOf(await nextQuest(subscription))).toEqual([]);
+    });
+
+    it('emits the started quest with the placeholder seat when a member is archived («Il BE non libera i posti delle quest avviate»)', async () => {
+        const party = [characterIdOf(alice), characterIdOf(bruno)];
+        const quest = await persistPartyQuest(party, STARTED_AT);
+        const subscription = subscribeTo(String(quest._id));
+        await nextQuest(subscription);
+
+        await archive(bruno);
+        expect(charactersOf(await nextQuest(subscription))).toEqual(
+            party.map(String),
+        );
+
+        await archive(alice);
+        let seen = charactersOf(await nextQuest(subscription));
+        if (seen.length > 0) seen = charactersOf(await nextQuest(subscription));
+        expect(seen).toEqual([]);
     });
 
     it('stays silent on updates of another quest', async () => {

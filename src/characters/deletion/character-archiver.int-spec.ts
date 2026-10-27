@@ -28,6 +28,7 @@ const NOW = new Date('2026-10-24T10:00:00.000Z');
 const YESTERDAY = new Date('2026-10-23T10:00:00.000Z');
 const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const STARTED_AT = new Date(NOW.getTime() - 60 * 60 * 1000);
+const CONCURRENT_ITERATIONS = 5;
 
 describe('CharacterArchiver.archiveWithin (replSet)', () => {
     let harness: AuthTestApp;
@@ -310,6 +311,38 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
             const boss = await rawQuest(bossId);
             expect(boss?.registeredAdventurers).toEqual([]);
             expect(boss?.startedAt).toBeNull();
+        });
+
+        it('returns a started boss to not started when both members are archived concurrently («Il BE non libera i posti delle quest avviate»)', async () => {
+            for (
+                let iteration = 0;
+                iteration < CONCURRENT_ITERATIONS;
+                iteration++
+            ) {
+                await harness.clearDatabase();
+                const first = await persistLinkedCharacter(
+                    `First Hero ${iteration}`,
+                    `twitch-archive-first-${iteration}`,
+                );
+                const second = await persistLinkedCharacter(
+                    `Second Hero ${iteration}`,
+                    `twitch-archive-second-${iteration}`,
+                );
+                const bossId = await startedBoss([
+                    first.characterId,
+                    second.characterId,
+                ]);
+
+                const outcomes = await Promise.all([
+                    archiveInTransaction(first.userId, first.characterId),
+                    archiveInTransaction(second.userId, second.characterId),
+                ]);
+
+                expect(outcomes).toEqual(['archived', 'archived']);
+                const boss = await rawQuest(bossId);
+                expect(boss?.registeredAdventurers).toEqual([]);
+                expect(boss?.startedAt).toBeNull();
+            }
         });
 
         it('returns a started boss to not started when the other registrant is a dangling id', async () => {
