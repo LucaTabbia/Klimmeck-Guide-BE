@@ -55,7 +55,8 @@ import {
     unequipSpellUpdate,
     useSpellFilter,
 } from './spells/active-spell.updates';
-import { SpellRecoveryJobData } from './spell-recovery.processor';
+import { SpellRecoveryJobData } from './spells/spell-recovery-job';
+import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
 
 const SPELL_FAILURE_CLASSIFICATION_READS = 2;
 
@@ -73,7 +74,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
         @InjectModel(Character.name)
         private characterModel: Model<CharacterDocument>,
         @InjectModel(Spell.name) private spellModel: Model<SpellDocument>,
-        @InjectQueue('spell-recovery')
+        @InjectQueue(SPELL_RECOVERY_QUEUE)
         private spellRecoveryQueue: Queue<SpellRecoveryJobData>,
         @Inject(PUB_SUB) private readonly pubSub: PubSub<PubSubEvents>,
     ) {}

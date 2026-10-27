@@ -15,7 +15,7 @@ import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { CharactersResolver } from './characters.resolver';
 import { CharactersService } from './characters.service';
-import { SpellRecoveryProcessor } from './spell-recovery.processor';
+import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
 
 @Module({
     imports: [
@@ -25,13 +25,11 @@ import { SpellRecoveryProcessor } from './spell-recovery.processor';
             { name: PendingQuest.name, schema: PendingQuestSchema },
             { name: Quest.name, schema: QuestSchema },
         ]),
-        BullModule.registerQueue({
-            name: 'spell-recovery',
-        }),
+        BullModule.registerQueue({ name: SPELL_RECOVERY_QUEUE }),
         AuthzModule,
         EconomyModule,
     ],
-    providers: [CharactersService, CharactersResolver, SpellRecoveryProcessor],
+    providers: [CharactersService, CharactersResolver],
     exports: [CharactersService],
 })
 export class CharactersModule {}

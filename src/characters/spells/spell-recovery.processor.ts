@@ -1,16 +1,50 @@
 import { Process, Processor } from '@nestjs/bull';
+import { Logger } from '@nestjs/common';
 import type { Job } from 'bull';
-import type { SpellRecoveryJobData } from './spell-recovery-job';
+import { Clock } from 'src/auth/clock';
+import {
+    SpellRecoveryJobData,
+    spellRecoveryJobDataOf,
+    spellRecoveryJobId,
+} from './spell-recovery-job';
 import {
     RECOVER_SPELL_JOB,
     SPELL_RECOVERY_QUEUE,
 } from './spell-recovery-queue';
+import { SpellRecoveryService } from './spell-recovery.service';
 
 @Processor(SPELL_RECOVERY_QUEUE)
 export class SpellRecoveryProcessor {
+    private readonly logger = new Logger(SpellRecoveryProcessor.name);
+
+    constructor(
+        private readonly recovery: SpellRecoveryService,
+        private readonly clock: Clock,
+    ) {}
+
+    // il job è solo un trigger (D-06, STATE [Phase 8]): dati validati, mai prima di dueAt, mai ri-accodato; il DB decide quanti usi tornano
     @Process(RECOVER_SPELL_JOB)
-    recover(job: Job<SpellRecoveryJobData>): Promise<void> {
-        void job;
-        return Promise.resolve();
+    async recover(job: Job<SpellRecoveryJobData>): Promise<void> {
+        const trigger = spellRecoveryJobDataOf(job.data);
+        if (!trigger) {
+            this.logger.warn(
+                `Job di recupero ${String(job.id)} malformato: ignorato`,
+            );
+            return;
+        }
+        if (!trigger.dueAt) {
+            await this.recovery.recoverLegacy(
+                trigger.characterId,
+                trigger.spellId,
+            );
+            return;
+        }
+        if (trigger.dueAt.getTime() > this.clock.now().getTime()) {
+            this.logger.log(
+                `Job di recupero ${spellRecoveryJobId(trigger.characterId, trigger.spellId, trigger.dueAt)} in anticipo: lo restituirà lo sweep`,
+            );
+            return;
+        }
+        await this.recovery.recoverDue(trigger.characterId, trigger.spellId);
     }
 }
