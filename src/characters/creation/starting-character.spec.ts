@@ -39,6 +39,7 @@ describe('buildStartingCharacter', () => {
                 location: locationId,
                 injuries: [],
                 spells: [],
+                spellStates: [],
                 coins: { gold: 0, silver: 5, copper: 0 },
                 currentLifePoints: 1000,
                 maxLifePoints: 1000,
@@ -66,6 +67,7 @@ describe('buildStartingCharacter', () => {
 
         expect(first.status.coins).not.toBe(second.status.coins);
         expect(first.status.injuries).not.toBe(second.status.injuries);
+        expect(first.status.spellStates).not.toBe(second.status.spellStates);
         expect(first.assets.wearedEquipment).not.toBe(
             second.assets.wearedEquipment,
         );

@@ -180,13 +180,6 @@ export class GameRuleException extends BadRequestException {
         );
     }
 
-    static spellRecoveryUnavailable(): GameRuleException {
-        return new GameRuleException(
-            GameRuleErrorCode.SPELL_RECOVERY_UNAVAILABLE,
-            'Recupero della magia non disponibile, riprova',
-        );
-    }
-
     // in attesa di soccorso (D-07): blocca viaggio e accettazione, non il teleport del GM
     static awaitingAid(): GameRuleException {
         return new GameRuleException(

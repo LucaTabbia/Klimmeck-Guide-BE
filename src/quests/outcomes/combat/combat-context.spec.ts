@@ -16,6 +16,8 @@ const id = (hex: string) => new Types.ObjectId(hex.padStart(24, '0'));
 const swordId = id('e1');
 const shieldId = id('e2');
 const fireballId = id('51');
+const iceId = id('52');
+const windId = id('53');
 const potionId = id('71');
 const herbId = id('72');
 
@@ -27,6 +29,7 @@ const heroA = (): CombatCharacterSnapshot => ({
         currentLifePoints: 700,
         maxLifePoints: 1000,
         injuries: [InjuryType.deepCut],
+        spells: [fireballId],
     },
     assets: {
         wearedEquipment: {
@@ -291,6 +294,69 @@ describe('buildCombatContext', () => {
 
         expect(hero.activeSpells).toEqual([
             { spellId: fireballId.toHexString(), usages: 2, damage: null },
+        ]);
+    });
+
+    it('reads the usages of a character not migrated yet from its spell slots', () => {
+        const [hero] = buildCombatContext(hydration()).participants;
+
+        expect(hero.activeSpells).toEqual([
+            {
+                spellId: fireballId.toHexString(),
+                usages: 2,
+                damage: { type: 'fire', power: 40 },
+            },
+        ]);
+    });
+
+    it('takes the usages of the active spells from the spell state, never from the slots', () => {
+        const source = hydration();
+        source.spells = new Map([
+            [
+                fireballId.toHexString(),
+                { energyDamage: { type: 'fire', power: 40 } },
+            ],
+            [iceId.toHexString(), { energyDamage: { type: 'ice', power: 10 } }],
+            [
+                windId.toHexString(),
+                { energyDamage: { type: 'wind', power: 5 } },
+            ],
+        ]);
+        const hero = heroA();
+        source.participants = [
+            {
+                ...hero,
+                status: {
+                    ...hero.status,
+                    spells: [fireballId, iceId, windId],
+                    spellStates: [
+                        { spell: fireballId, usages: 1, recoveries: [] },
+                        { spell: windId, usages: 4, recoveries: [] },
+                    ],
+                },
+                assets: {
+                    ...hero.assets,
+                    activeSpells: [
+                        { spell: fireballId, usages: 3 },
+                        { spell: iceId, usages: 2 },
+                    ],
+                },
+            },
+        ];
+
+        const [fighter] = buildCombatContext(source).participants;
+
+        expect(fighter.activeSpells).toEqual([
+            {
+                spellId: fireballId.toHexString(),
+                usages: 1,
+                damage: { type: 'fire', power: 40 },
+            },
+            {
+                spellId: iceId.toHexString(),
+                usages: 0,
+                damage: { type: 'ice', power: 10 },
+            },
         ]);
     });
 

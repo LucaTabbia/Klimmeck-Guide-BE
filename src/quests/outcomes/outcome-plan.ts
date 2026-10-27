@@ -1,5 +1,14 @@
 // stato finale calcolato prima della scrittura (Phase 4 applyTrade): un solo $set condizionale, unico scrittore di level/maxLifePoints (D-12, D-21)
 import type { Types } from 'mongoose';
+import {
+    type ActiveSpellEntry,
+    learnedSpellState,
+    mirrorFromStates,
+    recoveryDueAt,
+    spendFromState,
+    type SpellStateEntry,
+    spellStatesOrMigrated,
+} from 'src/characters/spells/spell-state.snapshot';
 import { type CoinPurse, fromCopper } from 'src/economy/coins';
 import {
     applyTradeToInventory,
@@ -42,6 +51,7 @@ export interface OutcomeCharacterSnapshot {
         maxLifePoints?: number;
         injuries?: InjuryType[];
         spells?: unknown[];
+        spellStates?: SpellStateEntry[];
         location?: unknown;
         awaitingAid?: unknown;
     };
@@ -109,6 +119,7 @@ export interface ParticipantPlanInput {
     rewards: DrawnRewards;
     aid: { aidQuestId: Types.ObjectId; failedQuestId: Types.ObjectId } | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
+    spellMaxUsages: ReadonlyMap<string, number>;
     rescuedCharacters?: readonly Types.ObjectId[];
     now: Date;
 }
@@ -116,7 +127,7 @@ export interface ParticipantPlanInput {
 export interface SpellRecovery {
     characterId: string;
     spellId: string;
-    delayMs: number;
+    dueAt: Date;
 }
 
 export interface ParticipantPlan {
@@ -177,49 +188,61 @@ const buyLine = ({ itemType, item, quantity }: RewardItem): TradeLine => ({
     quantity,
 });
 
-type ActiveSpellEntry = { spell?: unknown; usages?: number };
-
 interface SpellsSpent {
+    spellStates: SpellStateEntry[] | null;
     activeSpells: ActiveSpellEntry[] | null;
     used: QuestResultDraft['spellsUsed'];
     recoveries: SpellRecovery[];
 }
 
-// usi mai sotto 0 (T-09-23); un job di recupero per uso, nello stesso formato di useSpell (D-21, C7)
+const sameRecovery = (left: SpellRecovery, right: SpellRecovery) =>
+    left.spellId === right.spellId &&
+    left.dueAt.getTime() === right.dueAt.getTime();
+
+// solo magie negli slot, usi dallo stato e mai sotto 0 (T-09-23); istanti now + recoveryTime con i duplicati (D-02, D-06); un trigger per magia e istante
 function spellsSpent(
     characterId: Types.ObjectId,
     active: readonly ActiveSpellEntry[] | undefined,
+    baseStates: readonly SpellStateEntry[],
     requested: ParticipantEffects['spellsUsed'],
     recoveryTimes: ReadonlyMap<string, number>,
+    now: Date,
 ): SpellsSpent {
-    const activeSpells = (active ?? []).map((entry) => ({ ...entry }));
+    // copia: la base può essere l'array dello snapshot
+    const states = [...baseStates];
     const used: QuestResultDraft['spellsUsed'] = [];
     const recoveries: SpellRecovery[] = [];
     for (const { spellId, usages } of requested) {
         const spell = objectIdFromHex(spellId);
         if (!spell || !isPositiveInteger(usages)) continue;
-        const entry = activeSpells.find((candidate) =>
-            sameId(candidate.spell, spell),
-        );
-        const taken = Math.min(usages, Math.max(0, entry?.usages ?? 0));
-        if (!entry || taken <= 0) continue;
-        entry.usages = (entry.usages ?? 0) - taken;
+        if (!active?.some((entry) => sameId(entry.spell, spell))) continue;
+        const index = states.findIndex((state) => sameId(state.spell, spell));
+        if (index < 0) continue;
+        const taken = Math.min(usages, Math.max(0, states[index].usages ?? 0));
+        if (taken <= 0) continue;
+        // senza un tempo di recupero noto (magia orfana nel catalogo) gli usi si scalano comunque, nessun istante né job
+        const recoveryTime = recoveryTimes.get(spell.toHexString());
+        const dueAt =
+            recoveryTime === undefined
+                ? null
+                : recoveryDueAt(now, recoveryTime);
+        states[index] = spendFromState(states[index], taken, dueAt);
         const already = used.find((usage) => sameId(usage.spell, spell));
         if (already) already.usages += taken;
         else used.push({ spell, usages: taken });
-        // senza un tempo di recupero noto (magia orfana nel catalogo) gli usi si scalano comunque, nessun job
-        const delayMs = recoveryTimes.get(spell.toHexString());
-        if (delayMs === undefined) continue;
-        for (let use = 0; use < taken; use++) {
-            recoveries.push({
-                characterId: characterId.toHexString(),
-                spellId: spell.toHexString(),
-                delayMs,
-            });
-        }
+        if (!dueAt) continue;
+        const recovery = {
+            characterId: characterId.toHexString(),
+            spellId: spell.toHexString(),
+            dueAt,
+        };
+        if (!recoveries.some((queued) => sameRecovery(queued, recovery)))
+            recoveries.push(recovery);
     }
+    const spent = used.length > 0;
     return {
-        activeSpells: used.length > 0 ? activeSpells : null,
+        spellStates: spent ? states : null,
+        activeSpells: spent ? mirrorFromStates(active, states) : null,
         used,
         recoveries,
     };
@@ -288,16 +311,32 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         ...consumables.map(sellLine),
         ...rewardItems.map(buyLine),
     ]);
+    const knownSpells = snapshot.status.spells ?? [];
+    // base migrata in memoria se lo snapshot precede la migrazione (F6): stessa base per spesa e apprendimento, mai una lista parziale nel $set
+    const knownStates = spellStatesOrMigrated(snapshot, input.spellMaxUsages);
     const spells = spellsSpent(
         snapshot._id,
         snapshot.assets?.activeSpells,
+        knownStates,
         battle?.spellsUsed ?? [],
         input.spellRecoveryTimes,
+        input.now,
     );
-    const knownSpells = snapshot.status.spells ?? [];
     const spellLearned = won
         ? canLearnSpell(rewards.spellCandidate, progression.xp, knownSpells)
         : null;
+    // la magia imparata entra nello stato nello stesso $set (D-03, D-07): usi pieni, nessun recupero
+    const learnedState =
+        spellLearned && rewards.spellCandidate
+            ? learnedSpellState(spellLearned, rewards.spellCandidate.maxUsages)
+            : null;
+    const statesAfter =
+        spells.spellStates || learnedState
+            ? [
+                  ...(spells.spellStates ?? knownStates),
+                  ...(learnedState ? [learnedState] : []),
+              ]
+            : null;
     const completedQuests = won
         ? completedQuestsAfter(snapshot, quest._id)
         : null;
@@ -314,11 +353,12 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         'assets.ownedEquipments': inventory.ownedEquipments,
         [lanePath]: null,
         ...(titleAfter !== before.title ? { 'status.title': titleAfter } : {}),
+        ...(statesAfter ? { 'status.spellStates': statesAfter } : {}),
         ...(spells.activeSpells
             ? { 'assets.activeSpells': spells.activeSpells }
             : {}),
-        ...(spellLearned
-            ? { 'status.spells': [...knownSpells, spellLearned] }
+        ...(learnedState
+            ? { 'status.spells': [...knownSpells, learnedState.spell] }
             : {}),
         ...(completedQuests
             ? { 'quests.completedQuests': completedQuests }

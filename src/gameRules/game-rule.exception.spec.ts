@@ -151,12 +151,6 @@ describe('GameRuleException', () => {
             'Magia senza utilizzi rimasti',
         ],
         [
-            'spellRecoveryUnavailable',
-            () => GameRuleException.spellRecoveryUnavailable(),
-            GameRuleErrorCode.SPELL_RECOVERY_UNAVAILABLE,
-            'Recupero della magia non disponibile, riprova',
-        ],
-        [
             'awaitingAid',
             () => GameRuleException.awaitingAid(),
             GameRuleErrorCode.AWAITING_AID,

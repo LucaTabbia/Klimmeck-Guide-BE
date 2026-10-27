@@ -1,13 +1,14 @@
 import { GraphQLSchemaHost } from '@nestjs/graphql';
 import { printSchema } from 'graphql';
-import type { Model } from 'mongoose';
+import { Types, type Model } from 'mongoose';
 import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { Spell, SpellDocument } from 'src/models/spell.model';
 import { User, UserDocument } from 'src/models/user.model';
-import type { AuthTestApp } from '../../test/auth/auth-test-app';
+import { AuthTestApp, graphqlRequest } from '../../test/auth/auth-test-app';
 import {
     expectSilence,
     graphqlWsUrl,
@@ -17,6 +18,7 @@ import {
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
 import { primeCharactersChangeStream } from '../../test/characters/characters-change-stream';
+import { persistSpell, spellBook } from '../../test/fixtures';
 
 const CHARACTER_UPDATED =
     'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { id status { coins { silver } } } }';
@@ -29,12 +31,44 @@ interface WireCharacter {
 type CharacterUpdatedResult = { characterUpdated: WireCharacter };
 type CharacterSubscription = OpenSubscription<CharacterUpdatedResult>;
 
+const CHARACTER_SPELLS_UPDATED =
+    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { spellStates { spell { id } usages recoveries } } assets { activeSpells { usages spell { id } } } } }';
+
+const USE_SPELL =
+    'mutation($request: UseSpellRequest!) { useSpell(request: $request) { successful response } }';
+
+const MINUTE_MS = 60_000;
+
+interface WireSpellCharacter {
+    status: {
+        spellStates: {
+            spell: { id: string };
+            usages: number;
+            recoveries: string[];
+        }[];
+    };
+    assets: { activeSpells: { usages: number; spell: { id: string } }[] };
+}
+
+type SpellsUpdatedResult = { characterUpdated: WireSpellCharacter };
+type SpellsSubscription = OpenSubscription<SpellsUpdatedResult>;
+
+function isAscendingFuture(instants: string[], now: number): boolean {
+    return instants.every(
+        (instant, index) =>
+            Date.parse(instant) > now &&
+            (index === 0 ||
+                Date.parse(instants[index - 1]) <= Date.parse(instant)),
+    );
+}
+
 describe('characterUpdated subscription (wire)', () => {
     let harness: AuthTestApp;
     let url: string;
     let characters: Model<CharacterDocument>;
     let users: Model<UserDocument>;
-    const opened: CharacterSubscription[] = [];
+    let spells: Model<SpellDocument>;
+    const opened: { dispose(): Promise<void> }[] = [];
 
     let alice: TestPlayer;
     let bruno: TestPlayer;
@@ -71,6 +105,15 @@ describe('characterUpdated subscription (wire)', () => {
         return result.value.data?.characterUpdated as WireCharacter;
     }
 
+    async function nextSpellCharacter(
+        subscription: SpellsSubscription,
+    ): Promise<WireSpellCharacter> {
+        const result = await subscription.next();
+        expect(result.done).toBe(false);
+        expect(result.value.errors).toBeUndefined();
+        return result.value.data?.characterUpdated as WireSpellCharacter;
+    }
+
     async function expectRejection(
         subscription: CharacterSubscription,
     ): Promise<{ message: string; path?: unknown; extensions?: unknown }> {
@@ -94,6 +137,7 @@ describe('characterUpdated subscription (wire)', () => {
             Character.name,
         );
         users = harness.connection.model<UserDocument>(User.name);
+        spells = harness.connection.model<SpellDocument>(Spell.name);
         await primeCharactersChangeStream(harness);
     });
 
@@ -222,6 +266,93 @@ describe('characterUpdated subscription (wire)', () => {
 
         const again = subscribeTo(alice.bearer, aliceCharId);
         expect((await nextCharacter(again)).status.coins.silver).toBe(9);
+    });
+
+    it('carries the spell states with their future instants in every emission', async () => {
+        const spell = await persistSpell(spells, {
+            name: 'Dardo',
+            maxUsages: 3,
+            recoveryTime: 10 * MINUTE_MS,
+        });
+        const spellId = (spell._id as Types.ObjectId).toHexString();
+        const book = spellBook([
+            {
+                spell: spell._id as Types.ObjectId,
+                usages: 1,
+                recoveries: [
+                    new Date(Date.now() + 2 * MINUTE_MS),
+                    new Date(Date.now() + 30 * MINUTE_MS),
+                ],
+                active: true,
+            },
+        ]);
+        await characters.updateOne(
+            { _id: alice.character?._id },
+            {
+                $set: {
+                    'status.spells': book.spells,
+                    'status.spellStates': book.spellStates,
+                    'assets.activeSpells': book.activeSpells,
+                },
+            },
+        );
+        const subscription = openSubscription<SpellsUpdatedResult>(
+            url,
+            { Authorization: alice.bearer },
+            { query: CHARACTER_SPELLS_UPDATED, variables: { id: aliceCharId } },
+        );
+        opened.push(subscription);
+
+        const snapshot = await nextSpellCharacter(subscription);
+        expect(snapshot.status.spellStates).toHaveLength(1);
+        expect(snapshot.status.spellStates[0].spell.id).toBe(spellId);
+        expect(snapshot.status.spellStates[0].recoveries).toHaveLength(2);
+        expect(
+            isAscendingFuture(
+                snapshot.status.spellStates[0].recoveries,
+                Date.now(),
+            ),
+        ).toBe(true);
+
+        const used = await graphqlRequest(
+            harness.app,
+            USE_SPELL,
+            { request: { characterId: aliceCharId, spellId } },
+            alice.bearer,
+        );
+        expect(used.body).toEqual({
+            data: {
+                useSpell: {
+                    successful: true,
+                    response: 'Magia utilizzata con successo',
+                },
+            },
+        });
+
+        // tutte le emissioni fino a quella con l'uso speso: stato e slot coincidono in ognuna
+        const emissions = [snapshot];
+        let last = snapshot;
+        while (last.status.spellStates[0].usages !== 0) {
+            last = await nextSpellCharacter(subscription);
+            emissions.push(last);
+        }
+        for (const emission of emissions) {
+            expect(emission.assets.activeSpells).toHaveLength(1);
+            expect(emission.assets.activeSpells[0].usages).toBe(
+                emission.status.spellStates[0].usages,
+            );
+        }
+        expect(last.assets.activeSpells[0]).toEqual({
+            usages: 0,
+            spell: { id: spellId },
+        });
+        expect(last.status.spellStates[0].recoveries).toHaveLength(3);
+        expect(
+            isAscendingFuture(
+                last.status.spellStates[0].recoveries,
+                Date.now(),
+            ),
+        ).toBe(true);
     });
 
     it('keeps the characterUpdated signature unchanged', () => {

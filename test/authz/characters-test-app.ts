@@ -1,8 +1,10 @@
 import { getQueueToken } from '@nestjs/bull';
 import { MongooseModule } from '@nestjs/mongoose';
+import { Clock, SystemClock } from 'src/auth/clock';
 import { AuthzModule } from 'src/authz/authz.module';
 import { CharactersResolver } from 'src/characters/characters.resolver';
 import { CharactersService } from 'src/characters/characters.service';
+import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { EconomyModule } from 'src/economy/economy.module';
 import {
     Character,
@@ -23,6 +25,10 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
+import {
+    QUEUE_CALL_TIMEOUT,
+    QUEUE_CALL_TIMEOUT_MS,
+} from 'src/queues/queue-call-timeout';
 import {
     AuthTestApp,
     AuthTestAppOptions,
@@ -53,9 +59,11 @@ export async function createCharactersTestApp(
             CharactersService,
             CharactersResolver,
             {
-                provide: getQueueToken('spell-recovery'),
+                provide: getQueueToken(SPELL_RECOVERY_QUEUE),
                 useValue: { add: jest.fn() },
             },
+            { provide: Clock, useClass: SystemClock },
+            { provide: QUEUE_CALL_TIMEOUT, useValue: QUEUE_CALL_TIMEOUT_MS },
             ...(options.providers ?? []),
         ],
     });

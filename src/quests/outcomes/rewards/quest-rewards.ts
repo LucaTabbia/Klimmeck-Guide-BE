@@ -30,6 +30,7 @@ export interface RewardItem {
 export interface SpellCandidate {
     spellId: Types.ObjectId;
     minXpToLearn: number;
+    maxUsages: number;
 }
 
 export interface DrawnRewards {
@@ -41,7 +42,7 @@ export interface DrawnRewards {
 
 export interface RewardCatalog {
     rarities: ReadonlyMap<string, RarityType | null>;
-    spells: ReadonlyMap<string, { minXpToLearn: number }>;
+    spells: ReadonlyMap<string, { minXpToLearn: number; maxUsages: number }>;
 }
 
 export interface RewardRefs {
@@ -136,7 +137,11 @@ function spellCandidateOf(
     const spellId = refIdOf(prizes.spell);
     const spell = spellId && catalog.spells.get(spellId.toHexString());
     return spellId && spell
-        ? { spellId, minXpToLearn: spell.minXpToLearn }
+        ? {
+              spellId,
+              minXpToLearn: spell.minXpToLearn,
+              maxUsages: spell.maxUsages,
+          }
         : null;
 }
 

@@ -5,6 +5,10 @@ import {
 } from 'src/config/eventsub-config';
 import { parsePushConfig, readPushEnv } from 'src/config/push-config';
 import { parseQuestConfig, readQuestEnv } from 'src/config/quest-config';
+import {
+    parseSpellRecoveryConfig,
+    readSpellRecoveryEnv,
+} from 'src/config/spell-recovery-config';
 import { parseTravelConfig, readTravelEnv } from 'src/config/travel-config';
 
 export function validateEnv(
@@ -15,5 +19,6 @@ export function validateEnv(
     parseEventSubConfig(readEventSubEnv(env));
     parseTravelConfig(readTravelEnv(env));
     parseQuestConfig(readQuestEnv(env));
+    parseSpellRecoveryConfig(readSpellRecoveryEnv(env));
     return env;
 }

@@ -9,6 +9,7 @@ import { PointOfInterest } from '../point-of-interest.model';
 import { maxActiveSpellsFor } from './active-spell-slots';
 import { ActiveTravel, ActiveTravelSchema } from './active-travel.model';
 import { AwaitingAid, AwaitingAidSchema } from './awaiting-aid.model';
+import { SpellState, SpellStateSchema } from './spell-state.model';
 
 @ObjectType()
 @Schema({ _id: false })
@@ -46,6 +47,11 @@ export class CharacterStatus {
     @Field(() => [Spell])
     @Prop({ type: [Types.ObjectId], ref: Spell.name, default: [] })
     spells: Spell[];
+
+    // una voce per ogni magia di spells, stesso ordine (D-03)
+    @Field(() => [SpellState])
+    @Prop({ type: [SpellStateSchema], default: [] })
+    spellStates: SpellState[];
 
     @Field(() => Coins)
     @Prop({ type: CoinsSchema })

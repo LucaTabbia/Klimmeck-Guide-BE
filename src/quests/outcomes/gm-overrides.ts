@@ -1,4 +1,9 @@
 import type { Types } from 'mongoose';
+import {
+    NO_SPELL_MAX_USAGES,
+    spellStatesOrMigrated,
+    usagesFromState,
+} from 'src/characters/spells/spell-state.snapshot';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import type {
@@ -48,15 +53,13 @@ export function overrideParticipantOf(
         if (entry.itemType !== 'LootItem' || !item) continue;
         addTo(ownedLoot, item.toHexString(), entry.quantity);
     }
+    // limite degli usi dalla voce di stato, mai dal mirror degli slot (D-04a, T-9.1-32)
+    const states = spellStatesOrMigrated(snapshot, NO_SPELL_MAX_USAGES);
     const activeSpells = new Map<string, number>();
     for (const entry of snapshot.assets?.activeSpells ?? []) {
         const spell = refIdOf(entry.spell);
         if (!spell) continue;
-        addTo(
-            activeSpells,
-            spell.toHexString(),
-            Math.max(0, entry.usages ?? 0),
-        );
+        activeSpells.set(spell.toHexString(), usagesFromState(states, spell));
     }
     return {
         characterId: snapshot._id,

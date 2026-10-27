@@ -26,6 +26,13 @@ import { PushTransport } from 'src/push/transport/push-transport';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
 import type { QuestConfig } from 'src/config/quest-config';
 import { QUEST_CONFIG } from 'src/config/quest-config';
+import type { SpellRecoveryConfig } from 'src/config/spell-recovery-config';
+import { SPELL_RECOVERY_CONFIG } from 'src/config/spell-recovery-config';
+import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
+import { SpellRecoveryProcessor } from 'src/characters/spells/spell-recovery.processor';
+import { SpellRecoveryService } from 'src/characters/spells/spell-recovery.service';
+import { SpellRecoverySweeper } from 'src/characters/spells/spell-recovery.sweeper';
+import { SpellStateMigrator } from 'src/characters/spells/spell-state.migrator';
 import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
 import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholder-combat-resolver';
 import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
@@ -236,6 +243,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             // Pitfall 13: nessun timer dello sweep nel boot reale; il reconciler al boot gira comunque
             TRAVEL_SWEEP_INTERVAL_MS: '0',
             QUEST_SWEEP_INTERVAL_MS: '0',
+            SPELL_RECOVERY_SWEEP_INTERVAL_MS: '0',
         });
         // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
         const { AppModule } =
@@ -406,12 +414,23 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type TravelPath {\n  coordinates: [[Float!]!]!\n  distance: Float!\n}',
         );
         expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
-            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spells: [Spell!]!\n  title: String!\n  xp: Int!\n}',
+            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spellStates: [SpellState!]!\n  spells: [Spell!]!\n  title: String!\n  xp: Int!\n}',
         );
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
             'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  speedModifier: Float\n  xp: Int!\n}',
         );
         expect(schema).not.toMatch(/TravelKind|\bkind\b/);
+    });
+
+    it('writes the spell state contract into the generated schema', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'type SpellState {\n  recoveries: [DateTime!]!\n  spell: Spell!\n  usages: Int!\n}',
+        );
+        expect(schema.match(/type ActiveSpell \{[^}]*\}/)?.[0]).toBe(
+            'type ActiveSpell {\n  spell: Spell\n  usages: Int!\n}',
+        );
     });
 
     it('writes the free travel API into the generated schema', () => {
@@ -597,6 +616,23 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(CombatResolver)).toBeInstanceOf(
             PlaceholderCombatResolver,
         );
+    });
+
+    it('mounts the spell recovery lifecycle', () => {
+        expect(app.get(SpellRecoveryProcessor)).toBeInstanceOf(
+            SpellRecoveryProcessor,
+        );
+        expect(app.get(SpellRecoveryService)).toBeInstanceOf(
+            SpellRecoveryService,
+        );
+        expect(app.get(SpellStateMigrator)).toBeInstanceOf(SpellStateMigrator);
+        expect(app.get(SpellRecoverySweeper)).toBeInstanceOf(
+            SpellRecoverySweeper,
+        );
+        expect(app.get(getQueueToken(SPELL_RECOVERY_QUEUE))).toBeDefined();
+        expect(app.get<SpellRecoveryConfig>(SPELL_RECOVERY_CONFIG)).toEqual({
+            sweepIntervalMs: 0,
+        });
     });
 
     it('boots EventSub disabled without calling Twitch', () => {

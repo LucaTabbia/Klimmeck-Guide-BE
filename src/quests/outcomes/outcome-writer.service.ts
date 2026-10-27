@@ -3,11 +3,14 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Queue } from 'bull';
 import type { ClientSession, Model, Types } from 'mongoose';
-import { randomUUID } from 'node:crypto';
+import { Clock } from 'src/auth/clock';
 import {
-    RECOVER_SPELL_JOB,
-    SPELL_RECOVERY_QUEUE,
-} from 'src/characters/spells/spell-recovery-queue';
+    SPELL_RECOVERY_TRIGGER_FALLBACK,
+    SPELL_RECOVERY_TRIGGER_SUBJECT,
+    type SpellRecoveryJobData,
+    spellRecoveryTrigger,
+} from 'src/characters/spells/spell-recovery-job';
+import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { WalletService } from 'src/economy/wallet.service';
 import {
     Character,
@@ -22,14 +25,11 @@ import {
     QuestResultDocument,
 } from 'src/models/quest-result/quest-result.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
-import { documentIdOf } from 'src/mongo/document-id';
+import { documentIdOf, objectIdFromHex } from 'src/mongo/document-id';
 import { questEnd } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
-import {
-    QUEUE_CALL_TIMED_OUT,
-    QUEUE_CALL_TIMEOUT,
-    withinTimeout,
-} from 'src/queues/queue-call-timeout';
+import { enqueueTrigger } from 'src/queues/enqueue-trigger';
+import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import type { AidQuestDraft } from './aid/aid-quest';
 import type {
     ParticipantPlan,
@@ -79,9 +79,10 @@ export class OutcomeWriter {
         private readonly push: PushService,
         private readonly scheduler: QuestResolutionScheduler,
         @InjectQueue(SPELL_RECOVERY_QUEUE)
-        private readonly spellRecoveryQueue: Queue,
+        private readonly spellRecoveryQueue: Queue<SpellRecoveryJobData>,
         @Inject(QUEUE_CALL_TIMEOUT)
         private readonly timeoutMs: number,
+        private readonly clock: Clock,
     ) {}
 
     // il saldo passa solo dal WalletService nella stessa session (04 D-04)
@@ -184,33 +185,25 @@ export class OutcomeWriter {
         }
     }
 
-    // best-effort senza compensazione (C7): il combattimento è già avvenuto
-    private async scheduleSpellRecovery({
+    // il job è solo un trigger (D-06): best-effort dopo il commit, nessuna compensazione; lo sweep restituisce gli usi se Redis lo perde
+    private scheduleSpellRecovery({
         characterId,
         spellId,
-        delayMs,
+        dueAt,
     }: SpellRecovery): Promise<void> {
-        const failure = `Recupero della magia ${spellId} del personaggio ${characterId}`;
-        try {
-            const outcome = await withinTimeout(
-                this.spellRecoveryQueue.add(
-                    RECOVER_SPELL_JOB,
-                    { characterId, spellId },
-                    {
-                        delay: delayMs,
-                        jobId: `${characterId}-${spellId}-${randomUUID()}`,
-                        removeOnComplete: true,
-                        removeOnFail: false,
-                    },
-                ),
-                this.timeoutMs,
-            );
-            if (outcome === QUEUE_CALL_TIMED_OUT)
-                this.logger.warn(
-                    `${failure} non confermato entro ${this.timeoutMs} ms`,
-                );
-        } catch {
-            this.logger.warn(`${failure} non accodato`);
-        }
+        const character = objectIdFromHex(characterId);
+        const spell = objectIdFromHex(spellId);
+        if (!character || !spell) return Promise.resolve();
+        return enqueueTrigger(
+            this.spellRecoveryQueue,
+            spellRecoveryTrigger(character, spell, dueAt),
+            {
+                clock: this.clock,
+                timeoutMs: this.timeoutMs,
+                logger: this.logger,
+                subject: SPELL_RECOVERY_TRIGGER_SUBJECT,
+                fallback: SPELL_RECOVERY_TRIGGER_FALLBACK,
+            },
+        );
     }
 }

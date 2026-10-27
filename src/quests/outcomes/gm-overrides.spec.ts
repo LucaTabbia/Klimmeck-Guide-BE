@@ -266,6 +266,7 @@ describe('overrideParticipantOf', () => {
                 title: TitleType.rookie,
                 currentLifePoints: 600,
                 maxLifePoints: 1000,
+                spells: [S1_ID],
             },
             assets: {
                 ownedItems: [
@@ -291,6 +292,56 @@ describe('overrideParticipantOf', () => {
         expect(participant.maxLifePoints).toBe(1000);
         expect([...participant.ownedLoot.entries()]).toEqual([[POTION, 2]]);
         expect([...participant.activeSpells.entries()]).toEqual([[S1, 2]]);
+    });
+
+    const divergentSnapshot = () => ({
+        _id: A_ID,
+        status: {
+            xp: 0,
+            title: TitleType.rookie,
+            spells: [S1_ID, INACTIVE_SPELL_ID],
+            spellStates: [
+                { spell: S1_ID, usages: 1, recoveries: [] },
+                { spell: INACTIVE_SPELL_ID, usages: 5, recoveries: [] },
+            ],
+        },
+        assets: { activeSpells: [{ spell: S1_ID, usages: 3 }] },
+    });
+
+    it('reads the usages of a character not migrated yet from its spell slots', () => {
+        const participant = overrideParticipantOf({
+            _id: A_ID,
+            status: { xp: 0, title: TitleType.rookie, spells: [S1_ID] },
+            assets: { activeSpells: [{ spell: S1_ID, usages: 2 }] },
+        });
+
+        expect([...participant.activeSpells.entries()]).toEqual([[S1, 2]]);
+    });
+
+    it('takes the usages of the active spells from the spell state, never from the slots', () => {
+        const participant = overrideParticipantOf(divergentSnapshot());
+
+        expect([...participant.activeSpells.entries()]).toEqual([[S1, 1]]);
+    });
+
+    it('rejects an override that spends more usages than the spell state holds', () => {
+        const participant = overrideParticipantOf(divergentSnapshot());
+        const spending = (usages: number) => () =>
+            validateOverrides(
+                [overrideOf({ spellsUsed: [{ spell: S1, usages }] })],
+                [participant],
+            );
+
+        expect(spending(2)).toThrow(
+            expect.objectContaining({
+                code: GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+                message: 'Esito non valido per questo personaggio',
+            }),
+        );
+        expect(codeOf(spending(1))).toBeUndefined();
+        expect(spending(1)().get(A)?.spellsUsed).toEqual([
+            { spellId: S1, usages: 1 },
+        ]);
     });
 
     it('falls back to the level table for a legacy snapshot', () => {

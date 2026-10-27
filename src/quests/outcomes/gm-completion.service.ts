@@ -277,6 +277,7 @@ export class GmCompletionService {
                         ),
                         aid: null,
                         spellRecoveryTimes: recoveryTimes,
+                        spellMaxUsages: catalog.spellMaxUsages,
                         now,
                     });
                     await this.writer.writeParticipant(plan, session);

@@ -105,6 +105,13 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 - [x] **BE-ADMIN-01**: L'innkeeper ha una vista live (query + subscription) delle pending request story/worldMission, con i dati necessari al filtro FE su `activeTravel` → FE ADMIN-02
 - [x] **BE-ADMIN-02**: Mutation di completamento (solo esito positivo, nessun reject né rimborso) per le pending request story/worldMission, role-guarded e audit-loggata, con override opzionali per personaggio → FE ADMIN-03 _(emendato 2026-10-24, 09-CONTEXT D-03/D-04)_
 
+### Spell State & Recovery (BE-SPELL) — fase inserita 9.1, richiesta dalla FE Phase 8 (2026-10-27)
+
+- [x] **BE-SPELL-01**: `CharacterStatus.spellStates: [SpellState!]!` con `SpellState { spell: Spell!, usages: Int!, recoveries: [DateTime!]! }`: una voce per ogni magia conosciuta, `recoveries` crescente (un istante per ogni uso in recupero), contratto additivo su query e `characterUpdated`; `ActiveSpell.usages` coincide sempre con lo stato → FE SPELL-05
+- [x] **BE-SPELL-02**: Usi e recuperi appartengono alla magia, non allo slot: `equipSpell`/`unequipSpell` non li toccano e il recupero prosegue anche fuori dagli slot («Il recupero vale sempre, che la magia venga equipaggiata o disequipaggiata. Il timer di recupero non si interrompe mai», utente 2026-10-27); Phase 4 D-11 superata → FE SPELL-03/04/05
+- [x] **BE-SPELL-03**: `useSpell` e i consumi degli esiti (Phase 9) scrivono stato e `dueAt` nello stesso update atomico; processor idempotente (`dueAt` nel job, regola per i job legacy senza `dueAt`); reconciler al boot + sweep `SPELL_RECOVERY_SWEEP_INTERVAL_MS` rendono il DB la fonte di verità dei recuperi (accodamento best-effort)
+- [x] **BE-SPELL-04**: Migrazione idempotente al boot per i personaggi esistenti; invariante `status.spells` ↔ `spellStates` mantenuto da ogni scrittore (apprendimento) e verificato al boot; handoff `BACKEND-NOTES.md` per la FE Phase 8 con SDL, esempi, codici e dati UAT; `src/schema.gql` rigenerato
+
 ### Hardening (BE-HARD)
 
 - [ ] **BE-HARD-01**: Tutti gli input GraphQL/REST validati con class-validator + `ValidationPipe` globale (ID Mongo validi, quantità non negative, lunghezze stringhe)
@@ -190,6 +197,10 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-COMBAT-03 | Phase 9 | Complete |
 | BE-ADMIN-01 | Phase 9 | Complete |
 | BE-ADMIN-02 | Phase 9 | Complete |
+| BE-SPELL-01 | Phase 09.1 | Complete |
+| BE-SPELL-02 | Phase 09.1 | Complete |
+| BE-SPELL-03 | Phase 09.1 | Complete |
+| BE-SPELL-04 | Phase 09.1 | Complete |
 | BE-HARD-01 | Phase 10 | Pending |
 | BE-HARD-02 | Phase 10 | Pending |
 | BE-HARD-03 | Phase 10 | Pending |

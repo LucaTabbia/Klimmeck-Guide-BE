@@ -120,6 +120,7 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
             : NO_REWARDS,
         aid,
         spellRecoveryTimes: catalog.recoveryTimes,
+        spellMaxUsages: catalog.spellMaxUsages,
         rescuedCharacters: input.rescuedCharacters,
         now: input.now,
     });

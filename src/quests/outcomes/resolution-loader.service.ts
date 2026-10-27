@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
+import { isUsageCount } from 'src/characters/spells/spell-state.snapshot';
 import { priceKey } from 'src/economy/trade/trade-line';
 import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 import {
@@ -92,6 +93,7 @@ export interface ResolutionCatalog {
     spells: ReadonlyMap<string, { energyDamage?: unknown }>;
     loot: ReadonlyMap<string, { effect?: unknown; power?: unknown }>;
     recoveryTimes: ReadonlyMap<string, number>;
+    spellMaxUsages: ReadonlyMap<string, number>;
 }
 
 type CatalogEntry<T> = T & { _id: Types.ObjectId };
@@ -284,6 +286,7 @@ export class ResolutionLoader {
     ): Promise<ResolutionCatalog> {
         const enemy = await this.readEnemy(quest);
         const rewards = await this.readRewardCatalog(quest.prizes);
+        const spellMaxUsages = await this.readSpellMaxUsages();
         if (!enemy) {
             return {
                 enemy,
@@ -292,6 +295,7 @@ export class ResolutionLoader {
                 spells: new Map(),
                 loot: new Map(),
                 recoveryTimes: new Map(),
+                spellMaxUsages,
             };
         }
         const refs = combatCatalogRefsOf(participants);
@@ -322,7 +326,23 @@ export class ResolutionLoader {
             spells: byHex(spells),
             loot: byHex(loot),
             recoveryTimes: recoveryTimesFrom(spells),
+            spellMaxUsages,
         };
+    }
+
+    // usi massimi dell'intero catalogo (piccolo): base migrata in memoria per gli snapshot che precedono la migrazione (F6)
+    private async readSpellMaxUsages(): Promise<Map<string, number>> {
+        const spells = await this.spellModel
+            .find({}, { maxUsages: 1 })
+            .lean<CatalogEntry<{ maxUsages?: unknown }>[]>()
+            .exec();
+        return new Map(
+            spells.flatMap(({ _id, maxUsages }) =>
+                isUsageCount(maxUsages)
+                    ? [[_id.toHexString(), maxUsages] as const]
+                    : [],
+            ),
+        );
     }
 
     // tempi di recupero delle magie usate fuori dal combattimento (consumi riportati dal GM): un job per uso come useSpell
@@ -392,8 +412,11 @@ export class ResolutionLoader {
             .exec();
         const spell = refs.spellId
             ? await this.spellModel
-                  .findById(refs.spellId, { minXpToLearn: 1 })
-                  .lean<CatalogEntry<{ minXpToLearn?: unknown }> | null>()
+                  .findById(refs.spellId, { minXpToLearn: 1, maxUsages: 1 })
+                  .lean<CatalogEntry<{
+                      minXpToLearn?: unknown;
+                      maxUsages?: unknown;
+                  }> | null>()
                   .exec()
             : null;
         return {
@@ -410,13 +433,18 @@ export class ResolutionLoader {
                         ] as const,
                 ),
             ]),
-            // una magia senza soglia valida non si insegna (D-17): mai una soglia 0 implicita
+            // una magia senza soglia valida o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07): mai valori impliciti
             spells: new Map(
-                spell && isFiniteNumber(spell.minXpToLearn)
+                spell &&
+                isFiniteNumber(spell.minXpToLearn) &&
+                isUsageCount(spell.maxUsages)
                     ? [
                           [
                               spell._id.toHexString(),
-                              { minXpToLearn: spell.minXpToLearn },
+                              {
+                                  minXpToLearn: spell.minXpToLearn,
+                                  maxUsages: spell.maxUsages,
+                              },
                           ],
                       ]
                     : [],

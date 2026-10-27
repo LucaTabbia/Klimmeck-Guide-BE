@@ -10,6 +10,11 @@ import { persistPoi } from './poi.fixture';
  *    <20000→0, <25000→1, <30000→2, <40000→3, else 4.
  *  - status.location is a REQUIRED ref to PointOfInterest. buildCharacter uses a
  *    throwaway ObjectId; persistCharacter creates a real POI when none is given.
+ *
+ * Spells: build a coherent spell book with spellBook(...) and spread it in,
+ *    since overrides replace status/assets whole:
+ *    status: { ...buildCharacter().status, spells: book.spells, spellStates: book.spellStates },
+ *    assets: { ...buildCharacter().assets, activeSpells: book.activeSpells }
  */
 export function buildCharacter(overrides: Record<string, any> = {}) {
     return {
@@ -30,6 +35,7 @@ export function buildCharacter(overrides: Record<string, any> = {}) {
             title: 'rookie', // TitleType.rookie
             injuries: [],
             spells: [],
+            spellStates: [],
             coins: { gold: 0, silver: 0, copper: 0 },
             currentLifePoints: 100,
             maxLifePoints: 100,
@@ -46,6 +52,28 @@ export function buildCharacter(overrides: Record<string, any> = {}) {
             pet: null,
         },
         ...overrides,
+    };
+}
+
+export interface SpellBookEntry {
+    spell: Types.ObjectId | string; // stringa = ref legacy salvato come stringa (04 Pitfall 1)
+    usages: number;
+    recoveries?: Date[];
+    active?: boolean;
+}
+
+// stato coerente per i test (D-03): spells, spellStates e activeSpells con lo stesso ordine; il mirror vale quanto lo stato (D-04)
+export function spellBook(entries: readonly SpellBookEntry[]) {
+    return {
+        spells: entries.map((entry) => entry.spell),
+        spellStates: entries.map((entry) => ({
+            spell: new Types.ObjectId(String(entry.spell)),
+            usages: entry.usages,
+            recoveries: [...(entry.recoveries ?? [])],
+        })),
+        activeSpells: entries
+            .filter((entry) => entry.active)
+            .map((entry) => ({ spell: entry.spell, usages: entry.usages })),
     };
 }
 

@@ -8,6 +8,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 import { UsersModule } from './users/users.module';
 import { CharactersModule } from './characters/characters.module';
+import { SpellRecoveryModule } from './characters/spells/spell-recovery.module';
 import { CharacterCreationModule } from './characters/creation/character-creation.module';
 import { CharacterDeletionModule } from './characters/deletion/character-deletion.module';
 import { CitiesModule } from './cities/cities.module';
@@ -75,6 +76,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         }),
         UsersModule,
         CharactersModule,
+        SpellRecoveryModule,
         CharacterCreationModule,
         CharacterDeletionModule,
         CitiesModule,

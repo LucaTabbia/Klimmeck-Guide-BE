@@ -5,6 +5,12 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
+import {
+    NO_SPELL_MAX_USAGES,
+    type SpellStateEntry,
+    spellStatesOrMigrated,
+    usagesFromState,
+} from 'src/characters/spells/spell-state.snapshot';
 import { statusFactsOf } from '../progression/status-facts';
 import {
     CombatContext,
@@ -23,6 +29,8 @@ export interface CombatCharacterSnapshot {
         currentLifePoints?: number;
         maxLifePoints?: number;
         injuries?: InjuryType[];
+        spells?: unknown[];
+        spellStates?: SpellStateEntry[];
     };
     assets?: {
         wearedEquipment?: Partial<Record<SlotType, unknown>> | null;
@@ -104,13 +112,16 @@ const wornOf = (snapshot: CombatCharacterSnapshot) =>
         return itemId ? [{ slot, itemId }] : [];
     });
 
-const activeSpellsOf = (snapshot: CombatCharacterSnapshot) =>
-    (snapshot.assets?.activeSpells ?? []).flatMap((entry) => {
+// slot per sapere quali magie entrano in combattimento, usi dalla voce di stato (D-03, D-04a)
+const activeSpellsOf = (snapshot: CombatCharacterSnapshot) => {
+    const states = spellStatesOrMigrated(snapshot, NO_SPELL_MAX_USAGES);
+    return (snapshot.assets?.activeSpells ?? []).flatMap((entry) => {
         const spellId = refOf(entry?.spell);
         return spellId
-            ? [{ spellId, usages: Math.max(0, numberOr(entry.usages, 0)) }]
+            ? [{ spellId, usages: usagesFromState(states, spellId) }]
             : [];
     });
+};
 
 const ownedLootOf = (snapshot: CombatCharacterSnapshot) =>
     (snapshot.assets?.ownedItems ?? []).flatMap((entry) => {

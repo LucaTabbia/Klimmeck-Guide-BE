@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import type { ClientSession } from 'mongoose';
 import { Types } from 'mongoose';
 import { questEnd } from 'src/push/push-events';
+import { FixedClock } from '../../../test/auth/fixed-clock';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 import type { ParticipantPlan } from './outcome-plan';
 import {
@@ -62,6 +63,7 @@ describe('OutcomeWriter', () => {
             scheduler as never,
             queue as never,
             TIMEOUT_MS,
+            new FixedClock(NOW),
         );
         warn = jest
             .spyOn(Logger.prototype, 'warn')
@@ -73,10 +75,12 @@ describe('OutcomeWriter', () => {
     });
 
     describe('deliver', () => {
+        const dueAt = new Date(NOW.getTime() + 5000);
+        const recovery = () => ({ characterId, spellId, dueAt });
         const committed = () => ({
             results: [{ resultId, userId }],
             aids: [{ aidQuestId, since: NOW }],
-            spellRecoveries: [{ characterId, spellId, delayMs: 5000 }],
+            spellRecoveries: [recovery()],
         });
 
         it('pushes questEnd with the result id to the result user', async () => {
@@ -99,34 +103,33 @@ describe('OutcomeWriter', () => {
             });
         });
 
-        it('enqueues one recover job per spell usage in the useSpell format', async () => {
+        it('enqueues one recover trigger per spent spell with its due instant', async () => {
             await writer.deliver(committed());
 
             expect(queue.added).toHaveLength(1);
             const [job] = queue.added;
             expect(job.name).toBe('recover');
-            expect(job.data).toEqual({ characterId, spellId });
-            expect(job.options).toMatchObject({
+            expect(job.data).toEqual({
+                characterId,
+                spellId,
+                dueAt: dueAt.getTime(),
+            });
+            expect(job.options).toEqual({
+                jobId: `spell-${characterId}-${spellId}-${dueAt.getTime()}`,
                 delay: 5000,
                 removeOnComplete: true,
                 removeOnFail: false,
             });
-            expect(String(job.options.jobId)).toMatch(
-                new RegExp(`^${characterId}-${spellId}-.+`),
-            );
         });
 
-        it('gives every recover job a distinct id', async () => {
+        it('gives the same id to triggers of the same spell and instant', async () => {
             await writer.deliver({
                 ...committed(),
-                spellRecoveries: [
-                    { characterId, spellId, delayMs: 5000 },
-                    { characterId, spellId, delayMs: 5000 },
-                ],
+                spellRecoveries: [recovery(), recovery()],
             });
 
             const [first, second] = queue.added;
-            expect(first.options.jobId).not.toBe(second.options.jobId);
+            expect(first.options.jobId).toBe(second.options.jobId);
         });
 
         it('warns with ids only when the spell recovery queue rejects', async () => {
@@ -138,6 +141,7 @@ describe('OutcomeWriter', () => {
             const message = String(warn.mock.calls[0][0]);
             expect(message).toContain(characterId);
             expect(message).toContain(spellId);
+            expect(message).toContain('lo restituirà lo sweep');
             expect(message).not.toContain('queue unavailable');
         });
 
@@ -287,7 +291,7 @@ describe('emptyCommitted', () => {
         first.spellRecoveries.push({
             characterId: 'c',
             spellId: 's',
-            delayMs: 1,
+            dueAt: NOW,
         });
 
         expect(emptyCommitted()).toEqual({
