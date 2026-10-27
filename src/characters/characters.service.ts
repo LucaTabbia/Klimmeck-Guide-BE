@@ -239,7 +239,7 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
         const spellId = objectIdFromHex(request.spellId);
         if (!spellId) throw GameRuleException.spellNotKnown();
 
-        // usages iniziali dal catalogo: il valore del client è ignorato (04 D-11)
+        // usi copiati dalla voce di stato (D-01, D-07): il valore del client è ignorato; maxUsages del catalogo solo come fallback della pipeline
         const spell = await this.spellModel
             .findById(spellId, { maxUsages: 1 })
             .lean<{ maxUsages: number } | null>()

@@ -28,10 +28,43 @@ export function equipSpellFilter(
     };
 }
 
+// equip non tocca usi né recuperi (D-01, D-07; Phase 4 D-11 superata): il mirror nasce uguale alla voce di stato nello stesso update, maxUsages solo se la voce manca
 export function equipSpellUpdate(spellId: Types.ObjectId, maxUsages: number) {
-    return {
-        $push: { 'assets.activeSpells': { spell: spellId, usages: maxUsages } },
+    const stateUsages = {
+        $let: {
+            vars: {
+                state: {
+                    $arrayElemAt: [
+                        {
+                            $filter: {
+                                input: { $ifNull: ['$status.spellStates', []] },
+                                cond: { $eq: ['$$this.spell', spellId] },
+                            },
+                        },
+                        0,
+                    ],
+                },
+            },
+            in: '$$state.usages',
+        },
     };
+    return [
+        {
+            $set: {
+                'assets.activeSpells': {
+                    $concatArrays: [
+                        { $ifNull: ['$assets.activeSpells', []] },
+                        [
+                            {
+                                spell: spellId,
+                                usages: { $ifNull: [stateUsages, maxUsages] },
+                            },
+                        ],
+                    ],
+                },
+            },
+        },
+    ];
 }
 
 export function unequipSpellFilter(
