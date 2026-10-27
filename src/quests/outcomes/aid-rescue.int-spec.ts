@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
+import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { PushEventType } from 'src/push/push-event-type.enum';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
@@ -184,6 +185,17 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
 
     const messagesOf = (spy: jest.SpyInstance) =>
         spy.mock.calls.map(([message]) => String(message));
+
+    // archivio reale nella transazione dell'harness, come deleteCharacter
+    const archive = (userId: unknown, characterId: Types.ObjectId) =>
+        world.harness.connection.transaction((session) =>
+            archiver.archiveWithin(session, {
+                userId: userId as Types.ObjectId,
+                characterId,
+                reason: DeletionReason.user_request,
+                now: NOW,
+            }),
+        );
 
     it('frees the injured in the marker city when the rescue succeeds', async () => {
         const rescue = await rescueWorld();
@@ -729,6 +741,38 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
                     String(linkedId),
                 ]);
             }
+        });
+
+        it('rescues with the rescuer left when the other was archived («Il BE non libera i posti delle quest avviate»)', async () => {
+            const group = await groupRescueWorld();
+            const [first, second] = group.rescuers;
+            await world.models.quests.updateOne(
+                { _id: group.aid._id },
+                { $set: { startedAt: OUTCOME_START } },
+            );
+            await archive(second.player.user._id, second.characterId);
+            const held = await questOf(group.aid._id);
+            expect(seatsOf(held)).toEqual([
+                String(first.characterId),
+                String(second.characterId),
+            ]);
+            expect(held.registeredAdventurers[1].archivedAt).toEqual(NOW);
+            scripted.willEnd('success');
+
+            await expect(triggerOf(first)).resolves.toBe('resolved');
+
+            expect(scripted.contexts).toHaveLength(1);
+            expect(scripted.contexts[0].participants).toHaveLength(1);
+            for (const id of group.woundedIds) {
+                const results = await resultsOf(id);
+                expect(results.map(({ outcome }) => outcome)).toEqual([
+                    'rescued',
+                ]);
+            }
+            const [result] = await resultsOf(first.characterId);
+            expect(result.outcome).toBe('success');
+            expect(await resultsOf(second.characterId)).toEqual([]);
+            expect((await questOf(group.aid._id)).concludedAt).toEqual(NOW);
         });
 
         it('resolves once under concurrent triggers of the rescuers', async () => {

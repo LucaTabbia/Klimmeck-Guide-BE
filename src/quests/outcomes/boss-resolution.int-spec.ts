@@ -1,5 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
+import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
+import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { PushEventType } from 'src/push/push-event-type.enum';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import { createPlayer } from '../../../test/authz/player-fixture';
@@ -129,6 +131,23 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
 
     const aids = () =>
         world.models.quests.find({ 'infos.type': 'aid' }).lean<any[]>();
+
+    // archivio reale nella transazione dell'harness, come deleteCharacter
+    const archive = (userId: unknown, characterId: Types.ObjectId) =>
+        world.harness.connection.transaction((session) =>
+            world.harness.app.get(CharacterArchiver).archiveWithin(session, {
+                userId: userId as Types.ObjectId,
+                characterId,
+                reason: DeletionReason.user_request,
+                now: NOW,
+            }),
+        );
+
+    const markStarted = (questId: unknown) =>
+        world.models.quests.updateOne(
+            { _id: questId },
+            { $set: { startedAt: OUTCOME_START } },
+        );
 
     const questEndPushes = () =>
         world.push.sent.filter(
@@ -328,6 +347,86 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
                     message.includes(String(a.quest._id)),
             ),
         ).toBe(true);
+    });
+
+    it('fights with the adventurers left when a member of a started boss was archived («Il BE non libera i posti delle quest avviate»)', async () => {
+        const { a, b } = await group();
+        const archivedName = b.player.character!.infos.name;
+        await markStarted(a.quest._id);
+        await archive(b.player.user._id, b.characterId);
+        const held = await questOf(a.quest._id);
+        expect(seatsOf(held)).toEqual([
+            String(a.characterId),
+            String(b.characterId),
+        ]);
+        expect(held.registeredAdventurers[1].archivedAt).toEqual(NOW);
+        scripted.willEnd('success');
+
+        await expect(service.resolveStandard(triggerOf(b))).resolves.toBe(
+            'stale',
+        );
+        await expect(service.resolveStandard(triggerOf(a))).resolves.toBe(
+            'resolved',
+        );
+
+        expect(scripted.contexts).toHaveLength(1);
+        expect(scripted.contexts[0].participants).toHaveLength(1);
+        const results = await world.models.questResults.find().lean<any[]>();
+        expect(
+            results.map((result) => [
+                String(result.character),
+                result.outcome,
+                result.acknowledgedAt,
+            ]),
+        ).toEqual([[String(a.characterId), 'success', null]]);
+        const quest = await questOf(a.quest._id);
+        expect(quest.concludedAt).toEqual(NOW);
+        expect(seatsOf(quest)).toEqual([String(a.characterId)]);
+        const messages = warn.mock.calls.map(([message]) => String(message));
+        expect(
+            messages.some(
+                (message) =>
+                    message.includes(String(b.characterId)) &&
+                    message.includes(String(a.quest._id)),
+            ),
+        ).toBe(true);
+        expect(
+            messages.filter(
+                (message) =>
+                    message.includes(archivedName) ||
+                    message.includes(BOSS_TITLE),
+            ),
+        ).toEqual([]);
+    });
+
+    it('returns a lost started boss to not started with one aid for the fighter left', async () => {
+        const a = await quester({
+            questOverrides: await bossQuest(RANKED_SEATS),
+        });
+        const b = await quester({ quest: a.quest });
+        await markStarted(a.quest._id);
+        await archive(b.player.user._id, b.characterId);
+        scripted.willEnd('failure');
+
+        await expect(service.resolveStandard(triggerOf(a))).resolves.toBe(
+            'resolved',
+        );
+
+        const quest = await questOf(a.quest._id);
+        expect(quest.concludedAt).toBeNull();
+        expect(quest.startedAt).toBeNull();
+        expect(seatsOf(quest)).toEqual([]);
+        const created = await aids();
+        expect(created).toHaveLength(1);
+        const [aid] = created;
+        expect(aid.rescue.characters.map(String)).toEqual([
+            String(a.characterId),
+        ]);
+        expect(aid.requirements.requiredAdventurers).toEqual(RANKED_SEATS);
+        const results = await world.models.questResults.find().lean<any[]>();
+        expect(
+            results.map((result) => [String(result.character), result.outcome]),
+        ).toEqual([[String(a.characterId), 'failure']]);
     });
 
     it('dispatches an individual quest to the individual resolution', async () => {

@@ -1,5 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
+import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
+import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { PushEventType } from 'src/push/push-event-type.enum';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
@@ -150,6 +152,17 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
 
     const aidOf = ({ aidId }: TimeoutWorld) =>
         world.models.quests.findById(aidId).lean<any>();
+
+    // archivio reale nella transazione dell'harness, come deleteCharacter
+    const archive = (userId: unknown, characterId: Types.ObjectId) =>
+        world.harness.connection.transaction((session) =>
+            world.harness.app.get(CharacterArchiver).archiveWithin(session, {
+                userId: userId as Types.ObjectId,
+                characterId,
+                reason: DeletionReason.user_request,
+                now: HOUR_AGO,
+            }),
+        );
 
     async function expectUntouched(subject: TimeoutWorld): Promise<void> {
         const injured = await characterOf(subject.injuredId);
@@ -348,6 +361,32 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
         expect((await characterOf(subject.injuredId)).deletionReason).toBe(
             'death',
         );
+        expect((await aidOf(subject)).concludedAt).toEqual(NOW);
+    });
+
+    it('times out a rescue reset by the archive of its only rescuer', async () => {
+        const subject = await timeoutWorld();
+        const only = await rescuer(subject, HOUR_AGO);
+        await world.models.quests.updateOne(
+            { _id: subject.aidId },
+            { $set: { startedAt: HOUR_AGO } },
+        );
+        await archive(only.player.user._id, only.characterId);
+        const reset = await aidOf(subject);
+        expect(reset.startedAt).toBeNull();
+        expect(reset.registeredAdventurers).toEqual([]);
+
+        await expect(timeout(subject)).resolves.toBe('resolved');
+
+        const injured = await characterOf(subject.injuredId);
+        expect(injured.deletedAt).toEqual(NOW);
+        expect(injured.deletionReason).toBe('death');
+        const results = await world.models.questResults
+            .find({ character: subject.injuredId })
+            .lean<any[]>();
+        expect(
+            results.map((result) => [result.outcome, result.acknowledgedAt]),
+        ).toEqual([['death', null]]);
         expect((await aidOf(subject)).concludedAt).toEqual(NOW);
     });
 
