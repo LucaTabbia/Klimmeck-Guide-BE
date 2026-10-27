@@ -273,6 +273,8 @@ const dead = db.characters.find({ deletionReason: 'death' }, { _id: 1 }).toArray
 db.users.updateMany({ currentCharacter: { $in: dead } }, { $set: { currentCharacter: null } })
 ```
 
+I due comandi «Prima della UAT» vanno eseguiti **insieme e in quest'ordine** (prima la conferma dei risultati pendenti, poi lo stacco degli utenti collegati a un morto): il primo da solo lascerebbe un utente collegato al morto con il risultato `death` già confermato, e una nuova conferma dal FE non scriverebbe nulla (idempotenza, D-03), quindi non lo staccherebbe più.
+
 **Ispezionare una quest** (istante di avvio e registrazioni, segnaposto compresi):
 
 ```js
