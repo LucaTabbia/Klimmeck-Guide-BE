@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import {
     inconsistentFilter,
+    isSpellStateOutOfRange,
     outOfRangeFilter,
     spellStatesConsistentExpr,
     spellStatesRepairPipeline,
@@ -58,7 +59,57 @@ describe('spell state migration pipeline', () => {
             null,
         ],
     });
-    const recoveries = { $ifNull: ['$$state.recoveries', []] };
+    const recoveries = {
+        $cond: [{ $isArray: '$$state.recoveries' }, '$$state.recoveries', []],
+    };
+    const storedStates = {
+        $cond: [{ $isArray: '$status.spellStates' }, '$status.spellStates', []],
+    };
+    const missingUsages = { $subtract: ['$$max', '$$state.usages'] };
+    // usi interi sicuri: tipo numerico (senza decimal), dentro ±2^53−1, senza parte frazionaria
+    const usagesAreSafeInteger = {
+        $cond: [
+            {
+                $in: [{ $type: '$$state.usages' }, ['int', 'long', 'double']],
+            },
+            {
+                $and: [
+                    {
+                        $gte: ['$$state.usages', -Number.MAX_SAFE_INTEGER],
+                    },
+                    { $lte: ['$$state.usages', Number.MAX_SAFE_INTEGER] },
+                    {
+                        $eq: ['$$state.usages', { $trunc: '$$state.usages' }],
+                    },
+                ],
+            },
+            false,
+        ],
+    };
+    const stateOutOfRange = {
+        $cond: [
+            { $and: [{ $ne: ['$$max', null] }, usagesAreSafeInteger] },
+            {
+                $or: [
+                    { $gt: ['$$state.usages', '$$max'] },
+                    { $gt: [{ $size: recoveries }, missingUsages] },
+                ],
+            },
+            false,
+        ],
+    };
+    const overStates = (inner: unknown) => ({
+        $map: {
+            input: storedStates,
+            as: 'state',
+            in: {
+                $let: {
+                    vars: { max: catalogMaxOf('$$state.spell') },
+                    in: inner,
+                },
+            },
+        },
+    });
 
     it('repairs states then mirror in two $set stages', () => {
         const pipeline = spellStatesRepairPipeline(catalog);
@@ -243,81 +294,37 @@ describe('spell state migration pipeline', () => {
         });
     });
 
-    it('trims only the instants a credit can no longer consume, keeping the most recent ones', () => {
+    it('trims only the out-of-range entries, keeping the most recent instants and every other entry as stored', () => {
         expect(spellStatesTrimPipeline(catalog)).toEqual([
             {
                 $set: {
-                    'status.spellStates': {
-                        $map: {
-                            input: { $ifNull: ['$status.spellStates', []] },
-                            as: 'state',
-                            in: {
-                                $let: {
-                                    vars: {
-                                        max: catalogMaxOf('$$state.spell'),
-                                    },
-                                    in: {
-                                        $cond: [
-                                            { $eq: ['$$max', null] },
-                                            '$$state',
-                                            {
-                                                spell: '$$state.spell',
-                                                usages: '$$state.usages',
-                                                recoveries: {
-                                                    $cond: [
-                                                        {
-                                                            $gte: [
-                                                                '$$state.usages',
-                                                                '$$max',
-                                                            ],
-                                                        },
-                                                        [],
-                                                        {
-                                                            $cond: [
-                                                                {
-                                                                    $gt: [
-                                                                        {
-                                                                            $size: recoveries,
-                                                                        },
-                                                                        {
-                                                                            $subtract:
-                                                                                [
-                                                                                    '$$max',
-                                                                                    '$$state.usages',
-                                                                                ],
-                                                                        },
-                                                                    ],
-                                                                },
-                                                                {
-                                                                    $slice: [
-                                                                        recoveries,
-                                                                        {
-                                                                            $multiply:
-                                                                                [
-                                                                                    -1,
-                                                                                    {
-                                                                                        $subtract:
-                                                                                            [
-                                                                                                '$$max',
-                                                                                                '$$state.usages',
-                                                                                            ],
-                                                                                    },
-                                                                                ],
-                                                                        },
-                                                                    ],
-                                                                },
-                                                                recoveries,
-                                                            ],
-                                                        },
+                    'status.spellStates': overStates({
+                        $cond: [
+                            stateOutOfRange,
+                            {
+                                spell: '$$state.spell',
+                                usages: '$$state.usages',
+                                recoveries: {
+                                    $cond: [
+                                        { $gte: ['$$state.usages', '$$max'] },
+                                        [],
+                                        {
+                                            $slice: [
+                                                recoveries,
+                                                {
+                                                    $multiply: [
+                                                        -1,
+                                                        missingUsages,
                                                     ],
                                                 },
-                                            },
-                                        ],
-                                    },
+                                            ],
+                                        },
+                                    ],
                                 },
                             },
-                        },
-                    },
+                            '$$state',
+                        ],
+                    }),
                 },
             },
         ]);
@@ -409,54 +416,50 @@ describe('spell state migration pipeline', () => {
         });
     });
 
-    it('flags states over the catalog maximum or with more instants than missing usages', () => {
+    it('flags states over the catalog maximum or with more instants than missing usages, ignoring malformed entries', () => {
         expect(outOfRangeFilter(catalog)).toEqual({
             deletedAt: null,
-            $expr: {
-                $anyElementTrue: [
-                    {
-                        $map: {
-                            input: { $ifNull: ['$status.spellStates', []] },
-                            as: 'state',
-                            in: {
-                                $let: {
-                                    vars: {
-                                        max: catalogMaxOf('$$state.spell'),
-                                    },
-                                    in: {
-                                        $and: [
-                                            { $ne: ['$$max', null] },
-                                            {
-                                                $or: [
-                                                    {
-                                                        $gt: [
-                                                            '$$state.usages',
-                                                            '$$max',
-                                                        ],
-                                                    },
-                                                    {
-                                                        $gt: [
-                                                            {
-                                                                $size: recoveries,
-                                                            },
-                                                            {
-                                                                $subtract: [
-                                                                    '$$max',
-                                                                    '$$state.usages',
-                                                                ],
-                                                            },
-                                                        ],
-                                                    },
-                                                ],
-                                            },
-                                        ],
-                                    },
-                                },
-                            },
-                        },
-                    },
-                ],
-            },
+            $expr: { $anyElementTrue: [overStates(stateOutOfRange)] },
         });
+    });
+
+    it.each([
+        ['usages within range', { usages: 1, recoveries: [0, 1] }, false],
+        [
+            'more instants than missing usages',
+            { usages: 1, recoveries: [0, 1, 2] },
+            true,
+        ],
+        ['instants at the maximum', { usages: 3, recoveries: [0] }, true],
+        ['usages over the maximum', { usages: 5, recoveries: [] }, true],
+        [
+            'usages over the maximum, instants not a list',
+            { usages: 5, recoveries: 'soon' },
+            true,
+        ],
+        ['full and idle', { usages: 3, recoveries: [] }, false],
+        ['null usages', { usages: null, recoveries: [0, 1, 2, 3] }, false],
+        ['string usages', { usages: 'two', recoveries: [0, 1, 2, 3] }, false],
+        ['missing usages, instants not a list', { recoveries: 'soon' }, false],
+        ['fractional usages', { usages: 1.5, recoveries: [0, 1] }, false],
+        [
+            'not-a-number usages',
+            { usages: NaN, recoveries: [0, 1, 2, 3] },
+            false,
+        ],
+        ['instants not a list', { usages: 1, recoveries: 'soon' }, false],
+        ['null instants', { usages: 1, recoveries: null }, false],
+        ['missing instants', { usages: 1 }, false],
+    ])(
+        'mirrors the Mongo predicate in JavaScript: %s',
+        (_, state, expected) => {
+            expect(isSpellStateOutOfRange(state, 3)).toBe(expected);
+        },
+    );
+
+    it('never flags a state whose spell is not in the catalog', () => {
+        expect(
+            isSpellStateOutOfRange({ usages: 5, recoveries: [0] }, undefined),
+        ).toBe(false);
     });
 });

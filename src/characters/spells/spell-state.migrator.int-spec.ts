@@ -11,6 +11,10 @@ import {
     persistSpell,
     spellBook,
 } from '../../../test/fixtures';
+import {
+    isSpellStateOutOfRange,
+    outOfRangeFilter,
+} from './spell-state.migration';
 import { SpellStateMigrator } from './spell-state.migrator';
 
 const CharacterModel: Model<CharacterDocument> =
@@ -371,6 +375,159 @@ describe('SpellStateMigrator (replSet)', () => {
                 repaired: 0,
                 trimmed: 0,
             });
+        });
+    });
+
+    describe('malformed entries', () => {
+        // voce scritta a mano: usi assenti e istanti non in lista; nessun credito può toccarla
+        function corruptCharacter() {
+            return rawCharacter({
+                spells: [a, b],
+                spellStates: [
+                    { spell: a, recoveries: 'soon' },
+                    { spell: b, usages: 2, recoveries: [hoursFrom(1)] },
+                ] as unknown as RawState[],
+            });
+        }
+
+        it('completes the batch around a corrupt entry, trimming every other document and leaving the corrupt entry as stored', async () => {
+            const corrupt = corruptCharacter();
+            const tooMany = coherentCharacter(
+                spellBook([
+                    {
+                        spell: a,
+                        usages: 1,
+                        recoveries: [hoursFrom(1), hoursFrom(2), hoursFrom(3)],
+                    },
+                ]),
+            );
+            await insert(corrupt, tooMany);
+
+            await expect(migrator.migrateAll()).resolves.toEqual({
+                migrated: 0,
+                repaired: 0,
+                trimmed: 2,
+            });
+
+            expect((await rawOf(corrupt._id)).status.spellStates).toEqual([
+                { spell: a, recoveries: 'soon' },
+                { spell: b, usages: 2, recoveries: [] },
+            ]);
+            expect((await rawOf(tooMany._id)).status.spellStates).toEqual([
+                {
+                    spell: a,
+                    usages: 1,
+                    recoveries: [hoursFrom(2), hoursFrom(3)],
+                },
+            ]);
+            expect(errorSpy).not.toHaveBeenCalled();
+        });
+
+        it('migrates a single corrupt character without throwing', async () => {
+            const corrupt = corruptCharacter();
+            await insert(corrupt);
+
+            await expect(migrator.migrateOne(corrupt._id)).resolves.toBe(true);
+            await expect(migrator.migrateOne(corrupt._id)).resolves.toBe(false);
+
+            expect((await rawOf(corrupt._id)).status.spellStates).toEqual([
+                { spell: a, recoveries: 'soon' },
+                { spell: b, usages: 2, recoveries: [] },
+            ]);
+        });
+
+        it('agrees with its JavaScript mirror on a table of stored states', async () => {
+            const instants = (count: number) =>
+                Array.from({ length: count }, (_, hour) => hoursFrom(hour));
+            const cases: [string, Record<string, unknown>, boolean][] = [
+                [
+                    'usages within range',
+                    { usages: 1, recoveries: instants(2) },
+                    false,
+                ],
+                [
+                    'more instants than missing usages',
+                    { usages: 1, recoveries: instants(3) },
+                    true,
+                ],
+                [
+                    'instants at the maximum',
+                    { usages: 3, recoveries: instants(1) },
+                    true,
+                ],
+                [
+                    'usages over the maximum',
+                    { usages: 5, recoveries: [] },
+                    true,
+                ],
+                [
+                    'usages over the maximum, instants not a list',
+                    { usages: 5, recoveries: 'soon' },
+                    true,
+                ],
+                ['full and idle', { usages: 3, recoveries: [] }, false],
+                [
+                    'null usages',
+                    { usages: null, recoveries: instants(4) },
+                    false,
+                ],
+                [
+                    'string usages',
+                    { usages: 'two', recoveries: instants(4) },
+                    false,
+                ],
+                [
+                    'missing usages, instants not a list',
+                    { recoveries: 'soon' },
+                    false,
+                ],
+                [
+                    'fractional usages',
+                    { usages: 1.5, recoveries: instants(2) },
+                    false,
+                ],
+                [
+                    'not-a-number usages',
+                    { usages: NaN, recoveries: instants(4) },
+                    false,
+                ],
+                [
+                    'instants not a list',
+                    { usages: 1, recoveries: 'soon' },
+                    false,
+                ],
+                ['null instants', { usages: 1, recoveries: null }, false],
+                ['missing instants', { usages: 1 }, false],
+            ];
+            const catalog = [{ id: a, maxUsages: 3 }];
+            const docs = cases.map(([, state]) =>
+                rawCharacter({
+                    spells: [a],
+                    spellStates: [
+                        { spell: a, ...state },
+                    ] as unknown as RawState[],
+                }),
+            );
+            await insert(...docs);
+
+            const flagged = new Set(
+                (
+                    await CharacterModel.collection
+                        .find(outOfRangeFilter(catalog), {
+                            projection: { _id: 1 },
+                        })
+                        .toArray()
+                ).map(({ _id }) => String(_id)),
+            );
+
+            const outcomes = cases.map(([label, state], index) => [
+                label,
+                flagged.has(String(docs[index]._id)),
+                isSpellStateOutOfRange(state, 3),
+            ]);
+            expect(outcomes).toEqual(
+                cases.map(([label, , expected]) => [label, expected, expected]),
+            );
         });
     });
 
