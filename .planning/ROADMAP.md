@@ -24,6 +24,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 8: Travel Lifecycle (TRAVEL-01)** - `activeTravel` su schema + subscription, ETA/completamento server-side, teleport atomico (completed 2026-10-21)
 - [x] **Phase 9: Combat Result & Admin Outcomes** - `QuestResult` persistito con delivery ibrida (subscription owner-only + push `questEnd` + query), corsia standard risolta server-side dietro `CombatResolver` (segnaposto), catena aid/morte, coda live innkeeper + `completePendingRequest`, guard `SHOP_NOT_IN_CITY` (completed 2026-10-24)
 - [x] **Phase 9.1: Spell State and Recovery Contract** (INSERTED 2026-10-27) - Stato per magia conosciuta `status.spellStates { spell, usages, recoveries }` che sopravvive a equip/disequip, recupero che non si interrompe mai (regola dell'utente), processor idempotente + reconciler/sweep, migrazione al boot; sblocca FE Phase 8 (SPELL-05) (completed 2026-10-27)
+- [ ] **Phase 9.2: Quest Result Delivery Contract** (INSERTED 2026-10-27) - Query dei risultati non confermati dell'utente, mutation di conferma idempotente, `QuestResult.acknowledgedAt` additivo, posti delle quest avviate non più liberati dall'archivio (regola dell'utente); sblocca FE Phase 9 (COMBAT-09/10)
 - [ ] **Phase 10: Hardening Trasversale** - Validazione input, introspection off/CORS/sanitization, `.env.example`, coverage aree critiche
 
 ## Phase Details
@@ -284,31 +285,20 @@ Plans:
 **Unblocks (FE)**: FE Phase 9 (contratto combat) e FE Phase 10 (operazioni admin) → FE COMBAT-01..05, ADMIN-02/03/05/06.
 **Branch**: `feat/09-combat-result-admin-outcomes` da `develop` → PR a `develop` (allineato al template `feat/{phase}-{slug}`, 2026-10-24).
 
-### Phase 09.1: Spell State and Recovery Contract (INSERTED 2026-10-27)
-**Goal**: Usi e recuperi delle magie appartengono alla magia conosciuta, non allo slot: `CharacterStatus.spellStates { spell, usages, recoveries }` (additivo) espone per ogni magia gli usi rimasti e gli istanti in cui ogni uso torna; `equipSpell`/`unequipSpell` non toccano lo stato e il recupero prosegue anche fuori dagli slot («Il timer di recupero non si interrompe mai», utente 2026-10-27; Phase 4 D-11 superata); `useSpell` e i consumi degli esiti scrivono stato e `dueAt` in un solo update; processor idempotente, reconciler al boot + sweep (`SPELL_RECOVERY_SWEEP_INTERVAL_MS`) con il DB come fonte di verità; migrazione idempotente al boot; handoff per la FE Phase 8.
-**Depends on**: Phase 4 (atomics delle magie), Phase 9 (consumi degli esiti, `spellLearned`)
-**Requirements**: BE-SPELL-01, BE-SPELL-02, BE-SPELL-03, BE-SPELL-04
+### Phase 9.2: Quest Result Delivery Contract (INSERTED 2026-10-27)
+**Goal**: Nessun foglio esiti va perso e la board rispetta la regola dell'utente sulle quest avviate: il BE espone i risultati **non confermati** dell'utente autenticato (`unacknowledgedQuestResults`), una mutation di **conferma** idempotente chiamata dal FE alla chiusura del foglio (`acknowledgeQuestResult`), il campo additivo `QuestResult.acknowledgedAt`, e **non libera più i posti di una quest avviata** quando un partecipante viene archiviato (registrazione mantenuta come segnaposto fino alla conclusione: «finché una missione non è conclusa il foglio resta strappato sulla board una volta che i posti sono pieni», utente 2026-10-27). Schema solo additivo, handoff per la FE Phase 9.
+**Depends on**: Phase 9 (`QuestResult`, proprietà per utente, risoluzione, avvio a party completo, archivio), Phase 3 (ownership e codici)
+**Requirements**: BE-RESULT-01, BE-RESULT-02, BE-RESULT-03, BE-RESULT-04
+**Why inserted**: scoperto nel discuss della FE Phase 9 (2026-10-27): `questResultReceived` non ha snapshot e non esiste una lista dei risultati, quindi un esito arrivato ad app chiusa senza push (notifiche spente, force stop, morte) non verrebbe mai mostrato; e il FE non può tenere strappata una quest avviata a cui l'archivio libera un posto. Decisioni dell'utente: «Companion BE 9.2: risultati non confermati + ack», conferma «alla chiusura col tasto», «Il BE non libera i posti delle quest avviate». PR BE prima del gate FE.
 **Success Criteria** (what must be TRUE):
-  1. `characterUpdated` e `character` portano `status.spellStates` con una voce per ogni magia conosciuta, `recoveries` crescente e `recoveries.length == maxUsages − usages` per ogni uso tracciato; `ActiveSpell.usages` coincide sempre con lo stato.
-  2. Disequipaggiare e riequipaggiare una magia non cambia né gli usi né i recuperi; una magia disequipaggiata recupera un uso allo scadere del suo istante.
-  3. Un job di recupero rieseguito, perso o in ritardo non supera mai `maxUsages` e non lascia istanti scaduti: reconciler e sweep restituiscono gli usi scaduti entro un giro.
-  4. I personaggi esistenti ricevono `spellStates` coerente al primo boot senza downtime; i job legacy in Redis continuano a funzionare.
-  5. `src/schema.gql` cambia solo in modo additivo e il handoff risponde alle domande della FE (`Klimmeck-Guide/.planning/phases/08-spells-section-journal-tab/BACKEND-NOTES.md` §6).
-**Plans**: 10 plans (7 waves)
-
-Plans:
-- [x] 09.1-01-PLAN.md — Wave 1: modello `SpellState` e `CharacterStatus.spellStates`, SDL additivo rigenerato dal boot reale, fixture `spellBook`, creazione con `spellStates: []`
-- [x] 09.1-02-PLAN.md — Wave 1: builder puri di uso/credito/legacy (`arrayFilters`), `spellStatesOrMigrated`, pipeline di migrazione/riparazione/taglio, contratto del job `recover`, config `SPELL_RECOVERY_SWEEP_INTERVAL_MS`
-- [x] 09.1-03-PLAN.md — Wave 2: `SpellStateMigrator` (boot + `migrateOne`, riparazione e taglio) e `SpellRecoveryService` (credito dovuto/legacy, concorrenza, replay, archiviati, magia disequipaggiata)
-- [x] 09.1-08-PLAN.md — Wave 2: esiti in lettura (contesto di combattimento, override GM) dallo stato; apprendimento con la voce di stato e `maxUsages` nel catalogo premi
-- [x] 09.1-04-PLAN.md — Wave 3: processor-trigger in `src/characters/spells/`, `SpellRecoveryModule` con reconciler + sweep montato in `AppModule`, vecchio processor rimosso
-- [x] 09.1-09-PLAN.md — Wave 3: esiti in spesa (`spellsSpent` sullo stato con `dueAt`, mirror) e `OutcomeWriter` con `enqueueTrigger` e `jobId` deterministico
-- [x] 09.1-05-PLAN.md — Wave 4: `equipSpell` con update pipeline (usi dallo stato) e `unequipSpell` neutro
-- [x] 09.1-06-PLAN.md — Wave 5: `useSpell` su stato e mirror con trigger best-effort, fixture su `spellBook`, rimozione dei vecchi builder e di `SPELL_RECOVERY_UNAVAILABLE`
-- [x] 09.1-07-PLAN.md — Wave 6: `spellsOnTheWire` in `findOne` (usi dallo stato, orfani scartati), prove su `character` e `characterUpdated`
-- [x] 09.1-10-PLAN.md — Wave 7: gate (suite complete, schema additivo), handoff `BACKEND-NOTES.md` per la FE Phase 8, traceability
-**Unblocks (FE)**: FE Phase 8 (SPELL-05 countdown; il piano finale della FE seleziona `spellStates` solo dopo questa PR).
-**Branch**: `feat/09.1-spell-state-and-recovery-contract` da `develop` → PR a `develop`; la Phase 10 parte da questo branch (stacked).
+  1. `unacknowledgedQuestResults` restituisce al chiamante i propri `QuestResult` con `acknowledgedAt` nullo in ordine di `resolvedAt` crescente (con tetto), compresi i risultati `death` del personaggio archiviato; un altro utente (anche innkeeper) non vede nulla di altrui.
+  2. `acknowledgeQuestResult(id)` scrive `acknowledgedAt` una sola volta con un update condizionale; una seconda chiamata risponde `successful: true` senza scrivere; `NOT_FOUND` per id malformato/inesistente e `FORBIDDEN` per risultati altrui (anche innkeeper), come `questResult`; nessun audit.
+  3. `QuestResult.acknowledgedAt: DateTime` è additivo, nullo a ogni insert e restituito da `questResult`/`questResultReceived`; i risultati precedenti al deploy non inondano il primo cold start (backfill idempotente al boot o tetto).
+  4. L'archivio di un personaggio registrato a una quest **avviata** lascia la registrazione come segnaposto (posti pieni, `QUEST_FULL`, `questUpdated` emesso con il segnaposto) e la quest si risolve con chi resta; prima dell'avvio il posto è liberato come oggi; un roster di soli segnaposto riporta la quest a non avviata.
+  5. `src/schema.gql` cambia solo in modo additivo e il handoff risponde alle domande della FE (`Klimmeck-Guide/.planning/phases/09-combat-result-sheet/BACKEND-NOTES.md` §2.5).
+**Plans**: TBD
+**Unblocks (FE)**: FE Phase 9 Combat Result Sheet (COMBAT-09 risultati mai persi, COMBAT-10 quest avviate strappate). Contratto proposto dal FE in `Klimmeck-Guide/.planning/phases/09-combat-result-sheet/BACKEND-NOTES.md`; decisioni in `09.2-CONTEXT.md`.
+**Branch**: `feat/09.2-quest-result-delivery-contract` da `develop` → PR a `develop`; la Phase 10 (`feat/10-hardening`) si sposta sopra questo branch (stacked) e apre la PR dopo la merge.
 
 ### Phase 10: Hardening Trasversale
 **Goal**: Hardening trasversale — validazione input, introspection off/CORS/error sanitization in prod, igiene dei secret, e coverage di test sulle aree critiche.
@@ -356,4 +346,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
+| 9.2. Quest Result Delivery Contract | 0/TBD | Not started | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
