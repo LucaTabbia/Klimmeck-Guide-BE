@@ -302,7 +302,7 @@ Plans:
 - [x] 09.1-03-PLAN.md — Wave 2: `SpellStateMigrator` (boot + `migrateOne`, riparazione e taglio) e `SpellRecoveryService` (credito dovuto/legacy, concorrenza, replay, archiviati, magia disequipaggiata)
 - [x] 09.1-08-PLAN.md — Wave 2: esiti in lettura (contesto di combattimento, override GM) dallo stato; apprendimento con la voce di stato e `maxUsages` nel catalogo premi
 - [x] 09.1-04-PLAN.md — Wave 3: processor-trigger in `src/characters/spells/`, `SpellRecoveryModule` con reconciler + sweep montato in `AppModule`, vecchio processor rimosso
-- [ ] 09.1-09-PLAN.md — Wave 3: esiti in spesa (`spellsSpent` sullo stato con `dueAt`, mirror) e `OutcomeWriter` con `enqueueTrigger` e `jobId` deterministico
+- [x] 09.1-09-PLAN.md — Wave 3: esiti in spesa (`spellsSpent` sullo stato con `dueAt`, mirror) e `OutcomeWriter` con `enqueueTrigger` e `jobId` deterministico
 - [ ] 09.1-05-PLAN.md — Wave 4: `equipSpell` con update pipeline (usi dallo stato) e `unequipSpell` neutro
 - [ ] 09.1-06-PLAN.md — Wave 5: `useSpell` su stato e mirror con trigger best-effort, fixture su `spellBook`, rimozione dei vecchi builder e di `SPELL_RECOVERY_UNAVAILABLE`
 - [ ] 09.1-07-PLAN.md — Wave 6: `spellsOnTheWire` in `findOne` (usi dallo stato, orfani scartati), prove su `character` e `characterUpdated`
@@ -355,5 +355,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 7. Quest Lanes (QUEST-04) | 8/8 | Complete    | 2026-10-21 |
 | 8. Travel Lifecycle (TRAVEL-01) | 14/14 | Complete    | 2026-10-21 |
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
-| 9.1. Spell State and Recovery Contract | 5/10 | In Progress | - |
+| 9.1. Spell State and Recovery Contract | 6/10 | In Progress | - |
 | 10. Hardening Trasversale | 0/TBD | Not started | - |
