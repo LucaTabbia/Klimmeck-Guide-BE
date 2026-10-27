@@ -1,5 +1,6 @@
 // stato finale calcolato prima della scrittura (Phase 4 applyTrade): un solo $set condizionale, unico scrittore di level/maxLifePoints (D-12, D-21)
 import type { Types } from 'mongoose';
+import type { SpellStateEntry } from 'src/characters/spells/spell-state.snapshot';
 import { type CoinPurse, fromCopper } from 'src/economy/coins';
 import {
     applyTradeToInventory,
@@ -42,6 +43,7 @@ export interface OutcomeCharacterSnapshot {
         maxLifePoints?: number;
         injuries?: InjuryType[];
         spells?: unknown[];
+        spellStates?: SpellStateEntry[];
         location?: unknown;
         awaitingAid?: unknown;
     };
