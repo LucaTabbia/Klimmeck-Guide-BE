@@ -35,7 +35,7 @@ const STANDARD_LANE_PATH = lanePathOf(QuestLane.standard);
 
 // lettura condivisa da avvio del party e roster di gruppo: registrati attivi in corsia standard con una PendingQuest di questa quest,
 // nell'ordine di registrazione; chi non ce l'ha finisce in dropped (Pitfall 8). Funzione pura sui modelli: nessun modulo Nest da importare
-export async function laneMembersOf<
+export function laneMembersOf<
     C extends LaneCharacterRef,
     P extends { _id: Types.ObjectId },
 >(
@@ -44,10 +44,49 @@ export async function laneMembersOf<
     registered: readonly Types.ObjectId[],
     projections: LaneProjections,
 ): Promise<LaneMembers<C, P>> {
+    return readLaneMembers(
+        models,
+        { questId, registered, characterFilter: ACTIVE_CHARACTER_FILTER },
+        projections,
+    );
+}
+
+// segnaposto di posto (D-21): stessi registrati in corsia con la PendingQuest della quest, letti anche se archiviati
+export function seatHolderLaneMembersOf<
+    C extends LaneCharacterRef,
+    P extends { _id: Types.ObjectId },
+>(
+    models: LaneModels,
+    questId: Types.ObjectId,
+    seatHolderIds: readonly Types.ObjectId[],
+    projections: LaneProjections,
+): Promise<LaneMembers<C, P>> {
+    return readLaneMembers(
+        models,
+        { questId, registered: seatHolderIds, characterFilter: {} },
+        projections,
+    );
+}
+
+interface LaneRead {
+    questId: Types.ObjectId;
+    registered: readonly Types.ObjectId[];
+    characterFilter: Record<string, unknown>;
+}
+
+async function readLaneMembers<
+    C extends LaneCharacterRef,
+    P extends { _id: Types.ObjectId },
+>(
+    models: LaneModels,
+    { questId, registered, characterFilter }: LaneRead,
+    projections: LaneProjections,
+): Promise<LaneMembers<C, P>> {
+    if (registered.length === 0) return { members: [], dropped: [] };
     const characters = await models.characters
         .find(
             {
-                ...ACTIVE_CHARACTER_FILTER,
+                ...characterFilter,
                 _id: { $in: registered.flatMap((id) => idForms(id)) },
                 [STANDARD_LANE_PATH]: { $ne: null },
             },
