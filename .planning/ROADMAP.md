@@ -324,7 +324,7 @@ Plans:
 **Plans**: 31 plans (26 wave; esecutori sequenziali; wave 8 = ref `Mixed` con gate proprio, 10-29)
 - [x] 10-01-PLAN.md — Wave 1 (1a): campo additivo `pendingQuest` su `PendingRequestCharacter`, filtro esplicito dei personaggi attivi, ricalcolo della coda dopo un archivio, liveness delle 4 transizioni della corsia standard (BE-HARD-08)
 - [x] 10-02-PLAN.md — Wave 1 (1a): `completePendingRequest` → `QUEST_IN_PROGRESS` senza scritture (pre-check, ricontrollo in sessione, `STANDARD_LANE_FREE` solo sulle corsie del GM) (BE-HARD-08)
-- [ ] 10-03-PLAN.md — Wave 1 (3): gitleaks-action v3 (push, PR, `workflow_dispatch`, schedule; versione fissata), `.gitleaks.toml`, `.gitleaksignore`, spec sui secret vuoti del template (BE-HARD-03)
+- [x] 10-03-PLAN.md — Wave 1 (3): gitleaks-action v3 (push, PR, `workflow_dispatch`, schedule; versione fissata), `.gitleaks.toml`, `.gitleaksignore`, spec sui secret vuoti del template (BE-HARD-03)
 - [ ] 10-04-PLAN.md — Wave 1 (5): base `ChangeStreamPublisher` che riapre gli stream con backoff 1→30 s e `startAfter`; int-spec di invalidate (BE-HARD-06)
 - [ ] 10-05-PLAN.md — Wave 1 (1): dipendenze, `BadUserInputException`, `invalidFieldsOf`, `createValidationPipe`, `@IsObjectIdHex`, `ObjectIdPipe`/`ObjectIdListPipe`, `ValidationModule` non ancora montato (BE-HARD-01)
 - [ ] 10-06-PLAN.md — Wave 2 (1): decoratori di sola forma sui 17 input + spec di copertura contro lo schema + regole nominate (BE-HARD-01)
@@ -390,4 +390,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
-| 10. Hardening Trasversale | 2/31 | In Progress | - |
+| 10. Hardening Trasversale | 3/31 | In Progress | - |
