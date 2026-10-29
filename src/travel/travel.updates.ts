@@ -7,6 +7,7 @@ import {
 } from 'src/models/character/active-character.filter';
 import { TravelKind } from 'src/models/character/active-travel.model';
 import { idForms } from 'src/mongo/document-id';
+import { STANDARD_LANE_FREE } from 'src/quests/acceptance/quest-lanes';
 import { ActiveTravelDraft } from './travel-timing';
 
 // identità del viaggio = startTime + endTime (D-12): niente id persistito
@@ -43,7 +44,7 @@ export function startTravelFilter(
         ...activeCharacterById(characterId),
         'status.awaitingAid': null,
         'status.activeTravel': null,
-        'quests.pendingQuest': null,
+        ...STANDARD_LANE_FREE,
         'status.location': { $in: idForms(location) },
     };
 }
@@ -111,7 +112,7 @@ export function teleportFilter(
 ): Record<string, unknown> {
     return {
         ...activeCharacterById(characterId),
-        'quests.pendingQuest': null,
+        ...STANDARD_LANE_FREE,
     };
 }
 
