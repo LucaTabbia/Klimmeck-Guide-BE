@@ -139,6 +139,31 @@ describe('ChangeStreamPublisher', () => {
         ]);
     });
 
+    it('resumes after the token the driver reports past filtered events (D-17a)', () => {
+        latestStream().emit('change', { _id: { _data: 'tok-1' } });
+        latestStream().emit('resumeTokenChanged', { _data: 'tok-batch' });
+        latestStream().emit('close');
+        jest.advanceTimersByTime(1000);
+
+        expect(watch.mock.calls[1]).toEqual([
+            PROBE_SPEC.pipeline,
+            { ...PROBE_SPEC.options, startAfter: { _data: 'tok-batch' } },
+        ]);
+    });
+
+    it('ignores the tokens of an abandoned stream (D-17a)', () => {
+        const first = latestStream();
+        first.emit('change', { _id: { _data: 'tok-1' } });
+        first.emit('error', serverError(43));
+        first.emit('resumeTokenChanged', { _data: 'tok-stale' });
+        jest.advanceTimersByTime(1000);
+
+        expect(watch.mock.calls[1]).toEqual([
+            PROBE_SPEC.pipeline,
+            { ...PROBE_SPEC.options, startAfter: { _data: 'tok-1' } },
+        ]);
+    });
+
     it('restarts without a token when the history is lost (D-17a)', () => {
         latestStream().emit('change', { _id: { _data: 'tok-1' } });
         latestStream().emit('error', serverError(HISTORY_LOST_CODE));
