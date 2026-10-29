@@ -40,6 +40,7 @@ import { validateEnv } from './config/env.validation';
 import { RuntimeConfigModule } from './config/runtime-config.module';
 import { AuthModule } from './auth/auth.module';
 import { AuthzModule } from './authz/authz.module';
+import { ValidationModule } from './validation/validation.module';
 import { WsConnectionAuthenticator } from './auth/ws/ws-connection-authenticator';
 import { createGraphQLOptions } from './graphql/graphql-options.factory';
 
@@ -64,6 +65,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         PubSubModule,
         AuthModule,
         AuthzModule,
+        ValidationModule,
         GraphQLModule.forRootAsync<ApolloDriverConfig>({
             driver: ApolloDriver,
             imports: [AuthModule],

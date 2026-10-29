@@ -24,6 +24,7 @@ import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 import { createGraphQLOptions } from 'src/graphql/graphql-options.factory';
 import { CloudinaryService } from 'src/rest/cloudinary/cloudinary.service';
 import { PubSubModule } from 'src/pubsub.module';
+import { ValidationModule } from 'src/validation/validation.module';
 import { FakeTwitchOAuthClient } from './fake-twitch-oauth.client';
 import { buildTestAuthConfig } from './test-auth-config';
 
@@ -95,6 +96,7 @@ export async function createAuthTestApp(
             }),
             PubSubModule,
             AuthModule,
+            ValidationModule,
             GraphQLModule.forRootAsync<ApolloDriverConfig>({
                 driver: ApolloDriver,
                 imports: [AuthModule],

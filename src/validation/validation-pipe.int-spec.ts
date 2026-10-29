@@ -1,4 +1,3 @@
-import { ValidationModule } from 'src/validation/validation.module';
 import {
     AuthTestApp,
     createAuthTestApp,
@@ -39,7 +38,6 @@ describe('global validation pipe (wire)', () => {
 
     beforeAll(async () => {
         harness = await createAuthTestApp({
-            imports: [ValidationModule],
             providers: [ValidationProbeResolver],
         });
     });
