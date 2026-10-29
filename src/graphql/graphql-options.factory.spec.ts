@@ -1,6 +1,12 @@
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled';
-import type { GraphQLFormattedError } from 'graphql';
-import { GraphQLError } from 'graphql';
+import { Logger } from '@nestjs/common';
+import type {
+    DocumentNode,
+    ExecutionResult,
+    GraphQLFormattedError,
+    GraphQLSchema,
+} from 'graphql';
+import { buildSchema, GraphQLError, parse } from 'graphql';
 import type {
     WsConnectionAuthenticator,
     WsConnectionContext,
@@ -13,6 +19,29 @@ interface GraphqlWsHooks {
     onConnect: (context: WsConnectionContext) => Promise<boolean>;
     onClose: (context: WsConnectionContext) => void;
 }
+
+interface ProductionWsHooks extends GraphqlWsHooks {
+    validate: (
+        schema: GraphQLSchema,
+        document: DocumentNode,
+    ) => readonly GraphQLError[];
+    onNext: (
+        ctx: unknown,
+        id: string,
+        payload: unknown,
+        args: unknown,
+        result: ExecutionResult,
+    ) => unknown;
+    onError: (
+        ctx: unknown,
+        id: string,
+        payload: unknown,
+        errors: readonly GraphQLError[],
+    ) => unknown;
+}
+
+const PROBE_SCHEMA = buildSchema('type Query { boom: String }');
+const REQUEST_ID = expect.stringMatching(/^[0-9a-f-]{36}$/) as string;
 
 type FormatError = (
     formatted: GraphQLFormattedError,
@@ -160,5 +189,127 @@ describe('createGraphQLOptions', () => {
         graphqlWsHooks().onClose(context);
 
         expect(wsAuthenticator.onClose).toHaveBeenCalledWith(context);
+    });
+
+    describe('graphql-ws in production', () => {
+        let loggerError: jest.SpyInstance;
+
+        beforeEach(() => {
+            loggerError = jest
+                .spyOn(Logger.prototype, 'error')
+                .mockImplementation(() => undefined);
+        });
+
+        afterEach(() => {
+            loggerError.mockRestore();
+        });
+
+        function productionWsHooks(): ProductionWsHooks {
+            return graphqlWsHooks(true) as ProductionWsHooks;
+        }
+
+        it('adds introspection rule and sanitizers to graphql-ws in production only (C7)', () => {
+            expect(Object.keys(graphqlWsHooks(true)).sort()).toEqual([
+                'onClose',
+                'onConnect',
+                'onError',
+                'onNext',
+                'validate',
+            ]);
+            expect(Object.keys(graphqlWsHooks(false)).sort()).toEqual([
+                'onClose',
+                'onConnect',
+            ]);
+        });
+
+        it('refuses introspection over graphql-ws with a validation code (C7)', () => {
+            const errors = productionWsHooks().validate(
+                PROBE_SCHEMA,
+                parse('{ __schema { queryType { name } } }'),
+            );
+
+            expect(errors.map((error) => error.toJSON())).toEqual([
+                {
+                    message:
+                        'GraphQL introspection has been disabled, but the requested query contained the field "__schema".',
+                    locations: [{ line: 1, column: 3 }],
+                    extensions: { code: 'GRAPHQL_VALIDATION_FAILED' },
+                },
+            ]);
+        });
+
+        it('suggests no schema field over graphql-ws (C7, D-07)', () => {
+            const errors = productionWsHooks().validate(
+                PROBE_SCHEMA,
+                parse('{ boo }'),
+            );
+
+            expect(errors.map((error) => error.message)).toEqual([
+                'Cannot query field "boo" on type "Query".',
+            ]);
+        });
+
+        it('sanitizes the errors of a graphql-ws result and keeps its data (C7, D-07)', () => {
+            const raw = new GraphQLError('mongodb://user:pw@host', {
+                path: ['boom'],
+                originalError: new Error('mongodb://user:pw@host'),
+            });
+
+            const sanitized = productionWsHooks().onNext(
+                {},
+                '1',
+                {},
+                {},
+                {
+                    data: null,
+                    errors: [raw],
+                },
+            );
+
+            expect(sanitized).toEqual({
+                data: null,
+                errors: [
+                    {
+                        message: 'Errore interno',
+                        path: ['boom'],
+                        extensions: {
+                            code: 'INTERNAL_SERVER_ERROR',
+                            requestId: REQUEST_ID,
+                        },
+                    },
+                ],
+            });
+            expect(loggerError).toHaveBeenCalledTimes(1);
+        });
+
+        it('leaves a graphql-ws result without errors to the default (C7)', () => {
+            expect(
+                productionWsHooks().onNext(
+                    {},
+                    '1',
+                    {},
+                    {},
+                    {
+                        data: { boom: 'boom' },
+                    },
+                ),
+            ).toBeUndefined();
+        });
+
+        it('sanitizes the errors of a failed graphql-ws operation (C7, D-07)', () => {
+            const raw = new GraphQLError('raw secret', {
+                originalError: new Error('raw secret'),
+            });
+
+            expect(productionWsHooks().onError({}, '1', {}, [raw])).toEqual([
+                {
+                    message: 'Errore interno',
+                    extensions: {
+                        code: 'INTERNAL_SERVER_ERROR',
+                        requestId: REQUEST_ID,
+                    },
+                },
+            ]);
+        });
     });
 });

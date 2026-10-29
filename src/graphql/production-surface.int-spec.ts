@@ -11,6 +11,7 @@ import {
     PROBE_RAW_MESSAGE,
     ProductionProbeResolver,
 } from '../../test/graphql/production-probe.resolver';
+import { graphqlWsUrl, subscribeOnce } from '../../test/auth/ws-test-client';
 
 const INTROSPECTION = '{ __schema { queryType { name } } }';
 const MISSING_ID = '64b0000000000000000000ff';
@@ -41,6 +42,27 @@ function postWithRequestId(
         .post(GRAPHQL_PATH)
         .set('x-request-id', requestId)
         .send({ query });
+}
+
+type WsOutcome = { value: unknown } | { errors: unknown };
+
+// graphql-ws consegna un risultato con errors come next e un'operazione fallita come error (iteratore rifiutato)
+async function overGraphqlWs(
+    harness: AuthTestApp,
+    query: string,
+): Promise<WsOutcome> {
+    const { bearer } = await createPlayer(harness, {
+        twitchId: 'twitch-production-ws',
+        withCharacter: false,
+    });
+    return subscribeOnce(
+        graphqlWsUrl(harness.port),
+        { Authorization: bearer },
+        query,
+    ).then(
+        (value) => ({ value }),
+        (errors: unknown) => ({ errors }),
+    );
 }
 
 function landingPage(harness: AuthTestApp): request.Test {
@@ -161,6 +183,84 @@ describe('GraphQL surface in production (wire)', () => {
                 extensions: { code: 'NOT_FOUND' },
             },
         ]);
+    });
+
+    it('refuses introspection over an authenticated graphql-ws socket in production (C7)', async () => {
+        const outcome = await overGraphqlWs(harness, INTROSPECTION);
+
+        expect(outcome).toEqual({
+            errors: [
+                {
+                    message: expect.stringContaining(
+                        'introspection has been disabled',
+                    ) as string,
+                    locations: [{ line: 1, column: 3 }],
+                    extensions: { code: 'GRAPHQL_VALIDATION_FAILED' },
+                },
+            ],
+        });
+    });
+
+    it('hides an unexpected error over graphql-ws in production (C7, D-07)', async () => {
+        const outcome = await overGraphqlWs(harness, '{ probeBoom }');
+
+        expect(outcome).toEqual({
+            value: {
+                data: null,
+                errors: [
+                    {
+                        message: 'Errore interno',
+                        locations: [{ line: 1, column: 3 }],
+                        path: ['probeBoom'],
+                        extensions: {
+                            code: 'INTERNAL_SERVER_ERROR',
+                            requestId: expect.stringMatching(
+                                UUID_PATTERN,
+                            ) as string,
+                        },
+                    },
+                ],
+            },
+        });
+    });
+
+    it('keeps domain codes over graphql-ws in production (C7)', async () => {
+        const outcome = await overGraphqlWs(harness, '{ probeDomain }');
+
+        expect(outcome).toEqual({
+            value: {
+                data: null,
+                errors: [
+                    {
+                        message: 'Monete insufficienti',
+                        locations: [{ line: 1, column: 3 }],
+                        path: ['probeDomain'],
+                        extensions: { code: 'INSUFFICIENT_FUNDS' },
+                    },
+                ],
+            },
+        });
+    });
+
+    it('hides an error raised inside a subscription iterator in production (C7)', async () => {
+        const outcome = await overGraphqlWs(
+            harness,
+            'subscription { probeTicks }',
+        );
+
+        expect(outcome).toEqual({
+            errors: [
+                {
+                    message: 'Errore interno',
+                    extensions: {
+                        code: 'INTERNAL_SERVER_ERROR',
+                        requestId: expect.stringMatching(
+                            UUID_PATTERN,
+                        ) as string,
+                    },
+                },
+            ],
+        });
     });
 });
 

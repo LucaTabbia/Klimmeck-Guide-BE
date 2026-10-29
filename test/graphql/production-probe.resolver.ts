@@ -1,4 +1,4 @@
-import { Query, Resolver } from '@nestjs/graphql';
+import { Query, Resolver, Subscription } from '@nestjs/graphql';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 
@@ -24,4 +24,21 @@ export class ProductionProbeResolver {
     boom(): string {
         return 'boom';
     }
+
+    @Public()
+    @Subscription(() => String)
+    probeTicks(): AsyncIterableIterator<{ probeTicks: string }> {
+        return failingIterator();
+    }
+}
+
+// l'iteratore della subscription lancia al primo next: errore grezzo dentro lo stream
+function failingIterator(): AsyncIterableIterator<{ probeTicks: string }> {
+    return {
+        [Symbol.asyncIterator]() {
+            return this;
+        },
+        next: () => Promise.reject(new Error(PROBE_RAW_MESSAGE)),
+        return: () => Promise.resolve({ done: true, value: undefined }),
+    };
 }
