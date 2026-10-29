@@ -5,7 +5,9 @@ import { Lore, LoreDocument } from 'src/models/lore.model';
 
 @Injectable()
 export class LoreService {
-    constructor(@InjectModel(Lore.name) private loreModel: Model<LoreDocument>) { }
+    constructor(
+        @InjectModel(Lore.name) private loreModel: Model<LoreDocument>,
+    ) {}
 
     async findAll(): Promise<Lore[]> {
         return await this.loreModel.find().exec();

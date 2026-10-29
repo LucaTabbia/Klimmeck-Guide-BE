@@ -4,7 +4,7 @@ import { Enemy } from 'src/models/enemy.model';
 
 @Resolver(() => Enemy)
 export class EnemiesResolver {
-    constructor(private enemiesService: EnemiesService) { }
+    constructor(private enemiesService: EnemiesService) {}
 
     @Query(() => [Enemy])
     async enemys(): Promise<Enemy[]> {

@@ -4,7 +4,7 @@ import { Pet } from 'src/models/pet.model';
 
 @Resolver(() => Pet)
 export class PetsResolver {
-    constructor(private petsService: PetsService) { }
+    constructor(private petsService: PetsService) {}
 
     @Query(() => [Pet])
     async pets(): Promise<Pet[]> {

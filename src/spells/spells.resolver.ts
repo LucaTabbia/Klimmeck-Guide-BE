@@ -4,7 +4,7 @@ import { SpellsService } from './spells.service';
 
 @Resolver(() => Spell)
 export class SpellsResolver {
-    constructor(private spellsService: SpellsService) { }
+    constructor(private spellsService: SpellsService) {}
 
     @Query(() => [Spell])
     async spells(): Promise<Spell[]> {

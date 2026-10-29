@@ -5,7 +5,7 @@ import { AssetQuantity } from 'src/models/common/asset-quantity.model';
 
 @Resolver(() => EquipmentItem)
 export class EquipmentItemsResolver {
-    constructor(private equipmentItemsService: EquipmentItemsService) { }
+    constructor(private equipmentItemsService: EquipmentItemsService) {}
 
     @Query(() => [EquipmentItem])
     async equipmentItems(): Promise<EquipmentItem[]> {
@@ -13,12 +13,17 @@ export class EquipmentItemsResolver {
     }
 
     @Query(() => [AssetQuantity])
-    async equipmentAssetsQuantity(@Args('sellable', { type: () => Boolean, nullable: true }) sellable?: boolean): Promise<AssetQuantity[]> {
+    async equipmentAssetsQuantity(
+        @Args('sellable', { type: () => Boolean, nullable: true })
+        sellable?: boolean,
+    ): Promise<AssetQuantity[]> {
         return await this.equipmentItemsService.findAllAssetsQuantity(sellable);
     }
 
     @Query(() => [EquipmentItem])
-    async equipmentItemsByIds(@Args('ids', { type: () => [String] }) ids: string[]): Promise<EquipmentItem[]> {
+    async equipmentItemsByIds(
+        @Args('ids', { type: () => [String] }) ids: string[],
+    ): Promise<EquipmentItem[]> {
         return await this.equipmentItemsService.findByIds(ids);
     }
 

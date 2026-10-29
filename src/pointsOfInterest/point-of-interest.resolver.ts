@@ -5,7 +5,7 @@ import { PointOfInterestsService } from './point-of-interest.service';
 
 @Resolver(() => PointOfInterest)
 export class PointOfInterestsResolver {
-    constructor(private pointOfInterestsService: PointOfInterestsService) { }
+    constructor(private pointOfInterestsService: PointOfInterestsService) {}
 
     @Query(() => [PointOfInterest])
     async pointOfInterests(): Promise<PointOfInterest[]> {

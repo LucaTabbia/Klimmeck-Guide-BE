@@ -4,7 +4,7 @@ import { LoreService } from './lore.service';
 
 @Resolver(() => Lore)
 export class LoreResolver {
-    constructor(private loresService: LoreService) { }
+    constructor(private loresService: LoreService) {}
 
     @Query(() => [Lore])
     async lores(): Promise<Lore[]> {

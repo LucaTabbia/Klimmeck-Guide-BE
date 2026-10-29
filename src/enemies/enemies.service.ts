@@ -5,7 +5,9 @@ import { Enemy, EnemyDocument } from 'src/models/enemy.model';
 
 @Injectable()
 export class EnemiesService {
-    constructor(@InjectModel(Enemy.name) private enemyModel: Model<EnemyDocument>) { }
+    constructor(
+        @InjectModel(Enemy.name) private enemyModel: Model<EnemyDocument>,
+    ) {}
 
     async findAll(): Promise<Enemy[]> {
         return await this.enemyModel.find().exec();
@@ -13,7 +15,8 @@ export class EnemiesService {
 
     async findOne(id: string): Promise<Enemy> {
         const enemy = await this.enemyModel.findById(id).exec();
-        if (!enemy) throw new NotFoundException(`Enemy with id ${id} not found`);
+        if (!enemy)
+            throw new NotFoundException(`Enemy with id ${id} not found`);
         return enemy;
     }
 }

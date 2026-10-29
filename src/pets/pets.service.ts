@@ -5,7 +5,7 @@ import { Pet, PetDocument } from 'src/models/pet.model';
 
 @Injectable()
 export class PetsService {
-    constructor(@InjectModel(Pet.name) private petModel: Model<PetDocument>) { }
+    constructor(@InjectModel(Pet.name) private petModel: Model<PetDocument>) {}
 
     async findAll(): Promise<Pet[]> {
         return await this.petModel.find().exec();

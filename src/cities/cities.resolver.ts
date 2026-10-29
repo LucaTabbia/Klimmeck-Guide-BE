@@ -4,7 +4,7 @@ import { City } from 'src/models/city.model';
 
 @Resolver(() => City)
 export class CitiesResolver {
-    constructor(private citiesService: CitiesService) { }
+    constructor(private citiesService: CitiesService) {}
 
     @Query(() => [City])
     async cities(): Promise<City[]> {

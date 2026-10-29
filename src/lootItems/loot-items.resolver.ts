@@ -5,7 +5,7 @@ import { AssetQuantity } from 'src/models/common/asset-quantity.model';
 
 @Resolver(() => LootItem)
 export class LootItemsResolver {
-    constructor(private lootItemsService: LootItemsService) { }
+    constructor(private lootItemsService: LootItemsService) {}
 
     @Query(() => [LootItem])
     async lootItems(): Promise<LootItem[]> {
@@ -22,9 +22,10 @@ export class LootItemsResolver {
         return await this.lootItemsService.findOne(id);
     }
 
-
     @Query(() => [LootItem])
-    async lootItemsByIds(@Args('ids', { type: () => [String] }) ids: string[]): Promise<LootItem[]> {
+    async lootItemsByIds(
+        @Args('ids', { type: () => [String] }) ids: string[],
+    ): Promise<LootItem[]> {
         return await this.lootItemsService.findByIds(ids);
     }
 }
