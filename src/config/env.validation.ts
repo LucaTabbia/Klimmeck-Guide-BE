@@ -5,6 +5,7 @@ import {
 } from 'src/config/eventsub-config';
 import { parsePushConfig, readPushEnv } from 'src/config/push-config';
 import { parseQuestConfig, readQuestEnv } from 'src/config/quest-config';
+import { parseRuntimeConfig, readRuntimeEnv } from 'src/config/runtime-config';
 import {
     parseSpellRecoveryConfig,
     readSpellRecoveryEnv,
@@ -14,6 +15,7 @@ import { parseTravelConfig, readTravelEnv } from 'src/config/travel-config';
 export function validateEnv(
     env: Record<string, unknown>,
 ): Record<string, unknown> {
+    parseRuntimeConfig(readRuntimeEnv(env));
     parseAuthConfig(readAuthEnv(env));
     parsePushConfig(readPushEnv(env));
     parseEventSubConfig(readEventSubEnv(env));
