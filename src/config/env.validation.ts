@@ -10,6 +10,10 @@ import {
     parseSpellRecoveryConfig,
     readSpellRecoveryEnv,
 } from 'src/config/spell-recovery-config';
+import {
+    parseThrottleConfig,
+    readThrottleEnv,
+} from 'src/config/throttle-config';
 import { parseTravelConfig, readTravelEnv } from 'src/config/travel-config';
 
 export function validateEnv(
@@ -22,5 +26,6 @@ export function validateEnv(
     parseTravelConfig(readTravelEnv(env));
     parseQuestConfig(readQuestEnv(env));
     parseSpellRecoveryConfig(readSpellRecoveryEnv(env));
+    parseThrottleConfig(readThrottleEnv(env));
     return env;
 }
