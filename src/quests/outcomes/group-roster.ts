@@ -46,3 +46,10 @@ export function incoherentOf(roster: GroupRoster): Types.ObjectId[] {
             ),
     );
 }
+
+// chi combatte (D-21): i posti vivi e i segnaposto di posto, nello stesso ordine degli snapshot in sessione
+export function fightersOf(roster: GroupRoster): ResolutionCharacter[] {
+    return [...roster.seats, ...roster.seatHolders].map(
+        ({ character }) => character,
+    );
+}

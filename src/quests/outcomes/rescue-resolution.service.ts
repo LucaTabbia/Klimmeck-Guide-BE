@@ -24,7 +24,12 @@ import {
 import { ChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
 import { battleOf, combatContextOf, planCombatant } from './combatant-plan';
-import type { GroupRoster } from './group-roster';
+import {
+    fightersOf,
+    type GroupRoster,
+    incoherentOf,
+    seatHolderIdsOf,
+} from './group-roster';
 import {
     OUTCOME_CHARACTER_PROJECTION,
     type OutcomeCharacterSnapshot,
@@ -170,6 +175,7 @@ export class RescueResolutionService {
             aid._id,
             registered,
             now,
+            seatHolderIdsOf(aid.registeredAdventurers),
         );
         if (roster.waiting) {
             this.logger.log(
@@ -187,10 +193,7 @@ export class RescueResolutionService {
             woundedResultIds: resultIdsFor(woundedIds),
             original: await this.readOriginal(aid),
             returnCity: await this.returnCityOf(aid),
-            catalog: await this.loader.readCatalog(
-                aid,
-                roster.seats.map(({ character }) => character),
-            ),
+            catalog: await this.loader.readCatalog(aid, fightersOf(roster)),
             nextAidId: new Types.ObjectId(),
             now,
         };
@@ -218,7 +221,12 @@ export class RescueResolutionService {
         }
         if (!state.committed) return 'stale';
         this.writeNotes(state.notes);
-        for (const characterId of roster.dropped) {
+        for (const { character } of roster.seatHolders) {
+            this.logger.log(
+                `Segnaposto di posto ${character._id.toHexString()} della missione ${aidHex} in combattimento`,
+            );
+        }
+        for (const characterId of incoherentOf(roster)) {
             this.logger.warn(
                 `Registrato ${characterId.toHexString()} del soccorso ${aidHex} senza missione in attesa coerente: rimosso`,
             );
@@ -343,7 +351,21 @@ export class RescueResolutionService {
         const rescuable = wounded.flatMap(({ snapshot, ownerId }) =>
             ownerId ? [snapshot._id] : [],
         );
-        const combatContext = combatContextOf(aid, catalog, rescuers);
+        // i soccorritori archiviati dopo l'avvio combattono come segnaposto di posto, senza esiti né premi (D-21, C18)
+        const holders: ResolutionCharacter[] = [];
+        for (const holder of roster.seatHolders) {
+            holders.push(
+                await this.loader.snapshotSeatHolderInSession(
+                    holder.character._id,
+                    holder.pendingQuestId,
+                    session,
+                ),
+            );
+        }
+        const combatContext = combatContextOf(aid, catalog, [
+            ...rescuers,
+            ...holders,
+        ]);
         const resolution = combatContext
             ? this.combat.resolve(combatContext, this.chance)
             : null;
@@ -378,6 +400,9 @@ export class RescueResolutionService {
             });
             committed.spellRecoveries.push(...plan.spellRecoveries);
             if (nextAid) fallen.push(snapshot._id);
+        }
+        for (const { pendingQuestId } of roster.seatHolders) {
+            await this.writer.deletePendingQuest(pendingQuestId, session);
         }
         // claim prima della morte: l'archivio toglie il morto da rescue.characters e a lista vuota concluderebbe la aid, facendo fallire il claim
         await this.writer.updateQuest(
