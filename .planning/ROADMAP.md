@@ -337,7 +337,7 @@ Plans:
 - [x] 10-13-PLAN.md — Wave 8 (2): throttler — config `THROTTLE_*`, guard GraphQL/REST, `TooManyRequestsException`, 5 handler limitati, `EXPECTED_THROTTLED_HANDLERS` (BE-HARD-02)
 - [x] 10-14-PLAN.md — Wave 9 (2): OAuth limitato con redirect `rate_limited`, bucket del webhook ×50 con prova di raffica firmata, `THROTTLE_TRUST_PROXY` (BE-HARD-02)
 - [x] 10-15-PLAN.md — Wave 10 (3): config Sightengine fail-closed, nessun `process.env` sparso, `.env.example` commentato, test di drift (BE-HARD-03/05)
-- [ ] 10-16-PLAN.md — Wave 11 (4): tabella di policy pura, porta `ImageModerator`, adapter Sightengine (fetch nativo), adapter disattivato, fake (BE-HARD-05)
+- [x] 10-16-PLAN.md — Wave 11 (4): tabella di policy pura, porta `ImageModerator`, adapter Sightengine (fetch nativo), adapter disattivato, fake (BE-HARD-05)
 - [ ] 10-17-PLAN.md — Wave 12 (4): `PortraitUploadService` — moderazione prima di Cloudinary (422/503), `ModerationModule`, reporter, harness (BE-HARD-05)
 - [ ] 10-18-PLAN.md — Wave 13 (5): `CharacterUpdatesPublisher` sulla base comune + single-flight; single-flight degli utenti; `removeOnFail` limitato (BE-HARD-06)
 - [ ] 10-19-PLAN.md — Wave 14 (5): 8 indici con nome + verificatore non bloccante; backfill una sola volta al boot (BE-HARD-06)
@@ -390,4 +390,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
-| 10. Hardening Trasversale | 15/31 | In Progress | - |
+| 10. Hardening Trasversale | 16/31 | In Progress | - |
