@@ -1,5 +1,5 @@
-import { InputType, Field } from "@nestjs/graphql";
-import { AssetQuantityInput } from "../common/asset-quantity.model";
+import { InputType, Field } from '@nestjs/graphql';
+import { AssetQuantityInput } from '../common/asset-quantity.model';
 
 @InputType()
 export class TransactionItems {

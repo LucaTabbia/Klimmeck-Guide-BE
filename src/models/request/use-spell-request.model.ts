@@ -1,4 +1,4 @@
-import { InputType, Field } from "@nestjs/graphql";
+import { InputType, Field } from '@nestjs/graphql';
 
 @InputType()
 export class UseSpellRequest {
@@ -8,4 +8,3 @@ export class UseSpellRequest {
     @Field(() => String)
     spellId: string;
 }
-

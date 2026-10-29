@@ -21,7 +21,6 @@ export class Coins {
 export type CoinsDocument = Coins & Document;
 export const CoinsSchema = SchemaFactory.createForClass(Coins);
 
-
 @InputType()
 export class CoinsInput {
     @Field(() => Int)

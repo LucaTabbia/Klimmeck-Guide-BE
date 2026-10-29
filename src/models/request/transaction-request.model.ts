@@ -1,6 +1,6 @@
-import { InputType, Field } from "@nestjs/graphql";
-import { CoinsInput } from "../common/coins.model";
-import { TransactionItems } from "./transaction-items.model";
+import { InputType, Field } from '@nestjs/graphql';
+import { CoinsInput } from '../common/coins.model';
+import { TransactionItems } from './transaction-items.model';
 
 @InputType()
 export class TransactionRequest {

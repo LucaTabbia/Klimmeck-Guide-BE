@@ -1,5 +1,5 @@
-import { InputType, Field } from "@nestjs/graphql";
-import { SlotType } from "../enums/slot_type.enum";
+import { InputType, Field } from '@nestjs/graphql';
+import { SlotType } from '../enums/slot_type.enum';
 
 @InputType()
 export class EquipItemRequest {
