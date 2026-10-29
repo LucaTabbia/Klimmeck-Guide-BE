@@ -1,23 +1,34 @@
-import { Global, Module } from "@nestjs/common";
+import { Global, Module } from '@nestjs/common';
 
-import { MongooseModule } from "@nestjs/mongoose";
+import { MongooseModule } from '@nestjs/mongoose';
 
-import * as process from "process";
-import { MongoService } from "./mongo.service";
-import { ConfigService } from "@nestjs/config";
-import { User, UserSchema } from "src/models/user.model";
-import { Spell, SpellSchema } from "src/models/spell.model";
-import { Character, CharacterSchema } from "src/models/character/character.model";
-import { City, CitySchema } from "src/models/city.model";
-import { Enemy, EnemySchema } from "src/models/enemy.model";
-import { EquipmentItem, EquipmentItemSchema } from "src/models/equipment-item.model";
-import { LootItem, LootItemSchema } from "src/models/loot-item.model";
-import { Lore, LoreSchema } from "src/models/lore.model";
-import { PendingQuest, PendingQuestSchema } from "src/models/pending-quest.model";
-import { Pet, PetSchema } from "src/models/pet.model";
-import { Quest, QuestSchema } from "src/models/quest/quest.model";
-import { PointOfInterest, PointOfInterestSchema } from "src/models/point-of-interest.model";
-
+import * as process from 'process';
+import { MongoService } from './mongo.service';
+import { ConfigService } from '@nestjs/config';
+import { User, UserSchema } from 'src/models/user.model';
+import { Spell, SpellSchema } from 'src/models/spell.model';
+import {
+    Character,
+    CharacterSchema,
+} from 'src/models/character/character.model';
+import { City, CitySchema } from 'src/models/city.model';
+import { Enemy, EnemySchema } from 'src/models/enemy.model';
+import {
+    EquipmentItem,
+    EquipmentItemSchema,
+} from 'src/models/equipment-item.model';
+import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
+import { Lore, LoreSchema } from 'src/models/lore.model';
+import {
+    PendingQuest,
+    PendingQuestSchema,
+} from 'src/models/pending-quest.model';
+import { Pet, PetSchema } from 'src/models/pet.model';
+import { Quest, QuestSchema } from 'src/models/quest/quest.model';
+import {
+    PointOfInterest,
+    PointOfInterestSchema,
+} from 'src/models/point-of-interest.model';
 
 @Global()
 @Module({
@@ -46,9 +57,7 @@ import { PointOfInterest, PointOfInterestSchema } from "src/models/point-of-inte
     ],
 
     controllers: [],
-    providers: [
-        MongoService,
-    ],
+    providers: [MongoService],
     exports: [MongooseModule],
 })
-export class MongoModule { }
+export class MongoModule {}
