@@ -29,9 +29,8 @@ import {
 /**
  * UNIT: CharactersService spell mutations with the Bull queue mocked at the DI
  * boundary (getQueueToken) — no Redis, no replSet. The Mongoose models are
- * replaced with plain jest mocks (getModelToken). onModuleInit is NOT triggered
- * (compile() does not call lifecycle hooks), so the change-stream `.watch` on the
- * mocked model is never exercised here.
+ * replaced with plain jest mocks (getModelToken). The character change stream
+ * lives in CharacterUpdatesPublisher, not in the service.
  */
 
 const mockQueue = { add: jest.fn() };
@@ -42,7 +41,6 @@ const mockCharacterModel = {
     exists: jest.fn(),
 };
 const mockSpellModel = { findById: jest.fn() };
-const mockPubSub = { publish: jest.fn(), subscribe: jest.fn() };
 const NOW = new Date('2026-10-27T10:00:00.000Z');
 
 /** Mongoose findOne(...).exec() shape. */
@@ -88,13 +86,11 @@ describe('CharactersService (unit — spell mutations)', () => {
                     provide: getQueueToken('spell-recovery'),
                     useValue: mockQueue,
                 },
-                { provide: 'PUB_SUB', useValue: mockPubSub },
                 { provide: Clock, useValue: new FixedClock(NOW) },
                 { provide: QUEUE_CALL_TIMEOUT, useValue: 50 },
             ],
         }).compile();
 
-        // resolve without triggering onModuleInit (no change stream on the mock)
         service = moduleRef.get<CharactersService>(CharactersService);
     });
 

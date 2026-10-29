@@ -1,15 +1,8 @@
-import {
-    Injectable,
-    OnModuleInit,
-    OnModuleDestroy,
-    Logger,
-    Inject,
-} from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { Model, Types } from 'mongoose';
-import type { PubSub } from '@graphql-yoga/subscription';
 import { Clock } from 'src/auth/clock';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import {
@@ -29,12 +22,10 @@ import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model'
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { CHARACTER_QUESTS_POPULATE } from './character-quests.populate';
-import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { objectIdFromHex } from 'src/mongo/document-id';
 import { enqueueTrigger } from 'src/queues/enqueue-trigger';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
-import { CHARACTER_CHANGES_PIPELINE } from './character-changes.pipeline';
 import { requireCharacterObjectId } from './character-id';
 import {
     classifyEquipItemFailure,
@@ -75,9 +66,8 @@ interface SpellRecoveryRule {
 }
 
 @Injectable()
-export class CharactersService implements OnModuleInit, OnModuleDestroy {
+export class CharactersService {
     private readonly logger = new Logger(CharactersService.name);
-    private changeStream: ReturnType<typeof Model.prototype.watch>;
 
     constructor(
         @InjectModel(Character.name)
@@ -85,45 +75,9 @@ export class CharactersService implements OnModuleInit, OnModuleDestroy {
         @InjectModel(Spell.name) private spellModel: Model<SpellDocument>,
         @InjectQueue(SPELL_RECOVERY_QUEUE)
         private spellRecoveryQueue: Queue<SpellRecoveryJobData>,
-        @Inject(PUB_SUB) private readonly pubSub: PubSub<PubSubEvents>,
         private readonly clock: Clock,
         @Inject(QUEUE_CALL_TIMEOUT) private readonly timeoutMs: number,
     ) {}
-
-    async onModuleInit() {
-        this.changeStream = this.characterModel.watch(
-            CHARACTER_CHANGES_PIPELINE,
-            { fullDocument: 'updateLookup' },
-        );
-
-        this.changeStream.on('change', async (change) => {
-            try {
-                if (change.fullDocument) {
-                    const id = change.fullDocument._id;
-
-                    const character = await this.findOne(id);
-                    this.pubSub.publish('characterUpdated', {
-                        characterUpdated: character,
-                    });
-                }
-            } catch (err) {
-                // corsa: archiviato tra l'evento e la rilettura → nessun evento, non è un errore
-                if (err instanceof ResourceNotFoundException) return;
-                this.logger.error('Errore nel change stream', err);
-            }
-        });
-
-        this.changeStream.on('error', (err) => {
-            this.logger.error('Errore nel change stream MongoDB', err);
-        });
-    }
-
-    async onModuleDestroy() {
-        if (this.changeStream) {
-            await this.changeStream.close();
-            this.logger.log('Change stream chiuso correttamente');
-        }
-    }
 
     // letture di gioco solo sugli attivi (03.1 D-06): un archiviato risponde NOT_FOUND come un id inesistente
     async findAll(): Promise<Character[]> {

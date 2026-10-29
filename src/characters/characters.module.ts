@@ -18,6 +18,7 @@ import {
     QUEUE_CALL_TIMEOUT,
     QUEUE_CALL_TIMEOUT_MS,
 } from 'src/queues/queue-call-timeout';
+import { CharacterUpdatesPublisher } from './character-updates.publisher';
 import { CharactersResolver } from './characters.resolver';
 import { CharactersService } from './characters.service';
 import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
@@ -37,9 +38,10 @@ import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
     providers: [
         CharactersService,
         CharactersResolver,
+        CharacterUpdatesPublisher,
         { provide: Clock, useClass: SystemClock },
         { provide: QUEUE_CALL_TIMEOUT, useValue: QUEUE_CALL_TIMEOUT_MS },
     ],
-    exports: [CharactersService],
+    exports: [CharactersService, CharacterUpdatesPublisher],
 })
 export class CharactersModule {}
