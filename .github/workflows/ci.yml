@@ -55,6 +55,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Type check
+        run: npx tsc --noEmit -p tsconfig.json
+
       - name: Unit tests
         run: npm run test:unit
 
