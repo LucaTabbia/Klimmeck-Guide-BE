@@ -12,6 +12,9 @@ import { IS_PUBLIC_KEY } from 'src/auth/decorators/public.decorator';
 import type { AuthConfig } from 'src/config/auth-config';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { EventSubConfig } from 'src/config/eventsub-config';
+import type { RuntimeConfig } from 'src/config/runtime-config';
+import { RUNTIME_CONFIG } from 'src/config/runtime-config';
+import { RuntimeModeReporter } from 'src/config/runtime-mode.reporter';
 import { EVENTSUB_CONFIG } from 'src/config/eventsub-config';
 import {
     OWNERSHIP_KEY,
@@ -647,6 +650,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(ArchivedCharacterQueueRefresher)).toBeInstanceOf(
             ArchivedCharacterQueueRefresher,
         );
+    });
+
+    it('mounts the runtime mode reporter', () => {
+        expect(app.get(RuntimeModeReporter)).toBeInstanceOf(
+            RuntimeModeReporter,
+        );
+        expect(app.get<RuntimeConfig>(RUNTIME_CONFIG)).toEqual({
+            mode: 'test',
+            production: false,
+            modeDefaulted: false,
+        });
     });
 
     it('mounts the spell recovery lifecycle', () => {
