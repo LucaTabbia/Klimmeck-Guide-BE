@@ -1,0 +1,3 @@
+# Fingerprint ammesse da gitleaks (D-10), formato commit:file:rule-id:line.
+# Ogni voce ha sopra un commento datato «AAAA-MM-GG — secret ruotato alla fonte da …, motivo».
+# Un secret trovato nella storia si ruota alla fonte (Mongo, JWT, Twitch, Cloudinary, Firebase, Sightengine), mai riscrivendo la storia.

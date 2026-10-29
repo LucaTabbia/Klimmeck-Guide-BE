@@ -1,0 +1,14 @@
+title = "Klimmeck Guide BE"
+
+[extend]
+useDefault = true
+
+# sintassi della 8.24.x fissata nel workflow (GITLEAKS_VERSION): tabella singola, mai [[allowlists]]
+[allowlist]
+description = "Template senza valori e fixture di test con segreti finti (D-09)"
+paths = [
+  '''^\.env\.example$''',
+  '''\.spec\.ts$''',
+  '''\.int-spec\.ts$''',
+  '''^test/''',
+]
