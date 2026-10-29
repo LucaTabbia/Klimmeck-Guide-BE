@@ -15,6 +15,7 @@ import {
     PointOfInterest,
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
+import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { User, UserSchema } from 'src/models/user.model';
 import { PushModule } from 'src/push/push.module';
 import { PartyModule } from 'src/quests/party/party.module';
@@ -33,6 +34,7 @@ import { TravelService } from './travel.service';
             { name: Character.name, schema: CharacterSchema },
             { name: PendingQuest.name, schema: PendingQuestSchema },
             { name: PointOfInterest.name, schema: PointOfInterestSchema },
+            { name: Quest.name, schema: QuestSchema },
             { name: User.name, schema: UserSchema },
         ]),
         AuthzModule,

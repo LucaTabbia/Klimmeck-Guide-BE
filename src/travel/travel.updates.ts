@@ -93,16 +93,21 @@ export const COMPLETION_PROJECTION = {
     'status.activeTravel.kind': 1,
 } as const;
 
-// l'arrivo sul marker si scrive una volta sola (D-16); l'avvio lo decide QuestStartService (utente 2026-10-25)
+// l'arrivo sul marker si scrive una volta sola (D-16); la regola d'avvio resta di QuestStartService (utente 2026-10-25, D-22)
 export function questArrivalFilter(
     pendingQuestId: Types.ObjectId,
 ): Record<string, unknown> {
     return { _id: pendingQuestId, arrivedAt: null };
 }
 
-// arrivo pianificato (D-13): un downtime del server non toglie tempo alla quest
-export function questArrivalUpdate(endTime: Date) {
-    return { $set: { arrivedAt: endTime } };
+// arrivo pianificato (D-13): un downtime del server non toglie tempo alla quest; una quest da soli parte nella stessa scrittura (D-22)
+export function questArrivalUpdate(
+    endTime: Date,
+    startDate: Date | null = null,
+) {
+    return {
+        $set: { arrivedAt: endTime, ...(startDate ? { startDate } : {}) },
+    };
 }
 
 // solo la corsia standard blocca il teleport (D-17); un viaggio libero in corso viene cancellato
