@@ -93,4 +93,3 @@ export class EnemyInput {
     @Field(() => DamagesInput)
     damages: DamagesInput;
 }
-

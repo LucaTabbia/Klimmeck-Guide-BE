@@ -6,7 +6,7 @@ import { City } from './city.model';
 import { PoiType } from './enums/poi-type.enum';
 
 @ObjectType()
-@Schema({ collection: "pointsofinterest" })
+@Schema({ collection: 'pointsofinterest' })
 export class PointOfInterest {
     @Field(() => ID)
     id: string;
@@ -20,13 +20,14 @@ export class PointOfInterest {
     location: [number, number];
 
     @Field(() => City, { nullable: true })
-    @Prop({ type: Types.ObjectId, ref: "City" })
+    @Prop({ type: Types.ObjectId, ref: 'City' })
     city: Types.ObjectId | City;
 
     @Field(() => ID, { nullable: true })
-    @Prop({ type: Types.ObjectId, ref: "Quest", required: false })
+    @Prop({ type: Types.ObjectId, ref: 'Quest', required: false })
     quest?: Types.ObjectId | Quest | null;
 }
 
 export type PointOfInterestDocument = PointOfInterest & Document;
-export const PointOfInterestSchema = SchemaFactory.createForClass(PointOfInterest);
+export const PointOfInterestSchema =
+    SchemaFactory.createForClass(PointOfInterest);
