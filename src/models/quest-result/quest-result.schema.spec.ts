@@ -122,4 +122,18 @@ describe('quest result schema', () => {
     it('persists into the questresults collection', () => {
         expect(QuestResultSchema.get('collection')).toBe('questresults');
     });
+
+    it('starts every result unconfirmed', () => {
+        expect(
+            new Result(validResultDoc()).toObject().acknowledgedAt,
+        ).toBeNull();
+        expect(QuestResultSchema.path('acknowledgedAt').instance).toBe('Date');
+    });
+
+    it('declares the index of the unconfirmed list', () => {
+        expect(QuestResultSchema.indexes()).toContainEqual([
+            { user: 1, acknowledgedAt: 1, resolvedAt: 1, _id: 1 },
+            expect.objectContaining({ name: 'quest_result_unacknowledged' }),
+        ]);
+    });
 });

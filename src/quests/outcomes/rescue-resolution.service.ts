@@ -561,7 +561,7 @@ export class RescueResolutionService {
         }
     }
 
-    // proprietario letto in sessione prima dell'archivio: dopo l'archivio currentCharacter è null
+    // proprietario letto in sessione prima dell'archivio: dopo la morte il collegamento resta fino alla conferma del foglio, dopo la cancellazione è nullo
     private async ownerInSession(
         injuredId: Types.ObjectId,
         session: ClientSession,

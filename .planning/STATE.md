@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 9.1 complete (2026-10-27), PR to develop open; Phase 10 context gathered on feat/10-hardening (stacked on 9.1), to plan after the merge
-last_updated: "2026-10-27T15:10:10.637Z"
-last_activity: "2026-10-27 -- Phase 9.1 complete: 10/10 plans, review fixed (6), verification passed 5/5, security 43/43; PR to develop"
+stopped_at: Phase 9.2 complete (2026-10-28), PR feat/09.2-quest-result-delivery-contract -> develop open; Phase 10 (feat/10-hardening, stacked on 9.2) to rebase and plan after the merge
+last_updated: "2026-10-27T23:52:36.000Z"
+last_activity: "2026-10-28 -- Phase 9.2 complete: 7/7 plans, review 0 CR / 1 WR / 5 IN fixed, verification passed 6/6, security verified 34/34 (27 mitigated, 6 accepted, 1 transferred, 0 open); PR to develop open, FE Phase 9 gated plans unblocked after the merge"
 progress:
   total_phases: 13
   completed_phases: 12
-  total_plans: 117
-  completed_plans: 117
+  total_plans: 114
+  completed_plans: 114
   percent: 100
 ---
 
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 9.1 — Spell State and Recovery Contract — COMPLETE (2026-10-27: usi e recuperi per magia conosciuta, il recupero non si interrompe mai; PR `feat/09.1-spell-state-and-recovery-contract` → `develop` open, to merge BEFORE the FE Phase 8 gate plan 08-12); next Phase 10 — Hardening Trasversale (context gathered 2026-10-27 on `feat/10-hardening`, stacked on 9.1: ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9 deferred debts incl. `Mixed` refs, Sightengine image moderation fail-closed)
+**Current focus:** Phase 10 — Hardening Trasversale — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2: to rebase on `develop` after the 9.2 merge, then `/gsd-plan-phase 10` (ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9/9.2 deferred debts incl. `Mixed` refs, backfill scan, sweep for never-confirmed deaths, Sightengine image moderation fail-closed). Precedente: Phase 9.2 — Quest Result Delivery Contract — COMPLETE (2026-10-28: lista dei non confermati, conferma idempotente, segnaposto sulle quest avviate, il morto resta corrente fino alla conferma; PR `feat/09.2-quest-result-delivery-contract` → `develop` open, to merge BEFORE the FE Phase 9 gated plans 09-12/09-13).
 
 ## Current Position
 
-Phase: 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.1
-Plan: Not started
-Status: Phase 9.1 complete (2026-10-27: 10/10 plans, code review 3 WR/5 IN → 6 fixed + 2 not needed, verification passed 5/5, security 43/43 closed) — PR to develop open; Phase 10 ready to plan after the 9.1 merge (rebase `feat/10-hardening` on `develop` first)
-Last activity: 2026-10-27 -- Phase 9.1 complete: 10/10 plans, review fixed (6), verification passed 5/5, security 43/43; PR to develop
+Phase: 9.2 (Quest Result Delivery Contract) — COMPLETE (2026-10-28): 7/7 plans, PR `feat/09.2-quest-result-delivery-contract` → `develop` open; next Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2
+Plan: 7 of 7
+Status: Phase 9.2 complete — awaiting the PR merge; Phase 10 ready to plan after rebasing `feat/10-hardening` on `develop`
+Last activity: 2026-10-28 -- Phase 9.2 complete: 7/7 plans, review 0 CR / 1 WR / 5 IN fixed, verification passed 6/6, security verified 34/34 (27 mitigated, 6 accepted, 1 transferred, 0 open); PR to develop open, FE Phase 9 gated plans unblocked after the merge
 
-Progress: [██████████] 100% (phases 1–9 and 9.1 complete; 10 to plan after the 9.1 PR merge)
+Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 complete; 10 to plan after the 9.2 merge)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 117
+- Total plans completed: 124
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -53,6 +53,7 @@ Progress: [██████████] 100% (phases 1–9 and 9.1 complete; 
 | 5 | 8 | - | - |
 | 8 | 14 | - | - |
 | 09.1 | 10 | - | - |
+| 09.2 | 7 | - | - |
 
 **Recent Trend:**
 
@@ -139,6 +140,7 @@ Progress: [██████████] 100% (phases 1–9 and 9.1 complete; 
 
 - Phase 02.1 inserted after Phase 2: Character Creation Contract (URGENT) — 2026-10-09, richiesto dalla FE Phase 2 (nessuna mutation di creazione personaggio esisteva); branch `feat/02.1-character-creation-contract`
 - Phase 03.1 inserted after Phase 3: Character Deletion Contract (URGENT) — 2026-10-15, richiesto dalla FE Phase 4 (SET-05: cancellazione esplicita del personaggio dalle impostazioni; nessuna mutation di cancellazione esisteva); branch `feat/03.1-character-deletion-contract`
+- Phase 09.2 inserted after Phase 9.1: Quest Result Delivery Contract — 2026-10-27, richiesto dalla FE Phase 9 (COMBAT-09/10: risultati non confermati + ack, posti delle quest avviate mantenuti dall'archivio); branch `feat/09.2-quest-result-delivery-contract`; la Phase 10 si sposta sopra (stacked)
 
 ### Decisions
 

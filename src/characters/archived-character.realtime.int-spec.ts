@@ -204,4 +204,18 @@ describe('Archived characters in real time (wire)', () => {
             expect(error.path).toEqual(['characterUpdated']);
         },
     );
+
+    it('rejects characterUpdated with NOT_FOUND on a character that died and is still current', async () => {
+        await characters.updateOne(
+            { _id: alice.character?._id },
+            { $set: { deletedAt: new Date(), deletionReason: 'death' } },
+        );
+
+        const error = await expectRejection(
+            subscribeTo(alice.bearer, aliceCharId),
+        );
+
+        expect(error.extensions).toEqual({ code: 'NOT_FOUND' });
+        expect(error.path).toEqual(['characterUpdated']);
+    });
 });

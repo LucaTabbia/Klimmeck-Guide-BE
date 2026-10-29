@@ -9,6 +9,7 @@ import { QuestResultsModule } from 'src/quests/results/quest-results.module';
 import {
     AuthTestApp,
     createAuthTestApp,
+    graphqlRequest,
 } from '../../../test/auth/auth-test-app';
 import {
     graphqlWsUrl,
@@ -22,8 +23,10 @@ import type { PubSub } from '@graphql-yoga/subscription';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { withTimeout } from '../../../test/auth/ws-test-client';
 
+const CONFIRM =
+    'mutation Confirm($id: String!) { acknowledgeQuestResult(id: $id) { successful } }';
 const QUEST_RESULT_RECEIVED =
-    'subscription OnQuestResult($characterId: String!) { questResultReceived(characterId: $characterId) { id outcome hpAfter quest { title } } }';
+    'subscription OnQuestResult($characterId: String!) { questResultReceived(characterId: $characterId) { id outcome hpAfter acknowledgedAt quest { title } } }';
 // nessuno snapshot: la finestra di silenzio lascia anche aprire la subscription prima della prima scrittura
 const NO_SNAPSHOT_WINDOW_MS = 300;
 // l'evento del change stream arriva in modo asincrono: un inserto fatto prima della subscription va atteso sul PubSub
@@ -183,7 +186,19 @@ describe('questResultReceived subscription (wire)', () => {
             id: String(inserted._id),
             outcome: 'success',
             hpAfter: 700,
+            acknowledgedAt: null,
             quest: { title: 'Bandits at the gate' },
+        });
+    });
+
+    it('delivers the new result unconfirmed', async () => {
+        const live = await subscribeWithoutSnapshot(alice.bearer, aliceCharId);
+
+        const inserted = await persistResultOf(alice);
+
+        expect(await receivedResult(live)).toMatchObject({
+            id: String(inserted._id),
+            acknowledgedAt: null,
         });
     });
 
@@ -231,6 +246,41 @@ describe('questResultReceived subscription (wire)', () => {
             id: String(death._id),
             outcome: 'death',
             hpAfter: 0,
+        });
+    });
+
+    // D-12: il morto resta corrente fino alla conferma, e la policy accetta il proprietario del personaggio corrente
+    it('accepts a new subscribe on the dead character still current and refuses it once the death is confirmed', async () => {
+        await harness.connection
+            .collection('characters')
+            .updateOne(
+                { _id: alice.character?._id },
+                { $set: { deletedAt: new Date(), deletionReason: 'death' } },
+            );
+
+        const live = await subscribeWithoutSnapshot(alice.bearer, aliceCharId);
+        const death = await persistResultOf(alice, {
+            outcome: 'death',
+            hpAfter: 0,
+        });
+        expect((await receivedResult(live)).id).toBe(String(death._id));
+
+        const confirmed = await graphqlRequest(
+            harness.app,
+            CONFIRM,
+            { id: String(death._id) },
+            alice.bearer,
+        );
+        expect(confirmed.body).toEqual({
+            data: { acknowledgeQuestResult: { successful: true } },
+        });
+
+        const error = await expectRejection(
+            subscribeTo(alice.bearer, aliceCharId),
+        );
+        expect(error).toMatchObject({
+            message: 'Personaggio non trovato',
+            extensions: { code: 'NOT_FOUND' },
         });
     });
 

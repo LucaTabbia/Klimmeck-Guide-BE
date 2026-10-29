@@ -186,6 +186,11 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                 quantity: 2,
             }),
         ]);
+        const written = await world.models.questResults.find().lean<any[]>();
+        expect(written).toHaveLength(1);
+        expect(written.map((result) => result.acknowledgedAt)).toEqual(
+            written.map(() => null),
+        );
         expect(questEndPushes()).toEqual([
             expect.objectContaining({
                 message: expect.objectContaining({ id: String(result._id) }),

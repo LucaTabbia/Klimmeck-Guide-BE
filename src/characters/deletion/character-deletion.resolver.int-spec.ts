@@ -15,6 +15,7 @@ import { User, UserDocument } from 'src/models/user.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { QuestsModule } from 'src/quests/quests.module';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
+import { FixedClock } from '../../../test/auth/fixed-clock';
 import { createAuthenticatedUser } from '../../../test/auth/test-tokens';
 import {
     graphqlWsUrl,
@@ -52,6 +53,9 @@ const QUESTS_QUERY = 'query { quests { id } }';
 
 const USER_UPDATED =
     'subscription { userUpdated { id currentCharacter { id } } }';
+
+// l'archivio prende l'istante dall'orologio del server: con un orologio fisso le date scritte sono esatte
+const NOW = new Date('2026-10-27T12:00:00.000Z');
 
 const PRIMING_ATTEMPTS = 25;
 const PRIMING_WAIT_MS = 200;
@@ -170,6 +174,7 @@ describe('deleteCharacter (wire)', () => {
                 CharacterCreationModule,
                 QuestsModule,
             ],
+            clock: new FixedClock(NOW),
         });
         users = harness.connection.model<UserDocument>(User.name);
         characters = harness.connection.model<CharacterDocument>(
@@ -221,7 +226,6 @@ describe('deleteCharacter (wire)', () => {
             { $set: { twitchPoints: 1234 } },
         );
         const before = await rawCharacter(aliceCharId);
-        const t0 = new Date();
 
         const body = await deleteAs(alice.bearer);
 
@@ -231,10 +235,7 @@ describe('deleteCharacter (wire)', () => {
             currentCharacter: null,
         });
         const archived = await rawCharacter(aliceCharId);
-        expect(archived?.deletedAt).toBeInstanceOf(Date);
-        const deletedAt = archived?.deletedAt as Date;
-        expect(deletedAt.getTime()).toBeGreaterThanOrEqual(t0.getTime());
-        expect(deletedAt.getTime()).toBeLessThanOrEqual(Date.now());
+        expect(archived?.deletedAt).toEqual(NOW);
         expect(archived?.deletionReason).toBe('user_request');
         expect(archived?.infos).toEqual(before?.infos);
         expect(archived?.status).toEqual(before?.status);
@@ -535,6 +536,45 @@ describe('deleteCharacter (wire)', () => {
             }
         });
 
+        it('keeps the seat of the deleted character on a started quest («Il BE non libera i posti delle quest avviate»)', async () => {
+            const alice = await createPlayer(harness, {
+                twitchId: 'twitch-del-alice',
+            });
+            const bob = await createPlayer(harness, {
+                twitchId: 'twitch-del-bob',
+            });
+            const deleted = alice.character?._id as Types.ObjectId;
+            const kept = bob.character?._id as Types.ObjectId;
+            const seats = [
+                { character: deleted, title: 'rookie' },
+                { character: kept, title: 'rookie' },
+            ];
+            const boss = await persistRegisteredQuest('boss', seats);
+            await quests.updateOne(
+                { _id: boss._id },
+                { $set: { startedAt: new Date('2026-10-21T10:00:00.000Z') } },
+            );
+            const enemy = await persistRegisteredQuest('enemy', seats);
+
+            deletedUserOf(await deleteAs(alice.bearer));
+
+            const held = await rawSeats(boss._id);
+            expect(held).toHaveLength(2);
+            const [placeholder, other] = held;
+            expect(Object.keys(placeholder).sort()).toEqual([
+                'archivedAt',
+                'character',
+                'title',
+            ]);
+            expect(placeholder.character).toEqual(deleted);
+            expect(placeholder.archivedAt).toEqual(NOW);
+            expect((await rawCharacter(deleted))?.deletedAt).toEqual(NOW);
+            expect(other).toEqual({ character: kept, title: 'rookie' });
+            expect(await rawSeats(enemy._id)).toEqual([
+                { character: kept, title: 'rookie' },
+            ]);
+        });
+
         it('leaves the quests untouched when the deletion is rejected', async () => {
             const { bearer } = await createPlayer(harness, {
                 twitchId: 'twitch-del-empty',
@@ -600,15 +640,11 @@ describe('deleteCharacter (wire)', () => {
                 },
                 concludedAt: null,
             });
-            const t0 = new Date();
 
             deletedUserOf(await deleteAs(alice.bearer));
 
             const raw = await quests.collection.findOne({ _id: aid._id });
-            expect(raw?.concludedAt).toBeInstanceOf(Date);
-            expect((raw?.concludedAt as Date).getTime()).toBeGreaterThanOrEqual(
-                t0.getTime(),
-            );
+            expect(raw?.concludedAt).toEqual(NOW);
             const listed = await call(QUESTS_QUERY, alice.bearer);
             expect(listed.errors).toBeUndefined();
             const listedIds = (listed.data?.quests as { id: string }[]).map(

@@ -129,7 +129,7 @@ export class CharacterAccessPolicy {
         throw AuthorizationException.pendingQuestNotOwned();
     }
 
-    // proprietario = utente del risultato (D-20): vale anche dopo la morte, quando currentCharacter è null; nessun bypass innkeeper (C10)
+    // proprietario = utente del risultato (D-20): vale anche dopo la morte, con currentCharacter ancora sul morto o già nullo; nessun bypass innkeeper (C10)
     async authorizeQuestResult(
         identity: AuthIdentity,
         resultId: string,

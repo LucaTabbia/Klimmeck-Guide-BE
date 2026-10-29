@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import {
     ACTIVE_CHARACTER_FILTER,
     activeCharacterById,
+    CURRENT_CHARACTER_LINK_FILTER,
 } from 'src/models/character/active-character.filter';
 
 describe('active character filter', () => {
@@ -36,6 +37,12 @@ describe('active character filter', () => {
         expect(activeCharacterById(hex)).toEqual({
             _id: hex,
             deletedAt: null,
+        });
+    });
+
+    it('lets the current link resolve a character archived by death', () => {
+        expect(CURRENT_CHARACTER_LINK_FILTER).toEqual({
+            $or: [{ deletedAt: null }, { deletionReason: 'death' }],
         });
     });
 });

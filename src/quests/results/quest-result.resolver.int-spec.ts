@@ -23,11 +23,15 @@ import {
     persistLootItem,
     persistSpell,
 } from '../../../test/fixtures';
-import { persistQuestResult } from '../../../test/quests/quest-result.fixture';
+import {
+    buildQuestResult,
+    persistQuestResult,
+} from '../../../test/quests/quest-result.fixture';
 
 // selezione del foglio esiti (FE COMBAT-02..05)
-const QUEST_RESULT = `query QuestResult($id: String!) { questResult(id: $id) { id character user outcome resolvedAt hpBefore hpAfter maxLifePoints injuriesAdded xpGained xpBefore xpAfter levelBefore levelAfter titleBefore titleAfter rescuedCharacters quest { id type title } rewards { coins { gold silver copper } items { quantity item { ... on LootItem { id name } ... on EquipmentItem { id name } } } } consumablesUsed { quantity item { ... on LootItem { id name } } } spellsUsed { usages spell { id name } } spellLearned { id name } enemy { id name } } }`;
+const QUEST_RESULT = `query QuestResult($id: String!) { questResult(id: $id) { id character user outcome resolvedAt acknowledgedAt hpBefore hpAfter maxLifePoints injuriesAdded xpGained xpBefore xpAfter levelBefore levelAfter titleBefore titleAfter rescuedCharacters quest { id type title } rewards { coins { gold silver copper } items { quantity item { ... on LootItem { id name } ... on EquipmentItem { id name } } } } consumablesUsed { quantity item { ... on LootItem { id name } } } spellsUsed { usages spell { id name } } spellLearned { id name } enemy { id name } } }`;
 const MISSING_ID = '64b0000000000000000000ff';
+const CONFIRMED_AT = new Date('2026-10-25T09:30:00.000Z');
 
 interface WireBody {
     data?: { questResult?: Record<string, unknown> | null } | null;
@@ -162,6 +166,7 @@ describe('questResult(id) (wire)', () => {
             user: String(alice.user._id),
             outcome: 'success',
             resolvedAt: '2026-10-24T10:00:00.000Z',
+            acknowledgedAt: null,
             hpBefore: 1000,
             hpAfter: 640,
             maxLifePoints: 1200,
@@ -206,6 +211,46 @@ describe('questResult(id) (wire)', () => {
             ],
             spellLearned: { id: String(shield._id), name: 'Shield' },
             enemy: { id: String(enemy._id), name: 'Test Bandit' },
+        });
+    });
+
+    it('returns an unconfirmed result with a null confirmation', async () => {
+        const result = await persistAliceResult();
+
+        const response = await readResult(String(result._id), alice.bearer);
+
+        expect(bodyOf(response).errors).toBeUndefined();
+        expect(bodyOf(response).data?.questResult?.acknowledgedAt).toBeNull();
+    });
+
+    it('returns the confirmation time once the result is confirmed', async () => {
+        const result = await persistAliceResult({
+            acknowledgedAt: CONFIRMED_AT,
+        });
+
+        const response = await readResult(String(result._id), alice.bearer);
+
+        expect(bodyOf(response).errors).toBeUndefined();
+        expect(bodyOf(response).data?.questResult?.acknowledgedAt).toBe(
+            CONFIRMED_AT.toISOString(),
+        );
+    });
+
+    it('returns a null confirmation for a result stored before the field existed', async () => {
+        const results = modelOf<QuestResultDocument>(QuestResult.name);
+        const { insertedId } = await results.collection.insertOne(
+            buildQuestResult({
+                character: alice.character?._id,
+                user: alice.user._id,
+            }),
+        );
+
+        const response = await readResult(String(insertedId), alice.bearer);
+
+        expect(bodyOf(response).errors).toBeUndefined();
+        expect(bodyOf(response).data?.questResult).toMatchObject({
+            id: String(insertedId),
+            acknowledgedAt: null,
         });
     });
 

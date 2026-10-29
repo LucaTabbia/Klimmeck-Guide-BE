@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { AuthException } from 'src/auth/auth.exception';
+import { Clock } from 'src/auth/clock';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
 import { CharacterDeletionException } from 'src/characters/deletion/character-deletion.exception';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
@@ -20,6 +21,7 @@ export class CharacterDeletionService {
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
         private readonly archiver: CharacterArchiver,
         private readonly usersService: UsersService,
+        private readonly clock: Clock,
     ) {}
 
     async deleteCharacter(userId: string): Promise<User> {
@@ -48,7 +50,7 @@ export class CharacterDeletionService {
                 userId,
                 characterId,
                 reason,
-                now: new Date(),
+                now: this.clock.now(),
             });
             if (outcome === 'not-linked') {
                 throw await this.rejectUnlinked(userId, session);

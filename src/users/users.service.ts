@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage } from 'mongoose';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
-import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
+import { CURRENT_CHARACTER_LINK_FILTER } from 'src/models/character/active-character.filter';
 import { User, UserDocument } from 'src/models/user.model';
 import { isObjectIdHex } from 'src/mongo/document-id';
 import { isDuplicateKeyError } from 'src/mongo/mongo-errors';
@@ -14,10 +14,10 @@ const DUPLICATE_TWITCH_IDS_PIPELINE: PipelineStage[] = [
     { $sort: { _id: 1 } },
 ];
 
-// un riferimento a un personaggio archiviato si risolve a null, come uno pendente (03.1 D-06)
+// un riferimento a un archiviato si risolve a null come uno pendente (03.1 D-06), tranne il morto in attesa della conferma del suo foglio (D-12)
 const CURRENT_CHARACTER_POPULATE = {
     path: 'currentCharacter',
-    match: ACTIVE_CHARACTER_FILTER,
+    match: CURRENT_CHARACTER_LINK_FILTER,
 } as const;
 
 interface TwitchIdGroup {

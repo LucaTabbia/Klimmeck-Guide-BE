@@ -232,6 +232,11 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         expect(String(aid.rescue.failedQuest)).toBe(String(subject.quest._id));
         const result = await resultOf(subject);
         expect(result).toMatchObject({ outcome: 'failure', xpGained: 0 });
+        const written = await world.models.questResults.find().lean<any[]>();
+        expect(written).toHaveLength(1);
+        expect(written.map((result) => result.acknowledgedAt)).toEqual(
+            written.map(() => null),
+        );
         expect(world.questQueue.added).toEqual([
             expect.objectContaining({
                 name: 'aid-timeout',

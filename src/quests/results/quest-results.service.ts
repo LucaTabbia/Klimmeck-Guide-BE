@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import {
     QuestResult,
@@ -14,6 +14,11 @@ import {
     QUEST_RESULT_POPULATE,
     unpopulatedResultOf,
 } from './quest-result.populate';
+import {
+    UNACKNOWLEDGED_RESULTS_LIMIT,
+    UNACKNOWLEDGED_RESULTS_SORT,
+    unacknowledgedResultsFilterOf,
+} from './quest-result-acknowledgement';
 
 @Injectable()
 export class QuestResultsService {
@@ -34,6 +39,17 @@ export class QuestResultsService {
         if (!result) throw ResourceNotFoundException.questResult();
         dropOrphanResultRefs(result);
         return result;
+    }
+
+    async findUnacknowledged(userId: Types.ObjectId): Promise<QuestResult[]> {
+        const results = await this.questResultModel
+            .find(unacknowledgedResultsFilterOf(userId))
+            .sort(UNACKNOWLEDGED_RESULTS_SORT)
+            .limit(UNACKNOWLEDGED_RESULTS_LIMIT)
+            .populate(QUEST_RESULT_POPULATE)
+            .exec();
+        results.forEach(dropOrphanResultRefs);
+        return results;
     }
 
     // la scrittura è già committata: una rilettura fallita non diventa mai un errore sul filo (WR-03)

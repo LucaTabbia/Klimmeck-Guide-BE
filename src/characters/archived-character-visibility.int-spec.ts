@@ -128,10 +128,13 @@ describe('Archived characters on player paths (wire)', () => {
         return characters.collection.findOne({ _id: new Types.ObjectId(id) });
     }
 
-    async function archiveDocument(player: TestPlayer): Promise<void> {
+    async function archiveDocument(
+        player: TestPlayer,
+        reason: 'user_request' | 'death' = 'user_request',
+    ): Promise<void> {
         await characters.updateOne(
             { _id: player.character!._id },
-            { $set: { deletedAt: new Date(), deletionReason: 'user_request' } },
+            { $set: { deletedAt: new Date(), deletionReason: reason } },
         );
     }
 
@@ -259,6 +262,54 @@ describe('Archived characters on player paths (wire)', () => {
             expect(await rawCharacter(aliceCharId)).toEqual(before);
         },
     );
+
+    it.each(OPERATIONS)(
+        '$name answers NOT_FOUND on a character that died and is still current',
+        async (operation) => {
+            await archiveDocument(alice, 'death');
+            const before = await rawCharacter(aliceCharId);
+
+            const response = await run(operation, aliceCharId, alice.bearer);
+
+            expect(firstErrorOf(response)?.extensions).toEqual({
+                code: 'NOT_FOUND',
+            });
+            expect(await rawCharacter(aliceCharId)).toEqual(before);
+        },
+    );
+
+    it('resolves me.currentCharacter to the dead character until the confirmation', async () => {
+        await archiveDocument(alice, 'death');
+
+        const response = await graphqlRequest(
+            harness.app,
+            '{ me { currentCharacter { id } } }',
+            undefined,
+            alice.bearer,
+        );
+
+        expect(bodyOf(response).errors).toBeUndefined();
+        expect(bodyOf(response).data?.me).toEqual({
+            currentCharacter: { id: aliceCharId },
+        });
+    });
+
+    it('hides a character that died and is still current from the innkeeper character list', async () => {
+        await archiveDocument(alice, 'death');
+
+        const response = await graphqlRequest(
+            harness.app,
+            '{ characters { id } }',
+            undefined,
+            oste.bearer,
+        );
+
+        expect(bodyOf(response).errors).toBeUndefined();
+        const ids = (bodyOf(response).data?.characters as { id: string }[]).map(
+            ({ id }) => id,
+        );
+        expect(ids).toEqual([brunoCharId]);
+    });
 
     it('resolves me.currentCharacter to null for a user still pointing at an archived character', async () => {
         await archiveDocument(alice);
