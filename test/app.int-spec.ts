@@ -50,6 +50,7 @@ import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholde
 import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
 import { QuestResultMaintenance } from 'src/quests/results/quest-result-maintenance';
+import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
 import { ArchivedCharacterQueueRefresher } from 'src/quests/pending-requests/archived-character-queue.refresher';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import type { TravelConfig } from 'src/config/travel-config';
@@ -705,6 +706,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     it('mounts the quest result maintenance', () => {
         expect(app.get(QuestResultMaintenance)).toBeInstanceOf(
             QuestResultMaintenance,
+        );
+    });
+
+    it('mounts the character updates publisher', () => {
+        expect(app.get(CharacterUpdatesPublisher)).toBeInstanceOf(
+            CharacterUpdatesPublisher,
         );
     });
 
