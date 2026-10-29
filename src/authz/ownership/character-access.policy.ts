@@ -24,6 +24,7 @@ import {
 } from 'src/models/quest-result/quest-result.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { isObjectIdHex } from 'src/mongo/document-id';
+import { BadUserInputException } from 'src/validation/bad-user-input.exception';
 import {
     QUEST_LANES,
     QuestLane,
@@ -94,8 +95,8 @@ export class CharacterAccessPolicy {
         characterId: string,
         options: CharacterAccessOptions = {},
     ): Promise<ResourceAccess> {
-        if (!isObjectIdHex(characterId))
-            throw ResourceNotFoundException.character();
+        // le guard girano prima delle pipe (C1): l'id malformato è input non valido, non una risorsa assente
+        if (!isObjectIdHex(characterId)) throw BadUserInputException.of(['id']);
         if (
             (await this.readCurrentCharacterId(identity.userId)) === characterId
         ) {
@@ -113,7 +114,7 @@ export class CharacterAccessPolicy {
         pendingQuestId: string,
     ): Promise<ResourceAccess> {
         if (!isObjectIdHex(pendingQuestId))
-            throw ResourceNotFoundException.pendingQuest();
+            throw BadUserInputException.of(['id']);
         if (identity.role === RoleType.innkeeper)
             return ResourceAccess.onBehalf;
         if (
@@ -134,8 +135,7 @@ export class CharacterAccessPolicy {
         identity: AuthIdentity,
         resultId: string,
     ): Promise<ResourceAccess> {
-        if (!isObjectIdHex(resultId))
-            throw ResourceNotFoundException.questResult();
+        if (!isObjectIdHex(resultId)) throw BadUserInputException.of(['id']);
         const result = await this.questResultModel
             .findById(resultId, { user: 1 })
             .lean<QuestResultOwnerProjection | null>()
