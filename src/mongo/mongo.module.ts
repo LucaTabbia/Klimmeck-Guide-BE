@@ -2,7 +2,6 @@ import { Global, Module } from '@nestjs/common';
 
 import { MongooseModule } from '@nestjs/mongoose';
 
-import * as process from 'process';
 import { MongoService } from './mongo.service';
 import { ConfigService } from '@nestjs/config';
 import { User, UserSchema } from 'src/models/user.model';
@@ -35,9 +34,9 @@ import {
     imports: [
         MongooseModule.forRootAsync({
             inject: [ConfigService],
-            useFactory: async () => ({
-                uri: process.env.MONGO_URI,
-                dbName: process.env.DB_NAME,
+            useFactory: (config: ConfigService) => ({
+                uri: config.get<string>('MONGO_URI'),
+                dbName: config.get<string>('DB_NAME'),
             }),
         }),
         MongooseModule.forFeature([
