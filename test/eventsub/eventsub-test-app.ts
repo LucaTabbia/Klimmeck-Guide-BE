@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { EVENTSUB_CONFIG } from 'src/config/eventsub-config';
 import type { EventSubConfig } from 'src/config/eventsub-config';
+import type { ThrottleConfig } from 'src/config/throttle-config';
 import { PUSH_CONFIG } from 'src/config/push-config';
 import { EventSubModule } from 'src/eventsub/eventsub.module';
 import { TwitchHelixClient } from 'src/eventsub/helix/twitch-helix.client';
@@ -15,6 +16,10 @@ import { buildTestEventSubConfig } from './test-eventsub-config';
 
 export const EVENTSUB_WEBHOOK_PATH = '/webhooks/twitch/eventsub';
 
+export interface EventSubTestAppOptions {
+    throttle?: Partial<ThrottleConfig>;
+}
+
 export interface EventSubTestApp extends AuthTestApp {
     helix: FakeTwitchHelixClient;
     push: FakePushTransport;
@@ -24,11 +29,13 @@ export interface EventSubTestApp extends AuthTestApp {
 // EventSubModule sul vero stack Nest: Helix e FCM finti, nessuna rete; il reconcile di boot è drenato prima dei test
 export async function createEventSubTestApp(
     config: EventSubConfig = buildTestEventSubConfig(),
+    options: EventSubTestAppOptions = {},
 ): Promise<EventSubTestApp> {
     const helix = new FakeTwitchHelixClient();
     const push = new FakePushTransport();
     const harness = await createAuthTestApp({
         imports: [EventSubModule],
+        throttle: options.throttle,
         overrides: [
             { token: EVENTSUB_CONFIG, useValue: config },
             { token: TwitchHelixClient, useValue: helix },

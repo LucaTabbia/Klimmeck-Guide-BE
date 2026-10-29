@@ -98,6 +98,9 @@ const EXPECTED_THROTTLED_HANDLERS = [
     'CloudinaryController.getSubfoldersUrls',
     'CloudinaryController.getUrls',
     'CloudinaryController.uploadImage',
+    'EventSubController.receive',
+    'TwitchAuthController.callback',
+    'TwitchAuthController.start',
 ];
 // whitelist enumerate (D-15): ogni nuova operazione admin o sul personaggio deve passare da qui
 const EXPECTED_INNKEEPER_HANDLERS = [
