@@ -176,19 +176,21 @@ describe('AuthSessionService (harness)', () => {
         });
 
         it.each([
-            ['the user lookup', () => harness.app.get(UsersService), 'findOne'],
+            [
+                'the user lookup',
+                () => jest.spyOn(harness.app.get(UsersService), 'findOne'),
+            ],
             [
                 'the access token signature',
-                () => harness.app.get(AccessTokenService),
-                'sign',
+                () => jest.spyOn(harness.app.get(AccessTokenService), 'sign'),
             ],
-        ] as const)(
+        ])(
             'keeps the presented token valid when %s fails transiently (WR-01)',
-            async (_step, dependency, method) => {
+            async (_step, spyOnStep) => {
                 const issued = await service.issueForUser(user);
-                const failure = jest
-                    .spyOn(dependency(), method)
-                    .mockRejectedValueOnce(new Error('transient failure'));
+                const failure = spyOnStep().mockRejectedValueOnce(
+                    new Error('transient failure'),
+                );
 
                 await expect(
                     service.refresh(issued.refreshToken),

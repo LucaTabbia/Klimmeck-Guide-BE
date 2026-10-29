@@ -62,7 +62,7 @@ describe('DevAuthStrategy with a real UsersService (replSet)', () => {
         expect(stored).not.toBeNull();
         expect(stored?.role).toBe(RoleType.innkeeper);
         expect(identity).toEqual({
-            userId: stored?._id.toString(),
+            userId: String(stored!._id),
             twitchId: TEST_DEV_TWITCH_ID,
             role: RoleType.innkeeper,
         });

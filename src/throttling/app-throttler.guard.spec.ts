@@ -16,17 +16,8 @@ class InspectableThrottlerGuard extends AppThrottlerGuard {
         return this.getRequestResponse(context);
     }
 
-    throwFor(context: ExecutionContext): Promise<void> {
-        return this.throwThrottlingException(context, {
-            limit: 2,
-            ttl: 60_000,
-            key: 'test-key',
-            tracker: '127.0.0.1',
-            totalHits: 3,
-            timeToExpire: 60,
-            isBlocked: true,
-            timeToBlockExpire: 60,
-        });
+    throwFor(): Promise<void> {
+        return this.throwThrottlingException();
     }
 }
 
@@ -66,7 +57,7 @@ describe('AppThrottlerGuard', () => {
     });
 
     it('throws the coded exception when the limit is exceeded (C8)', async () => {
-        await expect(guard.throwFor(graphqlContext({}))).rejects.toBeInstanceOf(
+        await expect(guard.throwFor()).rejects.toBeInstanceOf(
             TooManyRequestsException,
         );
     });

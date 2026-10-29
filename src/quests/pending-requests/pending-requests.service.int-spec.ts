@@ -8,7 +8,6 @@ import {
 } from 'src/models/character/character.model';
 import {
     PendingQuest,
-    PendingQuestDocument,
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
 import {
@@ -36,7 +35,7 @@ describe('PendingRequestsService (replSet)', () => {
     let harness: AuthTestApp;
     let service: PendingRequestsService;
     let characters: Model<CharacterDocument>;
-    let pendingQuests: Model<PendingQuestDocument>;
+    let pendingQuests: Model<PendingQuest>;
     let quests: Model<QuestDocument>;
     let users: Model<UserDocument>;
 
@@ -94,7 +93,7 @@ describe('PendingRequestsService (replSet)', () => {
         });
         service = harness.app.get(PendingRequestsService);
         characters = modelOf<CharacterDocument>(Character.name);
-        pendingQuests = modelOf<PendingQuestDocument>(PendingQuest.name);
+        pendingQuests = modelOf<PendingQuest>(PendingQuest.name);
         quests = modelOf<QuestDocument>(Quest.name);
         users = modelOf<UserDocument>(User.name);
     });
@@ -212,7 +211,7 @@ describe('PendingRequestsService (replSet)', () => {
 
         const requests = await service.list();
 
-        const laneOf = (characterId: Types.ObjectId) =>
+        const laneOf = (characterId: unknown) =>
             requests.find(
                 (request) => request.character.id === String(characterId),
             )?.character.pendingQuest;

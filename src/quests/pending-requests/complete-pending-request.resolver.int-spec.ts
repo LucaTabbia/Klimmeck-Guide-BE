@@ -207,12 +207,11 @@ describe('completePendingRequest (wire)', () => {
         ).toBe(0);
         const character = await models.characters
             .findById(subject.characterId)
-            .lean()
+            .lean<{ quests: Record<string, unknown> }>()
             .exec();
         expect(
-            (character as { quests: Record<string, unknown> }).quests[
-                lanePathOf(QuestLane.story).split('.')[1]
-            ] ?? null,
+            character!.quests[lanePathOf(QuestLane.story).split('.')[1]] ??
+                null,
         ).toBeNull();
         const [record] = await audits.find().lean().exec();
         expect(record).toMatchObject({ outcome: AUDIT_OUTCOME_OK });

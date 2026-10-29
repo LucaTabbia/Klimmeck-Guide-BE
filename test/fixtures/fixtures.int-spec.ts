@@ -77,8 +77,10 @@ describe('fixtures persistence (replSet)', () => {
             expect(poi).not.toBeNull();
             expect(poi.city.equals(city._id)).toBe(true);
 
-            const reloaded = await CityModel.findById(city._id).lean();
-            expect(reloaded.markerLocation).toBeInstanceOf(Types.ObjectId);
+            const reloaded = await CityModel.findById(city._id).lean<{
+                markerLocation: unknown;
+            }>();
+            expect(reloaded?.markerLocation).toBeInstanceOf(Types.ObjectId);
         });
 
         it('keeps an explicit markerLocation and creates no POI without a poiModel', async () => {

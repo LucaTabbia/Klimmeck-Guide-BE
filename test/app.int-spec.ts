@@ -769,9 +769,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     });
 
     it('leaves the proxy trust off by default (C19)', () => {
-        expect(
-            app.getHttpAdapter().getInstance<Application>().get('trust proxy'),
-        ).toBeFalsy();
+        const server: Application = app.getHttpAdapter().getInstance();
+
+        expect(server.get('trust proxy')).toBeFalsy();
     });
 
     it('mounts the spell recovery lifecycle', () => {

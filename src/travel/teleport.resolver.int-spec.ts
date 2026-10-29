@@ -162,7 +162,9 @@ describe('teleportCharacter', () => {
     }
 
     function rawCharacter(player: TestPlayer) {
-        return characters.collection.findOne({ _id: player.character?._id });
+        return characters.collection.findOne({
+            _id: player.character?._id as Types.ObjectId,
+        });
     }
 
     // viaggio libero reale: job nel fake della coda, identità dal documento

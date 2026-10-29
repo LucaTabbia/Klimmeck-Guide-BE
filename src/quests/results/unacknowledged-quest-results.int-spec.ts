@@ -201,13 +201,13 @@ describe('unconfirmed quest results list (wire)', () => {
         await harness.connection
             .collection('characters')
             .updateOne(
-                { _id: alice.character?._id },
+                { _id: alice.character?._id as Types.ObjectId },
                 { $set: { deletedAt: T, deletionReason: 'death' } },
             );
         await harness.connection
             .collection('users')
             .updateOne(
-                { _id: alice.user._id },
+                { _id: alice.user._id as Types.ObjectId },
                 { $set: { currentCharacter: null } },
             );
 

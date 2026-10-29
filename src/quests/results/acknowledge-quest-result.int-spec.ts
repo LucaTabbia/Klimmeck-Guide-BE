@@ -151,8 +151,8 @@ describe('quest result confirmation (wire)', () => {
 
         const service = harness.app.get(QuestResultAcknowledgementService);
         const writes = await Promise.all([
-            service.acknowledge(other._id, alice.user._id),
-            service.acknowledge(other._id, alice.user._id),
+            service.acknowledge(other._id, alice.user._id as Types.ObjectId),
+            service.acknowledge(other._id, alice.user._id as Types.ObjectId),
         ]);
 
         expect([...writes].sort()).toEqual([false, true]);
@@ -222,14 +222,14 @@ describe('quest result confirmation (wire)', () => {
         await harness.connection
             .collection('characters')
             .updateOne(
-                { _id: alice.character?._id },
+                { _id: alice.character?._id as Types.ObjectId },
                 { $set: { deletedAt: NOW, deletionReason: 'death' } },
             );
         // utente già scollegato da deleteCharacter dopo la morte: la conferma resta possibile (il caso collegato è in death-acknowledgement)
         await harness.connection
             .collection('users')
             .updateOne(
-                { _id: alice.user._id },
+                { _id: alice.user._id as Types.ObjectId },
                 { $set: { currentCharacter: null } },
             );
 

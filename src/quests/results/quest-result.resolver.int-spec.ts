@@ -307,7 +307,7 @@ describe('questResult(id) (wire)', () => {
         await harness.connection
             .collection('users')
             .updateOne(
-                { _id: alice.user._id },
+                { _id: alice.user._id as Types.ObjectId },
                 { $set: { currentCharacter: null } },
             );
 

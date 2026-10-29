@@ -34,7 +34,7 @@ const POLL_LIMIT_MS = 5000;
 type UserUpdatedPayload = PubSubEvents['userUpdated'][0];
 
 interface PopulatedCharacter {
-    _id: unknown;
+    _id?: unknown;
     infos: { name: string };
 }
 

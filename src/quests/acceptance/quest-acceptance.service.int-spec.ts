@@ -58,6 +58,15 @@ const STARTING_COINS = { gold: 1, silver: 2, copper: 3 };
 // collection della mappa del viaggio: pre-create per le transazioni e svuotate dopo ogni test
 const TRAVEL_COLLECTIONS = ['pets', 'pointsofinterest', 'roads'];
 
+// liste scritte con il driver nei test, senza il cast di Mongoose
+interface RawQuestRegistrations {
+    registeredAdventurers: { character: Types.ObjectId; title: string }[];
+}
+
+interface RawCityPointsOfInterest {
+    pointsOfInterest: Types.ObjectId[];
+}
+
 interface World {
     cityMarker: Types.ObjectId;
     cityPoi: Types.ObjectId;
@@ -77,6 +86,18 @@ describe('QuestAcceptanceService (replSet)', () => {
     let world: World;
     let seq = 0;
     const queue = new FakeTravelQueue();
+
+    function rawQuests() {
+        return connection.collection<RawQuestRegistrations>(
+            quests.collection.collectionName,
+        );
+    }
+
+    function rawCities() {
+        return connection.collection<RawCityPointsOfInterest>(
+            cities.collection.collectionName,
+        );
+    }
     const questQueue = new FakeTravelQueue();
 
     beforeAll(async () => {
@@ -612,7 +633,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             });
             const rival = new Types.ObjectId();
             const transaction = interleaveBeforeTransaction(() =>
-                quests.collection.updateOne(
+                rawQuests().updateOne(
                     { _id: questId },
                     {
                         $push: {
@@ -1124,7 +1145,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                 .mockImplementation();
             const transaction = jest.spyOn(connection, 'transaction');
             const ghost = new Types.ObjectId();
-            await cities.collection.updateOne(
+            await rawCities().updateOne(
                 { _id: travel.cityA },
                 { $push: { pointsOfInterest: ghost } },
             );
@@ -1189,7 +1210,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                 'enemy',
             );
             const transaction = interleaveBeforeTransaction(() =>
-                quests.collection.updateOne(
+                rawQuests().updateOne(
                     { _id: questId },
                     {
                         $push: {
@@ -1619,7 +1640,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                 { character: new Types.ObjectId(), title: 'paladin' },
                 { character: new Types.ObjectId(), title: 'mage' },
             ];
-            await quests.collection.updateOne(
+            await rawQuests().updateOne(
                 { _id: questId },
                 { $push: { registeredAdventurers: { $each: registered } } },
             );

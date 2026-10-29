@@ -1,5 +1,5 @@
 import { getModelToken } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
+import { Types, type Model } from 'mongoose';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import {
     QuestResult,
@@ -234,7 +234,7 @@ describe('questResultReceived subscription (wire)', () => {
         await harness.connection
             .collection('users')
             .updateOne(
-                { _id: alice.user._id },
+                { _id: alice.user._id as Types.ObjectId },
                 { $set: { currentCharacter: null } },
             );
         const death = await persistResultOf(alice, {
@@ -254,7 +254,7 @@ describe('questResultReceived subscription (wire)', () => {
         await harness.connection
             .collection('characters')
             .updateOne(
-                { _id: alice.character?._id },
+                { _id: alice.character?._id as Types.ObjectId },
                 { $set: { deletedAt: new Date(), deletionReason: 'death' } },
             );
 

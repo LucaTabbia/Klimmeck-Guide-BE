@@ -282,7 +282,9 @@ describe('startTravel and travelPreview (wire)', () => {
     }
 
     function rawCharacter(player: TestPlayer) {
-        return characters.collection.findOne({ _id: player.character?._id });
+        return characters.collection.findOne({
+            _id: player.character?._id as Types.ObjectId,
+        });
     }
 
     function expectRejected(body: WireBody, code: string, message: string) {

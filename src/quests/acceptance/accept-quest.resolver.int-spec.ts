@@ -329,11 +329,15 @@ describe('acceptQuest (wire)', () => {
     }
 
     function rawCharacter(player: TestPlayer) {
-        return characters.collection.findOne({ _id: player.character?._id });
+        return characters.collection.findOne({
+            _id: player.character?._id as Types.ObjectId,
+        });
     }
 
     async function pointsOf(player: TestPlayer): Promise<number> {
-        const user = await users.collection.findOne({ _id: player.user._id });
+        const user = await users.collection.findOne({
+            _id: player.user._id as Types.ObjectId,
+        });
         return user?.twitchPoints as number;
     }
 

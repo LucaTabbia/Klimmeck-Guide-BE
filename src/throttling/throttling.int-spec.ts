@@ -41,7 +41,7 @@ describe('Throttling (wire)', () => {
             twitchId: 'twitch-throttling',
         });
         bearer = player.bearer;
-        characterId = player.character!._id.toString();
+        characterId = String(player.character!._id);
     });
 
     afterAll(async () => {

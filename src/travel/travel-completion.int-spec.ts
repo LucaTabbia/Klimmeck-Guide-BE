@@ -9,10 +9,7 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
-import {
-    PendingQuest,
-    PendingQuestDocument,
-} from 'src/models/pending-quest.model';
+import { PendingQuest } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { PushDevice } from 'src/push/push-device.model';
@@ -57,7 +54,7 @@ describe('TravelCompletionService (replSet)', () => {
     let completion: TravelCompletionService;
     let pushService: PushService;
     let characters: Model<CharacterDocument>;
-    let pendingQuests: Model<PendingQuestDocument>;
+    let pendingQuests: Model<PendingQuest>;
     let quests: Model<QuestDocument>;
     let users: Model<UserDocument>;
     let clock: FixedClock;
@@ -85,7 +82,7 @@ describe('TravelCompletionService (replSet)', () => {
         characters = harness.app.get<Model<CharacterDocument>>(
             getModelToken(Character.name),
         );
-        pendingQuests = harness.app.get<Model<PendingQuestDocument>>(
+        pendingQuests = harness.app.get<Model<PendingQuest>>(
             getModelToken(PendingQuest.name),
         );
         quests = harness.app.get<Model<QuestDocument>>(
@@ -338,7 +335,7 @@ describe('TravelCompletionService (replSet)', () => {
                     quests: { completedQuests: [], pendingQuest: pending._id },
                 },
             });
-            return { id, pqId: pending._id as Types.ObjectId };
+            return { id, pqId: pending._id };
         }
 
         it('enqueues the resolution from the planned arrival', async () => {

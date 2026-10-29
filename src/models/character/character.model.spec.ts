@@ -23,7 +23,7 @@ describe('Character schema archive fields', () => {
         const path = CharacterSchema.path('deletionReason');
 
         expect(path.instance).toBe('String');
-        expect(path.enumValues).toEqual(['user_request', 'death']);
+        expect(path.options.enum).toEqual(['user_request', 'death']);
     });
 
     it('creates active characters with null archive fields', () => {
