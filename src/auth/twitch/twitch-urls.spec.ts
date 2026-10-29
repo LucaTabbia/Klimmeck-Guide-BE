@@ -133,6 +133,7 @@ describe('TwitchLoginErrorCode', () => {
                 'access_denied',
                 'invalid_request',
                 'invalid_state',
+                'rate_limited',
                 'twitch_client_mismatch',
                 'twitch_exchange_failed',
                 'twitch_not_configured',
