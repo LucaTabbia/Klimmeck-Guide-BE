@@ -1,5 +1,8 @@
 import { DisabledImageModerator } from 'src/moderation/disabled-image.moderator';
-import type { ModerationImage } from 'src/moderation/image-moderator';
+import type {
+    ImageModerator,
+    ModerationImage,
+} from 'src/moderation/image-moderator';
 
 const IMAGE: ModerationImage = {
     buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
@@ -14,7 +17,7 @@ describe('DisabledImageModerator', () => {
 
     it('approves every image while moderation is disabled outside production (D-14)', async () => {
         const fetchSpy = jest.spyOn(global, 'fetch');
-        const moderator = new DisabledImageModerator();
+        const moderator: ImageModerator = new DisabledImageModerator();
 
         await expect(moderator.moderate(IMAGE)).resolves.toEqual({
             approved: true,
