@@ -1,15 +1,23 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+import { AbandonQuestRequest } from 'src/models/request/abandon-quest-request.model';
+import { AcceptQuestRequest } from 'src/models/request/accept-quest-request.model';
+import { CompletePendingRequestInput } from 'src/models/request/complete-pending-request.model';
 import { CreateCharacterInput } from 'src/models/request/create-character-request.model';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
 import { TransactionRequest } from 'src/models/request/transaction-request.model';
+import { TravelRequest } from 'src/models/request/travel-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
+import { RegisterPushDeviceInput } from 'src/push/dto/register-push-device.input';
+import { SendTestPushInput } from 'src/push/dto/send-test-push.input';
 import { invalidFieldsOf } from 'src/validation/invalid-fields';
 
 const CHARACTER_ID = '64b000000000000000000001';
 const ITEM_ID = '64b000000000000000000002';
 const SPELL_ID = '64b000000000000000000003';
+const QUEST_ID = '64b000000000000000000004';
+const PENDING_QUEST_ID = '64b000000000000000000005';
 
 const VALIDATION_OPTIONS = { whitelist: true, forbidUnknownValues: false };
 
@@ -44,6 +52,18 @@ const character = (overrides: object = {}) => ({
     age: 120,
     background: null,
     imagePath: null,
+    ...overrides,
+});
+
+const completion = (outcome: object = {}, extraOutcomes: object[] = []) => ({
+    pendingQuestId: PENDING_QUEST_ID,
+    outcomes: [{ characterId: CHARACTER_ID, ...outcome }, ...extraOutcomes],
+});
+
+const pushDevice = (overrides: object = {}) => ({
+    deviceId: 'fake-device-1',
+    token: 'fake-push-token',
+    platform: 'android',
     ...overrides,
 });
 
@@ -158,6 +178,144 @@ describe('input rules', () => {
             expect(
                 await fieldsOf(CreateCharacterInput, character({ age: 'x' })),
             ).toEqual(['age']);
+        });
+    });
+
+    describe('quests and travel', () => {
+        it('rejects malformed quest and travel ids (D-02)', async () => {
+            const quest = { id: CHARACTER_ID, questId: 'abc' };
+
+            expect(await fieldsOf(AcceptQuestRequest, quest)).toEqual([
+                'questId',
+            ]);
+            expect(await fieldsOf(AbandonQuestRequest, quest)).toEqual([
+                'questId',
+            ]);
+            expect(
+                await fieldsOf(TravelRequest, {
+                    id: CHARACTER_ID,
+                    poiId: 'abc',
+                }),
+            ).toEqual(['poiId']);
+            expect(
+                await fieldsOf(AcceptQuestRequest, {
+                    id: CHARACTER_ID,
+                    questId: QUEST_ID,
+                }),
+            ).toEqual([]);
+        });
+    });
+
+    describe('gm completion overrides', () => {
+        it('rejects a malformed override participant id (D-02, C5)', async () => {
+            const plain = completion({ characterId: 'abc' });
+
+            expect(await fieldsOf(CompletePendingRequestInput, plain)).toEqual([
+                'outcomes.0.characterId',
+            ]);
+        });
+
+        it('rejects negative override numbers and leaves zero to the domain (D-04, C5)', async () => {
+            expect(
+                await fieldsOf(
+                    CompletePendingRequestInput,
+                    completion({ hpAfter: -1 }),
+                ),
+            ).toEqual(['outcomes.0.hpAfter']);
+            expect(
+                await fieldsOf(
+                    CompletePendingRequestInput,
+                    completion({ hpAfter: 0 }),
+                ),
+            ).toEqual([]);
+            expect(
+                await fieldsOf(
+                    CompletePendingRequestInput,
+                    completion({
+                        consumablesUsed: [{ item: ITEM_ID, quantity: -2 }],
+                        spellsUsed: [{ spell: SPELL_ID, usages: 0 }],
+                    }),
+                ),
+            ).toEqual(['outcomes.0.consumablesUsed.0.quantity']);
+        });
+
+        it('keeps the Phase 9 cap of 50 override entries (C5)', async () => {
+            const extra = Array.from({ length: 50 }, () => ({
+                characterId: CHARACTER_ID,
+            }));
+            const injuries = Array.from({ length: 51 }, () => 'blindness');
+
+            expect(
+                await fieldsOf(
+                    CompletePendingRequestInput,
+                    completion({}, extra),
+                ),
+            ).toEqual(['outcomes']);
+            expect(
+                await fieldsOf(
+                    CompletePendingRequestInput,
+                    completion({ injuries }),
+                ),
+            ).toEqual(['outcomes.0.injuries']);
+            expect(
+                await fieldsOf(
+                    CompletePendingRequestInput,
+                    completion({}, extra.slice(1)),
+                ),
+            ).toEqual([]);
+        });
+
+        it('rejects an unknown injury (D-04)', async () => {
+            expect(
+                await fieldsOf(
+                    CompletePendingRequestInput,
+                    completion({ injuries: ['nope'] }),
+                ),
+            ).toEqual(['outcomes.0.injuries']);
+        });
+    });
+
+    describe('push', () => {
+        it('checks only the shape of the push device fields (C4)', async () => {
+            expect(
+                await fieldsOf(
+                    RegisterPushDeviceInput,
+                    pushDevice({ deviceId: 'fake device with spaces' }),
+                ),
+            ).toEqual([]);
+            expect(
+                await fieldsOf(
+                    RegisterPushDeviceInput,
+                    pushDevice({ deviceId: 'd'.repeat(300) }),
+                ),
+            ).toEqual([]);
+            expect(
+                await fieldsOf(
+                    RegisterPushDeviceInput,
+                    pushDevice({ platform: 'symbian' }),
+                ),
+            ).toEqual(['platform']);
+        });
+
+        it('caps the free text of the test push at 2000 characters (D-04)', async () => {
+            expect(
+                await fieldsOf(SendTestPushInput, {
+                    type: 'questEnd',
+                    id: 'x'.repeat(2001),
+                }),
+            ).toEqual(['id']);
+            expect(
+                await fieldsOf(SendTestPushInput, {
+                    type: 'questEnd',
+                    targetUserId: 'abc',
+                }),
+            ).toEqual(['targetUserId']);
+            expect(
+                await fieldsOf(SendTestPushInput, {
+                    type: 'questEnd',
+                    id: 'x'.repeat(2000),
+                }),
+            ).toEqual([]);
         });
     });
 });
