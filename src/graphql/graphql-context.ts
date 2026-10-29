@@ -1,11 +1,12 @@
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import type { AuthenticatedWsExtra } from 'src/auth/ws/ws-connection-authenticator';
 import { REQUEST_ID_HEADER, requestIdFrom } from 'src/graphql/request-id';
+import type { RequestWithId } from 'src/http/request-id.middleware';
 
 export const GRAPHQL_PATH = '/api/graphql';
 
 export interface GraphQLContextInput {
-    req?: Request;
+    req?: RequestWithId;
     res?: Response;
     extra?: AuthenticatedWsExtra;
 }
@@ -32,6 +33,8 @@ export function buildGraphQLContext(
     return {
         req: input.req,
         res: input.res,
-        requestId: requestIdFrom(input.req?.headers?.[REQUEST_ID_HEADER]),
+        requestId:
+            input.req?.requestId ??
+            requestIdFrom(input.req?.headers?.[REQUEST_ID_HEADER]),
     };
 }
