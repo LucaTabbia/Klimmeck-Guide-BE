@@ -48,6 +48,15 @@ describe('buildGraphQLContext', () => {
         );
     });
 
+    it('reuses the request id assigned by the HTTP middleware (D-07)', () => {
+        const req = {
+            headers: {},
+            requestId: 'mw-1',
+        } as unknown as Request;
+
+        expect(buildGraphQLContext({ req }).requestId).toBe('mw-1');
+    });
+
     it('assigns a fresh request id to every WS operation (D-07)', () => {
         const extra = {
             request: { headers: { 'x-request-id': 'abc' } },
