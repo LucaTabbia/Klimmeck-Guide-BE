@@ -47,4 +47,38 @@ describe('ResourceNotFoundException', () => {
             });
         },
     );
+
+    it.each([
+        ['lore', () => ResourceNotFoundException.lore(), 'Lore non trovata'],
+        ['pet', () => ResourceNotFoundException.pet(), 'Compagno non trovato'],
+        ['city', () => ResourceNotFoundException.city(), 'Città non trovata'],
+        [
+            'enemy',
+            () => ResourceNotFoundException.enemy(),
+            'Nemico non trovato',
+        ],
+        [
+            'lootItem',
+            () => ResourceNotFoundException.lootItem(),
+            'Oggetto non trovato',
+        ],
+        [
+            'equipmentItem',
+            () => ResourceNotFoundException.equipmentItem(),
+            'Equipaggiamento non trovato',
+        ],
+    ])(
+        'codes a missing %s as NOT_FOUND without echoing the id (F2)',
+        (_name, factory, message) => {
+            const exception = factory();
+
+            expect(exception.extensions).toEqual({ code: 'NOT_FOUND' });
+            expect(exception.getResponse()).toEqual({
+                statusCode: 404,
+                error: 'Not Found',
+                message,
+                code: 'NOT_FOUND',
+            });
+        },
+    );
 });
