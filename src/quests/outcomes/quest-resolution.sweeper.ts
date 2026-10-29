@@ -101,6 +101,25 @@ export class QuestResolutionSweeper
             ).unref();
         }
         void this.sweepSafely();
+        void this.backfillOnce();
+    }
+
+    // una volta per processo al boot, non atteso; diventa un no-op dopo il primo deploy e si rimuove in v1.1 (D-17b)
+    async backfillOnce(): Promise<void> {
+        try {
+            const backfilled = await this.partyTimeout.backfillRegisteredAt(
+                this.clock.now(),
+            );
+            if (backfilled > 0) {
+                this.logger.log(
+                    `Registrazioni retrodatate al boot: ${backfilled}`,
+                );
+            }
+        } catch (error) {
+            this.logger.error(
+                `Retrodatazione delle registrazioni al boot fallita: ${describeError(error)}`,
+            );
+        }
     }
 
     // lo sweep in corso finisce prima che Mongoose e le code chiudano; nessuna nuova risoluzione dopo lo stop
@@ -121,14 +140,13 @@ export class QuestResolutionSweeper
 
     private async runOnce(): Promise<QuestSweepCounts> {
         const now = this.clock.now();
-        const backfilled = await this.partyTimeout.backfillRegisteredAt(now);
         const started = await this.startPendingQuests();
         const disbanded = await this.disbandExpiredParties(now);
         const resolved = await this.resolveDueQuests(now);
         const timedOut = await this.timeOutDueAids(now);
-        if (backfilled + started + disbanded + resolved + timedOut > 0) {
+        if (started + disbanded + resolved + timedOut > 0) {
             this.logger.log(
-                `Sweep delle missioni: ${backfilled} quest con registrazioni retrodatate, ${started} avviate, ${disbanded} party sciolti, ${resolved} risolte, ${timedOut} soccorsi scaduti`,
+                `Sweep delle missioni: ${started} avviate, ${disbanded} party sciolti, ${resolved} risolte, ${timedOut} soccorsi scaduti`,
             );
         }
         return { resolved, timedOut };
