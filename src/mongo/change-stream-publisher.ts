@@ -79,6 +79,10 @@ export abstract class ChangeStreamPublisher<TDocument>
         stream.on('change', (change: ChangeStreamEvent) =>
             this.receive(change),
         );
+        // il driver avanza il token anche oltre gli eventi filtrati (un invalidate non arriva come change)
+        stream.on('resumeTokenChanged', (token: unknown) => {
+            if (stream === this.changeStream && token) this.resumeToken = token;
+        });
         stream.on('error', (error: unknown) => {
             if (stream === this.changeStream) this.scheduleReopen(error);
         });
@@ -145,6 +149,7 @@ export abstract class ChangeStreamPublisher<TDocument>
 
     private detach(stream: WatchedStream<TDocument>): void {
         stream.removeAllListeners('change');
+        stream.removeAllListeners('resumeTokenChanged');
         stream.removeAllListeners('close');
     }
 }
