@@ -340,7 +340,7 @@ Plans:
 - [x] 10-16-PLAN.md — Wave 11 (4): tabella di policy pura, porta `ImageModerator`, adapter Sightengine (fetch nativo), adapter disattivato, fake (BE-HARD-05)
 - [x] 10-17-PLAN.md — Wave 12 (4): `PortraitUploadService` — moderazione prima di Cloudinary (422/503), `ModerationModule`, reporter, harness (BE-HARD-05)
 - [x] 10-18-PLAN.md — Wave 13 (5): `CharacterUpdatesPublisher` sulla base comune + single-flight; single-flight degli utenti; `removeOnFail` limitato (BE-HARD-06)
-- [ ] 10-19-PLAN.md — Wave 14 (5): 8 indici con nome + verificatore non bloccante; backfill una sola volta al boot (BE-HARD-06)
+- [x] 10-19-PLAN.md — Wave 14 (5): 8 indici con nome + verificatore non bloccante; backfill una sola volta al boot (BE-HARD-06)
 - [ ] 10-20-PLAN.md — Wave 15 (5): `Enemy.locations`/`PointOfInterest.type` come liste; `types: ["jest"]` + 56 fix negli spec + step CI `tsc` (BE-HARD-06)
 - [ ] 10-21-PLAN.md — Wave 16 (5): D-21 — i registrati archiviati combattono come seat holder (boss + soccorso), senza esiti né premi (BE-HARD-07)
 - [ ] 10-22-PLAN.md — Wave 17 (5): D-22 — avvio da soli atomico con l'arrivo/claim + publisher degli avvii su `characterUpdated` (BE-HARD-07)
@@ -390,4 +390,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
-| 10. Hardening Trasversale | 18/31 | In Progress | - |
+| 10. Hardening Trasversale | 19/31 | In Progress | - |
