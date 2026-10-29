@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 9.2 merged on develop (PR #15, 2026-10-29, merge 8f30d1d); feat/10-hardening rebased on develop, Phase 10 ready to plan (/gsd-plan-phase 10)
-last_updated: "2026-10-29T08:01:37.000Z"
-last_activity: "2026-10-29 -- PR #15 (Phase 9.2) merged on develop; feat/10-hardening rebased on the merge commit 8f30d1d (one ROADMAP bullet conflict resolved); Phase 10 ready to plan"
+status: executing
+stopped_at: Phase 10 planned (31 plans, plan-checker passed after one revision) on feat/10-hardening; next /gsd-execute-phase 10
+last_updated: "2026-10-29T16:39:42.000Z"
+last_activity: "2026-10-29 -- Phase 10 planned: research (C1-C22) + context amended + BE-HARD-08 from the FE Phase 10 discuss, 31 plans in 26 waves, plan-checker passed after one revision; ready to execute"
 progress:
   total_phases: 13
   completed_phases: 12
-  total_plans: 114
+  total_plans: 145
   completed_plans: 114
-  percent: 100
+  percent: 79
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 10 — Hardening Trasversale — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, rebased on `develop` (9.2 merged with PR #15 on 2026-10-29): next `/gsd-plan-phase 10` (ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9/9.2 deferred debts incl. `Mixed` refs, backfill scan, sweep for never-confirmed deaths, Sightengine image moderation fail-closed). Precedente: Phase 9.2 — Quest Result Delivery Contract — COMPLETE (2026-10-28: lista dei non confermati, conferma idempotente, segnaposto sulle quest avviate, il morto resta corrente fino alla conferma; PR `feat/09.2-quest-result-delivery-contract` → `develop` open, to merge BEFORE the FE Phase 9 gated plans 09-12/09-13).
+**Current focus:** Phase 10 — Hardening Trasversale — PLANNED (2026-10-29) on `feat/10-hardening` (rebased on `develop` `8f30d1d`): 31 plans / 26 sequential waves — 1a coda del GM e corsia standard (BE-HARD-08, dal discuss della FE Phase 10), 1 validazione + `BAD_USER_INPUT`, 2 superficie di produzione + throttler, 3 secret/env/CI, 4 moderazione Sightengine, 5 resilienza + indici + bug di schema + BE-HARD-07, 6 refactor, 7 coverage, 8 ref `Mixed` con gate proprio (10-29), 9 handoff + gate finale (10-30/10-31). Decisioni dell'utente dopo la ricerca: sweep delle morti rinviato, `THROTTLE_TRUST_PROXY` opzionale spenta, staging = production, `face-age` solo volti reali. La PR di questa fase sblocca il piano gated 10-11 della FE Phase 10. Precedente: Phase 9.2 — Quest Result Delivery Contract — COMPLETE e mergiata (PR #15, 2026-10-29).
 
 ## Current Position
 
-Phase: 9.2 (Quest Result Delivery Contract) — COMPLETE and MERGED (PR #15, 2026-10-29, develop `8f30d1d`); next Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, rebased on `develop` 2026-10-29, ready to plan
-Plan: 7 of 7
-Status: Phase 10 ready to plan — `feat/10-hardening` rebased on `develop` (with 9.2); run `/gsd-plan-phase 10`; the FE Phase 9 gated plans (09-12/09-13) run against develop `8f30d1d`
-Last activity: 2026-10-29 -- PR #15 (Phase 9.2) merged on develop; feat/10-hardening rebased on the merge commit 8f30d1d; Phase 10 ready to plan
+Phase: 10 (Hardening Trasversale) — PLANNED 2026-10-29 on `feat/10-hardening`: 31 plans in 26 sequential waves (details in `.planning/phases/10-hardening-trasversale/10-*-PLAN.md`), research + context amendments + BE-HARD-08 in the same session
+Plan: 0 of 31
+Status: Phase 10 planned — 31 plans passed the plan-checker (one revision), ready to execute with `/gsd-execute-phase 10`
+Last activity: 2026-10-29 -- Phase 10 research, context amended after the research and the FE Phase 10 discuss (D-23/D-24, BE-HARD-08), validation strategy, 31 plans written and checked; ROADMAP plan list and Progress row 0/31 written
 
 Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 complete; 10 to plan after the 9.2 merge)
 
