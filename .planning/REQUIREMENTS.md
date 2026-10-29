@@ -131,6 +131,7 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
   - _Emendato il 2026-10-27 (D-16): `coverageThreshold` per cartella sulle aree critiche (auth, atomics, EventSub, travel) che fa fallire la CI; soglie iniziali = baseline misurata − 2 punti, alzate dopo i test nuovi._
 - [ ] **BE-HARD-05**: Moderazione delle immagini del personaggio con Sightengine (`models=nudity-2.1,offensive-2.0,text-content,face-age,gore-2.0,text,qr-content,self-harm`, chiavi `SIGHTENGINE_USER_ID`/`SIGHTENGINE_API_SECRET`): il buffer è moderato prima dell'upload su Cloudinary, policy severa con soglie dal model reference, rifiuto 422 `IMAGE_REJECTED`, fail-closed 503 `IMAGE_MODERATION_UNAVAILABLE`, chiavi obbligatorie in produzione; chiude il debito di BE-CHAR-04 → FE CHAR-05 (quick task FE per i codici) _(aggiunto 2026-10-27, decisione dell'utente)_
 - [ ] **BE-HARD-06**: Debiti rinviati dalle fasi precedenti chiusi a comportamento invariato: change stream riaperti con backoff per tutti i publisher, `removeOnFail` con limite, `KeyedSingleFlight` su `UserUpdatesPublisher`; indici dello sweep e di `spellStates.recoveries`, fix `Enemy.locations` e `PointOfInterest.type`, `types: ["jest"]`; refactor `commitRescue`, helper di priming unico, `@AuditTarget`; ritipizzazione dei ref `Mixed` a `ObjectId` con migrazione idempotente (ultima wave, gate proprio) _(aggiunto 2026-10-27)_
+- [ ] **BE-HARD-07**: Combattimento con i segnaposto (utente 2026-10-29): alla risoluzione di una quest avviata i registrati archiviati contano nel combattimento come se fossero presenti (fotografia del personaggio archiviato), senza risultato né ricompensa per loro; l'avvio di una quest senza posti è atomico con l'arrivo e la corsia aggiornata (`startDate`) arriva al FE con un evento. Supera la 9.2 D-07.
 
 ## Future Requirements
 
@@ -224,10 +225,11 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-HARD-04 | Phase 10 | Pending |
 | BE-HARD-05 | Phase 10 | Pending |
 | BE-HARD-06 | Phase 10 | Pending |
+| BE-HARD-07 | Phase 10 | Pending |
 
 **Coverage:**
 
-- v1 requirements: 54 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14 + BE-SPELL-01..04 della 9.1 + BE-RESULT-01..04 della 9.2 + BE-HARD-05/06 della Phase 10, 2026-10-27)
+- v1 requirements: 55 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14 + BE-SPELL-01..04 della 9.1 + BE-RESULT-01..04 della 9.2 + BE-HARD-05/06 della Phase 10, 2026-10-27 + BE-HARD-07 dalla UAT della FE Phase 9, 2026-10-29)
 - Mapped to phases: 50 / 50 ✓ (nessun orfano, nessun duplicato)
 
 ---
