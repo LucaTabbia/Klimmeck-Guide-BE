@@ -382,6 +382,7 @@ type PendingRequestCharacter {
   id: ID!
   location: ID!
   name: String!
+  pendingQuest: ID
   title: String!
 }
 

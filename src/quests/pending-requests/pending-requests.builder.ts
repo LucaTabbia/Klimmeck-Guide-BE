@@ -19,7 +19,11 @@ export interface RequestCharacterSnapshot {
         activeTravel?: ActiveTravel | null;
         awaitingAid?: AwaitingAid | null;
     };
-    quests?: { activeStoryQuest?: unknown; activeWorldMissionQuest?: unknown };
+    quests?: {
+        activeStoryQuest?: unknown;
+        activeWorldMissionQuest?: unknown;
+        pendingQuest?: unknown;
+    };
 }
 
 export interface RequestPendingQuestSnapshot {
@@ -100,6 +104,8 @@ function characterEntryOf(
         location: location.toHexString(),
         activeTravel: character.status?.activeTravel ?? null,
         awaitingAid: character.status?.awaitingAid ?? null,
+        pendingQuest:
+            refIdOf(character.quests?.pendingQuest)?.toHexString() ?? null,
     };
 }
 

@@ -42,6 +42,10 @@ export class PendingRequestCharacter {
 
     @Field(() => AwaitingAid, { nullable: true })
     awaitingAid: AwaitingAid | null;
+
+    // id della missione della corsia standard, null se libera (D-23): il pannello nasconde chi è impegnato
+    @Field(() => ID, { nullable: true })
+    pendingQuest: string | null;
 }
 
 @ObjectType()
