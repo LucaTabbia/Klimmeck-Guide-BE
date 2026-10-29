@@ -18,6 +18,8 @@ import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { AuthConfig } from 'src/config/auth-config';
 import { RUNTIME_CONFIG } from 'src/config/runtime-config';
 import type { RuntimeConfig } from 'src/config/runtime-config';
+import { THROTTLE_CONFIG } from 'src/config/throttle-config';
+import type { ThrottleConfig } from 'src/config/throttle-config';
 import { RuntimeConfigModule } from 'src/config/runtime-config.module';
 import { CloudinaryController } from 'src/rest/cloudinary/cloudinary.controller';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
@@ -26,10 +28,19 @@ import { CloudinaryService } from 'src/rest/cloudinary/cloudinary.service';
 import { PubSubModule } from 'src/pubsub.module';
 import { ValidationModule } from 'src/validation/validation.module';
 import { HttpHardeningModule } from 'src/http/http-hardening.module';
+import { ThrottlingModule } from 'src/throttling/throttling.module';
 import { FakeTwitchOAuthClient } from './fake-twitch-oauth.client';
 import { buildTestAuthConfig } from './test-auth-config';
 
 export const AUTH_TEST_DB_NAME = 'auth-test';
+
+// limiti generosi: le suite esistenti ripetono login e refresh dallo stesso IP (le prove del limite li abbassano)
+const TEST_THROTTLE: ThrottleConfig = {
+    ttlMs: 60_000,
+    limit: 10_000,
+    webhookLimit: 500_000,
+    trustProxy: null,
+};
 
 const TEST_RUNTIME: RuntimeConfig = {
     mode: 'test',
@@ -45,6 +56,7 @@ export interface ProviderOverride {
 export interface AuthTestAppOptions {
     authConfig?: Partial<AuthConfig>;
     runtime?: Partial<RuntimeConfig>;
+    throttle?: Partial<ThrottleConfig>;
     clock?: Clock;
     providers?: Provider[];
     controllers?: Type[];
@@ -100,6 +112,7 @@ export async function createAuthTestApp(
             AuthModule,
             ValidationModule,
             HttpHardeningModule,
+            ThrottlingModule,
             GraphQLModule.forRootAsync<ApolloDriverConfig>({
                 driver: ApolloDriver,
                 imports: [AuthModule],
@@ -128,6 +141,8 @@ export async function createAuthTestApp(
         .useValue(config)
         .overrideProvider(RUNTIME_CONFIG)
         .useValue({ ...TEST_RUNTIME, ...options.runtime })
+        .overrideProvider(THROTTLE_CONFIG)
+        .useValue({ ...TEST_THROTTLE, ...options.throttle })
         .overrideProvider(TwitchOAuthClient)
         .useValue(twitch);
     if (options.clock) {
