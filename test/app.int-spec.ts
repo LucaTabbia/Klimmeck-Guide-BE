@@ -1,5 +1,6 @@
 import { getQueueToken } from '@nestjs/bull';
 import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { ModulesContainer } from '@nestjs/core';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
@@ -32,6 +33,9 @@ import type { QuestConfig } from 'src/config/quest-config';
 import { QUEST_CONFIG } from 'src/config/quest-config';
 import type { SpellRecoveryConfig } from 'src/config/spell-recovery-config';
 import { SPELL_RECOVERY_CONFIG } from 'src/config/spell-recovery-config';
+import type { ThrottleConfig } from 'src/config/throttle-config';
+import { THROTTLE_CONFIG } from 'src/config/throttle-config';
+import { AppThrottlerGuard } from 'src/throttling/app-throttler.guard';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { SpellRecoveryProcessor } from 'src/characters/spells/spell-recovery.processor';
 import { SpellRecoveryService } from 'src/characters/spells/spell-recovery.service';
@@ -86,6 +90,14 @@ const EXPECTED_PUBLIC_HANDLERS = [
     'EventSubController.receive',
     'TwitchAuthController.callback',
     'TwitchAuthController.start',
+];
+// throttling minimo (D-08): ogni handler limitato deve passare da qui, mai una mutation di gioco
+const EXPECTED_THROTTLED_HANDLERS = [
+    'AuthResolver.exchangeLoginTicket',
+    'AuthResolver.refreshSession',
+    'CloudinaryController.getSubfoldersUrls',
+    'CloudinaryController.getUrls',
+    'CloudinaryController.uploadImage',
 ];
 // whitelist enumerate (D-15): ogni nuova operazione admin o sul personaggio deve passare da qui
 const EXPECTED_INNKEEPER_HANDLERS = [
@@ -255,6 +267,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             TRAVEL_SWEEP_INTERVAL_MS: '0',
             QUEST_SWEEP_INTERVAL_MS: '0',
             SPELL_RECOVERY_SWEEP_INTERVAL_MS: '0',
+            // D-08: un .env locale con limiti propri non deve cambiare i default attesi dal boot reale
+            THROTTLE_TTL_MS: '',
+            THROTTLE_LIMIT: '',
+            THROTTLE_TRUST_PROXY: '',
         });
         // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
         const { AppModule } =
@@ -707,6 +723,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         ).toBe(true);
     });
 
+    it('mounts the throttler with the phase defaults', () => {
+        expect(app.get<ThrottleConfig>(THROTTLE_CONFIG)).toEqual({
+            ttlMs: 60000,
+            limit: 20,
+            webhookLimit: 1000,
+            trustProxy: null,
+        });
+    });
+
     it('mounts the spell recovery lifecycle', () => {
         expect(app.get(SpellRecoveryProcessor)).toBeInstanceOf(
             SpellRecoveryProcessor,
@@ -886,6 +911,20 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
             expect(handlers).toEqual(EXPECTED_PUBLIC_HANDLERS);
             expect(publicClasses).toEqual([]);
+        });
+    });
+
+    describe('throttled surface', () => {
+        it('exposes exactly the enumerated throttled handlers (D-08)', () => {
+            expect(
+                collectHandlersWithMetadata(
+                    app,
+                    GUARDS_METADATA,
+                    (guards) =>
+                        Array.isArray(guards) &&
+                        guards.includes(AppThrottlerGuard),
+                ),
+            ).toEqual(EXPECTED_THROTTLED_HANDLERS);
         });
     });
 
