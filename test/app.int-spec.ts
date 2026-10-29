@@ -833,7 +833,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             });
         });
 
-        it('keeps introspection public until Phase 10 (known limit D-30)', async () => {
+        it('keeps introspection available outside production (D-05)', async () => {
             const response = await graphqlCall(
                 app,
                 '{ __schema { queryType { name } } }',
