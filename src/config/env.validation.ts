@@ -3,6 +3,10 @@ import {
     parseEventSubConfig,
     readEventSubEnv,
 } from 'src/config/eventsub-config';
+import {
+    parseModerationConfig,
+    readModerationEnv,
+} from 'src/config/moderation-config';
 import { parsePushConfig, readPushEnv } from 'src/config/push-config';
 import { parseQuestConfig, readQuestEnv } from 'src/config/quest-config';
 import { parseRuntimeConfig, readRuntimeEnv } from 'src/config/runtime-config';
@@ -23,6 +27,7 @@ export function validateEnv(
     parseAuthConfig(readAuthEnv(env));
     parsePushConfig(readPushEnv(env));
     parseEventSubConfig(readEventSubEnv(env));
+    parseModerationConfig(readModerationEnv(env));
     parseTravelConfig(readTravelEnv(env));
     parseQuestConfig(readQuestEnv(env));
     parseSpellRecoveryConfig(readSpellRecoveryEnv(env));
