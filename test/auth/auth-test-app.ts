@@ -25,6 +25,8 @@ import { CloudinaryController } from 'src/rest/cloudinary/cloudinary.controller'
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 import { createGraphQLOptions } from 'src/graphql/graphql-options.factory';
 import { CloudinaryService } from 'src/rest/cloudinary/cloudinary.service';
+import { PortraitUploadService } from 'src/rest/cloudinary/portrait-upload.service';
+import { ImageModerator } from 'src/moderation/image-moderator';
 import { PubSubModule } from 'src/pubsub.module';
 import { ValidationModule } from 'src/validation/validation.module';
 import { HttpHardeningModule } from 'src/http/http-hardening.module';
@@ -137,6 +139,8 @@ export async function createAuthTestApp(
         providers: [
             AppService,
             { provide: CloudinaryService, useValue: cloudinary },
+            { provide: ImageModerator, useValue: moderator },
+            PortraitUploadService,
             ...(options.providers ?? []),
         ],
     })

@@ -14,6 +14,7 @@ import { CloudinaryService } from './cloudinary.service';
 import { CloudinaryFolderRequest } from './cloudinary-folder.request';
 import { ImageSignatureValidator } from './image-signature.validator';
 import { IMAGE_UPLOAD_LIMITS, MAX_IMAGE_BYTES } from './image-upload';
+import { PortraitUploadService } from './portrait-upload.service';
 
 const imageFilePipe = new ParseFilePipe({
     validators: [
@@ -26,7 +27,10 @@ const imageFilePipe = new ParseFilePipe({
 // gli errori del provider risalgono al filtro globale: niente testo di Cloudinary nella risposta (D-07)
 @Controller('cloudinary')
 export class CloudinaryController {
-    constructor(private readonly cloudinaryService: CloudinaryService) {}
+    constructor(
+        private readonly cloudinaryService: CloudinaryService,
+        private readonly portraitUpload: PortraitUploadService,
+    ) {}
 
     @Post('getUrls')
     @Throttled()
@@ -48,7 +52,6 @@ export class CloudinaryController {
     @Throttled()
     @UseInterceptors(FileInterceptor('file', { limits: IMAGE_UPLOAD_LIMITS }))
     async uploadImage(@UploadedFile(imageFilePipe) file: Express.Multer.File) {
-        const result = await this.cloudinaryService.uploadImage(file);
-        return { url: result.secure_url };
+        return { url: await this.portraitUpload.upload(file) };
     }
 }
