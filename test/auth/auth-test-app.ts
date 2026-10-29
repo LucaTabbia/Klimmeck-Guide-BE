@@ -29,6 +29,7 @@ import { PubSubModule } from 'src/pubsub.module';
 import { ValidationModule } from 'src/validation/validation.module';
 import { HttpHardeningModule } from 'src/http/http-hardening.module';
 import { ThrottlingModule } from 'src/throttling/throttling.module';
+import { FakeImageModerator } from '../moderation/fake-image-moderator';
 import { FakeTwitchOAuthClient } from './fake-twitch-oauth.client';
 import { buildTestAuthConfig } from './test-auth-config';
 
@@ -76,6 +77,7 @@ export interface AuthTestApp {
     config: AuthConfig;
     twitch: FakeTwitchOAuthClient;
     cloudinary: CloudinaryServiceMock;
+    moderator: FakeImageModerator;
     connection: Connection;
     clearDatabase(): Promise<void>;
     close(): Promise<void>;
@@ -100,6 +102,7 @@ export async function createAuthTestApp(
     const config = buildTestAuthConfig(options.authConfig);
     const twitch = new FakeTwitchOAuthClient();
     const cloudinary = buildCloudinaryMock();
+    const moderator = new FakeImageModerator();
 
     let builder = Test.createTestingModule({
         imports: [
@@ -165,6 +168,7 @@ export async function createAuthTestApp(
         config,
         twitch,
         cloudinary,
+        moderator,
         connection,
         async clearDatabase() {
             for (const collection of Object.values(connection.collections)) {
@@ -174,6 +178,7 @@ export async function createAuthTestApp(
             cloudinary.listResources.mockClear();
             cloudinary.listSubfoldersResources.mockClear();
             cloudinary.uploadImage.mockClear();
+            moderator.reset();
         },
         async close() {
             await connection.dropDatabase();

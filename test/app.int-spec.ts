@@ -26,6 +26,9 @@ import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
 import { WalletService } from 'src/economy/wallet.service';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 import { UnhandledExceptionFilter } from 'src/http/unhandled-exception.filter';
+import { DisabledImageModerator } from 'src/moderation/disabled-image.moderator';
+import { ImageModerator } from 'src/moderation/image-moderator';
+import { ModerationStartupReporter } from 'src/moderation/moderation-startup.reporter';
 import { PushService } from 'src/push/push.service';
 import { NoopPushTransport } from 'src/push/transport/noop-push-transport';
 import { PushTransport } from 'src/push/transport/push-transport';
@@ -720,6 +723,20 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             production: false,
             modeDefaulted: false,
         });
+    });
+
+    it('mounts the image moderation disabled without Sightengine keys (D-14)', () => {
+        expect(app.get(ImageModerator)).toBeInstanceOf(DisabledImageModerator);
+        expect(app.get(ModerationStartupReporter)).toBeInstanceOf(
+            ModerationStartupReporter,
+        );
+        expect(
+            warnSpy.mock.calls.some(([message]) =>
+                String(message).startsWith(
+                    'Moderazione delle immagini disattivata',
+                ),
+            ),
+        ).toBe(true);
     });
 
     it('mounts the global validation pipe', () => {

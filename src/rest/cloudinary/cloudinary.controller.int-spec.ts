@@ -53,6 +53,7 @@ describe('CloudinaryController (wire)', () => {
     beforeEach(() => {
         harness.cloudinary.uploadImage.mockClear();
         harness.cloudinary.listResources.mockClear();
+        harness.moderator.reset();
     });
 
     const post = (target: AuthTestApp, path: string, auth = bearer) =>
@@ -67,6 +68,58 @@ describe('CloudinaryController (wire)', () => {
             { filename: 'portrait.jpg', contentType: OCTET_STREAM },
         );
 
+        expect(response.status).toBe(201);
+        expect(response.body).toEqual({ url: 'https://cdn.test/image.png' });
+        expect(harness.cloudinary.uploadImage).toHaveBeenCalledTimes(1);
+    });
+
+    it('answers 422 IMAGE_REJECTED with the categories and never reaches Cloudinary (D-12)', async () => {
+        harness.moderator.rejectNext(['nudity', 'qr']);
+
+        const response = await post(harness, 'uploadImage').attach(
+            'file',
+            jpegOf(64),
+            { filename: 'portrait.jpg', contentType: OCTET_STREAM },
+        );
+
+        expect(response.status).toBe(422);
+        expect(response.body).toEqual({
+            statusCode: 422,
+            code: 'IMAGE_REJECTED',
+            message: 'Immagine non ammessa',
+            reasons: ['nudity', 'qr'],
+        });
+        expect(harness.cloudinary.uploadImage).not.toHaveBeenCalled();
+    });
+
+    it('answers 503 IMAGE_MODERATION_UNAVAILABLE and never reaches Cloudinary (D-14)', async () => {
+        harness.moderator.failNext();
+
+        const response = await post(harness, 'uploadImage').attach(
+            'file',
+            jpegOf(64),
+            { filename: 'portrait.jpg', contentType: OCTET_STREAM },
+        );
+
+        expect(response.status).toBe(503);
+        expect(response.body).toEqual({
+            statusCode: 503,
+            code: 'IMAGE_MODERATION_UNAVAILABLE',
+            message:
+                'Moderazione delle immagini non disponibile, riprova più tardi',
+        });
+        expect(harness.cloudinary.uploadImage).not.toHaveBeenCalled();
+    });
+
+    it('moderates the detected image type before uploading (D-12)', async () => {
+        const response = await post(harness, 'uploadImage').attach(
+            'file',
+            jpegOf(64),
+            { filename: 'portrait.jpg', contentType: OCTET_STREAM },
+        );
+
+        expect(harness.moderator.calls).toHaveLength(1);
+        expect(harness.moderator.calls[0].mimetype).toBe('image/jpeg');
         expect(response.status).toBe(201);
         expect(response.body).toEqual({ url: 'https://cdn.test/image.png' });
         expect(harness.cloudinary.uploadImage).toHaveBeenCalledTimes(1);
