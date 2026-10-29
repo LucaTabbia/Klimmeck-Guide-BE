@@ -3,6 +3,7 @@ import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { MongoService } from './mongo.service';
+import { SweepIndexVerifier } from './sweep-index.verifier';
 import { ConfigService } from '@nestjs/config';
 import { User, UserSchema } from 'src/models/user.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
@@ -56,7 +57,7 @@ import {
     ],
 
     controllers: [],
-    providers: [MongoService],
+    providers: [MongoService, SweepIndexVerifier],
     exports: [MongooseModule],
 })
 export class MongoModule {}
