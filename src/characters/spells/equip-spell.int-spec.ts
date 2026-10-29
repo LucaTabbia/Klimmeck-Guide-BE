@@ -602,7 +602,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toEqual([]);
         });
 
-        it('answers SPELL_NOT_ACTIVE for a spell that is not active', async () => {
+        it('answers SPELL_NOT_ACTIVE for an inactive spell and BAD_USER_INPUT for a malformed spell id (D-02)', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-uneq-inactive', {
                 xp: 20000,
@@ -610,12 +610,12 @@ describe('equipSpell / unequipSpell (wire)', () => {
             });
 
             const body = await unequip(player, dardo.toHexString());
+            const malformed = await unequip(player, 'abc');
 
             expect(codeOf(body)).toBe('SPELL_NOT_ACTIVE');
             expect(messageOf(body)).toBe('Magia non attiva');
-            expect(codeOf(await unequip(player, 'abc'))).toBe(
-                'SPELL_NOT_ACTIVE',
-            );
+            expect(codeOf(malformed)).toBe('BAD_USER_INPUT');
+            expect(messageOf(malformed)).toBe('Input non valido: spellId');
         });
 
         it('unequips exactly once under concurrent calls', async () => {
