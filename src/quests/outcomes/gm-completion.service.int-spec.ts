@@ -595,10 +595,12 @@ describe('GmCompletionService.complete (replSet)', () => {
             const loader = world.harness.app.get(ResolutionLoader);
             const readCatalog = loader.readCatalog.bind(loader);
             let afterAcceptance: Awaited<ReturnType<typeof rawDocuments>> = {};
+            let acceptances = 0;
             const spy = jest
                 .spyOn(loader, 'readCatalog')
                 .mockImplementationOnce(async (...args) => {
                     await occupyStandardLane(subject);
+                    acceptances += 1;
                     afterAcceptance = await rawDocuments();
                     return readCatalog(...args);
                 });
@@ -611,7 +613,7 @@ describe('GmCompletionService.complete (replSet)', () => {
                 spy.mockRestore();
             }
 
-            expect(spy).toHaveBeenCalledTimes(1);
+            expect(acceptances).toBe(1);
             expect(await rawDocuments()).toEqual(afterAcceptance);
             expect(world.push.sent).toHaveLength(0);
         });

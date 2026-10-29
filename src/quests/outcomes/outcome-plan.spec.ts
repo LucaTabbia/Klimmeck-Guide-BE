@@ -789,10 +789,13 @@ describe('planParticipant', () => {
         });
 
         it('guards and empties the story lane', () => {
-            expect(plan.filter).toMatchObject({
+            expect(plan.filter).toEqual({
+                _id: CHARACTER_ID,
+                deletedAt: null,
                 'quests.activeStoryQuest': { $in: idForms(PENDING_ID) },
+                'quests.pendingQuest': null,
+                'status.xp': 0,
             });
-            expect(plan.filter).not.toHaveProperty(['quests.pendingQuest']);
             expect(plan.update.$set['quests.activeStoryQuest']).toBeNull();
             expect(plan.update.$set).not.toHaveProperty([
                 'quests.pendingQuest',

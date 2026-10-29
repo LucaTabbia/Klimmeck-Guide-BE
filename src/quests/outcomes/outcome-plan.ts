@@ -22,7 +22,12 @@ import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms, objectIdFromHex, sameId } from 'src/mongo/document-id';
-import { lanePathOf, type QuestLane } from 'src/quests/acceptance/quest-lanes';
+import {
+    isGmLane,
+    lanePathOf,
+    type QuestLane,
+    STANDARD_LANE_FREE,
+} from 'src/quests/acceptance/quest-lanes';
 import type { ParticipantEffects } from './combat/combat-resolver';
 import { isInjuryType } from './injuries/injury-rules';
 import { isPositiveInteger } from './outcome-numbers';
@@ -55,7 +60,10 @@ export interface OutcomeCharacterSnapshot {
         location?: unknown;
         awaitingAid?: unknown;
     };
-    quests?: { completedQuests?: unknown[] | null } | null;
+    quests?: {
+        completedQuests?: unknown[] | null;
+        pendingQuest?: unknown;
+    } | null;
     assets?:
         | (InventorySnapshot & {
               activeSpells?: { spell?: unknown; usages?: number }[];
@@ -266,6 +274,8 @@ function participantFilter(
     return {
         ...activeCharacterById(input.snapshot._id),
         [lanePath]: { $in: idForms(input.pendingQuestId) },
+        // il completamento del GM riafferma la corsia standard libera (D-24); la risoluzione standard non la riceve: la sua corsia è proprio quella
+        ...(isGmLane(input.lane) ? STANDARD_LANE_FREE : {}),
         ...(typeof xp === 'number' ? { 'status.xp': xp } : {}),
     };
 }
