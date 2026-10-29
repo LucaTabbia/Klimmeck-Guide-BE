@@ -16,6 +16,9 @@ import { TwitchOAuthClient } from 'src/auth/twitch/twitch-oauth.client';
 import { WsConnectionAuthenticator } from 'src/auth/ws/ws-connection-authenticator';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { AuthConfig } from 'src/config/auth-config';
+import { RUNTIME_CONFIG } from 'src/config/runtime-config';
+import type { RuntimeConfig } from 'src/config/runtime-config';
+import { RuntimeConfigModule } from 'src/config/runtime-config.module';
 import { CloudinaryController } from 'src/rest/cloudinary/cloudinary.controller';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 import { createGraphQLOptions } from 'src/graphql/graphql-options.factory';
@@ -26,6 +29,12 @@ import { buildTestAuthConfig } from './test-auth-config';
 
 export const AUTH_TEST_DB_NAME = 'auth-test';
 
+const TEST_RUNTIME: RuntimeConfig = {
+    mode: 'test',
+    production: false,
+    modeDefaulted: false,
+};
+
 export interface ProviderOverride {
     token: InjectionToken;
     useValue: unknown;
@@ -33,6 +42,7 @@ export interface ProviderOverride {
 
 export interface AuthTestAppOptions {
     authConfig?: Partial<AuthConfig>;
+    runtime?: Partial<RuntimeConfig>;
     clock?: Clock;
     providers?: Provider[];
     imports?: NonNullable<ModuleMetadata['imports']>;
@@ -79,6 +89,7 @@ export async function createAuthTestApp(
     let builder = Test.createTestingModule({
         imports: [
             ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }),
+            RuntimeConfigModule,
             MongooseModule.forRoot(process.env.MONGO_TEST_URI as string, {
                 dbName: AUTH_TEST_DB_NAME,
             }),
@@ -103,6 +114,8 @@ export async function createAuthTestApp(
     })
         .overrideProvider(AUTH_CONFIG)
         .useValue(config)
+        .overrideProvider(RUNTIME_CONFIG)
+        .useValue({ ...TEST_RUNTIME, ...options.runtime })
         .overrideProvider(TwitchOAuthClient)
         .useValue(twitch);
     if (options.clock) {

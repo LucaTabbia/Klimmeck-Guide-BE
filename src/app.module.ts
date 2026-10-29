@@ -37,6 +37,7 @@ import { PointOfInterestModule } from './pointsOfInterest/point-of-interest.modu
 import { PushModule } from './push/push.module';
 import { EventSubModule } from './eventsub/eventsub.module';
 import { validateEnv } from './config/env.validation';
+import { RuntimeConfigModule } from './config/runtime-config.module';
 import { AuthModule } from './auth/auth.module';
 import { AuthzModule } from './authz/authz.module';
 import { WsConnectionAuthenticator } from './auth/ws/ws-connection-authenticator';
@@ -49,6 +50,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
             isGlobal: true,
             validate: validateEnv,
         }),
+        RuntimeConfigModule,
         BullModule.forRootAsync({
             inject: [ConfigService],
             useFactory: (config: ConfigService) => ({

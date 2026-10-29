@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import mongoose, { Model } from 'mongoose';
 import { DevAuthStrategy } from 'src/auth/dev/dev-auth.strategy';
 import { AUTH_CONFIG } from 'src/config/auth-config';
+import { RUNTIME_CONFIG } from 'src/config/runtime-config';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument, UserSchema } from 'src/models/user.model';
 import { UsersService } from 'src/users/users.service';
@@ -29,6 +30,14 @@ describe('DevAuthStrategy with a real UsersService (replSet)', () => {
                 UsersService,
                 DevAuthStrategy,
                 { provide: getModelToken(User.name), useValue: UserModel },
+                {
+                    provide: RUNTIME_CONFIG,
+                    useValue: {
+                        mode: 'test',
+                        production: false,
+                        modeDefaulted: false,
+                    },
+                },
                 {
                     provide: AUTH_CONFIG,
                     useValue: buildTestAuthConfig({
