@@ -279,7 +279,7 @@ describe('useSpell (wire)', () => {
         expect(jobIds.size).toBe(1);
     });
 
-    it('answers SPELL_NOT_ACTIVE for a known spell that is not active', async () => {
+    it('answers SPELL_NOT_ACTIVE for a known inactive spell and BAD_USER_INPUT for a malformed spell id (D-02)', async () => {
         const spellId = await dardo();
         const player = await playerWith('twitch-use-inactive', [
             { spell: spellId, usages: 3 },
@@ -290,7 +290,8 @@ describe('useSpell (wire)', () => {
 
         expect(codeOf(inactive)).toBe('SPELL_NOT_ACTIVE');
         expect(messageOf(inactive)).toBe('Magia non attiva');
-        expect(codeOf(malformed)).toBe('SPELL_NOT_ACTIVE');
+        expect(codeOf(malformed)).toBe('BAD_USER_INPUT');
+        expect(messageOf(malformed)).toBe('Input non valido: spellId');
         const state = await stateOf(idOf(player));
         expect(state.usages).toBe(3);
         expect(state.recoveries).toEqual([]);

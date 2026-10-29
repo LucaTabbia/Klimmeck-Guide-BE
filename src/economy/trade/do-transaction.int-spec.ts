@@ -181,6 +181,62 @@ const REJECTIONS: RejectionCase[] = [
     },
 ];
 
+interface ShapeCase {
+    title: string;
+    twitchId: string;
+    code: string;
+    message: string;
+    trade: (catalog: Catalog) => TradeInput;
+}
+
+// regole di forma della pipe globale prima del service (D-02, D-04, C5); lo 0 resta del dominio
+const SHAPE_CASES: ShapeCase[] = [
+    {
+        title: 'rejects a negative quantity with BAD_USER_INPUT before the service (D-04, C5)',
+        twitchId: 'twitch-trade-negative',
+        code: 'BAD_USER_INPUT',
+        message: 'Input non valido: boughtItems.equipAssets.0.quantity',
+        trade: ({ sword }) => ({
+            buyEquip: [asset(sword, -1)],
+            total: coins(0, 0, 0),
+            isTotalPositive: false,
+        }),
+    },
+    {
+        title: 'rejects a malformed item id with BAD_USER_INPUT before the service (D-02, C5)',
+        twitchId: 'twitch-trade-malformed-item',
+        code: 'BAD_USER_INPUT',
+        message: 'Input non valido: boughtItems.equipAssets.0.item',
+        trade: () => ({
+            buyEquip: [{ item: 'abc', quantity: 1 }],
+            total: coins(0, 0, 0),
+            isTotalPositive: false,
+        }),
+    },
+    {
+        title: 'rejects negative coins in the total with BAD_USER_INPUT before the service (D-04, C5)',
+        twitchId: 'twitch-trade-negative-total',
+        code: 'BAD_USER_INPUT',
+        message: 'Input non valido: total.copper',
+        trade: ({ sword }) => ({
+            buyEquip: [asset(sword)],
+            total: coins(0, 1, -50),
+            isTotalPositive: false,
+        }),
+    },
+    {
+        title: 'keeps INVALID_QUANTITY for a zero quantity behind the global pipe (C5)',
+        twitchId: 'twitch-trade-zero',
+        code: 'INVALID_QUANTITY',
+        message: 'Quantità non valida',
+        trade: ({ sword }) => ({
+            buyEquip: [asset(sword, 0)],
+            total: coins(0, 0, 0),
+            isTotalPositive: false,
+        }),
+    },
+];
+
 function codeOf(body: WireBody): unknown {
     return body.errors?.[0]?.extensions?.code;
 }
@@ -324,6 +380,21 @@ describe('doTransaction (wire)', () => {
                 purse,
                 inventory(catalog),
             );
+            const before = await raw(player);
+
+            const body = await doTransaction(player, trade(catalog));
+
+            expect(body.data?.doTransaction ?? null).toBeNull();
+            expect(body.errors?.[0]?.extensions).toEqual({ code });
+            expect(body.errors?.[0]?.message).toBe(message);
+            expect(await raw(player)).toEqual(before);
+        },
+    );
+
+    it.each(SHAPE_CASES)(
+        '$title',
+        async ({ twitchId, code, message, trade }) => {
+            const player = await playerWith(twitchId, coins(0, 5, 0));
             const before = await raw(player);
 
             const body = await doTransaction(player, trade(catalog));

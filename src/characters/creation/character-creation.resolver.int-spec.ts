@@ -428,6 +428,24 @@ describe('CharacterCreationResolver (wire)', () => {
             await expectNothingPersisted(user._id);
         });
 
+        it('keeps the domain codes of the creation behind the global pipe (C4)', async () => {
+            const oneLetter = await create({ ...VALID_INPUT, name: 'A' });
+            const plainHttp = await create({
+                ...VALID_INPUT,
+                imagePath: 'http://cdn.test/image.png',
+            });
+
+            expect(
+                expectDomainError(oneLetter, 'CHARACTER_NAME_INVALID').message,
+            ).toBe(
+                'Nome non valido: da 2 a 20 caratteri tra lettere, spazi, apostrofi e trattini, con almeno una lettera',
+            );
+            expect(expectDomainError(plainHttp, 'BAD_USER_INPUT').message).toBe(
+                "L'immagine deve essere un URL https valido",
+            );
+            await expectNothingPersisted(user._id);
+        });
+
         it('rejects an unknown enum value with BAD_USER_INPUT before the resolver', async () => {
             const response = await graphqlRequest(
                 harness.app,

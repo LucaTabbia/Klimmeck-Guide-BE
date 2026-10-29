@@ -218,6 +218,35 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toBe(1);
         });
 
+        it('ignores the deprecated usages sent by an old client (D-01)', async () => {
+            const dardo = await spellNamed('Dardo', 3);
+            const loadout: Loadout = {
+                xp: 20000,
+                book: [{ spell: dardo, usages: 2 }],
+            };
+            const oldClient = await playerWith('twitch-eq-old-client', loadout);
+            const newClient = await playerWith('twitch-eq-new-client', loadout);
+
+            const withUsages = await equip(oldClient, dardo.toHexString(), {
+                usages: 3,
+            });
+            const withoutUsages = await equip(newClient, dardo.toHexString());
+
+            expect(withUsages).toEqual(withoutUsages);
+            const oldRaw = await rawCharacter(idOf(oldClient));
+            const newRaw = await rawCharacter(idOf(newClient));
+            expect({
+                activeSpells: oldRaw.assets.activeSpells,
+                spellStates: oldRaw.status.spellStates,
+            }).toEqual({
+                activeSpells: newRaw.assets.activeSpells,
+                spellStates: newRaw.status.spellStates,
+            });
+            expect(oldRaw.assets.activeSpells).toEqual([
+                { spell: dardo, usages: 2 },
+            ]);
+        });
+
         it('falls back to the catalog maxUsages when the spell has no state entry', async () => {
             const dardo = await spellNamed('Dardo', 3);
             const player = await playerWith('twitch-eq-no-state', {
@@ -239,7 +268,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             expect(raw.status.spellStates).toEqual([]);
         });
 
-        it('rejects a spell the character does not know with SPELL_NOT_KNOWN', async () => {
+        it('rejects an unknown spell with SPELL_NOT_KNOWN and a malformed spell id with BAD_USER_INPUT (D-02)', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-eq-unknown', {
                 xp: 20000,
@@ -253,7 +282,9 @@ describe('equipSpell / unequipSpell (wire)', () => {
             expect(messageOf(body)).toBe('Magia non conosciuta');
             expect(await rawCharacter(idOf(player))).toEqual(before);
 
-            expect(codeOf(await equip(player, 'abc'))).toBe('SPELL_NOT_KNOWN');
+            const malformed = await equip(player, 'abc');
+            expect(codeOf(malformed)).toBe('BAD_USER_INPUT');
+            expect(messageOf(malformed)).toBe('Input non valido: spellId');
             expect(await rawCharacter(idOf(player))).toEqual(before);
         });
 

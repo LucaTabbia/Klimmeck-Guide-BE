@@ -126,10 +126,18 @@ describe('equipItem (wire)', () => {
         expect(codeOf(body)).toBe('ITEM_NOT_OWNED');
         expect(body.errors?.[0]?.message).toBe('Oggetto non posseduto');
         expect(await rawCharacter(player)).toEqual(before);
+    });
 
-        expect(codeOf(await equip(player, { itemId: 'abc' }))).toBe(
-            'ITEM_NOT_OWNED',
-        );
+    it('rejects a malformed item id with BAD_USER_INPUT (D-02)', async () => {
+        const player = await ownerOfSword('twitch-item-malformed');
+        const before = await rawCharacter(player);
+
+        const body = await equip(player, { itemId: 'abc' });
+
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'BAD_USER_INPUT',
+        });
+        expect(body.errors?.[0]?.message).toBe('Input non valido: itemId');
         expect(await rawCharacter(player)).toEqual(before);
     });
 
