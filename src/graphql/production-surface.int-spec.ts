@@ -191,10 +191,13 @@ describe('GraphQL surface in production (wire)', () => {
         expect(outcome).toEqual({
             errors: [
                 {
-                    message: expect.stringContaining(
-                        'introspection has been disabled',
-                    ) as string,
+                    message: expect.stringContaining('"__schema"') as string,
                     locations: [{ line: 1, column: 3 }],
+                    extensions: { code: 'GRAPHQL_VALIDATION_FAILED' },
+                },
+                {
+                    message: expect.stringContaining('"queryType"') as string,
+                    locations: [{ line: 1, column: 14 }],
                     extensions: { code: 'GRAPHQL_VALIDATION_FAILED' },
                 },
             ],
@@ -273,6 +276,10 @@ describe('GraphQL surface outside production (wire)', () => {
         });
     });
 
+    afterEach(async () => {
+        await harness.clearDatabase();
+    });
+
     afterAll(async () => {
         await harness.close();
     });
@@ -295,6 +302,14 @@ describe('GraphQL surface outside production (wire)', () => {
             requestId: 'probe-dev',
         });
         expect(typo.errors?.[0]?.message).toContain('Did you mean');
+    });
+
+    it('keeps introspection over graphql-ws outside production (D-05)', async () => {
+        const outcome = await overGraphqlWs(harness, INTROSPECTION);
+
+        expect(outcome).toEqual({
+            value: { data: { __schema: { queryType: { name: 'Query' } } } },
+        });
     });
 
     it('keeps the landing page outside production (D-05)', async () => {

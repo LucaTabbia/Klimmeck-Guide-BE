@@ -235,6 +235,12 @@ describe('createGraphQLOptions', () => {
                     locations: [{ line: 1, column: 3 }],
                     extensions: { code: 'GRAPHQL_VALIDATION_FAILED' },
                 },
+                {
+                    message:
+                        'GraphQL introspection has been disabled, but the requested query contained the field "queryType".',
+                    locations: [{ line: 1, column: 14 }],
+                    extensions: { code: 'GRAPHQL_VALIDATION_FAILED' },
+                },
             ]);
         });
 
