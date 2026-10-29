@@ -341,9 +341,10 @@ describe('QuestResolutionSweeper (replSet)', () => {
             ).toBeNull();
         });
 
-        it('backdates a legacy registration without registeredAt to now, once', async () => {
+        it('backdates a legacy registration without registeredAt to now at boot (D-17b)', async () => {
             const waiting = await waitingBoss();
 
+            await sweeper.backfillOnce();
             await expect(sweeper.sweep()).resolves.toEqual(NOTHING_DONE);
 
             const [seat] = (await questOf(waiting)).registeredAdventurers;
