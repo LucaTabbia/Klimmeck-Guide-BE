@@ -8,6 +8,7 @@ import {
     ChangeStreamPublisher,
 } from 'src/mongo/change-stream-publisher';
 import { documentIdOf } from 'src/mongo/document-id';
+import { KeyedSingleFlight } from 'src/mongo/keyed-single-flight';
 import { describeError } from 'src/mongo/mongo-errors';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { UsersService } from 'src/users/users.service';
@@ -22,6 +23,11 @@ const USER_CHANGES = {
 // nessun publish sparso nei service (D-02); gli insert non servono, nessun subscriber esiste prima del primo token
 @Injectable()
 export class UserUpdatesPublisher extends ChangeStreamPublisher<UserDocument> {
+    // una lettura alla volta per utente: l'ultimo evento di una raffica riflette lo stato più recente (WR-01)
+    private readonly publishes = new KeyedSingleFlight((userId) =>
+        this.publishOnce(userId),
+    );
+
     constructor(
         @InjectModel(User.name) userModel: Model<UserDocument>,
         private readonly usersService: UsersService,
@@ -31,12 +37,12 @@ export class UserUpdatesPublisher extends ChangeStreamPublisher<UserDocument> {
     }
 
     protected onChange(change: ChangeStreamEvent): void {
-        void this.publishChange(change.fullDocument);
+        const userId = documentIdOf(change.fullDocument);
+        if (userId) this.publishes.request(userId);
     }
 
-    private async publishChange(fullDocument: unknown): Promise<void> {
-        const userId = documentIdOf(fullDocument);
-        if (!userId) return;
+    private async publishOnce(userId: string): Promise<void> {
+        if (this.stopping) return;
         try {
             const userUpdated = await this.usersService.findOne(userId);
             this.publish('userUpdated', { userUpdated });

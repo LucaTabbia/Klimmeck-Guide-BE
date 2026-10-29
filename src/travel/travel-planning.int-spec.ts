@@ -1,3 +1,4 @@
+import { FAILED_JOBS_KEPT } from 'src/queues/enqueue-trigger';
 import { getQueueToken } from '@nestjs/bull';
 import { INestApplication, Logger } from '@nestjs/common';
 import {
@@ -505,7 +506,7 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
                     jobId,
                     delay: travel.endTime.getTime() - PLANNED_AT.getTime(),
                     removeOnComplete: true,
-                    removeOnFail: false,
+                    removeOnFail: FAILED_JOBS_KEPT,
                 },
             );
         });

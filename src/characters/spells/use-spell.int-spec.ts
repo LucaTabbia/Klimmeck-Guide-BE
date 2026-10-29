@@ -1,3 +1,4 @@
+import { FAILED_JOBS_KEPT } from 'src/queues/enqueue-trigger';
 import { getQueueToken } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Types, type Model } from 'mongoose';
@@ -186,7 +187,7 @@ describe('useSpell (wire)', () => {
                 jobId: `spell-${charId}-${spellId}-${dueAtMs}`,
                 delay: RECOVERY_TIME_MS,
                 removeOnComplete: true,
-                removeOnFail: false,
+                removeOnFail: FAILED_JOBS_KEPT,
             }),
         );
     });

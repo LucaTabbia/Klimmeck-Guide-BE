@@ -1,3 +1,4 @@
+import { FAILED_JOBS_KEPT } from 'src/queues/enqueue-trigger';
 import { getQueueToken } from '@nestjs/bull';
 import { INestApplication, Logger } from '@nestjs/common';
 import {
@@ -1251,7 +1252,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                         jobId: `quest-${hex}-${ACCEPTED_AT.getTime()}`,
                         delay: waitingTime,
                         removeOnComplete: true,
-                        removeOnFail: false,
+                        removeOnFail: FAILED_JOBS_KEPT,
                     },
                 };
             }

@@ -1,3 +1,4 @@
+import { FAILED_JOBS_KEPT } from 'src/queues/enqueue-trigger';
 import { getQueueToken } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
@@ -359,7 +360,7 @@ describe('TravelCompletionService (replSet)', () => {
                         jobId: `quest-${hex}-${END.getTime()}`,
                         delay: END.getTime() + waitingTime - NOW.getTime(),
                         removeOnComplete: true,
-                        removeOnFail: false,
+                        removeOnFail: FAILED_JOBS_KEPT,
                     },
                 },
             ]);

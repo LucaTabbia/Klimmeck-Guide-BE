@@ -1,3 +1,4 @@
+import { FAILED_JOBS_KEPT } from 'src/queues/enqueue-trigger';
 import { Logger } from '@nestjs/common';
 import type { ClientSession } from 'mongoose';
 import { Types } from 'mongoose';
@@ -118,7 +119,7 @@ describe('OutcomeWriter', () => {
                 jobId: `spell-${characterId}-${spellId}-${dueAt.getTime()}`,
                 delay: 5000,
                 removeOnComplete: true,
-                removeOnFail: false,
+                removeOnFail: FAILED_JOBS_KEPT,
             });
         });
 
