@@ -13,10 +13,18 @@ export type ScriptedEffects = Partial<Omit<ParticipantEffects, 'characterId'>>;
 export class ScriptedCombatResolver extends CombatResolver {
     readonly contexts: CombatContext[] = [];
     private verdict: CombatVerdict = 'success';
+    private verdictRule: ((context: CombatContext) => CombatVerdict) | null =
+        null;
     private readonly scripted = new Map<string, ScriptedEffects>();
 
     willEnd(verdict: CombatVerdict): this {
         this.verdict = verdict;
+        return this;
+    }
+
+    // verdetto in funzione del contesto (es. il numero dei combattenti), prevale su willEnd
+    willEndBy(rule: (context: CombatContext) => CombatVerdict): this {
+        this.verdictRule = rule;
         return this;
     }
 
@@ -31,13 +39,14 @@ export class ScriptedCombatResolver extends CombatResolver {
     reset(): void {
         this.contexts.length = 0;
         this.verdict = 'success';
+        this.verdictRule = null;
         this.scripted.clear();
     }
 
     resolve(context: CombatContext): CombatResolution {
         this.contexts.push(context);
         return {
-            verdict: this.verdict,
+            verdict: this.verdictRule?.(context) ?? this.verdict,
             participants: context.participants.map((participant) => {
                 const script = this.scripted.get(participant.characterId) ?? {};
                 return {
