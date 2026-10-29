@@ -328,7 +328,7 @@ Plans:
 - [x] 10-04-PLAN.md — Wave 1 (5): base `ChangeStreamPublisher` che riapre gli stream con backoff 1→30 s e `startAfter`; int-spec di invalidate (BE-HARD-06)
 - [x] 10-05-PLAN.md — Wave 1 (1): dipendenze, `BadUserInputException`, `invalidFieldsOf`, `createValidationPipe`, `@IsObjectIdHex`, `ObjectIdPipe`/`ObjectIdListPipe`, `ValidationModule` non ancora montato (BE-HARD-01)
 - [x] 10-06-PLAN.md — Wave 2 (1): decoratori di sola forma sui 17 input + spec di copertura contro lo schema + regole nominate (BE-HARD-01)
-- [ ] 10-07-PLAN.md — Wave 2 (2): `NODE_ENV` validato (3 valori), `RUNTIME_CONFIG`, `RuntimeModeReporter`, bypass dev letto da config (BE-HARD-02/03)
+- [x] 10-07-PLAN.md — Wave 2 (2): `NODE_ENV` validato (3 valori), `RUNTIME_CONFIG`, `RuntimeModeReporter`, bypass dev letto da config (BE-HARD-02/03)
 - [ ] 10-08-PLAN.md — Wave 3 (1): montaggio globale della pipe in app e harness + RED sul filo dei codici spostati (C5), regressione completa (BE-HARD-01)
 - [ ] 10-09-PLAN.md — Wave 4 (1): id posseduti malformati → `BAD_USER_INPUT` nella policy (C1); `ObjectIdPipe` su `quest`, `questUpdated`, `user`, `getPath` (BE-HARD-01)
 - [ ] 10-10-PLAN.md — Wave 5 (1/2): id del catalogo con pipe + `NOT_FOUND` codificati negli 8 service di catalogo (BE-HARD-01/02)
@@ -390,4 +390,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
-| 10. Hardening Trasversale | 6/31 | In Progress | - |
+| 10. Hardening Trasversale | 7/31 | In Progress | - |
