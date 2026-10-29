@@ -51,6 +51,7 @@ import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.ser
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
 import { QuestResultMaintenance } from 'src/quests/results/quest-result-maintenance';
 import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
+import { SweepIndexVerifier } from 'src/mongo/sweep-index.verifier';
 import { ArchivedCharacterQueueRefresher } from 'src/quests/pending-requests/archived-character-queue.refresher';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import type { TravelConfig } from 'src/config/travel-config';
@@ -713,6 +714,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(CharacterUpdatesPublisher)).toBeInstanceOf(
             CharacterUpdatesPublisher,
         );
+    });
+
+    it('mounts the sweep index verifier', () => {
+        expect(app.get(SweepIndexVerifier)).toBeInstanceOf(SweepIndexVerifier);
     });
 
     it('mounts the archived character queue refresher', () => {
