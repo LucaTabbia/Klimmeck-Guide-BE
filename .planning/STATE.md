@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 10 planned (31 plans, plan-checker passed after one revision) on feat/10-hardening; next /gsd-execute-phase 10
-last_updated: "2026-10-29T16:39:42.000Z"
-last_activity: "2026-10-29 -- Phase 10 planned: research (C1-C22) + context amended + BE-HARD-08 from the FE Phase 10 discuss, 31 plans in 26 waves, plan-checker passed after one revision; ready to execute"
+stopped_at: Phase 10 executing (plan 10-01 in progress) on feat/10-hardening
+last_updated: "2026-10-29T16:54:13.948Z"
+last_activity: "2026-10-29 -- Phase 10 execution started (31 plans, executor opus sequential; FE Phase 10 executing in the same session)"
 progress:
   total_phases: 13
   completed_phases: 12
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 10 — Hardening Trasversale — PLANNED (2026-10-29) on `feat/10-hardening` (rebased on `develop` `8f30d1d`): 31 plans / 26 sequential waves — 1a coda del GM e corsia standard (BE-HARD-08, dal discuss della FE Phase 10), 1 validazione + `BAD_USER_INPUT`, 2 superficie di produzione + throttler, 3 secret/env/CI, 4 moderazione Sightengine, 5 resilienza + indici + bug di schema + BE-HARD-07, 6 refactor, 7 coverage, 8 ref `Mixed` con gate proprio (10-29), 9 handoff + gate finale (10-30/10-31). Decisioni dell'utente dopo la ricerca: sweep delle morti rinviato, `THROTTLE_TRUST_PROXY` opzionale spenta, staging = production, `face-age` solo volti reali. La PR di questa fase sblocca il piano gated 10-11 della FE Phase 10. Precedente: Phase 9.2 — Quest Result Delivery Contract — COMPLETE e mergiata (PR #15, 2026-10-29).
+**Current focus:** Phase 10 — Hardening Trasversale — EXECUTING since 2026-10-29 on `feat/10-hardening` (rebased on `develop` `8f30d1d`): 31 plans / 26 sequential waves — 1a coda del GM e corsia standard (BE-HARD-08, dal discuss della FE Phase 10), 1 validazione + `BAD_USER_INPUT`, 2 superficie di produzione + throttler, 3 secret/env/CI, 4 moderazione Sightengine, 5 resilienza + indici + bug di schema + BE-HARD-07, 6 refactor, 7 coverage, 8 ref `Mixed` con gate proprio (10-29), 9 handoff + gate finale (10-30/10-31). Decisioni dell'utente dopo la ricerca: sweep delle morti rinviato, `THROTTLE_TRUST_PROXY` opzionale spenta, staging = production, `face-age` solo volti reali. La PR di questa fase sblocca il piano gated 10-11 della FE Phase 10. Precedente: Phase 9.2 — Quest Result Delivery Contract — COMPLETE e mergiata (PR #15, 2026-10-29).
 
 ## Current Position
 
-Phase: 10 (Hardening Trasversale) — PLANNED 2026-10-29 on `feat/10-hardening`: 31 plans in 26 sequential waves (details in `.planning/phases/10-hardening-trasversale/10-*-PLAN.md`), research + context amendments + BE-HARD-08 in the same session
+Phase: 10 (Hardening Trasversale) — EXECUTING since 2026-10-29 on `feat/10-hardening`: 31 plans in 26 sequential waves (details in `.planning/phases/10-hardening-trasversale/10-*-PLAN.md`)
 Plan: 0 of 31
-Status: Phase 10 planned — 31 plans passed the plan-checker (one revision), ready to execute with `/gsd-execute-phase 10`
-Last activity: 2026-10-29 -- Phase 10 research, context amended after the research and the FE Phase 10 discuss (D-23/D-24, BE-HARD-08), validation strategy, 31 plans written and checked; ROADMAP plan list and Progress row 0/31 written
+Status: Executing Phase 10 — plan 10-01 in progress (executor opus, sequential, main working tree)
+Last activity: 2026-10-29 -- Phase 10 execution started (31 plans, executor opus sequential; FE Phase 10 executing in the same session)
 
 Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 complete; 10 to plan after the 9.2 merge)
 
