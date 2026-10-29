@@ -36,6 +36,12 @@ describe('validateEnv', () => {
         );
     });
 
+    it('refuses a malformed throttle limit at boot (D-08)', () => {
+        expect(() =>
+            validateEnv({ JWT_SECRET: VALID_SECRET, THROTTLE_LIMIT: '0' }),
+        ).toThrow(new Error('THROTTLE_LIMIT must be a positive integer'));
+    });
+
     it('throws when JWT_SECRET is missing', () => {
         expect(() => validateEnv({ PORT: '3000' })).toThrow(/JWT_SECRET/);
     });
