@@ -7,7 +7,7 @@ stopped_at: Phase 10 executing (plan 10-01 in progress) on feat/10-hardening
 last_updated: "2026-10-29T16:54:13.948Z"
 last_activity: "2026-10-29 -- Phase 10 execution started (31 plans, executor opus sequential; FE Phase 10 executing in the same session)"
 progress:
-  total_phases: 13
+  total_phases: 19
   completed_phases: 12
   total_plans: 145
   completed_plans: 114
@@ -141,6 +141,7 @@ Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 compl
 - Phase 02.1 inserted after Phase 2: Character Creation Contract (URGENT) — 2026-10-09, richiesto dalla FE Phase 2 (nessuna mutation di creazione personaggio esisteva); branch `feat/02.1-character-creation-contract`
 - Phase 03.1 inserted after Phase 3: Character Deletion Contract (URGENT) — 2026-10-15, richiesto dalla FE Phase 4 (SET-05: cancellazione esplicita del personaggio dalle impostazioni; nessuna mutation di cancellazione esisteva); branch `feat/03.1-character-deletion-contract`
 - Phase 09.2 inserted after Phase 9.1: Quest Result Delivery Contract — 2026-10-27, richiesto dalla FE Phase 9 (COMBAT-09/10: risultati non confermati + ack, posti delle quest avviate mantenuti dall'archivio); branch `feat/09.2-quest-result-delivery-contract`; la Phase 10 si sposta sopra (stacked)
+- Phases 11–16 added 2026-10-29 (user request, before closing v1.0): 11 Popolamento del mondo (contenuto dal documento `World building.docx`, script idempotente, intake delle voci nuove dell'utente), 12 Negozi per città (↔ FE 13), 13 Generazione quest con `infos.enemies` al posto di `infos.enemy` (↔ FE 14), 14 Viaggio e cibo (↔ FE 15), 15 Imboscate in viaggio (↔ FE 16), 16 Lore sbloccabili (↔ FE 17). Ordine deciso dall'utente 11 → 16; contratti del discuss del 2026-10-29 nei dettagli di fase della ROADMAP. Scritte sul branch `docs/v1-world-phases` (worktree) mentre l'executor della Phase 10 girava su `feat/10-hardening`: da riportare su quel branch (cherry-pick) prima della sua PR.
 
 ### Decisions
 
