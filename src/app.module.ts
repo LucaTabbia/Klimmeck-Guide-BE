@@ -38,6 +38,8 @@ import { PushModule } from './push/push.module';
 import { EventSubModule } from './eventsub/eventsub.module';
 import { validateEnv } from './config/env.validation';
 import { RuntimeConfigModule } from './config/runtime-config.module';
+import { RUNTIME_CONFIG } from './config/runtime-config';
+import type { RuntimeConfig } from './config/runtime-config';
 import { AuthModule } from './auth/auth.module';
 import { AuthzModule } from './authz/authz.module';
 import { ValidationModule } from './validation/validation.module';
@@ -69,13 +71,15 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         GraphQLModule.forRootAsync<ApolloDriverConfig>({
             driver: ApolloDriver,
             imports: [AuthModule],
-            inject: [WsConnectionAuthenticator],
+            inject: [WsConnectionAuthenticator, RUNTIME_CONFIG],
             useFactory: (
                 wsConnectionAuthenticator: WsConnectionAuthenticator,
+                runtime: RuntimeConfig,
             ) =>
                 createGraphQLOptions(
                     wsConnectionAuthenticator,
                     join(process.cwd(), 'src/schema.gql'),
+                    { production: runtime.production },
                 ),
         }),
         UsersModule,

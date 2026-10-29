@@ -103,7 +103,10 @@ export async function createAuthTestApp(
                 inject: [WsConnectionAuthenticator],
                 useFactory: (
                     wsConnectionAuthenticator: WsConnectionAuthenticator,
-                ) => createGraphQLOptions(wsConnectionAuthenticator, true),
+                ) =>
+                    createGraphQLOptions(wsConnectionAuthenticator, true, {
+                        production: options.runtime?.production ?? false,
+                    }),
             }),
             ...(options.imports ?? []),
         ],
