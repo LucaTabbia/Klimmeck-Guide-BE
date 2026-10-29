@@ -10,6 +10,7 @@ import {
 } from 'src/authz/ownership/owned-resource';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { BadUserInputException } from 'src/validation/bad-user-input.exception';
 
 const OWN_ID = '64b000000000000000000001';
 const FOREIGN_ID = '64b000000000000000000002';
@@ -228,12 +229,12 @@ describe('CharacterAccessPolicy', () => {
             ['abc', RoleType.innkeeper],
             ['aaaaaaaaaaaa', RoleType.innkeeper],
         ])(
-            'reports the malformed id %s as not found for %s without reading',
+            'reports the malformed id %s as bad input for %s without reading (D-02)',
             async (id, role) => {
                 await expect(
                     policy.authorizeCharacter(buildIdentity(role), id),
                 ).rejects.toMatchObject({
-                    code: AuthorizationErrorCode.NOT_FOUND,
+                    extensions: { code: 'BAD_USER_INPUT' },
                 });
                 expect(userModel.findById).not.toHaveBeenCalled();
                 expect(characterModel.exists).not.toHaveBeenCalled();
@@ -338,12 +339,12 @@ describe('CharacterAccessPolicy', () => {
         });
 
         it.each([RoleType.adventurer, RoleType.innkeeper])(
-            'reports a malformed id as not found for %s without reading',
+            'reports a malformed id as bad input for %s without reading (D-02)',
             async (role) => {
                 await expect(
                     policy.authorizePendingQuest(buildIdentity(role), 'abc'),
                 ).rejects.toMatchObject({
-                    code: AuthorizationErrorCode.NOT_FOUND,
+                    extensions: { code: 'BAD_USER_INPUT' },
                 });
                 expect(userModel.findById).not.toHaveBeenCalled();
                 expect(characterModel.findOne).not.toHaveBeenCalled();
@@ -362,10 +363,12 @@ describe('CharacterAccessPolicy', () => {
     });
 
     describe('authorizeQuestResult', () => {
-        it('reports a malformed id as not found without reading', async () => {
+        it('reports a malformed id as bad input without reading (D-02)', async () => {
             await expect(
                 policy.authorizeQuestResult(buildIdentity(), 'not-an-id'),
-            ).rejects.toMatchObject({ code: AuthorizationErrorCode.NOT_FOUND });
+            ).rejects.toMatchObject({
+                extensions: { code: 'BAD_USER_INPUT' },
+            });
             expect(questResultModel.findById).not.toHaveBeenCalled();
         });
 
@@ -416,6 +419,34 @@ describe('CharacterAccessPolicy', () => {
             },
         );
     });
+
+    it.each(['abc', '64B000000000000000000001'])(
+        'answers BAD_USER_INPUT for a malformed character, pending quest or result id: %s (D-02, C1)',
+        async (id) => {
+            const identity = buildIdentity(RoleType.innkeeper);
+            const attempts = [
+                () => policy.authorizeCharacter(identity, id),
+                () => policy.authorizePendingQuest(identity, id),
+                () => policy.authorizeQuestResult(identity, id),
+            ];
+
+            for (const attempt of attempts) {
+                const rejection = attempt();
+                await expect(rejection).rejects.toBeInstanceOf(
+                    BadUserInputException,
+                );
+                await expect(rejection).rejects.toMatchObject({
+                    extensions: { code: 'BAD_USER_INPUT' },
+                    message: 'Input non valido: id',
+                });
+            }
+            expect(userModel.findById).not.toHaveBeenCalled();
+            expect(characterModel.exists).not.toHaveBeenCalled();
+            expect(characterModel.findOne).not.toHaveBeenCalled();
+            expect(pendingQuestModel.exists).not.toHaveBeenCalled();
+            expect(questResultModel.findById).not.toHaveBeenCalled();
+        },
+    );
 
     describe('authorize', () => {
         it('delegates the quest result resource to authorizeQuestResult', async () => {

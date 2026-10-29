@@ -167,15 +167,29 @@ describe('Users perimeter (innkeeper-only reads, no client writes)', () => {
             );
         });
 
-        it('answers a typed NOT_FOUND for a malformed id', async () => {
+        it('answers BAD_USER_INPUT for a malformed id (D-02)', async () => {
+            const response = await graphqlRequest(
+                harness.app,
+                USER,
+                { id: 'abc' },
+                oste.bearer,
+            );
+
+            expectRejected(response, { code: 'BAD_USER_INPUT' });
+            expect(bodyOf(response).errors?.[0]?.message).toBe(
+                'Input non valido: id',
+            );
+        });
+
+        it('forbids an adventurer before validating the id', async () => {
             expectRejected(
                 await graphqlRequest(
                     harness.app,
                     USER,
                     { id: 'abc' },
-                    oste.bearer,
+                    adventurer.bearer,
                 ),
-                { code: 'NOT_FOUND' },
+                { code: 'FORBIDDEN' },
             );
         });
     });

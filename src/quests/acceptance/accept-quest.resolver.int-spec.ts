@@ -597,8 +597,8 @@ describe('acceptQuest (wire)', () => {
         },
         {
             name: 'a malformed character id',
-            code: 'NOT_FOUND',
-            message: 'Personaggio non trovato',
+            code: 'BAD_USER_INPUT',
+            message: 'Input non valido: id',
             arrange: async () => {
                 const player = await playerWith('malformed-character');
                 return {

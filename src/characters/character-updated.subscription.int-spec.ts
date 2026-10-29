@@ -205,7 +205,7 @@ describe('characterUpdated subscription (wire)', () => {
         expect(error.extensions).toEqual({ code: 'FORBIDDEN' });
     });
 
-    it('rejects a missing or malformed character id with NOT_FOUND', async () => {
+    it('rejects a missing id with NOT_FOUND and a malformed one with BAD_USER_INPUT (D-02)', async () => {
         const missing = await expectRejection(
             subscribeTo(bruno.bearer, '64b0000000000000000000ff'),
         );
@@ -214,7 +214,8 @@ describe('characterUpdated subscription (wire)', () => {
         const malformed = await expectRejection(
             subscribeTo(bruno.bearer, 'abc'),
         );
-        expect(malformed.extensions).toEqual({ code: 'NOT_FOUND' });
+        expect(malformed.extensions).toEqual({ code: 'BAD_USER_INPUT' });
+        expect(malformed.message).toBe('Input non valido: id');
     });
 
     it('lets the innkeeper follow any character', async () => {

@@ -249,14 +249,36 @@ describe('Character ownership on mutations and queries (wire)', () => {
     );
 
     it.each(OPERATIONS)(
-        '$name answers a typed NOT_FOUND to the adventurer for unknown or malformed ids',
+        '$name answers a typed NOT_FOUND to the adventurer for an unknown id',
         async (operation) => {
-            for (const id of [MISSING_CHARACTER_ID, MALFORMED_CHARACTER_ID]) {
-                const response = await run(operation, id, bruno.bearer);
+            const response = await run(
+                operation,
+                MISSING_CHARACTER_ID,
+                bruno.bearer,
+            );
+
+            expect(firstErrorOf(response)?.extensions).toEqual({
+                code: 'NOT_FOUND',
+            });
+        },
+    );
+
+    it.each(OPERATIONS)(
+        '$name answers BAD_USER_INPUT for a malformed id (D-02, C1)',
+        async (operation) => {
+            for (const bearer of [bruno.bearer, oste.bearer]) {
+                const response = await run(
+                    operation,
+                    MALFORMED_CHARACTER_ID,
+                    bearer,
+                );
 
                 expect(firstErrorOf(response)?.extensions).toEqual({
-                    code: 'NOT_FOUND',
+                    code: 'BAD_USER_INPUT',
                 });
+                expect(firstErrorOf(response)?.message).toBe(
+                    'Input non valido: id',
+                );
             }
         },
     );

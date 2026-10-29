@@ -114,9 +114,10 @@ describe('Quest result ownership (owning user only)', () => {
         });
     });
 
-    it('reports a malformed id as not found', async () => {
+    it('reports a malformed id as bad input (D-02)', async () => {
         await expect(authorize(alice, 'not-an-id')).rejects.toMatchObject({
-            extensions: { code: 'NOT_FOUND' },
+            extensions: { code: 'BAD_USER_INPUT' },
+            message: 'Input non valido: id',
         });
     });
 
