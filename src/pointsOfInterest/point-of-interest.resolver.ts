@@ -1,7 +1,7 @@
-import { Resolver, Query, Args, Mutation } from '@nestjs/graphql';
-import { AssetQuantity } from 'src/models/common/asset-quantity.model';
+import { Resolver, Query, Args } from '@nestjs/graphql';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { PointOfInterestsService } from './point-of-interest.service';
+import { ObjectIdPipe } from 'src/validation/object-id.pipe';
 
 @Resolver(() => PointOfInterest)
 export class PointOfInterestsResolver {
@@ -13,7 +13,9 @@ export class PointOfInterestsResolver {
     }
 
     @Query(() => PointOfInterest)
-    async pointOfInterest(@Args('id') id: string): Promise<PointOfInterest> {
+    async pointOfInterest(
+        @Args('id', ObjectIdPipe) id: string,
+    ): Promise<PointOfInterest> {
         return await this.pointOfInterestsService.findOne(id);
     }
 }

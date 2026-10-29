@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { Enemy, EnemyDocument } from 'src/models/enemy.model';
 
 @Injectable()
@@ -15,8 +16,7 @@ export class EnemiesService {
 
     async findOne(id: string): Promise<Enemy> {
         const enemy = await this.enemyModel.findById(id).exec();
-        if (!enemy)
-            throw new NotFoundException(`Enemy with id ${id} not found`);
+        if (!enemy) throw ResourceNotFoundException.enemy();
         return enemy;
     }
 }

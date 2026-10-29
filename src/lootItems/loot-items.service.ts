@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { AssetQuantity } from 'src/models/common/asset-quantity.model';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 
@@ -16,7 +17,7 @@ export class LootItemsService {
     }
 
     async findAllAssetsQuantity(): Promise<AssetQuantity[]> {
-        let loots = await this.lootItemModel.find().exec();
+        const loots = await this.lootItemModel.find().exec();
 
         const assetsQuantity: AssetQuantity[] = loots.map((loot) => ({
             itemType: 'LootItem',
@@ -29,8 +30,7 @@ export class LootItemsService {
 
     async findOne(id: string): Promise<LootItem> {
         const lootItem = await this.lootItemModel.findById(id).exec();
-        if (!lootItem)
-            throw new NotFoundException(`LootItem with id ${id} not found`);
+        if (!lootItem) throw ResourceNotFoundException.lootItem();
         return lootItem;
     }
 

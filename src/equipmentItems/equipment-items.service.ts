@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { AssetQuantity } from 'src/models/common/asset-quantity.model';
 import {
     EquipmentItem,
@@ -30,7 +31,7 @@ export class EquipmentItemsService {
             query = query.where({ sellable: true });
         }
 
-        let equipments = await query.populate('addedSpell').exec();
+        const equipments = await query.populate('addedSpell').exec();
 
         const assetsQuantity: AssetQuantity[] = equipments.map((equip) => ({
             itemType: 'EquipmentItem',
@@ -46,10 +47,7 @@ export class EquipmentItemsService {
             .findById(id)
             .populate('addedSpell')
             .exec();
-        if (!equipmentItem)
-            throw new NotFoundException(
-                `EquipmentItem with id ${id} not found`,
-            );
+        if (!equipmentItem) throw ResourceNotFoundException.equipmentItem();
         return equipmentItem;
     }
 

@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import {
     PointOfInterest,
     PointOfInterestDocument,
@@ -21,10 +22,7 @@ export class PointOfInterestsService {
         const pointOfInterest = await this.pointOfInterestModel
             .findById(id)
             .exec();
-        if (!pointOfInterest)
-            throw new NotFoundException(
-                `PointOfInterest with id ${id} not found`,
-            );
+        if (!pointOfInterest) throw ResourceNotFoundException.pointOfInterest();
         return pointOfInterest;
     }
 }

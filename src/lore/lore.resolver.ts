@@ -1,6 +1,7 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { Lore } from 'src/models/lore.model';
 import { LoreService } from './lore.service';
+import { ObjectIdPipe } from 'src/validation/object-id.pipe';
 
 @Resolver(() => Lore)
 export class LoreResolver {
@@ -12,7 +13,7 @@ export class LoreResolver {
     }
 
     @Query(() => Lore)
-    async lore(@Args('id') id: string): Promise<Lore> {
+    async lore(@Args('id', ObjectIdPipe) id: string): Promise<Lore> {
         return this.loresService.findOne(id);
     }
 }

@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { City } from 'src/models/city.model';
 
 @Injectable()
@@ -27,7 +28,7 @@ export class CitiesService {
             .exec();
 
         if (!city) {
-            throw new NotFoundException(`City with id ${id} not found`);
+            throw ResourceNotFoundException.city();
         }
         return city;
     }
