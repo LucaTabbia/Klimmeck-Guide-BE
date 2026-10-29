@@ -26,6 +26,16 @@ describe('validateEnv', () => {
         expect(validateEnv(env)).toBe(env);
     });
 
+    it('refuses to boot with an unknown NODE_ENV (D-05)', () => {
+        expect(() =>
+            validateEnv({ JWT_SECRET: VALID_SECRET, NODE_ENV: 'staging' }),
+        ).toThrow(
+            new Error(
+                'NODE_ENV must be one of development, test, production (staging uses production)',
+            ),
+        );
+    });
+
     it('throws when JWT_SECRET is missing', () => {
         expect(() => validateEnv({ PORT: '3000' })).toThrow(/JWT_SECRET/);
     });
