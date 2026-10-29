@@ -310,7 +310,7 @@ Plans:
 
 ### Phase 10: Hardening Trasversale
 **Goal**: Hardening trasversale — validazione input, introspection off/CORS/error sanitization in prod, igiene dei secret, e coverage di test sulle aree critiche.
-**Depends on**: Phases 2-9.2 (indurisce le superfici che aggiungono; branch stacked su `feat/09.2-quest-result-delivery-contract` dal 2026-10-27, prima su `feat/09.1-spell-state-and-recovery-contract`, mergiata)
+**Depends on**: Phases 2-9.2 (indurisce le superfici che aggiungono; branch `feat/10-hardening` rebasato su `develop` il 2026-10-29 dopo la merge della 9.2 con la PR #15; in precedenza stacked su 9.1 e 9.2)
 **Requirements**: BE-HARD-01, BE-HARD-02, BE-HARD-03, BE-HARD-04, BE-HARD-05, BE-HARD-06
 **Success Criteria** (what must be TRUE):
   1. Tutti gli input GraphQL/REST sono validati da class-validator + `ValidationPipe` globale: ID Mongo invalidi, quantità negative e stringhe fuori lunghezza sono rifiutati prima di raggiungere un service.

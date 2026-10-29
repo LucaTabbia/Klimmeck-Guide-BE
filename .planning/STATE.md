@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 9.2 complete (2026-10-28), PR feat/09.2-quest-result-delivery-contract -> develop open; Phase 10 (feat/10-hardening, stacked on 9.2) to rebase and plan after the merge
-last_updated: "2026-10-27T23:52:36.000Z"
-last_activity: "2026-10-28 -- Phase 9.2 complete: 7/7 plans, review 0 CR / 1 WR / 5 IN fixed, verification passed 6/6, security verified 34/34 (27 mitigated, 6 accepted, 1 transferred, 0 open); PR to develop open, FE Phase 9 gated plans unblocked after the merge"
+stopped_at: Phase 9.2 merged on develop (PR #15, 2026-10-29, merge 8f30d1d); feat/10-hardening rebased on develop, Phase 10 ready to plan (/gsd-plan-phase 10)
+last_updated: "2026-10-29T08:01:37.000Z"
+last_activity: "2026-10-29 -- PR #15 (Phase 9.2) merged on develop; feat/10-hardening rebased on the merge commit 8f30d1d (one ROADMAP bullet conflict resolved); Phase 10 ready to plan"
 progress:
   total_phases: 13
   completed_phases: 12
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 10 — Hardening Trasversale — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2: to rebase on `develop` after the 9.2 merge, then `/gsd-plan-phase 10` (ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9/9.2 deferred debts incl. `Mixed` refs, backfill scan, sweep for never-confirmed deaths, Sightengine image moderation fail-closed). Precedente: Phase 9.2 — Quest Result Delivery Contract — COMPLETE (2026-10-28: lista dei non confermati, conferma idempotente, segnaposto sulle quest avviate, il morto resta corrente fino alla conferma; PR `feat/09.2-quest-result-delivery-contract` → `develop` open, to merge BEFORE the FE Phase 9 gated plans 09-12/09-13).
+**Current focus:** Phase 10 — Hardening Trasversale — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, rebased on `develop` (9.2 merged with PR #15 on 2026-10-29): next `/gsd-plan-phase 10` (ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9/9.2 deferred debts incl. `Mixed` refs, backfill scan, sweep for never-confirmed deaths, Sightengine image moderation fail-closed). Precedente: Phase 9.2 — Quest Result Delivery Contract — COMPLETE (2026-10-28: lista dei non confermati, conferma idempotente, segnaposto sulle quest avviate, il morto resta corrente fino alla conferma; PR `feat/09.2-quest-result-delivery-contract` → `develop` open, to merge BEFORE the FE Phase 9 gated plans 09-12/09-13).
 
 ## Current Position
 
-Phase: 9.2 (Quest Result Delivery Contract) — COMPLETE (2026-10-28): 7/7 plans, PR `feat/09.2-quest-result-delivery-contract` → `develop` open; next Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2
+Phase: 9.2 (Quest Result Delivery Contract) — COMPLETE and MERGED (PR #15, 2026-10-29, develop `8f30d1d`); next Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, rebased on `develop` 2026-10-29, ready to plan
 Plan: 7 of 7
-Status: Phase 9.2 complete — awaiting the PR merge; Phase 10 ready to plan after rebasing `feat/10-hardening` on `develop`
-Last activity: 2026-10-28 -- Phase 9.2 complete: 7/7 plans, review 0 CR / 1 WR / 5 IN fixed, verification passed 6/6, security verified 34/34 (27 mitigated, 6 accepted, 1 transferred, 0 open); PR to develop open, FE Phase 9 gated plans unblocked after the merge
+Status: Phase 10 ready to plan — `feat/10-hardening` rebased on `develop` (with 9.2); run `/gsd-plan-phase 10`; the FE Phase 9 gated plans (09-12/09-13) run against develop `8f30d1d`
+Last activity: 2026-10-29 -- PR #15 (Phase 9.2) merged on develop; feat/10-hardening rebased on the merge commit 8f30d1d; Phase 10 ready to plan
 
 Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 complete; 10 to plan after the 9.2 merge)
 
