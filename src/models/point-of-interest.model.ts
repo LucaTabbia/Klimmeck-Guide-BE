@@ -12,7 +12,7 @@ export class PointOfInterest {
     id: string;
 
     @Field(() => [PoiType])
-    @Prop({ type: String, enum: Object.values(PoiType) })
+    @Prop({ type: [String], enum: Object.values(PoiType), default: [] })
     type: PoiType[];
 
     @Field(() => [Float, Float])

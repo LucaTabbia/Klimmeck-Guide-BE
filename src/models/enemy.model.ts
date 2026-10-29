@@ -1,9 +1,9 @@
-import { ObjectType, Field, Int, ID, InputType, Float } from '@nestjs/graphql';
+import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { EnergyType } from './enums/energy-type.enum';
 import { DamageType } from './enums/damage-type.enum';
-import { SpellSchema, Spell, SpellInput } from './spell.model';
+import { SpellSchema, Spell } from './spell.model';
 import { Damages, DamagesInput, DamagesSchema } from './common/damages.model';
 import { Lore, LoreInput } from './lore.model';
 import { PoiType } from './enums/poi-type.enum';
@@ -19,7 +19,7 @@ export class Enemy {
     name: string;
 
     @Field(() => [PoiType])
-    @Prop({ type: String, enum: Object.values(PoiType) })
+    @Prop({ type: [String], enum: Object.values(PoiType), default: [] })
     locations: PoiType[];
 
     @Field(() => [String])
