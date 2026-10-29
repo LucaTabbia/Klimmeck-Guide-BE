@@ -36,6 +36,14 @@ export class PendingQuest {
 export type PendingQuestDocument = PendingQuest & Document;
 export const PendingQuestSchema = SchemaFactory.createForClass(PendingQuest);
 
+export const PENDING_QUEST_LANE_DATES_INDEX = 'pending_quest_lane_dates';
+
+// serve gli arrivati non ancora avviati e le letture di corsia (D-17b)
+PendingQuestSchema.index(
+    { quest: 1, startDate: 1, arrivedAt: 1 },
+    { name: PENDING_QUEST_LANE_DATES_INDEX },
+);
+
 @InputType()
 export class PendingQuestInput {
     @Field(() => ID, { nullable: true })

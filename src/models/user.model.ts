@@ -33,3 +33,11 @@ export const UserSchema = SchemaFactory.createForClass(User).set(
     'versionKey',
     false,
 );
+
+export const USER_CURRENT_CHARACTER_INDEX = 'user_current_character';
+
+// serve la ricerca dei proprietari dei personaggi e la notifica del proprietario (D-17b)
+UserSchema.index(
+    { currentCharacter: 1 },
+    { name: USER_CURRENT_CHARACTER_INDEX },
+);
