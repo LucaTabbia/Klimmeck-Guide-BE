@@ -10,6 +10,7 @@ import {
     DEFAULT_THROTTLER,
     WEBHOOK_THROTTLER,
 } from 'src/throttling/throttled.decorator';
+import { TrustProxyConfigurer } from 'src/throttling/trust-proxy.configurer';
 
 @Module({
     providers: [throttleConfigProvider],
@@ -41,7 +42,7 @@ export class ThrottleConfigModule {}
         }),
         ThrottleConfigModule,
     ],
-    providers: [AppThrottlerGuard],
+    providers: [AppThrottlerGuard, TrustProxyConfigurer],
     exports: [AppThrottlerGuard, ThrottleConfigModule],
 })
 export class ThrottlingModule {}
