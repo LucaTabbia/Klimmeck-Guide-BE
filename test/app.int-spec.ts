@@ -23,6 +23,7 @@ import {
 import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
 import { WalletService } from 'src/economy/wallet.service';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
+import { UnhandledExceptionFilter } from 'src/http/unhandled-exception.filter';
 import { PushService } from 'src/push/push.service';
 import { NoopPushTransport } from 'src/push/transport/noop-push-transport';
 import { PushTransport } from 'src/push/transport/push-transport';
@@ -288,6 +289,41 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             .get('/')
             .expect(200)
             .expect('Hello World!');
+    });
+
+    it('tags every HTTP response with a request id (D-07)', async () => {
+        const generated = await request(app.getHttpServer()).get('/');
+        const echoed = await request(app.getHttpServer())
+            .get('/')
+            .set('x-request-id', 'boot-1');
+
+        expect(generated.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
+        expect(echoed.headers['x-request-id']).toBe('boot-1');
+    });
+
+    it('sends no CORS headers (D-06)', async () => {
+        const response = await request(app.getHttpServer())
+            .options(GRAPHQL_PATH)
+            .set('Origin', 'https://evil.example')
+            .set('Access-Control-Request-Method', 'POST');
+
+        expect(response.headers['access-control-allow-origin']).toBeUndefined();
+    });
+
+    it('mounts the REST error filter', () => {
+        expect(
+            providerInstancesOf(app).some(
+                (instance) => instance instanceof UnhandledExceptionFilter,
+            ),
+        ).toBe(true);
+    });
+
+    it('mounts the request id middleware without the legacy route path warning', () => {
+        const legacyWarnings = warnSpy.mock.calls.filter(([message]) =>
+            /Unsupported route path/.test(String(message)),
+        );
+
+        expect(legacyWarnings).toEqual([]);
     });
 
     it('redirects the Twitch login start to the not-configured app error', async () => {

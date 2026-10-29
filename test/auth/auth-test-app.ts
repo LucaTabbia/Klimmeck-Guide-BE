@@ -1,5 +1,5 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { INestApplication, Provider } from '@nestjs/common';
+import { INestApplication, Provider, Type } from '@nestjs/common';
 import type { InjectionToken, ModuleMetadata } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -46,6 +46,7 @@ export interface AuthTestAppOptions {
     runtime?: Partial<RuntimeConfig>;
     clock?: Clock;
     providers?: Provider[];
+    controllers?: Type[];
     imports?: NonNullable<ModuleMetadata['imports']>;
     overrides?: ProviderOverride[];
 }
@@ -110,7 +111,11 @@ export async function createAuthTestApp(
             }),
             ...(options.imports ?? []),
         ],
-        controllers: [AppController, CloudinaryController],
+        controllers: [
+            AppController,
+            CloudinaryController,
+            ...(options.controllers ?? []),
+        ],
         providers: [
             AppService,
             { provide: CloudinaryService, useValue: cloudinary },
