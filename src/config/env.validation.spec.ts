@@ -110,8 +110,30 @@ describe('validateEnv', () => {
                     TWITCH_EVENTSUB_CALLBACK_URL:
                         'https://api.klimmeck.test/webhooks/twitch/eventsub',
                     TWITCH_BROADCASTER_ID: '11111',
+                    SIGHTENGINE_USER_ID: 'fake-user',
+                    SIGHTENGINE_API_SECRET: 'fake-secret',
                 }),
             ).not.toThrow();
+        });
+
+        it('refuses to boot in production without the Sightengine keys (D-14)', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    NODE_ENV: 'production',
+                    FIREBASE_SERVICE_ACCOUNT: encoded,
+                    TWITCH_CLIENT_ID: 'client-id',
+                    TWITCH_CLIENT_SECRET: 'client-secret',
+                    TWITCH_EVENTSUB_SECRET: EVENTSUB_SECRET,
+                    TWITCH_EVENTSUB_CALLBACK_URL:
+                        'https://api.klimmeck.test/webhooks/twitch/eventsub',
+                    TWITCH_BROADCASTER_ID: '11111',
+                }),
+            ).toThrow(
+                new Error(
+                    'SIGHTENGINE_USER_ID and SIGHTENGINE_API_SECRET are required when NODE_ENV=production',
+                ),
+            );
         });
 
         it('rejects the partial local EventSub configuration (secret and broadcaster without callback)', () => {

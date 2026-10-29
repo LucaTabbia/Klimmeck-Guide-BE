@@ -275,6 +275,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             THROTTLE_TTL_MS: '',
             THROTTLE_LIMIT: '',
             THROTTLE_TRUST_PROXY: '',
+            // Pitfall 11: un .env locale con chiavi Sightengine reali non deve accendere la moderazione (D-14)
+            SIGHTENGINE_USER_ID: '',
+            SIGHTENGINE_API_SECRET: '',
         });
         // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
         const { AppModule } =
