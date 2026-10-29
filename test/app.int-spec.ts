@@ -51,6 +51,7 @@ import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.ser
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
 import { QuestResultMaintenance } from 'src/quests/results/quest-result-maintenance';
 import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
+import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
 import { SweepIndexVerifier } from 'src/mongo/sweep-index.verifier';
 import { ArchivedCharacterQueueRefresher } from 'src/quests/pending-requests/archived-character-queue.refresher';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
@@ -713,6 +714,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     it('mounts the character updates publisher', () => {
         expect(app.get(CharacterUpdatesPublisher)).toBeInstanceOf(
             CharacterUpdatesPublisher,
+        );
+    });
+
+    it('mounts the pending quest start publisher', () => {
+        expect(app.get(PendingQuestStartPublisher)).toBeInstanceOf(
+            PendingQuestStartPublisher,
         );
     });
 

@@ -34,6 +34,7 @@ import {
 import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
+import { QuestStartService } from 'src/quests/party/quest-start.service';
 import { TRAVEL_QUEUE, travelJobId } from 'src/travel/travel-job';
 import { BASE_SPEED, durationMsOf } from 'src/travel/travel-timing';
 import { FixedClock } from '../../../test/auth/fixed-clock';
@@ -1378,6 +1379,26 @@ describe('QuestAcceptanceService (replSet)', () => {
                 expect(warn).toHaveBeenCalledWith(
                     `Accodamento della risoluzione quest-${pqId.toHexString()}-${ACCEPTED_AT.getTime()} fallito: lo risolverà lo sweep`,
                 );
+            });
+
+            // l'avvio da soli nasce con il claim: nessuna scrittura dopo il commit da cui dipenda
+            it('starts a solo quest accepted on its marker at the commit (D-22)', async () => {
+                const tryStart = jest
+                    .spyOn(QuestStartService.prototype, 'tryStart')
+                    .mockResolvedValue('stale');
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(travel.questPoi);
+
+                const pqId = await accept(
+                    ownerId,
+                    charId,
+                    await huntTo(travel.questPoi),
+                );
+
+                expect((await pendingOf(pqId))?.startDate).toEqual(ACCEPTED_AT);
+                expect((await pendingOf(pqId))?.arrivedAt).toEqual(ACCEPTED_AT);
+                expect(questQueue.added).toEqual([resolveJobOf(pqId, 60000)]);
+                expect(tryStart).not.toHaveBeenCalled();
             });
         });
     });

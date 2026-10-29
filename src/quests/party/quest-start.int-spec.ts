@@ -121,6 +121,23 @@ describe('QuestStartService.tryStart (replSet)', () => {
         ]);
     });
 
+    // dati scritti prima dell'avvio atomico: lo sweep passa ancora da tryStart
+    it('still recovers a legacy solo quest arrived but never started (D-22)', async () => {
+        const legacy = await quester({
+            questOverrides: questOf('hunt', 1),
+            arrivedAt: TEN,
+        });
+
+        await expect(service.tryStart(triggerOf(legacy))).resolves.toBe(
+            'started',
+        );
+
+        const pendingQuest = await pendingQuestOf(legacy);
+        expect(pendingQuest.startDate).toEqual(TEN);
+        expect(pendingQuest.arrivedAt).toEqual(TEN);
+        expect(resolveJobs()).toHaveLength(1);
+    });
+
     it('waits while the seats of a boss are still open', async () => {
         const a = await quester({
             questOverrides: questOf('boss', 2),
