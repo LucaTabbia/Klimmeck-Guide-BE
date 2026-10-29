@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { TravelKind } from 'src/models/character/active-travel.model';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import {
     buildPendingRequests,
@@ -65,6 +66,13 @@ function userOf(
 
 function hex(id: Types.ObjectId): string {
     return id.toHexString();
+}
+
+function withStandardLane(
+    hero: RequestCharacterSnapshot,
+    standardLane: unknown,
+): RequestCharacterSnapshot {
+    return { ...hero, quests: { ...hero.quests, pendingQuest: standardLane } };
 }
 
 describe('buildPendingRequests', () => {
@@ -135,6 +143,7 @@ describe('buildPendingRequests', () => {
                     location: hex(hero.status?.location as Types.ObjectId),
                     activeTravel: null,
                     awaitingAid: null,
+                    pendingQuest: null,
                 },
                 user: { id: hex(user._id), twitchId: 'twitch-aria' },
             },
@@ -305,5 +314,72 @@ describe('buildPendingRequests', () => {
 
         expect(skipped).toEqual([]);
         expect(requests[0].user.id).toBe(hex(user._id));
+    });
+
+    it('exposes the standard lane of a queued character (D-23)', () => {
+        const story = quest('story', 'The king');
+        const storyPq = pendingQuest(story._id);
+        const standardPq = pendingQuest(quest('hunt', 'Wolves')._id);
+        const hero = character('Aria', { story: storyPq._id });
+
+        const { requests } = buildPendingRequests({
+            characters: [withStandardLane(hero, standardPq._id)],
+            pendingQuests: [storyPq],
+            quests: [story],
+            users: [userOf(hero, 'twitch-aria')],
+        });
+
+        expect(requests[0].character.pendingQuest).toBe(hex(standardPq._id));
+    });
+
+    it('reads a legacy string standard lane as its hex id (D-23)', () => {
+        const story = quest('story', 'The king');
+        const storyPq = pendingQuest(story._id);
+        const standardPq = pendingQuest(quest('hunt', 'Wolves')._id);
+        const hero = character('Aria', { story: storyPq._id });
+
+        const { requests } = buildPendingRequests({
+            characters: [withStandardLane(hero, hex(standardPq._id))],
+            pendingQuests: [storyPq],
+            quests: [story],
+            users: [userOf(hero, 'twitch-aria')],
+        });
+
+        expect(requests[0].character.pendingQuest).toBe(hex(standardPq._id));
+    });
+
+    it('leaves the standard lane null for a free travel between cities (D-23)', () => {
+        const activeTravel = {
+            road: { coordinates: [[0, 0]] as [number, number][], distance: 1 },
+            startTime: EARLY,
+            endTime: LATE,
+            duration: LATE.getTime() - EARLY.getTime(),
+            to: new Types.ObjectId(),
+            kind: TravelKind.free,
+        };
+        const story = quest('story', 'The king');
+        const storyPq = pendingQuest(story._id);
+        const hero = character(
+            'Aria',
+            { story: storyPq._id },
+            { activeTravel: activeTravel as never },
+        );
+
+        const { requests } = buildPendingRequests({
+            characters: [hero],
+            pendingQuests: [storyPq],
+            quests: [story],
+            users: [userOf(hero, 'twitch-aria')],
+        });
+
+        expect(requests[0].character).toEqual({
+            id: hex(hero._id),
+            name: 'Aria',
+            title: TitleType.rookie,
+            location: hex(hero.status?.location as Types.ObjectId),
+            activeTravel,
+            awaitingAid: null,
+            pendingQuest: null,
+        });
     });
 });

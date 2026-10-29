@@ -187,4 +187,56 @@ describe('PendingRequestsService (replSet)', () => {
         expect(skippedWarning).not.toContain('Ghost');
         expect(skippedWarning).not.toContain('twitch-');
     });
+
+    it('projects the standard lane of each queued character (D-23)', async () => {
+        const ariaStoryPq = await pendingQuestFor('story', 'The king');
+        const bramStoryPq = await pendingQuestFor('story', 'The queen');
+        const standardPq = await pendingQuestFor('hunt', 'Wolves');
+        const aria = await playerOnLane(
+            'Aria',
+            'activeStoryQuest',
+            ariaStoryPq._id,
+            {
+                quests: {
+                    completedQuests: [],
+                    activeStoryQuest: ariaStoryPq._id,
+                    pendingQuest: standardPq._id,
+                },
+            },
+        );
+        const bram = await playerOnLane(
+            'Bram',
+            'activeStoryQuest',
+            bramStoryPq._id,
+        );
+
+        const requests = await service.list();
+
+        const laneOf = (characterId: Types.ObjectId) =>
+            requests.find(
+                (request) => request.character.id === String(characterId),
+            )?.character.pendingQuest;
+        expect(laneOf(aria.character._id)).toBe(String(standardPq._id));
+        expect(laneOf(bram.character._id)).toBeNull();
+    });
+
+    it('keeps a busy character in the queue instead of filtering it (C22)', async () => {
+        const storyPq = await pendingQuestFor('story', 'The king');
+        const standardPq = await pendingQuestFor('hunt', 'Wolves');
+        const aria = await playerOnLane(
+            'Aria',
+            'activeStoryQuest',
+            storyPq._id,
+        );
+        const freeLaneIds = (await service.list()).map((request) => request.id);
+
+        await characters.updateOne(
+            { _id: aria.character._id },
+            { $set: { 'quests.pendingQuest': standardPq._id } },
+        );
+        const busyLaneIds = (await service.list()).map((request) => request.id);
+
+        expect(freeLaneIds).toEqual([String(storyPq._id)]);
+        expect(busyLaneIds).toEqual(freeLaneIds);
+    });
 });

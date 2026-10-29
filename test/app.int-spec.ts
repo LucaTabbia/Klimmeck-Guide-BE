@@ -38,6 +38,7 @@ import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholde
 import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
 import { QuestResultMaintenance } from 'src/quests/results/quest-result-maintenance';
+import { ArchivedCharacterQueueRefresher } from 'src/quests/pending-requests/archived-character-queue.refresher';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import type { TravelConfig } from 'src/config/travel-config';
 import { TRAVEL_CONFIG } from 'src/config/travel-config';
@@ -532,7 +533,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(
             schema.match(/type PendingRequestCharacter \{[^}]*\}/)?.[0],
         ).toBe(
-            'type PendingRequestCharacter {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  id: ID!\n  location: ID!\n  name: String!\n  title: String!\n}',
+            'type PendingRequestCharacter {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  id: ID!\n  location: ID!\n  name: String!\n  pendingQuest: ID\n  title: String!\n}',
         );
         expect(schema.match(/type PendingRequestQuest \{[^}]*\}/)?.[0]).toBe(
             'type PendingRequestQuest {\n  id: ID!\n  registeredAdventurers: [QuestRegistration!]!\n  requiredAdventurers: [QuestPartySlot!]!\n  title: String!\n  type: String!\n}',
@@ -639,6 +640,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     it('mounts the quest result maintenance', () => {
         expect(app.get(QuestResultMaintenance)).toBeInstanceOf(
             QuestResultMaintenance,
+        );
+    });
+
+    it('mounts the archived character queue refresher', () => {
+        expect(app.get(ArchivedCharacterQueueRefresher)).toBeInstanceOf(
+            ArchivedCharacterQueueRefresher,
         );
     });
 
