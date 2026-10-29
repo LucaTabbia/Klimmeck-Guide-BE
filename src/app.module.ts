@@ -43,6 +43,7 @@ import type { RuntimeConfig } from './config/runtime-config';
 import { AuthModule } from './auth/auth.module';
 import { AuthzModule } from './authz/authz.module';
 import { ValidationModule } from './validation/validation.module';
+import { HttpHardeningModule } from './http/http-hardening.module';
 import { WsConnectionAuthenticator } from './auth/ws/ws-connection-authenticator';
 import { createGraphQLOptions } from './graphql/graphql-options.factory';
 
@@ -68,6 +69,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         AuthModule,
         AuthzModule,
         ValidationModule,
+        HttpHardeningModule,
         GraphQLModule.forRootAsync<ApolloDriverConfig>({
             driver: ApolloDriver,
             imports: [AuthModule],
