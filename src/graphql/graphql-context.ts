@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import type { AuthenticatedWsExtra } from 'src/auth/ws/ws-connection-authenticator';
+import { REQUEST_ID_HEADER, requestIdFrom } from 'src/graphql/request-id';
 
 export const GRAPHQL_PATH = '/api/graphql';
 
@@ -13,12 +14,24 @@ export interface GraphQLRequestContext {
     req: any;
     res?: Response;
     extra?: AuthenticatedWsExtra;
+    requestId: string;
 }
 
-// unica funzione context per HTTP e WS: su WS req è l'IncomingMessage dell'upgrade (per-socket)
+// unica funzione context per HTTP e WS: su WS req è l'IncomingMessage dell'upgrade (per-socket),
+// quindi il suo header non identifica l'operazione e il requestId nasce nuovo a ogni contesto
 export function buildGraphQLContext(
     input: GraphQLContextInput,
 ): GraphQLRequestContext {
-    if (input.extra) return { req: input.extra.request, extra: input.extra };
-    return { req: input.req, res: input.res };
+    if (input.extra) {
+        return {
+            req: input.extra.request,
+            extra: input.extra,
+            requestId: requestIdFrom(undefined),
+        };
+    }
+    return {
+        req: input.req,
+        res: input.res,
+        requestId: requestIdFrom(input.req?.headers?.[REQUEST_ID_HEADER]),
+    };
 }
