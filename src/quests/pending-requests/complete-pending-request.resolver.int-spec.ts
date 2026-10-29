@@ -10,6 +10,7 @@ import {
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { PUSH_CONFIG } from 'src/config/push-config';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { MAX_OVERRIDE_ENTRIES } from 'src/models/request/complete-pending-request.model';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { lanePathOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
@@ -238,6 +239,98 @@ describe('completePendingRequest (wire)', () => {
         expect(records[0]).toMatchObject({
             action: 'completePendingRequest',
             target: { type: 'QuestResult', id: null },
+            outcome: 'OUTCOME_OVERRIDE_INVALID',
+        });
+    });
+
+    it('rejects malformed override shapes with BAD_USER_INPUT and audits them (D-04, C5)', async () => {
+        const subject = await storyQuester();
+        const oste = await playerWithRole(RoleType.innkeeper);
+        const pendingQuestId = String(subject.pendingQuest._id);
+        const characterId = String(subject.characterId);
+        const shapes = [
+            {
+                input: { pendingQuestId: 'abc' },
+                message: 'Input non valido: pendingQuestId',
+            },
+            {
+                input: { pendingQuestId, outcomes: [{ characterId: 'abc' }] },
+                message: 'Input non valido: outcomes.0.characterId',
+            },
+            {
+                input: {
+                    pendingQuestId,
+                    outcomes: [{ characterId, hpAfter: -1 }],
+                },
+                message: 'Input non valido: outcomes.0.hpAfter',
+            },
+            {
+                input: {
+                    pendingQuestId,
+                    outcomes: Array.from(
+                        { length: MAX_OVERRIDE_ENTRIES + 1 },
+                        () => ({ characterId }),
+                    ),
+                },
+                message: 'Input non valido: outcomes',
+            },
+        ];
+
+        for (const { input, message } of shapes) {
+            const body = await completeOnWire(input, oste.bearer);
+
+            expect(body.data ?? null).toBeNull();
+            expect(body.errors?.[0]?.extensions).toEqual({
+                code: 'BAD_USER_INPUT',
+            });
+            expect(body.errors?.[0]?.message).toBe(message);
+        }
+        const records = await audits.find().sort({ _id: 1 }).lean().exec();
+        expect(
+            records.map(({ action, outcome }) => ({ action, outcome })),
+        ).toEqual(
+            shapes.map(() => ({
+                action: 'completePendingRequest',
+                outcome: 'BAD_USER_INPUT',
+            })),
+        );
+        expect(
+            await outcomeModels(harness).pendingQuests.countDocuments({
+                _id: subject.pendingQuest._id,
+            }),
+        ).toBe(1);
+    });
+
+    it('keeps OUTCOME_OVERRIDE_INVALID for a zero quantity behind the global pipe (C5)', async () => {
+        const subject = await storyQuester();
+        const oste = await playerWithRole(RoleType.innkeeper);
+
+        const body = await completeOnWire(
+            {
+                pendingQuestId: String(subject.pendingQuest._id),
+                outcomes: [
+                    {
+                        characterId: String(subject.characterId),
+                        consumablesUsed: [
+                            {
+                                item: new Types.ObjectId().toHexString(),
+                                quantity: 0,
+                            },
+                        ],
+                    },
+                ],
+            },
+            oste.bearer,
+        );
+
+        expect(body.data ?? null).toBeNull();
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'OUTCOME_OVERRIDE_INVALID',
+        });
+        const records = await audits.find().lean().exec();
+        expect(records).toHaveLength(1);
+        expect(records[0]).toMatchObject({
+            action: 'completePendingRequest',
             outcome: 'OUTCOME_OVERRIDE_INVALID',
         });
     });

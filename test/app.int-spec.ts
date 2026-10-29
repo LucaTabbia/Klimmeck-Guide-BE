@@ -1,5 +1,5 @@
 import { getQueueToken } from '@nestjs/bull';
-import { INestApplication, Logger } from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { ModulesContainer } from '@nestjs/core';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
@@ -661,6 +661,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             production: false,
             modeDefaulted: false,
         });
+    });
+
+    it('mounts the global validation pipe', () => {
+        expect(
+            providerInstancesOf(app).some(
+                (instance) => instance instanceof ValidationPipe,
+            ),
+        ).toBe(true);
     });
 
     it('mounts the spell recovery lifecycle', () => {

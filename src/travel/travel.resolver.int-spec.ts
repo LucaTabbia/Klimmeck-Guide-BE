@@ -438,8 +438,8 @@ describe('startTravel and travelPreview (wire)', () => {
         },
         {
             name: 'a malformed point of interest id',
-            code: 'NOT_FOUND',
-            message: 'Luogo non trovato',
+            code: 'BAD_USER_INPUT',
+            message: 'Input non valido: poiId',
             arrange: async () => {
                 const player = await playerAt(world.markerA);
                 return { player, request: requestOf(player, MALFORMED_ID) };

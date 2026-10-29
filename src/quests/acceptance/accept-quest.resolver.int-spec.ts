@@ -582,8 +582,8 @@ describe('acceptQuest (wire)', () => {
         },
         {
             name: 'a malformed quest id',
-            code: 'NOT_FOUND',
-            message: 'Missione non trovata',
+            code: 'BAD_USER_INPUT',
+            message: 'Input non valido: questId',
             arrange: async () => {
                 const player = await playerWith('malformed-quest');
                 return {

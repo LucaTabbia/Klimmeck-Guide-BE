@@ -484,7 +484,7 @@ describe('teleportCharacter', () => {
             expect(await audits.countDocuments()).toBe(0);
         });
 
-        it('answers NOT_FOUND for malformed ids', async () => {
+        it('answers BAD_USER_INPUT for malformed ids (D-02)', async () => {
             const alice = await playerAt(world.markerA);
             const oste = await innkeeper();
 
@@ -496,20 +496,25 @@ describe('teleportCharacter', () => {
                     },
                     oste.bearer,
                 ),
-                'NOT_FOUND',
-                'Luogo non trovato',
+                'BAD_USER_INPUT',
+                'Input non valido: poiId',
             );
             expectRejected(
                 await teleportOnWire(
                     { id: MALFORMED_ID, poiId: world.questPoi.toHexString() },
                     oste.bearer,
                 ),
-                'NOT_FOUND',
-                'Personaggio non trovato',
+                'BAD_USER_INPUT',
+                'Input non valido: id',
             );
             expect((await rawCharacter(alice))?.status.location).toEqual(
                 world.markerA,
             );
+            const records = await audits.find().sort({ _id: 1 }).lean().exec();
+            expect(records.map(({ outcome }) => outcome)).toEqual([
+                'BAD_USER_INPUT',
+                'BAD_USER_INPUT',
+            ]);
         });
 
         it('streams the new location on characterUpdated', async () => {
