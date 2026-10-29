@@ -321,8 +321,39 @@ Plans:
   6. Login, refresh, OAuth, webhook e upload rispondono `TOO_MANY_REQUESTS`/429 oltre il limite configurato; introspection e landing page sono spente con `NODE_ENV=production`; gli errori imprevisti in produzione espongono solo `INTERNAL_SERVER_ERROR` + `requestId`. _(2026-10-27)_
   7. I debiti di BE-HARD-06 sono chiusi con test: change stream riaperti dopo un errore, job falliti non accumulati, nessuna gara sugli utenti, indici presenti, ref tipizzati dopo una migrazione idempotente. _(2026-10-27)_
   8. La voce della coda del GM espone la corsia standard del personaggio (campo additivo `pendingQuest`) e `completePendingRequest` risponde `QUEST_IN_PROGRESS` senza scritture finché un partecipante registrato ha la corsia standard occupata; ogni transizione della corsia standard fa riemettere la coda. _(2026-10-29, FE Phase 10)_
-**Plans**: TBD
-**Unblocks (FE)**: mirror di FE Phase 12 (hardening).
+**Plans**: 31 plans (26 wave; esecutori sequenziali; wave 8 = ref `Mixed` con gate proprio, 10-29)
+- [ ] 10-01-PLAN.md — Wave 1 (1a): campo additivo `pendingQuest` su `PendingRequestCharacter`, filtro esplicito dei personaggi attivi, ricalcolo della coda dopo un archivio, liveness delle 4 transizioni della corsia standard (BE-HARD-08)
+- [ ] 10-02-PLAN.md — Wave 1 (1a): `completePendingRequest` → `QUEST_IN_PROGRESS` senza scritture (pre-check, ricontrollo in sessione, `STANDARD_LANE_FREE` solo sulle corsie del GM) (BE-HARD-08)
+- [ ] 10-03-PLAN.md — Wave 1 (3): gitleaks-action v3 (push, PR, `workflow_dispatch`, schedule; versione fissata), `.gitleaks.toml`, `.gitleaksignore`, spec sui secret vuoti del template (BE-HARD-03)
+- [ ] 10-04-PLAN.md — Wave 1 (5): base `ChangeStreamPublisher` che riapre gli stream con backoff 1→30 s e `startAfter`; int-spec di invalidate (BE-HARD-06)
+- [ ] 10-05-PLAN.md — Wave 1 (1): dipendenze, `BadUserInputException`, `invalidFieldsOf`, `createValidationPipe`, `@IsObjectIdHex`, `ObjectIdPipe`/`ObjectIdListPipe`, `ValidationModule` non ancora montato (BE-HARD-01)
+- [ ] 10-06-PLAN.md — Wave 2 (1): decoratori di sola forma sui 17 input + spec di copertura contro lo schema + regole nominate (BE-HARD-01)
+- [ ] 10-07-PLAN.md — Wave 2 (2): `NODE_ENV` validato (3 valori), `RUNTIME_CONFIG`, `RuntimeModeReporter`, bypass dev letto da config (BE-HARD-02/03)
+- [ ] 10-08-PLAN.md — Wave 3 (1): montaggio globale della pipe in app e harness + RED sul filo dei codici spostati (C5), regressione completa (BE-HARD-01)
+- [ ] 10-09-PLAN.md — Wave 4 (1): id posseduti malformati → `BAD_USER_INPUT` nella policy (C1); `ObjectIdPipe` su `quest`, `questUpdated`, `user`, `getPath` (BE-HARD-01)
+- [ ] 10-10-PLAN.md — Wave 5 (1/2): id del catalogo con pipe + `NOT_FOUND` codificati negli 8 service di catalogo (BE-HARD-01/02)
+- [ ] 10-11-PLAN.md — Wave 6 (2): superficie di produzione — introspection, landing e suggerimenti spenti, sanitizer + `requestId` su HTTP e graphql-ws (BE-HARD-02)
+- [ ] 10-12-PLAN.md — Wave 7 (2): middleware `x-request-id`, filtro REST 500 codificato, CORS chiuso con test, Cloudinary con DTO, upload validato per firma (BE-HARD-01/02)
+- [ ] 10-13-PLAN.md — Wave 8 (2): throttler — config `THROTTLE_*`, guard GraphQL/REST, `TooManyRequestsException`, 5 handler limitati, `EXPECTED_THROTTLED_HANDLERS` (BE-HARD-02)
+- [ ] 10-14-PLAN.md — Wave 9 (2): OAuth limitato con redirect `rate_limited`, bucket del webhook ×50 con prova di raffica firmata, `THROTTLE_TRUST_PROXY` (BE-HARD-02)
+- [ ] 10-15-PLAN.md — Wave 10 (3): config Sightengine fail-closed, nessun `process.env` sparso, `.env.example` commentato, test di drift (BE-HARD-03/05)
+- [ ] 10-16-PLAN.md — Wave 11 (4): tabella di policy pura, porta `ImageModerator`, adapter Sightengine (fetch nativo), adapter disattivato, fake (BE-HARD-05)
+- [ ] 10-17-PLAN.md — Wave 12 (4): `PortraitUploadService` — moderazione prima di Cloudinary (422/503), `ModerationModule`, reporter, harness (BE-HARD-05)
+- [ ] 10-18-PLAN.md — Wave 13 (5): `CharacterUpdatesPublisher` sulla base comune + single-flight; single-flight degli utenti; `removeOnFail` limitato (BE-HARD-06)
+- [ ] 10-19-PLAN.md — Wave 14 (5): 8 indici con nome + verificatore non bloccante; backfill una sola volta al boot (BE-HARD-06)
+- [ ] 10-20-PLAN.md — Wave 15 (5): `Enemy.locations`/`PointOfInterest.type` come liste; `types: ["jest"]` + 56 fix negli spec + step CI `tsc` (BE-HARD-06)
+- [ ] 10-21-PLAN.md — Wave 16 (5): D-21 — i registrati archiviati combattono come seat holder (boss + soccorso), senza esiti né premi (BE-HARD-07)
+- [ ] 10-22-PLAN.md — Wave 17 (5): D-22 — avvio da soli atomico con l'arrivo/claim + publisher degli avvii su `characterUpdated` (BE-HARD-07)
+- [ ] 10-23-PLAN.md — Wave 18 (6): refactor `fightRescuers`/`settleWounded`, `@AuditTarget`, un solo `primeChangeStream` (BE-HARD-06)
+- [ ] 10-24-PLAN.md — Wave 19 (7): `collectCoverageFrom` corretto, `test:cov` unico, soglie per cartella = misura − 2, CI, gap di auth/EventSub (BE-HARD-04)
+- [ ] 10-25-PLAN.md — Wave 20 (7): gap di economia, magie, equipaggiamento, accettazione e viaggi; soglie alzate (BE-HARD-04)
+- [ ] 10-26-PLAN.md — Wave 21 (8): inventario dei ref `Mixed`, pipeline pure, migrazione `--dry-run/--apply/--verify` + CLI + verificatore al boot (BE-HARD-06)
+- [ ] 10-27-PLAN.md — Wave 22 (8): ritipizzazione dei ref condivisi e di catalogo; test legacy sul percorso migrato (BE-HARD-06)
+- [ ] 10-28-PLAN.md — Wave 23 (8): ritipizzazione dei ref dei personaggi; nessun `Mixed` rimasto (BE-HARD-06)
+- [ ] 10-29-PLAN.md — Wave 24 (8, gate): suite + coverage, CLI compilato provato, runbook di migrazione e rollback, PR draft fino alla produzione (BE-HARD-06)
+- [ ] 10-30-PLAN.md — Wave 25 (9): `BACKEND-NOTES.md` (codici, codici spostati, risposte FE, checklist di deploy, default da confermare) + emendamenti a 8 handoff + README (BE-HARD-01..08)
+- [ ] 10-31-PLAN.md — Wave 26 (9): gate finale, invarianti, VALIDATION `nyquist_compliant: true`, `requirements mark-complete`, ROADMAP/STATE (BE-HARD-01..08)
+**Unblocks (FE)**: mirror di FE Phase 12 (hardening); BE-HARD-08 sblocca il piano gated 10-11 della FE Phase 10 (Admin Panel).
 **Branch**: `feat/10-hardening` da `develop` → PR a `develop`. _(Emendato 2026-10-27: creato sopra `feat/09.1-spell-state-and-recovery-contract`; spostato sopra `feat/09.2-quest-result-delivery-contract` dopo il merge della 9.1; PR dopo il merge della 9.2, con rebase.)_
 
 ## Backend ↔ Frontend alignment
@@ -359,4 +390,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
-| 10. Hardening Trasversale | 0/TBD | Not started | - |
+| 10. Hardening Trasversale | 0/31 | Not started | - |
