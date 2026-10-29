@@ -12,6 +12,12 @@ class ProbeItemDto {
     quantity!: number;
 }
 
+// target esnext: ogni campo dichiarato (anche opzionale) diventa una chiave propria dell'istanza
+class StripProbeDto {
+    @IsObjectIdHex()
+    id!: string;
+}
+
 class ProbeDto {
     @IsObjectIdHex()
     id!: string;
@@ -25,10 +31,10 @@ describe('createValidationPipe', () => {
     it('strips undeclared properties and transforms plain inputs (D-01)', async () => {
         const result: unknown = await createValidationPipe().transform(
             { id: VALID_ID, extra: 1 },
-            { type: 'body', metatype: ProbeDto },
+            { type: 'body', metatype: StripProbeDto },
         );
 
-        expect(result).toBeInstanceOf(ProbeDto);
+        expect(result).toBeInstanceOf(StripProbeDto);
         expect(Object.keys(result as object).sort()).toEqual(['id']);
     });
 
