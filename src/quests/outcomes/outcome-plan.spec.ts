@@ -206,6 +206,35 @@ describe('planParticipant', () => {
         });
     });
 
+    it('requires a free standard lane in the write filter of the game master lanes only (D-24)', () => {
+        const filterOf = (lane: QuestLane, type: QuestType) =>
+            planParticipant(
+                inputWith({
+                    lane,
+                    quest: questOf(type),
+                    verdict: QuestOutcome.gmCompleted,
+                }),
+            ).filter;
+        const identity = { _id: CHARACTER_ID, deletedAt: null, 'status.xp': 0 };
+
+        expect(filterOf(QuestLane.story, QuestType.story)).toEqual({
+            ...identity,
+            'quests.activeStoryQuest': { $in: idForms(PENDING_ID) },
+            'quests.pendingQuest': null,
+        });
+        expect(
+            filterOf(QuestLane.worldMission, QuestType.worldMission),
+        ).toEqual({
+            ...identity,
+            'quests.activeWorldMissionQuest': { $in: idForms(PENDING_ID) },
+            'quests.pendingQuest': null,
+        });
+        expect(filterOf(QuestLane.standard, QuestType.job)).toEqual({
+            ...identity,
+            'quests.pendingQuest': { $in: idForms(PENDING_ID) },
+        });
+    });
+
     it('adds the defeated enemy xp to the prize and keeps the fight hp', () => {
         const plan = planParticipant(
             inputWith({

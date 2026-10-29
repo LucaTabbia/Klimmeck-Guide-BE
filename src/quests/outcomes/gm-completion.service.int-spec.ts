@@ -23,6 +23,7 @@ import {
 } from '../../../test/quests/outcome-world';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
 import { GmCompletionService } from './gm-completion.service';
+import { ResolutionLoader } from './resolution-loader.service';
 
 const NOW = new Date('2026-10-24T12:00:00.000Z');
 // mirror e stato coerenti (D-03): gli usi della magia attiva stanno nella voce di stato
@@ -44,6 +45,16 @@ const NOT_FOUND = {
     code: 'NOT_FOUND',
     message: 'Missione in attesa non trovata',
 };
+const QUEST_IN_PROGRESS = {
+    code: 'QUEST_IN_PROGRESS',
+    message: 'Il personaggio è impegnato in una missione in corso',
+};
+const RAW_COLLECTIONS = [
+    'characters',
+    'pendingquests',
+    'questresults',
+    'quests',
+] as const;
 
 describe('GmCompletionService.complete (replSet)', () => {
     let world: OutcomeHarness;
@@ -465,5 +476,144 @@ describe('GmCompletionService.complete (replSet)', () => {
             .lean<any>();
         expect(result.xpGained).toBe(500);
         expect(String(result.enemy)).toBe(String(enemy._id));
+    });
+
+    describe('busy standard lane (D-24)', () => {
+        const occupyStandardLane = (subject: Quester) =>
+            world.models.characters.collection.updateOne(
+                { _id: subject.characterId },
+                { $set: { 'quests.pendingQuest': new Types.ObjectId() } },
+            );
+
+        const rawDocuments = async () =>
+            Object.fromEntries(
+                await Promise.all(
+                    RAW_COLLECTIONS.map(
+                        async (name) =>
+                            [
+                                name,
+                                await world.models.characters.db
+                                    .collection(name)
+                                    .find()
+                                    .toArray(),
+                            ] as const,
+                    ),
+                ),
+            );
+
+        async function expectRefusedWithoutWrites(
+            completion: Promise<unknown>,
+            before: Awaited<ReturnType<typeof rawDocuments>>,
+        ): Promise<void> {
+            await expect(completion).rejects.toMatchObject(QUEST_IN_PROGRESS);
+            expect(await rawDocuments()).toEqual(before);
+            expect(world.push.sent).toHaveLength(0);
+            expect(world.spellQueue.added).toHaveLength(0);
+        }
+
+        it('refuses a story whose holder has the standard lane busy and writes nothing', async () => {
+            const subject = await storyQuester();
+            await occupyStandardLane(subject);
+            const before = await rawDocuments();
+
+            await expectRefusedWithoutWrites(
+                service.complete(inputOf(subject)),
+                before,
+            );
+        });
+
+        it('refuses a world mission when one active participant has the standard lane busy', async () => {
+            const first = await quester({
+                lane: QuestLane.worldMission,
+                questOverrides: gmQuest('worldMission'),
+            });
+            const second = await quester({
+                lane: QuestLane.worldMission,
+                quest: first.quest,
+            });
+            const third = await quester({
+                lane: QuestLane.worldMission,
+                quest: first.quest,
+            });
+            await occupyStandardLane(second);
+            const before = await rawDocuments();
+
+            await expectRefusedWithoutWrites(
+                service.complete(inputOf(third)),
+                before,
+            );
+        });
+
+        it('completes a story whose holder only travels between cities', async () => {
+            const subject = await storyQuester();
+            await world.models.characters.collection.updateOne(
+                { _id: subject.characterId },
+                {
+                    $set: {
+                        'quests.pendingQuest': null,
+                        'status.activeTravel': {
+                            kind: 'free',
+                            road: { points: [] },
+                            startTime: NOW,
+                            endTime: new Date(NOW.getTime() + 60_000),
+                            duration: 60,
+                            destination: new Types.ObjectId(),
+                        },
+                    },
+                },
+            );
+
+            await expect(
+                service.complete(inputOf(subject)),
+            ).resolves.toHaveLength(1);
+
+            const character = await characterOf(subject);
+            expect(character.quests.activeStoryQuest).toBeNull();
+            expect(await resultsOf(subject)).toHaveLength(1);
+        });
+
+        it('answers QUEST_IN_PROGRESS before an invalid override', async () => {
+            const subject = await storyQuester();
+            await occupyStandardLane(subject);
+            const before = await rawDocuments();
+
+            await expectRefusedWithoutWrites(
+                service.complete(
+                    inputOf(subject, [
+                        {
+                            characterId: String(subject.characterId),
+                            hpAfter: 0,
+                        },
+                    ]),
+                ),
+                before,
+            );
+        });
+
+        it('refuses with QUEST_IN_PROGRESS when a standard acceptance lands between the read and the write', async () => {
+            const subject = await storyQuester();
+            const loader = world.harness.app.get(ResolutionLoader);
+            const readCatalog = loader.readCatalog.bind(loader);
+            let afterAcceptance: Awaited<ReturnType<typeof rawDocuments>> = {};
+            const spy = jest
+                .spyOn(loader, 'readCatalog')
+                .mockImplementationOnce(async (...args) => {
+                    await occupyStandardLane(subject);
+                    afterAcceptance = await rawDocuments();
+                    return readCatalog(...args);
+                });
+
+            try {
+                await expect(
+                    service.complete(inputOf(subject)),
+                ).rejects.toMatchObject(QUEST_IN_PROGRESS);
+            } finally {
+                spy.mockRestore();
+            }
+
+            expect(spy).toHaveBeenCalledTimes(1);
+            expect(await rawDocuments()).toEqual(afterAcceptance);
+            expect(world.push.sent).toHaveLength(0);
+        });
     });
 });

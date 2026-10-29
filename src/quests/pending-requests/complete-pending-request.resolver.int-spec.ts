@@ -1,6 +1,6 @@
 import { getQueueToken } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
-import type { Model } from 'mongoose';
+import { type Model, Types } from 'mongoose';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import {
     AdminAuditLog,
@@ -239,6 +239,37 @@ describe('completePendingRequest (wire)', () => {
             action: 'completePendingRequest',
             target: { type: 'QuestResult', id: null },
             outcome: 'OUTCOME_OVERRIDE_INVALID',
+        });
+    });
+
+    it('audits a completion refused for a busy participant with QUEST_IN_PROGRESS (D-24)', async () => {
+        const subject = await storyQuester();
+        const oste = await playerWithRole(RoleType.innkeeper);
+        await harness.connection
+            .collection('characters')
+            .updateOne(
+                { _id: subject.characterId },
+                { $set: { 'quests.pendingQuest': new Types.ObjectId() } },
+            );
+
+        const body = await completeOnWire(
+            { pendingQuestId: String(subject.pendingQuest._id) },
+            oste.bearer,
+        );
+
+        expect(body.data ?? null).toBeNull();
+        expect(body.errors?.[0]?.message).toBe(
+            'Il personaggio è impegnato in una missione in corso',
+        );
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'QUEST_IN_PROGRESS',
+        });
+        const records = await audits.find().lean().exec();
+        expect(records).toHaveLength(1);
+        expect(records[0]).toMatchObject({
+            action: 'completePendingRequest',
+            target: { type: 'QuestResult', id: null },
+            outcome: 'QUEST_IN_PROGRESS',
         });
     });
 
