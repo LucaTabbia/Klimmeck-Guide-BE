@@ -266,6 +266,49 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
         });
     });
 
+    describe('when the OAuth navigations are throttled', () => {
+        let harness: AuthTestApp;
+
+        beforeAll(async () => {
+            harness = await createAuthTestApp({ throttle: { limit: 2 } });
+        });
+
+        afterAll(async () => {
+            await harness.close();
+        });
+
+        it('redirects the third OAuth start from the same address with rate_limited (C6, D-08)', async () => {
+            const start = () =>
+                get(harness, '/auth/twitch/start', { challenge: CHALLENGE });
+
+            await start();
+            await start();
+
+            expect(locationOf(await start())).toBe(
+                errorRedirect('rate_limited'),
+            );
+        });
+
+        it('redirects the third OAuth callback with rate_limited (C6)', async () => {
+            const callback = () =>
+                get(harness, '/auth/twitch/callback', {
+                    code: 'x',
+                    state: 'forged',
+                });
+
+            expect(locationOf(await callback())).toBe(
+                errorRedirect('invalid_state'),
+            );
+            expect(locationOf(await callback())).toBe(
+                errorRedirect('invalid_state'),
+            );
+            expect(locationOf(await callback())).toBe(
+                errorRedirect('rate_limited'),
+            );
+            expect(harness.twitch.exchangedCodes).toEqual([]);
+        });
+    });
+
     describe('without Twitch configured', () => {
         let harness: AuthTestApp;
 
