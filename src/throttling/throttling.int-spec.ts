@@ -124,3 +124,35 @@ describe('Throttling (wire)', () => {
         expect(codes).toHaveLength(20);
     });
 });
+
+describe('Throttling behind a trusted proxy (wire)', () => {
+    let harness: AuthTestApp;
+    let bearer: string;
+
+    beforeAll(async () => {
+        harness = await createCharactersTestApp({
+            throttle: { limit: 2, trustProxy: '1' },
+        });
+        bearer = (
+            await createPlayer(harness, { twitchId: 'twitch-trusted-proxy' })
+        ).bearer;
+    });
+
+    afterAll(async () => {
+        await harness.close();
+    });
+
+    it('keeps separate buckets per forwarded client behind a trusted proxy (C19)', async () => {
+        const getUrlsFrom = (forwardedFor: string) =>
+            request(harness.app.getHttpServer())
+                .post('/cloudinary/getUrls')
+                .set({ Authorization: bearer, 'X-Forwarded-For': forwardedFor })
+                .send({ folder: 'characters' });
+
+        await getUrlsFrom('203.0.113.1').expect(201);
+        await getUrlsFrom('203.0.113.1').expect(201);
+        await getUrlsFrom('203.0.113.1').expect(429);
+
+        await getUrlsFrom('203.0.113.2').expect(201);
+    });
+});

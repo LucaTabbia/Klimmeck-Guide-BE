@@ -4,6 +4,7 @@ import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { ModulesContainer } from '@nestjs/core';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
+import type { Application } from 'express';
 import type { Connection } from 'mongoose';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -733,6 +734,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             webhookLimit: 1000,
             trustProxy: null,
         });
+    });
+
+    it('leaves the proxy trust off by default (C19)', () => {
+        expect(
+            app.getHttpAdapter().getInstance<Application>().get('trust proxy'),
+        ).toBeFalsy();
     });
 
     it('mounts the spell recovery lifecycle', () => {
