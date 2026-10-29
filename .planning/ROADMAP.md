@@ -332,7 +332,7 @@ Plans:
 - [x] 10-08-PLAN.md — Wave 3 (1): montaggio globale della pipe in app e harness + RED sul filo dei codici spostati (C5), regressione completa (BE-HARD-01)
 - [x] 10-09-PLAN.md — Wave 4 (1): id posseduti malformati → `BAD_USER_INPUT` nella policy (C1); `ObjectIdPipe` su `quest`, `questUpdated`, `user`, `getPath` (BE-HARD-01)
 - [x] 10-10-PLAN.md — Wave 5 (1/2): id del catalogo con pipe + `NOT_FOUND` codificati negli 8 service di catalogo (BE-HARD-01/02)
-- [ ] 10-11-PLAN.md — Wave 6 (2): superficie di produzione — introspection, landing e suggerimenti spenti, sanitizer + `requestId` su HTTP e graphql-ws (BE-HARD-02)
+- [x] 10-11-PLAN.md — Wave 6 (2): superficie di produzione — introspection, landing e suggerimenti spenti, sanitizer + `requestId` su HTTP e graphql-ws (BE-HARD-02)
 - [ ] 10-12-PLAN.md — Wave 7 (2): middleware `x-request-id`, filtro REST 500 codificato, CORS chiuso con test, Cloudinary con DTO, upload validato per firma (BE-HARD-01/02)
 - [ ] 10-13-PLAN.md — Wave 8 (2): throttler — config `THROTTLE_*`, guard GraphQL/REST, `TooManyRequestsException`, 5 handler limitati, `EXPECTED_THROTTLED_HANDLERS` (BE-HARD-02)
 - [ ] 10-14-PLAN.md — Wave 9 (2): OAuth limitato con redirect `rate_limited`, bucket del webhook ×50 con prova di raffica firmata, `THROTTLE_TRUST_PROXY` (BE-HARD-02)
@@ -390,4 +390,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
-| 10. Hardening Trasversale | 10/31 | In Progress | - |
+| 10. Hardening Trasversale | 11/31 | In Progress | - |
