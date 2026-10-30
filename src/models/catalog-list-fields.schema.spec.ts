@@ -36,6 +36,23 @@ describe('catalog list fields', () => {
         expect(pointOfInterest.toObject().type).toEqual([PoiType.city]);
     });
 
+    it('reads a legacy scalar enemy location as a one-element list (D-17b)', () => {
+        const enemy = EnemyProbe.hydrate({
+            name: 'Goblin',
+            locations: PoiType.city,
+        });
+
+        expect(enemy.toObject().locations).toEqual([PoiType.city]);
+    });
+
+    it('rejects an unknown enemy location', () => {
+        const enemy = new EnemyProbe({ name: 'Goblin', locations: ['nope'] });
+
+        const error = enemy.validateSync();
+
+        expect(Object.keys(error?.errors ?? {})).toEqual(['locations.0']);
+    });
+
     it('rejects an unknown point of interest type', () => {
         const pointOfInterest = new PointOfInterestProbe({
             type: ['nope'],
