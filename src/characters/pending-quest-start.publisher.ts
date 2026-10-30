@@ -57,10 +57,12 @@ export class PendingQuestStartPublisher extends ChangeStreamPublisher<PendingQue
         if (pendingQuestId) void this.republishHolders(pendingQuestId);
     }
 
-    // il party avvia insieme tutti i membri: ognuno tiene la propria PendingQuest sulla corsia standard
+    // il party avvia insieme tutti i membri: ognuno tiene la propria PendingQuest sulla corsia standard;
+    // a chiusura iniziata non si legge né si ripubblica (la connessione sta per chiudersi)
     private async republishHolders(
         pendingQuestId: Types.ObjectId,
     ): Promise<void> {
+        if (this.stopping) return;
         try {
             const holders = await this.characterModel
                 .find(
@@ -74,8 +76,10 @@ export class PendingQuestStartPublisher extends ChangeStreamPublisher<PendingQue
                 )
                 .lean<{ _id: Types.ObjectId }[]>()
                 .exec();
-            for (const { _id } of holders)
+            for (const { _id } of holders) {
+                if (this.stopping) return;
                 this.characterUpdates.requestPublish(String(_id));
+            }
         } catch (error) {
             this.logger.error(
                 `Ripubblicazione dei personaggi della missione in attesa ${pendingQuestId.toHexString()} fallita: ${describeError(error)}`,
