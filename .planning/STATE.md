@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 Phase: 10 (Hardening Trasversale) — COMPLETE on `feat/10-hardening` (2026-10-30): 31/31 plans executed, reviewed, verified and audited; PR to `develop` opened as DRAFT until the ref migration runs in production (runbook)
 Plan: 31 of 31
-Status: Phase 10 complete — PR draft open; waiting for the user actions in Blockers/Concerns (ref migration in production, first gitleaks scan, defaults to confirm) before marking the PR ready; next phase to plan after the merge (FE Phase 10 plan 10-11 resumes after the merge)
+Status: Phase 10 complete — PR draft open; waiting for the user actions in Blockers/Concerns (ref migration in production, defaults to confirm; first gitleaks scan done 2026-10-30) before marking the PR ready; next phase to plan after the merge (FE Phase 10 plan 10-11 resumes after the merge)
 Last activity: 2026-10-30 -- Phase 10 closed: gate 10-31 + post-fix green (build, tsc, unit 182/2419, cov 281/3696 with the 8 folder thresholds, real boot 65/65, SDL +1 additive line); code review 20 findings (15 fixed, 5 not needed), verification passed 8/8, security audit secured (107 threats, 0 open); ref migration in production pending (user, runbook), PR draft
 
 Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 complete; 10 to plan after the 9.2 merge)
@@ -265,7 +265,7 @@ None yet.
 - FE: branch `feat/party-waiting` (etichetta "In attesa del gruppo", abbandono, push questCancelled) da mergiare dopo la PR FE Phase 7 e la PR BE #13.
 - **Phase 10 — azioni dell'utente prima di marcare la PR pronta (2026-10-30):** la PR di `feat/10-hardening` resta draft finché non sono fatte:
   1. migrazione dei ref secondo `docs/runbooks/mixed-refs-migration.md`: backup, poi copia ripristinata, poi produzione col codice attuale PRIMA del deploy; allegare alla PR i report JSON di `--verify` (copia e produzione); dopo il deploy di nuovo `--apply` + `--verify` e controllo del log del verificatore;
-  2. primo `workflow_dispatch` di `Secret scan` (`gh workflow run gitleaks.yml --ref feat/10-hardening` dopo il push) e gestione dei finding: rotazione del secret alla fonte + fingerprint in `.gitleaksignore`, senza riscrivere la storia;
+  2. ~~primo `workflow_dispatch` di `Secret scan`~~ **FATTO il 2026-10-30** (commit e99ab5d): 1228 commit scansionati, 3 falsi positivi gestiti con allowlist `^\.planning/` e fingerprint del badge del template NestJS, nessun secret da ruotare; push, PR e dispatch verdi;
   3. conferma della tabella di policy Sightengine e dei default del throttler (`BACKEND-NOTES.md` §11 della Phase 10, 10 voci);
   4. una chiamata Sightengine reale per A2 (un'immagine accettabile e una da rifiutare, chiavi nel proprio `.env`);
   5. `THROTTLE_TRUST_PROXY` da impostare quando la topologia di produzione sarà nota (vuota = spenta).
