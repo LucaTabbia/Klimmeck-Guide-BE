@@ -1488,6 +1488,30 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect(await pointsOf(ownerId)).toBe(6000);
         });
 
+        it('rejects a world mission of a character without a location with QUEST_NOT_IN_CITY and writes nothing', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker, 'hero');
+            await characters.collection.updateOne(
+                { _id: charId },
+                { $unset: { 'status.location': '' } },
+            );
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                requiredAdventurers: [{ title: 'hero', count: 1 }],
+            });
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_NOT_IN_CITY' });
+
+            expect((await raw(charId))?.quests.pendingQuest).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual(
+                [],
+            );
+        });
+
         it('rejects a quest whose marker belongs to no city with QUEST_NOT_IN_CITY', async () => {
             const ownerId = await ownerWith(0);
             const charId = await characterAt(world.cityMarker);
@@ -1528,6 +1552,26 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect((await rawQuest(questId))?.registeredAdventurers).toEqual([
                 { character: charId, title: 'hero', registeredAt: ACCEPTED_AT },
             ]);
+        });
+
+        it('registers the first adventurer of a legacy quest stored without the registration list', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker, 'hero');
+            const questId = await insertQuest('worldMission', {
+                requiredPoints: 3000,
+                requiredAdventurers: [{ title: 'hero', count: 1 }],
+            });
+            await rawQuests().updateOne(
+                { _id: questId },
+                { $unset: { registeredAdventurers: '' } },
+            );
+
+            await accept(ownerId, charId, questId);
+
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual([
+                { character: charId, title: 'hero', registeredAt: ACCEPTED_AT },
+            ]);
+            expect(await pointsOf(ownerId)).toBe(3000);
         });
 
         it('registers an enemy with a wildcard slot and fills it once', async () => {
