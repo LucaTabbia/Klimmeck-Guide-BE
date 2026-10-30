@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 10 executing (plan 10-01 in progress) on feat/10-hardening
-last_updated: "2026-10-29T16:54:13.948Z"
-last_activity: "2026-10-29 -- Phase 10 execution started (31 plans, executor opus sequential; FE Phase 10 executing in the same session)"
+stopped_at: Phase 10 gate 10-31 passed on feat/10-hardening — awaiting review/verify/security and the user's manual actions
+last_updated: "2026-10-30T14:42:48.000Z"
+last_activity: "2026-10-30 -- Phase 10 gate 10-31 green (build, tsc, unit 179/2392, cov 278/3667, real boot 65/65, SDL +1 additive line); BE-HARD-01..08 Complete, VALIDATION approved"
 progress:
   total_phases: 13
   completed_phases: 12
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 10 (Hardening Trasversale) — EXECUTING since 2026-10-29 on `feat/10-hardening`: 31 plans in 26 sequential waves (details in `.planning/phases/10-hardening-trasversale/10-*-PLAN.md`)
-Plan: 30 of 31
-Status: Executing Phase 10 — plan 10-01 in progress (executor opus, sequential, main working tree)
-Last activity: 2026-10-29 -- Phase 10 execution started (31 plans, executor opus sequential; FE Phase 10 executing in the same session)
+Plan: 31 of 31
+Status: Executing Phase 10 — 31/31 plans executed, final gate green (10-31); next: code review, verification, security audit and closure by the orchestrator; user actions before the PR is marked ready in Blockers/Concerns
+Last activity: 2026-10-30 -- Phase 10 gate 10-31 green (build, tsc, unit 179/2392, cov 278/3667, real boot 65/65, SDL +1 additive line); BE-HARD-01..08 Complete, VALIDATION approved
 
 Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 complete; 10 to plan after the 9.2 merge)
 
@@ -263,6 +263,13 @@ None yet.
 - **Branch non pushati:** `feat/01-fondazione-test-consolidamento-spell-wip` e `feat/02-auth-identity-foundation` (la Phase 2 poggia sulla Phase 1, non ancora su `develop`); PR da aprire a mano verso `develop`.
 - `JWT_SECRET` (≥ 32 caratteri) è ora obbligatoria al boot su ogni ambiente; righe `.env` per il dev bypass in `BACKEND-NOTES.md` §7.
 - FE: branch `feat/party-waiting` (etichetta "In attesa del gruppo", abbandono, push questCancelled) da mergiare dopo la PR FE Phase 7 e la PR BE #13.
+- **Phase 10 — azioni dell'utente prima di marcare la PR pronta (2026-10-30):** la PR di `feat/10-hardening` resta draft finché non sono fatte:
+  1. migrazione dei ref secondo `docs/runbooks/mixed-refs-migration.md`: backup, poi copia ripristinata, poi produzione col codice attuale PRIMA del deploy; allegare alla PR i report JSON di `--verify` (copia e produzione); dopo il deploy di nuovo `--apply` + `--verify` e controllo del log del verificatore;
+  2. primo `workflow_dispatch` di `Secret scan` (`gh workflow run gitleaks.yml --ref feat/10-hardening` dopo il push) e gestione dei finding: rotazione del secret alla fonte + fingerprint in `.gitleaksignore`, senza riscrivere la storia;
+  3. conferma della tabella di policy Sightengine e dei default del throttler (`BACKEND-NOTES.md` §11 della Phase 10, 10 voci);
+  4. una chiamata Sightengine reale per A2 (un'immagine accettabile e una da rifiutare, chiavi nel proprio `.env`);
+  5. `THROTTLE_TRUST_PROXY` da impostare quando la topologia di produzione sarà nota (vuota = spenta).
+  Dopo la merge: UAT del pannello del GM nella FE Phase 10 (piano gated 10-11).
 
 ### Quick Tasks Completed
 

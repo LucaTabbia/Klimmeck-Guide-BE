@@ -1,9 +1,9 @@
 ---
 phase: 10
 slug: hardening-trasversale
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-10-29
 ---
 
@@ -114,6 +114,8 @@ created: 2026-10-29
 | 10-29-02 | 29 | 24 | BE-HARD-06 | T-10-98, T-10-99, T-10-100 | Runbook `docs/runbooks/mixed-refs-migration.md` (sei sezioni, ordine backup → copia → produzione col codice attuale → deploy → `--apply` + `--verify` subito dopo il deploy → log del verificatore, rollback, soli placeholder) e riga manual-only bloccante: PR draft fino al `--verify` di produzione (D-17d, C14) | docs | `grep -c "^## " docs/runbooks/mixed-refs-migration.md` = 6 + `grep -nE 'mongodb(\+srv)?://[A-Za-z0-9]' docs/runbooks/mixed-refs-migration.md` vuoto + `grep -n PENDENTE .planning/phases/10-hardening-trasversale/10-VALIDATION.md` | ✅ | ✅ green |
 | 10-30-01 | 30 | 25 | BE-HARD-01..08 | T-10-101, T-10-102, T-10-103 | Handoff `BACKEND-NOTES.md` della Phase 10 in 14 sezioni: SDL additivo verbatim (`pendingQuest: ID`), codici nuovi con copy FE, codici spostati, risposte alle 3 domande della FE Phase 10, moderazione, checklist di deploy con l'ordine della migrazione, default da confermare; solo placeholder (D-18, D-20) | docs | `grep -c "^## " .planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` ≥ 14 + `grep -q "pendingQuest: ID"` + `grep -q rate_limited` + `grep -q mixed-refs-migration` + `grep -q "### Risposte alle domande della FE Phase 10"` + `grep -nE 'mongodb(\+srv)?://[A-Za-z0-9]' ` vuoto | ✅ | ✅ green |
 | 10-30-02 | 30 | 25 | BE-HARD-01..08 | T-10-103 | Note datate additive «Emendato dalla Phase 10 (2026-10-29)» negli handoff 2.1, 3, 4, 7, 8, 9 (5 note), 9.1, 9.2 e sezione `## Deploy` nel README con rimandi a checklist, runbook e `.env.example` | docs | `grep -l "Emendato dalla Phase 10" .planning/phases/*/BACKEND-NOTES.md \| wc -l` = 8 + `grep -c "Emendato dalla Phase 10" .planning/phases/09-combat-result-admin-outcomes/BACKEND-NOTES.md` ≥ 3 + `grep -q "^## Deploy" README.md` | ✅ | ✅ green |
+| 10-31-01 | 31 | 26 | BE-HARD-01..08 | T-10-104, T-10-105, T-10-106 | Gate finale: build (emette `dist/migrations/run-mixed-refs.js`), type check, unit 179/2392, coverage 278/3667 con le soglie per cartella, boot reale 65/65, SDL vs `origin/develop` con 0 righe rimosse e la sola `+  pendingQuest: ID`; invarianti di fase verdi (una prova d'assenza per stringa nella spec del publisher degli avvii corretta con `toEqual`, commit `dbfc6e7`) | build + typecheck + unit + coverage + integration | `npm run build` + `npx tsc --noEmit -p tsconfig.json` + `npm run test:unit` + `npm run test:cov` + `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` + `git diff --exit-code src/schema.gql` | ✅ | ✅ green |
+| 10-31-02 | 31 | 26 | BE-HARD-01..08 | T-10-107 | VALIDATION approvato, BE-HARD-01..08 Complete in REQUIREMENTS, ROADMAP 31/31, azioni dell'utente prima della PR pronta tracciate in STATE; gate dei letterali sui `.md` del ramo vuoto | docs | il `<automated>` del Task 2 del piano 10-31 | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -123,14 +125,14 @@ created: 2026-10-29
 
 | Requirement | Comportamento | Comando | Piani | Stato |
 |-------------|---------------|---------|-------|-------|
-| BE-HARD-01 | collettore dei campi, forma dell'eccezione, copertura dei decoratori dei 17 input, `@IsObjectIdHex`; campo non decorato scartato (`EquipSpellRequest.usages`), id malformato → `BAD_USER_INPUT`; upload: oltre misura 413, due file 400, non immagine 400, JPEG `application/octet-stream` accettato | `npx jest src/validation --selectProjects unit` / `npx jest src/validation/validation.int-spec.ts src/rest/cloudinary --selectProjects integration --runInBand` | 10-05, 10-06, 10-08, 10-09, 10-10, 10-12 | ⬜ pending |
-| BE-HARD-02 | introspection spenta (HTTP + WS), niente suggerimenti, landing disattivata, `INTERNAL_SERVER_ERROR` sanitizzato con `requestId`; filtro REST 500, nessun header CORS; throttling GraphQL/REST/OAuth/webhook; allowlist di `NODE_ENV` | `npx jest src/graphql/production-surface.int-spec.ts src/http src/throttling src/eventsub/eventsub-throttle.int-spec.ts --selectProjects integration --runInBand` / `npx jest src/config/runtime-config.spec.ts --selectProjects unit` | 10-07, 10-10, 10-11, 10-12, 10-13, 10-14 | ⬜ pending |
-| BE-HARD-03 | drift fra `.env.example` e chiavi del codice; job gitleaks verde su push/PR e su `workflow_dispatch` (storia) | `npx jest src/config/env-example.drift.spec.ts --selectProjects unit` + run di GitHub Actions (controllo manuale) | 10-03, 10-07, 10-15 | ⬜ pending |
-| BE-HARD-04 | soglie di coverage per area applicate | `npm run test:cov` | 10-24, 10-25 | ⬜ pending |
-| BE-HARD-05 | tabella della policy (un test per categoria, casi solo-log, chiavi mancanti), mappatura del client Sightengine con `fetch` stubbato, immagine rifiutata mai su Cloudinary (422 con soli motivi), servizio non disponibile 503, configurazione che rifiuta chiavi mancanti in produzione | `npx jest src/moderation/image-policy.spec.ts src/moderation/sightengine-image.moderator.spec.ts src/config/moderation-config.spec.ts --selectProjects unit` / `npx jest src/rest/cloudinary --selectProjects integration --runInBand` | 10-15, 10-16, 10-17 | ⬜ pending |
-| BE-HARD-06 | riapertura dei change stream, single-flight di `UserUpdatesPublisher`, opzioni di fallimento delle code, indici presenti (`listIndexes`), backfill unico al boot, liste di `Enemy.locations`/`PointOfInterest.type`, record di `@AuditTarget`, refactor verdi sulle reti esistenti; migrazione dei ref `Mixed` (secondo giro a 0 modifiche, `--verify` a 0, stringhe non esadecimali intatte) | per file / `npx jest src/migrations --selectProjects integration --runInBand` | 10-04, 10-18, 10-19, 10-20, 10-23, 10-26, 10-27, 10-28, 10-29 | ⬜ pending |
-| BE-HARD-07 | il segnaposto di posto conta in combattimento (resolver scriptato) senza risultato né ricompensa, log INFO; variante del soccorso; avvio da soli atomico all'arrivo e all'accettazione; avvio del party emette `characterUpdated` | `npx jest src/quests/outcomes/boss-resolution.int-spec.ts src/quests/outcomes/aid-rescue.int-spec.ts src/travel/travel-completion.int-spec.ts src/quests/party --selectProjects integration --runInBand` | 10-21, 10-22 | ⬜ pending |
-| BE-HARD-08 | `PendingRequestCharacter.pendingQuest` proiettato (null se libera, id se occupata, null nel viaggio libero); riemissione a ogni transizione della corsia standard e dopo un archivio; `completePendingRequest` → `QUEST_IN_PROGRESS` senza scritture; SDL con una sola riga additiva | `npx jest src/quests/pending-requests --selectProjects unit` / `npx jest src/quests/pending-requests src/quests/outcomes/gm-completion.service.int-spec.ts --selectProjects integration --runInBand` | 10-01, 10-02 | ⬜ pending |
+| BE-HARD-01 | collettore dei campi, forma dell'eccezione, copertura dei decoratori dei 17 input, `@IsObjectIdHex`; campo non decorato scartato (`EquipSpellRequest.usages`), id malformato → `BAD_USER_INPUT`; upload: oltre misura 413, due file 400, non immagine 400, JPEG `application/octet-stream` accettato | `npx jest src/validation --selectProjects unit` / `npx jest src/validation/validation.int-spec.ts src/rest/cloudinary --selectProjects integration --runInBand` + `npm run test:cov` (gate 10-31: 278 suite / 3667) | 10-05, 10-06, 10-08, 10-09, 10-10, 10-12, 10-30, 10-31 | ✅ green |
+| BE-HARD-02 | introspection spenta (HTTP + WS), niente suggerimenti, landing disattivata, `INTERNAL_SERVER_ERROR` sanitizzato con `requestId`; filtro REST 500, nessun header CORS; throttling GraphQL/REST/OAuth/webhook; allowlist di `NODE_ENV` | `npx jest src/graphql/production-surface.int-spec.ts src/http src/throttling src/eventsub/eventsub-throttle.int-spec.ts --selectProjects integration --runInBand` / `npx jest src/config/runtime-config.spec.ts --selectProjects unit` + `npm run test:cov` (gate 10-31: 278 suite / 3667) | 10-07, 10-10, 10-11, 10-12, 10-13, 10-14, 10-30, 10-31 | ✅ green |
+| BE-HARD-03 | drift fra `.env.example` e chiavi del codice; job gitleaks verde su push/PR e su `workflow_dispatch` (storia) | `npx jest src/config/env-example.drift.spec.ts --selectProjects unit` + run di GitHub Actions (controllo manuale) + `npm run test:cov` (gate 10-31: 278 suite / 3667) | 10-03, 10-07, 10-15, 10-30, 10-31 | ✅ green |
+| BE-HARD-04 | soglie di coverage per area applicate | `npm run test:cov` + `npm run test:cov` (gate 10-31: 278 suite / 3667) | 10-24, 10-25, 10-30, 10-31 | ✅ green |
+| BE-HARD-05 | tabella della policy (un test per categoria, casi solo-log, chiavi mancanti), mappatura del client Sightengine con `fetch` stubbato, immagine rifiutata mai su Cloudinary (422 con soli motivi), servizio non disponibile 503, configurazione che rifiuta chiavi mancanti in produzione | `npx jest src/moderation/image-policy.spec.ts src/moderation/sightengine-image.moderator.spec.ts src/config/moderation-config.spec.ts --selectProjects unit` / `npx jest src/rest/cloudinary --selectProjects integration --runInBand` + `npm run test:cov` (gate 10-31: 278 suite / 3667) | 10-15, 10-16, 10-17, 10-30, 10-31 | ✅ green |
+| BE-HARD-06 | riapertura dei change stream, single-flight di `UserUpdatesPublisher`, opzioni di fallimento delle code, indici presenti (`listIndexes`), backfill unico al boot, liste di `Enemy.locations`/`PointOfInterest.type`, record di `@AuditTarget`, refactor verdi sulle reti esistenti; migrazione dei ref `Mixed` (secondo giro a 0 modifiche, `--verify` a 0, stringhe non esadecimali intatte) | per file / `npx jest src/migrations --selectProjects integration --runInBand` + `npm run test:cov` (gate 10-31: 278 suite / 3667) | 10-04, 10-18, 10-19, 10-20, 10-23, 10-26, 10-27, 10-28, 10-29, 10-30, 10-31 | ✅ green |
+| BE-HARD-07 | il segnaposto di posto conta in combattimento (resolver scriptato) senza risultato né ricompensa, log INFO; variante del soccorso; avvio da soli atomico all'arrivo e all'accettazione; avvio del party emette `characterUpdated` | `npx jest src/quests/outcomes/boss-resolution.int-spec.ts src/quests/outcomes/aid-rescue.int-spec.ts src/travel/travel-completion.int-spec.ts src/quests/party --selectProjects integration --runInBand` + `npm run test:cov` (gate 10-31: 278 suite / 3667) | 10-21, 10-22, 10-30, 10-31 | ✅ green |
+| BE-HARD-08 | `PendingRequestCharacter.pendingQuest` proiettato (null se libera, id se occupata, null nel viaggio libero); riemissione a ogni transizione della corsia standard e dopo un archivio; `completePendingRequest` → `QUEST_IN_PROGRESS` senza scritture; SDL con una sola riga additiva | `npx jest src/quests/pending-requests --selectProjects unit` / `npx jest src/quests/pending-requests src/quests/outcomes/gm-completion.service.int-spec.ts --selectProjects integration --runInBand` + `npm run test:cov` (gate 10-31: 278 suite / 3667) | 10-01, 10-02, 10-30, 10-31 | ✅ green |
 
 *Tutti i requisiti tornano nell'handoff e nel gate finale (10-30, 10-31).*
 
@@ -138,11 +140,11 @@ created: 2026-10-29
 
 ## Wave 0 Requirements
 
-- [ ] dipendenze `class-validator`, `class-transformer`, `@nestjs/throttler` — piano 10-05
-- [ ] RED di `test/app.int-spec.ts` (handler throttled, reporter montati, chiavi opzionali svuotate, test dell'introspection rinominato) — piani 10-01, 10-07, 10-08, 10-11, 10-12, 10-13, 10-14, 10-15, 10-17, 10-18, 10-19, 10-22, 10-26
-- [ ] harness: `createAuthTestApp` con `APP_PIPE`, `APP_FILTER`, `ThrottlerModule`, override di `ImageModerator` (finto) e flag `production` per `createGraphQLOptions` — piani 10-07, 10-08, 10-11, 10-12, 10-13, 10-17
-- [ ] `test/moderation/fake-image-moderator.ts` — piano 10-16
-- [ ] `collectCoverageFrom` esclude gli spec (prima di ogni soglia) — piano 10-24
+- [x] dipendenze `class-validator`, `class-transformer`, `@nestjs/throttler` — piano 10-05
+- [x] RED di `test/app.int-spec.ts` (handler throttled, reporter montati, chiavi opzionali svuotate, test dell'introspection rinominato) — piani 10-01, 10-07, 10-08, 10-11, 10-12, 10-13, 10-14, 10-15, 10-17, 10-18, 10-19, 10-22, 10-26
+- [x] harness: `createAuthTestApp` con `APP_PIPE`, `APP_FILTER`, `ThrottlerModule`, override di `ImageModerator` (finto) e flag `production` per `createGraphQLOptions` — piani 10-07, 10-08, 10-11, 10-12, 10-13, 10-17
+- [x] `test/moderation/fake-image-moderator.ts` — piano 10-16
+- [x] `collectCoverageFrom` esclude gli spec (prima di ogni soglia) — piano 10-24
 
 ---
 
@@ -161,11 +163,13 @@ created: 2026-10-29
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency ≤ 60 s per task (spec mirata)
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency ≤ 60 s per task (spec mirata)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Execution sign-off (10-31, 2026-10-30):** unit 179 suite / 2392 test, integration 99 suite / 1275 test (`npm run test:cov` 278 / 3667 in 412 s, totale S 96.55 / B 85.14 / F 91.44 / L 97.1), coverage per area verde (8 soglie per cartella rispettate), SDL +1 riga additiva (`pendingQuest: ID`, 0 rimosse), invarianti verdi; manual-only pendenti: migrazione dei ref in produzione (runbook, PR draft fino al report di `--verify`), primo scan completo di gitleaks (`workflow_dispatch` di `Secret scan`), conferma della policy Sightengine e dei default del throttler (`BACKEND-NOTES.md` §11), chiamata Sightengine reale (A2), `THROTTLE_TRUST_PROXY` quando la topologia sarà nota, UAT del pannello del GM (FE Phase 10).
+
+**Approval:** approved 2026-10-30

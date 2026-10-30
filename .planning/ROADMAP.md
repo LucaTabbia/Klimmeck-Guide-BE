@@ -352,7 +352,7 @@ Plans:
 - [x] 10-28-PLAN.md — Wave 23 (8): ritipizzazione dei ref dei personaggi; nessun `Mixed` rimasto (BE-HARD-06)
 - [x] 10-29-PLAN.md — Wave 24 (8, gate): suite + coverage, CLI compilato provato, runbook di migrazione e rollback, PR draft fino alla produzione (BE-HARD-06)
 - [x] 10-30-PLAN.md — Wave 25 (9): `BACKEND-NOTES.md` (codici, codici spostati, risposte FE, checklist di deploy, default da confermare) + emendamenti a 8 handoff + README (BE-HARD-01..08)
-- [ ] 10-31-PLAN.md — Wave 26 (9): gate finale, invarianti, VALIDATION `nyquist_compliant: true`, `requirements mark-complete`, ROADMAP/STATE (BE-HARD-01..08)
+- [x] 10-31-PLAN.md — Wave 26 (9): gate finale, invarianti, VALIDATION `nyquist_compliant: true`, `requirements mark-complete`, ROADMAP/STATE (BE-HARD-01..08)
 **Unblocks (FE)**: mirror di FE Phase 12 (hardening); BE-HARD-08 sblocca il piano gated 10-11 della FE Phase 10 (Admin Panel).
 **Branch**: `feat/10-hardening` da `develop` → PR a `develop`. _(Emendato 2026-10-27: creato sopra `feat/09.1-spell-state-and-recovery-contract`; spostato sopra `feat/09.2-quest-result-delivery-contract` dopo il merge della 9.1; PR dopo il merge della 9.2, con rebase.)_
 
@@ -390,4 +390,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
-| 10. Hardening Trasversale | 30/31 | In Progress | - |
+| 10. Hardening Trasversale | 31/31 | In Progress | - |
