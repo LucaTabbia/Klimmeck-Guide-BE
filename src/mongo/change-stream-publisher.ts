@@ -88,9 +88,12 @@ export abstract class ChangeStreamPublisher<TDocument>
         stream.on('change', (change: ChangeStreamEvent) =>
             this.receive(change),
         );
-        // il driver avanza il token anche oltre gli eventi filtrati (un invalidate non arriva come change)
+        // il driver avanza il token anche oltre gli eventi filtrati (un invalidate non arriva come change):
+        // un token nuovo prova che il cursore è vivo, quindi il backoff riparte da capo anche su una collection quieta
         stream.on('resumeTokenChanged', (token: unknown) => {
-            if (stream === this.changeStream && token) this.resumeToken = token;
+            if (stream !== this.changeStream || !token) return;
+            this.resumeToken = token;
+            this.attempt = 0;
         });
         stream.on('error', (error: unknown) => {
             if (stream === this.changeStream) this.scheduleReopen(error);
