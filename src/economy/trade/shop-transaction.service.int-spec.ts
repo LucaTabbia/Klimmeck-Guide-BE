@@ -442,6 +442,59 @@ describe('ShopTransactionService (replSet)', () => {
             ]);
         });
 
+        it('settles a trade that nets to zero without touching the wallet', async () => {
+            const id = await persistTrader(coins(0, 0, 7), {
+                ownedItems: [owned('LootItem', potion, 15)],
+            });
+            const delta = jest.spyOn(wallet, 'applyCharacterCoinsDelta');
+
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        buyEquip: [asset(sword)],
+                        sellLoot: [asset(potion, 15)],
+                        total: coins(0, 0, 0),
+                        isTotalPositive: false,
+                    }),
+                ),
+            ).resolves.toEqual(SUCCESS);
+
+            expect(delta).not.toHaveBeenCalled();
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(coins(0, 0, 7));
+            expect(after?.assets.ownedItems).toEqual([]);
+            expect(after?.assets.ownedEquipments).toEqual([
+                owned('EquipmentItem', sword, 1),
+            ]);
+        });
+
+        it('buys for a legacy character stored without an inventory', async () => {
+            const id = await persistTrader(coins(0, 1, 0));
+            await characters.collection.updateOne(
+                { _id: id },
+                { $unset: { assets: '' } },
+            );
+
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        buyLoot: [asset(potion)],
+                        total: coins(0, 0, 20),
+                        isTotalPositive: false,
+                    }),
+                ),
+            ).resolves.toEqual(SUCCESS);
+
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(coins(0, 0, 80));
+            expect(after?.assets).toEqual({
+                ownedItems: [owned('LootItem', potion, 1)],
+                ownedEquipments: [],
+            });
+        });
+
         it('answers an empty zero-total trade as a no-op without opening a transaction', async () => {
             const id = await persistTrader(coins(0, 1, 0));
             const before = await raw(id);
@@ -923,6 +976,48 @@ describe('ShopTransactionService (replSet)', () => {
             const after = await raw(id);
             expect(after?.status.coins).toEqual(coins(0, 0, 75));
             expect(after?.assets.ownedEquipments).toEqual([]);
+        });
+
+        it('pays nothing when the sold copy is gone at write time (INSUFFICIENT_ITEM_QUANTITY)', async () => {
+            const id = await persistTrader(coins(0, 0, 0));
+            const before = await raw(id);
+            const realFindOne = characters.findOne.bind(characters);
+            // lo snapshot vede ancora la copia che un equip o una vendita concorrente ha già tolto: decide la guard della scrittura
+            jest.spyOn(characters, 'findOne').mockImplementationOnce(((
+                filter: Record<string, unknown>,
+                projection: Record<string, unknown>,
+            ) => {
+                const query = realFindOne(filter, projection);
+                const exec = query.exec.bind(query);
+                query.exec = async () => {
+                    const snapshot = (await exec()) as {
+                        assets?: Record<string, unknown>;
+                    } | null;
+                    return {
+                        ...snapshot,
+                        assets: {
+                            ...snapshot?.assets,
+                            ownedEquipments: [owned('EquipmentItem', sword, 1)],
+                        },
+                    };
+                };
+                return query;
+            }) as unknown as typeof characters.findOne);
+            const delta = jest.spyOn(wallet, 'applyCharacterCoinsDelta');
+
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        sellEquip: [asset(sword)],
+                        total: coins(0, 0, 75),
+                        isTotalPositive: true,
+                    }),
+                ),
+            ).rejects.toMatchObject({ code: 'INSUFFICIENT_ITEM_QUANTITY' });
+
+            expect(delta).not.toHaveBeenCalled();
+            expect(await raw(id)).toEqual(before);
         });
 
         it('leaves no partial state when the transaction fails after both writes', async () => {

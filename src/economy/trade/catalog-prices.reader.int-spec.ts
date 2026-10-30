@@ -107,6 +107,39 @@ describe('CatalogPricesReader (replSet)', () => {
         expect(prices.get(priceKey('LootItem', relicId))?.sellPrice).toBeNull();
     });
 
+    it('reads a legacy catalog entry stored without prices as untradable', async () => {
+        const legacyId = new Types.ObjectId();
+        await loot.collection.insertOne({ _id: legacyId, name: 'Legacy' });
+
+        const prices = await reader.read([line('sell', 'LootItem', legacyId)]);
+
+        expect(prices.get(priceKey('LootItem', legacyId))).toEqual({
+            buyPrice: null,
+            sellPrice: null,
+        });
+    });
+
+    it('reads equipment and loot in one call, each from its own catalog', async () => {
+        const sword = await persistEquipmentItem(equipment);
+        const potion = await persistLootItem(loot);
+        const equipmentFind = jest.spyOn(equipment, 'find');
+        const lootFind = jest.spyOn(loot, 'find');
+
+        const prices = await reader.read([
+            line('buy', 'EquipmentItem', sword._id as Types.ObjectId),
+            line('sell', 'LootItem', potion._id as Types.ObjectId),
+        ]);
+
+        expect([...prices.keys()].sort()).toEqual(
+            [
+                priceKey('EquipmentItem', sword._id as Types.ObjectId),
+                priceKey('LootItem', potion._id as Types.ObjectId),
+            ].sort(),
+        );
+        expect(equipmentFind).toHaveBeenCalledTimes(1);
+        expect(lootFind).toHaveBeenCalledTimes(1);
+    });
+
     it('skips the database when there are no lines', async () => {
         const findSpy = jest.spyOn(equipment, 'find');
 
