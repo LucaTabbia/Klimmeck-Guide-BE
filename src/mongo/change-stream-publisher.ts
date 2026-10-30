@@ -44,7 +44,7 @@ export abstract class ChangeStreamPublisher<TDocument>
     ) {}
 
     onModuleInit(): void {
-        this.open();
+        this.openOrRetry();
     }
 
     // una lettura già partita non pubblica su un'app in chiusura; il listener di error resta (un error senza listener abbatte il processo)
@@ -72,6 +72,15 @@ export abstract class ChangeStreamPublisher<TDocument>
     }
 
     protected abstract onChange(change: ChangeStreamEvent): void;
+
+    // un watch che lancia in modo sincrono segue lo stesso backoff di uno stream caduto
+    private openOrRetry(): void {
+        try {
+            this.open();
+        } catch (error) {
+            this.scheduleReopen(error);
+        }
+    }
 
     private open(): void {
         const stream = this.watch();
@@ -120,7 +129,7 @@ export abstract class ChangeStreamPublisher<TDocument>
         this.reopenTimer = setTimeout(() => {
             this.reopenTimer = undefined;
             this.attempt++;
-            this.open();
+            this.openOrRetry();
         }, delayMs).unref();
     }
 
