@@ -130,6 +130,36 @@ describe('PendingQuestStartPublisher', () => {
         ]);
     });
 
+    it('does not republish holders read while the application was closing (D-17a)', async () => {
+        let resolveHolders: (value: { _id: Types.ObjectId }[]) => void = () =>
+            undefined;
+        holders.mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolveHolders = resolve;
+            }),
+        );
+
+        startOf(new Types.ObjectId());
+        await publisher.onModuleDestroy();
+        resolveHolders([{ _id: new Types.ObjectId() }]);
+        await settle();
+
+        expect(find).toHaveBeenCalledTimes(1);
+        expect(requestPublish.mock.calls).toEqual([]);
+    });
+
+    it('does not read the holders once the application is closing (D-17a)', async () => {
+        await publisher.onModuleDestroy();
+        const closing = publisher as unknown as {
+            onChange(change: object): void;
+        };
+
+        closing.onChange({ documentKey: { _id: new Types.ObjectId() } });
+        await settle();
+
+        expect(find.mock.calls).toEqual([]);
+    });
+
     it('watches only the updates that write a start date (D-22)', () => {
         expect(watch.mock.calls).toEqual([
             [
