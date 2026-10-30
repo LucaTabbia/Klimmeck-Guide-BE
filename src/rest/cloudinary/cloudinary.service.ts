@@ -2,6 +2,29 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 
+const PROVIDER_ERROR_NAME = 'CloudinaryError';
+const PROVIDER_ERROR_MESSAGE = 'Errore del provider Cloudinary';
+
+interface ProviderRejection {
+    http_code?: unknown;
+    error?: { http_code?: unknown } | null;
+}
+
+// Cloudinary rigetta con oggetti semplici: nel log restano solo nome e http_code, mai il payload (D-07)
+function providerErrorOf(rejection: unknown): Error {
+    if (rejection instanceof Error) return rejection;
+    const { http_code, error } = (rejection ?? {}) as ProviderRejection;
+    const code = http_code ?? error?.http_code;
+    return Object.assign(new Error(PROVIDER_ERROR_MESSAGE), {
+        name: PROVIDER_ERROR_NAME,
+        ...(typeof code === 'number' ? { code } : {}),
+    });
+}
+
+function rethrowProviderError(rejection: unknown): never {
+    throw providerErrorOf(rejection);
+}
+
 @Injectable()
 export class CloudinaryService {
     constructor(config: ConfigService) {
@@ -18,7 +41,7 @@ export class CloudinaryService {
                 .upload_stream(
                     { folder: 'characters_profile' },
                     (error, result) => {
-                        if (error) reject(error);
+                        if (error) reject(providerErrorOf(error));
                         else resolve(result as UploadApiResponse);
                     },
                 )
@@ -30,13 +53,17 @@ export class CloudinaryService {
         let allUrls: string[] = [];
         let nextCursor: string | undefined = undefined;
         do {
-            const result = await cloudinary.api.resources({
-                type: 'upload',
-                prefix: folder ? `${folder}/` : undefined,
-                max_results: 100,
-                next_cursor: nextCursor,
-            });
-            const urls = result.resources.map((r: any) => r.secure_url);
+            const result = await cloudinary.api
+                .resources({
+                    type: 'upload',
+                    prefix: folder ? `${folder}/` : undefined,
+                    max_results: 100,
+                    next_cursor: nextCursor,
+                })
+                .catch(rethrowProviderError);
+            const urls = result.resources.map(
+                (resource) => resource.secure_url,
+            );
             allUrls = [...allUrls, ...urls];
             nextCursor = result.next_cursor;
         } while (nextCursor);
@@ -44,20 +71,23 @@ export class CloudinaryService {
     }
 
     async listSubfoldersResources(folder: string) {
-        const subfolders = await cloudinary.api.sub_folders(folder);
+        const subfolders = await cloudinary.api
+            .sub_folders(folder)
+            .catch(rethrowProviderError);
         let allUrls: string[] = [];
         for (const sub of subfolders['folders']) {
             let nextCursor: string | undefined = undefined;
             do {
-                const result = await cloudinary.api.resources_by_asset_folder(
-                    sub.path,
-                    {
+                const result = await cloudinary.api
+                    .resources_by_asset_folder(sub.path, {
                         type: 'upload',
                         max_results: 100,
                         next_cursor: nextCursor,
-                    },
+                    })
+                    .catch(rethrowProviderError);
+                const urls = result.resources.map(
+                    (resource) => resource.secure_url,
                 );
-                const urls = result.resources.map((r: any) => r.secure_url);
                 allUrls = [...allUrls, ...urls];
                 nextCursor = result.next_cursor;
             } while (nextCursor);

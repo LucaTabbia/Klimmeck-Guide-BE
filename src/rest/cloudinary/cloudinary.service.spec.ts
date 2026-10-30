@@ -29,18 +29,14 @@ describe('CloudinaryService', () => {
     });
 
     it('turns a plain upload rejection into an Error with only the provider name and http code (D-07)', async () => {
+        const failingUpload = (
+            _options: unknown,
+            callback: (error: unknown, result?: unknown) => void,
+        ) => ({
+            end: () => callback({ message: PROVIDER_MESSAGE, http_code: 401 }),
+        });
         jest.spyOn(cloudinary.uploader, 'upload_stream').mockImplementation(
-            (_options, callback) =>
-                ({
-                    end: () =>
-                        callback?.(
-                            {
-                                message: PROVIDER_MESSAGE,
-                                http_code: 401,
-                            } as never,
-                            undefined,
-                        ),
-                }) as never,
+            failingUpload as never,
         );
 
         const error = await rejectionOf(service().uploadImage(PORTRAIT));
