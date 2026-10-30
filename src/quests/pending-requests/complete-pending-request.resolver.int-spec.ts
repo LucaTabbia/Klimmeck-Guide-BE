@@ -151,7 +151,7 @@ describe('completePendingRequest (wire)', () => {
         expect(records[0]).toMatchObject({
             actor: { userId: String(oste.user._id), role: 'innkeeper' },
             action: 'completePendingRequest',
-            target: { type: 'QuestResult', id: null },
+            target: { type: 'PendingQuest', id: input.pendingQuestId },
             args: { input },
             outcome: AUDIT_OUTCOME_OK,
         });
@@ -237,7 +237,7 @@ describe('completePendingRequest (wire)', () => {
         expect(records).toHaveLength(1);
         expect(records[0]).toMatchObject({
             action: 'completePendingRequest',
-            target: { type: 'QuestResult', id: null },
+            target: { type: 'PendingQuest', id: input.pendingQuestId },
             outcome: 'OUTCOME_OVERRIDE_INVALID',
         });
     });
@@ -360,9 +360,45 @@ describe('completePendingRequest (wire)', () => {
         expect(records).toHaveLength(1);
         expect(records[0]).toMatchObject({
             action: 'completePendingRequest',
-            target: { type: 'QuestResult', id: null },
+            target: {
+                type: 'PendingQuest',
+                id: String(subject.pendingQuest._id),
+            },
             outcome: 'QUEST_IN_PROGRESS',
         });
+    });
+
+    it('audits the completion with the pending quest as target (D-17c)', async () => {
+        const completed = await storyQuester();
+        const refused = await storyQuester();
+        const oste = await playerWithRole(RoleType.innkeeper);
+        const completedId = String(completed.pendingQuest._id);
+        const refusedId = String(refused.pendingQuest._id);
+
+        await completeOnWire({ pendingQuestId: completedId }, oste.bearer);
+        await completeOnWire(
+            {
+                pendingQuestId: refusedId,
+                outcomes: [
+                    { characterId: String(refused.characterId), hpAfter: 0 },
+                ],
+            },
+            oste.bearer,
+        );
+
+        const records = await audits.find().sort({ _id: 1 }).lean().exec();
+        expect(
+            records.map(({ target, outcome }) => ({ target, outcome })),
+        ).toEqual([
+            {
+                target: { type: 'PendingQuest', id: completedId },
+                outcome: AUDIT_OUTCOME_OK,
+            },
+            {
+                target: { type: 'PendingQuest', id: refusedId },
+                outcome: 'OUTCOME_OVERRIDE_INVALID',
+            },
+        ]);
     });
 
     it('forbids an adventurer', async () => {
