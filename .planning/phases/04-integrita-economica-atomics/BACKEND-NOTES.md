@@ -99,6 +99,8 @@ Le cinque mutation restano sotto `@OwnsCharacter` (Phase 3): owner o `innkeeper`
 
 ## 2. Codici d'errore
 
+> **Emendato dalla Phase 10 (2026-10-29):** in `doTransaction` una quantità negativa (era `INVALID_QUANTITY`), un id di item malformato (era `ITEM_NOT_FOUND`) e monete negative nel totale (era `TRANSACTION_TOTAL_MISMATCH`) rispondono `BAD_USER_INPUT` con il percorso del campo (es. `Input non valido: boughtItems.equipAssets.0.quantity`); la quantità **0** resta `INVALID_QUANTITY`. In `equipItem` un `itemId` malformato risponde `BAD_USER_INPUT` (era `ITEM_NOT_OWNED`); in `equipSpell`/`unequipSpell`/`useSpell` uno `spellId` malformato risponde `BAD_USER_INPUT` (era `SPELL_NOT_KNOWN`/`SPELL_NOT_ACTIVE`); l'id del personaggio malformato risponde `BAD_USER_INPUT` (era `NOT_FOUND`). I codici per gli id ben formati sono invariati. Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §3.
+
 I 15 codici di `GameRuleErrorCode` (HTTP 400, `GameRuleException`) più quelli invariati di Phase 2/3. I messaggi sono copiati da `src/gameRules/game-rule.exception.ts` e `src/authz/resource-not-found.exception.ts`.
 
 | Codice | Mutation / primitiva | Quando | Messaggio | Azione FE |

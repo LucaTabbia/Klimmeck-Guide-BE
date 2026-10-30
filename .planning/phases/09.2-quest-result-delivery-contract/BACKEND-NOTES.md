@@ -198,6 +198,8 @@ Sequenza dal punto di vista del FE (aid fallita o timeout dei 7 giorni):
 
 ## 4. Codici di rifiuto
 
+> **Emendato dalla Phase 10 (2026-10-29):** `acknowledgeQuestResult(id)` e `questResult(id)` con un id malformato rispondono `BAD_USER_INPUT` (`Input non valido: id`, senza leggere il DB) e non più `NOT_FOUND`; `NOT_FOUND` resta per gli id ben formati inesistenti o altrui. Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §3.
+
 Codici in `extensions.code`, messaggi fissi copiati dal codice.
 
 | Codice | Messaggio | Operazione | Quando |
@@ -214,6 +216,8 @@ La lista non ha rifiuti propri oltre a `UNAUTHENTICATED`: senza risultati rispon
 ---
 
 ## 5. Posti delle quest avviate (regola dell'utente)
+
+> **Emendato dalla Phase 10 (2026-10-29):** la D-07 di questa fase («la risoluzione combatte con chi resta») è superata dalla D-21: la risoluzione combatte **a posti pieni**, con i registrati archiviati dopo l'avvio come seat holder (fotografia del personaggio archiviato) nel boss e nel soccorso di gruppo; nessun risultato né premio per loro; il WARN «scartato» diventa un INFO. Il resto del §5 è invariato. All'avvio di un party ogni membro riceve un `characterUpdated` con `quests.pendingQuest.startDate` valorizzato (D-22). Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §8.
 
 Utente, 2026-10-27, verbatim: *«finché una missione non è conclusa il foglio resta strappato sulla board una volta che i posti sono pieni (e che quindi la quest è cominciata)»*; sul caso limite di un posto liberato dopo l'avvio l'utente ha scelto **«Il BE non libera i posti delle quest avviate»**.
 
@@ -343,6 +347,8 @@ Manual-only, su device, dopo la merge di questa PR e del piano FE schema-gated:
 ---
 
 ## 10. Note per la BE Phase 10
+
+> **Emendato dalla Phase 10 (2026-10-29):** risposte: id malformato della conferma → `BAD_USER_INPUT` (quarto punto, risolto); backfill dei risultati e delle registrazioni una volta per processo al boot, non atteso e non più a ogni tick; sweep delle morti mai confermate rinviato al backlog dall'utente (2026-10-29); Open Question 6 non affrontata, resta aperta; `questResults` resta YAGNI. Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §3, §13.
 
 - **Open Question 6:** registrati attivi **senza** PendingQuest della quest, su una quest avviata in cui tutti gli altri sono archiviati, possono restare bloccati (la quest non si risolve e non torna non avviata). Caso limite preesistente, fuori scope qui.
 - **Scansione del backfill a ogni boot:** dopo il primo deploy non trova più nulla; rimuoverla o renderla mirata (o protetta da un indice) quando i volumi crescono.

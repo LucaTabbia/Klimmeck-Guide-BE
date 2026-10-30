@@ -96,6 +96,8 @@ mutation AcceptQuest($request: AcceptQuestRequest!) {
 
 ## 2. Codici di rifiuto
 
+> **Emendato dalla Phase 10 (2026-10-29):** in `acceptQuest` un `questId` o un `id` del personaggio malformato risponde `BAD_USER_INPUT` (`Input non valido: questId` / `id`, era `NOT_FOUND`). Una quest da soli si avvia nella stessa transazione dell'arrivo (o del claim sul marker): il `characterUpdated` porta già `quests.pendingQuest.startDate`. La corsia standard occupata compare ora nella coda del GM (`PendingRequestCharacter.pendingQuest`) e blocca `completePendingRequest` con `QUEST_IN_PROGRESS` («Il personaggio è impegnato in una missione in corso»). Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §3, §4, §8.
+
 Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` e un messaggio italiano. Il FE mappa il **codice**, mai il messaggio. Un rifiuto **non scrive nulla**: nessun `PendingQuest`, nessun debito, nessuna registrazione.
 
 | Codice | Messaggio | Quando | Azione FE |

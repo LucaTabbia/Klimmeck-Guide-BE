@@ -173,6 +173,8 @@ status { activeTravel { road { coordinates distance } startTime endTime duration
 
 ## 2. Codici di rifiuto
 
+> **Emendato dalla Phase 10 (2026-10-29):** in `startTravel`/`travelPreview` un `poiId` o un `id` del personaggio malformato e in `teleportCharacter` un `poiId` o un `id` malformato rispondono `BAD_USER_INPUT` (`Input non valido: poiId` / `id`, era `NOT_FOUND`; il teleport è registrato nell'audit con esito `BAD_USER_INPUT`); `QUEST_IN_PROGRESS` del teleport e del viaggio invariato. All'arrivo su una quest da soli `startDate` è scritto insieme ad `arrivedAt` (= `endTime` del viaggio): il primo `characterUpdated` dopo l'arrivo porta già la quest avviata. Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §3, §8.
+
 Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` e un messaggio italiano. Il FE mappa il **codice**, mai il messaggio. Un rifiuto **non scrive nulla**: nessun `activeTravel`, nessun job, nessuna quest.
 
 | Codice | Messaggio | Operazioni | Quando | Azione FE |

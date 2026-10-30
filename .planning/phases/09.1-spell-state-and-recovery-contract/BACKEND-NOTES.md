@@ -195,6 +195,8 @@ Payload reale registrato dal test `carries the spell states with their future in
 
 ## 5. Codici di rifiuto
 
+> **Emendato dalla Phase 10 (2026-10-29):** in `equipSpell`/`unequipSpell`/`useSpell` uno `spellId` (o l'id del personaggio) malformato risponde `BAD_USER_INPUT` (`Input non valido: spellId` / `id`), non più `SPELL_NOT_KNOWN`/`SPELL_NOT_ACTIVE`/`NOT_FOUND`; i codici per gli id ben formati sono invariati. Il campo deprecato `EquipSpellRequest.usages` resta nello schema ma viene scartato in silenzio dalla pipe prima del service. Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §3.
+
 | Codice | Messaggio | Mutation | Quando |
 |---|---|---|---|
 | `SPELL_NOT_KNOWN` | `Magia non conosciuta` | `equipSpell` | la magia non è in `status.spells` |
@@ -364,6 +366,8 @@ Con i dati di §7, sul device:
 ---
 
 ## 10. Note per la BE Phase 10
+
+> **Emendato dalla Phase 10 (2026-10-29):** chiusi dalla Phase 10: indice `character_spell_recoveries` (costruito al boot), validazione degli id (`BAD_USER_INPUT`), ritipizzazione di `status.spells` e `ActiveSpell.spell` con migrazione, test di drift di `.env.example` su tutti gli `*_ENV_KEYS`; i job falliti della coda `spell-recovery` sono tenuti al massimo 7 giorni o 1 000 (`removeOnFail` limitato). `usages` non è stato rimosso né marcato deprecato nello schema (schema invariato): scartato dalla whitelist. Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §3, §10, §13.
 
 - **Indice** su `status.spellStates.recoveries` per la query dello sweep (`{ deletedAt: null, 'status.spellStates.recoveries': { $lte: now } }`), insieme agli altri indici.
 - **`@IsMongoId`** su `EquipSpellRequest` (`id`, `spellId`) e `UseSpellRequest` (`characterId`, `spellId`): oggi un id malformato dà `SPELL_NOT_ACTIVE`/`NOT_FOUND`, con la ValidationPipe darà `BAD_USER_INPUT`.

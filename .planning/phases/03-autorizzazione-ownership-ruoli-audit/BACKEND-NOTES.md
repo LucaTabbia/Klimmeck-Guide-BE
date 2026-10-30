@@ -150,6 +150,8 @@ Messaggi definitivi (italiano, solo per log/diagnostica):
 
 ## 3. Codici d'errore
 
+> **Emendato dalla Phase 10 (2026-10-29):** un id **malformato** sui percorsi protetti risponde `BAD_USER_INPUT` (`Input non valido: id`, HTTP 400 su REST) e non più `NOT_FOUND`, prima di qualunque lettura; `NOT_FOUND` resta per gli id ben formati ma inesistenti. `UNAUTHENTICATED` e `FORBIDDEN` restano valutati prima (es. `user(id)` da avventuriero: `FORBIDDEN` prima della validazione dell'id). Audit: l'interceptor gira prima della pipe, quindi gli input malformati delle mutation admin sono registrati con esito `BAD_USER_INPUT`; il target di `completePendingRequest` è ora `{ type: 'PendingQuest', id: <pendingQuestId> }` (prima `{ type: 'QuestResult', id: null }`), anche sui rifiuti. Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §3, §9.
+
 | Codice | Quando | HTTP (REST) |
 |---|---|---|
 | `FORBIDDEN` (nuovo) | ownership violata; operazione innkeeper-only chiamata da non innkeeper; subscribe `characterUpdated` su id altrui | 403 |

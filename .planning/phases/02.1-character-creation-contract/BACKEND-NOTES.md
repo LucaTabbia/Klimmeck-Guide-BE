@@ -182,6 +182,8 @@ Ordine dei controlli: nome → età → background → immagine (il primo che fa
 
 ## 4. Codici d'errore
 
+> **Emendato dalla Phase 10 (2026-10-29):** i codici della creazione sono invariati (`CHARACTER_NAME_INVALID`, `CHARACTER_NAME_TAKEN`, `CHARACTER_AGE_OUT_OF_RANGE`, `CHARACTER_ALREADY_EXISTS`, `STARTING_LOCATION_UNAVAILABLE`, il `BAD_USER_INPUT` del dominio per background e `imagePath`). `imagePath` resta facoltativo; il ritratto passa ora da `POST /cloudinary/uploadImage`, moderato con Sightengine prima dell'upload: rifiuto 422 `IMAGE_REJECTED` («Immagine non ammessa»), servizio non disponibile 503 `IMAGE_MODERATION_UNAVAILABLE`; oltre il limite 429 `TOO_MANY_REQUESTS`; file non immagine 400 `BAD_USER_INPUT` `Input non valido: file`, oltre 5 MiB 413. Copy suggerito per il quick task FE: «Immagine non ammessa, scegline un'altra» e «Riprova o procedi senza immagine». Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §2, §6.
+
 Sempre in `errors[0].extensions.code`. Messaggi copiati dalle factory di `src/characters/creation/character-creation.exception.ts`. In nessun caso d'errore resta un documento parziale (§8).
 
 | code | quando | messaggio (italiano, dal BE) | azione FE suggerita |
@@ -282,6 +284,7 @@ Se serve mostrare subito qualcosa, si possono aggiungere gli scalari di `infos`:
 ## 9. Limiti noti (by design in questa fase)
 
 - **Nessuna moderazione NSFW** del ritratto, né on-device né server (decisione utente 2026-10-08) → debito BE-HARD (Phase 10, candidata la moderazione AI di Cloudinary).
+- **Emendato dalla Phase 10 (2026-10-29):** debito BE-CHAR-04 chiuso: moderazione server-side del ritratto con Sightengine (fail-closed, non con la moderazione di Cloudinary), vedi la nota in testa al §4 e `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §6.
 - **Nessun allowlist dell'host** per `imagePath`: qualsiasi URL `https` passa → BE-HARD.
 - **Nessun reset/cancellazione del personaggio.** In dev, per ri-testare la creazione: azzerare `currentCharacter` sullo `User` e cancellare il `Character` a mano in Mongo.
 - **Omografi cross-script** (`A` latina vs `А` cirillica) non sono unificati: due nomi visivamente identici possono coesistere.
