@@ -14,9 +14,13 @@ class ProbeHandlers {
 
 describe('AuditTarget', () => {
     it('declares the audit target type and the id reader of a handler (D-17c)', () => {
+        const handler = Object.getOwnPropertyDescriptor(
+            ProbeHandlers.prototype,
+            'complete',
+        )?.value as object;
         const rule = Reflect.getMetadata(
             AUDIT_TARGET_KEY,
-            ProbeHandlers.prototype.complete,
+            handler,
         ) as AuditTargetRule;
 
         expect(rule.type).toBe('PendingQuest');

@@ -1,6 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
 import type { PubSub } from '@graphql-yoga/subscription';
+import { AuditTarget } from 'src/authz/audit/audit-target.decorator';
 import { Roles } from 'src/authz/roles/roles.decorator';
 import { subscribeWithSnapshot } from 'src/graphql/subscribe-with-snapshot';
 import { RoleType } from 'src/models/enums/role-type.enum';
@@ -41,8 +42,12 @@ export class PendingRequestsResolver {
         );
     }
 
-    // solo esito positivo, override opzionali per personaggio (D-03, D-04); audit automatico dell'interceptor (D-23): target QuestResult, pendingQuest negli args
+    // solo esito positivo, override opzionali per personaggio (D-03, D-04); audit automatico dell'interceptor (D-23): target PendingQuest dichiarato (D-17c)
     @Roles(RoleType.innkeeper)
+    @AuditTarget(
+        'PendingQuest',
+        ({ input }) => (input as { pendingQuestId?: unknown })?.pendingQuestId,
+    )
     @Mutation(() => [QuestResult])
     async completePendingRequest(
         @Args('input', { type: () => CompletePendingRequestInput })

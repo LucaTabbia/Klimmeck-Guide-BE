@@ -16,6 +16,10 @@ import {
     AdminAuditEntry,
     AdminAuditLogService,
 } from 'src/authz/audit/admin-audit-log.service';
+import {
+    AUDIT_TARGET_KEY,
+    type AuditTargetRule,
+} from 'src/authz/audit/audit-target.decorator';
 import { AuthorizationDecisions } from 'src/authz/ownership/authorization-decisions';
 import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
 import { RoleType } from 'src/models/enums/role-type.enum';
@@ -80,12 +84,25 @@ export class AdminAuditInterceptor implements NestInterceptor {
                 role: identity.role,
             },
             action: info.fieldName,
-            target: onBehalf ?? {
-                type: getNamedType(info.returnType).name,
-                id: typeof args.id === 'string' ? args.id : null,
-            },
+            target: onBehalf ??
+                this.declaredTargetOf(context, args) ?? {
+                    type: getNamedType(info.returnType).name,
+                    id: stringOrNull(args.id),
+                },
             args,
         };
+    }
+
+    private declaredTargetOf(
+        context: ExecutionContext,
+        args: Record<string, unknown>,
+    ): AdminAuditEntry['target'] | null {
+        const declared = this.reflector.get<AuditTargetRule | undefined>(
+            AUDIT_TARGET_KEY,
+            context.getHandler(),
+        );
+        if (!declared) return null;
+        return { type: declared.type, id: stringOrNull(declared.idOf(args)) };
     }
 
     private isInnkeeperOperation(context: ExecutionContext): boolean {
@@ -108,6 +125,10 @@ export function outcomeCodeOf(error: unknown): string {
         );
     }
     return FALLBACK_OUTCOME;
+}
+
+function stringOrNull(value: unknown): string | null {
+    return typeof value === 'string' ? value : null;
 }
 
 // gli input GraphQL possono avere prototipo nullo: copia JSON per un documento Mixed pulito
