@@ -141,6 +141,16 @@ interface WoundedStep {
 
 type WoundedResult = CommittedOutcome['results'][number];
 
+interface RescueFight {
+    committed: CommittedOutcome;
+    fallen: Types.ObjectId[];
+}
+
+type WoundedSettlement = Pick<CommittedOutcome, 'results' | 'aids'>;
+
+const rescuableOf = (wounded: readonly Wounded[]): Types.ObjectId[] =>
+    wounded.flatMap(({ snapshot, ownerId }) => (ownerId ? [snapshot._id] : []));
+
 // soccorso di gruppo (D-09 emendata il 2026-10-25): i soccorritori registrati combattono insieme come nel boss (D-05), un solo verdetto libera o uccide tutti i feriti della aid nella stessa transazione
 @Injectable()
 export class RescueResolutionService {
@@ -335,6 +345,27 @@ export class RescueResolutionService {
         session: ClientSession,
         notes: RescueNote[],
     ): Promise<CommittedOutcome> {
+        const wounded = await this.woundedInSession(context, session, notes);
+        const { committed, fallen } = await this.fightRescuers(
+            context,
+            session,
+            rescuableOf(wounded),
+        );
+        const settled = await this.settleWounded(
+            { context, wounded, session, notes },
+            fallen,
+        );
+        committed.results.push(...settled.results);
+        committed.aids.push(...settled.aids);
+        return committed;
+    }
+
+    // combattimento dei soccorritori vivi e dei segnaposto di posto, esiti dei soli soccorritori, poi il claim della aid
+    private async fightRescuers(
+        context: RescueContext,
+        session: ClientSession,
+        rescuable: readonly Types.ObjectId[],
+    ): Promise<RescueFight> {
         const { loaded, roster, catalog, now } = context;
         const aid = loaded.quest;
         const rescuers: ResolutionCharacter[] = [];
@@ -347,10 +378,6 @@ export class RescueResolutionService {
                 ),
             );
         }
-        const wounded = await this.woundedInSession(context, session, notes);
-        const rescuable = wounded.flatMap(({ snapshot, ownerId }) =>
-            ownerId ? [snapshot._id] : [],
-        );
         // i soccorritori archiviati dopo l'avvio combattono come segnaposto di posto, senza esiti né premi (D-21, C18)
         const holders: ResolutionCharacter[] = [];
         for (const holder of roster.seatHolders) {
@@ -422,18 +449,31 @@ export class RescueResolutionService {
             session,
             'claim',
         );
-        const step: WoundedStep = { context, wounded, session, notes };
+        return { committed, fallen };
+    }
+
+    // un solo verdetto per tutti i feriti: liberati se nessun soccorritore è caduto, altrimenti morti e una nuova aid per i caduti
+    private async settleWounded(
+        step: WoundedStep,
+        fallen: readonly Types.ObjectId[],
+    ): Promise<WoundedSettlement> {
         if (fallen.length === 0) {
-            committed.results.push(...(await this.liberate(step)));
-            return committed;
+            return { results: await this.liberate(step), aids: [] };
         }
-        committed.results.push(...(await this.kill(step)));
+        const { context, session } = step;
+        const results = await this.kill(step);
         await this.writer.createAid(
-            buildAidQuest(context.original ?? aid, fallen, context.nextAidId),
+            buildAidQuest(
+                context.original ?? context.loaded.quest,
+                fallen,
+                context.nextAidId,
+            ),
             session,
         );
-        committed.aids.push({ aidQuestId: context.nextAidId, since: now });
-        return committed;
+        return {
+            results,
+            aids: [{ aidQuestId: context.nextAidId, since: context.now }],
+        };
     }
 
     // liberati con gli HP che hanno e riportati al marker della città (D-09): nessuna cura, nessun viaggio
