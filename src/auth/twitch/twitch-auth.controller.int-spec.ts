@@ -1,3 +1,5 @@
+import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { AuthSessionService } from 'src/auth/auth-session.service';
 import { sha256Hex } from 'src/auth/crypto/token-crypto';
@@ -5,6 +7,11 @@ import {
     LoginTicket,
     LoginTicketDocument,
 } from 'src/auth/login-ticket/login-ticket.model';
+import {
+    ACCESS_TOKEN_AUDIENCE,
+    OAUTH_STATE_AUDIENCE,
+    TOKEN_ISSUER,
+} from 'src/auth/token/token-audiences';
 import { TwitchOAuthError } from 'src/auth/twitch/twitch-oauth.client';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
@@ -17,12 +24,27 @@ import {
     FAKE_TWITCH_ACCESS_TOKEN,
     FAKE_TWITCH_USER_ID,
 } from '../../../test/auth/fake-twitch-oauth.client';
+import { TEST_JWT_SECRET } from '../../../test/auth/test-auth-config';
 import { persistUser } from '../../../test/fixtures';
 
 const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
 const CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 const TICKET_REDIRECT_PATTERN =
     /^klimmeck:\/\/auth\?ticket=([A-Za-z0-9_-]{43})$/;
+
+const EXPIRED_AT_SECONDS = Math.floor(Date.now() / 1000) - 60;
+
+function signState(
+    claims: Record<string, unknown>,
+    audience: string,
+): Promise<string> {
+    return new JwtService().signAsync(claims, {
+        secret: TEST_JWT_SECRET,
+        algorithm: 'HS256',
+        audience,
+        issuer: TOKEN_ISSUER,
+    });
+}
 
 function errorRedirect(code: string): string {
     return `klimmeck://auth?error=${code}`;
@@ -221,6 +243,37 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
                 expect(harness.twitch.exchangedCodes).toEqual([]);
             });
 
+            it.each([
+                [
+                    'expired',
+                    { challenge: CHALLENGE, exp: EXPIRED_AT_SECONDS },
+                    OAUTH_STATE_AUDIENCE,
+                ],
+                [
+                    'signed for the access token audience',
+                    { challenge: CHALLENGE },
+                    ACCESS_TOKEN_AUDIENCE,
+                ],
+            ])(
+                'redirects with invalid_state on a forged or expired state (%s) before any exchange',
+                async (_label, claims, audience) => {
+                    const state = await signState(claims, audience);
+
+                    const location = await callback({ code: 'x', state });
+
+                    expect(location).toBe(errorRedirect('invalid_state'));
+                    expect(harness.twitch.exchangedCodes).toEqual([]);
+                },
+            );
+
+            it('redirects with invalid_state on a state without a challenge', async () => {
+                const state = await signState({}, OAUTH_STATE_AUDIENCE);
+
+                expect(await callback({ code: 'x', state })).toBe(
+                    errorRedirect('invalid_state'),
+                );
+            });
+
             it('rejects a missing state as invalid_state', async () => {
                 expect(await callback({ code: 'x' })).toBe(
                     errorRedirect('invalid_state'),
@@ -246,6 +299,28 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
 
                 expect(location).toBe(errorRedirect('twitch_exchange_failed'));
                 expect(await tickets.countDocuments()).toBe(0);
+            });
+
+            it('redirects with twitch_exchange_failed and logs only unknown on a non-Error failure', async () => {
+                const exchange = jest
+                    .spyOn(harness.twitch, 'exchangeCode')
+                    .mockRejectedValueOnce('fake-raw-failure');
+                const warn = jest
+                    .spyOn(Logger.prototype, 'warn')
+                    .mockImplementation(() => undefined);
+
+                const location = await callback({
+                    code: 'fake-code',
+                    state: await startState(),
+                });
+                const warnings = warn.mock.calls.map(([message]) =>
+                    String(message),
+                );
+                exchange.mockRestore();
+                warn.mockRestore();
+
+                expect(location).toBe(errorRedirect('twitch_exchange_failed'));
+                expect(warnings).toEqual(['Twitch login failed: unknown']);
             });
 
             it('completes the login even when the best-effort revoke fails', async () => {

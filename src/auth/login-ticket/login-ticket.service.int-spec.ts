@@ -23,6 +23,7 @@ const RFC_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 const WRONG_VERIFIER = 'wrongVerifierwrongVerifierwrongVerifier1234';
 const OPAQUE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const LOGIN_TICKET_TTL_MS = 60 * 1000;
+const CONCURRENT_EXCHANGES = 5;
 const LOGIN_TICKET_INVALID = { code: AuthErrorCode.LOGIN_TICKET_INVALID };
 
 describe('LoginTicketService (replSet)', () => {
@@ -159,6 +160,29 @@ describe('LoginTicketService (replSet)', () => {
             expect(rejected[0]).toMatchObject({
                 reason: LOGIN_TICKET_INVALID,
             });
+        });
+
+        it('accepts a login ticket only once under concurrent exchanges', async () => {
+            const ticket = await service.issue(userId, RFC_CHALLENGE);
+
+            const results = await Promise.allSettled(
+                Array.from({ length: CONCURRENT_EXCHANGES }, () =>
+                    service.redeem(ticket, RFC_VERIFIER),
+                ),
+            );
+
+            expect(
+                results.filter(({ status }) => status === 'fulfilled'),
+            ).toEqual([{ status: 'fulfilled', value: userId }]);
+            expect(
+                results.filter(({ status }) => status === 'rejected'),
+            ).toHaveLength(CONCURRENT_EXCHANGES - 1);
+            for (const result of results) {
+                if (result.status === 'rejected') {
+                    expect(result.reason).toMatchObject(LOGIN_TICKET_INVALID);
+                }
+            }
+            await expect(LoginTicketModel.countDocuments()).resolves.toBe(0);
         });
     });
 });

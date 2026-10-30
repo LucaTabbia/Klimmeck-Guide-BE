@@ -32,6 +32,7 @@ const RETIRED_REFRESH_TOKENS_LIMIT = 10;
 const REFRESH_TOKEN_KEY = deriveRefreshTokenKey(TEST_JWT_SECRET);
 const ROTATED_JWT_SECRET = 'rotated-jwt-secret-0123456789abcdef-0123456789';
 const IN_GRACE_RETRIES = 3;
+const CONCURRENT_REFRESHES = 5;
 
 describe('SessionService (replSet)', () => {
     let service: SessionService;
@@ -674,6 +675,51 @@ describe('SessionService (replSet)', () => {
                 retiredEntry(t0.refreshToken, clock.now()),
             ]);
             expect(stored?.revokedAt).toBeNull();
+        });
+
+        it('lets only one of five concurrent refreshes rotate the same refresh token, the others get its token (D-35)', async () => {
+            const t0 = await service.create(USER_ID);
+
+            const issued = await Promise.all(
+                Array.from({ length: CONCURRENT_REFRESHES }, () =>
+                    service.rotate(t0.refreshToken),
+                ),
+            );
+
+            const tokens = new Set(
+                issued.map(({ refreshToken }) => refreshToken),
+            );
+            expect(tokens.size).toBe(1);
+            const stored = await readSession(t0.sessionId);
+            expect(stored?.rotationCount).toBe(1);
+            expect(stored?.retiredRefreshTokens).toEqual([
+                retiredEntry(t0.refreshToken, clock.now()),
+            ]);
+            expect(stored?.revokedAt).toBeNull();
+        });
+
+        it('revokes the session once when two concurrent refreshes reuse a token retired past the grace', async () => {
+            const t0 = await service.create(USER_ID);
+            await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(31);
+
+            const results = await Promise.allSettled([
+                service.rotate(t0.refreshToken),
+                service.rotate(t0.refreshToken),
+            ]);
+
+            expect(results).toEqual([
+                {
+                    status: 'rejected',
+                    reason: expect.objectContaining(sessionRevoked),
+                },
+                {
+                    status: 'rejected',
+                    reason: expect.objectContaining(sessionRevoked),
+                },
+            ]);
+            const stored = await readSession(t0.sessionId);
+            expect(stored?.revokedAt).toEqual(clock.now());
         });
     });
 
