@@ -1,4 +1,5 @@
 import type { Response } from 'express';
+import type { IncomingMessage } from 'node:http';
 import type { AuthenticatedWsExtra } from 'src/auth/ws/ws-connection-authenticator';
 import { REQUEST_ID_HEADER, requestIdFrom } from 'src/graphql/request-id';
 import type { RequestWithId } from 'src/http/request-id.middleware';
@@ -12,7 +13,8 @@ export interface GraphQLContextInput {
 }
 
 export interface GraphQLRequestContext {
-    req: any;
+    // su WS è l'IncomingMessage dell'upgrade
+    req: RequestWithId | IncomingMessage | undefined;
     res?: Response;
     extra?: AuthenticatedWsExtra;
     requestId: string;
