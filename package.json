@@ -152,18 +152,18 @@
     "coverageThreshold": {
       "./src/auth/": {
         "statements": 97,
-        "branches": 83,
-        "lines": 97
+        "branches": 84,
+        "lines": 98
       },
       "./src/economy/": {
-        "statements": 97,
-        "branches": 89,
-        "lines": 97
+        "statements": 98,
+        "branches": 91,
+        "lines": 98
       },
       "./src/characters/spells/": {
-        "statements": 96,
-        "branches": 86,
-        "lines": 96
+        "statements": 97,
+        "branches": 88,
+        "lines": 97
       },
       "./src/characters/equipment/": {
         "statements": 98,
@@ -171,24 +171,24 @@
         "lines": 98
       },
       "./src/characters/characters.service.ts": {
-        "statements": 94,
-        "branches": 84,
-        "lines": 96
+        "statements": 96,
+        "branches": 88,
+        "lines": 98
       },
       "./src/quests/acceptance/": {
         "statements": 97,
-        "branches": 89,
+        "branches": 91,
         "lines": 98
       },
       "./src/eventsub/": {
-        "statements": 96,
-        "branches": 89,
+        "statements": 97,
+        "branches": 92,
         "lines": 97
       },
       "./src/travel/": {
         "statements": 97,
-        "branches": 82,
-        "lines": 97
+        "branches": 84,
+        "lines": 98
       }
     }
   },
