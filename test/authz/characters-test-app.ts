@@ -5,6 +5,7 @@ import { AuthzModule } from 'src/authz/authz.module';
 import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
 import { CharactersResolver } from 'src/characters/characters.resolver';
 import { CharactersService } from 'src/characters/characters.service';
+import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { EconomyModule } from 'src/economy/economy.module';
 import {
@@ -60,6 +61,7 @@ export async function createCharactersTestApp(
             CharactersService,
             CharactersResolver,
             CharacterUpdatesPublisher,
+            PendingQuestStartPublisher,
             {
                 provide: getQueueToken(SPELL_RECOVERY_QUEUE),
                 useValue: { add: jest.fn() },
