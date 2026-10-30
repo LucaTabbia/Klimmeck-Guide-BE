@@ -349,7 +349,7 @@ Plans:
 - [x] 10-25-PLAN.md — Wave 20 (7): gap di economia, magie, equipaggiamento, accettazione e viaggi; soglie alzate (BE-HARD-04)
 - [x] 10-26-PLAN.md — Wave 21 (8): inventario dei ref `Mixed`, pipeline pure, migrazione `--dry-run/--apply/--verify` + CLI + verificatore al boot (BE-HARD-06)
 - [x] 10-27-PLAN.md — Wave 22 (8): ritipizzazione dei ref condivisi e di catalogo; test legacy sul percorso migrato (BE-HARD-06)
-- [ ] 10-28-PLAN.md — Wave 23 (8): ritipizzazione dei ref dei personaggi; nessun `Mixed` rimasto (BE-HARD-06)
+- [x] 10-28-PLAN.md — Wave 23 (8): ritipizzazione dei ref dei personaggi; nessun `Mixed` rimasto (BE-HARD-06)
 - [ ] 10-29-PLAN.md — Wave 24 (8, gate): suite + coverage, CLI compilato provato, runbook di migrazione e rollback, PR draft fino alla produzione (BE-HARD-06)
 - [ ] 10-30-PLAN.md — Wave 25 (9): `BACKEND-NOTES.md` (codici, codici spostati, risposte FE, checklist di deploy, default da confermare) + emendamenti a 8 handoff + README (BE-HARD-01..08)
 - [ ] 10-31-PLAN.md — Wave 26 (9): gate finale, invarianti, VALIDATION `nyquist_compliant: true`, `requirements mark-complete`, ROADMAP/STATE (BE-HARD-01..08)
@@ -390,4 +390,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
-| 10. Hardening Trasversale | 27/31 | In Progress | - |
+| 10. Hardening Trasversale | 28/31 | In Progress | - |
