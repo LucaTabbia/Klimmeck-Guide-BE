@@ -43,27 +43,29 @@ interface ProbedSchemaType {
     caster?: ProbedSchemaType;
 }
 
-function isMixedRef(type: ProbedSchemaType | undefined): boolean {
-    return (
-        type?.instance === 'Mixed' &&
-        Boolean(type.options?.ref ?? type.options?.refPath)
-    );
+interface SchemaRef {
+    ref: MixedRefPath;
+    instance: string;
 }
 
-function mixedRefsOf(
+function hasRef(type: ProbedSchemaType | undefined): boolean {
+    return Boolean(type?.options?.ref ?? type?.options?.refPath);
+}
+
+function refsOf(
     collection: string,
     schema: Schema,
     prefix = '',
     subdocArray?: string,
-): MixedRefPath[] {
-    const found: MixedRefPath[] = [];
+): SchemaRef[] {
+    const found: SchemaRef[] = [];
     schema.eachPath((name, schemaType) => {
         const type = schemaType as unknown as ProbedSchemaType;
         const path = `${prefix}${name}`;
         if (type.schema) {
             const isList = type.instance === 'Array';
             found.push(
-                ...mixedRefsOf(
+                ...refsOf(
                     collection,
                     type.schema,
                     isList ? '' : `${path}.`,
@@ -72,13 +74,17 @@ function mixedRefsOf(
             );
             return;
         }
-        if (type.instance === 'Array' && isMixedRef(type.caster)) {
-            found.push({ collection, path, shape: 'array' });
+        if (type.instance === 'Array' && type.caster) {
+            if (!hasRef(type.caster) && !hasRef(type)) return;
+            found.push({
+                ref: { collection, path, shape: 'array' },
+                instance: type.caster.instance,
+            });
             return;
         }
-        if (!isMixedRef(type)) return;
-        found.push(
-            subdocArray
+        if (!hasRef(type)) return;
+        found.push({
+            ref: subdocArray
                 ? {
                       collection,
                       path: subdocArray,
@@ -86,24 +92,71 @@ function mixedRefsOf(
                       key: path,
                   }
                 : { collection, path, shape: 'scalar' },
-        );
+            instance: type.instance,
+        });
     });
     return found;
 }
 
-function byLabel(refs: readonly MixedRefPath[]): MixedRefPath[] {
-    return [...refs].sort((a, b) =>
-        mixedRefLabel(a).localeCompare(mixedRefLabel(b)),
-    );
+const SCHEMA_REFS: readonly SchemaRef[] = Object.entries(
+    SCHEMAS_BY_COLLECTION,
+).flatMap(([collection, schema]) => refsOf(collection, schema));
+
+function instanceOf(ref: MixedRefPath): string | undefined {
+    const label = mixedRefLabel(ref);
+    return SCHEMA_REFS.find((found) => mixedRefLabel(found.ref) === label)
+        ?.instance;
 }
 
+const CHARACTER_FIELD_LABELS = [
+    'characters:assets.activeSpells.spell',
+    'characters:assets.pet',
+    'characters:assets.wearedEquipment.arms',
+    'characters:assets.wearedEquipment.chest',
+    'characters:assets.wearedEquipment.firstAccessory',
+    'characters:assets.wearedEquipment.foots',
+    'characters:assets.wearedEquipment.head',
+    'characters:assets.wearedEquipment.leftHand',
+    'characters:assets.wearedEquipment.legs',
+    'characters:assets.wearedEquipment.rightHand',
+    'characters:assets.wearedEquipment.secondAccessory',
+    'characters:quests.completedQuests',
+    'characters:quests.pendingQuest',
+    'characters:status.location',
+    'characters:status.spells',
+];
+
+const SHARED_AND_CATALOG_PATHS = MIXED_REF_PATHS.filter(
+    (ref) => !CHARACTER_FIELD_LABELS.includes(mixedRefLabel(ref)),
+).map((ref) => ({ ...ref, label: mixedRefLabel(ref) }));
+
 describe('MIXED_REF_PATHS', () => {
-    it('lists every Mixed reference of the schemas (D-17d)', () => {
-        const fromSchemas = Object.entries(SCHEMAS_BY_COLLECTION).flatMap(
-            ([collection, schema]) => mixedRefsOf(collection, schema),
+    it('keeps every migrated reference path in the schemas (D-17d)', () => {
+        const missing = MIXED_REF_PATHS.map(mixedRefLabel).filter(
+            (label) =>
+                !SCHEMA_REFS.some(
+                    (found) => mixedRefLabel(found.ref) === label,
+                ),
         );
 
-        expect(byLabel(MIXED_REF_PATHS)).toEqual(byLabel(fromSchemas));
+        expect(missing).toEqual([]);
+    });
+
+    it.each(SHARED_AND_CATALOG_PATHS)(
+        'types the reference $label as ObjectId (D-17d)',
+        (ref) => {
+            expect(instanceOf(ref)).toBe('ObjectId');
+        },
+    );
+
+    it('leaves no Mixed reference outside the character fields', () => {
+        const stillMixed = SCHEMA_REFS.filter(
+            (found) => found.instance === 'Mixed',
+        )
+            .map((found) => mixedRefLabel(found.ref))
+            .sort();
+
+        expect(stillMixed).toEqual(CHARACTER_FIELD_LABELS);
     });
 
     it('labels a reference as collection, path and subdocument key (D-17d)', () => {
