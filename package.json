@@ -20,7 +20,7 @@
     "test:unit": "jest --selectProjects unit",
     "test:int": "jest --selectProjects integration --runInBand",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
+    "test:cov": "jest --coverage --selectProjects unit integration --runInBand",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
   },
   "dependencies": {
@@ -138,9 +138,59 @@
       }
     ],
     "collectCoverageFrom": [
-      "src/**/*.(t|j)s"
+      "src/**/*.ts",
+      "!src/**/*.spec.ts",
+      "!src/**/*.int-spec.ts",
+      "!src/main.ts"
     ],
-    "coverageDirectory": "coverage"
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text-summary",
+      "json-summary",
+      "lcov"
+    ],
+    "coverageThreshold": {
+      "./src/auth/": {
+        "statements": 97,
+        "branches": 83,
+        "lines": 97
+      },
+      "./src/economy/": {
+        "statements": 97,
+        "branches": 89,
+        "lines": 97
+      },
+      "./src/characters/spells/": {
+        "statements": 96,
+        "branches": 86,
+        "lines": 96
+      },
+      "./src/characters/equipment/": {
+        "statements": 98,
+        "branches": 98,
+        "lines": 98
+      },
+      "./src/characters/characters.service.ts": {
+        "statements": 94,
+        "branches": 84,
+        "lines": 96
+      },
+      "./src/quests/acceptance/": {
+        "statements": 97,
+        "branches": 89,
+        "lines": 98
+      },
+      "./src/eventsub/": {
+        "statements": 96,
+        "branches": 89,
+        "lines": 97
+      },
+      "./src/travel/": {
+        "statements": 97,
+        "branches": 82,
+        "lines": 97
+      }
+    }
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
