@@ -439,6 +439,82 @@ describe('TravelCompletionService (replSet)', () => {
             warn.mockRestore();
         });
 
+        describe('pending quests stored incomplete', () => {
+            async function legacyQuestTraveller(
+                pending: Record<string, unknown>,
+            ): Promise<{ id: Types.ObjectId; pqId: Types.ObjectId }> {
+                const pqId = new Types.ObjectId();
+                await pendingQuests.collection.insertOne({
+                    _id: pqId,
+                    startDate: null,
+                    arrivedAt: null,
+                    pointsSpent: 0,
+                    ...pending,
+                });
+                const id = await ownedTraveller(new Types.ObjectId(), {
+                    travel: { kind: 'quest' },
+                    character: {
+                        quests: { completedQuests: [], pendingQuest: pqId },
+                    },
+                });
+                return { id, pqId };
+            }
+
+            it('starts a solo quest with a zero waiting time when the pending quest stores none', async () => {
+                const tryStart = jest
+                    .spyOn(QuestStartService.prototype, 'tryStart')
+                    .mockResolvedValue('stale');
+                const quest = await persistQuest(quests);
+                const { id, pqId } = await legacyQuestTraveller({
+                    quest: quest._id,
+                });
+
+                await expect(completion.complete(identityOf(id))).resolves.toBe(
+                    'completed',
+                );
+
+                expect(
+                    questQueue.added.map(({ name, data }) => ({ name, data })),
+                ).toEqual([
+                    {
+                        name: 'resolve',
+                        data: {
+                            pendingQuestId: pqId.toHexString(),
+                            startDate: END.getTime(),
+                            waitingTime: 0,
+                        },
+                    },
+                ]);
+                expect(tryStart).not.toHaveBeenCalled();
+                tryStart.mockRestore();
+            });
+
+            it('records the arrival of a pending quest without a quest and starts nothing', async () => {
+                const tryStart = jest
+                    .spyOn(QuestStartService.prototype, 'tryStart')
+                    .mockResolvedValue('stale');
+                const { id, pqId } = await legacyQuestTraveller({
+                    waitingTime: HOUR_MS,
+                });
+
+                await expect(completion.complete(identityOf(id))).resolves.toBe(
+                    'completed',
+                );
+
+                const pending = await pendingQuests.collection.findOne({
+                    _id: pqId,
+                });
+                expect(pending?.arrivedAt).toEqual(END);
+                expect(pending?.startDate).toBeNull();
+                expect(
+                    (await rawCharacter(id))?.status.activeTravel,
+                ).toBeNull();
+                expect(questQueue.added).toEqual([]);
+                expect(tryStart).not.toHaveBeenCalled();
+                tryStart.mockRestore();
+            });
+        });
+
         describe('solo start with the arrival (D-22)', () => {
             interface ArrivalSnapshot {
                 _id: unknown;
