@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { MongoService } from './mongo.service';
 import { SweepIndexVerifier } from './sweep-index.verifier';
+import { MixedRefsVerifier } from 'src/migrations/mixed-refs/mixed-refs.verifier';
 import { ConfigService } from '@nestjs/config';
 import { User, UserSchema } from 'src/models/user.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
@@ -57,7 +58,7 @@ import {
     ],
 
     controllers: [],
-    providers: [MongoService, SweepIndexVerifier],
+    providers: [MongoService, SweepIndexVerifier, MixedRefsVerifier],
     exports: [MongooseModule],
 })
 export class MongoModule {}
