@@ -4,7 +4,7 @@ import { Document, Types } from 'mongoose';
 import { Spell } from '../spell.model';
 
 @ObjectType()
-@Schema(({ _id: false }))
+@Schema({ _id: false })
 export class ActiveSpell {
     @Field(() => Spell, { nullable: true })
     @Prop({ type: Types.ObjectId, ref: Spell.name, default: null })

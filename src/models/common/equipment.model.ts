@@ -75,4 +75,3 @@ export class EquipmentInput {
     @Field(() => ID, { nullable: true })
     secondAccessory?: string | null;
 }
-
