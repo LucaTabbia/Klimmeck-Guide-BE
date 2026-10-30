@@ -71,7 +71,10 @@ function clientErrorStatusOf(exception: unknown): number | undefined {
     return candidate >= 400 && candidate < 500 ? candidate : undefined;
 }
 
-function clientHttpException(exception: object, status: number): HttpException {
+function clientHttpException(
+    exception: unknown,
+    status: number,
+): HttpException {
     const { message } = exception as { message?: unknown };
     return new HttpException(
         {
