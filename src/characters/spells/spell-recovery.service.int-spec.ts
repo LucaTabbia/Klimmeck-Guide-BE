@@ -308,6 +308,42 @@ describe('SpellRecoveryService (replSet)', () => {
             expect(service.isKnownUncreditable(id, a)).toBe(false);
         });
 
+        it('forgets the oldest uncreditable pair beyond the memory limit and warns about it again', async () => {
+            const memoryLimit = 1_000;
+            const missing = new Types.ObjectId();
+            const characters = Array.from(
+                { length: memoryLimit + 1 },
+                () => new Types.ObjectId(),
+            );
+            for (const characterId of characters) {
+                expect(await service.recoverDue(characterId, missing)).toBe(0);
+            }
+            const [oldest, second] = characters;
+
+            expect(service.isKnownUncreditable(oldest, missing)).toBe(false);
+            expect(service.isKnownUncreditable(second, missing)).toBe(true);
+            expect(warnSpy).toHaveBeenCalledTimes(memoryLimit + 1);
+
+            expect(await service.recoverDue(oldest, missing)).toBe(0);
+
+            expect(warnSpy).toHaveBeenCalledTimes(memoryLimit + 2);
+            expect(service.isKnownUncreditable(oldest, missing)).toBe(true);
+            expect(service.isKnownUncreditable(second, missing)).toBe(false);
+        });
+
+        it('credits nothing and lets the error through when the per-character migration fails', async () => {
+            const id = await insertBook([
+                { spell: a, usages: 1, recoveries: [at(-SECOND)] },
+            ]);
+            const before = await rawOf(id);
+            const failure = Object.assign(new Error('boom'), { code: 91 });
+            jest.spyOn(migrator, 'migrateOne').mockRejectedValueOnce(failure);
+
+            await expect(service.recoverDue(id, a)).rejects.toBe(failure);
+
+            expect(await rawOf(id)).toEqual(before);
+        });
+
         it('credits a character whose slots array was never written', async () => {
             const book = spellBook([
                 { spell: a, usages: 1, recoveries: [at(-SECOND)] },
@@ -382,6 +418,22 @@ describe('SpellRecoveryService (replSet)', () => {
             expect((await rawOf(id)).status.spellStates).toEqual([
                 { spell: a, usages: 2, recoveries: [at(HOUR)] },
             ]);
+        });
+
+        it('credits nothing and warns when the legacy job names a spell missing from the catalog', async () => {
+            const missing = new Types.ObjectId();
+            const id = await insertBook([
+                { spell: missing, usages: 0, recoveries: [] },
+            ]);
+            const before = await rawOf(id);
+
+            expect(await service.recoverLegacy(id, missing)).toBe(false);
+
+            expect(await rawOf(id)).toEqual(before);
+            expect(warnedAbout(missing.toHexString(), id.toHexString())).toBe(
+                true,
+            );
+            expect(service.isKnownUncreditable(id, missing)).toBe(true);
         });
 
         it('credits nothing to an archived character', async () => {
