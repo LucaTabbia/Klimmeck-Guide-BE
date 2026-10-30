@@ -34,6 +34,13 @@ export class UnhandledExceptionFilter extends BaseExceptionFilter {
         if (exception instanceof HttpException) {
             return super.catch(exception, host);
         }
+        const clientStatus = clientErrorStatusOf(exception);
+        if (clientStatus !== undefined) {
+            return super.catch(
+                clientHttpException(exception, clientStatus),
+                host,
+            );
+        }
         const http = host.switchToHttp();
         const requestId =
             http.getRequest<RequestWithId>().requestId ??
@@ -50,4 +57,27 @@ export class UnhandledExceptionFilter extends BaseExceptionFilter {
             });
         return undefined;
     }
+}
+
+// errori del body parser (http-errors): status 4xx del client, non sono guasti interni
+function clientErrorStatusOf(exception: unknown): number | undefined {
+    if (typeof exception !== 'object' || exception === null) return undefined;
+    const { status, statusCode } = exception as {
+        status?: unknown;
+        statusCode?: unknown;
+    };
+    const candidate = typeof statusCode === 'number' ? statusCode : status;
+    if (typeof candidate !== 'number') return undefined;
+    return candidate >= 400 && candidate < 500 ? candidate : undefined;
+}
+
+function clientHttpException(exception: object, status: number): HttpException {
+    const { message } = exception as { message?: unknown };
+    return new HttpException(
+        {
+            statusCode: status,
+            message: typeof message === 'string' ? message : undefined,
+        },
+        status,
+    );
 }
