@@ -1,6 +1,6 @@
 import { ObjectType, Field, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { Quest } from '../quest/quest.model';
 import { PendingQuest } from '../pending-quest.model';
 
@@ -8,11 +8,15 @@ import { PendingQuest } from '../pending-quest.model';
 @Schema({ _id: false })
 export class CharacterQuests {
     @Field(() => [Quest])
-    @Prop({ type: [Types.ObjectId], ref: Quest.name })
+    @Prop({ type: [MongooseSchema.Types.ObjectId], ref: Quest.name })
     completedQuests: Quest[];
 
     @Field(() => PendingQuest, { nullable: true })
-    @Prop({ type: Types.ObjectId, ref: PendingQuest.name, default: null })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: PendingQuest.name,
+        default: null,
+    })
     pendingQuest?: PendingQuest;
 
     // corsie parallele (D-01): la corsia si sceglie dal tipo della quest, mai dal client; ref castati (Phase 2)

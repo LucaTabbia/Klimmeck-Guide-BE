@@ -1,6 +1,6 @@
 import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import {
     AssetQuantity,
     AssetQuantityInput,
@@ -38,7 +38,7 @@ export class CharacterAssets {
     activeSpells: ActiveSpell[];
 
     @Field(() => Pet, { nullable: true })
-    @Prop({ type: Types.ObjectId, ref: Pet.name, default: null })
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: Pet.name, default: null })
     pet?: Pet;
 }
 
