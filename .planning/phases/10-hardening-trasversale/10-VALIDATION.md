@@ -147,9 +147,11 @@ created: 2026-10-29
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 | primo `workflow_dispatch` di gitleaks sulla storia completa | BE-HARD-03 | richiede il push del branch e l'esecuzione su GitHub Actions | l'utente, dopo il push, avvia il workflow a mano e controlla che il run sia verde |
-| migrazione dei ref su una copia ripristinata e poi in produzione prima del deploy | BE-HARD-06 | richiede un dump reale del database | l'utente segue il runbook del piano 10-29 (`--verify` a 0 sulla copia, poi in produzione) |
+| migrazione dei ref su una copia ripristinata e poi in produzione prima del deploy | BE-HARD-06 | richiede un dump reale del database; bloccante per marcare la PR pronta | l'utente segue `docs/runbooks/mixed-refs-migration.md`: eseguire i passi 1-4 e allegare i report JSON di `--verify` di copia e produzione; dopo il deploy, passi 6-7 (`--apply` + `--verify` di nuovo, nessun ERROR del verificatore al boot) |
 | una chiamata Sightengine reale con chiavi vere (A2) | BE-HARD-05 | i test non usano mai la rete né chiavi reali | l'utente, con le chiavi nel proprio `.env`, carica un'immagine accettabile e una da rifiutare |
 | UAT del pannello del GM | BE-HARD-08 | il consumo del campo è nel piano gated della FE Phase 10 | UAT della FE Phase 10 dopo la PR di questa fase |
+
+**Gate wave 8 (10-29, 2026-10-30):** suite e coverage verdi sopra il codice ritipizzato, CLI compilato provato; esecuzione in produzione PENDENTE (utente) — la PR resta draft fino al report di `--verify` della produzione.
 
 ---
 
