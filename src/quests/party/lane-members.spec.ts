@@ -13,9 +13,9 @@ interface FakeCharacter {
 }
 
 function queryReturning(documents: unknown[]): jest.Mock {
-    return jest
-        .fn()
-        .mockReturnValue({ lean: () => ({ exec: async () => documents }) });
+    return jest.fn().mockReturnValue({
+        lean: () => ({ exec: () => Promise.resolve(documents) }),
+    });
 }
 
 describe('seatHolderLaneMembersOf', () => {
