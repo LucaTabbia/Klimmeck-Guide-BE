@@ -45,7 +45,7 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 <!-- Gap da chiudere in questa milestone. IDs formali in REQUIREMENTS.md -->
 
 - [ ] Contratto combat result ibrido: entità `CombatResult` persistita, payload completo su subscription, ID su push FCM, query `combatResult(id)`
-- [ ] Validazione input (class-validator + ValidationPipe globale) e hardening GraphQL (introspection off in prod, error sanitization, CORS esplicito)
+- [x] Validazione input (class-validator + ValidationPipe globale) e hardening GraphQL (introspection off in prod, error sanitization, nessun CORS per decisione D-06) — Phase 10 (2026-10-30)
 
 ### Out of Scope
 
@@ -127,4 +127,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-10-28 after Phase 9.2 completion (risultati non confermati + conferma idempotente, `acknowledgedAt` additivo con backfill al boot, segnaposto sulle quest avviate, il morto resta corrente fino alla conferma, handoff per la FE Phase 9; Phase 10 hardening next, stacked branch to rebase after the merge)*
+*Last updated: 2026-10-30 after Phase 10 completion (hardening trasversale: validazione input e `BAD_USER_INPUT`, superficie di produzione con `requestId`, gitleaks + `.env.example` con drift test, coverage come gate per cartella, throttling, moderazione Sightengine prima di Cloudinary, change stream riaperti, indici dello sweep, ritipizzazione dei 34 ref `Mixed` con migrazione a driver nativo e runbook, seat holder D-21, avvio da soli D-22, `pendingQuest` nella coda del GM con `QUEST_IN_PROGRESS`; PR draft fino alla migrazione in produzione)*

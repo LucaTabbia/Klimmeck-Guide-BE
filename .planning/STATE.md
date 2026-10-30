@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 10 gate 10-31 passed on feat/10-hardening — awaiting review/verify/security and the user's manual actions
-last_updated: "2026-10-30T14:42:48.000Z"
-last_activity: "2026-10-30 -- Phase 10 gate 10-31 green (build, tsc, unit 179/2392, cov 278/3667, real boot 65/65, SDL +1 additive line); BE-HARD-01..08 Complete, VALIDATION approved"
+status: completed
+stopped_at: Phase 10 complete on feat/10-hardening — PR draft open, user actions pending
+last_updated: "2026-10-30T15:48:40.000Z"
+last_activity: "2026-10-30 -- Phase 10 closed (31/31, reviewed/verified/audited); PR draft to develop; user actions pending before ready"
 progress:
   total_phases: 13
-  completed_phases: 12
+  completed_phases: 13
   total_plans: 145
   completed_plans: 114
   percent: 79
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 10 (Hardening Trasversale) — EXECUTING since 2026-10-29 on `feat/10-hardening`: 31 plans in 26 sequential waves (details in `.planning/phases/10-hardening-trasversale/10-*-PLAN.md`)
+Phase: 10 (Hardening Trasversale) — COMPLETE on `feat/10-hardening` (2026-10-30): 31/31 plans executed, reviewed, verified and audited; PR to `develop` opened as DRAFT until the ref migration runs in production (runbook)
 Plan: 31 of 31
-Status: Executing Phase 10 — 31/31 plans executed, final gate green (10-31); next: code review, verification, security audit and closure by the orchestrator; user actions before the PR is marked ready in Blockers/Concerns
-Last activity: 2026-10-30 -- Phase 10 gate 10-31 green (build, tsc, unit 179/2392, cov 278/3667, real boot 65/65, SDL +1 additive line); BE-HARD-01..08 Complete, VALIDATION approved
+Status: Phase 10 complete — PR draft open; waiting for the user actions in Blockers/Concerns (ref migration in production, first gitleaks scan, defaults to confirm) before marking the PR ready; next phase to plan after the merge (FE Phase 10 plan 10-11 resumes after the merge)
+Last activity: 2026-10-30 -- Phase 10 closed: gate 10-31 + post-fix green (build, tsc, unit 182/2419, cov 281/3696 with the 8 folder thresholds, real boot 65/65, SDL +1 additive line); code review 20 findings (15 fixed, 5 not needed), verification passed 8/8, security audit secured (107 threats, 0 open); ref migration in production pending (user, runbook), PR draft
 
 Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 complete; 10 to plan after the 9.2 merge)
 
