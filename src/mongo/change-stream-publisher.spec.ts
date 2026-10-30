@@ -193,6 +193,43 @@ describe('ChangeStreamPublisher', () => {
         expect(watch).toHaveBeenCalledTimes(3);
     });
 
+    it('retries with backoff when reopening throws synchronously (D-17a)', () => {
+        const refused = serverError(43);
+        latestStream().emit('error', serverError(43));
+        watch.mockImplementationOnce(() => {
+            throw refused;
+        });
+
+        expect(() => jest.advanceTimersByTime(1000)).not.toThrow();
+        expect(watch).toHaveBeenCalledTimes(2);
+        jest.advanceTimersByTime(1999);
+        expect(watch).toHaveBeenCalledTimes(2);
+        jest.advanceTimersByTime(1);
+
+        expect(watch).toHaveBeenCalledTimes(3);
+        expect(errorLog.mock.calls[1]).toEqual([
+            `Change stream delle sonde chiuso (${describeError(refused)}): riapertura n. 2 fra 2000 ms`,
+        ]);
+    });
+
+    it('retries with backoff when the first open throws synchronously (D-17a)', async () => {
+        const refusing = jest
+            .fn()
+            .mockImplementationOnce(() => {
+                throw serverError(43);
+            })
+            .mockImplementation(() => new FakeChangeStream());
+        const starting = new ProbePublisher({
+            watch: refusing,
+        } as unknown as Model<ProbeDocument>);
+
+        expect(() => starting.onModuleInit()).not.toThrow();
+        jest.advanceTimersByTime(1000);
+
+        expect(refusing).toHaveBeenCalledTimes(2);
+        await starting.onModuleDestroy();
+    });
+
     it('never reopens while the application is closing (D-17a)', async () => {
         const first = latestStream();
 
