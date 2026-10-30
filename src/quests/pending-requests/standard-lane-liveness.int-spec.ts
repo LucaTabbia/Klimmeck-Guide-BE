@@ -41,7 +41,10 @@ import {
     type Quester,
     QUIET_OUTCOME_OVERRIDES,
 } from '../../../test/quests/outcome-world';
-import { primePendingRequestsChangeStream } from '../../../test/quests/pending-requests-change-stream';
+import {
+    pendingQuestTouch,
+    primeChangeStream,
+} from '../../../test/harness/prime-change-stream';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 import { PendingRequestsModule } from './pending-requests.module';
 import { PendingRequestsPublisher } from './pending-requests.publisher';
@@ -113,7 +116,11 @@ describe('standard lane liveness of the innkeeper queue (D-24)', () => {
             () => undefined,
         );
         await harness.clearDatabase();
-        await primePendingRequestsChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'pendingRequestsUpdated',
+            pendingQuestTouch(harness),
+        );
         live = harness.app
             .get<PubSub<PubSubEvents>>(PUB_SUB)
             .subscribe('pendingRequestsUpdated');

@@ -17,7 +17,10 @@ import {
 } from '../../test/auth/ws-test-client';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
-import { primeCharactersChangeStream } from '../../test/characters/characters-change-stream';
+import {
+    characterTouch,
+    primeChangeStream,
+} from '../../test/harness/prime-change-stream';
 import { persistQuest } from '../../test/fixtures';
 
 const START = new Date('2026-10-21T10:00:00.000Z');
@@ -176,7 +179,11 @@ describe('Character quest lanes (wire)', () => {
         characters = harness.connection.model<CharacterDocument>(
             Character.name,
         );
-        await primeCharactersChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'characterUpdated',
+            characterTouch(harness),
+        );
     });
 
     beforeEach(async () => {

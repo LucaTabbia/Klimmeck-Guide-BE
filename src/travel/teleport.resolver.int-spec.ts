@@ -29,7 +29,10 @@ import {
 } from '../../test/auth/ws-test-client';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
-import { primeCharactersChangeStream } from '../../test/characters/characters-change-stream';
+import {
+    characterTouch,
+    primeChangeStream,
+} from '../../test/harness/prime-change-stream';
 import { buildCharacter } from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
@@ -101,7 +104,11 @@ describe('teleportCharacter', () => {
         );
         users = harness.connection.model<UserDocument>(User.name);
         await Promise.all([characters.init(), users.init()]);
-        await primeCharactersChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'characterUpdated',
+            characterTouch(harness),
+        );
     });
 
     beforeEach(async () => {

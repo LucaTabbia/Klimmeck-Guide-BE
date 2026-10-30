@@ -18,7 +18,10 @@ import {
 } from '../../test/auth/ws-test-client';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
 import { buildQuest } from '../../test/fixtures';
-import { primeQuestsChangeStream } from '../../test/quests/quests-change-stream';
+import {
+    questTouch,
+    primeChangeStream,
+} from '../../test/harness/prime-change-stream';
 
 const QUEST_UPDATED =
     'subscription OnQuestUpdated($questId: String!) { questUpdated(questId: $questId) { id registeredAdventurers { character title } requirements { requiredAdventurers { title count } } infos { title } } }';
@@ -164,7 +167,7 @@ describe('questUpdated subscription (wire)', () => {
         quests = harness.connection.model<QuestDocument>(Quest.name);
         await quests.createCollection();
         await harness.clearDatabase();
-        await primeQuestsChangeStream(harness);
+        await primeChangeStream(harness, 'questUpdated', questTouch(harness));
     });
 
     beforeEach(async () => {

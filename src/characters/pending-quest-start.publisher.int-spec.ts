@@ -15,7 +15,10 @@ import { FixedClock } from '../../test/auth/fixed-clock';
 import { withTimeout } from '../../test/auth/ws-test-client';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer } from '../../test/authz/player-fixture';
-import { primeCharactersChangeStream } from '../../test/characters/characters-change-stream';
+import {
+    characterTouch,
+    primeChangeStream,
+} from '../../test/harness/prime-change-stream';
 import { buildCharacter, buildQuest, persistQuest } from '../../test/fixtures';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
 
@@ -58,7 +61,11 @@ describe('PendingQuestStartPublisher (replSet)', () => {
         pubSub = harness.app.get<PubSub<PubSubEvents>>(PUB_SUB);
         questStart = harness.app.get(QuestStartService);
         await Promise.all([quests.init(), pendingQuests.init()]);
-        await primeCharactersChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'characterUpdated',
+            characterTouch(harness),
+        );
     });
 
     afterEach(async () => {

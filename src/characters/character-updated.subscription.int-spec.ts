@@ -17,7 +17,10 @@ import {
 } from '../../test/auth/ws-test-client';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
-import { primeCharactersChangeStream } from '../../test/characters/characters-change-stream';
+import {
+    characterTouch,
+    primeChangeStream,
+} from '../../test/harness/prime-change-stream';
 import { persistSpell, spellBook } from '../../test/fixtures';
 
 const CHARACTER_UPDATED =
@@ -138,7 +141,11 @@ describe('characterUpdated subscription (wire)', () => {
         );
         users = harness.connection.model<UserDocument>(User.name);
         spells = harness.connection.model<SpellDocument>(Spell.name);
-        await primeCharactersChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'characterUpdated',
+            characterTouch(harness),
+        );
     });
 
     beforeEach(async () => {

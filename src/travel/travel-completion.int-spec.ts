@@ -31,7 +31,10 @@ import { FixedClock } from '../../test/auth/fixed-clock';
 import { withTimeout } from '../../test/auth/ws-test-client';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer } from '../../test/authz/player-fixture';
-import { primeCharactersChangeStream } from '../../test/characters/characters-change-stream';
+import {
+    characterTouch,
+    primeChangeStream,
+} from '../../test/harness/prime-change-stream';
 import {
     buildCharacter,
     buildQuest,
@@ -468,7 +471,11 @@ describe('TravelCompletionService (replSet)', () => {
             }
 
             beforeAll(async () => {
-                await primeCharactersChangeStream(harness);
+                await primeChangeStream(
+                    harness,
+                    'characterUpdated',
+                    characterTouch(harness),
+                );
             });
 
             it('starts a solo quest in the same write as the arrival (D-22)', async () => {

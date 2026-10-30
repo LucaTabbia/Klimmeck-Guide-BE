@@ -31,7 +31,10 @@ import {
 } from '../../../test/auth/ws-test-client';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
-import { primeCharactersChangeStream } from '../../../test/characters/characters-change-stream';
+import {
+    characterTouch,
+    primeChangeStream,
+} from '../../../test/harness/prime-change-stream';
 import {
     buildCharacter,
     buildQuest,
@@ -181,7 +184,11 @@ describe('acceptQuest (wire)', () => {
             users.init(),
             cities.init(),
         ]);
-        await primeCharactersChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'characterUpdated',
+            characterTouch(harness),
+        );
     });
 
     beforeEach(async () => {
