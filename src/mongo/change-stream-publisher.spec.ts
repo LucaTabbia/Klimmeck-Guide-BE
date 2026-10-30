@@ -230,6 +230,19 @@ describe('ChangeStreamPublisher', () => {
         await starting.onModuleDestroy();
     });
 
+    it('resets the backoff once a reopened stream proves alive without changes (D-17a)', () => {
+        latestStream().emit('error', serverError(43));
+        jest.advanceTimersByTime(1000);
+        latestStream().emit('resumeTokenChanged', { _data: 'tok-quiet' });
+
+        latestStream().emit('error', serverError(43));
+        jest.advanceTimersByTime(999);
+        expect(watch).toHaveBeenCalledTimes(2);
+        jest.advanceTimersByTime(1);
+
+        expect(watch).toHaveBeenCalledTimes(3);
+    });
+
     it('never reopens while the application is closing (D-17a)', async () => {
         const first = latestStream();
 
