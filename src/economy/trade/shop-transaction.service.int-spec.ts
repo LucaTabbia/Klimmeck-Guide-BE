@@ -31,6 +31,7 @@ import {
     persistLootItem,
 } from '../../../test/fixtures';
 import { buildActiveTravelDoc } from '../../../test/travel/active-travel.fixture';
+import { migrateLegacyRefs } from '../../../test/migrations/migrate-legacy-refs';
 
 const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const SUCCESS = {
@@ -381,7 +382,7 @@ describe('ShopTransactionService (replSet)', () => {
             );
         });
 
-        it('sells a legacy entry whose item id was stored as a string', async () => {
+        it('sells a legacy entry whose item id was stored as a string after the reference migration (D-17d)', async () => {
             const id = await persistTrader(coins(0, 0, 0));
             const legacyPotion = idOf(potion).toHexString();
             await characters.collection.updateOne(
@@ -398,6 +399,7 @@ describe('ShopTransactionService (replSet)', () => {
                     },
                 },
             );
+            await migrateLegacyRefs(connection);
 
             await expect(
                 shop.execute(
@@ -413,7 +415,7 @@ describe('ShopTransactionService (replSet)', () => {
             const after = await raw(id);
             expect(after?.status.coins).toEqual(coins(0, 0, 10));
             expect(after?.assets.ownedItems).toEqual([
-                { itemType: 'LootItem', item: legacyPotion, quantity: 1 },
+                { itemType: 'LootItem', item: idOf(potion), quantity: 1 },
             ]);
         });
 
@@ -798,7 +800,7 @@ describe('ShopTransactionService (replSet)', () => {
             await expectShopNotInCity(id, buySword(id));
         });
 
-        it('matches a legacy marker stored as a hex string', async () => {
+        it('matches a legacy marker stored as a hex string after the reference migration (D-17d)', async () => {
             const character = await persistCharacterOutsideCity(coins(0, 5, 0));
             await cityModelOf({ connection }).collection.insertOne({
                 name: 'Borgo Antico',
@@ -807,6 +809,7 @@ describe('ShopTransactionService (replSet)', () => {
                 ).toHexString(),
                 pointsOfInterest: [],
             });
+            await migrateLegacyRefs(connection);
             const id = character._id as Types.ObjectId;
 
             await expect(shop.execute(buySword(id))).resolves.toEqual(SUCCESS);

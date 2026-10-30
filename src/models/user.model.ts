@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 import { RoleType } from './enums/role-type.enum';
 import { Character } from './character/character.model';
@@ -23,7 +23,11 @@ export class User {
     role: RoleType;
 
     @Field(() => Character, { nullable: true })
-    @Prop({ type: Types.ObjectId, ref: Character.name, default: null })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Character.name,
+        default: null,
+    })
     currentCharacter: Character | null;
 }
 

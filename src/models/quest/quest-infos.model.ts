@@ -1,6 +1,6 @@
-import { ObjectType, Field, Int, InputType, ID, Float } from '@nestjs/graphql';
+import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { QuestType } from '../enums/quest-type.enum';
 import { Enemy } from '../enemy.model';
 import { Lore } from '../lore.model';
@@ -18,7 +18,11 @@ export class QuestInfos {
     title: string;
 
     @Field(() => Enemy, { nullable: true })
-    @Prop({ type: Types.ObjectId, ref: Enemy.name, default: null })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Enemy.name,
+        default: null,
+    })
     enemy?: Enemy | null;
 
     @Field(() => String)
@@ -26,11 +30,15 @@ export class QuestInfos {
     type: QuestType;
 
     @Field(() => PointOfInterest)
-    @Prop({ type: Types.ObjectId, ref: PointOfInterest.name, required: true })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: PointOfInterest.name,
+        required: true,
+    })
     markerLocation: Types.ObjectId | PointOfInterest;
 
     @Field(() => [Lore])
-    @Prop({ type: [Types.ObjectId], ref: Lore.name })
+    @Prop({ type: [MongooseSchema.Types.ObjectId], ref: Lore.name })
     relatedLore: Lore[];
 }
 

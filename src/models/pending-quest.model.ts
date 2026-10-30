@@ -1,6 +1,6 @@
 import { ObjectType, Field, ID, InputType, Int } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { Quest } from './quest/quest.model';
 
 @ObjectType()
@@ -29,7 +29,7 @@ export class PendingQuest {
     pointsSpent: number;
 
     @Field(() => Quest)
-    @Prop({ type: Types.ObjectId, ref: Quest.name })
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: Quest.name })
     quest: Quest;
 }
 

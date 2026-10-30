@@ -1,6 +1,6 @@
-import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
+import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { LoreType } from './enums/lore-type.enum';
 
 @ObjectType()
@@ -26,7 +26,11 @@ export class Lore {
     description: string;
 
     @Field(() => [Lore])
-    @Prop({ type: [Types.ObjectId], ref: Lore.name, default: [] })
+    @Prop({
+        type: [MongooseSchema.Types.ObjectId],
+        ref: Lore.name,
+        default: [],
+    })
     relatedLore: Lore[];
 
     @Field(() => Boolean)

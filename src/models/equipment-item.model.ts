@@ -1,9 +1,9 @@
 import { ObjectType, Field, InputType, ID } from '@nestjs/graphql';
-import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { AssetItem } from './interfaces/asset-item.model';
 import { EquipType } from './enums/equip-type.enum';
-import { SpellSchema, Spell } from './spell.model';
+import { Spell } from './spell.model';
 import { DamagesSchema, Damages, DamagesInput } from './common/damages.model';
 import { Coins } from './common/coins.model';
 
@@ -15,7 +15,11 @@ export class EquipmentItem extends AssetItem {
     equipType: EquipType;
 
     @Field(() => Spell, { nullable: true })
-    @Prop({ type: Types.ObjectId, ref: Spell.name, default: null })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Spell.name,
+        default: null,
+    })
     addedSpell?: Spell | null;
 
     @Field(() => Damages)

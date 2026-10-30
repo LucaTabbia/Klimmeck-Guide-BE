@@ -1,7 +1,7 @@
 import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { IsInt, IsOptional, Min } from 'class-validator';
-import { Document, Schema as MongooseSchema, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { IsObjectIdHex } from 'src/validation/is-object-id-hex.decorator';
 import { EquipmentItem } from '../equipment-item.model';
 import { LootItem } from '../loot-item.model';
@@ -16,7 +16,7 @@ export class AssetQuantity {
     itemType: ItemReferenceType;
 
     @Field(() => ItemUnion)
-    @Prop({ type: Types.ObjectId, refPath: 'itemType' })
+    @Prop({ type: MongooseSchema.Types.ObjectId, refPath: 'itemType' })
     item: EquipmentItem | LootItem;
 
     @Field(() => Int)

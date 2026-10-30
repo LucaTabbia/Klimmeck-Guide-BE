@@ -1,6 +1,6 @@
 import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { EnergyType } from './enums/energy-type.enum';
 import { DamageType } from './enums/damage-type.enum';
 import { SpellSchema, Spell } from './spell.model';
@@ -31,7 +31,11 @@ export class Enemy {
     baseWeaknesses: DamageType[];
 
     @Field(() => [Lore])
-    @Prop({ type: [Types.ObjectId], ref: Lore.name, default: [] })
+    @Prop({
+        type: [MongooseSchema.Types.ObjectId],
+        ref: Lore.name,
+        default: [],
+    })
     relatedLore: Lore[];
 
     @Field(() => Int)
