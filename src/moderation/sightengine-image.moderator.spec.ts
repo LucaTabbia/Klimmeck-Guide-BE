@@ -184,6 +184,28 @@ describe('SightengineImageModerator', () => {
         );
     });
 
+    it('fails closed on a success response without any model section (D-14)', async () => {
+        respondWith(
+            jsonResponse({ status: 'success', request: { id: 'req_fake' } }),
+        );
+
+        await expect(moderator.moderate(IMAGE)).rejects.toBeInstanceOf(
+            ImageModerationUnavailableException,
+        );
+        expect(warnSpy).toHaveBeenCalledWith(
+            'Moderazione immagine non disponibile: risposta senza modelli',
+        );
+    });
+
+    it('still approves a success response that lacks only some model sections (Pitfall 13)', async () => {
+        respondWith(jsonResponse({ status: 'success', gore: { prob: 0.01 } }));
+
+        await expect(moderator.moderate(IMAGE)).resolves.toEqual({
+            approved: true,
+            logged: [],
+        });
+    });
+
     it('fails closed on a network error or a 5 s timeout (D-14)', async () => {
         fetchSpy.mockRejectedValueOnce(new TypeError('fetch failed'));
         fetchSpy.mockRejectedValueOnce(
