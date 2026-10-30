@@ -41,4 +41,9 @@ export class ArchivedCharacterQueueRefresher extends ChangeStreamPublisher<Chara
     protected onChange(): void {
         this.queue.requestRefresh();
     }
+
+    // un archivio perso nel buco della storia lascerebbe la sua voce in coda: ricalcolo completo (D-17a)
+    protected onHistoryLost(): void {
+        this.queue.requestRefresh();
+    }
 }

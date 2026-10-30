@@ -43,6 +43,11 @@ export class PendingRequestsPublisher extends ChangeStreamPublisher<PendingQuest
         this.requestRefresh();
     }
 
+    // la coda è uno snapshot intero: dopo un buco nella storia basta ricalcolarla (D-17a)
+    protected onHistoryLost(): void {
+        this.requestRefresh();
+    }
+
     private async publishOnce(): Promise<void> {
         if (this.stopping) return;
         try {

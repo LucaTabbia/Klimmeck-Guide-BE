@@ -73,6 +73,9 @@ export abstract class ChangeStreamPublisher<TDocument>
 
     protected abstract onChange(change: ChangeStreamEvent): void;
 
+    // gli eventi nel buco non tornano: chi ha una risincronizzazione completa a basso costo la fa qui, gli altri restano col WARN
+    protected onHistoryLost(): void {}
+
     // un watch che lancia in modo sincrono segue lo stesso backoff di uno stream caduto
     private openOrRetry(): void {
         try {
@@ -141,6 +144,7 @@ export abstract class ChangeStreamPublisher<TDocument>
         this.logger.warn(
             `Storia del change stream ${this.spec.subject} persa: riapertura senza ripresa`,
         );
+        this.onHistoryLost();
     }
 
     private logReopen(error: unknown, delayMs: number): void {
