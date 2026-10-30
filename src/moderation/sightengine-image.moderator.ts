@@ -23,6 +23,15 @@ const UNREADABLE_REASON = 'unreadable';
 const MEDIA_ERROR = 'media_error';
 const MISCONFIGURATION_ERRORS = ['credentials_error', 'argument_error'];
 const FIRST_SERVER_ERROR_STATUS = 500;
+const MODEL_SECTIONS: readonly (keyof SightengineResponse)[] = [
+    'nudity',
+    'offensive',
+    'gore',
+    'self-harm',
+    'faces',
+    'text',
+    'qr',
+];
 
 export class SightengineImageModerator extends ImageModerator {
     readonly enabled = true;
@@ -86,6 +95,9 @@ export class SightengineImageModerator extends ImageModerator {
         if (response?.status !== 'success') {
             throw this.unavailable('risposta senza esito');
         }
+        if (!hasAnyModelSection(response)) {
+            throw this.unavailable('risposta senza modelli');
+        }
         const { rejected, logged } = evaluateImagePolicy(response);
         if (rejected.length > 0) {
             return { approved: false, reasons: rejected, logged };
@@ -116,6 +128,11 @@ export class SightengineImageModerator extends ImageModerator {
         this.logger.warn(`Moderazione immagine non disponibile: ${cause}`);
         return new ImageModerationUnavailableException();
     }
+}
+
+// una sezione mancante vale «nessuna rilevazione» (Pitfall 13), ma nessuna sezione significa nessun controllo (D-14)
+function hasAnyModelSection(response: SightengineResponse): boolean {
+    return MODEL_SECTIONS.some((section) => response[section] != null);
 }
 
 function describeVerdict(verdict: ModerationVerdict): string {
