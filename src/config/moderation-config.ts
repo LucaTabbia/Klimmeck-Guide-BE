@@ -58,8 +58,9 @@ export const moderationConfigProvider: FactoryProvider<ModerationConfig> = {
         ),
 };
 
+// stesso trim di parseRuntimeConfig: un NODE_ENV con spazi è produzione anche qui
 function disabledModerationConfig(env: ModerationEnv): ModerationConfig {
-    if (env.NODE_ENV === 'production') {
+    if ((env.NODE_ENV ?? '').trim() === 'production') {
         throw new Error(
             'SIGHTENGINE_USER_ID and SIGHTENGINE_API_SECRET are required when NODE_ENV=production',
         );
