@@ -66,11 +66,7 @@ function convertedPath(ref: MixedRefPath): Document {
         case 'array':
             return mapOverList(ref.path, 'ref', convertValue('$$ref'));
         case 'subdocArray':
-            return mapOverList(
-                ref.path,
-                'entry',
-                convertSubdocument(ref.key ?? ''),
-            );
+            return mapOverList(ref.path, 'entry', convertSubdocument(ref.key));
     }
 }
 
@@ -86,7 +82,7 @@ export function convertibleFilter(ref: MixedRefPath): Document {
             return { [ref.path]: { $elemMatch: HEX_STRING } };
         case 'subdocArray':
             return {
-                [ref.path]: { $elemMatch: { [ref.key ?? '']: HEX_STRING } },
+                [ref.path]: { $elemMatch: { [ref.key]: HEX_STRING } },
             };
     }
 }

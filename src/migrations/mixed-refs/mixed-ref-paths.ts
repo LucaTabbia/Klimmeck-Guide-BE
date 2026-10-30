@@ -1,12 +1,14 @@
 export type MixedRefShape = 'scalar' | 'array' | 'subdocArray';
 
-// per subdocArray `path` è l'array di sottodocumenti e `key` il campo che contiene il ref
-export interface MixedRefPath {
+interface MixedRefLocation {
     collection: string;
     path: string;
-    shape: MixedRefShape;
-    key?: string;
 }
+
+// per subdocArray `path` è l'array di sottodocumenti e `key` (obbligatoria) il campo che contiene il ref
+export type MixedRefPath =
+    | (MixedRefLocation & { shape: 'scalar' | 'array' })
+    | (MixedRefLocation & { shape: 'subdocArray'; key: string });
 
 const WORN_EQUIPMENT_SLOTS = [
     'head',
@@ -68,7 +70,10 @@ export const MIXED_REF_PATHS: readonly MixedRefPath[] = [
     subdocArray('questresults', 'rewards.items', 'item'),
 ];
 
+export function mixedRefPath(ref: MixedRefPath): string {
+    return ref.shape === 'subdocArray' ? `${ref.path}.${ref.key}` : ref.path;
+}
+
 export function mixedRefLabel(ref: MixedRefPath): string {
-    const path = ref.key ? `${ref.path}.${ref.key}` : ref.path;
-    return `${ref.collection}:${path}`;
+    return `${ref.collection}:${mixedRefPath(ref)}`;
 }

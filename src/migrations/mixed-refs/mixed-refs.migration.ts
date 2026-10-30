@@ -1,5 +1,5 @@
 import type { Document } from 'mongodb';
-import { MIXED_REF_PATHS, MixedRefPath } from './mixed-ref-paths';
+import { MIXED_REF_PATHS, MixedRefPath, mixedRefPath } from './mixed-ref-paths';
 import {
     conversionStage,
     convertibleFilter,
@@ -66,10 +66,6 @@ async function supportedServerVersion(db: ReferenceDatabase): Promise<string> {
     return serverVersion;
 }
 
-function pathOf(ref: MixedRefPath): string {
-    return ref.key ? `${ref.path}.${ref.key}` : ref.path;
-}
-
 async function convert(
     db: ReferenceDatabase,
     ref: MixedRefPath,
@@ -96,7 +92,7 @@ async function migratePath(
     const residual = await residualOf(db, ref);
     return {
         collection: ref.collection,
-        path: pathOf(ref),
+        path: mixedRefPath(ref),
         residual,
         modified,
     };

@@ -46,8 +46,7 @@ function seedFor(ref: MixedRefPath): LegacySeed[] {
         ];
     }
     if (ref.shape === 'subdocArray') {
-        const key = ref.key ?? '';
-        const entry = (value: unknown) => ({ [key]: value, quantity: 2 });
+        const entry = (value: unknown) => ({ [ref.key]: value, quantity: 2 });
         return [
             seed(
                 [entry(hex), entry(kept), entry(upper), entry(label)],
