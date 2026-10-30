@@ -62,8 +62,15 @@ describe('quest result maintenance (replSet)', () => {
         return error.mock.calls.map(([message]) => String(message));
     }
 
+    async function settleBootMaintenance(boot: jest.SpyInstance) {
+        await Promise.all(boot.mock.results.map(({ value }) => value));
+        boot.mockRestore();
+    }
+
     beforeAll(async () => {
+        const boot = jest.spyOn(QuestResultMaintenance.prototype, 'maintain');
         harness = await createAuthTestApp({ imports: [QuestResultsModule] });
+        await settleBootMaintenance(boot);
         maintenance = harness.app.get(QuestResultMaintenance);
         results = harness.app.get<Model<QuestResultDocument>>(
             getModelToken(QuestResult.name),
