@@ -203,7 +203,7 @@ describe('input rules', () => {
                         imagePath: secureImage(2049),
                     }),
                 ),
-            ).toEqual(['background', 'imagePath', 'name']);
+            ).toEqual(['name', 'background', 'imagePath']);
         });
     });
 
