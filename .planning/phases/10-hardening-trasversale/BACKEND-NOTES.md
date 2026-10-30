@@ -98,6 +98,7 @@ Un id malformato non nasce da un uso lecito dell'app: il FE mostra un **copy gen
 | `doTransaction` | id di item malformato | `ITEM_NOT_FOUND` | `BAD_USER_INPUT` (es. `boughtItems.equipAssets.0.item`) |
 | `doTransaction` | monete negative nel totale | `TRANSACTION_TOTAL_MISMATCH` | `BAD_USER_INPUT` (es. `total.copper`) |
 | `equipItem` | `itemId` malformato | `ITEM_NOT_OWNED` | `BAD_USER_INPUT` `Input non valido: itemId` |
+| `createCharacter` | tetti di FORMA (fix C-WR-01 della code review, 2026-10-30): `name` oltre 200 caratteri; `background` oltre 4000 unità di codice; `imagePath` oltre 2048. Entro i tetti restano le regole di dominio (nome 2–20, background ≤ 500 grafemi, `imagePath` https) | `name` 21..200 → `CHARACTER_NAME_INVALID` (invariato); `background`/`imagePath` oltre il dominio → `BAD_USER_INPUT` con il messaggio di dominio | oltre i tetti di forma: `BAD_USER_INPUT` `Input non valido: name` / `background` / `imagePath` (stesso codice per background e imagePath, messaggio della pipe al posto di quello di dominio) |
 | `equipSpell` | `spellId` malformato | `SPELL_NOT_KNOWN` | `BAD_USER_INPUT` `Input non valido: spellId` |
 | `unequipSpell` | `spellId` malformato | `SPELL_NOT_ACTIVE` | `BAD_USER_INPUT` `Input non valido: spellId` |
 | `useSpell` | `spellId` malformato | `SPELL_NOT_ACTIVE` | `BAD_USER_INPUT` `Input non valido: spellId` |
@@ -282,6 +283,12 @@ Ultimo gate (10-29): `npm run test:cov` 278 suite / 3667 test, soglie rispettate
 ---
 
 ## 13. Deviazioni e punti aperti
+
+**Precisazioni dopo la code review (2026-10-30):**
+- D-14 (fail-closed): una risposta Sightengine `success` senza alcuna sezione dei modelli ora vale «indisponibile» (503 `IMAGE_MODERATION_UNAVAILABLE`), non «approvata»; la tolleranza per singola sezione mancante (nessuna rilevazione) resta.
+- D-17a (change stream): alla perdita della storia (codice 286) la base espone un hook di risincronizzazione; i publisher della coda del GM chiedono un refresh completo della coda, gli altri publisher restano sul solo WARN (nessuna ripubblicazione totale economica).
+- D-04/C4: tetti di forma su `createCharacter` (riga in §3).
+
 
 **Deviazioni registrate nei SUMMARY 10-01..10-29** (nessuna cambia il contratto verso il FE o una decisione utente):
 
