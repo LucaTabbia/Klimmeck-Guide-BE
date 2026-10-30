@@ -344,7 +344,7 @@ Plans:
 - [x] 10-20-PLAN.md — Wave 15 (5): `Enemy.locations`/`PointOfInterest.type` come liste; `types: ["jest"]` + 56 fix negli spec + step CI `tsc` (BE-HARD-06)
 - [x] 10-21-PLAN.md — Wave 16 (5): D-21 — i registrati archiviati combattono come seat holder (boss + soccorso), senza esiti né premi (BE-HARD-07)
 - [x] 10-22-PLAN.md — Wave 17 (5): D-22 — avvio da soli atomico con l'arrivo/claim + publisher degli avvii su `characterUpdated` (BE-HARD-07)
-- [ ] 10-23-PLAN.md — Wave 18 (6): refactor `fightRescuers`/`settleWounded`, `@AuditTarget`, un solo `primeChangeStream` (BE-HARD-06)
+- [x] 10-23-PLAN.md — Wave 18 (6): refactor `fightRescuers`/`settleWounded`, `@AuditTarget`, un solo `primeChangeStream` (BE-HARD-06)
 - [ ] 10-24-PLAN.md — Wave 19 (7): `collectCoverageFrom` corretto, `test:cov` unico, soglie per cartella = misura − 2, CI, gap di auth/EventSub (BE-HARD-04)
 - [ ] 10-25-PLAN.md — Wave 20 (7): gap di economia, magie, equipaggiamento, accettazione e viaggi; soglie alzate (BE-HARD-04)
 - [ ] 10-26-PLAN.md — Wave 21 (8): inventario dei ref `Mixed`, pipeline pure, migrazione `--dry-run/--apply/--verify` + CLI + verificatore al boot (BE-HARD-06)
@@ -390,4 +390,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
-| 10. Hardening Trasversale | 22/31 | In Progress | - |
+| 10. Hardening Trasversale | 23/31 | In Progress | - |
