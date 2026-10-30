@@ -389,6 +389,28 @@ describe('CharacterCreationResolver (wire)', () => {
             await expectNothingPersisted(user._id);
         });
 
+        it('keeps CHARACTER_NAME_INVALID up to the form cap and answers BAD_USER_INPUT beyond it (C4)', async () => {
+            const overDomain = await create({
+                ...VALID_INPUT,
+                name: 'A'.repeat(21),
+            });
+            const atFormCap = await create({
+                ...VALID_INPUT,
+                name: 'A'.repeat(200),
+            });
+            const overFormCap = await create({
+                ...VALID_INPUT,
+                name: 'A'.repeat(201),
+            });
+
+            expectDomainError(overDomain, 'CHARACTER_NAME_INVALID');
+            expectDomainError(atFormCap, 'CHARACTER_NAME_INVALID');
+            expect(
+                expectDomainError(overFormCap, 'BAD_USER_INPUT').message,
+            ).toBe('Input non valido: name');
+            await expectNothingPersisted(user._id);
+        });
+
         it('rejects an age out of the race range without logging an error', async () => {
             const errorSpy = jest
                 .spyOn(Logger.prototype, 'error')

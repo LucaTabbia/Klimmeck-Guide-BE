@@ -181,6 +181,32 @@ describe('input rules', () => {
         });
     });
 
+    describe('character creation form caps', () => {
+        it('caps the creation strings with generous shape limits above the domain ones (C4)', async () => {
+            const secureImage = (length: number) =>
+                `https://cdn.test/${'p'.repeat(length - 'https://cdn.test/'.length)}`;
+            const withinCaps = [
+                character({ name: 'A'.repeat(200) }),
+                character({ background: 'b'.repeat(4000) }),
+                character({ imagePath: secureImage(2048) }),
+            ];
+
+            for (const plain of withinCaps) {
+                expect(await fieldsOf(CreateCharacterInput, plain)).toEqual([]);
+            }
+            expect(
+                await fieldsOf(
+                    CreateCharacterInput,
+                    character({
+                        name: 'A'.repeat(201),
+                        background: 'b'.repeat(4001),
+                        imagePath: secureImage(2049),
+                    }),
+                ),
+            ).toEqual(['background', 'imagePath', 'name']);
+        });
+    });
+
     describe('quests and travel', () => {
         it('rejects malformed quest and travel ids (D-02)', async () => {
             const quest = { id: CHARACTER_ID, questId: 'abc' };
