@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 10 (Hardening Trasversale) — EXECUTING since 2026-10-29 on `feat/10-hardening`: 31 plans in 26 sequential waves (details in `.planning/phases/10-hardening-trasversale/10-*-PLAN.md`)
-Plan: 29 of 31
+Plan: 30 of 31
 Status: Executing Phase 10 — plan 10-01 in progress (executor opus, sequential, main working tree)
 Last activity: 2026-10-29 -- Phase 10 execution started (31 plans, executor opus sequential; FE Phase 10 executing in the same session)
 
