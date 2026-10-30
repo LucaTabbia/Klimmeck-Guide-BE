@@ -17,6 +17,7 @@ import {
     persistSpell,
     spellBook,
 } from '../../../test/fixtures';
+import { migrateLegacyRefs } from '../../../test/migrations/migrate-legacy-refs';
 
 const USE_SPELL =
     'mutation($request: UseSpellRequest!) { useSpell(request: $request) { successful response } }';
@@ -207,7 +208,7 @@ describe('useSpell (wire)', () => {
         ]);
     });
 
-    it('uses an active spell whose mirror stores a legacy string id', async () => {
+    it('uses an active spell whose mirror stores a legacy string id after the reference migration (D-17d)', async () => {
         const spellId = await dardo();
         const player = await playerWith('twitch-use-legacy', [
             { spell: spellId, usages: 2 },
@@ -222,6 +223,7 @@ describe('useSpell (wire)', () => {
                 },
             },
         );
+        await migrateLegacyRefs(harness.connection);
 
         const body = await useSpell(player, spellId);
 

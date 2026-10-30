@@ -20,6 +20,7 @@ import {
     spellBook,
     SpellBookEntry,
 } from '../../../test/fixtures';
+import { migrateLegacyRefs } from '../../../test/migrations/migrate-legacy-refs';
 
 const EQUIP_SPELL =
     'mutation($request: EquipSpellRequest!) { equipSpell(request: $request) { successful response } }';
@@ -345,7 +346,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toEqual([]);
         });
 
-        it('equips a known spell stored with a legacy string id', async () => {
+        it('equips a known spell stored with a legacy string id after the reference migration (D-17d)', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-eq-legacy-known', {
                 xp: 20000,
@@ -354,6 +355,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             await storeLegacySpells(player, {
                 'status.spells': [dardo.toHexString()],
             });
+            await migrateLegacyRefs(harness.connection);
 
             const body = await equip(player, dardo.toHexString());
 
@@ -363,7 +365,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toEqual([{ spell: dardo, usages: 3 }]);
         });
 
-        it('rejects re-equipping a spell active with a legacy string id with SPELL_ALREADY_ACTIVE', async () => {
+        it('rejects re-equipping a spell active with a legacy string id with SPELL_ALREADY_ACTIVE after the reference migration (D-17d)', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-eq-legacy-active', {
                 xp: 25000,
@@ -374,6 +376,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
                     { spell: dardo.toHexString(), usages: 1 },
                 ],
             });
+            await migrateLegacyRefs(harness.connection);
             const before = await rawCharacter(idOf(player));
 
             const body = await equip(player, dardo.toHexString());
@@ -582,7 +585,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             expect(raw.status.spellStates[0].recoveries).toHaveLength(3);
         });
 
-        it('removes an active spell stored with a legacy string id', async () => {
+        it('removes an active spell stored with a legacy string id after the reference migration (D-17d)', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-uneq-legacy', {
                 xp: 20000,
@@ -593,6 +596,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
                     { spell: dardo.toHexString(), usages: 2 },
                 ],
             });
+            await migrateLegacyRefs(harness.connection);
 
             const body = await unequip(player, dardo.toHexString());
 
