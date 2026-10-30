@@ -28,6 +28,7 @@ class FakeChangeStream extends EventEmitter {
 
 class ProbePublisher extends ChangeStreamPublisher<ProbeDocument> {
     readonly changes: ChangeStreamEvent[] = [];
+    historyLosses = 0;
 
     constructor(model: Model<ProbeDocument>) {
         super(model, PROBE_SPEC, {
@@ -37,6 +38,10 @@ class ProbePublisher extends ChangeStreamPublisher<ProbeDocument> {
 
     protected onChange(change: ChangeStreamEvent): void {
         this.changes.push(change);
+    }
+
+    protected onHistoryLost(): void {
+        this.historyLosses++;
     }
 }
 
@@ -178,6 +183,18 @@ describe('ChangeStreamPublisher', () => {
                 'Storia del change stream delle sonde persa: riapertura senza ripresa',
             ],
         ]);
+    });
+
+    it('lets the subclass resynchronise once when the history is lost (D-17a)', () => {
+        latestStream().emit('error', serverError(HISTORY_LOST_CODE));
+
+        expect(publisher.historyLosses).toBe(1);
+    });
+
+    it('does not ask for a resynchronisation on a resumable error (D-17a)', () => {
+        latestStream().emit('error', serverError(43));
+
+        expect(publisher.historyLosses).toBe(0);
     });
 
     it('resets the backoff after the first change following a reopen (D-17a)', () => {

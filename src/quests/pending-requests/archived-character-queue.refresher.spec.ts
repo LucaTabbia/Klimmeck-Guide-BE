@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { EventEmitter } from 'node:events';
 import type { PubSub } from '@graphql-yoga/subscription';
 import type { Model } from 'mongoose';
@@ -30,10 +31,21 @@ describe('ArchivedCharacterQueueRefresher', () => {
 
     afterEach(async () => {
         await refresher.onModuleDestroy();
+        jest.restoreAllMocks();
     });
 
     it('asks the queue to refresh when a character is archived (D-23)', () => {
         stream.emit('change', { operationType: 'update' });
+
+        expect(requestRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks the queue to refresh when the change stream history is lost (D-17a)', () => {
+        jest.spyOn(Logger.prototype, 'warn').mockImplementation(
+            () => undefined,
+        );
+
+        stream.emit('error', Object.assign(new Error('fake'), { code: 286 }));
 
         expect(requestRefresh).toHaveBeenCalledTimes(1);
     });
