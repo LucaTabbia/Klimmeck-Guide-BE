@@ -436,4 +436,123 @@ describe('HttpTwitchHelixClient', () => {
             expect(helixCalls()).toHaveLength(2);
         });
     });
+
+    describe('failure modes', () => {
+        function failHelixWith(reason: unknown): void {
+            const base = fetchSpy.getMockImplementation();
+            fetchSpy.mockImplementation(async (input, init) => {
+                const url =
+                    input instanceof Request ? input.url : input.toString();
+                if (url.startsWith(HELIX_EVENTSUB_SUBSCRIPTIONS_URL)) {
+                    throw reason;
+                }
+                return base!(input, init);
+            });
+        }
+
+        it('rejects a non-JSON answer as invalid JSON without its body', async () => {
+            helixResponses.push(
+                new Response('<html>app-token</html>', { status: 200 }),
+            );
+
+            const error = await rejectionOf(
+                buildClient().listEventSubSubscriptions(),
+            );
+
+            expect(error.message).toBe(
+                'Helix list subscriptions response is not valid JSON',
+            );
+            expect(error.status).toBeUndefined();
+        });
+
+        it.each([400, 503])(
+            'rejects a %i answer with its status only',
+            async (status) => {
+                helixResponses.push(
+                    jsonResponse(status, { message: 'app-token' }),
+                );
+
+                const error = await rejectionOf(
+                    buildClient().listEventSubSubscriptions(),
+                );
+
+                expect(error.status).toBe(status);
+                expect(error.message).toBe(
+                    `Helix list subscriptions failed with status ${status}`,
+                );
+            },
+        );
+
+        it('reports a Twitch timeout by its error name only', async () => {
+            failHelixWith(
+                new DOMException('signal timed out app-token', 'TimeoutError'),
+            );
+
+            const error = await rejectionOf(
+                buildClient().createEventSubSubscription(CREATE_REQUEST),
+            );
+
+            expect(error.message).toBe(
+                'Helix create subscription request failed (TimeoutError)',
+            );
+        });
+
+        it.each([
+            ['a non-object', 'app-token'],
+            ['an unnamed error', { name: '' }],
+        ])(
+            'reports %s network failure as UnknownError',
+            async (_label, reason) => {
+                failHelixWith(reason);
+
+                const error = await rejectionOf(
+                    buildClient().deleteEventSubSubscription('sub-1'),
+                );
+
+                expect(error.message).toBe(
+                    'Helix delete subscription request failed (UnknownError)',
+                );
+            },
+        );
+
+        it('maps a list whose data is not an array to no subscriptions', async () => {
+            helixResponses.push(jsonResponse(200, { data: 'app-token' }));
+
+            await expect(
+                buildClient().listEventSubSubscriptions(),
+            ).resolves.toEqual([]);
+        });
+
+        it('drops non-object entries and blanks fields of the wrong type', async () => {
+            helixResponses.push(
+                listPage([
+                    null,
+                    'sub-text',
+                    rawSubscription({
+                        id: 'sub-odd',
+                        status: 5,
+                        condition: 42,
+                        transport: 'webhook',
+                    }),
+                    rawSubscription({ id: 'sub-array', condition: '[1]' }),
+                ]),
+            );
+
+            const subscriptions =
+                await buildClient().listEventSubSubscriptions();
+
+            expect(subscriptions).toEqual([
+                {
+                    id: 'sub-odd',
+                    status: '',
+                    type: 'channel.channel_points_custom_reward_redemption.add',
+                    version: '1',
+                    condition: {},
+                    transport: { method: '', callback: null },
+                    createdAt: '2026-10-19T12:00:00.000Z',
+                },
+                expect.objectContaining({ id: 'sub-array', condition: {} }),
+            ]);
+        });
+    });
 });
