@@ -57,4 +57,3 @@ export class QuestInfosInput {
     @Field(() => [ID])
     relatedLore: string[];
 }
-

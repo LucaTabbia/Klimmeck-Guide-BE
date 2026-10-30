@@ -26,7 +26,6 @@ export class EquipmentItem extends AssetItem {
 export type EquipmentItemDocument = EquipmentItem & Document;
 export const EquipmentItemSchema = SchemaFactory.createForClass(EquipmentItem);
 
-
 @InputType()
 export class EquipmentItemInput {
     @Field(() => String, { nullable: true })
@@ -56,4 +55,3 @@ export class EquipmentItemInput {
     @Field(() => DamagesInput)
     damages: DamagesInput;
 }
-

@@ -4,7 +4,7 @@ import { Document, Types } from 'mongoose';
 import { LoreType } from './enums/lore-type.enum';
 
 @ObjectType()
-@Schema({ collection: "lore" })
+@Schema({ collection: 'lore' })
 export class Lore {
     @Field(() => ID)
     id: string;
@@ -37,7 +37,6 @@ export class Lore {
 export type LoreDocument = Lore & Document;
 export const LoreSchema = SchemaFactory.createForClass(Lore);
 
-
 @InputType()
 export class LoreInput {
     @Field(() => ID, { nullable: true })
@@ -61,4 +60,3 @@ export class LoreInput {
     @Field(() => Boolean, { nullable: true })
     unlocked?: boolean;
 }
-
