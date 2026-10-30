@@ -1,5 +1,5 @@
 import type { ArgumentsHost } from '@nestjs/common';
-import { Logger } from '@nestjs/common';
+import { HttpException, Logger } from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
 import { AuthException } from 'src/auth/auth.exception';
 import type { RuntimeConfig } from 'src/config/runtime-config';
@@ -97,6 +97,43 @@ describe('UnhandledExceptionFilter', () => {
         expect(baseCatch).toHaveBeenCalledWith(exception, host);
         expect(status).not.toHaveBeenCalled();
         expect(logError).not.toHaveBeenCalled();
+    });
+
+    it('answers a body parser 4xx with its own status and no internal error log in production (D-07)', () => {
+        const { host, status } = fakeHost('http', 'req-5');
+        const tooLarge = Object.assign(new Error('request entity too large'), {
+            status: 413,
+            type: 'entity.too.large',
+        });
+
+        filterFor(true).catch(tooLarge, host);
+
+        expect(baseCatch).toHaveBeenCalledTimes(1);
+        const [forwarded] = baseCatch.mock.calls[0] as [HttpException];
+        expect(forwarded).toBeInstanceOf(HttpException);
+        expect(forwarded.getStatus()).toBe(413);
+        expect(forwarded.getResponse()).toEqual({
+            statusCode: 413,
+            message: 'request entity too large',
+        });
+        expect(status).not.toHaveBeenCalled();
+        expect(logError).not.toHaveBeenCalled();
+    });
+
+    it('still masks an error carrying a 5xx status in production (D-07)', () => {
+        const { host, status } = fakeHost('http', 'req-6');
+        const upstream = Object.assign(new Error('upstream down'), {
+            statusCode: 502,
+        });
+
+        filterFor(true).catch(upstream, host);
+
+        expect(status).toHaveBeenCalledWith(500);
+        expect(baseCatch).not.toHaveBeenCalled();
+        expect(logError).toHaveBeenCalledWith(
+            expect.stringContaining('req-6'),
+            expect.any(String),
+        );
     });
 
     it('leaves GraphQL errors to Apollo (Pitfall 6)', () => {

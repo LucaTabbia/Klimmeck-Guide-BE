@@ -9,6 +9,7 @@ import {
 import { ValidationProbeResolver } from '../../test/validation/validation-probe.resolver';
 
 const UUID_PATTERN = /^[0-9a-f-]{36}$/;
+const OVERSIZED_JSON_BYTES = 200 * 1024;
 const PROBE_VALIDATION =
     'mutation Probe($input: ValidationProbeInput!) { probeValidation(input: $input) }';
 
@@ -93,6 +94,20 @@ describe('REST hardening (wire)', () => {
             code: 'INTERNAL_SERVER_ERROR',
             message: 'Errore interno',
             requestId: 'rest-1',
+        });
+    });
+
+    it('answers an oversized JSON body with 413 instead of a masked 500 in production (D-07)', async () => {
+        const response = await graphqlRequest(
+            productionHarness.app,
+            PROBE_VALIDATION,
+            { padding: 'x'.repeat(OVERSIZED_JSON_BYTES) },
+        );
+
+        expect(response.status).toBe(413);
+        expect(response.body).toEqual({
+            statusCode: 413,
+            message: 'request entity too large',
         });
     });
 
