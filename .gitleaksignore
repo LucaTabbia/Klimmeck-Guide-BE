@@ -1,0 +1,7 @@
+# Fingerprint ammesse da gitleaks (D-10), formato commit:file:rule-id:line.
+# Ogni voce ha sopra un commento datato «AAAA-MM-GG — secret ruotato alla fonte da …, motivo».
+# Un secret trovato nella storia si ruota alla fonte (Mongo, JWT, Twitch, Cloudinary, Firebase, Sightengine), mai riscrivendo la storia.
+
+# 2026-10-30 — falso positivo, nessuna rotazione: il token segnaposto del badge CircleCI del template NestJS
+# (nestjs/nest) copiato dal commit iniziale, non un secret del progetto; la riga è stata rimossa dal README in 9849a5c.
+0af0772d0eb5f843f4d7403e68156b4686da7ee1:README.md:generic-api-key:5

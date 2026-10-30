@@ -23,6 +23,7 @@ import {
     persistQuest,
     persistUser,
 } from '../../../test/fixtures';
+import { migrateLegacyRefs } from '../../../test/migrations/migrate-legacy-refs';
 
 const NOW = new Date('2026-10-24T10:00:00.000Z');
 const YESTERDAY = new Date('2026-10-23T10:00:00.000Z');
@@ -570,12 +571,13 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
         ]);
     });
 
-    it('matches a legacy current character saved as a hex string', async () => {
+    it('matches a legacy current character saved as a hex string after the reference migration (D-17d)', async () => {
         const scene = await persistScene();
         await users.collection.updateOne(
             { _id: scene.userId },
             { $set: { currentCharacter: scene.characterId.toHexString() } },
         );
+        await migrateLegacyRefs(harness.connection);
 
         const outcome = await archiveInTransaction(
             scene.userId,

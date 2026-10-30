@@ -13,6 +13,9 @@ export interface TriggerJob<T> {
     dueAt: Date;
 }
 
+// i falliti restano ispezionabili ma non si accumulano (D-17a); un job fallito con lo stesso jobId resta coperto dallo sweep
+export const FAILED_JOBS_KEPT = { age: 7 * 24 * 3600, count: 1000 } as const;
+
 // subject e fallback compongono il WARN: "Accodamento <subject> <jobId> fallito: <fallback>"
 export interface TriggerContext {
     clock: Clock;
@@ -37,7 +40,7 @@ export async function enqueueTrigger<T>(
                     job.dueAt.getTime() - context.clock.now().getTime(),
                 ),
                 removeOnComplete: true,
-                removeOnFail: false,
+                removeOnFail: FAILED_JOBS_KEPT,
             }),
             context.timeoutMs,
         );

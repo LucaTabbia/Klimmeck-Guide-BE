@@ -24,6 +24,7 @@ import {
     QuestLane,
 } from 'src/quests/acceptance/quest-lanes';
 import { StaleResolution } from 'src/quests/outcomes/outcome-writer.service';
+import { ResolutionTrigger } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { QuestResolutionScheduler } from 'src/quests/outcomes/scheduling/quest-resolution.scheduler';
 import {
     partyClaimFilter,
@@ -77,7 +78,17 @@ const PARTY_PROJECTIONS: LaneProjections = {
     pendingQuest: { arrivedAt: 1, waitingTime: 1 },
 };
 
-// unico scrittore di startDate della corsia standard e unico punto che accoda i job di risoluzione (D-24 emendata 2026-10-25)
+// hunt, dungeon, job, heal, study: l'avvio coincide con l'arrivo (D-13), scritto nella stessa scrittura (D-22)
+export function soloStartDateOf(
+    type: QuestType,
+    arrivedAt: Date | null,
+): Date | null {
+    return laneOf(type) === QuestLane.standard && !isRegistered(type)
+        ? arrivedAt
+        : null;
+}
+
+// proprietario della regola d'avvio della corsia standard (arrivo e claim la applicano con soloStartDateOf, D-22) e unico punto che accoda i job di risoluzione (D-24 emendata 2026-10-25)
 @Injectable()
 export class QuestStartService {
     private readonly logger = new Logger(QuestStartService.name);
@@ -105,6 +116,11 @@ export class QuestStartService {
         }
     }
 
+    // dopo il commit di una scrittura che ha già avviato la corsia (arrivo, claim sul marker): best-effort, lo sweep copre un accodamento perso
+    async scheduleStarted(started: ResolutionTrigger): Promise<void> {
+        await this.scheduler.scheduleResolution(started);
+    }
+
     private async start(trigger: StartTrigger): Promise<StartOutcome> {
         const quest = await this.questModel
             .findById(trigger.questId, START_QUEST_PROJECTION)
@@ -122,7 +138,7 @@ export class QuestStartService {
         return this.startParty(quest);
     }
 
-    // hunt, dungeon, job, heal, study: l'avvio coincide con l'arrivo (D-13)
+    // recupero dei dati scritti prima dell'avvio atomico (D-22): l'avvio coincide con l'arrivo (D-13)
     private async startSingle(trigger: StartTrigger): Promise<StartOutcome> {
         if (!trigger.pendingQuestId) return 'stale';
         const started = await this.pendingQuestModel
@@ -142,7 +158,7 @@ export class QuestStartService {
             .lean<{ startDate: Date; waitingTime?: number | null } | null>()
             .exec();
         if (!started) return 'stale';
-        await this.scheduler.scheduleResolution({
+        await this.scheduleStarted({
             pendingQuestId: trigger.pendingQuestId,
             startDate: started.startDate,
             waitingTime: started.waitingTime ?? 0,

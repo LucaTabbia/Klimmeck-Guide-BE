@@ -157,7 +157,7 @@ describe('deleteCharacter (wire)', () => {
         });
     }
 
-    function rawUser(id: string | Types.ObjectId) {
+    function rawUser(id: unknown) {
         return users.collection.findOne({
             _id: new Types.ObjectId(String(id)),
         });

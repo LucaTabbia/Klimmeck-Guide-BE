@@ -235,6 +235,17 @@ describe('push device registration (wire)', () => {
         expect(await devices.countDocuments()).toBe(0);
     });
 
+    it('keeps PUSH_INVALID_DEVICE_ID behind the global pipe (C4)', async () => {
+        const alice = await player('twitch-push-alice');
+
+        const body = await register(alice, deviceInput({ deviceId: 'a b' }));
+
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'PUSH_INVALID_DEVICE_ID',
+        });
+        expect(await devices.countDocuments()).toBe(0);
+    });
+
     it('requires a bearer', async () => {
         expect(errorCodeOf(await register(null))).toBe('UNAUTHENTICATED');
     });
@@ -469,7 +480,7 @@ describe('sendTestPush (wire)', () => {
         });
     });
 
-    it('answers NOT_FOUND for a missing or malformed target and audits the outcome', async () => {
+    it('answers NOT_FOUND for a missing target and BAD_USER_INPUT for a malformed one, auditing both (D-02)', async () => {
         const oste = await innkeeper();
 
         const missing = await sendTest(oste, {
@@ -482,9 +493,16 @@ describe('sendTestPush (wire)', () => {
         });
 
         expect(errorCodeOf(missing)).toBe('NOT_FOUND');
-        expect(errorCodeOf(malformed)).toBe('NOT_FOUND');
-        const records = await audits.find().lean().exec();
-        expect(records).toHaveLength(2);
+        expect(errorCodeOf(malformed)).toBe('BAD_USER_INPUT');
+        expect(malformed.errors?.[0]?.message).toBe(
+            'Input non valido: targetUserId',
+        );
+        expect(transport.sent).toEqual([]);
+        const records = await audits.find().sort({ _id: 1 }).lean().exec();
+        expect(records.map(({ outcome }) => outcome)).toEqual([
+            'NOT_FOUND',
+            'BAD_USER_INPUT',
+        ]);
         expect(records[0]).toMatchObject({
             action: 'sendTestPush',
             target: { type: 'PushDeliveryReport', id: null },
@@ -492,12 +510,27 @@ describe('sendTestPush (wire)', () => {
         });
     });
 
+    it('rejects a test push id longer than 2000 characters with BAD_USER_INPUT (D-04)', async () => {
+        const oste = await innkeeper();
+
+        const body = await sendTest(oste, {
+            type: 'travelEnd',
+            id: 'c'.repeat(2001),
+        });
+
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'BAD_USER_INPUT',
+        });
+        expect(body.errors?.[0]?.message).toBe('Input non valido: id');
+        expect(transport.sent).toEqual([]);
+    });
+
     it('broadcasts streamerLive to the topic and ignores the target', async () => {
         const oste = await innkeeper();
 
         const body = await sendTest(oste, {
             type: 'streamerLive',
-            targetUserId: 'nope',
+            targetUserId: '64b0000000000000000000ff',
         });
 
         expect(reportOf(body)).toEqual({

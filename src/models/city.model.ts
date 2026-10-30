@@ -1,10 +1,9 @@
-import { ObjectType, Field, ID, Float, InputType } from "@nestjs/graphql";
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Types } from "mongoose";
-import { CityType } from "./enums/city-type.enum";
-import { Lore } from "./lore.model";
-import { PointOfInterest } from "./point-of-interest.model";
-
+import { ObjectType, Field, ID, Float, InputType } from '@nestjs/graphql';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Schema as MongooseSchema, Types } from 'mongoose';
+import { CityType } from './enums/city-type.enum';
+import { Lore } from './lore.model';
+import { PointOfInterest } from './point-of-interest.model';
 
 @ObjectType()
 @Schema()
@@ -25,22 +24,31 @@ export class City {
     name: string;
 
     @Field(() => PointOfInterest)
-    @Prop({ type: Types.ObjectId, ref: 'PointOfInterest', required: true })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: 'PointOfInterest',
+        required: true,
+    })
     markerLocation: Types.ObjectId | PointOfInterest;
 
     @Field(() => Lore, { nullable: true })
-    @Prop({ type: Types.ObjectId, ref: Lore.name, required: false })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Lore.name,
+        required: false,
+    })
     relatedLore?: Types.ObjectId | Lore | null;
 
     @Field(() => [PointOfInterest], { nullable: true })
-    @Prop({ type: [{ type: Types.ObjectId, ref: 'PointOfInterest' }], default: [] })
+    @Prop({
+        type: [{ type: MongooseSchema.Types.ObjectId, ref: 'PointOfInterest' }],
+        default: [],
+    })
     pointsOfInterest?: (Types.ObjectId | PointOfInterest)[];
 }
 
-
 export type CityDocument = City & Document;
 export const CitySchema = SchemaFactory.createForClass(City);
-
 
 @InputType()
 export class CityInput {

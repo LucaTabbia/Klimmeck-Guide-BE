@@ -6,7 +6,12 @@ import { buildAidQuest } from './aid/aid-quest';
 import { ChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
 import { battleOf, combatContextOf, planCombatant } from './combatant-plan';
-import type { GroupRoster } from './group-roster';
+import {
+    fightersOf,
+    type GroupRoster,
+    incoherentOf,
+    seatHolderIdsOf,
+} from './group-roster';
 import {
     type CommittedOutcome,
     emptyCommitted,
@@ -53,6 +58,7 @@ export class BossResolutionService {
             loaded.quest._id,
             registered,
             now,
+            seatHolderIdsOf(loaded.quest.registeredAdventurers),
         );
         if (roster.waiting) {
             this.logger.log(
@@ -63,7 +69,7 @@ export class BossResolutionService {
         if (roster.seats.length === 0) return 'stale';
         const catalog = await this.loader.readCatalog(
             loaded.quest,
-            roster.seats.map(({ character }) => character),
+            fightersOf(roster),
         );
         const committed = await this.commitGroup({
             loaded,
@@ -78,7 +84,12 @@ export class BossResolutionService {
             );
             return 'stale';
         }
-        for (const characterId of roster.dropped) {
+        for (const { character } of roster.seatHolders) {
+            this.logger.log(
+                `Segnaposto di posto ${character._id.toHexString()} della missione ${questId} in combattimento`,
+            );
+        }
+        for (const characterId of incoherentOf(roster)) {
             this.logger.warn(
                 `Registrato ${characterId.toHexString()} della missione ${questId} senza missione in attesa coerente: rimosso`,
             );
@@ -118,7 +129,21 @@ export class BossResolutionService {
                         ),
                     );
                 }
-                const context = combatContextOf(quest, catalog, snapshots);
+                // i segnaposto di posto combattono con la fotografia del personaggio archiviato, senza esiti né premi (D-21)
+                const holders: ResolutionCharacter[] = [];
+                for (const holder of roster.seatHolders) {
+                    holders.push(
+                        await this.loader.snapshotSeatHolderInSession(
+                            holder.character._id,
+                            holder.pendingQuestId,
+                            session,
+                        ),
+                    );
+                }
+                const context = combatContextOf(quest, catalog, [
+                    ...snapshots,
+                    ...holders,
+                ]);
                 const resolution = context
                     ? this.combat.resolve(context, this.chance)
                     : null;
@@ -153,6 +178,12 @@ export class BossResolutionService {
                     });
                     committed.spellRecoveries.push(...plan.spellRecoveries);
                     if (aid) failed.push(snapshot._id);
+                }
+                for (const { pendingQuestId } of roster.seatHolders) {
+                    await this.writer.deletePendingQuest(
+                        pendingQuestId,
+                        session,
+                    );
                 }
                 // claim del gruppo (D-05, D-21): un secondo trigger o un nuovo iscritto ⇒ WriteConflict o 0 match ⇒ no-op, lo sweep riprova
                 await this.writer.updateQuest(

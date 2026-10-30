@@ -29,6 +29,9 @@ const GM_LANE_FILTER = {
     ],
 };
 
+// solo personaggi attivi con una corsia del GM (D-23): la voce di un archiviato non entra mai in coda
+const GM_QUEUE_FILTER = { ...ACTIVE_CHARACTER_FILTER, ...GM_LANE_FILTER };
+
 const CHARACTER_PROJECTION = {
     'infos.name': 1,
     'status.title': 1,
@@ -37,6 +40,7 @@ const CHARACTER_PROJECTION = {
     'status.awaitingAid': 1,
     'quests.activeStoryQuest': 1,
     'quests.activeWorldMissionQuest': 1,
+    'quests.pendingQuest': 1,
 };
 
 function refIdsOf(values: unknown[]): Types.ObjectId[] {
@@ -61,10 +65,7 @@ export class PendingRequestsService {
 
     async list(): Promise<PendingRequest[]> {
         const characters = await this.characterModel
-            .find(
-                { ...ACTIVE_CHARACTER_FILTER, ...GM_LANE_FILTER },
-                CHARACTER_PROJECTION,
-            )
+            .find(GM_QUEUE_FILTER, CHARACTER_PROJECTION)
             .lean<RequestCharacterSnapshot[]>();
         const pendingQuests = await this.pendingQuestModel
             .find(

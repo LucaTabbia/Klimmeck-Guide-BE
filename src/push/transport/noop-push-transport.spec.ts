@@ -1,11 +1,14 @@
 import { streamerLive, travelEnd } from 'src/push/push-events';
 import { STREAMER_LIVE_TOPIC } from 'src/push/push-message';
 import { NoopPushTransport } from 'src/push/transport/noop-push-transport';
-import { FCM_MULTICAST_LIMIT } from 'src/push/transport/push-transport';
+import {
+    FCM_MULTICAST_LIMIT,
+    PushTransport,
+} from 'src/push/transport/push-transport';
 import { FakePushTransport } from '../../../test/push/fake-push-transport';
 
 describe('NoopPushTransport', () => {
-    const transport = new NoopPushTransport();
+    const transport: PushTransport = new NoopPushTransport();
 
     it('is disabled', () => {
         expect(transport.enabled).toBe(false);

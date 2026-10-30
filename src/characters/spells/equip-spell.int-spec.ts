@@ -20,6 +20,7 @@ import {
     spellBook,
     SpellBookEntry,
 } from '../../../test/fixtures';
+import { migrateLegacyRefs } from '../../../test/migrations/migrate-legacy-refs';
 
 const EQUIP_SPELL =
     'mutation($request: EquipSpellRequest!) { equipSpell(request: $request) { successful response } }';
@@ -218,6 +219,35 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toBe(1);
         });
 
+        it('ignores the deprecated usages sent by an old client (D-01)', async () => {
+            const dardo = await spellNamed('Dardo', 3);
+            const loadout: Loadout = {
+                xp: 20000,
+                book: [{ spell: dardo, usages: 2 }],
+            };
+            const oldClient = await playerWith('twitch-eq-old-client', loadout);
+            const newClient = await playerWith('twitch-eq-new-client', loadout);
+
+            const withUsages = await equip(oldClient, dardo.toHexString(), {
+                usages: 3,
+            });
+            const withoutUsages = await equip(newClient, dardo.toHexString());
+
+            expect(withUsages).toEqual(withoutUsages);
+            const oldRaw = await rawCharacter(idOf(oldClient));
+            const newRaw = await rawCharacter(idOf(newClient));
+            expect({
+                activeSpells: oldRaw.assets.activeSpells,
+                spellStates: oldRaw.status.spellStates,
+            }).toEqual({
+                activeSpells: newRaw.assets.activeSpells,
+                spellStates: newRaw.status.spellStates,
+            });
+            expect(oldRaw.assets.activeSpells).toEqual([
+                { spell: dardo, usages: 2 },
+            ]);
+        });
+
         it('falls back to the catalog maxUsages when the spell has no state entry', async () => {
             const dardo = await spellNamed('Dardo', 3);
             const player = await playerWith('twitch-eq-no-state', {
@@ -239,7 +269,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             expect(raw.status.spellStates).toEqual([]);
         });
 
-        it('rejects a spell the character does not know with SPELL_NOT_KNOWN', async () => {
+        it('rejects an unknown spell with SPELL_NOT_KNOWN and a malformed spell id with BAD_USER_INPUT (D-02)', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-eq-unknown', {
                 xp: 20000,
@@ -253,7 +283,9 @@ describe('equipSpell / unequipSpell (wire)', () => {
             expect(messageOf(body)).toBe('Magia non conosciuta');
             expect(await rawCharacter(idOf(player))).toEqual(before);
 
-            expect(codeOf(await equip(player, 'abc'))).toBe('SPELL_NOT_KNOWN');
+            const malformed = await equip(player, 'abc');
+            expect(codeOf(malformed)).toBe('BAD_USER_INPUT');
+            expect(messageOf(malformed)).toBe('Input non valido: spellId');
             expect(await rawCharacter(idOf(player))).toEqual(before);
         });
 
@@ -314,7 +346,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toEqual([]);
         });
 
-        it('equips a known spell stored with a legacy string id', async () => {
+        it('equips a known spell stored with a legacy string id after the reference migration (D-17d)', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-eq-legacy-known', {
                 xp: 20000,
@@ -323,6 +355,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             await storeLegacySpells(player, {
                 'status.spells': [dardo.toHexString()],
             });
+            await migrateLegacyRefs(harness.connection);
 
             const body = await equip(player, dardo.toHexString());
 
@@ -332,7 +365,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toEqual([{ spell: dardo, usages: 3 }]);
         });
 
-        it('rejects re-equipping a spell active with a legacy string id with SPELL_ALREADY_ACTIVE', async () => {
+        it('rejects re-equipping a spell active with a legacy string id with SPELL_ALREADY_ACTIVE after the reference migration (D-17d)', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-eq-legacy-active', {
                 xp: 25000,
@@ -343,6 +376,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
                     { spell: dardo.toHexString(), usages: 1 },
                 ],
             });
+            await migrateLegacyRefs(harness.connection);
             const before = await rawCharacter(idOf(player));
 
             const body = await equip(player, dardo.toHexString());
@@ -551,7 +585,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             expect(raw.status.spellStates[0].recoveries).toHaveLength(3);
         });
 
-        it('removes an active spell stored with a legacy string id', async () => {
+        it('removes an active spell stored with a legacy string id after the reference migration (D-17d)', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-uneq-legacy', {
                 xp: 20000,
@@ -562,6 +596,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
                     { spell: dardo.toHexString(), usages: 2 },
                 ],
             });
+            await migrateLegacyRefs(harness.connection);
 
             const body = await unequip(player, dardo.toHexString());
 
@@ -571,7 +606,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toEqual([]);
         });
 
-        it('answers SPELL_NOT_ACTIVE for a spell that is not active', async () => {
+        it('answers SPELL_NOT_ACTIVE for an inactive spell and BAD_USER_INPUT for a malformed spell id (D-02)', async () => {
             const dardo = await spellNamed('Dardo');
             const player = await playerWith('twitch-uneq-inactive', {
                 xp: 20000,
@@ -579,12 +614,12 @@ describe('equipSpell / unequipSpell (wire)', () => {
             });
 
             const body = await unequip(player, dardo.toHexString());
+            const malformed = await unequip(player, 'abc');
 
             expect(codeOf(body)).toBe('SPELL_NOT_ACTIVE');
             expect(messageOf(body)).toBe('Magia non attiva');
-            expect(codeOf(await unequip(player, 'abc'))).toBe(
-                'SPELL_NOT_ACTIVE',
-            );
+            expect(codeOf(malformed)).toBe('BAD_USER_INPUT');
+            expect(messageOf(malformed)).toBe('Input non valido: spellId');
         });
 
         it('unequips exactly once under concurrent calls', async () => {

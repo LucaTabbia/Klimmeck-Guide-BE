@@ -1,15 +1,26 @@
 import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
-import { AssetQuantity, AssetQuantityInput, AssetQuantitySchema } from '../common/asset-quantity.model';
-import { Equipment, EquipmentInput, EquipmentSchema } from '../common/equipment.model';
+import { Document, Schema as MongooseSchema } from 'mongoose';
+import {
+    AssetQuantity,
+    AssetQuantityInput,
+    AssetQuantitySchema,
+} from '../common/asset-quantity.model';
+import {
+    Equipment,
+    EquipmentInput,
+    EquipmentSchema,
+} from '../common/equipment.model';
 import { Pet } from '../pet.model';
-import { ActiveSpell, ActiveSpellInput, ActiveSpellSchema } from '../common/active-spell.model';
+import {
+    ActiveSpell,
+    ActiveSpellInput,
+    ActiveSpellSchema,
+} from '../common/active-spell.model';
 
 @ObjectType()
 @Schema({ _id: false })
 export class CharacterAssets {
-
     @Field(() => [AssetQuantity])
     @Prop({ type: [AssetQuantitySchema] })
     ownedEquipments: AssetQuantity[];
@@ -27,13 +38,13 @@ export class CharacterAssets {
     activeSpells: ActiveSpell[];
 
     @Field(() => Pet, { nullable: true })
-    @Prop({ type: Types.ObjectId, ref: Pet.name, default: null })
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: Pet.name, default: null })
     pet?: Pet;
 }
 
 export type CharacterAssetsDocument = CharacterAssets & Document;
-export const CharacterAssetsSchema = SchemaFactory.createForClass(CharacterAssets);
-
+export const CharacterAssetsSchema =
+    SchemaFactory.createForClass(CharacterAssets);
 
 @InputType()
 export class CharacterAssetsInput {
@@ -52,4 +63,3 @@ export class CharacterAssetsInput {
     @Field(() => ID, { nullable: true })
     pet?: string | null;
 }
-

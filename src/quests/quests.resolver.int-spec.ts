@@ -363,15 +363,29 @@ describe('quest catalog (wire)', () => {
         expectFullQuest(body.data?.quest);
     });
 
-    it('answers NOT_FOUND for an unknown or malformed quest id', async () => {
-        for (const id of [MISSING_QUEST_ID, 'abc']) {
-            const body = bodyOf(
-                await graphqlRequest(harness.app, QUEST, { id }, bearer),
-            );
+    it('answers NOT_FOUND for an unknown quest id', async () => {
+        const body = bodyOf(
+            await graphqlRequest(
+                harness.app,
+                QUEST,
+                { id: MISSING_QUEST_ID },
+                bearer,
+            ),
+        );
 
-            expect(body.errors?.[0]?.extensions).toEqual({ code: 'NOT_FOUND' });
-            expect(body.errors?.[0]?.message).toBe('Missione non trovata');
-        }
+        expect(body.errors?.[0]?.extensions).toEqual({ code: 'NOT_FOUND' });
+        expect(body.errors?.[0]?.message).toBe('Missione non trovata');
+    });
+
+    it('answers BAD_USER_INPUT for a malformed quest id (D-02)', async () => {
+        const body = bodyOf(
+            await graphqlRequest(harness.app, QUEST, { id: 'abc' }, bearer),
+        );
+
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'BAD_USER_INPUT',
+        });
+        expect(body.errors?.[0]?.message).toBe('Input non valido: id');
     });
 
     function conclude(questId: Types.ObjectId) {

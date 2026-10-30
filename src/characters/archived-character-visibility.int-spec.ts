@@ -345,7 +345,7 @@ describe('Archived characters on player paths (wire)', () => {
 
     it('keeps legacy characters without the deletedAt field visible', async () => {
         await characters.collection.updateOne(
-            { _id: bruno.character!._id },
+            { _id: bruno.character!._id as Types.ObjectId },
             { $unset: { deletedAt: '', deletionReason: '' } },
         );
         const character = OPERATIONS.find(({ name }) => name === 'character')!;

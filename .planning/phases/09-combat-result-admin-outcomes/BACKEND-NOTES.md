@@ -291,6 +291,8 @@ query Result($id: String!) {
 
 ## 2. Codici di rifiuto
 
+> **Emendato dalla Phase 10 (2026-10-29):** `OUTCOME_NOT_PARTICIPANT` non copre più il `characterId` malformato e `OUTCOME_OVERRIDE_INVALID` non copre più i valori negativi né le liste oltre 50 voci: questi casi rispondono `BAD_USER_INPUT` con il percorso del campo (es. `Input non valido: outcomes.0.hpAfter`); un `pendingQuestId` malformato risponde `BAD_USER_INPUT` (era `NOT_FOUND`). `OUTCOME_OVERRIDE_INVALID` resta per lo 0 nei consumi, gli HP oltre il massimo, i duplicati e i possessi. Nuovo rifiuto `QUEST_IN_PROGRESS` su `completePendingRequest` (corsia standard occupata, §9). Ordine: `UNAUTHENTICATED` → `FORBIDDEN` → `BAD_USER_INPUT` → `NOT_FOUND` → `QUEST_IN_PROGRESS` → `OUTCOME_*`. Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §3, §4.
+
 Ogni rifiuto ha `errors[0].extensions` **esattamente** `{ "code": "<CODICE>" }` e un messaggio italiano. Il FE mappa il **codice**, mai il messaggio. Un rifiuto **non scrive nulla**.
 
 | Codice | Messaggio | Operazioni | Quando | Azione FE |
@@ -464,6 +466,8 @@ Tabella unica `LEVEL_TABLE` (`src/quests/outcomes/progression/level-table.ts`), 
 
 ## 9. Coda e completamento del GM (FE Phase 10)
 
+> **Emendato dalla Phase 10 (2026-10-29):** regola dell'utente BE-HARD-08 (D-23/D-24): `PendingRequestCharacter.pendingQuest: ID` nella coda; `completePendingRequest` risponde `QUEST_IN_PROGRESS` («Il personaggio è impegnato in una missione in corso») senza scritture finché un partecipante registrato attivo ha la corsia standard occupata; il target dell'audit è `{ type: 'PendingQuest', id: <pendingQuestId> }`; la coda esclude gli archiviati e si ricalcola anche all'archivio di un personaggio. Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §4, §9.
+
 **Coda (BE-ADMIN-01, FE ADMIN-02):**
 
 - `pendingRequests` (query) e `pendingRequestsUpdated` (subscription), **solo innkeeper**. La subscription emette uno **snapshot alla subscribe** e poi la **lista completa** a ogni inserimento/eliminazione di una PendingQuest (ricalcolo single-flight).
@@ -489,6 +493,7 @@ subscription Queue {
 - **Story:** un solo personaggio (il titolare). **WorldMission:** **una chiamata chiude la richiesta per tutti i registrati** (tutti i personaggi attivi la cui corsia punta a una PendingQuest della stessa quest), un risultato `gmCompleted` per ciascuno, anche diversi; la worldMission **sparisce dalla board per tutti**.
 - **Premi e XP dal catalogo** (anche `Enemy.xp` se la quest ha un nemico). **Senza override:** HP intatti, nessuna ferita, nessun consumo. **Con override** il GM racconta il combattimento della live: `hpAfter` (intero in `1..maxLifePoints`, se assente restano gli HP attuali), `injuries` (duplicati rimossi), `consumablesUsed` (`LootItem` entro il posseduto), `spellsUsed` (magie attive entro gli usi residui; il recupero parte come per `useSpell`).
 - Una sola transazione per l'intera richiesta: due completamenti concorrenti → uno riesce, l'altro `NOT_FOUND`. Override non validi → nessuna scrittura (§2). Nessun blocco se il partecipante è in viaggio (il filtro è UX del pannello); l'esito non cambia la posizione.
+- **Emendato dalla Phase 10 (2026-10-29):** «Nessun blocco se il partecipante è in viaggio» è **superata per la corsia standard occupata** (in viaggio verso la quest o nel suo tempo di attesa): `QUEST_IN_PROGRESS` senza scritture; il **viaggio libero continua a non bloccare** il completamento. Ordine dei codici: `UNAUTHENTICATED` → `FORBIDDEN` → `BAD_USER_INPUT` → `NOT_FOUND` → `QUEST_IN_PROGRESS` → `OUTCOME_*`. Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §4.
 - Effetti: corsia svuotata, `completedQuests`, titolo successivo per la story del titolo esatto, push `questEnd` a ciascuno.
 
 Variabili di esempio:
@@ -638,6 +643,8 @@ db.quests.updateOne({ _id: ObjectId('<bossId>') }, { $set: { 'registeredAdventur
 
 ## 14. Note per la BE Phase 10
 
+> **Emendato dalla Phase 10 (2026-10-29):** punti chiusi dalla Phase 10: indici con nome per lo sweep (costruiti al boot), validazione con `ValidationPipe` globale (la semantica degli override è invariata, la forma passa ai decoratori), ritipizzazione dei ref `Mixed` con migrazione e runbook, fix di `Enemy.locations`; il flaky del boot reale resta annotato nella checklist di deploy; la lista `questResults` resta YAGNI. Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §3, §10, §13.
+
 > **Emendato dalla Phase 9.2 (2026-10-27):** la lista `questResults` resta YAGNI, ma la lista dei non confermati dell'utente esiste, con l'indice `quest_result_unacknowledged` su `questresults`. Vedi `.planning/phases/09.2-quest-result-delivery-contract/BACKEND-NOTES.md` §6 e §10.
 
 - **Indici** per lo sweep e le letture, se i volumi crescono (oggi scansione accettabile): `pendingquests.startDate`, `characters.status.awaitingAid.since`, `questresults.user` / `questresults.character`; dal piano 09-19 anche le query dello sweep sui party (`pendingquests.arrivedAt`, `quests.startedAt` con `infos.type`, `registeredAdventurers.registeredAt`).
@@ -665,6 +672,8 @@ db.quests.updateOne({ _id: ObjectId('<bossId>') }, { $set: { 'registeredAdventur
 ---
 
 ## 16. Deviazioni e punti aperti
+
+> **Emendato dalla Phase 10 (2026-10-29):** refactor interni chiusi a comportamento invariato (`commitRescue` spezzato in `fightRescuers` + `settleWounded`, un solo `primeChangeStream` nei test, `@AuditTarget` per il target di `completePendingRequest`); i registrati archiviati dopo l'avvio combattono come seat holder senza risultati né premi (D-21). Vedi `.planning/phases/10-hardening-trasversale/BACKEND-NOTES.md` §8, §9, §13.
 
 > **Emendato dalla Phase 9.2 (2026-10-27):** il punto delle quest avviate con posti liberati dall'archivio è chiuso dalla regola del segnaposto («Il BE non libera i posti delle quest avviate», utente 2026-10-27). Vedi `.planning/phases/09.2-quest-result-delivery-contract/BACKEND-NOTES.md` §5.
 

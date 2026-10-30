@@ -122,6 +122,28 @@ describe('AuthSessionService (harness)', () => {
             });
         });
 
+        it('issues a single session when concurrent exchanges redeem the same login ticket', async () => {
+            const ticket = await harness.app
+                .get(LoginTicketService)
+                .issue(String(user._id), s256Challenge(VERIFIER));
+
+            const results = await Promise.allSettled([
+                service.exchangeLoginTicket(ticket, VERIFIER),
+                service.exchangeLoginTicket(ticket, VERIFIER),
+            ]);
+
+            expect(results.map(({ status }) => status).sort()).toEqual([
+                'fulfilled',
+                'rejected',
+            ]);
+            expect(
+                results.find(({ status }) => status === 'rejected'),
+            ).toMatchObject({
+                reason: { code: AuthErrorCode.LOGIN_TICKET_INVALID },
+            });
+            await expect(sessions.countDocuments()).resolves.toBe(1);
+        });
+
         it('rejects a valid ticket whose user no longer exists', async () => {
             const ticket = await harness.app
                 .get(LoginTicketService)
@@ -176,19 +198,21 @@ describe('AuthSessionService (harness)', () => {
         });
 
         it.each([
-            ['the user lookup', () => harness.app.get(UsersService), 'findOne'],
+            [
+                'the user lookup',
+                () => jest.spyOn(harness.app.get(UsersService), 'findOne'),
+            ],
             [
                 'the access token signature',
-                () => harness.app.get(AccessTokenService),
-                'sign',
+                () => jest.spyOn(harness.app.get(AccessTokenService), 'sign'),
             ],
-        ] as const)(
+        ])(
             'keeps the presented token valid when %s fails transiently (WR-01)',
-            async (_step, dependency, method) => {
+            async (_step, spyOnStep) => {
                 const issued = await service.issueForUser(user);
-                const failure = jest
-                    .spyOn(dependency(), method)
-                    .mockRejectedValueOnce(new Error('transient failure'));
+                const failure = spyOnStep().mockRejectedValueOnce(
+                    new Error('transient failure'),
+                );
 
                 await expect(
                     service.refresh(issued.refreshToken),
@@ -333,6 +357,30 @@ describe('AuthSessionService (harness)', () => {
             await expect(
                 service.refresh(issued.refreshToken),
             ).rejects.toMatchObject({ code: AuthErrorCode.SESSION_REVOKED });
+        });
+
+        it('leaves the session revoked when a logout races concurrent refreshes, refusing every token', async () => {
+            const issued = await service.issueForUser(user);
+            const identity = identityOf(issued.accessToken);
+
+            const [firstRefresh, , secondRefresh] = await Promise.allSettled([
+                service.refresh(issued.refreshToken),
+                service.logout(identity),
+                service.refresh(issued.refreshToken),
+            ]);
+
+            const stored = await sessions.findById(identity.sessionId).exec();
+            expect(stored?.revokedAt).toBeInstanceOf(Date);
+            const presented = [firstRefresh, secondRefresh].flatMap((result) =>
+                result.status === 'fulfilled'
+                    ? [result.value.refreshToken]
+                    : [],
+            );
+            for (const token of [issued.refreshToken, ...presented]) {
+                await expect(service.refresh(token)).rejects.toMatchObject({
+                    code: AuthErrorCode.SESSION_REVOKED,
+                });
+            }
         });
 
         it('accepts a dev identity without a session', async () => {

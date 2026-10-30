@@ -37,8 +37,14 @@ import { PointOfInterestModule } from './pointsOfInterest/point-of-interest.modu
 import { PushModule } from './push/push.module';
 import { EventSubModule } from './eventsub/eventsub.module';
 import { validateEnv } from './config/env.validation';
+import { RuntimeConfigModule } from './config/runtime-config.module';
+import { RUNTIME_CONFIG } from './config/runtime-config';
+import type { RuntimeConfig } from './config/runtime-config';
 import { AuthModule } from './auth/auth.module';
 import { AuthzModule } from './authz/authz.module';
+import { ValidationModule } from './validation/validation.module';
+import { HttpHardeningModule } from './http/http-hardening.module';
+import { ThrottlingModule } from './throttling/throttling.module';
 import { WsConnectionAuthenticator } from './auth/ws/ws-connection-authenticator';
 import { createGraphQLOptions } from './graphql/graphql-options.factory';
 
@@ -49,6 +55,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
             isGlobal: true,
             validate: validateEnv,
         }),
+        RuntimeConfigModule,
         BullModule.forRootAsync({
             inject: [ConfigService],
             useFactory: (config: ConfigService) => ({
@@ -62,16 +69,21 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         PubSubModule,
         AuthModule,
         AuthzModule,
+        ValidationModule,
+        HttpHardeningModule,
+        ThrottlingModule,
         GraphQLModule.forRootAsync<ApolloDriverConfig>({
             driver: ApolloDriver,
             imports: [AuthModule],
-            inject: [WsConnectionAuthenticator],
+            inject: [WsConnectionAuthenticator, RUNTIME_CONFIG],
             useFactory: (
                 wsConnectionAuthenticator: WsConnectionAuthenticator,
+                runtime: RuntimeConfig,
             ) =>
                 createGraphQLOptions(
                     wsConnectionAuthenticator,
                     join(process.cwd(), 'src/schema.gql'),
+                    { production: runtime.production },
                 ),
         }),
         UsersModule,

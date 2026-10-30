@@ -1,10 +1,10 @@
-import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
+import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { LoreType } from './enums/lore-type.enum';
 
 @ObjectType()
-@Schema({ collection: "lore" })
+@Schema({ collection: 'lore' })
 export class Lore {
     @Field(() => ID)
     id: string;
@@ -26,7 +26,11 @@ export class Lore {
     description: string;
 
     @Field(() => [Lore])
-    @Prop({ type: [Types.ObjectId], ref: Lore.name, default: [] })
+    @Prop({
+        type: [MongooseSchema.Types.ObjectId],
+        ref: Lore.name,
+        default: [],
+    })
     relatedLore: Lore[];
 
     @Field(() => Boolean)
@@ -36,7 +40,6 @@ export class Lore {
 
 export type LoreDocument = Lore & Document;
 export const LoreSchema = SchemaFactory.createForClass(Lore);
-
 
 @InputType()
 export class LoreInput {
@@ -61,4 +64,3 @@ export class LoreInput {
     @Field(() => Boolean, { nullable: true })
     unlocked?: boolean;
 }
-

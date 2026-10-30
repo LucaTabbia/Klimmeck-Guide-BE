@@ -117,6 +117,13 @@ export class GameRuleException extends BadRequestException {
         );
     }
 
+    static participantQuestInProgress(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.QUEST_IN_PROGRESS,
+            'Il personaggio è impegnato in una missione in corso',
+        );
+    }
+
     static travelInProgress(): GameRuleException {
         return new GameRuleException(
             GameRuleErrorCode.TRAVEL_IN_PROGRESS,

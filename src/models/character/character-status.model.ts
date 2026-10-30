@@ -1,6 +1,6 @@
 import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { Coins, CoinsInput, CoinsSchema } from '../common/coins.model';
 import { InjuryType } from '../enums/injury-type.enum';
 import { TitleType } from '../enums/title-type.enum';
@@ -23,7 +23,11 @@ export class CharacterStatus {
     level: number;
 
     @Field(() => PointOfInterest)
-    @Prop({ type: Types.ObjectId, ref: PointOfInterest.name, required: true })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: PointOfInterest.name,
+        required: true,
+    })
     location: Types.ObjectId | PointOfInterest;
 
     // null = nessun viaggio; scritto solo dal server (startTravel, accettazione quest, completamento, teleport)
@@ -45,7 +49,11 @@ export class CharacterStatus {
     injuries: InjuryType[];
 
     @Field(() => [Spell])
-    @Prop({ type: [Types.ObjectId], ref: Spell.name, default: [] })
+    @Prop({
+        type: [MongooseSchema.Types.ObjectId],
+        ref: Spell.name,
+        default: [],
+    })
     spells: Spell[];
 
     // una voce per ogni magia di spells, stesso ordine (D-03)

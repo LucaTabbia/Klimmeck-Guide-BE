@@ -1,3 +1,4 @@
+import { FAILED_JOBS_KEPT } from 'src/queues/enqueue-trigger';
 import { getQueueToken } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Types, type Model } from 'mongoose';
@@ -16,6 +17,7 @@ import {
     persistSpell,
     spellBook,
 } from '../../../test/fixtures';
+import { migrateLegacyRefs } from '../../../test/migrations/migrate-legacy-refs';
 
 const USE_SPELL =
     'mutation($request: UseSpellRequest!) { useSpell(request: $request) { successful response } }';
@@ -186,7 +188,7 @@ describe('useSpell (wire)', () => {
                 jobId: `spell-${charId}-${spellId}-${dueAtMs}`,
                 delay: RECOVERY_TIME_MS,
                 removeOnComplete: true,
-                removeOnFail: false,
+                removeOnFail: FAILED_JOBS_KEPT,
             }),
         );
     });
@@ -206,7 +208,7 @@ describe('useSpell (wire)', () => {
         ]);
     });
 
-    it('uses an active spell whose mirror stores a legacy string id', async () => {
+    it('uses an active spell whose mirror stores a legacy string id after the reference migration (D-17d)', async () => {
         const spellId = await dardo();
         const player = await playerWith('twitch-use-legacy', [
             { spell: spellId, usages: 2 },
@@ -221,6 +223,7 @@ describe('useSpell (wire)', () => {
                 },
             },
         );
+        await migrateLegacyRefs(harness.connection);
 
         const body = await useSpell(player, spellId);
 
@@ -279,7 +282,7 @@ describe('useSpell (wire)', () => {
         expect(jobIds.size).toBe(1);
     });
 
-    it('answers SPELL_NOT_ACTIVE for a known spell that is not active', async () => {
+    it('answers SPELL_NOT_ACTIVE for a known inactive spell and BAD_USER_INPUT for a malformed spell id (D-02)', async () => {
         const spellId = await dardo();
         const player = await playerWith('twitch-use-inactive', [
             { spell: spellId, usages: 3 },
@@ -290,7 +293,8 @@ describe('useSpell (wire)', () => {
 
         expect(codeOf(inactive)).toBe('SPELL_NOT_ACTIVE');
         expect(messageOf(inactive)).toBe('Magia non attiva');
-        expect(codeOf(malformed)).toBe('SPELL_NOT_ACTIVE');
+        expect(codeOf(malformed)).toBe('BAD_USER_INPUT');
+        expect(messageOf(malformed)).toBe('Input non valido: spellId');
         const state = await stateOf(idOf(player));
         expect(state.usages).toBe(3);
         expect(state.recoveries).toEqual([]);

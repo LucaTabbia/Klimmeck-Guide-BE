@@ -1,6 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 import type { Model } from 'mongoose';
 import request from 'supertest';
+import { WalletService } from 'src/economy/wallet.service';
 import {
     EventSubMessage,
     EventSubMessageDocument,
@@ -182,6 +183,29 @@ describe('EventSub webhook (wire, managed)', () => {
 
         expect(response.status).toBe(HttpStatus.NO_CONTENT);
         expect(response.text).toBe('');
+    });
+
+    it('answers 500 to ask for a retry when the ledger write fails', async () => {
+        await persistUser(users, {
+            twitchId: TEST_VIEWER_TWITCH_ID,
+            twitchPoints: STARTING_POINTS,
+        });
+        const ledgerFailure = jest
+            .spyOn(harness.app.get(WalletService), 'creditUserPoints')
+            .mockRejectedValueOnce(
+                Object.assign(new Error('fake-ledger-failure'), {
+                    name: 'MongoServerError',
+                    code: 91,
+                }),
+            );
+
+        const response = await postEventSub(harness.app, signedRedemption());
+        ledgerFailure.mockRestore();
+
+        expect(response.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+        expect(response.text).toBe('');
+        await expect(messages.countDocuments()).resolves.toBe(0);
+        await expect(pointsOfViewer()).resolves.toBe(STARTING_POINTS);
     });
 
     it('refuses an oversized JSON body before the handler with 413', async () => {

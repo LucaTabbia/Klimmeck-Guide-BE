@@ -1,3 +1,4 @@
+import { FAILED_JOBS_KEPT } from 'src/queues/enqueue-trigger';
 import { Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { FixedClock } from '../../../../test/auth/fixed-clock';
@@ -53,7 +54,7 @@ describe('QuestResolutionScheduler', () => {
                         jobId: `quest-${pqHex}-${NOW.getTime()}`,
                         delay: 7_200_000,
                         removeOnComplete: true,
-                        removeOnFail: false,
+                        removeOnFail: FAILED_JOBS_KEPT,
                     },
                 },
             ]);
@@ -118,7 +119,7 @@ describe('QuestResolutionScheduler', () => {
                         jobId: `aid-${aidHex}`,
                         delay: SEVEN_DAYS_MS,
                         removeOnComplete: true,
-                        removeOnFail: false,
+                        removeOnFail: FAILED_JOBS_KEPT,
                     },
                 },
             ]);
@@ -151,7 +152,7 @@ describe('QuestResolutionScheduler', () => {
                         jobId: `party-${questHex}-${NOW.getTime()}`,
                         delay: 86_400_000,
                         removeOnComplete: true,
-                        removeOnFail: false,
+                        removeOnFail: FAILED_JOBS_KEPT,
                     },
                 },
             ]);

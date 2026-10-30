@@ -74,6 +74,33 @@ CharacterSchema.index(
     },
 );
 
+export const CHARACTER_STANDARD_LANE_INDEX = 'character_standard_lane';
+export const CHARACTER_AWAITING_AID_SINCE_INDEX =
+    'character_awaiting_aid_since';
+export const CHARACTER_ACTIVE_TRAVEL_END_INDEX = 'character_active_travel_end';
+export const CHARACTER_SPELL_RECOVERIES_INDEX = 'character_spell_recoveries';
+
+// serve le letture della corsia standard, l'archivio e il publisher dell'avvio (D-17b)
+CharacterSchema.index(
+    { deletedAt: 1, 'quests.pendingQuest': 1 },
+    { name: CHARACTER_STANDARD_LANE_INDEX },
+);
+// serve lo sweep dei soccorsi scaduti (D-17b)
+CharacterSchema.index(
+    { deletedAt: 1, 'status.awaitingAid.since': 1 },
+    { name: CHARACTER_AWAITING_AID_SINCE_INDEX },
+);
+// serve lo sweep dei viaggi scaduti (D-17b)
+CharacterSchema.index(
+    { deletedAt: 1, 'status.activeTravel.endTime': 1 },
+    { name: CHARACTER_ACTIVE_TRAVEL_END_INDEX },
+);
+// serve lo sweep dei recuperi delle magie, una voce per recupero (D-17b)
+CharacterSchema.index(
+    { deletedAt: 1, 'status.spellStates.recoveries': 1 },
+    { name: CHARACTER_SPELL_RECOVERIES_INDEX },
+);
+
 @InputType()
 export class CharacterInput {
     @Field(() => ID, { nullable: true })

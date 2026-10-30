@@ -319,6 +319,39 @@ describe('SpellStateMigrator (replSet)', () => {
             });
         });
 
+        it('leaves the states of a catalog spell with an invalid maxUsages as stored, without warnings', async () => {
+            const broken = new Types.ObjectId();
+            await SpellModel.collection.insertOne({
+                _id: broken,
+                name: 'Broken',
+                maxUsages: 'three',
+            } as never);
+            const holder = coherentCharacter(
+                spellBook([
+                    {
+                        spell: broken,
+                        usages: 5,
+                        recoveries: [hoursFrom(1), hoursFrom(2)],
+                    },
+                ]),
+            );
+            await insert(holder);
+            const before = await rawOf(holder._id);
+
+            expect(await migrator.migrateAll()).toEqual({
+                migrated: 0,
+                repaired: 0,
+                trimmed: 0,
+            });
+
+            expect(await rawOf(holder._id)).toEqual(before);
+            expect(
+                warnings().filter((message) =>
+                    message.includes(holder._id.toHexString()),
+                ),
+            ).toEqual([]);
+        });
+
         it('drops the oldest instants that no credit can consume, leaving the usages alone', async () => {
             const tooMany = coherentCharacter(
                 spellBook([

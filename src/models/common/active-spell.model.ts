@@ -1,13 +1,17 @@
 import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { Spell } from '../spell.model';
 
 @ObjectType()
-@Schema(({ _id: false }))
+@Schema({ _id: false })
 export class ActiveSpell {
     @Field(() => Spell, { nullable: true })
-    @Prop({ type: Types.ObjectId, ref: Spell.name, default: null })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Spell.name,
+        default: null,
+    })
     spell?: Types.ObjectId | Spell | null;
 
     @Field(() => Int)

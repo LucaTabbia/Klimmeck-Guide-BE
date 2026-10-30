@@ -35,7 +35,10 @@ import {
 } from '../../test/auth/ws-test-client';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
-import { primeCharactersChangeStream } from '../../test/characters/characters-change-stream';
+import {
+    characterTouch,
+    primeChangeStream,
+} from '../../test/harness/prime-change-stream';
 import { buildCharacter, buildQuest, persistQuest } from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
@@ -156,7 +159,11 @@ describe('startTravel and travelPreview (wire)', () => {
             users.init(),
             harness.connection.model(PushDevice.name).init(),
         ]);
-        await primeCharactersChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'characterUpdated',
+            characterTouch(harness),
+        );
     });
 
     beforeEach(async () => {
@@ -282,7 +289,9 @@ describe('startTravel and travelPreview (wire)', () => {
     }
 
     function rawCharacter(player: TestPlayer) {
-        return characters.collection.findOne({ _id: player.character?._id });
+        return characters.collection.findOne({
+            _id: player.character?._id as Types.ObjectId,
+        });
     }
 
     function expectRejected(body: WireBody, code: string, message: string) {
@@ -438,8 +447,8 @@ describe('startTravel and travelPreview (wire)', () => {
         },
         {
             name: 'a malformed point of interest id',
-            code: 'NOT_FOUND',
-            message: 'Luogo non trovato',
+            code: 'BAD_USER_INPUT',
+            message: 'Input non valido: poiId',
             arrange: async () => {
                 const player = await playerAt(world.markerA);
                 return { player, request: requestOf(player, MALFORMED_ID) };
@@ -456,8 +465,8 @@ describe('startTravel and travelPreview (wire)', () => {
         },
         {
             name: 'a malformed character id',
-            code: 'NOT_FOUND',
-            message: 'Personaggio non trovato',
+            code: 'BAD_USER_INPUT',
+            message: 'Input non valido: id',
             arrange: async () => {
                 const player = await playerAt(world.markerA);
                 return {

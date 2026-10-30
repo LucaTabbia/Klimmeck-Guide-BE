@@ -62,8 +62,15 @@ describe('quest result maintenance (replSet)', () => {
         return error.mock.calls.map(([message]) => String(message));
     }
 
+    async function settleBootMaintenance(boot: jest.SpyInstance) {
+        await Promise.all(boot.mock.results.map(({ value }) => value));
+        boot.mockRestore();
+    }
+
     beforeAll(async () => {
+        const boot = jest.spyOn(QuestResultMaintenance.prototype, 'maintain');
         harness = await createAuthTestApp({ imports: [QuestResultsModule] });
+        await settleBootMaintenance(boot);
         maintenance = harness.app.get(QuestResultMaintenance);
         results = harness.app.get<Model<QuestResultDocument>>(
             getModelToken(QuestResult.name),
@@ -152,9 +159,7 @@ describe('quest result maintenance (replSet)', () => {
             .spyOn(Logger.prototype, 'error')
             .mockImplementation();
 
-        await expect(
-            maintenance.onApplicationBootstrap(),
-        ).resolves.toBeUndefined();
+        await expect(maintenance.maintain()).resolves.toBeUndefined();
 
         const messages = loggedErrors(error);
         expect(messages).toHaveLength(1);
@@ -172,9 +177,7 @@ describe('quest result maintenance (replSet)', () => {
             .spyOn(Logger.prototype, 'error')
             .mockImplementation();
 
-        await expect(
-            maintenance.onApplicationBootstrap(),
-        ).resolves.toBeUndefined();
+        await expect(maintenance.maintain()).resolves.toBeUndefined();
 
         const messages = loggedErrors(error);
         expect(messages).toHaveLength(1);
@@ -185,9 +188,29 @@ describe('quest result maintenance (replSet)', () => {
 
     it('runs the backfill during the boot', async () => {
         const legacyId = await insertLegacyResult(T);
+        const maintain = jest.spyOn(maintenance, 'maintain');
 
-        await maintenance.onApplicationBootstrap();
+        maintenance.onApplicationBootstrap();
+        await maintain.mock.results[0].value;
 
         expect((await rawResult(legacyId))?.acknowledgedAt).toEqual(T);
+    });
+
+    it('never makes the boot wait for the result maintenance (D-17b)', async () => {
+        jest.spyOn(results, 'updateMany').mockReturnValue({
+            exec: () => Promise.reject(mongoFailure()),
+        } as unknown as ReturnType<typeof results.updateMany>);
+        const error = jest
+            .spyOn(Logger.prototype, 'error')
+            .mockImplementation();
+        const maintain = jest.spyOn(maintenance, 'maintain');
+
+        expect(maintenance.onApplicationBootstrap()).toBeUndefined();
+
+        expect(maintain).toHaveBeenCalledTimes(1);
+        await expect(maintain.mock.results[0].value).resolves.toBeUndefined();
+        const messages = loggedErrors(error);
+        expect(messages).toHaveLength(1);
+        expect(messages[0]).toContain('MongoServerError');
     });
 });

@@ -1,5 +1,13 @@
+import { Types } from 'mongoose';
 import { QuestType } from 'src/models/enums/quest-type.enum';
-import { laneOf, lanePathOf, QUEST_LANES, QuestLane } from './quest-lanes';
+import {
+    isStandardLaneBusy,
+    laneOf,
+    lanePathOf,
+    QUEST_LANES,
+    QuestLane,
+    STANDARD_LANE_FREE,
+} from './quest-lanes';
 
 describe('quest lanes', () => {
     const expectedLanes: Record<QuestType, QuestLane> = {
@@ -42,4 +50,25 @@ describe('quest lanes', () => {
             'activeWorldMissionQuest',
         ]);
     });
+
+    it('requires the standard lane to be free with one shared predicate (D-24)', () => {
+        expect(STANDARD_LANE_FREE).toEqual({ 'quests.pendingQuest': null });
+    });
+
+    it.each([undefined, null, {}, { pendingQuest: null }])(
+        'treats the standard lane as free when nothing points to a pending quest (D-23): %p',
+        (quests) => {
+            expect(isStandardLaneBusy(quests)).toBe(false);
+        },
+    );
+
+    it.each([
+        { pendingQuest: new Types.ObjectId() },
+        { pendingQuest: new Types.ObjectId().toHexString() },
+    ])(
+        'treats the standard lane as busy only when it points to a pending quest (D-23): %p',
+        (quests) => {
+            expect(isStandardLaneBusy(quests)).toBe(true);
+        },
+    );
 });

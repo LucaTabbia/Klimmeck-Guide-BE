@@ -3,6 +3,7 @@ import type { RawBodyRequest } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { EventSubWebhookService } from 'src/eventsub/eventsub-webhook.service';
+import { ThrottledWebhook } from 'src/throttling/throttled.decorator';
 
 @Controller('webhooks/twitch')
 export class EventSubController {
@@ -10,6 +11,8 @@ export class EventSubController {
 
     // decoratore pubblico solo sull'handler (Phase 2 D-12): la fiducia è la firma HMAC, verificata nel service
     @Public()
+    // l'HMAC si verifica nel service, dopo le guard: bucket 50 volte il limite per non far revocare la sottoscrizione (Pitfall 8)
+    @ThrottledWebhook()
     @Post('eventsub')
     async receive(
         @Req() req: RawBodyRequest<Request>,

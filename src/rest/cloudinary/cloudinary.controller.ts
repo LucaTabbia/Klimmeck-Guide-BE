@@ -1,44 +1,57 @@
-import { Controller, Post, Body, Get, UseInterceptors, UploadedFile } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
-import { CloudinaryService } from "./cloudinary.service";
+import {
+    Body,
+    Controller,
+    MaxFileSizeValidator,
+    ParseFilePipe,
+    Post,
+    UploadedFile,
+    UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttled } from 'src/throttling/throttled.decorator';
+import { BadUserInputException } from 'src/validation/bad-user-input.exception';
+import { CloudinaryService } from './cloudinary.service';
+import { CloudinaryFolderRequest } from './cloudinary-folder.request';
+import { ImageSignatureValidator } from './image-signature.validator';
+import { IMAGE_UPLOAD_LIMITS, MAX_IMAGE_BYTES } from './image-upload';
+import { PortraitUploadService } from './portrait-upload.service';
 
-@Controller("cloudinary")
+const imageFilePipe = new ParseFilePipe({
+    validators: [
+        new MaxFileSizeValidator({ maxSize: MAX_IMAGE_BYTES }),
+        new ImageSignatureValidator({}),
+    ],
+    exceptionFactory: () => BadUserInputException.of(['file']),
+});
+
+// gli errori del provider risalgono al filtro globale: niente testo di Cloudinary nella risposta (D-07)
+@Controller('cloudinary')
 export class CloudinaryController {
     constructor(
         private readonly cloudinaryService: CloudinaryService,
-    ) { }
+        private readonly portraitUpload: PortraitUploadService,
+    ) {}
 
-    @Post("getUrls")
-    async getUrls(@Body() body: { folder: string }) {
-        try {
-            const urls = await this.cloudinaryService.listResources(body.folder);
-            return { urls };
-        } catch (e) {
-            return { message: "Failed to fetch Cloudinary URLs", error: e.message };
-        }
+    @Post('getUrls')
+    @Throttled()
+    async getUrls(@Body() body: CloudinaryFolderRequest) {
+        const urls = await this.cloudinaryService.listResources(body.folder);
+        return { urls };
     }
 
-
-    @Post("getSubfoldersUrls")
-    async getSubfoldersUrls(@Body() body: { folder: string }) {
-        try {
-            const urls = await this.cloudinaryService.listSubfoldersResources(body.folder);
-            return { urls };
-        } catch (e) {
-            return { message: "Failed to fetch Cloudinary URLs", error: e.message };
-        }
+    @Post('getSubfoldersUrls')
+    @Throttled()
+    async getSubfoldersUrls(@Body() body: CloudinaryFolderRequest) {
+        const urls = await this.cloudinaryService.listSubfoldersResources(
+            body.folder,
+        );
+        return { urls };
     }
 
-    @Post("uploadImage")
-    @UseInterceptors(FileInterceptor("file"))
-    async uploadImage(@UploadedFile() file: Express.Multer.File) {
-        try {
-            const result = await this.cloudinaryService.uploadImage(file);
-            return {
-                url: result.secure_url,
-            };
-        } catch (err) {
-            return { message: "Failed to upload image", error: err.message };
-        }
+    @Post('uploadImage')
+    @Throttled()
+    @UseInterceptors(FileInterceptor('file', { limits: IMAGE_UPLOAD_LIMITS }))
+    async uploadImage(@UploadedFile(imageFilePipe) file: Express.Multer.File) {
+        return { url: await this.portraitUpload.upload(file) };
     }
 }

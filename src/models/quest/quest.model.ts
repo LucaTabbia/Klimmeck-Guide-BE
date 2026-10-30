@@ -61,6 +61,20 @@ export class Quest {
 export type QuestDocument = Quest & Document;
 export const QuestSchema = SchemaFactory.createForClass(Quest);
 
+export const QUEST_FORMING_PARTIES_INDEX = 'quest_forming_parties';
+export const QUEST_REGISTERED_CHARACTER_INDEX = 'quest_registered_character';
+
+// serve lo sweep dei party in formazione (D-17b)
+QuestSchema.index(
+    { 'infos.type': 1, concludedAt: 1, startedAt: 1 },
+    { name: QUEST_FORMING_PARTIES_INDEX },
+);
+// serve i posti liberati dall'archivio e le letture del party (D-17b)
+QuestSchema.index(
+    { 'registeredAdventurers.character': 1 },
+    { name: QUEST_REGISTERED_CHARACTER_INDEX },
+);
+
 @InputType()
 export class QuestInput {
     @Field(() => ID, { nullable: true })

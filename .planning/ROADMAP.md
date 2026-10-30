@@ -25,7 +25,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 9: Combat Result & Admin Outcomes** - `QuestResult` persistito con delivery ibrida (subscription owner-only + push `questEnd` + query), corsia standard risolta server-side dietro `CombatResolver` (segnaposto), catena aid/morte, coda live innkeeper + `completePendingRequest`, guard `SHOP_NOT_IN_CITY` (completed 2026-10-24)
 - [x] **Phase 9.1: Spell State and Recovery Contract** (INSERTED 2026-10-27) - Stato per magia conosciuta `status.spellStates { spell, usages, recoveries }` che sopravvive a equip/disequip, recupero che non si interrompe mai (regola dell'utente), processor idempotente + reconciler/sweep, migrazione al boot; sblocca FE Phase 8 (SPELL-05) (completed 2026-10-27)
 - [x] **Phase 9.2: Quest Result Delivery Contract** (INSERTED 2026-10-27) - Query dei risultati non confermati dell'utente, mutation di conferma idempotente, `QuestResult.acknowledgedAt` additivo, posti delle quest avviate non più liberati dall'archivio (regola dell'utente), il morto resta corrente fino alla conferma (D-12); sblocca FE Phase 9 (COMBAT-09/10) (completed 2026-10-28)
-- [ ] **Phase 10: Hardening Trasversale** - Validazione input, introspection off/CORS/sanitization, `.env.example`, coverage aree critiche
+- [x] **Phase 10: Hardening Trasversale** - Validazione input, introspection off/CORS/sanitization, `.env.example`, coverage aree critiche, throttling minimo, moderazione immagini Sightengine, debiti rinviati (BE-HARD-05/06, 2026-10-27), combattimento con i segnaposto e avvio atomico delle quest da soli (BE-HARD-07, dalla UAT FE Phase 9, 2026-10-29), coda del GM e corsia standard (BE-HARD-08, dal discuss FE Phase 10, 2026-10-29) (completed 2026-10-30)
 
 ## Phase Details
 
@@ -310,16 +310,51 @@ Plans:
 
 ### Phase 10: Hardening Trasversale
 **Goal**: Hardening trasversale — validazione input, introspection off/CORS/error sanitization in prod, igiene dei secret, e coverage di test sulle aree critiche.
-**Depends on**: Phases 2-9 (indurisce le superfici che aggiungono)
-**Requirements**: BE-HARD-01, BE-HARD-02, BE-HARD-03, BE-HARD-04
+**Depends on**: Phases 2-9.2 (indurisce le superfici che aggiungono; branch `feat/10-hardening` rebasato su `develop` il 2026-10-29 dopo la merge della 9.2 con la PR #15; in precedenza stacked su 9.1 e 9.2)
+**Requirements**: BE-HARD-01, BE-HARD-02, BE-HARD-03, BE-HARD-04, BE-HARD-05, BE-HARD-06, BE-HARD-07, BE-HARD-08
 **Success Criteria** (what must be TRUE):
   1. Tutti gli input GraphQL/REST sono validati da class-validator + `ValidationPipe` globale: ID Mongo invalidi, quantità negative e stringhe fuori lunghezza sono rifiutati prima di raggiungere un service.
   2. In produzione l'introspection GraphQL è disattivata e gli errori sono sanitizzati (nessun leak di ID/relazioni a client non autorizzati); il CORS è esplicito e documentato.
   3. `.env.example` è committato con ogni variabile documentata, nessun secret è nel repo, e un audit CI (grep) fallisce sui pattern di secret.
   4. Auth, atomics, EventSub e travel lifecycle hanno coverage di test su happy path, concorrenza e failure mode.
-**Plans**: TBD
-**Unblocks (FE)**: mirror di FE Phase 12 (hardening).
-**Branch**: `feat/10-hardening` da `develop` → PR a `develop`.
+  5. Un'immagine del personaggio respinta dalla policy Sightengine non raggiunge mai Cloudinary (422 `IMAGE_REJECTED`); con Sightengine irraggiungibile l'upload fallisce chiuso (503 `IMAGE_MODERATION_UNAVAILABLE`); in produzione il boot rifiuta le chiavi mancanti. _(2026-10-27)_
+  6. Login, refresh, OAuth, webhook e upload rispondono `TOO_MANY_REQUESTS`/429 oltre il limite configurato; introspection e landing page sono spente con `NODE_ENV=production`; gli errori imprevisti in produzione espongono solo `INTERNAL_SERVER_ERROR` + `requestId`. _(2026-10-27)_
+  7. I debiti di BE-HARD-06 sono chiusi con test: change stream riaperti dopo un errore, job falliti non accumulati, nessuna gara sugli utenti, indici presenti, ref tipizzati dopo una migrazione idempotente. _(2026-10-27)_
+  8. La voce della coda del GM espone la corsia standard del personaggio (campo additivo `pendingQuest`) e `completePendingRequest` risponde `QUEST_IN_PROGRESS` senza scritture finché un partecipante registrato ha la corsia standard occupata; ogni transizione della corsia standard fa riemettere la coda. _(2026-10-29, FE Phase 10)_
+**Plans**: 31 plans (26 wave; esecutori sequenziali; wave 8 = ref `Mixed` con gate proprio, 10-29)
+- [x] 10-01-PLAN.md — Wave 1 (1a): campo additivo `pendingQuest` su `PendingRequestCharacter`, filtro esplicito dei personaggi attivi, ricalcolo della coda dopo un archivio, liveness delle 4 transizioni della corsia standard (BE-HARD-08)
+- [x] 10-02-PLAN.md — Wave 1 (1a): `completePendingRequest` → `QUEST_IN_PROGRESS` senza scritture (pre-check, ricontrollo in sessione, `STANDARD_LANE_FREE` solo sulle corsie del GM) (BE-HARD-08)
+- [x] 10-03-PLAN.md — Wave 1 (3): gitleaks-action v3 (push, PR, `workflow_dispatch`, schedule; versione fissata), `.gitleaks.toml`, `.gitleaksignore`, spec sui secret vuoti del template (BE-HARD-03)
+- [x] 10-04-PLAN.md — Wave 1 (5): base `ChangeStreamPublisher` che riapre gli stream con backoff 1→30 s e `startAfter`; int-spec di invalidate (BE-HARD-06)
+- [x] 10-05-PLAN.md — Wave 1 (1): dipendenze, `BadUserInputException`, `invalidFieldsOf`, `createValidationPipe`, `@IsObjectIdHex`, `ObjectIdPipe`/`ObjectIdListPipe`, `ValidationModule` non ancora montato (BE-HARD-01)
+- [x] 10-06-PLAN.md — Wave 2 (1): decoratori di sola forma sui 17 input + spec di copertura contro lo schema + regole nominate (BE-HARD-01)
+- [x] 10-07-PLAN.md — Wave 2 (2): `NODE_ENV` validato (3 valori), `RUNTIME_CONFIG`, `RuntimeModeReporter`, bypass dev letto da config (BE-HARD-02/03)
+- [x] 10-08-PLAN.md — Wave 3 (1): montaggio globale della pipe in app e harness + RED sul filo dei codici spostati (C5), regressione completa (BE-HARD-01)
+- [x] 10-09-PLAN.md — Wave 4 (1): id posseduti malformati → `BAD_USER_INPUT` nella policy (C1); `ObjectIdPipe` su `quest`, `questUpdated`, `user`, `getPath` (BE-HARD-01)
+- [x] 10-10-PLAN.md — Wave 5 (1/2): id del catalogo con pipe + `NOT_FOUND` codificati negli 8 service di catalogo (BE-HARD-01/02)
+- [x] 10-11-PLAN.md — Wave 6 (2): superficie di produzione — introspection, landing e suggerimenti spenti, sanitizer + `requestId` su HTTP e graphql-ws (BE-HARD-02)
+- [x] 10-12-PLAN.md — Wave 7 (2): middleware `x-request-id`, filtro REST 500 codificato, CORS chiuso con test, Cloudinary con DTO, upload validato per firma (BE-HARD-01/02)
+- [x] 10-13-PLAN.md — Wave 8 (2): throttler — config `THROTTLE_*`, guard GraphQL/REST, `TooManyRequestsException`, 5 handler limitati, `EXPECTED_THROTTLED_HANDLERS` (BE-HARD-02)
+- [x] 10-14-PLAN.md — Wave 9 (2): OAuth limitato con redirect `rate_limited`, bucket del webhook ×50 con prova di raffica firmata, `THROTTLE_TRUST_PROXY` (BE-HARD-02)
+- [x] 10-15-PLAN.md — Wave 10 (3): config Sightengine fail-closed, nessun `process.env` sparso, `.env.example` commentato, test di drift (BE-HARD-03/05)
+- [x] 10-16-PLAN.md — Wave 11 (4): tabella di policy pura, porta `ImageModerator`, adapter Sightengine (fetch nativo), adapter disattivato, fake (BE-HARD-05)
+- [x] 10-17-PLAN.md — Wave 12 (4): `PortraitUploadService` — moderazione prima di Cloudinary (422/503), `ModerationModule`, reporter, harness (BE-HARD-05)
+- [x] 10-18-PLAN.md — Wave 13 (5): `CharacterUpdatesPublisher` sulla base comune + single-flight; single-flight degli utenti; `removeOnFail` limitato (BE-HARD-06)
+- [x] 10-19-PLAN.md — Wave 14 (5): 8 indici con nome + verificatore non bloccante; backfill una sola volta al boot (BE-HARD-06)
+- [x] 10-20-PLAN.md — Wave 15 (5): `Enemy.locations`/`PointOfInterest.type` come liste; `types: ["jest"]` + 56 fix negli spec + step CI `tsc` (BE-HARD-06)
+- [x] 10-21-PLAN.md — Wave 16 (5): D-21 — i registrati archiviati combattono come seat holder (boss + soccorso), senza esiti né premi (BE-HARD-07)
+- [x] 10-22-PLAN.md — Wave 17 (5): D-22 — avvio da soli atomico con l'arrivo/claim + publisher degli avvii su `characterUpdated` (BE-HARD-07)
+- [x] 10-23-PLAN.md — Wave 18 (6): refactor `fightRescuers`/`settleWounded`, `@AuditTarget`, un solo `primeChangeStream` (BE-HARD-06)
+- [x] 10-24-PLAN.md — Wave 19 (7): `collectCoverageFrom` corretto, `test:cov` unico, soglie per cartella = misura − 2, CI, gap di auth/EventSub (BE-HARD-04)
+- [x] 10-25-PLAN.md — Wave 20 (7): gap di economia, magie, equipaggiamento, accettazione e viaggi; soglie alzate (BE-HARD-04)
+- [x] 10-26-PLAN.md — Wave 21 (8): inventario dei ref `Mixed`, pipeline pure, migrazione `--dry-run/--apply/--verify` + CLI + verificatore al boot (BE-HARD-06)
+- [x] 10-27-PLAN.md — Wave 22 (8): ritipizzazione dei ref condivisi e di catalogo; test legacy sul percorso migrato (BE-HARD-06)
+- [x] 10-28-PLAN.md — Wave 23 (8): ritipizzazione dei ref dei personaggi; nessun `Mixed` rimasto (BE-HARD-06)
+- [x] 10-29-PLAN.md — Wave 24 (8, gate): suite + coverage, CLI compilato provato, runbook di migrazione e rollback, PR draft fino alla produzione (BE-HARD-06)
+- [x] 10-30-PLAN.md — Wave 25 (9): `BACKEND-NOTES.md` (codici, codici spostati, risposte FE, checklist di deploy, default da confermare) + emendamenti a 8 handoff + README (BE-HARD-01..08)
+- [x] 10-31-PLAN.md — Wave 26 (9): gate finale, invarianti, VALIDATION `nyquist_compliant: true`, `requirements mark-complete`, ROADMAP/STATE (BE-HARD-01..08)
+**Unblocks (FE)**: mirror di FE Phase 12 (hardening); BE-HARD-08 sblocca il piano gated 10-11 della FE Phase 10 (Admin Panel).
+**Branch**: `feat/10-hardening` da `develop` → PR a `develop`. _(Emendato 2026-10-27: creato sopra `feat/09.1-spell-state-and-recovery-contract`; spostato sopra `feat/09.2-quest-result-delivery-contract` dopo il merge della 9.1; PR dopo il merge della 9.2, con rebase.)_
 
 ## Backend ↔ Frontend alignment
 
@@ -355,4 +390,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9. Combat Result & Admin Outcomes | 20/20 | Complete    | 2026-10-26 |
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
-| 10. Hardening Trasversale | 0/TBD | Not started | - |
+| 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |

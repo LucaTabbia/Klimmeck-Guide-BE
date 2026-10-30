@@ -55,11 +55,11 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Unit tests
-        run: npm run test:unit
+      - name: Type check
+        run: npx tsc --noEmit -p tsconfig.json
 
-      - name: Integration tests
-        run: npm run test:int
+      - name: Tests with coverage
+        run: npm run test:cov
 
       # test/app.int-spec.ts avvia il vero AppModule e riscrive src/schema.gql: lo schema committato deve coincidere
       - name: Schema up to date

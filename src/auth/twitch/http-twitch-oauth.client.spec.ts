@@ -174,6 +174,77 @@ describe('HttpTwitchOAuthClient', () => {
         });
     });
 
+    describe('failure modes and defensive mapping', () => {
+        const timeout = () =>
+            new DOMException('signal timed out the-code', 'TimeoutError');
+
+        it('fails the OAuth exchange on a non-JSON Twitch answer', async () => {
+            fetchSpy.mockResolvedValue(
+                new Response(`<html>${AUTH_CODE}</html>`, { status: 200 }),
+            );
+
+            await expect(client.exchangeCode(AUTH_CODE)).rejects.toThrow(
+                new TwitchOAuthError('Twitch token response is not valid JSON'),
+            );
+        });
+
+        it('fails the token validation on a non-JSON Twitch answer', async () => {
+            fetchSpy.mockResolvedValue(new Response('<html>', { status: 200 }));
+
+            await expect(client.validate('at')).rejects.toThrow(
+                new TwitchOAuthError(
+                    'Twitch validate response is not valid JSON',
+                ),
+            );
+        });
+
+        it('fails the OAuth exchange on a Twitch timeout, bounded by an abort signal', async () => {
+            fetchSpy.mockRejectedValue(timeout());
+
+            await expect(client.exchangeCode(AUTH_CODE)).rejects.toThrow(
+                new TwitchOAuthError('Twitch token exchange request failed'),
+            );
+            expect(lastRequest().init.signal).toBeInstanceOf(AbortSignal);
+        });
+
+        it('fails the token validation on a Twitch timeout', async () => {
+            fetchSpy.mockRejectedValue(timeout());
+
+            await expect(client.validate('at')).rejects.toThrow(
+                new TwitchOAuthError('Twitch validate request failed'),
+            );
+        });
+
+        it('maps a token answer without refresh_token or a numeric expires_in', async () => {
+            fetchSpy.mockResolvedValue(
+                jsonResponse(200, { access_token: 'at', expires_in: '3600' }),
+            );
+
+            await expect(client.exchangeCode(AUTH_CODE)).resolves.toEqual({
+                accessToken: 'at',
+                refreshToken: undefined,
+                expiresIn: 0,
+            });
+        });
+
+        it('keeps only string scopes and blanks a missing login', async () => {
+            fetchSpy.mockResolvedValue(
+                jsonResponse(200, {
+                    client_id: TEST_TWITCH_CLIENT_ID,
+                    user_id: '123',
+                    scopes: ['user:read:email', 7, null],
+                }),
+            );
+
+            await expect(client.validate('at')).resolves.toEqual({
+                clientId: TEST_TWITCH_CLIENT_ID,
+                userId: '123',
+                login: '',
+                scopes: ['user:read:email'],
+            });
+        });
+    });
+
     describe('revoke', () => {
         it('posts a form with client_id and token', async () => {
             fetchSpy.mockResolvedValue(emptyResponse(200));

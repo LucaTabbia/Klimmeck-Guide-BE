@@ -141,8 +141,10 @@ describe('death confirmation (wire)', () => {
         return call(CONFIRM, alice.bearer, { id: String(id) });
     }
 
-    function rawUser(id: Types.ObjectId) {
-        return users.collection.findOne({ _id: id });
+    function rawUserOf(player: TestPlayer) {
+        return users.collection.findOne({
+            _id: player.user._id as Types.ObjectId,
+        });
     }
 
     async function currentOnWire(player: TestPlayer): Promise<unknown> {
@@ -233,9 +235,7 @@ describe('death confirmation (wire)', () => {
         expect(await currentOnWire(alice)).toEqual({
             id: String(aliceCharId),
         });
-        expect((await rawUser(alice.user._id))?.currentCharacter).toEqual(
-            aliceCharId,
-        );
+        expect((await rawUserOf(alice))?.currentCharacter).toEqual(aliceCharId);
     });
 
     it('refuses a new character while the dead one is current', async () => {
@@ -246,9 +246,7 @@ describe('death confirmation (wire)', () => {
         expect(body.errors?.[0]?.extensions?.code).toBe(
             'CHARACTER_ALREADY_EXISTS',
         );
-        expect((await rawUser(alice.user._id))?.currentCharacter).toEqual(
-            aliceCharId,
-        );
+        expect((await rawUserOf(alice))?.currentCharacter).toEqual(aliceCharId);
     });
 
     it('unlinks the dead character when its death is confirmed', async () => {
@@ -258,7 +256,7 @@ describe('death confirmation (wire)', () => {
 
         expect(body.errors).toBeUndefined();
         expect(body.data?.acknowledgeQuestResult).toEqual(CONFIRMED);
-        expect((await rawUser(alice.user._id))?.currentCharacter).toBeNull();
+        expect((await rawUserOf(alice))?.currentCharacter).toBeNull();
         expect(await currentOnWire(alice)).toBeNull();
     });
 
@@ -300,7 +298,7 @@ describe('death confirmation (wire)', () => {
             body.data?.createCharacter as { currentCharacter: { id: string } }
         ).currentCharacter.id;
         expect(created).not.toBe(String(aliceCharId));
-        expect(String((await rawUser(alice.user._id))?.currentCharacter)).toBe(
+        expect(String((await rawUserOf(alice))?.currentCharacter)).toBe(
             created,
         );
     });
@@ -318,20 +316,18 @@ describe('death confirmation (wire)', () => {
         const body = bodyOf(await confirm(deathId));
 
         expect(body.data?.acknowledgeQuestResult).toEqual(CONFIRMED);
-        expect((await rawUser(alice.user._id))?.currentCharacter).toEqual(
-            alive._id,
-        );
+        expect((await rawUserOf(alice))?.currentCharacter).toEqual(alive._id);
     });
 
     it('writes nothing on a second confirmation of the death', async () => {
         const deathId = await persistDeath();
         await confirm(deathId);
-        const afterFirst = await rawUser(alice.user._id);
+        const afterFirst = await rawUserOf(alice);
 
         const body = bodyOf(await confirm(deathId));
 
         expect(body.data?.acknowledgeQuestResult).toEqual(CONFIRMED);
-        expect(await rawUser(alice.user._id)).toEqual(afterFirst);
+        expect(await rawUserOf(alice)).toEqual(afterFirst);
     });
 
     it('unlinks nothing when a non-death result is confirmed', async () => {
@@ -346,7 +342,7 @@ describe('death confirmation (wire)', () => {
         );
 
         expect(body.data?.acknowledgeQuestResult).toEqual(CONFIRMED);
-        expect((await rawUser(bruno.user._id))?.currentCharacter).toEqual(
+        expect((await rawUserOf(bruno))?.currentCharacter).toEqual(
             bruno.character!._id,
         );
     });
@@ -361,7 +357,7 @@ describe('death confirmation (wire)', () => {
         for (const body of bodies) {
             expect(body.data?.acknowledgeQuestResult).toEqual(CONFIRMED);
         }
-        expect((await rawUser(alice.user._id))?.currentCharacter).toBeNull();
+        expect((await rawUserOf(alice))?.currentCharacter).toBeNull();
 
         await die(bruno);
         const brunoDeath = await persistQuestResult(results, {
@@ -376,6 +372,6 @@ describe('death confirmation (wire)', () => {
             service.acknowledge(brunoDeath._id as Types.ObjectId, brunoId),
         ]);
         expect([...written].sort()).toEqual([false, true]);
-        expect((await rawUser(brunoId))?.currentCharacter).toBeNull();
+        expect((await rawUserOf(bruno))?.currentCharacter).toBeNull();
     });
 });

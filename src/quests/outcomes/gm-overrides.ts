@@ -6,6 +6,7 @@ import {
 } from 'src/characters/spells/spell-state.snapshot';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
+import { MAX_OVERRIDE_ENTRIES } from 'src/models/request/complete-pending-request.model';
 import type {
     ItemUsageInput,
     ParticipantOverrideInput,
@@ -28,8 +29,8 @@ export interface OverrideParticipant {
     activeSpells: ReadonlyMap<string, number>;
 }
 
-// la mutation è dell'innkeeper, ma un input enorme non deve mai arrivare alla transazione
-export const MAX_OVERRIDE_ENTRIES = 50;
+// difesa in profondità: il tetto vive nel modello dell'input (C5)
+export { MAX_OVERRIDE_ENTRIES };
 
 const withinCap = (list: readonly unknown[] | null | undefined): boolean =>
     (list?.length ?? 0) <= MAX_OVERRIDE_ENTRIES;

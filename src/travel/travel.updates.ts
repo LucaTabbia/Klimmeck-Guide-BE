@@ -7,6 +7,7 @@ import {
 } from 'src/models/character/active-character.filter';
 import { TravelKind } from 'src/models/character/active-travel.model';
 import { idForms } from 'src/mongo/document-id';
+import { STANDARD_LANE_FREE } from 'src/quests/acceptance/quest-lanes';
 import { ActiveTravelDraft } from './travel-timing';
 
 // identità del viaggio = startTime + endTime (D-12): niente id persistito
@@ -43,7 +44,7 @@ export function startTravelFilter(
         ...activeCharacterById(characterId),
         'status.awaitingAid': null,
         'status.activeTravel': null,
-        'quests.pendingQuest': null,
+        ...STANDARD_LANE_FREE,
         'status.location': { $in: idForms(location) },
     };
 }
@@ -92,16 +93,21 @@ export const COMPLETION_PROJECTION = {
     'status.activeTravel.kind': 1,
 } as const;
 
-// l'arrivo sul marker si scrive una volta sola (D-16); l'avvio lo decide QuestStartService (utente 2026-10-25)
+// l'arrivo sul marker si scrive una volta sola (D-16); la regola d'avvio resta di QuestStartService (utente 2026-10-25, D-22)
 export function questArrivalFilter(
     pendingQuestId: Types.ObjectId,
 ): Record<string, unknown> {
     return { _id: pendingQuestId, arrivedAt: null };
 }
 
-// arrivo pianificato (D-13): un downtime del server non toglie tempo alla quest
-export function questArrivalUpdate(endTime: Date) {
-    return { $set: { arrivedAt: endTime } };
+// arrivo pianificato (D-13): un downtime del server non toglie tempo alla quest; una quest da soli parte nella stessa scrittura (D-22)
+export function questArrivalUpdate(
+    endTime: Date,
+    startDate: Date | null = null,
+) {
+    return {
+        $set: { arrivedAt: endTime, ...(startDate ? { startDate } : {}) },
+    };
 }
 
 // solo la corsia standard blocca il teleport (D-17); un viaggio libero in corso viene cancellato
@@ -111,7 +117,7 @@ export function teleportFilter(
 ): Record<string, unknown> {
     return {
         ...activeCharacterById(characterId),
-        'quests.pendingQuest': null,
+        ...STANDARD_LANE_FREE,
     };
 }
 

@@ -84,6 +84,25 @@ describe('PendingRequestsPublisher', () => {
         });
     });
 
+    it('republishes the whole queue when the change stream history is lost (D-17a)', async () => {
+        jest.spyOn(Logger.prototype, 'warn').mockImplementation(
+            () => undefined,
+        );
+        list.mockResolvedValue(requestList('resynced'));
+
+        publisher.onModuleInit();
+        stream.emit('error', Object.assign(new Error('fake'), { code: 286 }));
+        await settle();
+
+        expect(publish.mock.calls).toEqual([
+            [
+                'pendingRequestsUpdated',
+                { pendingRequestsUpdated: requestList('resynced') },
+            ],
+        ]);
+        await publisher.onModuleDestroy();
+    });
+
     it('watches inserts and deletes of pending quests and recomputes on change', async () => {
         list.mockResolvedValue(requestList('changed'));
 

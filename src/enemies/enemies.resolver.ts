@@ -1,10 +1,11 @@
-import { Resolver, Query, Args, Mutation } from '@nestjs/graphql';
+import { Resolver, Query, Args } from '@nestjs/graphql';
 import { EnemiesService } from './enemies.service';
 import { Enemy } from 'src/models/enemy.model';
+import { ObjectIdPipe } from 'src/validation/object-id.pipe';
 
 @Resolver(() => Enemy)
 export class EnemiesResolver {
-    constructor(private enemiesService: EnemiesService) { }
+    constructor(private enemiesService: EnemiesService) {}
 
     @Query(() => [Enemy])
     async enemys(): Promise<Enemy[]> {
@@ -12,7 +13,7 @@ export class EnemiesResolver {
     }
 
     @Query(() => Enemy)
-    async enemy(@Args('id') id: string): Promise<Enemy> {
+    async enemy(@Args('id', ObjectIdPipe) id: string): Promise<Enemy> {
         return this.enemiesService.findOne(id);
     }
 }

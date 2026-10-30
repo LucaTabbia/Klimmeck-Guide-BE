@@ -119,4 +119,102 @@ describe('TravelSweeper', () => {
         expect(message).toContain('112');
         expect(message).not.toContain('raw driver message');
     });
+
+    it.each([
+        ['the error name', new TypeError('raw driver message'), 'TypeError'],
+        ['unknown for a bare value', 'raw driver message', 'unknown'],
+        ['unknown for null', null, 'unknown'],
+    ])(
+        'logs %s when a completion fails without a code',
+        async (_label, failure, expected) => {
+            const travel = dueTravel();
+            find = findResolving(Promise.resolve([travel]));
+            complete.mockRejectedValueOnce(failure);
+            const error = jest
+                .spyOn(Logger.prototype, 'error')
+                .mockImplementation();
+
+            await expect(sweeperWith(0).sweep()).resolves.toBe(0);
+
+            expect(error.mock.calls.map(([value]) => String(value))).toEqual([
+                `Completamento del viaggio del personaggio ${travel._id.toHexString()} fallito: ${expected}`,
+            ]);
+        },
+    );
+
+    it('logs only the code when the boot sweep fails to read the due travels', async () => {
+        const failure = Object.assign(new Error('raw driver message'), {
+            code: 'ECONNRESET',
+        });
+        find = findResolving(Promise.reject(failure));
+        const error = jest
+            .spyOn(Logger.prototype, 'error')
+            .mockImplementation();
+        const sweeper = sweeperWith(0);
+
+        sweeper.onApplicationBootstrap();
+        await jest.runAllTimersAsync();
+
+        expect(error.mock.calls.map(([value]) => String(value))).toEqual([
+            'Sweep dei viaggi fallito: ECONNRESET',
+        ]);
+        expect(complete).not.toHaveBeenCalled();
+    });
+
+    it('sweeps again on the next tick after a failed sweep', async () => {
+        jest.spyOn(Logger.prototype, 'error').mockImplementation();
+        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+        find = findResolving(Promise.reject(new Error('down')));
+        const sweeper = sweeperWith(50);
+        sweeper.onApplicationBootstrap();
+        await jest.advanceTimersByTimeAsync(0);
+        const travel = dueTravel();
+        find.mockImplementation(() => ({
+            lean: () => ({ exec: () => Promise.resolve([travel]) }),
+        }));
+
+        await jest.advanceTimersByTimeAsync(50);
+        sweeper.onModuleDestroy();
+
+        expect(complete).toHaveBeenCalledWith({
+            characterId: travel._id,
+            startTime: START,
+            endTime: END,
+        });
+    });
+
+    it('finishes the sweep in flight when the module is destroyed, then stops ticking', async () => {
+        let release: (travels: DueTravel[]) => void = () => undefined;
+        find = findResolving(
+            new Promise<DueTravel[]>((resolve) => {
+                release = resolve;
+            }),
+        );
+        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+        const sweeper = sweeperWith(50);
+        sweeper.onApplicationBootstrap();
+        const inFlight = sweeper.sweep();
+
+        sweeper.onModuleDestroy();
+        release([dueTravel()]);
+
+        await expect(inFlight).resolves.toBe(1);
+        await jest.advanceTimersByTimeAsync(200);
+        expect(find).toHaveBeenCalledTimes(1);
+        expect(complete).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not count a stale completion as completed', async () => {
+        find = findResolving(Promise.resolve([dueTravel(), dueTravel()]));
+        complete
+            .mockResolvedValueOnce('stale')
+            .mockResolvedValueOnce('completed');
+        const log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
+
+        await expect(sweeperWith(0).sweep()).resolves.toBe(1);
+
+        expect(log.mock.calls.map(([value]) => String(value))).toEqual([
+            'Sweep dei viaggi: 1 completati',
+        ]);
+    });
 });

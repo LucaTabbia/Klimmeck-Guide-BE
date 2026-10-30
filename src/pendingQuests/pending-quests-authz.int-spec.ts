@@ -188,15 +188,29 @@ describe('Pending quests perimeter (owner or innkeeper)', () => {
             expect(extensionsOf(response)).toEqual({ code: 'FORBIDDEN' });
         });
 
-        it.each([MISSING_PENDING_QUEST_ID, 'abc'])(
-            'answers NOT_FOUND to the adventurer for %s',
-            async (id) => {
-                const response = await readPendingQuest(id, alice);
+        it('answers NOT_FOUND to the adventurer for an unknown id', async () => {
+            const response = await readPendingQuest(
+                MISSING_PENDING_QUEST_ID,
+                alice,
+            );
 
-                expect(extensionsOf(response)).toEqual({ code: 'NOT_FOUND' });
+            expect(extensionsOf(response)).toEqual({ code: 'NOT_FOUND' });
+            expect(bodyOf(response).data ?? null).toBeNull();
+        });
+
+        it('answers BAD_USER_INPUT for a malformed pending quest id (D-02, C1)', async () => {
+            for (const player of [alice, oste]) {
+                const response = await readPendingQuest('abc', player);
+
+                expect(extensionsOf(response)).toEqual({
+                    code: 'BAD_USER_INPUT',
+                });
+                expect(bodyOf(response).errors?.[0]?.message).toBe(
+                    'Input non valido: id',
+                );
                 expect(bodyOf(response).data ?? null).toBeNull();
-            },
-        );
+            }
+        });
 
         it('returns any pending quest to the innkeeper', async () => {
             const response = await readPendingQuest(String(pqBruno._id), oste);

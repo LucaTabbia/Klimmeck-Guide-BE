@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 9.2 complete (2026-10-28), PR feat/09.2-quest-result-delivery-contract -> develop open; Phase 10 (feat/10-hardening, stacked on 9.2) to rebase and plan after the merge
-last_updated: "2026-10-27T23:52:36.000Z"
-last_activity: "2026-10-28 -- Phase 9.2 complete: 7/7 plans, review 0 CR / 1 WR / 5 IN fixed, verification passed 6/6, security verified 34/34 (27 mitigated, 6 accepted, 1 transferred, 0 open); PR to develop open, FE Phase 9 gated plans unblocked after the merge"
+status: completed
+stopped_at: Phase 10 complete on feat/10-hardening — PR draft open, user actions pending
+last_updated: "2026-10-30T15:48:40.000Z"
+last_activity: "2026-10-30 -- Phase 10 closed (31/31, reviewed/verified/audited); PR draft to develop; user actions pending before ready"
 progress:
   total_phases: 13
-  completed_phases: 12
-  total_plans: 114
+  completed_phases: 13
+  total_plans: 145
   completed_plans: 114
-  percent: 100
+  percent: 79
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 10 — Hardening Trasversale — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2: to rebase on `develop` after the 9.2 merge, then `/gsd-plan-phase 10` (ValidationPipe whitelist + `BAD_USER_INPUT` + `@IsMongoId`, introspection/landing page off when `NODE_ENV=production`, CORS closed, sanitized errors with `requestId`, minimal throttler, gitleaks v3, per-area coverage thresholds, all Phase 9/9.2 deferred debts incl. `Mixed` refs, backfill scan, sweep for never-confirmed deaths, Sightengine image moderation fail-closed). Precedente: Phase 9.2 — Quest Result Delivery Contract — COMPLETE (2026-10-28: lista dei non confermati, conferma idempotente, segnaposto sulle quest avviate, il morto resta corrente fino alla conferma; PR `feat/09.2-quest-result-delivery-contract` → `develop` open, to merge BEFORE the FE Phase 9 gated plans 09-12/09-13).
+**Current focus:** Phase 10 — Hardening Trasversale — EXECUTING since 2026-10-29 on `feat/10-hardening` (rebased on `develop` `8f30d1d`): 31 plans / 26 sequential waves — 1a coda del GM e corsia standard (BE-HARD-08, dal discuss della FE Phase 10), 1 validazione + `BAD_USER_INPUT`, 2 superficie di produzione + throttler, 3 secret/env/CI, 4 moderazione Sightengine, 5 resilienza + indici + bug di schema + BE-HARD-07, 6 refactor, 7 coverage, 8 ref `Mixed` con gate proprio (10-29), 9 handoff + gate finale (10-30/10-31). Decisioni dell'utente dopo la ricerca: sweep delle morti rinviato, `THROTTLE_TRUST_PROXY` opzionale spenta, staging = production, `face-age` solo volti reali. La PR di questa fase sblocca il piano gated 10-11 della FE Phase 10. Precedente: Phase 9.2 — Quest Result Delivery Contract — COMPLETE e mergiata (PR #15, 2026-10-29).
 
 ## Current Position
 
-Phase: 9.2 (Quest Result Delivery Contract) — COMPLETE (2026-10-28): 7/7 plans, PR `feat/09.2-quest-result-delivery-contract` → `develop` open; next Phase 10 (Hardening Trasversale) — CONTEXT GATHERED (2026-10-27) on `feat/10-hardening`, stacked on 9.2
-Plan: 7 of 7
-Status: Phase 9.2 complete — awaiting the PR merge; Phase 10 ready to plan after rebasing `feat/10-hardening` on `develop`
-Last activity: 2026-10-28 -- Phase 9.2 complete: 7/7 plans, review 0 CR / 1 WR / 5 IN fixed, verification passed 6/6, security verified 34/34 (27 mitigated, 6 accepted, 1 transferred, 0 open); PR to develop open, FE Phase 9 gated plans unblocked after the merge
+Phase: 10 (Hardening Trasversale) — COMPLETE on `feat/10-hardening` (2026-10-30): 31/31 plans executed, reviewed, verified and audited; PR to `develop` opened as DRAFT until the ref migration runs in production (runbook)
+Plan: 31 of 31
+Status: Phase 10 complete — PR draft open; waiting for the user actions in Blockers/Concerns (ref migration in production, defaults to confirm; first gitleaks scan done 2026-10-30) before marking the PR ready; next phase to plan after the merge (FE Phase 10 plan 10-11 resumes after the merge)
+Last activity: 2026-10-30 -- Phase 10 closed: gate 10-31 + post-fix green (build, tsc, unit 182/2419, cov 281/3696 with the 8 folder thresholds, real boot 65/65, SDL +1 additive line); code review 20 findings (15 fixed, 5 not needed), verification passed 8/8, security audit secured (107 threats, 0 open); ref migration in production pending (user, runbook), PR draft
 
 Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 complete; 10 to plan after the 9.2 merge)
 
@@ -263,6 +263,13 @@ None yet.
 - **Branch non pushati:** `feat/01-fondazione-test-consolidamento-spell-wip` e `feat/02-auth-identity-foundation` (la Phase 2 poggia sulla Phase 1, non ancora su `develop`); PR da aprire a mano verso `develop`.
 - `JWT_SECRET` (≥ 32 caratteri) è ora obbligatoria al boot su ogni ambiente; righe `.env` per il dev bypass in `BACKEND-NOTES.md` §7.
 - FE: branch `feat/party-waiting` (etichetta "In attesa del gruppo", abbandono, push questCancelled) da mergiare dopo la PR FE Phase 7 e la PR BE #13.
+- **Phase 10 — azioni dell'utente prima di marcare la PR pronta (2026-10-30):** la PR di `feat/10-hardening` resta draft finché non sono fatte:
+  1. migrazione dei ref secondo `docs/runbooks/mixed-refs-migration.md`: backup, poi copia ripristinata, poi produzione col codice attuale PRIMA del deploy; allegare alla PR i report JSON di `--verify` (copia e produzione); dopo il deploy di nuovo `--apply` + `--verify` e controllo del log del verificatore;
+  2. ~~primo `workflow_dispatch` di `Secret scan`~~ **FATTO il 2026-10-30** (commit e99ab5d): 1228 commit scansionati, 3 falsi positivi gestiti con allowlist `^\.planning/` e fingerprint del badge del template NestJS, nessun secret da ruotare; push, PR e dispatch verdi;
+  3. conferma della tabella di policy Sightengine e dei default del throttler (`BACKEND-NOTES.md` §11 della Phase 10, 10 voci);
+  4. una chiamata Sightengine reale per A2 (un'immagine accettabile e una da rifiutare, chiavi nel proprio `.env`);
+  5. `THROTTLE_TRUST_PROXY` da impostare quando la topologia di produzione sarà nota (vuota = spenta).
+  Dopo la merge: UAT del pannello del GM nella FE Phase 10 (piano gated 10-11).
 
 ### Quick Tasks Completed
 

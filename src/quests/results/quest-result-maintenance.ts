@@ -11,7 +11,8 @@ import {
     legacyResultsBackfill,
 } from './quest-result-acknowledgement';
 
-// atteso dal boot ma mai bloccante (D-04, D-05): indice della lista e conferma dei risultati precedenti al deploy
+// indice della lista e conferma dei risultati precedenti al deploy (D-04, D-05): una volta per processo al boot, non atteso;
+// il backfill diventa un no-op dopo il primo deploy e si rimuove in v1.1 (D-17b)
 @Injectable()
 export class QuestResultMaintenance implements OnApplicationBootstrap {
     private readonly logger = new Logger(QuestResultMaintenance.name);
@@ -21,7 +22,11 @@ export class QuestResultMaintenance implements OnApplicationBootstrap {
         private readonly questResultModel: Model<QuestResultDocument>,
     ) {}
 
-    async onApplicationBootstrap(): Promise<void> {
+    onApplicationBootstrap(): void {
+        void this.maintain();
+    }
+
+    async maintain(): Promise<void> {
         await this.verifyIndexes();
         try {
             const marked = await this.backfill();

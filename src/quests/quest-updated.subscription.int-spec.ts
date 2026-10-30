@@ -18,7 +18,10 @@ import {
 } from '../../test/auth/ws-test-client';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
 import { buildQuest } from '../../test/fixtures';
-import { primeQuestsChangeStream } from '../../test/quests/quests-change-stream';
+import {
+    questTouch,
+    primeChangeStream,
+} from '../../test/harness/prime-change-stream';
 
 const QUEST_UPDATED =
     'subscription OnQuestUpdated($questId: String!) { questUpdated(questId: $questId) { id registeredAdventurers { character title } requirements { requiredAdventurers { title count } } infos { title } } }';
@@ -122,18 +125,24 @@ describe('questUpdated subscription (wire)', () => {
     const charactersOf = (quest: WireQuest) =>
         quest.registeredAdventurers.map(({ character }) => character);
 
-    async function expectNotFound(
+    async function expectRejectedWith(
         subscription: QuestUpdatedSubscription,
-    ): Promise<void> {
+        code: string,
+    ): Promise<string | undefined> {
         const first = await subscription.next();
         expect(first.done).toBe(false);
         expect(first.value.data ?? null).toBeNull();
         expect(first.value.errors).toHaveLength(1);
-        expect(first.value.errors?.[0]?.extensions).toEqual({
-            code: 'NOT_FOUND',
-        });
+        expect(first.value.errors?.[0]?.extensions).toEqual({ code });
         const second = await subscription.next();
         expect(second.done).toBe(true);
+        return first.value.errors?.[0]?.message;
+    }
+
+    async function expectNotFound(
+        subscription: QuestUpdatedSubscription,
+    ): Promise<void> {
+        await expectRejectedWith(subscription, 'NOT_FOUND');
     }
 
     const characterIdOf = (player: TestPlayer) =>
@@ -158,7 +167,7 @@ describe('questUpdated subscription (wire)', () => {
         quests = harness.connection.model<QuestDocument>(Quest.name);
         await quests.createCollection();
         await harness.clearDatabase();
-        await primeQuestsChangeStream(harness);
+        await primeChangeStream(harness, 'questUpdated', questTouch(harness));
     });
 
     beforeEach(async () => {
@@ -360,8 +369,13 @@ describe('questUpdated subscription (wire)', () => {
         await expectNotFound(subscribeTo(String(quest._id)));
     });
 
-    it('answers NOT_FOUND for a malformed quest id', async () => {
-        await expectNotFound(subscribeTo(MALFORMED_QUEST_ID));
+    it('answers BAD_USER_INPUT for a malformed quest id (D-02)', async () => {
+        const message = await expectRejectedWith(
+            subscribeTo(MALFORMED_QUEST_ID),
+            'BAD_USER_INPUT',
+        );
+
+        expect(message).toBe('Input non valido: questId');
     });
 
     it('closes the connection_init without a bearer with 4403', async () => {

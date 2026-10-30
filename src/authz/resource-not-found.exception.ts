@@ -43,4 +43,28 @@ export class ResourceNotFoundException extends NotFoundException {
     static questResult(): ResourceNotFoundException {
         return new ResourceNotFoundException('Risultato non trovato');
     }
+
+    static lore(): ResourceNotFoundException {
+        return new ResourceNotFoundException('Lore non trovata');
+    }
+
+    static pet(): ResourceNotFoundException {
+        return new ResourceNotFoundException('Compagno non trovato');
+    }
+
+    static city(): ResourceNotFoundException {
+        return new ResourceNotFoundException('Città non trovata');
+    }
+
+    static enemy(): ResourceNotFoundException {
+        return new ResourceNotFoundException('Nemico non trovato');
+    }
+
+    static lootItem(): ResourceNotFoundException {
+        return new ResourceNotFoundException('Oggetto non trovato');
+    }
+
+    static equipmentItem(): ResourceNotFoundException {
+        return new ResourceNotFoundException('Equipaggiamento non trovato');
+    }
 }

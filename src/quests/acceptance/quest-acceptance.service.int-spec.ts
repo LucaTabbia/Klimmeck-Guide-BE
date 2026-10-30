@@ -1,3 +1,4 @@
+import { FAILED_JOBS_KEPT } from 'src/queues/enqueue-trigger';
 import { getQueueToken } from '@nestjs/bull';
 import { INestApplication, Logger } from '@nestjs/common';
 import {
@@ -33,6 +34,7 @@ import {
 import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
+import { QuestStartService } from 'src/quests/party/quest-start.service';
 import { TRAVEL_QUEUE, travelJobId } from 'src/travel/travel-job';
 import { BASE_SPEED, durationMsOf } from 'src/travel/travel-timing';
 import { FixedClock } from '../../../test/auth/fixed-clock';
@@ -57,6 +59,15 @@ const STARTING_COINS = { gold: 1, silver: 2, copper: 3 };
 // collection della mappa del viaggio: pre-create per le transazioni e svuotate dopo ogni test
 const TRAVEL_COLLECTIONS = ['pets', 'pointsofinterest', 'roads'];
 
+// liste scritte con il driver nei test, senza il cast di Mongoose
+interface RawQuestRegistrations {
+    registeredAdventurers: { character: Types.ObjectId; title: string }[];
+}
+
+interface RawCityPointsOfInterest {
+    pointsOfInterest: Types.ObjectId[];
+}
+
 interface World {
     cityMarker: Types.ObjectId;
     cityPoi: Types.ObjectId;
@@ -76,6 +87,18 @@ describe('QuestAcceptanceService (replSet)', () => {
     let world: World;
     let seq = 0;
     const queue = new FakeTravelQueue();
+
+    function rawQuests() {
+        return connection.collection<RawQuestRegistrations>(
+            quests.collection.collectionName,
+        );
+    }
+
+    function rawCities() {
+        return connection.collection<RawCityPointsOfInterest>(
+            cities.collection.collectionName,
+        );
+    }
     const questQueue = new FakeTravelQueue();
 
     beforeAll(async () => {
@@ -611,7 +634,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             });
             const rival = new Types.ObjectId();
             const transaction = interleaveBeforeTransaction(() =>
-                quests.collection.updateOne(
+                rawQuests().updateOne(
                     { _id: questId },
                     {
                         $push: {
@@ -1123,7 +1146,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                 .mockImplementation();
             const transaction = jest.spyOn(connection, 'transaction');
             const ghost = new Types.ObjectId();
-            await cities.collection.updateOne(
+            await rawCities().updateOne(
                 { _id: travel.cityA },
                 { $push: { pointsOfInterest: ghost } },
             );
@@ -1188,7 +1211,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                 'enemy',
             );
             const transaction = interleaveBeforeTransaction(() =>
-                quests.collection.updateOne(
+                rawQuests().updateOne(
                     { _id: questId },
                     {
                         $push: {
@@ -1251,7 +1274,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                         jobId: `quest-${hex}-${ACCEPTED_AT.getTime()}`,
                         delay: waitingTime,
                         removeOnComplete: true,
-                        removeOnFail: false,
+                        removeOnFail: FAILED_JOBS_KEPT,
                     },
                 };
             }
@@ -1357,6 +1380,26 @@ describe('QuestAcceptanceService (replSet)', () => {
                     `Accodamento della risoluzione quest-${pqId.toHexString()}-${ACCEPTED_AT.getTime()} fallito: lo risolverà lo sweep`,
                 );
             });
+
+            // l'avvio da soli nasce con il claim: nessuna scrittura dopo il commit da cui dipenda
+            it('starts a solo quest accepted on its marker at the commit (D-22)', async () => {
+                const tryStart = jest
+                    .spyOn(QuestStartService.prototype, 'tryStart')
+                    .mockResolvedValue('stale');
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(travel.questPoi);
+
+                const pqId = await accept(
+                    ownerId,
+                    charId,
+                    await huntTo(travel.questPoi),
+                );
+
+                expect((await pendingOf(pqId))?.startDate).toEqual(ACCEPTED_AT);
+                expect((await pendingOf(pqId))?.arrivedAt).toEqual(ACCEPTED_AT);
+                expect(questQueue.added).toEqual([resolveJobOf(pqId, 60000)]);
+                expect(tryStart).not.toHaveBeenCalled();
+            });
         });
     });
 
@@ -1445,6 +1488,30 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect(await pointsOf(ownerId)).toBe(6000);
         });
 
+        it('rejects a world mission of a character without a location with QUEST_NOT_IN_CITY and writes nothing', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker, 'hero');
+            await characters.collection.updateOne(
+                { _id: charId },
+                { $unset: { 'status.location': '' } },
+            );
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                requiredAdventurers: [{ title: 'hero', count: 1 }],
+            });
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_NOT_IN_CITY' });
+
+            expect((await raw(charId))?.quests.pendingQuest).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual(
+                [],
+            );
+        });
+
         it('rejects a quest whose marker belongs to no city with QUEST_NOT_IN_CITY', async () => {
             const ownerId = await ownerWith(0);
             const charId = await characterAt(world.cityMarker);
@@ -1485,6 +1552,26 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect((await rawQuest(questId))?.registeredAdventurers).toEqual([
                 { character: charId, title: 'hero', registeredAt: ACCEPTED_AT },
             ]);
+        });
+
+        it('registers the first adventurer of a legacy quest stored without the registration list', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker, 'hero');
+            const questId = await insertQuest('worldMission', {
+                requiredPoints: 3000,
+                requiredAdventurers: [{ title: 'hero', count: 1 }],
+            });
+            await rawQuests().updateOne(
+                { _id: questId },
+                { $unset: { registeredAdventurers: '' } },
+            );
+
+            await accept(ownerId, charId, questId);
+
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual([
+                { character: charId, title: 'hero', registeredAt: ACCEPTED_AT },
+            ]);
+            expect(await pointsOf(ownerId)).toBe(3000);
         });
 
         it('registers an enemy with a wildcard slot and fills it once', async () => {
@@ -1618,7 +1705,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                 { character: new Types.ObjectId(), title: 'paladin' },
                 { character: new Types.ObjectId(), title: 'mage' },
             ];
-            await quests.collection.updateOne(
+            await rawQuests().updateOne(
                 { _id: questId },
                 { $push: { registeredAdventurers: { $each: registered } } },
             );

@@ -16,9 +16,9 @@ describe('quest lanes schemas', () => {
         ).toBe('ObjectId');
     });
 
-    it('keeps the legacy pending quest ref untouched', () => {
+    it('types the pending quest ref as ObjectId after the reference migration (D-17d)', () => {
         expect(CharacterQuestsSchema.path('pendingQuest').instance).toBe(
-            'Mixed',
+            'ObjectId',
         );
     });
 

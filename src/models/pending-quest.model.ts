@@ -1,6 +1,6 @@
 import { ObjectType, Field, ID, InputType, Int } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { Quest } from './quest/quest.model';
 
 @ObjectType()
@@ -29,12 +29,20 @@ export class PendingQuest {
     pointsSpent: number;
 
     @Field(() => Quest)
-    @Prop({ type: Types.ObjectId, ref: Quest.name })
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: Quest.name })
     quest: Quest;
 }
 
 export type PendingQuestDocument = PendingQuest & Document;
 export const PendingQuestSchema = SchemaFactory.createForClass(PendingQuest);
+
+export const PENDING_QUEST_LANE_DATES_INDEX = 'pending_quest_lane_dates';
+
+// serve gli arrivati non ancora avviati e le letture di corsia (D-17b)
+PendingQuestSchema.index(
+    { quest: 1, startDate: 1, arrivedAt: 1 },
+    { name: PENDING_QUEST_LANE_DATES_INDEX },
+);
 
 @InputType()
 export class PendingQuestInput {

@@ -5,6 +5,7 @@ import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { AuthSession } from 'src/auth/dto/auth-session.model';
 import { User } from 'src/models/user.model';
+import { Throttled } from 'src/throttling/throttled.decorator';
 import { UsersService } from 'src/users/users.service';
 
 @Resolver()
@@ -15,6 +16,7 @@ export class AuthResolver {
     ) {}
 
     @Public()
+    @Throttled()
     @Mutation(() => AuthSession)
     exchangeLoginTicket(
         @Args('ticket') ticket: string,
@@ -27,6 +29,7 @@ export class AuthResolver {
     }
 
     @Public()
+    @Throttled()
     @Mutation(() => AuthSession)
     refreshSession(
         @Args('refreshToken') refreshToken: string,

@@ -110,6 +110,47 @@ describe('SpellRecoveryProcessor', () => {
         ]);
     });
 
+    it('tolerates a recovery job that fires early up to the tolerance, not one millisecond more', async () => {
+        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+
+        await processor.recover(
+            jobDueAt(new Date(NOW.getTime() + EARLY_RECOVERY_TOLERANCE_MS + 1)),
+        );
+
+        expect(sleeper.waits).toEqual([]);
+        expect(recoverDue).not.toHaveBeenCalled();
+        expect(recoverLegacy).not.toHaveBeenCalled();
+    });
+
+    it('ignores a malformed job with a warning naming only its id, without crediting', async () => {
+        const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+
+        await processor.recover({
+            id: 'job-1',
+            data: { characterId: 'not-an-id', spellId: spellId.toHexString() },
+        } as unknown as Job<SpellRecoveryJobData>);
+
+        expect(recoverDue).not.toHaveBeenCalled();
+        expect(recoverLegacy).not.toHaveBeenCalled();
+        expect(warn.mock.calls.map(([value]) => String(value))).toEqual([
+            'Job di recupero job-1 malformato: ignorato',
+        ]);
+    });
+
+    it('routes a job queued before the deploy, without an instant, to the legacy credit at once', async () => {
+        await processor.recover({
+            id: 'legacy-1',
+            data: {
+                characterId: characterId.toHexString(),
+                spellId: spellId.toHexString(),
+            },
+        } as Job<SpellRecoveryJobData>);
+
+        expect(sleeper.waits).toEqual([]);
+        expect(recoverLegacy.mock.calls).toEqual([[characterId, spellId]]);
+        expect(recoverDue).not.toHaveBeenCalled();
+    });
+
     it('keeps the tolerance a few seconds wide', () => {
         expect(EARLY_RECOVERY_TOLERANCE_MS).toBe(5 * SECOND);
     });

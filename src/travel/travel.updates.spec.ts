@@ -165,6 +165,16 @@ describe('travel write builders', () => {
                 $set: { arrivedAt: end },
             });
         });
+
+        // quest da soli: l'avvio coincide con l'arrivo e si scrive con lui (D-22)
+        it('writes the solo start with the arrival (D-22)', () => {
+            expect(questArrivalUpdate(end, end)).toEqual({
+                $set: { arrivedAt: end, startDate: end },
+            });
+            expect(questArrivalUpdate(end, null)).toEqual({
+                $set: { arrivedAt: end },
+            });
+        });
     });
 
     describe('teleport', () => {

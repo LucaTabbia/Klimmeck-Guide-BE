@@ -1,5 +1,6 @@
 import { ObjectType, Field, Int, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { IsInt, Min } from 'class-validator';
 import { Document } from 'mongoose';
 
 @ObjectType()
@@ -21,15 +22,20 @@ export class Coins {
 export type CoinsDocument = Coins & Document;
 export const CoinsSchema = SchemaFactory.createForClass(Coins);
 
-
 @InputType()
 export class CoinsInput {
     @Field(() => Int)
+    @IsInt()
+    @Min(0)
     gold: number;
 
     @Field(() => Int)
+    @IsInt()
+    @Min(0)
     silver: number;
 
     @Field(() => Int)
+    @IsInt()
+    @Min(0)
     copper: number;
 }

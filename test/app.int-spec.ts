@@ -1,8 +1,10 @@
 import { getQueueToken } from '@nestjs/bull';
-import { INestApplication, Logger } from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { ModulesContainer } from '@nestjs/core';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
+import type { Application } from 'express';
 import type { Connection } from 'mongoose';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -12,6 +14,9 @@ import { IS_PUBLIC_KEY } from 'src/auth/decorators/public.decorator';
 import type { AuthConfig } from 'src/config/auth-config';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { EventSubConfig } from 'src/config/eventsub-config';
+import type { RuntimeConfig } from 'src/config/runtime-config';
+import { RUNTIME_CONFIG } from 'src/config/runtime-config';
+import { RuntimeModeReporter } from 'src/config/runtime-mode.reporter';
 import { EVENTSUB_CONFIG } from 'src/config/eventsub-config';
 import {
     OWNERSHIP_KEY,
@@ -20,6 +25,10 @@ import {
 import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
 import { WalletService } from 'src/economy/wallet.service';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
+import { UnhandledExceptionFilter } from 'src/http/unhandled-exception.filter';
+import { DisabledImageModerator } from 'src/moderation/disabled-image.moderator';
+import { ImageModerator } from 'src/moderation/image-moderator';
+import { ModerationStartupReporter } from 'src/moderation/moderation-startup.reporter';
 import { PushService } from 'src/push/push.service';
 import { NoopPushTransport } from 'src/push/transport/noop-push-transport';
 import { PushTransport } from 'src/push/transport/push-transport';
@@ -28,6 +37,9 @@ import type { QuestConfig } from 'src/config/quest-config';
 import { QUEST_CONFIG } from 'src/config/quest-config';
 import type { SpellRecoveryConfig } from 'src/config/spell-recovery-config';
 import { SPELL_RECOVERY_CONFIG } from 'src/config/spell-recovery-config';
+import type { ThrottleConfig } from 'src/config/throttle-config';
+import { THROTTLE_CONFIG } from 'src/config/throttle-config';
+import { AppThrottlerGuard } from 'src/throttling/app-throttler.guard';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { SpellRecoveryProcessor } from 'src/characters/spells/spell-recovery.processor';
 import { SpellRecoveryService } from 'src/characters/spells/spell-recovery.service';
@@ -38,6 +50,11 @@ import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholde
 import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
 import { QuestResultMaintenance } from 'src/quests/results/quest-result-maintenance';
+import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
+import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
+import { SweepIndexVerifier } from 'src/mongo/sweep-index.verifier';
+import { MixedRefsVerifier } from 'src/migrations/mixed-refs/mixed-refs.verifier';
+import { ArchivedCharacterQueueRefresher } from 'src/quests/pending-requests/archived-character-queue.refresher';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import type { TravelConfig } from 'src/config/travel-config';
 import { TRAVEL_CONFIG } from 'src/config/travel-config';
@@ -78,6 +95,17 @@ const EXPECTED_PUBLIC_HANDLERS = [
     'AppController.getHello',
     'AuthResolver.exchangeLoginTicket',
     'AuthResolver.refreshSession',
+    'EventSubController.receive',
+    'TwitchAuthController.callback',
+    'TwitchAuthController.start',
+];
+// throttling minimo (D-08): ogni handler limitato deve passare da qui, mai una mutation di gioco
+const EXPECTED_THROTTLED_HANDLERS = [
+    'AuthResolver.exchangeLoginTicket',
+    'AuthResolver.refreshSession',
+    'CloudinaryController.getSubfoldersUrls',
+    'CloudinaryController.getUrls',
+    'CloudinaryController.uploadImage',
     'EventSubController.receive',
     'TwitchAuthController.callback',
     'TwitchAuthController.start',
@@ -250,6 +278,13 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             TRAVEL_SWEEP_INTERVAL_MS: '0',
             QUEST_SWEEP_INTERVAL_MS: '0',
             SPELL_RECOVERY_SWEEP_INTERVAL_MS: '0',
+            // D-08: un .env locale con limiti propri non deve cambiare i default attesi dal boot reale
+            THROTTLE_TTL_MS: '',
+            THROTTLE_LIMIT: '',
+            THROTTLE_TRUST_PROXY: '',
+            // Pitfall 11: un .env locale con chiavi Sightengine reali non deve accendere la moderazione (D-14)
+            SIGHTENGINE_USER_ID: '',
+            SIGHTENGINE_API_SECRET: '',
         });
         // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
         const { AppModule } =
@@ -284,6 +319,41 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             .get('/')
             .expect(200)
             .expect('Hello World!');
+    });
+
+    it('tags every HTTP response with a request id (D-07)', async () => {
+        const generated = await request(app.getHttpServer()).get('/');
+        const echoed = await request(app.getHttpServer())
+            .get('/')
+            .set('x-request-id', 'boot-1');
+
+        expect(generated.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
+        expect(echoed.headers['x-request-id']).toBe('boot-1');
+    });
+
+    it('sends no CORS headers (D-06)', async () => {
+        const response = await request(app.getHttpServer())
+            .options(GRAPHQL_PATH)
+            .set('Origin', 'https://evil.example')
+            .set('Access-Control-Request-Method', 'POST');
+
+        expect(response.headers['access-control-allow-origin']).toBeUndefined();
+    });
+
+    it('mounts the REST error filter', () => {
+        expect(
+            providerInstancesOf(app).some(
+                (instance) => instance instanceof UnhandledExceptionFilter,
+            ),
+        ).toBe(true);
+    });
+
+    it('mounts the request id middleware without the legacy route path warning', () => {
+        const legacyWarnings = warnSpy.mock.calls.filter(([message]) =>
+            /Unsupported route path/.test(String(message)),
+        );
+
+        expect(legacyWarnings).toEqual([]);
     });
 
     it('redirects the Twitch login start to the not-configured app error', async () => {
@@ -532,7 +602,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(
             schema.match(/type PendingRequestCharacter \{[^}]*\}/)?.[0],
         ).toBe(
-            'type PendingRequestCharacter {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  id: ID!\n  location: ID!\n  name: String!\n  title: String!\n}',
+            'type PendingRequestCharacter {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  id: ID!\n  location: ID!\n  name: String!\n  pendingQuest: ID\n  title: String!\n}',
         );
         expect(schema.match(/type PendingRequestQuest \{[^}]*\}/)?.[0]).toBe(
             'type PendingRequestQuest {\n  id: ID!\n  registeredAdventurers: [QuestRegistration!]!\n  requiredAdventurers: [QuestPartySlot!]!\n  title: String!\n  type: String!\n}',
@@ -640,6 +710,80 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(QuestResultMaintenance)).toBeInstanceOf(
             QuestResultMaintenance,
         );
+    });
+
+    it('mounts the character updates publisher', () => {
+        expect(app.get(CharacterUpdatesPublisher)).toBeInstanceOf(
+            CharacterUpdatesPublisher,
+        );
+    });
+
+    it('mounts the pending quest start publisher', () => {
+        expect(app.get(PendingQuestStartPublisher)).toBeInstanceOf(
+            PendingQuestStartPublisher,
+        );
+    });
+
+    it('mounts the sweep index verifier', () => {
+        expect(app.get(SweepIndexVerifier)).toBeInstanceOf(SweepIndexVerifier);
+    });
+
+    it('mounts the Mixed references verifier', () => {
+        expect(app.get(MixedRefsVerifier)).toBeInstanceOf(MixedRefsVerifier);
+    });
+
+    it('mounts the archived character queue refresher', () => {
+        expect(app.get(ArchivedCharacterQueueRefresher)).toBeInstanceOf(
+            ArchivedCharacterQueueRefresher,
+        );
+    });
+
+    it('mounts the runtime mode reporter', () => {
+        expect(app.get(RuntimeModeReporter)).toBeInstanceOf(
+            RuntimeModeReporter,
+        );
+        expect(app.get<RuntimeConfig>(RUNTIME_CONFIG)).toEqual({
+            mode: 'test',
+            production: false,
+            modeDefaulted: false,
+        });
+    });
+
+    it('mounts the image moderation disabled without Sightengine keys (D-14)', () => {
+        expect(app.get(ImageModerator)).toBeInstanceOf(DisabledImageModerator);
+        expect(app.get(ModerationStartupReporter)).toBeInstanceOf(
+            ModerationStartupReporter,
+        );
+        expect(
+            warnSpy.mock.calls.some(([message]) =>
+                String(message).startsWith(
+                    'Moderazione delle immagini disattivata',
+                ),
+            ),
+        ).toBe(true);
+    });
+
+    it('mounts the global validation pipe', () => {
+        expect(
+            providerInstancesOf(app).some(
+                (instance) => instance instanceof ValidationPipe,
+            ),
+        ).toBe(true);
+    });
+
+    it('mounts the throttler with the phase defaults', () => {
+        expect(app.get<ThrottleConfig>(THROTTLE_CONFIG)).toEqual({
+            ttlMs: 60000,
+            limit: 20,
+            webhookLimit: 1000,
+            trustProxy: null,
+        });
+    });
+
+    it('leaves the proxy trust off by default (C19)', () => {
+        const server: Application = app.getHttpAdapter().getInstance();
+
+        expect(server.get('trust proxy')).toBeFalsy();
     });
 
     it('mounts the spell recovery lifecycle', () => {
@@ -804,7 +948,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             });
         });
 
-        it('keeps introspection public until Phase 10 (known limit D-30)', async () => {
+        it('keeps introspection available outside production (D-05)', async () => {
             const response = await graphqlCall(
                 app,
                 '{ __schema { queryType { name } } }',
@@ -821,6 +965,20 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
             expect(handlers).toEqual(EXPECTED_PUBLIC_HANDLERS);
             expect(publicClasses).toEqual([]);
+        });
+    });
+
+    describe('throttled surface', () => {
+        it('exposes exactly the enumerated throttled handlers (D-08)', () => {
+            expect(
+                collectHandlersWithMetadata(
+                    app,
+                    GUARDS_METADATA,
+                    (guards) =>
+                        Array.isArray(guards) &&
+                        guards.includes(AppThrottlerGuard),
+                ),
+            ).toEqual(EXPECTED_THROTTLED_HANDLERS);
         });
     });
 

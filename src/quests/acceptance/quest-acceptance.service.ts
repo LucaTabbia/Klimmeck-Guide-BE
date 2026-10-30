@@ -21,7 +21,10 @@ import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { idForms, refIdOf, sameId } from 'src/mongo/document-id';
 import { QuestResolutionScheduler } from 'src/quests/outcomes/scheduling/quest-resolution.scheduler';
 import { initialLaneDatesOf } from 'src/quests/party/party-rules';
-import { QuestStartService } from 'src/quests/party/quest-start.service';
+import {
+    QuestStartService,
+    soloStartDateOf,
+} from 'src/quests/party/quest-start.service';
 import { TravelPlanner } from 'src/travel/travel-planner.service';
 import { TravelScheduler } from 'src/travel/travel-scheduler.service';
 import { SlotRule } from './quest-capacity';
@@ -163,8 +166,14 @@ export class QuestAcceptanceService {
         };
         const pendingQuestId = new Types.ObjectId();
         const now = this.clock.now();
-        // arrivo ≠ avvio (utente 2026-10-25): sulla corsia standard startDate lo scrive solo QuestStartService
-        const dates = initialLaneDatesOf(lane, movement, now);
+        // arrivo ≠ avvio per i party (utente 2026-10-25); una quest da soli sul marker parte con il claim (D-22)
+        const laneDates = initialLaneDatesOf(lane, movement, now);
+        const dates = {
+            ...laneDates,
+            startDate:
+                laneDates.startDate ??
+                soloStartDateOf(quest.infos.type, laneDates.arrivedAt),
+        };
         const waitingTime = waitingTimeOf(lane, quest.infos.timeToComplete);
         const registration: { before: number | null } = { before: null };
         await this.connection.transaction(async (session) => {
@@ -206,7 +215,11 @@ export class QuestAcceptanceService {
         if (movement?.kind === 'travel')
             await this.scheduler.schedule(characterId, movement.travel);
         else if (lane === QuestLane.standard)
-            await this.questStart.tryStart({ questId, pendingQuestId });
+            await this.startOnMarker(
+                { questId, pendingQuestId },
+                dates.startDate,
+                waitingTime,
+            );
         // la prima registrazione che non riempie il party apre le 24 ore (utente 2026-10-25); story e worldMission no (D-03)
         const opensPartyWindow =
             lane === QuestLane.standard &&
@@ -221,7 +234,24 @@ export class QuestAcceptanceService {
         return pendingQuestId;
     }
 
-    // solo la corsia standard si muove (D-02): marker = posizione ⇒ arrivo immediato (l'avvio lo decide QuestStartService); nessuna strada ⇒ salto (D-03, WARN nel planner);
+    // da soli: la corsia è già avviata dal claim, resta la scadenza; party: decide QuestStartService (utente 2026-10-25)
+    private async startOnMarker(
+        trigger: { questId: Types.ObjectId; pendingQuestId: Types.ObjectId },
+        startDate: Date | null,
+        waitingTime: number,
+    ): Promise<void> {
+        if (!startDate) {
+            await this.questStart.tryStart(trigger);
+            return;
+        }
+        await this.questStart.scheduleStarted({
+            pendingQuestId: trigger.pendingQuestId,
+            startDate,
+            waitingTime,
+        });
+    }
+
+    // solo la corsia standard si muove (D-02): marker = posizione ⇒ arrivo immediato (da soli parte con il claim, D-22); nessuna strada ⇒ salto (D-03, WARN nel planner);
     // marker senza documento POI ⇒ QUEST_NOT_ACCEPTABLE dal planner, prima della transazione (D-27)
     private async movementTo(
         quest: QuestAcceptanceSnapshot,

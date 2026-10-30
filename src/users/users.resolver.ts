@@ -11,6 +11,7 @@ import { subscribeWithSnapshot } from 'src/graphql/subscribe-with-snapshot';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { documentIdOf } from 'src/mongo/document-id';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
+import { ObjectIdPipe } from 'src/validation/object-id.pipe';
 
 @Resolver(() => User)
 export class UsersResolver {
@@ -27,7 +28,7 @@ export class UsersResolver {
 
     @Roles(RoleType.innkeeper)
     @Query(() => User)
-    async user(@Args('id') id: string): Promise<User> {
+    async user(@Args('id', ObjectIdPipe) id: string): Promise<User> {
         return this.usersService.findOne(id);
     }
 

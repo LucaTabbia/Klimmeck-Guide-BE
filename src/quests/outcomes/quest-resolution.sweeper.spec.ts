@@ -164,15 +164,67 @@ describe('QuestResolutionSweeper', () => {
         expect(sweep).toHaveBeenCalledTimes(3);
     });
 
-    it('runs a single sweep at a time', () => {
-        backfillRegisteredAt.mockReturnValue(new Promise(() => undefined));
+    it('runs a single sweep at a time', async () => {
+        arrived = new Promise(() => undefined);
         const sweeper = sweeperWith(0);
 
         const first = sweeper.sweep();
         const second = sweeper.sweep();
+        await flushMicrotasks();
 
         expect(second).toBe(first);
-        expect(backfillRegisteredAt).toHaveBeenCalledTimes(1);
+        expect(aggregate).toHaveBeenCalledTimes(1);
+    });
+
+    it('backfills the registration dates once at boot, not on every tick (D-17b)', async () => {
+        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+        const sweeper = sweeperWith(0);
+
+        sweeper.onApplicationBootstrap();
+        await flushMicrotasks();
+        await sweeper.sweep();
+        await sweeper.sweep();
+
+        expect(backfillRegisteredAt.mock.calls).toEqual([[NOW]]);
+    });
+
+    it('does not wait for the backfill to start sweeping (D-17b)', async () => {
+        backfillRegisteredAt.mockReturnValue(new Promise(() => undefined));
+        const sweeper = sweeperWith(0);
+
+        expect(sweeper.onApplicationBootstrap()).toBeUndefined();
+
+        await expect(sweeper.sweep()).resolves.toEqual({
+            resolved: 0,
+            timedOut: 0,
+        });
+    });
+
+    it('logs the boot backfill count, and its failure by name and code only (D-17b)', async () => {
+        const log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
+        const error = jest
+            .spyOn(Logger.prototype, 'error')
+            .mockImplementation();
+        backfillRegisteredAt
+            .mockResolvedValueOnce(2)
+            .mockResolvedValueOnce(0)
+            .mockRejectedValueOnce(
+                Object.assign(new Error('raw driver message'), { code: 112 }),
+            );
+        const sweeper = sweeperWith(0);
+
+        await sweeper.backfillOnce();
+        await sweeper.backfillOnce();
+        await sweeper.backfillOnce();
+
+        expect(log.mock.calls).toEqual([
+            ['Registrazioni retrodatate al boot: 2'],
+        ]);
+        expect(error.mock.calls).toEqual([
+            [
+                'Retrodatazione delle registrazioni al boot fallita: Error, code 112',
+            ],
+        ]);
     });
 
     it('resolves due quests then times out due rescues, in series', async () => {
@@ -256,7 +308,7 @@ describe('QuestResolutionSweeper', () => {
         expect(order).toEqual(['start', 'start', 'start', 'start', 'resolve']);
     });
 
-    it('backfills, starts, then disbands only the expired parties (utente 2026-10-25)', async () => {
+    it('starts, then disbands only the expired parties without backfilling (D-17b)', async () => {
         const expired = {
             _id: new Types.ObjectId(),
             registeredAdventurers: [
@@ -275,10 +327,6 @@ describe('QuestResolutionSweeper', () => {
         };
         forming = Promise.resolve([expired, fresh, legacy]);
         const order: string[] = [];
-        backfillRegisteredAt.mockImplementation(() => {
-            order.push('backfill');
-            return Promise.resolve(1);
-        });
         tryStart.mockImplementation(() => {
             order.push('start');
             return Promise.resolve('waiting');
@@ -294,12 +342,14 @@ describe('QuestResolutionSweeper', () => {
 
         await sweeperWith(0).sweep();
 
-        expect(backfillRegisteredAt).toHaveBeenCalledWith(NOW);
-        expect(String(log.mock.calls[0][0])).toContain(
-            '1 quest con registrazioni retrodatate',
-        );
+        expect(backfillRegisteredAt).not.toHaveBeenCalled();
+        expect(log.mock.calls).toEqual([
+            [
+                'Sweep delle missioni: 0 avviate, 1 party sciolti, 0 risolte, 0 soccorsi scaduti',
+            ],
+        ]);
         expect(disband.mock.calls).toEqual([[{ questId: expired._id }]]);
-        expect(order).toEqual(['backfill', 'start', 'disband']);
+        expect(order).toEqual(['start', 'disband']);
     });
 
     it('keeps sweeping after a failure and logs only the id and the error name', async () => {

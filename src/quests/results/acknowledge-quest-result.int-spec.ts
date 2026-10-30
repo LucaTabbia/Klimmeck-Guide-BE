@@ -151,25 +151,25 @@ describe('quest result confirmation (wire)', () => {
 
         const service = harness.app.get(QuestResultAcknowledgementService);
         const writes = await Promise.all([
-            service.acknowledge(other._id, alice.user._id),
-            service.acknowledge(other._id, alice.user._id),
+            service.acknowledge(other._id, alice.user._id as Types.ObjectId),
+            service.acknowledge(other._id, alice.user._id as Types.ObjectId),
         ]);
 
         expect([...writes].sort()).toEqual([false, true]);
         expect(await storedConfirmationOf(other._id)).toEqual(NOW);
     });
 
-    it('answers NOT_FOUND for a malformed id without reading the database', async () => {
+    it('answers BAD_USER_INPUT for a malformed id without reading the database (D-02)', async () => {
         const findById = jest.spyOn(Model, 'findById');
         const updateOne = jest.spyOn(Model, 'updateOne');
 
         const response = await confirm('not-an-id', alice.bearer);
 
         expect(bodyOf(response).errors?.[0]?.extensions).toEqual({
-            code: 'NOT_FOUND',
+            code: 'BAD_USER_INPUT',
         });
         expect(bodyOf(response).errors?.[0]?.message).toBe(
-            'Risultato non trovato',
+            'Input non valido: id',
         );
         expect(findById).not.toHaveBeenCalled();
         expect(updateOne).not.toHaveBeenCalled();
@@ -222,14 +222,14 @@ describe('quest result confirmation (wire)', () => {
         await harness.connection
             .collection('characters')
             .updateOne(
-                { _id: alice.character?._id },
+                { _id: alice.character?._id as Types.ObjectId },
                 { $set: { deletedAt: NOW, deletionReason: 'death' } },
             );
         // utente già scollegato da deleteCharacter dopo la morte: la conferma resta possibile (il caso collegato è in death-acknowledgement)
         await harness.connection
             .collection('users')
             .updateOne(
-                { _id: alice.user._id },
+                { _id: alice.user._id as Types.ObjectId },
                 { $set: { currentCharacter: null } },
             );
 

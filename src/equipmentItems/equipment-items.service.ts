@@ -1,25 +1,37 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { AssetQuantity } from 'src/models/common/asset-quantity.model';
-import { EquipmentItem, EquipmentItemDocument } from 'src/models/equipment-item.model';
+import {
+    EquipmentItem,
+    EquipmentItemDocument,
+} from 'src/models/equipment-item.model';
 
 @Injectable()
 export class EquipmentItemsService {
-    constructor(@InjectModel(EquipmentItem.name) private equipmentItemModel: Model<EquipmentItemDocument>) { }
+    constructor(
+        @InjectModel(EquipmentItem.name)
+        private equipmentItemModel: Model<EquipmentItemDocument>,
+    ) {}
 
     async findAll(): Promise<EquipmentItem[]> {
-        return await this.equipmentItemModel.find().populate("addedSpell").exec();
+        return await this.equipmentItemModel
+            .find()
+            .populate('addedSpell')
+            .exec();
     }
 
-    async findAllAssetsQuantity(sellable: boolean = false): Promise<AssetQuantity[]> {
+    async findAllAssetsQuantity(
+        sellable: boolean = false,
+    ): Promise<AssetQuantity[]> {
         let query = this.equipmentItemModel.find();
 
         if (sellable) {
             query = query.where({ sellable: true });
         }
 
-        let equipments = await query.populate("addedSpell").exec()
+        const equipments = await query.populate('addedSpell').exec();
 
         const assetsQuantity: AssetQuantity[] = equipments.map((equip) => ({
             itemType: 'EquipmentItem',
@@ -27,17 +39,23 @@ export class EquipmentItemsService {
             quantity: 0,
         }));
 
-        return assetsQuantity
+        return assetsQuantity;
     }
 
     async findOne(id: string): Promise<EquipmentItem> {
-        const equipmentItem = await this.equipmentItemModel.findById(id).populate("addedSpell").exec();
-        if (!equipmentItem) throw new NotFoundException(`EquipmentItem with id ${id} not found`);
+        const equipmentItem = await this.equipmentItemModel
+            .findById(id)
+            .populate('addedSpell')
+            .exec();
+        if (!equipmentItem) throw ResourceNotFoundException.equipmentItem();
         return equipmentItem;
     }
 
     async findByIds(ids: string[]): Promise<EquipmentItem[]> {
-        const equipmentItems = await this.equipmentItemModel.find({ _id: { $in: ids } }).populate("addedSpell").exec();
+        const equipmentItems = await this.equipmentItemModel
+            .find({ _id: { $in: ids } })
+            .populate('addedSpell')
+            .exec();
         return equipmentItems;
     }
 }

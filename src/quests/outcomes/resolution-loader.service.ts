@@ -25,9 +25,13 @@ import { User, UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
 import { ownersOf } from 'src/mongo/owners-of';
 import { lanePathOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
-import { laneMembersOf, LaneProjections } from 'src/quests/party/lane-members';
+import {
+    laneMembersOf,
+    LaneProjections,
+    seatHolderLaneMembersOf,
+} from 'src/quests/party/lane-members';
 import type { AidSourceQuest } from './aid/aid-quest';
-import type { GroupRoster, GroupSeat } from './group-roster';
+import type { GroupRoster, GroupSeat, SeatHolder } from './group-roster';
 import {
     type CombatCharacterSnapshot,
     combatCatalogRefsOf,
@@ -65,7 +69,9 @@ export type ResolutionQuest = OutcomeQuestSnapshot &
         prizes?: PrizesSnapshot | null;
         concludedAt?: Date | null;
         startedAt?: Date | null;
-        registeredAdventurers?: { character?: unknown }[] | null;
+        registeredAdventurers?:
+            | { character?: unknown; archivedAt?: Date | null }[]
+            | null;
         rescue?: {
             characters?: unknown[] | null;
             failedQuest?: unknown;
@@ -126,6 +132,13 @@ const recoveryTimesFrom = (
         ),
     );
 
+const laneOn = (
+    pendingQuestId: Types.ObjectId,
+    lane: QuestLane,
+): Record<string, unknown> => ({
+    [lanePathOf(lane)]: { $in: idForms(pendingQuestId) },
+});
+
 // personaggio attivo con la corsia sulla PendingQuest attesa: la corsia decide chi risolve (T-09-54)
 export function laneFilter(
     pendingQuestId: Types.ObjectId,
@@ -133,7 +146,7 @@ export function laneFilter(
 ): Record<string, unknown> {
     return {
         ...ACTIVE_CHARACTER_FILTER,
-        [lanePathOf(lane)]: { $in: idForms(pendingQuestId) },
+        ...laneOn(pendingQuestId, lane),
     };
 }
 
@@ -214,44 +227,79 @@ export class ResolutionLoader {
         return { pendingQuest, character, quest, ownerId };
     }
 
-    // pre-letture lean del gruppo (boss, soccorso): registrati attivi in corsia con una PendingQuest di questa quest; chi non ce l'ha (o non ha utente) esce (Pitfall 8)
+    // pre-letture lean del gruppo (boss, soccorso): registrati attivi in corsia con una PendingQuest di questa quest; chi non ce l'ha (o non ha utente) esce (Pitfall 8);
+    // i registrati con il marcatore ancora in corsia sulla PendingQuest della quest restano come segnaposto di posto (D-21)
     async readGroupRoster(
         questId: Types.ObjectId,
         registered: readonly Types.ObjectId[],
         now: Date,
+        seatHolderIds: readonly Types.ObjectId[] = [],
     ): Promise<GroupRoster> {
+        const seats = await this.readLiveSeats(questId, registered);
+        const isOut = (id: Types.ObjectId) =>
+            !seats.some(({ seat }) => seat.character._id.equals(id));
+        const seatHolders = await this.readSeatHolders(
+            questId,
+            seatHolderIds.filter(isOut),
+        );
+        const dropped = registered.filter(isOut);
+        return {
+            seats: seats.map(({ seat }) => seat),
+            seatHolders,
+            dropped,
+            waiting: seats.some(
+                ({ pendingQuest }) => !isDue(pendingQuest, now),
+            ),
+        };
+    }
+
+    private async readLiveSeats(
+        questId: Types.ObjectId,
+        registered: readonly Types.ObjectId[],
+    ): Promise<{ seat: GroupSeat; pendingQuest: PendingQuestSnapshot }[]> {
         const { members } = await laneMembersOf<
             LaneCharacter<QuestLane.standard>,
             PendingQuestSnapshot
-        >(
-            {
-                characters: this.characterModel,
-                pendingQuests: this.pendingQuestModel,
-            },
-            questId,
-            registered,
-            ROSTER_PROJECTIONS,
-        );
+        >(this.laneModels(), questId, registered, ROSTER_PROJECTIONS);
         const owners = await this.ownersOf(
             members.map(({ character }) => character._id),
         );
-        const seats: GroupSeat[] = [];
-        let waiting = false;
-        for (const { character, pendingQuest } of members) {
+        return members.flatMap(({ character, pendingQuest }) => {
             const ownerId = owners.get(character._id.toHexString());
-            if (!ownerId) continue;
-            if (!isDue(pendingQuest, now)) waiting = true;
-            seats.push({
-                character,
-                pendingQuestId: pendingQuest._id,
-                ownerId,
-                resultId: new Types.ObjectId(),
-            });
-        }
-        const dropped = registered.filter(
-            (id) => !seats.some(({ character }) => character._id.equals(id)),
-        );
-        return { seats, dropped, waiting };
+            if (!ownerId) return [];
+            return [
+                {
+                    seat: {
+                        character,
+                        pendingQuestId: pendingQuest._id,
+                        ownerId,
+                        resultId: new Types.ObjectId(),
+                    },
+                    pendingQuest,
+                },
+            ];
+        });
+    }
+
+    private async readSeatHolders(
+        questId: Types.ObjectId,
+        seatHolderIds: readonly Types.ObjectId[],
+    ): Promise<SeatHolder[]> {
+        const { members } = await seatHolderLaneMembersOf<
+            LaneCharacter<QuestLane.standard>,
+            PendingQuestSnapshot
+        >(this.laneModels(), questId, seatHolderIds, ROSTER_PROJECTIONS);
+        return members.map(({ character, pendingQuest }) => ({
+            character,
+            pendingQuestId: pendingQuest._id,
+        }));
+    }
+
+    private laneModels() {
+        return {
+            characters: this.characterModel,
+            pendingQuests: this.pendingQuestModel,
+        };
     }
 
     ownersOf(
@@ -267,11 +315,33 @@ export class ResolutionLoader {
         session: ClientSession,
         lane: QuestLane = QuestLane.standard,
     ): Promise<ResolutionCharacter> {
+        return this.snapshotWhere(
+            { ...laneFilter(pendingQuestId, lane), _id: characterId },
+            session,
+        );
+    }
+
+    // segnaposto di posto (D-21): stessa lettura in sessione senza il filtro dei personaggi attivi, la corsia resta la prova del posto
+    async snapshotSeatHolderInSession(
+        characterId: Types.ObjectId,
+        pendingQuestId: Types.ObjectId,
+        session: ClientSession,
+    ): Promise<ResolutionCharacter> {
+        return this.snapshotWhere(
+            {
+                ...laneOn(pendingQuestId, QuestLane.standard),
+                _id: characterId,
+            },
+            session,
+        );
+    }
+
+    private async snapshotWhere(
+        filter: Record<string, unknown>,
+        session: ClientSession,
+    ): Promise<ResolutionCharacter> {
         const snapshot = await this.characterModel
-            .findOne(
-                { ...laneFilter(pendingQuestId, lane), _id: characterId },
-                OUTCOME_CHARACTER_PROJECTION,
-            )
+            .findOne(filter, OUTCOME_CHARACTER_PROJECTION)
             .session(session)
             .lean<ResolutionCharacter | null>()
             .exec();

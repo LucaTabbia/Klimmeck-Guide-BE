@@ -36,7 +36,7 @@ describe('resolutionKindOf', () => {
         expect(
             resolutionKindOf({
                 infos: { type: QuestType.aid },
-                rescue: { characters: [], failedQuest: RESCUE.failedQuest },
+                rescue: { ...RESCUE, characters: [] },
             }),
         ).toBe('individual');
         expect(

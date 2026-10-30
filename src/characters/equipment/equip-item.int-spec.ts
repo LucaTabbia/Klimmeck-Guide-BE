@@ -1,13 +1,18 @@
 import { Types, type Model } from 'mongoose';
 import type request from 'supertest';
+import { CharactersService } from 'src/characters/characters.service';
 import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import {
+    EquipmentItem,
+    EquipmentItemDocument,
+} from 'src/models/equipment-item.model';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
-import { buildCharacter } from '../../../test/fixtures';
+import { buildCharacter, persistEquipmentItem } from '../../../test/fixtures';
 
 const EQUIP_ITEM =
     'mutation($request: EquipItemRequest!) { equipItem(request: $request) { successful response } }';
@@ -126,10 +131,18 @@ describe('equipItem (wire)', () => {
         expect(codeOf(body)).toBe('ITEM_NOT_OWNED');
         expect(body.errors?.[0]?.message).toBe('Oggetto non posseduto');
         expect(await rawCharacter(player)).toEqual(before);
+    });
 
-        expect(codeOf(await equip(player, { itemId: 'abc' }))).toBe(
-            'ITEM_NOT_OWNED',
-        );
+    it('rejects a malformed item id with BAD_USER_INPUT (D-02)', async () => {
+        const player = await ownerOfSword('twitch-item-malformed');
+        const before = await rawCharacter(player);
+
+        const body = await equip(player, { itemId: 'abc' });
+
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'BAD_USER_INPUT',
+        });
+        expect(body.errors?.[0]?.message).toBe('Input non valido: itemId');
         expect(await rawCharacter(player)).toEqual(before);
     });
 
@@ -154,6 +167,77 @@ describe('equipItem (wire)', () => {
         expect(
             (await rawCharacter(player)).assets.wearedEquipment.head,
         ).toBeNull();
+    });
+
+    it('equips one item per slot under concurrent equips', async () => {
+        const helmet = new Types.ObjectId();
+        const crown = new Types.ObjectId();
+        const player = await playerWith('twitch-item-race', {
+            ownedEquipments: [
+                { itemType: 'EquipmentItem', item: helmet, quantity: 1 },
+                { itemType: 'EquipmentItem', item: crown, quantity: 1 },
+            ],
+        });
+
+        const bodies = await Promise.all(
+            [helmet, crown, helmet, crown].map((item) =>
+                equip(player, { itemId: item.toHexString() }),
+            ),
+        );
+
+        expect(bodies.map((body) => body.data?.equipItem)).toEqual(
+            Array.from({ length: 4 }, () => EQUIPPED),
+        );
+        const worn = (await rawCharacter(player)).assets.wearedEquipment;
+        expect([helmet, crown]).toContainEqual(worn.head);
+        expect(
+            Object.values(worn).filter(
+                (slot) => slot instanceof Types.ObjectId,
+            ),
+        ).toHaveLength(1);
+    });
+
+    it('rejects a malformed item id that reaches the service past the pipe with ITEM_NOT_OWNED', async () => {
+        const player = await ownerOfSword('twitch-item-service-malformed');
+        const before = await rawCharacter(player);
+        const service = harness.app.get(CharactersService);
+
+        await expect(
+            service.equipItem({
+                id: idOf(player),
+                slotType: 'head',
+                itemId: 'abc',
+            } as Parameters<CharactersService['equipItem']>[0]),
+        ).rejects.toMatchObject({ code: 'ITEM_NOT_OWNED' });
+
+        expect(await rawCharacter(player)).toEqual(before);
+    });
+
+    it('reads the equipped item back populated from the owned equipments', async () => {
+        const equipment = harness.connection.model<EquipmentItemDocument>(
+            EquipmentItem.name,
+        );
+        const helmet = await persistEquipmentItem(equipment, {
+            name: 'Elmo',
+        });
+        const helmetId = helmet._id as Types.ObjectId;
+        const player = await playerWith('twitch-item-populated', {
+            ownedEquipments: [
+                { itemType: 'EquipmentItem', item: helmetId, quantity: 1 },
+            ],
+        });
+
+        expect(
+            (await equip(player, { itemId: helmetId.toHexString() })).data
+                ?.equipItem,
+        ).toEqual(EQUIPPED);
+        const character = await harness.app
+            .get(CharactersService)
+            .findOne(idOf(player));
+
+        expect(character.assets.wearedEquipment.head).toMatchObject({
+            name: 'Elmo',
+        });
     });
 
     it('does not equip an item owned only as loot', async () => {

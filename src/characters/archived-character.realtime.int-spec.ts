@@ -18,7 +18,10 @@ import {
 } from '../../test/auth/ws-test-client';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
-import { primeCharactersChangeStream } from '../../test/characters/characters-change-stream';
+import {
+    characterTouch,
+    primeChangeStream,
+} from '../../test/harness/prime-change-stream';
 
 const CHARACTER_UPDATED =
     'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { id status { coins { silver } } } }';
@@ -117,7 +120,11 @@ describe('Archived characters in real time (wire)', () => {
             Character.name,
         );
         users = harness.connection.model<UserDocument>(User.name);
-        await primeCharactersChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'characterUpdated',
+            characterTouch(harness),
+        );
     });
 
     beforeEach(async () => {

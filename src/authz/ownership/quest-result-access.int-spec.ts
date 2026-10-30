@@ -1,4 +1,4 @@
-import type { Model } from 'mongoose';
+import { Types, type Model } from 'mongoose';
 import type { AuthIdentity } from 'src/auth/auth-identity';
 import { AuthzModule } from 'src/authz/authz.module';
 import { CharacterAccessPolicy } from 'src/authz/ownership/character-access.policy';
@@ -93,7 +93,7 @@ describe('Quest result ownership (owning user only)', () => {
         await harness.connection
             .collection('users')
             .updateOne(
-                { _id: alice.user._id },
+                { _id: alice.user._id as Types.ObjectId },
                 { $set: { currentCharacter: null } },
             );
 
@@ -114,9 +114,10 @@ describe('Quest result ownership (owning user only)', () => {
         });
     });
 
-    it('reports a malformed id as not found', async () => {
+    it('reports a malformed id as bad input (D-02)', async () => {
         await expect(authorize(alice, 'not-an-id')).rejects.toMatchObject({
-            extensions: { code: 'NOT_FOUND' },
+            extensions: { code: 'BAD_USER_INPUT' },
+            message: 'Input non valido: id',
         });
     });
 

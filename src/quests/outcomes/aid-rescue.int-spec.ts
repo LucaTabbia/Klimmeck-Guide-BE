@@ -753,7 +753,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
             }
         });
 
-        it('rescues with the rescuer left when the other was archived («Il BE non libera i posti delle quest avviate»)', async () => {
+        it('rescues with every seat when a rescuer was archived after the start («Per quello lasciamo il posto pieno»)', async () => {
             const group = await groupRescueWorld();
             const [first, second] = group.rescuers;
             await world.models.quests.updateOne(
@@ -767,22 +767,55 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
                 String(second.characterId),
             ]);
             expect(held.registeredAdventurers[1].archivedAt).toEqual(NOW);
-            scripted.willEnd('success');
+            const archivedBefore = await characterOf(second.characterId);
+            scripted.willEndBy(({ participants }) =>
+                participants.length >= 2 ? 'success' : 'failure',
+            );
 
             await expect(triggerOf(first)).resolves.toBe('resolved');
 
             expect(scripted.contexts).toHaveLength(1);
-            expect(scripted.contexts[0].participants).toHaveLength(1);
-            for (const id of group.woundedIds) {
-                const results = await resultsOf(id);
-                expect(results.map(({ outcome }) => outcome)).toEqual([
-                    'rescued',
-                ]);
-            }
+            expect(
+                sortedIds(
+                    scripted.contexts[0].participants.map(
+                        ({ characterId }) => characterId,
+                    ),
+                ),
+            ).toEqual(sortedIds([first.characterId, second.characterId]));
+            const results = await world.models.questResults
+                .find()
+                .lean<any[]>();
+            expect(
+                results
+                    .map((result) => [String(result.character), result.outcome])
+                    .sort(),
+            ).toEqual(
+                [
+                    [String(first.characterId), 'success'],
+                    ...group.woundedIds.map((id) => [String(id), 'rescued']),
+                ].sort(),
+            );
             const [result] = await resultsOf(first.characterId);
-            expect(result.outcome).toBe('success');
-            expect(await resultsOf(second.characterId)).toEqual([]);
+            expect(sortedIds(result.rescuedCharacters)).toEqual(
+                sortedIds(group.woundedIds),
+            );
+            expect(await characterOf(second.characterId)).toEqual(
+                archivedBefore,
+            );
+            expect(
+                await world.models.pendingQuests.countDocuments({
+                    _id: second.pendingQuest._id,
+                }),
+            ).toBe(0);
             expect((await questOf(group.aid._id)).concludedAt).toEqual(NOW);
+            expect(messagesOf(log)).toContain(
+                `Segnaposto di posto ${String(second.characterId)} della missione ${String(group.aid._id)} in combattimento`,
+            );
+            expect(
+                messagesOf(warn).filter((message) =>
+                    message.includes(String(second.characterId)),
+                ),
+            ).toEqual([]);
         });
 
         it('resolves once under concurrent triggers of the rescuers', async () => {

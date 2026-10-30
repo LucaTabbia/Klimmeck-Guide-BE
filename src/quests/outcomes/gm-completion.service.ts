@@ -3,6 +3,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
+import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 import {
     Character,
@@ -22,6 +23,7 @@ import {
     GM_LANES,
     type GmLane,
     isGmLane,
+    isStandardLaneBusy,
     laneOf,
     lanePathOf,
     QuestLane,
@@ -86,6 +88,18 @@ const spellIdsOf = (
         (spellsUsed ?? []).flatMap(({ spell }) => objectIdFromHex(spell) ?? []),
     );
 
+interface StandardLaneHolder {
+    quests?: { pendingQuest?: unknown } | null;
+}
+
+// un partecipante con la corsia standard occupata blocca l'intera richiesta (D-24): nessun esito parziale
+function assertNoBusyParticipant(
+    characters: readonly StandardLaneHolder[],
+): void {
+    if (characters.some(({ quests }) => isStandardLaneBusy(quests)))
+        throw GameRuleException.participantQuestInProgress();
+}
+
 // D-03/D-04: solo esito positivo, nessun reject né rimborso; una chiamata chiude la worldMission per tutti i registrati, un risultato ciascuno
 @Injectable()
 export class GmCompletionService {
@@ -108,6 +122,9 @@ export class GmCompletionService {
         input: CompletePendingRequestInput,
     ): Promise<QuestResultDraft[]> {
         const request = await this.readRequest(input.pendingQuestId);
+        assertNoBusyParticipant(
+            request.seats.map(({ character }) => character),
+        );
         // override validati prima di ogni scrittura: un rifiuto non lascia side effect (T-09-74)
         validateOverrides(
             input.outcomes,
@@ -130,10 +147,31 @@ export class GmCompletionService {
             recoveryTimes,
             now: this.clock.now(),
         });
-        // completamento concorrente già committato: il perdente vede la richiesta sparita (T-09-76)
-        if (!committed) throw ResourceNotFoundException.pendingQuest();
+        if (!committed) throw await this.lostCompletionError(request);
         await this.writer.deliver(committed.outcome);
         return committed.drafts;
+    }
+
+    // completamento concorrente già committato: il perdente vede la richiesta sparita (T-09-76)
+    // il perdente di una gara con un'accettazione standard non vede NOT_FOUND (D-24)
+    private async lostCompletionError(request: GmRequest): Promise<Error> {
+        const participants = await this.characterModel
+            .find(
+                {
+                    ...ACTIVE_CHARACTER_FILTER,
+                    _id: {
+                        $in: request.seats.map(
+                            ({ character }) => character._id,
+                        ),
+                    },
+                },
+                { 'quests.pendingQuest': 1 },
+            )
+            .lean<StandardLaneHolder[]>()
+            .exec();
+        return participants.some(({ quests }) => isStandardLaneBusy(quests))
+            ? GameRuleException.participantQuestInProgress()
+            : ResourceNotFoundException.pendingQuest();
     }
 
     // solo le corsie del GM: una PendingQuest standard, inesistente o malformata è NOT_FOUND (T-09-77)
@@ -249,6 +287,7 @@ export class GmCompletionService {
                         ),
                     );
                 }
+                assertNoBusyParticipant(snapshots);
                 const battles = validateOverrides(
                     overrides,
                     snapshots.map(overrideParticipantOf),

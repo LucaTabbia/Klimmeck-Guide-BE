@@ -8,7 +8,6 @@ import {
 } from 'src/models/character/character.model';
 import {
     PendingQuest,
-    PendingQuestDocument,
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
 import {
@@ -36,7 +35,7 @@ describe('PendingRequestsService (replSet)', () => {
     let harness: AuthTestApp;
     let service: PendingRequestsService;
     let characters: Model<CharacterDocument>;
-    let pendingQuests: Model<PendingQuestDocument>;
+    let pendingQuests: Model<PendingQuest>;
     let quests: Model<QuestDocument>;
     let users: Model<UserDocument>;
 
@@ -94,7 +93,7 @@ describe('PendingRequestsService (replSet)', () => {
         });
         service = harness.app.get(PendingRequestsService);
         characters = modelOf<CharacterDocument>(Character.name);
-        pendingQuests = modelOf<PendingQuestDocument>(PendingQuest.name);
+        pendingQuests = modelOf<PendingQuest>(PendingQuest.name);
         quests = modelOf<QuestDocument>(Quest.name);
         users = modelOf<UserDocument>(User.name);
     });
@@ -186,5 +185,57 @@ describe('PendingRequestsService (replSet)', () => {
         expect(skippedWarning).toContain(String(ghost.character._id));
         expect(skippedWarning).not.toContain('Ghost');
         expect(skippedWarning).not.toContain('twitch-');
+    });
+
+    it('projects the standard lane of each queued character (D-23)', async () => {
+        const ariaStoryPq = await pendingQuestFor('story', 'The king');
+        const bramStoryPq = await pendingQuestFor('story', 'The queen');
+        const standardPq = await pendingQuestFor('hunt', 'Wolves');
+        const aria = await playerOnLane(
+            'Aria',
+            'activeStoryQuest',
+            ariaStoryPq._id,
+            {
+                quests: {
+                    completedQuests: [],
+                    activeStoryQuest: ariaStoryPq._id,
+                    pendingQuest: standardPq._id,
+                },
+            },
+        );
+        const bram = await playerOnLane(
+            'Bram',
+            'activeStoryQuest',
+            bramStoryPq._id,
+        );
+
+        const requests = await service.list();
+
+        const laneOf = (characterId: unknown) =>
+            requests.find(
+                (request) => request.character.id === String(characterId),
+            )?.character.pendingQuest;
+        expect(laneOf(aria.character._id)).toBe(String(standardPq._id));
+        expect(laneOf(bram.character._id)).toBeNull();
+    });
+
+    it('keeps a busy character in the queue instead of filtering it (C22)', async () => {
+        const storyPq = await pendingQuestFor('story', 'The king');
+        const standardPq = await pendingQuestFor('hunt', 'Wolves');
+        const aria = await playerOnLane(
+            'Aria',
+            'activeStoryQuest',
+            storyPq._id,
+        );
+        const freeLaneIds = (await service.list()).map((request) => request.id);
+
+        await characters.updateOne(
+            { _id: aria.character._id },
+            { $set: { 'quests.pendingQuest': standardPq._id } },
+        );
+        const busyLaneIds = (await service.list()).map((request) => request.id);
+
+        expect(freeLaneIds).toEqual([String(storyPq._id)]);
+        expect(busyLaneIds).toEqual(freeLaneIds);
     });
 });

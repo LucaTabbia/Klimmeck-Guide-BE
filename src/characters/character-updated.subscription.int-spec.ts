@@ -17,7 +17,10 @@ import {
 } from '../../test/auth/ws-test-client';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
-import { primeCharactersChangeStream } from '../../test/characters/characters-change-stream';
+import {
+    characterTouch,
+    primeChangeStream,
+} from '../../test/harness/prime-change-stream';
 import { persistSpell, spellBook } from '../../test/fixtures';
 
 const CHARACTER_UPDATED =
@@ -138,7 +141,11 @@ describe('characterUpdated subscription (wire)', () => {
         );
         users = harness.connection.model<UserDocument>(User.name);
         spells = harness.connection.model<SpellDocument>(Spell.name);
-        await primeCharactersChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'characterUpdated',
+            characterTouch(harness),
+        );
     });
 
     beforeEach(async () => {
@@ -205,7 +212,7 @@ describe('characterUpdated subscription (wire)', () => {
         expect(error.extensions).toEqual({ code: 'FORBIDDEN' });
     });
 
-    it('rejects a missing or malformed character id with NOT_FOUND', async () => {
+    it('rejects a missing id with NOT_FOUND and a malformed one with BAD_USER_INPUT (D-02)', async () => {
         const missing = await expectRejection(
             subscribeTo(bruno.bearer, '64b0000000000000000000ff'),
         );
@@ -214,7 +221,8 @@ describe('characterUpdated subscription (wire)', () => {
         const malformed = await expectRejection(
             subscribeTo(bruno.bearer, 'abc'),
         );
-        expect(malformed.extensions).toEqual({ code: 'NOT_FOUND' });
+        expect(malformed.extensions).toEqual({ code: 'BAD_USER_INPUT' });
+        expect(malformed.message).toBe('Input non valido: id');
     });
 
     it('lets the innkeeper follow any character', async () => {

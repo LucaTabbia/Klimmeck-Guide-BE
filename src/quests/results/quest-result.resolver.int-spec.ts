@@ -307,7 +307,7 @@ describe('questResult(id) (wire)', () => {
         await harness.connection
             .collection('users')
             .updateOne(
-                { _id: alice.user._id },
+                { _id: alice.user._id as Types.ObjectId },
                 { $set: { currentCharacter: null } },
             );
 
@@ -335,16 +335,24 @@ describe('questResult(id) (wire)', () => {
         expect(bodyOf(response).data ?? null).toBeNull();
     });
 
-    it.each(['not-an-id', MISSING_ID])(
-        'answers NOT_FOUND for %s',
-        async (id) => {
-            const response = await readResult(id, alice.bearer);
+    it('answers NOT_FOUND for an unknown id', async () => {
+        const response = await readResult(MISSING_ID, alice.bearer);
 
-            expect(bodyOf(response).errors?.[0]?.extensions).toEqual({
-                code: 'NOT_FOUND',
-            });
-        },
-    );
+        expect(bodyOf(response).errors?.[0]?.extensions).toEqual({
+            code: 'NOT_FOUND',
+        });
+    });
+
+    it('answers BAD_USER_INPUT for a malformed id (D-02, C1)', async () => {
+        const response = await readResult('not-an-id', alice.bearer);
+
+        expect(bodyOf(response).errors?.[0]?.extensions).toEqual({
+            code: 'BAD_USER_INPUT',
+        });
+        expect(bodyOf(response).errors?.[0]?.message).toBe(
+            'Input non valido: id',
+        );
+    });
 
     it('rejects a request without a bearer', async () => {
         const result = await persistAliceResult();

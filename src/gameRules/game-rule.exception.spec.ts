@@ -205,4 +205,18 @@ describe('GameRuleException', () => {
 
         expect(producedCodes).toEqual(Object.values(GameRuleErrorCode).sort());
     });
+
+    it('refuses the completion of a busy participant with QUEST_IN_PROGRESS (D-24)', () => {
+        const exception = GameRuleException.participantQuestInProgress();
+
+        expect(exception).toBeInstanceOf(BadRequestException);
+        expect(exception.code).toBe(GameRuleErrorCode.QUEST_IN_PROGRESS);
+        expect(exception.extensions).toEqual({ code: 'QUEST_IN_PROGRESS' });
+        expect(exception.getResponse()).toEqual({
+            statusCode: 400,
+            error: 'Bad Request',
+            message: 'Il personaggio è impegnato in una missione in corso',
+            code: 'QUEST_IN_PROGRESS',
+        });
+    });
 });

@@ -10,6 +10,7 @@ import {
     prunableTokens,
     topicDeliveryCounts,
 } from 'src/push/push-delivery';
+import type { TokenDeliveryOutcome } from 'src/push/transport/push-transport';
 
 const NOT_REGISTERED = 'messaging/registration-token-not-registered';
 const INVALID_TOKEN = 'messaging/invalid-registration-token';
@@ -168,11 +169,13 @@ describe('delivery counts', () => {
 
 describe('failureCodeSummary', () => {
     it('counts codes in order of first appearance without the tokens', () => {
-        const summary = failureCodeSummary([
+        const outcomes: TokenDeliveryOutcome[] = [
             { token: 'tok-1', delivered: false, errorCode: SERVER_UNAVAILABLE },
             { token: 'tok-2', delivered: false, errorCode: SERVER_UNAVAILABLE },
             { token: 'tok-3', delivered: false, errorCode: INTERNAL_ERROR },
-        ] as readonly { errorCode?: string }[]);
+        ];
+
+        const summary = failureCodeSummary(outcomes);
 
         expect(summary).toBe(
             'messaging/server-unavailable×2, messaging/internal-error×1',

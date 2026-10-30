@@ -26,6 +26,22 @@ describe('validateEnv', () => {
         expect(validateEnv(env)).toBe(env);
     });
 
+    it('refuses to boot with an unknown NODE_ENV (D-05)', () => {
+        expect(() =>
+            validateEnv({ JWT_SECRET: VALID_SECRET, NODE_ENV: 'staging' }),
+        ).toThrow(
+            new Error(
+                'NODE_ENV must be one of development, test, production (staging uses production)',
+            ),
+        );
+    });
+
+    it('refuses a malformed throttle limit at boot (D-08)', () => {
+        expect(() =>
+            validateEnv({ JWT_SECRET: VALID_SECRET, THROTTLE_LIMIT: '0' }),
+        ).toThrow(new Error('THROTTLE_LIMIT must be a positive integer'));
+    });
+
     it('throws when JWT_SECRET is missing', () => {
         expect(() => validateEnv({ PORT: '3000' })).toThrow(/JWT_SECRET/);
     });
@@ -94,8 +110,30 @@ describe('validateEnv', () => {
                     TWITCH_EVENTSUB_CALLBACK_URL:
                         'https://api.klimmeck.test/webhooks/twitch/eventsub',
                     TWITCH_BROADCASTER_ID: '11111',
+                    SIGHTENGINE_USER_ID: 'fake-user',
+                    SIGHTENGINE_API_SECRET: 'fake-secret',
                 }),
             ).not.toThrow();
+        });
+
+        it('refuses to boot in production without the Sightengine keys (D-14)', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    NODE_ENV: 'production',
+                    FIREBASE_SERVICE_ACCOUNT: encoded,
+                    TWITCH_CLIENT_ID: 'client-id',
+                    TWITCH_CLIENT_SECRET: 'client-secret',
+                    TWITCH_EVENTSUB_SECRET: EVENTSUB_SECRET,
+                    TWITCH_EVENTSUB_CALLBACK_URL:
+                        'https://api.klimmeck.test/webhooks/twitch/eventsub',
+                    TWITCH_BROADCASTER_ID: '11111',
+                }),
+            ).toThrow(
+                new Error(
+                    'SIGHTENGINE_USER_ID and SIGHTENGINE_API_SECRET are required when NODE_ENV=production',
+                ),
+            );
         });
 
         it('rejects the partial local EventSub configuration (secret and broadcaster without callback)', () => {

@@ -26,6 +26,9 @@ import { buildActiveTravelDoc } from '../../../test/travel/active-travel.fixture
 const DO_TRANSACTION =
     'mutation($request: TransactionRequest!) { doTransaction(request: $request) { successful response } }';
 
+const EQUIP_ITEM =
+    'mutation($request: EquipItemRequest!) { equipItem(request: $request) { successful } }';
+
 const SUCCESS = {
     successful: true,
     response: 'Transazione avvenuta con successo',
@@ -38,6 +41,11 @@ interface WireBody {
         doTransaction?: { successful: boolean; response: string } | null;
     } | null;
     errors?: { message: string; extensions: Record<string, unknown> }[];
+}
+
+interface EquipBody {
+    data?: { equipItem?: { successful: boolean } | null } | null;
+    errors?: { extensions: Record<string, unknown> }[];
 }
 
 interface CatalogDocument {
@@ -176,6 +184,62 @@ const REJECTIONS: RejectionCase[] = [
         trade: ({ sword }) => ({
             buyEquip: [asset(sword)],
             total: coins(0, 1, 50),
+            isTotalPositive: false,
+        }),
+    },
+];
+
+interface ShapeCase {
+    title: string;
+    twitchId: string;
+    code: string;
+    message: string;
+    trade: (catalog: Catalog) => TradeInput;
+}
+
+// regole di forma della pipe globale prima del service (D-02, D-04, C5); lo 0 resta del dominio
+const SHAPE_CASES: ShapeCase[] = [
+    {
+        title: 'rejects a negative quantity with BAD_USER_INPUT before the service (D-04, C5)',
+        twitchId: 'twitch-trade-negative',
+        code: 'BAD_USER_INPUT',
+        message: 'Input non valido: boughtItems.equipAssets.0.quantity',
+        trade: ({ sword }) => ({
+            buyEquip: [asset(sword, -1)],
+            total: coins(0, 0, 0),
+            isTotalPositive: false,
+        }),
+    },
+    {
+        title: 'rejects a malformed item id with BAD_USER_INPUT before the service (D-02, C5)',
+        twitchId: 'twitch-trade-malformed-item',
+        code: 'BAD_USER_INPUT',
+        message: 'Input non valido: boughtItems.equipAssets.0.item',
+        trade: () => ({
+            buyEquip: [{ item: 'abc', quantity: 1 }],
+            total: coins(0, 0, 0),
+            isTotalPositive: false,
+        }),
+    },
+    {
+        title: 'rejects negative coins in the total with BAD_USER_INPUT before the service (D-04, C5)',
+        twitchId: 'twitch-trade-negative-total',
+        code: 'BAD_USER_INPUT',
+        message: 'Input non valido: total.copper',
+        trade: ({ sword }) => ({
+            buyEquip: [asset(sword)],
+            total: coins(0, 1, -50),
+            isTotalPositive: false,
+        }),
+    },
+    {
+        title: 'keeps INVALID_QUANTITY for a zero quantity behind the global pipe (C5)',
+        twitchId: 'twitch-trade-zero',
+        code: 'INVALID_QUANTITY',
+        message: 'Quantità non valida',
+        trade: ({ sword }) => ({
+            buyEquip: [asset(sword, 0)],
+            total: coins(0, 0, 0),
             isTotalPositive: false,
         }),
     },
@@ -335,6 +399,21 @@ describe('doTransaction (wire)', () => {
         },
     );
 
+    it.each(SHAPE_CASES)(
+        '$title',
+        async ({ twitchId, code, message, trade }) => {
+            const player = await playerWith(twitchId, coins(0, 5, 0));
+            const before = await raw(player);
+
+            const body = await doTransaction(player, trade(catalog));
+
+            expect(body.data?.doTransaction ?? null).toBeNull();
+            expect(body.errors?.[0]?.extensions).toEqual({ code });
+            expect(body.errors?.[0]?.message).toBe(message);
+            expect(await raw(player)).toEqual(before);
+        },
+    );
+
     it('lets exactly one of concurrent wire buys through', async () => {
         const player = await playerWith('twitch-trade-race', coins(0, 1, 50));
         const buy: TradeInput = {
@@ -356,6 +435,63 @@ describe('doTransaction (wire)', () => {
         expect(after?.assets.ownedEquipments).toEqual([
             owned('EquipmentItem', catalog.sword, 1),
         ]);
+    });
+
+    it('sells the last copy or equips it, never both, under concurrency', async () => {
+        const rounds = 6;
+        for (let round = 0; round < rounds; round++) {
+            const player = await playerWith(
+                `twitch-trade-equip-race-${round}`,
+                coins(0, 0, 0),
+                { ownedEquipments: [owned('EquipmentItem', catalog.sword, 1)] },
+            );
+            const sell = doTransaction(player, {
+                sellEquip: [asset(catalog.sword)],
+                total: coins(0, 0, 75),
+                isTotalPositive: true,
+            });
+            const equip = graphqlRequest(
+                harness.app,
+                EQUIP_ITEM,
+                {
+                    request: {
+                        id: characterIdOf(player).toHexString(),
+                        slotType: 'head',
+                        itemId: idOf(catalog.sword).toHexString(),
+                    },
+                },
+                player.bearer,
+            );
+            const [sold, equipped] = await Promise.all([sell, equip]);
+            const equipBody = equipped.body as EquipBody;
+            const after = await raw(player);
+
+            const soldState = {
+                coins: coins(0, 0, 75),
+                ownedEquipments: [],
+                head: null,
+            };
+            const keptState = {
+                coins: coins(0, 0, 0),
+                ownedEquipments: [owned('EquipmentItem', catalog.sword, 1)],
+                head: idOf(catalog.sword),
+            };
+            expect([soldState, keptState]).toContainEqual({
+                coins: after?.status.coins,
+                ownedEquipments: after?.assets.ownedEquipments,
+                head: after?.assets.wearedEquipment.head,
+            });
+            if (isSuccess(sold)) {
+                expect(after?.assets.wearedEquipment.head).toBeNull();
+            } else {
+                expect(equipBody.data?.equipItem?.successful).toBe(true);
+            }
+            if (equipBody.errors) {
+                expect(equipBody.errors[0]?.extensions).toEqual({
+                    code: 'ITEM_NOT_OWNED',
+                });
+            }
+        }
     });
 
     it('keeps an empty zero-total trade a valid no-op for the owner', async () => {

@@ -1,6 +1,6 @@
 import { getQueueToken } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
-import type { Model } from 'mongoose';
+import { type Model, Types } from 'mongoose';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import {
     AdminAuditLog,
@@ -10,6 +10,7 @@ import {
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { PUSH_CONFIG } from 'src/config/push-config';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { MAX_OVERRIDE_ENTRIES } from 'src/models/request/complete-pending-request.model';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { lanePathOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
@@ -150,7 +151,7 @@ describe('completePendingRequest (wire)', () => {
         expect(records[0]).toMatchObject({
             actor: { userId: String(oste.user._id), role: 'innkeeper' },
             action: 'completePendingRequest',
-            target: { type: 'QuestResult', id: null },
+            target: { type: 'PendingQuest', id: input.pendingQuestId },
             args: { input },
             outcome: AUDIT_OUTCOME_OK,
         });
@@ -206,12 +207,11 @@ describe('completePendingRequest (wire)', () => {
         ).toBe(0);
         const character = await models.characters
             .findById(subject.characterId)
-            .lean()
+            .lean<{ quests: Record<string, unknown> }>()
             .exec();
         expect(
-            (character as { quests: Record<string, unknown> }).quests[
-                lanePathOf(QuestLane.story).split('.')[1]
-            ] ?? null,
+            character!.quests[lanePathOf(QuestLane.story).split('.')[1]] ??
+                null,
         ).toBeNull();
         const [record] = await audits.find().lean().exec();
         expect(record).toMatchObject({ outcome: AUDIT_OUTCOME_OK });
@@ -237,9 +237,168 @@ describe('completePendingRequest (wire)', () => {
         expect(records).toHaveLength(1);
         expect(records[0]).toMatchObject({
             action: 'completePendingRequest',
-            target: { type: 'QuestResult', id: null },
+            target: { type: 'PendingQuest', id: input.pendingQuestId },
             outcome: 'OUTCOME_OVERRIDE_INVALID',
         });
+    });
+
+    it('rejects malformed override shapes with BAD_USER_INPUT and audits them (D-04, C5)', async () => {
+        const subject = await storyQuester();
+        const oste = await playerWithRole(RoleType.innkeeper);
+        const pendingQuestId = String(subject.pendingQuest._id);
+        const characterId = String(subject.characterId);
+        const shapes = [
+            {
+                input: { pendingQuestId: 'abc' },
+                message: 'Input non valido: pendingQuestId',
+            },
+            {
+                input: { pendingQuestId, outcomes: [{ characterId: 'abc' }] },
+                message: 'Input non valido: outcomes.0.characterId',
+            },
+            {
+                input: {
+                    pendingQuestId,
+                    outcomes: [{ characterId, hpAfter: -1 }],
+                },
+                message: 'Input non valido: outcomes.0.hpAfter',
+            },
+            {
+                input: {
+                    pendingQuestId,
+                    outcomes: Array.from(
+                        { length: MAX_OVERRIDE_ENTRIES + 1 },
+                        () => ({ characterId }),
+                    ),
+                },
+                message: 'Input non valido: outcomes',
+            },
+        ];
+
+        for (const { input, message } of shapes) {
+            const body = await completeOnWire(input, oste.bearer);
+
+            expect(body.data ?? null).toBeNull();
+            expect(body.errors?.[0]?.extensions).toEqual({
+                code: 'BAD_USER_INPUT',
+            });
+            expect(body.errors?.[0]?.message).toBe(message);
+        }
+        const records = await audits.find().sort({ _id: 1 }).lean().exec();
+        expect(
+            records.map(({ action, outcome }) => ({ action, outcome })),
+        ).toEqual(
+            shapes.map(() => ({
+                action: 'completePendingRequest',
+                outcome: 'BAD_USER_INPUT',
+            })),
+        );
+        expect(
+            await outcomeModels(harness).pendingQuests.countDocuments({
+                _id: subject.pendingQuest._id,
+            }),
+        ).toBe(1);
+    });
+
+    it('keeps OUTCOME_OVERRIDE_INVALID for a zero quantity behind the global pipe (C5)', async () => {
+        const subject = await storyQuester();
+        const oste = await playerWithRole(RoleType.innkeeper);
+
+        const body = await completeOnWire(
+            {
+                pendingQuestId: String(subject.pendingQuest._id),
+                outcomes: [
+                    {
+                        characterId: String(subject.characterId),
+                        consumablesUsed: [
+                            {
+                                item: new Types.ObjectId().toHexString(),
+                                quantity: 0,
+                            },
+                        ],
+                    },
+                ],
+            },
+            oste.bearer,
+        );
+
+        expect(body.data ?? null).toBeNull();
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'OUTCOME_OVERRIDE_INVALID',
+        });
+        const records = await audits.find().lean().exec();
+        expect(records).toHaveLength(1);
+        expect(records[0]).toMatchObject({
+            action: 'completePendingRequest',
+            outcome: 'OUTCOME_OVERRIDE_INVALID',
+        });
+    });
+
+    it('audits a completion refused for a busy participant with QUEST_IN_PROGRESS (D-24)', async () => {
+        const subject = await storyQuester();
+        const oste = await playerWithRole(RoleType.innkeeper);
+        await harness.connection
+            .collection('characters')
+            .updateOne(
+                { _id: subject.characterId },
+                { $set: { 'quests.pendingQuest': new Types.ObjectId() } },
+            );
+
+        const body = await completeOnWire(
+            { pendingQuestId: String(subject.pendingQuest._id) },
+            oste.bearer,
+        );
+
+        expect(body.data ?? null).toBeNull();
+        expect(body.errors?.[0]?.message).toBe(
+            'Il personaggio è impegnato in una missione in corso',
+        );
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'QUEST_IN_PROGRESS',
+        });
+        const records = await audits.find().lean().exec();
+        expect(records).toHaveLength(1);
+        expect(records[0]).toMatchObject({
+            action: 'completePendingRequest',
+            target: {
+                type: 'PendingQuest',
+                id: String(subject.pendingQuest._id),
+            },
+            outcome: 'QUEST_IN_PROGRESS',
+        });
+    });
+
+    it('audits the completion with the pending quest as target (D-17c)', async () => {
+        const completed = await storyQuester();
+        const refused = await storyQuester();
+        const oste = await playerWithRole(RoleType.innkeeper);
+        const completedId = String(completed.pendingQuest._id);
+        const refusedId = String(refused.pendingQuest._id);
+
+        await completeOnWire({ pendingQuestId: completedId }, oste.bearer);
+        await completeOnWire(
+            {
+                pendingQuestId: refusedId,
+                outcomes: [
+                    { characterId: String(refused.characterId), hpAfter: 0 },
+                ],
+            },
+            oste.bearer,
+        );
+
+        const records = await audits.find().sort({ _id: 1 }).lean().exec();
+        expect(
+            records.map(({ target, outcome }) => ({ target, outcome })),
+        ).toEqual([
+            {
+                target: { type: 'PendingQuest', id: completedId },
+                outcome: AUDIT_OUTCOME_OK,
+            },
+            {
+                target: { type: 'PendingQuest', id: refusedId },
+                outcome: 'OUTCOME_OVERRIDE_INVALID',
+            },
+        ]);
     });
 
     it('forbids an adventurer', async () => {

@@ -1,5 +1,5 @@
 import { getModelToken } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
+import { Types, type Model } from 'mongoose';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import {
     QuestResult,
@@ -17,7 +17,10 @@ import {
     openSubscription,
 } from '../../../test/auth/ws-test-client';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
-import { primeQuestResultsChangeStream } from '../../../test/quests/quest-results-change-stream';
+import {
+    questResultTouch,
+    primeChangeStream,
+} from '../../../test/harness/prime-change-stream';
 import { persistQuestResult } from '../../../test/quests/quest-result.fixture';
 import type { PubSub } from '@graphql-yoga/subscription';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
@@ -149,7 +152,11 @@ describe('questResultReceived subscription (wire)', () => {
 
     beforeEach(async () => {
         await harness.clearDatabase();
-        await primeQuestResultsChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'questResultReceived',
+            questResultTouch(harness),
+        );
         alice = await createPlayer(harness, { twitchId: 'twitch-qrr-alice' });
         bruno = await createPlayer(harness, { twitchId: 'twitch-qrr-bruno' });
         oste = await createPlayer(harness, {
@@ -234,7 +241,7 @@ describe('questResultReceived subscription (wire)', () => {
         await harness.connection
             .collection('users')
             .updateOne(
-                { _id: alice.user._id },
+                { _id: alice.user._id as Types.ObjectId },
                 { $set: { currentCharacter: null } },
             );
         const death = await persistResultOf(alice, {
@@ -254,7 +261,7 @@ describe('questResultReceived subscription (wire)', () => {
         await harness.connection
             .collection('characters')
             .updateOne(
-                { _id: alice.character?._id },
+                { _id: alice.character?._id as Types.ObjectId },
                 { $set: { deletedAt: new Date(), deletionReason: 'death' } },
             );
 

@@ -39,6 +39,7 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
     let world: OutcomeHarness;
     let service: QuestResolutionService;
     let warn: jest.SpyInstance;
+    let log: jest.SpyInstance;
     let seq = 0;
     const clock = new FixedClock(NOW);
     const chance = new SequenceChance();
@@ -55,6 +56,9 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         scripted.reset();
         warn = jest
             .spyOn(Logger.prototype, 'warn')
+            .mockImplementation(() => undefined);
+        log = jest
+            .spyOn(Logger.prototype, 'log')
             .mockImplementation(() => undefined);
     });
 
@@ -349,9 +353,19 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         ).toBe(true);
     });
 
-    it('fights with the adventurers left when a member of a started boss was archived («Il BE non libera i posti delle quest avviate»)', async () => {
-        const { a, b } = await group();
-        const archivedName = b.player.character!.infos.name;
+    const messagesOf = (spy: jest.SpyInstance) =>
+        spy.mock.calls.map(([message]) => String(message));
+
+    const allResults = async () =>
+        (await world.models.questResults.find().lean<any[]>())
+            .map((result) => [String(result.character), result.outcome])
+            .sort();
+
+    // boss avviato, poi B archiviato: la sua registrazione resta con il marcatore, il suo documento e la sua PendingQuest restano
+    async function startedWithArchivedMember(
+        bOptions: Partial<QuesterOptions> = {},
+    ): Promise<{ a: Quester; b: Quester }> {
+        const { a, b } = await group(bOptions);
         await markStarted(a.quest._id);
         await archive(b.player.user._id, b.characterId);
         const held = await questOf(a.quest._id);
@@ -360,6 +374,13 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
             String(b.characterId),
         ]);
         expect(held.registeredAdventurers[1].archivedAt).toEqual(NOW);
+        return { a, b };
+    }
+
+    it('fights with every seat when a member of a started boss was archived («Per quello lasciamo il posto pieno»)', async () => {
+        const { a, b } = await startedWithArchivedMember({
+            characterOverrides: { status: { currentLifePoints: 640 } },
+        });
         scripted.willEnd('success');
 
         await expect(service.resolveStandard(triggerOf(b))).resolves.toBe(
@@ -370,7 +391,15 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         );
 
         expect(scripted.contexts).toHaveLength(1);
-        expect(scripted.contexts[0].participants).toHaveLength(1);
+        const fighters = scripted.contexts[0].participants;
+        expect(fighters.map(({ characterId }) => characterId).sort()).toEqual(
+            [String(a.characterId), String(b.characterId)].sort(),
+        );
+        expect(
+            fighters.find(
+                ({ characterId }) => characterId === String(b.characterId),
+            )?.currentLifePoints,
+        ).toBe(640);
         const results = await world.models.questResults.find().lean<any[]>();
         expect(
             results.map((result) => [
@@ -379,19 +408,94 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
                 result.acknowledgedAt,
             ]),
         ).toEqual([[String(a.characterId), 'success', null]]);
+        expect(
+            await world.models.pendingQuests.countDocuments({
+                _id: b.pendingQuest._id,
+            }),
+        ).toBe(0);
         const quest = await questOf(a.quest._id);
         expect(quest.concludedAt).toEqual(NOW);
         expect(seatsOf(quest)).toEqual([String(a.characterId)]);
-        const messages = warn.mock.calls.map(([message]) => String(message));
+    });
+
+    it('wins a fight that only the full seat count can win («Per quello lasciamo il posto pieno»)', async () => {
+        const { a } = await startedWithArchivedMember();
+        scripted.willEndBy(({ participants }) =>
+            participants.length >= 2 ? 'success' : 'failure',
+        );
+
+        await expect(service.resolveStandard(triggerOf(a))).resolves.toBe(
+            'resolved',
+        );
+
+        expect(await allResults()).toEqual([
+            [String(a.characterId), 'success'],
+        ]);
+        const winner = await characterOf(a);
+        expect(winner.status.xp).toBe(150);
+        expect(winner.status.awaitingAid ?? null).toBeNull();
+        expect(await aids()).toEqual([]);
+        expect((await questOf(a.quest._id)).concludedAt).toEqual(NOW);
+    });
+
+    it('gives no reward and no result to an archived seat holder («Per quello lasciamo il posto pieno»)', async () => {
+        const { a, b } = await startedWithArchivedMember();
+        const before = await characterOf(b);
+        scripted.willEnd('success').willResolve(b.characterId, { hpAfter: 1 });
+
+        await expect(service.resolveStandard(triggerOf(a))).resolves.toBe(
+            'resolved',
+        );
+
+        expect(await characterOf(b)).toEqual(before);
+        expect(await allResults()).toEqual([
+            [String(a.characterId), 'success'],
+        ]);
+        expect(questEndPushes()).toHaveLength(1);
+    });
+
+    it('logs a seat holder in combat with ids only', async () => {
+        const { a, b } = await startedWithArchivedMember();
+        const archivedName = b.player.character!.infos.name;
+        seq += 1;
+        const stray = await createPlayer(world.harness, {
+            twitchId: `tw-boss-${seq}`,
+        });
+        const strayId = stray.character!._id as Types.ObjectId;
+        await world.models.quests.updateOne(
+            { _id: a.quest._id },
+            {
+                $push: {
+                    registeredAdventurers: {
+                        character: strayId,
+                        title: stray.character!.status.title,
+                    },
+                },
+            },
+        );
+
+        await expect(service.resolveStandard(triggerOf(a))).resolves.toBe(
+            'resolved',
+        );
+
+        expect(messagesOf(log)).toContain(
+            `Segnaposto di posto ${String(b.characterId)} della missione ${String(a.quest._id)} in combattimento`,
+        );
+        const warnings = messagesOf(warn);
         expect(
-            messages.some(
+            warnings.filter((message) =>
+                message.includes(String(b.characterId)),
+            ),
+        ).toEqual([]);
+        expect(
+            warnings.some(
                 (message) =>
-                    message.includes(String(b.characterId)) &&
+                    message.includes(String(strayId)) &&
                     message.includes(String(a.quest._id)),
             ),
         ).toBe(true);
         expect(
-            messages.filter(
+            [...messagesOf(log), ...warnings].filter(
                 (message) =>
                     message.includes(archivedName) ||
                     message.includes(BOSS_TITLE),

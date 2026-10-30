@@ -31,7 +31,10 @@ import {
 } from '../../../test/auth/ws-test-client';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
-import { primeCharactersChangeStream } from '../../../test/characters/characters-change-stream';
+import {
+    characterTouch,
+    primeChangeStream,
+} from '../../../test/harness/prime-change-stream';
 import {
     buildCharacter,
     buildQuest,
@@ -181,7 +184,11 @@ describe('acceptQuest (wire)', () => {
             users.init(),
             cities.init(),
         ]);
-        await primeCharactersChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'characterUpdated',
+            characterTouch(harness),
+        );
     });
 
     beforeEach(async () => {
@@ -329,11 +336,15 @@ describe('acceptQuest (wire)', () => {
     }
 
     function rawCharacter(player: TestPlayer) {
-        return characters.collection.findOne({ _id: player.character?._id });
+        return characters.collection.findOne({
+            _id: player.character?._id as Types.ObjectId,
+        });
     }
 
     async function pointsOf(player: TestPlayer): Promise<number> {
-        const user = await users.collection.findOne({ _id: player.user._id });
+        const user = await users.collection.findOne({
+            _id: player.user._id as Types.ObjectId,
+        });
         return user?.twitchPoints as number;
     }
 
@@ -582,8 +593,8 @@ describe('acceptQuest (wire)', () => {
         },
         {
             name: 'a malformed quest id',
-            code: 'NOT_FOUND',
-            message: 'Missione non trovata',
+            code: 'BAD_USER_INPUT',
+            message: 'Input non valido: questId',
             arrange: async () => {
                 const player = await playerWith('malformed-quest');
                 return {
@@ -597,8 +608,8 @@ describe('acceptQuest (wire)', () => {
         },
         {
             name: 'a malformed character id',
-            code: 'NOT_FOUND',
-            message: 'Personaggio non trovato',
+            code: 'BAD_USER_INPUT',
+            message: 'Input non valido: id',
             arrange: async () => {
                 const player = await playerWith('malformed-character');
                 return {

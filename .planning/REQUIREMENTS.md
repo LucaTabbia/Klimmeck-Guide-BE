@@ -121,10 +121,18 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Hardening (BE-HARD)
 
-- [ ] **BE-HARD-01**: Tutti gli input GraphQL/REST validati con class-validator + `ValidationPipe` globale (ID Mongo validi, quantità non negative, lunghezze stringhe)
-- [ ] **BE-HARD-02**: Introspection GraphQL disabilitata in produzione; error sanitization (nessun leak di ID/relazioni a client non autorizzati); CORS esplicito e documentato
-- [ ] **BE-HARD-03**: `.env.example` committato con tutte le variabili documentate; nessun secret in repo; audit automatico (grep CI) su pattern di secret
-- [ ] **BE-HARD-04**: Le aree critiche (auth, atomics, EventSub, travel lifecycle) hanno coverage di test su happy path + concorrenza + failure mode
+- [x] **BE-HARD-01**: Tutti gli input GraphQL/REST validati con class-validator + `ValidationPipe` globale (ID Mongo validi, quantità non negative, lunghezze stringhe)
+  - _Emendato il 2026-10-27 (Phase 10 discuss, D-01..D-04): `ValidationPipe` con `whitelist: true` senza `forbidNonWhitelisted` (proprietà sconosciute scartate), `@IsMongoId()` su ogni id (id malformato → `BAD_USER_INPUT`; i codici di dominio restano per gli id inesistenti), codice unico `BAD_USER_INPUT` con i soli nomi dei campi; la validazione manuale di `CompletePendingRequestInput` migra ai decoratori a semantica invariata._
+- [x] **BE-HARD-02**: Introspection GraphQL disabilitata in produzione; error sanitization (nessun leak di ID/relazioni a client non autorizzati); CORS esplicito e documentato
+  - _Emendato il 2026-10-27 (D-05..D-08): introspection e landing page accese solo se `NODE_ENV !== 'production'`; CORS chiuso senza configurazione («Chiuso e basta»); errori senza codice di dominio → `INTERNAL_SERVER_ERROR` + `requestId`, log server completo, suggerimenti dello schema spenti in prod; throttling minimo (`@nestjs/throttler`) su login/refresh/OAuth/webhook EventSub/REST Cloudinary con `TOO_MANY_REQUESTS`, limiti da env._
+- [x] **BE-HARD-03**: `.env.example` committato con tutte le variabili documentate; nessun secret in repo; audit automatico (grep CI) su pattern di secret
+  - _Emendato il 2026-10-27 (D-09..D-11): `gitleaks/gitleaks-action@v3` come job CI (storia completa, `.gitleaks.toml`); secret storico → rotazione alla fonte + allowlist del commit, nessuna riscrittura della storia; test di drift fra le chiavi lette dal codice e `.env.example` (incluse `SIGHTENGINE_*`, `THROTTLE_*`, `SPELL_RECOVERY_SWEEP_INTERVAL_MS`)._
+- [x] **BE-HARD-04**: Le aree critiche (auth, atomics, EventSub, travel lifecycle) hanno coverage di test su happy path + concorrenza + failure mode
+  - _Emendato il 2026-10-27 (D-16): `coverageThreshold` per cartella sulle aree critiche (auth, atomics, EventSub, travel) che fa fallire la CI; soglie iniziali = baseline misurata − 2 punti, alzate dopo i test nuovi._
+- [x] **BE-HARD-05**: Moderazione delle immagini del personaggio con Sightengine (`models=nudity-2.1,offensive-2.0,text-content,face-age,gore-2.0,text,qr-content,self-harm`, chiavi `SIGHTENGINE_USER_ID`/`SIGHTENGINE_API_SECRET`): il buffer è moderato prima dell'upload su Cloudinary, policy severa con soglie dal model reference, rifiuto 422 `IMAGE_REJECTED`, fail-closed 503 `IMAGE_MODERATION_UNAVAILABLE`, chiavi obbligatorie in produzione; chiude il debito di BE-CHAR-04 → FE CHAR-05 (quick task FE per i codici) _(aggiunto 2026-10-27, decisione dell'utente)_
+- [x] **BE-HARD-06**: Debiti rinviati dalle fasi precedenti chiusi a comportamento invariato: change stream riaperti con backoff per tutti i publisher, `removeOnFail` con limite, `KeyedSingleFlight` su `UserUpdatesPublisher`; indici dello sweep e di `spellStates.recoveries`, fix `Enemy.locations` e `PointOfInterest.type`, `types: ["jest"]`; refactor `commitRescue`, helper di priming unico, `@AuditTarget`; ritipizzazione dei ref `Mixed` a `ObjectId` con migrazione idempotente (ultima wave, gate proprio) _(aggiunto 2026-10-27)_
+- [x] **BE-HARD-07**: Combattimento con i segnaposto (utente 2026-10-29): alla risoluzione di una quest avviata i registrati archiviati contano nel combattimento come se fossero presenti (fotografia del personaggio archiviato), senza risultato né ricompensa per loro; l'avvio di una quest senza posti è atomico con l'arrivo e la corsia aggiornata (`startDate`) arriva al FE con un evento. Supera la 9.2 D-07.
+- [x] **BE-HARD-08**: Coda del GM e corsia standard (utente 2026-10-29, dal discuss della FE Phase 10): la voce della coda porta il campo additivo `pendingQuest` del personaggio (id della missione della corsia standard, nullo se libera) così il pannello nasconde chi è «in viaggio o in combattimento» per una quest accettata; il completamento di una richiesta è rifiutato con `QUEST_IN_PROGRESS` senza scritture finché un partecipante registrato ha la corsia standard occupata; il viaggio libero fra città non blocca. Supera la nota «nessun blocco se il partecipante è in viaggio» del handoff della Phase 9.
 
 ## Future Requirements
 
@@ -212,15 +220,19 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-RESULT-02 | Phase 09.2 | Complete |
 | BE-RESULT-03 | Phase 09.2 | Complete |
 | BE-RESULT-04 | Phase 09.2 | Complete |
-| BE-HARD-01 | Phase 10 | Pending |
-| BE-HARD-02 | Phase 10 | Pending |
-| BE-HARD-03 | Phase 10 | Pending |
-| BE-HARD-04 | Phase 10 | Pending |
+| BE-HARD-01 | Phase 10 | Complete |
+| BE-HARD-02 | Phase 10 | Complete |
+| BE-HARD-03 | Phase 10 | Complete |
+| BE-HARD-04 | Phase 10 | Complete |
+| BE-HARD-05 | Phase 10 | Complete |
+| BE-HARD-06 | Phase 10 | Complete |
+| BE-HARD-07 | Phase 10 | Complete |
+| BE-HARD-08 | Phase 10 | Complete |
 
 **Coverage:**
 
-- v1 requirements: 52 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14 + BE-SPELL-01..04 della 9.1 + BE-RESULT-01..04 della 9.2, 2026-10-27)
-- Mapped to phases: 48 / 48 ✓ (nessun orfano, nessun duplicato)
+- v1 requirements: 56 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14 + BE-SPELL-01..04 della 9.1 + BE-RESULT-01..04 della 9.2 + BE-HARD-05/06 della Phase 10, 2026-10-27 + BE-HARD-07 dalla UAT della FE Phase 9, 2026-10-29 + BE-HARD-08 dal discuss della FE Phase 10, 2026-10-29)
+- Mapped to phases: 50 / 50 ✓ (nessun orfano, nessun duplicato)
 
 ---
 

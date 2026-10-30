@@ -33,7 +33,10 @@ import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
 import { persistQuest } from '../../../test/fixtures';
 import { FakePushTransport } from '../../../test/push/fake-push-transport';
 import { QUIET_OUTCOME_OVERRIDES } from '../../../test/quests/outcome-world';
-import { primePendingRequestsChangeStream } from '../../../test/quests/pending-requests-change-stream';
+import {
+    pendingQuestTouch,
+    primeChangeStream,
+} from '../../../test/harness/prime-change-stream';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 
 const REQUEST_FIELDS =
@@ -247,7 +250,11 @@ describe('pendingRequests / pendingRequestsUpdated (wire)', () => {
 
     beforeEach(async () => {
         await harness.clearDatabase();
-        await primePendingRequestsChangeStream(harness);
+        await primeChangeStream(
+            harness,
+            'pendingRequestsUpdated',
+            pendingQuestTouch(harness),
+        );
         storyQuest = await persistGmQuest('story', 'The king');
         missionQuest = await persistGmQuest('worldMission', 'The siege', {
             requirements: {

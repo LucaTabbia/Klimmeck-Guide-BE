@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { DevAuthStrategy } from 'src/auth/dev/dev-auth.strategy';
+import type { RuntimeConfig } from 'src/config/runtime-config';
 import type { UsersService } from 'src/users/users.service';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import {
@@ -9,6 +10,16 @@ import {
 } from '../../../test/auth/test-auth-config';
 
 const STUB_USER_ID = new Types.ObjectId();
+const TEST_RUNTIME: RuntimeConfig = {
+    mode: 'test',
+    production: false,
+    modeDefaulted: false,
+};
+const PRODUCTION_RUNTIME: RuntimeConfig = {
+    mode: 'production',
+    production: true,
+    modeDefaulted: false,
+};
 
 function buildStubUser() {
     return {
@@ -19,14 +30,15 @@ function buildStubUser() {
 }
 
 describe('DevAuthStrategy', () => {
-    const originalNodeEnv = process.env.NODE_ENV;
     let usersService: { upsertWithRole: jest.Mock };
 
     function buildStrategy(
         devAuth = buildTestAuthConfig().devAuth,
+        runtime: RuntimeConfig = TEST_RUNTIME,
     ): DevAuthStrategy {
         return new DevAuthStrategy(
             buildTestAuthConfig({ devAuth }),
+            runtime,
             usersService as unknown as UsersService,
         );
     }
@@ -35,10 +47,6 @@ describe('DevAuthStrategy', () => {
         usersService = {
             upsertWithRole: jest.fn().mockResolvedValue(buildStubUser()),
         };
-    });
-
-    afterEach(() => {
-        process.env.NODE_ENV = originalNodeEnv;
     });
 
     it('returns null when the dev bypass is disabled', async () => {
@@ -79,9 +87,11 @@ describe('DevAuthStrategy', () => {
         await expect(buildStrategy().tryResolve('x')).resolves.toBeNull();
     });
 
-    it('returns null when NODE_ENV is production at runtime (defense in depth)', async () => {
-        const strategy = buildStrategy();
-        process.env.NODE_ENV = 'production';
+    it('never resolves the dev bypass in production mode (D-05)', async () => {
+        const strategy = buildStrategy(
+            buildTestAuthConfig().devAuth,
+            PRODUCTION_RUNTIME,
+        );
 
         await expect(
             strategy.tryResolve(TEST_DEV_ACCESS_TOKEN),
