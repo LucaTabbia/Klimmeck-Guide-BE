@@ -57,6 +57,16 @@ describe('parseModerationConfig', () => {
         );
     });
 
+    it('refuses to boot without the Sightengine keys when NODE_ENV has surrounding whitespace (D-14)', () => {
+        expect(
+            messageOf(() =>
+                parseModerationConfig({ NODE_ENV: ' production\n' }),
+            ),
+        ).toEqual(
+            'SIGHTENGINE_USER_ID and SIGHTENGINE_API_SECRET are required when NODE_ENV=production',
+        );
+    });
+
     it.each([
         [USER_ID, ''],
         ['', SECRET],
