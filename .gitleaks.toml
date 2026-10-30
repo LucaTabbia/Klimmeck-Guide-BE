@@ -11,4 +11,6 @@ paths = [
   '''\.spec\.ts$''',
   '''\.int-spec\.ts$''',
   '''^test/''',
+  # documenti di pianificazione che citano i letterali finti dei test (primo scan completo del 2026-10-30: 2 falsi positivi)
+  '''^\.planning/''',
 ]
