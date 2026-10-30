@@ -1,7 +1,12 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { plainToInstance } from 'class-transformer';
-import { getMetadataStorage, ValidationTypes } from 'class-validator';
+import {
+    getMetadataStorage,
+    IsOptional,
+    IsString,
+    ValidationTypes,
+} from 'class-validator';
 import { AssetQuantityInput } from 'src/models/common/asset-quantity.model';
 import { CoinsInput } from 'src/models/common/coins.model';
 import { AbandonQuestRequest } from 'src/models/request/abandon-quest-request.model';
@@ -75,13 +80,34 @@ const namedTypeOf = (type: string): string => type.replace(/[[\]!]/g, '');
 
 const isListType = (type: string): boolean => type.startsWith('[');
 
+const metadatasOf = (target: InputClass) =>
+    getMetadataStorage().getTargetValidationMetadatas(target, '', true, false);
+
 const validationMetadatasOf = (input: string) =>
-    getMetadataStorage().getTargetValidationMetadatas(
-        VALIDATED_INPUTS[input],
-        '',
-        true,
-        false,
-    );
+    metadatasOf(VALIDATED_INPUTS[input]);
+
+// @IsOptional è solo una condizione: un campo deve avere anche una regola vera
+const ruleFieldsOf = (target: InputClass): string[] =>
+    [
+        ...new Set(
+            metadatasOf(target)
+                .filter(
+                    (metadata) =>
+                        metadata.type !==
+                        ValidationTypes.CONDITIONAL_VALIDATION,
+                )
+                .map((metadata) => metadata.propertyName),
+        ),
+    ].sort();
+
+class OptionalOnlySentinel {
+    @IsOptional()
+    note?: string;
+
+    @IsOptional()
+    @IsString()
+    label?: string;
+}
 
 const nestedFieldsOf = (input: string): SchemaField[] =>
     schemaFieldsOf(input).filter((field) =>
@@ -102,17 +128,13 @@ describe('input decorators', () => {
                 .map((field) => field.name)
                 .filter((name) => !STRIPPED_FIELDS.includes(`${input}.${name}`))
                 .sort();
-            const decorated = [
-                ...new Set(
-                    validationMetadatasOf(input).map(
-                        (metadata) => metadata.propertyName,
-                    ),
-                ),
-            ].sort();
-
-            expect(decorated).toEqual(expected);
+            expect(ruleFieldsOf(VALIDATED_INPUTS[input])).toEqual(expected);
         },
     );
+
+    it('does not count a field guarded only by @IsOptional as validated (D-01)', () => {
+        expect(ruleFieldsOf(OptionalOnlySentinel)).toEqual(['label']);
+    });
 
     it.each(INPUT_NAMES)(
         'declares @Type on every nested input of %s (D-01)',
