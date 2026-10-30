@@ -125,10 +125,9 @@ describe('PendingQuestStartPublisher', () => {
 
         expect(requestPublish).not.toHaveBeenCalled();
         const messages = error.mock.calls.map(([value]) => String(value));
-        expect(messages).toHaveLength(1);
-        expect(messages[0]).toContain(pendingQuestId.toHexString());
-        expect(messages[0]).toContain('code 112');
-        expect(messages[0]).not.toContain('raw driver message');
+        expect(messages).toEqual([
+            `Ripubblicazione dei personaggi della missione in attesa ${pendingQuestId.toHexString()} fallita: Error, code 112`,
+        ]);
     });
 
     it('watches only the updates that write a start date (D-22)', () => {
