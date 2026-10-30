@@ -108,27 +108,10 @@ function instanceOf(ref: MixedRefPath): string | undefined {
         ?.instance;
 }
 
-const CHARACTER_FIELD_LABELS = [
-    'characters:assets.activeSpells.spell',
-    'characters:assets.pet',
-    'characters:assets.wearedEquipment.arms',
-    'characters:assets.wearedEquipment.chest',
-    'characters:assets.wearedEquipment.firstAccessory',
-    'characters:assets.wearedEquipment.foots',
-    'characters:assets.wearedEquipment.head',
-    'characters:assets.wearedEquipment.leftHand',
-    'characters:assets.wearedEquipment.legs',
-    'characters:assets.wearedEquipment.rightHand',
-    'characters:assets.wearedEquipment.secondAccessory',
-    'characters:quests.completedQuests',
-    'characters:quests.pendingQuest',
-    'characters:status.location',
-    'characters:status.spells',
-];
-
-const SHARED_AND_CATALOG_PATHS = MIXED_REF_PATHS.filter(
-    (ref) => !CHARACTER_FIELD_LABELS.includes(mixedRefLabel(ref)),
-).map((ref) => ({ ...ref, label: mixedRefLabel(ref) }));
+const LABELLED_PATHS = MIXED_REF_PATHS.map((ref) => ({
+    ...ref,
+    label: mixedRefLabel(ref),
+}));
 
 describe('MIXED_REF_PATHS', () => {
     it('keeps every migrated reference path in the schemas (D-17d)', () => {
@@ -142,21 +125,19 @@ describe('MIXED_REF_PATHS', () => {
         expect(missing).toEqual([]);
     });
 
-    it.each(SHARED_AND_CATALOG_PATHS)(
+    it.each(LABELLED_PATHS)(
         'types the reference $label as ObjectId (D-17d)',
         (ref) => {
             expect(instanceOf(ref)).toBe('ObjectId');
         },
     );
 
-    it('leaves no Mixed reference outside the character fields', () => {
+    it('leaves no Mixed reference in the schemas (D-17d)', () => {
         const stillMixed = SCHEMA_REFS.filter(
             (found) => found.instance === 'Mixed',
-        )
-            .map((found) => mixedRefLabel(found.ref))
-            .sort();
+        ).map((found) => mixedRefLabel(found.ref));
 
-        expect(stillMixed).toEqual(CHARACTER_FIELD_LABELS);
+        expect(stillMixed).toEqual([]);
     });
 
     it('labels a reference as collection, path and subdocument key (D-17d)', () => {
