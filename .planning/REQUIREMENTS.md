@@ -12,6 +12,7 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 - **FCM** serve alla fase FE 5
 - **Role guard + audit log** in lockstep con la fase FE 10 (non deferiti)
 - L'**auth BE** deve atterrare prima o insieme alla fase FE 11 (anticipata: vedi ROADMAP)
+- Le fasi FE **13–17** (negozi, companion della generazione quest, cibo, imboscate, lore — aggiunte il 2026-10-29) partono solo dopo la merge delle fasi BE **12–16** su `develop`; la BE **Phase 11** (popolamento) fornisce i dati di ogni UAT FE
 
 ## v1 Requirements
 
@@ -134,6 +135,63 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 - [x] **BE-HARD-07**: Combattimento con i segnaposto (utente 2026-10-29): alla risoluzione di una quest avviata i registrati archiviati contano nel combattimento come se fossero presenti (fotografia del personaggio archiviato), senza risultato né ricompensa per loro; l'avvio di una quest senza posti è atomico con l'arrivo e la corsia aggiornata (`startDate`) arriva al FE con un evento. Supera la 9.2 D-07.
 - [x] **BE-HARD-08**: Coda del GM e corsia standard (utente 2026-10-29, dal discuss della FE Phase 10): la voce della coda porta il campo additivo `pendingQuest` del personaggio (id della missione della corsia standard, nullo se libera) così il pannello nasconde chi è «in viaggio o in combattimento» per una quest accettata; il completamento di una richiesta è rifiutato con `QUEST_IN_PROGRESS` senza scritture finché un partecipante registrato ha la corsia standard occupata; il viaggio libero fra città non blocca. Supera la nota «nessun blocco se il partecipante è in viaggio» del handoff della Phase 9.
 
+### World Content (BE-CONTENT) — Phase 11, aggiunta 2026-10-29
+
+- [ ] **BE-CONTENT-01**: Una cartella di contenuto versionata nel repo contiene i file (JSON/YAML) di lore, nemici, pet, magie, equipaggiamento, loot e quest fisse scritti a partire dal documento di world building dell'utente (testo estratto in `.planning/phases/11-popolamento-del-mondo/source/`, `.docx` fuori dal repo) e rivisti dall'utente; nessuna immagine nel repo → dati per le UAT FE 13–17
+- [ ] **BE-CONTENT-02**: Uno script CLI idempotente (`--dry-run / --apply / --verify`) carica i contenuti per nome, risolve i riferimenti (lore ↔ lore, `Enemy.relatedLore`, `City.relatedLore`, `Quest.infos.relatedLore`, marker, `prizes.spell`) e riporta orfani, duplicati e violazioni di schema senza scrivere; rieseguito non cambia nulla; un secondo passaggio aggancia le URL Cloudinary per nome
+- [ ] **BE-CONTENT-03**: Circa 300 schede di lore a grana fine (culti in tre schede god/religion/ceremony; regni `state`, aree `region`, ere e magia `knowledge`, figure `character`, creature `enemy`/`animal`, piante `plant`) con `relatedLore` incrociate; ogni città agganciata alla propria lore e ogni lore di città alla regione → FE LORE-01..03
+- [ ] **BE-CONTENT-04**: 99 creature del documento + voci proposte dall'utente nell'intake (nemici umani, giganti, briganti…) + proposte per le fasce vuote; XP e `locations` dal documento; `lifePoints`, `damages` e debolezze da una formula per fascia in scala con `LEVEL_TABLE`, ritoccabili nel file
+- [ ] **BE-CONTENT-05**: Pet (6–8 dagli animali + 3–4 nuovi, con `speedModifier` e prezzi), 20–30 magie coerenti con il saggio sulla magia (`UseType`/`EnergyType`, `minXpToLearn`, usi, recupero), ~20 equipaggiamenti unici rari/ultrarari/leggendari, equipaggiamento comune/uncommon e loot `hunger`/`heal`/`munition` con `power` tarato sulla regola del cibo (1 power = 3 minuti di marcia)
+- [ ] **BE-CONTENT-06**: Quest fisse e ripetibili per città — sempre una `heal`, una fra `job` e `hunt` (solo animali della zona), eventuali `crime`/`guard`/`study` (study di magia solo a Valantar) — e una `dungeon` su ogni POI di tipo `dungeon`; marker su POI della città, premi per fascia; nessuna `enemy`/`boss` a mano → FE QGEN-04
+- [ ] **BE-CONTENT-07**: Handoff `BACKEND-NOTES.md` con l'inventario dei dati, la procedura di ricarica per ambiente e le note per le fasi 12–16
+
+### City Shops (BE-SHOP) — Phase 12, aggiunta 2026-10-29
+
+- [ ] **BE-SHOP-01**: `City.size` (village / city / capital, additivo) e il pool di oggetti per città (ref a EquipmentItem/LootItem, additivo) a schema e a DB, caricati per nome dallo script della Phase 11; `--verify` segnala pool che violano la regola di taglia (rarità non ammessa, leggendari mai) → FE SHOP-02
+- [ ] **BE-SHOP-02**: Il client ottiene il pool della città in cui il personaggio si trova (query owner-aware o campi su `City`); le query di catalogo globali vengono deprecate o filtrate per città; `sellable` entra nello schema di `AssetItem` o sparisce (nessun filtro su campi fuori schema) → FE SHOP-02
+- [ ] **BE-SHOP-03**: `doTransaction` rifiuta con un codice stabile (es. `ITEM_NOT_IN_SHOP`) ogni acquisto di un oggetto fuori dal pool della città del marker, prima di qualsiasi scrittura e riaffermato nella transazione; vendita ammessa in ogni città (`SHOP_NOT_IN_CITY` invariato) → FE SHOP-03
+- [ ] **BE-SHOP-04**: Scorte infinite e prezzi del catalogo identici in ogni città; i leggendari non compaiono in nessun pool
+- [ ] **BE-SHOP-05**: Integration su villaggio/città/capitale, acquisto fuori pool senza scritture, vendita fuori pool; real boot con SDL additivo; handoff per la FE Phase 13
+
+### Quest Generation (BE-QGEN) — Phase 13, aggiunta 2026-10-29
+
+- [ ] **BE-QGEN-01**: `QuestInfos.enemies: [{ enemy, quantity }]` sostituisce `infos.enemy` (SDL non additivo, dichiarato) nel populate, nel contesto del `CombatResolver` (più nemici e più tipi), nel `QuestResult`, nella clone della aid e nei fixture; migrazione idempotente `enemy` → `enemies` con `quantity: 1` → FE QGEN-01/02
+- [ ] **BE-QGEN-02**: Il generatore gira quando una quest generata si conclude o viene annullata, con uno sweep periodico configurabile e al boot, e su mutation innkeeper `generateQuests` auditata; ogni corsa è idempotente, single-flight e deterministica dato un RNG iniettato → FE QGEN-03
+- [ ] **BE-QGEN-03**: Genera solo `enemy` e `boss` (consumabili, `concludedAt`); `hunt` e `dungeon` non si generano mai (fisse, Phase 11); tetto di 3 quest generate attive per città, con le fisse e le GM escluse dal conto
+- [ ] **BE-QGEN-04**: La città è sorteggiata con peso decrescente al crescere della densità di quest generate nelle città vicine (distribuzione casuale non concentrata, città da 0 a 3 quest); il POI è un `pointsOfInterest` libero della città (nessuna quest non conclusa sul marker, marker della città escluso)
+- [ ] **BE-QGEN-05**: `minTitle` = rango meno coperto fra le quest generate attive di tutto il mondo (count a DB); i nemici sono estratti fra quelli con `locations` compatibili con i `type` del POI (`all` di riserva) e XP nella fascia del rango, uno o più tipi con quantità; boss con `requiredAdventurers` per rango
+- [ ] **BE-QGEN-06**: Premi (`prizeCoins`, `xpPrize`, `randomLoot` per rarità) dalla tabella per fascia; `recommendedLoot` fra equipaggiamento che colpisce `baseWeaknesses`/`energyWeaknesses` e consumabili contro i `damages` dei nemici
+- [ ] **BE-QGEN-07**: Titolo da template per tipo e nemico (descrizione LLM resta v2, BE-FUT)
+- [ ] **BE-QGEN-08**: Integration su tetto, concorrenza (nessuna doppia quest sullo stesso POI), distribuzione, `FORBIDDEN` per l'adventurer; handoff per la FE Phase 14 con i piani FE gated prima della merge
+
+### Travel Food (BE-FOOD) — Phase 14, aggiunta 2026-10-29
+
+- [ ] **BE-FOOD-01**: Modulo puro con costanti configurabili: fabbisogno = ⌈durata del viaggio / 3 minuti⌉ power (durata già comprensiva di terreno, pet e ferite: pet ×2 dimezza il cibo, ferita che raddoppia il tempo lo raddoppia, strada lenta costa di più) → FE FOOD-01
+- [ ] **BE-FOOD-02**: Selezione a scarto minimo fra gli `ownedItems` con `effect: hunger` (60 richiesti con un 50 e tre 20 → i tre 20; tie-break documentato); un oggetto usato in parte è consumato intero
+- [ ] **BE-FOOD-03**: Km scoperti = quota di fabbisogno non coperta × distanza; HP persi = n(n+1)/2 sui km scoperti (il km n-esimo costa n HP), arrotondamento deciso nel discuss; HP risultante ≥ 1 altrimenti rifiuto con codice stabile (es. `TRAVEL_STARVING`) senza scritture → FE FOOD-03
+- [ ] **BE-FOOD-04**: `travelPreview` espone in modo additivo cibo da consumare e HP persi; una preview owner-only equivalente esiste per l'accettazione della quest standard con viaggio → FE FOOD-01/02
+- [ ] **BE-FOOD-05**: `startTravel` e `acceptQuest` consumano il cibo e scalano gli HP nello stesso update condizionale della partenza o del claim (quantità e HP riaffermati nel filtro); teleport e salto istantaneo non consumano → FE FOOD-04
+- [ ] **BE-FOOD-06**: Integration su viaggio coperto, parziale, rifiutato, modificatori e concorrenza; handoff per la FE Phase 15
+
+### Travel Ambushes (BE-AMBUSH) — Phase 15, aggiunta 2026-10-29
+
+- [ ] **BE-AMBUSH-01**: Alla partenza il server sorteggia l'imboscata (sì/no e istante lungo la rotta) con probabilità da costanti configurabili per km e per quota del viaggio nelle ore 22–06 del fuso configurato (default Europe/Rome), con una soglia minima sotto cui non avviene; esito persistito in modo interno, mai sul filo → FE AMBUSH-03
+- [ ] **BE-AMBUSH-02**: Un job Bull scatta all'istante dell'imboscata, con reconciler al boot e sweep come i viaggi; job duplicato o obsoleto no-op; il teleport del GM annulla l'imboscata pendente
+- [ ] **BE-AMBUSH-03**: Nemici estratti fra quelli con `locations` compatibili con i `type` dei POI vicini al punto dell'imboscata (`all` di riserva) e XP ≤ soglia Medio del livello del personaggio; scontro risolto con la porta `CombatResolver`
+- [ ] **BE-AMBUSH-04**: Vittoria → viaggio invariato, XP e monete in proporzione alla fascia applicati con il report
+- [ ] **BE-AMBUSH-05**: Sconfitta → in una sola transazione: HP ≥ 1 e ferite dal motore, `activeTravel` riscritto (polilinea partenza → punto → città più vicina al punto, `to` e `endTime` nuovi), `pendingQuest` abbandonata con posto liberato, cibo non rimborsato; nessun soccorso né morte → FE AMBUSH-01
+- [ ] **BE-AMBUSH-06**: All'arrivo il completamento emette un `QuestResult` di imboscata (nemici, HP prima/dopo, ferite, monete, XP) consegnato sulla pipeline esistente (subscription owner-only, `unacknowledgedQuestResults`, ack) → FE AMBUSH-02
+- [ ] **BE-AMBUSH-07**: Integration su vittoria, sconfitta con deviazione e quest abbandonata, notte vs giorno, tratto breve, `travelPreview` che non svela; handoff per la FE Phase 16
+
+### Unlockable Lore (BE-LORE) — Phase 16, aggiunta 2026-10-29
+
+- [ ] **BE-LORE-01**: Insieme di lore sbloccate per personaggio (`Character.unlockedLore` o collezione dedicata), interno e additivo; alla creazione contiene la lore della città natale e la lore `region` a essa collegata; il flag globale `Lore.unlocked` rimosso o ridefinito come conoscenza comune → FE LORE-03
+- [ ] **BE-LORE-02**: Arrivo su una città (completamento viaggio, salto istantaneo, teleport) → sblocco idempotente di `City.relatedLore`
+- [ ] **BE-LORE-03**: Esito vinto con nemici → sblocco di `Enemy.relatedLore` per ogni partecipante vincente; la sconfitta non insegna nulla
+- [ ] **BE-LORE-04**: `study` senza magia appresa → con probabilità configurabile una lore casuale non sbloccata fra i tipi da studio (`knowledge`, `god`, `religion`, `ceremony`, `material`, `state`, `character`; pool esatto nel discuss); nessuna cascata sulle `relatedLore`
+- [ ] **BE-LORE-05**: `lores` e `lore(id)` filtrate sul personaggio corrente del bearer (`relatedLore` comprese, `NOT_FOUND` per una lore chiusa); l'innkeeper vede tutto; `characterUpdated` riemette al cambio dell'insieme → FE LORE-01
+- [ ] **BE-LORE-06**: Quest e risultati espongono per ogni nemico se è conosciuto dal personaggio del bearer (campo risolto per viewer, es. `known`) → FE LORE-02
+
 ## Future Requirements
 
 Deferred a post-v1.0. Tracciati ma non nella roadmap corrente.
@@ -153,7 +211,7 @@ Deferred a post-v1.0. Tracciati ma non nella roadmap corrente.
 | Validazione token Twitch per-request | Contraddice il constraint rate limit; decisione JWT di sessione |
 | Storage a lungo termine dei token Twitch degli utenti | Il BE valida al login e non conserva il token; riduce superficie di attacco |
 | RBAC generico a matrice | Bastano 3 ruoli fissi; overengineering |
-| Generazione quest LLM, audio, speech-to-text | v2 (come FE) |
+| Descrizioni delle quest via LLM, audio, speech-to-text | v2 (come FE); la generazione e il posizionamento server-side delle quest `enemy`/`boss` è la Phase 13 (2026-10-29) con titoli da template |
 | Sistema crime/guard | v2 (enum presenti, non usati) |
 | Modifiche al codice FE | Handoff solo via BACKEND-NOTES nel repo FE |
 
@@ -228,11 +286,18 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-HARD-06 | Phase 10 | Complete |
 | BE-HARD-07 | Phase 10 | Complete |
 | BE-HARD-08 | Phase 10 | Complete |
+| BE-CONTENT-01..07 | Phase 11 | Pending (aggiunti 2026-10-29) |
+| BE-SHOP-01..05 | Phase 12 | Pending (aggiunti 2026-10-29) |
+| BE-QGEN-01..08 | Phase 13 | Pending (aggiunti 2026-10-29) |
+| BE-FOOD-01..06 | Phase 14 | Pending (aggiunti 2026-10-29) |
+| BE-AMBUSH-01..07 | Phase 15 | Pending (aggiunti 2026-10-29) |
+| BE-LORE-01..06 | Phase 16 | Pending (aggiunti 2026-10-29) |
 
 **Coverage:**
 
 - v1 requirements: 56 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14 + BE-SPELL-01..04 della 9.1 + BE-RESULT-01..04 della 9.2 + BE-HARD-05/06 della Phase 10, 2026-10-27 + BE-HARD-07 dalla UAT della FE Phase 9, 2026-10-29 + BE-HARD-08 dal discuss della FE Phase 10, 2026-10-29)
 - Mapped to phases: 50 / 50 ✓ (nessun orfano, nessun duplicato)
+- Estensione del 2026-10-29: +39 requisiti (BE-CONTENT-01..07, BE-SHOP-01..05, BE-QGEN-01..08, BE-FOOD-01..06, BE-AMBUSH-01..07, BE-LORE-01..06) mappati sulle Phase 11–16 → 95 totali, 89 mappati (i BE-TEST-01..04 restano nella Phase 1 non avviata e i 2 BE-SYNC assorbiti nella 3 come prima)
 
 ---
 

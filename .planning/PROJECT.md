@@ -10,7 +10,7 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 
 ## Current Milestone: v1.0 Core Loop (BE)
 
-**Goal:** Chiudere i gap che separano il backend esistente dalla roadmap FE v1.0 Core Loop — autenticazione e autorizzazione (oggi il BE è completamente aperto), contratti bloccanti per le fasi FE (QUEST-04, TRAVEL-01, connection_init, combat result), sync punti canale via Twitch EventSub, infrastruttura push FCM, integrità/atomicità dei dati e fondazione di test TDD.
+**Goal:** Chiudere i gap che separano il backend esistente dalla roadmap FE v1.0 Core Loop — autenticazione e autorizzazione (oggi il BE è completamente aperto), contratti bloccanti per le fasi FE (QUEST-04, TRAVEL-01, connection_init, combat result), sync punti canale via Twitch EventSub, infrastruttura push FCM, integrità/atomicità dei dati e fondazione di test TDD. _Esteso il 2026-10-29 con sei fasi (11–16) prima della chiusura: popolamento del mondo dal documento di world building, negozi per città, generazione server-side delle quest con il multi-nemico, cibo consumato dal viaggio, imboscate in viaggio, lore sbloccabili per personaggio._
 
 ## Requirements
 
@@ -46,11 +46,17 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 
 - [ ] Contratto combat result ibrido: entità `CombatResult` persistita, payload completo su subscription, ID su push FCM, query `combatResult(id)`
 - [x] Validazione input (class-validator + ValidationPipe globale) e hardening GraphQL (introspection off in prod, error sanitization, nessun CORS per decisione D-06) — Phase 10 (2026-10-30)
+- [ ] Popolamento del mondo: file di contenuto + script idempotente (lore, nemici, pet, magie, oggetti, quest fisse) — Phase 11 _(aggiunto 2026-10-29)_
+- [ ] Negozi per città: `City.size`, pool per città, rifiuto fuori pool — Phase 12 ↔ FE Phase 13 _(aggiunto 2026-10-29)_
+- [ ] Generazione quest: `infos.enemies`, generatore `enemy`/`boss` reattivo + sweep + GM, tetto 3 per città, rango meno coperto nel mondo — Phase 13 ↔ FE Phase 14 _(aggiunto 2026-10-29)_
+- [ ] Viaggio e cibo: fabbisogno dal tempo di marcia, scarto minimo, km scoperti → HP, rifiuto per fame — Phase 14 ↔ FE Phase 15 _(aggiunto 2026-10-29)_
+- [ ] Imboscate in viaggio: probabilità per km e notte, nemico della zona, deviazione alla sconfitta, report sul `QuestResult` — Phase 15 ↔ FE Phase 16 _(aggiunto 2026-10-29)_
+- [ ] Lore sbloccabili per personaggio: città, nemici vinti, study; query filtrate e `known` — Phase 16 ↔ FE Phase 17 _(aggiunto 2026-10-29)_
 
 ### Out of Scope
 
 - Gilde, arena, blog gilde — v2 (come da PROJECT.md FE)
-- Generazione quest via LLM, audio quest, speech-to-text — v2
+- Descrizioni delle quest via LLM, audio quest, speech-to-text — v2; la generazione e il posizionamento server-side delle quest `enemy`/`boss` è la Phase 13 (2026-10-29)
 - Sistema allineamento crime/guard — v2 (enum presenti ma non usati)
 - Multi-canale Twitch — il prodotto è single-channel per design
 - Scaling orizzontale del PubSub (Redis pub/sub adapter) — un'istanza basta per v1.0; rivalutare se il deployment diventa multi-istanza
