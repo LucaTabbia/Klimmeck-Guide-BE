@@ -556,6 +556,12 @@ Totali attesi: lore ≈ 12 + 45 + 75 + ~108 creature/animali/piante + 155 ≈ **
 | A6 | Gruppo regionale per hunt/crime/study = prefisso del `CityType` | Generatore | distribuzione geografica approssimata |
 | A7 | Server MongoDB di produzione ≥ 4.2 (già richiesto dal 10-26) | CLI | `$setOnInsert`/bulk funzionano anche prima; nessun aggregation pipeline usato |
 
+## Orchestrator addendum (2026-11-01, dopo le risposte dell'utente)
+
+- **A1 risolta:** non esistono ambienti separati prima del primo rilascio: il DB inventariato è l'unico. Nessuna divergenza di id; `probableIdDivergence` resta nel `--verify` come controllo di sicurezza per ambienti futuri (CONTEXT D-26 rivisto).
+- **A4 risolta:** a Valantar **una sola** `study` di magia, senza `prizes.spell` fisso: magia sorteggiata alla risoluzione fra quelle non conosciute dal personaggio con `minXpToLearn ≤ xp` (CONTEXT **D-31**, nuova logica in `src/quests/outcomes`); il generatore non produce una study per magia (stima quest ≈ 475, non 560).
+- Il CONTEXT è autoritativo su questi due punti; le sezioni sotto che citano «una study per magia» sono superate.
+
 ## Open Questions (RESOLVED)
 
 1. **Forma del CLI e percorso di `content/`** — RESOLVED: clone di 10-26 in `src/content/run-content.ts`; `resolve(__dirname, '../../content')` vale per `src/` e `dist/`; `--content-dir` per i test; nessuna esclusione da `tsconfig.build.json` o dalle root di jest (i YAML non sono `.ts`; `content/` non è nei `roots` del progetto unit e il `testMatch` dell'integration lo ignora); nessuno script `.ts` fuori da `src/`. Script npm: `content:check`, `content:verify`, `content:dry-run`, `content:apply` (`node --env-file=.env dist/content/run-content.js --…`), `content:new-id`, `content:generate-quests`. Le varianti con `--env-file=.env` sono solo per il dev; il runbook usa il file env della copia/produzione.
