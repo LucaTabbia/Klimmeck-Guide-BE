@@ -381,7 +381,33 @@ Plans:
 **Da decidere nel discuss**: formato e layout di `content/`, formula HP/danni per fascia, tabella premi per fascia, tie-break dei nomi duplicati, quali città ricevono crime/guard/study, sorte del flag globale `Lore.unlocked` (Phase 16), ambienti su cui girare lo script (dev, staging, produzione).
 **Unblocks (FE)**: dati reali per le UAT delle FE Phase 13–17; nessun contratto nuovo.
 **Branch**: `feat/11-popolamento-del-mondo` da `develop` → PR a `develop`.
-**Plans**: TBD
+**Plans**: 26 plans
+- [ ] 11-01-PLAN.md — Wave 1: `Lore.unlocked` rimosso (SDL dichiarato nel boot reale) e `relatedLore` popolati in lore e nemici (BE-CONTENT-03)
+- [ ] 11-02-PLAN.md — Wave 1: D-31, la study di Valantar sorteggia una magia apprendibile (`QuestPrizes.spellDraw` interno) (BE-CONTENT-06)
+- [ ] 11-03-PLAN.md — Wave 2: dipendenza `yaml`, loader con posizioni, `content/config.yaml`, regole pure di XP/HP/danni/premi/tempi (BE-CONTENT-01/02/04/05/06)
+- [ ] 11-04-PLAN.md — Wave 3: schema dei file per collezione (class-validator) e mini-albero di test (BE-CONTENT-01/02)
+- [ ] 11-05-PLAN.md — Wave 4: controlli offline `checkContent` (riferimenti, regole delle quest) e `content/README.md` (BE-CONTENT-01/02/06)
+- [ ] 11-06-PLAN.md — Wave 4: mapper canonici voce → documento (BE-CONTENT-02/04/06)
+- [ ] 11-07-PLAN.md — Wave 4: correzioni dichiarate (6 POI, Kliever, quest di prova con guardie, `unlocked`) (BE-CONTENT-02)
+- [ ] 11-08-PLAN.md — Wave 5: generatore deterministico delle quest fisse, TDD (BE-CONTENT-06)
+- [ ] 11-09-PLAN.md — Wave 5: sync idempotente (diff BSON, upsert per `_id`, orfani, prune, report) (BE-CONTENT-02)
+- [ ] 11-10-PLAN.md — Wave 6: export una tantum con commenti `# nome` (BE-CONTENT-01/02)
+- [ ] 11-11-PLAN.md — Wave 7: CLI `run-content` (`--check/--dry-run/--apply/--verify/--export/--prune/--new-id`) provato sul compilato (BE-CONTENT-02)
+- [ ] 11-12-PLAN.md — Wave 8: export reale, snapshot del mondo, baseline `--verify`, misura D-12 con `--stats` (BE-CONTENT-01/02/05/07)
+- [ ] 11-13-PLAN.md — Wave 9: lore di regni, regioni, storia, materiali e magia (BE-CONTENT-01/03)
+- [ ] 11-14-PLAN.md — Wave 9: magie dello sciamanesimo e del Vuoto, unici, cibo tarato e pozioni (BE-CONTENT-01/05)
+- [ ] 11-15-PLAN.md — Wave 10: lore dei 18 culti e delle figure (BE-CONTENT-01/03)
+- [ ] 11-16-PLAN.md — Wave 10: mostri A (lore + nemici) (BE-CONTENT-01/03/04)
+- [ ] 11-17-PLAN.md — Wave 10: mostri B (lore + nemici) (BE-CONTENT-01/03/04)
+- [ ] 11-18-PLAN.md — Wave 10: mostri C (lore + nemici) (BE-CONTENT-01/03/04)
+- [ ] 11-19-PLAN.md — Wave 10: animali, piante e cavalcature (BE-CONTENT-01/03/04/05)
+- [ ] 11-20-PLAN.md — Wave 10: lore di città 1 (Drustea, Valan, Mirwa + 12 esistenti) (BE-CONTENT-01/03)
+- [ ] 11-21-PLAN.md — Wave 10: lore di città 2 (Fiamme, Madre, Liberia, speciali) (BE-CONTENT-01/03)
+- [ ] 11-22-PLAN.md — Wave 11: leggendari, umani ostili, orchi e gigante delle colline (BE-CONTENT-01/03/04)
+- [ ] 11-23-PLAN.md — Wave 12: generazione reale delle quest fisse (BE-CONTENT-01/06)
+- [ ] 11-24-PLAN.md — Wave 13 (checkpoint backup): prova sul filo dell'albero reale e caricamento sul DB (BE-CONTENT-02..06)
+- [ ] 11-25-PLAN.md — Wave 14: runbook `content-seeding.md`, `BACKEND-NOTES.md`, requisiti emendati (BE-CONTENT-07)
+- [ ] 11-26-PLAN.md — Wave 15: gate finale, coverage `./src/content/`, VALIDATION, requisiti, stato (BE-CONTENT-01..07)
 
 ### Phase 12: Negozi per città
 **Goal**: Ogni città vende un proprio pool di oggetti deciso a mano e caricato dallo script della Phase 11, coerente con la sua taglia (`City.size`: village / city / capital — villaggi comuni e qualche uncommon, città anche rari, capitali anche ultrarari, leggendari mai); il server rifiuta l'acquisto di oggetti fuori dal pool della città in cui si trova il personaggio; vendita ovunque, scorte infinite, prezzi del catalogo.
@@ -496,7 +522,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
-| 11. Popolamento del mondo | 0/0 | Not started | - |
+| 11. Popolamento del mondo | 0/26 | Planned | - |
 | 12. Negozi per città | 0/0 | Not started | - |
 | 13. Generazione quest | 0/0 | Not started | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
