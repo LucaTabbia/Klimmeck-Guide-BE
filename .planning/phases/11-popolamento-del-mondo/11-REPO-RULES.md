@@ -46,6 +46,8 @@ Questo file è parte del contesto di OGNI piano `11-NN-PLAN.md` (citato con `@` 
 
 ## Stesura dei nemici (piani 11-16, 11-17, 11-18, 11-19, 11-22)
 
+- **Conteggio delle schede:** il documento ha 62 intestazioni di mostri (il «63» della roadmap conta un `[IMG]` doppio sotto «Draghi cucciolo - giovani») e 13 leggendarie (non 14); i «99» di ROADMAP/REQUIREMENTS sono 62 + 22 animali + 13 leggendari + 2 arrotondamenti. Riportare questa riconciliazione nel SUMMARY del piano, senza inventare schede mancanti.
+
 Regole comuni (D-07..D-13); il formato della voce è in `content/README.md`.
 
 - **Una lore per scheda del documento, un nemico per variante (D-09).** La lore (`type: enemy`; `animal` per gli animali) ha 3–5 frasi da aspetto, comportamento e habitat; le varianti la condividono in `relatedLore`. Lore → `relatedLore` verso le regioni dell'habitat (id da `content/lore/regioni.yaml`, si sceglie per il commento `# PoiType:`).
