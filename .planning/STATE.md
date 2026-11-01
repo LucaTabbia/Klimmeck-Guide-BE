@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: discussing
-stopped_at: Phase 11 discuss in progress on feat/11-popolamento-del-mondo
-last_updated: "2026-11-01T22:10:00.000Z"
-last_activity: "2026-11-01 -- Phase 10 merged (PR #16, 4dc7e89); roadmap phases 11-16 merged into feat/11-popolamento-del-mondo; Phase 11 discuss started"
+status: planning
+stopped_at: Phase 11 context gathered
+last_updated: "2026-11-01T20:43:54.909Z"
+last_activity: "2026-11-01 -- Phase 11 context gathered (11-CONTEXT.md, D-01..D-30, commit e2ae692): identity by Mongo _id in YAML content files, export-then-extend, bestiary-derived enemies, fixed quests per city, Lore.unlocked removed; ready to plan"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 11 (Popolamento del mondo) — DISCUSSING on `feat/11-popolamento-del-mondo` (2026-11-01): branch created from `develop` `4dc7e89` with the roadmap phases 11–16 merged in (`b55d47b`); source text in `phases/11-popolamento-del-mondo/source/world-building.md`
+Phase: 11 (Popolamento del mondo) — CONTEXT GATHERED on `feat/11-popolamento-del-mondo` (2026-11-01, `11-CONTEXT.md` D-01..D-30): branch from `develop` `4dc7e89` with the roadmap phases 11–16 merged in (`b55d47b`); source text in `phases/11-popolamento-del-mondo/source/world-building.md`; next `/gsd-plan-phase 11`
 Plan: 0 of 0
-Status: Phase 11 — discussing (interactive: intake of the new enemy entries first, then content format and layout, HP/damage formula per tier, prize table, fixed quests per city, `Lore.unlocked`, script environments)
-Last activity: 2026-11-01 -- BE PR #16 merged on `develop` (`4dc7e89`, 2026-10-30) and FE Phase 10 closed (FE PR #35 merged 2026-11-01, device E2E 10/10); `docs/v1-world-phases` merged into `feat/11-popolamento-del-mondo`; Phase 11 discuss started. Previous: Phase 10 closed 2026-10-30 (31/31, review 20 findings/15 fixed, verification 8/8, security 107 threats/0 open)
+Status: Phase 11 — context gathered, ready to plan (research → plan → check); identity = Mongo `_id` in the YAML files, export-then-extend, 106 cards + bestiary intake (humans, hill giant, orcs, legendaries as boss), fixed quests per city with the user's rules, `Lore.unlocked` removed (FE quick task gated before the merge)
+Last activity: 2026-11-01 -- Phase 11 discuss closed (4 areas, 16 questions, commit `e2ae692`); earlier the same day: BE PR #16 merged on `develop` (`4dc7e89`, 2026-10-30), FE Phase 10 closed (FE PR #35 merged, device E2E 10/10), `docs/v1-world-phases` merged into `feat/11-popolamento-del-mondo`
 
 Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 complete; 10 to plan after the 9.2 merge)
 
@@ -280,7 +280,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-26T19:45:00.000Z
-Stopped at: Completed 09-20-PLAN.md
-Resume file: None
+Last session: 2026-11-01T20:43:54.900Z
+Stopped at: Phase 11 context gathered
+Resume file: .planning/phases/11-popolamento-del-mondo/11-CONTEXT.md
 | 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |
