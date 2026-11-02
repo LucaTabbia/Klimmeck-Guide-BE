@@ -125,6 +125,20 @@ describe('parseContentConfig', () => {
         expect(issuePathsOf(raw)).toEqual([path]);
     });
 
+    it.each([
+        ['minTitle.serviceCapital', 'legend'],
+        ['dungeonTierByCitySize.Village', 'legend'],
+    ])(
+        'rejects legend where a fixed quest needs a prized tier: %s',
+        (path, value) => {
+            const raw = repositoryConfig();
+            const [section, key] = path.split('.');
+            raw[section][key] = value;
+
+            expect(issuePathsOf(raw)).toEqual([path]);
+        },
+    );
+
     it('rejects a hero zone that is not a point of interest type', () => {
         const raw = repositoryConfig();
         raw.dungeonHeroZones = ['glounet', 'atlantide'];

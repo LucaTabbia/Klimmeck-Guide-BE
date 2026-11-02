@@ -48,8 +48,8 @@ export interface ContentConfig {
     prizes: Record<FixedQuestType, QuestPrizeBase>;
     dungeonLootRarity: Record<RankedTier, string>;
     timeToCompleteHours: Record<FixedQuestType, number>;
-    minTitle: { serviceCity: ContentTier; serviceCapital: ContentTier };
-    dungeonTierByCitySize: Record<CitySize, ContentTier>;
+    minTitle: { serviceCity: RankedTier; serviceCapital: RankedTier };
+    dungeonTierByCitySize: Record<CitySize, RankedTier>;
     dungeonHeroZones: string[];
     hunt: { maxAnimalPe: number; maxShareOfRegion: number };
     generator: {
@@ -83,7 +83,6 @@ const CONFIG_KEYS: readonly (keyof ContentConfig)[] = [
     'food',
 ];
 
-const TIERS: readonly string[] = Object.values(TitleType);
 const RARITIES: readonly string[] = Object.values(RarityType);
 const POI_TYPES: readonly string[] = Object.values(PoiType);
 
@@ -120,7 +119,8 @@ const oneOf =
             ? null
             : `${what} sconosciuta: «${String(value)}» (ammesse: ${allowed.join(', ')})`;
 
-const tier = oneOf(TIERS, 'fascia');
+// legend non ha premio (rankedTierOf): un minTitle o una fascia di dungeon legend romperebbe il generatore
+const rankedTier = oneOf(RANKED_TIERS, 'fascia');
 const rarity = oneOf(RARITIES, 'rarità');
 
 function isIncreasingTable(value: unknown): boolean {
@@ -291,8 +291,13 @@ function validate(
     validatePrizes(validator, raw);
     validator.fields(raw, 'dungeonLootRarity', RANKED_TIERS, rarity);
     validator.fields(raw, 'timeToCompleteHours', FIXED_QUEST_TYPES, positive);
-    validator.fields(raw, 'minTitle', ['serviceCity', 'serviceCapital'], tier);
-    validator.fields(raw, 'dungeonTierByCitySize', CITY_SIZES, tier);
+    validator.fields(
+        raw,
+        'minTitle',
+        ['serviceCity', 'serviceCapital'],
+        rankedTier,
+    );
+    validator.fields(raw, 'dungeonTierByCitySize', CITY_SIZES, rankedTier);
     validateHeroZones(validator, raw);
     const hunt = validator.section(raw, 'hunt');
     if (hunt) {
