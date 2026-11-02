@@ -47,7 +47,7 @@ Le chiavi si scrivono nell'ordine qui sotto; `?` = facoltativa. I campi marcati 
   name: Talmvere
   description: |-
     …
-  image: null           # ? URL Cloudinary o null (default null)
+  image: null           # ? URL https://res.cloudinary.com/… o null (default null)
   relatedLore: []       # ? id di lore (default [])
   city: '<hex>' # Talmvere   ? SOLO FILE, solo per type city: id della città dello snapshot
 # spells
@@ -72,12 +72,12 @@ Le chiavi si scrivono nell'ordine qui sotto; `?` = facoltativa. I campi marcati 
   baseWeaknesses: []    # DamageType
   relatedLore: []       # id di lore
   spells: []            # id di magie (copiate intere a DB, Pitfall 8)
-  imagePath: assets/images/lupo.png
+  imagePath: assets/images/lupo.png   # assets/images/<nome>.png o URL https://res.cloudinary.com/…
   xp: 7                 # ? override intero ≥ 1
   lifePoints: 1100      # ? override intero ≥ 1
   damages: { base: [], energy: [] }   # ? override
 # pets
-- { id, name, damages, buyPrice: Coins, sellPrice: Coins, xp, maxXp, currentLifePoints, maxLifePoints, imagePath, speedModifier: number>0|null }
+- { id, name, damages, buyPrice: Coins, sellPrice: Coins, xp, maxXp, currentLifePoints, maxLifePoints, imagePath: pets/<nome>.png|assets/images/<nome>.png|URL Cloudinary, speedModifier: number>0|null }
 # quests (generate dal piano 11-23)
 - id: '<hex>'
   city: '<hex>' # Talmvere          SOLO FILE: città della quest

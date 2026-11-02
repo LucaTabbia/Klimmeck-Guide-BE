@@ -120,7 +120,29 @@ describe('catalog entries (D-28)', () => {
         ],
         ['a loot item', 'loot', LOOT],
         ['a loot item with sellable', 'loot', { ...LOOT, sellable: true }],
+        [
+            'a lore with a Cloudinary image (T-11-15)',
+            'lore',
+            {
+                ...LORE,
+                image: 'https://res.cloudinary.com/demo/image/upload/v1/borgo.svg',
+            },
+        ],
         ['a pet', 'pet', PET],
+        [
+            'a pet with an image in the pets folder',
+            'pet',
+            { ...PET, imagePath: 'pets/cavallo.png' },
+        ],
+        [
+            'a pet with a Cloudinary image (T-11-15)',
+            'pet',
+            {
+                ...PET,
+                imagePath:
+                    'https://res.cloudinary.com/demo/image/upload/v1/cavallo.png',
+            },
+        ],
         ['a pet that cannot be ridden', 'pet', { ...PET, speedModifier: null }],
     ])('accepts %s', (_, kind, raw) => {
         expect(issuesOf(kind, raw)).toEqual([]);
@@ -206,6 +228,18 @@ describe('catalog entries (D-28)', () => {
             'a pet without image path',
             'pet',
             without(PET, 'imagePath'),
+            'imagePath',
+        ],
+        [
+            'a lore image outside Cloudinary (T-11-15)',
+            'lore',
+            { ...LORE, image: 'https://example.com/borgo.svg' },
+            'image',
+        ],
+        [
+            'a pet image outside Cloudinary and the app assets (T-11-15)',
+            'pet',
+            { ...PET, imagePath: 'https://example.com/cavallo.png' },
             'imagePath',
         ],
         [

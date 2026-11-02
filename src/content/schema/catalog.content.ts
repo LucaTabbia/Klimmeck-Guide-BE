@@ -1,11 +1,13 @@
 import { ValidateBy } from 'class-validator';
 import type { ValidationArguments } from 'class-validator';
 import {
+    CloudinaryUrl,
     CoinsEntry,
     DamagesEntry,
     EnergyDamageEntry,
     Flag,
     IdField,
+    ImagePath,
     IdList,
     IntBetween,
     Nested,
@@ -64,6 +66,7 @@ export class LoreEntry {
 
     @OptionalNullable()
     @Text()
+    @CloudinaryUrl()
     image?: string | null;
 
     @Optional()
@@ -188,6 +191,7 @@ export class PetEntry {
     maxLifePoints: number;
 
     @Text()
+    @ImagePath()
     imagePath: string;
 
     @OptionalNullable()

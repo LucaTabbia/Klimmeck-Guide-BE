@@ -13,6 +13,7 @@ import {
     IsOptional,
     IsPositive,
     IsString,
+    Matches,
     Max,
     Min,
     ValidateBy,
@@ -28,6 +29,32 @@ type EntryClass = new () => object;
 
 // Int a 32 bit di GraphQL: un valore oltre questo limite rompe la serializzazione del campo
 export const MAX_GRAPHQL_INT = 2_147_483_647;
+
+// T-11-15: le immagini caricate arrivano solo da Cloudinary (D-24); la regex non fissa il cloud name del progetto
+export const CLOUDINARY_URL = /^https:\/\/res\.cloudinary\.com\//;
+
+// asset impacchettati nell'app: assets/images/<nome>.png (nemici) o pets/<nome>.png
+const APP_IMAGE_PATH = /^(assets\/images|pets)\/[A-Za-z0-9-]+\.png$/;
+
+export function CloudinaryUrl(): PropertyDecorator {
+    return Matches(CLOUDINARY_URL, {
+        message: 'deve iniziare con https://res.cloudinary.com/',
+    });
+}
+
+export function ImagePath(): PropertyDecorator {
+    return ValidateBy({
+        name: 'imagePath',
+        validator: {
+            validate: (value: unknown) =>
+                typeof value !== 'string' ||
+                APP_IMAGE_PATH.test(value) ||
+                CLOUDINARY_URL.test(value),
+            defaultMessage: () =>
+                'deve essere assets/images/<nome>.png, pets/<nome>.png o un URL https://res.cloudinary.com/',
+        },
+    });
+}
 
 export const ITEM_REFERENCE_TYPES = ['EquipmentItem', 'LootItem'] as const;
 

@@ -4,9 +4,9 @@ import {
     IsArray,
     IsNumber,
     IsString,
-    Matches,
 } from 'class-validator';
 import {
+    CloudinaryUrl,
     IdField,
     NestedList,
     Nullable,
@@ -14,9 +14,6 @@ import {
     Text,
 } from 'src/content/schema/common.content';
 import { CityType } from 'src/models/enums/city-type.enum';
-
-// T-11-15: le immagini arrivano solo dall'account Cloudinary del progetto (D-24)
-export const CLOUDINARY_URL = /^https:\/\/res\.cloudinary\.com\//;
 
 const LOCATION_MESSAGE = 'deve essere [lng, lat]';
 
@@ -62,8 +59,6 @@ export class ImageLinkEntry {
     id: string;
 
     @IsString({ message: 'deve essere un testo' })
-    @Matches(CLOUDINARY_URL, {
-        message: 'deve iniziare con https://res.cloudinary.com/',
-    })
+    @CloudinaryUrl()
     url: string;
 }

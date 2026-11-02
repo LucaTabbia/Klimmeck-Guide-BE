@@ -53,6 +53,18 @@ describe('enemy entries', () => {
         ],
         ['with an explicit legend tier (D-10)', { ...WOLF, tier: 'legend' }],
         [
+            'with a camel case asset name',
+            { ...WOLF, imagePath: 'assets/images/arbustoMaligno.png' },
+        ],
+        [
+            'with a Cloudinary image (T-11-15)',
+            {
+                ...WOLF,
+                imagePath:
+                    'https://res.cloudinary.com/demo/image/upload/v1/lupo.png',
+            },
+        ],
+        [
             'with a scaled analog for a missing stat block (D-11)',
             {
                 ...WOLF,
@@ -146,6 +158,16 @@ describe('enemy entries', () => {
         ],
         ['a tier outside TitleType', { ...WOLF, tier: 'boss' }, 'tier'],
         ['an empty image path', { ...WOLF, imagePath: '' }, 'imagePath'],
+        [
+            'an image outside Cloudinary and the app assets (T-11-15)',
+            { ...WOLF, imagePath: 'http://example.com/lupo.png' },
+            'imagePath',
+        ],
+        [
+            'an image path that leaves the assets folder (T-11-15)',
+            { ...WOLF, imagePath: 'assets/images/../lupo.png' },
+            'imagePath',
+        ],
         ['a zero xp override (D-11)', { ...WOLF, xp: 0 }, 'xp'],
     ])('rejects %s', (_, raw, path) => {
         expect(pathsOf(raw)).toEqual([path]);

@@ -6,6 +6,7 @@ import {
     EachOneOf,
     IdField,
     IdList,
+    ImagePath,
     IntBetween,
     Nested,
     OneOf,
@@ -128,6 +129,7 @@ export class EnemyEntry {
     spells: string[];
 
     @Text()
+    @ImagePath()
     imagePath: string;
 
     @Optional()
