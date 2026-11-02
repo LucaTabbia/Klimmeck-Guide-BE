@@ -1,0 +1,13 @@
+// titoli in italiano col nome della città: Quest non ha una descrizione, il titolo è tutto ciò che si persiste (D-22)
+export const QUEST_TITLES = {
+    heal: (city: string) => `Cure al tempio di ${city}`,
+    job: (city: string) => `Lavori di bottega a ${city}`,
+    guard: (city: string) => `Turno di guardia a ${city}`,
+    crime: (city: string) => `Affari loschi a ${city}`,
+    study: (city: string) => `Ricerche in biblioteca a ${city}`,
+    spellStudy: (city: string) => `Studi arcani a ${city}`,
+    hunt: (city: string, enemy: string) =>
+        `Caccia: ${enemy} nei dintorni di ${city}`,
+    dungeon: (city: string, enemy: string) =>
+        `Dungeon: ${enemy} presso ${city}`,
+} as const;
