@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 11 planned (26 plans, 15 waves) — ready to execute
-last_updated: "2026-11-01T23:39:38.130Z"
-last_activity: "2026-11-01 -- Phase 11 planned: research (11-RESEARCH.md), 26 plans / 15 waves, plan-check passed (0 blockers, 2 warnings addressed), VALIDATION map 63 tasks; ready to execute"
+stopped_at: Phase 11 executing — plan 0 of 26 done
+last_updated: "2026-11-02T01:15:00.000Z"
+last_activity: "2026-11-02 -- Phase 11 execution started (executors sequential on the main tree, 26 plans / 15 waves)"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 11 — Popolamento del mondo — PLANNED on 2026-11-01 (26 plans / 15 waves, executors one at a time) on `feat/11-popolamento-del-mondo` (from `develop` `4dc7e89`, roadmap phases 11–16 merged in with `b55d47b`): wave 1 = `Lore.unlocked` removal + `relatedLore` populate (11-01) and D-31 `spellDraw` (11-02); then loader/schema/rules, mapper, fixes, generator, sync, export, CLI (03–11), real export (12), authoring (13–22), quest generation (23), real-DB apply with the single backup checkpoint (24), runbook + handoff (25), gate (26). Scope: content files + idempotent `--dry-run/--apply/--verify` script written from `World building.docx` (text extracted in the phase `source/`), ~300 lore, 99 creatures + the user's intake, pets, spells, items, fixed quests per city and dungeons on the POIs — the data prerequisite of every FE UAT of Phases 13–17. Previous: Phase 10 — Hardening Trasversale — COMPLETE and merged (PR #16, `4dc7e89`, 2026-10-30).
+**Current focus:** Phase 11 — Popolamento del mondo — EXECUTING since 2026-11-02 (26 plans / 15 waves, executors one at a time) on `feat/11-popolamento-del-mondo` (from `develop` `4dc7e89`, roadmap phases 11–16 merged in with `b55d47b`): wave 1 = `Lore.unlocked` removal + `relatedLore` populate (11-01) and D-31 `spellDraw` (11-02); then loader/schema/rules, mapper, fixes, generator, sync, export, CLI (03–11), real export (12), authoring (13–22), quest generation (23), real-DB apply with the single backup checkpoint (24), runbook + handoff (25), gate (26). Scope: content files + idempotent `--dry-run/--apply/--verify` script written from `World building.docx` (text extracted in the phase `source/`), ~300 lore, 99 creatures + the user's intake, pets, spells, items, fixed quests per city and dungeons on the POIs — the data prerequisite of every FE UAT of Phases 13–17. Previous: Phase 10 — Hardening Trasversale — COMPLETE and merged (PR #16, `4dc7e89`, 2026-10-30).
 
 ## Current Position
 
-Phase: 11 (Popolamento del mondo) — PLANNED on `feat/11-popolamento-del-mondo` (2026-11-01): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; next `/gsd-execute-phase 11` (executors sequential, single checkpoint in 11-24 for the backup); FE quick task to drop `Lore.unlocked` required before the BE PR merge
+Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
 Plan: 0 of 26
-Status: Ready to execute — 26 plans verified (plan-check passed, 0 blockers); the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-01 -- Phase 11 planned: research with probes (hidden blocker: `lores`/`enemies` without `relatedLore` populate), user answers A1 (single database) and A4 (one Valantar study with spell draw → D-31), 26 plans, plan-check passed, warnings addressed (commit `4247e6a`)
+Status: Executing Phase 11 — plan 11-01 in progress (wave 1); the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Phase 11 execution started: executors sequential on the main tree, wave 1 = 11-01 (`unlocked` removal + `relatedLore` populate) and 11-02 (D-31 spell draw)
 
-Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 complete; 10 to plan after the 9.2 merge)
+Progress: [████████░░] 0/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
 ## Performance Metrics
 
