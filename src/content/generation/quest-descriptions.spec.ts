@@ -53,6 +53,20 @@ describe('QUEST_DESCRIPTIONS', () => {
         }
     });
 
+    it('uses the euphonic preposition before a city starting with a vowel (D-32)', () => {
+        const vowelNames = { city: 'Anden', enemy: 'Ankheg' };
+        for (const kind of KINDS) {
+            for (const notice of QUEST_DESCRIPTIONS[kind]) {
+                expect(notice(vowelNames)).not.toContain(' a Anden');
+            }
+        }
+        expect(
+            KINDS.flatMap((kind) =>
+                QUEST_DESCRIPTIONS[kind].map((notice) => notice(vowelNames)),
+            ).some((text) => text.includes(' ad Anden')),
+        ).toBe(true);
+    });
+
     it('names the enemy in every hunt and dungeon notice (D-32)', () => {
         for (const kind of ['hunt', 'dungeon'] as const) {
             for (const notice of noticesOf(kind)) {
