@@ -20,7 +20,8 @@ import {
 
 const TEST_CONTENT = resolve(__dirname, '../../test/content-fixtures');
 const CAPITAL_ID = '64b0000000000000000000c2';
-const CAPITAL_MARKER = '64b0000000000000000000d4';
+const VILLAGE_ID = '64b0000000000000000000c1';
+const VILLAGE_MARKER = '64b0000000000000000000d1';
 const STALE_QUEST_ID = '6c2300000000000000000fff';
 const QUOTED_ID = /'[0-9a-f]{24}'/;
 
@@ -44,19 +45,19 @@ function readQuestFiles(): string[] {
     );
 }
 
-// una quest generata in passato per una città che oggi il generatore salta (senza lore)
+// una quest generata in passato che oggi il generatore non produce più (nessuna guard nei villaggi, D-17)
 function writeStaleQuest(): void {
     mkdirSync(join(contentDir, 'quests'), { recursive: true });
     writeFileSync(
         questFile('drustea'),
         [
             `- id: '${STALE_QUEST_ID}'`,
-            `  city: '${CAPITAL_ID}'`,
+            `  city: '${VILLAGE_ID}'`,
             '  infos:',
-            '    title: Cure al tempio della Capitale di Prova',
-            '    type: heal',
+            '    title: Guardia alle mura del Borgo di Prova',
+            '    type: guard',
             '    enemy: null',
-            `    markerLocation: '${CAPITAL_MARKER}'`,
+            `    markerLocation: '${VILLAGE_MARKER}'`,
             '    relatedLore: []',
             '  requirements:',
             '    minTitle: rookie',
@@ -168,7 +169,7 @@ describe('runGenerateQuests', () => {
             {
                 file: 'quests/drustea.yaml',
                 id: STALE_QUEST_ID,
-                title: 'Cure al tempio della Capitale di Prova',
+                title: 'Guardia alle mura del Borgo di Prova',
             },
         ]);
         expect(readFileSync(questFile('drustea'), 'utf8')).not.toContain(

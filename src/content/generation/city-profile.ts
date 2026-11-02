@@ -26,6 +26,13 @@ export const SPECIAL_QUEST_FILE = 'speciali';
 
 export const DUNGEON_QUEST_FILE = 'dungeon';
 
+// i file di quests/ scritti dal generatore: gli altri sono a mano e non si toccano
+export const GENERATED_QUEST_FILES: readonly string[] = [
+    ...Object.values(QUEST_FILE_OF_KINGDOM),
+    SPECIAL_QUEST_FILE,
+    DUNGEON_QUEST_FILE,
+];
+
 export const NO_SERVICE_CITY_TYPES: readonly string[] = ['necrorianCity'];
 
 export const NO_CRIME_CITY_TYPES: readonly string[] = ['ferrionCity'];
