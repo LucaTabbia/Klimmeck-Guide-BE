@@ -1,20 +1,14 @@
-import { BSON, Db, ObjectId } from 'mongodb';
+import { Db, ObjectId } from 'mongodb';
 import type {
     NormalizePoiTypesFix,
     RenameCityFix,
     UnsetLoreUnlockedFix,
 } from 'src/content/schema/fix.content';
+import { sameBson } from 'src/content/sync/bson-diff';
 import { PoiType } from 'src/models/enums/poi-type.enum';
 import { changeStatus, FixMode, FixReport } from './fix-report';
 
 const POI_TYPES: readonly string[] = Object.values(PoiType);
-
-// confronto byte a byte del BSON: tipi numerici e ordine contano (il piano 11-09 lo sposterà in src/content/sync/bson-diff.ts)
-function sameBson(a: unknown, b: unknown): boolean {
-    return (
-        Buffer.compare(BSON.serialize({ v: a }), BSON.serialize({ v: b })) === 0
-    );
-}
 
 export function normalizedPoiTypes(
     types: readonly string[],
