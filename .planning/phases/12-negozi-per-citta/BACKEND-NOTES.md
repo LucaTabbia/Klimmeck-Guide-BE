@@ -399,3 +399,16 @@ Elenca solo le città con almeno una violazione: `emptyPool` (tutte e tre le lis
 | Lint | 85 file `.ts` del diff puliti con prettier/eslint (1 warning preesistente `no-base-to-string` in `test/app.int-spec.ts`) |
 | SDL vs `origin/develop` | +45 / −2 (solo le due righe D-20, riaggiunte deprecate) |
 | `npx tsc --noEmit -p tsconfig.json` | 0 errori |
+
+## 13. Dopo la review (2026-11-03, `12-REVIEW.md` → `REVIEW-RULINGS.md` → `12-REVIEW-FIX.md`)
+
+Sette correzioni TDD dopo la review in tre aree (0 critical, 2 warning, 8 info); nessuna cambia lo SDL. Cosa cambia rispetto alle sezioni precedenti:
+
+1. **Rinvio dei `shopPets` incompleti (B-WR-01).** Una città dei piazzamenti (§8) resta **senza** `shopPets` — rinviata, contata in `deferred` e coperta dalla WARN «liste rinviate al prossimo boot» — finché **tutti** i suoi compagni piazzati non sono a catalogo, vendibili e con un prezzo. Se a DB un compagno piazzato viene messo `sellable: false` o senza `buyPrice`, quella città resta rinviata a ogni boot e `cityShop` la serve intanto con `pets: []`. Le città senza piazzamenti ricevono `[]` come prima; Necrorian invariata.
+2. **Liste `null` nel migratore (B-IN-01).** `OwnedPetsMigrator` trasforma prima in lista vuota gli `assets.ownedPets` esplicitamente `null` (il campo assente non viene toccato), poi aggiunge il compagno equipaggiato: un personaggio con lista `null` non interrompe più la migrazione dei successivi.
+3. **`cityShop.city` completo (A-WR-01).** La città servita da `cityShop` risolve ora `markerLocation`, `relatedLore` e `pointsOfInterest` (con `quest`) con la stessa catena di `CitiesService.findOne` (`src/cities/city-relations.ts`): la FE può selezionare qualunque campo di `City` dentro `cityShop` senza errori di non-null. Un harness che monta `ShopsModule` da solo deve registrare anche Lore, PointOfInterest e Quest.
+4. **Pet piazzato senza prezzo (A-IN-01).** `petsFor` esclude dallo scaffale un compagno senza `buyPrice` (come già `isSeedCandidate` per gli oggetti): la città resta rinviata finché il prezzo non c'è (vedi punto 1).
+5. **Report dei pool (A-IN-02, B-IN-02).** In `shopPoolReport.missing` una voce che non è un id compare come `invalid@<indice>` (indice nella propria lista); la WARN delle garanzie di loot usa l'id della città quando il nome manca.
+6. **Accettati senza modifica (C-IN-01..03).** Guardia pet fallita in scrittura → `INSUFFICIENT_ITEM_QUANTITY` (§6, il retry dà il codice specifico); la query innkeeper `characters` non popola i pet (comportamento preesistente della lista, backlog); nessun indice unico su `markerLocation` (invariante dei dati, cura a DB).
+
+Gate dopo i fix: `tsc` 0; unit 193 suite / 2589 test; integration 114 suite / 1423 test; SDL vs `develop` invariato (+45 / −2 D-20).
