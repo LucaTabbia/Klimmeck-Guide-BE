@@ -67,3 +67,33 @@ Gate finali:
 - Quest generate: nessuna modifica (ME-02 e LO-12 toccano il generatore: `content:generate-quests` rieseguito, `git status content/` vuoto); `content/config.yaml` non toccato.
 
 Da sapere per il `--verify` sul database reale e per i prossimi ritocchi: i controlli nuovi sono tutti offline e il contenuto reale li passa; nessuna ricarica serve per queste correzioni (nessun dato mappato cambia). Un `--export` di bootstrap senza quest ora fallisce `content:check` per la copertura D-17 finché non si esegue `content:generate-quests` (che invece accetta l'albero).
+
+## Area app (`REVIEW-app.md`) — fixer 3
+
+Base `fc71fbb`, 7 finding con ruling FIX (LO-03 già chiuso dal fixer 2), 2 DEFER e 1 ASK documentati. Un commit per finding, nell'ordine ME-02, LO-05, LO-07, LO-04, LO-06, LO-08, LO-01, poi le note. TDD: test rosso prima di ogni correzione; il caso «errori dell'albero appena scritto» di ME-02 è stato scritto dopo la correzione (rosso sul codice precedente, che restituiva sempre `errors: []`).
+
+| Finding | Esito | Commit |
+| --- | --- | --- |
+| ME-01 sorteggi su un flusso unico | documented (DEFER → Phase 13): handoff §11 + README «rigenerare dopo aver aggiunto animali/città/rarità sposta hunt e dungeon: pianificare un `--prune quests`» | `5e2f9b8` |
+| ME-02 `generate-quests` si blocca sui file che deve riscrivere | fixed: `checkGenerationInput` su un albero senza le voci dei `GENERATED_QUEST_FILES` (`withoutGeneratedQuests`); le voci esistenti servono solo al riuso degli id; dopo la scrittura `checkContent` sull'albero completo, i suoi errori finiscono nel report (exit 1); casi in `run-generate-quests.spec.ts`: hunt con nemico tolto dal catalogo → rigenerata, exit 0; heal a mano sullo stesso marker → errore riportato dopo la scrittura | `6205ed7` |
+| ME-03 populate a un solo livello | documented (DEFER → Phase 16): handoff §1 «profondità supportata di `relatedLore` = 1, non selezionare `relatedLore { relatedLore }` né `infos { enemy { relatedLore } }`» | `5e2f9b8` |
+| LO-01 «ad» eufonica | fixed: `towardsCity(name)` in `src/content/generation/italian.ts` («ad» solo davanti ad a/à/á), usato dai titoli `job`, `guard`, `crime`, `study`, `spellStudy` e dalle descrizioni; `italian.spec.ts` + titoli in `quest-descriptions.spec.ts`; quest rigenerate: 581 prima e dopo, stessi `id`, file, `city`, `infos.type`, `infos.markerLocation`, `infos.enemy`, `infos.relatedLore`, `requirements`, `prizes` (script di confronto in sola lettura); 23 quest cambiate: 18 titoli («a A…» → «ad A…») e 5 descrizioni («ad U…/ad I…» → «a U…/a I…») | `31cd1ee` |
+| LO-02 gruppi di una sola città senza hunt | documented (ASK): handoff §11, Ko Shaeras, Talmvere e Ferrion senza hunt in attesa della decisione dell'utente | `5e2f9b8` |
+| LO-03 Valantar/Liberia per nome | verificato: chiuso dal fixer 2 (`a6b49de`): `SPELL_DRAW_CITY_TYPE = CityType.valanCapital`, `COLLEGE_CITY` assente | — |
+| LO-04 `skipped` elenca città non saltate | fixed: `citiesWithoutLore` in `GeneratorResult` e nel report di `generate-quests`; `skipped` solo per le voci non generate (dungeon senza mostro); `CITY_WITHOUT_LORE` rimossa | `9b6738c` |
+| LO-05 test di Talmvere con l'id di Ferrion | fixed: `n: 15`; `addedCity` lancia se l'id della città esiste già (`test/content/generator-world.fixture.spec.ts`) | `1cbf0f6` |
+| LO-06 la aid clonata perde `description` | fixed: `description` in `AidSourceQuest`/`AidQuestDraft`, copiata da `buildAidQuest` (`null` se assente); casi in `aid-quest.spec.ts` | `e758a0a` |
+| LO-07 file generato vuoto non riscritto | fixed: ogni file generato esistente che la corsa non riempie viene riscritto con la sola intestazione e compare nel report con 0 voci; caso in `run-generate-quests.spec.ts` | `3a7bcec` |
+| LO-08 pulizia | fixed: `dungeonHeroCityTypes: [necrorianCity]` in `content/config.yaml` (fixture byte-identica, `cmp` ok), lista di `CityType` validata e obbligatoria (`validateEnumList`, condivisa con `dungeonHeroZones`), costante `HERO_DUNGEON_CITY_TYPES` rimossa; import uniti; commento del ripiego tolto; import `src/lore/related-lore`; `KINGDOM_PREFIXES` non più esportato; quest rigenerate identiche (`git diff --stat content/quests` vuoto); copia del config nel §6 dell'handoff aggiornata | `c2651a4` |
+
+Gate finali:
+
+- `npm run build` → exit 0
+- `npx tsc --noEmit -p tsconfig.json` → exit 0
+- `node dist/content/run-content.js --check` → exit 0, 0 errori, 1 warning (titolo doppio della dungeon di Necrorian, atteso); quests 581
+- `npx jest src/content --selectProjects unit` → 37 suite, 463 test verdi; `npx jest test/content src/quests/outcomes/aid src/lore --selectProjects unit` → 3 suite, 26 test verdi
+- int-spec (`--selectProjects integration --runInBand`, una chiamata ciascuna): `lore-related` 4/4, `content-wire` 4/4, `run-content.cli` 8/8, `content-sync` 19/19; per LO-06 `quest-combat` + `boss-resolution` + `aid-rescue` 37/37
+- `git diff --exit-code src/schema.gql` → pulito; diff SDL contro `origin/develop` = `-  unlocked: Boolean!` / `+  description: String`; nessun `process.env.` nuovo in `src/`
+- `git status --short` vuoto, `pgrep -fl jest` vuoto
+
+Da sapere per la ricarica: LO-01 cambia `infos.title` di 18 quest e `infos.description` di 5 (stessi id): un `--verify` sul database reale le segnala come differenze finché non si esegue `--apply`. LO-06 vale solo per le aid create da ora in poi. Il corpo del commit `31cd1ee` contiene «regenerated with», che il controllo `grep -ciE "co-authored-by|generated with"` conta come 1: non è un trailer (nessun `Co-Authored-By`/`Generated with` nel messaggio), e la storia non è stata riscritta (niente amend).
