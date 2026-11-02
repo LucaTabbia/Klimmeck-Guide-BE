@@ -1,0 +1,375 @@
+# Mostri C (D-07..D-13): un nemico monster per variante, da Minotauro a Vampiro; xp, lifePoints e damages li deriva il loader dal config
+
+- id: '6ae804ef033e23e10fe491d0'
+  name: Minotauro
+  category: monster
+  source:
+    level: 6
+    pe: 700
+    pf: 76
+    damagePerRound: { cut: 17 }
+  locations: [undergroundLamstone, ruins]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17b8'] # Minotauro
+  spells: []
+  imagePath: assets/images/minotauro.png
+- id: '6ae804ef033e23e10fe491d1'
+  name: Nothic
+  category: monster
+  source:
+    level: 4
+    pe: 450
+    pf: 47
+    damagePerRound: { blunt: 12.72 }
+    analog: { name: Mantoscuro, pe: 100, factor: 2.12 }
+  locations: [undergroundLamstone, undergroundTemistos, ruins]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17b9'] # Nothic
+  spells:
+    - '68c19570541d89c481b8326b' # Soffio Necrotico
+  imagePath: assets/images/nothic.png
+- id: '6ae804ef033e23e10fe491d2'
+  name: Ogre
+  category: monster
+  source:
+    level: 4
+    pe: 450
+    pf: 59
+    damagePerRound: { blunt: 13 }
+  locations: [harkenIsland, farNorth]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17ba'] # Ogre
+  spells: []
+  imagePath: assets/images/ogre.png
+- id: '6ae804ef033e23e10fe491d3'
+  name: Troll
+  category: monster
+  source:
+    level: 11
+    pe: 1800
+    pf: 84
+    damagePerRound: { cut: 22, pierce: 7 }
+  locations: [hills, drusteaPlains, valanPlains]
+  energyWeaknesses: [fire, acid]
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17bb'] # Troll
+  spells: []
+  imagePath: assets/images/troll.png
+- id: '6ae804ef033e23e10fe491d4'
+  name: Orsogufo
+  category: monster
+  source:
+    level: 6
+    pe: 700
+    pf: 59
+    damagePerRound: { cut: 14, pierce: 10 }
+  locations: [forest, minnelyForest]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17bc'] # Orsogufo
+  spells: []
+  imagePath: assets/images/orsogufo.png
+- id: '6ae804ef033e23e10fe491d5'
+  name: Viverna
+  category: monster
+  source:
+    level: 13
+    pe: 2300
+    pf: 110
+    damagePerRound: { pierce: 22, poison: 24 }
+  locations: [belleholmIsland, mountainTemistos]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17bd'] # Viverna
+  spells: []
+  imagePath: assets/images/viverna.png
+- id: '6ae804ef033e23e10fe491d6'
+  name: Scheletro
+  category: monster
+  source:
+    level: 1
+    pe: 50
+    pf: 13
+    damagePerRound: { pierce: 5 }
+  locations: [harkenIsland, glounet, graveyard, ruins]
+  energyWeaknesses: [radiant]
+  baseWeaknesses: [blunt]
+  relatedLore: ['6ae804947fe539950fad17be'] # Scheletro
+  spells: []
+  imagePath: assets/images/scheletro.png
+- id: '6ae804ef033e23e10fe491d7'
+  name: Segugio infernale
+  category: monster
+  source:
+    level: 6
+    pe: 700
+    pf: 45
+    damagePerRound: { pierce: 7, fire: 7 }
+  locations: [vulcano, belleholmIsland]
+  energyWeaknesses: [cold]
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17bf'] # Segugio infernale
+  spells: []
+  imagePath: assets/images/segugio-infernale.png
+- id: '6ae804ef033e23e10fe491d8'
+  name: Slaad rosso
+  category: monster
+  source:
+    level: 11
+    pe: 1800
+    pf: 84
+    damagePerRound: { cut: 22, pierce: 7 }
+    analog: { name: Troll, pe: 1800, factor: 1 }
+  locations: [swamp]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c0'] # Slaad
+  spells: []
+  imagePath: assets/images/slaad-rosso.png
+- id: '6ae804ef033e23e10fe491d9'
+  name: Slaad blu
+  category: monster
+  source:
+    level: 15
+    pe: 2900
+    pf: 116
+    damagePerRound: { cut: 15.68, pierce: 11.2 }
+    analog: { name: Vrock, pe: 2300, factor: 1.12 }
+  locations: [swamp]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c0'] # Slaad
+  spells: []
+  imagePath: assets/images/slaad-blu.png
+- id: '6ae804ef033e23e10fe491da'
+  name: Slaad verde
+  category: monster
+  source:
+    level: 17
+    pe: 3900
+    pf: 136
+    damagePerRound: { cut: 22, pierce: 15 }
+    analog: { name: Hezrou, pe: 3900, factor: 1 }
+  locations: [swamp]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c0'] # Slaad
+  spells:
+    - '68c19570541d89c481b83259' # Palla di fuoco
+    - '68c19570541d89c481b83295' # Velo di Fiamma
+  imagePath: assets/images/slaad-verde.png
+- id: '6ae804ef033e23e10fe491db'
+  name: Slaad grigio
+  category: monster
+  source:
+    level: 19
+    pe: 5000
+    pf: 157
+    damagePerRound: { blunt: 46 }
+    analog: { name: Glabrezu, pe: 5000, factor: 1 }
+  locations: [swamp]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c0'] # Slaad
+  spells:
+    - '68c19570541d89c481b83259' # Palla di fuoco
+    - '68c19570541d89c481b83295' # Velo di Fiamma
+    - '68c19570541d89c481b83294' # Incubo ad occhi aperti
+  imagePath: assets/images/slaad-grigio.png
+- id: '6ae804ef033e23e10fe491dc'
+  name: Slaad della morte
+  category: monster
+  source:
+    pe: 5900
+    pf: 135
+    damagePerRound: { blunt: 36 }
+    analog: { name: Aboleth, pe: 5900, factor: 1 }
+  locations: [swamp]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c0'] # Slaad
+  spells:
+    - '68c19570541d89c481b83259' # Palla di fuoco
+    - '68c19570541d89c481b83276' # Nebbia Velenosa
+  imagePath: assets/images/slaad-della-morte.png
+- id: '6ae804ef033e23e10fe491dd'
+  name: Treant
+  category: monster
+  source:
+    level: 19
+    pe: 5000
+    pf: 138
+    damagePerRound: { blunt: 32 }
+  locations: [forest, minnelyForest]
+  energyWeaknesses: [fire]
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c1'] # Treant
+  spells: []
+  imagePath: assets/images/treant.png
+- id: '6ae804ef033e23e10fe491de'
+  name: Umber hulk
+  category: monster
+  source:
+    level: 11
+    pe: 1800
+    pf: 114
+    damagePerRound: { blunt: 14, pierce: 20 }
+    analog: { name: Otyugh, pe: 1800, factor: 1 }
+  locations: [undergroundLamstone, undergroundTemistos]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c2'] # Umber Hulk
+  spells:
+    - '68c19570541d89c481b83296' # Confusione Totale
+  imagePath: assets/images/umber-hulk.png
+- id: '6ae804ef033e23e10fe491df'
+  name: Wraith
+  category: monster
+  source:
+    level: 11
+    pe: 1800
+    pf: 67
+    damagePerRound: { necrotic: 21 }
+  locations: [battleground, graveyard, glounet]
+  energyWeaknesses: [radiant]
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c3'] # Wraith
+  spells: []
+  imagePath: assets/images/wraith.png
+- id: '6ae804ef033e23e10fe491e0'
+  name: Yeti
+  category: monster
+  source:
+    level: 6
+    pe: 700
+    pf: 59
+    damagePerRound: { cut: 14, pierce: 10 }
+    analog: { name: Orsogufo, pe: 700, factor: 1 }
+  locations: [farNorth]
+  energyWeaknesses: [fire]
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c4'] # Yeti
+  spells: []
+  imagePath: assets/images/yeti.png
+- id: '6ae804ef033e23e10fe491e1'
+  name: Cane della morte
+  category: monster
+  source:
+    level: 3
+    pe: 200
+    pf: 39
+    damagePerRound: { pierce: 10 }
+  locations: [glounet]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c5'] # Cane della morte
+  spells: []
+  imagePath: assets/images/cane-della-morte.png
+- id: '6ae804ef033e23e10fe491e2'
+  name: Ragno fase
+  category: monster
+  source:
+    level: 6
+    pe: 700
+    pf: 32
+    damagePerRound: { pierce: 7, poison: 18 }
+  locations: [undergroundLamstone, undergroundTemistos]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c6'] # Ragno fase
+  spells: []
+  imagePath: assets/images/ragno-fase.png
+- id: '6ae804ef033e23e10fe491e3'
+  name: Megera verde
+  category: monster
+  source:
+    level: 6
+    pe: 700
+    pf: 82
+    damagePerRound: { cut: 13 }
+  locations: [city, swamp, forest]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c7'] # Megera verde
+  spells:
+    - '68c19570541d89c481b83293' # Maschera Illusoria
+    - '68c19570541d89c481b83294' # Incubo ad occhi aperti
+  imagePath: assets/images/megera-verde.png
+- id: '6ae804ef033e23e10fe491e4'
+  name: Goblin
+  category: monster
+  source:
+    level: 2
+    pe: 135
+    pf: 12
+    damagePerRound: { pierce: 9.28 }
+    analog: { name: Coboldo, pe: 25, factor: 2.32 }
+  locations: [undergroundLamstone, undergroundTemistos, mountainLamstone, mountainTemistos, drusteaPlains, valanPlains, glounet]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c8'] # Goblin
+  spells: []
+  imagePath: assets/images/goblin.png
+- id: '6ae804ef033e23e10fe491e5'
+  name: Hobgoblin
+  category: monster
+  source:
+    level: 3
+    pe: 200
+    pf: 11
+    damagePerRound: { cut: 5 }
+  locations: [hills, valanPlains, belleholmIsland, glounet]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17c9'] # Hobgoblin
+  spells: []
+  imagePath: assets/images/hobgoblin.png
+- id: '6ae804ef033e23e10fe491e6'
+  name: Ghoul
+  category: monster
+  source:
+    level: 4
+    pe: 450
+    pf: 22
+    damagePerRound: { pierce: 9 }
+  locations: [graveyard, city, glounet]
+  energyWeaknesses: [radiant]
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17ca'] # Ghoul
+  spells: []
+  imagePath: assets/images/ghoul.png
+- id: '6ae804ef033e23e10fe491e7'
+  name: Progenie vampirica
+  category: monster
+  source:
+    level: 10
+    pe: 1200
+    pf: 82
+    damagePerRound: { cut: 8, pierce: 6, necrotic: 7 }
+  locations: [city, undergroundLamstone, undergroundTemistos]
+  energyWeaknesses: [radiant]
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17cb'] # Progenie vampirica
+  spells:
+    - '68c19570541d89c481b8329b' # Voce Ammaliante
+  imagePath: assets/images/progenie-vampirica.png
+- id: '6ae804ef033e23e10fe491e8'
+  name: Vampiro
+  category: monster
+  source:
+    level: 20
+    pe: 10000
+    pf: 144
+    damagePerRound: { blunt: 8, pierce: 7, necrotic: 10 }
+  locations: [city, undergroundLamstone, undergroundTemistos]
+  energyWeaknesses: [radiant]
+  baseWeaknesses: []
+  relatedLore: ['6ae804947fe539950fad17cc'] # Vampiro
+  spells:
+    - '6ae7fd90c38631a8efd3f736' # Sussurro dei Diavoli
+    - '6ae7fd90c38631a8efd3f738' # Patto dell'Abisso
+    - '68c19570541d89c481b83259' # Palla di fuoco
+  imagePath: assets/images/vampiro.png
