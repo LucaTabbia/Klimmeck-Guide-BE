@@ -57,8 +57,8 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-06-01 | 06 | 4 | C-02, C-04, C-06 | T-11-19…T-11-22 | unit | `npx jest src/content/mapping --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
 | 11-06-02 | 06 | 4 | C-02, C-04, C-06 | T-11-19…T-11-22 | unit | `npx jest src/content/mapping --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
 | 11-06-03 | 06 | 4 | C-02, C-04, C-06 | T-11-19…T-11-22 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
-| 11-07-01 | 07 | 4 | C-02 | T-11-23…T-11-27 | integration | `npx jest src/content/fixes --selectProjects unit && npx jest src/content/fixes/fixes.int-spec.ts --selectProjects integration --runInBand…` | ⬜ pending |
-| 11-07-02 | 07 | 4 | C-02 | T-11-23…T-11-27 | integration | `npx jest src/content/fixes --selectProjects integration --runInBand && npx jest src/content/fixes --selectProjects unit && npx tsc --noEm…` | ⬜ pending |
+| 11-07-01 | 07 | 4 | C-02 | T-11-23…T-11-27 | integration | `npx jest src/content/fixes --selectProjects unit && npx jest src/content/fixes/fixes.int-spec.ts --selectProjects integration --runInBand…` | ✅ green |
+| 11-07-02 | 07 | 4 | C-02 | T-11-23…T-11-27 | integration | `npx jest src/content/fixes --selectProjects integration --runInBand && npx jest src/content/fixes --selectProjects unit && npx tsc --noEm…` | ✅ green |
 | 11-08-01 | 08 | 5 | C-06 | T-11-28…T-11-31 | unit | `npx jest src/content/generation/seeded-chance.spec.ts src/content/generation/city-profile.spec.ts src/content/generation/service-quests.s…` | ⬜ pending |
 | 11-08-02 | 08 | 5 | C-06 | T-11-28…T-11-31 | unit | `npx jest src/content/generation/hunt-quests.spec.ts src/content/generation/service-quests.spec.ts --selectProjects unit && npx tsc --noEm…` | ⬜ pending |
 | 11-08-03 | 08 | 5 | C-06 | T-11-28…T-11-31 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |

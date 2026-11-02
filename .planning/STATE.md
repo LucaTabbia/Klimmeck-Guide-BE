@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 11 executing — plan 2 of 26 done
 last_updated: "2026-11-02T02:00:00.000Z"
-last_activity: "2026-11-02 -- Plan 11-06 complete: pure canonical mappers entry -> document (schema key order, ObjectId refs, no undefined) and mapContentTree"
+last_activity: "2026-11-02 -- Plan 11-07 complete: idempotent declared fixes engine (POI types, Kliever rename, lore unlocked, guarded test quest deletion) and the three known fix files"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 6 of 26
-Status: Executing Phase 11 — plans 11-01..11-06 complete, next 11-07; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-02 -- Plan 11-06 complete: `mapContentTree(tree)` pure mappers (lore, spells, equipment, loot, enemies derived from `source` + config with embedded spell copies, quests with prizes/times from `minTitle` and runtime fields only on insert, city lore updates, `images.yaml` overrides), canonical key order and `ObjectId` refs
+Plan: 7 of 26
+Status: Executing Phase 11 — plans 11-01..11-07 complete, next 11-08; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Plan 11-07 complete: `runFixes(db, fixes, mode)` with the four closed kinds (`normalizePoiTypes`, `renameCity`, `unsetLoreUnlocked`, `deleteQuests` blocked by occupied lanes or awaiting aid), writes only on apply, proved on the test replica set; `content/fixes/{poi-types,kliever,lore-unlocked}.yaml`
 
 Progress: [████████░░] 2/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
