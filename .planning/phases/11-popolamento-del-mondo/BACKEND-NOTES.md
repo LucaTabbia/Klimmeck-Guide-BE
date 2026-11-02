@@ -4,7 +4,7 @@
 
 - **Fase BE:** 11-popolamento-del-mondo (requisiti BE-CONTENT-01..BE-CONTENT-07; decisioni D-01..D-36 in `11-CONTEXT.md`).
 - **Data:** 2026-11-02. Documento di fine fase (piano 11-25), scritto dopo il caricamento sul database unico (piano 11-24) e prima del gate finale 11-26.
-- **Branch:** `feat/11-popolamento-del-mondo` → PR verso `develop`, **in draft** finché il quick task FE su `unlocked` (§1) non è rilasciato.
+- **Branch:** `feat/11-popolamento-del-mondo` → PR #17 verso `develop`, pronta per la review dal 2026-11-02 (la PR FE #36 su `unlocked` è mergiata; rilasciare l'app prima del deploy di questo BE, §1).
 - **Schema:** rispetto a `origin/develop` lo SDL ha **una riga tolta** (`  unlocked: Boolean!` in `type Lore`, D-25, l'unica modifica non additiva) e **una riga aggiunta** (`  description: String` in `type QuestInfos`, D-32). Lo schema generato `src/schema.gql` vince su questo documento.
 - **Fonte dei numeri:** i file di `content/` (letti in sola lettura) e i report committati in `reports/` (`11-12-stats.json`, `11-23-generate.json`, `11-27-generate.json`, `11-24-apply-1.json`, `11-24-verify-after.json`). Nessuna lettura del database per questo documento: dopo l'apply del piano 11-24 il database coincide con i file (`--verify` a zero differenze).
 - **Regola dei letterali:** operatori Mongo, chiavi YAML e letterali GraphQL compaiono solo in code span; nessun URI né host, solo placeholder.
@@ -31,7 +31,7 @@ Quick task FE (pattern gated 08-12/09-12), da rilasciare **prima** del deploy de
 - `lib/models/lore.dart` — togliere il campo `unlocked` dal modello: righe 12 (parametro del costruttore), 21 (campo `final bool? unlocked`), 31 (`fromJson` tollerante, `json["unlocked"] ?? false`), 41 (`toJson`), 52 e 61 (`copyWith`), 73 (`props`).
 - Nessun altro file di `lib/` usa `unlocked` sulle lore (verificato con `grep` il 2026-11-02).
 
-La PR BE resta **in draft** finché l'app con il quick task non è rilasciata. Quick task FE fatto il 2026-11-02: PR LucaTabbia/Klimmeck-Guide#36 (branch `fix/lore-unlocked-field`, quick `261102-lor`: frammento e modello senza `unlocked`, `fromJson` tollerante), da mergiare con la chiusura di questa fase e da rilasciare prima del deploy del BE.
+Quick task FE fatto il 2026-11-02: PR LucaTabbia/Klimmeck-Guide#36 (branch `fix/lore-unlocked-field`, quick `261102-lor`: frammento e modello senza `unlocked`, `fromJson` tollerante), **mergiata nel `develop` del FE lo stesso giorno**; la PR BE è uscita dal draft subito dopo. Rilasciare l'app prima del deploy di questo BE.
 
 **Quale BE serve il database.** Dal momento dell'apply sul database unico (2026-11-02), il processo BE che lo serve deve girare dal branch `feat/11-popolamento-del-mondo` o dalla sua merge: il codice del piano 11-01 popola `relatedLore` scartando i riferimenti orfani. Un BE su `develop`, senza quel populate, restituisce i `relatedLore` come id grezzi in un campo `[Lore!]!` e risponde `data: null` su `lores` ed `enemys` (Pitfall 1: la serializzazione di `id` fallisce); in più dichiara ancora `unlocked: Boolean!`, assente dalle lore nuove. Il runbook lo ripete nei prerequisiti.
 
