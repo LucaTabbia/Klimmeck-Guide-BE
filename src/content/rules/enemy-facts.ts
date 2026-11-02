@@ -3,16 +3,13 @@ import {
     ContentTier,
     MAX_DOCUMENT_LEVEL,
 } from 'src/content/rules/content-config';
+import { isRecord } from 'src/content/loading/records';
 import { levelFromPe, tierOfLevel } from 'src/content/rules/enemy-stats';
 
 export interface EnemyFacts {
     tier: ContentTier | null;
     level: number | null;
     pe: number | null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isDocumentLevel(value: unknown): value is number {

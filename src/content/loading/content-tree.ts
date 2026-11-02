@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { ContentIssue } from 'src/content/content-issue';
+import { isRecord } from 'src/content/loading/records';
 import {
     LoadedEntry,
     ParsedYaml,
@@ -83,10 +84,6 @@ type ImageSection = (typeof IMAGE_SECTIONS)[number];
 
 function isImageSection(name: string): name is ImageSection {
     return (IMAGE_SECTIONS as readonly string[]).includes(name);
-}
-
-function isMapping(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function fileIssue(
@@ -180,7 +177,7 @@ function imageLinksOf(
         return [];
     }
     return value.flatMap((link: unknown, index) => {
-        if (isMapping(link)) return [link as unknown as ImageLink];
+        if (isRecord(link)) return [link as unknown as ImageLink];
         issues.push(
             fileIssue(
                 IMAGES_FILE,
@@ -198,7 +195,7 @@ function loadImages(dir: string, issues: ContentIssue[]): ImagesFile {
     if (!parsed) return images;
     issues.push(...parsed.issues);
     const isEmpty = parsed.value === null || parsed.value === undefined;
-    if (!isEmpty && !isMapping(parsed.value) && parsed.issues.length === 0) {
+    if (!isEmpty && !isRecord(parsed.value) && parsed.issues.length === 0) {
         issues.push(
             fileIssue(
                 IMAGES_FILE,
@@ -206,7 +203,7 @@ function loadImages(dir: string, issues: ContentIssue[]): ImagesFile {
             ),
         );
     }
-    const sections = isMapping(parsed.value) ? parsed.value : {};
+    const sections = isRecord(parsed.value) ? parsed.value : {};
     for (const name of Object.keys(sections)) {
         if (isImageSection(name)) {
             images[name] = imageLinksOf(name, sections[name], issues);

@@ -17,6 +17,7 @@ import {
     NO_SERVICE_CITY_TYPES,
     SPELL_DRAW_CITY_TYPE,
 } from 'src/content/generation/city-profile';
+import { isRecord } from 'src/content/loading/records';
 import { LoadedEntry } from 'src/content/loading/yaml-file';
 import {
     ContentConfig,
@@ -60,10 +61,6 @@ const COLLECTION_OF_ITEM_TYPE: Readonly<Record<string, ContentCollection>> = {
     EquipmentItem: 'equipmentitems',
     LootItem: 'lootitems',
 };
-
-function isRecord(value: unknown): value is Raw {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function recordAt(raw: Raw, key: string): Raw {
     const value = raw[key];

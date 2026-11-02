@@ -1,4 +1,5 @@
 import { ContentIssue } from 'src/content/content-issue';
+import { isRecord } from 'src/content/loading/records';
 import { MAX_GRAPHQL_INT } from 'src/content/schema/common.content';
 import { PoiType } from 'src/models/enums/poi-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
@@ -99,10 +100,6 @@ const GENERATOR_KEYS: readonly string[] = [
 
 const RARITIES: readonly string[] = Object.values(RarityType);
 const POI_TYPES: readonly string[] = Object.values(PoiType);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);

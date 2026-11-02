@@ -31,7 +31,10 @@ import {
     RankedTier,
 } from 'src/content/rules/content-config';
 import { enemyFactsOf } from 'src/content/rules/enemy-facts';
-import { rarityRankOf } from 'src/content/rules/quest-prizes';
+import {
+    dungeonLootRarity,
+    rarityRankOf,
+} from 'src/content/rules/quest-prizes';
 
 /*
  * Generatore puro delle quest fisse (D-17..D-22, D-31): niente DB, file né orologio.
@@ -470,7 +473,7 @@ function monsterCandidates(
 }
 
 function bandRarityRank(world: GeneratorWorld, band: RankedTier): number {
-    return rarityRankOf(world.config.dungeonLootRarity[band]) ?? 0;
+    return rarityRankOf(dungeonLootRarity(band, world.config)) ?? 0;
 }
 
 function assetRef(

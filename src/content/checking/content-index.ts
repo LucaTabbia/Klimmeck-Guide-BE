@@ -5,6 +5,7 @@ import {
     WorldCity,
     WorldPoi,
 } from 'src/content/loading/content-tree';
+import { isRecord } from 'src/content/loading/records';
 import { LoadedEntry } from 'src/content/loading/yaml-file';
 
 export interface IndexedEntry {
@@ -32,10 +33,6 @@ export interface ContentIndex {
 }
 
 type Raw = Record<string, unknown>;
-
-function isRecord(value: unknown): value is Raw {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function stringOrNull(value: unknown): string | null {
     return typeof value === 'string' ? value : null;

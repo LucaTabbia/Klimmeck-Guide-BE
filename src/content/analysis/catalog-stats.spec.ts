@@ -3,10 +3,24 @@ import {
     distributionOf,
     winChance,
 } from 'src/content/analysis/catalog-stats';
+import { ContentTree } from 'src/content/loading/content-tree';
 import {
     addEntry,
     loadTestContentTree,
 } from '../../../test/fixtures/content-tree.fixture';
+
+const ENCOUNTER_ENEMIES: [string, string, Record<string, unknown>][] = [
+    ['6ae806b55093fb43140756d9', 'Lupo', { source: { pf: 11 } }],
+    ['6ae804ef033e23e10fe491d3', 'Troll', { source: { pf: 84 } }],
+    ['6ae80b5b2e7351b494ecc870', 'Drago rosso adulto', { lifePoints: 25600 }],
+    ['6ae80b5b2e7351b494ecc869', 'Tarrasque', { source: { pf: 676 } }],
+];
+
+function addEncounterEnemies(tree: ContentTree): void {
+    for (const [id, name, stats] of ENCOUNTER_ENEMIES) {
+        addEntry(tree, 'enemies', { id, name, ...structuredClone(stats) });
+    }
+}
 
 function equipment(
     id: string,
@@ -75,6 +89,7 @@ describe('catalogStats', () => {
             heal: { count: 1, min: 1000, median: 1000, max: 1000 },
         });
         expect(stats.hungerMarchMinutes.count).toBe(0);
+        expect(stats.winChanceExamples).toEqual([]);
     });
 
     it('sums the base and energy damages of a piece (D-12)', () => {
@@ -123,8 +138,39 @@ describe('catalogStats', () => {
         expect(stats.lootPowerByEffect.hunger.median).toBe(60);
     });
 
+    it('rounds the march minutes like the resolver (D-16)', () => {
+        const tree = loadTestContentTree();
+        addEntry(tree, 'lootitems', {
+            id: '64b0000000000000000000f9',
+            name: 'Briciola di Prova',
+            rarity: 'common',
+            power: 0.5,
+            effect: 'hunger',
+        });
+
+        expect(catalogStats(tree).hungerMarchMinutes.max).toBe(2);
+    });
+
+    it('reads the life points of each encounter from its enemy (D-12)', () => {
+        const tree = loadTestContentTree();
+        addEncounterEnemies(tree);
+        (tree.entries.enemies.at(-1)!.raw.source as { pf: number }).pf = 700;
+
+        expect(
+            catalogStats(tree).winChanceExamples.map(
+                ({ encounter, lifePoints }) => [encounter, lifePoints],
+            ),
+        ).toEqual([
+            ['Lupo', 1100],
+            ['Troll', 8400],
+            ['Drago rosso adulto', 25600],
+            ['Tarrasque', 70000],
+        ]);
+    });
+
     it('recomputes the four winChance examples from the median pieces (D-12)', () => {
         const tree = loadTestContentTree();
+        addEncounterEnemies(tree);
         addEntry(
             tree,
             'equipmentitems',

@@ -1,7 +1,12 @@
 import { ContentTree } from 'src/content/loading/content-tree';
+import { isRecord } from 'src/content/loading/records';
 import { LoadedEntry } from 'src/content/loading/yaml-file';
+import { ContentConfig } from 'src/content/rules/content-config';
+import { enemyLifePoints } from 'src/content/rules/enemy-stats';
+import { marchMinutesOf } from 'src/content/rules/quest-prizes';
 import { EffectType } from 'src/models/enums/effect-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
+import { winChanceOf } from 'src/quests/outcomes/combat/placeholder-combat-resolver';
 
 export interface Distribution {
     count: number;
@@ -30,47 +35,39 @@ export interface CatalogStats {
 }
 
 interface EncounterSpec {
-    encounter: string;
-    lifePoints: number;
+    enemyId: string;
     party: string;
     rarity: RarityType;
     pieces: number;
 }
 
-// scontri di riferimento del flag D-12 (lifePoints = PF del bestiario × 100)
+// scontri di riferimento del flag D-12: i lifePoints vengono dalla voce del nemico, come li scrive il mapper
 const ENCOUNTERS: readonly EncounterSpec[] = [
     {
-        encounter: 'Lupo',
-        lifePoints: 1100,
+        enemyId: '6ae806b55093fb43140756d9', // Lupo
         party: 'rookie, 1 pezzo mediano common',
         rarity: RarityType.common,
         pieces: 1,
     },
     {
-        encounter: 'Troll',
-        lifePoints: 8400,
+        enemyId: '6ae804ef033e23e10fe491d3', // Troll
         party: 'paladin, 3 pezzi mediani rare',
         rarity: RarityType.rare,
         pieces: 3,
     },
     {
-        encounter: 'Drago rosso adulto',
-        lifePoints: 25600,
+        enemyId: '6ae80b5b2e7351b494ecc870', // Drago rosso adulto
         party: 'hero, 9 pezzi mediani legendary',
         rarity: RarityType.legendary,
         pieces: 9,
     },
     {
-        encounter: 'Tarrasque',
-        lifePoints: 67600,
+        enemyId: '6ae80b5b2e7351b494ecc869', // Tarrasque
         party: '5 legend × 9 pezzi mediani legendary',
         rarity: RarityType.legendary,
         pieces: 45,
     },
 ];
-
-// stessa scelta del resolver segnaposto quando entrambe le parti valgono zero
-const EVEN_ODDS = 0.5;
 
 const EMPTY_DISTRIBUTION: Distribution = {
     count: 0,
@@ -96,11 +93,9 @@ export function distributionOf(values: readonly number[]): Distribution {
     };
 }
 
-// formula di placeholder-combat-resolver.ts, arrotondata a due decimali
+// la formula vive solo nel resolver: qui si arrotonda a due decimali per il report
 export function winChance(partyPower: number, lifePoints: number): number {
-    const total = partyPower + lifePoints;
-    const chance = total > 0 ? partyPower / total : EVEN_ODDS;
-    return Math.round(chance * 100) / 100;
+    return Math.round(winChanceOf(partyPower, lifePoints) * 100) / 100;
 }
 
 function numberOf(value: unknown): number {
@@ -147,21 +142,41 @@ function groupedDistributions(
     );
 }
 
+// override esplicito o PF del source × hpScale, come enemy.mapper
+function lifePointsOf(
+    raw: Record<string, unknown>,
+    config: ContentConfig,
+): number | null {
+    if (typeof raw.lifePoints === 'number') return raw.lifePoints;
+    const pf = isRecord(raw.source) ? raw.source.pf : undefined;
+    return typeof pf === 'number'
+        ? enemyLifePoints(pf, config.enemy.hpScale)
+        : null;
+}
+
+// uno scontro il cui nemico manca dai file (o non ha PF) non ha un esempio
 function winChanceExamplesOf(
+    tree: ContentTree,
+    config: ContentConfig,
     byRarity: Record<string, Distribution>,
 ): WinChanceExample[] {
-    return ENCOUNTERS.map(
-        ({ encounter, lifePoints, party, rarity, pieces }) => {
-            const partyPower = (byRarity[rarity]?.median ?? 0) * pieces;
-            return {
-                encounter,
+    return ENCOUNTERS.flatMap(({ enemyId, party, rarity, pieces }) => {
+        const enemy = tree.entries.enemies.find(
+            ({ raw }) => raw.id === enemyId,
+        );
+        const lifePoints = enemy ? lifePointsOf(enemy.raw, config) : null;
+        if (!enemy || lifePoints === null) return [];
+        const partyPower = (byRarity[rarity]?.median ?? 0) * pieces;
+        return [
+            {
+                encounter: keyOf(enemy.raw.name),
                 lifePoints,
                 party,
                 partyPower,
                 winChance: winChance(partyPower, lifePoints),
-            };
-        },
-    );
+            },
+        ];
+    });
 }
 
 // D-12/D-16: misura offline dai soli file, per l'handoff; il resolver non cambia
@@ -174,7 +189,7 @@ export function catalogStats(tree: ContentTree): CatalogStats {
         (raw) => keyOf(raw.rarity),
         piecePowerOf,
     );
-    const minutesPerPower = tree.config.food.minutesPerPower;
+    const { config } = tree;
     return {
         mode: 'stats',
         equipmentPowerByRarity,
@@ -197,8 +212,12 @@ export function catalogStats(tree: ContentTree): CatalogStats {
         hungerMarchMinutes: distributionOf(
             lootitems
                 .filter(({ raw }) => raw.effect === EffectType.hunger)
-                .map(({ raw }) => numberOf(raw.power) * minutesPerPower),
+                .map(({ raw }) => marchMinutesOf(numberOf(raw.power), config)),
         ),
-        winChanceExamples: winChanceExamplesOf(equipmentPowerByRarity),
+        winChanceExamples: winChanceExamplesOf(
+            tree,
+            config,
+            equipmentPowerByRarity,
+        ),
     };
 }
