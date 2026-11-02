@@ -24,6 +24,13 @@ import {
     type InventorySnapshot,
 } from './trade-inventory';
 import {
+    applyTradeToPets,
+    assertPetsNotOwned,
+    petOwnershipGuards,
+    type PetOutcome,
+    type PetSnapshot,
+} from './trade-pets';
+import {
     assertBuysInShop,
     poolOfCity,
     type CityPool,
@@ -42,12 +49,17 @@ interface TradeSnapshot {
         activeTravel?: unknown;
         awaitingAid?: unknown;
     };
-    assets?: InventorySnapshot;
+    assets?: InventorySnapshot & PetSnapshot;
 }
 
 interface TraderAtShop {
     characterId: Types.ObjectId;
     location: Types.ObjectId;
+}
+
+interface TradeOutcome {
+    inventory: InventoryOutcome;
+    pets: PetOutcome | null;
 }
 
 interface ShopAtMarker {
@@ -70,10 +82,15 @@ const TRADE_SNAPSHOT_PROJECTION = {
     'assets.ownedItems': 1,
     'assets.ownedEquipments': 1,
     'assets.wearedEquipment': 1,
+    'assets.ownedPets': 1,
+    'assets.pet': 1,
 };
 
 // lo slot svuotato vale null, come lo salva equipItem
-function inventoryChanges(inventory: InventoryOutcome) {
+function inventoryChanges(
+    inventory: InventoryOutcome,
+    pets: PetOutcome | null,
+) {
     const vacated = Object.fromEntries(
         inventory.vacatedSlots.map((slot) => [
             `assets.wearedEquipment.${slot}`,
@@ -84,10 +101,13 @@ function inventoryChanges(inventory: InventoryOutcome) {
         'assets.ownedItems': inventory.ownedItems,
         'assets.ownedEquipments': inventory.ownedEquipments,
         ...vacated,
+        // i campi pet entrano nel $set solo con righe pet (Pitfall 5); il pet venduto lascia lo slot vuoto nella stessa scrittura (D-14)
+        ...(pets ? { 'assets.ownedPets': pets.ownedPets } : {}),
+        ...(pets?.unequip ? { 'assets.pet': null } : {}),
     };
 }
 
-// ordine dei rifiuti: id e quantità (puro) → catalogo → cross-check del totale → personaggio → città (D-18) → pool della città (D-19) → possesso → fondi
+// ordine dei rifiuti: id e quantità (puro) → catalogo → cross-check del totale → personaggio → città (D-18) → pool della città (D-19) → doppione pet (D-14) → possesso → fondi
 @Injectable()
 export class ShopTransactionService {
     constructor(
@@ -177,14 +197,17 @@ export class ShopTransactionService {
         if (!snapshot) throw ResourceNotFoundException.character();
         const { location, pool } = await this.shopOrReject(snapshot, session);
         assertBuysInShop(lines, pool, catalogue);
-        const inventory = applyTradeToInventory(snapshot.assets ?? {}, lines);
+        const assets = snapshot.assets ?? {};
+        assertPetsNotOwned(lines, assets);
+        const inventory = applyTradeToInventory(assets, lines);
+        const pets = applyTradeToPets(assets, lines);
         if (toCopper(snapshot.status?.coins) < -netCopper) {
             throw GameRuleException.insufficientFunds();
         }
         await this.writeInventory(
             { characterId, location },
             lines,
-            inventory,
+            { inventory, pets },
             session,
         );
         // l'unico scrittore dei coins (04 D-04): la sua guard $expr è l'autorità dei fondi
@@ -197,11 +220,11 @@ export class ShopTransactionService {
         }
     }
 
-    // città e quantità vendute riaffermate nel filtro (rete di sicurezza, 04 D-10): la contesa la risolve il WriteConflict della transazione
+    // città, quantità vendute e pet posseduti riaffermati nel filtro (rete di sicurezza, 04 D-10, D-14): la contesa la risolve il WriteConflict della transazione
     private async writeInventory(
         { characterId, location }: TraderAtShop,
         lines: readonly TradeLine[],
-        inventory: InventoryOutcome,
+        { inventory, pets }: TradeOutcome,
         session: ClientSession,
     ): Promise<void> {
         const written = await this.characterModel
@@ -211,9 +234,9 @@ export class ShopTransactionService {
                     'status.location': { $in: idForms(location) },
                     'status.activeTravel': null,
                     'status.awaitingAid': null,
-                    ...soldQuantityGuards(lines),
+                    ...soldQuantityGuards(lines, petOwnershipGuards(lines)),
                 },
-                { $set: inventoryChanges(inventory) },
+                { $set: inventoryChanges(inventory, pets) },
                 { session },
             )
             .exec();
