@@ -1,3 +1,4 @@
+import { MongooseModule } from '@nestjs/mongoose';
 import { Types, type Model } from 'mongoose';
 import type request from 'supertest';
 import { City } from 'src/models/city.model';
@@ -5,6 +6,7 @@ import { Character } from 'src/models/character/character.model';
 import type { AssetQuantityInput } from 'src/models/common/asset-quantity.model';
 import { EquipmentItem } from 'src/models/equipment-item.model';
 import { LootItem } from 'src/models/loot-item.model';
+import { Lore, LoreSchema } from 'src/models/lore.model';
 import { Pet } from 'src/models/pet.model';
 import { ShopPoolSeeder } from 'src/shops/maintenance/shop-pool.seeder';
 import { ShopsModule } from 'src/shops/shops.module';
@@ -209,7 +211,15 @@ describe('city shops end to end on a seeded world (BE-SHOP-05)', () => {
     }
 
     beforeAll(async () => {
-        harness = await createCharactersTestApp({ imports: [ShopsModule] });
+        // la città del negozio popola la lore: il modello deve esistere anche fuori da AppModule
+        harness = await createCharactersTestApp({
+            imports: [
+                ShopsModule,
+                MongooseModule.forFeature([
+                    { name: Lore.name, schema: LoreSchema },
+                ]),
+            ],
+        });
         models = {
             city: harness.connection.model(City.name),
             equipment: harness.connection.model(EquipmentItem.name),
