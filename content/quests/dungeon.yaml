@@ -4,6 +4,8 @@
   city: '69096204d26cadbff3ae5e80' # Anden
   infos:
     title: 'Dungeon: Ankheg presso Anden'
+    description: |-
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Anden. Attenzione: gli ultimi esploratori parlano di Ankheg.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6e7' # Ankheg
     markerLocation: '690e41860bfb243ab2561f4e' # Anden — POI dungeon, forest
@@ -16,6 +18,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331d' # Kit da Scalata Leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83245' # Corda robusta
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -25,6 +36,8 @@
   city: '690961bf6bd4d0b4bdd6524a' # Morrulir
   infos:
     title: "Dungeon: Elementale dell'acqua presso Morrulir"
+    description: |-
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Morrulir. Attenzione: gli ultimi esploratori parlano di Elementale dell'acqua.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8bc' # Elementale dell'acqua
     markerLocation: '690e41861479bf7ca53203e4' # Morrulir — POI dungeon, forest
@@ -37,15 +50,26 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b83349' # Pozione di Rinascita
         quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83336' # Pane di Elfo
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83308' # Corda Intrecciata
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83331' # Bussola Semplice
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
-        item: '68c19536541d89c481b832c8' # Anello con scaglie
+        item: '68c19536541d89c481b832ba' # Guantoni dello spadaccino
         quantity: 1
 - id: '6ae80db9da5c5f8cc55267f7'
   city: '690962045edb129a32a89b35' # Schuzzar
   infos:
     title: 'Dungeon: Grifone presso Schuzzar'
+    description: |-
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Schuzzar. Attenzione: gli ultimi esploratori parlano di Grifone.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8ca' # Grifone
     markerLocation: '690e41861ac3270dd0dd7f03' # Schuzzar — POI dungeon, valanPlains
@@ -58,6 +82,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83345' # Sacco di Carbone
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83308' # Corda Intrecciata
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -67,6 +100,8 @@
   city: '69096195cabaccd432523378' # Liberia
   infos:
     title: "Dungeon: Elementale dell'aria presso Liberia"
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Liberia, sorvegliato da Elementale dell'aria. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8bb' # Elementale dell'aria
     markerLocation: '690e41861dd44fc417a149e4' # Liberia — POI dungeon, liberiaIsland
@@ -79,6 +114,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b83349' # Pozione di Rinascita
         quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83336' # Pane di Elfo
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331f' # Lente d'Ingrandimento
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83339' # Kit di riparazione
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -88,6 +132,8 @@
   city: '690961ac78ab2149775decb5' # Rimvel
   infos:
     title: 'Dungeon: Gargoyle presso Rimvel'
+    description: |-
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Rimvel. Attenzione: gli ultimi esploratori parlano di Gargoyle.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8c5' # Gargoyle
     markerLocation: '690e418621b2a64e173b3a53' # Rimvel — POI dungeon, mountainTemistos
@@ -100,6 +146,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83320' # Piccone da Minatore
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331f' # Lente d'Ingrandimento
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -108,24 +163,29 @@
 - id: '6ae80db9da5c5f8cc55267fa'
   city: '6909620412ed8a8e5c412c58' # Arbisrah
   infos:
-    title: 'Dungeon: Arbusto Maligno presso Arbisrah'
+    title: 'Dungeon: Melma grigia presso Arbisrah'
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Arbisrah, sorvegliato da Melma grigia. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
-    enemy: '68c28e9789b2155e53b835b5' # Arbusto Maligno
+    enemy: '6ae802f652eeaf280316c8d4' # Melma grigia
     markerLocation: '690e418621c73b644ef59105' # Arbisrah — POI dungeon, desert
     relatedLore:
       - '6ae809f3e428a66e9ce2c21b' # Arbisrah
-      - '6ae802f65f3e1244a34ae384' # Arbusto Maligno
+      - '6ae802f65f3e1244a34ae387' # Melma
   requirements:
     minTitle: rookie
     recommendedLoot:
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83267' # Camicia di lino rinforzata
-        quantity: 1
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
-        quantity: 1
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83243' # Razione da viaggio
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83304' # Torcia di Pino
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83339' # Kit di riparazione
         quantity: 1
   prizes:
     randomLoot:
@@ -136,6 +196,8 @@
   city: '690961aceb085f563e694e52' # Vallegentile
   infos:
     title: 'Dungeon: Licantropo cinghiale presso Vallegentile'
+    description: |-
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Vallegentile. Attenzione: gli ultimi esploratori parlano di Licantropo cinghiale.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8d0' # Licantropo cinghiale
     markerLocation: '690e4186269c891d86088137' # Vallegentile — POI dungeon, forest
@@ -148,6 +210,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83345' # Sacco di Carbone
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83244' # Torcia di ferro
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -157,6 +228,8 @@
   city: '690961ac2d897b62ba4d2a51' # Servel
   infos:
     title: 'Dungeon: Grifone presso Servel'
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Servel, sorvegliato da Grifone. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8ca' # Grifone
     markerLocation: '690e41862bfddabc9a8c8fea' # Servel — POI dungeon, mountainTemistos
@@ -169,6 +242,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83320' # Piccone da Minatore
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83244' # Torcia di ferro
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -178,6 +260,8 @@
   city: '69096204fd230792d5c30ec7' # Noxgard
   infos:
     title: 'Dungeon: Driade presso Noxgard'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Noxgard. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Driade.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6ff' # Driade
     markerLocation: '690e41863f26e7b6da1a2946' # Noxgard — POI dungeon, forest
@@ -196,6 +280,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83345' # Sacco di Carbone
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83245' # Corda robusta
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -205,6 +298,8 @@
   city: '6909614408ddd652b429dcd2' # Talmvere
   infos:
     title: 'Dungeon: Ankheg presso Talmvere'
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Talmvere, sorvegliato da Ankheg. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6e7' # Ankheg
     markerLocation: '690e418640005dddbe21be8d' # Talmvere — POI dungeon, forest
@@ -217,6 +312,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83345' # Sacco di Carbone
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83246' # Grimaldello
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -226,6 +330,8 @@
   city: '690961d478a17f90f14c11de' # Necrorian
   infos:
     title: "Dungeon: Drago d'ombra giovane presso Necrorian"
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Necrorian. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Drago d'ombra giovane.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6f6' # Drago d'ombra giovane
     markerLocation: '690e418641b1298bf5967d1f' # Necrorian — POI dungeon, glounet
@@ -244,15 +350,26 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b83349' # Pozione di Rinascita
         quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83336' # Pane di Elfo
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331e' # Mappa Dettagliata
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83320' # Piccone da Minatore
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
-        item: '68c19536541d89c481b832cb' # Anello del Portale
+        item: '68c19536541d89c481b832cd' # Anello del Litch
         quantity: 1
 - id: '6ae80db9da5c5f8cc5526800'
   city: '690961ac03480efdb3c87260' # Quirra
   infos:
     title: 'Dungeon: Licantropo lupo presso Quirra'
+    description: |-
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Quirra. Attenzione: gli ultimi esploratori parlano di Licantropo lupo.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8ce' # Licantropo lupo
     markerLocation: '690e418646e78e6f378f0a76' # Quirra — POI dungeon, forest
@@ -265,6 +382,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83345' # Sacco di Carbone
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331d' # Kit da Scalata Leggero
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -274,6 +400,8 @@
   city: '6909620496b6d2faac014169' # Pinatlu
   infos:
     title: 'Dungeon: Ippogrifo presso Pinatlu'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Pinatlu. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Ippogrifo.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8cc' # Ippogrifo
     markerLocation: '690e41864da7fc351980c536' # Pinatlu — POI dungeon, valanPlains
@@ -286,6 +414,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83331' # Bussola Semplice
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83304' # Torcia di Pino
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -295,6 +432,8 @@
   city: '69096144ac4064d20609d33e' # Gran Porto
   infos:
     title: 'Dungeon: Manticora presso Gran Porto'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Gran Porto. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Manticora.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8d2' # Manticora
     markerLocation: '690e418653318af8c40224a4' # Gran Porto — POI dungeon, hills
@@ -307,6 +446,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8334e' # Borsa di Stoffa e Aghi
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331e' # Mappa Dettagliata
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -316,6 +464,8 @@
   city: '690961f209cf5f26988106f4' # Virnen
   infos:
     title: 'Dungeon: Drago di rame giovane presso Virnen'
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Virnen, sorvegliato da Drago di rame giovane. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6fb' # Drago di rame giovane
     markerLocation: '690e418653da8c75cc5e9bb6' # Virnen — POI dungeon, belleholmIsland
@@ -328,15 +478,26 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b83349' # Pozione di Rinascita
         quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83336' # Pane di Elfo
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83308' # Corda Intrecciata
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331f' # Lente d'Ingrandimento
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
-        item: '68c19536541d89c481b8327f' # Stivali di Drago
+        item: '68c19536541d89c481b8327e' # Stivali dell'Ombra
         quantity: 1
 - id: '6ae80db9da5c5f8cc5526804'
   city: '690961ac023a25fec19b35d1' # Tempioblu
   infos:
     title: 'Dungeon: Manticora presso Tempioblu'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Tempioblu. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Manticora.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8d2' # Manticora
     markerLocation: '690e41865ecb002fec01d84f' # Tempioblu — POI dungeon, mountainTemistos
@@ -349,6 +510,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8334e' # Borsa di Stoffa e Aghi
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83345' # Sacco di Carbone
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -358,6 +528,8 @@
   city: '690961bf3ed284bbb23a15b6' # Balkuldir
   infos:
     title: 'Dungeon: Arpia presso Balkuldir'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Balkuldir. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Arpia.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6e8' # Arpia
     markerLocation: '690e41866e57dea679a38638' # Balkuldir — POI dungeon, mountainLamstone
@@ -370,6 +542,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83321' # Fiala di Olio Illuminante
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83331' # Bussola Semplice
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -379,6 +560,8 @@
   city: '690961ac101e1660d43e64dd' # Alexandria
   infos:
     title: 'Dungeon: Grifone presso Alexandria'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Alexandria. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Grifone.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8ca' # Grifone
     markerLocation: '690e418673e14de7938f40b4' # Alexandria — POI dungeon, valanPlains
@@ -391,6 +574,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83304' # Torcia di Pino
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331f' # Lente d'Ingrandimento
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -400,6 +592,8 @@
   city: '69096144010ae1b15a31815c' # Rivalago
   infos:
     title: 'Dungeon: Ankheg presso Rivalago'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Rivalago. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Ankheg.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6e7' # Ankheg
     markerLocation: '690e418688c52ff52d77a25f' # Rivalago — POI dungeon, drusteaPlains
@@ -412,6 +606,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8334e' # Borsa di Stoffa e Aghi
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331d' # Kit da Scalata Leggero
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -421,6 +624,8 @@
   city: '69096144d80073c7abaa3b2f' # Shando
   infos:
     title: 'Dungeon: Fuoco fatuo presso Shando'
+    description: |-
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Shando. Attenzione: gli ultimi esploratori parlano di Fuoco fatuo.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8c3' # Fuoco fatuo
     markerLocation: '690e418690309049166571b0' # Shando — POI dungeon, swamp
@@ -433,6 +638,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83304' # Torcia di Pino
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83339' # Kit di riparazione
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -441,24 +655,29 @@
 - id: '6ae80db9da5c5f8cc5526809'
   city: '6909620438e7bde89092474e' # Hiorgen
   infos:
-    title: 'Dungeon: Arbusto Maligno presso Hiorgen'
+    title: 'Dungeon: Melma grigia presso Hiorgen'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Hiorgen. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Melma grigia.
     type: dungeon
-    enemy: '68c28e9789b2155e53b835b5' # Arbusto Maligno
+    enemy: '6ae802f652eeaf280316c8d4' # Melma grigia
     markerLocation: '690e4186931d631db407e07f' # Hiorgen — POI dungeon, desert
     relatedLore:
       - '6ae809f3e428a66e9ce2c21c' # Hiorgen
-      - '6ae802f65f3e1244a34ae384' # Arbusto Maligno
+      - '6ae802f65f3e1244a34ae387' # Melma
   requirements:
     minTitle: rookie
     recommendedLoot:
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83267' # Camicia di lino rinforzata
-        quantity: 1
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
-        quantity: 1
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83243' # Razione da viaggio
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83244' # Torcia di ferro
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8334e' # Borsa di Stoffa e Aghi
         quantity: 1
   prizes:
     randomLoot:
@@ -469,6 +688,8 @@
   city: '6909616190c98a6ae089a6f4' # Lehadorei
   infos:
     title: 'Dungeon: Driade presso Lehadorei'
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Lehadorei, sorvegliato da Driade. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6ff' # Driade
     markerLocation: '690e418699b940097a2f45c8' # Lehadorei — POI dungeon, minnelyForest
@@ -487,6 +708,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331e' # Mappa Dettagliata
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83347' # Lampada ad Olio
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -496,6 +726,8 @@
   city: '690961bf1bf8bb61e5f6af2f' # Veg Faldir
   infos:
     title: "Dungeon: Drago d'argento cucciolo presso Veg Faldir"
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Veg Faldir, sorvegliato da Drago d'argento cucciolo. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6f8' # Drago d'argento cucciolo
     markerLocation: '690e4186a1ad003c8276386c' # Veg Faldir — POI dungeon, mountainLamstone
@@ -514,6 +746,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8334e' # Borsa di Stoffa e Aghi
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83345' # Sacco di Carbone
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -523,6 +764,8 @@
   city: '690961d478a17f90f14c11de' # Necrorian
   infos:
     title: "Dungeon: Drago d'ombra giovane presso Necrorian"
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Necrorian. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Drago d'ombra giovane.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6f6' # Drago d'ombra giovane
     markerLocation: '690e4186a2175881abee5979' # Necrorian — POI dungeon, glounet
@@ -541,6 +784,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b83349' # Pozione di Rinascita
         quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83336' # Pane di Elfo
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83347' # Lampada ad Olio
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8333f' # Scalpello e Martello
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -550,6 +802,8 @@
   city: '690961ac1b417b63cc541a11' # Isolalunga
   infos:
     title: 'Dungeon: Manticora presso Isolalunga'
+    description: |-
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Isolalunga. Attenzione: gli ultimi esploratori parlano di Manticora.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8d2' # Manticora
     markerLocation: '690e4186b191665c70c993c0' # Isolalunga — POI dungeon, mountainTemistos
@@ -562,6 +816,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83308' # Corda Intrecciata
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8333f' # Scalpello e Martello
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -571,6 +834,8 @@
   city: '690961f2a2bba9f255c62900' # Telobren
   infos:
     title: 'Dungeon: Drago di rame giovane presso Telobren'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Telobren. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Drago di rame giovane.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6fb' # Drago di rame giovane
     markerLocation: '690e4186ba90127cb01f91df' # Telobren — POI dungeon, belleholmIsland, forest
@@ -583,15 +848,26 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b83349' # Pozione di Rinascita
         quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83336' # Pane di Elfo
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83352' # Kit di Protezione da Congelamento
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331e' # Mappa Dettagliata
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
-        item: '6ae7fdeea808802d838972e0' # Elmo di Wismund Drustea
+        item: '6ae7fdeea808802d838972d6' # Tiara delle Lacrime della vergine
         quantity: 1
 - id: '6ae80db9da5c5f8cc552680f'
   city: '690961f2475e9937b4cea9eb' # Danmil Urvyn
   infos:
     title: 'Dungeon: Licantropo pipistrello presso Danmil Urvyn'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Danmil Urvyn. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Licantropo pipistrello.
     type: dungeon
     enemy: '6ae8051d9d83064b7a8533da' # Licantropo pipistrello
     markerLocation: '690e4186bbe45b924b0d9b58' # Danmil Urvyn — POI dungeon, belleholmIsland
@@ -604,6 +880,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331d' # Kit da Scalata Leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83245' # Corda robusta
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -613,6 +898,8 @@
   city: '690961f2508bc3b72047ae70' # Peadale
   infos:
     title: 'Dungeon: Ankheg presso Peadale'
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Peadale, sorvegliato da Ankheg. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6e7' # Ankheg
     markerLocation: '690e4186bebd481cc3fbded2' # Peadale — POI dungeon, belleholmIsland, forest
@@ -625,6 +912,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83244' # Torcia di ferro
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83321' # Fiala di Olio Illuminante
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -634,6 +930,8 @@
   city: '69096178e1a627d12ebf405e' # Ferrion
   infos:
     title: 'Dungeon: Yeti presso Ferrion'
+    description: |-
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Ferrion. Attenzione: gli ultimi esploratori parlano di Yeti.
     type: dungeon
     enemy: '6ae804ef033e23e10fe491e0' # Yeti
     markerLocation: '690e4186c23eec4cfe2602ed' # Ferrion — POI dungeon, farNorth
@@ -652,6 +950,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83339' # Kit di riparazione
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83331' # Bussola Semplice
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -661,6 +968,8 @@
   city: '690961bf40461c8db77a7c89' # Kom Dorul
   infos:
     title: 'Dungeon: Progenie vampirica presso Kom Dorul'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Kom Dorul. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Progenie vampirica.
     type: dungeon
     enemy: '6ae804ef033e23e10fe491e7' # Progenie vampirica
     markerLocation: '690e4186cb0c4a6ce48fec10' # Kom Dorul — POI dungeon, undergroundLamstone
@@ -679,6 +988,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83345' # Sacco di Carbone
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83245' # Corda robusta
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -688,6 +1006,8 @@
   city: '690961acb892c0c0533109d4' # Lagoverde
   infos:
     title: 'Dungeon: Manticora presso Lagoverde'
+    description: |-
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Lagoverde. Attenzione: gli ultimi esploratori parlano di Manticora.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8d2' # Manticora
     markerLocation: '690e4186cb54d40e344fbb08' # Lagoverde — POI dungeon, mountainTemistos
@@ -700,6 +1020,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83304' # Torcia di Pino
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83352' # Kit di Protezione da Congelamento
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -709,6 +1038,8 @@
   city: '690961bf3ed284bbb23a15b6' # Balkuldir
   infos:
     title: 'Dungeon: Ettercap presso Balkuldir'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Balkuldir. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Ettercap.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8bf' # Ettercap
     markerLocation: '690e4186d1a98dad553e6f20' # Balkuldir — POI dungeon, undergroundLamstone
@@ -721,6 +1052,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8333f' # Scalpello e Martello
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331f' # Lente d'Ingrandimento
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -730,6 +1070,8 @@
   city: '6909620472a89d8e4dedcb50' # Pitchport
   infos:
     title: 'Dungeon: Hobgoblin presso Pitchport'
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Pitchport, sorvegliato da Hobgoblin. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae804ef033e23e10fe491e5' # Hobgoblin
     markerLocation: '690e4186d3f89cf09558e8fd' # Pitchport — POI dungeon, valanPlains
@@ -742,6 +1084,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83245' # Corda robusta
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83321' # Fiala di Olio Illuminante
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -751,6 +1102,8 @@
   city: '690961acf1c30d31b0f18c62' # Taurin
   infos:
     title: 'Dungeon: Arpia presso Taurin'
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Taurin, sorvegliato da Arpia. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6e8' # Arpia
     markerLocation: '690e4186d9dedb27387f936c' # Taurin — POI dungeon, mountainTemistos
@@ -763,6 +1116,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8331d' # Kit da Scalata Leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83321' # Fiala di Olio Illuminante
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -772,6 +1134,8 @@
   city: '690961f26b46ea855081a15a' # Dalde
   infos:
     title: 'Dungeon: Drago di rame cucciolo presso Dalde'
+    description: |-
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Dalde. Attenzione: gli ultimi esploratori parlano di Drago di rame cucciolo.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6f7' # Drago di rame cucciolo
     markerLocation: '690e4186de4a813e91cb78cd' # Dalde — POI dungeon, belleholmIsland
@@ -784,6 +1148,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83331' # Bussola Semplice
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83245' # Corda robusta
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -793,6 +1166,8 @@
   city: '69096195b3fd88e22839bde7' # Tine
   infos:
     title: 'Dungeon: Merrow presso Tine'
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Tine, sorvegliato da Merrow. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8d5' # Merrow
     markerLocation: '690e4186dfa9fa6ead377184' # Tine — POI dungeon, liberiaIsland
@@ -805,6 +1180,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83352' # Kit di Protezione da Congelamento
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83339' # Kit di riparazione
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -814,6 +1198,8 @@
   city: '69096195a6756c5ce333b127' # Pontealto
   infos:
     title: 'Dungeon: Belva distorcente presso Pontealto'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Pontealto. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Belva distorcente.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6ec' # Belva distorcente
     markerLocation: '690e4186e560bb6bf4753c69' # Pontealto — POI dungeon, forest, liberiaIsland
@@ -826,6 +1212,15 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83320' # Piccone da Minatore
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83347' # Lampada ad Olio
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -835,6 +1230,8 @@
   city: '69096178e1a627d12ebf405e' # Ferrion
   infos:
     title: 'Dungeon: Djinni presso Ferrion'
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Ferrion, sorvegliato da Djinni. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8c4' # Djinni
     markerLocation: '690e4186f32d4859391b1f3f' # Ferrion — POI dungeon, harkenIsland
@@ -847,15 +1244,26 @@
       - itemType: LootItem
         item: '68c193b5541d89c481b83349' # Pozione di Rinascita
         quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83336' # Pane di Elfo
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8332b' # Torcia a Lunga Durata
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83245' # Corda robusta
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
-        item: '6ae7fdeea808802d838972df' # Lama di Hilword Valantar
+        item: '6ae7fdeea808802d838972e1' # Guanti runici di Monteaspro
         quantity: 1
 - id: '6ae80db9da5c5f8cc552681b'
   city: '690961788b5654c10bdac571' # Lunaris
   infos:
     title: 'Dungeon: Ogre presso Lunaris'
+    description: |-
+      Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di Lunaris. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare Ogre.
     type: dungeon
     enemy: '6ae804ef033e23e10fe491d2' # Ogre
     markerLocation: '690e4186f6bb003c692f4377' # Lunaris — POI dungeon, farNorth
@@ -868,6 +1276,15 @@
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83245' # Corda robusta
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b8333f' # Scalpello e Martello
+        quantity: 1
   prizes:
     randomLoot:
       - itemType: EquipmentItem
@@ -877,6 +1294,8 @@
   city: '690961f23a51d0e34cea2ed3' # Rosedenn
   infos:
     title: 'Dungeon: Basilisco presso Rosedenn'
+    description: |-
+      La gilda degli esploratori segnala un luogo dimenticato non lontano da Rosedenn, sorvegliato da Basilisco. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.
     type: dungeon
     enemy: '6ae8018892c2bed7f939c6ea' # Basilisco
     markerLocation: '690e4186fcf4551102e7964b' # Rosedenn — POI dungeon, belleholmIsland
@@ -888,6 +1307,15 @@
     recommendedLoot:
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce28' # Carne affumicata del Lontano Nord
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83244' # Torcia di ferro
+        quantity: 1
+      - itemType: LootItem
+        item: '68c193b5541d89c481b83352' # Kit di Protezione da Congelamento
         quantity: 1
   prizes:
     randomLoot:

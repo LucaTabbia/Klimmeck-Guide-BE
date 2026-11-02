@@ -83,6 +83,8 @@ Le chiavi si scrivono nell'ordine qui sotto; `?` = facoltativa. I campi marcati 
   city: '<hex>' # Talmvere          SOLO FILE: città della quest
   infos:
     title: Cure al tempio di Talmvere
+    description: |-                # ? testo dell'annuncio, 1–3 frasi (D-32); generato
+      Il tempio di Talmvere apre le sue porte ai viandanti stanchi e ai combattenti feriti.
     type: heal                      # hunt|dungeon|heal|job|study|crime|guard
     enemy: null                     # id nemico (hunt/dungeon) o null
     markerLocation: '<hex>'         # POI dello snapshot
@@ -152,6 +154,8 @@ Premi e tempi **non** si scrivono nei file: il caricatore li calcola da `config.
 - `prizes.spell` solo su una `study`.
 - Al massimo **una quest fissa per POI** diverso dal marker di una città; sul marker della città lo stesso tipo di quest non si ripete (D-21).
 - Il `markerLocation` di una quest è un POI della **sua** città.
+- Ogni quest generata ha `infos.description` nella voce di chi ha affisso l'annuncio, variante scelta col seme e la chiave della quest (D-32).
+- `recommendedLoot`: dungeon = fino a 2 armi contro le debolezze + la cura e il cibo migliori + 2 oggetti da esplorazione; hunt = un'arma contro le debolezze (in mancanza, l'equipaggiamento con più danni in totale) + la cura migliore; sempre entro la rarità della fascia del `minTitle` (D-33). La lista di più nemici delle dungeon arriva con la Phase 13.
 
 Gli altri controlli offline:
 

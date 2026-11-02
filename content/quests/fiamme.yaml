@@ -4,6 +4,8 @@
   city: '690961f209cf5f26988106f4' # Virnen
   infos:
     title: Cure al tempio di Virnen
+    description: |-
+      Il tempio di Virnen apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f2d679fbb6d9e42032' # Virnen — POI city
@@ -18,6 +20,8 @@
   city: '690961f209cf5f26988106f4' # Virnen
   infos:
     title: Lavori di bottega a Virnen
+    description: |-
+      Il mercato di Virnen non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f2d679fbb6d9e42032' # Virnen — POI city
@@ -32,6 +36,8 @@
   city: '690961f209cf5f26988106f4' # Virnen
   infos:
     title: Turno di guardia a Virnen
+    description: |-
+      La guardia di Virnen è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961f2d679fbb6d9e42032' # Virnen — POI city
@@ -46,6 +52,8 @@
   city: '690961f209cf5f26988106f4' # Virnen
   infos:
     title: Affari loschi a Virnen
+    description: |-
+      Cerco gente discreta per una faccenda delicata qui a Virnen. Se le guardie vi conoscono di vista, lasciate perdere.
     type: crime
     enemy: null
     markerLocation: '690961f2d679fbb6d9e42032' # Virnen — POI city
@@ -60,6 +68,8 @@
   city: '690961f209cf5f26988106f4' # Virnen
   infos:
     title: Ricerche in biblioteca a Virnen
+    description: |-
+      Cerco un assistente per le mie ricerche sulla storia di Virnen: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
     enemy: null
     markerLocation: '690961f2d679fbb6d9e42032' # Virnen — POI city
@@ -74,6 +84,8 @@
   city: '690961f21405c9f66d9174a2' # Ultima Terra
   infos:
     title: Cure al tempio di Ultima Terra
+    description: |-
+      Il tempio di Ultima Terra apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f2151d14a97526d7eb' # Ultima Terra — POI city
@@ -88,6 +100,8 @@
   city: '690961f21405c9f66d9174a2' # Ultima Terra
   infos:
     title: Lavori di bottega a Ultima Terra
+    description: |-
+      Bottega di Ultima Terra cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961f2151d14a97526d7eb' # Ultima Terra — POI city
@@ -102,6 +116,8 @@
   city: '690961f220b335bdbc8e5e30' # Fiumelento
   infos:
     title: Cure al tempio di Fiumelento
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961f24ceb75419aa4baca' # Fiumelento — POI city
@@ -116,6 +132,8 @@
   city: '690961f220b335bdbc8e5e30' # Fiumelento
   infos:
     title: Lavori di bottega a Fiumelento
+    description: |-
+      Bottega di Fiumelento cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961f24ceb75419aa4baca' # Fiumelento — POI city
@@ -130,6 +148,8 @@
   city: '690961f220b335bdbc8e5e30' # Fiumelento
   infos:
     title: Turno di guardia a Fiumelento
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Fiumelento. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '690961f24ceb75419aa4baca' # Fiumelento — POI city
@@ -144,6 +164,8 @@
   city: '690961f220b335bdbc8e5e30' # Fiumelento
   infos:
     title: Ricerche in biblioteca a Fiumelento
+    description: |-
+      Cerco un assistente per le mie ricerche sulla storia di Fiumelento: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
     enemy: null
     markerLocation: '690961f24ceb75419aa4baca' # Fiumelento — POI city
@@ -158,6 +180,8 @@
   city: '690961f232e36d73f89ab91f' # Yonamnel
   infos:
     title: Cure al tempio di Yonamnel
+    description: |-
+      Il tempio di Yonamnel apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f2b3af3de8f757e386' # Yonamnel — POI city
@@ -172,6 +196,8 @@
   city: '690961f232e36d73f89ab91f' # Yonamnel
   infos:
     title: Lavori di bottega a Yonamnel
+    description: |-
+      Bottega di Yonamnel cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961f2b3af3de8f757e386' # Yonamnel — POI city
@@ -186,6 +212,8 @@
   city: '690961f23a51d0e34cea2ed3' # Rosedenn
   infos:
     title: Cure al tempio di Rosedenn
+    description: |-
+      Il tempio di Rosedenn apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f25f5b77e78ba1ca85' # Rosedenn — POI city
@@ -200,6 +228,8 @@
   city: '690961f23a51d0e34cea2ed3' # Rosedenn
   infos:
     title: Lavori di bottega a Rosedenn
+    description: |-
+      Il mercato di Rosedenn non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f25f5b77e78ba1ca85' # Rosedenn — POI city
@@ -214,6 +244,8 @@
   city: '690961f23a51d0e34cea2ed3' # Rosedenn
   infos:
     title: Turno di guardia a Rosedenn
+    description: |-
+      Per ordine del capitano della guardia di Rosedenn: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961f25f5b77e78ba1ca85' # Rosedenn — POI city
@@ -228,6 +260,8 @@
   city: '690961f23a51d0e34cea2ed3' # Rosedenn
   infos:
     title: Affari loschi a Rosedenn
+    description: |-
+      Un amico di un amico ha un lavoretto a Rosedenn che richiede mani leste e bocca cucita. Chiedete di me alla taverna, dopo il tramonto.
     type: crime
     enemy: null
     markerLocation: '690961f25f5b77e78ba1ca85' # Rosedenn — POI city
@@ -242,6 +276,8 @@
   city: '690961f23a51d0e34cea2ed3' # Rosedenn
   infos:
     title: Ricerche in biblioteca a Rosedenn
+    description: |-
+      La biblioteca di Rosedenn cerca menti curiose per riordinare antichi registri e cronache dimenticate. Chi sa leggere fra le righe potrebbe scoprire più di quanto immagina.
     type: study
     enemy: null
     markerLocation: '690961f25f5b77e78ba1ca85' # Rosedenn — POI city
@@ -256,6 +292,8 @@
   city: '690961f2475e9937b4cea9eb' # Danmil Urvyn
   infos:
     title: Cure al tempio di Danmil Urvyn
+    description: |-
+      I sacerdoti del tempio di Danmil Urvyn offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961f236b8c0a4337ebb25' # Danmil Urvyn — POI city
@@ -270,6 +308,8 @@
   city: '690961f2475e9937b4cea9eb' # Danmil Urvyn
   infos:
     title: Lavori di bottega a Danmil Urvyn
+    description: |-
+      Bottega di Danmil Urvyn cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961f236b8c0a4337ebb25' # Danmil Urvyn — POI city
@@ -284,6 +324,8 @@
   city: '690961f2475e9937b4cea9eb' # Danmil Urvyn
   infos:
     title: Turno di guardia a Danmil Urvyn
+    description: |-
+      La guardia di Danmil Urvyn è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961f236b8c0a4337ebb25' # Danmil Urvyn — POI city
@@ -298,6 +340,8 @@
   city: '690961f2508bc3b72047ae70' # Peadale
   infos:
     title: Cure al tempio di Peadale
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961f2b329ddc38fdb86d6' # Peadale — POI city
@@ -312,6 +356,8 @@
   city: '690961f2508bc3b72047ae70' # Peadale
   infos:
     title: Lavori di bottega a Peadale
+    description: |-
+      Il mercato di Peadale non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f2b329ddc38fdb86d6' # Peadale — POI city
@@ -326,6 +372,8 @@
   city: '690961f25482ef5bf7b39bdd' # Al Nerry
   infos:
     title: Cure al tempio di Al Nerry
+    description: |-
+      I sacerdoti del tempio di Al Nerry offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961f27fc7d3951ea81632' # Al Nerry — POI city
@@ -340,6 +388,8 @@
   city: '690961f25482ef5bf7b39bdd' # Al Nerry
   infos:
     title: Lavori di bottega a Al Nerry
+    description: |-
+      Il mercato di Al Nerry non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f27fc7d3951ea81632' # Al Nerry — POI city
@@ -354,6 +404,8 @@
   city: '690961f26ed0ae9826c2f746' # Gellirn
   infos:
     title: Cure al tempio di Gellirn
+    description: |-
+      I sacerdoti del tempio di Gellirn offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961f2fc945e70b2498d79' # Gellirn — POI city
@@ -368,6 +420,8 @@
   city: '690961f26ed0ae9826c2f746' # Gellirn
   infos:
     title: Lavori di bottega a Gellirn
+    description: |-
+      Il mercato di Gellirn non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f2fc945e70b2498d79' # Gellirn — POI city
@@ -382,6 +436,8 @@
   city: '690961f270966f9618192e68' # Cu Nuimyn
   infos:
     title: Cure al tempio di Cu Nuimyn
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961f208dac2e824861d96' # Cu Nuimyn — POI city
@@ -396,6 +452,8 @@
   city: '690961f270966f9618192e68' # Cu Nuimyn
   infos:
     title: Lavori di bottega a Cu Nuimyn
+    description: |-
+      Cerco braccia robuste per la mia bottega di Cu Nuimyn: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961f208dac2e824861d96' # Cu Nuimyn — POI city
@@ -410,6 +468,8 @@
   city: '690961f272446b09c54dd978' # Sprigfront
   infos:
     title: Cure al tempio di Sprigfront
+    description: |-
+      Il tempio di Sprigfront apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f22e3fa5fe41fd035f' # Sprigfront — POI city
@@ -424,6 +484,8 @@
   city: '690961f272446b09c54dd978' # Sprigfront
   infos:
     title: Lavori di bottega a Sprigfront
+    description: |-
+      Il mercato di Sprigfront non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f22e3fa5fe41fd035f' # Sprigfront — POI city
@@ -438,6 +500,8 @@
   city: '690961f272446b09c54dd978' # Sprigfront
   infos:
     title: Turno di guardia a Sprigfront
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Sprigfront. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '690961f22e3fa5fe41fd035f' # Sprigfront — POI city
@@ -452,6 +516,8 @@
   city: '690961f284631ee8ad0d9ca0' # Gidevolm
   infos:
     title: Cure al tempio di Gidevolm
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961f24ea706ac6fb361e1' # Gidevolm — POI city
@@ -466,6 +532,8 @@
   city: '690961f284631ee8ad0d9ca0' # Gidevolm
   infos:
     title: Lavori di bottega a Gidevolm
+    description: |-
+      Il mercato di Gidevolm non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f24ea706ac6fb361e1' # Gidevolm — POI city
@@ -480,6 +548,8 @@
   city: '690961f290dcda622c67760d' # Oldcairn
   infos:
     title: Cure al tempio di Oldcairn
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961f244b5d4402e07e559' # Oldcairn — POI city
@@ -494,6 +564,8 @@
   city: '690961f290dcda622c67760d' # Oldcairn
   infos:
     title: Lavori di bottega a Oldcairn
+    description: |-
+      Il mercato di Oldcairn non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f244b5d4402e07e559' # Oldcairn — POI city
@@ -508,6 +580,8 @@
   city: '690961f290dcda622c67760d' # Oldcairn
   infos:
     title: Turno di guardia a Oldcairn
+    description: |-
+      La guardia di Oldcairn è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961f244b5d4402e07e559' # Oldcairn — POI city
@@ -522,6 +596,8 @@
   city: '690961f298baaf7f7be10dd1' # Pianecalde
   infos:
     title: Cure al tempio di Pianecalde
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961f2c610804d35abca22' # Pianecalde — POI city
@@ -536,6 +612,8 @@
   city: '690961f298baaf7f7be10dd1' # Pianecalde
   infos:
     title: Lavori di bottega a Pianecalde
+    description: |-
+      Cerco braccia robuste per la mia bottega di Pianecalde: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961f2c610804d35abca22' # Pianecalde — POI city
@@ -550,6 +628,8 @@
   city: '690961f298baaf7f7be10dd1' # Pianecalde
   infos:
     title: Turno di guardia a Pianecalde
+    description: |-
+      Per ordine del capitano della guardia di Pianecalde: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961f2c610804d35abca22' # Pianecalde — POI city
@@ -564,6 +644,8 @@
   city: '690961f298baaf7f7be10dd1' # Pianecalde
   infos:
     title: Affari loschi a Pianecalde
+    description: |-
+      Cerco gente discreta per una faccenda delicata qui a Pianecalde. Se le guardie vi conoscono di vista, lasciate perdere.
     type: crime
     enemy: null
     markerLocation: '690961f2c610804d35abca22' # Pianecalde — POI city
@@ -578,6 +660,8 @@
   city: '690961f298baaf7f7be10dd1' # Pianecalde
   infos:
     title: Ricerche in biblioteca a Pianecalde
+    description: |-
+      Cerco un assistente per le mie ricerche sulla storia di Pianecalde: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
     enemy: null
     markerLocation: '690961f2c610804d35abca22' # Pianecalde — POI city
@@ -592,6 +676,8 @@
   city: '690961f29b082d39dee58e09' # Vudyld
   infos:
     title: Cure al tempio di Vudyld
+    description: |-
+      Il tempio di Vudyld apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f26eed6b691c18fe35' # Vudyld — POI city
@@ -606,6 +692,8 @@
   city: '690961f29b082d39dee58e09' # Vudyld
   infos:
     title: Lavori di bottega a Vudyld
+    description: |-
+      Bottega di Vudyld cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961f26eed6b691c18fe35' # Vudyld — POI city
@@ -620,6 +708,8 @@
   city: '690961f2a2bba9f255c62900' # Telobren
   infos:
     title: Cure al tempio di Telobren
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961f2783dc075b1468c53' # Telobren — POI city
@@ -634,6 +724,8 @@
   city: '690961f2a2bba9f255c62900' # Telobren
   infos:
     title: Lavori di bottega a Telobren
+    description: |-
+      Cerco braccia robuste per la mia bottega di Telobren: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961f2783dc075b1468c53' # Telobren — POI city
@@ -648,6 +740,8 @@
   city: '690961f2a2bba9f255c62900' # Telobren
   infos:
     title: Turno di guardia a Telobren
+    description: |-
+      Per ordine del capitano della guardia di Telobren: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961f2783dc075b1468c53' # Telobren — POI city
@@ -662,6 +756,8 @@
   city: '690961f2a2bba9f255c62900' # Telobren
   infos:
     title: Affari loschi a Telobren
+    description: |-
+      Merce da spostare, una porta da aprire, un nome da dimenticare. Chi è interessato lasci un segno sul muro dietro il mercato di Telobren.
     type: crime
     enemy: null
     markerLocation: '690961f2783dc075b1468c53' # Telobren — POI city
@@ -676,6 +772,8 @@
   city: '690961f2a2bba9f255c62900' # Telobren
   infos:
     title: Ricerche in biblioteca a Telobren
+    description: |-
+      La biblioteca di Telobren cerca menti curiose per riordinare antichi registri e cronache dimenticate. Chi sa leggere fra le righe potrebbe scoprire più di quanto immagina.
     type: study
     enemy: null
     markerLocation: '690961f2783dc075b1468c53' # Telobren — POI city
@@ -690,6 +788,8 @@
   city: '690961f2ab1b364dd70e9c26' # Unrike
   infos:
     title: Cure al tempio di Unrike
+    description: |-
+      Il tempio di Unrike apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f216b01e0ec4c8419f' # Unrike — POI city
@@ -704,6 +804,8 @@
   city: '690961f2ab1b364dd70e9c26' # Unrike
   infos:
     title: Lavori di bottega a Unrike
+    description: |-
+      Il mercato di Unrike non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f216b01e0ec4c8419f' # Unrike — POI city
@@ -718,6 +820,8 @@
   city: '690961f2b69d968cbaef09f3' # Bellport
   infos:
     title: Cure al tempio di Bellport
+    description: |-
+      Il tempio di Bellport apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f2990e8deb12a912a9' # Bellport — POI city
@@ -732,6 +836,8 @@
   city: '690961f2b69d968cbaef09f3' # Bellport
   infos:
     title: Lavori di bottega a Bellport
+    description: |-
+      Il mercato di Bellport non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f2990e8deb12a912a9' # Bellport — POI city
@@ -746,6 +852,8 @@
   city: '690961f2b69d968cbaef09f3' # Bellport
   infos:
     title: Turno di guardia a Bellport
+    description: |-
+      Per ordine del capitano della guardia di Bellport: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961f2990e8deb12a912a9' # Bellport — POI city
@@ -760,6 +868,8 @@
   city: '690961f2b69d968cbaef09f3' # Bellport
   infos:
     title: Affari loschi a Bellport
+    description: |-
+      Merce da spostare, una porta da aprire, un nome da dimenticare. Chi è interessato lasci un segno sul muro dietro il mercato di Bellport.
     type: crime
     enemy: null
     markerLocation: '690961f2990e8deb12a912a9' # Bellport — POI city
@@ -774,6 +884,8 @@
   city: '690961f2b69d968cbaef09f3' # Bellport
   infos:
     title: Ricerche in biblioteca a Bellport
+    description: |-
+      Cerco un assistente per le mie ricerche sulla storia di Bellport: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
     enemy: null
     markerLocation: '690961f2990e8deb12a912a9' # Bellport — POI city
@@ -788,6 +900,8 @@
   city: '690961f2c28e686ddbe6ec29' # Mistglen
   infos:
     title: Cure al tempio di Mistglen
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961f28dac3063d434ec13' # Mistglen — POI city
@@ -802,6 +916,8 @@
   city: '690961f2c28e686ddbe6ec29' # Mistglen
   infos:
     title: Lavori di bottega a Mistglen
+    description: |-
+      Cerco braccia robuste per la mia bottega di Mistglen: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961f28dac3063d434ec13' # Mistglen — POI city
@@ -816,6 +932,8 @@
   city: '690961f2c33b0a2840e14a55' # Thorndenn
   infos:
     title: Cure al tempio di Thorndenn
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961f2db56c583b4877f5a' # Thorndenn — POI city
@@ -830,6 +948,8 @@
   city: '690961f2c33b0a2840e14a55' # Thorndenn
   infos:
     title: Lavori di bottega a Thorndenn
+    description: |-
+      Il mercato di Thorndenn non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f2db56c583b4877f5a' # Thorndenn — POI city
@@ -844,6 +964,8 @@
   city: '690961f2c33b0a2840e14a55' # Thorndenn
   infos:
     title: Turno di guardia a Thorndenn
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Thorndenn. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '690961f2db56c583b4877f5a' # Thorndenn — POI city
@@ -858,6 +980,8 @@
   city: '690961f2c33b0a2840e14a55' # Thorndenn
   infos:
     title: Ricerche in biblioteca a Thorndenn
+    description: |-
+      Cerco un assistente per le mie ricerche sulla storia di Thorndenn: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
     enemy: null
     markerLocation: '690961f2db56c583b4877f5a' # Thorndenn — POI city
@@ -872,6 +996,8 @@
   city: '690961f2cf957bc46fe0e795' # Lagorovente
   infos:
     title: Cure al tempio di Lagorovente
+    description: |-
+      Il tempio di Lagorovente apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f24e033df568b6a4bd' # Lagorovente — POI city
@@ -886,6 +1012,8 @@
   city: '690961f2cf957bc46fe0e795' # Lagorovente
   infos:
     title: Lavori di bottega a Lagorovente
+    description: |-
+      Il mercato di Lagorovente non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961f24e033df568b6a4bd' # Lagorovente — POI city
@@ -900,6 +1028,8 @@
   city: '690961f2d81d34e19cb510e7' # Pinecrest
   infos:
     title: Cure al tempio di Pinecrest
+    description: |-
+      Il tempio di Pinecrest apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f2b9caa75b94e78033' # Pinecrest — POI city
@@ -914,6 +1044,8 @@
   city: '690961f2d81d34e19cb510e7' # Pinecrest
   infos:
     title: Lavori di bottega a Pinecrest
+    description: |-
+      Bottega di Pinecrest cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961f2b9caa75b94e78033' # Pinecrest — POI city
@@ -928,6 +1060,8 @@
   city: '690961f2d81d34e19cb510e7' # Pinecrest
   infos:
     title: Turno di guardia a Pinecrest
+    description: |-
+      Per ordine del capitano della guardia di Pinecrest: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961f2b9caa75b94e78033' # Pinecrest — POI city
@@ -942,6 +1076,8 @@
   city: '690961f2d81d34e19cb510e7' # Pinecrest
   infos:
     title: Ricerche in biblioteca a Pinecrest
+    description: |-
+      Gli archivi di Pinecrest traboccano di carte che nessuno legge da secoli. Offro una ricompensa a chi mi aiuterà a dar loro un ordine.
     type: study
     enemy: null
     markerLocation: '690961f2b9caa75b94e78033' # Pinecrest — POI city
@@ -956,6 +1092,8 @@
   city: '690961f2d98f74fb4616446c' # Vired Ivem
   infos:
     title: Cure al tempio di Vired Ivem
+    description: |-
+      Il tempio di Vired Ivem apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f2c99ba44a7fce0083' # Vired Ivem — POI city
@@ -970,6 +1108,8 @@
   city: '690961f2d98f74fb4616446c' # Vired Ivem
   infos:
     title: Lavori di bottega a Vired Ivem
+    description: |-
+      Cerco braccia robuste per la mia bottega di Vired Ivem: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961f2c99ba44a7fce0083' # Vired Ivem — POI city
@@ -984,6 +1124,8 @@
   city: '690961f2d98f74fb4616446c' # Vired Ivem
   infos:
     title: Turno di guardia a Vired Ivem
+    description: |-
+      Per ordine del capitano della guardia di Vired Ivem: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961f2c99ba44a7fce0083' # Vired Ivem — POI city
@@ -998,6 +1140,8 @@
   city: '690961f2d98f74fb4616446c' # Vired Ivem
   infos:
     title: Affari loschi a Vired Ivem
+    description: |-
+      Cerco gente discreta per una faccenda delicata qui a Vired Ivem. Se le guardie vi conoscono di vista, lasciate perdere.
     type: crime
     enemy: null
     markerLocation: '690961f2c99ba44a7fce0083' # Vired Ivem — POI city
@@ -1012,6 +1156,8 @@
   city: '690961f2d98f74fb4616446c' # Vired Ivem
   infos:
     title: Ricerche in biblioteca a Vired Ivem
+    description: |-
+      Cerco un assistente per le mie ricerche sulla storia di Vired Ivem: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
     enemy: null
     markerLocation: '690961f2c99ba44a7fce0083' # Vired Ivem — POI city
@@ -1026,6 +1172,8 @@
   city: '690961f2da371c354c6b7f36' # Usrorn
   infos:
     title: Cure al tempio di Usrorn
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961f223f9ade095b90a77' # Usrorn — POI city
@@ -1040,6 +1188,8 @@
   city: '690961f2da371c354c6b7f36' # Usrorn
   infos:
     title: Lavori di bottega a Usrorn
+    description: |-
+      Bottega di Usrorn cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961f223f9ade095b90a77' # Usrorn — POI city
@@ -1054,6 +1204,8 @@
   city: '690961f2e02f0f11b346240f' # Costenere
   infos:
     title: Cure al tempio di Costenere
+    description: |-
+      I sacerdoti del tempio di Costenere offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961f2fdae6509f55f2547' # Costenere — POI city
@@ -1068,6 +1220,8 @@
   city: '690961f2e02f0f11b346240f' # Costenere
   infos:
     title: Lavori di bottega a Costenere
+    description: |-
+      Bottega di Costenere cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961f2fdae6509f55f2547' # Costenere — POI city
@@ -1082,6 +1236,8 @@
   city: '690961f2e6690bb3ec8f2ee5' # Mapleview
   infos:
     title: Cure al tempio di Mapleview
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961f2efb579de3b428656' # Mapleview — POI city
@@ -1096,6 +1252,8 @@
   city: '690961f2e6690bb3ec8f2ee5' # Mapleview
   infos:
     title: Lavori di bottega a Mapleview
+    description: |-
+      Bottega di Mapleview cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961f2efb579de3b428656' # Mapleview — POI city
@@ -1110,6 +1268,8 @@
   city: '690961f2fb45f73a8ff880d6' # Gurlaid
   infos:
     title: Cure al tempio di Gurlaid
+    description: |-
+      Il tempio di Gurlaid apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961f210993c82b04a5d0c' # Gurlaid — POI city
@@ -1124,6 +1284,8 @@
   city: '690961f2fb45f73a8ff880d6' # Gurlaid
   infos:
     title: Lavori di bottega a Gurlaid
+    description: |-
+      Bottega di Gurlaid cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961f210993c82b04a5d0c' # Gurlaid — POI city
@@ -1138,6 +1300,8 @@
   city: '690961f2fb45f73a8ff880d6' # Gurlaid
   infos:
     title: Turno di guardia a Gurlaid
+    description: |-
+      La guardia di Gurlaid è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961f210993c82b04a5d0c' # Gurlaid — POI city
@@ -1152,6 +1316,8 @@
   city: '690961f2fb45f73a8ff880d6' # Gurlaid
   infos:
     title: Affari loschi a Gurlaid
+    description: |-
+      Merce da spostare, una porta da aprire, un nome da dimenticare. Chi è interessato lasci un segno sul muro dietro il mercato di Gurlaid.
     type: crime
     enemy: null
     markerLocation: '690961f210993c82b04a5d0c' # Gurlaid — POI city
@@ -1166,6 +1332,8 @@
   city: '690961f21405c9f66d9174a2' # Ultima Terra
   infos:
     title: 'Caccia: Avvoltoio nei dintorni di Ultima Terra'
+    description: |-
+      Nei campi intorno a Ultima Terra il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Avvoltoio. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e6' # Avvoltoio
     markerLocation: '690e41868f9433b7db28ac3a' # Ultima Terra — POI belleholmIsland
@@ -1174,13 +1342,21 @@
       - '6ae8065202a77381730f2822' # Avvoltoio
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267d7'
   city: '690961f23a51d0e34cea2ed3' # Rosedenn
   infos:
     title: 'Caccia: Pantera nei dintorni di Rosedenn'
+    description: |-
+      I contadini di Rosedenn non osano più uscire dopo il tramonto. Chi sa usare un'arma ci aiuti a cacciare quel flagello: Pantera.
     type: hunt
     enemy: '6ae806b55093fb43140756e2' # Pantera
     markerLocation: '690e4186b90374f9a009fffc' # Rosedenn — POI belleholmIsland
@@ -1189,13 +1365,21 @@
       - '6ae8065202a77381730f281e' # Pantera
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267d8'
   city: '690961f2475e9937b4cea9eb' # Danmil Urvyn
   infos:
     title: 'Caccia: Vespa gigante nei dintorni di Danmil Urvyn'
+    description: |-
+      I contadini di Danmil Urvyn non osano più uscire dopo il tramonto. Chi sa usare un'arma ci aiuti a cacciare quel flagello: Vespa gigante.
     type: hunt
     enemy: '6ae806b55093fb43140756e5' # Vespa gigante
     markerLocation: '690e4186d20b7b437dd45099' # Danmil Urvyn — POI belleholmIsland
@@ -1204,13 +1388,21 @@
       - '6ae8065202a77381730f2821' # Vespa gigante
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267d9'
   city: '690961f2508bc3b72047ae70' # Peadale
   infos:
     title: 'Caccia: Pantera nei dintorni di Peadale'
+    description: |-
+      Nei campi intorno a Peadale il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Pantera. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e2' # Pantera
     markerLocation: '690e4186e095e4bbcac70b49' # Peadale — POI vulcano, belleholmIsland
@@ -1219,13 +1411,21 @@
       - '6ae8065202a77381730f281e' # Pantera
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267db'
   city: '690961f25482ef5bf7b39bdd' # Al Nerry
   infos:
     title: 'Caccia: Avvoltoio nei dintorni di Al Nerry'
+    description: |-
+      Sono un cacciatore di Al Nerry e da solo non ce la faccio più. Cerco compagni per stanare una preda pericolosa: Avvoltoio.
     type: hunt
     enemy: '6ae806b55093fb43140756e6' # Avvoltoio
     markerLocation: '690e41865b38d64355d65c65' # Al Nerry — POI forest, belleholmIsland
@@ -1234,13 +1434,21 @@
       - '6ae8065202a77381730f2822' # Avvoltoio
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267dd'
   city: '690961f270966f9618192e68' # Cu Nuimyn
   infos:
     title: 'Caccia: Avvoltoio nei dintorni di Cu Nuimyn'
+    description: |-
+      I contadini di Cu Nuimyn non osano più uscire dopo il tramonto. Chi sa usare un'arma ci aiuti a cacciare quel flagello: Avvoltoio.
     type: hunt
     enemy: '6ae806b55093fb43140756e6' # Avvoltoio
     markerLocation: '690e418678583a69166050a8' # Cu Nuimyn — POI forest, belleholmIsland
@@ -1249,13 +1457,21 @@
       - '6ae8065202a77381730f2822' # Avvoltoio
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267de'
   city: '690961f284631ee8ad0d9ca0' # Gidevolm
   infos:
     title: 'Caccia: Vespa gigante nei dintorni di Gidevolm'
+    description: |-
+      Nei campi intorno a Gidevolm il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Vespa gigante. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e5' # Vespa gigante
     markerLocation: '690e4186061bfcc494813e27' # Gidevolm — POI belleholmIsland
@@ -1264,13 +1480,21 @@
       - '6ae8065202a77381730f2821' # Vespa gigante
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267df'
   city: '690961f298baaf7f7be10dd1' # Pianecalde
   infos:
     title: 'Caccia: Pantera nei dintorni di Pianecalde'
+    description: |-
+      I contadini di Pianecalde non osano più uscire dopo il tramonto. Chi sa usare un'arma ci aiuti a cacciare quel flagello: Pantera.
     type: hunt
     enemy: '6ae806b55093fb43140756e2' # Pantera
     markerLocation: '690e41864ef098e4777071d4' # Pianecalde — POI forest, belleholmIsland
@@ -1279,13 +1503,21 @@
       - '6ae8065202a77381730f281e' # Pantera
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267e0'
   city: '690961f2b69d968cbaef09f3' # Bellport
   infos:
     title: 'Caccia: Worg nei dintorni di Bellport'
+    description: |-
+      Nei campi intorno a Bellport il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Worg. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d4' # Worg
     markerLocation: '690e418608ce4aaf094adadf' # Bellport — POI forest, belleholmIsland
@@ -1294,13 +1526,21 @@
       - '6ae8065202a77381730f2811' # Worg
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267e1'
   city: '690961f2c33b0a2840e14a55' # Thorndenn
   infos:
     title: 'Caccia: Lupo nei dintorni di Thorndenn'
+    description: |-
+      I contadini di Thorndenn non osano più uscire dopo il tramonto. Chi sa usare un'arma ci aiuti a cacciare quel flagello: Lupo.
     type: hunt
     enemy: '6ae806b55093fb43140756d9' # Lupo
     markerLocation: '690e4186108dbf02380d4c81' # Thorndenn — POI forest, belleholmIsland
@@ -1309,13 +1549,21 @@
       - '6ae8065202a77381730f2816' # Lupo
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267e4'
   city: '690961f2d98f74fb4616446c' # Vired Ivem
   infos:
     title: 'Caccia: Avvoltoio nei dintorni di Vired Ivem'
+    description: |-
+      Nei campi intorno a Vired Ivem il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Avvoltoio. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e6' # Avvoltoio
     markerLocation: '690e4186613e16d08e320dfe' # Vired Ivem — POI belleholmIsland
@@ -1324,13 +1572,21 @@
       - '6ae8065202a77381730f2822' # Avvoltoio
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267e5'
   city: '690961f2e6690bb3ec8f2ee5' # Mapleview
   infos:
     title: 'Caccia: Iena nei dintorni di Mapleview'
+    description: |-
+      Nei campi intorno a Mapleview il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Iena. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e3' # Iena
     markerLocation: '690e41865fe4eb7decc012b3' # Mapleview — POI graveyard, belleholmIsland
@@ -1339,13 +1595,21 @@
       - '6ae8065202a77381730f281f' # Iena
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267e6'
   city: '690961f2fb45f73a8ff880d6' # Gurlaid
   infos:
     title: 'Caccia: Pantera nei dintorni di Gurlaid'
+    description: |-
+      Sono un cacciatore di Gurlaid e da solo non ce la faccio più. Cerco compagni per stanare una preda pericolosa: Pantera.
     type: hunt
     enemy: '6ae806b55093fb43140756e2' # Pantera
     markerLocation: '690e41865d673054f2552d0d' # Gurlaid — POI ruins, forest, belleholmIsland
@@ -1354,6 +1618,12 @@
       - '6ae8065202a77381730f281e' # Pantera
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []

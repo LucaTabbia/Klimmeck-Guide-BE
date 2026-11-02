@@ -4,6 +4,8 @@
   city: '690961bf0f0f449443a030e0' # Biroldur
   infos:
     title: Cure al tempio di Biroldur
+    description: |-
+      I sacerdoti del tempio di Biroldur offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961bfa27c7ce1f7032f59' # Biroldur — POI city
@@ -18,6 +20,8 @@
   city: '690961bf0f0f449443a030e0' # Biroldur
   infos:
     title: Lavori di bottega a Biroldur
+    description: |-
+      Cerco braccia robuste per la mia bottega di Biroldur: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961bfa27c7ce1f7032f59' # Biroldur — POI city
@@ -32,6 +36,8 @@
   city: '690961bf1bf8bb61e5f6af2f' # Veg Faldir
   infos:
     title: Cure al tempio di Veg Faldir
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961bfeedcd862f04e6ca7' # Veg Faldir — POI city
@@ -46,6 +52,8 @@
   city: '690961bf1bf8bb61e5f6af2f' # Veg Faldir
   infos:
     title: Lavori di bottega a Veg Faldir
+    description: |-
+      Cerco braccia robuste per la mia bottega di Veg Faldir: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961bfeedcd862f04e6ca7' # Veg Faldir — POI city
@@ -60,6 +68,8 @@
   city: '690961bf247b24390da2c81e' # Kim Todur
   infos:
     title: Cure al tempio di Kim Todur
+    description: |-
+      I sacerdoti del tempio di Kim Todur offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961bf9aeb4d5f3b0f4887' # Kim Todur — POI city
@@ -74,6 +84,8 @@
   city: '690961bf247b24390da2c81e' # Kim Todur
   infos:
     title: Lavori di bottega a Kim Todur
+    description: |-
+      Il mercato di Kim Todur non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961bf9aeb4d5f3b0f4887' # Kim Todur — POI city
@@ -88,6 +100,8 @@
   city: '690961bf247b24390da2c81e' # Kim Todur
   infos:
     title: Turno di guardia a Kim Todur
+    description: |-
+      La guardia di Kim Todur è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961bf9aeb4d5f3b0f4887' # Kim Todur — POI city
@@ -102,6 +116,8 @@
   city: '690961bf247b24390da2c81e' # Kim Todur
   infos:
     title: Ricerche in biblioteca a Kim Todur
+    description: |-
+      Cerco un assistente per le mie ricerche sulla storia di Kim Todur: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
     enemy: null
     markerLocation: '690961bf9aeb4d5f3b0f4887' # Kim Todur — POI city
@@ -116,6 +132,8 @@
   city: '690961bf40461c8db77a7c89' # Kom Dorul
   infos:
     title: Cure al tempio di Kom Dorul
+    description: |-
+      Il tempio di Kom Dorul apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961bfe7ecc4b6620218ad' # Kom Dorul — POI city
@@ -130,6 +148,8 @@
   city: '690961bf40461c8db77a7c89' # Kom Dorul
   infos:
     title: Lavori di bottega a Kom Dorul
+    description: |-
+      Cerco braccia robuste per la mia bottega di Kom Dorul: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961bfe7ecc4b6620218ad' # Kom Dorul — POI city
@@ -144,6 +164,8 @@
   city: '690961bf40461c8db77a7c89' # Kom Dorul
   infos:
     title: Turno di guardia a Kom Dorul
+    description: |-
+      La guardia di Kom Dorul è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961bfe7ecc4b6620218ad' # Kom Dorul — POI city
@@ -158,6 +180,8 @@
   city: '690961bf40461c8db77a7c89' # Kom Dorul
   infos:
     title: Ricerche in biblioteca a Kom Dorul
+    description: |-
+      Gli archivi di Kom Dorul traboccano di carte che nessuno legge da secoli. Offro una ricompensa a chi mi aiuterà a dar loro un ordine.
     type: study
     enemy: null
     markerLocation: '690961bfe7ecc4b6620218ad' # Kom Dorul — POI city
@@ -172,6 +196,8 @@
   city: '690961bf4d19ccf2d80d29eb' # Kom Dural
   infos:
     title: Cure al tempio di Kom Dural
+    description: |-
+      Il tempio di Kom Dural apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961bfaaf455e5ba5087f2' # Kom Dural — POI city
@@ -186,6 +212,8 @@
   city: '690961bf4d19ccf2d80d29eb' # Kom Dural
   infos:
     title: Lavori di bottega a Kom Dural
+    description: |-
+      Il mercato di Kom Dural non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961bfaaf455e5ba5087f2' # Kom Dural — POI city
@@ -200,6 +228,8 @@
   city: '690961bf6bd4d0b4bdd6524a' # Morrulir
   infos:
     title: Cure al tempio di Morrulir
+    description: |-
+      Il tempio di Morrulir apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961bf4cf94b8800e2d331' # Morrulir — POI city
@@ -214,6 +244,8 @@
   city: '690961bf6bd4d0b4bdd6524a' # Morrulir
   infos:
     title: Lavori di bottega a Morrulir
+    description: |-
+      Il mercato di Morrulir non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961bf4cf94b8800e2d331' # Morrulir — POI city
@@ -228,6 +260,8 @@
   city: '690961bf6bd4d0b4bdd6524a' # Morrulir
   infos:
     title: Turno di guardia a Morrulir
+    description: |-
+      La guardia di Morrulir è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961bf4cf94b8800e2d331' # Morrulir — POI city
@@ -242,6 +276,8 @@
   city: '690961bf6bd4d0b4bdd6524a' # Morrulir
   infos:
     title: Affari loschi a Morrulir
+    description: |-
+      Cerco gente discreta per una faccenda delicata qui a Morrulir. Se le guardie vi conoscono di vista, lasciate perdere.
     type: crime
     enemy: null
     markerLocation: '690961bf4cf94b8800e2d331' # Morrulir — POI city
@@ -256,6 +292,8 @@
   city: '690961bf6bd4d0b4bdd6524a' # Morrulir
   infos:
     title: Ricerche in biblioteca a Morrulir
+    description: |-
+      Cerco un assistente per le mie ricerche sulla storia di Morrulir: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
     enemy: null
     markerLocation: '690961bf4cf94b8800e2d331' # Morrulir — POI city
@@ -270,6 +308,8 @@
   city: '690961bf8c233eb8033dbafb' # Gor Buldar
   infos:
     title: Cure al tempio di Gor Buldar
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961bfea09fd7d2208058b' # Gor Buldar — POI city
@@ -284,6 +324,8 @@
   city: '690961bf8c233eb8033dbafb' # Gor Buldar
   infos:
     title: Lavori di bottega a Gor Buldar
+    description: |-
+      Bottega di Gor Buldar cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961bfea09fd7d2208058b' # Gor Buldar — POI city
@@ -298,6 +340,8 @@
   city: '690961bf8c233eb8033dbafb' # Gor Buldar
   infos:
     title: Turno di guardia a Gor Buldar
+    description: |-
+      Per ordine del capitano della guardia di Gor Buldar: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961bfea09fd7d2208058b' # Gor Buldar — POI city
@@ -312,6 +356,8 @@
   city: '690961bf8c233eb8033dbafb' # Gor Buldar
   infos:
     title: Ricerche in biblioteca a Gor Buldar
+    description: |-
+      La biblioteca di Gor Buldar cerca menti curiose per riordinare antichi registri e cronache dimenticate. Chi sa leggere fra le righe potrebbe scoprire più di quanto immagina.
     type: study
     enemy: null
     markerLocation: '690961bfea09fd7d2208058b' # Gor Buldar — POI city
@@ -326,6 +372,8 @@
   city: '690961bfe69eb840daad8c54' # Himboram
   infos:
     title: Cure al tempio di Himboram
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961bf364c4634b7c0c671' # Himboram — POI city
@@ -340,6 +388,8 @@
   city: '690961bfe69eb840daad8c54' # Himboram
   infos:
     title: Lavori di bottega a Himboram
+    description: |-
+      Cerco braccia robuste per la mia bottega di Himboram: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961bf364c4634b7c0c671' # Himboram — POI city
@@ -354,6 +404,8 @@
   city: '690961bff10c5c31893927a0' # Nul Lodir
   infos:
     title: Cure al tempio di Nul Lodir
+    description: |-
+      Il tempio di Nul Lodir apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961bfd5fdd8321d64cc8a' # Nul Lodir — POI city
@@ -368,6 +420,8 @@
   city: '690961bff10c5c31893927a0' # Nul Lodir
   infos:
     title: Lavori di bottega a Nul Lodir
+    description: |-
+      Il mercato di Nul Lodir non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961bfd5fdd8321d64cc8a' # Nul Lodir — POI city
@@ -382,6 +436,8 @@
   city: '690961bff10c5c31893927a0' # Nul Lodir
   infos:
     title: Turno di guardia a Nul Lodir
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Nul Lodir. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '690961bfd5fdd8321d64cc8a' # Nul Lodir — POI city
@@ -396,6 +452,8 @@
   city: '690961bff10c5c31893927a0' # Nul Lodir
   infos:
     title: Affari loschi a Nul Lodir
+    description: |-
+      Merce da spostare, una porta da aprire, un nome da dimenticare. Chi è interessato lasci un segno sul muro dietro il mercato di Nul Lodir.
     type: crime
     enemy: null
     markerLocation: '690961bfd5fdd8321d64cc8a' # Nul Lodir — POI city
@@ -410,6 +468,8 @@
   city: '690961bf0f0f449443a030e0' # Biroldur
   infos:
     title: 'Caccia: Aquila gigante nei dintorni di Biroldur'
+    description: |-
+      I contadini di Biroldur non osano più uscire dopo il tramonto. Chi sa usare un'arma ci aiuti a cacciare quel flagello: Aquila gigante.
     type: hunt
     enemy: '6ae806b55093fb43140756d3' # Aquila gigante
     markerLocation: '690e41864a835ed0907829d4' # Biroldur — POI farNorth, mountainLamstone
@@ -418,13 +478,21 @@
       - '6ae8065202a77381730f2810' # Aquile giganti
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267ce'
   city: '690961bf247b24390da2c81e' # Kim Todur
   infos:
     title: 'Caccia: Worg nei dintorni di Kim Todur'
+    description: |-
+      I contadini di Kim Todur non osano più uscire dopo il tramonto. Chi sa usare un'arma ci aiuti a cacciare quel flagello: Worg.
     type: hunt
     enemy: '6ae806b55093fb43140756d4' # Worg
     markerLocation: '690e418622f0e843327e663c' # Kim Todur — POI farNorth, mountainLamstone
@@ -433,13 +501,21 @@
       - '6ae8065202a77381730f2811' # Worg
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267d0'
   city: '690961bf40461c8db77a7c89' # Kom Dorul
   infos:
     title: 'Caccia: Lupo nei dintorni di Kom Dorul'
+    description: |-
+      Sono un cacciatore di Kom Dorul e da solo non ce la faccio più. Cerco compagni per stanare una preda pericolosa: Lupo.
     type: hunt
     enemy: '6ae806b55093fb43140756d9' # Lupo
     markerLocation: '690e4186fbb25baee7269789' # Kom Dorul — POI graveyard, farNorth, forest
@@ -448,13 +524,21 @@
       - '6ae8065202a77381730f2816' # Lupo
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267d2'
   city: '690961bf8c233eb8033dbafb' # Gor Buldar
   infos:
     title: 'Caccia: Aquila gigante nei dintorni di Gor Buldar'
+    description: |-
+      Nei campi intorno a Gor Buldar il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Aquila gigante. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d3' # Aquila gigante
     markerLocation: '690e4186558d86a6712f854d' # Gor Buldar — POI ruins, mountainLamstone
@@ -463,6 +547,12 @@
       - '6ae8065202a77381730f2810' # Aquile giganti
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []

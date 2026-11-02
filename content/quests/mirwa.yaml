@@ -4,6 +4,8 @@
   city: '690961ac023a25fec19b35d1' # Tempioblu
   infos:
     title: Cure al tempio di Tempioblu
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961ac8eb23150368e67ca' # Tempioblu — POI city
@@ -18,6 +20,8 @@
   city: '690961ac023a25fec19b35d1' # Tempioblu
   infos:
     title: Lavori di bottega a Tempioblu
+    description: |-
+      Bottega di Tempioblu cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961ac8eb23150368e67ca' # Tempioblu — POI city
@@ -32,6 +36,8 @@
   city: '690961ac023a25fec19b35d1' # Tempioblu
   infos:
     title: Turno di guardia a Tempioblu
+    description: |-
+      Per ordine del capitano della guardia di Tempioblu: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961ac8eb23150368e67ca' # Tempioblu — POI city
@@ -46,6 +52,8 @@
   city: '690961ac023a25fec19b35d1' # Tempioblu
   infos:
     title: Affari loschi a Tempioblu
+    description: |-
+      Un amico di un amico ha un lavoretto a Tempioblu che richiede mani leste e bocca cucita. Chiedete di me alla taverna, dopo il tramonto.
     type: crime
     enemy: null
     markerLocation: '690961ac8eb23150368e67ca' # Tempioblu — POI city
@@ -60,6 +68,8 @@
   city: '690961ac024d0589b67d9072' # Rivechiare
   infos:
     title: Cure al tempio di Rivechiare
+    description: |-
+      I sacerdoti del tempio di Rivechiare offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ac322a30cfb78020a0' # Rivechiare — POI city
@@ -74,6 +84,8 @@
   city: '690961ac024d0589b67d9072' # Rivechiare
   infos:
     title: Lavori di bottega a Rivechiare
+    description: |-
+      Il mercato di Rivechiare non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961ac322a30cfb78020a0' # Rivechiare — POI city
@@ -88,6 +100,8 @@
   city: '690961ac03480efdb3c87260' # Quirra
   infos:
     title: Cure al tempio di Quirra
+    description: |-
+      Il tempio di Quirra apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961ac14a71a2b13abf67f' # Quirra — POI city
@@ -102,6 +116,8 @@
   city: '690961ac03480efdb3c87260' # Quirra
   infos:
     title: Lavori di bottega a Quirra
+    description: |-
+      Bottega di Quirra cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961ac14a71a2b13abf67f' # Quirra — POI city
@@ -116,6 +132,8 @@
   city: '690961ac03480efdb3c87260' # Quirra
   infos:
     title: Turno di guardia a Quirra
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Quirra. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '690961ac14a71a2b13abf67f' # Quirra — POI city
@@ -130,6 +148,8 @@
   city: '690961ac101e1660d43e64dd' # Alexandria
   infos:
     title: Cure al tempio di Alexandria
+    description: |-
+      I sacerdoti del tempio di Alexandria offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961acf936184e18fa4041' # Alexandria — POI city
@@ -144,6 +164,8 @@
   city: '690961ac101e1660d43e64dd' # Alexandria
   infos:
     title: Lavori di bottega a Alexandria
+    description: |-
+      Il mercato di Alexandria non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961acf936184e18fa4041' # Alexandria — POI city
@@ -158,6 +180,8 @@
   city: '690961ac1b417b63cc541a11' # Isolalunga
   infos:
     title: Cure al tempio di Isolalunga
+    description: |-
+      Il tempio di Isolalunga apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961ac0f8ceb6462bec65a' # Isolalunga — POI city
@@ -172,6 +196,8 @@
   city: '690961ac1b417b63cc541a11' # Isolalunga
   infos:
     title: Lavori di bottega a Isolalunga
+    description: |-
+      Cerco braccia robuste per la mia bottega di Isolalunga: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961ac0f8ceb6462bec65a' # Isolalunga — POI city
@@ -186,6 +212,8 @@
   city: '690961ac1b417b63cc541a11' # Isolalunga
   infos:
     title: Turno di guardia a Isolalunga
+    description: |-
+      La guardia di Isolalunga è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961ac0f8ceb6462bec65a' # Isolalunga — POI city
@@ -200,6 +228,8 @@
   city: '690961ac1b417b63cc541a11' # Isolalunga
   infos:
     title: Affari loschi a Isolalunga
+    description: |-
+      Merce da spostare, una porta da aprire, un nome da dimenticare. Chi è interessato lasci un segno sul muro dietro il mercato di Isolalunga.
     type: crime
     enemy: null
     markerLocation: '690961ac0f8ceb6462bec65a' # Isolalunga — POI city
@@ -214,6 +244,8 @@
   city: '690961ac2607fcbdc23f3406' # Collerede
   infos:
     title: Cure al tempio di Collerede
+    description: |-
+      I sacerdoti del tempio di Collerede offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ac6fc1be1460a1ad29' # Collerede — POI city
@@ -228,6 +260,8 @@
   city: '690961ac2607fcbdc23f3406' # Collerede
   infos:
     title: Lavori di bottega a Collerede
+    description: |-
+      Il mercato di Collerede non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961ac6fc1be1460a1ad29' # Collerede — POI city
@@ -242,6 +276,8 @@
   city: '690961ac2607fcbdc23f3406' # Collerede
   infos:
     title: Turno di guardia a Collerede
+    description: |-
+      Per ordine del capitano della guardia di Collerede: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961ac6fc1be1460a1ad29' # Collerede — POI city
@@ -256,6 +292,8 @@
   city: '690961ac2607fcbdc23f3406' # Collerede
   infos:
     title: Ricerche in biblioteca a Collerede
+    description: |-
+      Gli archivi di Collerede traboccano di carte che nessuno legge da secoli. Offro una ricompensa a chi mi aiuterà a dar loro un ordine.
     type: study
     enemy: null
     markerLocation: '690961ac6fc1be1460a1ad29' # Collerede — POI city
@@ -270,6 +308,8 @@
   city: '690961ac27a94901a42c182e' # Mirwen
   infos:
     title: Cure al tempio di Mirwen
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961acc55d9c02a9b0d726' # Mirwen — POI city
@@ -284,6 +324,8 @@
   city: '690961ac27a94901a42c182e' # Mirwen
   infos:
     title: Lavori di bottega a Mirwen
+    description: |-
+      Il mercato di Mirwen non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961acc55d9c02a9b0d726' # Mirwen — POI city
@@ -298,6 +340,8 @@
   city: '690961ac27a94901a42c182e' # Mirwen
   infos:
     title: Turno di guardia a Mirwen
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Mirwen. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '690961acc55d9c02a9b0d726' # Mirwen — POI city
@@ -312,6 +356,8 @@
   city: '690961ac27a94901a42c182e' # Mirwen
   infos:
     title: Affari loschi a Mirwen
+    description: |-
+      Merce da spostare, una porta da aprire, un nome da dimenticare. Chi è interessato lasci un segno sul muro dietro il mercato di Mirwen.
     type: crime
     enemy: null
     markerLocation: '690961acc55d9c02a9b0d726' # Mirwen — POI city
@@ -326,6 +372,8 @@
   city: '690961ac27a94901a42c182e' # Mirwen
   infos:
     title: Ricerche in biblioteca a Mirwen
+    description: |-
+      Gli archivi di Mirwen traboccano di carte che nessuno legge da secoli. Offro una ricompensa a chi mi aiuterà a dar loro un ordine.
     type: study
     enemy: null
     markerLocation: '690961acc55d9c02a9b0d726' # Mirwen — POI city
@@ -340,6 +388,8 @@
   city: '690961ac2c962394b1912f61' # Vitacqua
   infos:
     title: Cure al tempio di Vitacqua
+    description: |-
+      I sacerdoti del tempio di Vitacqua offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ac57baff9070ad8a95' # Vitacqua — POI city
@@ -354,6 +404,8 @@
   city: '690961ac2c962394b1912f61' # Vitacqua
   infos:
     title: Lavori di bottega a Vitacqua
+    description: |-
+      Cerco braccia robuste per la mia bottega di Vitacqua: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961ac57baff9070ad8a95' # Vitacqua — POI city
@@ -368,6 +420,8 @@
   city: '690961ac2d897b62ba4d2a51' # Servel
   infos:
     title: Cure al tempio di Servel
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961ac92dbb246dbf3e4ac' # Servel — POI city
@@ -382,6 +436,8 @@
   city: '690961ac2d897b62ba4d2a51' # Servel
   infos:
     title: Lavori di bottega a Servel
+    description: |-
+      Bottega di Servel cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961ac92dbb246dbf3e4ac' # Servel — POI city
@@ -396,6 +452,8 @@
   city: '690961ac35b50ec340f1697e' # Santuaria
   infos:
     title: Cure al tempio di Santuaria
+    description: |-
+      I sacerdoti del tempio di Santuaria offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ac78535382bf29a282' # Santuaria — POI city
@@ -410,6 +468,8 @@
   city: '690961ac35b50ec340f1697e' # Santuaria
   infos:
     title: Lavori di bottega a Santuaria
+    description: |-
+      Bottega di Santuaria cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961ac78535382bf29a282' # Santuaria — POI city
@@ -424,6 +484,8 @@
   city: '690961ac6825faff069ccca2' # Frekti
   infos:
     title: Cure al tempio di Frekti
+    description: |-
+      I sacerdoti del tempio di Frekti offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961acaddcefafa85f113f' # Frekti — POI city
@@ -438,6 +500,8 @@
   city: '690961ac6825faff069ccca2' # Frekti
   infos:
     title: Lavori di bottega a Frekti
+    description: |-
+      Il mercato di Frekti non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961acaddcefafa85f113f' # Frekti — POI city
@@ -452,6 +516,8 @@
   city: '690961ac6ee4bfe0714f8030' # Arcidoma
   infos:
     title: Cure al tempio di Arcidoma
+    description: |-
+      I sacerdoti del tempio di Arcidoma offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ac51162c882f69e902' # Arcidoma — POI city
@@ -466,6 +532,8 @@
   city: '690961ac6ee4bfe0714f8030' # Arcidoma
   infos:
     title: Lavori di bottega a Arcidoma
+    description: |-
+      Cerco braccia robuste per la mia bottega di Arcidoma: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961ac51162c882f69e902' # Arcidoma — POI city
@@ -480,6 +548,8 @@
   city: '690961ac6ee4bfe0714f8030' # Arcidoma
   infos:
     title: Turno di guardia a Arcidoma
+    description: |-
+      La guardia di Arcidoma è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961ac51162c882f69e902' # Arcidoma — POI city
@@ -494,6 +564,8 @@
   city: '690961ac6ee4bfe0714f8030' # Arcidoma
   infos:
     title: Affari loschi a Arcidoma
+    description: |-
+      Merce da spostare, una porta da aprire, un nome da dimenticare. Chi è interessato lasci un segno sul muro dietro il mercato di Arcidoma.
     type: crime
     enemy: null
     markerLocation: '690961ac51162c882f69e902' # Arcidoma — POI city
@@ -508,6 +580,8 @@
   city: '690961ac6ee4bfe0714f8030' # Arcidoma
   infos:
     title: Ricerche in biblioteca a Arcidoma
+    description: |-
+      Cerco un assistente per le mie ricerche sulla storia di Arcidoma: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
     enemy: null
     markerLocation: '690961ac51162c882f69e902' # Arcidoma — POI city
@@ -522,6 +596,8 @@
   city: '690961ac78ab2149775decb5' # Rimvel
   infos:
     title: Cure al tempio di Rimvel
+    description: |-
+      Il tempio di Rimvel apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961ac1bfa98abddc41e29' # Rimvel — POI city
@@ -536,6 +612,8 @@
   city: '690961ac78ab2149775decb5' # Rimvel
   infos:
     title: Lavori di bottega a Rimvel
+    description: |-
+      Il mercato di Rimvel non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961ac1bfa98abddc41e29' # Rimvel — POI city
@@ -550,6 +628,8 @@
   city: '690961ac86766ce8e0fb0a14' # Calov
   infos:
     title: Cure al tempio di Calov
+    description: |-
+      I sacerdoti del tempio di Calov offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ac5aa0aac26e7cee67' # Calov — POI city
@@ -564,6 +644,8 @@
   city: '690961ac86766ce8e0fb0a14' # Calov
   infos:
     title: Lavori di bottega a Calov
+    description: |-
+      Cerco braccia robuste per la mia bottega di Calov: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961ac5aa0aac26e7cee67' # Calov — POI city
@@ -578,6 +660,8 @@
   city: '690961ac86766ce8e0fb0a14' # Calov
   infos:
     title: Turno di guardia a Calov
+    description: |-
+      La guardia di Calov è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961ac5aa0aac26e7cee67' # Calov — POI city
@@ -592,6 +676,8 @@
   city: '690961ac8dea1f74b5a5d181' # Porfind
   infos:
     title: Cure al tempio di Porfind
+    description: |-
+      Il tempio di Porfind apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961ace231e5a4a71588ae' # Porfind — POI city
@@ -606,6 +692,8 @@
   city: '690961ac8dea1f74b5a5d181' # Porfind
   infos:
     title: Lavori di bottega a Porfind
+    description: |-
+      Bottega di Porfind cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961ace231e5a4a71588ae' # Porfind — POI city
@@ -620,6 +708,8 @@
   city: '690961aca4b9ed073e0af0e8' # Temelia
   infos:
     title: Cure al tempio di Temelia
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961aca5be3ebe58f33956' # Temelia — POI city
@@ -634,6 +724,8 @@
   city: '690961aca4b9ed073e0af0e8' # Temelia
   infos:
     title: Lavori di bottega a Temelia
+    description: |-
+      Bottega di Temelia cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961aca5be3ebe58f33956' # Temelia — POI city
@@ -648,6 +740,8 @@
   city: '690961aca4b9ed073e0af0e8' # Temelia
   infos:
     title: Turno di guardia a Temelia
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Temelia. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '690961aca5be3ebe58f33956' # Temelia — POI city
@@ -662,6 +756,8 @@
   city: '690961aca4b9ed073e0af0e8' # Temelia
   infos:
     title: Ricerche in biblioteca a Temelia
+    description: |-
+      La biblioteca di Temelia cerca menti curiose per riordinare antichi registri e cronache dimenticate. Chi sa leggere fra le righe potrebbe scoprire più di quanto immagina.
     type: study
     enemy: null
     markerLocation: '690961aca5be3ebe58f33956' # Temelia — POI city
@@ -676,6 +772,8 @@
   city: '690961aca5f84ecde26707e0' # Setteveli
   infos:
     title: Cure al tempio di Setteveli
+    description: |-
+      I sacerdoti del tempio di Setteveli offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ac6f4530aaadfa48b0' # Setteveli — POI city
@@ -690,6 +788,8 @@
   city: '690961aca5f84ecde26707e0' # Setteveli
   infos:
     title: Lavori di bottega a Setteveli
+    description: |-
+      Bottega di Setteveli cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961ac6f4530aaadfa48b0' # Setteveli — POI city
@@ -704,6 +804,8 @@
   city: '690961acb1f49cdf140cf049' # Acquelimpide
   infos:
     title: Cure al tempio di Acquelimpide
+    description: |-
+      I sacerdoti del tempio di Acquelimpide offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ace7878acf627951d8' # Acquelimpide — POI city
@@ -718,6 +820,8 @@
   city: '690961acb1f49cdf140cf049' # Acquelimpide
   infos:
     title: Lavori di bottega a Acquelimpide
+    description: |-
+      Bottega di Acquelimpide cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961ace7878acf627951d8' # Acquelimpide — POI city
@@ -732,6 +836,8 @@
   city: '690961acb23519f582f76032' # Acquasacra
   infos:
     title: Cure al tempio di Acquasacra
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961ac25ecbd28931a956e' # Acquasacra — POI city
@@ -746,6 +852,8 @@
   city: '690961acb23519f582f76032' # Acquasacra
   infos:
     title: Lavori di bottega a Acquasacra
+    description: |-
+      Bottega di Acquasacra cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961ac25ecbd28931a956e' # Acquasacra — POI city
@@ -760,6 +868,8 @@
   city: '690961acb23519f582f76032' # Acquasacra
   infos:
     title: Turno di guardia a Acquasacra
+    description: |-
+      Per ordine del capitano della guardia di Acquasacra: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961ac25ecbd28931a956e' # Acquasacra — POI city
@@ -774,6 +884,8 @@
   city: '690961acb892c0c0533109d4' # Lagoverde
   infos:
     title: Cure al tempio di Lagoverde
+    description: |-
+      I sacerdoti del tempio di Lagoverde offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961acbfc979f6060491b0' # Lagoverde — POI city
@@ -788,6 +900,8 @@
   city: '690961acb892c0c0533109d4' # Lagoverde
   infos:
     title: Lavori di bottega a Lagoverde
+    description: |-
+      Il mercato di Lagoverde non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961acbfc979f6060491b0' # Lagoverde — POI city
@@ -802,6 +916,8 @@
   city: '690961acb892c0c0533109d4' # Lagoverde
   infos:
     title: Turno di guardia a Lagoverde
+    description: |-
+      Per ordine del capitano della guardia di Lagoverde: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961acbfc979f6060491b0' # Lagoverde — POI city
@@ -816,6 +932,8 @@
   city: '690961acb892c0c0533109d4' # Lagoverde
   infos:
     title: Affari loschi a Lagoverde
+    description: |-
+      Cerco gente discreta per una faccenda delicata qui a Lagoverde. Se le guardie vi conoscono di vista, lasciate perdere.
     type: crime
     enemy: null
     markerLocation: '690961acbfc979f6060491b0' # Lagoverde — POI city
@@ -830,6 +948,8 @@
   city: '690961acc268a5f179511c20' # Ravel
   infos:
     title: Cure al tempio di Ravel
+    description: |-
+      I sacerdoti del tempio di Ravel offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ace7cabff3bc8ed9ca' # Ravel — POI city
@@ -844,6 +964,8 @@
   city: '690961acc268a5f179511c20' # Ravel
   infos:
     title: Lavori di bottega a Ravel
+    description: |-
+      Il mercato di Ravel non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961ace7cabff3bc8ed9ca' # Ravel — POI city
@@ -858,6 +980,8 @@
   city: '690961acc268a5f179511c20' # Ravel
   infos:
     title: Turno di guardia a Ravel
+    description: |-
+      Per ordine del capitano della guardia di Ravel: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961ace7cabff3bc8ed9ca' # Ravel — POI city
@@ -872,6 +996,8 @@
   city: '690961acc268a5f179511c20' # Ravel
   infos:
     title: Affari loschi a Ravel
+    description: |-
+      Un amico di un amico ha un lavoretto a Ravel che richiede mani leste e bocca cucita. Chiedete di me alla taverna, dopo il tramonto.
     type: crime
     enemy: null
     markerLocation: '690961ace7cabff3bc8ed9ca' # Ravel — POI city
@@ -886,6 +1012,8 @@
   city: '690961acc79d8c61115abcd0' # Marescuro
   infos:
     title: Cure al tempio di Marescuro
+    description: |-
+      I sacerdoti del tempio di Marescuro offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ac4f5be25e2bfc5953' # Marescuro — POI city
@@ -900,6 +1028,8 @@
   city: '690961acc79d8c61115abcd0' # Marescuro
   infos:
     title: Lavori di bottega a Marescuro
+    description: |-
+      Cerco braccia robuste per la mia bottega di Marescuro: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961ac4f5be25e2bfc5953' # Marescuro — POI city
@@ -914,6 +1044,8 @@
   city: '690961acc79d8c61115abcd0' # Marescuro
   infos:
     title: Turno di guardia a Marescuro
+    description: |-
+      La guardia di Marescuro è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961ac4f5be25e2bfc5953' # Marescuro — POI city
@@ -928,6 +1060,8 @@
   city: '690961accf5648cdd1fb48e6' # Virugis
   infos:
     title: Cure al tempio di Virugis
+    description: |-
+      I sacerdoti del tempio di Virugis offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961acfa9d36a59b219ce5' # Virugis — POI city
@@ -942,6 +1076,8 @@
   city: '690961accf5648cdd1fb48e6' # Virugis
   infos:
     title: Lavori di bottega a Virugis
+    description: |-
+      Il mercato di Virugis non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961acfa9d36a59b219ce5' # Virugis — POI city
@@ -956,6 +1092,8 @@
   city: '690961acd01cebdf6bedc45e' # Canarra
   infos:
     title: Cure al tempio di Canarra
+    description: |-
+      I sacerdoti del tempio di Canarra offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ac291d81d7bf7295da' # Canarra — POI city
@@ -970,6 +1108,8 @@
   city: '690961acd01cebdf6bedc45e' # Canarra
   infos:
     title: Lavori di bottega a Canarra
+    description: |-
+      Il mercato di Canarra non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961ac291d81d7bf7295da' # Canarra — POI city
@@ -984,6 +1124,8 @@
   city: '690961acd04e6ee34ef9b03b' # Nibel
   infos:
     title: Cure al tempio di Nibel
+    description: |-
+      Il tempio di Nibel apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961ac342a1469b0619f7f' # Nibel — POI city
@@ -998,6 +1140,8 @@
   city: '690961acd04e6ee34ef9b03b' # Nibel
   infos:
     title: Lavori di bottega a Nibel
+    description: |-
+      Bottega di Nibel cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961ac342a1469b0619f7f' # Nibel — POI city
@@ -1012,6 +1156,8 @@
   city: '690961acd04e6ee34ef9b03b' # Nibel
   infos:
     title: Turno di guardia a Nibel
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Nibel. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '690961ac342a1469b0619f7f' # Nibel — POI city
@@ -1026,6 +1172,8 @@
   city: '690961acd04e6ee34ef9b03b' # Nibel
   infos:
     title: Affari loschi a Nibel
+    description: |-
+      Cerco gente discreta per una faccenda delicata qui a Nibel. Se le guardie vi conoscono di vista, lasciate perdere.
     type: crime
     enemy: null
     markerLocation: '690961ac342a1469b0619f7f' # Nibel — POI city
@@ -1040,6 +1188,8 @@
   city: '690961acdc128b38f2461408' # Candelaria
   infos:
     title: Cure al tempio di Candelaria
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '690961ac2a2e23b84e18245c' # Candelaria — POI city
@@ -1054,6 +1204,8 @@
   city: '690961acdc128b38f2461408' # Candelaria
   infos:
     title: Lavori di bottega a Candelaria
+    description: |-
+      Cerco braccia robuste per la mia bottega di Candelaria: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961ac2a2e23b84e18245c' # Candelaria — POI city
@@ -1068,6 +1220,8 @@
   city: '690961acdc128b38f2461408' # Candelaria
   infos:
     title: Turno di guardia a Candelaria
+    description: |-
+      Per ordine del capitano della guardia di Candelaria: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '690961ac2a2e23b84e18245c' # Candelaria — POI city
@@ -1082,6 +1236,8 @@
   city: '690961acdc128b38f2461408' # Candelaria
   infos:
     title: Affari loschi a Candelaria
+    description: |-
+      Un amico di un amico ha un lavoretto a Candelaria che richiede mani leste e bocca cucita. Chiedete di me alla taverna, dopo il tramonto.
     type: crime
     enemy: null
     markerLocation: '690961ac2a2e23b84e18245c' # Candelaria — POI city
@@ -1096,6 +1252,8 @@
   city: '690961acdc128b38f2461408' # Candelaria
   infos:
     title: Ricerche in biblioteca a Candelaria
+    description: |-
+      Cerco un assistente per le mie ricerche sulla storia di Candelaria: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
     enemy: null
     markerLocation: '690961ac2a2e23b84e18245c' # Candelaria — POI city
@@ -1110,6 +1268,8 @@
   city: '690961ace31181b0dc005aca' # Delania
   infos:
     title: Cure al tempio di Delania
+    description: |-
+      I sacerdoti del tempio di Delania offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961ac8ec4004e3f70f9bc' # Delania — POI city
@@ -1124,6 +1284,8 @@
   city: '690961ace31181b0dc005aca' # Delania
   infos:
     title: Lavori di bottega a Delania
+    description: |-
+      Cerco braccia robuste per la mia bottega di Delania: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961ac8ec4004e3f70f9bc' # Delania — POI city
@@ -1138,6 +1300,8 @@
   city: '690961aceb085f563e694e52' # Vallegentile
   infos:
     title: Cure al tempio di Vallegentile
+    description: |-
+      Il tempio di Vallegentile apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961ac8bd05cbf3b833297' # Vallegentile — POI city
@@ -1152,6 +1316,8 @@
   city: '690961aceb085f563e694e52' # Vallegentile
   infos:
     title: Lavori di bottega a Vallegentile
+    description: |-
+      Il mercato di Vallegentile non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961ac8bd05cbf3b833297' # Vallegentile — POI city
@@ -1166,6 +1332,8 @@
   city: '690961aceb085f563e694e52' # Vallegentile
   infos:
     title: Turno di guardia a Vallegentile
+    description: |-
+      La guardia di Vallegentile è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '690961ac8bd05cbf3b833297' # Vallegentile — POI city
@@ -1180,6 +1348,8 @@
   city: '690961acf1c30d31b0f18c62' # Taurin
   infos:
     title: Cure al tempio di Taurin
+    description: |-
+      Il tempio di Taurin apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961acf0c1f4d111b0184f' # Taurin — POI city
@@ -1194,6 +1364,8 @@
   city: '690961acf1c30d31b0f18c62' # Taurin
   infos:
     title: Lavori di bottega a Taurin
+    description: |-
+      Cerco braccia robuste per la mia bottega di Taurin: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961acf0c1f4d111b0184f' # Taurin — POI city
@@ -1208,6 +1380,8 @@
   city: '690961ac023a25fec19b35d1' # Tempioblu
   infos:
     title: 'Caccia: Coccodrillo nei dintorni di Tempioblu'
+    description: |-
+      Sono un cacciatore di Tempioblu e da solo non ce la faccio più. Cerco compagni per stanare una preda pericolosa: Coccodrillo.
     type: hunt
     enemy: '6ae806b55093fb43140756e4' # Coccodrillo
     markerLocation: '690e418666502a1e89111ca0' # Tempioblu — POI temistosLake
@@ -1216,13 +1390,21 @@
       - '6ae8065202a77381730f2820' # Coccodrillo
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267c0'
   city: '690961ac101e1660d43e64dd' # Alexandria
   infos:
     title: 'Caccia: Cavallo da guerra nei dintorni di Alexandria'
+    description: |-
+      Sono un cacciatore di Alexandria e da solo non ce la faccio più. Cerco compagni per stanare una preda pericolosa: Cavallo da guerra.
     type: hunt
     enemy: '6ae806b55093fb43140756e1' # Cavallo da guerra
     markerLocation: '690e418624bf00e34c24338a' # Alexandria — POI valanPlains
@@ -1231,13 +1413,21 @@
       - '6ae8065202a77381730f281d' # Cavallo e Cavallo da guerra
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267c1'
   city: '690961ac1b417b63cc541a11' # Isolalunga
   infos:
     title: 'Caccia: Coccodrillo nei dintorni di Isolalunga'
+    description: |-
+      Nei campi intorno a Isolalunga il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Coccodrillo. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e4' # Coccodrillo
     markerLocation: '690e4186739b01c6a3b4678b' # Isolalunga — POI temistosLake
@@ -1246,13 +1436,21 @@
       - '6ae8065202a77381730f2820' # Coccodrillo
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267c2'
   city: '690961ac2607fcbdc23f3406' # Collerede
   infos:
     title: 'Caccia: Coccodrillo nei dintorni di Collerede'
+    description: |-
+      Nei campi intorno a Collerede il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Coccodrillo. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e4' # Coccodrillo
     markerLocation: '690e418690efdb1f03d65aa8' # Collerede — POI demonicPortal, temistosLake
@@ -1261,13 +1459,21 @@
       - '6ae8065202a77381730f2820' # Coccodrillo
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267c3'
   city: '690961ac27a94901a42c182e' # Mirwen
   infos:
     title: 'Caccia: Coccodrillo nei dintorni di Mirwen'
+    description: |-
+      I contadini di Mirwen non osano più uscire dopo il tramonto. Chi sa usare un'arma ci aiuti a cacciare quel flagello: Coccodrillo.
     type: hunt
     enemy: '6ae806b55093fb43140756e4' # Coccodrillo
     markerLocation: '690e4186e26b5a2df091b7ff' # Mirwen — POI temistosLake
@@ -1276,13 +1482,21 @@
       - '6ae8065202a77381730f2820' # Coccodrillo
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267c4'
   city: '690961ac2c962394b1912f61' # Vitacqua
   infos:
     title: 'Caccia: Worg nei dintorni di Vitacqua'
+    description: |-
+      Nei campi intorno a Vitacqua il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Worg. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d4' # Worg
     markerLocation: '690e4186cdc21f30457b7ff5' # Vitacqua — POI mountainTemistos
@@ -1291,13 +1505,21 @@
       - '6ae8065202a77381730f2811' # Worg
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267c5'
   city: '690961ac35b50ec340f1697e' # Santuaria
   infos:
     title: 'Caccia: Aquila gigante nei dintorni di Santuaria'
+    description: |-
+      Nei campi intorno a Santuaria il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Aquila gigante. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d3' # Aquila gigante
     markerLocation: '690e4186163b6b07bddfbbfa' # Santuaria — POI ruins, mountainTemistos
@@ -1306,13 +1528,21 @@
       - '6ae8065202a77381730f2810' # Aquile giganti
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267c6'
   city: '690961ac78ab2149775decb5' # Rimvel
   infos:
     title: 'Caccia: Coccodrillo nei dintorni di Rimvel'
+    description: |-
+      Nei campi intorno a Rimvel il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Coccodrillo. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e4' # Coccodrillo
     markerLocation: '690e4186b3dd56b4a000d62f' # Rimvel — POI temistosLake
@@ -1321,13 +1551,21 @@
       - '6ae8065202a77381730f2820' # Coccodrillo
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267c7'
   city: '690961ac86766ce8e0fb0a14' # Calov
   infos:
     title: 'Caccia: Cavallo leggero nei dintorni di Calov'
+    description: |-
+      Nei campi intorno a Calov il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Cavallo leggero. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e0' # Cavallo leggero
     markerLocation: '690e4186fc149d3a72b20c72' # Calov — POI valanPlains
@@ -1336,13 +1574,21 @@
       - '6ae8065202a77381730f281d' # Cavallo e Cavallo da guerra
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267c8'
   city: '690961aca4b9ed073e0af0e8' # Temelia
   infos:
     title: 'Caccia: Coccodrillo nei dintorni di Temelia'
+    description: |-
+      I contadini di Temelia non osano più uscire dopo il tramonto. Chi sa usare un'arma ci aiuti a cacciare quel flagello: Coccodrillo.
     type: hunt
     enemy: '6ae806b55093fb43140756e4' # Coccodrillo
     markerLocation: '690e4186d18ea674f0fe9c44' # Temelia — POI temistosLake
@@ -1351,13 +1597,21 @@
       - '6ae8065202a77381730f2820' # Coccodrillo
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267c9'
   city: '690961acb892c0c0533109d4' # Lagoverde
   infos:
     title: 'Caccia: Lupo nei dintorni di Lagoverde'
+    description: |-
+      Sono un cacciatore di Lagoverde e da solo non ce la faccio più. Cerco compagni per stanare una preda pericolosa: Lupo.
     type: hunt
     enemy: '6ae806b55093fb43140756d9' # Lupo
     markerLocation: '690e41861d50d06ac23a520f' # Lagoverde — POI mountainTemistos
@@ -1366,13 +1620,21 @@
       - '6ae8065202a77381730f2816' # Lupo
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267ca'
   city: '690961ace31181b0dc005aca' # Delania
   infos:
     title: 'Caccia: Lupo nei dintorni di Delania'
+    description: |-
+      Sono un cacciatore di Delania e da solo non ce la faccio più. Cerco compagni per stanare una preda pericolosa: Lupo.
     type: hunt
     enemy: '6ae806b55093fb43140756d9' # Lupo
     markerLocation: '690e41860f92d5de47e4fe31' # Delania — POI ruins, mountainTemistos
@@ -1381,13 +1643,21 @@
       - '6ae8065202a77381730f2816' # Lupo
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267cb'
   city: '690961aceb085f563e694e52' # Vallegentile
   infos:
     title: 'Caccia: Coccodrillo nei dintorni di Vallegentile'
+    description: |-
+      Nei campi intorno a Vallegentile il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Coccodrillo. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e4' # Coccodrillo
     markerLocation: '690e41864bb680b295e0189a' # Vallegentile — POI temistosLake
@@ -1396,13 +1666,21 @@
       - '6ae8065202a77381730f2820' # Coccodrillo
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267cc'
   city: '690961acf1c30d31b0f18c62' # Taurin
   infos:
     title: 'Caccia: Aquila gigante nei dintorni di Taurin'
+    description: |-
+      I contadini di Taurin non osano più uscire dopo il tramonto. Chi sa usare un'arma ci aiuti a cacciare quel flagello: Aquila gigante.
     type: hunt
     enemy: '6ae806b55093fb43140756d3' # Aquila gigante
     markerLocation: '690e4186677bb0eb6e19288d' # Taurin — POI mountainTemistos
@@ -1411,6 +1689,12 @@
       - '6ae8065202a77381730f2810' # Aquile giganti
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []

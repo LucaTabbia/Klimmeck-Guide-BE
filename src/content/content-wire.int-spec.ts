@@ -45,6 +45,14 @@ const LIST_QUERIES = {
 
 type ListName = keyof typeof LIST_QUERIES;
 
+// il FE non chiede ancora l'annuncio: query dedicata al campo additivo (D-32)
+const QUEST_NOTICES_QUERY = 'query { quests { id infos { description } } }';
+
+interface WireQuestNotice {
+    id: string;
+    infos: { description: string | null };
+}
+
 const COLLECTION_OF_LIST: Record<
     Exclude<ListName, 'cities'>,
     ContentCollection
@@ -147,6 +155,29 @@ describe('real content on the GraphQL wire (replSet)', () => {
             });
         }
         expect(report.cities.relatedLore.modified).toBe(0);
+    });
+
+    it('serves the notice description of every fixed quest (D-32)', async () => {
+        const body = bodyOf(
+            await graphqlRequest(
+                harness.app,
+                QUEST_NOTICES_QUERY,
+                undefined,
+                bearer,
+            ),
+        );
+
+        expect(body.errors).toBeUndefined();
+        const quests = (body.data?.quests ?? []) as WireQuestNotice[];
+        expect(quests).toHaveLength(tree.entries.quests.length);
+        const withoutNotice = quests
+            .filter(
+                ({ infos }) =>
+                    typeof infos.description !== 'string' ||
+                    infos.description.trim() === '',
+            )
+            .map(({ id }) => id);
+        expect(withoutNotice).toEqual([]);
     });
 
     it('links every city to its lore on the wire (D-23)', async () => {

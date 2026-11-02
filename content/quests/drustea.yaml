@@ -4,6 +4,8 @@
   city: '69096144010ae1b15a31815c' # Rivalago
   infos:
     title: Cure al tempio di Rivalago
+    description: |-
+      I sacerdoti del tempio di Rivalago offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '690961441817daeeb3839adf' # Rivalago — POI city
@@ -18,6 +20,8 @@
   city: '69096144010ae1b15a31815c' # Rivalago
   infos:
     title: Lavori di bottega a Rivalago
+    description: |-
+      Cerco braccia robuste per la mia bottega di Rivalago: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '690961441817daeeb3839adf' # Rivalago — POI city
@@ -32,6 +36,8 @@
   city: '690961441da6560208813509' # Cliffbreak
   infos:
     title: Cure al tempio di Cliffbreak
+    description: |-
+      Il tempio di Cliffbreak apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '69096144833eac44c5fd5aff' # Cliffbreak — POI city
@@ -46,6 +52,8 @@
   city: '690961441da6560208813509' # Cliffbreak
   infos:
     title: Lavori di bottega a Cliffbreak
+    description: |-
+      Cerco braccia robuste per la mia bottega di Cliffbreak: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '69096144833eac44c5fd5aff' # Cliffbreak — POI city
@@ -60,6 +68,8 @@
   city: '690961441da6560208813509' # Cliffbreak
   infos:
     title: Turno di guardia a Cliffbreak
+    description: |-
+      Per ordine del capitano della guardia di Cliffbreak: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '69096144833eac44c5fd5aff' # Cliffbreak — POI city
@@ -74,6 +84,8 @@
   city: '690961441da6560208813509' # Cliffbreak
   infos:
     title: Affari loschi a Cliffbreak
+    description: |-
+      Un amico di un amico ha un lavoretto a Cliffbreak che richiede mani leste e bocca cucita. Chiedete di me alla taverna, dopo il tramonto.
     type: crime
     enemy: null
     markerLocation: '69096144833eac44c5fd5aff' # Cliffbreak — POI city
@@ -88,6 +100,8 @@
   city: '690961441da6560208813509' # Cliffbreak
   infos:
     title: Ricerche in biblioteca a Cliffbreak
+    description: |-
+      La biblioteca di Cliffbreak cerca menti curiose per riordinare antichi registri e cronache dimenticate. Chi sa leggere fra le righe potrebbe scoprire più di quanto immagina.
     type: study
     enemy: null
     markerLocation: '69096144833eac44c5fd5aff' # Cliffbreak — POI city
@@ -102,6 +116,8 @@
   city: '690961442c1728bfb98d4e77' # Atheland
   infos:
     title: Cure al tempio di Atheland
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '6909614432ba5240fa8854f9' # Atheland — POI city
@@ -116,6 +132,8 @@
   city: '690961442c1728bfb98d4e77' # Atheland
   infos:
     title: Lavori di bottega a Atheland
+    description: |-
+      Bottega di Atheland cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '6909614432ba5240fa8854f9' # Atheland — POI city
@@ -130,6 +148,8 @@
   city: '690961442c1728bfb98d4e77' # Atheland
   infos:
     title: Turno di guardia a Atheland
+    description: |-
+      Per ordine del capitano della guardia di Atheland: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '6909614432ba5240fa8854f9' # Atheland — POI city
@@ -144,6 +164,8 @@
   city: '690961442c2d2eaf2a67aac3' # Qey
   infos:
     title: Cure al tempio di Qey
+    description: |-
+      Il tempio di Qey apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '69096144379f29831f6cdfd6' # Qey — POI city
@@ -158,6 +180,8 @@
   city: '690961442c2d2eaf2a67aac3' # Qey
   infos:
     title: Lavori di bottega a Qey
+    description: |-
+      Il mercato di Qey non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '69096144379f29831f6cdfd6' # Qey — POI city
@@ -172,6 +196,8 @@
   city: '690961442c2d2eaf2a67aac3' # Qey
   infos:
     title: Turno di guardia a Qey
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Qey. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '69096144379f29831f6cdfd6' # Qey — POI city
@@ -186,6 +212,8 @@
   city: '6909614432d1be27c081fa30' # Grens
   infos:
     title: Cure al tempio di Grens
+    description: |-
+      Il tempio di Grens apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961442260ed4094e079f8' # Grens — POI city
@@ -200,6 +228,8 @@
   city: '6909614432d1be27c081fa30' # Grens
   infos:
     title: Lavori di bottega a Grens
+    description: |-
+      Bottega di Grens cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '690961442260ed4094e079f8' # Grens — POI city
@@ -214,6 +244,8 @@
   city: '69096144345e5766d2f91019' # Umale
   infos:
     title: Cure al tempio di Umale
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '69096144986275dcdc8de7dd' # Umale — POI city
@@ -228,6 +260,8 @@
   city: '69096144345e5766d2f91019' # Umale
   infos:
     title: Lavori di bottega a Umale
+    description: |-
+      Bottega di Umale cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '69096144986275dcdc8de7dd' # Umale — POI city
@@ -242,6 +276,8 @@
   city: '6909614456907fc49cf2a80e' # Flinas
   infos:
     title: Cure al tempio di Flinas
+    description: |-
+      I sacerdoti del tempio di Flinas offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '6909614400c40079d893f8f9' # Flinas — POI city
@@ -256,6 +292,8 @@
   city: '6909614456907fc49cf2a80e' # Flinas
   infos:
     title: Lavori di bottega a Flinas
+    description: |-
+      Il mercato di Flinas non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '6909614400c40079d893f8f9' # Flinas — POI city
@@ -270,6 +308,8 @@
   city: '690961448594d91715e9964d' # Brurora
   infos:
     title: Cure al tempio di Brurora
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '6909614481c4a5dc726e28f6' # Brurora — POI city
@@ -284,6 +324,8 @@
   city: '690961448594d91715e9964d' # Brurora
   infos:
     title: Lavori di bottega a Brurora
+    description: |-
+      Il mercato di Brurora non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '6909614481c4a5dc726e28f6' # Brurora — POI city
@@ -298,6 +340,8 @@
   city: '690961448b446b9b571f6ccc' # Vindence
   infos:
     title: Cure al tempio di Vindence
+    description: |-
+      Il tempio di Vindence apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '69096144c5a23ba77700943c' # Vindence — POI city
@@ -312,6 +356,8 @@
   city: '690961448b446b9b571f6ccc' # Vindence
   infos:
     title: Lavori di bottega a Vindence
+    description: |-
+      Il mercato di Vindence non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '69096144c5a23ba77700943c' # Vindence — POI city
@@ -326,6 +372,8 @@
   city: '69096144902a71fd8fcc3936' # Ulby
   infos:
     title: Cure al tempio di Ulby
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '69096144a6d7f8bcce8045b5' # Ulby — POI city
@@ -340,6 +388,8 @@
   city: '69096144902a71fd8fcc3936' # Ulby
   infos:
     title: Lavori di bottega a Ulby
+    description: |-
+      Il mercato di Ulby non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '69096144a6d7f8bcce8045b5' # Ulby — POI city
@@ -354,6 +404,8 @@
   city: '690961449c5c0d38e2623359' # Blu Maggiore
   infos:
     title: Cure al tempio di Blu Maggiore
+    description: |-
+      Il tempio di Blu Maggiore apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '6909614459f9d63b052fdfd4' # Blu Maggiore — POI city
@@ -368,6 +420,8 @@
   city: '690961449c5c0d38e2623359' # Blu Maggiore
   infos:
     title: Lavori di bottega a Blu Maggiore
+    description: |-
+      Bottega di Blu Maggiore cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '6909614459f9d63b052fdfd4' # Blu Maggiore — POI city
@@ -382,6 +436,8 @@
   city: '690961449c5c0d38e2623359' # Blu Maggiore
   infos:
     title: Turno di guardia a Blu Maggiore
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Blu Maggiore. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '6909614459f9d63b052fdfd4' # Blu Maggiore — POI city
@@ -396,6 +452,8 @@
   city: '69096144ac4064d20609d33e' # Gran Porto
   infos:
     title: Cure al tempio di Gran Porto
+    description: |-
+      I sacerdoti del tempio di Gran Porto offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '69096144e9b6fbad4df71788' # Gran Porto — POI city
@@ -410,6 +468,8 @@
   city: '69096144ac4064d20609d33e' # Gran Porto
   infos:
     title: Lavori di bottega a Gran Porto
+    description: |-
+      Il mercato di Gran Porto non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '69096144e9b6fbad4df71788' # Gran Porto — POI city
@@ -424,6 +484,8 @@
   city: '69096144ac4064d20609d33e' # Gran Porto
   infos:
     title: Turno di guardia a Gran Porto
+    description: |-
+      Per ordine del capitano della guardia di Gran Porto: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '69096144e9b6fbad4df71788' # Gran Porto — POI city
@@ -438,6 +500,8 @@
   city: '69096144ac4064d20609d33e' # Gran Porto
   infos:
     title: Affari loschi a Gran Porto
+    description: |-
+      Merce da spostare, una porta da aprire, un nome da dimenticare. Chi è interessato lasci un segno sul muro dietro il mercato di Gran Porto.
     type: crime
     enemy: null
     markerLocation: '69096144e9b6fbad4df71788' # Gran Porto — POI city
@@ -452,6 +516,8 @@
   city: '69096144adc6e1cac718070e' # Daracre
   infos:
     title: Cure al tempio di Daracre
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '69096144914c285129a7d8f6' # Daracre — POI city
@@ -466,6 +532,8 @@
   city: '69096144adc6e1cac718070e' # Daracre
   infos:
     title: Lavori di bottega a Daracre
+    description: |-
+      Il mercato di Daracre non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '69096144914c285129a7d8f6' # Daracre — POI city
@@ -480,6 +548,8 @@
   city: '69096144adc6e1cac718070e' # Daracre
   infos:
     title: Turno di guardia a Daracre
+    description: |-
+      La guardia di Daracre è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
     enemy: null
     markerLocation: '69096144914c285129a7d8f6' # Daracre — POI city
@@ -494,6 +564,8 @@
   city: '69096144c3132e8680ab7d44' # Tipus
   infos:
     title: Cure al tempio di Tipus
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '69096144f2b6cfaef189243b' # Tipus — POI city
@@ -508,6 +580,8 @@
   city: '69096144c3132e8680ab7d44' # Tipus
   infos:
     title: Lavori di bottega a Tipus
+    description: |-
+      Il mercato di Tipus non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '69096144f2b6cfaef189243b' # Tipus — POI city
@@ -522,6 +596,8 @@
   city: '69096144c3132e8680ab7d44' # Tipus
   infos:
     title: Turno di guardia a Tipus
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Tipus. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '69096144f2b6cfaef189243b' # Tipus — POI city
@@ -536,6 +612,8 @@
   city: '69096144c3132e8680ab7d44' # Tipus
   infos:
     title: Affari loschi a Tipus
+    description: |-
+      Merce da spostare, una porta da aprire, un nome da dimenticare. Chi è interessato lasci un segno sul muro dietro il mercato di Tipus.
     type: crime
     enemy: null
     markerLocation: '69096144f2b6cfaef189243b' # Tipus — POI city
@@ -550,6 +628,8 @@
   city: '69096144d80073c7abaa3b2f' # Shando
   infos:
     title: Cure al tempio di Shando
+    description: |-
+      Il tempio di Shando apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '6909614490e0792be836bd48' # Shando — POI city
@@ -564,6 +644,8 @@
   city: '69096144d80073c7abaa3b2f' # Shando
   infos:
     title: Lavori di bottega a Shando
+    description: |-
+      Bottega di Shando cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '6909614490e0792be836bd48' # Shando — POI city
@@ -578,6 +660,8 @@
   city: '69096144db34484954cb701a' # Elessa
   infos:
     title: Cure al tempio di Elessa
+    description: |-
+      I sacerdoti del tempio di Elessa offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '69096144914d407f2228dfa1' # Elessa — POI city
@@ -592,6 +676,8 @@
   city: '69096144db34484954cb701a' # Elessa
   infos:
     title: Lavori di bottega a Elessa
+    description: |-
+      Il mercato di Elessa non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '69096144914d407f2228dfa1' # Elessa — POI city
@@ -606,6 +692,8 @@
   city: '69096144e2b52f8a40351db7' # Blu Minore
   infos:
     title: Cure al tempio di Blu Minore
+    description: |-
+      Il tempio di Blu Minore apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '690961444394246e372b0828' # Blu Minore — POI city
@@ -620,6 +708,8 @@
   city: '69096144e2b52f8a40351db7' # Blu Minore
   infos:
     title: Lavori di bottega a Blu Minore
+    description: |-
+      Il mercato di Blu Minore non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '690961444394246e372b0828' # Blu Minore — POI city
@@ -634,6 +724,8 @@
   city: '69096144e2b52f8a40351db7' # Blu Minore
   infos:
     title: Turno di guardia a Blu Minore
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Blu Minore. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '690961444394246e372b0828' # Blu Minore — POI city
@@ -648,6 +740,8 @@
   city: '69096144e2b52f8a40351db7' # Blu Minore
   infos:
     title: Affari loschi a Blu Minore
+    description: |-
+      Un amico di un amico ha un lavoretto a Blu Minore che richiede mani leste e bocca cucita. Chiedete di me alla taverna, dopo il tramonto.
     type: crime
     enemy: null
     markerLocation: '690961444394246e372b0828' # Blu Minore — POI city
@@ -662,6 +756,8 @@
   city: '69096144ecffa06bbd1acbc5' # Portonuovo
   infos:
     title: Cure al tempio di Portonuovo
+    description: |-
+      Il tempio di Portonuovo apre le sue porte ai viandanti stanchi e ai combattenti feriti. Una notte fra le nostre mura e ripartirete come nuovi.
     type: heal
     enemy: null
     markerLocation: '69096144d5e7eadfa96c2fdd' # Portonuovo — POI city
@@ -676,6 +772,8 @@
   city: '69096144ecffa06bbd1acbc5' # Portonuovo
   infos:
     title: Lavori di bottega a Portonuovo
+    description: |-
+      Bottega di Portonuovo cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
     enemy: null
     markerLocation: '69096144d5e7eadfa96c2fdd' # Portonuovo — POI city
@@ -690,6 +788,8 @@
   city: '69096144ecffa06bbd1acbc5' # Portonuovo
   infos:
     title: Turno di guardia a Portonuovo
+    description: |-
+      Il capitano della guardia cerca volontari per le ronde fra i vicoli di Portonuovo. Paga della guarnigione e un pasto caldo al cambio del turno.
     type: guard
     enemy: null
     markerLocation: '69096144d5e7eadfa96c2fdd' # Portonuovo — POI city
@@ -704,6 +804,8 @@
   city: '69096144ecffa06bbd1acbc5' # Portonuovo
   infos:
     title: Ricerche in biblioteca a Portonuovo
+    description: |-
+      Gli archivi di Portonuovo traboccano di carte che nessuno legge da secoli. Offro una ricompensa a chi mi aiuterà a dar loro un ordine.
     type: study
     enemy: null
     markerLocation: '69096144d5e7eadfa96c2fdd' # Portonuovo — POI city
@@ -718,6 +820,8 @@
   city: '69096144ee4c065469c33d14' # Ufragos
   infos:
     title: Cure al tempio di Ufragos
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '69096144a9865866cc2c7970' # Ufragos — POI city
@@ -732,6 +836,8 @@
   city: '69096144ee4c065469c33d14' # Ufragos
   infos:
     title: Lavori di bottega a Ufragos
+    description: |-
+      Il mercato di Ufragos non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '69096144a9865866cc2c7970' # Ufragos — POI city
@@ -746,6 +852,8 @@
   city: '69096144ee4c065469c33d14' # Ufragos
   infos:
     title: Turno di guardia a Ufragos
+    description: |-
+      Per ordine del capitano della guardia di Ufragos: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
     enemy: null
     markerLocation: '69096144a9865866cc2c7970' # Ufragos — POI city
@@ -760,6 +868,8 @@
   city: '69096144ee4c065469c33d14' # Ufragos
   infos:
     title: Affari loschi a Ufragos
+    description: |-
+      Cerco gente discreta per una faccenda delicata qui a Ufragos. Se le guardie vi conoscono di vista, lasciate perdere.
     type: crime
     enemy: null
     markerLocation: '69096144a9865866cc2c7970' # Ufragos — POI city
@@ -774,6 +884,8 @@
   city: '69096144ee4c065469c33d14' # Ufragos
   infos:
     title: Ricerche in biblioteca a Ufragos
+    description: |-
+      Cerco un assistente per le mie ricerche sulla storia di Ufragos: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
     enemy: null
     markerLocation: '69096144a9865866cc2c7970' # Ufragos — POI city
@@ -788,6 +900,8 @@
   city: '69096144f36d66255e129942' # Gemsall
   infos:
     title: Cure al tempio di Gemsall
+    description: |-
+      I sacerdoti del tempio di Gemsall offrono riposo e bende pulite a chi torna dalla strada. Nessuno sarà mandato via: portate le vostre ferite, ce ne prenderemo cura noi.
     type: heal
     enemy: null
     markerLocation: '69096144ada2becbe78c2e79' # Gemsall — POI city
@@ -802,6 +916,8 @@
   city: '69096144f36d66255e129942' # Gemsall
   infos:
     title: Lavori di bottega a Gemsall
+    description: |-
+      Il mercato di Gemsall non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
     enemy: null
     markerLocation: '69096144ada2becbe78c2e79' # Gemsall — POI city
@@ -816,6 +932,8 @@
   city: '69096144f470c7c708d20ac4' # Flevale
   infos:
     title: Cure al tempio di Flevale
+    description: |-
+      A tutti gli avventurieri feriti! Abbiamo allestito una piccola clinica nei pressi del tempio, attendiamo il vostro arrivo con la speranza di poter alleggerire il vostro dolore.
     type: heal
     enemy: null
     markerLocation: '69096144d874a2ac8a7b8af5' # Flevale — POI city
@@ -830,6 +948,8 @@
   city: '69096144f470c7c708d20ac4' # Flevale
   infos:
     title: Lavori di bottega a Flevale
+    description: |-
+      Cerco braccia robuste per la mia bottega di Flevale: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
     enemy: null
     markerLocation: '69096144d874a2ac8a7b8af5' # Flevale — POI city
@@ -844,6 +964,8 @@
   city: '690961442c1728bfb98d4e77' # Atheland
   infos:
     title: 'Caccia: Aquila gigante nei dintorni di Atheland'
+    description: |-
+      Sono un cacciatore di Atheland e da solo non ce la faccio più. Cerco compagni per stanare una preda pericolosa: Aquila gigante.
     type: hunt
     enemy: '6ae806b55093fb43140756d3' # Aquila gigante
     markerLocation: '690e4186e74fd28b895b34a2' # Atheland — POI demonicPortal, drusteaPlains
@@ -852,13 +974,21 @@
       - '6ae8065202a77381730f2810' # Aquile giganti
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267a9'
   city: '690961442c2d2eaf2a67aac3' # Qey
   infos:
     title: 'Caccia: Aquila gigante nei dintorni di Qey'
+    description: |-
+      Nei campi intorno a Qey il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Aquila gigante. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d3' # Aquila gigante
     markerLocation: '690e4186aaf55a6c08af2bd0' # Qey — POI drusteaPlains
@@ -867,13 +997,21 @@
       - '6ae8065202a77381730f2810' # Aquile giganti
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267aa'
   city: '6909614432d1be27c081fa30' # Grens
   infos:
     title: 'Caccia: Formiche giganti assassine nei dintorni di Grens'
+    description: |-
+      Nei campi intorno a Grens il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Formiche giganti assassine. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d2' # Formiche giganti assassine
     markerLocation: '690e418667c731d700fe881e' # Grens — POI graveyard, drusteaPlains
@@ -882,13 +1020,21 @@
       - '6ae8065202a77381730f280f' # Formiche giganti assassine
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267ab'
   city: '690961448594d91715e9964d' # Brurora
   infos:
     title: 'Caccia: Formiche giganti assassine nei dintorni di Brurora'
+    description: |-
+      Nei campi intorno a Brurora il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Formiche giganti assassine. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d2' # Formiche giganti assassine
     markerLocation: '690e4186240a54052c51ece1' # Brurora — POI hills, forest
@@ -897,13 +1043,21 @@
       - '6ae8065202a77381730f280f' # Formiche giganti assassine
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267ac'
   city: '690961449c5c0d38e2623359' # Blu Maggiore
   infos:
     title: 'Caccia: Worg nei dintorni di Blu Maggiore'
+    description: |-
+      Nei campi intorno a Blu Maggiore il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Worg. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d4' # Worg
     markerLocation: '690e41862c8ce593dcae245c' # Blu Maggiore — POI drusteaPlains
@@ -912,13 +1066,21 @@
       - '6ae8065202a77381730f2811' # Worg
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267ae'
   city: '69096144adc6e1cac718070e' # Daracre
   infos:
     title: 'Caccia: Aquila gigante nei dintorni di Daracre'
+    description: |-
+      Nei campi intorno a Daracre il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Aquila gigante. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d3' # Aquila gigante
     markerLocation: '690e418679b7f72e5bcd9b5d' # Daracre — POI drusteaPlains
@@ -927,13 +1089,21 @@
       - '6ae8065202a77381730f2810' # Aquile giganti
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267af'
   city: '69096144c3132e8680ab7d44' # Tipus
   infos:
     title: 'Caccia: Worg nei dintorni di Tipus'
+    description: |-
+      Nei campi intorno a Tipus il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Worg. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d4' # Worg
     markerLocation: '690e41865cd7ce67b1205aec' # Tipus — POI graveyard, drusteaPlains
@@ -942,13 +1112,21 @@
       - '6ae8065202a77381730f2811' # Worg
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267b0'
   city: '69096144d80073c7abaa3b2f' # Shando
   infos:
     title: 'Caccia: Worg nei dintorni di Shando'
+    description: |-
+      Nei campi intorno a Shando il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Worg. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d4' # Worg
     markerLocation: '690e41869587a5322ced8299' # Shando — POI ruins, drusteaPlains
@@ -957,13 +1135,21 @@
       - '6ae8065202a77381730f2811' # Worg
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267b1'
   city: '69096144ecffa06bbd1acbc5' # Portonuovo
   infos:
     title: 'Caccia: Aquila gigante nei dintorni di Portonuovo'
+    description: |-
+      I contadini di Portonuovo non osano più uscire dopo il tramonto. Chi sa usare un'arma ci aiuti a cacciare quel flagello: Aquila gigante.
     type: hunt
     enemy: '6ae806b55093fb43140756d3' # Aquila gigante
     markerLocation: '690e41869cf34adba638b5d6' # Portonuovo — POI battleground, drusteaPlains
@@ -972,13 +1158,21 @@
       - '6ae8065202a77381730f2810' # Aquile giganti
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
 - id: '6ae80db9da5c5f8cc55267b2'
   city: '69096144ee4c065469c33d14' # Ufragos
   infos:
     title: 'Caccia: Aquila gigante nei dintorni di Ufragos'
+    description: |-
+      Nei campi intorno a Ufragos il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Aquila gigante. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d3' # Aquila gigante
     markerLocation: '690e41867176329c98135a62' # Ufragos — POI drusteaPlains
@@ -987,6 +1181,12 @@
       - '6ae8065202a77381730f2810' # Aquile giganti
   requirements:
     minTitle: rookie
-    recommendedLoot: []
+    recommendedLoot:
+      - itemType: EquipmentItem
+        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
+        quantity: 1
+      - itemType: LootItem
+        item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
+        quantity: 1
   prizes:
     randomLoot: []
