@@ -213,6 +213,9 @@ export function petsFor(
         const pet = pets.find((entry) =>
             sameId(entry._id, new Types.ObjectId(petId)),
         );
-        return pet !== undefined && isShelfEligible(pet) ? [pet._id] : [];
+        // senza prezzo darebbe ITEM_NOT_TRADABLE e romperebbe il non-null di Pet.buyPrice, come per gli oggetti
+        return pet !== undefined && pet.buyPrice != null && isShelfEligible(pet)
+            ? [pet._id]
+            : [];
     });
 }

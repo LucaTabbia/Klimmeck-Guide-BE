@@ -65,7 +65,7 @@ interface SeedPlan {
 }
 
 const SHELF_PROJECTION = { rarity: 1, sellable: 1, buyPrice: 1, effect: 1 };
-const PET_PROJECTION = { name: 1, sellable: 1 };
+const PET_PROJECTION = { name: 1, sellable: 1, buyPrice: 1 };
 const POOL_FIELDS: readonly PoolField[] = [
     'shopEquipment',
     'shopLoot',
