@@ -99,10 +99,19 @@
 - id: '6ae80bf6947d6a423521c714'
   name: Mago rinnegato
   category: humanoid
+  tier: mage # fascia fissata dall'utente il 2026-11-02: i maghi sono almeno di rango mago
   source:
     pe: 2300
     pf: 40
     damagePerRound: { pierce: 4 }
+  lifePoints: 9000 # potenziato dall'utente il 2026-11-02 (il bestiario dà 40 PF: troppo fragile per la lore)
+  damages: # la Palla di fuoco (28 danni medi) conta come attacco per round
+    base:
+      - type: pierce
+        power: 400
+    energy:
+      - type: fire
+        power: 2800
   locations: [ruins, city]
   energyWeaknesses: []
   baseWeaknesses: []
@@ -115,10 +124,21 @@
 - id: '6ae80bf6947d6a423521c715'
   name: Arcimago
   category: humanoid
+  tier: hero # fascia fissata dall'utente il 2026-11-02: gli arcimaghi sono di rango eroe
   source:
     pe: 8400
     pf: 99
     damagePerRound: { pierce: 4 }
+  lifePoints: 15000 # potenziato dall'utente il 2026-11-02 (il bestiario dà 99 PF)
+  damages: # Vento Glaciale (36) e Lancia di Fulmine (28) contano come attacchi per round
+    base:
+      - type: pierce
+        power: 400
+    energy:
+      - type: cold
+        power: 3600
+      - type: lightning
+        power: 2800
   locations: [ruins]
   energyWeaknesses: []
   baseWeaknesses: []
