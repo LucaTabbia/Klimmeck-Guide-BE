@@ -145,7 +145,20 @@ describe('shop pool report', () => {
 
         const violation = violationsOf(city, catalogueOf([]));
 
-        expect(violation.missing).toEqual([gone.toHexString(), 'not-an-id']);
+        expect(violation.missing).toEqual([gone.toHexString(), 'invalid@0']);
+    });
+
+    it('marks an unreadable pool entry by its position without printing it (D-06)', () => {
+        const gone = new Types.ObjectId();
+        const city = village({ shopLoot: [gone, {}, null] });
+
+        const violation = violationsOf(city, catalogueOf([]));
+
+        expect(violation.missing).toEqual([
+            gone.toHexString(),
+            'invalid@1',
+            'invalid@2',
+        ]);
     });
 
     it('classifies each item once, missing before vetoed before out of size (D-06)', () => {
