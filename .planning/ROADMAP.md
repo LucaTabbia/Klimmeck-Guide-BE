@@ -30,7 +30,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 10: Hardening Trasversale** - Validazione input, introspection off/CORS/sanitization, `.env.example`, coverage aree critiche, throttling minimo, moderazione immagini Sightengine, debiti rinviati (BE-HARD-05/06, 2026-10-27), combattimento con i segnaposto e avvio atomico delle quest da soli (BE-HARD-07, dalla UAT FE Phase 9, 2026-10-29), coda del GM e corsia standard (BE-HARD-08, dal discuss FE Phase 10, 2026-10-29) (completed 2026-10-30)
 
 - [x] **Phase 11: Popolamento del mondo** - File di contenuto versionati (lore ~300 schede, 99 creature + voci proposte dall'utente, pet, magie, equipaggiamento, cibo e consumabili, quest fisse per città e dungeon sui POI) scritti dal documento di world building e caricati da uno script idempotente `--dry-run/--apply/--verify`; immagini a carico dell'utente in un secondo passaggio _(aggiunta 2026-10-29)_
-- [ ] **Phase 12: Negozi per città** - `City.size` esposto (dedotto dal `CityType`) e `City.hasShop`; pool per città (equip, loot, compagni) seminato al boot con la regola di taglia e curato a DB (D-36: niente file né CLI), `cityShop(cityId)`; acquisto fuori pool rifiutato (`ITEM_NOT_IN_SHOP`), vendita ovunque, scorte infinite, leggendari mai in vendita, prezzi del catalogo; pet posseduti vs compagno equipaggiato (`assets.ownedPets`, `equipPet`/`unequipPet`) _(aggiunta 2026-10-29, emendata nel discuss del 2026-11-02)_
+- [x] **Phase 12: Negozi per città** - `City.size` esposto (dedotto dal `CityType`) e `City.hasShop`; pool per città (equip, loot, compagni) seminato al boot con la regola di taglia e curato a DB (D-36: niente file né CLI), `cityShop(cityId)`; acquisto fuori pool rifiutato (`ITEM_NOT_IN_SHOP`), vendita ovunque, scorte infinite, leggendari mai in vendita, prezzi del catalogo; pet posseduti vs compagno equipaggiato (`assets.ownedPets`, `equipPet`/`unequipPet`) _(aggiunta 2026-10-29, emendata nel discuss del 2026-11-02)_
 - [ ] **Phase 13: Generazione quest** - `infos.enemies [{ enemy, quantity }]` sostituisce `infos.enemy`; generatore server-side delle quest consumabili `enemy`/`boss` (reattivo + sweep + mutation GM), tetto 3 per città, distribuzione casuale non concentrata, rango meno coperto nel mondo, nemico dalla zona del POI, premi per fascia, oggetti consigliati da debolezze e danni; `hunt` e `dungeon` mai generate (fisse, Phase 11) _(aggiunta 2026-10-29)_
 - [ ] **Phase 14: Viaggio e cibo** - Il viaggio consuma oggetti `hunger` in base al tempo di marcia (1 power = 3 min), selezione a scarto minimo, km scoperti → vita persa (il km n-esimo costa n HP), partenza libera o da quest rifiutata se non si arriva con ≥ 1 HP, tutto alla partenza; teleport e salto esenti _(aggiunta 2026-10-29)_
 - [ ] **Phase 15: Imboscate in viaggio** - Probabilità per km e quota notturna (22–06 Europe/Rome), nemico della zona entro la fascia Medio, job al momento dell'imboscata con `CombatResolver`; vittoria → XP e monete, sconfitta → HP ≥ 1 e ferite, rotta deviata verso la città più vicina, quest abbandonata; report sul `QuestResult` all'arrivo _(aggiunta 2026-10-29)_
@@ -426,7 +426,8 @@ Plans:
 **Decisioni dell'utente (2026-11-02, `12-CONTEXT.md` D-01..D-21)**: semina server + cura a DB; mare = città; Necrorian senza negozio; «la mano vince» con veto su legendary e `sellable: false` e report di sola lettura; pool più ampi con cibo e cure sempre; pet nel pool in due città ciascuno per lore (Cavallo leggero, Cammello del Mar Sabbioso, Tartaruga gigante delle isole, Cavallo da viaggio; gli altri 9 solo da quest); i leggendari posseduti si vendono; pet posseduti vs compagno equipaggiato, niente equipaggiamento automatico; titolo FE «Compagno».
 **Unblocks (FE)**: FE Phase 13 (SHOP-02/03/04).
 **Branch**: `feat/12-negozi-per-citta` da `develop` → PR a `develop`.
-**Plans**: 19 piani (pianificati il 2026-11-02; catena lineare, una wave per piano, esecuzione sequenziale sull'albero principale)
+**Plans**: 19 piani (pianificati il 2026-11-02; catena lineare, una wave per piano, esecuzione sequenziale sull'albero principale) — esecuzione completa il 2026-11-03
+**Nota di chiusura (2026-11-03)**: PR `feat/12-negozi-per-citta` → `develop`; sblocca i piani gated della FE Phase 13; il primo boot sul DB reale segue il runbook di `BACKEND-NOTES.md` §9.
 - [x] 12-01-PLAN.md — VALIDATION compilata; `CitySize` e `citySizeOf` dal `CityType`; campi del pool su `City` senza default; `@ResolveField` `size` e `hasShop`
 - [x] 12-02-PLAN.md — `sellable` nello schema di `AssetItem` (equip e loot) e `Pet`
 - [x] 12-03-PLAN.md — `assets.ownedPets` a schema e a DB; `findOne` popola `assets.pet` e `ownedPets`; `Pet` registrato in `EconomyModule`
@@ -445,7 +446,7 @@ Plans:
 - [x] 12-16-PLAN.md — Inventario dei pet nella transazione: doppione rifiutato, vendita del pet equipaggiato che svuota lo slot, guardie nel filtro
 - [x] 12-17-PLAN.md — `equipPet` / `unequipPet` (`EquipPetRequest`, `UnequipPetRequest`, `@OwnsCharacter` come `equipItem`)
 - [x] 12-18-PLAN.md — Gate BE-SHOP-05: integration end-to-end sul mondo seminato, contratto FE nel real boot, suite completa con coverage, gate SDL, requisiti completati
-- [ ] 12-19-PLAN.md — Handoff `BACKEND-NOTES.md` per la FE Phase 13 con il runbook del primo boot; chiusura ROADMAP/STATE/REQUIREMENTS
+- [x] 12-19-PLAN.md — Handoff `BACKEND-NOTES.md` per la FE Phase 13 con il runbook del primo boot; chiusura ROADMAP/STATE/REQUIREMENTS
 
 ### Phase 13: Generazione quest
 **Goal**: Il tabellone si rifornisce da solo: il server genera e posiziona le quest consumabili `enemy` e `boss` (le `hunt` e `dungeon` sono fisse, Phase 11) su un POI libero di una città, con al massimo 3 quest generate attive per città, una distribuzione casuale ma non concentrata sulla mappa (alcune città 0, altre 3), il nemico scelto dalla zona del POI, il rango dal rango meno coperto fra le quest generate attive di tutto il mondo, premi dalla fascia e oggetti consigliati dalle debolezze e dai danni del nemico; le quest portano più nemici e più tipi (`infos.enemies: [{ enemy, quantity }]` sostituisce `infos.enemy`).
@@ -548,7 +549,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
-| 12. Negozi per città | 18/19 | In Progress | - |
+| 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
 | 13. Generazione quest | 0/0 | Not started | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |

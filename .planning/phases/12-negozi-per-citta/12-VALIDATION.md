@@ -76,8 +76,8 @@ created: 2026-11-02
 | 12-18-01 | 18 | 18 | BE-SHOP-05 | T-12-29 | Il flusso completo dei negozi rispetta i guard | integration | `npx jest test/shops/city-shops.e2e.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 12-18-02 | 18 | 18 | BE-SHOP-05 | T-12-29 | Lo SDL finale è additivo salvo le due query deprecate | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 12-18-03 | 18 | 18 | BE-SHOP-01..06 | T-12-30 / T-12-31 | Suite completa e coverage verdi | full suite | `npm run test:cov` | ✅ | ✅ green |
-| 12-19-01 | 19 | 19 | BE-SHOP-05 | T-12-32 | Il handoff non contiene segreti | docs | `grep -c "cityShop" .planning/phases/12-negozi-per-citta/BACKEND-NOTES.md` | ❌ W0 | ⬜ pending |
-| 12-19-02 | 19 | 19 | BE-SHOP-05 | — | N/A | docs | `grep -c "Complete" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 12-19-01 | 19 | 19 | BE-SHOP-05 | T-12-32 | Il handoff non contiene segreti | docs | `grep -c "cityShop" .planning/phases/12-negozi-per-citta/BACKEND-NOTES.md` | ✅ | ✅ green |
+| 12-19-02 | 19 | 19 | BE-SHOP-05 | — | N/A | docs | `grep -c "Complete" .planning/ROADMAP.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

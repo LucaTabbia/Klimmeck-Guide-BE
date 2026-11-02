@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 12 executing — plan 0 of 19
-last_updated: "2026-11-02T20:55:55.393Z"
-last_activity: 2026-11-02 -- Phase 12 execution started (19 plans, sequential executors)
+stopped_at: Phase 12 execution complete — plan 19 of 19 (BACKEND-NOTES.md written)
+last_updated: "2026-11-03T12:00:00.000Z"
+last_activity: 2026-11-03 -- Phase 12 execution complete (19/19), handoff BACKEND-NOTES.md for the FE Phase 13
 progress:
   total_phases: 19
-  completed_phases: 14
+  completed_phases: 15
   total_plans: 191
-  completed_plans: 172
-  percent: 90
+  completed_plans: 191
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 12 — Negozi per città — EXECUTING from 2026-11-02 (`12-CONTEXT.md` D-01..D-24 amended after the research, `12-RESEARCH.md`, `12-REPO-RULES.md`, `12-VALIDATION.md`, 19 plans `12-01`..`12-19` in a linear chain) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`, the merge of PR #17); sequential executors on the main tree (never `npm run build`: the user's BE runs from `dist/`); the FE Phase 13 plans 13-10/13-11 wait for this PR. Previous: Phase 11 — Popolamento del mondo — COMPLETE and merged (PR #17, `65ba3d7`, 2026-11-02).
+**Current focus:** Phase 12 — Negozi per città — EXECUTION COMPLETE on 2026-11-03 (19/19 plans, gate 12-18 green, handoff `.planning/phases/12-negozi-per-citta/BACKEND-NOTES.md` with the first boot runbook in §9) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`); next: post-execution review, security audit and PR `feat/12-negozi-per-citta` → `develop` by the orchestrator; after the merge the user builds and restarts the BE following the runbook (first write of the phase on the real DB); then the FE Phase 13 runs the gated plans 13-10/13-11. Previous: Phase 11 — Popolamento del mondo — COMPLETE and merged (PR #17, `65ba3d7`, 2026-11-02).
 
 ## Current Position
 
-Phase: 12 (Negozi per città) — EXECUTING (started 2026-11-02) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`): `12-CONTEXT.md` D-01..D-24, `12-RESEARCH.md`, `12-REPO-RULES.md`, `12-VALIDATION.md`, 19 plans in a linear chain (`12-01`..`12-19`); executed together with the FE Phase 13 (`../Klimmeck-Guide/.planning/phases/13-city-shops/`, 11 plans, 13-10/13-11 gated by this PR)
-Plan: 18 of 19
-Status: Executing Phase 12 — executors one at a time on the main tree, no worktree, never `npm run build`
-Last activity: 2026-11-02 -- Phase 12 execution started (19 plans; FE Phase 13 executing in parallel)
+Phase: 12 (Negozi per città) — EXECUTION COMPLETE (2026-11-03) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`): 19 plans in a linear chain (`12-01`..`12-19`), gate 12-18 green, handoff `BACKEND-NOTES.md` for the FE Phase 13 (`../Klimmeck-Guide/.planning/phases/13-city-shops/`, plans 13-10/13-11 gated by this PR)
+Plan: 19 of 19
+Status: Phase 12 execution complete (19/19) — post-execution review, security audit and PR `feat/12-negozi-per-citta` → `develop` by the orchestrator; after the merge the user restarts the BE with the runbook (`BACKEND-NOTES.md` §9); FE Phase 13 plans 13-10/13-11 wait for the merge
+Last activity: 2026-11-03 -- Phase 12 execution complete (19/19), handoff BACKEND-NOTES.md written
 
-Progress: [░░░░░░░░░░] 0/19 plans of Phase 12 (phases 1–11, 9.1 and 9.2 complete and merged)
+Progress: [██████████] 19/19 plans of Phase 12 (phases 1–12, 9.1 and 9.2 complete; 1–11 merged)
 
 ## Performance Metrics
 
@@ -282,7 +282,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-01T20:43:54.900Z
-Stopped at: Phase 11 complete, PR in draft until the FE quick task
-Resume file: .planning/phases/11-popolamento-del-mondo/BACKEND-NOTES.md
+Last session: 2026-11-03T12:00:00.000Z
+Stopped at: Phase 12 execution complete (19/19), PR by the orchestrator after the post-execution review
+Resume file: .planning/phases/12-negozi-per-citta/BACKEND-NOTES.md
 | 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |
