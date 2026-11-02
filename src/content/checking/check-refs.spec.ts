@@ -82,6 +82,21 @@ describe('checkContent references and duplicates', () => {
         ]);
     });
 
+    it('reports a fix key used twice', () => {
+        const [first] = tree.fixes;
+        tree.fixes.push({ ...first, line: 99, raw: { ...first.raw } });
+
+        expect(checkContent(tree).errors).toEqual([
+            {
+                file: first.file,
+                line: 99,
+                entryId: first.raw.key,
+                path: 'key',
+                message: `key doppia nelle fix: ${String(first.raw.key)}`,
+            },
+        ]);
+    });
+
     it('reports an id shared by two collections', () => {
         entryOf(tree, 'spells', SPELL_ID).id = REGION_ID;
 

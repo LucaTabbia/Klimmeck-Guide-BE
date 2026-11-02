@@ -154,7 +154,29 @@ function schemaIssues(tree: ContentTree): ContentIssue[] {
 
 // ---- id doppi e nomi doppi (D-02)
 
-function duplicateIssues(index: ContentIndex): ContentIssue[] {
+// la key è l'identità della fix nei report: due fix con la stessa key li renderebbero ambigui
+function fixKeyIssues(fixes: readonly LoadedEntry[]): ContentIssue[] {
+    const seen = new Set<string>();
+    return fixes.flatMap((fix) => {
+        const key = stringAt(fix.raw, 'key');
+        if (key === null) return [];
+        if (!seen.has(key)) {
+            seen.add(key);
+            return [];
+        }
+        return [
+            {
+                file: fix.file,
+                line: fix.line,
+                entryId: key,
+                path: 'key',
+                message: `key doppia nelle fix: ${key}`,
+            },
+        ];
+    });
+}
+
+function entryIdIssues(index: ContentIndex): ContentIssue[] {
     return [...index.allIds.values()].flatMap((sameId) =>
         sameId.slice(1).map((entry, position) => {
             const earlier = sameId.slice(0, position + 1);
@@ -167,6 +189,13 @@ function duplicateIssues(index: ContentIndex): ContentIssue[] {
             return issueAt(entry, 'id', message);
         }),
     );
+}
+
+function duplicateIssues(
+    index: ContentIndex,
+    tree: ContentTree,
+): ContentIssue[] {
+    return [...entryIdIssues(index), ...fixKeyIssues(tree.fixes)];
 }
 
 function nameWarnings(index: ContentIndex): ContentIssue[] {
@@ -780,7 +809,7 @@ function checkTree(
     return {
         errors: [
             ...errors,
-            ...duplicateIssues(index),
+            ...duplicateIssues(index, tree),
             ...refIssues(index, tree),
             ...imageIssues(index, tree.images),
             ...cityLoreErrors(index),

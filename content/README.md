@@ -164,6 +164,7 @@ Gli altri controlli offline:
 
 - schema di ogni voce (enum, campi obbligatori, interi, chiavi sconosciute) (D-28);
 - id doppi, nella stessa collezione o fra collezioni diverse;
+- `key` doppie fra le fix;
 - riferimenti pendenti: `relatedLore` → lore; `city` → città dello snapshot; `spells`/`addedSpell`/`prizes.spell` → magie; `infos.enemy` → nemici; `infos.markerLocation` → POI della città; `recommendedLoot`/`randomLoot`/`prizeItem` → la collezione dettata da `itemType` (`EquipmentItem` → equipment, `LootItem` → loot: un id del loot con `itemType: EquipmentItem` è un errore); `images.yaml` → voce della sezione omonima;
 - senza `world/cities.yaml` ogni riferimento a una città è un errore («snapshot world/cities.yaml mancante»);
 - due lore `city` per la stessa città: errore; una città dello snapshot senza lore: warning `città senza lore: <nome> (<CityType>)` (D-23);
