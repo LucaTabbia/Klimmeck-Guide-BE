@@ -11,6 +11,7 @@ import {
     EquipmentItemDocument,
 } from 'src/models/equipment-item.model';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
+import { Pet, PetDocument } from 'src/models/pet.model';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
@@ -20,6 +21,7 @@ import {
     persistCity,
     persistEquipmentItem,
     persistLootItem,
+    persistPet,
 } from '../../../test/fixtures';
 import { buildActiveTravelDoc } from '../../../test/travel/active-travel.fixture';
 
@@ -61,6 +63,7 @@ interface OwnedEntry {
 interface Inventory {
     ownedEquipments?: OwnedEntry[];
     ownedItems?: OwnedEntry[];
+    ownedPets?: Types.ObjectId[];
 }
 
 interface TradeInput {
@@ -68,6 +71,8 @@ interface TradeInput {
     buyLoot?: AssetQuantityInput[];
     sellEquip?: AssetQuantityInput[];
     sellLoot?: AssetQuantityInput[];
+    buyPets?: AssetQuantityInput[];
+    sellPets?: AssetQuantityInput[];
     total: CoinPurse;
     isTotalPositive: boolean;
 }
@@ -258,6 +263,7 @@ describe('doTransaction (wire)', () => {
     let characters: Model<CharacterDocument>;
     let equipment: Model<EquipmentItemDocument>;
     let loot: Model<LootItemDocument>;
+    let pets: Model<PetDocument>;
     let catalog: Catalog;
 
     function playerOutsideCity(
@@ -311,6 +317,8 @@ describe('doTransaction (wire)', () => {
             buyLoot = [],
             sellEquip = [],
             sellLoot = [],
+            buyPets = [],
+            sellPets = [],
             total,
             isTotalPositive,
         }: TradeInput,
@@ -321,8 +329,16 @@ describe('doTransaction (wire)', () => {
             {
                 request: {
                     id: characterIdOf(player).toHexString(),
-                    boughtItems: { equipAssets: buyEquip, lootAssets: buyLoot },
-                    soldItems: { equipAssets: sellEquip, lootAssets: sellLoot },
+                    boughtItems: {
+                        equipAssets: buyEquip,
+                        lootAssets: buyLoot,
+                        petAssets: buyPets,
+                    },
+                    soldItems: {
+                        equipAssets: sellEquip,
+                        lootAssets: sellLoot,
+                        petAssets: sellPets,
+                    },
                     total,
                     isTotalPositive,
                 },
@@ -341,8 +357,14 @@ describe('doTransaction (wire)', () => {
             EquipmentItem.name,
         );
         loot = harness.connection.model<LootItemDocument>(LootItem.name);
+        pets = harness.connection.model<PetDocument>(Pet.name);
         // collection pronte prima delle transazioni (Pitfall 9)
-        await Promise.all([characters.init(), equipment.init(), loot.init()]);
+        await Promise.all([
+            characters.init(),
+            equipment.init(),
+            loot.init(),
+            pets.init(),
+        ]);
     });
 
     beforeEach(async () => {
@@ -637,6 +659,87 @@ describe('doTransaction (wire)', () => {
             expect(body.errors?.[0]?.extensions).toEqual({
                 code: 'ITEM_NOT_FOUND',
             });
+        });
+    });
+    describe('pets', () => {
+        let horse: CatalogDocument;
+
+        // il giocatore sul marker di una città che vende il pet (D-19)
+        async function playerAtPetShop(
+            twitchId: string,
+            purse: CoinPurse,
+            inventory: Inventory = {},
+        ): Promise<TestPlayer> {
+            const player = await playerOutsideCity(twitchId, purse, inventory);
+            await placeInCity(harness, player.character!, {
+                pets: [idOf(horse)],
+            });
+            return player;
+        }
+
+        beforeEach(async () => {
+            horse = await persistPet(pets, {
+                name: 'Cavallo da viaggio',
+                buyPrice: coins(1, 0, 0),
+                sellPrice: coins(0, 50, 0),
+                sellable: true,
+            });
+        });
+
+        it('buys and sells a pet with petAssets (D-17)', async () => {
+            const player = await playerAtPetShop(
+                'twitch-trade-pet',
+                coins(1, 0, 0),
+            );
+
+            const bought = await doTransaction(player, {
+                buyPets: [asset(horse)],
+                total: coins(1, 0, 0),
+                isTotalPositive: false,
+            });
+
+            expect(bought.errors).toBeUndefined();
+            expect(bought.data?.doTransaction).toEqual(SUCCESS);
+            const afterBuy = await raw(player);
+            expect(afterBuy?.assets.ownedPets).toEqual([idOf(horse)]);
+            expect(afterBuy?.assets.pet).toBeNull();
+            expect(afterBuy?.status.coins).toEqual(coins(0, 0, 0));
+
+            const sold = await doTransaction(player, {
+                sellPets: [asset(horse)],
+                total: coins(0, 50, 0),
+                isTotalPositive: true,
+            });
+
+            expect(sold.errors).toBeUndefined();
+            expect(sold.data?.doTransaction).toEqual(SUCCESS);
+            const afterSell = await raw(player);
+            expect(afterSell?.assets.ownedPets).toEqual([]);
+            expect(afterSell?.status.coins).toEqual(coins(0, 50, 0));
+        });
+
+        it('answers PET_ALREADY_OWNED in extensions.code (D-14)', async () => {
+            const player = await playerAtPetShop(
+                'twitch-trade-pet-owned',
+                coins(2, 0, 0),
+                { ownedPets: [idOf(horse)] },
+            );
+            const before = await raw(player);
+
+            const body = await doTransaction(player, {
+                buyPets: [asset(horse)],
+                total: coins(1, 0, 0),
+                isTotalPositive: false,
+            });
+
+            expect(body.data?.doTransaction ?? null).toBeNull();
+            expect(body.errors?.[0]?.extensions).toEqual({
+                code: 'PET_ALREADY_OWNED',
+            });
+            expect(body.errors?.[0]?.message).toBe(
+                'Possiedi già questo compagno',
+            );
+            expect(await raw(player)).toEqual(before);
         });
     });
 });
