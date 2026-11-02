@@ -1,4 +1,5 @@
 import { checkContent } from 'src/content/checking/check-content';
+import { indexContent } from 'src/content/checking/content-index';
 import { generateFixedQuests } from 'src/content/generation/fixed-quests.generator';
 import {
     buildGeneratorTree,
@@ -87,6 +88,35 @@ describe('generateFixedQuests determinism', () => {
         const [regenerated] = questsOf(again, 'study', ids.valantar);
         expect(regenerated.id).toBe(keptId);
         expect(prizesOf(regenerated).spellDraw).toBe(true);
+    });
+
+    it('keeps every main draw when the flavour items change (D-33)', () => {
+        const withoutGear = generateFixedQuests(
+            generatorInput({
+                index: indexContent(
+                    buildGeneratorTree((world) => {
+                        world.entries.lootitems =
+                            world.entries.lootitems.filter(
+                                (item) => item.effect !== 'exploration',
+                            );
+                    }),
+                ),
+            }),
+        );
+        const coreOf = (result: typeof first) =>
+            result.quests.map(({ file, entry }) => {
+                const copy = JSON.parse(JSON.stringify(entry)) as {
+                    infos: Raw;
+                    requirements: Raw;
+                };
+                delete copy.infos.description;
+                delete copy.requirements.recommendedLoot;
+                return { file, entry: copy };
+            });
+        const descriptionsOf = (result: typeof first) =>
+            result.quests.map((quest) => infosOf(quest.entry).description);
+        expect(coreOf(withoutGear)).toEqual(coreOf(first));
+        expect(descriptionsOf(withoutGear)).toEqual(descriptionsOf(first));
     });
 
     it('produces entries that pass the content checks', () => {

@@ -16,6 +16,8 @@ describe('generateFixedQuests hunts', () => {
     const result = generateFixedQuests(generatorInput());
     const index = buildGeneratorIndex();
     const hunts = questsOf(result, 'hunt');
+    const huntsOf = (animal: string) =>
+        hunts.filter((hunt) => infosOf(hunt).enemy === animal);
 
     it('hunts only animals up to 200 PE (D-18)', () => {
         expect(hunts.length).toBeGreaterThan(0);
@@ -73,7 +75,39 @@ describe('generateFixedQuests hunts', () => {
     it('sets hunts to rookie (D-18)', () => {
         for (const hunt of hunts) {
             expect(requirementsOf(hunt).minTitle).toBe('rookie');
-            expect(requirementsOf(hunt).recommendedLoot).toEqual([]);
+        }
+    });
+
+    it('recommends a weapon against the animal and the best healing within the rookie rarity (D-33)', () => {
+        const expected = [
+            { itemType: 'EquipmentItem', item: ids.shortSword, quantity: 1 },
+            { itemType: 'LootItem', item: ids.minorPotion, quantity: 1 },
+        ];
+        const wolfHunts = huntsOf(ids.wolf);
+        expect(wolfHunts.length).toBeGreaterThan(0);
+        for (const hunt of wolfHunts) {
+            expect(requirementsOf(hunt).recommendedLoot).toEqual(expected);
+        }
+        for (const hunt of hunts) {
+            const equipment = (
+                requirementsOf(hunt).recommendedLoot as { itemType: string }[]
+            ).filter((loot) => loot.itemType === 'EquipmentItem');
+            expect(equipment.length).toBeLessThanOrEqual(1);
+        }
+    });
+
+    it('falls back to the strongest common weapon when no weapon hits the animal weaknesses (D-33)', () => {
+        const boarHunts = huntsOf(ids.boar);
+        expect(boarHunts.length).toBeGreaterThan(0);
+        for (const hunt of boarHunts) {
+            expect(requirementsOf(hunt).recommendedLoot).toEqual([
+                {
+                    itemType: 'EquipmentItem',
+                    item: ids.shortSword,
+                    quantity: 1,
+                },
+                { itemType: 'LootItem', item: ids.minorPotion, quantity: 1 },
+            ]);
         }
     });
 

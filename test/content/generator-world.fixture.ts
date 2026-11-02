@@ -162,6 +162,12 @@ export const GENERATOR_IDS = {
     greaterPotion: lootId(3),
     elixir: lootId(4),
     ration: lootId(5),
+    driedMeat: lootId(6),
+    elvenBread: lootId(7),
+    lantern: lootId(8),
+    rope: lootId(9),
+    climbingKit: lootId(10),
+    ancientMap: lootId(11),
 } as const;
 
 const ids = GENERATOR_IDS;
@@ -217,6 +223,7 @@ const ENEMY_SEEDS: readonly EnemySeed[] = [
         category: 'animal',
         pe: 50,
         locations: ['forest', 'hills'],
+        baseWeaknesses: ['cut'],
         relatedLore: [ids.wolfLore],
     },
     {
@@ -233,6 +240,7 @@ const ENEMY_SEEDS: readonly EnemySeed[] = [
         category: 'animal',
         pe: 100,
         locations: ['forest'],
+        baseWeaknesses: ['blunt'],
     },
     {
         id: ids.spider,
@@ -457,6 +465,12 @@ function defaultWorld(): GeneratorWorld {
         lootOf(ids.greaterPotion, 'Pozione superiore', 'rare', 80, 'heal'),
         lootOf(ids.elixir, 'Elisir', 'legendary', 200, 'heal'),
         lootOf(ids.ration, 'Razione', 'common', 5, 'hunger'),
+        lootOf(ids.driedMeat, 'Carne secca', 'uncommon', 40, 'hunger'),
+        lootOf(ids.elvenBread, 'Pane elfico', 'ultrarare', 200, 'hunger'),
+        lootOf(ids.lantern, 'Lanterna', 'common', 0, 'exploration'),
+        lootOf(ids.rope, 'Corda', 'common', 0, 'exploration'),
+        lootOf(ids.climbingKit, 'Kit da scalata', 'uncommon', 0, 'exploration'),
+        lootOf(ids.ancientMap, 'Mappa antica', 'legendary', 0, 'exploration'),
     ];
     return { cities: CITY_SEEDS.map(cityOf), entries };
 }

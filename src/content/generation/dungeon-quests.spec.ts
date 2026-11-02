@@ -46,6 +46,16 @@ function itemsOf(loot: unknown): string[] {
     return (loot as { item: string }[]).map((entry) => entry.item);
 }
 
+function expectExplorationGear(gear: Raw[], allowed: string[]): void {
+    expect(gear).toHaveLength(2);
+    expect(new Set(itemsOf(gear)).size).toBe(2);
+    for (const item of gear) {
+        expect(item.itemType).toBe('LootItem');
+        expect(item.quantity).toBe(1);
+        expect(allowed).toContain(item.item);
+    }
+}
+
 describe('generateFixedQuests dungeons', () => {
     const result = generateFixedQuests(generatorInput());
     const dungeons = questsOf(result, 'dungeon');
@@ -160,17 +170,32 @@ describe('generateFixedQuests dungeons', () => {
         );
     });
 
-    it('recommends equipment against the enemy weaknesses and one healing item (D-20)', () => {
-        const city = dungeonAt(dungeons, ids.cityDungeonPoi);
-        expect(requirementsOf(city).recommendedLoot).toEqual([
+    it('recommends weapons, healing, food and exploration gear within the band rarity (D-33)', () => {
+        const city = requirementsOf(dungeonAt(dungeons, ids.cityDungeonPoi))
+            .recommendedLoot as Raw[];
+        expect(city.slice(0, 4)).toEqual([
             { itemType: 'EquipmentItem', item: ids.flameSword, quantity: 1 },
             { itemType: 'EquipmentItem', item: ids.acidAxe, quantity: 1 },
             { itemType: 'LootItem', item: ids.greaterPotion, quantity: 1 },
+            { itemType: 'LootItem', item: ids.driedMeat, quantity: 1 },
         ]);
-        const harken = dungeonAt(dungeons, ids.harkenDungeonPoi);
-        expect(requirementsOf(harken).recommendedLoot).toEqual([
+        expectExplorationGear(city.slice(4), [
+            ids.lantern,
+            ids.rope,
+            ids.climbingKit,
+        ]);
+        const harken = requirementsOf(dungeonAt(dungeons, ids.harkenDungeonPoi))
+            .recommendedLoot as Raw[];
+        expect(harken.slice(0, 3)).toEqual([
             { itemType: 'EquipmentItem', item: ids.thunderSpear, quantity: 1 },
             { itemType: 'LootItem', item: ids.elixir, quantity: 1 },
+            { itemType: 'LootItem', item: ids.elvenBread, quantity: 1 },
+        ]);
+        expectExplorationGear(harken.slice(3), [
+            ids.lantern,
+            ids.rope,
+            ids.climbingKit,
+            ids.ancientMap,
         ]);
     });
 
