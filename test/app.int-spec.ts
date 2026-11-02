@@ -551,6 +551,30 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the city shop contract of the FE Phase 13 into the generated schema (D-13, D-15, D-17, D-18)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        for (const contract of [
+            'cityShop(cityId: ID!): CityShop!',
+            'type CityShop {\n  city: City!\n  equipment: [AssetQuantity!]!\n  loot: [AssetQuantity!]!\n  pets: [Pet!]!\n}',
+            'enum CitySize {\n  capital\n  city\n  village\n}',
+            'hasShop: Boolean!',
+            'size: CitySize!',
+            'ownedPets: [Pet!]!',
+            'petAssets: [AssetQuantityInput!]\n',
+            'equipPet(request: EquipPetRequest!): CommonResponse!',
+            'unequipPet(request: UnequipPetRequest!): CommonResponse!',
+            'input EquipPetRequest {\n  id: String!\n  petId: String!\n}',
+            'input UnequipPetRequest {\n  id: String!\n}',
+            'shopPoolReport: [ShopPoolReportEntry!]!',
+        ])
+            expect(schema).toContain(contract);
+        for (const type of ['Pet', 'EquipmentItem', 'LootItem'])
+            expect(
+                schema.match(new RegExp(`type ${type} \\{[^}]*\\}`))?.[0],
+            ).toContain('  sellable: Boolean\n');
+    });
+
     it('writes the free travel API into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
