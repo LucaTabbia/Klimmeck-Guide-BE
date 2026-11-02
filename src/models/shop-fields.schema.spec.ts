@@ -1,7 +1,8 @@
-import { model } from 'mongoose';
+import { model, Schema } from 'mongoose';
 import { buildEquipmentItem } from '../../test/fixtures/catalog-item.fixture';
 import { buildCity } from '../../test/fixtures/city.fixture';
 import { buildPet } from '../../test/fixtures/pet.fixture';
+import { CharacterAssetsSchema } from './character/character-assets.model';
 import { CitySchema } from './city.model';
 import { EquipmentItemSchema } from './equipment-item.model';
 import { LootItemSchema } from './loot-item.model';
@@ -10,14 +11,18 @@ import { PetSchema } from './pet.model';
 const CityProbe = model('ShopFieldsCityProbe', CitySchema);
 const PetProbe = model('ShopFieldsPetProbe', PetSchema);
 const EquipmentProbe = model('ShopFieldsEquipmentProbe', EquipmentItemSchema);
+const AssetsProbe = model('ShopFieldsAssetsProbe', CharacterAssetsSchema);
 
 interface ReferenceListPath {
     instance: string;
     caster: { instance: string; options: { ref: string } };
 }
 
-function referenceListPath(path: string): ReferenceListPath {
-    return CitySchema.path(path) as unknown as ReferenceListPath;
+function referenceListPath(
+    path: string,
+    schema: Schema = CitySchema,
+): ReferenceListPath {
+    return schema.path(path) as unknown as ReferenceListPath;
 }
 
 describe('city shop pool fields', () => {
@@ -78,5 +83,24 @@ describe('catalogue sellable', () => {
         }).toObject();
 
         expect(pet.sellable).toBe(false);
+    });
+});
+
+describe('character owned pets', () => {
+    it('defaults ownedPets to an empty list (D-13)', () => {
+        expect(new AssetsProbe({}).toObject().ownedPets).toEqual([]);
+    });
+
+    it('stores ownedPets as typed references to Pet (D-13)', () => {
+        const schemaPath = referenceListPath(
+            'ownedPets',
+            CharacterAssetsSchema,
+        );
+
+        expect({
+            instance: schemaPath.instance,
+            caster: schemaPath.caster.instance,
+            ref: schemaPath.caster.options.ref,
+        }).toEqual({ instance: 'Array', caster: 'ObjectId', ref: 'Pet' });
     });
 });
