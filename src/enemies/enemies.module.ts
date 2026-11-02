@@ -6,11 +6,9 @@ import { Enemy, EnemySchema } from 'src/models/enemy.model';
 
 @Module({
     imports: [
-        MongooseModule.forFeature([
-            { name: Enemy.name, schema: EnemySchema },
-        ]),
+        MongooseModule.forFeature([{ name: Enemy.name, schema: EnemySchema }]),
     ],
     providers: [EnemiesService, EnemiesResolver],
     exports: [EnemiesService],
 })
-export class EnemiesModule { }
+export class EnemiesModule {}
