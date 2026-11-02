@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 12 planned — ready to execute (19 plans)
-last_updated: "2026-11-02T20:08:14.181Z"
-last_activity: 2026-11-02 -- Phase 12 planning complete
+stopped_at: Phase 12 executing — plan 0 of 19
+last_updated: "2026-11-02T20:55:55.393Z"
+last_activity: 2026-11-02 -- Phase 12 execution started (19 plans, sequential executors)
 progress:
   total_phases: 19
   completed_phases: 14
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 12 — Negozi per città — PLANNED on 2026-11-02 (`12-CONTEXT.md` D-01..D-24 amended after the research, `12-RESEARCH.md`, `12-REPO-RULES.md`, `12-VALIDATION.md`, 19 plans `12-01`..`12-19` in a linear chain) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`, the merge of PR #17). Next: `/gsd-execute-phase 12` with sequential executors on the main tree (never `npm run build`: the user's BE runs from `dist/`); the FE Phase 13 plans 13-10/13-11 wait for this PR. Previous: Phase 11 — Popolamento del mondo — COMPLETE and merged (PR #17, `65ba3d7`, 2026-11-02).
+**Current focus:** Phase 12 — Negozi per città — EXECUTING from 2026-11-02 (`12-CONTEXT.md` D-01..D-24 amended after the research, `12-RESEARCH.md`, `12-REPO-RULES.md`, `12-VALIDATION.md`, 19 plans `12-01`..`12-19` in a linear chain) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`, the merge of PR #17); sequential executors on the main tree (never `npm run build`: the user's BE runs from `dist/`); the FE Phase 13 plans 13-10/13-11 wait for this PR. Previous: Phase 11 — Popolamento del mondo — COMPLETE and merged (PR #17, `65ba3d7`, 2026-11-02).
 
 ## Current Position
 
-Phase: 12 (Negozi per città) — PLANNED (2026-11-02) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`): `12-CONTEXT.md` D-01..D-24 (amended after the research), `12-RESEARCH.md`, `12-REPO-RULES.md`, `12-VALIDATION.md`, 19 plans in a linear chain (`12-01`..`12-19`); discuss and planning done together with the FE Phase 13 (`../Klimmeck-Guide/.planning/phases/13-city-shops/`, 11 plans, 13-10/13-11 gated by this PR)
+Phase: 12 (Negozi per città) — EXECUTING (started 2026-11-02) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`): `12-CONTEXT.md` D-01..D-24, `12-RESEARCH.md`, `12-REPO-RULES.md`, `12-VALIDATION.md`, 19 plans in a linear chain (`12-01`..`12-19`); executed together with the FE Phase 13 (`../Klimmeck-Guide/.planning/phases/13-city-shops/`, 11 plans, 13-10/13-11 gated by this PR)
 Plan: 0 of 19
-Status: Phase 12 planned — ready to execute (`/gsd-execute-phase 12`, executors one at a time on the main tree, no worktree, never `npm run build`)
-Last activity: 2026-11-02 -- Phase 12 planned: research (empty-pool trap → pool fields without default, `@ResolveField` size/hasShop, findOne populates pet/ownedPets, whitelist decorators, place-in-city pool), CONTEXT amended (D-15 ownership like equipItem, D-17 nullable petAssets, D-20 two deprecated SDL lines, D-22..D-24), 19 plans by the planner, checker 1 blocker + 6 warnings fixed in one revision round (sellable anchor, decision-grep thresholds, no build in the gate, single-identifier anchors, per-list bulkWrite, waves 1..19)
+Status: Executing Phase 12 — executors one at a time on the main tree, no worktree, never `npm run build`
+Last activity: 2026-11-02 -- Phase 12 execution started (19 plans; FE Phase 13 executing in parallel)
 
 Progress: [░░░░░░░░░░] 0/19 plans of Phase 12 (phases 1–11, 9.1 and 9.2 complete and merged)
 
