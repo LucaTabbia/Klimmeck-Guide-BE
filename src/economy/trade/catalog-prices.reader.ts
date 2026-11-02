@@ -7,6 +7,7 @@ import {
     EquipmentItemDocument,
 } from 'src/models/equipment-item.model';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
+import { Pet, PetDocument } from 'src/models/pet.model';
 import {
     priceKey,
     type CatalogPrice,
@@ -19,9 +20,11 @@ interface PricedItem {
     _id: Types.ObjectId;
     buyPrice?: CoinPurse | null;
     sellPrice?: CoinPurse | null;
+    rarity?: string | null;
+    sellable?: boolean | null;
 }
 
-// prezzi autorevoli dal catalogo (04 D-06), letti prima della transazione: qui le letture parallele sono ammesse
+// prezzi e veto (D-23) autorevoli dal catalogo (04 D-06), letti prima della transazione: qui le letture parallele sono ammesse
 @Injectable()
 export class CatalogPricesReader {
     constructor(
@@ -29,19 +32,23 @@ export class CatalogPricesReader {
         private readonly equipmentItemModel: Model<EquipmentItemDocument>,
         @InjectModel(LootItem.name)
         private readonly lootItemModel: Model<LootItemDocument>,
+        @InjectModel(Pet.name)
+        private readonly petModel: Model<PetDocument>,
     ) {}
 
     async read(lines: readonly TradeLine[]): Promise<CatalogPrices> {
-        const [equipment, loot] = await Promise.all([
+        const [equipment, loot, pets] = await Promise.all([
             readPrices(
                 this.equipmentItemModel,
                 idsOfKind(lines, 'EquipmentItem'),
             ),
             readPrices(this.lootItemModel, idsOfKind(lines, 'LootItem')),
+            readPrices(this.petModel, idsOfKind(lines, 'Pet')),
         ]);
         return new Map([
             ...toEntries('EquipmentItem', equipment),
             ...toEntries('LootItem', loot),
+            ...toEntries('Pet', pets),
         ]);
     }
 }
@@ -55,14 +62,17 @@ function idsOfKind(
         .map((line) => line.itemId);
 }
 
-// proiezione lean dei soli prezzi, id già validati come ObjectId: nessun CastError su input del client (04 Q6)
+// proiezione lean dei soli prezzi e flag di veto, id già validati come ObjectId: nessun CastError su input del client (04 Q6)
 async function readPrices<T>(
     model: Model<T>,
     ids: readonly Types.ObjectId[],
 ): Promise<PricedItem[]> {
     if (ids.length === 0) return [];
     return model
-        .find({ _id: { $in: ids } }, { buyPrice: 1, sellPrice: 1 })
+        .find(
+            { _id: { $in: ids } },
+            { buyPrice: 1, sellPrice: 1, rarity: 1, sellable: 1 },
+        )
         .lean<PricedItem[]>()
         .exec();
 }
@@ -73,6 +83,11 @@ function toEntries(
 ): [string, CatalogPrice][] {
     return items.map((item) => [
         priceKey(kind, item._id),
-        { buyPrice: item.buyPrice ?? null, sellPrice: item.sellPrice ?? null },
+        {
+            buyPrice: item.buyPrice ?? null,
+            sellPrice: item.sellPrice ?? null,
+            rarity: item.rarity ?? null,
+            sellable: item.sellable ?? null,
+        },
     ]);
 }
