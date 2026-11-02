@@ -2,14 +2,13 @@ import {
     ContentConfig,
     ContentTier,
     FixedQuestType,
+    MS_PER_HOUR,
     RankedTier,
     RANKED_TIERS,
 } from 'src/content/rules/content-config';
 import { CoinPurse, fromCopper } from 'src/economy/coins';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { RARITY_ORDER } from 'src/quests/outcomes/rewards/cascading-loot';
-
-const MS_PER_HOUR = 3_600_000;
 
 // legend è la fascia delle schede leggendarie: nessuna quest fissa la usa come minTitle
 function rankedTierOf(tier: ContentTier): RankedTier {

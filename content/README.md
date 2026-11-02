@@ -89,7 +89,7 @@ Le chiavi si scrivono nell'ordine qui sotto; `?` = facoltativa. I campi marcati 
     enemy: null                     # id nemico (hunt/dungeon) o null
     markerLocation: '<hex>'         # POI dello snapshot
     relatedLore: ['<hex>']
-    timeToComplete: 3600000         # ? override in ms (default dal config)
+    timeToComplete: 3600000         # ? override in ms, almeno 60000 (default dal config)
   requirements:
     minTitle: rookie                # TitleType senza legend
     recommendedLoot: []             # [{ itemType, item, quantity ≥ 1 }]

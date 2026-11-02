@@ -25,6 +25,8 @@ import {
 // i tipi fissi della fase vivono col config che ne prezza i premi: qui si riesportano per chi valida le quest
 export { FIXED_QUEST_TYPES };
 
+const MS_PER_MINUTE = 60_000;
+
 export class QuestInfosEntry {
     @Text()
     title: string;
@@ -47,8 +49,9 @@ export class QuestInfosEntry {
     @IdList()
     relatedLore: string[];
 
+    // millisecondi (Pitfall 4): almeno un minuto, così un valore scritto in ore non passa
     @Optional()
-    @IntBetween(1)
+    @IntBetween(MS_PER_MINUTE)
     timeToComplete?: number;
 }
 

@@ -113,6 +113,11 @@ describe('quest entries', () => {
             'infos.markerLocation',
         ],
         [
+            'a time shorter than a minute, written in hours (Pitfall 4)',
+            infos({ timeToComplete: 8 }),
+            'infos.timeToComplete',
+        ],
+        [
             'an unknown key inside the prizes',
             prizes({ gems: 3 }),
             'prizes.gems',

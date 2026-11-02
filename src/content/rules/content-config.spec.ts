@@ -177,6 +177,14 @@ describe('parseContentConfig', () => {
         expect(issuePathsOf(raw)).toEqual(['prizes.hunt.randomLootQuantity']);
     });
 
+    it('caps the quest hours below the GraphQL Int in milliseconds (Pitfall 4)', () => {
+        const raw = repositoryConfig();
+        raw.timeToCompleteHours.heal = 596;
+        raw.timeToCompleteHours.guard = 597;
+
+        expect(issuePathsOf(raw)).toEqual(['timeToCompleteHours.guard']);
+    });
+
     it('rejects a hero zone that is not a point of interest type', () => {
         const raw = repositoryConfig();
         raw.dungeonHeroZones = ['glounet', 'atlantide'];

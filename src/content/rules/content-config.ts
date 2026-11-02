@@ -1,4 +1,5 @@
 import { ContentIssue } from 'src/content/content-issue';
+import { MAX_GRAPHQL_INT } from 'src/content/schema/common.content';
 import { PoiType } from 'src/models/enums/poi-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
@@ -29,6 +30,11 @@ export const RANKED_TIERS: readonly RankedTier[] = [
 ];
 
 export const MAX_DOCUMENT_LEVEL = 20;
+
+export const MS_PER_HOUR = 3_600_000;
+
+// Quest.infos.timeToComplete è un Int GraphQL in millisecondi: oltre ~596 ore non si serializza
+const MAX_QUEST_HOURS = Math.floor(MAX_GRAPHQL_INT / MS_PER_HOUR);
 
 export const CITY_SIZES = ['Village', 'City', 'SeaCity', 'Capital'] as const;
 
@@ -114,6 +120,11 @@ const positiveInteger: Check = (value) =>
     Number.isSafeInteger(value) && (value as number) > 0
         ? null
         : 'deve essere un intero > 0';
+
+const questHours: Check = (value) =>
+    isFiniteNumber(value) && value > 0 && value <= MAX_QUEST_HOURS
+        ? null
+        : `deve essere un numero di ore > 0 e ≤ ${MAX_QUEST_HOURS}`;
 
 const chance: Check = (value) =>
     isFiniteNumber(value) && value >= 0 && value <= 1
@@ -321,7 +332,7 @@ function validate(
     validator.fields(raw, 'tierMultiplier', RANKED_TIERS, positive);
     validatePrizes(validator, raw);
     validator.fields(raw, 'dungeonLootRarity', RANKED_TIERS, rarity);
-    validator.fields(raw, 'timeToCompleteHours', FIXED_QUEST_TYPES, positive);
+    validator.fields(raw, 'timeToCompleteHours', FIXED_QUEST_TYPES, questHours);
     validator.fields(
         raw,
         'minTitle',
