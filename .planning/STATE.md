@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: phase-complete
-stopped_at: Phase 11 complete — PR #17 ready for review (FE #36 merged)
-last_updated: "2026-11-02T14:00:00.000Z"
-last_activity: "2026-11-02 -- Phase 11 closed: review → fix → security done, draft PR to develop, reload of 4 lore + 23 quests applied and verified, single-city groups keep no hunt (D-35), FE quick task PR #36 merged and BE PR #17 out of draft, content files and seeding CLI removed from the repo (D-36: the world lives only in the database)"
+status: planning
+stopped_at: Phase 12 context gathered — ready to plan
+last_updated: "2026-11-02T18:00:00.000Z"
+last_activity: "2026-11-02 -- Phase 12 discuss (joint with FE Phase 13): 12-CONTEXT.md D-01..D-21 on feat/12-negozi-per-citta from develop 65ba3d7 (PR #17 merged); pets in the pools, owned vs equipped pet, seed at boot + DB curation"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 11 — Popolamento del mondo — EXECUTING since 2026-11-02 (27 plans / 15 waves, executors one at a time; 11-27 added on 2026-11-02 from the user's content review: D-32 descriptions, D-33 recommended loot) on `feat/11-popolamento-del-mondo` (from `develop` `4dc7e89`, roadmap phases 11–16 merged in with `b55d47b`): wave 1 = `Lore.unlocked` removal + `relatedLore` populate (11-01) and D-31 `spellDraw` (11-02); then loader/schema/rules, mapper, fixes, generator, sync, export, CLI (03–11), real export (12), authoring (13–22), quest generation (23), real-DB apply with the single backup checkpoint (24), runbook + handoff (25), gate (26). Scope: content files + idempotent `--dry-run/--apply/--verify` script written from `World building.docx` (text extracted in the phase `source/`), ~300 lore, 99 creatures + the user's intake, pets, spells, items, fixed quests per city and dungeons on the POIs — the data prerequisite of every FE UAT of Phases 13–17. Previous: Phase 10 — Hardening Trasversale — COMPLETE and merged (PR #16, `4dc7e89`, 2026-10-30).
+**Current focus:** Phase 12 — Negozi per città — CONTEXT GATHERED on 2026-11-02 (discuss congiunto con la FE Phase 13; `12-CONTEXT.md` D-01..D-21, `12-DISCUSSION-LOG.md`) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`, the merge of PR #17): `City.size` dedotto dal `CityType` + `City.hasShop`, pool (equip, loot, pet) seminato al boot e curato a DB (D-36), `cityShop(cityId)`, `ITEM_NOT_IN_SHOP`, pet posseduti vs compagno equipaggiato (`assets.ownedPets`, `equipPet`/`unequipPet`, `petAssets`). Next: `/gsd-plan-phase 12` (researcher → planner → checker), then execution; the FE Phase 13 gate waits for this PR. Previous: Phase 11 — Popolamento del mondo — COMPLETE and merged (PR #17, `65ba3d7`, 2026-11-02).
 
 ## Current Position
 
-Phase: 11 (Popolamento del mondo) — COMPLETE (2026-11-02) on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 27 of 27
-Status: Phase 11 COMPLETE (27/27 plans) — next: PR `feat/11-popolamento-del-mondo` → `develop` in draft; the FE quick task that removes `unlocked` from `lore_queries.dart:9`/`lore.dart` must ship before the merge (BACKEND-NOTES §1); the BE serving the real database runs from the phase branch
-Last activity: 2026-11-02 -- Phase 11 closed: review (3 areas, 39 findings) → 3 sequential fixers (36 commits) → verification (passed, gaps closed) → security audit (93/96); full suite after the fixes 329 suites / 4264 tests; draft PR to `develop`; content reload of 4 lore + 23 quests applied and verified (0/0); single-city groups keep no hunt (D-35, user decision); FE quick task for Lore.unlocked merged as Klimmeck-Guide PR #36 (2026-11-02) and BE PR #17 marked ready for review; content files, seeding CLI, generator and runbook removed from the repo (D-36, user: the world lives only in the database; tooling in the history up to b4983d7)
+Phase: 12 (Negozi per città) — CONTEXT GATHERED (2026-11-02) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`): `12-CONTEXT.md` D-01..D-21 (utente + default tecnici elencati per il veto), `12-DISCUSSION-LOG.md`; discuss congiunto con la FE Phase 13 (`../Klimmeck-Guide/.planning/phases/13-city-shops/13-CONTEXT.md`)
+Plan: 0 of TBD
+Status: Phase 12 context gathered — ready to plan (`/gsd-plan-phase 12`); nessun piano ancora
+Last activity: 2026-11-02 -- Phase 12 discuss: semina server + cura a DB (D-36), taglia dal `CityType` esposta come `City.size`, mare = città, Necrorian senza negozio, «la mano vince» con veto su legendary/`sellable: false` e report di sola lettura, pool più ampi con cibo e cure sempre, pet nei pool in due città per lore (4 vendibili, 9 solo da quest), leggendari posseduti vendibili, pet posseduti vs compagno equipaggiato senza equipaggiamento automatico, titolo FE «Compagno»
 
-Progress: [██████████] 27/27 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
+Progress: [░░░░░░░░░░] 0/TBD plans of Phase 12 (phases 1–11, 9.1 and 9.2 complete and merged)
 
 ## Performance Metrics
 
