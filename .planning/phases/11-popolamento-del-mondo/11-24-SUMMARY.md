@@ -151,3 +151,8 @@ Nessuno.
 ## Threat Flags
 
 Nessuno: nessuna superficie nuova; le mitigazioni T-11-80..T-11-84 sono state applicate (backup dell'utente, verify di sola lettura e prova sul filo prima, nessun fix `blocked` all'apply, `probableIdDivergence: []`, solo `node --env-file=.env`, controllo segreti su ogni report, report di ogni corsa nel repo).
+
+## Self-Check: PASSED
+
+- file: `src/content/content-wire.int-spec.ts` e i 5 report `reports/11-24-*.json` presenti
+- commit: `12925f1`, `61a3ade`, `30c0e13` presenti

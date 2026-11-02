@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 11 executing — plan 24 of 27 done
+stopped_at: Phase 11 executing — plan 25 of 27 done
 last_updated: "2026-11-02T04:10:00.000Z"
-last_activity: "2026-11-02 -- Plan 11-27 complete: additive QuestInfos.description, quest notices and richer recommended loot, 581 quests regenerated with the same ids"
+last_activity: "2026-11-02 -- Plan 11-24 complete: real content applied to the database, verify at zero and second apply with no changes"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 24 of 27
-Status: Executing Phase 11 — plans 11-01..11-23 and 11-27 complete; 11-24 PAUSED at the checkpoint (Task 3: user `mongodump` backup + free the `pendingQuest` lane on quest `6ada3608b3dad669f2c257cf`), Tasks 1–2 committed, nothing written to the real database yet; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-02 -- Plan 11-27 complete: additive `QuestInfos.description` (SDL diff vs `origin/develop` = `-  unlocked: Boolean!` + `+  description: String`), notices in 3 variants per type via `keyedChance`, D-33 `recommendedLoot` (dungeon: weapons + heal + food + 2 exploration; hunt: one equipment + heal), 581 quests regenerated with identical ids/cities/types/markers (7 dungeons drifted for the catalog fixes), `--check` exit 0 with 1 warning. Before: Plan 11-23 complete: `npm run content:generate-quests` (`src/content/run-generate-quests.ts`, offline) wrote 581 fixed quests in `content/quests/*.yaml` (heal 166, job 166, guard 68, crime 34, study 30 with one Valantar `spellDraw`, hunt 77, dungeon 40; 0 skipped), byte-identical on rerun; `--check` exit 0 with 1 warning (duplicate Necrorian dungeon title)
+Plan: 25 of 27
+Status: Executing Phase 11 — plans 11-01..11-24 and 11-27 complete; next 11-25 (runbook and handoff) then 11-26 (gate); the BE serving the real database must run from `feat/11-popolamento-del-mondo`; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Plan 11-24 complete: after the user `mongodump` backup, `--dry-run` → `--apply` → `--verify` (exit 0, zero differences, 9 fixes `done`, 16 Talmvere test quests deleted) → second `--apply` with `inserted: 0`/`modified: 0` on the real database (lore 405, spells 88, equipmentitems 172, lootitems 101, enemies 150, pets 13, quests 581, 167 cities linked to their lore); 5 reports in `reports/11-24-*.json`. Before: Plan 11-27 complete: additive `QuestInfos.description` (SDL diff vs `origin/develop` = `-  unlocked: Boolean!` + `+  description: String`), notices in 3 variants per type via `keyedChance`, D-33 `recommendedLoot` (dungeon: weapons + heal + food + 2 exploration; hunt: one equipment + heal), 581 quests regenerated with identical ids/cities/types/markers (7 dungeons drifted for the catalog fixes), `--check` exit 0 with 1 warning. Before: Plan 11-23 complete: `npm run content:generate-quests` (`src/content/run-generate-quests.ts`, offline) wrote 581 fixed quests in `content/quests/*.yaml` (heal 166, job 166, guard 68, crime 34, study 30 with one Valantar `spellDraw`, hunt 77, dungeon 40; 0 skipped), byte-identical on rerun; `--check` exit 0 with 1 warning (duplicate Necrorian dungeon title)
 
 Progress: [████████░░] 23/27 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
