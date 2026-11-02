@@ -320,7 +320,6 @@ type Lore {
   name: String!
   relatedLore: [Lore!]!
   type: String!
-  unlocked: Boolean!
 }
 
 type Mutation {
