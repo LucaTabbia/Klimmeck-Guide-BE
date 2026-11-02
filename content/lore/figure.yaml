@@ -1,0 +1,316 @@
+# Figure storiche e presenti di Klimmeck (D-23): una scheda character per figura, collegata a regno, regione, culto ed era
+
+- id: '6ae8001b906eac0adda59a35'
+  type: character
+  name: Dummel Regis
+  description: |-
+    Mercante vissuto fra il 206 e il 272 della quinta era, fondò l'Alleanza del Mare e il Consiglio di Dummel. Il suo impero di commerci per mare e per fiume rese le città marittime del Regno di Drustea abbastanza ricche da separarsi senza spargimento di sangue, in cambio di commerci senza dazi verso Cliffbreak e della Tassa di scissione. Per evitare contese fra le città affidò leggi e commerci a un consiglio dei mercanti più importanti. Fu il primo a costruire navi leggere da fiume, ebbe molti matrimoni e moltissimi figli, e la sua Alleanza restò libera per oltre nove secoli.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '68c19213541d89c481b83230' # Cliffbreak
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+    - '6ae7fc3ed1f6494f3dc89f6f' # La quinta era
+    - '6ae8001b906eac0adda59a4e' # Winmore Lobo
+- id: '6ae8001b906eac0adda59a36'
+  type: character
+  name: Hilword Valantar
+  description: |-
+    Eroe leggendario vissuto fra il 460 e il 540 della terza era, capostipite dei Valan ed eletto di Aphine. Guidò l'Alleanza di Klimmeck contro i draghi del nord e, dopo due anni di guerra, sfidò in duello Amaerith, il Re dei draghi rossi. Con il braccio sinistro stretto fra le fauci del drago, gli piantò la spada nell'occhio fino al cervello e pose fine alla Guerra del grande drago. Sulle macerie della capitale dell'Impero Ekonem sorse in suo onore la città di Valantar.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '68c19213541d89c481b83236' # Valantar
+    - '6ae7ff6624214746ad54aef0' # Aphine, la Dea dell'eroismo
+    - '6ae7fc3ed1f6494f3dc89f6d' # La terza era
+    - '6ae8001b906eac0adda59a44' # Amaerith, il fuoco rosso
+    - '6ae8001b906eac0adda59a3a' # Venis Millhelm
+    - '6ae8001b906eac0adda59a49' # Aravae Miel
+- id: '6ae8001b906eac0adda59a37'
+  type: character
+  name: Alexander Themoira I
+  description: |-
+    Povero contadino ai piedi del Temistos, a vent'anni fu scelto dalla dea Mirwa come suo amante ed eletto; visse fra il 530 della terza era e il 20 della quarta. Riunì i villaggi vicini, ancora distrutti dalla guerra, e fondò Mirwen sull'isola di Hingtos, allora un piccolo villaggio di pescatori. Primo Alto Sacerdote del culto, vide la città diventare una fortezza popolosa e il Temistos rifiorire. È ricordato come un sovrano buono e visionario.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+    - '68c19213541d89c481b8322f' # Mirwen
+    - '6ae7fc3ed1f6494f3dc89f5a' # Lago Nanfail e Hingtos
+    - '6ae7ffd05fa3295e56e4dc29' # Mirwa, la Dea delle acque
+    - '6ae7fc3ed1f6494f3dc89f6d' # La terza era
+    - '6ae8001b906eac0adda59a38' # Alexander Themoira XXI
+- id: '6ae8001b906eac0adda59a38'
+  type: character
+  name: Alexander Themoira XXI
+  description: |-
+    Discendente di Alexander Themoira I, è il quarto della stirpe scelto da Mirwa come eletto e il secondo a diventarne amante. Suo padre, Alexander XX, fu abbandonato dalla dea dopo la nascita del figlio nel 1002 della sesta era e da allora gli porta rancore. Sovrano giusto e amato, attento ai più deboli, vede comunque la sua autorità messa in dubbio, anche perché l'amore per Mirwa gli impedisce di sposarsi e avere eredi. Oggi indaga su un gruppo di traditori che vorrebbe rimettere il padre al potere.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+    - '68c19213541d89c481b8322f' # Mirwen
+    - '6ae7ffd05fa3295e56e4dc29' # Mirwa, la Dea delle acque
+    - '6ae7ffd05fa3295e56e4dc2a' # Culto della vita
+    - '6ae7fc3ed1f6494f3dc89f70' # La sesta era
+    - '6ae8001b906eac0adda59a37' # Alexander Themoira I
+- id: '6ae8001b906eac0adda59a39'
+  type: character
+  name: Skargen Monteaspro III
+  description: |-
+    Il fabbro più talentuoso delle ultime due ere, scelto da Naleala come eletto dopo oltre mille anni e oggi re e capo spirituale del Regno della Madre. Ha riportato all'antica gloria la forgiatura delle rune, ampliato le Vene della madre e reso più vantaggiosi i commerci con l'esterno. Nato nel 939 della sesta era e ormai vicino alla morte, addestra la figlia prediletta Terean perché gli succeda, scatenando la gelosia degli altri nove figli. È un uomo burbero, che preferisce i suoi martelli alla compagnia della famiglia.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '68c19213541d89c481b83233' # Morrulir
+    - '6ae7ffd05fa3295e56e4dc2f' # Naleala, la Dea della terra
+    - '6ae7ffd05fa3295e56e4dc30' # Culto della madre
+    - '6ae7fc3ed1f6494f3dc89f74' # Rune magiche
+    - '6ae8001b906eac0adda59a41' # Horzazu, la guida suprema
+    - '6ae8001b906eac0adda59a42' # Tanelia Ularen
+- id: '6ae8001b906eac0adda59a3a'
+  type: character
+  name: Venis Millhelm
+  description: |-
+    Il Bardo delle leggende accompagnò Hilword Valantar in guerra, prima come cantore e poi come amico, e si dice che una volta gli abbia salvato la vita. È l'Halfling più famoso di sempre e le sue canzoni risuonano ancora in ogni locanda. Finita la guerra fondò il Collegio Millhelm nel suo villaggio natale, che grazie al collegio crebbe fino a diventare una delle fondamenta di Liberia. Seduttore rinomato con più di mille amanti, si dice che Iarus in persona si sia esibito con lui.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '68c19213541d89c481b8322e' # Liberia
+    - '6ae7ff6624214746ad54aeff' # Iarus, il Dio delle arti
+    - '6ae7fc3ed1f6494f3dc89f6e' # La quarta era
+    - '6ae8001b906eac0adda59a36' # Hilword Valantar
+- id: '6ae8001b906eac0adda59a3b'
+  type: character
+  name: Rufus Faris
+  description: |-
+    Uno degli uomini più ricchi e influenti del continente, è capo e tesoriere della città stato di Liberia e proprietario della Banca Faris, fondata nell'842 della quinta era dal suo antenato Malon Faris. Libertino e di ampie vedute, guida la città con occhio progressista. Le sue ricchezze vengono dalle molte attività cittadine e dalla banca, ma si sussurra anche di affari illeciti. Si dice che la famiglia Faris guidi in segreto, tramite terzi, una gilda di ladri nascosta nelle rovine sotto Valantar.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '68c19213541d89c481b8322e' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f71' # La Liberica e il cambio
+    - '6ae7fc3ed1f6494f3dc89f72' # Il potere economico degli stati
+    - '68c19213541d89c481b83236' # Valantar
+- id: '6ae8001b906eac0adda59a3c'
+  type: character
+  name: Wismund Drustea
+  description: |-
+    Re del Regno di Drustea, nato nel 973 della sesta era, è un guerriero capace e un uomo severo che pensa quasi solo al futuro del paese. Con i pericoli del nord alle porte rafforza soprattutto l'esercito, ma investe anche in banche, nuove terre coltivabili e commerci. Il matrimonio con un'elfa di una delle famiglie più importanti del Minnely ha acceso il dissenso degli elfi tradizionalisti. Ama il figlio Kolvar, ma glielo mostra solo con un severo interesse per le sue doti di guerriero e di capo.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '68c19213541d89c481b83230' # Cliffbreak
+    - '6ae8001b906eac0adda59a3d' # Hercia Drustea
+    - '6ae8001b906eac0adda59a3e' # Kolvar Drustea
+- id: '6ae8001b906eac0adda59a3d'
+  type: character
+  name: Hercia Drustea
+  description: |-
+    Regina del Regno di Drustea, nata nel 322 della sesta era in una delle famiglie elfiche più importanti del Minnely, di cui ha abbandonato eredità e cognome per sposare Wismund. Lo conobbe quando il giovane re visitò la foresta e ne fu conquistata dal fascino austero e dal corteggiamento incessante. Il matrimonio ha diviso la sua famiglia e il suo popolo, ma ha avvicinato elfi e uomini. Elfa elegante dalla pelle chiarissima e dai capelli arancioni, ha un canto così bello che si dice abbia fatto innamorare Iarus.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+    - '6ae7ff6624214746ad54aeff' # Iarus, il Dio delle arti
+    - '6ae8001b906eac0adda59a3c' # Wismund Drustea
+    - '6ae8001b906eac0adda59a3e' # Kolvar Drustea
+    - '6ae8001b906eac0adda59a49' # Aravae Miel
+- id: '6ae8001b906eac0adda59a3e'
+  type: character
+  name: Kolvar Drustea
+  description: |-
+    Principe del Regno di Drustea, nato nel 1008 della sesta era, è un mezz'elfo cagionevole che ha passato gran parte della vita a letto studiando e dipingendo. Non potendo addestrarsi alla guerra come vorrebbe il padre, si sente un peso e poco amato. Il suo animo gentile e l'interesse per il regno fanno sperare in un buon sovrano, anche se il popolo vede in lui la fine della dinastia. È affezionatissimo al suo caprone Tumble.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '68c19213541d89c481b83230' # Cliffbreak
+    - '6ae8001b906eac0adda59a3c' # Wismund Drustea
+    - '6ae8001b906eac0adda59a3d' # Hercia Drustea
+- id: '6ae8001b906eac0adda59a3f'
+  type: character
+  name: Orgeal Indrek, il Dio dei morti
+  description: |-
+    Un tempo il mago più potente del consiglio degli Alti Savi dell'Impero Ekonem, Orgeal creò il primo Filatterio e rinunciò alla propria umanità per continuare a imparare oltre la morte. Millenni di studio e la vicinanza alle arti oscure e all'Abisso ne hanno corrotto l'animo, e oggi governa la Città Non-Morta con un esercito di Ghoul, Wraith, Fantasmi e Lich. La sua potenza immortale ne ha fatto una divinità venerata da necromanti e non morti, ma disprezzata dagli altri dei perché un tempo era umano. Non gli interessano i regni di Klimmeck: vuole sfidare e superare le altre divinità, con macchinazioni segrete e contorte di cui pochi avvertono l'influenza.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aee7' # Orgeal, il Dio dei morti
+    - '6ae7ff6624214746ad54aee8' # Culto della morte
+    - '6ae7fc3ed1f6494f3dc89f57' # Necrorian e il Glounet
+    - '68c19213541d89c481b83234' # Necrorian
+    - '6ae7fc3ed1f6494f3dc89f6c' # La seconda era
+    - '6ae7fc3ed1f6494f3dc89f7e' # Il Vuoto e l'Abisso dei Diavoli
+    - '6ae8001b906eac0adda59a40' # Urvinass, il non-morto
+- id: '6ae8001b906eac0adda59a40'
+  type: character
+  name: Urvinass, il non-morto
+  description: |-
+    Secondo e ultimo Re dei draghi rossi, nato alla fine della seconda era e ritenuto più forte perfino di Amaerith. Dopo la Guerra del grande drago, con la sua specie vicina all'estinzione, cercò un potere oltre la morte e nella quinta era legò la sua anima a un Filatterio, diventando un Lich. Sfidò Orgeal per prenderne il posto, ma fu sconfitto con facilità e finì per mettersi al suo servizio. Dopo secoli è il suo braccio destro e attende il giorno in cui il padrone gli concederà il dominio sul continente.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f57' # Necrorian e il Glounet
+    - '6ae7fc3ed1f6494f3dc89f7e' # Il Vuoto e l'Abisso dei Diavoli
+    - '6ae7fc3ed1f6494f3dc89f6f' # La quinta era
+    - '6ae8001b906eac0adda59a3f' # Orgeal Indrek, il Dio dei morti
+    - '6ae8001b906eac0adda59a44' # Amaerith, il fuoco rosso
+- id: '6ae8001b906eac0adda59a41'
+  type: character
+  name: Horzazu, la guida suprema
+  description: |-
+    Capo dei Draconidi dei monti Lamstone e lo sciamano più potente della sua specie, nato nel 965 della sesta era. In comunione con la natura, è un capo saggio, calmo e lungimirante, aperto agli stranieri e al commercio con il Regno della Madre. Sotto la sua guida i villaggi crescono senza faide. Riconosce l'autorità di Skargen e si riserva solo di scegliere la strada migliore per il suo popolo.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7ffd05fa3295e56e4dc36' # Culto della comunione
+    - '6ae7fc3ed1f6494f3dc89f7d' # Lo sciamanesimo
+    - '6ae8001b906eac0adda59a39' # Skargen Monteaspro III
+- id: '6ae8001b906eac0adda59a42'
+  type: character
+  name: Tanelia Ularen
+  description: |-
+    Fabbro runico di immenso talento nata nel 54 della quinta era, fu scelta da Naleala come sua eletta e divenne regnante del Regno della Madre. Grazie a lei i Tiefling, odiati per le loro origini demoniache, cominciarono a essere accolti come parte della comunità. Donna grezza e solare, dalla parlantina coinvolgente, avviò la collaborazione con i Draconidi e rapporti pacifici con gli Aarakocra. Con lei il Regno della Madre divenne il più multiculturale del continente e il rifugio delle razze senza una casa.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7ffd05fa3295e56e4dc2f' # Naleala, la Dea della terra
+    - '6ae7fc3ed1f6494f3dc89f74' # Rune magiche
+    - '6ae7fc3ed1f6494f3dc89f6f' # La quinta era
+    - '6ae8001b906eac0adda59a39' # Skargen Monteaspro III
+- id: '6ae8001b906eac0adda59a43'
+  type: character
+  name: Vozaed Ferroscuro
+  description: |-
+    Eroe nanico della Guerra del sottosuolo, nato si dice alla fine della prima era, quando ancora non esistevano regni. Riunì sotto una sola bandiera i popoli nanici, fino ad allora divisi, contro le orde di Goblin e Hobgoblin delle profondità del Lamstone. Le sue gesta si sono perse nel tempo: c'è chi lo dice morto in guerra, chi fondatore del Regno della Madre e chi pensa non sia mai esistito. Si racconta che con un solo colpo tagliò la testa a tre troll.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f6b' # La prima era
+- id: '6ae8001b906eac0adda59a44'
+  type: character
+  name: Amaerith, il fuoco rosso
+  description: |-
+    Re dei draghi rossi nato all'inizio della prima era, scatenò la Guerra del grande drago e distrusse l'Impero Ekonem. Convinto della superiorità della sua razza, che dai picchi del Lamstone dominava i cieli, voleva governare l'intero continente. Lo fermarono solo l'Alleanza di Klimmeck e l'eroe Hilword Valantar, che lo uccise in duello. Si dice fosse più alto delle mura dell'odierna Valantar e che l'ombra delle sue ali coprisse interi villaggi.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f6d' # La terza era
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae8001b906eac0adda59a36' # Hilword Valantar
+    - '6ae8001b906eac0adda59a40' # Urvinass, il non-morto
+- id: '6ae8001b906eac0adda59a45'
+  type: character
+  name: Guerin Kerring
+  description: |-
+    Giovane donna nata nel 1001 della sesta era, guida il popolo Kerring da Virnen dopo la morte prematura del padre. Bella, caparbia e a volte meschina, è discepola di Mezaldir e di Itris: usa il suo fascino per ottenere ciò che vuole e istruisce i più giovani perché un giorno governino meglio di lei. È spesso in conflitto con Azorius Telob, anche se si dice che siano amanti. Convinta che il padre sia stato avvelenato da un traditore, diffida di chiunque la circondi.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '68c19213541d89c481b83237' # Virnen
+    - '6ae7ffd05fa3295e56e4dc41' # I quattro dei della fortuna
+    - '6ae7ffd05fa3295e56e4dc42' # Culto dei quattro
+    - '6ae8001b906eac0adda59a47' # Azorius Telob
+    - '6ae8001b906eac0adda59a46' # Raybaut Phalan
+- id: '6ae8001b906eac0adda59a46'
+  type: character
+  name: Raybaut Phalan
+  description: |-
+    Capo del popolo Phalan e discepolo di Oaldir, nato nel 987 della sesta era, possiede a Bellport una delle compagnie commerciali più importanti del continente. Più che una guida è consigliere e tesoriere del suo popolo, che aiuta senza influire sulle sue scelte, come vorrebbe Oaldir. Sereno e dalla risata fragorosa, nasconderebbe però un lato oscuro: i pirati della zona sembrano colpire solo le navi delle compagnie rivali. Lui sostiene di aver solo stretto patti economici per proteggere le sue navi; ha una figlia piccola.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '68c19213541d89c481b83231' # Bellport
+    - '6ae7ffd05fa3295e56e4dc41' # I quattro dei della fortuna
+    - '6ae7ffd05fa3295e56e4dc42' # Culto dei quattro
+    - '6ae8001b906eac0adda59a45' # Guerin Kerring
+    - '6ae8001b906eac0adda59a47' # Azorius Telob
+- id: '6ae8001b906eac0adda59a47'
+  type: character
+  name: Azorius Telob
+  description: |-
+    Capo del popolo Telob da quando aveva 22 anni, nato nel 994 della sesta era, ha fatto di Telobren la base di uno dei gruppi armati più capaci del Belleholm. Il carattere bellicoso, in parte frutto della sua fede in Fasmos, lo mette spesso contro i capi dei Phalan e dei Kerring, ma il suo obiettivo è un'Unione più forte e più grande. Mezz'elfo stratega, guerriero rapido e rissaiolo rinomato, preferisce comunque imporsi con la forza d'animo che con le mani. Si dice che sia l'amante di Guerin Kerring.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '68fd6bbe929ce8c0050b1760' # Telobren
+    - '6ae7ffd05fa3295e56e4dc41' # I quattro dei della fortuna
+    - '6ae7ffd05fa3295e56e4dc42' # Culto dei quattro
+    - '6ae8001b906eac0adda59a45' # Guerin Kerring
+    - '6ae8001b906eac0adda59a46' # Raybaut Phalan
+- id: '6ae8001b906eac0adda59a48'
+  type: character
+  name: Grande capo Ashen
+  description: |-
+    Capo del più numeroso gruppo di nomadi Aarakocra del Temistos e il più anziano membro conosciuto della sua specie, nato nel 972 della sesta era. Fu un cacciatore abile, ma con gli anni le sue ali si sono fatte stanche, e oggi la sua saggezza decide le mete in cui il popolo cerca cibo e riparo. Poco socievole con gli estranei, accetta comunque di commerciare e di ospitare i viandanti per brevi periodi. Non perdona chi attacca il suo popolo e punisce con l'esilio gli Aarakocra che depredano le carovane.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+    - '6ae7ffd05fa3295e56e4dc2d' # Culto delle bestie
+    - '6ae7fc3ed1f6494f3dc89f7d' # Lo sciamanesimo
+- id: '6ae8001b906eac0adda59a49'
+  type: character
+  name: Aravae Miel
+  description: |-
+    La Signora della foresta, nata nel 239 della terza era, guida la famiglia più influente degli elfi del Minnely ed è l'eletta di Enayr. Maga potentissima, mantiene sempre attiva la barriera che nasconde il luogo dove vivono gli elfi. Fra le poche sostenitrici di Hercia, cerca di aprire gli occhi al popolo elfico ancora legato alle vecchie tradizioni. Da giovane si innamorò di Hilword Valantar e non ne ha mai dimenticato il volto; il suo carattere giocoso nasconde il dolore di aver visto morire i propri eredi mezzi umani.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '68fd6e8b929ce8c0050b1764' # Ko Shaeras
+    - '6ae7ffd05fa3295e56e4dc38' # Enayr, la Dea della natura
+    - '6ae8001b906eac0adda59a3d' # Hercia Drustea
+    - '6ae8001b906eac0adda59a36' # Hilword Valantar
+- id: '6ae8001b906eac0adda59a4a'
+  type: character
+  name: Reavor Kyrell
+  description: |-
+    Il giovane locandiere di Talmvere è un mezz'elfo che ama ridere, scherzare e prendersi cura della locanda e dei suoi avventurieri. Da bambino fuggì con la madre dal villaggio natale distrutto dai Goblin; rimasto orfano, fu cresciuto da un anziano avventuriero ai margini del villaggio, che gli insegnò a combattere. Gestisce tutte le richieste di caccia dei dintorni e, dopo anni di viaggi, ha contatti ovunque. Si dice che il suo passato nasconda più di un mistero.
+  image: null
+  relatedLore:
+    - '68c19213541d89c481b83235' # Talmvere
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f70' # La sesta era
+- id: '6ae8001b906eac0adda59a4b'
+  type: character
+  name: Jur'gath, il signore dei demoni
+  description: |-
+    Il più potente e malvagio dei Diavoli e loro re, governa con il pugno di ferro da Flamemourne, uccidendo e schiavizzando chiunque intralci la sua strada. Astuto e intelligente, non vuole conquistare il Piano Materiale: attacchi e assedi sono per lui solo amore per il caos e la sofferenza. Si dice che abbia dei luogotenenti, ma nessuno sa quanti siano né quali compiti abbiano. Ciò che si sa viene dai Tiefling fuggiti, e ogni portale demoniaco che si apre è il segno di uno dei suoi piani crudeli.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f7e' # Il Vuoto e l'Abisso dei Diavoli
+    - '6ae7fc3ed1f6494f3dc89f6c' # La seconda era
+    - '6ae7ffd05fa3295e56e4dc3e' # Xellmar, il Dio del terrore
+- id: '6ae8001b906eac0adda59a4c'
+  type: character
+  name: Solomon Quill
+  description: |-
+    Nobile elfo di Liberia nato nel 413 della seconda era, è uno degli elfi più antichi esistenti e uno dei vampiri più potenti del continente. Si dice che sia diventato un vampiro completo solo dopo aver ucciso il proprio padrone. Cerca senza sosta un modo per tornare a camminare sotto il sole, accrescendo il suo potere con nuova progenie e patti con i Diavoli più potenti. Molti nobili lo riveriscono sperando di diventare vampiri, ma la sua vera natura resta un segreto della sua cerchia; è il gemello di Alice Quill.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '68c19213541d89c481b8322e' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f7e' # Il Vuoto e l'Abisso dei Diavoli
+    - '6ae7fc3ed1f6494f3dc89f6c' # La seconda era
+    - '6ae8001b906eac0adda59a4d' # Alice Quill
+- id: '6ae8001b906eac0adda59a4d'
+  type: character
+  name: Alice Quill
+  description: |-
+    Nobile elfa di Liberia nata nel 413 della seconda era, gemella di Solomon Quill, è una degli elfi più antichi e uno dei vampiri più potenti del continente. Anche lei sarebbe diventata un vero vampiro uccidendo il proprio padrone. A differenza del fratello non desidera tornare alla luce del sole: ama il potere conquistato e lo usa per vivere nell'agio e soddisfare ogni desiderio. Molti nobili la riveriscono sperando di diventare vampiri, ma solo la sua cerchia conosce la sua vera natura.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '68c19213541d89c481b8322e' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f7e' # Il Vuoto e l'Abisso dei Diavoli
+    - '6ae7fc3ed1f6494f3dc89f6c' # La seconda era
+    - '6ae8001b906eac0adda59a4c' # Solomon Quill
+- id: '6ae8001b906eac0adda59a4e'
+  type: character
+  name: Winmore Lobo
+  description: |-
+    Nato nel 1089, un tempo mercante e marinaio, fondò una compagnia di mercenari che difendeva le navi commerciali dell'Alleanza del Mare. Con la riannessione dell'Alleanza al Regno di Drustea la compagnia si sciolse e la sua fortuna, come quella di amici e mercanti, andò in fumo. Oggi guida la ribellione contro il regno, per liberare l'Alleanza e combattere la supremazia commerciale di Liberia, che ritiene una minaccia per l'equilibrio fra le nazioni.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f70' # La sesta era
+    - '6ae8001b906eac0adda59a35' # Dummel Regis

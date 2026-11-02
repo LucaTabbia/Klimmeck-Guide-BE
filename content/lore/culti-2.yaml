@@ -23,6 +23,7 @@
     - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
     - '6ae7fc3ed1f6494f3dc89f5a' # Lago Nanfail e Hingtos
     - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '6ae8001b906eac0adda59a38' # Alexander Themoira XXI
 - id: '6ae7ffd05fa3295e56e4dc2b'
   type: ceremony
   name: Il Ciclo della marea
@@ -89,6 +90,7 @@
     - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
     - '6ae7fc3ed1f6494f3dc89f55' # Liberia
     - '6ae7fc3ed1f6494f3dc89f6b' # La prima era
+    - '6ae8001b906eac0adda59a39' # Skargen Monteaspro III
 - id: '6ae7ffd05fa3295e56e4dc31'
   type: ceremony
   name: Il Ritorno alla madre

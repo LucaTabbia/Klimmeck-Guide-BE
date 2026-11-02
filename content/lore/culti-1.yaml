@@ -11,6 +11,7 @@
     - '6ae7ff6624214746ad54aee9' # La Luna di Sangue
     - '6ae7fc3ed1f6494f3dc89f6c' # La seconda era
     - '6ae7fc3ed1f6494f3dc89f7e' # Il Vuoto e l'Abisso dei Diavoli
+    - '6ae8001b906eac0adda59a3f' # Orgeal Indrek, il Dio dei morti
 - id: '6ae7ff6624214746ad54aee8'
   type: religion
   name: Culto della morte
@@ -106,6 +107,7 @@
     - '6ae7ff6624214746ad54aef1' # Culto dello scudo
     - '6ae7ff6624214746ad54aef2' # Il Canto dell'eroe
     - '6ae7fc3ed1f6494f3dc89f6d' # La terza era
+    - '6ae8001b906eac0adda59a36' # Hilword Valantar
 - id: '6ae7ff6624214746ad54aef1'
   type: religion
   name: Culto dello scudo

@@ -14,6 +14,10 @@
     - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
     - '6ae7fc3ed1f6494f3dc89f64' # Paludi maledette
     - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+    - '6ae7ff6624214746ad54aef1' # Culto dello scudo
+    - '6ae8001b906eac0adda59a3c' # Wismund Drustea
+    - '6ae8001b906eac0adda59a3d' # Hercia Drustea
+    - '6ae8001b906eac0adda59a3e' # Kolvar Drustea
 - id: '6ae7fc3ed1f6494f3dc89f51'
   type: state # CityType: valanCapital, valanCity, valanSeaCity, valanVillage, desertVillage
   name: Repubblica dei Valan
@@ -27,6 +31,9 @@
     - '6ae7fc3ed1f6494f3dc89f65' # Coste del meridione
     - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
     - '6ae7fc3ed1f6494f3dc89f68' # Stretto di Stratwin
+    - '6ae7ff6624214746ad54aef4' # Culto delle fiamme
+    - '6ae7ff6624214746ad54aefd' # Culto della sapienza
+    - '6ae8001b906eac0adda59a36' # Hilword Valantar
 - id: '6ae7fc3ed1f6494f3dc89f52'
   type: state # CityType: mirwaCapital, mirwaCity, mirwaSeaCity, mirwaVillage
   name: Teocrazia di Mirwa
@@ -40,6 +47,9 @@
     - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
     - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
     - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+    - '6ae7ffd05fa3295e56e4dc2a' # Culto della vita
+    - '6ae8001b906eac0adda59a37' # Alexander Themoira I
+    - '6ae8001b906eac0adda59a38' # Alexander Themoira XXI
 - id: '6ae7fc3ed1f6494f3dc89f53'
   type: state # CityType: flameNorthCapital, flameCenterCapital, flameSouthCapital, flameCity, flameVillage, tropicalVillage
   name: Unione delle Fiamme
@@ -50,6 +60,10 @@
     - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
     - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
     - '6ae7fc3ed1f6494f3dc89f68' # Stretto di Stratwin
+    - '6ae7ffd05fa3295e56e4dc42' # Culto dei quattro
+    - '6ae8001b906eac0adda59a45' # Guerin Kerring
+    - '6ae8001b906eac0adda59a46' # Raybaut Phalan
+    - '6ae8001b906eac0adda59a47' # Azorius Telob
 - id: '6ae7fc3ed1f6494f3dc89f54'
   type: state # CityType: motherCapital, motherCity, motherVillage, mountainVillage, aarakocraVillage
   name: Regno della Madre
@@ -60,6 +74,10 @@
     - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
     - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
     - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
+    - '6ae7ffd05fa3295e56e4dc30' # Culto della madre
+    - '6ae8001b906eac0adda59a39' # Skargen Monteaspro III
+    - '6ae8001b906eac0adda59a42' # Tanelia Ularen
+    - '6ae8001b906eac0adda59a43' # Vozaed Ferroscuro
 - id: '6ae7fc3ed1f6494f3dc89f55'
   type: state # CityType: liberiaCapital, liberiaCity, liberiaVillage
   name: Liberia
@@ -69,6 +87,11 @@
   relatedLore:
     - '6ae7fc3ed1f6494f3dc89f5d' # Calemark
     - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
+    - '6ae7ff6624214746ad54aeee' # Culto del destino
+    - '6ae7ff6624214746ad54af00' # Culto della bellezza
+    - '6ae7ffd05fa3295e56e4dc33' # Culto della provvidenza
+    - '6ae8001b906eac0adda59a3b' # Rufus Faris
+    - '6ae8001b906eac0adda59a3a' # Venis Millhelm
 - id: '6ae7fc3ed1f6494f3dc89f56'
   type: state # CityType: ferrionCity
   name: Harken e Ferrion
@@ -88,3 +111,6 @@
   relatedLore:
     - '6ae7fc3ed1f6494f3dc89f5f' # Glounet
     - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+    - '6ae7ff6624214746ad54aee8' # Culto della morte
+    - '6ae8001b906eac0adda59a3f' # Orgeal Indrek, il Dio dei morti
+    - '6ae8001b906eac0adda59a40' # Urvinass, il non-morto
