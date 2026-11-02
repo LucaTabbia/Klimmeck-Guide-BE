@@ -1,0 +1,275 @@
+# Culti di Klimmeck, parte 1 (D-23): per ogni culto la divinità (god), il credo (religion) e le feste (ceremony)
+
+- id: '6ae7ff6624214746ad54aee7'
+  type: god
+  name: Orgeal, il Dio dei morti
+  description: |-
+    Orgeal è un Lich avvolto in lunghe vesti esotiche blu e bianche, sgualcite e consumate dal tempo. Impugna un'asta di semplice legno su cui sono intagliate mani scheletriche, le stesse che decorano il suo tomo magico. Quelle mani rappresentano l'abbraccio della morte, la meta a cui i suoi fedeli guardano.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aee8' # Culto della morte
+    - '6ae7ff6624214746ad54aee9' # La Luna di Sangue
+    - '6ae7fc3ed1f6494f3dc89f6c' # La seconda era
+    - '6ae7fc3ed1f6494f3dc89f7e' # Il Vuoto e l'Abisso dei Diavoli
+- id: '6ae7ff6624214746ad54aee8'
+  type: religion
+  name: Culto della morte
+  description: |-
+    Il culto vede nella morte la meta del viaggio della vita e la porta verso una forma superiore di esistenza, per questo molti fedeli svalutano la vita e compiono sacrifici umani e animali. Senza un testo sacro, riti e preghiere cambiano da un luogo all'altro, e alcuni sacerdoti lo interpretano come un invito a vivere pienamente prima dell'abbraccio finale. Lo seguono soprattutto i Non-morti, maghi e sciamani corrotti, assassini e maniaci, spesso guidati da Lich e Necromanti; Vampiri, Demoni, Diavoli ed Elfi lo odiano. Non ha templi: i pochi sacerdoti benevoli predicano per strada e nelle case, mentre i segni dei rituali si trovano in cimiteri, cripte e case abbandonate.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aee7' # Orgeal, il Dio dei morti
+    - '6ae7ff6624214746ad54aee9' # La Luna di Sangue
+    - '6ae7fc3ed1f6494f3dc89f57' # Necrorian e il Glounet
+    - '6ae7fc3ed1f6494f3dc89f7e' # Il Vuoto e l'Abisso dei Diavoli
+- id: '6ae7ff6624214746ad54aee9'
+  type: ceremony
+  name: La Luna di Sangue
+  description: |-
+    È l'unica festa del Culto della morte: la notte in cui, ogni sei mesi, la luna si tinge di rosso. I fedeli dalle mire più oscure compiono allora un gran numero di sacrifici, e la gente comune resta chiusa in casa per non finire vittima di qualche omicidio. I sacrifici continuano durante tutto l'anno, ma mai così numerosi.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aee7' # Orgeal, il Dio dei morti
+    - '6ae7ff6624214746ad54aee8' # Culto della morte
+- id: '6ae7ff6624214746ad54aeea'
+  type: god
+  name: Teheia, la Dea della follia
+  description: |-
+    Teheia non ha una forma e non viene mai rappresentata. Si dice che il suo corpo muti di continuo: a volte appare come una creatura di bellezza impareggiabile, altre come un orrore informe capace di far impazzire chi lo guarda.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aeeb' # Culto del caos
+    - '6ae7ff6624214746ad54aeec' # La Cerimonia del Caos
+    - '6ae7fc3ed1f6494f3dc89f6a' # La creazione dei piani e delle prime razze
+- id: '6ae7ff6624214746ad54aeeb'
+  type: religion
+  name: Culto del caos
+  description: |-
+    Il culto venera l'imprevedibilità della vita: il caos porta orrore e distruzione, ma anche gioie inattese, e nessuno può controllare la casualità. Teheia è una dea «grigia», pregata da pazzi, infermi e criminali ma anche da gente comune che vuole accettare con speranza le proprie sventure. È un culto familiare di nomadi e contadini, in cui capi famiglia e capi tribù fanno da sacerdoti, spesso in contrasto con i fedeli di Mobus; è anche una delle due divinità principali di Demoni e Diavoli e la prediletta di Goblin e Tiefling. Non ha templi ma piccoli altari domestici, diffusi soprattutto fra Goblin e Hobgoblin, nel Belleholm e nelle grandi pianure del sud-est.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aeea' # Teheia, la Dea della follia
+    - '6ae7ff6624214746ad54aeec' # La Cerimonia del Caos
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f7e' # Il Vuoto e l'Abisso dei Diavoli
+- id: '6ae7ff6624214746ad54aeec'
+  type: ceremony
+  name: La Cerimonia del Caos
+  description: |-
+    Ogni tre mesi capi famiglia e capi tribù si riuniscono per bere e consumare Rugiada notturna, recitando antiche preghiere tramandate di generazione in generazione. Ogni primo del mese, all'alba, le famiglie recitano invece la loro preghiera davanti all'altare di casa.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aeea' # Teheia, la Dea della follia
+    - '6ae7ff6624214746ad54aeeb' # Culto del caos
+    - '6ae7fc3ed1f6494f3dc89f7a' # Rugiada notturna
+- id: '6ae7ff6624214746ad54aeed'
+  type: god
+  name: Mobus, il Dio dell'ordine
+  description: |-
+    Mobus è raffigurato come un uomo anziano dalla lunghissima barba bianca, avvolto in un semplice mantello grigio. Fra le dita lunghe e sottili tiene fili lunghissimi, simbolo del destino di ogni uomo.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aeee' # Culto del destino
+    - '6ae7ff6624214746ad54aeef' # L'Intreccio
+    - '6ae7fc3ed1f6494f3dc89f6a' # La creazione dei piani e delle prime razze
+    - '6ae7fc3ed1f6494f3dc89f6c' # La seconda era
+- id: '6ae7ff6624214746ad54aeee'
+  type: religion
+  name: Culto del destino
+  description: |-
+    È l'antitesi del Culto del caos: tutto è già scritto nel grande piano delle cose e disgrazie e fortune sono legate da un unico filo. I fedeli vi trovano la speranza di un futuro migliore, anche se molti rinnegano Mobus quando la loro vita volge al peggio. Lo pregano persone giuste e imparziali di ogni ceto, spesso in contrasto con i fedeli di Teheia, e i monaci a lui consacrati curano templi e cerimonie. È diffuso soprattutto a Liberia, dove Mobus è una delle otto divinità del Tempio dei grandi otto, mentre piccoli templi chiamati Rifugi della matassa sorgono nelle città maggiori della Repubblica dei Valan e del Regno di Drustea.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aeed' # Mobus, il Dio dell'ordine
+    - '6ae7ff6624214746ad54aeef' # L'Intreccio
+    - '6ae7ff6624214746ad54aeeb' # Culto del caos
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+- id: '6ae7ff6624214746ad54aeef'
+  type: ceremony
+  name: L'Intreccio
+  description: |-
+    Il Culto del destino non ha vere feste, ma celebra una delle forme di matrimonio del continente. Nella giornata dell'Intreccio i monaci uniscono i destini degli sposi e l'intera comunità festeggia con loro mangiando, bevendo e ballando.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aeed' # Mobus, il Dio dell'ordine
+    - '6ae7ff6624214746ad54aeee' # Culto del destino
+- id: '6ae7ff6624214746ad54aef0'
+  type: god
+  name: Aphine, la Dea dell'eroismo
+  description: |-
+    Aphine è una donna umana forte e muscolosa, in armatura dorata e con un elmo aperto dal grande pennacchio rosso. Al fianco porta una spada sempre chiusa nel fodero, perché la forza va usata per ferire solo quando è necessario. Con entrambe le mani regge davanti a sé un grande scudo di ferro lucido, in cui chi guarda si specchia per diventare a sua volta scudo per gli altri.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aef1' # Culto dello scudo
+    - '6ae7ff6624214746ad54aef2' # Il Canto dell'eroe
+    - '6ae7fc3ed1f6494f3dc89f6d' # La terza era
+- id: '6ae7ff6624214746ad54aef1'
+  type: religion
+  name: Culto dello scudo
+  description: |-
+    Il culto ha un solo, grande dettame: usare la propria forza, non solo fisica, per proteggere i più deboli, anche a costo di sacrificare ciò che si ha. È la fede di paladini ed eroi, scelta da potenti che vogliono agire per il bene e da poveri e reietti in cerca di riscatto, e non ha capi. È diffuso in modo uniforme in tutto il continente e nelle isole, è una delle otto divinità del Tempio dei grandi otto di Liberia ed è il culto ufficiale della famiglia reale di Drustea, quindi il più importante del regno. Non esistono templi: ogni fedele prega con il proprio Amuleto della protettrice.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aef0' # Aphine, la Dea dell'eroismo
+    - '6ae7ff6624214746ad54aef2' # Il Canto dell'eroe
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+- id: '6ae7ff6624214746ad54aef2'
+  type: ceremony
+  name: Il Canto dell'eroe
+  description: |-
+    Il Culto dello scudo non conosce feste. Al termine di ogni azione compiuta per proteggere qualcuno, il fedele recita in silenzio una preghiera chiamata Canto dell'eroe.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aef0' # Aphine, la Dea dell'eroismo
+    - '6ae7ff6624214746ad54aef1' # Culto dello scudo
+- id: '6ae7ff6624214746ad54aef3'
+  type: god
+  name: Nydos, il Dio della luce
+  description: |-
+    Nydos non ha un aspetto umano e viene raffigurato come una grande fiamma eterna o come il sole. Nel Tempio dei grandi otto di Liberia arde in suo nome una fiamma magica color paglierino che si dice non possa mai estinguersi. Un tempo era una cosa sola con Wirasil.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aef4' # Culto delle fiamme
+    - '6ae7ff6624214746ad54aef5' # La Festa del riposo e del risveglio
+    - '6ae7ff6624214746ad54aef6' # Wirasil, il Dio dell'oscurità
+    - '6ae7fc3ed1f6494f3dc89f69' # Le origini
+- id: '6ae7ff6624214746ad54aef4'
+  type: religion
+  name: Culto delle fiamme
+  description: |-
+    Il culto venera il sole e la luce, intesa anche come verità che squarcia le menzogne e il male: i fedeli devono agire alla luce del giorno, senza mentire, commettere crimini o causare dolore. È uno dei culti più antichi e il più popolare del continente e delle isole, seguito dal popolo di ogni ceto e odiato da criminali, Vampiri, Non-morti, Demoni e Diavoli. Ogni tempio, detto Casa della luce, è guidato da un Benedetto scelto da Nydos stesso. È uno dei due culti ufficiali della Repubblica dei Valan e una delle otto divinità del Tempio dei grandi otto di Liberia.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aef3' # Nydos, il Dio della luce
+    - '6ae7ff6624214746ad54aef5' # La Festa del riposo e del risveglio
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+- id: '6ae7ff6624214746ad54aef5'
+  type: ceremony
+  name: La Festa del riposo e del risveglio
+  description: |-
+    A inizio autunno, quando le giornate si accorciano, la Festa del riposo si celebra pregando e piantando un seme di Lumella. A inizio primavera, quando la pianta sboccia, la Festa del risveglio porta a coglierne il fiore, adornarsene e danzare per tutta la giornata. Donato a fine danze, il fiore vale come proposta di matrimonio, celebrato poi alla Festa del riposo successiva.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aef3' # Nydos, il Dio della luce
+    - '6ae7ff6624214746ad54aef4' # Culto delle fiamme
+- id: '6ae7ff6624214746ad54aef6'
+  type: god
+  name: Wirasil, il Dio dell'oscurità
+  description: |-
+    Wirasil non ha un aspetto umano: lo si raffigura come un'ombra dalle fattezze umane o come la luna stessa. Un tempo era una cosa sola con Nydos, da cui si separò per dare vita all'oscurità.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aef7' # Culto della notte
+    - '6ae7ff6624214746ad54aef8' # La Lunga Notte
+    - '6ae7ff6624214746ad54aef3' # Nydos, il Dio della luce
+    - '6ae7fc3ed1f6494f3dc89f69' # Le origini
+- id: '6ae7ff6624214746ad54aef7'
+  type: religion
+  name: Culto della notte
+  description: |-
+    Opposto al Culto delle fiamme, venera l'oscurità e la luna, convinto che la vera natura di ogni essere si celi nel suo lato più nascosto. Vendetta e sregolatezza ne sono i dogmi, e le congregazioni organizzano insieme le loro azioni malvagie. È la fede di assassini, ladri e criminali, numerosa fra i ceti poveri e disprezzata perfino dai fedeli delle divinità malvagie; ogni tempio è guidato da un Guardiano della notte. È diffuso in tutto il continente e nelle isole, con templi chiamati Volte oscure ricavati in sotterranei, cantine e cripte.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aef6' # Wirasil, il Dio dell'oscurità
+    - '6ae7ff6624214746ad54aef8' # La Lunga Notte
+    - '6ae7ff6624214746ad54aef4' # Culto delle fiamme
+- id: '6ae7ff6624214746ad54aef8'
+  type: ceremony
+  name: La Lunga Notte
+  description: |-
+    A ogni luna nuova i fedeli di Wirasil si riuniscono per decidere le azioni future, raccontando vendette e crimini. Durante la Lunga Notte si beve il Notturno, un liquore distillato dalla Serendica dalle proprietà psicotrope e allucinogene.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aef6' # Wirasil, il Dio dell'oscurità
+    - '6ae7ff6624214746ad54aef7' # Culto della notte
+- id: '6ae7ff6624214746ad54aef9'
+  type: god
+  name: Ymone, la Dea della passione
+  description: |-
+    Ymone è raffigurata come un'elfa bellissima dai lunghi capelli d'argento. Indossa un lungo abito rosso dalla scollatura vertiginosa, con un ampio spacco su entrambe le gambe.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aefa' # Culto dell'amore
+    - '6ae7ff6624214746ad54aefb' # L'Unione e l'Eterna celebrazione
+- id: '6ae7ff6624214746ad54aefa'
+  type: religion
+  name: Culto dell'amore
+  description: |-
+    Il culto celebra l'amore in ogni sua forma e vede nel dono fisico e mentale di sé la libertà dell'essere e una celebrazione della vita. C'è però chi ne distorce il senso pretendendo o imponendo il proprio amore, fino agli assassini che hanno onorato Ymone con torture e automutilazioni. Chi vende il proprio corpo ne è sempre discepolo, ma i fedeli si trovano in ogni ceto, e i sacerdoti, detti Unificatori, celebrano gran parte dei matrimoni. I Templi dell'amore sorgono in tutte le grandi città del continente e delle isole, tranne che nella Teocrazia di Mirwa.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aef9' # Ymone, la Dea della passione
+    - '6ae7ff6624214746ad54aefb' # L'Unione e l'Eterna celebrazione
+- id: '6ae7ff6624214746ad54aefb'
+  type: ceremony
+  name: L'Unione e l'Eterna celebrazione
+  description: |-
+    Il matrimonio del Culto dell'amore si chiama Unione: al suo termine gli sposi si uniscono carnalmente e recitano insieme la preghiera dell'Eterna celebrazione. Anche nella vita di tutti i giorni, dopo ogni amplesso il fedele recita in privato una preghiera alla dea.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aef9' # Ymone, la Dea della passione
+    - '6ae7ff6624214746ad54aefa' # Culto dell'amore
+- id: '6ae7ff6624214746ad54aefc'
+  type: god
+  name: Ixelia, la Dea della conoscenza
+  description: |-
+    Ixelia ha le fattezze di una gnoma dai capelli rossi, vestita di larghi abiti bianchi. Porta un monocolo che fa da lente d'ingrandimento, simbolo del bisogno di ogni discepolo di scavare sempre più a fondo e vedere ogni minimo dettaglio.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aefd' # Culto della sapienza
+    - '6ae7ff6624214746ad54aefe' # Feste del Culto della sapienza
+- id: '6ae7ff6624214746ad54aefd'
+  type: religion
+  name: Culto della sapienza
+  description: |-
+    Il culto venera il sapere e la forza che nasce dalla conoscenza e dalla curiosità: i fedeli dedicano la vita a ricerca e studio e devono trasmettere ciò che imparano perché la società progredisca. Lo seguono soprattutto Gnomi, studiosi, inventori, alchimisti, medici e maghi, tutti considerati pari e senza alcun capo. È diffuso in quasi tutto il continente e nelle isole, è uno dei due culti ufficiali della Repubblica dei Valan e Ixelia è una delle otto divinità del Tempio dei grandi otto di Liberia. Non ha templi, perché il tempio della dea è la mente del discepolo.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aefc' # Ixelia, la Dea della conoscenza
+    - '6ae7ff6624214746ad54aefe' # Feste del Culto della sapienza
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f7c' # La magia di Klimmeck
+- id: '6ae7ff6624214746ad54aefe'
+  type: ceremony
+  name: Feste del Culto della sapienza
+  description: |-
+    Il Culto della sapienza non ha feste. Si celebra soltanto con lo studio, a cui ogni discepolo deve dedicare almeno quattro ore al giorno per nutrire e curare la propria mente.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aefc' # Ixelia, la Dea della conoscenza
+    - '6ae7ff6624214746ad54aefd' # Culto della sapienza
+- id: '6ae7ff6624214746ad54aeff'
+  type: god
+  name: Iarus, il Dio delle arti
+  description: |-
+    Iarus è raffigurato come un Halfling di immensa bellezza, a volte uomo e a volte donna. Veste abiti eleganti ricamati d'oro e un cappello piumato a tesa larga, e dalle tasche spuntano pennelli e piume d'oca. Spesso suona un liuto mentre intona un canto.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54af00' # Culto della bellezza
+    - '6ae7ff6624214746ad54af01' # Feste del Culto della bellezza
+- id: '6ae7ff6624214746ad54af00'
+  type: religion
+  name: Culto della bellezza
+  description: |-
+    Il culto venera le arti e la creatività, doti che elevano gli esseri senzienti sopra gli animali, e chiede ai fedeli di migliorare senza sosta la propria arte per donarla agli altri. Si dice che Iarus prenda come amanti i discepoli più talentuosi, facendosi loro musa. È la fede di bardi, pittori, attori, poeti e mercanti, perché anche il carisma e la contrattazione sono arti, e di molti Halfling. È venerato soprattutto a Liberia, dove è una delle otto divinità del Tempio dei grandi otto; non ha templi, perché il suo luogo sacro è il palco.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aeff' # Iarus, il Dio delle arti
+    - '6ae7ff6624214746ad54af01' # Feste del Culto della bellezza
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+- id: '6ae7ff6624214746ad54af01'
+  type: ceremony
+  name: Feste del Culto della bellezza
+  description: |-
+    A fine settimana gli artisti di Liberia si ritrovano nella piazza più grande della città per esibirsi e sfidarsi; chi è altrove si esibisce in pubblico, possibilmente con altri artisti. Al termine del festival ogni artista recita una preghiera per ringraziare dei propri progressi e del confronto con gli altri discepoli.
+  image: null
+  relatedLore:
+    - '6ae7ff6624214746ad54aeff' # Iarus, il Dio delle arti
+    - '6ae7ff6624214746ad54af00' # Culto della bellezza
+    - '68c19213541d89c481b8322e' # Liberia
