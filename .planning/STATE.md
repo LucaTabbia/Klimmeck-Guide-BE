@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
 Plan: 23 of 26
-Status: Executing Phase 11 — plans 11-01..11-23 complete, next 11-24 (checkpoint: user backup before the real `--apply`); the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Status: Executing Phase 11 — plans 11-01..11-23 complete; 11-24 PAUSED at the checkpoint (Task 3: user `mongodump` backup + free the `pendingQuest` lane on quest `6ada3608b3dad669f2c257cf`), Tasks 1–2 committed, nothing written to the real database yet; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
 Last activity: 2026-11-02 -- Plan 11-23 complete: `npm run content:generate-quests` (`src/content/run-generate-quests.ts`, offline) wrote 581 fixed quests in `content/quests/*.yaml` (heal 166, job 166, guard 68, crime 34, study 30 with one Valantar `spellDraw`, hunt 77, dungeon 40; 0 skipped), byte-identical on rerun; `--check` exit 0 with 1 warning (duplicate Necrorian dungeon title)
 
 Progress: [████████░░] 2/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
