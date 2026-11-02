@@ -102,11 +102,13 @@ function classifyList(
     allowed: readonly string[],
     violation: ShopPoolViolation,
 ): void {
-    for (const raw of list.ids) {
+    for (const [index, raw] of list.ids.entries()) {
         const id = refIdOf(raw);
         const item = id ? list.catalogue.get(id.toHexString()) : undefined;
         if (!id || !item) {
-            violation.missing.push(id ? id.toHexString() : String(raw));
+            violation.missing.push(
+                id ? id.toHexString() : invalidEntryOf(index),
+            );
             continue;
         }
         if (!isShelfEligible(item)) {
@@ -117,6 +119,9 @@ function classifyList(
             violation.outOfSize.push(reportedItemOf(item));
     }
 }
+
+// una voce che non è un id si indica per posizione nella lista: mai il suo contenuto nel report (T-12-13)
+const invalidEntryOf = (index: number) => `invalid@${index}`;
 
 function reportedItemOf(item: CatalogueEntry): ReportedItem {
     return {
