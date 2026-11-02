@@ -426,6 +426,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the lore without the global unlocked flag (11 D-25)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Lore \{[^}]*\}/)?.[0]).toBe(
+            'type Lore {\n  description: String!\n  id: ID!\n  image: String\n  name: String!\n  relatedLore: [Lore!]!\n  type: String!\n}',
+        );
+    });
+
     it('writes the quest rank slots into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
