@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 11 executing — plan 26 of 27 done
-last_updated: "2026-11-02T04:10:00.000Z"
-last_activity: "2026-11-02 -- Plan 11-25 complete: content seeding runbook, phase handoff with the content inventory, BE-CONTENT-05/06 texts amended"
+status: phase-complete
+stopped_at: Phase 11 complete — PR in draft until the FE quick task
+last_updated: "2026-11-02T14:00:00.000Z"
+last_activity: "2026-11-02 -- Plan 11-26 complete: final gate green (test:cov 326/4184, ./src/content/ threshold 92/81/93), BE-CONTENT-01..07 complete, phase 11 closed"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 26 of 27
-Status: Executing Phase 11 — plans 11-01..11-25 and 11-27 complete; next 11-26 (gate); the BE serving the real database must run from `feat/11-popolamento-del-mondo`; the FE quick task that removes `unlocked` from `lore_queries.dart:9`/`lore.dart` gates the BE PR merge (BACKEND-NOTES §1)
-Last activity: 2026-11-02 -- Plan 11-25 complete: `docs/runbooks/content-seeding.md` (backup → `--verify` → `--dry-run` → `--apply` → `--verify` → second `--apply`, reloads, images, separate env, prune, `mongorestore` rollback, exit codes), `BACKEND-NOTES.md` (FE action before the merge, inventory by collection/kingdom/tier/zone, pets, uniques, food, config, fixes, D-31..D-34, D-12 measure, notes for Phases 12–16), BE-CONTENT-05/06 and ROADMAP criteria 5/6 amended (D-15, D-21); no database command. Before: Plan 11-24 complete: after the user `mongodump` backup, `--dry-run` → `--apply` → `--verify` (exit 0, zero differences, 9 fixes `done`, 16 Talmvere test quests deleted) → second `--apply` with `inserted: 0`/`modified: 0` on the real database (lore 405, spells 88, equipmentitems 172, lootitems 101, enemies 150, pets 13, quests 581, 167 cities linked to their lore); 5 reports in `reports/11-24-*.json`. Before: Plan 11-27 complete: additive `QuestInfos.description` (SDL diff vs `origin/develop` = `-  unlocked: Boolean!` + `+  description: String`), notices in 3 variants per type via `keyedChance`, D-33 `recommendedLoot` (dungeon: weapons + heal + food + 2 exploration; hunt: one equipment + heal), 581 quests regenerated with identical ids/cities/types/markers (7 dungeons drifted for the catalog fixes), `--check` exit 0 with 1 warning. Before: Plan 11-23 complete: `npm run content:generate-quests` (`src/content/run-generate-quests.ts`, offline) wrote 581 fixed quests in `content/quests/*.yaml` (heal 166, job 166, guard 68, crime 34, study 30 with one Valantar `spellDraw`, hunt 77, dungeon 40; 0 skipped), byte-identical on rerun; `--check` exit 0 with 1 warning (duplicate Necrorian dungeon title)
+Phase: 11 (Popolamento del mondo) — COMPLETE (2026-11-02) on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
+Plan: 27 of 27
+Status: Phase 11 COMPLETE (27/27 plans) — next: PR `feat/11-popolamento-del-mondo` → `develop` in draft; the FE quick task that removes `unlocked` from `lore_queries.dart:9`/`lore.dart` must ship before the merge (BACKEND-NOTES §1); the BE serving the real database runs from the phase branch
+Last activity: 2026-11-02 -- Plan 11-26 complete: final gate — `npm run build` and `tsc` exit 0, `npm run test:cov` 326 suites / 4184 tests green (S 96.36 / B 84.95 / L 96.98), new `./src/content/` threshold S 92 / B 81 / L 93 (baseline 94.7 / 83.4 / 95.6), SDL diff = `unlocked` removal + `QuestInfos.description`, prettier/eslint clean on the 110 phase `.ts`, `--check` exit 0 with 1 warning; VALIDATION approved, BE-CONTENT-01..07 Complete, ROADMAP 27/27 Complete. Before: Plan 11-25 complete: `docs/runbooks/content-seeding.md` (backup → `--verify` → `--dry-run` → `--apply` → `--verify` → second `--apply`, reloads, images, separate env, prune, `mongorestore` rollback, exit codes), `BACKEND-NOTES.md` (FE action before the merge, inventory by collection/kingdom/tier/zone, pets, uniques, food, config, fixes, D-31..D-34, D-12 measure, notes for Phases 12–16), BE-CONTENT-05/06 and ROADMAP criteria 5/6 amended (D-15, D-21); no database command. Before: Plan 11-24 complete: after the user `mongodump` backup, `--dry-run` → `--apply` → `--verify` (exit 0, zero differences, 9 fixes `done`, 16 Talmvere test quests deleted) → second `--apply` with `inserted: 0`/`modified: 0` on the real database (lore 405, spells 88, equipmentitems 172, lootitems 101, enemies 150, pets 13, quests 581, 167 cities linked to their lore); 5 reports in `reports/11-24-*.json`. Before: Plan 11-27 complete: additive `QuestInfos.description` (SDL diff vs `origin/develop` = `-  unlocked: Boolean!` + `+  description: String`), notices in 3 variants per type via `keyedChance`, D-33 `recommendedLoot` (dungeon: weapons + heal + food + 2 exploration; hunt: one equipment + heal), 581 quests regenerated with identical ids/cities/types/markers (7 dungeons drifted for the catalog fixes), `--check` exit 0 with 1 warning. Before: Plan 11-23 complete: `npm run content:generate-quests` (`src/content/run-generate-quests.ts`, offline) wrote 581 fixed quests in `content/quests/*.yaml` (heal 166, job 166, guard 68, crime 34, study 30 with one Valantar `spellDraw`, hunt 77, dungeon 40; 0 skipped), byte-identical on rerun; `--check` exit 0 with 1 warning (duplicate Necrorian dungeon title)
 
-Progress: [█████████░] 26/27 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
+Progress: [██████████] 27/27 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
 ## Performance Metrics
 
@@ -271,6 +271,7 @@ None yet.
   4. una chiamata Sightengine reale per A2 (un'immagine accettabile e una da rifiutare, chiavi nel proprio `.env`);
   5. `THROTTLE_TRUST_PROXY` da impostare quando la topologia di produzione sarà nota (vuota = spenta).
   Dopo la merge: UAT del pannello del GM nella FE Phase 10 (piano gated 10-11).
+- **Phase 11 — completa il 2026-11-02, PR `feat/11-popolamento-del-mondo` → `develop` da aprire in draft.** La merge attende il quick task FE che toglie `unlocked` da `lib/graphql/queries/lore_queries.dart:9` e `lib/models/lore.dart` (`BACKEND-NOTES.md` §1); il contenuto è già nel DB reale (piano 11-24). Restano all'utente: revisione dei contenuti (581 quest contro la stima di 475, titolo doppio di Necrorian `6ae80db9da5c5f8cc552680c`, numeri da calibrare elencati nell'handoff), lettura di runbook e handoff, UAT sul device nelle FE Phase 13+.
 
 ### Quick Tasks Completed
 

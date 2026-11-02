@@ -1,9 +1,9 @@
 ---
 phase: 11
 slug: popolamento-del-mondo
-status: planned
+status: complete
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-11-01
 updated: 2026-11-02
 ---
@@ -110,11 +110,11 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-25-01 | 25 | 14 | C-07, C-02, C-05, C-06 | T-11-85…T-11-87 | script | `grep -q "mongodump" docs/runbooks/content-seeding.md && grep -q "mongorestore" docs/runbooks/content-seeding.md && grep -q "probableIdDiv…` | ✅ green |
 | 11-25-02 | 25 | 14 | C-07, C-02, C-05, C-06 | T-11-85…T-11-87 | script | `grep -q "lore_queries.dart:9" .planning/phases/11-popolamento-del-mondo/BACKEND-NOTES.md && grep -q "spellDraw" .planning/phases/11-popol…` | ✅ green |
 | 11-25-03 | 25 | 14 | C-07, C-02, C-05, C-06 | T-11-85…T-11-87 | script | `grep -q "D-15" .planning/REQUIREMENTS.md && grep -q "D-21" .planning/REQUIREMENTS.md && grep -q "D-21" .planning/ROADMAP.md` | ✅ green |
-| 11-26-01 | 26 | 15 | C-01, C-02, C-03, C-04, C-05, C-06, C-07 | T-11-88…T-11-91 | unit | `npm run build && npx tsc --noEmit -p tsconfig.json && npm run test:cov && node -e "process.exit(require('./package.json').jest.coverageTh…` | ⬜ pending |
-| 11-26-02 | 26 | 15 | C-01, C-02, C-03, C-04, C-05, C-06, C-07 | T-11-88…T-11-91 | script | `test "$(git diff origin/develop -- src/schema.gql \| grep -E '^[-+][^-+]')" = "$(printf '%s\n%s' '-  unlocked: Boolean!' '+  description: String')" && node dist/content/run-content.js …` | ⬜ pending |
-| 11-26-03 | 26 | 15 | C-01, C-02, C-03, C-04, C-05, C-06, C-07 | T-11-88…T-11-91 | script | `grep -q "nyquist_compliant: true" .planning/phases/11-popolamento-del-mondo/11-VALIDATION.md && grep -q "wave_0_complete: true" .planning…` | ⬜ pending |
+| 11-26-01 | 26 | 15 | C-01, C-02, C-03, C-04, C-05, C-06, C-07 | T-11-88…T-11-91 | unit | `npm run build && npx tsc --noEmit -p tsconfig.json && npm run test:cov && node -e "process.exit(require('./package.json').jest.coverageTh…` | ✅ green |
+| 11-26-02 | 26 | 15 | C-01, C-02, C-03, C-04, C-05, C-06, C-07 | T-11-88…T-11-91 | script | `test "$(git diff origin/develop -- src/schema.gql \| grep -E '^[-+][^-+]')" = "$(printf '%s\n%s' '-  unlocked: Boolean!' '+  description: String')" && node dist/content/run-content.js …` | ✅ green |
+| 11-26-03 | 26 | 15 | C-01, C-02, C-03, C-04, C-05, C-06, C-07 | T-11-88…T-11-91 | script | `grep -q "nyquist_compliant: true" .planning/phases/11-popolamento-del-mondo/11-VALIDATION.md && grep -q "wave_0_complete: true" .planning…` | ✅ green |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: ⬜ = pending · ✅ green · ❌ red · ⚠️ flaky*
 
 ---
 
@@ -130,7 +130,7 @@ Le infrastrutture mancanti nascono nei primi piani del codice e precedono ogni t
 - [x] `test/content/generator-world.fixture.ts` — piano 11-08 Task 1
 - [x] `src/content/run-content.cli.int-spec.ts` (sul compilato, `npm run build` prima) — piano 11-11 Task 2
 - [x] `src/content/content-tree.spec.ts` (gate unit del vero `content/`, usato da ogni piano di stesura 11-12…11-23) — piano 11-11 Task 2
-- [ ] soglia `coverageThreshold["./src/content/"]` = baseline − 2 — piano 11-26 Task 1
+- [x] soglia `coverageThreshold["./src/content/"]` = baseline − 2 — piano 11-26 Task 1 (S 92 / B 81 / L 93 da baseline 94.7 / 83.4 / 95.6)
 
 ---
 
@@ -154,4 +154,6 @@ Le infrastrutture mancanti nascono nei primi piani del codice e precedono ogni t
 - [x] Feedback latency < 60s per task
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending (firmata nel piano 11-26)
+Execution sign-off (11-26, 2026-11-02): `npm run build` e `npx tsc --noEmit -p tsconfig.json` exit 0; `npm run test:cov` exit 0 con 326 suite / 4184 test (≈ 377 s), totali S 96.36 / B 84.95 / F 93.3 / L 96.98; soglia nuova `./src/content/` S 92 / B 81 / L 93 (baseline misurata 94.7 / 83.4 / 95.6 su 45 file) rispettata; SDL contro `origin/develop` = `-  unlocked: Boolean!` + `+  description: String`; prettier ed eslint sui 110 `.ts` della fase puliti (0 errori, 1 warning preesistente in `test/app.int-spec.ts`); `--check` exit 0 con 1 warning (titolo doppio di Necrorian); drift `src/config` 14/223; nessun trailer vietato. Manual-only ancora aperti: revisione dei contenuti dell'utente, lettura di handoff/runbook, UAT sul device dopo il quick task FE su `unlocked`.
+
+**Approval:** approved 2026-11-02
