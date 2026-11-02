@@ -7,12 +7,18 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { Pet, PetDocument } from 'src/models/pet.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { AuthTestApp, graphqlRequest } from '../../test/auth/auth-test-app';
 import { createCharactersTestApp } from '../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
 import { placeInCity } from '../../test/economy/place-in-city';
-import { buildCharacter, persistSpell, spellBook } from '../../test/fixtures';
+import {
+    buildCharacter,
+    persistPet,
+    persistSpell,
+    spellBook,
+} from '../../test/fixtures';
 
 const MISSING_CHARACTER_ID = '64b0000000000000000000ff';
 const MALFORMED_CHARACTER_ID = 'abc';
@@ -31,6 +37,7 @@ interface WireBody {
 interface SpellIds {
     spellA: string;
     spellB: string;
+    petA: string;
 }
 
 interface Operation {
@@ -65,6 +72,20 @@ const OPERATIONS: Operation[] = [
             'mutation($request: EquipItemRequest!) { equipItem(request: $request) { successful } }',
         isMutation: true,
         variables: (id) => ({ request: { id, slotType: 'head' } }),
+    },
+    {
+        name: 'equipPet',
+        document:
+            'mutation($request: EquipPetRequest!) { equipPet(request: $request) { successful } }',
+        isMutation: true,
+        variables: (id, { petA }) => ({ request: { id, petId: petA } }),
+    },
+    {
+        name: 'unequipPet',
+        document:
+            'mutation($request: UnequipPetRequest!) { unequipPet(request: $request) { successful } }',
+        isMutation: true,
+        variables: (id) => ({ request: { id } }),
     },
     {
         name: 'equipSpell',
@@ -153,7 +174,16 @@ describe('Character ownership on mutations and queries (wire)', () => {
     beforeEach(async () => {
         const spellA = await persistSpell(spells, { name: 'Dardo' });
         const spellB = await persistSpell(spells, { name: 'Scudo' });
-        spellIds = { spellA: String(spellA._id), spellB: String(spellB._id) };
+        // un compagno posseduto per equipPet (D-15)
+        const petA = await persistPet(
+            harness.connection.model<PetDocument>(Pet.name),
+            { name: 'Cavallo da viaggio', speedModifier: 2 },
+        );
+        spellIds = {
+            spellA: String(spellA._id),
+            spellB: String(spellB._id),
+            petA: String(petA._id),
+        };
         const book = spellBook([
             { spell: spellA._id, usages: 3 },
             { spell: spellB._id, usages: 1, active: true },
@@ -169,6 +199,7 @@ describe('Character ownership on mutations and queries (wire)', () => {
             assets: {
                 ...buildCharacter().assets,
                 activeSpells: book.activeSpells,
+                ownedPets: [petA._id],
             },
         };
         alice = await createPlayer(harness, {
