@@ -6,7 +6,12 @@
   description: |-
     Liberia è una città stato con governo democratico, sviluppata nell’arcipelago del Calemark. Rinomata come città delle arti e del commercio, essendo una vera e propria potenza commerciale in grado di sovrastare per importanza anche l’Alleanza del mare nel suo periodo d’oro. Nella città sorge la più importante Scuola Bardica, chiamata Collegio Millhelm dal nome del fondatore e leggendario bardo Venis Millhelm. Questa città è infatti il centro nevralgico delle arti anche grazie alla grande presenza di mecenati. In questa città è presente l’unica banca del continente, La Banca Faris, a cui si sono affidati stati e regni in periodi di necessità, rendendo di fatto questa la vera potenza economica della città.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1757595094/main/cities/liberia_vgiq6j.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f5d' # Calemark
+    - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
+    - '6ae8001b906eac0adda59a3a' # Venis Millhelm
+    - '6ae8001b906eac0adda59a3b' # Rufus Faris
   city: '69096195cabaccd432523378' # Liberia
 - id: '68c19213541d89c481b8322f'
   type: city
@@ -14,7 +19,11 @@
   description: |-
     La città fortezza di Mirwen, situata sull’isola di Hingtos, è la capitale della Teocrazia di Mirwa. È spesso soggetta ciclicamente a pellegrinaggi religiosi che portano nuova merce di scambio e nuovi acquirenti, rendendola meta turistica e terra di scambi culturali. I suoi bianchi palazzi, le strade ciottolate e le mura circondate dal lago la rendono una città piena di fascino. Gode di un clima mite che permette la coltivazione di alberi di frutta, soprattutto agrumi, olivi e dell'uva. Quest'ultima viene utilizzata per la prosuzione dei suoi famosi vini. Nella città è presente la grande Cattedrale di Mirwa, dove l'alto sacerdote, nonché capo di stato, vive e e tiene cerimonie.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1757595094/main/cities/mirwen_vmwejh.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+    - '6ae7fc3ed1f6494f3dc89f5a' # Lago Nanfail e Hingtos
+    - '6ae8001b906eac0adda59a38' # Alexander Themoira XXI
+    - '6ae7ffd05fa3295e56e4dc2a' # Culto della vita
   city: '690961ac27a94901a42c182e' # Mirwen
 - id: '68c19213541d89c481b83230'
   type: city
@@ -22,7 +31,11 @@
   description: |-
     Cliffbreak è una città di medie dimensioni, situata centralmente nel proprio regno e circondata da colline, ed è la capitale del regno di Drustea. Il clima freddo e le basse case di pietra e legno rendono questa città poco ospitale, ma dietro le sue mura si cela un commercio molto attivo e un via vai di persone di molto superiore alla maggior parte delle città del continente. Nella città è situato un colle con pendici a strapiombo. Questo colle in tempi di pace è semplicmente la casa della famiglia regnante, ma in tempi di guerra diventa un forte quasi insepugnabile e in grado di dare protezione a gran parte del popolo della capitale, anche per lunghi periodi di tempo.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1757595092/cliffbreak_kubtyw.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae8001b906eac0adda59a3c' # Wismund Drustea
+    - '6ae8001b906eac0adda59a3e' # Kolvar Drustea
   city: '690961441da6560208813509' # Cliffbreak
 - id: '68c19213541d89c481b83231'
   type: city
@@ -30,7 +43,11 @@
   description: |-
     Anche conosciuta come 'il gioiello orientale', Bellport è una città marittima molto importante a livello commerciale. Essendo una delle 3 capitali dell'Unione delle Fiamme è anche un importante luogo di culto per gli adoratori del Culto dei Quattro. Essendo situata nel Belleholm settentrionale, le temperature non sono troppo alte e la rendono quindi una delle città più vivibili dell'arcipelago. I Phalan governano la città con attenzione da secoli ma, nonostante gli sforzi della famiglia, la criminalità organizzata continua ad essere molto presente nella capitale, rendendola una dei maggiori poli di smercio della Rugiada Notturna.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1757595092/bellport_n9e6iu.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+    - '6ae8001b906eac0adda59a46' # Raybaut Phalan
   city: '690961f2b69d968cbaef09f3' # Bellport
 - id: '68c19213541d89c481b83232'
   type: city
@@ -38,7 +55,10 @@
   description: |-
     Il simbolo del fallimento della civiltà. Ferrion, la città prigione, è una fortezza inespugnabile situata nel luogo più freddo del continente: le isole Harken. Al suo interno migliaia di criminali vengono reclusi per il resto della loro vita, venendo obbligati a scavare alla ricerca di minerali mentre il freddo ne divora le ossa. Spesso la città viene usata come storiella per spaventare i bambini e farli comportare bene, anche se l'aspetto della città spesso risulta vago e inattendibile, data l'impossibilità di raggiungere la fortezza per vederla. La città è una zona franca ed è governata a turno da ogni fazione ad intervalli regolari di 5 anni.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1757595093/ferrion_bnnvkh.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f56' # Harken e Ferrion
+    - '6ae7fc3ed1f6494f3dc89f5e' # Harken
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
   city: '69096178e1a627d12ebf405e' # Ferrion
 - id: '68c19213541d89c481b83233'
   type: city
@@ -46,7 +66,10 @@
   description: |-
     Morrulir è una gigantesca e antica città sotterranea, capitale del Regno della Madre. Grazie alle numerose rune magiche ivi presenti, possiede tecnologie avanzate rispetto agli altri regni. La città può vantare infatti cose come l’energia elettrica, funicolari e gru. Il territorio aspro, i macchinari avanzati e la potenza strategica delle gallerie sotterranee rendono questa cità difficile da conquistare, così come da gestire, motivo per cui non è stata mai coinvolta direttamente in guerre di potere e territorio. È la casa delle minoranze del continente, essendo uno dei luoghi più abitati dalla razza Nanica, Gnomica, Thiefling e Draconica.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1757595095/main/cities/morrulir_vccu71.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae8001b906eac0adda59a39' # Skargen Monteaspro III
   city: '690961bf6bd4d0b4bdd6524a' # Morrulir
 - id: '68c19213541d89c481b83234'
   type: city
@@ -54,7 +77,10 @@
   description: |-
     Necrorian, la città non-morta, è una città molto presente nelle leggende del continente. Si dice che al suo interno si siano tenute grandi battaglie e che i Lich ne abbiano fatto la propria casa insieme a qualsiasi altro tipo di nefandezza. Nessuno sa se esiste per davvero e i pochi che dicono di averla vista vengono presi per pazzi, soprattutto per la pericolosità del territorio che la circonda. L'arcipelago del Glounet è infatti un luogo abitato dalle bestie più pericolose del continente e in pochi ci si avventurano alla ricerca di ricchezze perdute e gloria.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1757595093/main/cities/necrorian_lvdrxm.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f57' # Necrorian e il Glounet
+    - '6ae7fc3ed1f6494f3dc89f5f' # Glounet
+    - '6ae8001b906eac0adda59a3f' # Orgeal Indrek, il Dio dei morti
   city: '690961d478a17f90f14c11de' # Necrorian
 - id: '68c19213541d89c481b83235'
   type: city
@@ -62,7 +88,10 @@
   description: |-
     Un piccolo villaggio del Regno di Drustea, situato ai piedi delle montagne e a ridosso delle froeste. Al suo interno si svolge una vità serena e semplice, ma una caratteristica rende questo paese diverso dagli altri. Situata centralmente si trova infatti una locanda rinomata in tutto il continente: Il Drago Ubriaco. Il giovane mezz'elfo che la gestisce è una figura di rilievo nel villaggio e si dice che fosse un avventuriero leggendario, motivo per cui tantissimi avventurieri si recano in questo villaggio alla ricerca di storie, compagnia e della famosa birra di Talmvere, ritenuta una delle migliori del continente.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1757595093/talmvere_q12m1l.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae8001b906eac0adda59a4a' # Reavor Kyrell
   city: '6909614408ddd652b429dcd2' # Talmvere
 - id: '68c19213541d89c481b83236'
   type: city
@@ -70,7 +99,10 @@
   description: |-
     È la capitale della repubblica dei Valan, nonché la più grande città di tutto il continente. Prende il nome dall’omonimo grande eroe Valantar e dalla sua stirpe, i Valan. è anche chiamata 'città forgia', grazie al numero elevato di fabbri presenti. Qui si trova il governo della repubblica, formato da un consiglio di anziani maghi chiamato 'Alti Savi'. Nella capitale è infatti anche presente l’Accademia di magia, un'altissima torre fortezza situata al centro della città e su cui si sviluppa verticalmente la città stessa. Al suo interno è presente la fonte magica, luogo in cui ogni avventuriero punta a raggiungere per poter sbloccare ed imparare l’utilizzo della magia. La città, l’accademia e la repubblica stessa hanno avuto principalmente un ruolo neutrale e imparziale nella storia del continente, in modo da poter servire ogni regno in caso di necessità.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1757595096/main/cities/valantar_jht0vo.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae8001b906eac0adda59a36' # Hilword Valantar
   city: '6909620487db8bf7dca08934' # Valantar
 - id: '68c19213541d89c481b83237'
   type: city
@@ -78,7 +110,10 @@
   description: |-
     È la capitale centrale dell'Unione delle fiamme, nonché casa della famiglia Kerring e del Dio Mezaldir. La città, principalmente formata da alte torri in pietra, è circondata da vulcani attivi e si appoggia sul fiume Ferna. Nonostante non sia la città più a sud del Belleholm il caldo risulta comunque asfissiante e i vulcani presenti attorno ad essa la rendono particolarmente colpita da terremoti. Per questo, nonostante l'importanza territoriale, la città è poco popolata e frequentata. Nonostante questo, il commercio è comunque florido grazie al fiume navigabile che sfocia poi nel Delants. Nonostante l'apparenza austera, il popolo è estremamente accogliente e caloroso con gli stranieri, rendendo la città il posto adatto dove riposare e cercare ristoro dopo una pericolosa avventura nei territori confinanti.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1757595094/main/cities/virnen_rpc5td.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae8001b906eac0adda59a45' # Guerin Kerring
   city: '690961f209cf5f26988106f4' # Virnen
 - id: '68fd6bbe929ce8c0050b1760'
   type: city
@@ -86,7 +121,11 @@
   description: |-
     È la capitale meridionale dell'Unione delle fiamme, nonché casa della famiglia Telob e del Dio Fasmos. La città si affaccia sul mare ed è rinomata per le candide sabbie delle sue spiaggie. Il clima è tropicale, venendo quindi colpita da pioggie frequenti e copiose, asciugate poi rapidamente dal caldo sole. La città vive principalmente di pesca, allevamento e commercio via mare, ma l'economia risulta florida soprattutto grazie ai pirati che partono dal suo porto. La città soleggiata e colorata è vissuta da un popolo estramamente bellicoso, principalmente per motivi religiosi, tuttavia è facile entrarci in confidenza se si partecipa a qualche rissa nelle locande portuali.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1761436505/flameSouthCapital_yn2ogj.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+    - '6ae8001b906eac0adda59a47' # Azorius Telob
   city: '690961f2a2bba9f255c62900' # Telobren
 - id: '68fd6e8b929ce8c0050b1764'
   type: city
@@ -94,5 +133,8 @@
   description: |-
     È la capitale degli elfi, immerda nella foresta del Minnely. La città è la casa delle casate più antiche e nobili degli elfi, che hanno costruito le proprie dimore su alberi colossali noti come 'Protettori Ancestrali'. La città è protetta da una barriera magica ancestrale, eretta per mantenere la pace e per separarsi dai problemi del mondo esterno. La città vive principalmente di agricoltura, allevamento e commercio con il regno di Drustea, di cui fa parte anche se mantiene la propria autonomia. Chi è entrato nella città spesso la descrive come un luogo mistico e spettacolare, che acceca con la propria bellezza.
   image: https://res.cloudinary.com/dzuhywp53/image/upload/v1761435134/elfCapital_fbv52w.svg
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+    - '6ae8001b906eac0adda59a49' # Aravae Miel
   city: '690961616159200a6c344d95' # Ko Shaeras
