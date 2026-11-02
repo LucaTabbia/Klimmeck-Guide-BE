@@ -117,8 +117,8 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 
 Le infrastrutture mancanti nascono nei primi piani del codice e precedono ogni task che le usa:
 
-- [ ] `npm install yaml@2.9.1` in `dependencies` — piano 11-03 Task 1
-- [ ] `content/config.yaml` + `test/content-fixtures/config.yaml` — piano 11-03 Task 2
+- [x] `npm install yaml@2.9.1` in `dependencies` — piano 11-03 Task 1
+- [x] `content/config.yaml` + `test/content-fixtures/config.yaml` — piano 11-03 Task 2
 - [x] `test/content-fixtures/` (mini-albero: 3 lore, 1 magia, 1 equipaggiamento, 1 loot, 2 nemici, 1 pet, 2 quest, 4 fix, 2 città) — piano 11-04 Task 3, riusato dalle int-spec di 11-07/11-09/11-10/11-11
 - [x] `test/fixtures/lore.fixture.ts` (`buildLore`/`persistLore`) — piano 11-01 Task 2
 - [ ] `test/content/seed-world.ts` (`seedWorld`) — piano 11-09 Task 2, riusato da 11-10, 11-11, 11-24
