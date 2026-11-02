@@ -83,6 +83,14 @@ const CONFIG_KEYS: readonly (keyof ContentConfig)[] = [
     'food',
 ];
 
+const HUNT_KEYS: readonly string[] = ['maxAnimalPe', 'maxShareOfRegion'];
+
+const GENERATOR_KEYS: readonly string[] = [
+    'seed',
+    'crimeCityChance',
+    'studyCityChance',
+];
+
 const RARITIES: readonly string[] = Object.values(RarityType);
 const POI_TYPES: readonly string[] = Object.values(PoiType);
 
@@ -195,6 +203,22 @@ class ConfigValidator {
         if (problem) this.report(fieldPath, problem);
     }
 
+    // un refuso in una sezione non deve lasciare in silenzio il valore di default
+    unknownKeys(
+        section: Record<string, unknown>,
+        path: string,
+        known: readonly string[],
+    ): void {
+        for (const key of Object.keys(section)) {
+            if (!known.includes(key)) {
+                this.report(
+                    path ? `${path}.${key}` : key,
+                    'chiave sconosciuta',
+                );
+            }
+        }
+    }
+
     fields(
         raw: Record<string, unknown>,
         key: string,
@@ -204,8 +228,17 @@ class ConfigValidator {
         const section = this.section(raw, key);
         if (!section) return;
         for (const name of keys) this.field(section, key, name, check);
+        this.unknownKeys(section, key, keys);
     }
 }
+
+const PRIZE_KEYS: readonly string[] = ['copper', 'xp'];
+
+// solo la dungeon estrae loot casuale (D-19)
+const DUNGEON_PRIZE_KEYS: readonly string[] = [
+    ...PRIZE_KEYS,
+    'randomLootQuantity',
+];
 
 function validatePrizes(
     validator: ConfigValidator,
@@ -222,10 +255,17 @@ function validatePrizes(
         }
         validator.field(prize, path, 'copper', nonNegativeInteger);
         validator.field(prize, path, 'xp', nonNegativeInteger);
-        if ('randomLootQuantity' in prize) {
+        const isDungeon = type === 'dungeon';
+        if (isDungeon && 'randomLootQuantity' in prize) {
             validator.field(prize, path, 'randomLootQuantity', positiveInteger);
         }
+        validator.unknownKeys(
+            prize,
+            path,
+            isDungeon ? DUNGEON_PRIZE_KEYS : PRIZE_KEYS,
+        );
     }
+    validator.unknownKeys(prizes, 'prizes', FIXED_QUEST_TYPES);
 }
 
 function validateLevels(
@@ -233,6 +273,7 @@ function validateLevels(
     raw: Record<string, unknown>,
 ): void {
     const tiers = validator.section(raw, 'tiers');
+    if (tiers) validator.unknownKeys(tiers, 'tiers', RANKED_TIERS);
     if (tiers && !coversAllLevels(tiers)) {
         validator.report(
             'tiers',
@@ -266,16 +307,6 @@ function validateHeroZones(
     });
 }
 
-function validateUnknownKeys(
-    validator: ConfigValidator,
-    raw: Record<string, unknown>,
-): void {
-    const known: readonly string[] = CONFIG_KEYS;
-    for (const key of Object.keys(raw)) {
-        if (!known.includes(key)) validator.report(key, 'chiave sconosciuta');
-    }
-}
-
 function validate(
     validator: ConfigValidator,
     raw: Record<string, unknown>,
@@ -303,15 +334,17 @@ function validate(
     if (hunt) {
         validator.field(hunt, 'hunt', 'maxAnimalPe', positiveInteger);
         validator.field(hunt, 'hunt', 'maxShareOfRegion', chance);
+        validator.unknownKeys(hunt, 'hunt', HUNT_KEYS);
     }
     const generator = validator.section(raw, 'generator');
     if (generator) {
         validator.field(generator, 'generator', 'seed', nonNegativeInteger);
         validator.field(generator, 'generator', 'crimeCityChance', chance);
         validator.field(generator, 'generator', 'studyCityChance', chance);
+        validator.unknownKeys(generator, 'generator', GENERATOR_KEYS);
     }
     validator.fields(raw, 'food', ['minutesPerPower'], positive);
-    validateUnknownKeys(validator, raw);
+    validator.unknownKeys(raw, '', CONFIG_KEYS);
 }
 
 // un config invalido è un errore con il percorso della chiave, mai un default silenzioso (D-19)

@@ -139,6 +139,44 @@ describe('parseContentConfig', () => {
         },
     );
 
+    it.each([
+        ['enemy', 'xpScal', 0.1, 'enemy.xpScal'],
+        ['tiers', 'legend', [21, 30], 'tiers.legend'],
+        ['minTitle', 'serviceVillage', 'rookie', 'minTitle.serviceVillage'],
+        ['hunt', 'maxAnimalPE', 300, 'hunt.maxAnimalPE'],
+        ['generator', 'sed', 3, 'generator.sed'],
+        ['prizes', 'boss', { copper: 1, xp: 1 }, 'prizes.boss'],
+    ])(
+        'rejects an unknown key inside a section: %s.%s',
+        (section, key, value, path) => {
+            const raw = repositoryConfig();
+            raw[section][key] = value;
+
+            expect(parseContentConfig(raw, FILE).issues).toEqual([
+                expect.objectContaining({
+                    path,
+                    message: 'chiave sconosciuta',
+                }),
+            ]);
+        },
+    );
+
+    it('rejects a misspelled random loot quantity instead of defaulting it', () => {
+        const raw = repositoryConfig();
+        const dungeon = raw.prizes.dungeon as Record<string, unknown>;
+        delete dungeon.randomLootQuantity;
+        dungeon.randomLootQty = 3;
+
+        expect(issuePathsOf(raw)).toEqual(['prizes.dungeon.randomLootQty']);
+    });
+
+    it('accepts randomLootQuantity only on the dungeon prize', () => {
+        const raw = repositoryConfig();
+        (raw.prizes.hunt as Record<string, unknown>).randomLootQuantity = 2;
+
+        expect(issuePathsOf(raw)).toEqual(['prizes.hunt.randomLootQuantity']);
+    });
+
     it('rejects a hero zone that is not a point of interest type', () => {
         const raw = repositoryConfig();
         raw.dungeonHeroZones = ['glounet', 'atlantide'];
