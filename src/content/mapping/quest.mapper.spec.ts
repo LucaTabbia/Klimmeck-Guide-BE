@@ -57,6 +57,7 @@ describe('quest mapper', () => {
             'type',
             'markerLocation',
             'relatedLore',
+            'description',
         ]);
         expect(Object.keys(mapped.set.requirements)).toEqual([
             'requiredPoints',
@@ -76,6 +77,19 @@ describe('quest mapper', () => {
         expect(mapped.set.infos.enemy.toHexString()).toBe(WOLF_ID);
         expect(mapped.set.infos.relatedLore[1]).toBeInstanceOf(ObjectId);
         expect(mapped.set).not.toHaveProperty('city');
+    });
+
+    it('writes the notice description or null (D-32)', () => {
+        const { heal, config } = fixture();
+
+        const absent = mapQuest(heal, config);
+        heal.infos.description = 'Un annuncio.';
+        const described = mapQuest(heal, config);
+
+        assertNoUndefined(absent.set);
+        assertNoUndefined(described.set);
+        expect(absent.set.infos.description).toBeNull();
+        expect(described.set.infos.description).toBe('Un annuncio.');
     });
 
     it('computes coins and xp from the prize table and the min title (D-19)', () => {

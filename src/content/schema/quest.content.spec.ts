@@ -68,6 +68,19 @@ describe('quest entries', () => {
         expect(pathsOf(raw)).toEqual([]);
     });
 
+    it('accepts a quest with its notice description (D-32)', () => {
+        expect(pathsOf(infos({ description: 'Un annuncio.' }))).toEqual([]);
+    });
+
+    it('rejects an empty or newline-terminated description (D-32)', () => {
+        expect(pathsOf(infos({ description: '' }))).toEqual([
+            'infos.description',
+        ]);
+        expect(pathsOf(infos({ description: 'Un annuncio.\n' }))).toEqual([
+            'infos.description',
+        ]);
+    });
+
     it.each<[string, Raw, string]>([
         [
             'a quest type that is not a fixed one (D-17)',

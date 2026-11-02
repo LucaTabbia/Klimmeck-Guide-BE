@@ -434,6 +434,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the quest description as an additive field (11 D-32)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type QuestInfos \{[^}]*\}/)?.[0]).toBe(
+            'type QuestInfos {\n  description: String\n  enemy: Enemy\n  markerLocation: PointOfInterest!\n  relatedLore: [Lore!]!\n  timeToComplete: Int\n  title: String!\n  type: String!\n}',
+        );
+        expect(schema).not.toContain('input QuestInfosInput');
+    });
+
     it('writes the quest rank slots into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
