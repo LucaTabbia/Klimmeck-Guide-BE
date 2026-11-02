@@ -736,6 +736,7 @@ type Subscription {
 input TransactionItems {
   equipAssets: [AssetQuantityInput!]!
   lootAssets: [AssetQuantityInput!]!
+  petAssets: [AssetQuantityInput!]
 }
 
 input TransactionRequest {

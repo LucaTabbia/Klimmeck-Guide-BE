@@ -1,14 +1,16 @@
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { idForms, sameId } from 'src/mongo/document-id';
+import type { ItemReferenceType } from 'src/models/common/asset-quantity.model';
 import {
     INVENTORY_FIELD,
-    type TradeItemKind,
+    isInventoryLine,
+    type InventoryTradeLine,
     type TradeLine,
 } from './trade-line';
 
 export interface InventoryEntry {
-    itemType: TradeItemKind;
+    itemType: ItemReferenceType;
     item: unknown;
     quantity: number;
 }
@@ -41,7 +43,11 @@ function sell(entries: InventoryEntry[], index: number, line: TradeLine) {
 // AssetQuantity.quantity è un Int GraphQL: oltre questo limite il personaggio non si serializza più
 export const MAX_ITEM_QUANTITY = 2_147_483_647;
 
-function buy(entries: InventoryEntry[], index: number, line: TradeLine) {
+function buy(
+    entries: InventoryEntry[],
+    index: number,
+    line: InventoryTradeLine,
+) {
     const quantity =
         (index === -1 ? 0 : entries[index].quantity) + line.quantity;
     if (quantity > MAX_ITEM_QUANTITY) throw GameRuleException.invalidQuantity();
@@ -60,7 +66,7 @@ function applyLines(
         ownedItems: copyEntries(snapshot.ownedItems),
         ownedEquipments: copyEntries(snapshot.ownedEquipments),
     };
-    for (const line of lines) {
+    for (const line of lines.filter(isInventoryLine)) {
         const entries = inventory[INVENTORY_FIELD[line.kind]];
         const index = entries.findIndex((entry) =>
             sameId(entry.item, line.itemId),
@@ -115,6 +121,7 @@ export function soldQuantityGuards(
     lines: readonly TradeLine[],
 ): Record<string, unknown> {
     const guards = lines
+        .filter(isInventoryLine)
         .filter((line) => line.direction === 'sell')
         .map((line) => ({
             [`assets.${INVENTORY_FIELD[line.kind]}`]: {

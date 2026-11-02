@@ -1,6 +1,11 @@
 import { InputType, Field } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, ValidateNested } from 'class-validator';
+import {
+    ArrayMaxSize,
+    IsArray,
+    IsOptional,
+    ValidateNested,
+} from 'class-validator';
 import { AssetQuantityInput } from '../common/asset-quantity.model';
 
 export const MAX_TRANSACTION_LINES = 100;
@@ -20,4 +25,13 @@ export class TransactionItems {
     @ValidateNested({ each: true })
     @Type(() => AssetQuantityInput)
     equipAssets: AssetQuantityInput[];
+
+    // nullable nello SDL, [] solo nel codice: un defaultValue accecherebbe il controllo @Type (D-17, C3); decoratori completi per la whitelist
+    @Field(() => [AssetQuantityInput], { nullable: true })
+    @IsOptional()
+    @IsArray()
+    @ArrayMaxSize(MAX_TRANSACTION_LINES)
+    @ValidateNested({ each: true })
+    @Type(() => AssetQuantityInput)
+    petAssets?: AssetQuantityInput[] | null;
 }
