@@ -367,6 +367,21 @@ describe('ShopPoolSeeder', () => {
         );
     });
 
+    it('names a city without a name by its id in the guarantee warning (D-09, D-24)', async () => {
+        await buildWorld();
+        await models.loot.collection.deleteMany({ effect: 'hunger' });
+        const nameless = await persistCity(models.city, {
+            name: null,
+            type: CityType.valanVillage,
+        });
+
+        await seeder.seedAll();
+
+        expect(messagesOf(warnSpy)).toContain(
+            `Negozi: ${nameless._id.toHexString()} (valanVillage) senza le garanzie di loot hunger, hunger`,
+        );
+    });
+
     it('caps the guarantee warnings of a run (D-24)', async () => {
         await buildWorld();
         await models.loot.collection.deleteMany({ effect: 'hunger' });
