@@ -428,7 +428,7 @@ Plans:
 **Branch**: `feat/12-negozi-per-citta` da `develop` → PR a `develop`.
 **Plans**: 19 piani (pianificati il 2026-11-02; catena lineare, una wave per piano, esecuzione sequenziale sull'albero principale)
 - [x] 12-01-PLAN.md — VALIDATION compilata; `CitySize` e `citySizeOf` dal `CityType`; campi del pool su `City` senza default; `@ResolveField` `size` e `hasShop`
-- [ ] 12-02-PLAN.md — `sellable` nello schema di `AssetItem` (equip e loot) e `Pet`
+- [x] 12-02-PLAN.md — `sellable` nello schema di `AssetItem` (equip e loot) e `Pet`
 - [ ] 12-03-PLAN.md — `assets.ownedPets` a schema e a DB; `findOne` popola `assets.pet` e `ownedPets`; `Pet` registrato in `EconomyModule`
 - [ ] 12-04-PLAN.md — Codici `ITEM_NOT_IN_SHOP`, `PET_ALREADY_OWNED`, `PET_NOT_OWNED` con le factory
 - [ ] 12-05-PLAN.md — Costanti della semina (taglie, quote, cibo e cure, pet per città, versione del seme) e PRNG deterministico
@@ -548,7 +548,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
-| 12. Negozi per città | 1/19 | In Progress | - |
+| 12. Negozi per città | 2/19 | In Progress | - |
 | 13. Generazione quest | 0/0 | Not started | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
