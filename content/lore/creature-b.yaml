@@ -1,0 +1,189 @@
+# Creature B (D-09, D-23): una lore enemy per scheda di mostro del documento, da Elementali a Miconide
+
+- id: '6ae802f65f3e1244a34ae376'
+  type: enemy
+  name: Elementali
+  description: |-
+    Creature native dei piani elementali: alcune sono poco più che masse animate di aria, acqua, fuoco o terra, altre hanno corpi viventi infusi di energia elementale. Si incontrano ovunque nel continente, ma mai nei centri abitati, a meno che qualcuno non ve li abbia evocati. Colpiscono con le braccia e con il proprio elemento naturale. Le loro resistenze cambiano con l'elemento di cui sono fatti.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f6a' # La creazione dei piani e delle prime razze
+- id: '6ae802f65f3e1244a34ae377'
+  type: enemy
+  name: Ettercap
+  description: |-
+    Umanoidi curvi dalla pelle grigio-viola e dal ventre bianco e gonfio, con facce da ragno e artigli chitinosi neri al posto di mani e piedi. Vivono nelle grotte infestate dai ragni, di cui sembrano i pastori. Si arrampicano senza fatica sulle pareti verticali e sparano ragnatele per immobilizzare la preda. Colpiscono con zanne e artigli, e il loro morso velenoso debilita chi lo subisce.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+- id: '6ae802f65f3e1244a34ae378'
+  type: enemy
+  name: Fantasma
+  description: |-
+    Resti eterei di una vita passata: hanno l'aspetto che avevano al momento della morte, ma trasparente e dai colori sbiaditi, e quella tinta lascia intuire come sono morti. Rifiutano la morte e cercano una seconda possibilità. Infestano gli antichi campi di battaglia e le cripte e i cimiteri abbandonati. Prima provano a possedere il nemico; solo quando attaccano fisicamente diventano materiali, e allora l'acqua santa, l'argento e la magia li feriscono.
+  image: null
+  relatedLore: []
+- id: '6ae802f65f3e1244a34ae379'
+  type: enemy
+  name: Fauce gorgogliante
+  description: |-
+    Viscide masse di carne ocra o verde in cui galleggiano occhi e bocche, avvolte da un odore pungente di ammoniaca; a occhi chiusi sembrano mucchi di terra bagnata. Desiderano soltanto mangiare e spogliano tutto ciò che sta intorno alle loro tane, preferendo il sangue delle prede senzienti. Vivono nelle Paludi maledette. Mordono, sputano una sostanza che esplode e acceca, e trasformano il terreno intorno a sé in una poltiglia in cui è difficile muoversi.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f64' # Paludi maledette
+- id: '6ae802f65f3e1244a34ae37a'
+  type: enemy
+  name: Fomorian
+  description: |-
+    Giganti orribilmente deformati da un'antica maledizione, ritenuti la più malvagia fra le razze dei giganti. Ognuno porta deformità diverse: occhi ai lati della testa, arti storti, gobbe, teste appuntite, bocche enormi o minuscole. Abitano le gallerie sotterranee del Lamstone. Combattono con le armi, e il loro occhio maledetto ferisce o deforma per qualche tempo il corpo di chi ne incrocia lo sguardo.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+- id: '6ae802f65f3e1244a34ae37b'
+  type: enemy
+  name: Fuoco fatuo
+  description: |-
+    Globi spugnosi di una trentina di centimetri che brillano come torce, gialli, bianchi, verdi o blu, spesso scambiati per lanterne nella nebbia. Si nutrono del panico, del terrore e della morte, e per questo attirano i viandanti verso pericoli mortali. Abitano le paludi e gli antichi campi di battaglia. Solo la magia li ferisce: colpiscono con piccole scariche elettriche, assorbono la vita degli avversari e sanno rendersi invisibili.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f64' # Paludi maledette
+- id: '6ae802f65f3e1244a34ae37c'
+  type: enemy
+  name: Djinni
+  description: |-
+    Gli orgogliosi geni del Piano Elementale dell'Aria: umanoidi alti e muscolosi dalla pelle azzurra, vestiti di sete scintillanti, amanti del lusso, del vino e della musica. Nel loro piano governano isole di nuvole coronate di palazzi; quando volano, la parte inferiore del corpo diventa una colonna d'aria turbinante. Si incontrano ovunque nel continente, ma hanno una predilezione per Liberia. Combattono con la scimitarra, evocano elementali dell'aria e vortici violentissimi, e si dice che i più antichi esaudiscano desideri.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f6a' # La creazione dei piani e delle prime razze
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+- id: '6ae802f65f3e1244a34ae37d'
+  type: enemy
+  name: Gargoyle
+  description: |-
+    Feroci predatori alati che sembrano statue di pietra e adorano tormentare le creature più deboli. Restano immobili per un tempo illimitato e sfruttano questo camuffamento per cogliere di sorpresa le prede. Non hanno bisogno di cibo né di aria, ma divorano i caduti per il puro piacere di infliggere dolore. Si appostano nei pressi delle rovine antiche e sui passi montani; mordono, graffiano e resistono alle armi comuni.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+- id: '6ae802f65f3e1244a34ae37e'
+  type: enemy
+  name: Golem
+  description: |-
+    Creature costruite di fango, carne, argilla o pietra, dalla forma di un essere umano incompiuto, con una runa sulla fronte o sulla lingua che porta il segno del loro creatore. Non nascono: vengono fatti, e la loro taglia dipende da chi li ha plasmati. Si trovano nelle antiche rovine magiche e al fianco dei maghi che li hanno creati. Solo la magia e l'adamantio li scalfiscono; il golem di carne assorbe il fulmine e teme il fuoco, quello d'argilla assorbe l'acido e può andare in berserk, quello di pietra rallenta gli avversari.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f7c' # La magia di Klimmeck
+    - '6ae7fc3ed1f6494f3dc89f74' # Rune magiche
+- id: '6ae802f65f3e1244a34ae37f'
+  type: enemy
+  name: Grick
+  description: |-
+    Esseri vermiformi con un becco al posto della bocca, artigli lungo il corpo e quattro tentacoli intorno alle fauci: il terrore delle caverne e dei cunicoli. Attendono in agguato vicino ai tunnel più battuti e alle città sotterranee, poi trascinano la preda nella tana per consumarla con calma. Vivono solitari e, anche quando sono in molti, non si aiutano fra loro. La pelle resiste alle armi, e conviene affrontarli con la magia prima che si calino dal soffitto per stritolare e beccare.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+- id: '6ae802f65f3e1244a34ae380'
+  type: enemy
+  name: Grifone
+  description: |-
+    Potenti predatori aerei di oltre due quintali, simbolo araldico di potenza e giustizia, che piombano dai nidi più alti per afferrare la preda con becco e artigli. Aggressivi e territoriali, sono anche compagni leali per chi ne conquista il rispetto. La loro carne preferita è quella di cavallo, e per questo entrano spesso in guerra con le genti civilizzate. Cacciano nelle grandi pianure del sud e sulle montagne del Temistos, preferendo il combattimento in volo.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+- id: '6ae802f65f3e1244a34ae381'
+  type: enemy
+  name: Idra
+  description: |-
+    Una bestia leggendaria dalla fame feroce: un groviglio di teste di serpente su un corpo spesso e attorcigliato, con scaglie che vanno dal nero verdastro al cremisi. Quando una testa viene recisa ne germogliano due, a meno che non si taglino in fretta tutte le altre. Si annida sul fondo dei laghi, anche sotterranei, e sulle loro sponde, e lungo i fiumi del Belleholm. Combatte con zanne e artigli; alcune hanno un respiro velenoso e un sangue che ustiona e fa ammalare.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f5a' # Lago Nanfail e Hingtos
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+- id: '6ae802f65f3e1244a34ae382'
+  type: enemy
+  name: Ippogrifo
+  description: |-
+    Testa, ali e zampe anteriori di un grande rapace sul corpo di un magnifico cavallo: si dice sia lo scherzo di un antico mago. È il cibo preferito di grifoni, viverne e giovani draghi, e per questo difende con ferocia il proprio territorio. Più facile da addestrare di un grifone, alcune compagnie scelte di soldati lo cavalcano in pattuglia. Vive sul Temistos e nelle pianure circostanti, e combatte in volo con artigli e becco.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+- id: '6ae802f65f3e1244a34ae383'
+  type: enemy
+  name: Licantropo
+  description: |-
+    Ci sono licantropi naturali, che controllano la propria trasformazione, e licantropi afflitti, colpiti da una maledizione che li muta con la luna piena e li rende aggressivi e smemorati. Ogni forma ha il suo territorio: i lupi nei piccoli centri, nelle foreste e lungo le strade, i ratti in gruppo nelle città, i cinghiali nelle foreste, gli orsi nel profondo nord e sulle isole di Harken, le tigri intorno al Mar sabbioso. In forma ibrida combattono con le armi e con i tratti della loro bestia, in forma animale con artigli e zanne. Il loro morso può trasmettere la licantropia.
+  image: null
+  relatedLore:
+    - '6ae7ffd05fa3295e56e4dc2d' # Culto delle bestie
+    - '6ae8001b906eac0adda59a48' # Grande capo Ashen
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+    - '6ae7fc3ed1f6494f3dc89f5e' # Harken
+    - '6ae7fc3ed1f6494f3dc89f5b' # Mar Sabbioso
+- id: '6ae802f65f3e1244a34ae384'
+  type: enemy
+  name: Arbusto Maligno
+  description: |-
+    Creature simili ad alberi, alte poco meno di un metro, i cui rami spogli si intrecciano in una forma umanoide. Possono mettere radici e nutrirsi come piante, ma bramano il sangue, e quelli che vivono sottoterra non hanno altro nutrimento. In gruppo si mimetizzano fra la vegetazione, i detriti o la legna da ardere, vicino ad accampamenti e pozze d'acqua. Vivono sulle Belleholm e sulle isole di Liberia usate per i campi; velenosi, attaccano con gli artigli e temono moltissimo il fuoco.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f5d' # Calemark
+- id: '6ae802f65f3e1244a34ae385'
+  type: enemy
+  name: Manticora
+  description: |-
+    Feroci predatori lunghi tre metri, con corpo di leone, ali di drago, a volte una testa quasi umana e barbuta, e una coda irta di spine. Mangiano qualunque carne, ma quella umana è la loro delizia. Sono abbastanza furbe da stringere patti con umanoidi malvagi o da pretendere tributi, e i potenti le assoldano come guardiane. Fanno la tana sulle cime delle colline e fra le rupi del Temistos, del nord e del Lamstone, e colpiscono con artigli, morsi e spine scagliate dalla coda.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+- id: '6ae802f65f3e1244a34ae386'
+  type: enemy
+  name: Manto assassino
+  description: |-
+    Simili a mante volanti orribilmente malvagie, con un'apertura alare di quasi due metri e mezzo, sono creature misteriose e paranoiche che diffidano perfino dei propri simili. Si fingono mantelli, arazzi o oggetti comuni, e a volte si alleano con altre creature facendosi portare sulle loro spalle. Vivono sottoterra, nelle caverne. Mordono e frustano con la coda, avvolgono la vittima, gridano per seminare paura e nausea e piegano le ombre in illusioni.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+- id: '6ae802f65f3e1244a34ae387'
+  type: enemy
+  name: Melma
+  description: |-
+    Masse gelatinose di origine incerta: frutto di un mago folle, di esperimenti nefasti o di una meteora caduta dal cielo, nessuno vuole avvicinarsi abbastanza da scoprirlo. Strisciano sul terreno, sulle pareti e perfino nell'acqua; dopo un giorno senza cibo si assopiscono come una pozza di sangue rappreso e si risvegliano all'istante quando una preda passa vicino. Si trovano ovunque, ma soprattutto nelle Paludi maledette. Immobili si mimetizzano alla perfezione, poi inglobano il bersaglio o lo colpiscono con le loro protuberanze.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f64' # Paludi maledette
+- id: '6ae802f65f3e1244a34ae388'
+  type: enemy
+  name: Merrow
+  description: |-
+    Cugini acquatici degli ogre, dalla pelle verde chiaro e con mani e piedi palmati, crudeli e selvaggi quanto i loro parenti. Quelli d'acqua dolce superano i tre metri, quelli di mare arrivano a sei e cacciano le balene; quando le due specie si incontrano nascono faide sanguinose. Di notte saccheggiano in gruppo i villaggi di pescatori e trascinano i prigionieri nelle loro dimore sott'acqua. Vivono a Belleholm, a Liberia e lungo le coste del continente; combattono con armi primitive, e alcuni hanno poteri sciamanici.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f5d' # Calemark
+    - '6ae7fc3ed1f6494f3dc89f65' # Coste del meridione
+- id: '6ae802f65f3e1244a34ae389'
+  type: enemy
+  name: Mimic
+  description: |-
+    Nati, si dice, dal tentativo di un alchimista di animare un oggetto con un reagente la cui formula è andata perduta. Col tempo hanno imparato a trasformarsi in copie perfette di oggetti costruiti, soprattutto nei luoghi poco frequentati. Non sono malvagi per natura, ma attaccano le creature intelligenti più per passatempo che per fame, perché ingannare è parte del loro essere. Si nascondono in rovine, villaggi e accampamenti abbandonati o nelle cantine dimenticate, e mordono chi prova ad aprirli.
+  image: null
+  relatedLore: []
+- id: '6ae802f65f3e1244a34ae38a'
+  type: enemy
+  name: Miconide
+  description: |-
+    Creature fungine dai colori sgargianti, di ogni forma e dimensione, con un interno morbido come quello di un fungo e ossa dure, quasi metalliche, appena sotto la superficie. Sono leggerissimi, pesano fra i nove e i quattordici chili e quasi mai portano vestiti. Detestano la luce del sole e vivono in cerchi nelle grandi caverne sotterranee. Attaccano fisicamente e con i loro poteri psichici, guidati dai sovrani dei cerchi.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
