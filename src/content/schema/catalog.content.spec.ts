@@ -94,7 +94,7 @@ const ENTRY_CLASSES = {
 type Kind = keyof typeof ENTRY_CLASSES;
 
 function issuesOf(kind: Kind, raw: Raw): string[] {
-    return validateEntry(ENTRY_CLASSES[kind], entryOf(raw)).map(
+    return validateEntry<object>(ENTRY_CLASSES[kind], entryOf(raw)).map(
         ({ path }) => path,
     );
 }
