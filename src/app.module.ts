@@ -95,6 +95,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         CharacterDeletionModule,
         CitiesModule,
         ShopMaintenanceModule,
+        // esplicito anche se ShopMaintenanceModule lo importa: i resolver cityShop e shopPoolReport restano montati senza la manutenzione (Nest deduplica)
         ShopsModule,
         EnemiesModule,
         EquipmentItemsModule,

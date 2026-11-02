@@ -98,6 +98,7 @@ async function persistShopLoot(model: Model<any>) {
 
 async function persistShopPets(model: Model<any>) {
     const pets: any[] = [];
+    // gli id di SELLABLE_PET_IDS, non inventati: la semina piazza i compagni per id (D-10, D-24); solo id, nessun altro dato reale
     for (const [index, pet] of SHOP_PETS.entries())
         pets.push(
             await persistPet(model, {
