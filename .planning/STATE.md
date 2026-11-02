@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 12 execution complete — plan 19 of 19 (BACKEND-NOTES.md written)
-last_updated: "2026-11-03T12:00:00.000Z"
-last_activity: 2026-11-03 -- Phase 12 execution complete (19/19), handoff BACKEND-NOTES.md for the FE Phase 13
+status: completed
+stopped_at: Phase 12 complete — PR feat/12-negozi-per-citta → develop open (2026-11-03)
+last_updated: "2026-11-02T23:43:45.000Z"
+last_activity: 2026-11-03 -- Phase 12 complete: review (0 critical / 2 warning / 8 info, 7 fixed, 3 not needed), verification passed, security audit (54 threats, 47 mitigated, 7 accepted, 0 open), PR opened
 progress:
   total_phases: 19
   completed_phases: 15
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 Phase: 12 (Negozi per città) — EXECUTION COMPLETE (2026-11-03) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`): 19 plans in a linear chain (`12-01`..`12-19`), gate 12-18 green, handoff `BACKEND-NOTES.md` for the FE Phase 13 (`../Klimmeck-Guide/.planning/phases/13-city-shops/`, plans 13-10/13-11 gated by this PR)
 Plan: 19 of 19
-Status: Phase 12 execution complete (19/19) — post-execution review, security audit and PR `feat/12-negozi-per-citta` → `develop` by the orchestrator; after the merge the user restarts the BE with the runbook (`BACKEND-NOTES.md` §9); FE Phase 13 plans 13-10/13-11 wait for the merge
-Last activity: 2026-11-03 -- Phase 12 execution complete (19/19), handoff BACKEND-NOTES.md written
+Status: Phase 12 complete (19/19) — review 0 critical / 2 warning / 8 info, 7 fixed, 3 not needed; verification passed (0 gaps); security audit 54 threats, 47 mitigated, 7 accepted, 0 open; PR `feat/12-negozi-per-citta` → `develop` open on 2026-11-03; after the merge the user restarts the BE following the runbook (`BACKEND-NOTES.md` §9) and the FE Phase 13 resumes with 13-10/13-11
+Last activity: 2026-11-03 -- Phase 12 closed: three area reviews merged, rulings, fixes, verification, security audit, PR
 
 Progress: [██████████] 19/19 plans of Phase 12 (phases 1–12, 9.1 and 9.2 complete; 1–11 merged)
 

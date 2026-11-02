@@ -1,6 +1,6 @@
 ---
 phase: 12-negozi-per-citta
-verified: 2026-11-03T12:00:00Z
+verified: 2026-11-02T23:35:00Z
 status: passed
 score: 7/7 success criteria verified (6/6 requisiti BE-SHOP, nessun gap)
 overrides_applied: 0
