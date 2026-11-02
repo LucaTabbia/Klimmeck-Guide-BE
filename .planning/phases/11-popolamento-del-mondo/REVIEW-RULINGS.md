@@ -48,7 +48,7 @@ Legenda: **FIX** = correggere ora (fixer dell'area, TDD, un commit per finding);
 | ME-02 `generate-quests` si blocca sui file che deve riscrivere | **FIX** | validare l'albero senza le voci dei `GENERATED_QUEST_FILES` prima di generare; validare l'albero completo dopo la scrittura; test in `run-generate-quests.spec.ts`. |
 | ME-03 populate a un solo livello | **DEFER** | latente (il FE seleziona un livello); risolutore di campo in Phase 16 (lore per personaggio). Nota nell'handoff §1 e §11: «profondità supportata di `relatedLore` = 1, non selezionare `relatedLore { relatedLore }` né `infos.enemy.relatedLore`». |
 | LO-01 «ad» eufonica solo nelle descrizioni e troppo larga | **FIX** | helper con nome parlante (es. `towardsCity(name)`) con `ad` SOLO davanti ad «a»/«A» (norma Crusca), usato da titoli e descrizioni; test esteso ai titoli; rigenerare le quest: cambiano solo `title`/`description`, mai id, città, marker, nemici (verificare con uno script di confronto e annotarlo nel commit). |
-| LO-02 gruppi di una sola città senza hunt (Ko Shaeras, Talmvere, Ferrion) | **ASK** | decisione di prodotto dell'utente; fino ad allora nota nell'handoff §11. |
+| LO-02 gruppi di una sola città senza hunt (Ko Shaeras, Talmvere, Ferrion) | **ASK → deciso** | l'utente il 2026-11-02: «restano senza» (D-35); nessuna modifica, nota nell'handoff §11. |
 | LO-03 Valantar/Liberia per nome | **FIX** | insieme a core ME-03 (fixer 2); il fixer 3 verifica solo che sia fatto. |
 | LO-04 `skipped` elenca città non saltate | **FIX** | campo `citiesWithoutLore` nel report; `skipped` solo per le dungeon senza mostro. |
 | LO-05 test di Talmvere con l'id di Ferrion | **FIX** | `n: 15`; `addedCity` lancia se l'id esiste. |

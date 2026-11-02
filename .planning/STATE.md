@@ -5,7 +5,7 @@ milestone_name: milestone
 status: phase-complete
 stopped_at: Phase 11 complete — PR in draft until the FE quick task
 last_updated: "2026-11-02T14:00:00.000Z"
-last_activity: "2026-11-02 -- Phase 11 closed: review → fix → security done, draft PR to develop, reload of 4 lore + 23 quests pending"
+last_activity: "2026-11-02 -- Phase 11 closed: review → fix → security done, draft PR to develop, reload of 4 lore + 23 quests applied and verified, single-city groups keep no hunt (D-35), FE quick task PR #36 open"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 Phase: 11 (Popolamento del mondo) — COMPLETE (2026-11-02) on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
 Plan: 27 of 27
 Status: Phase 11 COMPLETE (27/27 plans) — next: PR `feat/11-popolamento-del-mondo` → `develop` in draft; the FE quick task that removes `unlocked` from `lore_queries.dart:9`/`lore.dart` must ship before the merge (BACKEND-NOTES §1); the BE serving the real database runs from the phase branch
-Last activity: 2026-11-02 -- Phase 11 closed: review (3 areas, 39 findings) → 3 sequential fixers (36 commits) → verification (passed, gaps closed) → security audit (93/96); full suite after the fixes 329 suites / 4264 tests; draft PR to `develop`; content reload of 4 lore + 23 quests pending the user
+Last activity: 2026-11-02 -- Phase 11 closed: review (3 areas, 39 findings) → 3 sequential fixers (36 commits) → verification (passed, gaps closed) → security audit (93/96); full suite after the fixes 329 suites / 4264 tests; draft PR to `develop`; content reload of 4 lore + 23 quests applied and verified (0/0); single-city groups keep no hunt (D-35, user decision); FE quick task for Lore.unlocked open as Klimmeck-Guide PR #36
 
 Progress: [██████████] 27/27 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
@@ -271,7 +271,7 @@ None yet.
   4. una chiamata Sightengine reale per A2 (un'immagine accettabile e una da rifiutare, chiavi nel proprio `.env`);
   5. `THROTTLE_TRUST_PROXY` da impostare quando la topologia di produzione sarà nota (vuota = spenta).
   Dopo la merge: UAT del pannello del GM nella FE Phase 10 (piano gated 10-11).
-- **Phase 11 — completa il 2026-11-02, pipeline review → fix → security chiusa (`REVIEW.md`, `REVIEW-FIX.md` 34/39 corretti, `11-SECURITY.md` 93/96), PR `feat/11-popolamento-del-mondo` → `develop` in draft.** Ricarica in sospeso: `--dry-run` riporta 4 lore e 23 quest `modified` (fix della review, stessi id) da applicare con il runbook (BE fermo) e report da committare; decisione dell'utente sulle hunt nei gruppi di una sola città (Ko Shaeras, Talmvere, Ferrion); ritirare `content/fixes/` dopo la merge. La merge attende il quick task FE che toglie `unlocked` da `lib/graphql/queries/lore_queries.dart:9` e `lib/models/lore.dart` (`BACKEND-NOTES.md` §1); il contenuto è già nel DB reale (piano 11-24). Restano all'utente: revisione dei contenuti (581 quest contro la stima di 475, titolo doppio di Necrorian `6ae80db9da5c5f8cc552680c`, numeri da calibrare elencati nell'handoff), lettura di runbook e handoff, UAT sul device nelle FE Phase 13+.
+- **Phase 11 — completa il 2026-11-02, pipeline review → fix → security chiusa (`REVIEW.md`, `REVIEW-FIX.md` 34/39 corretti, `11-SECURITY.md` 93/96), PR `feat/11-popolamento-del-mondo` → `develop` in draft.** Ricarica dopo la review fatta il 2026-11-02 a BE fermo (4 lore + 23 quest, `--verify` 0/0, seconda `--apply` nulla, report `reports/11-fix-*.json`); hunt nei gruppi di una sola città (Ko Shaeras, Talmvere, Ferrion): restano senza per decisione dell'utente (D-35); ritirare `content/fixes/` dopo la merge. La merge attende la merge e il rilascio del quick task FE (PR LucaTabbia/Klimmeck-Guide#36, branch `fix/lore-unlocked-field`) che toglie `unlocked` da `lib/graphql/queries/lore_queries.dart:9` e `lib/models/lore.dart` (`BACKEND-NOTES.md` §1); il contenuto è già nel DB reale (piano 11-24). Restano all'utente: revisione dei contenuti (581 quest contro la stima di 475, titolo doppio di Necrorian `6ae80db9da5c5f8cc552680c`, numeri da calibrare elencati nell'handoff), lettura di runbook e handoff, UAT sul device nelle FE Phase 13+.
 
 ### Quick Tasks Completed
 
