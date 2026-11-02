@@ -30,7 +30,7 @@
     silver: 0
     copper: 25
   rarity: common
-  power: 70
+  power: 100 # power corretto in 11-14: 70 → 100 (1 power = 3 min, D-16)
   effect: hunger
 - id: '68c193b5541d89c481b83247'
   name: Birra di Talmvere
@@ -126,7 +126,7 @@
     silver: 0
     copper: 1
   rarity: common
-  power: 5
+  power: 15 # power corretto in 11-14: 5 → 15 (1 power = 3 min, D-16)
   effect: hunger
 - id: '68c193b5541d89c481b83312'
   name: Biscotto Secco
@@ -286,7 +286,7 @@
     silver: 2
     copper: 0
   rarity: ultrarare
-  power: 100
+  power: 200 # power corretto in 11-14: 100 → 200 (1 power = 3 min, D-16)
   effect: hunger
 - id: '68c193b5541d89c481b8333c'
   name: Manzo Essiccato
@@ -318,7 +318,7 @@
     silver: 0
     copper: 1
   rarity: common
-  power: 8
+  power: 15 # power corretto in 11-14: 8 → 15 (1 power = 3 min, D-16)
   effect: hunger
 - id: '68c193b5541d89c481b83353'
   name: Razione di Carne In scatola

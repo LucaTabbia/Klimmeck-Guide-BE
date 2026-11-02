@@ -1,0 +1,99 @@
+# Pozioni di cura per fascia (D-16): prezzi in Coins dal listino del documento (pozione di guarigione 50-70 rame)
+
+- id: '6ae7fe69f3bf62d7f784ce2f'
+  name: Tintura del guaritore di campo
+  itemType: LootItem
+  description: |-
+    Una tintura amara preparata dai guaritori che seguono gli eserciti. Chiude i graffi e rimette in piedi dopo una scaramuccia, ma non fa miracoli.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 20
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 30
+  rarity: common
+  power: 800
+  effect: heal
+- id: '6ae7fe69f3bf62d7f784ce30'
+  name: Pozione di guarigione
+  itemType: LootItem
+  description: |-
+    La pozione rossa che si trova sul bancone di ogni alchimista del continente, al prezzo di una cinquantina di monete di rame. Rimargina le ferite leggere in pochi istanti.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 40
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 60
+  rarity: common
+  power: 1500
+  effect: heal
+- id: '6ae7fe69f3bf62d7f784ce31'
+  name: Pozione di guarigione superiore
+  itemType: LootItem
+  description: |-
+    Una pozione di un rosso più intenso, distillata con erbe rare. Rimette in sesto un avventuriero dopo uno scontro difficile.
+  sellPrice:
+    gold: 0
+    silver: 2
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 3
+    copper: 0
+  rarity: uncommon
+  power: 4000
+  effect: heal
+- id: '6ae7fe69f3bf62d7f784ce32'
+  name: Pozione di guarigione maggiore
+  itemType: LootItem
+  description: |-
+    Una pozione densa e luminosa, preparata solo dagli alchimisti più esperti. Richiude ferite profonde e ossa rotte.
+  sellPrice:
+    gold: 0
+    silver: 10
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 15
+    copper: 0
+  rarity: rare
+  power: 10000
+  effect: heal
+- id: '6ae7fe69f3bf62d7f784ce33'
+  name: Pozione di guarigione suprema
+  itemType: LootItem
+  description: |-
+    Una pozione dorata che pochissimi alchimisti sanno distillare. Strappa alla morte anche chi è stato ridotto in fin di vita.
+  sellPrice:
+    gold: 2
+    silver: 0
+    copper: 0
+  buyPrice:
+    gold: 3
+    silver: 0
+    copper: 0
+  rarity: ultrarare
+  power: 25000
+  effect: heal
+- id: '6ae7fe69f3bf62d7f784ce34'
+  name: Elisir dei Protettori
+  itemType: LootItem
+  description: |-
+    Un elisir distillato dalla linfa dei Protettori ancestrali più antichi del Minnely, custodito gelosamente dagli Elfi. Ricostituisce il corpo da qualunque ferita. Non si trova in nessuna bottega.
+  sellPrice:
+    gold: 4
+    silver: 0
+    copper: 0
+  buyPrice:
+    gold: 8
+    silver: 0
+    copper: 0
+  rarity: legendary
+  power: 40000
+  effect: heal
+  sellable: false
