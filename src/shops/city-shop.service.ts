@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
+import { cityRelations } from 'src/cities/city-relations';
 import { City, CityDocument } from 'src/models/city.model';
 import { AssetQuantity } from 'src/models/common/asset-quantity.model';
 import {
@@ -29,7 +30,10 @@ export class CityShopService {
     ) {}
 
     async read(cityId: string): Promise<CityShop> {
-        const city = await this.cityModel.findById(cityId).exec();
+        const city = await this.cityModel
+            .findById(cityId)
+            .populate(cityRelations())
+            .exec();
         if (!city) throw ResourceNotFoundException.city();
         const [equipment, loot, pets] = await Promise.all([
             this.shelve<EquipmentItem>(

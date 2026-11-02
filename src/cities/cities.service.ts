@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { City } from 'src/models/city.model';
+import { cityRelations } from './city-relations';
 
 @Injectable()
 export class CitiesService {
@@ -19,12 +20,7 @@ export class CitiesService {
     async findOne(id: string): Promise<City> {
         const city = await this.cityModel
             .findById(id)
-            .populate('relatedLore')
-            .populate('markerLocation')
-            .populate({
-                path: 'pointsOfInterest',
-                populate: { path: 'quest' },
-            })
+            .populate(cityRelations())
             .exec();
 
         if (!city) {

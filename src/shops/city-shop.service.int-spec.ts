@@ -3,7 +3,13 @@ import { CitySchema } from 'src/models/city.model';
 import { AssetQuantity } from 'src/models/common/asset-quantity.model';
 import { EquipmentItemSchema } from 'src/models/equipment-item.model';
 import { LootItemSchema } from 'src/models/loot-item.model';
+import { Lore, LoreSchema } from 'src/models/lore.model';
 import { PetSchema } from 'src/models/pet.model';
+import {
+    PointOfInterest,
+    PointOfInterestSchema,
+} from 'src/models/point-of-interest.model';
+import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import {
     persistCity,
@@ -28,6 +34,14 @@ const models: ShopWorldModels = {
     pet: mongoose.models.Pet || mongoose.model('Pet', PetSchema),
 };
 const spells = mongoose.models.Spell || mongoose.model(Spell.name, SpellSchema);
+// la città del negozio popola marker, lore e POI con quest: i modelli dei ref devono esistere
+for (const [name, schema] of [
+    [Lore.name, LoreSchema],
+    [PointOfInterest.name, PointOfInterestSchema],
+    [Quest.name, QuestSchema],
+] as const) {
+    if (!mongoose.models[name]) mongoose.model(name, schema);
+}
 
 describe('CityShopService', () => {
     let service: CityShopService;
