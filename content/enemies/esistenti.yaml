@@ -3,10 +3,16 @@
 - id: '68c28e9789b2155e53b835b5'
   name: Arbusto Maligno
   category: monster
+  source: # aggiunto in 11-17: documento righe 518-526, NON TROVATO nel bestiario; xp, lifePoints e damages esportati restano override (D-04)
+    level: 1
+    pe: 25
+    pf: 14
+    damagePerRound: { blunt: 3.36 }
+    analog: { name: Albero Risvegliato, pe: 450, factor: 0.24 }
   locations: [all] # corretto in 11-12: a DB era vuoto, lo schema chiede almeno un luogo (habitat ignoto → all, D-13)
   energyWeaknesses: [fire]
   baseWeaknesses: [cut]
-  relatedLore: []
+  relatedLore: ['6ae802f65f3e1244a34ae384'] # Arbusto Maligno
   spells: []
   imagePath: assets/images/arbustoMaligno.png
   xp: 25
