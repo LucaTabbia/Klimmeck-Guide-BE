@@ -6,6 +6,7 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { Pet } from 'src/models/pet.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { AuthTestApp, graphqlRequest } from '../../test/auth/auth-test-app';
@@ -22,6 +23,7 @@ import {
     primeChangeStream,
 } from '../../test/harness/prime-change-stream';
 import { persistSpell, spellBook } from '../../test/fixtures';
+import { persistPet } from '../../test/fixtures/pet.fixture';
 
 const CHARACTER_UPDATED =
     'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { id status { coins { silver } } } }';
@@ -39,6 +41,26 @@ const CHARACTER_SPELLS_UPDATED =
 
 const USE_SPELL =
     'mutation($request: UseSpellRequest!) { useSpell(request: $request) { successful response } }';
+
+const CHARACTER_PETS_SELECTION =
+    'assets { pet { id name speedModifier } ownedPets { id name speedModifier sellable } }';
+
+const CHARACTER_PETS_UPDATED = `subscription OnCharacter($id: String!) { characterUpdated(id: $id) { ${CHARACTER_PETS_SELECTION} } }`;
+
+const CHARACTER_PETS_QUERY = `query Character($id: String!) { character(id: $id) { ${CHARACTER_PETS_SELECTION} } }`;
+
+interface WirePet {
+    id: string;
+    name: string;
+    speedModifier: number | null;
+    sellable?: boolean | null;
+}
+
+interface WirePetsCharacter {
+    assets: { pet: WirePet | null; ownedPets: WirePet[] };
+}
+
+type PetsUpdatedResult = { characterUpdated: WirePetsCharacter };
 
 const MINUTE_MS = 60_000;
 
@@ -115,6 +137,55 @@ describe('characterUpdated subscription (wire)', () => {
         expect(result.done).toBe(false);
         expect(result.value.errors).toBeUndefined();
         return result.value.data?.characterUpdated as WireSpellCharacter;
+    }
+
+    async function giveAliceTheTravelPets(): Promise<{
+        cavalloId: string;
+        gattoId: string;
+    }> {
+        const pets = harness.connection.model(Pet.name);
+        const cavallo = await persistPet(pets, {
+            name: 'Cavallo da viaggio',
+            speedModifier: 2,
+        });
+        const gatto = await persistPet(pets, {
+            name: 'Gatto',
+            speedModifier: null,
+        });
+        await characters.updateOne(
+            { _id: alice.character?._id },
+            {
+                $set: {
+                    'assets.pet': cavallo._id,
+                    'assets.ownedPets': [cavallo._id, gatto._id],
+                },
+            },
+        );
+        return { cavalloId: String(cavallo._id), gattoId: String(gatto._id) };
+    }
+
+    function expectedPetsAssets(cavalloId: string, gattoId: string) {
+        return {
+            pet: {
+                id: cavalloId,
+                name: 'Cavallo da viaggio',
+                speedModifier: 2,
+            },
+            ownedPets: [
+                {
+                    id: cavalloId,
+                    name: 'Cavallo da viaggio',
+                    speedModifier: 2,
+                    sellable: null,
+                },
+                {
+                    id: gattoId,
+                    name: 'Gatto',
+                    speedModifier: null,
+                    sellable: null,
+                },
+            ],
+        };
     }
 
     async function expectRejection(
@@ -361,6 +432,64 @@ describe('characterUpdated subscription (wire)', () => {
                 Date.now(),
             ),
         ).toBe(true);
+    });
+
+    it('carries the equipped and the owned pets populated in the snapshot (D-13, D-23)', async () => {
+        const { cavalloId, gattoId } = await giveAliceTheTravelPets();
+        const subscription = openSubscription<PetsUpdatedResult>(
+            url,
+            { Authorization: alice.bearer },
+            { query: CHARACTER_PETS_UPDATED, variables: { id: aliceCharId } },
+        );
+        opened.push(subscription);
+
+        const snapshot = await subscription.next();
+
+        expect(snapshot).toEqual({
+            done: false,
+            value: {
+                data: {
+                    characterUpdated: {
+                        assets: expectedPetsAssets(cavalloId, gattoId),
+                    },
+                },
+            },
+        });
+    });
+
+    it('serves the owned pets with the character query (D-23)', async () => {
+        const { cavalloId, gattoId } = await giveAliceTheTravelPets();
+
+        const served = await graphqlRequest(
+            harness.app,
+            CHARACTER_PETS_QUERY,
+            { id: aliceCharId },
+            alice.bearer,
+        );
+
+        expect(served.body).toEqual({
+            data: {
+                character: { assets: expectedPetsAssets(cavalloId, gattoId) },
+            },
+        });
+    });
+
+    it('serves a legacy character without owned pets as an empty list (D-13, D-23)', async () => {
+        await characters.collection.updateOne(
+            { _id: alice.character?._id },
+            { $unset: { 'assets.ownedPets': '' } },
+        );
+
+        const served = await graphqlRequest(
+            harness.app,
+            CHARACTER_PETS_QUERY,
+            { id: aliceCharId },
+            alice.bearer,
+        );
+
+        expect(served.body).toEqual({
+            data: { character: { assets: { pet: null, ownedPets: [] } } },
+        });
     });
 
     it('keeps the characterUpdated signature unchanged', () => {

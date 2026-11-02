@@ -504,6 +504,29 @@ describe('CharactersService (unit — spell mutations)', () => {
             ]);
         });
 
+        it('populates the equipped and the owned pets from the Pet catalogue (D-23)', async () => {
+            const query = asPopulatableQuery({
+                assets: {
+                    ownedEquipments: [],
+                    wearedEquipment: {},
+                    activeSpells: [],
+                },
+                status: { spells: [] },
+            });
+            mockCharacterModel.findOne.mockReturnValue(query);
+
+            await service.findOne(new Types.ObjectId().toString());
+
+            expect(query.populate).toHaveBeenCalledWith({
+                path: 'assets.pet',
+                model: 'Pet',
+            });
+            expect(query.populate).toHaveBeenCalledWith({
+                path: 'assets.ownedPets',
+                model: 'Pet',
+            });
+        });
+
         it('reports an archived character as not found on findOne', async () => {
             const id = new Types.ObjectId().toString();
             mockCharacterModel.findOne.mockReturnValue(
