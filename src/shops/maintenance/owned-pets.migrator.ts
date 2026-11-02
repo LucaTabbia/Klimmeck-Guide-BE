@@ -28,6 +28,7 @@ export class OwnedPetsMigrator {
     ) {}
 
     async migrate(): Promise<OwnedPetsReport> {
+        await this.normalizeNullLists();
         const characters = await this.characterModel.collection
             .find(
                 { 'assets.pet': { $ne: null } },
@@ -51,5 +52,13 @@ export class OwnedPetsMigrator {
                 `Compagni: ${owned} personaggi ricevono il compagno equipaggiato fra i posseduti`,
             );
         return { owned };
+    }
+
+    // un push su una lista null fallisce lato server e fermerebbe il ciclo: null diventa la lista vuota dello schema
+    private async normalizeNullLists(): Promise<void> {
+        await this.characterModel.collection.updateMany(
+            { 'assets.ownedPets': { $type: 'null' } },
+            { $set: { 'assets.ownedPets': [] } },
+        );
     }
 }
