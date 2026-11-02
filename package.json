@@ -21,7 +21,12 @@
     "test:int": "jest --selectProjects integration --runInBand",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage --selectProjects unit integration --runInBand",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "content:check": "node dist/content/run-content.js --check",
+    "content:new-id": "node dist/content/run-content.js --new-id",
+    "content:dry-run": "node --env-file=.env dist/content/run-content.js --dry-run",
+    "content:verify": "node --env-file=.env dist/content/run-content.js --verify",
+    "content:apply": "node --env-file=.env dist/content/run-content.js --apply"
   },
   "dependencies": {
     "@apollo/server": "^4.12.2",
