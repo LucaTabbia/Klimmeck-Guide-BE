@@ -1,0 +1,31 @@
+# Correzione dei 6 punti d'interesse con un tipo fuori enum (D-06): stessa mappa per tutti, array deduplicato
+- key: poi-type-690e4186108dbf02380d4c81
+  kind: normalizePoiTypes
+  target: '690e4186108dbf02380d4c81'
+  replacements: &poiTypeRepairs
+    belleholmIsand: belleholmIsland
+    BelleholmIsland: belleholmIsland
+    NULLbelleholmIsland: belleholmIsland
+    ValanPlains: valanPlains
+    'vulcano ': vulcano
+    gounet: glounet
+- key: poi-type-690e4186c26625d660983fea
+  kind: normalizePoiTypes
+  target: '690e4186c26625d660983fea'
+  replacements: *poiTypeRepairs
+- key: poi-type-690e4186d116ef011e516635
+  kind: normalizePoiTypes
+  target: '690e4186d116ef011e516635'
+  replacements: *poiTypeRepairs
+- key: poi-type-690e4186477fbde00a7c7a79
+  kind: normalizePoiTypes
+  target: '690e4186477fbde00a7c7a79'
+  replacements: *poiTypeRepairs
+- key: poi-type-690e418698ec3a87c4b7eb55
+  kind: normalizePoiTypes
+  target: '690e418698ec3a87c4b7eb55'
+  replacements: *poiTypeRepairs
+- key: poi-type-690e4186a2175881abee5979
+  kind: normalizePoiTypes
+  target: '690e4186a2175881abee5979'
+  replacements: *poiTypeRepairs

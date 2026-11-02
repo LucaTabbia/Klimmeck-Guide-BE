@@ -1,0 +1,2 @@
+# la Flinas di tipo northVillage diventa Kliever; la drusteaVillage 6909614456907fc49cf2a80e resta Flinas (D-06)
+- { key: rename-flinas-north-village, kind: renameCity, target: '690961bf952cc57d174677d7', from: Flinas, to: Kliever }
