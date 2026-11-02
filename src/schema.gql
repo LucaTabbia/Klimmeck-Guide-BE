@@ -505,12 +505,12 @@ type Query {
   enemy(id: String!): Enemy!
   enemys: [Enemy!]!
   equipment(id: String!): Equipment!
-  equipmentAssetsQuantity(sellable: Boolean): [AssetQuantity!]!
+  equipmentAssetsQuantity(sellable: Boolean): [AssetQuantity!]! @deprecated(reason: "Phase 12: use cityShop")
   equipmentItem(id: String!): EquipmentItem!
   equipmentItems: [EquipmentItem!]!
   equipmentItemsByIds(ids: [String!]!): [EquipmentItem!]!
   getPath(from: ID!, to: ID!): PathResponse!
-  lootAssetsQuantity: [AssetQuantity!]!
+  lootAssetsQuantity: [AssetQuantity!]! @deprecated(reason: "Phase 12: use cityShop")
   lootItem(id: String!): LootItem!
   lootItems: [LootItem!]!
   lootItemsByIds(ids: [String!]!): [LootItem!]!

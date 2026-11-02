@@ -145,4 +145,20 @@ describe('catalogue sellable on the wire', () => {
 
         expect(served).toEqual([{ item: { name: 'Spada' } }]);
     });
+
+    it('keeps serving lootAssetsQuantity after its deprecation (D-20)', async () => {
+        await persistLootItem(lootItems, { name: 'Pozione', sellable: false });
+        await persistLootItem(lootItems, { name: 'Erba' });
+
+        const served = await query<{ item: { name: string } }[]>(
+            '{ lootAssetsQuantity { item { ... on LootItem { name } } } }',
+            'lootAssetsQuantity',
+        );
+
+        expect(
+            served
+                .map((entry) => entry.item.name)
+                .sort((left, right) => left.localeCompare(right)),
+        ).toEqual(['Erba', 'Pozione']);
+    });
 });
