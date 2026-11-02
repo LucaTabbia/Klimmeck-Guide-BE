@@ -1,8 +1,15 @@
 import { model } from 'mongoose';
+import { buildEquipmentItem } from '../../test/fixtures/catalog-item.fixture';
 import { buildCity } from '../../test/fixtures/city.fixture';
+import { buildPet } from '../../test/fixtures/pet.fixture';
 import { CitySchema } from './city.model';
+import { EquipmentItemSchema } from './equipment-item.model';
+import { LootItemSchema } from './loot-item.model';
+import { PetSchema } from './pet.model';
 
 const CityProbe = model('ShopFieldsCityProbe', CitySchema);
+const PetProbe = model('ShopFieldsPetProbe', PetSchema);
+const EquipmentProbe = model('ShopFieldsEquipmentProbe', EquipmentItemSchema);
 
 interface ReferenceListPath {
     instance: string;
@@ -44,5 +51,32 @@ describe('city shop pool fields', () => {
             caster: schemaPath.caster.instance,
             ref: schemaPath.caster.options.ref,
         }).toEqual({ instance: 'Array', caster: 'ObjectId', ref });
+    });
+});
+
+describe('catalogue sellable', () => {
+    it('declares sellable as an optional Boolean on the catalogue schemas (D-07)', () => {
+        expect({
+            equipment: EquipmentItemSchema.path('sellable')?.instance,
+            loot: LootItemSchema.path('sellable')?.instance,
+            pet: PetSchema.path('sellable')?.instance,
+        }).toEqual({ equipment: 'Boolean', loot: 'Boolean', pet: 'Boolean' });
+    });
+
+    it('leaves sellable absent when a catalogue document has none (D-16)', () => {
+        const pet = new PetProbe(buildPet()).toObject();
+        const equipment = new EquipmentProbe(buildEquipmentItem()).toObject();
+
+        expect('sellable' in pet).toBe(false);
+        expect('sellable' in equipment).toBe(false);
+    });
+
+    it('keeps a stored false (D-05)', () => {
+        const pet = PetProbe.hydrate({
+            ...buildPet(),
+            sellable: false,
+        }).toObject();
+
+        expect(pet.sellable).toBe(false);
     });
 });
