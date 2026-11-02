@@ -11,7 +11,12 @@ import {
 } from 'src/models/equipment-item.model';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 import { Pet, PetDocument } from 'src/models/pet.model';
-import { drawEquipment, drawLoot, petsFor } from '../shop-pool.draw';
+import {
+    drawEquipment,
+    drawLoot,
+    petsFor,
+    placementsOf,
+} from '../shop-pool.draw';
 import {
     NO_SHOP_CITY_TYPES,
     SELLABLE_PET_PLACEMENTS,
@@ -71,6 +76,15 @@ const POOL_FIELDS: readonly PoolField[] = [
 const isAbsent = (city: SeedCity, field: PoolField) =>
     city[field] === undefined;
 
+// un compagno piazzato ma non ancora a catalogo rinvia la lista: scritta vuota resterebbe chiusa per sempre (D-22)
+function placedPets(
+    city: SeedCity,
+    pets: readonly SeedCandidate[],
+): Types.ObjectId[] | undefined {
+    const ids = petsFor(city, pets);
+    return ids.length < placementsOf(city).length ? undefined : ids;
+}
+
 // una lista seminata, oppure undefined = rinviata al boot successivo (D-22)
 function drawPool(
     city: SeedCity,
@@ -82,7 +96,7 @@ function drawPool(
     const size = citySizeOf(city.type);
     if (field === 'shopPets')
         return catalogue.pets.length > 0
-            ? petsFor(city, catalogue.pets)
+            ? placedPets(city, catalogue.pets)
             : undefined;
     if (field === 'shopEquipment') {
         const ids = drawEquipment(city._id, size, catalogue.equipment);

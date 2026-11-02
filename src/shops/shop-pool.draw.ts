@@ -6,6 +6,7 @@ import { EffectType } from 'src/models/enums/effect-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { mulberry32, seedOf } from './seeded-random';
 import {
+    PetPlacement,
     SELLABLE_PET_PLACEMENTS,
     SHOP_LOOT_GUARANTEES,
     SHOP_POOL_SIZES,
@@ -195,16 +196,20 @@ export interface PetShopCity {
     type: CityType;
 }
 
+export function placementsOf(city: PetShopCity): readonly PetPlacement[] {
+    return SELLABLE_PET_PLACEMENTS.filter(({ cities }) =>
+        cities.some(
+            ({ name, type }) => name === city.name && type === city.type,
+        ),
+    );
+}
+
 // nessun sorteggio per i pet: solo il piazzamento per nome + CityType, se il pet esiste ed è vendibile (D-10, D-24)
 export function petsFor(
     city: PetShopCity,
     pets: readonly SeedCandidate[],
 ): Types.ObjectId[] {
-    return SELLABLE_PET_PLACEMENTS.filter(({ cities }) =>
-        cities.some(
-            ({ name, type }) => name === city.name && type === city.type,
-        ),
-    ).flatMap(({ petId }) => {
+    return placementsOf(city).flatMap(({ petId }) => {
         const pet = pets.find((entry) =>
             sameId(entry._id, new Types.ObjectId(petId)),
         );
