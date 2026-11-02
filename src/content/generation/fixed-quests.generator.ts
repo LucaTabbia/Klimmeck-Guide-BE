@@ -4,6 +4,9 @@ import { IndexedEntry } from 'src/content/checking/content-index';
 import {
     citySizeOf,
     COLLEGE_CITY,
+    DUNGEON_QUEST_FILE,
+    dungeonSizeKeyOf,
+    HERO_DUNGEON_CITY_TYPES,
     NO_CRIME_CITY_TYPES,
     NO_SERVICE_CITY_TYPES,
     questFileOf,
@@ -16,8 +19,11 @@ import {
     ContentConfig,
     ContentTier,
     FixedQuestType,
+    RANKED_TIERS,
+    RankedTier,
 } from 'src/content/rules/content-config';
 import { enemyFactsOf } from 'src/content/rules/enemy-facts';
+import { RARITY_ORDER } from 'src/quests/outcomes/rewards/cascading-loot';
 
 /*
  * Generatore puro delle quest fisse (D-17..D-22, D-31): niente DB, file né orologio.
@@ -26,6 +32,8 @@ import { enemyFactsOf } from 'src/content/rules/enemy-facts';
  *    poi il tiro della study;
  * 2. gruppi regionali ordinati per nome: shuffle delle città candidate alla hunt, poi per
  *    ciascuna scelta pick dell'animale e pick del POI (candidati ordinati per id);
+ * 3. POI dungeon ordinati per id: pick del mostro, pick del loot casuale.
+ * Gli id si riusano per chiave `type|markerLocation[|spellDraw]` (D-01): rigenerare non crea orfani.
  */
 
 type Raw = Record<string, unknown>;
@@ -55,6 +63,10 @@ export interface GeneratorResult {
 }
 
 export const CITY_WITHOUT_LORE = 'città senza lore';
+
+export const DUNGEON_WITHOUT_MONSTER = 'nessun mostro compatibile';
+
+const RECOMMENDED_EQUIPMENT = 2;
 
 type ServiceType = 'heal' | 'job' | 'guard' | 'crime' | 'study';
 
@@ -337,6 +349,270 @@ function huntDrafts(world: GeneratorWorld): QuestDraft[] {
     return drafts.sort((a, b) => (a.city < b.city ? -1 : 1));
 }
 
+interface Monster {
+    enemy: IndexedEntry;
+    band: RankedTier;
+}
+
+// RANKED_TIERS è già in ordine crescente come TITLE_RANK (rookie < adventurer < … < hero)
+function bandRank(band: RankedTier): number {
+    return RANKED_TIERS.indexOf(band);
+}
+
+function isRankedTier(tier: ContentTier | null): tier is RankedTier {
+    return (RANKED_TIERS as readonly (string | null)[]).includes(tier);
+}
+
+// solo mostri con una fascia: niente animali, umanoidi o leggendari nelle dungeon (D-20)
+function monstersOf(world: GeneratorWorld): Monster[] {
+    return world.enemies.flatMap((enemy) => {
+        if (enemy.raw.category !== 'monster') return [];
+        const { tier } = enemyFactsOf(enemy.raw, world.config);
+        return isRankedTier(tier) ? [{ enemy, band: tier }] : [];
+    });
+}
+
+function dungeonBandOf(
+    world: GeneratorWorld,
+    city: WorldCity,
+    poi: WorldPoi,
+): RankedTier {
+    const heroZone = poi.type.some((type) =>
+        world.config.dungeonHeroZones.includes(type),
+    );
+    if (heroZone || HERO_DUNGEON_CITY_TYPES.includes(city.type)) return 'hero';
+    const tier =
+        world.config.dungeonTierByCitySize[dungeonSizeKeyOf(city.type)];
+    return isRankedTier(tier) ? tier : 'hero';
+}
+
+function livesInZone(enemy: IndexedEntry, poi: WorldPoi): boolean {
+    const locations = locationsOf(enemy);
+    return poi.type.some(
+        (type) => type !== DUNGEON_POI && locations.includes(type),
+    );
+}
+
+// fallback documentati: mostro della zona, poi uno che vive ovunque, poi la fascia inferiore
+function monsterCandidates(
+    monsters: readonly Monster[],
+    poi: WorldPoi,
+    band: RankedTier,
+): Monster[] {
+    for (let rank = bandRank(band); rank >= 0; rank -= 1) {
+        const ofBand = monsters.filter(
+            (monster) => monster.band === RANKED_TIERS[rank],
+        );
+        const inZone = ofBand.filter((monster) =>
+            livesInZone(monster.enemy, poi),
+        );
+        if (inZone.length > 0) return inZone;
+        const everywhere = ofBand.filter((monster) =>
+            locationsOf(monster.enemy).includes(EVERYWHERE),
+        );
+        if (everywhere.length > 0) return everywhere;
+    }
+    return [];
+}
+
+// RARITY_ORDER va dalla più rara alla più comune: il rango cresce con la rarità
+function rarityRank(rarity: unknown): number | null {
+    const index = RARITY_ORDER.findIndex((known) => known === rarity);
+    return index < 0 ? null : RARITY_ORDER.length - 1 - index;
+}
+
+function bandRarityRank(world: GeneratorWorld, band: RankedTier): number {
+    return rarityRank(world.config.dungeonLootRarity[band]) ?? 0;
+}
+
+function assetRef(
+    itemType: AssetRef['itemType'],
+    item: IndexedEntry,
+    quantity = 1,
+): AssetRef {
+    return { itemType, item: item.id, quantity };
+}
+
+function equipmentOf(world: GeneratorWorld): IndexedEntry[] {
+    return [...world.index.byCollection.equipmentitems.values()].sort(byId);
+}
+
+// rarità della fascia; senza oggetti di quella rarità, la rarità inferiore più vicina (D-19)
+function randomLootOf(world: GeneratorWorld, band: RankedTier): AssetRef[] {
+    const equipment = equipmentOf(world);
+    const quantity = world.config.prizes.dungeon.randomLootQuantity ?? 1;
+    for (let rank = bandRarityRank(world, band); rank >= 0; rank -= 1) {
+        const item = world.chance.pick(
+            equipment.filter((entry) => rarityRank(entry.raw.rarity) === rank),
+        );
+        if (item) return [assetRef('EquipmentItem', item, quantity)];
+    }
+    return [];
+}
+
+function weaknessesOf(enemy: IndexedEntry): string[] {
+    const { baseWeaknesses, energyWeaknesses } = enemy.raw;
+    return [
+        ...(Array.isArray(baseWeaknesses) ? (baseWeaknesses as string[]) : []),
+        ...(Array.isArray(energyWeaknesses)
+            ? (energyWeaknesses as string[])
+            : []),
+    ];
+}
+
+interface Damage {
+    type: string;
+    power: number;
+}
+
+function damagesOf(item: IndexedEntry): Damage[] {
+    const damages = item.raw.damages as
+        | { base?: Damage[]; energy?: Damage[] }
+        | undefined;
+    return [...(damages?.base ?? []), ...(damages?.energy ?? [])];
+}
+
+function usefulPower(
+    item: IndexedEntry,
+    weaknesses: readonly string[],
+): number {
+    return damagesOf(item)
+        .filter((damage) => weaknesses.includes(damage.type))
+        .reduce((total, damage) => total + damage.power, 0);
+}
+
+function withinRarity(item: IndexedEntry, maxRank: number): boolean {
+    const rank = rarityRank(item.raw.rarity);
+    return rank !== null && rank <= maxRank;
+}
+
+function weaponsAgainst(
+    world: GeneratorWorld,
+    enemy: IndexedEntry,
+    maxRank: number,
+): AssetRef[] {
+    const weaknesses = weaknessesOf(enemy);
+    return equipmentOf(world)
+        .filter((item) => withinRarity(item, maxRank))
+        .map((item) => ({ item, power: usefulPower(item, weaknesses) }))
+        .filter(({ power }) => power > 0)
+        .sort((a, b) => b.power - a.power || byId(a.item, b.item))
+        .slice(0, RECOMMENDED_EQUIPMENT)
+        .map(({ item }) => assetRef('EquipmentItem', item));
+}
+
+function powerOf(item: IndexedEntry): number {
+    return typeof item.raw.power === 'number' ? item.raw.power : 0;
+}
+
+function bestHealing(world: GeneratorWorld, maxRank: number): AssetRef[] {
+    const [best] = [...world.index.byCollection.lootitems.values()]
+        .filter(
+            (item) => item.raw.effect === 'heal' && withinRarity(item, maxRank),
+        )
+        .sort((a, b) => powerOf(b) - powerOf(a) || byId(a, b));
+    return best ? [assetRef('LootItem', best)] : [];
+}
+
+// fino a 2 armi contro le debolezze + la cura migliore, entro la rarità della fascia (D-20)
+function recommendedLootOf(world: GeneratorWorld, picked: Monster): AssetRef[] {
+    const maxRank = bandRarityRank(world, picked.band);
+    return [
+        ...weaponsAgainst(world, picked.enemy, maxRank),
+        ...bestHealing(world, maxRank),
+    ];
+}
+
+function dungeonPoisOf(world: GeneratorWorld): [WorldCity, WorldPoi][] {
+    return [...world.index.pois.values()]
+        .filter(({ poi }) => poi.type.includes(DUNGEON_POI))
+        .sort((a, b) => byId(a.poi, b.poi))
+        .flatMap(({ poi, cityId }) => {
+            const city = world.index.cities.get(cityId);
+            return city ? [[city, poi] as [WorldCity, WorldPoi]] : [];
+        });
+}
+
+function dungeonDraft(
+    world: GeneratorWorld,
+    monsters: readonly Monster[],
+    city: WorldCity,
+    poi: WorldPoi,
+): QuestDraft | null {
+    const band = dungeonBandOf(world, city, poi);
+    const picked = world.chance.pick(monsterCandidates(monsters, poi, band));
+    if (!picked) return null;
+    const randomLoot = randomLootOf(world, picked.band);
+    return {
+        file: DUNGEON_QUEST_FILE,
+        city: city.id,
+        type: 'dungeon',
+        title: QUEST_TITLES.dungeon(city.name, picked.enemy.name ?? ''),
+        enemy: picked.enemy.id,
+        markerLocation: poi.id,
+        relatedLore: withoutDuplicates([
+            ...cityLoreIds(world, city),
+            ...enemyLoreOf(picked.enemy),
+        ]),
+        minTitle: picked.band,
+        recommendedLoot: recommendedLootOf(world, picked),
+        randomLoot,
+        spellDraw: false,
+    };
+}
+
+// una dungeon per ogni POI dungeon, Necrorian compresa (D-20)
+function dungeonDrafts(world: GeneratorWorld): QuestDraft[] {
+    const monsters = monstersOf(world);
+    const drafts: QuestDraft[] = [];
+    for (const [city, poi] of dungeonPoisOf(world)) {
+        const draft = dungeonDraft(world, monsters, city, poi);
+        if (draft) {
+            drafts.push(draft);
+        } else {
+            world.skipped.push({
+                city: city.id,
+                poi: poi.id,
+                type: 'dungeon',
+                reason: DUNGEON_WITHOUT_MONSTER,
+            });
+        }
+    }
+    return drafts;
+}
+
+function questKey(
+    type: unknown,
+    markerLocation: unknown,
+    spellDraw: boolean,
+): string {
+    const key = `${String(type)}|${String(markerLocation)}`;
+    return spellDraw ? `${key}|spellDraw` : key;
+}
+
+function sectionOf(raw: Raw, key: string): Raw {
+    const section = raw[key];
+    return typeof section === 'object' && section !== null
+        ? (section as Raw)
+        : {};
+}
+
+function existingIdsOf(quests: readonly Raw[]): Map<string, string> {
+    const ids = new Map<string, string>();
+    for (const quest of quests) {
+        const infos = sectionOf(quest, 'infos');
+        const key = questKey(
+            infos.type,
+            infos.markerLocation,
+            sectionOf(quest, 'prizes').spellDraw === true,
+        );
+        if (typeof quest.id === 'string' && !ids.has(key)) {
+            ids.set(key, quest.id);
+        }
+    }
+    return ids;
+}
+
 function entryOf(draft: QuestDraft, id: string): Raw {
     const prizes: Raw = { randomLoot: draft.randomLoot };
     if (draft.spellDraw) prizes.spellDraw = true;
@@ -360,12 +636,22 @@ function entryOf(draft: QuestDraft, id: string): Raw {
 
 export function generateFixedQuests(input: GeneratorInput): GeneratorResult {
     const world = worldOf(input);
-    const drafts = [...serviceDrafts(world), ...huntDrafts(world)];
+    const drafts = [
+        ...serviceDrafts(world),
+        ...huntDrafts(world),
+        ...dungeonDrafts(world),
+    ];
+    const existingIds = existingIdsOf(input.existingQuests);
     return {
-        quests: drafts.map((draft) => ({
-            file: draft.file,
-            entry: entryOf(draft, input.newId()),
-        })),
+        quests: drafts.map((draft) => {
+            const key = questKey(
+                draft.type,
+                draft.markerLocation,
+                draft.spellDraw,
+            );
+            const id = existingIds.get(key) ?? input.newId();
+            return { file: draft.file, entry: entryOf(draft, id) };
+        }),
         skipped: world.skipped,
     };
 }
