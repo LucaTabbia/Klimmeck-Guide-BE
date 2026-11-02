@@ -390,7 +390,7 @@ Plans:
 - [x] 11-06-PLAN.md — Wave 4: mapper canonici voce → documento (BE-CONTENT-02/04/06)
 - [x] 11-07-PLAN.md — Wave 4: correzioni dichiarate (6 POI, Kliever, quest di prova con guardie, `unlocked`) (BE-CONTENT-02)
 - [x] 11-08-PLAN.md — Wave 5: generatore deterministico delle quest fisse, TDD (BE-CONTENT-06)
-- [ ] 11-09-PLAN.md — Wave 5: sync idempotente (diff BSON, upsert per `_id`, orfani, prune, report) (BE-CONTENT-02)
+- [x] 11-09-PLAN.md — Wave 5: sync idempotente (diff BSON, upsert per `_id`, orfani, prune, report) (BE-CONTENT-02)
 - [ ] 11-10-PLAN.md — Wave 6: export una tantum con commenti `# nome` (BE-CONTENT-01/02)
 - [ ] 11-11-PLAN.md — Wave 7: CLI `run-content` (`--check/--dry-run/--apply/--verify/--export/--prune/--new-id`) provato sul compilato (BE-CONTENT-02)
 - [ ] 11-12-PLAN.md — Wave 8: export reale, snapshot del mondo, baseline `--verify`, misura D-12 con `--stats` (BE-CONTENT-01/02/05/07)
@@ -522,7 +522,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
-| 11. Popolamento del mondo | 8/26 | In Progress | - |
+| 11. Popolamento del mondo | 9/26 | In Progress | - |
 | 12. Negozi per città | 0/0 | Not started | - |
 | 13. Generazione quest | 0/0 | Not started | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |

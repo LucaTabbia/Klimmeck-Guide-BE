@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 11 executing — plan 2 of 26 done
 last_updated: "2026-11-02T02:00:00.000Z"
-last_activity: "2026-11-02 -- Plan 11-08 complete: pure seeded fixed quest generator (service quests, easy hunts, dungeons, Valantar spell study, stable ids)"
+last_activity: "2026-11-02 -- Plan 11-09 complete: idempotent content sync (BSON diff, ordered upserts by _id, DB checks, scoped orphans, explicit prune, report)"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 8 of 26
-Status: Executing Phase 11 — plans 11-01..11-08 complete, next 11-09; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-02 -- Plan 11-08 complete: `generateFixedQuests(input)` pure and seeded (mulberry32 `SeededChanceSource`), service quests per city, hunts among animals ≤ `hunt.maxAnimalPe` in at most half of each regional group, one dungeon per dungeon POI with band fallbacks, ids reused by `type|marker[|spellDraw]`
+Plan: 9 of 26
+Status: Executing Phase 11 — plans 11-01..11-09 complete, next 11-10; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Plan 11-09 complete: `runContent(db, mode, tree)` checks files and database before the first write, diffs BSON on unpromoted stored values, writes only changed documents in dependency order, lists orphans in the D-05 perimeter; `pruneCollection` deletes the orphans of one collection with the quest lane guards
 
 Progress: [████████░░] 2/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
