@@ -149,7 +149,7 @@ Oggi non esiste (D-26). Se un giorno ci sarà un database separato (staging, pro
     node --env-file=<file env della copia> dist/content/run-content.js --verify
     ```
 
-    I segnali di id divergenti sono `probableIdDivergence` non vuoto e città mancanti (`cities.relatedLore.missing` non vuoto, warning «snapshot non allineato» su città e POI): in quel caso fermarsi, il database non viene dallo stesso dump dei file.
+    I segnali di id divergenti sono `probableIdDivergence` non vuoto, città e POI dello snapshot assenti dal database ed errori «snapshot non allineato» (marker della città, POI elencati dalla città, città del POI; nome e tipo diversi sono solo warning): in quel caso fermarsi, il database non viene dallo stesso dump dei file.
 
 3. Sulla copia la sequenza completa (`--dry-run`, `--apply`, `--verify` a exit 0, seconda `--apply` a zero modifiche).
 4. Sull'ambiente di destinazione la stessa sequenza del paragrafo «Sequenza sul database unico», backup compreso.

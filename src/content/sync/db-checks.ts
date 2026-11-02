@@ -91,6 +91,37 @@ function misaligned(field: string, stored: unknown, expected: unknown): string {
     return `snapshot non allineato: ${field} a DB «${JSON.stringify(stored)}», nei file «${JSON.stringify(expected)}»`;
 }
 
+const REFRESH_SNAPSHOT = `rinfrescare ${WORLD_FILE} con --export`;
+
+// i ref legacy possono essere stringhe esadecimali (04 Pitfall 1): si confrontano come esadecimale
+function refHexOf(value: unknown): string | null {
+    if (value instanceof ObjectId) return value.toHexString();
+    if (typeof value === 'string') return value;
+    return value == null ? null : JSON.stringify(value);
+}
+
+function sortedRefHexes(value: unknown): (string | null)[] {
+    return (Array.isArray(value) ? value : []).map(refHexOf).sort();
+}
+
+// marker e appartenenza dei POI reggono le regole offline delle quest: una differenza è un errore
+function membershipIssue(
+    context: SnapshotContext,
+    city: WorldCity,
+    entryId: string,
+    path: string,
+    stored: unknown,
+    expected: unknown,
+): ContentIssue {
+    return snapshotIssue(
+        context,
+        city,
+        entryId,
+        path,
+        `${misaligned(path, stored, expected)}: ${REFRESH_SNAPSHOT}`,
+    );
+}
+
 function poiCheck(
     context: SnapshotContext,
     city: WorldCity,
@@ -110,6 +141,19 @@ function poiCheck(
         );
         return check;
     }
+    const storedCity = refHexOf(stored.city);
+    if (storedCity !== city.id) {
+        check.errors.push(
+            membershipIssue(
+                context,
+                city,
+                poi.id,
+                'pointsOfInterest.city',
+                storedCity,
+                city.id,
+            ),
+        );
+    }
     if (!sameBson(stored.type, poi.type)) {
         check.warnings.push(
             snapshotIssue(
@@ -122,6 +166,42 @@ function poiCheck(
         );
     }
     return check;
+}
+
+function cityMembershipIssues(
+    context: SnapshotContext,
+    city: WorldCity,
+    stored: Document,
+): ContentIssue[] {
+    const issues: ContentIssue[] = [];
+    const marker = refHexOf(stored.markerLocation);
+    if (marker !== city.markerLocation) {
+        issues.push(
+            membershipIssue(
+                context,
+                city,
+                city.id,
+                'markerLocation',
+                marker,
+                city.markerLocation,
+            ),
+        );
+    }
+    const storedPois = sortedRefHexes(stored.pointsOfInterest);
+    const expectedPois = city.pointsOfInterest.map((poi) => poi.id).sort();
+    if (!sameBson(storedPois, expectedPois)) {
+        issues.push(
+            membershipIssue(
+                context,
+                city,
+                city.id,
+                'pointsOfInterest',
+                storedPois,
+                expectedPois,
+            ),
+        );
+    }
+    return issues;
 }
 
 function cityCheck(context: SnapshotContext, city: WorldCity): ContentCheck {
@@ -151,7 +231,7 @@ function cityCheck(context: SnapshotContext, city: WorldCity): ContentCheck {
                 misaligned(field, stored[field], city[field]),
             ),
         );
-    return { errors: [], warnings };
+    return { errors: cityMembershipIssues(context, city, stored), warnings };
 }
 
 // T-11-37: città e POI dello snapshot devono esistere con gli stessi id
