@@ -10,6 +10,7 @@ import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import { CityShopResolver } from './city-shop.resolver';
 import { CityShopService } from './city-shop.service';
+import { ShopAdminResolver } from './shop-admin.resolver';
 import { ShopPoolReportService } from './shop-pool-report.service';
 
 // servizi dei negozi senza hook di boot: importabile dagli harness (la manutenzione vive in ShopMaintenanceModule)
@@ -23,7 +24,12 @@ import { ShopPoolReportService } from './shop-pool-report.service';
             { name: Pet.name, schema: PetSchema },
         ]),
     ],
-    providers: [ShopPoolReportService, CityShopService, CityShopResolver],
+    providers: [
+        ShopPoolReportService,
+        CityShopService,
+        CityShopResolver,
+        ShopAdminResolver,
+    ],
     exports: [ShopPoolReportService, MongooseModule],
 })
 export class ShopsModule {}

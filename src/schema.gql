@@ -529,6 +529,7 @@ type Query {
   quests: [Quest!]!
   raceTraits: [RaceTraits!]!
   serverTime: DateTime!
+  shopPoolReport: [ShopPoolReportEntry!]!
   spell(id: String!): Spell!
   spells: [Spell!]!
   travelPreview(request: TravelRequest!): TravelPreview!
@@ -666,6 +667,22 @@ input SendTestPushInput {
 enum SexType {
   female
   male
+}
+
+type ShopPoolReportEntry {
+  cityId: ID!
+  cityName: String!
+  emptyPool: Boolean!
+  missing: [ID!]!
+  outOfSize: [ShopPoolReportItem!]!
+  size: CitySize!
+  vetoed: [ShopPoolReportItem!]!
+}
+
+type ShopPoolReportItem {
+  id: ID!
+  name: String
+  rarity: String
 }
 
 enum SlotType {
