@@ -6,6 +6,7 @@ import {
     hasShopOf,
     isSeedCandidate,
     isShelfEligible,
+    shelfInPoolOrder,
 } from './shop-pool.rules';
 
 describe('hasShopOf', () => {
@@ -102,5 +103,49 @@ describe('isSeedCandidate', () => {
                 CitySize.city,
             ),
         ]).toEqual([false, false, false, false, true]);
+    });
+});
+
+describe('shelfInPoolOrder', () => {
+    const shelved = (rarity: RarityType, sellable?: boolean) => ({
+        _id: new Types.ObjectId(),
+        rarity,
+        sellable,
+    });
+
+    it('keeps the order of the stored pool and drops vetoed, missing and repeated ids (D-05, D-18)', () => {
+        const a = shelved(RarityType.common);
+        const b = shelved(RarityType.ultrarare, true);
+        const legendary = shelved(RarityType.legendary, true);
+        const vetoed = shelved(RarityType.common, false);
+        const missing = new Types.ObjectId();
+
+        expect(
+            shelfInPoolOrder(
+                [b._id, a._id, legendary._id, vetoed._id, missing, a._id],
+                [a, legendary, vetoed, b],
+            ),
+        ).toEqual([b, a]);
+    });
+
+    it('reads ids curated as hex strings (D-03)', () => {
+        const a = shelved(RarityType.common);
+        const b = shelved(RarityType.rare);
+
+        expect(
+            shelfInPoolOrder(
+                [b._id.toHexString(), 'not-an-id', 42, a._id],
+                [a, b],
+            ),
+        ).toEqual([b, a]);
+    });
+
+    it('serves nothing from an absent pool (D-04)', () => {
+        const a = shelved(RarityType.common);
+
+        expect([
+            shelfInPoolOrder(undefined, [a]),
+            shelfInPoolOrder(null, [a]),
+        ]).toEqual([[], []]);
     });
 });
