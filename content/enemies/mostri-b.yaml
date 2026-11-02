@@ -436,3 +436,18 @@
     - '68c19570541d89c481b8327b' # Controllo Psichico
     - '68c19570541d89c481b8326f' # Stretta Psichica
   imagePath: assets/images/miconide-sovrano.png
+- id: '6ae8051d9d83064b7a8533da'
+  name: Licantropo pipistrello
+  category: monster
+  source:
+    level: 7
+    pe: 800
+    pf: 62
+    damagePerRound: { cut: 7.49, pierce: 6.42 }
+    analog: { name: Licantropo lupo, pe: 700, factor: 1.07 }
+  locations: [glounet, belleholmIsland]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: ['6ae802f65f3e1244a34ae383'] # Licantropo
+  spells: []
+  imagePath: assets/images/licantropo-pipistrello.png
