@@ -111,6 +111,49 @@ describe('input rules', () => {
             ]);
         });
 
+        it('rejects a malformed pet id in a transaction (D-17)', async () => {
+            const plain = transaction({
+                boughtItems: {
+                    lootAssets: [],
+                    equipAssets: [],
+                    petAssets: [assetLine(1, 'abc')],
+                },
+            });
+
+            expect(await fieldsOf(TransactionRequest, plain)).toEqual([
+                'boughtItems.petAssets.0.item',
+            ]);
+        });
+
+        it('caps the pet lines of a transaction at 100 (D-17)', async () => {
+            const lines = Array.from({ length: 101 }, () => assetLine(1));
+            const plain = transaction({
+                boughtItems: {
+                    lootAssets: [],
+                    equipAssets: [],
+                    petAssets: lines,
+                },
+            });
+
+            expect(await fieldsOf(TransactionRequest, plain)).toEqual([
+                'boughtItems.petAssets',
+            ]);
+        });
+
+        it('keeps the pet lines through the whitelist (D-17)', async () => {
+            const petAssets = [assetLine(1)];
+            const instance = plainToInstance(
+                TransactionRequest,
+                transaction({
+                    boughtItems: { lootAssets: [], equipAssets: [], petAssets },
+                }),
+            );
+
+            await validate(instance, VALIDATION_OPTIONS);
+
+            expect(instance.boughtItems.petAssets).toEqual(petAssets);
+        });
+
         it('rejects negative coins in a transaction total (D-04)', async () => {
             const plain = transaction({
                 total: { gold: 0, silver: 0, copper: -1 },
