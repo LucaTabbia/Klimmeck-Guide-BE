@@ -147,12 +147,12 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### City Shops (BE-SHOP) — Phase 12, aggiunta 2026-10-29, emendata 2026-11-02
 
-- [ ] **BE-SHOP-01**: `City.size` (village / city / capital, additivo, dedotto dal `CityType` con la tabella dei tipi speciali) e `City.hasShop` a schema; il pool di oggetti per città (ref a EquipmentItem / LootItem / Pet, additivo) a DB, **seminato da una migrazione idempotente al boot** solo dove assente (regola di taglia, cibo e cure garantiti, pet per lore, Necrorian vuoto) e poi curato a DB; un report di sola lettura (log al boot + query innkeeper) segnala i pool fuori regola senza correggerli → FE SHOP-02
-- [ ] **BE-SHOP-02**: Il client ottiene il pool di una città con `cityShop(cityId)` (equipaggiamenti, loot e pet, veti su `legendary` e `sellable: false` applicati in lettura); `City.size` e `City.hasShop` viaggiano con `cities`; le query di catalogo globali sono deprecate; `sellable` entra nello schema di `EquipmentItem`, `LootItem` e `Pet` → FE SHOP-02
-- [ ] **BE-SHOP-03**: `doTransaction` rifiuta con `ITEM_NOT_IN_SHOP` ogni acquisto (equip, loot, pet) fuori dal pool della città del marker o vietato, prima di qualsiasi scrittura e riaffermato nella transazione; vendita ammessa in ogni città anche per i leggendari posseduti (`SHOP_NOT_IN_CITY` invariato) → FE SHOP-03
-- [ ] **BE-SHOP-04**: Scorte infinite e prezzi del catalogo identici in ogni città; costanti configurabili per taglia (villaggio 10 + 12, città 16 + 18, capitale 24 + 24, con i pesi di rarità del CONTEXT D-08); i leggendari non compaiono in nessun pool; «la mano vince»: ciò che l'utente mette a DB viene venduto così com'è
-- [ ] **BE-SHOP-05**: Integration su villaggio / città / capitale, acquisto fuori pool e pet doppione senza scritture, vendita fuori pool e di un leggendario, acquisto / equipaggiamento / vendita di un pet; real boot con SDL additivo; handoff per la FE Phase 13
-- [ ] **BE-SHOP-06** _(aggiunto 2026-11-02)_: `assets.ownedPets` (additivo) distinto da `assets.pet` (compagno equipaggiato, letto dal viaggio); `TransactionItems.petAssets` (quantità 1) compra e vende pet, `PET_ALREADY_OWNED` sui doppioni, vendere il pet equipaggiato svuota lo slot; mutation `equipPet` / `unequipPet` guardate come `equipItem` (`@OwnsCharacter`: owner o innkeeper; `PET_NOT_OWNED`), nessun equipaggiamento automatico all'acquisto; migrazione al boot di `ownedPets` e `Pet.sellable` → FE SHOP-04
+- [x] **BE-SHOP-01**: `City.size` (village / city / capital, additivo, dedotto dal `CityType` con la tabella dei tipi speciali) e `City.hasShop` a schema; il pool di oggetti per città (ref a EquipmentItem / LootItem / Pet, additivo) a DB, **seminato da una migrazione idempotente al boot** solo dove assente (regola di taglia, cibo e cure garantiti, pet per lore, Necrorian vuoto) e poi curato a DB; un report di sola lettura (log al boot + query innkeeper) segnala i pool fuori regola senza correggerli → FE SHOP-02
+- [x] **BE-SHOP-02**: Il client ottiene il pool di una città con `cityShop(cityId)` (equipaggiamenti, loot e pet, veti su `legendary` e `sellable: false` applicati in lettura); `City.size` e `City.hasShop` viaggiano con `cities`; le query di catalogo globali sono deprecate; `sellable` entra nello schema di `EquipmentItem`, `LootItem` e `Pet` → FE SHOP-02
+- [x] **BE-SHOP-03**: `doTransaction` rifiuta con `ITEM_NOT_IN_SHOP` ogni acquisto (equip, loot, pet) fuori dal pool della città del marker o vietato, prima di qualsiasi scrittura e riaffermato nella transazione; vendita ammessa in ogni città anche per i leggendari posseduti (`SHOP_NOT_IN_CITY` invariato) → FE SHOP-03
+- [x] **BE-SHOP-04**: Scorte infinite e prezzi del catalogo identici in ogni città; costanti configurabili per taglia (villaggio 10 + 12, città 16 + 18, capitale 24 + 24, con i pesi di rarità del CONTEXT D-08); i leggendari non compaiono in nessun pool; «la mano vince»: ciò che l'utente mette a DB viene venduto così com'è
+- [x] **BE-SHOP-05**: Integration su villaggio / città / capitale, acquisto fuori pool e pet doppione senza scritture, vendita fuori pool e di un leggendario, acquisto / equipaggiamento / vendita di un pet; real boot con SDL additivo; handoff per la FE Phase 13
+- [x] **BE-SHOP-06** _(aggiunto 2026-11-02)_: `assets.ownedPets` (additivo) distinto da `assets.pet` (compagno equipaggiato, letto dal viaggio); `TransactionItems.petAssets` (quantità 1) compra e vende pet, `PET_ALREADY_OWNED` sui doppioni, vendere il pet equipaggiato svuota lo slot; mutation `equipPet` / `unequipPet` guardate come `equipItem` (`@OwnsCharacter`: owner o innkeeper; `PET_NOT_OWNED`), nessun equipaggiamento automatico all'acquisto; migrazione al boot di `ownedPets` e `Pet.sellable` → FE SHOP-04
 
 ### Quest Generation (BE-QGEN) — Phase 13, aggiunta 2026-10-29
 
@@ -288,7 +288,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-HARD-07 | Phase 10 | Complete |
 | BE-HARD-08 | Phase 10 | Complete |
 | BE-CONTENT-01..07 | Phase 11 | Complete (aggiunti 2026-10-29, chiusi 2026-11-02) |
-| BE-SHOP-01..06 | Phase 12 | Pending (aggiunti 2026-10-29, emendati e BE-SHOP-06 aggiunto 2026-11-02) |
+| BE-SHOP-01..06 | Phase 12 | Complete (gate 12-18, 2026-11-03; aggiunti 2026-10-29, emendati e BE-SHOP-06 aggiunto 2026-11-02) |
 | BE-QGEN-01..08 | Phase 13 | Pending (aggiunti 2026-10-29) |
 | BE-FOOD-01..06 | Phase 14 | Pending (aggiunti 2026-10-29) |
 | BE-AMBUSH-01..07 | Phase 15 | Pending (aggiunti 2026-10-29) |

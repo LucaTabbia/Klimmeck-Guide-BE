@@ -1,9 +1,9 @@
 ---
 phase: 12
 slug: negozi-per-citta
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-02
 ---
 
@@ -41,10 +41,10 @@ created: 2026-11-02
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
 | 12-01-01 | 01 | 1 | BE-SHOP-05 | — | N/A | docs | `grep -c "12-19-02" .planning/phases/12-negozi-per-citta/12-VALIDATION.md` | ✅ | ✅ green |
-| 12-01-02 | 01 | 1 | BE-SHOP-01 | T-12-02 | La taglia della città è decisa dal server con una mappa esaustiva | unit | `npx jest src/cities/city-size.spec.ts --selectProjects unit` | ❌ W0 | ✅ green |
-| 12-01-03 | 01 | 1 | BE-SHOP-01 | T-12-01 | Le liste del pool non entrano nello SDL di `City` | unit + integration | `npx jest src/models/shop-fields.schema.spec.ts src/shops/shop-pool.rules.spec.ts --selectProjects unit` · `npx jest src/cities/cities.resolver.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ✅ green |
+| 12-01-02 | 01 | 1 | BE-SHOP-01 | T-12-02 | La taglia della città è decisa dal server con una mappa esaustiva | unit | `npx jest src/cities/city-size.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 12-01-03 | 01 | 1 | BE-SHOP-01 | T-12-01 | Le liste del pool non entrano nello SDL di `City` | unit + integration | `npx jest src/models/shop-fields.schema.spec.ts src/shops/shop-pool.rules.spec.ts --selectProjects unit` · `npx jest src/cities/cities.resolver.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 12-02-01 | 02 | 2 | BE-SHOP-02 | T-12-03 | Il flag di vendibilità è server-side e assente finché non scritto | unit | `npx jest src/models/shop-fields.schema.spec.ts --selectProjects unit` | ✅ | ✅ green |
-| 12-02-02 | 02 | 2 | BE-SHOP-02 | T-12-03 | Il catalogo espone `sellable` senza alterare le query esistenti | integration | `npx jest test/shops/catalog-sellable.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ✅ green |
+| 12-02-02 | 02 | 2 | BE-SHOP-02 | T-12-03 | Il catalogo espone `sellable` senza alterare le query esistenti | integration | `npx jest test/shops/catalog-sellable.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 12-03-01 | 03 | 3 | BE-SHOP-06 | T-12-04 | I pet posseduti si scrivono solo dal server | unit | `npx jest src/models/shop-fields.schema.spec.ts src/characters/creation/starting-character.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 12-03-02 | 03 | 3 | BE-SHOP-06 | T-12-05 | `characterUpdated` porta i pet popolati solo al proprietario | integration | `npx jest src/characters/character-updated.subscription.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 12-04-01 | 04 | 4 | BE-SHOP-03 | T-12-06 | I codici d'errore nuovi sono stabili e senza dati sensibili | unit | `npx jest src/gameRules/game-rule.exception.spec.ts --selectProjects unit` | ✅ | ✅ green |
@@ -73,9 +73,9 @@ created: 2026-11-02
 | 12-17-01 | 17 | 17 | BE-SHOP-06 | T-12-27 | Si equipaggia solo un pet posseduto | unit | `npx jest src/characters/pets/equip-pet.updates.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 12-17-02 | 17 | 17 | BE-SHOP-06 | T-12-26 | Gli input di `equipPet` / `unequipPet` sono validati | unit + integration | `npx jest src/validation/input-decorators.spec.ts src/validation/input-rules.spec.ts src/characters/characters.service.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 12-17-03 | 17 | 17 | BE-SHOP-06 | T-12-26 / T-12-27 / T-12-28 | Solo il proprietario equipaggia, mai su un personaggio archiviato | integration | `npx jest src/characters/pets/equip-pet.int-spec.ts src/characters/characters-ownership.int-spec.ts src/characters/archived-character-visibility.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
-| 12-18-01 | 18 | 18 | BE-SHOP-05 | T-12-29 | Il flusso completo dei negozi rispetta i guard | integration | `npx jest test/shops/city-shops.e2e.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
-| 12-18-02 | 18 | 18 | BE-SHOP-05 | T-12-29 | Lo SDL finale è additivo salvo le due query deprecate | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| 12-18-03 | 18 | 18 | BE-SHOP-01..06 | T-12-30 / T-12-31 | Suite completa e coverage verdi | full suite | `npm run test:cov` | ✅ | ⬜ pending |
+| 12-18-01 | 18 | 18 | BE-SHOP-05 | T-12-29 | Il flusso completo dei negozi rispetta i guard | integration | `npx jest test/shops/city-shops.e2e.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 12-18-02 | 18 | 18 | BE-SHOP-05 | T-12-29 | Lo SDL finale è additivo salvo le due query deprecate | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 12-18-03 | 18 | 18 | BE-SHOP-01..06 | T-12-30 / T-12-31 | Suite completa e coverage verdi | full suite | `npm run test:cov` | ✅ | ✅ green |
 | 12-19-01 | 19 | 19 | BE-SHOP-05 | T-12-32 | Il handoff non contiene segreti | docs | `grep -c "cityShop" .planning/phases/12-negozi-per-citta/BACKEND-NOTES.md` | ❌ W0 | ⬜ pending |
 | 12-19-02 | 19 | 19 | BE-SHOP-05 | — | N/A | docs | `grep -c "Complete" .planning/ROADMAP.md` | ✅ | ⬜ pending |
 
@@ -102,11 +102,11 @@ created: 2026-11-02
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30 s per spec mirata; real boot e suite completa esclusi
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30 s per spec mirata; real boot e suite completa esclusi
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-11-03
