@@ -72,8 +72,8 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-12-01 | 12 | 8 | C-01, C-02, C-05, C-07 | T-11-46…T-11-49 | unit | `npx jest src/content/analysis src/content/cli-args.spec.ts --selectProjects unit && npm run build && node dist/content/run-content.js --s…` | ✅ green |
 | 11-12-02 | 12 | 8 | C-01, C-02, C-05, C-07 | T-11-46…T-11-49 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit && test "$(grep -ciE 'mongodb…` | ✅ green |
 | 11-12-03 | 12 | 8 | C-01, C-02, C-05, C-07 | T-11-46…T-11-49 | script | `test "$(grep -ciE 'mongodb(\+srv)?://\|@[a-z0-9.-]+\.(net\|com)' .planning/phases/11-popolamento-del-mondo/reports/11-12-verify-baseline.js…` | ✅ green |
-| 11-13-01 | 13 | 9 | C-01, C-03 | T-11-50…T-11-52 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |
-| 11-13-02 | 13 | 9 | C-01, C-03 | T-11-50…T-11-52 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |
+| 11-13-01 | 13 | 9 | C-01, C-03 | T-11-50…T-11-52 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
+| 11-13-02 | 13 | 9 | C-01, C-03 | T-11-50…T-11-52 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
 | 11-14-01 | 14 | 9 | C-01, C-05 | T-11-53…T-11-55 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |
 | 11-14-02 | 14 | 9 | C-01, C-05 | T-11-53…T-11-55 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |
 | 11-14-03 | 14 | 9 | C-01, C-05 | T-11-53…T-11-55 | content check | `node dist/content/run-content.js --check && node dist/content/run-content.js --stats \| node -e "let s='';process.stdin.on('data',c=>s+=c)…` | ⬜ pending |
