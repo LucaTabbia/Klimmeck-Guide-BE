@@ -1,0 +1,416 @@
+# Esportato da --export il 2026-11-02: da qui in poi il file è la fonte di verità (D-04)
+
+- id: '68c19536541d89c481b8324f'
+  name: Gambali elfici
+  itemType: EquipmentItem
+  description: |-
+    Dei gambali elfici provenienti da un'era ormai molto lontana. La loro manifattura è eccelsa e il materiale con cui sono fatti è praticamente indistruttibile.
+  sellPrice:
+    gold: 0
+    silver: 1
+    copper: 50
+  buyPrice:
+    gold: 0
+    silver: 3
+    copper: 70
+  rarity: ultrarare
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 1500
+      - type: pierce
+        power: 1500
+    energy:
+      - type: radiant
+        power: 200
+  sellable: true
+- id: '68c19536541d89c481b83283'
+  name: Gambali di cuoio
+  itemType: EquipmentItem
+  description: |-
+    Semplici protezioni in pelle per le gambe. Offrono protezione dai morsi.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 8
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 20
+  rarity: common
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 300
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83284'
+  name: Gambali di cotta di maglia
+  itemType: EquipmentItem
+  description: |-
+    Protezione leggera e flessibile per la parte superiore della gamba contro i tagli.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 14
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 35
+  rarity: common
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 350
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83285'
+  name: Gambali rinforzati in legno
+  itemType: EquipmentItem
+  description: |-
+    Protezioni in legno duro, utili contro i colpi contundenti, specialmente alle ginocchia.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 12
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 30
+  rarity: common
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 400
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83286'
+  name: Gambali da duellante
+  itemType: EquipmentItem
+  description: |-
+    Leggeri e affusolati, offrono ottima protezione dalle stoccate e un po' di isolamento elettrico.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 55
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 10
+  rarity: uncommon
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 1000
+    energy:
+      - type: lightning
+        power: 150
+  sellable: true
+- id: '68c19536541d89c481b83287'
+  name: Gambali anti-Necrotico
+  itemType: EquipmentItem
+  description: |-
+    Semplici gambali con rune per resistere alle magie necrotiche. Buona difesa dai tagli.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 80
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 50
+  rarity: uncommon
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 850
+    energy:
+      - type: necrotic
+        power: 250
+  sellable: true
+- id: '68c19536541d89c481b83288'
+  name: Gambali di Ferro
+  itemType: EquipmentItem
+  description: |-
+    Gambali semplici ma solidi. Un buon compromesso tra protezione e peso.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 45
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 90
+  rarity: uncommon
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 900
+      - type: pierce
+        power: 700
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83289'
+  name: Gambali Anti-Fuoco nanici
+  itemType: EquipmentItem
+  description: |-
+    Gambali pesanti, forgiati con metallo resistente alle alte temperature. Ottima resistenza al fuoco.
+  sellPrice:
+    gold: 0
+    silver: 3
+    copper: 25
+  buyPrice:
+    gold: 0
+    silver: 6
+    copper: 50
+  rarity: rare
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 1200
+      - type: blunt
+        power: 1200
+    energy:
+      - type: fire
+        power: 600
+  sellable: true
+- id: '68c19536541d89c481b8328a'
+  name: Gambali del Berserker
+  itemType: EquipmentItem
+  description: |-
+    Una volta indossati fanno entrare facilmente in stato Berserk. Sono molto resistenti anche ai danni magici.
+  sellPrice:
+    gold: 0
+    silver: 3
+    copper: 75
+  buyPrice:
+    gold: 0
+    silver: 7
+    copper: 50
+  rarity: rare
+  equipType: greaves
+  addedSpell: null # corretto in 11-12: la magia 68c19570541d89c481b8327e non esiste a DB (riferimento pendente)
+  damages:
+    base:
+      - type: blunt
+        power: 1400
+      - type: cut
+        power: 1000
+    energy:
+      - type: force
+        power: 500
+  sellable: true
+- id: '68c19536541d89c481b8328b'
+  name: Gambali Silenziosi
+  itemType: EquipmentItem
+  description: |-
+    Gambali usati dai ladri più famosi, permettono di muoversi senza far rumore. Buona protezione fisica e psichica.
+  sellPrice:
+    gold: 0
+    silver: 2
+    copper: 90
+  buyPrice:
+    gold: 0
+    silver: 5
+    copper: 90
+  rarity: rare
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 1100
+      - type: cut
+        power: 1000
+    energy:
+      - type: psychic
+        power: 300
+  sellable: true
+- id: '68c19536541d89c481b8328c'
+  name: Gambali del Deserto Acido
+  itemType: EquipmentItem
+  description: |-
+    Forgiati in una lega anti-corrosione, proteggono dalla pioggia acida e dagli attacchi più violenti.
+  sellPrice:
+    gold: 0
+    silver: 7
+    copper: 50
+  buyPrice:
+    gold: 1
+    silver: 5
+    copper: 0
+  rarity: ultrarare
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 2000
+      - type: blunt
+        power: 1200
+    energy:
+      - type: acid
+        power: 900
+  sellable: true
+- id: '68c19536541d89c481b8328d'
+  name: Gambali del Guardiano
+  itemType: EquipmentItem
+  description: |-
+    Pesanti gambali decorati con rune anti-freddo. Molto efficaci contro gli impatti
+  sellPrice:
+    gold: 0
+    silver: 9
+    copper: 0
+  buyPrice:
+    gold: 1
+    silver: 8
+    copper: 0
+  rarity: ultrarare
+  equipType: greaves
+  addedSpell: '68c19570541d89c481b8325f' # Pelle di Roccia
+  damages:
+    base:
+      - type: blunt
+        power: 2500
+      - type: pierce
+        power: 2000
+      - type: cut
+        power: 1200
+    energy:
+      - type: cold
+        power: 700
+  sellable: true
+- id: '68c19536541d89c481b8328e'
+  name: Gambali del Benedetto
+  itemType: EquipmentItem
+  description: |-
+    Gambali indossati dai Benedetti guerrieri. Massima resistenza agli attacchi radianti e necrotici.
+  sellPrice:
+    gold: 0
+    silver: 60
+    copper: 0
+  buyPrice:
+    gold: 1
+    silver: 20
+    copper: 0
+  rarity: ultrarare
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 1600
+      - type: cut
+        power: 1600
+      - type: blunt
+        power: 1000
+    energy:
+      - type: radiant
+        power: 1000
+      - type: necrotic
+        power: 1000
+  sellable: true
+- id: '68c19536541d89c481b8328f'
+  name: Gambali del Semidio
+  itemType: EquipmentItem
+  description: |-
+    Una difesa quasi impenetrabile e una barriera contro la manipolazione mentale. Pezzo di armatura divina.
+  sellPrice:
+    gold: 3
+    silver: 50
+    copper: 0
+  buyPrice:
+    gold: 7
+    silver: 0
+    copper: 0
+  rarity: legendary
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 4500
+      - type: blunt
+        power: 4000
+      - type: pierce
+        power: 3500
+    energy:
+      - type: psychic
+        power: 1500
+  sellable: false
+- id: '68c19536541d89c481b83290'
+  name: Gambali del Cavaliere del Caos
+  itemType: EquipmentItem
+  description: |-
+    Creati dalla stessa Teheia. Offrono immunità al veleno e resistenza necrotica.
+  sellPrice:
+    gold: 3
+    silver: 25
+    copper: 0
+  buyPrice:
+    gold: 6
+    silver: 50
+    copper: 0
+  rarity: legendary
+  equipType: greaves
+  addedSpell: '68c19570541d89c481b8329d' # Maledizione
+  damages:
+    base:
+      - type: cut
+        power: 2000
+      - type: blunt
+        power: 2000
+      - type: pierce
+        power: 1800
+    energy:
+      - type: necrotic
+        power: 3000
+      - type: poison
+        power: 2500
+  sellable: false
+- id: '68c19536541d89c481b83291'
+  name: Gambali della tempesta
+  itemType: EquipmentItem
+  description: |-
+    Si dice siano caduti sulla terra insieme ad un fulmine e che siano fatti di energia elettrica.
+  sellPrice:
+    gold: 2
+    silver: 95
+    copper: 0
+  buyPrice:
+    gold: 5
+    silver: 90
+    copper: 0
+  rarity: legendary
+  equipType: greaves
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 1600
+      - type: blunt
+        power: 2400
+      - type: pierce
+        power: 2000
+    energy:
+      - type: lightning
+        power: 2800
+      - type: thunder
+        power: 2200
+  sellable: false

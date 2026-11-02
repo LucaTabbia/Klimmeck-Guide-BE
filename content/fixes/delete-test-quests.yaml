@@ -1,0 +1,22 @@
+# Esportato da --export il 2026-11-02: da qui in poi il file è la fonte di verità (D-04)
+
+# Le 16 quest di prova di Talmvere (3 aid clonate comprese), da cancellare con le guardie delle corsie (D-05)
+- key: delete-talmvere-test-quests
+  kind: deleteQuests
+  ids:
+    - '6ada3608b3dad669f2c257cb' # [hunt] Battuta di caccia nel Bosco di Talmvere — Talmvere
+    - '6ada3608b3dad669f2c257cc' # [aid] Soccorso ai boscaioli di Talmvere — Talmvere
+    - '6ada3608b3dad669f2c257cd' # [enemy] Sgombera il Campo di Battaglia — Talmvere
+    - '6ada3608b3dad669f2c257ce' # [worldMission] L'Ombra su Talmvere — Talmvere
+    - '6ada3608b3dad669f2c257cf' # [boss] Il Cuore della Caverna — Talmvere
+    - '6ada3608b3dad669f2c257d0' # [dungeon] Esplora le Grotte di Talmvere — Talmvere
+    - '6ada3608b3dad669f2c257d1' # [story] Il Giuramento dell'Avventuriero — Talmvere
+    - '6ada3608b3dad669f2c257d2' # [study] Studia negli archivi di Talmvere — Talmvere
+    - '6ada3608b3dad669f2c257d3' # [heal] Riposa alla clinica di Talmvere — Talmvere
+    - '6ada3608b3dad669f2c257d4' # [job] Turno alla locanda di Talmvere — Talmvere
+    - '6ada3608b3dad669f2c257d5' # [crime] Furto al mercato di Talmvere — Talmvere
+    - '6ada3608b3dad669f2c257d6' # [guard] Ronda notturna sulle mura — Talmvere
+    - '6ada3aaf06d21139eb01414c' # [story] Il Giuramento della Leggenda — Talmvere
+    - '6ae309c551270cb8ed7aed51' # [aid] Soccorso: Battuta di caccia nel Bosco di Talmvere — Talmvere
+    - '6ae30a7e3a20a4350c47ede1' # [aid] Soccorso: Battuta di caccia nel Bosco di Talmvere — Talmvere
+    - '6ae3101e3a20a4350c47f181' # [aid] Soccorso: Battuta di caccia nel Bosco di Talmvere — Talmvere

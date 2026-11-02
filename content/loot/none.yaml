@@ -1,0 +1,194 @@
+# Esportato da --export il 2026-11-02: da qui in poi il file è la fonte di verità (D-04)
+
+- id: '68c193b5541d89c481b83249'
+  name: Pietra preziosa
+  itemType: LootItem
+  description: |-
+    Una comune pietra preziosa, che scintilla fievolmente quando colpita da raggi di sole. Può essere rivenduta a buon prezzo.
+  sellPrice:
+    gold: 0
+    silver: 4
+    copper: 30
+  buyPrice:
+    gold: 0
+    silver: 5
+    copper: 40
+  rarity: uncommon
+  power: 0
+  effect: none
+- id: '68c193b5541d89c481b83322'
+  name: Borsa di Monete di Bronzo
+  itemType: LootItem
+  description: |-
+    Una piccola borsa contenente una modesta quantità di monete di bronzo. Ha valore puramente economico.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 50
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 50
+  rarity: uncommon
+  power: 0
+  effect: none
+- id: '68c193b5541d89c481b83323'
+  name: Ingranaggio Rotto
+  itemType: LootItem
+  description: |-
+    Un ingranaggio di metallo arrugginito, rotto in più punti. Forse utile come rottame.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 1
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 5
+  rarity: common
+  power: 0
+  effect: none
+- id: '68c193b5541d89c481b83324'
+  name: Pergamena Strappata
+  itemType: LootItem
+  description: |-
+    Un frammento di antica pergamena con rune sbiadite. Potrebbe nascondere informazioni importanti o avere valore storico.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 15
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 20
+  rarity: uncommon
+  power: 0
+  effect: none
+- id: '68c193b5541d89c481b8332c'
+  name: Pietra Lucida
+  itemType: LootItem
+  description: |-
+    Una pietra fluviale stranamente liscia e lucidata dall'acqua. Nessun valore intrinseco, ma piacevole al tatto.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 1
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 3
+  rarity: common
+  power: 0
+  effect: none
+- id: '68c193b5541d89c481b83332'
+  name: Pepita d'Oro
+  itemType: LootItem
+  description: |-
+    Piccolo frammento di oro grezzo. Di grande valore per i mercanti e gli orafi.
+  sellPrice:
+    gold: 1
+    silver: 50
+    copper: 0
+  buyPrice:
+    gold: 2
+    silver: 0
+    copper: 0
+  rarity: rare
+  power: 0
+  effect: none
+- id: '68c193b5541d89c481b83338'
+  name: Borsa di Sementi
+  itemType: LootItem
+  description: |-
+    Un sacchetto di semi assortiti, utili per l'agricoltura.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 3
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 6
+  rarity: common
+  power: 0
+  effect: none
+- id: '68c193b5541d89c481b8333e'
+  name: Pelliccia di Lupo
+  itemType: LootItem
+  description: |-
+    Una pelliccia ben conciata. Valore come materiale da artigianato o per vestiti caldi.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 80
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 50
+  rarity: uncommon
+  power: 0
+  effect: none
+- id: '68c193b5541d89c481b83343'
+  name: Barra di Ferro Grezzo
+  itemType: LootItem
+  description: |-
+    Una barra di ferro non lavorato. Materia prima per la forgiatura.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 15
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 30
+  rarity: common
+  power: 0
+  effect: none
+- id: '68c193b5541d89c481b83348'
+  name: Medaglione d'Argento
+  itemType: LootItem
+  description: |-
+    Un medaglione con uno stemma inciso. Valore economico e forse storico.
+  sellPrice:
+    gold: 0
+    silver: 2
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 3
+    copper: 0
+  rarity: uncommon
+  power: 0
+  effect: none
+- id: '68c193b5541d89c481b8334c'
+  name: Polvere da Sparo Grezza
+  itemType: LootItem
+  description: |-
+    Un composto instabile di zolfo, salnitro e carbone. Utile per la fabbricazione di rudimentali esplosivi o munizioni.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 9
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 18
+  rarity: common
+  power: 0
+  effect: none
+- id: '68c193b5541d89c481b83351'
+  name: Pezzo di Carbone Duro
+  itemType: LootItem
+  description: |-
+    Un frammento di carbone minerale. Utile per disegnare mappe temporanee su pareti o pavimenti.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 1
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 4
+  rarity: common
+  power: 0
+  effect: none

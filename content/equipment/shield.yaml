@@ -1,0 +1,400 @@
+# Esportato da --export il 2026-11-02: da qui in poi il file è la fonte di verità (D-04)
+
+- id: '68c19536541d89c481b832a1'
+  name: Scudo di legno
+  itemType: EquipmentItem
+  description: |-
+    Uno scudo di legno rinforzato con ferro. Una protezione basilare per l'addestramento.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 10
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 30
+  rarity: common
+  equipType: shield
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 200
+      - type: blunt
+        power: 300
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b832a2'
+  name: Targa leggera
+  itemType: EquipmentItem
+  description: |-
+    Un piccolo scudo a forma di goccia per deviare attacchi perforanti veloci.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 9
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 25
+  rarity: common
+  equipType: shield
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 550
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b832a3'
+  name: Brocchiero di ferro
+  itemType: EquipmentItem
+  description: |-
+    Un piccolo scudo rotondo in ferro. Ottimo per parare i colpi di mazza.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 18
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 45
+  rarity: common
+  equipType: shield
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 450
+    energy:
+      - type: thunder
+        power: 50
+  sellable: true
+- id: '68c19536541d89c481b832a4'
+  name: Scudo di ferro anti-acido
+  itemType: EquipmentItem
+  description: |-
+    Uno scudo di ferro trattato con una resina anti-acido.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 80
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 50
+  rarity: uncommon
+  equipType: shield
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 650
+      - type: pierce
+        power: 550
+    energy:
+      - type: acid
+        power: 300
+  sellable: true
+- id: '68c19536541d89c481b832a5'
+  name: Scudo delle Harken
+  itemType: EquipmentItem
+  description: |-
+    Decorato con lo stemma della città prigione. Questo scudo viene dato in dotazione alle guardie di Ferrion e pare che le rune su di esso proteggano dal freddo.
+  sellPrice:
+    gold: 0
+    silver: 1
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 2
+    copper: 0
+  rarity: uncommon
+  equipType: shield
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 600
+      - type: pierce
+        power: 650
+    energy:
+      - type: cold
+        power: 200
+  sellable: true
+- id: '68c19536541d89c481b832a6'
+  name: Scudo del Gladiatore
+  itemType: EquipmentItem
+  description: |-
+    Scudo in metallo leggero e compatto. Viene utilizzato dai gladiatori nelle arene per respingere gli attacchi, più che per incassarli.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 90
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 80
+  rarity: uncommon
+  equipType: shield
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 1000
+    energy:
+      - type: fire
+        power: 150
+  sellable: true
+- id: '68c19536541d89c481b832a7'
+  name: Scudo del Leone
+  itemType: EquipmentItem
+  description: |-
+    Uno scudo robusto forgiato per la difesa totale, proteggendo anche dagli attacchi magici.
+  sellPrice:
+    gold: 0
+    silver: 3
+    copper: 75
+  buyPrice:
+    gold: 0
+    silver: 7
+    copper: 50
+  rarity: rare
+  equipType: shield
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 1500
+      - type: cut
+        power: 1000
+      - type: pierce
+        power: 800
+    energy:
+      - type: force
+        power: 300
+  sellable: true
+- id: '68c19536541d89c481b832a8'
+  name: Scudo anti-fulmine
+  itemType: EquipmentItem
+  description: |-
+    Scudo dalla forma peculiare, che pare permetta di assorbire completamente un fulmine.
+  sellPrice:
+    gold: 0
+    silver: 3
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 6
+    copper: 0
+  rarity: rare
+  equipType: shield
+  addedSpell: '68c19570541d89c481b83274' # Rete Elettrica
+  damages:
+    base:
+      - type: cut
+        power: 1200
+      - type: blunt
+        power: 800
+    energy:
+      - type: lightning
+        power: 800
+  sellable: true
+- id: '68c19536541d89c481b832a9'
+  name: Scudo del Silenzio
+  itemType: EquipmentItem
+  description: |-
+    Grazie al suo rivestimento mordibo, questo scudo assorbe facilmente le vibrazioni sonore e gli impatti molto forti
+  sellPrice:
+    gold: 0
+    silver: 2
+    copper: 75
+  buyPrice:
+    gold: 0
+    silver: 5
+    copper: 50
+  rarity: rare
+  equipType: shield
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 1300
+      - type: blunt
+        power: 1500
+    energy:
+      - type: thunder
+        power: 450
+  sellable: true
+- id: '68c19536541d89c481b832aa'
+  name: Scudo di Nydos
+  itemType: EquipmentItem
+  description: |-
+    Uno scudo sacro usato dai Benedetti guerrieri. Difende dall'energia malevola e dalla luce.
+  sellPrice:
+    gold: 0
+    silver: 7
+    copper: 50
+  buyPrice:
+    gold: 1
+    silver: 5
+    copper: 0
+  rarity: ultrarare
+  equipType: shield
+  addedSpell: '68c19570541d89c481b83265' # Aura Radiosa
+  damages:
+    base:
+      - type: cut
+        power: 2000
+      - type: blunt
+        power: 1800
+      - type: pierce
+        power: 2600
+    energy:
+      - type: radiant
+        power: 1000
+      - type: necrotic
+        power: 900
+  sellable: true
+- id: '68c19536541d89c481b832ab'
+  name: Scudo a Torre
+  itemType: EquipmentItem
+  description: |-
+    Enorme scudo che copre quasi tutto il corpo. Le rune incise su di esso curano lentamente dai veleni.
+  sellPrice:
+    gold: 0
+    silver: 9
+    copper: 0
+  buyPrice:
+    gold: 1
+    silver: 8
+    copper: 0
+  rarity: ultrarare
+  equipType: shield
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 2500
+      - type: blunt
+        power: 2000
+      - type: pierce
+        power: 2200
+    energy:
+      - type: poison
+        power: 650
+  sellable: true
+- id: '68c19536541d89c481b832ac'
+  name: Scudo del traditore
+  itemType: EquipmentItem
+  description: |-
+    Uno scudo che prende il nome da ciò contro cui protegge. Protegge dagli attacchi mentali e magici, per garantire la fedeltà del portatore.
+  sellPrice:
+    gold: 0
+    silver: 60
+    copper: 0
+  buyPrice:
+    gold: 1
+    silver: 20
+    copper: 0
+  rarity: ultrarare
+  equipType: shield
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 1600
+      - type: cut
+        power: 2000
+      - type: blunt
+        power: 2000
+    energy:
+      - type: psychic
+        power: 700
+      - type: force
+        power: 800
+  sellable: true
+- id: '68c19536541d89c481b832ad'
+  name: Lastra di roccia
+  itemType: EquipmentItem
+  description: |-
+    Una lastra di roccia su cui sono stati incisi sigilli e formule per antichi rituali. Anche se non è il suo scopo, protegge sorprendentemente bene da qualsiasi attacco o acido.
+  sellPrice:
+    gold: 4
+    silver: 25
+    copper: 0
+  buyPrice:
+    gold: 8
+    silver: 50
+    copper: 0
+  rarity: legendary
+  equipType: shield
+  addedSpell: '68c19570541d89c481b8327b' # Controllo Psichico
+  damages:
+    base:
+      - type: blunt
+        power: 5000
+      - type: cut
+        power: 4500
+      - type: pierce
+        power: 4200
+    energy:
+      - type: acid
+        power: 3000
+  sellable: false
+- id: '68c19536541d89c481b832ae'
+  name: Scudo del Savio
+  itemType: EquipmentItem
+  description: |-
+    Un artefatto magico che fu creato da un Savio della terza era. Devia le tre principali energie elementali.
+  sellPrice:
+    gold: 3
+    silver: 50
+    copper: 0
+  buyPrice:
+    gold: 7
+    silver: 0
+    copper: 0
+  rarity: legendary
+  equipType: shield
+  addedSpell: null
+  damages:
+    base: []
+    energy:
+      - type: fire
+        power: 2500
+      - type: cold
+        power: 2000
+      - type: lightning
+        power: 2000
+      - type: force
+        power: 3000
+  sellable: false
+- id: '68c19536541d89c481b832af'
+  name: Scaglia di Urvinass
+  itemType: EquipmentItem
+  description: |-
+    Scudo ottenuto da una scaglia del Re dei Draghi Urvinass. Solo guardarla incute timore.
+  sellPrice:
+    gold: 4
+    silver: 50
+    copper: 0
+  buyPrice:
+    gold: 9
+    silver: 0
+    copper: 0
+  rarity: legendary
+  equipType: shield
+  addedSpell: '68c19570541d89c481b8326f' # Stretta Psichica
+  damages:
+    base:
+      - type: pierce
+        power: 4000
+      - type: cut
+        power: 5000
+      - type: blunt
+        power: 5000
+    energy:
+      - type: radiant
+        power: 3000
+  sellable: false

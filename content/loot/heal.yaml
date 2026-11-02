@@ -1,0 +1,306 @@
+# Esportato da --export il 2026-11-02: da qui in poi il file è la fonte di verità (D-04)
+
+- id: '68c193b5541d89c481b83301'
+  name: Pozione Lenitiva
+  itemType: LootItem
+  description: |-
+    Una pozione dal colore rosato, allevia dolori e contusioni leggere con un sorso.
+  sellPrice:
+    gold: 0
+    silver: 1
+    copper: 75
+  buyPrice:
+    gold: 0
+    silver: 2
+    copper: 50
+  rarity: uncommon
+  power: 2000
+  effect: heal
+- id: '68c193b5541d89c481b83305'
+  name: Pozione curativa
+  itemType: LootItem
+  description: |-
+    Liquido dorato che allevia ferite e arresta sanguinamenti, con un sapore leggermente amaro.
+  sellPrice:
+    gold: 0
+    silver: 4
+    copper: 50
+  buyPrice:
+    gold: 0
+    silver: 6
+    copper: 0
+  rarity: uncommon
+  power: 3000
+  effect: heal
+- id: '68c193b5541d89c481b83309'
+  name: Unguento Curativo Avanzato
+  itemType: LootItem
+  description: |-
+    Un unguento ricco di erbe rare che accelera la guarigione, cura da infezioni e lenisce ferite gravi.
+  sellPrice:
+    gold: 0
+    silver: 9
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 12
+    copper: 0
+  rarity: rare
+  power: 6000
+  effect: heal
+- id: '68c193b5541d89c481b8330b'
+  name: Pozione della Vista Limpida
+  itemType: LootItem
+  description: |-
+    Liquido cristallino che allevia traumi agli occhi e migliora la vista temporaneamente.
+  sellPrice:
+    gold: 0
+    silver: 9
+    copper: 0
+  buyPrice:
+    gold: 1
+    silver: 5
+    copper: 0
+  rarity: rare
+  power: 15000
+  effect: heal
+- id: '68c193b5541d89c481b8330c'
+  name: Pozione di cura superiore
+  itemType: LootItem
+  description: |-
+    Una pozione turchese creata da un potente alchimista. Cura dalle ferite più gravi e può persino ridare la mobilità ad un corpo paralizzato.
+  sellPrice:
+    gold: 3
+    silver: 0
+    copper: 0
+  buyPrice:
+    gold: 5
+    silver: 0
+    copper: 0
+  rarity: ultrarare
+  power: 20000
+  effect: heal
+- id: '68c193b5541d89c481b83325'
+  name: Radice Curativa
+  itemType: LootItem
+  description: |-
+    Una radice amara masticata da generazioni. Allevia il dolore di ferite e contusioni lievi.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 5
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 10
+  rarity: common
+  power: 500
+  effect: heal
+- id: '68c193b5541d89c481b83326'
+  name: Bendaggio Pulito
+  itemType: LootItem
+  description: |-
+    Un rotolo di tela sterile. Essenziale per fermare emorragie e prevenire l'aggravarsi di ferite.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 8
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 15
+  rarity: common
+  power: 800
+  effect: heal
+- id: '68c193b5541d89c481b83327'
+  name: Pozione Anti-Veleno
+  itemType: LootItem
+  description: |-
+    Un antidoto ad azione rapida. Neutralizza il veleno e ne allevia gli effetti più immediati.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 80
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 20
+  rarity: uncommon
+  power: 1500
+  effect: heal
+- id: '68c193b5541d89c481b8332d'
+  name: Elisir del Guerriero
+  itemType: LootItem
+  description: |-
+    Un potente infuso che scaccia la fatica, aumenta la resistenza e lenisce i dolori muscolari. Ideale prima di una battaglia.
+  sellPrice:
+    gold: 0
+    silver: 5
+    copper: 50
+  buyPrice:
+    gold: 0
+    silver: 8
+    copper: 0
+  rarity: rare
+  power: 4000
+  effect: heal
+- id: '68c193b5541d89c481b83330'
+  name: Kit da Sutura
+  itemType: LootItem
+  description: |-
+    Un set di ago e filo con un antisettico leggero. Essenziale per chiudere tagli profondi.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 25
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 40
+  rarity: uncommon
+  power: 1000
+  effect: heal
+- id: '68c193b5541d89c481b83333'
+  name: Pozione di Forza
+  itemType: LootItem
+  description: |-
+    Una pozione rossa scura che infonde energia e ripristina la funzionalità di arti feriti e fratturati, ma non di quelli mancanti.
+  sellPrice:
+    gold: 0
+    silver: 10
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 15
+    copper: 0
+  rarity: rare
+  power: 6000
+  effect: heal
+- id: '68c193b5541d89c481b83337'
+  name: Erba Curativa di Campo
+  itemType: LootItem
+  description: |-
+    Un'erba selvatica che si trova comunemente. Masticata, aiuta ad intorpidire il dolore.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 1
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 3
+  rarity: common
+  power: 200
+  effect: heal
+- id: '68c193b5541d89c481b8333b'
+  name: Unguento Antifiammatorio
+  itemType: LootItem
+  description: |-
+    Una pasta lenitiva che riduce il gonfiore e accelera la guarigione delle fratture, rendendole più sopportabili.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 50
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 70
+  rarity: uncommon
+  power: 0
+  effect: heal
+- id: '68c193b5541d89c481b8333d'
+  name: Kit di Primo Soccorso Minore
+  itemType: LootItem
+  description: |-
+    Un kit base con bende, antisettico e antidolorifici naturali. Per ferite di lieve entità.
+  sellPrice:
+    gold: 0
+    silver: 1
+    copper: 28
+  buyPrice:
+    gold: 0
+    silver: 3
+    copper: 45
+  rarity: common
+  power: 1200
+  effect: heal
+- id: '68c193b5541d89c481b83340'
+  name: Pozione Anti-Cecità
+  itemType: LootItem
+  description: |-
+    Un elisir viscoso che, applicato sugli occhi, ripristina la vista offuscata o perduta.
+  sellPrice:
+    gold: 0
+    silver: 15
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 20
+    copper: 0
+  rarity: rare
+  power: 200
+  effect: heal
+- id: '68c193b5541d89c481b83344'
+  name: Riparatore di Ossa
+  itemType: LootItem
+  description: |-
+    Un unguento miracoloso creato da un guaritore eremita. Applica questa pasta sul punto di frattura e l'osso si ricompone rapidamente.
+  sellPrice:
+    gold: 1
+    silver: 50
+    copper: 0
+  buyPrice:
+    gold: 2
+    silver: 0
+    copper: 0
+  rarity: ultrarare
+  power: 15000
+  effect: heal
+- id: '68c193b5541d89c481b83349'
+  name: Pozione di Rinascita
+  itemType: LootItem
+  description: |-
+    La pozione curativa definitiva. Ricostituisce il corpo da ferite mortali e ristabilisce le funzioni vitali. Usata in casi estremi.
+  sellPrice:
+    gold: 25
+    silver: 0
+    copper: 0
+  buyPrice:
+    gold: 30
+    silver: 0
+    copper: 0
+  rarity: ultrarare
+  power: 40000
+  effect: heal
+- id: '68c193b5541d89c481b8334b'
+  name: Pozione Ristabilente
+  itemType: LootItem
+  description: |-
+    Una pozione termoregolatrice. Aiuta a guarire rapidamente le ferite da freddo o ustioni gravi.
+  sellPrice:
+    gold: 0
+    silver: 2
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 3
+    copper: 0
+  rarity: uncommon
+  power: 1000
+  effect: heal
+- id: '68c193b5541d89c481b83350'
+  name: Pozione della Mente Lucida
+  itemType: LootItem
+  description: |-
+    Un liquido verde menta che chiarisce la mente e allevia gli effetti di traumi cranici e commozioni cerebrali.
+  sellPrice:
+    gold: 0
+    silver: 70
+    copper: 0
+  buyPrice:
+    gold: 1
+    silver: 0
+    copper: 0
+  rarity: rare
+  power: 5000
+  effect: heal

@@ -61,11 +61,12 @@ describe('repository fix files', () => {
 
         expect(fixIssues).toEqual([]);
         expect(tree.fixes.map((fix) => fix.raw.kind)).toEqual([
+            'deleteQuests',
             'renameCity',
             'unsetLoreUnlocked',
             ...Array<string>(6).fill('normalizePoiTypes'),
         ]);
-        for (const fix of tree.fixes.slice(2)) {
+        for (const fix of tree.fixes.slice(3)) {
             expect(fix.raw.replacements).toEqual(REPAIRS);
         }
     });

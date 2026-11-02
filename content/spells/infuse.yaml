@@ -1,0 +1,122 @@
+# Esportato da --export il 2026-11-02: da qui in poi il file è la fonte di verità (D-04)
+
+- id: '68b19570541d89c481b8327f'
+  name: Infusione Totemica
+  description: |-
+    Infonde un oggetto inanimato di energia magica fino a renderlo un golem senziente.
+  useType: infuse
+  energyDamage:
+    type: force
+    power: 2300
+  requiredLearnTime: 80000
+  minXpToLearn: 30000
+  recoveryTime: 120000
+  maxUsages: 3
+- id: '68c19570541d89c481b83286'
+  name: Infusione di Gelo
+  description: |-
+    Infunde l'arma con l'energia del Gelo, rallentando e congelando leggermente i nemici colpiti.
+  useType: infuse
+  energyDamage:
+    type: cold
+    power: 400
+  requiredLearnTime: 55000
+  minXpToLearn: 8000
+  recoveryTime: 12000
+  maxUsages: 4
+- id: '68c19570541d89c481b83287'
+  name: Infusione Radiosa
+  description: |-
+    Carica l'arma di luce divina, rendendola molto efficace contro non morti e demoni.
+  useType: infuse
+  energyDamage:
+    type: radiant
+    power: 800
+  requiredLearnTime: 110000
+  minXpToLearn: 16000
+  recoveryTime: 25000
+  maxUsages: 2
+- id: '68c19570541d89c481b83288'
+  name: Infusione di Veleno
+  description: |-
+    L'arma rilascia una tossina potente al momento dell'impatto, avvelenando gradualmente il bersaglio.
+  useType: infuse
+  energyDamage:
+    type: poison
+    power: 500
+  requiredLearnTime: 70000
+  minXpToLearn: 10000
+  recoveryTime: 16000
+  maxUsages: 3
+- id: '68c19570541d89c481b83289'
+  name: Infusione Necrotica
+  description: |-
+    La lama assorbe l'energia vitale del nemico ad ogni colpo, trasferendola all'utilizzatore.
+  useType: infuse
+  energyDamage:
+    type: necrotic
+    power: 900
+  requiredLearnTime: 125000
+  minXpToLearn: 18000
+  recoveryTime: 30000
+  maxUsages: 2
+- id: '68c19570541d89c481b8328b'
+  name: Infusione Elettrica
+  description: |-
+    L'arma produce piccole scariche che possono stordire o interrompere l'azione del nemico.
+  useType: infuse
+  energyDamage:
+    type: lightning
+    power: 650
+  requiredLearnTime: 85000
+  minXpToLearn: 13000
+  recoveryTime: 20000
+  maxUsages: 3
+- id: '68c19570541d89c481b8328c'
+  name: Infusione di Forza
+  description: |-
+    Aumenta la potenza d'urto dell'arma, ignorando una parte della resistenza fisica del bersaglio.
+  useType: infuse
+  energyDamage:
+    type: force
+    power: 750
+  requiredLearnTime: 100000
+  minXpToLearn: 15000
+  recoveryTime: 24000
+  maxUsages: 2
+- id: '68c19570541d89c481b8328d'
+  name: Infusione Acida
+  description: |-
+    L'arma corrode l'armatura del nemico ad ogni colpo, rendendola progressivamente più fragile.
+  useType: infuse
+  energyDamage:
+    type: acid
+    power: 450
+  requiredLearnTime: 65000
+  minXpToLearn: 9000
+  recoveryTime: 14000
+  maxUsages: 4
+- id: '68c19570541d89c481b8328e'
+  name: Infusione Tonante
+  description: |-
+    L'arma emette un forte rimbombo all'impatto, causando disorientamento e danni sonori.
+  useType: infuse
+  energyDamage:
+    type: thunder
+    power: 850
+  requiredLearnTime: 115000
+  minXpToLearn: 17000
+  recoveryTime: 27000
+  maxUsages: 2
+- id: '68c19570541d89c481b8328f'
+  name: Infusione di Fiamma
+  description: |-
+    Ricopre la lama con fiamme, aggiungendo danni da Fuoco e causando ustioni gravi.
+  useType: infuse
+  energyDamage:
+    type: fire
+    power: 600
+  requiredLearnTime: 78000
+  minXpToLearn: 12000
+  recoveryTime: 18000
+  maxUsages: 3

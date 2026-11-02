@@ -1,0 +1,158 @@
+# Esportato da --export il 2026-11-02: da qui in poi il file è la fonte di verità (D-04)
+
+- id: '68c19570541d89c481b83272'
+  name: Blocco Ghiacciato
+  description: |-
+    Immobilizza un bersaglio in un blocco di ghiaccio, bloccando i suoi movimenti per breve tempo.
+  useType: control
+  energyDamage:
+    type: cold
+    power: 500
+  requiredLearnTime: 70000
+  minXpToLearn: 10000
+  recoveryTime: 18000
+  maxUsages: 3
+- id: '68c19570541d89c481b83273'
+  name: Trappola magica
+  description: |-
+    Un campo di forza invisibile si sprigiona da un sigillo sul terreno, intrappolando il nemico e impedendogli di lasciare un'area designata.
+  useType: control
+  energyDamage:
+    type: force
+    power: 700
+  requiredLearnTime: 100000
+  minXpToLearn: 14000
+  recoveryTime: 25000
+  maxUsages: 2
+- id: '68c19570541d89c481b83274'
+  name: Rete Elettrica
+  description: |-
+    Una rete di fili elettrici che paralizza temporaneamente i nemici che la attraversano.
+  useType: control
+  energyDamage:
+    type: lightning
+    power: 650
+  requiredLearnTime: 90000
+  minXpToLearn: 13000
+  recoveryTime: 20000
+  maxUsages: 3
+- id: '68c19570541d89c481b83275'
+  name: Drenaggio Acido
+  description: |-
+    Crea una pozzanghera acida sul terreno che rallenta e danneggia chiunque vi stia sopra.
+  useType: control
+  energyDamage:
+    type: acid
+    power: 450
+  requiredLearnTime: 60000
+  minXpToLearn: 9000
+  recoveryTime: 15000
+  maxUsages: 4
+- id: '68c19570541d89c481b83276'
+  name: Nebbia Velenosa
+  description: |-
+    Una densa nebbia velenosa che ostruisce la vista e infligge danni da veleno graduali.
+  useType: control
+  energyDamage:
+    type: poison
+    power: 550
+  requiredLearnTime: 75000
+  minXpToLearn: 11000
+  recoveryTime: 17000
+  maxUsages: 3
+- id: '68c19570541d89c481b83277'
+  name: Barriera sonora
+  description: |-
+    Con un rombo violento crea un muro d'aria, comprimendola con il suono. Respinge i nemici che tentano di attraversarlo.
+  useType: control
+  energyDamage:
+    type: thunder
+    power: 800
+  requiredLearnTime: 110000
+  minXpToLearn: 16000
+  recoveryTime: 28000
+  maxUsages: 2
+- id: '68c19570541d89c481b83278'
+  name: Luce Disorientante
+  description: |-
+    Un lampo di luce Radiosa che acceca temporaneamente i nemici in un'ampia area.
+  useType: control
+  energyDamage:
+    type: radiant
+    power: 600
+  requiredLearnTime: 85000
+  minXpToLearn: 12000
+  recoveryTime: 20000
+  maxUsages: 3
+- id: '68c19570541d89c481b83279'
+  name: Anello infuocato
+  description: |-
+    Crea un anello di fuoco a bassa intensità attorno a punti specifici dell'avversario, senza infliggere danno significativo, ma impedendo i movimenti.
+  useType: control
+  energyDamage:
+    type: fire
+    power: 750
+  requiredLearnTime: 105000
+  minXpToLearn: 15000
+  recoveryTime: 26000
+  maxUsages: 2
+- id: '68c19570541d89c481b8327a'
+  name: Cella Necrotica
+  description: |-
+    Un sigillo magico oscuro viene impresso sull'avversario, immobilizzandolo e prosciugandone lentamente le forze.
+  useType: control
+  energyDamage:
+    type: necrotic
+    power: 900
+  requiredLearnTime: 125000
+  minXpToLearn: 18000
+  recoveryTime: 35000
+  maxUsages: 1
+- id: '68c19570541d89c481b8327b'
+  name: Controllo Psichico
+  description: |-
+    Prende il controllo dell'avversario per un breve periodo. Più il nemico è indebolito, più la magia ha effetto.
+  useType: control
+  energyDamage:
+    type: psychic
+    power: 850
+  requiredLearnTime: 115000
+  minXpToLearn: 17000
+  recoveryTime: 28000
+  maxUsages: 2
+- id: '68c19570541d89c481b8329d'
+  name: Maledizione
+  description: |-
+    Con un marchio impresso sul corpo, il bersaglio perde gradualmente il controllo dei propri movimenti, diventando un burattino dell'utilizzatore per un breve periodo di tempo.
+  useType: control
+  energyDamage:
+    type: necrotic
+    power: 2000
+  requiredLearnTime: 170000
+  minXpToLearn: 45000
+  recoveryTime: 35000
+  maxUsages: 1
+- id: '68c19570541d89c481b8329e'
+  name: Pietrificazione
+  description: |-
+    Trasforma temporaneamente i tessuti di un bersaglio in pietra, limitandone o bloccandone i movimenti
+  useType: control
+  energyDamage:
+    type: force
+    power: 1500
+  requiredLearnTime: 200000
+  minXpToLearn: 30000
+  recoveryTime: 50000
+  maxUsages: 1
+- id: '68c19570541d89c981b83280'
+  name: Ipnosi di Massa
+  description: |-
+    Sottomette un ampio gruppo di creature all'assoluto controllo dell'incantatore per un periodo, rendendole alleate involontarie e perfette guardie del corpo.
+  useType: control
+  energyDamage:
+    type: psychic
+    power: 2000
+  requiredLearnTime: 70000
+  minXpToLearn: 33000
+  recoveryTime: 90000
+  maxUsages: 2

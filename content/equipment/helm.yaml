@@ -1,0 +1,416 @@
+# Esportato da --export il 2026-11-02: da qui in poi il file è la fonte di verità (D-04)
+
+- id: '68c19536541d89c481b8324c'
+  name: Elmo di ferro anti-acido
+  itemType: EquipmentItem
+  description: |-
+    Un elmo di ferro comune, ma al cui interno sono state poste delle rune per proteggere dall'acido.  
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 90
+  buyPrice:
+    gold: 0
+    silver: 2
+    copper: 30
+  rarity: rare
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 1000
+      - type: blunt
+        power: 1000
+    energy:
+      - type: acid
+        power: 500
+  sellable: true
+- id: '68c19536541d89c481b83255'
+  name: Elmo di ossidiana
+  itemType: EquipmentItem
+  description: |-
+    Un elmo nero e resistente, nonostante il materiale solitamente fragile con cui è stato fatto.
+  sellPrice:
+    gold: 100
+    silver: 90
+    copper: 90
+  buyPrice:
+    gold: 0
+    silver: 5
+    copper: 65
+  rarity: rare
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 1000
+      - type: pierce
+        power: 1000
+      - type: cut
+        power: 1000
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83256'
+  name: Elmo di cuoio grezzo
+  itemType: EquipmentItem
+  description: |-
+    Un cappuccio di cuoio appena conciato. Offre una protezione minima contro i colpi più leggeri.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 5
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 15
+  rarity: common
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 250
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83257'
+  name: Cuffia imbottita
+  itemType: EquipmentItem
+  description: |-
+    Una cuffia in stoffa che aiuta ad attutire i colpi contundenti. Non è una vera armatura, ma è comoda.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 4
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 10
+  rarity: common
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 200
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83258'
+  name: Elmo di ferro leggero
+  itemType: EquipmentItem
+  description: |-
+    Un elmo standard per la fanteria, con una runa che protegge leggermente dal calore.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 12
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 30
+  rarity: common
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 450
+      - type: pierce
+        power: 400
+    energy:
+      - type: fire
+        power: 50
+  sellable: true
+- id: '68c19536541d89c481b83259'
+  name: Elmo in maglia anti-tuono
+  itemType: EquipmentItem
+  description: |-
+    Un elmo di maglia forgiato per attutire i colpi e deviare le onde d'urto del tuono.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 45
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 85
+  rarity: uncommon
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 800
+    energy:
+      - type: thunder
+        power: 200
+  sellable: true
+- id: '68c19536541d89c481b8325a'
+  name: Elmo da cavaliere
+  itemType: EquipmentItem
+  description: |-
+    Elmo pesante e ben equilibrato, utilizzato dalla bassa nobiltà in battaglia.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 60
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 20
+  rarity: uncommon
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 900
+      - type: pierce
+        power: 900
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b8325b'
+  name: Cresta di falco
+  itemType: EquipmentItem
+  description: |-
+    Un elmo leggero e aerodinamico che offre un'ottima resistenza alle cariche elettriche.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 50
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 95
+  rarity: uncommon
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 750
+    energy:
+      - type: lightning
+        power: 300
+  sellable: true
+- id: '68c19536541d89c481b8325c'
+  name: Elmo del Guardiano di Ghiaccio
+  itemType: EquipmentItem
+  description: |-
+    Un elmo di acciaio, decorato con cristalli di ghiaccio perenne, che protegge dal freddo e che permette a chi lo indossa di scagliare magie di ghiaccio.
+  sellPrice:
+    gold: 0
+    silver: 3
+    copper: 80
+  buyPrice:
+    gold: 0
+    silver: 7
+    copper: 50
+  rarity: rare
+  equipType: helm
+  addedSpell: null # corretto in 11-12: la magia 68c19570541d89c481b8325a non esiste a DB (riferimento pendente)
+  damages:
+    base:
+      - type: blunt
+        power: 1200
+    energy:
+      - type: cold
+        power: 600
+  sellable: true
+- id: '68c19536541d89c481b8325d'
+  name: Diadema Psichico
+  itemType: EquipmentItem
+  description: |-
+    Una sottile fascia che canalizza l'energia mentale, fornendo un'ottima resistenza agli attacchi psichici.
+  sellPrice:
+    gold: 0
+    silver: 2
+    copper: 50
+  buyPrice:
+    gold: 0
+    silver: 6
+    copper: 0
+  rarity: rare
+  equipType: helm
+  addedSpell: null
+  damages:
+    base: []
+    energy:
+      - type: psychic
+        power: 550
+  sellable: true
+- id: '68c19536541d89c481b8325e'
+  name: Elmo da Guerra Pesante
+  itemType: EquipmentItem
+  description: |-
+    Massiccio elmo da battaglia, quasi a prova di qualsiasi arma da taglio e contundente.
+  sellPrice:
+    gold: 0
+    silver: 2
+    copper: 80
+  buyPrice:
+    gold: 0
+    silver: 5
+    copper: 90
+  rarity: rare
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 1500
+      - type: blunt
+        power: 1000
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b8325f'
+  name: Corona dei Saggi
+  itemType: EquipmentItem
+  description: |-
+    Una corona d'oro incantata che potenzia la mente, l'intuito e la vista di chi la indossa.
+  sellPrice:
+    gold: 0
+    silver: 7
+    copper: 50
+  buyPrice:
+    gold: 1
+    silver: 5
+    copper: 0
+  rarity: ultrarare
+  equipType: helm
+  addedSpell: '68c19570541d89c481b83258' # Scurovisione
+  damages:
+    base: []
+    energy:
+      - type: enhancing
+        power: 1000
+      - type: radiant
+        power: 800
+  sellable: true
+- id: '68c19536541d89c481b83260'
+  name: Elmo del Cacciatore
+  itemType: EquipmentItem
+  description: |-
+    Elmo leggero con visiera a forma di teschio, forgiato con l'osso di una bestia. Ottima resistenza ai danni perforanti.
+  sellPrice:
+    gold: 0
+    silver: 4
+    copper: 80
+  buyPrice:
+    gold: 0
+    silver: 9
+    copper: 50
+  rarity: ultrarare
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 2000
+    energy:
+      - type: necrotic
+        power: 650
+  sellable: true
+- id: '68c19536541d89c481b83261'
+  name: Maschera Tonante
+  itemType: EquipmentItem
+  description: |-
+    Forgiato per resistere alle onde d'urto e alle lame più affilate. Un vero capolavoro di forgiatura.
+  sellPrice:
+    gold: 0
+    silver: 4
+    copper: 50
+  buyPrice:
+    gold: 0
+    silver: 9
+    copper: 0
+  rarity: ultrarare
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 1800
+    energy:
+      - type: thunder
+        power: 900
+  sellable: true
+- id: '68c19536541d89c481b83262'
+  name: Elmo del Drago Ancestrale
+  itemType: EquipmentItem
+  description: |-
+    Forgiato con le scaglie di un Drago Rosso, che danno a chi lo indossa il suo potere. Resistenza al calore quasi totale.
+  sellPrice:
+    gold: 3
+    silver: 0
+    copper: 0
+  buyPrice:
+    gold: 6
+    silver: 0
+    copper: 0
+  rarity: legendary
+  equipType: helm
+  addedSpell: '68c19570541d89c481b83259' # Palla di fuoco
+  damages:
+    base:
+      - type: blunt
+        power: 4000
+      - type: cut
+        power: 3500
+    energy:
+      - type: fire
+        power: 2000
+  sellable: false
+- id: '68c19536541d89c481b83263'
+  name: Casco dell'Eroe Caduto
+  itemType: EquipmentItem
+  description: |-
+    Una volta appartenuto ad un eroe leggendario. Offre una protezione fisica e magica senza pari.
+  sellPrice:
+    gold: 2
+    silver: 75
+    copper: 0
+  buyPrice:
+    gold: 5
+    silver: 50
+    copper: 0
+  rarity: legendary
+  equipType: helm
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 3000
+      - type: pierce
+        power: 3000
+      - type: cut
+        power: 3000
+    energy:
+      - type: force
+        power: 1500
+  sellable: false
+- id: '68c19536541d89c481b83264'
+  name: Corona della Furia
+  itemType: EquipmentItem
+  description: |-
+    Un artefatto maledetto. Non offre protezione fisica, ma rende quasi immuni alle energie della vita e della morte.
+  sellPrice:
+    gold: 3
+    silver: 50
+    copper: 0
+  buyPrice:
+    gold: 7
+    silver: 0
+    copper: 0
+  rarity: legendary
+  equipType: helm
+  addedSpell: null
+  damages:
+    base: []
+    energy:
+      - type: necrotic
+        power: 3000
+      - type: radiant
+        power: 2500
+  sellable: false

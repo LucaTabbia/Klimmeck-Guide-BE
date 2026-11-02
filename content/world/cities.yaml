@@ -1,0 +1,2930 @@
+# Esportato da --export il 2026-11-02: da qui in poi il file è la fonte di verità (D-04)
+
+- id: '690961bf3ed284bbb23a15b6'
+  name: Balkuldir
+  type: aarakocraVillage
+  markerLocation: '690961bf5682ae40edbedc2d' # Balkuldir — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bf5682ae40edbedc2d'
+      type: [city]
+      location: [37.44297607127095, -39.09794425133252]
+    - id: '690e41866e57dea679a38638'
+      type: [dungeon, mountainLamstone]
+      location: [34.87608, -40.594234]
+    - id: '690e4186d1a98dad553e6f20'
+      type: [dungeon, undergroundLamstone]
+      location: [40.380301, -39.681294]
+- id: '690961bfe74c2f6dfc837d8f'
+  name: Murnborim
+  type: aarakocraVillage
+  markerLocation: '690961bfabeaf982e2d601cc' # Murnborim — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bfabeaf982e2d601cc'
+      type: [city]
+      location: [60.28344598083004, -21.121648489179513]
+    - id: '690e4186527ba30837b1af67'
+      type: [ruins, undergroundLamstone]
+      location: [59.357457, -18.291483]
+    - id: '690e41865ecfecebe04dc876'
+      type: [farNorth, mountainLamstone]
+      location: [60.047538, -23.066619]
+    - id: '690e4186db86a89e6d59fe48'
+      type: [farNorth]
+      location: [66.086157, -21.500636]
+- id: '690961bf31795cde80768bc7'
+  name: Thengran
+  type: aarakocraVillage
+  markerLocation: '690961bf1f44a991a2e09f92' # Thengran — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bf1f44a991a2e09f92'
+      type: [city]
+      location: [52.66995601097702, -26.052289612512908]
+    - id: '690e4186c9850606e2b7e9bc'
+      type: [farNorth, mountainLamstone]
+      location: [56.765224, -25.56615]
+    - id: '690e4186fd48144fb32cb934'
+      type: [farNorth, mountainLamstone]
+      location: [48.782854, -26.634473]
+- id: '690962040ba4d7934a8a59a0'
+  name: Adehr
+  type: desertVillage
+  markerLocation: '69096204bc51c49274d4ec9e' # Adehr — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204bc51c49274d4ec9e'
+      type: [city]
+      location: [-53.79341325563512, 15.943035455763592]
+    - id: '690e41865511ef13f427f49f'
+      type: [ruins, desert]
+      location: [-52.652201, 19.281685]
+    - id: '690e4186d4453948a80e4a34'
+      type: [desert]
+      location: [-57.868649, 20.088944]
+    - id: '690e4186dfbec381bda64138'
+      type: [oasis]
+      location: [-52.120181, 15.5707]
+- id: '6909620412ed8a8e5c412c58'
+  name: Arbisrah
+  type: desertVillage
+  markerLocation: '69096204c1dd085bff5a9f68' # Arbisrah — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204c1dd085bff5a9f68'
+      type: [city]
+      location: [-43.20421527239309, 10.208000795813048]
+    - id: '690e418621c73b644ef59105'
+      type: [dungeon, desert]
+      location: [-40.215216, 9.734864]
+    - id: '690e41862c8f5bbaa034e316'
+      type: [oasis]
+      location: [-42.513562, 9.028769]
+- id: '6909620438e7bde89092474e'
+  name: Hiorgen
+  type: desertVillage
+  markerLocation: '690962042dc19af413af8a9d' # Hiorgen — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690962042dc19af413af8a9d'
+      type: [city]
+      location: [-43.110505555727244, 1.2160328721868858]
+    - id: '690e4186369b4385d1aaea87'
+      type: [oasis]
+      location: [-41.570581, 0.070449]
+    - id: '690e41866fea99f6d3ce0fa4'
+      type: [ruins, desert]
+      location: [-51.215107, -0.68151]
+    - id: '690e4186931d631db407e07f'
+      type: [dungeon, desert]
+      location: [-47.317573, -2.429811]
+- id: '6909620496b6d2faac014169'
+  name: Pinatlu
+  type: desertVillage
+  markerLocation: '6909620490c3788dde199708' # Pinatlu — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909620490c3788dde199708'
+      type: [city]
+      location: [-55.292768722288855, -4.44819889072723]
+    - id: '690e418646016b427899b02d'
+      type: [oasis]
+      location: [-54.936939, -3.281922]
+    - id: '690e41864da7fc351980c536'
+      type: [dungeon, valanPlains]
+      location: [-51.322093, -9.683283]
+    - id: '690e4186621898a987ec266a'
+      type: [desert]
+      location: [-59.784316, -6.207942]
+    - id: '690e4186c58eae051377c59e'
+      type: [ruins, desert]
+      location: [-64.895905, -5.594412]
+- id: '690962041becd7b75e22f8ef'
+  name: Shadmus
+  type: desertVillage
+  markerLocation: '69096204a0f22028651a2a5b' # Shadmus — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204a0f22028651a2a5b'
+      type: [city]
+      location: [-47.421152522356735, 8.862745752120944]
+    - id: '690e418616f515ca6ae80d9f'
+      type: [desert]
+      location: [-51.773344, 9.988153]
+    - id: '690e418624ce28d3e8902451'
+      type: [oasis]
+      location: [-45.519314, 8.910897]
+- id: '69096204f349d6ebefd4f67e'
+  name: Shibirm
+  type: desertVillage
+  markerLocation: '69096204f5a5d66a0817bf8c' # Shibirm — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204f5a5d66a0817bf8c'
+      type: [city]
+      location: [-52.200348072315506, 6.136834216218528]
+    - id: '690e41868be28dbeec240085'
+      type: [ruins, oasis]
+      location: [-52.927215, 4.329539]
+- id: '6909620476ef1b589f98d6a0'
+  name: Unaicca
+  type: desertVillage
+  markerLocation: '69096204483ab65d20a31f07' # Unaicca — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204483ab65d20a31f07'
+      type: [city]
+      location: [-48.077120539017734, 3.3755212317978938]
+    - id: '690e4186bbdfd180defc79fc'
+      type: [oasis]
+      location: [-47.81783, 4.844291]
+    - id: '690e4186e00060682e37df2e'
+      type: [ruins, desert]
+      location: [-40.99153, 5.029754]
+- id: '690961441da6560208813509'
+  name: Cliffbreak
+  type: drusteaCapital
+  markerLocation: '69096144833eac44c5fd5aff' # Cliffbreak — POI city
+  relatedLore: '68c19213541d89c481b83230' # Cliffbreak
+  pointsOfInterest:
+    - id: '69096144833eac44c5fd5aff'
+      type: [city]
+      location: [38.212440566372834, -21.90117540139988]
+    - id: '690e41868bec94708dfb4304'
+      type: [graveyard, hills]
+      location: [44.152202, -22.420031]
+    - id: '690e41869b3f72caf89369dd'
+      type: [drusteaPlains]
+      location: [38.624569, -18.670371]
+    - id: '690e4186d4ded0d4ba74fa7e'
+      type: [demonicPortal, hills]
+      location: [45.714577, -11.454577]
+- id: '690961442c1728bfb98d4e77'
+  name: Atheland
+  type: drusteaCity
+  markerLocation: '6909614432ba5240fa8854f9' # Atheland — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909614432ba5240fa8854f9'
+      type: [city]
+      location: [19.36169861914446, -41.0742647355948]
+    - id: '690e4186e0fc3b0868bcc191'
+      type: [drusteaPlains]
+      location: [21.070377, -40.328806]
+    - id: '690e4186e74fd28b895b34a2'
+      type: [demonicPortal, drusteaPlains]
+      location: [18.479758, -46.117074]
+- id: '69096144adc6e1cac718070e'
+  name: Daracre
+  type: drusteaCity
+  markerLocation: '69096144914c285129a7d8f6' # Daracre — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144914c285129a7d8f6'
+      type: [city]
+      location: [11.920325594502442, -40.654684830391105]
+    - id: '690e418679b7f72e5bcd9b5d'
+      type: [drusteaPlains]
+      location: [8.013464, -41.602903]
+    - id: '690e41867c953cdb062bf7a9'
+      type: [drusteaPlains]
+      location: [8.954217, -45.15686]
+- id: '69096144ac4064d20609d33e'
+  name: Gran Porto
+  type: drusteaCity
+  markerLocation: '69096144e9b6fbad4df71788' # Gran Porto — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144e9b6fbad4df71788'
+      type: [city]
+      location: [34.83850274614297, -1.958290887980567]
+    - id: '690e418633ae8e6760bc5c00'
+      type: [hills]
+      location: [40.351093, -5.721443]
+    - id: '690e418653318af8c40224a4'
+      type: [dungeon, hills]
+      location: [44.115614, -2.949897]
+- id: '690961442c2d2eaf2a67aac3'
+  name: Qey
+  type: drusteaCity
+  markerLocation: '69096144379f29831f6cdfd6' # Qey — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144379f29831f6cdfd6'
+      type: [city]
+      location: [48.79025619137803, 17.000412268452404]
+    - id: '690e4186aaf55a6c08af2bd0'
+      type: [drusteaPlains]
+      location: [46.3076, 19.226827]
+- id: '69096144c3132e8680ab7d44'
+  name: Tipus
+  type: drusteaCity
+  markerLocation: '69096144f2b6cfaef189243b' # Tipus — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144f2b6cfaef189243b'
+      type: [city]
+      location: [1.3691250371741719, -53.91340983482792]
+    - id: '690e41865cd7ce67b1205aec'
+      type: [graveyard, drusteaPlains]
+      location: [-3.379824, -52.560785]
+    - id: '690e41867edf34f11df47bb0'
+      type: [drusteaPlains]
+      location: [-1.336915, -55.446014]
+- id: '69096144ee4c065469c33d14'
+  name: Ufragos
+  type: drusteaCity
+  markerLocation: '69096144a9865866cc2c7970' # Ufragos — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144a9865866cc2c7970'
+      type: [city]
+      location: [47.55927256885872, 6.3432855364564915]
+    - id: '690e41867176329c98135a62'
+      type: [drusteaPlains]
+      location: [49.846974, 8.436053]
+    - id: '690e41869a01e68a7609ceda'
+      type: [drusteaPlains]
+      location: [48.02375, 1.951341]
+- id: '690961449c5c0d38e2623359'
+  name: Blu Maggiore
+  type: drusteaSeaCity
+  markerLocation: '6909614459f9d63b052fdfd4' # Blu Maggiore — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909614459f9d63b052fdfd4'
+      type: [city]
+      location: [53.91935461854183, 21.108250208785368]
+    - id: '690e41862c8ce593dcae245c'
+      type: [drusteaPlains]
+      location: [54.163284, 19.313153]
+    - id: '690e4186ae340b0aef46c5d5'
+      type: [drusteaPlains]
+      location: [52.196069, 20.60048]
+    - id: '690e446a7da2211590456a38'
+      type: [delants]
+      location: [61.589976, 34.803169]
+- id: '69096144e2b52f8a40351db7'
+  name: Blu Minore
+  type: drusteaSeaCity
+  markerLocation: '690961444394246e372b0828' # Blu Minore — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961444394246e372b0828'
+      type: [city]
+      location: [49.405748002637694, 21.844560782995995]
+    - id: '690e41864ebf91ef09fa314d'
+      type: [drusteaPlains]
+      location: [50.665552, 20.919338]
+    - id: '690e418669c5575c5b186f23'
+      type: [drusteaPlains]
+      location: [47.343515, 21.557634]
+    - id: '690e446af9437e0a90c107d9'
+      type: [delants]
+      location: [75.847895, 53.685279]
+- id: '69096144ecffa06bbd1acbc5'
+  name: Portonuovo
+  type: drusteaSeaCity
+  markerLocation: '69096144d5e7eadfa96c2fdd' # Portonuovo — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144d5e7eadfa96c2fdd'
+      type: [city]
+      location: [43.148247921497834, 24.7898030798385]
+    - id: '690e41869cf34adba638b5d6'
+      type: [battleground, drusteaPlains]
+      location: [41.805198, 19.09429]
+    - id: '690e4186eec96712311fed56'
+      type: [drusteaPlains]
+      location: [41.991291, 20.867024]
+    - id: '690e446ac31a005bfdc856d8'
+      type: [delants]
+      location: [30.762041, 28.637582]
+- id: '690961448594d91715e9964d'
+  name: Brurora
+  type: drusteaVillage
+  markerLocation: '6909614481c4a5dc726e28f6' # Brurora — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909614481c4a5dc726e28f6'
+      type: [city]
+      location: [23.80430938012478, -24.584774461089523]
+    - id: '690e4186240a54052c51ece1'
+      type: [hills, forest]
+      location: [21.790962, -18.843024]
+    - id: '690e41866738c4cf9ca79cc2'
+      type: [battleground, drusteaPlains]
+      location: [25.458033, -24.157583]
+    - id: '690e4186920e2ad9000cb30a'
+      type: [hills]
+      location: [27.574817, -20.569548]
+- id: '69096144db34484954cb701a'
+  name: Elessa
+  type: drusteaVillage
+  markerLocation: '69096144914d407f2228dfa1' # Elessa — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144914d407f2228dfa1'
+      type: [city]
+      location: [43.968903669844046, 8.668476823437414]
+    - id: '690e4186715603c3a1b0f84a'
+      type: [battleground, drusteaPlains]
+      location: [42.656613, 5.131087]
+    - id: '690e4186a0954ad4b6e1f46a'
+      type: [drusteaPlains]
+      location: [39.142527, 6.968507]
+- id: '69096144f470c7c708d20ac4'
+  name: Flevale
+  type: drusteaVillage
+  markerLocation: '69096144d874a2ac8a7b8af5' # Flevale — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144d874a2ac8a7b8af5'
+      type: [city]
+      location: [36.172674060555096, 20.023160941527603]
+    - id: '690e4186377008dfcfc2e337'
+      type: [forest]
+      location: [38.451917, 23.111505]
+    - id: '690e4186fe8804a5c36edd64'
+      type: [drusteaPlains]
+      location: [36.081175, 22.708231]
+- id: '6909614456907fc49cf2a80e'
+  name: Flinas
+  type: drusteaVillage
+  markerLocation: '6909614400c40079d893f8f9' # Flinas — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909614400c40079d893f8f9'
+      type: [city]
+      location: [36.19369678953966, -16.843690992070457]
+    - id: '690e41865e82787cad2ab3f5'
+      type: [demonicPortal, hills]
+      location: [33.128789, -13.517821]
+    - id: '690e41869427b043216f3465'
+      type: [hills]
+      location: [36.898046, -9.692447]
+- id: '69096144f36d66255e129942'
+  name: Gemsall
+  type: drusteaVillage
+  markerLocation: '69096144ada2becbe78c2e79' # Gemsall — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144ada2becbe78c2e79'
+      type: [city]
+      location: [45.71279713507976, 12.001251001443409]
+    - id: '690e418666545cabd2153791'
+      type: [drusteaPlains]
+      location: [43.770978, 15.67577]
+    - id: '690e4186ade74b68e2c2b2c3'
+      type: [drusteaPlains]
+      location: [42.6819, 10.939512]
+- id: '6909614432d1be27c081fa30'
+  name: Grens
+  type: drusteaVillage
+  markerLocation: '690961442260ed4094e079f8' # Grens — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961442260ed4094e079f8'
+      type: [city]
+      location: [25.359223146467897, -28.864489494167227]
+    - id: '690e418667c731d700fe881e'
+      type: [graveyard, drusteaPlains]
+      location: [23.327234, -35.167253]
+    - id: '690e4186a9582b5771c3df22'
+      type: [drusteaPlains]
+      location: [25.416662, -31.532974]
+- id: '69096144010ae1b15a31815c'
+  name: Rivalago
+  type: drusteaVillage
+  markerLocation: '690961441817daeeb3839adf' # Rivalago — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961441817daeeb3839adf'
+      type: [city]
+      location: [17.47358904572783, -25.843514176700612]
+    - id: '690e418665f2f32eb68b5934'
+      type: [drusteaPlains]
+      location: [12.985691, -27.820948]
+    - id: '690e418675b0fa9e388dc3f5'
+      type: [ruins, drusteaPlains]
+      location: [16.135293, -21.273306]
+    - id: '690e418688c52ff52d77a25f'
+      type: [dungeon, drusteaPlains]
+      location: [14.919807, -33.089629]
+- id: '69096144d80073c7abaa3b2f'
+  name: Shando
+  type: drusteaVillage
+  markerLocation: '6909614490e0792be836bd48' # Shando — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909614490e0792be836bd48'
+      type: [city]
+      location: [8.921563330840726, -57.857460943742666]
+    - id: '690e4186105a8d63bf950e2f'
+      type: [swamp]
+      location: [-0.455391, -63.474369]
+    - id: '690e41863ad56637d5bd6fc3'
+      type: [ruins, swamp]
+      location: [0.702122, -64.71329]
+    - id: '690e41865e2896a34682ff65'
+      type: [swamp]
+      location: [-6.750063, -62.715436]
+    - id: '690e4186723f9c7a9a2145fe'
+      type: [swamp]
+      location: [1.955335, -66.777955]
+    - id: '690e41867cd7abc011a0c277'
+      type: [swamp]
+      location: [4.589276, -67.71546]
+    - id: '690e418690309049166571b0'
+      type: [dungeon, swamp]
+      location: [1.221899, -68.948725]
+    - id: '690e41869587a5322ced8299'
+      type: [ruins, drusteaPlains]
+      location: [6.576823, -63.717374]
+    - id: '690e418697533be895bd1a53'
+      type: [swamp]
+      location: [-5.767915, -66.510097]
+    - id: '690e4186c1285d0fdc5b9b2b'
+      type: [battleground, drusteaPlains]
+      location: [2.29955, -58.725026]
+    - id: '690e4186f72b0943f9f3775e'
+      type: [swamp]
+      location: [-2.553615, -67.938675]
+- id: '69096144902a71fd8fcc3936'
+  name: Ulby
+  type: drusteaVillage
+  markerLocation: '69096144a6d7f8bcce8045b5' # Ulby — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144a6d7f8bcce8045b5'
+      type: [city]
+      location: [12.808847746698488, -51.73159432776869]
+    - id: '690e41866fbe0d521e2b7345'
+      type: [battleground, drusteaPlains]
+      location: [11.835396, -54.808518]
+    - id: '690e4186e26d8fd13e145211'
+      type: [ruins, drusteaPlains]
+      location: [6.923518, -49.372789]
+- id: '69096144345e5766d2f91019'
+  name: Umale
+  type: drusteaVillage
+  markerLocation: '69096144986275dcdc8de7dd' # Umale — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144986275dcdc8de7dd'
+      type: [city]
+      location: [52.17546115330617, 13.822650842911802]
+    - id: '690e41863a0d3c073b37ca7c'
+      type: [graveyard, drusteaPlains]
+      location: [49.563034, 11.847836]
+    - id: '690e4186e9a1ee5a6582445d'
+      type: [ruins, drusteaPlains]
+      location: [54.365296, 15.693243]
+- id: '690961448b446b9b571f6ccc'
+  name: Vindence
+  type: drusteaVillage
+  markerLocation: '69096144c5a23ba77700943c' # Vindence — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144c5a23ba77700943c'
+      type: [city]
+      location: [-0.6300498052669639, -46.444887522202116]
+    - id: '690e4186c1d6bfca086e06dd'
+      type: [graveyard, forest]
+      location: [4.53573, -44.087743]
+- id: '690961616159200a6c344d95'
+  name: Ko Shaeras
+  type: elfCapital
+  markerLocation: '69096161c36a101f12da079e' # Ko Shaeras — POI city
+  relatedLore: '68fd6e8b929ce8c0050b1764' # Ko Shaeras
+  pointsOfInterest:
+    - id: '69096161c36a101f12da079e'
+      type: [city]
+      location: [21.338217054087636, 4.06228122527785]
+    - id: '690e41866926ad1741d02451'
+      type: [demonicPortal, minnelyForest]
+      location: [20.02719, 8.558889]
+    - id: '690e4186b99bf26b77708bc8'
+      type: [ruins, minnelyForest]
+      location: [21.767601, -0.386832]
+- id: '69096178e1a627d12ebf405e'
+  name: Ferrion
+  type: ferrionCity
+  markerLocation: '690961789e6b88d2665157a8' # Ferrion — POI city
+  relatedLore: '68c19213541d89c481b83232' # Ferrion
+  pointsOfInterest:
+    - id: '690961789e6b88d2665157a8'
+      type: [city]
+      location: [69.0656760926556, 31.31585747145444]
+    - id: '690e4186140d2c1a32d450c3'
+      type: [graveyard, harkenIsland, farNorth]
+      location: [68.265802, 30.349287]
+    - id: '690e4186151e25c15030ce2f'
+      type: [farNorth, harkenIsland]
+      location: [70.930875, 31.180143]
+    - id: '690e41862a154230bfa4ec30'
+      type: [farNorth, harkenIsland]
+      location: [73.177841, 18.09157]
+    - id: '690e418632201e43e0621f48'
+      type: [farNorth, harkenIsland]
+      location: [62.336233, 24.720118]
+    - id: '690e418656b217ff8201b102'
+      type: [ruins, farNorth, harkenIsland]
+      location: [69.508079, 19.206106]
+    - id: '690e41866e07e31bb04ca177'
+      type: [farNorth, harkenIsland, forest]
+      location: [74.80689, 31.966581]
+    - id: '690e4186c23eec4cfe2602ed'
+      type: [dungeon, farNorth]
+      location: [72.718708, 27.424039]
+    - id: '690e4186d42046a44eee6552'
+      type: [farNorth, harkenIsland]
+      location: [67.335731, 27.922044]
+    - id: '690e4186f32d4859391b1f3f'
+      type: [dungeon, harkenIsland]
+      location: [62.062705, 25.362143]
+    - id: '690e4186f5a3af871d1775ab'
+      type: [farNorth, harkenIsland]
+      location: [72.054358, 26.630039]
+    - id: '690e4186f6c1f65a24916e16'
+      type: [farNorth, harkenIsland]
+      location: [68.459214, 22.866372]
+    - id: '690e4186fc40288606b622ab'
+      type: [farNorth, harkenIsland]
+      location: [68.862605, 18.559545]
+- id: '690961f209cf5f26988106f4'
+  name: Virnen
+  type: flameCenterCapital
+  markerLocation: '690961f2d679fbb6d9e42032' # Virnen — POI city
+  relatedLore: '68c19213541d89c481b83237' # Virnen
+  pointsOfInterest:
+    - id: '690961f2d679fbb6d9e42032'
+      type: [city]
+      location: [-55.59276814335506, 70.31261561267438]
+    - id: '690e418653da8c75cc5e9bb6'
+      type: [dungeon, belleholmIsland]
+      location: [-58.355199, 66.754269]
+    - id: '690e4186d6619d17fc3d9cbb'
+      type: [belleholmLake]
+      location: [-59.460638, 64.259392]
+    - id: '690e4186d992f20141d57fe4'
+      type: [vulcano, belleholmIsland]
+      location: [-55.470448, 64.208126]
+    - id: '690e4186f1ddd7277a227969'
+      type: [ruins, belleholmIsland]
+      location: [-59.784101, 70.508279]
+- id: '690961f2475e9937b4cea9eb'
+  name: Danmil Urvyn
+  type: flameCity
+  markerLocation: '690961f236b8c0a4337ebb25' # Danmil Urvyn — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f236b8c0a4337ebb25'
+      type: [city]
+      location: [-34.821652133962516, 59.871221274619536]
+    - id: '690e4186bbe45b924b0d9b58'
+      type: [dungeon, belleholmIsland]
+      location: [-35.828849, 54.191496]
+    - id: '690e4186c75ef75826bf4a9b'
+      type: [delants]
+      location: [-32.595628, 55.205359]
+    - id: '690e4186d20b7b437dd45099'
+      type: [belleholmIsland]
+      location: [-33.317269, 62.241567]
+- id: '690961f220b335bdbc8e5e30'
+  name: Fiumelento
+  type: flameCity
+  markerLocation: '690961f24ceb75419aa4baca' # Fiumelento — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f24ceb75419aa4baca'
+      type: [city]
+      location: [-47.552336139719245, 70.12277207925521]
+    - id: '690e41865b17519410f9b434'
+      type: [forest, belleholmIsland]
+      location: [-50.729971, 66.19084]
+    - id: '690e4186f8fadd76b8b2b2e0'
+      type: [demonicPortal, belleholmIsland]
+      location: [-49.939048, 63.032414]
+- id: '690961f2fb45f73a8ff880d6'
+  name: Gurlaid
+  type: flameCity
+  markerLocation: '690961f210993c82b04a5d0c' # Gurlaid — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f210993c82b04a5d0c'
+      type: [city]
+      location: [-22.7610041285088, 76.32432750428171]
+    - id: '690e41863463dacfd6a34acf'
+      type: [battleground, belleholmIsland]
+      location: [-17.99074, 74.581454]
+    - id: '690e41865d673054f2552d0d'
+      type: [ruins, forest, belleholmIsland]
+      location: [-23.66279, 72.029177]
+    - id: '690e4186c86481b56cef99e6'
+      type: [delants]
+      location: [-17.001186, 79.811201]
+- id: '690961f290dcda622c67760d'
+  name: Oldcairn
+  type: flameCity
+  markerLocation: '690961f244b5d4402e07e559' # Oldcairn — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f244b5d4402e07e559'
+      type: [city]
+      location: [-43.53212013790134, 85.12041121937035]
+    - id: '690e41868d3325c90413a2f1'
+      type: [forest, belleholmIsland]
+      location: [-46.062649, 87.463058]
+    - id: '690e4186d14f80be40ec2890'
+      type: [delants]
+      location: [-41.481725, 87.313542]
+- id: '690961f298baaf7f7be10dd1'
+  name: Pianecalde
+  type: flameCity
+  markerLocation: '690961f2c610804d35abca22' # Pianecalde — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2c610804d35abca22'
+      type: [city]
+      location: [-65.8108171479756, 56.64388120649348]
+    - id: '690e418645064ac53581456e'
+      type: [belleholmLake]
+      location: [-66.919072, 51.89131]
+    - id: '690e4186477fbde00a7c7a79'
+      type: [vulcano, belleholmIsland]
+      location: [-60.13246, 58.630361]
+    - id: '690e41864ef098e4777071d4'
+      type: [forest, belleholmIsland]
+      location: [-63.011319, 61.497869]
+    - id: '690e41868744fac75cc48d4a'
+      type: [belleholmIsland]
+      location: [-63.434799, 55.794993]
+- id: '690961f2d81d34e19cb510e7'
+  name: Pinecrest
+  type: flameCity
+  markerLocation: '690961f2b9caa75b94e78033' # Pinecrest — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2b9caa75b94e78033'
+      type: [city]
+      location: [-51.622976707202554, 90.16128588430972]
+    - id: '690e41863d488640979390ab'
+      type: [belleholmIsland]
+      location: [-51.024298, 87.189567]
+    - id: '690e4186aa0e5ef84f40d2a8'
+      type: [belleholmIsland]
+      location: [-53.558574, 92.485553]
+- id: '690961f23a51d0e34cea2ed3'
+  name: Rosedenn
+  type: flameCity
+  markerLocation: '690961f25f5b77e78ba1ca85' # Rosedenn — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f25f5b77e78ba1ca85'
+      type: [city]
+      location: [-26.781220130326712, 59.99778363023233]
+    - id: '690e41860515f238f4196e0c'
+      type: [belleholmLake]
+      location: [-27.614969, 63.490257]
+    - id: '690e4186b90374f9a009fffc'
+      type: [belleholmIsland]
+      location: [-26.087081, 58.288654]
+    - id: '690e4186fcf4551102e7964b'
+      type: [dungeon, belleholmIsland]
+      location: [-28.781368, 62.490336]
+- id: '690961f272446b09c54dd978'
+  name: Sprigfront
+  type: flameCity
+  markerLocation: '690961f22e3fa5fe41fd035f' # Sprigfront — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f22e3fa5fe41fd035f'
+      type: [city]
+      location: [-58.15246134274924, 75.36112071040394]
+    - id: '690e418657bf9948eb930328'
+      type: [belleholmLake]
+      location: [-47.408992, 75.794753]
+    - id: '690e4186929d2609aa65bedd'
+      type: [forest, belleholmIsland]
+      location: [-51.613707, 74.686534]
+    - id: '690e418698d3cf2fc2e5f8ff'
+      type: [vulcano, belleholmIsland]
+      location: [-48.66186, 78.256069]
+    - id: '690e41869d7501522347948d'
+      type: [vulcano, belleholmIsland]
+      location: [-52.39019, 77.611412]
+    - id: '690e4186d116ef011e516635'
+      type: [graveyard, belleholmIsland]
+      location: [-49.414902, 73.367009]
+- id: '690961f2c33b0a2840e14a55'
+  name: Thorndenn
+  type: flameCity
+  markerLocation: '690961f2db56c583b4877f5a' # Thorndenn — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2db56c583b4877f5a'
+      type: [city]
+      location: [-41.52201213699238, 61.200126008553774]
+    - id: '690e41860e889ead98283a04'
+      type: [belleholmIsland]
+      location: [-40.318253, 66.460108]
+    - id: '690e4186108dbf02380d4c81'
+      type: [forest, belleholmIsland]
+      location: [-36.728005, 64.844497]
+    - id: '690e418617ff528ea7e9cb3a'
+      type: [vulcano, belleholmIsland]
+      location: [-34.158391, 68.287387]
+    - id: '690e41862e821c3a40ae8bbc'
+      type: [vulcano, belleholmIsland]
+      location: [-31.244633, 69.286389]
+    - id: '690e41868c142f26aee57010'
+      type: [vulcano, belleholmIsland]
+      location: [-29.579629, 68.453887]
+    - id: '690e4186b580d4900872a0c0'
+      type: [belleholmLake]
+      location: [-41.844108, 71.12743]
+    - id: '690e4186d88f55634173bfc6'
+      type: [battleground, belleholmIsland]
+      location: [-39.792123, 63.627065]
+- id: '690961f2d98f74fb4616446c'
+  name: Vired Ivem
+  type: flameCity
+  markerLocation: '690961f2c99ba44a7fce0083' # Vired Ivem — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2c99ba44a7fce0083'
+      type: [city]
+      location: [-33.31407113328081, 84.04463119666167]
+    - id: '690e4186613e16d08e320dfe'
+      type: [belleholmIsland]
+      location: [-35.919865, 84.444096]
+    - id: '690e4186f341b838ae527c10'
+      type: [belleholmIsland]
+      location: [-31.628887, 83.23382]
+- id: '690961f2b69d968cbaef09f3'
+  name: Bellport
+  type: flameNorthCapital
+  markerLocation: '690961f2990e8deb12a912a9' # Bellport — POI city
+  relatedLore: '68c19213541d89c481b83231' # Bellport
+  pointsOfInterest:
+    - id: '690961f2990e8deb12a912a9'
+      type: [city]
+      location: [-17.56822512616065, 60.693876586102654]
+    - id: '690e418606b689c21b1ede75'
+      type: [delants]
+      location: [-13.018529, 55.656474]
+    - id: '690e418608ce4aaf094adadf'
+      type: [forest, belleholmIsland]
+      location: [-11.159064, 51.692551]
+    - id: '690e418613c0b72367607807'
+      type: [demonicPortal, belleholmIsland]
+      location: [-6.332861, 52.082892]
+    - id: '690e418646efbb13c2b9d511'
+      type: [graveyard, belleholmIsland]
+      location: [-18.247445, 53.506713]
+    - id: '690e4186db4bedd051ec67ab'
+      type: [ruins, belleholmIsland]
+      location: [-19.733805, 58.721325]
+    - id: '690e446a31190cbd3a4652c3'
+      type: [delants]
+      location: [7.64109, 54.455977]
+    - id: '690e446ab2237a701380cc4b'
+      type: [delants]
+      location: [-22.416147, 47.519692]
+- id: '690961f2a2bba9f255c62900'
+  name: Telobren
+  type: flameSouthCapital
+  markerLocation: '690961f2783dc075b1468c53' # Telobren — POI city
+  relatedLore: '68fd6bbe929ce8c0050b1760' # Telobren
+  pointsOfInterest:
+    - id: '690961f2783dc075b1468c53'
+      type: [city]
+      location: [-68.32345214911179, 40.1907749768313]
+    - id: '690e418619c3bf8b8c26e39a'
+      type: [belleholmIsland]
+      location: [-74.193813, 39.963578]
+    - id: '690e418695543298f0489db0'
+      type: [forest, belleholmIsland]
+      location: [-71.764332, 43.565912]
+    - id: '690e4186ba90127cb01f91df'
+      type: [dungeon, belleholmIsland, forest]
+      location: [-74.383564, 45.527515]
+    - id: '690e4186ff577d0ba8b858e3'
+      type: [belleholmIsland]
+      location: [-65.983842, 43.565912]
+    - id: '690e446a44ae73b828079904'
+      type: [delants]
+      location: [-73.28224, 10.140821]
+    - id: '690e446ab7fc9c8355d21fbb'
+      type: [delants]
+      location: [-80.989223, 30.949677]
+- id: '690961f25482ef5bf7b39bdd'
+  name: Al Nerry
+  type: flameVillage
+  markerLocation: '690961f27fc7d3951ea81632' # Al Nerry — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f27fc7d3951ea81632'
+      type: [city]
+      location: [-43.02959313767409, 58.415754185072494]
+    - id: '690e41865b38d64355d65c65'
+      type: [forest, belleholmIsland]
+      location: [-44.895819, 56.227902]
+    - id: '690e418674ea8e66e33949ad'
+      type: [delants]
+      location: [-45.671765, 52.544992]
+- id: '690961f2e02f0f11b346240f'
+  name: Costenere
+  type: flameVillage
+  markerLocation: '690961f2fdae6509f55f2547' # Costenere — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2fdae6509f55f2547'
+      type: [city]
+      location: [-28.79132813123566, 81.57666526221234]
+    - id: '690e4186139ca937f441b441'
+      type: [belleholmIsland]
+      location: [-27.957507, 79.688533]
+    - id: '690e4186c668634721d2a992'
+      type: [delants]
+      location: [-24.838247, 82.610151]
+- id: '690961f270966f9618192e68'
+  name: Cu Nuimyn
+  type: flameVillage
+  markerLocation: '690961f208dac2e824861d96' # Cu Nuimyn — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f208dac2e824861d96'
+      type: [city]
+      location: [-66.23658517723561, 75.06746663949309]
+    - id: '690e41863ffbf2617e6c39ff'
+      type: [belleholmIsland]
+      location: [-63.322532, 79.595553]
+    - id: '690e418678583a69166050a8'
+      type: [forest, belleholmIsland]
+      location: [-66.26778, 78.675699]
+    - id: '690e446a6979c6574a647028'
+      type: [delants]
+      location: [-79.447826, 91.06415]
+- id: '690961f26ed0ae9826c2f746'
+  name: Gellirn
+  type: flameVillage
+  markerLocation: '690961f2fc945e70b2498d79' # Gellirn — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2fc945e70b2498d79'
+      type: [city]
+      location: [-24.77111212941775, 67.65480614480589]
+    - id: '690e418682ef3c1e8d26d841'
+      type: [belleholmLake]
+      location: [-23.21271, 65.397903]
+    - id: '690e418688737bdb784fd28b'
+      type: [belleholmIsland]
+      location: [-23.21271, 69.066452]
+    - id: '690e4186b1a3ea621ed7deb9'
+      type: [belleholmIsland]
+      location: [-26.733197, 66.852508]
+- id: '690961f284631ee8ad0d9ca0'
+  name: Gidevolm
+  type: flameVillage
+  markerLocation: '690961f24ea706ac6fb361e1' # Gidevolm — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f24ea706ac6fb361e1'
+      type: [city]
+      location: [-40.851976136689395, 73.7297992142196]
+    - id: '690e418600ce4b5607d57b74'
+      type: [belleholmLake]
+      location: [-44.62655, 75.435728]
+    - id: '690e4186061bfcc494813e27'
+      type: [belleholmIsland]
+      location: [-44.389194, 69.060141]
+- id: '690961f2cf957bc46fe0e795'
+  name: Lagorovente
+  type: flameVillage
+  markerLocation: '690961f24e033df568b6a4bd' # Lagorovente — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f24e033df568b6a4bd'
+      type: [city]
+      location: [-57.68606958306733, 82.40881841226383]
+    - id: '690e41860eec928da481e102'
+      type: [belleholmIsland]
+      location: [-62.876011, 83.89397]
+    - id: '690e41861193456ccb9a6289'
+      type: [vulcano, belleholmIsland]
+      location: [-54.138444, 80.441919]
+    - id: '690e4186287b3147f5b35f8b'
+      type: [forest, belleholmIsland]
+      location: [-55.52146, 84.211682]
+    - id: '690e4186a5c42eea77db1223'
+      type: [belleholmLake]
+      location: [-59.253068, 81.256936]
+- id: '690961f2e6690bb3ec8f2ee5'
+  name: Mapleview
+  type: flameVillage
+  markerLocation: '690961f2efb579de3b428656' # Mapleview — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2efb579de3b428656'
+      type: [city]
+      location: [-72.82549983071354, 49.05420559965778]
+    - id: '690e418610713eace6a6a197'
+      type: [belleholmLake]
+      location: [-71.487513, 51.702832]
+    - id: '690e4186256791c8791d9b75'
+      type: [belleholmIsland]
+      location: [-72.602084, 47.587122]
+    - id: '690e41865fe4eb7decc012b3'
+      type: [graveyard, belleholmIsland]
+      location: [-74.932578, 50.826395]
+- id: '690961f2c28e686ddbe6ec29'
+  name: Mistglen
+  type: flameVillage
+  markerLocation: '690961f28dac3063d434ec13' # Mistglen — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f28dac3063d434ec13'
+      type: [city]
+      location: [-35.491688134265516, 79.3618240389886]
+    - id: '690e4186011f4348ab6e1318'
+      type: [vulcano, belleholmIsland]
+      location: [-30.495381, 72.782899]
+    - id: '690e418602df5461396446cf'
+      type: [demonicPortal, vulcano, belleholmIsland]
+      location: [-32.184374, 72.360042]
+    - id: '690e4186cbde800ecc68ae26'
+      type: [forest, belleholmIsland]
+      location: [-32.329951, 76.961583]
+- id: '690961f2508bc3b72047ae70'
+  name: Peadale
+  type: flameVillage
+  markerLocation: '690961f2b329ddc38fdb86d6' # Peadale — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2b329ddc38fdb86d6'
+      type: [city]
+      location: [-38.84186813578044, 76.38760868208811]
+    - id: '690e4186bebd481cc3fbded2'
+      type: [dungeon, belleholmIsland, forest]
+      location: [-43.337632, 79.89464]
+    - id: '690e4186e095e4bbcac70b49'
+      type: [vulcano, belleholmIsland]
+      location: [-47.644927, 79.442917]
+- id: '690961f21405c9f66d9174a2'
+  name: Ultima Terra
+  type: flameVillage
+  markerLocation: '690961f2151d14a97526d7eb' # Ultima Terra — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2151d14a97526d7eb'
+      type: [city]
+      location: [-56.26280414365805, 94.92899377936129]
+    - id: '690e41860e28169b8a3a6fba'
+      type: [graveyard, belleholmIsland]
+      location: [-58.686324, 91.314442]
+    - id: '690e41868f9433b7db28ac3a'
+      type: [belleholmIsland]
+      location: [-58.269727, 93.915144]
+    - id: '690e446a57d1b823c3bf0c6a'
+      type: [delants]
+      location: [-60.951066, 114.9558]
+- id: '690961f2ab1b364dd70e9c26'
+  name: Unrike
+  type: flameVillage
+  markerLocation: '690961f216b01e0ec4c8419f' # Unrike — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f216b01e0ec4c8419f'
+      type: [city]
+      location: [-51.511562041808574, 52.96223986434934]
+    - id: '690e4186480727be41ebcd92'
+      type: [belleholmLake]
+      location: [-48.993442, 57.746471]
+    - id: '690e418698ec3a87c4b7eb55'
+      type: [ruins, belleholmIsland, vulcano]
+      location: [-57.122531, 60.749188]
+    - id: '690e4186d301a216171a4b9e'
+      type: [belleholmLake]
+      location: [-61.383089, 53.438128]
+    - id: '690e4186fa6eb417d24d0587'
+      type: [delants]
+      location: [-48.742036, 53.619586]
+    - id: '690e4186fc196320448cf6ef'
+      type: [vulcano, belleholmIsland]
+      location: [-56.0532, 57.464858]
+- id: '690961f2da371c354c6b7f36'
+  name: Usrorn
+  type: flameVillage
+  markerLocation: '690961f223f9ade095b90a77' # Usrorn — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f223f9ade095b90a77'
+      type: [city]
+      location: [-60.0818066913871, 47.59886341473657]
+    - id: '690e418632d52ed45c9b447a'
+      type: [ruins, belleholmIsland]
+      location: [-63.713086, 49.976166]
+    - id: '690e41867a1124bfe87e5c5c'
+      type: [delants]
+      location: [-55.302144, 47.720264]
+- id: '690961f29b082d39dee58e09'
+  name: Vudyld
+  type: flameVillage
+  markerLocation: '690961f26eed6b691c18fe35' # Vudyld — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f26eed6b691c18fe35'
+      type: [city]
+      location: [-67.32483261649338, 69.19438522127649]
+    - id: '690e418637d956c674663ddb'
+      type: [belleholmIsland]
+      location: [-71.256637, 68.727878]
+    - id: '690e4186d56f6417270b08ba'
+      type: [battleground, belleholmIsland]
+      location: [-69.648204, 65.452796]
+- id: '690961f232e36d73f89ab91f'
+  name: Yonamnel
+  type: flameVillage
+  markerLocation: '690961f2b3af3de8f757e386' # Yonamnel — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2b3af3de8f757e386'
+      type: [city]
+      location: [-16.898189125857687, 66.95871318893555]
+    - id: '690e4186520f95f4acc0a4a1'
+      type: [belleholmIsland]
+      location: [-17.343032, 69.433306]
+    - id: '690e41867d342d4c41fc345d'
+      type: [delants]
+      location: [-13.642445, 68.335504]
+    - id: '690e4186ca4a28adf9520270'
+      type: [belleholmIsland, forest]
+      location: [-11.399983, 68.846339]
+    - id: '690e4186cf6a6832c00b438d'
+      type: [delants]
+      location: [-7.484755, 68.148908]
+- id: '6909614447588774de8a9291'
+  name: Agosbert
+  type: forestVillage
+  markerLocation: '690961447fbade7da41c0410' # Agosbert — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961447fbade7da41c0410'
+      type: [city]
+      location: [24.58091161516488, 19.364356743549674]
+    - id: '690e4186f8f72772a9cd6d6f'
+      type: [graveyard, forest]
+      location: [28.089147, 19.077877]
+    - id: '690e4186f9a66513f3d3fe7b'
+      type: [forest]
+      location: [26.193598, 16.378062]
+- id: '69096161141b9dd4d0442973'
+  name: Al Anore
+  type: forestVillage
+  markerLocation: '690961613b5de83b6b8a5a01' # Al Anore — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961613b5de83b6b8a5a01'
+      type: [city]
+      location: [19.282488211602555, -4.88720920645084]
+    - id: '690e418615710996493d89b1'
+      type: [minnelyForest]
+      location: [17.474653, -2.872678]
+    - id: '690e4186d6ee8e97b3082a9b'
+      type: [minnelyForest]
+      location: [21.273005, -5.289812]
+- id: '690961449f34beae3f549c26'
+  name: Capofoce
+  type: forestVillage
+  markerLocation: '69096144eaea0704efa9d8a9' # Capofoce — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144eaea0704efa9d8a9'
+      type: [city]
+      location: [34.096543950843945, 3.662021872497224]
+    - id: '690e4186375d0c35e969a43a'
+      type: [forest]
+      location: [36.466415, 8.95401]
+    - id: '690e4186d22e8016ebc883ee'
+      type: [forest]
+      location: [34.998869, 6.277898]
+- id: '6909614411d83cad8f122025'
+  name: Jok
+  type: forestVillage
+  markerLocation: '69096144893929523d05f341' # Jok — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096144893929523d05f341'
+      type: [city]
+      location: [36.13466966210222, 13.704960159856801]
+    - id: '690e418685b97475b148d314'
+      type: [forest]
+      location: [35.948457, 16.378062]
+    - id: '690e4186f00c7016578d0ea7'
+      type: [demonicPortal, forest]
+      location: [32.819303, 13.201188]
+- id: '6909616190c98a6ae089a6f4'
+  name: Lehadorei
+  type: forestVillage
+  markerLocation: '690961617caef7f2674e07f6' # Lehadorei — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961617caef7f2674e07f6'
+      type: [city]
+      location: [23.19816219728843, -9.177047595213352]
+    - id: '690e418699b940097a2f45c8'
+      type: [dungeon, minnelyForest]
+      location: [16.964431, -10.036339]
+    - id: '690e4186d68bcd438fa100e4'
+      type: [minnelyForest]
+      location: [26.36625, -9.8651]
+- id: '690961614b8201b32ba534da'
+  name: Naellond
+  type: forestVillage
+  markerLocation: '690961612b786ed6ecd27d07' # Naellond — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961612b786ed6ecd27d07'
+      type: [city]
+      location: [23.002378498004116, 12.826864829904705]
+    - id: '690e418619d688d7bbe3ee1c'
+      type: [minnelyForest]
+      location: [26.020945, 10.76686]
+    - id: '690e4186f6ed81eadcb3a870'
+      type: [minnelyForest]
+      location: [20.237091, 13.011341]
+- id: '69096161580e1b4f547d21ac'
+  name: Rae Thelar
+  type: forestVillage
+  markerLocation: '69096161c0cd5cd4b1eee076' # Rae Thelar — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096161c0cd5cd4b1eee076'
+      type: [city]
+      location: [28.386430228322183, 4.838889899105546]
+    - id: '690e418604df042547a3ae0e'
+      type: [graveyard, minnelyForest]
+      location: [26.679126, 8.580613]
+    - id: '690e41862f6cc90054062f2d'
+      type: [ruins, minnelyForest]
+      location: [28.103947, 1.842624]
+- id: '690961619555baad1b0db63b'
+  name: Thanlenor
+  type: forestVillage
+  markerLocation: '6909616150e3cc36a4655eaa' # Thanlenor — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909616150e3cc36a4655eaa'
+      type: [city]
+      location: [26.526485085121404, -4.739283744769374]
+    - id: '690e4186b469a63b29999374'
+      type: [minnelyForest]
+      location: [25.934619, -2.009416]
+    - id: '690e4186e534e63d52545d5f'
+      type: [graveyard, minnelyForest]
+      location: [28.001882, -6.926912]
+- id: '69096195cabaccd432523378'
+  name: Liberia
+  type: liberiaCapital
+  markerLocation: '69096195be37c2f93090d009' # Liberia — POI city
+  relatedLore: '68c19213541d89c481b8322e' # Liberia
+  pointsOfInterest:
+    - id: '69096195be37c2f93090d009'
+      type: [city]
+      location: [10.673412511121795, -91.82570415040259]
+    - id: '690e418609e829acb2932bb4'
+      type: [graveyard, liberiaIsland]
+      location: [7.181811, -88.491342]
+    - id: '690e41861dd44fc417a149e4'
+      type: [dungeon, liberiaIsland]
+      location: [17.635196, -92.538511]
+    - id: '690e41862edbb933f692235c'
+      type: [liberiaIsland]
+      location: [8.43619, -92.496423]
+    - id: '690e418695ca53a56468c153'
+      type: [ladows]
+      location: [12.549165, -95.177069]
+    - id: '690e41869e7f249369e93bd6'
+      type: [ladows]
+      location: [9.715917, -98.071909]
+    - id: '690e4186f376cd80a1adc9bc'
+      type: [liberiaIsland]
+      location: [13.146477, -97.438364]
+    - id: '690e4186f8b4753e1f0185ff'
+      type: [liberiaIsland]
+      location: [8.43619, -101.14482]
+    - id: '690e446a1368b4ca7c53755e'
+      type: [ladows]
+      location: [51.283676, -63.498958]
+    - id: '690e446a1dc5a19ab6a30204'
+      type: [ladows]
+      location: [30.004718, -101.45602]
+    - id: '690e446a5e2a6443f78bd92a'
+      type: [ladows]
+      location: [34.030467, -75.288652]
+    - id: '690e446a80795b41868b4d5d'
+      type: [ladows]
+      location: [42.657072, -89.09122]
+- id: '69096195b17225daa881bca4'
+  name: Iriesa
+  type: liberiaCity
+  markerLocation: '6909619586c6a06a8d4fe272' # Iriesa — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909619586c6a06a8d4fe272'
+      type: [city]
+      location: [5.388626275625952, -87.99966270551427]
+    - id: '690e446a04b8034a8472543b'
+      type: [ladows]
+      location: [4.096863, -88.586068]
+    - id: '690e446ac13ba92c1e5186d0'
+      type: [ladows]
+      location: [4.344187, -85.78935]
+- id: '69096195c4d5c21e39b38ba8'
+  name: Lushire
+  type: liberiaCity
+  markerLocation: '690961958d93efb630294631' # Lushire — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961958d93efb630294631'
+      type: [city]
+      location: [-7.193368339220684, -97.63315684105773]
+    - id: '690e41863eaa4b69a94126ad'
+      type: [ladows]
+      location: [-3.829115, -98.521267]
+    - id: '690e418648f8518d69aad24c'
+      type: [ruins, liberiaIsland]
+      location: [-11.873107, -99.345349]
+    - id: '690e41865f1562b0fabb41f6'
+      type: [liberiaIsland]
+      location: [-6.85294, -99.523245]
+- id: '690961957c12c0e99b7454c6'
+  name: Mison
+  type: liberiaCity
+  markerLocation: '690961958ee2dd426ba99755' # Mison — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961958ee2dd426ba99755'
+      type: [city]
+      location: [-7.65857579411066, -82.60695604811112]
+    - id: '690e418647369bcce5a86051'
+      type: [liberiaIsland]
+      location: [-7.239029, -80.836531]
+    - id: '690e4186a9cf2d169f53256b'
+      type: [graveyard, liberiaIsland]
+      location: [-9.800112, -79.7448]
+- id: '69096195a6756c5ce333b127'
+  name: Pontealto
+  type: liberiaCity
+  markerLocation: '690961953a581c00f0599309' # Pontealto — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961953a581c00f0599309'
+      type: [city]
+      location: [1.2579004246140928, -82.40192016984477]
+    - id: '690e418687e14741f79ab787'
+      type: [ladows]
+      location: [-1.301252, -85.422339]
+    - id: '690e4186cdafa719f1a5b374'
+      type: [ladows]
+      location: [2.651408, -83.537931]
+    - id: '690e4186e560bb6bf4753c69'
+      type: [dungeon, forest, liberiaIsland]
+      location: [1.531345, -84.732237]
+- id: '690961955200e98256172790'
+  name: Pontemaggiore
+  type: liberiaCity
+  markerLocation: '6909619585778b947f7752a1' # Pontemaggiore — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909619585778b947f7752a1'
+      type: [city]
+      location: [-1.6481477918769936, -93.13173044630797]
+    - id: '690e418603d898d2e00b61aa'
+      type: [ladows]
+      location: [-0.221089, -93.022135]
+    - id: '690e4186fc5b36c913b6b0fd'
+      type: [liberiaIsland]
+      location: [-2.528741, -92.805294]
+- id: '69096195ab944f2c60a1d2c8'
+  name: Portominore
+  type: liberiaCity
+  markerLocation: '69096195aab64f0e77ca6cd2' # Portominore — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096195aab64f0e77ca6cd2'
+      type: [city]
+      location: [1.277114726101118, -90.45270214701488]
+    - id: '690e418625756b4a5cdb2a02'
+      type: [ladows]
+      location: [1.115494, -93.137511]
+    - id: '690e41866e4032a4c38c5912'
+      type: [liberiaIsland, forest]
+      location: [3.417031, -91.87868]
+    - id: '690e418694cb7dda90fc496f'
+      type: [ladows]
+      location: [4.535815, -90.202299]
+- id: '69096195b3fd88e22839bde7'
+  name: Tine
+  type: liberiaCity
+  markerLocation: '690961955fc32b6a24e5c65a' # Tine — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961955fc32b6a24e5c65a'
+      type: [city]
+      location: [0.560089242279105, -98.62904539263702]
+    - id: '690e41861742addc1daad594'
+      type: [ladows]
+      location: [6.451523, -95.608216]
+    - id: '690e4186dfa9fa6ead377184'
+      type: [dungeon, liberiaIsland]
+      location: [5.243419, -98.215801]
+- id: '69096195384b7443474b8d57'
+  name: Vinas
+  type: liberiaCity
+  markerLocation: '69096195766f89e52f34347d' # Vinas — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096195766f89e52f34347d'
+      type: [city]
+      location: [-4.247054458250758, -90.2518652234699]
+    - id: '690e41860c7c71717c2f7403'
+      type: [liberiaIsland]
+      location: [-6.544068, -90.411542]
+    - id: '690e4186ce280d08e62cdfb6'
+      type: [demonicPortal, forest, liberiaIsland]
+      location: [-3.559373, -87.978582]
+- id: '69096195fcc6a04aba6b4b35'
+  name: Voling
+  type: liberiaCity
+  markerLocation: '6909619550345fb4f8bb46f1' # Voling — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909619550345fb4f8bb46f1'
+      type: [city]
+      location: [-11.147631705785571, -92.7708774421705]
+    - id: '690e41867889a4b055fcb2be'
+      type: [ladows]
+      location: [-7.781774, -93.05189]
+    - id: '690e41868b8e9a04aaeb491f'
+      type: [liberiaIsland]
+      location: [-10.559395, -94.658522]
+    - id: '690e446aa1bd7cddf87a0577'
+      type: [ladows]
+      location: [-21.754911, -88.516113]
+- id: '69096195ac6ec86fab3462d3'
+  name: Altaluce
+  type: liberiaVillage
+  markerLocation: '69096195b1834207eb4cfbb2' # Altaluce — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096195b1834207eb4cfbb2'
+      type: [city]
+      location: [-7.968714097370665, -85.59462170284904]
+    - id: '690e41860b439a0b5d43d950'
+      type: [liberiaIsland]
+      location: [-9.555564, -84.620205]
+    - id: '690e41864ecdd9b98e39806c'
+      type: [ladows]
+      location: [-5.943328, -86.341562]
+- id: '69096195095859bcd4a9568e'
+  name: Efragos
+  type: liberiaVillage
+  markerLocation: '6909619569b4f16719a28ded' # Efragos — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909619569b4f16719a28ded'
+      type: [city]
+      location: [13.24409775419349, -88.81179731369785]
+    - id: '690e41864d35c0daa88d31e4'
+      type: [liberiaIsland]
+      location: [16.62128, -90.720413]
+    - id: '690e4186962f960ccee1c0bb'
+      type: [ladows]
+      location: [14.369522, -87.757646]
+- id: '6909619593b56fa09b75e558'
+  name: Fraponte
+  type: liberiaVillage
+  markerLocation: '690961959099609c3f5ce8db' # Fraponte — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961959099609c3f5ce8db'
+      type: [city]
+      location: [-4.927987584761582, -95.10751381703663]
+    - id: '690e41868e0a214facb99e44'
+      type: [ladows]
+      location: [-4.334688, -93.787269]
+    - id: '690e4186de2402a68bcff4b6'
+      type: [liberiaIsland]
+      location: [-3.99588, -96.51175]
+- id: '690961958653b271fcb6ad13'
+  name: Ridale
+  type: liberiaVillage
+  markerLocation: '69096195cfa5b6eb85b9842c' # Ridale — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096195cfa5b6eb85b9842c'
+      type: [city]
+      location: [16.87851482198451, -85.96532974569894]
+    - id: '690e4186027f260119788ddf'
+      type: [liberiaIsland]
+      location: [18.937814, -87.400046]
+    - id: '690e41866f6cf836d60cab13'
+      type: [ladows]
+      location: [15.038372, -84.700048]
+    - id: '690e4186fe027118469d93ee'
+      type: [demonicPortal, forest, liberiaIsland]
+      location: [16.625698, -83.690425]
+- id: '690961950d1c93ad1eca5422'
+  name: Sodiff
+  type: liberiaVillage
+  markerLocation: '6909619540ce2facf6bb063f' # Sodiff — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909619540ce2facf6bb063f'
+      type: [city]
+      location: [-4.47965818569574, -82.48979268910178]
+    - id: '690e418652e58823e84c7065'
+      type: [ladows]
+      location: [-3.599309, -84.870805]
+    - id: '690e41867fb499c528312595'
+      type: [liberiaIsland]
+      location: [-4.922494, -84.156898]
+- id: '69096195b9ed88589c9b7a6a'
+  name: Woln
+  type: liberiaVillage
+  markerLocation: '69096195c23f4e3965952296' # Woln — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096195c23f4e3965952296'
+      type: [city]
+      location: [12.357654566927378, -84.79325486475818]
+    - id: '690e41865b28ac51c77f00d7'
+      type: [liberiaIsland]
+      location: [8.590626, -85.778472]
+    - id: '690e4186e9dc47b69914c3f8'
+      type: [graveyard, liberiaIsland]
+      location: [7.46579, -83.322931]
+- id: '690961ac27a94901a42c182e'
+  name: Mirwen
+  type: mirwaCapital
+  markerLocation: '690961acc55d9c02a9b0d726' # Mirwen — POI city
+  relatedLore: '68c19213541d89c481b8322f' # Mirwen
+  pointsOfInterest:
+    - id: '690961acc55d9c02a9b0d726'
+      type: [city]
+      location: [-9.633318030031193, -11.397067070334442]
+    - id: '690e41861d7d65f20487a892'
+      type: [temistosLake]
+      location: [-3.809798, -16.574642]
+    - id: '690e41863dc78f16894d3cbd'
+      type: [temistosLake]
+      location: [-14.356123, -15.053963]
+    - id: '690e4186426c7740f71b3aec'
+      type: [temistosLake]
+      location: [-13.627158, -7.935832]
+    - id: '690e4186e26b5a2df091b7ff'
+      type: [temistosLake]
+      location: [-9.339127, -16.254612]
+- id: '690961acb23519f582f76032'
+  name: Acquasacra
+  type: mirwaCity
+  markerLocation: '690961ac25ecbd28931a956e' # Acquasacra — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac25ecbd28931a956e'
+      type: [city]
+      location: [1.093466651974381, -18.077097739493116]
+    - id: '690e4186192b0894d263fbe1'
+      type: [graveyard, undergroundTemistos]
+      location: [7.27552, -19.713169]
+    - id: '690e41863859c5ebee3a0a5d'
+      type: [temistosLake]
+      location: [-0.64341, -17.927284]
+    - id: '690e4186da12f9b28ad2b116'
+      type: [undergroundTemistos]
+      location: [6.112005, -15.67548]
+- id: '690961ac6ee4bfe0714f8030'
+  name: Arcidoma
+  type: mirwaCity
+  markerLocation: '690961ac51162c882f69e902' # Arcidoma — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac51162c882f69e902'
+      type: [city]
+      location: [-3.6833046517312065, -7.344726190465675]
+    - id: '690e418643081a75d74ce03f'
+      type: [temistosLake]
+      location: [-2.227115, -4.460152]
+    - id: '690e418699841b01d1a89be0'
+      type: [temistosLake]
+      location: [3.781616, -2.820652]
+    - id: '690e4186f552e8a57ca9801b'
+      type: [demonicPortal, temistosLake]
+      location: [-2.877166, -6.877263]
+- id: '690961acdc128b38f2461408'
+  name: Candelaria
+  type: mirwaCity
+  markerLocation: '690961ac2a2e23b84e18245c' # Candelaria — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac2a2e23b84e18245c'
+      type: [city]
+      location: [-3.599501646403056, -11.492043809706368]
+- id: '690961ac2607fcbdc23f3406'
+  name: Collerede
+  type: mirwaCity
+  markerLocation: '690961ac6fc1be1460a1ad29' # Collerede — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac6fc1be1460a1ad29'
+      type: [city]
+      location: [0.087830588036354, -0.3481063900672511]
+    - id: '690e4186065913f31e34f354'
+      type: [temistosLake]
+      location: [-2.895215, 0.087155]
+    - id: '690e418690efdb1f03d65aa8'
+      type: [demonicPortal, temistosLake]
+      location: [-1.112251, 1.500553]
+    - id: '690e4186c582a1e43ca925f6'
+      type: [undergroundTemistos]
+      location: [0.932853, 3.915223]
+- id: '690961ac1b417b63cc541a11'
+  name: Isolalunga
+  type: mirwaCity
+  markerLocation: '690961ac0f8ceb6462bec65a' # Isolalunga — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac0f8ceb6462bec65a'
+      type: [city]
+      location: [-24.90973851335933, -17.75119691981063]
+    - id: '690e41860a33fee00a3f2410'
+      type: [undergroundTemistos]
+      location: [-33.407171, -19.053187]
+    - id: '690e4186739b01c6a3b4678b'
+      type: [temistosLake]
+      location: [-28.989763, -18.741771]
+    - id: '690e4186b191665c70c993c0'
+      type: [dungeon, mountainTemistos]
+      location: [-20.610205, -20.878853]
+- id: '690961acb892c0c0533109d4'
+  name: Lagoverde
+  type: mirwaCity
+  markerLocation: '690961acbfc979f6060491b0' # Lagoverde — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961acbfc979f6060491b0'
+      type: [city]
+      location: [-23.512099866574786, -6.980061748591087]
+    - id: '690e41861d50d06ac23a520f'
+      type: [mountainTemistos]
+      location: [-21.247424, -1.82688]
+    - id: '690e4186988e1c370187146a'
+      type: [temistosLake]
+      location: [-23.829934, -4.397446]
+    - id: '690e4186cb54d40e344fbb08'
+      type: [dungeon, mountainTemistos]
+      location: [-23.64812, -0.093121]
+- id: '690961acc79d8c61115abcd0'
+  name: Marescuro
+  type: mirwaCity
+  markerLocation: '690961ac4f5be25e2bfc5953' # Marescuro — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac4f5be25e2bfc5953'
+      type: [city]
+      location: [0.6670487227978161, 25.861340587186156]
+    - id: '690e41862a0fab95f37e5bc4'
+      type: [undergroundTemistos]
+      location: [-1.431542, 21.591891]
+    - id: '690e41863c04779f46c34f0c'
+      type: [valanPlains]
+      location: [1.409802, 22.343681]
+    - id: '690e446a02a1d9a2394a764f'
+      type: [delants]
+      location: [12.26528, 38.271312]
+- id: '690961acc268a5f179511c20'
+  name: Ravel
+  type: mirwaCity
+  markerLocation: '690961ace7cabff3bc8ed9ca' # Ravel — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ace7cabff3bc8ed9ca'
+      type: [city]
+      location: [-8.460075955436805, -5.635144881771036]
+    - id: '690e41861691b3c811018ac6'
+      type: [temistosLake]
+      location: [-7.69985, -4.350697]
+    - id: '690e4186a7e735ab5c49db7f'
+      type: [temistosLake]
+      location: [-6.550576, -5.883063]
+- id: '690961aca4b9ed073e0af0e8'
+  name: Temelia
+  type: mirwaCity
+  markerLocation: '690961aca5be3ebe58f33956' # Temelia — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961aca5be3ebe58f33956'
+      type: [city]
+      location: [-6.44880382756078, -2.4692535693735636]
+    - id: '690e4186926a9129be53ce36'
+      type: [temistosLake]
+      location: [-5.893848, 0.191672]
+    - id: '690e4186d18ea674f0fe9c44'
+      type: [temistosLake]
+      location: [-3.814208, -1.887967]
+- id: '690961ac023a25fec19b35d1'
+  name: Tempioblu
+  type: mirwaCity
+  markerLocation: '690961ac8eb23150368e67ca' # Tempioblu — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac8eb23150368e67ca'
+      type: [city]
+      location: [0.33923960402087505, -25.042058626767567]
+    - id: '690e41865ecb002fec01d84f'
+      type: [dungeon, mountainTemistos]
+      location: [0.175527, -31.671444]
+    - id: '690e418666502a1e89111ca0'
+      type: [temistosLake]
+      location: [3.364932, -25.77788]
+    - id: '690e4186c8ac58a168221177'
+      type: [temistosLake]
+      location: [2.582908, -29.557661]
+- id: '690961aceb085f563e694e52'
+  name: Vallegentile
+  type: mirwaCity
+  markerLocation: '690961ac8bd05cbf3b833297' # Vallegentile — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac8bd05cbf3b833297'
+      type: [city]
+      location: [-13.169573880369171, 5.005466113501248]
+    - id: '690e4186269c891d86088137'
+      type: [dungeon, forest]
+      location: [-17.822895, 6.769145]
+    - id: '690e41864bb680b295e0189a'
+      type: [temistosLake]
+      location: [-10.517575, 7.573357]
+- id: '690961ac86766ce8e0fb0a14'
+  name: Calov
+  type: mirwaSeaCity
+  markerLocation: '690961ac5aa0aac26e7cee67' # Calov — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac5aa0aac26e7cee67'
+      type: [city]
+      location: [-8.081362487902695, 29.260456161823388]
+    - id: '690e418612127e39512c4021'
+      type: [forest]
+      location: [-5.866863, 26.628023]
+    - id: '690e41863ce14dfdeeec3504'
+      type: [valanPlains]
+      location: [-10.3541, 27.879757]
+    - id: '690e4186fc149d3a72b20c72'
+      type: [valanPlains]
+      location: [-15.178197, 26.684455]
+- id: '690961acd04e6ee34ef9b03b'
+  name: Nibel
+  type: mirwaSeaCity
+  markerLocation: '690961ac342a1469b0619f7f' # Nibel — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac342a1469b0619f7f'
+      type: [city]
+      location: [-18.731115986205904, -54.19097864959175]
+    - id: '690e41861d3ffb80ccb8d228'
+      type: [ruins, forest]
+      location: [-12.040525, -45.27106]
+    - id: '690e4186b490b196995b715d'
+      type: [demonicPortal, drusteaPlains]
+      location: [-11.601483, -57.142518]
+    - id: '690e4186bfc6663cf5e6c068'
+      type: [battleground, drusteaPlains]
+      location: [-20.688651, -47.826916]
+    - id: '690e446a113c9d88dc708eaf'
+      type: [ladows]
+      location: [-26.068214, -72.125563]
+- id: '690961ac03480efdb3c87260'
+  name: Quirra
+  type: mirwaSeaCity
+  markerLocation: '690961ac14a71a2b13abf67f' # Quirra — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac14a71a2b13abf67f'
+      type: [city]
+      location: [-26.912806916453196, -41.20936237359939]
+    - id: '690e418646e78e6f378f0a76'
+      type: [dungeon, forest]
+      location: [-20.045635, -35.576265]
+    - id: '690e4186be4d16a898b77780'
+      type: [drusteaPlains]
+      location: [-31.552734, -37.040259]
+    - id: '690e4186eac92935cb8b01f6'
+      type: [battleground, drusteaPlains]
+      location: [-22.221198, -39.142485]
+    - id: '690e446a7cf135b0f1d342ad'
+      type: [ladows]
+      location: [-45.334298, -60.33587]
+    - id: '690e446a95b1e9905ed47bfe'
+      type: [ladows]
+      location: [-41.020996, -82.477489]
+- id: '690961acb1f49cdf140cf049'
+  name: Acquelimpide
+  type: mirwaVillage
+  markerLocation: '690961ace7878acf627951d8' # Acquelimpide — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ace7878acf627951d8'
+      type: [city]
+      location: [-14.074877312424107, -20.324880571295328]
+    - id: '690e418653739dccf7d5cb66'
+      type: [battleground, temistosLake]
+      location: [-16.717135, -19.541554]
+    - id: '690e4186a8e641b9310375c0'
+      type: [temistosLake]
+      location: [-10.930362, -19.257753]
+    - id: '690e4186ad56a90e85ab3bd2'
+      type: [mountainTemistos]
+      location: [-11.902434, -22.430894]
+- id: '690961ac101e1660d43e64dd'
+  name: Alexandria
+  type: mirwaVillage
+  markerLocation: '690961acf936184e18fa4041' # Alexandria — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961acf936184e18fa4041'
+      type: [city]
+      location: [-10.653824316156985, 19.314179992915456]
+    - id: '690e418624bf00e34c24338a'
+      type: [valanPlains]
+      location: [-8.744912, 22.564896]
+    - id: '690e4186257464d9a1985f50'
+      type: [forest]
+      location: [-11.905122, 13.987183]
+    - id: '690e418673e14de7938f40b4'
+      type: [dungeon, valanPlains]
+      location: [-14.941168, 20.42712]
+    - id: '690e418677b8f4eb92176fb6'
+      type: [ruins, forest]
+      location: [-5.957131, 19.0391]
+- id: '690961acd01cebdf6bedc45e'
+  name: Canarra
+  type: mirwaVillage
+  markerLocation: '690961ac291d81d7bf7295da' # Canarra — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac291d81d7bf7295da'
+      type: [city]
+      location: [-20.437294843648797, -10.992837596692485]
+    - id: '690e41862f10fd85d33563dd'
+      type: [mountainTemistos]
+      location: [-20.797063, -15.450299]
+    - id: '690e41863560132601c56ae3'
+      type: [temistosLake]
+      location: [-17.844532, -7.183754]
+    - id: '690e4186a01e5b6a6232598c'
+      type: [temistosLake]
+      location: [-17.638139, -12.653172]
+- id: '690961ace31181b0dc005aca'
+  name: Delania
+  type: mirwaVillage
+  markerLocation: '690961ac8ec4004e3f70f9bc' # Delania — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac8ec4004e3f70f9bc'
+      type: [city]
+      location: [-12.817832232501583, -27.70140732918145]
+    - id: '690e41860f92d5de47e4fe31'
+      type: [ruins, mountainTemistos]
+      location: [-6.391659, -35.276914]
+    - id: '690e418613e96deb7b73b05c'
+      type: [undergroundTemistos]
+      location: [-11.452073, -33.915099]
+    - id: '690e41864e7df70b36d99396'
+      type: [temistosLake]
+      location: [-14.100264, -25.517205]
+    - id: '690e418685aef89af48e691e'
+      type: [mountainTemistos]
+      location: [-1.431542, -35.829133]
+    - id: '690e4186a9f084457e74426c'
+      type: [temistosLake]
+      location: [-10.841832, -27.602602]
+- id: '690961ac6825faff069ccca2'
+  name: Frekti
+  type: mirwaVillage
+  markerLocation: '690961acaddcefafa85f113f' # Frekti — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961acaddcefafa85f113f'
+      type: [city]
+      location: [-27.1459603482146, -8.194454439463877]
+    - id: '690e4186a3affb53c4d8a817'
+      type: [graveyard, undergroundTemistos]
+      location: [-30.73569, -11.209879]
+    - id: '690e4186af04ed03bd40662f'
+      type: [undergroundTemistos]
+      location: [-24.512541, -11.847411]
+- id: '690961ac8dea1f74b5a5d181'
+  name: Porfind
+  type: mirwaVillage
+  markerLocation: '690961ace231e5a4a71588ae' # Porfind — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ace231e5a4a71588ae'
+      type: [city]
+      location: [3.8816176104022593, 17.413391433288474]
+    - id: '690e4186282df3e95ce158e5'
+      type: [ruins, mountainTemistos]
+      location: [-1.177322, 11.869386]
+    - id: '690e41869277652c757d6464'
+      type: [undergroundTemistos]
+      location: [-1.318951, 15.624608]
+    - id: '690e4186c5f8548e506d4d05'
+      type: [mountainTemistos]
+      location: [2.509117, 13.710574]
+- id: '690961ac78ab2149775decb5'
+  name: Rimvel
+  type: mirwaVillage
+  markerLocation: '690961ac1bfa98abddc41e29' # Rimvel — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac1bfa98abddc41e29'
+      type: [city]
+      location: [-22.114461219790243, -25.935147662649012]
+    - id: '690e41860e09a10d86e05ddf'
+      type: [undergroundTemistos]
+      location: [-21.360015, -30.199621]
+    - id: '690e418621b2a64e173b3a53'
+      type: [dungeon, mountainTemistos]
+      location: [-30.821934, -27.516207]
+    - id: '690e4186b3dd56b4a000d62f'
+      type: [temistosLake]
+      location: [-26.616242, -24.107993]
+- id: '690961ac024d0589b67d9072'
+  name: Rivechiare
+  type: mirwaVillage
+  markerLocation: '690961ac322a30cfb78020a0' # Rivechiare — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac322a30cfb78020a0'
+      type: [city]
+      location: [5.702631945023653, 2.279583399222652]
+    - id: '690e4186019f4c6fc67bf115'
+      type: [temistosLake]
+      location: [5.610548, -0.153459]
+    - id: '690e41860553de8e40fe36e0'
+      type: [mountainTemistos]
+      location: [11.403746, 3.690042]
+    - id: '690e41869e953a725d11d794'
+      type: [ruins, mountainTemistos]
+      location: [12.944842, 0.245759]
+- id: '690961ac35b50ec340f1697e'
+  name: Santuaria
+  type: mirwaVillage
+  markerLocation: '690961ac78535382bf29a282' # Santuaria — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac78535382bf29a282'
+      type: [city]
+      location: [1.344875667958888, -9.30757880415211]
+    - id: '690e4186163b6b07bddfbbfa'
+      type: [ruins, mountainTemistos]
+      location: [7.51324, -11.377868]
+    - id: '690e418638dfdca8e76876ca'
+      type: [undergroundTemistos]
+      location: [3.97279, -11.39705]
+- id: '690961ac2d897b62ba4d2a51'
+  name: Servel
+  type: mirwaVillage
+  markerLocation: '690961ac92dbb246dbf3e4ac' # Servel — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac92dbb246dbf3e4ac'
+      type: [city]
+      location: [9.19264446818353, 12.027823847678702]
+    - id: '690e41862bfddabc9a8c8fea'
+      type: [dungeon, mountainTemistos]
+      location: [3.613167, 9.580239]
+    - id: '690e41867f144e5bf6eb060a'
+      type: [valanPlains]
+      location: [7.212253, 14.367178]
+    - id: '690e4186a5721c88781a7e11'
+      type: [graveyard, undergroundTemistos]
+      location: [5.253857, 8.266644]
+    - id: '690e4186aaea12dd4825669e'
+      type: [undergroundTemistos]
+      location: [9.489712, 6.842569]
+    - id: '690e446aa34e3f1bbf3db095'
+      type: [delants]
+      location: [11.879931, 22.086646]
+- id: '690961aca5f84ecde26707e0'
+  name: Setteveli
+  type: mirwaVillage
+  markerLocation: '690961ac6f4530aaadfa48b0' # Setteveli — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac6f4530aaadfa48b0'
+      type: [city]
+      location: [-5.694576779607259, -23.712384275560627]
+    - id: '690e4186506905272c0b0649'
+      type: [mountainTemistos]
+      location: [-5.822561, -26.484143]
+    - id: '690e4186c53a514641c7a976'
+      type: [temistosLake]
+      location: [-2.984225, -22.147258]
+- id: '690961acf1c30d31b0f18c62'
+  name: Taurin
+  type: mirwaVillage
+  markerLocation: '690961acf0c1f4d111b0184f' # Taurin — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961acf0c1f4d111b0184f'
+      type: [city]
+      location: [6.708268008961666, -5.413532489903215]
+    - id: '690e4186677bb0eb6e19288d'
+      type: [mountainTemistos]
+      location: [12.867419, -5.091997]
+    - id: '690e4186b1b3e30c9bddba19'
+      type: [temistosLake]
+      location: [4.543671, -4.725789]
+    - id: '690e4186d9dedb27387f936c'
+      type: [dungeon, mountainTemistos]
+      location: [10.888173, -4.570048]
+- id: '690961accf5648cdd1fb48e6'
+  name: Virugis
+  type: mirwaVillage
+  markerLocation: '690961acfa9d36a59b219ce5' # Virugis — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961acfa9d36a59b219ce5'
+      type: [city]
+      location: [-4.92350586434037, 3.632674375992877]
+    - id: '690e41863ca7485771e2d78e'
+      type: [mountainTemistos]
+      location: [-5.935151, 6.167028]
+    - id: '690e4186436ea11624fe0831'
+      type: [temistosLake]
+      location: [-5.597381, 2.226369]
+- id: '690961ac2c962394b1912f61'
+  name: Vitacqua
+  type: mirwaVillage
+  markerLocation: '690961ac57baff9070ad8a95' # Vitacqua — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961ac57baff9070ad8a95'
+      type: [city]
+      location: [-11.367594148983358, 0.7233187718680089]
+    - id: '690e41864f667cb59c74e469'
+      type: [temistosLake]
+      location: [-13.28204, -3.912879]
+    - id: '690e4186b213afd7db53a77a'
+      type: [temistosLake]
+      location: [-10.053126, -1.012329]
+    - id: '690e4186cdc21f30457b7ff5'
+      type: [mountainTemistos]
+      location: [-16.856405, -1.601699]
+- id: '690961bf6bd4d0b4bdd6524a'
+  name: Morrulir
+  type: motherCapital
+  markerLocation: '690961bf4cf94b8800e2d331' # Morrulir — POI city
+  relatedLore: '68c19213541d89c481b83233' # Morrulir
+  pointsOfInterest:
+    - id: '690961bf4cf94b8800e2d331'
+      type: [city]
+      location: [15.418237229910357, -56.86879663334662]
+    - id: '690e41861479bf7ca53203e4'
+      type: [dungeon, forest]
+      location: [21.110696, -64.431833]
+    - id: '690e418697e83eea104d6533'
+      type: [ruins, mountainLamstone]
+      location: [26.737684, -58.930408]
+    - id: '690e4186a8eec8a36df6240e'
+      type: [ruins, undergroundLamstone]
+      location: [22.218125, -58.655131]
+- id: '690961bf8c233eb8033dbafb'
+  name: Gor Buldar
+  type: motherCity
+  markerLocation: '690961bfea09fd7d2208058b' # Gor Buldar — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bfea09fd7d2208058b'
+      type: [city]
+      location: [40.9778107001313, -45.87757579591594]
+    - id: '690e4186558d86a6712f854d'
+      type: [ruins, mountainLamstone]
+      location: [35.559502, -47.285608]
+    - id: '690e41867494ce20372848b5'
+      type: [ruins, undergroundLamstone]
+      location: [45.982521, -45.280194]
+- id: '690961bf247b24390da2c81e'
+  name: Kim Todur
+  type: motherCity
+  markerLocation: '690961bf9aeb4d5f3b0f4887' # Kim Todur — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bf9aeb4d5f3b0f4887'
+      type: [city]
+      location: [57.56434242016826, -35.39996340883246]
+    - id: '690e418622f0e843327e663c'
+      type: [farNorth, mountainLamstone]
+      location: [55.773635, -37.564372]
+    - id: '690e41869b7f2528b7324d50'
+      type: [graveyard, undergroundLamstone]
+      location: [59.296297, -33.173612]
+    - id: '690e4186c2344c4980b49f0b'
+      type: [farNorth, mountainLamstone]
+      location: [62.516438, -34.093812]
+- id: '690961bf40461c8db77a7c89'
+  name: Kom Dorul
+  type: motherCity
+  markerLocation: '690961bfe7ecc4b6620218ad' # Kom Dorul — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bfe7ecc4b6620218ad'
+      type: [city]
+      location: [28.74184467715318, -52.34904227029101]
+    - id: '690e4186cb0c4a6ce48fec10'
+      type: [dungeon, undergroundLamstone]
+      location: [24.40097, -51.6895]
+    - id: '690e4186e40a88dd5b5e79be'
+      type: [ruins, undergroundLamstone]
+      location: [34.757128, -54.594882]
+    - id: '690e4186fbb25baee7269789'
+      type: [graveyard, farNorth, forest]
+      location: [39.420435, -53.258255]
+- id: '690961bff10c5c31893927a0'
+  name: Nul Lodir
+  type: motherCity
+  markerLocation: '690961bfd5fdd8321d64cc8a' # Nul Lodir — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bfd5fdd8321d64cc8a'
+      type: [city]
+      location: [51.58231458671231, -30.46932228549907]
+    - id: '690e4186292e397259aa517c'
+      type: [farNorth, mountainLamstone]
+      location: [49.427468, -29.334187]
+    - id: '690e4186f587e20776ddc8ae'
+      type: [farNorth, mountainLamstone]
+      location: [53.982428, -32.299404]
+- id: '690961bf0f0f449443a030e0'
+  name: Biroldur
+  type: motherVillage
+  markerLocation: '690961bfa27c7ce1f7032f59' # Biroldur — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bfa27c7ce1f7032f59'
+      type: [city]
+      location: [60.82726669296238, -29.23666200466572]
+    - id: '690e41863cb80a52a987c413'
+      type: [farNorth, undergroundLamstone]
+      location: [65.292886, -29.829981]
+    - id: '690e41864a835ed0907829d4'
+      type: [farNorth, mountainLamstone]
+      location: [58.054289, -29.631663]
+- id: '690961bfe69eb840daad8c54'
+  name: Himboram
+  type: motherVillage
+  markerLocation: '690961bf364c4634b7c0c671' # Himboram — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bf364c4634b7c0c671'
+      type: [city]
+      location: [33.90814144241062, -32.01014763654075]
+    - id: '690e41864375db1063791899'
+      type: [ruins, undergroundLamstone]
+      location: [33.921194, -27.964429]
+    - id: '690e4186f9347f5892f581fd'
+      type: [mountainLamstone]
+      location: [36.904294, -32.501289]
+- id: '690961bf4d19ccf2d80d29eb'
+  name: Kom Dural
+  type: motherVillage
+  markerLocation: '690961bfaaf455e5ba5087f2' # Kom Dural — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bfaaf455e5ba5087f2'
+      type: [city]
+      location: [28.469934321086996, -44.13130706473535]
+    - id: '690e4186dd90cc8f723f410e'
+      type: [graveyard, undergroundLamstone]
+      location: [31.846461, -44.024745]
+    - id: '690e4186e97f576af2c06b72'
+      type: [undergroundLamstone]
+      location: [25.137768, -46.032794]
+- id: '690961bf1bf8bb61e5f6af2f'
+  name: Veg Faldir
+  type: motherVillage
+  markerLocation: '690961bfeedcd862f04e6ca7' # Veg Faldir — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bfeedcd862f04e6ca7'
+      type: [city]
+      location: [45.05646604112397, -33.65369467765189]
+    - id: '690e4186257d37a71dc3c281'
+      type: [farNorth, mountainLamstone]
+      location: [48.710932, -34.982991]
+    - id: '690e418640bc2e6979024b6a'
+      type: [undergroundLamstone]
+      location: [44.993781, -35.737083]
+    - id: '690e4186a1ad003c8276386c'
+      type: [dungeon, mountainLamstone]
+      location: [40.07156, -33.808726]
+- id: '690961bf8330727f6b9ff976'
+  name: Dhomfuhn
+  type: mountainVillage
+  markerLocation: '690961bf4da6c6d9db343fe2' # Dhomfuhn — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bf4da6c6d9db343fe2'
+      type: [city]
+      location: [52.9418663670432, -18.55360623744337]
+    - id: '690e41862d2fda63b410cc8e'
+      type: [farNorth, mountainLamstone]
+      location: [55.476158, -18.724188]
+    - id: '690e41867693a87e65579ed1'
+      type: [farNorth, mountainLamstone]
+      location: [50.719796, -20.268296]
+    - id: '690e4186a4d969490f20d6ef'
+      type: [undergroundLamstone]
+      location: [51.612451, -16.910642]
+- id: '690961bfc055e5bbf8371d32'
+  name: Gurdarul
+  type: mountainVillage
+  markerLocation: '690961bf338fb70c66cd02de' # Gurdarul — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bf338fb70c66cd02de'
+      type: [city]
+      location: [50.494673162447555, -40.84421298251308]
+    - id: '690e41868d8b1473e155bef2'
+      type: [farNorth, mountainLamstone]
+      location: [47.470955, -41.322822]
+    - id: '690e4186c5eb8e44b5dd9c16'
+      type: [farNorth, mountainLamstone]
+      location: [53.393822, -40.539138]
+- id: '690961bf44b809847af47766'
+  name: Vegduhr
+  type: mountainVillage
+  markerLocation: '690961bf3a3d5db022a6d9fa' # Vegduhr — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bf3a3d5db022a6d9fa'
+      type: [city]
+      location: [29.557575745351727, -37.96800566056861]
+    - id: '690e4186cb8ac3eb729ad91b'
+      type: [mountainLamstone]
+      location: [31.756439, -36.472491]
+    - id: '690e4186e0cfa6e3103ffb3e'
+      type: [graveyard, undergroundLamstone]
+      location: [27.655147, -36.117351]
+- id: '690961d478a17f90f14c11de'
+  name: Necrorian
+  type: necrorianCity
+  markerLocation: '690961d48fec5cd773b78a27' # Necrorian — POI city
+  relatedLore: '68c19213541d89c481b83234' # Necrorian
+  pointsOfInterest:
+    - id: '690961d48fec5cd773b78a27'
+      type: [city]
+      location: [38.48474579496774, 40.25388635856748]
+    - id: '690e418641b1298bf5967d1f'
+      type: [dungeon, glounet]
+      location: [41.733434, 37.822949]
+    - id: '690e41864a1a25b9ba083aa4'
+      type: [delants]
+      location: [42.873161, 47.425784]
+    - id: '690e41866386c84087ad8d2e'
+      type: [demonicPortal, glounet]
+      location: [37.118919, 44.709609]
+    - id: '690e41866b6e1413b94dd396'
+      type: [ruins, glounet]
+      location: [47.708011, 48.467811]
+    - id: '690e41869cb9811f2f8bfdc5'
+      type: [ruins, glounet]
+      location: [48.977924, 37.220013]
+    - id: '690e41869d637a378b0080b1'
+      type: [ruins, glounet]
+      location: [35.129828, 41.392583]
+    - id: '690e4186a2175881abee5979'
+      type: [dungeon, glounet]
+      location: [54.044334, 43.978399]
+- id: '690961bfeadfef6899ea08f0'
+  name: Andogan
+  type: northVillage
+  markerLocation: '690961bf8ab3f46dae16ecac' # Andogan — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bf8ab3f46dae16ecac'
+      type: [city]
+      location: [62.382309580532215, -12.197353258151]
+    - id: '690e4186d794280d56caf42c'
+      type: [farNorth]
+      location: [63.408868, -9.204937]
+    - id: '690e4186ea8ca0f6bd5e140c'
+      type: [farNorth, hills]
+      location: [59.541672, -13.567927]
+    - id: '690e446afb6b65771a763478'
+      type: [ladows]
+      location: [79.701387, -31.86224]
+- id: '690961bfc52f898e5aff273f'
+  name: Bosa
+  type: northVillage
+  markerLocation: '690961bf8b6ef8e9d21aa01f' # Bosa — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bf8b6ef8e9d21aa01f'
+      type: [city]
+      location: [58.108163132300604, -43.206811854110335]
+    - id: '690e41864ddd680226ef77ee'
+      type: [farNorth]
+      location: [58.84756, -42.12568]
+    - id: '690e4186f60a4be608103175'
+      type: [farNorth]
+      location: [54.81109, -45.517185]
+- id: '69096178da5c3114e1c1f7c0'
+  name: Erast
+  type: northVillage
+  markerLocation: '6909617854015e1f880d678c' # Erast — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909617854015e1f880d678c'
+      type: [city]
+      location: [62.0823059732418, 16.90743399430503]
+    - id: '690e4186243a51e6bee0260b'
+      type: [farNorth]
+      location: [65.689522, 16.278891]
+    - id: '690e41869c108c26cb181f44'
+      type: [farNorth, hills]
+      location: [58.351766, 13.899078]
+- id: '690961bf952cc57d174677d7'
+  name: Kliever
+  type: northVillage
+  markerLocation: '690961bf0083bc47e21d9cf7' # Kliever — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961bf0083bc47e21d9cf7'
+      type: [city]
+      location: [49.13512138211666, -49.781000018554856]
+    - id: '690e4186cbdb737b55cec1ad'
+      type: [farNorth]
+      location: [45.418388, -52.101756]
+    - id: '690e4186dd56d1c75ff14e15'
+      type: [farNorth]
+      location: [52.576678, -48.860937]
+- id: '6909617875217c0904eafd78'
+  name: Inverness
+  type: northVillage
+  markerLocation: '69096178be57925017091189' # Inverness — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096178be57925017091189'
+      type: [city]
+      location: [59.39639438885192, 6.760656897720945]
+    - id: '690e418620c1c4269d76cc13'
+      type: [ruins, farNorth]
+      location: [57.207914, 7.025361]
+    - id: '690e418645130094affe9b0e'
+      type: [graveyard, hills, farNorth]
+      location: [57.789085, 9.977892]
+    - id: '690e41867994580ab268b67c'
+      type: [farNorth, hills]
+      location: [55.575317, 5.470575]
+    - id: '690e4186e1f26e654bc72fa7'
+      type: [farNorth, forest, hills]
+      location: [59.640831, 3.189921]
+    - id: '690e4186eb4ce8cecf36d113'
+      type: [farNorth, forest]
+      location: [61.624008, 8.346182]
+- id: '69096178afbc44955cc5e0f6'
+  name: Llyne
+  type: northVillage
+  markerLocation: '690961788ddd4cc46b4445ef' # Llyne — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961788ddd4cc46b4445ef'
+      type: [city]
+      location: [54.56175353695008, -8.865379831018542]
+    - id: '690e418623b8e178d6a52fcf'
+      type: [farNorth, forest, hills]
+      location: [51.906439, -11.188114]
+    - id: '690e4186c775eb8e889caef1'
+      type: [farNorth, hills]
+      location: [57.756812, -8.114189]
+- id: '690961788b5654c10bdac571'
+  name: Lunaris
+  type: northVillage
+  markerLocation: '69096178819b2a3509607536' # Lunaris — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096178819b2a3509607536'
+      type: [city]
+      location: [70.14004072641153, -0.7986920392341951]
+    - id: '690e41860f4619bee5b0b0e9'
+      type: [farNorth, hills]
+      location: [64.697933, 1.206744]
+    - id: '690e41866fed0d7187ef6d5c'
+      type: [ruins, farNorth]
+      location: [66.044926, 4.636979]
+    - id: '690e4186d4fffdf6e920b08e'
+      type: [farNorth]
+      location: [70.449147, 3.189921]
+    - id: '690e4186f6bb003c692f4377'
+      type: [dungeon, farNorth]
+      location: [64.421776, -2.295298]
+- id: '69096178ea43716c4da7ca39'
+  name: Norfolk
+  type: northVillage
+  markerLocation: '69096178244d2d63c183732c' # Norfolk — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096178244d2d63c183732c'
+      type: [city]
+      location: [56.441891646023, -1.153829237614639]
+    - id: '690e41864fecac1ff373e926'
+      type: [farNorth, hills, forest]
+      location: [59.145036, -3.552882]
+    - id: '690e4186d06bbc8f170c7479'
+      type: [farNorth, forest, hills]
+      location: [53.195505, -3.453723]
+- id: '690961783b7912466bb683e6'
+  name: Nortorn
+  type: northVillage
+  markerLocation: '69096178568e04a5f547485c' # Nortorn — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096178568e04a5f547485c'
+      type: [city]
+      location: [72.55736115236249, 7.7753346073793566]
+    - id: '690e41864edf3beea402a55c'
+      type: [demonicPortal, hills, farNorth]
+      location: [67.476434, 8.322557]
+    - id: '690e4186a1c31681fac6940f'
+      type: [farNorth]
+      location: [67.970175, 11.519266]
+    - id: '690e4186a99db43c66de50b9'
+      type: [farNorth, hills]
+      location: [64.10298, 10.2302]
+    - id: '690e446a206593f9162d79ff'
+      type: [delants]
+      location: [83.16953, 13.223614]
+- id: '6909614408ddd652b429dcd2'
+  name: Talmvere
+  type: talmvereVillage
+  markerLocation: '690961448bd7b0f578a8fd8b' # Talmvere — POI city
+  relatedLore: '68c19213541d89c481b83235' # Talmvere
+  pointsOfInterest:
+    - id: '690961448bd7b0f578a8fd8b'
+      type: [city]
+      location: [8.366236985718174, -38.05328941812818]
+    - id: '690e418640005dddbe21be8d'
+      type: [dungeon, forest]
+      location: [1.980908, -39.145729]
+    - id: '690e4186c0380d79092bbd49'
+      type: [forest]
+      location: [3.90975, -38.811845]
+    - id: '690e4186cd997a17236ecdfc'
+      type: [battleground, drusteaPlains]
+      location: [9.451434, -35.055693]
+- id: '690961f202b81d16eecf4872'
+  name: Croce Marina
+  type: tropicalVillage
+  markerLocation: '690961f29ea60e37117f43f5' # Croce Marina — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f29ea60e37117f43f5'
+      type: [city]
+      location: [-43.36461113782559, 47.025142179921744]
+    - id: '690e4186e65560efdfa38f6b'
+      type: [delants]
+      location: [-46.596396, 47.682754]
+    - id: '690e4186f1dff23c2e964e45'
+      type: [forest, belleholmIsland]
+      location: [-43.639232, 45.457158]
+    - id: '690e446a7d0e5489135ebbc9'
+      type: [delants]
+      location: [-37.830114, 47.905041]
+- id: '690961f26b46ea855081a15a'
+  name: Dalde
+  type: tropicalVillage
+  markerLocation: '690961f2e6c9fda0325e12df' # Dalde — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2e6c9fda0325e12df'
+      type: [city]
+      location: [-16.060644125478944, 85.87978535304708]
+    - id: '690e4186382f54ff563f0fad'
+      type: [forest, belleholmIsland]
+      location: [-19.072092, 86.412682]
+    - id: '690e41869a719c53e4d2f731'
+      type: [ruins, belleholmIsland]
+      location: [-7.527657, 83.228632]
+    - id: '690e4186de4a813e91cb78cd'
+      type: [dungeon, belleholmIsland]
+      location: [-10.745584, 86.661301]
+    - id: '690e4186e447c8027bf39ce4'
+      type: [delants]
+      location: [-12.24297, 81.117377]
+    - id: '690e446a09456b26c75a64d0'
+      type: [delants]
+      location: [-18.177306, 106.092768]
+- id: '690961f2c8306c558dd1e0e8'
+  name: Dawnborough
+  type: tropicalVillage
+  markerLocation: '690961f24bef20f1d2429e70' # Dawnborough — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f24bef20f1d2429e70'
+      type: [city]
+      location: [-7.182667121464392, 58.60559771849168]
+    - id: '690e41864393488bd7c14362'
+      type: [forest, belleholmIsland]
+      location: [-9.866297, 62.540494]
+    - id: '690e4186d668d8da6918d244'
+      type: [graveyard, belleholmIsland]
+      location: [-7.716093, 62.112588]
+    - id: '690e4186d84deaa2dc767ed9'
+      type: [delants]
+      location: [-5.898683, 65.909747]
+    - id: '690e446a6782ad79062d5bc8'
+      type: [delants]
+      location: [-81.759922, 57.92412]
+- id: '690961f2560f388b3e70e847'
+  name: Duril
+  type: tropicalVillage
+  markerLocation: '690961f26aeebc3e0c4cc3a8' # Duril — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f26aeebc3e0c4cc3a8'
+      type: [city]
+      location: [-7.685194121691638, 74.6790168813155]
+    - id: '690e418608fdadba93b028d3'
+      type: [forest, belleholmIsland]
+      location: [-12.173414, 75.830244]
+    - id: '690e4186c91d62a7489cff06'
+      type: [forest, belleholmIsland]
+      location: [-4.404029, 72.749281]
+- id: '690961f252312e8b56af5559'
+  name: Gellen
+  type: tropicalVillage
+  markerLocation: '690961f2fbfe869d79de756b' # Gellen — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2fbfe869d79de756b'
+      type: [city]
+      location: [-52.983220213958425, 45.996391182840064]
+    - id: '690e418619fa3bdb5b254b0f'
+      type: [delants]
+      location: [-50.514926, 47.192937]
+    - id: '690e4186f31769e4a4c6cb45'
+      type: [graveyard, belleholmIsland]
+      location: [-52.051728, 45.978036]
+    - id: '690e446a717f5b45d8a5ead6'
+      type: [delants]
+      location: [-57.868272, 39.812708]
+- id: '690961f2cd8c5141b527668d'
+  name: Merlern
+  type: tropicalVillage
+  markerLocation: '690961f2b3d9036dff064715' # Merlern — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f2b3d9036dff064715'
+      type: [city]
+      location: [-25.441148129720744, 91.76493488904161]
+    - id: '690e4186171ee69f9b1bb97e'
+      type: [delants]
+      location: [-24.465053, 87.648262]
+    - id: '690e41861a81285944432053'
+      type: [demonicPortal, belleholmIsland, forest]
+      location: [-33.551196, 92.789304]
+    - id: '690e41863a51b23f44dfee21'
+      type: [delants]
+      location: [-30.342849, 94.832234]
+    - id: '690e41865c18c2dc600eca4c'
+      type: [delants]
+      location: [-30.529446, 89.98072]
+    - id: '690e41866a4208a19e3d867d'
+      type: [forest, belleholmIsland]
+      location: [-24.858082, 93.476237]
+- id: '690961f2121e1fa9c5d9fdaf'
+  name: Ruldilen
+  type: tropicalVillage
+  markerLocation: '690961f25009cccbe7bf7a83' # Ruldilen — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f25009cccbe7bf7a83'
+      type: [city]
+      location: [-43.53212013790134, 93.34696433420146]
+    - id: '690e418601130ce6186a6f96'
+      type: [delants]
+      location: [-48.91667, 96.016111]
+    - id: '690e4186b5ab1bac7dbc1a56'
+      type: [delants]
+      location: [-39.142558, 94.683278]
+- id: '690961f26c80c0108825a0ed'
+  name: Varyllod
+  type: tropicalVillage
+  markerLocation: '690961f23f543acc975e8b42' # Varyllod — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690961f23f543acc975e8b42'
+      type: [city]
+      location: [0.020219881792698, 67.02199436674195]
+    - id: '690e41869612c5f4ff9c2334'
+      type: [forest, belleholmIsland]
+      location: [-1.683129, 65.656863]
+    - id: '690e4186b95587d2be7cdb59'
+      type: [delants]
+      location: [-3.566224, 67.029327]
+    - id: '690e446a19423c4140823560'
+      type: [delants]
+      location: [23.440406, 54.841327]
+    - id: '690e446a3651a00510eb4f50'
+      type: [delants]
+      location: [6.870391, 77.576928]
+- id: '6909620487db8bf7dca08934'
+  name: Valantar
+  type: valanCapital
+  markerLocation: '69096204003ac12b7cdce6e8' # Valantar — POI city
+  relatedLore: '68c19213541d89c481b83236' # Valantar
+  pointsOfInterest:
+    - id: '69096204003ac12b7cdce6e8'
+      type: [city]
+      location: [-37.810435884313655, -27.970074158749295]
+    - id: '690e4186388a83b724c6f830'
+      type: [valanPlains]
+      location: [-38.24453, -24.730975]
+    - id: '690e4186ab825821406b538f'
+      type: [graveyard, valanPlains]
+      location: [-44.982591, -27.4161]
+- id: '690962049a47b69f249dbe2e'
+  name: Flushhelm
+  type: valanCity
+  markerLocation: '69096204fe2d61f35be640fa' # Flushhelm — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204fe2d61f35be640fa'
+      type: [city]
+      location: [-53.19315516028075, -34.78005516300877]
+    - id: '690e418603a55cff4eb9abd0'
+      type: [valanPlains]
+      location: [-46.807504, -34.818347]
+    - id: '690e4186a6c82c8ba47b1ded'
+      type: [ruins, valanPlains]
+      location: [-52.5652, -38.635525]
+- id: '69096204cec79d963a47270c'
+  name: Granponte
+  type: valanCity
+  markerLocation: '69096204706c3aa048faca5f' # Granponte — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204706c3aa048faca5f'
+      type: [city]
+      location: [-36.93641964931441, -10.281076213028342]
+    - id: '690e41868a9e8b3bbb03486d'
+      type: [ruins, valanPlains]
+      location: [-44.028516, -13.855431]
+    - id: '690e41869e4a2a76eff5f555'
+      type: [battleground, valanPlains]
+      location: [-42.274331, -8.940596]
+- id: '690962046ae72fec23f9fe12'
+  name: Marbot
+  type: valanCity
+  markerLocation: '6909620458835e68b68727fd' # Marbot — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909620458835e68b68727fd'
+      type: [city]
+      location: [-20.587649749650314, 19.201565278896453]
+    - id: '690e41868b7b88f39ee0e13a'
+      type: [demonicPortal, ruins, valanPlains]
+      location: [-17.867535, 15.597218]
+    - id: '690e4186c26625d660983fea'
+      type: [graveyard, valanPlains]
+      location: [-24.352605, 19.459814]
+- id: '690962041103484cb9ff5aea'
+  name: Numstegh
+  type: valanCity
+  markerLocation: '69096204984708efbc90ba92' # Numstegh — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204984708efbc90ba92'
+      type: [city]
+      location: [-36.66599867393307, 38.454220139771536]
+    - id: '690e4186059723dfcc0ebb44'
+      type: [battleground, valanPlains]
+      location: [-40.420534, 36.548733]
+    - id: '690e4186cd1e3aa893abacaf'
+      type: [ruins, valanPlains]
+      location: [-45.332732, 36.771844]
+    - id: '690e4186e7133c0ce09c75c4'
+      type: [valanPlains]
+      location: [-33.711904, 40.333076]
+- id: '69096204332d00f4d4b4ef94'
+  name: Springford
+  type: valanCity
+  markerLocation: '69096204fb8ef22384776b5c' # Springford — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204fb8ef22384776b5c'
+      type: [city]
+      location: [-30.634048372699997, 11.791681850043934]
+    - id: '690e418629cc0306c5c3985e'
+      type: [ruins, valanPlains]
+      location: [-33.950488, 10.806099]
+    - id: '690e41865e0a026469f0ced2'
+      type: [valanPlains]
+      location: [-32.040946, 17.051063]
+- id: '69096204c9a2ec0709abf78a'
+  name: Tinemoor
+  type: valanCity
+  markerLocation: '69096204fdcffb677dfbf816' # Tinemoor — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204fdcffb677dfbf816'
+      type: [city]
+      location: [-44.71138011108091, -32.376885565735485]
+    - id: '690e41860afe207b45f4ca17'
+      type: [demonicPortal, valanPlains]
+      location: [-47.705531, -31.297366]
+- id: '69096204d344b91cd59dfbe7'
+  name: Blu Aragh
+  type: valanSeaCity
+  markerLocation: '690962048c510b7c4f998326' # Blu Aragh — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690962048c510b7c4f998326'
+      type: [city]
+      location: [-24.947211607516206, 40.87314961212929]
+    - id: '690e41866dc45d60ca0e164a'
+      type: [valanPlains]
+      location: [-22.460788, 39.107707]
+    - id: '690e4186e6e7e6c56cc4faf5'
+      type: [battleground, valanPlains]
+      location: [-27.586554, 41.397125]
+- id: '6909620483d4f70ab3c5ccbb'
+  name: Chargate
+  type: valanSeaCity
+  markerLocation: '690962047c917e32462544a3' # Chargate — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690962047c917e32462544a3'
+      type: [city]
+      location: [-54.90864658144795, 29.097983501406652]
+    - id: '690e41863357f4a3013e624a'
+      type: [valanPlains]
+      location: [-51.424057, 25.294455]
+    - id: '690e4186d5145c01aa6685a2'
+      type: [demonicPortal, valanPlains]
+      location: [-56.806925, 26.343479]
+- id: '690962040a530bf84e11240c'
+  name: Gadarreck
+  type: valanSeaCity
+  markerLocation: '6909620476784516981cd802' # Gadarreck — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909620476784516981cd802'
+      type: [city]
+      location: [-63.618670324922206, -21.29560353386423]
+    - id: '690e41863ffb78eef682d176'
+      type: [graveyard, valanPlains]
+      location: [-60.455081, -22.487826]
+    - id: '690e4186b1754b507bb27c15'
+      type: [valanPlains]
+      location: [-66.658123, -18.995734]
+- id: '69096204b212f35e25f8632a'
+  name: Millport
+  type: valanSeaCity
+  markerLocation: '6909620454f5712aa14b42da' # Millport — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909620454f5712aa14b42da'
+      type: [city]
+      location: [-21.564468949169093, 32.429716548239035]
+    - id: '690e4186546de03daebb6e2b'
+      type: [valanPlains]
+      location: [-21.235419, 26.074236]
+    - id: '690e4186a72f9f4b529789ff'
+      type: [ruins, valanPlains]
+      location: [-18.655597, 36.653279]
+- id: '6909620472a89d8e4dedcb50'
+  name: Pitchport
+  type: valanSeaCity
+  markerLocation: '6909620429940d35fd89a0b5' # Pitchport — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909620429940d35fd89a0b5'
+      type: [city]
+      location: [-65.91581773408046, -15.55469838482249]
+    - id: '690e4186d3f89cf09558e8fd'
+      type: [dungeon, valanPlains]
+      location: [-60.665937, -13.958784]
+    - id: '690e4186d69b27380b62b539'
+      type: [valanPlains]
+      location: [-65.918688, -11.878668]
+    - id: '690e446af3133d3864f261e5'
+      type: [ladows]
+      location: [-79.062477, -30.706193]
+- id: '69096204c5cf931ba5c96fec'
+  name: Voxhold
+  type: valanSeaCity
+  markerLocation: '690962041dfbb664f512f1ae' # Voxhold — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690962041dfbb664f512f1ae'
+      type: [city]
+      location: [-47.17666336236881, 32.3840763695153]
+    - id: '690e41867fa63eb639f9acc4'
+      type: [valanPlains]
+      location: [-53.206412, 31.866889]
+    - id: '690e4186f56f5d0e13baea9b'
+      type: [graveyard, valanPlains]
+      location: [-50.483921, 33.098527]
+- id: '69096204d26cadbff3ae5e80'
+  name: Anden
+  type: valanVillage
+  markerLocation: '690962047fc5ab090432d368' # Anden — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690962047fc5ab090432d368'
+      type: [city]
+      location: [-58.847671859747294, -28.571867036719453]
+    - id: '690e41860bfb243ab2561f4e'
+      type: [dungeon, forest]
+      location: [-51.027387, -28.279696]
+    - id: '690e418636bc827fe6aee881'
+      type: [forest]
+      location: [-53.631404, -29.327009]
+    - id: '690e418678b5980404b70e33'
+      type: [valanPlains]
+      location: [-57.226558, -31.461631]
+    - id: '690e446a22fef2aa84d545be'
+      type: [ladows]
+      location: [-64.312829, -54.872354]
+- id: '690962044bea14749932ecb0'
+  name: Beldenn
+  type: valanVillage
+  markerLocation: '6909620448c0d216081a6706' # Beldenn — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '6909620448c0d216081a6706'
+      type: [city]
+      location: [-29.658888881642575, 37.130654956783346]
+    - id: '690e418615a0db1467fb6a72'
+      type: [ruins, forest]
+      location: [-28.259365, 30.250766]
+    - id: '690e41862656e89fae339df4'
+      type: [valanPlains]
+      location: [-27.250867, 38.105132]
+    - id: '690e4186f2638581b0286207'
+      type: [forest]
+      location: [-31.038372, 33.649245]
+- id: '6909620459bb3490e08d63fc'
+  name: Fineglen
+  type: valanVillage
+  markerLocation: '69096204442a19ccb430b83e' # Fineglen — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204442a19ccb430b83e'
+      type: [city]
+      location: [-26.208848979213826, 10.888037529452168]
+    - id: '690e418639557abdb278b5e8'
+      type: [ruins, valanPlains]
+      location: [-21.264028, 4.877846]
+    - id: '690e418644d33ecf35dfd5d7'
+      type: [valanPlains]
+      location: [-24.184587, 9.257977]
+    - id: '690e4186ab288750f9f17c93'
+      type: [battleground, valanPlains]
+      location: [-27.586554, 8.028777]
+- id: '69096204a885a9ab75ced568'
+  name: Glilrid
+  type: valanVillage
+  markerLocation: '690962045a8dcd9c5f2da7bd' # Glilrid — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690962045a8dcd9c5f2da7bd'
+      type: [city]
+      location: [-41.177307173914336, -22.830961887677717]
+    - id: '690e418643b82a8456eede95'
+      type: [graveyard, valanPlains]
+      location: [-41.54426, -18.132606]
+    - id: '690e41866b59bd871f7907cc'
+      type: [valanPlains]
+      location: [-37.731023, -18.272252]
+- id: '690962043db9f3a8ba2bc746'
+  name: Gonfim
+  type: valanVillage
+  markerLocation: '69096204a7be728c13bd7562' # Gonfim — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204a7be728c13bd7562'
+      type: [city]
+      location: [-54.60678433514737, -17.156811449671352]
+    - id: '690e41864d8e8ba8dab00b3b'
+      type: [battleground, valanPlains]
+      location: [-46.124525, -23.913573]
+    - id: '690e4186eee7148917b3876b'
+      type: [valanPlains]
+      location: [-48.824793, -17.578891]
+- id: '69096204ce47261a748ccc4d'
+  name: Gravendale
+  type: valanVillage
+  markerLocation: '69096204cbc0e244d3c98aa6' # Gravendale — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '69096204cbc0e244d3c98aa6'
+      type: [city]
+      location: [-54.25337704143072, -23.565263709066777]
+    - id: '690e4186145f435c1681cc57'
+      type: [ruins, valanPlains]
+      location: [-57.307802, -20.376508]
+    - id: '690e4186b260525703158cf5'
+      type: [forest]
+      location: [-51.459563, -25.34453]
+- id: '69096204defcf893091c1804'
+  name: Lilmere
+  type: valanVillage
+  markerLocation: '690962047bd8b98292723bdf' # Lilmere — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690962047bd8b98292723bdf'
+      type: [city]
+      location: [-45.77160199223089, -39.586394357555335]
+    - id: '690e4186869c210ce163eec3'
+      type: [battleground, valanPlains]
+      location: [-40.705733, -35.321556]
+    - id: '690e4186d2b1c420c047ad8d'
+      type: [valanPlains]
+      location: [-49.377458, -41.137896]
+- id: '69096204fd230792d5c30ec7'
+  name: Noxgard
+  type: valanVillage
+  markerLocation: '690962040e254d082a2e72ea' # Noxgard — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690962040e254d082a2e72ea'
+      type: [city]
+      location: [-41.61930042365566, 28.869782607788004]
+    - id: '690e418604249d34f6b3669f'
+      type: [valanPlains]
+      location: [-40.061544, 32.758067]
+    - id: '690e418614f604c829cd7fa5'
+      type: [forest]
+      location: [-30.481386, 26.074236]
+    - id: '690e41863f26e7b6da1a2946'
+      type: [dungeon, forest]
+      location: [-36.310314, 28.101478]
+- id: '69096204d6df846a09d63e90'
+  name: Quirkdale
+  type: valanVillage
+  markerLocation: '690962042d4905efdd514b0d' # Quirkdale — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690962042d4905efdd514b0d'
+      type: [city]
+      location: [-31.710448225169618, 0.5864922747059861]
+    - id: '690e4186ce2eac3c49f81d86'
+      type: [demonicPortal, valanPlains]
+      location: [-32.406593, -4.251757]
+    - id: '690e4186e62a39924cce1c18'
+      type: [valanPlains]
+      location: [-36.813658, -4.410975]
+- id: '690962045edb129a32a89b35'
+  name: Schuzzar
+  type: valanVillage
+  markerLocation: '690962040aee96612db70551' # Schuzzar — POI city
+  relatedLore: null
+  pointsOfInterest:
+    - id: '690962040aee96612db70551'
+      type: [city]
+      location: [-38.64724727441819, 19.382294143014803]
+    - id: '690e41861ac3270dd0dd7f03'
+      type: [dungeon, valanPlains]
+      location: [-48.645418, 20.746201]
+    - id: '690e4186b3b088ccfcb87fc3'
+      type: [valanPlains]
+      location: [-42.957871, 16.716872]

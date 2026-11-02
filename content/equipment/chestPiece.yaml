@@ -1,0 +1,398 @@
+# Esportato da --export il 2026-11-02: da qui in poi il file è la fonte di verità (D-04)
+
+- id: '68c19536541d89c481b8324d'
+  name: Corazza di pelle
+  itemType: EquipmentItem
+  description: |-
+    Una semplice corazza di pelle conciata. Non protegge molto, ma è meglio di niente. 
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 50
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 10
+  rarity: common
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 300
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83265'
+  name: Tunica del novizio
+  itemType: EquipmentItem
+  description: |-
+    Una semplice tunica di lana. Usata dai maghi apprendisti. Leggera resistenza magica.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 6
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 18
+  rarity: common
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base: []
+    energy:
+      - type: force
+        power: 100
+  sellable: true
+- id: '68c19536541d89c481b83266'
+  name: Corazza imbottita
+  itemType: EquipmentItem
+  description: |-
+    Tessuto multistrato per assorbire i colpi. È la prima linea di difesa per i soldati comuni.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 14
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 35
+  rarity: common
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 450
+      - type: pierce
+        power: 300
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83267'
+  name: Camicia di lino rinforzata
+  itemType: EquipmentItem
+  description: |-
+    Una camicia con fili metallici sottili intessuti. Offre una sorprendente protezione dai tagli.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 10
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 25
+  rarity: common
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 550
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83268'
+  name: Corazza di cuoio chiodata
+  itemType: EquipmentItem
+  description: |-
+    Una corazza aggressiva con placche di metallo e un buon rivestimento anti-acido.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 80
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 50
+  rarity: uncommon
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 800
+      - type: pierce
+        power: 750
+    energy:
+      - type: acid
+        power: 150
+  sellable: true
+- id: '68c19536541d89c481b83269'
+  name: Armatura a piastre
+  itemType: EquipmentItem
+  description: |-
+    Il classico guscio di metallo. Rallenta i movimenti, ma è efficace contro la maggior parte delle armi.
+  sellPrice:
+    gold: 0
+    silver: 1
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 2
+    copper: 10
+  rarity: uncommon
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 1000
+      - type: cut
+        power: 900
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b8326a'
+  name: Veste della tranquillità
+  itemType: EquipmentItem
+  description: |-
+    Una veste che infonde serenità, indossata dai monaci. Molto efficace contro gli attacchi magici mentali e le illusioni.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 50
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 0
+  rarity: uncommon
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base: []
+    energy:
+      - type: psychic
+        power: 300
+      - type: force
+        power: 150
+  sellable: true
+- id: '68c19536541d89c481b8326b'
+  name: Corazza anti-veleno
+  itemType: EquipmentItem
+  description: |-
+    Un'armatura trattata con erbe rare e resine per prevenire l'infiltrazione di tossine.
+  sellPrice:
+    gold: 0
+    silver: 3
+    copper: 10
+  buyPrice:
+    gold: 0
+    silver: 6
+    copper: 20
+  rarity: rare
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 1100
+    energy:
+      - type: poison
+        power: 600
+  sellable: true
+- id: '68c19536541d89c481b8326c'
+  name: Armatura incantata della bufera
+  itemType: EquipmentItem
+  description: |-
+    Forgiata per resistere ai climi più rigidi, grazie alla magia con cui è stata infusa. 
+  sellPrice:
+    gold: 0
+    silver: 3
+    copper: 50
+  buyPrice:
+    gold: 0
+    silver: 7
+    copper: 0
+  rarity: rare
+  equipType: chestPiece
+  addedSpell: null # corretto in 11-12: la magia 68c19570541d89c481b8325a non esiste a DB (riferimento pendente)
+  damages:
+    base:
+      - type: pierce
+        power: 1300
+    energy:
+      - type: cold
+        power: 500
+  sellable: true
+- id: '68c19536541d89c481b8326d'
+  name: Corazza del Cultista
+  itemType: EquipmentItem
+  description: |-
+    Robusta corazza nera usata per resistere ai necromanti e ai non morti.
+  sellPrice:
+    gold: 0
+    silver: 2
+    copper: 70
+  buyPrice:
+    gold: 0
+    silver: 5
+    copper: 80
+  rarity: rare
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 1400
+    energy:
+      - type: necrotic
+        power: 350
+  sellable: true
+- id: '68c19536541d89c481b8326e'
+  name: Corazza del Paladino
+  itemType: EquipmentItem
+  description: |-
+    Simbolo di giustizia, questa corazza offre una protezione totale dalle minacce fisiche e dalla magia di luce.
+  sellPrice:
+    gold: 0
+    silver: 8
+    copper: 50
+  buyPrice:
+    gold: 1
+    silver: 8
+    copper: 0
+  rarity: ultrarare
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 2000
+      - type: cut
+        power: 2000
+      - type: pierce
+        power: 800
+    energy:
+      - type: radiant
+        power: 800
+  sellable: true
+- id: '68c19536541d89c481b8326f'
+  name: Armatura di Sundenim
+  itemType: EquipmentItem
+  description: |-
+    Leggera, ma dura come la roccia. La protezione fisica definitiva.
+  sellPrice:
+    gold: 1
+    silver: 0
+    copper: 0
+  buyPrice:
+    gold: 2
+    silver: 0
+    copper: 0
+  rarity: ultrarare
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 2500
+      - type: pierce
+        power: 2500
+      - type: cut
+        power: 2500
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83270'
+  name: Veste del Tuono
+  itemType: EquipmentItem
+  description: |-
+    Una tunica intessuta di metalli sottili che dissipa ogni energia elettrica o sonica.
+  sellPrice:
+    gold: 0
+    silver: 7
+    copper: 50
+  buyPrice:
+    gold: 1
+    silver: 5
+    copper: 0
+  rarity: ultrarare
+  equipType: chestPiece
+  addedSpell: '68c19570541d89c481b8325f' # Pelle di Roccia
+  damages:
+    base:
+      - type: pierce
+        power: 1000
+      - type: cut
+        power: 1500
+    energy:
+      - type: thunder
+        power: 1000
+      - type: lightning
+        power: 700
+  sellable: true
+- id: '68c19536541d89c481b83271'
+  name: Armatura del Dio Sconosciuto
+  itemType: EquipmentItem
+  description: |-
+    Un'armatura unica e misteriosa. La sua origine è sconosciuta, ma la sua resistenza al fuoco e al gelo è ineguagliabile.
+  sellPrice:
+    gold: 4
+    silver: 0
+    copper: 0
+  buyPrice:
+    gold: 8
+    silver: 0
+    copper: 0
+  rarity: legendary
+  equipType: chestPiece
+  addedSpell: '68c19570541d89c481b83259' # Palla di fuoco
+  damages:
+    base:
+      - type: cut
+        power: 5000
+      - type: blunt
+        power: 1500
+    energy:
+      - type: fire
+        power: 3000
+      - type: cold
+        power: 3000
+  sellable: false
+- id: '68c19536541d89c481b83272'
+  name: Corazza del Guerriero Ancestrale
+  itemType: EquipmentItem
+  description: |-
+    Un'armatura pesante, forgiata con le ossa di un gigante. Protezione fisica massima, aumentata da un campo di forza magico.
+  sellPrice:
+    gold: 3
+    silver: 75
+    copper: 0
+  buyPrice:
+    gold: 7
+    silver: 50
+    copper: 0
+  rarity: legendary
+  equipType: chestPiece
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 4500
+      - type: pierce
+        power: 4000
+    energy:
+      - type: force
+        power: 1800
+  sellable: false
+- id: '68c19536541d89c481b83273'
+  name: Veste del Profeta
+  itemType: EquipmentItem
+  description: |-
+    Una veste di seta incantata che rende quasi immune alla corruzione della mente.
+  sellPrice:
+    gold: 3
+    silver: 25
+    copper: 0
+  buyPrice:
+    gold: 6
+    silver: 50
+    copper: 0
+  rarity: legendary
+  equipType: chestPiece
+  addedSpell: '68c19570541d89c481b8329e' # Pietrificazione
+  damages:
+    base: []
+    energy:
+      - type: psychic
+        power: 2500
+      - type: necrotic
+        power: 2000
+  sellable: false

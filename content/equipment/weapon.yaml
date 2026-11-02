@@ -1,0 +1,430 @@
+# Esportato da --export il 2026-11-02: da qui in poi il file è la fonte di verità (D-04)
+
+- id: '68c19536541d89c481b83251'
+  name: Pugnale d'ossidiana
+  itemType: EquipmentItem
+  description: |-
+    Un pugnale unico nel suo genere, dalla lama affilatissima. Le rune scritte su di esso confericono un potere sovraumano a chiunque lo brandisca.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 1
+  buyPrice:
+    gold: 4
+    silver: 5
+    copper: 80
+  rarity: legendary
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 4000
+      - type: pierce
+        power: 3000
+    energy:
+      - type: enhancing
+        power: 3000
+  sellable: false
+- id: '68c19536541d89c481b83252'
+  name: Daga d'acciaio
+  itemType: EquipmentItem
+  description: |-
+    Una daga d'acciaio unica nel suo genere. Nonostante sembri di fattura modesta, gli anni di combattimenti non l'hanno scalfita. Le rune su di essa permettono a quest'arma di causare un forte impatto nel momento in cui il colpo va a segno.  
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 1
+  buyPrice:
+    gold: 2
+    silver: 7
+    copper: 99
+  rarity: legendary
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 3000
+      - type: pierce
+        power: 3000
+    energy:
+      - type: force
+        power: 1000
+  sellable: false
+- id: '68c19536541d89c481b83292'
+  name: Spada corta arrugginita
+  itemType: EquipmentItem
+  description: |-
+    Una spada di scarsa qualità. Si rompe facilmente, ma affilata quanto basta.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 3
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 10
+  rarity: common
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 300
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83293'
+  name: Bastone di legno
+  itemType: EquipmentItem
+  description: |-
+    Un robusto bastone di quercia. L'arma preferita dei viandanti.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 2
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 8
+  rarity: common
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 300
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83294'
+  name: Arco corto
+  itemType: EquipmentItem
+  description: |-
+    Piccolo arco, spesso utilizzato dai bambini per imparare a cacciare
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 5
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 15
+  rarity: common
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 250
+      - type: blunt
+        power: 50
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83295'
+  name: Spada d'acciaio affilata
+  itemType: EquipmentItem
+  description: |-
+    Una spada bilanciata. Ha su di sé una piccola runa che la rende sempre affilata.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 80
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 50
+  rarity: uncommon
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 600
+      - type: pierce
+        power: 200
+    energy:
+      - type: force
+        power: 50
+  sellable: true
+- id: '68c19536541d89c481b83296'
+  name: Martello da guerra
+  itemType: EquipmentItem
+  description: |-
+    Un martello di medie dimensioni che crea una piccola onda d'urto all'impatto.
+  sellPrice:
+    gold: 0
+    silver: 1
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 2
+    copper: 0
+  rarity: uncommon
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: blunt
+        power: 650
+    energy:
+      - type: thunder
+        power: 250
+  sellable: true
+- id: '68c19536541d89c481b83297'
+  name: Arco lungo rinforzato
+  itemType: EquipmentItem
+  description: |-
+    Un arco potente che scaglia frecce molto rapide e su lunghe distanze.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 90
+  buyPrice:
+    gold: 0
+    silver: 1
+    copper: 80
+  rarity: uncommon
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 600
+      - type: blunt
+        power: 200
+    energy: []
+  sellable: true
+- id: '68c19536541d89c481b83298'
+  name: Ascia da battaglia avvelenata
+  itemType: EquipmentItem
+  description: |-
+    Un'ascia con una lama sempre unta di veleno potente. Ideale per colpi letali.
+  sellPrice:
+    gold: 0
+    silver: 3
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 6
+    copper: 0
+  rarity: rare
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 1300
+      - type: pierce
+        power: 600
+    energy:
+      - type: poison
+        power: 550
+  sellable: true
+- id: '68c19536541d89c481b83299'
+  name: Scettro Acido
+  itemType: EquipmentItem
+  description: |-
+    Un bastone da mago che emette gocce di acido corrosivo ad ogni colpo.
+  sellPrice:
+    gold: 0
+    silver: 3
+    copper: 75
+  buyPrice:
+    gold: 0
+    silver: 7
+    copper: 50
+  rarity: rare
+  equipType: weapon
+  addedSpell: '68c19570541d89c481b83292' # Miraggio corrosivo
+  damages:
+    base:
+      - type: blunt
+        power: 1100
+    energy:
+      - type: acid
+        power: 400
+      - type: force
+        power: 600
+  sellable: true
+- id: '68c19536541d89c481b8329a'
+  name: Lama a due mani del fulmine
+  itemType: EquipmentItem
+  description: |-
+    Una gigantesca spada con una lama che vibra di energia elettrica, infliggendo danno da taglio e da fulmine.
+  sellPrice:
+    gold: 0
+    silver: 4
+    copper: 0
+  buyPrice:
+    gold: 0
+    silver: 8
+    copper: 0
+  rarity: rare
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 1500
+      - type: pierce
+        power: 800
+    energy:
+      - type: lightning
+        power: 500
+  sellable: true
+- id: '68c19536541d89c481b8329b'
+  name: Pugnale del Vampiro
+  itemType: EquipmentItem
+  description: |-
+    Un'antica arma maledetta che prosciuga la vita del bersaglio ad ogni colpo.
+  sellPrice:
+    gold: 0
+    silver: 7
+    copper: 50
+  buyPrice:
+    gold: 1
+    silver: 5
+    copper: 0
+  rarity: ultrarare
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 2000
+      - type: cut
+        power: 1200
+    energy:
+      - type: necrotic
+        power: 950
+  sellable: true
+- id: '68c19536541d89c481b8329c'
+  name: Bacchetta dell'Illusione
+  itemType: EquipmentItem
+  description: |-
+    Una bacchetta creata appositamente per potenziare le magie che influenzano la mente degli avversari.
+  sellPrice:
+    gold: 0
+    silver: 9
+    copper: 0
+  buyPrice:
+    gold: 1
+    silver: 8
+    copper: 0
+  rarity: ultrarare
+  equipType: weapon
+  addedSpell: '68c19570541d89c481b83294' # Incubo ad occhi aperti
+  damages:
+    base:
+      - type: blunt
+        power: 200
+    energy:
+      - type: psychic
+        power: 1200
+      - type: force
+        power: 1500
+  sellable: true
+- id: '68c19536541d89c481b8329d'
+  name: Spada del Fuoco oscuro
+  itemType: EquipmentItem
+  description: |-
+    Una spada che emana fiamme antiche e nere. Si dice che queste fiamme non si possano estinguere finché il bersaglio non ne viene consumato.
+  sellPrice:
+    gold: 1
+    silver: 0
+    copper: 0
+  buyPrice:
+    gold: 2
+    silver: 0
+    copper: 0
+  rarity: ultrarare
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: cut
+        power: 2500
+      - type: pierce
+        power: 2500
+    energy:
+      - type: fire
+        power: 1000
+  sellable: true
+- id: '68c19536541d89c481b8329e'
+  name: Mazza del Demone
+  itemType: EquipmentItem
+  description: |-
+    Un'arma proveniente dal piano Demoniaco e che si dice fosse posseduta da un Diavolo.
+  sellPrice:
+    gold: 4
+    silver: 50
+    copper: 0
+  buyPrice:
+    gold: 9
+    silver: 0
+    copper: 0
+  rarity: legendary
+  equipType: weapon
+  addedSpell: '68c19570541d89c481b8329d' # Maledizione
+  damages:
+    base:
+      - type: blunt
+        power: 5000
+    energy:
+      - type: necrotic
+        power: 3000
+  sellable: false
+- id: '68c19536541d89c481b8329f'
+  name: Arco del Cacciatore Cosmico
+  itemType: EquipmentItem
+  description: |-
+    Forgiato con un frammento di stella dal Dio Mobus. Le frecce scagliate da quest'arco sono talmente veloci da lasciare dietro di loro scie di luce.
+  sellPrice:
+    gold: 4
+    silver: 0
+    copper: 0
+  buyPrice:
+    gold: 8
+    silver: 0
+    copper: 0
+  rarity: legendary
+  equipType: weapon
+  addedSpell: null
+  damages:
+    base:
+      - type: pierce
+        power: 4000
+      - type: blunt
+        power: 1000
+    energy:
+      - type: radiant
+        power: 2500
+      - type: force
+        power: 2000
+  sellable: false
+- id: '68c19536541d89c481b832a0'
+  name: Lama dell'Ascensione
+  itemType: EquipmentItem
+  description: |-
+    Una spada che potenzia la mente e il corpo dell'utilizzatore ad ogni colpo. Infusa con 'Pelle di Roccia'.
+  sellPrice:
+    gold: 5
+    silver: 0
+    copper: 0
+  buyPrice:
+    gold: 10
+    silver: 0
+    copper: 0
+  rarity: legendary
+  equipType: weapon
+  addedSpell: '68c19570541d89c481b83270' # Luce Punente
+  damages:
+    base:
+      - type: cut
+        power: 4500
+    energy:
+      - type: enhancing
+        power: 2800
+      - type: psychic
+        power: 2000
+  sellable: false
