@@ -6,14 +6,17 @@ import { CityType } from 'src/models/enums/city-type.enum';
 import { EquipmentItemSchema } from 'src/models/equipment-item.model';
 import { LootItemSchema } from 'src/models/loot-item.model';
 import { PetSchema } from 'src/models/pet.model';
-import { persistCity } from '../../../test/fixtures';
+import { persistCity, persistPet } from '../../../test/fixtures';
 import {
     persistShopCatalogue,
     persistShopCities,
     SHOP_WORLD_CITIES,
     ShopWorldModels,
 } from '../../../test/shops/shop-world.fixture';
-import { SHOP_REPORT_WARNINGS_LIMIT } from '../shop-pool.constants';
+import {
+    SELLABLE_PET_IDS,
+    SHOP_REPORT_WARNINGS_LIMIT,
+} from '../shop-pool.constants';
 import { allowedRaritiesOf } from '../shop-pool.rules';
 import { ShopPoolSeeder } from './shop-pool.seeder';
 
@@ -294,6 +297,37 @@ describe('ShopPoolSeeder', () => {
         ).toEqual([
             'Negozi: 24 liste rinviate al prossimo boot, catalogo senza candidati',
         ]);
+    });
+
+    it('defers the pets of a placement city until every placed pet is in the catalogue (D-10, D-22)', async () => {
+        await persistShopCities(models.city);
+        await persistPet(models.pet, { name: 'Pegaso', sellable: false });
+
+        const firstRun = await seeder.seedAll();
+        const fineglenBefore = await rawCity('Fineglen');
+        await persistPet(models.pet, {
+            _id: new Types.ObjectId(SELLABLE_PET_IDS[0]),
+            name: 'Cavallo leggero',
+            sellable: true,
+        });
+        catalogue.set(SELLABLE_PET_IDS[0], { name: 'Cavallo leggero' });
+        const secondRun = await seeder.seedAll();
+
+        expect({
+            firstRun,
+            fineglenBefore: fineglenBefore.shopPets,
+            secondRun,
+            fineglen: namesOf((await rawCity('Fineglen')).shopPets),
+            valantar: (await rawCity('Valantar')).shopPets,
+            portoSaldo: (await rawCity('Porto Saldo')).shopPets,
+        }).toEqual({
+            firstRun: { equipment: 1, loot: 1, pets: 2, deferred: 23 },
+            fineglenBefore: undefined,
+            secondRun: { equipment: 0, loot: 0, pets: 1, deferred: 22 },
+            fineglen: ['Cavallo leggero'],
+            valantar: undefined,
+            portoSaldo: [],
+        });
     });
 
     it('warns when a placement city is missing (D-10)', async () => {
