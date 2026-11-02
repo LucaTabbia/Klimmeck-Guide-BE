@@ -526,6 +526,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the city size and the shop flag into the generated schema without the pool lists (D-01, D-18)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type City \{[^}]*\}/)?.[0]).toBe(
+            'type City {\n  area: [[Float!]!]!\n  hasShop: Boolean!\n  id: ID!\n  markerLocation: PointOfInterest!\n  name: String!\n  pointsOfInterest: [PointOfInterest!]\n  relatedLore: Lore\n  size: CitySize!\n  type: CityType!\n}',
+        );
+        expect(schema).toContain(
+            'enum CitySize {\n  capital\n  city\n  village\n}',
+        );
+    });
+
     it('writes the free travel API into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
