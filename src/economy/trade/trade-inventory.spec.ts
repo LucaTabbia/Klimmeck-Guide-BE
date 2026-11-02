@@ -307,5 +307,32 @@ describe('trade inventory', () => {
                 ],
             });
         });
+
+        it('adds the extra guards to the same and-list (D-14)', () => {
+            const petGuard = { 'assets.ownedPets': { $in: [horse] } };
+
+            expect(
+                soldQuantityGuards(
+                    [line('sell', 'LootItem', potion, 1)],
+                    [petGuard],
+                ),
+            ).toEqual({
+                $and: [
+                    {
+                        'assets.ownedItems': {
+                            $elemMatch: {
+                                item: { $in: [potion, potion.toHexString()] },
+                                quantity: { $gte: 1 },
+                            },
+                        },
+                    },
+                    petGuard,
+                ],
+            });
+            expect(
+                soldQuantityGuards([line('sell', 'Pet', horse, 1)], [petGuard]),
+            ).toEqual({ $and: [petGuard] });
+            expect(soldQuantityGuards([], [])).toEqual({});
+        });
     });
 });
