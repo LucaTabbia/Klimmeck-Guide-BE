@@ -293,12 +293,13 @@ describe('petsFor', () => {
     const CAMMELLO = new Types.ObjectId('6ae8070540e5e6676b7d6f90');
     const TARTARUGA = new Types.ObjectId('6ae8070540e5e6676b7d6f94');
     const CAVALLO_DA_VIAGGIO = new Types.ObjectId('6adfa18e6c2f93eb0b76d34a');
+    const PRICE = { gold: 0, silver: 1, copper: 0 };
     const pets: SeedCandidate[] = [
         CAVALLO_DA_VIAGGIO,
         TARTARUGA,
         CAMMELLO,
         CAVALLO_LEGGERO,
-    ].map((_id) => ({ _id, sellable: true }));
+    ].map((_id) => ({ _id, sellable: true, buyPrice: PRICE }));
 
     it('places each sellable pet only in its two cities (D-10)', () => {
         const placed = (name: string, type: CityType) =>
@@ -326,8 +327,8 @@ describe('petsFor', () => {
 
     it('skips a placed pet missing from the catalogue or vetoed (D-05, D-10)', () => {
         const catalogue: SeedCandidate[] = [
-            { _id: CAVALLO_LEGGERO, sellable: false },
-            { _id: TARTARUGA },
+            { _id: CAVALLO_LEGGERO, sellable: false, buyPrice: PRICE },
+            { _id: TARTARUGA, buyPrice: PRICE },
         ];
         expect({
             valantar: petsFor(
@@ -341,5 +342,20 @@ describe('petsFor', () => {
                 ),
             ),
         }).toEqual({ valantar: [], bellport: hexes([TARTARUGA]) });
+    });
+
+    it('skips a placed pet without a buy price (D-05, D-10)', () => {
+        const catalogue: SeedCandidate[] = [
+            { _id: CAVALLO_LEGGERO, sellable: true, buyPrice: null },
+            { _id: CAMMELLO, sellable: true, buyPrice: PRICE },
+        ];
+        expect(
+            hexes(
+                petsFor(
+                    { name: 'Valantar', type: CityType.valanCapital },
+                    catalogue,
+                ),
+            ),
+        ).toEqual(hexes([CAMMELLO]));
     });
 });
