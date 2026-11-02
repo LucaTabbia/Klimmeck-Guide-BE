@@ -13,8 +13,13 @@ import {
     WorldCity,
 } from 'src/content/loading/content-tree';
 import { LoadedEntry } from 'src/content/loading/yaml-file';
-import { ContentConfig } from 'src/content/rules/content-config';
+import {
+    ContentConfig,
+    RANKED_TIERS,
+    RankedTier,
+} from 'src/content/rules/content-config';
 import { enemyFactsOf } from 'src/content/rules/enemy-facts';
+import { rarityRankOf } from 'src/content/rules/quest-prizes';
 import { validateTreeEntries } from 'src/content/schema/validate-tree';
 import { CityType } from 'src/models/enums/city-type.enum';
 import { PoiType } from 'src/models/enums/poi-type.enum';
@@ -552,6 +557,56 @@ function huntTitleIssues({ entry, type }: QuestFacts): ContentIssue[] {
     ];
 }
 
+function descriptionIssues({ entry, infos }: QuestFacts): ContentIssue[] {
+    if (stringAt(infos, 'description') !== null) return [];
+    return [
+        issueAt(
+            entry,
+            'infos.description',
+            "la quest fissa vuole l'annuncio in infos.description (D-32)",
+        ),
+    ];
+}
+
+function isRankedTier(value: unknown): value is RankedTier {
+    return (RANKED_TIERS as readonly unknown[]).includes(value);
+}
+
+function itemOf(index: ContentIndex, asset: unknown): IndexedEntry | null {
+    if (!isRecord(asset)) return null;
+    const itemType = stringAt(asset, 'itemType');
+    const item = stringAt(asset, 'item');
+    const collection = itemType ? COLLECTION_OF_ITEM_TYPE[itemType] : null;
+    if (!collection || !item) return null;
+    return index.byCollection[collection].get(item) ?? null;
+}
+
+// D-33: gli oggetti consigliati restano entro la rarità della fascia del minTitle
+function lootRarityIssues(
+    index: ContentIndex,
+    { entry }: QuestFacts,
+    config: ContentConfig,
+): ContentIssue[] {
+    const requirements = recordAt(entry.raw, 'requirements');
+    const { minTitle, recommendedLoot } = requirements;
+    if (!isRankedTier(minTitle) || !Array.isArray(recommendedLoot)) return [];
+    const ceiling = config.dungeonLootRarity[minTitle];
+    const maxRank = rarityRankOf(ceiling) ?? 0;
+    return recommendedLoot.flatMap((asset: unknown, position) => {
+        const item = itemOf(index, asset);
+        const rarity = item?.raw.rarity;
+        const rank = rarityRankOf(rarity);
+        if (!item || rank === null || rank <= maxRank) return [];
+        return [
+            issueAt(
+                entry,
+                `requirements.recommendedLoot.${position}.item`,
+                `${item.name ?? item.id} è ${String(rarity)}: oltre la rarità ${ceiling} di ${minTitle} (D-33)`,
+            ),
+        ];
+    });
+}
+
 function fixedSpellIssues({ entry, type }: QuestFacts): ContentIssue[] {
     const spell = recordAt(entry.raw, 'prizes').spell;
     if (spell === null || spell === undefined || type === 'study') return [];
@@ -627,6 +682,8 @@ function questRuleIssues(
             ...enemyIssues(index, quest, config),
             ...markerIssues(index, quest),
             ...huntTitleIssues(quest),
+            ...descriptionIssues(quest),
+            ...lootRarityIssues(index, quest, config),
             ...fixedSpellIssues(quest),
         ]),
         ...spellDrawIssues(quests),

@@ -55,6 +55,7 @@ function writeStaleQuest(): void {
             `  city: '${VILLAGE_ID}'`,
             '  infos:',
             '    title: Guardia alle mura del Borgo di Prova',
+            '    description: Servono guardie alle mura del Borgo di Prova.',
             '    type: guard',
             '    enemy: null',
             `    markerLocation: '${VILLAGE_MARKER}'`,

@@ -17,6 +17,8 @@ const HEAL_QUEST_ID = '64b000000000000000000301';
 const HUNT_QUEST_ID = '64b000000000000000000302';
 const NEW_CITY_ID = '64b0000000000000000000c7';
 const NEW_MARKER_ID = '64b0000000000000000000d7';
+const SWORD_ID = '64b0000000000000000000e1';
+const POTION_ID = '64b0000000000000000000f1';
 
 type Raw = Record<string, unknown>;
 
@@ -32,6 +34,7 @@ function questOf(
         city: cityId,
         infos: {
             title: `Quest ${type} di prova`,
+            description: `Annuncio della quest ${type} di prova.`,
             type,
             enemy: null,
             markerLocation,
@@ -349,5 +352,58 @@ describe('checkContent fixed quest rules', () => {
                 message: `la quest ${HEAL_QUEST_ID} è nei file quests/: una fix deleteQuests non può cancellarla`,
             },
         ]);
+    });
+
+    it('rejects a fixed quest without the notice description (D-32)', () => {
+        delete sectionOf(entryOf(tree, 'quests', HEAL_QUEST_ID), 'infos')
+            .description;
+
+        expect(errorsAt(HEAL_QUEST_ID, 'infos.description')).toEqual([
+            "la quest fissa vuole l'annuncio in infos.description (D-32)",
+        ]);
+    });
+
+    it('rejects recommended loot above the rarity of the minTitle tier (D-33)', () => {
+        entryOf(tree, 'equipmentitems', SWORD_ID).rarity = 'legendary';
+        entryOf(tree, 'lootitems', POTION_ID).rarity = 'uncommon';
+        sectionOf(
+            entryOf(tree, 'quests', HUNT_QUEST_ID),
+            'requirements',
+        ).recommendedLoot = [
+            { itemType: 'EquipmentItem', item: SWORD_ID, quantity: 1 },
+            { itemType: 'LootItem', item: POTION_ID, quantity: 1 },
+        ];
+
+        expect(
+            checkContent(tree)
+                .errors.filter((issue) => issue.entryId === HUNT_QUEST_ID)
+                .map(({ path, message }) => [path, message]),
+        ).toEqual([
+            [
+                'requirements.recommendedLoot.0.item',
+                'Spada di Prova è legendary: oltre la rarità common di rookie (D-33)',
+            ],
+            [
+                'requirements.recommendedLoot.1.item',
+                'Pozione di Prova è uncommon: oltre la rarità common di rookie (D-33)',
+            ],
+        ]);
+    });
+
+    it('accepts recommended loot within the rarity of the minTitle tier (D-33)', () => {
+        entryOf(tree, 'lootitems', POTION_ID).rarity = 'uncommon';
+        const heal = entryOf(tree, 'quests', HEAL_QUEST_ID);
+        sectionOf(heal, 'requirements').minTitle = 'adventurer';
+        sectionOf(heal, 'requirements').recommendedLoot = [
+            { itemType: 'LootItem', item: POTION_ID, quantity: 1 },
+            { itemType: 'EquipmentItem', item: SWORD_ID, quantity: 1 },
+        ];
+
+        expect(
+            errorsAt(HEAL_QUEST_ID, 'requirements.recommendedLoot.0.item'),
+        ).toEqual([]);
+        expect(
+            errorsAt(HEAL_QUEST_ID, 'requirements.recommendedLoot.1.item'),
+        ).toEqual([]);
     });
 });

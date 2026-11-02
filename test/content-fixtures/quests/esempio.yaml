@@ -2,6 +2,7 @@
   city: '64b0000000000000000000c1' # Borgo di Prova
   infos:
     title: Cure al tempio del Borgo di Prova
+    description: Il tempio del Borgo di Prova cerca chi curi i feriti.
     type: heal
     enemy: null
     markerLocation: '64b0000000000000000000d1' # Borgo di Prova
@@ -16,6 +17,7 @@
   city: '64b0000000000000000000c1' # Borgo di Prova
   infos:
     title: Caccia al lupo nei boschi del Borgo di Prova
+    description: Un lupo minaccia le greggi del Borgo di Prova.
     type: hunt
     enemy: '64b000000000000000000101' # Lupo di Prova
     markerLocation: '64b0000000000000000000d2' # bosco del Borgo di Prova

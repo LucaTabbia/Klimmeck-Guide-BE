@@ -81,6 +81,7 @@ describe('quest mapper', () => {
 
     it('writes the notice description or null (D-32)', () => {
         const { heal, config } = fixture();
+        delete heal.infos.description;
 
         const absent = mapQuest(heal, config);
         heal.infos.description = 'Un annuncio.';

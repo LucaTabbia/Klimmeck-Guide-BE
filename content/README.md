@@ -156,8 +156,8 @@ Premi e tempi **non** si scrivono nei file: il caricatore li calcola da `config.
 - `prizes.spell` solo su una `study`.
 - Al massimo **una quest fissa per POI** diverso dal marker di una città; sul marker della città lo stesso tipo di quest non si ripete (D-21).
 - Il `markerLocation` di una quest è un POI della **sua** città.
-- Ogni quest generata ha `infos.description` nella voce di chi ha affisso l'annuncio, variante scelta col seme e la chiave della quest (D-32).
-- `recommendedLoot`: dungeon = fino a 2 armi contro le debolezze + la cura e il cibo migliori + 2 oggetti da esplorazione; hunt = un'arma contro le debolezze dell'animale, se esiste (nessun equipaggiamento altrimenti: i `damages` dei pezzi non-arma indicano la protezione, non l'attacco) + la cura migliore; sempre entro la rarità della fascia del `minTitle` (D-33). La lista di più nemici delle dungeon arriva con la Phase 13.
+- Ogni quest fissa ha `infos.description`: il generatore la scrive nella voce di chi ha affisso l'annuncio, variante scelta col seme e la chiave della quest (D-32).
+- Ogni oggetto di `recommendedLoot` sta entro la rarità della fascia del `minTitle` (`dungeonLootRarity` del config, D-33). La composizione la garantisce il generatore, non `content:check`: dungeon = fino a 2 armi contro le debolezze + la cura e il cibo migliori + 2 oggetti da esplorazione; hunt = un'arma contro le debolezze dell'animale, se esiste (nessun equipaggiamento altrimenti: i `damages` dei pezzi non-arma indicano la protezione, non l'attacco) + la cura migliore. La lista di più nemici delle dungeon arriva con la Phase 13.
 
 Gli altri controlli offline:
 

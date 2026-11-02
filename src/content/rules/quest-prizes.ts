@@ -7,6 +7,7 @@ import {
 } from 'src/content/rules/content-config';
 import { CoinPurse, fromCopper } from 'src/economy/coins';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
+import { RARITY_ORDER } from 'src/quests/outcomes/rewards/cascading-loot';
 
 const MS_PER_HOUR = 3_600_000;
 
@@ -52,6 +53,12 @@ export function dungeonLootRarity(
     config: ContentConfig,
 ): RarityType {
     return config.dungeonLootRarity[rankedTierOf(tier)] as RarityType;
+}
+
+// RARITY_ORDER va dalla più rara alla più comune: il rango cresce con la rarità
+export function rarityRankOf(rarity: unknown): number | null {
+    const index = RARITY_ORDER.findIndex((known) => known === rarity);
+    return index < 0 ? null : RARITY_ORDER.length - 1 - index;
 }
 
 export function marchMinutesOf(power: number, config: ContentConfig): number {

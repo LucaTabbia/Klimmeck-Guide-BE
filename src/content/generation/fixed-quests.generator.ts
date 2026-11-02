@@ -32,7 +32,7 @@ import {
     RankedTier,
 } from 'src/content/rules/content-config';
 import { enemyFactsOf } from 'src/content/rules/enemy-facts';
-import { RARITY_ORDER } from 'src/quests/outcomes/rewards/cascading-loot';
+import { rarityRankOf } from 'src/content/rules/quest-prizes';
 
 /*
  * Generatore puro delle quest fisse (D-17..D-22, D-31): niente DB, file né orologio.
@@ -472,14 +472,8 @@ function monsterCandidates(
     return [];
 }
 
-// RARITY_ORDER va dalla più rara alla più comune: il rango cresce con la rarità
-function rarityRank(rarity: unknown): number | null {
-    const index = RARITY_ORDER.findIndex((known) => known === rarity);
-    return index < 0 ? null : RARITY_ORDER.length - 1 - index;
-}
-
 function bandRarityRank(world: GeneratorWorld, band: RankedTier): number {
-    return rarityRank(world.config.dungeonLootRarity[band]) ?? 0;
+    return rarityRankOf(world.config.dungeonLootRarity[band]) ?? 0;
 }
 
 function assetRef(
@@ -500,7 +494,9 @@ function randomLootOf(world: GeneratorWorld, band: RankedTier): AssetRef[] {
     const quantity = world.config.prizes.dungeon.randomLootQuantity ?? 1;
     for (let rank = bandRarityRank(world, band); rank >= 0; rank -= 1) {
         const item = world.chance.pick(
-            equipment.filter((entry) => rarityRank(entry.raw.rarity) === rank),
+            equipment.filter(
+                (entry) => rarityRankOf(entry.raw.rarity) === rank,
+            ),
         );
         if (item) return [assetRef('EquipmentItem', item, quantity)];
     }
@@ -539,7 +535,7 @@ function usefulPower(
 }
 
 function withinRarity(item: IndexedEntry, maxRank: number): boolean {
-    const rank = rarityRank(item.raw.rarity);
+    const rank = rarityRankOf(item.raw.rarity);
     return rank !== null && rank <= maxRank;
 }
 
