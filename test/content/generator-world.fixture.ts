@@ -332,7 +332,7 @@ const ENEMY_SEEDS: readonly EnemySeed[] = [
     },
 ];
 
-interface EquipmentSeed {
+export interface EquipmentSeed {
     id: string;
     name: string;
     rarity: string;
@@ -539,6 +539,12 @@ export function cityById(index: ContentIndex, id: string): WorldCity {
 export function addedMonster(seed: EnemySeed) {
     return (world: GeneratorWorld): void => {
         world.entries.enemies.push(enemyOf(seed));
+    };
+}
+
+export function addedEquipment(seed: EquipmentSeed) {
+    return (world: GeneratorWorld): void => {
+        world.entries.equipmentitems.push(equipmentOf(seed));
     };
 }
 

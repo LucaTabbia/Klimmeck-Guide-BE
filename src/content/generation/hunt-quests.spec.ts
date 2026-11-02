@@ -1,6 +1,7 @@
 import { generateFixedQuests } from 'src/content/generation/fixed-quests.generator';
 import { regionalGroupOf } from 'src/content/generation/city-profile';
 import {
+    addedEquipment,
     buildGeneratorIndex,
     GENERATOR_IDS as ids,
     generatorConfig,
@@ -96,18 +97,41 @@ describe('generateFixedQuests hunts', () => {
         }
     });
 
-    it('falls back to the strongest common weapon when no weapon hits the animal weaknesses (D-33)', () => {
+    it('recommends only the healing when no weapon hits the animal weaknesses (D-33)', () => {
         const boarHunts = huntsOf(ids.boar);
         expect(boarHunts.length).toBeGreaterThan(0);
         for (const hunt of boarHunts) {
             expect(requirementsOf(hunt).recommendedLoot).toEqual([
-                {
-                    itemType: 'EquipmentItem',
-                    item: ids.shortSword,
-                    quantity: 1,
-                },
                 { itemType: 'LootItem', item: ids.minorPotion, quantity: 1 },
             ]);
+        }
+    });
+
+    it('never recommends armour, whose damages mean protection (D-33)', () => {
+        const helm = '6b00000000000000000000e9';
+        const armoured = generateFixedQuests(
+            generatorInput({
+                index: buildGeneratorIndex(
+                    addedEquipment({
+                        id: helm,
+                        name: 'Elmo di prova',
+                        rarity: 'common',
+                        equipType: 'helm',
+                        base: [['cut', 999]],
+                    }),
+                ),
+            }),
+        );
+        const wolfHunts = questsOf(armoured, 'hunt').filter(
+            (quest) => infosOf(quest).enemy === ids.wolf,
+        );
+        expect(wolfHunts.length).toBeGreaterThan(0);
+        for (const hunt of wolfHunts) {
+            const items = (
+                requirementsOf(hunt).recommendedLoot as { item: string }[]
+            ).map((loot) => loot.item);
+            expect(items).toContain(ids.shortSword);
+            expect(items).not.toContain(helm);
         }
     });
 
