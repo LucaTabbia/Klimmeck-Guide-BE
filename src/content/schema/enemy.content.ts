@@ -20,6 +20,11 @@ import { EnergyType } from 'src/models/enums/energy-type.enum';
 import { PoiType } from 'src/models/enums/poi-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 
+// D-13: dungeon è il tipo del POI, non un habitat; nelle locations renderebbe il nemico compatibile con ogni dungeon
+const HABITATS: readonly PoiType[] = Object.values(PoiType).filter(
+    (type) => type !== PoiType.dungeon,
+);
+
 export const ENEMY_CATEGORIES = [
     'monster',
     'animal',
@@ -112,7 +117,7 @@ export class EnemyEntry {
     @Nested(() => EnemySourceEntry)
     source?: EnemySourceEntry;
 
-    @EachOneOf(Object.values(PoiType))
+    @EachOneOf(HABITATS)
     @ArrayNotEmpty({ message: 'serve almeno un luogo' })
     locations: PoiType[];
 

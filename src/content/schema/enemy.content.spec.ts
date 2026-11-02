@@ -159,6 +159,11 @@ describe('enemy entries', () => {
         ['a tier outside TitleType', { ...WOLF, tier: 'boss' }, 'tier'],
         ['an empty image path', { ...WOLF, imagePath: '' }, 'imagePath'],
         [
+            'the dungeon POI type as a habitat (D-13)',
+            { ...WOLF, locations: ['forest', 'dungeon'] },
+            'locations',
+        ],
+        [
             'an image outside Cloudinary and the app assets (T-11-15)',
             { ...WOLF, imagePath: 'http://example.com/lupo.png' },
             'imagePath',

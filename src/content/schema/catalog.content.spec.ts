@@ -249,6 +249,12 @@ describe('catalog entries (D-28)', () => {
             'speedModifier',
         ],
         [
+            'a pet with more xp than its maximum',
+            'pet',
+            { ...PET, xp: 1001 },
+            'xp',
+        ],
+        [
             'a pet with more life than its maximum',
             'pet',
             { ...PET, currentLifePoints: 600 },

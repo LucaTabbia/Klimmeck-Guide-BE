@@ -39,14 +39,14 @@ function OnlyOnCityLore(): PropertyDecorator {
     });
 }
 
-function NotAboveMaxLifePoints(): PropertyDecorator {
+function NotAbove(limit: 'maxLifePoints' | 'maxXp'): PropertyDecorator {
     return ValidateBy({
-        name: 'notAboveMaxLifePoints',
+        name: 'notAbove',
         validator: {
             validate: (value: unknown, { object }: ValidationArguments) =>
                 typeof value !== 'number' ||
-                value <= (object as PetEntry).maxLifePoints,
-            defaultMessage: () => 'non può superare maxLifePoints',
+                value <= (object as PetEntry)[limit],
+            defaultMessage: () => `non può superare ${limit}`,
         },
     });
 }
@@ -178,13 +178,14 @@ export class PetEntry {
     sellPrice: CoinsEntry;
 
     @IntBetween(0)
+    @NotAbove('maxXp')
     xp: number;
 
     @IntBetween(0)
     maxXp: number;
 
     @IntBetween(0)
-    @NotAboveMaxLifePoints()
+    @NotAbove('maxLifePoints')
     currentLifePoints: number;
 
     @IntBetween(1)

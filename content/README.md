@@ -67,7 +67,7 @@ Le chiavi si scrivono nell'ordine qui sotto; `?` = facoltativa. I campi marcati 
     pf: 11              # PF medi > 0
     damagePerRound: { pierce: 7 }   # chiavi DamageType o EnergyType (no enhancing), valori > 0
     analog: { name: Lupo, pe: 50, factor: 1 }   # ? per le voci NON TROVATO
-  locations: [forest, hills]   # PoiType, almeno 1
+  locations: [forest, hills]   # PoiType tranne dungeon, almeno 1
   energyWeaknesses: []  # EnergyType senza enhancing
   baseWeaknesses: []    # DamageType
   relatedLore: []       # id di lore
@@ -77,7 +77,7 @@ Le chiavi si scrivono nell'ordine qui sotto; `?` = facoltativa. I campi marcati 
   lifePoints: 1100      # ? override intero ≥ 1
   damages: { base: [], energy: [] }   # ? override
 # pets
-- { id, name, damages, buyPrice: Coins, sellPrice: Coins, xp, maxXp, currentLifePoints, maxLifePoints, imagePath: pets/<nome>.png|assets/images/<nome>.png|URL Cloudinary, speedModifier: number>0|null }
+- { id, name, damages, buyPrice: Coins, sellPrice: Coins, xp ≤ maxXp, maxXp, currentLifePoints ≤ maxLifePoints, maxLifePoints, imagePath: pets/<nome>.png|assets/images/<nome>.png|URL Cloudinary, speedModifier: number>0|null }
 # quests (generate dal piano 11-23)
 - id: '<hex>'
   city: '<hex>' # Talmvere          SOLO FILE: città della quest
