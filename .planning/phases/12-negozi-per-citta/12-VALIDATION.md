@@ -50,8 +50,8 @@ created: 2026-11-02
 | 12-04-01 | 04 | 4 | BE-SHOP-03 | T-12-06 | I codici d'errore nuovi sono stabili e senza dati sensibili | unit | `npx jest src/gameRules/game-rule.exception.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 12-05-01 | 05 | 5 | BE-SHOP-04 | T-12-07 | Le costanti del pool vivono nel codice, nessuna variabile d'ambiente | unit | `npx jest src/shops/shop-pool.constants.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 12-05-02 | 05 | 5 | BE-SHOP-04 | T-12-07 | Il generatore è deterministico per seme | unit | `npx jest src/shops/seeded-random.spec.ts --selectProjects unit` | ✅ | ✅ green |
-| 12-06-01 | 06 | 6 | BE-SHOP-04 | T-12-08 | Le regole del pool rispettano taglia e veti | unit | `npx jest src/shops/shop-pool.rules.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
-| 12-06-02 | 06 | 6 | BE-SHOP-04 | T-12-08 | L'estrazione del pool è riproducibile e limitata | unit | `npx jest src/shops/shop-pool.draw.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
+| 12-06-01 | 06 | 6 | BE-SHOP-04 | T-12-08 | Le regole del pool rispettano taglia e veti | unit | `npx jest src/shops/shop-pool.rules.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 12-06-02 | 06 | 6 | BE-SHOP-04 | T-12-08 | L'estrazione del pool è riproducibile e limitata | unit | `npx jest src/shops/shop-pool.draw.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 12-07-01 | 07 | 7 | BE-SHOP-06 | T-12-09 | La migrazione di `sellable` sui pet è idempotente | integration | `npx jest src/shops/maintenance/pet-sellable.migrator.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 12-08-01 | 08 | 8 | BE-SHOP-06 | T-12-10 | La migrazione dei pet posseduti è idempotente e non perde pet | integration | `npx jest src/shops/maintenance/owned-pets.migrator.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 12-09-01 | 09 | 9 | BE-SHOP-01 | — | N/A | integration | `npx jest test/shops/shop-world.fixture.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
