@@ -1,4 +1,4 @@
-import { Db, Document, MongoClient, ObjectId } from 'mongodb';
+import { Collection, Db, Document, MongoClient, ObjectId } from 'mongodb';
 import { LoadedEntry } from 'src/content/loading/yaml-file';
 import { QUEST_LANES } from 'src/quests/acceptance/quest-lanes';
 import { buildCharacter, buildQuest } from '../../../test/fixtures';
@@ -23,6 +23,43 @@ function deleteFix(ids: ObjectId[]): LoadedEntry {
             ids: ids.map((id) => id.toHexString()),
         },
     };
+}
+
+function bound(target: object, key: string | symbol): unknown {
+    const value: unknown = Reflect.get(target, key, target);
+    return typeof value === 'function' ? value.bind(target) : value;
+}
+
+// la pianificazione finisce contando i back-link dei POI: lì un personaggio accetta la quest
+function acceptedAfterPlanning(db: Db, accept: () => Promise<void>): Db {
+    let accepted = false;
+    const racingPois = (collection: Collection) =>
+        new Proxy(collection, {
+            get: (target, key) => {
+                if (key !== 'countDocuments') return bound(target, key);
+                return async (
+                    ...args: Parameters<Collection['countDocuments']>
+                ) => {
+                    const count = await target.countDocuments(...args);
+                    if (!accepted) {
+                        accepted = true;
+                        await accept();
+                    }
+                    return count;
+                };
+            },
+        });
+    return new Proxy(db, {
+        get: (target, key) => {
+            if (key !== 'collection') return bound(target, key);
+            return (name: string) => {
+                const collection = target.collection(name);
+                return name === 'pointsofinterest'
+                    ? racingPois(collection)
+                    : collection;
+            };
+        },
+    });
 }
 
 describe('deleteQuests fix (replSet)', () => {
@@ -162,6 +199,34 @@ describe('deleteQuests fix (replSet)', () => {
             expect(await snapshot()).toEqual(before);
         },
     );
+
+    it('blocks a quest accepted between planning and writing (LO-07)', async () => {
+        const racing = acceptedAfterPlanning(db, () =>
+            setCharacter({ 'quests.pendingQuest': pendingId }),
+        );
+
+        const [report] = await runFixes(
+            racing,
+            [deleteFix([questId])],
+            'apply',
+        );
+
+        expect(report).toMatchObject({
+            status: 'blocked',
+            touched: 0,
+            deleted: [],
+            blocked: [
+                {
+                    questId: questId.toHexString(),
+                    pendingQuest: pendingId.toHexString(),
+                    character: characterId.toHexString(),
+                    lane: 'pendingQuest',
+                },
+            ],
+        });
+        expect(await exists('quests', questId)).toBe(true);
+        expect(await exists('pendingquests', pendingId)).toBe(true);
+    });
 
     it.each(['quest', 'aidQuest'] as const)(
         'blocks a quest a character awaits aid for: %s (Pitfall 2)',

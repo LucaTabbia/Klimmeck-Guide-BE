@@ -118,6 +118,26 @@ async function applyPlan(db: Db, plan: QuestPlan): Promise<void> {
     await db.collection('quests').deleteOne({ _id: plan.questId });
 }
 
+// fra piano e scrittura un personaggio può accettare la quest: si ripianifica subito prima di scrivere
+async function applyFreshPlan(db: Db, plan: QuestPlan): Promise<QuestPlan> {
+    const fresh = await planQuest(db, plan.questId);
+    if (fresh.blocked.length === 0) await applyPlan(db, fresh);
+    return fresh;
+}
+
+async function applyFreePlans(
+    db: Db,
+    plans: readonly QuestPlan[],
+): Promise<QuestPlan[]> {
+    const applied: QuestPlan[] = [];
+    for (const plan of plans) {
+        applied.push(
+            touchedBy(plan) > 0 ? await applyFreshPlan(db, plan) : plan,
+        );
+    }
+    return applied;
+}
+
 // i questresults sono storia (D-05): solo contati, mai toccati
 async function questResultsCiting(
     db: Db,
@@ -155,12 +175,11 @@ export async function deleteQuests(
     const questIds = [...new Set(fix.ids)].map((hex) => new ObjectId(hex));
     const aidReferences = await aidReferencesTo(db, questIds);
     const questResultsKept = await questResultsCiting(db, questIds);
-    const plans: QuestPlan[] = [];
-    for (const questId of questIds) plans.push(await planQuest(db, questId));
+    const planned: QuestPlan[] = [];
+    for (const questId of questIds) planned.push(await planQuest(db, questId));
+    const plans =
+        mode === 'apply' ? await applyFreePlans(db, planned) : planned;
     const free = plans.filter((plan) => touchedBy(plan) > 0);
-    if (mode === 'apply') {
-        for (const plan of free) await applyPlan(db, plan);
-    }
     const blocked = plans.flatMap((plan) => plan.blocked);
     const touched = free.reduce((sum, plan) => sum + touchedBy(plan), 0);
     return {

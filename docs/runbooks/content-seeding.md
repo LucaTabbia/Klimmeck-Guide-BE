@@ -81,6 +81,8 @@ Esiste un solo database (D-26): gli `_id` nei file sono quelli reali. Ogni passo
 
     Atteso: exit 0, con gli stessi conteggi del dry-run e i fix `applied`.
 
+    **Eseguire `--apply` (e `--prune`) con il backend fermo:** fra il piano e la scrittura un personaggio potrebbe accettare una quest da cancellare o un'altra scrittura potrebbe toccare il catalogo. Le fix di cancellazione ricontrollano le corsie subito prima di scrivere (una quest appena accettata finisce in `blocked`), e un esito di scrittura diverso dal piano compare fra i `warnings` («esito della scrittura diverso dal piano»), ma a server fermo la finestra non esiste.
+
 6. **Verifica dopo la scrittura**:
 
     ```bash
@@ -167,6 +169,7 @@ mongodump --uri "<uri>" --out <cartella>
 node --env-file=<file env> dist/content/run-content.js --prune <quests|lore>
 ```
 
+- Eseguirlo con il backend fermo, come `--apply`.
 - Eseguirlo solo dopo aver letto gli `orphans` di quella collezione nel report di `--verify` e aver deciso che vanno davvero cancellati (per tenere una voce basta riportarla in un file).
 - Collezioni ammesse: solo `quests` e `lore` (le altre escono con codice 2, uso errato). Magie, equipaggiamento, loot, nemici e pet possono essere posseduti o equipaggiati dai personaggi e il prune non controlla ancora quei riferimenti: gli orfani del catalogo restano elencati in `orphans` finché la Phase 12 non aggiunge quelle guardie.
 - **Quest:** sono orfane solo le quest fisse (heal, job, guard, crime, study, hunt, dungeon) non concluse; quest generate, aid, story e worldMission non lo sono mai. Una quest tenuta da un personaggio (pending, corsia occupata, aiuto in attesa) non si cancella: finisce in `blocked` e il comando esce 1.
