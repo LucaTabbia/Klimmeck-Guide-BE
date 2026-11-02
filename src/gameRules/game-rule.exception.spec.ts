@@ -180,6 +180,24 @@ describe('GameRuleException', () => {
             GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
             'Esito non valido per questo personaggio',
         ],
+        [
+            'itemNotInShop',
+            () => GameRuleException.itemNotInShop(),
+            GameRuleErrorCode.ITEM_NOT_IN_SHOP,
+            'Questo oggetto non è in vendita in questa città',
+        ],
+        [
+            'petAlreadyOwned',
+            () => GameRuleException.petAlreadyOwned(),
+            GameRuleErrorCode.PET_ALREADY_OWNED,
+            'Possiedi già questo compagno',
+        ],
+        [
+            'petNotOwned',
+            () => GameRuleException.petNotOwned(),
+            GameRuleErrorCode.PET_NOT_OWNED,
+            'Compagno non posseduto',
+        ],
     ];
 
     it.each(cases)(
@@ -218,5 +236,13 @@ describe('GameRuleException', () => {
             message: 'Il personaggio è impegnato in una missione in corso',
             code: 'QUEST_IN_PROGRESS',
         });
+    });
+
+    it('refuses a purchase outside the city pool with ITEM_NOT_IN_SHOP (D-19)', () => {
+        const exception = GameRuleException.itemNotInShop();
+
+        expect(exception).toBeInstanceOf(BadRequestException);
+        expect(exception.code).toBe(GameRuleErrorCode.ITEM_NOT_IN_SHOP);
+        expect(exception.extensions).toEqual({ code: 'ITEM_NOT_IN_SHOP' });
     });
 });
