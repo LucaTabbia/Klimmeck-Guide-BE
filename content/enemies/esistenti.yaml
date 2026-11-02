@@ -9,7 +9,7 @@
     pf: 14
     damagePerRound: { blunt: 3.36 }
     analog: { name: Albero Risvegliato, pe: 450, factor: 0.24 }
-  locations: [all] # corretto in 11-12: a DB era vuoto, lo schema chiede almeno un luogo (habitat ignoto → all, D-13)
+  locations: [drusteaPlains, valanPlains, hills, liberiaIsland, belleholmIsland] # habitat indicato dall'utente il 2026-11-02 (a DB era vuoto)
   energyWeaknesses: [fire]
   baseWeaknesses: [cut]
   relatedLore: ['6ae802f65f3e1244a34ae384'] # Arbusto Maligno
