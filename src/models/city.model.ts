@@ -45,6 +45,25 @@ export class City {
         default: [],
     })
     pointsOfInterest?: (Types.ObjectId | PointOfInterest)[];
+
+    // solo Mongoose: il pool viaggia con cityShop, mai con cities (D-18); assente finché la semina non lo scrive (D-03, D-22)
+    @Prop({
+        type: [{ type: MongooseSchema.Types.ObjectId, ref: 'EquipmentItem' }],
+        default: undefined,
+    })
+    shopEquipment?: Types.ObjectId[];
+
+    @Prop({
+        type: [{ type: MongooseSchema.Types.ObjectId, ref: 'LootItem' }],
+        default: undefined,
+    })
+    shopLoot?: Types.ObjectId[];
+
+    @Prop({
+        type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Pet' }],
+        default: undefined,
+    })
+    shopPets?: Types.ObjectId[];
 }
 
 export type CityDocument = City & Document;

@@ -105,12 +105,20 @@ type CharacterStatus {
 
 type City {
   area: [[Float!]!]!
+  hasShop: Boolean!
   id: ID!
   markerLocation: PointOfInterest!
   name: String!
   pointsOfInterest: [PointOfInterest!]
   relatedLore: Lore
+  size: CitySize!
   type: CityType!
+}
+
+enum CitySize {
+  capital
+  city
+  village
 }
 
 enum CityType {
