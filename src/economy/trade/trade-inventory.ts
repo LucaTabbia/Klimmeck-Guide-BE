@@ -116,11 +116,12 @@ export function applyTradeToInventory(
     };
 }
 
-// le quantità vendute riaffermate nel filtro della scrittura in sessione (04 D-07): rete di sicurezza, la contesa la risolve il WriteConflict della transazione
+// le quantità vendute riaffermate nel filtro della scrittura in sessione (04 D-07), con le guardie extra nella stessa lista (D-14): rete di sicurezza, la contesa la risolve il WriteConflict della transazione
 export function soldQuantityGuards(
     lines: readonly TradeLine[],
+    extra: readonly Record<string, unknown>[] = [],
 ): Record<string, unknown> {
-    const guards = lines
+    const soldGuards = lines
         .filter(isInventoryLine)
         .filter((line) => line.direction === 'sell')
         .map((line) => ({
@@ -131,5 +132,6 @@ export function soldQuantityGuards(
                 },
             },
         }));
+    const guards = [...soldGuards, ...extra];
     return guards.length === 0 ? {} : { $and: guards };
 }
