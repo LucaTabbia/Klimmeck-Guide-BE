@@ -8,6 +8,7 @@ import type {
     UnsetLoreUnlockedFix,
 } from 'src/content/schema/fix.content';
 import { fixEntryIssues } from 'src/content/schema/fix.content';
+import { deleteQuests } from './delete-quests.fix';
 import { FixMode, FixReport } from './fix-report';
 import {
     normalizePoiTypes,
@@ -21,26 +22,13 @@ type FixHandler = (
     mode: FixMode,
 ) => Promise<FixReport>;
 
-// in attesa del motore con le guardie delle corsie: bloccato, nessuna scrittura
-function deleteQuestsPending(
-    _db: Db,
-    fix: DeleteQuestsFix,
-): Promise<FixReport> {
-    return Promise.resolve({
-        key: fix.key,
-        kind: fix.kind,
-        status: 'blocked',
-        touched: 0,
-    });
-}
-
 const FIX_HANDLERS: Record<FixKind, FixHandler> = {
     normalizePoiTypes: (db, fix, mode) =>
         normalizePoiTypes(db, fix as unknown as NormalizePoiTypesFix, mode),
     renameCity: (db, fix, mode) =>
         renameCity(db, fix as unknown as RenameCityFix, mode),
-    deleteQuests: (db, fix) =>
-        deleteQuestsPending(db, fix as unknown as DeleteQuestsFix),
+    deleteQuests: (db, fix, mode) =>
+        deleteQuests(db, fix as unknown as DeleteQuestsFix, mode),
     unsetLoreUnlocked: (db, fix, mode) =>
         unsetLoreUnlocked(db, fix as unknown as UnsetLoreUnlockedFix, mode),
 };
