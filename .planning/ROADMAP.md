@@ -381,7 +381,7 @@ Plans:
 **Da decidere nel discuss**: formato e layout di `content/`, formula HP/danni per fascia, tabella premi per fascia, tie-break dei nomi duplicati, quali città ricevono crime/guard/study, sorte del flag globale `Lore.unlocked` (Phase 16), ambienti su cui girare lo script (dev, staging, produzione).
 **Unblocks (FE)**: dati reali per le UAT delle FE Phase 13–17; nessun contratto nuovo.
 **Branch**: `feat/11-popolamento-del-mondo` da `develop` → PR a `develop`.
-**Plans**: 26 plans
+**Plans**: 27 plans (il 27 aggiunto il 2026-11-02 dalla revisione dei file dell'utente: D-32/D-33)
 - [x] 11-01-PLAN.md — Wave 1: `Lore.unlocked` rimosso (SDL dichiarato nel boot reale) e `relatedLore` popolati in lore e nemici (BE-CONTENT-03)
 - [x] 11-02-PLAN.md — Wave 1: D-31, la study di Valantar sorteggia una magia apprendibile (`QuestPrizes.spellDraw` interno) (BE-CONTENT-06)
 - [x] 11-03-PLAN.md — Wave 2: dipendenza `yaml`, loader con posizioni, `content/config.yaml`, regole pure di XP/HP/danni/premi/tempi (BE-CONTENT-01/02/04/05/06)
@@ -405,6 +405,7 @@ Plans:
 - [x] 11-21-PLAN.md — Wave 10: lore di città 2 (Fiamme, Madre, Liberia, speciali) (BE-CONTENT-01/03)
 - [x] 11-22-PLAN.md — Wave 11: leggendari, umani ostili, orchi e gigante delle colline (BE-CONTENT-01/03/04)
 - [x] 11-23-PLAN.md — Wave 12: generazione reale delle quest fisse (BE-CONTENT-01/06)
+- [ ] 11-27-PLAN.md — Wave 12.5 (aggiunto 2026-11-02): `QuestInfos.description` additivo, descrizioni e `recommendedLoot` più ricco nel generatore, rigenerazione delle quest (D-32, D-33) (BE-CONTENT-06)
 - [ ] 11-24-PLAN.md — Wave 13 (checkpoint backup): prova sul filo dell'albero reale e caricamento sul DB (BE-CONTENT-02..06)
 - [ ] 11-25-PLAN.md — Wave 14: runbook `content-seeding.md`, `BACKEND-NOTES.md`, requisiti emendati (BE-CONTENT-07)
 - [ ] 11-26-PLAN.md — Wave 15: gate finale, coverage `./src/content/`, VALIDATION, requisiti, stato (BE-CONTENT-01..07)
@@ -523,7 +524,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
-| 11. Popolamento del mondo | 23/26 | In Progress | - |
+| 11. Popolamento del mondo | 23/27 | In Progress | - |
 | 12. Negozi per città | 0/0 | Not started | - |
 | 13. Generazione quest | 0/0 | Not started | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |

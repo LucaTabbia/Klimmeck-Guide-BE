@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 11 executing — plan 23 of 26 done
+stopped_at: Phase 11 executing — plan 23 of 27 done (11-24 paused at the checkpoint; 11-27 added)
 last_updated: "2026-11-02T04:10:00.000Z"
 last_activity: "2026-11-02 -- Plan 11-23 complete: the fixed quest generator command froze 581 fixed quests in content/quests"
 progress:
   total_phases: 19
   completed_phases: 13
-  total_plans: 171
+  total_plans: 172
   completed_plans: 115
   percent: 67
 ---
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 11 — Popolamento del mondo — EXECUTING since 2026-11-02 (26 plans / 15 waves, executors one at a time) on `feat/11-popolamento-del-mondo` (from `develop` `4dc7e89`, roadmap phases 11–16 merged in with `b55d47b`): wave 1 = `Lore.unlocked` removal + `relatedLore` populate (11-01) and D-31 `spellDraw` (11-02); then loader/schema/rules, mapper, fixes, generator, sync, export, CLI (03–11), real export (12), authoring (13–22), quest generation (23), real-DB apply with the single backup checkpoint (24), runbook + handoff (25), gate (26). Scope: content files + idempotent `--dry-run/--apply/--verify` script written from `World building.docx` (text extracted in the phase `source/`), ~300 lore, 99 creatures + the user's intake, pets, spells, items, fixed quests per city and dungeons on the POIs — the data prerequisite of every FE UAT of Phases 13–17. Previous: Phase 10 — Hardening Trasversale — COMPLETE and merged (PR #16, `4dc7e89`, 2026-10-30).
+**Current focus:** Phase 11 — Popolamento del mondo — EXECUTING since 2026-11-02 (27 plans / 15 waves, executors one at a time; 11-27 added on 2026-11-02 from the user's content review: D-32 descriptions, D-33 recommended loot) on `feat/11-popolamento-del-mondo` (from `develop` `4dc7e89`, roadmap phases 11–16 merged in with `b55d47b`): wave 1 = `Lore.unlocked` removal + `relatedLore` populate (11-01) and D-31 `spellDraw` (11-02); then loader/schema/rules, mapper, fixes, generator, sync, export, CLI (03–11), real export (12), authoring (13–22), quest generation (23), real-DB apply with the single backup checkpoint (24), runbook + handoff (25), gate (26). Scope: content files + idempotent `--dry-run/--apply/--verify` script written from `World building.docx` (text extracted in the phase `source/`), ~300 lore, 99 creatures + the user's intake, pets, spells, items, fixed quests per city and dungeons on the POIs — the data prerequisite of every FE UAT of Phases 13–17. Previous: Phase 10 — Hardening Trasversale — COMPLETE and merged (PR #16, `4dc7e89`, 2026-10-30).
 
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 23 of 26
+Plan: 23 of 27
 Status: Executing Phase 11 — plans 11-01..11-23 complete; 11-24 PAUSED at the checkpoint (Task 3: user `mongodump` backup + free the `pendingQuest` lane on quest `6ada3608b3dad669f2c257cf`), Tasks 1–2 committed, nothing written to the real database yet; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
 Last activity: 2026-11-02 -- Plan 11-23 complete: `npm run content:generate-quests` (`src/content/run-generate-quests.ts`, offline) wrote 581 fixed quests in `content/quests/*.yaml` (heal 166, job 166, guard 68, crime 34, study 30 with one Valantar `spellDraw`, hunt 77, dungeon 40; 0 skipped), byte-identical on rerun; `--check` exit 0 with 1 warning (duplicate Necrorian dungeon title)
 
-Progress: [████████░░] 2/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
+Progress: [████████░░] 23/27 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
 ## Performance Metrics
 
