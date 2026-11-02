@@ -1,18 +1,21 @@
 import { Db, MongoClient, ObjectId } from 'mongodb';
-import { describeError } from '../mongo/mongo-errors';
-import { catalogStats } from './analysis/catalog-stats';
-import { checkContent, ContentCheck } from './checking/check-content';
-import { CliCommand, parseCliArgs } from './cli-args';
-import { ExportDirNotEmptyError, exportContent } from './export/export-content';
+import { catalogStats } from 'src/content/analysis/catalog-stats';
+import { checkContent, ContentCheck } from 'src/content/checking/check-content';
+import { CliCommand, parseCliArgs } from 'src/content/cli-args';
+import {
+    ExportDirNotEmptyError,
+    exportContent,
+} from 'src/content/export/export-content';
 import {
     CONTENT_COLLECTIONS,
     ContentCollection,
     ContentTree,
     loadContentTree,
-} from './loading/content-tree';
-import { hasDrift, hasErrors } from './sync/content-report';
-import { pruneCollection } from './sync/content-prune';
-import { runContent } from './sync/content-sync';
+} from 'src/content/loading/content-tree';
+import { hasDrift, hasErrors } from 'src/content/sync/content-report';
+import { pruneCollection } from 'src/content/sync/content-prune';
+import { runContent } from 'src/content/sync/content-sync';
+import { describeError } from 'src/mongo/mongo-errors';
 
 export const CONTENT_EXIT = {
     ok: 0,

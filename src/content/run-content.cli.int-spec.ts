@@ -14,8 +14,8 @@ import { Db, MongoClient } from 'mongodb';
 import { WorldCity } from 'src/content/loading/content-tree';
 import { loadTestContentTree } from '../../test/fixtures/content-tree.fixture';
 import { seedWorld } from '../../test/content/seed-world';
-import { ContentCheck } from './checking/check-content';
-import { ContentReport } from './sync/content-report';
+import { ContentCheck } from 'src/content/checking/check-content';
+import { ContentReport } from 'src/content/sync/content-report';
 
 const CLI_DB_NAME = 'content-cli-test';
 const COMPILED_CLI = resolve(__dirname, '../../dist/content/run-content.js');
@@ -28,6 +28,7 @@ type ChildEnvironment = Record<string, string | undefined>;
 interface CliRun {
     status: number | null;
     stdout: string;
+    stderr: string;
 }
 
 const printed: string[] = [];
@@ -49,13 +50,17 @@ function runCompiledCli(
             env,
         });
         let stdout = '';
+        let stderr = '';
         child.stdout.on('data', (chunk: Buffer) => {
             stdout += chunk.toString();
         });
+        child.stderr.on('data', (chunk: Buffer) => {
+            stderr += chunk.toString();
+        });
         child.on('error', fail);
         child.on('close', (status) => {
-            printed.push(stdout);
-            done({ status, stdout });
+            printed.push(stdout, stderr);
+            done({ status, stdout, stderr });
         });
     });
 }
@@ -215,12 +220,14 @@ describe('compiled run-content CLI (replSet)', () => {
         );
 
         expect(run.status).toBe(3);
-        expect(run.stdout).not.toContain('mongodb://');
-        expect(run.stdout).not.toContain('127.0.0.1');
+        for (const stream of [run.stdout, run.stderr]) {
+            expect(stream).not.toContain('mongodb://');
+            expect(stream).not.toContain('127.0.0.1');
+        }
         expect(printed.length).toBeGreaterThan(1);
         expect(
-            printed.filter((stdout) =>
-                stdout.includes(process.env.MONGO_TEST_URI as string),
+            printed.filter((output) =>
+                output.includes(process.env.MONGO_TEST_URI as string),
             ),
         ).toEqual([]);
     });
