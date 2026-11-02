@@ -5,7 +5,6 @@ import { ContentIssue } from 'src/content/content-issue';
 import { deleteQuests } from 'src/content/fixes/delete-quests.fix';
 import { BlockedQuest } from 'src/content/fixes/fix-report';
 import {
-    CONTENT_COLLECTIONS,
     ContentCollection,
     ContentTree,
 } from 'src/content/loading/content-tree';
@@ -13,9 +12,11 @@ import { OrphanRef } from './content-report';
 import { checkDatabase } from './db-checks';
 import { divergencesOf, findOrphans, knownIdsOf, orphanRefOf } from './orphans';
 
-// T-11-34: elenco chiuso, una collezione per corsa
-export const PRUNABLE_COLLECTIONS: readonly ContentCollection[] =
-    CONTENT_COLLECTIONS;
+// T-11-34: elenco chiuso, una collezione per corsa; il catalogo resta fuori finché non ci sono le guardie sui riferimenti dei personaggi
+export const PRUNABLE_COLLECTIONS: readonly ContentCollection[] = [
+    'quests',
+    'lore',
+];
 
 export interface PruneReport {
     mode: 'prune';
@@ -35,7 +36,9 @@ function pruneIssue(
 }
 
 function refusedCollection(collection: string): ContentIssue {
-    return pruneIssue(`collezione non ammessa per il prune: ${collection}`);
+    return pruneIssue(
+        `collezione non ammessa per il prune: ${collection} (ammesse: ${PRUNABLE_COLLECTIONS.join(', ')})`,
+    );
 }
 
 // HI-01: un perimetro vuoto o più orfani che voci fanno pensare a una cartella o a un database sbagliati

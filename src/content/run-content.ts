@@ -22,7 +22,7 @@ export const CONTENT_EXIT = {
 } as const;
 
 export const CONTENT_USAGE =
-    'Uso: node [--env-file=<file>] dist/content/run-content.js --check|--stats|--dry-run|--apply|--verify|--export <dir>|--prune <collezione>|--new-id <N> [--content-dir <path>] (MONGO_URI e DB_NAME servono a tutte le modalità tranne --check, --stats e --new-id)';
+    'Uso: node [--env-file=<file>] dist/content/run-content.js --check|--stats|--dry-run|--apply|--verify|--export <dir>|--prune <quests|lore>|--new-id <N> [--content-dir <path>] (MONGO_URI e DB_NAME servono a tutte le modalità tranne --check, --stats e --new-id)';
 
 type Environment = Record<string, string | undefined>;
 type Out = (line: string) => void;

@@ -162,11 +162,11 @@ Oggi non esiste (D-26). Se un giorno ci sarà un database separato (staging, pro
 ```bash
 node --env-file=<file env> dist/content/run-content.js --verify
 mongodump --uri "<uri>" --out <cartella>
-node --env-file=<file env> dist/content/run-content.js --prune <collezione>
+node --env-file=<file env> dist/content/run-content.js --prune <quests|lore>
 ```
 
 - Eseguirlo solo dopo aver letto gli `orphans` di quella collezione nel report di `--verify` e aver deciso che vanno davvero cancellati (per tenere una voce basta riportarla in un file).
-- Collezioni ammesse: `lore`, `spells`, `equipmentitems`, `lootitems`, `enemies`, `pets`, `quests`.
+- Collezioni ammesse: solo `quests` e `lore` (le altre escono con codice 2, uso errato). Magie, equipaggiamento, loot, nemici e pet possono essere posseduti o equipaggiati dai personaggi e il prune non controlla ancora quei riferimenti: gli orfani del catalogo restano elencati in `orphans` finché la Phase 12 non aggiunge quelle guardie.
 - **Quest:** sono orfane solo le quest fisse (heal, job, guard, crime, study, hunt, dungeon) non concluse; quest generate, aid, story e worldMission non lo sono mai. Una quest tenuta da un personaggio (pending, corsia occupata, aiuto in attesa) non si cancella: finisce in `blocked` e il comando esce 1.
 - Un albero con errori di `--check` non cancella nulla.
 - Il prune non cancella nulla (exit 1, motivo in `errors`) se il database non supera i controlli di `--verify` (snapshot di città e POI, valori fuori enum), se un orfano ha nome e tipo di una voce dei file (probabile divergenza di id), se i file non hanno voci della collezione o se gli orfani sono più delle voci dei file (cartella o database sbagliati).

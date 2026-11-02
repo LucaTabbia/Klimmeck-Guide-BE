@@ -178,7 +178,7 @@ Gli script npm arrivano col CLI; prima di usarli `npm run build` (il CLI gira da
 | `npm run content:dry-run` | calcola cosa inserirebbe, modificherebbe o lascerebbe com'è, senza scrivere | sola lettura |
 | `npm run content:verify` | controlli offline + confronto col database (differenze, orfani) | sola lettura |
 | `npm run content:apply` | scrive inserimenti, modifiche e fix; **non cancella mai** | scrittura |
-| `node --env-file=.env dist/content/run-content.js --prune <collezione>` | cancella gli orfani di quella collezione (modalità a sé, non si combina con `--apply`) | scrittura |
+| `node --env-file=.env dist/content/run-content.js --prune <quests\|lore>` | cancella gli orfani di quella collezione (modalità a sé, non si combina con `--apply`); il catalogo (magie, equipaggiamento, loot, nemici, pet) non si pota finché non esistono le guardie sui riferimenti dei personaggi | scrittura |
 | `node --env-file=.env dist/content/run-content.js --export <dir>` | esporta il catalogo e lo snapshot del mondo in file (mai quest né fix) | sola lettura |
 | `npm run content:generate-quests` | rigenera `quests/*.yaml` dal mondo e dal catalogo (seme fisso, id stabili) | nessuno |
 

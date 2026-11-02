@@ -231,6 +231,20 @@ describe('pruneCollection (replSet)', () => {
         expect(await exists('lore', lore)).toBe(true);
     });
 
+    it('refuses the catalog collections without character guards (ME-04)', async () => {
+        const spell = new ObjectId();
+        await db
+            .collection('spells')
+            .insertOne({ _id: spell, name: 'Magia Vecchia' });
+
+        const report = await pruneCollection(db, 'spells', tree);
+
+        expect(report.errors).toEqual([
+            expect.objectContaining({ path: 'collection' }),
+        ]);
+        expect(await exists('spells', spell)).toBe(true);
+    });
+
     it('refuses a collection outside the managed ones (D-05)', async () => {
         const report = await pruneCollection(
             db,

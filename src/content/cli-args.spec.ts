@@ -31,6 +31,14 @@ describe('parseCliArgs (D-27)', () => {
                 contentDir: DEFAULT_CONTENT_DIR,
             },
         ],
+        [
+            ['--prune', 'quests'],
+            {
+                mode: 'prune',
+                collection: 'quests',
+                contentDir: DEFAULT_CONTENT_DIR,
+            },
+        ],
         [['--new-id', '30'], { mode: 'new-id', count: 30 }],
         [['--new-id', '1'], { mode: 'new-id', count: 1 }],
         [['--new-id', '500'], { mode: 'new-id', count: 500 }],
@@ -42,6 +50,8 @@ describe('parseCliArgs (D-27)', () => {
     it.each<[string[]]>([
         [[]],
         [['--prune', 'cities']],
+        [['--prune', 'spells']],
+        [['--prune', 'enemies']],
         [['--prune']],
         [['--new-id', '0']],
         [['--new-id', '501']],
