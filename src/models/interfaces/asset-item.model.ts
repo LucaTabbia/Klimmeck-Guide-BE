@@ -3,7 +3,6 @@ import { Coins } from '../common/coins.model';
 import { RarityType } from '../enums/rarity-type.enum';
 import { Prop, Schema } from '@nestjs/mongoose';
 
-
 @ObjectType()
 @Schema()
 export abstract class AssetItem {
@@ -34,4 +33,3 @@ export abstract class AssetItem {
     @Prop({ type: String, enum: Object.values(RarityType) })
     rarity?: RarityType;
 }
-
