@@ -16,6 +16,11 @@ export interface DescriptionNames {
 
 type Notice = (names: DescriptionNames) => string;
 
+// «ad» eufonica davanti a un nome che inizia per vocale (Anden, Isolalunga)
+function a(name: string): string {
+    return /^[aeiouàèéìòù]/i.test(name) ? `ad ${name}` : `a ${name}`;
+}
+
 export const QUEST_DESCRIPTIONS: Readonly<
     Record<DescriptionKind, readonly Notice[]>
 > = {
@@ -45,9 +50,9 @@ export const QUEST_DESCRIPTIONS: Readonly<
     ],
     crime: [
         ({ city }) =>
-            `Un amico di un amico ha un lavoretto a ${city} che richiede mani leste e bocca cucita. Chiedete di me alla taverna, dopo il tramonto.`,
+            `Un amico di un amico ha un lavoretto ${a(city)} che richiede mani leste e bocca cucita. Chiedete di me alla taverna, dopo il tramonto.`,
         ({ city }) =>
-            `Cerco gente discreta per una faccenda delicata qui a ${city}. Se le guardie vi conoscono di vista, lasciate perdere.`,
+            `Cerco gente discreta per una faccenda delicata qui ${a(city)}. Se le guardie vi conoscono di vista, lasciate perdere.`,
         ({ city }) =>
             `Merce da spostare, una porta da aprire, un nome da dimenticare. Chi è interessato lasci un segno sul muro dietro il mercato di ${city}.`,
     ],
@@ -69,7 +74,7 @@ export const QUEST_DESCRIPTIONS: Readonly<
     ],
     hunt: [
         ({ city, enemy }) =>
-            `Nei campi intorno a ${city} il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, ${enemy}. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.`,
+            `Nei campi intorno ${a(city)} il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, ${enemy}. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.`,
         ({ city, enemy }) =>
             `Sono un cacciatore di ${city} e da solo non ce la faccio più. Cerco compagni per stanare una preda pericolosa: ${enemy}.`,
         ({ city, enemy }) =>
@@ -79,7 +84,7 @@ export const QUEST_DESCRIPTIONS: Readonly<
         ({ city, enemy }) =>
             `La gilda degli esploratori segnala un luogo dimenticato non lontano da ${city}, sorvegliato da ${enemy}. Cerchiamo una compagnia preparata: chi torna avrà la sua parte del bottino.`,
         ({ city, enemy }) =>
-            `Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a ${city}. Attenzione: gli ultimi esploratori parlano di ${enemy}.`,
+            `Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino ${a(city)}. Attenzione: gli ultimi esploratori parlano di ${enemy}.`,
         ({ city, enemy }) =>
             `Per conto della gilda degli esploratori: cerchiamo avventurieri esperti per una spedizione nei pressi di ${city}. Portate provviste, luce e armi adatte, perché laggiù dovrete affrontare ${enemy}.`,
     ],

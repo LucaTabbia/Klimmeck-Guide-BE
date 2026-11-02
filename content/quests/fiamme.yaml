@@ -1333,7 +1333,7 @@
   infos:
     title: 'Caccia: Avvoltoio nei dintorni di Ultima Terra'
     description: |-
-      Nei campi intorno a Ultima Terra il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Avvoltoio. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
+      Nei campi intorno ad Ultima Terra il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Avvoltoio. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e6' # Avvoltoio
     markerLocation: '690e41868f9433b7db28ac3a' # Ultima Terra — POI belleholmIsland

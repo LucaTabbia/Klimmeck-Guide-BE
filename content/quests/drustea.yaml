@@ -869,7 +869,7 @@
   infos:
     title: Affari loschi a Ufragos
     description: |-
-      Cerco gente discreta per una faccenda delicata qui a Ufragos. Se le guardie vi conoscono di vista, lasciate perdere.
+      Cerco gente discreta per una faccenda delicata qui ad Ufragos. Se le guardie vi conoscono di vista, lasciate perdere.
     type: crime
     enemy: null
     markerLocation: '69096144a9865866cc2c7970' # Ufragos — POI city
@@ -1172,7 +1172,7 @@
   infos:
     title: 'Caccia: Aquila gigante nei dintorni di Ufragos'
     description: |-
-      Nei campi intorno a Ufragos il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Aquila gigante. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
+      Nei campi intorno ad Ufragos il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Aquila gigante. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d3' # Aquila gigante
     markerLocation: '690e41867176329c98135a62' # Ufragos — POI drusteaPlains

@@ -1427,7 +1427,7 @@
   infos:
     title: 'Caccia: Coccodrillo nei dintorni di Isolalunga'
     description: |-
-      Nei campi intorno a Isolalunga il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Coccodrillo. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
+      Nei campi intorno ad Isolalunga il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Coccodrillo. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e4' # Coccodrillo
     markerLocation: '690e4186739b01c6a3b4678b' # Isolalunga — POI temistosLake
