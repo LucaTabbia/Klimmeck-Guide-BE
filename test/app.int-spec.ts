@@ -118,6 +118,7 @@ const EXPECTED_INNKEEPER_HANDLERS = [
     'PendingRequestsResolver.pendingRequests',
     'PendingRequestsResolver.pendingRequestsUpdated',
     'PushResolver.sendTestPush',
+    'ShopAdminResolver.shopPoolReport',
     'TravelAdminResolver.teleportCharacter',
     'UsersResolver.user',
     'UsersResolver.users',
