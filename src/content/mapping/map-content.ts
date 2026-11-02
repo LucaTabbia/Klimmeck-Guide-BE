@@ -4,7 +4,11 @@ import {
     ContentTree,
 } from 'src/content/loading/content-tree';
 import { LoadedEntry } from 'src/content/loading/yaml-file';
-import { CityLoreUpdate, MappedDocument } from 'src/content/mapping/canonical';
+import {
+    assertNoUndefined,
+    CityLoreUpdate,
+    MappedDocument,
+} from 'src/content/mapping/canonical';
 import {
     cityLoreOf,
     ImageUrls,
@@ -83,6 +87,17 @@ function contextOf(tree: ContentTree): MappingContext {
     };
 }
 
+// un undefined finirebbe a DB come null e il diff lo vedrebbe cambiato a ogni corsa
+function mapEntry(
+    collection: ContentCollection,
+    entry: LoadedEntry,
+    context: MappingContext,
+): MappedDocument {
+    const mapped = MAPPERS[collection](entry.raw, context);
+    assertNoUndefined(mapped, `${collection}.${String(entry.raw.id)}`);
+    return mapped;
+}
+
 // D-27: i documenti seguono l'ordine di caricamento delle voci, collezione per collezione
 export function mapContentTree(tree: ContentTree): MappedContent {
     const context = contextOf(tree);
@@ -90,7 +105,7 @@ export function mapContentTree(tree: ContentTree): MappedContent {
         CONTENT_COLLECTIONS.map((collection) => [
             collection,
             tree.entries[collection].map((entry) =>
-                MAPPERS[collection](entry.raw, context),
+                mapEntry(collection, entry, context),
             ),
         ]),
     ) as Record<ContentCollection, MappedDocument[]>;

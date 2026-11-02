@@ -45,6 +45,15 @@ describe('mapContentTree', () => {
         expect(mapped.documents.quests[0].setOnInsert).not.toBeNull();
     });
 
+    it('refuses a mapped document with an undefined value (LO-02)', () => {
+        const tree = loadTestContentTree();
+        delete tree.entries.lore[0].raw.description;
+
+        expect(() => mapContentTree(tree)).toThrow(
+            `Valore undefined in lore.${tree.entries.lore[0].raw.id as string}.set.description`,
+        );
+    });
+
     it('is deterministic', () => {
         const first = mapContentTree(loadTestContentTree());
         const second = mapContentTree(loadTestContentTree());
