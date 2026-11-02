@@ -1,11 +1,9 @@
-import { ContentIndex } from 'src/content/checking/content-index';
+import { ContentIndex, IndexedEntry } from 'src/content/checking/content-index';
 import { WorldCity, WorldPoi } from 'src/content/loading/content-tree';
-import { IndexedEntry } from 'src/content/checking/content-index';
 import {
     citySizeOf,
     DUNGEON_QUEST_FILE,
     dungeonSizeKeyOf,
-    HERO_DUNGEON_CITY_TYPES,
     NO_CRIME_CITY_TYPES,
     NO_SERVICE_CITY_TYPES,
     questFileOf,
@@ -429,7 +427,8 @@ function dungeonBandOf(
     const heroZone = poi.type.some((type) =>
         world.config.dungeonHeroZones.includes(type),
     );
-    if (heroZone || HERO_DUNGEON_CITY_TYPES.includes(city.type)) return 'hero';
+    const heroCity = world.config.dungeonHeroCityTypes.includes(city.type);
+    if (heroZone || heroCity) return 'hero';
     const tier =
         world.config.dungeonTierByCitySize[dungeonSizeKeyOf(city.type)];
     return isRankedTier(tier) ? tier : 'hero';
@@ -551,7 +550,6 @@ function powerOf(item: IndexedEntry): number {
     return typeof item.raw.power === 'number' ? item.raw.power : 0;
 }
 
-// ripiego delle hunt: l'arma entro il tetto con più danni in totale, pari merito per id
 // i damages di un equipaggiamento non-arma indicano la protezione, non l'attacco (utente, D-33)
 function weaponsOf(world: GeneratorWorld): IndexedEntry[] {
     return equipmentOf(world).filter((item) => item.raw.equipType === 'weapon');

@@ -6,7 +6,7 @@ import { Lore, LoreDocument } from 'src/models/lore.model';
 import {
     RELATED_LORE_POPULATE,
     withoutOrphanRelatedLore,
-} from './related-lore';
+} from 'src/lore/related-lore';
 
 @Injectable()
 export class LoreService {

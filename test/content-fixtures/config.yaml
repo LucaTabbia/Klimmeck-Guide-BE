@@ -26,6 +26,7 @@ minTitle:                    # D-20
   serviceCapital: paladin
 dungeonTierByCitySize: { Village: adventurer, City: paladin, SeaCity: paladin, Capital: mage }
 dungeonHeroZones: [glounet, harkenIsland]
+dungeonHeroCityTypes: [necrorianCity]   # D-20: la dungeon di questi tipi di città è sempre di fascia hero
 hunt: { maxAnimalPe: 200, maxShareOfRegion: 0.5 }
 generator: { seed: 11, crimeCityChance: 0.5, studyCityChance: 0.4 }
 food: { minutesPerPower: 3 }

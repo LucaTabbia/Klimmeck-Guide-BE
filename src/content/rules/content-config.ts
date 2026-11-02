@@ -1,6 +1,7 @@
 import { ContentIssue } from 'src/content/content-issue';
 import { isRecord } from 'src/content/loading/records';
 import { MAX_GRAPHQL_INT } from 'src/content/schema/common.content';
+import { CityType } from 'src/models/enums/city-type.enum';
 import { PoiType } from 'src/models/enums/poi-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
@@ -58,6 +59,7 @@ export interface ContentConfig {
     minTitle: { serviceCity: RankedTier; serviceCapital: RankedTier };
     dungeonTierByCitySize: Record<CitySize, RankedTier>;
     dungeonHeroZones: string[];
+    dungeonHeroCityTypes: string[];
     hunt: { maxAnimalPe: number; maxShareOfRegion: number };
     generator: {
         seed: number;
@@ -85,6 +87,7 @@ const CONFIG_KEYS: readonly (keyof ContentConfig)[] = [
     'minTitle',
     'dungeonTierByCitySize',
     'dungeonHeroZones',
+    'dungeonHeroCityTypes',
     'hunt',
     'generator',
     'food',
@@ -100,6 +103,7 @@ const GENERATOR_KEYS: readonly string[] = [
 
 const RARITIES: readonly string[] = Object.values(RarityType);
 const POI_TYPES: readonly string[] = Object.values(PoiType);
+const CITY_TYPES: readonly string[] = Object.values(CityType);
 
 function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);
@@ -296,22 +300,21 @@ function validateLevels(
     }
 }
 
-function validateHeroZones(
+function validateEnumList(
     validator: ConfigValidator,
     raw: Record<string, unknown>,
+    key: keyof ContentConfig,
+    allowed: { values: readonly string[]; enumName: string; label: string },
 ): void {
-    const zones = raw.dungeonHeroZones;
-    if (!Array.isArray(zones)) {
-        validator.report(
-            'dungeonHeroZones',
-            'deve essere una lista di PoiType',
-        );
+    const list = raw[key];
+    if (!Array.isArray(list)) {
+        validator.report(key, `deve essere una lista di ${allowed.enumName}`);
         return;
     }
-    const isPoiType = oneOf(POI_TYPES, 'zona');
-    zones.forEach((zone: unknown, index) => {
-        const problem = isPoiType(zone);
-        if (problem) validator.report(`dungeonHeroZones[${index}]`, problem);
+    const isAllowed = oneOf(allowed.values, allowed.label);
+    list.forEach((value: unknown, index) => {
+        const problem = isAllowed(value);
+        if (problem) validator.report(`${key}[${index}]`, problem);
     });
 }
 
@@ -337,7 +340,16 @@ function validate(
         rankedTier,
     );
     validator.fields(raw, 'dungeonTierByCitySize', CITY_SIZES, rankedTier);
-    validateHeroZones(validator, raw);
+    validateEnumList(validator, raw, 'dungeonHeroZones', {
+        values: POI_TYPES,
+        enumName: 'PoiType',
+        label: 'zona',
+    });
+    validateEnumList(validator, raw, 'dungeonHeroCityTypes', {
+        values: CITY_TYPES,
+        enumName: 'CityType',
+        label: 'città',
+    });
     const hunt = validator.section(raw, 'hunt');
     if (hunt) {
         validator.field(hunt, 'hunt', 'maxAnimalPe', positiveInteger);

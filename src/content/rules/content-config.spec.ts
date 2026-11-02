@@ -11,6 +11,7 @@ const FIXTURE_DIR = join(__dirname, '../../../test/content-fixtures');
 type RawConfig = Record<string, Record<string, unknown>> & {
     mediumPeByLevel: unknown;
     dungeonHeroZones: unknown;
+    dungeonHeroCityTypes: unknown;
 };
 
 function repositoryConfig(): RawConfig {
@@ -35,6 +36,7 @@ describe('parseContentConfig', () => {
             randomLootQuantity: 1,
         });
         expect(config?.generator.seed).toBe(11);
+        expect(config?.dungeonHeroCityTypes).toEqual(['necrorianCity']);
     });
 
     it('loads the config of the test content tree (D-19)', () => {
@@ -190,6 +192,20 @@ describe('parseContentConfig', () => {
         raw.dungeonHeroZones = ['glounet', 'atlantide'];
 
         expect(issuePathsOf(raw)).toEqual(['dungeonHeroZones[1]']);
+    });
+
+    it('rejects a hero dungeon city type that is not a CityType (D-20)', () => {
+        const raw = repositoryConfig();
+        raw.dungeonHeroCityTypes = ['necrorianCity', 'atlantideCity'];
+
+        expect(issuePathsOf(raw)).toEqual(['dungeonHeroCityTypes[1]']);
+    });
+
+    it('requires the hero dungeon city types, never a silent default (D-20)', () => {
+        const raw = repositoryConfig();
+        delete (raw as Partial<RawConfig>).dungeonHeroCityTypes;
+
+        expect(issuePathsOf(raw)).toEqual(['dungeonHeroCityTypes']);
     });
 
     it('rejects a config that is not a mapping, never a silent default', () => {

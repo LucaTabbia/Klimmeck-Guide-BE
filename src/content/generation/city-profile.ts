@@ -4,7 +4,7 @@ import { CityType } from 'src/models/enums/city-type.enum';
 // taglia di gioco di una città: decide quali quest di servizio riceve e il minTitle (D-17, D-20)
 export type CityScale = 'village' | 'city' | 'capital';
 
-export const KINGDOM_PREFIXES = [
+const KINGDOM_PREFIXES = [
     'drustea',
     'valan',
     'mirwa',
@@ -37,8 +37,6 @@ export const GENERATED_QUEST_FILES: readonly string[] = [
 export const NO_SERVICE_CITY_TYPES: readonly string[] = ['necrorianCity'];
 
 export const NO_CRIME_CITY_TYPES: readonly string[] = ['ferrionCity'];
-
-export const HERO_DUNGEON_CITY_TYPES: readonly string[] = ['necrorianCity'];
 
 // D-31: la study di Valantar sorteggia la magia; la città si riconosce dal tipo, il nome è un'etichetta (D-01)
 export const SPELL_DRAW_CITY_TYPE: string = CityType.valanCapital;

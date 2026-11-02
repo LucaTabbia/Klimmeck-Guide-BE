@@ -96,6 +96,27 @@ describe('generateFixedQuests dungeons', () => {
         }
     });
 
+    it('reads the hero dungeon city types from the config (D-20)', () => {
+        const necrorianMinTitle = (dungeonHeroCityTypes: string[]) => {
+            const generated = generateFixedQuests(
+                generatorInput({
+                    config: {
+                        ...generatorConfig(),
+                        dungeonHeroZones: [],
+                        dungeonHeroCityTypes,
+                    },
+                }),
+            );
+            const necrorian = questsOf(generated, 'dungeon').find(
+                (quest) =>
+                    infosOf(quest).markerLocation === ids.necrorianGlounetPoi,
+            );
+            return necrorian ? requirementsOf(necrorian).minTitle : null;
+        };
+        expect(necrorianMinTitle(['necrorianCity'])).toBe('hero');
+        expect(necrorianMinTitle([])).not.toBe('hero');
+    });
+
     it('falls back to a monster living everywhere, then to a lower band', () => {
         const capital = dungeonAt(dungeons, ids.capitalDungeonPoi);
         expect(infosOf(capital).enemy).toBe(ids.wraith);
