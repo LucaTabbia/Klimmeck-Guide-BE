@@ -433,7 +433,7 @@ Plans:
 - [x] 12-04-PLAN.md — Codici `ITEM_NOT_IN_SHOP`, `PET_ALREADY_OWNED`, `PET_NOT_OWNED` con le factory
 - [x] 12-05-PLAN.md — Costanti della semina (taglie, quote, cibo e cure, pet per città, versione del seme) e PRNG deterministico
 - [x] 12-06-PLAN.md — Regole di scaffale (veto legendary / sellable false, fasce per taglia) e sorteggio deterministico dei pool
-- [ ] 12-07-PLAN.md — Migrazione `Pet.sellable` (4 in vendita, 9 solo da quest, solo dove manca)
+- [x] 12-07-PLAN.md — Migrazione `Pet.sellable` (4 in vendita, 9 solo da quest, solo dove manca)
 - [ ] 12-08-PLAN.md — Migrazione `assets.pet` → `assets.ownedPets`
 - [ ] 12-09-PLAN.md — Semina idempotente dei pool (solo dove il campo manca, Necrorian vuota) e mondo di prova condiviso
 - [ ] 12-10-PLAN.md — Report dei pool fuori regola, orchestratore di boot (`Pet.sellable` → `ownedPets` → semina → WARN), `ShopsModule` e modulo di manutenzione importato solo da `AppModule`
@@ -548,7 +548,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
-| 12. Negozi per città | 6/19 | In Progress | - |
+| 12. Negozi per città | 7/19 | In Progress | - |
 | 13. Generazione quest | 0/0 | Not started | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |

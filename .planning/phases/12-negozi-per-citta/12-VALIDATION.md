@@ -52,7 +52,7 @@ created: 2026-11-02
 | 12-05-02 | 05 | 5 | BE-SHOP-04 | T-12-07 | Il generatore è deterministico per seme | unit | `npx jest src/shops/seeded-random.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 12-06-01 | 06 | 6 | BE-SHOP-04 | T-12-08 | Le regole del pool rispettano taglia e veti | unit | `npx jest src/shops/shop-pool.rules.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 12-06-02 | 06 | 6 | BE-SHOP-04 | T-12-08 | L'estrazione del pool è riproducibile e limitata | unit | `npx jest src/shops/shop-pool.draw.spec.ts --selectProjects unit` | ✅ | ✅ green |
-| 12-07-01 | 07 | 7 | BE-SHOP-06 | T-12-09 | La migrazione di `sellable` sui pet è idempotente | integration | `npx jest src/shops/maintenance/pet-sellable.migrator.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
+| 12-07-01 | 07 | 7 | BE-SHOP-06 | T-12-09 | La migrazione di `sellable` sui pet è idempotente | integration | `npx jest src/shops/maintenance/pet-sellable.migrator.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 12-08-01 | 08 | 8 | BE-SHOP-06 | T-12-10 | La migrazione dei pet posseduti è idempotente e non perde pet | integration | `npx jest src/shops/maintenance/owned-pets.migrator.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 12-09-01 | 09 | 9 | BE-SHOP-01 | — | N/A | integration | `npx jest test/shops/shop-world.fixture.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 12-09-02 | 09 | 9 | BE-SHOP-01 | T-12-11 / T-12-12 | La semina scrive solo i pool assenti, mai quelli curati a DB | integration | `npx jest src/shops/maintenance/shop-pool.seeder.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
