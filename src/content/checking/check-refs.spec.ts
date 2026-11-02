@@ -1,6 +1,7 @@
 import { checkContent } from 'src/content/checking/check-content';
 import { ContentTree } from 'src/content/loading/content-tree';
 import {
+    addCity,
     addEntry,
     entryOf,
     loadTestContentTree,
@@ -13,6 +14,7 @@ const SPELL_ID = '64b0000000000000000000b1';
 const LOOT_ID = '64b0000000000000000000f1';
 const VILLAGE_ID = '64b0000000000000000000c1';
 const CAPITAL_MARKER_ID = '64b0000000000000000000d4';
+const CAPITAL_FOREST_ID = '64b0000000000000000000d5';
 const HEAL_QUEST_ID = '64b000000000000000000301';
 const MISSING_ID = '64b0000000000000000000ff';
 
@@ -94,6 +96,70 @@ describe('checkContent references and duplicates', () => {
                 path: 'key',
                 message: `key doppia nelle fix: ${String(first.raw.key)}`,
             },
+        ]);
+    });
+
+    it('reports a content id already used by a city or a POI of the snapshot', () => {
+        addEntry(tree, 'lore', {
+            ...entryOf(tree, 'lore', WOLF_LORE_ID),
+            id: VILLAGE_ID,
+            name: 'Lore col id di una città',
+        });
+        addEntry(tree, 'lore', {
+            ...entryOf(tree, 'lore', WOLF_LORE_ID),
+            id: CAPITAL_MARKER_ID,
+            name: 'Lore col id di un POI',
+        });
+
+        expect(
+            checkContent(tree).errors.map(({ entryId, path, message }) => [
+                entryId,
+                path,
+                message,
+            ]),
+        ).toEqual([
+            [
+                VILLAGE_ID,
+                'id',
+                `id già usato nello snapshot (città): ${VILLAGE_ID}`,
+            ],
+            [
+                CAPITAL_MARKER_ID,
+                'id',
+                `id già usato nello snapshot (POI): ${CAPITAL_MARKER_ID}`,
+            ],
+        ]);
+    });
+
+    it('reports a POI listed by two cities of the snapshot', () => {
+        addCity(tree, {
+            id: '64b0000000000000000000c9',
+            name: 'Città Gemella',
+            type: 'necrorianCity',
+            markerLocation: '64b0000000000000000000d9',
+            relatedLore: null,
+            pointsOfInterest: [
+                {
+                    id: '64b0000000000000000000d9',
+                    type: ['city'],
+                    location: [1, 2],
+                },
+                { id: CAPITAL_FOREST_ID, type: ['forest'], location: [1, 3] },
+            ],
+        });
+
+        expect(
+            checkContent(tree).errors.map(({ file, entryId, message }) => [
+                file,
+                entryId,
+                message,
+            ]),
+        ).toEqual([
+            [
+                'world/cities.yaml',
+                CAPITAL_FOREST_ID,
+                `POI ${CAPITAL_FOREST_ID} già nella città Capitale di Prova: un POI sta in una sola città`,
+            ],
         ]);
     });
 

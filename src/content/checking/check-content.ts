@@ -11,6 +11,7 @@ import {
     ImagesFile,
     WORLD_FILE,
     WorldCity,
+    WorldPoi,
 } from 'src/content/loading/content-tree';
 import {
     NO_SERVICE_CITY_TYPES,
@@ -191,11 +192,96 @@ function entryIdIssues(index: ContentIndex): ContentIssue[] {
     );
 }
 
+interface SnapshotId {
+    kind: 'città' | 'POI';
+    city: WorldCity;
+}
+
+interface SnapshotIds {
+    ids: Map<string, SnapshotId>;
+    issues: ContentIssue[];
+}
+
+function poisOfCity(city: WorldCity): WorldPoi[] {
+    const pois: unknown[] = Array.isArray(city.pointsOfInterest)
+        ? city.pointsOfInterest
+        : [];
+    return pois.filter(
+        (poi): poi is WorldPoi => isRecord(poi) && typeof poi.id === 'string',
+    );
+}
+
+function repeatedSnapshotMessage(id: string, first: SnapshotId, kind: string) {
+    return first.kind === 'POI' && kind === 'POI'
+        ? `POI ${id} già nella città ${first.city.name}: un POI sta in una sola città`
+        : `id doppio nello snapshot: ${id}`;
+}
+
+// lo snapshot non passa dall'indice delle voci: città e POI ripetuti vi si sovrascriverebbero in silenzio
+function snapshotIdsOf(tree: ContentTree): SnapshotIds {
+    const ids = new Map<string, SnapshotId>();
+    const issues: ContentIssue[] = [];
+    const cities = (tree.world ?? []).filter(
+        (city) => isRecord(city) && typeof city.id === 'string',
+    );
+    for (const city of cities) {
+        const owned: [string, SnapshotId['kind'], string][] = [
+            [city.id, 'città', ''],
+            ...poisOfCity(city).map(
+                (poi): [string, SnapshotId['kind'], string] => [
+                    poi.id,
+                    'POI',
+                    'pointsOfInterest',
+                ],
+            ),
+        ];
+        for (const [id, kind, path] of owned) {
+            const first = ids.get(id);
+            if (!first) {
+                ids.set(id, { kind, city });
+                continue;
+            }
+            issues.push({
+                file: WORLD_FILE,
+                line: lineOfCity(tree, city.id),
+                entryId: id,
+                path,
+                message: repeatedSnapshotMessage(id, first, kind),
+            });
+        }
+    }
+    return { ids, issues };
+}
+
+// D-02: gli id sono unici in tutto il contenuto, città e POI dello snapshot compresi
+function snapshotIdIssues(
+    index: ContentIndex,
+    tree: ContentTree,
+): ContentIssue[] {
+    const { ids, issues } = snapshotIdsOf(tree);
+    const clashes = index.entries.flatMap((entry) => {
+        const owner = ids.get(entry.id);
+        if (!owner) return [];
+        return [
+            issueAt(
+                entry,
+                'id',
+                `id già usato nello snapshot (${owner.kind}): ${entry.id}`,
+            ),
+        ];
+    });
+    return [...issues, ...clashes];
+}
+
 function duplicateIssues(
     index: ContentIndex,
     tree: ContentTree,
 ): ContentIssue[] {
-    return [...entryIdIssues(index), ...fixKeyIssues(tree.fixes)];
+    return [
+        ...entryIdIssues(index),
+        ...fixKeyIssues(tree.fixes),
+        ...snapshotIdIssues(index, tree),
+    ];
 }
 
 function nameWarnings(index: ContentIndex): ContentIssue[] {
