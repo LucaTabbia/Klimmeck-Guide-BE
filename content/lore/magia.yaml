@@ -1,0 +1,35 @@
+# La magia di Klimmeck (D-23)
+
+- id: '6ae7fc3ed1f6494f3dc89f7c'
+  type: knowledge
+  name: La magia di Klimmeck
+  description: |-
+    La magia si studia solo all'Accademia di Valantar, aperta agli avventurieri che hanno compiuto imprese nei regni: lì si accede alla fonte e si sbloccano le proprie capacità. È la manifestazione dell'immaginazione e dei desideri di chi la usa, che deve tradurli in parole, gesti o simboli propri, perché non esiste una lingua magica universale. I simboli, più regolari, servono a controllarla e potenziarla, e per questo si incidono su tomi e aste. Negli Umani la magia allunga la vita di decenni o secoli, ma non tutti la usano per il bene.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f7d' # Lo sciamanesimo
+    - '6ae7fc3ed1f6494f3dc89f7e' # Il Vuoto e l'Abisso dei Diavoli
+    - '6ae7fc3ed1f6494f3dc89f74' # Rune magiche
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f6c' # La seconda era
+- id: '6ae7fc3ed1f6494f3dc89f7d'
+  type: knowledge
+  name: Lo sciamanesimo
+  description: |-
+    Lo sciamanesimo è la prima forma di magia del continente, nata prima della fonte di Edite. Si basa su preghiere e riti rivolti agli dei, che concedono un potere limitato sugli elementi naturali. Gli sciamani possono evocare elementali o piegare gli elementi a proprio favore. È ancora vivo soprattutto nelle tribù Draconiche e Aarakocra.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f7c' # La magia di Klimmeck
+    - '6ae7fc3ed1f6494f3dc89f7e' # Il Vuoto e l'Abisso dei Diavoli
+    - '6ae7fc3ed1f6494f3dc89f74' # Rune magiche
+- id: '6ae7fc3ed1f6494f3dc89f7e'
+  type: knowledge
+  name: Il Vuoto e l'Abisso dei Diavoli
+  description: |-
+    Il Vuoto è il potere del caos, innato nei Diavoli: manifesta i desideri più oscuri senza parole né gesti, e i simboli servono solo a racchiuderlo in oggetti, persone o luoghi come una maledizione. Richiede molto caos e un poco d'ordine, per questo solo i Diavoli lo dominano davvero, mentre gli Umani che ci provano finiscono maledetti o uccisi; il Vampirismo è una di queste maledizioni, e i Lich riescono spesso a usarlo. Con il Vuoto si lanciano maledizioni, si stringono patti in cambio di anime e si creano bolle di caos distruttive. L'Abisso, padroneggiato da pochi Diavoli potenti, è la sua forma più libera, nata studiando per secoli la magia del Piano Materiale.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f7c' # La magia di Klimmeck
+    - '6ae7fc3ed1f6494f3dc89f7d' # Lo sciamanesimo
+    - '6ae7fc3ed1f6494f3dc89f74' # Rune magiche
+    - '6ae7fc3ed1f6494f3dc89f6c' # La seconda era

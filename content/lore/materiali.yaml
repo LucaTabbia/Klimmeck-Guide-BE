@@ -1,0 +1,86 @@
+# Materiali e merci di Klimmeck (D-23)
+
+- id: '6ae7fc3ed1f6494f3dc89f73'
+  type: material
+  name: Sundenim
+  description: |-
+    Minerale molto resistente e malleabile che le correnti del Mar Sabbioso portano in superficie dentro grandi rocce. Viene estratto dai villaggi delle oasi e lavorato soprattutto per forgiare armi e armature. È una delle ricchezze per cui la Repubblica dei Valan ha subito, e respinto, più tentativi di invasione.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f5b' # Mar Sabbioso
+- id: '6ae7fc3ed1f6494f3dc89f74'
+  type: material
+  name: Rune magiche
+  description: |-
+    Le rune create nel Regno della Madre hanno potenza variabile e un grande valore culturale. Sono la fonte d'energia delle città sotterranee, che grazie a esse conoscono elettricità, funicolari e gru. Le invenzioni che ne nascono si vendono a caro prezzo e in pochi pezzi, e la ricerca sulle rune è l'investimento principale del regno.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+- id: '6ae7fc3ed1f6494f3dc89f75'
+  type: material
+  name: Liberica
+  description: |-
+    La moneta unica di Klimmeck, coniata in rame, argento e oro. Nacque a Liberia come prestito della Banca Faris e si diffuse con i commerci della città fino a essere adottata da tutti i regni. Prima di lei circolavano monete diverse e, in alcune terre, solo il baratto.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f5d' # Calemark
+    - '6ae7fc3ed1f6494f3dc89f71' # La Liberica e il cambio
+- id: '6ae7fc3ed1f6494f3dc89f76'
+  type: material
+  name: Ossidiana del Belleholm
+  description: |-
+    Vetro vulcanico raccolto e lavorato sulle isole dell'Unione delle Fiamme. Unito ad altri minerali, serve a forgiare armi dal filo estremamente tagliente. Insieme alla pesca e alle colture esotiche è una delle poche ricchezze dell'Unione.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+- id: '6ae7fc3ed1f6494f3dc89f77'
+  type: material
+  name: Vino Mirwanese
+  description: |-
+    Il vino più famoso del continente nasce dalle vigne che il clima mite del Nanfail fa prosperare. La Teocrazia di Mirwa produce gran parte del vino di Klimmeck e lo esporta insieme agli alcolici ricavati da agrumi e olive. Questi prodotti restano ancora oggi una delle principali fonti di guadagno dello stato.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+    - '6ae7fc3ed1f6494f3dc89f5a' # Lago Nanfail e Hingtos
+- id: '6ae7fc3ed1f6494f3dc89f78'
+  type: material
+  name: Birra di Drustea
+  description: |-
+    Luppolo e orzo coltivati nelle pianure del nord danno la maggior parte delle birre vendute sul continente. Il Regno di Drustea è pieno di birrerie e locande rinomate. La birra viaggia via terra fino al Regno della Madre, che ne ha bisogno quanto delle altre materie prime.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+- id: '6ae7fc3ed1f6494f3dc89f79'
+  type: material
+  name: Pietre preziose del Lamstone
+  description: |-
+    Gemme e metalli scavati nelle miniere sotto il Lamstone sono la prima fonte di ricchezza del Regno della Madre. Vengono commerciati in tutta Klimmeck e rendono il regno il secondo più ricco del continente. Anche Ferrion obbliga i suoi prigionieri a scavare minerali nel gelo dell'Harken.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f56' # Harken e Ferrion
+- id: '6ae7fc3ed1f6494f3dc89f7a'
+  type: material
+  name: Rugiada notturna
+  description: |-
+    Potente droga diffusa in tutto il continente, di cui si dice esistano varianti dagli effetti potenzianti e pericolosi. In pochi sanno come si ottiene, ma si racconta che derivi da una pianta del Belleholm, il Vespro Argenteo. I pirati degli atolli dell'Unione delle Fiamme la smerciano, e Bellport ne è uno dei maggiori mercati.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+- id: '6ae7fc3ed1f6494f3dc89f7b'
+  type: material
+  name: Legname e pellicce del Minnely
+  description: |-
+    I villaggi della Foresta di Minnely vivono di raccolta e caccia. La loro economia si regge sul commercio di legname, sui prodotti di falegnameria e sulla vendita di pellicce. Sono merci che raggiungono il resto del Regno di Drustea lungo il Sentiero dei Savi.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely

@@ -1,0 +1,108 @@
+# Storia ed economia di Klimmeck (D-23)
+
+- id: '6ae7fc3ed1f6494f3dc89f69'
+  type: knowledge
+  name: Le origini
+  description: |-
+    All'inizio esisteva solo il Piano Divino, dove le prime divinità vivevano nell'ozio finché la noia non le spinse a creare. Nydos e Wirasil si separarono per dare vita alla luce e all'oscurità, e Neleala vi plasmò una terra di vulcani ardenti. Mirwa la bilanciò con fiumi, mari e laghi, trasformando i vulcani in montagne di sorgenti, ed Enayr vi fece nascere piante e animali. Così nacque il Piano Materiale, che attirò lo sguardo di sempre più dei.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f6a' # La creazione dei piani e delle prime razze
+- id: '6ae7fc3ed1f6494f3dc89f6a'
+  type: knowledge
+  name: La creazione dei piani e delle prime razze
+  description: |-
+    Teheia trasse dal caos i mostri e i Draghi, e Neleala rispose trasformando montagne nei Giganti: la loro guerra durò millenni senza vincitori. Enayr usò l'Albero della Vita, dove oggi cresce il Minnely, per creare Elfi, Treant e Driadi, mentre Neleala diede ai monti i Nani. Mobus e Teheia plasmarono gli Umani, e dal caos escluso nacquero i Diavoli con il loro Piano Demoniaco. Seguirono gli Aarakocra e la licantropia di Lizdum, i Draconidi, gli Halfling, gli Gnomi e infine gli Orchi di Xellmar, sconfitti e ricacciati a nord; Wirasil, geloso della luce, creò il Piano Oscuro.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f69' # Le origini
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+- id: '6ae7fc3ed1f6494f3dc89f6b'
+  type: knowledge
+  name: La prima era
+  description: |-
+    Un'era placida in cui i popoli formarono piccole comunità senza mescolarsi e commerciavano solo col baratto. Teheia, adirata con Mobus, creò Goblin, Hobgoblin, Troll e Ogre, che dal sottosuolo e dai margini del continente iniziarono ad espandersi. Ne nacque la Guerra del sottosuolo contro i Nani del Lamstone, vinta dopo quasi due secoli grazie all'eroe Vozaed Ferroscuro. Con la fondazione del Regno della Madre e di Morrulir, primo regno e prima vera città del continente, l'era si chiuse.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+- id: '6ae7fc3ed1f6494f3dc89f6c'
+  type: knowledge
+  name: La seconda era
+  description: |-
+    Mobus si divise col filo del destino e la sua parte terrena, Edite, creò la magia: una fonte di potere divino sorta a sud del Temistos, dove crebbe la capitale dell'Impero Ekonem. Un mago aprì per errore un portale sul Piano Demoniaco e, ingannato dal diavolo Jur'gath in un patto per l'immortalità, divenne il primo vampiro. I grandi maghi guidati da Orgeal cacciarono demoni e rinnegati, chiusero la fonte in una barriera dentro quella che sarebbe diventata l'Accademia e fondarono il consiglio dei Savi. Nacquero le prime monete, e l'era finì con la scomparsa di Orgeal, primo imperatore degli umani.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+- id: '6ae7fc3ed1f6494f3dc89f6d'
+  type: knowledge
+  name: La terza era
+  description: |-
+    Un'era breve che vide nascere il Regno di Drustea, quando una famiglia di guerrieri nordici unì i popoli del nord contro i mostri. Il Re dei draghi Amaerith distrusse la capitale dell'Impero Ekonem, indebolito da Savi litigiosi, e ne fece la roccaforte della sua razza. Hilword Valantar, eletto da Aphine, unì tutti i popoli, perfino il Regno della Madre e gli elfi del Minnely, e vinse Amaerith in duello; i draghi superstiti fuggirono sul Lamstone, nel Mar Sabbioso e sui vulcani del Belleholm. Dalla capitale ricostruita nacque la Repubblica dei Valan, e l'era si chiuse con la fondazione della Teocrazia di Mirwa.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+- id: '6ae7fc3ed1f6494f3dc89f6e'
+  type: knowledge
+  name: La quarta era
+  description: |-
+    Un'era di pace, segnata solo da piccoli scontri con i popoli demoniaci, in cui i regni crebbero e ampliarono i commerci. Nel Calemark i villaggi di pescatori si ingrandirono attorno al Collegio Millhelm. I Diavoli impararono a usare le tecniche della magia col potere del caos e cominciarono ad aprire portali in tutto il continente, da cui fuggirono anche molti Tiefling. L'era terminò quando le quattro divinità della fortuna scesero nel Belleholm e guidarono le sue tribù a fondare l'Unione delle Fiamme.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5d' # Calemark
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+- id: '6ae7fc3ed1f6494f3dc89f6f'
+  type: knowledge
+  name: La quinta era
+  description: |-
+    Tanelia Ularen, eletta di Naleala, aprì il Regno della Madre ai Tiefling e ai Draconidi, rendendolo la casa di più razze. Dummel Regis fondò l'Alleanza del Mare staccando le città orientali da Drustea in cambio della Tassa di scissione, mentre a Liberia Malon Faris aprì la Banca Faris e creò la Liberica. La Teocrazia di Mirwa, finanziata dalla banca, strappò alla Repubblica dei Valan le terre del nord, e poco dopo l'Unione delle Fiamme tentò invano le coste orientali della repubblica. L'era finì quando la Liberica divenne la moneta unica di Klimmeck.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+- id: '6ae7fc3ed1f6494f3dc89f70'
+  type: knowledge
+  name: La sesta era
+  description: |-
+    È l'era in cui si narrano gli eventi della locanda e degli avventurieri. Contro i portali demoniaci nacque la Gilda dei Cacciatori, che trasformò l'avventura in un mestiere con incarichi, compensi e gradi. L'Unione delle Fiamme, alleata con la Teocrazia di Mirwa, costrinse Drustea ad abbassare i dazi, e la Grande Adunanza costruì nell'Harken la Città Prigione di Ferrion per i criminali più pericolosi. Da poco l'Alleanza del Mare è tornata sotto Drustea, e la Tassa di scissione alimenta ancora piccole ribellioni.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+    - '6ae7fc3ed1f6494f3dc89f56' # Harken e Ferrion
+    - '6ae7fc3ed1f6494f3dc89f5e' # Harken
+- id: '6ae7fc3ed1f6494f3dc89f71'
+  type: knowledge
+  name: La Liberica e il cambio
+  description: |-
+    La Liberica è la moneta unica del continente e prende il nome da Liberia, dove nacque insieme alla Banca Faris. Si divide in monete di rame, d'argento e d'oro, con il cambio 10000 rame = 100 argento = 1 oro. Un boccale di birra costa 2 o 3 rame, una stanza per la notte 20 rame e una pozione di guarigione 50-70 rame. Per una spada di bassa qualità servono 1 argento e 50 rame, per un anello magico 3 argento, mentre la casa di un nobile arriva a 1 oro e 20 argento.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f75' # Liberica
+- id: '6ae7fc3ed1f6494f3dc89f72'
+  type: knowledge
+  name: Il potere economico degli stati
+  description: |-
+    Liberia è lo stato più ricco grazie alla flotta, alla Banca Faris e al Collegio Millhelm, seguita dalla Teocrazia di Mirwa, forte di pellegrinaggi, vini e frutti, e dal Regno della Madre, che vende rune e minerali preziosi. La Repubblica dei Valan cresce piano ma stabile con cavalli, armi e Sundenim. Il Regno di Drustea, impoverito dalle guerre e dai dazi più bassi, è penultimo e investe in nuove banche e terre da coltivare. Ultima è l'Unione delle Fiamme, divisa da lotte interne, dove però pesca e agricoltura tengono lontana la fame.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
