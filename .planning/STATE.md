@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 11 executing — plan 18 of 26 done
+stopped_at: Phase 11 executing — plan 19 of 26 done
 last_updated: "2026-11-02T04:10:00.000Z"
-last_activity: "2026-11-02 -- Plan 11-18 complete: 21 monster lore entries and 25 monster enemies (Minotauro to Vampiro), bat lycanthrope added to monsters B"
+last_activity: "2026-11-02 -- Plan 11-19 complete: 22 animal and 9 plant lore entries, 23 animal enemies (14 hunt prey), 12 new mounts"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 18 of 26
-Status: Executing Phase 11 — plans 11-01..11-18 complete, next 11-19; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-02 -- Plan 11-18 complete: 21 `enemy` lore entries (`content/lore/creature-c.yaml`) and 25 `monster` enemies (`content/enemies/mostri-c.yaml`, 9 NON TROVATO scaled from the analog, Slaad della morte without document level), plus the missing Licantropo pipistrello in `mostri-b.yaml`; enemies 84, lore 201, `--check` exit 0
+Plan: 19 of 26
+Status: Executing Phase 11 — plans 11-01..11-19 complete, next 11-20; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Plan 11-19 complete: 22 `animal` lore entries (`content/lore/animali.yaml`), 9 `plant` lore entries (`content/lore/piante.yaml`), 23 `animal` enemies (`content/enemies/animali.yaml`, 14 with PE ≤ 200 as hunt prey, 163/167 cities covered) and 12 new mounts in `content/pets/cavalcature.yaml` (Cavallo da viaggio unchanged); lore 232, enemies 107, pets 13, `--check` exit 0
 
 Progress: [████████░░] 2/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
