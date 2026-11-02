@@ -69,12 +69,12 @@ export interface SkippedQuest {
     reason: string;
 }
 
+// D-23: una città senza lore riceve comunque le sue quest, con relatedLore vuoto; skipped = voci davvero non generate
 export interface GeneratorResult {
     quests: GeneratedQuest[];
     skipped: SkippedQuest[];
+    citiesWithoutLore: string[];
 }
-
-export const CITY_WITHOUT_LORE = 'città senza lore';
 
 export const DUNGEON_WITHOUT_MONSTER = 'nessun mostro compatibile';
 
@@ -145,14 +145,6 @@ function cityLoreOf(index: ContentIndex): Map<string, string> {
 function worldOf(input: GeneratorInput): GeneratorWorld {
     const cities = [...input.index.cities.values()].sort(byId);
     const cityLore = cityLoreOf(input.index);
-    const skipped = cities
-        .filter((city) => !cityLore.has(city.id))
-        .map((city) => ({
-            city: city.id,
-            poi: null,
-            type: '*',
-            reason: CITY_WITHOUT_LORE,
-        }));
     return {
         index: input.index,
         config: input.config,
@@ -160,7 +152,7 @@ function worldOf(input: GeneratorInput): GeneratorWorld {
         cities,
         cityLore,
         enemies: [...input.index.byCollection.enemies.values()].sort(byId),
-        skipped,
+        skipped: [],
     };
 }
 
@@ -757,5 +749,8 @@ export function generateFixedQuests(input: GeneratorInput): GeneratorResult {
             return { file: draft.file, entry: entryOf(draft, id) };
         }),
         skipped: world.skipped,
+        citiesWithoutLore: world.cities
+            .filter((city) => !world.cityLore.has(city.id))
+            .map((city) => city.id),
     };
 }

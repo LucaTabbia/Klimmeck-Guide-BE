@@ -252,11 +252,9 @@ describe('generateFixedQuests service quests', () => {
         );
         const [heal] = questsOf(withoutLore, 'heal', ids.cities[0]);
         expect(infosOf(heal).relatedLore).toEqual([]);
-        expect(withoutLore.skipped).toContainEqual({
-            city: ids.cities[0],
-            poi: null,
-            type: '*',
-            reason: 'città senza lore',
-        });
+        expect(withoutLore.citiesWithoutLore).toEqual([ids.cities[0]]);
+        expect(
+            withoutLore.skipped.filter((skip) => skip.city === ids.cities[0]),
+        ).toEqual([]);
     });
 });

@@ -159,17 +159,11 @@ describe('runGenerateQuests', () => {
         expect(checkContent(loadContentTree(contentDir)).errors).toEqual([]);
     });
 
-    it('reports the cities skipped by the generator with their reason (D-17)', () => {
+    it('reports the cities without lore apart from the skipped quests (D-23)', () => {
         const report = runGenerateQuests(contentDir, sequentialIds());
 
-        expect(report.skipped).toEqual([
-            {
-                city: CAPITAL_ID,
-                poi: null,
-                type: '*',
-                reason: 'città senza lore',
-            },
-        ]);
+        expect(report.citiesWithoutLore).toEqual([CAPITAL_ID]);
+        expect(report.skipped).toEqual([]);
     });
 
     it('writes byte-identical files on a second run (D-01)', () => {

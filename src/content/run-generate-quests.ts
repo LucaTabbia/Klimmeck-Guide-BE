@@ -50,6 +50,7 @@ export interface GenerateQuestsReport {
     byType: Record<string, number>;
     spellDraw: number;
     skipped: GeneratorResult['skipped'];
+    citiesWithoutLore: GeneratorResult['citiesWithoutLore'];
     orphaned: OrphanedQuest[];
     errors: ContentIssue[];
 }
@@ -145,6 +146,7 @@ function failedReport(errors: ContentIssue[]): GenerateQuestsReport {
         byType: {},
         spellDraw: 0,
         skipped: [],
+        citiesWithoutLore: [],
         orphaned: [],
         errors,
     };
@@ -197,6 +199,7 @@ export function runGenerateQuests(
         byType: byTypeOf(result.quests),
         spellDraw: spellDrawsOf(result.quests),
         skipped: result.skipped,
+        citiesWithoutLore: result.citiesWithoutLore,
         orphaned: orphanedOf(existing, result.quests),
         errors: checkContent(loadContentTree(contentDir)).errors,
     };
