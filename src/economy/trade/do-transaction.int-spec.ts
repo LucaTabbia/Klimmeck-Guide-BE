@@ -276,7 +276,7 @@ describe('doTransaction (wire)', () => {
         });
     }
 
-    // il negozio risponde solo in città (D-18): il giocatore sta sul marker di una città
+    // il negozio risponde solo in città (D-18): il giocatore sta sul marker di una città, col catalogo nel pool (D-19)
     async function playerWith(
         twitchId: string,
         purse: CoinPurse,
@@ -289,7 +289,10 @@ describe('doTransaction (wire)', () => {
             inventory,
             status,
         );
-        await placeInCity(harness, player.character!);
+        await placeInCity(harness, player.character!, {
+            equipment: [idOf(catalog.sword)],
+            loot: [idOf(catalog.potion), idOf(catalog.relic)],
+        });
         return player;
     }
 
@@ -592,6 +595,29 @@ describe('doTransaction (wire)', () => {
                 total: coins(0, 0, 0),
                 isTotalPositive: false,
             });
+        });
+
+        it('answers ITEM_NOT_IN_SHOP in extensions.code for a purchase outside the pool (D-19)', async () => {
+            const outside = await persistEquipmentItem(equipment, {
+                name: 'Fuori pool',
+            });
+            const player = await playerWith(
+                'twitch-shop-outside-pool',
+                coins(0, 5, 0),
+            );
+            const before = await raw(player);
+
+            const body = await doTransaction(player, {
+                buyEquip: [asset(outside)],
+                total: coins(0, 1, 50),
+                isTotalPositive: false,
+            });
+
+            expect(body.data?.doTransaction ?? null).toBeNull();
+            expect(body.errors?.[0]?.extensions).toEqual({
+                code: 'ITEM_NOT_IN_SHOP',
+            });
+            expect(await raw(player)).toEqual(before);
         });
 
         it('keeps ITEM_NOT_FOUND ahead of the city guard', async () => {

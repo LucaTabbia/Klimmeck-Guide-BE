@@ -22,7 +22,11 @@ import {
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 import type { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { User, UserDocument } from 'src/models/user.model';
-import { cityModelOf, placeInCity } from '../../../test/economy/place-in-city';
+import {
+    cityModelOf,
+    placeInCity,
+    type ShopPoolFixture,
+} from '../../../test/economy/place-in-city';
 import {
     buildCharacter,
     persistCharacter,
@@ -205,12 +209,19 @@ describe('ShopTransactionService (replSet)', () => {
         return character._id as Types.ObjectId;
     }
 
+    // il pool della città del trader contiene le fixture del catalogo (D-19)
+    const catalogPool = (): ShopPoolFixture => ({
+        equipment: [idOf(sword)],
+        loot: [idOf(potion), idOf(relic)],
+    });
+
     // il negozio risponde solo in città (D-18): il trader sta sul marker di una città
     async function persistTrader(
         purse: CoinPurse,
         inventory: TraderInventory = {},
         overrides: Record<string, unknown> = {},
         status: Record<string, unknown> = {},
+        pool: ShopPoolFixture = catalogPool(),
     ): Promise<Types.ObjectId> {
         const character = await persistCharacterOutsideCity(
             purse,
@@ -218,7 +229,7 @@ describe('ShopTransactionService (replSet)', () => {
             overrides,
             status,
         );
-        await placeInCity({ connection }, character);
+        await placeInCity({ connection }, character, pool);
         return character._id as Types.ObjectId;
     }
 
@@ -808,6 +819,7 @@ describe('ShopTransactionService (replSet)', () => {
                     character.status.location as Types.ObjectId
                 ).toHexString(),
                 pointsOfInterest: [],
+                shopEquipment: [idOf(sword)],
             });
             await migrateLegacyRefs(connection);
             const id = character._id as Types.ObjectId;
@@ -907,6 +919,226 @@ describe('ShopTransactionService (replSet)', () => {
             expect(after?.status.coins).toEqual(before?.status.coins);
             expect(after?.assets).toEqual(before?.assets);
             expect(after?.status.activeTravel).toEqual(travel);
+        });
+    });
+
+    describe('city pool guard', () => {
+        const buyEquipment = (
+            id: Types.ObjectId,
+            document: CatalogDocument,
+        ): TransactionRequest =>
+            trade({
+                id,
+                buyEquip: [asset(document)],
+                total: coins(0, 1, 50),
+                isTotalPositive: false,
+            });
+
+        async function expectItemNotInShop(
+            id: Types.ObjectId,
+            request: TransactionRequest,
+        ): Promise<void> {
+            const before = await raw(id);
+
+            await expect(shop.execute(request)).rejects.toMatchObject({
+                code: 'ITEM_NOT_IN_SHOP',
+            });
+
+            expect(await raw(id)).toEqual(before);
+        }
+
+        it('refuses an equipment outside the pool with ITEM_NOT_IN_SHOP and writes nothing (D-19)', async () => {
+            const outside = await persistEquipmentItem(equipment, {
+                name: 'Fuori pool',
+            });
+            const id = await persistTrader(coins(1, 0, 0));
+
+            await expectItemNotInShop(id, buyEquipment(id, outside));
+        });
+
+        it('refuses a loot outside the pool with ITEM_NOT_IN_SHOP (D-19)', async () => {
+            const id = await persistTrader(
+                coins(1, 0, 0),
+                {},
+                {},
+                {},
+                { equipment: [idOf(sword)] },
+            );
+
+            await expectItemNotInShop(
+                id,
+                trade({
+                    id,
+                    buyLoot: [asset(potion)],
+                    total: coins(0, 0, 20),
+                    isTotalPositive: false,
+                }),
+            );
+        });
+
+        it('refuses a legendary curated in the pool with ITEM_NOT_IN_SHOP (D-05)', async () => {
+            const crown = await persistEquipmentItem(equipment, {
+                name: 'Corona del Re',
+                rarity: 'legendary',
+            });
+            const id = await persistTrader(
+                coins(1, 0, 0),
+                {},
+                {},
+                {},
+                { equipment: [idOf(crown)] },
+            );
+
+            await expectItemNotInShop(id, buyEquipment(id, crown));
+        });
+
+        it('refuses a sellable false loot curated in the pool (D-05)', async () => {
+            const seal = await persistLootItem(loot, {
+                name: 'Sigillo',
+                sellable: false,
+            });
+            const id = await persistTrader(
+                coins(1, 0, 0),
+                {},
+                {},
+                {},
+                { loot: [idOf(seal)] },
+            );
+
+            await expectItemNotInShop(
+                id,
+                trade({
+                    id,
+                    buyLoot: [asset(seal)],
+                    total: coins(0, 0, 20),
+                    isTotalPositive: false,
+                }),
+            );
+        });
+
+        it('buys an ultrarare item curated by hand in the pool (D-05)', async () => {
+            const blade = await persistEquipmentItem(equipment, {
+                name: 'Lama del Mare',
+                rarity: 'ultrarare',
+            });
+            const id = await persistTrader(
+                coins(0, 5, 0),
+                {},
+                {},
+                {},
+                { equipment: [idOf(blade)] },
+            );
+
+            await expect(
+                shop.execute(buyEquipment(id, blade)),
+            ).resolves.toEqual(SUCCESS);
+
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(coins(0, 3, 50));
+            expect(after?.assets.ownedEquipments).toEqual([
+                owned('EquipmentItem', blade, 1),
+            ]);
+        });
+
+        it('sells an item outside the pool of the city (D-12)', async () => {
+            const id = await persistTrader(
+                coins(0, 0, 0),
+                { ownedEquipments: [owned('EquipmentItem', sword, 1)] },
+                {},
+                {},
+                { equipment: [], loot: [], pets: [] },
+            );
+
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        sellEquip: [asset(sword)],
+                        total: coins(0, 0, 75),
+                        isTotalPositive: true,
+                    }),
+                ),
+            ).resolves.toEqual(SUCCESS);
+
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(coins(0, 0, 75));
+            expect(after?.assets.ownedEquipments).toEqual([]);
+        });
+
+        it('sells a legendary item owned by the character (D-11)', async () => {
+            const crown = await persistEquipmentItem(equipment, {
+                name: 'Corona del Re',
+                rarity: 'legendary',
+                sellable: false,
+            });
+            const id = await persistTrader(coins(0, 0, 0), {
+                ownedEquipments: [owned('EquipmentItem', crown, 1)],
+            });
+
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        sellEquip: [asset(crown)],
+                        total: coins(0, 0, 75),
+                        isTotalPositive: true,
+                    }),
+                ),
+            ).resolves.toEqual(SUCCESS);
+
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(coins(0, 0, 75));
+            expect(after?.assets.ownedEquipments).toEqual([]);
+        });
+
+        it('answers SHOP_NOT_IN_CITY before the pool outside a city (D-19)', async () => {
+            const outside = await persistEquipmentItem(equipment, {
+                name: 'Fuori pool',
+            });
+            const id = await persistTraderOutsideCity(coins(1, 0, 0));
+
+            await expect(
+                shop.execute(buyEquipment(id, outside)),
+            ).rejects.toMatchObject({ code: 'SHOP_NOT_IN_CITY' });
+        });
+
+        it('checks the pool before the possession and the funds (D-19)', async () => {
+            const outside = await persistEquipmentItem(equipment, {
+                name: 'Fuori pool',
+            });
+            const id = await persistTrader(coins(0, 0, 0));
+
+            await expectItemNotInShop(
+                id,
+                trade({
+                    id,
+                    buyEquip: [asset(outside)],
+                    sellLoot: [asset(potion)],
+                    total: coins(0, 1, 40),
+                    isTotalPositive: false,
+                }),
+            );
+        });
+
+        it('reads the pool with the session of the transaction (D-19)', async () => {
+            const id = await persistTrader(coins(0, 5, 0));
+            const findOne = jest.spyOn(cityModelOf({ connection }), 'findOne');
+
+            await expect(
+                shop.execute(buyEquipment(id, sword)),
+            ).resolves.toEqual(SUCCESS);
+
+            expect(findOne).toHaveBeenCalledTimes(1);
+            const query = findOne.mock.results[0]?.value as {
+                getOptions(): { session?: unknown };
+                projection(): unknown;
+            };
+            expect(query.getOptions().session).toBeDefined();
+            expect(query.projection()).toEqual({
+                shopEquipment: 1,
+                shopLoot: 1,
+                shopPets: 1,
+            });
         });
     });
 
