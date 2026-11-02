@@ -1,0 +1,153 @@
+# Regioni di Klimmeck (D-23): il commento PoiType elenca i tipi di POI che rappresentano la regione (D-13)
+
+- id: '6ae7fc3ed1f6494f3dc89f58'
+  type: region # PoiType: mountainLamstone, undergroundLamstone
+  name: Lamstone
+  description: |-
+    La catena più alta e vasta del continente corre lungo l'occidente del nord fino a metà del continente. Le sue cime più alte, i Picchi remoti, sono quasi irraggiungibili e d'inverno tempeste di neve possono durare un mese intero. Il clima aspro lascia poca vegetazione sulle pendici, ma sotto la roccia si estendono le città e le gallerie del Regno della Madre.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+- id: '6ae7fc3ed1f6494f3dc89f59'
+  type: region # PoiType: mountainTemistos, undergroundTemistos
+  name: Temistos
+  description: |-
+    Catena montuosa di medie dimensioni che circonda i grandi laghi del centro e si spinge fino alle coste orientali. La vetta più alta è il Golway, da cui nasce il fiume più grande del continente. Le sue cave fanno la fortuna della Teocrazia di Mirwa e i suoi passi, spesso franosi, separano il nord dal sud.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+- id: '6ae7fc3ed1f6494f3dc89f5a'
+  type: region # PoiType: temistosLake
+  name: Lago Nanfail e Hingtos
+  description: |-
+    Il Nanfail è il più vasto dei laghi al centro del continente, punteggiato di isolette. La più grande, Hingtos, dà il nome all'arcipelago e ospita la città fortezza di Mirwen. Le sue acque sono pescose e le sue rive, dal clima mite, si coprono di agrumi, olivi e vigne.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+- id: '6ae7fc3ed1f6494f3dc89f5b'
+  type: region # PoiType: desert, oasis
+  name: Mar Sabbioso
+  description: |-
+    Deserto del profondo sud affacciato sul mare, chiamato mare perché le sue dune si navigano grazie alle bestie che nuotano nella sabbia. Correnti di sabbia fanno affiorare rocce di Sundenim, il minerale più ricercato dai fabbri. I soli villaggi sorgono al pelo dell'acqua delle oasi, dove il fondale è stabile, e vivono dell'estrazione.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+- id: '6ae7fc3ed1f6494f3dc89f5c'
+  type: region # PoiType: belleholmIsland, belleholmLake, vulcano
+  name: Belleholm
+  description: |-
+    Grande isola vulcanica a semiluna, dalle spiagge nere e tropicali, percorsa da molti piccoli fiumi. Le isole e gli atolli che la circondano hanno la stessa origine ma meno acqua dolce. Dei suoi tre vulcani l'Ashden è sempre attivo, e in certi periodi dell'anno inondazioni e tempeste flagellano le coste.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+- id: '6ae7fc3ed1f6494f3dc89f5d'
+  type: region # PoiType: liberiaIsland
+  name: Calemark
+  description: |-
+    Vasto arcipelago al largo dell'occidente, fatto di isole medie e piccole su fondali bassi e spesso corallini. L'isola più grande è Winden. Le sue coste floride e calde ospitano Liberia e le magioni dei più ricchi del continente.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+- id: '6ae7fc3ed1f6494f3dc89f5e'
+  type: region # PoiType: harkenIsland
+  name: Harken
+  description: |-
+    Arcipelago di piccole isole brulle e gelide a nord est, vicino alla costa del continente. L'unico insediamento è la città fortificata di Ferrion. Le correnti impervie dell'oceano rendono difficile perfino l'arrivo delle navi delle provviste.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f56' # Harken e Ferrion
+- id: '6ae7fc3ed1f6494f3dc89f5f'
+  type: region # PoiType: glounet
+  name: Glounet
+  description: |-
+    Arcipelago a nord est, meno rigido dell'Harken, con isole coperte di fitte foreste quasi disabitate. È il regno di bestie magiche, mostri e non morti, e pochi vi mettono piede. Le leggende vi collocano tesori perduti e la Città Non-Morta.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f57' # Necrorian e il Glounet
+- id: '6ae7fc3ed1f6494f3dc89f60'
+  type: region # PoiType: minnelyForest
+  name: Foresta di Minnely
+  description: |-
+    Grande foresta che copre la metà meridionale del Lamstone, detta foresta lieve per la sua natura pacifica e rigogliosa. Nelle radure centrali sorgono piccoli villaggi collegati dal Sentiero dei Savi. Un tempo vi cresceva l'Albero della Vita e oggi vi si nasconde Ko Shaeras, la città degli elfi costruita sui Protettori Ancestrali.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+- id: '6ae7fc3ed1f6494f3dc89f61'
+  type: region # PoiType: drusteaPlains, hills
+  name: Pianure di Drustea
+  description: |-
+    Colline e pianure estese occupano gran parte del settentrione, attorno a Cliffbreak. Sono terre di luppolo, orzo e allevamenti, attraversate dalla strada Chande. Dopo la prima era Goblin, Troll e Ogre ne fecero la loro casa, e l'esercito del regno lotta ancora per strappare loro nuove terre da coltivare.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+- id: '6ae7fc3ed1f6494f3dc89f62'
+  type: region # PoiType: valanPlains
+  name: Pianure dei Valan
+  description: |-
+    Ai lati del Mar Sabbioso si aprono grandi pianure con piccole foreste e qualche fiume. Sono l'unica parte del continente in cui i cavalli vivono allo stato naturale e la Repubblica ne ha fatto un commercio. I territori più settentrionali passarono alla Teocrazia di Mirwa dopo la guerra fra i due stati.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+- id: '6ae7fc3ed1f6494f3dc89f63'
+  type: region # PoiType: farNorth
+  name: Lontano Nord
+  description: |-
+    L'estremo settentrione del continente è una distesa fredda di pianure e colline battute dal gelo. Qui si ritirarono gli Orchi sconfitti e i figli di Teheia scacciati alla fine della prima era. Villaggi isolati resistono al clima più duro di Klimmeck, fra le pendici del Lamstone e la costa dell'Harken.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f56' # Harken e Ferrion
+- id: '6ae7fc3ed1f6494f3dc89f64'
+  type: region # PoiType: swamp
+  name: Paludi maledette
+  description: |-
+    Acquitrini e paludi salmastre lungo la costa occidentale, più a nord delle lunghe spiagge del centro. Il clima è umido e le acque sono quelle del fiume Stockcier, confine naturale del Regno di Drustea. Il loro nome basta a tenere lontani i viaggiatori prudenti.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+- id: '6ae7fc3ed1f6494f3dc89f65'
+  type: region # PoiType: (nessuno)
+  name: Coste del meridione
+  description: |-
+    Coste frastagliate e spiagge tropicali corrono a oriente e a occidente del Mar Sabbioso. Lungo di esse sorgono piccoli e medi centri abitati, e a est si aprono diverse lagune. Anche le coste orientali in cui muore il Temistos sono calde e pacifiche, con spiagge di sabbia bianca e fine.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+- id: '6ae7fc3ed1f6494f3dc89f66'
+  type: region # PoiType: ladows
+  name: Oceano Ladows
+  description: |-
+    L'oceano occidentale bagna il Calemark, la Repubblica dei Valan e le piccole spiagge del Lamstone. Al nord le correnti impervie rendono la navigazione difficile, al sud diventano placide e favoriscono la pesca. Allontanarsi troppo dalla costa è pericoloso per le correnti e per i mostri antichi che abitano le sue acque.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f55' # Liberia
+- id: '6ae7fc3ed1f6494f3dc89f67'
+  type: region # PoiType: delants
+  name: Oceano Delants
+  description: |-
+    L'oceano orientale lambisce le città marinare del Regno di Drustea e gli arcipelaghi dell'Harken e del Glounet. Come il Ladows ha correnti impervie a nord e placide a sud. Nelle sue profondità vivono mostri antichi che scoraggiano chi tenta di navigare lontano dalla costa.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f56' # Harken e Ferrion
+    - '6ae7fc3ed1f6494f3dc89f57' # Necrorian e il Glounet
+- id: '6ae7fc3ed1f6494f3dc89f68'
+  type: region # PoiType: (nessuno)
+  name: Stretto di Stratwin
+  description: |-
+    Lo stretto separa il continente principale dall'isola di Belleholm. È il passaggio fra le coste meridionali della Repubblica dei Valan e le isole dell'Unione delle Fiamme, teatro delle loro ripetute schermaglie.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme

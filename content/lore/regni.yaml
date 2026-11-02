@@ -1,0 +1,90 @@
+# Regni e stati di Klimmeck (D-23): il commento CityType elenca i tipi di città del regno
+
+- id: '6ae7fc3ed1f6494f3dc89f50'
+  type: state # CityType: drusteaCapital, drusteaCity, drusteaSeaCity, drusteaVillage, elfCapital, talmvereVillage
+  name: Regno di Drustea
+  description: |-
+    Il regno più vasto del continente occupa il nord, chiuso fra lo Stockcier, il Temistos e il Lamstone, e prende il nome dalla famiglia di monarchi che lo guida. La capitale è Cliffbreak, città di colline e pietra collegata al resto del regno dalla strada Chande. La ricchezza viene da agricoltura e allevamento, soprattutto luppolo e orzo per le birre più vendute di Klimmeck, mentre i villaggi del Minnely vivono di caccia, legname e pellicce. Le città marinare dell'est, un tempo Alleanza del Mare, sono state riannesse e decidono ancora tramite il Consiglio di Dummel e il suo Pacificatore. Nel regno sorgono anche Ko Shaeras, la città elfica alleata nascosta dalla magia, e il villaggio di Talmvere con la sua locanda.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+    - '6ae7fc3ed1f6494f3dc89f64' # Paludi maledette
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+- id: '6ae7fc3ed1f6494f3dc89f51'
+  type: state # CityType: valanCapital, valanCity, valanSeaCity, valanVillage, desertVillage
+  name: Repubblica dei Valan
+  description: |-
+    Il secondo stato per estensione si allarga nel sud, fra il Temistos e i fiumi Talons e Mirwa, su pianure aperte e poco boscose. La capitale Valantar, la città più grande del continente, porta il nome dell'eroe che sconfisse il Re dei draghi ed è chiamata Città forgia per le sue fucine. Il Mar Sabbioso fornisce il Sundenim, il commercio di cavalli completa l'economia e nessuna invasione è mai riuscita a strappare queste ricchezze. Governano gli Alti Savi, consiglio di anziani maghi, e nella capitale sorge l'Accademia di magia, meta di ogni avventuriero.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+    - '6ae7fc3ed1f6494f3dc89f5b' # Mar Sabbioso
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f65' # Coste del meridione
+    - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
+    - '6ae7fc3ed1f6494f3dc89f68' # Stretto di Stratwin
+- id: '6ae7fc3ed1f6494f3dc89f52'
+  type: state # CityType: mirwaCapital, mirwaCity, mirwaSeaCity, mirwaVillage
+  name: Teocrazia di Mirwa
+  description: |-
+    Al centro del continente la Teocrazia prende il nome dalla dea Mirwa, l'unica divinità ammessa: venerare le altre è sacrilegio. La capitale è la città fortezza di Mirwen sull'isola di Hingtos, sede dell'alto sacerdote Alander XXI. Fra cave di montagna, pesca nel Nanfail, agrumi, olive e vigne, il regno produce gran parte del vino del continente, a cominciare dal Mirwanese. Il Cammino lucente, passo montano spesso interrotto dalle frane, unisce i villaggi dei laghi alle tre città esterne alla catena.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f59' # Temistos
+    - '6ae7fc3ed1f6494f3dc89f5a' # Lago Nanfail e Hingtos
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+- id: '6ae7fc3ed1f6494f3dc89f53'
+  type: state # CityType: flameNorthCapital, flameCenterCapital, flameSouthCapital, flameCity, flameVillage, tropicalVillage
+  name: Unione delle Fiamme
+  description: |-
+    L'Unione lega i popoli del Belleholm e delle isole vicine per mezzo di una fede comune, senza un governo unico. I Phalan regnano da Bellport a nord, i Kerring da Virnen e i Telob da Telobren, mentre le terre restanti sono di città e villaggi indipendenti. Colture esotiche, pesca e ossidiana sostengono una popolazione povera ma raramente affamata, e la schiavitù è ancora permessa. Fra gli atolli si nascondono i pirati che smerciano la Rugiada notturna; le isole sono unite dal mare e dalla strada ramificata Pentabron.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+    - '6ae7fc3ed1f6494f3dc89f68' # Stretto di Stratwin
+- id: '6ae7fc3ed1f6494f3dc89f54'
+  type: state # CityType: motherCapital, motherCity, motherVillage, mountainVillage, aarakocraVillage
+  name: Regno della Madre
+  description: |-
+    Il primo regno del continente si stende sopra e sotto i monti del Lamstone: Nani, Gnomi e Tiefling vivono nel sottosuolo, i Draconidi sulle vette. Lo guida Skargen Monteaspro III, re e capo spirituale, dalla gigantesca capitale sotterranea di Morrulir. Pietre preziose, metalli e soprattutto le Rune magiche ne fanno il secondo stato più ricco e alimentano energia elettrica, funicolari e gru sconosciute altrove. Il Passo dei giganti scende verso il Chande, mentre le gallerie delle Vene della madre uniscono le città sotterranee.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+    - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
+- id: '6ae7fc3ed1f6494f3dc89f55'
+  type: state # CityType: liberiaCapital, liberiaCity, liberiaVillage
+  name: Liberia
+  description: |-
+    Città stato democratica nell'arcipelago del Calemark, Liberia è la potenza commerciale più ricca del continente. La sua flotta, ritenuta inaffondabile, controlla gran parte delle rotte oceaniche e la tiene lontana dalle guerre. Vi sorgono il Collegio Millhelm, la più importante scuola bardica, e la Banca Faris, l'unica del continente, guidata da Rufus Faris. Le isole sono legate dalla Rete dei ponti, ponti semimobili su cui sorgono case e botteghe.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f5d' # Calemark
+    - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
+- id: '6ae7fc3ed1f6494f3dc89f56'
+  type: state # CityType: ferrionCity
+  name: Harken e Ferrion
+  description: |-
+    Nell'arcipelago dell'Harken, il più a nord del continente, sorge Ferrion, la Città Prigione che non appartiene a nessuno stato. Le sue leggi sono decise dalla Grande Adunanza, l'assemblea dei rappresentanti di ogni regno che si riunisce ogni cinque anni. La gestione della città passa da uno stato all'altro con la stessa cadenza. Sulle isole brulle e ghiacciate non cresce nulla e si sopravvive solo grazie alle navi delle provviste.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f5e' # Harken
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+- id: '6ae7fc3ed1f6494f3dc89f57'
+  type: state # CityType: necrorianCity
+  name: Necrorian e il Glounet
+  description: |-
+    L'arcipelago del Glounet è terra di nessuno, abitata solo da bestie magiche, mostri e non morti. Le sue isole boschive sono lo sfondo di grandi leggende e attirano avventurieri in cerca di fama. Si dice che vi sorgano villaggi di bestie magiche e la Città Non-Morta, Necrorian, ma chi dovesse scoprirne davvero l'esistenza difficilmente tornerebbe a raccontarlo.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f5f' # Glounet
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
