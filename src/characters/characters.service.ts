@@ -107,6 +107,9 @@ export class CharactersService {
                 path: 'assets.ownedItems.item',
                 model: 'LootItem',
             })
+            // compagno equipaggiato e posseduti dal catalogo Pet: il fragment FE li seleziona entrambi (D-13, D-23)
+            .populate({ path: 'assets.pet', model: 'Pet' })
+            .populate({ path: 'assets.ownedPets', model: 'Pet' })
             .populate(CHARACTER_QUESTS_POPULATE)
             .exec();
 

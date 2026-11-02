@@ -476,7 +476,7 @@ describe('characterUpdated subscription (wire)', () => {
 
     it('serves a legacy character without owned pets as an empty list (D-13, D-23)', async () => {
         await characters.collection.updateOne(
-            { _id: alice.character?._id },
+            { _id: alice.character?._id as Types.ObjectId },
             { $unset: { 'assets.ownedPets': '' } },
         );
 
