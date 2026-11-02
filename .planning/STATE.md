@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 11 executing — plan 22 of 26 done
+stopped_at: Phase 11 executing — plan 23 of 26 done
 last_updated: "2026-11-02T04:10:00.000Z"
-last_activity: "2026-11-02 -- Plan 11-22 complete: 22 legendary bosses and 21 humanoid enemies with their lore; the phase bestiary counts 150 enemies"
+last_activity: "2026-11-02 -- Plan 11-23 complete: the fixed quest generator command froze 581 fixed quests in content/quests"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 22 of 26
-Status: Executing Phase 11 — plans 11-01..11-22 complete, next 11-23; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-02 -- Plan 11-22 complete: 13 legendary lore + 22 `legendary` enemies (`content/{lore,enemies}/leggendari.yaml`, tier legend, no `level`), 5 group lore + 14 hostile humans (`umani.yaml`) and 7 orcs/goblinoids/hill giant (`content/enemies/giganti-orchi.yaml`, `humanoid`); enemies 150, lore 405, `--check` exit 0 with 0 warnings
+Plan: 23 of 26
+Status: Executing Phase 11 — plans 11-01..11-23 complete, next 11-24 (checkpoint: user backup before the real `--apply`); the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Plan 11-23 complete: `npm run content:generate-quests` (`src/content/run-generate-quests.ts`, offline) wrote 581 fixed quests in `content/quests/*.yaml` (heal 166, job 166, guard 68, crime 34, study 30 with one Valantar `spellDraw`, hunt 77, dungeon 40; 0 skipped), byte-identical on rerun; `--check` exit 0 with 1 warning (duplicate Necrorian dungeon title)
 
 Progress: [████████░░] 2/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 

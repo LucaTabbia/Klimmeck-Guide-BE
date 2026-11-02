@@ -96,8 +96,8 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-22-01 | 22 | 11 | C-01, C-03, C-04 | T-11-74…T-11-76 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
 | 11-22-02 | 22 | 11 | C-01, C-03, C-04 | T-11-74…T-11-76 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
 | 11-22-03 | 22 | 11 | C-01, C-03, C-04 | T-11-74…T-11-76 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
-| 11-23-01 | 23 | 12 | C-01, C-06 | T-11-77…T-11-79 | unit | `npx jest src/content/run-generate-quests.spec.ts src/content/generation --selectProjects unit && npm run build && test -f dist/content/ru…` | ⬜ pending |
-| 11-23-02 | 23 | 12 | C-01, C-06 | T-11-77…T-11-79 | content check | `node dist/content/run-content.js --check && node -e "const r=require('./.planning/phases/11-popolamento-del-mondo/reports/11-23-generate.…` | ⬜ pending |
+| 11-23-01 | 23 | 12 | C-01, C-06 | T-11-77…T-11-79 | unit | `npx jest src/content/run-generate-quests.spec.ts src/content/generation --selectProjects unit && npm run build && test -f dist/content/ru…` | ✅ green |
+| 11-23-02 | 23 | 12 | C-01, C-06 | T-11-77…T-11-79 | content check | `node dist/content/run-content.js --check && node -e "const r=require('./.planning/phases/11-popolamento-del-mondo/reports/11-23-generate.…` | ✅ green |
 | 11-24-01 | 24 | 13 | C-02, C-03, C-04, C-05, C-06 | T-11-80…T-11-84 | integration | `npx jest src/content/content-wire.int-spec.ts --selectProjects integration --runInBand && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
 | 11-24-02 | 24 | 13 | C-02, C-03, C-04, C-05, C-06 | T-11-80…T-11-84 | script | `test "$(grep -ciE 'mongodb(\+srv)?://\|@[a-z0-9.-]+\.(net\|com)' .planning/phases/11-popolamento-del-mondo/reports/11-24-verify-before.json…` | ⬜ pending |
 | 11-24-03 | 24 | 13 | C-02, C-03, C-04, C-05, C-06 | T-11-80…T-11-84 | manual (checkpoint) | `test -f .planning/phases/11-popolamento-del-mondo/reports/11-24-verify-before.json` | ⬜ pending |
