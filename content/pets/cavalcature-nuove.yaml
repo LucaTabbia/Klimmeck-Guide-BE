@@ -1,0 +1,273 @@
+# Cavalcature aggiunte nella Phase 11 (solo voci nuove, per la revisione; il Cavallo da viaggio esportato resta in cavalcature.yaml)
+
+# Cavalcature aggiunte in 11-19 (D-14): velocità = 10 × speedModifier, HP = PF del bestiario × 100, danni = attacco migliore × 100, vendita = metà dell'acquisto
+# Cavallo leggero: Un cavallo agile allevato nella Repubblica dei Valan, la cavalcatura più rapida fra quelle di terra a buon mercato.
+- id: '6ae8070540e5e6676b7d6f8d'
+  name: Cavallo leggero
+  damages:
+    base:
+      - type: blunt
+        power: 800
+    energy: []
+  buyPrice:
+    gold: 0
+    silver: 40
+    copper: 0
+  sellPrice:
+    gold: 0
+    silver: 20
+    copper: 0
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 1300
+  maxLifePoints: 1300
+  imagePath: pets/cavallo-leggero.png
+  speedModifier: 2.5
+# Cavallo da guerra: Un cavallo grande e forte addestrato alla battaglia nella Repubblica dei Valan: non è più veloce di un cavallo da viaggio, ma regge la mischia.
+- id: '6ae8070540e5e6676b7d6f8e'
+  name: Cavallo da guerra
+  damages:
+    base:
+      - type: blunt
+        power: 1100
+    energy: []
+  buyPrice:
+    gold: 0
+    silver: 80
+    copper: 0
+  sellPrice:
+    gold: 0
+    silver: 40
+    copper: 0
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 1900
+  maxLifePoints: 1900
+  imagePath: pets/cavallo-da-guerra.png
+  speedModifier: 2
+# Alce: Un alce addomesticato delle foreste del continente, robusto e paziente sui sentieri fra gli alberi.
+- id: '6ae8070540e5e6676b7d6f8f'
+  name: Alce
+  damages:
+    base:
+      - type: blunt
+        power: 800
+    energy: []
+  buyPrice:
+    gold: 0
+    silver: 30
+    copper: 0
+  sellPrice:
+    gold: 0
+    silver: 15
+    copper: 0
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 1300
+  maxLifePoints: 1300
+  imagePath: pets/alce.png
+  speedModifier: 2
+# Cammello del Mar Sabbioso: Il cammello delle carovane del Mar Sabbioso: resiste alla sete e alla sabbia dove un cavallo crollerebbe.
+- id: '6ae8070540e5e6676b7d6f90'
+  name: Cammello del Mar Sabbioso
+  damages:
+    base:
+      - type: blunt
+        power: 1100
+    energy: []
+  buyPrice:
+    gold: 0
+    silver: 35
+    copper: 0
+  sellPrice:
+    gold: 0
+    silver: 17
+    copper: 50
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 1900
+  maxLifePoints: 1900
+  imagePath: pets/cammello-del-mar-sabbioso.png
+  speedModifier: 2
+# Worg: Un worg allevato dai goblin e domato a fatica: veloce e feroce, ma si rivolta contro chi lo maltratta.
+- id: '6ae8070540e5e6676b7d6f91'
+  name: Worg
+  damages:
+    base:
+      - type: pierce
+        power: 1000
+    energy: []
+  buyPrice:
+    gold: 1
+    silver: 0
+    copper: 0
+  sellPrice:
+    gold: 0
+    silver: 50
+    copper: 0
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 2600
+  maxLifePoints: 2600
+  imagePath: pets/worg.png
+  speedModifier: 2.5
+# Lupo invernale addestrato: Un lupo invernale cresciuto fra le tribù del Lontano Nord, a suo agio fra neve e ghiacci dove gli altri animali arrancano.
+- id: '6ae8070540e5e6676b7d6f92'
+  name: Lupo invernale addestrato
+  damages:
+    base:
+      - type: pierce
+        power: 1100
+    energy: []
+  buyPrice:
+    gold: 2
+    silver: 0
+    copper: 0
+  sellPrice:
+    gold: 1
+    silver: 0
+    copper: 0
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 7500
+  maxLifePoints: 7500
+  imagePath: pets/lupo-invernale-addestrato.png
+  speedModifier: 2.5
+# Cinghiale gigante da sella: La cavalcatura della cavalleria degli orchi del nord: lenta ma inarrestabile quando carica.
+- id: '6ae8070540e5e6676b7d6f93'
+  name: Cinghiale gigante da sella
+  damages:
+    base:
+      - type: cut
+        power: 1000
+    energy: []
+  buyPrice:
+    gold: 1
+    silver: 50
+    copper: 0
+  sellPrice:
+    gold: 0
+    silver: 75
+    copper: 0
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 4200
+  maxLifePoints: 4200
+  imagePath: pets/cinghiale-gigante-da-sella.png
+  speedModifier: 1.5
+# Tartaruga gigante delle isole: Una tartaruga gigante che nuota fra le isole di Belleholm e Calemark: lentissima, ma quasi impossibile da abbattere.
+- id: '6ae8070540e5e6676b7d6f94'
+  name: Tartaruga gigante delle isole
+  damages:
+    base:
+      - type: cut
+        power: 1000
+    energy: []
+  buyPrice:
+    gold: 1
+    silver: 0
+    copper: 0
+  sellPrice:
+    gold: 0
+    silver: 50
+    copper: 0
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 6300
+  maxLifePoints: 6300
+  imagePath: pets/tartaruga-gigante-delle-isole.png
+  speedModifier: 1.2
+# Ippogrifo: Mezzo cavallo e mezzo aquila: la più accessibile delle cavalcature volanti.
+- id: '6ae8070540e5e6676b7d6f95'
+  name: Ippogrifo
+  damages:
+    base:
+      - type: cut
+        power: 1000
+      - type: pierce
+        power: 800
+    energy: []
+  buyPrice:
+    gold: 3
+    silver: 0
+    copper: 0
+  sellPrice:
+    gold: 1
+    silver: 50
+    copper: 0
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 1900
+  maxLifePoints: 1900
+  imagePath: pets/ippogrifo.png
+  speedModifier: 3
+# Aquila gigante: Una giovane aquila gigante del Temistos o del Lamstone addestrata fin dal nido a portare un cavaliere.
+- id: '6ae8070540e5e6676b7d6f96'
+  name: Aquila gigante
+  damages:
+    base:
+      - type: pierce
+        power: 600
+      - type: cut
+        power: 1000
+    energy: []
+  buyPrice:
+    gold: 4
+    silver: 0
+    copper: 0
+  sellPrice:
+    gold: 2
+    silver: 0
+    copper: 0
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 2600
+  maxLifePoints: 2600
+  imagePath: pets/aquila-gigante.png
+  speedModifier: 3
+# Grifone: Una cavalcatura volante potente e fiera, capace di attraversare i monti in poche ore.
+- id: '6ae8070540e5e6676b7d6f97'
+  name: Grifone
+  damages:
+    base:
+      - type: cut
+        power: 1100
+      - type: pierce
+        power: 800
+    energy: []
+  buyPrice:
+    gold: 6
+    silver: 0
+    copper: 0
+  sellPrice:
+    gold: 3
+    silver: 0
+    copper: 0
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 5900
+  maxLifePoints: 5900
+  imagePath: pets/grifone.png
+  speedModifier: 3.5
+# Pegaso: Il cavallo alato delle foreste del Minnely: rarissimo, si lascia montare solo da chi ne conquista la fiducia, ed è la cavalcatura più veloce del continente.
+- id: '6ae8070540e5e6676b7d6f98'
+  name: Pegaso
+  damages:
+    base:
+      - type: blunt
+        power: 1100
+    energy: []
+  buyPrice:
+    gold: 10
+    silver: 0
+    copper: 0
+  sellPrice:
+    gold: 5
+    silver: 0
+    copper: 0
+  xp: 0
+  maxXp: 100
+  currentLifePoints: 5900
+  maxLifePoints: 5900
+  imagePath: pets/pegaso.png
+  speedModifier: 4
