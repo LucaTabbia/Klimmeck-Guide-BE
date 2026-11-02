@@ -1,0 +1,19 @@
+- id: '64b000000000000000000201'
+  name: Cavallo di Prova
+  damages:
+    base: []
+    energy: []
+  buyPrice:
+    gold: 1
+    silver: 0
+    copper: 0
+  sellPrice:
+    gold: 0
+    silver: 50
+    copper: 0
+  xp: 0
+  maxXp: 1000
+  currentLifePoints: 2000
+  maxLifePoints: 2000
+  imagePath: assets/images/cavallo-di-prova.png
+  speedModifier: 2

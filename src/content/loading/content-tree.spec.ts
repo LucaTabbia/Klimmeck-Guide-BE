@@ -123,6 +123,55 @@ describe('loadContentTree', () => {
         ]);
     });
 
+    it('keeps the world snapshot entries with their lines', () => {
+        write(
+            'world/cities.yaml',
+            [
+                `- id: '${IDS[2]}'`,
+                '  name: Valantar',
+                `- id: '${IDS[4]}'`,
+                '  name: Kliever',
+                '',
+            ].join('\n'),
+        );
+
+        const tree = loadContentTree(dir);
+
+        expect(
+            tree.worldEntries.map(({ file, line, raw }) => [
+                file,
+                line,
+                raw.id,
+            ]),
+        ).toEqual([
+            ['world/cities.yaml', 1, IDS[2]],
+            ['world/cities.yaml', 3, IDS[4]],
+        ]);
+    });
+
+    it('keeps malformed image links for the validation and reports a broken images file', () => {
+        write(
+            'images.yaml',
+            [
+                'lore:',
+                `  - { id: '${IDS[1]}' }`,
+                '  - solo-testo',
+                'enemies: {}',
+                'animals: []',
+                '',
+            ].join('\n'),
+        );
+
+        const tree = loadContentTree(dir);
+
+        expect(tree.images.lore).toEqual([{ id: IDS[1] }]);
+        expect(
+            tree.issues
+                .filter(({ file }) => file === 'images.yaml')
+                .map(({ path }) => path),
+        ).toEqual(['lore.1', 'enemies', 'animals']);
+    });
+
     it('returns a null world and empty images when the files are missing', () => {
         const tree = loadContentTree(dir);
 

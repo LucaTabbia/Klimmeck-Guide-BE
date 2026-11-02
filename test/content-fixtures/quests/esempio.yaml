@@ -1,0 +1,29 @@
+- id: '64b000000000000000000301'
+  city: '64b0000000000000000000c1' # Borgo di Prova
+  infos:
+    title: Cure al tempio del Borgo di Prova
+    type: heal
+    enemy: null
+    markerLocation: '64b0000000000000000000d1' # Borgo di Prova
+    relatedLore:
+      - '64b0000000000000000000a2' # Borgo di Prova
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '64b000000000000000000302'
+  city: '64b0000000000000000000c1' # Borgo di Prova
+  infos:
+    title: Caccia al lupo nei boschi del Borgo di Prova
+    type: hunt
+    enemy: '64b000000000000000000101' # Lupo di Prova
+    markerLocation: '64b0000000000000000000d2' # bosco del Borgo di Prova
+    relatedLore:
+      - '64b0000000000000000000a2' # Borgo di Prova
+      - '64b0000000000000000000a3' # Lupo di Prova
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []

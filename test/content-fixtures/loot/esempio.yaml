@@ -1,0 +1,16 @@
+- id: '64b0000000000000000000f1'
+  name: Pozione di Prova
+  itemType: LootItem
+  description: |-
+    Un intruglio rosso che chiude le ferite.
+  sellPrice:
+    gold: 0
+    silver: 0
+    copper: 20
+  buyPrice:
+    gold: 0
+    silver: 0
+    copper: 40
+  rarity: common
+  power: 1000
+  effect: heal

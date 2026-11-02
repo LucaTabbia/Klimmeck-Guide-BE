@@ -1,0 +1,34 @@
+- id: '64b000000000000000000101'
+  name: Lupo di Prova
+  category: animal
+  source:
+    level: 1
+    pe: 50
+    pf: 11
+    damagePerRound:
+      pierce: 7
+  locations: [forest]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore:
+    - '64b0000000000000000000a3' # Lupo di Prova
+  spells: []
+  imagePath: assets/images/lupo-di-prova.png
+- id: '64b000000000000000000102'
+  name: Golem di Prova
+  category: monster
+  tier: adventurer
+  locations: [mountainLamstone]
+  energyWeaknesses: []
+  baseWeaknesses: []
+  relatedLore: []
+  spells:
+    - '64b0000000000000000000b1' # Dardo di Prova
+  imagePath: assets/images/golem-di-prova.png
+  xp: 63
+  lifePoints: 5000
+  damages:
+    base:
+      - type: blunt
+        power: 1000
+    energy: []

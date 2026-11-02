@@ -1,0 +1,12 @@
+- id: '64b0000000000000000000b1'
+  name: Dardo di Prova
+  description: |-
+    Una fiammata breve che brucia il bersaglio.
+  useType: attack
+  energyDamage:
+    type: fire
+    power: 300
+  requiredLearnTime: 3600000
+  minXpToLearn: 4000
+  recoveryTime: 3600000
+  maxUsages: 2
