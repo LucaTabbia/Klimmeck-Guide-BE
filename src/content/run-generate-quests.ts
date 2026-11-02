@@ -1,3 +1,4 @@
+import { existsSync } from 'fs';
 import { ObjectId } from 'mongodb';
 import { join } from 'path';
 import {
@@ -94,6 +95,18 @@ function groupByFile(quests: readonly GeneratedQuest[]): Map<string, Raw[]> {
     return groups;
 }
 
+// un file generato che la corsa non riempie più si svuota: le sue voci vecchie non devono restare caricabili
+function withEmptiedFiles(
+    groups: Map<string, Raw[]>,
+    contentDir: string,
+): Map<string, Raw[]> {
+    const emptied = [...GENERATED_PATHS].filter(
+        (path) => !groups.has(path) && existsSync(join(contentDir, path)),
+    );
+    const emptiedFiles = emptied.map((path): [string, Raw[]] => [path, []]);
+    return new Map([...groups, ...emptiedFiles]);
+}
+
 function byTypeOf(quests: readonly GeneratedQuest[]): Record<string, number> {
     const counts: Record<string, number> = Object.fromEntries(
         FIXED_QUEST_TYPES.map((type) => [type, 0]),
@@ -166,7 +179,7 @@ export function runGenerateQuests(
         existingQuests: existing.map((entry) => entry.raw),
         newId,
     });
-    const groups = groupByFile(result.quests);
+    const groups = withEmptiedFiles(groupByFile(result.quests), contentDir);
     const names = questNamesOf(index);
     for (const [path, entries] of groups) {
         writeEntriesFile(

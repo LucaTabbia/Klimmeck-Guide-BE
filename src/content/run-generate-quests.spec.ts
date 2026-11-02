@@ -49,10 +49,10 @@ function readQuestFiles(): string[] {
 }
 
 // una quest generata in passato che oggi il generatore non produce più (nessuna guard nei villaggi, D-17)
-function writeStaleQuest(): void {
+function writeStaleQuest(file = 'drustea'): void {
     mkdirSync(join(contentDir, 'quests'), { recursive: true });
     writeFileSync(
-        questFile('drustea'),
+        questFile(file),
         [
             `- id: '${STALE_QUEST_ID}'`,
             `  city: '${VILLAGE_ID}'`,
@@ -262,6 +262,22 @@ describe('runGenerateQuests', () => {
         ]);
         expect(readFileSync(questFile('drustea'), 'utf8')).not.toContain(
             STALE_QUEST_ID,
+        );
+    });
+
+    it('empties a generated file the new run no longer fills (D-01)', () => {
+        writeStaleQuest('valan');
+
+        const report = runGenerateQuests(contentDir, sequentialIds());
+
+        expect(report.errors).toEqual([]);
+        expect(report.files).toContainEqual({
+            file: 'quests/valan.yaml',
+            entries: 0,
+        });
+        expect(report.orphaned.map(({ id }) => id)).toEqual([STALE_QUEST_ID]);
+        expect(readFileSync(questFile('valan'), 'utf8')).toBe(
+            `# ${GENERATED_QUESTS_HEADER}\n\n[]\n`,
         );
     });
 
