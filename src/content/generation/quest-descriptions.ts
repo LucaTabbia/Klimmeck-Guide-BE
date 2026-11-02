@@ -6,6 +6,7 @@ export type DescriptionKind =
     | 'crime'
     | 'study'
     | 'spellStudy'
+    | 'innJob'
     | 'hunt'
     | 'dungeon';
 
@@ -39,6 +40,14 @@ export const QUEST_DESCRIPTIONS: Readonly<
             `Il mercato di ${city} non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.`,
         ({ city }) =>
             `Bottega di ${city} cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.`,
+    ],
+    innJob: [
+        ({ city }) =>
+            `La locanda di ${city} cerca un aiuto per la sera: boccali da riempire, tavoli da pulire e qualche cliente rumoroso da accompagnare alla porta. Si mangia e si dorme al caldo, e la paga arriva prima dell'alba.`,
+        ({ city }) =>
+            `L'oste della locanda di ${city} ha le mani piene e la sala strapiena. Chi se la cava con un vassoio in mano e non teme di sporcarsi si presenti al bancone.`,
+        ({ city }) =>
+            `Alla locanda di ${city} servono braccia per la cucina e la stalla. Lavoro onesto e tranquillo, pagato a fine serata, con una storia di viaggiatori in regalo.`,
     ],
     guard: [
         ({ city }) =>

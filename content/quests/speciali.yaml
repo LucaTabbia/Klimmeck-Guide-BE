@@ -19,9 +19,9 @@
 - id: '6ae80db9da5c5f8cc55265db'
   city: '6909614408ddd652b429dcd2' # Talmvere
   infos:
-    title: Lavori di bottega a Talmvere
+    title: Un aiuto alla locanda di Talmvere
     description: |-
-      Cerco braccia robuste per la mia bottega di Talmvere: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
+      La locanda di Talmvere cerca un aiuto per la sera: boccali da riempire, tavoli da pulire e qualche cliente rumoroso da accompagnare alla porta. Si mangia e si dorme al caldo, e la paga arriva prima dell'alba.
     type: job
     enemy: null
     markerLocation: '690961448bd7b0f578a8fd8b' # Talmvere — POI city

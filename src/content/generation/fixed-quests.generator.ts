@@ -12,6 +12,7 @@ import {
     questFileOf,
     regionalGroupOf,
     SPELL_STUDY_CITY,
+    INN_CITY_TYPE,
 } from 'src/content/generation/city-profile';
 import { QUEST_DESCRIPTIONS } from 'src/content/generation/quest-descriptions';
 import type {
@@ -205,14 +206,16 @@ function serviceDraft(
     type: ServiceType,
     minTitle: ContentTier,
 ): QuestDraft {
+    const kind =
+        type === 'job' && city.type === INN_CITY_TYPE ? 'innJob' : type;
     return {
         file: questFileOf(city.type),
         city: city.id,
         type,
-        title: QUEST_TITLES[type](city.name),
+        title: QUEST_TITLES[kind](city.name),
         description: descriptionOf(
             world,
-            type,
+            kind,
             questKey(type, city.markerLocation, false),
             { city: city.name, enemy: '' },
         ),

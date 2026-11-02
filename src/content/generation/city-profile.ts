@@ -43,6 +43,9 @@ export const SPELL_STUDY_CITY = 'Valantar';
 
 export const COLLEGE_CITY = 'Liberia';
 
+// D-34 (utente): a Talmvere il job è lavorare nella locanda, non in bottega
+export const INN_CITY_TYPE = 'talmvereVillage';
+
 // SeaCity prima di City: è anche lui un suffisso «City»
 const SIZE_SUFFIXES: readonly CitySize[] = [
     'Capital',
