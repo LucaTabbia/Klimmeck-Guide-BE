@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 11 executing — plan 0 of 26 done
+stopped_at: Phase 11 executing — plan 1 of 26 done
 last_updated: "2026-11-02T01:15:00.000Z"
-last_activity: "2026-11-02 -- Phase 11 execution started (executors sequential on the main tree, 26 plans / 15 waves)"
+last_activity: "2026-11-02 -- Plan 11-01 complete: Lore.unlocked removed from the SDL, relatedLore populated in lores and enemies"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 0 of 26
-Status: Executing Phase 11 — plan 11-01 in progress (wave 1); the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-02 -- Phase 11 execution started: executors sequential on the main tree, wave 1 = 11-01 (`unlocked` removal + `relatedLore` populate) and 11-02 (D-31 spell draw)
+Plan: 1 of 26
+Status: Executing Phase 11 — plan 11-01 complete, next 11-02 (wave 1); the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Plan 11-01 complete: `type Lore` without `unlocked` (single `-` line of the SDL vs develop), `relatedLore` populated with orphans dropped in `lores`/`lore`/`enemys`/`enemy`
 
-Progress: [████████░░] 0/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
+Progress: [████████░░] 1/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
 ## Performance Metrics
 

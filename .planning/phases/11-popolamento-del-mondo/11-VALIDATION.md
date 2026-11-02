@@ -41,8 +41,8 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Test Type | Automated Command | Status |
 |---------|------|------|-------------|------------|-----------|-------------------|--------|
-| 11-01-01 | 01 | 1 | C-03 | T-11-01…T-11-03 | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql && test "$(git diff origin/…` | ⬜ pending |
-| 11-01-02 | 01 | 1 | C-03 | T-11-01…T-11-03 | integration | `npx jest src/lore test/app.int-spec.ts --selectProjects integration --runInBand && npx jest test/fixtures --selectProjects unit && git di…` | ⬜ pending |
+| 11-01-01 | 01 | 1 | C-03 | T-11-01…T-11-03 | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql && test "$(git diff origin/…` | ✅ green |
+| 11-01-02 | 01 | 1 | C-03 | T-11-01…T-11-03 | integration | `npx jest src/lore test/app.int-spec.ts --selectProjects integration --runInBand && npx jest test/fixtures --selectProjects unit && git di…` | ✅ green |
 | 11-02-01 | 02 | 1 | C-06 | T-11-04…T-11-07 | unit | `npx jest src/quests/outcomes/rewards src/models/quest --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
 | 11-02-02 | 02 | 1 | C-06 | T-11-04…T-11-07 | unit | `npx jest src/quests/outcomes --selectProjects unit && npx jest src/quests/outcomes/study-spell-draw.int-spec.ts src/quests/outcomes/quest…` | ⬜ pending |
 | 11-03-01 | 03 | 2 | C-01, C-02, C-04, C-05, C-06 | T-11-08…T-11-11 | unit | `npx jest src/content/loading --selectProjects unit && npx tsc --noEmit -p tsconfig.json && node -e "process.exit(require('./package.json'…` | ⬜ pending |
@@ -120,7 +120,7 @@ Le infrastrutture mancanti nascono nei primi piani del codice e precedono ogni t
 - [ ] `npm install yaml@2.9.1` in `dependencies` — piano 11-03 Task 1
 - [ ] `content/config.yaml` + `test/content-fixtures/config.yaml` — piano 11-03 Task 2
 - [ ] `test/content-fixtures/` (mini-albero: 3 lore, 1 magia, 1 equipaggiamento, 1 loot, 2 nemici, 1 pet, 2 quest, 4 fix, 2 città) — piano 11-04 Task 3, riusato dalle int-spec di 11-07/11-09/11-10/11-11
-- [ ] `test/fixtures/lore.fixture.ts` (`buildLore`/`persistLore`) — piano 11-01 Task 2
+- [x] `test/fixtures/lore.fixture.ts` (`buildLore`/`persistLore`) — piano 11-01 Task 2
 - [ ] `test/content/seed-world.ts` (`seedWorld`) — piano 11-09 Task 2, riusato da 11-10, 11-11, 11-24
 - [ ] `test/content/generator-world.fixture.ts` — piano 11-08 Task 1
 - [ ] `src/content/run-content.cli.int-spec.ts` (sul compilato, `npm run build` prima) — piano 11-11 Task 2
