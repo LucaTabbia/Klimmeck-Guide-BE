@@ -248,6 +248,11 @@ input EquipItemRequest {
   slotType: SlotType!
 }
 
+input EquipPetRequest {
+  id: String!
+  petId: String!
+}
+
 input EquipSpellRequest {
   id: String!
   spellId: String!
@@ -349,6 +354,7 @@ type Mutation {
   deleteCharacter: User!
   doTransaction(request: TransactionRequest!): CommonResponse!
   equipItem(request: EquipItemRequest!): CommonResponse!
+  equipPet(request: EquipPetRequest!): CommonResponse!
   equipSpell(request: EquipSpellRequest!): CommonResponse!
   exchangeLoginTicket(codeVerifier: String!, ticket: String!): AuthSession!
   logout: Boolean!
@@ -357,6 +363,7 @@ type Mutation {
   sendTestPush(input: SendTestPushInput!): PushDeliveryReport!
   startTravel(request: TravelRequest!): CommonResponse!
   teleportCharacter(request: TravelRequest!): CommonResponse!
+  unequipPet(request: UnequipPetRequest!): CommonResponse!
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
   unregisterPushDevice(deviceId: String!): Boolean!
   useSpell(request: UseSpellRequest!): CommonResponse!
@@ -761,6 +768,10 @@ type TravelPreview {
 input TravelRequest {
   id: String!
   poiId: String!
+}
+
+input UnequipPetRequest {
+  id: String!
 }
 
 input UseSpellRequest {
