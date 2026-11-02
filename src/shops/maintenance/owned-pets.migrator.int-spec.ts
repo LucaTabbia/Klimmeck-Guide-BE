@@ -14,7 +14,7 @@ const CharacterModel: Model<CharacterDocument> =
 
 interface RawAssets {
     pet?: unknown;
-    ownedPets?: unknown[];
+    ownedPets?: unknown[] | null;
 }
 
 // nome unico: l'indice character_name_active_ci_unique vale anche per gli insert grezzi
@@ -118,6 +118,23 @@ describe('OwnedPetsMigrator', () => {
         expect([await rawOf(withNull), await rawOf(withEmptyList)]).toEqual(
             before,
         );
+    });
+
+    it('migrates every character even after one stored with a null list (D-16)', async () => {
+        const withNullList = await insertRaw({ pet: petId, ownedPets: null });
+        const valid = await insertRaw({ pet: petId, ownedPets: [] });
+
+        const report = await migrator.migrate();
+
+        expect({
+            report,
+            withNullList: await ownedPetsOf(withNullList),
+            valid: await ownedPetsOf(valid),
+        }).toEqual({
+            report: { owned: 2 },
+            withNullList: [petId],
+            valid: [petId],
+        });
     });
 
     it('is idempotent (D-16)', async () => {
