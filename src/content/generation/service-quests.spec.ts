@@ -1,7 +1,11 @@
 import { generateFixedQuests } from 'src/content/generation/fixed-quests.generator';
+import { QUEST_DESCRIPTIONS } from 'src/content/generation/quest-descriptions';
+import type { DescriptionKind } from 'src/content/generation/quest-descriptions';
+import { keyedChance } from 'src/content/generation/seeded-chance';
 import {
     buildGeneratorIndex,
     GENERATOR_IDS as ids,
+    generatorConfig,
     generatorInput,
     infosOf,
     prizesOf,
@@ -151,6 +155,7 @@ describe('generateFixedQuests service quests', () => {
         ]);
         expect(Object.keys(infosOf(heal))).toEqual([
             'title',
+            'description',
             'type',
             'enemy',
             'markerLocation',
@@ -160,6 +165,39 @@ describe('generateFixedQuests service quests', () => {
             'minTitle',
             'recommendedLoot',
         ]);
+    });
+
+    it('describes every quest in the voice of its poster (D-32)', () => {
+        for (const { entry } of result.quests) {
+            const infos = infosOf(entry);
+            const kind = (
+                prizesOf(entry).spellDraw === true ? 'spellStudy' : infos.type
+            ) as DescriptionKind;
+            const names = {
+                city: index.cities.get(entry.city as string)!.name,
+                enemy:
+                    typeof infos.enemy === 'string'
+                        ? (index.namesById.get(infos.enemy) ?? '')
+                        : '',
+            };
+            expect(
+                QUEST_DESCRIPTIONS[kind].map((notice) => notice(names)),
+            ).toContain(infos.description);
+        }
+    });
+
+    it('keys the notice draw to the quest, not to the draw order (D-32)', () => {
+        const capital = index.cities.get(ids.capital)!;
+        const notices = QUEST_DESCRIPTIONS.heal;
+        const chance = keyedChance(
+            generatorConfig().generator.seed,
+            `heal|${capital.markerLocation}|description`,
+        );
+        const drawn = Math.floor(chance.next() * notices.length);
+        const [heal] = questsOf(result, 'heal', ids.capital);
+        expect(infosOf(heal).description).toBe(
+            notices[drawn]({ city: capital.name, enemy: '' }),
+        );
     });
 
     it('reports a city without its city lore and still serves it', () => {

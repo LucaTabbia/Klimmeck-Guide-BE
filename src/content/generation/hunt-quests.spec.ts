@@ -108,6 +108,15 @@ describe('generateFixedQuests hunts', () => {
         );
     });
 
+    it('describes the hunt with the animal and the city (D-32)', () => {
+        for (const hunt of hunts) {
+            const animal = index.namesById.get(infosOf(hunt).enemy as string)!;
+            const city = index.cities.get(hunt.city as string)!.name;
+            expect(infosOf(hunt).description).toContain(animal);
+            expect(infosOf(hunt).description).toContain(city);
+        }
+    });
+
     it('skips a city without any easy animal around (D-18)', () => {
         expect(questsOf(result, 'hunt', ids.villages[3])).toEqual([]);
     });

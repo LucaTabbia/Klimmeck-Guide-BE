@@ -210,6 +210,18 @@ describe('generateFixedQuests dungeons', () => {
         ).toHaveLength(DUNGEON_POIS.length);
     });
 
+    it('describes the dungeon with the monster and the city (D-32)', () => {
+        const index = buildGeneratorIndex();
+        for (const dungeon of dungeons) {
+            const monster = index.namesById.get(
+                infosOf(dungeon).enemy as string,
+            )!;
+            const city = index.cities.get(dungeon.city as string)!.name;
+            expect(infosOf(dungeon).description).toContain(monster);
+            expect(infosOf(dungeon).description).toContain(city);
+        }
+    });
+
     it('links the city lore and the monster lore (D-22)', () => {
         const index = buildGeneratorIndex();
         for (const dungeon of dungeons) {

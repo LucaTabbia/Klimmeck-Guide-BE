@@ -1,4 +1,7 @@
-import { SeededChanceSource } from 'src/content/generation/seeded-chance';
+import {
+    keyedChance,
+    SeededChanceSource,
+} from 'src/content/generation/seeded-chance';
 
 function sequenceOf(seed: number, length = 100): number[] {
     const chance = new SeededChanceSource(seed);
@@ -33,5 +36,32 @@ describe('SeededChanceSource', () => {
         expect(items).toEqual([1, 2, 3, 4, 5, 6]);
         expect([...shuffled].sort((a, b) => a - b)).toEqual(items);
         expect(new SeededChanceSource(5).shuffle(items)).toEqual(shuffled);
+    });
+});
+
+describe('keyedChance', () => {
+    const keyedSequence = (seed: number, key: string) => {
+        const chance = keyedChance(seed, key);
+        return Array.from({ length: 20 }, () => chance.next());
+    };
+
+    it('derives the same sequence from the same seed and key', () => {
+        expect(keyedSequence(11, 'heal|poi')).toEqual(
+            keyedSequence(11, 'heal|poi'),
+        );
+    });
+
+    it('derives a different sequence for another key', () => {
+        expect(keyedSequence(11, 'heal|poi')).not.toEqual(
+            keyedSequence(11, 'job|poi'),
+        );
+    });
+
+    it('leaves the main source untouched', () => {
+        const main = new SeededChanceSource(11);
+        const first = [main.next(), main.next()];
+        keyedChance(11, 'heal|poi').next();
+        const rest = [main.next(), main.next()];
+        expect([...first, ...rest]).toEqual(sequenceOf(11, 4));
     });
 });
