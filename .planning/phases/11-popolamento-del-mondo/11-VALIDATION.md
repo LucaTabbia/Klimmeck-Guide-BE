@@ -65,8 +65,8 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-09-01 | 09 | 5 | C-02 | T-11-32…T-11-37 | unit | `npx jest src/content/sync src/content/fixes --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
 | 11-09-02 | 09 | 5 | C-02 | T-11-32…T-11-37 | integration | `npx jest src/content/sync/content-sync.int-spec.ts --selectProjects integration --runInBand && npx tsc --noEmit -p tsconfig.json` | ✅ green |
 | 11-09-03 | 09 | 5 | C-02 | T-11-32…T-11-37 | integration | `npx jest src/content/sync --selectProjects integration --runInBand && npx jest src/content --selectProjects unit && npx tsc --noEmit -p t…` | ✅ green |
-| 11-10-01 | 10 | 6 | C-01, C-02 | T-11-38…T-11-41 | unit | `npx jest src/content/export --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
-| 11-10-02 | 10 | 6 | C-01, C-02 | T-11-38…T-11-41 | integration | `npx jest src/content/export --selectProjects integration --runInBand && npx jest src/content/export --selectProjects unit && npx tsc --no…` | ⬜ pending |
+| 11-10-01 | 10 | 6 | C-01, C-02 | T-11-38…T-11-41 | unit | `npx jest src/content/export --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
+| 11-10-02 | 10 | 6 | C-01, C-02 | T-11-38…T-11-41 | integration | `npx jest src/content/export --selectProjects integration --runInBand && npx jest src/content/export --selectProjects unit && npx tsc --no…` | ✅ green |
 | 11-11-01 | 11 | 7 | C-02 | T-11-42…T-11-45 | unit | `npx jest src/content/cli-args.spec.ts src/config --selectProjects unit && npm run build && test -f dist/content/run-content.js && node di…` | ⬜ pending |
 | 11-11-02 | 11 | 7 | C-02 | T-11-42…T-11-45 | integration | `npm run build && npx jest src/content/run-content.cli.int-spec.ts --selectProjects integration --runInBand && npx jest src/content/conten…` | ⬜ pending |
 | 11-12-01 | 12 | 8 | C-01, C-02, C-05, C-07 | T-11-46…T-11-49 | unit | `npx jest src/content/analysis src/content/cli-args.spec.ts --selectProjects unit && npm run build && node dist/content/run-content.js --s…` | ⬜ pending |
