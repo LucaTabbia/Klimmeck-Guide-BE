@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 11 executing — plan 14 of 26 done
+stopped_at: Phase 11 executing — plan 15 of 26 done
 last_updated: "2026-11-02T03:00:00.000Z"
-last_activity: "2026-11-02 -- Plan 11-14 complete: 10 spells, 27 unique items, 18 food and potions, 4 food powers tuned"
+last_activity: "2026-11-02 -- Plan 11-15 complete: 54 cult lore entries, 26 figures, kingdom back-links"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 14 of 26
-Status: Executing Phase 11 — plans 11-01..11-14 complete, next 11-15; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-02 -- Plan 11-14 complete: 10 new spells (`content/spells/sciamanesimo.yaml`, `vuoto.yaml`), 27 unique items in `content/equipment/unici.yaml` (18 cults, 5 figures, 4 monster parts, 16 `addedSpell`), 12 regional foods and 6 potions, 4 exported food `power` tuned with comments; `--check` exit 0, `--stats` hunger 15–600 min
+Plan: 15 of 26
+Status: Executing Phase 11 — plans 11-01..11-15 complete, next 11-16; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Plan 11-15 complete: 18 cults as 54 `god`/`religion`/`ceremony` entries (`content/lore/culti-1.yaml`, `culti-2.yaml`), 26 `character` entries in `content/lore/figure.yaml`, 26 back-links in `regni.yaml`; lore 139, `--check` exit 0
 
 Progress: [████████░░] 2/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
