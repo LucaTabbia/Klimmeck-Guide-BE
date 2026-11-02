@@ -1,13 +1,8 @@
 import { Db, Document, ObjectId } from 'mongodb';
 import type { DeleteQuestsFix } from 'src/content/schema/fix.content';
 import { idForms, sameId } from 'src/mongo/document-id';
+import { QUEST_LANES, QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { BlockedQuest, changeStatus, FixMode, FixReport } from './fix-report';
-
-const PENDING_LANES = [
-    'pendingQuest',
-    'activeStoryQuest',
-    'activeWorldMissionQuest',
-] as const;
 
 interface QuestPlan {
     questId: ObjectId;
@@ -22,7 +17,7 @@ function anyIdForm(ids: readonly ObjectId[]): { $in: (ObjectId | string)[] } {
     return { $in: ids.flatMap((id) => idForms(id)) };
 }
 
-function laneOf(character: Document, lane: string): unknown {
+function laneOf(character: Document, lane: QuestLane): unknown {
     return (character.quests as Document | undefined)?.[lane];
 }
 
@@ -36,13 +31,13 @@ async function laneBlockers(
     const characters = await db
         .collection('characters')
         .find({
-            $or: PENDING_LANES.map((lane) => ({
+            $or: QUEST_LANES.map((lane) => ({
                 [`quests.${lane}`]: inPending,
             })),
         })
         .toArray();
     return characters.flatMap((character) =>
-        PENDING_LANES.flatMap((lane) => {
+        QUEST_LANES.flatMap((lane) => {
             const pending = pendingQuests.find((id) =>
                 sameId(laneOf(character, lane), id),
             );

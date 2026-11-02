@@ -1,5 +1,6 @@
 import { Db, Document, MongoClient, ObjectId } from 'mongodb';
 import { LoadedEntry } from 'src/content/loading/yaml-file';
+import { QUEST_LANES } from 'src/quests/acceptance/quest-lanes';
 import { buildCharacter, buildQuest } from '../../../test/fixtures';
 import { runFixes } from './fix-runner';
 
@@ -11,11 +12,6 @@ const COLLECTIONS = [
     'characters',
     'questresults',
 ];
-const LANES = [
-    'pendingQuest',
-    'activeStoryQuest',
-    'activeWorldMissionQuest',
-] as const;
 
 function deleteFix(ids: ObjectId[]): LoadedEntry {
     return {
@@ -138,7 +134,7 @@ describe('deleteQuests fix (replSet)', () => {
         expect(poi?.quest).toBeNull();
     });
 
-    it.each(LANES)(
+    it.each(QUEST_LANES)(
         'blocks a quest whose pending quest occupies a character lane: %s (Pitfall 2)',
         async (lane) => {
             await setCharacter({ [`quests.${lane}`]: pendingId });
