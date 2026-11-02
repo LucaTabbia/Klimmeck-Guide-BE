@@ -163,7 +163,7 @@
 - id: '6ae80db9da5c5f8cc5526678'
   city: '690961ac101e1660d43e64dd' # Alexandria
   infos:
-    title: Lavori di bottega a Alexandria
+    title: Lavori di bottega ad Alexandria
     description: |-
       Il mercato di Alexandria non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
@@ -531,7 +531,7 @@
 - id: '6ae80db9da5c5f8cc552668f'
   city: '690961ac6ee4bfe0714f8030' # Arcidoma
   infos:
-    title: Lavori di bottega a Arcidoma
+    title: Lavori di bottega ad Arcidoma
     description: |-
       Cerco braccia robuste per la mia bottega di Arcidoma: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job
@@ -547,7 +547,7 @@
 - id: '6ae80db9da5c5f8cc5526690'
   city: '690961ac6ee4bfe0714f8030' # Arcidoma
   infos:
-    title: Turno di guardia a Arcidoma
+    title: Turno di guardia ad Arcidoma
     description: |-
       La guardia di Arcidoma è a corto di uomini. Servono avventurieri disposti a sorvegliare le porte fino all'alba.
     type: guard
@@ -563,7 +563,7 @@
 - id: '6ae80db9da5c5f8cc5526691'
   city: '690961ac6ee4bfe0714f8030' # Arcidoma
   infos:
-    title: Affari loschi a Arcidoma
+    title: Affari loschi ad Arcidoma
     description: |-
       Merce da spostare, una porta da aprire, un nome da dimenticare. Chi è interessato lasci un segno sul muro dietro il mercato di Arcidoma.
     type: crime
@@ -579,7 +579,7 @@
 - id: '6ae80db9da5c5f8cc5526692'
   city: '690961ac6ee4bfe0714f8030' # Arcidoma
   infos:
-    title: Ricerche in biblioteca a Arcidoma
+    title: Ricerche in biblioteca ad Arcidoma
     description: |-
       Cerco un assistente per le mie ricerche sulla storia di Arcidoma: pergamene da trascrivere, mappe da confrontare. Pazienza e occhi buoni sono tutto ciò che chiedo.
     type: study
@@ -819,7 +819,7 @@
 - id: '6ae80db9da5c5f8cc55266a1'
   city: '690961acb1f49cdf140cf049' # Acquelimpide
   infos:
-    title: Lavori di bottega a Acquelimpide
+    title: Lavori di bottega ad Acquelimpide
     description: |-
       Bottega di Acquelimpide cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
@@ -851,7 +851,7 @@
 - id: '6ae80db9da5c5f8cc55266a3'
   city: '690961acb23519f582f76032' # Acquasacra
   infos:
-    title: Lavori di bottega a Acquasacra
+    title: Lavori di bottega ad Acquasacra
     description: |-
       Bottega di Acquasacra cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
@@ -867,7 +867,7 @@
 - id: '6ae80db9da5c5f8cc55266a4'
   city: '690961acb23519f582f76032' # Acquasacra
   infos:
-    title: Turno di guardia a Acquasacra
+    title: Turno di guardia ad Acquasacra
     description: |-
       Per ordine del capitano della guardia di Acquasacra: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
@@ -1421,7 +1421,7 @@
   infos:
     title: 'Caccia: Coccodrillo nei dintorni di Isolalunga'
     description: |-
-      Nei campi intorno ad Isolalunga il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Coccodrillo. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
+      Nei campi intorno a Isolalunga il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Coccodrillo. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756e4' # Coccodrillo
     markerLocation: '690e4186739b01c6a3b4678b' # Isolalunga — POI temistosLake

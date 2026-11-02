@@ -1,5 +1,6 @@
 import { QUEST_DESCRIPTIONS } from 'src/content/generation/quest-descriptions';
 import type { DescriptionKind } from 'src/content/generation/quest-descriptions';
+import { QUEST_TITLES } from 'src/content/generation/quest-titles';
 
 const NAMES = { city: 'Borgo di Prova', enemy: 'Bestia di Prova' };
 
@@ -54,18 +55,35 @@ describe('QUEST_DESCRIPTIONS', () => {
         }
     });
 
-    it('uses the euphonic preposition before a city starting with a vowel (D-32)', () => {
-        const vowelNames = { city: 'Anden', enemy: 'Ankheg' };
-        for (const kind of KINDS) {
-            for (const notice of QUEST_DESCRIPTIONS[kind]) {
-                expect(notice(vowelNames)).not.toContain(' a Anden');
-            }
-        }
-        expect(
+    it('uses the euphonic «ad» only before a city starting with «a» (D-32)', () => {
+        const allNotices = (city: string) =>
             KINDS.flatMap((kind) =>
-                QUEST_DESCRIPTIONS[kind].map((notice) => notice(vowelNames)),
-            ).some((text) => text.includes(' ad Anden')),
+                QUEST_DESCRIPTIONS[kind].map((notice) =>
+                    notice({ city, enemy: 'Ankheg' }),
+                ),
+            );
+        expect(allNotices('Anden').join('\n')).not.toContain(' a Anden');
+        expect(
+            allNotices('Anden').some((text) => text.includes(' ad Anden')),
         ).toBe(true);
+        expect(allNotices('Iriesa').join('\n')).not.toContain(' ad Iriesa');
+        expect(
+            allNotices('Iriesa').some((text) => text.includes(' a Iriesa')),
+        ).toBe(true);
+    });
+
+    it('uses the same preposition in the titles (D-22)', () => {
+        const titles = [
+            QUEST_TITLES.job,
+            QUEST_TITLES.guard,
+            QUEST_TITLES.crime,
+            QUEST_TITLES.study,
+            QUEST_TITLES.spellStudy,
+        ];
+        for (const title of titles) {
+            expect(title('Altaluce')).toMatch(/ ad Altaluce$/);
+            expect(title('Iriesa')).toMatch(/ a Iriesa$/);
+        }
     });
 
     it('names the enemy in every hunt and dungeon notice (D-32)', () => {

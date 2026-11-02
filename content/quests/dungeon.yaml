@@ -785,7 +785,7 @@
   infos:
     title: 'Dungeon: Manticora presso Isolalunga'
     description: |-
-      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino ad Isolalunga. Attenzione: gli ultimi esploratori parlano di Manticora.
+      Rovine, gallerie e tesori sepolti attendono chi ha il coraggio di scendere vicino a Isolalunga. Attenzione: gli ultimi esploratori parlano di Manticora.
     type: dungeon
     enemy: '6ae802f652eeaf280316c8d2' # Manticora
     markerLocation: '690e4186b191665c70c993c0' # Isolalunga — POI dungeon, mountainTemistos

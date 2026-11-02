@@ -83,7 +83,7 @@
 - id: '6ae80db9da5c5f8cc55265ee'
   city: '6909614447588774de8a9291' # Agosbert
   infos:
-    title: Lavori di bottega a Agosbert
+    title: Lavori di bottega ad Agosbert
     description: |-
       Il mercato di Agosbert non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
@@ -147,7 +147,7 @@
 - id: '6ae80db9da5c5f8cc552661d'
   city: '69096161141b9dd4d0442973' # Al Anore
   infos:
-    title: Lavori di bottega a Al Anore
+    title: Lavori di bottega ad Al Anore
     description: |-
       Il mercato di Al Anore non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
@@ -899,7 +899,7 @@
 - id: '6ae80db9da5c5f8cc55266ee'
   city: '690961bfeadfef6899ea08f0' # Andogan
   infos:
-    title: Lavori di bottega a Andogan
+    title: Lavori di bottega ad Andogan
     description: |-
       Il mercato di Andogan non aspetta nessuno e io sono rimasto senza garzone. Chi ha voglia di lavorare un paio d'ore si presenti al mio bancone.
     type: job
@@ -1187,7 +1187,7 @@
 - id: '6ae80db9da5c5f8cc552675a'
   city: '690962040ba4d7934a8a59a0' # Adehr
   infos:
-    title: Lavori di bottega a Adehr
+    title: Lavori di bottega ad Adehr
     description: |-
       Bottega di Adehr cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
@@ -1219,7 +1219,7 @@
 - id: '6ae80db9da5c5f8cc5526760'
   city: '6909620412ed8a8e5c412c58' # Arbisrah
   infos:
-    title: Lavori di bottega a Arbisrah
+    title: Lavori di bottega ad Arbisrah
     description: |-
       Cerco braccia robuste per la mia bottega di Arbisrah: casse da scaricare, scaffali da riordinare e qualche consegna in città. Paga onesta, niente domande.
     type: job

@@ -131,7 +131,7 @@
 - id: '6ae80db9da5c5f8cc55265e4'
   city: '690961442c1728bfb98d4e77' # Atheland
   infos:
-    title: Lavori di bottega a Atheland
+    title: Lavori di bottega ad Atheland
     description: |-
       Bottega di Atheland cerca aiuto! Lavoro semplice e senza pericoli, pagato a fine giornata.
     type: job
@@ -147,7 +147,7 @@
 - id: '6ae80db9da5c5f8cc55265e5'
   city: '690961442c1728bfb98d4e77' # Atheland
   infos:
-    title: Turno di guardia a Atheland
+    title: Turno di guardia ad Atheland
     description: |-
       Per ordine del capitano della guardia di Atheland: cerchiamo spade fidate per il turno sulle mura. Chi si presenta sobrio e puntuale sarà ricompensato.
     type: guard
@@ -869,7 +869,7 @@
   infos:
     title: Affari loschi a Ufragos
     description: |-
-      Cerco gente discreta per una faccenda delicata qui ad Ufragos. Se le guardie vi conoscono di vista, lasciate perdere.
+      Cerco gente discreta per una faccenda delicata qui a Ufragos. Se le guardie vi conoscono di vista, lasciate perdere.
     type: crime
     enemy: null
     markerLocation: '69096144a9865866cc2c7970' # Ufragos — POI city
@@ -1145,7 +1145,7 @@
   infos:
     title: 'Caccia: Aquila gigante nei dintorni di Ufragos'
     description: |-
-      Nei campi intorno ad Ufragos il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Aquila gigante. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
+      Nei campi intorno a Ufragos il bestiame sparisce e le tracce non mentono: il pericolo ha un nome, Aquila gigante. Chi ci libera dalla bestia avrà la gratitudine di tutti noi.
     type: hunt
     enemy: '6ae806b55093fb43140756d3' # Aquila gigante
     markerLocation: '690e41867176329c98135a62' # Ufragos — POI drusteaPlains
