@@ -51,9 +51,9 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-04-01 | 04 | 3 | C-01, C-02 | T-11-12…T-11-15 | unit | `npx jest src/content/schema --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
 | 11-04-02 | 04 | 3 | C-01, C-02 | T-11-12…T-11-15 | unit | `npx jest src/content/schema --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
 | 11-04-03 | 04 | 3 | C-01, C-02 | T-11-12…T-11-15 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
-| 11-05-01 | 05 | 4 | C-01, C-02, C-06 | T-11-16…T-11-18 | unit | `npx jest src/content/rules src/content/checking --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
-| 11-05-02 | 05 | 4 | C-01, C-02, C-06 | T-11-16…T-11-18 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
-| 11-05-03 | 05 | 4 | C-01, C-02, C-06 | T-11-16…T-11-18 | script | `grep -q -- "--new-id" content/README.md && grep -q "spellDraw" content/README.md && grep -q "category:" content/README.md && grep -q "ana…` | ⬜ pending |
+| 11-05-01 | 05 | 4 | C-01, C-02, C-06 | T-11-16…T-11-18 | unit | `npx jest src/content/rules src/content/checking --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
+| 11-05-02 | 05 | 4 | C-01, C-02, C-06 | T-11-16…T-11-18 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
+| 11-05-03 | 05 | 4 | C-01, C-02, C-06 | T-11-16…T-11-18 | script | `grep -q -- "--new-id" content/README.md && grep -q "spellDraw" content/README.md && grep -q "category:" content/README.md && grep -q "ana…` | ✅ green |
 | 11-06-01 | 06 | 4 | C-02, C-04, C-06 | T-11-19…T-11-22 | unit | `npx jest src/content/mapping --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
 | 11-06-02 | 06 | 4 | C-02, C-04, C-06 | T-11-19…T-11-22 | unit | `npx jest src/content/mapping --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
 | 11-06-03 | 06 | 4 | C-02, C-04, C-06 | T-11-19…T-11-22 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
