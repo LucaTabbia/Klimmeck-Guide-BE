@@ -65,6 +65,7 @@ type CharacterAssets {
   activeSpells: [ActiveSpell!]!
   ownedEquipments: [AssetQuantity!]!
   ownedItems: [AssetQuantity!]!
+  ownedPets: [Pet!]!
   pet: Pet
   wearedEquipment: Equipment!
 }
