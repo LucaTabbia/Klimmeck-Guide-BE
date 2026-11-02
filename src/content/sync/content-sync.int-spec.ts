@@ -243,13 +243,11 @@ describe('runContent (replSet)', () => {
 
     it('lists orphans without deleting them on apply (D-05)', async () => {
         const orphan = new ObjectId();
-        await db
-            .collection('lore')
-            .insertOne({
-                _id: orphan,
-                type: 'knowledge',
-                name: 'Lore Vecchia',
-            });
+        await db.collection('lore').insertOne({
+            _id: orphan,
+            type: 'knowledge',
+            name: 'Lore Vecchia',
+        });
 
         const report = await runContent(db, 'apply', tree);
 
