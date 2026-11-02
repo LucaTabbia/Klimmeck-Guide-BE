@@ -71,14 +71,29 @@ export interface ContentTree {
     fixes: LoadedEntry[];
     images: ImagesFile;
     world: WorldCity[] | null;
+    worldEntries: LoadedEntry[];
     config: ContentConfig | null;
     issues: ContentIssue[];
 }
 
 const IMAGE_SECTIONS = ['lore', 'enemies', 'pets'] as const;
 
-function fileIssue(file: string, message: string): ContentIssue {
-    return { file, line: null, entryId: null, path: '', message };
+type ImageSection = (typeof IMAGE_SECTIONS)[number];
+
+function isImageSection(name: string): name is ImageSection {
+    return (IMAGE_SECTIONS as readonly string[]).includes(name);
+}
+
+function isMapping(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function fileIssue(
+    file: string,
+    message: string,
+    path: string = '',
+): ContentIssue {
+    return { file, line: null, entryId: null, path, message };
 }
 
 function readYaml(dir: string, file: string): ParsedYaml | null {
@@ -130,13 +145,28 @@ function loadConfig(dir: string, issues: ContentIssue[]): ContentConfig | null {
     return config;
 }
 
-function imageLinksOf(value: unknown): ImageLink[] {
-    if (!Array.isArray(value)) return [];
-    return value.filter(
-        (link): link is ImageLink =>
-            typeof (link as ImageLink)?.id === 'string' &&
-            typeof (link as ImageLink)?.url === 'string',
-    );
+// i link con la forma giusta ma valori sbagliati restano: li controlla la validazione delle voci (ImageLinkEntry)
+function imageLinksOf(
+    section: ImageSection,
+    value: unknown,
+    issues: ContentIssue[],
+): ImageLink[] {
+    if (value === undefined) return [];
+    if (!Array.isArray(value)) {
+        issues.push(fileIssue(IMAGES_FILE, 'deve essere una lista', section));
+        return [];
+    }
+    return value.flatMap((link: unknown, index) => {
+        if (isMapping(link)) return [link as unknown as ImageLink];
+        issues.push(
+            fileIssue(
+                IMAGES_FILE,
+                'la voce non è una mappa chiave: valore',
+                `${section}.${index}`,
+            ),
+        );
+        return [];
+    });
 }
 
 function loadImages(dir: string, issues: ContentIssue[]): ImagesFile {
@@ -144,19 +174,39 @@ function loadImages(dir: string, issues: ContentIssue[]): ImagesFile {
     const images: ImagesFile = { lore: [], enemies: [], pets: [] };
     if (!parsed) return images;
     issues.push(...parsed.issues);
-    const sections = (parsed.value ?? {}) as Record<string, unknown>;
-    for (const section of IMAGE_SECTIONS) {
-        images[section] = imageLinksOf(sections[section]);
+    const sections = isMapping(parsed.value) ? parsed.value : {};
+    for (const name of Object.keys(sections)) {
+        if (isImageSection(name)) {
+            images[name] = imageLinksOf(name, sections[name], issues);
+            continue;
+        }
+        issues.push(fileIssue(IMAGES_FILE, 'sezione sconosciuta', name));
     }
     return images;
 }
 
-// la validazione dello snapshot del mondo è dei controlli offline (piano 11-04): qui si legge soltanto
-function loadWorld(dir: string, issues: ContentIssue[]): WorldCity[] | null {
+interface LoadedWorld {
+    world: WorldCity[] | null;
+    worldEntries: LoadedEntry[];
+}
+
+// qui si legge soltanto: le voci con la loro riga passano poi dalla validazione (WorldCityEntry)
+function loadWorld(dir: string, issues: ContentIssue[]): LoadedWorld {
     const parsed = readYaml(dir, WORLD_FILE);
-    if (!parsed) return null;
+    if (!parsed) return { world: null, worldEntries: [] };
     issues.push(...parsed.issues);
-    return Array.isArray(parsed.value) ? (parsed.value as WorldCity[]) : null;
+    if (!Array.isArray(parsed.value)) {
+        if (parsed.issues.length === 0) {
+            issues.push(
+                fileIssue(WORLD_FILE, 'il file deve essere una lista di voci'),
+            );
+        }
+        return { world: null, worldEntries: [] };
+    }
+    return {
+        world: parsed.value as WorldCity[],
+        worldEntries: parsed.entries,
+    };
 }
 
 export function loadContentTree(dir: string): ContentTree {
@@ -173,7 +223,7 @@ export function loadContentTree(dir: string): ContentTree {
         entries,
         fixes: loadFolder(dir, FIXES_DIR, issues),
         images: loadImages(dir, issues),
-        world: loadWorld(dir, issues),
+        ...loadWorld(dir, issues),
         config,
         issues,
     };
