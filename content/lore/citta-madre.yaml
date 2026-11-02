@@ -1,0 +1,87 @@
+# Lore delle città del Regno della Madre (D-23): una voce type city per città, campo solo-file city con l'id dello snapshot
+
+- id: '6ae809f20080b01f87b69f9f'
+  type: city
+  name: Gor Buldar
+  description: |-
+    Gor Buldar è una città sotterranea del Regno della Madre scavata nelle profondità del Lamstone. Nani e gnomi vi estraggono pietre preziose e metalli, alla luce dell'energia delle rune magiche. In superficie restano le rovine della prima città, abbandonata secoli fa per le tempeste di neve.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+  city: '690961bf8c233eb8033dbafb' # Gor Buldar
+- id: '6ae809f20080b01f87b69fa0'
+  type: city
+  name: Kim Todur
+  description: |-
+    Kim Todur è una città del Regno della Madre sui versanti settentrionali del Lamstone, dove le montagne scendono verso il Lontano Nord. Le sue gallerie sono collegate alla capitale dalle Vene della madre. Un cimitero scavato nella roccia accoglie i minatori caduti.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961bf247b24390da2c81e' # Kim Todur
+- id: '6ae809f20080b01f87b69fa1'
+  type: city
+  name: Kom Dorul
+  description: |-
+    Kom Dorul è una città sotterranea del Regno della Madre all'estremo nord del Lamstone. Funicolari e gru alimentate dalle rune collegano le miniere alla superficie gelata. Fra le gallerie dimenticate si aprono sotterranei e rovine che nemmeno i nani osano esplorare.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961bf40461c8db77a7c89' # Kom Dorul
+- id: '6ae809f20080b01f87b69fa2'
+  type: city
+  name: Nul Lodir
+  description: |-
+    Nul Lodir è una città del Regno della Madre arroccata sulle vette del Lamstone, ai margini del Lontano Nord. Vi vivono soprattutto draconidi, che abitano in superficie e praticano la magia sciamanica dei monti. Le carovane di birra e grano da Drustea vi arrivano solo nella bella stagione.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961bff10c5c31893927a0' # Nul Lodir
+- id: '6ae809f20080b01f87b69fa3'
+  type: city
+  name: Biroldur
+  description: |-
+    Biroldur è un villaggio del Regno della Madre fra le vette più fredde del Lamstone. Le sue case sono scavate nella roccia per resistere alle tempeste di neve che durano anche un mese. I suoi minatori lavorano vene di pietre preziose per i mercanti della capitale.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961bf0f0f449443a030e0' # Biroldur
+- id: '6ae809f20080b01f87b69fa4'
+  type: city
+  name: Himboram
+  description: |-
+    Himboram è un villaggio del Regno della Madre sulle pendici del Lamstone. Un sentiero montano lo collega alle Vene della madre e da lì a Morrulir. Accanto al villaggio si trovano le rovine di un antico avamposto nanico.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+  city: '690961bfe69eb840daad8c54' # Himboram
+- id: '6ae809f20080b01f87b69fa5'
+  type: city
+  name: Kom Dural
+  description: |-
+    Kom Dural è un villaggio sotterraneo del Regno della Madre nelle gallerie del Lamstone. I suoi incisori di rune lavorano per le officine della capitale. Un ossario scavato nella roccia custodisce le spoglie degli antenati.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+  city: '690961bf4d19ccf2d80d29eb' # Kom Dural
+- id: '6ae809f20080b01f87b69fa6'
+  type: city
+  name: Veg Faldir
+  description: |-
+    Veg Faldir è un villaggio del Regno della Madre all'estremo nord del Lamstone, battuto dalle tempeste. Le sue miniere scendono in profondità fino a gallerie dimenticate. Si dice che i giganti delle montagne passino talvolta sopra le sue case, facendo tremare la roccia.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961bf1bf8bb61e5f6af2f' # Veg Faldir
