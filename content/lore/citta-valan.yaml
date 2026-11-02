@@ -1,0 +1,230 @@
+# Lore delle città della Repubblica dei Valan (D-23): una voce type city per città, campo solo-file city con l'id dello snapshot
+
+- id: '6ae8083e4b590da5989f9fd8'
+  type: city
+  name: Flushhelm
+  description: |-
+    Flushhelm è una città della Repubblica dei Valan nelle pianure del sud, cresciuta accanto a rovine di un'epoca dimenticata. Le sue fucine lavorano il Sundenim che arriva dal Mar Sabbioso e ne ricavano armi apprezzate in tutto il continente. Il consiglio cittadino risponde agli Alti Savi di Valantar.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '690962049a47b69f249dbe2e' # Flushhelm
+- id: '6ae8083e4b590da5989f9fd9'
+  type: city
+  name: Granponte
+  description: |-
+    Granponte è una città dei Valan che prende il nome dal grande ponte di pietra su cui passa il Chande. Le pianure attorno sono segnate da rovine e da un antico campo di battaglia, ricordo delle guerre per le materie prime della repubblica. Oggi è un vivace punto di scambio di cavalli e armature.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '69096204cec79d963a47270c' # Granponte
+- id: '6ae8083e4b590da5989f9fda'
+  type: city
+  name: Marbot
+  description: |-
+    Marbot è una città della Repubblica dei Valan fra le pianure del sud, accanto a rovine e a un vecchio cimitero. Un portale demoniaco aperto nei dintorni ha reso necessaria una guarnigione permanente. I fabbri della città forgiano lame per i soldati e per gli avventurieri di passaggio.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '690962046ae72fec23f9fe12' # Marbot
+- id: '6ae8083e4b590da5989f9fdb'
+  type: city
+  name: Numstegh
+  description: |-
+    Numstegh è una città dei Valan nelle pianure meridionali, nota per i suoi allevamenti di cavalli. Rovine e un antico campo di battaglia circondano le sue mura, testimoni delle invasioni mai riuscite. Le sue scuderie forniscono destrieri a mezza repubblica.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '690962041103484cb9ff5aea' # Numstegh
+- id: '6ae8083e4b590da5989f9fdc'
+  type: city
+  name: Springford
+  description: |-
+    Springford è una città della Repubblica dei Valan sorta presso un guado delle pianure del sud. Il commercio di cavalli e di attrezzi forgiati la rende prospera e ordinata. Fra i campi vicini affiorano rovine che attirano studiosi e cercatori di tesori.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '69096204332d00f4d4b4ef94' # Springford
+- id: '6ae8083e4b590da5989f9fdd'
+  type: city
+  name: Tinemoor
+  description: |-
+    Tinemoor è una città dei Valan sulle pianure meridionali, nota per le sue fucine. Un portale demoniaco nelle vicinanze ha costretto la città a fortificarsi e a reclutare spesso avventurieri. I maghi dell'Accademia di Valantar la visitano per studiare il fenomeno.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '69096204c9a2ec0709abf78a' # Tinemoor
+- id: '6ae8083e4b590da5989f9fde'
+  type: city
+  name: Blu Aragh
+  description: |-
+    Blu Aragh è una città di mare della Repubblica dei Valan, affacciata sulle coste del meridione. Il suo porto commercia direttamente con Drustea e Liberia, evitando i dazi della Teocrazia. Un vecchio campo di battaglia vicino alla costa ricorda gli sbarchi respinti nei secoli.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f65' # Coste del meridione
+  city: '69096204d344b91cd59dfbe7' # Blu Aragh
+- id: '6ae8083e4b590da5989f9fdf'
+  type: city
+  name: Chargate
+  description: |-
+    Chargate è una città di mare dei Valan, porta della repubblica verso l'oceano. Le sue navi caricano armi, armature e Sundenim diretti a Drustea e a Liberia. Un portale demoniaco nell'entroterra rende inquiete le strade che portano al porto.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f65' # Coste del meridione
+  city: '6909620483d4f70ab3c5ccbb' # Chargate
+- id: '6ae8083e4b590da5989f9fe0'
+  type: city
+  name: Gadarreck
+  description: |-
+    Gadarreck è una città di mare della Repubblica dei Valan sulle coste calde del meridione. Vive di pesca e dei commerci oceanici che sfuggono ai dazi della Teocrazia. Il suo antico cimitero sulle scogliere è meta di pellegrini e di curiosi.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f65' # Coste del meridione
+  city: '690962040a530bf84e11240c' # Gadarreck
+- id: '6ae8083e4b590da5989f9fe1'
+  type: city
+  name: Millport
+  description: |-
+    Millport è una città di mare dei Valan, nota per i mulini che macinano il grano delle pianure prima di caricarlo sulle navi. Il porto commercia soprattutto con Drustea e Liberia. Nell'entroterra si trovano rovine di antiche fortificazioni costiere.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f65' # Coste del meridione
+  city: '69096204b212f35e25f8632a' # Millport
+- id: '6ae8083e4b590da5989f9fe2'
+  type: city
+  name: Pitchport
+  description: |-
+    Pitchport è una città di mare della Repubblica dei Valan affacciata sull'Oceano Ladows. I suoi cantieri producono la pece e il legname per le navi della repubblica. Un sotterraneo nascosto vicino alla costa attira avventurieri in cerca di tesori dei contrabbandieri.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f65' # Coste del meridione
+    - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
+  city: '6909620472a89d8e4dedcb50' # Pitchport
+- id: '6ae8083e4b590da5989f9fe3'
+  type: city
+  name: Voxhold
+  description: |-
+    Voxhold è una città di mare dei Valan, fortificata a guardia delle coste del meridione. Il suo porto è uno snodo per i commerci con Drustea e Liberia. Un vecchio cimitero fuori dalle mura accoglie i marinai che il mare ha restituito.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f65' # Coste del meridione
+  city: '69096204c5cf931ba5c96fec' # Voxhold
+- id: '6ae8083e4b590da5989f9fe4'
+  type: city
+  name: Anden
+  description: |-
+    Anden è un villaggio della Repubblica dei Valan dove le pianure incontrano un bosco e la costa del Ladows. Gli abitanti vivono di pesca, legname e caccia. Nei dintorni si apre un sotterraneo che pochi del villaggio hanno il coraggio di avvicinare.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
+  city: '69096204d26cadbff3ae5e80' # Anden
+- id: '6ae8083e4b590da5989f9fe5'
+  type: city
+  name: Beldenn
+  description: |-
+    Beldenn è un villaggio dei Valan al margine di un bosco, raro in una terra quasi tutta pianeggiante. Vive di allevamento e di legname venduto alle fucine della repubblica. Fra gli alberi si nascondono rovine antiche.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '690962044bea14749932ecb0' # Beldenn
+- id: '6ae8083e4b590da5989f9fe6'
+  type: city
+  name: Fineglen
+  description: |-
+    Fineglen è un villaggio delle pianure dei Valan, sorto fra rovine e un antico campo di battaglia. I contadini allevano cavalli e coltivano i campi segnati dalle guerre del passato. Gli anziani raccontano ancora le storie delle invasioni respinte.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '6909620459bb3490e08d63fc' # Fineglen
+- id: '6ae8083e4b590da5989f9fe7'
+  type: city
+  name: Glilrid
+  description: |-
+    Glilrid è un villaggio della Repubblica dei Valan nelle pianure del sud, accanto a un vecchio cimitero. La gente vive di allevamento e di piccoli lavori per le fucine vicine. È un luogo tranquillo, salvo nelle notti in cui il cimitero si anima.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '69096204a885a9ab75ced568' # Glilrid
+- id: '6ae8083e4b590da5989f9fe8'
+  type: city
+  name: Gonfim
+  description: |-
+    Gonfim è un villaggio delle pianure dei Valan nato vicino a un antico campo di battaglia. Gli abitanti allevano cavalli e recuperano il metallo delle vecchie armi per i fabbri della repubblica. La strada Chande passa poco lontano.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '690962043db9f3a8ba2bc746' # Gonfim
+- id: '6ae8083e4b590da5989f9fe9'
+  type: city
+  name: Gravendale
+  description: |-
+    Gravendale è un villaggio dei Valan in una valle boscosa fra le pianure del sud. Vive di legname, caccia e allevamento. Rovine coperte di muschio punteggiano i boschi attorno al paese.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '69096204ce47261a748ccc4d' # Gravendale
+- id: '6ae8083e4b590da5989f9fea'
+  type: city
+  name: Lilmere
+  description: |-
+    Lilmere è un piccolo villaggio delle pianure dei Valan accanto a uno stagno e a un vecchio campo di battaglia. I suoi abitanti allevano cavalli e coltivano orti. È una tappa tranquilla per chi percorre il Chande verso la capitale.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '69096204defcf893091c1804' # Lilmere
+- id: '6ae8083e4b590da5989f9feb'
+  type: city
+  name: Noxgard
+  description: |-
+    Noxgard è un villaggio della Repubblica dei Valan fra pianure e boschi. Gli abitanti si guadagnano da vivere con la caccia e il commercio di pellicce. Un sotterraneo nel bosco vicino è fonte di leggende e di guai.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '69096204fd230792d5c30ec7' # Noxgard
+- id: '6ae8083e4b590da5989f9fec'
+  type: city
+  name: Quirkdale
+  description: |-
+    Quirkdale è un villaggio delle pianure dei Valan noto per le stranezze che accadono nei dintorni. Un portale demoniaco aperto poco lontano rende inquieti gli animali e i contadini. I maghi dell'Accademia vi passano spesso per tenerlo sotto osservazione.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '69096204d6df846a09d63e90' # Quirkdale
+- id: '6ae8083e4b590da5989f9fed'
+  type: city
+  name: Schuzzar
+  description: |-
+    Schuzzar è un villaggio della Repubblica dei Valan nelle pianure del sud. Vive di allevamento e di piccoli commerci lungo le strade per la capitale. Un sotterraneo poco distante attira avventurieri in cerca di gloria.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+  city: '690962045edb129a32a89b35' # Schuzzar
