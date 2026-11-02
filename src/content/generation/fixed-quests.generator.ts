@@ -547,7 +547,7 @@ function weaponsAgainst(
     limit: number,
 ): AssetRef[] {
     const weaknesses = weaknessesOf(enemy);
-    return equipmentOf(world)
+    return weaponsOf(world)
         .filter((item) => withinRarity(item, maxRank))
         .map((item) => ({ item, power: usefulPower(item, weaknesses) }))
         .filter(({ power }) => power > 0)
@@ -560,16 +560,10 @@ function powerOf(item: IndexedEntry): number {
     return typeof item.raw.power === 'number' ? item.raw.power : 0;
 }
 
-function totalPower(item: IndexedEntry): number {
-    return damagesOf(item).reduce((total, damage) => total + damage.power, 0);
-}
-
 // ripiego delle hunt: l'arma entro il tetto con più danni in totale, pari merito per id
-function strongestWeaponOf(world: GeneratorWorld, maxRank: number): AssetRef[] {
-    const [strongest] = equipmentOf(world)
-        .filter((item) => withinRarity(item, maxRank) && totalPower(item) > 0)
-        .sort((a, b) => totalPower(b) - totalPower(a) || byId(a, b));
-    return strongest ? [assetRef('EquipmentItem', strongest)] : [];
+// i damages di un equipaggiamento non-arma indicano la protezione, non l'attacco (utente, D-33)
+function weaponsOf(world: GeneratorWorld): IndexedEntry[] {
+    return equipmentOf(world).filter((item) => item.raw.equipType === 'weapon');
 }
 
 function bestLootOf(
@@ -623,13 +617,7 @@ function huntWeaponOf(
     animal: IndexedEntry,
     maxRank: number,
 ): AssetRef[] {
-    const against = weaponsAgainst(
-        world,
-        animal,
-        maxRank,
-        RECOMMENDED_HUNT_EQUIPMENT,
-    );
-    return against.length > 0 ? against : strongestWeaponOf(world, maxRank);
+    return weaponsAgainst(world, animal, maxRank, RECOMMENDED_HUNT_EQUIPMENT);
 }
 
 function huntRecommendedLoot(

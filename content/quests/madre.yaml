@@ -479,9 +479,6 @@
   requirements:
     minTitle: rookie
     recommendedLoot:
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
-        quantity: 1
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
         quantity: 1
@@ -502,9 +499,6 @@
   requirements:
     minTitle: rookie
     recommendedLoot:
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
-        quantity: 1
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
         quantity: 1
@@ -525,9 +519,6 @@
   requirements:
     minTitle: rookie
     recommendedLoot:
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
-        quantity: 1
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
         quantity: 1
@@ -548,9 +539,6 @@
   requirements:
     minTitle: rookie
     recommendedLoot:
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83258' # Elmo di ferro leggero
-        quantity: 1
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce30' # Pozione di guarigione
         quantity: 1

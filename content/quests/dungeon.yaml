@@ -271,12 +271,6 @@
   requirements:
     minTitle: adventurer
     recommendedLoot:
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b832a6' # Scudo del Gladiatore
-        quantity: 1
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83277' # Stivali di piastre leggere
-        quantity: 1
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
@@ -342,10 +336,10 @@
     minTitle: hero
     recommendedLoot:
       - itemType: EquipmentItem
-        item: '6ae7fdeea808802d838972d1' # Corazza della fiamma eterna
+        item: '68c19536541d89c481b8329f' # Arco del Cacciatore Cosmico
         quantity: 1
       - itemType: EquipmentItem
-        item: '68c19536541d89c481b832af' # Scaglia di Urvinass
+        item: '6ae7fdeea808802d838972df' # Lama di Hilword Valantar
         quantity: 1
       - itemType: LootItem
         item: '68c193b5541d89c481b83349' # Pozione di Rinascita
@@ -699,12 +693,6 @@
   requirements:
     minTitle: adventurer
     recommendedLoot:
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b832a6' # Scudo del Gladiatore
-        quantity: 1
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83277' # Stivali di piastre leggere
-        quantity: 1
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
@@ -737,12 +725,6 @@
   requirements:
     minTitle: adventurer
     recommendedLoot:
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b832a6' # Scudo del Gladiatore
-        quantity: 1
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83277' # Stivali di piastre leggere
-        quantity: 1
       - itemType: LootItem
         item: '6ae7fe69f3bf62d7f784ce31' # Pozione di guarigione superiore
         quantity: 1
@@ -776,10 +758,10 @@
     minTitle: hero
     recommendedLoot:
       - itemType: EquipmentItem
-        item: '6ae7fdeea808802d838972d1' # Corazza della fiamma eterna
+        item: '68c19536541d89c481b8329f' # Arco del Cacciatore Cosmico
         quantity: 1
       - itemType: EquipmentItem
-        item: '68c19536541d89c481b832af' # Scaglia di Urvinass
+        item: '6ae7fdeea808802d838972df' # Lama di Hilword Valantar
         quantity: 1
       - itemType: LootItem
         item: '68c193b5541d89c481b83349' # Pozione di Rinascita
@@ -941,12 +923,6 @@
   requirements:
     minTitle: paladin
     recommendedLoot:
-      - itemType: EquipmentItem
-        item: '6ae7fdeea808802d838972d3' # Anello della passione
-        quantity: 1
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b83289' # Gambali Anti-Fuoco nanici
-        quantity: 1
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
@@ -979,12 +955,6 @@
   requirements:
     minTitle: paladin
     recommendedLoot:
-      - itemType: EquipmentItem
-        item: '6ae7fdeea808802d838972d9' # Anello delle gemme di Bitya
-        quantity: 1
-      - itemType: EquipmentItem
-        item: '68c19536541d89c481b832d7' # Amuleto della Purezza
-        quantity: 1
       - itemType: LootItem
         item: '68c193b5541d89c481b8330b' # Pozione della Vista Limpida
         quantity: 1
