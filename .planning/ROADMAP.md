@@ -441,7 +441,7 @@ Plans:
 - [x] 12-12-PLAN.md — Query innkeeper `shopPoolReport` (enumerazione del real boot aggiornata in RED)
 - [x] 12-13-PLAN.md — Deprecazione di `equipmentAssetsQuantity` e `lootAssetsQuantity` (le due sole righe SDL riscritte)
 - [x] 12-14-PLAN.md — `TransactionItems.petAssets`, righe `Pet` a quantità 1, prezzi e veti dal catalogo nel reader
-- [ ] 12-15-PLAN.md — Guard `ITEM_NOT_IN_SHOP`: pool della città del marker riletto in sessione, `placeInCity(pool)` nei test
+- [x] 12-15-PLAN.md — Guard `ITEM_NOT_IN_SHOP`: pool della città del marker riletto in sessione, `placeInCity(pool)` nei test
 - [ ] 12-16-PLAN.md — Inventario dei pet nella transazione: doppione rifiutato, vendita del pet equipaggiato che svuota lo slot, guardie nel filtro
 - [ ] 12-17-PLAN.md — `equipPet` / `unequipPet` (`EquipPetRequest`, `UnequipPetRequest`, `@OwnsCharacter` come `equipItem`)
 - [ ] 12-18-PLAN.md — Gate BE-SHOP-05: integration end-to-end sul mondo seminato, contratto FE nel real boot, suite completa con coverage, gate SDL, requisiti completati
@@ -548,7 +548,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
-| 12. Negozi per città | 14/19 | In Progress | - |
+| 12. Negozi per città | 15/19 | In Progress | - |
 | 13. Generazione quest | 0/0 | Not started | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
