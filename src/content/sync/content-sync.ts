@@ -102,25 +102,11 @@ async function planCollections(
     return plans;
 }
 
-// una lore per città: vince la prima, come nel generatore delle quest
-function firstLorePerCity(
-    updates: readonly CityLoreUpdate[],
-): CityLoreUpdate[] {
-    const seen = new Set<string>();
-    return updates.filter((update) => {
-        const key = update.cityId.toHexString();
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-    });
-}
-
 async function planCityLore(
     db: Db,
     tree: ContentTree,
-    updates: readonly CityLoreUpdate[],
+    links: readonly CityLoreUpdate[],
 ): Promise<CityLorePlan> {
-    const links = firstLorePerCity(updates);
     const stored = await storedDocuments(
         db,
         'cities',
@@ -136,6 +122,7 @@ async function planCityLore(
     for (const link of links) {
         const id = link.cityId.toHexString();
         const city = stored.get(id);
+        // difesa in profondità: una città assente è già un errore di checkDatabase, qui si elenca e non si scrive
         if (!city) {
             plan.report.missing.push({ id, name: names.get(id) ?? null });
         } else if (sameBson(city.relatedLore, link.relatedLore)) {
