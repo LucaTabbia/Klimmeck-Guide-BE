@@ -1,0 +1,252 @@
+# Lore delle città dell'Unione delle Fiamme (D-23): una voce type city per città, campo solo-file city con l'id dello snapshot
+
+- id: '6ae809f29778fd827199f2f9'
+  type: city
+  name: Danmil Urvyn
+  description: |-
+    Danmil Urvyn è una città dell'Unione delle Fiamme sulla costa del Belleholm affacciata sull'Oceano Delants. Vive di pesca e dei commerci lungo la Pentabron, ma governa da sola il proprio territorio come ogni popolo dell'Unione. Sotto le sue scogliere nere si apre un sotterraneo che un tempo i pirati usavano come nascondiglio.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f2475e9937b4cea9eb' # Danmil Urvyn
+- id: '6ae809f29778fd827199f2fa'
+  type: city
+  name: Fiumelento
+  description: |-
+    Fiumelento è una città dell'Unione delle Fiamme cresciuta lungo uno dei tanti piccoli fiumi del Belleholm. Le foreste tropicali attorno forniscono frutti esotici e legname per le barche. Un portale demoniaco aperto nella boscaglia tiene in allarme la milizia cittadina.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f220b335bdbc8e5e30' # Fiumelento
+- id: '6ae809f29778fd827199f2fb'
+  type: city
+  name: Gurlaid
+  description: |-
+    Gurlaid è una città dell'Unione delle Fiamme sulla costa orientale del Belleholm. Un antico campo di battaglia nei dintorni ricorda le piccole guerre fra i popoli dell'isola, finite più con le parole che con il sangue. Fra la foresta e il mare affiorano rovine di un insediamento più antico.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f2fb45f73a8ff880d6' # Gurlaid
+- id: '6ae809f29778fd827199f2fc'
+  type: city
+  name: Oldcairn
+  description: |-
+    Oldcairn è una città dell'Unione delle Fiamme fra le foreste del Belleholm e l'Oceano Delants. I suoi artigiani lavorano l'ossidiana in lame dal filo tagliente vendute in tutto il continente. Un cumulo di pietre antiche al centro della città le dà il nome e accoglie le preghiere ai quattro dei della fortuna.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f290dcda622c67760d' # Oldcairn
+- id: '6ae809f29778fd827199f2fd'
+  type: city
+  name: Pianecalde
+  description: |-
+    Pianecalde è una città dell'Unione delle Fiamme distesa sulle piane tiepide fra il lago e i vulcani del Belleholm. La terra nera e fertile regala colture esotiche abbondanti, ma le inondazioni stagionali la mettono spesso alla prova. Dai pendii vicini scendono ogni giorno i cavatori di ossidiana.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f298baaf7f7be10dd1' # Pianecalde
+- id: '6ae809f29778fd827199f2fe'
+  type: city
+  name: Pinecrest
+  description: |-
+    Pinecrest è una città dell'Unione delle Fiamme arroccata su una cresta boscosa del Belleholm. Lontana dalla costa, vive di agricoltura e di legname e si affida alla Pentabron per i commerci. I suoi abitanti si vantano di non aver mai preso parte alle dispute fra i popoli dell'isola.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f2d81d34e19cb510e7' # Pinecrest
+- id: '6ae809f29778fd827199f2ff'
+  type: city
+  name: Rosedenn
+  description: |-
+    Rosedenn è una città dell'Unione delle Fiamme sulle rive del lago del Belleholm. Pescatori e coltivatori di frutti esotici ne fanno un centro sereno, anche se le tasse quasi inesistenti dell'Unione lasciano povere le casse cittadine. Un sotterraneo sotto le colline vicine richiama avventurieri da tutta l'isola.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f23a51d0e34cea2ed3' # Rosedenn
+- id: '6ae809f29778fd827199f300'
+  type: city
+  name: Sprigfront
+  description: |-
+    Sprigfront è una città dell'Unione delle Fiamme fra il lago, le foreste e i vulcani del Belleholm. Le sue botteghe trasformano l'ossidiana in armi e ornamenti. Un vecchio cimitero alle pendici del vulcano custodisce le vittime delle eruzioni passate.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f272446b09c54dd978' # Sprigfront
+- id: '6ae809f29778fd827199f301'
+  type: city
+  name: Thorndenn
+  description: |-
+    Thorndenn è una città dell'Unione delle Fiamme nascosta fra rovi e foreste alle pendici dei vulcani del Belleholm. Un campo di battaglia sulle rive del lago ricorda l'ultima disputa territoriale con i villaggi vicini. La città cresce guerrieri temprati che l'Unione chiama in caso di guerra.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f2c33b0a2840e14a55' # Thorndenn
+- id: '6ae809f29778fd827199f302'
+  type: city
+  name: Vired Ivem
+  description: |-
+    Vired Ivem è una città dell'Unione delle Fiamme nell'entroterra del Belleholm. Antica e orgogliosa, segue i riti dei quattro dei della fortuna con più zelo delle città vicine. Le sue strade sono collegate alle altre dalla Pentabron.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f2d98f74fb4616446c' # Vired Ivem
+- id: '6ae809f29778fd827199f303'
+  type: city
+  name: Al Nerry
+  description: |-
+    Al Nerry è un villaggio dell'Unione delle Fiamme fra la foresta e le spiagge nere del Belleholm. I suoi pescatori escono ogni giorno sull'Oceano Delants. Si dice che i pirati degli atolli vi facciano scalo per rifornirsi d'acqua dolce.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f25482ef5bf7b39bdd' # Al Nerry
+- id: '6ae809f29778fd827199f304'
+  type: city
+  name: Costenere
+  description: |-
+    Costenere è un villaggio dell'Unione delle Fiamme che prende il nome dalle spiagge di sabbia vulcanica su cui sorge. Vive di pesca sull'Oceano Delants e di piccoli orti esotici. Le tempeste stagionali lo costringono spesso a ricostruire i moli.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f2e02f0f11b346240f' # Costenere
+- id: '6ae809f29778fd827199f305'
+  type: city
+  name: Cu Nuimyn
+  description: |-
+    Cu Nuimyn è un villaggio dell'Unione delle Fiamme sulla costa boscosa del Belleholm. Gli abitanti raccolgono frutti tropicali e pescano nell'Oceano Delants. Le capanne su palafitte resistono alle inondazioni che colpiscono l'isola in certi periodi dell'anno.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f270966f9618192e68' # Cu Nuimyn
+- id: '6ae809f29778fd827199f306'
+  type: city
+  name: Gellirn
+  description: |-
+    Gellirn è un villaggio dell'Unione delle Fiamme sulle rive del lago del Belleholm. I suoi pescatori d'acqua dolce riforniscono i mercati dell'isola. La vita vi scorre semplice e serena, lontana dalle dispute fra i popoli maggiori.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f26ed0ae9826c2f746' # Gellirn
+- id: '6ae809f29778fd827199f307'
+  type: city
+  name: Gidevolm
+  description: |-
+    Gidevolm è un villaggio dell'Unione delle Fiamme affacciato sul lago del Belleholm. Coltiva frutti esotici sulle rive fertili e commercia via barca con i villaggi vicini. Ogni stagione i suoi abitanti offrono ai quattro dei della fortuna le primizie del raccolto.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f284631ee8ad0d9ca0' # Gidevolm
+- id: '6ae809f29778fd827199f308'
+  type: city
+  name: Lagorovente
+  description: |-
+    Lagorovente è un villaggio dell'Unione delle Fiamme sulle sponde di un lago scaldato dai vulcani del Belleholm. Le acque calde e fumanti attirano viandanti in cerca di cure. Intorno, la foresta tropicale nasconde vene di ossidiana.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f2cf957bc46fe0e795' # Lagorovente
+- id: '6ae809f29778fd827199f309'
+  type: city
+  name: Mapleview
+  description: |-
+    Mapleview è un villaggio dell'Unione delle Fiamme sulle colline che guardano il lago del Belleholm. Vive di agricoltura e di pesca d'acqua dolce. Un piccolo cimitero accanto al villaggio è temuto per le luci che vi si vedono di notte.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f2e6690bb3ec8f2ee5' # Mapleview
+- id: '6ae809f29778fd827199f30a'
+  type: city
+  name: Mistglen
+  description: |-
+    Mistglen è un villaggio dell'Unione delle Fiamme in una valle avvolta dai vapori dei vulcani del Belleholm. Un portale demoniaco aperto nella foresta vicina ha fatto fuggire molte famiglie. Chi resta vive di legname e di raccolta di ossidiana.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f2c28e686ddbe6ec29' # Mistglen
+- id: '6ae809f29778fd827199f30b'
+  type: city
+  name: Peadale
+  description: |-
+    Peadale è un villaggio dell'Unione delle Fiamme ai piedi dei vulcani del Belleholm. I suoi campi crescono sulla terra nera e fertile lasciata dalle eruzioni. Un sotterraneo scavato nella roccia lavica attira avventurieri e cercatori di tesori.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f2508bc3b72047ae70' # Peadale
+- id: '6ae809f29778fd827199f30c'
+  type: city
+  name: Ultima Terra
+  description: |-
+    Ultima Terra è un villaggio dell'Unione delle Fiamme sull'estremo lembo del Belleholm, affacciato sull'Oceano Delants. Il suo nome ricorda che oltre non ci sono che il mare e i suoi mostri antichi. Il cimitero sulla scogliera accoglie i marinai che non sono tornati.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f21405c9f66d9174a2' # Ultima Terra
+- id: '6ae809f29778fd827199f30d'
+  type: city
+  name: Unrike
+  description: |-
+    Unrike è un villaggio dell'Unione delle Fiamme fra il lago, i vulcani e la costa orientale del Belleholm. Nei dintorni sorgono le rovine di un insediamento distrutto da un'antica eruzione. Gli abitanti vivono di pesca e del commercio di ossidiana grezza.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f2ab1b364dd70e9c26' # Unrike
+- id: '6ae809f29778fd827199f30e'
+  type: city
+  name: Usrorn
+  description: |-
+    Usrorn è un villaggio dell'Unione delle Fiamme sulla costa del Belleholm bagnata dall'Oceano Delants. Rovine sepolte a metà dalla sabbia nera circondano le sue case. Si sussurra che vi passi la Rugiada notturna diretta al continente.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f2da371c354c6b7f36' # Usrorn
+- id: '6ae809f29778fd827199f30f'
+  type: city
+  name: Vudyld
+  description: |-
+    Vudyld è un villaggio dell'Unione delle Fiamme nell'interno del Belleholm. Accanto alle sue capanne si stende un vecchio campo di battaglia delle guerre fra i popoli dell'isola. Oggi vive di agricoltura e di caccia nella boscaglia.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f29b082d39dee58e09' # Vudyld
+- id: '6ae809f29778fd827199f310'
+  type: city
+  name: Yonamnel
+  description: |-
+    Yonamnel è un villaggio dell'Unione delle Fiamme fra la foresta tropicale e la costa del Belleholm. Gli abitanti pescano nell'Oceano Delants e raccolgono frutti esotici. Le sue spiagge nere sono un approdo discreto per i pirati degli atolli.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f232e36d73f89ab91f' # Yonamnel
