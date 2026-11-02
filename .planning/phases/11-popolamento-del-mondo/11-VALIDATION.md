@@ -156,4 +156,6 @@ Le infrastrutture mancanti nascono nei primi piani del codice e precedono ogni t
 
 Execution sign-off (11-26, 2026-11-02): `npm run build` e `npx tsc --noEmit -p tsconfig.json` exit 0; `npm run test:cov` exit 0 con 326 suite / 4184 test (≈ 377 s), totali S 96.36 / B 84.95 / F 93.3 / L 96.98; soglia nuova `./src/content/` S 92 / B 81 / L 93 (baseline misurata 94.7 / 83.4 / 95.6 su 45 file) rispettata; SDL contro `origin/develop` = `-  unlocked: Boolean!` + `+  description: String`; prettier ed eslint sui 110 `.ts` della fase puliti (0 errori, 1 warning preesistente in `test/app.int-spec.ts`); `--check` exit 0 con 1 warning (titolo doppio di Necrorian); drift `src/config` 14/223; nessun trailer vietato. Manual-only ancora aperti: revisione dei contenuti dell'utente, lettura di handoff/runbook, UAT sul device dopo il quick task FE su `unlocked`.
 
+Post-gate sign-off (review → fix → security, 2026-11-02): `REVIEW.md` 39 finding, `REVIEW-FIX.md` 34 corretti / 3 rinviati / 1 documentato, `11-VERIFICATION.md` passed with gaps (chiuse), `11-SECURITY.md` 93/96 mitigate (T-11-01 e T-11-86 attendono il quick task FE e la PR, T-11-74 residuo basso); `npm run test:cov` dopo i fix 329 suite / 4264 test, coverage `src/content/` S 94.8 / B 83.8 / L 95.7; il grep dei trailer conta il falso positivo «regenerated with» di `31cd1ee`.
+
 **Approval:** approved 2026-11-02

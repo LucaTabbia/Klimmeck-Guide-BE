@@ -1,5 +1,8 @@
 # Correzioni della code review — Phase 11
 
+**Esito (2026-11-02):** 39 finding (1 HIGH, 10 MEDIUM, 28 LOW) → 34 corretti con 36 commit da tre fixer sequenziali per area (sync 12, core 16, app 7 + 1 chiuso dal fixer core), 3 rinviati con nota nell'handoff (app ME-01 sorteggi su flusso unico → Phase 13; app ME-03 profondità di `relatedLore` = 1 → Phase 16; app LO-02 hunt nei gruppi di una sola città → decisione dell'utente), 1 documentato (sync LO-05). Dopo i fix: `npm run test:cov` 329 suite / 4264 test verdi, coverage `src/content/` S 94.8 / B 83.8 / L 95.7 (soglia 92 / 81 / 93); `--check` exit 0; `--dry-run` sul DB reale = 4 lore + 23 quest da ricaricare (solo `title`/`description`, stessi id). Falso positivo noto: il body di `31cd1ee` contiene «regenerated with», che il grep dei trailer vietati conta; nessun trailer reale.
+
+
 ## Area sync (`REVIEW-sync.md`) — fixer 1
 
 Base `380b750`, 12 finding con ruling FIX, un commit per finding (TDD: test rosso prima della correzione, salvo i due refactor senza cambio di comportamento LO-01 e LO-03 e la sola documentazione LO-05).
