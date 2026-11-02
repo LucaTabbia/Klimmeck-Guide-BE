@@ -219,10 +219,10 @@
   type: city
   name: Andogan
   description: |-
-    Andogan è un villaggio del Lontano Nord sulla costa occidentale, nel Regno della Madre. Il suo piccolo molo è uno dei pochi da cui il regno commercia via oceano. Gli abitanti vivono di pesca nel gelido Oceano Ladows e di caccia sulle colline.
+    Andogan è un villaggio del Lontano Nord sulla costa occidentale, avamposto più remoto del Regno di Drustea. Il suo piccolo molo è uno dei pochi da cui il regno commercia via oceano. Gli abitanti vivono di pesca nel gelido Oceano Ladows e di caccia sulle colline.
   image: null
   relatedLore:
-    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
     - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
     - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
     - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
