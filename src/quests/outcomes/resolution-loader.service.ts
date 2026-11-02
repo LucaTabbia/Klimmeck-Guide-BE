@@ -519,6 +519,7 @@ export class ResolutionLoader {
                       ]
                     : [],
             ),
+            spellPool: [],
         };
     }
 }
