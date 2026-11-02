@@ -1,6 +1,8 @@
 # BACKEND-NOTES — Phase 11 Popolamento del mondo (handoff per il FE, le UAT 13–17 e le fasi BE 12–16)
 
-- **Fase BE:** 11-popolamento-del-mondo (requisiti BE-CONTENT-01..BE-CONTENT-07; decisioni D-01..D-34 in `11-CONTEXT.md`).
+> **Nota del 2026-11-02 (D-36, dopo la PR):** il database è l'unica fonte di verità del mondo. I file di `content/`, il CLI di caricamento, il generatore delle quest fisse e il runbook `docs/runbooks/content-seeding.md` citati in questo documento sono stati tolti dal repo (commit `e857802`) dopo il caricamento e la ricarica post-review; restano nella storia git fino a `b4983d7`. Le sezioni §2–§12 descrivono il mondo com'è stato caricato (i numeri valgono per il database); le modifiche future al contenuto si fanno direttamente nel database.
+
+- **Fase BE:** 11-popolamento-del-mondo (requisiti BE-CONTENT-01..BE-CONTENT-07; decisioni D-01..D-36 in `11-CONTEXT.md`).
 - **Data:** 2026-11-02. Documento di fine fase (piano 11-25), scritto dopo il caricamento sul database unico (piano 11-24) e prima del gate finale 11-26.
 - **Branch:** `feat/11-popolamento-del-mondo` → PR verso `develop`, **in draft** finché il quick task FE su `unlocked` (§1) non è rilasciato.
 - **Schema:** rispetto a `origin/develop` lo SDL ha **una riga tolta** (`  unlocked: Boolean!` in `type Lore`, D-25, l'unica modifica non additiva) e **una riga aggiunta** (`  description: String` in `type QuestInfos`, D-32). Lo schema generato `src/schema.gql` vince su questo documento.
@@ -15,7 +17,7 @@
 2. Il database unico contiene il mondo: 405 lore, 150 nemici, 13 pet, 88 magie, 172 equipaggiamenti, 101 loot, 581 quest fisse su 167 città (§2–§5).
 3. `QuestInfos.description: String` è additivo e nullable: il FE può mostrarlo come annuncio della quest (§9).
 4. Il BE che serve il database deve girare dal branch della fase (o dalla sua merge): un BE su `develop` risponde `data: null` su `lores`/`enemys` (§1).
-5. Ricaricare il contenuto: `docs/runbooks/content-seeding.md` (§12).
+5. Il contenuto si modifica direttamente nel database (D-36): i file, il CLI e il runbook non sono più nel repo (nota in testa al documento; §12 è storico).
 
 ---
 
