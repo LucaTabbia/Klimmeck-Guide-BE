@@ -7,11 +7,14 @@ import { Clock } from 'src/auth/clock';
 import { Character } from 'src/models/character/character.model';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
+import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
+import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
 import { Spell } from 'src/models/spell.model';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { FixedClock } from '../../test/auth/fixed-clock';
 import { CHARACTER_QUESTS_POPULATE } from './character-quests.populate';
 import { CharactersService } from './characters.service';
+import { equipPetFilter, equipPetUpdate } from './pets/equip-pet.updates';
 import {
     ACTIVE_SPELL_SNAPSHOT_PROJECTION,
     equipSpellFilter,
@@ -596,6 +599,78 @@ describe('CharactersService (unit — spell mutations)', () => {
                     slotType: SlotType.head,
                 }),
             ).rejects.toMatchObject({ code: 'ITEM_NOT_OWNED' });
+        });
+    });
+    describe('companion', () => {
+        const c = new Types.ObjectId();
+        const p = new Types.ObjectId();
+        const equip = (petId = p.toHexString()): EquipPetRequest => ({
+            id: c.toHexString(),
+            petId,
+        });
+        const unequip = (): UnequipPetRequest => ({ id: c.toHexString() });
+
+        it('equips an owned pet as the companion (D-15)', async () => {
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(1));
+
+            await expect(service.equipPet(equip())).resolves.toMatchObject({
+                successful: true,
+            });
+            expect(mockCharacterModel.updateOne).toHaveBeenCalledTimes(1);
+            expect(mockCharacterModel.updateOne).toHaveBeenCalledWith(
+                equipPetFilter(c, p),
+                equipPetUpdate(p),
+            );
+            expect(mockCharacterModel.exists).not.toHaveBeenCalled();
+        });
+
+        it('refuses a pet not owned with PET_NOT_OWNED (D-15)', async () => {
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
+            mockCharacterModel.exists.mockReturnValue(asQuery({ _id: c }));
+
+            await expect(service.equipPet(equip())).rejects.toMatchObject({
+                code: 'PET_NOT_OWNED',
+            });
+            expect(mockCharacterModel.exists).toHaveBeenCalledWith({
+                _id: c,
+                deletedAt: null,
+            });
+        });
+
+        it('answers NOT_FOUND for a missing character when equipping (D-15)', async () => {
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
+            mockCharacterModel.exists.mockReturnValue(asQuery(null));
+
+            await expect(service.equipPet(equip())).rejects.toMatchObject({
+                code: 'NOT_FOUND',
+            });
+        });
+
+        it('refuses a malformed pet id with PET_NOT_OWNED (D-15)', async () => {
+            await expect(service.equipPet(equip('abc'))).rejects.toMatchObject({
+                code: 'PET_NOT_OWNED',
+            });
+            expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
+        });
+
+        it('unequips the companion (D-15)', async () => {
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(1));
+
+            await expect(service.unequipPet(unequip())).resolves.toMatchObject({
+                successful: true,
+            });
+            expect(mockCharacterModel.updateOne).toHaveBeenCalledWith(
+                { _id: c, deletedAt: null },
+                equipPetUpdate(null),
+            );
+        });
+
+        it('answers NOT_FOUND for a missing character when unequipping (D-15)', async () => {
+            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
+
+            await expect(service.unequipPet(unequip())).rejects.toMatchObject({
+                code: 'NOT_FOUND',
+            });
         });
     });
 });
