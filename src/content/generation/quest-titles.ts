@@ -1,4 +1,4 @@
-// titoli in italiano col nome della città: Quest non ha una descrizione, il titolo è tutto ciò che si persiste (D-22)
+// titoli in italiano col nome della città (D-22); il testo dell'annuncio è in quest-descriptions.ts (D-32)
 export const QUEST_TITLES = {
     heal: (city: string) => `Cure al tempio di ${city}`,
     job: (city: string) => `Lavori di bottega a ${city}`,

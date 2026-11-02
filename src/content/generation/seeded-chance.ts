@@ -34,3 +34,19 @@ export class SeededChanceSource extends ChanceSource {
         return shuffled;
     }
 }
+
+// FNV-1a a 32 bit sui code point: trasforma la chiave di una quest in un seme
+function fnv1a32(text: string): number {
+    let hash = 0x811c9dc5;
+    for (const char of text) {
+        hash ^= char.codePointAt(0) ?? 0;
+        hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    return hash;
+}
+
+// flusso separato per quest: le estrazioni di sapore non spostano i sorteggi del generatore (T-11-31)
+// e una quest tiene la sua variante anche se altre quest cambiano
+export function keyedChance(seed: number, key: string): SeededChanceSource {
+    return new SeededChanceSource((seed ^ fnv1a32(key)) >>> 0);
+}

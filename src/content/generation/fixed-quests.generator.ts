@@ -13,8 +13,16 @@ import {
     regionalGroupOf,
     SPELL_STUDY_CITY,
 } from 'src/content/generation/city-profile';
+import { QUEST_DESCRIPTIONS } from 'src/content/generation/quest-descriptions';
+import type {
+    DescriptionKind,
+    DescriptionNames,
+} from 'src/content/generation/quest-descriptions';
 import { QUEST_TITLES } from 'src/content/generation/quest-titles';
-import { SeededChanceSource } from 'src/content/generation/seeded-chance';
+import {
+    keyedChance,
+    SeededChanceSource,
+} from 'src/content/generation/seeded-chance';
 import {
     ContentConfig,
     ContentTier,
@@ -32,7 +40,8 @@ import { RARITY_ORDER } from 'src/quests/outcomes/rewards/cascading-loot';
  *    poi il tiro della study;
  * 2. gruppi regionali ordinati per nome: shuffle delle città candidate alla hunt, poi per
  *    ciascuna scelta pick dell'animale e pick del POI (candidati ordinati per id);
- * 3. POI dungeon ordinati per id: pick del mostro, pick del loot casuale.
+ * 3. POI dungeon ordinati per id: pick del mostro, pick del loot casuale;
+ * 4. descrizioni dal flusso `keyedChance` della chiave, fuori dalla sequenza (D-32).
  * Gli id si riusano per chiave `type|markerLocation[|spellDraw]` (D-01): rigenerare non crea orfani.
  */
 
@@ -81,6 +90,7 @@ interface QuestDraft {
     city: string;
     type: FixedQuestType;
     title: string;
+    description: string;
     enemy: string | null;
     markerLocation: string;
     relatedLore: string[];
@@ -162,6 +172,29 @@ function serviceMinTitle(world: GeneratorWorld, city: WorldCity): ContentTier {
         : world.config.minTitle.serviceCity;
 }
 
+function questKey(
+    type: unknown,
+    markerLocation: unknown,
+    spellDraw: boolean,
+): string {
+    const key = `${String(type)}|${String(markerLocation)}`;
+    return spellDraw ? `${key}|spellDraw` : key;
+}
+
+// variante legata alla chiave della quest: non consuma il flusso principale (D-32)
+function descriptionOf(
+    world: GeneratorWorld,
+    kind: DescriptionKind,
+    key: string,
+    names: DescriptionNames,
+): string {
+    const notice = keyedChance(
+        world.config.generator.seed,
+        `${key}|description`,
+    ).pick(QUEST_DESCRIPTIONS[kind]);
+    return notice ? notice(names) : '';
+}
+
 function serviceDraft(
     world: GeneratorWorld,
     city: WorldCity,
@@ -173,6 +206,12 @@ function serviceDraft(
         city: city.id,
         type,
         title: QUEST_TITLES[type](city.name),
+        description: descriptionOf(
+            world,
+            type,
+            questKey(type, city.markerLocation, false),
+            { city: city.name, enemy: '' },
+        ),
         enemy: null,
         markerLocation: city.markerLocation,
         relatedLore: cityLoreIds(world, city),
@@ -187,6 +226,12 @@ function spellStudyDraft(world: GeneratorWorld, city: WorldCity): QuestDraft {
     return {
         ...serviceDraft(world, city, 'study', serviceMinTitle(world, city)),
         title: QUEST_TITLES.spellStudy(city.name),
+        description: descriptionOf(
+            world,
+            'spellStudy',
+            questKey('study', city.markerLocation, true),
+            { city: city.name, enemy: '' },
+        ),
         spellDraw: true,
     };
 }
@@ -306,6 +351,15 @@ function huntDraft(
         city: city.id,
         type: 'hunt',
         title: QUEST_TITLES.hunt(city.name, animal.name ?? ''),
+        description: descriptionOf(
+            world,
+            'hunt',
+            questKey('hunt', poi.id, false),
+            {
+                city: city.name,
+                enemy: animal.name ?? '',
+            },
+        ),
         enemy: animal.id,
         markerLocation: poi.id,
         relatedLore: withoutDuplicates([
@@ -548,6 +602,12 @@ function dungeonDraft(
         city: city.id,
         type: 'dungeon',
         title: QUEST_TITLES.dungeon(city.name, picked.enemy.name ?? ''),
+        description: descriptionOf(
+            world,
+            'dungeon',
+            questKey('dungeon', poi.id, false),
+            { city: city.name, enemy: picked.enemy.name ?? '' },
+        ),
         enemy: picked.enemy.id,
         markerLocation: poi.id,
         relatedLore: withoutDuplicates([
@@ -581,15 +641,6 @@ function dungeonDrafts(world: GeneratorWorld): QuestDraft[] {
     return drafts;
 }
 
-function questKey(
-    type: unknown,
-    markerLocation: unknown,
-    spellDraw: boolean,
-): string {
-    const key = `${String(type)}|${String(markerLocation)}`;
-    return spellDraw ? `${key}|spellDraw` : key;
-}
-
 function sectionOf(raw: Raw, key: string): Raw {
     const section = raw[key];
     return typeof section === 'object' && section !== null
@@ -621,6 +672,7 @@ function entryOf(draft: QuestDraft, id: string): Raw {
         city: draft.city,
         infos: {
             title: draft.title,
+            description: draft.description,
             type: draft.type,
             enemy: draft.enemy,
             markerLocation: draft.markerLocation,
