@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 10 complete on feat/10-hardening — PR draft open, user actions pending
-last_updated: "2026-10-30T15:48:40.000Z"
-last_activity: "2026-10-30 -- Phase 10 closed (31/31, reviewed/verified/audited); PR draft to develop; user actions pending before ready"
+status: phase-complete
+stopped_at: Phase 11 complete — PR #17 ready for review (FE #36 merged)
+last_updated: "2026-11-02T14:00:00.000Z"
+last_activity: "2026-11-02 -- Phase 11 closed: review → fix → security done, draft PR to develop, reload of 4 lore + 23 quests applied and verified, single-city groups keep no hunt (D-35), FE quick task PR #36 merged and BE PR #17 out of draft, content files and seeding CLI removed from the repo (D-36: the world lives only in the database)"
 progress:
-  total_phases: 13
+  total_phases: 19
   completed_phases: 13
-  total_plans: 145
-  completed_plans: 114
-  percent: 79
+  total_plans: 172
+  completed_plans: 115
+  percent: 67
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 10 — Hardening Trasversale — EXECUTING since 2026-10-29 on `feat/10-hardening` (rebased on `develop` `8f30d1d`): 31 plans / 26 sequential waves — 1a coda del GM e corsia standard (BE-HARD-08, dal discuss della FE Phase 10), 1 validazione + `BAD_USER_INPUT`, 2 superficie di produzione + throttler, 3 secret/env/CI, 4 moderazione Sightengine, 5 resilienza + indici + bug di schema + BE-HARD-07, 6 refactor, 7 coverage, 8 ref `Mixed` con gate proprio (10-29), 9 handoff + gate finale (10-30/10-31). Decisioni dell'utente dopo la ricerca: sweep delle morti rinviato, `THROTTLE_TRUST_PROXY` opzionale spenta, staging = production, `face-age` solo volti reali. La PR di questa fase sblocca il piano gated 10-11 della FE Phase 10. Precedente: Phase 9.2 — Quest Result Delivery Contract — COMPLETE e mergiata (PR #15, 2026-10-29).
+**Current focus:** Phase 11 — Popolamento del mondo — EXECUTING since 2026-11-02 (27 plans / 15 waves, executors one at a time; 11-27 added on 2026-11-02 from the user's content review: D-32 descriptions, D-33 recommended loot) on `feat/11-popolamento-del-mondo` (from `develop` `4dc7e89`, roadmap phases 11–16 merged in with `b55d47b`): wave 1 = `Lore.unlocked` removal + `relatedLore` populate (11-01) and D-31 `spellDraw` (11-02); then loader/schema/rules, mapper, fixes, generator, sync, export, CLI (03–11), real export (12), authoring (13–22), quest generation (23), real-DB apply with the single backup checkpoint (24), runbook + handoff (25), gate (26). Scope: content files + idempotent `--dry-run/--apply/--verify` script written from `World building.docx` (text extracted in the phase `source/`), ~300 lore, 99 creatures + the user's intake, pets, spells, items, fixed quests per city and dungeons on the POIs — the data prerequisite of every FE UAT of Phases 13–17. Previous: Phase 10 — Hardening Trasversale — COMPLETE and merged (PR #16, `4dc7e89`, 2026-10-30).
 
 ## Current Position
 
-Phase: 10 (Hardening Trasversale) — COMPLETE on `feat/10-hardening` (2026-10-30): 31/31 plans executed, reviewed, verified and audited; PR to `develop` opened as DRAFT until the ref migration runs in production (runbook)
-Plan: 31 of 31
-Status: Phase 10 complete — PR draft open; waiting for the user actions in Blockers/Concerns (ref migration in production, defaults to confirm; first gitleaks scan done 2026-10-30) before marking the PR ready; next phase to plan after the merge (FE Phase 10 plan 10-11 resumes after the merge)
-Last activity: 2026-10-30 -- Phase 10 closed: gate 10-31 + post-fix green (build, tsc, unit 182/2419, cov 281/3696 with the 8 folder thresholds, real boot 65/65, SDL +1 additive line); code review 20 findings (15 fixed, 5 not needed), verification passed 8/8, security audit secured (107 threats, 0 open); ref migration in production pending (user, runbook), PR draft
+Phase: 11 (Popolamento del mondo) — COMPLETE (2026-11-02) on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
+Plan: 27 of 27
+Status: Phase 11 COMPLETE (27/27 plans) — next: PR `feat/11-popolamento-del-mondo` → `develop` in draft; the FE quick task that removes `unlocked` from `lore_queries.dart:9`/`lore.dart` must ship before the merge (BACKEND-NOTES §1); the BE serving the real database runs from the phase branch
+Last activity: 2026-11-02 -- Phase 11 closed: review (3 areas, 39 findings) → 3 sequential fixers (36 commits) → verification (passed, gaps closed) → security audit (93/96); full suite after the fixes 329 suites / 4264 tests; draft PR to `develop`; content reload of 4 lore + 23 quests applied and verified (0/0); single-city groups keep no hunt (D-35, user decision); FE quick task for Lore.unlocked merged as Klimmeck-Guide PR #36 (2026-11-02) and BE PR #17 marked ready for review; content files, seeding CLI, generator and runbook removed from the repo (D-36, user: the world lives only in the database; tooling in the history up to b4983d7)
 
-Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 complete; 10 to plan after the 9.2 merge)
+Progress: [██████████] 27/27 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
 ## Performance Metrics
 
@@ -141,6 +141,7 @@ Progress: [██████████] 100% (phases 1–9, 9.1 and 9.2 compl
 - Phase 02.1 inserted after Phase 2: Character Creation Contract (URGENT) — 2026-10-09, richiesto dalla FE Phase 2 (nessuna mutation di creazione personaggio esisteva); branch `feat/02.1-character-creation-contract`
 - Phase 03.1 inserted after Phase 3: Character Deletion Contract (URGENT) — 2026-10-15, richiesto dalla FE Phase 4 (SET-05: cancellazione esplicita del personaggio dalle impostazioni; nessuna mutation di cancellazione esisteva); branch `feat/03.1-character-deletion-contract`
 - Phase 09.2 inserted after Phase 9.1: Quest Result Delivery Contract — 2026-10-27, richiesto dalla FE Phase 9 (COMBAT-09/10: risultati non confermati + ack, posti delle quest avviate mantenuti dall'archivio); branch `feat/09.2-quest-result-delivery-contract`; la Phase 10 si sposta sopra (stacked)
+- Phases 11–16 added 2026-10-29 (user request, before closing v1.0): 11 Popolamento del mondo (contenuto dal documento `World building.docx`, script idempotente, intake delle voci nuove dell'utente), 12 Negozi per città (↔ FE 13), 13 Generazione quest con `infos.enemies` al posto di `infos.enemy` (↔ FE 14), 14 Viaggio e cibo (↔ FE 15), 15 Imboscate in viaggio (↔ FE 16), 16 Lore sbloccabili (↔ FE 17). Ordine deciso dall'utente 11 → 16; contratti del discuss del 2026-10-29 nei dettagli di fase della ROADMAP. Scritte sul branch `docs/v1-world-phases` (worktree) mentre l'executor della Phase 10 girava su `feat/10-hardening`; non riportate prima della PR #16: fuse in `feat/11-popolamento-del-mondo` (da `develop` `4dc7e89`) con `b55d47b` il 2026-11-01.
 
 ### Decisions
 
@@ -263,13 +264,14 @@ None yet.
 - **Branch non pushati:** `feat/01-fondazione-test-consolidamento-spell-wip` e `feat/02-auth-identity-foundation` (la Phase 2 poggia sulla Phase 1, non ancora su `develop`); PR da aprire a mano verso `develop`.
 - `JWT_SECRET` (≥ 32 caratteri) è ora obbligatoria al boot su ogni ambiente; righe `.env` per il dev bypass in `BACKEND-NOTES.md` §7.
 - FE: branch `feat/party-waiting` (etichetta "In attesa del gruppo", abbandono, push questCancelled) da mergiare dopo la PR FE Phase 7 e la PR BE #13.
-- **Phase 10 — azioni dell'utente prima di marcare la PR pronta (2026-10-30):** la PR di `feat/10-hardening` resta draft finché non sono fatte:
+- **Phase 10 — PR #16 fusa su `develop` il 2026-10-30 (`4dc7e89`); la FE Phase 10 l'ha consumata (piano 10-11, E2E su device 10/10 il 2026-11-01).** Le voci 1, 3, 4 e 5 della lista restano un promemoria operativo per l'utente (non bloccano le Phase 11–16); la lista originale:
   1. migrazione dei ref secondo `docs/runbooks/mixed-refs-migration.md`: backup, poi copia ripristinata, poi produzione col codice attuale PRIMA del deploy; allegare alla PR i report JSON di `--verify` (copia e produzione); dopo il deploy di nuovo `--apply` + `--verify` e controllo del log del verificatore;
   2. ~~primo `workflow_dispatch` di `Secret scan`~~ **FATTO il 2026-10-30** (commit e99ab5d): 1228 commit scansionati, 3 falsi positivi gestiti con allowlist `^\.planning/` e fingerprint del badge del template NestJS, nessun secret da ruotare; push, PR e dispatch verdi;
   3. conferma della tabella di policy Sightengine e dei default del throttler (`BACKEND-NOTES.md` §11 della Phase 10, 10 voci);
   4. una chiamata Sightengine reale per A2 (un'immagine accettabile e una da rifiutare, chiavi nel proprio `.env`);
   5. `THROTTLE_TRUST_PROXY` da impostare quando la topologia di produzione sarà nota (vuota = spenta).
   Dopo la merge: UAT del pannello del GM nella FE Phase 10 (piano gated 10-11).
+- **Phase 11 — completa il 2026-11-02, pipeline review → fix → security chiusa (`REVIEW.md`, `REVIEW-FIX.md` 34/39 corretti, `11-SECURITY.md` 93/96), PR #17 `feat/11-popolamento-del-mondo` → `develop` pronta per la review (FE #36 mergiata il 2026-11-02).** Ricarica dopo la review fatta il 2026-11-02 a BE fermo (4 lore + 23 quest, `--verify` 0/0, seconda `--apply` nulla, report `reports/11-fix-*.json`); hunt nei gruppi di una sola città (Ko Shaeras, Talmvere, Ferrion): restano senza per decisione dell'utente (D-35); file di contenuto, CLI, generatore e runbook tolti dal repo con `e857802` (D-36: il mondo vive solo nel database, strumento nella storia fino a `b4983d7`), la PR porta solo le modifiche applicative e `.planning/`. Il quick task FE (PR LucaTabbia/Klimmeck-Guide#36, branch `fix/lore-unlocked-field`), mergiato il 2026-11-02, toglie `unlocked` da `lib/graphql/queries/lore_queries.dart:9` e `lib/models/lore.dart` (`BACKEND-NOTES.md` §1); il contenuto è già nel DB reale (piano 11-24). Restano all'utente: revisione dei contenuti (581 quest contro la stima di 475, titolo doppio di Necrorian `6ae80db9da5c5f8cc552680c`, numeri da calibrare elencati nell'handoff), lettura dell'handoff, UAT sul device nelle FE Phase 13+.
 
 ### Quick Tasks Completed
 
@@ -279,7 +281,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-26T19:45:00.000Z
-Stopped at: Completed 09-20-PLAN.md
-Resume file: None
+Last session: 2026-11-01T20:43:54.900Z
+Stopped at: Phase 11 complete, PR in draft until the FE quick task
+Resume file: .planning/phases/11-popolamento-del-mondo/BACKEND-NOTES.md
 | 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |

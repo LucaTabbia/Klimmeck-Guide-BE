@@ -32,10 +32,6 @@ export class Lore {
         default: [],
     })
     relatedLore: Lore[];
-
-    @Field(() => Boolean)
-    @Prop({ type: Boolean, default: false })
-    unlocked: boolean;
 }
 
 export type LoreDocument = Lore & Document;
@@ -60,7 +56,4 @@ export class LoreInput {
 
     @Field(() => [ID], { nullable: true })
     relatedLore?: string[];
-
-    @Field(() => Boolean, { nullable: true })
-    unlocked?: boolean;
 }

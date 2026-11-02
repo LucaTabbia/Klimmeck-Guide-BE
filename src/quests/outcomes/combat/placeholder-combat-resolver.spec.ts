@@ -11,7 +11,10 @@ import {
     CombatParticipant,
     CombatSpell,
 } from './combat-resolver';
-import { PlaceholderCombatResolver } from './placeholder-combat-resolver';
+import {
+    PlaceholderCombatResolver,
+    winChanceOf,
+} from './placeholder-combat-resolver';
 
 const hex = (suffix: string) => suffix.padStart(24, '0');
 
@@ -268,5 +271,15 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
                 expect(Number.isInteger(result.hpAfter)).toBe(true);
             }
         }
+    });
+});
+
+describe('winChanceOf', () => {
+    it('weighs the party power against the enemy life points', () => {
+        expect(winChanceOf(300, 900)).toBe(0.25);
+    });
+
+    it('gives even odds when both sides are zero', () => {
+        expect(winChanceOf(0, 0)).toBe(0.5);
     });
 });

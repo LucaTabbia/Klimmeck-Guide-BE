@@ -34,6 +34,7 @@ const INJURED_ID = new Types.ObjectId('64b0000000000000000000ec');
 const OTHER_INJURED_ID = new Types.ObjectId('64b0000000000000000000ed');
 const OTHER_ITEM_ID = new Types.ObjectId('64b0000000000000000000ed');
 const OTHER_SPELL_ID = new Types.ObjectId('64b0000000000000000000ee');
+const DRAWN_SPELL_ID = new Types.ObjectId('64b0000000000000000000ef');
 
 type SnapshotOverrides = {
     status?: Partial<OutcomeCharacterSnapshot['status']>;
@@ -759,6 +760,95 @@ describe('planParticipant', () => {
                 studyWith(300, {
                     status: { spells: [LEARNED_SPELL_ID.toHexString()] },
                 }),
+            );
+        });
+
+        it('learns the drawn spell when the quest draws one (D-31)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.study),
+                    rewards: rewardsWith({
+                        xpPrize: 300,
+                        spellDraw: {
+                            pool: [
+                                {
+                                    spellId: LEARNED_SPELL_ID,
+                                    minXpToLearn: 100,
+                                    maxUsages: 4,
+                                },
+                                {
+                                    spellId: DRAWN_SPELL_ID,
+                                    minXpToLearn: 200,
+                                    maxUsages: 2,
+                                },
+                            ],
+                            roll: 0.6,
+                        },
+                    }),
+                }),
+            );
+
+            expect(plan.update.$set['status.spells']).toEqual([DRAWN_SPELL_ID]);
+            expect(plan.update.$set['status.spellStates']).toEqual([
+                { spell: DRAWN_SPELL_ID, usages: 2, recoveries: [] },
+            ]);
+            expect(plan.result.spellLearned).toBe(DRAWN_SPELL_ID);
+        });
+
+        it('keeps the fixed spell of the study when present (D-31)', () => {
+            const plan = studyWith(
+                300,
+                {},
+                {
+                    rewards: rewardsWith({
+                        xpPrize: 300,
+                        spellCandidate: {
+                            spellId: LEARNED_SPELL_ID,
+                            minXpToLearn: 300,
+                            maxUsages: 4,
+                        },
+                        spellDraw: {
+                            pool: [
+                                {
+                                    spellId: DRAWN_SPELL_ID,
+                                    minXpToLearn: 0,
+                                    maxUsages: 2,
+                                },
+                            ],
+                            roll: 0,
+                        },
+                    }),
+                },
+            );
+
+            expect(plan.update.$set['status.spellStates']).toEqual([
+                learnedState,
+            ]);
+            expect(plan.result.spellLearned).toBe(LEARNED_SPELL_ID);
+        });
+
+        it('learns no drawn spell from a lost fight (D-31)', () => {
+            expectNothingLearned(
+                studyWith(
+                    0,
+                    {},
+                    {
+                        verdict: QuestOutcome.failure,
+                        aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                        rewards: rewardsWith({
+                            spellDraw: {
+                                pool: [
+                                    {
+                                        spellId: DRAWN_SPELL_ID,
+                                        minXpToLearn: 0,
+                                        maxUsages: 2,
+                                    },
+                                ],
+                                roll: 0,
+                            },
+                        }),
+                    },
+                ),
             );
         });
 

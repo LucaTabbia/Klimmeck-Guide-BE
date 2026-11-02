@@ -25,6 +25,7 @@ const original: AidSourceQuest = {
     _id: ORIGINAL_ID,
     infos: {
         title: 'Il drago di Valantar',
+        description: 'Un drago minaccia le mura di Valantar.',
         type: QuestType.boss,
         markerLocation: MARKER_ID,
         enemy: ENEMY_ID,
@@ -57,6 +58,12 @@ describe('buildAidQuest', () => {
         expect(aid.infos.enemy).toEqual(ENEMY_ID);
         expect(aid.infos.timeToComplete).toBe(3600000);
         expect(aid.infos.relatedLore).toEqual([LORE_ID]);
+    });
+
+    it('keeps the announcement of the failed quest (D-32)', () => {
+        expect(aid.infos.description).toBe(
+            'Un drago minaccia le mura di Valantar.',
+        );
     });
 
     it('opens the same seats as the failed quest, at no cost, keeping the minimum title', () => {
@@ -141,6 +148,7 @@ describe('buildAidQuest', () => {
             { title: null, count: 1 },
         ]);
         expect(bare.infos.timeToComplete).toBeNull();
+        expect(bare.infos.description).toBeNull();
         expect(bare.prizes).toEqual({
             prizeCoins: null,
             xpPrize: null,

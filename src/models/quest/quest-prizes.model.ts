@@ -37,6 +37,10 @@ export class QuestPrizes {
         default: null,
     })
     spell?: Types.ObjectId | Spell | null;
+
+    // D-31: la study di Valantar sorteggia la magia alla risoluzione; campo interno, mai nello SDL
+    @Prop({ type: Boolean, default: false })
+    spellDraw: boolean;
 }
 
 export type QuestPrizesDocument = QuestPrizes & Document;

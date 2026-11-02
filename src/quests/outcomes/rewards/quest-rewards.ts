@@ -19,6 +19,7 @@ export interface PrizesSnapshot {
     prizeItem?: PrizeEntrySnapshot | null;
     randomLoot?: PrizeEntrySnapshot[] | null;
     spell?: unknown;
+    spellDraw?: unknown;
 }
 
 export interface RewardItem {
@@ -33,16 +34,24 @@ export interface SpellCandidate {
     maxUsages: number;
 }
 
+// pool ordinato per id esadecimale crescente: lo stesso tiro dà la stessa magia
+export interface SpellDraw {
+    pool: readonly SpellCandidate[];
+    roll: number;
+}
+
 export interface DrawnRewards {
     coinsCopper: number;
     xpPrize: number;
     items: RewardItem[];
     spellCandidate: SpellCandidate | null;
+    spellDraw: SpellDraw | null;
 }
 
 export interface RewardCatalog {
     rarities: ReadonlyMap<string, RarityType | null>;
     spells: ReadonlyMap<string, { minXpToLearn: number; maxUsages: number }>;
+    spellPool: readonly SpellCandidate[];
 }
 
 export interface RewardRefs {
@@ -55,6 +64,7 @@ export const NO_REWARDS: DrawnRewards = {
     xpPrize: 0,
     items: [],
     spellCandidate: null,
+    spellDraw: null,
 };
 
 const REWARD_ITEM_TYPES: readonly unknown[] = [
@@ -145,6 +155,17 @@ function spellCandidateOf(
         : null;
 }
 
+// D-31: tiro dopo quello del loot e solo col booleano true, così le altre quest consumano gli stessi tiri di prima
+function spellDrawOf(
+    prizes: PrizesSnapshot,
+    catalog: RewardCatalog,
+    chance: ChanceSource,
+): SpellDraw | null {
+    return prizes.spellDraw === true
+        ? { pool: catalog.spellPool, roll: chance.next() }
+        : null;
+}
+
 // premi della quest vinta (D-16, D-17): voci orfane o malformate scartate, mai un'eccezione (T-09-12)
 export function drawRewards(
     prizes: PrizesSnapshot | null | undefined,
@@ -155,6 +176,7 @@ export function drawRewards(
     const coinsCopper = toCopper(prizes.prizeCoins);
     const prizeItem = catalogued(rewardItemOf(prizes.prizeItem), catalog);
     const rolledLoot = rolledLootOf(prizes, catalog, chance);
+    const spellDraw = spellDrawOf(prizes, catalog, chance);
     return {
         coinsCopper: isNonNegativeInteger(coinsCopper) ? coinsCopper : 0,
         xpPrize: isNonNegativeInteger(prizes.xpPrize) ? prizes.xpPrize : 0,
@@ -162,6 +184,7 @@ export function drawRewards(
             (entry): entry is RewardItem => entry !== null,
         ),
         spellCandidate: spellCandidateOf(prizes, catalog),
+        spellDraw,
     };
 }
 
@@ -175,4 +198,25 @@ export function canLearnSpell(
     return knownSpells.some((spell) => sameId(spell, candidate.spellId))
         ? null
         : candidate.spellId;
+}
+
+// D-31: stesso cancello di canLearnSpell (xp dopo i premi, magia non nota) applicato a tutto il pool
+export function drawLearnableSpell(
+    draw: SpellDraw | null,
+    xpAfter: number,
+    knownSpells: readonly unknown[],
+): SpellCandidate | null {
+    if (!draw) return null;
+    const learnable = draw.pool.filter(
+        (candidate) =>
+            candidate.minXpToLearn <= xpAfter &&
+            !knownSpells.some((spell) => sameId(spell, candidate.spellId)),
+    );
+    if (learnable.length === 0) return null;
+    // il clamp tiene nel pool un tiro uguale a 1 (fuori dal contratto [0,1) del ChanceSource)
+    const index = Math.min(
+        learnable.length - 1,
+        Math.floor(draw.roll * learnable.length),
+    );
+    return learnable[index];
 }

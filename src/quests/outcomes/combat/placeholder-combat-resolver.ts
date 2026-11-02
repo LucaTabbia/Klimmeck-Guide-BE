@@ -53,14 +53,20 @@ const participantPower = (participant: CombatParticipant): number => {
     );
 };
 
-const winChanceOf = (context: CombatContext): number => {
-    const partyPower = context.participants.reduce(
-        (total, participant) => total + participantPower(participant),
-        0,
-    );
-    const total = partyPower + context.enemy.lifePoints;
+// pura: la riusano anche le statistiche offline del contenuto (content --stats)
+export function winChanceOf(partyPower: number, lifePoints: number): number {
+    const total = partyPower + lifePoints;
     return total > 0 ? partyPower / total : EVEN_ODDS;
-};
+}
+
+const partyWinChanceOf = (context: CombatContext): number =>
+    winChanceOf(
+        context.participants.reduce(
+            (total, participant) => total + participantPower(participant),
+            0,
+        ),
+        context.enemy.lifePoints,
+    );
 
 const newInjuryOf = (
     participant: CombatParticipant,
@@ -89,7 +95,7 @@ const healPotionOf = (
 export class PlaceholderCombatResolver extends CombatResolver {
     // A3: la vittoria si tira una volta sola per il gruppo, poi danni, ferite e pozioni per partecipante
     resolve(context: CombatContext, chance: ChanceSource): CombatResolution {
-        const winChance = winChanceOf(context);
+        const winChance = partyWinChanceOf(context);
         const enemyDamage = damagePower(context.enemy.damages);
         const share = Math.max(1, context.participants.length);
         const victory = chance.next() < winChance;

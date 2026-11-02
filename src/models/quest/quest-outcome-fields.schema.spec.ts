@@ -50,6 +50,14 @@ describe('quest outcome fields', () => {
         ).toBeNull();
     });
 
+    it('defaults the spell draw flag to false and keeps it out of the GraphQL type (D-31)', () => {
+        expect(QuestPrizesSchema.path('spellDraw').instance).toBe('Boolean');
+        expect(
+            new (model('QuestPrizesSpellDrawProbe', QuestPrizesSchema))({})
+                .spellDraw,
+        ).toBe(false);
+    });
+
     it('declares the internal placeholder marker on a registration without a default', () => {
         expect(QuestRegistrationSchema.path('archivedAt').instance).toBe(
             'Date',

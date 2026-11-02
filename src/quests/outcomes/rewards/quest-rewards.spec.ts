@@ -4,7 +4,9 @@ import {
     NO_REWARDS,
     PrizesSnapshot,
     RewardCatalog,
+    SpellCandidate,
     canLearnSpell,
+    drawLearnableSpell,
     drawRewards,
     rewardRefsOf,
 } from 'src/quests/outcomes/rewards/quest-rewards';
@@ -16,7 +18,11 @@ const BONE_ID = new Types.ObjectId('64b0000000000000000000b3');
 const SPELL_ID = new Types.ObjectId('64b0000000000000000000b4');
 const ORPHAN_SPELL_ID = new Types.ObjectId('64b0000000000000000000b5');
 
-const emptyCatalog: RewardCatalog = { rarities: new Map(), spells: new Map() };
+const emptyCatalog: RewardCatalog = {
+    rarities: new Map(),
+    spells: new Map(),
+    spellPool: [],
+};
 
 const catalog: RewardCatalog = {
     rarities: new Map<string, RarityType | null>([
@@ -26,7 +32,23 @@ const catalog: RewardCatalog = {
     spells: new Map([
         [SPELL_ID.toHexString(), { minXpToLearn: 4000, maxUsages: 4 }],
     ]),
+    spellPool: [],
 };
+
+const spellOf = (
+    hex: string,
+    minXpToLearn: number,
+    maxUsages = 3,
+): SpellCandidate => ({
+    spellId: new Types.ObjectId(hex),
+    minXpToLearn,
+    maxUsages,
+});
+
+const SPELL_A = spellOf('64b0000000000000000000c1', 100);
+const SPELL_B = spellOf('64b0000000000000000000c2', 300);
+const SPELL_C = spellOf('64b0000000000000000000c3', 5000);
+const SPELL_D = spellOf('64b0000000000000000000c4', 200);
 
 const prizesWith = (overrides: PrizesSnapshot): PrizesSnapshot => ({
     prizeCoins: null,
@@ -47,6 +69,7 @@ describe('drawRewards', () => {
             xpPrize: 0,
             items: [],
             spellCandidate: null,
+            spellDraw: null,
         });
     });
 
@@ -62,6 +85,7 @@ describe('drawRewards', () => {
             xpPrize: 90,
             items: [{ itemType: 'LootItem', item: POTION_ID, quantity: 2 }],
             spellCandidate: null,
+            spellDraw: null,
         });
     });
 
@@ -159,6 +183,107 @@ describe('drawRewards', () => {
         );
 
         expect(rewards.spellCandidate).toBeNull();
+    });
+});
+
+describe('drawRewards with a spell draw', () => {
+    const drawCatalog: RewardCatalog = {
+        ...catalog,
+        spellPool: [SPELL_A, SPELL_B],
+    };
+    const lootPrizes = (overrides: PrizesSnapshot = {}): PrizesSnapshot =>
+        prizesWith({
+            randomLoot: [{ itemType: 'LootItem', item: BONE_ID, quantity: 1 }],
+            ...overrides,
+        });
+
+    it('draws one roll for the spell after the loot roll when the quest draws a spell (D-31)', () => {
+        const chance = new SequenceChance([0.1, 0.7]);
+
+        const rewards = drawRewards(
+            lootPrizes({ spellDraw: true }),
+            drawCatalog,
+            chance,
+        );
+
+        expect(rewards.items).toEqual([
+            { itemType: 'LootItem', item: BONE_ID, quantity: 1 },
+        ]);
+        expect(rewards.spellDraw).toEqual({
+            pool: [SPELL_A, SPELL_B],
+            roll: 0.7,
+        });
+        expect(chance.drawn).toEqual([0.1, 0.7]);
+    });
+
+    it('consumes no extra roll without the spell draw flag', () => {
+        const chance = new SequenceChance([0.1, 0.7]);
+
+        const rewards = drawRewards(lootPrizes(), drawCatalog, chance);
+
+        expect(rewards.spellDraw).toBeNull();
+        expect(chance.drawn).toEqual([0.1]);
+    });
+
+    it.each([['true'], [1], [null]])(
+        'ignores a spell draw flag that is not the boolean true: %p (D-31)',
+        (spellDraw) => {
+            const chance = new SequenceChance([0.1, 0.7]);
+
+            const rewards = drawRewards(
+                lootPrizes({ spellDraw }),
+                drawCatalog,
+                chance,
+            );
+
+            expect(rewards.spellDraw).toBeNull();
+            expect(chance.drawn).toEqual([0.1]);
+        },
+    );
+});
+
+describe('drawLearnableSpell', () => {
+    it('picks among the unknown spells the xp after the prizes can learn (D-31)', () => {
+        const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], roll: 0 };
+
+        expect(drawLearnableSpell(draw, 400, [SPELL_A.spellId])).toEqual(
+            SPELL_B,
+        );
+    });
+
+    it('treats a known spell stored as a legacy string as known (D-31)', () => {
+        const draw = { pool: [SPELL_A, SPELL_B], roll: 0 };
+
+        expect(
+            drawLearnableSpell(draw, 400, [SPELL_A.spellId.toHexString()]),
+        ).toEqual(SPELL_B);
+    });
+
+    it('returns no spell when nothing is learnable (D-31)', () => {
+        const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], roll: 0 };
+
+        expect(drawLearnableSpell(draw, 50, [])).toBeNull();
+    });
+
+    it('maps the roll onto the learnable spells only (D-31)', () => {
+        const pool = [SPELL_A, SPELL_C, SPELL_B, SPELL_D];
+
+        expect(drawLearnableSpell({ pool, roll: 0.99 }, 400, [])).toEqual(
+            SPELL_D,
+        );
+        expect(drawLearnableSpell({ pool, roll: 0.34 }, 400, [])).toEqual(
+            SPELL_B,
+        );
+    });
+
+    it('returns no spell without a draw', () => {
+        expect(drawLearnableSpell(null, 50000, [])).toBeNull();
+    });
+
+    it('clamps a roll out of range onto the last learnable spell', () => {
+        const draw = { pool: [SPELL_A, SPELL_B, SPELL_D], roll: 1 };
+
+        expect(drawLearnableSpell(draw, 400, [])).toEqual(SPELL_D);
     });
 });
 

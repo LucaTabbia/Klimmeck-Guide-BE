@@ -320,7 +320,6 @@ type Lore {
   name: String!
   relatedLore: [Lore!]!
   type: String!
-  unlocked: Boolean!
 }
 
 type Mutation {
@@ -527,6 +526,7 @@ type Quest {
 }
 
 type QuestInfos {
+  description: String
   enemy: Enemy
   markerLocation: PointOfInterest!
   relatedLore: [Lore!]!

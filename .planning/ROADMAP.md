@@ -4,6 +4,8 @@
 
 Questa milestone porta il backend brownfield da "completamente aperto e con bug di concorrenza" a "fonte di verità sicura e atomica". Si parte dalla fondazione di test TDD (senza cui nulla è testabile) e dal consolidamento del WIP spell nel working tree, poi si posa il seam di autenticazione (JWT di sessione, guard globale HTTP + WS) e l'autorizzazione (ownership, ruoli, audit). Sopra le atomiche economiche — la fondazione trasversale che rende sicuri i crediti EventSub e il lifecycle viaggi — si innestano push FCM, sync punti Twitch, le corsie quest e il lifecycle viaggi (i due contratti che sbloccano le fasi FE 6 e 7 su staging), il contratto combat/admin, e infine l'hardening trasversale. Ogni fase consegna una capacità coerente e verificabile, e diverse fasi sbloccano deliberatamente in anticipo le rispettive fasi FE.
 
+**Estensione del 2026-10-29 (Phases 11–16).** Prima di chiudere la v1.0 l'utente ha aggiunto sei fasi di contenuto e regole di gioco: il popolamento del mondo dal documento di world building (dati per tutto il resto), i negozi con pool per città e taglia, la generazione server-side delle quest consumabili con il contratto multi-nemico, il cibo consumato dal viaggio, le imboscate lungo la strada e le lore sbloccabili per personaggio. Ordine deciso dall'utente: 11 → 12 → 13 → 14 → 15 → 16 (il multi-nemico della 13 arriva prima dell'imboscata della 15; il cibo della 14 lascia i punti d'innesto della partenza alla 15). Le fasi FE 13–17 sono companion delle BE 12–16 e partono dopo la merge della fase BE corrispondente su `develop`. Ogni regola di gioco resta server-side; i valori numerici nascono come costanti configurabili con default provvisori, come il motore di combattimento (Phase 9 D-02).
+
 ## Phases
 
 **Phase Numbering:**
@@ -26,6 +28,13 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 9.1: Spell State and Recovery Contract** (INSERTED 2026-10-27) - Stato per magia conosciuta `status.spellStates { spell, usages, recoveries }` che sopravvive a equip/disequip, recupero che non si interrompe mai (regola dell'utente), processor idempotente + reconciler/sweep, migrazione al boot; sblocca FE Phase 8 (SPELL-05) (completed 2026-10-27)
 - [x] **Phase 9.2: Quest Result Delivery Contract** (INSERTED 2026-10-27) - Query dei risultati non confermati dell'utente, mutation di conferma idempotente, `QuestResult.acknowledgedAt` additivo, posti delle quest avviate non più liberati dall'archivio (regola dell'utente), il morto resta corrente fino alla conferma (D-12); sblocca FE Phase 9 (COMBAT-09/10) (completed 2026-10-28)
 - [x] **Phase 10: Hardening Trasversale** - Validazione input, introspection off/CORS/sanitization, `.env.example`, coverage aree critiche, throttling minimo, moderazione immagini Sightengine, debiti rinviati (BE-HARD-05/06, 2026-10-27), combattimento con i segnaposto e avvio atomico delle quest da soli (BE-HARD-07, dalla UAT FE Phase 9, 2026-10-29), coda del GM e corsia standard (BE-HARD-08, dal discuss FE Phase 10, 2026-10-29) (completed 2026-10-30)
+
+- [x] **Phase 11: Popolamento del mondo** - File di contenuto versionati (lore ~300 schede, 99 creature + voci proposte dall'utente, pet, magie, equipaggiamento, cibo e consumabili, quest fisse per città e dungeon sui POI) scritti dal documento di world building e caricati da uno script idempotente `--dry-run/--apply/--verify`; immagini a carico dell'utente in un secondo passaggio _(aggiunta 2026-10-29)_
+- [ ] **Phase 12: Negozi per città** - `City.size` (village/city/capital) e pool di oggetti per città curato a mano e caricato dallo script; acquisto fuori pool rifiutato dal server, vendita ovunque, scorte infinite, leggendari mai in vendita, prezzi del catalogo _(aggiunta 2026-10-29)_
+- [ ] **Phase 13: Generazione quest** - `infos.enemies [{ enemy, quantity }]` sostituisce `infos.enemy`; generatore server-side delle quest consumabili `enemy`/`boss` (reattivo + sweep + mutation GM), tetto 3 per città, distribuzione casuale non concentrata, rango meno coperto nel mondo, nemico dalla zona del POI, premi per fascia, oggetti consigliati da debolezze e danni; `hunt` e `dungeon` mai generate (fisse, Phase 11) _(aggiunta 2026-10-29)_
+- [ ] **Phase 14: Viaggio e cibo** - Il viaggio consuma oggetti `hunger` in base al tempo di marcia (1 power = 3 min), selezione a scarto minimo, km scoperti → vita persa (il km n-esimo costa n HP), partenza libera o da quest rifiutata se non si arriva con ≥ 1 HP, tutto alla partenza; teleport e salto esenti _(aggiunta 2026-10-29)_
+- [ ] **Phase 15: Imboscate in viaggio** - Probabilità per km e quota notturna (22–06 Europe/Rome), nemico della zona entro la fascia Medio, job al momento dell'imboscata con `CombatResolver`; vittoria → XP e monete, sconfitta → HP ≥ 1 e ferite, rotta deviata verso la città più vicina, quest abbandonata; report sul `QuestResult` all'arrivo _(aggiunta 2026-10-29)_
+- [ ] **Phase 16: Lore sbloccabili** - Insieme di lore per personaggio: città natale + regione alla creazione, città all'arrivo (anche teleport/salto), nemici alla vittoria (tutti i vincitori), tiro sulle `study` senza magia; nessuna cascata; query di lore filtrate per personaggio e flag `known` sui nemici delle quest _(aggiunta 2026-10-29)_
 
 ## Phase Details
 
@@ -356,6 +365,125 @@ Plans:
 **Unblocks (FE)**: mirror di FE Phase 12 (hardening); BE-HARD-08 sblocca il piano gated 10-11 della FE Phase 10 (Admin Panel).
 **Branch**: `feat/10-hardening` da `develop` → PR a `develop`. _(Emendato 2026-10-27: creato sopra `feat/09.1-spell-state-and-recovery-contract`; spostato sopra `feat/09.2-quest-result-delivery-contract` dopo il merge della 9.1; PR dopo il merge della 9.2, con rebase.)_
 
+### Phase 11: Popolamento del mondo
+**Goal**: Il DB contiene il mondo di Klimmeck descritto nel documento di world building dell'utente — circa 300 schede di lore collegate fra loro, alle città e ai nemici; 99 creature più quelle proposte dall'utente (nemici umani, giganti, bande di briganti…) con statistiche derivate per fascia; pet, magie, equipaggiamento comune e unico, cibo e consumabili; le quest fisse di ogni città (sempre una `heal`, una fra `job` e `hunt`, eventuali `crime`/`guard`/`study`) e le `dungeon` fisse sui POI di tipo dungeon — tutto in file di contenuto versionati nel repo e caricati da uno script idempotente, così che le Phase 12–16 e le UAT FE abbiano dati reali.
+**Depends on**: Phase 10 (validazione input, indici, ref tipizzati: i file di contenuto rispettano lo schema indurito e lo script riusa il pattern CLI `--dry-run/--apply/--verify` di 10-26)
+**Requirements**: BE-CONTENT-01, BE-CONTENT-02, BE-CONTENT-03, BE-CONTENT-04, BE-CONTENT-05, BE-CONTENT-06, BE-CONTENT-07
+**Success Criteria** (what must be TRUE):
+  1. Una cartella di contenuto nel repo (es. `content/`) contiene i file (JSON o YAML, deciso nel discuss) di lore, nemici, pet, magie, equipaggiamento, loot e quest fisse, scritti a partire dal testo del documento (estratto in `.planning/phases/11-popolamento-del-mondo/source/world-building.md`; il `.docx` da 103 MB resta fuori dal repo) e rivisti dall'utente; nessuna immagine nel repo, le URL Cloudinary arrivano in un secondo passaggio per nome.
+  2. Uno script CLI idempotente carica i contenuti per `_id` (ogni voce porta il proprio id, i riferimenti sono id; emendato 2026-11-01 nel discuss), risolve i riferimenti (lore ↔ lore, `Enemy.relatedLore`, `City.relatedLore`, `Quest.infos.relatedLore`, marker delle quest fisse, `prizes.spell` delle study) e riporta orfani, duplicati e violazioni di schema senza scrivere (`--verify`); rieseguito non cambia nulla.
+  3. Lore: circa 300 schede a grana fine — ogni culto in tre schede (`god` = rappresentazione, `religion` = credo/discepoli/luoghi, `ceremony` = feste), regni `state`, aree `region`, ere e saggio di magia `knowledge`, figure `character`, creature `enemy`/`animal`, piante `plant` — con `relatedLore` incrociate, ogni città agganciata alla propria lore e ogni lore di città alla regione.
+  4. Nemici: le 99 creature del documento (63 mostri, 22 animali, 14 leggendari) più le voci proposte dall'utente nel passo di **intake** del discuss (nemici umani di vario tipo, giganti, bande di briganti…) e le proposte di Claude per le fasce di livello vuote; XP e habitat (`locations: PoiType[]`) dal documento; `lifePoints`, `damages`, debolezze base/energia da una formula per fascia in scala con `LEVEL_TABLE` (1 000 → 40 000) e dedotte dal testo, tutte ritoccabili nel file e da rivedere con il motore di combattimento dell'utente.
+  5. Pet (6–8 cavalcature dagli animali del documento + 3–4 proposte nuove, con `speedModifier`, HP e prezzi), le 77 magie esistenti più le 11 nuove (10 dal saggio sulla magia, sciamanesimo e Vuoto, più «Urlo del Berserker» voluta dall'utente) (`UseType`/`EnergyType`, `minXpToLearn`, usi, recupero) _(emendato 2026-11-02, D-15)_, 27 equipaggiamenti unici rari/ultrarari/leggendari legati a figure, culti e mostri, equipaggiamento comune/uncommon per i negozi e loot `hunger`/`heal`/`munition` con `power` tarato sulla regola del cibo della Phase 14 (1 power = 3 minuti di marcia).
+  6. Quest fisse e ripetibili (regola per tipo della Phase 7): per ogni città una `heal` e un `job`, più una `hunt` sorteggiata dove vivono animali facili (caccia a soli animali della zona), eventuali `crime`/`guard`/`study` (study di magia solo a Valantar, una sola con magia sorteggiata per personaggio; Necrorian solo `dungeon`, Ferrion senza `crime`; emendato 2026-11-01 nel discuss), e una `dungeon` su ogni POI di tipo `dungeon`; quest di servizio (heal, job, guard, crime, study) sul marker della città, hunt e dungeon su POI distinti _(emendato 2026-11-02, D-21)_, premi dalla tabella per fascia; nessuna quest `enemy`/`boss` a mano (le genera la Phase 13).
+  7. Suite verde, schema GraphQL invariato (o solo campi additivi di contenuto dichiarati), handoff `BACKEND-NOTES.md` con l'inventario dei dati per le UAT delle FE Phase 13–17 e la procedura di ricarica.
+**Decisioni dell'utente (2026-10-29)**: flusso file + script; grana fine delle lore; formula per fascia con scelte di Claude; intake delle voci nuove prima della stesura; immagini a carico dell'utente; `hunt` solo animali e `dungeon` fissa sui POI dungeon.
+**Da decidere nel discuss**: formato e layout di `content/`, formula HP/danni per fascia, tabella premi per fascia, tie-break dei nomi duplicati, quali città ricevono crime/guard/study, sorte del flag globale `Lore.unlocked` (Phase 16), ambienti su cui girare lo script (dev, staging, produzione).
+**Unblocks (FE)**: dati reali per le UAT delle FE Phase 13–17; nessun contratto nuovo.
+**Branch**: `feat/11-popolamento-del-mondo` da `develop` → PR a `develop`.
+**Plans**: 27 plans (il 27 aggiunto il 2026-11-02 dalla revisione dei file dell'utente: D-32/D-33) — esecuzione completa il 2026-11-02; PR `feat/11-popolamento-del-mondo` → `develop` in draft fino al rilascio del quick task FE che toglie `unlocked`
+- [x] 11-01-PLAN.md — Wave 1: `Lore.unlocked` rimosso (SDL dichiarato nel boot reale) e `relatedLore` popolati in lore e nemici (BE-CONTENT-03)
+- [x] 11-02-PLAN.md — Wave 1: D-31, la study di Valantar sorteggia una magia apprendibile (`QuestPrizes.spellDraw` interno) (BE-CONTENT-06)
+- [x] 11-03-PLAN.md — Wave 2: dipendenza `yaml`, loader con posizioni, `content/config.yaml`, regole pure di XP/HP/danni/premi/tempi (BE-CONTENT-01/02/04/05/06)
+- [x] 11-04-PLAN.md — Wave 3: schema dei file per collezione (class-validator) e mini-albero di test (BE-CONTENT-01/02)
+- [x] 11-05-PLAN.md — Wave 4: controlli offline `checkContent` (riferimenti, regole delle quest) e `content/README.md` (BE-CONTENT-01/02/06)
+- [x] 11-06-PLAN.md — Wave 4: mapper canonici voce → documento (BE-CONTENT-02/04/06)
+- [x] 11-07-PLAN.md — Wave 4: correzioni dichiarate (6 POI, Kliever, quest di prova con guardie, `unlocked`) (BE-CONTENT-02)
+- [x] 11-08-PLAN.md — Wave 5: generatore deterministico delle quest fisse, TDD (BE-CONTENT-06)
+- [x] 11-09-PLAN.md — Wave 5: sync idempotente (diff BSON, upsert per `_id`, orfani, prune, report) (BE-CONTENT-02)
+- [x] 11-10-PLAN.md — Wave 6: export una tantum con commenti `# nome` (BE-CONTENT-01/02)
+- [x] 11-11-PLAN.md — Wave 7: CLI `run-content` (`--check/--dry-run/--apply/--verify/--export/--prune/--new-id`) provato sul compilato (BE-CONTENT-02)
+- [x] 11-12-PLAN.md — Wave 8: export reale, snapshot del mondo, baseline `--verify`, misura D-12 con `--stats` (BE-CONTENT-01/02/05/07)
+- [x] 11-13-PLAN.md — Wave 9: lore di regni, regioni, storia, materiali e magia (BE-CONTENT-01/03)
+- [x] 11-14-PLAN.md — Wave 9: magie dello sciamanesimo e del Vuoto, unici, cibo tarato e pozioni (BE-CONTENT-01/05)
+- [x] 11-15-PLAN.md — Wave 10: lore dei 18 culti e delle figure (BE-CONTENT-01/03)
+- [x] 11-16-PLAN.md — Wave 10: mostri A (lore + nemici) (BE-CONTENT-01/03/04)
+- [x] 11-17-PLAN.md — Wave 10: mostri B (lore + nemici) (BE-CONTENT-01/03/04)
+- [x] 11-18-PLAN.md — Wave 10: mostri C (lore + nemici) (BE-CONTENT-01/03/04)
+- [x] 11-19-PLAN.md — Wave 10: animali, piante e cavalcature (BE-CONTENT-01/03/04/05)
+- [x] 11-20-PLAN.md — Wave 10: lore di città 1 (Drustea, Valan, Mirwa + 12 esistenti) (BE-CONTENT-01/03)
+- [x] 11-21-PLAN.md — Wave 10: lore di città 2 (Fiamme, Madre, Liberia, speciali) (BE-CONTENT-01/03)
+- [x] 11-22-PLAN.md — Wave 11: leggendari, umani ostili, orchi e gigante delle colline (BE-CONTENT-01/03/04)
+- [x] 11-23-PLAN.md — Wave 12: generazione reale delle quest fisse (BE-CONTENT-01/06)
+- [x] 11-27-PLAN.md — Wave 12.5 (aggiunto 2026-11-02): `QuestInfos.description` additivo, descrizioni e `recommendedLoot` più ricco nel generatore, rigenerazione delle quest (D-32, D-33) (BE-CONTENT-06)
+- [x] 11-24-PLAN.md — Wave 13 (checkpoint backup): prova sul filo dell'albero reale e caricamento sul DB (BE-CONTENT-02..06)
+- [x] 11-25-PLAN.md — Wave 14: runbook `content-seeding.md`, `BACKEND-NOTES.md`, requisiti emendati (BE-CONTENT-07)
+- [x] 11-26-PLAN.md — Wave 15: gate finale, coverage `./src/content/`, VALIDATION, requisiti, stato (BE-CONTENT-01..07)
+
+### Phase 12: Negozi per città
+**Goal**: Ogni città vende un proprio pool di oggetti deciso a mano e caricato dallo script della Phase 11, coerente con la sua taglia (`City.size`: village / city / capital — villaggi comuni e qualche uncommon, città anche rari, capitali anche ultrarari, leggendari mai); il server rifiuta l'acquisto di oggetti fuori dal pool della città in cui si trova il personaggio; vendita ovunque, scorte infinite, prezzi del catalogo.
+**Depends on**: Phase 4 (`ShopTransactionService`, prezzi dal catalogo), Phase 8 (città e marker, `SHOP_NOT_IN_CITY`), Phase 11 (catalogo e pool seminati)
+**Requirements**: BE-SHOP-01, BE-SHOP-02, BE-SHOP-03, BE-SHOP-04, BE-SHOP-05
+**Success Criteria** (what must be TRUE):
+  1. `City.size` (enum, additivo) e il pool della città (es. `City.shopItems: [ref EquipmentItem | LootItem]`, additivo) esistono a schema e a DB; lo script di contenuto li carica per nome e `--verify` segnala pool che violano la regola di taglia (rarità non ammessa, leggendari, oggetti non vendibili).
+  2. Il client ottiene il pool della città in cui il personaggio si trova con una query owner-aware o con campi su `City` (deciso nel discuss); `equipmentAssetsQuantity(sellable)` e `lootAssetsQuantity` vengono deprecati o filtrati per città; nessun filtro su campi fuori schema (`sellable` entra in `AssetItem` o sparisce).
+  3. `doTransaction` rifiuta con un codice stabile (es. `ITEM_NOT_IN_SHOP`) ogni acquisto di un oggetto fuori dal pool della città del marker, prima di qualsiasi scrittura e riaffermato dentro la transazione; la vendita resta ammessa in ogni città (`SHOP_NOT_IN_CITY` invariato); scorte infinite, prezzi del catalogo.
+  4. Integration: villaggio, città e capitale con tre pool diversi; acquisto fuori pool → rifiuto senza scritture; vendita fuori pool → ok; real boot con SDL additivo; handoff `BACKEND-NOTES.md` per la FE Phase 13.
+**Decisioni dell'utente (2026-10-29)**: campo esplicito `size` su `City`; pool curato a mano caricato dallo script; vendita ovunque e scorte infinite; leggendari mai in vendita; prezzi identici in ogni città.
+**Unblocks (FE)**: FE Phase 13 (SHOP-02/03).
+**Branch**: `feat/12-negozi-per-citta` da `develop` → PR a `develop`.
+**Plans**: TBD
+
+### Phase 13: Generazione quest
+**Goal**: Il tabellone si rifornisce da solo: il server genera e posiziona le quest consumabili `enemy` e `boss` (le `hunt` e `dungeon` sono fisse, Phase 11) su un POI libero di una città, con al massimo 3 quest generate attive per città, una distribuzione casuale ma non concentrata sulla mappa (alcune città 0, altre 3), il nemico scelto dalla zona del POI, il rango dal rango meno coperto fra le quest generate attive di tutto il mondo, premi dalla fascia e oggetti consigliati dalle debolezze e dai danni del nemico; le quest portano più nemici e più tipi (`infos.enemies: [{ enemy, quantity }]` sostituisce `infos.enemy`).
+**Depends on**: Phase 7 (corsie, accettazione, ripetibilità per tipo), Phase 9 (risoluzione, `concludedAt`, abbandono, `CombatResolver`), Phase 11 (nemici, POI, città popolati)
+**Nota dell'utente (2026-11-02, dalla revisione della Phase 11, D-33):** le `dungeon` sono esplorazioni (rovine, templi abbandonati, città in rovina, grotte) con **più nemici** (`infos.enemies`), lunghe, con grandi ricompense di loot, oro e XP solo se esplorazione e battaglie riescono: l'algoritmo di risoluzione delle `dungeon` è diverso da quello delle altre quest e va progettato in questa fase insieme a `infos.enemies`; il `recommendedLoot` consiglia cibo e oggetti da esplorazione, più equipaggiamenti e pozioni contro i punti di forza e le debolezze dei nemici (già seminato dalla Phase 11 per le quest fisse).
+**Requirements**: BE-QGEN-01, BE-QGEN-02, BE-QGEN-03, BE-QGEN-04, BE-QGEN-05, BE-QGEN-06, BE-QGEN-07, BE-QGEN-08
+**Success Criteria** (what must be TRUE):
+  1. `QuestInfos.enemies: [{ enemy, quantity }]` sostituisce `enemy` (modifica SDL non additiva, dichiarata nel real boot) nel populate, nel contesto del `CombatResolver` (più nemici: il segnaposto aggrega HP e danni), nel `QuestResult` (nemici affrontati), nella clone della aid e nei fixture; migrazione idempotente dei dati esistenti (`enemy` → `enemies` con `quantity: 1`).
+  2. Il generatore gira (a) quando una quest generata si conclude o viene annullata, (b) con uno sweep periodico configurabile e al boot, (c) su mutation innkeeper `generateQuests` auditata; ogni corsa è idempotente, single-flight e deterministica dato un RNG iniettato.
+  3. Tetto di 3 quest generate attive per città (le fisse hunt/dungeon/job/heal/crime/guard/study e le GM story/worldMission non contano); la città è sorteggiata con peso decrescente al crescere della densità di quest generate nelle città vicine (nessuna concentrazione) e non ogni città ne riceve.
+  4. `minTitle` = rango meno coperto fra le quest generate attive di tutto il mondo (count a DB); POI = `pointsOfInterest` libero della città (nessuna quest non conclusa sul marker, marker della città escluso); nemici estratti fra quelli con `locations` compatibili con i `type` del POI (`all` di riserva) e XP nella fascia del rango, uno o più tipi con quantità; boss con `requiredAdventurers` per rango.
+  5. Premi (`prizeCoins`, `xpPrize`, `randomLoot` per rarità) dalla tabella per fascia; `recommendedLoot` scelto fra equipaggiamento che colpisce `baseWeaknesses`/`energyWeaknesses` e consumabili contro i `damages` dei nemici; titolo da template (descrizione LLM resta v2).
+  6. Integration: tetto rispettato, nessuna doppia quest sullo stesso POI sotto concorrenza, `hunt` e `dungeon` mai generate, distribuzione non concentrata su una mappa di prova, `generateQuests` `FORBIDDEN` per l'adventurer; handoff `BACKEND-NOTES.md` per la FE Phase 14 (contratto `enemies`, mutation, piani FE gated prima della merge).
+**Decisioni dell'utente (2026-10-29)**: trigger reattivo + sweep + GM; solo `enemy` e `boss`; rango meno coperto nel mondo, città da 0 a 3 quest, non concentrate; multi-nemico a sostituzione secca; `hunt` solo animali e `dungeon` fissa, entrambe seminate nella Phase 11.
+**Unblocks (FE)**: FE Phase 14 (QGEN-01..04); la Phase 15 imboscate combatte già con `enemies`.
+**Branch**: `feat/13-generazione-quest` da `develop` → PR a `develop`.
+**Plans**: TBD
+
+### Phase 14: Viaggio e cibo
+**Goal**: Viaggiare consuma cibo: il fabbisogno è il tempo di marcia (1 power ogni 3 minuti della durata calcolata, che già somma terreno della strada, pet e ferite), il server sceglie fra gli oggetti `hunger` del personaggio quelli che coprono il fabbisogno con lo scarto minimo e li consuma alla partenza; i chilometri scoperti dal cibo costano vita (il km scoperto n-esimo costa n HP); se il personaggio non arriverebbe con almeno 1 HP la partenza — libera o automatica da quest — è rifiutata. Teleport e salto istantaneo esenti.
+**Depends on**: Phase 8 (planner, durata, `travelPreview`), Phase 7 (accettazione con viaggio automatico nella transazione del claim), Phase 4 (inventario atomico), Phase 11 (cibo a catalogo)
+**Requirements**: BE-FOOD-01, BE-FOOD-02, BE-FOOD-03, BE-FOOD-04, BE-FOOD-05, BE-FOOD-06
+**Success Criteria** (what must be TRUE):
+  1. Modulo puro del cibo con costanti configurabili (default 3 minuti per power; scala triangolare): fabbisogno = ⌈durata / 3 min⌉ power; selezione a scarto minimo fra gli `ownedItems` con `effect: hunger` (es. 60 richiesti con un 50 e tre 20 → i tre 20; tie-break documentato), un oggetto usato in parte è consumato intero; km scoperti = quota di fabbisogno non coperta × distanza, HP persi = n(n+1)/2 con arrotondamento deciso nel discuss; HP risultante ≥ 1 altrimenti rifiuto.
+  2. `travelPreview` espone in modo additivo cibo da consumare (item e quantità) e HP persi; esiste una preview owner-only equivalente per l'accettazione della quest standard con viaggio (campo o query, deciso nel discuss).
+  3. `startTravel` e `acceptQuest` (corsia standard con viaggio) consumano il cibo e scalano gli HP nello stesso update condizionale della partenza o del claim (quantità e HP riaffermati nel filtro) e rifiutano con un codice stabile (es. `TRAVEL_STARVING`) senza scritture quando non si arriva con ≥ 1 HP; teleport e salto istantaneo non consumano nulla.
+  4. Integration: viaggio coperto, parziale (HP scalati), rifiutato; pet ×2 dimezza il cibo, ferita che raddoppia il tempo lo raddoppia, strada lenta costa più della pianura; concorrenza fra due partenze con lo stesso cibo → una sola riesce; handoff `BACKEND-NOTES.md` per la FE Phase 15.
+**Decisioni dell'utente (2026-10-29)**: cibo proporzionale al tempo di marcia totale (terreno compreso); scarto minimo; lineare assoluta n HP; alla partenza; vale anche per il viaggio automatico della quest.
+**Unblocks (FE)**: FE Phase 15 (FOOD-01..04).
+**Branch**: `feat/14-viaggio-e-cibo` da `develop` → PR a `develop`.
+**Plans**: TBD
+
+### Phase 15: Imboscate in viaggio
+**Goal**: Un viaggio può essere teso da un'imboscata: la probabilità cresce con i km e con la quota del viaggio che cade di notte (22–06 nel fuso dello streamer), il nemico è estratto dalla zona attraversata con XP entro la fascia Medio del livello del personaggio, lo scontro è risolto al momento dell'imboscata da un job con la porta `CombatResolver`; vittoria → il viaggio prosegue e il report porta XP e monete per fascia; sconfitta → HP ≥ 1 e ferite, rotta deviata verso la città più vicina al punto dell'imboscata, quest della corsia standard abbandonata, cibo non rimborsato; il report arriva a fine viaggio sulla pipeline dei risultati (mai perso, con conferma).
+**Depends on**: Phase 14 (punti d'innesto della partenza), Phase 13 (`enemies`, contesto multi-nemico), Phase 9 (`QuestResult`, delivery, ack, abbandono), Phase 8 (job di completamento, polilinea, reconciler/sweep)
+**Requirements**: BE-AMBUSH-01, BE-AMBUSH-02, BE-AMBUSH-03, BE-AMBUSH-04, BE-AMBUSH-05, BE-AMBUSH-06, BE-AMBUSH-07
+**Success Criteria** (what must be TRUE):
+  1. Alla partenza il server sorteggia l'imboscata (sì/no e istante lungo la rotta) con probabilità da costanti configurabili (per km, per quota notturna, soglia minima sotto cui non avviene; `AMBUSH_TIMEZONE` default Europe/Rome) e la persiste in modo interno, mai sul filo; un job Bull scatta all'istante dell'imboscata, con reconciler al boot e sweep come i viaggi.
+  2. Il job estrae i nemici fra quelli con `locations` compatibili con i `type` dei POI vicini al punto dell'imboscata (`all` di riserva) e XP ≤ soglia Medio del livello del personaggio (tabella per livello del documento), risolve con `CombatResolver` e scrive in una sola transazione: vittoria → viaggio invariato; sconfitta → `activeTravel` riscritto (polilinea partenza → punto → città più vicina, `to` e `endTime` nuovi), HP e ferite applicati, `pendingQuest` abbandonata (posto liberato, `PendingQuest` risolto), cibo non rimborsato.
+  3. All'arrivo il completamento emette un `QuestResult` di imboscata (outcome dedicato o campo additivo) con nemici, HP prima/dopo, ferite, monete e XP (solo in vittoria), consegnato come gli altri (subscription owner-only, `unacknowledgedQuestResults`, ack); `travelEnd` invariato.
+  4. `travelPreview` non svela nulla; il teleport del GM annulla l'imboscata pendente; integration su vittoria, sconfitta con deviazione e quest abbandonata, notte vs giorno, tratto breve senza imboscata, job duplicato no-op; handoff `BACKEND-NOTES.md` per la FE Phase 16.
+**Decisioni dell'utente (2026-10-29)**: fase separata dopo il cibo; tetto Medio; sconfitta = HP ≥ 1 + ferite + città più vicina + quest abbandonata; notte 22–06 nel fuso dello streamer.
+**Unblocks (FE)**: FE Phase 16 (AMBUSH-01..03).
+**Branch**: `feat/15-imboscate-in-viaggio` da `develop` → PR a `develop`.
+**Plans**: TBD
+
+### Phase 16: Lore sbloccabili
+**Goal**: La conoscenza è per personaggio: un insieme di lore sbloccate sul `Character`, inizializzato con la lore della città natale e della sua regione, arricchito dall'arrivo su una città (anche teleport e salto istantaneo), dalla vittoria contro i nemici (tutti i partecipanti vincenti) e, per le `study` senza magia appresa, da un tiro su una lore casuale ancora chiusa fra i tipi da studio; nessuna cascata sulle `relatedLore`; le query di lore filtrano per il personaggio del bearer e le quest espongono se ogni nemico è conosciuto.
+**Depends on**: Phase 3 (ownership, `characterUpdated`), Phase 8 (arrivo, teleport), Phase 9 (esiti, `study`), Phase 11 (lore e collegamenti), Phase 13 (`enemies`)
+**Requirements**: BE-LORE-01, BE-LORE-02, BE-LORE-03, BE-LORE-04, BE-LORE-05, BE-LORE-06
+**Success Criteria** (what must be TRUE):
+  1. `Character.unlockedLore: [ObjectId]` (o collezione dedicata, deciso nel discuss) additivo e interno; alla creazione contiene `City.relatedLore` della città natale e la lore di tipo `region` a essa collegata; il flag globale `Lore.unlocked` è rimosso o ridefinito come «conoscenza comune» (decisione nel discuss).
+  2. Sblocchi server-side idempotenti (`$addToSet`): arrivo su una città (completamento viaggio, salto istantaneo, teleport) → `City.relatedLore`; esito vinto con nemici → `Enemy.relatedLore` per ogni partecipante vincente; `study` senza magia appresa → con probabilità configurabile una lore casuale non sbloccata fra i tipi `knowledge`, `god`, `religion`, `ceremony`, `material`, `state`, `character` (pool esatto nel discuss); nessuna cascata su `relatedLore`.
+  3. `lores` e `lore(id)` restituiscono solo le lore sbloccate dal personaggio corrente del bearer (`relatedLore` filtrate allo stesso modo, `NOT_FOUND` per una lore chiusa); l'innkeeper vede tutto; `characterUpdated` riemette quando l'insieme cambia.
+  4. Quest e risultati espongono per ogni nemico se è conosciuto dal personaggio del bearer (campo risolto per viewer, es. `known: Boolean!` sulla voce di `enemies`), così il FE oscura immagine e descrizione.
+  5. Integration: nuovo personaggio con città + regione; arrivo → +1; vittoria di gruppo → tutti; study con e senza magia; cancellazione e nuovo personaggio → insieme nuovo; handoff `BACKEND-NOTES.md` per la FE Phase 17.
+**Decisioni dell'utente (2026-10-29)**: sblocco per personaggio; study → lore casuale ancora chiusa; nessuna cascata; nemico solo in vittoria per tutto il party vincente; lore chiuse invisibili (FE).
+**Unblocks (FE)**: FE Phase 17 (LORE-01..03).
+**Branch**: `feat/16-lore-sbloccabili` da `develop` → PR a `develop`.
+**Plans**: TBD
+
 ## Backend ↔ Frontend alignment
 
 Vincoli d'ordine dichiarati dal FE, mappati sulle fasi BE:
@@ -368,13 +496,18 @@ Vincoli d'ordine dichiarati dal FE, mappati sulle fasi BE:
 | FE Phase 7 bloccata da TRAVEL-01 su staging | Phase 8 (BE-TRAVEL) | Schema + lifecycle su staging prima di FE Phase 7 |
 | FE Phase 10 vuole role guard + audit in lockstep | Phase 3 (BE-AUTHZ) + Phase 9 (BE-ADMIN) | Authz consegnata in anticipo; approve/reject e admin outcome in Phase 9 |
 | FE Phase 11 (auth reale) — l'auth BE atterra prima/insieme | Phase 2 (BE-AUTH) | Anticipazione deliberata: rationale in PROJECT.md Key Decisions e REQUIREMENTS.md; l'handoff chiude le Open Questions #1/#2 |
+| FE Phase 13 (negozi per città) | Phase 12 (BE-SHOP) + Phase 11 (dati) | Pool, `City.size` e codice di rifiuto su `develop` prima della FE; aggiunta 2026-10-29 |
+| FE Phase 14 (companion della generazione quest) | Phase 13 (BE-QGEN) | `infos.enemies` sostituisce `infos.enemy` (non additivo, dichiarato): i piani FE gated allineano i documenti prima della merge; `generateQuests` per la Locanda |
+| FE Phase 15 (viaggio e cibo) | Phase 14 (BE-FOOD) | Preview additiva di cibo e HP su `travelPreview` + preview dell'accettazione + codice di rifiuto |
+| FE Phase 16 (imboscate) | Phase 15 (BE-AMBUSH) | `activeTravel` riscritto alla sconfitta + `QuestResult` di imboscata sulla pipeline esistente |
+| FE Phase 17 (lore sbloccabili) | Phase 16 (BE-LORE) + Phase 11 (lore) | Query di lore filtrate per personaggio + `known` sui nemici delle quest |
 
 Nota compatibilità: i contratti di schema aggiunti (QUEST-04, TRAVEL-01, combat, connection_init) devono arrivare su staging **prima** delle fasi FE che li consumano; i contratti GraphQL esistenti non si rompono. Le fasi FE 2–10 continuano a girare sullo stub `DEV_AUTH_ACCESS_TOKEN` grazie al dev bypass fail-closed di Phase 2.
 
 ## Progress
 
 **Execution Order:**
-Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 _(11–16 aggiunte il 2026-10-29: il popolamento fornisce i dati, il multi-nemico della 13 precede l'imboscata della 15, il cibo della 14 lascia i punti d'innesto alla 15)_
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -391,3 +524,9 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
+| 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
+| 12. Negozi per città | 0/0 | Not started | - |
+| 13. Generazione quest | 0/0 | Not started | - |
+| 14. Viaggio e cibo | 0/0 | Not started | - |
+| 15. Imboscate in viaggio | 0/0 | Not started | - |
+| 16. Lore sbloccabili | 0/0 | Not started | - |

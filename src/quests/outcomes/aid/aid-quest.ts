@@ -10,6 +10,7 @@ export interface AidSourceQuest {
     _id: Types.ObjectId;
     infos: {
         title: string;
+        description?: string | null;
         markerLocation: unknown;
         enemy?: unknown;
         timeToComplete?: number | null;
@@ -34,6 +35,7 @@ export interface AidQuestDraft {
     _id: Types.ObjectId;
     infos: {
         title: string;
+        description: string | null;
         type: QuestType.aid;
         markerLocation: unknown;
         enemy: Types.ObjectId | null;
@@ -94,6 +96,7 @@ export function buildAidQuest(
         _id: aidId,
         infos: {
             title: aidTitleOf(infos.title),
+            description: infos.description ?? null,
             type: QuestType.aid,
             markerLocation:
                 refIdOf(infos.markerLocation) ?? infos.markerLocation,

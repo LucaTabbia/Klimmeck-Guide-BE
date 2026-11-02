@@ -3,6 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { Lore, LoreDocument } from 'src/models/lore.model';
+import {
+    RELATED_LORE_POPULATE,
+    withoutOrphanRelatedLore,
+} from 'src/lore/related-lore';
 
 @Injectable()
 export class LoreService {
@@ -11,12 +15,19 @@ export class LoreService {
     ) {}
 
     async findAll(): Promise<Lore[]> {
-        return await this.loreModel.find().exec();
+        const lores = await this.loreModel
+            .find()
+            .populate(RELATED_LORE_POPULATE)
+            .exec();
+        return lores.map(withoutOrphanRelatedLore);
     }
 
     async findOne(id: string): Promise<Lore> {
-        const lore = await this.loreModel.findById(id).exec();
+        const lore = await this.loreModel
+            .findById(id)
+            .populate(RELATED_LORE_POPULATE)
+            .exec();
         if (!lore) throw ResourceNotFoundException.lore();
-        return lore;
+        return withoutOrphanRelatedLore(lore);
     }
 }
