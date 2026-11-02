@@ -89,6 +89,8 @@ Esiste un solo database (D-26): gli `_id` nei file sono quelli reali. Ogni passo
 
     Atteso: **exit 0**, `inserted: 0` e `modified: 0` in ogni collezione, `cities.relatedLore.modified: 0` con `missing: []`, fix tutti `done`.
 
+    Con le fix tutte `done` le voci di `content/fixes/` **si ritirano** (commit che cancella le voci o i file): una fix rimasta nei file viene rivalutata a ogni corsa e un cambio legittimo successivo del database (nuova rinomina, POI rimosso) la rende `blocked`, con exit 1 a ogni `--verify`/`--apply`.
+
 7. **Seconda scrittura (prova d'idempotenza)**:
 
     ```bash

@@ -111,6 +111,8 @@ Le chiavi si scrivono nell'ordine qui sotto; `?` = facoltativa. I campi marcati 
 lore: [{ id, url }]   enemies: [{ id, url }]   pets: [{ id, url }]   # url ^https://res\.cloudinary\.com/
 ```
 
+Le **fix** sono correzioni una tantum: vengono rivalutate a ogni corsa e, dopo la prima `--verify` che le riporta tutte `done` sull'unico database, **si ritirano dai file** (si cancella la voce o il file in `fixes/`). Lasciate lì, un cambio legittimo successivo (una città rinominata di nuovo, un POI rimosso) le fa diventare `blocked` e `--verify`/`--apply` escono 1 per sempre.
+
 Campi **SOLO FILE** in sintesi:
 
 | Collezione | Campo | Uso |
