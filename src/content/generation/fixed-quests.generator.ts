@@ -77,6 +77,10 @@ export const DUNGEON_WITHOUT_MONSTER = 'nessun mostro compatibile';
 
 const RECOMMENDED_EQUIPMENT = 2;
 
+const RECOMMENDED_HUNT_EQUIPMENT = 1;
+
+const RECOMMENDED_EXPLORATION = 2;
+
 type ServiceType = 'heal' | 'job' | 'guard' | 'crime' | 'study';
 
 interface AssetRef {
@@ -346,20 +350,16 @@ function huntDraft(
     if (!animal) return null;
     const poi = world.chance.pick(pois.filter((poi) => livesIn(animal, poi)));
     if (!poi) return null;
+    const key = questKey('hunt', poi.id, false);
     return {
         file: questFileOf(city.type),
         city: city.id,
         type: 'hunt',
         title: QUEST_TITLES.hunt(city.name, animal.name ?? ''),
-        description: descriptionOf(
-            world,
-            'hunt',
-            questKey('hunt', poi.id, false),
-            {
-                city: city.name,
-                enemy: animal.name ?? '',
-            },
-        ),
+        description: descriptionOf(world, 'hunt', key, {
+            city: city.name,
+            enemy: animal.name ?? '',
+        }),
         enemy: animal.id,
         markerLocation: poi.id,
         relatedLore: withoutDuplicates([
@@ -367,7 +367,7 @@ function huntDraft(
             ...enemyLoreOf(animal),
         ]),
         minTitle: 'rookie',
-        recommendedLoot: [],
+        recommendedLoot: huntRecommendedLoot(world, animal),
         randomLoot: [],
         spellDraw: false,
     };
@@ -544,6 +544,7 @@ function weaponsAgainst(
     world: GeneratorWorld,
     enemy: IndexedEntry,
     maxRank: number,
+    limit: number,
 ): AssetRef[] {
     const weaknesses = weaknessesOf(enemy);
     return equipmentOf(world)
@@ -551,7 +552,7 @@ function weaponsAgainst(
         .map((item) => ({ item, power: usefulPower(item, weaknesses) }))
         .filter(({ power }) => power > 0)
         .sort((a, b) => b.power - a.power || byId(a.item, b.item))
-        .slice(0, RECOMMENDED_EQUIPMENT)
+        .slice(0, limit)
         .map(({ item }) => assetRef('EquipmentItem', item));
 }
 
@@ -559,21 +560,86 @@ function powerOf(item: IndexedEntry): number {
     return typeof item.raw.power === 'number' ? item.raw.power : 0;
 }
 
-function bestHealing(world: GeneratorWorld, maxRank: number): AssetRef[] {
+function totalPower(item: IndexedEntry): number {
+    return damagesOf(item).reduce((total, damage) => total + damage.power, 0);
+}
+
+// ripiego delle hunt: l'arma entro il tetto con più danni in totale, pari merito per id
+function strongestWeaponOf(world: GeneratorWorld, maxRank: number): AssetRef[] {
+    const [strongest] = equipmentOf(world)
+        .filter((item) => withinRarity(item, maxRank) && totalPower(item) > 0)
+        .sort((a, b) => totalPower(b) - totalPower(a) || byId(a, b));
+    return strongest ? [assetRef('EquipmentItem', strongest)] : [];
+}
+
+function bestLootOf(
+    world: GeneratorWorld,
+    effect: 'heal' | 'hunger',
+    maxRank: number,
+): AssetRef[] {
     const [best] = [...world.index.byCollection.lootitems.values()]
         .filter(
-            (item) => item.raw.effect === 'heal' && withinRarity(item, maxRank),
+            (item) => item.raw.effect === effect && withinRarity(item, maxRank),
         )
         .sort((a, b) => powerOf(b) - powerOf(a) || byId(a, b));
     return best ? [assetRef('LootItem', best)] : [];
 }
 
-// fino a 2 armi contro le debolezze + la cura migliore, entro la rarità della fascia (D-20)
-function recommendedLootOf(world: GeneratorWorld, picked: Monster): AssetRef[] {
+function explorationGearOf(
+    world: GeneratorWorld,
+    key: string,
+    maxRank: number,
+): AssetRef[] {
+    const gear = [...world.index.byCollection.lootitems.values()]
+        .filter(
+            (item) =>
+                item.raw.effect === 'exploration' &&
+                withinRarity(item, maxRank),
+        )
+        .sort(byId);
+    return keyedChance(world.config.generator.seed, `${key}|exploration`)
+        .shuffle(gear)
+        .slice(0, RECOMMENDED_EXPLORATION)
+        .map((item) => assetRef('LootItem', item));
+}
+
+// D-33: oggetti consigliati per la missione, entro la rarità della fascia del minTitle; i consumabili contro i punti di forza del nemico non hanno dati strutturati e restano fuori
+function dungeonRecommendedLoot(
+    world: GeneratorWorld,
+    picked: Monster,
+    key: string,
+): AssetRef[] {
     const maxRank = bandRarityRank(world, picked.band);
     return [
-        ...weaponsAgainst(world, picked.enemy, maxRank),
-        ...bestHealing(world, maxRank),
+        ...weaponsAgainst(world, picked.enemy, maxRank, RECOMMENDED_EQUIPMENT),
+        ...bestLootOf(world, 'heal', maxRank),
+        ...bestLootOf(world, 'hunger', maxRank),
+        ...explorationGearOf(world, key, maxRank),
+    ];
+}
+
+function huntWeaponOf(
+    world: GeneratorWorld,
+    animal: IndexedEntry,
+    maxRank: number,
+): AssetRef[] {
+    const against = weaponsAgainst(
+        world,
+        animal,
+        maxRank,
+        RECOMMENDED_HUNT_EQUIPMENT,
+    );
+    return against.length > 0 ? against : strongestWeaponOf(world, maxRank);
+}
+
+function huntRecommendedLoot(
+    world: GeneratorWorld,
+    animal: IndexedEntry,
+): AssetRef[] {
+    const maxRank = bandRarityRank(world, 'rookie');
+    return [
+        ...huntWeaponOf(world, animal, maxRank),
+        ...bestLootOf(world, 'heal', maxRank),
     ];
 }
 
@@ -597,17 +663,16 @@ function dungeonDraft(
     const picked = world.chance.pick(monsterCandidates(monsters, poi, band));
     if (!picked) return null;
     const randomLoot = randomLootOf(world, picked.band);
+    const key = questKey('dungeon', poi.id, false);
     return {
         file: DUNGEON_QUEST_FILE,
         city: city.id,
         type: 'dungeon',
         title: QUEST_TITLES.dungeon(city.name, picked.enemy.name ?? ''),
-        description: descriptionOf(
-            world,
-            'dungeon',
-            questKey('dungeon', poi.id, false),
-            { city: city.name, enemy: picked.enemy.name ?? '' },
-        ),
+        description: descriptionOf(world, 'dungeon', key, {
+            city: city.name,
+            enemy: picked.enemy.name ?? '',
+        }),
         enemy: picked.enemy.id,
         markerLocation: poi.id,
         relatedLore: withoutDuplicates([
@@ -615,7 +680,7 @@ function dungeonDraft(
             ...enemyLoreOf(picked.enemy),
         ]),
         minTitle: picked.band,
-        recommendedLoot: recommendedLootOf(world, picked),
+        recommendedLoot: dungeonRecommendedLoot(world, picked, key),
         randomLoot,
         spellDraw: false,
     };
