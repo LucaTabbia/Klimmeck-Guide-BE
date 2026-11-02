@@ -33,7 +33,7 @@ Ogni comando che tocca il database stampa **una riga JSON** con soli id, nomi de
 
     Gli script npm `content:dry-run`, `content:verify` e `content:apply` usano il `.env` della radice del repo; per un altro database si usa il comando `node --env-file=<file env> …` di questo runbook.
 
-- **Il backend che serve il database gira con il codice della Phase 11** (branch `feat/11-popolamento-del-mondo` o la sua merge): popola `relatedLore` scartando i riferimenti orfani e non espone più `Lore.unlocked`. Un backend su un codice precedente risponde `data: null` alle liste `lores`/`enemys` del contenuto nuovo (Pitfall 1).
+- **Il backend che serve il database gira con il codice della Phase 11** (branch `feat/11-popolamento-del-mondo` o la sua merge): popola `relatedLore` scartando i riferimenti orfani e non espone più `Lore.unlocked`. Un backend su un codice precedente, senza quel populate, risponde `data: null` alle liste `lores`/`enemys` appena le lore hanno `relatedLore` (Pitfall 1).
 - **L'app FE già rilasciata non seleziona più `unlocked`** nella query delle lore (quick task FE richiesto prima della merge della PR BE, vedi `BACKEND-NOTES.md` della fase).
 
 ## Sequenza sul database unico (oggi)
