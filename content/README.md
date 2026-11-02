@@ -186,6 +186,8 @@ Gli script npm arrivano col CLI; prima di usarli `npm run build` (il CLI gira da
 | `node --env-file=.env dist/content/run-content.js --export <dir>` | esporta il catalogo e lo snapshot del mondo in file (mai quest né fix) | sola lettura |
 | `npm run content:generate-quests` | rigenera `quests/*.yaml` dal mondo e dal catalogo (seme fisso, id stabili) | nessuno |
 
+`content:generate-quests` controlla l'albero **senza** le voci dei file che riscrive (un errore in una quest generata lo corregge proprio la nuova corsa), riusa gli id delle quest esistenti per chiave `tipo|markerLocation` e, dopo la scrittura, ricontrolla l'albero completo: un errore lì esce 1. Un file generato che la corsa non riempie più viene riscritto con la sola intestazione. **Rigenerare dopo aver aggiunto animali, città o oggetti di una rarità prima assente sposta hunt e dungeon**: i sorteggi seguono un unico flusso, quindi cambiano POI e id delle hunt successive e nemico, fascia e loot di dungeon con lo stesso id. Con giocatori attivi va pianificato un `--prune quests` prima di ricaricare (Phase 13).
+
 `--export <dir>` serve oggi solo a **rinfrescare lo snapshot**: dalla cartella esportata si copia in `content/` **soltanto** `world/cities.yaml`; i file del catalogo esportati sovrascriverebbero quelli curati. L'export completo resta per il bootstrap iniziale di una cartella vuota.
 
 **Prima di ogni `--apply` serve un backup del database con `mongodump`.** `--apply` è idempotente (una seconda esecuzione riporta zero modifiche) ma non ha un annullamento: il ripristino è il dump. La sequenza completa è nel runbook `docs/runbooks/content-seeding.md`.
