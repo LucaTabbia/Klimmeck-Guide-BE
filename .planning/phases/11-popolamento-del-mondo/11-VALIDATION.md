@@ -91,8 +91,8 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-19-03 | 19 | 10 | C-01, C-03, C-04, C-05 | T-11-67…T-11-69 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
 | 11-20-01 | 20 | 10 | C-01, C-03 | T-11-70…T-11-71 | content check | `node dist/content/run-content.js --check > /tmp/klimmeck-check-20.json && node -e "const r=require('/tmp/klimmeck-check-20.json'); const …` | ✅ green |
 | 11-20-02 | 20 | 10 | C-01, C-03 | T-11-70…T-11-71 | content check | `node dist/content/run-content.js --check > /tmp/klimmeck-check-20.json && node -e "const r=require('/tmp/klimmeck-check-20.json'); const …` | ✅ green |
-| 11-21-01 | 21 | 10 | C-01, C-03 | T-11-72…T-11-73 | content check | `node dist/content/run-content.js --check > /tmp/klimmeck-check-21.json && node -e "const r=require('/tmp/klimmeck-check-21.json'); const …` | ⬜ pending |
-| 11-21-02 | 21 | 10 | C-01, C-03 | T-11-72…T-11-73 | content check | `node dist/content/run-content.js --check > /tmp/klimmeck-check-21.json && node -e "const r=require('/tmp/klimmeck-check-21.json'); const …` | ⬜ pending |
+| 11-21-01 | 21 | 10 | C-01, C-03 | T-11-72…T-11-73 | content check | `node dist/content/run-content.js --check > /tmp/klimmeck-check-21.json && node -e "const r=require('/tmp/klimmeck-check-21.json'); const …` | ✅ green |
+| 11-21-02 | 21 | 10 | C-01, C-03 | T-11-72…T-11-73 | content check | `node dist/content/run-content.js --check > /tmp/klimmeck-check-21.json && node -e "const r=require('/tmp/klimmeck-check-21.json'); const …` | ✅ green |
 | 11-22-01 | 22 | 11 | C-01, C-03, C-04 | T-11-74…T-11-76 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |
 | 11-22-02 | 22 | 11 | C-01, C-03, C-04 | T-11-74…T-11-76 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |
 | 11-22-03 | 22 | 11 | C-01, C-03, C-04 | T-11-74…T-11-76 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |
