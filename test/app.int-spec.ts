@@ -538,6 +538,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('deprecates the global catalogue queries for cityShop (D-20)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'equipmentAssetsQuantity(sellable: Boolean): [AssetQuantity!]! @deprecated(reason: "Phase 12: use cityShop")',
+        );
+        expect(schema).toContain(
+            'lootAssetsQuantity: [AssetQuantity!]! @deprecated(reason: "Phase 12: use cityShop")',
+        );
+    });
+
     it('writes the free travel API into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
