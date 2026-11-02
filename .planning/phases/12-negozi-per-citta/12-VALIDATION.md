@@ -47,7 +47,7 @@ created: 2026-11-02
 | 12-02-02 | 02 | 2 | BE-SHOP-02 | T-12-03 | Il catalogo espone `sellable` senza alterare le query esistenti | integration | `npx jest test/shops/catalog-sellable.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ✅ green |
 | 12-03-01 | 03 | 3 | BE-SHOP-06 | T-12-04 | I pet posseduti si scrivono solo dal server | unit | `npx jest src/models/shop-fields.schema.spec.ts src/characters/creation/starting-character.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 12-03-02 | 03 | 3 | BE-SHOP-06 | T-12-05 | `characterUpdated` porta i pet popolati solo al proprietario | integration | `npx jest src/characters/character-updated.subscription.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
-| 12-04-01 | 04 | 4 | BE-SHOP-03 | T-12-06 | I codici d'errore nuovi sono stabili e senza dati sensibili | unit | `npx jest src/gameRules/game-rule.exception.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
+| 12-04-01 | 04 | 4 | BE-SHOP-03 | T-12-06 | I codici d'errore nuovi sono stabili e senza dati sensibili | unit | `npx jest src/gameRules/game-rule.exception.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 12-05-01 | 05 | 5 | BE-SHOP-04 | T-12-07 | Le costanti del pool vivono nel codice, nessuna variabile d'ambiente | unit | `npx jest src/shops/shop-pool.constants.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 12-05-02 | 05 | 5 | BE-SHOP-04 | T-12-07 | Il generatore è deterministico per seme | unit | `npx jest src/shops/seeded-random.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 12-06-01 | 06 | 6 | BE-SHOP-04 | T-12-08 | Le regole del pool rispettano taglia e veti | unit | `npx jest src/shops/shop-pool.rules.spec.ts --selectProjects unit` | ✅ | ⬜ pending |

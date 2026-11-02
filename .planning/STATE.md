@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 12 (Negozi per città) — EXECUTING (started 2026-11-02) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`): `12-CONTEXT.md` D-01..D-24, `12-RESEARCH.md`, `12-REPO-RULES.md`, `12-VALIDATION.md`, 19 plans in a linear chain (`12-01`..`12-19`); executed together with the FE Phase 13 (`../Klimmeck-Guide/.planning/phases/13-city-shops/`, 11 plans, 13-10/13-11 gated by this PR)
-Plan: 3 of 19
+Plan: 4 of 19
 Status: Executing Phase 12 — executors one at a time on the main tree, no worktree, never `npm run build`
 Last activity: 2026-11-02 -- Phase 12 execution started (19 plans; FE Phase 13 executing in parallel)
 
