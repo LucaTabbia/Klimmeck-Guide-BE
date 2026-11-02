@@ -196,6 +196,11 @@
         "statements": 97,
         "branches": 84,
         "lines": 98
+      },
+      "./src/content/": {
+        "statements": 92,
+        "branches": 81,
+        "lines": 93
       }
     }
   },
