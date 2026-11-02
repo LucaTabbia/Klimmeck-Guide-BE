@@ -147,6 +147,7 @@ Premi e tempi **non** si scrivono nei file: il caricatore li calcola da `config.
 `content:check` le controlla tutte, anche sulle voci scritte a mano. Ogni violazione è un errore con file, riga e id della voce.
 
 - **Necrorian** (`necrorianCity`): solo `dungeon` (D-17).
+- Ogni città dello snapshot tranne Necrorian ha almeno una `heal` e un `job` (D-17); la regola non blocca `content:generate-quests`, che è proprio chi le scrive.
 - **Ferrion** (`ferrionCity`): mai `crime` (D-17).
 - **Quest di servizio** (`heal`, `job`, `guard`, `crime`, `study`): `markerLocation` = il `markerLocation` della città, `enemy: null` (D-21).
 - **hunt**: nemico con `category: animal` e PE di `source` ≤ `hunt.maxAnimalPe` (200); `minTitle: rookie`; marker su un POI della città diverso dal marker della città e senza il tipo `dungeon` (D-18, D-21).

@@ -47,7 +47,7 @@ describe('validateTreeEntries', () => {
         expect(validateTreeEntries(tree)).toEqual([]);
         expect(tree.entries.lore).toHaveLength(3);
         expect(tree.entries.enemies).toHaveLength(2);
-        expect(tree.entries.quests).toHaveLength(2);
+        expect(tree.entries.quests).toHaveLength(5);
         expect(tree.fixes).toHaveLength(4);
         expect(tree.world).toHaveLength(2);
     });

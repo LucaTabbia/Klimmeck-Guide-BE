@@ -95,7 +95,7 @@ describe('runContent (replSet)', () => {
 
         expect(report.errors).toEqual([]);
         expect(report.collections.lore.inserted).toBe(3);
-        expect(report.collections.quests.inserted).toBe(2);
+        expect(report.collections.quests.inserted).toBe(5);
         expect(report.cities.relatedLore.modified).toBe(1);
         expect(await countsOf()).toEqual(noDocuments);
         expect(
@@ -123,7 +123,7 @@ describe('runContent (replSet)', () => {
             lootitems: 1,
             enemies: 2,
             pets: 1,
-            quests: 2,
+            quests: 5,
         });
 
         const verify = await runContent(db, 'verify', loadTestContentTree());
@@ -199,7 +199,7 @@ describe('runContent (replSet)', () => {
         const report = await runContent(db, 'apply', tree);
 
         expect(report.collections.quests).toEqual(
-            expect.objectContaining({ inserted: 1, modified: 1 }),
+            expect.objectContaining({ inserted: 4, modified: 1 }),
         );
         const quest = await db
             .collection('quests')

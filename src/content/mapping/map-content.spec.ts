@@ -17,7 +17,7 @@ describe('mapContentTree', () => {
             (collection) => mapped.documents[collection].length,
         );
         expect(Object.keys(mapped.documents)).toEqual([...CONTENT_COLLECTIONS]);
-        expect(counts).toEqual([3, 1, 1, 1, 2, 1, 2]);
+        expect(counts).toEqual([3, 1, 1, 1, 2, 1, 5]);
         expect(
             mapped.documents.enemies.map((doc) => doc._id.toHexString()),
         ).toEqual([WOLF_ID, GOLEM_ID]);

@@ -98,7 +98,7 @@ describe('pruneCollection (replSet)', () => {
             expect(await exists('quests', quest._id)).toBe(true);
         }
         expect(await db.collection('quests').countDocuments()).toBe(
-            2 + kept.length,
+            tree.entries.quests.length + kept.length,
         );
     });
 
@@ -184,18 +184,22 @@ describe('pruneCollection (replSet)', () => {
         expect(await exists('lore', twin)).toBe(true);
     });
 
-    it('refuses to prune a collection without entries in the files (HI-01)', async () => {
+    // con città servite nello snapshot la copertura D-17 (LO-08) ferma il prune prima della guardia «nessuna voce»
+    it('refuses to prune quests when the files have none (HI-01, LO-08)', async () => {
+        const stored = await db.collection('quests').countDocuments();
         tree.entries.quests = [];
 
         const report = await pruneCollection(db, 'quests', tree);
 
-        expect(report.errors).toEqual([
-            expect.objectContaining({
-                message: expect.stringContaining('nessuna voce'),
-            }),
-        ]);
+        expect(report.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    message: expect.stringContaining('città senza heal'),
+                }),
+            ]),
+        );
         expect(report.deleted).toEqual([]);
-        expect(await db.collection('quests').countDocuments()).toBe(2);
+        expect(await db.collection('quests').countDocuments()).toBe(stored);
     });
 
     it('refuses to prune more orphans than entries in the files (HI-01)', async () => {

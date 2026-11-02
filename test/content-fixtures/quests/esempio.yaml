@@ -29,3 +29,46 @@
     recommendedLoot: []
   prizes:
     randomLoot: []
+- id: '64b000000000000000000303'
+  city: '64b0000000000000000000c1' # Borgo di Prova
+  infos:
+    title: Lavoro in bottega al Borgo di Prova
+    description: La bottega del Borgo di Prova cerca braccia per la giornata.
+    type: job
+    enemy: null
+    markerLocation: '64b0000000000000000000d1' # Borgo di Prova
+    relatedLore:
+      - '64b0000000000000000000a2' # Borgo di Prova
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '64b000000000000000000304'
+  city: '64b0000000000000000000c2' # Capitale di Prova
+  infos:
+    title: Cure al tempio della Capitale di Prova
+    description: Il tempio della Capitale di Prova cerca chi curi i feriti.
+    type: heal
+    enemy: null
+    markerLocation: '64b0000000000000000000d4' # Capitale di Prova
+    relatedLore: []
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '64b000000000000000000305'
+  city: '64b0000000000000000000c2' # Capitale di Prova
+  infos:
+    title: Lavoro in bottega alla Capitale di Prova
+    description: La bottega della Capitale di Prova cerca braccia per la giornata.
+    type: job
+    enemy: null
+    markerLocation: '64b0000000000000000000d4' # Capitale di Prova
+    relatedLore: []
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []

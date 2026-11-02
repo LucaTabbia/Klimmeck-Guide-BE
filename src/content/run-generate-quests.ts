@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb';
 import { join } from 'path';
-import { checkContent } from 'src/content/checking/check-content';
+import { checkGenerationInput } from 'src/content/checking/check-content';
 import { ContentIndex, indexContent } from 'src/content/checking/content-index';
 import { ContentIssue } from 'src/content/content-issue';
 import { contentDirOf } from 'src/content/content-paths';
@@ -141,7 +141,7 @@ export function runGenerateQuests(
     newId: () => string = newObjectId,
 ): GenerateQuestsReport {
     const tree = loadContentTree(contentDir);
-    const { errors } = checkContent(tree);
+    const { errors } = checkGenerationInput(tree);
     if (errors.length > 0 || !tree.config) return failedReport(errors);
     const index = indexContent(tree);
     const existing = generatedEntriesOf(tree);

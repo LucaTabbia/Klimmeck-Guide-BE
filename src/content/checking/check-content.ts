@@ -12,7 +12,10 @@ import {
     WORLD_FILE,
     WorldCity,
 } from 'src/content/loading/content-tree';
-import { SPELL_DRAW_CITY_TYPE } from 'src/content/generation/city-profile';
+import {
+    NO_SERVICE_CITY_TYPES,
+    SPELL_DRAW_CITY_TYPE,
+} from 'src/content/generation/city-profile';
 import { LoadedEntry } from 'src/content/loading/yaml-file';
 import {
     ContentConfig,
@@ -710,6 +713,34 @@ function questRuleIssues(
     ];
 }
 
+// D-17: senza heal e job un personaggio senza fondi resta bloccato; Necrorian ha solo la sua dungeon
+const ALWAYS_SERVED_TYPES: readonly string[] = ['heal', 'job'];
+
+function serviceCoverageIssues(
+    index: ContentIndex,
+    tree: ContentTree,
+): ContentIssue[] {
+    const offered = new Set(
+        entriesOf(index, 'quests').map(
+            ({ raw }) =>
+                `${stringAt(raw, 'city')}|${stringAt(recordAt(raw, 'infos'), 'type')}`,
+        ),
+    );
+    return [...index.cities.values()]
+        .filter((city) => !NO_SERVICE_CITY_TYPES.includes(city.type))
+        .flatMap((city) =>
+            ALWAYS_SERVED_TYPES.filter(
+                (type) => !offered.has(`${city.id}|${type}`),
+            ).map((type) => ({
+                file: WORLD_FILE,
+                line: lineOfCity(tree, city.id),
+                entryId: city.id,
+                path: '',
+                message: `città senza ${type}: ${city.name} (${city.type}) (D-17)`,
+            })),
+        );
+}
+
 // una quest dei file cancellata dalla stessa corsa che la inserisce non converge mai
 function deletedFileQuestIssues(
     index: ContentIndex,
@@ -737,7 +768,12 @@ function deletedFileQuestIssues(
         });
 }
 
-export function checkContent(tree: ContentTree): ContentCheck {
+type IndexedRule = (index: ContentIndex, tree: ContentTree) => ContentIssue[];
+
+function checkTree(
+    tree: ContentTree,
+    extraRules: readonly IndexedRule[],
+): ContentCheck {
     const errors = schemaIssues(tree);
     if (!tree.config) return { errors, warnings: tree.warnings };
     const index = indexContent(tree);
@@ -750,6 +786,7 @@ export function checkContent(tree: ContentTree): ContentCheck {
             ...cityLoreErrors(index),
             ...questRuleIssues(index, tree.config),
             ...deletedFileQuestIssues(index, tree.fixes),
+            ...extraRules.flatMap((rule) => rule(index, tree)),
         ],
         warnings: [
             ...tree.warnings,
@@ -757,4 +794,13 @@ export function checkContent(tree: ContentTree): ContentCheck {
             ...cityLoreWarnings(index, tree),
         ],
     };
+}
+
+// il generatore produce la copertura D-17: non può esserne un prerequisito
+export function checkGenerationInput(tree: ContentTree): ContentCheck {
+    return checkTree(tree, []);
+}
+
+export function checkContent(tree: ContentTree): ContentCheck {
+    return checkTree(tree, [serviceCoverageIssues]);
 }

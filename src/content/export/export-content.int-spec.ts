@@ -11,7 +11,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { Db, MongoClient, ObjectId } from 'mongodb';
 import { parse } from 'yaml';
-import { checkContent } from 'src/content/checking/check-content';
+import { checkGenerationInput } from 'src/content/checking/check-content';
 import {
     CONFIG_FILE,
     CONTENT_COLLECTIONS,
@@ -125,7 +125,8 @@ describe('exportContent (replSet)', () => {
         );
 
         const exported = loadContentTree(dir);
-        expect(checkContent(exported).errors).toEqual([]);
+        // senza quest l'export è l'ingresso di content:generate-quests, che ne produce la copertura D-17
+        expect(checkGenerationInput(exported).errors).toEqual([]);
         const mapped = mapContentTree(exported);
 
         for (const collection of CONTENT_COLLECTIONS) {

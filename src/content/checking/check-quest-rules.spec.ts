@@ -1,4 +1,7 @@
-import { checkContent } from 'src/content/checking/check-content';
+import {
+    checkContent,
+    checkGenerationInput,
+} from 'src/content/checking/check-content';
 import { ContentTree } from 'src/content/loading/content-tree';
 import {
     addCity,
@@ -10,6 +13,7 @@ import {
 const WOLF_ID = '64b000000000000000000101';
 const GOLEM_ID = '64b000000000000000000102';
 const VILLAGE_ID = '64b0000000000000000000c1';
+const CAPITAL_ID = '64b0000000000000000000c2';
 const VILLAGE_MARKER_ID = '64b0000000000000000000d1';
 const FOREST_POI_ID = '64b0000000000000000000d2';
 const DUNGEON_POI_ID = '64b0000000000000000000d3';
@@ -198,7 +202,11 @@ describe('checkContent fixed quest rules', () => {
             ),
         );
 
-        expect(checkContent(tree).errors).toEqual([]);
+        expect(
+            checkContent(tree).errors.filter(
+                ({ entryId }) => entryId !== NEW_CITY_ID,
+            ),
+        ).toEqual([]);
     });
 
     it('rejects a spell draw outside the Valantar study (D-31)', () => {
@@ -487,5 +495,45 @@ describe('checkContent fixed quest rules', () => {
         expect(
             errorsAt(HEAL_QUEST_ID, 'requirements.recommendedLoot.1.item'),
         ).toEqual([]);
+    });
+
+    it('requires a heal and a job in every served city of the snapshot (D-17)', () => {
+        tree.entries.quests = tree.entries.quests.filter(
+            ({ raw }) =>
+                raw.id !== '64b000000000000000000303' &&
+                raw.id !== '64b000000000000000000304',
+        );
+
+        expect(
+            checkContent(tree)
+                .errors.filter(({ file }) => file === 'world/cities.yaml')
+                .map(({ entryId, message }) => [entryId, message]),
+        ).toEqual([
+            [
+                VILLAGE_ID,
+                'città senza job: Borgo di Prova (drusteaVillage) (D-17)',
+            ],
+            [
+                CAPITAL_ID,
+                'città senza heal: Capitale di Prova (drusteaCapital) (D-17)',
+            ],
+        ]);
+    });
+
+    it('exempts Necrorian from the heal and job coverage (D-17)', () => {
+        addNewCity('Necrorian', 'necrorianCity');
+
+        expect(
+            checkContent(tree).errors.filter(
+                ({ entryId }) => entryId === NEW_CITY_ID,
+            ),
+        ).toEqual([]);
+    });
+
+    it('leaves the coverage out of the generator input check (D-17)', () => {
+        tree.entries.quests = [];
+
+        expect(checkContent(tree).errors).not.toEqual([]);
+        expect(checkGenerationInput(tree).errors).toEqual([]);
     });
 });
