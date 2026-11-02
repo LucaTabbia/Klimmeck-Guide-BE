@@ -59,9 +59,9 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-06-03 | 06 | 4 | C-02, C-04, C-06 | T-11-19…T-11-22 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
 | 11-07-01 | 07 | 4 | C-02 | T-11-23…T-11-27 | integration | `npx jest src/content/fixes --selectProjects unit && npx jest src/content/fixes/fixes.int-spec.ts --selectProjects integration --runInBand…` | ✅ green |
 | 11-07-02 | 07 | 4 | C-02 | T-11-23…T-11-27 | integration | `npx jest src/content/fixes --selectProjects integration --runInBand && npx jest src/content/fixes --selectProjects unit && npx tsc --noEm…` | ✅ green |
-| 11-08-01 | 08 | 5 | C-06 | T-11-28…T-11-31 | unit | `npx jest src/content/generation/seeded-chance.spec.ts src/content/generation/city-profile.spec.ts src/content/generation/service-quests.s…` | ⬜ pending |
-| 11-08-02 | 08 | 5 | C-06 | T-11-28…T-11-31 | unit | `npx jest src/content/generation/hunt-quests.spec.ts src/content/generation/service-quests.spec.ts --selectProjects unit && npx tsc --noEm…` | ⬜ pending |
-| 11-08-03 | 08 | 5 | C-06 | T-11-28…T-11-31 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
+| 11-08-01 | 08 | 5 | C-06 | T-11-28…T-11-31 | unit | `npx jest src/content/generation/seeded-chance.spec.ts src/content/generation/city-profile.spec.ts src/content/generation/service-quests.s…` | ✅ green |
+| 11-08-02 | 08 | 5 | C-06 | T-11-28…T-11-31 | unit | `npx jest src/content/generation/hunt-quests.spec.ts src/content/generation/service-quests.spec.ts --selectProjects unit && npx tsc --noEm…` | ✅ green |
+| 11-08-03 | 08 | 5 | C-06 | T-11-28…T-11-31 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
 | 11-09-01 | 09 | 5 | C-02 | T-11-32…T-11-37 | unit | `npx jest src/content/sync src/content/fixes --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
 | 11-09-02 | 09 | 5 | C-02 | T-11-32…T-11-37 | integration | `npx jest src/content/sync/content-sync.int-spec.ts --selectProjects integration --runInBand && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
 | 11-09-03 | 09 | 5 | C-02 | T-11-32…T-11-37 | integration | `npx jest src/content/sync --selectProjects integration --runInBand && npx jest src/content --selectProjects unit && npx tsc --noEmit -p t…` | ⬜ pending |
@@ -122,7 +122,7 @@ Le infrastrutture mancanti nascono nei primi piani del codice e precedono ogni t
 - [x] `test/content-fixtures/` (mini-albero: 3 lore, 1 magia, 1 equipaggiamento, 1 loot, 2 nemici, 1 pet, 2 quest, 4 fix, 2 città) — piano 11-04 Task 3, riusato dalle int-spec di 11-07/11-09/11-10/11-11
 - [x] `test/fixtures/lore.fixture.ts` (`buildLore`/`persistLore`) — piano 11-01 Task 2
 - [ ] `test/content/seed-world.ts` (`seedWorld`) — piano 11-09 Task 2, riusato da 11-10, 11-11, 11-24
-- [ ] `test/content/generator-world.fixture.ts` — piano 11-08 Task 1
+- [x] `test/content/generator-world.fixture.ts` — piano 11-08 Task 1
 - [ ] `src/content/run-content.cli.int-spec.ts` (sul compilato, `npm run build` prima) — piano 11-11 Task 2
 - [ ] `src/content/content-tree.spec.ts` (gate unit del vero `content/`, usato da ogni piano di stesura 11-12…11-23) — piano 11-11 Task 2
 - [ ] soglia `coverageThreshold["./src/content/"]` = baseline − 2 — piano 11-26 Task 1
