@@ -8,7 +8,10 @@ import { parseContentConfig } from 'src/content/rules/content-config';
 const FILE = 'config.yaml';
 const FIXTURE_DIR = join(__dirname, '../../../test/content-fixtures');
 
-type RawConfig = Record<string, Record<string, unknown> & unknown[]>;
+type RawConfig = Record<string, Record<string, unknown>> & {
+    mediumPeByLevel: unknown;
+    dungeonHeroZones: unknown;
+};
 
 function repositoryConfig(): RawConfig {
     const text = readFileSync(join(DEFAULT_CONTENT_DIR, FILE), 'utf8');
@@ -73,9 +76,7 @@ describe('parseContentConfig', () => {
         'rejects a medium table that is not 20 increasing integers (D-10): %s',
         (_case, alter) => {
             const raw = repositoryConfig();
-            raw.mediumPeByLevel = alter(
-                raw.mediumPeByLevel as unknown as number[],
-            ) as RawConfig[string];
+            raw.mediumPeByLevel = alter(raw.mediumPeByLevel as number[]);
 
             expect(issuePathsOf(raw)).toEqual(['mediumPeByLevel']);
         },
@@ -126,7 +127,7 @@ describe('parseContentConfig', () => {
 
     it('rejects a hero zone that is not a point of interest type', () => {
         const raw = repositoryConfig();
-        raw.dungeonHeroZones = ['glounet', 'atlantide'] as RawConfig[string];
+        raw.dungeonHeroZones = ['glounet', 'atlantide'];
 
         expect(issuePathsOf(raw)).toEqual(['dungeonHeroZones[1]']);
     });

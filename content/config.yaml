@@ -1,0 +1,31 @@
+# Costanti del contenuto: l'utente le ritocca, ogni cambio si applica con --apply (D-19)
+enemy:
+  xpScale: 0.14084507        # 50000 / 355000 (D-11): xp = max(1, round(PE × xpScale))
+  hpScale: 100               # lifePoints = PF medi × hpScale (D-12)
+  damageScale: 100           # danno medio per round × damageScale (D-12)
+tiers:                       # D-10: livello del documento → fascia (limite inferiore degli intervalli)
+  rookie: [1, 2]
+  adventurer: [3, 4]
+  paladin: [5, 10]
+  mage: [11, 16]
+  hero: [17, 20]
+mediumPeByLevel: [50, 100, 150, 250, 500, 600, 750, 900, 1100, 1200, 1600, 2000, 2200, 2500, 2800, 3200, 3900, 4200, 4900, 5700]
+tierMultiplier: { rookie: 1, adventurer: 2, paladin: 5, mage: 12, hero: 25 }
+prizes:                      # base in rame e XP, × moltiplicatore della fascia del minTitle (D-19)
+  job: { copper: 40, xp: 0 }
+  hunt: { copper: 100, xp: 30 }
+  guard: { copper: 200, xp: 40 }
+  crime: { copper: 300, xp: 40 }
+  study: { copper: 0, xp: 60 }
+  heal: { copper: 0, xp: 0 }
+  dungeon: { copper: 400, xp: 80, randomLootQuantity: 1 }
+dungeonLootRarity: { rookie: common, adventurer: uncommon, paladin: rare, mage: ultrarare, hero: legendary }
+timeToCompleteHours: { job: 2, hunt: 1, guard: 8, crime: 1, study: 2, heal: 5, dungeon: 3 }
+minTitle:                    # D-20
+  serviceCity: adventurer
+  serviceCapital: paladin
+dungeonTierByCitySize: { Village: adventurer, City: paladin, SeaCity: paladin, Capital: mage }
+dungeonHeroZones: [glounet, harkenIsland]
+hunt: { maxAnimalPe: 200, maxShareOfRegion: 0.5 }
+generator: { seed: 11, crimeCityChance: 0.5, studyCityChance: 0.4 }
+food: { minutesPerPower: 3 }
