@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 11 executing — plan 1 of 26 done
-last_updated: "2026-11-02T01:15:00.000Z"
-last_activity: "2026-11-02 -- Plan 11-01 complete: Lore.unlocked removed from the SDL, relatedLore populated in lores and enemies"
+stopped_at: Phase 11 executing — plan 2 of 26 done
+last_updated: "2026-11-02T02:00:00.000Z"
+last_activity: "2026-11-02 -- Plan 11-02 complete: D-31 spell-draw study, internal QuestPrizes.spellDraw, SDL unchanged"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 1 of 26
-Status: Executing Phase 11 — plan 11-01 complete, next 11-02 (wave 1); the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-02 -- Plan 11-01 complete: `type Lore` without `unlocked` (single `-` line of the SDL vs develop), `relatedLore` populated with orphans dropped in `lores`/`lore`/`enemys`/`enemy`
+Plan: 2 of 26
+Status: Executing Phase 11 — plans 11-01 and 11-02 complete (wave 1 done), next 11-03; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Plan 11-02 complete: a study with the internal `QuestPrizes.spellDraw` flag (Mongoose only, SDL unchanged) teaches one spell drawn among the unknown ones learnable with the xp after the prizes, or none (D-31)
 
-Progress: [████████░░] 1/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
+Progress: [████████░░] 2/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
 ## Performance Metrics
 
