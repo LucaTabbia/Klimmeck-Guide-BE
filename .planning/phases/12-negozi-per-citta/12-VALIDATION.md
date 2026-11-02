@@ -40,9 +40,9 @@ created: 2026-11-02
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 12-01-01 | 01 | 1 | BE-SHOP-05 | — | N/A | docs | `grep -c "12-19-02" .planning/phases/12-negozi-per-citta/12-VALIDATION.md` | ✅ | ⬜ pending |
-| 12-01-02 | 01 | 1 | BE-SHOP-01 | T-12-02 | La taglia della città è decisa dal server con una mappa esaustiva | unit | `npx jest src/cities/city-size.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 12-01-03 | 01 | 1 | BE-SHOP-01 | T-12-01 | Le liste del pool non entrano nello SDL di `City` | unit + integration | `npx jest src/models/shop-fields.schema.spec.ts src/shops/shop-pool.rules.spec.ts --selectProjects unit` · `npx jest src/cities/cities.resolver.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
+| 12-01-01 | 01 | 1 | BE-SHOP-05 | — | N/A | docs | `grep -c "12-19-02" .planning/phases/12-negozi-per-citta/12-VALIDATION.md` | ✅ | ✅ green |
+| 12-01-02 | 01 | 1 | BE-SHOP-01 | T-12-02 | La taglia della città è decisa dal server con una mappa esaustiva | unit | `npx jest src/cities/city-size.spec.ts --selectProjects unit` | ❌ W0 | ✅ green |
+| 12-01-03 | 01 | 1 | BE-SHOP-01 | T-12-01 | Le liste del pool non entrano nello SDL di `City` | unit + integration | `npx jest src/models/shop-fields.schema.spec.ts src/shops/shop-pool.rules.spec.ts --selectProjects unit` · `npx jest src/cities/cities.resolver.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ✅ green |
 | 12-02-01 | 02 | 2 | BE-SHOP-02 | T-12-03 | Il flag di vendibilità è server-side e assente finché non scritto | unit | `npx jest src/models/shop-fields.schema.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
 | 12-02-02 | 02 | 2 | BE-SHOP-02 | T-12-03 | Il catalogo espone `sellable` senza alterare le query esistenti | integration | `npx jest test/shops/catalog-sellable.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 12-03-01 | 03 | 3 | BE-SHOP-06 | T-12-04 | I pet posseduti si scrivono solo dal server | unit | `npx jest src/models/shop-fields.schema.spec.ts src/characters/creation/starting-character.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
