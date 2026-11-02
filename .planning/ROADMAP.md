@@ -419,14 +419,33 @@ Plans:
   2. Al boot una migrazione idempotente semina **solo le città senza pool** (campo assente) con le costanti di taglia (villaggio 10 equip + 12 loot, 75/25; città e città di mare 16 + 18, 50/35/15; capitale 24 + 24, 35/35/20/10; almeno 2 `hunger` e 1 `heal` in ogni pool; sorteggio deterministico per città) e i quattro pet di D-10 nelle loro due città; Necrorian riceve un pool vuoto esplicito; i pool presenti, anche vuoti, non vengono mai toccati (la cura è a DB).
   3. `cityShop(cityId)` restituisce il pool della città con i veti applicati in lettura (`legendary` e `sellable: false` mai serviti); `sellable` entra nello schema di `EquipmentItem`, `LootItem` e `Pet`; `equipmentAssetsQuantity` e `lootAssetsQuantity` sono deprecate (SDL additivo).
   4. `doTransaction` rifiuta con `ITEM_NOT_IN_SHOP` ogni acquisto (equip, loot, pet) fuori dal pool della città del marker o vietato, prima di qualsiasi scrittura e riaffermato dentro la transazione; `TransactionItems.petAssets` (quantità 1) compra e vende pet; un pet già posseduto è rifiutato (`PET_ALREADY_OWNED`); la vendita resta ammessa in ogni città anche per i leggendari posseduti (`SHOP_NOT_IN_CITY` invariato); vendere il pet equipaggiato svuota `assets.pet` nella stessa transazione; scorte infinite, prezzi del catalogo.
-  5. `assets.ownedPets` è a schema e a DB; `equipPet` / `unequipPet` (owner-only, stile `equipItem`) equipaggiano solo un pet posseduto (`PET_NOT_OWNED`); comprare non equipaggia mai; la migrazione al boot copia l'`assets.pet` esistente fra i posseduti e valorizza `Pet.sellable` dove manca.
+  5. `assets.ownedPets` è a schema e a DB; `equipPet` / `unequipPet` (owner o innkeeper con `@OwnsCharacter`, stile `equipItem`) equipaggiano solo un pet posseduto (`PET_NOT_OWNED`); comprare non equipaggia mai; la migrazione al boot copia l'`assets.pet` esistente fra i posseduti e valorizza `Pet.sellable` dove manca.
   6. Un report di sola lettura (log `WARN` al boot + query innkeeper) elenca per città gli oggetti fuori regola di taglia e i pool vuoti senza correggerli («la mano vince»).
   7. Integration: villaggio, città e capitale con tre pool diversi; acquisto fuori pool e di un pet doppione senza scritture; vendita fuori pool e di un leggendario; acquisto, equipaggiamento e vendita di un pet; real boot con SDL additivo; handoff `BACKEND-NOTES.md` per la FE Phase 13.
 **Decisioni dell'utente (2026-10-29)**: campo esplicito `size` su `City`; pool curato a mano; vendita ovunque e scorte infinite; leggendari mai in vendita; prezzi identici in ogni città.
 **Decisioni dell'utente (2026-11-02, `12-CONTEXT.md` D-01..D-21)**: semina server + cura a DB; mare = città; Necrorian senza negozio; «la mano vince» con veto su legendary e `sellable: false` e report di sola lettura; pool più ampi con cibo e cure sempre; pet nel pool in due città ciascuno per lore (Cavallo leggero, Cammello del Mar Sabbioso, Tartaruga gigante delle isole, Cavallo da viaggio; gli altri 9 solo da quest); i leggendari posseduti si vendono; pet posseduti vs compagno equipaggiato, niente equipaggiamento automatico; titolo FE «Compagno».
 **Unblocks (FE)**: FE Phase 13 (SHOP-02/03/04).
 **Branch**: `feat/12-negozi-per-citta` da `develop` → PR a `develop`.
-**Plans**: TBD
+**Plans**: 19 piani (pianificati il 2026-11-02; catena lineare, una wave per piano, esecuzione sequenziale sull'albero principale)
+- [ ] 12-01-PLAN.md — VALIDATION compilata; `CitySize` e `citySizeOf` dal `CityType`; campi del pool su `City` senza default; `@ResolveField` `size` e `hasShop`
+- [ ] 12-02-PLAN.md — `sellable` nello schema di `AssetItem` (equip e loot) e `Pet`
+- [ ] 12-03-PLAN.md — `assets.ownedPets` a schema e a DB; `findOne` popola `assets.pet` e `ownedPets`; `Pet` registrato in `EconomyModule`
+- [ ] 12-04-PLAN.md — Codici `ITEM_NOT_IN_SHOP`, `PET_ALREADY_OWNED`, `PET_NOT_OWNED` con le factory
+- [ ] 12-05-PLAN.md — Costanti della semina (taglie, quote, cibo e cure, pet per città, versione del seme) e PRNG deterministico
+- [ ] 12-06-PLAN.md — Regole di scaffale (veto legendary / sellable false, fasce per taglia) e sorteggio deterministico dei pool
+- [ ] 12-07-PLAN.md — Migrazione `Pet.sellable` (4 in vendita, 9 solo da quest, solo dove manca)
+- [ ] 12-08-PLAN.md — Migrazione `assets.pet` → `assets.ownedPets`
+- [ ] 12-09-PLAN.md — Semina idempotente dei pool (solo dove il campo manca, Necrorian vuota) e mondo di prova condiviso
+- [ ] 12-10-PLAN.md — Report dei pool fuori regola, orchestratore di boot (`Pet.sellable` → `ownedPets` → semina → WARN), `ShopsModule` e modulo di manutenzione importato solo da `AppModule`
+- [ ] 12-11-PLAN.md — Query `cityShop(cityId)` con i veti applicati in lettura
+- [ ] 12-12-PLAN.md — Query innkeeper `shopPoolReport` (enumerazione del real boot aggiornata in RED)
+- [ ] 12-13-PLAN.md — Deprecazione di `equipmentAssetsQuantity` e `lootAssetsQuantity` (le due sole righe SDL riscritte)
+- [ ] 12-14-PLAN.md — `TransactionItems.petAssets`, righe `Pet` a quantità 1, prezzi e veti dal catalogo nel reader
+- [ ] 12-15-PLAN.md — Guard `ITEM_NOT_IN_SHOP`: pool della città del marker riletto in sessione, `placeInCity(pool)` nei test
+- [ ] 12-16-PLAN.md — Inventario dei pet nella transazione: doppione rifiutato, vendita del pet equipaggiato che svuota lo slot, guardie nel filtro
+- [ ] 12-17-PLAN.md — `equipPet` / `unequipPet` (`EquipPetRequest`, `UnequipPetRequest`, `@OwnsCharacter` come `equipItem`)
+- [ ] 12-18-PLAN.md — Gate BE-SHOP-05: integration end-to-end sul mondo seminato, contratto FE nel real boot, suite completa con coverage, gate SDL, requisiti completati
+- [ ] 12-19-PLAN.md — Handoff `BACKEND-NOTES.md` per la FE Phase 13 con il runbook del primo boot; chiusura ROADMAP/STATE/REQUIREMENTS
 
 ### Phase 13: Generazione quest
 **Goal**: Il tabellone si rifornisce da solo: il server genera e posiziona le quest consumabili `enemy` e `boss` (le `hunt` e `dungeon` sono fisse, Phase 11) su un POI libero di una città, con al massimo 3 quest generate attive per città, una distribuzione casuale ma non concentrata sulla mappa (alcune città 0, altre 3), il nemico scelto dalla zona del POI, il rango dal rango meno coperto fra le quest generate attive di tutto il mondo, premi dalla fascia e oggetti consigliati dalle debolezze e dai danni del nemico; le quest portano più nemici e più tipi (`infos.enemies: [{ enemy, quantity }]` sostituisce `infos.enemy`).
@@ -529,7 +548,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
-| 12. Negozi per città | 0/0 | Not started | - |
+| 12. Negozi per città | 0/19 | Planned | - |
 | 13. Generazione quest | 0/0 | Not started | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
