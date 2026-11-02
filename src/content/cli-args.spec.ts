@@ -34,6 +34,7 @@ describe('parseCliArgs (D-27)', () => {
         [['--new-id', '30'], { mode: 'new-id', count: 30 }],
         [['--new-id', '1'], { mode: 'new-id', count: 1 }],
         [['--new-id', '500'], { mode: 'new-id', count: 500 }],
+        [['--stats'], { mode: 'stats', contentDir: DEFAULT_CONTENT_DIR }],
     ])('reads %j as one mode (D-27)', (argv, command) => {
         expect(parseCliArgs(argv)).toEqual(command);
     });
@@ -49,6 +50,7 @@ describe('parseCliArgs (D-27)', () => {
         [['--new-id']],
         [['--apply', '--verify']],
         [['--check', '--check']],
+        [['--stats', '--check']],
         [['--force']],
         [['--export']],
         [['--export', '--check']],
