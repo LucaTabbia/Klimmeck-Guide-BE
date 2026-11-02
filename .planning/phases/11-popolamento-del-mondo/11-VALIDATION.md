@@ -67,8 +67,8 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-09-03 | 09 | 5 | C-02 | T-11-32…T-11-37 | integration | `npx jest src/content/sync --selectProjects integration --runInBand && npx jest src/content --selectProjects unit && npx tsc --noEmit -p t…` | ✅ green |
 | 11-10-01 | 10 | 6 | C-01, C-02 | T-11-38…T-11-41 | unit | `npx jest src/content/export --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
 | 11-10-02 | 10 | 6 | C-01, C-02 | T-11-38…T-11-41 | integration | `npx jest src/content/export --selectProjects integration --runInBand && npx jest src/content/export --selectProjects unit && npx tsc --no…` | ✅ green |
-| 11-11-01 | 11 | 7 | C-02 | T-11-42…T-11-45 | unit | `npx jest src/content/cli-args.spec.ts src/config --selectProjects unit && npm run build && test -f dist/content/run-content.js && node di…` | ⬜ pending |
-| 11-11-02 | 11 | 7 | C-02 | T-11-42…T-11-45 | integration | `npm run build && npx jest src/content/run-content.cli.int-spec.ts --selectProjects integration --runInBand && npx jest src/content/conten…` | ⬜ pending |
+| 11-11-01 | 11 | 7 | C-02 | T-11-42…T-11-45 | unit | `npx jest src/content/cli-args.spec.ts src/config --selectProjects unit && npm run build && test -f dist/content/run-content.js && node di…` | ✅ green |
+| 11-11-02 | 11 | 7 | C-02 | T-11-42…T-11-45 | integration | `npm run build && npx jest src/content/run-content.cli.int-spec.ts --selectProjects integration --runInBand && npx jest src/content/conten…` | ✅ green |
 | 11-12-01 | 12 | 8 | C-01, C-02, C-05, C-07 | T-11-46…T-11-49 | unit | `npx jest src/content/analysis src/content/cli-args.spec.ts --selectProjects unit && npm run build && node dist/content/run-content.js --s…` | ⬜ pending |
 | 11-12-02 | 12 | 8 | C-01, C-02, C-05, C-07 | T-11-46…T-11-49 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit && test "$(grep -ciE 'mongodb…` | ⬜ pending |
 | 11-12-03 | 12 | 8 | C-01, C-02, C-05, C-07 | T-11-46…T-11-49 | script | `test "$(grep -ciE 'mongodb(\+srv)?://\|@[a-z0-9.-]+\.(net\|com)' .planning/phases/11-popolamento-del-mondo/reports/11-12-verify-baseline.js…` | ⬜ pending |
@@ -123,8 +123,8 @@ Le infrastrutture mancanti nascono nei primi piani del codice e precedono ogni t
 - [x] `test/fixtures/lore.fixture.ts` (`buildLore`/`persistLore`) — piano 11-01 Task 2
 - [x] `test/content/seed-world.ts` (`seedWorld`) — piano 11-09 Task 2, riusato da 11-10, 11-11, 11-24
 - [x] `test/content/generator-world.fixture.ts` — piano 11-08 Task 1
-- [ ] `src/content/run-content.cli.int-spec.ts` (sul compilato, `npm run build` prima) — piano 11-11 Task 2
-- [ ] `src/content/content-tree.spec.ts` (gate unit del vero `content/`, usato da ogni piano di stesura 11-12…11-23) — piano 11-11 Task 2
+- [x] `src/content/run-content.cli.int-spec.ts` (sul compilato, `npm run build` prima) — piano 11-11 Task 2
+- [x] `src/content/content-tree.spec.ts` (gate unit del vero `content/`, usato da ogni piano di stesura 11-12…11-23) — piano 11-11 Task 2
 - [ ] soglia `coverageThreshold["./src/content/"]` = baseline − 2 — piano 11-26 Task 1
 
 ---
@@ -144,7 +144,7 @@ Le infrastrutture mancanti nascono nei primi piani del codice e precedono ogni t
 
 - [x] All tasks have `<automated>` verify or Wave 0 dependencies (unica eccezione: il checkpoint 11-24-03, che verifica la presenza del report di sola lettura)
 - [x] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references (si spunta a fine piano 11-11)
+- [x] Wave 0 covers all MISSING references (si spunta a fine piano 11-11)
 - [x] No watch-mode flags
 - [x] Feedback latency < 60s per task
 - [x] `nyquist_compliant: true` set in frontmatter
