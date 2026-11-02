@@ -22,6 +22,9 @@ const POTION_ID = '64b0000000000000000000f1';
 
 type Raw = Record<string, unknown>;
 
+const FIXED_SPELL_MESSAGE =
+    'nessuna quest fissa porta una magia fissa: la study di Valantar la sorteggia (D-17, D-31)';
+
 function questOf(
     id: string,
     cityId: string,
@@ -308,7 +311,26 @@ describe('checkContent fixed quest rules', () => {
             '64b0000000000000000000b1';
 
         expect(errorsAt(HEAL_QUEST_ID, 'prizes.spell')).toEqual([
-            'prizes.spell solo su una study (D-31)',
+            FIXED_SPELL_MESSAGE,
+        ]);
+    });
+
+    it('rejects a fixed spell on a study, even beside the draw (D-17, D-31)', () => {
+        addNewCity('Valantar', 'valanCapital');
+        addEntry(
+            tree,
+            'quests',
+            questOf(
+                '64b0000000000000000003a1',
+                NEW_CITY_ID,
+                'study',
+                NEW_MARKER_ID,
+                { spellDraw: true, spell: '64b0000000000000000000b1' },
+            ),
+        );
+
+        expect(errorsAt('64b0000000000000000003a1', 'prizes.spell')).toEqual([
+            FIXED_SPELL_MESSAGE,
         ]);
     });
 

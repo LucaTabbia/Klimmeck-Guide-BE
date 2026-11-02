@@ -609,11 +609,16 @@ function lootRarityIssues(
     });
 }
 
-function fixedSpellIssues({ entry, type }: QuestFacts): ContentIssue[] {
+// D-17/D-31 rivisti: le study fuori da Valantar non danno magie, quella di Valantar la sorteggia
+function fixedSpellIssues({ entry }: QuestFacts): ContentIssue[] {
     const spell = recordAt(entry.raw, 'prizes').spell;
-    if (spell === null || spell === undefined || type === 'study') return [];
+    if (spell === null || spell === undefined) return [];
     return [
-        issueAt(entry, 'prizes.spell', 'prizes.spell solo su una study (D-31)'),
+        issueAt(
+            entry,
+            'prizes.spell',
+            'nessuna quest fissa porta una magia fissa: la study di Valantar la sorteggia (D-17, D-31)',
+        ),
     ];
 }
 

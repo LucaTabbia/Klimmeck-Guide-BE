@@ -96,7 +96,7 @@ Le chiavi si scrivono nell'ordine qui sotto; `?` = facoltativa. I campi marcati 
   prizes:
     randomLoot: []                  # [{ itemType, item, quantity ≥ 1 }]
     prizeItem: null                 # ?
-    spell: null                     # ? id magia
+    spell: null                     # ? sempre null sulle quest fisse (D-31)
     spellDraw: false                # ? D-31
     prizeCoins: { gold, silver, copper }   # ? override
     xpPrize: 120                    # ? override
@@ -153,7 +153,7 @@ Premi e tempi **non** si scrivono nei file: il caricatore li calcola da `config.
 - **dungeon**: nemico con `category: monster`; marker su un POI con `dungeon` fra i tipi (D-20).
 - `hunt` e `dungeon` hanno sempre un nemico.
 - `prizes.spellDraw: true` solo sulla `study` della città di tipo `valanCapital` (Valantar: la città si riconosce dal tipo, non dal nome), e **al massimo una** voce in tutto il contenuto; la `study` di quella città deve averlo (D-31).
-- `prizes.spell` solo su una `study`.
+- `prizes.spell` mai su una quest fissa: le `study` fuori da Valantar non danno magie e quella di Valantar la sorteggia (D-17, D-31).
 - Al massimo **una quest fissa per POI** diverso dal marker di una città; sul marker della città lo stesso tipo di quest non si ripete (D-21).
 - Il `markerLocation` di una quest è un POI della **sua** città.
 - Ogni quest fissa ha `infos.description`: il generatore la scrive nella voce di chi ha affisso l'annuncio, variante scelta col seme e la chiave della quest (D-32).
