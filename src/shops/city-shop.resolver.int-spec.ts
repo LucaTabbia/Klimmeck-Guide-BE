@@ -10,6 +10,7 @@ import {
     PointOfInterest,
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
+import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import {
     AuthTestApp,
@@ -20,6 +21,7 @@ import { createPlayer } from '../../test/authz/player-fixture';
 import {
     persistCity,
     persistEquipmentItem,
+    persistLore,
     persistSpell,
 } from '../../test/fixtures';
 import {
@@ -38,6 +40,11 @@ const CITY_SHOP = `query CityShop($cityId: ID!) {
         pets { id name buyPrice { gold silver copper } sellPrice { gold silver copper } speedModifier sellable }
     }
 }`;
+const CITY_SHOP_RELATIONS = `query CityShopRelations($cityId: ID!) {
+    cityShop(cityId: $cityId) {
+        city { markerLocation { id } relatedLore { id } pointsOfInterest { id } }
+    }
+}`;
 
 interface WireBody {
     data?: { cityShop?: Record<string, unknown> | null } | null;
@@ -49,6 +56,7 @@ describe('cityShop', () => {
     let models: ShopWorldModels;
     let spells: Model<any>;
     let pointsOfInterest: Model<any>;
+    let lores: Model<any>;
     let bearer: string;
     let catalogue: Awaited<ReturnType<typeof persistShopCatalogue>>;
 
@@ -63,6 +71,7 @@ describe('cityShop', () => {
                         schema: PointOfInterestSchema,
                     },
                     { name: Lore.name, schema: LoreSchema },
+                    { name: Quest.name, schema: QuestSchema },
                 ]),
             ],
         });
@@ -74,6 +83,7 @@ describe('cityShop', () => {
         };
         spells = harness.connection.model(Spell.name);
         pointsOfInterest = harness.connection.model(PointOfInterest.name);
+        lores = harness.connection.model(Lore.name);
     });
 
     beforeEach(async () => {
@@ -99,10 +109,11 @@ describe('cityShop', () => {
     async function cityShopOnWire(
         cityId: string,
         auth: string | undefined = bearer,
+        query: string = CITY_SHOP,
     ): Promise<WireBody> {
         const response = await graphqlRequest(
             harness.app,
-            CITY_SHOP,
+            query,
             { cityId },
             auth,
         );
@@ -184,6 +195,48 @@ describe('cityShop', () => {
                         sellable: true,
                     },
                 ],
+            },
+        });
+    });
+
+    it('resolves the marker, the lore and the points of interest of the shop city (D-18)', async () => {
+        const lore = await persistLore(lores, { name: 'Storia di Valantar' });
+        const city = await persistCity(
+            models.city,
+            {
+                name: 'Valantar',
+                type: 'valanCapital',
+                relatedLore: lore._id,
+                shopEquipment: [],
+                shopLoot: [],
+                shopPets: [],
+            },
+            pointsOfInterest,
+        );
+        await models.city.updateOne(
+            { _id: city._id },
+            { pointsOfInterest: [city.markerLocation] },
+        );
+
+        const body = await cityShopOnWire(
+            city._id.toHexString(),
+            bearer,
+            CITY_SHOP_RELATIONS,
+        );
+
+        expect(body).toEqual({
+            data: {
+                cityShop: {
+                    city: {
+                        markerLocation: {
+                            id: city.markerLocation.toHexString(),
+                        },
+                        relatedLore: { id: lore._id.toHexString() },
+                        pointsOfInterest: [
+                            { id: city.markerLocation.toHexString() },
+                        ],
+                    },
+                },
             },
         });
     });
