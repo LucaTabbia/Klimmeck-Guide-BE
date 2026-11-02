@@ -1,5 +1,6 @@
 import { Db, MongoClient, ObjectId } from 'mongodb';
 import { describeError } from '../mongo/mongo-errors';
+import { catalogStats } from './analysis/catalog-stats';
 import { checkContent, ContentCheck } from './checking/check-content';
 import { CliCommand, parseCliArgs } from './cli-args';
 import { ExportDirNotEmptyError, exportContent } from './export/export-content';
@@ -21,12 +22,15 @@ export const CONTENT_EXIT = {
 } as const;
 
 export const CONTENT_USAGE =
-    'Uso: node [--env-file=<file>] dist/content/run-content.js --check|--dry-run|--apply|--verify|--export <dir>|--prune <collezione>|--new-id <N> [--content-dir <path>] (MONGO_URI e DB_NAME servono a tutte le modalità tranne --check e --new-id)';
+    'Uso: node [--env-file=<file>] dist/content/run-content.js --check|--stats|--dry-run|--apply|--verify|--export <dir>|--prune <collezione>|--new-id <N> [--content-dir <path>] (MONGO_URI e DB_NAME servono a tutte le modalità tranne --check, --stats e --new-id)';
 
 type Environment = Record<string, string | undefined>;
 type Out = (line: string) => void;
 type ExitCode = (typeof CONTENT_EXIT)[keyof typeof CONTENT_EXIT];
-type OfflineCommand = Extract<CliCommand, { mode: 'check' | 'new-id' }>;
+type OfflineCommand = Extract<
+    CliCommand,
+    { mode: 'check' | 'stats' | 'new-id' }
+>;
 type DatabaseCommand = Exclude<CliCommand, OfflineCommand>;
 
 interface CheckReport extends ContentCheck {
@@ -39,8 +43,14 @@ interface Connection {
     dbName: string;
 }
 
+const OFFLINE_MODES: readonly CliCommand['mode'][] = [
+    'check',
+    'stats',
+    'new-id',
+];
+
 function isOffline(command: CliCommand): command is OfflineCommand {
-    return command.mode === 'check' || command.mode === 'new-id';
+    return OFFLINE_MODES.includes(command.mode);
 }
 
 function connectionOf(env: Environment): Connection | null {
@@ -58,16 +68,27 @@ function countsOf(tree: ContentTree): Record<ContentCollection, number> {
     ) as Record<ContentCollection, number>;
 }
 
+function checkReportOf(tree: ContentTree, check: ContentCheck): CheckReport {
+    return { mode: 'check', counts: countsOf(tree), ...check };
+}
+
 function runCheck(contentDir: string, out: Out): ExitCode {
     const tree = loadContentTree(contentDir);
     const check = checkContent(tree);
-    const report: CheckReport = {
-        mode: 'check',
-        counts: countsOf(tree),
-        ...check,
-    };
-    out(JSON.stringify(report));
+    out(JSON.stringify(checkReportOf(tree, check)));
     return exitOf(check.errors.length > 0);
+}
+
+// un albero con errori stampa il report di --check: le misure su dati invalidi ingannerebbero
+function runStats(contentDir: string, out: Out): ExitCode {
+    const tree = loadContentTree(contentDir);
+    const check = checkContent(tree);
+    if (check.errors.length > 0) {
+        out(JSON.stringify(checkReportOf(tree, check)));
+        return CONTENT_EXIT.drift;
+    }
+    out(JSON.stringify(catalogStats(tree)));
+    return CONTENT_EXIT.ok;
 }
 
 // stesso formato di una lista YAML: le righe si copiano così come sono nei file
@@ -78,9 +99,10 @@ function printNewIds(count: number, out: Out): ExitCode {
 }
 
 function runOffline(command: OfflineCommand, out: Out): ExitCode {
+    if (command.mode === 'new-id') return printNewIds(command.count, out);
     return command.mode === 'check'
         ? runCheck(command.contentDir, out)
-        : printNewIds(command.count, out);
+        : runStats(command.contentDir, out);
 }
 
 async function runOnDatabase(
@@ -137,7 +159,7 @@ async function runConnected(
     }
 }
 
-// T-11-43: l'ambiente arriva come oggetto; --check e --new-id non lo leggono e non si connettono
+// T-11-43: l'ambiente arriva come oggetto; --check, --stats e --new-id non lo leggono e non si connettono
 export async function runCli(
     argv: readonly string[],
     env: Environment,

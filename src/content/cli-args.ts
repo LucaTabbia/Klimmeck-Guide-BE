@@ -5,7 +5,7 @@ import { PRUNABLE_COLLECTIONS } from 'src/content/sync/content-prune';
 import { ContentMode } from 'src/content/sync/content-report';
 
 export type CliCommand =
-    | { mode: 'check'; contentDir: string }
+    | { mode: 'check' | 'stats'; contentDir: string }
     | { mode: ContentMode; contentDir: string }
     | { mode: 'export'; dir: string; contentDir: string }
     | { mode: 'prune'; collection: ContentCollection; contentDir: string }
@@ -14,7 +14,7 @@ export type CliCommand =
 export const MAX_NEW_IDS = 500;
 
 const CONTENT_DIR_FLAG = '--content-dir';
-const PLAIN_MODES = ['check', 'dry-run', 'apply', 'verify'] as const;
+const PLAIN_MODES = ['check', 'stats', 'dry-run', 'apply', 'verify'] as const;
 const VALUE_MODES = ['export', 'prune', 'new-id'] as const;
 const COUNT_PATTERN = /^\d+$/;
 
