@@ -12,6 +12,7 @@ import { SpellRecoveryModule } from './characters/spells/spell-recovery.module';
 import { CharacterCreationModule } from './characters/creation/character-creation.module';
 import { CharacterDeletionModule } from './characters/deletion/character-deletion.module';
 import { CitiesModule } from './cities/cities.module';
+import { ShopMaintenanceModule } from './shops/maintenance/shop-maintenance.module';
 import { EnemiesModule } from './enemies/enemies.module';
 import { EquipmentItemsModule } from './equipmentItems/equipment-items.module';
 import { LootItemsModule } from './lootItems/loot-items.module';
@@ -92,6 +93,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         CharacterCreationModule,
         CharacterDeletionModule,
         CitiesModule,
+        ShopMaintenanceModule,
         EnemiesModule,
         EquipmentItemsModule,
         LootItemsModule,
