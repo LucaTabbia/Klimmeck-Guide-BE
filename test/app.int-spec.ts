@@ -510,7 +510,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spellStates: [SpellState!]!\n  spells: [Spell!]!\n  title: String!\n  xp: Int!\n}',
         );
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
-            'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  speedModifier: Float\n  xp: Int!\n}',
+            'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n  xp: Int!\n}',
         );
         expect(schema).not.toMatch(/TravelKind|\bkind\b/);
     });

@@ -269,6 +269,7 @@ type EquipmentItem {
   name: String
   rarity: String
   sellPrice: Coins
+  sellable: Boolean
 }
 
 enum InjuryType {
@@ -319,6 +320,7 @@ type LootItem {
   power: Int!
   rarity: String
   sellPrice: Coins
+  sellable: Boolean
 }
 
 type Lore {
@@ -416,6 +418,7 @@ type Pet {
   maxXp: Int!
   name: String!
   sellPrice: Coins!
+  sellable: Boolean
   speedModifier: Float
   xp: Int!
 }

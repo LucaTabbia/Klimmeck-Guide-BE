@@ -32,4 +32,9 @@ export abstract class AssetItem {
     @Field(() => String, { nullable: true })
     @Prop({ type: String, enum: Object.values(RarityType) })
     rarity?: RarityType;
+
+    // «mai sullo scaffale» quando false (D-05, D-07); nessun default: l'assenza resta leggibile
+    @Field(() => Boolean, { nullable: true })
+    @Prop({ type: Boolean })
+    sellable?: boolean | null;
 }
