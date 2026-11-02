@@ -93,9 +93,12 @@ function entriesOf(
 }
 
 // ---- schema e prosa: lo stesso difetto può uscire dal loader e dalla validazione, vince il primo messaggio
+// l'id della voce fa parte della chiave: due voci in stile flow sulla stessa riga restano due errori
 
 function issueKeyOf(issue: ContentIssue): string {
-    return `${issue.file}:${issue.line ?? ''}:${issue.path}`;
+    return [issue.file, issue.line ?? '', issue.entryId ?? '', issue.path].join(
+        '\u0000',
+    );
 }
 
 function withoutRepeats(issues: readonly ContentIssue[]): ContentIssue[] {

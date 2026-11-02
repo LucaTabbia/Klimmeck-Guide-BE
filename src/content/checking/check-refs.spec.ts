@@ -27,6 +27,32 @@ describe('checkContent references and duplicates', () => {
         expect(checkContent(tree).errors).toEqual([]);
     });
 
+    it('keeps the same error of two entries written on one line', () => {
+        const first = '64b0000000000000000000a8';
+        const second = '64b0000000000000000000a9';
+        for (const [id, name] of [
+            [first, 'Prima'],
+            [second, 'Seconda'],
+        ]) {
+            tree.entries.lore.push({
+                file: 'lore/flow.yaml',
+                line: 1,
+                raw: {
+                    ...entryOf(tree, 'lore', REGION_ID),
+                    id,
+                    name,
+                    type: 'town',
+                },
+            });
+        }
+
+        expect(
+            checkContent(tree)
+                .errors.filter(({ path }) => path === 'type')
+                .map(({ entryId }) => entryId),
+        ).toEqual([first, second]);
+    });
+
     it('reports a related lore that does not exist (D-02)', () => {
         entryOf(tree, 'lore', REGION_ID).relatedLore = [MISSING_ID];
 
