@@ -98,11 +98,21 @@ function printNewIds(count: number, out: Out): ExitCode {
     return CONTENT_EXIT.ok;
 }
 
-function runOffline(command: OfflineCommand, out: Out): ExitCode {
+function runOfflineMode(command: OfflineCommand, out: Out): ExitCode {
     if (command.mode === 'new-id') return printNewIds(command.count, out);
     return command.mode === 'check'
         ? runCheck(command.contentDir, out)
         : runStats(command.contentDir, out);
+}
+
+// un crash (file illeggibile, regola che lancia) è un failure con il suo report, mai un drift
+function runOffline(command: OfflineCommand, out: Out): ExitCode {
+    try {
+        return runOfflineMode(command, out);
+    } catch (error) {
+        out(errorReportOf(error));
+        return exitCodeOf(error);
+    }
 }
 
 async function runOnDatabase(
@@ -176,7 +186,11 @@ export async function runCli(
 }
 
 if (require.main === module) {
-    void runCli(process.argv.slice(2), process.env, (line) =>
-        console.log(line),
-    ).then((code) => process.exit(code));
+    const print: Out = (line) => console.log(line);
+    void runCli(process.argv.slice(2), process.env, print)
+        .catch((error: unknown) => {
+            print(errorReportOf(error));
+            return CONTENT_EXIT.failure;
+        })
+        .then((code) => process.exit(code));
 }

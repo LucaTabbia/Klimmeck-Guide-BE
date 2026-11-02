@@ -137,6 +137,22 @@ describe('compiled run-content CLI (replSet)', () => {
         expect(reportOf<ContentCheck>(run).errors).not.toEqual([]);
     });
 
+    it('reports a crash of an offline mode as a failure, never as drift', async () => {
+        const dir = temporaryDir();
+        cpSync(TEST_CONTENT, dir, { recursive: true });
+        mkdirSync(join(dir, 'lore', 'cartella.yaml'));
+
+        const run = await runCompiledCli(
+            ['--check', '--content-dir', dir],
+            offlineEnvironment(),
+        );
+
+        expect(run.status).toBe(3);
+        expect(reportOf<{ error: string }>(run)).toEqual({
+            error: 'Error, code EISDIR',
+        });
+    });
+
     it('prints new quoted ids without any environment', async () => {
         const run = await runCompiledCli(
             ['--new-id', '3'],
