@@ -1,11 +1,13 @@
 import { ContentIndex } from 'src/content/checking/content-index';
-import { WorldCity } from 'src/content/loading/content-tree';
+import { WorldCity, WorldPoi } from 'src/content/loading/content-tree';
+import { IndexedEntry } from 'src/content/checking/content-index';
 import {
     citySizeOf,
     COLLEGE_CITY,
     NO_CRIME_CITY_TYPES,
     NO_SERVICE_CITY_TYPES,
     questFileOf,
+    regionalGroupOf,
     SPELL_STUDY_CITY,
 } from 'src/content/generation/city-profile';
 import { QUEST_TITLES } from 'src/content/generation/quest-titles';
@@ -15,12 +17,15 @@ import {
     ContentTier,
     FixedQuestType,
 } from 'src/content/rules/content-config';
+import { enemyFactsOf } from 'src/content/rules/enemy-facts';
 
 /*
  * Generatore puro delle quest fisse (D-17..D-22, D-31): niente DB, file né orologio.
  * Ordine dei sorteggi, fisso perché stesso input + stesso seme = stesse voci (T-11-31):
  * 1. città ordinate per id: per ogni città di taglia «city» il tiro del crime (non a Ferrion),
  *    poi il tiro della study;
+ * 2. gruppi regionali ordinati per nome: shuffle delle città candidate alla hunt, poi per
+ *    ciascuna scelta pick dell'animale e pick del POI (candidati ordinati per id);
  */
 
 type Raw = Record<string, unknown>;
@@ -79,8 +84,13 @@ interface GeneratorWorld {
     chance: SeededChanceSource;
     cities: WorldCity[];
     cityLore: Map<string, string>;
+    enemies: IndexedEntry[];
     skipped: SkippedQuest[];
 }
+
+const EVERYWHERE = 'all';
+
+const DUNGEON_POI = 'dungeon';
 
 function byId<T extends { id: string }>(a: T, b: T): number {
     if (a.id === b.id) return 0;
@@ -120,6 +130,7 @@ function worldOf(input: GeneratorInput): GeneratorWorld {
         chance: new SeededChanceSource(input.config.generator.seed),
         cities,
         cityLore,
+        enemies: [...input.index.byCollection.enemies.values()].sort(byId),
         skipped,
     };
 }
@@ -217,6 +228,115 @@ function serviceDrafts(world: GeneratorWorld): QuestDraft[] {
         .flatMap((city) => serviceDraftsOf(world, city));
 }
 
+function locationsOf(enemy: IndexedEntry): string[] {
+    const locations = enemy.raw.locations;
+    return Array.isArray(locations) ? (locations as string[]) : [];
+}
+
+function livesIn(enemy: IndexedEntry, poi: WorldPoi): boolean {
+    const locations = locationsOf(enemy);
+    return (
+        locations.includes(EVERYWHERE) ||
+        poi.type.some((type) => locations.includes(type))
+    );
+}
+
+function enemyLoreOf(enemy: IndexedEntry): string[] {
+    const lore = enemy.raw.relatedLore;
+    return Array.isArray(lore) ? (lore as string[]) : [];
+}
+
+function withoutDuplicates(ids: readonly string[]): string[] {
+    return [...new Set(ids)];
+}
+
+// solo animali facili: la hunt è l'uscita alla portata di un rookie (D-18)
+function easyAnimalsOf(world: GeneratorWorld): IndexedEntry[] {
+    const maxPe = world.config.hunt.maxAnimalPe;
+    return world.enemies.filter((enemy) => {
+        if (enemy.raw.category !== 'animal') return false;
+        const { pe } = enemyFactsOf(enemy.raw, world.config);
+        return pe !== null && pe <= maxPe;
+    });
+}
+
+// il marker resta alle quest di servizio, i POI dungeon alle dungeon (D-21)
+function huntPoisOf(
+    city: WorldCity,
+    animals: readonly IndexedEntry[],
+): WorldPoi[] {
+    return city.pointsOfInterest
+        .filter(
+            (poi) =>
+                poi.id !== city.markerLocation &&
+                !poi.type.includes(DUNGEON_POI) &&
+                animals.some((animal) => livesIn(animal, poi)),
+        )
+        .sort(byId);
+}
+
+function huntDraft(
+    world: GeneratorWorld,
+    city: WorldCity,
+    animals: readonly IndexedEntry[],
+): QuestDraft | null {
+    const pois = huntPoisOf(city, animals);
+    const animal = world.chance.pick(
+        animals.filter((candidate) =>
+            pois.some((poi) => livesIn(candidate, poi)),
+        ),
+    );
+    if (!animal) return null;
+    const poi = world.chance.pick(pois.filter((poi) => livesIn(animal, poi)));
+    if (!poi) return null;
+    return {
+        file: questFileOf(city.type),
+        city: city.id,
+        type: 'hunt',
+        title: QUEST_TITLES.hunt(city.name, animal.name ?? ''),
+        enemy: animal.id,
+        markerLocation: poi.id,
+        relatedLore: withoutDuplicates([
+            ...cityLoreIds(world, city),
+            ...enemyLoreOf(animal),
+        ]),
+        minTitle: 'rookie',
+        recommendedLoot: [],
+        randomLoot: [],
+        spellDraw: false,
+    };
+}
+
+function regionalGroupsOf(
+    cities: readonly WorldCity[],
+): [string, WorldCity[]][] {
+    const groups = new Map<string, WorldCity[]>();
+    for (const city of cities) {
+        const group = regionalGroupOf(city.type);
+        groups.set(group, [...(groups.get(group) ?? []), city]);
+    }
+    return [...groups.entries()].sort(([a], [b]) => (a < b ? -1 : 1));
+}
+
+// al più una città su due per gruppo regionale riceve la hunt, Necrorian esclusa (D-17)
+function huntDrafts(world: GeneratorWorld): QuestDraft[] {
+    const animals = easyAnimalsOf(world);
+    const share = world.config.hunt.maxShareOfRegion;
+    const drafts: QuestDraft[] = [];
+    for (const [, cities] of regionalGroupsOf(world.cities.filter(isServed))) {
+        const limit = Math.floor(cities.length * share);
+        const candidates = cities.filter(
+            (city) => huntPoisOf(city, animals).length > 0,
+        );
+        const chosen = world.chance.shuffle(candidates).slice(0, limit);
+        for (const city of chosen) {
+            const draft = huntDraft(world, city, animals);
+            if (draft) drafts.push(draft);
+        }
+    }
+    return drafts.sort((a, b) => (a.city < b.city ? -1 : 1));
+}
+
 function entryOf(draft: QuestDraft, id: string): Raw {
     const prizes: Raw = { randomLoot: draft.randomLoot };
     if (draft.spellDraw) prizes.spellDraw = true;
@@ -240,7 +360,7 @@ function entryOf(draft: QuestDraft, id: string): Raw {
 
 export function generateFixedQuests(input: GeneratorInput): GeneratorResult {
     const world = worldOf(input);
-    const drafts = serviceDrafts(world);
+    const drafts = [...serviceDrafts(world), ...huntDrafts(world)];
     return {
         quests: drafts.map((draft) => ({
             file: draft.file,
