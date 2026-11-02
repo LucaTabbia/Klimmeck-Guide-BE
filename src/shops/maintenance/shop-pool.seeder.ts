@@ -214,7 +214,7 @@ export class ShopPoolSeeder {
     private warnGuaranteeGaps(gaps: GuaranteeGap[]): void {
         gaps.slice(0, SHOP_REPORT_WARNINGS_LIMIT).forEach(({ city, missing }) =>
             this.logger.warn(
-                `Negozi: ${city.name} (${city.type}) senza le garanzie di loot ${missing.join(', ')}`,
+                `Negozi: ${city.name ?? city._id.toHexString()} (${city.type}) senza le garanzie di loot ${missing.join(', ')}`,
             ),
         );
         const omitted = gaps.length - SHOP_REPORT_WARNINGS_LIMIT;
