@@ -54,7 +54,9 @@
   description: |-
     Un fungo che cresce vicino ai cimiteri e ovunque ci siano carcasse, nutrendosi dei tessuti in decomposizione dopo le lunghe piogge. Il cappello è bianco e largo, coperto di piccoli bubboni neri e lucidissimi simili a gocce. È velenosissimo: provoca vomito, dolori fortissimi, vertigini e la necrosi del fegato, fino alla morte. Se ne ricava il «Rancore nero», un veleno dagli stessi effetti ma rapidissimo, di cui bastano poche gocce.
   image: null
-  relatedLore: []
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f57' # Necrorian e il Glounet
+    - '6ae802f65f3e1244a34ae378' # Fantasma
 - id: '6ae8065202a77381730f282a'
   type: plant
   name: Cuffia gialla

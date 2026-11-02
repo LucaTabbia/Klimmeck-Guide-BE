@@ -143,7 +143,9 @@
   description: |-
     Nella loro vera forma sono umanoidi alti ed elfici, dalla pelle grigia e glabra, con teste bulbose, volti informi e occhi giallo pallido senza pupille. Sembrano fragili, ma sono forti e agili. Vivono nascosti nei centri abitati con il volto di altri e leggono nel pensiero. Combattono con le armi che portano o a mani nude, e resistono alle magie che addormentano o ammaliano.
   image: null
-  relatedLore: []
+  relatedLore:
+    - '6ae80bf6947d6a423521c708' # Criminali e briganti
+    - '6ae802f65f3e1244a34ae389' # Mimic
 - id: '6ae8018831ec3185a9e09930'
   type: enemy
   name: Drago d'ombra giovane

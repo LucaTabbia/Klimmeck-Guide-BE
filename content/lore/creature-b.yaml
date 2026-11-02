@@ -23,7 +23,9 @@
   description: |-
     Resti eterei di una vita passata: hanno l'aspetto che avevano al momento della morte, ma trasparente e dai colori sbiaditi, e quella tinta lascia intuire come sono morti. Rifiutano la morte e cercano una seconda possibilità. Infestano gli antichi campi di battaglia e le cripte e i cimiteri abbandonati. Prima provano a possedere il nemico; solo quando attaccano fisicamente diventano materiali, e allora l'acqua santa, l'argento e la magia li feriscono.
   image: null
-  relatedLore: []
+  relatedLore:
+    - '6ae8018831ec3185a9e09923' # Banshee
+    - '6ae7fc3ed1f6494f3dc89f57' # Necrorian e il Glounet
 - id: '6ae802f65f3e1244a34ae379'
   type: enemy
   name: Fauce gorgogliante
@@ -177,7 +179,9 @@
   description: |-
     Nati, si dice, dal tentativo di un alchimista di animare un oggetto con un reagente la cui formula è andata perduta. Col tempo hanno imparato a trasformarsi in copie perfette di oggetti costruiti, soprattutto nei luoghi poco frequentati. Non sono malvagi per natura, ma attaccano le creature intelligenti più per passatempo che per fame, perché ingannare è parte del loro essere. Si nascondono in rovine, villaggi e accampamenti abbandonati o nelle cantine dimenticate, e mordono chi prova ad aprirli.
   image: null
-  relatedLore: []
+  relatedLore:
+    - '6ae8018831ec3185a9e0992f' # Doppelganger
+    - '6ae7fc3ed1f6494f3dc89f7c' # La magia di Klimmeck
 - id: '6ae802f65f3e1244a34ae38a'
   type: enemy
   name: Miconide
