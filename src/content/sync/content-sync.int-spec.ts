@@ -1,4 +1,4 @@
-import { Db, Double, MongoClient, ObjectId } from 'mongodb';
+import { Collection, Db, Double, MongoClient, ObjectId } from 'mongodb';
 import {
     CONTENT_COLLECTIONS,
     ContentTree,
@@ -11,6 +11,7 @@ import {
 import { seedWorld } from '../../../test/content/seed-world';
 import { hasDrift } from './content-report';
 import { runContent } from './content-sync';
+import { DATABASE_SOURCE } from './db-checks';
 
 const DB_NAME = 'content-sync-test';
 const CITY_ONE = new ObjectId('64b0000000000000000000c1');
@@ -19,6 +20,38 @@ const CITY_LORE = new ObjectId('64b0000000000000000000a2');
 const DUNGEON_POI = new ObjectId('64b0000000000000000000d3');
 const SPELL = new ObjectId('64b0000000000000000000b1');
 const HEAL_QUEST = new ObjectId('64b000000000000000000301');
+
+type Race = () => Promise<void>;
+
+function bound(target: object, key: string | symbol): unknown {
+    const value: unknown = Reflect.get(target, key, target);
+    return typeof value === 'function' ? value.bind(target) : value;
+}
+
+// una scrittura concorrente fra il piano e il bulkWrite di una collezione
+function racingDb(db: Db, name: string, race: Race): Db {
+    const racingCollection = (collection: Collection) =>
+        new Proxy(collection, {
+            get: (target, key) => {
+                if (key !== 'bulkWrite') return bound(target, key);
+                return async (...args: Parameters<Collection['bulkWrite']>) => {
+                    await race();
+                    return target.bulkWrite(...args);
+                };
+            },
+        });
+    return new Proxy(db, {
+        get: (target, key) => {
+            if (key !== 'collection') return bound(target, key);
+            return (collectionName: string) => {
+                const collection = target.collection(collectionName);
+                return collectionName === name
+                    ? racingCollection(collection)
+                    : collection;
+            };
+        },
+    });
+}
 
 describe('runContent (replSet)', () => {
     let client: MongoClient;
@@ -78,6 +111,9 @@ describe('runContent (replSet)', () => {
     it('inserts on apply, then verify finds no drift and a second apply modifies nothing (D-01)', async () => {
         const first = await runContent(db, 'apply', tree);
         expect(first.errors).toEqual([]);
+        expect(
+            first.warnings.filter(({ file }) => file === DATABASE_SOURCE),
+        ).toEqual([]);
         expect(first.collections.lore.inserted).toBe(3);
         expect(first.collections.enemies.inserted).toBe(2);
         expect(await countsOf()).toEqual({
@@ -104,6 +140,31 @@ describe('runContent (replSet)', () => {
             unchanged: 1,
             missing: [],
         });
+    });
+
+    it('warns when the bulk write outcome differs from the plan (LO-04)', async () => {
+        const racedLore = new ObjectId('64b0000000000000000000a1');
+        const racing = racingDb(db, 'lore', async () => {
+            await db
+                .collection('lore')
+                .insertOne({ _id: racedLore, name: 'Scritta nel frattempo' });
+        });
+
+        const report = await runContent(racing, 'apply', tree);
+
+        expect(report.errors).toEqual([]);
+        expect(report.collections.lore).toEqual(
+            expect.objectContaining({ inserted: 3, modified: 0 }),
+        );
+        expect(
+            report.warnings.filter(({ file }) => file === DATABASE_SOURCE),
+        ).toEqual([
+            expect.objectContaining({
+                path: 'lore',
+                message:
+                    'esito della scrittura diverso dal piano: inseriti 2 (piano 3), modificati 1 (piano 0)',
+            }),
+        ]);
     });
 
     it('rewrites a mongosh double once, then leaves it alone (Pitfall 3)', async () => {

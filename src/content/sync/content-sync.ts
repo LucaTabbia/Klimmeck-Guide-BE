@@ -22,7 +22,7 @@ import {
     ContentReport,
     emptyContentReport,
 } from './content-report';
-import { checkDatabase } from './db-checks';
+import { checkDatabase, DATABASE_SOURCE } from './db-checks';
 import { divergencesOf, findOrphans, knownIdsOf, orphanRefOf } from './orphans';
 import { cityLoreOp, upsertOp } from './upsert-ops';
 
@@ -135,13 +135,49 @@ async function planCityLore(
     return plan;
 }
 
+interface WriteCounts {
+    inserted: number;
+    modified: number;
+}
+
 async function bulkWriteOf(
     db: Db,
     collection: string,
     ops: AnyBulkWriteOperation[],
-): Promise<void> {
-    if (ops.length === 0) return;
-    await db.collection(collection).bulkWrite(ops, { ordered: true });
+): Promise<WriteCounts> {
+    if (ops.length === 0) return { inserted: 0, modified: 0 };
+    const result = await db
+        .collection(collection)
+        .bulkWrite(ops, { ordered: true });
+    return { inserted: result.upsertedCount, modified: result.modifiedCount };
+}
+
+// il piano è una previsione; una scrittura concorrente o una semantica diversa del server la smentiscono
+function outcomeWarnings(
+    collection: string,
+    planned: WriteCounts,
+    written: WriteCounts,
+): ContentIssue[] {
+    if (sameBson(planned, written)) return [];
+    return [
+        {
+            file: DATABASE_SOURCE,
+            line: null,
+            entryId: null,
+            path: collection,
+            message: `esito della scrittura diverso dal piano: inseriti ${written.inserted} (piano ${planned.inserted}), modificati ${written.modified} (piano ${planned.modified})`,
+        },
+    ];
+}
+
+async function writePlanned(
+    db: Db,
+    collection: string,
+    ops: AnyBulkWriteOperation[],
+    planned: WriteCounts,
+): Promise<ContentIssue[]> {
+    const written = await bulkWriteOf(db, collection, ops);
+    return outcomeWarnings(collection, planned, written);
 }
 
 // ordine D-27: lore → città → magie → equipaggiamento/loot → nemici → pet → quest
@@ -149,13 +185,24 @@ async function writeContent(
     db: Db,
     plans: readonly CollectionPlan[],
     cityLore: CityLorePlan,
-): Promise<void> {
-    for (const plan of plans) {
-        await bulkWriteOf(db, plan.collection, plan.ops);
-        if (plan.collection === 'lore') {
-            await bulkWriteOf(db, 'cities', cityLore.ops);
-        }
+): Promise<ContentIssue[]> {
+    const warnings: ContentIssue[] = [];
+    for (const { collection, ops, inserted, modified } of plans) {
+        warnings.push(
+            ...(await writePlanned(db, collection, ops, {
+                inserted,
+                modified,
+            })),
+        );
+        if (collection !== 'lore') continue;
+        warnings.push(
+            ...(await writePlanned(db, 'cities', cityLore.ops, {
+                inserted: 0,
+                modified: cityLore.report.modified,
+            })),
+        );
     }
+    return warnings;
 }
 
 function countErrors(
@@ -240,7 +287,8 @@ export async function runContent(
     const plans = await planCollections(db, mapped.documents);
     const cityLore = await planCityLore(db, tree, mapped.cityLore);
     const canWrite = mode === 'apply' && report.errors.length === 0;
-    if (canWrite) await writeContent(db, plans, cityLore);
+    if (canWrite)
+        report.warnings.push(...(await writeContent(db, plans, cityLore)));
     countPlans(report, plans);
     report.cities.relatedLore = cityLore.report;
     countFixes(
