@@ -55,6 +55,20 @@ describe('entriesToYaml', () => {
         );
     });
 
+    it('writes every description as a literal block, as the README asks for prose', () => {
+        const yaml = entriesToYaml(
+            [{ ...ENTRY, description: 'Una riga sola: con due punti.' }],
+            NAMES,
+        );
+
+        expect(yaml).toContain(
+            '  description: |-\n    Una riga sola: con due punti.\n',
+        );
+        expect(
+            parse(entriesToYaml([{ ...ENTRY, description: null }], NAMES)),
+        ).toEqual([{ ...ENTRY, description: null }]);
+    });
+
     it('writes a header comment', () => {
         const yaml = entriesToYaml([ENTRY], NAMES, 'Esportato da --export');
 

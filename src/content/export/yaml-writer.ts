@@ -4,6 +4,12 @@ import { Document, isScalar, Scalar, visit } from 'yaml';
 import type { Node } from 'yaml';
 import { isObjectIdHex } from 'src/mongo/document-id';
 
+// README §Prosa: le descrizioni stanno sempre in un blocco `|-`, anche su una riga
+const PROSE_KEY = 'description';
+
+const isProse = (node: unknown): node is Scalar<string> =>
+    isScalar(node) && typeof node.value === 'string';
+
 const isIdText = (value: unknown): value is string =>
     typeof value === 'string' && isObjectIdHex(value);
 
@@ -32,8 +38,10 @@ export function entriesToYaml(
     const ownIds = new WeakSet<Node>();
     visit(doc, {
         Pair(_, pair) {
-            if (isScalar(pair.key) && pair.key.value === 'id') {
-                ownIds.add(pair.value as Node);
+            if (!isScalar(pair.key)) return;
+            if (pair.key.value === 'id') ownIds.add(pair.value as Node);
+            if (pair.key.value === PROSE_KEY && isProse(pair.value)) {
+                pair.value.type = Scalar.BLOCK_LITERAL;
             }
         },
         Scalar(_, node) {
