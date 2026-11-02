@@ -129,6 +129,20 @@ describe('generateFixedQuests service quests', () => {
         expect(drawing).toHaveLength(1);
     });
 
+    it('keeps the spell draw on the valanCapital study after a rename (D-31)', () => {
+        const renamed = buildGeneratorIndex();
+        renamed.cities.get(ids.valantar)!.name = 'Valantar Nuova';
+
+        const studies = questsOf(
+            generateFixedQuests(generatorInput({ index: renamed })),
+            'study',
+            ids.valantar,
+        );
+
+        expect(studies).toHaveLength(1);
+        expect(prizesOf(studies[0]).spellDraw).toBe(true);
+    });
+
     it('uses adventurer in cities and paladin in capitals for guard, crime and study (D-20)', () => {
         for (const type of ['guard', 'crime', 'study']) {
             for (const city of TOWNS) {

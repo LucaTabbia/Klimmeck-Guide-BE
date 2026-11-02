@@ -1,4 +1,5 @@
 import type { CitySize } from 'src/content/rules/content-config';
+import { CityType } from 'src/models/enums/city-type.enum';
 
 // taglia di gioco di una città: decide quali quest di servizio riceve e il minTitle (D-17, D-20)
 export type CityScale = 'village' | 'city' | 'capital';
@@ -39,9 +40,8 @@ export const NO_CRIME_CITY_TYPES: readonly string[] = ['ferrionCity'];
 
 export const HERO_DUNGEON_CITY_TYPES: readonly string[] = ['necrorianCity'];
 
-export const SPELL_STUDY_CITY = 'Valantar';
-
-export const COLLEGE_CITY = 'Liberia';
+// D-31: la study di Valantar sorteggia la magia; la città si riconosce dal tipo, il nome è un'etichetta (D-01)
+export const SPELL_DRAW_CITY_TYPE: string = CityType.valanCapital;
 
 // D-34 (utente): a Talmvere il job è lavorare nella locanda, non in bottega
 export const INN_CITY_TYPE = 'talmvereVillage';

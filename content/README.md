@@ -152,7 +152,7 @@ Premi e tempi **non** si scrivono nei file: il caricatore li calcola da `config.
 - **hunt**: nemico con `category: animal` e PE di `source` ≤ `hunt.maxAnimalPe` (200); `minTitle: rookie`; marker su un POI della città diverso dal marker della città e senza il tipo `dungeon` (D-18, D-21).
 - **dungeon**: nemico con `category: monster`; marker su un POI con `dungeon` fra i tipi (D-20).
 - `hunt` e `dungeon` hanno sempre un nemico.
-- `prizes.spellDraw: true` solo sulla `study` della città di nome `Valantar`, e **al massimo una** voce in tutto il contenuto (D-31).
+- `prizes.spellDraw: true` solo sulla `study` della città di tipo `valanCapital` (Valantar: la città si riconosce dal tipo, non dal nome), e **al massimo una** voce in tutto il contenuto; la `study` di quella città deve averlo (D-31).
 - `prizes.spell` solo su una `study`.
 - Al massimo **una quest fissa per POI** diverso dal marker di una città; sul marker della città lo stesso tipo di quest non si ripete (D-21).
 - Il `markerLocation` di una quest è un POI della **sua** città.

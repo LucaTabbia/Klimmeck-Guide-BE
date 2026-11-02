@@ -12,6 +12,7 @@ import {
     WORLD_FILE,
     WorldCity,
 } from 'src/content/loading/content-tree';
+import { SPELL_DRAW_CITY_TYPE } from 'src/content/generation/city-profile';
 import { LoadedEntry } from 'src/content/loading/yaml-file';
 import {
     ContentConfig,
@@ -55,8 +56,6 @@ const COLLECTION_OF_ITEM_TYPE: Readonly<Record<string, ContentCollection>> = {
     EquipmentItem: 'equipmentitems',
     LootItem: 'lootitems',
 };
-
-const SPELL_DRAW_CITY = 'Valantar';
 
 function isRecord(value: unknown): value is Raw {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -615,20 +614,32 @@ function fixedSpellIssues({ entry, type }: QuestFacts): ContentIssue[] {
     ];
 }
 
+function drawsSpell({ entry }: QuestFacts): boolean {
+    return recordAt(entry.raw, 'prizes').spellDraw === true;
+}
+
+function isSpellDrawStudy({ type, city }: QuestFacts): boolean {
+    return type === 'study' && city?.type === SPELL_DRAW_CITY_TYPE;
+}
+
 function spellDrawIssues(quests: readonly QuestFacts[]): ContentIssue[] {
-    const drawing = quests.filter(
-        ({ entry }) => recordAt(entry.raw, 'prizes').spellDraw === true,
-    );
+    const drawing = quests.filter(drawsSpell);
     const misplaced = drawing
-        .filter(
-            ({ type, city }) =>
-                type !== 'study' || city?.name !== SPELL_DRAW_CITY,
-        )
+        .filter((quest) => !isSpellDrawStudy(quest))
         .map(({ entry }) =>
             issueAt(
                 entry,
                 'prizes.spellDraw',
-                `il sorteggio della magia è solo sulla study di ${SPELL_DRAW_CITY} (D-31)`,
+                `il sorteggio della magia è solo sulla study della città ${SPELL_DRAW_CITY_TYPE} (D-31)`,
+            ),
+        );
+    const missing = quests
+        .filter((quest) => isSpellDrawStudy(quest) && !drawsSpell(quest))
+        .map(({ entry }) =>
+            issueAt(
+                entry,
+                'prizes.spellDraw',
+                `la study della città ${SPELL_DRAW_CITY_TYPE} sorteggia la magia: serve spellDraw: true (D-31)`,
             ),
         );
     const repeated = drawing
@@ -640,7 +651,7 @@ function spellDrawIssues(quests: readonly QuestFacts[]): ContentIssue[] {
                 `sorteggio della magia già sulla quest ${drawing[0].entry.id} (D-31)`,
             ),
         );
-    return [...misplaced, ...repeated];
+    return [...misplaced, ...missing, ...repeated];
 }
 
 // le quest di servizio condividono il marker della città; ogni altro POI regge una sola quest fissa (D-21)

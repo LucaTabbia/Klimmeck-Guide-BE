@@ -203,7 +203,67 @@ describe('checkContent fixed quest rules', () => {
             true;
 
         expect(errorsAt(HEAL_QUEST_ID, 'prizes.spellDraw')).toEqual([
-            'il sorteggio della magia è solo sulla study di Valantar (D-31)',
+            'il sorteggio della magia è solo sulla study della città valanCapital (D-31)',
+        ]);
+    });
+
+    it('keys the spell draw on the valanCapital type, not on the name (D-31)', () => {
+        addNewCity('Valantar Nuova', 'valanCapital');
+        addEntry(
+            tree,
+            'quests',
+            questOf(
+                '64b0000000000000000003a1',
+                NEW_CITY_ID,
+                'study',
+                NEW_MARKER_ID,
+                { spellDraw: true },
+            ),
+        );
+
+        expect(
+            errorsAt('64b0000000000000000003a1', 'prizes.spellDraw'),
+        ).toEqual([]);
+    });
+
+    it('rejects a spell draw at a city named Valantar of another type (D-31)', () => {
+        addNewCity('Valantar', 'drusteaCapital');
+        addEntry(
+            tree,
+            'quests',
+            questOf(
+                '64b0000000000000000003a1',
+                NEW_CITY_ID,
+                'study',
+                NEW_MARKER_ID,
+                { spellDraw: true },
+            ),
+        );
+
+        expect(
+            errorsAt('64b0000000000000000003a1', 'prizes.spellDraw'),
+        ).toEqual([
+            'il sorteggio della magia è solo sulla study della città valanCapital (D-31)',
+        ]);
+    });
+
+    it('rejects the Valantar study without the spell draw (D-31)', () => {
+        addNewCity('Valantar', 'valanCapital');
+        addEntry(
+            tree,
+            'quests',
+            questOf(
+                '64b0000000000000000003a1',
+                NEW_CITY_ID,
+                'study',
+                NEW_MARKER_ID,
+            ),
+        );
+
+        expect(
+            errorsAt('64b0000000000000000003a1', 'prizes.spellDraw'),
+        ).toEqual([
+            'la study della città valanCapital sorteggia la magia: serve spellDraw: true (D-31)',
         ]);
     });
 

@@ -3,7 +3,6 @@ import { WorldCity, WorldPoi } from 'src/content/loading/content-tree';
 import { IndexedEntry } from 'src/content/checking/content-index';
 import {
     citySizeOf,
-    COLLEGE_CITY,
     DUNGEON_QUEST_FILE,
     dungeonSizeKeyOf,
     HERO_DUNGEON_CITY_TYPES,
@@ -11,7 +10,7 @@ import {
     NO_SERVICE_CITY_TYPES,
     questFileOf,
     regionalGroupOf,
-    SPELL_STUDY_CITY,
+    SPELL_DRAW_CITY_TYPE,
     INN_CITY_TYPE,
 } from 'src/content/generation/city-profile';
 import { QUEST_DESCRIPTIONS } from 'src/content/generation/quest-descriptions';
@@ -254,9 +253,7 @@ function drawnServices(world: GeneratorWorld, city: WorldCity) {
             ? chance.next() < config.generator.crimeCityChance
             : false;
     const fixedStudy =
-        scale === 'capital' ||
-        city.name === COLLEGE_CITY ||
-        city.name === SPELL_STUDY_CITY;
+        scale === 'capital' || city.type === SPELL_DRAW_CITY_TYPE;
     const studyRoll =
         isTown && !fixedStudy
             ? chance.next() < config.generator.studyCityChance
@@ -277,7 +274,7 @@ function serviceDraftsOf(world: GeneratorWorld, city: WorldCity): QuestDraft[] {
     ];
     if (drawn.guard) drafts.push(serviceDraft(world, city, 'guard', minTitle));
     if (drawn.crime) drafts.push(serviceDraft(world, city, 'crime', minTitle));
-    if (city.name === SPELL_STUDY_CITY) {
+    if (city.type === SPELL_DRAW_CITY_TYPE) {
         drafts.push(spellStudyDraft(world, city));
     } else if (drawn.study) {
         drafts.push(serviceDraft(world, city, 'study', minTitle));
