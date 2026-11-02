@@ -29,8 +29,6 @@ import { ExportDirNotEmptyError, exportContent } from './export-content';
 
 const DB_NAME = 'content-export-test';
 const EXPORT_DAY = new Date('2026-11-02T10:00:00Z');
-const HEAL_QUEST = '64b000000000000000000301';
-const HUNT_QUEST = '64b000000000000000000302';
 const IMAGE_LORE = new ObjectId('64b0000000000000000000a9');
 const CLOUDINARY_IMAGE =
     'https://res.cloudinary.com/klimmeck/image/upload/v1/lore/rovine.png';
@@ -39,7 +37,6 @@ const LEGACY_SWORD = new ObjectId('64b0000000000000000000e9');
 const EXPECTED_FILES = [
     'enemies/esistenti.yaml',
     'equipment/weapon.yaml',
-    'fixes/delete-test-quests.yaml',
     'loot/heal.yaml',
     'lore/citta-esistenti.yaml',
     'lore/esistenti.yaml',
@@ -81,7 +78,7 @@ describe('exportContent (replSet)', () => {
         await client.close();
     });
 
-    it('exports the catalog, the world snapshot and the quest deletion list into an empty folder (D-04)', async () => {
+    it('exports the catalog and the world snapshot into an empty folder, without fixes (D-04, ME-01)', async () => {
         const report = await exportContent(db, dir, EXPORT_DAY);
 
         expect(report.mode).toBe('export');
@@ -101,18 +98,8 @@ describe('exportContent (replSet)', () => {
             lootitems: 1,
             cities: 2,
             pointsofinterest: 5,
-            quests: 2,
         });
-        expect(parse(read('fixes/delete-test-quests.yaml'))).toEqual([
-            {
-                key: 'delete-talmvere-test-quests',
-                kind: 'deleteQuests',
-                ids: [HEAL_QUEST, HUNT_QUEST],
-            },
-        ]);
-        expect(read('fixes/delete-test-quests.yaml')).toContain(
-            `- '${HEAL_QUEST}' # [heal] Cure al tempio del Borgo di Prova — Borgo di Prova`,
-        );
+        expect(existsSync(join(dir, 'fixes'))).toBe(false);
         expect(read('lore/citta-esistenti.yaml')).toContain(
             "city: '64b0000000000000000000c1' # Borgo di Prova",
         );

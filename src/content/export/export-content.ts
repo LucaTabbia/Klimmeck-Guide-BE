@@ -14,10 +14,7 @@ import {
     worldCityOf,
 } from 'src/content/export/entry-from-document';
 import { writeEntriesFile } from 'src/content/export/yaml-writer';
-import { FIXES_DIR, WORLD_FILE } from 'src/content/loading/content-tree';
-
-export const DELETE_TEST_QUESTS_FILE = `${FIXES_DIR}/delete-test-quests.yaml`;
-export const DELETE_TEST_QUESTS_KEY = 'delete-talmvere-test-quests';
+import { WORLD_FILE } from 'src/content/loading/content-tree';
 
 const CATALOG_COLLECTIONS = [
     'lore',
@@ -30,19 +27,8 @@ const CATALOG_COLLECTIONS = [
 
 type CatalogCollection = (typeof CATALOG_COLLECTIONS)[number];
 
-type SnapshotCollection =
-    | CatalogCollection
-    | 'cities'
-    | 'pointsofinterest'
-    | 'quests';
-
-// T-11-38: dalle quest escono solo id, tipo, titolo e marker; mai personaggi, utenti o sessioni
-const QUEST_PROJECTION = {
-    _id: 1,
-    'infos.type': 1,
-    'infos.title': 1,
-    'infos.markerLocation': 1,
-};
+// le quest non si esportano: una lista di cancellazione rigenerata colpirebbe anche le quest dei file
+type SnapshotCollection = CatalogCollection | 'cities' | 'pointsofinterest';
 
 // un valore del DB diventa nome di file solo se è un identificatore semplice (niente percorsi)
 const SAFE_FILE_NAME = /^[A-Za-z0-9_-]+$/;
@@ -89,12 +75,7 @@ async function readCollection(
     db: Db,
     collection: SnapshotCollection,
 ): Promise<StoredDocument[]> {
-    const projection = collection === 'quests' ? QUEST_PROJECTION : undefined;
-    return db
-        .collection(collection)
-        .find({}, { projection })
-        .sort({ _id: 1 })
-        .toArray();
+    return db.collection(collection).find({}).sort({ _id: 1 }).toArray();
 }
 
 async function readSnapshot(db: Db): Promise<DbSnapshot> {
@@ -102,7 +83,6 @@ async function readSnapshot(db: Db): Promise<DbSnapshot> {
         ...CATALOG_COLLECTIONS,
         'cities',
         'pointsofinterest',
-        'quests',
     ];
     const documents = await Promise.all(
         collections.map((collection) => readCollection(db, collection)),
@@ -254,29 +234,6 @@ function worldFile(
     return { file: WORLD_FILE, entries };
 }
 
-// D-05: tutte le quest presenti finiscono nella lista da rivedere a mano prima della --apply
-function deleteQuestsFile(snapshot: DbSnapshot): ExportFile {
-    const ids = snapshot.quests.map(idOf);
-    const entries =
-        ids.length === 0
-            ? []
-            : [{ key: DELETE_TEST_QUESTS_KEY, kind: 'deleteQuests', ids }];
-    return { file: DELETE_TEST_QUESTS_FILE, entries };
-}
-
-const infosOf = (quest: StoredDocument): StoredDocument =>
-    (quest.infos ?? {}) as StoredDocument;
-
-function questLabel(
-    quest: StoredDocument,
-    cityByPoi: ReadonlyMap<string, StoredDocument>,
-): string {
-    const infos = infosOf(quest);
-    const label = `[${textOf(infos.type)}] ${textOf(infos.title)}`;
-    const city = cityByPoi.get(textOf(hexOf(infos.markerLocation)));
-    return city ? `${label} — ${textOf(city.name)}` : label;
-}
-
 function poiLabel(
     poi: StoredDocument,
     city: StoredDocument | undefined,
@@ -299,9 +256,6 @@ function namesByIdOf(
     }
     snapshot.pointsofinterest.forEach((poi) =>
         add(idOf(poi), poiLabel(poi, cityByPoi.get(idOf(poi)))),
-    );
-    snapshot.quests.forEach((quest) =>
-        add(idOf(quest), questLabel(quest, cityByPoi)),
     );
     return names;
 }
@@ -328,11 +282,9 @@ export async function exportContent(
     const snapshot = await readSnapshot(db);
     const cityByPoi = cityByPoiOf(snapshot);
     const catalog = exportCatalog(snapshot);
-    const files = [
-        ...catalog.files,
-        worldFile(snapshot, cityByPoi),
-        deleteQuestsFile(snapshot),
-    ].sort((a, b) => a.file.localeCompare(b.file));
+    const files = [...catalog.files, worldFile(snapshot, cityByPoi)].sort(
+        (a, b) => a.file.localeCompare(b.file),
+    );
     const namesById = namesByIdOf(snapshot, cityByPoi);
     const header = headerOf(now);
     for (const { file, entries } of files) {
