@@ -1,0 +1,403 @@
+# Lore delle città dei tipi speciali (D-23): villaggi aarakocra, del deserto, delle foreste, dei monti, del nord e tropicali; campo solo-file city con l'id dello snapshot
+
+- id: '6ae809f3e428a66e9ce2c217'
+  type: city
+  name: Balkuldir
+  description: |-
+    Balkuldir è un villaggio di aarakocra sulle vette del Lamstone, nel territorio del Regno della Madre. I suoi nidi alti e isolati sono costruiti sulle pareti a strapiombo. Gli uomini uccello difendono la loro terra con diffidenza e scacciano gli stranieri che si spingono troppo vicino.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+  city: '690961bf3ed284bbb23a15b6' # Balkuldir
+- id: '6ae809f3e428a66e9ce2c218'
+  type: city
+  name: Murnborim
+  description: |-
+    Murnborim è un villaggio di aarakocra fra le cime settentrionali del Lamstone, ai confini del Lontano Nord, nel Regno della Madre. La tribù vi torna ogni anno dopo aver seguito le prede lungo i passi montani. Fra i nidi sorgono le rovine di un antico santuario dedicato a Lizdum.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961bfe74c2f6dfc837d8f' # Murnborim
+- id: '6ae809f3e428a66e9ce2c219'
+  type: city
+  name: Thengran
+  description: |-
+    Thengran è un villaggio di aarakocra sulle vette gelate del Lamstone, verso il Lontano Nord. I suoi abitanti, figli di Lizdum secondo la tradizione, sono cacciatori abili e diffidenti verso gli stranieri. Si dice che alcuni di loro assaltino le carovane che salgono il Passo dei giganti.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961bf31795cde80768bc7' # Thengran
+- id: '6ae809f3e428a66e9ce2c21a'
+  type: city
+  name: Adehr
+  description: |-
+    Adehr è un villaggio della Repubblica dei Valan sorto al pelo dell'acqua di un'oasi del Mar Sabbioso. I suoi abitanti vivono dell'estrazione del Sundenim affiorato dalle correnti delle dune. Fra la sabbia emergono le rovine di una città sommersa dal deserto.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f5b' # Mar Sabbioso
+  city: '690962040ba4d7934a8a59a0' # Adehr
+- id: '6ae809f3e428a66e9ce2c21b'
+  type: city
+  name: Arbisrah
+  description: |-
+    Arbisrah è un villaggio dei Valan su un'oasi del Mar Sabbioso, dove il fondale è stabile e solido. Le sue chiatte navigano le dune trainate dalle bestie che nuotano nella sabbia. Un sotterraneo sotto le rocce dell'oasi attira cercatori di Sundenim e di tesori.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f5b' # Mar Sabbioso
+  city: '6909620412ed8a8e5c412c58' # Arbisrah
+- id: '6ae809f3e428a66e9ce2c21c'
+  type: city
+  name: Hiorgen
+  description: |-
+    Hiorgen è un villaggio della Repubblica dei Valan in un'ampia oasi del Mar Sabbioso. Le sue squadre di estrattori raccolgono le rocce di Sundenim portate in superficie dalle correnti. Rovine e sotterranei sepolti nelle dune vicine raccontano un passato più antico della repubblica.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f5b' # Mar Sabbioso
+  city: '6909620438e7bde89092474e' # Hiorgen
+- id: '6ae809f3e428a66e9ce2c21d'
+  type: city
+  name: Pinatlu
+  description: |-
+    Pinatlu è un villaggio dei Valan sul margine del Mar Sabbioso, dove il deserto lascia il posto alle pianure. È l'ultimo approdo delle carovane di Sundenim prima delle fucine della repubblica. Nei dintorni si trovano rovine e un sotterraneo che pochi hanno esplorato.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7fc3ed1f6494f3dc89f5b' # Mar Sabbioso
+  city: '6909620496b6d2faac014169' # Pinatlu
+- id: '6ae809f3e428a66e9ce2c21e'
+  type: city
+  name: Shadmus
+  description: |-
+    Shadmus è un piccolo villaggio della Repubblica dei Valan su un'oasi isolata del Mar Sabbioso. I suoi abitanti conoscono le correnti delle dune meglio di chiunque altro. Vivono del Sundenim e dell'acqua che vendono alle carovane di passaggio.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f5b' # Mar Sabbioso
+  city: '690962041becd7b75e22f8ef' # Shadmus
+- id: '6ae809f3e428a66e9ce2c21f'
+  type: city
+  name: Shibirm
+  description: |-
+    Shibirm è un villaggio dei Valan raccolto attorno a un'oasi del Mar Sabbioso. Le palme e la sorgente lo rendono una sosta preziosa per chi attraversa il deserto. Rovine erose dal vento circondano le sue case di pietra chiara.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f5b' # Mar Sabbioso
+  city: '69096204f349d6ebefd4f67e' # Shibirm
+- id: '6ae809f3e428a66e9ce2c220'
+  type: city
+  name: Unaicca
+  description: |-
+    Unaicca è un villaggio della Repubblica dei Valan sulle rive di un'oasi del Mar Sabbioso. I suoi barcaioli guidano le chiatte fra le dune navigabili. Accanto all'oasi affiorano rovine che le correnti di sabbia scoprono e ricoprono a ogni stagione.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f51' # Repubblica dei Valan
+    - '6ae7fc3ed1f6494f3dc89f5b' # Mar Sabbioso
+  city: '6909620476ef1b589f98d6a0' # Unaicca
+- id: '6ae809f3e428a66e9ce2c221'
+  type: city
+  name: Agosbert
+  description: |-
+    Agosbert è un villaggio del Regno di Drustea nei boschi delle pianure del nord. Vive di raccolta, caccia e commercio di legname. Un piccolo cimitero fra gli alberi è al centro delle storie che gli abitanti raccontano ai viandanti.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+  city: '6909614447588774de8a9291' # Agosbert
+- id: '6ae809f3e428a66e9ce2c222'
+  type: city
+  name: Al Anore
+  description: |-
+    Al Anore è un villaggio di elfi nelle radure centrali della foresta di Minnely, nel Regno di Drustea. Come le altre comunità del Minnely, è nascosto agli stranieri da una coltre magica. Si raggiunge soltanto dal Sentiero dei Savi.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+  city: '69096161141b9dd4d0442973' # Al Anore
+- id: '6ae809f3e428a66e9ce2c223'
+  type: city
+  name: Capofoce
+  description: |-
+    Capofoce è un villaggio del Regno di Drustea dove un fiume esce dal bosco verso le pianure. I suoi abitanti vivono di pesca, caccia e legname. Le sue segherie forniscono botti e travi alle birrerie della zona.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+  city: '690961449f34beae3f549c26' # Capofoce
+- id: '6ae809f3e428a66e9ce2c224'
+  type: city
+  name: Jok
+  description: |-
+    Jok è un villaggio boscoso del Regno di Drustea nelle pianure del nord. Un portale demoniaco aperto nel folto ha reso il bosco pericoloso e ha attirato cacciatori di mostri. Chi vive qui commercia pellicce e legname con le città sul Chande.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+  city: '6909614411d83cad8f122025' # Jok
+- id: '6ae809f3e428a66e9ce2c225'
+  type: city
+  name: Lehadorei
+  description: |-
+    Lehadorei è un villaggio di elfi nel cuore della foresta di Minnely, nel Regno di Drustea. Gli abitanti vivono in comunione con la natura e custodiscono antiche usanze. Fra le radici di un albero millenario si apre un sotterraneo che gli elfi sorvegliano da secoli.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+  city: '6909616190c98a6ae089a6f4' # Lehadorei
+- id: '6ae809f3e428a66e9ce2c226'
+  type: city
+  name: Naellond
+  description: |-
+    Naellond è un villaggio del Minnely, la foresta lieve del Regno di Drustea. Gli elfi che lo abitano vivono di raccolta e di caccia e commerciano legno pregiato. Il Sentiero dei Savi lo collega agli altri villaggi della foresta.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+  city: '690961614b8201b32ba534da' # Naellond
+- id: '6ae809f3e428a66e9ce2c227'
+  type: city
+  name: Rae Thelar
+  description: |-
+    Rae Thelar è un villaggio di elfi nella foresta di Minnely, nel Regno di Drustea. Accanto al villaggio sorgono le rovine di un'epoca in cui gli elfi abitavano tutta la foresta. Un antico cimitero custodisce gli elfi morti per cause esterne, i soli che il tempo non risparmia.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+  city: '69096161580e1b4f547d21ac' # Rae Thelar
+- id: '6ae809f3e428a66e9ce2c228'
+  type: city
+  name: Thanlenor
+  description: |-
+    Thanlenor è un villaggio di elfi fra gli alberi del Minnely, nel Regno di Drustea. I suoi abitanti, figli di Enayr secondo la tradizione, vivono in armonia con la foresta. Un piccolo cimitero fra le radici è curato con grande rispetto.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+  city: '690961619555baad1b0db63b' # Thanlenor
+- id: '6ae809f3e428a66e9ce2c229'
+  type: city
+  name: Dhomfuhn
+  description: |-
+    Dhomfuhn è un villaggio montano del Regno della Madre sulle pendici settentrionali del Lamstone. Draconidi e nani vi convivono fra la superficie e le gallerie. Le tempeste di neve isolano il villaggio per settimane ogni inverno.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961bf8330727f6b9ff976' # Dhomfuhn
+- id: '6ae809f3e428a66e9ce2c22a'
+  type: city
+  name: Gurdarul
+  description: |-
+    Gurdarul è un villaggio di draconidi sulle vette del Lamstone, nel Regno della Madre. La comunità cresce ogni figlio come figlio di tutti e pratica la magia sciamanica dei monti. Gli stranieri vi sono accolti con diffidenza.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961bfc055e5bbf8371d32' # Gurdarul
+- id: '6ae809f3e428a66e9ce2c22b'
+  type: city
+  name: Vegduhr
+  description: |-
+    Vegduhr è un villaggio montano del Regno della Madre lungo i sentieri che salgono verso il Passo dei giganti. I suoi abitanti scavano gallerie collegate alle Vene della madre. Un cimitero di pietra domina la valle sotto il villaggio.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f58' # Lamstone
+  city: '690961bf44b809847af47766' # Vegduhr
+- id: '6ae809f3e428a66e9ce2c22c'
+  type: city
+  name: Andogan
+  description: |-
+    Andogan è un villaggio del Lontano Nord sulla costa occidentale, nel Regno della Madre. Il suo piccolo molo è uno dei pochi da cui il regno commercia via oceano. Gli abitanti vivono di pesca nel gelido Oceano Ladows e di caccia sulle colline.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+    - '6ae7fc3ed1f6494f3dc89f66' # Oceano Ladows
+  city: '690961bfeadfef6899ea08f0' # Andogan
+- id: '6ae809f3e428a66e9ce2c22d'
+  type: city
+  name: Bosa
+  description: |-
+    Bosa è un villaggio del Regno della Madre nelle distese ghiacciate del Lontano Nord. Pochi cacciatori e minatori vi resistono al freddo più aspro del continente. Le carovane che lo raggiungono portano provviste in cambio di pellicce e metalli.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961bfc52f898e5aff273f' # Bosa
+- id: '6ae809f3e428a66e9ce2c22e'
+  type: city
+  name: Erast
+  description: |-
+    Erast è un villaggio del Regno di Drustea fra le colline gelate del Lontano Nord. I suoi abitanti allevano bestiame resistente al freddo e coltivano orzo nelle brevi estati. Le sue locande servono birra calda ai viandanti diretti a nord.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '69096178da5c3114e1c1f7c0' # Erast
+- id: '6ae809f3e428a66e9ce2c22f'
+  type: city
+  name: Inverness
+  description: |-
+    Inverness è un villaggio del Regno di Drustea sulle colline boscose del Lontano Nord. Rovine e un antico cimitero circondano le sue case di pietra. Gli abitanti vivono di legname e pellicce e raccontano storie di fantasmi nelle lunghe notti.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '6909617875217c0904eafd78' # Inverness
+- id: '6ae809f3e428a66e9ce2c230'
+  type: city
+  name: Kliever
+  description: |-
+    Kliever è un villaggio del Lontano Nord ai confini del Regno della Madre. Le sue case basse e coperte di neve sono riparate dal vento dei ghiacci. Vive di caccia e dei commerci con i villaggi del Lamstone.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f54' # Regno della Madre
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961bf952cc57d174677d7' # Kliever
+- id: '6ae809f3e428a66e9ce2c231'
+  type: city
+  name: Llyne
+  description: |-
+    Llyne è un villaggio del Regno di Drustea fra i boschi e le colline del Lontano Nord. I suoi cacciatori commerciano pellicce con le città sul Chande. L'inverno lungo e aspro rende la comunità unita e ospitale.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '69096178afbc44955cc5e0f6' # Llyne
+- id: '6ae809f3e428a66e9ce2c232'
+  type: city
+  name: Lunaris
+  description: |-
+    Lunaris è un villaggio del Regno di Drustea sulle colline del Lontano Nord, dove le notti d'inverno durano a lungo. Il suo nome viene dalle aurore che illuminano le rovine vicine. Un sotterraneo sotto le colline attira avventurieri temerari.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '690961788b5654c10bdac571' # Lunaris
+- id: '6ae809f3e428a66e9ce2c233'
+  type: city
+  name: Norfolk
+  description: |-
+    Norfolk è un villaggio del Regno di Drustea nel Lontano Nord, fra colline e boschi di conifere. Vive di un'agricoltura povera, di caccia e di legname. Le sue birrerie producono una birra scura apprezzata dai viandanti.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+  city: '69096178ea43716c4da7ca39' # Norfolk
+- id: '6ae809f3e428a66e9ce2c234'
+  type: city
+  name: Nortorn
+  description: |-
+    Nortorn è un villaggio del Regno di Drustea sulla costa settentrionale affacciata sull'Oceano Delants. Le correnti impervie del nord rendono la pesca pericolosa. Un portale demoniaco sulle colline vicine tiene il villaggio in costante allerta.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f50' # Regno di Drustea
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961783b7912466bb683e6' # Nortorn
+- id: '6ae809f3e428a66e9ce2c235'
+  type: city
+  name: Croce Marina
+  description: |-
+    Croce Marina è un villaggio tropicale dell'Unione delle Fiamme sulle spiagge del Belleholm. Una grande croce di legno sulla riva guida a casa i pescatori dell'Oceano Delants. Le foreste alle sue spalle forniscono frutti esotici e legname.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f202b81d16eecf4872' # Croce Marina
+- id: '6ae809f3e428a66e9ce2c236'
+  type: city
+  name: Dalde
+  description: |-
+    Dalde è un villaggio tropicale dell'Unione delle Fiamme nascosto nella foresta del Belleholm. Rovine invase dalla vegetazione e un sotterraneo vicino alla costa fanno gola agli avventurieri. Si dice che sia un covo di pirati.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f26b46ea855081a15a' # Dalde
+- id: '6ae809f3e428a66e9ce2c237'
+  type: city
+  name: Dawnborough
+  description: |-
+    Dawnborough è un villaggio tropicale dell'Unione delle Fiamme rivolto a est, dove il sole sorge sull'Oceano Delants. I suoi abitanti vivono di pesca e di colture esotiche. Un cimitero fra le palme accoglie le vittime delle tempeste.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f2c8306c558dd1e0e8' # Dawnborough
+- id: '6ae809f3e428a66e9ce2c238'
+  type: city
+  name: Duril
+  description: |-
+    Duril è un villaggio tropicale dell'Unione delle Fiamme nella foresta del Belleholm. Vive di raccolta e di piccole coltivazioni lungo un fiume. Si sussurra che nella boscaglia cresca il Vespro Argenteo, la pianta da cui si ricava la Rugiada notturna.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+  city: '690961f2560f388b3e70e847' # Duril
+- id: '6ae809f3e428a66e9ce2c239'
+  type: city
+  name: Gellen
+  description: |-
+    Gellen è un villaggio tropicale dell'Unione delle Fiamme su un atollo vicino al Belleholm. Le sue spiagge nere sono battute dalle tempeste stagionali. Il piccolo cimitero è dedicato ai marinai scomparsi nell'Oceano Delants.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f252312e8b56af5559' # Gellen
+- id: '6ae809f3e428a66e9ce2c23a'
+  type: city
+  name: Merlern
+  description: |-
+    Merlern è un villaggio tropicale dell'Unione delle Fiamme sulle coste del Belleholm. Un portale demoniaco aperto nella foresta ha portato sull'isola creature mai viste. Gli abitanti pagano mercenari per proteggere i loro campi.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f2cd8c5141b527668d' # Merlern
+- id: '6ae809f3e428a66e9ce2c23b'
+  type: city
+  name: Ruldilen
+  description: |-
+    Ruldilen è un villaggio tropicale dell'Unione delle Fiamme su un piccolo atollo dell'Oceano Delants. Lontano dal controllo delle città dell'isola, è usato dai pirati come base per le loro operazioni. Vive di pesca e di traffici poco limpidi.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f2121e1fa9c5d9fdaf' # Ruldilen
+- id: '6ae809f3e428a66e9ce2c23c'
+  type: city
+  name: Varyllod
+  description: |-
+    Varyllod è un villaggio tropicale dell'Unione delle Fiamme fra la foresta e le spiagge del Belleholm. I suoi abitanti raccolgono frutti esotici e pescano nell'Oceano Delants. In estate il villaggio si svuota per la grande festa dei quattro dei della fortuna.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f53' # Unione delle Fiamme
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f67' # Oceano Delants
+  city: '690961f26c80c0108825a0ed' # Varyllod
