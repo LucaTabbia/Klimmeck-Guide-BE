@@ -490,26 +490,26 @@
   description: |-
     L'elmo severo del re Wismund Drustea, guerriero capace che pensa solo al futuro del suo regno. Lo forgiarono per le campagne in difesa dei confini del nord. Chi lo indossa sente il peso di un esercito alle spalle.
   sellPrice:
-    gold: 0
-    silver: 75
+    gold: 4
+    silver: 0
     copper: 0
   buyPrice:
-    gold: 1
-    silver: 50
+    gold: 8
+    silver: 0
     copper: 0
-  rarity: ultrarare
+  rarity: legendary # unico, legato a una figura storica (utente, 2026-11-02)
   equipType: helm
   addedSpell: null
   damages:
     base:
       - type: blunt
-        power: 1800
+        power: 4000
       - type: cut
-        power: 1500
+        power: 3500
       - type: pierce
-        power: 1000
+        power: 2500
     energy: []
-  sellable: true
+  sellable: false
 - id: '6ae7fdeea808802d838972e1'
   name: Guanti runici di Monteaspro
   itemType: EquipmentItem
@@ -542,48 +542,48 @@
   description: |-
     L'anello con il sigillo della Banca Faris, portato dai fiduciari di Rufus Faris, capo e tesoriere di Liberia. Apre porte che restano chiuse a chiunque altro. Si dice che apra anche le vie segrete della gilda di ladri sotto le rovine di Valantar.
   sellPrice:
-    gold: 0
-    silver: 75
+    gold: 4
+    silver: 0
     copper: 0
   buyPrice:
-    gold: 1
-    silver: 50
+    gold: 8
+    silver: 0
     copper: 0
-  rarity: ultrarare
+  rarity: legendary # unico, legato a una figura storica (utente, 2026-11-02)
   equipType: ring
   addedSpell: '68c19570541d89c481b83293' # Maschera Illusoria
   damages:
     base: []
     energy:
       - type: force
-        power: 2000
+        power: 4500
       - type: psychic
-        power: 2200
-  sellable: true
+        power: 5500
+  sellable: false
 - id: '6ae7fdeea808802d838972e3'
   name: Medaglione del Bardo delle leggende
   itemType: EquipmentItem
   description: |-
     Il medaglione di Venis Millhelm, il Bardo delle leggende che accompagnò Hilword Valantar in guerra e ne cantò le gesta. Il Collegio Millhelm lo custodisce come la sua reliquia più cara. Chi lo indossa trova le parole giuste per ogni battaglia.
   sellPrice:
-    gold: 0
-    silver: 75
+    gold: 4
+    silver: 0
     copper: 0
   buyPrice:
-    gold: 1
-    silver: 50
+    gold: 8
+    silver: 0
     copper: 0
-  rarity: ultrarare
+  rarity: legendary # unico, legato a una figura storica (utente, 2026-11-02)
   equipType: necklace
   addedSpell: '68c19570541d89c481b83297' # Stordimento Sonoro
   damages:
     base: []
     energy:
       - type: psychic
-        power: 1800
+        power: 4500
       - type: thunder
-        power: 2500
-  sellable: true
+        power: 5500
+  sellable: false
 - id: '6ae7fdeea808802d838972e4'
   name: Scaglia di drago rosso
   itemType: EquipmentItem
