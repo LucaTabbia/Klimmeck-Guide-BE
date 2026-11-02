@@ -896,9 +896,12 @@ describe('ShopTransactionService (replSet)', () => {
             const before = await raw(id);
             const travel = buildActiveTravelDoc();
             const cities = cityModelOf({ connection });
-            const realExists = cities.exists.bind(cities);
-            jest.spyOn(cities, 'exists').mockImplementationOnce((filter) => {
-                const query = realExists(filter);
+            const realFindOne = cities.findOne.bind(cities);
+            // findOne è sovraccaricato: lo spy tipizzato vede solo la firma a un argomento
+            (
+                jest.spyOn(cities, 'findOne') as jest.SpyInstance
+            ).mockImplementationOnce((filter: unknown, projection: unknown) => {
+                const query = realFindOne(filter as never, projection);
                 const exec = query.exec.bind(query);
                 query.exec = async () => {
                     const found = await exec();
