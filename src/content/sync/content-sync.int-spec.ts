@@ -422,6 +422,27 @@ describe('runContent (replSet)', () => {
         expect(report.collections.lore.fixes).toBe(3);
     });
 
+    it('counts only the deleted quests of a deleteQuests fix in quests (LO-06)', async () => {
+        await runContent(db, 'apply', tree);
+        const testQuest = new ObjectId('64b000000000000000000399');
+        await db
+            .collection('quests')
+            .insertOne({ _id: testQuest, infos: { type: 'job' } });
+        await db
+            .collection('pendingquests')
+            .insertOne({ _id: new ObjectId(), quest: testQuest });
+        await db
+            .collection('pointsofinterest')
+            .updateOne({ _id: DUNGEON_POI }, { $set: { quest: testQuest } });
+
+        const report = await runContent(db, 'dry-run', loadTestContentTree());
+
+        expect(
+            report.fixes.find((fix) => fix.kind === 'deleteQuests')?.touched,
+        ).toBe(3);
+        expect(report.collections.quests.fixes).toBe(1);
+    });
+
     it('reports an added entry as an insert on verify', async () => {
         await runContent(db, 'apply', tree);
         const next = loadTestContentTree();

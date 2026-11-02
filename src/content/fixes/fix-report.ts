@@ -1,3 +1,4 @@
+import type { FixKind } from 'src/content/schema/fix.content';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 
 export type FixMode = 'dry-run' | 'apply' | 'verify';
@@ -17,7 +18,7 @@ export interface BlockedQuest {
 // touched = documenti che cambierebbero (pending) o che sono cambiati (applied)
 export interface FixReport {
     key: string;
-    kind: string;
+    kind: FixKind;
     status: FixStatus;
     touched: number;
     blocked?: BlockedQuest[];

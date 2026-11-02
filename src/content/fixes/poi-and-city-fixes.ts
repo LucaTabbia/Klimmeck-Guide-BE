@@ -1,5 +1,6 @@
 import { Db, ObjectId } from 'mongodb';
 import type {
+    FixKind,
     NormalizePoiTypesFix,
     RenameCityFix,
     UnsetLoreUnlockedFix,
@@ -36,7 +37,7 @@ function typeNameOf(value: unknown): string {
 }
 
 function blocked(
-    fix: { key: string; kind: string },
+    fix: { key: string; kind: FixKind },
     extra: Partial<FixReport> = {},
 ): FixReport {
     return {

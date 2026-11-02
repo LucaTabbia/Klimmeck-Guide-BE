@@ -4,6 +4,7 @@ import { indexContent } from 'src/content/checking/content-index';
 import { ContentIssue } from 'src/content/content-issue';
 import { FixMode, FixReport } from 'src/content/fixes/fix-report';
 import { runFixes } from 'src/content/fixes/fix-runner';
+import type { FixKind } from 'src/content/schema/fix.content';
 import {
     COLLECTION_DIRS,
     CONTENT_COLLECTIONS,
@@ -40,7 +41,7 @@ interface CityLorePlan {
 }
 
 // i fix che toccano una collezione gestita contano nel suo report
-const FIX_COLLECTIONS: Readonly<Record<string, ContentCollection>> = {
+const FIX_COLLECTIONS: Readonly<Partial<Record<FixKind, ContentCollection>>> = {
     deleteQuests: 'quests',
     unsetLoreUnlocked: 'lore',
 };
@@ -218,11 +219,20 @@ function countErrors(
     }
 }
 
+// deleteQuests tocca anche pending e back-link dei POI: nelle quest contano solo quelle cancellate
+function documentsOfCollection(fix: FixReport): number {
+    return fix.kind === 'deleteQuests'
+        ? (fix.deleted ?? []).length
+        : fix.touched;
+}
+
 function countFixes(report: ContentReport, fixes: readonly FixReport[]): void {
     report.fixes = [...fixes];
     for (const fix of fixes) {
         const collection = FIX_COLLECTIONS[fix.kind];
-        if (collection) report.collections[collection].fixes += fix.touched;
+        if (collection) {
+            report.collections[collection].fixes += documentsOfCollection(fix);
+        }
     }
 }
 
