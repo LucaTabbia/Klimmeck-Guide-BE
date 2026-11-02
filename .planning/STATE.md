@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 11 executing — plan 2 of 26 done
 last_updated: "2026-11-02T02:00:00.000Z"
-last_activity: "2026-11-02 -- Plan 11-03 complete: yaml dependency, content tree loader with positions, validated content/config.yaml, pure enemy and prize rules"
+last_activity: "2026-11-02 -- Plan 11-04 complete: class-validator schema for every content file kind, validateTreeEntries and the test content tree"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 3 of 26
-Status: Executing Phase 11 — plans 11-01..11-03 complete, next 11-04; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-02 -- Plan 11-03 complete: `yaml@2.9.1` in dependencies, `parseYamlFile`/`loadContentTree` with entry lines and id checks, `content/config.yaml` validated by `parseContentConfig`, pure rules for level, tier, xp, life points, damages, prizes, times and food
+Plan: 4 of 26
+Status: Executing Phase 11 — plans 11-01..11-04 complete, next 11-05; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Plan 11-04 complete: `src/content/schema/` entry classes (catalog, enemies with `source`, fixed quests, four closed fix kinds, world snapshot, Cloudinary links), `validateEntry`/`validateTreeEntries` with file, line, id and dotted path, mini tree `test/content-fixtures/`
 
 Progress: [████████░░] 2/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 

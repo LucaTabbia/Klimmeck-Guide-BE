@@ -385,7 +385,7 @@ Plans:
 - [x] 11-01-PLAN.md — Wave 1: `Lore.unlocked` rimosso (SDL dichiarato nel boot reale) e `relatedLore` popolati in lore e nemici (BE-CONTENT-03)
 - [x] 11-02-PLAN.md — Wave 1: D-31, la study di Valantar sorteggia una magia apprendibile (`QuestPrizes.spellDraw` interno) (BE-CONTENT-06)
 - [x] 11-03-PLAN.md — Wave 2: dipendenza `yaml`, loader con posizioni, `content/config.yaml`, regole pure di XP/HP/danni/premi/tempi (BE-CONTENT-01/02/04/05/06)
-- [ ] 11-04-PLAN.md — Wave 3: schema dei file per collezione (class-validator) e mini-albero di test (BE-CONTENT-01/02)
+- [x] 11-04-PLAN.md — Wave 3: schema dei file per collezione (class-validator) e mini-albero di test (BE-CONTENT-01/02)
 - [ ] 11-05-PLAN.md — Wave 4: controlli offline `checkContent` (riferimenti, regole delle quest) e `content/README.md` (BE-CONTENT-01/02/06)
 - [ ] 11-06-PLAN.md — Wave 4: mapper canonici voce → documento (BE-CONTENT-02/04/06)
 - [ ] 11-07-PLAN.md — Wave 4: correzioni dichiarate (6 POI, Kliever, quest di prova con guardie, `unlocked`) (BE-CONTENT-02)
@@ -522,7 +522,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
-| 11. Popolamento del mondo | 3/26 | In Progress | - |
+| 11. Popolamento del mondo | 4/26 | In Progress | - |
 | 12. Negozi per città | 0/0 | Not started | - |
 | 13. Generazione quest | 0/0 | Not started | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |

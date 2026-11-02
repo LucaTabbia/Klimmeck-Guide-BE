@@ -48,9 +48,9 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-03-01 | 03 | 2 | C-01, C-02, C-04, C-05, C-06 | T-11-08…T-11-11 | unit | `npx jest src/content/loading --selectProjects unit && npx tsc --noEmit -p tsconfig.json && node -e "process.exit(require('./package.json'…` | ✅ green |
 | 11-03-02 | 03 | 2 | C-01, C-02, C-04, C-05, C-06 | T-11-08…T-11-11 | unit | `npx jest src/content/rules/content-config.spec.ts src/content/loading --selectProjects unit && cmp content/config.yaml test/content-fixtu…` | ✅ green |
 | 11-03-03 | 03 | 2 | C-01, C-02, C-04, C-05, C-06 | T-11-08…T-11-11 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
-| 11-04-01 | 04 | 3 | C-01, C-02 | T-11-12…T-11-15 | unit | `npx jest src/content/schema --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
-| 11-04-02 | 04 | 3 | C-01, C-02 | T-11-12…T-11-15 | unit | `npx jest src/content/schema --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
-| 11-04-03 | 04 | 3 | C-01, C-02 | T-11-12…T-11-15 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
+| 11-04-01 | 04 | 3 | C-01, C-02 | T-11-12…T-11-15 | unit | `npx jest src/content/schema --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
+| 11-04-02 | 04 | 3 | C-01, C-02 | T-11-12…T-11-15 | unit | `npx jest src/content/schema --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
+| 11-04-03 | 04 | 3 | C-01, C-02 | T-11-12…T-11-15 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ green |
 | 11-05-01 | 05 | 4 | C-01, C-02, C-06 | T-11-16…T-11-18 | unit | `npx jest src/content/rules src/content/checking --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
 | 11-05-02 | 05 | 4 | C-01, C-02, C-06 | T-11-16…T-11-18 | unit | `npx jest src/content --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
 | 11-05-03 | 05 | 4 | C-01, C-02, C-06 | T-11-16…T-11-18 | script | `grep -q -- "--new-id" content/README.md && grep -q "spellDraw" content/README.md && grep -q "category:" content/README.md && grep -q "ana…` | ⬜ pending |
@@ -119,7 +119,7 @@ Le infrastrutture mancanti nascono nei primi piani del codice e precedono ogni t
 
 - [ ] `npm install yaml@2.9.1` in `dependencies` — piano 11-03 Task 1
 - [ ] `content/config.yaml` + `test/content-fixtures/config.yaml` — piano 11-03 Task 2
-- [ ] `test/content-fixtures/` (mini-albero: 3 lore, 1 magia, 1 equipaggiamento, 1 loot, 2 nemici, 1 pet, 2 quest, 4 fix, 2 città) — piano 11-04 Task 3, riusato dalle int-spec di 11-07/11-09/11-10/11-11
+- [x] `test/content-fixtures/` (mini-albero: 3 lore, 1 magia, 1 equipaggiamento, 1 loot, 2 nemici, 1 pet, 2 quest, 4 fix, 2 città) — piano 11-04 Task 3, riusato dalle int-spec di 11-07/11-09/11-10/11-11
 - [x] `test/fixtures/lore.fixture.ts` (`buildLore`/`persistLore`) — piano 11-01 Task 2
 - [ ] `test/content/seed-world.ts` (`seedWorld`) — piano 11-09 Task 2, riusato da 11-10, 11-11, 11-24
 - [ ] `test/content/generator-world.fixture.ts` — piano 11-08 Task 1
