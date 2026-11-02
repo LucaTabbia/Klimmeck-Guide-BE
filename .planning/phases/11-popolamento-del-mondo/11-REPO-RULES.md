@@ -26,7 +26,7 @@ Questo file è parte del contesto di OGNI piano `11-NN-PLAN.md` (citato con `@` 
 
 ## Schema GraphQL
 
-- `src/schema.gql` cambia solo dal boot reale (`npx jest test/app.int-spec.ts --selectProjects integration --runInBand`) e si committa insieme al codice che lo cambia. L'UNICA modifica SDL della fase è la rimozione della riga `  unlocked: Boolean!` da `type Lore` (piano 11-01, D-25). Dopo il piano 11-01 e fino alla fine della fase: `git diff origin/develop -- src/schema.gql | grep -cE '^-[^-]'` stampa `1` e `git diff origin/develop -- src/schema.gql | grep -cE '^\+[^+]'` stampa `0`; dopo ogni commit `git diff --exit-code src/schema.gql` esce 0.
+- `src/schema.gql` cambia solo dal boot reale (`npx jest test/app.int-spec.ts --selectProjects integration --runInBand`) e si committa insieme al codice che lo cambia. Le modifiche SDL della fase sono due: la rimozione della riga `  unlocked: Boolean!` da `type Lore` (piano 11-01, D-25) e l'aggiunta additiva della riga `  description: String` in `type QuestInfos` (piano 11-27, D-32; `QuestInfosInput` non è esposto nello SDL). Dopo il piano 11-27 e fino alla fine della fase: `git diff origin/develop -- src/schema.gql | grep -cE '^-[^-]'` stampa `1` e `git diff origin/develop -- src/schema.gql | grep -cE '^\+[^+]'` stampa `1` (`git diff origin/develop -- src/schema.gql | grep -E '^[-+][^-+]'` = `-  unlocked: Boolean!` seguita da `+  description: String`); dopo ogni commit `git diff --exit-code src/schema.gql` esce 0.
 - Il campo `QuestPrizes.spellDraw` (piano 11-02, D-31) è SOLO Mongoose (`@Prop` senza `@Field`): non entra nello SDL.
 
 ## Contenuto (`content/`)
@@ -42,7 +42,7 @@ Questo file è parte del contesto di OGNI piano `11-NN-PLAN.md` (citato con `@` 
 - `.md` (SUMMARY, VALIDATION, ROADMAP, STATE, handoff, runbook) in italiano. Gli operatori Mongo (`$set`, `$unset`, `$setOnInsert`, `$in`, …) compaiono solo nel codice o dentro code span, mai nei titoli dei test né nella prosa fuori da code span.
 - STATE.md si modifica solo con lo strumento Edit o con python3 `encoding='utf-8'` (mai `sed -i` su file con caratteri non ASCII). macOS: `cat -v`, `grep -F` per letterali con `$`.
 - `requirements mark-complete` VIETATO fuori dal piano 11-26.
-- Fine piano (bookkeeping, commit separato `docs(phase-11): record plan NN progress`, fuori da `files_modified`): riga della Progress Table della ROADMAP → `| 11. Popolamento del mondo | NN/26 | In Progress | - |` (strumento Edit); `Plan: NN of 26` in `.planning/STATE.md`; voce `- [ ] 11-NN-PLAN.md` del §Phase 11 della ROADMAP → `- [x]`; nella Per-Task Verification Map di `.planning/phases/11-popolamento-del-mondo/11-VALIDATION.md` lo stato delle righe `11-NN-TT` → `✅ green` (o `❌ red` con nota).
+- Fine piano (bookkeeping, commit separato `docs(phase-11): record plan NN progress`, fuori da `files_modified`): riga della Progress Table della ROADMAP → `| 11. Popolamento del mondo | NN/27 | In Progress | - |` (strumento Edit); `Plan: NN of 27` in `.planning/STATE.md`; voce `- [ ] 11-NN-PLAN.md` del §Phase 11 della ROADMAP → `- [x]`; nella Per-Task Verification Map di `.planning/phases/11-popolamento-del-mondo/11-VALIDATION.md` lo stato delle righe `11-NN-TT` → `✅ green` (o `❌ red` con nota).
 
 ## Stesura dei nemici (piani 11-16, 11-17, 11-18, 11-19, 11-22)
 

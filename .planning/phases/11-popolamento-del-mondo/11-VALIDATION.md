@@ -98,6 +98,11 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-22-03 | 22 | 11 | C-01, C-03, C-04 | T-11-74…T-11-76 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
 | 11-23-01 | 23 | 12 | C-01, C-06 | T-11-77…T-11-79 | unit | `npx jest src/content/run-generate-quests.spec.ts src/content/generation --selectProjects unit && npm run build && test -f dist/content/ru…` | ✅ green |
 | 11-23-02 | 23 | 12 | C-01, C-06 | T-11-77…T-11-79 | content check | `node dist/content/run-content.js --check && node -e "const r=require('./.planning/phases/11-popolamento-del-mondo/reports/11-23-generate.…` | ✅ green |
+| 11-27-01 | 27 | 12.5 | C-06 | T-11-92…T-11-96 | integration | `npx jest src/content/schema src/content/mapping --selectProjects unit && npx jest test/app.int-spec.ts --selectProjects integration --runInB…` | ⬜ pending |
+| 11-27-02 | 27 | 12.5 | C-06 | T-11-92…T-11-96 | unit | `npx jest src/content/generation src/content/run-generate-quests.spec.ts --selectProjects unit && npx tsc --noEmit -p tsconfig.json && test -…` | ⬜ pending |
+| 11-27-03 | 27 | 12.5 | C-06 | T-11-92…T-11-96 | unit | `npx jest src/content/generation src/content/run-generate-quests.spec.ts --selectProjects unit && npx tsc --noEmit -p tsconfig.json && test -…` | ⬜ pending |
+| 11-27-04 | 27 | 12.5 | C-06 | T-11-92…T-11-96 | integration | `node dist/content/run-content.js --check > /dev/null && test "$(cat content/quests/*.yaml \| grep -c '^    description: \|-')" = "$(cat conten…` | ⬜ pending |
+| 11-27-05 | 27 | 12.5 | C-06 | T-11-92…T-11-96 | script | `grep -q "description: String" .planning/phases/11-popolamento-del-mondo/11-26-PLAN.md && grep -q "description: String" .planning/phases/11-p…` | ⬜ pending |
 | 11-24-01 | 24 | 13 | C-02, C-03, C-04, C-05, C-06 | T-11-80…T-11-84 | integration | `npx jest src/content/content-wire.int-spec.ts --selectProjects integration --runInBand && npx tsc --noEmit -p tsconfig.json` | ⬜ pending |
 | 11-24-02 | 24 | 13 | C-02, C-03, C-04, C-05, C-06 | T-11-80…T-11-84 | script | `test "$(grep -ciE 'mongodb(\+srv)?://\|@[a-z0-9.-]+\.(net\|com)' .planning/phases/11-popolamento-del-mondo/reports/11-24-verify-before.json…` | ⬜ pending |
 | 11-24-03 | 24 | 13 | C-02, C-03, C-04, C-05, C-06 | T-11-80…T-11-84 | manual (checkpoint) | `test -f .planning/phases/11-popolamento-del-mondo/reports/11-24-verify-before.json` | ⬜ pending |
@@ -106,7 +111,7 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-25-02 | 25 | 14 | C-07, C-02, C-05, C-06 | T-11-85…T-11-87 | script | `grep -q "lore_queries.dart:9" .planning/phases/11-popolamento-del-mondo/BACKEND-NOTES.md && grep -q "spellDraw" .planning/phases/11-popol…` | ⬜ pending |
 | 11-25-03 | 25 | 14 | C-07, C-02, C-05, C-06 | T-11-85…T-11-87 | script | `grep -q "D-15" .planning/REQUIREMENTS.md && grep -q "D-21" .planning/REQUIREMENTS.md && grep -q "D-21" .planning/ROADMAP.md` | ⬜ pending |
 | 11-26-01 | 26 | 15 | C-01, C-02, C-03, C-04, C-05, C-06, C-07 | T-11-88…T-11-91 | unit | `npm run build && npx tsc --noEmit -p tsconfig.json && npm run test:cov && node -e "process.exit(require('./package.json').jest.coverageTh…` | ⬜ pending |
-| 11-26-02 | 26 | 15 | C-01, C-02, C-03, C-04, C-05, C-06, C-07 | T-11-88…T-11-91 | script | `test "$(git diff origin/develop -- src/schema.gql \| grep -E '^[-+][^-+]')" = "-  unlocked: Boolean!" && node dist/content/run-content.js …` | ⬜ pending |
+| 11-26-02 | 26 | 15 | C-01, C-02, C-03, C-04, C-05, C-06, C-07 | T-11-88…T-11-91 | script | `test "$(git diff origin/develop -- src/schema.gql \| grep -E '^[-+][^-+]')" = "$(printf '%s\n%s' '-  unlocked: Boolean!' '+  description: String')" && node dist/content/run-content.js …` | ⬜ pending |
 | 11-26-03 | 26 | 15 | C-01, C-02, C-03, C-04, C-05, C-06, C-07 | T-11-88…T-11-91 | script | `grep -q "nyquist_compliant: true" .planning/phases/11-popolamento-del-mondo/11-VALIDATION.md && grep -q "wave_0_complete: true" .planning…` | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
