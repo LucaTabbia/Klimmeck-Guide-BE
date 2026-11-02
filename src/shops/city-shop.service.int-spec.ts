@@ -1,5 +1,6 @@
 import mongoose, { Types } from 'mongoose';
 import { CitySchema } from 'src/models/city.model';
+import { AssetQuantity } from 'src/models/common/asset-quantity.model';
 import { EquipmentItemSchema } from 'src/models/equipment-item.model';
 import { LootItemSchema } from 'src/models/loot-item.model';
 import { PetSchema } from 'src/models/pet.model';
@@ -58,7 +59,7 @@ describe('CityShopService', () => {
         return city;
     }
 
-    const namesOf = (entries: { item: { name: string } }[]) =>
+    const namesOf = (entries: AssetQuantity[]) =>
         entries.map(({ item }) => item.name);
 
     it('serves the pool in the order stored in the database (D-18)', async () => {
