@@ -80,8 +80,8 @@ Requisiti abbreviati: `C-0N` = `BE-CONTENT-0N`.
 | 11-15-01 | 15 | 10 | C-01, C-03 | T-11-56…T-11-57 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
 | 11-15-02 | 15 | 10 | C-01, C-03 | T-11-56…T-11-57 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
 | 11-15-03 | 15 | 10 | C-01, C-03 | T-11-56…T-11-57 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
-| 11-16-01 | 16 | 10 | C-01, C-03, C-04 | T-11-58…T-11-60 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |
-| 11-16-02 | 16 | 10 | C-01, C-03, C-04 | T-11-58…T-11-60 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |
+| 11-16-01 | 16 | 10 | C-01, C-03, C-04 | T-11-58…T-11-60 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
+| 11-16-02 | 16 | 10 | C-01, C-03, C-04 | T-11-58…T-11-60 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ✅ green |
 | 11-17-01 | 17 | 10 | C-01, C-03, C-04 | T-11-61…T-11-63 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |
 | 11-17-02 | 17 | 10 | C-01, C-03, C-04 | T-11-61…T-11-63 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |
 | 11-18-01 | 18 | 10 | C-01, C-03, C-04 | T-11-64…T-11-66 | unit | `node dist/content/run-content.js --check && npx jest src/content/content-tree.spec.ts --selectProjects unit` | ⬜ pending |

@@ -397,7 +397,7 @@ Plans:
 - [x] 11-13-PLAN.md — Wave 9: lore di regni, regioni, storia, materiali e magia (BE-CONTENT-01/03)
 - [x] 11-14-PLAN.md — Wave 9: magie dello sciamanesimo e del Vuoto, unici, cibo tarato e pozioni (BE-CONTENT-01/05)
 - [x] 11-15-PLAN.md — Wave 10: lore dei 18 culti e delle figure (BE-CONTENT-01/03)
-- [ ] 11-16-PLAN.md — Wave 10: mostri A (lore + nemici) (BE-CONTENT-01/03/04)
+- [x] 11-16-PLAN.md — Wave 10: mostri A (lore + nemici) (BE-CONTENT-01/03/04)
 - [ ] 11-17-PLAN.md — Wave 10: mostri B (lore + nemici) (BE-CONTENT-01/03/04)
 - [ ] 11-18-PLAN.md — Wave 10: mostri C (lore + nemici) (BE-CONTENT-01/03/04)
 - [ ] 11-19-PLAN.md — Wave 10: animali, piante e cavalcature (BE-CONTENT-01/03/04/05)
@@ -522,7 +522,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
-| 11. Popolamento del mondo | 15/26 | In Progress | - |
+| 11. Popolamento del mondo | 16/26 | In Progress | - |
 | 12. Negozi per città | 0/0 | Not started | - |
 | 13. Generazione quest | 0/0 | Not started | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |

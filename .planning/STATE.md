@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 11 executing — plan 15 of 26 done
-last_updated: "2026-11-02T03:00:00.000Z"
-last_activity: "2026-11-02 -- Plan 11-15 complete: 54 cult lore entries, 26 figures, kingdom back-links"
+stopped_at: Phase 11 executing — plan 16 of 26 done
+last_updated: "2026-11-02T03:25:00.000Z"
+last_activity: "2026-11-02 -- Plan 11-16 complete: 20 monster lore entries and 27 monster enemies (Aboleth to Lung Wang giovane)"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 15 of 26
-Status: Executing Phase 11 — plans 11-01..11-15 complete, next 11-16; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-02 -- Plan 11-15 complete: 18 cults as 54 `god`/`religion`/`ceremony` entries (`content/lore/culti-1.yaml`, `culti-2.yaml`), 26 `character` entries in `content/lore/figure.yaml`, 26 back-links in `regni.yaml`; lore 139, `--check` exit 0
+Plan: 16 of 26
+Status: Executing Phase 11 — plans 11-01..11-16 complete, next 11-17; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Plan 11-16 complete: 20 `enemy` lore entries (`content/lore/creature-a.yaml`) and 27 `monster` enemies (`content/enemies/mostri-a.yaml`) with document level/PE, bestiary PF/damage, 6 NON TROVATO scaled from the analog; enemies 28, lore 159, `--check` exit 0
 
 Progress: [████████░░] 2/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
