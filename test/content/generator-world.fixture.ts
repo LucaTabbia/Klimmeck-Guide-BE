@@ -545,7 +545,10 @@ export function addedMonster(seed: EnemySeed) {
 
 export function addedCity(seed: CitySeed) {
     return (world: GeneratorWorld): void => {
-        world.cities.push(cityOf(seed));
+        const city = cityOf(seed);
+        if (world.cities.some(({ id }) => id === city.id))
+            throw new Error(`città di prova già presente: ${city.id}`);
+        world.cities.push(city);
         world.entries.lore.push(cityLoreOf(seed));
     };
 }

@@ -48,12 +48,12 @@ describe('generateFixedQuests service quests', () => {
     });
 
     it('gives Talmvere a job at the inn instead of the shop job (D-34)', () => {
-        const talmvere = cityId(13);
+        const talmvere = cityId(15);
         const withInn = generateFixedQuests(
             generatorInput({
                 index: buildGeneratorIndex(
                     addedCity({
-                        n: 13,
+                        n: 15,
                         name: 'Talmvere',
                         type: 'talmvereVillage',
                         pois: [['forest']],
