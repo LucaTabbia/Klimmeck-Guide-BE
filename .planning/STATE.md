@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 11 executing — plan 13 of 26 done
+stopped_at: Phase 11 executing — plan 14 of 26 done
 last_updated: "2026-11-02T03:00:00.000Z"
-last_activity: "2026-11-02 -- Plan 11-13 complete: 47 lore entries for kingdoms, regions, history, materials and magic"
+last_activity: "2026-11-02 -- Plan 11-14 complete: 10 spells, 27 unique items, 18 food and potions, 4 food powers tuned"
 progress:
   total_phases: 19
   completed_phases: 13
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 11 (Popolamento del mondo) — EXECUTING on `feat/11-popolamento-del-mondo` (started 2026-11-02): `11-CONTEXT.md` D-01..D-31 (amended after the research), `11-RESEARCH.md`, 26 plans in 15 waves (`11-01`..`11-26`), `11-REPO-RULES.md`, `11-VALIDATION.md`; offline bestiary reference in `source/bestiary-stats.md`; executors sequential, single checkpoint in 11-24 for the backup; FE quick task to drop `Lore.unlocked` required before the BE PR merge
-Plan: 13 of 26
-Status: Executing Phase 11 — plans 11-01..11-13 complete, next 11-14; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
-Last activity: 2026-11-02 -- Plan 11-13 complete: 47 lore entries in `content/lore/` (8 `state` with `CityType` comments, 17 `region` with `PoiType` comments and two-way `relatedLore`, 10 history/economy `knowledge`, 9 `material`, 3 magic `knowledge`); `--check` exit 0 with 59 lore
+Plan: 14 of 26
+Status: Executing Phase 11 — plans 11-01..11-14 complete, next 11-15; the FE quick task that removes `unlocked` from `lore_queries.dart`/`lore.dart` gates the BE PR merge
+Last activity: 2026-11-02 -- Plan 11-14 complete: 10 new spells (`content/spells/sciamanesimo.yaml`, `vuoto.yaml`), 27 unique items in `content/equipment/unici.yaml` (18 cults, 5 figures, 4 monster parts, 16 `addedSpell`), 12 regional foods and 6 potions, 4 exported food `power` tuned with comments; `--check` exit 0, `--stats` hunger 15–600 min
 
 Progress: [████████░░] 2/26 plans of Phase 11 (phases 1–10, 9.1 and 9.2 complete and merged)
 
