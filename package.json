@@ -21,13 +21,7 @@
     "test:int": "jest --selectProjects integration --runInBand",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage --selectProjects unit integration --runInBand",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "content:check": "node dist/content/run-content.js --check",
-    "content:new-id": "node dist/content/run-content.js --new-id",
-    "content:generate-quests": "node dist/content/run-generate-quests.js",
-    "content:dry-run": "node --env-file=.env dist/content/run-content.js --dry-run",
-    "content:verify": "node --env-file=.env dist/content/run-content.js --verify",
-    "content:apply": "node --env-file=.env dist/content/run-content.js --apply"
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
   },
   "dependencies": {
     "@apollo/server": "^4.12.2",
@@ -58,8 +52,7 @@
     "mongoose": "^8.18.1",
     "multer-storage-cloudinary": "^4.0.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "yaml": "^2.9.1"
+    "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -196,11 +189,6 @@
         "statements": 97,
         "branches": 84,
         "lines": 98
-      },
-      "./src/content/": {
-        "statements": 92,
-        "branches": 81,
-        "lines": 93
       }
     }
   },
