@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 12 context gathered — ready to plan
-last_updated: "2026-11-02T18:00:00.000Z"
-last_activity: "2026-11-02 -- Phase 12 discuss (joint with FE Phase 13): 12-CONTEXT.md D-01..D-21 on feat/12-negozi-per-citta from develop 65ba3d7 (PR #17 merged); pets in the pools, owned vs equipped pet, seed at boot + DB curation"
+status: executing
+stopped_at: Phase 12 planned — ready to execute (19 plans)
+last_updated: "2026-11-02T20:08:14.181Z"
+last_activity: 2026-11-02 -- Phase 12 planning complete
 progress:
   total_phases: 19
-  completed_phases: 13
-  total_plans: 172
-  completed_plans: 115
-  percent: 67
+  completed_phases: 14
+  total_plans: 191
+  completed_plans: 172
+  percent: 90
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 12 — Negozi per città — CONTEXT GATHERED on 2026-11-02 (discuss congiunto con la FE Phase 13; `12-CONTEXT.md` D-01..D-21, `12-DISCUSSION-LOG.md`) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`, the merge of PR #17): `City.size` dedotto dal `CityType` + `City.hasShop`, pool (equip, loot, pet) seminato al boot e curato a DB (D-36), `cityShop(cityId)`, `ITEM_NOT_IN_SHOP`, pet posseduti vs compagno equipaggiato (`assets.ownedPets`, `equipPet`/`unequipPet`, `petAssets`). Next: `/gsd-plan-phase 12` (researcher → planner → checker), then execution; the FE Phase 13 gate waits for this PR. Previous: Phase 11 — Popolamento del mondo — COMPLETE and merged (PR #17, `65ba3d7`, 2026-11-02).
+**Current focus:** Phase 12 — Negozi per città — PLANNED on 2026-11-02 (`12-CONTEXT.md` D-01..D-24 amended after the research, `12-RESEARCH.md`, `12-REPO-RULES.md`, `12-VALIDATION.md`, 19 plans `12-01`..`12-19` in a linear chain) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`, the merge of PR #17). Next: `/gsd-execute-phase 12` with sequential executors on the main tree (never `npm run build`: the user's BE runs from `dist/`); the FE Phase 13 plans 13-10/13-11 wait for this PR. Previous: Phase 11 — Popolamento del mondo — COMPLETE and merged (PR #17, `65ba3d7`, 2026-11-02).
 
 ## Current Position
 
-Phase: 12 (Negozi per città) — CONTEXT GATHERED (2026-11-02) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`): `12-CONTEXT.md` D-01..D-21 (utente + default tecnici elencati per il veto), `12-DISCUSSION-LOG.md`; discuss congiunto con la FE Phase 13 (`../Klimmeck-Guide/.planning/phases/13-city-shops/13-CONTEXT.md`)
-Plan: 0 of TBD
-Status: Phase 12 context gathered — ready to plan (`/gsd-plan-phase 12`); nessun piano ancora
-Last activity: 2026-11-02 -- Phase 12 discuss: semina server + cura a DB (D-36), taglia dal `CityType` esposta come `City.size`, mare = città, Necrorian senza negozio, «la mano vince» con veto su legendary/`sellable: false` e report di sola lettura, pool più ampi con cibo e cure sempre, pet nei pool in due città per lore (4 vendibili, 9 solo da quest), leggendari posseduti vendibili, pet posseduti vs compagno equipaggiato senza equipaggiamento automatico, titolo FE «Compagno»
+Phase: 12 (Negozi per città) — PLANNED (2026-11-02) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`): `12-CONTEXT.md` D-01..D-24 (amended after the research), `12-RESEARCH.md`, `12-REPO-RULES.md`, `12-VALIDATION.md`, 19 plans in a linear chain (`12-01`..`12-19`); discuss and planning done together with the FE Phase 13 (`../Klimmeck-Guide/.planning/phases/13-city-shops/`, 11 plans, 13-10/13-11 gated by this PR)
+Plan: 0 of 19
+Status: Phase 12 planned — ready to execute (`/gsd-execute-phase 12`, executors one at a time on the main tree, no worktree, never `npm run build`)
+Last activity: 2026-11-02 -- Phase 12 planned: research (empty-pool trap → pool fields without default, `@ResolveField` size/hasShop, findOne populates pet/ownedPets, whitelist decorators, place-in-city pool), CONTEXT amended (D-15 ownership like equipItem, D-17 nullable petAssets, D-20 two deprecated SDL lines, D-22..D-24), 19 plans by the planner, checker 1 blocker + 6 warnings fixed in one revision round (sellable anchor, decision-grep thresholds, no build in the gate, single-identifier anchors, per-list bulkWrite, waves 1..19)
 
-Progress: [░░░░░░░░░░] 0/TBD plans of Phase 12 (phases 1–11, 9.1 and 9.2 complete and merged)
+Progress: [░░░░░░░░░░] 0/19 plans of Phase 12 (phases 1–11, 9.1 and 9.2 complete and merged)
 
 ## Performance Metrics
 
@@ -271,6 +271,7 @@ None yet.
   4. una chiamata Sightengine reale per A2 (un'immagine accettabile e una da rifiutare, chiavi nel proprio `.env`);
   5. `THROTTLE_TRUST_PROXY` da impostare quando la topologia di produzione sarà nota (vuota = spenta).
   Dopo la merge: UAT del pannello del GM nella FE Phase 10 (piano gated 10-11).
+
 - **Phase 11 — completa il 2026-11-02, pipeline review → fix → security chiusa (`REVIEW.md`, `REVIEW-FIX.md` 34/39 corretti, `11-SECURITY.md` 93/96), PR #17 `feat/11-popolamento-del-mondo` → `develop` pronta per la review (FE #36 mergiata il 2026-11-02).** Ricarica dopo la review fatta il 2026-11-02 a BE fermo (4 lore + 23 quest, `--verify` 0/0, seconda `--apply` nulla, report `reports/11-fix-*.json`); hunt nei gruppi di una sola città (Ko Shaeras, Talmvere, Ferrion): restano senza per decisione dell'utente (D-35); file di contenuto, CLI, generatore e runbook tolti dal repo con `e857802` (D-36: il mondo vive solo nel database, strumento nella storia fino a `b4983d7`), la PR porta solo le modifiche applicative e `.planning/`. Il quick task FE (PR LucaTabbia/Klimmeck-Guide#36, branch `fix/lore-unlocked-field`), mergiato il 2026-11-02, toglie `unlocked` da `lib/graphql/queries/lore_queries.dart:9` e `lib/models/lore.dart` (`BACKEND-NOTES.md` §1); il contenuto è già nel DB reale (piano 11-24). Restano all'utente: revisione dei contenuti (581 quest contro la stima di 475, titolo doppio di Necrorian `6ae80db9da5c5f8cc552680c`, numeri da calibrare elencati nell'handoff), lettura dell'handoff, UAT sul device nelle FE Phase 13+.
 
 ### Quick Tasks Completed
