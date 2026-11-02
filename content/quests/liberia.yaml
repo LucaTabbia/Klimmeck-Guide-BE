@@ -1,0 +1,836 @@
+# File generato da npm run content:generate-quests (D-17..D-22, D-31): le modifiche durevoli si fanno in config.yaml o nel generatore
+
+- id: '6ae80db9da5c5f8cc552663b'
+  city: '69096195095859bcd4a9568e' # Efragos
+  infos:
+    title: Cure al tempio di Efragos
+    type: heal
+    enemy: null
+    markerLocation: '6909619569b4f16719a28ded' # Efragos — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eba' # Efragos
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552663c'
+  city: '69096195095859bcd4a9568e' # Efragos
+  infos:
+    title: Lavori di bottega a Efragos
+    type: job
+    enemy: null
+    markerLocation: '6909619569b4f16719a28ded' # Efragos — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eba' # Efragos
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552663d'
+  city: '690961950d1c93ad1eca5422' # Sodiff
+  infos:
+    title: Cure al tempio di Sodiff
+    type: heal
+    enemy: null
+    markerLocation: '6909619540ce2facf6bb063f' # Sodiff — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410ebd' # Sodiff
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552663e'
+  city: '690961950d1c93ad1eca5422' # Sodiff
+  infos:
+    title: Lavori di bottega a Sodiff
+    type: job
+    enemy: null
+    markerLocation: '6909619540ce2facf6bb063f' # Sodiff — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410ebd' # Sodiff
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552663f'
+  city: '69096195384b7443474b8d57' # Vinas
+  infos:
+    title: Cure al tempio di Vinas
+    type: heal
+    enemy: null
+    markerLocation: '69096195766f89e52f34347d' # Vinas — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb7' # Vinas
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526640'
+  city: '69096195384b7443474b8d57' # Vinas
+  infos:
+    title: Lavori di bottega a Vinas
+    type: job
+    enemy: null
+    markerLocation: '69096195766f89e52f34347d' # Vinas — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb7' # Vinas
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526641'
+  city: '69096195384b7443474b8d57' # Vinas
+  infos:
+    title: Turno di guardia a Vinas
+    type: guard
+    enemy: null
+    markerLocation: '69096195766f89e52f34347d' # Vinas — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb7' # Vinas
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526642'
+  city: '69096195384b7443474b8d57' # Vinas
+  infos:
+    title: Affari loschi a Vinas
+    type: crime
+    enemy: null
+    markerLocation: '69096195766f89e52f34347d' # Vinas — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb7' # Vinas
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526643'
+  city: '690961955200e98256172790' # Pontemaggiore
+  infos:
+    title: Cure al tempio di Pontemaggiore
+    type: heal
+    enemy: null
+    markerLocation: '6909619585778b947f7752a1' # Pontemaggiore — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb4' # Pontemaggiore
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526644'
+  city: '690961955200e98256172790' # Pontemaggiore
+  infos:
+    title: Lavori di bottega a Pontemaggiore
+    type: job
+    enemy: null
+    markerLocation: '6909619585778b947f7752a1' # Pontemaggiore — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb4' # Pontemaggiore
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526645'
+  city: '690961955200e98256172790' # Pontemaggiore
+  infos:
+    title: Turno di guardia a Pontemaggiore
+    type: guard
+    enemy: null
+    markerLocation: '6909619585778b947f7752a1' # Pontemaggiore — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb4' # Pontemaggiore
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526646'
+  city: '690961955200e98256172790' # Pontemaggiore
+  infos:
+    title: Affari loschi a Pontemaggiore
+    type: crime
+    enemy: null
+    markerLocation: '6909619585778b947f7752a1' # Pontemaggiore — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb4' # Pontemaggiore
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526647'
+  city: '690961957c12c0e99b7454c6' # Mison
+  infos:
+    title: Cure al tempio di Mison
+    type: heal
+    enemy: null
+    markerLocation: '690961958ee2dd426ba99755' # Mison — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb2' # Mison
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526648'
+  city: '690961957c12c0e99b7454c6' # Mison
+  infos:
+    title: Lavori di bottega a Mison
+    type: job
+    enemy: null
+    markerLocation: '690961958ee2dd426ba99755' # Mison — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb2' # Mison
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526649'
+  city: '690961957c12c0e99b7454c6' # Mison
+  infos:
+    title: Turno di guardia a Mison
+    type: guard
+    enemy: null
+    markerLocation: '690961958ee2dd426ba99755' # Mison — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb2' # Mison
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552664a'
+  city: '690961958653b271fcb6ad13' # Ridale
+  infos:
+    title: Cure al tempio di Ridale
+    type: heal
+    enemy: null
+    markerLocation: '69096195cfa5b6eb85b9842c' # Ridale — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410ebc' # Ridale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552664b'
+  city: '690961958653b271fcb6ad13' # Ridale
+  infos:
+    title: Lavori di bottega a Ridale
+    type: job
+    enemy: null
+    markerLocation: '69096195cfa5b6eb85b9842c' # Ridale — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410ebc' # Ridale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552664c'
+  city: '6909619593b56fa09b75e558' # Fraponte
+  infos:
+    title: Cure al tempio di Fraponte
+    type: heal
+    enemy: null
+    markerLocation: '690961959099609c3f5ce8db' # Fraponte — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410ebb' # Fraponte
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552664d'
+  city: '6909619593b56fa09b75e558' # Fraponte
+  infos:
+    title: Lavori di bottega a Fraponte
+    type: job
+    enemy: null
+    markerLocation: '690961959099609c3f5ce8db' # Fraponte — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410ebb' # Fraponte
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552664e'
+  city: '69096195a6756c5ce333b127' # Pontealto
+  infos:
+    title: Cure al tempio di Pontealto
+    type: heal
+    enemy: null
+    markerLocation: '690961953a581c00f0599309' # Pontealto — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb3' # Pontealto
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552664f'
+  city: '69096195a6756c5ce333b127' # Pontealto
+  infos:
+    title: Lavori di bottega a Pontealto
+    type: job
+    enemy: null
+    markerLocation: '690961953a581c00f0599309' # Pontealto — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb3' # Pontealto
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526650'
+  city: '69096195a6756c5ce333b127' # Pontealto
+  infos:
+    title: Turno di guardia a Pontealto
+    type: guard
+    enemy: null
+    markerLocation: '690961953a581c00f0599309' # Pontealto — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb3' # Pontealto
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526651'
+  city: '69096195ab944f2c60a1d2c8' # Portominore
+  infos:
+    title: Cure al tempio di Portominore
+    type: heal
+    enemy: null
+    markerLocation: '69096195aab64f0e77ca6cd2' # Portominore — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb5' # Portominore
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526652'
+  city: '69096195ab944f2c60a1d2c8' # Portominore
+  infos:
+    title: Lavori di bottega a Portominore
+    type: job
+    enemy: null
+    markerLocation: '69096195aab64f0e77ca6cd2' # Portominore — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb5' # Portominore
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526653'
+  city: '69096195ab944f2c60a1d2c8' # Portominore
+  infos:
+    title: Turno di guardia a Portominore
+    type: guard
+    enemy: null
+    markerLocation: '69096195aab64f0e77ca6cd2' # Portominore — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb5' # Portominore
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526654'
+  city: '69096195ab944f2c60a1d2c8' # Portominore
+  infos:
+    title: Ricerche in biblioteca a Portominore
+    type: study
+    enemy: null
+    markerLocation: '69096195aab64f0e77ca6cd2' # Portominore — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb5' # Portominore
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526655'
+  city: '69096195ac6ec86fab3462d3' # Altaluce
+  infos:
+    title: Cure al tempio di Altaluce
+    type: heal
+    enemy: null
+    markerLocation: '69096195b1834207eb4cfbb2' # Altaluce — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb9' # Altaluce
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526656'
+  city: '69096195ac6ec86fab3462d3' # Altaluce
+  infos:
+    title: Lavori di bottega a Altaluce
+    type: job
+    enemy: null
+    markerLocation: '69096195b1834207eb4cfbb2' # Altaluce — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb9' # Altaluce
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526657'
+  city: '69096195b17225daa881bca4' # Iriesa
+  infos:
+    title: Cure al tempio di Iriesa
+    type: heal
+    enemy: null
+    markerLocation: '6909619586c6a06a8d4fe272' # Iriesa — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb0' # Iriesa
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526658'
+  city: '69096195b17225daa881bca4' # Iriesa
+  infos:
+    title: Lavori di bottega a Iriesa
+    type: job
+    enemy: null
+    markerLocation: '6909619586c6a06a8d4fe272' # Iriesa — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb0' # Iriesa
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526659'
+  city: '69096195b17225daa881bca4' # Iriesa
+  infos:
+    title: Turno di guardia a Iriesa
+    type: guard
+    enemy: null
+    markerLocation: '6909619586c6a06a8d4fe272' # Iriesa — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb0' # Iriesa
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552665a'
+  city: '69096195b17225daa881bca4' # Iriesa
+  infos:
+    title: Ricerche in biblioteca a Iriesa
+    type: study
+    enemy: null
+    markerLocation: '6909619586c6a06a8d4fe272' # Iriesa — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb0' # Iriesa
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552665b'
+  city: '69096195b3fd88e22839bde7' # Tine
+  infos:
+    title: Cure al tempio di Tine
+    type: heal
+    enemy: null
+    markerLocation: '690961955fc32b6a24e5c65a' # Tine — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb6' # Tine
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552665c'
+  city: '69096195b3fd88e22839bde7' # Tine
+  infos:
+    title: Lavori di bottega a Tine
+    type: job
+    enemy: null
+    markerLocation: '690961955fc32b6a24e5c65a' # Tine — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb6' # Tine
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552665d'
+  city: '69096195b3fd88e22839bde7' # Tine
+  infos:
+    title: Turno di guardia a Tine
+    type: guard
+    enemy: null
+    markerLocation: '690961955fc32b6a24e5c65a' # Tine — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb6' # Tine
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552665e'
+  city: '69096195b3fd88e22839bde7' # Tine
+  infos:
+    title: Affari loschi a Tine
+    type: crime
+    enemy: null
+    markerLocation: '690961955fc32b6a24e5c65a' # Tine — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb6' # Tine
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552665f'
+  city: '69096195b9ed88589c9b7a6a' # Woln
+  infos:
+    title: Cure al tempio di Woln
+    type: heal
+    enemy: null
+    markerLocation: '69096195c23f4e3965952296' # Woln — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410ebe' # Woln
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526660'
+  city: '69096195b9ed88589c9b7a6a' # Woln
+  infos:
+    title: Lavori di bottega a Woln
+    type: job
+    enemy: null
+    markerLocation: '69096195c23f4e3965952296' # Woln — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410ebe' # Woln
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526661'
+  city: '69096195c4d5c21e39b38ba8' # Lushire
+  infos:
+    title: Cure al tempio di Lushire
+    type: heal
+    enemy: null
+    markerLocation: '690961958d93efb630294631' # Lushire — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb1' # Lushire
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526662'
+  city: '69096195c4d5c21e39b38ba8' # Lushire
+  infos:
+    title: Lavori di bottega a Lushire
+    type: job
+    enemy: null
+    markerLocation: '690961958d93efb630294631' # Lushire — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb1' # Lushire
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526663'
+  city: '69096195c4d5c21e39b38ba8' # Lushire
+  infos:
+    title: Turno di guardia a Lushire
+    type: guard
+    enemy: null
+    markerLocation: '690961958d93efb630294631' # Lushire — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb1' # Lushire
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526664'
+  city: '69096195c4d5c21e39b38ba8' # Lushire
+  infos:
+    title: Ricerche in biblioteca a Lushire
+    type: study
+    enemy: null
+    markerLocation: '690961958d93efb630294631' # Lushire — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb1' # Lushire
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526665'
+  city: '69096195cabaccd432523378' # Liberia
+  infos:
+    title: Cure al tempio di Liberia
+    type: heal
+    enemy: null
+    markerLocation: '69096195be37c2f93090d009' # Liberia — POI city
+    relatedLore:
+      - '68c19213541d89c481b8322e' # Liberia
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526666'
+  city: '69096195cabaccd432523378' # Liberia
+  infos:
+    title: Lavori di bottega a Liberia
+    type: job
+    enemy: null
+    markerLocation: '69096195be37c2f93090d009' # Liberia — POI city
+    relatedLore:
+      - '68c19213541d89c481b8322e' # Liberia
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526667'
+  city: '69096195cabaccd432523378' # Liberia
+  infos:
+    title: Turno di guardia a Liberia
+    type: guard
+    enemy: null
+    markerLocation: '69096195be37c2f93090d009' # Liberia — POI city
+    relatedLore:
+      - '68c19213541d89c481b8322e' # Liberia
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526668'
+  city: '69096195cabaccd432523378' # Liberia
+  infos:
+    title: Affari loschi a Liberia
+    type: crime
+    enemy: null
+    markerLocation: '69096195be37c2f93090d009' # Liberia — POI city
+    relatedLore:
+      - '68c19213541d89c481b8322e' # Liberia
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526669'
+  city: '69096195cabaccd432523378' # Liberia
+  infos:
+    title: Ricerche in biblioteca a Liberia
+    type: study
+    enemy: null
+    markerLocation: '69096195be37c2f93090d009' # Liberia — POI city
+    relatedLore:
+      - '68c19213541d89c481b8322e' # Liberia
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552666a'
+  city: '69096195fcc6a04aba6b4b35' # Voling
+  infos:
+    title: Cure al tempio di Voling
+    type: heal
+    enemy: null
+    markerLocation: '6909619550345fb4f8bb46f1' # Voling — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb8' # Voling
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552666b'
+  city: '69096195fcc6a04aba6b4b35' # Voling
+  infos:
+    title: Lavori di bottega a Voling
+    type: job
+    enemy: null
+    markerLocation: '6909619550345fb4f8bb46f1' # Voling — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb8' # Voling
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552666c'
+  city: '69096195fcc6a04aba6b4b35' # Voling
+  infos:
+    title: Turno di guardia a Voling
+    type: guard
+    enemy: null
+    markerLocation: '6909619550345fb4f8bb46f1' # Voling — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb8' # Voling
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552666d'
+  city: '69096195fcc6a04aba6b4b35' # Voling
+  infos:
+    title: Affari loschi a Voling
+    type: crime
+    enemy: null
+    markerLocation: '6909619550345fb4f8bb46f1' # Voling — POI city
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb8' # Voling
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267b7'
+  city: '69096195095859bcd4a9568e' # Efragos
+  infos:
+    title: 'Caccia: Squalo tropicale nei dintorni di Efragos'
+    type: hunt
+    enemy: '6ae806b55093fb43140756de' # Squalo tropicale
+    markerLocation: '690e41864d35c0daa88d31e4' # Efragos — POI liberiaIsland
+    relatedLore:
+      - '6ae809f3c1a73223f1410eba' # Efragos
+      - '6ae8065202a77381730f281b' # Squalo tropicale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267b8'
+  city: '690961955200e98256172790' # Pontemaggiore
+  infos:
+    title: 'Caccia: Squalo tropicale nei dintorni di Pontemaggiore'
+    type: hunt
+    enemy: '6ae806b55093fb43140756de' # Squalo tropicale
+    markerLocation: '690e4186fc5b36c913b6b0fd' # Pontemaggiore — POI liberiaIsland
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb4' # Pontemaggiore
+      - '6ae8065202a77381730f281b' # Squalo tropicale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267b9'
+  city: '69096195a6756c5ce333b127' # Pontealto
+  infos:
+    title: 'Caccia: Squalo tropicale nei dintorni di Pontealto'
+    type: hunt
+    enemy: '6ae806b55093fb43140756de' # Squalo tropicale
+    markerLocation: '690e4186cdafa719f1a5b374' # Pontealto — POI ladows
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb3' # Pontealto
+      - '6ae8065202a77381730f281b' # Squalo tropicale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267ba'
+  city: '69096195ac6ec86fab3462d3' # Altaluce
+  infos:
+    title: 'Caccia: Squalo tropicale nei dintorni di Altaluce'
+    type: hunt
+    enemy: '6ae806b55093fb43140756de' # Squalo tropicale
+    markerLocation: '690e41860b439a0b5d43d950' # Altaluce — POI liberiaIsland
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb9' # Altaluce
+      - '6ae8065202a77381730f281b' # Squalo tropicale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267bb'
+  city: '69096195b3fd88e22839bde7' # Tine
+  infos:
+    title: 'Caccia: Squalo tropicale nei dintorni di Tine'
+    type: hunt
+    enemy: '6ae806b55093fb43140756de' # Squalo tropicale
+    markerLocation: '690e41861742addc1daad594' # Tine — POI ladows
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb6' # Tine
+      - '6ae8065202a77381730f281b' # Squalo tropicale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267bc'
+  city: '69096195b9ed88589c9b7a6a' # Woln
+  infos:
+    title: 'Caccia: Squalo tropicale nei dintorni di Woln'
+    type: hunt
+    enemy: '6ae806b55093fb43140756de' # Squalo tropicale
+    markerLocation: '690e41865b28ac51c77f00d7' # Woln — POI liberiaIsland
+    relatedLore:
+      - '6ae809f3c1a73223f1410ebe' # Woln
+      - '6ae8065202a77381730f281b' # Squalo tropicale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267bd'
+  city: '69096195c4d5c21e39b38ba8' # Lushire
+  infos:
+    title: 'Caccia: Squalo tropicale nei dintorni di Lushire'
+    type: hunt
+    enemy: '6ae806b55093fb43140756de' # Squalo tropicale
+    markerLocation: '690e41863eaa4b69a94126ad' # Lushire — POI ladows
+    relatedLore:
+      - '6ae809f3c1a73223f1410eb1' # Lushire
+      - '6ae8065202a77381730f281b' # Squalo tropicale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267be'
+  city: '69096195cabaccd432523378' # Liberia
+  infos:
+    title: 'Caccia: Squalo tropicale nei dintorni di Liberia'
+    type: hunt
+    enemy: '6ae806b55093fb43140756de' # Squalo tropicale
+    markerLocation: '690e41869e7f249369e93bd6' # Liberia — POI ladows
+    relatedLore:
+      - '68c19213541d89c481b8322e' # Liberia
+      - '6ae8065202a77381730f281b' # Squalo tropicale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []

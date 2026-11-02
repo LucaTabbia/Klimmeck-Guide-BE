@@ -1,0 +1,1120 @@
+# File generato da npm run content:generate-quests (D-17..D-22, D-31): le modifiche durevoli si fanno in config.yaml o nel generatore
+
+- id: '6ae80db9da5c5f8cc5526756'
+  city: '690962040a530bf84e11240c' # Gadarreck
+  infos:
+    title: Cure al tempio di Gadarreck
+    type: heal
+    enemy: null
+    markerLocation: '6909620476784516981cd802' # Gadarreck — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe0' # Gadarreck
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526757'
+  city: '690962040a530bf84e11240c' # Gadarreck
+  infos:
+    title: Lavori di bottega a Gadarreck
+    type: job
+    enemy: null
+    markerLocation: '6909620476784516981cd802' # Gadarreck — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe0' # Gadarreck
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526758'
+  city: '690962040a530bf84e11240c' # Gadarreck
+  infos:
+    title: Turno di guardia a Gadarreck
+    type: guard
+    enemy: null
+    markerLocation: '6909620476784516981cd802' # Gadarreck — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe0' # Gadarreck
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552675b'
+  city: '690962041103484cb9ff5aea' # Numstegh
+  infos:
+    title: Cure al tempio di Numstegh
+    type: heal
+    enemy: null
+    markerLocation: '69096204984708efbc90ba92' # Numstegh — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdb' # Numstegh
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552675c'
+  city: '690962041103484cb9ff5aea' # Numstegh
+  infos:
+    title: Lavori di bottega a Numstegh
+    type: job
+    enemy: null
+    markerLocation: '69096204984708efbc90ba92' # Numstegh — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdb' # Numstegh
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552675d'
+  city: '690962041103484cb9ff5aea' # Numstegh
+  infos:
+    title: Turno di guardia a Numstegh
+    type: guard
+    enemy: null
+    markerLocation: '69096204984708efbc90ba92' # Numstegh — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdb' # Numstegh
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552675e'
+  city: '690962041103484cb9ff5aea' # Numstegh
+  infos:
+    title: Affari loschi a Numstegh
+    type: crime
+    enemy: null
+    markerLocation: '69096204984708efbc90ba92' # Numstegh — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdb' # Numstegh
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526763'
+  city: '69096204332d00f4d4b4ef94' # Springford
+  infos:
+    title: Cure al tempio di Springford
+    type: heal
+    enemy: null
+    markerLocation: '69096204fb8ef22384776b5c' # Springford — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdc' # Springford
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526764'
+  city: '69096204332d00f4d4b4ef94' # Springford
+  infos:
+    title: Lavori di bottega a Springford
+    type: job
+    enemy: null
+    markerLocation: '69096204fb8ef22384776b5c' # Springford — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdc' # Springford
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526765'
+  city: '69096204332d00f4d4b4ef94' # Springford
+  infos:
+    title: Turno di guardia a Springford
+    type: guard
+    enemy: null
+    markerLocation: '69096204fb8ef22384776b5c' # Springford — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdc' # Springford
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526768'
+  city: '690962043db9f3a8ba2bc746' # Gonfim
+  infos:
+    title: Cure al tempio di Gonfim
+    type: heal
+    enemy: null
+    markerLocation: '69096204a7be728c13bd7562' # Gonfim — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe8' # Gonfim
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526769'
+  city: '690962043db9f3a8ba2bc746' # Gonfim
+  infos:
+    title: Lavori di bottega a Gonfim
+    type: job
+    enemy: null
+    markerLocation: '69096204a7be728c13bd7562' # Gonfim — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe8' # Gonfim
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552676a'
+  city: '690962044bea14749932ecb0' # Beldenn
+  infos:
+    title: Cure al tempio di Beldenn
+    type: heal
+    enemy: null
+    markerLocation: '6909620448c0d216081a6706' # Beldenn — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe5' # Beldenn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552676b'
+  city: '690962044bea14749932ecb0' # Beldenn
+  infos:
+    title: Lavori di bottega a Beldenn
+    type: job
+    enemy: null
+    markerLocation: '6909620448c0d216081a6706' # Beldenn — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe5' # Beldenn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552676c'
+  city: '6909620459bb3490e08d63fc' # Fineglen
+  infos:
+    title: Cure al tempio di Fineglen
+    type: heal
+    enemy: null
+    markerLocation: '69096204442a19ccb430b83e' # Fineglen — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe6' # Fineglen
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552676d'
+  city: '6909620459bb3490e08d63fc' # Fineglen
+  infos:
+    title: Lavori di bottega a Fineglen
+    type: job
+    enemy: null
+    markerLocation: '69096204442a19ccb430b83e' # Fineglen — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe6' # Fineglen
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552676e'
+  city: '690962045edb129a32a89b35' # Schuzzar
+  infos:
+    title: Cure al tempio di Schuzzar
+    type: heal
+    enemy: null
+    markerLocation: '690962040aee96612db70551' # Schuzzar — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fed' # Schuzzar
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552676f'
+  city: '690962045edb129a32a89b35' # Schuzzar
+  infos:
+    title: Lavori di bottega a Schuzzar
+    type: job
+    enemy: null
+    markerLocation: '690962040aee96612db70551' # Schuzzar — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fed' # Schuzzar
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526770'
+  city: '690962046ae72fec23f9fe12' # Marbot
+  infos:
+    title: Cure al tempio di Marbot
+    type: heal
+    enemy: null
+    markerLocation: '6909620458835e68b68727fd' # Marbot — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fda' # Marbot
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526771'
+  city: '690962046ae72fec23f9fe12' # Marbot
+  infos:
+    title: Lavori di bottega a Marbot
+    type: job
+    enemy: null
+    markerLocation: '6909620458835e68b68727fd' # Marbot — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fda' # Marbot
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526772'
+  city: '690962046ae72fec23f9fe12' # Marbot
+  infos:
+    title: Turno di guardia a Marbot
+    type: guard
+    enemy: null
+    markerLocation: '6909620458835e68b68727fd' # Marbot — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fda' # Marbot
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526773'
+  city: '6909620472a89d8e4dedcb50' # Pitchport
+  infos:
+    title: Cure al tempio di Pitchport
+    type: heal
+    enemy: null
+    markerLocation: '6909620429940d35fd89a0b5' # Pitchport — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe2' # Pitchport
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526774'
+  city: '6909620472a89d8e4dedcb50' # Pitchport
+  infos:
+    title: Lavori di bottega a Pitchport
+    type: job
+    enemy: null
+    markerLocation: '6909620429940d35fd89a0b5' # Pitchport — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe2' # Pitchport
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526775'
+  city: '6909620472a89d8e4dedcb50' # Pitchport
+  infos:
+    title: Turno di guardia a Pitchport
+    type: guard
+    enemy: null
+    markerLocation: '6909620429940d35fd89a0b5' # Pitchport — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe2' # Pitchport
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526778'
+  city: '6909620483d4f70ab3c5ccbb' # Chargate
+  infos:
+    title: Cure al tempio di Chargate
+    type: heal
+    enemy: null
+    markerLocation: '690962047c917e32462544a3' # Chargate — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdf' # Chargate
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526779'
+  city: '6909620483d4f70ab3c5ccbb' # Chargate
+  infos:
+    title: Lavori di bottega a Chargate
+    type: job
+    enemy: null
+    markerLocation: '690962047c917e32462544a3' # Chargate — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdf' # Chargate
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552677a'
+  city: '6909620483d4f70ab3c5ccbb' # Chargate
+  infos:
+    title: Turno di guardia a Chargate
+    type: guard
+    enemy: null
+    markerLocation: '690962047c917e32462544a3' # Chargate — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdf' # Chargate
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552677b'
+  city: '6909620483d4f70ab3c5ccbb' # Chargate
+  infos:
+    title: Affari loschi a Chargate
+    type: crime
+    enemy: null
+    markerLocation: '690962047c917e32462544a3' # Chargate — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdf' # Chargate
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552677c'
+  city: '6909620483d4f70ab3c5ccbb' # Chargate
+  infos:
+    title: Ricerche in biblioteca a Chargate
+    type: study
+    enemy: null
+    markerLocation: '690962047c917e32462544a3' # Chargate — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdf' # Chargate
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552677d'
+  city: '6909620487db8bf7dca08934' # Valantar
+  infos:
+    title: Cure al tempio di Valantar
+    type: heal
+    enemy: null
+    markerLocation: '69096204003ac12b7cdce6e8' # Valantar — POI city
+    relatedLore:
+      - '68c19213541d89c481b83236' # Valantar
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552677e'
+  city: '6909620487db8bf7dca08934' # Valantar
+  infos:
+    title: Lavori di bottega a Valantar
+    type: job
+    enemy: null
+    markerLocation: '69096204003ac12b7cdce6e8' # Valantar — POI city
+    relatedLore:
+      - '68c19213541d89c481b83236' # Valantar
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552677f'
+  city: '6909620487db8bf7dca08934' # Valantar
+  infos:
+    title: Turno di guardia a Valantar
+    type: guard
+    enemy: null
+    markerLocation: '69096204003ac12b7cdce6e8' # Valantar — POI city
+    relatedLore:
+      - '68c19213541d89c481b83236' # Valantar
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526780'
+  city: '6909620487db8bf7dca08934' # Valantar
+  infos:
+    title: Affari loschi a Valantar
+    type: crime
+    enemy: null
+    markerLocation: '69096204003ac12b7cdce6e8' # Valantar — POI city
+    relatedLore:
+      - '68c19213541d89c481b83236' # Valantar
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526781'
+  city: '6909620487db8bf7dca08934' # Valantar
+  infos:
+    title: Studi arcani a Valantar
+    type: study
+    enemy: null
+    markerLocation: '69096204003ac12b7cdce6e8' # Valantar — POI city
+    relatedLore:
+      - '68c19213541d89c481b83236' # Valantar
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+    spellDraw: true
+- id: '6ae80db9da5c5f8cc5526784'
+  city: '690962049a47b69f249dbe2e' # Flushhelm
+  infos:
+    title: Cure al tempio di Flushhelm
+    type: heal
+    enemy: null
+    markerLocation: '69096204fe2d61f35be640fa' # Flushhelm — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fd8' # Flushhelm
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526785'
+  city: '690962049a47b69f249dbe2e' # Flushhelm
+  infos:
+    title: Lavori di bottega a Flushhelm
+    type: job
+    enemy: null
+    markerLocation: '69096204fe2d61f35be640fa' # Flushhelm — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fd8' # Flushhelm
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526786'
+  city: '690962049a47b69f249dbe2e' # Flushhelm
+  infos:
+    title: Turno di guardia a Flushhelm
+    type: guard
+    enemy: null
+    markerLocation: '69096204fe2d61f35be640fa' # Flushhelm — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fd8' # Flushhelm
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526787'
+  city: '69096204a885a9ab75ced568' # Glilrid
+  infos:
+    title: Cure al tempio di Glilrid
+    type: heal
+    enemy: null
+    markerLocation: '690962045a8dcd9c5f2da7bd' # Glilrid — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe7' # Glilrid
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526788'
+  city: '69096204a885a9ab75ced568' # Glilrid
+  infos:
+    title: Lavori di bottega a Glilrid
+    type: job
+    enemy: null
+    markerLocation: '690962045a8dcd9c5f2da7bd' # Glilrid — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe7' # Glilrid
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526789'
+  city: '69096204b212f35e25f8632a' # Millport
+  infos:
+    title: Cure al tempio di Millport
+    type: heal
+    enemy: null
+    markerLocation: '6909620454f5712aa14b42da' # Millport — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe1' # Millport
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552678a'
+  city: '69096204b212f35e25f8632a' # Millport
+  infos:
+    title: Lavori di bottega a Millport
+    type: job
+    enemy: null
+    markerLocation: '6909620454f5712aa14b42da' # Millport — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe1' # Millport
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552678b'
+  city: '69096204b212f35e25f8632a' # Millport
+  infos:
+    title: Turno di guardia a Millport
+    type: guard
+    enemy: null
+    markerLocation: '6909620454f5712aa14b42da' # Millport — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe1' # Millport
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552678c'
+  city: '69096204c5cf931ba5c96fec' # Voxhold
+  infos:
+    title: Cure al tempio di Voxhold
+    type: heal
+    enemy: null
+    markerLocation: '690962041dfbb664f512f1ae' # Voxhold — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe3' # Voxhold
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552678d'
+  city: '69096204c5cf931ba5c96fec' # Voxhold
+  infos:
+    title: Lavori di bottega a Voxhold
+    type: job
+    enemy: null
+    markerLocation: '690962041dfbb664f512f1ae' # Voxhold — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe3' # Voxhold
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552678e'
+  city: '69096204c5cf931ba5c96fec' # Voxhold
+  infos:
+    title: Turno di guardia a Voxhold
+    type: guard
+    enemy: null
+    markerLocation: '690962041dfbb664f512f1ae' # Voxhold — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe3' # Voxhold
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552678f'
+  city: '69096204c5cf931ba5c96fec' # Voxhold
+  infos:
+    title: Affari loschi a Voxhold
+    type: crime
+    enemy: null
+    markerLocation: '690962041dfbb664f512f1ae' # Voxhold — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe3' # Voxhold
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526790'
+  city: '69096204c5cf931ba5c96fec' # Voxhold
+  infos:
+    title: Ricerche in biblioteca a Voxhold
+    type: study
+    enemy: null
+    markerLocation: '690962041dfbb664f512f1ae' # Voxhold — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe3' # Voxhold
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526791'
+  city: '69096204c9a2ec0709abf78a' # Tinemoor
+  infos:
+    title: Cure al tempio di Tinemoor
+    type: heal
+    enemy: null
+    markerLocation: '69096204fdcffb677dfbf816' # Tinemoor — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdd' # Tinemoor
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526792'
+  city: '69096204c9a2ec0709abf78a' # Tinemoor
+  infos:
+    title: Lavori di bottega a Tinemoor
+    type: job
+    enemy: null
+    markerLocation: '69096204fdcffb677dfbf816' # Tinemoor — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdd' # Tinemoor
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526793'
+  city: '69096204c9a2ec0709abf78a' # Tinemoor
+  infos:
+    title: Turno di guardia a Tinemoor
+    type: guard
+    enemy: null
+    markerLocation: '69096204fdcffb677dfbf816' # Tinemoor — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdd' # Tinemoor
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526794'
+  city: '69096204ce47261a748ccc4d' # Gravendale
+  infos:
+    title: Cure al tempio di Gravendale
+    type: heal
+    enemy: null
+    markerLocation: '69096204cbc0e244d3c98aa6' # Gravendale — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe9' # Gravendale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526795'
+  city: '69096204ce47261a748ccc4d' # Gravendale
+  infos:
+    title: Lavori di bottega a Gravendale
+    type: job
+    enemy: null
+    markerLocation: '69096204cbc0e244d3c98aa6' # Gravendale — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe9' # Gravendale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526796'
+  city: '69096204cec79d963a47270c' # Granponte
+  infos:
+    title: Cure al tempio di Granponte
+    type: heal
+    enemy: null
+    markerLocation: '69096204706c3aa048faca5f' # Granponte — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fd9' # Granponte
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526797'
+  city: '69096204cec79d963a47270c' # Granponte
+  infos:
+    title: Lavori di bottega a Granponte
+    type: job
+    enemy: null
+    markerLocation: '69096204706c3aa048faca5f' # Granponte — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fd9' # Granponte
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526798'
+  city: '69096204cec79d963a47270c' # Granponte
+  infos:
+    title: Turno di guardia a Granponte
+    type: guard
+    enemy: null
+    markerLocation: '69096204706c3aa048faca5f' # Granponte — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fd9' # Granponte
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526799'
+  city: '69096204cec79d963a47270c' # Granponte
+  infos:
+    title: Affari loschi a Granponte
+    type: crime
+    enemy: null
+    markerLocation: '69096204706c3aa048faca5f' # Granponte — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fd9' # Granponte
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552679a'
+  city: '69096204d26cadbff3ae5e80' # Anden
+  infos:
+    title: Cure al tempio di Anden
+    type: heal
+    enemy: null
+    markerLocation: '690962047fc5ab090432d368' # Anden — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe4' # Anden
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552679b'
+  city: '69096204d26cadbff3ae5e80' # Anden
+  infos:
+    title: Lavori di bottega a Anden
+    type: job
+    enemy: null
+    markerLocation: '690962047fc5ab090432d368' # Anden — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe4' # Anden
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552679c'
+  city: '69096204d344b91cd59dfbe7' # Blu Aragh
+  infos:
+    title: Cure al tempio di Blu Aragh
+    type: heal
+    enemy: null
+    markerLocation: '690962048c510b7c4f998326' # Blu Aragh — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fde' # Blu Aragh
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552679d'
+  city: '69096204d344b91cd59dfbe7' # Blu Aragh
+  infos:
+    title: Lavori di bottega a Blu Aragh
+    type: job
+    enemy: null
+    markerLocation: '690962048c510b7c4f998326' # Blu Aragh — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fde' # Blu Aragh
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552679e'
+  city: '69096204d344b91cd59dfbe7' # Blu Aragh
+  infos:
+    title: Turno di guardia a Blu Aragh
+    type: guard
+    enemy: null
+    markerLocation: '690962048c510b7c4f998326' # Blu Aragh — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fde' # Blu Aragh
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552679f'
+  city: '69096204d344b91cd59dfbe7' # Blu Aragh
+  infos:
+    title: Affari loschi a Blu Aragh
+    type: crime
+    enemy: null
+    markerLocation: '690962048c510b7c4f998326' # Blu Aragh — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fde' # Blu Aragh
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267a0'
+  city: '69096204d6df846a09d63e90' # Quirkdale
+  infos:
+    title: Cure al tempio di Quirkdale
+    type: heal
+    enemy: null
+    markerLocation: '690962042d4905efdd514b0d' # Quirkdale — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fec' # Quirkdale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267a1'
+  city: '69096204d6df846a09d63e90' # Quirkdale
+  infos:
+    title: Lavori di bottega a Quirkdale
+    type: job
+    enemy: null
+    markerLocation: '690962042d4905efdd514b0d' # Quirkdale — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fec' # Quirkdale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267a2'
+  city: '69096204defcf893091c1804' # Lilmere
+  infos:
+    title: Cure al tempio di Lilmere
+    type: heal
+    enemy: null
+    markerLocation: '690962047bd8b98292723bdf' # Lilmere — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fea' # Lilmere
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267a3'
+  city: '69096204defcf893091c1804' # Lilmere
+  infos:
+    title: Lavori di bottega a Lilmere
+    type: job
+    enemy: null
+    markerLocation: '690962047bd8b98292723bdf' # Lilmere — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9fea' # Lilmere
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267a6'
+  city: '69096204fd230792d5c30ec7' # Noxgard
+  infos:
+    title: Cure al tempio di Noxgard
+    type: heal
+    enemy: null
+    markerLocation: '690962040e254d082a2e72ea' # Noxgard — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9feb' # Noxgard
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267a7'
+  city: '69096204fd230792d5c30ec7' # Noxgard
+  infos:
+    title: Lavori di bottega a Noxgard
+    type: job
+    enemy: null
+    markerLocation: '690962040e254d082a2e72ea' # Noxgard — POI city
+    relatedLore:
+      - '6ae8083e4b590da5989f9feb' # Noxgard
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267e7'
+  city: '690962041103484cb9ff5aea' # Numstegh
+  infos:
+    title: 'Caccia: Aquila gigante nei dintorni di Numstegh'
+    type: hunt
+    enemy: '6ae806b55093fb43140756d3' # Aquila gigante
+    markerLocation: '690e4186e7133c0ce09c75c4' # Numstegh — POI valanPlains
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdb' # Numstegh
+      - '6ae8065202a77381730f2810' # Aquile giganti
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267e9'
+  city: '690962043db9f3a8ba2bc746' # Gonfim
+  infos:
+    title: 'Caccia: Iena nei dintorni di Gonfim'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e3' # Iena
+    markerLocation: '690e41864d8e8ba8dab00b3b' # Gonfim — POI battleground, valanPlains
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe8' # Gonfim
+      - '6ae8065202a77381730f281f' # Iena
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267ea'
+  city: '6909620459bb3490e08d63fc' # Fineglen
+  infos:
+    title: 'Caccia: Cavallo leggero nei dintorni di Fineglen'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e0' # Cavallo leggero
+    markerLocation: '690e4186ab288750f9f17c93' # Fineglen — POI battleground, valanPlains
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe6' # Fineglen
+      - '6ae8065202a77381730f281d' # Cavallo e Cavallo da guerra
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267eb'
+  city: '690962046ae72fec23f9fe12' # Marbot
+  infos:
+    title: 'Caccia: Tigre nei dintorni di Marbot'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e7' # Tigre
+    markerLocation: '690e41868b7b88f39ee0e13a' # Marbot — POI demonicPortal, ruins, valanPlains
+    relatedLore:
+      - '6ae8083e4b590da5989f9fda' # Marbot
+      - '6ae8065202a77381730f2823' # Tigre
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267ec'
+  city: '6909620472a89d8e4dedcb50' # Pitchport
+  infos:
+    title: 'Caccia: Aquila gigante nei dintorni di Pitchport'
+    type: hunt
+    enemy: '6ae806b55093fb43140756d3' # Aquila gigante
+    markerLocation: '690e4186d69b27380b62b539' # Pitchport — POI valanPlains
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe2' # Pitchport
+      - '6ae8065202a77381730f2810' # Aquile giganti
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267ed'
+  city: '6909620483d4f70ab3c5ccbb' # Chargate
+  infos:
+    title: 'Caccia: Vespa gigante nei dintorni di Chargate'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e5' # Vespa gigante
+    markerLocation: '690e4186d5145c01aa6685a2' # Chargate — POI demonicPortal, valanPlains
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdf' # Chargate
+      - '6ae8065202a77381730f2821' # Vespa gigante
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267ef'
+  city: '690962049a47b69f249dbe2e' # Flushhelm
+  infos:
+    title: 'Caccia: Aquila gigante nei dintorni di Flushhelm'
+    type: hunt
+    enemy: '6ae806b55093fb43140756d3' # Aquila gigante
+    markerLocation: '690e4186a6c82c8ba47b1ded' # Flushhelm — POI ruins, valanPlains
+    relatedLore:
+      - '6ae8083e4b590da5989f9fd8' # Flushhelm
+      - '6ae8065202a77381730f2810' # Aquile giganti
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267f0'
+  city: '69096204a885a9ab75ced568' # Glilrid
+  infos:
+    title: 'Caccia: Worg nei dintorni di Glilrid'
+    type: hunt
+    enemy: '6ae806b55093fb43140756d4' # Worg
+    markerLocation: '690e418643b82a8456eede95' # Glilrid — POI graveyard, valanPlains
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe7' # Glilrid
+      - '6ae8065202a77381730f2811' # Worg
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267f1'
+  city: '69096204c5cf931ba5c96fec' # Voxhold
+  infos:
+    title: 'Caccia: Formiche giganti assassine nei dintorni di Voxhold'
+    type: hunt
+    enemy: '6ae806b55093fb43140756d2' # Formiche giganti assassine
+    markerLocation: '690e4186f56f5d0e13baea9b' # Voxhold — POI graveyard, valanPlains
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe3' # Voxhold
+      - '6ae8065202a77381730f280f' # Formiche giganti assassine
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267f2'
+  city: '69096204c9a2ec0709abf78a' # Tinemoor
+  infos:
+    title: 'Caccia: Worg nei dintorni di Tinemoor'
+    type: hunt
+    enemy: '6ae806b55093fb43140756d4' # Worg
+    markerLocation: '690e41860afe207b45f4ca17' # Tinemoor — POI demonicPortal, valanPlains
+    relatedLore:
+      - '6ae8083e4b590da5989f9fdd' # Tinemoor
+      - '6ae8065202a77381730f2811' # Worg
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267f3'
+  city: '69096204ce47261a748ccc4d' # Gravendale
+  infos:
+    title: 'Caccia: Formiche giganti assassine nei dintorni di Gravendale'
+    type: hunt
+    enemy: '6ae806b55093fb43140756d2' # Formiche giganti assassine
+    markerLocation: '690e4186145f435c1681cc57' # Gravendale — POI ruins, valanPlains
+    relatedLore:
+      - '6ae8083e4b590da5989f9fe9' # Gravendale
+      - '6ae8065202a77381730f280f' # Formiche giganti assassine
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []

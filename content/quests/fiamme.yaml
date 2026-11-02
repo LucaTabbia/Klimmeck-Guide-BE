@@ -1,0 +1,1359 @@
+# File generato da npm run content:generate-quests (D-17..D-22, D-31): le modifiche durevoli si fanno in config.yaml o nel generatore
+
+- id: '6ae80db9da5c5f8cc55266f5'
+  city: '690961f209cf5f26988106f4' # Virnen
+  infos:
+    title: Cure al tempio di Virnen
+    type: heal
+    enemy: null
+    markerLocation: '690961f2d679fbb6d9e42032' # Virnen — POI city
+    relatedLore:
+      - '68c19213541d89c481b83237' # Virnen
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55266f6'
+  city: '690961f209cf5f26988106f4' # Virnen
+  infos:
+    title: Lavori di bottega a Virnen
+    type: job
+    enemy: null
+    markerLocation: '690961f2d679fbb6d9e42032' # Virnen — POI city
+    relatedLore:
+      - '68c19213541d89c481b83237' # Virnen
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55266f7'
+  city: '690961f209cf5f26988106f4' # Virnen
+  infos:
+    title: Turno di guardia a Virnen
+    type: guard
+    enemy: null
+    markerLocation: '690961f2d679fbb6d9e42032' # Virnen — POI city
+    relatedLore:
+      - '68c19213541d89c481b83237' # Virnen
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55266f8'
+  city: '690961f209cf5f26988106f4' # Virnen
+  infos:
+    title: Affari loschi a Virnen
+    type: crime
+    enemy: null
+    markerLocation: '690961f2d679fbb6d9e42032' # Virnen — POI city
+    relatedLore:
+      - '68c19213541d89c481b83237' # Virnen
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55266f9'
+  city: '690961f209cf5f26988106f4' # Virnen
+  infos:
+    title: Ricerche in biblioteca a Virnen
+    type: study
+    enemy: null
+    markerLocation: '690961f2d679fbb6d9e42032' # Virnen — POI city
+    relatedLore:
+      - '68c19213541d89c481b83237' # Virnen
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55266fc'
+  city: '690961f21405c9f66d9174a2' # Ultima Terra
+  infos:
+    title: Cure al tempio di Ultima Terra
+    type: heal
+    enemy: null
+    markerLocation: '690961f2151d14a97526d7eb' # Ultima Terra — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30c' # Ultima Terra
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55266fd'
+  city: '690961f21405c9f66d9174a2' # Ultima Terra
+  infos:
+    title: Lavori di bottega a Ultima Terra
+    type: job
+    enemy: null
+    markerLocation: '690961f2151d14a97526d7eb' # Ultima Terra — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30c' # Ultima Terra
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55266fe'
+  city: '690961f220b335bdbc8e5e30' # Fiumelento
+  infos:
+    title: Cure al tempio di Fiumelento
+    type: heal
+    enemy: null
+    markerLocation: '690961f24ceb75419aa4baca' # Fiumelento — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fa' # Fiumelento
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55266ff'
+  city: '690961f220b335bdbc8e5e30' # Fiumelento
+  infos:
+    title: Lavori di bottega a Fiumelento
+    type: job
+    enemy: null
+    markerLocation: '690961f24ceb75419aa4baca' # Fiumelento — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fa' # Fiumelento
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526700'
+  city: '690961f220b335bdbc8e5e30' # Fiumelento
+  infos:
+    title: Turno di guardia a Fiumelento
+    type: guard
+    enemy: null
+    markerLocation: '690961f24ceb75419aa4baca' # Fiumelento — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fa' # Fiumelento
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526701'
+  city: '690961f220b335bdbc8e5e30' # Fiumelento
+  infos:
+    title: Ricerche in biblioteca a Fiumelento
+    type: study
+    enemy: null
+    markerLocation: '690961f24ceb75419aa4baca' # Fiumelento — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fa' # Fiumelento
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526702'
+  city: '690961f232e36d73f89ab91f' # Yonamnel
+  infos:
+    title: Cure al tempio di Yonamnel
+    type: heal
+    enemy: null
+    markerLocation: '690961f2b3af3de8f757e386' # Yonamnel — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f310' # Yonamnel
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526703'
+  city: '690961f232e36d73f89ab91f' # Yonamnel
+  infos:
+    title: Lavori di bottega a Yonamnel
+    type: job
+    enemy: null
+    markerLocation: '690961f2b3af3de8f757e386' # Yonamnel — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f310' # Yonamnel
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526704'
+  city: '690961f23a51d0e34cea2ed3' # Rosedenn
+  infos:
+    title: Cure al tempio di Rosedenn
+    type: heal
+    enemy: null
+    markerLocation: '690961f25f5b77e78ba1ca85' # Rosedenn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2ff' # Rosedenn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526705'
+  city: '690961f23a51d0e34cea2ed3' # Rosedenn
+  infos:
+    title: Lavori di bottega a Rosedenn
+    type: job
+    enemy: null
+    markerLocation: '690961f25f5b77e78ba1ca85' # Rosedenn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2ff' # Rosedenn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526706'
+  city: '690961f23a51d0e34cea2ed3' # Rosedenn
+  infos:
+    title: Turno di guardia a Rosedenn
+    type: guard
+    enemy: null
+    markerLocation: '690961f25f5b77e78ba1ca85' # Rosedenn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2ff' # Rosedenn
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526707'
+  city: '690961f23a51d0e34cea2ed3' # Rosedenn
+  infos:
+    title: Affari loschi a Rosedenn
+    type: crime
+    enemy: null
+    markerLocation: '690961f25f5b77e78ba1ca85' # Rosedenn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2ff' # Rosedenn
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526708'
+  city: '690961f23a51d0e34cea2ed3' # Rosedenn
+  infos:
+    title: Ricerche in biblioteca a Rosedenn
+    type: study
+    enemy: null
+    markerLocation: '690961f25f5b77e78ba1ca85' # Rosedenn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2ff' # Rosedenn
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526709'
+  city: '690961f2475e9937b4cea9eb' # Danmil Urvyn
+  infos:
+    title: Cure al tempio di Danmil Urvyn
+    type: heal
+    enemy: null
+    markerLocation: '690961f236b8c0a4337ebb25' # Danmil Urvyn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2f9' # Danmil Urvyn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552670a'
+  city: '690961f2475e9937b4cea9eb' # Danmil Urvyn
+  infos:
+    title: Lavori di bottega a Danmil Urvyn
+    type: job
+    enemy: null
+    markerLocation: '690961f236b8c0a4337ebb25' # Danmil Urvyn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2f9' # Danmil Urvyn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552670b'
+  city: '690961f2475e9937b4cea9eb' # Danmil Urvyn
+  infos:
+    title: Turno di guardia a Danmil Urvyn
+    type: guard
+    enemy: null
+    markerLocation: '690961f236b8c0a4337ebb25' # Danmil Urvyn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2f9' # Danmil Urvyn
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552670c'
+  city: '690961f2508bc3b72047ae70' # Peadale
+  infos:
+    title: Cure al tempio di Peadale
+    type: heal
+    enemy: null
+    markerLocation: '690961f2b329ddc38fdb86d6' # Peadale — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30b' # Peadale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552670d'
+  city: '690961f2508bc3b72047ae70' # Peadale
+  infos:
+    title: Lavori di bottega a Peadale
+    type: job
+    enemy: null
+    markerLocation: '690961f2b329ddc38fdb86d6' # Peadale — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30b' # Peadale
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526710'
+  city: '690961f25482ef5bf7b39bdd' # Al Nerry
+  infos:
+    title: Cure al tempio di Al Nerry
+    type: heal
+    enemy: null
+    markerLocation: '690961f27fc7d3951ea81632' # Al Nerry — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f303' # Al Nerry
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526711'
+  city: '690961f25482ef5bf7b39bdd' # Al Nerry
+  infos:
+    title: Lavori di bottega a Al Nerry
+    type: job
+    enemy: null
+    markerLocation: '690961f27fc7d3951ea81632' # Al Nerry — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f303' # Al Nerry
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526718'
+  city: '690961f26ed0ae9826c2f746' # Gellirn
+  infos:
+    title: Cure al tempio di Gellirn
+    type: heal
+    enemy: null
+    markerLocation: '690961f2fc945e70b2498d79' # Gellirn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f306' # Gellirn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526719'
+  city: '690961f26ed0ae9826c2f746' # Gellirn
+  infos:
+    title: Lavori di bottega a Gellirn
+    type: job
+    enemy: null
+    markerLocation: '690961f2fc945e70b2498d79' # Gellirn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f306' # Gellirn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552671a'
+  city: '690961f270966f9618192e68' # Cu Nuimyn
+  infos:
+    title: Cure al tempio di Cu Nuimyn
+    type: heal
+    enemy: null
+    markerLocation: '690961f208dac2e824861d96' # Cu Nuimyn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f305' # Cu Nuimyn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552671b'
+  city: '690961f270966f9618192e68' # Cu Nuimyn
+  infos:
+    title: Lavori di bottega a Cu Nuimyn
+    type: job
+    enemy: null
+    markerLocation: '690961f208dac2e824861d96' # Cu Nuimyn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f305' # Cu Nuimyn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552671c'
+  city: '690961f272446b09c54dd978' # Sprigfront
+  infos:
+    title: Cure al tempio di Sprigfront
+    type: heal
+    enemy: null
+    markerLocation: '690961f22e3fa5fe41fd035f' # Sprigfront — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f300' # Sprigfront
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552671d'
+  city: '690961f272446b09c54dd978' # Sprigfront
+  infos:
+    title: Lavori di bottega a Sprigfront
+    type: job
+    enemy: null
+    markerLocation: '690961f22e3fa5fe41fd035f' # Sprigfront — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f300' # Sprigfront
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552671e'
+  city: '690961f272446b09c54dd978' # Sprigfront
+  infos:
+    title: Turno di guardia a Sprigfront
+    type: guard
+    enemy: null
+    markerLocation: '690961f22e3fa5fe41fd035f' # Sprigfront — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f300' # Sprigfront
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552671f'
+  city: '690961f284631ee8ad0d9ca0' # Gidevolm
+  infos:
+    title: Cure al tempio di Gidevolm
+    type: heal
+    enemy: null
+    markerLocation: '690961f24ea706ac6fb361e1' # Gidevolm — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f307' # Gidevolm
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526720'
+  city: '690961f284631ee8ad0d9ca0' # Gidevolm
+  infos:
+    title: Lavori di bottega a Gidevolm
+    type: job
+    enemy: null
+    markerLocation: '690961f24ea706ac6fb361e1' # Gidevolm — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f307' # Gidevolm
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526721'
+  city: '690961f290dcda622c67760d' # Oldcairn
+  infos:
+    title: Cure al tempio di Oldcairn
+    type: heal
+    enemy: null
+    markerLocation: '690961f244b5d4402e07e559' # Oldcairn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fc' # Oldcairn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526722'
+  city: '690961f290dcda622c67760d' # Oldcairn
+  infos:
+    title: Lavori di bottega a Oldcairn
+    type: job
+    enemy: null
+    markerLocation: '690961f244b5d4402e07e559' # Oldcairn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fc' # Oldcairn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526723'
+  city: '690961f290dcda622c67760d' # Oldcairn
+  infos:
+    title: Turno di guardia a Oldcairn
+    type: guard
+    enemy: null
+    markerLocation: '690961f244b5d4402e07e559' # Oldcairn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fc' # Oldcairn
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526724'
+  city: '690961f298baaf7f7be10dd1' # Pianecalde
+  infos:
+    title: Cure al tempio di Pianecalde
+    type: heal
+    enemy: null
+    markerLocation: '690961f2c610804d35abca22' # Pianecalde — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fd' # Pianecalde
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526725'
+  city: '690961f298baaf7f7be10dd1' # Pianecalde
+  infos:
+    title: Lavori di bottega a Pianecalde
+    type: job
+    enemy: null
+    markerLocation: '690961f2c610804d35abca22' # Pianecalde — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fd' # Pianecalde
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526726'
+  city: '690961f298baaf7f7be10dd1' # Pianecalde
+  infos:
+    title: Turno di guardia a Pianecalde
+    type: guard
+    enemy: null
+    markerLocation: '690961f2c610804d35abca22' # Pianecalde — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fd' # Pianecalde
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526727'
+  city: '690961f298baaf7f7be10dd1' # Pianecalde
+  infos:
+    title: Affari loschi a Pianecalde
+    type: crime
+    enemy: null
+    markerLocation: '690961f2c610804d35abca22' # Pianecalde — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fd' # Pianecalde
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526728'
+  city: '690961f298baaf7f7be10dd1' # Pianecalde
+  infos:
+    title: Ricerche in biblioteca a Pianecalde
+    type: study
+    enemy: null
+    markerLocation: '690961f2c610804d35abca22' # Pianecalde — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fd' # Pianecalde
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526729'
+  city: '690961f29b082d39dee58e09' # Vudyld
+  infos:
+    title: Cure al tempio di Vudyld
+    type: heal
+    enemy: null
+    markerLocation: '690961f26eed6b691c18fe35' # Vudyld — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30f' # Vudyld
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552672a'
+  city: '690961f29b082d39dee58e09' # Vudyld
+  infos:
+    title: Lavori di bottega a Vudyld
+    type: job
+    enemy: null
+    markerLocation: '690961f26eed6b691c18fe35' # Vudyld — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30f' # Vudyld
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552672b'
+  city: '690961f2a2bba9f255c62900' # Telobren
+  infos:
+    title: Cure al tempio di Telobren
+    type: heal
+    enemy: null
+    markerLocation: '690961f2783dc075b1468c53' # Telobren — POI city
+    relatedLore:
+      - '68fd6bbe929ce8c0050b1760' # Telobren
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552672c'
+  city: '690961f2a2bba9f255c62900' # Telobren
+  infos:
+    title: Lavori di bottega a Telobren
+    type: job
+    enemy: null
+    markerLocation: '690961f2783dc075b1468c53' # Telobren — POI city
+    relatedLore:
+      - '68fd6bbe929ce8c0050b1760' # Telobren
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552672d'
+  city: '690961f2a2bba9f255c62900' # Telobren
+  infos:
+    title: Turno di guardia a Telobren
+    type: guard
+    enemy: null
+    markerLocation: '690961f2783dc075b1468c53' # Telobren — POI city
+    relatedLore:
+      - '68fd6bbe929ce8c0050b1760' # Telobren
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552672e'
+  city: '690961f2a2bba9f255c62900' # Telobren
+  infos:
+    title: Affari loschi a Telobren
+    type: crime
+    enemy: null
+    markerLocation: '690961f2783dc075b1468c53' # Telobren — POI city
+    relatedLore:
+      - '68fd6bbe929ce8c0050b1760' # Telobren
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552672f'
+  city: '690961f2a2bba9f255c62900' # Telobren
+  infos:
+    title: Ricerche in biblioteca a Telobren
+    type: study
+    enemy: null
+    markerLocation: '690961f2783dc075b1468c53' # Telobren — POI city
+    relatedLore:
+      - '68fd6bbe929ce8c0050b1760' # Telobren
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526730'
+  city: '690961f2ab1b364dd70e9c26' # Unrike
+  infos:
+    title: Cure al tempio di Unrike
+    type: heal
+    enemy: null
+    markerLocation: '690961f216b01e0ec4c8419f' # Unrike — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30d' # Unrike
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526731'
+  city: '690961f2ab1b364dd70e9c26' # Unrike
+  infos:
+    title: Lavori di bottega a Unrike
+    type: job
+    enemy: null
+    markerLocation: '690961f216b01e0ec4c8419f' # Unrike — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30d' # Unrike
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526732'
+  city: '690961f2b69d968cbaef09f3' # Bellport
+  infos:
+    title: Cure al tempio di Bellport
+    type: heal
+    enemy: null
+    markerLocation: '690961f2990e8deb12a912a9' # Bellport — POI city
+    relatedLore:
+      - '68c19213541d89c481b83231' # Bellport
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526733'
+  city: '690961f2b69d968cbaef09f3' # Bellport
+  infos:
+    title: Lavori di bottega a Bellport
+    type: job
+    enemy: null
+    markerLocation: '690961f2990e8deb12a912a9' # Bellport — POI city
+    relatedLore:
+      - '68c19213541d89c481b83231' # Bellport
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526734'
+  city: '690961f2b69d968cbaef09f3' # Bellport
+  infos:
+    title: Turno di guardia a Bellport
+    type: guard
+    enemy: null
+    markerLocation: '690961f2990e8deb12a912a9' # Bellport — POI city
+    relatedLore:
+      - '68c19213541d89c481b83231' # Bellport
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526735'
+  city: '690961f2b69d968cbaef09f3' # Bellport
+  infos:
+    title: Affari loschi a Bellport
+    type: crime
+    enemy: null
+    markerLocation: '690961f2990e8deb12a912a9' # Bellport — POI city
+    relatedLore:
+      - '68c19213541d89c481b83231' # Bellport
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526736'
+  city: '690961f2b69d968cbaef09f3' # Bellport
+  infos:
+    title: Ricerche in biblioteca a Bellport
+    type: study
+    enemy: null
+    markerLocation: '690961f2990e8deb12a912a9' # Bellport — POI city
+    relatedLore:
+      - '68c19213541d89c481b83231' # Bellport
+  requirements:
+    minTitle: paladin
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526737'
+  city: '690961f2c28e686ddbe6ec29' # Mistglen
+  infos:
+    title: Cure al tempio di Mistglen
+    type: heal
+    enemy: null
+    markerLocation: '690961f28dac3063d434ec13' # Mistglen — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30a' # Mistglen
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526738'
+  city: '690961f2c28e686ddbe6ec29' # Mistglen
+  infos:
+    title: Lavori di bottega a Mistglen
+    type: job
+    enemy: null
+    markerLocation: '690961f28dac3063d434ec13' # Mistglen — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30a' # Mistglen
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526739'
+  city: '690961f2c33b0a2840e14a55' # Thorndenn
+  infos:
+    title: Cure al tempio di Thorndenn
+    type: heal
+    enemy: null
+    markerLocation: '690961f2db56c583b4877f5a' # Thorndenn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f301' # Thorndenn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552673a'
+  city: '690961f2c33b0a2840e14a55' # Thorndenn
+  infos:
+    title: Lavori di bottega a Thorndenn
+    type: job
+    enemy: null
+    markerLocation: '690961f2db56c583b4877f5a' # Thorndenn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f301' # Thorndenn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552673b'
+  city: '690961f2c33b0a2840e14a55' # Thorndenn
+  infos:
+    title: Turno di guardia a Thorndenn
+    type: guard
+    enemy: null
+    markerLocation: '690961f2db56c583b4877f5a' # Thorndenn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f301' # Thorndenn
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552673c'
+  city: '690961f2c33b0a2840e14a55' # Thorndenn
+  infos:
+    title: Ricerche in biblioteca a Thorndenn
+    type: study
+    enemy: null
+    markerLocation: '690961f2db56c583b4877f5a' # Thorndenn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f301' # Thorndenn
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526741'
+  city: '690961f2cf957bc46fe0e795' # Lagorovente
+  infos:
+    title: Cure al tempio di Lagorovente
+    type: heal
+    enemy: null
+    markerLocation: '690961f24e033df568b6a4bd' # Lagorovente — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f308' # Lagorovente
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526742'
+  city: '690961f2cf957bc46fe0e795' # Lagorovente
+  infos:
+    title: Lavori di bottega a Lagorovente
+    type: job
+    enemy: null
+    markerLocation: '690961f24e033df568b6a4bd' # Lagorovente — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f308' # Lagorovente
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526743'
+  city: '690961f2d81d34e19cb510e7' # Pinecrest
+  infos:
+    title: Cure al tempio di Pinecrest
+    type: heal
+    enemy: null
+    markerLocation: '690961f2b9caa75b94e78033' # Pinecrest — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fe' # Pinecrest
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526744'
+  city: '690961f2d81d34e19cb510e7' # Pinecrest
+  infos:
+    title: Lavori di bottega a Pinecrest
+    type: job
+    enemy: null
+    markerLocation: '690961f2b9caa75b94e78033' # Pinecrest — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fe' # Pinecrest
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526745'
+  city: '690961f2d81d34e19cb510e7' # Pinecrest
+  infos:
+    title: Turno di guardia a Pinecrest
+    type: guard
+    enemy: null
+    markerLocation: '690961f2b9caa75b94e78033' # Pinecrest — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fe' # Pinecrest
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526746'
+  city: '690961f2d81d34e19cb510e7' # Pinecrest
+  infos:
+    title: Ricerche in biblioteca a Pinecrest
+    type: study
+    enemy: null
+    markerLocation: '690961f2b9caa75b94e78033' # Pinecrest — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fe' # Pinecrest
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526747'
+  city: '690961f2d98f74fb4616446c' # Vired Ivem
+  infos:
+    title: Cure al tempio di Vired Ivem
+    type: heal
+    enemy: null
+    markerLocation: '690961f2c99ba44a7fce0083' # Vired Ivem — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f302' # Vired Ivem
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526748'
+  city: '690961f2d98f74fb4616446c' # Vired Ivem
+  infos:
+    title: Lavori di bottega a Vired Ivem
+    type: job
+    enemy: null
+    markerLocation: '690961f2c99ba44a7fce0083' # Vired Ivem — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f302' # Vired Ivem
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526749'
+  city: '690961f2d98f74fb4616446c' # Vired Ivem
+  infos:
+    title: Turno di guardia a Vired Ivem
+    type: guard
+    enemy: null
+    markerLocation: '690961f2c99ba44a7fce0083' # Vired Ivem — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f302' # Vired Ivem
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552674a'
+  city: '690961f2d98f74fb4616446c' # Vired Ivem
+  infos:
+    title: Affari loschi a Vired Ivem
+    type: crime
+    enemy: null
+    markerLocation: '690961f2c99ba44a7fce0083' # Vired Ivem — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f302' # Vired Ivem
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552674b'
+  city: '690961f2d98f74fb4616446c' # Vired Ivem
+  infos:
+    title: Ricerche in biblioteca a Vired Ivem
+    type: study
+    enemy: null
+    markerLocation: '690961f2c99ba44a7fce0083' # Vired Ivem — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f302' # Vired Ivem
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552674c'
+  city: '690961f2da371c354c6b7f36' # Usrorn
+  infos:
+    title: Cure al tempio di Usrorn
+    type: heal
+    enemy: null
+    markerLocation: '690961f223f9ade095b90a77' # Usrorn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30e' # Usrorn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552674d'
+  city: '690961f2da371c354c6b7f36' # Usrorn
+  infos:
+    title: Lavori di bottega a Usrorn
+    type: job
+    enemy: null
+    markerLocation: '690961f223f9ade095b90a77' # Usrorn — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f30e' # Usrorn
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552674e'
+  city: '690961f2e02f0f11b346240f' # Costenere
+  infos:
+    title: Cure al tempio di Costenere
+    type: heal
+    enemy: null
+    markerLocation: '690961f2fdae6509f55f2547' # Costenere — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f304' # Costenere
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc552674f'
+  city: '690961f2e02f0f11b346240f' # Costenere
+  infos:
+    title: Lavori di bottega a Costenere
+    type: job
+    enemy: null
+    markerLocation: '690961f2fdae6509f55f2547' # Costenere — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f304' # Costenere
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526750'
+  city: '690961f2e6690bb3ec8f2ee5' # Mapleview
+  infos:
+    title: Cure al tempio di Mapleview
+    type: heal
+    enemy: null
+    markerLocation: '690961f2efb579de3b428656' # Mapleview — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f309' # Mapleview
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526751'
+  city: '690961f2e6690bb3ec8f2ee5' # Mapleview
+  infos:
+    title: Lavori di bottega a Mapleview
+    type: job
+    enemy: null
+    markerLocation: '690961f2efb579de3b428656' # Mapleview — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f309' # Mapleview
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526752'
+  city: '690961f2fb45f73a8ff880d6' # Gurlaid
+  infos:
+    title: Cure al tempio di Gurlaid
+    type: heal
+    enemy: null
+    markerLocation: '690961f210993c82b04a5d0c' # Gurlaid — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fb' # Gurlaid
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526753'
+  city: '690961f2fb45f73a8ff880d6' # Gurlaid
+  infos:
+    title: Lavori di bottega a Gurlaid
+    type: job
+    enemy: null
+    markerLocation: '690961f210993c82b04a5d0c' # Gurlaid — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fb' # Gurlaid
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526754'
+  city: '690961f2fb45f73a8ff880d6' # Gurlaid
+  infos:
+    title: Turno di guardia a Gurlaid
+    type: guard
+    enemy: null
+    markerLocation: '690961f210993c82b04a5d0c' # Gurlaid — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fb' # Gurlaid
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc5526755'
+  city: '690961f2fb45f73a8ff880d6' # Gurlaid
+  infos:
+    title: Affari loschi a Gurlaid
+    type: crime
+    enemy: null
+    markerLocation: '690961f210993c82b04a5d0c' # Gurlaid — POI city
+    relatedLore:
+      - '6ae809f29778fd827199f2fb' # Gurlaid
+  requirements:
+    minTitle: adventurer
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267d6'
+  city: '690961f21405c9f66d9174a2' # Ultima Terra
+  infos:
+    title: 'Caccia: Avvoltoio nei dintorni di Ultima Terra'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e6' # Avvoltoio
+    markerLocation: '690e41868f9433b7db28ac3a' # Ultima Terra — POI belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f30c' # Ultima Terra
+      - '6ae8065202a77381730f2822' # Avvoltoio
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267d7'
+  city: '690961f23a51d0e34cea2ed3' # Rosedenn
+  infos:
+    title: 'Caccia: Pantera nei dintorni di Rosedenn'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e2' # Pantera
+    markerLocation: '690e4186b90374f9a009fffc' # Rosedenn — POI belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f2ff' # Rosedenn
+      - '6ae8065202a77381730f281e' # Pantera
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267d8'
+  city: '690961f2475e9937b4cea9eb' # Danmil Urvyn
+  infos:
+    title: 'Caccia: Vespa gigante nei dintorni di Danmil Urvyn'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e5' # Vespa gigante
+    markerLocation: '690e4186d20b7b437dd45099' # Danmil Urvyn — POI belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f2f9' # Danmil Urvyn
+      - '6ae8065202a77381730f2821' # Vespa gigante
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267d9'
+  city: '690961f2508bc3b72047ae70' # Peadale
+  infos:
+    title: 'Caccia: Pantera nei dintorni di Peadale'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e2' # Pantera
+    markerLocation: '690e4186e095e4bbcac70b49' # Peadale — POI vulcano, belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f30b' # Peadale
+      - '6ae8065202a77381730f281e' # Pantera
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267db'
+  city: '690961f25482ef5bf7b39bdd' # Al Nerry
+  infos:
+    title: 'Caccia: Avvoltoio nei dintorni di Al Nerry'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e6' # Avvoltoio
+    markerLocation: '690e41865b38d64355d65c65' # Al Nerry — POI forest, belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f303' # Al Nerry
+      - '6ae8065202a77381730f2822' # Avvoltoio
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267dd'
+  city: '690961f270966f9618192e68' # Cu Nuimyn
+  infos:
+    title: 'Caccia: Avvoltoio nei dintorni di Cu Nuimyn'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e6' # Avvoltoio
+    markerLocation: '690e418678583a69166050a8' # Cu Nuimyn — POI forest, belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f305' # Cu Nuimyn
+      - '6ae8065202a77381730f2822' # Avvoltoio
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267de'
+  city: '690961f284631ee8ad0d9ca0' # Gidevolm
+  infos:
+    title: 'Caccia: Vespa gigante nei dintorni di Gidevolm'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e5' # Vespa gigante
+    markerLocation: '690e4186061bfcc494813e27' # Gidevolm — POI belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f307' # Gidevolm
+      - '6ae8065202a77381730f2821' # Vespa gigante
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267df'
+  city: '690961f298baaf7f7be10dd1' # Pianecalde
+  infos:
+    title: 'Caccia: Pantera nei dintorni di Pianecalde'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e2' # Pantera
+    markerLocation: '690e41864ef098e4777071d4' # Pianecalde — POI forest, belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f2fd' # Pianecalde
+      - '6ae8065202a77381730f281e' # Pantera
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267e0'
+  city: '690961f2b69d968cbaef09f3' # Bellport
+  infos:
+    title: 'Caccia: Worg nei dintorni di Bellport'
+    type: hunt
+    enemy: '6ae806b55093fb43140756d4' # Worg
+    markerLocation: '690e418608ce4aaf094adadf' # Bellport — POI forest, belleholmIsland
+    relatedLore:
+      - '68c19213541d89c481b83231' # Bellport
+      - '6ae8065202a77381730f2811' # Worg
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267e1'
+  city: '690961f2c33b0a2840e14a55' # Thorndenn
+  infos:
+    title: 'Caccia: Lupo nei dintorni di Thorndenn'
+    type: hunt
+    enemy: '6ae806b55093fb43140756d9' # Lupo
+    markerLocation: '690e4186108dbf02380d4c81' # Thorndenn — POI forest, belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f301' # Thorndenn
+      - '6ae8065202a77381730f2816' # Lupo
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267e4'
+  city: '690961f2d98f74fb4616446c' # Vired Ivem
+  infos:
+    title: 'Caccia: Avvoltoio nei dintorni di Vired Ivem'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e6' # Avvoltoio
+    markerLocation: '690e4186613e16d08e320dfe' # Vired Ivem — POI belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f302' # Vired Ivem
+      - '6ae8065202a77381730f2822' # Avvoltoio
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267e5'
+  city: '690961f2e6690bb3ec8f2ee5' # Mapleview
+  infos:
+    title: 'Caccia: Iena nei dintorni di Mapleview'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e3' # Iena
+    markerLocation: '690e41865fe4eb7decc012b3' # Mapleview — POI graveyard, belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f309' # Mapleview
+      - '6ae8065202a77381730f281f' # Iena
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
+- id: '6ae80db9da5c5f8cc55267e6'
+  city: '690961f2fb45f73a8ff880d6' # Gurlaid
+  infos:
+    title: 'Caccia: Pantera nei dintorni di Gurlaid'
+    type: hunt
+    enemy: '6ae806b55093fb43140756e2' # Pantera
+    markerLocation: '690e41865d673054f2552d0d' # Gurlaid — POI ruins, forest, belleholmIsland
+    relatedLore:
+      - '6ae809f29778fd827199f2fb' # Gurlaid
+      - '6ae8065202a77381730f281e' # Pantera
+  requirements:
+    minTitle: rookie
+    recommendedLoot: []
+  prizes:
+    randomLoot: []
