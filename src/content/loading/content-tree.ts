@@ -74,6 +74,7 @@ export interface ContentTree {
     worldEntries: LoadedEntry[];
     config: ContentConfig | null;
     issues: ContentIssue[];
+    warnings: ContentIssue[];
 }
 
 const IMAGE_SECTIONS = ['lore', 'enemies', 'pets'] as const;
@@ -102,21 +103,43 @@ function readYaml(dir: string, file: string): ParsedYaml | null {
     return parseYamlFile(file, readFileSync(path, 'utf8'));
 }
 
-function yamlFilesOf(dir: string, folder: string): string[] {
+const CONTENT_EXTENSION = '.yaml';
+
+function filesOf(dir: string, folder: string): string[] {
     const path = join(dir, folder);
     if (!existsSync(path)) return [];
     return readdirSync(path)
-        .filter((name) => name.endsWith('.yaml'))
         .sort()
         .map((name) => `${folder}/${name}`);
+}
+
+// un file .yml o con un'altra estensione non è contenuto: lo si dice invece di saltarlo in silenzio
+function yamlFilesOf(
+    dir: string,
+    folder: string,
+    warnings: ContentIssue[],
+): string[] {
+    const files = filesOf(dir, folder);
+    for (const file of files.filter(
+        (name) => !name.endsWith(CONTENT_EXTENSION),
+    )) {
+        warnings.push(
+            fileIssue(
+                file,
+                "file ignorato: solo l'estensione .yaml è contenuto",
+            ),
+        );
+    }
+    return files.filter((name) => name.endsWith(CONTENT_EXTENSION));
 }
 
 function loadFolder(
     dir: string,
     folder: string,
     issues: ContentIssue[],
+    warnings: ContentIssue[],
 ): LoadedEntry[] {
-    return yamlFilesOf(dir, folder).flatMap((file) => {
+    return yamlFilesOf(dir, folder, warnings).flatMap((file) => {
         const parsed = readYaml(dir, file)!;
         issues.push(...parsed.issues);
         const isList = Array.isArray(parsed.value) || parsed.value === null;
@@ -174,6 +197,15 @@ function loadImages(dir: string, issues: ContentIssue[]): ImagesFile {
     const images: ImagesFile = { lore: [], enemies: [], pets: [] };
     if (!parsed) return images;
     issues.push(...parsed.issues);
+    const isEmpty = parsed.value === null || parsed.value === undefined;
+    if (!isEmpty && !isMapping(parsed.value) && parsed.issues.length === 0) {
+        issues.push(
+            fileIssue(
+                IMAGES_FILE,
+                'il file deve essere una mappa lore/enemies/pets',
+            ),
+        );
+    }
     const sections = isMapping(parsed.value) ? parsed.value : {};
     for (const name of Object.keys(sections)) {
         if (isImageSection(name)) {
@@ -211,20 +243,22 @@ function loadWorld(dir: string, issues: ContentIssue[]): LoadedWorld {
 
 export function loadContentTree(dir: string): ContentTree {
     const issues: ContentIssue[] = [];
+    const warnings: ContentIssue[] = [];
     const config = loadConfig(dir, issues);
     const entries = Object.fromEntries(
         CONTENT_COLLECTIONS.map((collection) => [
             collection,
-            loadFolder(dir, COLLECTION_DIRS[collection], issues),
+            loadFolder(dir, COLLECTION_DIRS[collection], issues, warnings),
         ]),
     ) as Record<ContentCollection, LoadedEntry[]>;
     return {
         dir,
         entries,
-        fixes: loadFolder(dir, FIXES_DIR, issues),
+        fixes: loadFolder(dir, FIXES_DIR, issues, warnings),
         images: loadImages(dir, issues),
         ...loadWorld(dir, issues),
         config,
         issues,
+        warnings,
     };
 }

@@ -663,7 +663,7 @@ function deletedFileQuestIssues(
 
 export function checkContent(tree: ContentTree): ContentCheck {
     const errors = schemaIssues(tree);
-    if (!tree.config) return { errors, warnings: [] };
+    if (!tree.config) return { errors, warnings: tree.warnings };
     const index = indexContent(tree);
     return {
         errors: [
@@ -675,6 +675,10 @@ export function checkContent(tree: ContentTree): ContentCheck {
             ...questRuleIssues(index, tree.config),
             ...deletedFileQuestIssues(index, tree.fixes),
         ],
-        warnings: [...nameWarnings(index), ...cityLoreWarnings(index, tree)],
+        warnings: [
+            ...tree.warnings,
+            ...nameWarnings(index),
+            ...cityLoreWarnings(index, tree),
+        ],
     };
 }

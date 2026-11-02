@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
+import { checkContent } from 'src/content/checking/check-content';
 import { DEFAULT_CONTENT_DIR } from 'src/content/content-paths';
 import {
     COLLECTION_DIRS,
@@ -170,6 +171,49 @@ describe('loadContentTree', () => {
                 .filter(({ file }) => file === 'images.yaml')
                 .map(({ path }) => path),
         ).toEqual(['lore.1', 'enemies', 'animals']);
+    });
+
+    it('reports an images file whose root is not a mapping (ME-01)', () => {
+        write('images.yaml', `- { id: '${IDS[1]}', url: 'x' }\n`);
+
+        const tree = loadContentTree(dir);
+
+        expect(tree.images).toEqual({ lore: [], enemies: [], pets: [] });
+        expect(
+            tree.issues.filter(({ file }) => file === 'images.yaml'),
+        ).toEqual([
+            expect.objectContaining({
+                message: 'il file deve essere una mappa lore/enemies/pets',
+            }),
+        ]);
+    });
+
+    it('accepts an empty images file', () => {
+        write('images.yaml', '');
+
+        const { issues } = loadContentTree(dir);
+
+        expect(issues.filter(({ file }) => file === 'images.yaml')).toEqual([]);
+    });
+
+    it('warns about files without the .yaml extension in the content folders (ME-01)', () => {
+        write('enemies/mostri.yml', entryOf(IDS[0], 'Lupo'));
+        write('fixes/note.txt', 'appunti');
+        write('lore/regni.yaml', entryOf(IDS[1], 'Regno'));
+
+        const tree = loadContentTree(dir);
+
+        expect(tree.entries.enemies).toEqual([]);
+        expect(tree.warnings).toEqual([
+            expect.objectContaining({
+                file: 'enemies/mostri.yml',
+                message: "file ignorato: solo l'estensione .yaml è contenuto",
+            }),
+            expect.objectContaining({ file: 'fixes/note.txt' }),
+        ]);
+        expect(checkContent(tree).warnings).toEqual(
+            expect.arrayContaining(tree.warnings),
+        );
     });
 
     it('returns a null world and empty images when the files are missing', () => {

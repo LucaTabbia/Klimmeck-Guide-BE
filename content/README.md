@@ -22,7 +22,7 @@ Questa cartella è la **fonte di verità del catalogo di gioco**: lore, magie, e
 | `config.yaml` | costanti ritoccabili (scale dei nemici, fasce, premi, tempi, seme del generatore) |
 | `images.yaml` | `id → URL Cloudinary` di lore, nemici e pet, compilato dopo il caricamento delle immagini (D-24) |
 
-Ogni file è una **lista di voci** (`- id: …`). File da 20–40 voci, salvo le quest generate. I file si leggono in ordine alfabetico; solo l'estensione `.yaml` conta.
+Ogni file è una **lista di voci** (`- id: …`). File da 20–40 voci, salvo le quest generate. I file si leggono in ordine alfabetico; solo l'estensione `.yaml` conta: un file `.yml` o con un'altra estensione in queste cartelle viene ignorato con un warning di `content:check`.
 
 ## Identità
 

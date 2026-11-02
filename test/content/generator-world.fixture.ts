@@ -504,6 +504,7 @@ export function buildGeneratorTree(
         worldEntries: [],
         config: generatorConfig(),
         issues: [],
+        warnings: [],
     };
 }
 
