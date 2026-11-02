@@ -23,6 +23,9 @@ const CAPITAL_ID = '64b0000000000000000000c2';
 const VILLAGE_ID = '64b0000000000000000000c1';
 const VILLAGE_MARKER = '64b0000000000000000000d1';
 const STALE_QUEST_ID = '6c2300000000000000000fff';
+const BROKEN_HUNT_ID = '6c2300000000000000000ffe';
+const REMOVED_ENEMY_ID = '6c2300000000000000000eee';
+const HAND_HEAL_ID = '6c2300000000000000000ffd';
 const QUOTED_ID = /'[0-9a-f]{24}'/;
 
 let contentDir: string;
@@ -57,6 +60,58 @@ function writeStaleQuest(): void {
             '    title: Guardia alle mura del Borgo di Prova',
             '    description: Servono guardie alle mura del Borgo di Prova.',
             '    type: guard',
+            '    enemy: null',
+            `    markerLocation: '${VILLAGE_MARKER}'`,
+            '    relatedLore: []',
+            '  requirements:',
+            '    minTitle: rookie',
+            '    recommendedLoot: []',
+            '  prizes:',
+            '    randomLoot: []',
+            '',
+        ].join('\n'),
+        'utf8',
+    );
+}
+
+// una hunt generata in passato il cui nemico è stato tolto dal catalogo: oggi è un errore di content:check
+function writeHuntOfRemovedEnemy(): void {
+    mkdirSync(join(contentDir, 'quests'), { recursive: true });
+    writeFileSync(
+        questFile('drustea'),
+        [
+            `- id: '${BROKEN_HUNT_ID}'`,
+            `  city: '${VILLAGE_ID}'`,
+            '  infos:',
+            '    title: Caccia nel Borgo di Prova',
+            '    description: Una bestia ronda attorno al Borgo di Prova.',
+            '    type: hunt',
+            `    enemy: '${REMOVED_ENEMY_ID}'`,
+            `    markerLocation: '${VILLAGE_MARKER}'`,
+            '    relatedLore: []',
+            '  requirements:',
+            '    minTitle: rookie',
+            '    recommendedLoot: []',
+            '  prizes:',
+            '    randomLoot: []',
+            '',
+        ].join('\n'),
+        'utf8',
+    );
+}
+
+// una heal scritta a mano sul marker del villaggio: si scontra con la heal che il generatore scrive lì (D-21)
+function writeHandWrittenHeal(): void {
+    mkdirSync(join(contentDir, 'quests'), { recursive: true });
+    writeFileSync(
+        questFile('a-mano'),
+        [
+            `- id: '${HAND_HEAL_ID}'`,
+            `  city: '${VILLAGE_ID}'`,
+            '  infos:',
+            '    title: Cure nel Borgo di Prova',
+            '    description: Il tempio del Borgo di Prova accoglie i feriti.',
+            '    type: heal',
             '    enemy: null',
             `    markerLocation: '${VILLAGE_MARKER}'`,
             '    relatedLore: []',
@@ -140,6 +195,38 @@ describe('runGenerateQuests', () => {
         expect(report.errors.length).toBeGreaterThan(0);
         expect(report.files).toEqual([]);
         expect(existsSync(join(contentDir, 'quests'))).toBe(false);
+    });
+
+    it('regenerates the generated files whose quests no longer pass content:check', () => {
+        writeHuntOfRemovedEnemy();
+        expect(checkContent(loadContentTree(contentDir)).errors).not.toEqual(
+            [],
+        );
+
+        const report = runGenerateQuests(contentDir, sequentialIds());
+
+        expect(report.errors).toEqual([]);
+        expect(report.orphaned.map(({ id }) => id)).toEqual([BROKEN_HUNT_ID]);
+        expect(readFileSync(questFile('drustea'), 'utf8')).not.toContain(
+            BROKEN_HUNT_ID,
+        );
+        expect(checkContent(loadContentTree(contentDir)).errors).toEqual([]);
+    });
+
+    it('reports the errors of the tree it has just written', () => {
+        writeHandWrittenHeal();
+
+        const report = runGenerateQuests(contentDir, sequentialIds());
+
+        expect(report.files.length).toBeGreaterThan(0);
+        expect(report.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    file: 'quests/drustea.yaml',
+                    message: expect.stringContaining(HAND_HEAL_ID),
+                }),
+            ]),
+        );
     });
 
     it('comments every reference id with its name (D-02)', () => {

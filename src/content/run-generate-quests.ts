@@ -1,6 +1,9 @@
 import { ObjectId } from 'mongodb';
 import { join } from 'path';
-import { checkGenerationInput } from 'src/content/checking/check-content';
+import {
+    checkContent,
+    checkGenerationInput,
+} from 'src/content/checking/check-content';
 import { ContentIndex, indexContent } from 'src/content/checking/content-index';
 import { ContentIssue } from 'src/content/content-issue';
 import { contentDirOf } from 'src/content/content-paths';
@@ -63,11 +66,23 @@ function sectionOf(raw: Raw, key: string): Raw {
         : {};
 }
 
+const isGenerated = (entry: LoadedEntry): boolean =>
+    GENERATED_PATHS.has(entry.file);
+
 // solo le voci dei file del generatore: una quest scritta a mano non presta mai il suo id
 function generatedEntriesOf(tree: ContentTree): LoadedEntry[] {
-    return tree.entries.quests.filter((entry) =>
-        GENERATED_PATHS.has(entry.file),
-    );
+    return tree.entries.quests.filter(isGenerated);
+}
+
+// le quest generate non sono un input: un loro errore lo corregge proprio la nuova corsa
+function withoutGeneratedQuests(tree: ContentTree): ContentTree {
+    return {
+        ...tree,
+        entries: {
+            ...tree.entries,
+            quests: tree.entries.quests.filter((entry) => !isGenerated(entry)),
+        },
+    };
 }
 
 function groupByFile(quests: readonly GeneratedQuest[]): Map<string, Raw[]> {
@@ -141,7 +156,7 @@ export function runGenerateQuests(
     newId: () => string = newObjectId,
 ): GenerateQuestsReport {
     const tree = loadContentTree(contentDir);
-    const { errors } = checkGenerationInput(tree);
+    const { errors } = checkGenerationInput(withoutGeneratedQuests(tree));
     if (errors.length > 0 || !tree.config) return failedReport(errors);
     const index = indexContent(tree);
     const existing = generatedEntriesOf(tree);
@@ -170,7 +185,7 @@ export function runGenerateQuests(
         spellDraw: spellDrawsOf(result.quests),
         skipped: result.skipped,
         orphaned: orphanedOf(existing, result.quests),
-        errors: [],
+        errors: checkContent(loadContentTree(contentDir)).errors,
     };
 }
 
