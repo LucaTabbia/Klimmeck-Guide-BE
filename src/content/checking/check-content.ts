@@ -634,6 +634,33 @@ function questRuleIssues(
     ];
 }
 
+// una quest dei file cancellata dalla stessa corsa che la inserisce non converge mai
+function deletedFileQuestIssues(
+    index: ContentIndex,
+    fixes: readonly LoadedEntry[],
+): ContentIssue[] {
+    const fileQuests = new Set(
+        entriesOf(index, 'quests').map((entry) => entry.id),
+    );
+    return fixes
+        .filter((fix) => fix.raw.kind === 'deleteQuests')
+        .flatMap((fix) => {
+            const ids: unknown[] = Array.isArray(fix.raw.ids)
+                ? fix.raw.ids
+                : [];
+            return ids
+                .filter((id): id is string => typeof id === 'string')
+                .filter((id) => fileQuests.has(id))
+                .map((id) => ({
+                    file: fix.file,
+                    line: fix.line,
+                    entryId: stringAt(fix.raw, 'key'),
+                    path: 'ids',
+                    message: `la quest ${id} è nei file quests/: una fix deleteQuests non può cancellarla`,
+                }));
+        });
+}
+
 export function checkContent(tree: ContentTree): ContentCheck {
     const errors = schemaIssues(tree);
     if (!tree.config) return { errors, warnings: [] };
@@ -646,6 +673,7 @@ export function checkContent(tree: ContentTree): ContentCheck {
             ...imageIssues(index, tree.images),
             ...cityLoreErrors(index),
             ...questRuleIssues(index, tree.config),
+            ...deletedFileQuestIssues(index, tree.fixes),
         ],
         warnings: [...nameWarnings(index), ...cityLoreWarnings(index, tree)],
     };

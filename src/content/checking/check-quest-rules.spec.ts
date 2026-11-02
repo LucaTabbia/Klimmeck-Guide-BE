@@ -329,4 +329,25 @@ describe('checkContent fixed quest rules', () => {
             'heal già presente su questo marker: 64b000000000000000000301 (D-21)',
         ]);
     });
+
+    it('rejects a deleteQuests fix aimed at a quest of the files (ME-02)', () => {
+        const fix = tree.fixes.find(
+            (entry) => entry.raw.kind === 'deleteQuests',
+        );
+        fix!.raw.ids = ['64b000000000000000000399', HEAL_QUEST_ID];
+
+        expect(
+            checkContent(tree).errors.filter(
+                (issue) => issue.entryId === 'delete-test-quests',
+            ),
+        ).toEqual([
+            {
+                file: fix!.file,
+                line: fix!.line,
+                entryId: 'delete-test-quests',
+                path: 'ids',
+                message: `la quest ${HEAL_QUEST_ID} è nei file quests/: una fix deleteQuests non può cancellarla`,
+            },
+        ]);
+    });
 });
