@@ -1,0 +1,84 @@
+# Piante (D-07, D-23): una lore plant per scheda della sezione «Piante» del documento
+
+- id: '6ae8065202a77381730f2824'
+  type: plant
+  name: Lumella
+  description: |-
+    Una pianta diffusa in tutto il continente e dalla crescita rapidissima: in pochi mesi dalla semina fa sbocciare il suo fiore, di solito all'inizio della primavera. I petali, giallo paglierino e a forma di goccia, servono per infusi e tisane calmanti e digestive. Il culto di Nydos la usa in alcune cerimonie, ed è per questo che il fiore è chiamato anche «Fiore del sole».
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+    - '6ae7ff6624214746ad54aef3' # Nydos, il Dio della luce
+    - '6ae7ff6624214746ad54aef4' # Culto delle fiamme
+- id: '6ae8065202a77381730f2825'
+  type: plant
+  name: Serendica
+  description: |-
+    Una pianta violacea, quasi nera in ogni sua parte, che cresce nella penombra dei luoghi umidi: nelle paludi, nel Belleholm e sotto gli alberi vicini all'acqua. Il fiore ha petali lunghi e separati con grandi pistilli sporgenti; d'inverno la pianta riposa, nel resto dell'anno fiorisce di continuo e dà frutti quattro o cinque volte. I frutti sono tossici, ma distillati danno il Notturno, un liquore scuro e zuccherino che rilassa e rallegra. Chi ne abusa soffre di paranoia e allucinazioni e il giorno dopo paga con sete, stanchezza e nausea, ma il Notturno non dà dipendenza.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f64' # Paludi maledette
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+- id: '6ae8065202a77381730f2826'
+  type: plant
+  name: Vespro argenteo
+  description: |-
+    Un fiore argenteo dai petali tondi e soffici che si apre al tramonto e si richiude all'alba; cresce soltanto nel Belleholm. I petali hanno un sapore zuccherino e delicato e si raccolgono come cibo. Dai petali più interni si ricava la Rugiada notturna, una sostanza euforizzante e anestetica che dà facilmente dipendenza. Chi ne abusa e ne resta senza può morire di astinenza.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f5c' # Belleholm
+    - '6ae7fc3ed1f6494f3dc89f7a' # Rugiada notturna
+- id: '6ae8065202a77381730f2827'
+  type: plant
+  name: Lacrime della vergine
+  description: |-
+    Una pianta che cresce soltanto su acque calme, senza correnti e dal fondale basso e melmoso. Il fiore sboccia all'inizio dell'estate e rilascia polline fino a metà autunno; i petali, bianchi con striature rosse, sono troppo amari per essere mangiati. Le foglie spesse e carnose, invece, hanno un sapore neutro, finiscono in molti piatti e sono ricche di nutrienti. Il fiore è sacro al culto di Mirwa, che lo usa nelle sue cerimonie.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f5a' # Lago Nanfail e Hingtos
+    - '6ae7ffd05fa3295e56e4dc29' # Mirwa, la Dea delle acque
+    - '6ae7fc3ed1f6494f3dc89f52' # Teocrazia di Mirwa
+- id: '6ae8065202a77381730f2828'
+  type: plant
+  name: Rosa del viaggiatore
+  description: |-
+    Un piccolo cespuglio sempreverde e rossastro che cresce in quasi tutte le praterie e nei campi e si riproduce per spore. Le foglie mature sono rosse, quelle nuove di un verde acceso. Sono commestibili ma amare, e soprattutto si usano come impacchi sulle ferite: cicatrizzano, disinfettano e calmano il dolore.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+    - '6ae7fc3ed1f6494f3dc89f62' # Pianure dei Valan
+- id: '6ae8065202a77381730f2829'
+  type: plant
+  name: Bandiera mortuaria
+  description: |-
+    Un fungo che cresce vicino ai cimiteri e ovunque ci siano carcasse, nutrendosi dei tessuti in decomposizione dopo le lunghe piogge. Il cappello è bianco e largo, coperto di piccoli bubboni neri e lucidissimi simili a gocce. È velenosissimo: provoca vomito, dolori fortissimi, vertigini e la necrosi del fegato, fino alla morte. Se ne ricava il «Rancore nero», un veleno dagli stessi effetti ma rapidissimo, di cui bastano poche gocce.
+  image: null
+  relatedLore: []
+- id: '6ae8065202a77381730f282a'
+  type: plant
+  name: Cuffia gialla
+  description: |-
+    Un piccolo fungo giallo acceso che cresce in tutte le foreste, sotto le fronde dei grandi alberi e nei luoghi umidi, solo in autunno e per poche settimane. È commestibile se si sciacquano con cura le lamelle, perché il veleno sta nelle spore: intorpidisce, addormenta e, in quantità, paralizza. Dalle lamelle si ricava l'«Ultimo bacio», un veleno che agisce anche su tagli e ferite e uccide paralizzando a poco a poco tutto il corpo, fino al cuore e al respiro.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+    - '6ae7fc3ed1f6494f3dc89f61' # Pianure di Drustea
+- id: '6ae8065202a77381730f282b'
+  type: plant
+  name: Carissia
+  description: |-
+    Una pianta sempreverde dei climi freddi, diffusa soprattutto nel nord del continente, che fiorisce solo d'estate. I boccioli bianchi, schiacciati e tondi, somigliano a monete; la corolla aperta è biancastra con riflessi azzurrini e verde acqua. I maghi ne fanno un infuso che migliora concentrazione e vista ed è energizzante e rivitalizzante.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f63' # Lontano Nord
+    - '6ae7fc3ed1f6494f3dc89f7c' # La magia di Klimmeck
+- id: '6ae8065202a77381730f282c'
+  type: plant
+  name: Protettori ancestrali
+  description: |-
+    Alberi che crescono soltanto nelle foreste al centro del continente, soprattutto nel Minnely, e vivono per millenni: in un secolo raggiungono duecento metri di altezza e cinquanta di spessore alla base. Le grandi foglie palmate passano dal verde chiaro dell'estate al giallo e all'arancione dell'autunno. Fra le fronde maturano frutti duri e nutrienti, simili a grandi nocciole, che si cucinano in molti modi o diventano farina. Sono così grandi che animali e umanoidi ci costruiscono case e villaggi: gli Elfi hanno eretto sui loro tronchi e sulle loro fronde Ko Shaeras, la città più grande della loro razza.
+  image: null
+  relatedLore:
+    - '6ae7fc3ed1f6494f3dc89f60' # Foresta di Minnely
+    - '68fd6e8b929ce8c0050b1764' # Ko Shaeras
