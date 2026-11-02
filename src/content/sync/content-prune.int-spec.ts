@@ -146,6 +146,77 @@ describe('pruneCollection (replSet)', () => {
         expect(await exists('pendingquests', pending)).toBe(true);
     });
 
+    async function insertLore(name: string, type = 'knowledge') {
+        const _id = new ObjectId();
+        await db.collection('lore').insertOne({ _id, type, name });
+        return _id;
+    }
+
+    it('refuses to prune when the snapshot is missing from the database (HI-01)', async () => {
+        const lore = await insertLore('Lore Vecchia');
+        await db
+            .collection('cities')
+            .deleteOne({ _id: new ObjectId('64b0000000000000000000c1') });
+
+        const report = await pruneCollection(db, 'lore', tree);
+
+        expect(report.errors).toEqual([
+            expect.objectContaining({
+                message: expect.stringContaining('assente dal database'),
+            }),
+        ]);
+        expect(report.deleted).toEqual([]);
+        expect(await exists('lore', lore)).toBe(true);
+    });
+
+    it('refuses to prune a probable id divergence (HI-01, Pitfall 7)', async () => {
+        const twin = await insertLore('Regione di Prova', 'region');
+
+        const report = await pruneCollection(db, 'lore', tree);
+
+        expect(report.errors).toEqual([
+            expect.objectContaining({
+                entryId: twin.toHexString(),
+                message: expect.stringContaining('divergenza'),
+            }),
+        ]);
+        expect(report.deleted).toEqual([]);
+        expect(await exists('lore', twin)).toBe(true);
+    });
+
+    it('refuses to prune a collection without entries in the files (HI-01)', async () => {
+        tree.entries.quests = [];
+
+        const report = await pruneCollection(db, 'quests', tree);
+
+        expect(report.errors).toEqual([
+            expect.objectContaining({
+                message: expect.stringContaining('nessuna voce'),
+            }),
+        ]);
+        expect(report.deleted).toEqual([]);
+        expect(await db.collection('quests').countDocuments()).toBe(2);
+    });
+
+    it('refuses to prune more orphans than entries in the files (HI-01)', async () => {
+        const orphans: ObjectId[] = [];
+        for (const name of ['Prima', 'Seconda', 'Terza', 'Quarta']) {
+            orphans.push(await insertLore(`Lore ${name}`));
+        }
+
+        const report = await pruneCollection(db, 'lore', tree);
+
+        expect(report.errors).toEqual([
+            expect.objectContaining({
+                message: expect.stringContaining('4 orfani'),
+            }),
+        ]);
+        expect(report.deleted).toEqual([]);
+        for (const orphan of orphans) {
+            expect(await exists('lore', orphan)).toBe(true);
+        }
+    });
+
     it('prunes nothing when the files are invalid', async () => {
         const lore = new ObjectId();
         await db

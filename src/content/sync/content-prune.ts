@@ -1,5 +1,6 @@
 import { Db, Document, ObjectId } from 'mongodb';
 import { checkContent } from 'src/content/checking/check-content';
+import { indexContent } from 'src/content/checking/content-index';
 import { ContentIssue } from 'src/content/content-issue';
 import { deleteQuests } from 'src/content/fixes/delete-quests.fix';
 import { BlockedQuest } from 'src/content/fixes/fix-report';
@@ -9,7 +10,8 @@ import {
     ContentTree,
 } from 'src/content/loading/content-tree';
 import { OrphanRef } from './content-report';
-import { findOrphans, knownIdsOf, orphanRefOf } from './orphans';
+import { checkDatabase } from './db-checks';
+import { divergencesOf, findOrphans, knownIdsOf, orphanRefOf } from './orphans';
 
 // T-11-34: elenco chiuso, una collezione per corsa
 export const PRUNABLE_COLLECTIONS: readonly ContentCollection[] =
@@ -25,14 +27,50 @@ export interface PruneReport {
 
 const PRUNE_QUESTS_KEY = 'prune-quests';
 
+function pruneIssue(
+    message: string,
+    entryId: string | null = null,
+): ContentIssue {
+    return { file: '', line: null, entryId, path: 'collection', message };
+}
+
 function refusedCollection(collection: string): ContentIssue {
-    return {
-        file: '',
-        line: null,
-        entryId: null,
-        path: 'collection',
-        message: `collezione non ammessa per il prune: ${collection}`,
-    };
+    return pruneIssue(`collezione non ammessa per il prune: ${collection}`);
+}
+
+// HI-01: un perimetro vuoto o più orfani che voci fanno pensare a una cartella o a un database sbagliati
+function massDeletionIssues(
+    collection: ContentCollection,
+    knownCount: number,
+    orphanCount: number,
+): ContentIssue[] {
+    if (knownCount === 0) {
+        return [
+            pruneIssue(
+                `nessuna voce di ${collection} nei file: il prune cancellerebbe tutta la collezione`,
+            ),
+        ];
+    }
+    if (orphanCount <= knownCount) return [];
+    return [
+        pruneIssue(
+            `${orphanCount} orfani contro ${knownCount} voci nei file: probabile cartella o database sbagliati`,
+        ),
+    ];
+}
+
+// Pitfall 7: un orfano gemello di una voce dei file è un id divergente, non un documento da cancellare
+function divergenceIssues(
+    tree: ContentTree,
+    collection: ContentCollection,
+    orphans: readonly Document[],
+): ContentIssue[] {
+    return divergencesOf(indexContent(tree), collection, orphans).map((twin) =>
+        pruneIssue(
+            `probabile divergenza di id: «${twin.name}» ha un altro id nei file`,
+            twin.id,
+        ),
+    );
 }
 
 async function pruneDocuments(
@@ -71,7 +109,7 @@ async function pruneQuests(
     };
 }
 
-// D-05: cancellare è sempre esplicito, col perimetro degli orfani e solo con file validi
+// D-05: cancellare è sempre esplicito, col perimetro degli orfani e solo con file e database allineati
 export async function pruneCollection(
     db: Db,
     collection: ContentCollection,
@@ -89,11 +127,15 @@ export async function pruneCollection(
     }
     const { errors } = checkContent(tree);
     if (errors.length > 0) return { ...report, errors };
-    const orphans = await findOrphans(
-        db,
-        collection,
-        knownIdsOf(tree, collection),
-    );
+    const dbCheck = await checkDatabase(db, tree, 'verify');
+    if (dbCheck.errors.length > 0) return { ...report, errors: dbCheck.errors };
+    const knownIds = knownIdsOf(tree, collection);
+    const orphans = await findOrphans(db, collection, knownIds);
+    const refusals = [
+        ...massDeletionIssues(collection, knownIds.length, orphans.length),
+        ...divergenceIssues(tree, collection, orphans),
+    ];
+    if (refusals.length > 0) return { ...report, errors: refusals };
     if (orphans.length === 0) return report;
     const outcome =
         collection === 'quests'
