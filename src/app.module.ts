@@ -13,6 +13,7 @@ import { CharacterCreationModule } from './characters/creation/character-creatio
 import { CharacterDeletionModule } from './characters/deletion/character-deletion.module';
 import { CitiesModule } from './cities/cities.module';
 import { ShopMaintenanceModule } from './shops/maintenance/shop-maintenance.module';
+import { ShopsModule } from './shops/shops.module';
 import { EnemiesModule } from './enemies/enemies.module';
 import { EquipmentItemsModule } from './equipmentItems/equipment-items.module';
 import { LootItemsModule } from './lootItems/loot-items.module';
@@ -94,6 +95,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         CharacterDeletionModule,
         CitiesModule,
         ShopMaintenanceModule,
+        ShopsModule,
         EnemiesModule,
         EquipmentItemsModule,
         LootItemsModule,

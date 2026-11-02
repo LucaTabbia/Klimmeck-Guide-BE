@@ -116,6 +116,13 @@ type City {
   type: CityType!
 }
 
+type CityShop {
+  city: City!
+  equipment: [AssetQuantity!]!
+  loot: [AssetQuantity!]!
+  pets: [Pet!]!
+}
+
 enum CitySize {
   capital
   city
@@ -494,6 +501,7 @@ type Query {
   characters: [Character!]!
   cities: [City!]!
   city(id: String!): City!
+  cityShop(cityId: ID!): CityShop!
   enemy(id: String!): Enemy!
   enemys: [Enemy!]!
   equipment(id: String!): Equipment!
