@@ -393,7 +393,7 @@ Plans:
 - [x] 11-09-PLAN.md — Wave 5: sync idempotente (diff BSON, upsert per `_id`, orfani, prune, report) (BE-CONTENT-02)
 - [x] 11-10-PLAN.md — Wave 6: export una tantum con commenti `# nome` (BE-CONTENT-01/02)
 - [x] 11-11-PLAN.md — Wave 7: CLI `run-content` (`--check/--dry-run/--apply/--verify/--export/--prune/--new-id`) provato sul compilato (BE-CONTENT-02)
-- [ ] 11-12-PLAN.md — Wave 8: export reale, snapshot del mondo, baseline `--verify`, misura D-12 con `--stats` (BE-CONTENT-01/02/05/07)
+- [x] 11-12-PLAN.md — Wave 8: export reale, snapshot del mondo, baseline `--verify`, misura D-12 con `--stats` (BE-CONTENT-01/02/05/07)
 - [ ] 11-13-PLAN.md — Wave 9: lore di regni, regioni, storia, materiali e magia (BE-CONTENT-01/03)
 - [ ] 11-14-PLAN.md — Wave 9: magie dello sciamanesimo e del Vuoto, unici, cibo tarato e pozioni (BE-CONTENT-01/05)
 - [ ] 11-15-PLAN.md — Wave 10: lore dei 18 culti e delle figure (BE-CONTENT-01/03)
@@ -522,7 +522,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 9.1. Spell State and Recovery Contract | 10/10 | Complete | 2026-10-27 |
 | 9.2. Quest Result Delivery Contract | 7/7 | Complete | 2026-10-28 |
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
-| 11. Popolamento del mondo | 11/26 | In Progress | - |
+| 11. Popolamento del mondo | 12/26 | In Progress | - |
 | 12. Negozi per città | 0/0 | Not started | - |
 | 13. Generazione quest | 0/0 | Not started | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
