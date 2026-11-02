@@ -50,6 +50,7 @@ function infosOf(infos: QuestInfosEntry, config: ContentConfig): Document {
         type: infos.type,
         markerLocation: toObjectId(infos.markerLocation),
         relatedLore: toObjectIds(infos.relatedLore),
+        description: infos.description ?? null,
     };
 }
 

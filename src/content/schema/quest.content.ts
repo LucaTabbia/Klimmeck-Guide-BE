@@ -29,6 +29,11 @@ export class QuestInfosEntry {
     @Text()
     title: string;
 
+    // D-32: testo dell'annuncio, nella voce di chi l'ha affisso
+    @Optional()
+    @Text()
+    description?: string;
+
     @OneOf(FIXED_QUEST_TYPES)
     type: FixedQuestType;
 

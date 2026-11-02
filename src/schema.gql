@@ -526,6 +526,7 @@ type Quest {
 }
 
 type QuestInfos {
+  description: String
   enemy: Enemy
   markerLocation: PointOfInterest!
   relatedLore: [Lore!]!

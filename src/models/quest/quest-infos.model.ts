@@ -40,6 +40,10 @@ export class QuestInfos {
     @Field(() => [Lore])
     @Prop({ type: [MongooseSchema.Types.ObjectId], ref: Lore.name })
     relatedLore: Lore[];
+
+    @Field(() => String, { nullable: true })
+    @Prop({ type: String, default: null })
+    description?: string | null;
 }
 
 export type QuestInfosDocument = QuestInfos & Document;
@@ -64,4 +68,7 @@ export class QuestInfosInput {
 
     @Field(() => [ID])
     relatedLore: string[];
+
+    @Field(() => String, { nullable: true })
+    description?: string | null;
 }
