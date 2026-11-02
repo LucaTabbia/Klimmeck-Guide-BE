@@ -205,7 +205,7 @@
     copper: 50
   rarity: rare
   equipType: greaves
-  addedSpell: null # corretto in 11-12: la magia 68c19570541d89c481b8327e non esiste a DB (riferimento pendente)
+  addedSpell: '6ae8557197c90c3637d7ff8f' # Urlo del Berserker (magia nuova chiesta dall'utente il 2026-11-02: la magia 68c19570541d89c481b8327e non esiste a DB)
   damages:
     base:
       - type: blunt

@@ -120,3 +120,16 @@
   minXpToLearn: 36000
   recoveryTime: 100000
   maxUsages: 2
+# Aggiunta dall'utente il 2026-11-02: magia dei Gambali del Berserker
+- id: '6ae8557197c90c3637d7ff8f'
+  name: Urlo del Berserker
+  description: |-
+    Un grido che scuote il petto e spegne ogni paura. Chi lo lancia entra in uno stato di furia cieca: i colpi diventano più pesanti, il dolore smette di contare e la voce stessa colpisce chi gli sta davanti come un'onda di tuono.
+  useType: enhance
+  energyDamage:
+    type: thunder
+    power: 600
+  requiredLearnTime: 80000
+  minXpToLearn: 12000
+  recoveryTime: 24000
+  maxUsages: 3

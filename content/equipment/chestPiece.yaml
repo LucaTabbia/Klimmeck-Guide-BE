@@ -203,7 +203,7 @@
     copper: 0
   rarity: rare
   equipType: chestPiece
-  addedSpell: null # corretto in 11-12: la magia 68c19570541d89c481b8325a non esiste a DB (riferimento pendente)
+  addedSpell: '68c19570541d89c481b83263' # Barricata di Gelo (riassegnata dall'utente il 2026-11-02: la magia 68c19570541d89c481b8325a non esiste a DB)
   damages:
     base:
       - type: pierce
