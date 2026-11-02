@@ -31,3 +31,39 @@ Gate finali:
 - Quest generate non toccate (nessuna rigenerazione); `content/config.yaml` non toccato.
 
 Da sapere per il `--verify` sul database reale: ME-03 rende errori le differenze di marker e di appartenenza dei POI che prima non si vedevano. Se lo snapshot reale non è allineato (per esempio un POI che una città non elenca ma che punta a lei con `city`, attribuito dall'export alla città tramite il campo), `--verify` esce 1 con «snapshot non allineato» e va rinfrescato `world/cities.yaml` con `--export`. Le quattro fix di `content/fixes/` sono già `done` dal piano 11-24: secondo LO-05 vanno ritirate dai file (decisione dell'orchestratore, non fatta qui).
+
+## Area core (`REVIEW-core.md`) — fixer 2
+
+Base `38cd6ec`, 16 finding tutti con ruling FIX, un commit per finding. TDD: test rosso prima della correzione, salvo LO-12 (refactor: i casi nuovi su `winChanceOf`, lifePoints per id e arrotondamento della marcia erano rossi, i numeri restano gli stessi) e LO-13 (refactor degli import; il controllo su `stderr` è verde da subito perché dopo LO-01 il CLI non stampa stack).
+
+| Finding | Esito | Commit |
+| --- | --- | --- |
+| ME-01 `images.yaml` non-mappa ignorato; `.yml` saltati | fixed: issue «il file deve essere una mappa lore/enemies/pets» (un file vuoto resta ammesso); i file senza estensione `.yaml` nelle cartelle del contenuto e in `fixes/` diventano warning del loader (`ContentTree.warnings`), riportati da `checkContent`; casi in `loading/content-tree.spec.ts`; README | `820099a` |
+| ME-02 README promette controlli assenti | fixed (a): `infos.description` obbligatoria su ogni quest fissa (D-32) e rarità di ogni `recommendedLoot` ≤ `dungeonLootRarity[minTitle]` (D-33); `rarityRankOf` spostata in `rules/quest-prizes` e usata anche dal generatore (quest rigenerate identiche); il contenuto reale passa (581 quest, 0 errori); le due quest della fixture ricevono una `description`; README (la composizione resta garantita dal generatore) | `2b27630` |
+| ME-03 Valantar per nome, costante duplicata | fixed: una sola `SPELL_DRAW_CITY_TYPE = CityType.valanCapital` in `city-profile.ts`, confronto su `city.type` nel check e nel generatore; errore se la study `valanCapital` non ha `spellDraw`; README riga 155; `COLLEGE_CITY` rimossa (chiude anche app LO-03); quest non rigenerate (Valantar è l'unica `valanCapital`) | `a6b49de` |
+| LO-01 eccezioni offline → exit 1 senza report | fixed: `runOffline` in `try/catch` → `errorReportOf` + `CONTENT_EXIT.failure`; `.catch` sull'entry point; caso nell'int-spec (cartella `lore/cartella.yaml` → exit 3, `{"error":"Error, code EISDIR"}`) | `827e5f3` |
+| LO-02 config accetta `legend` | fixed: `oneOf(RANKED_TIERS)` e tipo `RankedTier` per `minTitle.*` e `dungeonTierByCitySize` | `7fd34b1` |
+| LO-03 chiavi sconosciute nelle sezioni del config | fixed: «chiave sconosciuta» con il percorso completo in ogni sezione (anche `tiers`, `hunt`, `generator`, i tipi di `prizes`); `randomLootQuantity` solo su `prizes.dungeon`; `content/config.yaml` non toccato (fixture identica, `cmp` ok) | `aca9b96` |
+| LO-04 `timeToComplete` senza minimo/tetto | fixed: override `IntBetween(60_000)`; `timeToCompleteHours` ≤ 596 (`MAX_GRAPHQL_INT / 3_600_000`); `MS_PER_HOUR` in `content-config`; README | `5dc13c0` |
+| LO-05 `Lore.image`/`imagePath` fuori dal vincolo Cloudinary | fixed (parziale): `LoreEntry.image` non null → `CLOUDINARY_URL` (i 12 valori reali passano); `imagePath` di nemici e pet → `assets/images/<nome>.png`, `pets/<nome>.png` o URL Cloudinary; verificato prima sui file reali: 162 percorsi conformi più `arbustoMaligno.png`, quindi i nomi ammettono `[A-Za-z0-9-]`; nessun cloud name nella regex (il commento non lo promette più); `CLOUDINARY_URL` in `common.content` | `9ffab9e` |
+| LO-06 chiave di dedup senza `entryId` | fixed: `entryId` nella chiave di `withoutRepeats` (loader e validazione danno lo stesso `entryId` per lo stesso difetto, quindi si fondono ancora) | `2d2b0bc` |
+| LO-07 `prizes.spell` fisso ammesso sulle study | fixed: rifiutato su ogni quest fissa (D-17/D-31 rivisti); README righe 99 e 156; nessuna quest reale lo usa | `5dc8d86` |
+| LO-08 copertura D-17 non controllata | fixed: errore su `world/cities.yaml` (id della città) per ogni città fuori da `NO_SERVICE_CITY_TYPES` senza `heal` o senza `job`; il generatore usa `checkGenerationInput` (stesso check senza la copertura, che è il suo output), e così il round-trip dell'export; fixture: + job al Borgo, + heal e job alla Capitale (conteggi quest 2 → 5 nelle spec); il prune di una cartella quest vuota ora si ferma su questa regola prima della guardia «nessuna voce» (test riscritto) | `2e2f4da` |
+| LO-09 `key` delle fix non unica | fixed: `duplicateIssues` segnala «key doppia nelle fix» | `2ec7f89` |
+| LO-10 id dei file contro id dello snapshot, POI doppi | fixed: `duplicateIssues` rifiuta un id del contenuto uguale a una città o a un POI dello snapshot, id ripetuti nello snapshot e un POI in due città; vale per ogni `--content-dir` | `74e0163` |
+| LO-11 `locations` con `dungeon`; pet `xp ≤ maxXp` | fixed: `locations` accetta ogni `PoiType` tranne `dungeon`; `NotAbove('maxXp')` sui pet (stesso decoratore di `maxLifePoints`); README | `db0f393` |
+| LO-12 formula duplicata, HP cablati, funzioni morte, `isRecord` ×5 | fixed: `winChanceOf(partyPower, lifePoints)` esportata dal resolver e riusata da `catalog-stats`; `ENCOUNTERS` per id del nemico, lifePoints dalla voce (override o `pf × hpScale`), uno scontro senza nemico nei file non dà esempio; `marchMinutesOf` in `catalogStats`; il generatore passa da `dungeonLootRarity`; un solo `isRecord` in `loading/records.ts`. `--stats` offline: lifePoints 1100/8400/25600/67600 e winChance 0.21/0.78/0.87 come `11-12-stats.json`; Troll 0.44 invece di 0.45 perché la mediana rare è passata da 2250 a 2200 col catalogo cresciuto dopo l'11-12 (pezzi rare 30 → 40), non per questa modifica | `4801da8` |
+| LO-13 import relativi; int-spec senza `stderr` | fixed: import `src/...` in `run-content.ts` e nell'int-spec; l'int-spec raccoglie `stderr` e verifica l'assenza dell'URI su entrambi i flussi; nessun controllo `mtime` | `db8b578` |
+
+Gate finali:
+
+- `npm run build` → exit 0
+- `npx tsc --noEmit -p tsconfig.json` → exit 0
+- `node dist/content/run-content.js --check` → exit 0, 0 errori, 1 warning (titolo doppio della dungeon di Necrorian, atteso); conteggi lore 405, spells 88, equipmentitems 172, lootitems 101, enemies 150, pets 13, quests 581
+- `npx jest src/content --selectProjects unit` → 36 suite, 448 test verdi; `npx jest src/quests/outcomes --selectProjects unit` → 20 suite, 355 test verdi (resolver toccato da LO-12)
+- int-spec (`--selectProjects integration --runInBand`, una chiamata ciascuna): `run-content.cli` 8/8, `content-sync` 19/19, `content-prune` 11/11, `export-content` 5/5, `content-wire` 4/4, `db-checks` 4/4, `fixes` 10/10, `delete-quests.fix` 15/15, `quest-combat` 9/9
+- `git diff --exit-code src/schema.gql` → pulito; diff SDL contro `origin/develop` = `-  unlocked: Boolean!` / `+  description: String`
+- `git status --short` vuoto, `pgrep -fl jest` vuoto
+- Quest generate: nessuna modifica (ME-02 e LO-12 toccano il generatore: `content:generate-quests` rieseguito, `git status content/` vuoto); `content/config.yaml` non toccato.
+
+Da sapere per il `--verify` sul database reale e per i prossimi ritocchi: i controlli nuovi sono tutti offline e il contenuto reale li passa; nessuna ricarica serve per queste correzioni (nessun dato mappato cambia). Un `--export` di bootstrap senza quest ora fallisce `content:check` per la copertura D-17 finché non si esegue `content:generate-quests` (che invece accetta l'albero).
