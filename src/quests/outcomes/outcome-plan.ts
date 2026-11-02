@@ -37,6 +37,7 @@ import { nextTitleAfterStory } from './progression/title-progression';
 import {
     canLearnSpell,
     type DrawnRewards,
+    drawLearnableSpell,
     type RewardItem,
 } from './rewards/quest-rewards';
 
@@ -332,13 +333,17 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         input.spellRecoveryTimes,
         input.now,
     );
+    // la magia fissa della study vince sul sorteggio (D-31): il sorteggio vale solo senza prizes.spell
+    const spellCandidate =
+        rewards.spellCandidate ??
+        drawLearnableSpell(rewards.spellDraw, progression.xp, knownSpells);
     const spellLearned = won
-        ? canLearnSpell(rewards.spellCandidate, progression.xp, knownSpells)
+        ? canLearnSpell(spellCandidate, progression.xp, knownSpells)
         : null;
     // la magia imparata entra nello stato nello stesso $set (D-03, D-07): usi pieni, nessun recupero
     const learnedState =
-        spellLearned && rewards.spellCandidate
-            ? learnedSpellState(spellLearned, rewards.spellCandidate.maxUsages)
+        spellLearned && spellCandidate
+            ? learnedSpellState(spellLearned, spellCandidate.maxUsages)
             : null;
     const statesAfter =
         spells.spellStates || learnedState

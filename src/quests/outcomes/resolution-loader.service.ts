@@ -47,6 +47,7 @@ import {
     type PrizesSnapshot,
     type RewardCatalog,
     rewardRefsOf,
+    type SpellCandidate,
 } from './rewards/quest-rewards';
 
 export type ResolutionOutcome = 'resolved' | 'stale' | 'waiting';
@@ -120,6 +121,27 @@ const byHex = <T extends { _id: Types.ObjectId }>(
     entries: readonly T[],
 ): Map<string, T> =>
     new Map(entries.map((entry) => [entry._id.toHexString(), entry]));
+
+type LearnableSpellEntry = CatalogEntry<{
+    minXpToLearn?: unknown;
+    maxUsages?: unknown;
+}>;
+
+const LEARNABLE_SPELL_PROJECTION = { minXpToLearn: 1, maxUsages: 1 } as const;
+
+// una magia senza soglia valida o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07): mai valori impliciti
+const learnableSpellOf = ({
+    _id,
+    minXpToLearn,
+    maxUsages,
+}: LearnableSpellEntry): SpellCandidate | null =>
+    isFiniteNumber(minXpToLearn) && isUsageCount(maxUsages)
+        ? { spellId: _id, minXpToLearn, maxUsages }
+        : null;
+
+const isSpellCandidate = (
+    candidate: SpellCandidate | null,
+): candidate is SpellCandidate => candidate !== null;
 
 const recoveryTimesFrom = (
     spells: readonly CatalogEntry<{ recoveryTime?: unknown }>[],
@@ -482,13 +504,11 @@ export class ResolutionLoader {
             .exec();
         const spell = refs.spellId
             ? await this.spellModel
-                  .findById(refs.spellId, { minXpToLearn: 1, maxUsages: 1 })
-                  .lean<CatalogEntry<{
-                      minXpToLearn?: unknown;
-                      maxUsages?: unknown;
-                  }> | null>()
+                  .findById(refs.spellId, LEARNABLE_SPELL_PROJECTION)
+                  .lean<LearnableSpellEntry | null>()
                   .exec()
             : null;
+        const fixedSpell = spell && learnableSpellOf(spell);
         return {
             rarities: new Map([
                 ...lootItems.map(
@@ -503,23 +523,39 @@ export class ResolutionLoader {
                         ] as const,
                 ),
             ]),
-            // una magia senza soglia valida o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07): mai valori impliciti
             spells: new Map(
-                spell &&
-                isFiniteNumber(spell.minXpToLearn) &&
-                isUsageCount(spell.maxUsages)
+                fixedSpell
                     ? [
                           [
-                              spell._id.toHexString(),
+                              fixedSpell.spellId.toHexString(),
                               {
-                                  minXpToLearn: spell.minXpToLearn,
-                                  maxUsages: spell.maxUsages,
+                                  minXpToLearn: fixedSpell.minXpToLearn,
+                                  maxUsages: fixedSpell.maxUsages,
                               },
                           ],
                       ]
                     : [],
             ),
-            spellPool: [],
+            spellPool: await this.readSpellPool(prizes),
         };
+    }
+
+    // D-31: l'intero catalogo delle magie solo per la study che sorteggia; ordine per id così il tiro è riproducibile
+    private async readSpellPool(
+        prizes: PrizesSnapshot | null | undefined,
+    ): Promise<SpellCandidate[]> {
+        if (prizes?.spellDraw !== true) return [];
+        const spells = await this.spellModel
+            .find({}, LEARNABLE_SPELL_PROJECTION)
+            .lean<LearnableSpellEntry[]>()
+            .exec();
+        return spells
+            .map(learnableSpellOf)
+            .filter(isSpellCandidate)
+            .sort((left, right) =>
+                left.spellId
+                    .toHexString()
+                    .localeCompare(right.spellId.toHexString()),
+            );
     }
 }
