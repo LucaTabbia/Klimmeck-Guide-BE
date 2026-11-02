@@ -148,6 +148,26 @@ export function NestedList(cls: () => EntryClass): PropertyDecorator {
     );
 }
 
+// mappa con chiavi e valori liberi nel file (es. danni per tipo, sostituzioni di tipi di POI): ogni coppia va controllata
+export function RecordOf(
+    isValidPair: (key: string, value: unknown) => boolean,
+    message: string,
+): PropertyDecorator {
+    return ValidateBy({
+        name: 'recordOf',
+        validator: {
+            validate: (value: unknown) =>
+                typeof value === 'object' &&
+                value !== null &&
+                !Array.isArray(value) &&
+                Object.entries(value).every(([key, item]) =>
+                    isValidPair(key, item),
+                ),
+            defaultMessage: () => message,
+        },
+    });
+}
+
 export class CoinsEntry {
     @IntBetween(0)
     gold: number;
