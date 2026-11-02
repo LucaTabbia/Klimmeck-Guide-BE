@@ -10,6 +10,7 @@ const KINDS: DescriptionKind[] = [
     'crime',
     'study',
     'spellStudy',
+    'innJob',
     'hunt',
     'dungeon',
 ];

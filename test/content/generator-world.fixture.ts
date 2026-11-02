@@ -20,7 +20,7 @@ function fixtureId(kind: number, n: number): string {
     return `6b${kind.toString(16).padStart(2, '0')}${n.toString(16).padStart(20, '0')}`;
 }
 
-const cityId = (n: number) => fixtureId(0x0c, n);
+export const cityId = (n: number) => fixtureId(0x0c, n);
 const poiId = (city: number, n: number) => fixtureId(0x0d, city * 16 + n);
 const loreId = (n: number) => fixtureId(0x0a, n);
 const enemyId = (n: number) => fixtureId(0x01, n);
@@ -29,7 +29,7 @@ const lootId = (n: number) => fixtureId(0x0f, n);
 
 export const NEW_ID_PREFIX = '6b09';
 
-interface CitySeed {
+export interface CitySeed {
     n: number;
     name: string;
     type: string;
@@ -539,6 +539,13 @@ export function cityById(index: ContentIndex, id: string): WorldCity {
 export function addedMonster(seed: EnemySeed) {
     return (world: GeneratorWorld): void => {
         world.entries.enemies.push(enemyOf(seed));
+    };
+}
+
+export function addedCity(seed: CitySeed) {
+    return (world: GeneratorWorld): void => {
+        world.cities.push(cityOf(seed));
+        world.entries.lore.push(cityLoreOf(seed));
     };
 }
 

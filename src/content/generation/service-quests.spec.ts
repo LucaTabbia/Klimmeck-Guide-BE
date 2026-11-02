@@ -11,6 +11,8 @@ import {
     prizesOf,
     questsOf,
     requirementsOf,
+    addedCity,
+    cityId,
 } from '../../../test/content/generator-world.fixture';
 
 const SERVICE_TYPES = ['heal', 'job', 'guard', 'crime', 'study'];
@@ -43,6 +45,30 @@ describe('generateFixedQuests service quests', () => {
                 expect(requirementsOf(quests[0]).minTitle).toBe('rookie');
             }
         }
+    });
+
+    it('gives Talmvere a job at the inn instead of the shop job (D-34)', () => {
+        const talmvere = cityId(13);
+        const withInn = generateFixedQuests(
+            generatorInput({
+                index: buildGeneratorIndex(
+                    addedCity({
+                        n: 13,
+                        name: 'Talmvere',
+                        type: 'talmvereVillage',
+                        pois: [['forest']],
+                    }),
+                ),
+            }),
+        );
+        const jobs = questsOf(withInn, 'job').filter(
+            (quest) => quest.city === talmvere,
+        );
+        expect(jobs).toHaveLength(1);
+        expect(infosOf(jobs[0]).title).toBe(
+            'Un aiuto alla locanda di Talmvere',
+        );
+        expect(infosOf(jobs[0]).description).toContain('locanda');
     });
 
     it('gives Necrorian no service quest (D-17)', () => {
