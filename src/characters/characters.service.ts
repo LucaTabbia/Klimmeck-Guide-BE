@@ -17,6 +17,8 @@ import { Equipment } from 'src/models/common/equipment.model';
 import { CommonResponse } from 'src/models/common/common-response.model';
 import { EquipmentItem } from 'src/models/equipment-item.model';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
+import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
+import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
@@ -32,6 +34,11 @@ import {
     equipItemFilter,
     equipItemUpdate,
 } from './equipment/equip-item.updates';
+import {
+    classifyEquipPetFailure,
+    equipPetFilter,
+    equipPetUpdate,
+} from './pets/equip-pet.updates';
 import {
     ACTIVE_SPELL_SNAPSHOT_PROJECTION,
     ActiveSpellSnapshot,
@@ -191,6 +198,38 @@ export class CharactersService {
             response: 'Equipaggiamento cambiato con successo',
             successful: true,
         };
+    }
+
+    // idempotente; ammesso anche in viaggio: la velocità è fotografata alla partenza (D-15); speedModifier null = compagno non da sella
+    async equipPet(request: EquipPetRequest): Promise<CommonResponse> {
+        const characterId = requireCharacterObjectId(request.id);
+        const petId = objectIdFromHex(request.petId);
+        if (!petId) throw GameRuleException.petNotOwned();
+
+        const equipped = await this.characterModel
+            .updateOne(
+                equipPetFilter(characterId, petId),
+                equipPetUpdate(petId),
+            )
+            .exec();
+        if (equipped.matchedCount === 0) {
+            const characterExists =
+                (await this.characterModel
+                    .exists(activeCharacterById(characterId))
+                    .exec()) !== null;
+            throw classifyEquipPetFailure(characterExists);
+        }
+        return { response: 'Compagno equipaggiato', successful: true };
+    }
+
+    async unequipPet(request: UnequipPetRequest): Promise<CommonResponse> {
+        const characterId = requireCharacterObjectId(request.id);
+        const unequipped = await this.characterModel
+            .updateOne(activeCharacterById(characterId), equipPetUpdate(null))
+            .exec();
+        if (unequipped.matchedCount === 0)
+            throw ResourceNotFoundException.character();
+        return { response: 'Compagno lasciato a riposo', successful: true };
     }
 
     async equipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
