@@ -13,8 +13,14 @@ import {
     EquipmentItem,
     EquipmentItemDocument,
 } from 'src/models/equipment-item.model';
+import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
-import { persistEquipmentItem, persistLootItem } from '../../../test/fixtures';
+import { Pet, PetDocument } from 'src/models/pet.model';
+import {
+    persistEquipmentItem,
+    persistLootItem,
+    persistPet,
+} from '../../../test/fixtures';
 
 describe('CatalogPricesReader (replSet)', () => {
     let app: INestApplication;
@@ -22,6 +28,7 @@ describe('CatalogPricesReader (replSet)', () => {
     let connection: Connection;
     let equipment: Model<EquipmentItemDocument>;
     let loot: Model<LootItemDocument>;
+    let pets: Model<PetDocument>;
 
     beforeAll(async () => {
         const moduleRef = await Test.createTestingModule({
@@ -40,12 +47,17 @@ describe('CatalogPricesReader (replSet)', () => {
             getModelToken(EquipmentItem.name),
         );
         loot = app.get<Model<LootItemDocument>>(getModelToken(LootItem.name));
-        await Promise.all([equipment.init(), loot.init()]);
+        pets = app.get<Model<PetDocument>>(getModelToken(Pet.name));
+        await Promise.all([equipment.init(), loot.init(), pets.init()]);
     });
 
     afterEach(async () => {
         jest.restoreAllMocks();
-        await Promise.all([equipment.deleteMany({}), loot.deleteMany({})]);
+        await Promise.all([
+            equipment.deleteMany({}),
+            loot.deleteMany({}),
+            pets.deleteMany({}),
+        ]);
     });
 
     afterAll(async () => {
@@ -116,6 +128,8 @@ describe('CatalogPricesReader (replSet)', () => {
         expect(prices.get(priceKey('LootItem', legacyId))).toEqual({
             buyPrice: null,
             sellPrice: null,
+            rarity: null,
+            sellable: null,
         });
     });
 
@@ -138,6 +152,58 @@ describe('CatalogPricesReader (replSet)', () => {
         );
         expect(equipmentFind).toHaveBeenCalledTimes(1);
         expect(lootFind).toHaveBeenCalledTimes(1);
+    });
+
+    it('reads the pet prices from the pet catalogue (D-17)', async () => {
+        const horse = await persistPet(pets, {
+            buyPrice: { gold: 2, silver: 0, copper: 0 },
+            sellPrice: { gold: 1, silver: 0, copper: 0 },
+        });
+        const horseId = horse._id as Types.ObjectId;
+
+        const prices = await reader.read([line('buy', 'Pet', horseId)]);
+
+        expect([...prices.keys()]).toEqual([priceKey('Pet', horseId)]);
+        expect(prices.get(priceKey('Pet', horseId))).toMatchObject({
+            buyPrice: { gold: 2, silver: 0, copper: 0 },
+            sellPrice: { gold: 1, silver: 0, copper: 0 },
+        });
+    });
+
+    it('carries rarity and sellable with the prices (D-23)', async () => {
+        const crown = await persistEquipmentItem(equipment, {
+            name: 'Corona del re',
+            rarity: RarityType.legendary,
+        });
+        const relic = await persistLootItem(loot, {
+            name: 'Reliquia',
+            sellable: false,
+        });
+        const wolf = await persistPet(pets, {
+            name: 'Lupo di quest',
+            sellable: false,
+        });
+        const crownId = crown._id as Types.ObjectId;
+        const relicId = relic._id as Types.ObjectId;
+        const wolfId = wolf._id as Types.ObjectId;
+
+        const prices = await reader.read([
+            line('buy', 'EquipmentItem', crownId),
+            line('buy', 'LootItem', relicId),
+            line('buy', 'Pet', wolfId),
+        ]);
+
+        expect(prices.get(priceKey('EquipmentItem', crownId))).toMatchObject({
+            rarity: RarityType.legendary,
+            sellable: null,
+        });
+        expect(prices.get(priceKey('LootItem', relicId))).toMatchObject({
+            sellable: false,
+        });
+        expect(prices.get(priceKey('Pet', wolfId))).toMatchObject({
+            rarity: null,
+            sellable: false,
+        });
     });
 
     it('skips the database when there are no lines', async () => {

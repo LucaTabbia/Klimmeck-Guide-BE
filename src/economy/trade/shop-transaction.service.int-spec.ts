@@ -20,15 +20,21 @@ import {
     EquipmentItemDocument,
 } from 'src/models/equipment-item.model';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
+import { Pet, PetDocument } from 'src/models/pet.model';
 import type { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { User, UserDocument } from 'src/models/user.model';
-import { cityModelOf, placeInCity } from '../../../test/economy/place-in-city';
+import {
+    cityModelOf,
+    placeInCity,
+    type ShopPoolFixture,
+} from '../../../test/economy/place-in-city';
 import {
     buildCharacter,
     persistCharacter,
     persistCity,
     persistEquipmentItem,
     persistLootItem,
+    persistPet,
 } from '../../../test/fixtures';
 import { buildActiveTravelDoc } from '../../../test/travel/active-travel.fixture';
 import { migrateLegacyRefs } from '../../../test/migrations/migrate-legacy-refs';
@@ -49,6 +55,8 @@ interface TradeInput {
     buyLoot?: AssetQuantityInput[];
     sellEquip?: AssetQuantityInput[];
     sellLoot?: AssetQuantityInput[];
+    buyPets?: AssetQuantityInput[];
+    sellPets?: AssetQuantityInput[];
     total: CoinPurse;
     isTotalPositive: boolean;
 }
@@ -78,13 +86,23 @@ function trade({
     buyLoot = [],
     sellEquip = [],
     sellLoot = [],
+    buyPets,
+    sellPets,
     total,
     isTotalPositive,
 }: TradeInput): TransactionRequest {
     return {
         id: id.toString(),
-        boughtItems: { equipAssets: buyEquip, lootAssets: buyLoot },
-        soldItems: { equipAssets: sellEquip, lootAssets: sellLoot },
+        boughtItems: {
+            equipAssets: buyEquip,
+            lootAssets: buyLoot,
+            ...(buyPets ? { petAssets: buyPets } : {}),
+        },
+        soldItems: {
+            equipAssets: sellEquip,
+            lootAssets: sellLoot,
+            ...(sellPets ? { petAssets: sellPets } : {}),
+        },
         total,
         isTotalPositive,
     };
@@ -105,6 +123,7 @@ describe('ShopTransactionService (replSet)', () => {
     let users: Model<UserDocument>;
     let equipment: Model<EquipmentItemDocument>;
     let loot: Model<LootItemDocument>;
+    let pets: Model<PetDocument>;
     let sword: CatalogDocument;
     let potion: CatalogDocument;
     let relic: CatalogDocument;
@@ -131,12 +150,14 @@ describe('ShopTransactionService (replSet)', () => {
             getModelToken(EquipmentItem.name),
         );
         loot = app.get<Model<LootItemDocument>>(getModelToken(LootItem.name));
+        pets = app.get<Model<PetDocument>>(getModelToken(Pet.name));
         // collection pronte prima delle transazioni (Pitfall 9)
         await Promise.all([
             characters.init(),
             users.init(),
             equipment.init(),
             loot.init(),
+            pets.init(),
         ]);
     });
 
@@ -157,6 +178,7 @@ describe('ShopTransactionService (replSet)', () => {
             users.deleteMany({}),
             equipment.deleteMany({}),
             loot.deleteMany({}),
+            pets.deleteMany({}),
             cityModelOf({ connection }).deleteMany({}),
         ]);
     });
@@ -176,6 +198,8 @@ describe('ShopTransactionService (replSet)', () => {
         ownedEquipments?: OwnedEntry[];
         ownedItems?: OwnedEntry[];
         wearedEquipment?: Record<string, Types.ObjectId | null>;
+        ownedPets?: Types.ObjectId[];
+        pet?: Types.ObjectId | null;
     }
 
     function persistCharacterOutsideCity(
@@ -205,12 +229,19 @@ describe('ShopTransactionService (replSet)', () => {
         return character._id as Types.ObjectId;
     }
 
+    // il pool della città del trader contiene le fixture del catalogo (D-19)
+    const catalogPool = (): ShopPoolFixture => ({
+        equipment: [idOf(sword)],
+        loot: [idOf(potion), idOf(relic)],
+    });
+
     // il negozio risponde solo in città (D-18): il trader sta sul marker di una città
     async function persistTrader(
         purse: CoinPurse,
         inventory: TraderInventory = {},
         overrides: Record<string, unknown> = {},
         status: Record<string, unknown> = {},
+        pool: ShopPoolFixture = catalogPool(),
     ): Promise<Types.ObjectId> {
         const character = await persistCharacterOutsideCity(
             purse,
@@ -218,7 +249,7 @@ describe('ShopTransactionService (replSet)', () => {
             overrides,
             status,
         );
-        await placeInCity({ connection }, character);
+        await placeInCity({ connection }, character, pool);
         return character._id as Types.ObjectId;
     }
 
@@ -808,6 +839,7 @@ describe('ShopTransactionService (replSet)', () => {
                     character.status.location as Types.ObjectId
                 ).toHexString(),
                 pointsOfInterest: [],
+                shopEquipment: [idOf(sword)],
             });
             await migrateLegacyRefs(connection);
             const id = character._id as Types.ObjectId;
@@ -884,9 +916,12 @@ describe('ShopTransactionService (replSet)', () => {
             const before = await raw(id);
             const travel = buildActiveTravelDoc();
             const cities = cityModelOf({ connection });
-            const realExists = cities.exists.bind(cities);
-            jest.spyOn(cities, 'exists').mockImplementationOnce((filter) => {
-                const query = realExists(filter);
+            const realFindOne = cities.findOne.bind(cities);
+            // findOne è sovraccaricato: lo spy tipizzato vede solo la firma a un argomento
+            (
+                jest.spyOn(cities, 'findOne') as jest.SpyInstance
+            ).mockImplementationOnce((filter: unknown, projection: unknown) => {
+                const query = realFindOne(filter as never, projection);
                 const exec = query.exec.bind(query);
                 query.exec = async () => {
                     const found = await exec();
@@ -907,6 +942,540 @@ describe('ShopTransactionService (replSet)', () => {
             expect(after?.status.coins).toEqual(before?.status.coins);
             expect(after?.assets).toEqual(before?.assets);
             expect(after?.status.activeTravel).toEqual(travel);
+        });
+    });
+
+    describe('city pool guard', () => {
+        const buyEquipment = (
+            id: Types.ObjectId,
+            document: CatalogDocument,
+        ): TransactionRequest =>
+            trade({
+                id,
+                buyEquip: [asset(document)],
+                total: coins(0, 1, 50),
+                isTotalPositive: false,
+            });
+
+        async function expectItemNotInShop(
+            id: Types.ObjectId,
+            request: TransactionRequest,
+        ): Promise<void> {
+            const before = await raw(id);
+
+            await expect(shop.execute(request)).rejects.toMatchObject({
+                code: 'ITEM_NOT_IN_SHOP',
+            });
+
+            expect(await raw(id)).toEqual(before);
+        }
+
+        it('refuses an equipment outside the pool with ITEM_NOT_IN_SHOP and writes nothing (D-19)', async () => {
+            const outside = await persistEquipmentItem(equipment, {
+                name: 'Fuori pool',
+            });
+            const id = await persistTrader(coins(1, 0, 0));
+
+            await expectItemNotInShop(id, buyEquipment(id, outside));
+        });
+
+        it('refuses a loot outside the pool with ITEM_NOT_IN_SHOP (D-19)', async () => {
+            const id = await persistTrader(
+                coins(1, 0, 0),
+                {},
+                {},
+                {},
+                { equipment: [idOf(sword)] },
+            );
+
+            await expectItemNotInShop(
+                id,
+                trade({
+                    id,
+                    buyLoot: [asset(potion)],
+                    total: coins(0, 0, 20),
+                    isTotalPositive: false,
+                }),
+            );
+        });
+
+        it('refuses a legendary curated in the pool with ITEM_NOT_IN_SHOP (D-05)', async () => {
+            const crown = await persistEquipmentItem(equipment, {
+                name: 'Corona del Re',
+                rarity: 'legendary',
+            });
+            const id = await persistTrader(
+                coins(1, 0, 0),
+                {},
+                {},
+                {},
+                { equipment: [idOf(crown)] },
+            );
+
+            await expectItemNotInShop(id, buyEquipment(id, crown));
+        });
+
+        it('refuses a sellable false loot curated in the pool (D-05)', async () => {
+            const seal = await persistLootItem(loot, {
+                name: 'Sigillo',
+                sellable: false,
+            });
+            const id = await persistTrader(
+                coins(1, 0, 0),
+                {},
+                {},
+                {},
+                { loot: [idOf(seal)] },
+            );
+
+            await expectItemNotInShop(
+                id,
+                trade({
+                    id,
+                    buyLoot: [asset(seal)],
+                    total: coins(0, 0, 20),
+                    isTotalPositive: false,
+                }),
+            );
+        });
+
+        it('buys an ultrarare item curated by hand in the pool (D-05)', async () => {
+            const blade = await persistEquipmentItem(equipment, {
+                name: 'Lama del Mare',
+                rarity: 'ultrarare',
+            });
+            const id = await persistTrader(
+                coins(0, 5, 0),
+                {},
+                {},
+                {},
+                { equipment: [idOf(blade)] },
+            );
+
+            await expect(
+                shop.execute(buyEquipment(id, blade)),
+            ).resolves.toEqual(SUCCESS);
+
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(coins(0, 3, 50));
+            expect(after?.assets.ownedEquipments).toEqual([
+                owned('EquipmentItem', blade, 1),
+            ]);
+        });
+
+        it('sells an item outside the pool of the city (D-12)', async () => {
+            const id = await persistTrader(
+                coins(0, 0, 0),
+                { ownedEquipments: [owned('EquipmentItem', sword, 1)] },
+                {},
+                {},
+                { equipment: [], loot: [], pets: [] },
+            );
+
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        sellEquip: [asset(sword)],
+                        total: coins(0, 0, 75),
+                        isTotalPositive: true,
+                    }),
+                ),
+            ).resolves.toEqual(SUCCESS);
+
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(coins(0, 0, 75));
+            expect(after?.assets.ownedEquipments).toEqual([]);
+        });
+
+        it('sells a legendary item owned by the character (D-11)', async () => {
+            const crown = await persistEquipmentItem(equipment, {
+                name: 'Corona del Re',
+                rarity: 'legendary',
+                sellable: false,
+            });
+            const id = await persistTrader(coins(0, 0, 0), {
+                ownedEquipments: [owned('EquipmentItem', crown, 1)],
+            });
+
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        sellEquip: [asset(crown)],
+                        total: coins(0, 0, 75),
+                        isTotalPositive: true,
+                    }),
+                ),
+            ).resolves.toEqual(SUCCESS);
+
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(coins(0, 0, 75));
+            expect(after?.assets.ownedEquipments).toEqual([]);
+        });
+
+        it('answers SHOP_NOT_IN_CITY before the pool outside a city (D-19)', async () => {
+            const outside = await persistEquipmentItem(equipment, {
+                name: 'Fuori pool',
+            });
+            const id = await persistTraderOutsideCity(coins(1, 0, 0));
+
+            await expect(
+                shop.execute(buyEquipment(id, outside)),
+            ).rejects.toMatchObject({ code: 'SHOP_NOT_IN_CITY' });
+        });
+
+        it('checks the pool before the possession and the funds (D-19)', async () => {
+            const outside = await persistEquipmentItem(equipment, {
+                name: 'Fuori pool',
+            });
+            const id = await persistTrader(coins(0, 0, 0));
+
+            await expectItemNotInShop(
+                id,
+                trade({
+                    id,
+                    buyEquip: [asset(outside)],
+                    sellLoot: [asset(potion)],
+                    total: coins(0, 1, 40),
+                    isTotalPositive: false,
+                }),
+            );
+        });
+
+        it('reads the pool with the session of the transaction (D-19)', async () => {
+            const id = await persistTrader(coins(0, 5, 0));
+            const findOne = jest.spyOn(cityModelOf({ connection }), 'findOne');
+
+            await expect(
+                shop.execute(buyEquipment(id, sword)),
+            ).resolves.toEqual(SUCCESS);
+
+            expect(findOne).toHaveBeenCalledTimes(1);
+            const query = findOne.mock.results[0]?.value as {
+                getOptions(): { session?: unknown };
+                projection(): unknown;
+            };
+            expect(query.getOptions().session).toBeDefined();
+            expect(query.projection()).toEqual({
+                shopEquipment: 1,
+                shopLoot: 1,
+                shopPets: 1,
+            });
+        });
+    });
+
+    describe('pets in the shop transaction', () => {
+        let horse: CatalogDocument;
+        let camel: CatalogDocument;
+
+        // il pool del negozio con i due pet in vendita (D-19)
+        const petPool = (): ShopPoolFixture => ({
+            ...catalogPool(),
+            pets: [idOf(horse), idOf(camel)],
+        });
+
+        const buyPet = (
+            id: Types.ObjectId,
+            document: CatalogDocument,
+        ): TransactionRequest =>
+            trade({
+                id,
+                buyPets: [asset(document)],
+                total: coins(1, 0, 0),
+                isTotalPositive: false,
+            });
+
+        const sellPet = (
+            id: Types.ObjectId,
+            document: CatalogDocument,
+        ): TransactionRequest =>
+            trade({
+                id,
+                sellPets: [asset(document)],
+                total: coins(0, 50, 0),
+                isTotalPositive: true,
+            });
+
+        async function expectRefused(
+            id: Types.ObjectId,
+            request: TransactionRequest,
+            code: string,
+        ): Promise<void> {
+            const before = await raw(id);
+
+            await expect(shop.execute(request)).rejects.toMatchObject({
+                code,
+            });
+
+            expect(await raw(id)).toEqual(before);
+        }
+
+        beforeEach(async () => {
+            const price = {
+                buyPrice: coins(1, 0, 0),
+                sellPrice: coins(0, 50, 0),
+                sellable: true,
+            };
+            horse = await persistPet(pets, {
+                name: 'Cavallo da viaggio',
+                ...price,
+            });
+            camel = await persistPet(pets, {
+                name: 'Cammello del Mar Sabbioso',
+                ...price,
+            });
+        });
+
+        it('buys a pet of the city pool into the owned pets without equipping it (D-14)', async () => {
+            const id = await persistTrader(
+                coins(2, 0, 0),
+                { ownedPets: [idOf(camel)] },
+                {},
+                {},
+                petPool(),
+            );
+
+            await expect(shop.execute(buyPet(id, horse))).resolves.toEqual(
+                SUCCESS,
+            );
+
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(coins(1, 0, 0));
+            expect(after?.assets.ownedPets).toEqual([idOf(camel), idOf(horse)]);
+            expect(after?.assets.pet).toBeNull();
+        });
+
+        it('refuses a pet already owned with PET_ALREADY_OWNED and writes nothing (D-14)', async () => {
+            const id = await persistTrader(
+                coins(2, 0, 0),
+                { ownedPets: [idOf(horse)] },
+                {},
+                {},
+                petPool(),
+            );
+
+            await expectRefused(id, buyPet(id, horse), 'PET_ALREADY_OWNED');
+        });
+
+        it('refuses a pet outside the pool before checking a duplicate (D-19)', async () => {
+            const id = await persistTrader(
+                coins(2, 0, 0),
+                { ownedPets: [idOf(horse)] },
+                {},
+                {},
+                { ...catalogPool(), pets: [idOf(camel)] },
+            );
+
+            await expectRefused(id, buyPet(id, horse), 'ITEM_NOT_IN_SHOP');
+        });
+
+        it('refuses a duplicate pet before the funds (D-19)', async () => {
+            const id = await persistTrader(
+                coins(0, 0, 0),
+                { ownedPets: [idOf(horse)] },
+                {},
+                {},
+                petPool(),
+            );
+
+            await expectRefused(id, buyPet(id, horse), 'PET_ALREADY_OWNED');
+        });
+
+        it('refuses a quest-only pet curated in the pool with ITEM_NOT_IN_SHOP (D-05)', async () => {
+            const griffin = await persistPet(pets, {
+                name: 'Grifone di Kliever',
+                buyPrice: coins(1, 0, 0),
+                sellable: false,
+            });
+            const id = await persistTrader(
+                coins(2, 0, 0),
+                {},
+                {},
+                {},
+                { ...catalogPool(), pets: [idOf(griffin)] },
+            );
+
+            await expectRefused(id, buyPet(id, griffin), 'ITEM_NOT_IN_SHOP');
+        });
+
+        it('sells an owned pet in any city (D-12, D-14)', async () => {
+            const id = await persistTrader(coins(0, 0, 0), {
+                ownedPets: [idOf(camel), idOf(horse)],
+                pet: idOf(camel),
+            });
+
+            await expect(shop.execute(sellPet(id, horse))).resolves.toEqual(
+                SUCCESS,
+            );
+
+            const after = await raw(id);
+            expect(after?.status.coins).toEqual(coins(0, 50, 0));
+            expect(after?.assets.ownedPets).toEqual([idOf(camel)]);
+        });
+
+        it('empties the equipped slot when selling the equipped pet (D-14)', async () => {
+            const id = await persistTrader(coins(0, 0, 0), {
+                ownedPets: [idOf(horse)],
+                pet: idOf(horse),
+            });
+
+            await shop.execute(sellPet(id, horse));
+
+            const after = await raw(id);
+            expect(after?.assets.ownedPets).toEqual([]);
+            expect(after?.assets.pet).toBeNull();
+            expect(after?.status.coins).toEqual(coins(0, 50, 0));
+        });
+
+        it('keeps the equipped pet when selling another owned pet (D-14)', async () => {
+            const id = await persistTrader(coins(0, 0, 0), {
+                ownedPets: [idOf(camel), idOf(horse)],
+                pet: idOf(camel),
+            });
+
+            await shop.execute(sellPet(id, horse));
+
+            const after = await raw(id);
+            expect(after?.assets.ownedPets).toEqual([idOf(camel)]);
+            expect(after?.assets.pet).toEqual(idOf(camel));
+        });
+
+        it('refuses selling a pet not owned with ITEM_NOT_OWNED (D-14)', async () => {
+            const id = await persistTrader(coins(0, 0, 0), {
+                ownedPets: [idOf(camel)],
+                pet: idOf(camel),
+            });
+
+            await expectRefused(id, sellPet(id, horse), 'ITEM_NOT_OWNED');
+        });
+
+        it('leaves the pet fields out of a trade without pet lines (Pitfall 5)', async () => {
+            const id = await persistTrader(coins(0, 1, 0));
+            await characters.collection.updateOne({ _id: id }, {
+                $unset: { 'assets.ownedPets': '', 'assets.pet': '' },
+            } as never);
+
+            await shop.execute(
+                trade({
+                    id,
+                    buyLoot: [asset(potion)],
+                    total: coins(0, 0, 20),
+                    isTotalPositive: false,
+                }),
+            );
+
+            const after = await raw(id);
+            expect(Object.keys(after?.assets ?? {}).sort()).toEqual([
+                'activeSpells',
+                'ownedEquipments',
+                'ownedItems',
+                'wearedEquipment',
+            ]);
+        });
+
+        it('refuses a pet bought meanwhile at write time and pays nothing (D-14)', async () => {
+            const id = await persistTrader(
+                coins(2, 0, 0),
+                { ownedPets: [idOf(horse)] },
+                {},
+                {},
+                petPool(),
+            );
+            const before = await raw(id);
+            const realFindOne = characters.findOne.bind(characters);
+            // lo snapshot non vede ancora il pet che un acquisto concorrente ha già aggiunto: decide la guardia della scrittura
+            jest.spyOn(characters, 'findOne').mockImplementationOnce(((
+                filter: Record<string, unknown>,
+                projection: Record<string, unknown>,
+            ) => {
+                const query = realFindOne(filter, projection);
+                const exec = query.exec.bind(query);
+                query.exec = async () => {
+                    const snapshot = (await exec()) as {
+                        assets?: Record<string, unknown>;
+                    } | null;
+                    return {
+                        ...snapshot,
+                        assets: { ...snapshot?.assets, ownedPets: [] },
+                    };
+                };
+                return query;
+            }) as unknown as typeof characters.findOne);
+            const delta = jest.spyOn(wallet, 'applyCharacterCoinsDelta');
+
+            await expect(shop.execute(buyPet(id, horse))).rejects.toMatchObject(
+                { code: 'INSUFFICIENT_ITEM_QUANTITY' },
+            );
+
+            expect(delta).not.toHaveBeenCalled();
+            expect(await raw(id)).toEqual(before);
+        });
+
+        it('refuses a pet sold meanwhile at write time and pays nothing (D-14)', async () => {
+            const id = await persistTrader(coins(0, 0, 0), {
+                ownedPets: [idOf(camel)],
+            });
+            const before = await raw(id);
+            const realFindOne = characters.findOne.bind(characters);
+            // lo snapshot vede ancora il pet che una vendita concorrente ha già tolto: decide la guardia della scrittura
+            jest.spyOn(characters, 'findOne').mockImplementationOnce(((
+                filter: Record<string, unknown>,
+                projection: Record<string, unknown>,
+            ) => {
+                const query = realFindOne(filter, projection);
+                const exec = query.exec.bind(query);
+                query.exec = async () => {
+                    const snapshot = (await exec()) as {
+                        assets?: Record<string, unknown>;
+                    } | null;
+                    return {
+                        ...snapshot,
+                        assets: {
+                            ...snapshot?.assets,
+                            ownedPets: [idOf(camel), idOf(horse)],
+                        },
+                    };
+                };
+                return query;
+            }) as unknown as typeof characters.findOne);
+            const delta = jest.spyOn(wallet, 'applyCharacterCoinsDelta');
+
+            await expect(
+                shop.execute(sellPet(id, horse)),
+            ).rejects.toMatchObject({ code: 'INSUFFICIENT_ITEM_QUANTITY' });
+
+            expect(delta).not.toHaveBeenCalled();
+            expect(await raw(id)).toEqual(before);
+        });
+
+        it('lets exactly one of concurrent buys of the same pet through (D-14)', async () => {
+            const id = await persistTrader(
+                coins(5, 0, 0),
+                {},
+                {},
+                {},
+                petPool(),
+            );
+
+            const results = await Promise.allSettled([
+                shop.execute(buyPet(id, horse)),
+                shop.execute(buyPet(id, horse)),
+                shop.execute(buyPet(id, horse)),
+            ]);
+
+            expect(
+                results.filter((result) => result.status === 'fulfilled'),
+            ).toHaveLength(1);
+            for (const code of codesOf(results)) {
+                expect([
+                    'PET_ALREADY_OWNED',
+                    'INSUFFICIENT_ITEM_QUANTITY',
+                ]).toContain(code);
+            }
+            const after = await raw(id);
+            expect(after?.assets.ownedPets).toEqual([idOf(horse)]);
+            expect(after?.status.coins).toEqual(coins(4, 0, 0));
         });
     });
 

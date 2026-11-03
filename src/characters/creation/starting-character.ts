@@ -32,6 +32,7 @@ export interface StartingCharacter {
         ownedItems: never[];
         wearedEquipment: Record<string, never>;
         activeSpells: never[];
+        ownedPets: never[];
         pet: null;
     };
 }
@@ -73,6 +74,7 @@ export function buildStartingCharacter(
             // esplicito: senza, Mongoose non crea il sottodocumento e il campo GraphQL non-null si rompe
             wearedEquipment: {},
             activeSpells: [],
+            ownedPets: [],
             pet: null,
         },
     };

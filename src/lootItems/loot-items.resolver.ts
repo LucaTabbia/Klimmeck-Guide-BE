@@ -13,7 +13,10 @@ export class LootItemsResolver {
         return await this.lootItemsService.findAll();
     }
 
-    @Query(() => [AssetQuantity])
+    // Kept for compatibility until FE Phase 13 moves to cityShop; removal in a future phase (D-20).
+    @Query(() => [AssetQuantity], {
+        deprecationReason: 'Phase 12: use cityShop',
+    })
     async lootAssetsQuantity(): Promise<AssetQuantity[]> {
         return await this.lootItemsService.findAllAssetsQuantity();
     }

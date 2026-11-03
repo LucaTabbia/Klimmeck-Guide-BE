@@ -5,9 +5,11 @@ import { AcceptQuestRequest } from 'src/models/request/accept-quest-request.mode
 import { CompletePendingRequestInput } from 'src/models/request/complete-pending-request.model';
 import { CreateCharacterInput } from 'src/models/request/create-character-request.model';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
+import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
 import { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { TravelRequest } from 'src/models/request/travel-request.model';
+import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { RegisterPushDeviceInput } from 'src/push/dto/register-push-device.input';
 import { SendTestPushInput } from 'src/push/dto/send-test-push.input';
@@ -111,6 +113,49 @@ describe('input rules', () => {
             ]);
         });
 
+        it('rejects a malformed pet id in a transaction (D-17)', async () => {
+            const plain = transaction({
+                boughtItems: {
+                    lootAssets: [],
+                    equipAssets: [],
+                    petAssets: [assetLine(1, 'abc')],
+                },
+            });
+
+            expect(await fieldsOf(TransactionRequest, plain)).toEqual([
+                'boughtItems.petAssets.0.item',
+            ]);
+        });
+
+        it('caps the pet lines of a transaction at 100 (D-17)', async () => {
+            const lines = Array.from({ length: 101 }, () => assetLine(1));
+            const plain = transaction({
+                boughtItems: {
+                    lootAssets: [],
+                    equipAssets: [],
+                    petAssets: lines,
+                },
+            });
+
+            expect(await fieldsOf(TransactionRequest, plain)).toEqual([
+                'boughtItems.petAssets',
+            ]);
+        });
+
+        it('keeps the pet lines through the whitelist (D-17)', async () => {
+            const petAssets = [assetLine(1)];
+            const instance = plainToInstance(
+                TransactionRequest,
+                transaction({
+                    boughtItems: { lootAssets: [], equipAssets: [], petAssets },
+                }),
+            );
+
+            await validate(instance, VALIDATION_OPTIONS);
+
+            expect(instance.boughtItems.petAssets).toEqual(petAssets);
+        });
+
         it('rejects negative coins in a transaction total (D-04)', async () => {
             const plain = transaction({
                 total: { gold: 0, silver: 0, copper: -1 },
@@ -128,6 +173,21 @@ describe('input rules', () => {
                 await fieldsOf(EquipItemRequest, { ...equip, itemId: 'abc' }),
             ).toEqual(['itemId']);
             expect(await fieldsOf(EquipItemRequest, equip)).toEqual([]);
+        });
+
+        it('rejects a malformed character or pet id when equipping a pet (D-15)', async () => {
+            const equip = { id: CHARACTER_ID, petId: ITEM_ID };
+
+            expect(
+                await fieldsOf(EquipPetRequest, { ...equip, petId: 'abc' }),
+            ).toEqual(['petId']);
+            expect(await fieldsOf(UnequipPetRequest, { id: 'abc' })).toEqual([
+                'id',
+            ]);
+            expect(await fieldsOf(EquipPetRequest, equip)).toEqual([]);
+            expect(
+                await fieldsOf(UnequipPetRequest, { id: CHARACTER_ID }),
+            ).toEqual([]);
         });
 
         it('rejects a malformed spell id when equipping or using a spell (D-02)', async () => {

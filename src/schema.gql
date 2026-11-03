@@ -65,6 +65,7 @@ type CharacterAssets {
   activeSpells: [ActiveSpell!]!
   ownedEquipments: [AssetQuantity!]!
   ownedItems: [AssetQuantity!]!
+  ownedPets: [Pet!]!
   pet: Pet
   wearedEquipment: Equipment!
 }
@@ -105,12 +106,27 @@ type CharacterStatus {
 
 type City {
   area: [[Float!]!]!
+  hasShop: Boolean!
   id: ID!
   markerLocation: PointOfInterest!
   name: String!
   pointsOfInterest: [PointOfInterest!]
   relatedLore: Lore
+  size: CitySize!
   type: CityType!
+}
+
+type CityShop {
+  city: City!
+  equipment: [AssetQuantity!]!
+  loot: [AssetQuantity!]!
+  pets: [Pet!]!
+}
+
+enum CitySize {
+  capital
+  city
+  village
 }
 
 enum CityType {
@@ -232,6 +248,11 @@ input EquipItemRequest {
   slotType: SlotType!
 }
 
+input EquipPetRequest {
+  id: String!
+  petId: String!
+}
+
 input EquipSpellRequest {
   id: String!
   spellId: String!
@@ -261,6 +282,7 @@ type EquipmentItem {
   name: String
   rarity: String
   sellPrice: Coins
+  sellable: Boolean
 }
 
 enum InjuryType {
@@ -311,6 +333,7 @@ type LootItem {
   power: Int!
   rarity: String
   sellPrice: Coins
+  sellable: Boolean
 }
 
 type Lore {
@@ -331,6 +354,7 @@ type Mutation {
   deleteCharacter: User!
   doTransaction(request: TransactionRequest!): CommonResponse!
   equipItem(request: EquipItemRequest!): CommonResponse!
+  equipPet(request: EquipPetRequest!): CommonResponse!
   equipSpell(request: EquipSpellRequest!): CommonResponse!
   exchangeLoginTicket(codeVerifier: String!, ticket: String!): AuthSession!
   logout: Boolean!
@@ -339,6 +363,7 @@ type Mutation {
   sendTestPush(input: SendTestPushInput!): PushDeliveryReport!
   startTravel(request: TravelRequest!): CommonResponse!
   teleportCharacter(request: TravelRequest!): CommonResponse!
+  unequipPet(request: UnequipPetRequest!): CommonResponse!
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
   unregisterPushDevice(deviceId: String!): Boolean!
   useSpell(request: UseSpellRequest!): CommonResponse!
@@ -408,6 +433,7 @@ type Pet {
   maxXp: Int!
   name: String!
   sellPrice: Coins!
+  sellable: Boolean
   speedModifier: Float
   xp: Int!
 }
@@ -482,15 +508,16 @@ type Query {
   characters: [Character!]!
   cities: [City!]!
   city(id: String!): City!
+  cityShop(cityId: ID!): CityShop!
   enemy(id: String!): Enemy!
   enemys: [Enemy!]!
   equipment(id: String!): Equipment!
-  equipmentAssetsQuantity(sellable: Boolean): [AssetQuantity!]!
+  equipmentAssetsQuantity(sellable: Boolean): [AssetQuantity!]! @deprecated(reason: "Phase 12: use cityShop")
   equipmentItem(id: String!): EquipmentItem!
   equipmentItems: [EquipmentItem!]!
   equipmentItemsByIds(ids: [String!]!): [EquipmentItem!]!
   getPath(from: ID!, to: ID!): PathResponse!
-  lootAssetsQuantity: [AssetQuantity!]!
+  lootAssetsQuantity: [AssetQuantity!]! @deprecated(reason: "Phase 12: use cityShop")
   lootItem(id: String!): LootItem!
   lootItems: [LootItem!]!
   lootItemsByIds(ids: [String!]!): [LootItem!]!
@@ -509,6 +536,7 @@ type Query {
   quests: [Quest!]!
   raceTraits: [RaceTraits!]!
   serverTime: DateTime!
+  shopPoolReport: [ShopPoolReportEntry!]!
   spell(id: String!): Spell!
   spells: [Spell!]!
   travelPreview(request: TravelRequest!): TravelPreview!
@@ -648,6 +676,22 @@ enum SexType {
   male
 }
 
+type ShopPoolReportEntry {
+  cityId: ID!
+  cityName: String!
+  emptyPool: Boolean!
+  missing: [ID!]!
+  outOfSize: [ShopPoolReportItem!]!
+  size: CitySize!
+  vetoed: [ShopPoolReportItem!]!
+}
+
+type ShopPoolReportItem {
+  id: ID!
+  name: String
+  rarity: String
+}
+
 enum SlotType {
   arms
   chest
@@ -699,6 +743,7 @@ type Subscription {
 input TransactionItems {
   equipAssets: [AssetQuantityInput!]!
   lootAssets: [AssetQuantityInput!]!
+  petAssets: [AssetQuantityInput!]
 }
 
 input TransactionRequest {
@@ -723,6 +768,10 @@ type TravelPreview {
 input TravelRequest {
   id: String!
   poiId: String!
+}
+
+input UnequipPetRequest {
+  id: String!
 }
 
 input UseSpellRequest {

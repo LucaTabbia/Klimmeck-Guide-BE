@@ -1,14 +1,16 @@
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { idForms, sameId } from 'src/mongo/document-id';
+import type { ItemReferenceType } from 'src/models/common/asset-quantity.model';
 import {
     INVENTORY_FIELD,
-    type TradeItemKind,
+    isInventoryLine,
+    type InventoryTradeLine,
     type TradeLine,
 } from './trade-line';
 
 export interface InventoryEntry {
-    itemType: TradeItemKind;
+    itemType: ItemReferenceType;
     item: unknown;
     quantity: number;
 }
@@ -41,7 +43,11 @@ function sell(entries: InventoryEntry[], index: number, line: TradeLine) {
 // AssetQuantity.quantity è un Int GraphQL: oltre questo limite il personaggio non si serializza più
 export const MAX_ITEM_QUANTITY = 2_147_483_647;
 
-function buy(entries: InventoryEntry[], index: number, line: TradeLine) {
+function buy(
+    entries: InventoryEntry[],
+    index: number,
+    line: InventoryTradeLine,
+) {
     const quantity =
         (index === -1 ? 0 : entries[index].quantity) + line.quantity;
     if (quantity > MAX_ITEM_QUANTITY) throw GameRuleException.invalidQuantity();
@@ -60,7 +66,7 @@ function applyLines(
         ownedItems: copyEntries(snapshot.ownedItems),
         ownedEquipments: copyEntries(snapshot.ownedEquipments),
     };
-    for (const line of lines) {
+    for (const line of lines.filter(isInventoryLine)) {
         const entries = inventory[INVENTORY_FIELD[line.kind]];
         const index = entries.findIndex((entry) =>
             sameId(entry.item, line.itemId),
@@ -110,11 +116,13 @@ export function applyTradeToInventory(
     };
 }
 
-// le quantità vendute riaffermate nel filtro della scrittura in sessione (04 D-07): rete di sicurezza, la contesa la risolve il WriteConflict della transazione
+// le quantità vendute riaffermate nel filtro della scrittura in sessione (04 D-07), con le guardie extra nella stessa lista (D-14): rete di sicurezza, la contesa la risolve il WriteConflict della transazione
 export function soldQuantityGuards(
     lines: readonly TradeLine[],
+    extra: readonly Record<string, unknown>[] = [],
 ): Record<string, unknown> {
-    const guards = lines
+    const soldGuards = lines
+        .filter(isInventoryLine)
         .filter((line) => line.direction === 'sell')
         .map((line) => ({
             [`assets.${INVENTORY_FIELD[line.kind]}`]: {
@@ -124,5 +132,6 @@ export function soldQuantityGuards(
                 },
             },
         }));
+    const guards = [...soldGuards, ...extra];
     return guards.length === 0 ? {} : { $and: guards };
 }

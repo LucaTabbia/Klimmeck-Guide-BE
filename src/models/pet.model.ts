@@ -50,6 +50,11 @@ export class Pet {
     @Field(() => Float, { nullable: true })
     @Prop({ type: Number, default: null })
     speedModifier?: number | null;
+
+    // «mai sullo scaffale» quando false (D-05, D-07); la migrazione al boot lo valorizza dove manca (D-16)
+    @Field(() => Boolean, { nullable: true })
+    @Prop({ type: Boolean })
+    sellable?: boolean | null;
 }
 
 export type PetDocument = Pet & Document;

@@ -12,6 +12,7 @@ import {
 const sword = new Types.ObjectId();
 const potion = new Types.ObjectId();
 const other = new Types.ObjectId();
+const horse = new Types.ObjectId();
 
 const line = (
     direction: TradeLine['direction'],
@@ -238,6 +239,22 @@ describe('trade inventory', () => {
             expect(outcome.ownedItems).toEqual([loot(potion.toHexString(), 1)]);
         });
 
+        it('leaves the owned items and equipment untouched by pet lines (D-13)', () => {
+            const outcome = applyTradeToInventory(
+                {
+                    ownedItems: [loot(potion, 1)],
+                    ownedEquipments: [equipment(sword, 1)],
+                },
+                [line('buy', 'Pet', horse, 1), line('sell', 'Pet', other, 1)],
+            );
+
+            expect(outcome).toEqual({
+                ownedItems: [loot(potion, 1)],
+                ownedEquipments: [equipment(sword, 1)],
+                vacatedSlots: [],
+            });
+        });
+
         it('treats missing arrays as empty', () => {
             expect(
                 applyTradeToInventory({}, [line('buy', 'LootItem', potion, 1)]),
@@ -254,6 +271,12 @@ describe('trade inventory', () => {
             expect(
                 soldQuantityGuards([line('buy', 'LootItem', potion, 1)]),
             ).toEqual({});
+        });
+
+        it('never guards a sold quantity for a pet line (D-13)', () => {
+            expect(soldQuantityGuards([line('sell', 'Pet', horse, 1)])).toEqual(
+                {},
+            );
         });
 
         it('re-asserts every sold quantity with $elemMatch on either id form', () => {
@@ -283,6 +306,33 @@ describe('trade inventory', () => {
                     },
                 ],
             });
+        });
+
+        it('adds the extra guards to the same and-list (D-14)', () => {
+            const petGuard = { 'assets.ownedPets': { $in: [horse] } };
+
+            expect(
+                soldQuantityGuards(
+                    [line('sell', 'LootItem', potion, 1)],
+                    [petGuard],
+                ),
+            ).toEqual({
+                $and: [
+                    {
+                        'assets.ownedItems': {
+                            $elemMatch: {
+                                item: { $in: [potion, potion.toHexString()] },
+                                quantity: { $gte: 1 },
+                            },
+                        },
+                    },
+                    petGuard,
+                ],
+            });
+            expect(
+                soldQuantityGuards([line('sell', 'Pet', horse, 1)], [petGuard]),
+            ).toEqual({ $and: [petGuard] });
+            expect(soldQuantityGuards([], [])).toEqual({});
         });
     });
 });

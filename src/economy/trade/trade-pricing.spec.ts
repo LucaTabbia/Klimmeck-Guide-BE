@@ -13,12 +13,16 @@ const sword = new Types.ObjectId();
 const potion = new Types.ObjectId();
 const relic = new Types.ObjectId();
 const relicEquip = new Types.ObjectId();
+const horse = new Types.ObjectId();
+const camel = new Types.ObjectId();
 
 interface TradeLists {
     boughtEquip?: AssetQuantityInput[];
     boughtLoot?: AssetQuantityInput[];
     soldEquip?: AssetQuantityInput[];
     soldLoot?: AssetQuantityInput[];
+    boughtPets?: AssetQuantityInput[];
+    soldPets?: AssetQuantityInput[];
 }
 
 function request(
@@ -30,10 +34,12 @@ function request(
         boughtItems: {
             equipAssets: lists.boughtEquip ?? [],
             lootAssets: lists.boughtLoot ?? [],
+            ...(lists.boughtPets && { petAssets: lists.boughtPets }),
         },
         soldItems: {
             equipAssets: lists.soldEquip ?? [],
             lootAssets: lists.soldLoot ?? [],
+            ...(lists.soldPets && { petAssets: lists.soldPets }),
         },
         total: { gold: 0, silver: 0, copper: 0 },
         isTotalPositive: false,
@@ -158,6 +164,54 @@ describe('trade pricing', () => {
             ).toBe('INVALID_QUANTITY');
         });
 
+        it('plans the pet lines of a purchase and a sale (D-17)', () => {
+            const lines = planTradeLines(
+                request({
+                    soldPets: [of(camel)],
+                    boughtPets: [of(horse)],
+                    boughtLoot: [of(potion)],
+                }),
+            );
+
+            expect(lines).toEqual([
+                {
+                    direction: 'buy',
+                    kind: 'LootItem',
+                    itemId: potion,
+                    quantity: 1,
+                },
+                { direction: 'buy', kind: 'Pet', itemId: horse, quantity: 1 },
+                { direction: 'sell', kind: 'Pet', itemId: camel, quantity: 1 },
+            ]);
+        });
+
+        it('treats an omitted petAssets as no pet line (D-17)', () => {
+            const lines = planTradeLines(request({ boughtLoot: [of(potion)] }));
+
+            expect(lines.map((line) => line.kind)).toEqual(['LootItem']);
+        });
+
+        it('refuses a pet line with a quantity other than 1 with INVALID_QUANTITY (D-17)', () => {
+            expect(
+                codeThrownBy(() =>
+                    planTradeLines(request({ boughtPets: [of(horse, 2)] })),
+                ),
+            ).toBe('INVALID_QUANTITY');
+        });
+
+        it('refuses the same pet bought and sold in one trade with INVALID_QUANTITY (D-17)', () => {
+            expect(
+                codeThrownBy(() =>
+                    planTradeLines(
+                        request({
+                            boughtPets: [of(horse)],
+                            soldPets: [of(horse)],
+                        }),
+                    ),
+                ),
+            ).toBe('INVALID_QUANTITY');
+        });
+
         it('accepts the same hex in the equipment and loot lists', () => {
             const lines = planTradeLines(
                 request({ boughtEquip: [of(sword)], soldLoot: [of(sword)] }),
@@ -204,6 +258,26 @@ describe('trade pricing', () => {
                 totalBuyCopper: 300,
                 totalSellCopper: 30,
                 netCopper: -270,
+            });
+        });
+
+        it('prices a pet from the catalogue (D-17)', () => {
+            const petPrices = new Map<string, CatalogPrice>([
+                [
+                    priceKey('Pet', horse),
+                    { buyPrice: coins(2, 0, 0), sellPrice: coins(1, 0, 0) },
+                ],
+            ]);
+
+            expect(
+                priceTrade(
+                    [line('buy', 'Pet', horse), line('sell', 'Pet', horse)],
+                    petPrices,
+                ),
+            ).toEqual({
+                totalBuyCopper: 20000,
+                totalSellCopper: 10000,
+                netCopper: -10000,
             });
         });
 

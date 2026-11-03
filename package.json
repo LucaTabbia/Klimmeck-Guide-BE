@@ -189,6 +189,11 @@
         "statements": 97,
         "branches": 84,
         "lines": 98
+      },
+      "./src/shops/": {
+        "statements": 97,
+        "branches": 82,
+        "lines": 98
       }
     }
   },

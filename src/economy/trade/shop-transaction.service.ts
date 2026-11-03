@@ -16,13 +16,26 @@ import type { CommonResponse } from 'src/models/common/common-response.model';
 import type { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
 import { CatalogPricesReader } from './catalog-prices.reader';
-import type { TradeLine } from './trade-line';
+import type { CatalogPrices, TradeLine } from './trade-line';
 import {
     applyTradeToInventory,
     soldQuantityGuards,
     type InventoryOutcome,
     type InventorySnapshot,
 } from './trade-inventory';
+import {
+    applyTradeToPets,
+    assertPetsNotOwned,
+    petOwnershipGuards,
+    type PetOutcome,
+    type PetSnapshot,
+} from './trade-pets';
+import {
+    assertBuysInShop,
+    poolOfCity,
+    type CityPool,
+    type CityPoolDocument,
+} from './trade-pool';
 import {
     assertClientTotalMatches,
     planTradeLines,
@@ -36,7 +49,7 @@ interface TradeSnapshot {
         activeTravel?: unknown;
         awaitingAid?: unknown;
     };
-    assets?: InventorySnapshot;
+    assets?: InventorySnapshot & PetSnapshot;
 }
 
 interface TraderAtShop {
@@ -44,10 +57,22 @@ interface TraderAtShop {
     location: Types.ObjectId;
 }
 
+interface TradeOutcome {
+    inventory: InventoryOutcome;
+    pets: PetOutcome | null;
+}
+
+interface ShopAtMarker {
+    location: Types.ObjectId;
+    pool: CityPool;
+}
+
 const TRADE_SUCCEEDED: CommonResponse = {
     response: 'Transazione avvenuta con successo',
     successful: true,
 };
+
+const CITY_POOL_PROJECTION = { shopEquipment: 1, shopLoot: 1, shopPets: 1 };
 
 const TRADE_SNAPSHOT_PROJECTION = {
     'status.coins': 1,
@@ -57,10 +82,15 @@ const TRADE_SNAPSHOT_PROJECTION = {
     'assets.ownedItems': 1,
     'assets.ownedEquipments': 1,
     'assets.wearedEquipment': 1,
+    'assets.ownedPets': 1,
+    'assets.pet': 1,
 };
 
 // lo slot svuotato vale null, come lo salva equipItem
-function inventoryChanges(inventory: InventoryOutcome) {
+function inventoryChanges(
+    inventory: InventoryOutcome,
+    pets: PetOutcome | null,
+) {
     const vacated = Object.fromEntries(
         inventory.vacatedSlots.map((slot) => [
             `assets.wearedEquipment.${slot}`,
@@ -71,10 +101,13 @@ function inventoryChanges(inventory: InventoryOutcome) {
         'assets.ownedItems': inventory.ownedItems,
         'assets.ownedEquipments': inventory.ownedEquipments,
         ...vacated,
+        // i campi pet entrano nel $set solo con righe pet (Pitfall 5); il pet venduto lascia lo slot vuoto nella stessa scrittura (D-14)
+        ...(pets ? { 'assets.ownedPets': pets.ownedPets } : {}),
+        ...(pets?.unequip ? { 'assets.pet': null } : {}),
     };
 }
 
-// ordine dei rifiuti: id e quantità (puro) → catalogo → cross-check del totale → personaggio → città (D-18) → possesso → fondi
+// ordine dei rifiuti: id e quantità (puro) → catalogo → cross-check del totale → personaggio → città (D-18) → pool della città (D-19) → doppione pet (D-14) → possesso → fondi
 @Injectable()
 export class ShopTransactionService {
     constructor(
@@ -91,10 +124,8 @@ export class ShopTransactionService {
     async execute(request: TransactionRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.id);
         const lines = planTradeLines(request);
-        const { netCopper } = priceTrade(
-            lines,
-            await this.catalogPrices.read(lines),
-        );
+        const catalogue = await this.catalogPrices.read(lines);
+        const { netCopper } = priceTrade(lines, catalogue);
         assertClientTotalMatches(request, netCopper);
         // scambio vuoto a totale zero (A2): no-op valido senza transazione, ma il personaggio deve esistere (l'innkeeper salta l'ownership) e stare in città
         if (lines.length === 0) {
@@ -102,7 +133,7 @@ export class ShopTransactionService {
             return TRADE_SUCCEEDED;
         }
         await this.connection.transaction((session) =>
-            this.applyTrade(characterId, lines, netCopper, session),
+            this.applyTrade(characterId, lines, netCopper, catalogue, session),
         );
         return TRADE_SUCCEEDED;
     }
@@ -119,14 +150,14 @@ export class ShopTransactionService {
             .lean<TradeSnapshot | null>()
             .exec();
         if (!snapshot) throw ResourceNotFoundException.character();
-        await this.shopLocationOrReject(snapshot, null);
+        await this.shopOrReject(snapshot, null);
     }
 
-    // negozio solo sul marker di una città, fuori dal viaggio e dal soccorso (D-18); session null per lo scambio vuoto
-    private async shopLocationOrReject(
+    // negozio solo sul marker di una città, fuori dal viaggio e dal soccorso (D-18); la stessa lettura porta il pool (D-19, D-23); session null per lo scambio vuoto
+    private async shopOrReject(
         snapshot: TradeSnapshot,
         session: ClientSession | null,
-    ): Promise<Types.ObjectId> {
+    ): Promise<ShopAtMarker> {
         const location = refIdOf(snapshot.status?.location);
         if (
             !location ||
@@ -135,12 +166,16 @@ export class ShopTransactionService {
         ) {
             throw GameRuleException.shopNotInCity();
         }
-        const inCity = await this.cityModel
-            .exists({ markerLocation: { $in: idForms(location) } })
+        const city = await this.cityModel
+            .findOne(
+                { markerLocation: { $in: idForms(location) } },
+                CITY_POOL_PROJECTION,
+            )
             .session(session)
+            .lean<CityPoolDocument | null>()
             .exec();
-        if (!inCity) throw GameRuleException.shopNotInCity();
-        return location;
+        if (!city) throw GameRuleException.shopNotInCity();
+        return { location, pool: poolOfCity(city) };
     }
 
     // rieseguibile dal driver sui WriteConflict: niente side effect, niente letture parallele in sessione (04 Pitfall 6)
@@ -148,6 +183,7 @@ export class ShopTransactionService {
         characterId: Types.ObjectId,
         lines: readonly TradeLine[],
         netCopper: number,
+        catalogue: CatalogPrices,
         session: ClientSession,
     ): Promise<void> {
         const snapshot = await this.characterModel
@@ -159,15 +195,19 @@ export class ShopTransactionService {
             .lean<TradeSnapshot | null>()
             .exec();
         if (!snapshot) throw ResourceNotFoundException.character();
-        const location = await this.shopLocationOrReject(snapshot, session);
-        const inventory = applyTradeToInventory(snapshot.assets ?? {}, lines);
+        const { location, pool } = await this.shopOrReject(snapshot, session);
+        assertBuysInShop(lines, pool, catalogue);
+        const assets = snapshot.assets ?? {};
+        assertPetsNotOwned(lines, assets);
+        const inventory = applyTradeToInventory(assets, lines);
+        const pets = applyTradeToPets(assets, lines);
         if (toCopper(snapshot.status?.coins) < -netCopper) {
             throw GameRuleException.insufficientFunds();
         }
         await this.writeInventory(
             { characterId, location },
             lines,
-            inventory,
+            { inventory, pets },
             session,
         );
         // l'unico scrittore dei coins (04 D-04): la sua guard $expr è l'autorità dei fondi
@@ -180,11 +220,11 @@ export class ShopTransactionService {
         }
     }
 
-    // città e quantità vendute riaffermate nel filtro (rete di sicurezza, 04 D-10): la contesa la risolve il WriteConflict della transazione
+    // città, quantità vendute e pet posseduti riaffermati nel filtro (rete di sicurezza, 04 D-10, D-14): la contesa la risolve il WriteConflict della transazione
     private async writeInventory(
         { characterId, location }: TraderAtShop,
         lines: readonly TradeLine[],
-        inventory: InventoryOutcome,
+        { inventory, pets }: TradeOutcome,
         session: ClientSession,
     ): Promise<void> {
         const written = await this.characterModel
@@ -194,9 +234,9 @@ export class ShopTransactionService {
                     'status.location': { $in: idForms(location) },
                     'status.activeTravel': null,
                     'status.awaitingAid': null,
-                    ...soldQuantityGuards(lines),
+                    ...soldQuantityGuards(lines, petOwnershipGuards(lines)),
                 },
-                { $set: inventoryChanges(inventory) },
+                { $set: inventoryChanges(inventory, pets) },
                 { session },
             )
             .exec();

@@ -29,6 +29,8 @@ function tradeSources(request: TransactionRequest): TradeSource[] {
         ['buy', 'LootItem', request.boughtItems.lootAssets],
         ['sell', 'EquipmentItem', request.soldItems.equipAssets],
         ['sell', 'LootItem', request.soldItems.lootAssets],
+        ['buy', 'Pet', request.boughtItems.petAssets ?? []],
+        ['sell', 'Pet', request.soldItems.petAssets ?? []],
     ];
 }
 
@@ -40,6 +42,10 @@ function toTradeLine(
     const itemId = objectIdFromHex(asset.item);
     if (itemId === null) throw GameRuleException.itemNotFound();
     if (!Number.isSafeInteger(asset.quantity) || asset.quantity <= 0) {
+        throw GameRuleException.invalidQuantity();
+    }
+    // un pet si compra e si vende uno alla volta (D-17)
+    if (kind === 'Pet' && asset.quantity !== 1) {
         throw GameRuleException.invalidQuantity();
     }
     return { direction, kind, itemId, quantity: asset.quantity };

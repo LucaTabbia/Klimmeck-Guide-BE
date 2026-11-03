@@ -18,6 +18,8 @@ import { documentIdOf } from 'src/mongo/document-id';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
+import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
+import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 
@@ -65,6 +67,25 @@ export class CharactersResolver {
         request: EquipItemRequest,
     ): Promise<CommonResponse> {
         return this.charactersService.equipItem(request);
+    }
+
+    // stesse guardie di equipItem: ownership con il bypass dell'oste, auditato (D-15, C1)
+    @OwnsCharacter<{ request: EquipPetRequest }>(({ request }) => request.id)
+    @Mutation(() => CommonResponse)
+    async equipPet(
+        @Args('request', { type: () => EquipPetRequest })
+        request: EquipPetRequest,
+    ): Promise<CommonResponse> {
+        return this.charactersService.equipPet(request);
+    }
+
+    @OwnsCharacter<{ request: UnequipPetRequest }>(({ request }) => request.id)
+    @Mutation(() => CommonResponse)
+    async unequipPet(
+        @Args('request', { type: () => UnequipPetRequest })
+        request: UnequipPetRequest,
+    ): Promise<CommonResponse> {
+        return this.charactersService.unequipPet(request);
     }
 
     @OwnsCharacter<{ request: EquipSpellRequest }>(({ request }) => request.id)

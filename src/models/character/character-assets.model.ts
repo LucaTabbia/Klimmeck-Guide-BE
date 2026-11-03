@@ -1,6 +1,6 @@
 import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import {
     AssetQuantity,
     AssetQuantityInput,
@@ -37,6 +37,12 @@ export class CharacterAssets {
     @Prop({ type: [ActiveSpellSchema] })
     activeSpells: ActiveSpell[];
 
+    // posseduti, distinti dal compagno equipaggiato in `pet` (D-13); default implicito [] voluto: nuovi e legacy leggono una lista
+    @Field(() => [Pet])
+    @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: Pet.name }] })
+    ownedPets: (Types.ObjectId | Pet)[];
+
+    // il compagno equipaggiato: l'unico letto dal viaggio (D-13)
     @Field(() => Pet, { nullable: true })
     @Prop({ type: MongooseSchema.Types.ObjectId, ref: Pet.name, default: null })
     pet?: Pet;

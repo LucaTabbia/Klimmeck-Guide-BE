@@ -19,10 +19,12 @@ import {
 } from 'src/models/request/complete-pending-request.model';
 import { CreateCharacterInput } from 'src/models/request/create-character-request.model';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
+import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
 import { TransactionItems } from 'src/models/request/transaction-items.model';
 import { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { TravelRequest } from 'src/models/request/travel-request.model';
+import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { RegisterPushDeviceInput } from 'src/push/dto/register-push-device.input';
 import { SendTestPushInput } from 'src/push/dto/send-test-push.input';
@@ -37,6 +39,7 @@ const VALIDATED_INPUTS: Record<string, InputClass> = {
     CompletePendingRequestInput,
     CreateCharacterInput,
     EquipItemRequest,
+    EquipPetRequest,
     EquipSpellRequest,
     ItemUsageInput,
     ParticipantOverrideInput,
@@ -46,6 +49,7 @@ const VALIDATED_INPUTS: Record<string, InputClass> = {
     TransactionItems,
     TransactionRequest,
     TravelRequest,
+    UnequipPetRequest,
     UseSpellRequest,
 };
 

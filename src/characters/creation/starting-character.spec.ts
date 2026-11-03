@@ -50,8 +50,18 @@ describe('buildStartingCharacter', () => {
                 ownedItems: [],
                 wearedEquipment: {},
                 activeSpells: [],
+                ownedPets: [],
                 pet: null,
             },
+        });
+    });
+
+    it('starts every character without owned pets (D-13)', () => {
+        const { assets } = buildStartingCharacter(INPUT, locationId);
+
+        expect({ ownedPets: assets.ownedPets, pet: assets.pet }).toEqual({
+            ownedPets: [],
+            pet: null,
         });
     });
 

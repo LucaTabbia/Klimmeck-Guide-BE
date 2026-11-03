@@ -118,6 +118,7 @@ const EXPECTED_INNKEEPER_HANDLERS = [
     'PendingRequestsResolver.pendingRequests',
     'PendingRequestsResolver.pendingRequestsUpdated',
     'PushResolver.sendTestPush',
+    'ShopAdminResolver.shopPoolReport',
     'TravelAdminResolver.teleportCharacter',
     'UsersResolver.user',
     'UsersResolver.users',
@@ -127,8 +128,10 @@ const EXPECTED_OWNERSHIP_HANDLERS = [
     'CharactersResolver.characterUpdated',
     'CharactersResolver.doTransaction',
     'CharactersResolver.equipItem',
+    'CharactersResolver.equipPet',
     'CharactersResolver.equipSpell',
     'CharactersResolver.equipment',
+    'CharactersResolver.unequipPet',
     'CharactersResolver.unequipSpell',
     'CharactersResolver.useSpell',
     'PartyResolver.abandonQuest',
@@ -510,7 +513,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spellStates: [SpellState!]!\n  spells: [Spell!]!\n  title: String!\n  xp: Int!\n}',
         );
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
-            'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  speedModifier: Float\n  xp: Int!\n}',
+            'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n  xp: Int!\n}',
         );
         expect(schema).not.toMatch(/TravelKind|\bkind\b/);
     });
@@ -524,6 +527,52 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema.match(/type ActiveSpell \{[^}]*\}/)?.[0]).toBe(
             'type ActiveSpell {\n  spell: Spell\n  usages: Int!\n}',
         );
+    });
+
+    it('writes the city size and the shop flag into the generated schema without the pool lists (D-01, D-18)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type City \{[^}]*\}/)?.[0]).toBe(
+            'type City {\n  area: [[Float!]!]!\n  hasShop: Boolean!\n  id: ID!\n  markerLocation: PointOfInterest!\n  name: String!\n  pointsOfInterest: [PointOfInterest!]\n  relatedLore: Lore\n  size: CitySize!\n  type: CityType!\n}',
+        );
+        expect(schema).toContain(
+            'enum CitySize {\n  capital\n  city\n  village\n}',
+        );
+    });
+
+    it('deprecates the global catalogue queries for cityShop (D-20)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'equipmentAssetsQuantity(sellable: Boolean): [AssetQuantity!]! @deprecated(reason: "Phase 12: use cityShop")',
+        );
+        expect(schema).toContain(
+            'lootAssetsQuantity: [AssetQuantity!]! @deprecated(reason: "Phase 12: use cityShop")',
+        );
+    });
+
+    it('writes the city shop contract of the FE Phase 13 into the generated schema (D-13, D-15, D-17, D-18)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        for (const contract of [
+            'cityShop(cityId: ID!): CityShop!',
+            'type CityShop {\n  city: City!\n  equipment: [AssetQuantity!]!\n  loot: [AssetQuantity!]!\n  pets: [Pet!]!\n}',
+            'enum CitySize {\n  capital\n  city\n  village\n}',
+            'hasShop: Boolean!',
+            'size: CitySize!',
+            'ownedPets: [Pet!]!',
+            'petAssets: [AssetQuantityInput!]\n',
+            'equipPet(request: EquipPetRequest!): CommonResponse!',
+            'unequipPet(request: UnequipPetRequest!): CommonResponse!',
+            'input EquipPetRequest {\n  id: String!\n  petId: String!\n}',
+            'input UnequipPetRequest {\n  id: String!\n}',
+            'shopPoolReport: [ShopPoolReportEntry!]!',
+        ])
+            expect(schema).toContain(contract);
+        for (const type of ['Pet', 'EquipmentItem', 'LootItem'])
+            expect(
+                schema.match(new RegExp(`type ${type} \\{[^}]*\\}`))?.[0],
+            ).toContain('  sellable: Boolean\n');
     });
 
     it('writes the free travel API into the generated schema', () => {

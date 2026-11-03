@@ -226,4 +226,28 @@ export class GameRuleException extends BadRequestException {
             'Esito non valido per questo personaggio',
         );
     }
+
+    // acquisto fuori dal pool della città del marker, leggendario o sellable false (D-05, D-19)
+    static itemNotInShop(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.ITEM_NOT_IN_SHOP,
+            'Questo oggetto non è in vendita in questa città',
+        );
+    }
+
+    // lo stesso pet non si compra due volte (D-14)
+    static petAlreadyOwned(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.PET_ALREADY_OWNED,
+            'Possiedi già questo compagno',
+        );
+    }
+
+    // si equipaggia solo un pet posseduto (D-15)
+    static petNotOwned(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.PET_NOT_OWNED,
+            'Compagno non posseduto',
+        );
+    }
 }

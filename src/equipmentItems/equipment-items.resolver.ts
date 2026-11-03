@@ -13,7 +13,10 @@ export class EquipmentItemsResolver {
         return await this.equipmentItemsService.findAll();
     }
 
-    @Query(() => [AssetQuantity])
+    // Kept for compatibility until FE Phase 13 moves to cityShop; removal in a future phase (D-20).
+    @Query(() => [AssetQuantity], {
+        deprecationReason: 'Phase 12: use cityShop',
+    })
     async equipmentAssetsQuantity(
         @Args('sellable', { type: () => Boolean, nullable: true })
         sellable?: boolean,
