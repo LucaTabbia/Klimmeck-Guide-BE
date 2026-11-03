@@ -41,7 +41,7 @@ describe('ShopBoot', () => {
 
     beforeEach(() => {
         failing = false;
-        report = { entries: [], unseeded: 0 };
+        report = { entries: [], withoutPool: 0 };
         errorSpy = jest
             .spyOn(Logger.prototype, 'error')
             .mockImplementation(() => undefined);
@@ -75,7 +75,7 @@ describe('ShopBoot', () => {
     it('warns once per violating city up to the limit and once with the summary (D-06)', async () => {
         report = {
             entries: Array.from({ length: 60 }, (_, index) => violation(index)),
-            unseeded: 3,
+            withoutPool: 3,
         };
 
         await boot().onApplicationBootstrap();
@@ -83,7 +83,7 @@ describe('ShopBoot', () => {
         expect(warnSpy).toHaveBeenCalledTimes(SHOP_REPORT_WARNINGS_LIMIT + 1);
         expect(warnSpy.mock.calls[0][0]).toContain('Negozio di Città 0');
         expect(warnSpy.mock.calls[SHOP_REPORT_WARNINGS_LIMIT][0]).toEqual(
-            'Negozi: 60 città con pool fuori regola, 3 non seminate',
+            'Negozi: 60 città con pool fuori regola, 3 senza pool',
         );
     });
 });

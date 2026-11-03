@@ -5,8 +5,8 @@ import { RarityType } from 'src/models/enums/rarity-type.enum';
 import {
     CatalogueEntry,
     describeViolation,
+    hasPool,
     hasViolations,
-    isSeeded,
     ReportedCity,
     ShopCatalogue,
     violationsOf,
@@ -222,10 +222,10 @@ describe('shop pool report', () => {
         );
     });
 
-    it('tells a seeded city from an unseeded one (D-06)', () => {
-        expect(isSeeded(village())).toBe(true);
+    it('tells a city with a pool from one without (D-06)', () => {
+        expect(hasPool(village())).toBe(true);
         expect(
-            isSeeded({
+            hasPool({
                 _id: new Types.ObjectId(),
                 name: 'Fineglen',
                 type: CityType.valanVillage,

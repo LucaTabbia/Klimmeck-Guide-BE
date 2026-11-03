@@ -69,7 +69,7 @@ describe('ShopBoot at application bootstrap (replSet)', () => {
             before,
         );
         expect(warnings()).toEqual([
-            'Negozi: 0 città con pool fuori regola, 1 non seminate',
+            'Negozi: 0 città con pool fuori regola, 1 senza pool',
         ]);
     });
 

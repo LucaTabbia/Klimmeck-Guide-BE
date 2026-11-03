@@ -10,8 +10,8 @@ import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 import { Pet, PetDocument } from 'src/models/pet.model';
 import {
     CatalogueEntry,
+    hasPool,
     hasViolations,
-    isSeeded,
     ReportedCity,
     ShopCatalogue,
     ShopPoolViolation,
@@ -20,7 +20,7 @@ import {
 
 export interface ShopPoolReport {
     entries: ShopPoolViolation[];
-    unseeded: number;
+    withoutPool: number;
 }
 
 const CITY_PROJECTION = {
@@ -52,12 +52,12 @@ export class ShopPoolReportService {
                 .exec(),
             this.readCatalogue(),
         ]);
-        const seeded = cities.filter(isSeeded);
-        const entries = seeded
+        const withPool = cities.filter(hasPool);
+        const entries = withPool
             .map((city) => violationsOf(city, catalogue))
             .filter(hasViolations)
             .sort((left, right) => left.cityName.localeCompare(right.cityName));
-        return { entries, unseeded: cities.length - seeded.length };
+        return { entries, withoutPool: cities.length - withPool.length };
     }
 
     private async readCatalogue(): Promise<ShopCatalogue> {

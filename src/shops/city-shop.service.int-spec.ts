@@ -220,8 +220,8 @@ describe('CityShopService', () => {
         );
     });
 
-    it('serves empty lists for an unseeded city and for Necrorian (D-04)', async () => {
-        const unseeded = await persistCity(models.city, {
+    it('serves empty lists for a city without a pool and for Necrorian (D-04)', async () => {
+        const withoutPool = await persistCity(models.city, {
             name: 'Talmvere',
             type: 'talmvereVillage',
         });
@@ -236,7 +236,7 @@ describe('CityShopService', () => {
         );
 
         const shops = await Promise.all(
-            [unseeded, necrorian].map((city) =>
+            [withoutPool, necrorian].map((city) =>
                 service.read(city._id.toHexString()),
             ),
         );

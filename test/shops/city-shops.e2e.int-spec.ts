@@ -240,7 +240,7 @@ describe('city shops end to end on a curated world (BE-SHOP-05)', () => {
     beforeEach(async () => {
         catalogue = await persistShopCatalogue(models);
         const persisted = await persistShopCities(models.city);
-        // i pool si scrivono a mano come farebbe l'utente a DB (D-05): nessuna semina negli harness (D-24)
+        // i pool si scrivono a mano come farebbe l'utente a DB (D-05): nessun hook di boot negli harness (D-24)
         await persistShopPools(models.city, persisted, catalogue);
         cities = await rawCities();
     });

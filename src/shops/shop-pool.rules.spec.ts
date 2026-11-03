@@ -25,7 +25,7 @@ describe('hasShopOf', () => {
         ).toBe(false);
     });
 
-    it('keeps the shop closed on an unseeded city (D-04)', () => {
+    it('keeps the shop closed on a city without a pool (D-04)', () => {
         expect(hasShopOf({})).toBe(false);
     });
 });

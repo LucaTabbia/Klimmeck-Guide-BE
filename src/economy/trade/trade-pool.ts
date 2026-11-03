@@ -23,7 +23,7 @@ const POOL_LIST = {
     Pet: 'pets',
 } as const satisfies Record<TradeItemKind, keyof CityPool>;
 
-// una città non seminata vende nulla: le liste assenti valgono vuote
+// una città senza pool vende nulla: le liste assenti valgono vuote
 export function poolOfCity(city: CityPoolDocument): CityPool {
     return {
         equipment: city.shopEquipment ?? [],

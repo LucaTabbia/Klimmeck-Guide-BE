@@ -22,12 +22,12 @@ export class ShopBoot implements OnApplicationBootstrap {
     }
 
     private async warnViolations(): Promise<void> {
-        const { entries, unseeded } = await this.poolReport.report();
+        const { entries, withoutPool } = await this.poolReport.report();
         for (const violation of entries.slice(0, SHOP_REPORT_WARNINGS_LIMIT))
             this.logger.warn(describeViolation(violation));
-        if (entries.length > 0 || unseeded > 0)
+        if (entries.length > 0 || withoutPool > 0)
             this.logger.warn(
-                `Negozi: ${entries.length} città con pool fuori regola, ${unseeded} non seminate`,
+                `Negozi: ${entries.length} città con pool fuori regola, ${withoutPool} senza pool`,
             );
     }
 }

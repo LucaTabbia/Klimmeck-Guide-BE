@@ -181,15 +181,15 @@ describe('trade pool', () => {
         ).toBeUndefined();
     });
 
-    it('reads an unseeded city as an empty pool (D-19)', () => {
-        const unseeded = poolOfCity({});
+    it('reads a city without a pool as an empty pool (D-19)', () => {
+        const withoutPool = poolOfCity({});
 
-        expect(unseeded).toEqual(emptyPool);
+        expect(withoutPool).toEqual(emptyPool);
         expect(
             codeThrownBy(() =>
                 assertBuysInShop(
                     [line('buy', 'EquipmentItem', sword)],
-                    unseeded,
+                    withoutPool,
                     catalogue,
                 ),
             ),

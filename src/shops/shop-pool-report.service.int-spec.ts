@@ -50,7 +50,7 @@ describe('ShopPoolReportService', () => {
         return city;
     }
 
-    async function seedWorld() {
+    async function curateWorld() {
         const common = byName(catalogue.equipment, 'Equip common 01');
         const ultrarare = byName(catalogue.equipment, 'Equip ultrarare 01');
         await persistPooledCity('Valantar', 'valanCapital', {
@@ -92,8 +92,8 @@ describe('ShopPoolReportService', () => {
         ]);
     }
 
-    it('lists only the seeded cities with violations sorted by name (D-06)', async () => {
-        await seedWorld();
+    it('lists only the cities with a pool and violations, sorted by name (D-06)', async () => {
+        await curateWorld();
 
         const { entries } = await service.report();
 
@@ -113,12 +113,12 @@ describe('ShopPoolReportService', () => {
         ]);
     });
 
-    it('counts the cities not yet seeded without reporting them (D-06)', async () => {
-        await seedWorld();
+    it('counts the cities without a pool without reporting them (D-06)', async () => {
+        await curateWorld();
 
-        const { entries, unseeded } = await service.report();
+        const { entries, withoutPool } = await service.report();
 
-        expect(unseeded).toBe(2);
+        expect(withoutPool).toBe(2);
         expect(entries.map(({ cityName }) => cityName)).not.toContain(
             'Talmvere',
         );
@@ -128,7 +128,7 @@ describe('ShopPoolReportService', () => {
     });
 
     it('never writes to the database (D-06)', async () => {
-        await seedWorld();
+        await curateWorld();
         const before = await snapshot();
 
         await service.report();

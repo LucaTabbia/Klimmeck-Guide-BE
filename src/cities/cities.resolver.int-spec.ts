@@ -109,7 +109,7 @@ describe('CitiesResolver size and hasShop', () => {
         });
     });
 
-    it('serves hasShop false for an explicit empty pool and for an unseeded city (D-04)', async () => {
+    it('serves hasShop false for an explicit empty pool and for a city without a pool (D-04)', async () => {
         await persist({
             type: CityType.necrorianCity,
             name: 'Necrorian',
@@ -117,11 +117,11 @@ describe('CitiesResolver size and hasShop', () => {
             shopLoot: [],
             shopPets: [],
         });
-        await persist({ type: CityType.mirwaCity, name: 'Non seminata' });
+        await persist({ type: CityType.mirwaCity, name: 'Senza pool' });
 
         expect(byName(await queryCities())).toEqual({
             Necrorian: { size: 'city', hasShop: false },
-            'Non seminata': { size: 'city', hasShop: false },
+            'Senza pool': { size: 'city', hasShop: false },
         });
     });
 

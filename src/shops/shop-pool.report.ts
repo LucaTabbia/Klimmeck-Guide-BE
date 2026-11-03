@@ -51,7 +51,8 @@ interface PoolList {
     checksSize: boolean;
 }
 
-export function isSeeded(city: ReportedCity): boolean {
+// tre liste presenti, anche vuote: il report giudica solo le città con un pool a DB (D-06)
+export function hasPool(city: ReportedCity): boolean {
     return [city.shopEquipment, city.shopLoot, city.shopPets].every(
         (list) => list !== undefined,
     );

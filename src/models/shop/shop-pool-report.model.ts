@@ -13,7 +13,7 @@ export class ShopPoolReportItem {
     rarity: string | null;
 }
 
-// una città seminata con il pool fuori regola: stesso contenuto delle WARN al boot (D-06)
+// una città con il pool fuori regola: stesso contenuto delle WARN al boot (D-06)
 @ObjectType()
 export class ShopPoolReportEntry {
     @Field(() => ID)
