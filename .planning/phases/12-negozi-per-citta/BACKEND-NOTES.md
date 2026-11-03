@@ -16,7 +16,7 @@
 3. **Compagni posseduti vs equipaggiato:** `CharacterAssets.ownedPets: [Pet!]!` accanto a `pet: Pet` (l'equipaggiato, l'unico che il viaggio legge); due mutation nuove `equipPet` / `unequipPet` (§5).
 4. **I pet si comprano e si vendono in `doTransaction`** con `TransactionItems.petAssets` (nullable, quantità sempre 1); comprare non equipaggia; vendere il compagno equipaggiato svuota lo slot nella stessa transazione (§5–§6).
 5. **Tre codici nuovi:** `ITEM_NOT_IN_SHOP`, `PET_ALREADY_OWNED`, `PET_NOT_OWNED`; acquisto fuori pool rifiutato, vendita ammessa in ogni città, leggendari posseduti inclusi (§6).
-6. **Ordine dei rilasci:** la PR BE va mergiata su `develop` PRIMA dei piani gated della FE Phase 13; dal piano dei documenti in poi il branch FE ha bisogno del BE di questa fase su device (cold start con `size`/`hasShop`, fragment con `ownedPets`) (FE D-12, D-16). Al primo boot sul database reale il BE semina i pool: runbook in §9.
+6. **Ordine dei rilasci:** la PR BE va mergiata su `develop` PRIMA dei piani gated della FE Phase 13; dal piano dei documenti in poi il branch FE ha bisogno del BE di questa fase su device (cold start con `size`/`hasShop`, fragment con `ownedPets`) (FE D-12, D-16). La semina del database reale è già avvenuta il 2026-11-03 dal branch e il codice di semina non è nella PR (§9, §14, D-25).
 
 ---
 
@@ -275,9 +275,9 @@ Percorso suggerito (teletrasporto della Locanda sul personaggio di prova):
 
 ---
 
-## 8. Costanti della semina (`src/shops/shop-pool.constants.ts`)
+## 8. Regole dei pool (`src/shops/shop-pool.constants.ts`) e regole della semina del 2026-11-03
 
-Quote per taglia e pesi di rarità (D-08), in punti percentuali interi sul numero di oggetti della lista:
+In codice restano solo le fasce di rarità per taglia (`SHOP_ALLOWED_RARITIES`, lette dal report), `NO_SHOP_CITY_TYPES` e `SHOP_REPORT_WARNINGS_LIMIT` (D-25). Quote, pesi, garanzie e piazzamenti qui sotto sono le regole con cui i pool sono stati sorteggiati il 2026-11-03 (D-08), in punti percentuali interi sul numero di oggetti della lista: guida per la cura a mano, non più codice.
 
 | Taglia | Equip | Loot | `common` | `uncommon` | `rare` | `ultrarare` |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -285,67 +285,46 @@ Quote per taglia e pesi di rarità (D-08), in punti percentuali interi sul numer
 | `city` | 16 | 18 | 50 | 35 | 15 | — |
 | `capital` | 24 | 24 | 35 | 35 | 20 | 10 |
 
-- `legendary` mai in vendita, a nessuna taglia; un oggetto con `sellable: false` mai seminato né servito.
-- **Garanzie di loot (D-09):** ogni lista di loot contiene almeno 2 oggetti `hunger` e 1 `heal` (le garanzie stanno dentro la quota e si pescano nella fascia ammessa più bassa che ha l'effetto; se il catalogo non ne ha abbastanza, la lista si scrive comunque e il boot avvisa con una WARN).
+- `legendary` mai in vendita, a nessuna taglia; un oggetto con `sellable: false` mai servito (veto in lettura, D-05).
+- **Garanzie di loot (D-09):** ogni lista di loot seminata conteneva almeno 2 oggetti `hunger` e 1 `heal` (dentro la quota, pescati nella fascia ammessa più bassa con l'effetto); al primo boot nessuna WARN di garanzia mancante. Chi cura a mano una lista di loot tenga la stessa regola.
 - **Compagni:** solo i 4 pet di §7, nelle città indicate; ogni altra città ha la lista dei compagni vuota.
-- **Seme:** sorteggio deterministico senza reinserimento con seme da `SHOP_SEED_VERSION` (`v1`) + id della città + nome della lista: a catalogo invariato la stessa città riceve sempre la stessa lista. Cambiare `SHOP_SEED_VERSION` non ri-semina nulla da solo: la semina tocca solo le liste assenti (§9 d).
-- **Pet solo da quest:** gli altri 9 pet del catalogo (Cavallo da guerra, Alce, Worg, Lupo invernale addestrato, Cinghiale gigante da sella, Ippogrifo, Aquila gigante, Grifone, Pegaso) ricevono `sellable: false` dalla migrazione; arriveranno come premio delle quest (§11).
+- **Seme (storico):** sorteggio deterministico senza reinserimento, seme `v1` + id della città + nome della lista; il codice del sorteggio non è più nel repo, i pool a DB ne sono il risultato.
+- **Pet solo da quest:** gli altri 9 pet del catalogo (Cavallo da guerra, Alce, Worg, Lupo invernale addestrato, Cinghiale gigante da sella, Ippogrifo, Aquila gigante, Grifone, Pegaso) hanno `sellable: false` a DB dal boot del 2026-11-03; arriveranno come premio delle quest (§11).
 - `SHOP_REPORT_WARNINGS_LIMIT = 50`: tetto delle WARN per tipo al boot (il resto è riassunto in una riga).
 
 ---
 
-## 9. Runbook per l'utente (primo boot dopo la merge)
+## 9. Primo boot sul database reale: eseguito (2026-11-03)
 
-Nessun esecutore della fase ha compilato il BE né lo ha avviato sul database reale: la build e il riavvio li fa l'utente, e il primo boot dopo la merge è il **primo** momento in cui questa fase scrive sul database reale. Tutto ciò che segue gira dentro `ShopBoot.onApplicationBootstrap` (`src/shops/maintenance/shop-boot.ts`), non blocca mai il boot e non richiede CLI.
+Semina e migrazioni di questa fase hanno girato **una volta sola**, dal branch `feat/12-negozi-per-citta` (`nest build` + `node dist/main.js`, stessa configurazione di sempre, nessuna variabile nuova), il 2026-11-03 alle 10:10. Righe dei negozi nel log del boot, senza WARN né ERROR:
 
-**(a) Build (passo dell'utente).** Dal repo BE, dopo la merge della PR:
-
-```bash
-git checkout develop && git pull
-npm ci
-npm run build
+```
+LOG [PetSellableMigrator] Compagni: 4 in vendita e 9 solo da quest valorizzati
+LOG [OwnedPetsMigrator]   Compagni: 1 personaggi ricevono il compagno equipaggiato fra i posseduti
+LOG [ShopPoolSeeder]      Negozi: seminate 167 liste di equipaggiamenti, 167 di loot, 167 di compagni
 ```
 
-**(b) Riavvio.** Fermare il processo BE in esecuzione e riavviarlo da `dist/` come al solito (stessa configurazione, nessuna variabile d'ambiente nuova).
+Nessuna lista rinviata, nessuna garanzia di loot mancante, nessun piazzamento di compagno trovato un numero di volte diverso da 1, nessuna città con pool fuori regola. Subito dopo, per decisione dell'utente (D-25), `PetSellableMigrator`, `OwnedPetsMigrator`, `ShopPoolSeeder`, il sorteggio (`shop-pool.draw.ts`, `seeded-random.ts`) e le costanti di semina sono stati **rimossi dal branch** (§14): la PR non li contiene e nessun boot futuro scrive sui negozi.
 
-**(c) Cosa scrive il primo boot, nell'ordine.** Ogni passo è idempotente e scrive solo dove il campo manca:
+**(a) Cosa fa il boot da ora in poi.** Solo il report dei pool (`src/shops/maintenance/shop-boot.ts`, D-06), nessuna scrittura: una WARN `Negozio di <città> (<id città>, <taglia>): X fuori taglia, Y vietati, Z mancanti[, pool vuoto]` per città fuori regola (tetto 50) e la riga `Negozi: N città con pool fuori regola, M senza pool`; nessuna riga se non c'è nulla da segnalare (il boot subito dopo la rimozione è stato silenzioso). Se il report fallisce: `ERROR Negozi: report dei pool fallito (<nome e codice dell'errore>), il boot prosegue`.
 
-| # | Passo | Scrittura | Log atteso (solo se scrive qualcosa) |
-| ---: | --- | --- | --- |
-| 1 | `PetSellableMigrator.migrate` | `pets.sellable` dove manca: `true` sui 4 pet di §7, `false` sugli altri 9 | LOG `Compagni: 4 in vendita e 9 solo da quest valorizzati` |
-| 2 | `OwnedPetsMigrator.migrate` | `characters.assets.ownedPets` riceve il compagno equipaggiato se non c'è già | LOG `Compagni: N personaggi ricevono il compagno equipaggiato fra i posseduti` |
-| 3 | `ShopPoolSeeder.seedAll` | i tre campi del pool (`shopEquipment`, `shopLoot`, `shopPets`) sulle città che non li hanno: tutte le 167 al primo giro, Necrorian con tre liste vuote | LOG `Negozi: seminate X liste di equipaggiamenti, Y di loot, Z di compagni` |
-| 4 | report dei pool | nessuna scrittura | una WARN per città fuori regola (tetto 50) + riepilogo |
-
-WARN possibili durante la semina:
-
-- `Negozi: N liste rinviate al prossimo boot, catalogo senza candidati` — il catalogo non ha candidati per quella lista: la lista resta assente e il boot successivo riprova.
-- `Negozi: <città> (<tipo>) senza le garanzie di loot hunger, heal` — lista scritta senza il cibo o la cura garantiti (§8).
-- `Piazzamento del compagno <pet>: città <nome> (<tipo>) trovata N volte` — atteso 1 per Fineglen, Valantar, Shadmus, Croce Marina, Bellport, Talmvere, Cliffbreak; un valore diverso indica un nome o un tipo diverso a DB (A5, §10).
-
-WARN del report: `Negozio di <città> (<id città>, <taglia>): X fuori taglia, Y vietati, Z mancanti[, pool vuoto]` e la riga finale `Negozi: N città con pool fuori regola, M non seminate`. Al primo boot su catalogo completo il riepilogo atteso è assente o con pochi casi (garanzie mancanti, liste rinviate).
-
-Un passo che fallisce scrive `ERROR Negozi: <passo> fallita (<nome e codice dell'errore>), il boot prosegue` (passi: `valorizzazione di Pet.sellable`, `compagni posseduti`, `semina dei pool`, `report dei pool`); il BE resta su e il riavvio successivo riprova.
-
-**Riavvii successivi:** non scrivono nulla e non loggano nulla dai passi 1–3 (idempotenti); il report riscrive le sue WARN solo se ci sono violazioni. Una lista presente, **anche vuota**, non viene mai toccata: la mano vince (D-05).
-
-**(d) Ri-seminare una lista.** Cancellare a DB il campo della città e riavviare; a catalogo invariato la semina ridà la stessa lista (seme deterministico):
+**(b) Città nuova o pool da rifare.** Non esiste più una semina: una città nuova nasce **senza** negozio (`hasShop: false`, `cityShop` con tre liste vuote, contata come «senza pool» nel report) finché non le si scrivono a mano i tre campi; una lista cancellata resta assente. Le regole con cui i pool del 2026-11-03 sono stati sorteggiati sono in §8, da seguire come guida:
 
 ```javascript
-// mongosh, collegato a <uri>/<db>
+// mongosh, collegato a <uri>/<db>; id del catalogo da equipmentitems, lootitems, pets
 db.cities.updateOne(
   { _id: ObjectId("<id città>") },
-  { $unset: { shopLoot: "" } }
+  { $set: { shopEquipment: [ObjectId("<id equip>")], shopLoot: [ObjectId("<id loot>")], shopPets: [] } }
 )
 ```
 
-Lo stesso per `shopEquipment` o `shopPets`. Non serve altro: nessun comando distruttivo oltre al singolo campo della singola città. Per svuotare il negozio di una città senza che venga ri-seminato, impostare la lista a `[]` (non cancellarla).
+Per chiudere il negozio di una città: le tre liste a `[]` (come Necrorian).
 
-**(e) Curare un pool.** Modificare a DB `shopEquipment` / `shopLoot` / `shopPets` della città con id del catalogo (`equipmentitems`, `lootitems`, `pets`); la modifica vale alla prossima apertura del negozio, senza riavvio. Oggetti `legendary` o `sellable: false` messi a mano non vengono serviti né venduti (il report li elenca in `vetoed`); oggetti fuori taglia vengono serviti (il report li elenca in `outOfSize`).
+**(c) Curare un pool.** Modificare a DB `shopEquipment` / `shopLoot` / `shopPets` della città con id del catalogo; la modifica vale alla prossima apertura del negozio, senza riavvio. Oggetti `legendary` o `sellable: false` messi a mano non vengono serviti né venduti (il report li elenca in `vetoed`); oggetti fuori taglia vengono serviti (il report li elenca in `outOfSize`).
 
-> **Quando aggiungi un pet a DB imposta `sellable` esplicitamente:** la migrazione marca `false` ogni pet senza flag fuori dai 4 in vendita a ogni riavvio.
+**(d) Pet nuovi a DB.** Impostare `sellable` esplicitamente: la migrazione che marcava `false` i pet senza flag non esiste più; un pet senza flag messo in `shopPets` viene servito (il flag assente vale vendibile, A1).
 
-**(f) Leggere il report.** Come oste (`innkeeper`), dall'Admin Panel o da un client GraphQL autenticato:
+**(e) Leggere il report.** Come oste (`innkeeper`), dall'Admin Panel o da un client GraphQL autenticato:
 
 ```graphql
 query {
@@ -363,20 +342,18 @@ query {
 
 Elenca solo le città con almeno una violazione: `emptyPool` (tutte e tre le liste vuote, Necrorian esclusa), `outOfSize` (rarità oltre la taglia), `vetoed` (`legendary` o `sellable: false`), `missing` (id non più nel catalogo). È sola lettura: segnala, non corregge.
 
-**(g) Segreti.** Solo placeholder in questo documento (`<uri>`, `<db>`, `<id città>`): i valori reali stanno nell'ambiente del processo, mai nel repo.
+**(f) Segreti.** Solo placeholder in questo documento (`<uri>`, `<db>`, `<id città>`): i valori reali stanno nell'ambiente del processo, mai nel repo.
 
 ---
+## 10. Assunzioni verificate al primo boot (2026-11-03)
 
-## 10. Assunzioni da verificare dopo il primo boot
-
-| # | Assunzione | Come verificarla | Se fallisce |
-| --- | --- | --- | --- |
-| A1 | `sellable` assente su un equipaggiamento o loot = vendibile (solo `false` vieta) | i pool hanno le quote piene (10/12, 16/18, 24/24) e `shopPoolReport` non mostra molti `vetoed` | se i pool risultano corti o il report mostra molti `vetoed`, rivedere `sellable` a DB e ri-seminare le liste interessate (§9 d) |
-| A2 | i 13 pet hanno tutti i campi non-null di `Pet` (`imagePath`, `xp`, …) | query `pets { id name imagePath xp }` senza errori | completare i campi a DB; il FE non seleziona `imagePath` (FE D-11), il rischio è solo per altri client |
-| A5 | le 7 città dei pet si risolvono per nome + `CityType` | nessuna WARN `Piazzamento del compagno …` al primo boot; `cityShop` di Talmvere elenca il Cavallo da viaggio | correggere il nome o il tipo della città a DB (o il compagno nella lista `shopPets` a mano, §9 e) |
+| # | Assunzione | Esito |
+| --- | --- | --- |
+| A1 | `sellable` assente su un equipaggiamento o loot = vendibile (solo `false` vieta) | **verificata:** 167 liste per tipo scritte, nessuna WARN di garanzia mancante o di lista rinviata, nessuna città fuori regola nel report |
+| A2 | i 13 pet hanno tutti i campi non-null di `Pet` (`imagePath`, `xp`, …) | **non verificabile dal boot** (serve una query autenticata): resta alla UAT FE 13-11; il FE non seleziona `imagePath` (FE D-11) |
+| A5 | le 7 città dei pet si risolvono per nome + `CityType` | **verificata:** nessuna WARN `Piazzamento del compagno …`; che `cityShop` di Talmvere elenchi il Cavallo da viaggio si vede nella UAT FE |
 
 ---
-
 ## 11. Note per le fasi successive
 
 - **Pet premio delle quest (BE Phase 13):** i 9 pet con `sellable: false` arrivano in `ownedPets` come ricompense; la scrittura deve rispettare il doppione (`PET_ALREADY_OWNED` o premio alternativo).
@@ -412,3 +389,11 @@ Sette correzioni TDD dopo la review in tre aree (0 critical, 2 warning, 8 info);
 6. **Accettati senza modifica (C-IN-01..03).** Guardia pet fallita in scrittura → `INSUFFICIENT_ITEM_QUANTITY` (§6, il retry dà il codice specifico); la query innkeeper `characters` non popola i pet (comportamento preesistente della lista, backlog); nessun indice unico su `markerLocation` (invariante dei dati, cura a DB).
 
 Gate dopo i fix: `tsc` 0; unit 193 suite / 2589 test; integration 114 suite / 1423 test; SDL vs `develop` invariato (+45 / −2 D-20).
+
+---
+
+## 14. Semina eseguita e codice di manutenzione rimosso (2026-11-03, D-25)
+
+Dopo il primo boot sul database reale (§9) l'utente ha chiesto di non portare nella merge il codice che non serve più. **Rimossi dal branch:** `src/shops/maintenance/pet-sellable.migrator.ts`, `owned-pets.migrator.ts`, `shop-pool.seeder.ts` (con le int-spec), `src/shops/shop-pool.draw.ts` e `src/shops/seeded-random.ts` (con le spec), le costanti `SHOP_SEED_VERSION`, `SHOP_POOL_SIZES`, `SHOP_RARITY_WEIGHTS`, `SHOP_LOOT_GUARANTEES`, `SELLABLE_PET_PLACEMENTS` / `SELLABLE_PET_IDS` e `isSeedCandidate`. **Restano:** il report (`ShopPoolReportService`, query `shopPoolReport`, WARN al boot via `ShopBoot`, ora unico provider di `ShopMaintenanceModule`), `SHOP_ALLOWED_RARITIES`, `NO_SHOP_CITY_TYPES`, `SHOP_REPORT_WARNINGS_LIMIT`. Nel report e nei log «non seminate» è diventato «senza pool» (`ShopPoolReport.withoutPool`, `hasPool`). La suite e2e scrive i pool a mano (`persistShopPools` in `test/shops/shop-world.fixture.ts`). Niente cambia nello SDL né nel contratto FE (§1–§6).
+
+Gate dopo la rimozione: `npm run test:cov` 302 suite (191 unit + 111 integration), 3955 test verdi; coverage totale 96,99 % statements / 85,43 % branches / 97,53 % lines; `src/shops` 100 / 83,6 / 100 sopra la soglia 97/82/98; `tsc` 0; SDL invariato (+45 / −2 vs `develop`); prettier ed eslint puliti sui file toccati; il boot con il codice finale è stato silenzioso.

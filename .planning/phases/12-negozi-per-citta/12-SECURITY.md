@@ -119,3 +119,7 @@ Nessuna. Nessuna minaccia `open` o `not_mitigated`.
 - `T-12-22b` — innkeeper che compra per un personaggio: Accettato nel piano 12-15
 
 Osservazione non bloccante: per `T-12-24` manca una spec di concorrenza dedicata ai pet; la protezione è la guardia `$nin` nel filtro di scrittura più il WriteConflict della transazione, già provato per gli oggetti. Il caso residuo (guardia fallita senza conflitto → `INSUFFICIENT_ITEM_QUANTITY`) è il C-IN-01 `not_needed`, documentato nell'handoff §6.
+
+## Nota del 2026-11-03 (dopo l'audit)
+
+Dopo il primo boot sul database reale, migratori, seeder e sorteggio sono stati rimossi dal branch (D-25, `BACKEND-NOTES.md` §14). Le minacce il cui componente non esiste più decadono con il codice: T-12-07, T-12-07b, T-12-08, T-12-08b, T-12-09, T-12-09b, T-12-10, T-12-10b, T-12-11, T-12-11b, T-12-11c, T-12-12. Restano in vigore sul solo report: T-12-13 (`shop-boot.ts` usa `describeError`), T-12-14 (report in try/catch, il boot prosegue), T-12-14b (`ShopMaintenanceModule` importato solo da `AppModule`, provato da `shop-boot.int-spec.ts`). I conteggi del frontmatter descrivono il codice a `090fea0` e non sono stati ricalcolati.
