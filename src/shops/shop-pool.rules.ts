@@ -2,7 +2,7 @@ import { Types } from 'mongoose';
 import { CitySize } from 'src/models/enums/city-size.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
-import { SHOP_RARITY_WEIGHTS, TierWeight } from './shop-pool.constants';
+import { SHOP_ALLOWED_RARITIES } from './shop-pool.constants';
 
 export interface ShopPoolLists {
     shopEquipment?: readonly unknown[] | null;
@@ -43,22 +43,6 @@ export function shelfInPoolOrder<
     });
 }
 
-export function allowedRaritiesOf(size: CitySize): RarityType[] {
-    const weights: readonly TierWeight[] = SHOP_RARITY_WEIGHTS[size];
-    return weights.map(({ rarity }) => rarity);
-}
-
-export interface SeedCandidate extends ShelfFlags {
-    _id: Types.ObjectId;
-    buyPrice?: unknown;
-    effect?: string | null;
-}
-
-// la regola di taglia guida solo la semina (D-05, D-08): un oggetto senza prezzo darebbe ITEM_NOT_TRADABLE
-export function isSeedCandidate(item: SeedCandidate, size: CitySize): boolean {
-    return (
-        isShelfEligible(item) &&
-        item.buyPrice != null &&
-        allowedRaritiesOf(size).some((rarity) => rarity === item.rarity)
-    );
+export function allowedRaritiesOf(size: CitySize): readonly RarityType[] {
+    return SHOP_ALLOWED_RARITIES[size];
 }

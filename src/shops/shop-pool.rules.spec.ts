@@ -4,7 +4,6 @@ import { RarityType } from 'src/models/enums/rarity-type.enum';
 import {
     allowedRaritiesOf,
     hasShopOf,
-    isSeedCandidate,
     isShelfEligible,
     shelfInPoolOrder,
 } from './shop-pool.rules';
@@ -71,38 +70,6 @@ describe('allowedRaritiesOf', () => {
             city: ['common', 'uncommon', 'rare'],
             capital: ['common', 'uncommon', 'rare', 'ultrarare'],
         });
-    });
-});
-
-describe('isSeedCandidate', () => {
-    const price = { gold: 0, silver: 1, copper: 0 };
-    const candidate = (overrides: Record<string, unknown>) => ({
-        _id: new Types.ObjectId(),
-        rarity: RarityType.common,
-        buyPrice: price,
-        ...overrides,
-    });
-
-    it('seeds only priced items of an allowed rarity (D-08)', () => {
-        expect([
-            isSeedCandidate(
-                candidate({ buyPrice: undefined }),
-                CitySize.capital,
-            ),
-            isSeedCandidate(candidate({ rarity: undefined }), CitySize.capital),
-            isSeedCandidate(
-                candidate({ rarity: RarityType.rare }),
-                CitySize.village,
-            ),
-            isSeedCandidate(
-                candidate({ rarity: RarityType.legendary }),
-                CitySize.capital,
-            ),
-            isSeedCandidate(
-                candidate({ rarity: RarityType.rare }),
-                CitySize.city,
-            ),
-        ]).toEqual([false, false, false, false, true]);
     });
 });
 

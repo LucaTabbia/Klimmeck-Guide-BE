@@ -1,5 +1,4 @@
 import { Model, Types } from 'mongoose';
-import { SELLABLE_PET_IDS } from 'src/shops/shop-pool.constants';
 import { persistCity } from '../fixtures/city.fixture';
 import {
     persistEquipmentItem,
@@ -14,7 +13,7 @@ export interface ShopWorldModels {
     pet: Model<any>;
 }
 
-// villaggio, città di mare, capitale, Necrorian e le città dei piazzamenti dei pet (D-04, D-10)
+// villaggio, città di mare, capitale, Necrorian, Talmvere con il compagno in vendita e città che restano senza pool (D-04, D-10, D-22)
 export const SHOP_WORLD_CITIES = [
     { name: 'Fineglen', type: 'valanVillage' },
     { name: 'Valantar', type: 'valanCapital' },
@@ -98,15 +97,8 @@ async function persistShopLoot(model: Model<any>) {
 
 async function persistShopPets(model: Model<any>) {
     const pets: any[] = [];
-    // gli id di SELLABLE_PET_IDS, non inventati: la semina piazza i compagni per id (D-10, D-24); solo id, nessun altro dato reale
-    for (const [index, pet] of SHOP_PETS.entries())
-        pets.push(
-            await persistPet(model, {
-                ...pet,
-                _id: new Types.ObjectId(SELLABLE_PET_IDS[index]),
-                sellable: true,
-            }),
-        );
+    for (const pet of SHOP_PETS)
+        pets.push(await persistPet(model, { ...pet, sellable: true }));
     for (const name of QUEST_ONLY_PETS)
         pets.push(await persistPet(model, { name, sellable: false }));
     return pets;
@@ -121,7 +113,7 @@ export async function persistShopCatalogue(models: ShopWorldModels) {
     };
 }
 
-// nessun campo del pool: la semina le vede tutte assenti (D-22)
+// nessun campo del pool, come una città appena creata a DB (D-22)
 export async function persistShopCities(
     model: Model<any>,
 ): Promise<Record<string, any>> {

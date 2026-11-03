@@ -3,40 +3,20 @@ import { describeError } from 'src/mongo/mongo-errors';
 import { SHOP_REPORT_WARNINGS_LIMIT } from '../shop-pool.constants';
 import { describeViolation } from '../shop-pool.report';
 import { ShopPoolReportService } from '../shop-pool-report.service';
-import { OwnedPetsMigrator } from './owned-pets.migrator';
-import { PetSellableMigrator } from './pet-sellable.migrator';
-import { ShopPoolSeeder } from './shop-pool.seeder';
 
-// un solo orchestratore: ordine esplicito e testabile (D-24); atteso dal boot ma mai bloccante, come SpellStateMigrator
+// al boot resta il solo report dei pool (D-06): migrazioni e semina hanno girato una volta sul database reale e sono uscite dal repo (D-25); atteso dal boot ma mai bloccante (D-24)
 @Injectable()
 export class ShopBoot implements OnApplicationBootstrap {
     private readonly logger = new Logger(ShopBoot.name);
 
-    constructor(
-        private readonly petSellable: PetSellableMigrator,
-        private readonly ownedPets: OwnedPetsMigrator,
-        private readonly seeder: ShopPoolSeeder,
-        private readonly poolReport: ShopPoolReportService,
-    ) {}
+    constructor(private readonly poolReport: ShopPoolReportService) {}
 
     async onApplicationBootstrap(): Promise<void> {
-        await this.step('valorizzazione di Pet.sellable', () =>
-            this.petSellable.migrate(),
-        );
-        await this.step('compagni posseduti', () => this.ownedPets.migrate());
-        await this.step('semina dei pool', () => this.seeder.seedAll());
-        await this.step('report dei pool', () => this.warnViolations());
-    }
-
-    private async step(
-        label: string,
-        work: () => Promise<unknown>,
-    ): Promise<void> {
         try {
-            await work();
+            await this.warnViolations();
         } catch (error) {
             this.logger.error(
-                `Negozi: ${label} fallita (${describeError(error)}), il boot prosegue`,
+                `Negozi: report dei pool fallito (${describeError(error)}), il boot prosegue`,
             );
         }
     }

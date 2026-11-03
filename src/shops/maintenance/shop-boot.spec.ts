@@ -19,52 +19,28 @@ function violation(index: number): ShopPoolViolation {
 }
 
 describe('ShopBoot', () => {
-    let calls: string[];
     let report: ShopPoolReport;
-    let failing: string | null;
+    let failing: boolean;
     let errorSpy: jest.SpyInstance;
     let warnSpy: jest.SpyInstance;
 
-    function step<T>(name: string, result: T) {
-        return jest.fn(() => {
-            calls.push(name);
-            if (failing === name)
-                return Promise.reject(
-                    Object.assign(new Error('mongodb://user:secret@host'), {
-                        name: 'MongoServerError',
-                        code: 11000,
-                    }),
-                );
-            return Promise.resolve(result);
-        });
-    }
-
-    function reportOnce(): Promise<ShopPoolReport> {
-        calls.push('report');
-        return Promise.resolve(report);
-    }
-
     function boot(): ShopBoot {
-        return new ShopBoot(
-            {
-                migrate: step('sellable', { sellable: 0, questOnly: 0 }),
-            } as never,
-            { migrate: step('ownedPets', { owned: 0 }) } as never,
-            {
-                seedAll: step('seeding', {
-                    equipment: 0,
-                    loot: 0,
-                    pets: 0,
-                    deferred: 0,
-                }),
-            } as never,
-            { report: jest.fn(() => reportOnce()) } as never,
-        );
+        return new ShopBoot({
+            report: jest.fn(() =>
+                failing
+                    ? Promise.reject(
+                          Object.assign(
+                              new Error('mongodb://user:secret@host'),
+                              { name: 'MongoServerError', code: 11000 },
+                          ),
+                      )
+                    : Promise.resolve(report),
+            ),
+        } as never);
     }
 
     beforeEach(() => {
-        calls = [];
-        failing = null;
+        failing = false;
         report = { entries: [], unseeded: 0 };
         errorSpy = jest
             .spyOn(Logger.prototype, 'error')
@@ -76,28 +52,22 @@ describe('ShopBoot', () => {
 
     afterEach(() => jest.restoreAllMocks());
 
-    it('runs sellable, owned pets, seeding and report in this order (D-24)', async () => {
-        await boot().onApplicationBootstrap();
-
-        expect(calls).toEqual(['sellable', 'ownedPets', 'seeding', 'report']);
-    });
-
-    it('stays silent on a database without shops (D-24)', async () => {
+    it('runs only the pool report and stays silent on pools within the rules (D-06, D-25)', async () => {
         await boot().onApplicationBootstrap();
 
         expect(warnSpy).not.toHaveBeenCalled();
         expect(errorSpy).not.toHaveBeenCalled();
     });
 
-    it('keeps booting when a step fails and logs the error code only (D-24)', async () => {
-        failing = 'sellable';
+    it('keeps booting when the report fails and logs the error code only (D-24)', async () => {
+        failing = true;
 
         await boot().onApplicationBootstrap();
 
-        expect(calls).toEqual(['sellable', 'ownedPets', 'seeding', 'report']);
+        expect(warnSpy).not.toHaveBeenCalled();
         expect(errorSpy.mock.calls).toEqual([
             [
-                'Negozi: valorizzazione di Pet.sellable fallita (MongoServerError, code 11000), il boot prosegue',
+                'Negozi: report dei pool fallito (MongoServerError, code 11000), il boot prosegue',
             ],
         ]);
     });
