@@ -6,6 +6,7 @@ import { PetSchema } from 'src/models/pet.model';
 import {
     persistShopCatalogue,
     persistShopCities,
+    persistShopPools,
     SHOP_WORLD_CITIES,
     ShopWorldModels,
 } from './shop-world.fixture';
@@ -89,5 +90,45 @@ describe('shop world fixture', () => {
                 'relatedLore',
                 'type',
             ]);
+    });
+
+    it('curates five pools by hand inside the size rules and leaves the other cities without a pool (D-05, D-08, D-22)', async () => {
+        const catalogue = await persistShopCatalogue(models);
+        const cities = await persistShopCities(models.city);
+
+        await persistShopPools(models.city, cities, catalogue);
+
+        const raw = await models.city.collection.find({}).toArray();
+        const byName = Object.fromEntries(raw.map((city) => [city.name, city]));
+        const petId = (name: string) =>
+            catalogue.pets.find((pet) => pet.name === name)._id;
+        const hex = (ids: any[]) => ids.map((id) => id.toHexString());
+        expect(byName.Necrorian).toMatchObject({
+            shopEquipment: [],
+            shopLoot: [],
+            shopPets: [],
+        });
+        expect(byName.Talmvere.shopPets).toEqual([petId('Cavallo da viaggio')]);
+        expect(byName.Valantar.shopPets).toEqual([
+            petId('Cavallo leggero'),
+            petId('Cammello del Mar Sabbioso'),
+        ]);
+        expect(byName['Porto Saldo'].shopPets).toEqual([]);
+        expect(byName.Fineglen.shopEquipment).toHaveLength(4);
+        expect(byName.Fineglen.shopLoot).toHaveLength(4);
+        expect(
+            hex(byName.Valantar.shopEquipment).filter((id) =>
+                hex(byName.Fineglen.shopEquipment).includes(id),
+            ),
+        ).toEqual([]);
+        for (const name of [
+            'Shadmus',
+            'Croce Marina',
+            'Bellport',
+            'Cliffbreak',
+        ])
+            expect(Object.keys(byName[name])).not.toEqual(
+                expect.arrayContaining(['shopEquipment']),
+            );
     });
 });

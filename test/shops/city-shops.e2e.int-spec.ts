@@ -8,7 +8,6 @@ import { EquipmentItem } from 'src/models/equipment-item.model';
 import { LootItem } from 'src/models/loot-item.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
 import { Pet } from 'src/models/pet.model';
-import { ShopPoolSeeder } from 'src/shops/maintenance/shop-pool.seeder';
 import { ShopsModule } from 'src/shops/shops.module';
 import { AuthTestApp, graphqlRequest } from '../auth/auth-test-app';
 import { createCharactersTestApp } from '../authz/characters-test-app';
@@ -17,6 +16,7 @@ import { buildCharacter } from '../fixtures';
 import {
     persistShopCatalogue,
     persistShopCities,
+    persistShopPools,
     ShopWorldModels,
 } from './shop-world.fixture';
 
@@ -100,7 +100,7 @@ function idsOf(shop: CityShopWire): string[] {
     return [...shop.equipment, ...shop.loot].map(({ item }) => item.id).sort();
 }
 
-describe('city shops end to end on a seeded world (BE-SHOP-05)', () => {
+describe('city shops end to end on a curated world (BE-SHOP-05)', () => {
     let harness: AuthTestApp;
     let models: ShopWorldModels;
     let characters: Model<any>;
@@ -239,14 +239,9 @@ describe('city shops end to end on a seeded world (BE-SHOP-05)', () => {
 
     beforeEach(async () => {
         catalogue = await persistShopCatalogue(models);
-        await persistShopCities(models.city);
-        // il modulo di manutenzione non è negli harness (D-24): la semina si chiama a mano
-        await new ShopPoolSeeder(
-            models.city as never,
-            models.equipment as never,
-            models.loot as never,
-            models.pet as never,
-        ).seedAll();
+        const persisted = await persistShopCities(models.city);
+        // i pool si scrivono a mano come farebbe l'utente a DB (D-05): nessuna semina negli harness (D-24)
+        await persistShopPools(models.city, persisted, catalogue);
         cities = await rawCities();
     });
 
@@ -258,31 +253,33 @@ describe('city shops end to end on a seeded world (BE-SHOP-05)', () => {
         await harness.close();
     });
 
-    it('seeds a village, a city and a capital with three different pools (D-03, D-08)', async () => {
+    it('serves each city exactly its curated pool (D-03, D-05)', async () => {
         const { bearer } = await createPlayer(harness, {
             twitchId: 'twitch-e2e-pools',
             withCharacter: false,
         });
+        const names = ['Fineglen', 'Porto Saldo', 'Valantar'];
 
-        const village = await cityShop('Fineglen', bearer);
-        const city = await cityShop('Porto Saldo', bearer);
-        const capital = await cityShop('Valantar', bearer);
+        const shops: CityShopWire[] = [];
+        for (const name of names) shops.push(await cityShop(name, bearer));
 
-        expect(
-            [village, city, capital].map((shop) => [
-                shop.city.hasShop,
-                shop.equipment.length,
-                shop.loot.length,
-            ]),
-        ).toEqual([
-            [true, 10, 12],
-            [true, 16, 18],
-            [true, 24, 24],
+        expect(shops.map((shop) => shop.city.hasShop)).toEqual([
+            true,
+            true,
+            true,
         ]);
-        expect(idsOf(village)).not.toEqual(idsOf(city));
-        expect(idsOf(city)).not.toEqual(idsOf(capital));
-        expect(idsOf(village)).not.toEqual(idsOf(capital));
-        const rarities = [village, city, capital].flatMap((shop) =>
+        expect(shops.map(idsOf)).toEqual(
+            names.map((name) =>
+                hexOf([
+                    ...(cities[name].shopEquipment ?? []),
+                    ...(cities[name].shopLoot ?? []),
+                ]).sort(),
+            ),
+        );
+        expect(shops.map((shop) => shop.pets.map(({ id }) => id))).toEqual(
+            names.map((name) => hexOf(cities[name].shopPets)),
+        );
+        const rarities = shops.flatMap((shop) =>
             [...shop.equipment, ...shop.loot].map(({ item }) => item.rarity),
         );
         expect(rarities).not.toContain('legendary');

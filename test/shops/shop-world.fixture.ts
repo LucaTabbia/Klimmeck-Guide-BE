@@ -130,3 +130,100 @@ export async function persistShopCities(
         cities[name] = await persistCity(model, { name, type });
     return cities;
 }
+
+export interface ShopCatalogueFixture {
+    equipment: any[];
+    loot: any[];
+    pets: any[];
+}
+
+const byName = (items: any[], name: string): Types.ObjectId =>
+    items.find((item) => item.name === name)._id as Types.ObjectId;
+
+type PoolNames = Record<
+    'shopEquipment' | 'shopLoot' | 'shopPets',
+    readonly string[]
+>;
+
+// pool curati a mano come farebbe l'utente a DB (D-05), dentro le fasce di taglia (D-08): liste diverse per il villaggio, la città di mare e la capitale, il Cavallo da viaggio solo a Talmvere, Necrorian vuota (D-04, D-10); le altre città restano senza pool (D-22)
+const CURATED_POOLS: Record<string, PoolNames> = {
+    Fineglen: {
+        shopEquipment: [
+            'Equip common 01',
+            'Equip common 02',
+            'Equip common 03',
+            'Equip uncommon 01',
+        ],
+        shopLoot: [
+            'Loot common hunger 01',
+            'Loot common hunger 02',
+            'Loot common heal 01',
+            'Loot common none 01',
+        ],
+        shopPets: [],
+    },
+    'Porto Saldo': {
+        shopEquipment: [
+            'Equip common 04',
+            'Equip uncommon 02',
+            'Equip uncommon 03',
+            'Equip rare 01',
+        ],
+        shopLoot: [
+            'Loot common hunger 03',
+            'Loot uncommon hunger 01',
+            'Loot uncommon heal 01',
+            'Loot rare none 01',
+        ],
+        shopPets: [],
+    },
+    Valantar: {
+        shopEquipment: [
+            'Equip common 05',
+            'Equip uncommon 04',
+            'Equip rare 02',
+            'Equip rare 03',
+            'Equip ultrarare 01',
+        ],
+        shopLoot: [
+            'Loot common hunger 01',
+            'Loot common hunger 02',
+            'Loot common heal 02',
+            'Loot ultrarare none 01',
+        ],
+        shopPets: ['Cavallo leggero', 'Cammello del Mar Sabbioso'],
+    },
+    Talmvere: {
+        shopEquipment: ['Equip common 06', 'Equip common 07'],
+        shopLoot: [
+            'Loot common hunger 01',
+            'Loot common hunger 02',
+            'Loot common heal 01',
+        ],
+        shopPets: ['Cavallo da viaggio'],
+    },
+    Necrorian: { shopEquipment: [], shopLoot: [], shopPets: [] },
+};
+
+export async function persistShopPools(
+    model: Model<any>,
+    cities: Record<string, any>,
+    catalogue: ShopCatalogueFixture,
+): Promise<void> {
+    const sources: Record<keyof PoolNames, any[]> = {
+        shopEquipment: catalogue.equipment,
+        shopLoot: catalogue.loot,
+        shopPets: catalogue.pets,
+    };
+    for (const [cityName, pool] of Object.entries(CURATED_POOLS)) {
+        const lists = Object.fromEntries(
+            (Object.keys(pool) as (keyof PoolNames)[]).map((field) => [
+                field,
+                pool[field].map((name) => byName(sources[field], name)),
+            ]),
+        );
+        await model.collection.updateOne({ _id: cities[cityName]._id }, {
+            $set: lists,
+        } as never);
+    }
+}
