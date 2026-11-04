@@ -6,11 +6,11 @@ const EVERY_HOUR_MS = 3_600_000;
 
 describe('QuestGenerationSweeper', () => {
     let request: jest.Mock;
-    let whenIdle: jest.Mock;
+    let close: jest.Mock;
 
     function sweeperWith(sweepIntervalMs: number): QuestGenerationSweeper {
         const config: QuestGenerationConfig = { sweepIntervalMs, target: null };
-        const generator = { request, whenIdle } as unknown as QuestGenerator;
+        const generator = { request, close } as unknown as QuestGenerator;
         return new QuestGenerationSweeper(config, generator);
     }
 
@@ -35,7 +35,7 @@ describe('QuestGenerationSweeper', () => {
     beforeEach(() => {
         jest.useFakeTimers();
         request = jest.fn();
-        whenIdle = jest.fn(() => Promise.resolve());
+        close = jest.fn(() => Promise.resolve());
     });
 
     afterEach(() => {
@@ -49,7 +49,7 @@ describe('QuestGenerationSweeper', () => {
         expect(sweeper.onApplicationBootstrap()).toBeUndefined();
 
         expect(request).toHaveBeenCalledTimes(1);
-        expect(whenIdle).not.toHaveBeenCalled();
+        expect(close).not.toHaveBeenCalled();
     });
 
     it('requests a run at every interval with an unref timer (D-17)', () => {
@@ -78,9 +78,9 @@ describe('QuestGenerationSweeper', () => {
         expect(request).toHaveBeenCalledTimes(1);
     });
 
-    it('stops the timer and waits for the run in flight on shutdown (D-17)', async () => {
+    it('stops the timer and closes the generator on shutdown (D-17)', async () => {
         let finishRun!: () => void;
-        whenIdle.mockReturnValue(
+        close.mockReturnValue(
             new Promise<void>((resolve) => {
                 finishRun = resolve;
             }),
@@ -97,7 +97,7 @@ describe('QuestGenerationSweeper', () => {
         jest.advanceTimersByTime(3 * EVERY_HOUR_MS);
 
         expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
-        expect(whenIdle).toHaveBeenCalledTimes(1);
+        expect(close).toHaveBeenCalledTimes(1);
         expect(stopped).toBe(false);
         expect(request).toHaveBeenCalledTimes(1);
         finishRun();
