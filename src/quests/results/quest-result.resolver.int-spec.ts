@@ -317,6 +317,34 @@ describe('questResult(id) (wire)', () => {
         });
     });
 
+    it('serves the obtained pet on the result (D-21)', async () => {
+        const pet = await persistPet(modelOf(Pet.name), {
+            name: 'Gufo delle nevi',
+            sellable: false,
+        });
+        const result = await persistAliceResult({
+            rewards: {
+                coins: { gold: 0, silver: 0, copper: 0 },
+                items: [],
+                pet: pet._id,
+            },
+        });
+
+        const won = await readResult(String(result._id), alice.bearer);
+        await modelOf(Pet.name).deleteOne({ _id: pet._id });
+        const orphaned = await readResult(String(result._id), alice.bearer);
+
+        expect(bodyOf(won).errors).toBeUndefined();
+        expect(bodyOf(won).data?.questResult).toMatchObject({
+            rewards: { pet: { id: String(pet._id), name: 'Gufo delle nevi' } },
+        });
+        expect(bodyOf(orphaned).errors).toBeUndefined();
+        expect(bodyOf(orphaned).data?.questResult).toMatchObject({
+            id: String(result._id),
+            rewards: { pet: null },
+        });
+    });
+
     it('still serves the result to its user after the character died', async () => {
         const result = await persistAliceResult({
             outcome: 'death',
