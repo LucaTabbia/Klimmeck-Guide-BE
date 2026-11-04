@@ -12,6 +12,7 @@ import {
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
+import { Pet, PetSchema } from 'src/models/pet.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { QuestsPublisher } from './quests.publisher';
 import { QuestsResolver } from './quests.resolver';
@@ -28,6 +29,7 @@ import { QuestsService } from './quests.service';
             { name: EquipmentItem.name, schema: EquipmentItemSchema },
             { name: LootItem.name, schema: LootItemSchema },
             { name: Spell.name, schema: SpellSchema },
+            { name: Pet.name, schema: PetSchema },
         ]),
     ],
     providers: [QuestsService, QuestsResolver, QuestsPublisher],

@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import type { QuestResultDraft } from 'src/quests/outcomes/outcome-plan';
 import {
@@ -14,7 +15,7 @@ const draftWith = (
     _id: new Types.ObjectId(),
     character: new Types.ObjectId(),
     user: new Types.ObjectId(),
-    quest: { id: new Types.ObjectId(), type: 'enemy', title: 'Caccia' },
+    quest: { id: new Types.ObjectId(), type: QuestType.enemy, title: 'Caccia' },
     outcome: QuestOutcome.success,
     resolvedAt: new Date('2026-11-04T10:00:00.000Z'),
     hpBefore: 1000,
