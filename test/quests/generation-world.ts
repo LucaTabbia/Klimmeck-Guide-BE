@@ -1,7 +1,10 @@
 import type { Model } from 'mongoose';
 import { Types } from 'mongoose';
+import { QUEST_GENERATION_CONFIG } from 'src/config/quest-generation-config';
 import type { QuestGenerationConfig } from 'src/config/quest-generation-config';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
+import { QuestGenerationSweeper } from 'src/quests/generation/quest-generation.sweeper';
+import type { ProviderOverride } from '../auth/auth-test-app';
 import {
     buildCity,
     persistEnemy,
@@ -56,6 +59,17 @@ export const QUIET_GENERATION_CONFIG: QuestGenerationConfig = {
     sweepIntervalMs: 0,
     target: null,
 };
+
+// nessuna corsa al boot né sweep negli harness che generano a mano (D-30)
+export const IDLE_GENERATION_SWEEPER = {
+    onApplicationBootstrap: () => undefined,
+    onModuleDestroy: () => undefined,
+};
+
+export const QUIET_GENERATION_OVERRIDES: ProviderOverride[] = [
+    { token: QuestGenerationSweeper, useValue: IDLE_GENERATION_SWEEPER },
+    { token: QUEST_GENERATION_CONFIG, useValue: QUIET_GENERATION_CONFIG },
+];
 
 const CITY_SPACING = 100;
 const RARITIES = Object.values(RarityType);
