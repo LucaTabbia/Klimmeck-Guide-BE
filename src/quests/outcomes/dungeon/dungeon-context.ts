@@ -68,16 +68,23 @@ const ownedLootItemsOf = (snapshot: CombatCharacterSnapshot) =>
         (entry) => entry?.itemType === 'LootItem',
     );
 
+// indossare non toglie l'oggetto da ownedEquipments: gli slot contano solo oltre il posseduto (dato curato a mano)
+const possessedEquipmentOf = (
+    snapshot: CombatCharacterSnapshot,
+    itemId: string,
+): number =>
+    Math.max(
+        ownedQuantityOf(snapshot.assets?.ownedEquipments ?? [], itemId),
+        wornCopiesOf(snapshot, itemId),
+    );
+
 const possessedQuantityOf = (
     snapshot: CombatCharacterSnapshot,
     entry: RecommendedEntry,
 ): number =>
     entry.itemType === 'LootItem'
         ? ownedQuantityOf(ownedLootItemsOf(snapshot), entry.itemId)
-        : ownedQuantityOf(
-              snapshot.assets?.ownedEquipments ?? [],
-              entry.itemId,
-          ) + wornCopiesOf(snapshot, entry.itemId);
+        : possessedEquipmentOf(snapshot, entry.itemId);
 
 const recommendedOwnedBy = (
     snapshot: CombatCharacterSnapshot,
