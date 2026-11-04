@@ -6,6 +6,7 @@ import {
     refOf,
 } from '../combat/combat-context';
 import { CombatContext } from '../combat/combat-resolver';
+import { isPositiveInteger } from '../outcome-numbers';
 import { DungeonContext, RecommendedEntry } from './dungeon-resolver';
 
 export interface DungeonContextInput {
@@ -18,9 +19,6 @@ const ITEM_REFERENCE_TYPES: ReadonlySet<unknown> = new Set<ItemReferenceType>([
     'EquipmentItem',
     'LootItem',
 ]);
-
-const isPositiveInteger = (value: unknown): value is number =>
-    typeof value === 'number' && Number.isInteger(value) && value >= 1;
 
 const recommendedEntryOf = (value: unknown): RecommendedEntry | null => {
     if (!isRecord(value) || !ITEM_REFERENCE_TYPES.has(value.itemType)) {
