@@ -146,6 +146,7 @@ export class DungeonStagesMigrator {
                 {
                     _id: dungeon._id,
                     concludedAt: null,
+                    startedAt: null,
                     'infos.enemies.1': { $exists: false },
                 },
                 {
@@ -162,14 +163,21 @@ export class DungeonStagesMigrator {
     }
 
     private async openDungeons(): Promise<LeanDungeon[]> {
-        return this.questModel
-            .find({ 'infos.type': QuestType.dungeon, concludedAt: null })
-            .select(
-                '_id infos.enemies infos.enemy infos.markerLocation requirements.minTitle',
-            )
-            .sort({ _id: 1 })
-            .lean<LeanDungeon[]>()
-            .exec();
+        return (
+            this.questModel
+                // mai allungare una dungeon con un party già partito
+                .find({
+                    'infos.type': QuestType.dungeon,
+                    concludedAt: null,
+                    startedAt: null,
+                })
+                .select(
+                    '_id infos.enemies infos.enemy infos.markerLocation requirements.minTitle',
+                )
+                .sort({ _id: 1 })
+                .lean<LeanDungeon[]>()
+                .exec()
+        );
     }
 
     // solo i non leggendari marcati (D-04): il passo dei leggendari gira prima
