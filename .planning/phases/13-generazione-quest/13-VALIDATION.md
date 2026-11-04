@@ -61,8 +61,8 @@ created: 2026-11-04
 | 13-07-02 | 07 | 7 | BE-QGEN-09 | T-13-08 | prima sconfitta ferma l'esplorazione | unit | `npx jest src/quests/outcomes/dungeon/placeholder-dungeon-resolver.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 13-08-01 | 08 | 8 | BE-QGEN-09 | T-13-09 | premi solo a percorso completo | unit | `npx jest src/quests/outcomes/outcome-plan.spec.ts src/quests/outcomes/combatant-plan.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 13-08-02 | 08 | 8 | BE-QGEN-09 | T-13-09 | fallimento = aid con gli stessi `enemies` | integration | `npx jest src/quests/outcomes/quest-dungeon.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
-| 13-09-01 | 09 | 9 | BE-QGEN-02 | — | stesso seme = stessa sequenza | unit | `npx jest src/quests/generation/seeded-chance.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 13-09-02 | 09 | 9 | BE-QGEN-03, BE-QGEN-05 | T-13-10 | fasce e posti dei boss da costanti testate | unit | `npx jest src/quests/generation/generation-rules.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
+| 13-09-01 | 09 | 9 | BE-QGEN-02 | — | stesso seme = stessa sequenza | unit | `npx jest src/quests/generation/seeded-chance.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 13-09-02 | 09 | 9 | BE-QGEN-03, BE-QGEN-05 | T-13-10 | fasce e posti dei boss da costanti testate | unit | `npx jest src/quests/generation/generation-rules.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 13-10-01 | 10 | 10 | BE-QGEN-03, BE-QGEN-05 | T-13-10 | leggendari mai nel pool (fail-closed) | unit | `npx jest src/quests/generation/enemy-pool.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 13-10-02 | 10 | 10 | BE-QGEN-03, BE-QGEN-05 | T-13-10 | branco sempre dallo stesso pool del POI | unit | `npx jest src/quests/generation/quest-composition.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 13-11-01 | 11 | 11 | BE-QGEN-06, BE-QGEN-10 | T-13-11 | legendary mai sotto hero; pet 1% solo boss | unit | `npx jest src/quests/generation/generated-prizes.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
