@@ -29,6 +29,7 @@ export interface AidSourceQuest {
         prizeItem?: unknown;
         randomLoot?: unknown[] | null;
         spell?: unknown;
+        pet?: unknown;
     } | null;
     rescue?: { failedQuest?: unknown } | null;
 }
@@ -56,6 +57,7 @@ export interface AidQuestDraft {
         prizeItem: unknown;
         randomLoot: unknown[];
         spell: unknown;
+        pet: Types.ObjectId | null;
     };
     registeredAdventurers: [];
     concludedAt: null;
@@ -77,6 +79,7 @@ function clonedPrizesOf(
         prizeItem: prizes?.prizeItem ?? null,
         randomLoot: [...(prizes?.randomLoot ?? [])],
         spell: prizes?.spell ?? null,
+        pet: refIdOf(prizes?.pet),
     };
 }
 
@@ -88,6 +91,7 @@ export function aidSlotsOf(requiredAdventurers: unknown): RankSlot[] {
 }
 
 // clone della quest fallita (D-08 emendata il 2026-10-26): una aid per combattimento perso, stessi posti della quest fallita, mai ripetibile; in una catena si clona sempre l'originale (D-09)
+// la aid non porta `generated` (D-17): non conta nel tetto né rilancia il generatore
 export function buildAidQuest(
     original: AidSourceQuest,
     injuredIds: readonly Types.ObjectId[],
