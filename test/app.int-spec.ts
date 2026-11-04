@@ -611,7 +611,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type AwaitingAid {\n  aidQuest: ID!\n  quest: ID!\n  since: DateTime!\n}',
         );
         expect(schema.match(/type QuestPrizes \{[^}]*\}/)?.[0]).toBe(
-            'type QuestPrizes {\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
+            'type QuestPrizes {\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
             'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
@@ -634,7 +634,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type QuestResultQuest {\n  id: ID!\n  title: String!\n  type: String!\n}',
         );
         expect(schema.match(/type QuestRewards \{[^}]*\}/)?.[0]).toBe(
-            'type QuestRewards {\n  coins: Coins!\n  items: [AssetQuantity!]!\n}',
+            'type QuestRewards {\n  coins: Coins!\n  items: [AssetQuantity!]!\n  pet: Pet\n}',
         );
         expect(schema.match(/type SpellUsage \{[^}]*\}/)?.[0]).toBe(
             'type SpellUsage {\n  spell: Spell\n  usages: Int!\n}',
@@ -648,6 +648,24 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
         expect(schema).toContain('questUpdated(questId: String!): Quest!');
         expect(schema).not.toMatch(/\bkind\b|\bgrade\b|CombatResolver/);
+    });
+
+    it('writes the additive quest generation fields into the generated schema (D-04, D-24)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'enum AccessoryUseType {\n  attack\n  defense\n}',
+        );
+        expect(schema.match(/type Enemy \{[^}]*\}/)?.[0]).toContain(
+            '  imagePath: String!\n  legendary: Boolean!\n  lifePoints: Int!\n',
+        );
+        expect(
+            schema
+                .match(/type EquipmentItem \{[^}]*\}/)?.[0]
+                .startsWith(
+                    'type EquipmentItem {\n  accessoryUseTypes: [AccessoryUseType!]\n  addedSpell: Spell\n',
+                ),
+        ).toBe(true);
     });
 
     it('writes the quest result delivery API into the generated schema', () => {
