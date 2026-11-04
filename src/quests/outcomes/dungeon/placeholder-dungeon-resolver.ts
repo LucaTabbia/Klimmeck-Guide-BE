@@ -104,6 +104,7 @@ export class PlaceholderDungeonResolver extends DungeonResolver {
     // D-12: una tappa per voce di `enemies`, in sequenza dagli HP residui; la prima sconfitta ferma l'esplorazione
     explore(context: DungeonContext, chance: ChanceSource): DungeonResolution {
         const stagesTotal = context.enemies.length;
+        // difensivo: il servizio non chiama la porta senza nemici validi (successo automatico, C6/D-01)
         if (stagesTotal === 0) {
             return {
                 verdict: 'success',

@@ -466,3 +466,4 @@ db.quests.aggregate([
    - le dungeon con `minTitle` legend o non generabile vengono saltate con WARN di solo id; una dungeon senza tappe aggiungibili è saltata senza WARN;
    - il migratore ha un suo convertitore lean → `EnemyCandidate` (duplicazione accettata: esce dal repo dopo il boot);
    - l'arricchimento è deterministico per id (seme `DUNGEON_STAGES_SEED = 13`): rieseguito su un DB ripristinato darebbe le stesse tappe.
+6. **Dungeon senza nemici validi** (review B-IN-01): segue la regola C6/D-01 di tutti i tipi, successo automatico con premi pieni e `stagesCleared` / `stagesTotal` a `null` (la porta `DungeonResolver` non viene chiamata); il ramo 0/0 di `PlaceholderDungeonResolver` è solo difensivo. Una dungeon a cui la cura a DB toglie tutti i nemici regala quindi i premi di fine percorso.

@@ -169,6 +169,7 @@ export class QuestResolutionService {
         snapshot: ResolutionCharacter,
     ): CombatantBattle | null {
         const context = combatContextOf(loaded.quest, catalog, [snapshot]);
+        // senza nemici validi ogni tipo, dungeon compresa, è un successo automatico con stages null (C6/D-01)
         if (!context) return null;
         if (loaded.quest.infos.type === QuestType.dungeon) {
             const exploration = this.dungeon.explore(
