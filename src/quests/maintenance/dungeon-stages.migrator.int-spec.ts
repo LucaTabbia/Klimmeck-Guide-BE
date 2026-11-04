@@ -50,6 +50,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
         overrides: {
             minTitle?: string;
             concludedAt?: Date | null;
+            startedAt?: Date | null;
             markerLocation?: Types.ObjectId;
         } = {},
     ): Promise<Types.ObjectId> {
@@ -67,6 +68,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
                 minTitle: overrides.minTitle ?? 'adventurer',
             },
             concludedAt: overrides.concludedAt ?? null,
+            startedAt: overrides.startedAt ?? null,
         });
         return insertedId;
     }
@@ -231,5 +233,18 @@ describe('DungeonStagesMigrator (replSet)', () => {
 
         expect(first).toEqual({ enriched: 1, skipped: 1 });
         expect(second).toEqual({ enriched: 0, skipped: 1 });
+    });
+
+    it('never lengthens a dungeon already started by a party (D-13)', async () => {
+        const started = await insertDungeon([{ enemy: current, quantity: 1 }], {
+            startedAt: new Date('2026-11-04T10:00:00Z'),
+        });
+
+        const report = await migrator.migrate();
+
+        expect(report).toEqual({ enriched: 0, skipped: 0 });
+        expect(await enemiesOf(started)).toEqual([
+            { enemy: current, quantity: 1 },
+        ]);
     });
 });
