@@ -4,6 +4,7 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import {
     questClaimFilter,
     questUpdateOf,
+    regeneratesAfter,
 } from 'src/quests/outcomes/quest-outcome-plan';
 
 const NOW = new Date('2026-10-24T10:00:00.000Z');
@@ -198,5 +199,30 @@ describe('questClaimFilter', () => {
             _id: QUEST_ID,
             concludedAt: null,
         });
+    });
+});
+
+describe('regeneratesAfter', () => {
+    const concluding = { $set: { concludedAt: NOW } };
+
+    it('regenerates after concluding a generated quest (D-17)', () => {
+        expect(regeneratesAfter({ generated: true }, concluding)).toBe(true);
+    });
+
+    it('does not regenerate after concluding a fixed quest (D-17)', () => {
+        expect(regeneratesAfter({ generated: false }, concluding)).toBe(false);
+        expect(regeneratesAfter({}, concluding)).toBe(false);
+    });
+
+    it('does not regenerate when the generated quest stays open (D-17)', () => {
+        const reopening = {
+            $pull: {
+                registeredAdventurers: { character: { $in: [LOSER_ID] } },
+            },
+            $set: { startedAt: null },
+        };
+
+        expect(regeneratesAfter({ generated: true }, reopening)).toBe(false);
+        expect(regeneratesAfter({ generated: true }, null)).toBe(false);
     });
 });

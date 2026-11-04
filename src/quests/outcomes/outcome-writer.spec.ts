@@ -38,6 +38,7 @@ describe('OutcomeWriter', () => {
     let push: { sendToUser: jest.Mock };
     let scheduler: { scheduleAidTimeout: jest.Mock };
     let queue: FakeTravelQueue;
+    let trigger: { request: jest.Mock };
     let writer: OutcomeWriter;
     let warn: jest.SpyInstance;
     const resultId = new Types.ObjectId();
@@ -54,6 +55,7 @@ describe('OutcomeWriter', () => {
             scheduleAidTimeout: jest.fn().mockResolvedValue(undefined),
         };
         queue = new FakeTravelQueue();
+        trigger = { request: jest.fn() };
         writer = new OutcomeWriter(
             models.character as never,
             models.quest as never,
@@ -65,6 +67,7 @@ describe('OutcomeWriter', () => {
             queue as never,
             TIMEOUT_MS,
             new FixedClock(NOW),
+            trigger as never,
         );
         warn = jest
             .spyOn(Logger.prototype, 'warn')
@@ -153,6 +156,36 @@ describe('OutcomeWriter', () => {
 
             expect(warn).toHaveBeenCalledTimes(1);
             expect(String(warn.mock.calls[0][0])).toContain(spellId);
+        });
+
+        it('asks for a generation run after delivering a regenerating outcome (D-17)', async () => {
+            await writer.deliver({ ...committed(), regenerate: true });
+
+            expect(trigger.request).toHaveBeenCalledTimes(1);
+            expect(push.sendToUser).toHaveBeenCalledTimes(1);
+        });
+
+        it('asks for no generation run without a regenerating outcome (D-17)', async () => {
+            await writer.deliver(committed());
+            await writer.deliver(emptyCommitted());
+
+            expect(trigger.request).not.toHaveBeenCalled();
+        });
+
+        it('keeps delivering when the generation request throws (D-17)', async () => {
+            trigger.request.mockImplementation(() => {
+                throw new Error('boom');
+            });
+
+            await expect(
+                writer.deliver({ ...committed(), regenerate: true }),
+            ).resolves.toBeUndefined();
+
+            expect(push.sendToUser).toHaveBeenCalledTimes(1);
+            expect(scheduler.scheduleAidTimeout).toHaveBeenCalledTimes(1);
+            expect(queue.added).toHaveLength(1);
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(String(warn.mock.calls[0][0])).toContain('Generatore');
         });
 
         it('keeps delivering when the push of one result fails', async () => {
@@ -299,6 +332,7 @@ describe('emptyCommitted', () => {
             results: [],
             aids: [],
             spellRecoveries: [],
+            regenerate: false,
         });
     });
 });
