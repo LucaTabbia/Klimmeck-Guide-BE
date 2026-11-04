@@ -56,6 +56,10 @@ export class Quest {
     // solo sulle aid automatiche (D-08): interno, mai sul filo
     @Prop({ type: QuestRescueSchema, default: null })
     rescue?: QuestRescue | null;
+
+    // quest creata dal generatore (D-17): conta nel tetto per città e nel rango meno coperto; interno, mai sul filo
+    @Prop({ type: Boolean, default: false })
+    generated: boolean;
 }
 
 export type QuestDocument = Quest & Document;
@@ -73,6 +77,17 @@ QuestSchema.index(
 QuestSchema.index(
     { 'registeredAdventurers.character': 1 },
     { name: QUEST_REGISTERED_CHARACTER_INDEX },
+);
+
+export const QUEST_GENERATED_OPEN_MARKER_INDEX = 'quest_generated_open_marker';
+// una sola generata aperta per POI anche sotto concorrenza (D-28): il secondo insert riceve E11000
+QuestSchema.index(
+    { 'infos.markerLocation': 1 },
+    {
+        unique: true,
+        name: QUEST_GENERATED_OPEN_MARKER_INDEX,
+        partialFilterExpression: { generated: true, concludedAt: null },
+    },
 );
 
 @InputType()
