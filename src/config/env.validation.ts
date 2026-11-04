@@ -9,6 +9,10 @@ import {
 } from 'src/config/moderation-config';
 import { parsePushConfig, readPushEnv } from 'src/config/push-config';
 import { parseQuestConfig, readQuestEnv } from 'src/config/quest-config';
+import {
+    parseQuestGenerationConfig,
+    readQuestGenerationEnv,
+} from 'src/config/quest-generation-config';
 import { parseRuntimeConfig, readRuntimeEnv } from 'src/config/runtime-config';
 import {
     parseSpellRecoveryConfig,
@@ -30,6 +34,7 @@ export function validateEnv(
     parseModerationConfig(readModerationEnv(env));
     parseTravelConfig(readTravelEnv(env));
     parseQuestConfig(readQuestEnv(env));
+    parseQuestGenerationConfig(readQuestGenerationEnv(env));
     parseSpellRecoveryConfig(readSpellRecoveryEnv(env));
     parseThrottleConfig(readThrottleEnv(env));
     return env;
