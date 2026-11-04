@@ -97,6 +97,7 @@ export function freePoisOf(
         .sort(byId);
 }
 
+// lista mai vuota: una città senza POI liberi ha peso 0 e pickCity non la sceglie
 export function pickPoi(
     freePoiIds: readonly string[],
     chance: ChanceSource,

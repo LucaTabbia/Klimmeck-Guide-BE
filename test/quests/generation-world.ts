@@ -162,7 +162,7 @@ async function persistPets(models: GenerationModels): Promise<void> {
     await persistPet(models.pets, { name: 'Pet in vendita', sellable: true });
 }
 
-// città con marker `city` e POI `forest`, nemici di ogni fascia più un leggendario per fascia, catalogo per rarità, pet
+// città con marker `city` e POI `forest`, un nemico e un leggendario per ogni voce di `enemyXps`, catalogo per rarità, pet
 export async function persistGenerationWorld(
     models: GenerationModels,
     options: GenerationWorldOptions,

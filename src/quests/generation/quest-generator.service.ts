@@ -226,6 +226,9 @@ export class QuestGenerator extends QuestGenerationTrigger {
     }
 
     // una quest alla volta fino al target (D-15); a mondo pieno 0
+    // ordine dei tiri per quest, da non spostare (le spec a seme fisso ne dipendono):
+    // pickCity (1) → pickPoi (1) → composeQuest per ogni rango provato (vedi quest-composition.ts)
+    // → prizesOf (vedi generated-prizes.ts) → announcementOf (1, in generated-quest-draft.ts)
     private async runOnce(): Promise<number> {
         const world = await this.readWorld();
         const target = this.config.target ?? world.cityCount;
