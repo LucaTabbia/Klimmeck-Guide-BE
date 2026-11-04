@@ -287,15 +287,15 @@ describe('QuestGenerator (replSet)', () => {
 
     it('skips a poi taken by a concurrent insert and keeps going (D-28)', async () => {
         await persistGenerationWorld(models, { cities: 2, poisPerCity: 3 });
-        let raced: Types.ObjectId | null = null;
+        const race: { poi: Types.ObjectId | null } = { poi: null };
         const racingModel = new Proxy(quests, {
             get(target, property) {
                 if (property === 'create') {
                     return async (draft: {
                         infos: { markerLocation: Types.ObjectId };
                     }) => {
-                        if (raced === null) {
-                            raced = draft.infos.markerLocation;
+                        if (race.poi === null) {
+                            race.poi = draft.infos.markerLocation;
                             await target.collection.insertOne({
                                 ...(draft as object),
                                 _id: new Types.ObjectId(),
@@ -317,10 +317,10 @@ describe('QuestGenerator (replSet)', () => {
         ).resolves.toBe(2);
         const created = await generatedQuests();
         expect(created).toHaveLength(3);
+        const raced = race.poi as Types.ObjectId;
+        expect(raced).toBeInstanceOf(Types.ObjectId);
         expect(
-            created.filter((quest) =>
-                quest.infos.markerLocation.equals(raced!),
-            ),
+            created.filter((quest) => quest.infos.markerLocation.equals(raced)),
         ).toHaveLength(1);
         expect(
             new Set(

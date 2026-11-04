@@ -74,7 +74,7 @@ async function persistCityWithPois(
         location: [x, y],
         city: id,
     });
-    const pois = [];
+    const pois: { _id: Types.ObjectId }[] = [];
     for (let poi = 0; poi < poisPerCity; poi += 1) {
         pois.push(
             await persistPoi(models.pois, {
@@ -97,7 +97,7 @@ async function persistCityWithPois(
         id,
         name,
         markerId: marker._id as Types.ObjectId,
-        poiIds: pois.map((poi) => poi._id as Types.ObjectId),
+        poiIds: pois.map((poi) => poi._id),
     };
 }
 
