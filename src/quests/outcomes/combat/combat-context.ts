@@ -35,6 +35,7 @@ export interface CombatCharacterSnapshot {
     assets?: {
         wearedEquipment?: Partial<Record<SlotType, unknown>> | null;
         activeSpells?: { spell?: unknown; usages?: number }[];
+        ownedEquipments?: { item?: unknown; quantity?: number }[];
         ownedItems?: { itemType?: string; item?: unknown; quantity?: number }[];
     } | null;
 }
@@ -67,7 +68,7 @@ export interface CombatCatalogRefs {
 const LOOT_ITEM_TYPE = 'LootItem';
 const KNOWN_EFFECTS: ReadonlySet<unknown> = new Set(Object.values(EffectType));
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const numberOr = (value: unknown, fallback: number): number =>
@@ -103,7 +104,7 @@ export function normalizeDamages(raw: unknown): CombatDamages {
     };
 }
 
-const refOf = (value: unknown): Types.ObjectId | null =>
+export const refOf = (value: unknown): Types.ObjectId | null =>
     refIdOf(value) ?? (isRecord(value) ? refIdOf(value._id) : null);
 
 const wornOf = (snapshot: CombatCharacterSnapshot) =>
