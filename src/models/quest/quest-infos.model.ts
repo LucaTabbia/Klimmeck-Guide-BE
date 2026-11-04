@@ -2,9 +2,9 @@ import { ObjectType, Field, Int, InputType, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { QuestType } from '../enums/quest-type.enum';
-import { Enemy } from '../enemy.model';
 import { Lore } from '../lore.model';
 import { PointOfInterest } from '../point-of-interest.model';
+import { QuestEnemy, QuestEnemySchema } from './quest-enemy.model';
 
 @ObjectType()
 @Schema({ _id: false })
@@ -17,13 +17,9 @@ export class QuestInfos {
     @Prop({ type: String })
     title: string;
 
-    @Field(() => Enemy, { nullable: true })
-    @Prop({
-        type: MongooseSchema.Types.ObjectId,
-        ref: Enemy.name,
-        default: null,
-    })
-    enemy?: Enemy | null;
+    @Field(() => [QuestEnemy])
+    @Prop({ type: [QuestEnemySchema], default: [] })
+    enemies: QuestEnemy[];
 
     @Field(() => String)
     @Prop({ type: String, enum: Object.values(QuestType) })
@@ -56,9 +52,6 @@ export class QuestInfosInput {
 
     @Field()
     title: string;
-
-    @Field(() => ID, { nullable: true })
-    enemy?: string | null;
 
     @Field(() => QuestType)
     type: QuestType;

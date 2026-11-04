@@ -84,6 +84,11 @@ export interface ConsumableUsage {
     quantity: number;
 }
 
+export interface QuestEnemyDraft {
+    enemy: Types.ObjectId;
+    quantity: number;
+}
+
 export interface QuestResultDraft {
     _id: Types.ObjectId;
     character: Types.ObjectId;
@@ -106,7 +111,9 @@ export interface QuestResultDraft {
     titleBefore: TitleType;
     titleAfter: TitleType;
     spellLearned: Types.ObjectId | null;
-    enemy: Types.ObjectId | null;
+    enemies: QuestEnemyDraft[];
+    stagesCleared: number | null;
+    stagesTotal: number | null;
     rescuedCharacters: Types.ObjectId[];
 }
 
@@ -417,7 +424,11 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             titleBefore: before.title,
             titleAfter,
             spellLearned,
-            enemy: input.enemy?.id ?? null,
+            enemies: input.enemy
+                ? [{ enemy: input.enemy.id, quantity: 1 }]
+                : [],
+            stagesCleared: null,
+            stagesTotal: null,
             // solo chi ha vinto il soccorso ha salvato qualcuno
             rescuedCharacters:
                 input.verdict === QuestOutcome.success

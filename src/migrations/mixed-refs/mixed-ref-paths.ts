@@ -53,7 +53,7 @@ export const MIXED_REF_PATHS: readonly MixedRefPath[] = [
     ),
     subdocArray('characters', 'assets.activeSpells', 'spell'),
     scalar('characters', 'assets.pet'),
-    scalar('quests', 'infos.enemy'),
+    subdocArray('quests', 'infos.enemies', 'enemy'),
     scalar('quests', 'infos.markerLocation'),
     array('quests', 'infos.relatedLore'),
     subdocArray('quests', 'requirements.recommendedLoot', 'item'),

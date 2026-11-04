@@ -46,6 +46,6 @@ export function unpopulatedResultOf(draft: QuestResultDraft): QuestResult {
         })),
         rewards: { coins: draft.rewards.coins, items: [] },
         spellLearned: null,
-        enemy: null,
+        enemies: [],
     };
 }
