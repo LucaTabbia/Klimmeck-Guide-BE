@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 12 complete — first real-DB boot done from the branch and one-off maintenance removed (D-25), PR feat/12-negozi-per-citta → develop open (2026-11-03)
-last_updated: "2026-11-03T09:28:58.000Z"
-last_activity: 2026-11-03 -- Phase 12: first boot on the real DB run from the branch (4+9 pets, 1 character, 167 pool lists per kind, no warning), migrators and seeder removed (D-25), docs amended, PR #18 updated
+status: planning
+stopped_at: Phase 13 context gathered (2026-11-04) — ready to plan; branch feat/13-generazione-quest from develop 0585b2e, push pending
+last_updated: "2026-11-04T16:04:28.000Z"
+last_activity: 2026-11-04 -- Phase 13 discuss (joint with the FE Phase 14, from the FE repo): 13-CONTEXT D-01..D-26 + DISCUSSION-LOG written, BE-QGEN-01/03/05/06/07 amended and BE-QGEN-09..11 added, ROADMAP amended, branch feat/13-generazione-quest from develop 0585b2e
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 12 — Negozi per città — EXECUTION COMPLETE on 2026-11-03 (19/19 plans, gate 12-18 green, handoff `.planning/phases/12-negozi-per-citta/BACKEND-NOTES.md` with the first boot runbook in §9) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`); next: post-execution review, security audit and PR `feat/12-negozi-per-citta` → `develop` by the orchestrator; the first boot on the real DB was run from the branch on 2026-11-03 and the one-off maintenance left the repo (D-25, handoff §9/§14); after the merge: build + restart only; then the FE Phase 13 runs the gated plans 13-10/13-11. Previous: Phase 11 — Popolamento del mondo — COMPLETE and merged (PR #17, `65ba3d7`, 2026-11-02).
+**Current focus:** Phase 13 — Generazione quest — CONTEXT GATHERED on 2026-11-04 (joint discuss with the FE Phase 14, run from the FE repo) on `feat/13-generazione-quest` (from `develop` `0585b2e`, the merge of PR #18): `13-CONTEXT.md` D-01..D-26, BE-QGEN-09..11 added (dungeon a tappe, premio pet, `accessoryUseTypes`); next: `/gsd-plan-phase 13` (research → plan → check), then execution in parallel with the FE Phase 14 plans on mocks; the FE gated plans (schema gate, device E2E) wait for this PR on `develop`. Previous: Phase 12 — Negozi per città — COMPLETE and merged (PR #18, `0585b2e`, 2026-11-03).
 
 ## Current Position
 
-Phase: 12 (Negozi per città) — EXECUTION COMPLETE (2026-11-03) on `feat/12-negozi-per-citta` (from `develop` `65ba3d7`): 19 plans in a linear chain (`12-01`..`12-19`), gate 12-18 green, handoff `BACKEND-NOTES.md` for the FE Phase 13 (`../Klimmeck-Guide/.planning/phases/13-city-shops/`, plans 13-10/13-11 gated by this PR)
-Plan: 19 of 19
-Status: Phase 12 complete (19/19) — review 0 critical / 2 warning / 8 info, 7 fixed, 3 not needed; verification passed (0 gaps); security audit 54 threats, 47 mitigated, 7 accepted, 0 open; PR #18 `feat/12-negozi-per-citta` → `develop` open on 2026-11-03; first boot on the real DB done from the branch on 2026-11-03 (log in `BACKEND-NOTES.md` §9), migrators and seeder removed before the merge (D-25, §14; gate after the removal: `npm run test:cov` 302 suite (191 unit + 111 integration), 3955 test verdi; coverage totale 96,99 % statements / 85,43 % branches / 97,53 % lines; `src/shops` 100 / 83,6 / 100 sopra la soglia 97/82/98; `tsc` 0; SDL invariato (+45 / −2 vs `develop`); prettier ed eslint puliti sui file toccati; il boot con il codice finale è stato silenzioso.); after the merge the user only rebuilds and restarts the BE, then the FE Phase 13 resumes with 13-10/13-11
-Last activity: 2026-11-03 -- Phase 12: first real-DB boot from the branch, one-off maintenance removed (D-25), docs amended, PR #18 updated
+Phase: 13 (Generazione quest) — CONTEXT GATHERED (2026-11-04) on `feat/13-generazione-quest` (from `develop` `0585b2e`): `13-CONTEXT.md` D-01..D-26 and `13-DISCUSSION-LOG.md` written; not planned yet
+Plan: 0 of ? (not planned yet)
+Status: Phase 13 context gathered (2026-11-04) — ready to plan; the FE companion CONTEXT is `../Klimmeck-Guide/.planning/phases/14-quest-generation/14-CONTEXT.md` (D-01..D-13); branch created locally, push pending (SSH agent unavailable in the session)
+Last activity: 2026-11-04 -- Phase 13 discuss (joint with the FE Phase 14, from the FE repo): 13-CONTEXT D-01..D-26 + DISCUSSION-LOG written, BE-QGEN-01/03/05/06/07 amended and BE-QGEN-09..11 added, ROADMAP amended, branch feat/13-generazione-quest from develop 0585b2e
 
-Progress: [██████████] 19/19 plans of Phase 12 (phases 1–12, 9.1 and 9.2 complete; 1–11 merged)
+Progress: [░░░░░░░░░░] 0/? plans of Phase 13 (phases 1–12, 9.1 and 9.2 complete and merged on develop)
 
 ## Performance Metrics
 
