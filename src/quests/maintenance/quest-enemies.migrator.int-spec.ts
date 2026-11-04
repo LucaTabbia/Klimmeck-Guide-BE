@@ -29,6 +29,14 @@ describe('QuestEnemiesMigrator (replSet)', () => {
         return { ...infos, enemy };
     }
 
+    function withoutEnemy(
+        document: Record<string, unknown>,
+    ): Record<string, unknown> {
+        const copy = { ...document };
+        delete copy.enemy;
+        return copy;
+    }
+
     async function insertQuest(infos: Record<string, unknown>) {
         const { insertedId } = await quests.collection.insertOne({
             ...buildQuest(),
@@ -92,8 +100,7 @@ describe('QuestEnemiesMigrator (replSet)', () => {
 
     it('migrates a null or missing quest enemy into an empty list (D-28)', async () => {
         const nullEnemy = await insertQuest(legacyInfos(null));
-        const { enemy: _dropped, ...withoutEnemy } = legacyInfos(null);
-        const missingEnemy = await insertQuest(withoutEnemy);
+        const missingEnemy = await insertQuest(withoutEnemy(legacyInfos(null)));
 
         await expect(migrator.migrateAll()).resolves.toEqual({
             quests: 2,
@@ -108,9 +115,8 @@ describe('QuestEnemiesMigrator (replSet)', () => {
     });
 
     it('leaves a quest that already has the list untouched (D-01)', async () => {
-        const { enemy: _dropped, ...infos } = legacyInfos(null);
         const id = await insertQuest({
-            ...infos,
+            ...withoutEnemy(legacyInfos(null)),
             enemies: [{ enemy: new Types.ObjectId(), quantity: 3 }],
         });
         const before = await rawQuest(id);
@@ -131,9 +137,9 @@ describe('QuestEnemiesMigrator (replSet)', () => {
         const { insertedId: empty } = await results.collection.insertOne(
             buildQuestResult({ enemy: null }),
         );
-        const { enemy: _dropped, ...migratedResult } = buildQuestResult({
-            enemies: [{ enemy, quantity: 2 }],
-        });
+        const migratedResult = withoutEnemy(
+            buildQuestResult({ enemies: [{ enemy, quantity: 2 }] }),
+        );
         const { insertedId: migrated } =
             await results.collection.insertOne(migratedResult);
         const untouched = await results.collection.findOne({ _id: migrated });
