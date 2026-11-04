@@ -24,7 +24,11 @@ const draftWith = (
     injuriesAdded: [],
     consumablesUsed: [],
     spellsUsed: [],
-    rewards: { coins: { gold: 0, silver: 1, copper: 0 }, items: [] },
+    rewards: {
+        coins: { gold: 0, silver: 1, copper: 0 },
+        items: [],
+        pet: null,
+    },
     xpGained: 100,
     xpBefore: 0,
     xpAfter: 100,
@@ -104,5 +108,22 @@ describe('unpopulatedResultOf', () => {
         expect(result.enemies).toEqual([]);
         expect(result.stagesCleared).toBe(1);
         expect(result.stagesTotal).toBe(3);
+    });
+    it('answers the pet reward null without a populate (D-21)', () => {
+        const result = unpopulatedResultOf(
+            draftWith({
+                rewards: {
+                    coins: { gold: 0, silver: 1, copper: 0 },
+                    items: [],
+                    pet: new Types.ObjectId(),
+                },
+            }),
+        );
+
+        expect(result.rewards).toEqual({
+            coins: { gold: 0, silver: 1, copper: 0 },
+            items: [],
+            pet: null,
+        });
     });
 });

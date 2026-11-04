@@ -35,6 +35,8 @@ const OTHER_INJURED_ID = new Types.ObjectId('64b0000000000000000000ed');
 const OTHER_ITEM_ID = new Types.ObjectId('64b0000000000000000000ed');
 const OTHER_SPELL_ID = new Types.ObjectId('64b0000000000000000000ee');
 const DRAWN_SPELL_ID = new Types.ObjectId('64b0000000000000000000ef');
+const PET_ID = new Types.ObjectId('64b0000000000000000000f1');
+const OWNED_PET_ID = new Types.ObjectId('64b0000000000000000000f2');
 
 type SnapshotOverrides = {
     status?: Partial<OutcomeCharacterSnapshot['status']>;
@@ -161,6 +163,7 @@ describe('planParticipant', () => {
                 'status.spells',
                 'status.spellStates',
                 'assets.activeSpells',
+                'assets.ownedPets',
             ]) {
                 expect(plan.update.$set).not.toHaveProperty([key]);
             }
@@ -192,6 +195,7 @@ describe('planParticipant', () => {
                 rewards: {
                     coins: { gold: 0, silver: 1, copper: 50 },
                     items: [potionStack(2)],
+                    pet: null,
                 },
                 xpGained: 300,
                 xpBefore: 0,
@@ -359,7 +363,75 @@ describe('planParticipant', () => {
             expect(plan.result.rewards).toEqual({
                 coins: { gold: 0, silver: 0, copper: 0 },
                 items: [],
+                pet: null,
             });
+        });
+    });
+
+    describe('the pet prize', () => {
+        const assetsWithPets = (ownedPets: unknown[]) => ({
+            ownedItems: [],
+            ownedEquipments: [],
+            activeSpells: [],
+            ownedPets,
+        });
+
+        it('adds the won pet to the owned pets in the same update (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    snapshot: snapshotWith({
+                        assets: assetsWithPets([OWNED_PET_ID]),
+                    }),
+                    rewards: rewardsWith({ pet: PET_ID }),
+                }),
+            );
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                OWNED_PET_ID,
+                PET_ID,
+            ]);
+            expect(plan.result.rewards.pet).toEqual(PET_ID);
+        });
+
+        it('writes nothing for a pet already owned (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    snapshot: snapshotWith({
+                        assets: assetsWithPets([PET_ID.toHexString()]),
+                    }),
+                    rewards: rewardsWith({ pet: PET_ID }),
+                }),
+            );
+
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'assets.ownedPets',
+            );
+            expect(plan.result.rewards.pet).toBeNull();
+        });
+
+        it('never gives the pet on a defeat (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.enemy),
+                    verdict: QuestOutcome.failure,
+                    battle: battleWith({ hpAfter: 300 }),
+                    rewards: rewardsWith({ pet: PET_ID }),
+                    aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                }),
+            );
+
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'assets.ownedPets',
+            );
+            expect(plan.result.rewards.pet).toBeNull();
+        });
+
+        it('starts the owned pets from an empty list when the sheet has none (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({ rewards: rewardsWith({ pet: PET_ID }) }),
+            );
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([PET_ID]);
         });
     });
 

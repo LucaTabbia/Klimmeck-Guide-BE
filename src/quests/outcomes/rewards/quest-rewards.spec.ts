@@ -3,6 +3,7 @@ import { RarityType } from 'src/models/enums/rarity-type.enum';
 import {
     NO_REWARDS,
     PrizesSnapshot,
+    QUEST_PET_WIN_CHANCE,
     RewardCatalog,
     SpellCandidate,
     canLearnSpell,
@@ -17,11 +18,14 @@ const ORPHAN_ID = new Types.ObjectId('64b0000000000000000000b2');
 const BONE_ID = new Types.ObjectId('64b0000000000000000000b3');
 const SPELL_ID = new Types.ObjectId('64b0000000000000000000b4');
 const ORPHAN_SPELL_ID = new Types.ObjectId('64b0000000000000000000b5');
+const PET_ID = new Types.ObjectId('64b0000000000000000000b6');
+const ORPHAN_PET_ID = new Types.ObjectId('64b0000000000000000000b7');
 
 const emptyCatalog: RewardCatalog = {
     rarities: new Map(),
     spells: new Map(),
     spellPool: [],
+    pets: new Set(),
 };
 
 const catalog: RewardCatalog = {
@@ -33,6 +37,7 @@ const catalog: RewardCatalog = {
         [SPELL_ID.toHexString(), { minXpToLearn: 4000, maxUsages: 4 }],
     ]),
     spellPool: [],
+    pets: new Set(),
 };
 
 const spellOf = (
@@ -70,6 +75,7 @@ describe('drawRewards', () => {
             items: [],
             spellCandidate: null,
             spellDraw: null,
+            pet: null,
         });
     });
 
@@ -86,6 +92,7 @@ describe('drawRewards', () => {
             items: [{ itemType: 'LootItem', item: POTION_ID, quantity: 2 }],
             spellCandidate: null,
             spellDraw: null,
+            pet: null,
         });
     });
 
@@ -242,6 +249,70 @@ describe('drawRewards with a spell draw', () => {
     );
 });
 
+describe('drawRewards with a pet prize', () => {
+    const petCatalog: RewardCatalog = {
+        ...catalog,
+        spellPool: [SPELL_A],
+        pets: new Set([PET_ID.toHexString()]),
+    };
+    const petPrizes = (overrides: PrizesSnapshot = {}): PrizesSnapshot =>
+        prizesWith({
+            randomLoot: [{ itemType: 'LootItem', item: BONE_ID, quantity: 1 }],
+            spellDraw: true,
+            pet: PET_ID,
+            ...overrides,
+        });
+
+    it('wins the pet prize on a roll below 20% after the loot and spell draws (D-21)', () => {
+        const chance = new SequenceChance([0.1, 0.7, 0.19]);
+
+        const rewards = drawRewards(petPrizes(), petCatalog, chance);
+
+        expect(rewards.pet).toEqual(PET_ID);
+        expect(rewards.spellDraw).toEqual({ pool: [SPELL_A], roll: 0.7 });
+        expect(chance.drawn).toEqual([0.1, 0.7, 0.19]);
+    });
+
+    it('loses the pet prize on a roll of 20% (D-21)', () => {
+        const chance = new SequenceChance([0.1, 0.7, 0.2]);
+
+        const rewards = drawRewards(petPrizes(), petCatalog, chance);
+
+        expect(rewards.pet).toBeNull();
+        expect(chance.drawn).toEqual([0.1, 0.7, 0.2]);
+    });
+
+    it('pins the pet win chance at 20% (D-21)', () => {
+        expect(QUEST_PET_WIN_CHANCE).toBe(0.2);
+    });
+
+    it('skips the pet draw when the quest has no pet prize (D-21)', () => {
+        const chance = new SequenceChance([0.1, 0.7, 0.1]);
+
+        const rewards = drawRewards(
+            petPrizes({ pet: null }),
+            petCatalog,
+            chance,
+        );
+
+        expect(rewards.pet).toBeNull();
+        expect(chance.drawn).toEqual([0.1, 0.7]);
+    });
+
+    it('ignores an orphan pet prize without drawing (D-21)', () => {
+        const chance = new SequenceChance([0.1, 0.7, 0.1]);
+
+        const rewards = drawRewards(
+            petPrizes({ pet: ORPHAN_PET_ID }),
+            petCatalog,
+            chance,
+        );
+
+        expect(rewards.pet).toBeNull();
+        expect(chance.drawn).toEqual([0.1, 0.7]);
+    });
+});
+
 describe('drawLearnableSpell', () => {
     it('picks among the unknown spells the xp after the prizes can learn (D-31)', () => {
         const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], roll: 0 };
@@ -335,10 +406,19 @@ describe('rewardRefsOf', () => {
                 { itemType: 'LootItem', item: BONE_ID },
             ],
             spellId: SPELL_ID,
+            petId: null,
         });
     });
 
+    it('lists the pet prize ref for the catalog reads (D-21)', () => {
+        expect(rewardRefsOf(prizesWith({ pet: PET_ID })).petId).toEqual(PET_ID);
+    });
+
     it('returns no refs without prizes', () => {
-        expect(rewardRefsOf(null)).toEqual({ items: [], spellId: null });
+        expect(rewardRefsOf(null)).toEqual({
+            items: [],
+            spellId: null,
+            petId: null,
+        });
     });
 });

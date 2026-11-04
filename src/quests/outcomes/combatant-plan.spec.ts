@@ -42,7 +42,12 @@ const catalogWith = (
     enemies: { snapshot: CombatEnemySnapshot; quantity: number }[],
 ): ResolutionCatalog => ({
     enemies,
-    rewards: { rarities: new Map(), spells: new Map(), spellPool: [] },
+    rewards: {
+        rarities: new Map(),
+        spells: new Map(),
+        spellPool: [],
+        pets: new Set(),
+    },
     equipment: new Map(),
     spells: new Map(),
     loot: new Map(),
