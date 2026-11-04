@@ -54,6 +54,11 @@ export class Enemy {
     @Prop({ type: String })
     imagePath: string;
 
+    // i 22 leggendari sono delle worldMission (D-04): il generatore legge solo legendary false, scritto dal migratore una tantum
+    @Field(() => Boolean)
+    @Prop({ type: Boolean, default: false })
+    legendary: boolean;
+
     @Field(() => Damages)
     @Prop({ type: DamagesSchema })
     damages: Damages;

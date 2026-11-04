@@ -7,6 +7,7 @@ import {
     assetQuantitySchemaAt,
 } from '../common/asset-quantity.model';
 import { Coins, CoinsInput, CoinsSchema } from '../common/coins.model';
+import { Pet } from '../pet.model';
 import { Spell } from '../spell.model';
 
 @ObjectType()
@@ -37,6 +38,11 @@ export class QuestPrizes {
         default: null,
     })
     spell?: Types.ObjectId | Spell | null;
+
+    // pet premio (D-21): il generatore lo mette solo sui boss all'1%, la vittoria lo tira al 20% per vincitore; orfano = null sul filo
+    @Field(() => Pet, { nullable: true })
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: Pet.name, default: null })
+    pet?: Types.ObjectId | Pet | null;
 
     // D-31: la study di Valantar sorteggia la magia alla risoluzione; campo interno, mai nello SDL
     @Prop({ type: Boolean, default: false })

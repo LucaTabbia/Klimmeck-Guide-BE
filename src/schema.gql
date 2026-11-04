@@ -12,6 +12,11 @@ input AcceptQuestRequest {
   questId: String!
 }
 
+enum AccessoryUseType {
+  attack
+  defense
+}
+
 type ActiveSpell {
   spell: Spell
   usages: Int!
@@ -229,6 +234,7 @@ type Enemy {
   energyWeaknesses: [String!]!
   id: ID!
   imagePath: String!
+  legendary: Boolean!
   lifePoints: Int!
   locations: [PoiType!]!
   name: String!
@@ -272,6 +278,7 @@ type Equipment {
 }
 
 type EquipmentItem {
+  accessoryUseTypes: [AccessoryUseType!]
   addedSpell: Spell
   buyPrice: Coins
   damages: Damages!
@@ -577,6 +584,7 @@ type QuestPartySlot {
 }
 
 type QuestPrizes {
+  pet: Pet
   prizeCoins: Coins
   prizeItem: AssetQuantity
   randomLoot: [AssetQuantity!]!
@@ -633,6 +641,7 @@ type QuestResultQuest {
 type QuestRewards {
   coins: Coins!
   items: [AssetQuantity!]!
+  pet: Pet
 }
 
 type RaceTraits {

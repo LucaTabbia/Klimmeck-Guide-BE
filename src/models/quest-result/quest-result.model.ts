@@ -9,6 +9,7 @@ import { Coins, CoinsSchema } from '../common/coins.model';
 import { Enemy } from '../enemy.model';
 import { InjuryType } from '../enums/injury-type.enum';
 import { QuestOutcome } from '../enums/quest-outcome.enum';
+import { Pet } from '../pet.model';
 import { TitleType } from '../enums/title-type.enum';
 import { Spell } from '../spell.model';
 
@@ -62,6 +63,11 @@ export class QuestRewards {
     @Field(() => [AssetQuantity])
     @Prop({ type: [assetQuantitySchemaAt('rewards.items')], default: [] })
     items: AssetQuantity[];
+
+    // pet ottenuto dal tiro del 20% (D-21): null se non vinto o già posseduto
+    @Field(() => Pet, { nullable: true })
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: Pet.name, default: null })
+    pet?: Types.ObjectId | Pet | null;
 }
 
 export const QuestRewardsSchema = SchemaFactory.createForClass(QuestRewards);

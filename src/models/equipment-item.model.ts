@@ -3,6 +3,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 import { AssetItem } from './interfaces/asset-item.model';
 import { EquipType } from './enums/equip-type.enum';
+import { AccessoryUseType } from './enums/accessory-use-type.enum';
 import { Spell } from './spell.model';
 import { DamagesSchema, Damages, DamagesInput } from './common/damages.model';
 import { Coins } from './common/coins.model';
@@ -13,6 +14,15 @@ export class EquipmentItem extends AssetItem {
     @Field(() => String)
     @Prop({ type: String, enum: Object.values(EquipType) })
     equipType: EquipType;
+
+    // solo anelli e collane (D-24): assente finché la migrazione o la cura a DB non lo scrive, null sul filo
+    @Field(() => [AccessoryUseType], { nullable: true })
+    @Prop({
+        type: [String],
+        enum: Object.values(AccessoryUseType),
+        default: undefined,
+    })
+    accessoryUseTypes?: AccessoryUseType[] | null;
 
     @Field(() => Spell, { nullable: true })
     @Prop({
@@ -52,6 +62,9 @@ export class EquipmentItemInput {
 
     @Field(() => EquipType)
     equipType: EquipType;
+
+    @Field(() => [AccessoryUseType], { nullable: true })
+    accessoryUseTypes?: AccessoryUseType[] | null;
 
     @Field(() => ID, { nullable: true })
     addedSpell?: string | null;
