@@ -7,6 +7,7 @@ import { SequenceChance } from '../../../../test/quests/sequence-chance';
 import {
     CombatConsumable,
     CombatContext,
+    CombatEnemy,
     CombatEquipment,
     CombatParticipant,
     CombatSpell,
@@ -52,23 +53,36 @@ const participant = (
     ...overrides,
 });
 
+const enemy = (
+    lifePoints: number,
+    damage: number,
+    quantity = 1,
+): CombatEnemy => ({
+    id: hex('b1'),
+    name: 'Wolf',
+    lifePoints,
+    xp: 100,
+    damages: { base: [{ type: 'cut', power: damage }], energy: [] },
+    baseWeaknesses: [],
+    energyWeaknesses: [],
+    quantity,
+});
+
+const contextWith = (
+    participants: CombatParticipant[],
+    enemies: CombatEnemy[],
+): CombatContext => ({
+    quest: { id: hex('91'), type: QuestType.hunt, title: 'Wolves' },
+    enemies,
+    participants,
+});
+
 const contextOf = (
     participants: CombatParticipant[],
     enemyLifePoints = 1000,
     enemyDamage = 100,
-): CombatContext => ({
-    quest: { id: hex('91'), type: QuestType.hunt, title: 'Wolves' },
-    enemy: {
-        id: hex('b1'),
-        name: 'Wolf',
-        lifePoints: enemyLifePoints,
-        xp: 100,
-        damages: { base: [{ type: 'cut', power: enemyDamage }], energy: [] },
-        baseWeaknesses: [],
-        energyWeaknesses: [],
-    },
-    participants,
-});
+): CombatContext =>
+    contextWith(participants, [enemy(enemyLifePoints, enemyDamage)]);
 
 // generatore con seme fissato: le 50 sequenze sono sempre le stesse
 const seeded = (seed: number) => () => {
@@ -207,6 +221,29 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
             [hex('a1'), 1],
             [hex('a2'), 950],
         ]);
+    });
+
+    it('aggregates the enemy life points by quantity in the win chance (D-02)', () => {
+        const hero = participant({ equipment: [weapon(300)] });
+        const pack = contextWith([hero], [enemy(100, 0, 3)]);
+        const single = contextWith([hero], [enemy(300, 0)]);
+
+        expect(winChanceOf(300, 300)).toBe(0.5);
+        expect(resolve(pack, [0.49, 0.9]).verdict).toBe('success');
+        expect(resolve(single, [0.49, 0.9]).verdict).toBe('success');
+        expect(resolve(pack, [0.51, 0.9]).verdict).toBe('failure');
+        expect(resolve(single, [0.51, 0.9]).verdict).toBe('failure');
+    });
+
+    it('aggregates the enemy damages by quantity (D-02)', () => {
+        const hero = participant();
+        const pair = contextWith([hero], [enemy(1000, 100, 2)]);
+        const single = contextWith([hero], [enemy(1000, 200)]);
+
+        const fromPair = resolve(pair, [0.9, 0.9]);
+
+        expect(fromPair).toEqual(resolve(single, [0.9, 0.9]));
+        expect(fromPair.participants[0].hpAfter).toBe(800);
     });
 
     it('uses one charge of each active spell that still has usages', () => {

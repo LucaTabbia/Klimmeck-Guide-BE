@@ -57,15 +57,20 @@ const hydration = (): CombatHydration => ({
         _id: id('91'),
         infos: { type: QuestType.hunt, title: 'Wolves' },
     },
-    enemy: {
-        _id: id('b1'),
-        name: 'Wolf',
-        lifePoints: 1000,
-        xp: 100,
-        damages: { base: { type: 'cut', power: 80 } },
-        baseWeaknesses: ['blunt'],
-        energyWeaknesses: ['fire'],
-    },
+    enemies: [
+        {
+            snapshot: {
+                _id: id('b1'),
+                name: 'Wolf',
+                lifePoints: 1000,
+                xp: 100,
+                damages: { base: { type: 'cut', power: 80 } },
+                baseWeaknesses: ['blunt'],
+                energyWeaknesses: ['fire'],
+            },
+            quantity: 1,
+        },
+    ],
     participants: [heroB(), heroA()],
     equipment: new Map([
         [
@@ -146,18 +151,68 @@ describe('buildCombatContext', () => {
             type: QuestType.hunt,
             title: 'Wolves',
         });
-        expect(context.enemy).toEqual({
-            id: id('b1').toHexString(),
-            name: 'Wolf',
-            lifePoints: 1000,
-            xp: 100,
-            damages: { base: [{ type: 'cut', power: 80 }], energy: [] },
-            baseWeaknesses: ['blunt'],
-            energyWeaknesses: ['fire'],
-        });
+        expect(context.enemies).toEqual([
+            {
+                id: id('b1').toHexString(),
+                name: 'Wolf',
+                lifePoints: 1000,
+                xp: 100,
+                damages: { base: [{ type: 'cut', power: 80 }], energy: [] },
+                baseWeaknesses: ['blunt'],
+                energyWeaknesses: ['fire'],
+                quantity: 1,
+            },
+        ]);
         expect(context.participants.map((p) => p.characterId)).toEqual([
             id('a1').toHexString(),
             id('a2').toHexString(),
+        ]);
+    });
+
+    it('lists the enemies in quest order with their quantities (D-02)', () => {
+        const source = hydration();
+        source.enemies = [
+            {
+                snapshot: {
+                    _id: id('c2'),
+                    name: 'Goblin',
+                    lifePoints: 100,
+                    xp: 10,
+                },
+                quantity: 3,
+            },
+            {
+                snapshot: {
+                    _id: id('c1'),
+                    name: 'Capo',
+                    lifePoints: 600,
+                    xp: 63,
+                },
+                quantity: 1,
+            },
+        ];
+
+        expect(buildCombatContext(source).enemies).toEqual([
+            {
+                id: id('c2').toHexString(),
+                name: 'Goblin',
+                lifePoints: 100,
+                xp: 10,
+                damages: { base: [], energy: [] },
+                baseWeaknesses: [],
+                energyWeaknesses: [],
+                quantity: 3,
+            },
+            {
+                id: id('c1').toHexString(),
+                name: 'Capo',
+                lifePoints: 600,
+                xp: 63,
+                damages: { base: [], energy: [] },
+                baseWeaknesses: [],
+                energyWeaknesses: [],
+                quantity: 1,
+            },
         ]);
     });
 
@@ -201,7 +256,7 @@ describe('buildCombatContext', () => {
 
     it('fills missing numbers with safe defaults', () => {
         const source = hydration();
-        source.enemy = { _id: id('b2') };
+        source.enemies = [{ snapshot: { _id: id('b2') }, quantity: 1 }];
         const context = buildCombatContext(source);
         const rookie = context.participants[1];
 
@@ -216,15 +271,18 @@ describe('buildCombatContext', () => {
             activeSpells: [],
             consumables: [],
         });
-        expect(context.enemy).toEqual({
-            id: id('b2').toHexString(),
-            name: '',
-            lifePoints: 0,
-            xp: 0,
-            damages: { base: [], energy: [] },
-            baseWeaknesses: [],
-            energyWeaknesses: [],
-        });
+        expect(context.enemies).toEqual([
+            {
+                id: id('b2').toHexString(),
+                name: '',
+                lifePoints: 0,
+                xp: 0,
+                damages: { base: [], energy: [] },
+                baseWeaknesses: [],
+                energyWeaknesses: [],
+                quantity: 1,
+            },
+        ]);
     });
 
     it('reads the life points of a legacy character from the level table, like the outcome plan', () => {
