@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 13 executing (2026-11-04) — executors one at a time from 13-01; branch feat/13-generazione-quest from develop 0585b2e, push pending
+stopped_at: Phase 13 executed (2026-11-04) — 20/20 plans done, BACKEND-NOTES.md written; next: review → fix → verify → security, first real boot from the branch, removal of the one-off migrators, PR by the orchestrator
 last_updated: "2026-11-04T18:17:19.822Z"
-last_activity: 2026-11-04 -- Phase 13 execution started
+last_activity: 2026-11-04 -- Phase 13 plan 20 complete (handoff + runbook), phase executed
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 13 — Generazione quest — EXECUTING from 2026-11-04 (20 plans `13-01`..`13-20`, linear chain, one executor at a time on the main tree, never `npm run build`: the user's BE runs from `dist/`) on `feat/13-generazione-quest` (from `develop` `0585b2e`, the merge of PR #18); in parallel the FE Phase 14 plans 14-01..14-09 run on mocks; the one-off migrators of plans 16–17 leave the repo after the first real boot (runbook of plan 20); the FE gated plans 14-10/14-11 wait for this PR on `develop`. Previous: Phase 12 — Negozi per città — COMPLETE and merged (PR #18, `0585b2e`, 2026-11-03).
+**Current focus:** Phase 13 — Generazione quest — EXECUTED 2026-11-04 (all 20 plans done; handoff and first-boot runbook in `BACKEND-NOTES.md`; PR after review → fix → verify → security, first real boot and one-off removal) (20 plans `13-01`..`13-20`, linear chain, one executor at a time on the main tree, never `npm run build`: the user's BE runs from `dist/`) on `feat/13-generazione-quest` (from `develop` `0585b2e`, the merge of PR #18); in parallel the FE Phase 14 plans 14-01..14-09 run on mocks; the one-off migrators of plans 16–17 leave the repo after the first real boot (runbook of plan 20); the FE gated plans 14-10/14-11 wait for this PR on `develop`. Previous: Phase 12 — Negozi per città — COMPLETE and merged (PR #18, `0585b2e`, 2026-11-03).
 
 ## Current Position
 
 Phase: 13 (Generazione quest) — EXECUTING (started 2026-11-04) on `feat/13-generazione-quest` (from `develop` `0585b2e`): 20 plans in a linear chain (`13-01`..`13-20`), executors one at a time on the main tree
-Plan: 19 of 20
-Status: Executing Phase 13 — executors one at a time on the main tree; the FE companion plans (`../Klimmeck-Guide/.planning/phases/14-quest-generation/`) run in parallel on mocks; branch not pushed yet (SSH agent unavailable)
-Last activity: 2026-11-04 -- Phase 13 execution started
+Plan: 20 of 20
+Status: Phase 13 executed (20/20 plans, 2026-11-04) — next steps: post-execution review → fix → verify → security (orchestrator), then the first real boot from the branch with the runbook of `.planning/phases/13-generazione-quest/BACKEND-NOTES.md` §11, then removal of the one-off migrators (§11 d) before the merge, then PR `feat/13-generazione-quest` → `develop` opened by the orchestrator; unblocks the FE Phase 14 gated plans 14-10/14-11; branch not pushed yet
+Last activity: 2026-11-04 -- Phase 13 plan 20 complete (handoff + runbook), phase executed
 
-Progress: [░░░░░░░░░░] 0/20 plans of Phase 13 (phases 1–12, 9.1 and 9.2 complete and merged on develop)
+Progress: [██████████] 20/20 plans of Phase 13 (phases 1–12, 9.1 and 9.2 complete and merged on develop)
 
 ## Performance Metrics
 

@@ -86,8 +86,8 @@ created: 2026-11-04
 | 13-18-02 | 18 | 18 | BE-QGEN-08 | T-13-14 / T-13-16 | concorrenza sul POI, FORBIDDEN, audit | integration | `npx jest test/quests/quest-generation-access.e2e.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 13-19-01 | 19 | 19 | BE-QGEN-08 | T-13-02 | contratto FE fissato nel real boot | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 13-19-02 | 19 | 19 | BE-QGEN-01..11 | T-13-19 / T-13-20 | suite verde, soglie, SDL gate, segreti, trailer | full suite | `npm run test:cov` | ✅ | ✅ green |
-| 13-20-01 | 20 | 20 | BE-QGEN-08 | T-13-21 | handoff e runbook senza segreti | docs | `grep -c "generateQuests: GenerateQuestsResult!" .planning/phases/13-generazione-quest/BACKEND-NOTES.md` | ❌ W0 | ⬜ pending |
-| 13-20-02 | 20 | 20 | BE-QGEN-08 | — | N/A | docs | `grep -c "| 13. Generazione quest | 20/20 | Complete |" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 13-20-01 | 20 | 20 | BE-QGEN-08 | T-13-21 | handoff e runbook senza segreti | docs | `grep -c "generateQuests: GenerateQuestsResult!" .planning/phases/13-generazione-quest/BACKEND-NOTES.md` | ✅ | ✅ green |
+| 13-20-02 | 20 | 20 | BE-QGEN-08 | — | N/A | docs | `grep -c "| 13. Generazione quest | 20/20 | Complete |" .planning/ROADMAP.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
