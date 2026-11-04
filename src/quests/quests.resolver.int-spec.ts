@@ -9,6 +9,7 @@ import {
 import { LoreType } from 'src/models/enums/lore-type.enum';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
+import { Pet, PetSchema } from 'src/models/pet.model';
 import {
     PointOfInterest,
     PointOfInterestSchema,
@@ -24,8 +25,10 @@ import {
 import { createPlayer } from '../../test/authz/player-fixture';
 import {
     buildQuest,
+    persistEnemy,
     persistEquipmentItem,
     persistLootItem,
+    persistPet,
     persistPoi,
     persistQuest,
     persistSpell,
@@ -37,13 +40,14 @@ const EQUIPMENT_FIELDS =
 const LOOT_FIELDS = '... on LootItem { id name itemType rarity }';
 const PRIZE_LOOT_FIELDS =
     '... on LootItem { id name itemType rarity description }';
-const QUEST_FIELDS = `id infos { markerLocation { id } enemy { id name imagePath } relatedLore { id name description } } requirements { recommendedLoot { quantity item { ${EQUIPMENT_FIELDS} ${LOOT_FIELDS} } } } prizes { prizeItem { quantity item { ${EQUIPMENT_FIELDS} ${PRIZE_LOOT_FIELDS} } } randomLoot { quantity item { ${EQUIPMENT_FIELDS} ${LOOT_FIELDS} } } }`;
+const QUEST_FIELDS = `id infos { markerLocation { id } enemies { quantity enemy { id name imagePath xp } } relatedLore { id name description } } requirements { recommendedLoot { quantity item { ${EQUIPMENT_FIELDS} ${LOOT_FIELDS} } } } prizes { prizeItem { quantity item { ${EQUIPMENT_FIELDS} ${PRIZE_LOOT_FIELDS} } } randomLoot { quantity item { ${EQUIPMENT_FIELDS} ${LOOT_FIELDS} } } }`;
 const QUESTS = `query { quests { ${QUEST_FIELDS} } }`;
 const QUEST = `query Quest($id: String!) { quest(id: $id) { ${QUEST_FIELDS} } }`;
 const MISSING_QUEST_ID = '64b0000000000000000000ff';
 const QUEST_IDS = 'query { quests { id } }';
 const QUEST_SPELLS =
     'query { quests { id prizes { spell { id name minXpToLearn } } } }';
+const QUEST_PETS = 'query { quests { id prizes { pet { id name } } } }';
 const CONCLUDED_AT = new Date('2026-10-24T10:00:00.000Z');
 
 interface WireItem {
@@ -60,11 +64,16 @@ interface WireAssetQuantity {
     item: WireItem;
 }
 
+interface WireQuestEnemy {
+    quantity: number;
+    enemy: { id: string; name: string; imagePath: string; xp: number };
+}
+
 interface WireQuest {
     id: string;
     infos: {
         markerLocation: { id: string };
-        enemy: { id: string; name: string; imagePath: string } | null;
+        enemies: WireQuestEnemy[];
         relatedLore: { id: string; name: string; description: string }[];
     };
     requirements: { recommendedLoot: WireAssetQuantity[] };
@@ -83,6 +92,11 @@ interface WireSpell {
 interface WireQuestSpell {
     id: string;
     prizes: { spell: WireSpell | null };
+}
+
+interface WireQuestPet {
+    id: string;
+    prizes: { pet: { id: string; name: string } | null };
 }
 
 interface WireBody {
@@ -125,7 +139,10 @@ describe('quest catalog (wire)', () => {
 
     function persistFullQuest() {
         return persistCatalogQuest({
-            infos: { enemy: enemy._id, relatedLore: [loreA._id, loreB._id] },
+            infos: {
+                enemies: [{ enemy: enemy._id, quantity: 1 }],
+                relatedLore: [loreA._id, loreB._id],
+            },
             requirements: {
                 ...buildQuest().requirements,
                 recommendedLoot: [
@@ -149,11 +166,17 @@ describe('quest catalog (wire)', () => {
 
     function expectFullQuest(quest: WireQuest | undefined): void {
         expect(quest?.infos.markerLocation).toEqual({ id: String(poi._id) });
-        expect(quest?.infos.enemy).toEqual({
-            id: String(enemy._id),
-            name: 'Lupo',
-            imagePath: 'enemies/wolf.png',
-        });
+        expect(quest?.infos.enemies).toEqual([
+            {
+                quantity: 1,
+                enemy: {
+                    id: String(enemy._id),
+                    name: 'Lupo',
+                    imagePath: 'enemies/wolf.png',
+                    xp: 100,
+                },
+            },
+        ]);
         expect(quest?.infos.relatedLore).toEqual([
             {
                 id: String(loreA._id),
@@ -211,7 +234,7 @@ describe('quest catalog (wire)', () => {
         poi = await persistPoi(
             modelOf(PointOfInterest.name, PointOfInterestSchema),
         );
-        enemy = await modelOf(Enemy.name, EnemySchema).create({
+        enemy = await persistEnemy(modelOf(Enemy.name, EnemySchema), {
             name: 'Lupo',
             imagePath: 'enemies/wolf.png',
         });
@@ -238,7 +261,7 @@ describe('quest catalog (wire)', () => {
         await harness.close();
     });
 
-    it('populates the enemy, the lore and every catalog item on quests', async () => {
+    it('populates the enemies, the lore and every catalog item on quests (D-01)', async () => {
         await persistFullQuest();
 
         const body = bodyOf(
@@ -250,10 +273,61 @@ describe('quest catalog (wire)', () => {
         expectFullQuest(body.data?.quests?.[0]);
     });
 
-    it('keeps the list alive on orphan refs', async () => {
+    it('populates the enemies of a multi-enemy quest in order (D-01)', async () => {
+        const enemies = modelOf(Enemy.name, EnemySchema);
+        const goblin = await persistEnemy(enemies, {
+            name: 'Goblin',
+            imagePath: 'enemies/goblin.png',
+            xp: 7,
+        });
+        const chief = await persistEnemy(enemies, {
+            name: 'Capo goblin',
+            imagePath: 'enemies/goblin-chief.png',
+            xp: 21,
+        });
+        await persistCatalogQuest({
+            infos: {
+                enemies: [
+                    { enemy: goblin._id, quantity: 3 },
+                    { enemy: chief._id, quantity: 1 },
+                ],
+            },
+        });
+
+        const body = bodyOf(
+            await graphqlRequest(harness.app, QUESTS, {}, bearer),
+        );
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.quests?.[0]?.infos.enemies).toEqual([
+            {
+                quantity: 3,
+                enemy: {
+                    id: String(goblin._id),
+                    name: 'Goblin',
+                    imagePath: 'enemies/goblin.png',
+                    xp: 7,
+                },
+            },
+            {
+                quantity: 1,
+                enemy: {
+                    id: String(chief._id),
+                    name: 'Capo goblin',
+                    imagePath: 'enemies/goblin-chief.png',
+                    xp: 21,
+                },
+            },
+        ]);
+    });
+
+    it('drops an orphan enemy entry without nulling the quests list (D-28)', async () => {
         const orphan = await persistCatalogQuest({
             infos: {
-                enemy: new Types.ObjectId(),
+                enemies: [
+                    { enemy: new Types.ObjectId(), quantity: 2 },
+                    { enemy: enemy._id, quantity: 1 },
+                ],
                 relatedLore: [loreA._id, new Types.ObjectId()],
             },
             requirements: {
@@ -293,7 +367,17 @@ describe('quest catalog (wire)', () => {
         const quests = body.data?.quests ?? [];
         expect(quests).toHaveLength(2);
         const broken = quests.find(({ id }) => id === String(orphan._id));
-        expect(broken?.infos.enemy).toBeNull();
+        expect(broken?.infos.enemies).toEqual([
+            {
+                quantity: 1,
+                enemy: {
+                    id: String(enemy._id),
+                    name: 'Lupo',
+                    imagePath: 'enemies/wolf.png',
+                    xp: 100,
+                },
+            },
+        ]);
         expect(broken?.infos.relatedLore.map(({ id }) => id)).toEqual([
             String(loreA._id),
         ]);
@@ -480,6 +564,33 @@ describe('quest catalog (wire)', () => {
             minXpToLearn: 40000,
         });
         expect(spellOf(orphan._id)).toBeNull();
+    });
+
+    it('populates prizes.pet and nulls an orphan pet without nulling the list (D-21, D-28)', async () => {
+        const pet = await persistPet(modelOf(Pet.name, PetSchema), {
+            name: 'Gufo delle nevi',
+            sellable: false,
+        });
+        const withPet = await persistCatalogQuest({
+            prizes: { ...buildQuest().prizes, pet: pet._id },
+        });
+        const orphan = await persistCatalogQuest({
+            prizes: { ...buildQuest().prizes, pet: new Types.ObjectId() },
+        });
+
+        const body = bodyOf(
+            await graphqlRequest(harness.app, QUEST_PETS, {}, bearer),
+        );
+
+        expect(body.errors).toBeUndefined();
+        const quests = (body.data?.quests ?? []) as unknown as WireQuestPet[];
+        const petOf = (id: unknown) =>
+            quests.find((quest) => quest.id === String(id))?.prizes.pet;
+        expect(petOf(withPet._id)).toEqual({
+            id: String(pet._id),
+            name: 'Gufo delle nevi',
+        });
+        expect(petOf(orphan._id)).toBeNull();
     });
 
     it('requires a bearer', async () => {
