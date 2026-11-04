@@ -681,6 +681,38 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the quest generation contract of the FE Phase 14 into the generated schema (D-01, D-16, D-21, D-24)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+        const block = (name: string): string | undefined =>
+            schema.match(new RegExp(`type ${name} \\{[^}]*\\}`))?.[0];
+
+        expect(schema).toContain(
+            'type QuestEnemy {\n  enemy: Enemy!\n  quantity: Int!\n}',
+        );
+        expect(block('QuestInfos')).toContain('  enemies: [QuestEnemy!]!\n');
+        expect(block('QuestInfos')).toContain('  description: String\n');
+        expect(block('QuestResult')).toContain('  enemies: [QuestEnemy!]!\n');
+        expect(block('QuestResult')).toContain(
+            '  stagesCleared: Int\n  stagesTotal: Int\n',
+        );
+        expect(block('QuestPrizes')).toContain('  pet: Pet\n');
+        expect(block('QuestRewards')).toContain('  pet: Pet\n');
+        expect(block('Enemy')).toContain('  legendary: Boolean!\n');
+        expect(schema).toContain(
+            'enum AccessoryUseType {\n  attack\n  defense\n}',
+        );
+        expect(block('EquipmentItem')).toContain(
+            '  accessoryUseTypes: [AccessoryUseType!]\n',
+        );
+        expect(schema).toContain('generateQuests: GenerateQuestsResult!');
+        expect(schema).toContain(
+            'type GenerateQuestsResult {\n  created: Int!\n}',
+        );
+        expect(schema).not.toMatch(
+            /DungeonResolver| {2}generated: Boolean|legendaryEnemy/,
+        );
+    });
+
     it('writes the quest result delivery API into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
