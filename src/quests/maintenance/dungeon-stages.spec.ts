@@ -1,3 +1,4 @@
+import { TitleType } from 'src/models/enums/title-type.enum';
 import { EnemyCandidate } from 'src/quests/generation/enemy-pool';
 import {
     GeneratedRank,
@@ -19,12 +20,12 @@ const CURRENT: DungeonStage = {
 };
 const FOREST = ['forest'];
 const RANKS: readonly GeneratedRank[] = [
-    'rookie',
-    'adventurer',
-    'paladin',
-    'mage',
-    'hero',
-] as GeneratedRank[];
+    TitleType.rookie,
+    TitleType.adventurer,
+    TitleType.paladin,
+    TitleType.mage,
+    TitleType.hero,
+];
 
 let counter = 0;
 function candidate(
@@ -101,7 +102,7 @@ describe('dungeonStagesOf', () => {
     it('adds one to three stages after the current enemy (D-13)', () => {
         const counts = new Set<number>();
         for (const key of KEYS) {
-            const stages = stagesFor('adventurer', key);
+            const stages = stagesFor(TitleType.adventurer, key);
             const added = addedOf(stages).length;
 
             expect(stages[0]).toEqual(CURRENT);
@@ -118,7 +119,7 @@ describe('dungeonStagesOf', () => {
         for (const rank of RANKS) {
             const band = RANK_XP_BANDS[rank];
             const allowed =
-                rank === 'hero'
+                rank === TitleType.hero
                     ? new Set([...zoneIds, HERO_ANYWHERE.id])
                     : zoneIds;
             for (const key of KEYS) {
@@ -140,9 +141,11 @@ describe('dungeonStagesOf', () => {
     it('opens with a bandit band where the zone allows it (D-13)', () => {
         const enemies = [...POOL, BANDIT, BANDIT_CHIEF];
         for (const key of KEYS) {
-            const rookie = addedOf(stagesFor('rookie', key, enemies));
-            const adventurer = addedOf(stagesFor('adventurer', key, enemies));
-            const paladin = addedOf(stagesFor('paladin', key, enemies));
+            const rookie = addedOf(stagesFor(TitleType.rookie, key, enemies));
+            const adventurer = addedOf(
+                stagesFor(TitleType.adventurer, key, enemies),
+            );
+            const paladin = addedOf(stagesFor(TitleType.paladin, key, enemies));
 
             expect(rookie[0].enemy).toBe(BANDIT_ID);
             expect(rookie[0].quantity).toBeGreaterThanOrEqual(2);
@@ -155,7 +158,7 @@ describe('dungeonStagesOf', () => {
             expect(paladin[1].quantity).toBeGreaterThanOrEqual(2);
             expect(paladin[1].quantity).toBeLessThanOrEqual(7);
             expect(paladin.length).toBeLessThanOrEqual(3);
-            for (const rank of ['mage', 'hero'] as GeneratedRank[]) {
+            for (const rank of [TitleType.mage, TitleType.hero]) {
                 const added = addedOf(stagesFor(rank, key, enemies));
                 expect(
                     added.filter(
@@ -172,7 +175,11 @@ describe('dungeonStagesOf', () => {
     it('repeats the same stages for the same dungeon id (D-13)', () => {
         const id = '6ae80b5b2e7351b494ecc900';
 
-        expect(stagesFor('paladin', id)).toEqual(stagesFor('paladin', id));
-        expect(stagesFor('mage', id)).toEqual(stagesFor('mage', id));
+        expect(stagesFor(TitleType.paladin, id)).toEqual(
+            stagesFor(TitleType.paladin, id),
+        );
+        expect(stagesFor(TitleType.mage, id)).toEqual(
+            stagesFor(TitleType.mage, id),
+        );
     });
 });
