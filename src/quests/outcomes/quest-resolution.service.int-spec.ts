@@ -208,7 +208,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                     ...buildQuest().infos,
                     type: 'hunt',
                     title: 'Caccia segreta',
-                    enemy: enemyId,
+                    enemies: [{ enemy: enemyId, quantity: 1 }],
                 },
             },
         });
@@ -218,7 +218,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         );
 
         const [result] = await resultsOf(subject);
-        expect(result).toMatchObject({ outcome: 'success', enemy: null });
+        expect(result).toMatchObject({ outcome: 'success', enemies: [] });
         const messages = warn.mock.calls.map(([message]) => String(message));
         const orphan = messages.find((message) =>
             message.includes(enemyId.toHexString()),

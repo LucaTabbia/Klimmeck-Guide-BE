@@ -465,7 +465,7 @@ describe('GmCompletionService.complete (replSet)', () => {
             questOverrides: gmQuest(
                 'story',
                 { xpPrize: 400 },
-                { enemy: enemy._id },
+                { enemies: [{ enemy: enemy._id, quantity: 1 }] },
             ),
         });
 
@@ -475,7 +475,7 @@ describe('GmCompletionService.complete (replSet)', () => {
             .findById(draft._id)
             .lean<any>();
         expect(result.xpGained).toBe(500);
-        expect(String(result.enemy)).toBe(String(enemy._id));
+        expect(result.enemies).toEqual([{ enemy: enemy._id, quantity: 1 }]);
     });
 
     describe('busy standard lane (D-24)', () => {

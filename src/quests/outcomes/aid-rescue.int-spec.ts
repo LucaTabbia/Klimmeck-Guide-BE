@@ -113,7 +113,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
                     type: 'enemy',
                     title: ORIGINAL_TITLE,
                     markerLocation: marker,
-                    enemy: foe._id,
+                    enemies: [{ enemy: foe._id, quantity: 1 }],
                 },
                 prizes: { ...buildQuest().prizes, xpPrize: 50 },
             }),
@@ -502,7 +502,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
                         type: 'boss',
                         title: BOSS_TITLE,
                         markerLocation: marker,
-                        enemy: foe._id,
+                        enemies: [{ enemy: foe._id, quantity: 1 }],
                     },
                     requirements: {
                         ...buildQuest().requirements,
