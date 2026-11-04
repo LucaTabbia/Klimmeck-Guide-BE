@@ -1,9 +1,9 @@
 ---
 phase: 13
 slug: generazione-quest
-status: approved
+status: complete
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-11-04
 ---
 
@@ -50,7 +50,7 @@ created: 2026-11-04
 | 13-03-02 | 03 | 3 | BE-QGEN-01 | T-13-05 | migrazione idempotente, seconda corsa 0 | integration | `npx jest src/quests/maintenance/quest-enemies.migrator.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 13-03-03 | 03 | 3 | BE-QGEN-01 | T-13-05 | boot mai bloccato da un passo fallito | unit + integration | `npx jest src/quests/maintenance/quest-maintenance.boot.spec.ts --selectProjects unit` · `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 13-04-01 | 04 | 4 | BE-QGEN-01 | T-13-06 | segnaposto aggrega HP e danni per quantità | unit | `npx jest src/quests/outcomes/combat --selectProjects unit` | ✅ | ✅ green |
-| 13-04-02 | 04 | 4 | BE-QGEN-01 | T-13-06 | XP = premio + Σ xp × quantità, clamp invariato | unit | `npx jest src/quests/outcomes/outcome-plan.spec.ts src/quests/outcomes/combatant-plan.spec.ts --selectProjects unit` | ❌ W0 | ✅ green |
+| 13-04-02 | 04 | 4 | BE-QGEN-01 | T-13-06 | XP = premio + Σ xp × quantità, clamp invariato | unit | `npx jest src/quests/outcomes/outcome-plan.spec.ts src/quests/outcomes/combatant-plan.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 13-04-03 | 04 | 4 | BE-QGEN-01 | T-13-06 | orfani e quantità non valide scartati con WARN di soli id | integration | `npx jest src/quests/outcomes/quest-combat.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 13-05-01 | 05 | 5 | BE-QGEN-01 | — | N/A | unit + integration | `npx jest test/fixtures/fixtures.spec.ts --selectProjects unit` · `npx jest test/fixtures/fixtures.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 13-05-02 | 05 | 5 | BE-QGEN-01 | — | N/A | integration | `npx jest src/quests/outcomes --selectProjects integration --runInBand` | ✅ | ✅ green |
@@ -84,8 +84,8 @@ created: 2026-11-04
 | 13-17-02 | 17 | 17 | BE-QGEN-09 | T-13-18 | arricchimento deterministico e condizionale | unit + integration | `npx jest src/quests/maintenance/dungeon-stages.spec.ts src/quests/maintenance/quest-maintenance.boot.spec.ts --selectProjects unit` · `npx jest src/quests/maintenance/dungeon-stages.migrator.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 13-18-01 | 18 | 18 | BE-QGEN-08, BE-QGEN-03, BE-QGEN-04 | T-13-12 | tetto, distribuzione, hunt/dungeon mai generate, idempotenza | integration | `npx jest test/quests/quest-generation.e2e.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 13-18-02 | 18 | 18 | BE-QGEN-08 | T-13-14 / T-13-16 | concorrenza sul POI, FORBIDDEN, audit | integration | `npx jest test/quests/quest-generation-access.e2e.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
-| 13-19-01 | 19 | 19 | BE-QGEN-08 | T-13-02 | contratto FE fissato nel real boot | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| 13-19-02 | 19 | 19 | BE-QGEN-01..11 | T-13-19 / T-13-20 | suite verde, soglie, SDL gate, segreti, trailer | full suite | `npm run test:cov` | ✅ | ⬜ pending |
+| 13-19-01 | 19 | 19 | BE-QGEN-08 | T-13-02 | contratto FE fissato nel real boot | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 13-19-02 | 19 | 19 | BE-QGEN-01..11 | T-13-19 / T-13-20 | suite verde, soglie, SDL gate, segreti, trailer | full suite | `npm run test:cov` | ✅ | ✅ green |
 | 13-20-01 | 20 | 20 | BE-QGEN-08 | T-13-21 | handoff e runbook senza segreti | docs | `grep -c "generateQuests: GenerateQuestsResult!" .planning/phases/13-generazione-quest/BACKEND-NOTES.md` | ❌ W0 | ⬜ pending |
 | 13-20-02 | 20 | 20 | BE-QGEN-08 | — | N/A | docs | `grep -c "| 13. Generazione quest | 20/20 | Complete |" .planning/ROADMAP.md` | ✅ | ⬜ pending |
 
@@ -120,4 +120,4 @@ created: 2026-11-04
 - [x] Feedback latency < 30 s per spec mirata (real boot e suite completa esclusi)
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** approved 2026-11-04 (planner; il piano 13-19 porta lo `status` a `complete` e `wave_0_complete: true`)
+**Approval:** approved 2026-11-04 (gate 13-19: `npm run test:cov` 334 suite / 4208 test verdi, soglia `./src/quests/generation/` 96/82/97, SDL vs `origin/develop` tolte solo le due righe `  enemy: Enemy`)
