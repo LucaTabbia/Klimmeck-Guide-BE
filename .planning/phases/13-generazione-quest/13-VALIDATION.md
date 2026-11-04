@@ -68,8 +68,8 @@ created: 2026-11-04
 | 13-11-01 | 11 | 11 | BE-QGEN-06, BE-QGEN-10 | T-13-11 | legendary mai sotto hero; pet 1% solo boss | unit | `npx jest src/quests/generation/generated-prizes.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 13-11-02 | 11 | 11 | BE-QGEN-06 | — | N/A | unit | `npx jest src/quests/generation/recommended-loot.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 13-11-03 | 11 | 11 | BE-QGEN-07 | — | N/A | unit | `npx jest src/quests/generation/quest-templates.spec.ts --selectProjects unit` | ✅ | ✅ green |
-| 13-12-01 | 12 | 12 | BE-QGEN-04 | T-13-12 | marker escluso, tetto 3 | unit | `npx jest src/quests/generation/city-picker.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 13-12-02 | 12 | 12 | BE-QGEN-04 | T-13-12 | distribuzione non concentrata | unit | `npx jest src/quests/generation/city-distribution.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
+| 13-12-01 | 12 | 12 | BE-QGEN-04 | T-13-12 | marker escluso, tetto 3 | unit | `npx jest src/quests/generation/city-picker.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 13-12-02 | 12 | 12 | BE-QGEN-04 | T-13-12 | distribuzione non concentrata | unit | `npx jest src/quests/generation/city-distribution.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 13-13-01 | 13 | 13 | BE-QGEN-02 | T-13-13 | env fail-closed senza eco del valore | unit | `npx jest src/config/quest-generation-config.spec.ts src/config/env.validation.spec.ts src/config/env-example.drift.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 13-13-02 | 13 | 13 | BE-QGEN-03, BE-QGEN-07 | T-13-01 | `generated: true`, `requiredPoints` nullo, un posto del rango | unit | `npx jest src/quests/generation/generated-quest-draft.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 13-13-03 | 13 | 13 | BE-QGEN-02, BE-QGEN-03, BE-QGEN-04, BE-QGEN-05 | T-13-12 / T-13-14 | target, tetto, POI unico (E11000 catturato) | integration | `npx jest src/quests/generation/quest-generator.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
