@@ -125,13 +125,36 @@ describe('JewelAccessoryMigrator (replSet)', () => {
 
         const report = await migrator.migrate();
 
-        expect(report).toEqual({ written: 1, missing: absent });
+        expect(report).toEqual({ written: 1, missing: absent, notJewels: [] });
         expect(warnSpy.mock.calls).toEqual([
             [
                 `Gioielli: 41 della tabella non trovati a DB: ${absent.join(', ')}`,
             ],
         ]);
         expect(String(warnSpy.mock.calls[0][0])).not.toMatch(/mongodb|:\/\//);
+    });
+
+    it('warns with ids only about the approved jewels stored as another equip type (D-26)', async () => {
+        await insertJewel(BRONZE_RING, { equipType: 'weapon' });
+        const absent = [...JEWEL_ACCESSORY_USE_TYPES.keys()].filter(
+            (hex) => hex !== BRONZE_RING,
+        );
+
+        const report = await migrator.migrate();
+
+        expect(report).toEqual({
+            written: 0,
+            missing: absent,
+            notJewels: [BRONZE_RING],
+        });
+        expect(warnSpy.mock.calls).toEqual([
+            [
+                `Gioielli: 41 della tabella non trovati a DB: ${absent.join(', ')}`,
+            ],
+            [
+                `Gioielli: 1 della tabella non sono anelli né collane a DB: ${BRONZE_RING}`,
+            ],
+        ]);
     });
 
     it('writes nothing on the second run (D-26)', async () => {
