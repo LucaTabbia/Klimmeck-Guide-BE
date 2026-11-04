@@ -486,7 +486,7 @@ Plans:
 - [x] 13-16-PLAN.md — `equipType`/`accessoryUseTypes` nel contesto di combattimento + `JewelAccessoryMigrator` una tantum (42 `_id` dalla tabella approvata)
 - [x] 13-17-PLAN.md — `EnemyLegendaryMigrator` (22 id) e `DungeonStagesMigrator` (1–3 tappe, bande N × Bandito, deterministico per id) una tantum; ordine di boot con corsa finale del generatore
 - [x] 13-18-PLAN.md — Integration BE-QGEN-08: tetto, distribuzione, hunt/dungeon mai generate, legend nel giro, seconda corsa idempotente, concorrenza sul POI, FORBIDDEN, audit
-- [ ] 13-19-PLAN.md — Gate: contratto FE nel real boot, `npm run test:cov` + soglia `src/quests/generation/`, diff SDL = esattamente le due righe `enemy: Enemy`, prettier/eslint sui file toccati, controlli segreti/trailer/isolamento one-off, VALIDATION firmata, `mark-complete` BE-QGEN-01..11
+- [x] 13-19-PLAN.md — Gate: contratto FE nel real boot, `npm run test:cov` + soglia `src/quests/generation/`, diff SDL = esattamente le due righe `enemy: Enemy`, prettier/eslint sui file toccati, controlli segreti/trailer/isolamento one-off, VALIDATION firmata, `mark-complete` BE-QGEN-01..11
 - [ ] 13-20-PLAN.md — `BACKEND-NOTES.md` per la FE Phase 14 + runbook del primo boot reale dal branch (e rimozione dei one-off prima della merge), chiusura ROADMAP/STATE/REQUIREMENTS
 
 ### Phase 14: Viaggio e cibo
@@ -574,7 +574,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
 | 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
-| 13. Generazione quest | 18/20 | In Progress | - |
+| 13. Generazione quest | 19/20 | In Progress | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
