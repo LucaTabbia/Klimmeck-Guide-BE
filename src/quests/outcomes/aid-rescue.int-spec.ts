@@ -829,4 +829,118 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
             expect(await world.models.questResults.countDocuments()).toBe(4);
         });
     });
+
+    describe('a multi-enemy quest', () => {
+        interface MultiEnemyDefeat {
+            original: any;
+            aid: any;
+            fallen: Quester;
+            goblin: Types.ObjectId;
+            chief: Types.ObjectId;
+            pet: Types.ObjectId;
+        }
+
+        // la quest enemy con tre goblin e un capo è persa dal suo unico avventuriero: nasce la aid clonata
+        async function loseMultiEnemyQuest(): Promise<MultiEnemyDefeat> {
+            seq += 1;
+            const goblin = (await persistEnemy(world.models.enemies, {
+                name: 'Goblin',
+                xp: 20,
+            })) as { _id: Types.ObjectId };
+            const chief = (await persistEnemy(world.models.enemies, {
+                name: 'Capo goblin',
+                xp: 120,
+            })) as { _id: Types.ObjectId };
+            const pet = new Types.ObjectId();
+            const original = await world.models.quests.create(
+                buildQuest({
+                    infos: {
+                        ...buildQuest().infos,
+                        type: 'enemy',
+                        title: ORIGINAL_TITLE,
+                        enemies: [
+                            { enemy: goblin._id, quantity: 3 },
+                            { enemy: chief._id, quantity: 1 },
+                        ],
+                    },
+                    prizes: { ...buildQuest().prizes, xpPrize: 50, pet },
+                }),
+            );
+            const fallen = await persistQuester(world.harness, {
+                twitchId: `tw-multi-fallen-${seq}`,
+                quest: original,
+                characterOverrides: { status: FRESH_STATUS },
+            });
+            scripted.willEnd('failure');
+            await expect(
+                service.resolveStandard({
+                    pendingQuestId: fallen.pendingQuest._id as Types.ObjectId,
+                    startDate: OUTCOME_START,
+                }),
+            ).resolves.toBe('resolved');
+            const injured = await characterOf(fallen.characterId);
+            const aid = await questOf(injured.status.awaitingAid.aidQuest);
+            scripted.reset();
+            return {
+                original: original.toObject(),
+                aid,
+                fallen,
+                goblin: goblin._id,
+                chief: chief._id,
+                pet,
+            };
+        }
+
+        it('opens an aid with the same enemies after losing a multi-enemy quest (D-01)', async () => {
+            const { original, aid, goblin, chief, pet } =
+                await loseMultiEnemyQuest();
+
+            expect(aid.infos.type).toBe('aid');
+            expect(String(aid.rescue.failedQuest)).toBe(String(original._id));
+            expect(
+                aid.infos.enemies.map(({ enemy, quantity }: any) => ({
+                    enemy: String(enemy),
+                    quantity,
+                })),
+            ).toEqual([
+                { enemy: String(goblin), quantity: 3 },
+                { enemy: String(chief), quantity: 1 },
+            ]);
+            expect(String(aid.prizes.pet)).toBe(String(pet));
+            expect(aid.generated).toBe(false);
+        });
+
+        it('rescues against every enemy of the aid in one aggregated fight (D-02)', async () => {
+            const { aid, goblin, chief } = await loseMultiEnemyQuest();
+            const rescuer = await persistQuester(world.harness, {
+                twitchId: `tw-multi-rescuer-${seq}`,
+                quest: aid,
+                characterOverrides: { status: FRESH_STATUS },
+            });
+            scripted.willEnd('success');
+
+            await expect(
+                service.resolveStandard({
+                    pendingQuestId: rescuer.pendingQuest._id as Types.ObjectId,
+                    startDate: OUTCOME_START,
+                }),
+            ).resolves.toBe('resolved');
+
+            expect(scripted.contexts).toHaveLength(1);
+            expect(
+                scripted.contexts[0].enemies.map(({ id, quantity }) => ({
+                    id,
+                    quantity,
+                })),
+            ).toEqual([
+                { id: String(goblin), quantity: 3 },
+                { id: String(chief), quantity: 1 },
+            ]);
+            const [rescuerResult] = await resultsOf(rescuer.characterId);
+            expect(rescuerResult).toMatchObject({
+                outcome: 'success',
+                xpGained: 50 + 3 * 20 + 120,
+            });
+        });
+    });
 });
