@@ -470,7 +470,7 @@ Plans:
 **Plans**: 20 piani (pianificati il 2026-11-04; catena lineare, una wave per piano, esecuzione sequenziale sull'albero principale; i one-off dei piani 16–17 escono dal repo dopo il primo boot reale, Phase 12 D-25)
 - [x] 13-01-PLAN.md — Campi additivi: flag `generated` + indice unico parziale, `Enemy.legendary`, `AccessoryUseType`/`accessoryUseTypes`, `QuestPrizes.pet`, `QuestRewards.pet`, real boot
 - [x] 13-02-PLAN.md — Sostituzione non additiva `enemy` → `enemies` (`QuestEnemy`, `stagesCleared`/`stagesTotal`), populate + filtro orfani, inventario mixed-ref, real boot (SDL −2 righe)
-- [ ] 13-03-PLAN.md — Lettore tollerante `validQuestEnemiesOf`, `QuestEnemiesMigrator` permanente (quest + risultati), `QuestMaintenanceBoot`/`QuestMaintenanceModule` importato solo da AppModule
+- [x] 13-03-PLAN.md — Lettore tollerante `validQuestEnemiesOf`, `QuestEnemiesMigrator` permanente (quest + risultati), `QuestMaintenanceBoot`/`QuestMaintenanceModule` importato solo da AppModule
 - [ ] 13-04-PLAN.md — `CombatContext.enemies` multi-nemico, aggregazione del segnaposto, `readEnemies`, XP = premio + Σ xp × quantità, clone `enemies` nella aid, int-spec multi-nemico
 - [ ] 13-05-PLAN.md — Sweep di fixture e int-spec degli esiti che scrivono ancora `enemy`, controllo dell'intera suite
 - [ ] 13-06-PLAN.md — Aid: clone di `prizes.pet`, mai `generated`; int-spec soccorso e GM multi-nemico
@@ -574,7 +574,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
 | 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
-| 13. Generazione quest | 2/20 | In Progress | - |
+| 13. Generazione quest | 3/20 | In Progress | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
