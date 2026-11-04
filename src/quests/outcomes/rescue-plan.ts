@@ -56,7 +56,11 @@ function unchangedResult(
         injuriesAdded: [],
         consumablesUsed: [],
         spellsUsed: [],
-        rewards: { coins: { gold: 0, silver: 0, copper: 0 }, items: [] },
+        rewards: {
+            coins: { gold: 0, silver: 0, copper: 0 },
+            items: [],
+            pet: null,
+        },
         xpGained: 0,
         xpBefore: status.xp,
         xpAfter: status.xp,

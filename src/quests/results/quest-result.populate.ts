@@ -59,7 +59,7 @@ export function unpopulatedResultOf(draft: QuestResultDraft): QuestResult {
             spell: null,
             usages,
         })),
-        rewards: { coins: draft.rewards.coins, items: [] },
+        rewards: { coins: draft.rewards.coins, items: [], pet: null },
         spellLearned: null,
         enemies: [],
     };

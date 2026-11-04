@@ -20,6 +20,7 @@ export interface PrizesSnapshot {
     randomLoot?: PrizeEntrySnapshot[] | null;
     spell?: unknown;
     spellDraw?: unknown;
+    pet?: unknown;
 }
 
 export interface RewardItem {
@@ -46,17 +47,21 @@ export interface DrawnRewards {
     items: RewardItem[];
     spellCandidate: SpellCandidate | null;
     spellDraw: SpellDraw | null;
+    pet: Types.ObjectId | null;
 }
 
 export interface RewardCatalog {
     rarities: ReadonlyMap<string, RarityType | null>;
     spells: ReadonlyMap<string, { minXpToLearn: number; maxUsages: number }>;
     spellPool: readonly SpellCandidate[];
+    // hex dei pet esistenti fra quelli in premio (D-21)
+    pets: ReadonlySet<string>;
 }
 
 export interface RewardRefs {
     items: { itemType: ItemReferenceType; item: Types.ObjectId }[];
     spellId: Types.ObjectId | null;
+    petId: Types.ObjectId | null;
 }
 
 export const NO_REWARDS: DrawnRewards = {
@@ -65,7 +70,11 @@ export const NO_REWARDS: DrawnRewards = {
     items: [],
     spellCandidate: null,
     spellDraw: null,
+    pet: null,
 };
+
+// «un 20% può andare bene» (D-21)
+export const QUEST_PET_WIN_CHANCE = 0.2;
 
 const REWARD_ITEM_TYPES: readonly unknown[] = [
     'EquipmentItem',
@@ -102,13 +111,14 @@ function validRewardItems(prizes: PrizesSnapshot): RewardItem[] {
 export function rewardRefsOf(
     prizes: PrizesSnapshot | null | undefined,
 ): RewardRefs {
-    if (!prizes) return { items: [], spellId: null };
+    if (!prizes) return { items: [], spellId: null, petId: null };
     return {
         items: validRewardItems(prizes).map(({ itemType, item }) => ({
             itemType,
             item,
         })),
         spellId: refIdOf(prizes.spell),
+        petId: refIdOf(prizes.pet),
     };
 }
 
@@ -166,6 +176,17 @@ function spellDrawOf(
         : null;
 }
 
+// D-21: tiro dopo loot e magia e solo per un pet a catalogo, così le quest senza pet consumano gli stessi tiri di prima
+function petDrawOf(
+    prizes: PrizesSnapshot,
+    catalog: RewardCatalog,
+    chance: ChanceSource,
+): Types.ObjectId | null {
+    const petId = refIdOf(prizes.pet);
+    if (!petId || !catalog.pets.has(petId.toHexString())) return null;
+    return chance.next() < QUEST_PET_WIN_CHANCE ? petId : null;
+}
+
 // premi della quest vinta (D-16, D-17): voci orfane o malformate scartate, mai un'eccezione (T-09-12)
 export function drawRewards(
     prizes: PrizesSnapshot | null | undefined,
@@ -177,6 +198,7 @@ export function drawRewards(
     const prizeItem = catalogued(rewardItemOf(prizes.prizeItem), catalog);
     const rolledLoot = rolledLootOf(prizes, catalog, chance);
     const spellDraw = spellDrawOf(prizes, catalog, chance);
+    const pet = petDrawOf(prizes, catalog, chance);
     return {
         coinsCopper: isNonNegativeInteger(coinsCopper) ? coinsCopper : 0,
         xpPrize: isNonNegativeInteger(prizes.xpPrize) ? prizes.xpPrize : 0,
@@ -185,6 +207,7 @@ export function drawRewards(
         ),
         spellCandidate: spellCandidateOf(prizes, catalog),
         spellDraw,
+        pet,
     };
 }
 

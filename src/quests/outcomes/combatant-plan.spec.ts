@@ -192,6 +192,7 @@ describe('planCombatant', () => {
         expect(plan.result.rewards).toEqual({
             coins: { gold: 0, silver: 0, copper: 0 },
             items: [],
+            pet: null,
         });
         expect(plan.coinsDelta).toBe(0);
         expect(aid).toEqual({ aidQuestId: id('d2'), failedQuestId: id('92') });

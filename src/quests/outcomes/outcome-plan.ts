@@ -68,6 +68,7 @@ export interface OutcomeCharacterSnapshot {
     assets?:
         | (InventorySnapshot & {
               activeSpells?: { spell?: unknown; usages?: number }[];
+              ownedPets?: unknown[] | null;
           })
         | null;
 }
@@ -108,7 +109,11 @@ export interface QuestResultDraft {
     injuriesAdded: InjuryType[];
     consumablesUsed: ConsumableUsage[];
     spellsUsed: { spell: Types.ObjectId; usages: number }[];
-    rewards: { coins: CoinPurse; items: RewardItem[] };
+    rewards: {
+        coins: CoinPurse;
+        items: RewardItem[];
+        pet: Types.ObjectId | null;
+    };
     xpGained: number;
     xpBefore: number;
     xpAfter: number;
@@ -287,6 +292,17 @@ function completedQuestsAfter(
         : [...completed, questId];
 }
 
+// idempotente sullo snapshot in sessione (D-21): già posseduto ⇒ nulla, nessun errore; ownedPets fuori dall'update se non cambia (Pitfall 5)
+function petWonBy(
+    snapshot: OutcomeCharacterSnapshot,
+    won: boolean,
+    pet: Types.ObjectId | null,
+): Types.ObjectId | null {
+    if (!won || !pet) return null;
+    const owned = snapshot.assets?.ownedPets ?? [];
+    return owned.some((id) => sameId(id, pet)) ? null : pet;
+}
+
 function participantFilter(
     input: ParticipantPlanInput,
     lanePath: string,
@@ -376,6 +392,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         ? completedQuestsAfter(snapshot, quest._id)
         : null;
     const coinsDelta = won ? rewards.coinsCopper : 0;
+    const petWon = petWonBy(snapshot, won, rewards.pet);
     const lanePath = lanePathOf(input.lane);
 
     const $set: Record<string, unknown> = {
@@ -397,6 +414,14 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             : {}),
         ...(completedQuests
             ? { 'quests.completedQuests': completedQuests }
+            : {}),
+        ...(petWon
+            ? {
+                  'assets.ownedPets': [
+                      ...(snapshot.assets?.ownedPets ?? []),
+                      petWon,
+                  ],
+              }
             : {}),
         // il fallimento aspetta il soccorso sul marker della quest (D-07, D-08)
         ...(!won && aid
@@ -427,7 +452,11 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             injuriesAdded: wounds.added,
             consumablesUsed: consumables,
             spellsUsed: spells.used,
-            rewards: { coins: fromCopper(coinsDelta), items: rewardItems },
+            rewards: {
+                coins: fromCopper(coinsDelta),
+                items: rewardItems,
+                pet: petWon,
+            },
             // guadagno effettivo dopo il clamp a MAX_XP: xpAfter = xpBefore + xpGained sul foglio
             xpGained: Math.max(0, progression.xp - before.xp),
             xpBefore: before.xp,

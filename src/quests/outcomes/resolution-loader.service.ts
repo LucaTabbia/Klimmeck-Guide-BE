@@ -15,6 +15,7 @@ import {
     EquipmentItemDocument,
 } from 'src/models/equipment-item.model';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
+import { Pet, PetDocument } from 'src/models/pet.model';
 import {
     PendingQuest,
     PendingQuestDocument,
@@ -216,6 +217,8 @@ export class ResolutionLoader {
         private readonly equipmentItemModel: Model<EquipmentItemDocument>,
         @InjectModel(Spell.name)
         private readonly spellModel: Model<SpellDocument>,
+        @InjectModel(Pet.name)
+        private readonly petModel: Model<PetDocument>,
     ) {}
 
     // pre-letture lean fuori dalla transazione: solo id e stato, la transazione rilegge il personaggio in sessione
@@ -549,7 +552,20 @@ export class ResolutionLoader {
                     : [],
             ),
             spellPool: await this.readSpellPool(prizes),
+            pets: await this.readPrizePets(refs.petId),
         };
+    }
+
+    // D-21: il pet in premio vale solo se esiste ancora a catalogo; un ref orfano non consuma il tiro
+    private async readPrizePets(
+        petId: Types.ObjectId | null,
+    ): Promise<Set<string>> {
+        if (!petId) return new Set();
+        const pet = await this.petModel
+            .findById(petId, { _id: 1 })
+            .lean<{ _id: Types.ObjectId } | null>()
+            .exec();
+        return new Set(pet ? [pet._id.toHexString()] : []);
     }
 
     // D-31: l'intero catalogo delle magie solo per la study che sorteggia; ordine per id così il tiro è riproducibile

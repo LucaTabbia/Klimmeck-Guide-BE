@@ -17,6 +17,7 @@ import {
     EquipmentItemSchema,
 } from 'src/models/equipment-item.model';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
+import { Pet, PetSchema } from 'src/models/pet.model';
 import {
     PendingQuest,
     PendingQuestSchema,
@@ -65,6 +66,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
             { name: LootItem.name, schema: LootItemSchema },
             { name: EquipmentItem.name, schema: EquipmentItemSchema },
             { name: Spell.name, schema: SpellSchema },
+            { name: Pet.name, schema: PetSchema },
         ]),
         EconomyModule,
         PushModule,
