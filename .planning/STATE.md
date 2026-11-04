@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 13 (Generazione quest) — EXECUTING (started 2026-11-04) on `feat/13-generazione-quest` (from `develop` `0585b2e`): 20 plans in a linear chain (`13-01`..`13-20`), executors one at a time on the main tree
-Plan: 13 of 20
+Plan: 14 of 20
 Status: Executing Phase 13 — executors one at a time on the main tree; the FE companion plans (`../Klimmeck-Guide/.planning/phases/14-quest-generation/`) run in parallel on mocks; branch not pushed yet (SSH agent unavailable)
 Last activity: 2026-11-04 -- Phase 13 execution started
 

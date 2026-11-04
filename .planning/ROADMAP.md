@@ -481,7 +481,7 @@ Plans:
 - [x] 13-11-PLAN.md — Premi e pool di loot (tabella D-20, legend 1L+2U+4R, pet 1% sui boss), `recommendedLoot`, template di titolo (quantità solo se > 1) e annuncio
 - [x] 13-12-PLAN.md — Scelta della città (kNN K=5, peso 1/(1+D)², tetto 3, POI libero senza il marker) + spec di distribuzione su una griglia di 30 città
 - [x] 13-13-PLAN.md — Config `QUEST_GENERATION_TARGET`/`QUEST_GENERATION_SWEEP_INTERVAL_MS` + `.env.example`, draft builder puro, `QuestGenerator` (single-flight, rerun, E11000, ripiego sui ranghi), `QuestGenerationTriggerModule` leggero (D-30), fixture `generation-world`
-- [ ] 13-14-PLAN.md — Sweeper (corsa al boot + timer `unref`), hook `OutcomeWriter.deliver` via `regeneratesAfter`, mutation `generateQuests` (innkeeper, audit) + `EXPECTED_INNKEEPER_HANDLERS` + real boot
+- [x] 13-14-PLAN.md — Sweeper (corsa al boot + timer `unref`), hook `OutcomeWriter.deliver` via `regeneratesAfter`, mutation `generateQuests` (innkeeper, audit) + `EXPECTED_INNKEEPER_HANDLERS` + real boot
 - [ ] 13-15-PLAN.md — Premio pet alla vittoria (20% per vincitore, dopo loot e magie), scrittura idempotente in `ownedPets`, `rewards.pet` sul filo
 - [ ] 13-16-PLAN.md — `equipType`/`accessoryUseTypes` nel contesto di combattimento + `JewelAccessoryMigrator` una tantum (42 `_id` dalla tabella approvata)
 - [ ] 13-17-PLAN.md — `EnemyLegendaryMigrator` (22 id) e `DungeonStagesMigrator` (1–3 tappe, bande N × Bandito, deterministico per id) una tantum; ordine di boot con corsa finale del generatore
@@ -574,7 +574,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
 | 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
-| 13. Generazione quest | 13/20 | In Progress | - |
+| 13. Generazione quest | 14/20 | In Progress | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
