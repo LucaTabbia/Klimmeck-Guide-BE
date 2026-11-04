@@ -89,6 +89,12 @@ export interface QuestEnemyDraft {
     quantity: number;
 }
 
+// nemici affrontati e xp sommata per quantità (D-02)
+export interface EnemyFacts {
+    entries: QuestEnemyDraft[];
+    xp: number;
+}
+
 export interface QuestResultDraft {
     _id: Types.ObjectId;
     character: Types.ObjectId;
@@ -131,7 +137,7 @@ export interface ParticipantPlanInput {
     userId: Types.ObjectId;
     verdict: PlanVerdict;
     battle: ParticipantEffects | null;
-    enemy: { id: Types.ObjectId; xp: number } | null;
+    enemies: EnemyFacts | null;
     rewards: DrawnRewards;
     aid: { aidQuestId: Types.ObjectId; failedQuestId: Types.ObjectId } | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
@@ -298,7 +304,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     const hpFought = battle
         ? lifePointsWithin(battle.hpAfter, before.maxLifePoints)
         : before.currentLifePoints;
-    const xpEarned = won ? rewards.xpPrize + (input.enemy?.xp ?? 0) : 0;
+    const xpEarned = won ? rewards.xpPrize + (input.enemies?.xp ?? 0) : 0;
     const progression = progressionAfter(
         { xp: before.xp, currentLifePoints: hpFought },
         xpEarned,
@@ -424,9 +430,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             titleBefore: before.title,
             titleAfter,
             spellLearned,
-            enemies: input.enemy
-                ? [{ enemy: input.enemy.id, quantity: 1 }]
-                : [],
+            enemies: [...(input.enemies?.entries ?? [])],
             stagesCleared: null,
             stagesTotal: null,
             // solo chi ha vinto il soccorso ha salvato qualcuno

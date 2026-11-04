@@ -55,7 +55,7 @@ describe('buildAidQuest', () => {
         expect(aid.infos.title).toBe('Soccorso: Il drago di Valantar');
         expect(aid.infos.type).toBe('aid');
         expect(aid.infos.markerLocation).toEqual(MARKER_ID);
-        expect(aid.infos.enemy).toEqual(ENEMY_ID);
+        expect(aid.infos.enemies).toEqual([{ enemy: ENEMY_ID, quantity: 1 }]);
         expect(aid.infos.timeToComplete).toBe(3600000);
         expect(aid.infos.relatedLore).toEqual([LORE_ID]);
     });
@@ -143,7 +143,7 @@ describe('buildAidQuest', () => {
             AID_ID,
         );
 
-        expect(bare.infos.enemy).toBeNull();
+        expect(bare.infos.enemies).toEqual([]);
         expect(bare.requirements.requiredAdventurers).toEqual([
             { title: null, count: 1 },
         ]);

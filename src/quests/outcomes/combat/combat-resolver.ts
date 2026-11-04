@@ -54,11 +54,13 @@ export interface CombatEnemy {
     damages: CombatDamages;
     baseWeaknesses: string[];
     energyWeaknesses: string[];
+    quantity: number;
 }
 
 export interface CombatContext {
     quest: { id: string; type: QuestType; title: string };
-    enemy: CombatEnemy;
+    // nell'ordine della quest: nelle dungeon l'ordine delle tappe (D-12)
+    enemies: CombatEnemy[];
     participants: CombatParticipant[];
 }
 

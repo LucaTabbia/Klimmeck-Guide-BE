@@ -308,7 +308,7 @@ export class GmCompletionService {
                         userId: seat.ownerId,
                         verdict: QuestOutcome.gmCompleted,
                         battle: battles.get(snapshot._id.toHexString()) ?? null,
-                        enemy: enemyFactsOf(catalog),
+                        enemies: enemyFactsOf(catalog),
                         rewards: drawRewards(
                             quest.prizes,
                             catalog.rewards,

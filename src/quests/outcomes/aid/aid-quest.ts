@@ -3,6 +3,7 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
 import { RankSlot, slotsOf } from 'src/quests/acceptance/quest-capacity';
+import { type QuestEnemyRef, validQuestEnemiesOf } from '../quest-enemies';
 
 export const AID_TITLE_PREFIX = 'Soccorso: ';
 
@@ -12,6 +13,7 @@ export interface AidSourceQuest {
         title: string;
         description?: string | null;
         markerLocation: unknown;
+        enemies?: unknown;
         enemy?: unknown;
         timeToComplete?: number | null;
         relatedLore?: unknown[] | null;
@@ -38,7 +40,7 @@ export interface AidQuestDraft {
         description: string | null;
         type: QuestType.aid;
         markerLocation: unknown;
-        enemy: Types.ObjectId | null;
+        enemies: QuestEnemyRef[];
         timeToComplete: number | null;
         relatedLore: unknown[];
     };
@@ -100,7 +102,7 @@ export function buildAidQuest(
             type: QuestType.aid,
             markerLocation:
                 refIdOf(infos.markerLocation) ?? infos.markerLocation,
-            enemy: refIdOf(infos.enemy),
+            enemies: validQuestEnemiesOf(infos),
             timeToComplete: infos.timeToComplete ?? null,
             relatedLore: [...(infos.relatedLore ?? [])],
         },

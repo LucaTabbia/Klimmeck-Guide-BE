@@ -51,7 +51,7 @@ export interface CombatEnemySnapshot {
 
 export interface CombatHydration {
     quest: { _id: Types.ObjectId; infos: { type: QuestType; title: string } };
-    enemy: CombatEnemySnapshot;
+    enemies: readonly { snapshot: CombatEnemySnapshot; quantity: number }[];
     participants: CombatCharacterSnapshot[];
     equipment: ReadonlyMap<string, { damages?: unknown }>;
     spells: ReadonlyMap<string, { energyDamage?: unknown }>;
@@ -210,7 +210,9 @@ const participantOf = (
     };
 };
 
-const enemyOf = (enemy: CombatEnemySnapshot): CombatEnemy => ({
+const enemyOf = (
+    enemy: CombatEnemySnapshot,
+): Omit<CombatEnemy, 'quantity'> => ({
     id: enemy._id.toHexString(),
     name: enemy.name ?? '',
     lifePoints: numberOr(enemy.lifePoints, 0),
@@ -228,7 +230,10 @@ export function buildCombatContext(hydration: CombatHydration): CombatContext {
             type: hydration.quest.infos.type,
             title: hydration.quest.infos.title,
         },
-        enemy: enemyOf(hydration.enemy),
+        enemies: hydration.enemies.map(({ snapshot, quantity }) => ({
+            ...enemyOf(snapshot),
+            quantity,
+        })),
         participants: hydration.participants
             .map((snapshot) => participantOf(snapshot, hydration))
             .sort((a, b) => a.characterId.localeCompare(b.characterId)),

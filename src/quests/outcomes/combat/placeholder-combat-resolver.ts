@@ -59,13 +59,25 @@ export function winChanceOf(partyPower: number, lifePoints: number): number {
     return total > 0 ? partyPower / total : EVEN_ODDS;
 }
 
+const enemyLifePoints = (context: CombatContext): number =>
+    context.enemies.reduce(
+        (total, enemy) => total + enemy.lifePoints * enemy.quantity,
+        0,
+    );
+
+const enemyDamagePower = (context: CombatContext): number =>
+    context.enemies.reduce(
+        (total, enemy) => total + damagePower(enemy.damages) * enemy.quantity,
+        0,
+    );
+
 const partyWinChanceOf = (context: CombatContext): number =>
     winChanceOf(
         context.participants.reduce(
             (total, participant) => total + participantPower(participant),
             0,
         ),
-        context.enemy.lifePoints,
+        enemyLifePoints(context),
     );
 
 const newInjuryOf = (
@@ -96,7 +108,7 @@ export class PlaceholderCombatResolver extends CombatResolver {
     // A3: la vittoria si tira una volta sola per il gruppo, poi danni, ferite e pozioni per partecipante
     resolve(context: CombatContext, chance: ChanceSource): CombatResolution {
         const winChance = partyWinChanceOf(context);
-        const enemyDamage = damagePower(context.enemy.damages);
+        const enemyDamage = enemyDamagePower(context);
         const share = Math.max(1, context.participants.length);
         const victory = chance.next() < winChance;
         return {

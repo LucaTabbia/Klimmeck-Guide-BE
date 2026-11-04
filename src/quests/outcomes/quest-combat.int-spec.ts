@@ -171,7 +171,7 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         expect(quest.concludedAt).toEqual(NOW);
         expect(seatsOf(quest)).toEqual([String(subject.characterId)]);
         const [context] = scripted.contexts;
-        expect(context.enemy.lifePoints).toBe(1500);
+        expect(context.enemies[0].lifePoints).toBe(1500);
         expect(context.participants).toEqual([
             expect.objectContaining({
                 characterId: subject.characterId.toHexString(),
