@@ -68,7 +68,9 @@ const unchangedSheet = {
     titleBefore: TitleType.adventurer,
     titleAfter: TitleType.adventurer,
     spellLearned: null,
-    enemy: null,
+    enemies: [],
+    stagesCleared: null,
+    stagesTotal: null,
     rescuedCharacters: [],
 };
 

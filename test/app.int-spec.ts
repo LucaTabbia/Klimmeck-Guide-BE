@@ -437,11 +437,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
-    it('writes the quest description as an additive field (11 D-32)', () => {
+    it('writes the quest enemies list in place of the single enemy (D-01)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestInfos \{[^}]*\}/)?.[0]).toBe(
-            'type QuestInfos {\n  description: String\n  enemy: Enemy\n  markerLocation: PointOfInterest!\n  relatedLore: [Lore!]!\n  timeToComplete: Int\n  title: String!\n  type: String!\n}',
+            'type QuestInfos {\n  description: String\n  enemies: [QuestEnemy!]!\n  markerLocation: PointOfInterest!\n  relatedLore: [Lore!]!\n  timeToComplete: Int\n  title: String!\n  type: String!\n}',
+        );
+        expect(schema).toContain(
+            'type QuestEnemy {\n  enemy: Enemy!\n  quantity: Int!\n}',
         );
         expect(schema).not.toContain('input QuestInfosInput');
     });
@@ -628,7 +631,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  acknowledgedAt: DateTime\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemy: Enemy\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  levelAfter: Int!\n  levelBefore: Int!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest!\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  acknowledgedAt: DateTime\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  levelAfter: Int!\n  levelBefore: Int!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest!\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
         );
         expect(schema.match(/type QuestResultQuest \{[^}]*\}/)?.[0]).toBe(
             'type QuestResultQuest {\n  id: ID!\n  title: String!\n  type: String!\n}',

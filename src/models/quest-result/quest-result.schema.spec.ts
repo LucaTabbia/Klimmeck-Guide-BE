@@ -39,7 +39,7 @@ describe('quest result schema', () => {
     });
 
     it('stores every ref as a cast ObjectId', () => {
-        for (const path of ['character', 'user', 'spellLearned', 'enemy']) {
+        for (const path of ['character', 'user', 'spellLearned']) {
             expect(QuestResultSchema.path(path).instance).toBe('ObjectId');
         }
     });
@@ -72,8 +72,20 @@ describe('quest result schema', () => {
         expect(result.consumablesUsed).toEqual([]);
         expect(result.spellsUsed).toEqual([]);
         expect(result.spellLearned).toBeNull();
-        expect(result.enemy).toBeNull();
+        expect(result.enemies).toEqual([]);
         expect(result.rescuedCharacters).toEqual([]);
+    });
+
+    it('stores the fought enemies and the dungeon stages with null defaults (D-01, D-12)', () => {
+        const result = new Result(validResultDoc()).toObject();
+        const enemies = QuestResultSchema.path('enemies') as unknown as {
+            schema: Schema;
+        };
+
+        expect(result.enemies).toEqual([]);
+        expect(result.stagesCleared).toBeNull();
+        expect(result.stagesTotal).toBeNull();
+        expect(enemies.schema.path('enemy').instance).toBe('ObjectId');
     });
 
     it('rejects unknown outcomes and injuries', () => {

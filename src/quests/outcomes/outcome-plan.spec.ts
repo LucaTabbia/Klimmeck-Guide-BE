@@ -201,7 +201,9 @@ describe('planParticipant', () => {
                 titleBefore: TitleType.rookie,
                 titleAfter: TitleType.rookie,
                 spellLearned: null,
-                enemy: null,
+                enemies: [],
+                stagesCleared: null,
+                stagesTotal: null,
                 rescuedCharacters: [],
             });
         });
@@ -236,7 +238,7 @@ describe('planParticipant', () => {
         });
     });
 
-    it('adds the defeated enemy xp to the prize and keeps the fight hp', () => {
+    it('adds the defeated enemy xp to the prize, keeps the fight hp and lists the enemy (D-01)', () => {
         const plan = planParticipant(
             inputWith({
                 quest: questOf(QuestType.enemy),
@@ -249,7 +251,7 @@ describe('planParticipant', () => {
         expect(plan.result.xpGained).toBe(150);
         expect(plan.result.hpAfter).toBe(700);
         expect(plan.update.$set['status.currentLifePoints']).toBe(700);
-        expect(plan.result.enemy).toBe(ENEMY_ID);
+        expect(plan.result.enemies).toEqual([{ enemy: ENEMY_ID, quantity: 1 }]);
     });
 
     describe('clamps', () => {
