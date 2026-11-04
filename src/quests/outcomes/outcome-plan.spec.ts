@@ -100,7 +100,7 @@ const inputWith = (
     userId: USER_ID,
     verdict: QuestOutcome.success,
     battle: null,
-    enemy: null,
+    enemies: null,
     rewards: NO_REWARDS,
     aid: null,
     spellRecoveryTimes: new Map(),
@@ -243,15 +243,18 @@ describe('planParticipant', () => {
             inputWith({
                 quest: questOf(QuestType.enemy),
                 battle: battleWith({ hpAfter: 700 }),
-                enemy: { id: ENEMY_ID, xp: 100 },
+                enemies: {
+                    entries: [{ enemy: ENEMY_ID, quantity: 2 }],
+                    xp: 200,
+                },
                 rewards: rewardsWith({ xpPrize: 50 }),
             }),
         );
 
-        expect(plan.result.xpGained).toBe(150);
+        expect(plan.result.xpGained).toBe(250);
         expect(plan.result.hpAfter).toBe(700);
         expect(plan.update.$set['status.currentLifePoints']).toBe(700);
-        expect(plan.result.enemies).toEqual([{ enemy: ENEMY_ID, quantity: 1 }]);
+        expect(plan.result.enemies).toEqual([{ enemy: ENEMY_ID, quantity: 2 }]);
     });
 
     describe('clamps', () => {
@@ -306,11 +309,21 @@ describe('planParticipant', () => {
                     quest: questOf(QuestType.enemy),
                     verdict: QuestOutcome.failure,
                     battle: battleWith({ hpAfter: 300 }),
-                    enemy: { id: ENEMY_ID, xp: 100 },
+                    enemies: {
+                        entries: [{ enemy: ENEMY_ID, quantity: 2 }],
+                        xp: 200,
+                    },
                     rewards: rewardsWith({ coinsCopper: 150, xpPrize: 300 }),
                     aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
                 }),
             );
+        });
+
+        it('lists the fought enemies even on a defeat (D-01)', () => {
+            expect(plan.result.enemies).toEqual([
+                { enemy: ENEMY_ID, quantity: 2 },
+            ]);
+            expect(plan.result.xpGained).toBe(0);
         });
 
         it('empties the lane and waits for aid with the hp left', () => {
