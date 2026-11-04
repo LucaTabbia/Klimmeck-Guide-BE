@@ -19,6 +19,7 @@ import {
 import { buildEnemy } from '../../../test/fixtures/enemy.fixture';
 import { buildPoi } from '../../../test/fixtures/poi.fixture';
 import { buildQuest } from '../../../test/fixtures/quest.fixture';
+import { BANDIT_ID } from './dungeon-stages';
 import { DungeonStagesMigrator } from './dungeon-stages.migrator';
 
 describe('DungeonStagesMigrator (replSet)', () => {
@@ -46,7 +47,11 @@ describe('DungeonStagesMigrator (replSet)', () => {
 
     async function insertDungeon(
         entries: { enemy: Types.ObjectId; quantity: number }[],
-        overrides: { minTitle?: string; concludedAt?: Date | null } = {},
+        overrides: {
+            minTitle?: string;
+            concludedAt?: Date | null;
+            markerLocation?: Types.ObjectId;
+        } = {},
     ): Promise<Types.ObjectId> {
         const quest = buildQuest();
         const { insertedId } = await quests.collection.insertOne({
@@ -54,7 +59,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
             infos: {
                 ...quest.infos,
                 type: 'dungeon',
-                markerLocation: dungeonPoi,
+                markerLocation: overrides.markerLocation ?? dungeonPoi,
                 enemies: entries,
             },
             requirements: {
@@ -63,6 +68,20 @@ describe('DungeonStagesMigrator (replSet)', () => {
             },
             concludedAt: overrides.concludedAt ?? null,
         });
+        return insertedId;
+    }
+
+    // una grotta dove vive solo il Bandito, fuori da ogni forma rookie: la banda è l'unica tappa possibile
+    async function insertBanditCave(): Promise<Types.ObjectId> {
+        await enemies.collection.insertOne({
+            ...buildEnemy({ name: 'Bandito', xp: 1000 }),
+            _id: new Types.ObjectId(BANDIT_ID),
+            locations: ['cave'],
+            legendary: false,
+        });
+        const { insertedId } = await pois.collection.insertOne(
+            buildPoi({ type: ['dungeon', 'cave'] }),
+        );
         return insertedId;
     }
 
@@ -187,5 +206,30 @@ describe('DungeonStagesMigrator (replSet)', () => {
 
         expect(second).toEqual({ enriched: 0, skipped: 0 });
         expect(await enemiesOf(id)).toEqual(first);
+    });
+
+    it('leaves an enemyless dungeon that would get a single stage untouched (D-13)', async () => {
+        const cave = await insertBanditCave();
+        const id = await insertDungeon([], {
+            minTitle: 'rookie',
+            markerLocation: cave,
+        });
+
+        const report = await migrator.migrate();
+
+        expect(report).toEqual({ enriched: 0, skipped: 1 });
+        expect(await enemiesOf(id)).toEqual([]);
+    });
+
+    it('enriches nothing on the second run of a mixed world (D-13)', async () => {
+        const cave = await insertBanditCave();
+        await insertDungeon([{ enemy: current, quantity: 1 }]);
+        await insertDungeon([], { minTitle: 'rookie', markerLocation: cave });
+
+        const first = await migrator.migrate();
+        const second = await migrator.migrate();
+
+        expect(first).toEqual({ enriched: 1, skipped: 1 });
+        expect(second).toEqual({ enriched: 0, skipped: 1 });
     });
 });
