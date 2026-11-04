@@ -233,26 +233,33 @@ export class QuestGenerator extends QuestGenerationTrigger {
         if (missing <= 0) return 0;
         const neighbours = neighboursOf(world.cities);
         let created = 0;
-        while (created < missing) {
-            const city = this.pickCityOf(world, neighbours);
-            if (city === null) break;
-            const poiId = pickPoi(city.freePoiIds, this.chance);
-            city.freePoiIds = city.freePoiIds.filter((id) => id !== poiId);
-            const rank = await this.createOn(world, city, poiId);
-            if (rank === null) continue;
-            created += 1;
-            world.generatedPerCity.set(
-                city.id,
-                (world.generatedPerCity.get(city.id) ?? 0) + 1,
-            );
-            world.rankCounts[rank] = (world.rankCounts[rank] ?? 0) + 1;
+        try {
+            while (created < missing) {
+                const city = this.pickCityOf(world, neighbours);
+                if (city === null) break;
+                const poiId = pickPoi(city.freePoiIds, this.chance);
+                city.freePoiIds = city.freePoiIds.filter((id) => id !== poiId);
+                const rank = await this.createOn(world, city, poiId);
+                if (rank === null) continue;
+                created += 1;
+                world.generatedPerCity.set(
+                    city.id,
+                    (world.generatedPerCity.get(city.id) ?? 0) + 1,
+                );
+                world.rankCounts[rank] = (world.rankCounts[rank] ?? 0) + 1;
+            }
+            return created;
+        } finally {
+            this.logCreated(created, target);
         }
-        if (created > 0) {
-            this.logger.log(
-                `Generatore: ${created} missioni create (target ${target})`,
-            );
-        }
-        return created;
+    }
+
+    // anche quando una create lancia: le quest già scritte restano a DB
+    private logCreated(created: number, target: number): void {
+        if (created === 0) return;
+        this.logger.log(
+            `Generatore: ${created} missioni create (target ${target})`,
+        );
     }
 
     private pickCityOf(
