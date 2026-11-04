@@ -37,7 +37,7 @@ export class QuestGenerationSweeper
         this.stopping = true;
         if (this.timer) clearInterval(this.timer);
         this.timer = null;
-        await this.generator.whenIdle();
+        await this.generator.close();
     }
 
     private requestUnlessStopping(): void {

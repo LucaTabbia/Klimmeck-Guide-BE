@@ -3,10 +3,6 @@ import type { QuestGenerationConfig } from 'src/config/quest-generation-config';
 import { QuestGenerator } from './quest-generator.service';
 
 type RunSpy = jest.SpyInstance<Promise<number>, []>;
-type Closable = { close(): Promise<void> };
-
-const closeOf = (generator: QuestGenerator): Promise<void> =>
-    (generator as unknown as Closable).close();
 
 describe('QuestGenerator single-flight', () => {
     let generator: QuestGenerator;
@@ -69,7 +65,7 @@ describe('QuestGenerator single-flight', () => {
     });
 
     it('starts no run on request after close (D-17)', async () => {
-        await closeOf(generator);
+        await generator.close();
         generator.request();
         await generator.whenIdle();
 
@@ -87,7 +83,7 @@ describe('QuestGenerator single-flight', () => {
 
         generator.request();
         generator.request();
-        const closed = closeOf(generator);
+        const closed = generator.close();
         finishRun(1);
         await closed;
         await generator.whenIdle();
@@ -96,7 +92,7 @@ describe('QuestGenerator single-flight', () => {
     });
 
     it('still serves an explicit generate after close (D-16)', async () => {
-        await closeOf(generator);
+        await generator.close();
 
         await expect(generator.generate()).resolves.toBe(0);
         expect(runs).toHaveBeenCalledTimes(1);

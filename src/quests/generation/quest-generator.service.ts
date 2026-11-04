@@ -154,6 +154,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
     private readonly logger = new Logger(QuestGenerator.name);
     private inFlight: Promise<number> | null = null;
     private rerun = false;
+    private closed = false;
 
     constructor(
         @InjectModel(City.name)
@@ -177,28 +178,34 @@ export class QuestGenerator extends QuestGenerationTrigger {
         super();
     }
 
-    // single-flight (D-17): le chiamate concorrenti ricevono la stessa corsa; un rerun chiesto a fine corsa riparte subito
+    // single-flight (D-17): le chiamate concorrenti ricevono la stessa corsa; un rerun chiesto a fine corsa riparte subito, salvo dopo close()
     generate(): Promise<number> {
         this.inFlight ??= this.drain().finally(() => {
             this.inFlight = null;
-            if (this.rerun) this.startSafely();
+            if (this.rerun && !this.closed) this.startSafely();
         });
         return this.inFlight;
     }
 
-    // fire-and-forget: accoda al più un rerun della corsa in volo (D-17)
+    // fire-and-forget: accoda al più un rerun della corsa in volo (D-17); no-op dopo close()
     request(): void {
+        if (this.closed) return;
         this.rerun = true;
         this.startSafely();
     }
 
-    whenIdle(): Promise<void> {
-        return (
-            this.inFlight?.then(
-                () => undefined,
-                () => undefined,
-            ) ?? Promise.resolve()
-        );
+    // attende anche la corsa riavviata dal rerun del finally
+    async whenIdle(): Promise<void> {
+        while (this.inFlight) {
+            await this.inFlight.catch(() => undefined);
+        }
+    }
+
+    // allo stop: nessuna nuova corsa da request() né dal rerun; generate() esplicito resta ammesso (D-16)
+    async close(): Promise<void> {
+        this.closed = true;
+        this.rerun = false;
+        await this.whenIdle();
     }
 
     private startSafely(): void {
