@@ -12,7 +12,7 @@ import {
     composeQuest,
 } from 'src/quests/generation/quest-composition';
 import { SeededChanceSource } from 'src/quests/generation/seeded-chance';
-import { SequenceChance } from 'test/quests/sequence-chance';
+import { SequenceChance } from '../../../test/quests/sequence-chance';
 
 const enemy = (
     id: string,
@@ -285,7 +285,10 @@ describe('composition of generated quests', () => {
     it('never composes a legendary enemy (D-04)', () => {
         const legendaryOwl = enemy('z01', 'Orsogufo antico', 99, FOREST, true);
         const legendaryDragon = enemy('z02', 'Drago', 650, FOREST, true);
-        const unflagged = enemy('z03', 'Nuovo', 99, FOREST, undefined);
+        const unflagged = {
+            ...enemy('z03', 'Nuovo', 99),
+            legendary: undefined,
+        };
         const enemies = [...catalog, legendaryOwl, legendaryDragon, unflagged];
         const members = new Set<string>();
 
