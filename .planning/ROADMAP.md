@@ -467,7 +467,27 @@ Plans:
 **Decisioni dell'utente (2026-11-04, `13-CONTEXT.md` D-01..D-26, discuss congiunto con la FE Phase 14 dal repo FE)**: boss = un solo nemico di fascia superiore, posti = ⌈PE / media del rango⌉ (400/1500/4000/6000/15000) fra 2 e 6, 1 ogni 10; i 22 leggendari mai generati (worldMission del GM); enemy = nemico singolo della fascia o branco di nemici più deboli con somma xp nella fascia, pool = zona del POI + habitat `city`, un posto del rango; nessuna scadenza; riempimento fino a un target globale (default una per città); `generateQuests` = una corsa normale con il conteggio; premi da tabella (enemy 150+40, boss 600+120 × moltiplicatore) con pool di `randomLoot` ampi per rango tirati per partecipante, legendary solo da hero; `prizes.pet` con 1% sui boss e 20% per vincitore; titolo e annuncio da template; dungeon a tappe con porta e segnaposto (motore ed esplorazione restano dell'utente), 40 fisse arricchite al boot; regola nuova `accessoryUseTypes` sui gioielli con tabella rivista dall'utente. Anche `QuestResult.enemy` → `enemies` + `stagesCleared`/`stagesTotal`.
 **Unblocks (FE)**: FE Phase 14 (QGEN-01..04); la Phase 15 imboscate combatte già con `enemies`.
 **Branch**: `feat/13-generazione-quest` da `develop` → PR a `develop`.
-**Plans**: TBD
+**Plans**: 20 piani (pianificati il 2026-11-04; catena lineare, una wave per piano, esecuzione sequenziale sull'albero principale; i one-off dei piani 16–17 escono dal repo dopo il primo boot reale, Phase 12 D-25)
+- [ ] 13-01-PLAN.md — Campi additivi: flag `generated` + indice unico parziale, `Enemy.legendary`, `AccessoryUseType`/`accessoryUseTypes`, `QuestPrizes.pet`, `QuestRewards.pet`, real boot
+- [ ] 13-02-PLAN.md — Sostituzione non additiva `enemy` → `enemies` (`QuestEnemy`, `stagesCleared`/`stagesTotal`), populate + filtro orfani, inventario mixed-ref, real boot (SDL −2 righe)
+- [ ] 13-03-PLAN.md — Lettore tollerante `validQuestEnemiesOf`, `QuestEnemiesMigrator` permanente (quest + risultati), `QuestMaintenanceBoot`/`QuestMaintenanceModule` importato solo da AppModule
+- [ ] 13-04-PLAN.md — `CombatContext.enemies` multi-nemico, aggregazione del segnaposto, `readEnemies`, XP = premio + Σ xp × quantità, clone `enemies` nella aid, int-spec multi-nemico
+- [ ] 13-05-PLAN.md — Sweep di fixture e int-spec degli esiti che scrivono ancora `enemy`, controllo dell'intera suite
+- [ ] 13-06-PLAN.md — Aid: clone di `prizes.pet`, mai `generated`; int-spec soccorso e GM multi-nemico
+- [ ] 13-07-PLAN.md — Porta `DungeonResolver` + contesto (`recommendedLoot`, `recommendedOwned`) + segnaposto PROVVISORIO a tappe
+- [ ] 13-08-PLAN.md — Dispatch dungeon in `QuestResolutionService.fight`, tappe nel risultato, binding DI, `quest-dungeon.int-spec`
+- [ ] 13-09-PLAN.md — `SeededChanceSource`/`keyedChance` ripristinati; `generation-rules.ts` (fasce con legend 1098–3212, medie del party, `bossSeatsOf` con −0,5, `leastCoveredRank` su 6 ranghi)
+- [ ] 13-10-PLAN.md — Pool dei nemici (zona + `city`, `all` di riserva, `legendary === false`) e `composeQuest` (forme a/b, branchi legend di 2–4 hero, boss 1 su 10 con 2–6 posti, coerenza con il POI D-08)
+- [ ] 13-11-PLAN.md — Premi e pool di loot (tabella D-20, legend 1L+2U+4R, pet 1% sui boss), `recommendedLoot`, template di titolo (quantità solo se > 1) e annuncio
+- [ ] 13-12-PLAN.md — Scelta della città (kNN K=5, peso 1/(1+D)², tetto 3, POI libero senza il marker) + spec di distribuzione su una griglia di 30 città
+- [ ] 13-13-PLAN.md — Config `QUEST_GENERATION_TARGET`/`QUEST_GENERATION_SWEEP_INTERVAL_MS` + `.env.example`, draft builder puro, `QuestGenerator` (single-flight, rerun, E11000, ripiego sui ranghi), `QuestGenerationTriggerModule` leggero (D-30), fixture `generation-world`
+- [ ] 13-14-PLAN.md — Sweeper (corsa al boot + timer `unref`), hook `OutcomeWriter.deliver` via `regeneratesAfter`, mutation `generateQuests` (innkeeper, audit) + `EXPECTED_INNKEEPER_HANDLERS` + real boot
+- [ ] 13-15-PLAN.md — Premio pet alla vittoria (20% per vincitore, dopo loot e magie), scrittura idempotente in `ownedPets`, `rewards.pet` sul filo
+- [ ] 13-16-PLAN.md — `equipType`/`accessoryUseTypes` nel contesto di combattimento + `JewelAccessoryMigrator` una tantum (42 `_id` dalla tabella approvata)
+- [ ] 13-17-PLAN.md — `EnemyLegendaryMigrator` (22 id) e `DungeonStagesMigrator` (1–3 tappe, bande N × Bandito, deterministico per id) una tantum; ordine di boot con corsa finale del generatore
+- [ ] 13-18-PLAN.md — Integration BE-QGEN-08: tetto, distribuzione, hunt/dungeon mai generate, legend nel giro, seconda corsa idempotente, concorrenza sul POI, FORBIDDEN, audit
+- [ ] 13-19-PLAN.md — Gate: contratto FE nel real boot, `npm run test:cov` + soglia `src/quests/generation/`, diff SDL = esattamente le due righe `enemy: Enemy`, prettier/eslint sui file toccati, controlli segreti/trailer/isolamento one-off, VALIDATION firmata, `mark-complete` BE-QGEN-01..11
+- [ ] 13-20-PLAN.md — `BACKEND-NOTES.md` per la FE Phase 14 + runbook del primo boot reale dal branch (e rimozione dei one-off prima della merge), chiusura ROADMAP/STATE/REQUIREMENTS
 
 ### Phase 14: Viaggio e cibo
 **Goal**: Viaggiare consuma cibo: il fabbisogno è il tempo di marcia (1 power ogni 3 minuti della durata calcolata, che già somma terreno della strada, pet e ferite), il server sceglie fra gli oggetti `hunger` del personaggio quelli che coprono il fabbisogno con lo scarto minimo e li consuma alla partenza; i chilometri scoperti dal cibo costano vita (il km scoperto n-esimo costa n HP); se il personaggio non arriverebbe con almeno 1 HP la partenza — libera o automatica da quest — è rifiutata. Teleport e salto istantaneo esenti.
@@ -554,7 +574,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
 | 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
-| 13. Generazione quest | 0/0 | Not started | - |
+| 13. Generazione quest | 0/20 | Planned | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
