@@ -12,6 +12,12 @@ import {
 export interface JewelAccessoryReport {
     written: number;
     missing: string[];
+    notJewels: string[];
+}
+
+interface JewelPresence {
+    missing: string[];
+    notJewels: string[];
 }
 
 // tabella APPROVATA dall'utente il 2026-11-04 (13-JEWELS-REVIEW.md): copiata, mai dedotta
@@ -100,7 +106,7 @@ export class JewelAccessoryMigrator {
     ) {}
 
     async migrate(): Promise<JewelAccessoryReport> {
-        const missing = await this.missingJewels();
+        const { missing, notJewels } = await this.jewelPresence();
         let written = 0;
         for (const [hex, types] of JEWEL_ACCESSORY_USE_TYPES) {
             const update = await this.equipmentItemModel
@@ -120,19 +126,33 @@ export class JewelAccessoryMigrator {
             this.logger.warn(
                 `Gioielli: ${missing.length} della tabella non trovati a DB: ${missing.join(', ')}`,
             );
-        return { written, missing };
+        if (notJewels.length > 0)
+            this.logger.warn(
+                `Gioielli: ${notJewels.length} della tabella non sono anelli né collane a DB: ${notJewels.join(', ')}`,
+            );
+        return { written, missing, notJewels };
     }
 
-    private async missingJewels(): Promise<string[]> {
+    // assenti e presenti con un equipType che la scrittura esclude: nessuno dei due riceve il campo
+    private async jewelPresence(): Promise<JewelPresence> {
         const ids = [...JEWEL_ACCESSORY_USE_TYPES.keys()];
         const found = await this.equipmentItemModel
             .find(
                 { _id: { $in: ids.map((hex) => new Types.ObjectId(hex)) } },
-                { _id: 1 },
+                { _id: 1, equipType: 1 },
             )
-            .lean<{ _id: Types.ObjectId }[]>()
+            .lean<{ _id: Types.ObjectId; equipType?: unknown }[]>()
             .exec();
-        const present = new Set(found.map(({ _id }) => _id.toHexString()));
-        return ids.filter((hex) => !present.has(hex));
+        const equipTypes = new Map(
+            found.map(({ _id, equipType }) => [_id.toHexString(), equipType]),
+        );
+        const isJewel = (equipType: unknown): boolean =>
+            (JEWEL_EQUIP_TYPES as unknown[]).includes(equipType);
+        return {
+            missing: ids.filter((hex) => !equipTypes.has(hex)),
+            notJewels: ids.filter(
+                (hex) => equipTypes.has(hex) && !isJewel(equipTypes.get(hex)),
+            ),
+        };
     }
 }
