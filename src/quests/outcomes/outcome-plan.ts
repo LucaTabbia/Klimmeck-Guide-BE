@@ -128,6 +128,11 @@ export type PlanVerdict =
     | QuestOutcome.failure
     | QuestOutcome.gmCompleted;
 
+export interface DungeonStages {
+    cleared: number;
+    total: number;
+}
+
 export interface ParticipantPlanInput {
     resultId: Types.ObjectId;
     snapshot: OutcomeCharacterSnapshot;
@@ -143,6 +148,8 @@ export interface ParticipantPlanInput {
     spellRecoveryTimes: ReadonlyMap<string, number>;
     spellMaxUsages: ReadonlyMap<string, number>;
     rescuedCharacters?: readonly Types.ObjectId[];
+    // solo le dungeon a tappe (D-12): null altrove
+    stages?: DungeonStages | null;
     now: Date;
 }
 
@@ -431,8 +438,8 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             titleAfter,
             spellLearned,
             enemies: [...(input.enemies?.entries ?? [])],
-            stagesCleared: null,
-            stagesTotal: null,
+            stagesCleared: input.stages?.cleared ?? null,
+            stagesTotal: input.stages?.total ?? null,
             // solo chi ha vinto il soccorso ha salvato qualcuno
             rescuedCharacters:
                 input.verdict === QuestOutcome.success

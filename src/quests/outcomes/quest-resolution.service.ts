@@ -3,6 +3,7 @@ import { InjectConnection } from '@nestjs/mongoose';
 import { Connection, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { buildAidQuest } from './aid/aid-quest';
 import { BossResolutionService } from './boss-resolution.service';
 import { ChanceSource } from './chance-source';
@@ -11,8 +12,11 @@ import {
     battleOf,
     type CombatantBattle,
     combatContextOf,
+    dungeonBattleOf,
     planCombatant,
 } from './combatant-plan';
+import { buildDungeonContext } from './dungeon/dungeon-context';
+import { DungeonResolver } from './dungeon/dungeon-resolver';
 import {
     type CommittedOutcome,
     OutcomeWriter,
@@ -44,6 +48,7 @@ export class QuestResolutionService {
         private readonly rescue: RescueResolutionService,
         private readonly writer: OutcomeWriter,
         private readonly combat: CombatResolver,
+        private readonly dungeon: DungeonResolver,
         private readonly chance: ChanceSource,
         private readonly clock: Clock,
     ) {}
@@ -155,7 +160,7 @@ export class QuestResolutionService {
         return 'resolved';
     }
 
-    // il combattimento passa solo dalla porta (D-02)
+    // il combattimento passa solo dalla porta (D-02); le dungeon sono esplorazioni a tappe sulla stessa porta per tappa, con i contatori nel risultato (D-12)
     private fight(
         loaded: StandardLoad,
         catalog: ResolutionCatalog,
@@ -163,6 +168,17 @@ export class QuestResolutionService {
     ): CombatantBattle | null {
         const context = combatContextOf(loaded.quest, catalog, [snapshot]);
         if (!context) return null;
+        if (loaded.quest.infos.type === QuestType.dungeon) {
+            const exploration = this.dungeon.explore(
+                buildDungeonContext({
+                    combat: context,
+                    recommendedLoot: loaded.quest.requirements?.recommendedLoot,
+                    participants: [snapshot],
+                }),
+                this.chance,
+            );
+            return dungeonBattleOf(exploration, snapshot._id);
+        }
         return battleOf(
             this.combat.resolve(context, this.chance),
             snapshot._id,

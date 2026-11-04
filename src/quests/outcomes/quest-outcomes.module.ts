@@ -40,6 +40,8 @@ import { ChanceSource, MathChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
 import { GmCompletionService } from './gm-completion.service';
 import { PlaceholderCombatResolver } from './combat/placeholder-combat-resolver';
+import { DungeonResolver } from './dungeon/dungeon-resolver';
+import { PlaceholderDungeonResolver } from './dungeon/placeholder-dungeon-resolver';
 import { OutcomeWriter } from './outcome-writer.service';
 import { QuestResolutionProcessor } from './quest-resolution.processor';
 import { QuestResolutionService } from './quest-resolution.service';
@@ -76,6 +78,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         { provide: Clock, useClass: SystemClock },
         { provide: QUEUE_CALL_TIMEOUT, useValue: QUEUE_CALL_TIMEOUT_MS },
         { provide: CombatResolver, useClass: PlaceholderCombatResolver },
+        { provide: DungeonResolver, useClass: PlaceholderDungeonResolver },
         { provide: ChanceSource, useClass: MathChanceSource },
         OutcomeWriter,
         ResolutionLoader,

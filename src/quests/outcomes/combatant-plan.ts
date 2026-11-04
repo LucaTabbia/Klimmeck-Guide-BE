@@ -10,7 +10,9 @@ import type {
     CombatVerdict,
     ParticipantEffects,
 } from './combat/combat-resolver';
+import type { DungeonResolution } from './dungeon/dungeon-resolver';
 import {
+    type DungeonStages,
     type EnemyFacts,
     type ParticipantPlan,
     type ParticipantPlanInput,
@@ -27,6 +29,7 @@ import { drawRewards, NO_REWARDS } from './rewards/quest-rewards';
 export interface CombatantBattle {
     verdict: CombatVerdict;
     effects: ParticipantEffects | null;
+    stages?: DungeonStages | null;
 }
 
 export interface CombatantPlanInput {
@@ -100,6 +103,21 @@ export function battleOf(
     };
 }
 
+// l'esplorazione a tappe porta i suoi contatori nel risultato (D-12)
+export function dungeonBattleOf(
+    resolution: DungeonResolution,
+    characterId: Types.ObjectId,
+): CombatantBattle {
+    return {
+        verdict: resolution.verdict,
+        effects: battleOf(resolution, characterId)?.effects ?? null,
+        stages: {
+            cleared: resolution.stagesCleared,
+            total: resolution.stagesTotal,
+        },
+    };
+}
+
 // calcolo puro dentro il callback: la sconfitta apre la aid riferita alla quest originale (D-06..D-09)
 export function planCombatant(input: CombatantPlanInput): CombatantPlan {
     const { quest, catalog, snapshot, battle } = input;
@@ -131,6 +149,7 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
         spellRecoveryTimes: catalog.recoveryTimes,
         spellMaxUsages: catalog.spellMaxUsages,
         rescuedCharacters: input.rescuedCharacters,
+        stages: battle?.stages ?? null,
         now: input.now,
     });
     return { plan, verdict, aid };
