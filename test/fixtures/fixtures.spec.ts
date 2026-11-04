@@ -149,6 +149,19 @@ describe('fixtures builders', () => {
             expect(quest.infos.markerLocation).toBeDefined();
             expect(quest.registeredAdventurers).toEqual([]);
         });
+
+        it('starts with an empty enemies list and no single enemy (D-01)', () => {
+            const quest = buildQuest();
+            expect(quest.infos.enemies).toEqual([]);
+            expect(Object.keys(quest.infos).sort()).toEqual([
+                'enemies',
+                'markerLocation',
+                'relatedLore',
+                'timeToComplete',
+                'title',
+                'type',
+            ]);
+        });
     });
 
     describe('buildCity', () => {
