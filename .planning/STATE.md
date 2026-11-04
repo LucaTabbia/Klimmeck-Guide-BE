@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 13 complete (2026-11-04) — PR feat/13-generazione-quest → develop to open as DRAFT right after the push; push pending (SSH agent unavailable in the session); first real boot from the branch + removal of the one-off migrators before the merge
+stopped_at: Phase 13 complete (2026-11-04) — PR #19 feat/13-generazione-quest → develop open as DRAFT (pushed and opened 2026-11-05); first real boot from the branch + removal of the one-off migrators before the merge
 last_updated: "2026-11-04T21:33:03.000Z"
 last_activity: 2026-11-04 -- Phase 13 complete: review (0 critical / 3 warning / 11 info, 11 fix + 3 not needed), verification passed, security audit (37 threats, 0 open, 2 deferred to the first real boot), post-fix regression green (unit 214/2751, integration 122/1468)
 progress:
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 Phase: 13 (Generazione quest) — EXECUTING (started 2026-11-04) on `feat/13-generazione-quest` (from `develop` `0585b2e`): 20 plans in a linear chain (`13-01`..`13-20`), executors one at a time on the main tree
 Plan: 20 of 20
-Status: Phase 13 complete (20/20) — review 0 critical / 3 warning / 11 info, 11 fix + 3 not needed; verification passed (0 gaps); security audit 37 threats, 0 open, 2 deferred to the first real boot; post-fix regression green; PR feat/13-generazione-quest → develop to open as DRAFT right after the push (push pending: SSH agent unavailable in the session); BEFORE the merge the user runs the first real boot from the branch following the runbook (`BACKEND-NOTES.md` §11) and the one-off migrators leave the repo (§11 d); after the merge the FE Phase 14 resumes with 14-10/14-11
-Last activity: 2026-11-04 -- Phase 13 closed: three area reviews merged, rulings, 11 fixes, verification, security audit, PR body ready
+Status: Phase 13 complete (20/20) — review 0 critical / 3 warning / 11 info, 11 fix + 3 not needed; verification passed (0 gaps); security audit 37 threats, 0 open, 2 deferred to the first real boot; post-fix regression green; PR #19 feat/13-generazione-quest → develop open as DRAFT (pushed and opened 2026-11-05); BEFORE the merge the user runs the first real boot from the branch following the runbook (`BACKEND-NOTES.md` §11) and the one-off migrators leave the repo (§11 d); after the merge the FE Phase 14 resumes with 14-10/14-11
+Last activity: 2026-11-05 -- Phase 13 branch pushed and PR #19 opened as DRAFT; first real boot + one-off removal before the merge
 
 Progress: [██████████] 20/20 plans of Phase 13 (phases 1–12, 9.1 and 9.2 complete and merged on develop)
 
