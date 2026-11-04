@@ -117,7 +117,7 @@ export const LOOT_POOLS: Readonly<
 // «probabilità estremamente bassa» (D-21)
 export const BOSS_PET_PRIZE_CHANCE = 0.01;
 
-const RARITY_RANK: Readonly<Record<RarityType, number>> = {
+export const RARITY_RANK: Readonly<Record<RarityType, number>> = {
     common: 0,
     uncommon: 1,
     rare: 2,
