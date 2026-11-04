@@ -81,9 +81,11 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         })) as { _id: Types.ObjectId; lifePoints: number };
     }
 
-    function combatQuest(
+    type EnemyEntry = { enemy: Types.ObjectId; quantity: number };
+
+    function questWithEnemies(
         type: string,
-        enemyId: Types.ObjectId,
+        enemies: EnemyEntry[],
         prizes: Record<string, unknown> = { xpPrize: 50 },
     ) {
         return {
@@ -91,7 +93,7 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
                 ...buildQuest().infos,
                 type,
                 title: QUEST_TITLE,
-                enemy: enemyId,
+                enemies,
             },
             requirements: {
                 ...buildQuest().requirements,
@@ -100,6 +102,18 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
             prizes: { ...buildQuest().prizes, ...prizes },
         };
     }
+
+    const combatQuest = (
+        type: string,
+        enemyId: Types.ObjectId,
+        prizes?: Record<string, unknown>,
+    ) => questWithEnemies(type, [{ enemy: enemyId, quantity: 1 }], prizes);
+
+    const enemiesOf = (holder: { enemies?: EnemyEntry[] }) =>
+        (holder.enemies ?? []).map(({ enemy, quantity }) => ({
+            enemy: String(enemy),
+            quantity,
+        }));
 
     async function fighter(
         type: string,
@@ -166,7 +180,9 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         expect(character.status.currentLifePoints).toBe(700);
         const result = await resultOf(subject);
         expect(result.xpGained).toBe(150);
-        expect(String(result.enemy)).toBe(String(foe._id));
+        expect(enemiesOf(result)).toEqual([
+            { enemy: String(foe._id), quantity: 1 },
+        ]);
         const quest = await questOf(subject.quest._id);
         expect(quest.concludedAt).toEqual(NOW);
         expect(seatsOf(quest)).toEqual([String(subject.characterId)]);
@@ -221,7 +237,9 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         expect(String(aid.infos.markerLocation)).toBe(
             String(subject.quest.infos.markerLocation),
         );
-        expect(String(aid.infos.enemy)).toBe(String(foe._id));
+        expect(enemiesOf(aid.infos)).toEqual([
+            { enemy: String(foe._id), quantity: 1 },
+        ]);
         expect(aid.requirements.requiredAdventurers).toEqual([
             expect.objectContaining({ title: null, count: 1 }),
         ]);
@@ -253,6 +271,91 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
             expect.objectContaining({
                 message: expect.objectContaining({ id: String(result._id) }),
             }),
+        ]);
+    });
+
+    it('fights a multi-enemy quest and earns the summed enemy xp (D-02)', async () => {
+        const goblin = await enemy({ name: 'Goblin', xp: 10, lifePoints: 100 });
+        const capo = await enemy({ name: 'Capo', xp: 63, lifePoints: 600 });
+        const subject = await fighter('enemy', goblin._id, {
+            questOverrides: questWithEnemies('enemy', [
+                { enemy: goblin._id, quantity: 3 },
+                { enemy: capo._id, quantity: 1 },
+            ]),
+        });
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        const result = await resultOf(subject);
+        expect(result.outcome).toBe('success');
+        expect(result.xpGained).toBe(50 + 3 * 10 + 63);
+        expect(enemiesOf(result)).toEqual([
+            { enemy: String(goblin._id), quantity: 3 },
+            { enemy: String(capo._id), quantity: 1 },
+        ]);
+        const [context] = scripted.contexts;
+        expect(
+            context.enemies.map(({ id, quantity }) => ({ id, quantity })),
+        ).toEqual([
+            { id: String(goblin._id), quantity: 3 },
+            { id: String(capo._id), quantity: 1 },
+        ]);
+    });
+
+    it('fights a legacy quest stored with the single enemy (D-28)', async () => {
+        const foe = await enemy();
+        const legacy = combatQuest('enemy', foe._id);
+        const infos: Record<string, unknown> = {
+            ...legacy.infos,
+            enemy: foe._id,
+        };
+        delete infos.enemies;
+        const { insertedId } = await world.models.quests.collection.insertOne({
+            ...buildQuest(),
+            ...legacy,
+            infos,
+        });
+        const subject = await fighter('enemy', foe._id, {
+            quest: { _id: insertedId },
+        });
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        const result = await resultOf(subject);
+        expect(result.xpGained).toBe(150);
+        expect(enemiesOf(result)).toEqual([
+            { enemy: String(foe._id), quantity: 1 },
+        ]);
+        expect(scripted.contexts).toHaveLength(1);
+        expect(scripted.contexts[0].enemies).toHaveLength(1);
+    });
+
+    it('skips an orphan enemy entry with a warning of ids only (D-28)', async () => {
+        const foe = await enemy();
+        const orphanId = new Types.ObjectId();
+        const subject = await fighter('enemy', foe._id, {
+            questOverrides: questWithEnemies('enemy', [
+                { enemy: orphanId, quantity: 4 },
+                { enemy: foe._id, quantity: 2 },
+            ]),
+        });
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        const result = await resultOf(subject);
+        expect(result.xpGained).toBe(50 + 2 * 100);
+        expect(enemiesOf(result)).toEqual([
+            { enemy: String(foe._id), quantity: 2 },
+        ]);
+        const [context] = scripted.contexts;
+        expect(
+            context.enemies.map(({ id, quantity }) => ({ id, quantity })),
+        ).toEqual([{ id: String(foe._id), quantity: 2 }]);
+        const orphanWarnings = warn.mock.calls
+            .map(([message]) => String(message))
+            .filter((message) => message.includes(String(orphanId)));
+        expect(orphanWarnings).toEqual([
+            `Nemico ${String(orphanId)} della missione ${String(subject.quest._id)} inesistente: voce scartata`,
         ]);
     });
 
