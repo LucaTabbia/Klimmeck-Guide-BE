@@ -50,7 +50,7 @@ const numberOf = (value: unknown): number =>
     typeof value === 'number' ? value : 0;
 
 function rankOf(rarity: string | null): number | null {
-    return rarity !== null && rarity in RARITY_RANK
+    return rarity !== null && Object.hasOwn(RARITY_RANK, rarity)
         ? RARITY_RANK[rarity as RarityType]
         : null;
 }
