@@ -1,8 +1,17 @@
 import { Types } from 'mongoose';
+import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { ChanceSource } from './chance-source';
 import type { CombatEnemySnapshot } from './combat/combat-context';
-import { combatContextOf, enemyFactsOf } from './combatant-plan';
+import type { ParticipantEffects } from './combat/combat-resolver';
+import {
+    type CombatantBattle,
+    combatContextOf,
+    dungeonBattleOf,
+    enemyFactsOf,
+    planCombatant,
+} from './combatant-plan';
 import type {
     ResolutionCatalog,
     ResolutionCharacter,
@@ -95,5 +104,123 @@ describe('enemyFactsOf', () => {
 
     it('returns no enemy facts for an empty catalog (D-02)', () => {
         expect(enemyFactsOf(catalogWith([]))).toBeNull();
+    });
+});
+
+class NoDrawChance extends ChanceSource {
+    next(): number {
+        return 0.99;
+    }
+}
+
+const dungeon: ResolutionQuest = {
+    _id: id('92'),
+    infos: {
+        type: QuestType.dungeon,
+        title: 'Le cripte di Bosa',
+        markerLocation: id('82'),
+    },
+    prizes: { prizeCoins: { silver: 2 }, xpPrize: 50 },
+};
+
+const explorer: ResolutionCharacter = {
+    _id: id('a2'),
+    status: {
+        xp: 0,
+        level: 1,
+        title: TitleType.rookie,
+        currentLifePoints: 1000,
+        maxLifePoints: 1000,
+        injuries: [],
+        spells: [],
+    },
+    quests: { completedQuests: [] },
+    assets: { ownedItems: [], ownedEquipments: [], activeSpells: [] },
+} as ResolutionCharacter;
+
+const effectsOf = (hpAfter: number): ParticipantEffects => ({
+    characterId: explorer._id.toHexString(),
+    hpAfter,
+    injuriesAdded: [],
+    consumablesUsed: [],
+    spellsUsed: [],
+});
+
+const planWith = (quest: ResolutionQuest, battle: CombatantBattle) =>
+    planCombatant({
+        quest,
+        catalog: catalogWith([goblins]),
+        snapshot: explorer,
+        battle,
+        resultId: id('d1'),
+        aidQuestId: id('d2'),
+        pendingQuestId: id('d3'),
+        userId: id('d4'),
+        chance: new NoDrawChance(),
+        now: new Date('2026-11-04T10:00:00.000Z'),
+    });
+
+describe('planCombatant', () => {
+    it('carries the dungeon stages into the participant result (D-12)', () => {
+        const { plan, verdict } = planWith(dungeon, {
+            verdict: 'success',
+            effects: effectsOf(700),
+            stages: { cleared: 3, total: 3 },
+        });
+
+        expect(verdict).toBe(QuestOutcome.success);
+        expect(plan.result.stagesCleared).toBe(3);
+        expect(plan.result.stagesTotal).toBe(3);
+        expect(plan.coinsDelta).toBe(200);
+    });
+
+    it('withholds the rewards and keeps the cleared stages on a defeat (D-12)', () => {
+        const { plan, verdict, aid } = planWith(dungeon, {
+            verdict: 'failure',
+            effects: effectsOf(0),
+            stages: { cleared: 1, total: 3 },
+        });
+
+        expect(verdict).toBe(QuestOutcome.failure);
+        expect(plan.result.stagesCleared).toBe(1);
+        expect(plan.result.stagesTotal).toBe(3);
+        expect(plan.result.rewards).toEqual({
+            coins: { gold: 0, silver: 0, copper: 0 },
+            items: [],
+        });
+        expect(plan.coinsDelta).toBe(0);
+        expect(aid).toEqual({ aidQuestId: id('d2'), failedQuestId: id('92') });
+    });
+
+    it('leaves the stages null outside a dungeon (D-12)', () => {
+        const { plan } = planWith(quest, {
+            verdict: 'success',
+            effects: effectsOf(900),
+        });
+
+        expect(plan.result.stagesCleared).toBeNull();
+        expect(plan.result.stagesTotal).toBeNull();
+    });
+});
+
+describe('dungeonBattleOf', () => {
+    it('reads the verdict, the effects and the stages of the exploration (D-12)', () => {
+        const effects = effectsOf(400);
+
+        expect(
+            dungeonBattleOf(
+                {
+                    verdict: 'failure',
+                    participants: [effects],
+                    stagesCleared: 2,
+                    stagesTotal: 4,
+                },
+                explorer._id,
+            ),
+        ).toEqual({
+            verdict: 'failure',
+            effects,
+            stages: { cleared: 2, total: 4 },
+        });
     });
 });

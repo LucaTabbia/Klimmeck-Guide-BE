@@ -209,6 +209,18 @@ describe('planParticipant', () => {
         });
     });
 
+    it('writes the dungeon stages it receives into the result (D-12)', () => {
+        const plan = planParticipant(
+            inputWith({
+                quest: questOf(QuestType.dungeon),
+                stages: { cleared: 2, total: 3 },
+            }),
+        );
+
+        expect(plan.result.stagesCleared).toBe(2);
+        expect(plan.result.stagesTotal).toBe(3);
+    });
+
     it('requires a free standard lane in the write filter of the game master lanes only (D-24)', () => {
         const filterOf = (lane: QuestLane, type: QuestType) =>
             planParticipant(
