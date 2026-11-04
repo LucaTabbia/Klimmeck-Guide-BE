@@ -29,6 +29,7 @@ import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { User, UserSchema } from 'src/models/user.model';
 import { PushModule } from 'src/push/push.module';
+import { QuestGenerationTriggerModule } from 'src/quests/generation/quest-generation-trigger.module';
 import { PartyLifecycleModule } from 'src/quests/party/party-lifecycle.module';
 import { PartyModule } from 'src/quests/party/party.module';
 import {
@@ -73,6 +74,8 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         PartyModule,
         PartyLifecycleModule,
         BullModule.registerQueue({ name: SPELL_RECOVERY_QUEUE }),
+        // solo la porta leggera (D-30): sweeper e corsa al boot restano in QuestGenerationModule
+        QuestGenerationTriggerModule,
     ],
     providers: [
         { provide: Clock, useClass: SystemClock },

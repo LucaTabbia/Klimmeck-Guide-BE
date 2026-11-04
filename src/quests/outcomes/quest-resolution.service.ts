@@ -22,7 +22,7 @@ import {
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
-import { questUpdateOf } from './quest-outcome-plan';
+import { questUpdateOf, regeneratesAfter } from './quest-outcome-plan';
 import {
     type ResolutionCatalog,
     type ResolutionCharacter,
@@ -122,13 +122,14 @@ export class QuestResolutionService {
                 });
                 await this.writer.writeParticipant(plan, session);
                 await this.writer.deletePendingQuest(pendingQuestId, session);
+                const questUpdate = questUpdateOf({
+                    type: loaded.quest.infos.type,
+                    verdicts: [{ characterId: snapshot._id, verdict }],
+                    now,
+                });
                 await this.writer.updateQuest(
                     { _id: loaded.quest._id },
-                    questUpdateOf({
-                        type: loaded.quest.infos.type,
-                        verdicts: [{ characterId: snapshot._id, verdict }],
-                        now,
-                    }),
+                    questUpdate,
                     session,
                     'bestEffort',
                 );
@@ -143,6 +144,7 @@ export class QuestResolutionService {
                     results: [{ resultId, userId: loaded.ownerId }],
                     aids: aid ? [{ aidQuestId, since: now }] : [],
                     spellRecoveries: plan.spellRecoveries,
+                    regenerate: regeneratesAfter(loaded.quest, questUpdate),
                 };
             });
         } catch (error) {

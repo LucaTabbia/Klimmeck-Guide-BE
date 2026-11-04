@@ -71,6 +71,7 @@ export type ResolutionQuest = OutcomeQuestSnapshot &
         prizes?: PrizesSnapshot | null;
         concludedAt?: Date | null;
         startedAt?: Date | null;
+        generated?: unknown;
         registeredAdventurers?:
             | { character?: unknown; archivedAt?: Date | null }[]
             | null;
@@ -119,6 +120,7 @@ export const RESOLUTION_QUEST_PROJECTION = {
     registeredAdventurers: 1,
     rescue: 1,
     concludedAt: 1,
+    generated: 1,
 } as const;
 
 export const isFiniteNumber = (value: unknown): value is number =>

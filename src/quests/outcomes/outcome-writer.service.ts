@@ -26,10 +26,12 @@ import {
 } from 'src/models/quest-result/quest-result.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { documentIdOf, objectIdFromHex } from 'src/mongo/document-id';
+import { describeError } from 'src/mongo/mongo-errors';
 import { questEnd } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
 import { enqueueTrigger } from 'src/queues/enqueue-trigger';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
+import { QuestGenerationTrigger } from 'src/quests/generation/quest-generation-trigger';
 import type { AidQuestDraft } from './aid/aid-quest';
 import type {
     ParticipantPlan,
@@ -49,6 +51,8 @@ export interface CommittedOutcome {
     results: { resultId: Types.ObjectId; userId: Types.ObjectId }[];
     aids: { aidQuestId: Types.ObjectId; since: Date }[];
     spellRecoveries: SpellRecovery[];
+    // una generata conclusa (D-17): dopo il commit si chiede una corsa del generatore
+    regenerate?: boolean;
 }
 
 // una factory, non una costante: ogni esito riempie i propri array
@@ -56,6 +60,7 @@ export const emptyCommitted = (): CommittedOutcome => ({
     results: [],
     aids: [],
     spellRecoveries: [],
+    regenerate: false,
 });
 
 // claim = la scrittura della Quest decide chi risolve; bestEffort = la quest può mancare senza bloccare l'esito
@@ -83,6 +88,7 @@ export class OutcomeWriter {
         @Inject(QUEUE_CALL_TIMEOUT)
         private readonly timeoutMs: number,
         private readonly clock: Clock,
+        private readonly trigger: QuestGenerationTrigger,
     ) {}
 
     // il saldo passa solo dal WalletService nella stessa session (04 D-04)
@@ -166,6 +172,18 @@ export class OutcomeWriter {
         }
         for (const recovery of committed.spellRecoveries) {
             await this.scheduleSpellRecovery(recovery);
+        }
+        if (committed.regenerate) this.requestGeneration();
+    }
+
+    // la richiesta non attende la corsa: il single-flight del generatore la accoda, lo sweep la recupera se va persa
+    private requestGeneration(): void {
+        try {
+            this.trigger.request();
+        } catch (error) {
+            this.logger.warn(
+                `Generatore: richiesta di corsa dopo l'esito non inviata (${describeError(error)})`,
+            );
         }
     }
 
