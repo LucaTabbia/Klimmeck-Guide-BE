@@ -118,6 +118,7 @@ const EXPECTED_INNKEEPER_HANDLERS = [
     'PendingRequestsResolver.pendingRequests',
     'PendingRequestsResolver.pendingRequestsUpdated',
     'PushResolver.sendTestPush',
+    'QuestGenerationResolver.generateQuests',
     'ShopAdminResolver.shopPoolReport',
     'TravelAdminResolver.teleportCharacter',
     'UsersResolver.user',
@@ -669,6 +670,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
                     'type EquipmentItem {\n  accessoryUseTypes: [AccessoryUseType!]\n  addedSpell: Spell\n',
                 ),
         ).toBe(true);
+    });
+
+    it('writes the generateQuests mutation into the generated schema (D-16)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain('generateQuests: GenerateQuestsResult!');
+        expect(schema.match(/type GenerateQuestsResult \{[^}]*\}/)?.[0]).toBe(
+            'type GenerateQuestsResult {\n  created: Int!\n}',
+        );
     });
 
     it('writes the quest result delivery API into the generated schema', () => {
