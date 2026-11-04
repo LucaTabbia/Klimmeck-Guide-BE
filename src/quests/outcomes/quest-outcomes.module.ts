@@ -74,7 +74,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         PartyModule,
         PartyLifecycleModule,
         BullModule.registerQueue({ name: SPELL_RECOVERY_QUEUE }),
-        // solo la porta leggera (D-30): sweeper e corsa al boot restano in QuestGenerationModule
+        // solo la porta leggera (D-30): sweeper, corsa al boot e mutation restano nel modulo completo del generatore
         QuestGenerationTriggerModule,
     ],
     providers: [

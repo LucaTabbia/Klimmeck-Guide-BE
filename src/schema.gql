@@ -292,6 +292,10 @@ type EquipmentItem {
   sellable: Boolean
 }
 
+type GenerateQuestsResult {
+  created: Int!
+}
+
 enum InjuryType {
   blackEye
   blindness
@@ -364,6 +368,7 @@ type Mutation {
   equipPet(request: EquipPetRequest!): CommonResponse!
   equipSpell(request: EquipSpellRequest!): CommonResponse!
   exchangeLoginTicket(codeVerifier: String!, ticket: String!): AuthSession!
+  generateQuests: GenerateQuestsResult!
   logout: Boolean!
   refreshSession(refreshToken: String!): AuthSession!
   registerPushDevice(input: RegisterPushDeviceInput!): Boolean!
