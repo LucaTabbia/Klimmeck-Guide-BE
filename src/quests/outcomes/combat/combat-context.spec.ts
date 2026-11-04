@@ -234,6 +234,8 @@ describe('buildCombatContext', () => {
                         base: [{ type: 'cut', power: 300 }],
                         energy: [],
                     },
+                    equipType: null,
+                    accessoryUseTypes: null,
                 },
             ],
             activeSpells: [
@@ -424,5 +426,92 @@ describe('buildCombatContext', () => {
         buildCombatContext(source);
 
         expect(source).toEqual(hydration());
+    });
+});
+
+describe('jewel use types in the combat context', () => {
+    const ringId = id('e3');
+
+    const wearing = (item: Record<string, unknown>) => {
+        const source = hydration();
+        source.participants = [
+            {
+                _id: id('a5'),
+                status: { title: TitleType.rookie },
+                assets: { wearedEquipment: { firstAccessory: ringId } },
+            },
+        ];
+        source.equipment = new Map([[ringId.toHexString(), item]]);
+        return buildCombatContext(source).participants[0].equipment;
+    };
+
+    it('snapshots the use types of a worn jewel (D-24)', () => {
+        expect(
+            wearing({
+                damages: { base: [], energy: [] },
+                equipType: 'ring',
+                accessoryUseTypes: ['attack', 'defense'],
+            }),
+        ).toEqual([
+            {
+                itemId: ringId.toHexString(),
+                slot: 'firstAccessory',
+                damages: { base: [], energy: [] },
+                equipType: 'ring',
+                accessoryUseTypes: ['attack', 'defense'],
+            },
+        ]);
+    });
+
+    it('keeps null use types on gear without them (D-24)', () => {
+        const [hero] = buildCombatContext({
+            ...hydration(),
+            equipment: new Map([
+                [
+                    swordId.toHexString(),
+                    { damages: { base: [], energy: [] }, equipType: 'weapon' },
+                ],
+            ]),
+        }).participants;
+
+        expect(hero.equipment).toEqual([
+            {
+                itemId: swordId.toHexString(),
+                slot: 'rightHand',
+                damages: { base: [], energy: [] },
+                equipType: 'weapon',
+                accessoryUseTypes: null,
+            },
+        ]);
+    });
+
+    it('drops values outside the enum and keeps a malformed list null (D-24)', () => {
+        const [listed] = wearing({
+            equipType: 'ring',
+            accessoryUseTypes: ['attack', 'fly'],
+        });
+        const [single] = wearing({
+            equipType: 'necklace',
+            accessoryUseTypes: 'attack',
+        });
+        const [unknown] = wearing({
+            equipType: 'cape',
+            accessoryUseTypes: ['defense'],
+        });
+
+        expect([listed, single, unknown]).toEqual([
+            expect.objectContaining({
+                equipType: 'ring',
+                accessoryUseTypes: ['attack'],
+            }),
+            expect.objectContaining({
+                equipType: 'necklace',
+                accessoryUseTypes: null,
+            }),
+            expect.objectContaining({
+                equipType: null,
+                accessoryUseTypes: ['defense'],
+            }),
+        ]);
     });
 });
