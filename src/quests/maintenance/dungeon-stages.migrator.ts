@@ -50,6 +50,8 @@ interface LeanPoi {
 
 // al più un nemico: una dungeon curata a mano con più voci non si tocca (T-13-18)
 const MAX_CURRENT_ENEMIES = 1;
+// una dungeon arricchita esce con almeno due tappe: con una sola resterebbe ammessa e la corsa dopo la allungherebbe ancora
+const MIN_ENRICHED_STAGES = 2;
 
 const stringsOf = (value: unknown): string[] => {
     if (Array.isArray(value)) {
@@ -134,7 +136,11 @@ export class DungeonStagesMigrator {
             enemies,
             chance: keyedChance(DUNGEON_STAGES_SEED, id),
         });
-        if (stages.length <= current.length) return false;
+        if (
+            stages.length < MIN_ENRICHED_STAGES ||
+            stages.length <= current.length
+        )
+            return false;
         const update = await this.questModel
             .updateOne(
                 {
