@@ -25,8 +25,17 @@ describe('QuestEnemiesMigrator (replSet)', () => {
     let migrator: QuestEnemiesMigrator;
 
     function legacyInfos(enemy: unknown): Record<string, unknown> {
-        const { infos } = buildQuest();
-        return { ...infos, enemy };
+        const infos: Record<string, unknown> = { ...buildQuest().infos, enemy };
+        delete infos.enemies;
+        return infos;
+    }
+
+    function legacyResult(enemy: unknown): Record<string, unknown> {
+        const result: Record<string, unknown> = buildQuestResult({ enemy });
+        delete result.enemies;
+        delete result.stagesCleared;
+        delete result.stagesTotal;
+        return result;
     }
 
     function withoutEnemy(
@@ -132,10 +141,10 @@ describe('QuestEnemiesMigrator (replSet)', () => {
     it('migrates the quest results the same way at the root (D-01)', async () => {
         const enemy = new Types.ObjectId();
         const { insertedId: legacy } = await results.collection.insertOne(
-            buildQuestResult({ enemy }),
+            legacyResult(enemy),
         );
         const { insertedId: empty } = await results.collection.insertOne(
-            buildQuestResult({ enemy: null }),
+            legacyResult(null),
         );
         const migratedResult = withoutEnemy(
             buildQuestResult({ enemies: [{ enemy, quantity: 2 }] }),
@@ -163,9 +172,7 @@ describe('QuestEnemiesMigrator (replSet)', () => {
     it('modifies nothing on the second run (D-28)', async () => {
         await insertQuest(legacyInfos(new Types.ObjectId()));
         await insertQuest(legacyInfos(null));
-        await results.collection.insertOne(
-            buildQuestResult({ enemy: new Types.ObjectId() }),
-        );
+        await results.collection.insertOne(legacyResult(new Types.ObjectId()));
 
         await expect(migrator.migrateAll()).resolves.toEqual({
             quests: 2,
