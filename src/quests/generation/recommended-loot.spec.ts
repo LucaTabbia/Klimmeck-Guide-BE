@@ -158,4 +158,18 @@ describe('recommendedLootOf', () => {
             }),
         ).toEqual([]);
     });
+
+    it('excludes a rarity that names a key of the prototype (D-27)', () => {
+        const prototypeKeys = ['constructor', '__proto__', 'toString'];
+        const catalog = prototypeKeys.flatMap((rarity) => [
+            gear(`w-${rarity}`, rarity as RarityType, [
+                { type: 'blunt', power: 9 },
+            ]),
+            potion(`heal-${rarity}`, rarity as RarityType, 90),
+        ]);
+
+        expect(
+            recommendedLootOf({ rank: TitleType.hero, enemies, catalog }),
+        ).toEqual([]);
+    });
 });
