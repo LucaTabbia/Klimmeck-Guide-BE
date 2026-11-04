@@ -1,5 +1,6 @@
 import { fromCopper } from 'src/economy/coins';
 import { EffectType } from 'src/models/enums/effect-type.enum';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import {
@@ -14,6 +15,7 @@ import {
     GENERATED_RANKS,
     GeneratedRank,
 } from 'src/quests/generation/generation-rules';
+import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import { SeededChanceSource } from 'src/quests/generation/seeded-chance';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
 
@@ -56,7 +58,7 @@ const rarityOf = (id: string): string =>
 function draw(
     type: GeneratedQuestType,
     rank: GeneratedRank,
-    chance = new SequenceChance([], 0),
+    chance: ChanceSource = new SequenceChance([], 0),
     items: readonly PrizeCatalogItem[] = catalog,
 ) {
     return prizesOf({ type, rank, catalog: items, pets, chance });
@@ -73,21 +75,21 @@ function countByRarity(ids: readonly string[]): Record<string, number> {
 
 describe('prizesOf', () => {
     it('pays coins and xp from the table times the rank multiplier (D-19)', () => {
-        const enemyPaladin = draw(QuestType.enemy, 'paladin');
+        const enemyPaladin = draw(QuestType.enemy, TitleType.paladin);
         expect(enemyPaladin.prizeCoins).toEqual(fromCopper(750));
         expect(enemyPaladin.xpPrize).toBe(200);
 
-        const bossHero = draw(QuestType.boss, 'hero');
+        const bossHero = draw(QuestType.boss, TitleType.hero);
         expect(bossHero.prizeCoins).toEqual(fromCopper(15000));
         expect(bossHero.xpPrize).toBe(3000);
 
-        const enemyLegend = draw(QuestType.enemy, 'legend');
+        const enemyLegend = draw(QuestType.enemy, TitleType.legend);
         expect(enemyLegend.prizeCoins).toEqual(fromCopper(3750));
         expect(enemyLegend.xpPrize).toBe(1000);
     });
 
     it('draws the boss loot pool of a hero quest (D-20)', () => {
-        const { randomLoot } = draw(QuestType.boss, 'hero');
+        const { randomLoot } = draw(QuestType.boss, TitleType.hero);
         const ids = randomLoot.map((entry) => entry.item);
 
         expect(countByRarity(ids)).toEqual({
@@ -100,14 +102,14 @@ describe('prizesOf', () => {
     });
 
     it('draws the enemy loot pools one step below (D-20)', () => {
-        const mage = draw(QuestType.enemy, 'mage').randomLoot.map(
+        const mage = draw(QuestType.enemy, TitleType.mage).randomLoot.map(
             (entry) => entry.item,
         );
         expect(countByRarity(mage)).toEqual({ rare: 1, uncommon: 2 });
 
         const one = draw(
             QuestType.enemy,
-            'adventurer',
+            TitleType.adventurer,
             new SequenceChance([0]),
         );
         expect(countByRarity(one.randomLoot.map((e) => e.item))).toEqual({
@@ -116,7 +118,7 @@ describe('prizesOf', () => {
 
         const two = draw(
             QuestType.enemy,
-            'adventurer',
+            TitleType.adventurer,
             new SequenceChance([0.6], 0),
         );
         expect(countByRarity(two.randomLoot.map((e) => e.item))).toEqual({
@@ -125,7 +127,7 @@ describe('prizesOf', () => {
     });
 
     it('draws the hero boss pool for legend enemy quests (D-20)', () => {
-        const { randomLoot } = draw(QuestType.enemy, 'legend');
+        const { randomLoot } = draw(QuestType.enemy, TitleType.legend);
         const ids = randomLoot.map((entry) => entry.item);
 
         expect(countByRarity(ids)).toEqual({
@@ -152,7 +154,7 @@ describe('prizesOf', () => {
         }
 
         for (let seed = 1; seed <= 100; seed += 1) {
-            for (const rank of ['paladin', 'mage'] as const) {
+            for (const rank of [TitleType.paladin, TitleType.mage] as const) {
                 for (const type of [QuestType.enemy, QuestType.boss] as const) {
                     const { randomLoot } = draw(
                         type,
@@ -174,7 +176,7 @@ describe('prizesOf', () => {
 
         const rare = prizesOf({
             type: QuestType.enemy,
-            rank: 'mage',
+            rank: TitleType.mage,
             catalog: items,
             pets,
             chance: new SequenceChance([], 0),
@@ -183,7 +185,7 @@ describe('prizesOf', () => {
 
         const common = prizesOf({
             type: QuestType.enemy,
-            rank: 'rookie',
+            rank: TitleType.rookie,
             catalog: items,
             pets,
             chance: new SequenceChance([0], 0),
@@ -197,7 +199,7 @@ describe('prizesOf', () => {
         const relic = equipment('relic-of-a-hero', RarityType.legendary);
         const { randomLoot } = draw(
             QuestType.boss,
-            'hero',
+            TitleType.hero,
             new SequenceChance([], 0),
             [relic, equipment('u1', RarityType.ultrarare)],
         );
@@ -214,7 +216,7 @@ describe('prizesOf', () => {
 
         const won = prizesOf({
             type: QuestType.boss,
-            rank: 'rookie',
+            rank: TitleType.rookie,
             catalog: noLoot,
             pets,
             chance: new SequenceChance([0.009, 0.5]),
@@ -223,7 +225,7 @@ describe('prizesOf', () => {
 
         const lost = prizesOf({
             type: QuestType.boss,
-            rank: 'rookie',
+            rank: TitleType.rookie,
             catalog: noLoot,
             pets,
             chance: new SequenceChance([0.01, 0.5]),
@@ -233,7 +235,7 @@ describe('prizesOf', () => {
         const enemyChance = new SequenceChance([0], 0);
         const enemy = prizesOf({
             type: QuestType.enemy,
-            rank: 'paladin',
+            rank: TitleType.paladin,
             catalog: noLoot,
             pets,
             chance: enemyChance,
@@ -243,7 +245,7 @@ describe('prizesOf', () => {
 
         const empty = prizesOf({
             type: QuestType.boss,
-            rank: 'rookie',
+            rank: TitleType.rookie,
             catalog: noLoot,
             pets: [],
             chance: new SequenceChance([0], 0),
@@ -254,7 +256,7 @@ describe('prizesOf', () => {
     it('shrinks a pool slot to what the catalogue has (D-20)', () => {
         const { randomLoot } = draw(
             QuestType.boss,
-            'hero',
+            TitleType.hero,
             new SequenceChance([], 0),
             [loot('only-rare', RarityType.rare)],
         );
