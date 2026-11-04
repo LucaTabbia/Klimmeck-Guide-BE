@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
@@ -329,6 +330,40 @@ describe('QuestGenerator (replSet)', () => {
                 ),
             ).size,
         ).toBe(3);
+    });
+
+    it('logs the quests already created when a later create fails (D-15)', async () => {
+        await persistGenerationWorld(models, { cities: 2, poisPerCity: 3 });
+        const log = jest
+            .spyOn(Logger.prototype, 'log')
+            .mockImplementation(() => {});
+        const failure = new Error('write failed');
+        let creates = 0;
+        const failingModel = new Proxy(quests, {
+            get(target, property) {
+                if (property === 'create') {
+                    return async (draft: object) => {
+                        creates += 1;
+                        if (creates === 2) throw failure;
+                        return target.create(draft);
+                    };
+                }
+                const value: unknown = Reflect.get(target, property, target);
+                return typeof value === 'function' ? value.bind(target) : value;
+            },
+        });
+
+        await expect(
+            generatorWith(
+                { target: 3 },
+                { questModel: failingModel },
+            ).generate(),
+        ).rejects.toBe(failure);
+        expect(log).toHaveBeenCalledWith(
+            'Generatore: 1 missioni create (target 3)',
+        );
+        expect(await quests.countDocuments({ generated: true })).toBe(1);
+        log.mockRestore();
     });
 
     it('shares one run between concurrent callers (D-17)', async () => {
