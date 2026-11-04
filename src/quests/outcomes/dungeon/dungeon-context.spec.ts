@@ -107,7 +107,7 @@ describe('buildDungeonContext', () => {
                     ownedItems: [
                         { itemType: 'LootItem', item: herbId, quantity: 3 },
                     ],
-                    ownedEquipments: [],
+                    ownedEquipments: [{ item: swordId, quantity: 1 }],
                     wearedEquipment: { rightHand: swordId },
                 }),
                 snapshot(otherId, {
@@ -139,16 +139,30 @@ describe('buildDungeonContext', () => {
         });
     });
 
-    it('sums the owned and worn copies of a recommended equipment (D-11)', () => {
+    it('does not double count the worn copy (D-11)', () => {
+        const wornOnlyId = id('a3');
+        const twoHandsId = id('a4');
         const context = buildDungeonContext({
             combat: combat(),
-            recommendedLoot: recommendedLoot(),
+            recommendedLoot: [recommendedLoot()[0]],
             participants: [
                 snapshot(heroId, {
+                    ownedEquipments: [{ item: swordId, quantity: 1 }],
+                    wearedEquipment: { rightHand: swordId },
+                }),
+                snapshot(otherId, {
                     ownedEquipments: [
-                        { item: swordId, quantity: 2 },
+                        { item: swordId, quantity: 1 },
                         { item: { _id: swordId }, quantity: 1 },
                     ],
+                    wearedEquipment: { rightHand: swordId },
+                }),
+                snapshot(wornOnlyId, {
+                    ownedEquipments: [],
+                    wearedEquipment: { rightHand: swordId },
+                }),
+                snapshot(twoHandsId, {
+                    ownedEquipments: [{ item: swordId, quantity: 1 }],
                     wearedEquipment: {
                         rightHand: swordId,
                         leftHand: swordId.toHexString(),
@@ -157,13 +171,19 @@ describe('buildDungeonContext', () => {
             ],
         });
 
-        expect(context.recommendedOwned[heroId.toHexString()]).toEqual([
+        const swords = (quantity: number) => [
             {
                 itemType: 'EquipmentItem',
                 itemId: swordId.toHexString(),
-                quantity: 5,
+                quantity,
             },
-        ]);
+        ];
+        expect(context.recommendedOwned).toEqual({
+            [heroId.toHexString()]: swords(1),
+            [otherId.toHexString()]: swords(2),
+            [wornOnlyId.toHexString()]: swords(1),
+            [twoHandsId.toHexString()]: swords(2),
+        });
     });
 
     it('keeps the combat context untouched (D-12)', () => {
