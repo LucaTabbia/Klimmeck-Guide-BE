@@ -1,0 +1,163 @@
+# Phase 13: Generazione quest - Context
+
+**Gathered:** 2026-11-04 (discuss interattivo congiunto con la FE Phase 14, dal repo FE; branch `feat/13-generazione-quest` creato da `develop` `0585b2e`, la merge della PR #18 della Phase 12)
+**Status:** Ready for planning — PR diretta a `develop`; sblocca la FE Phase 14 (QGEN-01..06). I piani FE non gated girano in parallelo su mock; schema gate ed E2E FE attendono la merge di questa PR (pattern 13-10/13-11).
+
+<domain>
+## Phase Boundary
+
+Il tabellone si rifornisce da solo: il server genera e posiziona quest consumabili `enemy` e `boss` su un POI libero di una città (marker della città escluso), fino a un **target globale** di quest generate attive, con al massimo 3 per città e una distribuzione non concentrata; il rango servito è il **meno coperto** fra le generate attive del mondo; i nemici vengono dalla zona del POI (più l'habitat `city`), in una delle due forme decise dall'utente (nemico singolo della fascia o branco di nemici più deboli); i boss sono un solo nemico di fascia superiore affrontato da un party del rango, con i posti dalla formula del world building; **i 22 leggendari non si generano mai** (riservati alle worldMission del GM). Le quest portano più nemici e più tipi: `infos.enemies: [{ enemy, quantity }]` **sostituisce** `infos.enemy` ovunque (quest, risultato, aid, fixture) con migrazione idempotente al boot. Le **dungeon** diventano esplorazioni a tappe (una tappa per voce di `enemies`) risolte da una porta con segnaposto: l'algoritmo di esplorazione e il motore di combattimento restano dell'utente. Premi da tabella per fascia con pool di `randomLoot` ampi per rango, tirati per ogni partecipante; **premio pet** (`prizes.pet`, additivo) con doppia probabilità; titolo e annuncio da template. Regola nuova dell'utente: **`EquipmentItem.accessoryUseTypes`** (`attack` | `defense`) sui gioielli, valorizzato a DB dalla tabella rivista dall'utente. Trigger: conclusione di una generata, sweep configurabile + boot, mutation innkeeper `generateQuests`. Handoff `BACKEND-NOTES.md` per la FE Phase 14.
+
+Fuori scope: motore di combattimento e algoritmo di esplorazione reali (utente), tappe tipizzate (`stages`), scadenza delle quest generate, descrizioni via LLM (v2), generazione di `hunt`/`dungeon` (fisse, Phase 11), pet come premio delle `enemy`, argomenti di `generateQuests` (forzature, rigenerazione del mondo), cibo nei viaggi (Phase 14), imboscate (Phase 15), lore sbloccabili (Phase 16), allineamento `crime`/`guard` (v2).
+
+</domain>
+
+<decisions>
+## Implementation Decisions
+
+### Nemici multipli e risultato (BE-QGEN-01)
+- **D-01 (utente 2026-10-29, confermato il 2026-11-04):** `QuestInfos.enemies: [QuestEnemy!]!` con `QuestEnemy { enemy: Enemy!, quantity: Int! }` (nomi a discrezione del planner) **sostituisce** `QuestInfos.enemy` — modifica SDL **non additiva**, dichiarata nel real boot (`test/app.int-spec.ts`, stringhe esatte di `type QuestInfos` e `type QuestResult`). Stesso trattamento per il risultato: `QuestResult.enemies` (nemici affrontati, stessa forma) sostituisce `QuestResult.enemy`, più `stagesCleared: Int` e `stagesTotal: Int` nullable (valorizzati solo dalle dungeon, D-12). **Migrazione idempotente al boot** (pattern `SpellStateMigrator`, Phase 12 D-24): ogni quest e ogni risultato che ha ancora `enemy` e non ha `enemies` riceve `enemies = [{ enemy, quantity: 1 }]` e perde `enemy` (oggi 117 quest hunt/dungeon e 24 risultati). La clone della aid copia `enemies`. Il populate di `quests`/`quest(id)` e del risultato segue `enemies[].enemy`; **mai** popolare `enemies[].enemy.relatedLore` (profondità 1, Phase 11 handoff).
+- **D-02 (default tecnico):** `CombatContext.enemies: CombatEnemy[]` con `quantity` al posto di `enemy`; il resolver segnaposto **aggrega** (HP e danni sommati per quantità); l'XP della vittoria è `xpPrize` + Σ (`Enemy.xp` × `quantity`) (Phase 9 D-11 estesa, clamp 50 000 invariato). `combatContextOf` resta nullo per le quest senza nemici (successo automatico, Phase 9 D-01).
+
+### Chi è un boss (BE-QGEN-03/05)
+- **D-03 (utente, verbatim 2026-11-04):** *«Boss è un nemico molto forte per il rango e livello richiesto dagli avventurieri. I mostri leggendari sono ad uso esclusivo delle worldMission»*. Lettura confermata: una quest `boss` ha **un solo nemico** (non un branco) di fascia **superiore** al rango servito, affrontato da più avventurieri di quel rango.
+- **D-04 (utente):** **i 22 leggendari non entrano mai nelle quest generate**, né `enemy` né `boss`. **Default tecnico:** `Enemy.legendary: Boolean` (default `false`, additivo allo schema, esposto) seminato **una volta** per i 22 nomi del handoff Phase 11 §4 da un migratore una tantum che esce dal repo dopo il primo boot (Phase 12 D-25), poi curato a DB (D-36); il generatore filtra `legendary: false`. Alternativa scartata: lista di id costante nel codice (il mondo vive nel DB).
+- **D-05 (utente, formula del world building riga 1090):** posti del boss = ⌈PE / media del rango⌉ con PE = `xp / xpScale` (`xpScale` 0,14084507, Phase 11 D-11) e medie **adventurer 400, paladin 1500, mage 4000, hero 6000, legend 15000**, tenuti **fra 2 e 6**; `requiredAdventurers = [{ title: R, count: posti }]`, `minTitle = R`. Un rango senza candidati (nessun nemico non leggendario che dia 2–6 posti) riceve solo `enemy`: oggi **rookie** (nessuna media nel documento) e **legend** (sopra 15 000 PE solo leggendari); adventurer, paladin, mage e **hero** hanno candidati (es. Troll 1800 PE → 5 posti adventurer; Idra 3900 → 3 paladin; Beholder 10 000 → 3 mage e 2 hero; Arcimago, Drago d'ombra giovane, Djinni per hero). Il boss comincia a party completo sul marker (Phase 9 D-05); nemico dalla zona del POI come le enemy (D-08).
+- **D-06 (utente):** **1 boss ogni 10** quest generate di un rango idoneo (10%, RNG della corsa); il resto `enemy`.
+
+### Composizione delle quest enemy (BE-QGEN-05)
+- **D-07 (utente, verbatim 2026-11-04):** *«O nemico singolo della fascia selezionata o più nemici deboli.»* Lettura confermata: due forme sorteggiate dal generatore — **(a)** un nemico singolo con `xp` dentro la fascia del rango (es. paladin → Orsogufo 99); **(b)** un branco di 2 o più nemici di fascia **inferiore**, anche di tipi diversi (1–3 tipi, es. 1 Capo goblin + 3 Goblin), la cui **somma** di `xp` cade nella fascia del rango; mai un branco di nemici della stessa fascia o superiore. Quota a/b a discrezione (default metà e metà); se (b) non è componibile si ripiega su (a). **Fasce in `Enemy.xp`** dal `mediumPeByLevel` del documento × `xpScale` (costanti nel codice, es. `RANK_XP_BANDS`): rookie 7–14, adventurer 21–35, paladin 70–169, mage 225–450, hero 549–803. `legend` non ha fascia: i personaggi legend giocano le quest hero (`minTitle` ≤ titolo).
+- **D-08 (utente):** pool dei nemici di un POI = nemici con `locations` compatibili con i `type` del POI **più** quelli con habitat `city` (la quest è «nei dintorni della città»); `all` **solo** se la fascia resta vuota; **animali inclusi**; leggendari esclusi (D-04).
+- **D-09 (utente):** una `enemy` generata ha **un posto del rango**: `requiredAdventurers = [{ title: R, count: 1 }]`, `minTitle = R`, `requiredPoints` nullo (corsia standard), non ripetibile e registrata come oggi (`REGISTERED_TYPES`, Phase 7 D-05).
+
+### Dungeon: esplorazione a tappe (BE-QGEN-09, Phase 11 D-33)
+- **D-10 (utente, verbatim 2026-11-04):** *«La risposta 3 è la più simile, ma all'algoritmo di esplorazione e di combattimento sto lavorando io, quindi per adesso quelle sezioni saranno un placeholder finché non darò io la versione finale»* (la «risposta 3» = tappe di combattimento alternate a prove di esplorazione). La fase consegna una **porta** e un **segnaposto**, come la Phase 9 per il combattimento.
+- **D-11 (utente, verbatim 2026-11-04, regola del motore finale, NON implementata ora):** *«Gli oggetti recommended servono nelle fasi di esplorazione (se mancanti ti potrebbero far perdere vita, causare ferite e così via) o nelle fasi enemy (consigliati perché ottimi contro una debolezza o per proteggersi da un nemico)»*. Il contesto della porta porta già `recommendedLoot` e gli oggetti consigliati **posseduti** dai partecipanti, così l'algoritmo dell'utente li troverà pronti.
+- **D-12 (utente):** **forma dati = solo `enemies`**: ogni voce è una tappa di combattimento nell'ordine della lista; fra una tappa e l'altra c'è una prova di esplorazione **implicita** senza dati propri; un campo `stages` tipizzato potrà arrivare con l'algoritmo finale. **Segnaposto:** porta `DungeonResolver` (nome a discrezione, classe astratta DI come `CombatResolver`) che risolve le tappe **in sequenza** con il `CombatResolver` partendo dagli **HP residui** della tappa precedente; la prova di esplorazione è superata sempre e non costa nulla; **premi solo a fine percorso** (tutte le tappe superate); la prima sconfitta ferma l'esplorazione con l'esito di fallimento di oggi (attesa di soccorso, aid clonata con gli stessi `enemies`, Phase 9 D-07/D-08); il risultato porta `stagesCleared` (tappe superate) e `stagesTotal`.
+- **D-13 (utente):** le **40 dungeon fisse** (oggi un nemico) vengono **arricchite al boot una tantum**: `enemies = [nemico attuale] + 1–3 tappe` aggiunte dal server con il budget delle generate (D-07) nella fascia del `minTitle` della dungeon e nel pool del POI dungeon (D-08), sorteggio deterministico per id; le bande di briganti come N × Bandito dove la zona lo ammette (Phase 11 handoff §11). Il migratore gira una volta sul DB reale dal branch e **esce dal repo prima della merge** (Phase 12 D-25); da lì in avanti cura a DB.
+
+### Ritmo, distribuzione, oste (BE-QGEN-02/04)
+- **D-14 (utente):** **nessuna scadenza**: una generata non accettata resta sul tabellone finché qualcuno la completa; abbandono e sciolglimento del party la lasciano sulla board come oggi.
+- **D-15 (utente):** ogni corsa **riempie fino a un target globale** di quest generate attive (configurabile: env `QUEST_GENERATION_TARGET`, default = **numero delle città a DB** al momento della corsa, cioè una per città in media, 167 oggi; parse fail-closed come gli intervalli di sweep), aggiungendo solo le mancanti e fermandosi; tetto **3 per città** (le fisse e le GM non contano); città sorteggiata con **peso decrescente** al crescere della densità di generate nelle città vicine (definizione di vicinanza a discrezione della ricerca: gruppo regionale del `CityType` o raggio sui marker), così alcune città hanno 0 e altre 3; **POI libero** = `pointsOfInterest` della città senza quest non conclusa sopra (fisse hunt/dungeon comprese), marker della città escluso; città senza POI libero saltata. **Rango** di ogni quest = il meno coperto fra le generate attive del mondo (conteggio per `minTitle`; parità → rango più basso), ricalcolato a ogni quest creata nella corsa.
+- **D-16 (utente):** mutation `generateQuests` = **una corsa normale**, senza argomenti: stesso target, stesso tetto, risponde con quante quest ha creato (`{ created: Int! }`, 0 se il mondo è pieno); `@Roles(innkeeper)` + `@AuditTarget` (audit automatico), `FORBIDDEN` per gli altri ruoli.
+- **D-17 (default tecnico):** trigger **(a)** dopo la conclusione di una quest generata (hook best-effort dopo il commit, es. in `OutcomeWriter.deliver`, che accoda una corsa), **(b)** sweep periodico `QUEST_GENERATION_SWEEP_INTERVAL_MS` (default 3 600 000, `0` = off, fail-closed) **più una corsa al boot** (pattern `QuestResolutionSweeper`), **(c)** la mutation. Ogni corsa è **single-flight** (`inFlight`), **idempotente** (a mondo pieno crea 0) e **deterministica dato l'RNG iniettato** (`ChanceSource` o PRNG seminato per chiave di corsa, recuperabile da git `7b2f482`); **nessuna doppia quest sullo stesso POI** sotto concorrenza (claim condizionale o indice, a discrezione della ricerca). Flag **interno** sul `Quest` per riconoscere le generate (es. `generated: true`, mai sul filo) con indice utile al conteggio per città e rango.
+- **D-18 (default tecnico):** gli insert non emettono `questUpdated` (il publisher ascolta solo update/replace): il FE vede le nuove quest alla prossima apertura della board; estendere il publisher agli insert è facoltativo e a discrezione. Da scrivere nel handoff.
+
+### Premi (BE-QGEN-06/10)
+- **D-19 (utente, verbatim 2026-11-04):** *«Va bene la tabella come le fisse per adesso, ma i randomLoot sono un pool ampio. Rarità più alte su missioni per ranghi più alti. Legendary solo da hero in su. Una missione boss per grado hero -> 1 oggetto legendary -> 2 oggetti ultrare -> 4 oggetti rare (l'oggetto legendary può essere ottenuto da tutti, non è limitato ad una sola persona, dipende solo dalla fortuna)»*. Monete e XP come le fisse: **enemy 150 rame + 40 XP, boss 600 rame + 120 XP**, × `tierMultiplier` del rango (rookie 1, adventurer 2, paladin 5, mage 12, hero 25), per ogni partecipante, più l'xp dei nemici (D-02). Costanti nel codice (es. `GENERATED_PRIZES`), ritoccabili.
+- **D-20 (utente, lettura confermata):** `randomLoot` = **pool ampio per rango e tipo**, tirato **per ogni partecipante** con le regole a cascata di Phase 9 D-16 (al massimo un oggetto a testa, nessun limite a una persona). **Boss:** hero 1 legendary + 2 ultrarare + 4 rare; mage 1 ultrarare + 2 rare + 4 uncommon; paladin 1 rare + 2 uncommon + 4 common; adventurer 1 uncommon + 4 common; rookie 2 common. **Enemy** (un gradino sotto e più stretto): hero 1 ultrarare + 2 rare; mage 1 rare + 2 uncommon; paladin 1 uncommon + 2 common; adventurer e rookie 1–2 common. **Legendary mai sotto hero.** Oggetti sorteggiati dal catalogo (EquipmentItem e LootItem della rarità; cibo e consumabili comuni solo nelle rarità basse, da `rare` in su niente `effect: hunger`), deterministici per quest.
+- **D-21 (utente, verbatim 2026-11-04):** *«Come risposta 1, ma farei un field apposito, in più può essere dato da generatore, ma con probabilità estremamente bassa»* e *«Confermo. Nel tempo verranno aggiunti altri pet a DB. Per rendere più chiaro che pet sono vendibili e quali no, mettiamo nel modello pet la voce sellable, come avviene per gli oggetti. Inoltre, le quest hanno un percentuale bassissima di avere un pet ottenibile e la percentuale di possibilità per ottenerlo è bassa a sua volta (ma non in modo eccessivo. un 20% può andare bene»*. Realizzazione: campo dedicato **`QuestPrizes.pet`** (ref `Pet`, nullable, additivo allo schema); **`Pet.sellable` esiste già** (Phase 12 D-07/D-11: 4 vendibili, 9 no) e il **pool dei pet da quest = tutti i pet con `sellable: false`**, anche quelli futuri; **(1)** il generatore mette `prizes.pet` **solo sui boss** con probabilità **1%** (costante); **(2)** alla vittoria **ogni vincitore tira: 20%** (costante) di ottenerlo in `ownedPets` (scrittura idempotente: già posseduto → nulla, nessun errore); sulle quest che l'utente imposta a DB vale solo il tiro del 20%. Il risultato espone il pet ottenuto (campo additivo, es. `QuestRewards.pet`) per il FE.
+
+### Titoli, annunci, tempi (BE-QGEN-07)
+- **D-22 (utente):** titolo da **template per tipo** con nemici e città: `enemy` «Minaccia: 3 Goblin e 1 Capo goblin presso <città>», `boss` «Boss: Troll presso <città>»; **annuncio** `infos.description` di 1–3 frasi scelto a sorte fra **3 varianti per tipo** nella voce di un committente (contadino, mercante, capitano, sacerdote) con il nome della città e dei nemici (stile Phase 11 D-32); `relatedLore` = lore della città + lore dei nemici; descrizione via LLM resta v2. **Default tecnico:** `timeToComplete` enemy 1 h, boss 3 h (costanti come `timeToCompleteHours`).
+
+### Gioielli: `accessoryUseTypes` (BE-QGEN-11, regola nuova dell'utente)
+- **D-23 (utente, verbatim 2026-11-04):** *«Gli equipaggiamenti di tipo ring e necklace devono essere aggiornati per includere una nuova voce: accessoryUseTypes. Questa nuova voce è una lista di AccessoryUseType, ovvero un nuovo enum con due voci: attack e defence. Un gioiello che ha nella lista solo defence può essere usato solo in fase di difesa, uno con attack solo in fase di attacco, uno con entrambi in entrambe le fasi. Dobbiamo allineare in questa fase FE e BE e aggiungere il nuovo campo negli oggetti a DB, basandoci sulla loro descrizione e sullo useType della spell associata (se presente) per capire a quale tipo appartegono»* — poi: *«Ho sbagliato a scrivere, è defense il tipo»*.
+- **D-24 (utente, scelto fra campo nuovo ed `EquipType` esteso):** **campo nuovo** `EquipmentItem.accessoryUseTypes: [AccessoryUseType!]` (nullable; enum `AccessoryUseType { attack, defense }`), valorizzato **solo** per `equipType` `ring` e `necklace`, nullo sugli altri; additivo allo SDL (`EquipmentItemInput` idem). La **semantica** (fase d'attacco / di difesa) appartiene al motore di combattimento dell'utente: questa fase modella, popola, espone il campo e lo porta nel **contesto del `CombatResolver`** (snapshot dell'equipaggiamento indossato); il segnaposto non lo usa.
+- **D-25 (utente, verbatim 2026-11-04):** *«La mappa A è corretta per le magie, ma se la descrizione parla anche di protezione e la spell è di attacco, allora il gioiello avrà entrambi i tipi e viceversa. Se invece la descrizione parla solo di attacco e non ha spell difensive, il tipo di gioiello è solo attacco»*. **Mappa A** (useType della magia → tipi): `attack` → attack; `defense` → defense; `control`, `illusion`, `charm`, `confuse` → attack; `enhance`, `infuse` → attack + defense; senza magia → defense (i `damages` dei gioielli sono protezione) salvo descrizione offensiva. I tipi finali sono l'**unione** di ciò che dicono magia e descrizione.
+- **D-26 (utente):** i **42 gioielli** (21 anelli, 21 collane; 13 con magia) ricevono il valore da una **tabella di revisione** (`13-JEWELS-REVIEW.md` nella cartella della fase: nome, tipo, rarità, magia e useType, estratto della descrizione, tipi proposti) scritta da Claude in fase di ricerca/pianificazione e **approvata o corretta dall'utente prima** dell'esecuzione del piano del migratore; un **migratore una tantum al boot** scrive solo dove il campo manca, gira una volta sul DB reale dal branch e **esce dal repo prima della merge** (Phase 12 D-25); poi cura a DB.
+
+### Claude's Discretion
+- Nomi (`QuestEnemy`, `DungeonResolver`, `GenerateQuestsResult`, flag delle generate), indici, forma del claim sul POI, definizione di «città vicine», tie-break del rango, quota a/b, coda Bull dedicata o chiamata diretta per il trigger di conclusione, publisher sugli insert, nome del campo del pet nel risultato, `timeToComplete` di enemy/boss, varianti dei template.
+- I default tecnici marcati sopra sono elencati per il veto dell'utente e ripetuti nel riepilogo del discuss.
+
+</decisions>
+
+<canonical_refs>
+## Canonical References
+
+**Downstream agents MUST read these before planning or implementing.**
+
+### Roadmap e requisiti
+- `.planning/ROADMAP.md` §Phase 13 — goal, criteri, decisioni 2026-10-29 e 2026-11-04
+- `.planning/REQUIREMENTS.md` BE-QGEN-01..11 — requisiti della fase (09..11 aggiunti dal discuss)
+
+### Contenuto e bilanciamento (Phase 11)
+- `.planning/phases/11-popolamento-del-mondo/BACKEND-NOTES.md` §4 (nemici per `PoiType` × fascia, 22 leggendari con xp/HP/danni), §6 (costanti: `tiers`, `mediumPeByLevel`, `tierMultiplier`, `prizes`, `dungeonLootRarity`, `timeToCompleteHours`, `xpScale`), §9 (D-33 `recommendedLoot`, `infos.description`), §10 (misura potenza vs lifePoints), §11 (note per la Phase 13: bande N × Bandito, `keyedChance`, marker escluso, nemici da calibrare)
+- `.planning/phases/11-popolamento-del-mondo/11-CONTEXT.md` D-10 (fasce ↔ titoli), D-11 (xp), D-12 (HP e danni), D-19 (tabella premi), D-20 (minTitle delle fisse), D-21 (marker e POI), D-22 (titoli), D-32 (annuncio), D-33 (dungeon multi-nemico), D-36 (il mondo vive nel DB)
+- `.planning/phases/11-popolamento-del-mondo/source/world-building.md` riga 1090 («Come calcolare il numero persone»: medie 400/1500/4000/6000/15000) e sezione «Mostri e nemici leggendari»
+
+### Quest, esiti, combattimento (Phase 7 e 9)
+- `.planning/phases/07-quest-lanes-quest-04/07-CONTEXT.md` D-03/D-04 (quest condivise e posti per rango), D-05 (ripetibilità), D-06 (titoli), D-10 (città della quest)
+- `.planning/phases/09-combat-result-admin-outcomes/09-CONTEXT.md` D-01 (risoluzione alla scadenza, sweep), D-02 (porta `CombatResolver`), D-05 (boss a party completo), D-06 (`concludedAt`), D-07/D-08 (fallimento e aid clonata), D-11 (XP), D-12 (livelli), D-16 (cascading rolls), D-24 (scheduling Bull)
+- `.planning/phases/09-combat-result-admin-outcomes/BACKEND-NOTES.md` §11 (sostituzione del segnaposto)
+
+### Semina, migrazioni, pet (Phase 12)
+- `.planning/phases/12-negozi-per-citta/12-CONTEXT.md` D-03 (semina al boot solo dove il campo manca), D-07/D-11 (`sellable` sui pet), D-24 (migratore al boot), D-25 (one-off fuori dal repo); sezione pet (`ownedPets`, doppione)
+- `.planning/phases/12-negozi-per-citta/12-REPO-RULES.md` — `npm run build` vietato mentre il BE gira da `dist/`, `npx tsc --noEmit`, lint solo sui file toccati
+- `.planning/phases/12-negozi-per-citta/BACKEND-NOTES.md` §pet premio (riga «Pet premio delle quest (BE Phase 13)»), query deprecate del negozio
+
+### FE companion
+- `../Klimmeck-Guide/.planning/phases/14-quest-generation/14-CONTEXT.md` — decisioni FE (foglio quest, esiti, Locanda, gioielli) e piani gated
+- `../Klimmeck-Guide/.planning/phases/13-city-shops/BACKEND-NOTES.md` §5.1 — ref annidati non popolati sotto `me.currentCharacter` (difetto latente, fuori scope: nota)
+
+</canonical_refs>
+
+<code_context>
+## Existing Code Insights
+
+### Reusable Assets
+- `src/models/quest/quest-infos.model.ts` (`enemy` :20-26, `description` :44-46), `quest-requirements.model.ts` (`requiredAdventurers: QuestPartySlot[]`, `minTitle`), `quest-prizes.model.ts` (`randomLoot`, `spellDraw` interno), `quest.model.ts` (`concludedAt`, `startedAt`, `rescue` interni; indice `quest_forming_parties`)
+- `src/quests/quest-catalog.populate.ts:9` (populate `infos.enemy`), `src/quests/results/quest-result.populate.ts:14`
+- `src/quests/outcomes/combat/combat-resolver.ts` (porta, `CombatEnemy`, `CombatContext`), `combat-context.ts` (`buildCombatContext` pura, `enemyOf`), `placeholder-combat-resolver.ts` (`winChanceOf`, `PLACEHOLDER_RULES`), `combatant-plan.ts` (`combatContextOf`, `enemyFactsOf`), `resolution-loader.service.ts` (`readEnemy` :471-486)
+- `src/quests/outcomes/outcome-plan.ts` (`xpEarned` :294, `enemy` nel draft :420), `quest-outcome-plan.ts` (`questUpdateOf`: `concludedAt`), `outcome-writer.service.ts` (`updateQuest`, `createAid`, `deliver` best-effort :160-170)
+- `src/quests/outcomes/aid/aid-quest.ts` (`buildAidQuest`, `enemy` :103), `rescue-plan.ts:68`
+- `src/quests/outcomes/rewards/cascading-loot.ts` (`DROP_RATES`, `rollLoot`), `progression/level-table.ts` (`LEVEL_TABLE`, `MAX_XP`), `quest-eligibility.ts` (`TITLE_RANK`, `REPEATABLE_TYPES`, `REGISTERED_TYPES`, `meetsTitle`)
+- Sweep + reconciler + single-flight: `src/quests/outcomes/quest-resolution.sweeper.ts:73-139`, `src/config/sweep-interval.ts`, `src/config/quest-config.ts` (+ `env-example.drift.spec.ts`), `src/mongo/keyed-single-flight.ts`
+- Migratori al boot: `src/characters/spells/spell-state.migrator.ts`, `src/quests/results/quest-result-maintenance.ts`; verifica `src/migrations/mixed-refs/mixed-ref-paths.ts:56` (`infos.enemy` nell'inventario dei ref)
+- Ruoli e audit: `src/authz/roles/roles.decorator.ts`, `src/authz/audit/admin-audit.interceptor.ts`, `@AuditTarget` (es. `pending-requests.resolver.ts:46-50`)
+- RNG: `src/quests/outcomes/chance-source.ts` (`ChanceSource`/`MathChanceSource`), `test/quests/sequence-chance.ts`; PRNG seminato della Phase 12 recuperabile da git (`7b2f482`: `seedOf` sha256 + `mulberry32`)
+- Modelli: `src/models/enemy.model.ts` (nessun tier/flag boss), `src/models/point-of-interest.model.ts` (collection propria, `type: PoiType[]`, `city`, `quest` back-link da lasciare nullo), `src/models/city.model.ts` (`pointsOfInterest: ObjectId[]`), `src/models/equipment-item` (`equipType`, `addedSpell`, `damages`, `description`), `src/models/spell.model.ts` (`useType: UseType`, 8 valori), `src/models/enums/equip-type.enum.ts`, `use-type.enum.ts`
+
+### Established Patterns
+- Modifica SDL non additiva dichiarata nel real boot (`test/app.int-spec.ts` stringhe esatte di `type QuestInfos` :440-447 e `type QuestResult` :631); `git diff --exit-code src/schema.gql` in CI
+- Porta astratta DI + segnaposto PROVVISORIO (`CombatResolver` ↔ `PlaceholderCombatResolver`, binding in `quest-outcomes.module.ts:78-79`)
+- Transazione per esito con update condizionale (Phase 4 «il filtro è la regola»), scrittura attraverso `OutcomeWriter`
+- Semina/migrazione idempotente al boot solo dove il campo manca; one-off rimossi dopo il primo boot reale (Phase 12 D-25); report nel handoff
+- Costanti di gioco in moduli puri testati (`PLACEHOLDER_RULES`, `DROP_RATES`, `LEVEL_TABLE`, `SHOP_ALLOWED_RARITIES`)
+- Tooling: prettier/eslint solo sui file toccati, percorsi jest prima di `--selectProjects`, `npx tsc --noEmit` al posto della build mentre il BE gira da `dist/`
+
+### Integration Points
+- `QuestsService.findAll/findOne` (filtro `concludedAt: null`) e `QuestsPublisher` (`questUpdated` su update/replace) — la board FE
+- `OutcomeWriter.deliver` — hook per il trigger di rigenerazione dopo la conclusione
+- `quest-resolution` queue / `QuestResolutionSweeper` — modello per sweep e reconciler del generatore
+- `GmCompletionService`, `BossResolutionService`, `RescueResolutionService`, `QuestResolutionService` — tutti attraversano `combatContextOf` e `questUpdateOf`: il passaggio a `enemies` li tocca tutti
+- `CharactersService`/`ownedPets` (Phase 12) — scrittura del premio pet
+- 29 spec/int-spec che scrivono `infos.enemy` (elenco nella ricerca) da migrare a `enemies`
+
+</code_context>
+
+<specifics>
+## Specific Ideas
+
+- Utente 2026-11-04, boss: *«Boss è un nemico molto forte per il rango e livello richiesto dagli avventurieri. I mostri leggendari sono ad uso esclusivo delle worldMission»*.
+- Utente 2026-11-04, composizione: *«O nemico singolo della fascia selezionata o più nemici deboli.»*
+- Utente 2026-11-04, dungeon: *«La risposta 3 è la più simile, ma all'algoritmo di esplorazione e di combattimento sto lavorando io, quindi per adesso quelle sezioni saranno un placeholder finché non darò io la versione finale»*; *«Gli oggetti recommended servono nelle fasi di esplorazione (se mancanti ti potrebbero far perdere vita, causare ferite e così via) o nelle fasi enemy (consigliati perché ottimi contro una debolezza o per proteggersi da un nemico)»*.
+- Utente 2026-11-04, loot: *«i randomLoot sono un pool ampio. Rarità più alte su missioni per ranghi più alti. Legendary solo da hero in su. Una missione boss per grado hero -> 1 oggetto legendary -> 2 oggetti ultrare -> 4 oggetti rare (l'oggetto legendary può essere ottenuto da tutti, non è limitato ad una sola persona, dipende solo dalla fortuna)»*.
+- Utente 2026-11-04, pet: *«farei un field apposito, in più può essere dato da generatore, ma con probabilità estremamente bassa»*; *«le quest hanno un percentuale bassissima di avere un pet ottenibile e la percentuale di possibilità per ottenerlo è bassa a sua volta (ma non in modo eccessivo. un 20% può andare bene»*.
+- Utente 2026-11-04, gioielli: D-23 e D-25 verbatim; alla proposta di estendere `EquipType` ha scelto il campo nuovo.
+- Dati di riferimento del discuss: 581 quest fisse (heal 166, job 166, guard 68, crime 34, study 30, hunt 77, dungeon 40; nessuna enemy/boss; nessuna conclusa), 150 nemici (fasce xp: ≤10 → 11, 11–30 → 24, 31–100 → 39, 101–300 → 25, 301–1000 → 24, 1001–3000 → 14, >3000 → 13), 167 città (3–4 POI in 134 casi, marker compreso), 642 POI (167 marker `city`, 117 occupati da hunt/dungeon), 42 gioielli (13 con magia: attack 4, control 3, defense 1, infuse 1, enhance 1, illusion 1, charm 1, confuse 1), 13 pet (4 vendibili, 9 no), 4 personaggi (rookie L1, adventurer L3, mage L13, legend L20).
+
+</specifics>
+
+<deferred>
+## Deferred Ideas
+
+- **Motore di combattimento e algoritmo di esplorazione reali** — dell'utente; la fase consegna le porte (`CombatResolver` multi-nemico, `DungeonResolver`) e i segnaposto. D-11 è la regola del motore finale.
+- **`stages` tipizzate per le dungeon** (prove di esplorazione con dati propri) — con l'algoritmo finale.
+- **Scadenza delle quest generate** — scartata ora (D-14); da riaprire se il tabellone si satura in produzione.
+- **`generateQuests` con argomenti** (forza N, rigenera il mondo) — fuori scope; oggi una corsa normale.
+- **Pet come premio delle `enemy`** — solo boss all'1% (D-21).
+- **Descrizioni delle quest via LLM** — v2 (BE-FUT).
+- **Allineamento `crime`/`guard`** — v2.
+- **Aggiornamento live del tabellone sugli insert** — facoltativo (D-18); il FE ricarica all'apertura del tab.
+- **Ref annidati non popolati sotto `me.currentCharacter`** (FE 13 handoff §5.1) — difetto latente senza impatto, non in questa fase.
+- **Rimozione delle query deprecate del negozio** (`equipmentAssetsQuantity`/`lootAssetsQuantity`, Phase 12 handoff: «dopo il rilascio della FE Phase 13», ora mergiata) — quick task o piano facoltativo a discrezione del planner, non un requisito di questa fase.
+- **Nemici da calibrare** (Beholder/Goristro, Lich/Demilich fragili, Hobgoblin, Slaad della morte; titolo doppio della dungeon di Necrorian) — cura a DB dell'utente, Phase 11 handoff §11.
+
+</deferred>
+
+---
+
+*Phase: 13-generazione-quest*
+*Context gathered: 2026-11-04*
