@@ -182,3 +182,21 @@ export async function persistGenerationWorld(
     await persistPets(models);
     return { cities, enemyIds, legendaryIds };
 }
+
+// generate per città, zeri compresi; le quest fuori dai POI del mondo finiscono sotto `fuori mappa`
+export function generatedPerCityOf(
+    world: GenerationWorld,
+    markers: readonly Types.ObjectId[],
+): Record<string, number> {
+    const counts: Record<string, number> = Object.fromEntries(
+        world.cities.map((city) => [city.name, 0]),
+    );
+    for (const marker of markers) {
+        const city = world.cities.find((candidate) =>
+            candidate.poiIds.some((id) => id.equals(marker)),
+        );
+        const key = city?.name ?? 'fuori mappa';
+        counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+}
