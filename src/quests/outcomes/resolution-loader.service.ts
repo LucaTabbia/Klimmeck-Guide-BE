@@ -140,6 +140,16 @@ type LearnableSpellEntry = CatalogEntry<{
 
 const LEARNABLE_SPELL_PROJECTION = { minXpToLearn: 1, maxUsages: 1 } as const;
 
+// i campi di CombatEnemySnapshot, come le altre letture del catalogo
+const COMBAT_ENEMY_PROJECTION = {
+    name: 1,
+    lifePoints: 1,
+    xp: 1,
+    damages: 1,
+    baseWeaknesses: 1,
+    energyWeaknesses: 1,
+} as const;
+
 // una magia senza soglia valida o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07): mai valori impliciti
 const learnableSpellOf = ({
     _id,
@@ -489,7 +499,10 @@ export class ResolutionLoader {
         if (entries.length === 0) return [];
         const found = byHex(
             await this.enemyModel
-                .find({ _id: { $in: entries.map(({ enemy }) => enemy) } })
+                .find(
+                    { _id: { $in: entries.map(({ enemy }) => enemy) } },
+                    COMBAT_ENEMY_PROJECTION,
+                )
                 .lean<CombatEnemySnapshot[]>()
                 .exec(),
         );
