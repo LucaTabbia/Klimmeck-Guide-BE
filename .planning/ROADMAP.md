@@ -478,7 +478,7 @@ Plans:
 - [x] 13-08-PLAN.md — Dispatch dungeon in `QuestResolutionService.fight`, tappe nel risultato, binding DI, `quest-dungeon.int-spec`
 - [x] 13-09-PLAN.md — `SeededChanceSource`/`keyedChance` ripristinati; `generation-rules.ts` (fasce con legend 1098–3212, medie del party, `bossSeatsOf` con −0,5, `leastCoveredRank` su 6 ranghi)
 - [x] 13-10-PLAN.md — Pool dei nemici (zona + `city`, `all` di riserva, `legendary === false`) e `composeQuest` (forme a/b, branchi legend di 2–4 hero, boss 1 su 10 con 2–6 posti, coerenza con il POI D-08)
-- [ ] 13-11-PLAN.md — Premi e pool di loot (tabella D-20, legend 1L+2U+4R, pet 1% sui boss), `recommendedLoot`, template di titolo (quantità solo se > 1) e annuncio
+- [x] 13-11-PLAN.md — Premi e pool di loot (tabella D-20, legend 1L+2U+4R, pet 1% sui boss), `recommendedLoot`, template di titolo (quantità solo se > 1) e annuncio
 - [ ] 13-12-PLAN.md — Scelta della città (kNN K=5, peso 1/(1+D)², tetto 3, POI libero senza il marker) + spec di distribuzione su una griglia di 30 città
 - [ ] 13-13-PLAN.md — Config `QUEST_GENERATION_TARGET`/`QUEST_GENERATION_SWEEP_INTERVAL_MS` + `.env.example`, draft builder puro, `QuestGenerator` (single-flight, rerun, E11000, ripiego sui ranghi), `QuestGenerationTriggerModule` leggero (D-30), fixture `generation-world`
 - [ ] 13-14-PLAN.md — Sweeper (corsa al boot + timer `unref`), hook `OutcomeWriter.deliver` via `regeneratesAfter`, mutation `generateQuests` (innkeeper, audit) + `EXPECTED_INNKEEPER_HANDLERS` + real boot
@@ -574,7 +574,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 10. Hardening Trasversale | 31/31 | Complete | 2026-10-30 |
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
 | 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
-| 13. Generazione quest | 10/20 | In Progress | - |
+| 13. Generazione quest | 11/20 | In Progress | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
