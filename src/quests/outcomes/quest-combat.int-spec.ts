@@ -199,6 +199,8 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
                             base: [{ type: 'cut', power: 30 }],
                             energy: [],
                         },
+                        equipType: 'weapon',
+                        accessoryUseTypes: null,
                     },
                 ],
             }),

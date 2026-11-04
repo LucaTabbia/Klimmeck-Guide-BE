@@ -1,4 +1,6 @@
+import { AccessoryUseType } from 'src/models/enums/accessory-use-type.enum';
 import { EffectType } from 'src/models/enums/effect-type.enum';
+import { EquipType } from 'src/models/enums/equip-type.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { SlotType } from 'src/models/enums/slot_type.enum';
@@ -19,6 +21,9 @@ export interface CombatEquipment {
     itemId: string;
     slot: SlotType;
     damages: CombatDamages;
+    equipType: EquipType | null;
+    // fasi d'uso dei gioielli (D-24): la semantica è del motore dell'utente, il segnaposto le ignora
+    accessoryUseTypes: AccessoryUseType[] | null;
 }
 
 export interface CombatSpell {

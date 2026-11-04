@@ -37,6 +37,7 @@ import {
     type CombatCharacterSnapshot,
     combatCatalogRefsOf,
     type CombatEnemySnapshot,
+    type CombatEquipmentSnapshot,
 } from './combat/combat-context';
 import {
     OUTCOME_CHARACTER_PROJECTION,
@@ -105,7 +106,7 @@ export interface ResolutionCatalog {
     // nell'ordine della quest (D-02)
     enemies: CatalogEnemy[];
     rewards: RewardCatalog;
-    equipment: ReadonlyMap<string, { damages?: unknown }>;
+    equipment: ReadonlyMap<string, CombatEquipmentSnapshot>;
     spells: ReadonlyMap<string, { energyDamage?: unknown }>;
     loot: ReadonlyMap<string, { effect?: unknown; power?: unknown }>;
     recoveryTimes: ReadonlyMap<string, number>;
@@ -404,8 +405,11 @@ export class ResolutionLoader {
         }
         const refs = combatCatalogRefsOf(participants);
         const equipment = await this.equipmentItemModel
-            .find({ _id: { $in: refs.equipmentIds } }, { damages: 1 })
-            .lean<CatalogEntry<{ damages?: unknown }>[]>()
+            .find(
+                { _id: { $in: refs.equipmentIds } },
+                { damages: 1, equipType: 1, accessoryUseTypes: 1 },
+            )
+            .lean<CatalogEntry<CombatEquipmentSnapshot>[]>()
             .exec();
         const spells = await this.spellModel
             .find(

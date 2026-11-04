@@ -1,4 +1,5 @@
 import { EffectType } from 'src/models/enums/effect-type.enum';
+import { EquipType } from 'src/models/enums/equip-type.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { SlotType } from 'src/models/enums/slot_type.enum';
@@ -23,6 +24,8 @@ const weapon = (power: number): CombatEquipment => ({
     itemId: hex('e1'),
     slot: SlotType.rightHand,
     damages: { base: [{ type: 'cut', power }], energy: [] },
+    equipType: EquipType.weapon,
+    accessoryUseTypes: null,
 });
 
 const potion = (power = 200): CombatConsumable => ({
