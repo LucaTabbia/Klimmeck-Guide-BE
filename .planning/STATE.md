@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 13.1 eseguita (8/8) su `feat/13.1-correzioni-generazione-quest`; PR in draft in attesa del popolamento del DB e del primo boot reale (runbook in `.planning/phases/13-generazione-quest/BACKEND-NOTES.md` §11 f), poi rimozione dei one-off
+stopped_at: Phase 13.1 PR #21 in draft (2026-11-05); next: first real boot from the branch on the user's request, then one-off removal in TDD and `gh pr ready`
 last_updated: "2026-11-05T15:30:00.000Z"
-last_activity: 2026-11-05 -- Phase 13.1 execution complete (8/8), handoff and first-boot runbook written; next review → fix → verify → security → PR draft → first real boot
+last_activity: 2026-11-05 -- Phase 13.1 closing pipeline done (review, 10 fixes, verification passed, security secured), PR #21 draft; waiting for the first real boot
 progress:
   total_phases: 20
   completed_phases: 16
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 Phase: 13.1 (Correzioni generazione quest) — EXECUTING (started 2026-11-05) on `feat/13.1-correzioni-generazione-quest` (from `develop` `162c1f5`): 8 plans in a linear chain (`13.1-01`..`13.1-08`), executors one at a time on the main tree
 Plan: 8 of 8
-Status: Phase 13.1 eseguita (8/8), PR in draft in attesa del popolamento del DB e del primo boot reale; poi review → fix → verify → security, rimozione dei one-off e PR fuori dal draft
-Last activity: 2026-11-05 -- Phase 13.1 execution complete (8/8), handoff and first-boot runbook written; next review → fix → verify → security → PR draft → first real boot
+Status: Phase 13.1 executed (8/8) and closed by the pipeline review (0 critical, 3 warning, 6 info) → rulings → 10 fixes in TDD → verification `passed` (0 gaps) → security `secured` (28 threats, 0 open, 3 deferred to the first boot); post-fix `npm run test:cov` 341/4285; PR #21 `feat/13.1-correzioni-generazione-quest` → develop in DRAFT since 2026-11-05 until the first real boot (reset + hunt + dungeon + generator, DB already populated) and the removal of the one-offs (runbook Phase 13 BACKEND-NOTES §11 (f))
+Last activity: 2026-11-05 -- Phase 13.1 closing pipeline done (review, 10 fixes, verification passed, security secured, test:cov 341/4285), PR #21 draft; waiting for the first real boot on the user's request
 
 Progress: [██████████] 8/8 plans of Phase 13.1 (phases 1–13, 9.1 and 9.2 complete and merged on develop)
 
