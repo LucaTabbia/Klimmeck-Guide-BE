@@ -88,6 +88,41 @@ Nessun test instabile osservato.
 - **Migratori una tantum (lista di rimozione della §11 (f), aggiornata):** il `forFeature` di `QuestMaintenanceModule` ha due voci nuove da togliere con i one-off, `EquipmentItem` e `LootItem` (servono solo a `HuntPreyMigrator`). `DungeonStagesMigrator` ha il parametro `PendingQuest` in più e `DungeonStagesReport` il campo `inLane`; `HuntPreyMigrator` ha i parametri `EquipmentItem` e `LootItem`. Nessun file una tantum nuovo. **Restano** nel repo, fuori dalla rimozione: `src/quests/generation/prize-catalog.ts` (usato dal generatore) e `src/mongo/lean-values.ts` + spec (usati da generatore, candidati e combattimento).
 - **CONTEXT non emendato:** B-WR-02 allarga il ripiego `all` delle tappe delle dungeon da «solo a zona vuota» a «quando la zona non compone con nessun conteggio» (la review suggeriva di emendare D-07 se accettato). Il fixer non tocca altri documenti oltre al handoff e al runbook: l'emendamento di `13.1-CONTEXT.md` D-07 resta all'orchestratore.
 
+
+## D-09 (2026-11-05): un solo posto sulle `enemy`
+
+Decisione dell'utente dopo la review (verbatim in `13.1-CONTEXT.md` D-09): *«Solo le missioni boss o worldMission hanno più di uno slot avventuriero.»* Le `enemy` generate hanno sempre `requiredAdventurers = [{ title: R, count: 1 }]` e il budget di D-03 vale con S = 1; i boss tengono i posti della formula. **A-IN-02 è superata:** con un solo posto la domanda «un nemico singolo per due posti» non si pone più (tolta dal handoff 13.1 §3).
+
+**Commit** (base `87186eb`, TDD, nessun trailer, `tsc` 0 su ogni commit GREEN):
+
+| Commit | Passo |
+| --- | --- |
+| `7f9913c` | RED `generation-rules.spec.ts`: `pins one seat on generated enemy quests, boss and worldMission excepted (D-09)` (`ENEMY_SEATS` indefinito); tolti i casi su `ONE_SEAT_SHARE`, `MAX_ENEMY_SEATS`, `enemySeatsOf` |
+| `824b3da` | GREEN `ENEMY_SEATS = 1` in `generation-rules.ts` |
+| `76ff699` | RED `quest-composition.spec.ts` (3 rossi su 17: con il tiro dei posti ancora presente uscivano due posti) |
+| `76584b6` | GREEN `composeEnemyQuest` senza tiro dei posti, `budgetOf(rank, ENEMY_SEATS)` nel giro pool × forme; via `ONE_SEAT_SHARE`, `MAX_ENEMY_SEATS`, `enemySeatsOf` (tolti qui e non nel passo 1 per tenere `tsc` a 0); intestazione con l'ordine dei tiri: boss → forma → pool × forme |
+| `730bb3c` | RED `generated-quest-draft.spec.ts`: `never writes more than one seat on an enemy quest, boss excepted (13.1 D-09)` (una composizione `enemy` a 2 posti scriveva `count: 2`) |
+| `9bb7a0e` | GREEN `seatsOf` nel draft: `enemy` → `ENEMY_SEATS`, boss → posti della composizione |
+| `46d3b37` | integration: helper `seatViolationsOf` in `test/quests/generation-world.ts` (enemy un posto esatto del rango, boss da due in su); casi D-09 in coda alle suite a seme condiviso; verdi al primo colpo (codice già cambiato), **rossi** con `ENEMY_SEATS` mutato a 2 (mutazione annullata) |
+| `14031c3`, `0e10f7e`, `13ca612` | documenti: REPO-RULES, handoff 13.1 §3, ROADMAP (criterio 3, assunzioni, riga 13.1-01), REQUIREMENTS BE-QGEN-13, Phase 13 `13-CONTEXT.md` D-09 e `BACKEND-NOTES.md` §7 |
+
+**Spec cambiate (casi prima → dopo):**
+
+- `generation-rules.spec.ts` 11 → 12: aggiunto il caso D-09; il caso del budget (D-03) perde le asserzioni sul tiro dei posti.
+- `quest-composition.spec.ts` 18 → 17: tolti `composes two seats in about one enemy quest in three (D-03)` e il ripiego A-WR-01 `falls back to one seat before changing rank when two seats cannot be composed (D-03)`; aggiunto `never composes more than one seat for an enemy quest (D-09)` (200 semi × 5 ranghi, `seats === 1`, Σ xp ∈ `budgetOf(rank, 1)`); `stays within the seat budget of every rank (D-03)` → `stays within the one-seat budget of every rank (D-03, D-09)`; il caso A-IN-03 → `composes from the zone before the all fallback with one seat (D-08, D-09)` (hero, zona col solo Orsogufo, Errante 700 `all`, `SequenceChance([0.5, 0.0])` con il singolo preferito → Orsogufo ×6 dalla zona, un posto); le sequenze fisse perdono il tiro dei posti: `[0.5, 0, 0.2, 0.0]` → `[0.5, 0.2, 0.0]`, `[0.5, 0, 0.6]` → `[0.5, 0.6]` (due casi), `[0.1, 0]` → `[0.1]`, `[0.0, 0]` → `[0.0]`.
+- `generated-quest-draft.spec.ts` 6 → 6: `builds an enemy quest with two seats of the rank (D-03)` → il caso D-09 sopra.
+- `quest-generator.int-spec.ts` 21 → 21: `keeps every generated enemy quest within the seat budget (D-03)` → `keeps every generated enemy quest on one seat within the budget (D-03, D-09)` (`count: 1`, `budgetOf(rank, 1)`, `seatViolationsOf` vuoto).
+- `quest-generation.e2e.int-spec.ts` 8 → 9, `quest-generation.resolver.int-spec.ts` 4 → 5, `quest-generation-access.e2e.int-spec.ts` 4 → 5: un caso D-09 ciascuna, **in coda** perché il seme è condiviso fra i casi (i tiri dei casi precedenti restano gli stessi).
+
+**Numeri a seme fisso ri-derivati (vecchi → nuovi):**
+
+- Nessun numero asserito è cambiato: i conteggi `created` delle e2e (16, 11, 9, 30, 12, 12), del generatore (2, 6, 4, 8, 7, 2, 5, 1, 3, 5) e la distribuzione di `city-distribution.spec.ts` dipendono da tetti, target e scelta della città, non dai tiri della composizione.
+- `rotates the five ranks …` (seme 7, 4 città × 3 POI, target 12; il caso asserisce chiavi e conteggi ≥ 2, non i numeri), ri-derivato una volta con una sonda temporanea non committata: ranghi `{ rookie: 3, adventurer: 3, paladin: 2, mage: 2, hero: 2 }` → invariati; posti `enemy/rookie/2, enemy/adventurer/1, enemy/paladin/1, enemy/mage/2, enemy/hero/1, enemy/rookie/1, enemy/adventurer/1, enemy/paladin/2, boss/mage/2, enemy/hero/2, enemy/rookie/1, enemy/adventurer/1` → tutte `enemy` a 1 posto (`enemy/rookie/1, enemy/adventurer/1, enemy/paladin/1, enemy/mage/1, enemy/hero/1, …` ×12). Il boss mage della nona quest sparisce: senza il tiro dei posti la sequenza del seme si sposta e il tiro del boss di quella quest cade sopra `BOSS_SHARE`.
+
+**Gate:** `npx tsc --noEmit -p tsconfig.json` 0; `npx jest src/quests/generation --selectProjects unit` 13 suite / 93 test; `npx jest src/quests src/cities src/mongo test/quests --selectProjects unit` 62 / 923; `npx jest src/quests/generation test/quests --selectProjects integration --runInBand` 5 suite / 43 test; `git diff --exit-code src/schema.gql` 0 e `git diff origin/develop -- src/schema.gql` vuoto; nessun `Math.random` né `process.env.` aggiunto; trailer vietati 0 su ogni commit; `pgrep -fl jest` vuoto; processo BE pid 68075 vivo, nessuna build.
+
+**Runbook del primo boot reale:** nessuna riga di log cambia (formato e testo del generatore e dei tre one-off invariati); cambiano solo i valori: tutte le generate `enemy` ricreate dal reset hanno un posto, i boss restano a 2–6 posti. Nessun cambio SDL né contratto FE (la Phase 13 scriveva già `count: 1` sulle `enemy`).
+
 ---
 
 _Fixed: 2026-11-05_
