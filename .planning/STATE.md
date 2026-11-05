@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 12 execution complete (19/19), PR by the orchestrator after the post-execution review
+stopped_at: Phase 14 planned (2026-11-05, 8 plans, checker pending); next: /gsd-execute-phase 14 on feat/14-viaggio-e-cibo (executors one at a time); Phase 13.1 merged (PR #21), its device UAT outcome in PR #22 (docs)
 last_updated: "2026-11-05T20:23:56.939Z"
-last_activity: 2026-11-05 -- Phase null planning complete
+last_activity: 2026-11-05 -- Phase 14 planning complete (8 plans + VALIDATION, checker pending)
 progress:
   total_phases: 20
   completed_phases: 17
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 Phase: 14 (Viaggio e cibo) — PLANNED (2026-11-05) on `feat/14-viaggio-e-cibo` (from `develop` `698ae82`): 8 plans in a linear chain (`14-01`..`14-08`), executors one at a time on the main tree; next `/gsd-execute-phase 14`
 Plan: 0 of 8
-Status: Ready to execute
-Last activity: 2026-11-05 -- Phase null planning complete
+Status: Phase 14 planned — 8 plans + `14-VALIDATION.md` (research → CONTEXT amended D-07/D-08/D-11/D-12 + D-16..D-20 → `14-REPO-RULES.md` → planner → checker); ready to execute on `feat/14-viaggio-e-cibo`; Phase 13.1 merged on develop (PR #21), its device UAT outcome in PR #22 (docs, open)
+Last activity: 2026-11-05 -- Phase 14 planning complete (8 plans + VALIDATION), plan list in the ROADMAP, checker pending
 
 Progress: [░░░░░░░░░░] 0/8 plans of Phase 14 (phases 1–13, 9.1, 9.2 and 13.1 complete and merged on develop)
 
