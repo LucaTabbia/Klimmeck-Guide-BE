@@ -167,6 +167,11 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 - [x] **BE-QGEN-09**: Le `dungeon` sono esplorazioni a tappe: `enemies` in ordine = tappe di combattimento risolte in sequenza con gli HP residui da una porta `DungeonResolver` con segnaposto (prove di esplorazione neutre, premi solo a fine percorso, `stagesCleared`/`stagesTotal` nel risultato); le 40 dungeon fisse arricchite al boot una tantum e poi curate a DB (Phase 11 D-33; aggiunto 2026-11-04, CONTEXT D-10..D-13) → FE QGEN-02
 - [x] **BE-QGEN-10**: `QuestPrizes.pet` (ref `Pet`, additivo): alla vittoria ogni vincitore ottiene il pet in `ownedPets` con probabilità 20% (già posseduto → nulla); il generatore lo assegna solo ai boss con probabilità 1%; pool = pet con `sellable: false`; il risultato espone il pet ottenuto (aggiunto 2026-11-04, CONTEXT D-21) → FE QGEN-02
 - [x] **BE-QGEN-11**: `EquipmentItem.accessoryUseTypes: [AccessoryUseType!]` (`attack` | `defense`) solo su `ring` e `necklace`, additivo e nel contesto del `CombatResolver`; i 42 gioielli a DB ricevono il valore da una tabella rivista dall'utente (magia + descrizione) tramite un migratore una tantum che poi esce dal repo (aggiunto 2026-11-04, regola dell'utente, CONTEXT D-23..D-26) → FE QGEN-06
+- [ ] **BE-QGEN-12**: Un nemico con una lore `type: animal` non entra mai nelle quest generate (singolo, branco, boss) né nelle tappe delle dungeon; nessun campo nuovo su `Enemy`, la cura resta nella lore (aggiunto 2026-11-05 dalla UAT della FE Phase 14, CONTEXT 13.1 D-01; emenda la D-08 della Phase 13)
+- [ ] **BE-QGEN-13**: Fasce di xp dei ranghi contigue e solo da rookie a hero (1–20, 21–69, 70–224, 225–548, 549–803); nessuna quest `legend` generata (legend è solo un titolo e gioca le hero); le `enemy` hanno S posti (1 o 2) e un budget Σ xp ∈ [S×lo, S×hi] con membri della fascia o inferiori e `requiredAdventurers` per rango; il boss resta un singolo sopra hi con posti dalla formula, clamp a 2 sopra il massimo hero (aggiunto 2026-11-05, CONTEXT 13.1 D-02/D-03; emenda le D-05/D-07 della Phase 13)
+- [ ] **BE-QGEN-14**: Tetto di quest generate attive per taglia di città (villaggio 1, città 2, capitale 4, entro i POI liberi) e peso di sorteggio = taglia × fattore di densità; target globale invariato; città con `type` ignoto saltata (aggiunto 2026-11-05, CONTEXT 13.1 D-04; emenda la D-15 della Phase 13)
+- [ ] **BE-QGEN-15**: `quests` restituisce al chiamante solo le quest aperte sui POI della città in cui sta il suo personaggio corrente (marker + `pointsOfInterest`), le `story` del suo titolo e le quest delle sue corsie; `[]` senza personaggio corrente; SDL invariato, `quest(id)` e `questUpdated` invariate → FE Mappa per area (aggiunto 2026-11-05, CONTEXT 13.1 D-05)
+- [ ] **BE-QGEN-16**: Al primo boot reale dal branch, dopo il popolamento del DB, tre passi una tantum prima della corsa del generatore: reset delle generate aperte (idempotente, registrate e in corsia lasciate), prede delle hunt ri-estratte fra gli animali della zona con `minTitle` = fascia della preda, tappe delle dungeon ricomposte senza animali e nel budget; i migratori escono dal repo prima della merge (aggiunto 2026-11-05, CONTEXT 13.1 D-06/D-07)
 
 ### Travel Food (BE-FOOD) — Phase 14, aggiunta 2026-10-29
 
@@ -293,6 +298,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-CONTENT-01..07 | Phase 11 | Complete (aggiunti 2026-10-29, chiusi 2026-11-02) |
 | BE-SHOP-01..06 | Phase 12 | Complete (gate 12-18, 2026-11-03; aggiunti 2026-10-29, emendati e BE-SHOP-06 aggiunto 2026-11-02) |
 | BE-QGEN-01..11 | Phase 13 | Complete (gate 13-19, 2026-11-04; 01..08 aggiunti 2026-10-29, 09..11 il 2026-11-04) |
+| BE-QGEN-12..16 | Phase 13.1 | Pending (aggiunti 2026-11-05 dalla UAT della FE Phase 14) |
 | BE-FOOD-01..06 | Phase 14 | Pending (aggiunti 2026-10-29) |
 | BE-AMBUSH-01..07 | Phase 15 | Pending (aggiunti 2026-10-29) |
 | BE-LORE-01..06 | Phase 16 | Pending (aggiunti 2026-10-29) |
@@ -303,6 +309,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 - Mapped to phases: 50 / 50 ✓ (nessun orfano, nessun duplicato)
 - Estensione del 2026-10-29: +39 requisiti (BE-CONTENT-01..07, BE-SHOP-01..05, BE-QGEN-01..08, BE-FOOD-01..06, BE-AMBUSH-01..07, BE-LORE-01..06) mappati sulle Phase 11–16 → 95 totali, 89 mappati (i BE-TEST-01..04 restano nella Phase 1 non avviata e i 2 BE-SYNC assorbiti nella 3 come prima)
 - Estensione del 2026-11-04 (discuss Phase 13 congiunto con la FE Phase 14): +3 requisiti (BE-QGEN-09 dungeon a tappe, BE-QGEN-10 premio pet, BE-QGEN-11 `accessoryUseTypes`) → 98 totali, 92 mappati
+- Inserimento del 2026-11-05 (Phase 13.1, dalla UAT della FE Phase 14): +5 requisiti (BE-QGEN-12 animali fuori, BE-QGEN-13 fasce contigue e budget per posti, BE-QGEN-14 taglie, BE-QGEN-15 tabellone per area, BE-QGEN-16 reset e revisione di hunt/dungeon al boot) → 103 totali, 97 mappati
 
 ---
 
