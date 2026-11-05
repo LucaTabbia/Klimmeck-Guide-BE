@@ -1,13 +1,17 @@
+import { CitySize } from 'src/models/enums/city-size.enum';
 import {
     CityNode,
-    MAX_GENERATED_PER_CITY,
+    GENERATED_CAP_BY_SIZE,
     NEIGHBOUR_COUNT,
+    SIZE_WEIGHT_BY_SIZE,
+    capOf,
     cityWeightOf,
     densityOf,
     freePoisOf,
     neighboursOf,
     pickCity,
     pickPoi,
+    sizeWeightOf,
 } from 'src/quests/generation/city-picker';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
 
@@ -16,7 +20,8 @@ const node = (
     x: number,
     y = 0,
     freePoiIds: readonly string[] = ['p1'],
-): CityNode => ({ id, location: [x, y], freePoiIds });
+    size: CitySize = CitySize.city,
+): CityNode => ({ id, location: [x, y], freePoiIds, size });
 
 describe('city picker', () => {
     it('finds the five nearest markers with ties broken by id (D-29)', () => {
@@ -54,18 +59,39 @@ describe('city picker', () => {
         expect(densityOf('c', neighbours, generated)).toBe(0);
     });
 
-    it('weighs a city by one over one plus the density squared (D-29)', () => {
-        const city = node('a', 0);
+    it('weighs a city by its size factor over one plus the density squared (D-04)', () => {
+        const village = node('v', 0, 0, ['p1'], CitySize.village);
+        const city = node('c', 0);
+        const capital = node('k', 0, 0, ['p1'], CitySize.capital);
 
-        expect(cityWeightOf(city, 0, 0)).toBe(1);
-        expect(cityWeightOf(city, 1, 1)).toBe(0.25);
-        expect(cityWeightOf(city, 3, 2)).toBe(0.0625);
+        expect(cityWeightOf(village, 0, 0)).toBe(1);
+        expect(cityWeightOf(city, 0, 0)).toBe(2);
+        expect(cityWeightOf(capital, 0, 0)).toBe(4);
+        expect(cityWeightOf(capital, 1, 1)).toBe(1);
+        expect(cityWeightOf(city, 3, 1)).toBe(0.125);
     });
 
-    it('gives no weight to a city with three generated quests or no free poi (D-15)', () => {
-        expect(MAX_GENERATED_PER_CITY).toBe(3);
-        expect(cityWeightOf(node('a', 0), 3, 3)).toBe(0);
-        expect(cityWeightOf(node('a', 0, 0, []), 0, 0)).toBe(0);
+    it('caps the generated quests at one per village, two per city and four per capital (D-04)', () => {
+        const village = node('v', 0, 0, ['p1'], CitySize.village);
+        const city = node('c', 0);
+        const capital = node('k', 0, 0, ['p1'], CitySize.capital);
+        const emptyCapital = node('e', 0, 0, [], CitySize.capital);
+
+        expect(cityWeightOf(village, 0, 1)).toBe(0);
+        expect(cityWeightOf(city, 0, 1)).toBeGreaterThan(0);
+        expect(cityWeightOf(city, 0, 2)).toBe(0);
+        expect(cityWeightOf(capital, 0, 3)).toBeGreaterThan(0);
+        expect(cityWeightOf(capital, 0, 4)).toBe(0);
+        expect(cityWeightOf(emptyCapital, 0, 0)).toBe(0);
+    });
+
+    it('pins the caps and the size factors (D-04)', () => {
+        const bySize = { village: 1, city: 2, capital: 4 };
+
+        expect(GENERATED_CAP_BY_SIZE).toEqual(bySize);
+        expect(SIZE_WEIGHT_BY_SIZE).toEqual(bySize);
+        expect(capOf(CitySize.capital)).toBe(4);
+        expect(sizeWeightOf(CitySize.village)).toBe(1);
     });
 
     it('excludes the city marker and every poi with an open quest (D-15)', () => {

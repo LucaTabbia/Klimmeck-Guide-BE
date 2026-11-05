@@ -1,6 +1,6 @@
 import { CitySize } from 'src/models/enums/city-size.enum';
 import { CityType } from 'src/models/enums/city-type.enum';
-import { CITY_SIZE_BY_TYPE, citySizeOf } from './city-size';
+import { CITY_SIZE_BY_TYPE, citySizeOf, isCityType } from './city-size';
 
 function sizeFromSuffix(type: CityType): CitySize {
     if (type.endsWith('Village')) return CitySize.village;
@@ -39,5 +39,13 @@ describe('citySizeOf', () => {
             city: countOf(CitySize.city),
             capital: countOf(CitySize.capital),
         }).toEqual({ village: 13, city: 11, capital: 9 });
+    });
+
+    it('recognises only the city types of the size table (D-04)', () => {
+        expect(isCityType('drusteaVillage')).toBe(true);
+        expect(isCityType('atlantis')).toBe(false);
+        expect(isCityType('toString')).toBe(false);
+        expect(isCityType(undefined)).toBe(false);
+        expect(isCityType(7)).toBe(false);
     });
 });
