@@ -5,6 +5,11 @@ import { City, CityDocument, CitySchema } from 'src/models/city.model';
 import { Enemy, EnemyDocument, EnemySchema } from 'src/models/enemy.model';
 import { Lore, LoreDocument, LoreSchema } from 'src/models/lore.model';
 import {
+    PendingQuest,
+    PendingQuestDocument,
+    PendingQuestSchema,
+} from 'src/models/pending-quest.model';
+import {
     PointOfInterest,
     PointOfInterestDocument,
     PointOfInterestSchema,
@@ -54,6 +59,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
     let lore: Model<LoreDocument>;
     let pois: Model<PointOfInterestDocument>;
     let cities: Model<CityDocument>;
+    let pendingQuests: Model<PendingQuestDocument>;
     let migrator: DungeonStagesMigrator;
     let logSpy: jest.SpyInstance;
     let warnSpy: jest.SpyInstance;
@@ -162,6 +168,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
                         schema: PointOfInterestSchema,
                     },
                     { name: City.name, schema: CitySchema },
+                    { name: PendingQuest.name, schema: PendingQuestSchema },
                 ]),
             ],
         });
@@ -170,12 +177,14 @@ describe('DungeonStagesMigrator (replSet)', () => {
         lore = harness.app.get(getModelToken(Lore.name));
         pois = harness.app.get(getModelToken(PointOfInterest.name));
         cities = harness.app.get(getModelToken(City.name));
+        pendingQuests = harness.app.get(getModelToken(PendingQuest.name));
         migrator = new DungeonStagesMigrator(
             quests as never,
             enemies as never,
             lore as never,
             pois as never,
             cities as never,
+            pendingQuests as never,
         );
     });
 
@@ -217,6 +226,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
             recomposed: 1,
             coherent: 0,
             skipped: 0,
+            inLane: 0,
         });
 
         const after = await rawDungeon(dungeon);
@@ -225,7 +235,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
         expect(after.infos.title).toBe('Dungeon: Orso presso Bosa');
         expect(after.infos.description).toBe(DESCRIPTION);
         expect(logSpy.mock.calls).toEqual([
-            ['Dungeon: 1 ricomposte, 0 già coerenti'],
+            ['Dungeon: 1 ricomposte, 0 già coerenti, 0 in corsia'],
         ]);
     });
 
@@ -243,6 +253,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
             recomposed: 2,
             coherent: 0,
             skipped: 0,
+            inLane: 0,
         });
 
         const after = await rawDungeon(dungeon);
@@ -267,6 +278,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
             recomposed: 1,
             coherent: 0,
             skipped: 0,
+            inLane: 0,
         });
 
         const after = await rawDungeon(dungeon);
@@ -282,6 +294,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
             recomposed: 0,
             coherent: 1,
             skipped: 0,
+            inLane: 0,
         });
 
         expect(await rawDungeon(dungeon)).toEqual(before);
@@ -299,10 +312,38 @@ describe('DungeonStagesMigrator (replSet)', () => {
             recomposed: 0,
             coherent: 0,
             skipped: 0,
+            inLane: 0,
         });
 
         expect(await rawDungeon(dungeon)).toEqual(before);
         expect(logSpy).not.toHaveBeenCalled();
+    });
+
+    it('leaves a dungeon held in a lane and warns with its id (D-07)', async () => {
+        const dungeon = await insertDungeon([stage(wolf), stage(bear)]);
+        await pendingQuests.collection.insertOne({
+            startDate: null,
+            arrivedAt: null,
+            waitingTime: 0,
+            pointsSpent: 0,
+            quest: dungeon.toHexString(),
+        });
+        const before = await rawDungeon(dungeon);
+
+        await expect(migrator.migrate()).resolves.toEqual({
+            recomposed: 0,
+            coherent: 0,
+            skipped: 0,
+            inLane: 1,
+        });
+
+        expect(await rawDungeon(dungeon)).toEqual(before);
+        expect(warnSpy.mock.calls).toEqual([
+            [`Dungeon ${dungeon.toHexString()} in corsia: lasciata`],
+        ]);
+        expect(logSpy.mock.calls).toEqual([
+            ['Dungeon: 0 ricomposte, 0 già coerenti, 1 in corsia'],
+        ]);
     });
 
     it('skips a dungeon whose minTitle is not a generated rank and warns with its id (D-07)', async () => {
@@ -315,6 +356,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
             recomposed: 0,
             coherent: 0,
             skipped: 1,
+            inLane: 0,
         });
 
         expect(await rawDungeon(dungeon)).toEqual(before);
@@ -336,6 +378,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
             recomposed: 0,
             coherent: 0,
             skipped: 1,
+            inLane: 0,
         });
 
         expect(await rawDungeon(dungeon)).toEqual(before);
@@ -359,6 +402,7 @@ describe('DungeonStagesMigrator (replSet)', () => {
             recomposed: 0,
             coherent: 2,
             skipped: 0,
+            inLane: 0,
         });
 
         expect([
