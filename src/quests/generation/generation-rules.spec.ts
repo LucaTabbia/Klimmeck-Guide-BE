@@ -5,18 +5,16 @@ import {
     bossSeatsFor,
     bossSeatsOf,
     budgetOf,
-    enemySeatsOf,
+    ENEMY_SEATS,
     GENERATED_RANKS,
     HERO_XP_MAX,
     isBossCandidate,
     isGeneratedRank,
     leastCoveredRank,
     MAX_BOSS_SEATS,
-    MAX_ENEMY_SEATS,
     MAX_PACK_TYPES,
     MAX_PACK_UNITS,
     MIN_BOSS_SEATS,
-    ONE_SEAT_SHARE,
     PACK_ATTEMPTS,
     RANK_XP_BANDS,
     RANK_XP_FLOORS,
@@ -104,12 +102,15 @@ describe('generation rules', () => {
         expect(budgetOf(TitleType.paladin, 1)).toEqual({ min: 70, max: 224 });
         expect(budgetOf(TitleType.paladin, 2)).toEqual({ min: 140, max: 448 });
         expect(budgetOf(TitleType.hero, 2)).toEqual({ min: 1098, max: 1606 });
-        expect(ONE_SEAT_SHARE).toBe(2 / 3);
-        expect(MAX_ENEMY_SEATS).toBe(2);
-        expect(enemySeatsOf(0)).toBe(1);
-        expect(enemySeatsOf(0.66)).toBe(1);
-        expect(enemySeatsOf(2 / 3)).toBe(2);
-        expect(enemySeatsOf(0.99)).toBe(2);
+    });
+
+    it('pins one seat on generated enemy quests, boss and worldMission excepted (D-09)', () => {
+        expect(ENEMY_SEATS).toBe(1);
+        for (const rank of GENERATED_RANKS) {
+            expect(budgetOf(rank, ENEMY_SEATS)).toEqual(RANK_XP_BANDS[rank]);
+        }
+        expect(bossSeatsFor(254, TitleType.adventurer)).toBe(5);
+        expect(bossSeatsFor(831, TitleType.hero)).toBe(MIN_BOSS_SEATS);
     });
 
     it('admits a boss only above the band of the rank (D-03)', () => {
