@@ -539,7 +539,7 @@ Plans:
 - [x] 14-02-PLAN.md — Wave 2: codice `TRAVEL_STARVING` con factory, guardie e set del pasto in `travel-food.updates.ts`, parametro opzionale finale sui builder di partenza e claim (BE-FOOD-03/05)
 - [x] 14-03-PLAN.md — Wave 3: `TravelPantryReader` (dispensa in/fuori sessione, `LootItem` idratati), `TravelFoodItem` e tre campi additivi di `TravelPreview`, `travelPreview` col cibo, SDL (BE-FOOD-04/06)
 - [x] 14-04-PLAN.md — Wave 4: `startTravel` transazionale con consumo e HP nello stesso update, `TRAVEL_STARVING` senza scritture, modificatori, concorrenza, acquisto concorrente (D-20), teleport esente (BE-FOOD-03/05/06)
-- [ ] 14-05-PLAN.md — Wave 5: `autoRoute` senza il WARN del salto, query owner-only nullable `questTravelPreview`, SDL e liste owner-only (BE-FOOD-04/06)
+- [x] 14-05-PLAN.md — Wave 5: `autoRoute` senza il WARN del salto, query owner-only nullable `questTravelPreview`, SDL e liste owner-only (BE-FOOD-04/06)
 - [ ] 14-06-PLAN.md — Wave 6: `acceptQuest` mangia nel claim (fame in pre-verifica e nel callback, codice della corsa prima della fame), esenzioni, concorrenza, D-20, rifiuto sul filo (BE-FOOD-03/05/06)
 - [ ] 14-07-PLAN.md — Wave 7: gate (`test:cov` con le soglie per cartella, boot reale con SDL additivo, lint mirato, invarianti, VALIDATION firmata, BE-FOOD-01..06 completi) (BE-FOOD-01..06)
 - [ ] 14-08-PLAN.md — Wave 8: handoff `BACKEND-NOTES.md` per la FE 15, emendamento in coda al handoff della Phase 8, nota nel CONTEXT, stato in ROADMAP e STATE (BE-FOOD-06)
@@ -617,6 +617,6 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
 | 13. Generazione quest | 20/20 | Complete | 2026-11-04 |
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
-| 14. Viaggio e cibo | 4/8 | In Progress | - |
+| 14. Viaggio e cibo | 5/8 | In Progress | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
