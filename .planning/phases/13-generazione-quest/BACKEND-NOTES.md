@@ -272,8 +272,8 @@ mutation GenerateQuests {
 
 - `XP_SCALE = 0.14084507` (PE = xp / scala, Phase 11 D-11).
 - **Boss** (D-05, D-06): `BOSS_SHARE = 0.1` (1 su 10 nei ranghi con boss); singolo sopra hi del rango, posti dalla formula ⌈(xp − 0,5) / `XP_SCALE` / media⌉ (C3) fra `MIN_BOSS_SEATS = 2` e `MAX_BOSS_SEATS = 6`, clamp a 2 sopra 803 (`bossSeatsFor`) (13.1 D-03).
-- **Enemy** (D-07): S posti (1 con `ONE_SEAT_SHARE` 2/3, altrimenti 2; `enemySeatsOf`), Σ xp × quantità ∈ `budgetOf(R, S)` = [S×lo, S×hi], membri della fascia o inferiori, `requiredAdventurers = [{ title: R, count: S }]`; `SINGLE_FORM_SHARE = 0.5` fra il singolo e il branco (1–3 tipi), `MAX_PACK_UNITS = 8`, `MAX_PACK_TYPES = 3`, `PACK_ATTEMPTS = 20`; con S = 2 non componibile si ripiega su S = 1 prima di cambiare rango (13.1 D-03).
-- **Posti:** a titolo esatto, ma un legend occupa un posto hero dopo gli eventuali posti legend (`hasSeatFor`/`seatAvailableExpr` di `quest-capacity.ts`, 13.1 D-08); nessun altro titolo scala.
+- **Enemy** (D-07): un solo posto (`ENEMY_SEATS = 1`, nessun tiro dei posti, 13.1 D-09), Σ xp × quantità ∈ `budgetOf(R, 1)` = [lo, hi], membri della fascia o inferiori, `requiredAdventurers = [{ title: R, count: 1 }]`; `SINGLE_FORM_SHARE = 0.5` fra il singolo e il branco (1–3 tipi), `MAX_PACK_UNITS = 8`, `MAX_PACK_TYPES = 3`, `PACK_ATTEMPTS = 20` (13.1 D-03, D-09).
+- **Posti:** un posto sulle `enemy`, posti per rango solo sui boss (13.1 D-09); a titolo esatto, ma un legend occupa un posto hero dopo gli eventuali posti legend (`hasSeatFor`/`seatAvailableExpr` di `quest-capacity.ts`, 13.1 D-08); nessun altro titolo scala.
 
 **Pool dei nemici** (`enemy-pool.ts`, D-08): nemici con `legendary: false` (fail-closed, C5) e non animali (`isGeneratable`, 13.1 D-01) la cui `locations` contiene un `type` del POI o l'habitat `city`; `all` solo di ripiego quando la zona non compone la forma; un branco esce sempre da un solo pool.
 
