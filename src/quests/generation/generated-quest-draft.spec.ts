@@ -115,6 +115,20 @@ describe('generatedQuestDraftOf', () => {
         expect(draft.infos.title).toBe('Boss: Orco presso Atheland');
     });
 
+    it('builds an enemy quest with two seats of the rank (D-03)', () => {
+        const draft = draftOf(
+            composition(QuestType.enemy, TitleType.mage, 2, [
+                { enemy: ORC, quantity: 2 },
+                { enemy: WOLF, quantity: 1 },
+            ]),
+        );
+
+        expect(draft.requirements.requiredAdventurers).toEqual([
+            { title: TitleType.mage, count: 2 },
+        ]);
+        expect(draft.requirements.minTitle).toBe(TitleType.mage);
+    });
+
     it('marks the quest as generated and open (D-17)', () => {
         const draft = draftOf(
             composition(QuestType.enemy, TitleType.rookie, 1),

@@ -16,6 +16,11 @@ import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { QuestGenerationTrigger } from 'src/quests/generation/quest-generation-trigger';
 import { QuestGenerationTriggerModule } from 'src/quests/generation/quest-generation-trigger.module';
+import {
+    budgetOf,
+    GeneratedRank,
+    RANK_XP_BANDS,
+} from 'src/quests/generation/generation-rules';
 import { QuestGenerator } from 'src/quests/generation/quest-generator.service';
 import { SeededChanceSource } from 'src/quests/generation/seeded-chance';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
@@ -288,6 +293,46 @@ describe('QuestGenerator (replSet)', () => {
                     count: quest.requirements.requiredAdventurers[0].count,
                 },
             ]);
+        }
+    });
+
+    it('keeps every generated enemy quest within the seat budget (D-03)', async () => {
+        await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
+
+        await expect(generatorWith({ target: 12 }).generate()).resolves.toBe(
+            12,
+        );
+        const xps = new Map(
+            (
+                await models.enemies
+                    .find({})
+                    .lean<{ _id: Types.ObjectId; xp: number }[]>()
+            ).map((enemy) => [enemy._id.toHexString(), enemy.xp]),
+        );
+        const xpOf = (quest: LeanQuest): number =>
+            quest.infos.enemies.reduce(
+                (sum, entry) =>
+                    sum +
+                    (xps.get(entry.enemy.toHexString()) ?? 0) * entry.quantity,
+                0,
+            );
+        const created = await generatedQuests();
+
+        for (const quest of created) {
+            const rank = quest.requirements.minTitle as GeneratedRank;
+            if (quest.infos.type === QuestType.boss) {
+                expect(quest.infos.enemies).toHaveLength(1);
+                expect(xpOf(quest)).toBeGreaterThan(RANK_XP_BANDS[rank].max);
+                continue;
+            }
+            const seats = quest.requirements.requiredAdventurers[0]?.count;
+            expect([1, 2]).toContain(seats);
+            expect(quest.requirements.requiredAdventurers).toEqual([
+                { title: rank, count: seats },
+            ]);
+            const budget = budgetOf(rank, seats);
+            expect(xpOf(quest)).toBeGreaterThanOrEqual(budget.min);
+            expect(xpOf(quest)).toBeLessThanOrEqual(budget.max);
         }
     });
 
