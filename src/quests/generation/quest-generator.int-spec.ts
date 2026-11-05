@@ -23,6 +23,7 @@ import {
     RANK_XP_BANDS,
 } from 'src/quests/generation/generation-rules';
 import { QuestGenerator } from 'src/quests/generation/quest-generator.service';
+import { readEnemyCandidates } from 'src/quests/generation/enemy-candidate';
 import { SeededChanceSource } from 'src/quests/generation/seeded-chance';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import {
@@ -506,6 +507,49 @@ describe('QuestGenerator (replSet)', () => {
             relatedLore: [],
             baseWeaknesses: [],
             energyWeaknesses: [],
+        });
+
+        await expect(generatorWith({ target: 4 }).generate()).resolves.toBe(0);
+        expect(await quests.countDocuments()).toBe(0);
+    });
+
+    it('leaves the animals out of every generated quest (D-01)', async () => {
+        const world = await persistGenerationWorld(models, {
+            cities: 4,
+            poisPerCity: 3,
+            animalXps: STANDARD_ENEMY_XPS,
+            enemyLore: true,
+        });
+        const animalIds = world.animalIds.map((id) => id.toHexString());
+
+        await expect(generatorWith({ target: 12 }).generate()).resolves.toBe(
+            12,
+        );
+        const members = (await generatedQuests()).flatMap((quest) =>
+            quest.infos.enemies.map((entry) => entry.enemy.toHexString()),
+        );
+        expect(members.length).toBeGreaterThan(0);
+        expect(members.filter((id) => animalIds.includes(id))).toEqual([]);
+
+        const candidates = await readEnemyCandidates(
+            models.enemies as never,
+            models.lore as never,
+        );
+        const animalOf = new Map(
+            candidates.map((candidate) => [candidate.id, candidate.animal]),
+        );
+        expect(animalOf.get(world.enemyIds[0].toHexString())).toBe(false);
+        expect(animalIds.map((id) => animalOf.get(id))).toEqual(
+            animalIds.map(() => true),
+        );
+    });
+
+    it('creates nothing when only animals live in the zone (D-01)', async () => {
+        await persistGenerationWorld(models, {
+            cities: 2,
+            poisPerCity: 2,
+            enemyXps: [],
+            animalXps: [30, 250],
         });
 
         await expect(generatorWith({ target: 4 }).generate()).resolves.toBe(0);
