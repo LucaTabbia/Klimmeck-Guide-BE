@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 13.1 planned (8 plans, 26 tasks) and execution begun 2026-11-05 on `feat/13.1-correzioni-generazione-quest`; next executor 13.1-01
+stopped_at: Phase 13.1 eseguita (8/8) su `feat/13.1-correzioni-generazione-quest`; PR in draft in attesa del popolamento del DB e del primo boot reale (runbook in `.planning/phases/13-generazione-quest/BACKEND-NOTES.md` §11 f), poi rimozione dei one-off
 last_updated: "2026-11-05T12:31:03.585Z"
 last_activity: 2026-11-05 -- Phase 13.1 execution started
 progress:
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 13.1 — Correzioni generazione quest — EXECUTING (started 2026-11-05) on `feat/13.1-correzioni-generazione-quest` (from `develop` `162c1f5`, the merge of PR #19): 8 plans `13.1-01`..`13.1-08` in a linear chain, one executor at a time on the main tree, never `npm run build` (the user's BE runs from `dist/`); the content for the poor zones (animals and monsters) is dictated by the user and written to the DB by the orchestrator; the first real boot from the branch (reset + hunt + dungeon one-offs + generator) runs only after that, then the one-offs leave the repo and the PR goes out of draft. Previous: Phase 13 — Generazione quest — COMPLETE and merged (PR #19, `162c1f5`, 2026-11-05).
+**Current focus:** Phase 13.1 — Correzioni generazione quest — eseguita (8/8, 2026-11-05) su `feat/13.1-correzioni-generazione-quest` (da `develop` `162c1f5`, la merge della PR #19); PR in draft in attesa del popolamento del DB e del primo boot reale dal branch (reset delle generate, prede delle hunt, tappe delle dungeon, generatore; runbook in `.planning/phases/13-generazione-quest/BACKEND-NOTES.md` §11 f), poi rimozione dei one-off in TDD e `gh pr ready`; handoff FE in `.planning/phases/13.1-correzioni-generazione-quest/BACKEND-NOTES.md`. Previous: Phase 13 — Generazione quest — COMPLETE and merged (PR #19, `162c1f5`, 2026-11-05).
 
 ## Current Position
 
 Phase: 13.1 (Correzioni generazione quest) — EXECUTING (started 2026-11-05) on `feat/13.1-correzioni-generazione-quest` (from `develop` `162c1f5`): 8 plans in a linear chain (`13.1-01`..`13.1-08`), executors one at a time on the main tree
 Plan: 7 of 8
-Status: Executing Phase 13.1 — plans 13.1-01..08 planned (planner + checker, 26 tasks, 2026-11-05); PR to `develop` in draft until the first real boot after the DB is populated and the one-offs are removed
-Last activity: 2026-11-05 -- Phase 13.1 execution started
+Status: Phase 13.1 eseguita (8/8), PR in draft in attesa del popolamento del DB e del primo boot reale; poi review → fix → verify → security, rimozione dei one-off e PR fuori dal draft
+Last activity: 2026-11-05 -- Phase 13.1 execution complete (8/8), handoff and first-boot runbook written; next review → fix → verify → security → PR draft → first real boot
 
 Progress: [░░░░░░░░░░] 0/8 plans of Phase 13.1 (phases 1–13, 9.1 and 9.2 complete and merged on develop)
 

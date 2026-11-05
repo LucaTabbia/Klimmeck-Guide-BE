@@ -508,6 +508,7 @@ Plans:
 **Unblocks (FE)**: quick task FE «rilettura delle quest al cambio di posizione» e UAT su device (Mappa per area); nessun piano FE gated.
 **Branch**: `feat/13.1-correzioni-generazione-quest` da `develop` `162c1f5` → PR a `develop` in draft fino al primo boot reale (dopo il popolamento del DB) e alla rimozione dei one-off.
 **Plans**: 8 plans
+**Stato (2026-11-05)**: 8/8 piani eseguiti; PR in draft fino al primo boot reale dal branch dopo il popolamento del DB e alla rimozione dei one-off (runbook in `.planning/phases/13-generazione-quest/BACKEND-NOTES.md` §11 f)
 
 Plans:
 
