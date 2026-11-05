@@ -28,10 +28,8 @@ import {
     pickCity,
     pickPoi,
 } from 'src/quests/generation/city-picker';
-import {
-    readEnemyCandidates,
-    stringsOf,
-} from 'src/quests/generation/enemy-candidate';
+import { stringsOf } from 'src/mongo/lean-values';
+import { readEnemyCandidates } from 'src/quests/generation/enemy-candidate';
 import { EnemyCandidate } from 'src/quests/generation/enemy-pool';
 import {
     PetCandidate,

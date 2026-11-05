@@ -2,6 +2,7 @@ import { Model, Types } from 'mongoose';
 import { EnemyDocument } from 'src/models/enemy.model';
 import { LoreType } from 'src/models/enums/lore-type.enum';
 import { LoreDocument } from 'src/models/lore.model';
+import { stringsOf } from 'src/mongo/lean-values';
 import { EnemyCandidate } from 'src/quests/generation/enemy-pool';
 
 export const ENEMY_CANDIDATE_FIELDS =
@@ -17,13 +18,6 @@ export interface LeanEnemyCandidate {
     baseWeaknesses?: unknown;
     energyWeaknesses?: unknown;
 }
-
-export const stringsOf = (value: unknown): string[] => {
-    if (Array.isArray(value)) {
-        return value.filter((item): item is string => typeof item === 'string');
-    }
-    return typeof value === 'string' ? [value] : [];
-};
 
 export function enemyCandidateOf(
     enemy: LeanEnemyCandidate,

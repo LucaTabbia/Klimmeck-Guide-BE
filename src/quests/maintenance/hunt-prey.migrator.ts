@@ -16,10 +16,8 @@ import {
 } from 'src/models/point-of-interest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { refIdOf } from 'src/mongo/document-id';
-import {
-    readEnemyCandidates,
-    stringsOf,
-} from 'src/quests/generation/enemy-candidate';
+import { stringsOf } from 'src/mongo/lean-values';
+import { readEnemyCandidates } from 'src/quests/generation/enemy-candidate';
 import { EnemyCandidate } from 'src/quests/generation/enemy-pool';
 import { keyedChance } from 'src/quests/generation/seeded-chance';
 import {
