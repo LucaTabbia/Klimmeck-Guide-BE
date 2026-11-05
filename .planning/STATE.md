@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 13.1 inserted and documented (2026-11-05) — ready for planning on `feat/13.1-correzioni-generazione-quest`; PR #19 of Phase 13 merged (`162c1f5`)
-last_updated: "2026-11-05T12:00:00.000Z"
-last_activity: 2026-11-05 -- Phase 13.1 inserted after the FE Phase 14 device UAT: CONTEXT D-01..D-07, RESEARCH, REPO-RULES, REQUIREMENTS BE-QGEN-12..16; next plan-phase
+status: executing
+stopped_at: Phase 13.1 planned (8 plans, 26 tasks) and execution begun 2026-11-05 on `feat/13.1-correzioni-generazione-quest`; next executor 13.1-01
+last_updated: "2026-11-05T12:31:03.585Z"
+last_activity: 2026-11-05 -- Phase 13.1 execution started
 progress:
-  total_phases: 19
-  completed_phases: 15
-  total_plans: 211
-  completed_plans: 191
-  percent: 91
+  total_phases: 20
+  completed_phases: 16
+  total_plans: 219
+  completed_plans: 211
+  percent: 96
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 13.1 — Correzioni generazione quest — PLANNING (inserted 2026-11-05 after the FE Phase 14 device UAT) on `feat/13.1-correzioni-generazione-quest` (from `develop` `162c1f5`, the merge of PR #19); decisions in `13.1-CONTEXT.md` (D-01..D-07), research in `13.1-RESEARCH.md`, executor rules in `13.1-REPO-RULES.md`; the new content (enemies, animals, lore) is dictated by the user and written to the DB by the orchestrator; the first real boot from the branch (reset + hunt + dungeon + generator) runs only after that. Previous: Phase 13 — Generazione quest — COMPLETE and merged (PR #19, `162c1f5`, 2026-11-05).
+**Current focus:** Phase 13.1 — Correzioni generazione quest — EXECUTING (started 2026-11-05) on `feat/13.1-correzioni-generazione-quest` (from `develop` `162c1f5`, the merge of PR #19): 8 plans `13.1-01`..`13.1-08` in a linear chain, one executor at a time on the main tree, never `npm run build` (the user's BE runs from `dist/`); the content for the poor zones (animals and monsters) is dictated by the user and written to the DB by the orchestrator; the first real boot from the branch (reset + hunt + dungeon one-offs + generator) runs only after that, then the one-offs leave the repo and the PR goes out of draft. Previous: Phase 13 — Generazione quest — COMPLETE and merged (PR #19, `162c1f5`, 2026-11-05).
 
 ## Current Position
 
-Phase: 13.1 (Correzioni generazione quest) — PLANNING (inserted 2026-11-05) on `feat/13.1-correzioni-generazione-quest` (from `develop` `162c1f5`)
-Plan: 0 of ?
-Status: Ready for planning — CONTEXT, RESEARCH and REPO-RULES written by the orchestrator from the FE Phase 14 UAT decisions (2026-11-05); next `/gsd-plan-phase 13.1`, then sequential executors, PR in draft until the first real boot after the DB is populated
-Last activity: 2026-11-05 -- Phase 13.1 inserted and documented (CONTEXT D-01..D-07, RESEARCH, REPO-RULES, REQUIREMENTS BE-QGEN-12..16)
+Phase: 13.1 (Correzioni generazione quest) — EXECUTING (started 2026-11-05) on `feat/13.1-correzioni-generazione-quest` (from `develop` `162c1f5`): 8 plans in a linear chain (`13.1-01`..`13.1-08`), executors one at a time on the main tree
+Plan: 0 of 8
+Status: Executing Phase 13.1 — plans 13.1-01..08 planned (planner + checker, 26 tasks, 2026-11-05); PR to `develop` in draft until the first real boot after the DB is populated and the one-offs are removed
+Last activity: 2026-11-05 -- Phase 13.1 execution started
 
-Progress: [░░░░░░░░░░] 0/? plans of Phase 13.1 (phases 1–13, 9.1 and 9.2 complete and merged on develop)
+Progress: [░░░░░░░░░░] 0/8 plans of Phase 13.1 (phases 1–13, 9.1 and 9.2 complete and merged on develop)
 
 ## Performance Metrics
 
