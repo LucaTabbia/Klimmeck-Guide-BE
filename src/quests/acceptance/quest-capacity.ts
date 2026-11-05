@@ -42,14 +42,17 @@ export function slotRuleOf(slots: readonly RankSlot[]): SlotRule {
 }
 
 // D-32, unico riferimento BE/FE: gli slot esatti si riempiono prima dei jolly; overflow = Σ_U max(0, reg(U) − exact(U))
+// 13.1 D-08: i legend oltre i posti legend occupano posti hero, nessun altro titolo scala
 export function hasSeatFor(
     rule: SlotRule,
     registered: readonly RegisteredAdventurer[],
     title: TitleType,
 ): boolean {
     const counts = registeredCountsOf(registered);
-    if (counts[title] < (rule.seats[title] ?? 0)) return true;
-    return overflowOf(rule, counts) < rule.wildcard;
+    const own = seatTitleOf(rule, counts, title);
+    const folded = foldedCountsOf(rule, counts);
+    if (folded[own] < (rule.seats[own] ?? 0)) return true;
+    return overflowOf(rule, folded) < rule.wildcard;
 }
 
 export function isFullForEveryone(
@@ -62,15 +65,21 @@ export function isFullForEveryone(
 }
 
 // specchio esatto di hasSeatFor riaffermato nel filtro di registrazione (Phase 7 D-18): due accettazioni sull'ultimo posto ⇒ un solo successo
+// senza posti hero i conteggi ripiegati coincidono con quelli semplici (13.1 D-08): il filtro resta quello della Phase 8
 export function seatAvailableExpr(
     rule: SlotRule,
     title: TitleType,
 ): Record<string, unknown> {
-    const own = { $lt: [countOf(title), rule.seats[title] ?? 0] };
+    const foldsLegends = (rule.seats.hero ?? 0) > 0;
+    const countIn = foldsLegends ? foldedCountExprOf(rule) : countOf;
+    const own =
+        foldsLegends && title === TitleType.legend
+            ? legendSeatExpr(rule, countIn)
+            : { $lt: [countIn(title), rule.seats[title] ?? 0] };
     if (rule.wildcard === 0) return own;
     const overflow = {
         $add: TITLES.map((u) => ({
-            $max: [0, { $subtract: [countOf(u), rule.seats[u] ?? 0] }],
+            $max: [0, { $subtract: [countIn(u), rule.seats[u] ?? 0] }],
         })),
     };
     return { $or: [own, { $lt: [overflow, rule.wildcard] }] };
@@ -101,6 +110,63 @@ function registeredCountsOf(
         if (KNOWN_TITLES.has(title)) counts[title] += 1;
     }
     return counts;
+}
+
+// 13.1 D-08: i legend oltre i posti legend contano sui posti hero
+function foldedCountsOf(
+    rule: SlotRule,
+    counts: Record<TitleType, number>,
+): Record<TitleType, number> {
+    const legendSeats = rule.seats.legend ?? 0;
+    const extra = Math.max(0, counts.legend - legendSeats);
+    return {
+        ...counts,
+        legend: Math.min(counts.legend, legendSeats),
+        hero: counts.hero + extra,
+    };
+}
+
+function seatTitleOf(
+    rule: SlotRule,
+    counts: Record<TitleType, number>,
+    title: TitleType,
+): TitleType {
+    const legendSeatsTaken = counts.legend >= (rule.seats.legend ?? 0);
+    return title === TitleType.legend && legendSeatsTaken
+        ? TitleType.hero
+        : title;
+}
+
+function foldedCountExprOf(rule: SlotRule) {
+    const legendSeats = rule.seats.legend ?? 0;
+    const legendCount = countOf(TitleType.legend);
+    const foldedLegend = { $min: [legendCount, legendSeats] };
+    const foldedHero = {
+        $add: [
+            countOf(TitleType.hero),
+            { $max: [0, { $subtract: [legendCount, legendSeats] }] },
+        ],
+    };
+    return (title: TitleType) => {
+        if (title === TitleType.legend) return foldedLegend;
+        if (title === TitleType.hero) return foldedHero;
+        return countOf(title);
+    };
+}
+
+// specchio di seatTitleOf: posto legend finché ce n'è uno libero, poi posto hero
+function legendSeatExpr(
+    rule: SlotRule,
+    folded: (title: TitleType) => Record<string, unknown>,
+) {
+    const legendSeats = rule.seats.legend ?? 0;
+    return {
+        $cond: [
+            { $lt: [countOf(TitleType.legend), legendSeats] },
+            { $lt: [folded(TitleType.legend), legendSeats] },
+            { $lt: [folded(TitleType.hero), rule.seats.hero ?? 0] },
+        ],
+    };
 }
 
 function overflowOf(rule: SlotRule, counts: Record<TitleType, number>): number {
