@@ -507,11 +507,18 @@ Plans:
 **Decisioni dell'utente (2026-11-05)**: lore `animal` come segnale (nessun campo nuovo); tetto 1/2/4 per taglia con target invariato; filtro lato BE del tabellone; fasce contigue solo rookie–hero e legend solo titolo; budget per posti con fasce inferiori ammesse; cancellare tutte le generate e rigenerarle da capo; rivedere hunt e dungeon con animali o fasce sbagliate dopo il popolamento del DB. Assunzioni tecniche correggibili: rookie da 1, hero max 803, clamp del boss a 2 posti sopra hero, posti delle `enemy` 1 o 2 (2/3–1/3), la caccia segue la preda, tappe delle dungeon in un solo budget.
 **Unblocks (FE)**: quick task FE «rilettura delle quest al cambio di posizione» e UAT su device (Mappa per area); nessun piano FE gated.
 **Branch**: `feat/13.1-correzioni-generazione-quest` da `develop` `162c1f5` → PR a `develop` in draft fino al primo boot reale (dopo il popolamento del DB) e alla rimozione dei one-off.
-**Plans**: da pianificare
+**Plans**: 8 plans
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 13.1 to break down)
+- [ ] 13.1-01-PLAN.md — Cinque fasce contigue (rookie 1–20 … hero 549–803), legend fuori da generatore e tabelle, `enemy` a budget per posti (S 1 o 2), boss sopra hi con clamp a 2 posti, legend sui posti hero (D-08)
+- [ ] 13.1-02-PLAN.md — Animali (lore `animal`) fuori dai pool del generatore, lettore condiviso `readEnemyCandidates`, `Lore` nel modulo leggero, fixture `animalXps`
+- [ ] 13.1-03-PLAN.md — Tetto e peso di sorteggio per taglia (1/2/4), `isCityType` fail-closed, fixture a taglie miste, distribuzione ri-derivata
+- [ ] 13.1-04-PLAN.md — `quests` scopata sul personaggio corrente (POI della città, story del titolo, corsie), filtro puro `quest-board.ts`, SDL identico
+- [ ] 13.1-05-PLAN.md — One-off di boot: reset delle generate (marcatore legend, protette lasciate) e prede delle hunt per zona e fascia, richiesta finale al generatore
+- [ ] 13.1-06-PLAN.md — One-off di boot: tappe delle dungeon v2 senza animali e in un solo budget, ordine nemici → reset → hunt → dungeon → generatore
+- [ ] 13.1-07-PLAN.md — Gate: `npm run test:cov`, real boot con `src/schema.gql` identico a `develop`, lint sui file toccati, invarianti, VALIDATION firmata, `mark-complete` BE-QGEN-12..16
+- [ ] 13.1-08-PLAN.md — Docs: emendamenti di `13-CONTEXT.md`, `BACKEND-NOTES.md` §7/§9/§11 col runbook del boot reale e la rimozione dei one-off, handoff FE 13.1
 
 ### Phase 14: Viaggio e cibo
 **Goal**: Viaggiare consuma cibo: il fabbisogno è il tempo di marcia (1 power ogni 3 minuti della durata calcolata, che già somma terreno della strada, pet e ferite), il server sceglie fra gli oggetti `hunger` del personaggio quelli che coprono il fabbisogno con lo scarto minimo e li consuma alla partenza; i chilometri scoperti dal cibo costano vita (il km scoperto n-esimo costa n HP); se il personaggio non arriverebbe con almeno 1 HP la partenza — libera o automatica da quest — è rifiutata. Teleport e salto istantaneo esenti.
@@ -599,7 +606,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
 | 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
 | 13. Generazione quest | 20/20 | Complete | 2026-11-04 |
-| 13.1. Correzioni generazione quest | 0/0 | Not started | - |
+| 13.1. Correzioni generazione quest | 0/8 | Planned | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
