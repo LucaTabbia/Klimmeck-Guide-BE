@@ -115,20 +115,6 @@ describe('generatedQuestDraftOf', () => {
         expect(draft.infos.title).toBe('Boss: Orco presso Atheland');
     });
 
-    it('builds a legend quest with an exact legend seat (D-09)', () => {
-        const draft = draftOf(
-            composition(QuestType.enemy, TitleType.legend, 1, [
-                { enemy: ORC, quantity: 2 },
-                { enemy: WOLF, quantity: 1 },
-            ]),
-        );
-
-        expect(draft.requirements.requiredAdventurers).toEqual([
-            { title: TitleType.legend, count: 1 },
-        ]);
-        expect(draft.requirements.minTitle).toBe(TitleType.legend);
-    });
-
     it('marks the quest as generated and open (D-17)', () => {
         const draft = draftOf(
             composition(QuestType.enemy, TitleType.rookie, 1),

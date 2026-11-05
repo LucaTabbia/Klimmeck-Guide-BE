@@ -4,46 +4,62 @@ import {
     BOSS_SHARE,
     bossSeatsOf,
     GENERATED_RANKS,
+    HERO_XP_MAX,
     isBossCandidate,
     isGeneratedRank,
     leastCoveredRank,
-    LEGEND_PACK_UNITS,
-    LEGEND_PARTY_AVERAGE_PE,
     MAX_BOSS_SEATS,
     MAX_PACK_TYPES,
     MAX_PACK_UNITS,
     MIN_BOSS_SEATS,
     PACK_ATTEMPTS,
     RANK_XP_BANDS,
+    RANK_XP_FLOORS,
     SINGLE_FORM_SHARE,
     XP_SCALE,
 } from 'src/quests/generation/generation-rules';
 
 describe('generation rules', () => {
-    it('pins the xp band of every generated rank, legend included (D-07)', () => {
+    it('pins the five contiguous bands from rookie 1 to hero 803 (D-02)', () => {
+        expect(RANK_XP_FLOORS).toEqual({
+            rookie: 1,
+            adventurer: 21,
+            paladin: 70,
+            mage: 225,
+            hero: 549,
+        });
+        expect(HERO_XP_MAX).toBe(803);
         expect(RANK_XP_BANDS).toEqual({
-            rookie: { min: 7, max: 14 },
-            adventurer: { min: 21, max: 35 },
-            paladin: { min: 70, max: 169 },
-            mage: { min: 225, max: 451 },
+            rookie: { min: 1, max: 20 },
+            adventurer: { min: 21, max: 69 },
+            paladin: { min: 70, max: 224 },
+            mage: { min: 225, max: 548 },
             hero: { min: 549, max: 803 },
-            legend: { min: 1098, max: 3212 },
         });
         expect(XP_SCALE).toBe(0.14084507);
     });
 
-    it('rotates over the six ranks from rookie to legend (D-07, D-15)', () => {
+    it('leaves no gap between rookie and hero (D-02)', () => {
+        expect(RANK_XP_BANDS.rookie.min).toBe(1);
+        for (let index = 0; index < GENERATED_RANKS.length - 1; index += 1) {
+            const rank = GENERATED_RANKS[index];
+            const next = GENERATED_RANKS[index + 1];
+            expect(RANK_XP_BANDS[rank].max + 1).toBe(RANK_XP_BANDS[next].min);
+        }
+    });
+
+    it('rotates over the five ranks and never treats legend as a generated rank (D-02)', () => {
         expect(GENERATED_RANKS).toEqual([
             'rookie',
             'adventurer',
             'paladin',
             'mage',
             'hero',
-            'legend',
         ]);
         expect(GENERATED_RANKS.every((rank) => isGeneratedRank(rank))).toBe(
             true,
         );
+        expect(isGeneratedRank(TitleType.legend)).toBe(false);
         expect(isGeneratedRank('emperor')).toBe(false);
         expect(isGeneratedRank(null)).toBe(false);
     });
@@ -55,7 +71,6 @@ describe('generation rules', () => {
             mage: 4000,
             hero: 6000,
         });
-        expect(LEGEND_PARTY_AVERAGE_PE).toBe(15_000);
         expect([MIN_BOSS_SEATS, MAX_BOSS_SEATS]).toEqual([2, 6]);
     });
 
@@ -77,7 +92,6 @@ describe('generation rules', () => {
         expect(isBossCandidate(1408, TitleType.hero)).toBe(true);
         for (const xp of [7, 30, 254, 1408, 5000]) {
             expect(isBossCandidate(xp, TitleType.rookie)).toBe(false);
-            expect(isBossCandidate(xp, TitleType.legend)).toBe(false);
         }
     });
 
@@ -90,7 +104,6 @@ describe('generation rules', () => {
                 paladin: 1,
                 mage: 1,
                 hero: 1,
-                legend: 1,
             }),
         ).toBe(TitleType.adventurer);
         expect(
@@ -99,10 +112,9 @@ describe('generation rules', () => {
                 adventurer: 1,
                 paladin: 1,
                 mage: 1,
-                hero: 1,
-                legend: 0,
+                hero: 0,
             }),
-        ).toBe(TitleType.legend);
+        ).toBe(TitleType.hero);
         expect(leastCoveredRank({ rookie: 3, adventurer: 2 })).toBe(
             TitleType.paladin,
         );
@@ -114,6 +126,5 @@ describe('generation rules', () => {
         expect(MAX_PACK_UNITS).toBe(8);
         expect(MAX_PACK_TYPES).toBe(3);
         expect(PACK_ATTEMPTS).toBe(20);
-        expect(LEGEND_PACK_UNITS).toEqual({ min: 2, max: 4 });
     });
 });

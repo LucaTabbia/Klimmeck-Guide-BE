@@ -134,12 +134,9 @@ describe('composition of generated quests', () => {
     });
 
     it('never packs enemies of the band or above (D-07)', () => {
-        const ranks = GENERATED_RANKS.filter(
-            (rank) => rank !== TitleType.legend,
-        );
         let packs = 0;
 
-        for (const rank of ranks) {
+        for (const rank of GENERATED_RANKS) {
             const band = RANK_XP_BANDS[rank];
             for (const composition of seededCompositions(rank, catalog)) {
                 if (composition === null || !isPack(composition)) continue;
@@ -204,29 +201,21 @@ describe('composition of generated quests', () => {
         expect([...memberIdsOf(fallback)]).toEqual(['c02']);
     });
 
-    it('composes legend quests only as packs of two to four hero band enemies (D-07, D-09)', () => {
-        const hero = RANK_XP_BANDS.hero;
-        const legend = RANK_XP_BANDS.legend;
-        const compositions = [
-            compose(TitleType.legend, catalog, new SequenceChance([0.0])),
-            ...seededCompositions(TitleType.legend, catalog),
-        ];
+    it('never composes a legend quest (D-02)', () => {
+        const ranks = new Set<string>();
 
-        for (const composition of compositions) {
-            expect(composition).not.toBeNull();
-            const pack = composition as Composition;
-            expect(pack.type).toBe(QuestType.enemy);
-            expect(pack.rank).toBe(TitleType.legend);
-            expect(pack.seats).toBe(1);
-            expect(unitsOf(pack)).toBeGreaterThanOrEqual(2);
-            expect(unitsOf(pack)).toBeLessThanOrEqual(4);
-            expect(xpOf(pack)).toBeGreaterThanOrEqual(legend.min);
-            expect(xpOf(pack)).toBeLessThanOrEqual(legend.max);
-            for (const entry of pack.enemies) {
-                expect(entry.enemy.xp).toBeGreaterThanOrEqual(hero.min);
-                expect(entry.enemy.xp).toBeLessThanOrEqual(hero.max);
+        for (const rank of GENERATED_RANKS) {
+            for (const composition of seededCompositions(rank, catalog)) {
+                if (composition === null) continue;
+                ranks.add(composition.rank);
+                expect(composition.rank).toBe(rank);
+                expect(composition.rank).not.toBe(TitleType.legend);
             }
         }
+
+        expect([...ranks].sort()).toEqual(
+            ['adventurer', 'hero', 'mage', 'paladin', 'rookie'].sort(),
+        );
     });
 
     it('draws a boss one time in ten for adventurer to hero with seats from the formula (D-05, D-06)', () => {
@@ -274,10 +263,13 @@ describe('composition of generated quests', () => {
 
     it('returns null when the pool cannot serve the rank at all (D-08)', () => {
         const desertHero = enemy('d01', 'Sciamano', 600, ['desert']);
-        const pool = [bandito, goblin, capoGoblin, orsogufo, desertHero];
 
         expect(
-            compose(TitleType.legend, pool, new SequenceChance([0.0])),
+            compose(
+                TitleType.hero,
+                [bandito, desertHero],
+                new SequenceChance([0.0]),
+            ),
         ).toBeNull();
         expect(compose(TitleType.hero, [], new SequenceChance())).toBeNull();
     });

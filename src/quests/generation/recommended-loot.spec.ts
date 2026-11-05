@@ -104,7 +104,6 @@ describe('recommendedLootOf', () => {
             paladin: RarityType.rare,
             mage: RarityType.ultrarare,
             hero: RarityType.legendary,
-            legend: RarityType.legendary,
         });
         const catalog = [
             gear('w-rare', RarityType.rare, [{ type: 'blunt', power: 30 }]),

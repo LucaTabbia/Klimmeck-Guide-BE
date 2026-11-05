@@ -259,23 +259,28 @@ describe('QuestGenerator (replSet)', () => {
         expect(first.requirements.minTitle).toBe(TitleType.adventurer);
     });
 
-    it('rotates every rank, legend included, on an empty world (D-15)', async () => {
+    it('rotates the five ranks and never generates a legend quest (D-02)', async () => {
         await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
 
         await expect(generatorWith({ target: 12 }).generate()).resolves.toBe(
             12,
         );
         const created = await generatedQuests();
+        const perRank = countBy(
+            created,
+            (quest) => quest.requirements.minTitle,
+        );
+        expect(Object.keys(perRank).sort()).toEqual(
+            ['adventurer', 'hero', 'mage', 'paladin', 'rookie'].sort(),
+        );
+        for (const count of Object.values(perRank)) {
+            expect(count).toBeGreaterThanOrEqual(2);
+        }
         expect(
-            countBy(created, (quest) => quest.requirements.minTitle),
-        ).toEqual({
-            rookie: 2,
-            adventurer: 2,
-            paladin: 2,
-            mage: 2,
-            hero: 2,
-            legend: 2,
-        });
+            created.filter(
+                (quest) => quest.requirements.minTitle === TitleType.legend,
+            ),
+        ).toEqual([]);
         for (const quest of created) {
             expect(quest.requirements.requiredAdventurers).toEqual([
                 {

@@ -82,10 +82,6 @@ describe('prizesOf', () => {
         const bossHero = draw(QuestType.boss, TitleType.hero);
         expect(bossHero.prizeCoins).toEqual(fromCopper(15000));
         expect(bossHero.xpPrize).toBe(3000);
-
-        const enemyLegend = draw(QuestType.enemy, TitleType.legend);
-        expect(enemyLegend.prizeCoins).toEqual(fromCopper(3750));
-        expect(enemyLegend.xpPrize).toBe(1000);
     });
 
     it('draws the boss loot pool of a hero quest (D-20)', () => {
@@ -126,21 +122,8 @@ describe('prizesOf', () => {
         });
     });
 
-    it('draws the hero boss pool for legend enemy quests (D-20)', () => {
-        const { randomLoot } = draw(QuestType.enemy, TitleType.legend);
-        const ids = randomLoot.map((entry) => entry.item);
-
-        expect(countByRarity(ids)).toEqual({
-            legendary: 1,
-            ultrarare: 2,
-            rare: 4,
-        });
-        expect(new Set(ids).size).toBe(7);
-        expect(randomLoot.every((entry) => entry.quantity === 1)).toBe(true);
-    });
-
     it('never puts a legendary item below hero (D-20)', () => {
-        const allowed = ['boss/hero', 'enemy/legend'];
+        const allowed = ['boss/hero'];
         for (const type of [QuestType.enemy, QuestType.boss] as const) {
             for (const rank of GENERATED_RANKS) {
                 const hasLegendary = LOOT_POOLS[type][rank].some(

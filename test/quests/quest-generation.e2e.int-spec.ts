@@ -28,7 +28,6 @@ import {
     generatedPerCityOf,
     GenerationModels,
     GenerationWorld,
-    HERO_BAND_ENEMY_XPS,
     persistGenerationWorld,
     QUIET_GENERATION_OVERRIDES,
 } from './generation-world';
@@ -249,43 +248,23 @@ describe('quest generation end to end (replSet)', () => {
         );
     });
 
-    it('brings the legend rank into the rotation (D-07)', async () => {
-        const world = await persistGenerationWorld(models, {
-            cities: 4,
-            poisPerCity: 3,
-        });
-        const heroIds = (
-            await models.enemies
-                .find({
-                    _id: { $in: world.enemyIds },
-                    xp: { $in: [...HERO_BAND_ENEMY_XPS] },
-                })
-                .lean<{ _id: Types.ObjectId }[]>()
-        ).map((enemy) => enemy._id.toHexString());
+    it('never generates a legend quest, the hero rank serves the legends (D-02)', async () => {
+        await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
         config.target = 12;
 
         await expect(generate()).resolves.toBe(12);
 
-        const legends = (await generatedQuests()).filter(
-            (quest) => quest.requirements.minTitle === TitleType.legend,
-        );
-        expect(legends.length).toBeGreaterThan(0);
-        for (const quest of legends) {
-            expect(quest.requirements.requiredAdventurers).toEqual([
-                { title: TitleType.legend, count: 1 },
-            ]);
-            const units = quest.infos.enemies.reduce(
-                (sum, entry) => sum + entry.quantity,
-                0,
-            );
-            expect(units).toBeGreaterThanOrEqual(2);
-            expect(units).toBeLessThanOrEqual(4);
-            expect(
-                quest.infos.enemies.filter(
-                    (entry) => !heroIds.includes(entry.enemy.toHexString()),
-                ),
-            ).toEqual([]);
-        }
+        const created = await generatedQuests();
+        expect(
+            created.filter(
+                (quest) => quest.requirements.minTitle === TitleType.legend,
+            ),
+        ).toEqual([]);
+        expect(
+            created.filter(
+                (quest) => quest.requirements.minTitle === TitleType.hero,
+            ).length,
+        ).toBeGreaterThan(0);
     });
 
     it('creates nothing on a second run once the world is full (D-16)', async () => {
