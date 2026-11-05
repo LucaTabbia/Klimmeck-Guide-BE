@@ -20,6 +20,7 @@ const enemy = (
     relatedLore: [],
     baseWeaknesses,
     energyWeaknesses,
+    animal: false,
 });
 
 interface Hit {

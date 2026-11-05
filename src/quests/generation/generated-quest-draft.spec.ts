@@ -36,6 +36,7 @@ function candidate(name: string, relatedLore: string[] = []): EnemyCandidate {
         relatedLore,
         baseWeaknesses: [],
         energyWeaknesses: [],
+        animal: false,
     };
 }
 

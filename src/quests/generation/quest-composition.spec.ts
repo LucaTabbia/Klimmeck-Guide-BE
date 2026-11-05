@@ -30,6 +30,7 @@ const enemy = (
     relatedLore: [],
     baseWeaknesses: [],
     energyWeaknesses: [],
+    animal: false,
 });
 
 const bandito = enemy('a01', 'Bandito', 4);
@@ -361,5 +362,32 @@ describe('composition of generated quests', () => {
         for (const id of ['z01', 'z02', 'z03']) {
             expect(members.has(id)).toBe(false);
         }
+    });
+
+    it('never composes an animal in a single, a pack or a boss (D-01)', () => {
+        const aboleth = enemy('a11', 'Aboleth', 831);
+        const ordinary = [...catalog, aboleth];
+        const twins = ordinary.map(
+            (original, index): EnemyCandidate => ({
+                ...original,
+                id: `b${String(index + 1).padStart(2, '0')}`,
+                name: `Animale ${original.name}`,
+                relatedLore: ['bestiario'],
+                animal: true,
+            }),
+        );
+        const animalIds = new Set(twins.map((twin) => twin.id));
+        const members = new Set<string>();
+
+        for (const rank of GENERATED_RANKS) {
+            for (const id of memberIdsOf(
+                seededCompositions(rank, [...ordinary, ...twins]),
+            )) {
+                members.add(id);
+            }
+        }
+
+        expect(members.size).toBeGreaterThan(0);
+        expect([...members].filter((id) => animalIds.has(id))).toEqual([]);
     });
 });
