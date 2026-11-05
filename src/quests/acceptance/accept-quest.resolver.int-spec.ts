@@ -1,4 +1,5 @@
 import { getQueueToken } from '@nestjs/bull';
+import { Logger } from '@nestjs/common';
 import { Types, type Model } from 'mongoose';
 import { AdminAuditLog } from 'src/authz/audit/admin-audit-log.model';
 import {
@@ -7,6 +8,7 @@ import {
 } from 'src/models/character/character.model';
 import { City, CityDocument } from 'src/models/city.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { LootItem } from 'src/models/loot-item.model';
 import {
     PendingQuest,
     PendingQuestDocument,
@@ -19,10 +21,17 @@ import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
 import { QuestsModule } from 'src/quests/quests.module';
+import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
+import {
+    foodNeededFor,
+    hpLostFor,
+    uncoveredKmOf,
+} from 'src/travel/food/travel-food';
 import { TRAVEL_QUEUE } from 'src/travel/travel-job';
+import { BASE_SPEED, durationMsOf } from 'src/travel/travel-timing';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import {
     graphqlWsUrl,
@@ -43,6 +52,11 @@ import {
     persistQuest,
 } from '../../../test/fixtures';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
+import {
+    foodStack,
+    HARDY_LIFE_POINTS,
+    persistFood,
+} from '../../../test/travel/travel-food.fixture';
 import { persistTravelWorld } from '../../../test/travel/travel-world';
 
 const ACCEPT =
@@ -51,6 +65,8 @@ const LANES_SUBSCRIPTION =
     'subscription OnLanes($id: String!) { characterUpdated(id: $id) { id quests { pendingQuest { id } activeStoryQuest { id startDate waitingTime pointsSpent quest { id } } } } }';
 const TRAVEL_SUBSCRIPTION =
     'subscription OnTravel($id: String!) { characterUpdated(id: $id) { id status { location { id } activeTravel { road { coordinates distance } startTime endTime duration to } } quests { pendingQuest { id startDate waitingTime } } } }';
+const QUEST_TRAVEL_PREVIEW_QUERY =
+    'query QuestTravel($request: AcceptQuestRequest!) { questTravelPreview(request: $request) { distance duration hpLost arrivesAlive food { quantity item { id name } } } }';
 const QUESTS_QUERY =
     'query { quests { id registeredAdventurers { character title } requirements { requiredAdventurers { title count } } } }';
 const MISSING_QUEST_ID = '64b0000000000000000000ff';
@@ -68,6 +84,19 @@ interface WireBody {
     data?: {
         acceptQuest?: { response: string; successful: boolean } | null;
     } | null;
+    errors?: WireError[];
+}
+
+interface WireQuestTravelPreview {
+    distance: number;
+    duration: number;
+    hpLost: number;
+    arrivesAlive: boolean;
+    food: { quantity: number; item: { id: string; name: string } }[];
+}
+
+interface QuestTravelPreviewBody {
+    data?: { questTravelPreview: WireQuestTravelPreview | null } | null;
     errors?: WireError[];
 }
 
@@ -243,6 +272,8 @@ describe('acceptQuest (wire)', () => {
             completedQuests?: Types.ObjectId[];
             activeTravel?: Record<string, unknown>;
             awaitingAid?: Record<string, unknown>;
+            lifePoints?: number;
+            ownedItems?: unknown[];
         } = {},
     ): Promise<TestPlayer> {
         const base = buildCharacter();
@@ -257,10 +288,18 @@ describe('acceptQuest (wire)', () => {
                     title: options.title ?? 'rookie',
                     activeTravel: options.activeTravel ?? null,
                     awaitingAid: options.awaitingAid ?? null,
+                    currentLifePoints:
+                        options.lifePoints ?? base.status.currentLifePoints,
+                    maxLifePoints:
+                        options.lifePoints ?? base.status.maxLifePoints,
                 },
                 quests: {
                     completedQuests: options.completedQuests ?? [],
                     pendingQuest: null,
+                },
+                assets: {
+                    ...base.assets,
+                    ownedItems: options.ownedItems ?? base.assets.ownedItems,
                 },
             },
         });
@@ -348,7 +387,11 @@ describe('acceptQuest (wire)', () => {
         return user?.twitchPoints as number;
     }
 
-    function expectRejected(body: WireBody, code: string, message: string) {
+    function expectRejected(
+        body: { data?: unknown; errors?: WireError[] },
+        code: string,
+        message: string,
+    ) {
         expect(body.data ?? null).toBeNull();
         expect(body.errors?.[0]?.extensions).toEqual({ code });
         expect(body.errors?.[0]?.message).toBe(message);
@@ -904,5 +947,288 @@ describe('acceptQuest (wire)', () => {
             _id: raw?.quests.pendingQuest,
         });
         expect(pending?.startDate).toBeNull();
+    });
+    describe('questTravelPreview (wire)', () => {
+        async function previewQuestTravel(
+            request: AcceptRequest,
+            bearer?: string,
+        ): Promise<QuestTravelPreviewBody> {
+            const response = await graphqlRequest(
+                harness.app,
+                QUEST_TRAVEL_PREVIEW_QUERY,
+                { request },
+                bearer,
+            );
+            return response.body as QuestTravelPreviewBody;
+        }
+
+        async function questAt(
+            type: string,
+            markerLocation: Types.ObjectId,
+        ): Promise<string> {
+            const base = buildQuest();
+            const quest = await persistQuest(quests, {
+                infos: { ...base.infos, type, markerLocation },
+                requirements: base.requirements,
+            });
+            return String(quest._id);
+        }
+
+        function travelWorld() {
+            return persistTravelWorld(
+                harness.connection,
+                harness.app.get(RoadsService),
+            );
+        }
+
+        function previewOf(
+            body: QuestTravelPreviewBody,
+        ): WireQuestTravelPreview | null | undefined {
+            expect(body.errors).toBeUndefined();
+            return body.data?.questTravelPreview;
+        }
+
+        it('previews the automatic travel of a standard quest with its food (D-08, D-09)', async () => {
+            const travel = await travelWorld();
+            const food20 = await persistFood(
+                harness.connection.model(LootItem.name),
+                20,
+            );
+            const alice = await playerWith('provisioned', {
+                location: travel.markerA,
+                lifePoints: HARDY_LIFE_POINTS,
+                ownedItems: [foodStack(food20, 2)],
+            });
+            const questId = await questAt('hunt', travel.questPoi);
+            const characterBefore = await rawCharacter(alice);
+            const questBefore = await quests.collection.findOne({
+                _id: new Types.ObjectId(questId),
+            });
+
+            const wire = previewOf(
+                await previewQuestTravel(
+                    { id: characterIdOf(alice), questId },
+                    alice.bearer,
+                ),
+            ) as WireQuestTravelPreview;
+
+            const route = harness.app
+                .get(RoadsService)
+                .routeBetween([0, 0], [0.1, 0]) as RoadRoute;
+            const needed = foodNeededFor(wire.duration);
+            expect(wire.duration).toBe(
+                durationMsOf(route.baseHours, BASE_SPEED),
+            );
+            expect(wire.distance).toBe(route.distanceKm);
+            expect(needed).toBeGreaterThan(0);
+            expect(needed).toBeLessThanOrEqual(20);
+            expect(wire.food).toEqual([
+                {
+                    quantity: 1,
+                    item: { id: String(food20._id), name: 'Cibo 20' },
+                },
+            ]);
+            expect(wire.hpLost).toBe(
+                hpLostFor(uncoveredKmOf(needed, 20, wire.distance)),
+            );
+            expect(wire.arrivesAlive).toBe(true);
+            expect(await rawCharacter(alice)).toEqual(characterBefore);
+            expect(
+                await quests.collection.findOne({
+                    _id: new Types.ObjectId(questId),
+                }),
+            ).toEqual(questBefore);
+            expect(await pendingQuests.countDocuments()).toBe(0);
+            expect(await pointsOf(alice)).toBe(RICH_BALANCE);
+            expect(queue.added).toEqual([]);
+        });
+
+        it('previews a starving quest travel with arrivesAlive false and no error (D-09)', async () => {
+            const travel = await travelWorld();
+            const bob = await playerWith('starving', {
+                location: travel.markerA,
+                lifePoints: 1,
+            });
+            const questId = await questAt('hunt', travel.questPoi);
+
+            const wire = previewOf(
+                await previewQuestTravel(
+                    { id: characterIdOf(bob), questId },
+                    bob.bearer,
+                ),
+            ) as WireQuestTravelPreview;
+
+            expect(wire.food).toEqual([]);
+            expect(wire.hpLost).toBeGreaterThan(0);
+            expect(wire.hpLost).toBe(
+                hpLostFor(
+                    uncoveredKmOf(
+                        foodNeededFor(wire.duration),
+                        0,
+                        wire.distance,
+                    ),
+                ),
+            );
+            expect(wire.arrivesAlive).toBe(false);
+        });
+
+        it('answers null when the marker is the position of the character (D-08)', async () => {
+            const travel = await travelWorld();
+            const alice = await playerWith('arrived', {
+                location: travel.questPoi,
+            });
+            const questId = await questAt('hunt', travel.questPoi);
+
+            const body = await previewQuestTravel(
+                { id: characterIdOf(alice), questId },
+                alice.bearer,
+            );
+
+            expect(previewOf(body)).toBeNull();
+        });
+
+        it('answers null for an instant jump without warning (D-08)', async () => {
+            const warn = jest.spyOn(Logger.prototype, 'warn');
+            try {
+                const alice = await playerWith('jumper');
+                const questId = await questOf('hunt');
+
+                const body = await previewQuestTravel(
+                    { id: characterIdOf(alice), questId },
+                    alice.bearer,
+                );
+
+                expect(previewOf(body)).toBeNull();
+                const jumpWarnings = () =>
+                    warn.mock.calls.filter(([message]) =>
+                        String(message).includes('salto istantaneo'),
+                    );
+                expect(jumpWarnings()).toEqual([]);
+                // controllo positivo: la spia vede il WARN del salto dell'accettazione
+                const accepted = await accept(
+                    { id: characterIdOf(alice), questId },
+                    alice.bearer,
+                );
+                expect(accepted.errors).toBeUndefined();
+                expect(jumpWarnings()).toHaveLength(1);
+            } finally {
+                warn.mockRestore();
+            }
+        });
+
+        it('answers null for story and world mission quests (D-08)', async () => {
+            const alice = await playerWith('lanes');
+            const storyId = await storyOf();
+            const worldMissionId = await questOf('worldMission', {
+                requiredPoints: 3000,
+            });
+
+            const story = await previewQuestTravel(
+                { id: characterIdOf(alice), questId: storyId },
+                alice.bearer,
+            );
+            const worldMission = await previewQuestTravel(
+                { id: characterIdOf(alice), questId: worldMissionId },
+                alice.bearer,
+            );
+
+            expect(previewOf(story)).toBeNull();
+            expect(previewOf(worldMission)).toBeNull();
+        });
+
+        it('rejects a quest of another city with QUEST_NOT_IN_CITY (D-08)', async () => {
+            const alice = await playerWith('elsewhere', {
+                location: await otherCityMarker(),
+            });
+            const questId = await questOf('hunt');
+
+            const body = await previewQuestTravel(
+                { id: characterIdOf(alice), questId },
+                alice.bearer,
+            );
+
+            expectRejected(
+                body,
+                'QUEST_NOT_IN_CITY',
+                'Devi trovarti nella città della missione',
+            );
+        });
+
+        it('answers NOT_FOUND for a missing quest (D-08)', async () => {
+            const alice = await playerWith('missing');
+
+            const body = await previewQuestTravel(
+                { id: characterIdOf(alice), questId: MISSING_QUEST_ID },
+                alice.bearer,
+            );
+
+            expectRejected(body, 'NOT_FOUND', 'Missione non trovata');
+        });
+
+        it('inherits QUEST_NOT_ACCEPTABLE for a marker without a point of interest (D-08)', async () => {
+            const ghost = new Types.ObjectId();
+            await cities.updateOne(
+                { markerLocation: world.cityMarker },
+                { $push: { pointsOfInterest: ghost } },
+            );
+            const alice = await playerWith('ghost');
+            const questId = await questAt('hunt', ghost);
+
+            const body = await previewQuestTravel(
+                { id: characterIdOf(alice), questId },
+                alice.bearer,
+            );
+
+            expectRejected(
+                body,
+                'QUEST_NOT_ACCEPTABLE',
+                'Missione non disponibile',
+            );
+        });
+
+        it('forbids the innkeeper and another adventurer on a foreign character (D-08)', async () => {
+            const alice = await playerWith('alice');
+            const oste = await playerWith('oste', {
+                role: RoleType.innkeeper,
+            });
+            const bob = await playerWith('bob');
+            const request = {
+                id: characterIdOf(alice),
+                questId: await questOf('hunt'),
+            };
+
+            expectRejected(
+                await previewQuestTravel(request, oste.bearer),
+                'FORBIDDEN',
+                FORBIDDEN_MESSAGE,
+            );
+            expectRejected(
+                await previewQuestTravel(request, bob.bearer),
+                'FORBIDDEN',
+                FORBIDDEN_MESSAGE,
+            );
+        });
+
+        it('answers BAD_USER_INPUT for malformed ids (D-08)', async () => {
+            const alice = await playerWith('malformed');
+            const questId = await questOf('hunt');
+
+            expectRejected(
+                await previewQuestTravel(
+                    { id: MALFORMED_ID, questId },
+                    alice.bearer,
+                ),
+                'BAD_USER_INPUT',
+                'Input non valido: id',
+            );
+            expectRejected(
+                await previewQuestTravel(
+                    { id: characterIdOf(alice), questId: MALFORMED_ID },
+                    alice.bearer,
+                ),
+                'BAD_USER_INPUT',
+                'Input non valido: questId',
+            );
+        });
     });
 });
