@@ -17,6 +17,7 @@ import {
 } from 'src/models/quest-result/quest-result.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { QuestGenerationTriggerModule } from 'src/quests/generation/quest-generation-trigger.module';
+import { DungeonStagesMigrator } from './dungeon-stages.migrator';
 import { GeneratedQuestsResetMigrator } from './generated-quests-reset.migrator';
 import { HuntPreyMigrator } from './hunt-prey.migrator';
 import { QuestEnemiesMigrator } from './quest-enemies.migrator';
@@ -40,6 +41,7 @@ import { QuestMaintenanceBoot } from './quest-maintenance.boot';
         QuestEnemiesMigrator,
         GeneratedQuestsResetMigrator,
         HuntPreyMigrator,
+        DungeonStagesMigrator,
         QuestMaintenanceBoot,
     ],
 })

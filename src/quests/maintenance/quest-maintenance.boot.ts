@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { describeError } from 'src/mongo/mongo-errors';
 import { QuestGenerationTrigger } from 'src/quests/generation/quest-generation-trigger';
+import { DungeonStagesMigrator } from './dungeon-stages.migrator';
 import { GeneratedQuestsResetMigrator } from './generated-quests-reset.migrator';
 import { HuntPreyMigrator } from './hunt-prey.migrator';
 import { QuestEnemiesMigrator } from './quest-enemies.migrator';
@@ -14,6 +15,7 @@ export class QuestMaintenanceBoot implements OnApplicationBootstrap {
         private readonly enemies: QuestEnemiesMigrator,
         private readonly reset: GeneratedQuestsResetMigrator,
         private readonly hunts: HuntPreyMigrator,
+        private readonly dungeons: DungeonStagesMigrator,
         private readonly trigger: QuestGenerationTrigger,
     ) {}
 
@@ -27,7 +29,10 @@ export class QuestMaintenanceBoot implements OnApplicationBootstrap {
         await this.step('prede delle hunt (una tantum)', () =>
             this.hunts.migrate(),
         );
-        // a dati pronti: generate azzerate e hunt coerenti prima della corsa (13.1 D-06)
+        await this.step('tappe delle dungeon (una tantum)', () =>
+            this.dungeons.migrate(),
+        );
+        // a dati pronti: generate azzerate, hunt e dungeon coerenti prima della corsa (13.1 D-06, D-07)
         await this.step('richiesta di corsa al generatore', () => {
             this.trigger.request();
             return Promise.resolve();
