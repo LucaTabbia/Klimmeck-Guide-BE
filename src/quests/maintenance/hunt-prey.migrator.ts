@@ -136,11 +136,15 @@ export class HuntPreyMigrator {
             return 'inLane';
         }
         const poi = markerOf(hunt)?.toHexString() ?? '';
-        const city = world.poiCities.get(poi);
         const pool = huntPreyPoolOf(
             world.enemies,
             world.poiTypes.get(poi) ?? [],
         );
+        const prey = validQuestEnemiesOf(hunt.infos)[0]?.enemy.toHexString();
+        if (isCoherentHunt(prey ?? null, pool, hunt.requirements?.minTitle))
+            return 'coherent';
+        // la città serve solo a riscrivere titolo e voce
+        const city = world.poiCities.get(poi);
         const rewrite = city
             ? huntRewriteOf({
                   pool,
@@ -152,9 +156,6 @@ export class HuntPreyMigrator {
             this.logger.warn(`Hunt ${id} senza prede in zona: lasciata`);
             return 'withoutPrey';
         }
-        const prey = validQuestEnemiesOf(hunt.infos)[0]?.enemy.toHexString();
-        if (isCoherentHunt(prey ?? null, pool, hunt.requirements?.minTitle))
-            return 'coherent';
         const update = await this.questModel
             .updateOne(
                 { _id: hunt._id, ...OPEN_HUNT },
