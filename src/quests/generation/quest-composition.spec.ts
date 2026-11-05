@@ -98,7 +98,7 @@ describe('composition of generated quests', () => {
         const composition = compose(
             TitleType.paladin,
             catalog,
-            new SequenceChance([0.5, 0, 0.2, 0.0]),
+            new SequenceChance([0.5, 0.2, 0.0]),
         );
 
         expect(composition).toEqual({
@@ -114,7 +114,7 @@ describe('composition of generated quests', () => {
         const composition = compose(
             TitleType.paladin,
             [capoGoblin, goblin],
-            new SequenceChance([0.5, 0, 0.6]),
+            new SequenceChance([0.5, 0.6]),
         );
 
         expect(composition).not.toBeNull();
@@ -132,15 +132,15 @@ describe('composition of generated quests', () => {
         }
     });
 
-    it('stays within the seat budget of every rank (D-03)', () => {
+    it('stays within the one-seat budget of every rank (D-03, D-09)', () => {
         let enemies = 0;
 
         for (const rank of GENERATED_RANKS) {
             for (const composition of seededCompositions(rank, catalog)) {
                 if (composition?.type !== QuestType.enemy) continue;
                 enemies += 1;
-                const budget = budgetOf(rank, composition.seats);
-                expect([1, 2]).toContain(composition.seats);
+                const budget = budgetOf(rank, 1);
+                expect(composition.seats).toBe(1);
                 expect(xpOf(composition)).toBeGreaterThanOrEqual(budget.min);
                 expect(xpOf(composition)).toBeLessThanOrEqual(budget.max);
                 expect(unitsOf(composition)).toBeLessThanOrEqual(
@@ -194,17 +194,25 @@ describe('composition of generated quests', () => {
         ).toBe(true);
     });
 
-    it('composes two seats in about one enemy quest in three (D-03)', () => {
-        const enemies = seededCompositions(TitleType.mage, catalog).filter(
-            (composition) => composition?.type === QuestType.enemy,
-        ) as Composition[];
-        const twoSeats = enemies.filter(
-            (composition) => composition.seats === 2,
-        );
-        const share = twoSeats.length / enemies.length;
+    it('never composes more than one seat for an enemy quest (D-09)', () => {
+        const seats: string[] = [];
+        let enemies = 0;
 
-        expect(share).toBeGreaterThanOrEqual(0.2);
-        expect(share).toBeLessThanOrEqual(0.5);
+        for (const rank of GENERATED_RANKS) {
+            const budget = budgetOf(rank, 1);
+            for (const composition of seededCompositions(rank, catalog)) {
+                if (composition?.type !== QuestType.enemy) continue;
+                enemies += 1;
+                if (composition.seats !== 1) {
+                    seats.push(`${rank}/${composition.seats}`);
+                }
+                expect(xpOf(composition)).toBeGreaterThanOrEqual(budget.min);
+                expect(xpOf(composition)).toBeLessThanOrEqual(budget.max);
+            }
+        }
+
+        expect(enemies).toBeGreaterThan(0);
+        expect(seats).toEqual([]);
     });
 
     it('draws a boss only above the band with the clamped seats (D-03)', () => {
@@ -228,7 +236,7 @@ describe('composition of generated quests', () => {
         const composition = compose(
             TitleType.paladin,
             [troll, orsogufo],
-            new SequenceChance([0.5, 0, 0.6]),
+            new SequenceChance([0.5, 0.6]),
         );
 
         expect(composition).toEqual({
@@ -239,29 +247,14 @@ describe('composition of generated quests', () => {
         });
     });
 
-    it('falls back to one seat before changing rank when two seats cannot be composed (D-03)', () => {
-        const composition = compose(
-            TitleType.hero,
-            [orsogufo],
-            new SequenceChance([0.5, 0.9]),
-        );
-
-        expect(composition).toEqual({
-            type: QuestType.enemy,
-            rank: TitleType.hero,
-            enemies: [{ enemy: orsogufo, quantity: 6 }],
-            seats: 1,
-        });
-    });
-
-    it('composes one seat from the zone before two seats from the all fallback (D-03, D-08)', () => {
+    it('composes from the zone before the all fallback with one seat (D-08, D-09)', () => {
         const wanderer = enemy('f01', 'Errante', 700, ['all']);
 
         expect(
             compose(
                 TitleType.hero,
                 [orsogufo, wanderer],
-                new SequenceChance([0.5, 0.9]),
+                new SequenceChance([0.5, 0.0]),
             ),
         ).toEqual({
             type: QuestType.enemy,
@@ -334,7 +327,7 @@ describe('composition of generated quests', () => {
             seats: 5,
         });
         expect(
-            compose(TitleType.adventurer, pool, new SequenceChance([0.1, 0]))
+            compose(TitleType.adventurer, pool, new SequenceChance([0.1]))
                 ?.type,
         ).toBe(QuestType.enemy);
     });
@@ -354,7 +347,7 @@ describe('composition of generated quests', () => {
         const composition = compose(
             TitleType.adventurer,
             [bandito, goblin, picchiatore],
-            new SequenceChance([0.0, 0]),
+            new SequenceChance([0.0]),
         );
 
         expect(composition?.type).toBe(QuestType.enemy);
