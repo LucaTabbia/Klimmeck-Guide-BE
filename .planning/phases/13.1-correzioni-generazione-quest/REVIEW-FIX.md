@@ -123,6 +123,19 @@ Decisione dell'utente dopo la review (verbatim in `13.1-CONTEXT.md` D-09): *«So
 
 **Runbook del primo boot reale:** nessuna riga di log cambia (formato e testo del generatore e dei tre one-off invariati); cambiano solo i valori: tutte le generate `enemy` ricreate dal reset hanno un posto, i boss restano a 2–6 posti. Nessun cambio SDL né contratto FE (la Phase 13 scriveva già `count: 1` sulle `enemy`).
 
+## Rimozione dei one-off dopo il boot
+
+Dopo il primo boot reale del 2026-11-05 (esito in `../13-generazione-quest/BACKEND-NOTES.md` §11 (f)), i tre migratori una tantum della 13.1 sono usciti dal repo (Phase 12 D-25), in TDD come `f5d8134` della Phase 13:
+
+- RED `3bdf65a` `test(migrations): expect only the permanent enemies step at boot` (spec ridotta ai due casi `(D-28)` con il costruttore a un argomento: 2/2 rossi in jest per i quattro log `TypeError` dei passi una tantum, tsc TS2554 «Expected 5 arguments, but got 1»);
+- GREEN `64ef914` `refactor(migrations): drop the 13.1 one-off migrators after their run`.
+
+**File tolti:** `generated-quests-reset.migrator.ts` + int-spec, `hunt-prey.ts` + spec, `hunt-prey.migrator.ts` + int-spec, `dungeon-stages.ts` + spec, `dungeon-stages.migrator.ts` + int-spec (10 file in `src/quests/maintenance/`, −2562 righe).
+
+**Codice:** `QuestMaintenanceBoot` torna al solo passo `migrazione dei nemici delle missioni` (costruttore a un parametro, via i passi 2–5 e la richiesta al generatore: la corsa al boot la chiede `QuestGenerationSweeper`); `QuestMaintenanceModule` senza i provider `GeneratedQuestsResetMigrator`, `HuntPreyMigrator`, `DungeonStagesMigrator`, senza l'import di `QuestGenerationTriggerModule` e senza le voci `Enemy`, `Lore`, `PointOfInterest`, `City`, `PendingQuest`, `EquipmentItem`, `LootItem` del `forFeature` (restano `Quest` e `QuestResult`); `prize-catalog.ts` e `lean-values.ts` intatti (usati dal generatore e dal combattimento). Le voci `EquipmentItem` e `LootItem` del `forFeature` aggiunte per B-IN-01 sono uscite con `HuntPreyMigrator`, come annotato sopra.
+
+**Gate:** `npx tsc --noEmit -p tsconfig.json` 0; `npx jest src/quests/maintenance --selectProjects unit` 1 suite / 2 test; `npx jest src/quests/maintenance test/app.int-spec.ts --selectProjects integration --runInBand` 2 suite / 78 test; prettier ed eslint puliti sui tre file toccati; `git diff --exit-code src/schema.gql` 0 e `git diff origin/develop -- src/schema.gql` vuoto; grep di `GeneratedQuestsResetMigrator|HuntPreyMigrator|DungeonStagesMigrator|hunt-prey|dungeon-stages|generated-quests-reset` in `src` e `test`: 0 file; trailer vietati 0; `pgrep -fl jest` vuoto; processo BE pid 47591 (build con i one-off) vivo e non toccato, nessuna build. Nessun modulo di `src` o `test` importa più i one-off.
+
 ---
 
 _Fixed: 2026-11-05_
