@@ -56,17 +56,24 @@ export class GeneratedQuestsResetMigrator {
                 _id: { $nin: protectedForms },
             })
             .exec();
-        const kept = await this.questModel
-            .countDocuments(OPEN_GENERATED)
-            .exec();
+        const keptIds = await this.keptIds();
         this.logger.log(
-            `Generate: ${deletedCount} cancellate, ${kept} lasciate`,
+            `Generate: ${deletedCount} cancellate, ${keptIds.length} lasciate`,
         );
-        if (protectedIds.length > 0)
-            this.logger.debug(
-                `Generate protette: ${protectedIds.map((id) => id.toHexString()).join(', ')}`,
-            );
-        return { deleted: deletedCount, kept };
+        if (keptIds.length > 0)
+            this.logger.debug(`Generate protette: ${keptIds.join(', ')}`);
+        return { deleted: deletedCount, kept: keptIds.length };
+    }
+
+    // le generate aperte rimaste dopo il reset sono esattamente quelle protette
+    private async keptIds(): Promise<string[]> {
+        const kept = await this.questModel
+            .find(OPEN_GENERATED)
+            .select('_id')
+            .sort({ _id: 1 })
+            .lean<{ _id: Types.ObjectId }[]>()
+            .exec();
+        return kept.map((quest) => quest._id.toHexString());
     }
 
     // registrate o referenziate da una pendingquests, anche con l'id salvato come stringa
