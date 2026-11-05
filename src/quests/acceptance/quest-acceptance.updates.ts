@@ -49,6 +49,7 @@ export function laneClaimFilter(
     snapshot: LaneClaimSnapshot,
     questId: Types.ObjectId,
     repeatable: boolean,
+    guards: Record<string, unknown> = {},
 ): Record<string, unknown> {
     return {
         ...activeCharacterById(characterId),
@@ -62,6 +63,7 @@ export function laneClaimFilter(
         ...(repeatable
             ? {}
             : { 'quests.completedQuests': { $nin: idForms(questId) } }),
+        ...guards,
     };
 }
 
@@ -70,10 +72,12 @@ export type LaneMovement =
     | { kind: 'travel'; travel: ActiveTravelDraft }
     | { kind: 'jump'; marker: Types.ObjectId };
 
+// cibo e HP del viaggio automatico nello stesso claim (Phase 14 D-12); salto e nessun movimento non costano
 export function laneClaimUpdate(
     lane: QuestLane,
     pendingQuestId: Types.ObjectId,
     movement: LaneMovement | null = null,
+    cost: Record<string, unknown> = {},
 ) {
     return {
         $set: {
@@ -84,6 +88,7 @@ export function laneClaimUpdate(
             ...(movement?.kind === 'jump'
                 ? { 'status.location': movement.marker }
                 : {}),
+            ...cost,
         },
     };
 }

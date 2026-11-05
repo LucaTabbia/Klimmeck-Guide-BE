@@ -36,9 +36,11 @@ export interface CompletedSnapshot {
 }
 
 // il filtro è la regola (Phase 4, D-21): due avvii concorrenti ⇒ uno solo trova activeTravel null
+// il cibo e gli HP della partenza (Phase 14 D-12) arrivano come guardie extra: rete di sicurezza della transazione
 export function startTravelFilter(
     characterId: Types.ObjectId,
     location: Types.ObjectId,
+    guards: Record<string, unknown> = {},
 ): Record<string, unknown> {
     return {
         ...activeCharacterById(characterId),
@@ -46,11 +48,15 @@ export function startTravelFilter(
         'status.activeTravel': null,
         ...STANDARD_LANE_FREE,
         'status.location': { $in: idForms(location) },
+        ...guards,
     };
 }
 
-export function startTravelUpdate(travel: ActiveTravelDraft) {
-    return { $set: { 'status.activeTravel': travel } };
+export function startTravelUpdate(
+    travel: ActiveTravelDraft,
+    cost: Record<string, unknown> = {},
+) {
+    return { $set: { 'status.activeTravel': travel, ...cost } };
 }
 
 // rilettura solo per scegliere il codice: una posizione cambiata senza viaggio né quest è un movimento concorrente
