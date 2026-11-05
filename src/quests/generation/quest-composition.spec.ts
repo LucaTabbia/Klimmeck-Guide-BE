@@ -239,6 +239,21 @@ describe('composition of generated quests', () => {
         });
     });
 
+    it('falls back to one seat before changing rank when two seats cannot be composed (D-03)', () => {
+        const composition = compose(
+            TitleType.hero,
+            [orsogufo],
+            new SequenceChance([0.5, 0.9]),
+        );
+
+        expect(composition).toEqual({
+            type: QuestType.enemy,
+            rank: TitleType.hero,
+            enemies: [{ enemy: orsogufo, quantity: 6 }],
+            seats: 1,
+        });
+    });
+
     it('keeps every pack member inside the pool of the point of interest (D-07, D-08)', () => {
         const forestGoblin = enemy('b01', 'Goblin', 19, ['forest']);
         const cityThief = enemy('b02', 'Ladro', 4, ['city']);
