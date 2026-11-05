@@ -1786,6 +1786,27 @@ describe('QuestAcceptanceService (replSet)', () => {
                 [TitleType.legend],
                 TitleType.rookie,
             ],
+            [
+                'a legend on a hero seat (D-08)',
+                [{ title: TitleType.hero, count: 1 }],
+                [],
+                TitleType.legend,
+            ],
+            [
+                'a legend after the hero seat is taken (D-08)',
+                [{ title: TitleType.hero, count: 1 }],
+                [TitleType.legend],
+                TitleType.hero,
+            ],
+            [
+                'a legend on the legend seat first (D-08)',
+                [
+                    { title: TitleType.legend, count: 1 },
+                    { title: TitleType.hero, count: 1 },
+                ],
+                [TitleType.legend],
+                TitleType.legend,
+            ],
         ];
 
         it.each(seatCases)(
@@ -1810,6 +1831,59 @@ describe('QuestAcceptanceService (replSet)', () => {
                 expect(matches).toBe(hasSeatFor(rule, registered, title));
             },
         );
+
+        it('lets a legend character accept a generated hero enemy quest (D-08)', async () => {
+            const { owners, chars } = await heroesRacing(2, 'legend');
+            const base = buildQuest();
+            const quest = await persistQuest(quests, {
+                generated: true,
+                infos: {
+                    ...base.infos,
+                    type: 'enemy',
+                    markerLocation: world.questMarker,
+                },
+                requirements: {
+                    ...base.requirements,
+                    minTitle: 'hero',
+                    requiredAdventurers: [{ title: 'hero', count: 1 }],
+                },
+            });
+            const questId = quest._id as Types.ObjectId;
+
+            await accept(owners[0], chars[0], questId);
+
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual([
+                {
+                    character: chars[0],
+                    title: 'legend',
+                    registeredAt: ACCEPTED_AT,
+                },
+            ]);
+            await expect(
+                accept(owners[1], chars[1], questId),
+            ).rejects.toMatchObject({ code: 'QUEST_FULL' });
+            expect(
+                (await rawQuest(questId))?.registeredAdventurers,
+            ).toHaveLength(1);
+        });
+
+        it('lets exactly one of two concurrent legends take the last hero seat (D-08)', async () => {
+            const { owners, chars } = await heroesRacing(2, 'legend');
+            const questId = await questOf('boss', {
+                minTitle: 'hero',
+                requiredAdventurers: [{ title: 'hero', count: 1 }],
+            });
+
+            const results = await Promise.allSettled(
+                chars.map((charId, i) => accept(owners[i], charId, questId)),
+            );
+
+            expect(winnersOf(results)).toHaveLength(1);
+            expect(losersOf(results)).toEqual(['QUEST_FULL']);
+            expect(
+                (await rawQuest(questId))?.registeredAdventurers,
+            ).toHaveLength(1);
+        });
 
         it('leaves no registration when the points are insufficient', async () => {
             const ownerId = await ownerWith(100);
