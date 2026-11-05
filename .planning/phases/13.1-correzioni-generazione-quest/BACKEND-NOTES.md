@@ -65,6 +65,8 @@ Nessun evento nuovo. Rifare la query `quests` quando `characterUpdated` cambia:
 
 ---
 
+**Domanda aperta per l'utente (review A-IN-02):** con due posti può uscire un solo nemico (es. uno da 63 xp per due adventurer): rispetta il budget `[2×21, 2×69]` di D-03 così com'è scritto; se un «nemico singolo» con due posti non è voluto, il generatore richiederà almeno due unità quando S = 2 (decisione da prendere prima o dopo il boot, nessun effetto sulla FE).
+
 ## 4. Reset al primo boot reale (D-06, D-07)
 
 - Al primo boot dal branch le generate aperte non registrate né in corsia vengono **cancellate e ricreate**: cambiano id. La FE non deve tenere in cache id di generate fra due sessioni.
