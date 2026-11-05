@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 13.1 PR #21 ready for review (2026-11-05) after the first real boot and the one-off removal; next: merge, FE quick tasks (quest refetch on location change, legend on hero seats), heal spells at DB after PR #20/#39 and the FE install
-last_updated: "2026-11-05T15:30:00.000Z"
-last_activity: 2026-11-05 -- Phase 13.1 first real boot done, one-offs removed, PR #21 ready for review
+status: planning
+stopped_at: Phase 14 context gathered (2026-11-05, joint discuss with the FE Phase 15) on feat/14-viaggio-e-cibo; next: /gsd-plan-phase 14; Phase 13.1 merged (PR #21), its device UAT outcome in PR #22 (docs)
+last_updated: "2026-11-05T19:10:00.000Z"
+last_activity: 2026-11-05 -- Phase 14 context gathered (joint discuss with the FE Phase 15); Phase 13.1 merged on develop (PR #21)
 progress:
   total_phases: 20
-  completed_phases: 16
+  completed_phases: 17
   total_plans: 219
-  completed_plans: 211
-  percent: 96
+  completed_plans: 219
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 13.1 — Correzioni generazione quest — eseguita (8/8, 2026-11-05) su `feat/13.1-correzioni-generazione-quest` (da `develop` `162c1f5`, la merge della PR #19); PR in draft in attesa del popolamento del DB e del primo boot reale dal branch (reset delle generate, prede delle hunt, tappe delle dungeon, generatore; runbook in `.planning/phases/13-generazione-quest/BACKEND-NOTES.md` §11 f), poi rimozione dei one-off in TDD e `gh pr ready`; handoff FE in `.planning/phases/13.1-correzioni-generazione-quest/BACKEND-NOTES.md`. Previous: Phase 13 — Generazione quest — COMPLETE and merged (PR #19, `162c1f5`, 2026-11-05).
+**Current focus:** Phase 14 — Viaggio e cibo — CONTEXT GATHERED (2026-11-05, discuss congiunto con la FE Phase 15 dal repo FE) su `feat/14-viaggio-e-cibo` (da `develop` `698ae82`, le merge delle PR #20/#21); ready to plan (`/gsd-plan-phase 14`): fabbisogno ⌈durata/3 min⌉, selezione a scarto minimo (poi meno unità, poi minor valore), triangolare sui km scoperti per eccesso, rifiuto solo sotto 1 HP con `TRAVEL_STARVING`, anteprime con `food`/`hpLost`/`arrivesAlive` e query owner-only dedicata per la quest. Previous: Phase 13.1 — Correzioni generazione quest — COMPLETE and merged (PR #21, 2026-11-05; esito della UAT su device nella PR #22 docs).
 
 ## Current Position
 
-Phase: 13.1 (Correzioni generazione quest) — EXECUTING (started 2026-11-05) on `feat/13.1-correzioni-generazione-quest` (from `develop` `162c1f5`): 8 plans in a linear chain (`13.1-01`..`13.1-08`), executors one at a time on the main tree
-Plan: 8 of 8
-Status: Phase 13.1 COMPLETE on the branch — executed (8/8), review → rulings → 10 fixes, D-09 (one seat on enemy quests), verification `passed`, security `secured`; FIRST REAL BOOT done 2026-11-05 16:34 (Generate 167/0, Hunt 14 redrawn/63 coherent, Dungeon 32 recomposed/8 coherent, Generatore 167) with the expected counts and a silent second boot; one-off migrators removed (64ef914); final `npm run test:cov` green; PR #21 `feat/13.1-correzioni-generazione-quest` → develop READY FOR REVIEW (2026-11-05)
-Last activity: 2026-11-05 -- Phase 13.1 first real boot done (reset + hunt + dungeon + generator as expected, second boot silent), Liberia hunts diversified at DB, one-offs removed, final test:cov green, PR #21 ready for review
+Phase: 14 (Viaggio e cibo) — CONTEXT GATHERED (2026-11-05) on `feat/14-viaggio-e-cibo` (from `develop` `698ae82`): `14-CONTEXT.md` + `14-DISCUSSION-LOG.md` written (D-01..D-15); next `/gsd-plan-phase 14`
+Plan: 0 of ? (not planned yet)
+Status: Phase 14 discussing → ready to plan — context gathered with the user (scales confirmed with the real numbers, rounding up, min-waste selection, dedicated quest preview query, numbers + `arrivesAlive` in the previews, `TRAVEL_STARVING`); Phase 13.1 merged on develop (PR #21) together with PR #20 (heal); the 13.1 device UAT outcome is in PR #22 (docs, open)
+Last activity: 2026-11-05 -- Phase 14 context gathered (joint discuss with the FE Phase 15), branch feat/14-viaggio-e-cibo created from develop 698ae82
 
-Progress: [██████████] 8/8 plans of Phase 13.1 (phases 1–13, 9.1 and 9.2 complete and merged on develop)
+Progress: [░░░░░░░░░░] 0/? plans of Phase 14 (phases 1–13, 9.1, 9.2 and 13.1 complete and merged on develop)
 
 ## Performance Metrics
 
