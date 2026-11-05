@@ -121,6 +121,12 @@ describe('GameRuleException', () => {
             'Nessuna strada porta a questa meta',
         ],
         [
+            'travelStarving',
+            () => GameRuleException.travelStarving(),
+            GameRuleErrorCode.TRAVEL_STARVING,
+            'Non hai cibo a sufficienza per il viaggio',
+        ],
+        [
             'spellNotKnown',
             () => GameRuleException.spellNotKnown(),
             GameRuleErrorCode.SPELL_NOT_KNOWN,
@@ -244,5 +250,17 @@ describe('GameRuleException', () => {
         expect(exception).toBeInstanceOf(BadRequestException);
         expect(exception.code).toBe(GameRuleErrorCode.ITEM_NOT_IN_SHOP);
         expect(exception.extensions).toEqual({ code: 'ITEM_NOT_IN_SHOP' });
+    });
+
+    it('refuses a starving departure with TRAVEL_STARVING and the hunger message (D-11)', () => {
+        const exception = GameRuleException.travelStarving();
+
+        expect(exception).toBeInstanceOf(BadRequestException);
+        expect(exception.getStatus()).toBe(400);
+        expect(exception.code).toBe('TRAVEL_STARVING');
+        expect(exception.extensions).toEqual({ code: 'TRAVEL_STARVING' });
+        expect(exception.message).toBe(
+            'Non hai cibo a sufficienza per il viaggio',
+        );
     });
 });
