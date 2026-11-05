@@ -37,6 +37,7 @@ import {
     prizesOf,
 } from 'src/quests/generation/generated-prizes';
 import { generatedQuestDraftOf } from 'src/quests/generation/generated-quest-draft';
+import { readPrizeCatalog } from 'src/quests/generation/prize-catalog';
 import {
     GENERATED_RANKS,
     GeneratedRank,
@@ -72,20 +73,6 @@ interface LeanOpenQuest {
     generated?: boolean | null;
     infos?: { markerLocation?: Types.ObjectId | null } | null;
     requirements?: { minTitle?: unknown } | null;
-}
-
-interface LeanEquipment {
-    _id: Types.ObjectId;
-    rarity?: string | null;
-    equipType?: string | null;
-    damages?: unknown;
-}
-
-interface LeanLoot {
-    _id: Types.ObjectId;
-    rarity?: string | null;
-    effect?: string | null;
-    power?: number | null;
 }
 
 interface WorldCity extends CityNode {
@@ -427,37 +414,8 @@ export class QuestGenerator extends QuestGenerationTrigger {
         return readEnemyCandidates(this.enemyModel, this.loreModel);
     }
 
-    private async readCatalog(): Promise<PrizeCatalogItem[]> {
-        const equipment = await this.equipmentModel
-            .find({})
-            .select('_id rarity equipType damages')
-            .sort({ _id: 1 })
-            .lean<LeanEquipment[]>();
-        const loot = await this.lootModel
-            .find({})
-            .select('_id rarity effect power')
-            .sort({ _id: 1 })
-            .lean<LeanLoot[]>();
-        return [
-            ...equipment.map(
-                (item): PrizeCatalogItem => ({
-                    itemType: 'EquipmentItem',
-                    id: item._id.toHexString(),
-                    rarity: item.rarity ?? null,
-                    equipType: item.equipType ?? null,
-                    damages: item.damages,
-                }),
-            ),
-            ...loot.map(
-                (item): PrizeCatalogItem => ({
-                    itemType: 'LootItem',
-                    id: item._id.toHexString(),
-                    rarity: item.rarity ?? null,
-                    effect: item.effect ?? null,
-                    power: item.power ?? null,
-                }),
-            ),
-        ];
+    private readCatalog(): Promise<PrizeCatalogItem[]> {
+        return readPrizeCatalog(this.equipmentModel, this.lootModel);
     }
 
     // pool dei pet da quest: solo i non vendibili (D-21)
