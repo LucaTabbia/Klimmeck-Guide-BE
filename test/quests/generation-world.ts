@@ -2,6 +2,8 @@ import type { Model } from 'mongoose';
 import { Types } from 'mongoose';
 import { QUEST_GENERATION_CONFIG } from 'src/config/quest-generation-config';
 import type { QuestGenerationConfig } from 'src/config/quest-generation-config';
+import { CitySize } from 'src/models/enums/city-size.enum';
+import { CityType } from 'src/models/enums/city-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { QuestGenerationSweeper } from 'src/quests/generation/quest-generation.sweeper';
 import type { ProviderOverride } from '../auth/auth-test-app';
@@ -36,6 +38,8 @@ export interface GenerationWorldOptions {
     animalXps?: readonly number[];
     // una lore `enemy` sul primo nemico ordinario: solo `animal` esclude (13.1 D-01)
     enemyLore?: boolean;
+    // taglie ciclate per indice di città; default tutte capitali (13.1 D-04)
+    sizes?: readonly CitySize[];
 }
 
 export interface GenerationWorldCity {
@@ -43,6 +47,7 @@ export interface GenerationWorldCity {
     name: string;
     markerId: Types.ObjectId;
     poiIds: Types.ObjectId[];
+    size: CitySize;
 }
 
 export interface GenerationWorld {
@@ -79,6 +84,13 @@ export const QUIET_GENERATION_OVERRIDES: ProviderOverride[] = [
 ];
 
 const CITY_SPACING = 100;
+const DEFAULT_SIZES: readonly CitySize[] = [CitySize.capital];
+
+export const CITY_TYPE_OF_SIZE: Readonly<Record<CitySize, CityType>> = {
+    village: CityType.drusteaVillage,
+    city: CityType.drusteaCity,
+    capital: CityType.drusteaCapital,
+};
 const RARITIES = Object.values(RarityType);
 
 async function persistCityWithPois(
@@ -86,6 +98,7 @@ async function persistCityWithPois(
     index: number,
     poisPerCity: number,
     grid: number,
+    size: CitySize,
 ): Promise<GenerationWorldCity> {
     const id = new Types.ObjectId();
     const x = (index % grid) * CITY_SPACING;
@@ -110,6 +123,7 @@ async function persistCityWithPois(
         buildCity({
             _id: id,
             name,
+            type: CITY_TYPE_OF_SIZE[size],
             markerLocation: marker._id,
             pointsOfInterest: [marker._id, ...pois.map((poi) => poi._id)],
         }),
@@ -119,6 +133,7 @@ async function persistCityWithPois(
         name,
         markerId: marker._id as Types.ObjectId,
         poiIds: pois.map((poi) => poi._id),
+        size,
     };
 }
 
@@ -216,10 +231,17 @@ export async function persistGenerationWorld(
 ): Promise<GenerationWorld> {
     const grid =
         options.grid ?? Math.max(1, Math.ceil(Math.sqrt(options.cities)));
+    const sizes = options.sizes ?? DEFAULT_SIZES;
     const cities: GenerationWorldCity[] = [];
     for (let index = 0; index < options.cities; index += 1) {
         cities.push(
-            await persistCityWithPois(models, index, options.poisPerCity, grid),
+            await persistCityWithPois(
+                models,
+                index,
+                options.poisPerCity,
+                grid,
+                sizes[index % sizes.length],
+            ),
         );
     }
     const xps = options.enemyXps ?? STANDARD_ENEMY_XPS;

@@ -187,19 +187,19 @@ describe('QuestGenerator (replSet)', () => {
         expect(await quests.countDocuments({ generated: true })).toBe(4);
     });
 
-    it('never exceeds three generated quests per city (D-15)', async () => {
+    it('caps a capital at four generated quests (D-04)', async () => {
         const world = await persistGenerationWorld(models, {
             cities: 2,
             poisPerCity: 5,
         });
 
-        await expect(generatorWith({ target: 10 }).generate()).resolves.toBe(6);
+        await expect(generatorWith({ target: 10 }).generate()).resolves.toBe(8);
         const perCity = countBy(await generatedQuests(), (quest) =>
             cityOfPoi(world, quest.infos.markerLocation),
         );
         expect(perCity).toEqual({
-            [world.cities[0].id.toHexString()]: 3,
-            [world.cities[1].id.toHexString()]: 3,
+            [world.cities[0].id.toHexString()]: 4,
+            [world.cities[1].id.toHexString()]: 4,
         });
     });
 

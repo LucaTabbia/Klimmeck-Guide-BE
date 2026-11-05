@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { QUEST_GENERATION_CONFIG } from 'src/config/quest-generation-config';
 import type { QuestGenerationConfig } from 'src/config/quest-generation-config';
+import { citySizeOf, isCityType } from 'src/cities/city-size';
 import { CityDocument, City } from 'src/models/city.model';
 import { Enemy, EnemyDocument } from 'src/models/enemy.model';
 import { Lore, LoreDocument } from 'src/models/lore.model';
@@ -57,6 +58,7 @@ type RankCounts = Partial<Record<GeneratedRank, number>>;
 interface LeanCity {
     _id: Types.ObjectId;
     name?: string | null;
+    type?: unknown;
     markerLocation?: Types.ObjectId | null;
     pointsOfInterest?: Types.ObjectId[] | null;
     relatedLore?: Types.ObjectId | null;
@@ -202,7 +204,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
         return created;
     }
 
-    // una quest alla volta fino al target (D-15); a mondo pieno 0
+    // una quest alla volta fino al target (D-15) col tetto per taglia (13.1 D-04); a mondo pieno 0
     // ordine dei tiri per quest, da non spostare (le spec a seme fisso ne dipendono):
     // pickCity (1) → pickPoi (1) → composeQuest per ogni rango provato (vedi quest-composition.ts)
     // → prizesOf (vedi generated-prizes.ts) → announcementOf (1, in generated-quest-draft.ts)
@@ -323,7 +325,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
     private async readWorld(): Promise<GenerationWorld> {
         const cities = await this.cityModel
             .find({})
-            .select('_id name markerLocation pointsOfInterest relatedLore')
+            .select('_id name type markerLocation pointsOfInterest relatedLore')
             .sort({ _id: 1 })
             .lean<LeanCity[]>();
         const poiIds = cities.flatMap((city) => [
@@ -361,6 +363,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
                     : poiById.get(markerLocation),
             );
             if (markerLocation === null || location === null) continue;
+            if (!isCityType(city.type)) continue;
             worldCities.push({
                 id: cityId,
                 location,
@@ -370,6 +373,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
                 ),
                 name: city.name ?? '',
                 relatedLore: hexOf(city.relatedLore),
+                size: citySizeOf(city.type),
             });
         }
         const generated = openQuests.filter(

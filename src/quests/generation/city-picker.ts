@@ -1,14 +1,31 @@
+import { CitySize } from 'src/models/enums/city-size.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 
 // k vicini sui marker (D-29): i gruppi del CityType sono troppo disomogenei per fare da vicinato
 export const NEIGHBOUR_COUNT = 5;
-// tetto delle generate attive per città (D-15): le fisse e le GM non contano
-export const MAX_GENERATED_PER_CITY = 3;
+// tetto delle generate attive per taglia (13.1 D-04): le fisse e le GM non contano
+export const GENERATED_CAP_BY_SIZE: Readonly<Record<CitySize, number>> = {
+    village: 1,
+    city: 2,
+    capital: 4,
+};
+// attrazione del sorteggio per taglia (13.1 D-04): coincide oggi col tetto ma è un'altra regola
+export const SIZE_WEIGHT_BY_SIZE: Readonly<Record<CitySize, number>> = {
+    village: 1,
+    city: 2,
+    capital: 4,
+};
+
+export const capOf = (size: CitySize): number => GENERATED_CAP_BY_SIZE[size];
+
+export const sizeWeightOf = (size: CitySize): number =>
+    SIZE_WEIGHT_BY_SIZE[size];
 
 export interface CityNode {
     id: string;
     location: readonly [number, number];
     freePoiIds: readonly string[];
+    size: CitySize;
 }
 
 const squaredDistance = (
@@ -60,9 +77,9 @@ export function cityWeightOf(
     density: number,
     generated: number,
 ): number {
-    if (generated >= MAX_GENERATED_PER_CITY) return 0;
+    if (generated >= capOf(node.size)) return 0;
     if (node.freePoiIds.length === 0) return 0;
-    return 1 / (1 + density) ** 2;
+    return sizeWeightOf(node.size) / (1 + density) ** 2;
 }
 
 export function pickCity(

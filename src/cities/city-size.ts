@@ -41,3 +41,8 @@ export const CITY_SIZE_BY_TYPE = {
 export function citySizeOf(type: CityType): CitySize {
     return CITY_SIZE_BY_TYPE[type];
 }
+
+// il type arriva da DB senza garanzie: fuori dalla tabella ⇒ nessuna taglia (fail-closed, 13.1 D-04)
+export function isCityType(value: unknown): value is CityType {
+    return typeof value === 'string' && Object.hasOwn(CITY_SIZE_BY_TYPE, value);
+}
