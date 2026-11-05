@@ -4,6 +4,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { City, CityDocument } from 'src/models/city.model';
 import { Enemy, EnemyDocument } from 'src/models/enemy.model';
+import {
+    EquipmentItem,
+    EquipmentItemDocument,
+} from 'src/models/equipment-item.model';
+import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { Lore, LoreDocument } from 'src/models/lore.model';
 import {
@@ -19,6 +24,9 @@ import { refIdOf } from 'src/mongo/document-id';
 import { stringsOf } from 'src/mongo/lean-values';
 import { readEnemyCandidates } from 'src/quests/generation/enemy-candidate';
 import { EnemyCandidate } from 'src/quests/generation/enemy-pool';
+import { PrizeCatalogItem } from 'src/quests/generation/generated-prizes';
+import { readPrizeCatalog } from 'src/quests/generation/prize-catalog';
+import { recommendedLootOf } from 'src/quests/generation/recommended-loot';
 import { keyedChance } from 'src/quests/generation/seeded-chance';
 import {
     StoredQuestEnemies,
@@ -28,6 +36,8 @@ import {
     HUNT_PREY_SEED,
     HuntCity,
     huntPreyPoolOf,
+    huntPrizesOf,
+    HuntRewrite,
     huntRewriteOf,
     isCoherentHunt,
 } from './hunt-prey';
@@ -64,6 +74,7 @@ interface HuntWorld {
     poiTypes: ReadonlyMap<string, string[]>;
     poiCities: ReadonlyMap<string, HuntCity>;
     inLane: ReadonlySet<string>;
+    catalog: readonly PrizeCatalogItem[];
 }
 
 const OPEN_HUNT = { 'infos.type': QuestType.hunt, concludedAt: null } as const;
@@ -89,6 +100,10 @@ export class HuntPreyMigrator {
         private readonly cityModel: Model<CityDocument>,
         @InjectModel(PendingQuest.name)
         private readonly pendingQuestModel: Model<PendingQuestDocument>,
+        @InjectModel(EquipmentItem.name)
+        private readonly equipmentModel: Model<EquipmentItemDocument>,
+        @InjectModel(LootItem.name)
+        private readonly lootModel: Model<LootItemDocument>,
     ) {}
 
     async migrate(): Promise<HuntPreyReport> {
@@ -157,11 +172,36 @@ export class HuntPreyMigrator {
                         'infos.relatedLore': rewrite.relatedLore.map(
                             (lore) => new Types.ObjectId(lore),
                         ),
+                        ...this.promotionOf(rewrite, hunt, world),
                     },
                 },
             )
             .exec();
         return update.modifiedCount > 0 ? 'redrawn' : 'coherent';
+    }
+
+    // fascia cambiata: premi e consigliati del rango nuovo; randomLoot, pet, spell e timeToComplete restano
+    private promotionOf(
+        rewrite: HuntRewrite,
+        hunt: LeanHunt,
+        world: HuntWorld,
+    ): Record<string, unknown> {
+        if (rewrite.minTitle === hunt.requirements?.minTitle) return {};
+        const prizes = huntPrizesOf(rewrite.minTitle);
+        const recommendedLoot = recommendedLootOf({
+            rank: rewrite.minTitle,
+            enemies: [rewrite.prey],
+            catalog: world.catalog,
+        });
+        return {
+            'prizes.prizeCoins': prizes.prizeCoins,
+            'prizes.xpPrize': prizes.xpPrize,
+            'requirements.recommendedLoot': recommendedLoot.map((ref) => ({
+                itemType: ref.itemType,
+                item: new Types.ObjectId(ref.item),
+                quantity: ref.quantity,
+            })),
+        };
     }
 
     private async openHunts(): Promise<LeanHunt[]> {
@@ -185,6 +225,10 @@ export class HuntPreyMigrator {
             poiTypes: await this.readPoiTypes(poiIds),
             poiCities: await this.readPoiCities(poiIds),
             inLane: await this.readLaneQuestIds(),
+            catalog: await readPrizeCatalog(
+                this.equipmentModel,
+                this.lootModel,
+            ),
         };
     }
 

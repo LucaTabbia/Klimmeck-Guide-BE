@@ -1,5 +1,11 @@
 // UNA TANTUM (Phase 12 D-25): regole della preda delle hunt per il primo boot reale dal branch 13.1; esce dal repo col suo migratore (13.1 D-07)
+import { CoinPurse, fromCopper } from 'src/economy/coins';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { EnemyCandidate } from 'src/quests/generation/enemy-pool';
+import {
+    GENERATED_PRIZES,
+    TIER_MULTIPLIER,
+} from 'src/quests/generation/generated-prizes';
 import {
     GENERATED_RANKS,
     GeneratedRank,
@@ -15,6 +21,11 @@ export interface HuntRewrite {
     title: string;
     description: string;
     relatedLore: string[];
+}
+
+export interface HuntPrizes {
+    prizeCoins: CoinPurse;
+    xpPrize: number;
 }
 
 export interface HuntCity {
@@ -58,6 +69,16 @@ export function isCoherentHunt(
 ): boolean {
     const prey = pool.find((enemy) => enemy.id === preyId);
     return prey !== undefined && rankOfXp(prey.xp) === minTitle;
+}
+
+// hunt promossa di fascia: premi delle enemy a un posto del rango nuovo (decisione dell'orchestratore su 13.1 D-07)
+export function huntPrizesOf(rank: GeneratedRank): HuntPrizes {
+    const base = GENERATED_PRIZES[QuestType.enemy];
+    const multiplier = TIER_MULTIPLIER[rank];
+    return {
+        prizeCoins: fromCopper(base.copper * multiplier),
+        xpPrize: base.xp * multiplier,
+    };
 }
 
 export const huntTitleOf = (city: string, prey: string): string =>

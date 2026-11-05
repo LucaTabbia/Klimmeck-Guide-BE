@@ -2,6 +2,11 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { City, CitySchema } from 'src/models/city.model';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
+import {
+    EquipmentItem,
+    EquipmentItemSchema,
+} from 'src/models/equipment-item.model';
+import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
 import {
     PendingQuest,
@@ -34,6 +39,8 @@ import { QuestMaintenanceBoot } from './quest-maintenance.boot';
             { name: PointOfInterest.name, schema: PointOfInterestSchema },
             { name: City.name, schema: CitySchema },
             { name: PendingQuest.name, schema: PendingQuestSchema },
+            { name: EquipmentItem.name, schema: EquipmentItemSchema },
+            { name: LootItem.name, schema: LootItemSchema },
         ]),
         QuestGenerationTriggerModule,
     ],
