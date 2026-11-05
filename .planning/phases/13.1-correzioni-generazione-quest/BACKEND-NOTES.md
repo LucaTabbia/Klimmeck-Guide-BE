@@ -68,8 +68,8 @@ Nessun evento nuovo. Rifare la query `quests` quando `characterUpdated` cambia:
 ## 4. Reset al primo boot reale (D-06, D-07)
 
 - Al primo boot dal branch le generate aperte non registrate né in corsia vengono **cancellate e ricreate**: cambiano id. La FE non deve tenere in cache id di generate fra due sessioni.
-- Le hunt aperte possono cambiare preda, `minTitle`, titolo, descrizione e lore (la caccia segue la preda della zona).
-- Le dungeon aperte e non avviate possono cambiare le tappe (`infos.enemies`, 2–4) e, se cambia il primo nemico, il titolo; la descrizione resta.
+- Le hunt aperte e non in corsia possono cambiare preda, `minTitle`, titolo, descrizione e lore (la caccia segue la preda della zona). **Hunt promossa** a una fascia diversa dal `minTitle` attuale (fix B-IN-01 della review, decisione dell'orchestratore ritirabile dall'utente prima del boot): cambiano anche `prizes.prizeCoins` e `prizes.xpPrize` (tabella delle `enemy` a un posto del rango nuovo: 150 rame e 40 xp × moltiplicatore di fascia 1/2/5/12/25, es. adventurer 3 argento e 80 xp) e `requirements.recommendedLoot` (armi utili contro la preda nuova + la cura migliore entro la rarità della fascia); `randomLoot`, `pet`, magia e `timeToComplete` restano. Una hunt ri-estratta nella stessa fascia tiene premi e consigliati.
+- Le dungeon aperte e **non in corsia** (nessuna `pendingquests` le referenzia: chi le ha accettate non le vede cambiare) possono cambiare le tappe (`infos.enemies`, 2–4) e, se cambia il primo nemico, il titolo; la descrizione resta. Il migratore prova tutti i conteggi di tappe e il ripiego `all` prima di lasciare una dungeon incoerente.
 - Il boot lo lancia l'orchestratore (runbook in `.planning/phases/13-generazione-quest/BACKEND-NOTES.md` §11 (f)); dopo il boot i one-off escono dal repo.
 
 ---
