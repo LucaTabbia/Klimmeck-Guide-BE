@@ -65,6 +65,40 @@ describe('travel write builders', () => {
             });
         });
 
+        it('startTravelFilter appends the food and life guards (D-12)', () => {
+            const guards = { $and: [{ 'status.currentLifePoints': 100 }] };
+
+            expect(startTravelFilter(id, loc, guards)).toEqual({
+                _id: id,
+                deletedAt: null,
+                'status.awaitingAid': null,
+                'status.activeTravel': null,
+                'quests.pendingQuest': null,
+                'status.location': { $in: [loc, loc.toHexString()] },
+                $and: [{ 'status.currentLifePoints': 100 }],
+            });
+        });
+
+        it('startTravelUpdate sets the food and life cost with the travel (D-12)', () => {
+            const travel: ActiveTravelDraft = {
+                road: { coordinates: [[0, 0]], distance: 0 },
+                startTime: start,
+                endTime: end,
+                duration: 3_600_000,
+                to: poi,
+                kind: TravelKind.free,
+            };
+
+            expect(
+                startTravelUpdate(travel, { 'status.currentLifePoints': 85 }),
+            ).toEqual({
+                $set: {
+                    'status.activeTravel': travel,
+                    'status.currentLifePoints': 85,
+                },
+            });
+        });
+
         it('classifyUnstarted: missing character → NOT_FOUND', () => {
             const error = classifyUnstarted(null);
 
