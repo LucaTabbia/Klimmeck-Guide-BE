@@ -10,6 +10,7 @@ import {
     persistEnemy,
     persistEquipmentItem,
     persistLootItem,
+    persistLore,
     persistPet,
     persistPoi,
 } from '../fixtures';
@@ -31,6 +32,10 @@ export interface GenerationWorldOptions {
     grid?: number;
     // xp dei nemici generabili (uno per voce); default: due per fascia, da rookie a hero
     enemyXps?: readonly number[];
+    // xp degli animali (nemici con la lore `animal`, uno per voce); default nessuno (13.1 D-01)
+    animalXps?: readonly number[];
+    // una lore `enemy` sul primo nemico ordinario: solo `animal` esclude (13.1 D-01)
+    enemyLore?: boolean;
 }
 
 export interface GenerationWorldCity {
@@ -44,6 +49,7 @@ export interface GenerationWorld {
     cities: GenerationWorldCity[];
     enemyIds: Types.ObjectId[];
     legendaryIds: Types.ObjectId[];
+    animalIds: Types.ObjectId[];
 }
 
 // due nemici per fascia (rookie 1–20, adventurer 21–69, paladin 70–224, mage 225–548, hero 549–803)
@@ -135,6 +141,45 @@ async function persistEnemies(
     return ids;
 }
 
+async function persistAnimals(
+    models: GenerationModels,
+    xps: readonly number[],
+): Promise<Types.ObjectId[]> {
+    if (xps.length === 0) return [];
+    const bestiary = await persistLore(models.lore, {
+        type: 'animal',
+        name: 'Bestiario',
+    });
+    const ids: Types.ObjectId[] = [];
+    for (const xp of xps) {
+        const animal = await persistEnemy(models.enemies, {
+            name: `Animale ${xp}`,
+            xp,
+            locations: [WORLD_HABITAT],
+            baseWeaknesses: ['cut'],
+            legendary: false,
+            relatedLore: [bestiary._id],
+        });
+        ids.push(animal._id as Types.ObjectId);
+    }
+    return ids;
+}
+
+async function tagWithEnemyLore(
+    models: GenerationModels,
+    enemyId: Types.ObjectId | undefined,
+): Promise<void> {
+    if (enemyId === undefined) return;
+    const lore = await persistLore(models.lore, {
+        type: 'enemy',
+        name: 'Nemici del bosco',
+    });
+    await models.enemies.updateOne(
+        { _id: enemyId },
+        { $set: { relatedLore: [lore._id] } },
+    );
+}
+
 async function persistCatalog(models: GenerationModels): Promise<void> {
     for (const rarity of RARITIES) {
         await persistEquipmentItem(models.equipment, {
@@ -163,7 +208,8 @@ async function persistPets(models: GenerationModels): Promise<void> {
     await persistPet(models.pets, { name: 'Pet in vendita', sellable: true });
 }
 
-// città con marker `city` e POI `forest`, un nemico e un leggendario per ogni voce di `enemyXps`, catalogo per rarità, pet
+// città con marker `city` e POI `forest`, un nemico e un leggendario per ogni voce di `enemyXps`,
+// un animale per ogni voce di `animalXps` (lore `animal`, 13.1 D-01), catalogo per rarità, pet
 export async function persistGenerationWorld(
     models: GenerationModels,
     options: GenerationWorldOptions,
@@ -179,9 +225,13 @@ export async function persistGenerationWorld(
     const xps = options.enemyXps ?? STANDARD_ENEMY_XPS;
     const enemyIds = await persistEnemies(models, xps, false);
     const legendaryIds = await persistEnemies(models, xps, true);
+    const animalIds = await persistAnimals(models, options.animalXps ?? []);
+    if (options.enemyLore === true) {
+        await tagWithEnemyLore(models, enemyIds[0]);
+    }
     await persistCatalog(models);
     await persistPets(models);
-    return { cities, enemyIds, legendaryIds };
+    return { cities, enemyIds, legendaryIds, animalIds };
 }
 
 // generate per città, zeri compresi; le quest fuori dai POI del mondo finiscono sotto `fuori mappa`
