@@ -117,6 +117,13 @@ describe('food selection', () => {
         });
     });
 
+    it('leaves out an item whose first entry is not edible: the inventory scales the first entry per id (D-06)', () => {
+        expect(selectFood(20, [stack(A, 20, 0), stack(A, 20, 5)])).toEqual({
+            consumed: [],
+            covered: 0,
+        });
+    });
+
     it('lists the consumed food in the order of the owned items (D-17)', () => {
         expect(selectFood(60, [stack(C, 10, 1), stack(A, 50, 1)])).toEqual({
             consumed: [
