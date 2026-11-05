@@ -1,8 +1,10 @@
-// ordine dei tiri per quest: tiro del boss (solo ranghi con media, D-06) → se boss, scelta del candidato;
-// altrimenti posti (enemySeatsOf) → forma (SINGLE_FORM_SHARE) → per forma: singolo 1 scelta;
-// branco per tentativo 1 tiro dei tipi + 1 per tipo + 1 per unità aggiunta.
+// ordine dei tiri per quest (le spec a seme fisso ne dipendono):
+// 1. tiro del boss (solo ranghi con media, D-06): sotto BOSS_SHARE, 1 scelta del candidato nel primo pool che ne ha;
+// 2. altrimenti (o senza candidati) tiro dei posti (enemySeatsOf) → tiro della forma (SINGLE_FORM_SHARE);
+// 3. giro per pool [zona, poi all se più ampio] → per posti [S, poi 1 se S = 2] → per forma, senza ritirare posti e forma:
+//    singolo 1 scelta (solo con candidati); branco per tentativo 1 tiro dei tipi + 1 per tipo + 1 per unità aggiunta.
 // Ogni membro dallo stesso pool del POI (D-08 della Phase 13), mai sopra hi (13.1 D-03);
-// all solo come ripiego quando la zona non compone la forma
+// all solo come ripiego quando la zona non serve nessuna forma con nessun numero di posti
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import {
