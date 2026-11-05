@@ -137,7 +137,8 @@ function bossOf(
     return candidates[indexOf(candidates.length, chance)];
 }
 
-// S = 2 non componibile ⇒ ripiego a un posto prima di cambiare rango (13.1 D-03)
+// S = 2 non componibile ⇒ ripiego a un posto prima di cambiare rango (13.1 D-03);
+// `all` solo se la zona non serve nessuna forma con nessun numero di posti (D-08 della Phase 13)
 function composeEnemyQuest(
     rank: GeneratedRank,
     pools: readonly (readonly EnemyCandidate[])[],
@@ -149,9 +150,10 @@ function composeEnemyQuest(
             ? [singleForm, packForm]
             : [packForm, singleForm];
     const cap = RANK_XP_BANDS[rank].max;
-    for (const seats of rolled === 1 ? [1] : [MAX_ENEMY_SEATS, 1]) {
-        const budget = budgetOf(rank, seats);
-        for (const pool of pools) {
+    const seatCounts = rolled === 1 ? [1] : [MAX_ENEMY_SEATS, 1];
+    for (const pool of pools) {
+        for (const seats of seatCounts) {
+            const budget = budgetOf(rank, seats);
             for (const form of forms) {
                 const enemies = form(pool, budget, cap, chance);
                 if (enemies !== null) {
