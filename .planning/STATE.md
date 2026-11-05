@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 14 context gathered (2026-11-05, joint discuss with the FE Phase 15) on feat/14-viaggio-e-cibo; next: /gsd-plan-phase 14; Phase 13.1 merged (PR #21), its device UAT outcome in PR #22 (docs)
-last_updated: "2026-11-05T19:10:00.000Z"
-last_activity: 2026-11-05 -- Phase 14 context gathered (joint discuss with the FE Phase 15); Phase 13.1 merged on develop (PR #21)
+status: executing
+stopped_at: Phase 12 execution complete (19/19), PR by the orchestrator after the post-execution review
+last_updated: "2026-11-05T20:23:56.939Z"
+last_activity: 2026-11-05 -- Phase null planning complete
 progress:
   total_phases: 20
   completed_phases: 17
-  total_plans: 219
+  total_plans: 227
   completed_plans: 219
-  percent: 100
+  percent: 96
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 14 — Viaggio e cibo — CONTEXT GATHERED (2026-11-05, discuss congiunto con la FE Phase 15 dal repo FE) su `feat/14-viaggio-e-cibo` (da `develop` `698ae82`, le merge delle PR #20/#21); ready to plan (`/gsd-plan-phase 14`): fabbisogno ⌈durata/3 min⌉, selezione a scarto minimo (poi meno unità, poi minor valore), triangolare sui km scoperti per eccesso, rifiuto solo sotto 1 HP con `TRAVEL_STARVING`, anteprime con `food`/`hpLost`/`arrivesAlive` e query owner-only dedicata per la quest. Previous: Phase 13.1 — Correzioni generazione quest — COMPLETE and merged (PR #21, 2026-11-05; esito della UAT su device nella PR #22 docs).
+**Current focus:** Phase 14 — Viaggio e cibo — PLANNED (2026-11-05, 8 piani, discuss congiunto con la FE Phase 15 dal repo FE) su `feat/14-viaggio-e-cibo` (da `develop` `698ae82`, le merge delle PR #20/#21); ready to execute (`/gsd-execute-phase 14`, executor sequenziali): fabbisogno ⌈durata/3 min⌉, selezione a scarto minimo (poi meno unità, poi minor valore), triangolare sui km scoperti per eccesso, rifiuto solo sotto 1 HP con `TRAVEL_STARVING`, anteprime con `food`/`hpLost`/`arrivesAlive` e query owner-only dedicata per la quest. Previous: Phase 13.1 — Correzioni generazione quest — COMPLETE and merged (PR #21, 2026-11-05; esito della UAT su device nella PR #22 docs).
 
 ## Current Position
 
-Phase: 14 (Viaggio e cibo) — CONTEXT GATHERED (2026-11-05) on `feat/14-viaggio-e-cibo` (from `develop` `698ae82`): `14-CONTEXT.md` + `14-DISCUSSION-LOG.md` written (D-01..D-15); next `/gsd-plan-phase 14`
-Plan: 0 of ? (not planned yet)
-Status: Phase 14 discussing → ready to plan — context gathered with the user (scales confirmed with the real numbers, rounding up, min-waste selection, dedicated quest preview query, numbers + `arrivesAlive` in the previews, `TRAVEL_STARVING`); Phase 13.1 merged on develop (PR #21) together with PR #20 (heal); the 13.1 device UAT outcome is in PR #22 (docs, open)
-Last activity: 2026-11-05 -- Phase 14 context gathered (joint discuss with the FE Phase 15), branch feat/14-viaggio-e-cibo created from develop 698ae82
+Phase: 14 (Viaggio e cibo) — PLANNED (2026-11-05) on `feat/14-viaggio-e-cibo` (from `develop` `698ae82`): 8 plans in a linear chain (`14-01`..`14-08`), executors one at a time on the main tree; next `/gsd-execute-phase 14`
+Plan: 0 of 8
+Status: Ready to execute
+Last activity: 2026-11-05 -- Phase null planning complete
 
-Progress: [░░░░░░░░░░] 0/? plans of Phase 14 (phases 1–13, 9.1, 9.2 and 13.1 complete and merged on develop)
+Progress: [░░░░░░░░░░] 0/8 plans of Phase 14 (phases 1–13, 9.1, 9.2 and 13.1 complete and merged on develop)
 
 ## Performance Metrics
 

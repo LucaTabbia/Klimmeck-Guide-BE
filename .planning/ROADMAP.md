@@ -534,7 +534,15 @@ Plans:
 **Decisioni del discuss (2026-11-05)**: 3 min/power e triangolare n(n+1)/2 confermati coi numeri reali (città vicina ≈ 55 power / 16 km, attraversata ≈ 1646 / 506 km); km scoperti per eccesso; cibo insufficiente → si mangia tutto e il resto è scoperto, rifiuto solo sotto 1 HP; scarto minimo, poi meno unità, poi minor valore di vendita; il server copre sempre se può (anche sprecando); anteprima della quest via query owner-only dedicata (nullable); anteprime coi numeri e `arrivesAlive`, mai col codice; la partenza ricalcola sul cibo del momento; codice unico `TRAVEL_STARVING` («Non hai cibo a sufficienza per il viaggio»). Dettagli in `14-CONTEXT.md` (D-01..D-15).
 **Unblocks (FE)**: FE Phase 15 (FOOD-01..04).
 **Branch**: `feat/14-viaggio-e-cibo` da `develop` → PR a `develop`.
-**Plans**: TBD
+**Plans**: 8 plans
+- [ ] 14-01-PLAN.md — Wave 1: modulo puro del cibo (`FOOD_RULES`, fabbisogno ⌈ms/180 000⌉, selezione a scarto minimo con bounded knapsack, km scoperti per eccesso, vita triangolare, `planTravelFood`) (BE-FOOD-01/02/03)
+- [ ] 14-02-PLAN.md — Wave 2: codice `TRAVEL_STARVING` con factory, guardie e set del pasto in `travel-food.updates.ts`, parametro opzionale finale sui builder di partenza e claim (BE-FOOD-03/05)
+- [ ] 14-03-PLAN.md — Wave 3: `TravelPantryReader` (dispensa in/fuori sessione, `LootItem` idratati), `TravelFoodItem` e tre campi additivi di `TravelPreview`, `travelPreview` col cibo, SDL (BE-FOOD-04/06)
+- [ ] 14-04-PLAN.md — Wave 4: `startTravel` transazionale con consumo e HP nello stesso update, `TRAVEL_STARVING` senza scritture, modificatori, concorrenza, acquisto concorrente (D-20), teleport esente (BE-FOOD-03/05/06)
+- [ ] 14-05-PLAN.md — Wave 5: `autoRoute` senza il WARN del salto, query owner-only nullable `questTravelPreview`, SDL e liste owner-only (BE-FOOD-04/06)
+- [ ] 14-06-PLAN.md — Wave 6: `acceptQuest` mangia nel claim (fame in pre-verifica e nel callback, codice della corsa prima della fame), esenzioni, concorrenza, D-20, rifiuto sul filo (BE-FOOD-03/05/06)
+- [ ] 14-07-PLAN.md — Wave 7: gate (`test:cov` con le soglie per cartella, boot reale con SDL additivo, lint mirato, invarianti, VALIDATION firmata, BE-FOOD-01..06 completi) (BE-FOOD-01..06)
+- [ ] 14-08-PLAN.md — Wave 8: handoff `BACKEND-NOTES.md` per la FE 15, emendamento in coda al handoff della Phase 8, nota nel CONTEXT, stato in ROADMAP e STATE (BE-FOOD-06)
 
 ### Phase 15: Imboscate in viaggio
 **Goal**: Un viaggio può essere teso da un'imboscata: la probabilità cresce con i km e con la quota del viaggio che cade di notte (22–06 nel fuso dello streamer), il nemico è estratto dalla zona attraversata con XP entro la fascia Medio del livello del personaggio, lo scontro è risolto al momento dell'imboscata da un job con la porta `CombatResolver`; vittoria → il viaggio prosegue e il report porta XP e monete per fascia; sconfitta → HP ≥ 1 e ferite, rotta deviata verso la città più vicina al punto dell'imboscata, quest della corsia standard abbandonata, cibo non rimborsato; il report arriva a fine viaggio sulla pipeline dei risultati (mai perso, con conferma).
@@ -609,6 +617,6 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
 | 13. Generazione quest | 20/20 | Complete | 2026-11-04 |
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
-| 14. Viaggio e cibo | 0/0 | Not started | - |
+| 14. Viaggio e cibo | 0/8 | Planned | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
