@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 14 executing (started 2026-11-05, 0/8) on feat/14-viaggio-e-cibo, executors one at a time; the FE Phase 15 runs in parallel on mocks and waits for this phase's merge
+stopped_at: Phase 14 executed (8/8) on feat/14-viaggio-e-cibo, handoff for the FE Phase 15 written; PR to develop by the orchestrator after review → fix → security; the FE Phase 15 is unblocked at the merge
 last_updated: "2026-11-05T20:58:39.886Z"
 last_activity: 2026-11-05 -- Phase 14 execution started (0/8, executors one at a time)
 progress:
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 14 — Viaggio e cibo — EXECUTING (dal 2026-11-05, 8 piani in catena lineare, executor sequenziali sull'albero principale) su `feat/14-viaggio-e-cibo` (da `develop` `698ae82`, le merge delle PR #20/#21): fabbisogno ⌈durata/3 min⌉, selezione a scarto minimo (poi meno unità, poi minor valore), triangolare sui km scoperti per eccesso, rifiuto solo sotto 1 HP con `TRAVEL_STARVING`, anteprime con `food`/`hpLost`/`arrivesAlive` e query owner-only dedicata per la quest; SDL puramente additivo; nessun one-off al boot. La FE Phase 15 esegue in parallelo su mock e aspetta la merge di questa fase. Previous: Phase 13.1 — Correzioni generazione quest — COMPLETE and merged (PR #21, 2026-11-05; esito della UAT su device nella PR #22 docs).
+**Current focus:** Phase 14 — Viaggio e cibo — EXECUTED (8/8, 2026-11-05) su `feat/14-viaggio-e-cibo` (da `develop` `698ae82`): fabbisogno ⌈durata/3 min⌉, selezione a scarto minimo (poi meno unità, poi minor valore), triangolare sui km scoperti per eccesso, rifiuto solo sotto 1 HP con `TRAVEL_STARVING`, anteprime con `food`/`hpLost`/`arrivesAlive` e query owner-only nullable `questTravelPreview`; SDL puramente additivo; nessun one-off al boot. Handoff per la FE Phase 15 in `.planning/phases/14-viaggio-e-cibo/BACKEND-NOTES.md`; PR verso `develop` da aprire dopo review → fix → security; la FE Phase 15 (su mock) si sblocca alla merge. Previous: Phase 13.1 — Correzioni generazione quest — COMPLETE and merged (PR #21, 2026-11-05; esito della UAT su device nella PR #22 docs).
 
 ## Current Position
 
 Phase: 14 (Viaggio e cibo) — EXECUTING (started 2026-11-05) on `feat/14-viaggio-e-cibo` (from `develop` `698ae82`): 8 plans in a linear chain (`14-01`..`14-08`), executors one at a time on the main tree
 Plan: 7 of 8
-Status: Executing Phase 14 — 14-01..14-06 code, 14-07 gate, 14-08 handoff; PR to `develop` by the orchestrator after review → fix → security; Phase 13.1 merged (PR #21), its device UAT outcome in PR #22 (docs, open)
-Last activity: 2026-11-05 -- Phase 14 execution started (0/8, executors one at a time)
+Status: Phase 14 executed (8/8: 14-01..14-06 code, 14-07 gate, 14-08 handoff); PR to `develop` to be opened by the orchestrator after review → fix → security; the FE Phase 15 is unblocked at the merge; Phase 13.1 merged (PR #21), its device UAT outcome in PR #22 (docs, open)
+Last activity: 2026-11-05 -- Phase 14 executed (8/8), FE Phase 15 handoff written, PR to develop pending
 
 Progress: [░░░░░░░░░░] 0/8 plans of Phase 14 (phases 1–13, 9.1, 9.2 and 13.1 complete and merged on develop)
 

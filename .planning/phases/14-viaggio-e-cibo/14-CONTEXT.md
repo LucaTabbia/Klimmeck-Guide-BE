@@ -3,6 +3,7 @@
 **Gathered:** 2026-11-05 (discuss congiunto con la FE Phase 15, condotto dal repo FE; branch `feat/14-viaggio-e-cibo` da `develop` `698ae82`, la merge delle PR #20/#21)
 **Amended:** 2026-11-05 dopo la ricerca (`14-RESEARCH.md`, Pitfall 1–9, Open Questions 1–7): D-07, D-08, D-11, D-12 rivisti; D-16..D-20 aggiunti. Questo CONTEXT prevale sulla RESEARCH dove differiscono.
 **Status:** Ready for planning — i nomi del contratto (tipi, campi, query, codice) restano a discrezione del planner e vengono fissati in `14-REPO-RULES.md` prima della pianificazione; la FE Phase 15 li consuma dopo la merge di questa fase su `develop`.
+**Executed:** 2026-11-05, piani 14-01..14-08; handoff in `BACKEND-NOTES.md`; contratto come in `14-REPO-RULES.md`
 
 <domain>
 ## Phase Boundary

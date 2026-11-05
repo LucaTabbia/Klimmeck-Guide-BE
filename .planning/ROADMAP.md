@@ -544,6 +544,8 @@ Plans:
 - [x] 14-07-PLAN.md — Wave 7: gate (`test:cov` con le soglie per cartella, boot reale con SDL additivo, lint mirato, invarianti, VALIDATION firmata, BE-FOOD-01..06 completi) (BE-FOOD-01..06)
 - [ ] 14-08-PLAN.md — Wave 8: handoff `BACKEND-NOTES.md` per la FE 15, emendamento in coda al handoff della Phase 8, nota nel CONTEXT, stato in ROADMAP e STATE (BE-FOOD-06)
 
+**Stato (2026-11-05)**: 8/8 piani eseguiti; PR verso `develop` a cura dell'orchestratore; la FE Phase 15 parte dopo la merge (handoff in `.planning/phases/14-viaggio-e-cibo/BACKEND-NOTES.md`)
+
 ### Phase 15: Imboscate in viaggio
 **Goal**: Un viaggio può essere teso da un'imboscata: la probabilità cresce con i km e con la quota del viaggio che cade di notte (22–06 nel fuso dello streamer), il nemico è estratto dalla zona attraversata con XP entro la fascia Medio del livello del personaggio, lo scontro è risolto al momento dell'imboscata da un job con la porta `CombatResolver`; vittoria → il viaggio prosegue e il report porta XP e monete per fascia; sconfitta → HP ≥ 1 e ferite, rotta deviata verso la città più vicina al punto dell'imboscata, quest della corsia standard abbandonata, cibo non rimborsato; il report arriva a fine viaggio sulla pipeline dei risultati (mai perso, con conferma).
 **Depends on**: Phase 14 (punti d'innesto della partenza), Phase 13 (`enemies`, contesto multi-nemico), Phase 9 (`QuestResult`, delivery, ack, abbandono), Phase 8 (job di completamento, polilinea, reconciler/sweep)
