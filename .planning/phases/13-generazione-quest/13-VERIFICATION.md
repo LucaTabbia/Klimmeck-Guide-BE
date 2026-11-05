@@ -10,6 +10,7 @@ human_verification:
   - test: "Primo boot reale dal branch (differito, runbook di BACKEND-NOTES.md §11)"
     expected: "Da `feat/13-generazione-quest`: `npm ci`, `npm run build`, riavvio da `dist/`. Log nell'ordine di `QuestMaintenanceBoot`: `Nemici delle missioni: <q> missioni e <r> risultati migrati alla lista` (q circa 581, r circa 24); `Nemici: 22 leggendari e <n> ordinari marcati` (n circa 128); `Gioielli: 42 valorizzati` senza WARN di id mancanti; `Dungeon: <n> arricchite a tappe` (fino a 40); `Generatore: <n> missioni create (target <t>)` (circa 167, t = numero delle città). Poi i conteggi del §11 c (generated aperte circa target; `infos.enemy` e `enemy` dei risultati a 0; `legendary: true` 22; `accessoryUseTypes` array 42). Registrare le righe nel §11 e rimuovere i migratori una tantum (§11 d, commit `refactor(migrations): drop the one-off migrators after their run`) prima della merge"
     why_human: "Tocca il database reale e il processo BE dell'utente (da `dist/`); nessun esecutore della fase può farlo (REPO-RULES). Differita, non bloccante per la verifica"
+    outcome: "Eseguito il 2026-11-05 dall'orchestratore: log 581/24, 22/128, 42 senza WARN, 40 dungeon, 167 generate (target 167); conteggi a DB conformi (BACKEND-NOTES.md §11 b–c); migratori una tantum rimossi con f5d8134"
   - test: "UAT su device, differita alla FE Phase 14 (piano 14-11)"
     expected: "Tabellone con quest generate (titolo con nemici e città, annuncio nella voce del committente), `enemies` con quantità nel dettaglio quest e nel risultato, dungeon con `stagesCleared`/`stagesTotal`, eventuale pet ottenuto in `rewards.pet`, gioielli con `accessoryUseTypes`, pannello `generateQuests` per l'oste e `FORBIDDEN` per gli altri"
     why_human: "Esperienza di gioco sul device e sul DB reale dopo il primo boot; fuori dal perimetro della fase BE (nessun checkpoint umano)"
@@ -19,7 +20,7 @@ human_verification:
 
 **Phase Goal:** il tabellone si rifornisce da solo: il server genera e posiziona le quest consumabili `enemy` e `boss` su un POI libero di una città, tetto 3 per città, distribuzione non concentrata, rango meno coperto, nemici dalla zona del POI, premi per fascia e oggetti consigliati; le quest portano più nemici (`infos.enemies`); le dungeon si risolvono a tappe; pet come premio; `accessoryUseTypes` sui gioielli.
 **Verified:** 2026-11-04 (branch `feat/13-generazione-quest`, HEAD `c63ec7f`, base `develop` `0585b2e`, 120 commit, 119 file in `src`/`test`)
-**Status:** passed (nessun gap; primo boot reale e UAT su device differiti)
+**Status:** passed (nessun gap; primo boot reale eseguito il 2026-11-05 con esito conforme — `BACKEND-NOTES.md` §11 b–c, migratori una tantum rimossi con `f5d8134`; UAT su device differita alla FE 14-11)
 **Re-verification:** No
 
 ## Metodo
@@ -80,7 +81,7 @@ Nessun blocker. Il segnaposto del combattimento e dell'esplorazione delle dungeo
 
 ## Gaps Summary
 
-Nessun gap. Restano i due passi differiti in `human_verification`: primo boot reale col runbook (con rimozione dei migratori prima della merge) e UAT FE 14-11.
+Nessun gap. Dei due passi differiti in `human_verification`, il primo boot reale è stato eseguito il 2026-11-05 con esito conforme alle attese (log e conteggi nel §11 b–c del handoff; migratori una tantum rimossi con `f5d8134`); resta la UAT FE 14-11.
 
 ---
 

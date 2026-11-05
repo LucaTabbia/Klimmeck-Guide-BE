@@ -9,22 +9,22 @@ branch: feat/13-generazione-quest
 head: 080752b
 base: origin/develop (0585b2e)
 threats_total: 37
-threats_mitigated: 30
+threats_mitigated: 33
 threats_accepted: 4
-threats_transferred: 1
+threats_transferred: 0
 threats_open: 0
 threats_open_blocking: 0
-threats_deferred: 2
+threats_deferred: 0
 open_ids: []
-deferred_ids: [T-13-05, T-13-18]
-updated: 2026-11-04
+deferred_ids: []
+updated: 2026-11-05
 ---
 
 # Audit di sicurezza — Phase 13 «Generazione quest» (BE)
 
 Audit in sola lettura dei blocchi threat model dei piani `13-01`…`13-20` (37 ID `T-13-NN`, varianti `b`/`c` comprese, deduplicati: alcuni ID compaiono in più piani) sul codice FINALE di `feat/13-generazione-quest` a `080752b`, cioè dopo i fix di `REVIEW-FIX.md` (11 fixed, 3 `not_needed`). Nessun file modificato, nessun commit, nessuna suite integration, nessuna lettura di `.env` o dell'ambiente, nessun comando sul database. Le mitigazioni lato FE sarebbero `transferred` (14-CONTEXT): nessuna minaccia della fase ne dipende.
 
-Disposizioni: `mitigated` 30, `accepted` 4, `transferred` 1, `deferred` 2, `open` 0.
+Disposizioni: `mitigated` 33, `accepted` 4, `transferred` 0, `deferred` 0, `open` 0 (aggiornate il 2026-11-05: T-13-05 e T-13-18 chiuse dal primo boot reale, T-13-21b dalla rimozione dei migratori; al momento dell'audit erano 30 / 4 / 1 / 2 / 0).
 
 ## Registro delle minacce
 
@@ -36,7 +36,7 @@ Disposizioni: `mitigated` 30, `accepted` 4, `transferred` 1, `deferred` 2, `open
 | T-13-03 | T | `QuestEnemy` a DB | mitigated | `src/models/quest/quest-enemy.model.ts:11-21` (ObjectId con `ref`, `required`, `quantity` `min: 1`) | |
 | T-13-04 | D | `quests`/`questResult` | mitigated | `src/quests/quests.service.ts:24,37` (`dropOrphanCatalogRefs`), `src/quests/results/quest-results.service.ts:40` (`dropOrphanResultRefs`) | Orfani scartati prima della serializzazione |
 | T-13-04b | I | populate profondo | mitigated | `13-VERIFICATION.md` e `BACKEND-NOTES.md` §3 (profondità 1, nessun populate di `relatedLore`) | |
-| T-13-05 | T/D | `QuestEnemiesMigrator` | deferred | `src/quests/maintenance/quest-enemies.migrator.ts:52-60` (log solo conteggi), `quest-enemies.migrator.int-spec.ts`, `quest-maintenance.boot.ts:42-52` (errore non blocca il boot) | Provato solo sull'harness: la seconda corsa a 0 su dati reali si vede al primo boot reale (runbook §11 del handoff) |
+| T-13-05 | T/D | `QuestEnemiesMigrator` | mitigated | `src/quests/maintenance/quest-enemies.migrator.ts:52-60` (log solo conteggi), `quest-enemies.migrator.int-spec.ts`, `quest-maintenance.boot.ts` (errore non blocca il boot); primo boot reale del 2026-11-05: `Nemici delle missioni: 581 missioni e 24 risultati migrati alla lista`, poi 0 documenti col vecchio campo a DB e secondo boot silenzioso (`BACKEND-NOTES.md` §11 b–c) | Chiusa il 2026-11-05 (era deferred) |
 | T-13-05b | I | log delle migrazioni | mitigated | log di soli conteggi/id/`describeError`: `enemy-legendary.migrator.ts:72`, `dungeon-stages.migrator.ts:108,120`, `jewel-accessory.migrator.ts:124-131`, `quest-maintenance.boot.ts:49` | Nessun URI né documento intero |
 | T-13-05c | T | fixture | mitigated | regola di processo dei piani; `13-VERIFICATION.md` (suite verdi senza asserzioni riscritte) | |
 | T-13-06 | T | `readEnemies`/`enemyFactsOf` | mitigated | `src/quests/outcomes/quest-enemies.ts:30-41` (`validQuestEnemiesOf`: ref valido e quantità intera ≥ 1), `level-table.ts:2` (`MAX_XP`), proiezione B-IN-03 con `resolution-loader.service.spec.ts` | |
@@ -60,13 +60,13 @@ Disposizioni: `mitigated` 30, `accepted` 4, `transferred` 1, `deferred` 2, `open
 | T-13-16b | R | `generateQuests` | mitigated | `quest-generation.resolver.ts:14` (`@AuditTarget('QuestGeneration', () => null)`), `quest-generation.resolver.int-spec.ts:137` | |
 | T-13-17 | T | `ownedPets` | mitigated | `outcome-plan.ts:295-302,420` (`sameId` sullo snapshot, `$set` solo se cambia) | |
 | T-13-17b | E | tiro del pet | mitigated | `rewards/quest-rewards.ts:77,184-187` (solo pet a catalogo, `QUEST_PET_WIN_CHANCE = 0.2`, tiro server) | |
-| T-13-18 | T | `EnemyLegendary`/`DungeonStages`/`JewelAccessory` Migrator | deferred | `enemy-legendary.migrator.ts:39,57,63` (solo flag assente), `dungeon-stages.migrator.ts:147-149,172` (`startedAt: null`, minimo 2 tappe), `jewel-accessory.migrator.ts:115-116,136-155` (`_id` + `equipType` + campo assente); int-spec dedicate | Scritture deterministiche e condizionate, ma provate solo sull'harness: esito reale (`Gioielli: 42 valorizzati` senza WARN, dungeon, leggendari) al primo boot reale (runbook §11, §14 righe 4–9) |
+| T-13-18 | T | `EnemyLegendary`/`DungeonStages`/`JewelAccessory` Migrator | mitigated | primo boot reale del 2026-11-05: `Nemici: 22 leggendari e 128 ordinari marcati`, `Gioielli: 42 valorizzati` senza WARN, `Dungeon: 40 arricchite a tappe`; conteggi a DB conformi (`BACKEND-NOTES.md` §11 b–c); codice rimosso con `f5d8134` | Chiusa il 2026-11-05 (era deferred) |
 | T-13-18b | T | contesto del combattimento | mitigated | `equipment-item.model.ts:20-25` (enum), `quest-combat.int-spec.ts` | Lista malformata ⇒ null |
 | T-13-18c | D | boot | mitigated | `quest-maintenance.boot.ts:23-52` (ogni passo in `step()` con try/catch e `describeError`) | |
 | T-13-19 | I | segreti nel branch | mitigated | `grep -rnE "mongodb(\+srv)?://[^<\" ]*"` sui `.md` della fase: nessun URI reale; diff `.env.example` solo variabili vuote | `.env` non nel diff |
 | T-13-20 | R/T | attribuzione, regressioni | mitigated | `git log origin/develop..HEAD --format=%B \| grep -ciE "co-authored-by\|generated with"` → 0; codice una tantum isolato in `src/quests/maintenance/` | |
 | T-13-21 | I | runbook e handoff | mitigated | `BACKEND-NOTES.md` §11: solo placeholder, nessun URI | |
-| T-13-21b | T | codice una tantum nella PR | transferred | `BACKEND-NOTES.md` §11 e §14 (elenco dei file da rimuovere dopo il primo boot, prima della merge); Phase 12 D-25 | Di proprietà dell'orchestratore/operatore |
+| T-13-21b | T | codice una tantum nella PR | mitigated | rimozione eseguita il 2026-11-05 con `bdbf6bc` (RED) + `f5d8134` (10 file, −1352 righe): resta solo `QuestEnemiesMigrator`; `BACKEND-NOTES.md` §11 d | Chiusa il 2026-11-05 (era transferred) |
 
 ## Controlli trasversali
 
@@ -86,7 +86,7 @@ Disposizioni: `mitigated` 30, `accepted` 4, `transferred` 1, `deferred` 2, `open
 
 Nessuna.
 
-## Deferred
+## Deferred (chiuse il 2026-11-05)
 
-- `T-13-05`: idempotenza reale del `QuestEnemiesMigrator` su quest e risultati salvati, verificabile solo al primo boot reale dal branch (runbook §11).
-- `T-13-18`: esito reale dei migratori una tantum (leggendari, gioielli, tappe delle dungeon) al primo boot reale; poi rimozione del codice prima della merge (`T-13-21b`).
+- ~~`T-13-05`~~: chiusa il 2026-11-05 — primo boot reale con 581 missioni e 24 risultati migrati, 0 residui a DB, secondo boot silenzioso (`BACKEND-NOTES.md` §11 b–c).
+- ~~`T-13-18`~~: chiusa il 2026-11-05 — 22 leggendari e 128 ordinari, 42 gioielli senza WARN, 40/40 dungeon a tappe; codice rimosso con `f5d8134` (`T-13-21b` chiusa).

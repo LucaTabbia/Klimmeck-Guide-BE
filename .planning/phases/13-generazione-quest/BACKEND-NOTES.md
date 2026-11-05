@@ -5,7 +5,7 @@
 - **Branch:** `feat/13-generazione-quest` → PR verso `develop` (la apre l'orchestratore dopo review → fix → verifica → security).
 - **Schema:** rispetto a `origin/develop` lo SDL toglie **esattamente due righe** (`  enemy: Enemy` in `type QuestInfos` e in `type QuestResult`, D-01: modifica non additiva dichiarata) e aggiunge tutto il resto in modo additivo. Lo schema generato `src/schema.gql` vince su questo documento.
 - **Consumatore:** FE Phase 14 (`../Klimmeck-Guide/.planning/phases/14-quest-generation/14-CONTEXT.md`, FE D-01..D-16); i piani gated 14-10/14-11 (schema gate su `origin/develop:src/schema.gql`, E2E su device) partono dopo la merge di questa PR su `develop` (FE D-13).
-- **Primo boot reale:** NON ancora eseguito. Nessun esecutore della fase ha avviato il BE né toccato il database reale: il runbook è in §11 e va eseguito dal branch PRIMA della merge, poi i migratori una tantum escono dal repo (Phase 12 D-25).
+- **Primo boot reale:** eseguito il 2026-11-05 dall'orchestratore su richiesta dell'utente (log e conteggi in §11 b–c): 581 missioni e 24 risultati migrati alla lista, 22 leggendari e 128 ordinari marcati, 42 gioielli senza WARN, 40/40 dungeon a tappe, 167 missioni generate (target 167). I migratori una tantum sono usciti dal repo con `f5d8134` (§11 d, Phase 12 D-25): resta solo il `QuestEnemiesMigrator` permanente.
 - **Regola dei letterali:** operatori Mongo e letterali GraphQL solo in code span o blocchi di codice; nessun URI, host, nome di database né id reale: solo placeholder (`<uri>`, `<db>`, `<id>`).
 
 ---
@@ -361,12 +361,19 @@ npm run build
 
 - La corsa del generatore parte a dati pronti (leggendari esclusi, dungeon a tappe); anche lo sweeper chiede una corsa al boot: il single-flight le fonde, la riga del generatore compare una volta (una seconda corsa a mondo pieno non logga nulla).
 - Possibili WARN del generatore, innocue: `Generatore: POI <id> già occupato da un'altra corsa, si prosegue`.
-- **Riavvii successivi:** nessuna riga dei passi 1–4 (i filtri toccano solo i campi mancanti) e nessuna riga del generatore finché il mondo è pieno.
+- **Riavvii successivi:** nessuna riga dei passi 1–4 (i filtri toccano solo i campi mancanti) e nessuna riga del generatore finché il mondo è pieno. **Verificato il 2026-11-05 alle 08:06 col secondo boot dal codice finale (`f5d8134`, migratori una tantum rimossi): nessuna riga dei passi né del generatore, nessun ERROR, processo in ascolto sulla porta di sempre.**
 
 Registrare qui sotto, dopo il boot, le righe effettive del log (senza URI né host):
 
 ```
-<log del primo boot reale: righe 1–5>
+# 2026-11-05 07:51 — branch feat/13-generazione-quest @ a446b13, `nest build`, riavvio da dist/ sulla porta di sempre, env nuove lasciate vuote
+LOG [QuestEnemiesMigrator]   Nemici delle missioni: 581 missioni e 24 risultati migrati alla lista
+LOG [EnemyLegendaryMigrator] Nemici: 22 leggendari e 128 ordinari marcati
+LOG [JewelAccessoryMigrator] Gioielli: 42 valorizzati                      (nessuna WARN: tutti gli id della tabella trovati, tutti anelli o collane)
+LOG [DungeonStagesMigrator]  Dungeon: 40 arricchite a tappe                (nessuna saltata: nessuna WARN «minTitle non generabile»)
+LOG [NestApplication]        Nest application successfully started
+LOG [QuestGenerator]         Generatore: 167 missioni create (target 167)  (5 s dopo l'avvio; nessuna WARN «POI già occupato»)
+# nessuna riga ERROR «Manutenzione missioni: … fallita»; i passi 1–5 hanno impiegato ~9 s in tutto
 ```
 
 **(c) Verifiche dopo il boot.** Da un client GraphQL autenticato:
@@ -397,6 +404,20 @@ db.quests.aggregate([
 ])                                                                           // ranghi distribuiti, nessuno a 0 se il mondo lo consente
 ```
 
+Esito del 2026-11-05, subito dopo il primo boot (script di sola lettura dell'orchestratore, solo conteggi):
+
+```
+  167  quest generate aperte (target 167)
+    0  quest con il vecchio campo singolo del nemico      0  risultati con il vecchio campo singolo
+   22  nemici legendary: true                             0  nemici con legendary non booleano (150 nemici in tutto)
+   42  gioielli con accessoryUseTypes (array)
+   40  dungeon con almeno 2 tappe, su 40
+  748  quest in tutto (581 fisse + 167 generate)          0  quest generate con enemies vuoto
+  per rango: rookie 28, adventurer 28, paladin 28, mage 28, hero 28, legend 27
+  per tipo:  enemy 154 (51 in branco con quantity ≥ 2), boss 13
+  premi:     randomLoot, prizeCoins e xpPrize su 167/167; prizeItem 0 (il draft generato lo lascia a null per disegno); pet 0 su 13 boss (1 %, D-21)
+```
+
 **(d) Rimozione dei migratori una tantum PRIMA della merge** (Phase 12 D-25, T-13-21b), in un commit `refactor(migrations): drop the one-off migrators after their run` sul branch, con TDD verde:
 
 - `src/quests/maintenance/enemy-legendary.migrator.ts` + `src/quests/maintenance/enemy-legendary.migrator.int-spec.ts`
@@ -409,6 +430,8 @@ db.quests.aggregate([
 - **Resta** il migratore permanente `QuestEnemiesMigrator` (passo 1) con il lettore tollerante `validQuestEnemiesOf`: sweeper e processor possono leggere prima del migratore e i dati di un DB ripristinato da backup tornano in forma vecchia.
 - La corsa al boot resta: la chiede lo sweeper del generatore (`QuestGenerationSweeper`).
 - Dopo la rimozione: `npx tsc --noEmit -p tsconfig.json`, le spec di `src/quests/maintenance` (unit e integration), il real boot `test/app.int-spec.ts`, `npm run test:cov` (soglie invariate); lo SDL non cambia. Un boot dal codice finale deve essere silenzioso sui passi una tantum.
+
+**Eseguita il 2026-11-05 (orchestratore):** `bdbf6bc` (RED: `quest-maintenance.boot.spec.ts` ridotta ai due casi D-28 col costruttore a un parametro, 2 falliti per `TypeError` sui passi 2–5) + `f5d8134` (refactor: 10 file, −1352 righe; restano `quest-enemies.migration.ts`, `quest-enemies.migrator.ts` con la sua int-spec, boot, module e spec del boot). Gate: `npx tsc --noEmit` 0; `src/quests/maintenance` unit 2/2 e integration 5/5; real boot `test/app.int-spec.ts` 73/73 con `src/schema.gql` invariato; `npm run test:cov` 332 suite / 4192 test, soglie di coverage rispettate. Secondo boot dal codice finale alle 08:06: silenzioso sui passi una tantum e sul generatore, nessun ERROR (§11 b).
 
 **(e) Segreti.** Solo placeholder in questo documento (`<uri>`, `<db>`, `<id>`): i valori reali stanno nell'ambiente del processo, mai nel repo; il log del boot si registra senza URI né host.
 

@@ -106,7 +106,7 @@ created: 2026-11-04
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Primo boot del BE dal branch sul database reale: migrazione `enemy` → `enemies`, `Enemy.legendary` sui 22, `accessoryUseTypes` dei 42 gioielli, arricchimento delle 40 dungeon, prima corsa del generatore | BE-QGEN-01, 03, 09, 11 | la fase vieta di toccare il DB reale; lo esegue l'utente (o l'orchestratore su richiesta) col runbook di `BACKEND-NOTES.md` | build, riavvio da `dist/`, lettura dei log dei migratori e del generatore, poi rimozione dei migratori una tantum prima della merge (Phase 12 D-25) |
+| Primo boot del BE dal branch sul database reale: migrazione `enemy` → `enemies`, `Enemy.legendary` sui 22, `accessoryUseTypes` dei 42 gioielli, arricchimento delle 40 dungeon, prima corsa del generatore | BE-QGEN-01, 03, 09, 11 | la fase vieta di toccare il DB reale; lo esegue l'utente (o l'orchestratore su richiesta) col runbook di `BACKEND-NOTES.md` | build, riavvio da `dist/`, lettura dei log dei migratori e del generatore, poi rimozione dei migratori una tantum prima della merge (Phase 12 D-25). **Eseguito il 2026-11-05: esito conforme (`BACKEND-NOTES.md` §11 b–c), migratori rimossi con `f5d8134`** |
 | UAT su device della FE Phase 14 (foglio quest multi-nemico, esito con tappe, «Genera missioni», premio pet, «Uso» dei gioielli) | BE-QGEN-08 | richiede il device e la FE mergiata | piani gated della FE Phase 14 dopo la merge di questa PR |
 
 ---

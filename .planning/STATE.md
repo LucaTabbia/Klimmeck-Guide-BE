@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 13 complete (2026-11-04) — PR #19 feat/13-generazione-quest → develop open as DRAFT (pushed and opened 2026-11-05); first real boot from the branch + removal of the one-off migrators before the merge
+stopped_at: Phase 13 complete (2026-11-04) — PR #19 feat/13-generazione-quest → develop READY FOR REVIEW (2026-11-05): first real boot from the branch done (BACKEND-NOTES.md §11 b–c), one-off migrators removed (f5d8134); the FE Phase 14 plans 14-10/14-11 wait for the merge
 last_updated: "2026-11-04T21:33:03.000Z"
-last_activity: 2026-11-04 -- Phase 13 complete: review (0 critical / 3 warning / 11 info, 11 fix + 3 not needed), verification passed, security audit (37 threats, 0 open, 2 deferred to the first real boot), post-fix regression green (unit 214/2751, integration 122/1468)
+last_activity: 2026-11-05 -- first real boot from the branch (581/24 migrated, 22/128 legendary, 42 jewels, 40/40 dungeons, 167 generated), one-off migrators removed (f5d8134, test:cov 332/4192), second boot silent, PR #19 ready for review
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 13 — Generazione quest — EXECUTED 2026-11-04 (all 20 plans done; handoff and first-boot runbook in `BACKEND-NOTES.md`; PR after review → fix → verify → security, first real boot and one-off removal) (20 plans `13-01`..`13-20`, linear chain, one executor at a time on the main tree, never `npm run build`: the user's BE runs from `dist/`) on `feat/13-generazione-quest` (from `develop` `0585b2e`, the merge of PR #18); in parallel the FE Phase 14 plans 14-01..14-09 run on mocks; the one-off migrators of plans 16–17 leave the repo after the first real boot (runbook of plan 20); the FE gated plans 14-10/14-11 wait for this PR on `develop`. Previous: Phase 12 — Negozi per città — COMPLETE and merged (PR #18, `0585b2e`, 2026-11-03).
+**Current focus:** Phase 13 — Generazione quest — EXECUTED 2026-11-04 (all 20 plans done; handoff and first-boot runbook in `BACKEND-NOTES.md`; PR after review → fix → verify → security, first real boot and one-off removal) (20 plans `13-01`..`13-20`, linear chain, one executor at a time on the main tree, never `npm run build`: the user's BE runs from `dist/`) on `feat/13-generazione-quest` (from `develop` `0585b2e`, the merge of PR #18); in parallel the FE Phase 14 plans 14-01..14-09 run on mocks; the one-off migrators of plans 16–17 left the repo after the first real boot of 2026-11-05 (`f5d8134`); PR #19 ready for review; the FE gated plans 14-10/14-11 wait for its merge on `develop`. Previous: Phase 12 — Negozi per città — COMPLETE and merged (PR #18, `0585b2e`, 2026-11-03).
 
 ## Current Position
 
 Phase: 13 (Generazione quest) — EXECUTING (started 2026-11-04) on `feat/13-generazione-quest` (from `develop` `0585b2e`): 20 plans in a linear chain (`13-01`..`13-20`), executors one at a time on the main tree
 Plan: 20 of 20
-Status: Phase 13 complete (20/20) — review 0 critical / 3 warning / 11 info, 11 fix + 3 not needed; verification passed (0 gaps); security audit 37 threats, 0 open, 2 deferred to the first real boot; post-fix regression green; PR #19 feat/13-generazione-quest → develop open as DRAFT (pushed and opened 2026-11-05); BEFORE the merge the user runs the first real boot from the branch following the runbook (`BACKEND-NOTES.md` §11) and the one-off migrators leave the repo (§11 d); after the merge the FE Phase 14 resumes with 14-10/14-11
-Last activity: 2026-11-05 -- Phase 13 branch pushed and PR #19 opened as DRAFT; first real boot + one-off removal before the merge
+Status: Phase 13 complete (20/20) — review 0 critical / 3 warning / 11 info, 11 fix + 3 not needed; verification passed (0 gaps); security audit 37 threats, 0 open, 0 deferred (the 2 deferred closed by the first real boot); post-fix regression green; PR #19 feat/13-generazione-quest → develop READY FOR REVIEW since 2026-11-05 (first real boot done with the expected log and counts, `BACKEND-NOTES.md` §11 b–c; one-off migrators removed with `f5d8134`, test:cov 332/4192, second boot silent); after the merge the FE Phase 14 resumes with 14-10/14-11
+Last activity: 2026-11-05 -- first real boot from the branch (log and counts as expected), one-off migrators removed (f5d8134), test:cov 332/4192, second boot silent, PR #19 ready for review
 
 Progress: [██████████] 20/20 plans of Phase 13 (phases 1–12, 9.1 and 9.2 complete and merged on develop)
 
