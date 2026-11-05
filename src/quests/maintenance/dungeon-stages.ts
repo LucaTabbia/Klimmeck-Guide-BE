@@ -67,17 +67,28 @@ export function isCoherentDungeon(
     );
 }
 
-// zona del POI + city, `all` solo se la zona non ha nessuno sotto hi (D-08 della Phase 13)
-function stagePoolOf(
+// zona del POI + city, poi `all` come ripiego quando la zona non compone (D-08 della Phase 13, 13.1 D-07)
+function stagePoolsOf(
     enemies: readonly EnemyCandidate[],
     poiTypes: readonly string[],
     hi: number,
-): EnemyCandidate[] {
+): EnemyCandidate[][] {
     const fits = (enemy: EnemyCandidate) => enemy.xp >= 1 && enemy.xp <= hi;
     const zone = zonePoolOf(enemies, poiTypes).filter(fits);
-    return zone.length > 0
-        ? zone
-        : fallbackPoolOf(enemies, poiTypes).filter(fits);
+    const fallback = fallbackPoolOf(enemies, poiTypes).filter(fits);
+    const pools = fallback.length > zone.length ? [zone, fallback] : [zone];
+    return pools.filter((pool) => pool.length > 0);
+}
+
+// il conteggio tirato per primo, poi gli altri da min a max (13.1 D-07)
+function stageCountsOf(chance: ChanceSource): number[] {
+    const spread = DUNGEON_STAGES.max - DUNGEON_STAGES.min + 1;
+    const drawn = DUNGEON_STAGES.min + indexOf(spread, chance);
+    const others = Array.from(
+        { length: spread },
+        (_, index) => DUNGEON_STAGES.min + index,
+    ).filter((count) => count !== drawn);
+    return [drawn, ...others];
 }
 
 interface StageDraw {
@@ -145,28 +156,41 @@ function headOf(
     return { enemy: first.enemy, quantity: first.quantity };
 }
 
-// ordine dei tiri: il numero di tappe, poi un tiro per tappa estratta, per tentativo; senza riuscita col primo nemico si riprova senza
+function stagesFromPool(
+    pool: readonly EnemyCandidate[],
+    current: readonly DungeonStage[],
+    budget: XpBand,
+    counts: readonly number[],
+    chance: ChanceSource,
+): DungeonStage[] | null {
+    const byId = new Map(pool.map((enemy) => [enemy.id, enemy]));
+    const minXp = Math.min(...pool.map((enemy) => enemy.xp));
+    const head = headOf(current, byId, budget.max - minXp);
+    for (const first of head ? [head, null] : [null]) {
+        for (const count of counts) {
+            const draw = { pool, byId, budget, minXp, count, chance };
+            const stages = drawStages(first, draw);
+            if (stages !== null) return stages;
+        }
+    }
+    return null;
+}
+
+// ordine dei tiri: il numero di tappe (solo con un pool non vuoto), poi per pool [zona, all] → col primo nemico, poi senza →
+// per conteggio [tirato, poi gli altri da 2 a 4] → per tentativo un tiro per tappa estratta
 export function dungeonStagesOf(
     input: DungeonStagesInput,
 ): DungeonStage[] | null {
     const { rank, current, poiTypes, enemies, chance } = input;
+    const pools = stagePoolsOf(enemies, poiTypes, RANK_XP_BANDS[rank].max);
+    if (pools.length === 0) return null;
     const budget = budgetOf(rank, 1);
-    const pool = stagePoolOf(enemies, poiTypes, RANK_XP_BANDS[rank].max);
-    if (pool.length === 0) return null;
-    const byId = new Map(pool.map((enemy) => [enemy.id, enemy]));
-    const minXp = Math.min(...pool.map((enemy) => enemy.xp));
-    const spread = DUNGEON_STAGES.max - DUNGEON_STAGES.min + 1;
-    const draw: StageDraw = {
-        pool,
-        byId,
-        budget,
-        minXp,
-        count: DUNGEON_STAGES.min + indexOf(spread, chance),
-        chance,
-    };
-    const head = headOf(current, byId, budget.max - minXp);
-    const withHead = head ? drawStages(head, draw) : null;
-    return withHead ?? drawStages(null, draw);
+    const counts = stageCountsOf(chance);
+    for (const pool of pools) {
+        const stages = stagesFromPool(pool, current, budget, counts, chance);
+        if (stages !== null) return stages;
+    }
+    return null;
 }
 
 // template della Phase 11 (quest-titles.ts di b4983d7), riusato solo quando il primo nemico cambia (13.1 D-07)
