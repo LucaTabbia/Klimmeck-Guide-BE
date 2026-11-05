@@ -61,7 +61,7 @@ created: 2026-11-05
 | 14-06-03 | 06 | 6 | BE-FOOD-05 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 14-06-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 14-07-01 | 07 | 7 | BE-FOOD-01..06 | T-14-31, T-14-32, T-14-33, T-14-34, T-14-35 | suite e soglie verdi, SDL additivo, nessun segreto né trailer, esenzioni intatte | full + boot | `npx tsc --noEmit -p tsconfig.json && npm run test:cov && npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` | ✅ | ✅ green |
 | 14-07-02 | 07 | 7 | BE-FOOD-01..06 | — | N/A (firma e requisiti) | doc | `grep -q "nyquist_compliant: true" .planning/phases/14-viaggio-e-cibo/14-VALIDATION.md` | ✅ | ✅ green |
-| 14-07-03 | 07 | 7 | BE-FOOD-06 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 14-07-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 14-07-03 | 07 | 7 | BE-FOOD-06 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 14-07-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 14-08-01 | 08 | 8 | BE-FOOD-06 | T-14-36, T-14-38 | handoff senza URI né valori reali, SDL verbatim | doc | `grep -qF "type TravelFoodItem" .planning/phases/14-viaggio-e-cibo/BACKEND-NOTES.md` | ❌ (creato nel task) | ⬜ pending |
 | 14-08-02 | 08 | 8 | BE-FOOD-06 | T-14-37 | emendamenti solo in coda | doc | `grep -q "14-viaggio-e-cibo/BACKEND-NOTES.md" .planning/phases/08-travel-lifecycle-travel-01/BACKEND-NOTES.md` | ✅ | ⬜ pending |
 | 14-08-03 | 08 | 8 | BE-FOOD-06 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 14-08-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
