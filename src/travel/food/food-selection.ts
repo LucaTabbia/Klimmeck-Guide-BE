@@ -48,15 +48,23 @@ export function selectFood(
     };
 }
 
-// stack validi con la prima occorrenza di ogni id: applyTradeToInventory scala solo la prima voce
+// prima occorrenza di ogni id, valida o no, poi il filtro: applyTradeToInventory scala solo la prima voce
 function edibleStacksOf(stacks: readonly FoodStack[]): FoodStack[] {
-    const edible: FoodStack[] = [];
+    return firstEntriesOf(stacks)
+        .filter(isEdible)
+        .map((stack) => ({
+            ...stack,
+            sellCopper: sellCopperOf(stack.sellCopper),
+        }));
+}
+
+function firstEntriesOf(stacks: readonly FoodStack[]): FoodStack[] {
+    const first: FoodStack[] = [];
     for (const stack of stacks) {
-        if (!isEdible(stack)) continue;
-        if (edible.some((kept) => sameId(kept.itemId, stack.itemId))) continue;
-        edible.push({ ...stack, sellCopper: sellCopperOf(stack.sellCopper) });
+        if (first.some((kept) => sameId(kept.itemId, stack.itemId))) continue;
+        first.push(stack);
     }
-    return edible;
+    return first;
 }
 
 function isEdible({ power, quantity }: FoodStack): boolean {
