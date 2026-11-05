@@ -54,9 +54,9 @@ export function startTravelFilter(
 
 export function startTravelUpdate(
     travel: ActiveTravelDraft,
-    cost: Record<string, unknown> = {},
+    mealSet: Record<string, unknown> = {},
 ) {
-    return { $set: { 'status.activeTravel': travel, ...cost } };
+    return { $set: { 'status.activeTravel': travel, ...mealSet } };
 }
 
 // rilettura solo per scegliere il codice: una posizione cambiata senza viaggio né quest è un movimento concorrente
