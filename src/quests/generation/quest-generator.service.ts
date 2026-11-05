@@ -322,6 +322,14 @@ export class QuestGenerator extends QuestGenerationTrigger {
         return null;
     }
 
+    // fail-closed senza silenzio: un type scritto male a DB si vede nel log (13.1 D-04)
+    private warnUnknownTypes(cityIds: readonly string[]): void {
+        if (cityIds.length === 0) return;
+        this.logger.warn(
+            `Generatore: ${cityIds.length} città con tipo sconosciuto saltate (${cityIds.join(', ')})`,
+        );
+    }
+
     private async readWorld(): Promise<GenerationWorld> {
         const cities = await this.cityModel
             .find({})
@@ -350,6 +358,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
         );
         const poiCity = new Map<string, string>();
         const worldCities: WorldCity[] = [];
+        const unknownTypes: string[] = [];
         for (const city of cities) {
             const cityId = city._id.toHexString();
             const cityPois = (city.pointsOfInterest ?? [])
@@ -363,7 +372,10 @@ export class QuestGenerator extends QuestGenerationTrigger {
                     : poiById.get(markerLocation),
             );
             if (markerLocation === null || location === null) continue;
-            if (!isCityType(city.type)) continue;
+            if (!isCityType(city.type)) {
+                unknownTypes.push(cityId);
+                continue;
+            }
             worldCities.push({
                 id: cityId,
                 location,
@@ -376,6 +388,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
                 size: citySizeOf(city.type),
             });
         }
+        this.warnUnknownTypes(unknownTypes);
         const generated = openQuests.filter(
             (quest) => quest.generated === true,
         );
