@@ -944,6 +944,43 @@ describe('acceptQuest (wire)', () => {
         });
         expect(pending?.startDate).toBeNull();
     });
+    it('rejects a starving acceptance on the wire with the hunger message (D-11)', async () => {
+        const travel = await persistTravelWorld(
+            harness.connection,
+            harness.app.get(RoadsService),
+        );
+        const carol = await playerWith('starving-wire', {
+            location: travel.markerA,
+            lifePoints: 1,
+        });
+        const base = buildQuest();
+        const quest = await persistQuest(quests, {
+            infos: {
+                ...base.infos,
+                type: 'hunt',
+                markerLocation: travel.questPoi,
+                timeToComplete: 60000,
+            },
+            requirements: base.requirements,
+        });
+        const before = await rawCharacter(carol);
+
+        const body = await accept(
+            { id: characterIdOf(carol), questId: String(quest._id) },
+            carol.bearer,
+        );
+
+        expectRejected(
+            body,
+            'TRAVEL_STARVING',
+            'Non hai cibo a sufficienza per il viaggio',
+        );
+        expect(await rawCharacter(carol)).toEqual(before);
+        expect(await pendingQuests.countDocuments()).toBe(0);
+        expect(await pointsOf(carol)).toBe(RICH_BALANCE);
+        expect(queue.added).toEqual([]);
+    });
+
     describe('questTravelPreview (wire)', () => {
         async function previewQuestTravel(
             request: AcceptRequest,

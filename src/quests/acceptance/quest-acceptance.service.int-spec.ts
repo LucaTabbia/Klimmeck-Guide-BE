@@ -71,6 +71,8 @@ const ACCEPTED_AT = new Date('2026-03-04T05:06:07.000Z');
 const STARTING_COINS = { gold: 1, silver: 2, copper: 3 };
 // collection della mappa del viaggio: pre-create per le transazioni e svuotate dopo ogni test
 const TRAVEL_COLLECTIONS = ['lootitems', 'pets', 'pointsofinterest', 'roads'];
+// dispensa a grana fine: le unità mangiate sono il fabbisogno esatto
+const LARDER = 500;
 
 // liste scritte con il driver nei test, senza il cast di Mongoose
 interface RawQuestRegistrations {
@@ -1586,6 +1588,119 @@ describe('QuestAcceptanceService (replSet)', () => {
                     (await raw(missionHero))?.quests.activeWorldMissionQuest,
                 ).not.toBeNull();
                 expect(read).not.toHaveBeenCalled();
+            });
+
+            it('lets exactly one of two concurrent quest departures eat the same food (D-12)', async () => {
+                const food1 = await persistFood(lootItems, 1);
+                const food5 = await persistFood(lootItems, 5);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    {
+                        lifePoints: 100,
+                        ownedItems: [
+                            foodStack(food1, needed),
+                            foodStack(food5, 1),
+                        ],
+                    },
+                );
+                const firstId = await huntTo(travel.questPoi);
+                const secondId = await huntTo(travel.questPoi);
+
+                const results = await Promise.allSettled([
+                    accept(ownerId, charId, firstId),
+                    accept(ownerId, charId, secondId),
+                ]);
+
+                const rejected = results.filter((r) => r.status === 'rejected');
+                expect(
+                    results.filter((r) => r.status === 'fulfilled'),
+                ).toHaveLength(1);
+                expect(rejected).toHaveLength(1);
+                expect(['QUEST_SLOT_BUSY', 'TRAVEL_IN_PROGRESS']).toContain(
+                    codeOf(rejected[0]),
+                );
+                expect((await raw(charId))?.assets.ownedItems).toEqual([
+                    foodStack(food5, 1),
+                ]);
+                expect(await pendingCount()).toBe(1);
+                expect(queue.added).toHaveLength(1);
+            });
+
+            // la seconda lettura è la prima del callback: l'acquisto arriva dopo la lettura in sessione e prima del claim
+            it('keeps a concurrent non-food purchase made after the pantry read of the claim (D-20)', async () => {
+                const pantryReader = app.get(TravelPantryReader);
+                const food1 = await persistFood(lootItems, 1);
+                const potion = await persistLootItem(lootItems, {
+                    name: 'Pozione di prova',
+                });
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    {
+                        lifePoints: 100,
+                        ownedItems: [foodStack(food1, needed + 3)],
+                    },
+                );
+                const original = pantryReader.read.bind(pantryReader);
+                const read = jest
+                    .spyOn(pantryReader, 'read')
+                    .mockImplementation(async (characterId, session) => {
+                        const pantry = await original(characterId, session);
+                        if (read.mock.calls.length === 2)
+                            await characters.updateOne(
+                                { _id: characterId },
+                                {
+                                    $push: {
+                                        'assets.ownedItems': foodStack(
+                                            potion,
+                                            1,
+                                        ),
+                                    },
+                                },
+                            );
+                        return pantry;
+                    });
+
+                await accept(ownerId, charId, await huntTo(travel.questPoi));
+
+                expect((await raw(charId))?.assets.ownedItems).toEqual([
+                    foodStack(food1, 3),
+                    foodStack(potion, 1),
+                ]);
+                expect(read.mock.calls.length).toBeGreaterThanOrEqual(3);
+                expect(read.mock.calls[1][1]).not.toBeNull();
+            });
+
+            it('feeds the slower march of an injured character (D-01)', async () => {
+                const food1 = await persistFood(lootItems, 1);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    {
+                        ownedItems: [foodStack(food1, LARDER)],
+                    },
+                );
+                await characters.collection.updateOne(
+                    { _id: charId },
+                    { $set: { 'status.injuries': ['brokenLeftLeg'] } },
+                );
+
+                await accept(ownerId, charId, await huntTo(travel.questPoi));
+
+                const injured = foodNeededFor(
+                    durationMsOf(route.baseHours, BASE_SPEED * 0.8),
+                );
+                expect((await raw(charId))?.assets.ownedItems).toEqual([
+                    foodStack(food1, LARDER - injured),
+                ]);
+                expect(injured).toBeGreaterThan(needed);
             });
         });
 
