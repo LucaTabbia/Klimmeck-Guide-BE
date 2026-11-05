@@ -227,7 +227,7 @@ describe('QuestGenerator (replSet)', () => {
         });
     });
 
-    it('skips a city with an unknown type and keeps it in the target (D-04)', async () => {
+    it('skips a city with an unknown type, warns once with its id and keeps it in the target (D-04)', async () => {
         const world = await persistGenerationWorld(models, {
             cities: 1,
             poisPerCity: 3,
@@ -256,8 +256,17 @@ describe('QuestGenerator (replSet)', () => {
             }),
             type: 'atlantis',
         });
+        const warn = jest
+            .spyOn(Logger.prototype, 'warn')
+            .mockImplementation(() => {});
 
         await expect(generatorWith().generate()).resolves.toBe(2);
+        expect(warn.mock.calls).toEqual([
+            [
+                `Generatore: 1 città con tipo sconosciuto saltate (${unknownId.toHexString()})`,
+            ],
+        ]);
+        warn.mockRestore();
         const markers = (await generatedQuests()).map(
             (quest) => quest.infos.markerLocation,
         );
