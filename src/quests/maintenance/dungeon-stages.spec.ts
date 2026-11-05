@@ -6,6 +6,7 @@ import {
     RANK_XP_BANDS,
 } from 'src/quests/generation/generation-rules';
 import { keyedChance } from 'src/quests/generation/seeded-chance';
+import { SequenceChance } from '../../../test/quests/sequence-chance';
 import {
     DUNGEON_STAGES,
     DUNGEON_STAGES_SEED,
@@ -130,6 +131,17 @@ function stagesFor(
         enemies: options.enemies ?? CATALOG,
         chance: keyedChance(DUNGEON_STAGES_SEED, key),
     });
+}
+
+function xpWithin(
+    stages: readonly DungeonStage[],
+    enemies: readonly EnemyCandidate[],
+): number {
+    const byId = new Map(enemies.map((enemy) => [enemy.id, enemy]));
+    return stages.reduce(
+        (sum, entry) => sum + (byId.get(entry.enemy)?.xp ?? 0) * entry.quantity,
+        0,
+    );
 }
 
 function everyStages(
@@ -274,6 +286,47 @@ describe('dungeon stages v2', () => {
                 (stages ?? []).filter((entry) => !anywhere.has(entry.enemy)),
             ).toEqual([]);
         }
+    });
+
+    it('uses more stages when the drawn count cannot reach the budget (D-07)', () => {
+        const goblins = [
+            candidate('Capo goblin', 63, ['forest']),
+            candidate('Sciamano goblin', 63, ['forest']),
+        ];
+        const budget = budgetOf(TitleType.mage, 1);
+
+        const stages = dungeonStagesOf({
+            rank: TitleType.mage,
+            current: [],
+            poiTypes: FOREST,
+            enemies: goblins,
+            chance: new SequenceChance([0.0]),
+        });
+
+        expect(stages).not.toBeNull();
+        expect(stages).toHaveLength(DUNGEON_STAGES.max);
+        expect(xpWithin(stages ?? [], goblins)).toBeGreaterThanOrEqual(
+            budget.min,
+        );
+        expect(xpWithin(stages ?? [], goblins)).toBeLessThanOrEqual(budget.max);
+    });
+
+    it('falls back to the all habitat when the zone cannot fill the budget (D-07)', () => {
+        const sprite = candidate('Folletto', 7, ['forest']);
+        const wanderer = candidate('Errante', 99, ['all']);
+        const enemies = [sprite, wanderer];
+        const budget = budgetOf(TitleType.paladin, 1);
+
+        const stages = stagesFor(TitleType.paladin, KEYS[0], { enemies });
+
+        expect(stages).not.toBeNull();
+        expect((stages ?? []).map((entry) => entry.enemy)).toContain(
+            wanderer.id,
+        );
+        expect(xpWithin(stages ?? [], enemies)).toBeGreaterThanOrEqual(
+            budget.min,
+        );
+        expect(xpWithin(stages ?? [], enemies)).toBeLessThanOrEqual(budget.max);
     });
 
     it('returns null when no stage fits the budget (D-07)', () => {
