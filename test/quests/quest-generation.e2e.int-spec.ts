@@ -33,6 +33,7 @@ import {
     GenerationWorld,
     persistGenerationWorld,
     QUIET_GENERATION_OVERRIDES,
+    seatViolationsOf,
 } from './generation-world';
 
 const SEED = 7;
@@ -364,5 +365,20 @@ describe('quest generation end to end (replSet)', () => {
                 expect(typeof entry.enemy.id).toBe('string');
             }
         }
+    });
+
+    // ultimo caso: il seme è condiviso, così i tiri dei casi precedenti non cambiano
+    it('writes one seat on every generated enemy quest, boss excepted (D-09)', async () => {
+        await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
+        config.target = 12;
+
+        await expect(generate()).resolves.toBe(12);
+
+        const created = await generatedQuests();
+        expect(
+            created.filter((quest) => quest.infos.type === QuestType.enemy)
+                .length,
+        ).toBeGreaterThan(0);
+        expect(seatViolationsOf(created)).toEqual([]);
     });
 });

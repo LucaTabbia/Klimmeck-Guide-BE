@@ -4,6 +4,7 @@ import { QUEST_GENERATION_CONFIG } from 'src/config/quest-generation-config';
 import type { QuestGenerationConfig } from 'src/config/quest-generation-config';
 import { CitySize } from 'src/models/enums/city-size.enum';
 import { CityType } from 'src/models/enums/city-type.enum';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { QuestGenerationSweeper } from 'src/quests/generation/quest-generation.sweeper';
 import type { ProviderOverride } from '../auth/auth-test-app';
@@ -272,4 +273,31 @@ export function generatedPerCityOf(
         counts[key] = (counts[key] ?? 0) + 1;
     }
     return counts;
+}
+
+export interface SeatedQuest {
+    infos: { type: string };
+    requirements: {
+        minTitle?: string | null;
+        requiredAdventurers: { title: string | null; count: number }[];
+    };
+}
+
+// enemy a un solo posto del rango, boss da due posti in su (13.1 D-09); ritorna le quest fuori regola
+export function seatViolationsOf(quests: readonly SeatedQuest[]): string[] {
+    return quests.flatMap(({ infos, requirements }) => {
+        const { minTitle, requiredAdventurers } = requirements;
+        const [seat] = requiredAdventurers;
+        const exact =
+            requiredAdventurers.length === 1 && seat.title === minTitle;
+        const ok =
+            infos.type === QuestType.boss
+                ? exact && seat.count >= 2
+                : exact && seat.count === 1;
+        if (ok) return [];
+        const seats = requiredAdventurers
+            .map(({ title, count }) => `${title}x${count}`)
+            .join(',');
+        return [`${infos.type}/${minTitle}/${seats}`];
+    });
 }

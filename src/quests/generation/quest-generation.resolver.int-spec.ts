@@ -24,6 +24,8 @@ import {
     GenerationModels,
     persistGenerationWorld,
     QUIET_GENERATION_OVERRIDES,
+    SeatedQuest,
+    seatViolationsOf,
 } from '../../../test/quests/generation-world';
 
 const GENERATE = 'mutation { generateQuests { created } }';
@@ -151,5 +153,17 @@ describe('generateQuests (replSet)', () => {
                 outcome: 'ok',
             });
         }
+    });
+
+    // ultimo caso: il seme è condiviso, così i tiri dei casi precedenti non cambiano
+    it('writes one seat on every enemy quest of an innkeeper run (D-09)', async () => {
+        const body = await generateAs(await bearerOf(RoleType.innkeeper));
+
+        expect(body.errors).toBeUndefined();
+        const created = await quests
+            .find({ generated: true })
+            .lean<SeatedQuest[]>();
+        expect(created.length).toBeGreaterThan(0);
+        expect(seatViolationsOf(created)).toEqual([]);
     });
 });

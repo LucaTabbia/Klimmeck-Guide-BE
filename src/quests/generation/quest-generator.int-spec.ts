@@ -43,6 +43,7 @@ import {
     HERO_BAND_ENEMY_XPS,
     persistGenerationWorld,
     QUIET_GENERATION_CONFIG,
+    seatViolationsOf,
     STANDARD_ENEMY_XPS,
     WORLD_HABITAT,
 } from '../../../test/quests/generation-world';
@@ -377,7 +378,7 @@ describe('QuestGenerator (replSet)', () => {
         }
     });
 
-    it('keeps every generated enemy quest within the seat budget (D-03)', async () => {
+    it('keeps every generated enemy quest on one seat within the budget (D-03, D-09)', async () => {
         await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
 
         await expect(generatorWith({ target: 12 }).generate()).resolves.toBe(
@@ -398,6 +399,7 @@ describe('QuestGenerator (replSet)', () => {
                 0,
             );
         const created = await generatedQuests();
+        expect(seatViolationsOf(created)).toEqual([]);
 
         for (const quest of created) {
             const rank = quest.requirements.minTitle as GeneratedRank;
@@ -406,12 +408,10 @@ describe('QuestGenerator (replSet)', () => {
                 expect(xpOf(quest)).toBeGreaterThan(RANK_XP_BANDS[rank].max);
                 continue;
             }
-            const seats = quest.requirements.requiredAdventurers[0]?.count;
-            expect([1, 2]).toContain(seats);
             expect(quest.requirements.requiredAdventurers).toEqual([
-                { title: rank, count: seats },
+                { title: rank, count: 1 },
             ]);
-            const budget = budgetOf(rank, seats);
+            const budget = budgetOf(rank, 1);
             expect(xpOf(quest)).toBeGreaterThanOrEqual(budget.min);
             expect(xpOf(quest)).toBeLessThanOrEqual(budget.max);
         }
