@@ -17,6 +17,7 @@ const candidate = (
     relatedLore: [],
     baseWeaknesses: [],
     energyWeaknesses: [],
+    animal: false,
     ...overrides,
 });
 
@@ -62,13 +63,26 @@ describe('enemy pool of a point of interest', () => {
         expect(idsOf(fallbackPoolOf(enemies, ['forest']))).toEqual(['l5']);
     });
 
-    it('includes the animals of the zone (D-08)', () => {
+    it('excludes the animals of the zone and of the fallback pool (D-01)', () => {
         const wolf = candidate('a1', ['forest'], {
             name: 'Lupo',
             relatedLore: ['animali'],
+            animal: true,
         });
+        const bear = candidate('a2', ['all'], {
+            name: 'Orso',
+            relatedLore: ['animali'],
+            animal: true,
+        });
+        const bandit = candidate('a3', ['forest'], {
+            name: 'Bandito',
+            relatedLore: ['l1'],
+            animal: false,
+        });
+        const enemies = [wolf, bear, bandit];
 
-        expect(zonePoolOf([wolf], ['forest'])).toEqual([wolf]);
+        expect(zonePoolOf(enemies, ['forest'])).toEqual([bandit]);
+        expect(fallbackPoolOf(enemies, ['forest'])).toEqual([bandit]);
     });
 
     it('ignores the city type of the marker when the poi has its own zones (D-08)', () => {

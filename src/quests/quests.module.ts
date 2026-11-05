@@ -1,5 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import {
+    Character,
+    CharacterSchema,
+} from 'src/models/character/character.model';
+import { City, CitySchema } from 'src/models/city.model';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import {
     EquipmentItem,
@@ -8,12 +13,17 @@ import {
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
 import {
+    PendingQuest,
+    PendingQuestSchema,
+} from 'src/models/pending-quest.model';
+import {
     PointOfInterest,
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
+import { User, UserSchema } from 'src/models/user.model';
 import { QuestsPublisher } from './quests.publisher';
 import { QuestsResolver } from './quests.resolver';
 import { QuestsService } from './quests.service';
@@ -30,6 +40,11 @@ import { QuestsService } from './quests.service';
             { name: LootItem.name, schema: LootItemSchema },
             { name: Spell.name, schema: SpellSchema },
             { name: Pet.name, schema: PetSchema },
+            // registrati localmente come push.module.ts: nessun change stream, i moduli degli utenti e dei personaggi non si importano (13.1 D-05)
+            { name: User.name, schema: UserSchema },
+            { name: Character.name, schema: CharacterSchema },
+            { name: PendingQuest.name, schema: PendingQuestSchema },
+            { name: City.name, schema: CitySchema },
         ]),
     ],
     providers: [QuestsService, QuestsResolver, QuestsPublisher],

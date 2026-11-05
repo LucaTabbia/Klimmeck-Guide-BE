@@ -9,7 +9,7 @@ import {
 } from 'src/quests/generation/generated-prizes';
 import { GeneratedRank } from 'src/quests/generation/generation-rules';
 
-// rarità massima dei consigliati per fascia, come dungeonLootRarity della Phase 11 (D-27); legend come hero
+// rarità massima dei consigliati per fascia, come dungeonLootRarity della Phase 11 (D-27)
 export const RECOMMENDED_LOOT_RARITY: Readonly<
     Record<GeneratedRank, RarityType>
 > = {
@@ -18,7 +18,6 @@ export const RECOMMENDED_LOOT_RARITY: Readonly<
     paladin: RarityType.rare,
     mage: RarityType.ultrarare,
     hero: RarityType.legendary,
-    legend: RarityType.legendary,
 };
 
 export const RECOMMENDED_WEAPONS = 2;

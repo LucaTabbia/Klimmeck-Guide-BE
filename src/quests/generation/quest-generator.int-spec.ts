@@ -7,29 +7,43 @@ import {
 } from 'src/config/quest-generation-config';
 import { City } from 'src/models/city.model';
 import { Enemy } from 'src/models/enemy.model';
+import { CitySize } from 'src/models/enums/city-size.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { EquipmentItem } from 'src/models/equipment-item.model';
 import { LootItem } from 'src/models/loot-item.model';
+import { Lore } from 'src/models/lore.model';
 import { Pet } from 'src/models/pet.model';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { QuestGenerationTrigger } from 'src/quests/generation/quest-generation-trigger';
 import { QuestGenerationTriggerModule } from 'src/quests/generation/quest-generation-trigger.module';
+import {
+    budgetOf,
+    GeneratedRank,
+    RANK_XP_BANDS,
+} from 'src/quests/generation/generation-rules';
 import { QuestGenerator } from 'src/quests/generation/quest-generator.service';
+import { readEnemyCandidates } from 'src/quests/generation/enemy-candidate';
 import { SeededChanceSource } from 'src/quests/generation/seeded-chance';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import {
     AuthTestApp,
     createAuthTestApp,
 } from '../../../test/auth/auth-test-app';
-import { buildQuest, persistEnemy } from '../../../test/fixtures';
+import {
+    buildCity,
+    buildQuest,
+    persistEnemy,
+    persistPoi,
+} from '../../../test/fixtures';
 import {
     GenerationModels,
     GenerationWorld,
     HERO_BAND_ENEMY_XPS,
     persistGenerationWorld,
     QUIET_GENERATION_CONFIG,
+    seatViolationsOf,
     STANDARD_ENEMY_XPS,
     WORLD_HABITAT,
 } from '../../../test/quests/generation-world';
@@ -68,6 +82,7 @@ describe('QuestGenerator (replSet)', () => {
             models.pois as never,
             (options.questModel ?? quests) as never,
             models.enemies as never,
+            models.lore as never,
             models.equipment as never,
             models.loot as never,
             models.pets as never,
@@ -128,6 +143,7 @@ describe('QuestGenerator (replSet)', () => {
             cities: modelOf(City.name),
             pois: modelOf(PointOfInterest.name),
             enemies: modelOf(Enemy.name),
+            lore: modelOf(Lore.name),
             equipment: modelOf(EquipmentItem.name),
             loot: modelOf(LootItem.name),
             pets: modelOf(Pet.name),
@@ -178,20 +194,91 @@ describe('QuestGenerator (replSet)', () => {
         expect(await quests.countDocuments({ generated: true })).toBe(4);
     });
 
-    it('never exceeds three generated quests per city (D-15)', async () => {
+    it('caps a capital at four generated quests (D-04)', async () => {
         const world = await persistGenerationWorld(models, {
             cities: 2,
             poisPerCity: 5,
         });
 
-        await expect(generatorWith({ target: 10 }).generate()).resolves.toBe(6);
+        await expect(generatorWith({ target: 10 }).generate()).resolves.toBe(8);
         const perCity = countBy(await generatedQuests(), (quest) =>
             cityOfPoi(world, quest.infos.markerLocation),
         );
         expect(perCity).toEqual({
-            [world.cities[0].id.toHexString()]: 3,
-            [world.cities[1].id.toHexString()]: 3,
+            [world.cities[0].id.toHexString()]: 4,
+            [world.cities[1].id.toHexString()]: 4,
         });
+    });
+
+    it('caps the generated quests by city size (D-04)', async () => {
+        const world = await persistGenerationWorld(models, {
+            cities: 3,
+            poisPerCity: 5,
+            sizes: [CitySize.village, CitySize.city, CitySize.capital],
+        });
+
+        await expect(generatorWith({ target: 10 }).generate()).resolves.toBe(7);
+        const perCity = countBy(await generatedQuests(), (quest) =>
+            cityOfPoi(world, quest.infos.markerLocation),
+        );
+        expect(perCity).toEqual({
+            [world.cities[0].id.toHexString()]: 1,
+            [world.cities[1].id.toHexString()]: 2,
+            [world.cities[2].id.toHexString()]: 4,
+        });
+    });
+
+    it('skips a city with an unknown type, warns once with its id and keeps it in the target (D-04)', async () => {
+        const world = await persistGenerationWorld(models, {
+            cities: 1,
+            poisPerCity: 3,
+        });
+        const unknownId = new Types.ObjectId();
+        const marker = await persistPoi(models.pois, {
+            type: ['city'],
+            location: [1000, 1000],
+            city: unknownId,
+        });
+        const unknownPois: Types.ObjectId[] = [];
+        for (let poi = 0; poi < 3; poi += 1) {
+            const created = await persistPoi(models.pois, {
+                type: [WORLD_HABITAT],
+                location: [1001 + poi, 1001 + poi],
+                city: unknownId,
+            });
+            unknownPois.push(created._id as Types.ObjectId);
+        }
+        await models.cities.collection.insertOne({
+            ...buildCity({
+                _id: unknownId,
+                name: 'Atlantide',
+                markerLocation: marker._id,
+                pointsOfInterest: [marker._id, ...unknownPois],
+            }),
+            type: 'atlantis',
+        });
+        const warn = jest
+            .spyOn(Logger.prototype, 'warn')
+            .mockImplementation(() => {});
+
+        await expect(generatorWith().generate()).resolves.toBe(2);
+        expect(warn.mock.calls).toEqual([
+            [
+                `Generatore: 1 città con tipo sconosciuto saltate (${unknownId.toHexString()})`,
+            ],
+        ]);
+        warn.mockRestore();
+        const markers = (await generatedQuests()).map(
+            (quest) => quest.infos.markerLocation,
+        );
+        expect(
+            markers.filter((id) => unknownPois.some((poi) => poi.equals(id))),
+        ).toEqual([]);
+        expect(
+            countBy(await generatedQuests(), (quest) =>
+                cityOfPoi(world, quest.infos.markerLocation),
+            ),
+        ).toEqual({ [world.cities[0].id.toHexString()]: 2 });
     });
 
     it('never places a quest on the city marker or on a poi with an open quest (D-15)', async () => {
@@ -259,23 +346,28 @@ describe('QuestGenerator (replSet)', () => {
         expect(first.requirements.minTitle).toBe(TitleType.adventurer);
     });
 
-    it('rotates every rank, legend included, on an empty world (D-15)', async () => {
+    it('rotates the five ranks and never generates a legend quest (D-02)', async () => {
         await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
 
         await expect(generatorWith({ target: 12 }).generate()).resolves.toBe(
             12,
         );
         const created = await generatedQuests();
+        const perRank = countBy(
+            created,
+            (quest) => quest.requirements.minTitle,
+        );
+        expect(Object.keys(perRank).sort()).toEqual(
+            ['adventurer', 'hero', 'mage', 'paladin', 'rookie'].sort(),
+        );
+        for (const count of Object.values(perRank)) {
+            expect(count).toBeGreaterThanOrEqual(2);
+        }
         expect(
-            countBy(created, (quest) => quest.requirements.minTitle),
-        ).toEqual({
-            rookie: 2,
-            adventurer: 2,
-            paladin: 2,
-            mage: 2,
-            hero: 2,
-            legend: 2,
-        });
+            created.filter(
+                (quest) => quest.requirements.minTitle === TitleType.legend,
+            ),
+        ).toEqual([]);
         for (const quest of created) {
             expect(quest.requirements.requiredAdventurers).toEqual([
                 {
@@ -283,6 +375,45 @@ describe('QuestGenerator (replSet)', () => {
                     count: quest.requirements.requiredAdventurers[0].count,
                 },
             ]);
+        }
+    });
+
+    it('keeps every generated enemy quest on one seat within the budget (D-03, D-09)', async () => {
+        await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
+
+        await expect(generatorWith({ target: 12 }).generate()).resolves.toBe(
+            12,
+        );
+        const xps = new Map(
+            (
+                await models.enemies
+                    .find({})
+                    .lean<{ _id: Types.ObjectId; xp: number }[]>()
+            ).map((enemy) => [enemy._id.toHexString(), enemy.xp]),
+        );
+        const xpOf = (quest: LeanQuest): number =>
+            quest.infos.enemies.reduce(
+                (sum, entry) =>
+                    sum +
+                    (xps.get(entry.enemy.toHexString()) ?? 0) * entry.quantity,
+                0,
+            );
+        const created = await generatedQuests();
+        expect(seatViolationsOf(created)).toEqual([]);
+
+        for (const quest of created) {
+            const rank = quest.requirements.minTitle as GeneratedRank;
+            if (quest.infos.type === QuestType.boss) {
+                expect(quest.infos.enemies).toHaveLength(1);
+                expect(xpOf(quest)).toBeGreaterThan(RANK_XP_BANDS[rank].max);
+                continue;
+            }
+            expect(quest.requirements.requiredAdventurers).toEqual([
+                { title: rank, count: 1 },
+            ]);
+            const budget = budgetOf(rank, 1);
+            expect(xpOf(quest)).toBeGreaterThanOrEqual(budget.min);
+            expect(xpOf(quest)).toBeLessThanOrEqual(budget.max);
         }
     });
 
@@ -453,6 +584,49 @@ describe('QuestGenerator (replSet)', () => {
             relatedLore: [],
             baseWeaknesses: [],
             energyWeaknesses: [],
+        });
+
+        await expect(generatorWith({ target: 4 }).generate()).resolves.toBe(0);
+        expect(await quests.countDocuments()).toBe(0);
+    });
+
+    it('leaves the animals out of every generated quest (D-01)', async () => {
+        const world = await persistGenerationWorld(models, {
+            cities: 4,
+            poisPerCity: 3,
+            animalXps: STANDARD_ENEMY_XPS,
+            enemyLore: true,
+        });
+        const animalIds = world.animalIds.map((id) => id.toHexString());
+
+        await expect(generatorWith({ target: 12 }).generate()).resolves.toBe(
+            12,
+        );
+        const members = (await generatedQuests()).flatMap((quest) =>
+            quest.infos.enemies.map((entry) => entry.enemy.toHexString()),
+        );
+        expect(members.length).toBeGreaterThan(0);
+        expect(members.filter((id) => animalIds.includes(id))).toEqual([]);
+
+        const candidates = await readEnemyCandidates(
+            models.enemies as never,
+            models.lore as never,
+        );
+        const animalOf = new Map(
+            candidates.map((candidate) => [candidate.id, candidate.animal]),
+        );
+        expect(animalOf.get(world.enemyIds[0].toHexString())).toBe(false);
+        expect(animalIds.map((id) => animalOf.get(id))).toEqual(
+            animalIds.map(() => true),
+        );
+    });
+
+    it('creates nothing when only animals live in the zone (D-01)', async () => {
+        await persistGenerationWorld(models, {
+            cities: 2,
+            poisPerCity: 2,
+            enemyXps: [],
+            animalXps: [30, 250],
         });
 
         await expect(generatorWith({ target: 4 }).generate()).resolves.toBe(0);

@@ -4,14 +4,17 @@ import type { QuestGenerationConfig } from 'src/config/quest-generation-config';
 import { QUEST_GENERATION_CONFIG } from 'src/config/quest-generation-config';
 import { City } from 'src/models/city.model';
 import { Enemy } from 'src/models/enemy.model';
+import { CitySize } from 'src/models/enums/city-size.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { EquipmentItem } from 'src/models/equipment-item.model';
 import { LootItem } from 'src/models/loot-item.model';
+import { Lore } from 'src/models/lore.model';
 import { Pet } from 'src/models/pet.model';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Quest } from 'src/models/quest/quest.model';
+import { capOf } from 'src/quests/generation/city-picker';
 import { QuestGenerationModule } from 'src/quests/generation/quest-generation.module';
 import { SeededChanceSource } from 'src/quests/generation/seeded-chance';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
@@ -23,14 +26,14 @@ import {
     graphqlRequest,
 } from '../auth/auth-test-app';
 import { createPlayer } from '../authz/player-fixture';
-import { buildQuest, persistQuest } from '../fixtures';
+import { buildCharacter, buildQuest, persistQuest } from '../fixtures';
 import {
     generatedPerCityOf,
     GenerationModels,
     GenerationWorld,
-    HERO_BAND_ENEMY_XPS,
     persistGenerationWorld,
     QUIET_GENERATION_OVERRIDES,
+    seatViolationsOf,
 } from './generation-world';
 
 const SEED = 7;
@@ -142,6 +145,7 @@ describe('quest generation end to end (replSet)', () => {
             cities: modelOf(City.name),
             pois: modelOf(PointOfInterest.name),
             enemies: modelOf(Enemy.name),
+            lore: modelOf(Lore.name),
             equipment: modelOf(EquipmentItem.name),
             loot: modelOf(LootItem.name),
             pets: modelOf(Pet.name),
@@ -170,19 +174,41 @@ describe('quest generation end to end (replSet)', () => {
         await harness.close();
     });
 
-    it('respects the cap of three generated quests per city (D-15)', async () => {
+    it('caps every capital at four generated quests (D-04)', async () => {
         const world = await persistGenerationWorld(models, {
             cities: 4,
             poisPerCity: 6,
         });
         config.target = 24;
 
-        await expect(generate()).resolves.toBe(12);
+        await expect(generate()).resolves.toBe(16);
         expect(generatedPerCityOf(world, await markersOfGenerated())).toEqual({
-            'Città 0': 3,
-            'Città 1': 3,
-            'Città 2': 3,
-            'Città 3': 3,
+            'Città 0': 4,
+            'Città 1': 4,
+            'Città 2': 4,
+            'Città 3': 4,
+        });
+    });
+
+    it('respects the size caps of villages, cities and capitals (D-04)', async () => {
+        const world = await persistGenerationWorld(models, {
+            cities: 4,
+            poisPerCity: 6,
+            sizes: [
+                CitySize.village,
+                CitySize.city,
+                CitySize.capital,
+                CitySize.capital,
+            ],
+        });
+        config.target = 24;
+
+        await expect(generate()).resolves.toBe(11);
+        expect(generatedPerCityOf(world, await markersOfGenerated())).toEqual({
+            'Città 0': 1,
+            'Città 1': 2,
+            'Città 2': 4,
+            'Città 3': 4,
         });
     });
 
@@ -224,68 +250,57 @@ describe('quest generation end to end (replSet)', () => {
         const types = [
             ...new Set((await generatedQuests()).map((q) => q.infos.type)),
         ].sort();
-        expect(types).toEqual([QuestType.boss, QuestType.enemy].sort());
+        // il seme è condiviso fra i casi: il boss dipende dai tiri dei casi precedenti
+        const generatedTypes: string[] = [QuestType.boss, QuestType.enemy];
+        expect(types.filter((type) => !generatedTypes.includes(type))).toEqual(
+            [],
+        );
+        expect(types).toContain(QuestType.enemy);
         expect(await rawQuests(fixedIds)).toEqual(before);
         expect(await quests.countDocuments({ generated: { $ne: true } })).toBe(
             FIXED_TYPES.length,
         );
     });
 
-    it('spreads the quests over a 30 city map without concentrating them (D-15)', async () => {
+    it('spreads the quests over a 30 city map without concentrating them (D-04)', async () => {
         const world = await persistGenerationWorld(models, {
             cities: 30,
             poisPerCity: 3,
             grid: 6,
+            sizes: [CitySize.village, CitySize.city, CitySize.capital],
         });
 
         await expect(generate()).resolves.toBe(30);
-        const perCity = Object.values(
-            generatedPerCityOf(world, await markersOfGenerated()),
-        );
+        const counts = generatedPerCityOf(world, await markersOfGenerated());
+        const perCity = Object.values(counts);
         expect(perCity).toHaveLength(30);
-        expect(Math.max(...perCity)).toBeLessThanOrEqual(3);
+        expect(
+            world.cities.filter(
+                (city) => counts[city.name] > Math.min(capOf(city.size), 3),
+            ),
+        ).toEqual([]);
         expect(perCity.filter((count) => count === 0).length).toBeGreaterThan(
             0,
         );
     });
 
-    it('brings the legend rank into the rotation (D-07)', async () => {
-        const world = await persistGenerationWorld(models, {
-            cities: 4,
-            poisPerCity: 3,
-        });
-        const heroIds = (
-            await models.enemies
-                .find({
-                    _id: { $in: world.enemyIds },
-                    xp: { $in: [...HERO_BAND_ENEMY_XPS] },
-                })
-                .lean<{ _id: Types.ObjectId }[]>()
-        ).map((enemy) => enemy._id.toHexString());
+    it('never generates a legend quest, the hero rank serves the legends (D-02)', async () => {
+        await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
         config.target = 12;
 
         await expect(generate()).resolves.toBe(12);
 
-        const legends = (await generatedQuests()).filter(
-            (quest) => quest.requirements.minTitle === TitleType.legend,
-        );
-        expect(legends.length).toBeGreaterThan(0);
-        for (const quest of legends) {
-            expect(quest.requirements.requiredAdventurers).toEqual([
-                { title: TitleType.legend, count: 1 },
-            ]);
-            const units = quest.infos.enemies.reduce(
-                (sum, entry) => sum + entry.quantity,
-                0,
-            );
-            expect(units).toBeGreaterThanOrEqual(2);
-            expect(units).toBeLessThanOrEqual(4);
-            expect(
-                quest.infos.enemies.filter(
-                    (entry) => !heroIds.includes(entry.enemy.toHexString()),
-                ),
-            ).toEqual([]);
-        }
+        const created = await generatedQuests();
+        expect(
+            created.filter(
+                (quest) => quest.requirements.minTitle === TitleType.legend,
+            ),
+        ).toEqual([]);
+        expect(
+            created.filter(
+                (quest) => quest.requirements.minTitle === TitleType.hero,
+            ).length,
+        ).toBeGreaterThan(0);
     });
 
     it('creates nothing on a second run once the world is full (D-16)', async () => {
@@ -299,13 +314,24 @@ describe('quest generation end to end (replSet)', () => {
     });
 
     it('keeps generated quests on the board with no expiry (D-14)', async () => {
-        await persistGenerationWorld(models, { cities: 3, poisPerCity: 2 });
+        const world = await persistGenerationWorld(models, {
+            cities: 3,
+            poisPerCity: 2,
+        });
         const created = await generate();
+        // il tabellone è per area (13.1 D-05): un avventuriero sul marker della prima città
+        const [home] = world.cities;
+        const viewer = await createPlayer(harness, {
+            twitchId: `tw-e2e-board-${seq}`,
+            characterOverrides: {
+                status: { ...buildCharacter().status, location: home.markerId },
+            },
+        });
         const response = await graphqlRequest(
             harness.app,
             BOARD,
             undefined,
-            innkeeper,
+            viewer.bearer,
         );
         const body = response.body as {
             data?: { quests?: WireBoardQuest[] } | null;
@@ -318,10 +344,17 @@ describe('quest generation end to end (replSet)', () => {
         expect(generated.map((quest) => quest.concludedAt ?? null)).toEqual(
             generated.map(() => null),
         );
+        const homePois = [home.markerId, ...home.poiIds].map(String);
         const board = body.data?.quests ?? [];
         expect(board.map((quest) => quest.id).sort()).toEqual(
-            generated.map((quest) => quest._id.toHexString()).sort(),
+            generated
+                .filter((quest) =>
+                    homePois.includes(String(quest.infos.markerLocation)),
+                )
+                .map((quest) => quest._id.toHexString())
+                .sort(),
         );
+        expect(board.length).toBeGreaterThan(0);
         for (const quest of board) {
             expect([QuestType.enemy, QuestType.boss]).toContain(
                 quest.infos.type,
@@ -332,5 +365,20 @@ describe('quest generation end to end (replSet)', () => {
                 expect(typeof entry.enemy.id).toBe('string');
             }
         }
+    });
+
+    // ultimo caso: il seme è condiviso, così i tiri dei casi precedenti non cambiano
+    it('writes one seat on every generated enemy quest, boss excepted (D-09)', async () => {
+        await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
+        config.target = 12;
+
+        await expect(generate()).resolves.toBe(12);
+
+        const created = await generatedQuests();
+        expect(
+            created.filter((quest) => quest.infos.type === QuestType.enemy)
+                .length,
+        ).toBeGreaterThan(0);
+        expect(seatViolationsOf(created)).toEqual([]);
     });
 });

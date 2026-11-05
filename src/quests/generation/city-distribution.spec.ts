@@ -1,6 +1,7 @@
+import { CitySize } from 'src/models/enums/city-size.enum';
 import {
     CityNode,
-    MAX_GENERATED_PER_CITY,
+    capOf,
     cityWeightOf,
     densityOf,
     neighboursOf,
@@ -13,7 +14,8 @@ import { ChanceSource } from 'src/quests/outcomes/chance-source';
 const GRID_COLUMNS = 6;
 const GRID_ROWS = 5;
 const GRID_STEP = 10;
-const POIS_PER_CITY = 3;
+const POIS_PER_CITY = 4;
+const SIZES = [CitySize.village, CitySize.city, CitySize.capital];
 const SEED = 13;
 
 interface Simulation {
@@ -35,8 +37,20 @@ const gridOf = (hasFreePois: (index: number) => boolean = () => true) =>
                   (__, poi) => `${id}-p${poi}`,
               )
             : [];
-        return { id, location, freePoiIds };
+        return { id, location, freePoiIds, size: SIZES[index % SIZES.length] };
     });
+
+const capsOf = (grid: readonly CityNode[]): number[] =>
+    grid.map((city) => capOf(city.size));
+
+const picksIn = (
+    grid: readonly CityNode[],
+    generated: ReadonlyMap<string, number>,
+    size: CitySize,
+): number =>
+    grid
+        .filter((city) => city.size === size)
+        .reduce((sum, city) => sum + (generated.get(city.id) ?? 0), 0);
 
 const weightsOf = (
     nodes: readonly CityNode[],
@@ -90,7 +104,7 @@ function simulate(
 }
 
 describe('city distribution', () => {
-    it('spreads one quest per city on average without concentrating them (D-15)', () => {
+    it('spreads the quests by size without exceeding any cap (D-04)', () => {
         const grid = gridOf();
         const { generated, picks } = simulate(
             grid,
@@ -98,34 +112,35 @@ describe('city distribution', () => {
             new SeededChanceSource(SEED),
         );
         const counts = grid.map((city) => generated.get(city.id) ?? 0);
-        const neighbours = neighboursOf(grid);
-        const densities = grid.map((city) =>
-            densityOf(city.id, neighbours, generated),
-        );
+        const caps = capsOf(grid);
 
         expect(picks).toHaveLength(30);
         expect(new Set(picks).size).toBe(30);
-        expect(Math.max(...counts)).toBeLessThanOrEqual(MAX_GENERATED_PER_CITY);
+        expect(counts.filter((count, index) => count > caps[index])).toEqual(
+            [],
+        );
         expect(counts.filter((count) => count === 0).length).toBeGreaterThan(0);
-        expect(Math.max(...densities)).toBeLessThanOrEqual(12);
+        expect(picksIn(grid, generated, CitySize.capital)).toBeGreaterThan(
+            picksIn(grid, generated, CitySize.village),
+        );
     });
 
-    it('fills every city up to the cap when the target allows it (D-15)', () => {
+    it('fills every city up to its size cap when the target allows it (D-04)', () => {
         const grid = gridOf();
         const { generated, picks, remainingWeight } = simulate(
             grid,
-            90,
+            70,
             new SeededChanceSource(SEED),
         );
 
-        expect(picks).toHaveLength(90);
+        expect(picks).toHaveLength(70);
         expect(grid.map((city) => generated.get(city.id) ?? 0)).toEqual(
-            grid.map(() => MAX_GENERATED_PER_CITY),
+            capsOf(grid),
         );
         expect(remainingWeight).toBe(0);
     });
 
-    it('never picks a city without a free poi (D-15)', () => {
+    it('never picks a city without a free poi (D-04)', () => {
         const grid = gridOf((index) => index % 2 === 0);
         const empty = grid
             .filter((city) => city.freePoiIds.length === 0)
@@ -138,7 +153,7 @@ describe('city distribution', () => {
 
         expect(empty).toHaveLength(15);
         expect(empty.filter((id) => generated.has(id))).toEqual([]);
-        expect(picks).toHaveLength(45);
+        expect(picks).toHaveLength(5 * 1 + 5 * 2 + 5 * 4);
     });
 
     it('repeats the same distribution for the same seed (D-17)', () => {

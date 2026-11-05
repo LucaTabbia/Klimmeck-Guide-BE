@@ -40,6 +40,34 @@ const paladin = (count: number): RankSlot => ({
     count,
 });
 const anyRank = (count: number): RankSlot => ({ title: null, count });
+const legend = (count: number): RankSlot => ({
+    title: TitleType.legend,
+    count,
+});
+const seat = (title: TitleType, count: number): RankSlot => ({
+    title,
+    count,
+});
+
+function FOLDED_LEGEND(legendSeats: number) {
+    return { $min: [COUNT('legend'), legendSeats] };
+}
+
+// 13.1 D-08: con posti hero i legend oltre i posti legend contano sui posti hero
+function FOLDED_COUNT(title: string) {
+    if (title === 'hero') return FOLDED_HERO(0);
+    if (title === 'legend') return FOLDED_LEGEND(0);
+    return COUNT(title);
+}
+
+function FOLDED_HERO(legendSeats: number) {
+    return {
+        $add: [
+            COUNT('hero'),
+            { $max: [0, { $subtract: [COUNT('legend'), legendSeats] }] },
+        ],
+    };
+}
 
 describe('quest capacity (D-32)', () => {
     describe('slotsOf', () => {
@@ -229,7 +257,136 @@ describe('quest capacity (D-32)', () => {
                 ),
             ).toEqual({
                 $or: [
-                    { $lt: [COUNT('hero'), 1] },
+                    { $lt: [FOLDED_HERO(0), 1] },
+                    {
+                        $lt: [
+                            {
+                                $add: TITLES.map((u) => ({
+                                    $max: [
+                                        0,
+                                        {
+                                            $subtract: [
+                                                FOLDED_COUNT(u),
+                                                u === 'hero' ? 1 : 0,
+                                            ],
+                                        },
+                                    ],
+                                })),
+                            },
+                            2,
+                        ],
+                    },
+                ],
+            });
+        });
+    });
+
+    describe('legend on hero seats (13.1 D-08)', () => {
+        it('lets a legend take a hero seat (D-08)', () => {
+            expect(hasSeatFor(ruleOf(hero(1)), [], TitleType.legend)).toBe(
+                true,
+            );
+            expect(
+                hasSeatFor(
+                    ruleOf(hero(2)),
+                    registered('legend'),
+                    TitleType.hero,
+                ),
+            ).toBe(true);
+            expect(
+                hasSeatFor(
+                    ruleOf(hero(1)),
+                    registered('legend'),
+                    TitleType.hero,
+                ),
+            ).toBe(false);
+            expect(
+                hasSeatFor(
+                    ruleOf(hero(1)),
+                    registered('hero'),
+                    TitleType.legend,
+                ),
+            ).toBe(false);
+            expect(
+                isFullForEveryone(ruleOf(hero(1)), registered('legend')),
+            ).toBe(true);
+        });
+
+        it('fills the legend seats before the hero seats (D-08)', () => {
+            const rule = ruleOf(legend(1), hero(1));
+
+            expect(
+                hasSeatFor(rule, registered('legend'), TitleType.legend),
+            ).toBe(true);
+            expect(hasSeatFor(rule, registered('legend'), TitleType.hero)).toBe(
+                true,
+            );
+            expect(
+                hasSeatFor(
+                    rule,
+                    registered('legend', 'legend'),
+                    TitleType.hero,
+                ),
+            ).toBe(false);
+            expect(
+                hasSeatFor(
+                    rule,
+                    registered('legend', 'legend'),
+                    TitleType.legend,
+                ),
+            ).toBe(false);
+        });
+
+        it('counts a legend on a hero seat before the wildcards (D-08)', () => {
+            const rule = ruleOf(hero(1), anyRank(1));
+
+            expect(
+                hasSeatFor(rule, registered('legend'), TitleType.paladin),
+            ).toBe(true);
+            expect(
+                hasSeatFor(
+                    rule,
+                    registered('legend', 'legend'),
+                    TitleType.paladin,
+                ),
+            ).toBe(false);
+        });
+
+        it('scales no other title (D-08)', () => {
+            const admitted: string[] = [];
+            for (const title of Object.values(TitleType)) {
+                for (const rank of Object.values(TitleType)) {
+                    if (rank === title) continue;
+                    if (title === TitleType.legend && rank === TitleType.hero) {
+                        continue;
+                    }
+                    if (hasSeatFor(ruleOf(seat(rank, 1)), [], title)) {
+                        admitted.push(`${title} on ${rank}`);
+                    }
+                }
+            }
+
+            expect(admitted).toEqual([]);
+        });
+
+        it('mirrors the legend on hero seats in the registration filter (D-08)', () => {
+            expect(
+                seatAvailableExpr(ruleOf(hero(1)), TitleType.legend),
+            ).toEqual({
+                $cond: [
+                    { $lt: [COUNT('legend'), 0] },
+                    { $lt: [FOLDED_LEGEND(0), 0] },
+                    { $lt: [FOLDED_HERO(0), 1] },
+                ],
+            });
+            expect(
+                seatAvailableExpr(
+                    ruleOf(paladin(1), anyRank(1)),
+                    TitleType.legend,
+                ),
+            ).toEqual({
+                $or: [
+                    { $lt: [COUNT('legend'), 0] },
                     {
                         $lt: [
                             {
@@ -239,13 +396,13 @@ describe('quest capacity (D-32)', () => {
                                         {
                                             $subtract: [
                                                 COUNT(u),
-                                                u === 'hero' ? 1 : 0,
+                                                u === 'paladin' ? 1 : 0,
                                             ],
                                         },
                                     ],
                                 })),
                             },
-                            2,
+                            1,
                         ],
                     },
                 ],

@@ -1,6 +1,8 @@
 import { Inject } from '@nestjs/common';
 import { Args, Query, Resolver, Subscription } from '@nestjs/graphql';
 import type { PubSub } from '@graphql-yoga/subscription';
+import type { AuthIdentity } from 'src/auth/auth-identity';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { subscribeWithSnapshot } from 'src/graphql/subscribe-with-snapshot';
 import { Quest } from 'src/models/quest/quest.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
@@ -14,9 +16,10 @@ export class QuestsResolver {
         @Inject(PUB_SUB) private readonly pubSub: PubSub<PubSubEvents>,
     ) {}
 
+    // tabellone per area del personaggio corrente (13.1 D-05): l'identità viene solo dal token
     @Query(() => [Quest])
-    async quests(): Promise<Quest[]> {
-        return this.questsService.findAll();
+    async quests(@CurrentUser() identity: AuthIdentity): Promise<Quest[]> {
+        return this.questsService.findForViewer(identity.userId);
     }
 
     @Query(() => Quest)
@@ -24,7 +27,7 @@ export class QuestsResolver {
         return this.questsService.findOne(id);
     }
 
-    // board pubblica per ogni utente autenticato: snapshot alla subscribe come pendingRequestsUpdated, poi un evento a ogni update;
+    // quest(id) e questUpdated restano leggibili per id da ogni utente autenticato (13.1 D-05): snapshot alla subscribe come pendingRequestsUpdated, poi un evento a ogni update;
     // id malformato ⇒ BAD_USER_INPUT dalla pipe; quest conclusa ⇒ NOT_FOUND come quest(id)
     @Subscription(() => Quest, { name: 'questUpdated' })
     questUpdated(

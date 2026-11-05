@@ -36,6 +36,7 @@ function candidate(name: string, relatedLore: string[] = []): EnemyCandidate {
         relatedLore,
         baseWeaknesses: [],
         energyWeaknesses: [],
+        animal: false,
     };
 }
 
@@ -115,18 +116,18 @@ describe('generatedQuestDraftOf', () => {
         expect(draft.infos.title).toBe('Boss: Orco presso Atheland');
     });
 
-    it('builds a legend quest with an exact legend seat (D-09)', () => {
+    it('never writes more than one seat on an enemy quest, boss excepted (13.1 D-09)', () => {
         const draft = draftOf(
-            composition(QuestType.enemy, TitleType.legend, 1, [
+            composition(QuestType.enemy, TitleType.mage, 2, [
                 { enemy: ORC, quantity: 2 },
                 { enemy: WOLF, quantity: 1 },
             ]),
         );
 
         expect(draft.requirements.requiredAdventurers).toEqual([
-            { title: TitleType.legend, count: 1 },
+            { title: TitleType.mage, count: 1 },
         ]);
-        expect(draft.requirements.minTitle).toBe(TitleType.legend);
+        expect(draft.requirements.minTitle).toBe(TitleType.mage);
     });
 
     it('marks the quest as generated and open (D-17)', () => {

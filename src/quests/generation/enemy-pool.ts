@@ -8,14 +8,16 @@ export interface EnemyCandidate {
     relatedLore: readonly string[];
     baseWeaknesses: readonly string[];
     energyWeaknesses: readonly string[];
+    // calcolato dalla lore `animal` del nemico, mai un campo di Enemy (13.1 D-01)
+    animal: boolean;
 }
 
 const CITY_HABITAT = 'city';
 const ANYWHERE = 'all';
 
-// C5: fail-closed, un nemico senza flag non entra finché l'utente non lo marca a DB (D-04)
+// fail-closed sui leggendari (D-04 della Phase 13); animali solo nelle hunt (13.1 D-01)
 const isGeneratable = (enemy: EnemyCandidate): boolean =>
-    enemy.legendary === false;
+    enemy.legendary === false && enemy.animal === false;
 
 const byId = (a: EnemyCandidate, b: EnemyCandidate): number =>
     a.id.localeCompare(b.id);
@@ -31,7 +33,7 @@ function livesIn(enemy: EnemyCandidate, poiTypes: readonly string[]): boolean {
 const livesAnywhere = (enemy: EnemyCandidate): boolean =>
     enemy.locations.includes(ANYWHERE);
 
-// D-08: «nei dintorni della città» = zone del POI + habitat city; animali inclusi
+// D-08: «nei dintorni della città» = zone del POI + habitat city; animali esclusi (13.1 D-01)
 export function zonePoolOf(
     enemies: readonly EnemyCandidate[],
     poiTypes: readonly string[],

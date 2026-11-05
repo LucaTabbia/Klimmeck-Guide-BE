@@ -6,7 +6,10 @@ import {
     GeneratedAssetRef,
     GeneratedPrizes,
 } from 'src/quests/generation/generated-prizes';
-import { GeneratedRank } from 'src/quests/generation/generation-rules';
+import {
+    ENEMY_SEATS,
+    GeneratedRank,
+} from 'src/quests/generation/generation-rules';
 import { Composition } from 'src/quests/generation/quest-composition';
 import {
     announcementOf,
@@ -71,6 +74,10 @@ export interface GeneratedQuestDraft {
 
 const objectIdOf = (hex: string): Types.ObjectId => new Types.ObjectId(hex);
 
+// enemy sempre a un posto; il boss tiene i posti della formula (13.1 D-09)
+const seatsOf = (composition: Composition): number =>
+    composition.type === QuestType.enemy ? ENEMY_SEATS : composition.seats;
+
 const assetOf = (ref: GeneratedAssetRef): GeneratedAssetQuantity => ({
     itemType: ref.itemType,
     item: objectIdOf(ref.item),
@@ -110,9 +117,9 @@ export function generatedQuestDraftOf(
         requirements: {
             minTitle: composition.rank,
             requiredPoints: null,
-            // posti a titolo esatto (D-09 emendata): nessun jolly, anche per legend
+            // posti a titolo esatto (D-09 emendata): nessun jolly
             requiredAdventurers: [
-                { title: composition.rank, count: composition.seats },
+                { title: composition.rank, count: seatsOf(composition) },
             ],
             recommendedLoot: input.recommendedLoot.map(assetOf),
         },

@@ -2,6 +2,7 @@ import { TitleType } from 'src/models/enums/title-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { EnemyCandidate } from 'src/quests/generation/enemy-pool';
 import {
+    budgetOf,
     GENERATED_RANKS,
     GeneratedRank,
     MAX_PACK_UNITS,
@@ -29,6 +30,7 @@ const enemy = (
     relatedLore: [],
     baseWeaknesses: [],
     energyWeaknesses: [],
+    animal: false,
 });
 
 const bandito = enemy('a01', 'Bandito', 4);
@@ -73,9 +75,6 @@ const xpOf = (composition: Composition): number =>
         (sum, entry) => sum + entry.enemy.xp * entry.quantity,
         0,
     );
-
-const isPack = (composition: Composition): boolean =>
-    composition.type === QuestType.enemy && unitsOf(composition) >= 2;
 
 const seededCompositions = (
     rank: GeneratedRank,
@@ -133,36 +132,110 @@ describe('composition of generated quests', () => {
         }
     });
 
-    it('never packs enemies of the band or above (D-07)', () => {
-        const ranks = GENERATED_RANKS.filter(
-            (rank) => rank !== TitleType.legend,
-        );
-        let packs = 0;
+    it('stays within the one-seat budget of every rank (D-03, D-09)', () => {
+        let enemies = 0;
 
-        for (const rank of ranks) {
-            const band = RANK_XP_BANDS[rank];
+        for (const rank of GENERATED_RANKS) {
             for (const composition of seededCompositions(rank, catalog)) {
-                if (composition === null || !isPack(composition)) continue;
-                packs += 1;
-                expect(composition.enemies.length).toBeLessThanOrEqual(3);
+                if (composition?.type !== QuestType.enemy) continue;
+                enemies += 1;
+                const budget = budgetOf(rank, 1);
+                expect(composition.seats).toBe(1);
+                expect(xpOf(composition)).toBeGreaterThanOrEqual(budget.min);
+                expect(xpOf(composition)).toBeLessThanOrEqual(budget.max);
                 expect(unitsOf(composition)).toBeLessThanOrEqual(
                     MAX_PACK_UNITS,
                 );
-                expect(xpOf(composition)).toBeGreaterThanOrEqual(band.min);
-                expect(xpOf(composition)).toBeLessThanOrEqual(band.max);
                 for (const entry of composition.enemies) {
-                    expect(entry.enemy.xp).toBeLessThan(band.min);
+                    expect(entry.enemy.xp).toBeLessThanOrEqual(
+                        RANK_XP_BANDS[rank].max,
+                    );
                 }
             }
         }
 
-        expect(packs).toBeGreaterThan(0);
+        expect(enemies).toBeGreaterThan(0);
+    });
+
+    it('never composes a member above the band of the rank (D-03)', () => {
+        const above: string[] = [];
+
+        for (const rank of GENERATED_RANKS) {
+            for (const composition of seededCompositions(rank, catalog)) {
+                if (composition?.type !== QuestType.enemy) continue;
+                for (const entry of composition.enemies) {
+                    if (entry.enemy.xp > RANK_XP_BANDS[rank].max) {
+                        above.push(`${rank}/${entry.enemy.name}`);
+                    }
+                }
+            }
+        }
+
+        expect(above).toEqual([]);
+    });
+
+    it('draws members of the weaker bands into the budget (D-03)', () => {
+        const band = RANK_XP_BANDS.paladin;
+        const members = seededCompositions(TitleType.paladin, catalog)
+            .filter((composition) => composition?.type === QuestType.enemy)
+            .map((composition) =>
+                (composition as Composition).enemies.map(
+                    (entry) => entry.enemy.xp,
+                ),
+            );
+
+        expect(members.some((xps) => xps.some((xp) => xp < band.min))).toBe(
+            true,
+        );
+        expect(
+            members.some((xps) =>
+                xps.some((xp) => xp >= band.min && xp <= band.max),
+            ),
+        ).toBe(true);
+    });
+
+    it('never composes more than one seat for an enemy quest (D-09)', () => {
+        const seats: string[] = [];
+        let enemies = 0;
+
+        for (const rank of GENERATED_RANKS) {
+            const budget = budgetOf(rank, 1);
+            for (const composition of seededCompositions(rank, catalog)) {
+                if (composition?.type !== QuestType.enemy) continue;
+                enemies += 1;
+                if (composition.seats !== 1) {
+                    seats.push(`${rank}/${composition.seats}`);
+                }
+                expect(xpOf(composition)).toBeGreaterThanOrEqual(budget.min);
+                expect(xpOf(composition)).toBeLessThanOrEqual(budget.max);
+            }
+        }
+
+        expect(enemies).toBeGreaterThan(0);
+        expect(seats).toEqual([]);
+    });
+
+    it('draws a boss only above the band with the clamped seats (D-03)', () => {
+        const aboleth = enemy('e01', 'Aboleth', 831);
+
+        expect(
+            compose(
+                TitleType.hero,
+                [...catalog, aboleth],
+                new SequenceChance([0.0]),
+            ),
+        ).toEqual({
+            type: QuestType.boss,
+            rank: TitleType.hero,
+            enemies: [{ enemy: aboleth, quantity: 1 }],
+            seats: 2,
+        });
     });
 
     it('falls back to the single form when no pack fits (D-07)', () => {
         const composition = compose(
             TitleType.paladin,
-            [bandito, orsogufo],
+            [troll, orsogufo],
             new SequenceChance([0.5, 0.6]),
         );
 
@@ -170,6 +243,23 @@ describe('composition of generated quests', () => {
             type: QuestType.enemy,
             rank: TitleType.paladin,
             enemies: [{ enemy: orsogufo, quantity: 1 }],
+            seats: 1,
+        });
+    });
+
+    it('composes from the zone before the all fallback with one seat (D-08, D-09)', () => {
+        const wanderer = enemy('f01', 'Errante', 700, ['all']);
+
+        expect(
+            compose(
+                TitleType.hero,
+                [orsogufo, wanderer],
+                new SequenceChance([0.5, 0.0]),
+            ),
+        ).toEqual({
+            type: QuestType.enemy,
+            rank: TitleType.hero,
+            enemies: [{ enemy: orsogufo, quantity: 6 }],
             seats: 1,
         });
     });
@@ -189,7 +279,7 @@ describe('composition of generated quests', () => {
         expect(zoned.every((composition) => composition !== null)).toBe(true);
         expect([...memberIdsOf(zoned)].sort()).toEqual(['b01', 'b02']);
 
-        const forestBrute = enemy('c01', 'Bruto', 200, ['forest']);
+        const forestBrute = enemy('c01', 'Bruto', 1300, ['forest']);
         const wanderer = enemy('c02', 'Errante', 40, ['all']);
         const desertScout = enemy('c03', 'Esploratore', 30, ['desert']);
         const fallback = seededCompositions(TitleType.paladin, [
@@ -204,29 +294,21 @@ describe('composition of generated quests', () => {
         expect([...memberIdsOf(fallback)]).toEqual(['c02']);
     });
 
-    it('composes legend quests only as packs of two to four hero band enemies (D-07, D-09)', () => {
-        const hero = RANK_XP_BANDS.hero;
-        const legend = RANK_XP_BANDS.legend;
-        const compositions = [
-            compose(TitleType.legend, catalog, new SequenceChance([0.0])),
-            ...seededCompositions(TitleType.legend, catalog),
-        ];
+    it('never composes a legend quest (D-02)', () => {
+        const ranks = new Set<string>();
 
-        for (const composition of compositions) {
-            expect(composition).not.toBeNull();
-            const pack = composition as Composition;
-            expect(pack.type).toBe(QuestType.enemy);
-            expect(pack.rank).toBe(TitleType.legend);
-            expect(pack.seats).toBe(1);
-            expect(unitsOf(pack)).toBeGreaterThanOrEqual(2);
-            expect(unitsOf(pack)).toBeLessThanOrEqual(4);
-            expect(xpOf(pack)).toBeGreaterThanOrEqual(legend.min);
-            expect(xpOf(pack)).toBeLessThanOrEqual(legend.max);
-            for (const entry of pack.enemies) {
-                expect(entry.enemy.xp).toBeGreaterThanOrEqual(hero.min);
-                expect(entry.enemy.xp).toBeLessThanOrEqual(hero.max);
+        for (const rank of GENERATED_RANKS) {
+            for (const composition of seededCompositions(rank, catalog)) {
+                if (composition === null) continue;
+                ranks.add(composition.rank);
+                expect(composition.rank).toBe(rank);
+                expect(composition.rank).not.toBe(TitleType.legend);
             }
         }
+
+        expect([...ranks].sort()).toEqual(
+            ['adventurer', 'hero', 'mage', 'paladin', 'rookie'].sort(),
+        );
     });
 
     it('draws a boss one time in ten for adventurer to hero with seats from the formula (D-05, D-06)', () => {
@@ -274,10 +356,13 @@ describe('composition of generated quests', () => {
 
     it('returns null when the pool cannot serve the rank at all (D-08)', () => {
         const desertHero = enemy('d01', 'Sciamano', 600, ['desert']);
-        const pool = [bandito, goblin, capoGoblin, orsogufo, desertHero];
 
         expect(
-            compose(TitleType.legend, pool, new SequenceChance([0.0])),
+            compose(
+                TitleType.hero,
+                [bandito, desertHero],
+                new SequenceChance([0.0]),
+            ),
         ).toBeNull();
         expect(compose(TitleType.hero, [], new SequenceChance())).toBeNull();
     });
@@ -302,5 +387,32 @@ describe('composition of generated quests', () => {
         for (const id of ['z01', 'z02', 'z03']) {
             expect(members.has(id)).toBe(false);
         }
+    });
+
+    it('never composes an animal in a single, a pack or a boss (D-01)', () => {
+        const aboleth = enemy('a11', 'Aboleth', 831);
+        const ordinary = [...catalog, aboleth];
+        const twins = ordinary.map(
+            (original, index): EnemyCandidate => ({
+                ...original,
+                id: `b${String(index + 1).padStart(2, '0')}`,
+                name: `Animale ${original.name}`,
+                relatedLore: ['bestiario'],
+                animal: true,
+            }),
+        );
+        const animalIds = new Set(twins.map((twin) => twin.id));
+        const members = new Set<string>();
+
+        for (const rank of GENERATED_RANKS) {
+            for (const id of memberIdsOf(
+                seededCompositions(rank, [...ordinary, ...twins]),
+            )) {
+                members.add(id);
+            }
+        }
+
+        expect(members.size).toBeGreaterThan(0);
+        expect([...members].filter((id) => animalIds.has(id))).toEqual([]);
     });
 });

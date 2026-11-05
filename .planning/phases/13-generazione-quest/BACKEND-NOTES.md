@@ -6,6 +6,7 @@
 - **Schema:** rispetto a `origin/develop` lo SDL toglie **esattamente due righe** (`  enemy: Enemy` in `type QuestInfos` e in `type QuestResult`, D-01: modifica non additiva dichiarata) e aggiunge tutto il resto in modo additivo. Lo schema generato `src/schema.gql` vince su questo documento.
 - **Consumatore:** FE Phase 14 (`../Klimmeck-Guide/.planning/phases/14-quest-generation/14-CONTEXT.md`, FE D-01..D-16); i piani gated 14-10/14-11 (schema gate su `origin/develop:src/schema.gql`, E2E su device) partono dopo la merge di questa PR su `develop` (FE D-13).
 - **Primo boot reale:** eseguito il 2026-11-05 dall'orchestratore su richiesta dell'utente (log e conteggi in §11 b–c): 581 missioni e 24 risultati migrati alla lista, 22 leggendari e 128 ordinari marcati, 42 gioielli senza WARN, 40/40 dungeon a tappe, 167 missioni generate (target 167). I migratori una tantum sono usciti dal repo con `f5d8134` (§11 d, Phase 12 D-25): resta solo il `QuestEnemiesMigrator` permanente.
+- **Emendamenti della Phase 13.1 (2026-11-05):** §7 (fasce contigue, budget per posti, boss con clamp, tetto e peso per taglia, premi senza legend, legend sui posti hero), §8 e §9 (animali, zona `dungeon`) annotati con «(13.1 D-0x)»; runbook del primo boot reale dal branch 13.1 in §11 (f).
 - **Regola dei letterali:** operatori Mongo e letterali GraphQL solo in code span o blocchi di codice; nessun URI, host, nome di database né id reale: solo placeholder (`<uri>`, `<db>`, `<id>`).
 
 ---
@@ -251,28 +252,30 @@ mutation GenerateQuests {
 | Regola | Valore |
 | --- | --- |
 | Target globale | `QUEST_GENERATION_TARGET`; vuota = numero delle città a DB (167 oggi) |
-| Tetto per città | `MAX_GENERATED_PER_CITY = 3` generate attive (fisse e GM non contano) |
+| Tetto per città | `GENERATED_CAP_BY_SIZE` (`city-picker.ts`, `capOf`): villaggio 1, città 2, capitale 4 generate attive (fisse e GM non contano), sempre entro i POI liberi; una città con `type` ignoto alla mappa delle taglie è saltata ma conta nel target (13.1 D-04) |
 | Vicinato | k-nearest neighbours sui marker, `NEIGHBOUR_COUNT = 5` |
-| Peso della città | `1 / (1 + D)²`, D = generate attive della città + dei 5 vicini; peso 0 a tetto o senza POI libero |
+| Peso della città | `sizeWeightOf(size) / (1 + D)²` con fattori di taglia 1/2/4 (`SIZE_WEIGHT_BY_SIZE`), D = generate attive della città + dei 5 vicini; peso 0 a tetto o senza POI libero (13.1 D-04) |
 | POI | uniforme fra i `pointsOfInterest` della città meno il marker e meno i POI con una quest non conclusa (fisse, GM e aid comprese) |
 | Una quest per POI | indice unico parziale `quest_generated_open_marker` (generate aperte); una gara fra due corse dà E11000, il POI esce dalla corsa e si prosegue |
 
-**Rango** (`generation-rules.ts`, D-07): il rango **meno coperto** fra le generate aperte di tutto il mondo (parità → il più basso), su sei ranghi; se il POI non compone quel rango, gli altri in ordine di copertura.
+**Rango** (`generation-rules.ts`, D-07): il rango **meno coperto** fra le generate aperte di tutto il mondo (parità → il più basso), su cinque ranghi (`GENERATED_RANKS`, 13.1 D-02); se il POI non compone quel rango, gli altri in ordine di copertura.
 
 | Rango | Fascia `Enemy.xp` | Media del party (PE) | Boss |
 | --- | ---: | ---: | --- |
-| rookie | 7–14 | — | no (solo `enemy`) |
-| adventurer | 21–35 | 400 | sì |
-| paladin | 70–169 | 1500 | sì |
-| mage | 225–451 | 4000 | sì |
-| hero | 549–803 | 6000 | sì |
-| legend | 1098–3212 (= 2–4 nemici della fascia hero) | 15000 (documentata, nessun candidato) | no |
+| rookie | 1–20 | — | no (solo `enemy`) (13.1 D-02) |
+| adventurer | 21–69 | 400 | sì (13.1 D-02) |
+| paladin | 70–224 | 1500 | sì (13.1 D-02) |
+| mage | 225–548 | 4000 | sì (13.1 D-02) |
+| hero | 549–803 | 6000 | sì (13.1 D-02) |
+
+- Fasce contigue per soglie (`RANK_XP_FLOORS`, `HERO_XP_MAX = 803`, `RANK_XP_BANDS`, 13.1 D-02). **legend è solo un titolo: dal 13.1 nessuna generata legend**; i personaggi legend giocano le hero (13.1 D-02, D-08).
 
 - `XP_SCALE = 0.14084507` (PE = xp / scala, Phase 11 D-11).
-- **Boss** (D-05, D-06): `BOSS_SHARE = 0.1` (1 su 10 nei ranghi con boss); un solo nemico di fascia superiore; posti = ⌈(xp − 0,5) / `XP_SCALE` / media⌉ (C3), tenuti fra `MIN_BOSS_SEATS = 2` e `MAX_BOSS_SEATS = 6`.
-- **Enemy** (D-07): `SINGLE_FORM_SHARE = 0.5` fra (a) un nemico singolo con xp nella fascia e (b) un branco di nemici più deboli con somma xp nella fascia; `MAX_PACK_UNITS = 8`, `MAX_PACK_TYPES = 3`, `PACK_ATTEMPTS = 20`; legend = branco di `LEGEND_PACK_UNITS` 2–4 nemici hero.
+- **Boss** (D-05, D-06): `BOSS_SHARE = 0.1` (1 su 10 nei ranghi con boss); singolo sopra hi del rango, posti dalla formula ⌈(xp − 0,5) / `XP_SCALE` / media⌉ (C3) fra `MIN_BOSS_SEATS = 2` e `MAX_BOSS_SEATS = 6`, clamp a 2 sopra 803 (`bossSeatsFor`) (13.1 D-03).
+- **Enemy** (D-07): un solo posto (`ENEMY_SEATS = 1`, nessun tiro dei posti, 13.1 D-09), Σ xp × quantità ∈ `budgetOf(R, 1)` = [lo, hi], membri della fascia o inferiori, `requiredAdventurers = [{ title: R, count: 1 }]`; `SINGLE_FORM_SHARE = 0.5` fra il singolo e il branco (1–3 tipi), `MAX_PACK_UNITS = 8`, `MAX_PACK_TYPES = 3`, `PACK_ATTEMPTS = 20` (13.1 D-03, D-09).
+- **Posti:** un posto sulle `enemy`, posti per rango solo sui boss (13.1 D-09); a titolo esatto, ma un legend occupa un posto hero dopo gli eventuali posti legend (`hasSeatFor`/`seatAvailableExpr` di `quest-capacity.ts`, 13.1 D-08); nessun altro titolo scala.
 
-**Pool dei nemici** (`enemy-pool.ts`, D-08): nemici con `legendary: false` (fail-closed, C5) la cui `locations` contiene un `type` del POI o l'habitat `city`; `all` solo di ripiego quando la zona non compone la forma; un branco esce sempre da un solo pool.
+**Pool dei nemici** (`enemy-pool.ts`, D-08): nemici con `legendary: false` (fail-closed, C5) e non animali (`isGeneratable`, 13.1 D-01) la cui `locations` contiene un `type` del POI o l'habitat `city`; `all` solo di ripiego quando la zona non compone la forma; un branco esce sempre da un solo pool.
 
 **Premi** (`generated-prizes.ts`, D-19, D-20, D-21), per ogni partecipante:
 
@@ -281,9 +284,9 @@ mutation GenerateQuests {
 | `enemy` | 150 | 40 |
 | `boss` | 600 | 120 |
 
-× `TIER_MULTIPLIER`: rookie 1, adventurer 2, paladin 5, mage 12, hero 25, legend 25; l'XP della vittoria aggiunge Σ (xp del nemico × quantità).
+× `TIER_MULTIPLIER`: rookie 1, adventurer 2, paladin 5, mage 12, hero 25 (chiave legend tolta, 13.1 D-02); l'XP della vittoria aggiunge Σ (xp del nemico × quantità).
 
-`LOOT_POOLS` (pool di `randomLoot`, tirato per partecipante con le regole a cascata della Phase 9):
+`LOOT_POOLS` (pool di `randomLoot`, tirato per partecipante con le regole a cascata della Phase 9; riga legend tolta, 13.1 D-02):
 
 | Rango | `boss` | `enemy` |
 | --- | --- | --- |
@@ -292,12 +295,11 @@ mutation GenerateQuests {
 | paladin | 1 rare + 2 uncommon + 4 common | 1 uncommon + 2 common |
 | mage | 1 ultrarare + 2 rare + 4 uncommon | 1 rare + 2 uncommon |
 | hero | 1 legendary + 2 ultrarare + 4 rare | 1 ultrarare + 2 rare |
-| legend | — (nessun boss) | 1 legendary + 2 ultrarare + 4 rare |
 
 - Legendary mai sotto hero; da `rare` in su niente cibo (`hunger`); estrazione senza ripetizioni, uno slot si restringe a quanto il catalogo offre.
 - **Pet:** `BOSS_PET_PRIZE_CHANCE = 0.01` sui soli boss generati, uniforme fra i pet con `sellable: false`; alla vittoria `QUEST_PET_WIN_CHANCE` = 20% per vincitore, tirato dopo loot e magie, solo se il pet esiste a catalogo; finisce in `assets.ownedPets` mai due volte (un pet già posseduto non viene riassegnato) e appare in `rewards.pet`; `assets.pet` (l'equipaggiato) non viene mai toccato.
 
-**Consigliati** (`recommended-loot.ts`, C4): fino a `RECOMMENDED_WEAPONS = 2` armi che colpiscono `baseWeaknesses` / `energyWeaknesses` dei nemici (somma della potenza utile) più la miglior cura, entro `RECOMMENDED_LOOT_RARITY` (rookie common, adventurer uncommon, paladin rare, mage ultrarare, hero e legend legendary).
+**Consigliati** (`recommended-loot.ts`, C4): fino a `RECOMMENDED_WEAPONS = 2` armi che colpiscono `baseWeaknesses` / `energyWeaknesses` dei nemici (somma della potenza utile) più la miglior cura, entro `RECOMMENDED_LOOT_RARITY` (rookie common, adventurer uncommon, paladin rare, mage ultrarare, hero legendary; chiave legend tolta, 13.1 D-02).
 
 **Testi** (`quest-templates.ts`, D-22): titolo «Minaccia: … presso <città>» / «Boss: … presso <città>»; annuncio `infos.description` sorteggiato fra 3 varianti per tipo nella voce di un committente; `relatedLore` = lore della città + lore dei nemici (senza doppioni); `TIME_TO_COMPLETE_MS` enemy 3 600 000 (1 h), boss 10 800 000 (3 h).
 
@@ -305,7 +307,7 @@ mutation GenerateQuests {
 
 ## 8. Scelte confermate dall'utente il 2026-11-04 e copy provvisoria
 
-- `TIER_MULTIPLIER.legend = 25` (come hero) e pool `enemy` legend = 1 legendary + 2 ultrarare + 4 rare, come il boss hero (D-19, D-20).
+- `TIER_MULTIPLIER.legend = 25` (come hero) e pool `enemy` legend = 1 legendary + 2 ultrarare + 4 rare, come il boss hero (D-19, D-20). **Superata dal 13.1 D-02: nessuna generata legend, chiavi legend tolte (§7).**
 - **Quantità nel titolo solo se > 1 su una voce sola**; in un branco di più voci ogni voce mostra la sua (D-22):
   - «Minaccia: Orsogufo presso Atheland»
   - «Minaccia: 3 Goblin e 1 Capo goblin presso Atheland»
@@ -316,7 +318,9 @@ mutation GenerateQuests {
 
 ## 9. Note di cura a DB
 
-- **41 nemici non leggendari non escono mai come singoli** (C6): cadono fra una fascia e l'altra (fra cui 23 nemici a xp 63, PE 450: Ghoul, Ogre, Capo dei Banditi, Mimic, Grifone…). Entrano solo nei branchi o come boss; per renderli singoli va ritoccato il loro `xp` a DB.
+- **Animali** (13.1 D-01): un nemico è animale se una sua `relatedLore` è una `Lore` con `type: animal`; per renderlo generabile si cambia la lore, non il nemico. Gli animali restano solo nelle hunt (mai in singoli, branchi, boss o tappe delle dungeon).
+- **Zona `dungeon`** (cura a DB del 2026-11-05): 49 nemici hanno la zona `dungeon`; i POI di tipo dungeon pescano anche da questi.
+- **Superata dal 13.1 D-02 (fasce contigue): ogni non leggendario fino a 803 xp cade in una fascia.** Storico: **41 nemici non leggendari non escono mai come singoli** (C6): cadono fra una fascia e l'altra (fra cui 23 nemici a xp 63, PE 450: Ghoul, Ogre, Capo dei Banditi, Mimic, Grifone…). Entrano solo nei branchi o come boss; per renderli singoli va ritoccato il loro `xp` a DB.
 - **Nemico nuovo a DB:** senza `legendary` esplicito **non viene generato** (fail-closed, C5): impostare `legendary: false` per renderlo generabile, `true` per riservarlo alle worldMission del GM.
 - **Più istanze del BE:** il single-flight è per processo; con più istanze il tetto di 3 per città potrebbe superarsi di poco (A2). La garanzia «una quest per POI» invece regge (indice unico).
 - **Gioielli nuovi:** `accessoryUseTypes` non viene più valorizzato da nessun codice dopo la rimozione del migratore: va scritto a mano a DB (mappa D-25: magia `attack`/`control`/`illusion`/`charm`/`confuse` → attack, `defense` → defense, `enhance`/`infuse` → entrambi, senza magia → defense salvo descrizione offensiva).
@@ -434,6 +438,93 @@ Esito del 2026-11-05, subito dopo il primo boot (script di sola lettura dell'orc
 **Eseguita il 2026-11-05 (orchestratore):** `bdbf6bc` (RED: `quest-maintenance.boot.spec.ts` ridotta ai due casi D-28 col costruttore a un parametro, 2 falliti per `TypeError` sui passi 2–5) + `f5d8134` (refactor: 10 file, −1352 righe; restano `quest-enemies.migration.ts`, `quest-enemies.migrator.ts` con la sua int-spec, boot, module e spec del boot). Gate: `npx tsc --noEmit` 0; `src/quests/maintenance` unit 2/2 e integration 5/5; real boot `test/app.int-spec.ts` 73/73 con `src/schema.gql` invariato; `npm run test:cov` 332 suite / 4192 test, soglie di coverage rispettate. Secondo boot dal codice finale alle 08:06: silenzioso sui passi una tantum e sul generatore, nessun ERROR (§11 b).
 
 **(e) Segreti.** Solo placeholder in questo documento (`<uri>`, `<db>`, `<id>`): i valori reali stanno nell'ambiente del processo, mai nel repo; il log del boot si registra senza URI né host.
+
+**(f) Primo boot reale dal branch `feat/13.1-correzioni-generazione-quest` (dopo il popolamento del DB).** Fase 13.1, decisioni D-01..D-08 in `../13.1-correzioni-generazione-quest/13.1-CONTEXT.md`; handoff FE in `../13.1-correzioni-generazione-quest/BACKEND-NOTES.md`.
+
+- **Chi:** l'orchestratore, su richiesta dell'utente, **solo dopo** che il DB è popolato con i nemici e gli animali nuovi dettati dall'utente. Nessun esecutore della fase lo lancia. Stato del DB al 2026-11-05 (cura a DB dell'orchestratore, fuori dal repo): 205 nemici (28 leggendari), 41 lore `animal`, zona `dungeon` su 49 nemici, 92 magie, 44 pet, 460 lore; nessuna generata registrata o in corsia; ogni hunt ha animali nella zona del suo POI. Le precondizioni sono quindi soddisfatte.
+- **Comandi:** `npm ci` e `npm run build` **prima** di fermare il processo in corsa (gira da `dist/` di questo albero: una build a processo fermo allunga il buco), poi stop e riavvio da `dist/` con l'ambiente di sempre. **Nessuna variabile nuova.**
+
+```bash
+git checkout feat/13.1-correzioni-generazione-quest
+npm ci
+npm run build
+# stop del processo BE in corsa, poi riavvio da dist/ con l'ambiente di sempre
+```
+
+Passi di `QuestMaintenanceBoot`, nell'ordine (ogni passo isolato: un fallimento logga `ERROR Manutenzione missioni: <passo> fallita (<nome e codice>), il boot prosegue`):
+
+| # | Passo | Riga di log attesa | Atteso al primo boot |
+| ---: | --- | --- | --- |
+| 1 | `migrazione dei nemici delle missioni` (`QuestEnemiesMigrator`, permanente) | `Nemici delle missioni: <q> missioni e <r> risultati migrati alla lista` | probabilmente nessuna riga (già migrato il 2026-11-05) |
+| 2 | `reset delle generate (una tantum)` (`GeneratedQuestsResetMigrator`, 13.1 D-06) | `Generate: <n> cancellate, <m> lasciate` | n ≈ generate aperte non protette (167 oggi), m = registrate o in corsia (0 oggi); con m > 0 una DEBUG `Generate protette: <id>, …` con i soli id delle generate aperte lasciate (fix V-IN-01). Marcatore: gira solo se esiste una generata aperta con `minTitle` legend non protetta |
+| 3 | `prede delle hunt (una tantum)` (`HuntPreyMigrator`, 13.1 D-07) | `Hunt: <n> rifatte, <m> già coerenti, <k> senza prede, <l> in corsia` | n + m + k + l = hunt aperte (77); k = 0 e l = 0 attesi; una WARN di solo id per ogni hunt `Hunt <id> senza prede in zona: lasciata` o `Hunt <id> in corsia: lasciata`. Una hunt già coerente conta in m anche se nessuna città elenca il suo POI (fix V-IN-02). Una hunt promossa a un'altra fascia prende anche premi (`prizes.prizeCoins`, `prizes.xpPrize`: 150 rame e 40 xp × moltiplicatore della fascia nuova) e `requirements.recommendedLoot` della preda nuova (fix B-IN-01) |
+| 4 | `tappe delle dungeon (una tantum)` (`DungeonStagesMigrator`, 13.1 D-07) | `Dungeon: <n> ricomposte, <m> già coerenti, <l> in corsia` | n + m + l + saltate = dungeon aperte (≤ 40); l = 0 atteso (nessuna corsia oggi); WARN di solo id `Dungeon <id> in corsia: lasciata` (fix B-WR-01), `Dungeon <id> con minTitle non generabile: saltata` o `Dungeon <id> senza tappe componibili: lasciata` (quest'ultima solo se nessun conteggio da 2 a 4 compone, né in zona né col ripiego `all`, fix B-WR-02). Una dungeon con il primo nemico sostituito prende il titolo «Dungeon: <nemico> presso <città>»; la descrizione resta invariata |
+| 5 | `richiesta di corsa al generatore` | `Generatore: <n> missioni create (target <t>)` | n ≈ 167 con il target di default (t = numero delle città); possibili WARN innocue `Generatore: POI <id> già occupato da un'altra corsa, si prosegue` |
+
+- La riga del passo 3 compare solo se n + k + l > 0; la riga del passo 4 solo se n + l > 0; il passo 2 non logga nulla se il marcatore è falso.
+- **Secondo boot:** nessuna riga del passo 2 né del generatore a mondo pieno; il passo 4 ripete solo le WARN e la riga con `<l>` se restano dungeon in corsia; il passo 3 ripete solo le WARN e la riga con `<k>`/`<l>` se restano hunt senza prede in zona o in corsia (atteso, nessuna scrittura).
+
+**Controlli di sola lettura dopo il boot** (solo conteggi, nessuna scrittura):
+
+```javascript
+// mongosh collegato a <uri>/<db>
+const open = { generated: true, concludedAt: null };
+db.quests.countDocuments(open)                                                  // ≈ target
+db.quests.aggregate([
+  { $match: open },
+  { $group: { _id: "$requirements.minTitle", n: { $sum: 1 } } },
+])                                                                               // cinque ranghi, nessun legend
+const animalLore = db.lores.distinct("_id", { type: "animal" });
+const animals = db.enemies.distinct("_id", { relatedLore: { $in: animalLore } });
+db.quests.countDocuments({ ...open, "infos.enemies.enemy": { $in: animals } })   // 0
+db.quests.aggregate([
+  { $match: open },
+  { $lookup: { from: "cities", localField: "infos.markerLocation", foreignField: "pointsOfInterest", as: "city" } },
+  { $unwind: "$city" },
+  { $group: { _id: { city: "$city._id", type: "$city.type" }, n: { $sum: 1 } } },
+  { $group: { _id: { type: "$_id.type", n: "$n" }, cities: { $sum: 1 } } },
+  { $sort: { "_id.type": 1, "_id.n": 1 } },
+])                                                                               // per tipo di città: nessun villaggio sopra 1, città sopra 2, capitale sopra 4 (citySizeOf)
+db.quests.aggregate([
+  { $match: { "infos.type": "hunt", concludedAt: null } },
+  { $group: { _id: "$requirements.minTitle", n: { $sum: 1 } } },
+])                                                                               // hunt per rango della preda
+db.quests.countDocuments({ "infos.type": "dungeon", concludedAt: null })         // dungeon aperte
+db.quests.countDocuments({ "infos.type": "dungeon", concludedAt: null,
+  "infos.enemies.1": { $exists: true }, "infos.enemies.4": { $exists: false } }) // = le aperte (2–4 tappe) salvo le saltate
+```
+
+Registrare qui sotto, dopo il boot, le righe effettive del log (senza URI né host), come per il boot del 2026-11-05:
+
+```
+# <data ora> — branch feat/13.1-correzioni-generazione-quest @ <hash>, `nest build`, riavvio da dist/ sulla porta di sempre
+**Esito del primo boot reale (2026-11-05, 16:34, build `nest build` da `e16e193` prima dello stop del processo precedente, riavvio da `dist/` sulla porta 3001):**
+- `[GeneratedQuestsResetMigrator] Generate: 167 cancellate, 0 lasciate`
+- `[HuntPreyMigrator] Hunt: 14 rifatte, 63 già coerenti, 0 senza prede, 0 in corsia`
+- `[DungeonStagesMigrator] Dungeon: 32 ricomposte, 8 già coerenti, 0 in corsia`
+- `[NestApplication] Nest application successfully started`
+- `[QuestGenerator] Generatore: 167 missioni create (target 167)` (5 s dopo l'avvio)
+- nessuna riga `ERROR`, nessun WARN «tipo sconosciuto»; nessuna riga del migratore permanente dei nemici (già allineati).
+Conteggi a DB dopo il boot (script di sola lettura dell'orchestratore): 167 generate aperte (capitali 22, città 73, villaggi 72; nessuna oltre il tetto 1/2/4); per rango rookie 34, adventurer 34, paladin 33, mage 33, hero 33, legend 0; 0 con animali, 0 con leggendari; 155 `enemy` (tutte a un posto, budget e fasce rispettati) e 12 `boss` conformi; una sola generata per POI. Hunt 77 (rookie 72, adventurer 4, paladin 1), prede animali della zona e in fascia. Dungeon 40 (2 tappe 26, 3 tappe 10, 4 tappe 4), senza animali, tappe ≤ hi e totale nel budget.
+**Secondo boot (16:36):** solo `Nest application successfully started`; nessuna riga dei one-off né del generatore (marcatori di idempotenza).
+**Cura a DB dopo il boot (orchestratore, stessa forma di scrittura del `HuntPreyMigrator`):** 7 delle 8 hunt di Liberia, tutte «Squalo tropicale» e perciò coerenti per il migratore, sono state riscritte con prede diverse dei nuovi animali (Rana gigante, Millepiedi gigante, Granchio gigante, Babbuino, Cavalluccio marino gigante; Squalo cacciatore a Liberia come caccia adventurer; Orca assassina a Pontealto come caccia paladin, con premi e XP della fascia); Tine resta con lo Squalo tropicale (POI di solo mare).
+```
+
+**Rimozione dei one-off (2026-11-05):** commit RED `3bdf65a` `test(migrations): expect only the permanent enemies step at boot` (spec ridotta ai due casi `(D-28)` con il costruttore a un argomento: 2/2 rossi in jest per i quattro log `TypeError` dei passi una tantum, tsc TS2554 «Expected 5 arguments, but got 1»), poi GREEN `64ef914` `refactor(migrations): drop the 13.1 one-off migrators after their run`. Tolti `generated-quests-reset.migrator.ts` + int-spec, `hunt-prey.ts` + spec, `hunt-prey.migrator.ts` + int-spec, `dungeon-stages.ts` + spec, `dungeon-stages.migrator.ts` + int-spec (10 file in `src/quests/maintenance/`, −2562 righe). `QuestMaintenanceBoot` torna al solo passo `migrazione dei nemici delle missioni` (costruttore a un parametro, via i passi 2–5 e la richiesta al generatore: la corsa al boot la chiede `QuestGenerationSweeper`); `QuestMaintenanceModule` senza i provider `GeneratedQuestsResetMigrator`, `HuntPreyMigrator`, `DungeonStagesMigrator`, senza l'import di `QuestGenerationTriggerModule` e senza le voci `Enemy`, `Lore`, `PointOfInterest`, `City`, `PendingQuest`, `EquipmentItem`, `LootItem` del `forFeature` (restano `Quest` e `QuestResult`); `prize-catalog.ts` e `lean-values.ts` intatti (usati dal generatore e dal combattimento). Gate: `npx tsc --noEmit -p tsconfig.json` 0; `npx jest src/quests/maintenance --selectProjects unit` 1 suite / 2 test; `npx jest src/quests/maintenance test/app.int-spec.ts --selectProjects integration --runInBand` 2 suite / 78 test; prettier ed eslint puliti sui tre file toccati; `git diff --exit-code src/schema.gql` 0 e `git diff origin/develop -- src/schema.gql` vuoto; grep di `GeneratedQuestsResetMigrator|HuntPreyMigrator|DungeonStagesMigrator|hunt-prey|dungeon-stages|generated-quests-reset` in `src` e `test`: 0 file; trailer vietati 0; `pgrep -fl jest` vuoto; processo BE pid 47591 (build con i one-off) vivo e non toccato, nessuna build. Restano a cura dell'orchestratore `npm run test:cov`, il secondo boot dal codice finale e `gh pr ready`.
+
+**Rimozione dei one-off PRIMA della merge** (Phase 12 D-25), in TDD come `f5d8134`: prima un RED sulla spec del boot ridotta (`quest-maintenance.boot.spec.ts` ai soli casi `(D-28)` con il costruttore a un parametro), poi `refactor(migrations): drop the 13.1 one-off migrators after their run`:
+
+- `src/quests/maintenance/generated-quests-reset.migrator.ts` + `src/quests/maintenance/generated-quests-reset.migrator.int-spec.ts`
+- `src/quests/maintenance/hunt-prey.ts` + `src/quests/maintenance/hunt-prey.spec.ts`
+- `src/quests/maintenance/hunt-prey.migrator.ts` + `src/quests/maintenance/hunt-prey.migrator.int-spec.ts`
+- `src/quests/maintenance/dungeon-stages.ts` + `src/quests/maintenance/dungeon-stages.spec.ts`
+- `src/quests/maintenance/dungeon-stages.migrator.ts` + `src/quests/maintenance/dungeon-stages.migrator.int-spec.ts`
+- In `src/quests/maintenance/quest-maintenance.boot.ts`: i passi 2–5 (`reset delle generate (una tantum)`, `prede delle hunt (una tantum)`, `tappe delle dungeon (una tantum)`, `richiesta di corsa al generatore`) e i parametri `reset`, `hunts`, `dungeons`, `trigger` del costruttore.
+- In `src/quests/maintenance/quest-maintenance.module.ts`: i provider `GeneratedQuestsResetMigrator`, `HuntPreyMigrator`, `DungeonStagesMigrator`; le voci `Enemy`, `Lore`, `PointOfInterest`, `City`, `PendingQuest`, `EquipmentItem`, `LootItem` del `forFeature`; l'import di `QuestGenerationTriggerModule`.
+- In `src/quests/maintenance/quest-maintenance.boot.spec.ts`: i casi 13.1 `(D-06, D-07)` e `(D-06)`; restano i due casi `(D-28)`.
+- **Restano** `src/quests/generation/prize-catalog.ts` e `src/mongo/lean-values.ts` (usati dal generatore e dal combattimento, fix della review 13.1) e `QuestEnemiesMigrator` (passo 1, permanente); la corsa al boot resta, chiesta dallo sweeper del generatore.
+- Dopo la rimozione: `npx tsc --noEmit -p tsconfig.json`, le spec di `src/quests/maintenance` (unit e integration), il real boot `test/app.int-spec.ts` con `src/schema.gql` invariato, `npm run test:cov` (soglie invariate), secondo boot dal codice finale silenzioso sui passi una tantum, poi `gh pr ready` a cura dell'orchestratore.
+- Debito noto (nessuna correzione nel 13.1): Mongoose converte i filtri `idForms(...)` sui path ObjectId di `City`, quindi un ref legacy in stringa esadecimale non si trova via modello in `locationInQuestCity` (accettazione), `shop-transaction.service.ts`, `travel-planner.service.ts`, `rescue-resolution.service.ts` e nei migratori hunt/dungeon (città cercata su `pointsOfInterest`); `QuestsService.cityPoiIdsAt` usa già `cityModel.collection`. A DB reale oggi 0 ref legacy in stringa (inventario 2026-11-05): il boot non ne è toccato.
 
 ---
 

@@ -1,6 +1,10 @@
-// ogni membro di un branco dallo stesso pool del POI (D-08, utente 2026-11-04):
-// all solo come ripiego quando la zona non compone la forma
-import { TitleType } from 'src/models/enums/title-type.enum';
+// ordine dei tiri per quest (le spec a seme fisso ne dipendono):
+// 1. tiro del boss (solo ranghi con media, D-06): sotto BOSS_SHARE, 1 scelta del candidato nel primo pool che ne ha;
+// 2. altrimenti (o senza candidati) tiro della forma (SINGLE_FORM_SHARE), nessun tiro dei posti (13.1 D-09);
+// 3. giro per pool [zona, poi all se più ampio] → per forma, senza ritirare la forma, budget a un posto:
+//    singolo 1 scelta (solo con candidati); branco per tentativo 1 tiro dei tipi + 1 per tipo + 1 per unità aggiunta.
+// Ogni membro dallo stesso pool del POI (D-08 della Phase 13), mai sopra hi (13.1 D-03);
+// all solo come ripiego quando la zona non serve nessuna forma
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import {
@@ -11,10 +15,11 @@ import {
 import {
     BOSS_PARTY_AVERAGE_PE,
     BOSS_SHARE,
-    bossSeatsOf,
+    bossSeatsFor,
+    budgetOf,
+    ENEMY_SEATS,
     GeneratedRank,
     isBossCandidate,
-    LEGEND_PACK_UNITS,
     MAX_PACK_TYPES,
     MAX_PACK_UNITS,
     PACK_ATTEMPTS,
@@ -44,11 +49,11 @@ export interface CompositionInput {
 
 type Form = (
     pool: readonly EnemyCandidate[],
-    band: XpBand,
+    budget: XpBand,
+    cap: number,
     chance: ChanceSource,
 ) => ComposedEnemy[] | null;
 
-const ENEMY_SEATS = 1;
 const MIN_PACK_UNITS = 2;
 
 const indexOf = (length: number, chance: ChanceSource): number =>
@@ -82,9 +87,12 @@ const addUnit = (entries: ComposedEnemy[], chance: ChanceSource): void => {
     entries[indexOf(entries.length, chance)].quantity += 1;
 };
 
-// forma (a) di D-07: un nemico con xp nella fascia
-const singleForm: Form = (pool, band, chance) => {
-    const candidates = pool.filter((enemy) => inBand(enemy.xp, band));
+// un nemico con xp nel budget, mai sopra la fascia (13.1 D-03)
+const singleForm: Form = (pool, budget, cap, chance) => {
+    const candidates = pool.filter(
+        (enemy) =>
+            enemy.xp >= budget.min && enemy.xp <= Math.min(budget.max, cap),
+    );
     if (candidates.length === 0) return null;
     return [
         { enemy: candidates[indexOf(candidates.length, chance)], quantity: 1 },
@@ -93,50 +101,32 @@ const singleForm: Form = (pool, band, chance) => {
 
 function drawPack(
     candidates: readonly EnemyCandidate[],
-    band: XpBand,
+    budget: XpBand,
     chance: ChanceSource,
 ): ComposedEnemy[] | null {
     const types = 1 + Math.floor(chance.next() * MAX_PACK_TYPES);
     const entries = drawTypes(candidates, types, chance);
-    while (xpOf(entries) < band.min && unitsOf(entries) < MAX_PACK_UNITS) {
+    while (xpOf(entries) < budget.min && unitsOf(entries) < MAX_PACK_UNITS) {
         addUnit(entries, chance);
     }
     const units = unitsOf(entries);
     const valid =
-        inBand(xpOf(entries), band) &&
+        inBand(xpOf(entries), budget) &&
         units >= MIN_PACK_UNITS &&
         units <= MAX_PACK_UNITS;
     return valid ? entries : null;
 }
 
-// forma (b) di D-07: mai un nemico della fascia o superiore, tentativi limitati (T-13-10b)
-const packForm: Form = (pool, band, chance) => {
-    const candidates = pool.filter(
-        (enemy) => enemy.xp >= 1 && enemy.xp < band.min,
-    );
+// branco di nemici della fascia o inferiori, tentativi limitati (T-13-10b, 13.1 D-03)
+const packForm: Form = (pool, budget, cap, chance) => {
+    const candidates = pool.filter((enemy) => enemy.xp >= 1 && enemy.xp <= cap);
     if (candidates.length === 0) return null;
     for (let attempt = 0; attempt < PACK_ATTEMPTS; attempt += 1) {
-        const pack = drawPack(candidates, band, chance);
+        const pack = drawPack(candidates, budget, chance);
         if (pack !== null) return pack;
     }
     return null;
 };
-
-// D-07 emendata: legend = branco di 2–4 nemici della fascia hero, somma sempre nella fascia legend
-function legendPack(
-    pool: readonly EnemyCandidate[],
-    chance: ChanceSource,
-): ComposedEnemy[] | null {
-    const hero = RANK_XP_BANDS[TitleType.hero];
-    const candidates = pool.filter((enemy) => inBand(enemy.xp, hero));
-    if (candidates.length === 0) return null;
-    const spread = LEGEND_PACK_UNITS.max - LEGEND_PACK_UNITS.min + 1;
-    const units = LEGEND_PACK_UNITS.min + indexOf(spread, chance);
-    const types = 1 + indexOf(Math.min(MAX_PACK_TYPES, units), chance);
-    const entries = drawTypes(candidates, types, chance);
-    while (unitsOf(entries) < units) addUnit(entries, chance);
-    return entries;
-}
 
 function bossOf(
     pool: readonly EnemyCandidate[],
@@ -148,47 +138,36 @@ function bossOf(
     return candidates[indexOf(candidates.length, chance)];
 }
 
-const enemyQuest = (
-    rank: GeneratedRank,
-    enemies: ComposedEnemy[],
-): Composition => ({
-    type: QuestType.enemy,
-    rank,
-    enemies,
-    seats: ENEMY_SEATS,
-});
-
+// sempre un posto, solo boss e worldMission ne hanno di più (13.1 D-09);
+// `all` solo se la zona non serve nessuna forma (D-08 della Phase 13)
 function composeEnemyQuest(
     rank: GeneratedRank,
     pools: readonly (readonly EnemyCandidate[])[],
     chance: ChanceSource,
 ): Composition | null {
-    const band = RANK_XP_BANDS[rank];
     const forms =
         chance.next() < SINGLE_FORM_SHARE
             ? [singleForm, packForm]
             : [packForm, singleForm];
+    const budget = budgetOf(rank, ENEMY_SEATS);
+    const cap = RANK_XP_BANDS[rank].max;
     for (const pool of pools) {
         for (const form of forms) {
-            const enemies = form(pool, band, chance);
-            if (enemies !== null) return enemyQuest(rank, enemies);
+            const enemies = form(pool, budget, cap, chance);
+            if (enemies !== null) {
+                return {
+                    type: QuestType.enemy,
+                    rank,
+                    enemies,
+                    seats: ENEMY_SEATS,
+                };
+            }
         }
     }
     return null;
 }
 
-function composeLegendQuest(
-    pools: readonly (readonly EnemyCandidate[])[],
-    chance: ChanceSource,
-): Composition | null {
-    for (const pool of pools) {
-        const enemies = legendPack(pool, chance);
-        if (enemies !== null) return enemyQuest(TitleType.legend, enemies);
-    }
-    return null;
-}
-
-// D-05/D-06: un solo nemico di fascia superiore, posti dalla formula, 1 volta su 10
+// un solo nemico sopra la fascia, posti di bossSeatsFor, 1 volta su 10 (D-05/D-06 della Phase 13, 13.1 D-03)
 function composeBossQuest(
     rank: GeneratedRank,
     pools: readonly (readonly EnemyCandidate[])[],
@@ -199,11 +178,13 @@ function composeBossQuest(
     for (const pool of pools) {
         const boss = bossOf(pool, rank, chance);
         if (boss === null) continue;
+        const seats = bossSeatsFor(boss.xp, rank);
+        if (seats === null) continue;
         return {
             type: QuestType.boss,
             rank,
             enemies: [{ enemy: boss, quantity: 1 }],
-            seats: bossSeatsOf(boss.xp, average),
+            seats,
         };
     }
     return null;
@@ -214,7 +195,6 @@ export function composeQuest(input: CompositionInput): Composition | null {
     const zone = zonePoolOf(enemies, poiTypes);
     const fallback = fallbackPoolOf(enemies, poiTypes);
     const pools = fallback.length > zone.length ? [zone, fallback] : [zone];
-    if (rank === TitleType.legend) return composeLegendQuest(pools, chance);
     return (
         composeBossQuest(rank, pools, chance) ??
         composeEnemyQuest(rank, pools, chance)

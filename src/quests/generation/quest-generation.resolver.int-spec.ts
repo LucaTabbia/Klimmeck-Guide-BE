@@ -7,6 +7,7 @@ import { Enemy } from 'src/models/enemy.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { EquipmentItem } from 'src/models/equipment-item.model';
 import { LootItem } from 'src/models/loot-item.model';
+import { Lore } from 'src/models/lore.model';
 import { Pet } from 'src/models/pet.model';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Quest } from 'src/models/quest/quest.model';
@@ -23,6 +24,8 @@ import {
     GenerationModels,
     persistGenerationWorld,
     QUIET_GENERATION_OVERRIDES,
+    SeatedQuest,
+    seatViolationsOf,
 } from '../../../test/quests/generation-world';
 
 const GENERATE = 'mutation { generateQuests { created } }';
@@ -74,6 +77,7 @@ describe('generateQuests (replSet)', () => {
             cities: modelOf(City.name),
             pois: modelOf(PointOfInterest.name),
             enemies: modelOf(Enemy.name),
+            lore: modelOf(Lore.name),
             equipment: modelOf(EquipmentItem.name),
             loot: modelOf(LootItem.name),
             pets: modelOf(Pet.name),
@@ -149,5 +153,17 @@ describe('generateQuests (replSet)', () => {
                 outcome: 'ok',
             });
         }
+    });
+
+    // ultimo caso: il seme è condiviso, così i tiri dei casi precedenti non cambiano
+    it('writes one seat on every enemy quest of an innkeeper run (D-09)', async () => {
+        const body = await generateAs(await bearerOf(RoleType.innkeeper));
+
+        expect(body.errors).toBeUndefined();
+        const created = await quests
+            .find({ generated: true })
+            .lean<SeatedQuest[]>();
+        expect(created.length).toBeGreaterThan(0);
+        expect(seatViolationsOf(created)).toEqual([]);
     });
 });

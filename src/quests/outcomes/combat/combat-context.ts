@@ -7,6 +7,7 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { SlotType } from 'src/models/enums/slot_type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
+import { stringsOf } from 'src/mongo/lean-values';
 import {
     NO_SPELL_MAX_USAGES,
     type SpellStateEntry,
@@ -87,11 +88,6 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const numberOr = (value: unknown, fallback: number): number =>
     typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-
-const stringsOf = (value: unknown): string[] =>
-    Array.isArray(value)
-        ? value.filter((entry): entry is string => typeof entry === 'string')
-        : [];
 
 const entriesOf = (value: unknown): unknown[] => {
     if (Array.isArray(value)) return value;

@@ -18,7 +18,7 @@ describe('QuestMaintenanceBoot', () => {
 
     afterEach(() => jest.restoreAllMocks());
 
-    it('runs only the permanent enemies migration at boot, no one-off step left (D-28)', async () => {
+    it('runs the permanent enemies migration at boot without errors (D-28)', async () => {
         await boot().onApplicationBootstrap();
 
         expect(migrateAll).toHaveBeenCalledTimes(1);

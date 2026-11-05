@@ -2,7 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { describeError } from 'src/mongo/mongo-errors';
 import { QuestEnemiesMigrator } from './quest-enemies.migrator';
 
-// un solo orchestratore, passi in ordine e mai bloccanti (Phase 12 D-24); i passi una tantum della Phase 13 sono usciti dal repo dopo il primo boot reale del 2026-11-05 (Phase 12 D-25); la corsa del generatore al boot la chiede QuestGenerationSweeper
+// un solo orchestratore, passi in ordine e mai bloccanti (Phase 12 D-24); i passi una tantum delle Phase 13 e 13.1 sono usciti dal repo dopo il primo boot reale del 2026-11-05 (Phase 12 D-25); la corsa del generatore al boot la chiede QuestGenerationSweeper
 @Injectable()
 export class QuestMaintenanceBoot implements OnApplicationBootstrap {
     private readonly logger = new Logger(QuestMaintenanceBoot.name);
