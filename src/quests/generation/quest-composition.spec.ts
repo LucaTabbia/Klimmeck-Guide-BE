@@ -186,7 +186,7 @@ describe('composition of generated quests', () => {
         expect(zoned.every((composition) => composition !== null)).toBe(true);
         expect([...memberIdsOf(zoned)].sort()).toEqual(['b01', 'b02']);
 
-        const forestBrute = enemy('c01', 'Bruto', 200, ['forest']);
+        const forestBrute = enemy('c01', 'Bruto', 1300, ['forest']);
         const wanderer = enemy('c02', 'Errante', 40, ['all']);
         const desertScout = enemy('c03', 'Esploratore', 30, ['desert']);
         const fallback = seededCompositions(TitleType.paladin, [

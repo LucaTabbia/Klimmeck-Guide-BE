@@ -45,7 +45,7 @@ export interface GenerationWorld {
     legendaryIds: Types.ObjectId[];
 }
 
-// due nemici per fascia (rookie 7–14, adventurer 21–35, paladin 70–169, mage 225–451, hero 549–803)
+// due nemici per fascia (rookie 1–20, adventurer 21–69, paladin 70–224, mage 225–548, hero 549–803)
 export const STANDARD_ENEMY_XPS: readonly number[] = [
     8, 12, 22, 30, 80, 120, 250, 400, 560, 700,
 ];

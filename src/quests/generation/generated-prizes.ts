@@ -59,14 +59,13 @@ export const GENERATED_PRIZES: Readonly<
     [QuestType.boss]: { copper: 600, xp: 120 },
 };
 
-// Phase 11 tierMultiplier; legend come hero (confermato dall'utente il 2026-11-04, D-19)
+// Phase 11 tierMultiplier (D-19)
 export const TIER_MULTIPLIER: Readonly<Record<GeneratedRank, number>> = {
     rookie: 1,
     adventurer: 2,
     paladin: 5,
     mage: 12,
     hero: 25,
-    legend: 25,
 };
 
 const slot = (rarity: RarityType, min: number, max = min): LootSlot => ({
@@ -81,7 +80,7 @@ const HERO_BOSS_POOL: readonly LootSlot[] = [
     slot(RarityType.rare, 4),
 ];
 
-// pool ampi per tipo e rango (D-20): legendary solo da hero in su; enemy legend = boss hero (utente 2026-11-04); legend senza boss
+// pool ampi per tipo e rango: legendary solo dai boss hero (D-20)
 export const LOOT_POOLS: Readonly<
     Record<
         GeneratedQuestType,
@@ -102,10 +101,8 @@ export const LOOT_POOLS: Readonly<
         ],
         adventurer: [slot(RarityType.uncommon, 1), slot(RarityType.common, 4)],
         rookie: [slot(RarityType.common, 2)],
-        legend: [],
     },
     [QuestType.enemy]: {
-        legend: HERO_BOSS_POOL,
         hero: [slot(RarityType.ultrarare, 1), slot(RarityType.rare, 2)],
         mage: [slot(RarityType.rare, 1), slot(RarityType.uncommon, 2)],
         paladin: [slot(RarityType.uncommon, 1), slot(RarityType.common, 2)],

@@ -110,7 +110,7 @@ export function generatedQuestDraftOf(
         requirements: {
             minTitle: composition.rank,
             requiredPoints: null,
-            // posti a titolo esatto (D-09 emendata): nessun jolly, anche per legend
+            // posti a titolo esatto (D-09 emendata): nessun jolly
             requiredAdventurers: [
                 { title: composition.rank, count: composition.seats },
             ],

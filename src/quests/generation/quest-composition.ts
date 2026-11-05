@@ -1,6 +1,5 @@
 // ogni membro di un branco dallo stesso pool del POI (D-08, utente 2026-11-04):
 // all solo come ripiego quando la zona non compone la forma
-import { TitleType } from 'src/models/enums/title-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import {
@@ -14,7 +13,6 @@ import {
     bossSeatsOf,
     GeneratedRank,
     isBossCandidate,
-    LEGEND_PACK_UNITS,
     MAX_PACK_TYPES,
     MAX_PACK_UNITS,
     PACK_ATTEMPTS,
@@ -122,22 +120,6 @@ const packForm: Form = (pool, band, chance) => {
     return null;
 };
 
-// D-07 emendata: legend = branco di 2–4 nemici della fascia hero, somma sempre nella fascia legend
-function legendPack(
-    pool: readonly EnemyCandidate[],
-    chance: ChanceSource,
-): ComposedEnemy[] | null {
-    const hero = RANK_XP_BANDS[TitleType.hero];
-    const candidates = pool.filter((enemy) => inBand(enemy.xp, hero));
-    if (candidates.length === 0) return null;
-    const spread = LEGEND_PACK_UNITS.max - LEGEND_PACK_UNITS.min + 1;
-    const units = LEGEND_PACK_UNITS.min + indexOf(spread, chance);
-    const types = 1 + indexOf(Math.min(MAX_PACK_TYPES, units), chance);
-    const entries = drawTypes(candidates, types, chance);
-    while (unitsOf(entries) < units) addUnit(entries, chance);
-    return entries;
-}
-
 function bossOf(
     pool: readonly EnemyCandidate[],
     rank: GeneratedRank,
@@ -177,17 +159,6 @@ function composeEnemyQuest(
     return null;
 }
 
-function composeLegendQuest(
-    pools: readonly (readonly EnemyCandidate[])[],
-    chance: ChanceSource,
-): Composition | null {
-    for (const pool of pools) {
-        const enemies = legendPack(pool, chance);
-        if (enemies !== null) return enemyQuest(TitleType.legend, enemies);
-    }
-    return null;
-}
-
 // D-05/D-06: un solo nemico di fascia superiore, posti dalla formula, 1 volta su 10
 function composeBossQuest(
     rank: GeneratedRank,
@@ -214,7 +185,6 @@ export function composeQuest(input: CompositionInput): Composition | null {
     const zone = zonePoolOf(enemies, poiTypes);
     const fallback = fallbackPoolOf(enemies, poiTypes);
     const pools = fallback.length > zone.length ? [zone, fallback] : [zone];
-    if (rank === TitleType.legend) return composeLegendQuest(pools, chance);
     return (
         composeBossQuest(rank, pools, chance) ??
         composeEnemyQuest(rank, pools, chance)
