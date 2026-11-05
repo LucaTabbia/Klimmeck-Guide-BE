@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 13.1 eseguita (8/8) su `feat/13.1-correzioni-generazione-quest`; PR in draft in attesa del popolamento del DB e del primo boot reale (runbook in `.planning/phases/13-generazione-quest/BACKEND-NOTES.md` §11 f), poi rimozione dei one-off
-last_updated: "2026-11-05T12:31:03.585Z"
-last_activity: 2026-11-05 -- Phase 13.1 execution started
+last_updated: "2026-11-05T15:30:00.000Z"
+last_activity: 2026-11-05 -- Phase 13.1 execution complete (8/8), handoff and first-boot runbook written; next review → fix → verify → security → PR draft → first real boot
 progress:
   total_phases: 20
   completed_phases: 16
