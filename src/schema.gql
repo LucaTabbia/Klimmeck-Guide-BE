@@ -545,6 +545,7 @@ type Query {
   pointOfInterests: [PointOfInterest!]!
   quest(id: String!): Quest!
   questResult(id: String!): QuestResult!
+  questTravelPreview(request: AcceptQuestRequest!): TravelPreview
   quests: [Quest!]!
   raceTraits: [RaceTraits!]!
   serverTime: DateTime!

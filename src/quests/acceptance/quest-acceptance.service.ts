@@ -13,6 +13,7 @@ import {
 import { City, CityDocument } from 'src/models/city.model';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { TravelPreview } from 'src/models/travel-preview.model';
 import {
     PendingQuest,
     PendingQuestDocument,
@@ -25,7 +26,11 @@ import {
     QuestStartService,
     soloStartDateOf,
 } from 'src/quests/party/quest-start.service';
-import { TravelPlanner } from 'src/travel/travel-planner.service';
+import { TravelPantryReader } from 'src/travel/food/travel-pantry.reader';
+import {
+    AutoTravelRequest,
+    TravelPlanner,
+} from 'src/travel/travel-planner.service';
 import { TravelScheduler } from 'src/travel/travel-scheduler.service';
 import { SlotRule } from './quest-capacity';
 import {
@@ -130,6 +135,7 @@ export class QuestAcceptanceService {
         private readonly scheduler: TravelScheduler,
         private readonly questScheduler: QuestResolutionScheduler,
         private readonly questStart: QuestStartService,
+        private readonly pantry: TravelPantryReader,
     ) {}
 
     // pre-letture lean → regole pure → una transazione con le guard riaffermate nel filtro (07 D-18): un rifiuto non scrive nulla
@@ -234,6 +240,28 @@ export class QuestAcceptanceService {
         return pendingQuestId;
     }
 
+    // anteprima owner-only del viaggio automatico (Phase 14 D-08): movimento calcolato come l'accettazione, nessuna scrittura;
+    // null = nessun viaggio (story, worldMission, marker = posizione, salto senza strada); non valuta corsia, titolo, posti né punti
+    async previewTravel(
+        characterId: Types.ObjectId,
+        questId: Types.ObjectId,
+    ): Promise<TravelPreview | null> {
+        const quest = await this.readQuest(questId);
+        const character = await this.readCharacter(characterId);
+        const lane = laneOf(quest.infos.type);
+        if (lane === QuestLane.story) return null;
+        const location = await this.locationInQuestCity(quest, character);
+        if (lane !== QuestLane.standard) return null;
+        const request = this.autoRequestOf(
+            quest,
+            characterId,
+            location,
+            character,
+        );
+        const travel = request ? await this.planner.autoRoute(request) : null;
+        return travel ? this.pantry.previewOf(characterId, travel) : null;
+    }
+
     // da soli: la corsia è già avviata dal claim, resta la scadenza; party: decide QuestStartService (utente 2026-10-25)
     private async startOnMarker(
         trigger: { questId: Types.ObjectId; pendingQuestId: Types.ObjectId },
@@ -259,17 +287,36 @@ export class QuestAcceptanceService {
         location: Types.ObjectId,
         character: CharacterAcceptanceSnapshot,
     ): Promise<LaneMovement | null> {
+        const request = this.autoRequestOf(
+            quest,
+            characterId,
+            location,
+            character,
+        );
+        if (!request) return null;
+        const travel = await this.planner.planAuto(request);
+        return travel
+            ? { kind: 'travel', travel }
+            : { kind: 'jump', marker: request.to };
+    }
+
+    // marker assente o uguale alla posizione ⇒ nessun movimento (D-02, D-22)
+    private autoRequestOf(
+        quest: QuestAcceptanceSnapshot,
+        characterId: Types.ObjectId,
+        location: Types.ObjectId,
+        character: CharacterAcceptanceSnapshot,
+    ): AutoTravelRequest | null {
         const marker = refIdOf(quest.infos.markerLocation);
         if (!marker || sameId(location, marker)) return null;
-        const travel = await this.planner.planAuto({
+        return {
             questId: quest._id,
             characterId,
             from: location,
             to: marker,
             pet: character.assets?.pet,
             injuries: character.status.injuries,
-        });
-        return travel ? { kind: 'travel', travel } : { kind: 'jump', marker };
+        };
     }
 
     private async readQuest(

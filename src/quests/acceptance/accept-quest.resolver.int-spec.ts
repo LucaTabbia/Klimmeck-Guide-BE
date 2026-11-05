@@ -387,11 +387,7 @@ describe('acceptQuest (wire)', () => {
         return user?.twitchPoints as number;
     }
 
-    function expectRejected(
-        body: { data?: unknown; errors?: WireError[] },
-        code: string,
-        message: string,
-    ) {
+    function expectRejected(body: WireBody, code: string, message: string) {
         expect(body.data ?? null).toBeNull();
         expect(body.errors?.[0]?.extensions).toEqual({ code });
         expect(body.errors?.[0]?.message).toBe(message);
@@ -981,6 +977,17 @@ describe('acceptQuest (wire)', () => {
             );
         }
 
+        // query nullable: un rifiuto azzera solo il campo, data resta un oggetto
+        function expectPreviewRejected(
+            body: QuestTravelPreviewBody,
+            code: string,
+            message: string,
+        ) {
+            expect(body.data?.questTravelPreview ?? null).toBeNull();
+            expect(body.errors?.[0]?.extensions).toEqual({ code });
+            expect(body.errors?.[0]?.message).toBe(message);
+        }
+
         function previewOf(
             body: QuestTravelPreviewBody,
         ): WireQuestTravelPreview | null | undefined {
@@ -1147,7 +1154,7 @@ describe('acceptQuest (wire)', () => {
                 alice.bearer,
             );
 
-            expectRejected(
+            expectPreviewRejected(
                 body,
                 'QUEST_NOT_IN_CITY',
                 'Devi trovarti nella città della missione',
@@ -1162,7 +1169,7 @@ describe('acceptQuest (wire)', () => {
                 alice.bearer,
             );
 
-            expectRejected(body, 'NOT_FOUND', 'Missione non trovata');
+            expectPreviewRejected(body, 'NOT_FOUND', 'Missione non trovata');
         });
 
         it('inherits QUEST_NOT_ACCEPTABLE for a marker without a point of interest (D-08)', async () => {
@@ -1179,7 +1186,7 @@ describe('acceptQuest (wire)', () => {
                 alice.bearer,
             );
 
-            expectRejected(
+            expectPreviewRejected(
                 body,
                 'QUEST_NOT_ACCEPTABLE',
                 'Missione non disponibile',
@@ -1197,12 +1204,12 @@ describe('acceptQuest (wire)', () => {
                 questId: await questOf('hunt'),
             };
 
-            expectRejected(
+            expectPreviewRejected(
                 await previewQuestTravel(request, oste.bearer),
                 'FORBIDDEN',
                 FORBIDDEN_MESSAGE,
             );
-            expectRejected(
+            expectPreviewRejected(
                 await previewQuestTravel(request, bob.bearer),
                 'FORBIDDEN',
                 FORBIDDEN_MESSAGE,
@@ -1213,7 +1220,7 @@ describe('acceptQuest (wire)', () => {
             const alice = await playerWith('malformed');
             const questId = await questOf('hunt');
 
-            expectRejected(
+            expectPreviewRejected(
                 await previewQuestTravel(
                     { id: MALFORMED_ID, questId },
                     alice.bearer,
@@ -1221,7 +1228,7 @@ describe('acceptQuest (wire)', () => {
                 'BAD_USER_INPUT',
                 'Input non valido: id',
             );
-            expectRejected(
+            expectPreviewRejected(
                 await previewQuestTravel(
                     { id: characterIdOf(alice), questId: MALFORMED_ID },
                     alice.bearer,
