@@ -542,7 +542,7 @@ Plans:
 - [x] 14-05-PLAN.md — Wave 5: `autoRoute` senza il WARN del salto, query owner-only nullable `questTravelPreview`, SDL e liste owner-only (BE-FOOD-04/06)
 - [x] 14-06-PLAN.md — Wave 6: `acceptQuest` mangia nel claim (fame in pre-verifica e nel callback, codice della corsa prima della fame), esenzioni, concorrenza, D-20, rifiuto sul filo (BE-FOOD-03/05/06)
 - [x] 14-07-PLAN.md — Wave 7: gate (`test:cov` con le soglie per cartella, boot reale con SDL additivo, lint mirato, invarianti, VALIDATION firmata, BE-FOOD-01..06 completi) (BE-FOOD-01..06)
-- [ ] 14-08-PLAN.md — Wave 8: handoff `BACKEND-NOTES.md` per la FE 15, emendamento in coda al handoff della Phase 8, nota nel CONTEXT, stato in ROADMAP e STATE (BE-FOOD-06)
+- [x] 14-08-PLAN.md — Wave 8: handoff `BACKEND-NOTES.md` per la FE 15, emendamento in coda al handoff della Phase 8, nota nel CONTEXT, stato in ROADMAP e STATE (BE-FOOD-06)
 
 **Stato (2026-11-05)**: 8/8 piani eseguiti; PR verso `develop` a cura dell'orchestratore; la FE Phase 15 parte dopo la merge (handoff in `.planning/phases/14-viaggio-e-cibo/BACKEND-NOTES.md`)
 
@@ -619,6 +619,6 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
 | 13. Generazione quest | 20/20 | Complete | 2026-11-04 |
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
-| 14. Viaggio e cibo | 7/8 | In Progress | - |
+| 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |

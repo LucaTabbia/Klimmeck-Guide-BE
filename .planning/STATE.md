@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 14 (Viaggio e cibo) — EXECUTING (started 2026-11-05) on `feat/14-viaggio-e-cibo` (from `develop` `698ae82`): 8 plans in a linear chain (`14-01`..`14-08`), executors one at a time on the main tree
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Phase 14 executed (8/8: 14-01..14-06 code, 14-07 gate, 14-08 handoff); PR to `develop` to be opened by the orchestrator after review → fix → security; the FE Phase 15 is unblocked at the merge; Phase 13.1 merged (PR #21), its device UAT outcome in PR #22 (docs, open)
 Last activity: 2026-11-05 -- Phase 14 executed (8/8), FE Phase 15 handoff written, PR to develop pending
 
