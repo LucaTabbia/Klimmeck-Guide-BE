@@ -1,8 +1,11 @@
+import { Types } from 'mongoose';
 import { MIN_LIFE_POINTS } from 'src/quests/outcomes/progression/level-table';
+import { FoodStack } from './food-selection';
 import {
     FOOD_RULES,
     foodNeededFor,
     hpLostFor,
+    planTravelFood,
     uncoveredKmOf,
 } from './travel-food';
 
@@ -40,5 +43,99 @@ describe('travel food rules', () => {
         expect(
             [0, 1, 5, 16, 23, 44, 45, 50, 100, 204, 506].map(hpLostFor),
         ).toEqual([0, 1, 15, 136, 276, 990, 1035, 1275, 5050, 20910, 128271]);
+    });
+});
+
+const A = new Types.ObjectId('64b0000000000000000000a1');
+const B = new Types.ObjectId('64b0000000000000000000a2');
+
+function stack(
+    itemId: Types.ObjectId,
+    power: number,
+    quantity: number,
+    sellCopper = 1,
+): FoodStack {
+    return { itemId, power, quantity, sellCopper };
+}
+
+describe('travel food plan', () => {
+    const partial = { durationMs: 9_900_000, distanceKm: 16 };
+
+    it('plans a covered travel without life lost (D-04)', () => {
+        expect(
+            planTravelFood({
+                ...partial,
+                hpBefore: 100,
+                stacks: [stack(A, 50, 1), stack(B, 10, 1)],
+            }),
+        ).toEqual({
+            consumed: [
+                { itemId: A, quantity: 1 },
+                { itemId: B, quantity: 1 },
+            ],
+            needed: 55,
+            covered: 60,
+            uncoveredKm: 0,
+            hpLost: 0,
+            hpAfter: 100,
+            arrivesAlive: true,
+        });
+    });
+
+    it('plans a partial travel with all the food eaten and the rest uncovered (D-03, D-04)', () => {
+        expect(
+            planTravelFood({
+                ...partial,
+                hpBefore: 100,
+                stacks: [stack(A, 20, 2)],
+            }),
+        ).toEqual({
+            consumed: [{ itemId: A, quantity: 2 }],
+            needed: 55,
+            covered: 40,
+            uncoveredKm: 5,
+            hpLost: 15,
+            hpAfter: 85,
+            arrivesAlive: true,
+        });
+    });
+
+    it('arrives alive with exactly one life point left (D-04, D-11)', () => {
+        const plan = planTravelFood({
+            ...partial,
+            hpBefore: 16,
+            stacks: [stack(A, 20, 2)],
+        });
+        expect(plan.hpAfter).toBe(1);
+        expect(plan.arrivesAlive).toBe(true);
+    });
+
+    it('refuses to arrive at zero life points (D-04, D-11)', () => {
+        const plan = planTravelFood({
+            ...partial,
+            hpBefore: 15,
+            stacks: [stack(A, 20, 2)],
+        });
+        expect(plan.hpAfter).toBe(0);
+        expect(plan.arrivesAlive).toBe(false);
+    });
+
+    it('charges the whole distance without food (D-02, D-03)', () => {
+        expect(
+            planTravelFood({
+                durationMs: 16_012_800,
+                distanceKm: 22.24,
+                hpBefore: 1000,
+                stacks: [],
+            }),
+        ).toEqual({
+            consumed: [],
+            needed: 89,
+            covered: 0,
+            uncoveredKm: 23,
+            hpLost: 276,
+            hpAfter: 724,
+            arrivesAlive: true,
+        });
     });
 });
