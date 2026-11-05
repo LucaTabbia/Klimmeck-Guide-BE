@@ -519,7 +519,7 @@ Plans:
 - [x] 13.1-05-PLAN.md — One-off di boot: reset delle generate (marcatore legend, protette lasciate) e prede delle hunt per zona e fascia, richiesta finale al generatore
 - [x] 13.1-06-PLAN.md — One-off di boot: tappe delle dungeon v2 senza animali e in un solo budget, ordine nemici → reset → hunt → dungeon → generatore
 - [x] 13.1-07-PLAN.md — Gate: `npm run test:cov`, real boot con `src/schema.gql` identico a `develop`, lint sui file toccati, invarianti, VALIDATION firmata, `mark-complete` BE-QGEN-12..16
-- [ ] 13.1-08-PLAN.md — Docs: emendamenti di `13-CONTEXT.md`, `BACKEND-NOTES.md` §7/§9/§11 col runbook del boot reale e la rimozione dei one-off, handoff FE 13.1
+- [x] 13.1-08-PLAN.md — Docs: emendamenti di `13-CONTEXT.md`, `BACKEND-NOTES.md` §7/§9/§11 col runbook del boot reale e la rimozione dei one-off, handoff FE 13.1
 
 ### Phase 14: Viaggio e cibo
 **Goal**: Viaggiare consuma cibo: il fabbisogno è il tempo di marcia (1 power ogni 3 minuti della durata calcolata, che già somma terreno della strada, pet e ferite), il server sceglie fra gli oggetti `hunger` del personaggio quelli che coprono il fabbisogno con lo scarto minimo e li consuma alla partenza; i chilometri scoperti dal cibo costano vita (il km scoperto n-esimo costa n HP); se il personaggio non arriverebbe con almeno 1 HP la partenza — libera o automatica da quest — è rifiutata. Teleport e salto istantaneo esenti.
@@ -607,7 +607,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
 | 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
 | 13. Generazione quest | 20/20 | Complete | 2026-11-04 |
-| 13.1. Correzioni generazione quest | 7/8 | In Progress | - |
+| 13.1. Correzioni generazione quest | 8/8 | In Progress | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
