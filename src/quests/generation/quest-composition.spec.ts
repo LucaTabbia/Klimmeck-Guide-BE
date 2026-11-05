@@ -254,6 +254,23 @@ describe('composition of generated quests', () => {
         });
     });
 
+    it('composes one seat from the zone before two seats from the all fallback (D-03, D-08)', () => {
+        const wanderer = enemy('f01', 'Errante', 700, ['all']);
+
+        expect(
+            compose(
+                TitleType.hero,
+                [orsogufo, wanderer],
+                new SequenceChance([0.5, 0.9]),
+            ),
+        ).toEqual({
+            type: QuestType.enemy,
+            rank: TitleType.hero,
+            enemies: [{ enemy: orsogufo, quantity: 6 }],
+            seats: 1,
+        });
+    });
+
     it('keeps every pack member inside the pool of the point of interest (D-07, D-08)', () => {
         const forestGoblin = enemy('b01', 'Goblin', 19, ['forest']);
         const cityThief = enemy('b02', 'Ladro', 4, ['city']);
