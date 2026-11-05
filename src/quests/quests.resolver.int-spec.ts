@@ -1,6 +1,7 @@
 import { Model, Schema, Types } from 'mongoose';
 import type request from 'supertest';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
+import { City, CitySchema } from 'src/models/city.model';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import {
     EquipmentItem,
@@ -25,6 +26,7 @@ import {
 import { createPlayer } from '../../test/authz/player-fixture';
 import {
     buildQuest,
+    persistCity,
     persistEnemy,
     persistEquipmentItem,
     persistLootItem,
@@ -228,12 +230,18 @@ describe('quest catalog (wire)', () => {
 
     beforeEach(async () => {
         await harness.clearDatabase();
-        ({ bearer } = await createPlayer(harness, {
+        const reader = await createPlayer(harness, {
             twitchId: 'twitch-catalog-reader',
-        }));
+        });
+        bearer = reader.bearer;
         poi = await persistPoi(
             modelOf(PointOfInterest.name, PointOfInterestSchema),
         );
+        // il tabellone è per area (13.1 D-05): il lettore sta sul marker della città del POI delle quest
+        await persistCity(modelOf(City.name, CitySchema), {
+            markerLocation: reader.character?.status.location,
+            pointsOfInterest: [poi._id],
+        });
         enemy = await persistEnemy(modelOf(Enemy.name, EnemySchema), {
             name: 'Lupo',
             imagePath: 'enemies/wolf.png',

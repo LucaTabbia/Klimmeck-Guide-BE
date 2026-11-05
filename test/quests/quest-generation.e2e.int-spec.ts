@@ -26,7 +26,7 @@ import {
     graphqlRequest,
 } from '../auth/auth-test-app';
 import { createPlayer } from '../authz/player-fixture';
-import { buildQuest, persistQuest } from '../fixtures';
+import { buildCharacter, buildQuest, persistQuest } from '../fixtures';
 import {
     generatedPerCityOf,
     GenerationModels,
@@ -313,13 +313,24 @@ describe('quest generation end to end (replSet)', () => {
     });
 
     it('keeps generated quests on the board with no expiry (D-14)', async () => {
-        await persistGenerationWorld(models, { cities: 3, poisPerCity: 2 });
+        const world = await persistGenerationWorld(models, {
+            cities: 3,
+            poisPerCity: 2,
+        });
         const created = await generate();
+        // il tabellone è per area (13.1 D-05): un avventuriero sul marker della prima città
+        const [home] = world.cities;
+        const viewer = await createPlayer(harness, {
+            twitchId: `tw-e2e-board-${seq}`,
+            characterOverrides: {
+                status: { ...buildCharacter().status, location: home.markerId },
+            },
+        });
         const response = await graphqlRequest(
             harness.app,
             BOARD,
             undefined,
-            innkeeper,
+            viewer.bearer,
         );
         const body = response.body as {
             data?: { quests?: WireBoardQuest[] } | null;
@@ -332,10 +343,17 @@ describe('quest generation end to end (replSet)', () => {
         expect(generated.map((quest) => quest.concludedAt ?? null)).toEqual(
             generated.map(() => null),
         );
+        const homePois = [home.markerId, ...home.poiIds].map(String);
         const board = body.data?.quests ?? [];
         expect(board.map((quest) => quest.id).sort()).toEqual(
-            generated.map((quest) => quest._id.toHexString()).sort(),
+            generated
+                .filter((quest) =>
+                    homePois.includes(String(quest.infos.markerLocation)),
+                )
+                .map((quest) => quest._id.toHexString())
+                .sort(),
         );
+        expect(board.length).toBeGreaterThan(0);
         for (const quest of board) {
             expect([QuestType.enemy, QuestType.boss]).toContain(
                 quest.infos.type,
