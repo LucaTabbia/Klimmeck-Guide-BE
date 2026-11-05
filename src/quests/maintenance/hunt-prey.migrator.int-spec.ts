@@ -314,6 +314,25 @@ describe('HuntPreyMigrator (replSet)', () => {
         ]);
     });
 
+    it('counts a coherent hunt whose poi has no city as coherent (D-07)', async () => {
+        const orphanPoi = await insertPoi(['forest']);
+        const coherent = await insertHunt(wolf, { poi: orphanPoi });
+        const incoherent = await insertHunt(tiger, { poi: orphanPoi });
+        const before = await rawHunt(coherent);
+
+        await expect(migrator.migrate()).resolves.toEqual({
+            redrawn: 0,
+            coherent: 1,
+            withoutPrey: 1,
+            inLane: 0,
+        });
+
+        expect(await rawHunt(coherent)).toEqual(before);
+        expect(warnSpy.mock.calls).toEqual([
+            [`Hunt ${incoherent.toHexString()} senza prede in zona: lasciata`],
+        ]);
+    });
+
     it('leaves a hunt held in a lane and warns with its id (D-07)', async () => {
         const hunt = await insertHunt(tiger);
         await pendingQuests.collection.insertOne({
