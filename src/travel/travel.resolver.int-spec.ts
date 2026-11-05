@@ -8,6 +8,7 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { LootItem } from 'src/models/loot-item.model';
 import {
     PendingQuest,
     PendingQuestDocument,
@@ -23,6 +24,7 @@ import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.mo
 import { RoadsService } from 'src/roads/roads.service';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
+import { foodNeededFor, hpLostFor, uncoveredKmOf } from './food/travel-food';
 import { TRAVEL_QUEUE } from './travel-job';
 import { TravelSweeper } from './travel-sweeper';
 import { TravelModule } from './travel.module';
@@ -39,9 +41,19 @@ import {
     characterTouch,
     primeChangeStream,
 } from '../../test/harness/prime-change-stream';
-import { buildCharacter, buildQuest, persistQuest } from '../../test/fixtures';
+import {
+    buildCharacter,
+    buildQuest,
+    persistLootItem,
+    persistQuest,
+} from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
+import {
+    foodStack,
+    HARDY_LIFE_POINTS,
+    persistFood,
+} from '../../test/travel/travel-food.fixture';
 import {
     persistTravelWorld,
     TravelWorld,
@@ -50,7 +62,7 @@ import {
 const START =
     'mutation Start($request: TravelRequest!) { startTravel(request: $request) { response successful } }';
 const PREVIEW =
-    'query Preview($request: TravelRequest!) { travelPreview(request: $request) { duration distance road { coordinates distance } } }';
+    'query Preview($request: TravelRequest!) { travelPreview(request: $request) { duration distance road { coordinates distance } food { quantity item { id name } } hpLost arrivesAlive } }';
 const TRAVEL_SUBSCRIPTION =
     'subscription OnTravel($id: String!) { characterUpdated(id: $id) { id status { location { id } activeTravel { road { coordinates distance } startTime endTime duration to } } } }';
 const ACCEPT =
@@ -71,6 +83,9 @@ interface WirePreview {
     duration: number;
     distance: number;
     road: { coordinates: number[][]; distance: number };
+    food: { quantity: number; item: { id: string; name: string } }[];
+    hpLost: number;
+    arrivesAlive: boolean;
 }
 
 interface WireBody {
@@ -194,6 +209,8 @@ describe('startTravel and travelPreview (wire)', () => {
             activeTravel?: Record<string, unknown> | null;
             pendingQuest?: Types.ObjectId | null;
             awaitingAid?: Record<string, unknown> | null;
+            lifePoints?: number;
+            ownedItems?: unknown[];
         } = {},
     ): Promise<TestPlayer> {
         seq += 1;
@@ -209,10 +226,18 @@ describe('startTravel and travelPreview (wire)', () => {
                     title: 'rookie',
                     activeTravel: options.activeTravel ?? null,
                     awaitingAid: options.awaitingAid ?? null,
+                    currentLifePoints:
+                        options.lifePoints ?? base.status.currentLifePoints,
+                    maxLifePoints:
+                        options.lifePoints ?? base.status.maxLifePoints,
                 },
                 quests: {
                     completedQuests: [],
                     pendingQuest: options.pendingQuest ?? null,
+                },
+                assets: {
+                    ...base.assets,
+                    ownedItems: options.ownedItems ?? [],
                 },
             },
         });
@@ -537,6 +562,58 @@ describe('startTravel and travelPreview (wire)', () => {
         const raw = await rawCharacter(alice);
         expect(raw?.status.activeTravel.duration).toBe(wire.duration);
         expect(raw?.status.activeTravel.road.distance).toBe(wire.distance);
+    });
+
+    it('previews the food, the life lost and the arrival on the wire without writing (D-09, D-17)', async () => {
+        const lootItems = harness.connection.model(LootItem.name);
+        const food20 = await persistFood(lootItems, 20);
+        const potion = await persistLootItem(lootItems);
+        const alice = await playerAt(world.markerA, {
+            lifePoints: HARDY_LIFE_POINTS,
+            ownedItems: [foodStack(food20, 3), foodStack(potion, 1)],
+        });
+        const before = await rawCharacter(alice);
+
+        const body = await preview(
+            requestOf(alice, world.markerB),
+            alice.bearer,
+        );
+
+        expect(body.errors).toBeUndefined();
+        const wire = body.data?.travelPreview as WirePreview;
+        expect(wire.food).toEqual([
+            {
+                quantity: 3,
+                item: { id: String(food20._id), name: 'Cibo 20' },
+            },
+        ]);
+        const needed = foodNeededFor(wire.duration);
+        expect(wire.hpLost).toBe(
+            hpLostFor(uncoveredKmOf(needed, 60, wire.distance)),
+        );
+        expect(wire.arrivesAlive).toBe(true);
+        const after = await rawCharacter(alice);
+        expect(after?.assets.ownedItems).toEqual(before?.assets.ownedItems);
+        expect(after?.status.currentLifePoints).toEqual(
+            before?.status.currentLifePoints,
+        );
+    });
+
+    it('previews a starving travel with arrivesAlive false and no error (D-09)', async () => {
+        const bob = await playerAt(world.markerA);
+
+        const body = await preview(requestOf(bob, world.markerB), bob.bearer);
+
+        expect(body.errors).toBeUndefined();
+        const wire = body.data?.travelPreview as WirePreview;
+        expect(wire.food).toEqual([]);
+        expect(wire.hpLost).toBe(
+            hpLostFor(
+                uncoveredKmOf(foodNeededFor(wire.duration), 0, wire.distance),
+            ),
+        );
+        expect(wire.arrivesAlive).toBe(false);
+        expect((await rawCharacter(bob))?.status.activeTravel).toBeNull();
     });
 
     it('forbids the innkeeper on another character without auditing', async () => {

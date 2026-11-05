@@ -33,6 +33,7 @@ import {
 const READ_AT = new Date('2026-11-05T10:00:00.000Z');
 const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const QUEUE_TIMEOUT_MS = 50;
+const LEG = { duration: 9_900_000, road: { coordinates: [], distance: 16 } };
 
 describe('TravelPantryReader (replSet)', () => {
     let app: INestApplication;
@@ -190,10 +191,7 @@ describe('TravelPantryReader (replSet)', () => {
             assets: { ownedItems: [foodStack(food20, 2)] },
         });
 
-        const { plan, pantry } = await reader.planFor(id, {
-            duration: 9_900_000,
-            road: { coordinates: [], distance: 16 },
-        });
+        const { plan, pantry } = await reader.planFor(id, LEG);
 
         expect(plan).toEqual({
             consumed: [{ itemId: idOf(food20), quantity: 2 }],
@@ -205,5 +203,63 @@ describe('TravelPantryReader (replSet)', () => {
             arrivesAlive: true,
         });
         expect(pantry.hpRaw).toBe(100);
+    });
+    it('skips a food without catalog document (D-09)', async () => {
+        const food20 = await persistFood(lootItems, 20);
+        const orphan = new Types.ObjectId();
+        const id = await traveller({
+            assets: {
+                ownedItems: [
+                    foodStack(food20, 2),
+                    { itemType: 'LootItem', item: orphan, quantity: 3 },
+                ],
+            },
+        });
+
+        const pantry = await reader.read(id);
+
+        expect(pantry.stacks).toEqual([
+            { itemId: idOf(food20), power: 20, sellCopper: 10, quantity: 2 },
+        ]);
+        expect(
+            await reader.foodItemsOf([{ itemId: orphan, quantity: 1 }]),
+        ).toEqual([]);
+    });
+
+    it('reads a legacy character without owned items as an empty pantry (D-09)', async () => {
+        const id = await traveller();
+        await characters.collection.updateOne(
+            { _id: id },
+            { $unset: { 'assets.ownedItems': '' } },
+        );
+
+        const pantry = await reader.read(id);
+        const preview = await reader.previewOf(id, LEG);
+
+        expect(pantry.stacks).toEqual([]);
+        expect(pantry.assets.ownedItems).toEqual([]);
+        expect(preview.food).toEqual([]);
+    });
+
+    it('hydrates the eaten food as LootItem documents with their id (D-09)', async () => {
+        const food20 = await persistFood(lootItems, 20);
+        const food50 = await persistFood(lootItems, 50);
+
+        const items = await reader.foodItemsOf([
+            { itemId: idOf(food20), quantity: 2 },
+            { itemId: idOf(food50), quantity: 1 },
+        ]);
+
+        expect(
+            items.map(({ item, quantity }) => ({
+                id: item.id,
+                name: item.name,
+                quantity,
+            })),
+        ).toEqual([
+            { id: idOf(food20).toHexString(), name: 'Cibo 20', quantity: 2 },
+            { id: idOf(food50).toHexString(), name: 'Cibo 50', quantity: 1 },
+        ]);
+        expect(await reader.foodItemsOf([])).toEqual([]);
     });
 });

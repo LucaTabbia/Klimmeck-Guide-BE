@@ -592,7 +592,18 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'input TravelRequest {\n  id: String!\n  poiId: String!\n}',
         );
         expect(schema.match(/type TravelPreview \{[^}]*\}/)?.[0]).toBe(
-            'type TravelPreview {\n  distance: Float!\n  duration: Float!\n  road: TravelPath!\n}',
+            'type TravelPreview {\n  arrivesAlive: Boolean!\n  distance: Float!\n  duration: Float!\n  food: [TravelFoodItem!]!\n  hpLost: Int!\n  road: TravelPath!\n}',
+        );
+    });
+
+    it('writes the food of the travel preview into the generated schema (D-09, D-14)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type TravelFoodItem \{[^}]*\}/)?.[0]).toBe(
+            'type TravelFoodItem {\n  item: LootItem!\n  quantity: Int!\n}',
+        );
+        expect(schema).toContain(
+            'travelPreview(request: TravelRequest!): TravelPreview!',
         );
     });
 
