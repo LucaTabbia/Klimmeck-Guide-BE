@@ -141,7 +141,8 @@ describe('GeneratedQuestsResetMigrator (replSet)', () => {
         await holdInLane(inLane.toHexString());
         await insertQuest({ minTitle: 'legend' });
         await insertQuest({ minTitle: 'paladin' });
-        await holdInLane(await insertQuest({ generated: false }));
+        const fixed = await insertQuest({ generated: false });
+        await holdInLane(fixed);
         await holdInLane(new Types.ObjectId());
 
         await expect(migrator.migrate()).resolves.toEqual({
@@ -149,7 +150,9 @@ describe('GeneratedQuestsResetMigrator (replSet)', () => {
             kept: 2,
         });
 
-        expect(await remainingIds()).toEqual(sorted([registered, inLane]));
+        expect(await remainingIds()).toEqual(
+            sorted([registered, inLane, fixed]),
+        );
         expect(logSpy.mock.calls).toEqual([
             ['Generate: 2 cancellate, 2 lasciate'],
         ]);
