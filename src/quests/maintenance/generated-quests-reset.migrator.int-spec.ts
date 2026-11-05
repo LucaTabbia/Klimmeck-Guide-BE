@@ -118,6 +118,7 @@ describe('GeneratedQuestsResetMigrator (replSet)', () => {
             concludedAt: new Date('2026-11-01T00:00:00Z'),
         });
         const fixed = await insertQuest({ generated: false });
+        await holdInLane(fixed);
 
         await expect(migrator.migrate()).resolves.toEqual({
             deleted: 3,
@@ -128,9 +129,10 @@ describe('GeneratedQuestsResetMigrator (replSet)', () => {
         expect(logSpy.mock.calls).toEqual([
             ['Generate: 3 cancellate, 0 lasciate'],
         ]);
+        expect(debugSpy).not.toHaveBeenCalled();
     });
 
-    it('keeps a generated quest with registered adventurers or in a lane and logs only counts (D-06)', async () => {
+    it('keeps a generated quest with registered adventurers or in a lane and lists only those at debug (D-06)', async () => {
         const registered = await insertQuest({
             minTitle: 'legend',
             registered: true,
@@ -139,6 +141,8 @@ describe('GeneratedQuestsResetMigrator (replSet)', () => {
         await holdInLane(inLane.toHexString());
         await insertQuest({ minTitle: 'legend' });
         await insertQuest({ minTitle: 'paladin' });
+        await holdInLane(await insertQuest({ generated: false }));
+        await holdInLane(new Types.ObjectId());
 
         await expect(migrator.migrate()).resolves.toEqual({
             deleted: 2,
@@ -149,9 +153,9 @@ describe('GeneratedQuestsResetMigrator (replSet)', () => {
         expect(logSpy.mock.calls).toEqual([
             ['Generate: 2 cancellate, 2 lasciate'],
         ]);
-        const debugLines = debugSpy.mock.calls.map(([line]) => String(line));
-        expect(debugLines.join(' ')).toContain(registered.toHexString());
-        expect(debugLines.join(' ')).toContain(inLane.toHexString());
+        expect(debugSpy.mock.calls).toEqual([
+            [`Generate protette: ${sorted([registered, inLane]).join(', ')}`],
+        ]);
     });
 
     it('does nothing without an unprotected legend generated quest (D-06)', async () => {
