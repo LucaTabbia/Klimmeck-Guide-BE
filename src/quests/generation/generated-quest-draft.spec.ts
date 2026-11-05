@@ -116,7 +116,7 @@ describe('generatedQuestDraftOf', () => {
         expect(draft.infos.title).toBe('Boss: Orco presso Atheland');
     });
 
-    it('builds an enemy quest with two seats of the rank (D-03)', () => {
+    it('never writes more than one seat on an enemy quest, boss excepted (13.1 D-09)', () => {
         const draft = draftOf(
             composition(QuestType.enemy, TitleType.mage, 2, [
                 { enemy: ORC, quantity: 2 },
@@ -125,7 +125,7 @@ describe('generatedQuestDraftOf', () => {
         );
 
         expect(draft.requirements.requiredAdventurers).toEqual([
-            { title: TitleType.mage, count: 2 },
+            { title: TitleType.mage, count: 1 },
         ]);
         expect(draft.requirements.minTitle).toBe(TitleType.mage);
     });
