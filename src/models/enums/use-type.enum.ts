@@ -9,6 +9,7 @@ export enum UseType {
     confuse = 'confuse',
     enhance = 'enhance',
     infuse = 'infuse',
+    heal = 'heal',
 }
 
 registerEnumType(UseType, { name: 'UseType' });
