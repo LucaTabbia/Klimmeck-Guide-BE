@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 13.1 (Correzioni generazione quest) — EXECUTING (started 2026-11-05) on `feat/13.1-correzioni-generazione-quest` (from `develop` `162c1f5`): 8 plans in a linear chain (`13.1-01`..`13.1-08`), executors one at a time on the main tree
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Executing Phase 13.1 — plans 13.1-01..08 planned (planner + checker, 26 tasks, 2026-11-05); PR to `develop` in draft until the first real boot after the DB is populated and the one-offs are removed
 Last activity: 2026-11-05 -- Phase 13.1 execution started
 
