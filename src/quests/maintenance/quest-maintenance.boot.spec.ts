@@ -38,6 +38,7 @@ describe('QuestMaintenanceBoot', () => {
             recomposed: 0,
             coherent: 0,
             skipped: 0,
+            inLane: 0,
         });
         request = jest.fn();
         errorSpy = jest

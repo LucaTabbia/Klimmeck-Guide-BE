@@ -7,6 +7,10 @@ import { Enemy, EnemyDocument } from 'src/models/enemy.model';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { Lore, LoreDocument } from 'src/models/lore.model';
 import {
+    PendingQuest,
+    PendingQuestDocument,
+} from 'src/models/pending-quest.model';
+import {
     PointOfInterest,
     PointOfInterestDocument,
 } from 'src/models/point-of-interest.model';
@@ -35,6 +39,7 @@ export interface DungeonStagesReport {
     recomposed: number;
     coherent: number;
     skipped: number;
+    inLane: number;
 }
 
 type DungeonOutcome = keyof DungeonStagesReport;
@@ -61,9 +66,10 @@ interface DungeonWorld {
     byId: ReadonlyMap<string, EnemyCandidate>;
     poiTypes: ReadonlyMap<string, string[]>;
     poiCities: ReadonlyMap<string, string>;
+    inLane: ReadonlySet<string>;
 }
 
-// mai ricomporre una dungeon con un party già partito (filtro di lettura e di scrittura)
+// difesa in più sui party già partiti: una dungeon solitaria non scrive mai startedAt, la protegge la corsia (13.1 D-07)
 const OPEN_DUNGEON = {
     'infos.type': QuestType.dungeon,
     concludedAt: null,
@@ -89,6 +95,8 @@ export class DungeonStagesMigrator {
         private readonly poiModel: Model<PointOfInterestDocument>,
         @InjectModel(City.name)
         private readonly cityModel: Model<CityDocument>,
+        @InjectModel(PendingQuest.name)
+        private readonly pendingQuestModel: Model<PendingQuestDocument>,
     ) {}
 
     async migrate(): Promise<DungeonStagesReport> {
@@ -96,6 +104,7 @@ export class DungeonStagesMigrator {
             recomposed: 0,
             coherent: 0,
             skipped: 0,
+            inLane: 0,
         };
         const dungeons = await this.openDungeons();
         if (dungeons.length === 0) return report;
@@ -103,9 +112,9 @@ export class DungeonStagesMigrator {
         for (const dungeon of dungeons) {
             report[await this.recompose(dungeon, world)] += 1;
         }
-        if (report.recomposed > 0)
+        if (report.recomposed + report.inLane > 0)
             this.logger.log(
-                `Dungeon: ${report.recomposed} ricomposte, ${report.coherent} già coerenti`,
+                `Dungeon: ${report.recomposed} ricomposte, ${report.coherent} già coerenti, ${report.inLane} in corsia`,
             );
         return report;
     }
@@ -115,6 +124,10 @@ export class DungeonStagesMigrator {
         world: DungeonWorld,
     ): Promise<DungeonOutcome> {
         const id = dungeon._id.toHexString();
+        if (world.inLane.has(id)) {
+            this.logger.warn(`Dungeon ${id} in corsia: lasciata`);
+            return 'inLane';
+        }
         const rank = dungeon.requirements?.minTitle;
         if (!isGeneratedRank(rank)) {
             this.logger.warn(
@@ -197,6 +210,7 @@ export class DungeonStagesMigrator {
             byId: new Map(enemies.map((enemy) => [enemy.id, enemy])),
             poiTypes: await this.readPoiTypes(poiIds),
             poiCities: await this.readPoiCities(poiIds),
+            inLane: await this.readLaneQuestIds(),
         };
     }
 
@@ -232,5 +246,18 @@ export class DungeonStagesMigrator {
             }
         }
         return poiCities;
+    }
+
+    // stessa protezione delle hunt: una dungeon in corsia non cambia sotto i piedi di chi l'ha presa (13.1 D-07)
+    private async readLaneQuestIds(): Promise<Set<string>> {
+        const quests: unknown[] = await this.pendingQuestModel
+            .distinct('quest')
+            .exec();
+        return new Set(
+            quests.flatMap((quest) => {
+                const id = refIdOf(quest);
+                return id ? [id.toHexString()] : [];
+            }),
+        );
     }
 }
