@@ -72,13 +72,6 @@ export const PACK_ATTEMPTS = 20;
 export const bossSeatsOf = (xp: number, average: number): number =>
     Math.ceil((xp - 0.5) / XP_SCALE / average);
 
-// quota delle enemy a un posto (13.1 D-03, assunzione dell'orchestratore): 2 su 3, le altre a due posti
-export const ONE_SEAT_SHARE = 2 / 3;
-export const MAX_ENEMY_SEATS = 2;
-
-export const enemySeatsOf = (roll: number): number =>
-    roll < ONE_SEAT_SHARE ? 1 : MAX_ENEMY_SEATS;
-
 // un solo posto sulle enemy generate: solo boss e worldMission hanno più posti (13.1 D-09)
 export const ENEMY_SEATS = 1;
 

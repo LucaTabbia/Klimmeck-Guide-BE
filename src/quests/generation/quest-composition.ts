@@ -1,10 +1,10 @@
 // ordine dei tiri per quest (le spec a seme fisso ne dipendono):
 // 1. tiro del boss (solo ranghi con media, D-06): sotto BOSS_SHARE, 1 scelta del candidato nel primo pool che ne ha;
-// 2. altrimenti (o senza candidati) tiro dei posti (enemySeatsOf) → tiro della forma (SINGLE_FORM_SHARE);
-// 3. giro per pool [zona, poi all se più ampio] → per posti [S, poi 1 se S = 2] → per forma, senza ritirare posti e forma:
+// 2. altrimenti (o senza candidati) tiro della forma (SINGLE_FORM_SHARE), nessun tiro dei posti (13.1 D-09);
+// 3. giro per pool [zona, poi all se più ampio] → per forma, senza ritirare la forma, budget a un posto:
 //    singolo 1 scelta (solo con candidati); branco per tentativo 1 tiro dei tipi + 1 per tipo + 1 per unità aggiunta.
 // Ogni membro dallo stesso pool del POI (D-08 della Phase 13), mai sopra hi (13.1 D-03);
-// all solo come ripiego quando la zona non serve nessuna forma con nessun numero di posti
+// all solo come ripiego quando la zona non serve nessuna forma
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import {
@@ -17,10 +17,9 @@ import {
     BOSS_SHARE,
     bossSeatsFor,
     budgetOf,
-    enemySeatsOf,
+    ENEMY_SEATS,
     GeneratedRank,
     isBossCandidate,
-    MAX_ENEMY_SEATS,
     MAX_PACK_TYPES,
     MAX_PACK_UNITS,
     PACK_ATTEMPTS,
@@ -139,28 +138,29 @@ function bossOf(
     return candidates[indexOf(candidates.length, chance)];
 }
 
-// S = 2 non componibile ⇒ ripiego a un posto prima di cambiare rango (13.1 D-03);
-// `all` solo se la zona non serve nessuna forma con nessun numero di posti (D-08 della Phase 13)
+// sempre un posto, solo boss e worldMission ne hanno di più (13.1 D-09);
+// `all` solo se la zona non serve nessuna forma (D-08 della Phase 13)
 function composeEnemyQuest(
     rank: GeneratedRank,
     pools: readonly (readonly EnemyCandidate[])[],
     chance: ChanceSource,
 ): Composition | null {
-    const rolled = enemySeatsOf(chance.next());
     const forms =
         chance.next() < SINGLE_FORM_SHARE
             ? [singleForm, packForm]
             : [packForm, singleForm];
+    const budget = budgetOf(rank, ENEMY_SEATS);
     const cap = RANK_XP_BANDS[rank].max;
-    const seatCounts = rolled === 1 ? [1] : [MAX_ENEMY_SEATS, 1];
     for (const pool of pools) {
-        for (const seats of seatCounts) {
-            const budget = budgetOf(rank, seats);
-            for (const form of forms) {
-                const enemies = form(pool, budget, cap, chance);
-                if (enemies !== null) {
-                    return { type: QuestType.enemy, rank, enemies, seats };
-                }
+        for (const form of forms) {
+            const enemies = form(pool, budget, cap, chance);
+            if (enemies !== null) {
+                return {
+                    type: QuestType.enemy,
+                    rank,
+                    enemies,
+                    seats: ENEMY_SEATS,
+                };
             }
         }
     }
