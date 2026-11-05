@@ -4,6 +4,7 @@ import type { QuestGenerationConfig } from 'src/config/quest-generation-config';
 import { QUEST_GENERATION_CONFIG } from 'src/config/quest-generation-config';
 import { City } from 'src/models/city.model';
 import { Enemy } from 'src/models/enemy.model';
+import { CitySize } from 'src/models/enums/city-size.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
@@ -13,6 +14,7 @@ import { Lore } from 'src/models/lore.model';
 import { Pet } from 'src/models/pet.model';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Quest } from 'src/models/quest/quest.model';
+import { capOf } from 'src/quests/generation/city-picker';
 import { QuestGenerationModule } from 'src/quests/generation/quest-generation.module';
 import { SeededChanceSource } from 'src/quests/generation/seeded-chance';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
@@ -187,6 +189,28 @@ describe('quest generation end to end (replSet)', () => {
         });
     });
 
+    it('respects the size caps of villages, cities and capitals (D-04)', async () => {
+        const world = await persistGenerationWorld(models, {
+            cities: 4,
+            poisPerCity: 6,
+            sizes: [
+                CitySize.village,
+                CitySize.city,
+                CitySize.capital,
+                CitySize.capital,
+            ],
+        });
+        config.target = 24;
+
+        await expect(generate()).resolves.toBe(11);
+        expect(generatedPerCityOf(world, await markersOfGenerated())).toEqual({
+            'Città 0': 1,
+            'Città 1': 2,
+            'Città 2': 4,
+            'Città 3': 4,
+        });
+    });
+
     it('never places a generated quest on a city marker or on an occupied poi (D-15)', async () => {
         const world = await persistGenerationWorld(models, {
             cities: 4,
@@ -237,19 +261,23 @@ describe('quest generation end to end (replSet)', () => {
         );
     });
 
-    it('spreads the quests over a 30 city map without concentrating them (D-15)', async () => {
+    it('spreads the quests over a 30 city map without concentrating them (D-04)', async () => {
         const world = await persistGenerationWorld(models, {
             cities: 30,
             poisPerCity: 3,
             grid: 6,
+            sizes: [CitySize.village, CitySize.city, CitySize.capital],
         });
 
         await expect(generate()).resolves.toBe(30);
-        const perCity = Object.values(
-            generatedPerCityOf(world, await markersOfGenerated()),
-        );
+        const counts = generatedPerCityOf(world, await markersOfGenerated());
+        const perCity = Object.values(counts);
         expect(perCity).toHaveLength(30);
-        expect(Math.max(...perCity)).toBeLessThanOrEqual(3);
+        expect(
+            world.cities.filter(
+                (city) => counts[city.name] > Math.min(capOf(city.size), 3),
+            ),
+        ).toEqual([]);
         expect(perCity.filter((count) => count === 0).length).toBeGreaterThan(
             0,
         );

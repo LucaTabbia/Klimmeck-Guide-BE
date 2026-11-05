@@ -7,6 +7,7 @@ import {
 } from 'src/config/quest-generation-config';
 import { City } from 'src/models/city.model';
 import { Enemy } from 'src/models/enemy.model';
+import { CitySize } from 'src/models/enums/city-size.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { EquipmentItem } from 'src/models/equipment-item.model';
@@ -30,7 +31,12 @@ import {
     AuthTestApp,
     createAuthTestApp,
 } from '../../../test/auth/auth-test-app';
-import { buildQuest, persistEnemy } from '../../../test/fixtures';
+import {
+    buildCity,
+    buildQuest,
+    persistEnemy,
+    persistPoi,
+} from '../../../test/fixtures';
 import {
     GenerationModels,
     GenerationWorld,
@@ -201,6 +207,68 @@ describe('QuestGenerator (replSet)', () => {
             [world.cities[0].id.toHexString()]: 4,
             [world.cities[1].id.toHexString()]: 4,
         });
+    });
+
+    it('caps the generated quests by city size (D-04)', async () => {
+        const world = await persistGenerationWorld(models, {
+            cities: 3,
+            poisPerCity: 5,
+            sizes: [CitySize.village, CitySize.city, CitySize.capital],
+        });
+
+        await expect(generatorWith({ target: 10 }).generate()).resolves.toBe(7);
+        const perCity = countBy(await generatedQuests(), (quest) =>
+            cityOfPoi(world, quest.infos.markerLocation),
+        );
+        expect(perCity).toEqual({
+            [world.cities[0].id.toHexString()]: 1,
+            [world.cities[1].id.toHexString()]: 2,
+            [world.cities[2].id.toHexString()]: 4,
+        });
+    });
+
+    it('skips a city with an unknown type and keeps it in the target (D-04)', async () => {
+        const world = await persistGenerationWorld(models, {
+            cities: 1,
+            poisPerCity: 3,
+        });
+        const unknownId = new Types.ObjectId();
+        const marker = await persistPoi(models.pois, {
+            type: ['city'],
+            location: [1000, 1000],
+            city: unknownId,
+        });
+        const unknownPois: Types.ObjectId[] = [];
+        for (let poi = 0; poi < 3; poi += 1) {
+            const created = await persistPoi(models.pois, {
+                type: [WORLD_HABITAT],
+                location: [1001 + poi, 1001 + poi],
+                city: unknownId,
+            });
+            unknownPois.push(created._id as Types.ObjectId);
+        }
+        await models.cities.collection.insertOne({
+            ...buildCity({
+                _id: unknownId,
+                name: 'Atlantide',
+                markerLocation: marker._id,
+                pointsOfInterest: [marker._id, ...unknownPois],
+            }),
+            type: 'atlantis',
+        });
+
+        await expect(generatorWith().generate()).resolves.toBe(2);
+        const markers = (await generatedQuests()).map(
+            (quest) => quest.infos.markerLocation,
+        );
+        expect(
+            markers.filter((id) => unknownPois.some((poi) => poi.equals(id))),
+        ).toEqual([]);
+        expect(
+            countBy(await generatedQuests(), (quest) =>
+                cityOfPoi(world, quest.infos.markerLocation),
+            ),
+        ).toEqual({ [world.cities[0].id.toHexString()]: 2 });
     });
 
     it('never places a quest on the city marker or on a poi with an open quest (D-15)', async () => {
