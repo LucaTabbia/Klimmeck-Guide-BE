@@ -176,9 +176,9 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 ### Travel Food (BE-FOOD) — Phase 14, aggiunta 2026-10-29
 
 - [ ] **BE-FOOD-01**: Modulo puro con costanti configurabili: fabbisogno = ⌈durata del viaggio / 3 minuti⌉ power (durata già comprensiva di terreno, pet e ferite: pet ×2 dimezza il cibo, ferita che raddoppia il tempo lo raddoppia, strada lenta costa di più) → FE FOOD-01
-- [ ] **BE-FOOD-02**: Selezione a scarto minimo fra gli `ownedItems` con `effect: hunger` (60 richiesti con un 50 e tre 20 → i tre 20; tie-break documentato); un oggetto usato in parte è consumato intero
-- [ ] **BE-FOOD-03**: Km scoperti = quota di fabbisogno non coperta × distanza; HP persi = n(n+1)/2 sui km scoperti (il km n-esimo costa n HP), arrotondamento deciso nel discuss; HP risultante ≥ 1 altrimenti rifiuto con codice stabile (es. `TRAVEL_STARVING`) senza scritture → FE FOOD-03
-- [ ] **BE-FOOD-04**: `travelPreview` espone in modo additivo cibo da consumare e HP persi; una preview owner-only equivalente esiste per l'accettazione della quest standard con viaggio → FE FOOD-01/02
+- [ ] **BE-FOOD-02**: Selezione a scarto minimo fra gli `ownedItems` con `effect: hunger` (60 richiesti con un 50 e tre 20 → i tre 20; a parità di scarto meno unità, poi minor valore di vendita); un oggetto usato in parte è consumato intero; il server copre sempre se può; cibo insufficiente → consumato tutto, il resto è scoperto _(emendato 2026-11-05)_
+- [ ] **BE-FOOD-03**: Km scoperti = quota di fabbisogno non coperta × distanza; HP persi = n(n+1)/2 sui km scoperti (il km n-esimo costa n HP), km scoperti arrotondati per eccesso _(2026-11-05)_; HP risultante ≥ 1 altrimenti rifiuto con codice stabile (es. `TRAVEL_STARVING`) senza scritture → FE FOOD-03
+- [ ] **BE-FOOD-04**: `travelPreview` espone in modo additivo cibo da consumare, HP persi e un flag «arrivi vivo» (mai il codice di fame); una query owner-only dedicata con la stessa forma (nullable senza viaggio) serve l'accettazione della quest standard _(emendato 2026-11-05)_ → FE FOOD-01/02
 - [ ] **BE-FOOD-05**: `startTravel` e `acceptQuest` consumano il cibo e scalano gli HP nello stesso update condizionale della partenza o del claim (quantità e HP riaffermati nel filtro); teleport e salto istantaneo non consumano → FE FOOD-04
 - [ ] **BE-FOOD-06**: Integration su viaggio coperto, parziale, rifiutato, modificatori e concorrenza; handoff per la FE Phase 15
 
@@ -298,8 +298,8 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-CONTENT-01..07 | Phase 11 | Complete (aggiunti 2026-10-29, chiusi 2026-11-02) |
 | BE-SHOP-01..06 | Phase 12 | Complete (gate 12-18, 2026-11-03; aggiunti 2026-10-29, emendati e BE-SHOP-06 aggiunto 2026-11-02) |
 | BE-QGEN-01..11 | Phase 13 | Complete (gate 13-19, 2026-11-04; 01..08 aggiunti 2026-10-29, 09..11 il 2026-11-04) |
-| BE-QGEN-12..16 | Phase 13.1 | Complete (gate 13.1-07, 2026-11-05; aggiunti 2026-11-05 dalla UAT della FE Phase 14; boot reale e rimozione dei one-off in sospeso) |
-| BE-FOOD-01..06 | Phase 14 | Pending (aggiunti 2026-10-29) |
+| BE-QGEN-12..16 | Phase 13.1 | Complete (gate 13.1-07, 2026-11-05; aggiunti 2026-11-05 dalla UAT della FE Phase 14; boot reale e rimozione dei one-off fatti il 2026-11-05, PR #21 mergiata) |
+| BE-FOOD-01..06 | Phase 14 | Pending (aggiunti 2026-10-29; discuss 2026-11-05, BE-FOOD-02/03/04 emendati) |
 | BE-AMBUSH-01..07 | Phase 15 | Pending (aggiunti 2026-10-29) |
 | BE-LORE-01..06 | Phase 16 | Pending (aggiunti 2026-10-29) |
 
