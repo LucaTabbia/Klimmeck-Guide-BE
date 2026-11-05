@@ -72,12 +72,31 @@ export const PACK_ATTEMPTS = 20;
 export const bossSeatsOf = (xp: number, average: number): number =>
     Math.ceil((xp - 0.5) / XP_SCALE / average);
 
-export function isBossCandidate(xp: number, rank: GeneratedRank): boolean {
-    const average = BOSS_PARTY_AVERAGE_PE[rank];
-    if (average === undefined) return false;
-    const seats = bossSeatsOf(xp, average);
-    return seats >= MIN_BOSS_SEATS && seats <= MAX_BOSS_SEATS;
+// quota delle enemy a un posto (13.1 D-03, assunzione dell'orchestratore): 2 su 3, le altre a due posti
+export const ONE_SEAT_SHARE = 2 / 3;
+export const MAX_ENEMY_SEATS = 2;
+
+export const enemySeatsOf = (roll: number): number =>
+    roll < ONE_SEAT_SHARE ? 1 : MAX_ENEMY_SEATS;
+
+// S posti dello stesso rango battono S volte la fascia (13.1 D-03)
+export function budgetOf(rank: GeneratedRank, seats: number): XpBand {
+    const band = RANK_XP_BANDS[rank];
+    return { min: seats * band.min, max: seats * band.max };
 }
+
+// boss = singolo sopra la fascia del rango; sopra il massimo hero almeno due posti (13.1 D-03)
+export function bossSeatsFor(xp: number, rank: GeneratedRank): number | null {
+    const average = BOSS_PARTY_AVERAGE_PE[rank];
+    if (average === undefined || xp <= RANK_XP_BANDS[rank].max) return null;
+    const formula = bossSeatsOf(xp, average);
+    const seats =
+        xp > HERO_XP_MAX ? Math.max(MIN_BOSS_SEATS, formula) : formula;
+    return seats >= MIN_BOSS_SEATS && seats <= MAX_BOSS_SEATS ? seats : null;
+}
+
+export const isBossCandidate = (xp: number, rank: GeneratedRank): boolean =>
+    bossSeatsFor(xp, rank) !== null;
 
 export const isGeneratedRank = (title: unknown): title is GeneratedRank =>
     (GENERATED_RANKS as readonly unknown[]).includes(title);
