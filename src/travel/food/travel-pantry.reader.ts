@@ -14,13 +14,15 @@ import {
 } from 'src/models/character/character.model';
 import { EffectType } from 'src/models/enums/effect-type.enum';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
-import { refIdOf } from 'src/mongo/document-id';
+import { refIdOf, sameId } from 'src/mongo/document-id';
+import type { TravelFoodItem } from 'src/models/travel-food-item.model';
+import type { TravelPreview } from 'src/models/travel-preview.model';
 import {
     statusFactsOf,
     type StatusSnapshot,
 } from 'src/quests/outcomes/progression/status-facts';
 import type { ActiveTravelDraft } from '../travel-timing';
-import type { FoodStack } from './food-selection';
+import type { ConsumedFood, FoodStack } from './food-selection';
 import { planTravelFood, type TravelFoodPlan } from './travel-food';
 
 export interface Pantry {
@@ -139,6 +141,37 @@ export class TravelPantryReader {
             stacks: pantry.stacks,
         });
         return { pantry, plan };
+    }
+
+    async previewOf(
+        characterId: Types.ObjectId,
+        travel: TravelLeg,
+    ): Promise<TravelPreview> {
+        const { plan } = await this.planFor(characterId, travel);
+        return {
+            distance: travel.road.distance,
+            duration: travel.duration,
+            road: travel.road,
+            food: await this.foodItemsOf(plan.consumed),
+            hpLost: plan.hpLost,
+            arrivesAlive: plan.arrivesAlive,
+        };
+    }
+
+    // documenti idratati: id serve al filo (Pitfall 3); un oggetto sparito dal catalogo si salta
+    async foodItemsOf(
+        consumed: readonly ConsumedFood[],
+    ): Promise<TravelFoodItem[]> {
+        if (consumed.length === 0) return [];
+        const documents = await this.lootItemModel
+            .find({ _id: { $in: consumed.map(({ itemId }) => itemId) } })
+            .exec();
+        return consumed.flatMap(({ itemId, quantity }) => {
+            const item = documents.find((document) =>
+                sameId(document._id, itemId),
+            );
+            return item ? [{ item, quantity }] : [];
+        });
     }
 
     private async foodCatalogOf(

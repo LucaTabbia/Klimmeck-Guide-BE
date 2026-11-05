@@ -581,16 +581,16 @@ describe('startTravel and travelPreview (wire)', () => {
 
         expect(body.errors).toBeUndefined();
         const wire = body.data?.travelPreview as WirePreview;
+        const needed = foodNeededFor(wire.duration);
+        expect(needed).toBeGreaterThan(0);
+        expect(needed).toBeLessThanOrEqual(20);
         expect(wire.food).toEqual([
             {
-                quantity: 3,
+                quantity: 1,
                 item: { id: String(food20._id), name: 'Cibo 20' },
             },
         ]);
-        const needed = foodNeededFor(wire.duration);
-        expect(wire.hpLost).toBe(
-            hpLostFor(uncoveredKmOf(needed, 60, wire.distance)),
-        );
+        expect(wire.hpLost).toBe(0);
         expect(wire.arrivesAlive).toBe(true);
         const after = await rawCharacter(alice);
         expect(after?.assets.ownedItems).toEqual(before?.assets.ownedItems);
@@ -600,13 +600,14 @@ describe('startTravel and travelPreview (wire)', () => {
     });
 
     it('previews a starving travel with arrivesAlive false and no error (D-09)', async () => {
-        const bob = await playerAt(world.markerA);
+        const bob = await playerAt(world.markerA, { lifePoints: 1 });
 
         const body = await preview(requestOf(bob, world.markerB), bob.bearer);
 
         expect(body.errors).toBeUndefined();
         const wire = body.data?.travelPreview as WirePreview;
         expect(wire.food).toEqual([]);
+        expect(wire.hpLost).toBeGreaterThan(0);
         expect(wire.hpLost).toBe(
             hpLostFor(
                 uncoveredKmOf(foodNeededFor(wire.duration), 0, wire.distance),

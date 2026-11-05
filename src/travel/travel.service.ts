@@ -12,6 +12,7 @@ import {
     PointOfInterestDocument,
 } from 'src/models/point-of-interest.model';
 import { TravelPreview } from 'src/models/travel-preview.model';
+import { TravelPantryReader } from './food/travel-pantry.reader';
 import { TravelPlanner } from './travel-planner.service';
 import { TravelScheduler } from './travel-scheduler.service';
 import {
@@ -46,19 +47,16 @@ export class TravelService {
         private readonly poiModel: Model<PointOfInterestDocument>,
         private readonly planner: TravelPlanner,
         private readonly scheduler: TravelScheduler,
+        private readonly pantry: TravelPantryReader,
     ) {}
 
-    // stesse letture e stessi codici dell'avvio, nessuna scrittura (D-11)
+    // stesse letture e stessi codici dell'avvio, nessuna scrittura (Phase 8 D-11); cibo e vita coi numeri, mai il codice di fame (Phase 14 D-09)
     async preview(
         characterId: Types.ObjectId,
         poiId: Types.ObjectId,
     ): Promise<TravelPreview> {
         const { travel } = await this.planner.planFree(characterId, poiId);
-        return {
-            distance: travel.road.distance,
-            duration: travel.duration,
-            road: travel.road,
-        };
+        return this.pantry.previewOf(characterId, travel);
     }
 
     // un solo update condizionale (D-21); la rilettura sceglie solo il codice; il job dopo la scrittura è best-effort

@@ -775,14 +775,22 @@ input TransactionRequest {
   total: CoinsInput!
 }
 
+type TravelFoodItem {
+  item: LootItem!
+  quantity: Int!
+}
+
 type TravelPath {
   coordinates: [[Float!]!]!
   distance: Float!
 }
 
 type TravelPreview {
+  arrivesAlive: Boolean!
   distance: Float!
   duration: Float!
+  food: [TravelFoodItem!]!
+  hpLost: Int!
   road: TravelPath!
 }
 
