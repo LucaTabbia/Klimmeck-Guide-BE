@@ -11,6 +11,7 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { EquipmentItem } from 'src/models/equipment-item.model';
 import { LootItem } from 'src/models/loot-item.model';
+import { Lore } from 'src/models/lore.model';
 import { Pet } from 'src/models/pet.model';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
@@ -73,6 +74,7 @@ describe('QuestGenerator (replSet)', () => {
             models.pois as never,
             (options.questModel ?? quests) as never,
             models.enemies as never,
+            models.lore as never,
             models.equipment as never,
             models.loot as never,
             models.pets as never,
@@ -133,6 +135,7 @@ describe('QuestGenerator (replSet)', () => {
             cities: modelOf(City.name),
             pois: modelOf(PointOfInterest.name),
             enemies: modelOf(Enemy.name),
+            lore: modelOf(Lore.name),
             equipment: modelOf(EquipmentItem.name),
             loot: modelOf(LootItem.name),
             pets: modelOf(Pet.name),

@@ -7,6 +7,7 @@ import { Enemy } from 'src/models/enemy.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { EquipmentItem } from 'src/models/equipment-item.model';
 import { LootItem } from 'src/models/loot-item.model';
+import { Lore } from 'src/models/lore.model';
 import { Pet } from 'src/models/pet.model';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Quest } from 'src/models/quest/quest.model';
@@ -74,6 +75,7 @@ describe('generateQuests (replSet)', () => {
             cities: modelOf(City.name),
             pois: modelOf(PointOfInterest.name),
             enemies: modelOf(Enemy.name),
+            lore: modelOf(Lore.name),
             equipment: modelOf(EquipmentItem.name),
             loot: modelOf(LootItem.name),
             pets: modelOf(Pet.name),

@@ -11,6 +11,7 @@ import {
     EquipmentItemSchema,
 } from 'src/models/equipment-item.model';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
+import { Lore, LoreSchema } from 'src/models/lore.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import {
     PointOfInterest,
@@ -32,6 +33,7 @@ import {
             { name: PointOfInterest.name, schema: PointOfInterestSchema },
             { name: Quest.name, schema: QuestSchema },
             { name: Enemy.name, schema: EnemySchema },
+            { name: Lore.name, schema: LoreSchema },
             { name: EquipmentItem.name, schema: EquipmentItemSchema },
             { name: LootItem.name, schema: LootItemSchema },
             { name: Pet.name, schema: PetSchema },

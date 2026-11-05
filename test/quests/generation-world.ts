@@ -18,6 +18,7 @@ export interface GenerationModels {
     cities: Model<any>;
     pois: Model<any>;
     enemies: Model<any>;
+    lore: Model<any>;
     equipment: Model<any>;
     loot: Model<any>;
     pets: Model<any>;

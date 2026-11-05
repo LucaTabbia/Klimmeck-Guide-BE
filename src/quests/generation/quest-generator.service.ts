@@ -5,6 +5,7 @@ import { QUEST_GENERATION_CONFIG } from 'src/config/quest-generation-config';
 import type { QuestGenerationConfig } from 'src/config/quest-generation-config';
 import { CityDocument, City } from 'src/models/city.model';
 import { Enemy, EnemyDocument } from 'src/models/enemy.model';
+import { Lore, LoreDocument } from 'src/models/lore.model';
 import {
     EquipmentItem,
     EquipmentItemDocument,
@@ -26,6 +27,10 @@ import {
     pickCity,
     pickPoi,
 } from 'src/quests/generation/city-picker';
+import {
+    readEnemyCandidates,
+    stringsOf,
+} from 'src/quests/generation/enemy-candidate';
 import { EnemyCandidate } from 'src/quests/generation/enemy-pool';
 import {
     PetCandidate,
@@ -69,17 +74,6 @@ interface LeanOpenQuest {
     requirements?: { minTitle?: unknown } | null;
 }
 
-interface LeanEnemy {
-    _id: Types.ObjectId;
-    name?: string | null;
-    xp?: unknown;
-    locations?: unknown;
-    legendary?: unknown;
-    relatedLore?: Types.ObjectId[] | null;
-    baseWeaknesses?: unknown;
-    energyWeaknesses?: unknown;
-}
-
 interface LeanEquipment {
     _id: Types.ObjectId;
     rarity?: string | null;
@@ -114,31 +108,12 @@ interface GenerationWorld {
 const hexOf = (id: Types.ObjectId | null | undefined): string | null =>
     id ? id.toHexString() : null;
 
-const stringsOf = (value: unknown): string[] => {
-    if (Array.isArray(value)) {
-        return value.filter((item): item is string => typeof item === 'string');
-    }
-    return typeof value === 'string' ? [value] : [];
-};
-
 function locationOf(poi: LeanPoi | undefined): [number, number] | null {
     const location = poi?.location;
     if (!Array.isArray(location) || location.length < 2) return null;
     const [x, y] = location as unknown[];
     return typeof x === 'number' && typeof y === 'number' ? [x, y] : null;
 }
-
-const enemyCandidateOf = (enemy: LeanEnemy): EnemyCandidate => ({
-    id: enemy._id.toHexString(),
-    name: enemy.name ?? '',
-    xp: typeof enemy.xp === 'number' ? enemy.xp : 0,
-    locations: stringsOf(enemy.locations),
-    // passato così com'è: il filtro dei pool è fail-closed (D-04)
-    legendary: enemy.legendary,
-    relatedLore: (enemy.relatedLore ?? []).map((id) => id.toHexString()),
-    baseWeaknesses: stringsOf(enemy.baseWeaknesses),
-    energyWeaknesses: stringsOf(enemy.energyWeaknesses),
-});
 
 // meno coperto prima (leastCoveredRank), poi gli altri per copertura crescente; parità → rango più basso (D-15)
 function ranksByCoverage(counts: RankCounts): GeneratedRank[] {
@@ -165,6 +140,8 @@ export class QuestGenerator extends QuestGenerationTrigger {
         private readonly questModel: Model<QuestDocument>,
         @InjectModel(Enemy.name)
         private readonly enemyModel: Model<EnemyDocument>,
+        @InjectModel(Lore.name)
+        private readonly loreModel: Model<LoreDocument>,
         @InjectModel(EquipmentItem.name)
         private readonly equipmentModel: Model<EquipmentItemDocument>,
         @InjectModel(LootItem.name)
@@ -430,16 +407,9 @@ export class QuestGenerator extends QuestGenerationTrigger {
         };
     }
 
-    // solo i non leggendari marcati (D-04): un nemico senza flag resta fuori
-    private async readEnemies(): Promise<EnemyCandidate[]> {
-        const enemies = await this.enemyModel
-            .find({ legendary: false })
-            .select(
-                '_id name xp locations legendary relatedLore baseWeaknesses energyWeaknesses',
-            )
-            .sort({ _id: 1 })
-            .lean<LeanEnemy[]>();
-        return enemies.map(enemyCandidateOf);
+    // la lore animale si legge una volta per corsa (13.1 D-01)
+    private readEnemies(): Promise<EnemyCandidate[]> {
+        return readEnemyCandidates(this.enemyModel, this.loreModel);
     }
 
     private async readCatalog(): Promise<PrizeCatalogItem[]> {

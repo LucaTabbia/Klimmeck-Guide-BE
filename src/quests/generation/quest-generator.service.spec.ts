@@ -22,6 +22,7 @@ describe('QuestGenerator single-flight', () => {
             null as never,
             null as never,
             null as never,
+            null as never,
             config,
             null as never,
         );
