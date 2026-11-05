@@ -517,7 +517,7 @@ Plans:
 - [x] 13.1-04-PLAN.md — `quests` scopata sul personaggio corrente (POI della città, story del titolo, corsie), filtro puro `quest-board.ts`, SDL identico
 - [x] 13.1-05-PLAN.md — One-off di boot: reset delle generate (marcatore legend, protette lasciate) e prede delle hunt per zona e fascia, richiesta finale al generatore
 - [x] 13.1-06-PLAN.md — One-off di boot: tappe delle dungeon v2 senza animali e in un solo budget, ordine nemici → reset → hunt → dungeon → generatore
-- [ ] 13.1-07-PLAN.md — Gate: `npm run test:cov`, real boot con `src/schema.gql` identico a `develop`, lint sui file toccati, invarianti, VALIDATION firmata, `mark-complete` BE-QGEN-12..16
+- [x] 13.1-07-PLAN.md — Gate: `npm run test:cov`, real boot con `src/schema.gql` identico a `develop`, lint sui file toccati, invarianti, VALIDATION firmata, `mark-complete` BE-QGEN-12..16
 - [ ] 13.1-08-PLAN.md — Docs: emendamenti di `13-CONTEXT.md`, `BACKEND-NOTES.md` §7/§9/§11 col runbook del boot reale e la rimozione dei one-off, handoff FE 13.1
 
 ### Phase 14: Viaggio e cibo
@@ -606,7 +606,7 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 11. Popolamento del mondo | 27/27 | Complete | 2026-11-02 |
 | 12. Negozi per città | 19/19 | Complete | 2026-11-03 |
 | 13. Generazione quest | 20/20 | Complete | 2026-11-04 |
-| 13.1. Correzioni generazione quest | 6/8 | In Progress | - |
+| 13.1. Correzioni generazione quest | 7/8 | In Progress | - |
 | 14. Viaggio e cibo | 0/0 | Not started | - |
 | 15. Imboscate in viaggio | 0/0 | Not started | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
