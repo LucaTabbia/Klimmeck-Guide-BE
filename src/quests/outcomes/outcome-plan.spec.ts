@@ -35,6 +35,8 @@ const OTHER_INJURED_ID = new Types.ObjectId('64b0000000000000000000ed');
 const OTHER_ITEM_ID = new Types.ObjectId('64b0000000000000000000ed');
 const OTHER_SPELL_ID = new Types.ObjectId('64b0000000000000000000ee');
 const DRAWN_SPELL_ID = new Types.ObjectId('64b0000000000000000000ef');
+const PET_ID = new Types.ObjectId('64b0000000000000000000f1');
+const OWNED_PET_ID = new Types.ObjectId('64b0000000000000000000f2');
 
 type SnapshotOverrides = {
     status?: Partial<OutcomeCharacterSnapshot['status']>;
@@ -100,7 +102,7 @@ const inputWith = (
     userId: USER_ID,
     verdict: QuestOutcome.success,
     battle: null,
-    enemy: null,
+    enemies: null,
     rewards: NO_REWARDS,
     aid: null,
     spellRecoveryTimes: new Map(),
@@ -161,6 +163,7 @@ describe('planParticipant', () => {
                 'status.spells',
                 'status.spellStates',
                 'assets.activeSpells',
+                'assets.ownedPets',
             ]) {
                 expect(plan.update.$set).not.toHaveProperty([key]);
             }
@@ -192,6 +195,7 @@ describe('planParticipant', () => {
                 rewards: {
                     coins: { gold: 0, silver: 1, copper: 50 },
                     items: [potionStack(2)],
+                    pet: null,
                 },
                 xpGained: 300,
                 xpBefore: 0,
@@ -201,10 +205,24 @@ describe('planParticipant', () => {
                 titleBefore: TitleType.rookie,
                 titleAfter: TitleType.rookie,
                 spellLearned: null,
-                enemy: null,
+                enemies: [],
+                stagesCleared: null,
+                stagesTotal: null,
                 rescuedCharacters: [],
             });
         });
+    });
+
+    it('writes the dungeon stages it receives into the result (D-12)', () => {
+        const plan = planParticipant(
+            inputWith({
+                quest: questOf(QuestType.dungeon),
+                stages: { cleared: 2, total: 3 },
+            }),
+        );
+
+        expect(plan.result.stagesCleared).toBe(2);
+        expect(plan.result.stagesTotal).toBe(3);
     });
 
     it('requires a free standard lane in the write filter of the game master lanes only (D-24)', () => {
@@ -236,20 +254,23 @@ describe('planParticipant', () => {
         });
     });
 
-    it('adds the defeated enemy xp to the prize and keeps the fight hp', () => {
+    it('adds the defeated enemy xp to the prize, keeps the fight hp and lists the enemy (D-01)', () => {
         const plan = planParticipant(
             inputWith({
                 quest: questOf(QuestType.enemy),
                 battle: battleWith({ hpAfter: 700 }),
-                enemy: { id: ENEMY_ID, xp: 100 },
+                enemies: {
+                    entries: [{ enemy: ENEMY_ID, quantity: 2 }],
+                    xp: 200,
+                },
                 rewards: rewardsWith({ xpPrize: 50 }),
             }),
         );
 
-        expect(plan.result.xpGained).toBe(150);
+        expect(plan.result.xpGained).toBe(250);
         expect(plan.result.hpAfter).toBe(700);
         expect(plan.update.$set['status.currentLifePoints']).toBe(700);
-        expect(plan.result.enemy).toBe(ENEMY_ID);
+        expect(plan.result.enemies).toEqual([{ enemy: ENEMY_ID, quantity: 2 }]);
     });
 
     describe('clamps', () => {
@@ -304,11 +325,21 @@ describe('planParticipant', () => {
                     quest: questOf(QuestType.enemy),
                     verdict: QuestOutcome.failure,
                     battle: battleWith({ hpAfter: 300 }),
-                    enemy: { id: ENEMY_ID, xp: 100 },
+                    enemies: {
+                        entries: [{ enemy: ENEMY_ID, quantity: 2 }],
+                        xp: 200,
+                    },
                     rewards: rewardsWith({ coinsCopper: 150, xpPrize: 300 }),
                     aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
                 }),
             );
+        });
+
+        it('lists the fought enemies even on a defeat (D-01)', () => {
+            expect(plan.result.enemies).toEqual([
+                { enemy: ENEMY_ID, quantity: 2 },
+            ]);
+            expect(plan.result.xpGained).toBe(0);
         });
 
         it('empties the lane and waits for aid with the hp left', () => {
@@ -332,7 +363,75 @@ describe('planParticipant', () => {
             expect(plan.result.rewards).toEqual({
                 coins: { gold: 0, silver: 0, copper: 0 },
                 items: [],
+                pet: null,
             });
+        });
+    });
+
+    describe('the pet prize', () => {
+        const assetsWithPets = (ownedPets: unknown[]) => ({
+            ownedItems: [],
+            ownedEquipments: [],
+            activeSpells: [],
+            ownedPets,
+        });
+
+        it('adds the won pet to the owned pets in the same update (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    snapshot: snapshotWith({
+                        assets: assetsWithPets([OWNED_PET_ID]),
+                    }),
+                    rewards: rewardsWith({ pet: PET_ID }),
+                }),
+            );
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                OWNED_PET_ID,
+                PET_ID,
+            ]);
+            expect(plan.result.rewards.pet).toEqual(PET_ID);
+        });
+
+        it('writes nothing for a pet already owned (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    snapshot: snapshotWith({
+                        assets: assetsWithPets([PET_ID.toHexString()]),
+                    }),
+                    rewards: rewardsWith({ pet: PET_ID }),
+                }),
+            );
+
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'assets.ownedPets',
+            );
+            expect(plan.result.rewards.pet).toBeNull();
+        });
+
+        it('never gives the pet on a defeat (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.enemy),
+                    verdict: QuestOutcome.failure,
+                    battle: battleWith({ hpAfter: 300 }),
+                    rewards: rewardsWith({ pet: PET_ID }),
+                    aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                }),
+            );
+
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'assets.ownedPets',
+            );
+            expect(plan.result.rewards.pet).toBeNull();
+        });
+
+        it('starts the owned pets from an empty list when the sheet has none (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({ rewards: rewardsWith({ pet: PET_ID }) }),
+            );
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([PET_ID]);
         });
     });
 

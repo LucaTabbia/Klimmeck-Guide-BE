@@ -6,6 +6,7 @@ import { Enemy, EnemyDocument } from 'src/models/enemy.model';
 import { EquipmentItem } from 'src/models/equipment-item.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { LootItem } from 'src/models/loot-item.model';
+import { Pet } from 'src/models/pet.model';
 import {
     QuestResult,
     QuestResultDocument,
@@ -21,6 +22,7 @@ import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
 import {
     persistEquipmentItem,
     persistLootItem,
+    persistPet,
     persistSpell,
 } from '../../../test/fixtures';
 import {
@@ -29,7 +31,7 @@ import {
 } from '../../../test/quests/quest-result.fixture';
 
 // selezione del foglio esiti (FE COMBAT-02..05)
-const QUEST_RESULT = `query QuestResult($id: String!) { questResult(id: $id) { id character user outcome resolvedAt acknowledgedAt hpBefore hpAfter maxLifePoints injuriesAdded xpGained xpBefore xpAfter levelBefore levelAfter titleBefore titleAfter rescuedCharacters quest { id type title } rewards { coins { gold silver copper } items { quantity item { ... on LootItem { id name } ... on EquipmentItem { id name } } } } consumablesUsed { quantity item { ... on LootItem { id name } } } spellsUsed { usages spell { id name } } spellLearned { id name } enemy { id name } } }`;
+const QUEST_RESULT = `query QuestResult($id: String!) { questResult(id: $id) { id character user outcome resolvedAt acknowledgedAt hpBefore hpAfter maxLifePoints injuriesAdded xpGained xpBefore xpAfter levelBefore levelAfter titleBefore titleAfter rescuedCharacters quest { id type title } rewards { coins { gold silver copper } items { quantity item { ... on LootItem { id name } ... on EquipmentItem { id name } } } pet { id name } } consumablesUsed { quantity item { ... on LootItem { id name } } } spellsUsed { usages spell { id name } } spellLearned { id name } enemies { quantity enemy { id name } } stagesCleared stagesTotal } }`;
 const MISSING_ID = '64b0000000000000000000ff';
 const CONFIRMED_AT = new Date('2026-10-25T09:30:00.000Z');
 
@@ -93,6 +95,7 @@ describe('questResult(id) (wire)', () => {
             Spell.name,
             LootItem.name,
             EquipmentItem.name,
+            Pet.name,
         ]) {
             await modelOf(name).createCollection();
         }
@@ -115,7 +118,7 @@ describe('questResult(id) (wire)', () => {
         await harness.close();
     });
 
-    it('returns the populated result to its owning user', async () => {
+    it('returns the populated result with the fought enemies to its owning user (D-01, D-21)', async () => {
         const potion = await persistLootItem(modelOf(LootItem.name));
         const sword = await persistEquipmentItem(modelOf(EquipmentItem.name));
         const fireball = await persistSpell(modelOf(Spell.name), {
@@ -125,6 +128,10 @@ describe('questResult(id) (wire)', () => {
             name: 'Shield',
         });
         const enemy = await persistTestEnemy();
+        const pet = await persistPet(modelOf(Pet.name), {
+            name: 'Gufo delle nevi',
+            sellable: false,
+        });
         const questId = new Types.ObjectId();
         const rescued = new Types.ObjectId();
         const alsoRescued = new Types.ObjectId();
@@ -148,13 +155,14 @@ describe('questResult(id) (wire)', () => {
                     { itemType: 'EquipmentItem', item: sword._id, quantity: 1 },
                     { itemType: 'LootItem', item: potion._id, quantity: 3 },
                 ],
+                pet: pet._id,
             },
             consumablesUsed: [
                 { itemType: 'LootItem', item: potion._id, quantity: 2 },
             ],
             spellsUsed: [{ spell: fireball._id, usages: 2 }],
             spellLearned: shield._id,
-            enemy: enemy._id,
+            enemies: [{ enemy: enemy._id, quantity: 2 }],
         });
 
         const response = await readResult(String(result._id), alice.bearer);
@@ -196,6 +204,7 @@ describe('questResult(id) (wire)', () => {
                         item: { id: String(potion._id), name: 'Test Potion' },
                     },
                 ],
+                pet: { id: String(pet._id), name: 'Gufo delle nevi' },
             },
             consumablesUsed: [
                 {
@@ -210,7 +219,14 @@ describe('questResult(id) (wire)', () => {
                 },
             ],
             spellLearned: { id: String(shield._id), name: 'Shield' },
-            enemy: { id: String(enemy._id), name: 'Test Bandit' },
+            enemies: [
+                {
+                    quantity: 2,
+                    enemy: { id: String(enemy._id), name: 'Test Bandit' },
+                },
+            ],
+            stagesCleared: null,
+            stagesTotal: null,
         });
     });
 
@@ -254,7 +270,7 @@ describe('questResult(id) (wire)', () => {
         });
     });
 
-    it('drops orphan items and nulls orphan spells and enemy without nulling the result', async () => {
+    it('drops orphan items and enemies and nulls orphan spells and pet without nulling the result (D-28)', async () => {
         const potion = await persistLootItem(modelOf(LootItem.name));
         const result = await persistAliceResult({
             rewards: {
@@ -267,6 +283,7 @@ describe('questResult(id) (wire)', () => {
                     },
                     { itemType: 'LootItem', item: potion._id, quantity: 1 },
                 ],
+                pet: new Types.ObjectId(),
             },
             consumablesUsed: [
                 {
@@ -277,7 +294,7 @@ describe('questResult(id) (wire)', () => {
             ],
             spellsUsed: [{ spell: new Types.ObjectId(), usages: 1 }],
             spellLearned: new Types.ObjectId(),
-            enemy: new Types.ObjectId(),
+            enemies: [{ enemy: new Types.ObjectId(), quantity: 1 }],
         });
 
         const response = await readResult(String(result._id), alice.bearer);
@@ -291,11 +308,40 @@ describe('questResult(id) (wire)', () => {
                         item: { id: String(potion._id), name: 'Test Potion' },
                     },
                 ],
+                pet: null,
             },
             consumablesUsed: [],
             spellsUsed: [{ usages: 1, spell: null }],
             spellLearned: null,
-            enemy: null,
+            enemies: [],
+        });
+    });
+
+    it('serves the obtained pet on the result (D-21)', async () => {
+        const pet = await persistPet(modelOf(Pet.name), {
+            name: 'Gufo delle nevi',
+            sellable: false,
+        });
+        const result = await persistAliceResult({
+            rewards: {
+                coins: { gold: 0, silver: 0, copper: 0 },
+                items: [],
+                pet: pet._id,
+            },
+        });
+
+        const won = await readResult(String(result._id), alice.bearer);
+        await modelOf(Pet.name).deleteOne({ _id: pet._id });
+        const orphaned = await readResult(String(result._id), alice.bearer);
+
+        expect(bodyOf(won).errors).toBeUndefined();
+        expect(bodyOf(won).data?.questResult).toMatchObject({
+            rewards: { pet: { id: String(pet._id), name: 'Gufo delle nevi' } },
+        });
+        expect(bodyOf(orphaned).errors).toBeUndefined();
+        expect(bodyOf(orphaned).data?.questResult).toMatchObject({
+            id: String(result._id),
+            rewards: { pet: null },
         });
     });
 

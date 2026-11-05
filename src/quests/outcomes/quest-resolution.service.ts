@@ -3,6 +3,7 @@ import { InjectConnection } from '@nestjs/mongoose';
 import { Connection, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { buildAidQuest } from './aid/aid-quest';
 import { BossResolutionService } from './boss-resolution.service';
 import { ChanceSource } from './chance-source';
@@ -11,14 +12,17 @@ import {
     battleOf,
     type CombatantBattle,
     combatContextOf,
+    dungeonBattleOf,
     planCombatant,
 } from './combatant-plan';
+import { buildDungeonContext } from './dungeon/dungeon-context';
+import { DungeonResolver } from './dungeon/dungeon-resolver';
 import {
     type CommittedOutcome,
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
-import { questUpdateOf } from './quest-outcome-plan';
+import { questUpdateOf, regeneratesAfter } from './quest-outcome-plan';
 import {
     type ResolutionCatalog,
     type ResolutionCharacter,
@@ -44,6 +48,7 @@ export class QuestResolutionService {
         private readonly rescue: RescueResolutionService,
         private readonly writer: OutcomeWriter,
         private readonly combat: CombatResolver,
+        private readonly dungeon: DungeonResolver,
         private readonly chance: ChanceSource,
         private readonly clock: Clock,
     ) {}
@@ -117,13 +122,14 @@ export class QuestResolutionService {
                 });
                 await this.writer.writeParticipant(plan, session);
                 await this.writer.deletePendingQuest(pendingQuestId, session);
+                const questUpdate = questUpdateOf({
+                    type: loaded.quest.infos.type,
+                    verdicts: [{ characterId: snapshot._id, verdict }],
+                    now,
+                });
                 await this.writer.updateQuest(
                     { _id: loaded.quest._id },
-                    questUpdateOf({
-                        type: loaded.quest.infos.type,
-                        verdicts: [{ characterId: snapshot._id, verdict }],
-                        now,
-                    }),
+                    questUpdate,
                     session,
                     'bestEffort',
                 );
@@ -138,6 +144,7 @@ export class QuestResolutionService {
                     results: [{ resultId, userId: loaded.ownerId }],
                     aids: aid ? [{ aidQuestId, since: now }] : [],
                     spellRecoveries: plan.spellRecoveries,
+                    regenerate: regeneratesAfter(loaded.quest, questUpdate),
                 };
             });
         } catch (error) {
@@ -155,14 +162,26 @@ export class QuestResolutionService {
         return 'resolved';
     }
 
-    // il combattimento passa solo dalla porta (D-02)
+    // il combattimento passa solo dalla porta (D-02); le dungeon sono esplorazioni a tappe sulla stessa porta per tappa, con i contatori nel risultato (D-12)
     private fight(
         loaded: StandardLoad,
         catalog: ResolutionCatalog,
         snapshot: ResolutionCharacter,
     ): CombatantBattle | null {
         const context = combatContextOf(loaded.quest, catalog, [snapshot]);
+        // senza nemici validi ogni tipo, dungeon compresa, è un successo automatico con stages null (C6/D-01)
         if (!context) return null;
+        if (loaded.quest.infos.type === QuestType.dungeon) {
+            const exploration = this.dungeon.explore(
+                buildDungeonContext({
+                    combat: context,
+                    recommendedLoot: loaded.quest.requirements?.recommendedLoot,
+                    participants: [snapshot],
+                }),
+                this.chance,
+            );
+            return dungeonBattleOf(exploration, snapshot._id);
+        }
         return battleOf(
             this.combat.resolve(context, this.chance),
             snapshot._id,

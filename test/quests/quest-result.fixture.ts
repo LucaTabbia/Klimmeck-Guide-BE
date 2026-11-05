@@ -3,7 +3,8 @@ import { Model, Types } from 'mongoose';
 /**
  * QuestResult fixture valid against src/models/quest-result/quest-result.model.ts
  * (D-19): a fresh character and user per call, nullable refs at null, no rescued characters, D-12 scale
- * (1000 HP). Overrides replace whole top-level fields.
+ * (1000 HP), an empty enemies list `[{ enemy, quantity }]` and no dungeon stages (D-01).
+ * Overrides replace whole top-level fields.
  */
 export function buildQuestResult(overrides: Record<string, any> = {}) {
     return {
@@ -27,7 +28,9 @@ export function buildQuestResult(overrides: Record<string, any> = {}) {
         titleBefore: 'rookie',
         titleAfter: 'rookie',
         spellLearned: null,
-        enemy: null,
+        enemies: [],
+        stagesCleared: null,
+        stagesTotal: null,
         rescuedCharacters: [],
         ...overrides,
     };

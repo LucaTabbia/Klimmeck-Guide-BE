@@ -465,7 +465,7 @@ describe('GmCompletionService.complete (replSet)', () => {
             questOverrides: gmQuest(
                 'story',
                 { xpPrize: 400 },
-                { enemy: enemy._id },
+                { enemies: [{ enemy: enemy._id, quantity: 1 }] },
             ),
         });
 
@@ -475,7 +475,32 @@ describe('GmCompletionService.complete (replSet)', () => {
             .findById(draft._id)
             .lean<any>();
         expect(result.xpGained).toBe(500);
-        expect(String(result.enemy)).toBe(String(enemy._id));
+        expect(result.enemies).toEqual([{ enemy: enemy._id, quantity: 1 }]);
+    });
+
+    it('completes a multi-enemy quest with the summed enemy xp (D-02)', async () => {
+        const first = await persistEnemy(world.models.enemies, { xp: 100 });
+        const second = await persistEnemy(world.models.enemies, { xp: 50 });
+        const enemies = [
+            { enemy: first._id, quantity: 2 },
+            { enemy: second._id, quantity: 1 },
+        ];
+        const subject = await quester({
+            lane: QuestLane.worldMission,
+            questOverrides: gmQuest(
+                'worldMission',
+                { xpPrize: 400 },
+                { enemies },
+            ),
+        });
+
+        const [draft] = await service.complete(inputOf(subject));
+
+        const result = await world.models.questResults
+            .findById(draft._id)
+            .lean<any>();
+        expect(result.xpGained).toBe(400 + 2 * 100 + 50);
+        expect(result.enemies).toEqual(enemies);
     });
 
     describe('busy standard lane (D-24)', () => {

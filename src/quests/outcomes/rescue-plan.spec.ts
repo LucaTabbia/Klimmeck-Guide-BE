@@ -59,7 +59,11 @@ const unchangedSheet = {
     injuriesAdded: [],
     consumablesUsed: [],
     spellsUsed: [],
-    rewards: { coins: { gold: 0, silver: 0, copper: 0 }, items: [] },
+    rewards: {
+        coins: { gold: 0, silver: 0, copper: 0 },
+        items: [],
+        pet: null,
+    },
     xpGained: 0,
     xpBefore: 300,
     xpAfter: 300,
@@ -68,7 +72,9 @@ const unchangedSheet = {
     titleBefore: TitleType.adventurer,
     titleAfter: TitleType.adventurer,
     spellLearned: null,
-    enemy: null,
+    enemies: [],
+    stagesCleared: null,
+    stagesTotal: null,
     rescuedCharacters: [],
 };
 

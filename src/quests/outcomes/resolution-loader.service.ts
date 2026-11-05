@@ -15,6 +15,7 @@ import {
     EquipmentItemDocument,
 } from 'src/models/equipment-item.model';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
+import { Pet, PetDocument } from 'src/models/pet.model';
 import {
     PendingQuest,
     PendingQuestDocument,
@@ -36,6 +37,7 @@ import {
     type CombatCharacterSnapshot,
     combatCatalogRefsOf,
     type CombatEnemySnapshot,
+    type CombatEquipmentSnapshot,
 } from './combat/combat-context';
 import {
     OUTCOME_CHARACTER_PROJECTION,
@@ -43,6 +45,7 @@ import {
     type OutcomeQuestSnapshot,
 } from './outcome-plan';
 import { StaleResolution } from './outcome-writer.service';
+import { validQuestEnemiesOf } from './quest-enemies';
 import {
     type PrizesSnapshot,
     type RewardCatalog,
@@ -70,6 +73,7 @@ export type ResolutionQuest = OutcomeQuestSnapshot &
         prizes?: PrizesSnapshot | null;
         concludedAt?: Date | null;
         startedAt?: Date | null;
+        generated?: unknown;
         registeredAdventurers?:
             | { character?: unknown; archivedAt?: Date | null }[]
             | null;
@@ -93,10 +97,16 @@ export interface StandardLoad {
     ownerId: Types.ObjectId;
 }
 
+export interface CatalogEnemy {
+    snapshot: CombatEnemySnapshot;
+    quantity: number;
+}
+
 export interface ResolutionCatalog {
-    enemy: CombatEnemySnapshot | null;
+    // nell'ordine della quest (D-02)
+    enemies: CatalogEnemy[];
     rewards: RewardCatalog;
-    equipment: ReadonlyMap<string, { damages?: unknown }>;
+    equipment: ReadonlyMap<string, CombatEquipmentSnapshot>;
     spells: ReadonlyMap<string, { energyDamage?: unknown }>;
     loot: ReadonlyMap<string, { effect?: unknown; power?: unknown }>;
     recoveryTimes: ReadonlyMap<string, number>;
@@ -112,6 +122,7 @@ export const RESOLUTION_QUEST_PROJECTION = {
     registeredAdventurers: 1,
     rescue: 1,
     concludedAt: 1,
+    generated: 1,
 } as const;
 
 export const isFiniteNumber = (value: unknown): value is number =>
@@ -128,6 +139,16 @@ type LearnableSpellEntry = CatalogEntry<{
 }>;
 
 const LEARNABLE_SPELL_PROJECTION = { minXpToLearn: 1, maxUsages: 1 } as const;
+
+// i campi di CombatEnemySnapshot, come le altre letture del catalogo
+const COMBAT_ENEMY_PROJECTION = {
+    name: 1,
+    lifePoints: 1,
+    xp: 1,
+    damages: 1,
+    baseWeaknesses: 1,
+    energyWeaknesses: 1,
+} as const;
 
 // una magia senza soglia valida o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07): mai valori impliciti
 const learnableSpellOf = ({
@@ -207,6 +228,8 @@ export class ResolutionLoader {
         private readonly equipmentItemModel: Model<EquipmentItemDocument>,
         @InjectModel(Spell.name)
         private readonly spellModel: Model<SpellDocument>,
+        @InjectModel(Pet.name)
+        private readonly petModel: Model<PetDocument>,
     ) {}
 
     // pre-letture lean fuori dalla transazione: solo id e stato, la transazione rilegge il personaggio in sessione
@@ -376,12 +399,12 @@ export class ResolutionLoader {
         quest: ResolutionQuest,
         participants: readonly ResolutionCharacter[],
     ): Promise<ResolutionCatalog> {
-        const enemy = await this.readEnemy(quest);
+        const enemies = await this.readEnemies(quest);
         const rewards = await this.readRewardCatalog(quest.prizes);
         const spellMaxUsages = await this.readSpellMaxUsages();
-        if (!enemy) {
+        if (enemies.length === 0) {
             return {
-                enemy,
+                enemies,
                 rewards,
                 equipment: new Map(),
                 spells: new Map(),
@@ -392,8 +415,11 @@ export class ResolutionLoader {
         }
         const refs = combatCatalogRefsOf(participants);
         const equipment = await this.equipmentItemModel
-            .find({ _id: { $in: refs.equipmentIds } }, { damages: 1 })
-            .lean<CatalogEntry<{ damages?: unknown }>[]>()
+            .find(
+                { _id: { $in: refs.equipmentIds } },
+                { damages: 1, equipType: 1, accessoryUseTypes: 1 },
+            )
+            .lean<CatalogEntry<CombatEquipmentSnapshot>[]>()
             .exec();
         const spells = await this.spellModel
             .find(
@@ -412,7 +438,7 @@ export class ResolutionLoader {
             .lean<CatalogEntry<{ effect?: unknown; power?: unknown }>[]>()
             .exec();
         return {
-            enemy,
+            enemies,
             rewards,
             equipment: byHex(equipment),
             spells: byHex(spells),
@@ -467,22 +493,28 @@ export class ResolutionLoader {
         return quest;
     }
 
-    // C6: un ref orfano vale come missione senza nemico, con un WARN di soli id
-    private async readEnemy(
-        quest: ResolutionQuest,
-    ): Promise<CombatEnemySnapshot | null> {
-        const enemyId = refIdOf(quest.infos.enemy);
-        if (!enemyId) return null;
-        const enemy = await this.enemyModel
-            .findById(enemyId)
-            .lean<CombatEnemySnapshot | null>()
-            .exec();
-        if (!enemy) {
-            this.logger.warn(
-                `Nemico ${enemyId.toHexString()} della missione ${quest._id.toHexString()} inesistente: missione senza nemico`,
-            );
-        }
-        return enemy;
+    // C6 esteso (D-28): voci orfane o con quantità non valida scartate con un WARN di soli id; ordine della quest
+    private async readEnemies(quest: ResolutionQuest): Promise<CatalogEnemy[]> {
+        const entries = validQuestEnemiesOf(quest.infos);
+        if (entries.length === 0) return [];
+        const found = byHex(
+            await this.enemyModel
+                .find(
+                    { _id: { $in: entries.map(({ enemy }) => enemy) } },
+                    COMBAT_ENEMY_PROJECTION,
+                )
+                .lean<CombatEnemySnapshot[]>()
+                .exec(),
+        );
+        return entries.flatMap(({ enemy, quantity }) => {
+            const snapshot = found.get(enemy.toHexString());
+            if (!snapshot) {
+                this.logger.warn(
+                    `Nemico ${enemy.toHexString()} della missione ${quest._id.toHexString()} inesistente: voce scartata`,
+                );
+            }
+            return snapshot ? [{ snapshot, quantity }] : [];
+        });
     }
 
     private async readRewardCatalog(
@@ -537,7 +569,20 @@ export class ResolutionLoader {
                     : [],
             ),
             spellPool: await this.readSpellPool(prizes),
+            pets: await this.readPrizePets(refs.petId),
         };
+    }
+
+    // D-21: il pet in premio vale solo se esiste ancora a catalogo; un ref orfano non consuma il tiro
+    private async readPrizePets(
+        petId: Types.ObjectId | null,
+    ): Promise<Set<string>> {
+        if (!petId) return new Set();
+        const pet = await this.petModel
+            .findById(petId, { _id: 1 })
+            .lean<{ _id: Types.ObjectId } | null>()
+            .exec();
+        return new Set(pet ? [pet._id.toHexString()] : []);
     }
 
     // D-31: l'intero catalogo delle magie solo per la study che sorteggia; ordine per id così il tiro è riproducibile

@@ -10,7 +10,10 @@ import type {
     CombatVerdict,
     ParticipantEffects,
 } from './combat/combat-resolver';
+import type { DungeonResolution } from './dungeon/dungeon-resolver';
 import {
+    type DungeonStages,
+    type EnemyFacts,
     type ParticipantPlan,
     type ParticipantPlanInput,
     planParticipant,
@@ -26,6 +29,7 @@ import { drawRewards, NO_REWARDS } from './rewards/quest-rewards';
 export interface CombatantBattle {
     verdict: CombatVerdict;
     effects: ParticipantEffects | null;
+    stages?: DungeonStages | null;
 }
 
 export interface CombatantPlanInput {
@@ -49,16 +53,16 @@ export interface CombatantPlan {
     aid: ParticipantPlanInput['aid'];
 }
 
-// nessun nemico (o nemico orfano, C6) = nessun combattimento: successo automatico per tutti (D-01)
+// nessun nemico valido (voci orfane scartate, C6) = nessun combattimento: successo automatico per tutti (D-01)
 export function combatContextOf(
     quest: ResolutionQuest,
     catalog: ResolutionCatalog,
     participants: readonly ResolutionCharacter[],
 ): CombatContext | null {
-    if (!catalog.enemy) return null;
+    if (catalog.enemies.length === 0) return null;
     return buildCombatContext({
         quest,
-        enemy: catalog.enemy,
+        enemies: catalog.enemies,
         participants: [...participants],
         equipment: catalog.equipment,
         spells: catalog.spells,
@@ -66,13 +70,21 @@ export function combatContextOf(
     });
 }
 
-// XP del nemico sommata al premio di chi vince (D-11): un valore non numerico vale 0
-export function enemyFactsOf(
-    catalog: ResolutionCatalog,
-): ParticipantPlanInput['enemy'] {
-    if (!catalog.enemy) return null;
-    const { _id, xp } = catalog.enemy;
-    return { id: _id, xp: isFiniteNumber(xp) ? xp : 0 };
+// XP dei nemici × quantità sommata al premio di chi vince (D-11, D-02): un valore non numerico vale 0
+export function enemyFactsOf(catalog: ResolutionCatalog): EnemyFacts | null {
+    if (catalog.enemies.length === 0) return null;
+    return {
+        entries: catalog.enemies.map(({ snapshot, quantity }) => ({
+            enemy: snapshot._id,
+            quantity,
+        })),
+        xp: catalog.enemies.reduce(
+            (total, { snapshot, quantity }) =>
+                total +
+                (isFiniteNumber(snapshot.xp) ? snapshot.xp : 0) * quantity,
+            0,
+        ),
+    };
 }
 
 // il verdetto è del combattimento (A3), gli effetti si prendono per characterId, mai per posizione (D-05); null = nessun combattimento
@@ -88,6 +100,21 @@ export function battleOf(
             resolution.participants.find(
                 (entry) => entry.characterId === hex,
             ) ?? null,
+    };
+}
+
+// l'esplorazione a tappe porta i suoi contatori nel risultato (D-12)
+export function dungeonBattleOf(
+    resolution: DungeonResolution,
+    characterId: Types.ObjectId,
+): CombatantBattle {
+    return {
+        verdict: resolution.verdict,
+        effects: battleOf(resolution, characterId)?.effects ?? null,
+        stages: {
+            cleared: resolution.stagesCleared,
+            total: resolution.stagesTotal,
+        },
     };
 }
 
@@ -114,7 +141,7 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
         userId: input.userId,
         verdict,
         battle: battle?.effects ?? null,
-        enemy: enemyFactsOf(catalog),
+        enemies: enemyFactsOf(catalog),
         rewards: won
             ? drawRewards(quest.prizes, catalog.rewards, input.chance)
             : NO_REWARDS,
@@ -122,6 +149,7 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
         spellRecoveryTimes: catalog.recoveryTimes,
         spellMaxUsages: catalog.spellMaxUsages,
         rescuedCharacters: input.rescuedCharacters,
+        stages: battle?.stages ?? null,
         now: input.now,
     });
     return { plan, verdict, aid };

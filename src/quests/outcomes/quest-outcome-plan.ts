@@ -45,6 +45,15 @@ export function questUpdateOf(
     return Object.keys(update).length > 0 ? update : null;
 }
 
+// D-17: solo la conclusione di una generata libera un posto nel target; le altre conclusioni non rilanciano il generatore
+export function regeneratesAfter(
+    quest: { generated?: unknown },
+    update: Record<string, unknown> | null,
+): boolean {
+    const set = update?.$set as Record<string, unknown> | undefined;
+    return quest.generated === true && set?.concludedAt instanceof Date;
+}
+
 // claim del gruppo (boss D-05, soccorso di gruppo D-09; D-21): la scrittura della Quest nella stessa transazione esclude un secondo trigger (WriteConflict)
 export function questClaimFilter(
     questId: Types.ObjectId,

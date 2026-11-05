@@ -5,6 +5,7 @@ import { Model, Types } from 'mongoose';
  * infos.markerLocation is a REQUIRED ref to PointOfInterest (throwaway ObjectId
  * by default; override with a persisted POI id when a real ref is needed).
  * infos.type uses a valid QuestType value ('hunt').
+ * infos.enemies is the list of enemies `[{ enemy, quantity }]`, empty by default (D-01).
  */
 export function buildQuest(overrides: Record<string, any> = {}) {
     return {
@@ -14,7 +15,7 @@ export function buildQuest(overrides: Record<string, any> = {}) {
             markerLocation: new Types.ObjectId(), // ref POI (required)
             relatedLore: [],
             timeToComplete: null,
-            enemy: null,
+            enemies: [],
         },
         requirements: {
             requiredPoints: null,

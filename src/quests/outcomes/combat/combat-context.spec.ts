@@ -57,15 +57,20 @@ const hydration = (): CombatHydration => ({
         _id: id('91'),
         infos: { type: QuestType.hunt, title: 'Wolves' },
     },
-    enemy: {
-        _id: id('b1'),
-        name: 'Wolf',
-        lifePoints: 1000,
-        xp: 100,
-        damages: { base: { type: 'cut', power: 80 } },
-        baseWeaknesses: ['blunt'],
-        energyWeaknesses: ['fire'],
-    },
+    enemies: [
+        {
+            snapshot: {
+                _id: id('b1'),
+                name: 'Wolf',
+                lifePoints: 1000,
+                xp: 100,
+                damages: { base: { type: 'cut', power: 80 } },
+                baseWeaknesses: ['blunt'],
+                energyWeaknesses: ['fire'],
+            },
+            quantity: 1,
+        },
+    ],
     participants: [heroB(), heroA()],
     equipment: new Map([
         [
@@ -146,18 +151,68 @@ describe('buildCombatContext', () => {
             type: QuestType.hunt,
             title: 'Wolves',
         });
-        expect(context.enemy).toEqual({
-            id: id('b1').toHexString(),
-            name: 'Wolf',
-            lifePoints: 1000,
-            xp: 100,
-            damages: { base: [{ type: 'cut', power: 80 }], energy: [] },
-            baseWeaknesses: ['blunt'],
-            energyWeaknesses: ['fire'],
-        });
+        expect(context.enemies).toEqual([
+            {
+                id: id('b1').toHexString(),
+                name: 'Wolf',
+                lifePoints: 1000,
+                xp: 100,
+                damages: { base: [{ type: 'cut', power: 80 }], energy: [] },
+                baseWeaknesses: ['blunt'],
+                energyWeaknesses: ['fire'],
+                quantity: 1,
+            },
+        ]);
         expect(context.participants.map((p) => p.characterId)).toEqual([
             id('a1').toHexString(),
             id('a2').toHexString(),
+        ]);
+    });
+
+    it('lists the enemies in quest order with their quantities (D-02)', () => {
+        const source = hydration();
+        source.enemies = [
+            {
+                snapshot: {
+                    _id: id('c2'),
+                    name: 'Goblin',
+                    lifePoints: 100,
+                    xp: 10,
+                },
+                quantity: 3,
+            },
+            {
+                snapshot: {
+                    _id: id('c1'),
+                    name: 'Capo',
+                    lifePoints: 600,
+                    xp: 63,
+                },
+                quantity: 1,
+            },
+        ];
+
+        expect(buildCombatContext(source).enemies).toEqual([
+            {
+                id: id('c2').toHexString(),
+                name: 'Goblin',
+                lifePoints: 100,
+                xp: 10,
+                damages: { base: [], energy: [] },
+                baseWeaknesses: [],
+                energyWeaknesses: [],
+                quantity: 3,
+            },
+            {
+                id: id('c1').toHexString(),
+                name: 'Capo',
+                lifePoints: 600,
+                xp: 63,
+                damages: { base: [], energy: [] },
+                baseWeaknesses: [],
+                energyWeaknesses: [],
+                quantity: 1,
+            },
         ]);
     });
 
@@ -179,6 +234,8 @@ describe('buildCombatContext', () => {
                         base: [{ type: 'cut', power: 300 }],
                         energy: [],
                     },
+                    equipType: null,
+                    accessoryUseTypes: null,
                 },
             ],
             activeSpells: [
@@ -201,7 +258,7 @@ describe('buildCombatContext', () => {
 
     it('fills missing numbers with safe defaults', () => {
         const source = hydration();
-        source.enemy = { _id: id('b2') };
+        source.enemies = [{ snapshot: { _id: id('b2') }, quantity: 1 }];
         const context = buildCombatContext(source);
         const rookie = context.participants[1];
 
@@ -216,15 +273,18 @@ describe('buildCombatContext', () => {
             activeSpells: [],
             consumables: [],
         });
-        expect(context.enemy).toEqual({
-            id: id('b2').toHexString(),
-            name: '',
-            lifePoints: 0,
-            xp: 0,
-            damages: { base: [], energy: [] },
-            baseWeaknesses: [],
-            energyWeaknesses: [],
-        });
+        expect(context.enemies).toEqual([
+            {
+                id: id('b2').toHexString(),
+                name: '',
+                lifePoints: 0,
+                xp: 0,
+                damages: { base: [], energy: [] },
+                baseWeaknesses: [],
+                energyWeaknesses: [],
+                quantity: 1,
+            },
+        ]);
     });
 
     it('reads the life points of a legacy character from the level table, like the outcome plan', () => {
@@ -366,5 +426,92 @@ describe('buildCombatContext', () => {
         buildCombatContext(source);
 
         expect(source).toEqual(hydration());
+    });
+});
+
+describe('jewel use types in the combat context', () => {
+    const ringId = id('e3');
+
+    const wearing = (item: Record<string, unknown>) => {
+        const source = hydration();
+        source.participants = [
+            {
+                _id: id('a5'),
+                status: { title: TitleType.rookie },
+                assets: { wearedEquipment: { firstAccessory: ringId } },
+            },
+        ];
+        source.equipment = new Map([[ringId.toHexString(), item]]);
+        return buildCombatContext(source).participants[0].equipment;
+    };
+
+    it('snapshots the use types of a worn jewel (D-24)', () => {
+        expect(
+            wearing({
+                damages: { base: [], energy: [] },
+                equipType: 'ring',
+                accessoryUseTypes: ['attack', 'defense'],
+            }),
+        ).toEqual([
+            {
+                itemId: ringId.toHexString(),
+                slot: 'firstAccessory',
+                damages: { base: [], energy: [] },
+                equipType: 'ring',
+                accessoryUseTypes: ['attack', 'defense'],
+            },
+        ]);
+    });
+
+    it('keeps null use types on gear without them (D-24)', () => {
+        const [hero] = buildCombatContext({
+            ...hydration(),
+            equipment: new Map([
+                [
+                    swordId.toHexString(),
+                    { damages: { base: [], energy: [] }, equipType: 'weapon' },
+                ],
+            ]),
+        }).participants;
+
+        expect(hero.equipment).toEqual([
+            {
+                itemId: swordId.toHexString(),
+                slot: 'rightHand',
+                damages: { base: [], energy: [] },
+                equipType: 'weapon',
+                accessoryUseTypes: null,
+            },
+        ]);
+    });
+
+    it('drops values outside the enum and keeps a malformed list null (D-24)', () => {
+        const [listed] = wearing({
+            equipType: 'ring',
+            accessoryUseTypes: ['attack', 'fly'],
+        });
+        const [single] = wearing({
+            equipType: 'necklace',
+            accessoryUseTypes: 'attack',
+        });
+        const [unknown] = wearing({
+            equipType: 'cape',
+            accessoryUseTypes: ['defense'],
+        });
+
+        expect([listed, single, unknown]).toEqual([
+            expect.objectContaining({
+                equipType: 'ring',
+                accessoryUseTypes: ['attack'],
+            }),
+            expect.objectContaining({
+                equipType: 'necklace',
+                accessoryUseTypes: null,
+            }),
+            expect.objectContaining({
+                equipType: null,
+                accessoryUseTypes: ['defense'],
+            }),
+        ]);
     });
 });

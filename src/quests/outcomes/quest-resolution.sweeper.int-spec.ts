@@ -92,7 +92,7 @@ describe('QuestResolutionSweeper (replSet)', () => {
                 infos: {
                     ...buildQuest().infos,
                     type: 'hunt',
-                    enemy: foe._id,
+                    enemies: [{ enemy: foe._id, quantity: 1 }],
                 },
                 requirements: {
                     ...buildQuest().requirements,

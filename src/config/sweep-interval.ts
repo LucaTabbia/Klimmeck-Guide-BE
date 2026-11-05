@@ -6,9 +6,10 @@ const DIGITS = /^\d+$/;
 export function parseSweepIntervalMs(
     name: string,
     raw: string | undefined,
+    fallback = DEFAULT_SWEEP_INTERVAL_MS,
 ): number {
     const value = (raw ?? '').trim();
-    if (!value) return DEFAULT_SWEEP_INTERVAL_MS;
+    if (!value) return fallback;
     if (!DIGITS.test(value) || Number(value) > MAX_TIMER_MS) {
         throw new Error(
             `${name} must be an integer between 0 and 2147483647 milliseconds (0 disables the periodic sweep)`,

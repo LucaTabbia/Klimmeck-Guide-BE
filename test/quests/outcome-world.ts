@@ -14,6 +14,7 @@ import { EquipmentItem } from 'src/models/equipment-item.model';
 import type { QuestType } from 'src/models/enums/quest-type.enum';
 import { LootItem } from 'src/models/loot-item.model';
 import { PendingQuest } from 'src/models/pending-quest.model';
+import { Pet } from 'src/models/pet.model';
 import { QuestResult } from 'src/models/quest-result/quest-result.model';
 import { Quest } from 'src/models/quest/quest.model';
 import { Spell } from 'src/models/spell.model';
@@ -72,6 +73,7 @@ export interface OutcomeModels {
     lootItems: Model<any>;
     equipmentItems: Model<any>;
     spells: Model<any>;
+    pets: Model<any>;
 }
 
 export function outcomeModels(harness: AuthTestApp): OutcomeModels {
@@ -88,6 +90,7 @@ export function outcomeModels(harness: AuthTestApp): OutcomeModels {
         lootItems: modelOf(LootItem.name),
         equipmentItems: modelOf(EquipmentItem.name),
         spells: modelOf(Spell.name),
+        pets: modelOf(Pet.name),
     };
 }
 

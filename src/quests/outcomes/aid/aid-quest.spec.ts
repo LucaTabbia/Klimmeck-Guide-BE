@@ -18,6 +18,8 @@ const RESCUER_ID = new Types.ObjectId('64b0000000000000000000c7');
 const NEXT_AID_ID = new Types.ObjectId('64b0000000000000000000c8');
 const LOOT_ID = new Types.ObjectId('64b0000000000000000000c9');
 const OTHER_INJURED_ID = new Types.ObjectId('64b0000000000000000000ca');
+const OTHER_ENEMY_ID = new Types.ObjectId('64b0000000000000000000cb');
+const PET_ID = new Types.ObjectId('64b0000000000000000000cc');
 
 const lootEntry = { itemType: 'LootItem', item: LOOT_ID, quantity: 1 };
 
@@ -28,7 +30,10 @@ const original: AidSourceQuest = {
         description: 'Un drago minaccia le mura di Valantar.',
         type: QuestType.boss,
         markerLocation: MARKER_ID,
-        enemy: ENEMY_ID,
+        enemies: [
+            { enemy: ENEMY_ID, quantity: 3 },
+            { enemy: OTHER_ENEMY_ID, quantity: 1 },
+        ],
         timeToComplete: 3600000,
         relatedLore: [LORE_ID],
     } as AidSourceQuest['infos'],
@@ -44,6 +49,7 @@ const original: AidSourceQuest = {
         prizeItem: null,
         randomLoot: [lootEntry],
         spell: null,
+        pet: PET_ID,
     },
 };
 
@@ -55,9 +61,64 @@ describe('buildAidQuest', () => {
         expect(aid.infos.title).toBe('Soccorso: Il drago di Valantar');
         expect(aid.infos.type).toBe('aid');
         expect(aid.infos.markerLocation).toEqual(MARKER_ID);
-        expect(aid.infos.enemy).toEqual(ENEMY_ID);
         expect(aid.infos.timeToComplete).toBe(3600000);
         expect(aid.infos.relatedLore).toEqual([LORE_ID]);
+    });
+
+    it('clones the enemies list in order with the quantities (D-01, D-12)', () => {
+        expect(aid.infos.enemies).toEqual([
+            { enemy: ENEMY_ID, quantity: 3 },
+            { enemy: OTHER_ENEMY_ID, quantity: 1 },
+        ]);
+        expect(aid.infos.enemies).not.toBe(original.infos.enemies);
+    });
+
+    it('clones a legacy single enemy as a one-entry list (D-28)', () => {
+        const legacyInfos = { ...original.infos, enemy: ENEMY_ID };
+        delete legacyInfos.enemies;
+
+        const legacy = buildAidQuest(
+            { ...original, infos: legacyInfos },
+            [INJURED_ID],
+            AID_ID,
+        );
+
+        expect(legacy.infos.enemies).toEqual([
+            { enemy: ENEMY_ID, quantity: 1 },
+        ]);
+    });
+
+    it('clones no enemies for a quest without enemies (D-01)', () => {
+        const peaceful = buildAidQuest(
+            { ...original, infos: { ...original.infos, enemies: [] } },
+            [INJURED_ID],
+            AID_ID,
+        );
+
+        expect(peaceful.infos.enemies).toEqual([]);
+    });
+
+    it('clones the pet prize (D-21)', () => {
+        const petless = buildAidQuest(
+            { ...original, prizes: { ...original.prizes, pet: undefined } },
+            [INJURED_ID],
+            AID_ID,
+        );
+
+        expect(aid.prizes.pet).toEqual(PET_ID);
+        expect(petless.prizes.pet).toBeNull();
+    });
+
+    it('never marks the aid as generated (D-17)', () => {
+        expect(Object.keys(aid).sort()).toEqual([
+            '_id',
+            'concludedAt',
+            'infos',
+            'prizes',
+            'registeredAdventurers',
+            'requirements',
+            'rescue',
+        ]);
     });
 
     it('keeps the announcement of the failed quest (D-32)', () => {
@@ -143,7 +204,7 @@ describe('buildAidQuest', () => {
             AID_ID,
         );
 
-        expect(bare.infos.enemy).toBeNull();
+        expect(bare.infos.enemies).toEqual([]);
         expect(bare.requirements.requiredAdventurers).toEqual([
             { title: null, count: 1 },
         ]);
@@ -155,6 +216,7 @@ describe('buildAidQuest', () => {
             prizeItem: null,
             randomLoot: [],
             spell: null,
+            pet: null,
         });
     });
 });

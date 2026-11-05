@@ -49,6 +49,12 @@ const SWEEP_INDEXES: SweepIndex[] = [
         key: { 'registeredAdventurers.character': 1 },
     },
     {
+        collection: 'quests',
+        name: 'quest_generated_open_marker',
+        schema: QuestSchema,
+        key: { 'infos.markerLocation': 1 },
+    },
+    {
         collection: 'pendingquests',
         name: 'pending_quest_lane_dates',
         schema: PendingQuestSchema,

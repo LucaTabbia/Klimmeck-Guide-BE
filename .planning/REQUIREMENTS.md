@@ -156,14 +156,17 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Quest Generation (BE-QGEN) — Phase 13, aggiunta 2026-10-29
 
-- [ ] **BE-QGEN-01**: `QuestInfos.enemies: [{ enemy, quantity }]` sostituisce `infos.enemy` (SDL non additivo, dichiarato) nel populate, nel contesto del `CombatResolver` (più nemici e più tipi), nel `QuestResult`, nella clone della aid e nei fixture; migrazione idempotente `enemy` → `enemies` con `quantity: 1` → FE QGEN-01/02
-- [ ] **BE-QGEN-02**: Il generatore gira quando una quest generata si conclude o viene annullata, con uno sweep periodico configurabile e al boot, e su mutation innkeeper `generateQuests` auditata; ogni corsa è idempotente, single-flight e deterministica dato un RNG iniettato → FE QGEN-03
-- [ ] **BE-QGEN-03**: Genera solo `enemy` e `boss` (consumabili, `concludedAt`); `hunt` e `dungeon` non si generano mai (fisse, Phase 11); tetto di 3 quest generate attive per città, con le fisse e le GM escluse dal conto
-- [ ] **BE-QGEN-04**: La città è sorteggiata con peso decrescente al crescere della densità di quest generate nelle città vicine (distribuzione casuale non concentrata, città da 0 a 3 quest); il POI è un `pointsOfInterest` libero della città (nessuna quest non conclusa sul marker, marker della città escluso)
-- [ ] **BE-QGEN-05**: `minTitle` = rango meno coperto fra le quest generate attive di tutto il mondo (count a DB); i nemici sono estratti fra quelli con `locations` compatibili con i `type` del POI (`all` di riserva) e XP nella fascia del rango, uno o più tipi con quantità; boss con `requiredAdventurers` per rango
-- [ ] **BE-QGEN-06**: Premi (`prizeCoins`, `xpPrize`, `randomLoot` per rarità) dalla tabella per fascia; `recommendedLoot` fra equipaggiamento che colpisce `baseWeaknesses`/`energyWeaknesses` e consumabili contro i `damages` dei nemici
-- [ ] **BE-QGEN-07**: Titolo da template per tipo e nemico (descrizione LLM resta v2, BE-FUT)
-- [ ] **BE-QGEN-08**: Integration su tetto, concorrenza (nessuna doppia quest sullo stesso POI), distribuzione, `FORBIDDEN` per l'adventurer; handoff per la FE Phase 14 con i piani FE gated prima della merge
+- [x] **BE-QGEN-01**: `QuestInfos.enemies: [{ enemy, quantity }]` sostituisce `infos.enemy` (SDL non additivo, dichiarato) nel populate, nel contesto del `CombatResolver` (più nemici e più tipi), nel `QuestResult`, nella clone della aid e nei fixture; migrazione idempotente `enemy` → `enemies` con `quantity: 1` → FE QGEN-01/02 _(emendato 2026-11-04, discuss: anche `QuestResult.enemies` + `stagesCleared`/`stagesTotal` sostituiscono `QuestResult.enemy`; CONTEXT D-01/D-02)_
+- [x] **BE-QGEN-02**: Il generatore gira quando una quest generata si conclude o viene annullata, con uno sweep periodico configurabile e al boot, e su mutation innkeeper `generateQuests` auditata; ogni corsa è idempotente, single-flight e deterministica dato un RNG iniettato → FE QGEN-03
+- [x] **BE-QGEN-03**: Genera solo `enemy` e `boss` (consumabili, `concludedAt`); `hunt` e `dungeon` non si generano mai (fisse, Phase 11); tetto di 3 quest generate attive per città, con le fisse e le GM escluse dal conto _(emendato 2026-11-04: boss = un solo nemico di fascia superiore con posti = ⌈PE / media del rango⌉ fra 2 e 6, 1 boss ogni 10; i 22 leggendari non si generano mai, riservati alle worldMission (`Enemy.legendary` seminato una tantum); CONTEXT D-03..D-06)_
+- [x] **BE-QGEN-04**: La città è sorteggiata con peso decrescente al crescere della densità di quest generate nelle città vicine (distribuzione casuale non concentrata, città da 0 a 3 quest); il POI è un `pointsOfInterest` libero della città (nessuna quest non conclusa sul marker, marker della città escluso)
+- [x] **BE-QGEN-05**: `minTitle` = rango meno coperto fra le quest generate attive di tutto il mondo (count a DB); i nemici sono estratti fra quelli con `locations` compatibili con i `type` del POI (`all` di riserva) e XP nella fascia del rango, uno o più tipi con quantità; boss con `requiredAdventurers` per rango _(emendato 2026-11-04: forma (a) nemico singolo della fascia o (b) branco di nemici più deboli con somma xp nella fascia; pool = zona del POI + habitat `city`, `all` di riserva, animali inclusi; un posto del rango; CONTEXT D-07..D-09)_
+- [x] **BE-QGEN-06**: Premi (`prizeCoins`, `xpPrize`, `randomLoot` per rarità) dalla tabella per fascia; `recommendedLoot` fra equipaggiamento che colpisce `baseWeaknesses`/`energyWeaknesses` e consumabili contro i `damages` dei nemici _(emendato 2026-11-04: enemy 150 rame + 40 XP, boss 600 rame + 120 XP, × moltiplicatore di fascia; `randomLoot` = pool ampio per rango e tipo tirato per ogni partecipante, legendary solo da hero; CONTEXT D-19/D-20)_
+- [x] **BE-QGEN-07**: Titolo da template per tipo e nemico (descrizione LLM resta v2, BE-FUT) _(emendato 2026-11-04: titolo con nemici e città, annuncio `infos.description` da 3 varianti per tipo nella voce del committente, `relatedLore` città + nemici; CONTEXT D-22)_
+- [x] **BE-QGEN-08**: Integration su tetto, concorrenza (nessuna doppia quest sullo stesso POI), distribuzione, `FORBIDDEN` per l'adventurer; handoff per la FE Phase 14 con i piani FE gated prima della merge
+- [x] **BE-QGEN-09**: Le `dungeon` sono esplorazioni a tappe: `enemies` in ordine = tappe di combattimento risolte in sequenza con gli HP residui da una porta `DungeonResolver` con segnaposto (prove di esplorazione neutre, premi solo a fine percorso, `stagesCleared`/`stagesTotal` nel risultato); le 40 dungeon fisse arricchite al boot una tantum e poi curate a DB (Phase 11 D-33; aggiunto 2026-11-04, CONTEXT D-10..D-13) → FE QGEN-02
+- [x] **BE-QGEN-10**: `QuestPrizes.pet` (ref `Pet`, additivo): alla vittoria ogni vincitore ottiene il pet in `ownedPets` con probabilità 20% (già posseduto → nulla); il generatore lo assegna solo ai boss con probabilità 1%; pool = pet con `sellable: false`; il risultato espone il pet ottenuto (aggiunto 2026-11-04, CONTEXT D-21) → FE QGEN-02
+- [x] **BE-QGEN-11**: `EquipmentItem.accessoryUseTypes: [AccessoryUseType!]` (`attack` | `defense`) solo su `ring` e `necklace`, additivo e nel contesto del `CombatResolver`; i 42 gioielli a DB ricevono il valore da una tabella rivista dall'utente (magia + descrizione) tramite un migratore una tantum che poi esce dal repo (aggiunto 2026-11-04, regola dell'utente, CONTEXT D-23..D-26) → FE QGEN-06
 
 ### Travel Food (BE-FOOD) — Phase 14, aggiunta 2026-10-29
 
@@ -289,7 +292,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-HARD-08 | Phase 10 | Complete |
 | BE-CONTENT-01..07 | Phase 11 | Complete (aggiunti 2026-10-29, chiusi 2026-11-02) |
 | BE-SHOP-01..06 | Phase 12 | Complete (gate 12-18, 2026-11-03; aggiunti 2026-10-29, emendati e BE-SHOP-06 aggiunto 2026-11-02) |
-| BE-QGEN-01..08 | Phase 13 | Pending (aggiunti 2026-10-29) |
+| BE-QGEN-01..11 | Phase 13 | Complete (gate 13-19, 2026-11-04; 01..08 aggiunti 2026-10-29, 09..11 il 2026-11-04) |
 | BE-FOOD-01..06 | Phase 14 | Pending (aggiunti 2026-10-29) |
 | BE-AMBUSH-01..07 | Phase 15 | Pending (aggiunti 2026-10-29) |
 | BE-LORE-01..06 | Phase 16 | Pending (aggiunti 2026-10-29) |
@@ -299,6 +302,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 - v1 requirements: 56 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14 + BE-SPELL-01..04 della 9.1 + BE-RESULT-01..04 della 9.2 + BE-HARD-05/06 della Phase 10, 2026-10-27 + BE-HARD-07 dalla UAT della FE Phase 9, 2026-10-29 + BE-HARD-08 dal discuss della FE Phase 10, 2026-10-29)
 - Mapped to phases: 50 / 50 ✓ (nessun orfano, nessun duplicato)
 - Estensione del 2026-10-29: +39 requisiti (BE-CONTENT-01..07, BE-SHOP-01..05, BE-QGEN-01..08, BE-FOOD-01..06, BE-AMBUSH-01..07, BE-LORE-01..06) mappati sulle Phase 11–16 → 95 totali, 89 mappati (i BE-TEST-01..04 restano nella Phase 1 non avviata e i 2 BE-SYNC assorbiti nella 3 come prima)
+- Estensione del 2026-11-04 (discuss Phase 13 congiunto con la FE Phase 14): +3 requisiti (BE-QGEN-09 dungeon a tappe, BE-QGEN-10 premio pet, BE-QGEN-11 `accessoryUseTypes`) → 98 totali, 92 mappati
 
 ---
 

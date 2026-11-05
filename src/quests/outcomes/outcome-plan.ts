@@ -68,6 +68,7 @@ export interface OutcomeCharacterSnapshot {
     assets?:
         | (InventorySnapshot & {
               activeSpells?: { spell?: unknown; usages?: number }[];
+              ownedPets?: unknown[] | null;
           })
         | null;
 }
@@ -84,6 +85,17 @@ export interface ConsumableUsage {
     quantity: number;
 }
 
+export interface QuestEnemyDraft {
+    enemy: Types.ObjectId;
+    quantity: number;
+}
+
+// nemici affrontati e xp sommata per quantità (D-02)
+export interface EnemyFacts {
+    entries: QuestEnemyDraft[];
+    xp: number;
+}
+
 export interface QuestResultDraft {
     _id: Types.ObjectId;
     character: Types.ObjectId;
@@ -97,7 +109,11 @@ export interface QuestResultDraft {
     injuriesAdded: InjuryType[];
     consumablesUsed: ConsumableUsage[];
     spellsUsed: { spell: Types.ObjectId; usages: number }[];
-    rewards: { coins: CoinPurse; items: RewardItem[] };
+    rewards: {
+        coins: CoinPurse;
+        items: RewardItem[];
+        pet: Types.ObjectId | null;
+    };
     xpGained: number;
     xpBefore: number;
     xpAfter: number;
@@ -106,7 +122,9 @@ export interface QuestResultDraft {
     titleBefore: TitleType;
     titleAfter: TitleType;
     spellLearned: Types.ObjectId | null;
-    enemy: Types.ObjectId | null;
+    enemies: QuestEnemyDraft[];
+    stagesCleared: number | null;
+    stagesTotal: number | null;
     rescuedCharacters: Types.ObjectId[];
 }
 
@@ -114,6 +132,11 @@ export type PlanVerdict =
     | QuestOutcome.success
     | QuestOutcome.failure
     | QuestOutcome.gmCompleted;
+
+export interface DungeonStages {
+    cleared: number;
+    total: number;
+}
 
 export interface ParticipantPlanInput {
     resultId: Types.ObjectId;
@@ -124,12 +147,14 @@ export interface ParticipantPlanInput {
     userId: Types.ObjectId;
     verdict: PlanVerdict;
     battle: ParticipantEffects | null;
-    enemy: { id: Types.ObjectId; xp: number } | null;
+    enemies: EnemyFacts | null;
     rewards: DrawnRewards;
     aid: { aidQuestId: Types.ObjectId; failedQuestId: Types.ObjectId } | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
     spellMaxUsages: ReadonlyMap<string, number>;
     rescuedCharacters?: readonly Types.ObjectId[];
+    // solo le dungeon a tappe (D-12): null altrove
+    stages?: DungeonStages | null;
     now: Date;
 }
 
@@ -267,6 +292,17 @@ function completedQuestsAfter(
         : [...completed, questId];
 }
 
+// idempotente sullo snapshot in sessione (D-21): già posseduto ⇒ nulla, nessun errore; ownedPets fuori dall'update se non cambia (Pitfall 5)
+function petWonBy(
+    snapshot: OutcomeCharacterSnapshot,
+    won: boolean,
+    pet: Types.ObjectId | null,
+): Types.ObjectId | null {
+    if (!won || !pet) return null;
+    const owned = snapshot.assets?.ownedPets ?? [];
+    return owned.some((id) => sameId(id, pet)) ? null : pet;
+}
+
 function participantFilter(
     input: ParticipantPlanInput,
     lanePath: string,
@@ -291,7 +327,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     const hpFought = battle
         ? lifePointsWithin(battle.hpAfter, before.maxLifePoints)
         : before.currentLifePoints;
-    const xpEarned = won ? rewards.xpPrize + (input.enemy?.xp ?? 0) : 0;
+    const xpEarned = won ? rewards.xpPrize + (input.enemies?.xp ?? 0) : 0;
     const progression = progressionAfter(
         { xp: before.xp, currentLifePoints: hpFought },
         xpEarned,
@@ -356,6 +392,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         ? completedQuestsAfter(snapshot, quest._id)
         : null;
     const coinsDelta = won ? rewards.coinsCopper : 0;
+    const petWon = petWonBy(snapshot, won, rewards.pet);
     const lanePath = lanePathOf(input.lane);
 
     const $set: Record<string, unknown> = {
@@ -377,6 +414,14 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             : {}),
         ...(completedQuests
             ? { 'quests.completedQuests': completedQuests }
+            : {}),
+        ...(petWon
+            ? {
+                  'assets.ownedPets': [
+                      ...(snapshot.assets?.ownedPets ?? []),
+                      petWon,
+                  ],
+              }
             : {}),
         // il fallimento aspetta il soccorso sul marker della quest (D-07, D-08)
         ...(!won && aid
@@ -407,7 +452,11 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             injuriesAdded: wounds.added,
             consumablesUsed: consumables,
             spellsUsed: spells.used,
-            rewards: { coins: fromCopper(coinsDelta), items: rewardItems },
+            rewards: {
+                coins: fromCopper(coinsDelta),
+                items: rewardItems,
+                pet: petWon,
+            },
             // guadagno effettivo dopo il clamp a MAX_XP: xpAfter = xpBefore + xpGained sul foglio
             xpGained: Math.max(0, progression.xp - before.xp),
             xpBefore: before.xp,
@@ -417,7 +466,9 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             titleBefore: before.title,
             titleAfter,
             spellLearned,
-            enemy: input.enemy?.id ?? null,
+            enemies: [...(input.enemies?.entries ?? [])],
+            stagesCleared: input.stages?.cleared ?? null,
+            stagesTotal: input.stages?.total ?? null,
             // solo chi ha vinto il soccorso ha salvato qualcuno
             rescuedCharacters:
                 input.verdict === QuestOutcome.success

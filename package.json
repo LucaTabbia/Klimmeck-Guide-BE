@@ -194,6 +194,11 @@
         "statements": 97,
         "branches": 82,
         "lines": 98
+      },
+      "./src/quests/generation/": {
+        "statements": 96,
+        "branches": 82,
+        "lines": 97
       }
     }
   },

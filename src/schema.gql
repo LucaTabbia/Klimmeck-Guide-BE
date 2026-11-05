@@ -12,6 +12,11 @@ input AcceptQuestRequest {
   questId: String!
 }
 
+enum AccessoryUseType {
+  attack
+  defense
+}
+
 type ActiveSpell {
   spell: Spell
   usages: Int!
@@ -229,6 +234,7 @@ type Enemy {
   energyWeaknesses: [String!]!
   id: ID!
   imagePath: String!
+  legendary: Boolean!
   lifePoints: Int!
   locations: [PoiType!]!
   name: String!
@@ -272,6 +278,7 @@ type Equipment {
 }
 
 type EquipmentItem {
+  accessoryUseTypes: [AccessoryUseType!]
   addedSpell: Spell
   buyPrice: Coins
   damages: Damages!
@@ -283,6 +290,10 @@ type EquipmentItem {
   rarity: String
   sellPrice: Coins
   sellable: Boolean
+}
+
+type GenerateQuestsResult {
+  created: Int!
 }
 
 enum InjuryType {
@@ -357,6 +368,7 @@ type Mutation {
   equipPet(request: EquipPetRequest!): CommonResponse!
   equipSpell(request: EquipSpellRequest!): CommonResponse!
   exchangeLoginTicket(codeVerifier: String!, ticket: String!): AuthSession!
+  generateQuests: GenerateQuestsResult!
   logout: Boolean!
   refreshSession(refreshToken: String!): AuthSession!
   registerPushDevice(input: RegisterPushDeviceInput!): Boolean!
@@ -553,9 +565,14 @@ type Quest {
   requirements: QuestRequirements!
 }
 
+type QuestEnemy {
+  enemy: Enemy!
+  quantity: Int!
+}
+
 type QuestInfos {
   description: String
-  enemy: Enemy
+  enemies: [QuestEnemy!]!
   markerLocation: PointOfInterest!
   relatedLore: [Lore!]!
   timeToComplete: Int
@@ -577,6 +594,7 @@ type QuestPartySlot {
 }
 
 type QuestPrizes {
+  pet: Pet
   prizeCoins: Coins
   prizeItem: AssetQuantity
   randomLoot: [AssetQuantity!]!
@@ -601,7 +619,7 @@ type QuestResult {
   acknowledgedAt: DateTime
   character: ID!
   consumablesUsed: [AssetQuantity!]!
-  enemy: Enemy
+  enemies: [QuestEnemy!]!
   hpAfter: Int!
   hpBefore: Int!
   id: ID!
@@ -616,6 +634,8 @@ type QuestResult {
   rewards: QuestRewards!
   spellLearned: Spell
   spellsUsed: [SpellUsage!]!
+  stagesCleared: Int
+  stagesTotal: Int
   titleAfter: String!
   titleBefore: String!
   user: ID!
@@ -633,6 +653,7 @@ type QuestResultQuest {
 type QuestRewards {
   coins: Coins!
   items: [AssetQuantity!]!
+  pet: Pet
 }
 
 type RaceTraits {

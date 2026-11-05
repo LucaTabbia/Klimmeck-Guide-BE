@@ -48,15 +48,16 @@ describe('quest catalog asset quantity schemas', () => {
 });
 
 describe('QUEST_CATALOG_POPULATE', () => {
-    it('populates every ref the FE selects on the catalog', () => {
+    it('populates every ref the FE selects on the catalog, enemies one level deep (D-01, D-21)', () => {
         expect(QUEST_CATALOG_POPULATE).toEqual([
             { path: 'infos.markerLocation' },
-            { path: 'infos.enemy', model: 'Enemy' },
+            { path: 'infos.enemies.enemy', model: 'Enemy' },
             { path: 'infos.relatedLore', model: 'Lore' },
             { path: 'requirements.recommendedLoot.item' },
             { path: 'prizes.prizeItem.item' },
             { path: 'prizes.randomLoot.item' },
             { path: 'prizes.spell', model: 'Spell' },
+            { path: 'prizes.pet', model: 'Pet' },
         ]);
     });
 });
@@ -111,11 +112,43 @@ describe('dropOrphanCatalogRefs', () => {
         expect(quest.prizes.prizeItem).toEqual({ item: C });
     });
 
+    it('drops a quest enemy whose enemy was deleted without touching the others (D-28)', () => {
+        const goblin = { _id: new Types.ObjectId(), name: 'Goblin' };
+        const quest = {
+            infos: {
+                enemies: [
+                    { enemy: null, quantity: 2 },
+                    { enemy: goblin, quantity: 3 },
+                    { enemy: new Types.ObjectId(), quantity: 1 },
+                ] as { enemy: unknown; quantity: number }[],
+            },
+        };
+
+        dropOrphanCatalogRefs(quest);
+
+        expect(quest.infos.enemies).toEqual([{ enemy: goblin, quantity: 3 }]);
+    });
+
+    it('nulls an orphan pet prize and keeps a resolved one (D-21, D-28)', () => {
+        const pet = { _id: new Types.ObjectId(), name: 'Gufo' };
+        const orphan = { prizes: { pet: null as unknown } };
+        const raw = { prizes: { pet: new Types.ObjectId() as unknown } };
+        const resolved = { prizes: { pet: pet as unknown } };
+
+        dropOrphanCatalogRefs(orphan);
+        dropOrphanCatalogRefs(raw);
+        dropOrphanCatalogRefs(resolved);
+
+        expect(orphan.prizes.pet).toBeNull();
+        expect(raw.prizes.pet).toBeNull();
+        expect(resolved.prizes.pet).toBe(pet);
+    });
+
     it('tolerates missing sections', () => {
         expect(() => dropOrphanCatalogRefs({})).not.toThrow();
         expect(() =>
             dropOrphanCatalogRefs({
-                infos: { relatedLore: null },
+                infos: { relatedLore: null, enemies: null },
                 requirements: { recommendedLoot: null },
                 prizes: { prizeItem: null, randomLoot: null },
             }),

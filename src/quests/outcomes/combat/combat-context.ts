@@ -1,5 +1,7 @@
 import { Types } from 'mongoose';
+import { AccessoryUseType } from 'src/models/enums/accessory-use-type.enum';
 import { EffectType } from 'src/models/enums/effect-type.enum';
+import { EquipType } from 'src/models/enums/equip-type.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { SlotType } from 'src/models/enums/slot_type.enum';
@@ -35,6 +37,7 @@ export interface CombatCharacterSnapshot {
     assets?: {
         wearedEquipment?: Partial<Record<SlotType, unknown>> | null;
         activeSpells?: { spell?: unknown; usages?: number }[];
+        ownedEquipments?: { item?: unknown; quantity?: number }[];
         ownedItems?: { itemType?: string; item?: unknown; quantity?: number }[];
     } | null;
 }
@@ -49,11 +52,17 @@ export interface CombatEnemySnapshot {
     energyWeaknesses?: string[];
 }
 
+export interface CombatEquipmentSnapshot {
+    damages?: unknown;
+    equipType?: unknown;
+    accessoryUseTypes?: unknown;
+}
+
 export interface CombatHydration {
     quest: { _id: Types.ObjectId; infos: { type: QuestType; title: string } };
-    enemy: CombatEnemySnapshot;
+    enemies: readonly { snapshot: CombatEnemySnapshot; quantity: number }[];
     participants: CombatCharacterSnapshot[];
-    equipment: ReadonlyMap<string, { damages?: unknown }>;
+    equipment: ReadonlyMap<string, CombatEquipmentSnapshot>;
     spells: ReadonlyMap<string, { energyDamage?: unknown }>;
     loot: ReadonlyMap<string, { effect?: unknown; power?: unknown }>;
 }
@@ -66,8 +75,14 @@ export interface CombatCatalogRefs {
 
 const LOOT_ITEM_TYPE = 'LootItem';
 const KNOWN_EFFECTS: ReadonlySet<unknown> = new Set(Object.values(EffectType));
+const KNOWN_EQUIP_TYPES: ReadonlySet<unknown> = new Set(
+    Object.values(EquipType),
+);
+const KNOWN_ACCESSORY_USE_TYPES: ReadonlySet<unknown> = new Set(
+    Object.values(AccessoryUseType),
+);
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const numberOr = (value: unknown, fallback: number): number =>
@@ -103,7 +118,7 @@ export function normalizeDamages(raw: unknown): CombatDamages {
     };
 }
 
-const refOf = (value: unknown): Types.ObjectId | null =>
+export const refOf = (value: unknown): Types.ObjectId | null =>
     refIdOf(value) ?? (isRecord(value) ? refIdOf(value._id) : null);
 
 const wornOf = (snapshot: CombatCharacterSnapshot) =>
@@ -155,6 +170,17 @@ export function combatCatalogRefsOf(
 const effectOf = (value: unknown): EffectType | null =>
     KNOWN_EFFECTS.has(value) ? (value as EffectType) : null;
 
+const equipTypeOf = (value: unknown): EquipType | null =>
+    KNOWN_EQUIP_TYPES.has(value) ? (value as EquipType) : null;
+
+// solo valori dell'enum (D-24): una lista malformata resta null, non diventa una lista vuota
+const accessoryUseTypesOf = (value: unknown): AccessoryUseType[] | null =>
+    Array.isArray(value)
+        ? value.filter((entry): entry is AccessoryUseType =>
+              KNOWN_ACCESSORY_USE_TYPES.has(entry),
+          )
+        : null;
+
 // HP e livello dagli stessi fatti del piano esiti (WR-01): il resolver vede gli stessi "prima" del foglio
 const participantOf = (
     snapshot: CombatCharacterSnapshot,
@@ -176,6 +202,10 @@ const participantOf = (
                           itemId: itemId.toHexString(),
                           slot,
                           damages: normalizeDamages(item.damages),
+                          equipType: equipTypeOf(item.equipType),
+                          accessoryUseTypes: accessoryUseTypesOf(
+                              item.accessoryUseTypes,
+                          ),
                       },
                   ]
                 : [];
@@ -210,7 +240,9 @@ const participantOf = (
     };
 };
 
-const enemyOf = (enemy: CombatEnemySnapshot): CombatEnemy => ({
+const enemyOf = (
+    enemy: CombatEnemySnapshot,
+): Omit<CombatEnemy, 'quantity'> => ({
     id: enemy._id.toHexString(),
     name: enemy.name ?? '',
     lifePoints: numberOr(enemy.lifePoints, 0),
@@ -228,7 +260,10 @@ export function buildCombatContext(hydration: CombatHydration): CombatContext {
             type: hydration.quest.infos.type,
             title: hydration.quest.infos.title,
         },
-        enemy: enemyOf(hydration.enemy),
+        enemies: hydration.enemies.map(({ snapshot, quantity }) => ({
+            ...enemyOf(snapshot),
+            quantity,
+        })),
         participants: hydration.participants
             .map((snapshot) => participantOf(snapshot, hydration))
             .sort((a, b) => a.characterId.localeCompare(b.characterId)),

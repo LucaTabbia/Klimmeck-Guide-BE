@@ -79,7 +79,7 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
                 ...buildQuest().infos,
                 type: 'boss',
                 title: BOSS_TITLE,
-                enemy: foe._id,
+                enemies: [{ enemy: foe._id, quantity: 1 }],
             },
             requirements: {
                 ...buildQuest().requirements,

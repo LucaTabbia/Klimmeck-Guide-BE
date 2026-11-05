@@ -187,6 +187,26 @@ describe('validateEnv', () => {
         });
     });
 
+    describe('quest generation', () => {
+        it('rejects the boot with a malformed QUEST_GENERATION_TARGET (D-15)', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    QUEST_GENERATION_TARGET: '10001',
+                }),
+            ).toThrow(/QUEST_GENERATION_TARGET/);
+        });
+
+        it('rejects the boot with a malformed QUEST_GENERATION_SWEEP_INTERVAL_MS (D-17)', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    QUEST_GENERATION_SWEEP_INTERVAL_MS: 'abc',
+                }),
+            ).toThrow(/QUEST_GENERATION_SWEEP_INTERVAL_MS/);
+        });
+    });
+
     describe('spell recovery sweep', () => {
         it('rejects the boot with a malformed SPELL_RECOVERY_SWEEP_INTERVAL_MS', () => {
             expect(() =>
@@ -262,6 +282,16 @@ describe('.env.example', () => {
     it('declares an empty SPELL_RECOVERY_SWEEP_INTERVAL_MS', () => {
         expect(parsed).toHaveProperty('SPELL_RECOVERY_SWEEP_INTERVAL_MS');
         expect(parsed.SPELL_RECOVERY_SWEEP_INTERVAL_MS).toBe('');
+    });
+
+    it('declares the quest generation keys empty (D-15, D-17)', () => {
+        for (const key of [
+            'QUEST_GENERATION_SWEEP_INTERVAL_MS',
+            'QUEST_GENERATION_TARGET',
+        ]) {
+            expect(parsed).toHaveProperty(key);
+            expect(parsed[key]).toBe('');
+        }
     });
 
     it('passes validateEnv once a JWT_SECRET is provided', () => {

@@ -18,7 +18,11 @@ import {
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
-import { questClaimFilter, questUpdateOf } from './quest-outcome-plan';
+import {
+    questClaimFilter,
+    questUpdateOf,
+    regeneratesAfter,
+} from './quest-outcome-plan';
 import {
     type ResolutionCatalog,
     type ResolutionCharacter,
@@ -185,6 +189,12 @@ export class BossResolutionService {
                         session,
                     );
                 }
+                const questUpdate = questUpdateOf({
+                    type: quest.infos.type,
+                    verdicts,
+                    dropped: roster.dropped,
+                    now,
+                });
                 // claim del gruppo (D-05, D-21): un secondo trigger o un nuovo iscritto ⇒ WriteConflict o 0 match ⇒ no-op, lo sweep riprova
                 await this.writer.updateQuest(
                     {
@@ -194,12 +204,7 @@ export class BossResolutionService {
                         ),
                         registeredAdventurers: { $size: registeredCount },
                     },
-                    questUpdateOf({
-                        type: quest.infos.type,
-                        verdicts,
-                        dropped: roster.dropped,
-                        now,
-                    }),
+                    questUpdate,
                     session,
                     'claim',
                 );
@@ -211,6 +216,7 @@ export class BossResolutionService {
                     );
                     committed.aids.push({ aidQuestId, since: now });
                 }
+                committed.regenerate = regeneratesAfter(quest, questUpdate);
                 state.committed = committed;
             });
         } catch (error) {

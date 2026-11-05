@@ -6,9 +6,10 @@ import {
     assetQuantitySchemaAt,
 } from '../common/asset-quantity.model';
 import { Coins, CoinsSchema } from '../common/coins.model';
-import { Enemy } from '../enemy.model';
 import { InjuryType } from '../enums/injury-type.enum';
 import { QuestOutcome } from '../enums/quest-outcome.enum';
+import { Pet } from '../pet.model';
+import { QuestEnemy, QuestEnemySchema } from '../quest/quest-enemy.model';
 import { TitleType } from '../enums/title-type.enum';
 import { Spell } from '../spell.model';
 
@@ -62,6 +63,11 @@ export class QuestRewards {
     @Field(() => [AssetQuantity])
     @Prop({ type: [assetQuantitySchemaAt('rewards.items')], default: [] })
     items: AssetQuantity[];
+
+    // pet ottenuto dal tiro del 20% (D-21): null se non vinto o già posseduto
+    @Field(() => Pet, { nullable: true })
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: Pet.name, default: null })
+    pet?: Types.ObjectId | Pet | null;
 }
 
 export const QuestRewardsSchema = SchemaFactory.createForClass(QuestRewards);
@@ -127,6 +133,15 @@ export class QuestResult {
     @Prop({ type: [SpellUsageSchema], default: [] })
     spellsUsed: SpellUsage[];
 
+    // tappe superate e totali, solo dalle dungeon (D-12): null per ogni altro tipo
+    @Field(() => Int, { nullable: true })
+    @Prop({ type: Number, default: null })
+    stagesCleared?: number | null;
+
+    @Field(() => Int, { nullable: true })
+    @Prop({ type: Number, default: null })
+    stagesTotal?: number | null;
+
     @Field(() => QuestRewards)
     @Prop({ type: QuestRewardsSchema, required: true })
     rewards: QuestRewards;
@@ -167,13 +182,9 @@ export class QuestResult {
     })
     spellLearned?: Types.ObjectId | Spell | null;
 
-    @Field(() => Enemy, { nullable: true })
-    @Prop({
-        type: MongooseSchema.Types.ObjectId,
-        ref: Enemy.name,
-        default: null,
-    })
-    enemy?: Types.ObjectId | Enemy | null;
+    @Field(() => [QuestEnemy])
+    @Prop({ type: [QuestEnemySchema], default: [] })
+    enemies: QuestEnemy[];
 
     // "avete salvato X, Y" sul foglio di ogni soccorritore
     @Field(() => [ID])

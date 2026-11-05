@@ -118,6 +118,7 @@ const EXPECTED_INNKEEPER_HANDLERS = [
     'PendingRequestsResolver.pendingRequests',
     'PendingRequestsResolver.pendingRequestsUpdated',
     'PushResolver.sendTestPush',
+    'QuestGenerationResolver.generateQuests',
     'ShopAdminResolver.shopPoolReport',
     'TravelAdminResolver.teleportCharacter',
     'UsersResolver.user',
@@ -437,11 +438,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
-    it('writes the quest description as an additive field (11 D-32)', () => {
+    it('writes the quest enemies list in place of the single enemy (D-01)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestInfos \{[^}]*\}/)?.[0]).toBe(
-            'type QuestInfos {\n  description: String\n  enemy: Enemy\n  markerLocation: PointOfInterest!\n  relatedLore: [Lore!]!\n  timeToComplete: Int\n  title: String!\n  type: String!\n}',
+            'type QuestInfos {\n  description: String\n  enemies: [QuestEnemy!]!\n  markerLocation: PointOfInterest!\n  relatedLore: [Lore!]!\n  timeToComplete: Int\n  title: String!\n  type: String!\n}',
+        );
+        expect(schema).toContain(
+            'type QuestEnemy {\n  enemy: Enemy!\n  quantity: Int!\n}',
         );
         expect(schema).not.toContain('input QuestInfosInput');
     });
@@ -611,7 +615,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type AwaitingAid {\n  aidQuest: ID!\n  quest: ID!\n  since: DateTime!\n}',
         );
         expect(schema.match(/type QuestPrizes \{[^}]*\}/)?.[0]).toBe(
-            'type QuestPrizes {\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
+            'type QuestPrizes {\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
             'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
@@ -628,13 +632,13 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  acknowledgedAt: DateTime\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemy: Enemy\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  levelAfter: Int!\n  levelBefore: Int!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest!\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  acknowledgedAt: DateTime\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  levelAfter: Int!\n  levelBefore: Int!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest!\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
         );
         expect(schema.match(/type QuestResultQuest \{[^}]*\}/)?.[0]).toBe(
             'type QuestResultQuest {\n  id: ID!\n  title: String!\n  type: String!\n}',
         );
         expect(schema.match(/type QuestRewards \{[^}]*\}/)?.[0]).toBe(
-            'type QuestRewards {\n  coins: Coins!\n  items: [AssetQuantity!]!\n}',
+            'type QuestRewards {\n  coins: Coins!\n  items: [AssetQuantity!]!\n  pet: Pet\n}',
         );
         expect(schema.match(/type SpellUsage \{[^}]*\}/)?.[0]).toBe(
             'type SpellUsage {\n  spell: Spell\n  usages: Int!\n}',
@@ -648,6 +652,65 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
         expect(schema).toContain('questUpdated(questId: String!): Quest!');
         expect(schema).not.toMatch(/\bkind\b|\bgrade\b|CombatResolver/);
+    });
+
+    it('writes the additive quest generation fields into the generated schema (D-04, D-24)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'enum AccessoryUseType {\n  attack\n  defense\n}',
+        );
+        expect(schema.match(/type Enemy \{[^}]*\}/)?.[0]).toContain(
+            '  imagePath: String!\n  legendary: Boolean!\n  lifePoints: Int!\n',
+        );
+        expect(
+            schema
+                .match(/type EquipmentItem \{[^}]*\}/)?.[0]
+                .startsWith(
+                    'type EquipmentItem {\n  accessoryUseTypes: [AccessoryUseType!]\n  addedSpell: Spell\n',
+                ),
+        ).toBe(true);
+    });
+
+    it('writes the generateQuests mutation into the generated schema (D-16)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain('generateQuests: GenerateQuestsResult!');
+        expect(schema.match(/type GenerateQuestsResult \{[^}]*\}/)?.[0]).toBe(
+            'type GenerateQuestsResult {\n  created: Int!\n}',
+        );
+    });
+
+    it('writes the quest generation contract of the FE Phase 14 into the generated schema (D-01, D-16, D-21, D-24)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+        const block = (name: string): string | undefined =>
+            schema.match(new RegExp(`type ${name} \\{[^}]*\\}`))?.[0];
+
+        expect(schema).toContain(
+            'type QuestEnemy {\n  enemy: Enemy!\n  quantity: Int!\n}',
+        );
+        expect(block('QuestInfos')).toContain('  enemies: [QuestEnemy!]!\n');
+        expect(block('QuestInfos')).toContain('  description: String\n');
+        expect(block('QuestResult')).toContain('  enemies: [QuestEnemy!]!\n');
+        expect(block('QuestResult')).toContain(
+            '  stagesCleared: Int\n  stagesTotal: Int\n',
+        );
+        expect(block('QuestPrizes')).toContain('  pet: Pet\n');
+        expect(block('QuestRewards')).toContain('  pet: Pet\n');
+        expect(block('Enemy')).toContain('  legendary: Boolean!\n');
+        expect(schema).toContain(
+            'enum AccessoryUseType {\n  attack\n  defense\n}',
+        );
+        expect(block('EquipmentItem')).toContain(
+            '  accessoryUseTypes: [AccessoryUseType!]\n',
+        );
+        expect(schema).toContain('generateQuests: GenerateQuestsResult!');
+        expect(schema).toContain(
+            'type GenerateQuestsResult {\n  created: Int!\n}',
+        );
+        expect(schema).not.toMatch(
+            /DungeonResolver| {2}generated: Boolean|legendaryEnemy/,
+        );
     });
 
     it('writes the quest result delivery API into the generated schema', () => {

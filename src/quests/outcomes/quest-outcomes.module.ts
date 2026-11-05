@@ -17,6 +17,7 @@ import {
     EquipmentItemSchema,
 } from 'src/models/equipment-item.model';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
+import { Pet, PetSchema } from 'src/models/pet.model';
 import {
     PendingQuest,
     PendingQuestSchema,
@@ -29,6 +30,7 @@ import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { User, UserSchema } from 'src/models/user.model';
 import { PushModule } from 'src/push/push.module';
+import { QuestGenerationTriggerModule } from 'src/quests/generation/quest-generation-trigger.module';
 import { PartyLifecycleModule } from 'src/quests/party/party-lifecycle.module';
 import { PartyModule } from 'src/quests/party/party.module';
 import {
@@ -40,6 +42,8 @@ import { ChanceSource, MathChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
 import { GmCompletionService } from './gm-completion.service';
 import { PlaceholderCombatResolver } from './combat/placeholder-combat-resolver';
+import { DungeonResolver } from './dungeon/dungeon-resolver';
+import { PlaceholderDungeonResolver } from './dungeon/placeholder-dungeon-resolver';
 import { OutcomeWriter } from './outcome-writer.service';
 import { QuestResolutionProcessor } from './quest-resolution.processor';
 import { QuestResolutionService } from './quest-resolution.service';
@@ -62,6 +66,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
             { name: LootItem.name, schema: LootItemSchema },
             { name: EquipmentItem.name, schema: EquipmentItemSchema },
             { name: Spell.name, schema: SpellSchema },
+            { name: Pet.name, schema: PetSchema },
         ]),
         EconomyModule,
         PushModule,
@@ -71,11 +76,14 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         PartyModule,
         PartyLifecycleModule,
         BullModule.registerQueue({ name: SPELL_RECOVERY_QUEUE }),
+        // solo la porta leggera (D-30): sweeper, corsa al boot e mutation restano nel modulo completo del generatore
+        QuestGenerationTriggerModule,
     ],
     providers: [
         { provide: Clock, useClass: SystemClock },
         { provide: QUEUE_CALL_TIMEOUT, useValue: QUEUE_CALL_TIMEOUT_MS },
         { provide: CombatResolver, useClass: PlaceholderCombatResolver },
+        { provide: DungeonResolver, useClass: PlaceholderDungeonResolver },
         { provide: ChanceSource, useClass: MathChanceSource },
         OutcomeWriter,
         ResolutionLoader,
