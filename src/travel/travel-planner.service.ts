@@ -135,9 +135,10 @@ export class TravelPlanner {
         return { location: location as Types.ObjectId, travel };
     }
 
-    // viaggio automatico verso il marker della quest (D-02): null = nessuna strada ⇒ salto istantaneo (D-03);
-    // marker senza documento POI = difetto di catalogo ⇒ rifiuto fail-closed (D-27), mai un salto su un luogo inesistente
-    async planAuto(
+    // viaggio automatico verso il marker della quest (D-02): null = nessuna strada ⇒ il chiamante salta sul marker (D-03);
+    // marker senza documento POI = difetto di catalogo ⇒ rifiuto fail-closed (D-27), mai un salto su un luogo inesistente.
+    // Nessun WARN sul salto: l'anteprima della quest lo chiama a ogni apertura del foglio (Phase 14 D-08)
+    async autoRoute(
         request: AutoTravelRequest,
     ): Promise<ActiveTravelDraft | null> {
         const [from, to] = await Promise.all([
@@ -154,12 +155,7 @@ export class TravelPlanner {
         const route = from
             ? this.roads.routeBetween(from.location, to.location)
             : null;
-        if (!route) {
-            this.logger.warn(
-                `Nessuna strada dal luogo ${request.from.toHexString()} al marker ${request.to.toHexString()} della missione ${request.questId.toHexString()} per il personaggio ${request.characterId.toHexString()}: salto istantaneo`,
-            );
-            return null;
-        }
+        if (!route) return null;
         return buildActiveTravel({
             route,
             speed: await this.speedFor(request.pet, request.injuries),
@@ -167,6 +163,18 @@ export class TravelPlanner {
             to: request.to,
             kind: TravelKind.quest,
         });
+    }
+
+    // accettazione: stesso calcolo di autoRoute, il salto senza strada si logga (D-03)
+    async planAuto(
+        request: AutoTravelRequest,
+    ): Promise<ActiveTravelDraft | null> {
+        const travel = await this.autoRoute(request);
+        if (!travel)
+            this.logger.warn(
+                `Nessuna strada dal luogo ${request.from.toHexString()} al marker ${request.to.toHexString()} della missione ${request.questId.toHexString()} per il personaggio ${request.characterId.toHexString()}: salto istantaneo`,
+            );
+        return travel;
     }
 
     private poiLocationOf(
