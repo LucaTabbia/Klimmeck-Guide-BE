@@ -1,6 +1,6 @@
 # BACKEND-NOTES — Phase 13.1 Correzioni generazione quest (handoff FE)
 
-- **Fase BE:** 13.1-correzioni-generazione-quest (requisiti BE-QGEN-12..BE-QGEN-16; decisioni D-01..D-08 in `13.1-CONTEXT.md`).
+- **Fase BE:** 13.1-correzioni-generazione-quest (requisiti BE-QGEN-12..BE-QGEN-16; decisioni D-01..D-09 in `13.1-CONTEXT.md`).
 - **Data:** 2026-11-05. Documento di fine fase (piano 13.1-08), scritto dopo il gate 13.1-07.
 - **Branch:** `feat/13.1-correzioni-generazione-quest` → PR verso `develop`, in draft fino al primo boot reale dal branch (dopo il popolamento del DB) e alla rimozione dei one-off.
 - **Origine:** UAT su device della FE Phase 14 (2026-11-05): animali nelle quest normali, generate `legend` irraggiungibili, tabellone con le quest di tutto il mondo.
@@ -14,7 +14,7 @@
 1. **SDL identico a `develop`:** nessun campo tolto né aggiunto (`git diff origin/develop -- src/schema.gql` vuoto, verificato al gate 13.1-07). Nessun piano FE gated.
 2. **`quests` è per area** (D-05): la stessa query restituisce solo le quest dell'area del personaggio corrente, le `story` del suo titolo e le quest delle sue corsie (§1). La FE deve rileggerla quando il personaggio si sposta (§2).
 3. **Due quick task FE:** «rilettura delle quest al cambio di posizione» (§2) e «legend sui posti hero» (§3 bis, specchio di Phase 8 D-32).
-4. **UAT su device:** la Mappa mostra solo i segnalini dell'area (non più tutto il mondo); posti 1 o 2 sulle `enemy`; un legend accetta le hero.
+4. **UAT su device:** la Mappa mostra solo i segnalini dell'area (non più tutto il mondo); un solo posto sulle `enemy` (come nella Phase 13); un legend accetta le hero.
 5. Il quick task `heal` delle magie è già aperto (BE PR #20, FE PR #39): non fa parte di questa fase.
 
 ---
@@ -51,10 +51,10 @@ Nessun evento nuovo. Rifare la query `quests` quando `characterUpdated` cambia:
 
 ---
 
-## 3. Posti sulle `enemy` (D-02, D-03)
+## 3. Posti sulle `enemy` (D-02, D-03, D-09)
 
-- Una generata `enemy` può avere `requiredAdventurers = [{ title: R, count: 2 }]` come i boss (S = 1 in due casi su tre, S = 2 nel resto). Parte solo a party completo (Phase 9), come i boss: la FE mostra già i posti dei boss, stessa resa.
-- Fasce di xp contigue a cinque ranghi (rookie 1–20, adventurer 21–69, paladin 70–224, mage 225–548, hero 549–803); il budget di una `enemy` è [S × lo, S × hi].
+- Una generata `enemy` ha **sempre un solo posto**: `requiredAdventurers = [{ title: R, count: 1 }]` (D-09, parole dell'utente: «Solo le missioni boss o worldMission hanno più di uno slot avventuriero»). La FE non vede differenze rispetto alla Phase 13; i posti per rango restano ai boss (formula della Phase 13 D-05, clamp a 2 sopra hero) e alle worldMission del GM.
+- Fasce di xp contigue a cinque ranghi (rookie 1–20, adventurer 21–69, paladin 70–224, mage 225–548, hero 549–803); il budget di una `enemy` è [lo, hi] della fascia (un nemico singolo nella fascia o un branco di nemici più deboli).
 - **Nessuna generata `legend`:** `legend` è solo un titolo, i personaggi legend giocano le quest hero (`minTitle` ≤ titolo).
 
 ### 3 bis. Legend sui posti hero (D-08)
@@ -64,8 +64,6 @@ Nessun evento nuovo. Rifare la query `quests` quando `characterUpdated` cambia:
 - Senza il quick task la FE nasconderebbe il pulsante di accettazione a un legend su una quest hero che il BE accetta.
 
 ---
-
-**Domanda aperta per l'utente (review A-IN-02):** con due posti può uscire un solo nemico (es. uno da 63 xp per due adventurer): rispetta il budget `[2×21, 2×69]` di D-03 così com'è scritto; se un «nemico singolo» con due posti non è voluto, il generatore richiederà almeno due unità quando S = 2 (decisione da prendere prima o dopo il boot, nessun effetto sulla FE).
 
 ## 4. Reset al primo boot reale (D-06, D-07)
 
