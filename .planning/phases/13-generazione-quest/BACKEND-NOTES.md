@@ -498,7 +498,16 @@ Registrare qui sotto, dopo il boot, le righe effettive del log (senza URI né ho
 
 ```
 # <data ora> — branch feat/13.1-correzioni-generazione-quest @ <hash>, `nest build`, riavvio da dist/ sulla porta di sempre
-(da compilare dopo il boot)
+**Esito del primo boot reale (2026-11-05, 16:34, build `nest build` da `e16e193` prima dello stop del processo precedente, riavvio da `dist/` sulla porta 3001):**
+- `[GeneratedQuestsResetMigrator] Generate: 167 cancellate, 0 lasciate`
+- `[HuntPreyMigrator] Hunt: 14 rifatte, 63 già coerenti, 0 senza prede, 0 in corsia`
+- `[DungeonStagesMigrator] Dungeon: 32 ricomposte, 8 già coerenti, 0 in corsia`
+- `[NestApplication] Nest application successfully started`
+- `[QuestGenerator] Generatore: 167 missioni create (target 167)` (5 s dopo l'avvio)
+- nessuna riga `ERROR`, nessun WARN «tipo sconosciuto»; nessuna riga del migratore permanente dei nemici (già allineati).
+Conteggi a DB dopo il boot (script di sola lettura dell'orchestratore): 167 generate aperte (capitali 22, città 73, villaggi 72; nessuna oltre il tetto 1/2/4); per rango rookie 34, adventurer 34, paladin 33, mage 33, hero 33, legend 0; 0 con animali, 0 con leggendari; 155 `enemy` (tutte a un posto, budget e fasce rispettati) e 12 `boss` conformi; una sola generata per POI. Hunt 77 (rookie 72, adventurer 4, paladin 1), prede animali della zona e in fascia. Dungeon 40 (2 tappe 26, 3 tappe 10, 4 tappe 4), senza animali, tappe ≤ hi e totale nel budget.
+**Secondo boot (16:36):** solo `Nest application successfully started`; nessuna riga dei one-off né del generatore (marcatori di idempotenza).
+**Cura a DB dopo il boot (orchestratore, stessa forma di scrittura del `HuntPreyMigrator`):** 7 delle 8 hunt di Liberia, tutte «Squalo tropicale» e perciò coerenti per il migratore, sono state riscritte con prede diverse dei nuovi animali (Rana gigante, Millepiedi gigante, Granchio gigante, Babbuino, Cavalluccio marino gigante; Squalo cacciatore a Liberia come caccia adventurer; Orca assassina a Pontealto come caccia paladin, con premi e XP della fascia); Tine resta con lo Squalo tropicale (POI di solo mare).
 ```
 
 **Rimozione dei one-off PRIMA della merge** (Phase 12 D-25), in TDD come `f5d8134`: prima un RED sulla spec del boot ridotta (`quest-maintenance.boot.spec.ts` ai soli casi `(D-28)` con il costruttore a un parametro), poi `refactor(migrations): drop the 13.1 one-off migrators after their run`:
