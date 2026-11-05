@@ -3,6 +3,16 @@ import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { City, CityDocument, CitySchema } from 'src/models/city.model';
 import { Enemy, EnemyDocument, EnemySchema } from 'src/models/enemy.model';
+import {
+    EquipmentItem,
+    EquipmentItemDocument,
+    EquipmentItemSchema,
+} from 'src/models/equipment-item.model';
+import {
+    LootItem,
+    LootItemDocument,
+    LootItemSchema,
+} from 'src/models/loot-item.model';
 import { Lore, LoreDocument, LoreSchema } from 'src/models/lore.model';
 import {
     PendingQuest,
@@ -23,6 +33,10 @@ import {
     AuthTestApp,
     createAuthTestApp,
 } from '../../../test/auth/auth-test-app';
+import {
+    buildEquipmentItem,
+    buildLootItem,
+} from '../../../test/fixtures/catalog-item.fixture';
 import { buildCity } from '../../../test/fixtures/city.fixture';
 import { buildEnemy } from '../../../test/fixtures/enemy.fixture';
 import { buildLore } from '../../../test/fixtures/lore.fixture';
@@ -49,6 +63,12 @@ const PRIZES = {
     prizeItem: null,
     randomLoot: [],
 };
+// tabella delle enemy a un posto per adventurer: 150 rame e 40 xp × 2
+const ADVENTURER_PRIZES = {
+    ...PRIZES,
+    prizeCoins: { gold: 0, silver: 3, copper: 0 },
+    xpPrize: 80,
+};
 
 describe('HuntPreyMigrator (replSet)', () => {
     let harness: AuthTestApp;
@@ -58,6 +78,8 @@ describe('HuntPreyMigrator (replSet)', () => {
     let pois: Model<PointOfInterestDocument>;
     let cities: Model<CityDocument>;
     let pendingQuests: Model<PendingQuestDocument>;
+    let equipment: Model<EquipmentItemDocument>;
+    let loot: Model<LootItemDocument>;
     let migrator: HuntPreyMigrator;
     let logSpy: jest.SpyInstance;
     let warnSpy: jest.SpyInstance;
@@ -151,8 +173,11 @@ describe('HuntPreyMigrator (replSet)', () => {
             `Sono un cacciatore di Bosa e da solo non ce la faccio più. Cerco compagni per stanare una preda pericolosa: ${name}.`,
         );
         expect(hunt.infos.relatedLore).toEqual([cityLore, bestiary]);
-        expect(hunt.requirements.recommendedLoot).toEqual(RECOMMENDED_LOOT);
-        expect(hunt.prizes).toEqual(PRIZES);
+        const promoted = hunt.requirements.minTitle !== 'rookie';
+        expect(hunt.requirements.recommendedLoot).toEqual(
+            promoted ? [] : RECOMMENDED_LOOT,
+        );
+        expect(hunt.prizes).toEqual(promoted ? ADVENTURER_PRIZES : PRIZES);
     }
 
     beforeAll(async () => {
@@ -168,6 +193,11 @@ describe('HuntPreyMigrator (replSet)', () => {
                     },
                     { name: City.name, schema: CitySchema },
                     { name: PendingQuest.name, schema: PendingQuestSchema },
+                    {
+                        name: EquipmentItem.name,
+                        schema: EquipmentItemSchema,
+                    },
+                    { name: LootItem.name, schema: LootItemSchema },
                 ]),
             ],
         });
@@ -177,6 +207,8 @@ describe('HuntPreyMigrator (replSet)', () => {
         pois = harness.app.get(getModelToken(PointOfInterest.name));
         cities = harness.app.get(getModelToken(City.name));
         pendingQuests = harness.app.get(getModelToken(PendingQuest.name));
+        equipment = harness.app.get(getModelToken(EquipmentItem.name));
+        loot = harness.app.get(getModelToken(LootItem.name));
         migrator = new HuntPreyMigrator(
             quests as never,
             enemies as never,
@@ -184,6 +216,8 @@ describe('HuntPreyMigrator (replSet)', () => {
             pois as never,
             cities as never,
             pendingQuests as never,
+            equipment as never,
+            loot as never,
         );
     });
 
@@ -305,6 +339,80 @@ describe('HuntPreyMigrator (replSet)', () => {
         expect(logSpy.mock.calls).toEqual([
             ['Hunt: 0 rifatte, 0 già coerenti, 0 senza prede, 1 in corsia'],
         ]);
+    });
+
+    it('rewrites the prizes and the recommended loot of a hunt promoted to another band (D-07)', async () => {
+        const swamp = await insertPoi(['swamp']);
+        await insertCity(swamp);
+        const { insertedId: crocodile } = await enemies.collection.insertOne({
+            ...buildEnemy({ name: 'Coccodrillo', xp: 28 }),
+            locations: ['swamp'],
+            legendary: false,
+            relatedLore: [bestiary],
+            baseWeaknesses: ['piercing'],
+        });
+        const { insertedId: spear } = await equipment.collection.insertOne(
+            buildEquipmentItem({
+                name: 'Lancia',
+                damages: { base: [{ type: 'piercing', power: 3 }], energy: [] },
+            }),
+        );
+        await loot.collection.insertOne(
+            buildLootItem({ name: 'Erba', rarity: 'common', power: 5 }),
+        );
+        const { insertedId: tonic } = await loot.collection.insertOne(
+            buildLootItem({ name: 'Tonico', rarity: 'uncommon', power: 10 }),
+        );
+        await loot.collection.insertOne(
+            buildLootItem({ name: 'Elisir', rarity: 'rare', power: 50 }),
+        );
+        const hunt = await insertHunt(wolf, { poi: swamp });
+
+        await expect(migrator.migrate()).resolves.toEqual({
+            redrawn: 1,
+            coherent: 0,
+            withoutPrey: 0,
+            inLane: 0,
+        });
+
+        const after = await rawHunt(hunt);
+        expect(after.infos.enemies).toEqual([
+            { enemy: crocodile, quantity: 1 },
+        ]);
+        expect(after.requirements.minTitle).toBe('adventurer');
+        expect(after.prizes).toEqual(ADVENTURER_PRIZES);
+        expect(after.requirements.recommendedLoot).toEqual([
+            { itemType: 'EquipmentItem', item: spear, quantity: 1 },
+            { itemType: 'LootItem', item: tonic, quantity: 1 },
+        ]);
+    });
+
+    it('keeps the prizes and the recommended loot of a hunt redrawn in its band (D-07)', async () => {
+        const marsh = await insertPoi(['marsh']);
+        await insertCity(marsh);
+        const { insertedId: frog } = await enemies.collection.insertOne({
+            ...buildEnemy({ name: 'Rana', xp: 5 }),
+            locations: ['marsh'],
+            legendary: false,
+            relatedLore: [bestiary],
+        });
+        await loot.collection.insertOne(
+            buildLootItem({ name: 'Erba', rarity: 'common', power: 5 }),
+        );
+        const hunt = await insertHunt(scorpion, { poi: marsh });
+
+        await expect(migrator.migrate()).resolves.toEqual({
+            redrawn: 1,
+            coherent: 0,
+            withoutPrey: 0,
+            inLane: 0,
+        });
+
+        const after = await rawHunt(hunt);
+        expect(after.infos.enemies).toEqual([{ enemy: frog, quantity: 1 }]);
+        expect(after.requirements.minTitle).toBe('rookie');
+        expect(after.prizes).toEqual(PRIZES);
+        expect(after.requirements.recommendedLoot).toEqual(RECOMMENDED_LOOT);
     });
 
     it('writes nothing on the second run (D-07)', async () => {
