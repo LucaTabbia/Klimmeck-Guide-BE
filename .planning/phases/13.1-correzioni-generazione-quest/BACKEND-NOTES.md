@@ -79,3 +79,22 @@ Nessun evento nuovo. Rifare la query `quests` quando `characterUpdated` cambia:
 - **Animali (D-01):** un nemico con una `relatedLore` di tipo `animal` non entra mai in una generata né in una tappa di dungeon; resta solo nelle hunt. Dettagli in `.planning/phases/13-generazione-quest/BACKEND-NOTES.md` §7 e §9.
 - **Taglie (D-04):** tetto di generate attive per città villaggio 1, città 2, capitale 4 (entro i POI liberi), peso di sorteggio per taglia; target globale invariato. Dettagli in `.planning/phases/13-generazione-quest/BACKEND-NOTES.md` §7 e §11 (f).
 - **Zona `dungeon`:** dopo la cura a DB del 2026-11-05 49 nemici hanno la zona `dungeon`: i POI dungeon pescano anche da questi.
+
+---
+
+## 6. Esito della UAT su device (2026-11-05, dopo le merge di BE #21/#20 e FE #39/#40)
+
+Setup: BE da `develop` (`698ae82`, build prima dello stop del processo precedente) sulla porta 3001; FE da `develop` (`08bd1a1`) installata sul Samsung con `adb install -r`; script `heal-spells.mjs` applicato (7 magie `heal` a catalogo, 3 copie incorporate nei nemici, 4 nuove individuali). Personaggio di prova: il legend dell'utente, spostato a DB con la forma di `teleportUpdate` e con due magie `heal` aggiunte a `status.spells`/`status.spellStates` (backup dei campi nello scratchpad, ripristino a fine UAT).
+
+| Punto | Esito |
+|---|---|
+| Mappa per area: solo i segnalini dell'area del personaggio, cambio di area dopo lo spostamento senza aprire il Tabellone (D-05 + FE 261105-scp) | pass |
+| Legend sui posti hero: swipe di accettazione visibile e accettazione riuscita su «Boss: Arcimago presso Lushire» (hero × 2) da un legend (D-08 + FE 261105-lgd) | pass |
+| Liberia: cacce diversificate visibili sulla Mappa; Diario «Magie imparate» con le magie `heal` («Cura», icona dedicata) | pass |
+| Foglio strappato lontano: dalla capitale Liberia la Mappa mostra i 9 segnalini dell'area + il foglio del boss di Lushire (10), il Tabellone filtra per area e il foglio apre la scheda con 1/2 | pass |
+
+Note per il BE:
+- Accettare una quest avvia il viaggio del personaggio verso il POI della quest (Phase 9): con un viaggio in corso il teleport (`status.activeTravel: null` nel filtro) non si applica. Per la UAT l'orchestratore ha portato `status.activeTravel.endTime` nel passato e lo sweep dei viaggi (60 s, Redis spento) ha chiuso l'arrivo da solo («Viaggio … completato», corsia con `arrivedAt`); poi il teleport. Nessun difetto.
+- Con Redis spento l'accodamento del timeout del party resta allo sweep (`waitingTime` 3 h): il boss va abbandonato prima della scadenza per non risolvere un combattimento da soli.
+- Scelta di design FE confermata dall'utente: il Tabellone non è apribile durante il viaggio; torna apribile a destinazione anche con la corsia occupata.
+
