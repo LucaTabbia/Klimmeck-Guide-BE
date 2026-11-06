@@ -568,7 +568,7 @@ Plans:
 - [x] 15-06-PLAN.md — `ambushFilter`; piano puro della vittoria; `AmbushResolutionService` (composizione e risorteggio fuori dal callback, combattimento dentro, wallet, recuperi ancorati ad `at`, ri-accodo del `complete`, pool non componibile saltato); `AmbushModule` col solo servizio; `overrides` nell'harness
 - [x] 15-07-PLAN.md — `PushEventType.ambushDefeat` con catalogo e builder (SDL additivo rigenerato); piano della sconfitta e della deviazione con ripiego sulla strada residua; sconfitta nel servizio con città più vicina, abbandono della corsia via `unstartedSeatReleaseOf`, push dopo il commit
 - [x] 15-08-PLAN.md — indice `character_active_travel_ambush` (verifier RED prima); `AmbushProcessor`; `AmbushSweeper` con reconciler, single-flight e fail-open al terzo errore; montaggio in `AppModule`; prova su Redis reale accanto a `complete`
-- [ ] 15-09-PLAN.md — `QuestResultKind`, `AmbushReport`/`AmbushCity`, `quest` nullable (SDL con la sola riga tolta); `ambushResultDraftsOf`; `completionFilter` che aspetta l'imboscata e inserisce i report con `ordered: true`; teleport transazionale che annulla e consegna
+- [x] 15-09-PLAN.md — `QuestResultKind`, `AmbushReport`/`AmbushCity`, `quest` nullable (SDL con la sola riga tolta); `ambushResultDraftsOf`; `completionFilter` che aspetta l'imboscata e inserisce i report con `ordered: true`; teleport transazionale che annulla e consegna
 - [ ] 15-10-PLAN.md — suite d'integrazione di D-16 sul ciclo completo (mutation → subscription → ack) con concorrenza, DST, soglie, trigger, teleport e D-17
 - [ ] 15-11-PLAN.md — gate (`tsc`, `test:cov` con timeout 600000 ms e ripiego per cartella, boot reale, SDL con 1 riga tolta e 17 aggiunte, lint mirato, invarianti); firma della VALIDATION
 - [ ] 15-12-PLAN.md — handoff `BACKEND-NOTES.md` per la FE 16; emendamenti in coda agli handoff della Phase 8 e della 9.2; nota Executed nel CONTEXT; `requirements mark-complete`; stato in ROADMAP e STATE
@@ -632,5 +632,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 13. Generazione quest | 20/20 | Complete | 2026-11-04 |
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
-| 15. Imboscate in viaggio | 8/12 | In Progress | - |
+| 15. Imboscate in viaggio | 9/12 | In Progress | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
