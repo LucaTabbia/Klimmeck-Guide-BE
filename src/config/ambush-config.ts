@@ -36,13 +36,14 @@ export function readAmbushEnv(source: Record<string, unknown>): AmbushEnv {
     return readEnvKeys(source, AMBUSH_ENV_KEYS);
 }
 
+// opzionale: TravelPlanningModule vive anche negli harness nudi senza ConfigModule (accettazione); senza servizio vale il default, nell'app il ConfigModule globale c'è sempre
 export const ambushConfigProvider: FactoryProvider<AmbushConfig> = {
     provide: AMBUSH_CONFIG,
-    inject: [ConfigService],
-    useFactory: (config: ConfigService) =>
+    inject: [{ token: ConfigService, optional: true }],
+    useFactory: (config: ConfigService | undefined) =>
         parseAmbushConfig(
             readAmbushEnv({
-                AMBUSH_TIMEZONE: config.get<string>('AMBUSH_TIMEZONE'),
+                AMBUSH_TIMEZONE: config?.get<string>('AMBUSH_TIMEZONE'),
             }),
         ),
 };
