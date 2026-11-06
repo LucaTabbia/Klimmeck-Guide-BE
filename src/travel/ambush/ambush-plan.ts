@@ -312,12 +312,12 @@ function defeatPlanOf(
 
 export function planAmbushOutcome(input: AmbushPlanInput): AmbushOutcomePlan {
     const won = input.verdict === 'success';
-    if (!won && !input.detour) {
-        throw new Error('ambush defeat needs the reached city');
-    }
     const fought = foughtOutcomeOf(input, won);
     const report = reportOf(input, fought, won);
-    if (!won && input.detour) {
+    if (!won) {
+        if (!input.detour) {
+            throw new Error('ambush defeat needs the reached city');
+        }
         return defeatPlanOf(input, input.detour, fought, report);
     }
     const travel = input.snapshot.status.activeTravel;
