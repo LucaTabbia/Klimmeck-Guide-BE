@@ -1,4 +1,4 @@
-import { LonLat, RouteEdge, routeOf } from './road-route';
+import { compareIds, LonLat, RouteEdge, routeOf } from './road-route';
 
 const COORDS: Record<string, LonLat> = {
     a: [0, 0],
@@ -111,4 +111,21 @@ describe('routeOf', () => {
             ).toBeNull();
         },
     );
+});
+
+describe('compareIds', () => {
+    it('orders ids by code unit, independent of the locale (D-06, D-11)', () => {
+        expect(compareIds('a1', 'b0')).toBeLessThan(0);
+        expect(compareIds('b0', 'a1')).toBeGreaterThan(0);
+        expect(compareIds('B', 'a')).toBeLessThan(0);
+    });
+
+    it('answers zero on equal ids (D-06, D-11)', () => {
+        expect(compareIds('6aee41dc', '6aee41dc')).toBe(0);
+    });
+
+    it('puts digits before letters (D-06, D-11)', () => {
+        expect(compareIds('9', 'a')).toBeLessThan(0);
+        expect(compareIds('f', '0')).toBeGreaterThan(0);
+    });
 });
