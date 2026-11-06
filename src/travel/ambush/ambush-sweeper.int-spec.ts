@@ -19,6 +19,7 @@ import {
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 import { AmbushSweeper } from './ambush-sweeper';
 import { AmbushModule } from './ambush.module';
+import { AMBUSH_ATTEMPT_UPDATE } from './ambush.updates';
 
 // km 16: a 4 km dalla meta, nessun risorteggio dopo la vittoria (D-02); [0, 0] = singolo, primo candidato
 const START = new Date('2026-10-21T10:00:00.000Z');
@@ -153,6 +154,49 @@ describe('AmbushSweeper (replica set)', () => {
         );
         expect(errorSpy).not.toHaveBeenCalledWith(
             expect.stringContaining('boom'),
+        );
+    });
+
+    it('keeps sweeping when recording a failure throws (D-18)', async () => {
+        const broken = await traveller();
+        const healthy = await traveller();
+        moveClockTo(new Date(broken.identity.at.getTime() + ONE_MINUTE_MS));
+        chance.load([...COMPOSITION_ROLLS, ...COMPOSITION_ROLLS]);
+        combat.willEndBy((context) => {
+            if (
+                context.participants.some(
+                    (participant) =>
+                        participant.characterId === String(broken.characterId),
+                )
+            ) {
+                throw new Error('boom');
+            }
+            return 'success';
+        });
+        const characters = world.models.characters;
+        const updateOne = characters.updateOne.bind(characters);
+        const updateSpy = jest
+            .spyOn(characters, 'updateOne')
+            .mockImplementation(((...args: Parameters<typeof updateOne>) =>
+                args[1] === AMBUSH_ATTEMPT_UPDATE
+                    ? { exec: () => Promise.reject(new Error('driver down')) }
+                    : updateOne(...args)) as never);
+
+        try {
+            await expect(sweeper.sweep()).resolves.toBe(1);
+        } finally {
+            updateSpy.mockRestore();
+        }
+
+        expect(await reportsOf(broken)).toEqual([]);
+        expect(await reportsOf(healthy)).toHaveLength(1);
+        expect(errorSpy).toHaveBeenCalledWith(
+            expect.stringContaining(
+                'registrazione del fallimento non riuscita',
+            ),
+        );
+        expect(errorSpy).not.toHaveBeenCalledWith(
+            expect.stringContaining('Sweep delle imboscate fallito'),
         );
     });
 
