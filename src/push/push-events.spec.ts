@@ -1,4 +1,5 @@
 import {
+    ambushDefeat,
     questCancelled,
     questEnd,
     streamerLive,
@@ -13,11 +14,13 @@ const BUILDERS: Record<PushEventType, (id: string) => PushMessage> = {
     [PushEventType.questEnd]: questEnd,
     [PushEventType.streamerLive]: () => streamerLive(),
     [PushEventType.questCancelled]: questCancelled,
+    [PushEventType.ambushDefeat]: (id) => ambushDefeat(id, 'Crocevia'),
 };
 const IDENTIFIED_TYPES = [
     PushEventType.travelEnd,
     PushEventType.questEnd,
     PushEventType.questCancelled,
+    PushEventType.ambushDefeat,
 ];
 
 describe('push event catalog', () => {
@@ -48,6 +51,27 @@ describe('push event catalog', () => {
             id: '64b0000000000000000000e1',
             title: 'Missione annullata',
             body: 'Il gruppo non si è formato in tempo: la missione è stata annullata.',
+            ttlSeconds: 3600,
+        });
+    });
+
+    // sconfitta in imboscata (Phase 15 D-12): il BE compone il corpo con la città raggiunta
+    it('builds the ambush defeat push with the reached city (D-12)', () => {
+        expect(ambushDefeat('64b0000000000000000000c1', 'Crocevia')).toEqual({
+            type: PushEventType.ambushDefeat,
+            id: '64b0000000000000000000c1',
+            title: 'Imboscata!',
+            body: 'Sei stato sconfitto: la via torna verso Crocevia',
+            ttlSeconds: 3600,
+        });
+    });
+
+    it('keeps a generic ambush defeat body for the test push (D-12)', () => {
+        expect(testPushMessage(PushEventType.ambushDefeat, 'a')).toEqual({
+            type: 'ambushDefeat',
+            id: 'a',
+            title: 'Imboscata!',
+            body: 'Sei stato sconfitto: la via torna verso la città più vicina.',
             ttlSeconds: 3600,
         });
     });
@@ -115,6 +139,11 @@ describe('push event catalog', () => {
         [
             'questCancelled',
             questCancelled('a'),
+            ['body', 'id', 'title', 'ttlSeconds', 'type'],
+        ],
+        [
+            'ambushDefeat',
+            ambushDefeat('a', 'Crocevia'),
             ['body', 'id', 'title', 'ttlSeconds', 'type'],
         ],
         [

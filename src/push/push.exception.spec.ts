@@ -64,6 +64,7 @@ describe('PushException', () => {
             'questEnd',
             'streamerLive',
             'questCancelled',
+            'ambushDefeat',
         ]);
     });
 });
