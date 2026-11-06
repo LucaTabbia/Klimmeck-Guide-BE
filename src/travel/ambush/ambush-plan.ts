@@ -3,7 +3,7 @@ import type { Types } from 'mongoose';
 import { spellStatesOrMigrated } from 'src/characters/spells/spell-state.snapshot';
 import { type CoinPurse, fromCopper } from 'src/economy/coins';
 import { applyTradeToInventory } from 'src/economy/trade/trade-inventory';
-import type { TravelKind } from 'src/models/character/active-travel.model';
+import { TravelKind } from 'src/models/character/active-travel.model';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
@@ -23,6 +23,7 @@ import {
     spellsSpent,
     woundsAfter,
 } from 'src/quests/outcomes/outcome-plan';
+import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
 import {
     lifePointsWithin,
     type Progression,
@@ -33,6 +34,7 @@ import {
     statusFactsOf,
 } from 'src/quests/outcomes/progression/status-facts';
 import type { LonLat } from 'src/roads/road-route';
+import { durationMsOf } from 'src/travel/travel-timing';
 import type { DrawnAmbush } from './ambush-draw';
 import type { AmbushIdentity } from './ambush-job';
 import { ambushPrizesOf } from './ambush-rules';
@@ -85,13 +87,17 @@ export interface AmbushReportDraft {
     titleAfter: TitleType;
 }
 
-// deviazione verso la città più vicina dopo una sconfitta (piano 07)
+// deviazione verso la città più vicina dopo una sconfitta (D-11); ripiego sulla strada residua verso la meta (D-25)
 export interface DetourDraft {
     road: { coordinates: LonLat[]; distance: number };
-    baseHours: number;
     to: Types.ObjectId;
     reachedCity: AmbushCity;
-    speed: number;
+    // rotta verso la città più vicina; null sul ripiego
+    baseHours: number | null;
+    // ripiego: durata residua del viaggio originale (endTime − at)
+    residualMs: number | null;
+    // velocità del solo pet: la durata usa petSpeed × le ferite nuove
+    petSpeed: number;
 }
 
 export interface AmbushPlanInput {
@@ -249,14 +255,71 @@ function filterOf(input: AmbushPlanInput): Record<string, unknown> {
     };
 }
 
+// D-11: viaggio riscritto dal punto, corsia standard liberata; D-03: nessun sorteggio sulla deviazione
+function defeatTravelOf(
+    input: AmbushPlanInput,
+    detour: DetourDraft,
+    fought: FoughtOutcome,
+    report: AmbushReportDraft,
+): { travel: Record<string, unknown>; endTime: Date } {
+    const at = input.identity.at;
+    const speed = detour.petSpeed * travelSpeedFactorOf(fought.wounds.injuries);
+    const duration =
+        detour.baseHours !== null
+            ? durationMsOf(detour.baseHours, speed)
+            : (detour.residualMs ?? 0);
+    const endTime = new Date(at.getTime() + duration);
+    const held = input.snapshot.status.activeTravel.ambushReports ?? [];
+    return {
+        endTime,
+        travel: {
+            road: detour.road,
+            startTime: at,
+            endTime,
+            duration,
+            to: detour.to,
+            kind: TravelKind.free,
+            ambushReports: [...held, report],
+        },
+    };
+}
+
+function defeatPlanOf(
+    input: AmbushPlanInput,
+    detour: DetourDraft,
+    fought: FoughtOutcome,
+    report: AmbushReportDraft,
+): AmbushOutcomePlan {
+    const { travel, endTime } = defeatTravelOf(input, detour, fought, report);
+    const lane = input.snapshot.quests?.pendingQuest
+        ? { 'quests.pendingQuest': null }
+        : {};
+    return {
+        filter: filterOf(input),
+        update: {
+            $set: {
+                ...commonSetOf(fought),
+                'status.activeTravel': travel,
+                ...lane,
+            },
+        },
+        coinsDelta: fought.coinsDelta,
+        report,
+        spellRecoveries: fought.spells.recoveries,
+        travelAfter: { startTime: input.identity.at, endTime, ambush: null },
+    };
+}
+
 export function planAmbushOutcome(input: AmbushPlanInput): AmbushOutcomePlan {
     const won = input.verdict === 'success';
     if (!won && !input.detour) {
-        throw new Error('ambush defeat requires a detour');
+        throw new Error('ambush defeat needs the reached city');
     }
-    if (!won) throw new Error('ambush defeat not planned yet');
     const fought = foughtOutcomeOf(input, won);
     const report = reportOf(input, fought, won);
+    if (!won && input.detour) {
+        return defeatPlanOf(input, input.detour, fought, report);
+    }
     const travel = input.snapshot.status.activeTravel;
     return {
         filter: filterOf(input),
