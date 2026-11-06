@@ -9,6 +9,7 @@ import {
 import { ScriptedCombatResolver } from '../../../test/quests/scripted-combat-resolver';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
 import {
+    AMBUSH_ROUTE_DURATION_MS,
     type AmbushWorld,
     persistAmbushEnemies,
     persistAmbushWorld,
@@ -24,6 +25,7 @@ const START = new Date('2026-10-21T10:00:00.000Z');
 const LATER_START = new Date('2026-10-21T13:00:00.000Z');
 const AMBUSH_KM = 16;
 const ONE_MINUTE_MS = 60_000;
+const ARRIVAL = new Date(START.getTime() + AMBUSH_ROUTE_DURATION_MS);
 const COMPOSITION_ROLLS = [0, 0];
 
 describe('AmbushSweeper (replica set)', () => {
@@ -162,7 +164,7 @@ describe('AmbushSweeper (replica set)', () => {
                 { $set: { 'status.activeTravel.ambush.attempts': 2 } },
             )
             .exec();
-        moveClockTo(new Date(subject.travel.endTime.getTime() + ONE_MINUTE_MS));
+        moveClockTo(new Date(ARRIVAL.getTime() + ONE_MINUTE_MS));
         chance.load(COMPOSITION_ROLLS);
         failEveryCombat();
 

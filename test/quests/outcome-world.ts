@@ -7,6 +7,7 @@ import type { Clock } from 'src/auth/clock';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { PUSH_CONFIG } from 'src/config/push-config';
 import { QUEST_CONFIG } from 'src/config/quest-config';
+import { TRAVEL_CONFIG } from 'src/config/travel-config';
 import { Character } from 'src/models/character/character.model';
 import { City } from 'src/models/city.model';
 import { Enemy } from 'src/models/enemy.model';
@@ -159,6 +160,11 @@ export async function createOutcomeHarness(
                       {
                           token: getQueueToken(TRAVEL_QUEUE),
                           useValue: options.travelQueue,
+                      },
+                      // sweep periodico delle imboscate spento: il reconciler al boot gira ancora
+                      {
+                          token: TRAVEL_CONFIG,
+                          useValue: { sweepIntervalMs: 0 },
                       },
                   ]
                 : []),

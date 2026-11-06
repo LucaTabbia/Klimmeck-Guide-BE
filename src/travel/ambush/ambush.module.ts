@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
+import { travelConfigProvider } from 'src/config/travel-config';
 import { EconomyModule } from 'src/economy/economy.module';
 import {
     Character,
@@ -24,8 +25,10 @@ import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
 import { RoadsModule } from 'src/roads/roads.module';
 import { TravelPlanningModule } from '../travel-planning.module';
 import { AmbushResolutionService } from './ambush-resolution.service';
+import { AmbushSweeper } from './ambush-sweeper';
+import { AmbushProcessor } from './ambush.processor';
 
-// imboscate in viaggio (Phase 15): montato da AppModule, mai da TravelModule (gli harness dei viaggi restano leggeri); processor e sweeper nel piano 08
+// imboscate in viaggio (Phase 15): montato da AppModule, mai da TravelModule (gli harness dei viaggi restano leggeri)
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -46,8 +49,11 @@ import { AmbushResolutionService } from './ambush-resolution.service';
     ],
     providers: [
         { provide: Clock, useClass: SystemClock },
+        travelConfigProvider,
         AmbushResolutionService,
+        AmbushProcessor,
+        AmbushSweeper,
     ],
-    exports: [AmbushResolutionService],
+    exports: [AmbushResolutionService, AmbushSweeper],
 })
 export class AmbushModule {}

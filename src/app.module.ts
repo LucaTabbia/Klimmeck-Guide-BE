@@ -22,6 +22,7 @@ import { PendingQuestsModule } from './pendingQuests/pending-quests.module';
 import { PetsModule } from './pets/pets.module';
 import { QuestAcceptanceModule } from './quests/acceptance/quest-acceptance.module';
 import { QuestsModule } from './quests/quests.module';
+import { AmbushModule } from './travel/ambush/ambush.module';
 import { TravelModule } from './travel/travel.module';
 import { QuestOutcomesModule } from './quests/outcomes/quest-outcomes.module';
 import { QuestMaintenanceModule } from './quests/maintenance/quest-maintenance.module';
@@ -108,6 +109,8 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         QuestsModule,
         QuestAcceptanceModule,
         TravelModule,
+        // imboscate in viaggio (Phase 15): TravelModule non lo importa, Pitfall 9
+        AmbushModule,
         QuestOutcomesModule,
         QuestMaintenanceModule,
         QuestGenerationModule,
