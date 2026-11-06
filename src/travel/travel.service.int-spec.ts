@@ -14,7 +14,9 @@ import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
+import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
+import { AMBUSH_JOB, ambushJobId } from './ambush/ambush-job';
 import { TravelPantryReader } from './food/travel-pantry.reader';
 import { foodNeededFor, hpLostFor, uncoveredKmOf } from './food/travel-food';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
@@ -22,15 +24,25 @@ import { TravelPlanner } from './travel-planner.service';
 import { BASE_SPEED, durationMsOf } from './travel-timing';
 import { TravelModule } from './travel.module';
 import { TravelService } from './travel.service';
-import { AuthTestApp, createAuthTestApp } from '../../test/auth/auth-test-app';
+import {
+    AuthTestApp,
+    createAuthTestApp,
+    graphqlRequest,
+} from '../../test/auth/auth-test-app';
 import { FixedClock } from '../../test/auth/fixed-clock';
-import { createPlayer } from '../../test/authz/player-fixture';
+import { createCharactersTestApp } from '../../test/authz/characters-test-app';
+import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
 import {
     buildCharacter,
     persistLootItem,
     persistPet,
 } from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
+import { SequenceChance } from '../../test/quests/sequence-chance';
+import {
+    AmbushWorld,
+    persistAmbushWorld,
+} from '../../test/travel/ambush-world';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
 import {
     foodStack,
@@ -525,5 +537,151 @@ describe('TravelService (replSet)', () => {
             ]);
             expect(read.mock.calls.length).toBeGreaterThanOrEqual(2);
         });
+    });
+});
+
+const WIRE_TRAVEL_QUERY =
+    'query($id: String!) { character(id: $id) { status { activeTravel { road { coordinates distance } startTime endTime duration to } } } }';
+
+// mondo ≥ 10 km e caso a sequenza (Phase 15): harness proprio, i casi di Phase 8/14 restano sul travel world
+describe('TravelService ambush at departure (Phase 15)', () => {
+    let harness: AuthTestApp;
+    let travel: TravelService;
+    let roads: RoadsService;
+    let world: AmbushWorld;
+    let seq = 0;
+    const queue = new FakeTravelQueue();
+    const chance = new SequenceChance();
+
+    beforeAll(async () => {
+        harness = await createCharactersTestApp({
+            clock: new FixedClock(STARTED_AT),
+            imports: [TravelModule],
+            overrides: [
+                { token: getQueueToken(TRAVEL_QUEUE), useValue: queue },
+                {
+                    token: getQueueToken(QUEST_RESOLUTION_QUEUE),
+                    useValue: new FakeTravelQueue(),
+                },
+                { token: PushTransport, useValue: new FakePushTransport() },
+                { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
+                { token: TRAVEL_CONFIG, useValue: { sweepIntervalMs: 0 } },
+                { token: ChanceSource, useValue: chance },
+            ],
+        });
+        travel = harness.app.get(TravelService);
+        roads = harness.app.get(RoadsService);
+        await harness.app
+            .get<Model<CharacterDocument>>(getModelToken(Character.name))
+            .init();
+    });
+
+    beforeEach(async () => {
+        await harness.clearDatabase();
+        world = await persistAmbushWorld(harness.connection, roads);
+        queue.reset();
+        // la prima estrazione colpisce sempre: imboscata al km 1 se la strada la ammette
+        chance.load([0]);
+    });
+
+    afterAll(async () => {
+        await harness.close();
+    });
+
+    async function playerAtAlba(): Promise<TestPlayer> {
+        seq += 1;
+        const base = buildCharacter();
+        return createPlayer(harness, {
+            twitchId: `tw-travel-ambush-${seq}`,
+            characterOverrides: {
+                infos: { ...base.infos, name: `Viandante imboscato ${seq}` },
+                status: {
+                    ...base.status,
+                    location: world.markers.alba,
+                    activeTravel: null,
+                    currentLifePoints: HARDY_LIFE_POINTS,
+                    maxLifePoints: HARDY_LIFE_POINTS,
+                    injuries: [],
+                },
+                assets: { ...base.assets, ownedItems: [], pet: null },
+            },
+        });
+    }
+
+    function idOf(player: TestPlayer): Types.ObjectId {
+        return player.character!._id as Types.ObjectId;
+    }
+
+    function rawTravel(id: Types.ObjectId) {
+        return harness.connection
+            .collection('characters')
+            .findOne({ _id: id })
+            .then((raw) => raw?.status.activeTravel);
+    }
+
+    it('writes the drawn ambush into the departure and enqueues its trigger (D-05)', async () => {
+        const id = idOf(await playerAtAlba());
+
+        await travel.startTravel(id, world.markers.borgo);
+
+        const active = await rawTravel(id);
+        const at = new Date(
+            STARTED_AT.getTime() +
+                Math.floor((1 / active.road.distance) * active.duration),
+        );
+        expect(active.ambush).toEqual({ at, km: 1, attempts: 0 });
+        expect(queue.added.map(({ name }) => name)).toEqual([
+            'complete',
+            AMBUSH_JOB,
+        ]);
+        expect(queue.added[1].options.jobId).toBe(
+            ambushJobId(id, STARTED_AT, at),
+        );
+    });
+
+    it('keeps the wire travel identical with an ambush pending (D-05, D-15)', async () => {
+        const player = await playerAtAlba();
+        await travel.startTravel(idOf(player), world.markers.borgo);
+
+        const response = await graphqlRequest(
+            harness.app,
+            WIRE_TRAVEL_QUERY,
+            { id: idOf(player).toHexString() },
+            player.bearer,
+        );
+
+        expect(response.body.errors).toBeUndefined();
+        expect((await rawTravel(idOf(player))).ambush?.km).toBe(1);
+        expect(
+            Object.keys(
+                response.body.data.character.status.activeTravel as object,
+            ).sort(),
+        ).toEqual(['duration', 'endTime', 'road', 'startTime', 'to']);
+    });
+
+    it('draws nothing under ten km and writes no ambush field (D-03)', async () => {
+        const id = idOf(await playerAtAlba());
+
+        await travel.startTravel(id, world.markers.erta);
+
+        const active = await rawTravel(id);
+        expect(chance.drawn.length).toBe(0);
+        expect(Object.keys(active as object).sort()).toEqual([
+            'duration',
+            'endTime',
+            'kind',
+            'road',
+            'startTime',
+            'to',
+        ]);
+        expect(queue.added.map(({ name }) => name)).toEqual(['complete']);
+    });
+
+    it('never draws on the travel preview (D-15)', async () => {
+        const id = idOf(await playerAtAlba());
+
+        await travel.preview(id, world.markers.borgo);
+
+        expect(chance.drawn.length).toBe(0);
     });
 });

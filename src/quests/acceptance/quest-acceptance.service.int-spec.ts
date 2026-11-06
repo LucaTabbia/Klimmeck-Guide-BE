@@ -34,6 +34,7 @@ import {
 } from 'src/quests/acceptance/quest-capacity';
 import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
+import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { QuestStartService } from 'src/quests/party/quest-start.service';
 import { TravelPantryReader } from 'src/travel/food/travel-pantry.reader';
@@ -42,6 +43,7 @@ import {
     hpLostFor,
     uncoveredKmOf,
 } from 'src/travel/food/travel-food';
+import { AMBUSH_JOB, ambushJobId } from 'src/travel/ambush/ambush-job';
 import { TRAVEL_QUEUE, travelJobId } from 'src/travel/travel-job';
 import { BASE_SPEED, durationMsOf } from 'src/travel/travel-timing';
 import { FixedClock } from '../../../test/auth/fixed-clock';
@@ -55,6 +57,11 @@ import {
     persistQuest,
     persistUser,
 } from '../../../test/fixtures';
+import { SequenceChance } from '../../../test/quests/sequence-chance';
+import {
+    AmbushWorld,
+    persistAmbushWorld,
+} from '../../../test/travel/ambush-world';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 import {
     foodStack,
@@ -2545,5 +2552,144 @@ describe('QuestAcceptanceService (replSet)', () => {
                 expect(questQueue.added).toEqual([]);
             });
         });
+    });
+});
+
+// mondo ≥ 10 km e caso a sequenza (Phase 15): modulo e database propri, i casi esistenti restano sul loro mondo
+describe('QuestAcceptanceService ambush at departure (Phase 15)', () => {
+    let app: INestApplication;
+    let acceptance: QuestAcceptanceService;
+    let connection: Connection;
+    let characters: Model<CharacterDocument>;
+    let quests: Model<QuestDocument>;
+    let users: Model<UserDocument>;
+    let world: AmbushWorld;
+    let seq = 0;
+    const queue = new FakeTravelQueue();
+    const chance = new SequenceChance();
+
+    beforeAll(async () => {
+        const moduleRef = await Test.createTestingModule({
+            imports: [
+                MongooseModule.forRoot(process.env.MONGO_TEST_URI as string, {
+                    dbName: 'quest-acceptance-ambush-test',
+                }),
+                QuestAcceptanceModule,
+            ],
+        })
+            .overrideProvider(getQueueToken(TRAVEL_QUEUE))
+            .useValue(queue)
+            .overrideProvider(getQueueToken(QUEST_RESOLUTION_QUEUE))
+            .useValue(new FakeTravelQueue())
+            .overrideProvider(Clock)
+            .useValue(new FixedClock(ACCEPTED_AT))
+            .overrideProvider(ChanceSource)
+            .useValue(chance)
+            .compile();
+        app = moduleRef.createNestApplication();
+        await app.init();
+        acceptance = app.get(QuestAcceptanceService);
+        connection = app.get<Connection>(getConnectionToken());
+        characters = app.get<Model<CharacterDocument>>(
+            getModelToken(Character.name),
+        );
+        quests = app.get<Model<QuestDocument>>(getModelToken(Quest.name));
+        users = app.get<Model<UserDocument>>(getModelToken(User.name));
+        // collection pronte prima delle transazioni multi-documento (Pitfall 5)
+        await Promise.all([
+            characters.init(),
+            quests.init(),
+            app
+                .get<
+                    Model<PendingQuestDocument>
+                >(getModelToken(PendingQuest.name))
+                .init(),
+            users.init(),
+            app.get<Model<CityDocument>>(getModelToken(City.name)).init(),
+            ...TRAVEL_COLLECTIONS.map((name) =>
+                connection.createCollection(name).catch(() => undefined),
+            ),
+        ]);
+    });
+
+    beforeEach(async () => {
+        for (const collection of Object.values(connection.collections))
+            await collection.deleteMany({});
+        world = await persistAmbushWorld(connection, app.get(RoadsService));
+        queue.reset();
+        // la prima estrazione colpisce sempre: imboscata al km 1 se la strada la ammette
+        chance.load([0]);
+    });
+
+    afterAll(async () => {
+        await connection.dropDatabase();
+        await app.close();
+    });
+
+    async function ruinsQuestAtAlba(): Promise<{
+        ownerId: Types.ObjectId;
+        characterId: Types.ObjectId;
+        questId: Types.ObjectId;
+    }> {
+        seq += 1;
+        const owner = await persistUser(users, {
+            twitchId: `twitch-acceptance-ambush-${seq}`,
+            twitchPoints: 0,
+        });
+        const base = buildCharacter();
+        const character = await persistCharacter(characters, {
+            infos: { ...base.infos, name: `Eroe imboscato ${seq}` },
+            status: {
+                ...base.status,
+                location: world.markers.alba,
+                title: 'rookie',
+                currentLifePoints: HARDY_LIFE_POINTS,
+                maxLifePoints: HARDY_LIFE_POINTS,
+            },
+            quests: { completedQuests: [], pendingQuest: null },
+            assets: { ...base.assets, ownedItems: [] },
+        });
+        const quest = await persistQuest(quests, {
+            infos: {
+                ...buildQuest().infos,
+                type: 'hunt',
+                markerLocation: world.questPoi,
+                timeToComplete: 60000,
+            },
+        });
+        return {
+            ownerId: owner._id as Types.ObjectId,
+            characterId: character._id as Types.ObjectId,
+            questId: quest._id as Types.ObjectId,
+        };
+    }
+
+    it('draws the ambush of the automatic travel before the claim (D-05)', async () => {
+        const { ownerId, characterId, questId } = await ruinsQuestAtAlba();
+
+        await acceptance.accept({ ownerId, characterId, questId });
+
+        const active = (
+            await connection.collection('characters').findOne({
+                _id: characterId,
+            })
+        )?.status.activeTravel;
+        expect(active.ambush.km).toBe(1);
+        expect(queue.added.map(({ name }) => name)).toEqual([
+            'complete',
+            AMBUSH_JOB,
+        ]);
+        expect(queue.added[1].options.jobId).toBe(
+            ambushJobId(characterId, ACCEPTED_AT, active.ambush.at),
+        );
+    });
+
+    it('never draws on the quest travel preview (D-15)', async () => {
+        const { characterId, questId } = await ruinsQuestAtAlba();
+
+        expect(
+            await acceptance.previewTravel(characterId, questId),
+        ).not.toBeNull();
+        expect(chance.drawn.length).toBe(0);
     });
 });
