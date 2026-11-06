@@ -144,6 +144,8 @@ mutation AcknowledgeQuestResult($id: String!) {
 
 La stessa risposta arriva alla seconda chiamata sullo stesso id (nessuna scrittura).
 
+**Emendamento 2026-11-06 (Phase 15):** `QuestResult` guadagna `kind: QuestResultKind!` (`quest` | `ambush`; i documenti esistenti leggono `quest`) e `ambush: AmbushReport`; `quest` diventa nullable ed è `null` se e solo se `kind == ambush`. La pipeline di consegna (change stream owner-only, `unacknowledgedQuestResults`, `acknowledgeQuestResult`) è invariata. Dettagli in `.planning/phases/15-imboscate-in-viaggio/BACKEND-NOTES.md`.
+
 ---
 
 ## 2. Semantica

@@ -263,6 +263,8 @@ Semantica, casi `null` e codici in `.planning/phases/14-viaggio-e-cibo/BACKEND-N
 - **Push `travelEnd`** (payload di Phase 5 §2: `type: "travelEnd"`, `title: "Viaggio completato"`, `body: "Il tuo personaggio è arrivato a destinazione."`, `sentAt`, `id` = **characterId**, TTL 1 h) al proprietario **solo per i viaggi liberi**, una volta sola, best-effort dopo il commit; **mai** per i viaggi da quest né per il teleport.
 - **Viaggio da quest:** nella stessa transazione del completamento `PendingQuest.startDate` = **`endTime` pianificato** (se ancora `null`): il countdown della quest parte dall'arrivo previsto e non perde tempo per un downtime del server. Il FE riceve `characterUpdated` con `pendingQuest.startDate` valorizzato e mostra il countdown `startDate + waitingTime` (Phase 7 §5).
 
+**Emendamento 2026-11-06 (Phase 15):** il completamento aspetta un'imboscata pendente (il filtro la esclude) e inserisce i report d'imboscata trattenuti come `QuestResult` nella stessa transazione dell'arrivo; dopo una sconfitta il viaggio è riscritto `kind: free` dal punto dell'imboscata verso la città più vicina e arriva con `travelEnd`. Dettagli in `.planning/phases/15-imboscate-in-viaggio/BACKEND-NOTES.md`.
+
 ---
 
 ## 7. Teleport (pannello admin)
@@ -272,6 +274,8 @@ Semantica, casi `null` e codici in `.planning/phases/14-viaggio-e-cibo/BACKEND-N
 - **Rifiutato con `QUEST_IN_PROGRESS`** se il personaggio ha una `pendingQuest` (story e worldMission non bloccano).
 - Un solo update condizionale: `status.location` = POI e `activeTravel` = `null` insieme; il viaggio in corso è cancellato e il suo job rimosso best-effort (un job sopravvissuto non trova più il viaggio ed esce senza scrivere). **Nessuna push**, nessuna scrittura sulle quest.
 - **Audit** automatico in `admin_audit_logs`: `target` `{ type: 'CommonResponse', id: null }`, il personaggio è in `args.request.id` (anche per i rifiuti, con l'esito).
+
+**Emendamento 2026-11-06 (Phase 15):** il teleport è transazionale: annulla l'imboscata pendente (il suo job diventa no-op) e consegna i report d'imboscata trattenuti come `QuestResult` nella stessa transazione; il rifiuto `QUEST_IN_PROGRESS` resta invariato. Dettagli in `.planning/phases/15-imboscate-in-viaggio/BACKEND-NOTES.md`.
 
 ---
 

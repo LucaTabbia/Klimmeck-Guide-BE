@@ -3,6 +3,7 @@
 **Gathered:** 2026-11-06 (discuss congiunto con la FE Phase 16, condotto dal repo FE; branch `feat/15-imboscate-in-viaggio` da `develop` `b492a46`, la merge della PR #23)
 **Amended:** 2026-11-06 dopo la ricerca (`15-RESEARCH.md`, C1–C9, Pitfall 1–10, Open Questions 1–10): D-01, D-05, D-09, D-10, D-11, D-12, D-13, D-16 rivisti; D-17..D-24 aggiunti. Questo CONTEXT prevale sulla RESEARCH dove differiscono.
 **Status:** Ready for planning — i nomi del contratto (campi, enum, categoria push, costanti, job) restano a discrezione del planner e vengono fissati in `15-REPO-RULES.md` prima della pianificazione; la FE Phase 16 li consuma dopo la merge di questa fase su `develop`.
+**Executed:** 2026-11-06, piani 15-01..15-12; handoff in `BACKEND-NOTES.md`; contratto come in `15-REPO-RULES.md`
 
 <domain>
 ## Phase Boundary

@@ -572,6 +572,9 @@ Plans:
 - [x] 15-10-PLAN.md — suite d'integrazione di D-16 sul ciclo completo (mutation → subscription → ack) con concorrenza, DST, soglie, trigger, teleport e D-17
 - [x] 15-11-PLAN.md — gate (`tsc`, `test:cov` con timeout 600000 ms e ripiego per cartella, boot reale, SDL con 1 riga tolta e 17 aggiunte, lint mirato, invarianti); firma della VALIDATION
 - [ ] 15-12-PLAN.md — handoff `BACKEND-NOTES.md` per la FE 16; emendamenti in coda agli handoff della Phase 8 e della 9.2; nota Executed nel CONTEXT; `requirements mark-complete`; stato in ROADMAP e STATE
+
+**Stato (2026-11-06)**: 12/12 piani eseguiti; PR verso `develop` a cura dell'orchestratore; la FE Phase 16 parte dopo la merge (handoff in `.planning/phases/15-imboscate-in-viaggio/BACKEND-NOTES.md`)
+
 ### Phase 16: Lore sbloccabili
 **Goal**: La conoscenza è per personaggio: un insieme di lore sbloccate sul `Character`, inizializzato con la lore della città natale e della sua regione, arricchito dall'arrivo su una città (anche teleport e salto istantaneo), dalla vittoria contro i nemici (tutti i partecipanti vincenti) e, per le `study` senza magia appresa, da un tiro su una lore casuale ancora chiusa fra i tipi da studio; nessuna cascata sulle `relatedLore`; le query di lore filtrano per il personaggio del bearer e le quest espongono se ogni nemico è conosciuto.
 **Depends on**: Phase 3 (ownership, `characterUpdated`), Phase 8 (arrivo, teleport), Phase 9 (esiti, `study`), Phase 11 (lore e collegamenti), Phase 13 (`enemies`)
