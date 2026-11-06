@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 14 executed (8/8) on feat/14-viaggio-e-cibo, handoff for the FE Phase 15 written; PR to develop by the orchestrator after review → fix → security; the FE Phase 15 is unblocked at the merge
-last_updated: "2026-11-05T20:58:39.886Z"
-last_activity: 2026-11-05 -- Phase 14 execution started (0/8, executors one at a time)
+status: completed
+stopped_at: Phase 14 complete (8/8) — PR feat/14-viaggio-e-cibo → develop opened (2026-11-06); next: after the merge the user restarts the BE (npm run build, restart from dist/) and the FE Phase 15 resumes with 15-08/15-09
+last_updated: "2026-11-06T13:03:08.000Z"
+last_activity: 2026-11-06 -- Phase 14 complete: review (A/B 0 critical, 1 warning, 3 info → 2 fixed (dedupe owned food by id before the edibility filter; rename cost → mealSet), 2 not needed), verification passed, security audit (secured, 38 threats, 35 mitigated, 3 accepted, 0 open, 0 deferred), PR feat/14-viaggio-e-cibo → develop opened
 progress:
   total_phases: 20
-  completed_phases: 17
+  completed_phases: 18
   total_plans: 227
-  completed_plans: 219
-  percent: 96
+  completed_plans: 227
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 14 — Viaggio e cibo — EXECUTED (8/8, 2026-11-05) su `feat/14-viaggio-e-cibo` (da `develop` `698ae82`): fabbisogno ⌈durata/3 min⌉, selezione a scarto minimo (poi meno unità, poi minor valore), triangolare sui km scoperti per eccesso, rifiuto solo sotto 1 HP con `TRAVEL_STARVING`, anteprime con `food`/`hpLost`/`arrivesAlive` e query owner-only nullable `questTravelPreview`; SDL puramente additivo; nessun one-off al boot. Handoff per la FE Phase 15 in `.planning/phases/14-viaggio-e-cibo/BACKEND-NOTES.md`; PR verso `develop` da aprire dopo review → fix → security; la FE Phase 15 (su mock) si sblocca alla merge. Previous: Phase 13.1 — Correzioni generazione quest — COMPLETE and merged (PR #21, 2026-11-05; esito della UAT su device nella PR #22 docs).
+**Current focus:** Phase 14 — Viaggio e cibo — COMPLETE (8/8, 2026-11-05) su `feat/14-viaggio-e-cibo` (da `develop` `698ae82`): fabbisogno ⌈durata/3 min⌉, selezione a scarto minimo (poi meno unità, poi minor valore), triangolare sui km scoperti per eccesso in metri interi, rifiuto `TRAVEL_STARVING` solo sotto 1 HP e prima di ogni scrittura, consumo e HP nello stesso update del claim/partenza in transazione, anteprime con `food`/`hpLost`/`arrivesAlive` e query owner-only nullable `questTravelPreview`; SDL puramente additivo (8 righe); nessun one-off. Review (A/B: 0 CR, 1 WR, 3 IN → 2 fix, 2 not needed), verification passed (0 gap), security secured (38/0 open). PR a `develop` aperta il 2026-11-06; dopo la merge l'utente fa `npm run build` + riavvio da `dist/` e la FE Phase 15 riprende con 15-08/15-09. Next: discuss BE Phase 15 (Imboscate in viaggio) con la FE Phase 16. Previous: Phase 13.1 — COMPLETE and merged (PR #21, 2026-11-05).
 
 ## Current Position
 
-Phase: 14 (Viaggio e cibo) — EXECUTING (started 2026-11-05) on `feat/14-viaggio-e-cibo` (from `develop` `698ae82`): 8 plans in a linear chain (`14-01`..`14-08`), executors one at a time on the main tree
+Phase: 14 (Viaggio e cibo) — COMPLETE (8/8 on 2026-11-05) on `feat/14-viaggio-e-cibo` (from `develop` `698ae82`): 14-01..14-06 code, 14-07 gate (341 suites / 4333 tests, coverage above the per-folder thresholds, SDL +8 additive lines), 14-08 handoff; review → rulings → 2 fixes → verification passed → security secured; PR to `develop` opened on 2026-11-06
 Plan: 8 of 8
-Status: Phase 14 executed (8/8: 14-01..14-06 code, 14-07 gate, 14-08 handoff); PR to `develop` to be opened by the orchestrator after review → fix → security; the FE Phase 15 is unblocked at the merge; Phase 13.1 merged (PR #21), its device UAT outcome in PR #22 (docs, open)
-Last activity: 2026-11-05 -- Phase 14 executed (8/8), FE Phase 15 handoff written, PR to develop pending
+Status: Phase 14 complete (8/8) — review A/B 0 critical, 1 warning, 3 info → 2 fixed (dedupe owned food by id before the edibility filter; rename cost → mealSet), 2 not needed; verification passed; security audit secured, 38 threats, 35 mitigated, 3 accepted, 0 open, 0 deferred; PR feat/14-viaggio-e-cibo → develop opened; after the merge the user restarts the BE (build + restart from dist/, no one-off in this phase) and the FE Phase 15 resumes with 15-08 (schema gate) and 15-09 (device E2E)
+Last activity: 2026-11-06 -- Phase 14 closed: two area reviews merged, rulings, fixes, verification, security audit, PR
 
-Progress: [░░░░░░░░░░] 0/8 plans of Phase 14 (phases 1–13, 9.1, 9.2 and 13.1 complete and merged on develop)
+Progress: [██████████] 8/8 plans of Phase 14 (phases 1–14, 9.1, 9.2 and 13.1 complete; Phase 14 awaiting the merge of its PR)
 
 ## Performance Metrics
 

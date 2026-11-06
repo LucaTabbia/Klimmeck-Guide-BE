@@ -1,6 +1,6 @@
 ---
 phase: 14-viaggio-e-cibo
-verified: 2026-11-05T22:12:00Z
+verified: 2026-11-05T22:11:00Z
 status: passed
 score: 4/4 success criteria verified (6/6 requisiti BE-FOOD-01..06, contratto FE rispettato, nessun gap)
 overrides_applied: 0
