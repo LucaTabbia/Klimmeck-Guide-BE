@@ -306,3 +306,4 @@ Monete via wallet, xp con progressione: **livello e HP massimi possono salire, i
 - BE Phase 16: le vittorie in imboscata dovranno contare per lo sblocco delle lore dei nemici battuti.
 - Fuori fase (deferred del CONTEXT): imboscate sulla deviazione, costi sulla tratta deviata, loot dagli assalitori, visibilità per il GM, calibrazione per zona, fascia «Difficile» notturna.
 - UAT su device: dopo la merge, con la FE 16-08 e i dati di §6.
+- Follow-up facoltativo della review (A-IN-02, fuori fase, PR separata): estrarre la geografia pura (`nearCityOf`, `markerTargetsOf`, tipi `Lean*`) da `ambush-resolution.service.ts` in un file proprio con spec unit; nessun difetto noto, solo manutenibilità.
