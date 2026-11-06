@@ -4,12 +4,14 @@ import { TravelKind } from 'src/models/character/active-travel.model';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { durationMsOf } from 'src/travel/travel-timing';
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
 import type { AmbushIdentity } from './ambush-job';
 import {
     type AmbushCharacterSnapshot,
     type AmbushOutcomePlan,
     type AmbushPlanInput,
+    type DetourDraft,
     planAmbushOutcome,
 } from './ambush-plan';
 import { ambushFilter } from './ambush.updates';
@@ -22,6 +24,8 @@ const SPELL_ID = new Types.ObjectId('64b0000000000000000000b5');
 const ENEMY_ID = new Types.ObjectId('64b0000000000000000000b6');
 const CITY_ID = new Types.ObjectId('64b0000000000000000000b7');
 const TO_ID = new Types.ObjectId('64b0000000000000000000b8');
+const CROCEVIA_ID = new Types.ObjectId('64b0000000000000000000b9');
+const PENDING_ID = new Types.ObjectId('64b0000000000000000000ba');
 
 const START = new Date('2026-10-21T10:00:00.000Z');
 const DURATION = 20 * 3_600_000;
@@ -229,5 +233,171 @@ describe('ambush outcome plan', () => {
             ...ambushFilter(identity, NOW),
             'status.xp': 0,
         });
+    });
+});
+
+describe('ambush defeat plan', () => {
+    const reachedCity = { id: CROCEVIA_ID, name: 'Crocevia' };
+    const detourRoad = {
+        coordinates: [
+            [0, 4.4966],
+            [0, 4.5],
+            [2, 4.5],
+        ] as [number, number][],
+        distance: 4.434,
+    };
+    const detourWith = (overrides: Partial<DetourDraft> = {}): DetourDraft => ({
+        road: detourRoad,
+        to: CROCEVIA_ID,
+        reachedCity,
+        baseHours: 4.434,
+        residualMs: null,
+        petSpeed: 10,
+        ...overrides,
+    });
+    const defeatWith = (
+        overrides: Partial<AmbushPlanInput> = {},
+    ): AmbushPlanInput =>
+        inputWith({
+            verdict: 'failure',
+            effects: effectsWith({ hpAfter: 0 }),
+            detour: detourWith(),
+            ...overrides,
+        });
+    const rewrittenOf = (defeat: AmbushOutcomePlan) =>
+        defeat.update.$set['status.activeTravel'] as Record<string, unknown>;
+
+    it('loses with at least one life point and the new wounds, no prize (D-11)', () => {
+        const defeat = planAmbushOutcome(
+            defeatWith({
+                effects: effectsWith({
+                    hpAfter: 0,
+                    injuriesAdded: [InjuryType.brokenLeftLeg],
+                }),
+            }),
+        );
+        const { $set } = defeat.update;
+        expect($set['status.currentLifePoints']).toBe(1);
+        expect($set['status.injuries']).toContain(InjuryType.brokenLeftLeg);
+        expect($set['status.xp']).toBe(0);
+        expect(defeat.coinsDelta).toBe(0);
+        expect(Object.keys($set).sort()).toEqual([
+            'assets.activeSpells',
+            'assets.ownedEquipments',
+            'assets.ownedItems',
+            'status.activeTravel',
+            'status.currentLifePoints',
+            'status.injuries',
+            'status.level',
+            'status.maxLifePoints',
+            'status.spellStates',
+            'status.xp',
+        ]);
+        expect(defeat.update.$push).toBeUndefined();
+        expect(defeat.report.outcome).toBe(QuestOutcome.failure);
+        expect(defeat.report.coins).toEqual(fromCopper(0));
+        expect(defeat.report.xpGained).toBe(0);
+        expect(defeat.report.hpAfter).toBe(1);
+    });
+
+    it('rewrites the travel from the ambush point towards the reached city (D-11)', () => {
+        const defeat = planAmbushOutcome(defeatWith());
+        const duration = durationMsOf(4.434, 10);
+        const endTime = new Date(AT.getTime() + duration);
+        expect(rewrittenOf(defeat)).toEqual({
+            road: detourRoad,
+            startTime: AT,
+            endTime,
+            duration,
+            to: CROCEVIA_ID,
+            kind: TravelKind.free,
+            ambushReports: [defeat.report],
+        });
+        expect(defeat.travelAfter).toEqual({
+            startTime: AT,
+            endTime,
+            ambush: null,
+        });
+        expect(defeat.report.reachedCity).toEqual(reachedCity);
+    });
+
+    // nessuna ferita reale vale 0,5 (piano 05): la gamba rotta dà movementImpairment 0,8
+    it('slows the detour with the new wounds (D-11)', () => {
+        const defeat = planAmbushOutcome(
+            defeatWith({
+                effects: effectsWith({
+                    hpAfter: 0,
+                    injuriesAdded: [InjuryType.brokenLeftLeg],
+                }),
+            }),
+        );
+        expect(rewrittenOf(defeat).duration).toBe(durationMsOf(4.434, 8));
+    });
+
+    it('allows a zero length detour onto the nearest city (D-11)', () => {
+        const defeat = planAmbushOutcome(
+            defeatWith({
+                detour: detourWith({
+                    road: { coordinates: [[0, 0.4497]], distance: 0 },
+                    baseHours: 0,
+                }),
+            }),
+        );
+        expect(rewrittenOf(defeat).duration).toBe(0);
+        expect(rewrittenOf(defeat).endTime).toEqual(AT);
+        expect(defeat.travelAfter.endTime).toEqual(AT);
+    });
+
+    it('uses the residual duration when the detour keeps the destination road (D-11)', () => {
+        const defeat = planAmbushOutcome(
+            defeatWith({
+                detour: detourWith({
+                    to: TO_ID,
+                    baseHours: null,
+                    residualMs: 36_000_000,
+                }),
+            }),
+        );
+        expect(rewrittenOf(defeat).duration).toBe(36_000_000);
+        expect(rewrittenOf(defeat).endTime).toEqual(END);
+        expect(rewrittenOf(defeat).to).toEqual(TO_ID);
+    });
+
+    it('carries the held reports into the rewritten travel (D-13)', () => {
+        const held = planAmbushOutcome(inputWith()).report;
+        const defeat = planAmbushOutcome(
+            defeatWith({
+                snapshot: snapshotWith({
+                    activeTravel: { ...travel, ambushReports: [held] },
+                }),
+            }),
+        );
+        const reports = rewrittenOf(defeat).ambushReports as unknown[];
+        expect(reports).toEqual([held, defeat.report]);
+        expect(defeat.report.reachedCity).toEqual(reachedCity);
+    });
+
+    it('clears the standard lane and draws no ambush on the detour (D-03, D-11)', () => {
+        const nextAt = new Date(AT.getTime() + 2 * 3_600_000);
+        const defeat = planAmbushOutcome(
+            defeatWith({
+                snapshot: {
+                    ...snapshotWith(),
+                    quests: { completedQuests: [], pendingQuest: PENDING_ID },
+                },
+                nextAmbush: { at: nextAt, km: 14 },
+            }),
+        );
+        expect(defeat.update.$set['quests.pendingQuest']).toBeNull();
+        expect(Object.keys(rewrittenOf(defeat)).sort()).toEqual([
+            'ambushReports',
+            'duration',
+            'endTime',
+            'kind',
+            'road',
+            'startTime',
+            'to',
+        ]);
+        expect(defeat.travelAfter.ambush).toBeNull();
     });
 });
