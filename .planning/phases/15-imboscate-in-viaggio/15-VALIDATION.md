@@ -78,9 +78,9 @@ created: 2026-11-06
 | 15-11-01 | 11 | 11 | BE-AMBUSH-01..07 | T-15-37, T-15-38, T-15-39, T-15-40 | suite e soglie verdi, SDL con l'eccezione dichiarata, nessun segreto né trailer, moduli separati | full + boot | `npx tsc --noEmit -p tsconfig.json && npm run test:cov && npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` (più i grep di produzione del piano 11: determinismo e `process.env.` con le spec escluse) | ✅ | ✅ green (test:cov 360/4493 verdi ma `./src/travel/` sotto soglia, riportata a 98.62/84.53/99.42 con 3 casi nuovi e misurata per cartella) |
 | 15-11-02 | 11 | 11 | BE-AMBUSH-01..07 | — | N/A (firma) | doc | `grep -q "nyquist_compliant: true" .planning/phases/15-imboscate-in-viaggio/15-VALIDATION.md` | ✅ | ✅ green |
 | 15-11-03 | 11 | 11 | BE-AMBUSH-07 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-11-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 15-12-01 | 12 | 12 | BE-AMBUSH-07 | T-15-41, T-15-42 | handoff senza URI né valori reali, SDL verbatim | doc | `grep -qF "enum QuestResultKind" .planning/phases/15-imboscate-in-viaggio/BACKEND-NOTES.md` | ❌ (nuovo) | ⬜ pending |
-| 15-12-02 | 12 | 12 | BE-AMBUSH-01..07 | T-15-42 | emendamenti solo in coda, requisiti completi | doc | `grep -cE '\- \[x\] \*\*BE-AMBUSH-0[1-7]\*\*' .planning/REQUIREMENTS.md` | ✅ | ⬜ pending |
-| 15-12-03 | 12 | 12 | BE-AMBUSH-07 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-12-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 15-12-01 | 12 | 12 | BE-AMBUSH-07 | T-15-41, T-15-42 | handoff senza URI né valori reali, SDL verbatim | doc | `grep -qF "enum QuestResultKind" .planning/phases/15-imboscate-in-viaggio/BACKEND-NOTES.md` | ❌ (nuovo) | ✅ green |
+| 15-12-02 | 12 | 12 | BE-AMBUSH-01..07 | T-15-42 | emendamenti solo in coda, requisiti completi | doc | `grep -cE '\- \[x\] \*\*BE-AMBUSH-0[1-7]\*\*' .planning/REQUIREMENTS.md` | ✅ | ✅ green |
+| 15-12-03 | 12 | 12 | BE-AMBUSH-07 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-12-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
