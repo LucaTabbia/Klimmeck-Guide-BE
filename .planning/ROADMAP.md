@@ -570,7 +570,7 @@ Plans:
 - [x] 15-08-PLAN.md — indice `character_active_travel_ambush` (verifier RED prima); `AmbushProcessor`; `AmbushSweeper` con reconciler, single-flight e fail-open al terzo errore; montaggio in `AppModule`; prova su Redis reale accanto a `complete`
 - [x] 15-09-PLAN.md — `QuestResultKind`, `AmbushReport`/`AmbushCity`, `quest` nullable (SDL con la sola riga tolta); `ambushResultDraftsOf`; `completionFilter` che aspetta l'imboscata e inserisce i report con `ordered: true`; teleport transazionale che annulla e consegna
 - [x] 15-10-PLAN.md — suite d'integrazione di D-16 sul ciclo completo (mutation → subscription → ack) con concorrenza, DST, soglie, trigger, teleport e D-17
-- [ ] 15-11-PLAN.md — gate (`tsc`, `test:cov` con timeout 600000 ms e ripiego per cartella, boot reale, SDL con 1 riga tolta e 17 aggiunte, lint mirato, invarianti); firma della VALIDATION
+- [x] 15-11-PLAN.md — gate (`tsc`, `test:cov` con timeout 600000 ms e ripiego per cartella, boot reale, SDL con 1 riga tolta e 17 aggiunte, lint mirato, invarianti); firma della VALIDATION
 - [ ] 15-12-PLAN.md — handoff `BACKEND-NOTES.md` per la FE 16; emendamenti in coda agli handoff della Phase 8 e della 9.2; nota Executed nel CONTEXT; `requirements mark-complete`; stato in ROADMAP e STATE
 ### Phase 16: Lore sbloccabili
 **Goal**: La conoscenza è per personaggio: un insieme di lore sbloccate sul `Character`, inizializzato con la lore della città natale e della sua regione, arricchito dall'arrivo su una città (anche teleport e salto istantaneo), dalla vittoria contro i nemici (tutti i partecipanti vincenti) e, per le `study` senza magia appresa, da un tiro su una lore casuale ancora chiusa fra i tipi da studio; nessuna cascata sulle `relatedLore`; le query di lore filtrano per il personaggio del bearer e le quest espongono se ogni nemico è conosciuto.
@@ -632,5 +632,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 13. Generazione quest | 20/20 | Complete | 2026-11-04 |
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
-| 15. Imboscate in viaggio | 10/12 | In Progress | - |
+| 15. Imboscate in viaggio | 11/12 | In Progress | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |

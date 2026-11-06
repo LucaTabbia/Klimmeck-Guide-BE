@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 15 (Imboscate in viaggio) — EXECUTING since 2026-11-06 on `feat/15-imboscate-in-viaggio` (from `develop` `b492a46`): 12 plans in 12 sequential waves, one executor at a time on the main tree; CONTEXT D-01..D-25, REPO-RULES, RESEARCH, VALIDATION (41 task rows); FE companion Phase 16 executing in parallel on its repo (16-07/16-08 wait for this phase's merge)
-Plan: 10 of 12
+Plan: 11 of 12
 Status: Executing Phase 15 — plan 15-01 in progress; Phase 14 merged on `develop` (PR #23, `b492a46`, 2026-11-06)
 Last activity: 2026-11-06 -- Phase 15 execution started
 
