@@ -1,7 +1,7 @@
 // ordine dei tiri per quest (le spec a seme fisso ne dipendono):
 // 1. tiro del boss (solo ranghi con media, D-06): sotto BOSS_SHARE, 1 scelta del candidato nel primo pool che ne ha;
-// 2. altrimenti (o senza candidati) tiro della forma (SINGLE_FORM_SHARE), nessun tiro dei posti (13.1 D-09);
-// 3. giro per pool [zona, poi all se più ampio] → per forma, senza ritirare la forma, budget a un posto:
+// 2. altrimenti (o senza candidati) composeEnemies: tiro della forma (SINGLE_FORM_SHARE), nessun tiro dei posti (13.1 D-09);
+// 3. sempre in composeEnemies, giro per pool [zona, poi all se più ampio] → per forma, senza ritirare la forma, budget a un posto:
 //    singolo 1 scelta (solo con candidati); branco per tentativo 1 tiro dei tipi + 1 per tipo + 1 per unità aggiunta.
 // Ogni membro dallo stesso pool del POI (D-08 della Phase 13), mai sopra hi (13.1 D-03);
 // all solo come ripiego quando la zona non serve nessuna forma
@@ -138,6 +138,27 @@ function bossOf(
     return candidates[indexOf(candidates.length, chance)];
 }
 
+// tiro della forma, poi giro per pool → per forma con budget e tetto dati (D-08 della Phase 13);
+// riusata dalle imboscate con la fascia del livello (Phase 15 D-08, D-22)
+export function composeEnemies(
+    budget: XpBand,
+    cap: number,
+    pools: readonly (readonly EnemyCandidate[])[],
+    chance: ChanceSource,
+): ComposedEnemy[] | null {
+    const forms =
+        chance.next() < SINGLE_FORM_SHARE
+            ? [singleForm, packForm]
+            : [packForm, singleForm];
+    for (const pool of pools) {
+        for (const form of forms) {
+            const enemies = form(pool, budget, cap, chance);
+            if (enemies !== null) return enemies;
+        }
+    }
+    return null;
+}
+
 // sempre un posto, solo boss e worldMission ne hanno di più (13.1 D-09);
 // `all` solo se la zona non serve nessuna forma (D-08 della Phase 13)
 function composeEnemyQuest(
@@ -145,26 +166,15 @@ function composeEnemyQuest(
     pools: readonly (readonly EnemyCandidate[])[],
     chance: ChanceSource,
 ): Composition | null {
-    const forms =
-        chance.next() < SINGLE_FORM_SHARE
-            ? [singleForm, packForm]
-            : [packForm, singleForm];
-    const budget = budgetOf(rank, ENEMY_SEATS);
-    const cap = RANK_XP_BANDS[rank].max;
-    for (const pool of pools) {
-        for (const form of forms) {
-            const enemies = form(pool, budget, cap, chance);
-            if (enemies !== null) {
-                return {
-                    type: QuestType.enemy,
-                    rank,
-                    enemies,
-                    seats: ENEMY_SEATS,
-                };
-            }
-        }
-    }
-    return null;
+    const enemies = composeEnemies(
+        budgetOf(rank, ENEMY_SEATS),
+        RANK_XP_BANDS[rank].max,
+        pools,
+        chance,
+    );
+    return enemies
+        ? { type: QuestType.enemy, rank, enemies, seats: ENEMY_SEATS }
+        : null;
 }
 
 // un solo nemico sopra la fascia, posti di bossSeatsFor, 1 volta su 10 (D-05/D-06 della Phase 13, 13.1 D-03)
