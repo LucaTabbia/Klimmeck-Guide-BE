@@ -17,18 +17,26 @@ export interface AmbushConfig {
     timeZone: string;
 }
 
+const INVALID_AMBUSH_TIMEZONE =
+    'AMBUSH_TIMEZONE must be an IANA time zone (empty = Europe/Rome)';
+
+// un offset fisso (+02:00) passa da Intl ma ignora l'ora legale: la notte 22–06 si sposterebbe per metà anno (D-01)
+const isFixedOffset = (timeZone: string): boolean => /^[+-]/.test(timeZone);
+
 export function parseAmbushConfig(env: AmbushEnv): AmbushConfig {
     const raw = (env.AMBUSH_TIMEZONE ?? '').trim() || DEFAULT_AMBUSH_TIMEZONE;
+    const timeZone = canonicalTimeZoneOf(raw);
+    if (isFixedOffset(timeZone)) throw new Error(INVALID_AMBUSH_TIMEZONE);
+    return { timeZone };
+}
+
+function canonicalTimeZoneOf(raw: string): string {
     try {
-        return {
-            timeZone: new Intl.DateTimeFormat('en-US', {
-                timeZone: raw,
-            }).resolvedOptions().timeZone,
-        };
+        return new Intl.DateTimeFormat('en-US', {
+            timeZone: raw,
+        }).resolvedOptions().timeZone;
     } catch {
-        throw new Error(
-            'AMBUSH_TIMEZONE must be an IANA time zone (empty = Europe/Rome)',
-        );
+        throw new Error(INVALID_AMBUSH_TIMEZONE);
     }
 }
 

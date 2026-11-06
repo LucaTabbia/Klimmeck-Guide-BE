@@ -272,7 +272,7 @@ Monete via wallet, xp con progressione: **livello e HP massimi possono salire, i
 
 ## 7. Deploy
 
-- **Variabile opzionale `AMBUSH_TIMEZONE`** (`.env.example` con `AMBUSH_TIMEZONE=`): vuota = Europe/Rome; un fuso IANA non valido **rifiuta il boot**.
+- **Variabile opzionale `AMBUSH_TIMEZONE`** (`.env.example` con `AMBUSH_TIMEZONE=`): vuota = Europe/Rome; un fuso IANA non valido **rifiuta il boot**, e così un offset fisso (`+02:00`, `-0530`: ignorerebbe l'ora legale); i nomi IANA come `Etc/GMT+2` restano ammessi (review C-IN-02).
 - **Indice nuovo** `character_active_travel_ambush` (`{ deletedAt: 1, 'status.activeTravel.ambush.at': 1 }`) creato al boot dal verifier degli indici dello sweep (D-19).
 - **Nessuna migrazione, nessun one-off, nessun seeder**: i viaggi in volo al deploy non hanno imboscate e completano come prima.
 - **Runbook post-merge = build + riavvio** a cura dell'utente o dell'orchestratore **a BE fermo** (mai `npm run build` mentre il processo gira da `dist/`: `deleteOutDir` lo cancellerebbe). I dati della UAT (§6) non sono parte del deploy.
