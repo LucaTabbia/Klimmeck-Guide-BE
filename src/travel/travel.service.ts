@@ -13,6 +13,7 @@ import {
     PointOfInterestDocument,
 } from 'src/models/point-of-interest.model';
 import { TravelPreview } from 'src/models/travel-preview.model';
+import { AmbushPlanner } from './ambush/ambush-planner.service';
 import { TravelPantryReader } from './food/travel-pantry.reader';
 import { mealGuardsOf, mealSetOf } from './food/travel-food.updates';
 import { FreeTravelPlan, TravelPlanner } from './travel-planner.service';
@@ -51,6 +52,7 @@ export class TravelService {
         private readonly planner: TravelPlanner,
         private readonly scheduler: TravelScheduler,
         private readonly pantry: TravelPantryReader,
+        private readonly ambushPlanner: AmbushPlanner,
     ) {}
 
     // stesse letture e stessi codici dell'avvio, nessuna scrittura (Phase 8 D-11); cibo e vita coi numeri, mai il codice di fame (Phase 14 D-09)
@@ -67,12 +69,23 @@ export class TravelService {
         characterId: Types.ObjectId,
         poiId: Types.ObjectId,
     ): Promise<void> {
-        const plan = await this.planner.planFree(characterId, poiId);
+        const planned = await this.planner.planFree(characterId, poiId);
+        // fuori dal callback: un retry per WriteConflict riscrive la stessa imboscata (Phase 15 D-05, Pitfall 10)
+        const plan = {
+            ...planned,
+            travel: this.ambushPlanner.withAmbush(planned.travel),
+        };
         // rieseguito dal driver sui WriteConflict: la dispensa si rilegge, la partenza ricalcola sul cibo del momento (D-10)
         await this.connection.transaction((session) =>
             this.departWithMeal(characterId, plan, session),
         );
         await this.scheduler.schedule(characterId, plan.travel);
+        if (plan.travel.ambush)
+            await this.scheduler.scheduleAmbush(
+                characterId,
+                plan.travel.startTime,
+                plan.travel.ambush.at,
+            );
     }
 
     private async departWithMeal(
