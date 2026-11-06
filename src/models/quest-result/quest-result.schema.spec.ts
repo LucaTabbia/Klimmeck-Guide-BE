@@ -25,8 +25,52 @@ const validResultDoc = () => ({
     rewards: { coins: { gold: 0, silver: 1, copper: 0 }, items: [] },
 });
 
+const ambushBlock = () => ({
+    at: new Date('2026-10-21T19:59:59.999Z'),
+    nearCity: { id: new Types.ObjectId(), name: 'Crocevia' },
+    reachedCity: null,
+});
+
+const ambushResultDoc = () => ({
+    ...validResultDoc(),
+    kind: 'ambush',
+    quest: null,
+    ambush: ambushBlock(),
+});
+
 describe('quest result schema', () => {
     const Result = model('QuestResultProbe', QuestResultSchema);
+
+    it('reads a legacy result without kind as a quest (D-14)', () => {
+        const legacy = Result.hydrate({
+            _id: new Types.ObjectId(),
+            ...validResultDoc(),
+        });
+
+        expect(legacy.kind).toBe('quest');
+        expect(legacy.ambush).toBeNull();
+    });
+
+    it('requires the quest only for quest results (D-14)', () => {
+        const withoutQuest = { ...validResultDoc(), kind: 'quest' };
+        delete (withoutQuest as { quest?: unknown }).quest;
+
+        expect(
+            new Result(withoutQuest).validateSync()?.errors.quest,
+        ).toBeDefined();
+        expect(new Result(ambushResultDoc()).validateSync()).toBeUndefined();
+    });
+
+    it('requires the ambush block only for ambush results (D-14)', () => {
+        const withoutAmbush = { ...ambushResultDoc(), ambush: undefined };
+
+        expect(
+            new Result(withoutAmbush).validateSync()?.errors.ambush,
+        ).toBeDefined();
+        expect(
+            new Result({ ...validResultDoc(), kind: 'quest' }).validateSync(),
+        ).toBeUndefined();
+    });
 
     it('knows the stable outcomes', () => {
         expect(Object.values(QuestOutcome)).toEqual([

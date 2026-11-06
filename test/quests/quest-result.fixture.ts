@@ -10,6 +10,7 @@ export function buildQuestResult(overrides: Record<string, any> = {}) {
     return {
         character: new Types.ObjectId(),
         user: new Types.ObjectId(),
+        kind: 'quest',
         quest: { id: new Types.ObjectId(), type: 'job', title: 'Test Job' },
         outcome: 'success',
         resolvedAt: new Date('2026-10-24T10:00:00.000Z'),
