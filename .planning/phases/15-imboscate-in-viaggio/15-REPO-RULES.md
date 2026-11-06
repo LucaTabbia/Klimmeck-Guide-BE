@@ -48,6 +48,6 @@ Questo file è parte del contesto di OGNI piano `15-NN-PLAN.md` (citato con `@` 
 
 - `.md` (SUMMARY, VALIDATION, ROADMAP, STATE, handoff) in italiano. Gli operatori Mongo (`$set`, `$pull`, `$in`, `$lte`, …) compaiono solo nel codice o dentro code span, mai nei titoli dei test né nella prosa fuori da code span (il gate grepa anche i `.md`).
 - STATE.md si modifica solo con lo strumento Edit o con python3 `encoding='utf-8'` (mai `sed -i` su file con caratteri non ASCII). macOS: `cat -v`, `grep -F` per letterali con `$`; `timeout` non esiste.
-- `requirements mark-complete` VIETATO fuori dal piano di gate.
+- `requirements mark-complete` VIETATO fuori dal piano di chiusura (15-12, handoff), che lo esegue dopo il gate 15-11 verde.
 - Fine piano (bookkeeping, commit separato `docs(phase-15): record plan NN progress`, fuori da `files_modified`): riga della Progress Table della ROADMAP → `| 15. Imboscate in viaggio | NN/<totale> | In Progress | - |` (strumento Edit, numero `k/N` dato dall'orchestratore che vince su quello scritto nel piano); `Plan: NN of <totale>` in `.planning/STATE.md`; voce `- [ ] 15-NN-PLAN.md` del §Phase 15 della ROADMAP → `- [x]`; nella Per-Task Verification Map di `.planning/phases/15-imboscate-in-viaggio/15-VALIDATION.md` lo stato delle righe `15-NN-TT` → `✅ green` (o `❌ red` con nota); se le righe del piano mancano, aggiungerle nello stesso formato dopo l'ultima.
 - Watcher dell'IDE: se un file risulta «modificato su disco» dopo il commit ma `git status --short` è pulito, è il watcher: ignorare.

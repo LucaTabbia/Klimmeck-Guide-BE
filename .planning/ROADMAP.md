@@ -559,7 +559,19 @@ Plans:
 **Decisioni del discuss (2026-11-06)**: calibrazione morbida (0,2%/0,6% per km) con soglia 10 km; più imboscate per viaggio con risorteggio dopo ogni vittoria e deviazione sicura; zona dal POI più vicino, animali inclusi, fascia [Facile, Medio] per livello (× `XP_SCALE`); ricompense come una quest `enemy` del rango; HP e ferite del motore applicati subito anche in vittoria; città più vicina per strada, meta compresa, senza costi sulla deviazione; push su ogni sconfitta; report tutti all'arrivo senza push in più (`travelEnd` come oggi); contratto `kind` / `quest` nullable / `ambush` come default tecnico (CONTEXT D-01..D-16).
 **Unblocks (FE)**: FE Phase 16 (AMBUSH-01..03).
 **Branch**: `feat/15-imboscate-in-viaggio` da `develop` → PR a `develop`.
-**Plans**: TBD
+**Plans**: 12 piani (wave sequenziali)
+- [ ] 15-01-PLAN.md — `AMBUSH_TIMEZONE` opzionale validata con drift di `.env.example`; `AMBUSH_RULES` e `AMBUSH_MAX_ATTEMPTS`; premi per titolo (legend come hero); `LEVEL_BANDS`/`xpBandOf`; ora locale via `Intl` (`hourCycle h23`, sonda DST)
+- [ ] 15-02-PLAN.md — `gameDistanceKm` estratta da `RoadsService`; `drawAmbush` km per km (mai `at ≥ endTime`, nessun tiro sotto i 10 km); `pointAtFraction` planare come il FE; `nearestPoi`
+- [ ] 15-03-PLAN.md — sotto-documenti interni `ambush { at, km, attempts }` e `ambushReports[]` senza `@Field`; job `ambush` con `ambushJobId`; `AmbushPlanner`; `scheduleAmbush`/`cancelAmbush`; sorteggio in `startTravel` e `movementTo` con anteprime mute; mondo di test ≥ 10 km
+- [ ] 15-04-PLAN.md — estrazione di `composeEnemies` (refactor con le spec a seme fisso verdi); pool con animali come parametro; composizione nella fascia del livello; `readCombatCatalog`; export degli helper di `outcome-plan.ts` e delle porte di `QuestOutcomesModule`
+- [ ] 15-05-PLAN.md — `RoadsService.nearestByTime` (un solo `singleSource`, parità per id, ripiego sui vertici, deviazione di lunghezza zero); `TravelPlanner.speedOfCharacter`
+- [ ] 15-06-PLAN.md — `ambushFilter`; piano puro della vittoria; `AmbushResolutionService` (composizione e risorteggio fuori dal callback, combattimento dentro, wallet, recuperi ancorati ad `at`, ri-accodo del `complete`, pool non componibile saltato); `AmbushModule` col solo servizio; `overrides` nell'harness
+- [ ] 15-07-PLAN.md — `PushEventType.ambushDefeat` con catalogo e builder (SDL additivo rigenerato); piano della sconfitta e della deviazione con ripiego sulla strada residua; sconfitta nel servizio con città più vicina, abbandono della corsia via `unstartedSeatReleaseOf`, push dopo il commit
+- [ ] 15-08-PLAN.md — indice `character_active_travel_ambush` (verifier RED prima); `AmbushProcessor`; `AmbushSweeper` con reconciler, single-flight e fail-open al terzo errore; montaggio in `AppModule`; prova su Redis reale accanto a `complete`
+- [ ] 15-09-PLAN.md — `QuestResultKind`, `AmbushReport`/`AmbushCity`, `quest` nullable (SDL con la sola riga tolta); `ambushResultDraftsOf`; `completionFilter` che aspetta l'imboscata e inserisce i report con `ordered: true`; teleport transazionale che annulla e consegna
+- [ ] 15-10-PLAN.md — suite d'integrazione di D-16 sul ciclo completo (mutation → subscription → ack) con concorrenza, DST, soglie, trigger, teleport e D-17
+- [ ] 15-11-PLAN.md — gate (`tsc`, `test:cov` con timeout 600000 ms e ripiego per cartella, boot reale, SDL con 1 riga tolta e 17 aggiunte, lint mirato, invarianti); firma della VALIDATION
+- [ ] 15-12-PLAN.md — handoff `BACKEND-NOTES.md` per la FE 16; emendamenti in coda agli handoff della Phase 8 e della 9.2; nota Executed nel CONTEXT; `requirements mark-complete`; stato in ROADMAP e STATE
 ### Phase 16: Lore sbloccabili
 **Goal**: La conoscenza è per personaggio: un insieme di lore sbloccate sul `Character`, inizializzato con la lore della città natale e della sua regione, arricchito dall'arrivo su una città (anche teleport e salto istantaneo), dalla vittoria contro i nemici (tutti i partecipanti vincenti) e, per le `study` senza magia appresa, da un tiro su una lore casuale ancora chiusa fra i tipi da studio; nessuna cascata sulle `relatedLore`; le query di lore filtrano per il personaggio del bearer e le quest espongono se ogni nemico è conosciuto.
 **Depends on**: Phase 3 (ownership, `characterUpdated`), Phase 8 (arrivo, teleport), Phase 9 (esiti, `study`), Phase 11 (lore e collegamenti), Phase 13 (`enemies`)
@@ -620,5 +632,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 13. Generazione quest | 20/20 | Complete | 2026-11-04 |
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
-| 15. Imboscate in viaggio | 0/0 | Not started | - |
+| 15. Imboscate in viaggio | 0/12 | Planned | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
