@@ -1,6 +1,12 @@
 import { Field, Float, ID, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Schema as MongooseSchema, Types } from 'mongoose';
+import {
+    AmbushPlanEntry,
+    AmbushPlanEntrySchema,
+    AmbushReportSnapshot,
+    AmbushReportSnapshotSchema,
+} from './ambush-snapshot.model';
 
 // tipo del viaggio persistito per la push di fine viaggio (D-14): interno, mai su GraphQL
 export enum TravelKind {
@@ -55,6 +61,13 @@ export class ActiveTravel {
 
     @Prop({ type: String, enum: Object.values(TravelKind), required: true })
     kind: TravelKind;
+
+    // interni come kind: un viaggio senza imboscata non li scrive (Phase 15 D-05, D-13)
+    @Prop({ type: AmbushPlanEntrySchema, required: false })
+    ambush?: AmbushPlanEntry | null;
+
+    @Prop({ type: [AmbushReportSnapshotSchema], default: undefined })
+    ambushReports?: AmbushReportSnapshot[];
 }
 
 export const ActiveTravelSchema = SchemaFactory.createForClass(ActiveTravel);

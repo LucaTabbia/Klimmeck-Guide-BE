@@ -11,6 +11,12 @@ export interface TravelSpeed {
     invalid: boolean;
 }
 
+export interface ActiveTravelAmbush {
+    at: Date;
+    km: number;
+    attempts: number;
+}
+
 export interface ActiveTravelDraft {
     road: { coordinates: LonLat[]; distance: number };
     startTime: Date;
@@ -18,6 +24,7 @@ export interface ActiveTravelDraft {
     duration: number;
     to: Types.ObjectId;
     kind: TravelKind;
+    ambush?: ActiveTravelAmbush;
 }
 
 // null = non cavalcabile; un modificatore non valido vale come assente e il chiamante logga il solo id del pet (D-08)

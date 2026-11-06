@@ -151,7 +151,8 @@ describe('active travel schemas', () => {
 
     it('validates a held report with a null reached city (D-13)', () => {
         const Travel = model('ActiveTravelReportProbe', ActiveTravelSchema);
-        const { nearCity: _nearCity, ...withoutNearCity } = heldReport();
+        const withoutNearCity = heldReport();
+        delete withoutNearCity.nearCity;
 
         expect(
             new Travel({
