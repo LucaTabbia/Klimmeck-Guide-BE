@@ -5,6 +5,7 @@ import { Road, RoadDocument } from 'src/models/road.model';
 import Graph from 'graphology';
 import { dijkstra } from 'graphology-shortest-path';
 import { LonLat, RoadRoute, RouteEdge, routeOf } from './road-route';
+import { gameDistanceKm } from './game-distance';
 import { PathResponse } from 'src/models/path-response.model';
 import { PointOfInterestsService } from 'src/pointsOfInterest/point-of-interest.service';
 
@@ -12,8 +13,6 @@ import { PointOfInterestsService } from 'src/pointsOfInterest/point-of-interest.
 export class RoadsService implements OnModuleInit {
     private readonly logger = new Logger(RoadsService.name);
     private graph: Graph;
-
-    private readonly R = 127.42;
 
     private readonly MAX_SNAP_DISTANCE_KM = 5;
 
@@ -36,32 +35,6 @@ export class RoadsService implements OnModuleInit {
         ];
     }
 
-    private toRad(degrees: number): number {
-        return degrees * (Math.PI / 180);
-    }
-
-    private haversineDistance(
-        a: [number, number],
-        b: [number, number],
-    ): number {
-        const [lon1, lat1] = a;
-        const [lon2, lat2] = b;
-
-        const latRad1 = this.toRad(lat1);
-        const latRad2 = this.toRad(lat2);
-        const deltaLat = this.toRad(lat2 - lat1);
-        const deltaLon = this.toRad(lon2 - lon1);
-
-        const a_haversine =
-            Math.sin(deltaLat / 2) ** 2 +
-            Math.cos(latRad1) * Math.cos(latRad2) * Math.sin(deltaLon / 2) ** 2;
-
-        const c =
-            2 * Math.atan2(Math.sqrt(a_haversine), Math.sqrt(1 - a_haversine));
-
-        return this.R * c;
-    }
-
     private findNearestNode([lon, lat]: [number, number]): string {
         const nearestKey = this.nearestNodeWithinSnap([lon, lat]);
 
@@ -79,7 +52,7 @@ export class RoadsService implements OnModuleInit {
         let minDist = Infinity;
 
         this.graph.forEachNode((key, attrs) => {
-            const dist = this.haversineDistance(coord, attrs.coord as LonLat);
+            const dist = gameDistanceKm(coord, attrs.coord as LonLat);
 
             if (dist < minDist && dist < this.MAX_SNAP_DISTANCE_KM) {
                 minDist = dist;
@@ -111,10 +84,7 @@ export class RoadsService implements OnModuleInit {
                     graph.addNode(endKey, { coord: endCoord });
                 }
 
-                const segmentLengthKm = this.haversineDistance(
-                    startCoord,
-                    endCoord,
-                );
+                const segmentLengthKm = gameDistanceKm(startCoord, endCoord);
 
                 const speedFactor = road.speedFactor || 1;
                 const weight = segmentLengthKm / speedFactor;
