@@ -22,6 +22,8 @@ const IDENTIFIED_TYPES = [
     PushEventType.questCancelled,
     PushEventType.ambushDefeat,
 ];
+// il builder compone il corpo con la città (D-12): il push di prova tiene quello generico del catalogo
+const COMPOSED_BODY_TYPES = [PushEventType.ambushDefeat];
 
 describe('push event catalog', () => {
     it('builds travelEnd with the character id and a 1 h ttl', () => {
@@ -95,9 +97,11 @@ describe('push event catalog', () => {
             expect(message).toMatchObject({
                 type: built.type,
                 title: built.title,
-                body: built.body,
                 ttlSeconds: built.ttlSeconds,
             });
+            if (!COMPOSED_BODY_TYPES.includes(type)) {
+                expect(message.body).toBe(built.body);
+            }
             if (IDENTIFIED_TYPES.includes(type)) {
                 expect(message.id).toBe('abc');
             } else {

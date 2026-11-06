@@ -504,6 +504,7 @@ type PushDeliveryReport {
 }
 
 enum PushEventType {
+  ambushDefeat
   questCancelled
   questEnd
   streamerLive

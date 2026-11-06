@@ -31,12 +31,19 @@ const CATALOG: Record<PushEventType, CatalogEntry> = {
         body: 'Il gruppo non si è formato in tempo: la missione è stata annullata.',
         ttlSeconds: PERSONAL_TTL_SECONDS,
     },
+    [PushEventType.ambushDefeat]: {
+        type: PushEventType.ambushDefeat,
+        title: 'Imboscata!',
+        body: 'Sei stato sconfitto: la via torna verso la città più vicina.',
+        ttlSeconds: PERSONAL_TTL_SECONDS,
+    },
 };
 
 const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
     PushEventType.travelEnd,
     PushEventType.questEnd,
     PushEventType.questCancelled,
+    PushEventType.ambushDefeat,
 ]);
 
 // Phase 8 (fine viaggio), Phase 9 (esiti delle missioni, OutcomeWriter), Phase 6 (stream.online) chiamano PushService con questi builder (D-12)
@@ -55,6 +62,16 @@ export const questEnd = (resultId: string): PushMessage => ({
 export const questCancelled = (questId: string): PushMessage => ({
     ...CATALOG[PushEventType.questCancelled],
     id: questId,
+});
+
+// sconfitta in imboscata (Phase 15 D-12): id = personaggio, corpo con la città raggiunta composto dal BE
+export const ambushDefeat = (
+    characterId: string,
+    cityName: string,
+): PushMessage => ({
+    ...CATALOG[PushEventType.ambushDefeat],
+    id: characterId,
+    body: `Sei stato sconfitto: la via torna verso ${cityName}`,
 });
 
 export const streamerLive = (): PushMessage => ({
