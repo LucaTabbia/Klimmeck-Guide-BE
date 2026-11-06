@@ -1,6 +1,9 @@
+import type { Job } from 'bull';
 import { toCopper } from 'src/economy/coins';
+import { RoleType } from 'src/models/enums/role-type.enum';
 import { PushEventType } from 'src/push/push-event-type.enum';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
+import { levelRowFor } from 'src/quests/outcomes/progression/level-table';
 import { QuestResultsModule } from 'src/quests/results/quest-results.module';
 import { RoadsService } from 'src/roads/roads.service';
 import { travelJobId } from 'src/travel/travel-job';
@@ -18,7 +21,11 @@ import {
     createPlayer,
     type TestPlayer,
 } from '../../../test/authz/player-fixture';
-import { buildCharacter } from '../../../test/fixtures';
+import {
+    buildCharacter,
+    buildQuest,
+    persistQuest,
+} from '../../../test/fixtures';
 import {
     primeChangeStream,
     questResultTouch,
@@ -40,10 +47,15 @@ import {
 } from '../../../test/travel/ambush-world';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 import { HARDY_LIFE_POINTS } from '../../../test/travel/travel-food.fixture';
-import type { AmbushIdentity } from './ambush-job';
+import {
+    type AmbushIdentity,
+    type AmbushJobData,
+    ambushJobId,
+} from './ambush-job';
 import { AmbushResolutionService } from './ambush-resolution.service';
 import { AmbushSweeper } from './ambush-sweeper';
 import { AmbushModule } from './ambush.module';
+import { AmbushProcessor } from './ambush.processor';
 
 // ciclo completo (D-16): partenza via GraphQL, trigger, risoluzione, arrivo, consegna, subscription e conferma.
 // Tiri della SequenceChance: alla partenza un tiro per km fino al colpo; alla risoluzione la composizione
@@ -65,6 +77,10 @@ const ACTIVE_TRAVEL_FIELDS =
     '{ __type(name: "ActiveTravel") { fields { name } } }';
 const UNACKNOWLEDGED =
     '{ unacknowledgedQuestResults { id kind outcome resolvedAt quest { title } ambush { at nearCity { name } reachedCity { name } } } }';
+const ACCEPT =
+    'mutation Accept($request: AcceptQuestRequest!) { acceptQuest(request: $request) { response successful } }';
+const TELEPORT =
+    'mutation Teleport($request: TravelRequest!) { teleportCharacter(request: $request) { response successful } }';
 const CONFIRM =
     'mutation Confirm($id: String!) { acknowledgeQuestResult(id: $id) { successful } }';
 const QUEST_RESULT_RECEIVED =
@@ -177,11 +193,14 @@ describe('ambush lifecycle (replSet)', () => {
         };
     };
 
-    // l'orologio passa l'imboscata pendente e lo sweep la risolve
-    const resolvePendingAmbush = async (player: TestPlayer): Promise<void> => {
+    // l'orologio passa l'imboscata pendente e lo sweep la risolve (conta vittorie e sconfitte, non le imboscate saltate)
+    const resolvePendingAmbush = async (
+        player: TestPlayer,
+        fought = 1,
+    ): Promise<void> => {
         const { ambush } = await rawTravelOf(player);
         moveClockTo(oneMinuteAfter(ambush.at as Date));
-        expect(await sweepAmbushes()).toBe(1);
+        expect(await sweepAmbushes()).toBe(fought);
     };
 
     const arrive = async (player: TestPlayer): Promise<void> => {
@@ -515,5 +534,353 @@ describe('ambush lifecycle (replSet)', () => {
         expect(toCopper((await statusOf(player)).coins)).toBe(
             toCopper(before.coins) + RANK_COPPER,
         );
+    });
+
+    describe('defeats, thresholds and triggers', () => {
+        const NIGHT_IN_ROME = new Date('2026-10-21T20:00:00.000Z');
+        const DAY_IN_ROME = new Date('2026-10-21T10:00:00.000Z');
+        const BEFORE_DST = new Date('2026-03-28T03:30:00.000Z');
+        const AFTER_DST = new Date('2026-03-29T03:30:00.000Z');
+        // fra il rischio del giorno (0.002) e quello della notte (0.006)
+        const NIGHT_ONLY_HIT = 0.004;
+        const LEVEL_TWENTY_XP = 50_000;
+        const POLL_STEP_MS = 50;
+        const POLL_DEADLINE_MS = 5_000;
+
+        const defeatBody = (city: string): string =>
+            `Sei stato sconfitto: la via torna verso ${city}`;
+
+        const pushTypesOf = (): string[] =>
+            world.push.sent.map(({ message }) => message.type);
+
+        const ambushJobsAdded = () =>
+            travelQueue.added.filter(({ name }) => name === 'ambush');
+
+        // il job com'era accodato alla partenza o dopo la vittoria, consegnato a mano al processor
+        const runJob = (job: {
+            data: unknown;
+            options: Record<string, unknown>;
+        }): Promise<void> =>
+            app()
+                .get(AmbushProcessor)
+                .handle({
+                    id: job.options.jobId,
+                    data: job.data,
+                } as Job<AmbushJobData>);
+
+        const teleportByGm = async (
+            player: TestPlayer,
+            poiId = map.markers.erta,
+        ): Promise<void> => {
+            seq += 1;
+            const gm = await createPlayer(world.harness, {
+                twitchId: `ambush-lifecycle-gm-${seq}`,
+                role: RoleType.innkeeper,
+            });
+            const response = await graphqlRequest(
+                app(),
+                TELEPORT,
+                { request: { id: idOf(player), poiId: String(poiId) } },
+                gm.bearer,
+            );
+            expect(response.body.errors).toBeUndefined();
+            expect(response.body.data.teleportCharacter.successful).toBe(true);
+        };
+
+        const acceptQuest = async (
+            player: TestPlayer,
+            questId: unknown,
+        ): Promise<void> => {
+            const response = await graphqlRequest(
+                app(),
+                ACCEPT,
+                { request: { id: idOf(player), questId: String(questId) } },
+                player.bearer,
+            );
+            expect(response.body.errors).toBeUndefined();
+            expect(response.body.data.acceptQuest.successful).toBe(true);
+        };
+
+        const rawCharacterOf = async (player: TestPlayer): Promise<any> =>
+            world.models.characters
+                .findById(player.character!._id)
+                .lean<any>()
+                .exec();
+
+        const pause = (ms: number): Promise<void> =>
+            new Promise((resolve) => setTimeout(resolve, ms));
+
+        const waitFor = async (
+            predicate: () => Promise<boolean>,
+        ): Promise<boolean> => {
+            const deadline = Date.now() + POLL_DEADLINE_MS;
+            while (Date.now() < deadline) {
+                if (await predicate()) return true;
+                await pause(POLL_STEP_MS);
+            }
+            return predicate();
+        };
+
+        it('loses on a quest travel, abandons the quest, detours and delivers at the city (D-11, D-12, D-13)', async () => {
+            const player = await departingPlayer();
+            const base = buildQuest();
+            const quest = await persistQuest(world.models.quests, {
+                infos: {
+                    ...base.infos,
+                    type: 'enemy',
+                    markerLocation: map.questPoi,
+                    timeToComplete: 60_000,
+                },
+                requirements: {
+                    ...base.requirements,
+                    requiredAdventurers: [{ title: null, count: 2 }],
+                },
+            });
+            chance.load([...rollsHittingKm(10), ...SINGLE_FIRST_CANDIDATE]);
+            combat
+                .willEnd('failure')
+                .willResolve(player.character!._id as never, { hpAfter: 0 });
+            await acceptQuest(player, quest._id);
+            const accepted = await rawCharacterOf(player);
+            const pendingQuestId = accepted.quests.pendingQuest;
+            expect(accepted.status.activeTravel.ambush.km).toBe(10);
+            expect(
+                (await world.models.quests.findById(quest._id).lean<any>())
+                    .registeredAdventurers,
+            ).toHaveLength(1);
+
+            await resolvePendingAmbush(player);
+
+            const defeated = await rawCharacterOf(player);
+            expect(defeated.quests.pendingQuest).toBeNull();
+            expect(
+                await world.models.pendingQuests.findById(pendingQuestId),
+            ).toBeNull();
+            expect(
+                (await world.models.quests.findById(quest._id).lean<any>())
+                    .registeredAdventurers,
+            ).toEqual([]);
+            expect(defeated.status.currentLifePoints).toBeGreaterThanOrEqual(1);
+            expect(String(defeated.status.activeTravel.to)).toBe(
+                String(map.markers.crocevia),
+            );
+            expect(world.push.sent.map(({ message }) => message)).toEqual([
+                expect.objectContaining({
+                    type: PushEventType.ambushDefeat,
+                    body: defeatBody('Crocevia'),
+                }),
+            ]);
+
+            await arrive(player);
+
+            expect(await unacknowledgedOf(player)).toEqual([
+                expect.objectContaining({
+                    kind: 'ambush',
+                    outcome: 'failure',
+                    ambush: expect.objectContaining({
+                        reachedCity: { name: 'Crocevia' },
+                    }),
+                }),
+            ]);
+            expect(String((await rawCharacterOf(player)).status.location)).toBe(
+                String(map.markers.crocevia),
+            );
+            expect(pushTypesOf()).toEqual([
+                PushEventType.ambushDefeat,
+                PushEventType.travelEnd,
+            ]);
+        });
+
+        it('detours to the destination when it is the nearest city and still pushes (D-11, D-12)', async () => {
+            const player = await departingPlayer();
+            chance.load([...rollsHittingKm(16), ...SINGLE_FIRST_CANDIDATE]);
+            combat.willEnd('failure');
+            await startTravel(player);
+
+            await resolvePendingAmbush(player);
+
+            expect(String((await rawTravelOf(player)).to)).toBe(
+                String(map.markers.borgo),
+            );
+            expect(world.push.sent.map(({ message }) => message)).toEqual([
+                expect.objectContaining({
+                    type: PushEventType.ambushDefeat,
+                    body: defeatBody('Borgo'),
+                }),
+            ]);
+        });
+
+        it('pushes every defeat and never a victory (D-12)', async () => {
+            const player = await departingPlayer();
+            loadTwoVictories();
+            let fights = 0;
+            combat.willEndBy(() => (++fights === 1 ? 'success' : 'failure'));
+            await startTravel(player);
+
+            await resolvePendingAmbush(player);
+            expect(pushTypesOf()).toEqual([]);
+            await resolvePendingAmbush(player);
+            expect(pushTypesOf()).toEqual([PushEventType.ambushDefeat]);
+            await arrive(player);
+
+            expect(
+                (await unacknowledgedOf(player)).map(({ outcome }) => outcome),
+            ).toEqual(['success', 'failure']);
+            expect(pushTypesOf()).toEqual([
+                PushEventType.ambushDefeat,
+                PushEventType.travelEnd,
+            ]);
+        });
+
+        it('draws at night but not by day in the configured zone (D-01)', async () => {
+            const night = await departingPlayer();
+            const day = await departingPlayer();
+
+            moveClockTo(NIGHT_IN_ROME);
+            chance.load([NIGHT_ONLY_HIT]);
+            await startTravel(night);
+            moveClockTo(DAY_IN_ROME);
+            chance.load([NIGHT_ONLY_HIT]);
+            await startTravel(day);
+
+            expect((await rawTravelOf(night)).ambush.km).toBe(1);
+            expect((await rawTravelOf(day)).ambush ?? null).toBeNull();
+            expect(chance.drawn[0]).toBe(NIGHT_ONLY_HIT);
+        });
+
+        it('follows the daylight saving change of the zone (D-01)', async () => {
+            const winter = await departingPlayer();
+            const summer = await departingPlayer();
+
+            moveClockTo(BEFORE_DST);
+            chance.load([NIGHT_ONLY_HIT]);
+            await startTravel(winter);
+            moveClockTo(AFTER_DST);
+            chance.load([NIGHT_ONLY_HIT]);
+            await startTravel(summer);
+
+            expect((await rawTravelOf(winter)).ambush.km).toBe(1);
+            expect((await rawTravelOf(summer)).ambush ?? null).toBeNull();
+        });
+
+        it('never draws under ten km and never redraws with less than ten km left (D-03)', async () => {
+            const short = await departingPlayer();
+            await startTravel(short, map.markers.erta);
+            expect((await rawTravelOf(short)).ambush ?? null).toBeNull();
+            expect(chance.drawn).toEqual([]);
+
+            const long = await departingPlayer();
+            const departure = rollsHittingKm(11);
+            chance.load([...departure, ...SINGLE_FIRST_CANDIDATE]);
+            await startTravel(long);
+            await resolvePendingAmbush(long);
+
+            const travel = await rawTravelOf(long);
+            expect(travel.ambush).toBeNull();
+            expect(travel.ambushReports).toHaveLength(1);
+            expect(chance.drawn).toHaveLength(
+                departure.length + SINGLE_FIRST_CANDIDATE.length,
+            );
+        });
+
+        it('ignores duplicate, early and stale ambush jobs (D-05)', async () => {
+            const player = await departingPlayer();
+            loadTwoVictories();
+            await startTravel(player);
+            const [departureJob] = ambushJobsAdded();
+
+            await runJob(departureJob);
+            expect((await rawTravelOf(player)).ambush.km).toBe(3);
+            expect((await rawTravelOf(player)).ambushReports ?? []).toEqual([]);
+
+            moveClockTo(oneMinuteAfter((await identityOf(player)).at));
+            await runJob(departureJob);
+            await runJob(departureJob);
+            const travel = await rawTravelOf(player);
+            expect(travel.ambush.km).toBe(9);
+            expect(travel.ambushReports).toHaveLength(1);
+
+            const [, redrawnJob] = ambushJobsAdded();
+            await teleportByGm(player);
+            moveClockTo(oneMinuteAfter(travel.ambush.at as Date));
+            await runJob(redrawnJob);
+
+            expect(await world.models.questResults.countDocuments()).toBe(1);
+            expect((await rawCharacterOf(player)).status.activeTravel).toBe(
+                null,
+            );
+            expect(combat.contexts).toHaveLength(1);
+        });
+
+        it('resolves a lost job at boot and on sweep (D-05)', async () => {
+            const sweeper = app().get(AmbushSweeper);
+            const atBoot = await departingPlayer();
+            chance.load([...rollsHittingKm(16), ...SINGLE_FIRST_CANDIDATE]);
+            await startTravel(atBoot);
+            moveClockTo(oneMinuteAfter((await identityOf(atBoot)).at));
+
+            sweeper.onApplicationBootstrap();
+
+            expect(
+                await waitFor(
+                    async () =>
+                        ((await rawTravelOf(atBoot)).ambushReports ?? [])
+                            .length === 1,
+                ),
+            ).toBe(true);
+            // il reconciler non si attende: lo sweep successivo parte dopo la sua fine (single-flight)
+            await sweeper.sweep();
+
+            const onSweep = await departingPlayer();
+            chance.load([...rollsHittingKm(16), ...SINGLE_FIRST_CANDIDATE]);
+            await startTravel(onSweep);
+            moveClockTo(oneMinuteAfter((await identityOf(onSweep)).at));
+
+            expect(await sweeper.sweep()).toBe(1);
+            expect((await rawTravelOf(onSweep)).ambushReports).toHaveLength(1);
+            expect(travelQueue.process).not.toHaveBeenCalled();
+        });
+
+        it('cancels the pending ambush and delivers the reports on teleport (D-02, D-13)', async () => {
+            const player = await departingPlayer();
+            loadTwoVictories();
+            await startTravel(player);
+            await resolvePendingAmbush(player);
+            const pending = await identityOf(player);
+
+            await teleportByGm(player);
+
+            expect(
+                (await unacknowledgedOf(player)).map(({ kind }) => kind),
+            ).toEqual(['ambush']);
+            expect(travelQueue.removed).toContain(
+                ambushJobId(pending.characterId, pending.startTime, pending.at),
+            );
+            moveClockTo(oneMinuteAfter(pending.at));
+            expect(await sweepAmbushes()).toBe(0);
+            expect(await world.models.questResults.countDocuments()).toBe(1);
+        });
+
+        it('skips an ambush without composable enemies (D-08)', async () => {
+            const row = levelRowFor(LEVEL_TWENTY_XP);
+            const player = await departingPlayer({
+                xp: LEVEL_TWENTY_XP,
+                level: row.level,
+            });
+            // solo i tiri della partenza: con il fallback nessuna forma compone un branco di draghi (fascia del livello 20)
+            chance.load(rollsHittingKm(3));
+            await startTravel(player);
+            const before = await statusOf(player);
+
+            await resolvePendingAmbush(player, 0);
+
+            const travel = await rawTravelOf(player);
+            expect(travel.ambush).toBeNull();
+            expect(travel.ambushReports ?? []).toEqual([]);
+            expect(combat.contexts).toEqual([]);
+            expect(await statusOf(player)).toEqual(before);
+            await arrive(player);
+            expect(await unacknowledgedOf(player)).toEqual([]);
+        });
     });
 });
