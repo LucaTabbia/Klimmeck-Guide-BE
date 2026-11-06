@@ -4,12 +4,14 @@ import { Types } from 'mongoose';
 import { FAILED_JOBS_KEPT } from 'src/queues/enqueue-trigger';
 import { FixedClock } from '../../test/auth/fixed-clock';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
+import { AMBUSH_JOB, ambushJobId } from './ambush/ambush-job';
 import { TRAVEL_COMPLETE_JOB, TravelJobData, travelJobId } from './travel-job';
 import { TravelScheduler } from './travel-scheduler.service';
 
 const NOW = new Date('2026-10-21T10:00:00.000Z');
 const START = new Date('2026-10-21T09:30:00.000Z');
 const END = new Date('2026-10-21T11:00:00.000Z');
+const AMBUSH_AT = new Date('2026-10-21T10:20:00.000Z');
 const TIMEOUT_MS = 20;
 
 describe('TravelScheduler', () => {
@@ -152,6 +154,52 @@ describe('TravelScheduler', () => {
 
             expect(warnings()).toEqual([
                 `Rimozione del job ${jobId} non confermata entro ${TIMEOUT_MS} ms: il job si neutralizza da solo`,
+            ]);
+        });
+    });
+
+    describe('ambush trigger', () => {
+        const ambushId = ambushJobId(characterId, START, AMBUSH_AT);
+
+        it('enqueues the ambush trigger at the ambush instant (D-05)', async () => {
+            await scheduler.scheduleAmbush(characterId, START, AMBUSH_AT);
+
+            expect(queue.added).toEqual([
+                {
+                    name: AMBUSH_JOB,
+                    data: {
+                        characterId: characterId.toHexString(),
+                        startTime: START.getTime(),
+                        at: AMBUSH_AT.getTime(),
+                    },
+                    options: {
+                        jobId: ambushId,
+                        delay: AMBUSH_AT.getTime() - NOW.getTime(),
+                        removeOnComplete: true,
+                        removeOnFail: FAILED_JOBS_KEPT,
+                    },
+                },
+            ]);
+            expect(warnings()).toEqual([]);
+        });
+
+        it('removes the ambush job by its identity (D-05)', async () => {
+            await scheduler.scheduleAmbush(characterId, START, AMBUSH_AT);
+
+            await scheduler.cancelAmbush(characterId, START, AMBUSH_AT);
+
+            expect(queue.removed).toEqual([ambushId]);
+            expect(warnings()).toEqual([]);
+
+            await scheduler.scheduleAmbush(characterId, START, AMBUSH_AT);
+            queue.failRemove = true;
+
+            await expect(
+                scheduler.cancelAmbush(characterId, START, AMBUSH_AT),
+            ).resolves.toBeUndefined();
+
+            expect(warnings()).toEqual([
+                `Rimozione del job ${ambushId} non riuscita: il job si neutralizza da solo`,
             ]);
         });
     });
