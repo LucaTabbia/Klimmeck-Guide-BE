@@ -53,6 +53,8 @@ const TRAVEL_QUEUE_REGISTRATION = BullModule.registerQueue({
         { provide: Clock, useClass: SystemClock },
         { provide: QUEUE_CALL_TIMEOUT, useValue: QUEUE_CALL_TIMEOUT_MS },
         ambushConfigProvider,
+        // sorteggio della partenza (AmbushPlanner): stesso binding di QuestOutcomesModule, non importabile qui senza un ciclo;
+        // stessa classe senza stato, gli harness li sovrascrivono per token in tutti i moduli
         { provide: ChanceSource, useClass: MathChanceSource },
         AmbushPlanner,
     ],

@@ -95,7 +95,8 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         QuestResolutionSweeper,
         GmCompletionService,
     ],
-    // la stessa porta del motore per quest e imboscate: il binding cambia in un solo posto
+    // la porta del motore per quest e imboscate (combattimento, composizione); il sorteggio della partenza ha un secondo binding
+    // in TravelPlanningModule (importare questo modulo creerebbe un ciclo): stessa classe senza stato, gli harness li sovrascrivono per token in tutti i moduli
     exports: [
         OutcomeWriter,
         QuestResolutionService,
