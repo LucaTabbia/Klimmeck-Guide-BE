@@ -54,9 +54,9 @@ created: 2026-11-06
 | 15-04-02 | 04 | 4 | BE-AMBUSH-03 | T-15-10 | mai leggendari, fascia del livello come tetto | unit | `npx jest src/travel/ambush --selectProjects unit` | ✅ | ✅ green |
 | 15-04-03 | 04 | 4 | BE-AMBUSH-03, BE-AMBUSH-04 | T-15-12 | catalogo estratto senza cambi, WARN coi soli id | unit + integration | `npx jest src/quests/outcomes --selectProjects unit && npx jest src/quests/outcomes --selectProjects integration --runInBand` | ✅ (casi nuovi) | ✅ green |
 | 15-04-04 | 04 | 4 | BE-AMBUSH-03 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-04-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 15-05-01 | 05 | 5 | BE-AMBUSH-05 | T-15-13, T-15-14 | un solo Dijkstra, null invece di eccezioni, parità per id | integration | `npx jest src/roads --selectProjects integration --runInBand` | ✅ (casi nuovi) | ⬜ pending |
-| 15-05-02 | 05 | 5 | BE-AMBUSH-05 | — | velocità pubblica invariata nel comportamento | integration | `npx jest src/travel/travel-planning.int-spec.ts --selectProjects integration --runInBand` | ✅ (casi nuovi) | ⬜ pending |
-| 15-05-03 | 05 | 5 | BE-AMBUSH-05 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-05-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 15-05-01 | 05 | 5 | BE-AMBUSH-05 | T-15-13, T-15-14 | un solo Dijkstra, null invece di eccezioni, parità per id | integration | `npx jest src/roads --selectProjects integration --runInBand` | ✅ (casi nuovi) | ✅ green |
+| 15-05-02 | 05 | 5 | BE-AMBUSH-05 | — | velocità pubblica invariata nel comportamento | integration | `npx jest src/travel/travel-planning.int-spec.ts --selectProjects integration --runInBand` | ✅ (casi nuovi) | ✅ green |
+| 15-05-03 | 05 | 5 | BE-AMBUSH-05 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-05-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 15-06-01 | 06 | 6 | BE-AMBUSH-02, BE-AMBUSH-04 | T-15-15, T-15-16 | identità riaffermata, HP clampati, titolo mai scritto | unit | `npx jest src/travel/ambush --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 15-06-02 | 06 | 6 | BE-AMBUSH-02, BE-AMBUSH-03, BE-AMBUSH-04 | T-15-15, T-15-17, T-15-18, T-15-19 | un solo effetto per imboscata, monete solo via wallet in sessione, caso fuori dal callback, nessun push in vittoria | integration | `npx jest src/travel/ambush src/quests/outcomes --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 15-06-03 | 06 | 6 | BE-AMBUSH-04 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-06-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
