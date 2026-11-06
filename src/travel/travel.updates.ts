@@ -158,10 +158,12 @@ export function classifyUnteleported(
 }
 
 // l'istante arriva dal Clock del chiamante, mai l'ora del server Mongo: lo sweep resta testabile con FixedClock
+// un'imboscata pendente resta all'AmbushSweeper (D-13): risolta o annullata, ri-accoda lei il completamento
 export function dueTravelsFilter(now: Date): Record<string, unknown> {
     return {
         ...ACTIVE_CHARACTER_FILTER,
         'status.activeTravel.endTime': { $lte: now },
+        'status.activeTravel.ambush': null,
     };
 }
 
