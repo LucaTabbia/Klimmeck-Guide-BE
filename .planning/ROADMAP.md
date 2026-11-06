@@ -561,7 +561,7 @@ Plans:
 **Branch**: `feat/15-imboscate-in-viaggio` da `develop` → PR a `develop`.
 **Plans**: 12 piani (wave sequenziali)
 - [x] 15-01-PLAN.md — `AMBUSH_TIMEZONE` opzionale validata con drift di `.env.example`; `AMBUSH_RULES` e `AMBUSH_MAX_ATTEMPTS`; premi per titolo (legend come hero); `LEVEL_BANDS`/`xpBandOf`; ora locale via `Intl` (`hourCycle h23`, sonda DST)
-- [ ] 15-02-PLAN.md — `gameDistanceKm` estratta da `RoadsService`; `drawAmbush` km per km (mai `at ≥ endTime`, nessun tiro sotto i 10 km); `pointAtFraction` planare come il FE; `nearestPoi`
+- [x] 15-02-PLAN.md — `gameDistanceKm` estratta da `RoadsService`; `drawAmbush` km per km (mai `at ≥ endTime`, nessun tiro sotto i 10 km); `pointAtFraction` planare come il FE; `nearestPoi`
 - [ ] 15-03-PLAN.md — sotto-documenti interni `ambush { at, km, attempts }` e `ambushReports[]` senza `@Field`; job `ambush` con `ambushJobId`; `AmbushPlanner`; `scheduleAmbush`/`cancelAmbush`; sorteggio in `startTravel` e `movementTo` con anteprime mute; mondo di test ≥ 10 km
 - [ ] 15-04-PLAN.md — estrazione di `composeEnemies` (refactor con le spec a seme fisso verdi); pool con animali come parametro; composizione nella fascia del livello; `readCombatCatalog`; export degli helper di `outcome-plan.ts` e delle porte di `QuestOutcomesModule`
 - [ ] 15-05-PLAN.md — `RoadsService.nearestByTime` (un solo `singleSource`, parità per id, ripiego sui vertici, deviazione di lunghezza zero); `TravelPlanner.speedOfCharacter`
@@ -632,5 +632,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 13. Generazione quest | 20/20 | Complete | 2026-11-04 |
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
-| 15. Imboscate in viaggio | 1/12 | In Progress | - |
+| 15. Imboscate in viaggio | 2/12 | In Progress | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
