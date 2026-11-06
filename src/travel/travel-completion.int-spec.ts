@@ -1010,6 +1010,23 @@ describe('TravelCompletionService (replSet)', () => {
             expect(push.sent).toHaveLength(1);
         });
 
+        it('leaves an expired travel with a pending ambush to the ambush sweep (D-13)', async () => {
+            const id = await ownedTraveller(new Types.ObjectId(), {
+                travel: { ambush: { at: START, km: 5, attempts: 0 } },
+            });
+            const before = await rawCharacter(id);
+            const complete = jest.spyOn(completion, 'complete');
+
+            try {
+                await expect(sweeper.sweep()).resolves.toBe(0);
+                expect(complete).not.toHaveBeenCalled();
+            } finally {
+                complete.mockRestore();
+            }
+            expect(await rawCharacter(id)).toEqual(before);
+            expect(push.sent).toEqual([]);
+        });
+
         it(
             'completes an expired travel at boot',
             async () => {

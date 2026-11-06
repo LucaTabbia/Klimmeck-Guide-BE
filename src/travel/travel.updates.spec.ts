@@ -255,10 +255,11 @@ describe('travel write builders', () => {
     });
 
     describe('sweep', () => {
-        it('dueTravelsFilter matches the active characters whose travel is due', () => {
+        it('dueTravelsFilter matches the due travels without a pending ambush (D-13)', () => {
             expect(dueTravelsFilter(now)).toEqual({
                 deletedAt: null,
                 'status.activeTravel.endTime': { $lte: now },
+                'status.activeTravel.ambush': null,
             });
         });
 
