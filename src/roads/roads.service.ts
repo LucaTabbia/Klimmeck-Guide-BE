@@ -6,6 +6,7 @@ import Graph from 'graphology';
 import { dijkstra } from 'graphology-shortest-path';
 import {
     collapsePoints,
+    compareIds,
     LonLat,
     NearestRoute,
     RoadRoute,
@@ -211,7 +212,7 @@ export class RoadsService implements OnModuleInit {
         );
         let best: NearestRoute | null = null;
         for (const target of [...targets].sort((a, b) =>
-            a.id.localeCompare(b.id),
+            compareIds(a.id, b.id),
         )) {
             const route = this.routeAlong(paths, start, from, target.location);
             if (route && (!best || route.baseHours < best.route.baseHours)) {

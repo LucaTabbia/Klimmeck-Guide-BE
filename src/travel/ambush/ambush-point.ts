@@ -1,6 +1,6 @@
 // stesso algoritmo di TravelRoute.pointAt del FE (C1): lunghezze in gradi piani, nessuna haversine; frazione = km / distance = (at − startTime) / duration
 import { gameDistanceKm } from 'src/roads/game-distance';
-import { LonLat } from 'src/roads/road-route';
+import { compareIds, LonLat } from 'src/roads/road-route';
 
 export interface PointOnRoute {
     point: LonLat;
@@ -74,7 +74,7 @@ export function nearestPoi<T extends { id: string; location: LonLat }>(
             km < nearestKm ||
             (km === nearestKm &&
                 nearest !== null &&
-                poi.id.localeCompare(nearest.id) < 0);
+                compareIds(poi.id, nearest.id) < 0);
         if (closer) {
             nearest = poi;
             nearestKm = km;

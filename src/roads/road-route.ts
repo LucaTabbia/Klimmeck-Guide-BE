@@ -17,6 +17,12 @@ export interface RouteTarget {
     location: LonLat;
 }
 
+// parità per id indipendente dal locale (D-06, D-11): confronto per unità di codice
+export function compareIds(a: string, b: string): number {
+    if (a < b) return -1;
+    return a > b ? 1 : 0;
+}
+
 export interface NearestRoute {
     id: string;
     route: RoadRoute;

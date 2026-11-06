@@ -3,6 +3,7 @@ import type { CoinPurse } from 'src/economy/coins';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestResultKind } from 'src/models/enums/quest-result-kind.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
+import { compareIds } from 'src/roads/road-route';
 import type {
     ConsumableUsage,
     QuestEnemyDraft,
@@ -42,7 +43,7 @@ export interface AmbushResultDraft {
 
 const byAmbushInstant = (a: AmbushReportDraft, b: AmbushReportDraft): number =>
     a.at.getTime() - b.at.getTime() ||
-    a.resultId.toHexString().localeCompare(b.resultId.toHexString());
+    compareIds(a.resultId.toHexString(), b.resultId.toHexString());
 
 // report → QuestResult kind ambush (D-13, D-14): resolvedAt = at, i report precedono i risultati di quest dello stesso arrivo
 export function ambushResultDraftsOf(
