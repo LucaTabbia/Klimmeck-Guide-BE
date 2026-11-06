@@ -184,13 +184,13 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Travel Ambushes (BE-AMBUSH) — Phase 15, aggiunta 2026-10-29
 
-- [ ] **BE-AMBUSH-01**: Alla partenza il server sorteggia l'imboscata (sì/no e istante lungo la rotta) con probabilità da costanti configurabili per km e per quota del viaggio nelle ore 22–06 del fuso configurato (default Europe/Rome), con una soglia minima sotto cui non avviene; esito persistito in modo interno, mai sul filo → FE AMBUSH-03
-- [ ] **BE-AMBUSH-02**: Un job Bull scatta all'istante dell'imboscata, con reconciler al boot e sweep come i viaggi; job duplicato o obsoleto no-op; il teleport del GM annulla l'imboscata pendente
-- [ ] **BE-AMBUSH-03**: Nemici estratti fra quelli con `locations` compatibili con i `type` dei POI vicini al punto dell'imboscata (`all` di riserva) e XP ≤ soglia Medio del livello del personaggio; scontro risolto con la porta `CombatResolver`
-- [ ] **BE-AMBUSH-04**: Vittoria → viaggio invariato, XP e monete in proporzione alla fascia applicati con il report
-- [ ] **BE-AMBUSH-05**: Sconfitta → in una sola transazione: HP ≥ 1 e ferite dal motore, `activeTravel` riscritto (polilinea partenza → punto → città più vicina al punto, `to` e `endTime` nuovi), `pendingQuest` abbandonata con posto liberato, cibo non rimborsato; nessun soccorso né morte → FE AMBUSH-01
-- [ ] **BE-AMBUSH-06**: All'arrivo il completamento emette un `QuestResult` di imboscata (nemici, HP prima/dopo, ferite, monete, XP) consegnato sulla pipeline esistente (subscription owner-only, `unacknowledgedQuestResults`, ack) → FE AMBUSH-02
-- [ ] **BE-AMBUSH-07**: Integration su vittoria, sconfitta con deviazione e quest abbandonata, notte vs giorno, tratto breve, `travelPreview` che non svela; handoff per la FE Phase 16
+- [ ] **BE-AMBUSH-01**: Alla partenza il server sorteggia l'imboscata km per km con un rischio per km di 0,2% di giorno e 0,6% di notte (ore 22–06 nel fuso `AMBUSH_TIMEZONE`, default Europe/Rome; costanti in codice), nessun sorteggio sotto 10 km; dopo una vittoria risorteggia dal punto per la strada residua (mai sotto 10 km residui, mai sulla deviazione); esito persistito in modo interno, mai sul filo → FE AMBUSH-03 _(emendato 2026-11-06)_
+- [ ] **BE-AMBUSH-02**: Un job Bull scatta all'istante dell'imboscata (una sola pendente alla volta), con reconciler al boot e sweep come i viaggi; job duplicato o obsoleto no-op; il teleport del GM annulla l'imboscata pendente e consegna i report trattenuti _(emendato 2026-11-06)_
+- [ ] **BE-AMBUSH-03**: Nemici estratti dal POI più vicino al punto (zona + animali della zona + habitat `city`, mai leggendari, `all` di riserva) nella fascia [Facile, Medio] del livello del personaggio (tabella del world building × `XP_SCALE`) con la composizione della Phase 13; scontro risolto con la porta `CombatResolver` _(emendato 2026-11-06)_
+- [ ] **BE-AMBUSH-04**: Vittoria → HP e ferite del motore applicati subito, monete e XP come una quest `enemy` generata del rango più gli xp dei nemici, viaggio invariato _(emendato 2026-11-06)_
+- [ ] **BE-AMBUSH-05**: Sconfitta → in una sola transazione: HP ≥ 1 e ferite dal motore, `activeTravel` riscritto dal punto (`kind: free`, `startTime` = istante dell'imboscata, polilinea punto → città più vicina per strada, meta compresa, `to` e `endTime` nuovi), `pendingQuest` abbandonata con posto liberato, cibo non rimborsato e nessun costo sulla deviazione; nessun soccorso né morte; push di sconfitta di categoria nuova con il nome della città → FE AMBUSH-01 _(emendato 2026-11-06)_
+- [ ] **BE-AMBUSH-06**: All'arrivo (o al teleport) il completamento inserisce nella stessa transazione un `QuestResult` per imboscata (`kind: ambush`, `quest` null, `ambush { at, nearCity, reachedCity }`, nemici, HP prima/dopo, ferite, monete, XP; `resolvedAt` = istante dell'imboscata) consegnato sulla pipeline esistente (subscription owner-only, `unacknowledgedQuestResults`, ack) senza push `questEnd` → FE AMBUSH-02 _(emendato 2026-11-06)_
+- [ ] **BE-AMBUSH-07**: Integration su vittoria con risorteggio, sconfitta con deviazione (meta compresa) e quest abbandonata, notte vs giorno, tratto sotto 10 km, job duplicato no-op, teleport, `travelPreview` che non svela; handoff per la FE Phase 16 _(emendato 2026-11-06)_
 
 ### Unlockable Lore (BE-LORE) — Phase 16, aggiunta 2026-10-29
 
@@ -310,6 +310,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 - Estensione del 2026-10-29: +39 requisiti (BE-CONTENT-01..07, BE-SHOP-01..05, BE-QGEN-01..08, BE-FOOD-01..06, BE-AMBUSH-01..07, BE-LORE-01..06) mappati sulle Phase 11–16 → 95 totali, 89 mappati (i BE-TEST-01..04 restano nella Phase 1 non avviata e i 2 BE-SYNC assorbiti nella 3 come prima)
 - Estensione del 2026-11-04 (discuss Phase 13 congiunto con la FE Phase 14): +3 requisiti (BE-QGEN-09 dungeon a tappe, BE-QGEN-10 premio pet, BE-QGEN-11 `accessoryUseTypes`) → 98 totali, 92 mappati
 - Inserimento del 2026-11-05 (Phase 13.1, dalla UAT della FE Phase 14): +5 requisiti (BE-QGEN-12 animali fuori, BE-QGEN-13 fasce contigue e budget per posti, BE-QGEN-14 taglie, BE-QGEN-15 tabellone per area, BE-QGEN-16 reset e revisione di hunt/dungeon al boot) → 103 totali, 97 mappati
+- Discuss del 2026-11-06 (Phase 15 congiunto con la FE Phase 16): BE-AMBUSH-01..07 emendati (rischio per km 0,2%/0,6%, più imboscate con risorteggio, POI più vicino + animali, fascia [Facile, Medio] per livello, città più vicina meta compresa, push su sconfitta, report trattenuti all'arrivo, `kind`/`ambush` sul `QuestResult`); conteggi invariati (103 totali, 97 mappati)
 
 ---
 
