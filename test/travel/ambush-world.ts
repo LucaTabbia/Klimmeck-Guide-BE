@@ -280,3 +280,17 @@ export async function persistTraveller(
         travel,
     };
 }
+
+// tiri della SequenceChance (fallback 0.99 = mai un colpo, D-01): mancati sotto ogni rischio, colpo sotto ogni rischio
+export const AMBUSH_MISS = 0.99;
+export const AMBUSH_HIT = 0;
+// composizione dell'imboscata: forma singola, primo candidato del pool ordinato per id
+export const SINGLE_FIRST_CANDIDATE: readonly number[] = [0, 0];
+
+// un tiro per km intero dopo fromKm, colpo al km: la partenza tira da 0, il risorteggio dal km dell'imboscata (D-02)
+export function rollsHittingKm(km: number, fromKm = 0): number[] {
+    return [
+        ...Array.from({ length: km - fromKm - 1 }, () => AMBUSH_MISS),
+        AMBUSH_HIT,
+    ];
+}

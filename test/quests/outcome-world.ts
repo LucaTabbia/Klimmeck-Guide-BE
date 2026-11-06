@@ -34,6 +34,7 @@ import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-res
 import { TRAVEL_QUEUE } from 'src/travel/travel-job';
 import {
     type AuthTestApp,
+    type AuthTestAppOptions,
     createAuthTestApp,
     type ProviderOverride,
 } from '../auth/auth-test-app';
@@ -117,6 +118,8 @@ export interface OutcomeHarnessOptions {
     travelQueue?: FakeTravelQueue;
     // in coda agli override di default: vincono su di essi
     overrides?: ProviderOverride[];
+    // default createAuthTestApp; createCharactersTestApp per le query del personaggio (Phase 15 D-16)
+    createApp?: (options: AuthTestAppOptions) => Promise<AuthTestApp>;
 }
 
 export interface OutcomeHarness {
@@ -136,7 +139,8 @@ export async function createOutcomeHarness(
     const push = new FakePushTransport();
     const questQueue = new FakeTravelQueue();
     const spellQueue = new FakeTravelQueue();
-    const harness = await createAuthTestApp({
+    const createApp = options.createApp ?? createAuthTestApp;
+    const harness = await createApp({
         clock: options.clock,
         imports: [QuestOutcomesModule, ...(options.imports ?? [])],
         overrides: [
