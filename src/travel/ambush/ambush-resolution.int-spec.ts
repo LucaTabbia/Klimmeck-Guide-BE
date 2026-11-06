@@ -274,6 +274,46 @@ describe('AmbushResolutionService (replica set)', () => {
         expect(raw.status.activeTravel.ambush).toBeNull();
     });
 
+    it('skips an ownerless traveller without any redraw (D-08)', async () => {
+        const subject = await traveller({ km: 10 });
+        await world.harness.connection.collection('users').deleteMany({});
+        chance.load([0, 0, 0]);
+
+        await expect(service.resolve(subject.identity)).resolves.toBe(
+            'skipped',
+        );
+
+        const raw = await rawOf(subject);
+        expect(raw.status.activeTravel.ambush).toBeNull();
+        expect(raw.status.activeTravel.ambushReports ?? []).toEqual([]);
+        expect(combat.contexts).toEqual([]);
+        expect(ambushJobs()).toEqual([]);
+    });
+
+    it('names the city of the nearest marker when the nearest POI has no city (D-06)', async () => {
+        await world.harness.connection
+            .collection('pointsofinterest')
+            .updateOne({ _id: map.forestPoi }, { $set: { city: null } });
+        await world.harness.connection
+            .collection('cities')
+            .updateOne(
+                { _id: map.cities.crocevia },
+                { $set: { pointsOfInterest: [map.markers.crocevia] } },
+            );
+        const subject = await traveller({ km: 10 });
+        chance.load([0, 0]);
+
+        await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        const report = (await rawOf(subject)).status.activeTravel
+            .ambushReports[0];
+        expect(report.nearCity).toEqual({
+            id: map.cities.crocevia,
+            name: 'Crocevia',
+        });
+        expect(report.enemies).toEqual([{ enemy: enemies.wolf, quantity: 1 }]);
+    });
+
     it('ignores a duplicate, early or stale trigger (D-05)', async () => {
         const subject = await traveller({ km: 10 });
         const before = await rawOf(subject);
@@ -595,6 +635,37 @@ describe('AmbushResolutionService (replica set)', () => {
                 'to',
             ]);
             expect(ambushJobs()).toEqual([]);
+        });
+
+        it('keeps heading to the destination without a city reachable by road (D-25)', async () => {
+            const subject = await traveller({ km: 10 });
+            await registerDevice(world.harness, subject.player);
+            await world.harness.connection.collection('roads').deleteMany({});
+            await world.harness.app.get(RoadsService).buildGraph();
+            defeatOf(subject);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const { activeTravel } = (await rawOf(subject)).status;
+            const original = (
+                subject.travel.road as { coordinates: number[][] }
+            ).coordinates;
+            expect(activeTravel.to).toEqual(map.markers.borgo);
+            expect(activeTravel.kind).toBe('free');
+            expect(activeTravel.startTime).toEqual(subject.identity.at);
+            expect(activeTravel.road.coordinates[0][1]).toBeCloseTo(4.4966, 3);
+            expect(activeTravel.road.coordinates.slice(1)).toEqual(
+                original.slice(1),
+            );
+            expect(activeTravel.ambushReports[0].reachedCity).toEqual({
+                id: map.cities.borgo,
+                name: 'Borgo',
+            });
+            expect(world.push.sent[0].message.body).toBe(
+                'Sei stato sconfitto: la via torna verso Borgo',
+            );
         });
     });
 });
