@@ -14,6 +14,7 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { City, CityDocument } from 'src/models/city.model';
+import { LootItem } from 'src/models/loot-item.model';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import {
     PendingQuest,
@@ -35,6 +36,12 @@ import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { QuestStartService } from 'src/quests/party/quest-start.service';
+import { TravelPantryReader } from 'src/travel/food/travel-pantry.reader';
+import {
+    foodNeededFor,
+    hpLostFor,
+    uncoveredKmOf,
+} from 'src/travel/food/travel-food';
 import { TRAVEL_QUEUE, travelJobId } from 'src/travel/travel-job';
 import { BASE_SPEED, durationMsOf } from 'src/travel/travel-timing';
 import { FixedClock } from '../../../test/auth/fixed-clock';
@@ -43,11 +50,17 @@ import {
     buildQuest,
     persistCharacter,
     persistCity,
+    persistLootItem,
     persistPoi,
     persistQuest,
     persistUser,
 } from '../../../test/fixtures';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
+import {
+    foodStack,
+    HARDY_LIFE_POINTS,
+    persistFood,
+} from '../../../test/travel/travel-food.fixture';
 import {
     persistTravelWorld,
     TravelWorld,
@@ -57,7 +70,9 @@ const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const ACCEPTED_AT = new Date('2026-03-04T05:06:07.000Z');
 const STARTING_COINS = { gold: 1, silver: 2, copper: 3 };
 // collection della mappa del viaggio: pre-create per le transazioni e svuotate dopo ogni test
-const TRAVEL_COLLECTIONS = ['pets', 'pointsofinterest', 'roads'];
+const TRAVEL_COLLECTIONS = ['lootitems', 'pets', 'pointsofinterest', 'roads'];
+// dispensa a grana fine: le unità mangiate sono il fabbisogno esatto
+const LARDER = 500;
 
 // liste scritte con il driver nei test, senza il cast di Mongoose
 interface RawQuestRegistrations {
@@ -197,12 +212,15 @@ describe('QuestAcceptanceService (replSet)', () => {
         return user._id as Types.ObjectId;
     }
 
+    // HP robusti di default: due viaggi di fila senza cibo non affamano (Phase 14 D-18)
     async function characterAt(
         location: Types.ObjectId,
         title = 'rookie',
         questsState: Record<string, unknown> = {},
+        extra: { lifePoints?: number; ownedItems?: unknown[] } = {},
     ): Promise<Types.ObjectId> {
         const base = buildCharacter();
+        const lifePoints = extra.lifePoints ?? HARDY_LIFE_POINTS;
         const character = await persistCharacter(characters, {
             infos: { ...base.infos, name: `Eroe ${seq++}` },
             status: {
@@ -210,11 +228,17 @@ describe('QuestAcceptanceService (replSet)', () => {
                 location,
                 title,
                 coins: STARTING_COINS,
+                currentLifePoints: lifePoints,
+                maxLifePoints: lifePoints,
             },
             quests: {
                 completedQuests: [],
                 pendingQuest: null,
                 ...questsState,
+            },
+            assets: {
+                ...base.assets,
+                ownedItems: extra.ownedItems ?? base.assets.ownedItems,
             },
         });
         return character._id as Types.ObjectId;
@@ -1258,6 +1282,426 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect(warn).toHaveBeenCalledWith(
                 `Accodamento del viaggio ${travelJobId(charId, ACCEPTED_AT)} fallito: lo completerà lo sweep`,
             );
+        });
+
+        describe('food on the automatic travel (D-12)', () => {
+            let lootItems: Model<any>;
+            let route: RoadRoute;
+            let needed: number;
+
+            beforeEach(() => {
+                lootItems = app.get<Model<any>>(getModelToken(LootItem.name));
+                route = app
+                    .get(RoadsService)
+                    .routeBetween([0, 0], [0.1, 0]) as RoadRoute;
+                needed = foodNeededFor(
+                    durationMsOf(route.baseHours, BASE_SPEED),
+                );
+            });
+
+            function foodOf(id: Types.ObjectId) {
+                return raw(id).then((character) => ({
+                    ownedItems: character?.assets.ownedItems,
+                    lifePoints: character?.status.currentLifePoints,
+                }));
+            }
+
+            // marker di B aggiunto alla città di A: la strada A→B costa più di un power (numeri reali, D-18)
+            async function longHunt(): Promise<{
+                questId: Types.ObjectId;
+                longRoute: RoadRoute;
+            }> {
+                await rawCities().updateOne(
+                    { _id: travel.cityA },
+                    { $push: { pointsOfInterest: travel.markerB } },
+                );
+                return {
+                    questId: await huntTo(travel.markerB),
+                    longRoute: app
+                        .get(RoadsService)
+                        .routeBetween([0, 0], [0, 0.2]) as RoadRoute,
+                };
+            }
+
+            it('eats the food of the automatic travel in the claim (D-06, D-12)', async () => {
+                expect(needed).toBeGreaterThan(0);
+                expect(needed).toBeLessThan(5);
+                const food1 = await persistFood(lootItems, 1);
+                const food5 = await persistFood(lootItems, 5);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    {
+                        lifePoints: 100,
+                        ownedItems: [
+                            foodStack(food1, needed),
+                            foodStack(food5, 1),
+                        ],
+                    },
+                );
+
+                const pqId = await accept(
+                    ownerId,
+                    charId,
+                    await huntTo(travel.questPoi),
+                );
+
+                const character = await raw(charId);
+                expect(character?.assets.ownedItems).toEqual([
+                    foodStack(food5, 1),
+                ]);
+                expect(character?.status.currentLifePoints).toBe(100);
+                expect(character?.status.activeTravel).toMatchObject({
+                    kind: 'quest',
+                    to: travel.questPoi,
+                });
+                expect(character?.quests.pendingQuest).toEqual(pqId);
+                expect(await pendingCount()).toBe(1);
+                expect(queue.added).toHaveLength(1);
+            });
+
+            it('eats all the food and lowers the life points of a partial cover in the claim (D-03, D-04)', async () => {
+                const food1 = await persistFood(lootItems, 1);
+                const { questId, longRoute } = await longHunt();
+                const longNeeded = foodNeededFor(
+                    durationMsOf(longRoute.baseHours, BASE_SPEED),
+                );
+                expect(longNeeded).toBeGreaterThan(1);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    {
+                        lifePoints: 100,
+                        ownedItems: [foodStack(food1, 1)],
+                    },
+                );
+
+                await accept(ownerId, charId, questId);
+
+                const hpLost = hpLostFor(
+                    uncoveredKmOf(longNeeded, 1, longRoute.distanceKm),
+                );
+                expect(hpLost).toBeGreaterThan(0);
+                expect(await foodOf(charId)).toEqual({
+                    ownedItems: [],
+                    lifePoints: 100 - hpLost,
+                });
+                expect((await raw(charId))?.status.activeTravel).toMatchObject({
+                    to: travel.markerB,
+                });
+            });
+
+            it('refuses a starving quest travel before any write (D-11)', async () => {
+                const ownerId = await ownerWith(6000);
+                const charId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    {
+                        lifePoints: 1,
+                    },
+                );
+                const questId = await huntTo(
+                    travel.questPoi,
+                    { requiredAdventurers: [{ title: null, count: 2 }] },
+                    'enemy',
+                );
+                const before = await raw(charId);
+                const transaction = jest.spyOn(connection, 'transaction');
+
+                await expect(
+                    accept(ownerId, charId, questId),
+                ).rejects.toMatchObject({ code: 'TRAVEL_STARVING' });
+
+                expect(transaction).not.toHaveBeenCalled();
+                expect(await raw(charId)).toEqual(before);
+                expect(await pendingCount()).toBe(0);
+                expect(
+                    (await rawQuest(questId))?.registeredAdventurers ?? [],
+                ).toEqual([]);
+                expect(await pointsOf(ownerId)).toBe(6000);
+                expect(queue.added).toEqual([]);
+                expect(questQueue.added).toEqual([]);
+            });
+
+            it('refuses with TRAVEL_STARVING inside the transaction when the food vanishes (D-11)', async () => {
+                const food1 = await persistFood(lootItems, 1);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    {
+                        lifePoints: 1,
+                        ownedItems: [foodStack(food1, needed)],
+                    },
+                );
+                const transaction = interleaveBeforeTransaction(() =>
+                    characters.collection.updateOne(
+                        { _id: charId },
+                        { $set: { 'assets.ownedItems': [] } },
+                    ),
+                );
+
+                await expect(
+                    accept(ownerId, charId, await huntTo(travel.questPoi)),
+                ).rejects.toMatchObject({ code: 'TRAVEL_STARVING' });
+
+                expect(transaction).toHaveBeenCalledTimes(1);
+                const character = await raw(charId);
+                expect(character?.quests.pendingQuest).toBeNull();
+                expect(character?.status.activeTravel ?? null).toBeNull();
+                expect(character?.status.currentLifePoints).toBe(1);
+                expect(await pendingCount()).toBe(0);
+                expect(queue.added).toEqual([]);
+            });
+
+            it('answers the race code before the hunger when the lane is taken in the meantime (D-11)', async () => {
+                const food1 = await persistFood(lootItems, 1);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    {
+                        lifePoints: 1,
+                        ownedItems: [foodStack(food1, needed)],
+                    },
+                );
+                const rivalLane = new Types.ObjectId();
+                interleaveBeforeTransaction(() =>
+                    characters.collection.updateOne(
+                        { _id: charId },
+                        {
+                            $set: {
+                                'assets.ownedItems': [],
+                                'quests.pendingQuest': rivalLane,
+                            },
+                        },
+                    ),
+                );
+
+                await expect(
+                    accept(ownerId, charId, await huntTo(travel.questPoi)),
+                ).rejects.toMatchObject({ code: 'QUEST_SLOT_BUSY' });
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(
+                    rivalLane,
+                );
+                expect(await pendingCount()).toBe(0);
+                expect(queue.added).toEqual([]);
+            });
+
+            it('does not eat on an instant jump nor on a marker at the position (D-13)', async () => {
+                jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+                const read = jest.spyOn(app.get(TravelPantryReader), 'read');
+                const food20 = await persistFood(lootItems, 20);
+                const larder = {
+                    lifePoints: 100,
+                    ownedItems: [foodStack(food20, 3)],
+                };
+                const ownerId = await ownerWith(0);
+                const jumperId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    larder,
+                );
+                const standingId = await characterAt(
+                    travel.questPoi,
+                    'rookie',
+                    {},
+                    larder,
+                );
+                const untouched = {
+                    ownedItems: [foodStack(food20, 3)],
+                    lifePoints: 100,
+                };
+
+                await accept(
+                    ownerId,
+                    jumperId,
+                    await huntTo(travel.farQuestPoi),
+                );
+                await accept(
+                    ownerId,
+                    standingId,
+                    await huntTo(travel.questPoi),
+                );
+
+                expect(await foodOf(jumperId)).toEqual(untouched);
+                expect(await foodOf(standingId)).toEqual(untouched);
+                expect((await raw(jumperId))?.status.location).toEqual(
+                    travel.farQuestPoi,
+                );
+                expect(read).not.toHaveBeenCalled();
+            });
+
+            it('does not eat on story and world mission quests (D-13)', async () => {
+                const read = jest.spyOn(app.get(TravelPantryReader), 'read');
+                const food20 = await persistFood(lootItems, 20);
+                const larder = {
+                    lifePoints: 1,
+                    ownedItems: [foodStack(food20, 3)],
+                };
+                const ownerId = await ownerWith(6000);
+                const storyHero = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    larder,
+                );
+                const missionHero = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    larder,
+                );
+                const storyId = await huntTo(
+                    travel.questPoi,
+                    { requiredPoints: 1000, minTitle: 'rookie' },
+                    'story',
+                );
+                const missionId = await huntTo(
+                    travel.questPoi,
+                    { requiredPoints: 1000, requiredAdventurers: ANY_THREE },
+                    'worldMission',
+                );
+
+                await accept(ownerId, storyHero, storyId);
+                await accept(ownerId, missionHero, missionId);
+
+                const untouched = {
+                    ownedItems: [foodStack(food20, 3)],
+                    lifePoints: 1,
+                };
+                expect(await foodOf(storyHero)).toEqual(untouched);
+                expect(await foodOf(missionHero)).toEqual(untouched);
+                expect(
+                    (await raw(storyHero))?.quests.activeStoryQuest,
+                ).not.toBeNull();
+                expect(
+                    (await raw(missionHero))?.quests.activeWorldMissionQuest,
+                ).not.toBeNull();
+                expect(read).not.toHaveBeenCalled();
+            });
+
+            it('lets exactly one of two concurrent quest departures eat the same food (D-12)', async () => {
+                const food1 = await persistFood(lootItems, 1);
+                const food5 = await persistFood(lootItems, 5);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    {
+                        lifePoints: 100,
+                        ownedItems: [
+                            foodStack(food1, needed),
+                            foodStack(food5, 1),
+                        ],
+                    },
+                );
+                const firstId = await huntTo(travel.questPoi);
+                const secondId = await huntTo(travel.questPoi);
+
+                const results = await Promise.allSettled([
+                    accept(ownerId, charId, firstId),
+                    accept(ownerId, charId, secondId),
+                ]);
+
+                const rejected = results.filter((r) => r.status === 'rejected');
+                expect(
+                    results.filter((r) => r.status === 'fulfilled'),
+                ).toHaveLength(1);
+                expect(rejected).toHaveLength(1);
+                expect(['QUEST_SLOT_BUSY', 'TRAVEL_IN_PROGRESS']).toContain(
+                    codeOf(rejected[0]),
+                );
+                expect((await raw(charId))?.assets.ownedItems).toEqual([
+                    foodStack(food5, 1),
+                ]);
+                expect(await pendingCount()).toBe(1);
+                expect(queue.added).toHaveLength(1);
+            });
+
+            // la seconda lettura è la prima del callback: l'acquisto arriva dopo la lettura in sessione e prima del claim
+            it('keeps a concurrent non-food purchase made after the pantry read of the claim (D-20)', async () => {
+                const pantryReader = app.get(TravelPantryReader);
+                const food1 = await persistFood(lootItems, 1);
+                const potion = await persistLootItem(lootItems, {
+                    name: 'Pozione di prova',
+                });
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    {
+                        lifePoints: 100,
+                        ownedItems: [foodStack(food1, needed + 3)],
+                    },
+                );
+                const original = pantryReader.read.bind(pantryReader);
+                const read = jest
+                    .spyOn(pantryReader, 'read')
+                    .mockImplementation(async (characterId, session) => {
+                        const pantry = await original(characterId, session);
+                        if (read.mock.calls.length === 2)
+                            await characters.updateOne(
+                                { _id: characterId },
+                                {
+                                    $push: {
+                                        'assets.ownedItems': foodStack(
+                                            potion,
+                                            1,
+                                        ),
+                                    },
+                                },
+                            );
+                        return pantry;
+                    });
+
+                await accept(ownerId, charId, await huntTo(travel.questPoi));
+
+                expect((await raw(charId))?.assets.ownedItems).toEqual([
+                    foodStack(food1, 3),
+                    foodStack(potion, 1),
+                ]);
+                expect(read.mock.calls.length).toBeGreaterThanOrEqual(3);
+                expect(read.mock.calls[1][1]).not.toBeNull();
+            });
+
+            it('feeds the slower march of an injured character (D-01)', async () => {
+                const food1 = await persistFood(lootItems, 1);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(
+                    travel.markerA,
+                    'rookie',
+                    {},
+                    {
+                        ownedItems: [foodStack(food1, LARDER)],
+                    },
+                );
+                await characters.collection.updateOne(
+                    { _id: charId },
+                    { $set: { 'status.injuries': ['brokenLeftLeg'] } },
+                );
+
+                await accept(ownerId, charId, await huntTo(travel.questPoi));
+
+                const injured = foodNeededFor(
+                    durationMsOf(route.baseHours, BASE_SPEED * 0.8),
+                );
+                expect((await raw(charId))?.assets.ownedItems).toEqual([
+                    foodStack(food1, LARDER - injured),
+                ]);
+                expect(injured).toBeGreaterThan(needed);
+            });
         });
 
         describe('resolution job where the countdown starts (D-24, C8)', () => {

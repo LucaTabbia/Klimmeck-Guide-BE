@@ -152,6 +152,14 @@ export class GameRuleException extends BadRequestException {
         );
     }
 
+    // un solo codice per partenza libera e viaggio automatico della quest (Phase 14 D-11): nessuna scrittura
+    static travelStarving(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.TRAVEL_STARVING,
+            'Non hai cibo a sufficienza per il viaggio',
+        );
+    }
+
     static spellNotKnown(): GameRuleException {
         return new GameRuleException(
             GameRuleErrorCode.SPELL_NOT_KNOWN,

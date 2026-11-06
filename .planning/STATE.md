@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 13.1 PR #21 ready for review (2026-11-05) after the first real boot and the one-off removal; next: merge, FE quick tasks (quest refetch on location change, legend on hero seats), heal spells at DB after PR #20/#39 and the FE install
-last_updated: "2026-11-05T15:30:00.000Z"
-last_activity: 2026-11-05 -- Phase 13.1 first real boot done, one-offs removed, PR #21 ready for review
+status: completed
+stopped_at: Phase 14 complete (8/8) — PR #23 feat/14-viaggio-e-cibo → develop opened (2026-11-06); next: after the merge the user restarts the BE (npm run build, restart from dist/) and the FE Phase 15 resumes with 15-08/15-09
+last_updated: "2026-11-06T13:03:08.000Z"
+last_activity: 2026-11-06 -- Phase 14 complete: review (A/B 0 critical, 1 warning, 3 info → 2 fixed (dedupe owned food by id before the edibility filter; rename cost → mealSet), 2 not needed), verification passed, security audit (secured, 38 threats, 35 mitigated, 3 accepted, 0 open, 0 deferred), PR #23 feat/14-viaggio-e-cibo → develop opened
 progress:
   total_phases: 20
-  completed_phases: 16
-  total_plans: 219
-  completed_plans: 211
-  percent: 96
+  completed_phases: 18
+  total_plans: 227
+  completed_plans: 227
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 13.1 — Correzioni generazione quest — eseguita (8/8, 2026-11-05) su `feat/13.1-correzioni-generazione-quest` (da `develop` `162c1f5`, la merge della PR #19); PR in draft in attesa del popolamento del DB e del primo boot reale dal branch (reset delle generate, prede delle hunt, tappe delle dungeon, generatore; runbook in `.planning/phases/13-generazione-quest/BACKEND-NOTES.md` §11 f), poi rimozione dei one-off in TDD e `gh pr ready`; handoff FE in `.planning/phases/13.1-correzioni-generazione-quest/BACKEND-NOTES.md`. Previous: Phase 13 — Generazione quest — COMPLETE and merged (PR #19, `162c1f5`, 2026-11-05).
+**Current focus:** Phase 14 — Viaggio e cibo — COMPLETE (8/8, 2026-11-05) su `feat/14-viaggio-e-cibo` (da `develop` `698ae82`): fabbisogno ⌈durata/3 min⌉, selezione a scarto minimo (poi meno unità, poi minor valore), triangolare sui km scoperti per eccesso in metri interi, rifiuto `TRAVEL_STARVING` solo sotto 1 HP e prima di ogni scrittura, consumo e HP nello stesso update del claim/partenza in transazione, anteprime con `food`/`hpLost`/`arrivesAlive` e query owner-only nullable `questTravelPreview`; SDL puramente additivo (8 righe); nessun one-off. Review (A/B: 0 CR, 1 WR, 3 IN → 2 fix, 2 not needed), verification passed (0 gap), security secured (38/0 open). PR #23 a `develop` aperta il 2026-11-06; dopo la merge l'utente fa `npm run build` + riavvio da `dist/` e la FE Phase 15 riprende con 15-08/15-09. Next: discuss BE Phase 15 (Imboscate in viaggio) con la FE Phase 16. Previous: Phase 13.1 — COMPLETE and merged (PR #21, 2026-11-05).
 
 ## Current Position
 
-Phase: 13.1 (Correzioni generazione quest) — EXECUTING (started 2026-11-05) on `feat/13.1-correzioni-generazione-quest` (from `develop` `162c1f5`): 8 plans in a linear chain (`13.1-01`..`13.1-08`), executors one at a time on the main tree
+Phase: 14 (Viaggio e cibo) — COMPLETE (8/8 on 2026-11-05) on `feat/14-viaggio-e-cibo` (from `develop` `698ae82`): 14-01..14-06 code, 14-07 gate (341 suites / 4333 tests, coverage above the per-folder thresholds, SDL +8 additive lines), 14-08 handoff; review → rulings → 2 fixes → verification passed → security secured; PR #23 to `develop` opened on 2026-11-06
 Plan: 8 of 8
-Status: Phase 13.1 COMPLETE on the branch — executed (8/8), review → rulings → 10 fixes, D-09 (one seat on enemy quests), verification `passed`, security `secured`; FIRST REAL BOOT done 2026-11-05 16:34 (Generate 167/0, Hunt 14 redrawn/63 coherent, Dungeon 32 recomposed/8 coherent, Generatore 167) with the expected counts and a silent second boot; one-off migrators removed (64ef914); final `npm run test:cov` green; PR #21 `feat/13.1-correzioni-generazione-quest` → develop READY FOR REVIEW (2026-11-05)
-Last activity: 2026-11-05 -- Phase 13.1 first real boot done (reset + hunt + dungeon + generator as expected, second boot silent), Liberia hunts diversified at DB, one-offs removed, final test:cov green, PR #21 ready for review
+Status: Phase 14 complete (8/8) — review A/B 0 critical, 1 warning, 3 info → 2 fixed (dedupe owned food by id before the edibility filter; rename cost → mealSet), 2 not needed; verification passed; security audit secured, 38 threats, 35 mitigated, 3 accepted, 0 open, 0 deferred; PR #23 feat/14-viaggio-e-cibo → develop opened; after the merge the user restarts the BE (build + restart from dist/, no one-off in this phase) and the FE Phase 15 resumes with 15-08 (schema gate) and 15-09 (device E2E)
+Last activity: 2026-11-06 -- Phase 14 closed: two area reviews merged, rulings, fixes, verification, security audit, PR
 
-Progress: [██████████] 8/8 plans of Phase 13.1 (phases 1–13, 9.1 and 9.2 complete and merged on develop)
+Progress: [██████████] 8/8 plans of Phase 14 (phases 1–14, 9.1, 9.2 and 13.1 complete; Phase 14 awaiting the merge of its PR)
 
 ## Performance Metrics
 

@@ -7,10 +7,16 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { LootItem } from 'src/models/loot-item.model';
+import { Pet } from 'src/models/pet.model';
+import { Road } from 'src/models/road.model';
 import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
 import { PushTransport } from 'src/push/transport/push-transport';
+import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
+import { TravelPantryReader } from './food/travel-pantry.reader';
+import { foodNeededFor, hpLostFor, uncoveredKmOf } from './food/travel-food';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
 import { TravelPlanner } from './travel-planner.service';
 import { BASE_SPEED, durationMsOf } from './travel-timing';
@@ -19,15 +25,27 @@ import { TravelService } from './travel.service';
 import { AuthTestApp, createAuthTestApp } from '../../test/auth/auth-test-app';
 import { FixedClock } from '../../test/auth/fixed-clock';
 import { createPlayer } from '../../test/authz/player-fixture';
-import { buildCharacter } from '../../test/fixtures';
+import {
+    buildCharacter,
+    persistLootItem,
+    persistPet,
+} from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
+import {
+    foodStack,
+    HARDY_LIFE_POINTS,
+    persistFood,
+} from '../../test/travel/travel-food.fixture';
 import {
     persistTravelWorld,
     TravelWorld,
 } from '../../test/travel/travel-world';
 
 const STARTED_AT = new Date('2026-10-21T10:00:00.000Z');
+const ONE_LEG = ['brokenLeftLeg'];
+const LARDER = 500;
+const SLOW_ROAD_SPEED = 3;
 
 describe('TravelService (replSet)', () => {
     let harness: AuthTestApp;
@@ -79,16 +97,36 @@ describe('TravelService (replSet)', () => {
         await harness.close();
     });
 
+    // HP robusti di default (Phase 14 D-18): le partenze riuscite non dipendono dal cibo
     async function characterAt(
         location: Types.ObjectId,
+        options: {
+            lifePoints?: number;
+            ownedItems?: unknown[];
+            pet?: unknown;
+            injuries?: string[];
+        } = {},
     ): Promise<Types.ObjectId> {
         seq += 1;
         const base = buildCharacter();
+        const lifePoints = options.lifePoints ?? HARDY_LIFE_POINTS;
         const player = await createPlayer(harness, {
             twitchId: `tw-travel-start-${seq}`,
             characterOverrides: {
                 infos: { ...base.infos, name: `Viandante ${seq}` },
-                status: { ...base.status, location, activeTravel: null },
+                status: {
+                    ...base.status,
+                    location,
+                    activeTravel: null,
+                    currentLifePoints: lifePoints,
+                    maxLifePoints: lifePoints,
+                    injuries: options.injuries ?? [],
+                },
+                assets: {
+                    ...base.assets,
+                    ownedItems: options.ownedItems ?? [],
+                    pet: options.pet ?? null,
+                },
             },
         });
         return player.character!._id as Types.ObjectId;
@@ -243,6 +281,249 @@ describe('TravelService (replSet)', () => {
 
         expect((await rawCharacter(id))?.status.activeTravel).toMatchObject({
             to: world.markerB,
+        });
+    });
+
+    describe('food at departure (D-12)', () => {
+        let lootItems: Model<any>;
+        let route: RoadRoute;
+        let needed: number;
+
+        beforeEach(() => {
+            lootItems = harness.app.get<Model<any>>(
+                getModelToken(LootItem.name),
+            );
+            route = roads.routeBetween([0, 0], [0, 0.2]) as RoadRoute;
+            needed = foodNeededFor(expectedDuration());
+        });
+
+        it('eats the selected food at departure and keeps the life points when covered (D-06, D-12)', async () => {
+            expect(needed).toBeGreaterThan(0);
+            expect(needed).toBeLessThan(5);
+            const food1 = await persistFood(lootItems, 1);
+            const food5 = await persistFood(lootItems, 5);
+            const id = await characterAt(world.markerA, {
+                lifePoints: 100,
+                ownedItems: [foodStack(food1, needed), foodStack(food5, 1)],
+            });
+
+            await expect(
+                travel.startTravel(id, world.markerB),
+            ).resolves.toBeUndefined();
+
+            const raw = await rawCharacter(id);
+            expect(raw?.assets.ownedItems).toEqual([foodStack(food5, 1)]);
+            expect(raw?.status.currentLifePoints).toBe(100);
+            expect(raw?.status.activeTravel).toMatchObject({
+                to: world.markerB,
+            });
+            expect(queue.added).toHaveLength(1);
+        });
+
+        it('eats all the food and lowers the life points on a partial cover (D-03, D-04)', async () => {
+            expect(needed).toBeGreaterThan(1);
+            const food1 = await persistFood(lootItems, 1);
+            const id = await characterAt(world.markerA, {
+                lifePoints: HARDY_LIFE_POINTS,
+                ownedItems: [foodStack(food1, 1)],
+            });
+
+            await travel.startTravel(id, world.markerB);
+
+            const raw = await rawCharacter(id);
+            expect(raw?.assets.ownedItems).toEqual([]);
+            expect(raw?.status.currentLifePoints).toBe(
+                HARDY_LIFE_POINTS -
+                    hpLostFor(uncoveredKmOf(needed, 1, route.distanceKm)),
+            );
+            expect(raw?.status.currentLifePoints).toBeLessThan(
+                HARDY_LIFE_POINTS,
+            );
+        });
+
+        it('charges the life of the whole road without food (D-02)', async () => {
+            const id = await characterAt(world.markerA, {
+                lifePoints: HARDY_LIFE_POINTS,
+            });
+
+            await travel.startTravel(id, world.markerB);
+
+            const hpLost = hpLostFor(
+                uncoveredKmOf(needed, 0, route.distanceKm),
+            );
+            expect(hpLost).toBeGreaterThan(0);
+            expect((await rawCharacter(id))?.status.currentLifePoints).toBe(
+                HARDY_LIFE_POINTS - hpLost,
+            );
+        });
+
+        it('refuses a starving departure with TRAVEL_STARVING and writes nothing (D-11)', async () => {
+            const food1 = await persistFood(lootItems, 1);
+            const id = await characterAt(world.markerA, {
+                lifePoints: 1,
+                ownedItems: [foodStack(food1, 1)],
+            });
+            const before = await rawCharacter(id);
+
+            await expect(
+                travel.startTravel(id, world.markerB),
+            ).rejects.toMatchObject({ code: 'TRAVEL_STARVING' });
+
+            expect(await rawCharacter(id)).toEqual(before);
+            expect(queue.added).toEqual([]);
+        });
+
+        it('answers the race code before the hunger when another movement wins (D-11)', async () => {
+            const id = await characterAt(world.markerA, { lifePoints: 1 });
+            raceAfterPlanning({
+                'status.activeTravel': {
+                    road: { coordinates: [[0, 0]], distance: 1 },
+                    startTime: STARTED_AT,
+                    endTime: new Date(STARTED_AT.getTime() + 60_000),
+                    duration: 60_000,
+                    to: world.markerB,
+                    kind: 'free',
+                },
+            });
+
+            await expect(
+                travel.startTravel(id, world.markerB),
+            ).rejects.toMatchObject({ code: 'TRAVEL_IN_PROGRESS' });
+            expect(queue.added).toEqual([]);
+        });
+
+        // cibo a grana fine: le unità mangiate sono il fabbisogno esatto
+        async function eatenAtDeparture(options: {
+            pet?: unknown;
+            injuries?: string[];
+        }): Promise<number> {
+            const food1 = await persistFood(lootItems, 1);
+            const id = await characterAt(world.markerA, {
+                ...options,
+                ownedItems: [foodStack(food1, LARDER)],
+            });
+            await travel.startTravel(id, world.markerB);
+            const left = (await rawCharacter(id))?.assets.ownedItems.find(
+                (entry: { item: Types.ObjectId }) =>
+                    entry.item.equals(food1._id as Types.ObjectId),
+            );
+            return LARDER - (left?.quantity ?? 0);
+        }
+
+        it('halves the food with a mount of speed two (D-01)', async () => {
+            const pets = harness.app.get<Model<any>>(getModelToken(Pet.name));
+            const pet = await persistPet(pets, { speedModifier: 2 });
+            const onFoot = foodNeededFor(
+                durationMsOf(route.baseHours, BASE_SPEED),
+            );
+            const mounted = foodNeededFor(
+                durationMsOf(route.baseHours, BASE_SPEED * 2),
+            );
+
+            expect(await eatenAtDeparture({})).toBe(onFoot);
+            expect(await eatenAtDeparture({ pet: pet._id })).toBe(mounted);
+            expect(mounted).toBeLessThan(onFoot);
+            expect(mounted).toBeLessThanOrEqual(Math.ceil(onFoot / 2));
+        });
+
+        it('raises the food of an injured traveller with the slower march (D-01)', async () => {
+            const injured = foodNeededFor(
+                durationMsOf(
+                    route.baseHours,
+                    BASE_SPEED * travelSpeedFactorOf(ONE_LEG),
+                ),
+            );
+
+            expect(await eatenAtDeparture({ injuries: ONE_LEG })).toBe(injured);
+            expect(injured).toBeGreaterThan(needed);
+        });
+
+        it('costs more food on a slow road than on the plain (D-01)', async () => {
+            const roadModel = harness.app.get<Model<any>>(
+                getModelToken(Road.name),
+            );
+            await roadModel.updateMany(
+                {},
+                { $set: { speedFactor: SLOW_ROAD_SPEED } },
+            );
+            await roads.buildGraph();
+            const slowRoute = roads.routeBetween([0, 0], [0, 0.2]) as RoadRoute;
+            const slow = foodNeededFor(
+                durationMsOf(slowRoute.baseHours, BASE_SPEED),
+            );
+
+            expect(await eatenAtDeparture({})).toBe(slow);
+            expect(slow).toBeGreaterThan(needed);
+        });
+
+        it('lets exactly one of two concurrent departures eat the same food (D-12)', async () => {
+            const food1 = await persistFood(lootItems, 1);
+            const food5 = await persistFood(lootItems, 5);
+            const id = await characterAt(world.markerA, {
+                lifePoints: 100,
+                ownedItems: [foodStack(food1, needed), foodStack(food5, 1)],
+            });
+
+            const results = await Promise.allSettled([
+                travel.startTravel(id, world.markerB),
+                travel.startTravel(id, world.markerB),
+            ]);
+
+            const rejected = results.filter(
+                (r): r is PromiseRejectedResult => r.status === 'rejected',
+            );
+            expect(
+                results.filter((r) => r.status === 'fulfilled'),
+            ).toHaveLength(1);
+            expect(rejected).toHaveLength(1);
+            expect(rejected[0].reason).toMatchObject({
+                code: 'TRAVEL_IN_PROGRESS',
+            });
+            expect((await rawCharacter(id))?.assets.ownedItems).toEqual([
+                foodStack(food5, 1),
+            ]);
+            expect(queue.added).toHaveLength(1);
+        });
+
+        it('keeps a concurrent non-food purchase made after the pantry read (D-20)', async () => {
+            const pantryReader = harness.app.get(TravelPantryReader);
+            const food1 = await persistFood(lootItems, 1);
+            const potion = await persistLootItem(lootItems, {
+                name: 'Pozione di prova',
+            });
+            const id = await characterAt(world.markerA, {
+                lifePoints: 100,
+                ownedItems: [foodStack(food1, needed + 3)],
+            });
+            const original = pantryReader.read.bind(pantryReader);
+            let purchased = false;
+            const read = jest
+                .spyOn(pantryReader, 'read')
+                .mockImplementation(async (characterId, session) => {
+                    const pantry = await original(characterId, session);
+                    if (!purchased) {
+                        purchased = true;
+                        await characters.updateOne(
+                            { _id: characterId },
+                            {
+                                $push: {
+                                    'assets.ownedItems': foodStack(potion, 1),
+                                },
+                            },
+                        );
+                    }
+                    return pantry;
+                });
+
+            await expect(
+                travel.startTravel(id, world.markerB),
+            ).resolves.toBeUndefined();
+
+            expect((await rawCharacter(id))?.assets.ownedItems).toEqual([
+                foodStack(food1, 3),
+                foodStack(potion, 1),
+            ]);
+            expect(read.mock.calls.length).toBeGreaterThanOrEqual(2);
         });
     });
 });

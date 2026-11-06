@@ -83,6 +83,25 @@ describe('quest acceptance write builders', () => {
                 'status.location': { $in: [loc, loc.toHexString()] },
             });
         });
+
+        it('laneClaimFilter appends the food and life guards of the automatic travel (D-12)', () => {
+            const guard = { 'status.currentLifePoints': 100 };
+
+            expect(
+                laneClaimFilter(c, QuestLane.standard, expected, q, true, {
+                    $and: [guard],
+                }),
+            ).toEqual({
+                _id: c,
+                deletedAt: null,
+                'quests.pendingQuest': null,
+                'status.awaitingAid': null,
+                'status.activeTravel': null,
+                'status.title': 'rookie',
+                'status.location': { $in: [loc, loc.toHexString()] },
+                $and: [guard],
+            });
+        });
     });
 
     describe('laneClaimUpdate', () => {
@@ -140,6 +159,35 @@ describe('quest acceptance write builders', () => {
                 $set: {
                     'quests.pendingQuest': p,
                     'status.location': loc,
+                },
+            });
+        });
+
+        it('laneClaimUpdate sets the food and life cost with the automatic travel (D-12)', () => {
+            const travel = {
+                road: {
+                    coordinates: [[0, 0]] as [number, number][],
+                    distance: 0,
+                },
+                startTime: new Date('2026-03-04T05:06:07.000Z'),
+                endTime: new Date('2026-03-04T06:06:07.000Z'),
+                duration: 3_600_000,
+                to: loc,
+                kind: TravelKind.quest,
+            };
+
+            expect(
+                laneClaimUpdate(
+                    QuestLane.standard,
+                    p,
+                    { kind: 'travel', travel },
+                    { 'status.currentLifePoints': 85 },
+                ),
+            ).toEqual({
+                $set: {
+                    'quests.pendingQuest': p,
+                    'status.activeTravel': travel,
+                    'status.currentLifePoints': 85,
                 },
             });
         });

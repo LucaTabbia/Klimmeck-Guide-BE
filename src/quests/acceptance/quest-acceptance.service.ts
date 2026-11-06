@@ -13,6 +13,7 @@ import {
 import { City, CityDocument } from 'src/models/city.model';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { TravelPreview } from 'src/models/travel-preview.model';
 import {
     PendingQuest,
     PendingQuestDocument,
@@ -25,7 +26,15 @@ import {
     QuestStartService,
     soloStartDateOf,
 } from 'src/quests/party/quest-start.service';
-import { TravelPlanner } from 'src/travel/travel-planner.service';
+import { mealGuardsOf, mealSetOf } from 'src/travel/food/travel-food.updates';
+import {
+    PlannedMeal,
+    TravelPantryReader,
+} from 'src/travel/food/travel-pantry.reader';
+import {
+    AutoTravelRequest,
+    TravelPlanner,
+} from 'src/travel/travel-planner.service';
 import { TravelScheduler } from 'src/travel/travel-scheduler.service';
 import { SlotRule } from './quest-capacity';
 import {
@@ -89,7 +98,10 @@ interface LaneClaim {
     claim: LaneClaimSnapshot;
     pendingQuestId: Types.ObjectId;
     movement: LaneMovement | null;
+    meal: PlannedMeal | null;
 }
+
+type ClaimTarget = Pick<LaneClaim, 'characterId' | 'quest' | 'claim'>;
 
 const QUEST_PROJECTION = {
     'infos.type': 1,
@@ -130,6 +142,7 @@ export class QuestAcceptanceService {
         private readonly scheduler: TravelScheduler,
         private readonly questScheduler: QuestResolutionScheduler,
         private readonly questStart: QuestStartService,
+        private readonly pantry: TravelPantryReader,
     ) {}
 
     // pre-letture lean → regole pure → una transazione con le guard riaffermate nel filtro (07 D-18): un rifiuto non scrive nulla
@@ -155,6 +168,8 @@ export class QuestAcceptanceService {
             lane === QuestLane.standard && location
                 ? await this.movementTo(quest, characterId, location, character)
                 : null;
+        // fame dopo eligibility, città e movimento, prima dei punti (Phase 14 D-11); il callback la rivaluta e fa fede
+        await this.fedOrReject(characterId, movement);
         const claim: LaneClaimSnapshot = {
             title: character.status.title,
             ...(location ? { location } : {}),
@@ -179,6 +194,15 @@ export class QuestAcceptanceService {
         await this.connection.transaction(async (session) => {
             // il callback viene rieseguito sui WriteConflict: lo stato riparte da zero
             registration.before = null;
+            // la dispensa in sessione prima del claim (D-12): salto, nessun movimento, story e worldMission non mangiano (D-13)
+            const meal =
+                movement?.kind === 'travel'
+                    ? await this.pantry.planFor(
+                          characterId,
+                          movement.travel,
+                          session,
+                      )
+                    : null;
             await this.claimLane(
                 {
                     characterId,
@@ -186,6 +210,7 @@ export class QuestAcceptanceService {
                     claim,
                     pendingQuestId,
                     movement,
+                    meal,
                 },
                 session,
             );
@@ -234,6 +259,28 @@ export class QuestAcceptanceService {
         return pendingQuestId;
     }
 
+    // anteprima owner-only del viaggio automatico (Phase 14 D-08): movimento calcolato come l'accettazione, nessuna scrittura;
+    // null = nessun viaggio (story, worldMission, marker = posizione, salto senza strada); non valuta corsia, titolo, posti né punti
+    async previewTravel(
+        characterId: Types.ObjectId,
+        questId: Types.ObjectId,
+    ): Promise<TravelPreview | null> {
+        const quest = await this.readQuest(questId);
+        const character = await this.readCharacter(characterId);
+        const lane = laneOf(quest.infos.type);
+        if (lane === QuestLane.story) return null;
+        const location = await this.locationInQuestCity(quest, character);
+        if (lane !== QuestLane.standard) return null;
+        const request = this.autoRequestOf(
+            quest,
+            characterId,
+            location,
+            character,
+        );
+        const travel = request ? await this.planner.autoRoute(request) : null;
+        return travel ? this.pantry.previewOf(characterId, travel) : null;
+    }
+
     // da soli: la corsia è già avviata dal claim, resta la scadenza; party: decide QuestStartService (utente 2026-10-25)
     private async startOnMarker(
         trigger: { questId: Types.ObjectId; pendingQuestId: Types.ObjectId },
@@ -259,17 +306,49 @@ export class QuestAcceptanceService {
         location: Types.ObjectId,
         character: CharacterAcceptanceSnapshot,
     ): Promise<LaneMovement | null> {
+        const request = this.autoRequestOf(
+            quest,
+            characterId,
+            location,
+            character,
+        );
+        if (!request) return null;
+        const travel = await this.planner.planAuto(request);
+        return travel
+            ? { kind: 'travel', travel }
+            : { kind: 'jump', marker: request.to };
+    }
+
+    // pre-verifica fuori sessione: solo il viaggio mangia (D-13)
+    private async fedOrReject(
+        characterId: Types.ObjectId,
+        movement: LaneMovement | null,
+    ): Promise<void> {
+        if (movement?.kind !== 'travel') return;
+        const { plan } = await this.pantry.planFor(
+            characterId,
+            movement.travel,
+        );
+        if (!plan.arrivesAlive) throw GameRuleException.travelStarving();
+    }
+
+    // marker assente o uguale alla posizione ⇒ nessun movimento (D-02, D-22)
+    private autoRequestOf(
+        quest: QuestAcceptanceSnapshot,
+        characterId: Types.ObjectId,
+        location: Types.ObjectId,
+        character: CharacterAcceptanceSnapshot,
+    ): AutoTravelRequest | null {
         const marker = refIdOf(quest.infos.markerLocation);
         if (!marker || sameId(location, marker)) return null;
-        const travel = await this.planner.planAuto({
+        return {
             questId: quest._id,
             characterId,
             from: location,
             to: marker,
             pet: character.assets?.pet,
             injuries: character.status.injuries,
-        });
-        return travel ? { kind: 'travel', travel } : { kind: 'jump', marker };
+        };
     }
 
     private async readQuest(
@@ -339,10 +418,21 @@ export class QuestAcceptanceService {
         return location;
     }
 
+    // consumo e HP nello stesso update condizionale del claim, quantità e HP riaffermati nel filtro (D-12)
     private async claimLane(
-        { characterId, quest, claim, pendingQuestId, movement }: LaneClaim,
+        {
+            characterId,
+            quest,
+            claim,
+            pendingQuestId,
+            movement,
+            meal,
+        }: LaneClaim,
         session: ClientSession,
     ): Promise<void> {
+        const target = { characterId, quest, claim };
+        if (meal && !meal.plan.arrivesAlive)
+            throw await this.starvingOrRace(target, session);
         const lane = laneOf(quest.type);
         const claimed = await this.characterModel
             .findOneAndUpdate(
@@ -352,19 +442,56 @@ export class QuestAcceptanceService {
                     claim,
                     quest.id,
                     isRepeatable(quest.type),
+                    meal ? mealGuardsOf(meal.plan, meal.pantry.hpRaw) : {},
                 ),
-                laneClaimUpdate(lane, pendingQuestId, movement),
+                laneClaimUpdate(
+                    lane,
+                    pendingQuestId,
+                    movement,
+                    meal ? mealSetOf(meal.plan, meal.pantry.assets) : {},
+                ),
                 { session, projection: { _id: 1 } },
             )
             .lean()
             .exec();
         if (claimed) return;
+        throw await this.unclaimedError(target, session);
+    }
+
+    // in corsa il codice della corsa viene prima della fame (D-11): la fame vale solo se il claim è ancora possibile
+    private async starvingOrRace(
+        target: ClaimTarget,
+        session: ClientSession,
+    ): Promise<Error> {
+        const { characterId, quest, claim } = target;
+        const claimable = await this.characterModel
+            .exists(
+                laneClaimFilter(
+                    characterId,
+                    laneOf(quest.type),
+                    claim,
+                    quest.id,
+                    isRepeatable(quest.type),
+                ),
+            )
+            .session(session)
+            .exec();
+        return claimable
+            ? GameRuleException.travelStarving()
+            : this.unclaimedError(target, session);
+    }
+
+    // la rilettura in sessione sceglie solo il codice (Phase 4)
+    private async unclaimedError(
+        { characterId, quest, claim }: ClaimTarget,
+        session: ClientSession,
+    ): Promise<Error> {
         const fresh = await this.characterModel
             .findOne(activeCharacterById(characterId), CHARACTER_PROJECTION)
             .session(session)
             .lean<UnclaimedSnapshot | null>()
             .exec();
-        throw classifyUnclaimed(fresh, quest, claim);
+        return classifyUnclaimed(fresh, quest, claim);
     }
 
     // ritorna i registrati prima della scrittura: la prima registrazione apre la finestra delle 24 ore

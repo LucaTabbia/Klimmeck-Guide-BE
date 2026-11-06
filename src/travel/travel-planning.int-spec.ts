@@ -483,6 +483,46 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
         });
     });
 
+    describe('autoRoute', () => {
+        it('routes to the marker like planAuto without warning on a jump (D-08)', async () => {
+            const warn = warnSpy();
+            const request = {
+                questId: new Types.ObjectId(),
+                characterId: new Types.ObjectId(),
+                from: world.markerA,
+                pet: null,
+            };
+
+            const jump = await planner.autoRoute({
+                ...request,
+                to: world.farQuestPoi,
+            });
+            const travel = await planner.autoRoute({
+                ...request,
+                to: world.questPoi,
+            });
+
+            expect(jump).toBeNull();
+            expect(warn).not.toHaveBeenCalled();
+            expect(travel?.kind).toBe('quest');
+            expect(travel).toEqual(
+                await planner.planAuto({ ...request, to: world.questPoi }),
+            );
+        });
+
+        it('rejects a marker without a point of interest from autoRoute too (D-08)', async () => {
+            await expect(
+                planner.autoRoute({
+                    questId: new Types.ObjectId(),
+                    characterId: new Types.ObjectId(),
+                    from: world.markerA,
+                    to: new Types.ObjectId(),
+                    pet: null,
+                }),
+            ).rejects.toMatchObject({ code: 'QUEST_NOT_ACCEPTABLE' });
+        });
+    });
+
     describe('TravelScheduler', () => {
         const characterId = new Types.ObjectId();
         const travel = {

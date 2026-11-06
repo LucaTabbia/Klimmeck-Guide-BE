@@ -10,6 +10,7 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { LootItem } from 'src/models/loot-item.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
 import { PushTransport } from 'src/push/transport/push-transport';
@@ -36,6 +37,11 @@ import {
 import { buildCharacter } from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
+import {
+    foodStack,
+    HARDY_LIFE_POINTS,
+    persistFood,
+} from '../../test/travel/travel-food.fixture';
 import {
     persistTravelWorld,
     TravelWorld,
@@ -137,6 +143,8 @@ describe('teleportCharacter', () => {
             activeStoryQuest?: Types.ObjectId | null;
             activeWorldMissionQuest?: Types.ObjectId | null;
             awaitingAid?: Record<string, unknown> | null;
+            lifePoints?: number;
+            ownedItems?: unknown[];
         } = {},
     ): Promise<TestPlayer> {
         seq += 1;
@@ -152,6 +160,14 @@ describe('teleportCharacter', () => {
                     title: 'rookie',
                     activeTravel: null,
                     awaitingAid: options.awaitingAid ?? null,
+                    currentLifePoints:
+                        options.lifePoints ?? base.status.currentLifePoints,
+                    maxLifePoints:
+                        options.lifePoints ?? base.status.maxLifePoints,
+                },
+                assets: {
+                    ...base.assets,
+                    ownedItems: options.ownedItems ?? [],
                 },
                 quests: {
                     completedQuests: [],
@@ -275,6 +291,43 @@ describe('teleportCharacter', () => {
 
             expect((await rawCharacter(alice))?.status.location).toEqual(
                 world.questPoi,
+            );
+        });
+
+        it('teleports without eating nor refunding the food (D-13)', async () => {
+            const food20 = await persistFood(
+                harness.connection.model(LootItem.name),
+                20,
+            );
+            const pantryOf = async (player: TestPlayer) => {
+                const raw = await rawCharacter(player);
+                return {
+                    ownedItems: raw?.assets.ownedItems,
+                    currentLifePoints: raw?.status.currentLifePoints,
+                };
+            };
+            const traveller = await playerAt(world.markerA, {
+                lifePoints: HARDY_LIFE_POINTS,
+                ownedItems: [foodStack(food20, 5)],
+            });
+            const resting = await playerAt(world.markerA, {
+                ownedItems: [foodStack(food20, 5)],
+            });
+            await travellingToB(traveller);
+            const departed = await pantryOf(traveller);
+            const idle = await pantryOf(resting);
+            expect(departed.ownedItems).not.toEqual([foodStack(food20, 5)]);
+
+            await travel.teleport(characterIdOf(traveller), world.questPoi);
+            await travel.teleport(characterIdOf(resting), world.markerB);
+
+            expect(await pantryOf(traveller)).toEqual(departed);
+            expect(await pantryOf(resting)).toEqual(idle);
+            expect((await rawCharacter(traveller))?.status.location).toEqual(
+                world.questPoi,
+            );
+            expect((await rawCharacter(resting))?.status.location).toEqual(
+                world.markerB,
             );
         });
 

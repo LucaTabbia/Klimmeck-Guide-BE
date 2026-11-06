@@ -208,6 +208,9 @@ Restano invariati i codici di Phase 7 su `acceptQuest` (`QUEST_SLOT_BUSY`, `QUES
 
 **Ordine di valutazione di `teleportCharacter`:** `UNAUTHENTICATED` → `FORBIDDEN` (non innkeeper) → `poiId` malformato `NOT_FOUND` (`Luogo non trovato`) → `request.id` malformato `NOT_FOUND` → POI inesistente `NOT_FOUND` → personaggio inesistente o archiviato `NOT_FOUND` → `QUEST_IN_PROGRESS`.
 
+**Emendamento 2026-11-05 (Phase 14):** `startTravel` e `acceptQuest` (corsia standard con viaggio reale su strada) possono rispondere `TRAVEL_STARVING` («Non hai cibo a sufficienza per il viaggio») dopo i codici elencati sopra; in corsa il codice della corsa viene prima della fame, `travelPreview` non lo risponde mai.
+Ordine completo, azione FE e forma della risposta in `.planning/phases/14-viaggio-e-cibo/BACKEND-NOTES.md` §2.
+
 ---
 
 ## 3. Semantica del viaggio
@@ -235,6 +238,9 @@ Restano invariati i codici di Phase 7 su `acceptQuest` (`QUEST_SLOT_BUSY`, `QUES
 - `TravelPreview` **non ha `startTime`**: l'ETA da mostrare nel dialog è `serverNow + duration`, con `serverNow = now() + offset` (§5).
 - Alla conferma `startTravel` ricalcola tutto da zero: può rifiutare con un **codice diverso** se lo stato è cambiato nel frattempo (es. `TRAVEL_IN_PROGRESS` o `QUEST_IN_PROGRESS` dopo un'accettazione su un altro device) e l'ETA reale è quella di `activeTravel.endTime` su `characterUpdated` (può differire di qualche secondo da quella della preview).
 - Dialog consigliato: meta (nome della città), distanza, durata in ore/minuti, ETA (ora locale ricavata dall'ora del server), pulsanti "Parti" / "Annulla" (l'annulla chiude il dialog: il viaggio confermato non è annullabile).
+
+**Emendamento 2026-11-05 (Phase 14):** `TravelPreview` ha anche `food`, `hpLost` e `arrivesAlive` (additivi, D-09 della Phase 14) e c'è la query owner-only nullable `questTravelPreview(request: AcceptQuestRequest!): TravelPreview` per il viaggio automatico dell'accettazione.
+Semantica, casi `null` e codici in `.planning/phases/14-viaggio-e-cibo/BACKEND-NOTES.md` §1, §3, §4.
 
 ---
 

@@ -81,6 +81,8 @@ const START_TRAVEL =
     'mutation { startTravel(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
 const TRAVEL_PREVIEW =
     '{ travelPreview(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { duration } }';
+const QUEST_TRAVEL_PREVIEW =
+    '{ questTravelPreview(request: { id: "64b000000000000000000001", questId: "64b000000000000000000002" }) { hpLost } }';
 const QUEST_RESULT = '{ questResult(id: "64b000000000000000000001") { id } }';
 const UNACKNOWLEDGED_QUEST_RESULTS = '{ unacknowledgedQuestResults { id } }';
 const ACKNOWLEDGE_QUEST_RESULT =
@@ -138,6 +140,7 @@ const EXPECTED_OWNERSHIP_HANDLERS = [
     'PartyResolver.abandonQuest',
     'PendingQuestsResolver.pendingQuest',
     'QuestAcceptanceResolver.acceptQuest',
+    'QuestAcceptanceResolver.questTravelPreview',
     'QuestResultsResolver.acknowledgeQuestResult',
     'QuestResultsResolver.questResult',
     'QuestResultsResolver.questResultReceived',
@@ -148,6 +151,7 @@ const EXPECTED_OWNERSHIP_HANDLERS = [
 const EXPECTED_OWNER_ONLY_HANDLERS = [
     'PartyResolver.abandonQuest',
     'QuestAcceptanceResolver.acceptQuest',
+    'QuestAcceptanceResolver.questTravelPreview',
     'QuestResultsResolver.acknowledgeQuestResult',
     'QuestResultsResolver.questResult',
     'QuestResultsResolver.questResultReceived',
@@ -592,7 +596,26 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'input TravelRequest {\n  id: String!\n  poiId: String!\n}',
         );
         expect(schema.match(/type TravelPreview \{[^}]*\}/)?.[0]).toBe(
-            'type TravelPreview {\n  distance: Float!\n  duration: Float!\n  road: TravelPath!\n}',
+            'type TravelPreview {\n  arrivesAlive: Boolean!\n  distance: Float!\n  duration: Float!\n  food: [TravelFoodItem!]!\n  hpLost: Int!\n  road: TravelPath!\n}',
+        );
+    });
+
+    it('writes the food of the travel preview into the generated schema (D-09, D-14)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type TravelFoodItem \{[^}]*\}/)?.[0]).toBe(
+            'type TravelFoodItem {\n  item: LootItem!\n  quantity: Int!\n}',
+        );
+        expect(schema).toContain(
+            'travelPreview(request: TravelRequest!): TravelPreview!',
+        );
+    });
+
+    it('writes the quest travel preview query as nullable into the generated schema (D-08, D-14)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            'questTravelPreview(request: AcceptQuestRequest!): TravelPreview\n',
         );
     });
 
@@ -1022,6 +1045,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             expect(errorCodeOf(await graphqlCall(app, TRAVEL_PREVIEW))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
+        });
+
+        it('rejects questTravelPreview without a bearer (D-08)', async () => {
+            expect(
+                errorCodeOf(await graphqlCall(app, QUEST_TRAVEL_PREVIEW)),
+            ).toBe(AuthErrorCode.UNAUTHENTICATED);
         });
 
         it('rejects teleportCharacter without a bearer', async () => {
