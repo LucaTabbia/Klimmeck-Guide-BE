@@ -101,13 +101,28 @@ export class AmbushSweeper implements OnApplicationBootstrap, OnModuleDestroy {
                 );
                 if (outcome === 'won' || outcome === 'lost') resolved++;
             } catch (error) {
-                await this.recordFailure(character, error, now);
+                await this.recordFailureSafely(character, error, now);
             }
         }
         if (resolved > 0) {
             this.logger.log(`Sweep delle imboscate: ${resolved} risolte`);
         }
         return resolved;
+    }
+
+    // un errore nella registrazione non ferma il ciclo: i personaggi successivi dello stesso tick vengono comunque risolti
+    private async recordFailureSafely(
+        character: DueAmbush,
+        error: unknown,
+        now: Date,
+    ): Promise<void> {
+        try {
+            await this.recordFailure(character, error, now);
+        } catch (recordError) {
+            this.logger.error(
+                `Imboscata ${jobIdOf(identityOf(character))}: registrazione del fallimento non riuscita: ${describeError(recordError)}`,
+            );
+        }
     }
 
     // fail-open (D-18): un errore non transitorio non blocca il viaggio per sempre; i WriteConflict li ritenta il driver e non arrivano qui
