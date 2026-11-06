@@ -1,23 +1,32 @@
-// una imboscata alla volta (D-02): fuori dal callback POI, pool, composizione, catalogo, proprietario e risorteggio (Pitfall 10); dentro snapshot, combattimento e scritture; dopo il commit job e recuperi; solo chi ha scritto accoda
+// una imboscata alla volta (D-02): fuori dal callback POI, pool, composizione, catalogo, proprietario, risorteggio e rotta della deviazione (Pitfall 10); dentro snapshot, combattimento, scritture e abbandono della corsia; dopo il commit push, job e recuperi; solo chi ha scritto accoda
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { Connection, Model, Types } from 'mongoose';
+import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
+import { unstartedSeatReleaseOf } from 'src/characters/deletion/seat-release';
 import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { City, CityDocument } from 'src/models/city.model';
 import { Enemy, EnemyDocument } from 'src/models/enemy.model';
+import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { Lore, LoreDocument } from 'src/models/lore.model';
+import {
+    PendingQuest,
+    PendingQuestDocument,
+} from 'src/models/pending-quest.model';
 import {
     PointOfInterest,
     PointOfInterestDocument,
 } from 'src/models/point-of-interest.model';
+import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { sameId } from 'src/mongo/document-id';
 import { ownersOf } from 'src/mongo/owners-of';
+import { ambushDefeat } from 'src/push/push-events';
+import { PushService } from 'src/push/push.service';
 import { readEnemyCandidates } from 'src/quests/generation/enemy-candidate';
 import type { ComposedEnemy } from 'src/quests/generation/quest-composition';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
@@ -38,8 +47,11 @@ import {
 } from 'src/quests/outcomes/resolution-loader.service';
 import { WalletService } from 'src/economy/wallet.service';
 import { gameDistanceKm } from 'src/roads/game-distance';
-import type { LonLat } from 'src/roads/road-route';
+import type { LonLat, RouteTarget } from 'src/roads/road-route';
+import { RoadsService } from 'src/roads/roads.service';
+import { TravelPlanner } from '../travel-planner.service';
 import { TravelScheduler } from '../travel-scheduler.service';
+import { detourFallbacksOf, residualDetourOf } from './ambush-detour';
 import type { DrawnAmbush } from './ambush-draw';
 import { type AmbushIdentity, ambushJobId } from './ambush-job';
 import {
@@ -47,6 +59,7 @@ import {
     type AmbushCity,
     type AmbushOutcomePlan,
     type AmbushTravelSnapshot,
+    type DetourDraft,
     planAmbushOutcome,
 } from './ambush-plan';
 import { AmbushPlanner } from './ambush-planner.service';
@@ -75,6 +88,10 @@ interface LeanCity {
 interface AmbushPlace {
     poiTypes: readonly string[];
     nearCity: AmbushCity | null;
+    point: LonLat;
+    segment: number;
+    pois: LeanPoi[];
+    cities: LeanCity[];
 }
 
 interface Fight {
@@ -84,6 +101,7 @@ interface Fight {
     catalog: CombatCatalog;
     nearCity: AmbushCity;
     next: DrawnAmbush | null;
+    detour: DetourDraft;
     userId: Types.ObjectId;
     now: Date;
 }
@@ -127,6 +145,19 @@ function nearCityOf(
     return nearest ? cityOf(nearest) : null;
 }
 
+// città più vicina per strada fra tutti i marker, meta e partenza comprese (D-11)
+function markerTargetsOf(
+    cities: readonly LeanCity[],
+    pois: readonly LeanPoi[],
+): RouteTarget[] {
+    return cities.flatMap((city) => {
+        const marker = pois.find((poi) => sameId(city.markerLocation, poi._id));
+        return marker
+            ? [{ id: marker._id.toHexString(), location: marker.location }]
+            : [];
+    });
+}
+
 const enemyEntriesOf = (composed: readonly ComposedEnemy[]) =>
     composed.map(({ enemy, quantity }) => ({
         enemy: new Types.ObjectId(enemy.id),
@@ -151,6 +182,10 @@ export class AmbushResolutionService {
         private readonly loreModel: Model<LoreDocument>,
         @InjectModel(User.name)
         private readonly userModel: Model<UserDocument>,
+        @InjectModel(PendingQuest.name)
+        private readonly pendingQuestModel: Model<PendingQuestDocument>,
+        @InjectModel(Quest.name)
+        private readonly questModel: Model<QuestDocument>,
         private readonly loader: ResolutionLoader,
         private readonly combat: CombatResolver,
         private readonly chance: ChanceSource,
@@ -158,6 +193,9 @@ export class AmbushResolutionService {
         private readonly writer: OutcomeWriter,
         private readonly planner: AmbushPlanner,
         private readonly scheduler: TravelScheduler,
+        private readonly roads: RoadsService,
+        private readonly travelPlanner: TravelPlanner,
+        private readonly push: PushService,
         private readonly clock: Clock,
     ) {}
 
@@ -211,8 +249,61 @@ export class AmbushResolutionService {
             catalog,
             nearCity: place.nearCity,
             next,
+            detour: await this.detourOf(snapshot, place, place.nearCity, jobId),
             userId,
             now,
+        });
+    }
+
+    // rotta dal punto (C7: poi dai vertici della polilinea); senza rotta la pedina prosegue verso la meta (D-25)
+    private async detourOf(
+        snapshot: AmbushCharacter,
+        place: AmbushPlace,
+        nearCity: AmbushCity,
+        jobId: string,
+    ): Promise<DetourDraft> {
+        const travel = snapshot.status.activeTravel;
+        const { point, segment, pois, cities } = place;
+        const petSpeed = await this.travelPlanner.speedOfCharacter(
+            snapshot.assets?.pet,
+            [],
+        );
+        const nearest = this.roads.nearestByTime(
+            point,
+            markerTargetsOf(cities, pois),
+            detourFallbacksOf(travel.road.coordinates, segment),
+        );
+        const marker = nearest ? new Types.ObjectId(nearest.id) : null;
+        const reached =
+            marker &&
+            cities.find((city) => sameId(city.markerLocation, marker));
+        if (nearest && marker && reached) {
+            return {
+                road: {
+                    coordinates: nearest.route.coordinates,
+                    distance: nearest.route.distanceKm,
+                },
+                to: marker,
+                reachedCity: cityOf(reached),
+                baseHours: nearest.route.baseHours,
+                residualMs: null,
+                petSpeed,
+            };
+        }
+        this.logger.warn(
+            `Imboscata ${jobId}: nessuna città raggiungibile per strada, si prosegue verso ${String(travel.to)}`,
+        );
+        const destination = pois.find((poi) => sameId(travel.to, poi._id));
+        const last =
+            travel.road.coordinates[travel.road.coordinates.length - 1];
+        return residualDetourOf({
+            travel,
+            point,
+            segment,
+            reachedCity:
+                nearCityOf(destination ?? null, cities, pois, last ?? point) ??
+                nearCity,
+            petSpeed,
         });
     }
 
@@ -220,7 +311,7 @@ export class AmbushResolutionService {
         travel: AmbushTravelSnapshot,
         km: number,
     ): Promise<AmbushPlace> {
-        const { point } = pointAtFraction(
+        const { point, segment } = pointAtFraction(
             travel.road.coordinates,
             km / travel.road.distance,
         );
@@ -242,6 +333,10 @@ export class AmbushResolutionService {
         return {
             poiTypes: nearest?.type ?? [],
             nearCity: nearCityOf(nearest, cities, pois, point),
+            point,
+            segment,
+            pois,
+            cities,
         };
     }
 
@@ -311,9 +406,7 @@ export class AmbushResolutionService {
                     this.combat.resolve(context, this.chance),
                     identity.characterId,
                 );
-                if (battle?.verdict !== 'success') {
-                    throw new Error('ambush defeat not wired');
-                }
+                if (!battle) throw new Error('ambush combat without a verdict');
                 const plan = planAmbushOutcome({
                     snapshot: inSession,
                     identity,
@@ -324,7 +417,7 @@ export class AmbushResolutionService {
                     enemies: enemyFactsOf(catalog) ?? { entries: [], xp: 0 },
                     nearCity: fight.nearCity,
                     nextAmbush: fight.next,
-                    detour: null,
+                    detour: fight.detour,
                     spellRecoveryTimes: catalog.recoveryTimes,
                     spellMaxUsages: catalog.spellMaxUsages,
                     now,
@@ -334,6 +427,9 @@ export class AmbushResolutionService {
                     plan.update,
                     session,
                 );
+                if (battle.verdict === 'failure') {
+                    await this.abandonLane(inSession, session);
+                }
                 if (plan.coinsDelta > 0) {
                     await this.wallet.applyCharacterCoinsDelta(
                         identity.characterId,
@@ -352,6 +448,9 @@ export class AmbushResolutionService {
             ...emptyCommitted(),
             spellRecoveries: outcome.plan.spellRecoveries,
         });
+        if (outcome.plan.report.outcome === QuestOutcome.failure) {
+            return this.afterDefeat(fight, outcome.plan);
+        }
         await this.afterCommit(
             identity.characterId,
             outcome.plan.travelAfter,
@@ -359,6 +458,50 @@ export class AmbushResolutionService {
         );
         this.logger.log(`Imboscata ${jobId} risolta: won`);
         return 'won';
+    }
+
+    // D-11: abandonQuest non vale in viaggio (il suo filtro vuole arrivedAt); party sciolto = corsia già vuota, niente da fare
+    private async abandonLane(
+        snapshot: AmbushCharacter,
+        session: ClientSession,
+    ): Promise<void> {
+        const pendingQuestId = snapshot.quests?.pendingQuest;
+        if (!pendingQuestId) return;
+        const pending = await this.pendingQuestModel
+            .findOne({ _id: pendingQuestId }, { quest: 1 })
+            .session(session)
+            .lean<{ _id: Types.ObjectId; quest?: Types.ObjectId } | null>()
+            .exec();
+        if (!pending) return;
+        await this.pendingQuestModel
+            .deleteOne({ _id: pending._id }, { session })
+            .exec();
+        if (!pending.quest) return;
+        const release = unstartedSeatReleaseOf([pending.quest], snapshot._id);
+        await this.questModel
+            .updateMany(release.filter, release.update, { session })
+            .exec();
+    }
+
+    // a ogni sconfitta, anche verso la meta (D-12); nessuna imboscata sulla deviazione (D-03)
+    private async afterDefeat(
+        fight: Fight,
+        plan: AmbushOutcomePlan,
+    ): Promise<AmbushOutcome> {
+        const { identity, jobId, detour } = fight;
+        await this.push.sendToUser(
+            fight.userId,
+            ambushDefeat(
+                identity.characterId.toHexString(),
+                detour.reachedCity.name,
+            ),
+        );
+        await this.scheduler.cancel(identity.characterId, identity.startTime);
+        await this.scheduler.schedule(identity.characterId, plan.travelAfter);
+        this.logger.log(
+            `Imboscata ${jobId} risolta: lost verso ${detour.reachedCity.name}`,
+        );
+        return 'lost';
     }
 
     // la prossima imboscata, oppure il completamento già scaduto che il filtro aveva fatto aspettare (Pitfall 1)
