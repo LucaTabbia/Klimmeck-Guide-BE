@@ -40,9 +40,9 @@ created: 2026-11-06
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 15-01-01 | 01 | 1 | BE-AMBUSH-01 | T-15-01, T-15-02 | fuso opzionale validato al boot, messaggio senza il valore, nessun `process.env.` fuori da `src/config/` | unit | `npx jest src/config --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 15-01-02 | 01 | 1 | BE-AMBUSH-01, BE-AMBUSH-03, BE-AMBUSH-04 | T-15-03 | costanti pinnate, livelli fuori tabella clampati, nessun caso né orologio nel modulo | unit | `npx jest src/travel/ambush --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 15-01-03 | 01 | 1 | BE-AMBUSH-01 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 15-01-01 | 01 | 1 | BE-AMBUSH-01 | T-15-01, T-15-02 | fuso opzionale validato al boot, messaggio senza il valore, nessun `process.env.` fuori da `src/config/` | unit | `npx jest src/config --selectProjects unit` | ✅ | ✅ green |
+| 15-01-02 | 01 | 1 | BE-AMBUSH-01, BE-AMBUSH-03, BE-AMBUSH-04 | T-15-03 | costanti pinnate, livelli fuori tabella clampati, nessun caso né orologio nel modulo | unit | `npx jest src/travel/ambush --selectProjects unit` | ✅ | ✅ green |
+| 15-01-03 | 01 | 1 | BE-AMBUSH-01 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 15-02-01 | 02 | 2 | BE-AMBUSH-03 | — | refactor senza cambi: spec di `RoadsService` verdi | unit + integration | `npx jest src/roads/game-distance.spec.ts --selectProjects unit && npx jest src/roads --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 15-02-02 | 02 | 2 | BE-AMBUSH-01, BE-AMBUSH-05 | T-15-04, T-15-05 | sorteggio limitato, nessun tiro sotto soglia, mai `at ≥ endTime`, punto identico al FE | unit | `npx jest src/travel/ambush --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 15-02-03 | 02 | 2 | BE-AMBUSH-01 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-02-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
