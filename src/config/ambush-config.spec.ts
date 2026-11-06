@@ -1,4 +1,9 @@
-import { parseAmbushConfig, readAmbushEnv } from 'src/config/ambush-config';
+import { ConfigService } from '@nestjs/config';
+import {
+    ambushConfigProvider,
+    parseAmbushConfig,
+    readAmbushEnv,
+} from 'src/config/ambush-config';
 
 describe('ambush config', () => {
     it('defaults the ambush time zone to Europe/Rome when empty (D-04)', () => {
@@ -33,5 +38,19 @@ describe('ambush config', () => {
         expect(readAmbushEnv({ AMBUSH_TIMEZONE: 'UTC', OTHER: 'x' })).toEqual({
             AMBUSH_TIMEZONE: 'UTC',
         });
+    });
+
+    it('defaults the ambush time zone without a config service in bare harnesses (D-04)', () => {
+        expect(ambushConfigProvider.inject).toEqual([
+            { token: ConfigService, optional: true },
+        ]);
+        expect(ambushConfigProvider.useFactory(undefined)).toEqual({
+            timeZone: 'Europe/Rome',
+        });
+        expect(
+            ambushConfigProvider.useFactory(
+                new ConfigService({ AMBUSH_TIMEZONE: 'UTC' }),
+            ),
+        ).toEqual({ timeZone: 'UTC' });
     });
 });
