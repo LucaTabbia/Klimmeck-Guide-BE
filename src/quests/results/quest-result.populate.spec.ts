@@ -96,6 +96,12 @@ describe('dropOrphanResultRefs', () => {
 });
 
 describe('unpopulatedResultOf', () => {
+    it('answers a quest kind without an ambush block (D-14)', () => {
+        const result = unpopulatedResultOf(draftWith());
+
+        expect(result.kind).toBe('quest');
+        expect(result.ambush).toBeNull();
+    });
     it('answers the fought enemies empty and keeps the dungeon stages (D-01, D-12)', () => {
         const result = unpopulatedResultOf(
             draftWith({

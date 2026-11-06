@@ -8,6 +8,7 @@ import {
 import { Coins, CoinsSchema } from '../common/coins.model';
 import { InjuryType } from '../enums/injury-type.enum';
 import { QuestOutcome } from '../enums/quest-outcome.enum';
+import { QuestResultKind } from '../enums/quest-result-kind.enum';
 import { Pet } from '../pet.model';
 import { QuestEnemy, QuestEnemySchema } from '../quest/quest-enemy.model';
 import { TitleType } from '../enums/title-type.enum';
@@ -32,6 +33,47 @@ export class QuestResultQuest {
 
 export const QuestResultQuestSchema =
     SchemaFactory.createForClass(QuestResultQuest);
+
+// report d'imboscata (Phase 15 D-14): nearCity = città del POI più vicino al punto, reachedCity = città raggiunta dopo la sconfitta, null in vittoria
+@ObjectType()
+@Schema({ _id: false })
+export class AmbushCity {
+    @Field(() => ID)
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'City', required: true })
+    id: Types.ObjectId;
+
+    @Field(() => String)
+    @Prop({ type: String, required: true })
+    name: string;
+}
+
+export const AmbushCitySchema = SchemaFactory.createForClass(AmbushCity);
+
+@ObjectType()
+@Schema({ _id: false })
+export class AmbushReport {
+    @Field(() => Date)
+    @Prop({ type: Date, required: true })
+    at: Date;
+
+    @Field(() => AmbushCity)
+    @Prop({ type: AmbushCitySchema, required: true })
+    nearCity: AmbushCity;
+
+    @Field(() => AmbushCity, { nullable: true })
+    @Prop({ type: AmbushCitySchema, default: null })
+    reachedCity: AmbushCity | null;
+}
+
+export const AmbushReportSchema = SchemaFactory.createForClass(AmbushReport);
+
+const isAmbushResult = function (this: { kind?: string }): boolean {
+    return this.kind === QuestResultKind.ambush;
+};
+
+const isQuestResult = function (this: { kind?: string }): boolean {
+    return this.kind !== QuestResultKind.ambush;
+};
 
 @ObjectType()
 @Schema({ _id: false })
@@ -92,9 +134,26 @@ export class QuestResult {
     @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
     user: Types.ObjectId;
 
-    @Field(() => QuestResultQuest)
-    @Prop({ type: QuestResultQuestSchema, required: true })
-    quest: QuestResultQuest;
+    @Field(() => QuestResultKind)
+    @Prop({
+        type: String,
+        enum: Object.values(QuestResultKind),
+        default: QuestResultKind.quest,
+    })
+    kind: QuestResultKind;
+
+    // null se e solo se kind == ambush: l'unica modifica non additiva della fase, dichiarata nel handoff
+    @Field(() => QuestResultQuest, { nullable: true })
+    @Prop({
+        type: QuestResultQuestSchema,
+        default: null,
+        required: isQuestResult,
+    })
+    quest: QuestResultQuest | null;
+
+    @Field(() => AmbushReport, { nullable: true })
+    @Prop({ type: AmbushReportSchema, default: null, required: isAmbushResult })
+    ambush: AmbushReport | null;
 
     @Field(() => QuestOutcome)
     @Prop({ type: String, enum: Object.values(QuestOutcome), required: true })

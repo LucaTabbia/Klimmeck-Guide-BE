@@ -30,6 +30,17 @@ type ActiveTravel {
   to: ID!
 }
 
+type AmbushCity {
+  id: ID!
+  name: String!
+}
+
+type AmbushReport {
+  at: DateTime!
+  nearCity: AmbushCity!
+  reachedCity: AmbushCity
+}
+
 type AssetQuantity {
   item: ItemUnion!
   quantity: Int!
@@ -619,6 +630,7 @@ type QuestRequirements {
 
 type QuestResult {
   acknowledgedAt: DateTime
+  ambush: AmbushReport
   character: ID!
   consumablesUsed: [AssetQuantity!]!
   enemies: [QuestEnemy!]!
@@ -626,11 +638,12 @@ type QuestResult {
   hpBefore: Int!
   id: ID!
   injuriesAdded: [InjuryType!]!
+  kind: QuestResultKind!
   levelAfter: Int!
   levelBefore: Int!
   maxLifePoints: Int!
   outcome: QuestOutcome!
-  quest: QuestResultQuest!
+  quest: QuestResultQuest
   rescuedCharacters: [ID!]!
   resolvedAt: DateTime!
   rewards: QuestRewards!
@@ -644,6 +657,11 @@ type QuestResult {
   xpAfter: Int!
   xpBefore: Int!
   xpGained: Int!
+}
+
+enum QuestResultKind {
+  ambush
+  quest
 }
 
 type QuestResultQuest {
