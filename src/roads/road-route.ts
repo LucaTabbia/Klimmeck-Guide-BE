@@ -12,6 +12,16 @@ export interface RoadRoute {
     baseHours: number;
 }
 
+export interface RouteTarget {
+    id: string;
+    location: LonLat;
+}
+
+export interface NearestRoute {
+    id: string;
+    route: RoadRoute;
+}
+
 const PRECISION = 7;
 
 export function routeOf(
@@ -33,7 +43,7 @@ export function routeOf(
     }
 
     return {
-        coordinates: collapse([from, ...nodes.map(coordOf), to]),
+        coordinates: collapsePoints([from, ...nodes.map(coordOf), to]),
         distanceKm,
         baseHours,
     };
@@ -48,7 +58,7 @@ function samePoint(a: LonLat, b: LonLat): boolean {
     return round(a[0]) === round(b[0]) && round(a[1]) === round(b[1]);
 }
 
-function collapse(points: readonly LonLat[]): LonLat[] {
+export function collapsePoints(points: readonly LonLat[]): LonLat[] {
     const kept: LonLat[] = [];
     for (const point of points) {
         const last = kept[kept.length - 1];
