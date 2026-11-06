@@ -30,6 +30,7 @@ import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
 import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
+import { TRAVEL_QUEUE } from 'src/travel/travel-job';
 import {
     type AuthTestApp,
     createAuthTestApp,
@@ -111,6 +112,10 @@ export interface OutcomeHarnessOptions {
     quiet?: ProviderOverride[];
     // moduli in più accanto a QuestOutcomesModule (party: avvio, abbandono, scioglimento)
     imports?: ModuleMetadata['imports'];
+    // coda `travel` finta per i moduli dei viaggi (imboscate, Phase 15 D-24)
+    travelQueue?: FakeTravelQueue;
+    // in coda agli override di default: vincono su di essi
+    overrides?: ProviderOverride[];
 }
 
 export interface OutcomeHarness {
@@ -119,6 +124,7 @@ export interface OutcomeHarness {
     push: FakePushTransport;
     questQueue: FakeTravelQueue;
     spellQueue: FakeTravelQueue;
+    travelQueue?: FakeTravelQueue;
     reset(): Promise<void>;
 }
 
@@ -148,6 +154,15 @@ export async function createOutcomeHarness(
             ...(options.combat
                 ? [{ token: CombatResolver, useValue: options.combat }]
                 : []),
+            ...(options.travelQueue
+                ? [
+                      {
+                          token: getQueueToken(TRAVEL_QUEUE),
+                          useValue: options.travelQueue,
+                      },
+                  ]
+                : []),
+            ...(options.overrides ?? []),
         ],
     });
     const models = outcomeModels(harness);
@@ -158,11 +173,13 @@ export async function createOutcomeHarness(
         push,
         questQueue,
         spellQueue,
+        travelQueue: options.travelQueue,
         async reset() {
             await harness.clearDatabase();
             push.reset();
             questQueue.reset();
             spellQueue.reset();
+            options.travelQueue?.reset();
         },
     };
 }
