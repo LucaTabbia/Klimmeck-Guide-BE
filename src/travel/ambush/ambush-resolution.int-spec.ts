@@ -170,6 +170,8 @@ describe('AmbushResolutionService (replica set)', () => {
             to: subject.travel.to,
             kind: subject.travel.kind,
         });
+        // forma, singolo, colpo al km 11: la composizione tira prima del risorteggio
+        expect(chance.drawn).toEqual([0, 0, 0]);
         expect(activeTravel.ambush.km).toBe(11);
         expect(activeTravel.ambush.attempts).toBe(0);
         expect(ambushJobs()).toEqual([
