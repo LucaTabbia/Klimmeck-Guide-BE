@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 15 planned (12 plans, plan-checker passed after one revision, 2026-11-06) on feat/15-imboscate-in-viaggio — next: /gsd-execute-phase 15
-last_updated: "2026-11-06T17:56:10.000Z"
-last_activity: 2026-11-06 -- Phase 15 planned: research, repo rules, 12 plans, checker passed after one revision
+stopped_at: Phase 15 execution started (0/12, 2026-11-06) on feat/15-imboscate-in-viaggio — executor sequenziali, uno alla volta
+last_updated: "2026-11-06T18:13:48.909Z"
+last_activity: 2026-11-06 -- Phase 15 execution started
 progress:
   total_phases: 20
   completed_phases: 18
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 15 — Imboscate in viaggio — PLANNED (2026-11-06) su `feat/15-imboscate-in-viaggio` (da `develop` `b492a46`): 12 piani in 12 wave sequenziali (01 config/regole/fasce/ora locale, 02 sorteggio puro + punto planare + `gameDistanceKm`, 03 sotto-documenti interni + partenza + job, 04 pool con animali + composizione per livello + export delle porte, 05 `nearestByTime`, 06 risoluzione/vittoria + `AmbushModule`, 07 sconfitta + deviazione + push `ambushDefeat`, 08 processor + sweeper + indice, 09 SDL `QuestResultKind`/`quest` nullable/`AmbushReport` + report al completamento e al teleport, 10 integration D-16, 11 gate, 12 handoff per la FE 16); CONTEXT D-01..D-25 (D-25 = veto dell'utente sul ripiego senza città), REPO-RULES coi nomi del contratto condivisi con la FE `16-REPO-RULES.md`, RESEARCH (C1–C9 risolti), VALIDATION (41 righe); plan-checker passato dopo una revisione (1 blocker `push.exception.spec.ts` + 6 warning corretti). Next: `/gsd-execute-phase 15` (executor sequenziali); la FE Phase 16 (pianificata, 8 piani) consuma il contratto dopo la merge. Previous: Phase 14 — COMPLETE and merged (PR #23, `b492a46`, 2026-11-06).
+**Current focus:** Phase 15 — Imboscate in viaggio — EXECUTING (dal 2026-11-06) su `feat/15-imboscate-in-viaggio` (da `develop` `b492a46`): 12 piani in 12 wave sequenziali (01 config/regole/fasce/ora locale, 02 sorteggio puro + punto planare + `gameDistanceKm`, 03 sotto-documenti interni + partenza + job, 04 pool con animali + composizione per livello + export delle porte, 05 `nearestByTime`, 06 risoluzione/vittoria + `AmbushModule`, 07 sconfitta + deviazione + push `ambushDefeat`, 08 processor + sweeper + indice, 09 SDL `QuestResultKind`/`quest` nullable/`AmbushReport` + report al completamento e al teleport, 10 integration D-16, 11 gate, 12 handoff per la FE 16); CONTEXT D-01..D-25 (D-25 = veto dell'utente sul ripiego senza città), REPO-RULES coi nomi del contratto condivisi con la FE `16-REPO-RULES.md`. La FE Phase 16 (8 piani) gira in parallelo sul suo repo e consuma il contratto dopo la merge. Previous: Phase 14 — COMPLETE and merged (PR #23, `b492a46`, 2026-11-06).
 
 ## Current Position
 
-Phase: 15 (Imboscate in viaggio) — PLANNED 2026-11-06 on `feat/15-imboscate-in-viaggio` (from `develop` `b492a46`): 12 plans in 12 sequential waves; CONTEXT D-01..D-25, REPO-RULES, RESEARCH, VALIDATION (41 task rows); plan-checker passed after one revision; FE companion Phase 16 planned in the same session (8 plans, `../Klimmeck-Guide/.planning/phases/16-travel-ambushes/`)
+Phase: 15 (Imboscate in viaggio) — EXECUTING since 2026-11-06 on `feat/15-imboscate-in-viaggio` (from `develop` `b492a46`): 12 plans in 12 sequential waves, one executor at a time on the main tree; CONTEXT D-01..D-25, REPO-RULES, RESEARCH, VALIDATION (41 task rows); FE companion Phase 16 executing in parallel on its repo (16-07/16-08 wait for this phase's merge)
 Plan: 0 of 12
-Status: Phase 15 planned — ready to execute (`/gsd-execute-phase 15`); Phase 14 merged on `develop` (PR #23, `b492a46`, 2026-11-06)
-Last activity: 2026-11-06 -- Phase 15 planned: research, repo rules, 12 plans, checker passed after one revision
+Status: Executing Phase 15 — plan 15-01 in progress; Phase 14 merged on `develop` (PR #23, `b492a46`, 2026-11-06)
+Last activity: 2026-11-06 -- Phase 15 execution started
 
 Progress: [░░░░░░░░░░] 0/12 plans of Phase 15 (phases 1–14, 9.1, 9.2 and 13.1 complete and merged)
 
