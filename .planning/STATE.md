@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 15 complete (12/12) — PR verso develop aperta dall'orchestratore (numero nello STATE dopo l'apertura) (2026-11-06); next: after the merge the user restarts the BE (npm run build, restart from dist/) and the FE Phase 16 resumes with 16-07/16-08
+stopped_at: Phase 15 complete (12/12) — PR #24 verso develop aperta dall'orchestratore (non draft: nessun one-off in questa fase) (2026-11-06); next: after the merge the user restarts the BE (npm run build, restart from dist/) and the FE Phase 16 resumes with 16-07/16-08
 last_updated: "2026-11-06T21:29:20.000Z"
-last_activity: 2026-11-06 -- Phase 15 complete: review (0 critical / 1 warning / 8 info su 50 file, 7 fix), verification passed, security audit (secured, 42 minacce, 0 aperte, 0 differite), PR verso develop aperta dall'orchestratore (numero nello STATE dopo l'apertura)
+last_activity: 2026-11-06 -- Phase 15 complete: review (0 critical / 1 warning / 8 info su 50 file, 7 fix), verification passed, security audit (secured, 42 minacce, 0 aperte, 0 differite), PR #24 verso develop aperta dall'orchestratore (non draft: nessun one-off in questa fase)
 progress:
   total_phases: 20
   completed_phases: 19
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 15 (Imboscate in viaggio) — COMPLETE 2026-11-06 on `feat/15-imboscate-in-viaggio` (from `develop` `b492a46`): 12/12 plans, gate 15-11 passed, three area reviews (0 critical / 1 warning / 8 info) → 7 fixes, verification passed (0 gaps), security audit secured; PR to `develop` opened by the orchestrator; the FE Phase 16 (parked at 6/8) resumes with 16-07/16-08 after the merge
+Phase: 15 (Imboscate in viaggio) — COMPLETE 2026-11-06 on `feat/15-imboscate-in-viaggio` (from `develop` `b492a46`): 12/12 plans, gate 15-11 passed, three area reviews (0 critical / 1 warning / 8 info) → 7 fixes, verification passed (0 gaps), security audit secured; PR #24 to `develop` opened by the orchestrator (2026-11-06, non-draft); the FE Phase 16 (parked at 6/8) resumes with 16-07/16-08 after the merge
 Plan: 12 of 12
-Status: Phase 15 complete (12/12) — review 0 critical / 1 warning / 8 info su 50 file, 7 fix; verification passed; security audit secured, 42 minacce, 0 aperte, 0 differite; PR verso develop aperta dall'orchestratore (numero nello STATE dopo l'apertura); after the merge the user restarts the BE (build + restart from dist/, no one-off in this phase, AMBUSH_TIMEZONE optional) and the FE Phase 16 resumes with 16-07 (schema gate) and 16-08 (device E2E)
+Status: Phase 15 complete (12/12) — review 0 critical / 1 warning / 8 info su 50 file, 7 fix; verification passed; security audit secured, 42 minacce, 0 aperte, 0 differite; PR #24 verso develop aperta dall'orchestratore (non draft: nessun one-off in questa fase); after the merge the user restarts the BE (build + restart from dist/, no one-off in this phase, AMBUSH_TIMEZONE optional) and the FE Phase 16 resumes with 16-07 (schema gate) and 16-08 (device E2E)
 Last activity: 2026-11-06 -- Phase 15 closed: three area reviews merged, rulings, fixes, verification, security audit, PR
 
 Progress: [██████████] 12/12 plans of Phase 15 (phases 1–15, 9.1, 9.2 and 13.1 complete; 15 awaiting merge)
