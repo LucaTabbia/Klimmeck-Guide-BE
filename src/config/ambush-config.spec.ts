@@ -34,6 +34,26 @@ describe('ambush config', () => {
         expect(message).not.toContain('Mars');
     });
 
+    it('rejects a fixed offset time zone (D-04)', () => {
+        for (const offset of ['+02:00', '-0530']) {
+            let message = '';
+            try {
+                parseAmbushConfig({ AMBUSH_TIMEZONE: offset });
+            } catch (error) {
+                message = (error as Error).message;
+            }
+
+            expect(message).toContain('AMBUSH_TIMEZONE');
+            expect(message).not.toContain(offset);
+        }
+    });
+
+    it('keeps accepting the IANA zones with a sign in the name (D-04)', () => {
+        expect(parseAmbushConfig({ AMBUSH_TIMEZONE: 'Etc/GMT+2' })).toEqual({
+            timeZone: 'Etc/GMT+2',
+        });
+    });
+
     it('reads only the ambush keys from the source (D-04)', () => {
         expect(readAmbushEnv({ AMBUSH_TIMEZONE: 'UTC', OTHER: 'x' })).toEqual({
             AMBUSH_TIMEZONE: 'UTC',
