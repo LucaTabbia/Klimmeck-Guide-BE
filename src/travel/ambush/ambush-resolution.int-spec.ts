@@ -5,7 +5,12 @@ import { TitleType } from 'src/models/enums/title-type.enum';
 import { RoadsService } from 'src/roads/roads.service';
 import { travelJobId } from 'src/travel/travel-job';
 import { FixedClock } from '../../../test/auth/fixed-clock';
-import { persistSpell, spellBook } from '../../../test/fixtures';
+import {
+    buildQuest,
+    persistQuest,
+    persistSpell,
+    spellBook,
+} from '../../../test/fixtures';
 import {
     createOutcomeHarness,
     type OutcomeHarness,
@@ -23,6 +28,10 @@ import {
     type TravellerOptions,
 } from '../../../test/travel/ambush-world';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
+import {
+    foodStack,
+    persistFood,
+} from '../../../test/travel/travel-food.fixture';
 import { ambushJobId } from './ambush-job';
 import { AmbushResolutionService } from './ambush-resolution.service';
 import { AmbushModule } from './ambush.module';
@@ -328,5 +337,264 @@ describe('AmbushResolutionService (replica set)', () => {
         await expect(service.resolve(subject.identity)).resolves.toBe('won');
 
         expect(world.push.sent).toEqual([]);
+    });
+
+    describe('defeat', () => {
+        const defeatOf = (
+            subject: Traveller,
+            injuriesAdded: InjuryType[] = [],
+        ): void => {
+            chance.load([0, 0]);
+            combat.willEnd('failure').willResolve(subject.characterId, {
+                hpAfter: 0,
+                injuriesAdded,
+            });
+        };
+
+        const completeJobs = () =>
+            travelQueue.added.filter((job) => job.name === 'complete');
+
+        it('loses with at least one life point and no aid (D-11)', async () => {
+            const subject = await traveller({ km: 10 });
+            const before = await rawOf(subject);
+            defeatOf(subject, [InjuryType.brokenLeftArm]);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const raw = await rawOf(subject);
+            expect(raw.status.currentLifePoints).toBe(1);
+            expect(raw.status.injuries).toContain(InjuryType.brokenLeftArm);
+            expect(raw.status.awaitingAid ?? null).toBeNull();
+            expect(raw.status.xp).toBe(before.status.xp);
+            expect(raw.status.coins).toEqual(before.status.coins);
+        });
+
+        it('rewrites the travel from the point towards the nearest city by road (D-11)', async () => {
+            const subject = await traveller({ km: 10 });
+            const oldJob = travelJobId(subject.characterId, START);
+            await travelQueue.add('complete', {}, { jobId: oldJob });
+            travelQueue.added.length = 0;
+            defeatOf(subject);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const { activeTravel } = (await rawOf(subject)).status;
+            const point = (subject.travel.road as { coordinates: number[][] })
+                .coordinates;
+            expect(activeTravel.to).toEqual(map.markers.crocevia);
+            expect(activeTravel.kind).toBe('free');
+            expect(activeTravel.startTime).toEqual(subject.identity.at);
+            expect(activeTravel.road.coordinates[0][0]).toBeCloseTo(0, 6);
+            expect(activeTravel.road.coordinates[0][1]).toBeCloseTo(4.4966, 3);
+            expect(activeTravel.road.coordinates[0]).not.toEqual(point[1]);
+            expect(Object.keys(activeTravel)).not.toContain('ambush');
+            expect(travelQueue.removed).toEqual([oldJob]);
+            expect(completeJobs()).toEqual([
+                expect.objectContaining({
+                    options: expect.objectContaining({
+                        jobId: travelJobId(
+                            subject.characterId,
+                            subject.identity.at,
+                        ),
+                    }),
+                }),
+            ]);
+            expect(ambushJobs()).toEqual([]);
+        });
+
+        it('keeps heading to the destination when it is the nearest city (D-11, D-12)', async () => {
+            const subject = await traveller({ km: 16 });
+            await registerDevice(world.harness, subject.player);
+            defeatOf(subject);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const { activeTravel } = (await rawOf(subject)).status;
+            expect(activeTravel.to).toEqual(map.markers.borgo);
+            expect(world.push.sent).toHaveLength(1);
+            expect(world.push.sent[0].message.body).toBe(
+                'Sei stato sconfitto: la via torna verso Borgo',
+            );
+        });
+
+        it('answers a zero length detour from the departure city (D-11)', async () => {
+            const subject = await traveller({ km: 1 });
+            defeatOf(subject);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const { activeTravel } = (await rawOf(subject)).status;
+            expect(activeTravel.to).toEqual(map.markers.alba);
+            expect(activeTravel.endTime).toEqual(subject.identity.at);
+            expect(activeTravel.duration).toBe(0);
+            expect(completeJobs()).toEqual([
+                expect.objectContaining({
+                    options: expect.objectContaining({ delay: 0 }),
+                }),
+            ]);
+        });
+
+        // nessuna ferita reale vale 0,5: la gamba rotta dà movementImpairment 0,8 (piano 05)
+        it('slows the detour with the new wounds (D-11)', async () => {
+            const sound = await traveller({ km: 10 });
+            defeatOf(sound);
+            await service.resolve(sound.identity);
+            const wounded = await traveller({ km: 10 });
+            defeatOf(wounded, [InjuryType.brokenLeftLeg]);
+
+            await expect(service.resolve(wounded.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const soundDuration = (await rawOf(sound)).status.activeTravel
+                .duration as number;
+            const woundedDuration = (await rawOf(wounded)).status.activeTravel
+                .duration as number;
+            expect(soundDuration).toBeGreaterThan(0);
+            expect(woundedDuration).toBeCloseTo(soundDuration / 0.8, -1);
+        });
+
+        it('abandons the standard quest and frees its seat (D-11)', async () => {
+            const subject = await traveller({ km: 10 });
+            const quest = await persistQuest(
+                world.models.quests,
+                buildQuest({
+                    registeredAdventurers: [
+                        {
+                            character: subject.characterId,
+                            title: TitleType.rookie,
+                        },
+                    ],
+                }),
+            );
+            const pending = await world.models.pendingQuests.create({
+                startDate: null,
+                arrivedAt: null,
+                waitingTime: 0,
+                pointsSpent: 0,
+                quest: quest._id,
+            });
+            await world.models.characters.updateOne(
+                { _id: subject.characterId },
+                {
+                    $set: {
+                        'quests.pendingQuest': pending._id,
+                        'status.activeTravel.kind': 'quest',
+                        'status.activeTravel.to': map.questPoi,
+                    },
+                },
+            );
+            defeatOf(subject);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const raw = await rawOf(subject);
+            expect(raw.quests.pendingQuest).toBeNull();
+            expect(raw.status.activeTravel.kind).toBe('free');
+            expect(
+                await world.models.pendingQuests.countDocuments({
+                    _id: pending._id,
+                }),
+            ).toBe(0);
+            const seats = (
+                await world.models.quests.findById(quest._id).lean<any>().exec()
+            ).registeredAdventurers;
+            expect(seats).toEqual([]);
+        });
+
+        it('keeps the food eaten and charges nothing on the detour (D-11)', async () => {
+            const food = await persistFood(world.models.lootItems, 5);
+            const subject = await traveller({
+                km: 10,
+                characterOverrides: {
+                    assets: { ownedItems: [foodStack(food, 2)] },
+                },
+            });
+            defeatOf(subject);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const raw = await rawOf(subject);
+            expect(raw.assets.ownedItems).toEqual([foodStack(food, 2)]);
+            expect(raw.status.currentLifePoints).toBe(1);
+        });
+
+        it('carries the held reports into the rewritten travel (D-13)', async () => {
+            const held = await traveller({ km: 10 });
+            chance.load([0, 0]);
+            await service.resolve(held.identity);
+            const heldReport = (await rawOf(held)).status.activeTravel
+                .ambushReports[0];
+            const subject = await traveller({ km: 10, reports: [heldReport] });
+            defeatOf(subject);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const { ambushReports } = (await rawOf(subject)).status
+                .activeTravel;
+            expect(ambushReports).toHaveLength(2);
+            expect(ambushReports[0].outcome).toBe(QuestOutcome.success);
+            expect(ambushReports[1].outcome).toBe(QuestOutcome.failure);
+            expect(ambushReports[1].reachedCity).toEqual({
+                id: map.cities.crocevia,
+                name: 'Crocevia',
+            });
+        });
+
+        it('pushes every defeat to the owner after the commit (D-12)', async () => {
+            const subject = await traveller({ km: 10 });
+            await registerDevice(world.harness, subject.player);
+            defeatOf(subject);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            expect(world.push.sent).toHaveLength(1);
+            expect(world.push.sent[0].message).toMatchObject({
+                type: 'ambushDefeat',
+                id: subject.characterId.toHexString(),
+                title: 'Imboscata!',
+                body: 'Sei stato sconfitto: la via torna verso Crocevia',
+            });
+        });
+
+        it('never draws an ambush on the detour (D-03)', async () => {
+            const subject = await traveller({ km: 10 });
+            chance.load([0, 0, 0, 0, 0]);
+            combat.willEnd('failure').willResolve(subject.characterId, {
+                hpAfter: 0,
+            });
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const { activeTravel } = (await rawOf(subject)).status;
+            expect(Object.keys(activeTravel).sort()).toEqual([
+                'ambushReports',
+                'duration',
+                'endTime',
+                'kind',
+                'road',
+                'startTime',
+                'to',
+            ]);
+            expect(ambushJobs()).toEqual([]);
+        });
     });
 });
