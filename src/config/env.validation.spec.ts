@@ -167,6 +167,17 @@ describe('validateEnv', () => {
         });
     });
 
+    describe('ambush time zone', () => {
+        it('throws on an invalid AMBUSH_TIMEZONE (D-04)', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    AMBUSH_TIMEZONE: 'Mars/Base',
+                }),
+            ).toThrow(/AMBUSH_TIMEZONE/);
+        });
+    });
+
     describe('quest sweep', () => {
         it('throws on a malformed QUEST_SWEEP_INTERVAL_MS', () => {
             expect(() =>
