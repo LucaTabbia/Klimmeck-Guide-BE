@@ -232,7 +232,7 @@ Monete via wallet, xp con progressione: **livello e HP massimi possono salire, i
 - **Il completamento aspetta l'imboscata pendente** (il filtro richiede che non ci sia imboscata pendente): se l'imboscata si risolve dopo `endTime`, la risoluzione ri-accoda il completamento.
 - **Fail-open (D-18):** lo sweep conta gli errori di risoluzione; al **terzo errore** annulla l'imboscata con log ERROR (solo codice) e ri-accoda il completamento: il viaggio completa senza report. I WriteConflict ritentati dal driver non contano. Se la registrazione stessa del tentativo fallisce, lo sweep logga ERROR `Imboscata <jobId>: registrazione del fallimento non riuscita: <codice>` e prosegue con i personaggi successivi dello stesso tick (review A-WR-01).
 - **Teleport** (`teleportCharacter`) **transazionale**: annulla l'imboscata pendente (job no-op) e consegna i report trattenuti nella stessa transazione; resta **rifiutato con `QUEST_IN_PROGRESS`** a corsia standard occupata (dopo una sconfitta la corsia è libera e il teleport consegna).
-- Log del BE: solo jobId, esito e città (`Imboscata <jobId> risolta: won`, `Imboscata <jobId> risolta: lost verso <città>`, `Imboscata <jobId> risolta: skipped`).
+- Log del BE: solo jobId, esito e città (`Imboscata <jobId> risolta: won`, `Imboscata <jobId> risolta: lost verso <città>`, `Imboscata <jobId> risolta: skipped (<motivo>)` con motivo `pool non componibile`, `nessuna città vicina`, `catalogo vuoto` o `personaggio senza proprietario`, review A-IN-01).
 
 ---
 

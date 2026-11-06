@@ -229,10 +229,34 @@ export class AmbushResolutionService {
             this.logger.warn(
                 `Imboscata ${jobId}: personaggio senza proprietario, imboscata annullata`,
             );
-            return this.skip(identity, travel, null, now, jobId);
+            return this.skip(
+                identity,
+                travel,
+                null,
+                now,
+                jobId,
+                'personaggio senza proprietario',
+            );
         }
-        if (!composed || !place.nearCity) {
-            return this.skip(identity, travel, next, now, jobId);
+        if (!composed) {
+            return this.skip(
+                identity,
+                travel,
+                next,
+                now,
+                jobId,
+                'pool non componibile',
+            );
+        }
+        if (!place.nearCity) {
+            return this.skip(
+                identity,
+                travel,
+                next,
+                now,
+                jobId,
+                'nessuna città vicina',
+            );
         }
         const catalog = await this.loader.readCombatCatalog(
             enemyEntriesOf(composed),
@@ -240,7 +264,14 @@ export class AmbushResolutionService {
             `dell'imboscata ${jobId}`,
         );
         if (catalog.enemies.length === 0) {
-            return this.skip(identity, travel, next, now, jobId);
+            return this.skip(
+                identity,
+                travel,
+                next,
+                now,
+                jobId,
+                'catalogo vuoto',
+            );
         }
         return this.fight({
             identity,
@@ -340,13 +371,14 @@ export class AmbushResolutionService {
         };
     }
 
-    // pool non componibile (D-08) o personaggio senza proprietario: nessun effetto, solo la prossima imboscata
+    // pool non componibile (D-08), nessuna città vicina, catalogo vuoto o personaggio senza proprietario: nessun effetto, solo la prossima imboscata
     private async skip(
         identity: AmbushIdentity,
         travel: AmbushTravelSnapshot,
         next: DrawnAmbush | null,
         now: Date,
         jobId: string,
+        reason: string,
     ): Promise<AmbushOutcome> {
         const written = await this.characterModel
             .findOneAndUpdate(
@@ -367,7 +399,7 @@ export class AmbushResolutionService {
             },
             now,
         );
-        this.logger.log(`Imboscata ${jobId} risolta: skipped`);
+        this.logger.log(`Imboscata ${jobId} risolta: skipped (${reason})`);
         return 'skipped';
     }
 
