@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 15 eseguita (12/12, 2026-11-06) on feat/15-imboscate-in-viaggio — review, fix, verifica e security dall'orchestratore, poi PR verso develop; FE Phase 16 sbloccata alla merge
-last_updated: "2026-11-06T18:13:48.909Z"
-last_activity: 2026-11-06 -- Phase 15 eseguita (12/12), handoff per la FE 16 scritto
+status: completed
+stopped_at: Phase 15 complete (12/12) — PR verso develop aperta dall'orchestratore (numero nello STATE dopo l'apertura) (2026-11-06); next: after the merge the user restarts the BE (npm run build, restart from dist/) and the FE Phase 16 resumes with 16-07/16-08
+last_updated: "2026-11-06T21:29:20.000Z"
+last_activity: 2026-11-06 -- Phase 15 complete: review (0 critical / 1 warning / 8 info su 50 file, 7 fix), verification passed, security audit (secured, 42 minacce, 0 aperte, 0 differite), PR verso develop aperta dall'orchestratore (numero nello STATE dopo l'apertura)
 progress:
   total_phases: 20
-  completed_phases: 18
+  completed_phases: 19
   total_plans: 239
-  completed_plans: 227
-  percent: 95
+  completed_plans: 239
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 15 (Imboscate in viaggio) — EXECUTING since 2026-11-06 on `feat/15-imboscate-in-viaggio` (from `develop` `b492a46`): 12 plans in 12 sequential waves, one executor at a time on the main tree; CONTEXT D-01..D-25, REPO-RULES, RESEARCH, VALIDATION (41 task rows); FE companion Phase 16 executing in parallel on its repo (16-07/16-08 wait for this phase's merge)
+Phase: 15 (Imboscate in viaggio) — COMPLETE 2026-11-06 on `feat/15-imboscate-in-viaggio` (from `develop` `b492a46`): 12/12 plans, gate 15-11 passed, three area reviews (0 critical / 1 warning / 8 info) → 7 fixes, verification passed (0 gaps), security audit secured; PR to `develop` opened by the orchestrator; the FE Phase 16 (parked at 6/8) resumes with 16-07/16-08 after the merge
 Plan: 12 of 12
-Status: Phase 15 eseguita (12/12) — PR verso develop da aprire dopo review, fix, verifica e security; FE Phase 16 sbloccata alla merge; Phase 14 merged on `develop` (PR #23, `b492a46`, 2026-11-06)
-Last activity: 2026-11-06 -- Phase 15 eseguita (12/12): handoff per la FE 16, emendamenti agli handoff 8 e 9.2, BE-AMBUSH-01..07 completi
+Status: Phase 15 complete (12/12) — review 0 critical / 1 warning / 8 info su 50 file, 7 fix; verification passed; security audit secured, 42 minacce, 0 aperte, 0 differite; PR verso develop aperta dall'orchestratore (numero nello STATE dopo l'apertura); after the merge the user restarts the BE (build + restart from dist/, no one-off in this phase, AMBUSH_TIMEZONE optional) and the FE Phase 16 resumes with 16-07 (schema gate) and 16-08 (device E2E)
+Last activity: 2026-11-06 -- Phase 15 closed: three area reviews merged, rulings, fixes, verification, security audit, PR
 
-Progress: [░░░░░░░░░░] 0/12 plans of Phase 15 (phases 1–14, 9.1, 9.2 and 13.1 complete and merged)
+Progress: [██████████] 12/12 plans of Phase 15 (phases 1–15, 9.1, 9.2 and 13.1 complete; 15 awaiting merge)
 
 ## Performance Metrics
 
