@@ -9,6 +9,7 @@ import {
     QUEUE_CALL_TIMEOUT,
     withinTimeout,
 } from 'src/queues/queue-call-timeout';
+import { AMBUSH_JOB, AmbushJobData, ambushJobId } from './ambush/ambush-job';
 import {
     TRAVEL_COMPLETE_JOB,
     TRAVEL_QUEUE,
@@ -23,7 +24,7 @@ export class TravelScheduler implements OnModuleInit {
 
     constructor(
         @InjectQueue(TRAVEL_QUEUE)
-        private readonly queue: Queue<TravelJobData>,
+        private readonly queue: Queue<TravelJobData | AmbushJobData>,
         private readonly clock: Clock,
         @Inject(QUEUE_CALL_TIMEOUT)
         private readonly timeoutMs: number,
@@ -62,7 +63,47 @@ export class TravelScheduler implements OnModuleInit {
 
     // best-effort (D-16): un job attivo o una coda che non risponde entro il timeout non bloccano, al fire il job non trova più il viaggio (filtro d'identità, D-12)
     async cancel(characterId: Types.ObjectId, startTime: Date): Promise<void> {
-        const jobId = travelJobId(characterId, startTime);
+        await this.removeBestEffort(travelJobId(characterId, startTime));
+    }
+
+    // trigger dell'imboscata all'istante at (D-05): se manca la risolverà lo sweep
+    async scheduleAmbush(
+        characterId: Types.ObjectId,
+        startTime: Date,
+        at: Date,
+    ): Promise<void> {
+        await enqueueTrigger<TravelJobData | AmbushJobData>(
+            this.queue,
+            {
+                name: AMBUSH_JOB,
+                data: {
+                    characterId: characterId.toHexString(),
+                    startTime: startTime.getTime(),
+                    at: at.getTime(),
+                },
+                jobId: ambushJobId(characterId, startTime, at),
+                dueAt: at,
+            },
+            {
+                clock: this.clock,
+                timeoutMs: this.timeoutMs,
+                logger: this.logger,
+                subject: "dell'imboscata",
+                fallback: 'la risolverà lo sweep',
+            },
+        );
+    }
+
+    // best-effort come cancel: al fire il job non trova più l'imboscata (filtro d'identità)
+    async cancelAmbush(
+        characterId: Types.ObjectId,
+        startTime: Date,
+        at: Date,
+    ): Promise<void> {
+        await this.removeBestEffort(ambushJobId(characterId, startTime, at));
+    }
+
+    private async removeBestEffort(jobId: string): Promise<void> {
         try {
             const outcome = await withinTimeout(
                 this.removeJob(jobId),
