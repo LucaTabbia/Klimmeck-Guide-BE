@@ -565,7 +565,7 @@ Plans:
 - [x] 15-03-PLAN.md — sotto-documenti interni `ambush { at, km, attempts }` e `ambushReports[]` senza `@Field`; job `ambush` con `ambushJobId`; `AmbushPlanner`; `scheduleAmbush`/`cancelAmbush`; sorteggio in `startTravel` e `movementTo` con anteprime mute; mondo di test ≥ 10 km
 - [x] 15-04-PLAN.md — estrazione di `composeEnemies` (refactor con le spec a seme fisso verdi); pool con animali come parametro; composizione nella fascia del livello; `readCombatCatalog`; export degli helper di `outcome-plan.ts` e delle porte di `QuestOutcomesModule`
 - [x] 15-05-PLAN.md — `RoadsService.nearestByTime` (un solo `singleSource`, parità per id, ripiego sui vertici, deviazione di lunghezza zero); `TravelPlanner.speedOfCharacter`
-- [ ] 15-06-PLAN.md — `ambushFilter`; piano puro della vittoria; `AmbushResolutionService` (composizione e risorteggio fuori dal callback, combattimento dentro, wallet, recuperi ancorati ad `at`, ri-accodo del `complete`, pool non componibile saltato); `AmbushModule` col solo servizio; `overrides` nell'harness
+- [x] 15-06-PLAN.md — `ambushFilter`; piano puro della vittoria; `AmbushResolutionService` (composizione e risorteggio fuori dal callback, combattimento dentro, wallet, recuperi ancorati ad `at`, ri-accodo del `complete`, pool non componibile saltato); `AmbushModule` col solo servizio; `overrides` nell'harness
 - [ ] 15-07-PLAN.md — `PushEventType.ambushDefeat` con catalogo e builder (SDL additivo rigenerato); piano della sconfitta e della deviazione con ripiego sulla strada residua; sconfitta nel servizio con città più vicina, abbandono della corsia via `unstartedSeatReleaseOf`, push dopo il commit
 - [ ] 15-08-PLAN.md — indice `character_active_travel_ambush` (verifier RED prima); `AmbushProcessor`; `AmbushSweeper` con reconciler, single-flight e fail-open al terzo errore; montaggio in `AppModule`; prova su Redis reale accanto a `complete`
 - [ ] 15-09-PLAN.md — `QuestResultKind`, `AmbushReport`/`AmbushCity`, `quest` nullable (SDL con la sola riga tolta); `ambushResultDraftsOf`; `completionFilter` che aspetta l'imboscata e inserisce i report con `ordered: true`; teleport transazionale che annulla e consegna
@@ -632,5 +632,5 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 13. Generazione quest | 20/20 | Complete | 2026-11-04 |
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
-| 15. Imboscate in viaggio | 5/12 | In Progress | - |
+| 15. Imboscate in viaggio | 6/12 | In Progress | - |
 | 16. Lore sbloccabili | 0/0 | Not started | - |
