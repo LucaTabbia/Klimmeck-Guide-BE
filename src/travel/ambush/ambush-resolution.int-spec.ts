@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { toCopper } from 'src/economy/coins';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
@@ -77,6 +78,20 @@ describe('AmbushResolutionService (replica set)', () => {
             new Date(subject.identity.at.getTime() + ONE_MINUTE_S * 1000),
         );
         return subject;
+    };
+
+    const skippedLogsOf = async (subject: Traveller): Promise<string[]> => {
+        const logSpy = jest
+            .spyOn(Logger.prototype, 'log')
+            .mockImplementation(() => undefined);
+        try {
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'skipped',
+            );
+            return logSpy.mock.calls.map(([message]) => String(message));
+        } finally {
+            logSpy.mockRestore();
+        }
     };
 
     const rawOf = async (subject: Traveller): Promise<any> =>
@@ -258,8 +273,8 @@ describe('AmbushResolutionService (replica set)', () => {
         const subject = await traveller({ km: 10, xp: LEVEL_TWENTY_XP });
         const before = await rawOf(subject);
 
-        await expect(service.resolve(subject.identity)).resolves.toBe(
-            'skipped',
+        expect(await skippedLogsOf(subject)).toContainEqual(
+            expect.stringContaining('risolta: skipped (pool non componibile)'),
         );
 
         const raw = await rawOf(subject);
@@ -279,8 +294,10 @@ describe('AmbushResolutionService (replica set)', () => {
         await world.harness.connection.collection('users').deleteMany({});
         chance.load([0, 0, 0]);
 
-        await expect(service.resolve(subject.identity)).resolves.toBe(
-            'skipped',
+        expect(await skippedLogsOf(subject)).toContainEqual(
+            expect.stringContaining(
+                'risolta: skipped (personaggio senza proprietario)',
+            ),
         );
 
         const raw = await rawOf(subject);
