@@ -1,7 +1,16 @@
 import { Types } from 'mongoose';
-import { activeCharacterById } from 'src/models/character/active-character.filter';
+import {
+    ACTIVE_CHARACTER_FILTER,
+    activeCharacterById,
+} from 'src/models/character/active-character.filter';
 import type { AmbushIdentity } from './ambush-job';
-import { ambushFilter, ambushSkipUpdate } from './ambush.updates';
+import {
+    AMBUSH_ATTEMPT_UPDATE,
+    ambushFilter,
+    ambushSkipUpdate,
+    DUE_AMBUSH_PROJECTION,
+    dueAmbushesFilter,
+} from './ambush.updates';
 
 const CHARACTER_ID = new Types.ObjectId('64b0000000000000000000a1');
 const START = new Date('2026-10-21T10:00:00.000Z');
@@ -33,5 +42,26 @@ describe('ambush updates', () => {
         expect(ambushSkipUpdate(null)).toEqual({
             $set: { 'status.activeTravel.ambush': null },
         });
+    });
+
+    it('finds the ambushes already due (D-05)', () => {
+        expect(dueAmbushesFilter(NOW)).toEqual({
+            ...ACTIVE_CHARACTER_FILTER,
+            'status.activeTravel.ambush.at': { $lte: NOW },
+        });
+    });
+
+    it('counts one more failed attempt (D-18)', () => {
+        expect(AMBUSH_ATTEMPT_UPDATE).toEqual({
+            $inc: { 'status.activeTravel.ambush.attempts': 1 },
+        });
+    });
+
+    it('projects the identity and the attempts of a due ambush (D-05, D-18)', () => {
+        expect(Object.keys(DUE_AMBUSH_PROJECTION).sort()).toEqual([
+            'status.activeTravel.ambush',
+            'status.activeTravel.endTime',
+            'status.activeTravel.startTime',
+        ]);
     });
 });
