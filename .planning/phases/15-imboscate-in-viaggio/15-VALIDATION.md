@@ -1,9 +1,9 @@
 ---
 phase: 15
 slug: imboscate-in-viaggio
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-06
 ---
 
@@ -61,12 +61,12 @@ created: 2026-11-06
 | 15-06-02 | 06 | 6 | BE-AMBUSH-02, BE-AMBUSH-03, BE-AMBUSH-04 | T-15-15, T-15-17, T-15-18, T-15-19 | un solo effetto per imboscata, monete solo via wallet in sessione, caso fuori dal callback, nessun push in vittoria | integration | `npx jest src/travel/ambush src/quests/outcomes --selectProjects integration --runInBand` | ✅ (casi nuovi) | ✅ green |
 | 15-06-03 | 06 | 6 | BE-AMBUSH-04 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-06-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 15-07-01 | 07 | 7 | BE-AMBUSH-05 | T-15-24 | categoria push additiva nello SDL, enum pinnato in `push.exception.spec.ts` | unit + boot | `npx jest src/push --selectProjects unit && npx jest test/app.int-spec.ts src/push --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` | ✅ (RED naturale) | ✅ green |
-| 15-07-02 | 07 | 7 | BE-AMBUSH-05 | T-15-22, T-15-23 | HP ≥ 1, nessun `awaitingAid`, nessun costo né sorteggio sulla deviazione, ripieghi C7 | unit | `npx jest src/travel/ambush --selectProjects unit` | ❌ W0 | ✅ green |
+| 15-07-02 | 07 | 7 | BE-AMBUSH-05 | T-15-22, T-15-23 | HP ≥ 1, nessun `awaitingAid`, nessun costo né sorteggio sulla deviazione, ripieghi C7 | unit | `npx jest src/travel/ambush --selectProjects unit` | ✅ | ✅ green |
 | 15-07-03 | 07 | 7 | BE-AMBUSH-05 | T-15-20, T-15-21 | push solo al proprietario dopo il commit, posto liberato in sessione | integration | `npx jest src/travel/ambush --selectProjects integration --runInBand` | ✅ (casi nuovi) | ✅ green |
 | 15-07-04 | 07 | 7 | BE-AMBUSH-05 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-07-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 15-08-01 | 08 | 8 | BE-AMBUSH-02 | T-15-27 | indice dello sweep verificato al boot | integration + unit | `npx jest src/mongo/sweep-index.verifier.int-spec.ts --selectProjects integration --runInBand && npx jest src/travel/ambush src/models --selectProjects unit` | ✅ (RED prima) | ✅ green |
-| 15-08-02 | 08 | 8 | BE-AMBUSH-02 | T-15-25, T-15-26, T-15-28 | job malformato/anticipato ignorato, fail-open al terzo errore, log col solo codice, `TravelModule` senza `AmbushModule` | unit + integration + boot | `npx jest src/travel/ambush --selectProjects unit && npx jest src/travel/ambush test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` | ❌ W0 | ✅ green |
-| 15-08-03 | 08 | 8 | BE-AMBUSH-02 | T-15-25 | job idempotente per jobId su Redis reale accanto a `complete` | integration (Redis) | `npx jest src/travel/ambush/ambush.processor.int-spec.ts src/travel/travel-completion.processor.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ✅ green |
+| 15-08-02 | 08 | 8 | BE-AMBUSH-02 | T-15-25, T-15-26, T-15-28 | job malformato/anticipato ignorato, fail-open al terzo errore, log col solo codice, `TravelModule` senza `AmbushModule` | unit + integration + boot | `npx jest src/travel/ambush --selectProjects unit && npx jest src/travel/ambush test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` | ✅ | ✅ green |
+| 15-08-03 | 08 | 8 | BE-AMBUSH-02 | T-15-25 | job idempotente per jobId su Redis reale accanto a `complete` | integration (Redis) | `npx jest src/travel/ambush/ambush.processor.int-spec.ts src/travel/travel-completion.processor.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 15-08-04 | 08 | 8 | BE-AMBUSH-02 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-08-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 15-09-01 | 09 | 9 | BE-AMBUSH-06 | T-15-32, T-15-33 | SDL con la sola riga tolta dichiarata, legacy letto `quest` | unit + boot | `npx jest src/migrations src/models --selectProjects unit && npx jest test/app.int-spec.ts src/quests/results src/quests/outcomes/aid-timeout.int-spec.ts src/quests/generation --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` | ✅ (RED prima) | ✅ green |
 | 15-09-02 | 09 | 9 | BE-AMBUSH-06 | T-15-29, T-15-30, T-15-31 | completamento che aspetta l'imboscata, report nella stessa transazione, `_id` pre-generato | unit + integration | `npx jest src/travel --selectProjects unit && npx jest src/travel --selectProjects integration --runInBand` | ✅ (casi nuovi) | ✅ green |
@@ -75,8 +75,8 @@ created: 2026-11-06
 | 15-10-01 | 10 | 10 | BE-AMBUSH-04, BE-AMBUSH-06, BE-AMBUSH-07 | T-15-34, T-15-35, T-15-36 | subscription owner-only, un solo effetto sotto concorrenza, filo identico in ogni passo | integration | `npx jest src/travel/ambush/ambush-lifecycle.int-spec.ts --selectProjects integration --runInBand` | ✅ (casi nuovi) | ✅ green |
 | 15-10-02 | 10 | 10 | BE-AMBUSH-01, BE-AMBUSH-02, BE-AMBUSH-03, BE-AMBUSH-05, BE-AMBUSH-07 | T-15-35 | trigger duplicati/obsoleti no-op, teleport che consegna, push solo in sconfitta | integration | `npx jest src/travel/ambush --selectProjects integration --runInBand` | ✅ (casi nuovi) | ✅ green |
 | 15-10-03 | 10 | 10 | BE-AMBUSH-07 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-10-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 15-11-01 | 11 | 11 | BE-AMBUSH-01..07 | T-15-37, T-15-38, T-15-39, T-15-40 | suite e soglie verdi, SDL con l'eccezione dichiarata, nessun segreto né trailer, moduli separati | full + boot | `npx tsc --noEmit -p tsconfig.json && npm run test:cov && npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` (più i grep di produzione del piano 11: determinismo e `process.env.` con le spec escluse) | ✅ | ⬜ pending |
-| 15-11-02 | 11 | 11 | BE-AMBUSH-01..07 | — | N/A (firma) | doc | `grep -q "nyquist_compliant: true" .planning/phases/15-imboscate-in-viaggio/15-VALIDATION.md` | ✅ | ⬜ pending |
+| 15-11-01 | 11 | 11 | BE-AMBUSH-01..07 | T-15-37, T-15-38, T-15-39, T-15-40 | suite e soglie verdi, SDL con l'eccezione dichiarata, nessun segreto né trailer, moduli separati | full + boot | `npx tsc --noEmit -p tsconfig.json && npm run test:cov && npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` (più i grep di produzione del piano 11: determinismo e `process.env.` con le spec escluse) | ✅ | ✅ green (test:cov 360/4493 verdi ma `./src/travel/` sotto soglia, riportata a 98.62/84.53/99.42 con 3 casi nuovi e misurata per cartella) |
+| 15-11-02 | 11 | 11 | BE-AMBUSH-01..07 | — | N/A (firma) | doc | `grep -q "nyquist_compliant: true" .planning/phases/15-imboscate-in-viaggio/15-VALIDATION.md` | ✅ | ✅ green |
 | 15-11-03 | 11 | 11 | BE-AMBUSH-07 | — | N/A (bookkeeping) | doc | `grep -qF -- "- [x] 15-11-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
 | 15-12-01 | 12 | 12 | BE-AMBUSH-07 | T-15-41, T-15-42 | handoff senza URI né valori reali, SDL verbatim | doc | `grep -qF "enum QuestResultKind" .planning/phases/15-imboscate-in-viaggio/BACKEND-NOTES.md` | ❌ (nuovo) | ⬜ pending |
 | 15-12-02 | 12 | 12 | BE-AMBUSH-01..07 | T-15-42 | emendamenti solo in coda, requisiti completi | doc | `grep -cE '\- \[x\] \*\*BE-AMBUSH-0[1-7]\*\*' .planning/REQUIREMENTS.md` | ✅ | ⬜ pending |
@@ -90,18 +90,18 @@ created: 2026-11-06
 
 Nessun framework da installare: l'harness esistente (Jest, replica set, Redis effimero, `createAuthTestApp`, `createOutcomeHarness`, fixture `persist*`) copre la fase. I file di test nuovi nascono nel passo RED del task che li usa (TDD del repo), non in una wave separata:
 
-- [ ] `src/config/ambush-config.spec.ts` — BE-AMBUSH-01 (piano 01, Task 1)
-- [ ] `src/travel/ambush/ambush-rules.spec.ts`, `level-bands.spec.ts`, `ambush-clock.spec.ts` — BE-AMBUSH-01/03/04 (piano 01, Task 2)
-- [ ] `src/roads/game-distance.spec.ts`, `src/travel/ambush/ambush-draw.spec.ts`, `ambush-point.spec.ts` — BE-AMBUSH-01/05 (piano 02)
-- [ ] `test/travel/ambush-world.ts` (strade ≥ 10 km, quattro città marker, POI di zona e di quest) — piano 03, Task 3; esteso con `persistAmbushEnemies` e `persistTraveller` nel piano 06
-- [ ] `src/travel/ambush/ambush-job.spec.ts`, `ambush-planner.service.spec.ts` — BE-AMBUSH-02 (piano 03, Task 2)
-- [ ] `src/travel/ambush/ambush-enemies.spec.ts` — BE-AMBUSH-03 (piano 04)
-- [ ] `src/travel/ambush/ambush.updates.spec.ts`, `ambush-plan.spec.ts`, `ambush-resolution.int-spec.ts` + opzione `overrides` di `createOutcomeHarness` — BE-AMBUSH-02/04 (piano 06)
-- [ ] `src/travel/ambush/ambush-detour.spec.ts` — BE-AMBUSH-05 (piano 07)
-- [ ] `src/travel/ambush/ambush.processor.spec.ts`, `ambush-sweeper.int-spec.ts`, `ambush.processor.int-spec.ts` — BE-AMBUSH-02 (piano 08)
-- [ ] `src/travel/ambush/ambush-results.spec.ts` — BE-AMBUSH-06 (piano 09)
-- [ ] `src/travel/ambush/ambush-lifecycle.int-spec.ts` — BE-AMBUSH-07 (piano 10)
-- [ ] RED a stringa esatta: `test/app.int-spec.ts` (`'  ambushDefeat\n'` nel piano 07; `type QuestResult`, `type AmbushCity`, `type AmbushReport`, `enum QuestResultKind` nel piano 09), `src/push/push-events.spec.ts` (`BUILDERS: Record<PushEventType, …>`) e `src/push/push.exception.spec.ts` (`Object.values(PushEventType)`, piano 07), `src/mongo/sweep-index.verifier.int-spec.ts` e `src/models/sweep-indexes.schema.spec.ts` (indice D-19, piano 08), `test/quests/quest-result.fixture.ts` con `kind: 'quest'` (piano 09) — D-23
+- [x] `src/config/ambush-config.spec.ts` — BE-AMBUSH-01 (piano 01, Task 1)
+- [x] `src/travel/ambush/ambush-rules.spec.ts`, `level-bands.spec.ts`, `ambush-clock.spec.ts` — BE-AMBUSH-01/03/04 (piano 01, Task 2)
+- [x] `src/roads/game-distance.spec.ts`, `src/travel/ambush/ambush-draw.spec.ts`, `ambush-point.spec.ts` — BE-AMBUSH-01/05 (piano 02)
+- [x] `test/travel/ambush-world.ts` (strade ≥ 10 km, quattro città marker, POI di zona e di quest) — piano 03, Task 3; esteso con `persistAmbushEnemies` e `persistTraveller` nel piano 06
+- [x] `src/travel/ambush/ambush-job.spec.ts`, `ambush-planner.service.spec.ts` — BE-AMBUSH-02 (piano 03, Task 2)
+- [x] `src/travel/ambush/ambush-enemies.spec.ts` — BE-AMBUSH-03 (piano 04)
+- [x] `src/travel/ambush/ambush.updates.spec.ts`, `ambush-plan.spec.ts`, `ambush-resolution.int-spec.ts` + opzione `overrides` di `createOutcomeHarness` — BE-AMBUSH-02/04 (piano 06)
+- [x] `src/travel/ambush/ambush-detour.spec.ts` — BE-AMBUSH-05 (piano 07)
+- [x] `src/travel/ambush/ambush.processor.spec.ts`, `ambush-sweeper.int-spec.ts`, `ambush.processor.int-spec.ts` — BE-AMBUSH-02 (piano 08)
+- [x] `src/travel/ambush/ambush-results.spec.ts` — BE-AMBUSH-06 (piano 09)
+- [x] `src/travel/ambush/ambush-lifecycle.int-spec.ts` — BE-AMBUSH-07 (piano 10)
+- [x] RED a stringa esatta: `test/app.int-spec.ts` (`'  ambushDefeat\n'` nel piano 07; `type QuestResult`, `type AmbushCity`, `type AmbushReport`, `enum QuestResultKind` nel piano 09), `src/push/push-events.spec.ts` (`BUILDERS: Record<PushEventType, …>`) e `src/push/push.exception.spec.ts` (`Object.values(PushEventType)`, piano 07), `src/mongo/sweep-index.verifier.int-spec.ts` e `src/models/sweep-indexes.schema.spec.ts` (indice D-19, piano 08), `test/quests/quest-result.fixture.ts` con `kind: 'quest'` (piano 09) — D-23
 
 ---
 
@@ -118,11 +118,11 @@ Tutto il resto ha verifica automatica.
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 60s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-11-06
