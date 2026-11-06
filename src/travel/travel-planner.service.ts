@@ -121,7 +121,7 @@ export class TravelPlanner {
             hasRoute: route !== null,
         });
         if (rejection) throw rejection;
-        const speed = await this.speedFor(
+        const speed = await this.speedOfCharacter(
             character.assets?.pet,
             character.status?.injuries,
         );
@@ -158,7 +158,7 @@ export class TravelPlanner {
         if (!route) return null;
         return buildActiveTravel({
             route,
-            speed: await this.speedFor(request.pet, request.injuries),
+            speed: await this.speedOfCharacter(request.pet, request.injuries),
             now: this.clock.now(),
             to: request.to,
             kind: TravelKind.quest,
@@ -196,8 +196,8 @@ export class TravelPlanner {
             : null;
     }
 
-    // velocità fotografata alla partenza: pet × ferite (Phase 8 D-09, D-15)
-    private async speedFor(
+    // velocità fotografata: pet × ferite (Phase 8 D-09, D-15); usata anche dalla deviazione dopo un'imboscata (Phase 15 D-11)
+    async speedOfCharacter(
         pet: unknown,
         injuries: readonly unknown[] | null | undefined,
     ): Promise<number> {
