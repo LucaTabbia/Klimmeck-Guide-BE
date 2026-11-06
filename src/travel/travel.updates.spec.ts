@@ -154,7 +154,7 @@ describe('travel write builders', () => {
     });
 
     describe('completion', () => {
-        it('completionFilter matches the same travel only once it is due', () => {
+        it('completionFilter matches the same travel only once it is due and without a pending ambush (D-13)', () => {
             expect(
                 completionFilter(
                     { characterId: id, startTime: start, endTime: end },
@@ -165,6 +165,7 @@ describe('travel write builders', () => {
                 deletedAt: null,
                 'status.activeTravel.startTime': start,
                 'status.activeTravel.endTime': { $eq: end, $lte: now },
+                'status.activeTravel.ambush': null,
             });
         });
 
@@ -179,10 +180,11 @@ describe('travel write builders', () => {
             ]);
         });
 
-        it('COMPLETION_PROJECTION reads the pending quest and the travel kind', () => {
+        it('COMPLETION_PROJECTION reads the pending quest, the travel kind and the held reports (D-13)', () => {
             expect(COMPLETION_PROJECTION).toEqual({
                 'quests.pendingQuest': 1,
                 'status.activeTravel.kind': 1,
+                'status.activeTravel.ambushReports': 1,
             });
         });
 
@@ -227,9 +229,11 @@ describe('travel write builders', () => {
             });
         });
 
-        it('TELEPORT_PROJECTION reads the travel start', () => {
+        it('TELEPORT_PROJECTION reads the travel start, the pending ambush and the held reports (D-13)', () => {
             expect(TELEPORT_PROJECTION).toEqual({
                 'status.activeTravel.startTime': 1,
+                'status.activeTravel.ambush': 1,
+                'status.activeTravel.ambushReports': 1,
             });
         });
 
