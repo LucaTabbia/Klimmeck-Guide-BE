@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 14 complete (8/8) — PR #23 feat/14-viaggio-e-cibo → develop opened (2026-11-06); next: after the merge the user restarts the BE (npm run build, restart from dist/) and the FE Phase 15 resumes with 15-08/15-09
-last_updated: "2026-11-06T13:03:08.000Z"
-last_activity: 2026-11-06 -- Phase 14 complete: review (A/B 0 critical, 1 warning, 3 info → 2 fixed (dedupe owned food by id before the edibility filter; rename cost → mealSet), 2 not needed), verification passed, security audit (secured, 38 threats, 35 mitigated, 3 accepted, 0 open, 0 deferred), PR #23 feat/14-viaggio-e-cibo → develop opened
+status: planning
+stopped_at: Phase 15 context gathered (2026-11-06) on feat/15-imboscate-in-viaggio — next: /gsd-plan-phase 15 (REPO-RULES first); Phase 14 merged on develop (PR #23, b492a46)
+last_updated: "2026-11-06T16:37:31.000Z"
+last_activity: 2026-11-06 -- Phase 15 context gathered (joint discuss with the FE Phase 16 from the FE repo); Phase 14 merged (PR #23)
 progress:
   total_phases: 20
   completed_phases: 18
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 14 — Viaggio e cibo — COMPLETE (8/8, 2026-11-05) su `feat/14-viaggio-e-cibo` (da `develop` `698ae82`): fabbisogno ⌈durata/3 min⌉, selezione a scarto minimo (poi meno unità, poi minor valore), triangolare sui km scoperti per eccesso in metri interi, rifiuto `TRAVEL_STARVING` solo sotto 1 HP e prima di ogni scrittura, consumo e HP nello stesso update del claim/partenza in transazione, anteprime con `food`/`hpLost`/`arrivesAlive` e query owner-only nullable `questTravelPreview`; SDL puramente additivo (8 righe); nessun one-off. Review (A/B: 0 CR, 1 WR, 3 IN → 2 fix, 2 not needed), verification passed (0 gap), security secured (38/0 open). PR #23 a `develop` aperta il 2026-11-06; dopo la merge l'utente fa `npm run build` + riavvio da `dist/` e la FE Phase 15 riprende con 15-08/15-09. Next: discuss BE Phase 15 (Imboscate in viaggio) con la FE Phase 16. Previous: Phase 13.1 — COMPLETE and merged (PR #21, 2026-11-05).
+**Current focus:** Phase 15 — Imboscate in viaggio — CONTEXT GATHERED (2026-11-06, discuss congiunto con la FE Phase 16 dal repo FE) su `feat/15-imboscate-in-viaggio` (da `develop` `b492a46`, la merge della PR #23): rischio per km 0,2% giorno / 0,6% notte (22–06, `AMBUSH_TIMEZONE`), soglia 10 km, più imboscate con risorteggio dopo ogni vittoria, nemici del POI più vicino (animali inclusi) nella fascia [Facile, Medio] del livello × `XP_SCALE`, `CombatResolver`, vittoria = ricompense della quest `enemy` del rango con HP e ferite subito, sconfitta = `activeTravel` riscritto dal punto verso la città più vicina (meta compresa) + quest abbandonata + push nuovo, report trattenuti e inseriti all'arrivo come `QuestResult` `kind: ambush` (`quest` nullable, `ambush { at, nearCity, reachedCity }`). Decisioni in `15-CONTEXT.md` (D-01..D-16). Next: `/gsd-plan-phase 15` (REPO-RULES prima del planner). Previous: Phase 14 — COMPLETE and merged (PR #23, `b492a46`, 2026-11-06), consumata dalla FE Phase 15 (gate 45/45, E2E su device, FE PR #41 mergiata).
 
 ## Current Position
 
-Phase: 14 (Viaggio e cibo) — COMPLETE (8/8 on 2026-11-05) on `feat/14-viaggio-e-cibo` (from `develop` `698ae82`): 14-01..14-06 code, 14-07 gate (341 suites / 4333 tests, coverage above the per-folder thresholds, SDL +8 additive lines), 14-08 handoff; review → rulings → 2 fixes → verification passed → security secured; PR #23 to `develop` opened on 2026-11-06
-Plan: 8 of 8
-Status: Phase 14 complete (8/8) — review A/B 0 critical, 1 warning, 3 info → 2 fixed (dedupe owned food by id before the edibility filter; rename cost → mealSet), 2 not needed; verification passed; security audit secured, 38 threats, 35 mitigated, 3 accepted, 0 open, 0 deferred; PR #23 feat/14-viaggio-e-cibo → develop opened; after the merge the user restarts the BE (build + restart from dist/, no one-off in this phase) and the FE Phase 15 resumes with 15-08 (schema gate) and 15-09 (device E2E)
-Last activity: 2026-11-06 -- Phase 14 closed: two area reviews merged, rulings, fixes, verification, security audit, PR
+Phase: 15 (Imboscate in viaggio) — CONTEXT GATHERED 2026-11-06 on `feat/15-imboscate-in-viaggio` (from `develop` `b492a46`, the merge of PR #23); decisions in `15-CONTEXT.md` (D-01..D-16), contract names to fix in `15-REPO-RULES.md` before planning; FE companion Phase 16 context gathered in the same session (`../Klimmeck-Guide/.planning/phases/16-travel-ambushes/16-CONTEXT.md`)
+Plan: 0 of 0 (not planned yet)
+Status: Phase 15 context gathered — ready to plan (`/gsd-plan-phase 15`); Phase 14 merged on `develop` (PR #23, `b492a46`, 2026-11-06) and consumed by the FE Phase 15 (schema gate 45/45, device E2E passed, FE PR #41 merged)
+Last activity: 2026-11-06 -- Phase 15 context gathered (joint discuss with the FE Phase 16 from the FE repo)
 
-Progress: [██████████] 8/8 plans of Phase 14 (phases 1–14, 9.1, 9.2 and 13.1 complete; Phase 14 awaiting the merge of its PR)
+Progress: [░░░░░░░░░░] 0/0 plans of Phase 15 (phases 1–14, 9.1, 9.2 and 13.1 complete and merged)
 
 ## Performance Metrics
 
