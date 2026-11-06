@@ -92,4 +92,49 @@ describe('enemy pool of a point of interest', () => {
         expect(idsOf(forward)).toEqual(['e1', 'e3']);
         expect(idsOf(backward)).toEqual(idsOf(forward));
     });
+
+    it('includes the animals of the zone when asked (D-07, D-22)', () => {
+        const wolf = candidate('w', ['forest'], { animal: true });
+        const enemies = [...catalog, wolf];
+
+        expect(
+            idsOf(zonePoolOf(enemies, ['forest'], { animals: 'included' })),
+        ).toEqual(['e1', 'e3', 'w']);
+        expect(
+            idsOf(fallbackPoolOf(enemies, ['forest'], { animals: 'included' })),
+        ).toEqual(['e1', 'e3', 'e5', 'w']);
+    });
+
+    it('still excludes the animals from generated quests by default (D-22)', () => {
+        const wolf = candidate('w', ['forest'], { animal: true });
+        const enemies = [...catalog, wolf];
+
+        expect(idsOf(zonePoolOf(enemies, ['forest']))).toEqual(['e1', 'e3']);
+        expect(idsOf(fallbackPoolOf(enemies, ['forest']))).toEqual([
+            'e1',
+            'e3',
+            'e5',
+        ]);
+    });
+
+    it('never includes legendary enemies, animals or not (D-07)', () => {
+        const legend = candidate('l', ['forest'], {
+            legendary: true,
+            animal: true,
+        });
+        const enemies = [...catalog, legend];
+
+        for (const options of [
+            { animals: 'included' as const },
+            { animals: 'excluded' as const },
+        ]) {
+            expect(idsOf(zonePoolOf(enemies, ['forest'], options))).toEqual([
+                'e1',
+                'e3',
+            ]);
+            expect(idsOf(fallbackPoolOf(enemies, ['forest'], options))).toEqual(
+                ['e1', 'e3', 'e5'],
+            );
+        }
+    });
 });
