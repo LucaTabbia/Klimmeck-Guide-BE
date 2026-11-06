@@ -95,11 +95,15 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         QuestResolutionSweeper,
         GmCompletionService,
     ],
+    // la stessa porta del motore per quest e imboscate: il binding cambia in un solo posto
     exports: [
         OutcomeWriter,
         QuestResolutionService,
         QuestResolutionSweeper,
         GmCompletionService,
+        CombatResolver,
+        ChanceSource,
+        ResolutionLoader,
     ],
 })
 export class QuestOutcomesModule {}

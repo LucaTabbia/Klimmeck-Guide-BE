@@ -45,7 +45,7 @@ import {
     type OutcomeQuestSnapshot,
 } from './outcome-plan';
 import { StaleResolution } from './outcome-writer.service';
-import { validQuestEnemiesOf } from './quest-enemies';
+import { type QuestEnemyRef, validQuestEnemiesOf } from './quest-enemies';
 import {
     type PrizesSnapshot,
     type RewardCatalog,
@@ -112,6 +112,9 @@ export interface ResolutionCatalog {
     recoveryTimes: ReadonlyMap<string, number>;
     spellMaxUsages: ReadonlyMap<string, number>;
 }
+
+// il catalogo del combattimento senza i premi: quest e imboscate (Phase 15 D-09)
+export type CombatCatalog = Omit<ResolutionCatalog, 'rewards'>;
 
 type CatalogEntry<T> = T & { _id: Types.ObjectId };
 
@@ -394,18 +397,31 @@ export class ResolutionLoader {
         return snapshot;
     }
 
-    // cataloghi letti in serie fuori dalla transazione: nemico, rarità e magia dei premi, oggetti del combattimento
+    // cataloghi letti in serie fuori dalla transazione: combattimento, poi rarità e magia dei premi
     async readCatalog(
         quest: ResolutionQuest,
         participants: readonly ResolutionCharacter[],
     ): Promise<ResolutionCatalog> {
-        const enemies = await this.readEnemies(quest);
+        const combat = await this.readCombatCatalog(
+            validQuestEnemiesOf(quest.infos),
+            participants,
+            `della missione ${quest._id.toHexString()}`,
+        );
         const rewards = await this.readRewardCatalog(quest.prizes);
+        return { ...combat, rewards };
+    }
+
+    // nemici nell'ordine delle voci, usi massimi, oggetti del combattimento; subject nomina la fonte nel WARN delle voci orfane
+    async readCombatCatalog(
+        entries: readonly QuestEnemyRef[],
+        participants: readonly CombatCharacterSnapshot[],
+        subject: string,
+    ): Promise<CombatCatalog> {
+        const enemies = await this.readEnemies(entries, subject);
         const spellMaxUsages = await this.readSpellMaxUsages();
         if (enemies.length === 0) {
             return {
                 enemies,
-                rewards,
                 equipment: new Map(),
                 spells: new Map(),
                 loot: new Map(),
@@ -439,7 +455,6 @@ export class ResolutionLoader {
             .exec();
         return {
             enemies,
-            rewards,
             equipment: byHex(equipment),
             spells: byHex(spells),
             loot: byHex(loot),
@@ -493,9 +508,11 @@ export class ResolutionLoader {
         return quest;
     }
 
-    // C6 esteso (D-28): voci orfane o con quantità non valida scartate con un WARN di soli id; ordine della quest
-    private async readEnemies(quest: ResolutionQuest): Promise<CatalogEnemy[]> {
-        const entries = validQuestEnemiesOf(quest.infos);
+    // C6 esteso (D-28): voci orfane scartate con un WARN di soli id e soggetto; ordine delle voci
+    private async readEnemies(
+        entries: readonly QuestEnemyRef[],
+        subject: string,
+    ): Promise<CatalogEnemy[]> {
         if (entries.length === 0) return [];
         const found = byHex(
             await this.enemyModel
@@ -510,7 +527,7 @@ export class ResolutionLoader {
             const snapshot = found.get(enemy.toHexString());
             if (!snapshot) {
                 this.logger.warn(
-                    `Nemico ${enemy.toHexString()} della missione ${quest._id.toHexString()} inesistente: voce scartata`,
+                    `Nemico ${enemy.toHexString()} ${subject} inesistente: voce scartata`,
                 );
             }
             return snapshot ? [{ snapshot, quantity }] : [];

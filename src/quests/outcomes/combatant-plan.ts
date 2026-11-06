@@ -71,7 +71,9 @@ export function combatContextOf(
 }
 
 // XP dei nemici × quantità sommata al premio di chi vince (D-11, D-02): un valore non numerico vale 0
-export function enemyFactsOf(catalog: ResolutionCatalog): EnemyFacts | null {
+export function enemyFactsOf(
+    catalog: Pick<ResolutionCatalog, 'enemies'>,
+): EnemyFacts | null {
     if (catalog.enemies.length === 0) return null;
     return {
         entries: catalog.enemies.map(({ snapshot, quantity }) => ({
