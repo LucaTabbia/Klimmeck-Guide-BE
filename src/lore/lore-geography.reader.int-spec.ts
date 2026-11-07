@@ -7,7 +7,10 @@ import {
 } from 'src/models/point-of-interest.model';
 import { AuthTestApp, createAuthTestApp } from '../../test/auth/auth-test-app';
 import { buildCity, persistCity, persistPoi } from '../../test/fixtures';
-import { persistGeography } from '../../test/lore/lore-world';
+import {
+    persistGeography,
+    persistGeographyLore,
+} from '../../test/lore/lore-world';
 import { LoreGeographyModule } from './lore-geography.module';
 import { LoreGeographyReader } from './lore-geography.reader';
 
@@ -138,5 +141,35 @@ describe('LoreGeographyReader', () => {
 
         expect(inside).toEqual(world.geography);
         expect(outside).toEqual([]);
+    });
+
+    it('picks the city with the lowest id when two cities share a marker (D-03)', async () => {
+        const lowest = await persistGeographyLore(harness.connection, {
+            name: 'Andogan',
+        });
+        const highest = await persistGeographyLore(harness.connection, {
+            name: 'Bosa',
+        });
+        const marker = new Types.ObjectId();
+        const lowestId = new Types.ObjectId();
+        const highestId = new Types.ObjectId();
+        await cities.create(
+            buildCity({
+                _id: highestId,
+                name: 'Bosa',
+                markerLocation: marker,
+                relatedLore: highest.cityLore._id,
+            }),
+        );
+        await cities.create(
+            buildCity({
+                _id: lowestId,
+                name: 'Andogan',
+                markerLocation: marker,
+                relatedLore: lowest.cityLore._id,
+            }),
+        );
+
+        expect(await reader.ofMarker(marker)).toEqual(lowest.geography);
     });
 });
