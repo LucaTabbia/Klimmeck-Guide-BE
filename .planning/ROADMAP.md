@@ -593,7 +593,7 @@ Plans:
 - [x] 16-01-PLAN.md — fondazioni pure: config opzionale `LORE_STUDY_CHANCE` (default 0,5), `STUDY_LORE_TYPES`/`BESTIARY_LORE_TYPES`, `geographyOf`, `knowledgeAdditionOf` (add-to-set solo se non vuoto), `LoreVisibility` (D-03, D-08, D-10, D-14)
 - [x] 16-02-PLAN.md — modelli e SDL dal boot reale: `CharacterStatus.unlockedLore` sul filo, `status.knownEnemies` interno, `QuestResult.loreUnlocked` popolato (orfani scartati), `Lore` registrato nei moduli, asserzioni SDL RED, `characterUpdated` riemesso (D-01, D-09)
 - [x] 16-03-PLAN.md — `LoreGeographyReader.ofMarker` + mondo di test delle lore; il nuovo personaggio nasce con la geografia della città natale (D-03, D-04)
-- [ ] 16-04-PLAN.md — arrivi con movimento: completamento del viaggio (secondo update nel callback, `COMPLETION_UPDATE` invariato), teleport, salto istantaneo dell'accettazione (D-05)
+- [x] 16-04-PLAN.md — arrivi con movimento: completamento del viaggio (secondo update nel callback, `COMPLETION_UPDATE` invariato), teleport, salto istantaneo dell'accettazione (D-05)
 - [ ] 16-05-PLAN.md — vittorie delle quest: `victoryKnowledgeOf`/`knowledgeUpdateOf` nel piano del partecipante, individuale, party, dungeon, soccorritori; `loreUnlocked` = sole novità (D-06, D-09, D-14)
 - [ ] 16-06-PLAN.md — completamento del GM con nemici, imboscata vinta con `loreUnlocked` nel report (snapshot) e deviazione sulla città raggiunta (D-05, D-06)
 - [ ] 16-07-PLAN.md — ritorno del soccorso con la geografia della città; studio al `LORE_STUDY_CHANCE` con tiri `gate`/`pick` accodati dopo il pet e pool filtrato (D-05, D-08)
@@ -649,4 +649,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
 | 15. Imboscate in viaggio | 12/12 | Complete | 2026-11-06 |
-| 16. Lore sbloccabili | 3/12 | In Progress | - |
+| 16. Lore sbloccabili | 4/12 | In Progress | - |

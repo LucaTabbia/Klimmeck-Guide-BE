@@ -49,9 +49,9 @@ created: 2026-11-07
 | 16-03-01 | 03 | 3 | BE-LORE-01, 02 | T-16-10 / T-16-11 | reader: solo `markerLocation`, forme legacy, orfani → `[]` | integration | `npx jest src/lore/lore-geography.reader.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 16-03-02 | 03 | 3 | BE-LORE-01 | T-16-09 / T-16-11 | nascita con la geografia della città natale; ricreazione → insieme nuovo | unit + integration | `npx jest src/characters/creation --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 16-03-03 | 03 | 3 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-03-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ✅ green |
-| 16-04-01 | 04 | 4 | BE-LORE-02 | T-16-12 / T-16-13 / T-16-14 / T-16-15 | completamento (libero, quest, deviazione) e teleport; territorio ignorato; idempotente | unit + integration | `npx jest src/travel --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| 16-04-02 | 04 | 4 | BE-LORE-02 | T-16-13 / T-16-14 | salto istantaneo dell'accettazione | unit + integration | `npx jest src/quests/acceptance --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| 16-04-03 | 04 | 4 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-04-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-04-01 | 04 | 4 | BE-LORE-02 | T-16-12 / T-16-13 / T-16-14 / T-16-15 | completamento (libero, quest, deviazione) e teleport; territorio ignorato; idempotente | unit + integration | `npx jest src/travel --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 16-04-02 | 04 | 4 | BE-LORE-02 | T-16-13 / T-16-14 | salto istantaneo dell'accettazione | unit + integration | `npx jest src/quests/acceptance --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 16-04-03 | 04 | 4 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-04-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ✅ green |
 | 16-05-01 | 05 | 5 | BE-LORE-03 | T-16-16 / T-16-18 / T-16-19 | `victoryKnowledgeOf`, `knowledgeUpdateOf`, piano del partecipante; sconfitta nulla | unit | `npx jest src/quests/outcomes --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 16-05-02 | 05 | 5 | BE-LORE-03 | T-16-16 / T-16-17 | individuale, party, dungeon: ogni vincitore impara | integration | `npx jest src/quests/outcomes src/travel/ambush --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 16-05-03 | 05 | 5 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-05-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
