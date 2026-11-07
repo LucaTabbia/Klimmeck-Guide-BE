@@ -589,7 +589,19 @@ Plans:
 **Decisioni del discuss (2026-11-07, `16-CONTEXT.md` D-01..D-12)**: id sul filo (`CharacterStatus.unlockedLore`); geografia = città + regioni + stato alla nascita e a ogni arrivo sul marker; «conosciuto» = nemico esatto sconfitto (`knownEnemies`), non la specie; studio al 50 % (`LORE_STUDY_CHANCE`); `QuestResult.loreUnlocked`; `City.relatedLore` null per il giocatore finché chiusa, narrativa delle quest intera; backfill one-off dei personaggi esistenti; l'imboscata vinta segue la regola dei nemici (default tecnico).
 **Unblocks (FE)**: FE Phase 17 (LORE-01..03).
 **Branch**: `feat/16-lore-sbloccabili` da `develop` (`9103440`) → PR a `develop` (draft finché il backfill non è girato e rimosso).
-**Plans**: TBD
+**Plans**: 12 piani (wave sequenziali)
+- [ ] 16-01-PLAN.md — fondazioni pure: config opzionale `LORE_STUDY_CHANCE` (default 0,5), `STUDY_LORE_TYPES`/`BESTIARY_LORE_TYPES`, `geographyOf`, `knowledgeAdditionOf` (add-to-set solo se non vuoto), `LoreVisibility` (D-03, D-08, D-10, D-14)
+- [ ] 16-02-PLAN.md — modelli e SDL dal boot reale: `CharacterStatus.unlockedLore` sul filo, `status.knownEnemies` interno, `QuestResult.loreUnlocked` popolato (orfani scartati), `Lore` registrato nei moduli, asserzioni SDL RED, `characterUpdated` riemesso (D-01, D-09)
+- [ ] 16-03-PLAN.md — `LoreGeographyReader.ofMarker` + mondo di test delle lore; il nuovo personaggio nasce con la geografia della città natale (D-03, D-04)
+- [ ] 16-04-PLAN.md — arrivi con movimento: completamento del viaggio (secondo update nel callback, `COMPLETION_UPDATE` invariato), teleport, salto istantaneo dell'accettazione (D-05)
+- [ ] 16-05-PLAN.md — vittorie delle quest: `victoryKnowledgeOf`/`knowledgeUpdateOf` nel piano del partecipante, individuale, party, dungeon, soccorritori; `loreUnlocked` = sole novità (D-06, D-09, D-14)
+- [ ] 16-06-PLAN.md — completamento del GM con nemici, imboscata vinta con `loreUnlocked` nel report (snapshot) e deviazione sulla città raggiunta (D-05, D-06)
+- [ ] 16-07-PLAN.md — ritorno del soccorso con la geografia della città; studio al `LORE_STUDY_CHANCE` con tiri `gate`/`pick` accodati dopo il pet e pool filtrato (D-05, D-08)
+- [ ] 16-08-PLAN.md — filtri per il bearer: `ViewerKnowledgeService` con cache `WeakMap` su `rootValue`-o-context, `lores`/`lore(id)`, `relatedLore` di `Lore`, `City` ed `Enemy`; i due test «ciechi» aggiornati (D-07, D-10, D-13)
+- [ ] 16-09-PLAN.md — `QuestEnemy.known` per viewer su HTTP e su due eventi WS dello stesso socket (D-07)
+- [ ] 16-10-PLAN.md — backfill una tantum al boot (`src/migrations/lore-backfill/`), idempotente per unione, modulo importato solo da `AppModule`, log di soli conteggi; rimozione fuori fase dopo il boot reale (D-11)
+- [ ] 16-11-PLAN.md — gate: `tsc`, `test:cov` con ripiego per cartella, boot reale, SDL solo additivo (3 righe), invarianti; VALIDATION firmata (D-15)
+- [ ] 16-12-PLAN.md — chiusura: handoff `BACKEND-NOTES.md` per la FE Phase 17 (SDL finale, identità di prova, trucchi a DB, runbook del boot con il backfill), emendamenti in coda agli handoff 11 e 9.2, `requirements mark-complete BE-LORE-01..06` solo qui
 
 ## Backend ↔ Frontend alignment
 
@@ -637,4 +649,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
 | 15. Imboscate in viaggio | 12/12 | Complete | 2026-11-06 |
-| 16. Lore sbloccabili | 0/0 | Not started | - |
+| 16. Lore sbloccabili | 0/12 | Planned | - |

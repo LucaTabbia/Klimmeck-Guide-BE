@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: discussing
-stopped_at: Phase 16 context gathered (discuss congiunto con la FE Phase 17, 2026-11-07) — next: /gsd-plan-phase 16 (16-REPO-RULES.md prima della ricerca); Phase 15 merged (PR #24 → develop 9103440, 2026-11-07)
-last_updated: "2026-11-07T10:23:39.000Z"
-last_activity: 2026-11-07 -- Phase 16 context gathered (joint discuss with the FE Phase 17); Phase 15 PR #24 merged on develop 9103440
+status: executing
+stopped_at: Phase 16 planned (12 plans, 2026-11-07) — next: /gsd-execute-phase 16 (sequential waves; backfill one-off at the real boot by the orchestrator)
+last_updated: "2026-11-07T11:39:24.000Z"
+last_activity: 2026-11-07 -- Phase 16 planned (12 plans, plan-checker passed); FE Phase 17 planned in the same session
 progress:
   total_phases: 20
   completed_phases: 19
-  total_plans: 239
+  total_plans: 251
   completed_plans: 239
-  percent: 100
+  percent: 95
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 
 ## Current Position
 
-Phase: 16 (Lore sbloccabili) — CONTEXT GATHERED 2026-11-07 on `feat/16-lore-sbloccabili` (from `develop` `9103440`, the merge of PR #24): joint interactive discuss with the FE Phase 17 from the FE repo (2 question blocks); Phase 15 merged on 2026-11-07 (PR #24)
-Plan: 0 of 0 (not planned yet)
-Status: Phase 16 discussing → context gathered 2026-11-07, ready to plan: `/gsd-plan-phase 16` writes `16-REPO-RULES.md` first (contract names shared with the FE `17-REPO-RULES.md`: `CharacterStatus.unlockedLore`, `QuestEnemy.known`, `QuestResult.loreUnlocked`, `City.relatedLore` null when locked), then research and plans; the one-off backfill of the 4 existing characters runs at the real boot and leaves the repo before the merge (PR draft until then)
-Last activity: 2026-11-07 -- Phase 16 context gathered (joint discuss with the FE Phase 17); Phase 15 PR #24 merged
+Phase: 16 (Lore sbloccabili) — PLANNED 2026-11-07 on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12 plans in 12 sequential waves (config + geography → models and SDL → birth → arrivals → victories and `loreUnlocked` → study → viewer filters → `known` → one-off backfill → gate → handoff); research, repo rules, validation skeleton and plan-checker pass recorded
+Plan: 0 of 12
+Status: Phase 16 planned — ready to execute (`/gsd-execute-phase 16`); the one-off backfill runs only at the real boot by the orchestrator and leaves the repo before the merge (PR draft until then); FE Phase 17 planned in the same session on `feat/17-unlockable-lore`
+Last activity: 2026-11-07 -- Phase 16 planned: research, repo rules, 12 plans, checker passed
 
-Progress: [░░░░░░░░░░] 0/? plans of Phase 16 (phases 1–15, 9.1, 9.2 and 13.1 complete and merged)
+Progress: [░░░░░░░░░░] 0/12 plans of Phase 16 (phases 1–15, 9.1, 9.2 and 13.1 complete and merged)
 
 ## Performance Metrics
 
