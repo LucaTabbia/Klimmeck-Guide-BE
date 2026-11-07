@@ -16,6 +16,8 @@ const FAILED_ID = new Types.ObjectId('64b0000000000000000000f3');
 const USER_ID = new Types.ObjectId('64b0000000000000000000f4');
 const RESULT_ID = new Types.ObjectId('64b0000000000000000000f5');
 const CITY_MARKER_ID = new Types.ObjectId('64b0000000000000000000f6');
+const CITY_LORE_ID = new Types.ObjectId('64b0000000000000000000f7');
+const REGION_LORE_ID = new Types.ObjectId('64b0000000000000000000f8');
 
 const injured: OutcomeCharacterSnapshot = {
     _id: INJURED_ID,
@@ -72,6 +74,7 @@ const unchangedSheet = {
     titleBefore: TitleType.adventurer,
     titleAfter: TitleType.adventurer,
     spellLearned: null,
+    loreUnlocked: [],
     enemies: [],
     stagesCleared: null,
     stagesTotal: null,
@@ -110,6 +113,44 @@ describe('planRescued', () => {
         expect(rescue(null).update).toEqual({
             $set: { 'status.awaitingAid': null },
         });
+    });
+
+    it('adds the city geography to the rescued return (D-05)', () => {
+        const geography = [CITY_LORE_ID, REGION_LORE_ID];
+        const plan = planRescued({
+            resultId: RESULT_ID,
+            snapshot: injured,
+            aidQuest,
+            userId: USER_ID,
+            cityMarker: CITY_MARKER_ID,
+            geography,
+            now: NOW,
+        });
+
+        expect(plan.update).toEqual({
+            $set: {
+                'status.awaitingAid': null,
+                'status.location': CITY_MARKER_ID,
+            },
+            $addToSet: {
+                'status.unlockedLore': { $each: geography },
+            },
+        });
+        expect(plan.result.loreUnlocked).toEqual([]);
+    });
+
+    it('adds no geography when no city holds the marker (D-05)', () => {
+        const plan = planRescued({
+            resultId: RESULT_ID,
+            snapshot: injured,
+            aidQuest,
+            userId: USER_ID,
+            cityMarker: null,
+            geography: [CITY_LORE_ID],
+            now: NOW,
+        });
+
+        expect(plan.update).toEqual({ $set: { 'status.awaitingAid': null } });
     });
 
     it('drafts a rescued sheet without healing', () => {

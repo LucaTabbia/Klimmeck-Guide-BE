@@ -24,6 +24,7 @@ import {
 } from '../../../test/quests/outcome-world';
 import { ScriptedCombatResolver } from '../../../test/quests/scripted-combat-resolver';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
+import { persistGeographyLore } from '../../../test/lore/lore-world';
 import { buildAidQuest } from './aid/aid-quest';
 import { OutcomeWriter, StaleResolution } from './outcome-writer.service';
 import { QuestResolutionService } from './quest-resolution.service';
@@ -51,6 +52,9 @@ interface RescueWorld {
     rescuer: Quester;
     marker: Types.ObjectId;
     cityMarker: Types.ObjectId;
+    foeId: Types.ObjectId;
+    foeLore: Types.ObjectId[];
+    geography: Types.ObjectId[];
 }
 
 describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', () => {
@@ -94,17 +98,29 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
 
     // ferito X in attesa di soccorso con la aid A clonata da O; soccorritore R registrato su A e scaduto
     async function rescueWorld(
-        options: { inCity?: boolean } = {},
+        options: {
+            inCity?: boolean;
+            withGeography?: boolean;
+            foeLore?: Types.ObjectId[];
+        } = {},
     ): Promise<RescueWorld> {
         seq += 1;
         const marker = new Types.ObjectId();
         const cityMarker = new Types.ObjectId();
+        const lore = options.withGeography
+            ? await persistGeographyLore(world.harness.connection, {
+                  name: `Valantar ${seq}`,
+              })
+            : null;
         await persistCity(world.models.cities, {
             pointsOfInterest: options.inCity === false ? [] : [marker],
             markerLocation: cityMarker,
+            ...(lore ? { relatedLore: lore.cityLore._id } : {}),
         });
+        const foeLore = options.foeLore ?? [];
         const foe = (await persistEnemy(world.models.enemies, {
             xp: 100,
+            relatedLore: foeLore,
         })) as { _id: Types.ObjectId };
         const original = await world.models.quests.create(
             buildQuest({
@@ -153,6 +169,9 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
             rescuer,
             marker,
             cityMarker,
+            foeId: foe._id,
+            foeLore,
+            geography: lore?.geography ?? [],
         };
     }
 
@@ -254,6 +273,63 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
                 message.includes(String(rescue.marker)),
             ),
         ).toBe(true);
+    });
+
+    it('unlocks the return city geography for the rescued (D-05)', async () => {
+        const rescue = await rescueWorld({ withGeography: true });
+        scripted.willEnd('success');
+
+        await expect(resolve(rescue)).resolves.toBe('resolved');
+
+        const injured = await characterOf(rescue.injuredId);
+        expect(String(injured.status.location)).toBe(String(rescue.cityMarker));
+        expect(injured.status.unlockedLore.map(String)).toEqual(
+            rescue.geography.map(String),
+        );
+        const [sheet] = await resultsOf(rescue.injuredId);
+        expect(sheet.outcome).toBe('rescued');
+        expect(sheet.loreUnlocked).toEqual([]);
+    });
+
+    it('unlocks nothing for a rescued freed where they stand (D-05)', async () => {
+        const rescue = await rescueWorld({
+            inCity: false,
+            withGeography: true,
+        });
+        const before = await characterOf(rescue.injuredId);
+        scripted.willEnd('success');
+
+        await expect(resolve(rescue)).resolves.toBe('resolved');
+
+        const injured = await characterOf(rescue.injuredId);
+        expect(injured.status.awaitingAid).toBeNull();
+        expect(injured.status.unlockedLore.map(String)).toEqual(
+            before.status.unlockedLore.map(String),
+        );
+    });
+
+    it('teaches the winning rescuers the enemies of the aid (D-06)', async () => {
+        const page = new Types.ObjectId();
+        const rescue = await rescueWorld({ foeLore: [page] });
+        const before = await characterOf(rescue.injuredId);
+        scripted.willEnd('success');
+
+        await expect(resolve(rescue)).resolves.toBe('resolved');
+
+        const rescuer = await characterOf(rescue.rescuer.characterId);
+        expect(rescuer.status.unlockedLore.map(String)).toEqual([String(page)]);
+        expect(rescuer.status.knownEnemies.map(String)).toEqual([
+            String(rescue.foeId),
+        ]);
+        const [rescuerResult] = await resultsOf(rescue.rescuer.characterId);
+        expect(rescuerResult.loreUnlocked.map(String)).toEqual([String(page)]);
+        const injured = await characterOf(rescue.injuredId);
+        expect(injured.status.knownEnemies.map(String)).toEqual(
+            before.status.knownEnemies.map(String),
+        );
+        expect(injured.status.unlockedLore.map(String)).toEqual(
+            before.status.unlockedLore.map(String),
+        );
     });
 
     it('kills the injured and chains a new aid when the rescue fails', async () => {
