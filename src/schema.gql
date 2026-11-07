@@ -642,6 +642,7 @@ type QuestResult {
   kind: QuestResultKind!
   levelAfter: Int!
   levelBefore: Int!
+  loreUnlocked: [Lore!]!
   maxLifePoints: Int!
   outcome: QuestOutcome!
   quest: QuestResultQuest
