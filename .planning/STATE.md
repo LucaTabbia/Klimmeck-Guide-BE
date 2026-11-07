@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 16 (Lore sbloccabili) — EXECUTING since 2026-11-07 on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12 plans in 12 sequential waves (config + geography → models and SDL → birth → arrivals → victories and `loreUnlocked` → study → viewer filters → `known` → one-off backfill → gate → handoff)
-Plan: 6 of 12
+Plan: 7 of 12
 Status: Executing Phase 16 — sequential waves; the one-off backfill runs only at the real boot by the orchestrator and leaves the repo before the merge (PR draft until then); FE Phase 17 executing in the same session on `feat/17-unlockable-lore`
 Last activity: 2026-11-07 -- Phase 16 execution started
 
