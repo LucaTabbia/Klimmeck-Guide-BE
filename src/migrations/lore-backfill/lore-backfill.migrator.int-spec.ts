@@ -229,7 +229,7 @@ describe('LoreBackfillMigrator (replSet)', () => {
     });
 
     it('counts a character on the territory as without city (D-11)', async () => {
-        const territory = await persistPoi(pois, { type: 'quest' });
+        const territory = await persistPoi(pois);
         await hero('Dario', statusAt(territory._id as Types.ObjectId));
 
         expect(await migrator.backfillAll()).toEqual({
@@ -242,7 +242,7 @@ describe('LoreBackfillMigrator (replSet)', () => {
     });
 
     it('finds the results of a legacy string character ref (D-11)', async () => {
-        const territory = await persistPoi(pois, { type: 'quest' });
+        const territory = await persistPoi(pois);
         const wolf = await enemyWith('Lupo');
         const id = await hero(
             'Elsa',
