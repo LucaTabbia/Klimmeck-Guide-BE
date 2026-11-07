@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { AuthzModule } from 'src/authz/authz.module';
 import { EconomyModule } from 'src/economy/economy.module';
+import { LoreGeographyModule } from 'src/lore/lore-geography.module';
 import {
     Character,
     CharacterSchema,
@@ -12,6 +13,7 @@ import {
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
 import { City, CitySchema } from 'src/models/city.model';
+import { Lore, LoreSchema } from 'src/models/lore.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { QuestAcceptanceResolver } from 'src/quests/acceptance/quest-acceptance.resolver';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
@@ -27,6 +29,7 @@ import { TravelPlanningModule } from 'src/travel/travel-planning.module';
             { name: Quest.name, schema: QuestSchema },
             { name: PendingQuest.name, schema: PendingQuestSchema },
             { name: City.name, schema: CitySchema },
+            { name: Lore.name, schema: LoreSchema },
         ]),
         EconomyModule,
         AuthzModule,
@@ -36,6 +39,8 @@ import { TravelPlanningModule } from 'src/travel/travel-planning.module';
         QuestResolutionSchedulingModule,
         // avvio sul marker (utente 2026-10-25): PartyModule non importa il push, l'harness nudo dell'accettazione resta senza ConfigModule
         PartyModule,
+        // geografia della città sul salto istantaneo (Phase 16 D-05, D-14)
+        LoreGeographyModule,
     ],
     providers: [
         QuestAcceptanceService,
