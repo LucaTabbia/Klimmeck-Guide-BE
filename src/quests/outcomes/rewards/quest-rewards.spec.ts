@@ -9,6 +9,7 @@ import {
     canLearnSpell,
     drawLearnableSpell,
     drawRewards,
+    drawStudyLore,
     rewardRefsOf,
 } from 'src/quests/outcomes/rewards/quest-rewards';
 import { SequenceChance } from '../../../../test/quests/sequence-chance';
@@ -20,6 +21,9 @@ const SPELL_ID = new Types.ObjectId('64b0000000000000000000b4');
 const ORPHAN_SPELL_ID = new Types.ObjectId('64b0000000000000000000b5');
 const PET_ID = new Types.ObjectId('64b0000000000000000000b6');
 const ORPHAN_PET_ID = new Types.ObjectId('64b0000000000000000000b7');
+const LORE_1 = new Types.ObjectId('64b0000000000000000000d1');
+const LORE_2 = new Types.ObjectId('64b0000000000000000000d2');
+const LORE_3 = new Types.ObjectId('64b0000000000000000000d3');
 
 const emptyCatalog: RewardCatalog = {
     rarities: new Map(),
@@ -76,6 +80,7 @@ describe('drawRewards', () => {
             spellCandidate: null,
             spellDraw: null,
             pet: null,
+            loreDraw: null,
         });
     });
 
@@ -93,6 +98,7 @@ describe('drawRewards', () => {
             spellCandidate: null,
             spellDraw: null,
             pet: null,
+            loreDraw: null,
         });
     });
 
@@ -310,6 +316,111 @@ describe('drawRewards with a pet prize', () => {
 
         expect(rewards.pet).toBeNull();
         expect(chance.drawn).toEqual([0.1, 0.7]);
+    });
+});
+
+describe('drawRewards with a study lore pool', () => {
+    const loreCatalog: RewardCatalog = {
+        ...catalog,
+        studyLorePool: [LORE_1, LORE_2],
+        studyLoreChance: 0.5,
+    };
+
+    it('draws the study gate and pick after the pet only with a pool (D-08)', () => {
+        const chance = new SequenceChance([0.2, 0.7]);
+
+        const rewards = drawRewards(prizesWith({}), loreCatalog, chance);
+
+        expect(rewards.loreDraw).toEqual({
+            pool: [LORE_1, LORE_2],
+            chance: 0.5,
+            gate: 0.2,
+            pick: 0.7,
+        });
+        expect(chance.drawn).toEqual([0.2, 0.7]);
+    });
+
+    it('queues the study draws after the loot, spell and pet draws (D-08)', () => {
+        const chance = new SequenceChance([0.1, 0.7, 0.19, 0.3, 0.4]);
+
+        const rewards = drawRewards(
+            prizesWith({
+                randomLoot: [
+                    { itemType: 'LootItem', item: BONE_ID, quantity: 1 },
+                ],
+                spellDraw: true,
+                pet: PET_ID,
+            }),
+            { ...loreCatalog, pets: new Set([PET_ID.toHexString()]) },
+            chance,
+        );
+
+        expect(rewards.pet).toEqual(PET_ID);
+        expect(rewards.loreDraw).toMatchObject({ gate: 0.3, pick: 0.4 });
+        expect(chance.drawn).toEqual([0.1, 0.7, 0.19, 0.3, 0.4]);
+    });
+
+    it.each([
+        ['without a pool', catalog],
+        ['with an empty pool', { ...catalog, studyLorePool: [] }],
+    ])(
+        'consumes no study roll %s (D-08)',
+        (_label, withoutPool: RewardCatalog) => {
+            const chance = new SequenceChance([0.2, 0.7]);
+
+            const rewards = drawRewards(prizesWith({}), withoutPool, chance);
+
+            expect(rewards.loreDraw).toBeNull();
+            expect(chance.drawn).toEqual([]);
+        },
+    );
+
+    it('falls back to the default study chance when the catalog has none (D-08)', () => {
+        const rewards = drawRewards(
+            prizesWith({}),
+            { ...catalog, studyLorePool: [LORE_1] },
+            new SequenceChance([0.2, 0.7]),
+        );
+
+        expect(rewards.loreDraw?.chance).toBe(0.5);
+    });
+});
+
+describe('drawStudyLore', () => {
+    const draw = (gate: number, pick: number) => ({
+        pool: [LORE_1, LORE_2, LORE_3],
+        chance: 0.5,
+        gate,
+        pick,
+    });
+
+    it('picks an unknown study lore when the gate passes (D-08)', () => {
+        expect(drawStudyLore(draw(0.1, 0.99), [LORE_1])).toEqual(LORE_3);
+        expect(drawStudyLore(draw(0.1, 0), [LORE_1])).toEqual(LORE_2);
+    });
+
+    it('treats a known lore stored as a legacy string as known (D-08)', () => {
+        expect(drawStudyLore(draw(0.1, 0), [LORE_1.toHexString()])).toEqual(
+            LORE_2,
+        );
+    });
+
+    it('learns nothing when the gate reaches the chance (D-08)', () => {
+        expect(drawStudyLore(draw(0.5, 0), [])).toBeNull();
+    });
+
+    it('learns nothing when every lore of the pool is excluded (D-08)', () => {
+        expect(
+            drawStudyLore(draw(0.1, 0), [LORE_3, LORE_2, LORE_1]),
+        ).toBeNull();
+    });
+
+    it('learns nothing without a draw (D-08)', () => {
+        expect(drawStudyLore(null, [])).toBeNull();
+    });
+
+    it('clamps a pick out of range onto the last candidate (D-08)', () => {
+        expect(drawStudyLore(draw(0.1, 1), [LORE_3])).toEqual(LORE_2);
     });
 });
 

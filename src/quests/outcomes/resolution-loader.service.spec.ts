@@ -10,7 +10,7 @@ const fakeModel = (entries: readonly unknown[] = []) => ({
     })),
 });
 
-// solo i modelli del catalogo del combattimento: nemici, loot, equipaggiamento, magie
+// solo i modelli del catalogo del combattimento: nemici, loot, equipaggiamento, magie, lore dello studio
 const loaderWith = (enemyModel: ReturnType<typeof fakeModel>) =>
     new ResolutionLoader(
         null as never,
@@ -22,6 +22,8 @@ const loaderWith = (enemyModel: ReturnType<typeof fakeModel>) =>
         fakeModel() as never,
         fakeModel() as never,
         null as never,
+        fakeModel() as never,
+        undefined,
     );
 
 describe('ResolutionLoader enemy read', () => {

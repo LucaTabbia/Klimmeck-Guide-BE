@@ -39,6 +39,8 @@ const PET_ID = new Types.ObjectId('64b0000000000000000000f1');
 const OWNED_PET_ID = new Types.ObjectId('64b0000000000000000000f2');
 const KNOWN_PAGE_ID = new Types.ObjectId('64b0000000000000000000f3');
 const NEW_PAGE_ID = new Types.ObjectId('64b0000000000000000000f4');
+const STUDY_LORE_ID = new Types.ObjectId('64b0000000000000000000f5');
+const OTHER_STUDY_LORE_ID = new Types.ObjectId('64b0000000000000000000f6');
 
 type SnapshotOverrides = {
     status?: Partial<OutcomeCharacterSnapshot['status']>;
@@ -1123,6 +1125,101 @@ describe('planParticipant', () => {
 
             expect(Object.keys(plan.update)).toEqual(['$set']);
             expect(plan.result.loreUnlocked).toEqual([]);
+        });
+    });
+
+    describe('the study lore draw', () => {
+        const loreDraw = {
+            pool: [NEW_PAGE_ID, STUDY_LORE_ID, OTHER_STUDY_LORE_ID],
+            chance: 0.5,
+            gate: 0.1,
+            pick: 0,
+        };
+        const studyWith = (overrides: Partial<ParticipantPlanInput> = {}) =>
+            inputWith({
+                quest: questOf(QuestType.study),
+                snapshot: snapshotWith({
+                    status: { unlockedLore: [KNOWN_PAGE_ID] },
+                }),
+                rewards: rewardsWith({ xpPrize: 300, loreDraw }),
+                ...overrides,
+            });
+
+        it('learns a study lore after the enemy lore (D-08, D-09)', () => {
+            const plan = planParticipant(
+                studyWith({
+                    victory: { enemyIds: [ENEMY_ID], loreIds: [NEW_PAGE_ID] },
+                }),
+            );
+
+            expect(plan.result.loreUnlocked).toEqual([
+                NEW_PAGE_ID,
+                STUDY_LORE_ID,
+            ]);
+            expect(plan.update.$addToSet).toEqual({
+                'status.unlockedLore': {
+                    $each: [NEW_PAGE_ID, STUDY_LORE_ID],
+                },
+                'status.knownEnemies': { $each: [ENEMY_ID] },
+            });
+        });
+
+        it('learns a study lore the character does not know (D-08)', () => {
+            const plan = planParticipant(
+                studyWith({
+                    snapshot: snapshotWith({
+                        status: { unlockedLore: [NEW_PAGE_ID] },
+                    }),
+                }),
+            );
+
+            expect(plan.result.loreUnlocked).toEqual([STUDY_LORE_ID]);
+        });
+
+        it('learns no study lore when a spell is learned (D-08)', () => {
+            const plan = planParticipant(
+                studyWith({
+                    rewards: rewardsWith({
+                        xpPrize: 300,
+                        loreDraw,
+                        spellCandidate: {
+                            spellId: LEARNED_SPELL_ID,
+                            minXpToLearn: 0,
+                            maxUsages: 4,
+                        },
+                    }),
+                }),
+            );
+
+            expect(plan.result.spellLearned).toEqual(LEARNED_SPELL_ID);
+            expect(plan.result.loreUnlocked).toEqual([]);
+            expect(Object.keys(plan.update)).toEqual(['$set']);
+        });
+
+        it('learns no study lore on a defeat (D-08)', () => {
+            const plan = planParticipant(
+                studyWith({
+                    verdict: QuestOutcome.failure,
+                    aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                }),
+            );
+
+            expect(plan.result.loreUnlocked).toEqual([]);
+            expect(Object.keys(plan.update)).toEqual(['$set']);
+        });
+
+        it('learns no study lore when the gate fails (D-08)', () => {
+            const plan = planParticipant(
+                studyWith({
+                    rewards: rewardsWith({
+                        xpPrize: 300,
+                        loreDraw: { ...loreDraw, gate: 0.5 },
+                    }),
+                }),
+            );
+
+            expect(plan.result.loreUnlocked).toEqual([]);
+            expect(Object.keys(plan.update)).toEqual(['$set']);
         });
     });
 });
