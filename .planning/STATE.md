@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 16 executed (12/12, 2026-11-07) — PR draft to develop; real boot with the backfill and its removal by the orchestrator; FE Phase 17 unblocked at the merge
-last_updated: "2026-11-07T11:49:01.926Z"
-last_activity: 2026-11-07 -- Phase 16 executed (12/12), handoff written
+stopped_at: Phase 16 execution complete (12/12, 2026-11-07) — PR to `develop` (DRAFT, number recorded after opening) stays draft until the real boot with the backfill and its one-off removal
+last_updated: "2026-11-07T14:06:29.000Z"
+last_activity: 2026-11-07 -- Phase 16 complete: 12/12, review (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verification (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), security (48 threats, 0 open, 2 deferred to the real boot); PR to `develop` (DRAFT, number recorded after opening)
 progress:
   total_phases: 20
-  completed_phases: 19
+  completed_phases: 20
   total_plans: 251
-  completed_plans: 239
-  percent: 95
+  completed_plans: 251
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 16 — Lore sbloccabili — ESEGUITA (12/12, 2026-11-07) su `feat/16-lore-sbloccabili` (da `develop` `9103440`): gate 16-11 verde (`test:cov` 373 suite / 4649 test), SDL solo additivo (3 righe), handoff per la FE Phase 17 in `.planning/phases/16-lore-sbloccabili/BACKEND-NOTES.md`. PR verso `develop` in draft; il boot reale col backfill one-off e la sua rimozione in TDD sono a carico dell'orchestratore (runbook nel handoff §5); la FE Phase 17 (parcheggiata a 8/10 su `feat/17-unlockable-lore`) si sblocca alla merge. Previous: Phase 15 — COMPLETE and merged (PR #24, `9103440`, 2026-11-07).
+**Current focus:** Phase 16 — Lore sbloccabili — COMPLETE (2026-11-07) su `feat/16-lore-sbloccabili` (da `develop` `9103440`): 12/12 piani, gate 16-11 verde (373 suite / 4649 test, coverage sopra soglia, SDL +3 righe), tre review per area (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verifica (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), audit di sicurezza (48 threats, 0 open, 2 deferred to the real boot); PR to `develop` (DRAFT, number recorded after opening) in draft finché l'orchestratore non lancia il boot reale col backfill (runbook nel handoff) e un quick task non rimuove `LoreBackfillModule` in TDD. Previous: Phase 15 — COMPLETE and merged (PR #24, `9103440`, 2026-11-07). La FE Phase 17 è parcheggiata a 8/10 su `feat/17-unlockable-lore` e riprende con 17-09/17-10 dopo la merge; la FE Phase 16 (7/8) fa la sua UAT su device nella stessa sessione.
 
 ## Current Position
 
-Phase: 16 (Lore sbloccabili) — EXECUTING since 2026-11-07 on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12 plans in 12 sequential waves (config + geography → models and SDL → birth → arrivals → victories and `loreUnlocked` → study → viewer filters → `known` → one-off backfill → gate → handoff)
+Phase: 16 (Lore sbloccabili) — COMPLETE 2026-11-07 on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12/12 plans, gate 16-11 passed, three area reviews (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verification (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), security audit (48 threats, 0 open, 2 deferred to the real boot); PR to `develop` (DRAFT, number recorded after opening) opened by the orchestrator as DRAFT until the real boot with the backfill and its removal; the FE Phase 17 (parked at 8/10) resumes with 17-09/17-10 after the merge
 Plan: 12 of 12
-Status: Phase 16 eseguita (12/12) — PR in draft verso develop; boot reale col backfill e rimozione a carico dell'orchestratore; FE Phase 17 sbloccata alla merge
-Last activity: 2026-11-07 -- Phase 16 eseguita (12/12): handoff per la FE Phase 17, emendamenti 11 e 9.2, BE-LORE-01..06 completi
+Status: Phase 16 complete — PR to `develop` (DRAFT, number recorded after opening) draft; next: real boot from this branch with the backfill (build before stopping the BE on port 3001, expected log «Backfill delle lore: personaggi 4, …», second boot with zero changes), then the one-off removal in TDD (quick task), then `gh pr ready`; after the merge the FE Phase 17 gate 17-09 and the two device UATs
+Last activity: 2026-11-07 -- Phase 16 complete: review, verification, fixes and security audit done; PR to `develop` (DRAFT, number recorded after opening) draft
 
-Progress: [░░░░░░░░░░] 0/12 plans of Phase 16 (phases 1–15, 9.1, 9.2 and 13.1 complete and merged)
+Progress: [██████████] 12/12 plans of Phase 16 (phases 1–16, 9.1, 9.2 and 13.1 complete; 16 awaiting the real boot and the merge)
 
 ## Performance Metrics
 
