@@ -35,11 +35,19 @@ export function viewerCacheKeyOf(
     return typeof root === 'object' && root !== null ? root : context;
 }
 
+// il payload di un evento è lo stesso oggetto per ogni subscriber del topic: la chiave interna separa i viewer
+function viewerKeyOf(identity: AuthIdentity | undefined): string {
+    return `${identity?.role ?? ''}:${identity?.userId ?? ''}`;
+}
+
 // conoscenza del viewer (Phase 16 D-07, D-10, D-13): innkeeper tutto, giocatore il suo personaggio
-// corrente attivo, nessuno nulla; una lettura per richiesta HTTP e per evento WS
+// corrente attivo, nessuno nulla; una lettura per viewer per richiesta HTTP e per evento WS
 @Injectable()
 export class ViewerKnowledgeService {
-    private readonly cache = new WeakMap<object, Promise<LoreVisibility>>();
+    private readonly cache = new WeakMap<
+        object,
+        Map<string, Promise<LoreVisibility>>
+    >();
 
     constructor(
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
@@ -52,12 +60,21 @@ export class ViewerKnowledgeService {
         context: object,
         info?: { rootValue?: unknown },
     ): Promise<LoreVisibility> {
-        const key = viewerCacheKeyOf(context, info);
-        const cached = this.cache.get(key);
+        const viewers = this.viewersOf(viewerCacheKeyOf(context, info));
+        const viewer = viewerKeyOf(identity);
+        const cached = viewers.get(viewer);
         if (cached) return cached;
         const read = this.read(identity);
-        this.cache.set(key, read);
+        viewers.set(viewer, read);
         return read;
+    }
+
+    private viewersOf(key: object): Map<string, Promise<LoreVisibility>> {
+        const known = this.cache.get(key);
+        if (known) return known;
+        const viewers = new Map<string, Promise<LoreVisibility>>();
+        this.cache.set(key, viewers);
+        return viewers;
     }
 
     private async read(

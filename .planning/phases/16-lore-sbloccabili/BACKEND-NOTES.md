@@ -203,7 +203,7 @@ Blocchi SDL dei tre tipi toccati fissati anche in `test/app.int-spec.ts` (boot r
 | `QuestResult.loreUnlocked` | intera (mai filtrata) | intera | intera |
 
 - Il personaggio corrente del viewer si risolve come le altre letture di proprietà (`users.currentCharacter`, personaggio attivo): un personaggio **morto in attesa della conferma del foglio** non ha vista (`lores` vuote, `known: false`, `City.relatedLore` null); il foglio di morte non porta lore (D-13).
-- Una sola lettura di User + Character per richiesta HTTP e per evento WS (cache per richiesta con chiave `rootValue`-o-context).
+- Una sola lettura di User + Character per viewer per richiesta HTTP e per evento WS (cache per richiesta/evento con chiave `rootValue`-o-context e, dentro, per viewer: due subscriber della stessa `questUpdated(id)` ricevono lo stesso payload ma ognuno il proprio `known`, review A-CR-01).
 
 ---
 
