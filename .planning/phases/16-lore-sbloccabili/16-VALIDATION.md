@@ -71,7 +71,7 @@ created: 2026-11-07
 | 16-10-03 | 10 | 10 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-10-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ✅ green |
 | 16-11-01 | 11 | 11 | BE-LORE-01..06 | T-16-42 / T-16-43 / T-16-44 / T-16-45 | suite completa con le soglie, SDL solo additivo, invarianti | full | `npx tsc --noEmit -p tsconfig.json && npm run test:cov` (o ripiego per cartella) | ✅ | ✅ green |
 | 16-11-02 | 11 | 11 | — | — | VALIDATION firmata | doc | `grep -q "nyquist_compliant: true" .planning/phases/16-lore-sbloccabili/16-VALIDATION.md` | ✅ | ✅ green |
-| 16-11-03 | 11 | 11 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-11-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-11-03 | 11 | 11 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-11-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ✅ green |
 | 16-12-01 | 12 | 12 | BE-LORE-01..06 | T-16-46 / T-16-47 / T-16-48 | handoff FE Phase 17 con SDL verbatim e runbook | doc | `grep -qF "known: Boolean!" .planning/phases/16-lore-sbloccabili/BACKEND-NOTES.md` | ✅ | ⬜ pending |
 | 16-12-02 | 12 | 12 | BE-LORE-01..06 | T-16-47 | emendamenti in coda, requisiti completi | doc | `test "$(grep -cE '\- \[x\] \*\*BE-LORE-0[1-6]\*\*' .planning/REQUIREMENTS.md)" = 6` | ✅ | ⬜ pending |
 | 16-12-03 | 12 | 12 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-12-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
