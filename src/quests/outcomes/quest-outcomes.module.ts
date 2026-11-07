@@ -6,6 +6,7 @@ import { questConfigProvider } from 'src/config/quest-config';
 import { CharacterArchiveModule } from 'src/characters/deletion/character-archive.module';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { EconomyModule } from 'src/economy/economy.module';
+import { LoreGeographyModule } from 'src/lore/lore-geography.module';
 import {
     Character,
     CharacterSchema,
@@ -16,6 +17,7 @@ import {
     EquipmentItem,
     EquipmentItemSchema,
 } from 'src/models/equipment-item.model';
+import { Lore, LoreSchema } from 'src/models/lore.model';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import {
@@ -67,8 +69,11 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
             { name: EquipmentItem.name, schema: EquipmentItemSchema },
             { name: Spell.name, schema: SpellSchema },
             { name: Pet.name, schema: PetSchema },
+            { name: Lore.name, schema: LoreSchema },
         ]),
         EconomyModule,
+        // geografia della città del ritorno di un soccorso (Phase 16 D-05)
+        LoreGeographyModule,
         PushModule,
         CharacterArchiveModule,
         QuestResolutionSchedulingModule,
