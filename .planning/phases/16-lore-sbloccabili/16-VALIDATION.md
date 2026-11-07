@@ -40,9 +40,9 @@ created: 2026-11-07
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 16-01-01 | 01 | 1 | BE-LORE-04 | T-16-01 / T-16-02 | `LORE_STUDY_CHANCE` opzionale, default 0.5, [0, 1], errore senza il valore | unit | `npx jest src/config --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 16-01-02 | 01 | 1 | BE-LORE-01, 02, 05 | T-16-03 / T-16-04 | `geographyOf` senza cascata, add-to-set solo se non vuoto, visibilità per esadecimale | unit | `npx jest src/lore --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 16-01-03 | 01 | 1 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-01-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-01-01 | 01 | 1 | BE-LORE-04 | T-16-01 / T-16-02 | `LORE_STUDY_CHANCE` opzionale, default 0.5, [0, 1], errore senza il valore | unit | `npx jest src/config --selectProjects unit` | ✅ | ✅ green |
+| 16-01-02 | 01 | 1 | BE-LORE-01, 02, 05 | T-16-03 / T-16-04 | `geographyOf` senza cascata, add-to-set solo se non vuoto, visibilità per esadecimale | unit | `npx jest src/lore --selectProjects unit` | ✅ | ✅ green |
+| 16-01-03 | 01 | 1 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-01-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ✅ green |
 | 16-02-01 | 02 | 2 | BE-LORE-01, 05 | T-16-05 / T-16-06 / T-16-08 | `unlockedLore` sul filo, `knownEnemies` interno, legacy `[]`, `characterUpdated` riemesso | integration | `npx jest test/app.int-spec.ts src/characters/character-updated.subscription.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 16-02-02 | 02 | 2 | BE-LORE-03 | T-16-07 / T-16-08 | `loreUnlocked` popolato, orfani scartati, risultati vecchi `[]` | unit + integration | `npx jest test/app.int-spec.ts src/quests/results --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 16-02-03 | 02 | 2 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-02-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
