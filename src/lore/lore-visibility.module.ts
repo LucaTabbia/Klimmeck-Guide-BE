@@ -6,6 +6,11 @@ import {
 } from 'src/models/character/character.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
 import { User, UserSchema } from 'src/models/user.model';
+import {
+    CityRelatedLoreResolver,
+    EnemyRelatedLoreResolver,
+    LoreRelatedLoreResolver,
+} from './related-lore.resolvers';
 import { ViewerKnowledgeService } from './viewer-knowledge.service';
 
 @Module({
@@ -16,7 +21,12 @@ import { ViewerKnowledgeService } from './viewer-knowledge.service';
             { name: Lore.name, schema: LoreSchema },
         ]),
     ],
-    providers: [ViewerKnowledgeService],
+    providers: [
+        ViewerKnowledgeService,
+        LoreRelatedLoreResolver,
+        CityRelatedLoreResolver,
+        EnemyRelatedLoreResolver,
+    ],
     exports: [ViewerKnowledgeService],
 })
 export class LoreVisibilityModule {}
