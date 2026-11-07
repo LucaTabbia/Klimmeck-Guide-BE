@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 16 planned (12 plans, 2026-11-07) — next: /gsd-execute-phase 16 (sequential waves; backfill one-off at the real boot by the orchestrator)
-last_updated: "2026-11-07T11:39:24.000Z"
-last_activity: 2026-11-07 -- Phase 16 planned (12 plans, plan-checker passed); FE Phase 17 planned in the same session
+stopped_at: Phase 16 executing (0/12, 2026-11-07) — sequential waves; backfill one-off at the real boot by the orchestrator
+last_updated: "2026-11-07T11:49:01.926Z"
+last_activity: 2026-11-07 -- Phase 16 execution started
 progress:
   total_phases: 20
   completed_phases: 19
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 16 — Lore sbloccabili — PLANNED (2026-11-07) su `feat/16-lore-sbloccabili` (da `develop` `9103440`, la merge della PR #24): discuss congiunto con la FE Phase 17, ricerca (opus, 2 probe), REPO-RULES coi nomi del contratto, 12 piani in 12 wave sequenziali (fondazioni → modelli e SDL → nascita → arrivi → vittorie → GM e imboscata → soccorso e studio → filtri per viewer → `known` → backfill al boot → gate → handoff), plan-checker passato; prossimo passo `/gsd-execute-phase 16`. Il backfill one-off gira solo al boot reale dell'orchestratore e si rimuove prima della merge (PR in draft finché non è girato e rimosso). Previous: Phase 15 — COMPLETE and merged (PR #24, `9103440`, 2026-11-07); la FE Phase 16 è parcheggiata a 7/8 e fa la UAT su device alla fine della FE Phase 17 (pianificata nella stessa sessione, 10 piani).
+**Current focus:** Phase 16 — Lore sbloccabili — EXECUTING (dal 2026-11-07) su `feat/16-lore-sbloccabili` (da `develop` `9103440`, la merge della PR #24): discuss congiunto con la FE Phase 17, ricerca (opus, 2 probe), REPO-RULES coi nomi del contratto, 12 piani in 12 wave sequenziali (fondazioni → modelli e SDL → nascita → arrivi → vittorie → GM e imboscata → soccorso e studio → filtri per viewer → `known` → backfill al boot → gate → handoff), plan-checker passato. Il backfill one-off gira solo al boot reale dell'orchestratore e si rimuove prima della merge (PR in draft finché non è girato e rimosso). Previous: Phase 15 — COMPLETE and merged (PR #24, `9103440`, 2026-11-07); la FE Phase 16 è parcheggiata a 7/8 e fa la UAT su device alla fine della FE Phase 17 (in esecuzione nella stessa sessione, 10 piani).
 
 ## Current Position
 
-Phase: 16 (Lore sbloccabili) — PLANNED 2026-11-07 on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12 plans in 12 sequential waves (config + geography → models and SDL → birth → arrivals → victories and `loreUnlocked` → study → viewer filters → `known` → one-off backfill → gate → handoff); research, repo rules, validation skeleton and plan-checker pass recorded
+Phase: 16 (Lore sbloccabili) — EXECUTING since 2026-11-07 on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12 plans in 12 sequential waves (config + geography → models and SDL → birth → arrivals → victories and `loreUnlocked` → study → viewer filters → `known` → one-off backfill → gate → handoff)
 Plan: 0 of 12
-Status: Phase 16 planned — ready to execute (`/gsd-execute-phase 16`); the one-off backfill runs only at the real boot by the orchestrator and leaves the repo before the merge (PR draft until then); FE Phase 17 planned in the same session on `feat/17-unlockable-lore`
-Last activity: 2026-11-07 -- Phase 16 planned: research, repo rules, 12 plans, checker passed
+Status: Executing Phase 16 — sequential waves; the one-off backfill runs only at the real boot by the orchestrator and leaves the repo before the merge (PR draft until then); FE Phase 17 executing in the same session on `feat/17-unlockable-lore`
+Last activity: 2026-11-07 -- Phase 16 execution started
 
 Progress: [░░░░░░░░░░] 0/12 plans of Phase 16 (phases 1–15, 9.1, 9.2 and 13.1 complete and merged)
 
