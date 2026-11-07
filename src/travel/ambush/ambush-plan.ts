@@ -24,6 +24,7 @@ import {
     woundsAfter,
 } from 'src/quests/outcomes/outcome-plan';
 import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
+import type { KnowledgeAddition } from 'src/lore/knowledge-addition';
 import {
     lifePointsWithin,
     type Progression,
@@ -33,6 +34,11 @@ import {
     type StatusFacts,
     statusFactsOf,
 } from 'src/quests/outcomes/progression/status-facts';
+import {
+    type KnowledgeUpdate,
+    knowledgeUpdateOf,
+    type VictoryKnowledge,
+} from 'src/quests/outcomes/victory-knowledge';
 import type { LonLat } from 'src/roads/road-route';
 import { durationMsOf } from 'src/travel/travel-timing';
 import type { DrawnAmbush } from './ambush-draw';
@@ -85,6 +91,8 @@ export interface AmbushReportDraft {
     levelAfter: number;
     titleBefore: TitleType;
     titleAfter: TitleType;
+    // il piano lo scrive sempre; assente nei report trattenuti prima della Phase 16
+    loreUnlocked?: Types.ObjectId[];
 }
 
 // deviazione verso la città più vicina dopo una sconfitta (D-11); ripiego sulla strada residua verso la meta (D-25)
@@ -108,6 +116,7 @@ export interface AmbushPlanInput {
     verdict: CombatVerdict;
     effects: ParticipantEffects | null;
     enemies: EnemyFacts;
+    victory?: VictoryKnowledge | null;
     nearCity: AmbushCity;
     nextAmbush: DrawnAmbush | null;
     detour: DetourDraft | null;
@@ -121,6 +130,7 @@ export interface AmbushOutcomePlan {
     update: {
         $set: Record<string, unknown>;
         $push?: Record<string, unknown>;
+        $addToSet?: KnowledgeAddition['$addToSet'];
     };
     coinsDelta: number;
     report: AmbushReportDraft;
@@ -204,6 +214,7 @@ function commonSetOf(fought: FoughtOutcome): Record<string, unknown> {
 function reportOf(
     input: AmbushPlanInput,
     fought: FoughtOutcome,
+    learned: KnowledgeUpdate,
     won: boolean,
 ): AmbushReportDraft {
     const { before, progression } = fought;
@@ -229,6 +240,7 @@ function reportOf(
         levelAfter: progression.level,
         titleBefore: before.title,
         titleAfter: before.title,
+        loreUnlocked: learned.fresh,
     };
 }
 
@@ -236,6 +248,7 @@ function reportOf(
 function victoryUpdateOf(
     input: AmbushPlanInput,
     fought: FoughtOutcome,
+    learned: KnowledgeUpdate,
     report: AmbushReportDraft,
 ): AmbushOutcomePlan['update'] {
     return {
@@ -244,6 +257,7 @@ function victoryUpdateOf(
             'status.activeTravel.ambush': nextAmbushEntry(input.nextAmbush),
         },
         $push: { [REPORT_PATH]: report },
+        ...learned.addition,
     };
 }
 
@@ -313,7 +327,14 @@ function defeatPlanOf(
 export function planAmbushOutcome(input: AmbushPlanInput): AmbushOutcomePlan {
     const won = input.verdict === 'success';
     const fought = foughtOutcomeOf(input, won);
-    const report = reportOf(input, fought, won);
+    // la sconfitta non insegna (Phase 16 D-06): la deviazione insegna solo all'arrivo (D-05)
+    const victory = won ? (input.victory ?? null) : null;
+    const learned = knowledgeUpdateOf(
+        input.snapshot.status.unlockedLore,
+        victory?.loreIds ?? [],
+        victory?.enemyIds ?? [],
+    );
+    const report = reportOf(input, fought, learned, won);
     if (!won) {
         if (!input.detour) {
             throw new Error('ambush defeat needs the reached city');
@@ -323,7 +344,7 @@ export function planAmbushOutcome(input: AmbushPlanInput): AmbushOutcomePlan {
     const travel = input.snapshot.status.activeTravel;
     return {
         filter: filterOf(input),
-        update: victoryUpdateOf(input, fought, report),
+        update: victoryUpdateOf(input, fought, learned, report),
         coinsDelta: fought.coinsDelta,
         report,
         spellRecoveries: fought.spells.recoveries,
