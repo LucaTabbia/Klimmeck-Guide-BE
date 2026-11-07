@@ -194,12 +194,12 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Unlockable Lore (BE-LORE) — Phase 16, aggiunta 2026-10-29
 
-- [ ] **BE-LORE-01**: Insieme di lore sbloccate per personaggio (`Character.unlockedLore` o collezione dedicata), interno e additivo; alla creazione contiene la lore della città natale e la lore `region` a essa collegata; il flag globale `Lore.unlocked` rimosso o ridefinito come conoscenza comune → FE LORE-03
-- [ ] **BE-LORE-02**: Arrivo su una città (completamento viaggio, salto istantaneo, teleport) → sblocco idempotente di `City.relatedLore`
-- [ ] **BE-LORE-03**: Esito vinto con nemici → sblocco di `Enemy.relatedLore` per ogni partecipante vincente; la sconfitta non insegna nulla
-- [ ] **BE-LORE-04**: `study` senza magia appresa → con probabilità configurabile una lore casuale non sbloccata fra i tipi da studio (`knowledge`, `god`, `religion`, `ceremony`, `material`, `state`, `character`; pool esatto nel discuss); nessuna cascata sulle `relatedLore`
-- [ ] **BE-LORE-05**: `lores` e `lore(id)` filtrate sul personaggio corrente del bearer (`relatedLore` comprese, `NOT_FOUND` per una lore chiusa); l'innkeeper vede tutto; `characterUpdated` riemette al cambio dell'insieme → FE LORE-01
-- [ ] **BE-LORE-06**: Quest e risultati espongono per ogni nemico se è conosciuto dal personaggio del bearer (campo risolto per viewer, es. `known`) → FE LORE-02
+- [ ] **BE-LORE-01**: Due insiemi additivi sul personaggio: `Character.status.unlockedLore` (id esposti sul filo come `CharacterStatus.unlockedLore: [ID!]!`) e `Character.status.knownEnemies` (interno); alla creazione `unlockedLore` contiene la geografia della città natale (lore della città più le lore `region` e `state` collegate); nessun flag globale (`Lore.unlocked` non esiste dalla Phase 11 D-25); backfill one-off dei personaggi esistenti al boot reale (posizione + esiti vinti), rimosso prima della merge _(emendato 2026-11-07)_ → FE LORE-03
+- [ ] **BE-LORE-02**: Arrivo su un POI che è il marker di una città (completamento del viaggio libero o da quest, deviazione dopo un'imboscata, salto istantaneo dell'accettazione, teleport) → sblocco idempotente della geografia di quella città (lore + regioni + stato) nella stessa transazione del movimento; i POI del territorio non contano _(emendato 2026-11-07)_
+- [ ] **BE-LORE-03**: Esito `success` con nemici (individuale, party, dungeon, imboscata vinta) → `Enemy.relatedLore` dei nemici affrontati in `unlockedLore` e id esatti in `knownEnemies` per ogni partecipante vincente; la sconfitta non insegna nulla; `QuestResult.loreUnlocked: [Lore!]!` elenca le sole lore nuove dell'esito _(emendato 2026-11-07)_
+- [ ] **BE-LORE-04**: `study` vinta senza magia appresa → con probabilità `LORE_STUDY_CHANCE` (default 0,5) una lore casuale non sbloccata fra i tipi `knowledge`, `god`, `religion`, `ceremony`, `material`, `state`, `character` (110 a DB); nessuna cascata sulle `relatedLore`; la lore appresa va in `unlockedLore` e in `loreUnlocked` _(emendato 2026-11-07)_
+- [ ] **BE-LORE-05**: `lores` e `lore(id)` filtrate sul personaggio corrente del bearer (`relatedLore` comprese, `NOT_FOUND` per una lore chiusa come per una inesistente); `City.relatedLore` null e `Enemy.relatedLore` filtrata per i giocatori finché chiuse; `Quest.infos.relatedLore` intera; l'innkeeper vede tutto; `characterUpdated` riemette al cambio dell'insieme _(emendato 2026-11-07)_ → FE LORE-01
+- [ ] **BE-LORE-06**: Quest e risultati espongono per ogni voce di `enemies` se il nemico esatto è conosciuto dal personaggio del bearer (`QuestEnemy.known: Boolean!` risolto per viewer, innkeeper → true), non la specie _(emendato 2026-11-07)_ → FE LORE-02
 
 ## Future Requirements
 
@@ -301,7 +301,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-QGEN-12..16 | Phase 13.1 | Complete (gate 13.1-07, 2026-11-05; aggiunti 2026-11-05 dalla UAT della FE Phase 14; boot reale e rimozione dei one-off fatti il 2026-11-05, PR #21 mergiata) |
 | BE-FOOD-01..06 | Phase 14 | Complete (gate 14-07, 2026-11-05; aggiunti 2026-10-29; discuss 2026-11-05, BE-FOOD-02/03/04 emendati) |
 | BE-AMBUSH-01..07 | Phase 15 | Complete (gate 15-11 e chiusura 15-12, 2026-11-06; aggiunti 2026-10-29, emendati 2026-11-06) |
-| BE-LORE-01..06 | Phase 16 | Pending (aggiunti 2026-10-29) |
+| BE-LORE-01..06 | Phase 16 | Pending (aggiunti 2026-10-29; discuss 2026-11-07, tutti emendati) |
 
 **Coverage:**
 
@@ -310,6 +310,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 - Estensione del 2026-10-29: +39 requisiti (BE-CONTENT-01..07, BE-SHOP-01..05, BE-QGEN-01..08, BE-FOOD-01..06, BE-AMBUSH-01..07, BE-LORE-01..06) mappati sulle Phase 11–16 → 95 totali, 89 mappati (i BE-TEST-01..04 restano nella Phase 1 non avviata e i 2 BE-SYNC assorbiti nella 3 come prima)
 - Estensione del 2026-11-04 (discuss Phase 13 congiunto con la FE Phase 14): +3 requisiti (BE-QGEN-09 dungeon a tappe, BE-QGEN-10 premio pet, BE-QGEN-11 `accessoryUseTypes`) → 98 totali, 92 mappati
 - Inserimento del 2026-11-05 (Phase 13.1, dalla UAT della FE Phase 14): +5 requisiti (BE-QGEN-12 animali fuori, BE-QGEN-13 fasce contigue e budget per posti, BE-QGEN-14 taglie, BE-QGEN-15 tabellone per area, BE-QGEN-16 reset e revisione di hunt/dungeon al boot) → 103 totali, 97 mappati
+- Discuss del 2026-11-07 (Phase 16 congiunto con la FE Phase 17): BE-LORE-01..06 emendati (id sul filo, geografia città + regioni + stato, nemico esatto, `loreUnlocked`, studio al 50 %, filtri fuori dalla Biblioteca, backfill one-off); nessun requisito nuovo
 - Discuss del 2026-11-06 (Phase 15 congiunto con la FE Phase 16): BE-AMBUSH-01..07 emendati (rischio per km 0,2%/0,6%, più imboscate con risorteggio, POI più vicino + animali, fascia [Facile, Medio] per livello, città più vicina meta compresa, push su sconfitta, report trattenuti all'arrivo, `kind`/`ambush` sul `QuestResult`); conteggi invariati (103 totali, 97 mappati)
 
 ---
