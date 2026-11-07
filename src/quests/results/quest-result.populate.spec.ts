@@ -53,6 +53,7 @@ describe('QUEST_RESULT_POPULATE', () => {
             { path: 'spellLearned', model: 'Spell' },
             { path: 'enemies.enemy', model: 'Enemy' },
             { path: 'rewards.pet', model: 'Pet' },
+            { path: 'loreUnlocked', model: 'Lore' },
         ]);
     });
 });
@@ -87,6 +88,17 @@ describe('dropOrphanResultRefs', () => {
         expect(resolved.rewards.pet).toBe(pet);
     });
 
+    it('drops the orphan unlocked lore (D-09)', () => {
+        const unlocked = { _id: new Types.ObjectId() };
+        const result = {
+            loreUnlocked: [unlocked, new Types.ObjectId(), null] as unknown[],
+        };
+
+        dropOrphanResultRefs(result);
+
+        expect(result.loreUnlocked).toEqual([unlocked]);
+    });
+
     it('tolerates missing sections', () => {
         expect(() => dropOrphanResultRefs({})).not.toThrow();
         expect(() =>
@@ -114,6 +126,11 @@ describe('unpopulatedResultOf', () => {
         expect(result.enemies).toEqual([]);
         expect(result.stagesCleared).toBe(1);
         expect(result.stagesTotal).toBe(3);
+    });
+    it('answers no unlocked lore without populate (D-09)', () => {
+        const result = unpopulatedResultOf(draftWith());
+
+        expect(result.loreUnlocked).toEqual([]);
     });
     it('answers the pet reward null without a populate (D-21)', () => {
         const result = unpopulatedResultOf(
