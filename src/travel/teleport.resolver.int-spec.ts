@@ -11,11 +11,16 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { LootItem } from 'src/models/loot-item.model';
+import {
+    QuestResult,
+    QuestResultDocument,
+} from 'src/models/quest-result/quest-result.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { RoadsService } from 'src/roads/roads.service';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
+import { ambushJobId } from './ambush/ambush-job';
 import { TravelCompletionService } from './travel-completion.service';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
@@ -36,6 +41,8 @@ import {
 } from '../../test/harness/prime-change-stream';
 import { buildCharacter } from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
+import { buildActiveTravelDoc } from '../../test/travel/active-travel.fixture';
+import { buildAmbushReport } from '../../test/travel/ambush-report.fixture';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
 import {
     foodStack,
@@ -82,6 +89,7 @@ describe('teleportCharacter', () => {
     let harness: AuthTestApp;
     let characters: Model<CharacterDocument>;
     let users: Model<UserDocument>;
+    let questResults: Model<QuestResultDocument>;
     let world: TravelWorld;
     let seq = 0;
     const clock = new FixedClock(STARTED_AT);
@@ -109,7 +117,14 @@ describe('teleportCharacter', () => {
             Character.name,
         );
         users = harness.connection.model<UserDocument>(User.name);
-        await Promise.all([characters.init(), users.init()]);
+        questResults = harness.connection.model<QuestResultDocument>(
+            QuestResult.name,
+        );
+        await Promise.all([
+            characters.init(),
+            users.init(),
+            questResults.init(),
+        ]);
         await primeChangeStream(
             harness,
             'characterUpdated',
@@ -367,6 +382,108 @@ describe('teleportCharacter', () => {
 
             expect(push.sent).toEqual([]);
             expect(push.topicSends).toEqual([]);
+        });
+
+        describe('ambushes on teleport', () => {
+            const AMBUSH_AT = new Date(STARTED_AT.getTime() + 60_000);
+
+            // il mondo dei viaggi sta sotto i 10 km: imboscata e report si scrivono sul viaggio vero
+            async function holdOnTravel(
+                player: TestPlayer,
+                travelFields: Record<string, unknown>,
+            ): Promise<void> {
+                const set = Object.fromEntries(
+                    Object.entries(travelFields).map(([key, value]) => [
+                        `status.activeTravel.${key}`,
+                        value,
+                    ]),
+                );
+                await characters.collection.updateOne(
+                    { _id: characterIdOf(player) },
+                    { $set: set },
+                );
+            }
+
+            it('delivers the held ambush reports on teleport (D-13)', async () => {
+                const alice = await playerAt(world.markerA);
+                await travellingToB(alice);
+                const report = buildAmbushReport({ at: AMBUSH_AT });
+                await holdOnTravel(alice, { ambushReports: [report] });
+
+                await travel.teleport(characterIdOf(alice), world.questPoi);
+
+                const results = await questResults.collection.find().toArray();
+                expect(
+                    results.map((result) => ({
+                        _id: result._id,
+                        character: result.character,
+                        kind: result.kind,
+                        quest: result.quest,
+                        resolvedAt: result.resolvedAt,
+                    })),
+                ).toEqual([
+                    {
+                        _id: report.resultId,
+                        character: characterIdOf(alice),
+                        kind: 'ambush',
+                        quest: null,
+                        resolvedAt: AMBUSH_AT,
+                    },
+                ]);
+                expect(
+                    (await rawCharacter(alice))?.status.activeTravel,
+                ).toBeNull();
+            });
+
+            it('cancels the pending ambush on teleport (D-02)', async () => {
+                const alice = await playerAt(world.markerA);
+                const identity = await travellingToB(alice);
+                await holdOnTravel(alice, {
+                    ambush: { at: AMBUSH_AT, km: 1, attempts: 0 },
+                });
+                const ambushJob = ambushJobId(
+                    identity.characterId,
+                    identity.startTime,
+                    AMBUSH_AT,
+                );
+                await queue.add('ambush', {}, { jobId: ambushJob });
+
+                await travel.teleport(characterIdOf(alice), world.questPoi);
+
+                expect(queue.removed).toEqual([
+                    travelJobId(identity.characterId, identity.startTime),
+                    ambushJob,
+                ]);
+                expect(await questResults.countDocuments()).toBe(0);
+            });
+
+            it('still refuses the teleport during a standard quest and keeps the reports (D-13)', async () => {
+                const alice = await playerAt(world.markerA, {
+                    pendingQuest: new Types.ObjectId(),
+                });
+                await characters.collection.updateOne(
+                    { _id: characterIdOf(alice) },
+                    {
+                        $set: {
+                            'status.activeTravel': buildActiveTravelDoc({
+                                to: world.questPoi,
+                                kind: 'quest',
+                                ambushReports: [
+                                    buildAmbushReport({ at: AMBUSH_AT }),
+                                ],
+                            }),
+                        },
+                    },
+                );
+                const before = await rawCharacter(alice);
+
+                await expect(
+                    travel.teleport(characterIdOf(alice), world.markerB),
+                ).rejects.toMatchObject({ code: 'QUEST_IN_PROGRESS' });
+
+                expect(await rawCharacter(alice)).toEqual(before);
+                expect(await questResults.countDocuments()).toBe(0);
+            });
         });
     });
 

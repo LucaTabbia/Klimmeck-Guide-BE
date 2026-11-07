@@ -15,9 +15,18 @@ export interface EnemyCandidate {
 const CITY_HABITAT = 'city';
 const ANYWHERE = 'all';
 
-// fail-closed sui leggendari (D-04 della Phase 13); animali solo nelle hunt (13.1 D-01)
-const isGeneratable = (enemy: EnemyCandidate): boolean =>
-    enemy.legendary === false && enemy.animal === false;
+// le quest generate escludono gli animali (13.1 D-01), le imboscate li includono (Phase 15 D-07):
+// stessa funzione, variante per parametro
+export interface PoolOptions {
+    animals: 'excluded' | 'included';
+}
+
+export const GENERATED_POOL_OPTIONS: PoolOptions = { animals: 'excluded' };
+
+// fail-closed sui leggendari (D-04 della Phase 13), animali compresi
+const isPoolable = (enemy: EnemyCandidate, options: PoolOptions): boolean =>
+    enemy.legendary === false &&
+    (options.animals === 'included' || enemy.animal === false);
 
 const byId = (a: EnemyCandidate, b: EnemyCandidate): number =>
     a.id.localeCompare(b.id);
@@ -33,13 +42,16 @@ function livesIn(enemy: EnemyCandidate, poiTypes: readonly string[]): boolean {
 const livesAnywhere = (enemy: EnemyCandidate): boolean =>
     enemy.locations.includes(ANYWHERE);
 
-// D-08: «nei dintorni della città» = zone del POI + habitat city; animali esclusi (13.1 D-01)
+// D-08: «nei dintorni della città» = zone del POI + habitat city
 export function zonePoolOf(
     enemies: readonly EnemyCandidate[],
     poiTypes: readonly string[],
+    options: PoolOptions = GENERATED_POOL_OPTIONS,
 ): EnemyCandidate[] {
     return enemies
-        .filter((enemy) => isGeneratable(enemy) && livesIn(enemy, poiTypes))
+        .filter(
+            (enemy) => isPoolable(enemy, options) && livesIn(enemy, poiTypes),
+        )
         .sort(byId);
 }
 
@@ -47,11 +59,12 @@ export function zonePoolOf(
 export function fallbackPoolOf(
     enemies: readonly EnemyCandidate[],
     poiTypes: readonly string[],
+    options: PoolOptions = GENERATED_POOL_OPTIONS,
 ): EnemyCandidate[] {
     return enemies
         .filter(
             (enemy) =>
-                isGeneratable(enemy) &&
+                isPoolable(enemy, options) &&
                 (livesIn(enemy, poiTypes) || livesAnywhere(enemy)),
         )
         .sort(byId);

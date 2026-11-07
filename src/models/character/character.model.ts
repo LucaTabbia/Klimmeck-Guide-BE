@@ -79,6 +79,8 @@ export const CHARACTER_AWAITING_AID_SINCE_INDEX =
     'character_awaiting_aid_since';
 export const CHARACTER_ACTIVE_TRAVEL_END_INDEX = 'character_active_travel_end';
 export const CHARACTER_SPELL_RECOVERIES_INDEX = 'character_spell_recoveries';
+export const CHARACTER_ACTIVE_TRAVEL_AMBUSH_INDEX =
+    'character_active_travel_ambush';
 
 // serve le letture della corsia standard, l'archivio e il publisher dell'avvio (D-17b)
 CharacterSchema.index(
@@ -99,6 +101,11 @@ CharacterSchema.index(
 CharacterSchema.index(
     { deletedAt: 1, 'status.spellStates.recoveries': 1 },
     { name: CHARACTER_SPELL_RECOVERIES_INDEX },
+);
+// serve lo sweep delle imboscate scadute (Phase 15 D-19, pattern D-17b)
+CharacterSchema.index(
+    { deletedAt: 1, 'status.activeTravel.ambush.at': 1 },
+    { name: CHARACTER_ACTIVE_TRAVEL_AMBUSH_INDEX },
 );
 
 @InputType()

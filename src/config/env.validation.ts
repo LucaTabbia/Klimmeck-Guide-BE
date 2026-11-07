@@ -1,3 +1,4 @@
+import { parseAmbushConfig, readAmbushEnv } from 'src/config/ambush-config';
 import { parseAuthConfig, readAuthEnv } from 'src/config/auth-config';
 import {
     parseEventSubConfig,
@@ -33,6 +34,7 @@ export function validateEnv(
     parseEventSubConfig(readEventSubEnv(env));
     parseModerationConfig(readModerationEnv(env));
     parseTravelConfig(readTravelEnv(env));
+    parseAmbushConfig(readAmbushEnv(env));
     parseQuestConfig(readQuestEnv(env));
     parseQuestGenerationConfig(readQuestGenerationEnv(env));
     parseSpellRecoveryConfig(readSpellRecoveryEnv(env));

@@ -35,6 +35,7 @@ import {
     AutoTravelRequest,
     TravelPlanner,
 } from 'src/travel/travel-planner.service';
+import { AmbushPlanner } from 'src/travel/ambush/ambush-planner.service';
 import { TravelScheduler } from 'src/travel/travel-scheduler.service';
 import { SlotRule } from './quest-capacity';
 import {
@@ -143,6 +144,7 @@ export class QuestAcceptanceService {
         private readonly questScheduler: QuestResolutionScheduler,
         private readonly questStart: QuestStartService,
         private readonly pantry: TravelPantryReader,
+        private readonly ambushPlanner: AmbushPlanner,
     ) {}
 
     // pre-letture lean → regole pure → una transazione con le guard riaffermate nel filtro (07 D-18): un rifiuto non scrive nulla
@@ -237,9 +239,15 @@ export class QuestAcceptanceService {
                 await this.wallet.debitUserPoints(ownerId, cost, session);
         });
         // job e avvio dopo il commit (D-21): best-effort, lo sweep copre un accodamento fallito; story e worldMission non scadono mai (D-03)
-        if (movement?.kind === 'travel')
+        if (movement?.kind === 'travel') {
             await this.scheduler.schedule(characterId, movement.travel);
-        else if (lane === QuestLane.standard)
+            if (movement.travel.ambush)
+                await this.scheduler.scheduleAmbush(
+                    characterId,
+                    movement.travel.startTime,
+                    movement.travel.ambush.at,
+                );
+        } else if (lane === QuestLane.standard)
             await this.startOnMarker(
                 { questId, pendingQuestId },
                 dates.startDate,
@@ -314,8 +322,9 @@ export class QuestAcceptanceService {
         );
         if (!request) return null;
         const travel = await this.planner.planAuto(request);
+        // solo il viaggio reale sorteggia, l'anteprima mai (Phase 15 D-05, D-15)
         return travel
-            ? { kind: 'travel', travel }
+            ? { kind: 'travel', travel: this.ambushPlanner.withAmbush(travel) }
             : { kind: 'jump', marker: request.to };
     }
 

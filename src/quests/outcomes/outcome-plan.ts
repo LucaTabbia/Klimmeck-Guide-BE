@@ -178,7 +178,8 @@ export function questFactsOf(
     return { id: quest._id, type: quest.infos.type, title: quest.infos.title };
 }
 
-function woundsAfter(
+// riusati dall'imboscata (Phase 15 D-09): planParticipant resta il solo piano delle quest
+export function woundsAfter(
     existing: readonly InjuryType[],
     added: readonly InjuryType[],
 ): { injuries: InjuryType[]; added: InjuryType[] } {
@@ -189,7 +190,7 @@ function woundsAfter(
 }
 
 // consumi clampati al posseduto (T-09-23): un oggetto non posseduto si ignora, mai un'eccezione
-function consumablesSpent(
+export function consumablesSpent(
     owned: readonly InventoryEntry[] | undefined,
     used: ParticipantEffects['consumablesUsed'],
 ): ConsumableUsage[] {
@@ -208,7 +209,7 @@ function consumablesSpent(
     return spent;
 }
 
-const sellLine = ({ item, quantity }: ConsumableUsage): TradeLine => ({
+export const sellLine = ({ item, quantity }: ConsumableUsage): TradeLine => ({
     direction: 'sell',
     kind: 'LootItem',
     itemId: item,
@@ -222,7 +223,7 @@ const buyLine = ({ itemType, item, quantity }: RewardItem): TradeLine => ({
     quantity,
 });
 
-interface SpellsSpent {
+export interface SpellsSpent {
     spellStates: SpellStateEntry[] | null;
     activeSpells: ActiveSpellEntry[] | null;
     used: QuestResultDraft['spellsUsed'];
@@ -234,7 +235,7 @@ const sameRecovery = (left: SpellRecovery, right: SpellRecovery) =>
     left.dueAt.getTime() === right.dueAt.getTime();
 
 // solo magie negli slot, usi dallo stato e mai sotto 0 (T-09-23); istanti now + recoveryTime con i duplicati (D-02, D-06); un trigger per magia e istante
-function spellsSpent(
+export function spellsSpent(
     characterId: Types.ObjectId,
     active: readonly ActiveSpellEntry[] | undefined,
     baseStates: readonly SpellStateEntry[],

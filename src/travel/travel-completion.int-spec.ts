@@ -11,6 +11,10 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { PendingQuest } from 'src/models/pending-quest.model';
+import {
+    QuestResult,
+    QuestResultDocument,
+} from 'src/models/quest-result/quest-result.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { PushDevice } from 'src/push/push-device.model';
@@ -43,6 +47,7 @@ import {
 } from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
 import { buildActiveTravelDoc } from '../../test/travel/active-travel.fixture';
+import { buildAmbushReport } from '../../test/travel/ambush-report.fixture';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
 
 const NOW = new Date('2026-10-21T10:00:00.000Z');
@@ -67,6 +72,7 @@ describe('TravelCompletionService (replSet)', () => {
     let pendingQuests: Model<PendingQuest>;
     let quests: Model<QuestDocument>;
     let users: Model<UserDocument>;
+    let questResults: Model<QuestResultDocument>;
     let clock: FixedClock;
     let seq = 0;
     const push = new FakePushTransport();
@@ -100,12 +106,16 @@ describe('TravelCompletionService (replSet)', () => {
             getModelToken(Quest.name),
         );
         users = harness.app.get<Model<UserDocument>>(getModelToken(User.name));
+        questResults = harness.app.get<Model<QuestResultDocument>>(
+            getModelToken(QuestResult.name),
+        );
         // collection pronte prima delle transazioni multi-documento (Pitfall 5)
         await Promise.all([
             characters.init(),
             pendingQuests.init(),
             quests.init(),
             users.init(),
+            questResults.init(),
             harness.connection.model(PushDevice.name).init(),
         ]);
     });
@@ -334,6 +344,101 @@ describe('TravelCompletionService (replSet)', () => {
 
         expect([...outcomes].sort()).toEqual(['completed', 'stale']);
         expect(push.sent).toHaveLength(1);
+    });
+
+    describe('held ambush reports (D-13)', () => {
+        const EARLY_AMBUSH = new Date('2026-10-21T08:20:00.000Z');
+        const LATE_AMBUSH = new Date('2026-10-21T08:40:00.000Z');
+
+        it('inserts one ambush result per held report at arrival (D-13)', async () => {
+            const late = buildAmbushReport({ at: LATE_AMBUSH });
+            const early = buildAmbushReport({ at: EARLY_AMBUSH });
+            const id = await ownedTraveller(new Types.ObjectId(), {
+                travel: { ambushReports: [late, early] },
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            const results = await questResults.collection
+                .find({}, { sort: { resolvedAt: 1 } })
+                .toArray();
+            expect(
+                results.map((result) => ({
+                    _id: result._id,
+                    character: result.character,
+                    user: result.user,
+                    kind: result.kind,
+                    quest: result.quest,
+                    resolvedAt: result.resolvedAt,
+                    at: result.ambush.at,
+                })),
+            ).toEqual(
+                [early, late].map((report) => ({
+                    _id: report.resultId,
+                    character: id,
+                    user: report.user,
+                    kind: 'ambush',
+                    quest: null,
+                    resolvedAt: report.at,
+                    at: report.at,
+                })),
+            );
+            expect((await rawCharacter(id))?.status.activeTravel).toBeNull();
+        });
+
+        it('waits for a pending ambush before completing the travel (D-13)', async () => {
+            const id = await ownedTraveller(new Types.ObjectId(), {
+                travel: {
+                    ambush: { at: EARLY_AMBUSH, km: 5, attempts: 0 },
+                    ambushReports: [buildAmbushReport({ at: EARLY_AMBUSH })],
+                },
+            });
+            const before = await rawCharacter(id);
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'stale',
+            );
+
+            expect(await rawCharacter(id)).toEqual(before);
+            expect(await questResults.countDocuments()).toBe(0);
+            expect(push.sent).toEqual([]);
+        });
+
+        it('completes a travel in flight before the deploy without ambush fields (D-13)', async () => {
+            const id = await ownedTraveller(new Types.ObjectId());
+            const travel = (await rawCharacter(id))?.status.activeTravel;
+            expect(Object.keys(travel).sort()).toEqual([
+                'duration',
+                'endTime',
+                'kind',
+                'road',
+                'startTime',
+                'to',
+            ]);
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            expect(await questResults.countDocuments()).toBe(0);
+        });
+
+        it('sends only the travel end push for the reports (D-13)', async () => {
+            const id = await ownedTraveller(new Types.ObjectId(), {
+                travel: { ambushReports: [buildAmbushReport()] },
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            expect(push.sent.map(({ message }) => message.type)).toEqual([
+                'travelEnd',
+            ]);
+            expect(await questResults.countDocuments()).toBe(1);
+        });
     });
     describe('resolution job at the arrival (D-24, C8)', () => {
         async function questTraveller(
@@ -903,6 +1008,23 @@ describe('TravelCompletionService (replSet)', () => {
 
             expect((await rawCharacter(id))?.status.activeTravel).toBeNull();
             expect(push.sent).toHaveLength(1);
+        });
+
+        it('leaves an expired travel with a pending ambush to the ambush sweep (D-13)', async () => {
+            const id = await ownedTraveller(new Types.ObjectId(), {
+                travel: { ambush: { at: START, km: 5, attempts: 0 } },
+            });
+            const before = await rawCharacter(id);
+            const complete = jest.spyOn(completion, 'complete');
+
+            try {
+                await expect(sweeper.sweep()).resolves.toBe(0);
+                expect(complete).not.toHaveBeenCalled();
+            } finally {
+                complete.mockRestore();
+            }
+            expect(await rawCharacter(id)).toEqual(before);
+            expect(push.sent).toEqual([]);
         });
 
         it(

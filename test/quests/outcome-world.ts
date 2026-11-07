@@ -7,6 +7,7 @@ import type { Clock } from 'src/auth/clock';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { PUSH_CONFIG } from 'src/config/push-config';
 import { QUEST_CONFIG } from 'src/config/quest-config';
+import { TRAVEL_CONFIG } from 'src/config/travel-config';
 import { Character } from 'src/models/character/character.model';
 import { City } from 'src/models/city.model';
 import { Enemy } from 'src/models/enemy.model';
@@ -30,8 +31,10 @@ import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
 import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
+import { TRAVEL_QUEUE } from 'src/travel/travel-job';
 import {
     type AuthTestApp,
+    type AuthTestAppOptions,
     createAuthTestApp,
     type ProviderOverride,
 } from '../auth/auth-test-app';
@@ -111,6 +114,12 @@ export interface OutcomeHarnessOptions {
     quiet?: ProviderOverride[];
     // moduli in più accanto a QuestOutcomesModule (party: avvio, abbandono, scioglimento)
     imports?: ModuleMetadata['imports'];
+    // coda `travel` finta per i moduli dei viaggi (imboscate, Phase 15 D-24)
+    travelQueue?: FakeTravelQueue;
+    // in coda agli override di default: vincono su di essi
+    overrides?: ProviderOverride[];
+    // default createAuthTestApp; createCharactersTestApp per le query del personaggio (Phase 15 D-16)
+    createApp?: (options: AuthTestAppOptions) => Promise<AuthTestApp>;
 }
 
 export interface OutcomeHarness {
@@ -119,6 +128,7 @@ export interface OutcomeHarness {
     push: FakePushTransport;
     questQueue: FakeTravelQueue;
     spellQueue: FakeTravelQueue;
+    travelQueue?: FakeTravelQueue;
     reset(): Promise<void>;
 }
 
@@ -129,7 +139,8 @@ export async function createOutcomeHarness(
     const push = new FakePushTransport();
     const questQueue = new FakeTravelQueue();
     const spellQueue = new FakeTravelQueue();
-    const harness = await createAuthTestApp({
+    const createApp = options.createApp ?? createAuthTestApp;
+    const harness = await createApp({
         clock: options.clock,
         imports: [QuestOutcomesModule, ...(options.imports ?? [])],
         overrides: [
@@ -148,6 +159,20 @@ export async function createOutcomeHarness(
             ...(options.combat
                 ? [{ token: CombatResolver, useValue: options.combat }]
                 : []),
+            ...(options.travelQueue
+                ? [
+                      {
+                          token: getQueueToken(TRAVEL_QUEUE),
+                          useValue: options.travelQueue,
+                      },
+                      // sweep periodico delle imboscate spento: il reconciler al boot gira ancora
+                      {
+                          token: TRAVEL_CONFIG,
+                          useValue: { sweepIntervalMs: 0 },
+                      },
+                  ]
+                : []),
+            ...(options.overrides ?? []),
         ],
     });
     const models = outcomeModels(harness);
@@ -158,11 +183,13 @@ export async function createOutcomeHarness(
         push,
         questQueue,
         spellQueue,
+        travelQueue: options.travelQueue,
         async reset() {
             await harness.clearDatabase();
             push.reset();
             questQueue.reset();
             spellQueue.reset();
+            options.travelQueue?.reset();
         },
     };
 }

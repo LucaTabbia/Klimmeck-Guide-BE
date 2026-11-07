@@ -225,4 +225,112 @@ describe('RoadsService.routeBetween (replSet)', () => {
         expect(path.distance).toBeCloseTo(STRAIGHT_KM, 9);
         expect(path.time).toBeCloseTo(STRAIGHT_KM / 5, 9);
     });
+
+    describe('RoadsService.nearestByTime (replSet)', () => {
+        const MARKERS = [
+            { id: 'alba', location: [0, 0] as LonLat },
+            { id: 'borgo', location: [0, 9] as LonLat },
+            { id: 'crocevia', location: [2, 4.5] as LonLat },
+            { id: 'erta', location: [-4, 0] as LonLat },
+        ];
+
+        beforeEach(async () => {
+            await withRoads(
+                {
+                    coordinates: [
+                        [0, 0],
+                        [0, 4.5],
+                        [0, 6.75],
+                        [0, 9],
+                    ],
+                    speedFactor: 1,
+                },
+                {
+                    coordinates: [
+                        [0, 4.5],
+                        [2, 4.5],
+                    ],
+                    speedFactor: 1,
+                },
+                {
+                    coordinates: [
+                        [0, 0],
+                        [-4, 0],
+                    ],
+                    speedFactor: 1,
+                },
+            );
+        });
+
+        it('reaches the nearest city marker by road time (D-11)', () => {
+            const nearest = roads.nearestByTime([0, 4.6], MARKERS);
+
+            expect(nearest!.id).toBe('crocevia');
+            expect(nearest!.route.distanceKm).toBeCloseTo(4.434, 3);
+            expect(nearest!.route.baseHours).toBeCloseTo(4.434, 3);
+            expect(nearest!.route.coordinates[0]).toEqual([0, 4.6]);
+            expect(nearest!.route.coordinates.at(-1)).toEqual([2, 4.5]);
+        });
+
+        it('keeps the destination of the travel among the targets (D-11)', () => {
+            const nearest = roads.nearestByTime([0, 7], MARKERS);
+
+            expect(nearest!.id).toBe('borgo');
+            expect(nearest!.route.distanceKm).toBeCloseTo(5.004, 3);
+        });
+
+        it('answers a zero length detour when the point snaps onto the nearest city (D-11)', () => {
+            const nearest = roads.nearestByTime([0, 0.9], MARKERS);
+
+            expect(nearest).toEqual({
+                id: 'alba',
+                route: {
+                    coordinates: [
+                        [0, 0.9],
+                        [0, 0],
+                    ],
+                    distanceKm: 0,
+                    baseHours: 0,
+                },
+            });
+        });
+
+        it('breaks a road time tie by id (D-11)', () => {
+            const nearest = roads.nearestByTime(
+                [0, 4.6],
+                [
+                    { id: 'b', location: [2, 4.5] },
+                    { id: 'a', location: [2, 4.5] },
+                ],
+            );
+
+            expect(nearest!.id).toBe('a');
+        });
+
+        it('starts from a polyline vertex when the point snaps to no node (D-11)', () => {
+            expect(roads.nearestByTime([3, 2], MARKERS)).toBeNull();
+
+            const nearest = roads.nearestByTime([3, 2], MARKERS, [[0, 4.5]]);
+
+            expect(nearest!.id).toBe('crocevia');
+            expect(nearest!.route.coordinates[0]).toEqual([3, 2]);
+        });
+
+        it('answers null without a reachable marker or before the graph (D-11)', () => {
+            expect(roads.nearestByTime([0, 4.6], [])).toBeNull();
+            expect(
+                roads.nearestByTime(
+                    [0, 4.6],
+                    [{ id: 'z', location: [40, 40] }],
+                ),
+            ).toBeNull();
+
+            const unbuilt = new RoadsService(
+                roadModel,
+                moduleRef.get(PointOfInterestsService),
+            );
+
+            expect(unbuilt.nearestByTime([0, 4.6], MARKERS)).toBeNull();
+        });
+    });
 });

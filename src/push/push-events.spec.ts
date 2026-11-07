@@ -1,4 +1,5 @@
 import {
+    ambushDefeat,
     questCancelled,
     questEnd,
     streamerLive,
@@ -13,12 +14,16 @@ const BUILDERS: Record<PushEventType, (id: string) => PushMessage> = {
     [PushEventType.questEnd]: questEnd,
     [PushEventType.streamerLive]: () => streamerLive(),
     [PushEventType.questCancelled]: questCancelled,
+    [PushEventType.ambushDefeat]: (id) => ambushDefeat(id, 'Crocevia'),
 };
 const IDENTIFIED_TYPES = [
     PushEventType.travelEnd,
     PushEventType.questEnd,
     PushEventType.questCancelled,
+    PushEventType.ambushDefeat,
 ];
+// il builder compone il corpo con la città (D-12): il push di prova tiene quello generico del catalogo
+const COMPOSED_BODY_TYPES = [PushEventType.ambushDefeat];
 
 describe('push event catalog', () => {
     it('builds travelEnd with the character id and a 1 h ttl', () => {
@@ -52,6 +57,27 @@ describe('push event catalog', () => {
         });
     });
 
+    // sconfitta in imboscata (Phase 15 D-12): il BE compone il corpo con la città raggiunta
+    it('builds the ambush defeat push with the reached city (D-12)', () => {
+        expect(ambushDefeat('64b0000000000000000000c1', 'Crocevia')).toEqual({
+            type: PushEventType.ambushDefeat,
+            id: '64b0000000000000000000c1',
+            title: 'Imboscata!',
+            body: 'Sei stato sconfitto: la via torna verso Crocevia',
+            ttlSeconds: 3600,
+        });
+    });
+
+    it('keeps a generic ambush defeat body for the test push (D-12)', () => {
+        expect(testPushMessage(PushEventType.ambushDefeat, 'a')).toEqual({
+            type: 'ambushDefeat',
+            id: 'a',
+            title: 'Imboscata!',
+            body: 'Sei stato sconfitto: la via torna verso la città più vicina.',
+            ttlSeconds: 3600,
+        });
+    });
+
     it('builds streamerLive without an id and a 15 min ttl', () => {
         expect(streamerLive()).toEqual({
             type: PushEventType.streamerLive,
@@ -71,9 +97,11 @@ describe('push event catalog', () => {
             expect(message).toMatchObject({
                 type: built.type,
                 title: built.title,
-                body: built.body,
                 ttlSeconds: built.ttlSeconds,
             });
+            if (!COMPOSED_BODY_TYPES.includes(type)) {
+                expect(message.body).toBe(built.body);
+            }
             if (IDENTIFIED_TYPES.includes(type)) {
                 expect(message.id).toBe('abc');
             } else {
@@ -115,6 +143,11 @@ describe('push event catalog', () => {
         [
             'questCancelled',
             questCancelled('a'),
+            ['body', 'id', 'title', 'ttlSeconds', 'type'],
+        ],
+        [
+            'ambushDefeat',
+            ambushDefeat('a', 'Crocevia'),
             ['body', 'id', 'title', 'ttlSeconds', 'type'],
         ],
         [

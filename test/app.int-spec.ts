@@ -66,6 +66,10 @@ import { startRedis, stopRedis } from './setup/redis';
 const BOOT_TIMEOUT_MS = 60_000;
 const VALID_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 const SCHEMA_FILE = join(process.cwd(), 'src/schema.gql');
+// l'unico kind sul filo è quello dei risultati (Phase 15 D-14): il kind interno del viaggio resta fuori
+const ONLY_RESULT_KIND = ['  kind: QuestResultKind!'];
+const kindLinesOf = (schema: string): string[] =>
+    schema.match(/^.*\bkind\b.*$/gm) ?? [];
 const INTRUDER_MUTATION =
     'mutation { doTransaction(request: { id: "64b000000000000000000001", boughtItems: { equipAssets: [], lootAssets: [] }, soldItems: { equipAssets: [], lootAssets: [] }, total: { gold: 0, silver: 1, copper: 0 }, isTotalPositive: true }) { successful } }';
 const CREATE_CHARACTER = `mutation { createCharacter(input: { name: "Aria", sex: female, pronoun: she, race: human, classType: wizard, age: 25 }) { id } }`;
@@ -523,7 +527,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
             'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n  xp: Int!\n}',
         );
-        expect(schema).not.toMatch(/TravelKind|\bkind\b/);
+        expect(schema).not.toMatch(/TravelKind/);
+        expect(kindLinesOf(schema)).toEqual(ONLY_RESULT_KIND);
     });
 
     it('writes the spell state contract into the generated schema', () => {
@@ -655,10 +660,19 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  acknowledgedAt: DateTime\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  levelAfter: Int!\n  levelBefore: Int!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest!\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  kind: QuestResultKind!\n  levelAfter: Int!\n  levelBefore: Int!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
         );
         expect(schema.match(/type QuestResultQuest \{[^}]*\}/)?.[0]).toBe(
             'type QuestResultQuest {\n  id: ID!\n  title: String!\n  type: String!\n}',
+        );
+        expect(schema.match(/type AmbushCity \{[^}]*\}/)?.[0]).toBe(
+            'type AmbushCity {\n  id: ID!\n  name: String!\n}',
+        );
+        expect(schema.match(/type AmbushReport \{[^}]*\}/)?.[0]).toBe(
+            'type AmbushReport {\n  at: DateTime!\n  nearCity: AmbushCity!\n  reachedCity: AmbushCity\n}',
+        );
+        expect(schema.match(/enum QuestResultKind \{[^}]*\}/)?.[0]).toBe(
+            'enum QuestResultKind {\n  ambush\n  quest\n}',
         );
         expect(schema.match(/type QuestRewards \{[^}]*\}/)?.[0]).toBe(
             'type QuestRewards {\n  coins: Coins!\n  items: [AssetQuantity!]!\n  pet: Pet\n}',
@@ -674,7 +688,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'questResultReceived(characterId: String!): QuestResult!',
         );
         expect(schema).toContain('questUpdated(questId: String!): Quest!');
-        expect(schema).not.toMatch(/\bkind\b|\bgrade\b|CombatResolver/);
+        expect(schema).not.toMatch(/\bgrade\b|CombatResolver/);
+        expect(kindLinesOf(schema)).toEqual(ONLY_RESULT_KIND);
     });
 
     it('writes the additive quest generation fields into the generated schema (D-04, D-24)', () => {
@@ -766,7 +781,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain(
             '  pendingRequestsUpdated: [PendingRequest!]!\n',
         );
-        expect(schema).not.toMatch(/\bkind\b|\bgrade\b|TravelKind/);
+        expect(schema).not.toMatch(/\bgrade\b|TravelKind/);
+        expect(kindLinesOf(schema)).toEqual(ONLY_RESULT_KIND);
     });
 
     it('writes the game master completion into the generated schema', () => {
@@ -813,6 +829,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('enum PushPlatform');
         expect(schema).toContain('enum PushEventType');
         expect(schema).toContain('  questCancelled\n');
+        expect(schema).toContain('  ambushDefeat\n');
         expect(schema).toContain('type PushDeliveryReport');
         expect(schema).toContain('targetUserId: ID');
         expect(schema).not.toContain('type PushDevice');

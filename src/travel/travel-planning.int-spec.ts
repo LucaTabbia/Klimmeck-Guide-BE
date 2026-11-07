@@ -523,6 +523,22 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
         });
     });
 
+    describe('speedOfCharacter', () => {
+        it('exposes the travel speed of the character with pet and injuries (D-11, D-21)', async () => {
+            const pet = await persistPet(pets, { speedModifier: 2 });
+
+            expect(travelSpeedFactorOf(ONE_LEG)).toBeCloseTo(0.8, 9);
+            expect(await planner.speedOfCharacter(null, [])).toBe(BASE_SPEED);
+            expect(await planner.speedOfCharacter(pet._id, [])).toBe(20);
+            expect(
+                await planner.speedOfCharacter(pet._id, ONE_LEG),
+            ).toBeCloseTo(16, 9);
+            expect(
+                await planner.speedOfCharacter(new Types.ObjectId(), []),
+            ).toBe(BASE_SPEED);
+        });
+    });
+
     describe('TravelScheduler', () => {
         const characterId = new Types.ObjectId();
         const travel = {

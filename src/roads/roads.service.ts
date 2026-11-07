@@ -4,7 +4,17 @@ import { Model } from 'mongoose';
 import { Road, RoadDocument } from 'src/models/road.model';
 import Graph from 'graphology';
 import { dijkstra } from 'graphology-shortest-path';
-import { LonLat, RoadRoute, RouteEdge, routeOf } from './road-route';
+import {
+    collapsePoints,
+    compareIds,
+    LonLat,
+    NearestRoute,
+    RoadRoute,
+    RouteEdge,
+    routeOf,
+    RouteTarget,
+} from './road-route';
+import { gameDistanceKm } from './game-distance';
 import { PathResponse } from 'src/models/path-response.model';
 import { PointOfInterestsService } from 'src/pointsOfInterest/point-of-interest.service';
 
@@ -12,8 +22,6 @@ import { PointOfInterestsService } from 'src/pointsOfInterest/point-of-interest.
 export class RoadsService implements OnModuleInit {
     private readonly logger = new Logger(RoadsService.name);
     private graph: Graph;
-
-    private readonly R = 127.42;
 
     private readonly MAX_SNAP_DISTANCE_KM = 5;
 
@@ -36,32 +44,6 @@ export class RoadsService implements OnModuleInit {
         ];
     }
 
-    private toRad(degrees: number): number {
-        return degrees * (Math.PI / 180);
-    }
-
-    private haversineDistance(
-        a: [number, number],
-        b: [number, number],
-    ): number {
-        const [lon1, lat1] = a;
-        const [lon2, lat2] = b;
-
-        const latRad1 = this.toRad(lat1);
-        const latRad2 = this.toRad(lat2);
-        const deltaLat = this.toRad(lat2 - lat1);
-        const deltaLon = this.toRad(lon2 - lon1);
-
-        const a_haversine =
-            Math.sin(deltaLat / 2) ** 2 +
-            Math.cos(latRad1) * Math.cos(latRad2) * Math.sin(deltaLon / 2) ** 2;
-
-        const c =
-            2 * Math.atan2(Math.sqrt(a_haversine), Math.sqrt(1 - a_haversine));
-
-        return this.R * c;
-    }
-
     private findNearestNode([lon, lat]: [number, number]): string {
         const nearestKey = this.nearestNodeWithinSnap([lon, lat]);
 
@@ -79,7 +61,7 @@ export class RoadsService implements OnModuleInit {
         let minDist = Infinity;
 
         this.graph.forEachNode((key, attrs) => {
-            const dist = this.haversineDistance(coord, attrs.coord as LonLat);
+            const dist = gameDistanceKm(coord, attrs.coord as LonLat);
 
             if (dist < minDist && dist < this.MAX_SNAP_DISTANCE_KM) {
                 minDist = dist;
@@ -111,10 +93,7 @@ export class RoadsService implements OnModuleInit {
                     graph.addNode(endKey, { coord: endCoord });
                 }
 
-                const segmentLengthKm = this.haversineDistance(
-                    startCoord,
-                    endCoord,
-                );
+                const segmentLengthKm = gameDistanceKm(startCoord, endCoord);
 
                 const speedFactor = road.speedFactor || 1;
                 const weight = segmentLengthKm / speedFactor;
@@ -210,6 +189,71 @@ export class RoadsService implements OnModuleInit {
         if (!nodes || nodes.length < 2) return null;
         return routeOf(
             nodes,
+            (a, b) => this.lightestEdge(a, b),
+            (node) => this.graph.getNodeAttribute(node, 'coord') as LonLat,
+            from,
+            to,
+        );
+    }
+
+    // un solo singleSource dal punto (D-11, ~6 ms sul grafo reale): la velocità del personaggio è uno scalare uniforme e non cambia la scelta, entra solo nella durata
+    nearestByTime(
+        from: LonLat,
+        targets: readonly RouteTarget[],
+        fallbacks: readonly LonLat[] = [],
+    ): NearestRoute | null {
+        if (!this.graph) return null;
+        const start = this.startNodeFor(from, fallbacks);
+        if (!start) return null;
+        const paths = dijkstra.singleSource(
+            this.graph,
+            start,
+            (_edge, attributes) => attributes.weight as number,
+        );
+        let best: NearestRoute | null = null;
+        for (const target of [...targets].sort((a, b) =>
+            compareIds(a.id, b.id),
+        )) {
+            const route = this.routeAlong(paths, start, from, target.location);
+            if (route && (!best || route.baseHours < best.route.baseHours)) {
+                best = { id: target.id, route };
+            }
+        }
+        return best;
+    }
+
+    // il punto, poi i vertici della polilinea in ordine di preferenza (C7)
+    private startNodeFor(
+        from: LonLat,
+        fallbacks: readonly LonLat[],
+    ): string | null {
+        const snapped = this.nodeFor(from);
+        if (snapped) return snapped;
+        for (const fallback of fallbacks) {
+            const node = this.nodeFor(fallback);
+            if (node) return node;
+        }
+        return null;
+    }
+
+    // stesso nodo della partenza = deviazione lunga zero (C7)
+    private routeAlong(
+        paths: Record<string, string[]>,
+        start: string,
+        from: LonLat,
+        to: LonLat,
+    ): RoadRoute | null {
+        const end = this.nodeFor(to);
+        if (!end || !paths[end]) return null;
+        if (end === start) {
+            return {
+                coordinates: collapsePoints([from, to]),
+                distanceKm: 0,
+                baseHours: 0,
+            };
+        }
+        return routeOf(
+            paths[end],
             (a, b) => this.lightestEdge(a, b),
             (node) => this.graph.getNodeAttribute(node, 'coord') as LonLat,
             from,

@@ -2,6 +2,7 @@ import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
+import { ambushConfigProvider } from 'src/config/ambush-config';
 import {
     Character,
     CharacterSchema,
@@ -13,11 +14,16 @@ import {
     PointOfInterest,
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
+import {
+    ChanceSource,
+    MathChanceSource,
+} from 'src/quests/outcomes/chance-source';
 import { RoadsModule } from 'src/roads/roads.module';
 import {
     QUEUE_CALL_TIMEOUT,
     QUEUE_CALL_TIMEOUT_MS,
 } from 'src/queues/queue-call-timeout';
+import { AmbushPlanner } from './ambush/ambush-planner.service';
 import { TravelPantryReader } from './food/travel-pantry.reader';
 import { TRAVEL_QUEUE } from './travel-job';
 import { TravelPlanner } from './travel-planner.service';
@@ -27,7 +33,7 @@ const TRAVEL_QUEUE_REGISTRATION = BullModule.registerQueue({
     name: TRAVEL_QUEUE,
 });
 
-// planner + scheduler condivisi da viaggio libero e accettazione quest (D-21); senza il modulo push (C6); e dispensa del viaggio (Phase 14)
+// planner + scheduler condivisi da viaggio libero e accettazione quest (D-21); senza il modulo push (C6); e dispensa del viaggio (Phase 14); sorteggio delle imboscate alla partenza (Phase 15)
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -46,11 +52,17 @@ const TRAVEL_QUEUE_REGISTRATION = BullModule.registerQueue({
         TravelPantryReader,
         { provide: Clock, useClass: SystemClock },
         { provide: QUEUE_CALL_TIMEOUT, useValue: QUEUE_CALL_TIMEOUT_MS },
+        ambushConfigProvider,
+        // sorteggio della partenza (AmbushPlanner): stesso binding di QuestOutcomesModule, non importabile qui senza un ciclo;
+        // stessa classe senza stato, gli harness li sovrascrivono per token in tutti i moduli
+        { provide: ChanceSource, useClass: MathChanceSource },
+        AmbushPlanner,
     ],
     exports: [
         TravelPlanner,
         TravelScheduler,
         TravelPantryReader,
+        AmbushPlanner,
         TRAVEL_QUEUE_REGISTRATION,
     ],
 })

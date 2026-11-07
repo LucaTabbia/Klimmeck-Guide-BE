@@ -8,6 +8,7 @@ import {
 import { TravelKind } from 'src/models/character/active-travel.model';
 import { idForms } from 'src/mongo/document-id';
 import { STANDARD_LANE_FREE } from 'src/quests/acceptance/quest-lanes';
+import type { AmbushReportDraft } from './ambush/ambush-plan';
 import { ActiveTravelDraft } from './travel-timing';
 
 // identità del viaggio = startTime + endTime (D-12): niente id persistito
@@ -32,7 +33,12 @@ export interface UnteleportedSnapshot {
 
 export interface CompletedSnapshot {
     quests?: { pendingQuest?: unknown } | null;
-    status?: { activeTravel?: { kind?: TravelKind } | null } | null;
+    status?: {
+        activeTravel?: {
+            kind?: TravelKind;
+            ambushReports?: AmbushReportDraft[];
+        } | null;
+    } | null;
 }
 
 // il filtro è la regola (Phase 4, D-21): due avvii concorrenti ⇒ uno solo trova activeTravel null
@@ -72,6 +78,7 @@ export function classifyUnstarted(fresh: UnstartedSnapshot | null): Error {
 }
 
 // identità del viaggio + scadenza (D-12, D-13): job duplicato, rieseguito, anticipato, teleport o archivio ⇒ nessun match, nessuna scrittura
+// aspetta un'imboscata pendente (Phase 15 Pitfall 1): `{campo: null}` combacia anche col campo assente dei viaggi in volo al deploy
 export function completionFilter(
     identity: TravelIdentity,
     now: Date,
@@ -80,6 +87,7 @@ export function completionFilter(
         ...activeCharacterById(identity.characterId),
         'status.activeTravel.startTime': identity.startTime,
         'status.activeTravel.endTime': { $eq: identity.endTime, $lte: now },
+        'status.activeTravel.ambush': null,
     };
 }
 
@@ -93,10 +101,11 @@ export const COMPLETION_UPDATE = [
     },
 ];
 
-// documento prima dell'update: quest da far partire e tipo del viaggio per la push (D-14, D-16)
+// documento prima dell'update: quest da far partire, tipo del viaggio per la push (D-14, D-16), report trattenuti da consegnare (Phase 15 D-13)
 export const COMPLETION_PROJECTION = {
     'quests.pendingQuest': 1,
     'status.activeTravel.kind': 1,
+    'status.activeTravel.ambushReports': 1,
 } as const;
 
 // l'arrivo sul marker si scrive una volta sola (D-16); la regola d'avvio resta di QuestStartService (utente 2026-10-25, D-22)
@@ -133,9 +142,11 @@ export function teleportUpdate(poiId: Types.ObjectId) {
     };
 }
 
-// documento prima dell'update: lo startTime ricostruisce il jobId da rimuovere
+// documento prima dell'update: startTime e imboscata pendente ricostruiscono i jobId da rimuovere, i report si consegnano (Phase 15 D-13)
 export const TELEPORT_PROJECTION = {
     'status.activeTravel.startTime': 1,
+    'status.activeTravel.ambush': 1,
+    'status.activeTravel.ambushReports': 1,
 } as const;
 
 // una quest sparita alla rilettura c'era al momento della scrittura: resta QUEST_IN_PROGRESS
@@ -147,10 +158,12 @@ export function classifyUnteleported(
 }
 
 // l'istante arriva dal Clock del chiamante, mai l'ora del server Mongo: lo sweep resta testabile con FixedClock
+// un'imboscata pendente resta all'AmbushSweeper (D-13): risolta o annullata, ri-accoda lei il completamento
 export function dueTravelsFilter(now: Date): Record<string, unknown> {
     return {
         ...ACTIVE_CHARACTER_FILTER,
         'status.activeTravel.endTime': { $lte: now },
+        'status.activeTravel.ambush': null,
     };
 }
 

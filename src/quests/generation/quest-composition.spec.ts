@@ -10,6 +10,7 @@ import {
 } from 'src/quests/generation/generation-rules';
 import {
     Composition,
+    composeEnemies,
     composeQuest,
 } from 'src/quests/generation/quest-composition';
 import { SeededChanceSource } from 'src/quests/generation/seeded-chance';
@@ -414,5 +415,33 @@ describe('composition of generated quests', () => {
 
         expect(members.size).toBeGreaterThan(0);
         expect([...members].filter((id) => animalIds.has(id))).toEqual([]);
+    });
+});
+
+describe('composition of enemies inside a given band', () => {
+    const band = { min: 4, max: 7 };
+
+    it('composes a single or a pack inside any given band (D-08, D-22)', () => {
+        const single = enemy('a', 'Singolo', 5);
+        const small = enemy('a', 'Piccolo', 2);
+
+        expect(
+            composeEnemies(band, 7, [[single]], new SequenceChance([0.1, 0])),
+        ).toEqual([{ enemy: single, quantity: 1 }]);
+        const pack = composeEnemies(
+            band,
+            7,
+            [[small]],
+            new SequenceChance([0.9], 0),
+        );
+        expect(pack).toEqual([{ enemy: small, quantity: 2 }]);
+    });
+
+    it('answers null when no pool composes inside the band (D-08, D-22)', () => {
+        const strong = enemy('a', 'Forte', 50);
+
+        expect(
+            composeEnemies(band, 7, [[strong], [strong]], new SequenceChance()),
+        ).toBeNull();
     });
 });

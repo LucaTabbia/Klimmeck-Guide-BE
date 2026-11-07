@@ -13,6 +13,10 @@ import {
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
+import {
+    QuestResult,
+    QuestResultDocument,
+} from 'src/models/quest-result/quest-result.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
 import { ResolutionTrigger } from 'src/quests/outcomes/scheduling/quest-resolution-job';
@@ -23,6 +27,7 @@ import {
 } from 'src/quests/party/quest-start.service';
 import { travelEnd } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
+import { ambushResultDraftsOf } from './ambush/ambush-results';
 import { travelJobId } from './travel-job';
 import {
     COMPLETION_PROJECTION,
@@ -60,6 +65,8 @@ export class TravelCompletionService {
         @InjectModel(Quest.name)
         private readonly questModel: Model<QuestDocument>,
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+        @InjectModel(QuestResult.name)
+        private readonly questResultModel: Model<QuestResultDocument>,
         private readonly push: PushService,
         private readonly clock: Clock,
         private readonly questStart: QuestStartService,
@@ -90,6 +97,11 @@ export class TravelCompletionService {
                 .exec();
             if (!before) return;
             outcome.completed = before;
+            await this.deliverHeldReports(
+                before,
+                identity.characterId,
+                session,
+            );
             const pendingQuestId = refIdOf(before.quests?.pendingQuest);
             if (
                 before.status?.activeTravel?.kind === TravelKind.quest &&
@@ -116,6 +128,20 @@ export class TravelCompletionService {
             await this.notifyOwner(identity.characterId);
         }
         return 'completed';
+    }
+
+    // report trattenuti nella stessa transazione dell'arrivo (Phase 15 D-13): nessun push questEnd, basta il travelEnd
+    private async deliverHeldReports(
+        before: CompletedSnapshot,
+        characterId: Types.ObjectId,
+        session: ClientSession,
+    ): Promise<void> {
+        const reports = before.status?.activeTravel?.ambushReports ?? [];
+        if (reports.length === 0) return;
+        await this.questResultModel.create(
+            ambushResultDraftsOf(reports, characterId),
+            { session, ordered: true },
+        );
     }
 
     // una PendingQuest assente (party sciolto) lascia un viaggio da quest senza countdown

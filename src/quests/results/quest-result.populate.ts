@@ -1,5 +1,6 @@
 import type { PopulateOptions } from 'mongoose';
 import { Enemy } from 'src/models/enemy.model';
+import { QuestResultKind } from 'src/models/enums/quest-result-kind.enum';
 import type { QuestResult } from 'src/models/quest-result/quest-result.model';
 import { Pet } from 'src/models/pet.model';
 import { Spell } from 'src/models/spell.model';
@@ -54,6 +55,8 @@ export function unpopulatedResultOf(draft: QuestResultDraft): QuestResult {
     return {
         ...draft,
         id: draft._id.toHexString(),
+        kind: QuestResultKind.quest,
+        ambush: null,
         consumablesUsed: [],
         spellsUsed: draft.spellsUsed.map(({ usages }) => ({
             spell: null,
