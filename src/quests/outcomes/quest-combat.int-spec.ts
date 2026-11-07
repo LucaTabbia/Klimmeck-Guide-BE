@@ -501,4 +501,104 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         const result = await resultOf(subject);
         expect(result.outcome).toBe('success');
     });
+
+    describe('the knowledge of a victory', () => {
+        const hexes = (ids: unknown[] | undefined) => (ids ?? []).map(String);
+        const pages = () => [0, 1, 2].map(() => new Types.ObjectId());
+
+        async function twoFoes([p1, p2, p3]: Types.ObjectId[]) {
+            const goblin = await enemy({ name: 'Goblin', relatedLore: [p1] });
+            const wolf = await enemy({ name: 'Lupo', relatedLore: [p2, p3] });
+            return { goblin, wolf };
+        }
+
+        function twoFoesQuest(goblin: Types.ObjectId, wolf: Types.ObjectId) {
+            return questWithEnemies('enemy', [
+                { enemy: goblin, quantity: 2 },
+                { enemy: wolf, quantity: 1 },
+            ]);
+        }
+
+        it('teaches the winner the enemies and their lore (D-06)', async () => {
+            const lore = pages();
+            const { goblin, wolf } = await twoFoes(lore);
+            const subject = await fighter('enemy', goblin._id, {
+                questOverrides: twoFoesQuest(goblin._id, wolf._id),
+            });
+
+            await expect(resolve(subject)).resolves.toBe('resolved');
+
+            const character = await characterOf(subject);
+            expect(hexes(character.status.unlockedLore)).toEqual(hexes(lore));
+            expect(hexes(character.status.knownEnemies)).toEqual(
+                hexes([goblin._id, wolf._id]),
+            );
+            const result = await resultOf(subject);
+            expect(hexes(result.loreUnlocked)).toEqual(hexes(lore));
+        });
+
+        it('lists only the new lore on the sheet (D-09)', async () => {
+            const lore = pages();
+            const { goblin, wolf } = await twoFoes(lore);
+            const subject = await fighter('enemy', goblin._id, {
+                questOverrides: twoFoesQuest(goblin._id, wolf._id),
+                characterOverrides: { status: { unlockedLore: [lore[0]] } },
+            });
+
+            await expect(resolve(subject)).resolves.toBe('resolved');
+
+            const character = await characterOf(subject);
+            expect(hexes(character.status.unlockedLore)).toEqual(hexes(lore));
+            const result = await resultOf(subject);
+            expect(hexes(result.loreUnlocked)).toEqual(hexes(lore.slice(1)));
+        });
+
+        it('marks known only the exact enemy defeated (D-06)', async () => {
+            const goblinPage = new Types.ObjectId();
+            const goblin = await enemy({
+                name: 'Goblin',
+                relatedLore: [goblinPage],
+            });
+            const goblinBoss = await enemy({
+                name: 'Goblin boss',
+                relatedLore: [goblinPage],
+            });
+            const subject = await fighter('enemy', goblin._id);
+
+            await expect(resolve(subject)).resolves.toBe('resolved');
+
+            const character = await characterOf(subject);
+            expect(hexes(character.status.knownEnemies)).toEqual(
+                hexes([goblin._id]),
+            );
+            expect(hexes(character.status.knownEnemies)).not.toContain(
+                String(goblinBoss._id),
+            );
+            expect(hexes(character.status.unlockedLore)).toEqual(
+                hexes([goblinPage]),
+            );
+        });
+
+        it('teaches nothing on a defeat (D-06)', async () => {
+            const lore = pages();
+            const { goblin, wolf } = await twoFoes(lore);
+            const subject = await fighter('enemy', goblin._id, {
+                questOverrides: twoFoesQuest(goblin._id, wolf._id),
+                characterOverrides: { status: { unlockedLore: [lore[0]] } },
+            });
+            scripted
+                .willEnd('failure')
+                .willResolve(subject.characterId, { hpAfter: 300 });
+
+            await expect(resolve(subject)).resolves.toBe('resolved');
+
+            const character = await characterOf(subject);
+            expect(hexes(character.status.unlockedLore)).toEqual(
+                hexes([lore[0]]),
+            );
+            expect(hexes(character.status.knownEnemies)).toEqual([]);
+            const result = await resultOf(subject);
+            expect(result.loreUnlocked).toEqual([]);
+        });
+    });
 });

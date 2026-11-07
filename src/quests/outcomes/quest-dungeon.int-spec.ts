@@ -60,18 +60,27 @@ describe('QuestResolutionService.resolveStandard (individual) with a staged dung
         await world.harness.close();
     });
 
-    async function enemy(name: string, xp: number) {
+    async function enemy(
+        name: string,
+        xp: number,
+        relatedLore: Types.ObjectId[] = [],
+    ) {
         return (await persistEnemy(world.models.enemies, {
             name,
             xp,
             lifePoints: 200,
+            relatedLore,
         })) as { _id: Types.ObjectId };
     }
 
-    async function threeStages(): Promise<EnemyEntry[]> {
-        const ghoul = await enemy('Ghoul', 20);
-        const rat = await enemy('Ratto delle cripte', 5);
-        const lich = await enemy('Custode delle ossa', 120);
+    // una pagina per tappa, solo se richieste
+    async function threeStages(
+        lore: Types.ObjectId[] = [],
+    ): Promise<EnemyEntry[]> {
+        const pagesOf = (index: number) => (lore[index] ? [lore[index]] : []);
+        const ghoul = await enemy('Ghoul', 20, pagesOf(0));
+        const rat = await enemy('Ratto delle cripte', 5, pagesOf(1));
+        const lich = await enemy('Custode delle ossa', 120, pagesOf(2));
         return [
             { enemy: ghoul._id, quantity: 1 },
             { enemy: rat._id, quantity: 2 },
@@ -180,8 +189,27 @@ describe('QuestResolutionService.resolveStandard (individual) with a staged dung
         );
     });
 
-    it('stops at the first defeat and opens an aid with the same enemies (D-12)', async () => {
-        const enemies = await threeStages();
+    const threePages = () => [0, 1, 2].map(() => new Types.ObjectId());
+    const hexes = (ids: unknown[] | undefined) => (ids ?? []).map(String);
+
+    it('teaches every enemy of a cleared dungeon (D-06)', async () => {
+        const lore = threePages();
+        const enemies = await threeStages(lore);
+        const subject = await explorer('dungeon', enemies);
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        const character = await characterOf(subject);
+        expect(hexes(character.status.unlockedLore)).toEqual(hexes(lore));
+        expect(hexes(character.status.knownEnemies)).toEqual(
+            hexes(enemies.map(({ enemy: ref }) => ref)),
+        );
+        const result = await resultOf(subject);
+        expect(hexes(result.loreUnlocked)).toEqual(hexes(lore));
+    });
+
+    it('stops at the first defeat and opens an aid with the same enemies, teaching nothing (D-12, D-06)', async () => {
+        const enemies = await threeStages(threePages());
         const subject = await explorer('dungeon', enemies);
         losingFrom(2);
 
@@ -207,6 +235,9 @@ describe('QuestResolutionService.resolveStandard (individual) with a staged dung
         const aid = await questOf(awaitingAid.aidQuest);
         expect(aid.infos.type).toBe('aid');
         expect(enemiesOf(aid.infos)).toEqual(asStrings(enemies));
+        expect(character.status.unlockedLore).toEqual([]);
+        expect(character.status.knownEnemies).toEqual([]);
+        expect(result.loreUnlocked).toEqual([]);
     });
 
     it('starts the second stage from the hp left by the first (D-12)', async () => {

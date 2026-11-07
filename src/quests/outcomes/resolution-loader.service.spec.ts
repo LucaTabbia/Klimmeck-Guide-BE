@@ -50,6 +50,7 @@ describe('ResolutionLoader enemy read', () => {
                 damages: 1,
                 baseWeaknesses: 1,
                 energyWeaknesses: 1,
+                relatedLore: 1,
             },
         );
     });

@@ -70,9 +70,13 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         await world.harness.close();
     });
 
-    async function bossQuest(seats: unknown[] = THREE_SEATS) {
+    async function bossQuest(
+        seats: unknown[] = THREE_SEATS,
+        enemyOverrides: Record<string, unknown> = {},
+    ) {
         const foe = (await persistEnemy(world.models.enemies, {
             xp: 100,
+            ...enemyOverrides,
         })) as { _id: Types.ObjectId };
         return {
             infos: {
@@ -553,5 +557,78 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
         ]);
         expect(scripted.contexts).toHaveLength(0);
         expect(questEndPushes()).toHaveLength(1);
+    });
+
+    describe('the knowledge of a victory', () => {
+        const hexes = (ids: unknown[] | undefined) => (ids ?? []).map(String);
+
+        // tre membri sulla stessa quest del boss; il terzo conosce già la prima pagina
+        async function partyOfThree(lore: Types.ObjectId[]) {
+            const a = await quester({
+                questOverrides: await bossQuest(THREE_SEATS, {
+                    relatedLore: lore,
+                }),
+            });
+            const b = await quester({ quest: a.quest });
+            const c = await quester({
+                quest: a.quest,
+                characterOverrides: { status: { unlockedLore: [lore[0]] } },
+            });
+            return { a, b, c };
+        }
+
+        const bossIdOf = async (subject: Quester) =>
+            String((await questOf(subject.quest._id)).infos.enemies[0].enemy);
+
+        const sheetOf = async (subject: Quester) =>
+            world.models.questResults
+                .findOne({ character: subject.characterId })
+                .lean<any>();
+
+        it('teaches every winner of the party (D-06)', async () => {
+            const lore = [new Types.ObjectId(), new Types.ObjectId()];
+            const { a, b, c } = await partyOfThree(lore);
+            scripted.willEnd('success');
+
+            await expect(service.resolveStandard(triggerOf(a))).resolves.toBe(
+                'resolved',
+            );
+
+            const boss = await bossIdOf(a);
+            for (const member of [a, b, c]) {
+                const character = await characterOf(member);
+                expect(hexes(character.status.unlockedLore).sort()).toEqual(
+                    hexes(lore).sort(),
+                );
+                expect(hexes(character.status.knownEnemies)).toEqual([boss]);
+            }
+            expect(hexes((await sheetOf(a)).loreUnlocked)).toEqual(hexes(lore));
+            expect(hexes((await sheetOf(b)).loreUnlocked)).toEqual(hexes(lore));
+            expect(hexes((await sheetOf(c)).loreUnlocked)).toEqual(
+                hexes([lore[1]]),
+            );
+        });
+
+        it('teaches nobody when the party loses (D-06)', async () => {
+            const lore = [new Types.ObjectId(), new Types.ObjectId()];
+            const { a, b, c } = await partyOfThree(lore);
+            scripted.willEnd('failure');
+
+            await expect(service.resolveStandard(triggerOf(a))).resolves.toBe(
+                'resolved',
+            );
+
+            const known = new Map([
+                [a, []],
+                [b, []],
+                [c, hexes([lore[0]])],
+            ]);
+            for (const [member, expected] of known) {
+                const character = await characterOf(member);
+                expect(hexes(character.status.unlockedLore)).toEqual(expected);
+                expect(hexes(character.status.knownEnemies)).toEqual([]);
+                expect((await sheetOf(member)).loreUnlocked).toEqual([]);
+            }
+        });
     });
 });
