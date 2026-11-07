@@ -11,6 +11,7 @@ describe('ambushResultDraftsOf', () => {
         const report = buildAmbushReport({
             injuriesAdded: [InjuryType.brokenLeftLeg],
             spellsUsed: [{ spell: new Types.ObjectId(), usages: 1 }],
+            loreUnlocked: [new Types.ObjectId()],
         });
 
         const [draft] = ambushResultDraftsOf([report], characterId);
@@ -44,6 +45,7 @@ describe('ambushResultDraftsOf', () => {
             titleBefore: report.titleBefore,
             titleAfter: report.titleAfter,
             spellLearned: null,
+            loreUnlocked: report.loreUnlocked,
             enemies: report.enemies,
             stagesCleared: null,
             stagesTotal: null,
@@ -62,6 +64,7 @@ describe('ambushResultDraftsOf', () => {
             'kind',
             'levelAfter',
             'levelBefore',
+            'loreUnlocked',
             'maxLifePoints',
             'outcome',
             'quest',
@@ -79,6 +82,15 @@ describe('ambushResultDraftsOf', () => {
             'xpBefore',
             'xpGained',
         ]);
+    });
+
+    it('delivers an old held report without unlocked lore as an empty list (D-09, Pitfall 3)', () => {
+        const old = buildAmbushReport();
+        expect(Object.keys(old)).not.toContain('loreUnlocked');
+
+        const [draft] = ambushResultDraftsOf([old], characterId);
+
+        expect(draft.loreUnlocked).toEqual([]);
     });
 
     it('keeps the reached city of a defeat (D-13, D-14)', () => {

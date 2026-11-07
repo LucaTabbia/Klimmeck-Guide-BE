@@ -35,6 +35,7 @@ import {
     type OutcomeHarness,
     registerDevice,
 } from '../../../test/quests/outcome-world';
+import { persistGeographyLore } from '../../../test/lore/lore-world';
 import { persistQuestResult } from '../../../test/quests/quest-result.fixture';
 import { ScriptedCombatResolver } from '../../../test/quests/scripted-combat-resolver';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
@@ -379,6 +380,17 @@ describe('ambush lifecycle (replSet)', () => {
             }),
         ]);
         expect(await rawTravelOf(player)).toBeNull();
+        const delivered = await world.models.questResults
+            .find({ character: player.character!._id, kind: 'ambush' })
+            .sort({ resolvedAt: 1 })
+            .lean<any[]>();
+        // il bandito al km 3 non ha pagine, il lupo al km 9 apre il Bestiario della strada
+        const wolf = await world.models.enemies
+            .findOne({ name: 'Lupo della strada' })
+            .lean<any>();
+        expect(
+            delivered.map(({ loreUnlocked }) => loreUnlocked.map(String)),
+        ).toEqual([[], wolf.relatedLore.map(String)]);
     });
 
     it('shows the victory effects at once and holds the report until arrival (D-17)', async () => {
@@ -689,6 +701,45 @@ describe('ambush lifecycle (replSet)', () => {
                 PushEventType.ambushDefeat,
                 PushEventType.travelEnd,
             ]);
+        });
+
+        it('unlocks the geography of the city reached by the detour (D-05)', async () => {
+            const crocevia = await persistGeographyLore(
+                world.harness.connection,
+                { name: 'Crocevia' },
+            );
+            await world.harness.connection
+                .collection('cities')
+                .updateOne(
+                    { _id: map.cities.crocevia },
+                    { $set: { relatedLore: crocevia.cityLore._id } },
+                );
+            const player = await departingPlayer();
+            chance.load([...rollsHittingKm(10), ...SINGLE_FIRST_CANDIDATE]);
+            combat.willEnd('failure');
+            await startTravel(player);
+
+            await resolvePendingAmbush(player);
+            expect(String((await rawTravelOf(player)).to)).toBe(
+                String(map.markers.crocevia),
+            );
+            await arrive(player);
+
+            const arrived = await world.models.characters
+                .findById(player.character!._id)
+                .lean<any>();
+            expect(String(arrived.status.location)).toBe(
+                String(map.markers.crocevia),
+            );
+            expect(arrived.status.unlockedLore.map(String)).toEqual(
+                crocevia.geography.map(String),
+            );
+            const [defeat, ...others] = await world.models.questResults
+                .find({ character: player.character!._id, kind: 'ambush' })
+                .lean<any[]>();
+            expect(others).toHaveLength(0);
+            expect(defeat.outcome).toBe('failure');
+            expect(defeat.loreUnlocked).toEqual([]);
         });
 
         it('detours to the destination when it is the nearest city and still pushes (D-11, D-12)', async () => {
