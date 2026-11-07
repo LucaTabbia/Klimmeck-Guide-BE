@@ -38,6 +38,7 @@ import {
 import {
     primeChangeStream,
     questResultTouch,
+    questTouch,
 } from '../../test/harness/prime-change-stream';
 import { playerKnowing } from '../../test/lore/lore-world';
 import { persistQuestResult } from '../../test/quests/quest-result.fixture';
@@ -48,6 +49,7 @@ const ENEMY_FIELDS =
 const QUEST = `query Quest($id: String!) { quest(id: $id) { id infos { ${ENEMY_FIELDS} } } }`;
 const QUEST_RESULT = `query QuestResult($id: String!) { questResult(id: $id) { id ${ENEMY_FIELDS} } }`;
 const QUEST_RESULT_RECEIVED = `subscription OnQuestResult($characterId: String!) { questResultReceived(characterId: $characterId) { id ${ENEMY_FIELDS} } }`;
+const QUEST_UPDATED = `subscription OnQuestUpdated($questId: String!) { questUpdated(questId: $questId) { id infos { ${ENEMY_FIELDS} } } }`;
 const EVENT_WAIT_MS = 5000;
 // il client è lazy: la subscription si apre dopo il primo next(), una finestra di silenzio la lascia registrare
 const SUBSCRIBER_WAIT_MS = 300;
@@ -70,6 +72,10 @@ type QuestResultReceived = {
     questResultReceived: { id: string; enemies: WireQuestEnemy[] };
 };
 
+type QuestUpdated = {
+    questUpdated: { id: string; infos: { enemies: WireQuestEnemy[] } };
+};
+
 type EnemyRef = { _id: Types.ObjectId };
 
 describe('QuestEnemy.known (wire)', () => {
@@ -78,7 +84,7 @@ describe('QuestEnemy.known (wire)', () => {
     let goblinBoss: EnemyRef;
     let wolf: EnemyRef;
     let poi: { _id: Types.ObjectId };
-    const opened: OpenSubscription<QuestResultReceived>[] = [];
+    const opened: OpenSubscription<unknown>[] = [];
 
     function modelOf(name: string, schema: Schema): Model<any> {
         return (
@@ -142,6 +148,28 @@ describe('QuestEnemy.known (wire)', () => {
         return event.value.data?.questResultReceived.enemies ?? [];
     }
 
+    function subscribeToQuest(
+        questId: Types.ObjectId,
+        bearer: string,
+    ): OpenSubscription<QuestUpdated> {
+        const subscription = openSubscription<QuestUpdated>(
+            graphqlWsUrl(harness.port),
+            { Authorization: bearer },
+            { query: QUEST_UPDATED, variables: { questId: String(questId) } },
+        );
+        opened.push(subscription);
+        return subscription;
+    }
+
+    async function nextQuestKnown(
+        subscription: OpenSubscription<QuestUpdated>,
+    ): Promise<Record<string, boolean>> {
+        const event = await withTimeout(subscription.next(), EVENT_WAIT_MS);
+        expect(event.done).toBe(false);
+        expect(event.value.errors).toBeUndefined();
+        return knownByName(event.value.data?.questUpdated.infos.enemies ?? []);
+    }
+
     beforeAll(async () => {
         harness = await createAuthTestApp({
             imports: [QuestsModule, QuestResultsModule],
@@ -153,6 +181,7 @@ describe('QuestEnemy.known (wire)', () => {
             'questResultReceived',
             questResultTouch(harness),
         );
+        await primeChangeStream(harness, 'questUpdated', questTouch(harness));
     });
 
     beforeEach(async () => {
@@ -356,5 +385,28 @@ describe('QuestEnemy.known (wire)', () => {
         await persistResultOf(player, goblin);
 
         expect(knownByName(await second)).toEqual({ Goblin: true });
+    });
+
+    it('serves each subscriber its own known on one questUpdated event (D-07, Pitfall 1)', async () => {
+        const quest = await persistQuestAgainst(goblin);
+        const knowing = await playerKnowing(harness, {
+            twitchId: 'twitch-known-shared-a',
+            enemies: [goblin._id],
+        });
+        const stranger = await playerKnowing(harness, {
+            twitchId: 'twitch-known-shared-b',
+        });
+        const knowingSide = subscribeToQuest(quest._id, knowing.bearer);
+        const strangerSide = subscribeToQuest(quest._id, stranger.bearer);
+        expect(await nextQuestKnown(knowingSide)).toEqual({ Goblin: true });
+        expect(await nextQuestKnown(strangerSide)).toEqual({ Goblin: false });
+
+        await modelOf(Quest.name, QuestSchema).updateOne(
+            { _id: quest._id },
+            { $set: { 'infos.title': 'Il goblin tocca la quest' } },
+        );
+
+        expect(await nextQuestKnown(knowingSide)).toEqual({ Goblin: true });
+        expect(await nextQuestKnown(strangerSide)).toEqual({ Goblin: false });
     });
 });

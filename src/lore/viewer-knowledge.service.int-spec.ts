@@ -177,4 +177,26 @@ describe('ViewerKnowledgeService', () => {
 
         expect(characterRead).toHaveBeenCalledTimes(2);
     });
+
+    it('serves each viewer its own knowledge on a shared root value (D-07, Pitfall 1)', async () => {
+        const enemy = new Types.ObjectId();
+        const knowing = await playerKnowing(harness, {
+            twitchId: 'twitch-viewer-knowing',
+            enemies: [enemy],
+        });
+        const stranger = await playerKnowing(harness, {
+            twitchId: 'twitch-viewer-stranger',
+        });
+        const characterRead = jest.spyOn(characters, 'findOne');
+        const event = { rootValue: {} };
+
+        const [first, second] = await Promise.all([
+            viewers.of(identityOf(knowing), {}, event),
+            viewers.of(identityOf(stranger), {}, event),
+        ]);
+
+        expect(knowsEnemy(first, enemy)).toBe(true);
+        expect(knowsEnemy(second, enemy)).toBe(false);
+        expect(characterRead).toHaveBeenCalledTimes(2);
+    });
 });
