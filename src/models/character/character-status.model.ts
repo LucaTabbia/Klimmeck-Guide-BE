@@ -4,6 +4,8 @@ import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { Coins, CoinsInput, CoinsSchema } from '../common/coins.model';
 import { InjuryType } from '../enums/injury-type.enum';
 import { TitleType } from '../enums/title-type.enum';
+import { Enemy } from '../enemy.model';
+import { Lore } from '../lore.model';
 import { Spell } from '../spell.model';
 import { PointOfInterest } from '../point-of-interest.model';
 import { maxActiveSpellsFor } from './active-spell-slots';
@@ -60,6 +62,22 @@ export class CharacterStatus {
     @Field(() => [SpellState])
     @Prop({ type: [SpellStateSchema], default: [] })
     spellStates: SpellState[];
+
+    // conoscenza del personaggio (Phase 16 D-01): soli id sul filo, scritti solo con add-to-set; knownEnemies è interno
+    @Field(() => [ID])
+    @Prop({
+        type: [MongooseSchema.Types.ObjectId],
+        ref: Lore.name,
+        default: [],
+    })
+    unlockedLore: Types.ObjectId[];
+
+    @Prop({
+        type: [MongooseSchema.Types.ObjectId],
+        ref: Enemy.name,
+        default: [],
+    })
+    knownEnemies: Types.ObjectId[];
 
     @Field(() => Coins)
     @Prop({ type: CoinsSchema })
