@@ -136,7 +136,7 @@ describe('LoreGeographyReader', () => {
             },
         );
 
-        expect(inside).toEqual([world.cityLore._id]);
+        expect(inside).toEqual(world.geography);
         expect(outside).toEqual([]);
     });
 });

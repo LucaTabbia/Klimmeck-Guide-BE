@@ -25,8 +25,9 @@ export interface GeographyLoreWorld {
     geography: Types.ObjectId[];
 }
 
+// CityDocument non porta _id nel tipo (City & Document globale)
 export interface GeographyWorld extends GeographyLoreWorld {
-    city: CityDocument;
+    city: CityDocument & { _id: Types.ObjectId };
     marker: Types.ObjectId;
 }
 
@@ -108,9 +109,8 @@ export async function persistGeography(
             relatedLore: idOf(world.cityLore),
         },
         modelOf(connection, PointOfInterest.name, PointOfInterestSchema),
-    )) as CityDocument;
-    const marker = (city as unknown as { markerLocation: Types.ObjectId })
-        .markerLocation;
+    )) as GeographyWorld['city'];
+    const marker = city.markerLocation as Types.ObjectId;
     return { ...world, city, marker };
 }
 
