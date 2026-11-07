@@ -4,6 +4,7 @@ import {
     parseEventSubConfig,
     readEventSubEnv,
 } from 'src/config/eventsub-config';
+import { parseLoreConfig, readLoreEnv } from 'src/config/lore-config';
 import {
     parseModerationConfig,
     readModerationEnv,
@@ -35,6 +36,7 @@ export function validateEnv(
     parseModerationConfig(readModerationEnv(env));
     parseTravelConfig(readTravelEnv(env));
     parseAmbushConfig(readAmbushEnv(env));
+    parseLoreConfig(readLoreEnv(env));
     parseQuestConfig(readQuestEnv(env));
     parseQuestGenerationConfig(readQuestGenerationEnv(env));
     parseSpellRecoveryConfig(readSpellRecoveryEnv(env));
