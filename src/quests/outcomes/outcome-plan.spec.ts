@@ -37,6 +37,8 @@ const OTHER_SPELL_ID = new Types.ObjectId('64b0000000000000000000ee');
 const DRAWN_SPELL_ID = new Types.ObjectId('64b0000000000000000000ef');
 const PET_ID = new Types.ObjectId('64b0000000000000000000f1');
 const OWNED_PET_ID = new Types.ObjectId('64b0000000000000000000f2');
+const KNOWN_PAGE_ID = new Types.ObjectId('64b0000000000000000000f3');
+const NEW_PAGE_ID = new Types.ObjectId('64b0000000000000000000f4');
 
 type SnapshotOverrides = {
     status?: Partial<OutcomeCharacterSnapshot['status']>;
@@ -205,6 +207,7 @@ describe('planParticipant', () => {
                 titleBefore: TitleType.rookie,
                 titleAfter: TitleType.rookie,
                 spellLearned: null,
+                loreUnlocked: [],
                 enemies: [],
                 stagesCleared: null,
                 stagesTotal: null,
@@ -1050,5 +1053,76 @@ describe('planParticipant', () => {
         );
 
         expect(plan.result.rescuedCharacters).toEqual([]);
+    });
+
+    describe('the knowledge of a victory', () => {
+        const victory = {
+            enemyIds: [ENEMY_ID],
+            loreIds: [KNOWN_PAGE_ID, NEW_PAGE_ID],
+        };
+        const enemies = {
+            entries: [{ enemy: ENEMY_ID, quantity: 1 }],
+            xp: 100,
+        };
+        const fightWith = (overrides: Partial<ParticipantPlanInput> = {}) =>
+            inputWith({
+                quest: questOf(QuestType.enemy),
+                snapshot: snapshotWith({
+                    status: { unlockedLore: [KNOWN_PAGE_ID] },
+                }),
+                battle: battleWith(),
+                enemies,
+                ...overrides,
+            });
+
+        it('teaches the enemies and their lore to a winner (D-06, D-09)', () => {
+            const plan = planParticipant(fightWith({ victory }));
+            const untaught = planParticipant(fightWith());
+
+            expect(plan.update.$addToSet).toEqual({
+                'status.unlockedLore': { $each: [NEW_PAGE_ID] },
+                'status.knownEnemies': { $each: [ENEMY_ID] },
+            });
+            expect(plan.result.loreUnlocked).toEqual([NEW_PAGE_ID]);
+            expect(plan.update.$set).toEqual(untaught.update.$set);
+        });
+
+        it('teaches nothing on a defeat (D-06)', () => {
+            const plan = planParticipant(
+                fightWith({
+                    victory,
+                    verdict: QuestOutcome.failure,
+                    aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                }),
+            );
+
+            expect(Object.keys(plan.update)).toEqual(['$set']);
+            expect(plan.result.loreUnlocked).toEqual([]);
+        });
+
+        it('teaches a game master completion with enemies like a success (D-06)', () => {
+            const plan = planParticipant(
+                fightWith({ victory, verdict: QuestOutcome.gmCompleted }),
+            );
+
+            expect(plan.update.$addToSet).toEqual({
+                'status.unlockedLore': { $each: [NEW_PAGE_ID] },
+                'status.knownEnemies': { $each: [ENEMY_ID] },
+            });
+            expect(plan.result.loreUnlocked).toEqual([NEW_PAGE_ID]);
+        });
+
+        it('keeps the filter unchanged when teaching (D-06)', () => {
+            expect(planParticipant(fightWith({ victory })).filter).toEqual(
+                planParticipant(fightWith()).filter,
+            );
+        });
+
+        it('writes only the set when the victory is null (D-06, D-14)', () => {
+            const plan = planParticipant(fightWith({ victory: null }));
+
+            expect(Object.keys(plan.update)).toEqual(['$set']);
+            expect(plan.result.loreUnlocked).toEqual([]);
+        });
     });
 });
