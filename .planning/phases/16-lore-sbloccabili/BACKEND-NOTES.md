@@ -179,7 +179,7 @@ Blocchi SDL dei tre tipi toccati fissati anche in `test/app.int-spec.ts` (boot r
 
 ### 2.4 Studio (D-08)
 
-- Una `study` vinta senza `spellLearned` (a DB le 30 «Ricerche in biblioteca», senza magia fissa né sorteggio) apprende con probabilità `LORE_STUDY_CHANCE` (default 0,5) **una** lora casuale fra quelle non ancora sbloccate dei tipi `knowledge`, `god`, `religion`, `ceremony`, `material`, `state`, `character` (110 a DB). Escluse anche le lore che lo stesso esito ha già sbloccato.
+- Una `study` vinta senza `spellLearned` (a DB le 30 «Ricerche in biblioteca», senza magia fissa né sorteggio) apprende con probabilità `LORE_STUDY_CHANCE` (default 0,5) **una** lore casuale fra quelle non ancora sbloccate dei tipi `knowledge`, `god`, `religion`, `ceremony`, `material`, `state`, `character` (110 a DB). Escluse anche le lore che lo stesso esito ha già sbloccato.
 - Pool vuoto (tutto già noto) → nulla. Il tiro passa dalla porta `ChanceSource` dopo i tiri di loot, magia e pet.
 
 ### 2.5 `QuestResult.loreUnlocked` (D-09)
