@@ -62,6 +62,19 @@ interface WirePetsCharacter {
 
 type PetsUpdatedResult = { characterUpdated: WirePetsCharacter };
 
+const CHARACTER_LORE_QUERY =
+    'query Character($id: String!) { character(id: $id) { status { unlockedLore } } }';
+
+const CHARACTER_KNOWN_ENEMIES_QUERY =
+    'query Character($id: String!) { character(id: $id) { status { knownEnemies } } }';
+
+const CHARACTER_LORE_UPDATED =
+    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { unlockedLore } } }';
+
+type LoreUpdatedResult = {
+    characterUpdated: { status: { unlockedLore: string[] } };
+};
+
 const MINUTE_MS = 60_000;
 
 interface WireSpellCharacter {
@@ -489,6 +502,94 @@ describe('characterUpdated subscription (wire)', () => {
 
         expect(served.body).toEqual({
             data: { character: { assets: { pet: null, ownedPets: [] } } },
+        });
+    });
+
+    it('serves the unlocked lore ids with the character and never the known enemies (D-01)', async () => {
+        const loreId = new Types.ObjectId();
+        await characters.collection.updateOne(
+            { _id: alice.character?._id as Types.ObjectId },
+            {
+                $set: {
+                    'status.unlockedLore': [loreId],
+                    'status.knownEnemies': [new Types.ObjectId()],
+                },
+            },
+        );
+
+        const served = await graphqlRequest(
+            harness.app,
+            CHARACTER_LORE_QUERY,
+            { id: aliceCharId },
+            alice.bearer,
+        );
+        const rejected = await graphqlRequest(
+            harness.app,
+            CHARACTER_KNOWN_ENEMIES_QUERY,
+            { id: aliceCharId },
+            alice.bearer,
+        );
+
+        expect(served.body).toEqual({
+            data: {
+                character: {
+                    status: { unlockedLore: [loreId.toHexString()] },
+                },
+            },
+        });
+        expect(rejected.body.data).toBeUndefined();
+        expect(rejected.body.errors[0].message).toContain('knownEnemies');
+    });
+
+    it('serves a legacy character without unlocked lore as an empty list (D-01)', async () => {
+        await characters.collection.updateOne(
+            { _id: alice.character?._id as Types.ObjectId },
+            {
+                $unset: {
+                    'status.unlockedLore': '',
+                    'status.knownEnemies': '',
+                },
+            },
+        );
+
+        const served = await graphqlRequest(
+            harness.app,
+            CHARACTER_LORE_QUERY,
+            { id: aliceCharId },
+            alice.bearer,
+        );
+
+        expect(served.body).toEqual({
+            data: { character: { status: { unlockedLore: [] } } },
+        });
+    });
+
+    it('re-emits the character when its unlocked lore grows (D-01)', async () => {
+        const loreId = new Types.ObjectId();
+        const subscription = openSubscription<LoreUpdatedResult>(
+            url,
+            { Authorization: alice.bearer },
+            { query: CHARACTER_LORE_UPDATED, variables: { id: aliceCharId } },
+        );
+        opened.push(subscription);
+
+        const snapshot = await subscription.next();
+        expect(snapshot.value.errors).toBeUndefined();
+
+        await characters.collection.updateOne(
+            { _id: alice.character?._id as Types.ObjectId },
+            { $addToSet: { 'status.unlockedLore': loreId } },
+        );
+
+        expect(await subscription.next()).toEqual({
+            done: false,
+            value: {
+                data: {
+                    characterUpdated: {
+                        status: { unlockedLore: [loreId.toHexString()] },
+                    },
+                },
+            },
         });
     });
 
