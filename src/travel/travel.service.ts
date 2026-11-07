@@ -3,6 +3,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
+import { LoreGeographyReader } from 'src/lore/lore-geography.reader';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import {
     Character,
@@ -67,6 +68,7 @@ export class TravelService {
         private readonly scheduler: TravelScheduler,
         private readonly pantry: TravelPantryReader,
         private readonly ambushPlanner: AmbushPlanner,
+        private readonly geography: LoreGeographyReader,
     ) {}
 
     // stesse letture e stessi codici dell'avvio, nessuna scrittura (Phase 8 D-11); cibo e vita coi numeri, mai il codice di fame (Phase 14 D-09)
@@ -168,6 +170,8 @@ export class TravelService {
     ): Promise<void> {
         if (!(await this.poiModel.exists({ _id: poiId })))
             throw ResourceNotFoundException.pointOfInterest();
+        // catalogo letto fuori dal callback: nella transazione solo scritture (Phase 16 D-05)
+        const geography = await this.geography.ofMarker(poiId);
         const outcome: { before: TeleportedSnapshot | null } = { before: null };
         await this.connection.transaction(async (session) => {
             // il callback viene rieseguito sui WriteConflict: l'esito riparte da zero
@@ -175,6 +179,7 @@ export class TravelService {
             outcome.before = await this.teleportInSession(
                 characterId,
                 poiId,
+                geography,
                 session,
             );
         });
@@ -184,12 +189,13 @@ export class TravelService {
     private async teleportInSession(
         characterId: Types.ObjectId,
         poiId: Types.ObjectId,
+        geography: readonly Types.ObjectId[],
         session: ClientSession,
     ): Promise<TeleportedSnapshot> {
         const before = await this.characterModel
             .findOneAndUpdate(
                 teleportFilter(characterId),
-                teleportUpdate(poiId),
+                teleportUpdate(poiId, geography),
                 {
                     session,
                     returnDocument: 'before',

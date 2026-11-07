@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { AuthzModule } from 'src/authz/authz.module';
 import { travelConfigProvider } from 'src/config/travel-config';
+import { LoreGeographyModule } from 'src/lore/lore-geography.module';
 import {
     Character,
     CharacterSchema,
@@ -15,6 +16,7 @@ import {
     PointOfInterest,
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
+import { Lore, LoreSchema } from 'src/models/lore.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import {
     QuestResult,
@@ -36,6 +38,7 @@ import { TravelService } from './travel.service';
     imports: [
         MongooseModule.forFeature([
             { name: Character.name, schema: CharacterSchema },
+            { name: Lore.name, schema: LoreSchema },
             { name: PendingQuest.name, schema: PendingQuestSchema },
             { name: PointOfInterest.name, schema: PointOfInterestSchema },
             { name: Quest.name, schema: QuestSchema },
@@ -45,6 +48,8 @@ import { TravelService } from './travel.service';
         AuthzModule,
         PushModule,
         TravelPlanningModule,
+        // geografia della città all'arrivo e al teleport (Phase 16 D-05, D-14)
+        LoreGeographyModule,
         // avvio all'arrivo (utente 2026-10-25): PartyModule accoda la scadenza, nessun ciclo con viaggio o accettazione
         PartyModule,
     ],
