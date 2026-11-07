@@ -16,7 +16,6 @@ import {
     PointOfInterest,
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
-import { Lore, LoreSchema } from 'src/models/lore.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import {
     QuestResult,
@@ -38,7 +37,6 @@ import { TravelService } from './travel.service';
     imports: [
         MongooseModule.forFeature([
             { name: Character.name, schema: CharacterSchema },
-            { name: Lore.name, schema: LoreSchema },
             { name: PendingQuest.name, schema: PendingQuestSchema },
             { name: PointOfInterest.name, schema: PointOfInterestSchema },
             { name: Quest.name, schema: QuestSchema },

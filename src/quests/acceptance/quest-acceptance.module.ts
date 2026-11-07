@@ -13,7 +13,6 @@ import {
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
 import { City, CitySchema } from 'src/models/city.model';
-import { Lore, LoreSchema } from 'src/models/lore.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { QuestAcceptanceResolver } from 'src/quests/acceptance/quest-acceptance.resolver';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
@@ -29,7 +28,6 @@ import { TravelPlanningModule } from 'src/travel/travel-planning.module';
             { name: Quest.name, schema: QuestSchema },
             { name: PendingQuest.name, schema: PendingQuestSchema },
             { name: City.name, schema: CitySchema },
-            { name: Lore.name, schema: LoreSchema },
         ]),
         EconomyModule,
         AuthzModule,
