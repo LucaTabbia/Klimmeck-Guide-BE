@@ -52,9 +52,9 @@ created: 2026-11-07
 | 16-04-01 | 04 | 4 | BE-LORE-02 | T-16-12 / T-16-13 / T-16-14 / T-16-15 | completamento (libero, quest, deviazione) e teleport; territorio ignorato; idempotente | unit + integration | `npx jest src/travel --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 16-04-02 | 04 | 4 | BE-LORE-02 | T-16-13 / T-16-14 | salto istantaneo dell'accettazione | unit + integration | `npx jest src/quests/acceptance --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 16-04-03 | 04 | 4 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-04-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ✅ green |
-| 16-05-01 | 05 | 5 | BE-LORE-03 | T-16-16 / T-16-18 / T-16-19 | `victoryKnowledgeOf`, `knowledgeUpdateOf`, piano del partecipante; sconfitta nulla | unit | `npx jest src/quests/outcomes --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 16-05-02 | 05 | 5 | BE-LORE-03 | T-16-16 / T-16-17 | individuale, party, dungeon: ogni vincitore impara | integration | `npx jest src/quests/outcomes src/travel/ambush --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| 16-05-03 | 05 | 5 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-05-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-05-01 | 05 | 5 | BE-LORE-03 | T-16-16 / T-16-18 / T-16-19 | `victoryKnowledgeOf`, `knowledgeUpdateOf`, piano del partecipante; sconfitta nulla | unit | `npx jest src/quests/outcomes --selectProjects unit` | ✅ | ✅ green |
+| 16-05-02 | 05 | 5 | BE-LORE-03 | T-16-16 / T-16-17 | individuale, party, dungeon: ogni vincitore impara | integration | `npx jest src/quests/outcomes src/travel/ambush --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 16-05-03 | 05 | 5 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-05-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ✅ green |
 | 16-06-01 | 06 | 6 | BE-LORE-03 | T-16-20 | `gmCompleted` con nemici insegna, senza nemici nulla | integration | `npx jest src/quests/outcomes/gm-completion.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 16-06-02 | 06 | 6 | BE-LORE-02, 03 | T-16-21 / T-16-22 / T-16-23 | imboscata vinta, report con `loreUnlocked`, deviazione sulla città | unit + integration | `npx jest src/travel --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 16-06-03 | 06 | 6 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-06-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
