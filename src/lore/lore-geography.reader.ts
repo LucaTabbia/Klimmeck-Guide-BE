@@ -32,7 +32,7 @@ export class LoreGeographyReader {
         if (marker === null) return [];
         const city = await this.cityModel.collection.findOne<CityLoreRef>(
             { markerLocation: { $in: idForms(marker) } },
-            { projection: { relatedLore: 1 }, session },
+            { projection: { relatedLore: 1 }, sort: { _id: 1 }, session },
         );
         const cityLoreId = refIdOf(city?.relatedLore);
         if (cityLoreId === null) return [];

@@ -166,7 +166,7 @@ Blocchi SDL dei tre tipi toccati fissati anche in `test/app.int-spec.ts` (boot r
   3. teleport dell'oste (`teleportCharacter`);
   4. ritorno del soccorso sul marker della città (il foglio `rescued` resta con `loreUnlocked: []`);
   5. (nascita, sopra).
-- Conta **solo il marker di una città** (`City.markerLocation`, 167 marker): i 475 POI del territorio (dungeon, portali, campi di battaglia) non sono una visita e non sbloccano nulla. Un marker senza città (difetto di catalogo) non sblocca nulla e non blocca il movimento.
+- Conta **solo il marker di una città** (`City.markerLocation`, 167 marker): i 475 POI del territorio (dungeon, portali, campi di battaglia) non sono una visita e non sbloccano nulla. Un marker senza città (difetto di catalogo) non sblocca nulla e non blocca il movimento; due città sullo stesso marker (dato ambiguo) danno sempre la geografia di quella con l'id minore (review A-IN-03).
 - Gli arrivi non producono un foglio: la novità arriva solo su `characterUpdated` (il completamento del viaggio può generare fino a 2 eventi del change stream: il movimento e la geografia sono due update nella stessa transazione).
 
 ### 2.3 Vittorie e nemici (D-06, D-07)
