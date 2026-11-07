@@ -597,7 +597,7 @@ Plans:
 - [x] 16-05-PLAN.md — vittorie delle quest: `victoryKnowledgeOf`/`knowledgeUpdateOf` nel piano del partecipante, individuale, party, dungeon, soccorritori; `loreUnlocked` = sole novità (D-06, D-09, D-14)
 - [x] 16-06-PLAN.md — completamento del GM con nemici, imboscata vinta con `loreUnlocked` nel report (snapshot) e deviazione sulla città raggiunta (D-05, D-06)
 - [x] 16-07-PLAN.md — ritorno del soccorso con la geografia della città; studio al `LORE_STUDY_CHANCE` con tiri `gate`/`pick` accodati dopo il pet e pool filtrato (D-05, D-08)
-- [ ] 16-08-PLAN.md — filtri per il bearer: `ViewerKnowledgeService` con cache `WeakMap` su `rootValue`-o-context, `lores`/`lore(id)`, `relatedLore` di `Lore`, `City` ed `Enemy`; i due test «ciechi» aggiornati (D-07, D-10, D-13)
+- [x] 16-08-PLAN.md — filtri per il bearer: `ViewerKnowledgeService` con cache `WeakMap` su `rootValue`-o-context, `lores`/`lore(id)`, `relatedLore` di `Lore`, `City` ed `Enemy`; i due test «ciechi» aggiornati (D-07, D-10, D-13)
 - [ ] 16-09-PLAN.md — `QuestEnemy.known` per viewer su HTTP e su due eventi WS dello stesso socket (D-07)
 - [ ] 16-10-PLAN.md — backfill una tantum al boot (`src/migrations/lore-backfill/`), idempotente per unione, modulo importato solo da `AppModule`, log di soli conteggi; rimozione fuori fase dopo il boot reale (D-11)
 - [ ] 16-11-PLAN.md — gate: `tsc`, `test:cov` con ripiego per cartella, boot reale, SDL solo additivo (3 righe), invarianti; VALIDATION firmata (D-15)
@@ -649,4 +649,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
 | 15. Imboscate in viaggio | 12/12 | Complete | 2026-11-06 |
-| 16. Lore sbloccabili | 7/12 | In Progress | - |
+| 16. Lore sbloccabili | 8/12 | In Progress | - |
