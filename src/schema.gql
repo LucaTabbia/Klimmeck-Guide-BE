@@ -117,6 +117,7 @@ type CharacterStatus {
   spellStates: [SpellState!]!
   spells: [Spell!]!
   title: String!
+  unlockedLore: [ID!]!
   xp: Int!
 }
 
@@ -580,6 +581,7 @@ type Quest {
 
 type QuestEnemy {
   enemy: Enemy!
+  known: Boolean!
   quantity: Int!
 }
 
@@ -641,6 +643,7 @@ type QuestResult {
   kind: QuestResultKind!
   levelAfter: Int!
   levelBefore: Int!
+  loreUnlocked: [Lore!]!
   maxLifePoints: Int!
   outcome: QuestOutcome!
   quest: QuestResultQuest

@@ -5,6 +5,7 @@ import { Clock } from 'src/auth/clock';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { WalletService } from 'src/economy/wallet.service';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
+import { LoreGeographyReader } from 'src/lore/lore-geography.reader';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import {
     Character,
@@ -145,6 +146,7 @@ export class QuestAcceptanceService {
         private readonly questStart: QuestStartService,
         private readonly pantry: TravelPantryReader,
         private readonly ambushPlanner: AmbushPlanner,
+        private readonly geography: LoreGeographyReader,
     ) {}
 
     // pre-letture lean → regole pure → una transazione con le guard riaffermate nel filtro (07 D-18): un rifiuto non scrive nulla
@@ -325,7 +327,12 @@ export class QuestAcceptanceService {
         // solo il viaggio reale sorteggia, l'anteprima mai (Phase 15 D-05, D-15)
         return travel
             ? { kind: 'travel', travel: this.ambushPlanner.withAmbush(travel) }
-            : { kind: 'jump', marker: request.to };
+            : {
+                  kind: 'jump',
+                  marker: request.to,
+                  // catalogo letto fuori dalla transazione, come il piano del viaggio (Phase 16 D-05)
+                  geography: await this.geography.ofMarker(request.to),
+              };
     }
 
     // pre-verifica fuori sessione: solo il viaggio mangia (D-13)

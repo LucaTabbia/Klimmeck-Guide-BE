@@ -180,10 +180,11 @@ describe('travel write builders', () => {
             ]);
         });
 
-        it('COMPLETION_PROJECTION reads the pending quest, the travel kind and the held reports (D-13)', () => {
+        it('COMPLETION_PROJECTION reads the pending quest, the travel kind, the destination and the held reports (D-13, D-05)', () => {
             expect(COMPLETION_PROJECTION).toEqual({
                 'quests.pendingQuest': 1,
                 'status.activeTravel.kind': 1,
+                'status.activeTravel.to': 1,
                 'status.activeTravel.ambushReports': 1,
             });
         });
@@ -225,6 +226,19 @@ describe('travel write builders', () => {
 
         it('teleportUpdate moves the character and cancels the travel', () => {
             expect(teleportUpdate(poi)).toEqual({
+                $set: { 'status.location': poi, 'status.activeTravel': null },
+            });
+        });
+
+        it('adds the city geography to the teleport (D-05)', () => {
+            const a = new Types.ObjectId();
+            const b = new Types.ObjectId();
+
+            expect(teleportUpdate(poi, [a, b])).toEqual({
+                $set: { 'status.location': poi, 'status.activeTravel': null },
+                $addToSet: { 'status.unlockedLore': { $each: [a, b] } },
+            });
+            expect(teleportUpdate(poi, [])).toEqual({
                 $set: { 'status.location': poi, 'status.activeTravel': null },
             });
         });

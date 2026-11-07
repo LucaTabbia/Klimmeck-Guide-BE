@@ -13,6 +13,7 @@ import {
     Character,
     CharacterSchema,
 } from 'src/models/character/character.model';
+import { LoreGeographyModule } from 'src/lore/lore-geography.module';
 import { City, CitySchema } from 'src/models/city.model';
 import {
     PointOfInterest,
@@ -30,6 +31,7 @@ import { UsersModule } from 'src/users/users.module';
             { name: City.name, schema: CitySchema },
             { name: PointOfInterest.name, schema: PointOfInterestSchema },
         ]),
+        LoreGeographyModule,
         UsersModule,
     ],
     providers: [

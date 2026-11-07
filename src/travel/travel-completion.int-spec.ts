@@ -49,6 +49,7 @@ import { FakePushTransport } from '../../test/push/fake-push-transport';
 import { buildActiveTravelDoc } from '../../test/travel/active-travel.fixture';
 import { buildAmbushReport } from '../../test/travel/ambush-report.fixture';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
+import { persistGeography } from '../../test/lore/lore-world';
 
 const NOW = new Date('2026-10-21T10:00:00.000Z');
 const START = new Date('2026-10-21T08:00:00.000Z');
@@ -440,6 +441,119 @@ describe('TravelCompletionService (replSet)', () => {
             expect(await questResults.countDocuments()).toBe(1);
         });
     });
+    describe('city geography on arrival (D-05)', () => {
+        function hexesOf(ids: readonly Types.ObjectId[]): string[] {
+            return ids.map((id) => id.toHexString()).sort();
+        }
+
+        async function unlockedLoreOf(id: Types.ObjectId): Promise<string[]> {
+            const raw = await rawCharacter(id);
+            return hexesOf(raw?.status.unlockedLore ?? []);
+        }
+
+        it('unlocks the city geography on a free arrival at its marker (D-05)', async () => {
+            const world = await persistGeography(harness.connection, {
+                regions: 2,
+            });
+            const id = await ownedTraveller(world.marker);
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            const raw = await rawCharacter(id);
+            expect(raw?.status.location).toEqual(world.marker);
+            expect(await unlockedLoreOf(id)).toEqual(hexesOf(world.geography));
+        });
+
+        it('unlocks the city geography on a quest arrival at its marker (D-05)', async () => {
+            const world = await persistGeography(harness.connection);
+            const pending = await persistPendingQuest(null);
+            const id = await ownedTraveller(world.marker, {
+                travel: { kind: 'quest' },
+                character: {
+                    quests: { completedQuests: [], pendingQuest: pending._id },
+                },
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            const quest = await pendingQuests.collection.findOne({
+                _id: pending._id,
+            });
+            expect(quest?.arrivedAt).toEqual(END);
+            expect(quest?.startDate).toEqual(END);
+            expect(await unlockedLoreOf(id)).toEqual(hexesOf(world.geography));
+        });
+
+        it('unlocks the geography of a detour city reached by a free travel (D-05)', async () => {
+            const world = await persistGeography(harness.connection, {
+                name: 'Deviazione',
+            });
+            const id = await ownedTraveller(world.marker, {
+                travel: { kind: 'free', ambushReports: [buildAmbushReport()] },
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            expect(await unlockedLoreOf(id)).toEqual(hexesOf(world.geography));
+            expect(await questResults.countDocuments()).toBe(1);
+        });
+
+        it('unlocks nothing on a territory point of interest and still moves (D-05, D-15)', async () => {
+            await persistGeography(harness.connection);
+            const territory = new Types.ObjectId();
+            const id = await ownedTraveller(territory);
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            const raw = await rawCharacter(id);
+            expect(raw?.status.location).toEqual(territory);
+            expect(raw?.status.unlockedLore).toEqual([]);
+        });
+
+        it('adds each lore once on a second arrival (D-05)', async () => {
+            const world = await persistGeography(harness.connection);
+            const id = await ownedTraveller(world.marker, {
+                character: {
+                    status: {
+                        ...travelStatus(world.marker),
+                        unlockedLore: [world.geography[1], world.geography[0]],
+                    },
+                },
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            expect(await unlockedLoreOf(id)).toEqual(hexesOf(world.geography));
+        });
+
+        it('writes nothing on a stale completion (D-05)', async () => {
+            const world = await persistGeography(harness.connection);
+            const id = await ownedTraveller(world.marker);
+            const before = await rawCharacter(id);
+
+            await expect(
+                completion.complete(
+                    identityOf(id, {
+                        startTime: new Date(START.getTime() + 1),
+                    }),
+                ),
+            ).resolves.toBe('stale');
+
+            expect(await rawCharacter(id)).toEqual(before);
+            expect(before?.status.unlockedLore).toEqual([]);
+        });
+    });
+
     describe('resolution job at the arrival (D-24, C8)', () => {
         async function questTraveller(
             waitingTime: number,

@@ -6,6 +6,7 @@ import { Enemy, EnemyDocument } from 'src/models/enemy.model';
 import { EquipmentItem } from 'src/models/equipment-item.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { LootItem } from 'src/models/loot-item.model';
+import { Lore } from 'src/models/lore.model';
 import { Pet } from 'src/models/pet.model';
 import {
     QuestResult,
@@ -22,6 +23,7 @@ import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
 import {
     persistEquipmentItem,
     persistLootItem,
+    persistLore,
     persistPet,
     persistSpell,
 } from '../../../test/fixtures';
@@ -32,6 +34,8 @@ import {
 
 // selezione del foglio esiti (FE COMBAT-02..05)
 const QUEST_RESULT = `query QuestResult($id: String!) { questResult(id: $id) { id character user outcome resolvedAt acknowledgedAt hpBefore hpAfter maxLifePoints injuriesAdded xpGained xpBefore xpAfter levelBefore levelAfter titleBefore titleAfter rescuedCharacters quest { id type title } rewards { coins { gold silver copper } items { quantity item { ... on LootItem { id name } ... on EquipmentItem { id name } } } pet { id name } } consumablesUsed { quantity item { ... on LootItem { id name } } } spellsUsed { usages spell { id name } } spellLearned { id name } enemies { quantity enemy { id name } } stagesCleared stagesTotal } }`;
+const QUEST_RESULT_LORE =
+    'query QuestResult($id: String!) { questResult(id: $id) { id spellLearned { id name } loreUnlocked { id name type } } }';
 const MISSING_ID = '64b0000000000000000000ff';
 const CONFIRMED_AT = new Date('2026-10-25T09:30:00.000Z');
 
@@ -96,6 +100,7 @@ describe('questResult(id) (wire)', () => {
             LootItem.name,
             EquipmentItem.name,
             Pet.name,
+            Lore.name,
         ]) {
             await modelOf(name).createCollection();
         }
@@ -314,6 +319,66 @@ describe('questResult(id) (wire)', () => {
             spellsUsed: [{ usages: 1, spell: null }],
             spellLearned: null,
             enemies: [],
+        });
+    });
+
+    it('serves the lore unlocked by the outcome with the FE selection (D-09)', async () => {
+        const goblin = await persistLore(modelOf(Lore.name), {
+            type: 'enemy',
+            name: 'Goblin',
+        });
+        const result = await persistAliceResult({
+            loreUnlocked: [goblin._id, new Types.ObjectId()],
+        });
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_LORE,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    spellLearned: null,
+                    loreUnlocked: [
+                        {
+                            id: String(goblin._id),
+                            name: 'Goblin',
+                            type: 'enemy',
+                        },
+                    ],
+                },
+            },
+        });
+    });
+
+    it('serves an old result without unlocked lore as an empty list (D-09)', async () => {
+        const result = await persistAliceResult();
+        await modelOf<QuestResultDocument>(
+            QuestResult.name,
+        ).collection.updateOne(
+            { _id: result._id },
+            { $unset: { loreUnlocked: '' } },
+        );
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_LORE,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    spellLearned: null,
+                    loreUnlocked: [],
+                },
+            },
         });
     });
 

@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
+import { knowledgeAdditionOf } from 'src/lore/knowledge-addition';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms, sameId } from 'src/mongo/document-id';
@@ -70,7 +71,11 @@ export function laneClaimFilter(
 // movimento verso il marker scritto nello stesso update del claim (D-21): viaggio (D-02) o salto istantaneo (D-03)
 export type LaneMovement =
     | { kind: 'travel'; travel: ActiveTravelDraft }
-    | { kind: 'jump'; marker: Types.ObjectId };
+    | {
+          kind: 'jump';
+          marker: Types.ObjectId;
+          geography?: readonly Types.ObjectId[];
+      };
 
 // cibo e HP del viaggio automatico nello stesso claim (Phase 14 D-12); salto e nessun movimento non consumano
 export function laneClaimUpdate(
@@ -90,6 +95,10 @@ export function laneClaimUpdate(
                 : {}),
             ...mealSet,
         },
+        // il salto sul marker di una città insegna la sua geografia nello stesso claim (Phase 16 D-05)
+        ...(movement?.kind === 'jump'
+            ? knowledgeAdditionOf(movement.geography ?? [])
+            : {}),
     };
 }
 

@@ -51,6 +51,7 @@ export interface CombatEnemySnapshot {
     damages?: unknown;
     baseWeaknesses?: string[];
     energyWeaknesses?: string[];
+    relatedLore?: unknown[];
 }
 
 export interface CombatEquipmentSnapshot {

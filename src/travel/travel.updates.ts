@@ -5,6 +5,7 @@ import {
     ACTIVE_CHARACTER_FILTER,
     activeCharacterById,
 } from 'src/models/character/active-character.filter';
+import { knowledgeAdditionOf } from 'src/lore/knowledge-addition';
 import { TravelKind } from 'src/models/character/active-travel.model';
 import { idForms } from 'src/mongo/document-id';
 import { STANDARD_LANE_FREE } from 'src/quests/acceptance/quest-lanes';
@@ -36,6 +37,7 @@ export interface CompletedSnapshot {
     status?: {
         activeTravel?: {
             kind?: TravelKind;
+            to?: unknown;
             ambushReports?: AmbushReportDraft[];
         } | null;
     } | null;
@@ -102,9 +104,11 @@ export const COMPLETION_UPDATE = [
 ];
 
 // documento prima dell'update: quest da far partire, tipo del viaggio per la push (D-14, D-16), report trattenuti da consegnare (Phase 15 D-13)
+// la meta del before apre la geografia della città (Phase 16 D-05, C-4)
 export const COMPLETION_PROJECTION = {
     'quests.pendingQuest': 1,
     'status.activeTravel.kind': 1,
+    'status.activeTravel.to': 1,
     'status.activeTravel.ambushReports': 1,
 } as const;
 
@@ -136,9 +140,14 @@ export function teleportFilter(
     };
 }
 
-export function teleportUpdate(poiId: Types.ObjectId) {
+// il teleport sul marker di una città insegna la sua geografia nello stesso update (Phase 16 D-05)
+export function teleportUpdate(
+    poiId: Types.ObjectId,
+    geography: readonly Types.ObjectId[] = [],
+) {
     return {
         $set: { 'status.location': poiId, 'status.activeTravel': null },
+        ...knowledgeAdditionOf(geography),
     };
 }
 

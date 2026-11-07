@@ -62,6 +62,7 @@ import {
     AmbushWorld,
     persistAmbushWorld,
 } from '../../../test/travel/ambush-world';
+import { persistGeographyLore } from '../../../test/lore/lore-world';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 import {
     foodStack,
@@ -1168,6 +1169,79 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect(warn.mock.calls[0][0] as string).not.toContain(
                 ownerId.toHexString(),
             );
+        });
+
+        // la quest sta nella città del personaggio: il marker della città si raggiunge da un suo POI
+        describe('city geography on an instant jump', () => {
+            async function linkGeography(
+                cityId: Types.ObjectId,
+                name: string,
+            ): Promise<Types.ObjectId[]> {
+                const lore = await persistGeographyLore(connection, { name });
+                await rawCities().updateOne(
+                    { _id: cityId },
+                    { $set: { relatedLore: lore.cityLore._id } },
+                );
+                return lore.geography;
+            }
+
+            function hexesOf(ids: readonly Types.ObjectId[]): string[] {
+                return ids.map((id) => id.toHexString()).sort();
+            }
+
+            beforeEach(() => {
+                jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+            });
+
+            afterEach(async () => {
+                await connection.collection('lores').deleteMany({});
+            });
+
+            it('unlocks the city geography on an instant jump to its marker (D-05)', async () => {
+                const geography = await linkGeography(travel.cityA, 'Salto');
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(travel.farQuestPoi);
+                const questId = await huntTo(travel.markerA);
+
+                await accept(ownerId, charId, questId);
+
+                const character = await raw(charId);
+                expect(character?.status.location).toEqual(travel.markerA);
+                expect(character?.status.activeTravel ?? null).toBeNull();
+                expect(hexesOf(character?.status.unlockedLore ?? [])).toEqual(
+                    hexesOf(geography),
+                );
+            });
+
+            it('unlocks nothing on an instant jump to a territory point of interest (D-05)', async () => {
+                await linkGeography(travel.cityA, 'Territorio');
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(travel.markerA);
+                const questId = await huntTo(travel.farQuestPoi);
+
+                await accept(ownerId, charId, questId);
+
+                const character = await raw(charId);
+                expect(character?.status.location).toEqual(travel.farQuestPoi);
+                expect(character?.status.unlockedLore).toEqual([]);
+            });
+
+            it('unlocks nothing when the quest starts by travel (D-05)', async () => {
+                await linkGeography(travel.cityA, 'Viaggio');
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(travel.questPoi);
+                const questId = await huntTo(travel.markerA);
+
+                await accept(ownerId, charId, questId);
+
+                const character = await raw(charId);
+                expect(character?.status.activeTravel).toMatchObject({
+                    kind: 'quest',
+                    to: travel.markerA,
+                });
+                expect(character?.status.location).toEqual(travel.questPoi);
+                expect(character?.status.unlockedLore).toEqual([]);
+            });
         });
 
         // marker nei pointsOfInterest della città ma senza documento POI (D-27): rifiuto prima della transazione, nessuna scrittura

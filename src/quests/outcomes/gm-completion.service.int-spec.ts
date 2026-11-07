@@ -503,6 +503,54 @@ describe('GmCompletionService.complete (replSet)', () => {
         expect(result.enemies).toEqual(enemies);
     });
 
+    it('teaches a game master completion with enemies like a success (D-06)', async () => {
+        const page = new Types.ObjectId();
+        const enemy = await persistEnemy(world.models.enemies, {
+            xp: 100,
+            relatedLore: [page],
+        });
+        const first = await quester({
+            lane: QuestLane.worldMission,
+            questOverrides: gmQuest(
+                'worldMission',
+                { xpPrize: 100 },
+                { enemies: [{ enemy: enemy._id, quantity: 1 }] },
+            ),
+        });
+        const second = await quester({
+            lane: QuestLane.worldMission,
+            quest: first.quest,
+        });
+
+        await service.complete(inputOf(second));
+
+        for (const subject of [first, second]) {
+            const character = await characterOf(subject);
+            expect(character.status.unlockedLore.map(String)).toEqual([
+                String(page),
+            ]);
+            expect(character.status.knownEnemies.map(String)).toEqual([
+                String(enemy._id),
+            ]);
+            const [result, ...others] = await resultsOf(subject);
+            expect(others).toHaveLength(0);
+            expect(result.outcome).toBe(QuestOutcome.gmCompleted);
+            expect(result.loreUnlocked.map(String)).toEqual([String(page)]);
+        }
+    });
+
+    it('teaches nothing on a game master completion without enemies (D-06)', async () => {
+        const subject = await storyQuester();
+
+        await service.complete(inputOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.status.unlockedLore).toEqual([]);
+        expect(character.status.knownEnemies).toEqual([]);
+        const [result] = await resultsOf(subject);
+        expect(result.loreUnlocked).toEqual([]);
+    });
+
     describe('busy standard lane (D-24)', () => {
         const occupyStandardLane = (subject: Quester) =>
             world.models.characters.collection.updateOne(

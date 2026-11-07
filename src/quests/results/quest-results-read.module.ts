@@ -6,6 +6,7 @@ import {
 } from 'src/models/equipment-item.model';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
+import { Lore, LoreSchema } from 'src/models/lore.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import {
     QuestResult,
@@ -24,6 +25,7 @@ import { QuestResultsService } from './quest-results.service';
             { name: LootItem.name, schema: LootItemSchema },
             { name: EquipmentItem.name, schema: EquipmentItemSchema },
             { name: Pet.name, schema: PetSchema },
+            { name: Lore.name, schema: LoreSchema },
         ]),
     ],
     providers: [QuestResultsService],

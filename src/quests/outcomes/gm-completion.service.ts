@@ -52,6 +52,7 @@ import {
     type ResolutionQuest,
 } from './resolution-loader.service';
 import { drawRewards } from './rewards/quest-rewards';
+import { victoryKnowledgeOf } from './victory-knowledge';
 
 type GmLaneCharacter = LaneCharacter<GmLane>;
 
@@ -309,6 +310,8 @@ export class GmCompletionService {
                         verdict: QuestOutcome.gmCompleted,
                         battle: battles.get(snapshot._id.toHexString()) ?? null,
                         enemies: enemyFactsOf(catalog),
+                        // gmCompleted con nemici insegna come un success (Phase 16 D-06, C-1): stesso predicato dell'xp dei nemici
+                        victory: victoryKnowledgeOf(catalog),
                         rewards: drawRewards(
                             quest.prizes,
                             catalog.rewards,
