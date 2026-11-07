@@ -28,6 +28,7 @@ import {
     persistShopCatalogue,
     ShopWorldModels,
 } from '../../test/shops/shop-world.fixture';
+import { playerKnowing } from '../../test/lore/lore-world';
 import { ShopsModule } from './shops.module';
 
 const MISSING_CITY_ID = '64b0000000000000000000ff';
@@ -199,7 +200,7 @@ describe('cityShop', () => {
         });
     });
 
-    it('resolves the marker, the lore and the points of interest of the shop city (D-18)', async () => {
+    async function persistValantar() {
         const lore = await persistLore(lores, { name: 'Storia di Valantar' });
         const city = await persistCity(
             models.city,
@@ -217,6 +218,41 @@ describe('cityShop', () => {
             { _id: city._id },
             { pointsOfInterest: [city.markerLocation] },
         );
+        return { lore, city };
+    }
+
+    it('resolves the marker, the lore and the points of interest of the shop city (D-18, D-10)', async () => {
+        const { lore, city } = await persistValantar();
+        const reader = await playerKnowing(harness, {
+            twitchId: 'twitch-city-shop-reader',
+            lore: [lore._id],
+        });
+
+        const body = await cityShopOnWire(
+            city._id.toHexString(),
+            reader.bearer,
+            CITY_SHOP_RELATIONS,
+        );
+
+        expect(body).toEqual({
+            data: {
+                cityShop: {
+                    city: {
+                        markerLocation: {
+                            id: city.markerLocation.toHexString(),
+                        },
+                        relatedLore: { id: lore._id.toHexString() },
+                        pointsOfInterest: [
+                            { id: city.markerLocation.toHexString() },
+                        ],
+                    },
+                },
+            },
+        });
+    });
+
+    it('hides the shop city lore from a player who does not know it (D-10)', async () => {
+        const { city } = await persistValantar();
 
         const body = await cityShopOnWire(
             city._id.toHexString(),
@@ -231,7 +267,7 @@ describe('cityShop', () => {
                         markerLocation: {
                             id: city.markerLocation.toHexString(),
                         },
-                        relatedLore: { id: lore._id.toHexString() },
+                        relatedLore: null,
                         pointsOfInterest: [
                             { id: city.markerLocation.toHexString() },
                         ],
