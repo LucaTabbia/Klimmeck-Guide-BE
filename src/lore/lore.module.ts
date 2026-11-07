@@ -6,11 +6,9 @@ import { LoreService } from './lore.service';
 
 @Module({
     imports: [
-        MongooseModule.forFeature([
-            { name: Lore.name, schema: LoreSchema },
-        ]),
+        MongooseModule.forFeature([{ name: Lore.name, schema: LoreSchema }]),
     ],
     providers: [LoreService, LoreResolver],
     exports: [LoreService],
 })
-export class LoreModule { }
+export class LoreModule {}
