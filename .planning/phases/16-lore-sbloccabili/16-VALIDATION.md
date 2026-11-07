@@ -40,7 +40,41 @@ created: 2026-11-07
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 16-01-01 | 01 | 1 | BE-LORE-0X | T-16-01 / — | _righe aggiunte dal planner, una per task_ | unit | `npx jest <spec> --selectProjects unit` | ✅ / ❌ W0 | ⬜ pending |
+| 16-01-01 | 01 | 1 | BE-LORE-04 | T-16-01 / T-16-02 | `LORE_STUDY_CHANCE` opzionale, default 0.5, [0, 1], errore senza il valore | unit | `npx jest src/config --selectProjects unit` | ❌ W0 | ⬜ pending |
+| 16-01-02 | 01 | 1 | BE-LORE-01, 02, 05 | T-16-03 / T-16-04 | `geographyOf` senza cascata, add-to-set solo se non vuoto, visibilità per esadecimale | unit | `npx jest src/lore --selectProjects unit` | ❌ W0 | ⬜ pending |
+| 16-01-03 | 01 | 1 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-01-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-02-01 | 02 | 2 | BE-LORE-01, 05 | T-16-05 / T-16-06 / T-16-08 | `unlockedLore` sul filo, `knownEnemies` interno, legacy `[]`, `characterUpdated` riemesso | integration | `npx jest test/app.int-spec.ts src/characters/character-updated.subscription.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 16-02-02 | 02 | 2 | BE-LORE-03 | T-16-07 / T-16-08 | `loreUnlocked` popolato, orfani scartati, risultati vecchi `[]` | unit + integration | `npx jest test/app.int-spec.ts src/quests/results --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 16-02-03 | 02 | 2 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-02-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-03-01 | 03 | 3 | BE-LORE-01, 02 | T-16-10 / T-16-11 | reader: solo `markerLocation`, forme legacy, orfani → `[]` | integration | `npx jest src/lore/lore-geography.reader.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
+| 16-03-02 | 03 | 3 | BE-LORE-01 | T-16-09 / T-16-11 | nascita con la geografia della città natale; ricreazione → insieme nuovo | unit + integration | `npx jest src/characters/creation --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 16-03-03 | 03 | 3 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-03-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-04-01 | 04 | 4 | BE-LORE-02 | T-16-12 / T-16-13 / T-16-14 / T-16-15 | completamento (libero, quest, deviazione) e teleport; territorio ignorato; idempotente | unit + integration | `npx jest src/travel --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 16-04-02 | 04 | 4 | BE-LORE-02 | T-16-13 / T-16-14 | salto istantaneo dell'accettazione | unit + integration | `npx jest src/quests/acceptance --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 16-04-03 | 04 | 4 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-04-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-05-01 | 05 | 5 | BE-LORE-03 | T-16-16 / T-16-18 / T-16-19 | `victoryKnowledgeOf`, `knowledgeUpdateOf`, piano del partecipante; sconfitta nulla | unit | `npx jest src/quests/outcomes --selectProjects unit` | ❌ W0 | ⬜ pending |
+| 16-05-02 | 05 | 5 | BE-LORE-03 | T-16-16 / T-16-17 | individuale, party, dungeon: ogni vincitore impara | integration | `npx jest src/quests/outcomes src/travel/ambush --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 16-05-03 | 05 | 5 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-05-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-06-01 | 06 | 6 | BE-LORE-03 | T-16-20 | `gmCompleted` con nemici insegna, senza nemici nulla | integration | `npx jest src/quests/outcomes/gm-completion.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 16-06-02 | 06 | 6 | BE-LORE-02, 03 | T-16-21 / T-16-22 / T-16-23 | imboscata vinta, report con `loreUnlocked`, deviazione sulla città | unit + integration | `npx jest src/travel --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 16-06-03 | 06 | 6 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-06-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-07-01 | 07 | 7 | BE-LORE-02, 03 | T-16-28 | ritorno del soccorso con la geografia; soccorritori vincenti imparano | unit + integration | `npx jest src/quests/outcomes/aid-rescue.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 16-07-02 | 07 | 7 | BE-LORE-04 | T-16-24 / T-16-25 / T-16-26 / T-16-27 | studio al `LORE_STUDY_CHANCE`, pool filtrato, tiri dopo il pet | unit + integration | `npx jest src/quests/outcomes/study-lore-draw.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
+| 16-07-03 | 07 | 7 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-07-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-08-01 | 08 | 8 | BE-LORE-05 | T-16-32 / T-16-33 | viewer: innkeeper tutto, personaggio attivo, una lettura per richiesta | integration | `npx jest src/lore/viewer-knowledge.service.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
+| 16-08-02 | 08 | 8 | BE-LORE-05 | T-16-29 / T-16-30 / T-16-31 | `lores`/`lore`/`City`/`Enemy.relatedLore` filtrate, NOT_FOUND identico | integration | `npx jest src/lore src/cities src/shops --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 16-08-03 | 08 | 8 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-08-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-09-01 | 09 | 9 | BE-LORE-06 | T-16-34 / T-16-35 / T-16-36 / T-16-37 | `QuestEnemy.known` per viewer su HTTP e due eventi WS | integration | `npx jest test/app.int-spec.ts src/lore/known-enemies.resolver.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
+| 16-09-02 | 09 | 9 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-09-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-10-01 | 10 | 10 | BE-LORE-01 | T-16-38 | backfill per unione, solo attivi, idempotente | unit + integration | `npx jest src/migrations/lore-backfill --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
+| 16-10-02 | 10 | 10 | BE-LORE-01 | T-16-39 / T-16-40 / T-16-41 | passo al boot mai bloccante, soli conteggi, solo in `AppModule` | unit | `npx jest src/migrations/lore-backfill --selectProjects unit` | ❌ W0 | ⬜ pending |
+| 16-10-03 | 10 | 10 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-10-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-11-01 | 11 | 11 | BE-LORE-01..06 | T-16-42 / T-16-43 / T-16-44 / T-16-45 | suite completa con le soglie, SDL solo additivo, invarianti | full | `npx tsc --noEmit -p tsconfig.json && npm run test:cov` (o ripiego per cartella) | ✅ | ⬜ pending |
+| 16-11-02 | 11 | 11 | — | — | VALIDATION firmata | doc | `grep -q "nyquist_compliant: true" .planning/phases/16-lore-sbloccabili/16-VALIDATION.md` | ✅ | ⬜ pending |
+| 16-11-03 | 11 | 11 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-11-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-12-01 | 12 | 12 | BE-LORE-01..06 | T-16-46 / T-16-47 / T-16-48 | handoff FE Phase 17 con SDL verbatim e runbook | doc | `grep -qF "known: Boolean!" .planning/phases/16-lore-sbloccabili/BACKEND-NOTES.md` | ✅ | ⬜ pending |
+| 16-12-02 | 12 | 12 | BE-LORE-01..06 | T-16-47 | emendamenti in coda, requisiti completi | doc | `test "$(grep -cE '\- \[x\] \*\*BE-LORE-0[1-6]\*\*' .planning/REQUIREMENTS.md)" = 6` | ✅ | ⬜ pending |
+| 16-12-03 | 12 | 12 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-12-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -48,13 +82,13 @@ created: 2026-11-07
 
 ## Wave 0 Requirements
 
-- [ ] `src/lore/lore-geography.spec.ts`, `src/lore/lore-geography.reader.int-spec.ts` — BE-LORE-01/02
-- [ ] `src/lore/lore-visibility.spec.ts`, `src/lore/viewer-knowledge.service.int-spec.ts` (HTTP + due eventi WS), `src/lore/known-enemies.resolver.int-spec.ts` — BE-LORE-05/06
-- [ ] `src/quests/outcomes/victory-knowledge.spec.ts`, `src/quests/outcomes/study-lore-draw.int-spec.ts` — BE-LORE-03/04
-- [ ] `src/config/lore-config.spec.ts` — BE-LORE-04
-- [ ] `src/migrations/lore-backfill/*.spec.ts` / `*.int-spec.ts` — BE-LORE-01 (one-off)
-- [ ] fixture `test/quests/quest-result.fixture.ts` (`loreUnlocked: []`), helper `playerKnowing(harness, { lore, enemies })`
-- [ ] asserzioni a stringa esatta aggiornate RED prima del codice (RESEARCH F9, REPO-RULES «Completato dopo la ricerca»)
+- [x] `src/lore/lore-geography.spec.ts`, `src/lore/lore-geography.reader.int-spec.ts` — BE-LORE-01/02
+- [x] `src/lore/lore-visibility.spec.ts`, `src/lore/viewer-knowledge.service.int-spec.ts` (HTTP + due eventi WS), `src/lore/known-enemies.resolver.int-spec.ts` — BE-LORE-05/06
+- [x] `src/quests/outcomes/victory-knowledge.spec.ts`, `src/quests/outcomes/study-lore-draw.int-spec.ts` — BE-LORE-03/04
+- [x] `src/config/lore-config.spec.ts` — BE-LORE-04
+- [x] `src/migrations/lore-backfill/*.spec.ts` / `*.int-spec.ts` — BE-LORE-01 (one-off)
+- [x] fixture `test/quests/quest-result.fixture.ts` (`loreUnlocked: []`), helper `playerKnowing(harness, { lore, enemies })`
+- [x] asserzioni a stringa esatta aggiornate RED prima del codice (RESEARCH F9, REPO-RULES «Completato dopo la ricerca»)
 
 Nessun framework da installare.
 
