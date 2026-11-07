@@ -601,7 +601,7 @@ Plans:
 - [x] 16-09-PLAN.md — `QuestEnemy.known` per viewer su HTTP e su due eventi WS dello stesso socket (D-07)
 - [x] 16-10-PLAN.md — backfill una tantum al boot (`src/migrations/lore-backfill/`), idempotente per unione, modulo importato solo da `AppModule`, log di soli conteggi; rimozione fuori fase dopo il boot reale (D-11)
 - [x] 16-11-PLAN.md — gate: `tsc`, `test:cov` con ripiego per cartella, boot reale, SDL solo additivo (3 righe), invarianti; VALIDATION firmata (D-15)
-- [ ] 16-12-PLAN.md — chiusura: handoff `BACKEND-NOTES.md` per la FE Phase 17 (SDL finale, identità di prova, trucchi a DB, runbook del boot con il backfill), emendamenti in coda agli handoff 11 e 9.2, `requirements mark-complete BE-LORE-01..06` solo qui
+- [x] 16-12-PLAN.md — chiusura: handoff `BACKEND-NOTES.md` per la FE Phase 17 (SDL finale, identità di prova, trucchi a DB, runbook del boot con il backfill), emendamenti in coda agli handoff 11 e 9.2, `requirements mark-complete BE-LORE-01..06` solo qui
 
 **Stato (2026-11-07)**: 12/12 piani eseguiti; PR verso `develop` in draft a cura dell'orchestratore fino al boot reale col backfill e alla sua rimozione; la FE Phase 17 parte dopo la merge (handoff in `.planning/phases/16-lore-sbloccabili/BACKEND-NOTES.md`)
 
@@ -651,4 +651,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 13.1. Correzioni generazione quest | 8/8 | Complete | 2026-11-05 |
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
 | 15. Imboscate in viaggio | 12/12 | Complete | 2026-11-06 |
-| 16. Lore sbloccabili | 11/12 | In Progress | - |
+| 16. Lore sbloccabili | 12/12 | In Progress | - |

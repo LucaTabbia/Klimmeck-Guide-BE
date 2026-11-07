@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 16 (Lore sbloccabili) — EXECUTING since 2026-11-07 on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12 plans in 12 sequential waves (config + geography → models and SDL → birth → arrivals → victories and `loreUnlocked` → study → viewer filters → `known` → one-off backfill → gate → handoff)
-Plan: 11 of 12
+Plan: 12 of 12
 Status: Phase 16 eseguita (12/12) — PR in draft verso develop; boot reale col backfill e rimozione a carico dell'orchestratore; FE Phase 17 sbloccata alla merge
 Last activity: 2026-11-07 -- Phase 16 eseguita (12/12): handoff per la FE Phase 17, emendamenti 11 e 9.2, BE-LORE-01..06 completi
 
