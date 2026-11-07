@@ -6,6 +6,7 @@ import {
 } from 'src/models/character/character.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
 import { User, UserSchema } from 'src/models/user.model';
+import { KnownEnemiesResolver } from './known-enemies.resolver';
 import {
     CityRelatedLoreResolver,
     EnemyRelatedLoreResolver,
@@ -26,6 +27,7 @@ import { ViewerKnowledgeService } from './viewer-knowledge.service';
         LoreRelatedLoreResolver,
         CityRelatedLoreResolver,
         EnemyRelatedLoreResolver,
+        KnownEnemiesResolver,
     ],
     exports: [ViewerKnowledgeService],
 })

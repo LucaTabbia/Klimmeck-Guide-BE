@@ -147,6 +147,12 @@ describe('QuestEnemy.known (wire)', () => {
             imports: [QuestsModule, QuestResultsModule],
         });
         await modelOf(QuestResult.name, QuestResultSchema).createCollection();
+        // una volta sola: la pulizia del priming svuota il database, nemici del beforeEach compresi
+        await primeChangeStream(
+            harness,
+            'questResultReceived',
+            questResultTouch(harness),
+        );
     });
 
     beforeEach(async () => {
@@ -322,11 +328,6 @@ describe('QuestEnemy.known (wire)', () => {
     });
 
     it('answers each result event with the knowledge of that moment (D-07, Pitfall 1)', async () => {
-        await primeChangeStream(
-            harness,
-            'questResultReceived',
-            questResultTouch(harness),
-        );
         const player = await playerKnowing(harness, {
             twitchId: 'twitch-known-live',
         });
