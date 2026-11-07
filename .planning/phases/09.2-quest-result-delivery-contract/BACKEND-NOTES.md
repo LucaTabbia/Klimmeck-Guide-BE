@@ -146,6 +146,9 @@ La stessa risposta arriva alla seconda chiamata sullo stesso id (nessuna scrittu
 
 **Emendamento 2026-11-06 (Phase 15):** `QuestResult` guadagna `kind: QuestResultKind!` (`quest` | `ambush`; i documenti esistenti leggono `quest`) e `ambush: AmbushReport`; `quest` diventa nullable ed è `null` se e solo se `kind == ambush`. La pipeline di consegna (change stream owner-only, `unacknowledgedQuestResults`, `acknowledgeQuestResult`) è invariata. Dettagli in `.planning/phases/15-imboscate-in-viaggio/BACKEND-NOTES.md`.
 
+**Emendamento 2026-11-07 (Phase 16):** `QuestResult.loreUnlocked: [Lore!]!` è popolato dallo stesso populate dei risultati e contiene le sole lore nuove di quell'esito (`[]` sui risultati vecchi, mai filtrato per viewer); `QuestEnemy.known: Boolean!` è risolto per viewer su ogni voce di `enemies`. La pipeline di consegna (change stream owner-only, `unacknowledgedQuestResults`, `acknowledgeQuestResult`) è invariata. Dettagli in `.planning/phases/16-lore-sbloccabili/BACKEND-NOTES.md`.
+
+
 ---
 
 ## 2. Semantica

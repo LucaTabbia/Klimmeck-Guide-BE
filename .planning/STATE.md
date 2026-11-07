@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 16 executing (0/12, 2026-11-07) — sequential waves; backfill one-off at the real boot by the orchestrator
+stopped_at: Phase 16 executed (12/12, 2026-11-07) — PR draft to develop; real boot with the backfill and its removal by the orchestrator; FE Phase 17 unblocked at the merge
 last_updated: "2026-11-07T11:49:01.926Z"
-last_activity: 2026-11-07 -- Phase 16 execution started
+last_activity: 2026-11-07 -- Phase 16 executed (12/12), handoff written
 progress:
   total_phases: 20
   completed_phases: 19
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 16 — Lore sbloccabili — EXECUTING (dal 2026-11-07) su `feat/16-lore-sbloccabili` (da `develop` `9103440`, la merge della PR #24): discuss congiunto con la FE Phase 17, ricerca (opus, 2 probe), REPO-RULES coi nomi del contratto, 12 piani in 12 wave sequenziali (fondazioni → modelli e SDL → nascita → arrivi → vittorie → GM e imboscata → soccorso e studio → filtri per viewer → `known` → backfill al boot → gate → handoff), plan-checker passato. Il backfill one-off gira solo al boot reale dell'orchestratore e si rimuove prima della merge (PR in draft finché non è girato e rimosso). Previous: Phase 15 — COMPLETE and merged (PR #24, `9103440`, 2026-11-07); la FE Phase 16 è parcheggiata a 7/8 e fa la UAT su device alla fine della FE Phase 17 (in esecuzione nella stessa sessione, 10 piani).
+**Current focus:** Phase 16 — Lore sbloccabili — ESEGUITA (12/12, 2026-11-07) su `feat/16-lore-sbloccabili` (da `develop` `9103440`): gate 16-11 verde (`test:cov` 373 suite / 4649 test), SDL solo additivo (3 righe), handoff per la FE Phase 17 in `.planning/phases/16-lore-sbloccabili/BACKEND-NOTES.md`. PR verso `develop` in draft; il boot reale col backfill one-off e la sua rimozione in TDD sono a carico dell'orchestratore (runbook nel handoff §5); la FE Phase 17 (parcheggiata a 8/10 su `feat/17-unlockable-lore`) si sblocca alla merge. Previous: Phase 15 — COMPLETE and merged (PR #24, `9103440`, 2026-11-07).
 
 ## Current Position
 
 Phase: 16 (Lore sbloccabili) — EXECUTING since 2026-11-07 on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12 plans in 12 sequential waves (config + geography → models and SDL → birth → arrivals → victories and `loreUnlocked` → study → viewer filters → `known` → one-off backfill → gate → handoff)
 Plan: 11 of 12
-Status: Executing Phase 16 — sequential waves; the one-off backfill runs only at the real boot by the orchestrator and leaves the repo before the merge (PR draft until then); FE Phase 17 executing in the same session on `feat/17-unlockable-lore`
-Last activity: 2026-11-07 -- Phase 16 execution started
+Status: Phase 16 eseguita (12/12) — PR in draft verso develop; boot reale col backfill e rimozione a carico dell'orchestratore; FE Phase 17 sbloccata alla merge
+Last activity: 2026-11-07 -- Phase 16 eseguita (12/12): handoff per la FE Phase 17, emendamenti 11 e 9.2, BE-LORE-01..06 completi
 
 Progress: [░░░░░░░░░░] 0/12 plans of Phase 16 (phases 1–15, 9.1, 9.2 and 13.1 complete and merged)
 

@@ -603,6 +603,8 @@ Plans:
 - [x] 16-11-PLAN.md — gate: `tsc`, `test:cov` con ripiego per cartella, boot reale, SDL solo additivo (3 righe), invarianti; VALIDATION firmata (D-15)
 - [ ] 16-12-PLAN.md — chiusura: handoff `BACKEND-NOTES.md` per la FE Phase 17 (SDL finale, identità di prova, trucchi a DB, runbook del boot con il backfill), emendamenti in coda agli handoff 11 e 9.2, `requirements mark-complete BE-LORE-01..06` solo qui
 
+**Stato (2026-11-07)**: 12/12 piani eseguiti; PR verso `develop` in draft a cura dell'orchestratore fino al boot reale col backfill e alla sua rimozione; la FE Phase 17 parte dopo la merge (handoff in `.planning/phases/16-lore-sbloccabili/BACKEND-NOTES.md`)
+
 ## Backend ↔ Frontend alignment
 
 Vincoli d'ordine dichiarati dal FE, mappati sulle fasi BE:

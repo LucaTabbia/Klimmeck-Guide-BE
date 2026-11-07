@@ -41,6 +41,10 @@ Quick task FE fatto il 2026-11-02: PR LucaTabbia/Klimmeck-Guide#36 (branch `fix/
 
 **Testo dei requisiti.** BE-CONTENT-05 parla di «~20» equipaggiamenti unici: quelli reali sono **27** (uno per divinità, cinque delle figure storiche, parti di mostro; §5).
 
+**Emendamento 2026-11-07 (Phase 16):** le lore non sono più servite intere al giocatore: `lores`, `lore(id)`, `City.relatedLore`, `Enemy.relatedLore` e le `relatedLore` annidate rispondono per il personaggio corrente del bearer (insieme `CharacterStatus.unlockedLore`; una lore chiusa è `NOT_FOUND`, una città sconosciuta ha `relatedLore` null); l'innkeeper vede tutto; `Quest.infos.relatedLore` resta intera.
+Dettagli in `.planning/phases/16-lore-sbloccabili/BACKEND-NOTES.md`.
+
+
 ---
 
 ## 2. Inventario per collezione
