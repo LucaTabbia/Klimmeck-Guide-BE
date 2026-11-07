@@ -6,11 +6,9 @@ import { City, CitySchema } from 'src/models/city.model';
 
 @Module({
     imports: [
-        MongooseModule.forFeature([
-            { name: City.name, schema: CitySchema },
-        ]),
+        MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
     ],
     providers: [CitiesService, CitiesResolver],
     exports: [CitiesService],
 })
-export class CitiesModule { }
+export class CitiesModule {}
