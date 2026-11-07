@@ -25,6 +25,7 @@ import {
     type ResolutionQuest,
 } from './resolution-loader.service';
 import { drawRewards, NO_REWARDS } from './rewards/quest-rewards';
+import { victoryKnowledgeOf } from './victory-knowledge';
 
 export interface CombatantBattle {
     verdict: CombatVerdict;
@@ -144,6 +145,7 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
         verdict,
         battle: battle?.effects ?? null,
         enemies: enemyFactsOf(catalog),
+        victory: victoryKnowledgeOf(catalog),
         rewards: won
             ? drawRewards(quest.prizes, catalog.rewards, input.chance)
             : NO_REWARDS,

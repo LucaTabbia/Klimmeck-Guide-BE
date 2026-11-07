@@ -151,6 +151,8 @@ const COMBAT_ENEMY_PROJECTION = {
     damages: 1,
     baseWeaknesses: 1,
     energyWeaknesses: 1,
+    // le lore dei nemici per la conoscenza della vittoria (Phase 16 D-06); stesso catalogo per quest e imboscate
+    relatedLore: 1,
 } as const;
 
 // una magia senza soglia valida o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07): mai valori impliciti
