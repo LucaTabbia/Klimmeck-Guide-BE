@@ -64,8 +64,8 @@ created: 2026-11-07
 | 16-08-01 | 08 | 8 | BE-LORE-05 | T-16-32 / T-16-33 | viewer: innkeeper tutto, personaggio attivo, una lettura per richiesta | integration | `npx jest src/lore/viewer-knowledge.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 16-08-02 | 08 | 8 | BE-LORE-05 | T-16-29 / T-16-30 / T-16-31 | `lores`/`lore`/`City`/`Enemy.relatedLore` filtrate, NOT_FOUND identico | integration | `npx jest src/lore src/cities src/shops --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 16-08-03 | 08 | 8 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-08-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ✅ green |
-| 16-09-01 | 09 | 9 | BE-LORE-06 | T-16-34 / T-16-35 / T-16-36 / T-16-37 | `QuestEnemy.known` per viewer su HTTP e due eventi WS | integration | `npx jest test/app.int-spec.ts src/lore/known-enemies.resolver.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
-| 16-09-02 | 09 | 9 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-09-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
+| 16-09-01 | 09 | 9 | BE-LORE-06 | T-16-34 / T-16-35 / T-16-36 / T-16-37 | `QuestEnemy.known` per viewer su HTTP e due eventi WS | integration | `npx jest test/app.int-spec.ts src/lore/known-enemies.resolver.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 16-09-02 | 09 | 9 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-09-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ✅ green |
 | 16-10-01 | 10 | 10 | BE-LORE-01 | T-16-38 | backfill per unione, solo attivi, idempotente | unit + integration | `npx jest src/migrations/lore-backfill --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 16-10-02 | 10 | 10 | BE-LORE-01 | T-16-39 / T-16-40 / T-16-41 | passo al boot mai bloccante, soli conteggi, solo in `AppModule` | unit | `npx jest src/migrations/lore-backfill --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 16-10-03 | 10 | 10 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 16-10-PLAN.md" .planning/ROADMAP.md && test -z "$(git status --short)"` | ✅ | ⬜ pending |
