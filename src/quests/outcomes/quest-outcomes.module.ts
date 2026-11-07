@@ -2,6 +2,7 @@ import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
+import { loreConfigProvider } from 'src/config/lore-config';
 import { questConfigProvider } from 'src/config/quest-config';
 import { CharacterArchiveModule } from 'src/characters/deletion/character-archive.module';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
@@ -97,6 +98,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         QuestResolutionService,
         QuestResolutionProcessor,
         questConfigProvider,
+        loreConfigProvider,
         QuestResolutionSweeper,
         GmCompletionService,
     ],

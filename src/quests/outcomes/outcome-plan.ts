@@ -39,6 +39,7 @@ import {
     canLearnSpell,
     type DrawnRewards,
     drawLearnableSpell,
+    drawStudyLore,
     type RewardItem,
 } from './rewards/quest-rewards';
 import { knowledgeUpdateOf, type VictoryKnowledge } from './victory-knowledge';
@@ -406,9 +407,19 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     const coinsDelta = won ? rewards.coinsCopper : 0;
     const petWon = petWonBy(snapshot, won, rewards.pet);
     const victory = won ? (input.victory ?? null) : null;
+    const victoryLore = victory?.loreIds ?? [];
+    // la study vinta senza magia apprende una lore chiusa, mai una già sbloccata dallo stesso esito (Phase 16 D-08, Pitfall 6)
+    const studyLore =
+        won && !spellLearned
+            ? drawStudyLore(rewards.loreDraw, [
+                  ...(snapshot.status.unlockedLore ?? []),
+                  ...victoryLore,
+              ])
+            : null;
+    // ordine D-09: lore dei nemici, poi quella dello studio
     const learned = knowledgeUpdateOf(
         snapshot.status.unlockedLore,
-        victory?.loreIds ?? [],
+        [...victoryLore, ...(studyLore ? [studyLore] : [])],
         victory?.enemyIds ?? [],
     );
     const lanePath = lanePathOf(input.lane);

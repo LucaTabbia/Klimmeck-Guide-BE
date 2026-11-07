@@ -1,7 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
 import { isUsageCount } from 'src/characters/spells/spell-state.snapshot';
+import {
+    DEFAULT_LORE_STUDY_CHANCE,
+    LORE_CONFIG,
+    type LoreConfig,
+} from 'src/config/lore-config';
 import { priceKey } from 'src/economy/trade/trade-line';
 import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 import {
@@ -9,11 +14,13 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { Enemy, EnemyDocument } from 'src/models/enemy.model';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import {
     EquipmentItem,
     EquipmentItemDocument,
 } from 'src/models/equipment-item.model';
+import { Lore, LoreDocument } from 'src/models/lore.model';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 import { Pet, PetDocument } from 'src/models/pet.model';
 import {
@@ -23,6 +30,7 @@ import {
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { User, UserDocument } from 'src/models/user.model';
+import { STUDY_LORE_TYPES } from 'src/lore/study-lore-types';
 import { idForms, refIdOf } from 'src/mongo/document-id';
 import { ownersOf } from 'src/mongo/owners-of';
 import { lanePathOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
@@ -235,6 +243,11 @@ export class ResolutionLoader {
         private readonly spellModel: Model<SpellDocument>,
         @InjectModel(Pet.name)
         private readonly petModel: Model<PetDocument>,
+        @InjectModel(Lore.name)
+        private readonly loreModel: Model<LoreDocument>,
+        @Optional()
+        @Inject(LORE_CONFIG)
+        private readonly loreConfig?: LoreConfig,
     ) {}
 
     // pre-letture lean fuori dalla transazione: solo id e stato, la transazione rilegge il personaggio in sessione
@@ -409,7 +422,12 @@ export class ResolutionLoader {
             participants,
             `della missione ${quest._id.toHexString()}`,
         );
-        const rewards = await this.readRewardCatalog(quest.prizes);
+        const rewards = {
+            ...(await this.readRewardCatalog(quest.prizes)),
+            studyLorePool: await this.readStudyLorePool(quest),
+            studyLoreChance:
+                this.loreConfig?.studyChance ?? DEFAULT_LORE_STUDY_CHANCE,
+        };
         return { ...combat, rewards };
     }
 
@@ -602,6 +620,22 @@ export class ResolutionLoader {
             .lean<{ _id: Types.ObjectId } | null>()
             .exec();
         return new Set(pet ? [pet._id.toHexString()] : []);
+    }
+
+    // D-08, C-3: pool intero fuori transazione, il piano lo filtra contro lo snapshot in sessione; ordine per id così il tiro è riproducibile
+    private async readStudyLorePool(
+        quest: ResolutionQuest,
+    ): Promise<Types.ObjectId[]> {
+        if (quest.infos?.type !== QuestType.study) return [];
+        const lore = await this.loreModel
+            .find({ type: { $in: [...STUDY_LORE_TYPES] } }, { _id: 1 })
+            .lean<{ _id: Types.ObjectId }[]>()
+            .exec();
+        return lore
+            .map(({ _id }) => _id)
+            .sort((left, right) =>
+                left.toHexString().localeCompare(right.toHexString()),
+            );
     }
 
     // D-31: l'intero catalogo delle magie solo per la study che sorteggia; ordine per id così il tiro è riproducibile
