@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 16 execution complete (12/12, 2026-11-07) — PR to `develop` (DRAFT, number recorded after opening) stays draft until the real boot with the backfill and its one-off removal
+stopped_at: Phase 16 execution complete (12/12, 2026-11-07) — PR #25 (draft, `feat/16-lore-sbloccabili` → `develop`) stays draft until the real boot with the backfill and its one-off removal
 last_updated: "2026-11-07T14:06:29.000Z"
-last_activity: 2026-11-07 -- Phase 16 complete: 12/12, review (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verification (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), security (48 threats, 0 open, 2 deferred to the real boot); PR to `develop` (DRAFT, number recorded after opening)
+last_activity: 2026-11-07 -- Phase 16 complete: 12/12, review (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verification (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), security (48 threats, 0 open, 2 deferred to the real boot); PR #25 (draft, `feat/16-lore-sbloccabili` → `develop`)
 progress:
   total_phases: 20
   completed_phases: 20
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 16 — Lore sbloccabili — COMPLETE (2026-11-07) su `feat/16-lore-sbloccabili` (da `develop` `9103440`): 12/12 piani, gate 16-11 verde (373 suite / 4649 test, coverage sopra soglia, SDL +3 righe), tre review per area (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verifica (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), audit di sicurezza (48 threats, 0 open, 2 deferred to the real boot); PR to `develop` (DRAFT, number recorded after opening) in draft finché l'orchestratore non lancia il boot reale col backfill (runbook nel handoff) e un quick task non rimuove `LoreBackfillModule` in TDD. Previous: Phase 15 — COMPLETE and merged (PR #24, `9103440`, 2026-11-07). La FE Phase 17 è parcheggiata a 8/10 su `feat/17-unlockable-lore` e riprende con 17-09/17-10 dopo la merge; la FE Phase 16 (7/8) fa la sua UAT su device nella stessa sessione.
+**Current focus:** Phase 16 — Lore sbloccabili — COMPLETE (2026-11-07) su `feat/16-lore-sbloccabili` (da `develop` `9103440`): 12/12 piani, gate 16-11 verde (373 suite / 4649 test, coverage sopra soglia, SDL +3 righe), tre review per area (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verifica (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), audit di sicurezza (48 threats, 0 open, 2 deferred to the real boot); PR #25 (draft, `feat/16-lore-sbloccabili` → `develop`) in draft finché l'orchestratore non lancia il boot reale col backfill (runbook nel handoff) e un quick task non rimuove `LoreBackfillModule` in TDD. Previous: Phase 15 — COMPLETE and merged (PR #24, `9103440`, 2026-11-07). La FE Phase 17 è parcheggiata a 8/10 su `feat/17-unlockable-lore` e riprende con 17-09/17-10 dopo la merge; la FE Phase 16 (7/8) fa la sua UAT su device nella stessa sessione.
 
 ## Current Position
 
-Phase: 16 (Lore sbloccabili) — COMPLETE 2026-11-07 on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12/12 plans, gate 16-11 passed, three area reviews (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verification (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), security audit (48 threats, 0 open, 2 deferred to the real boot); PR to `develop` (DRAFT, number recorded after opening) opened by the orchestrator as DRAFT until the real boot with the backfill and its removal; the FE Phase 17 (parked at 8/10) resumes with 17-09/17-10 after the merge
+Phase: 16 (Lore sbloccabili) — COMPLETE 2026-11-07 on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12/12 plans, gate 16-11 passed, three area reviews (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verification (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), security audit (48 threats, 0 open, 2 deferred to the real boot); PR #25 (draft, `feat/16-lore-sbloccabili` → `develop`) opened by the orchestrator as DRAFT until the real boot with the backfill and its removal; the FE Phase 17 (parked at 8/10) resumes with 17-09/17-10 after the merge
 Plan: 12 of 12
-Status: Phase 16 complete — PR to `develop` (DRAFT, number recorded after opening) draft; next: real boot from this branch with the backfill (build before stopping the BE on port 3001, expected log «Backfill delle lore: personaggi 4, …», second boot with zero changes), then the one-off removal in TDD (quick task), then `gh pr ready`; after the merge the FE Phase 17 gate 17-09 and the two device UATs
-Last activity: 2026-11-07 -- Phase 16 complete: review, verification, fixes and security audit done; PR to `develop` (DRAFT, number recorded after opening) draft
+Status: Phase 16 complete — PR #25 (draft, `feat/16-lore-sbloccabili` → `develop`) draft; next: real boot from this branch with the backfill (build before stopping the BE on port 3001, expected log «Backfill delle lore: personaggi 4, …», second boot with zero changes), then the one-off removal in TDD (quick task), then `gh pr ready`; after the merge the FE Phase 17 gate 17-09 and the two device UATs
+Last activity: 2026-11-07 -- Phase 16 complete: review, verification, fixes and security audit done; PR #25 (draft, `feat/16-lore-sbloccabili` → `develop`) draft
 
 Progress: [██████████] 12/12 plans of Phase 16 (phases 1–16, 9.1, 9.2 and 13.1 complete; 16 awaiting the real boot and the merge)
 
