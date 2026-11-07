@@ -453,7 +453,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type QuestInfos {\n  description: String\n  enemies: [QuestEnemy!]!\n  markerLocation: PointOfInterest!\n  relatedLore: [Lore!]!\n  timeToComplete: Int\n  title: String!\n  type: String!\n}',
         );
         expect(schema).toContain(
-            'type QuestEnemy {\n  enemy: Enemy!\n  quantity: Int!\n}',
+            'type QuestEnemy {\n  enemy: Enemy!\n  known: Boolean!\n  quantity: Int!\n}',
         );
         expect(schema).not.toContain('input QuestInfosInput');
     });
@@ -725,7 +725,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             schema.match(new RegExp(`type ${name} \\{[^}]*\\}`))?.[0];
 
         expect(schema).toContain(
-            'type QuestEnemy {\n  enemy: Enemy!\n  quantity: Int!\n}',
+            'type QuestEnemy {\n  enemy: Enemy!\n  known: Boolean!\n  quantity: Int!\n}',
         );
         expect(block('QuestInfos')).toContain('  enemies: [QuestEnemy!]!\n');
         expect(block('QuestInfos')).toContain('  description: String\n');
