@@ -29,6 +29,7 @@ export function buildQuestResult(overrides: Record<string, any> = {}) {
         titleBefore: 'rookie',
         titleAfter: 'rookie',
         spellLearned: null,
+        loreUnlocked: [],
         enemies: [],
         stagesCleared: null,
         stagesTotal: null,

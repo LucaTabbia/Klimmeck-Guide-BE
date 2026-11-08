@@ -3,6 +3,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
+import { LoreGeographyReader } from 'src/lore/lore-geography.reader';
 import { registeredIdsOf } from 'src/quests/party/party-rules';
 import { PartyTimeoutService } from 'src/quests/party/party-timeout.service';
 import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
@@ -106,6 +107,7 @@ interface DeathRequest {
 interface ReturnCity {
     marker: Types.ObjectId | null;
     cityMarker: Types.ObjectId | null;
+    geography: Types.ObjectId[];
 }
 
 interface RescueContext {
@@ -171,6 +173,7 @@ export class RescueResolutionService {
         private readonly chance: ChanceSource,
         private readonly partyTimeout: PartyTimeoutService,
         private readonly clock: Clock,
+        private readonly geography: LoreGeographyReader,
     ) {}
 
     // stessa regola del boss: si risolve quando tutti i soccorritori hanno finito il countdown, che parte solo a party completo (utente 2026-10-25)
@@ -507,6 +510,7 @@ export class RescueResolutionService {
                 aidQuest: loaded.quest,
                 userId: ownerId,
                 cityMarker: returnCity.cityMarker,
+                geography: returnCity.geography,
                 now: context.now,
             });
             await this.writer.writeCharacterUpdate(
@@ -657,7 +661,7 @@ export class RescueResolutionService {
     // città del ritorno (D-09): quella che contiene il marker della aid fra i punti di interesse
     private async returnCityOf(aid: ResolutionQuest): Promise<ReturnCity> {
         const marker = refIdOf(aid.infos.markerLocation);
-        if (!marker) return { marker, cityMarker: null };
+        if (!marker) return { marker, cityMarker: null, geography: [] };
         const city = await this.cityModel
             .findOne(
                 {
@@ -670,6 +674,13 @@ export class RescueResolutionService {
             )
             .lean<{ markerLocation?: unknown } | null>()
             .exec();
-        return { marker, cityMarker: refIdOf(city?.markerLocation) };
+        const cityMarker = refIdOf(city?.markerLocation);
+        return {
+            marker,
+            cityMarker,
+            geography: cityMarker
+                ? await this.geography.ofMarker(cityMarker)
+                : [],
+        };
     }
 }

@@ -2,6 +2,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Types, type Model } from 'mongoose';
 import { City } from 'src/models/city.model';
 import { CityType } from 'src/models/enums/city-type.enum';
+import { RoleType } from 'src/models/enums/role-type.enum';
 import { Lore, LoreSchema } from 'src/models/lore.model';
 import {
     PointOfInterest,
@@ -14,10 +15,25 @@ import {
 } from '../../test/auth/auth-test-app';
 import { createPlayer } from '../../test/authz/player-fixture';
 import { persistCity } from '../../test/fixtures/city.fixture';
+import { persistLore } from '../../test/fixtures/lore.fixture';
+import { playerKnowing } from '../../test/lore/lore-world';
 import { CitiesModule } from './cities.module';
 
 const CITIES = '{ cities { id name size hasShop } }';
 const CITY = 'query($id: String!) { city(id: $id) { id size hasShop } }';
+// selezione FE verbatim (lib/graphql/queries/city_queries.dart)
+const CITIES_FE = `query cities {
+    cities { id type name size hasShop markerLocation { id location } relatedLore { id description image } }
+}`;
+
+interface WireCityLore {
+    name: string;
+    relatedLore: {
+        id: string;
+        description: string;
+        image: string | null;
+    } | null;
+}
 
 interface WireCity {
     id: string;
@@ -147,6 +163,86 @@ describe('CitiesResolver size and hasShop', () => {
                     hasShop: true,
                 },
             },
+        });
+    });
+
+    async function cityLoreOnWire(
+        auth: string,
+    ): Promise<Record<string, unknown>> {
+        const response = await graphqlRequest(
+            harness.app,
+            CITIES_FE,
+            undefined,
+            auth,
+        ).expect(200);
+        expect(response.body.errors).toBeUndefined();
+        return Object.fromEntries(
+            (response.body.data.cities as WireCityLore[]).map((city) => [
+                city.name,
+                city.relatedLore,
+            ]),
+        );
+    }
+
+    async function innkeeperBearer(): Promise<string> {
+        const innkeeper = await createPlayer(harness, {
+            twitchId: 'twitch-cities-innkeeper',
+            role: RoleType.innkeeper,
+            withCharacter: false,
+        });
+        return innkeeper.bearer;
+    }
+
+    it('hides the city lore until the player knows the city (D-10)', async () => {
+        const lores = harness.connection.model(Lore.name);
+        const knownLore = await persistLore(lores, {
+            type: 'city',
+            name: 'Drustea',
+            description: 'La città del porto.',
+            image: 'https://cdn.test/drustea.png',
+        });
+        const lockedLore = await persistLore(lores, {
+            type: 'city',
+            name: 'Valantar',
+            description: 'La capitale chiusa.',
+        });
+        await persist({ name: 'Drustea', relatedLore: knownLore._id });
+        await persist({ name: 'Valantar', relatedLore: lockedLore._id });
+        const player = await playerKnowing(harness, {
+            twitchId: 'twitch-cities-traveller',
+            lore: [knownLore._id],
+        });
+        const drustea = {
+            id: knownLore._id.toHexString(),
+            description: 'La città del porto.',
+            image: 'https://cdn.test/drustea.png',
+        };
+
+        expect(await cityLoreOnWire(player.bearer)).toEqual({
+            Drustea: drustea,
+            Valantar: null,
+        });
+        expect(await cityLoreOnWire(await innkeeperBearer())).toEqual({
+            Drustea: drustea,
+            Valantar: {
+                id: lockedLore._id.toHexString(),
+                description: 'La capitale chiusa.',
+                image: null,
+            },
+        });
+    });
+
+    it('answers null for an orphan city lore (D-10)', async () => {
+        const orphan = new Types.ObjectId();
+        await persist({ name: 'Orfana', relatedLore: orphan });
+        const player = await playerKnowing(harness, {
+            twitchId: 'twitch-cities-orphan',
+            lore: [orphan],
+        });
+
+        expect(await cityLoreOnWire(player.bearer)).toEqual({ Orfana: null });
+        expect(await cityLoreOnWire(await innkeeperBearer())).toEqual({
+            Orfana: null,
         });
     });
 });

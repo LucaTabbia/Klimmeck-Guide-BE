@@ -1,4 +1,8 @@
 import type { Types } from 'mongoose';
+import {
+    type KnowledgeAddition,
+    knowledgeAdditionOf,
+} from 'src/lore/knowledge-addition';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { idForms } from 'src/mongo/document-id';
@@ -16,12 +20,17 @@ export interface RescuedPlanInput {
     aidQuest: OutcomeQuestSnapshot;
     userId: Types.ObjectId;
     cityMarker: Types.ObjectId | null;
+    geography?: readonly Types.ObjectId[];
     now: Date;
 }
 
 export interface RescuedPlan {
     filter: Record<string, unknown>;
-    update: { $set: Record<string, unknown> };
+    // tipo letterale: un'intersezione con un'interfaccia non è assegnabile a Record<string, unknown> di writeCharacterUpdate
+    update: {
+        $set: Record<string, unknown>;
+        $addToSet?: KnowledgeAddition['$addToSet'];
+    };
     result: QuestResultDraft;
 }
 
@@ -69,6 +78,7 @@ function unchangedResult(
         titleBefore: status.title,
         titleAfter: status.title,
         spellLearned: null,
+        loreUnlocked: [],
         enemies: [],
         stagesCleared: null,
         stagesTotal: null,
@@ -89,6 +99,10 @@ export function planRescued(input: RescuedPlanInput): RescuedPlan {
                 'status.awaitingAid': null,
                 ...(cityMarker ? { 'status.location': cityMarker } : {}),
             },
+            // il ritorno sul marker della città è un arrivo (Phase 16 D-05, C-2)
+            ...knowledgeAdditionOf(
+                cityMarker ? [...(input.geography ?? [])] : [],
+            ),
         },
         result: unchangedResult(
             snapshot,

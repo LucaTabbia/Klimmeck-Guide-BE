@@ -8,6 +8,7 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { City, CityDocument } from 'src/models/city.model';
+import { Lore, LoreSchema } from 'src/models/lore.model';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import {
@@ -18,6 +19,10 @@ import {
 import { createAuthenticatedUser } from '../../../test/auth/test-tokens';
 import { FixedRandomSource } from '../../../test/characters/fixed-random-source';
 import { persistCity } from '../../../test/fixtures';
+import {
+    GeographyLoreWorld,
+    persistGeographyLore,
+} from '../../../test/lore/lore-world';
 
 const TWITCH_ID = 'twitch-char-1';
 const OTHER_TWITCH_ID = 'twitch-char-2';
@@ -119,8 +124,17 @@ describe('CharacterCreationResolver (wire)', () => {
         pois = harness.connection.model<PointOfInterest>(PointOfInterest.name);
         // indici e collection prima delle transazioni e dei test di unicità
         await Promise.all(
-            [User.name, Character.name, City.name, PointOfInterest.name].map(
-                (name) => harness.connection.model(name).init(),
+            [
+                User.name,
+                Character.name,
+                City.name,
+                PointOfInterest.name,
+                Lore.name,
+            ].map((name) =>
+                (
+                    harness.connection.models[name] ??
+                    harness.connection.model(name, LoreSchema)
+                ).init(),
             ),
         );
     });
@@ -217,6 +231,89 @@ describe('CharacterCreationResolver (wire)', () => {
         const raw = await rawUser(userId);
         expect(raw?.currentCharacter).toBeNull();
     }
+
+    async function linkGeography(
+        city: CityDocument,
+        name: string,
+        regions = 1,
+    ): Promise<GeographyLoreWorld> {
+        const world = await persistGeographyLore(harness.connection, {
+            name,
+            regions,
+        });
+        await cities.updateOne(
+            { _id: (city as unknown as { _id: Types.ObjectId })._id },
+            { relatedLore: world.cityLore._id },
+        );
+        return world;
+    }
+
+    async function unlockedLoreOf(character: WireCharacter): Promise<string[]> {
+        const raw = await rawCharacter(character.id);
+        return ((raw?.status.unlockedLore ?? []) as Types.ObjectId[])
+            .map((id) => id.toHexString())
+            .sort();
+    }
+
+    function hexesOf(ids: readonly Types.ObjectId[]): string[] {
+        return ids.map((id) => id.toHexString()).sort();
+    }
+
+    describe('home city geography', () => {
+        it('starts the character knowing its home city, regions and state and nothing else (D-04, D-12)', async () => {
+            const world = await linkGeography(drustea, 'Drustea', 2);
+
+            const character = createdCharacterOf(await create(VALID_INPUT));
+
+            expect(await unlockedLoreOf(character)).toEqual(
+                hexesOf(world.geography),
+            );
+            const raw = await rawCharacter(character.id);
+            expect(raw?.status.knownEnemies).toEqual([]);
+            const unlocked = await unlockedLoreOf(character);
+            for (const other of world.others) {
+                expect(unlocked).not.toContain(
+                    (
+                        other as unknown as { _id: Types.ObjectId }
+                    )._id.toHexString(),
+                );
+            }
+        });
+
+        it('creates the character without lore when the home city has none (D-05)', async () => {
+            const character = createdCharacterOf(await create(VALID_INPUT));
+
+            expect(await unlockedLoreOf(character)).toEqual([]);
+            const raw = await rawCharacter(character.id);
+            expect(raw?.status.unlockedLore).toEqual([]);
+            expect(raw?.status.knownEnemies).toEqual([]);
+        });
+
+        it('gives a new character only the geography of its own home city (D-12)', async () => {
+            const drusteaWorld = await linkGeography(drustea, 'Drustea');
+            const liberiaWorld = await linkGeography(liberia, 'Liberia');
+            const first = createdCharacterOf(await create(VALID_INPUT));
+            await characters.updateOne(
+                { _id: new Types.ObjectId(first.id) },
+                { deletedAt: new Date() },
+            );
+            await users.updateOne(
+                { _id: user._id },
+                { currentCharacter: null },
+            );
+            random.setIndex(1);
+
+            const second = createdCharacterOf(
+                await create({ ...VALID_INPUT, name: 'Brina' }),
+            );
+
+            const unlocked = await unlockedLoreOf(second);
+            expect(unlocked).toEqual(hexesOf(liberiaWorld.geography));
+            for (const hex of hexesOf(drusteaWorld.geography)) {
+                expect(unlocked).not.toContain(hex);
+            }
+        });
+    });
 
     describe('createCharacter', () => {
         it('creates the character with the backend-owned starting state', async () => {

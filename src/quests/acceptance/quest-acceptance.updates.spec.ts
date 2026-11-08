@@ -163,6 +163,36 @@ describe('quest acceptance write builders', () => {
             });
         });
 
+        it('adds the city geography to an instant jump (D-05)', () => {
+            const a = new Types.ObjectId();
+
+            expect(
+                laneClaimUpdate(QuestLane.standard, p, {
+                    kind: 'jump',
+                    marker: loc,
+                    geography: [a],
+                }),
+            ).toEqual({
+                $set: {
+                    'quests.pendingQuest': p,
+                    'status.location': loc,
+                },
+                $addToSet: { 'status.unlockedLore': { $each: [a] } },
+            });
+            expect(
+                laneClaimUpdate(QuestLane.standard, p, {
+                    kind: 'jump',
+                    marker: loc,
+                    geography: [],
+                }),
+            ).toEqual({
+                $set: {
+                    'quests.pendingQuest': p,
+                    'status.location': loc,
+                },
+            });
+        });
+
         it('laneClaimUpdate sets the food and life cost with the automatic travel (D-12)', () => {
             const travel = {
                 road: {

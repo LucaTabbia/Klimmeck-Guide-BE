@@ -1,7 +1,9 @@
 import { Types } from 'mongoose';
+import { DEFAULT_LORE_STUDY_CHANCE } from 'src/config/lore-config';
 import { CoinPurse, toCopper } from 'src/economy/coins';
 import { priceKey } from 'src/economy/trade/trade-line';
 import { ItemReferenceType } from 'src/models/common/asset-quantity.model';
+import { refHexOf } from 'src/lore/lore-visibility';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { refIdOf, sameId } from 'src/mongo/document-id';
 import { ChanceSource } from '../chance-source';
@@ -41,6 +43,14 @@ export interface SpellDraw {
     roll: number;
 }
 
+// pool dello studio ordinato per id: gate decide se si impara, pick sceglie fra i candidati (Phase 16 D-08)
+export interface LoreDraw {
+    pool: readonly Types.ObjectId[];
+    chance: number;
+    gate: number;
+    pick: number;
+}
+
 export interface DrawnRewards {
     coinsCopper: number;
     xpPrize: number;
@@ -48,6 +58,7 @@ export interface DrawnRewards {
     spellCandidate: SpellCandidate | null;
     spellDraw: SpellDraw | null;
     pet: Types.ObjectId | null;
+    loreDraw: LoreDraw | null;
 }
 
 export interface RewardCatalog {
@@ -56,6 +67,9 @@ export interface RewardCatalog {
     spellPool: readonly SpellCandidate[];
     // hex dei pet esistenti fra quelli in premio (D-21)
     pets: ReadonlySet<string>;
+    // solo per una study (Phase 16 D-08, C-3): tutte le lore dei tipi dello studio, il piano le filtra contro lo snapshot
+    studyLorePool?: readonly Types.ObjectId[];
+    studyLoreChance?: number;
 }
 
 export interface RewardRefs {
@@ -71,6 +85,7 @@ export const NO_REWARDS: DrawnRewards = {
     spellCandidate: null,
     spellDraw: null,
     pet: null,
+    loreDraw: null,
 };
 
 // «un 20% può andare bene» (D-21)
@@ -187,6 +202,21 @@ function petDrawOf(
     return chance.next() < QUEST_PET_WIN_CHANCE ? petId : null;
 }
 
+// D-08: due tiri dopo loot, magia e pet e solo con pool, così le altre quest consumano gli stessi tiri di prima (Pitfall 5)
+function loreDrawOf(
+    catalog: RewardCatalog,
+    chance: ChanceSource,
+): LoreDraw | null {
+    const pool = catalog.studyLorePool ?? [];
+    if (pool.length === 0) return null;
+    return {
+        pool,
+        chance: catalog.studyLoreChance ?? DEFAULT_LORE_STUDY_CHANCE,
+        gate: chance.next(),
+        pick: chance.next(),
+    };
+}
+
 // premi della quest vinta (D-16, D-17): voci orfane o malformate scartate, mai un'eccezione (T-09-12)
 export function drawRewards(
     prizes: PrizesSnapshot | null | undefined,
@@ -199,6 +229,7 @@ export function drawRewards(
     const rolledLoot = rolledLootOf(prizes, catalog, chance);
     const spellDraw = spellDrawOf(prizes, catalog, chance);
     const pet = petDrawOf(prizes, catalog, chance);
+    const loreDraw = loreDrawOf(catalog, chance);
     return {
         coinsCopper: isNonNegativeInteger(coinsCopper) ? coinsCopper : 0,
         xpPrize: isNonNegativeInteger(prizes.xpPrize) ? prizes.xpPrize : 0,
@@ -208,6 +239,7 @@ export function drawRewards(
         spellCandidate: spellCandidateOf(prizes, catalog),
         spellDraw,
         pet,
+        loreDraw,
     };
 }
 
@@ -242,4 +274,23 @@ export function drawLearnableSpell(
         Math.floor(draw.roll * learnable.length),
     );
     return learnable[index];
+}
+
+// D-08, Pitfall 6: esclusi = lore già sbloccate e lore dello stesso esito, confrontate per esadecimale (anche le stringhe legacy)
+export function drawStudyLore(
+    draw: LoreDraw | null,
+    excluded: readonly unknown[],
+): Types.ObjectId | null {
+    if (!draw || draw.gate >= draw.chance) return null;
+    const known = new Set(excluded.map(refHexOf));
+    const candidates = draw.pool.filter(
+        (lore) => !known.has(lore.toHexString()),
+    );
+    if (candidates.length === 0) return null;
+    // stesso clamp di drawLearnableSpell: un tiro uguale a 1 resta nel pool
+    const index = Math.min(
+        candidates.length - 1,
+        Math.floor(draw.pick * candidates.length),
+    );
+    return candidates[index];
 }

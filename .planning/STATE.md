@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 15 complete (12/12) — PR #24 verso develop aperta dall'orchestratore (non draft: nessun one-off in questa fase) (2026-11-06); next: after the merge the user restarts the BE (npm run build, restart from dist/) and the FE Phase 16 resumes with 16-07/16-08
-last_updated: "2026-11-06T21:29:20.000Z"
-last_activity: 2026-11-06 -- Phase 15 complete: review (0 critical / 1 warning / 8 info su 50 file, 7 fix), verification passed, security audit (secured, 42 minacce, 0 aperte, 0 differite), PR #24 verso develop aperta dall'orchestratore (non draft: nessun one-off in questa fase)
+status: executing
+stopped_at: Phase 16 closed (12/12) — real boot with the backfill done on 2026-11-08, one-off removed (`0125058`), PR #25 (`feat/16-lore-sbloccabili` → `develop`) ready for review, awaiting the user's merge
+last_updated: "2026-11-08T15:25:00.000Z"
+last_activity: 2026-11-08 -- Phase 16 real boot: CI fixed (5fd6190, a unit spec imported AppModule), backfill ran (3 active characters of 4 documents, 2 updated, 8 lore, 1 enemy; second boot zero), one-off removed in TDD (80c3bf7 → 0125058), third boot clean; PR #25 ready for review
 progress:
   total_phases: 20
-  completed_phases: 19
-  total_plans: 239
-  completed_plans: 239
+  completed_phases: 20
+  total_plans: 251
+  completed_plans: 251
   percent: 100
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 15 — Imboscate in viaggio — ESEGUITA (12/12, 2026-11-06) su `feat/15-imboscate-in-viaggio` (da `develop` `b492a46`): gate 15-11 verde (test:cov 360 suite / 4493 test, boot reale 76/76, SDL con 1 riga tolta e 17 aggiunte), handoff `.planning/phases/15-imboscate-in-viaggio/BACKEND-NOTES.md` per la FE Phase 16, BE-AMBUSH-01..07 completi; restano review, fix, verifica e security dell'orchestratore e la PR verso `develop` da aprire. La FE Phase 16 è parcheggiata a 6/8 e riprende con 16-07/16-08 dopo la merge. Previous: Phase 14 — COMPLETE and merged (PR #23, `b492a46`, 2026-11-06).
+**Current focus:** Phase 16 — Lore sbloccabili — CLOSED (2026-11-08) su `feat/16-lore-sbloccabili` (da `develop` `9103440`): 12/12 piani, pipeline review → ruling → fix → security chiusa, CI verde dopo il fix della spec unitaria che importava `AppModule` (`5fd6190`), boot reale col backfill eseguito (`personaggi 3, aggiornati 2, lore aggiunte 8, nemici aggiunti 1, senza città 1`; secondo boot a zero), one-off rimosso in TDD (`80c3bf7` → `0125058`), terzo boot dalla build finale pulito; PR #25 pronta per la review, in attesa della merge dell'utente; poi FE 17-09 (gate di schema) e 17-10 (UAT su device).
 
 ## Current Position
 
-Phase: 15 (Imboscate in viaggio) — COMPLETE 2026-11-06 on `feat/15-imboscate-in-viaggio` (from `develop` `b492a46`): 12/12 plans, gate 15-11 passed, three area reviews (0 critical / 1 warning / 8 info) → 7 fixes, verification passed (0 gaps), security audit secured; PR #24 to `develop` opened by the orchestrator (2026-11-06, non-draft); the FE Phase 16 (parked at 6/8) resumes with 16-07/16-08 after the merge
+Phase: 16 (Lore sbloccabili) — CLOSED 2026-11-08 (real boot with the backfill done, one-off removed) on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12/12 plans, gate 16-11 passed, three area reviews (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verification (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), security audit (48 threats, 0 open, 2 deferred to the real boot); PR #25 (draft, `feat/16-lore-sbloccabili` → `develop`) opened by the orchestrator as DRAFT until the real boot with the backfill and its removal; the FE Phase 17 (parked at 8/10) resumes with 17-09/17-10 after the merge
 Plan: 12 of 12
-Status: Phase 15 complete (12/12) — review 0 critical / 1 warning / 8 info su 50 file, 7 fix; verification passed; security audit secured, 42 minacce, 0 aperte, 0 differite; PR #24 verso develop aperta dall'orchestratore (non draft: nessun one-off in questa fase); after the merge the user restarts the BE (build + restart from dist/, no one-off in this phase, AMBUSH_TIMEZONE optional) and the FE Phase 16 resumes with 16-07 (schema gate) and 16-08 (device E2E)
-Last activity: 2026-11-06 -- Phase 15 closed: three area reviews merged, rulings, fixes, verification, security audit, PR
+Status: Phase 16 closed — PR #25 (`feat/16-lore-sbloccabili` → `develop`) ready for review after the real boot with the backfill (2026-11-08) and the one-off removal; next: the user's merge, then the FE Phase 17 plans 17-09 (schema gate) and 17-10 (device UAT), then the FE PRs
+Last activity: 2026-11-08 -- Phase 16 real boot with the backfill, one-off removal in TDD, PR #25 ready for review
 
-Progress: [██████████] 12/12 plans of Phase 15 (phases 1–15, 9.1, 9.2 and 13.1 complete; 15 awaiting merge)
+Progress: [██████████] 12/12 plans of Phase 16 (phases 1–16, 9.1, 9.2 and 13.1 complete; 16 awaiting the merge of PR #25)
 
 ## Performance Metrics
 

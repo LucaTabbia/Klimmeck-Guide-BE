@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { AuthzModule } from 'src/authz/authz.module';
 import { travelConfigProvider } from 'src/config/travel-config';
+import { LoreGeographyModule } from 'src/lore/lore-geography.module';
 import {
     Character,
     CharacterSchema,
@@ -45,6 +46,8 @@ import { TravelService } from './travel.service';
         AuthzModule,
         PushModule,
         TravelPlanningModule,
+        // geografia della città all'arrivo e al teleport (Phase 16 D-05, D-14)
+        LoreGeographyModule,
         // avvio all'arrivo (utente 2026-10-25): PartyModule accoda la scadenza, nessun ciclo con viaggio o accettazione
         PartyModule,
     ],

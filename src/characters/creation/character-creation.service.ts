@@ -15,6 +15,7 @@ import {
 } from 'src/models/character/character.model';
 import { CreateCharacterInput } from 'src/models/request/create-character-request.model';
 import { User, UserDocument } from 'src/models/user.model';
+import { LoreGeographyReader } from 'src/lore/lore-geography.reader';
 import { isDuplicateKeyOn } from 'src/mongo/mongo-errors';
 import { UsersService } from 'src/users/users.service';
 
@@ -27,6 +28,7 @@ export class CharacterCreationService {
         private readonly characterModel: Model<CharacterDocument>,
         private readonly startingLocationService: StartingLocationService,
         private readonly usersService: UsersService,
+        private readonly geography: LoreGeographyReader,
     ) {}
 
     async createCharacter(
@@ -37,9 +39,11 @@ export class CharacterCreationService {
         const locationId = await this.startingLocationService.resolveFor(
             normalized.race,
         );
+        // geografia della città natale nello stesso inserimento (Phase 16 D-04); catalogo letto fuori dalla transazione come resolveFor
+        const unlockedLore = await this.geography.ofMarker(locationId);
         await this.claimUserAndInsertCharacter(
             new Types.ObjectId(userId),
-            buildStartingCharacter(normalized, locationId),
+            buildStartingCharacter(normalized, locationId, unlockedLore),
         );
         return this.usersService.findOne(userId);
     }

@@ -35,6 +35,7 @@ export interface AmbushResultDraft {
     titleBefore: TitleType;
     titleAfter: TitleType;
     spellLearned: null;
+    loreUnlocked: Types.ObjectId[];
     enemies: QuestEnemyDraft[];
     stagesCleared: null;
     stagesTotal: null;
@@ -88,6 +89,8 @@ function resultDraftOf(
         titleBefore: report.titleBefore,
         titleAfter: report.titleAfter,
         spellLearned: null,
+        // i report trattenuti prima della Phase 16 non hanno il campo
+        loreUnlocked: report.loreUnlocked ?? [],
         enemies: report.enemies,
         stagesCleared: null,
         stagesTotal: null,

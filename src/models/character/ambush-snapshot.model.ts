@@ -120,6 +120,10 @@ export class AmbushReportSnapshot {
 
     @Prop({ type: String, enum: Object.values(TitleType), required: true })
     titleAfter: TitleType;
+
+    // sole lore nuove della vittoria (Phase 16 D-09): senza @Prop la strict mode lo scarterebbe nel push (Pitfall 3)
+    @Prop({ type: [MongooseSchema.Types.ObjectId], ref: 'Lore', default: [] })
+    loreUnlocked: Types.ObjectId[];
 }
 
 export const AmbushReportSnapshotSchema =

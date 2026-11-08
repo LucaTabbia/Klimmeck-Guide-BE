@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
+import { knowledgeAdditionOf } from 'src/lore/knowledge-addition';
+import { LoreGeographyReader } from 'src/lore/lore-geography.reader';
 import { TravelKind } from 'src/models/character/active-travel.model';
 import {
     Character,
@@ -70,6 +72,7 @@ export class TravelCompletionService {
         private readonly push: PushService,
         private readonly clock: Clock,
         private readonly questStart: QuestStartService,
+        private readonly geography: LoreGeographyReader,
     ) {}
 
     // trigger idempotente (D-12): il filtro d'identità decide; solo chi ha matchato invia la push (Pitfall 11)
@@ -97,6 +100,11 @@ export class TravelCompletionService {
                 .exec();
             if (!before) return;
             outcome.completed = before;
+            await this.unlockArrivalGeography(
+                before,
+                identity.characterId,
+                session,
+            );
             await this.deliverHeldReports(
                 before,
                 identity.characterId,
@@ -128,6 +136,23 @@ export class TravelCompletionService {
             await this.notifyOwner(identity.characterId);
         }
         return 'completed';
+    }
+
+    // la meta si conosce solo dal before: secondo update nello stesso callback, la pipeline del completamento resta intatta (Phase 16 D-05, C-4)
+    private async unlockArrivalGeography(
+        before: CompletedSnapshot,
+        characterId: Types.ObjectId,
+        session: ClientSession,
+    ): Promise<void> {
+        const geography = await this.geography.ofMarker(
+            refIdOf(before.status?.activeTravel?.to),
+            session,
+        );
+        const addition = knowledgeAdditionOf(geography);
+        if (!addition.$addToSet) return;
+        await this.characterModel
+            .updateOne({ _id: characterId }, addition, { session })
+            .exec();
     }
 
     // report trattenuti nella stessa transazione dell'arrivo (Phase 15 D-13): nessun push questEnd, basta il travelEnd

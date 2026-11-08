@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { LoreVisibilityModule } from 'src/lore/lore-visibility.module';
 import {
     Character,
     CharacterSchema,
@@ -46,6 +47,7 @@ import { QuestsService } from './quests.service';
             { name: PendingQuest.name, schema: PendingQuestSchema },
             { name: City.name, schema: CitySchema },
         ]),
+        LoreVisibilityModule,
     ],
     providers: [QuestsService, QuestsResolver, QuestsPublisher],
     exports: [QuestsService],

@@ -21,6 +21,7 @@ import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
+import type { KnowledgeAddition } from 'src/lore/knowledge-addition';
 import { idForms, objectIdFromHex, sameId } from 'src/mongo/document-id';
 import {
     isGmLane,
@@ -38,8 +39,10 @@ import {
     canLearnSpell,
     type DrawnRewards,
     drawLearnableSpell,
+    drawStudyLore,
     type RewardItem,
 } from './rewards/quest-rewards';
+import { knowledgeUpdateOf, type VictoryKnowledge } from './victory-knowledge';
 
 export const OUTCOME_CHARACTER_PROJECTION = {
     status: 1,
@@ -60,6 +63,8 @@ export interface OutcomeCharacterSnapshot {
         spellStates?: SpellStateEntry[];
         location?: unknown;
         awaitingAid?: unknown;
+        unlockedLore?: unknown[];
+        knownEnemies?: unknown[];
     };
     quests?: {
         completedQuests?: unknown[] | null;
@@ -122,6 +127,8 @@ export interface QuestResultDraft {
     titleBefore: TitleType;
     titleAfter: TitleType;
     spellLearned: Types.ObjectId | null;
+    // le sole lore nuove dell'esito (D-09): planParticipant lo scrive sempre
+    loreUnlocked?: Types.ObjectId[];
     enemies: QuestEnemyDraft[];
     stagesCleared: number | null;
     stagesTotal: number | null;
@@ -148,6 +155,7 @@ export interface ParticipantPlanInput {
     verdict: PlanVerdict;
     battle: ParticipantEffects | null;
     enemies: EnemyFacts | null;
+    victory?: VictoryKnowledge | null;
     rewards: DrawnRewards;
     aid: { aidQuestId: Types.ObjectId; failedQuestId: Types.ObjectId } | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
@@ -166,7 +174,11 @@ export interface SpellRecovery {
 
 export interface ParticipantPlan {
     filter: Record<string, unknown>;
-    update: { $set: Record<string, unknown> };
+    // tipo letterale, non l'interfaccia: il writer accetta un Record<string, unknown>
+    update: {
+        $set: Record<string, unknown>;
+        $addToSet?: KnowledgeAddition['$addToSet'];
+    };
     coinsDelta: number;
     result: QuestResultDraft;
     spellRecoveries: SpellRecovery[];
@@ -394,6 +406,22 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         : null;
     const coinsDelta = won ? rewards.coinsCopper : 0;
     const petWon = petWonBy(snapshot, won, rewards.pet);
+    const victory = won ? (input.victory ?? null) : null;
+    const victoryLore = victory?.loreIds ?? [];
+    // la study vinta senza magia apprende una lore chiusa, mai una già sbloccata dallo stesso esito (Phase 16 D-08, Pitfall 6)
+    const studyLore =
+        won && !spellLearned
+            ? drawStudyLore(rewards.loreDraw, [
+                  ...(snapshot.status.unlockedLore ?? []),
+                  ...victoryLore,
+              ])
+            : null;
+    // ordine D-09: lore dei nemici, poi quella dello studio
+    const learned = knowledgeUpdateOf(
+        snapshot.status.unlockedLore,
+        [...victoryLore, ...(studyLore ? [studyLore] : [])],
+        victory?.enemyIds ?? [],
+    );
     const lanePath = lanePathOf(input.lane);
 
     const $set: Record<string, unknown> = {
@@ -438,7 +466,8 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
 
     return {
         filter: participantFilter(input, lanePath),
-        update: { $set },
+        // la conoscenza si scrive nello stesso update del piano, solo se c'è qualcosa da imparare (Phase 16 D-06, D-14)
+        update: { $set, ...learned.addition },
         coinsDelta,
         result: {
             _id: input.resultId,
@@ -467,6 +496,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             titleBefore: before.title,
             titleAfter,
             spellLearned,
+            loreUnlocked: learned.fresh,
             enemies: [...(input.enemies?.entries ?? [])],
             stagesCleared: input.stages?.cleared ?? null,
             stagesTotal: input.stages?.total ?? null,

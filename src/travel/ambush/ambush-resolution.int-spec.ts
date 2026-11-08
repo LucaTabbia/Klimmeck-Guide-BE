@@ -152,6 +152,26 @@ describe('AmbushResolutionService (replica set)', () => {
         ]);
     });
 
+    it('teaches the enemies of a won ambush and holds the new lore in the report (D-06, D-09)', async () => {
+        const subject = await traveller({ km: 10 });
+        chance.load([0, 0]);
+        const wolf = await world.models.enemies
+            .findById(enemies.wolf)
+            .lean<any>();
+        const page = String(wolf.relatedLore[0]);
+
+        await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        const raw = await rawOf(subject);
+        expect(raw.status.unlockedLore.map(String)).toEqual([page]);
+        expect(raw.status.knownEnemies.map(String)).toEqual([
+            String(enemies.wolf),
+        ]);
+        expect(
+            raw.status.activeTravel.ambushReports[0].loreUnlocked.map(String),
+        ).toEqual([page]);
+    });
+
     it('pays a legend as a hero (D-10)', async () => {
         const subject = await traveller({ km: 10, title: TitleType.legend });
         chance.load([0, 0]);

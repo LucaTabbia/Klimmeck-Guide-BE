@@ -116,6 +116,7 @@ describe('quest result schema', () => {
         expect(result.consumablesUsed).toEqual([]);
         expect(result.spellsUsed).toEqual([]);
         expect(result.spellLearned).toBeNull();
+        expect(result.loreUnlocked).toEqual([]);
         expect(result.enemies).toEqual([]);
         expect(result.rescuedCharacters).toEqual([]);
     });

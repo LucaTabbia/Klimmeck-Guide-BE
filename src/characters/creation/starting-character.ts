@@ -19,6 +19,8 @@ export interface StartingCharacter {
         injuries: never[];
         spells: never[];
         spellStates: never[];
+        unlockedLore: Types.ObjectId[];
+        knownEnemies: never[];
         coins: { gold: number; silver: number; copper: number };
         currentLifePoints: number;
         maxLifePoints: number;
@@ -40,6 +42,7 @@ export interface StartingCharacter {
 export function buildStartingCharacter(
     input: NormalizedCharacterInput,
     locationId: Types.ObjectId,
+    unlockedLore: readonly Types.ObjectId[] = [],
 ): StartingCharacter {
     return {
         infos: {
@@ -60,6 +63,8 @@ export function buildStartingCharacter(
             injuries: [],
             spells: [],
             spellStates: [],
+            unlockedLore: [...unlockedLore],
+            knownEnemies: [],
             coins: { gold: 0, silver: STARTING_SILVER, copper: 0 },
             currentLifePoints: STARTING_LIFE_POINTS,
             maxLifePoints: STARTING_LIFE_POINTS,

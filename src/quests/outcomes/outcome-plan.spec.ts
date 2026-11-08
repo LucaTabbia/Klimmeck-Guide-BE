@@ -37,6 +37,10 @@ const OTHER_SPELL_ID = new Types.ObjectId('64b0000000000000000000ee');
 const DRAWN_SPELL_ID = new Types.ObjectId('64b0000000000000000000ef');
 const PET_ID = new Types.ObjectId('64b0000000000000000000f1');
 const OWNED_PET_ID = new Types.ObjectId('64b0000000000000000000f2');
+const KNOWN_PAGE_ID = new Types.ObjectId('64b0000000000000000000f3');
+const NEW_PAGE_ID = new Types.ObjectId('64b0000000000000000000f4');
+const STUDY_LORE_ID = new Types.ObjectId('64b0000000000000000000f5');
+const OTHER_STUDY_LORE_ID = new Types.ObjectId('64b0000000000000000000f6');
 
 type SnapshotOverrides = {
     status?: Partial<OutcomeCharacterSnapshot['status']>;
@@ -205,6 +209,7 @@ describe('planParticipant', () => {
                 titleBefore: TitleType.rookie,
                 titleAfter: TitleType.rookie,
                 spellLearned: null,
+                loreUnlocked: [],
                 enemies: [],
                 stagesCleared: null,
                 stagesTotal: null,
@@ -1050,5 +1055,171 @@ describe('planParticipant', () => {
         );
 
         expect(plan.result.rescuedCharacters).toEqual([]);
+    });
+
+    describe('the knowledge of a victory', () => {
+        const victory = {
+            enemyIds: [ENEMY_ID],
+            loreIds: [KNOWN_PAGE_ID, NEW_PAGE_ID],
+        };
+        const enemies = {
+            entries: [{ enemy: ENEMY_ID, quantity: 1 }],
+            xp: 100,
+        };
+        const fightWith = (overrides: Partial<ParticipantPlanInput> = {}) =>
+            inputWith({
+                quest: questOf(QuestType.enemy),
+                snapshot: snapshotWith({
+                    status: { unlockedLore: [KNOWN_PAGE_ID] },
+                }),
+                battle: battleWith(),
+                enemies,
+                ...overrides,
+            });
+
+        it('teaches the enemies and their lore to a winner (D-06, D-09)', () => {
+            const plan = planParticipant(fightWith({ victory }));
+            const untaught = planParticipant(fightWith());
+
+            expect(plan.update.$addToSet).toEqual({
+                'status.unlockedLore': { $each: [NEW_PAGE_ID] },
+                'status.knownEnemies': { $each: [ENEMY_ID] },
+            });
+            expect(plan.result.loreUnlocked).toEqual([NEW_PAGE_ID]);
+            expect(plan.update.$set).toEqual(untaught.update.$set);
+        });
+
+        it('teaches nothing on a defeat (D-06)', () => {
+            const plan = planParticipant(
+                fightWith({
+                    victory,
+                    verdict: QuestOutcome.failure,
+                    aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                }),
+            );
+
+            expect(Object.keys(plan.update)).toEqual(['$set']);
+            expect(plan.result.loreUnlocked).toEqual([]);
+        });
+
+        it('teaches a game master completion with enemies like a success (D-06)', () => {
+            const plan = planParticipant(
+                fightWith({ victory, verdict: QuestOutcome.gmCompleted }),
+            );
+
+            expect(plan.update.$addToSet).toEqual({
+                'status.unlockedLore': { $each: [NEW_PAGE_ID] },
+                'status.knownEnemies': { $each: [ENEMY_ID] },
+            });
+            expect(plan.result.loreUnlocked).toEqual([NEW_PAGE_ID]);
+        });
+
+        it('keeps the filter unchanged when teaching (D-06)', () => {
+            expect(planParticipant(fightWith({ victory })).filter).toEqual(
+                planParticipant(fightWith()).filter,
+            );
+        });
+
+        it('writes only the set when the victory is null (D-06, D-14)', () => {
+            const plan = planParticipant(fightWith({ victory: null }));
+
+            expect(Object.keys(plan.update)).toEqual(['$set']);
+            expect(plan.result.loreUnlocked).toEqual([]);
+        });
+    });
+
+    describe('the study lore draw', () => {
+        const loreDraw = {
+            pool: [NEW_PAGE_ID, STUDY_LORE_ID, OTHER_STUDY_LORE_ID],
+            chance: 0.5,
+            gate: 0.1,
+            pick: 0,
+        };
+        const studyWith = (overrides: Partial<ParticipantPlanInput> = {}) =>
+            inputWith({
+                quest: questOf(QuestType.study),
+                snapshot: snapshotWith({
+                    status: { unlockedLore: [KNOWN_PAGE_ID] },
+                }),
+                rewards: rewardsWith({ xpPrize: 300, loreDraw }),
+                ...overrides,
+            });
+
+        it('learns a study lore after the enemy lore (D-08, D-09)', () => {
+            const plan = planParticipant(
+                studyWith({
+                    victory: { enemyIds: [ENEMY_ID], loreIds: [NEW_PAGE_ID] },
+                }),
+            );
+
+            expect(plan.result.loreUnlocked).toEqual([
+                NEW_PAGE_ID,
+                STUDY_LORE_ID,
+            ]);
+            expect(plan.update.$addToSet).toEqual({
+                'status.unlockedLore': {
+                    $each: [NEW_PAGE_ID, STUDY_LORE_ID],
+                },
+                'status.knownEnemies': { $each: [ENEMY_ID] },
+            });
+        });
+
+        it('learns a study lore the character does not know (D-08)', () => {
+            const plan = planParticipant(
+                studyWith({
+                    snapshot: snapshotWith({
+                        status: { unlockedLore: [NEW_PAGE_ID] },
+                    }),
+                }),
+            );
+
+            expect(plan.result.loreUnlocked).toEqual([STUDY_LORE_ID]);
+        });
+
+        it('learns no study lore when a spell is learned (D-08)', () => {
+            const plan = planParticipant(
+                studyWith({
+                    rewards: rewardsWith({
+                        xpPrize: 300,
+                        loreDraw,
+                        spellCandidate: {
+                            spellId: LEARNED_SPELL_ID,
+                            minXpToLearn: 0,
+                            maxUsages: 4,
+                        },
+                    }),
+                }),
+            );
+
+            expect(plan.result.spellLearned).toEqual(LEARNED_SPELL_ID);
+            expect(plan.result.loreUnlocked).toEqual([]);
+            expect(Object.keys(plan.update)).toEqual(['$set']);
+        });
+
+        it('learns no study lore on a defeat (D-08)', () => {
+            const plan = planParticipant(
+                studyWith({
+                    verdict: QuestOutcome.failure,
+                    aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                }),
+            );
+
+            expect(plan.result.loreUnlocked).toEqual([]);
+            expect(Object.keys(plan.update)).toEqual(['$set']);
+        });
+
+        it('learns no study lore when the gate fails (D-08)', () => {
+            const plan = planParticipant(
+                studyWith({
+                    rewards: rewardsWith({
+                        xpPrize: 300,
+                        loreDraw: { ...loreDraw, gate: 0.5 },
+                    }),
+                }),
+            );
+
+            expect(plan.result.loreUnlocked).toEqual([]);
+            expect(Object.keys(plan.update)).toEqual(['$set']);
+        });
     });
 });

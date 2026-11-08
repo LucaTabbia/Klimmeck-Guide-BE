@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthzModule } from 'src/authz/authz.module';
+import { LoreVisibilityModule } from 'src/lore/lore-visibility.module';
 import {
     Character,
     CharacterSchema,
@@ -29,6 +30,7 @@ import { PendingRequestsService } from './pending-requests.service';
         AuthzModule,
         QuestOutcomesModule,
         QuestResultsReadModule,
+        LoreVisibilityModule,
     ],
     providers: [
         PendingRequestsService,

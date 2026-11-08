@@ -41,6 +41,7 @@ import {
     StaleResolution,
 } from 'src/quests/outcomes/outcome-writer.service';
 import { statusFactsOf } from 'src/quests/outcomes/progression/status-facts';
+import { victoryKnowledgeOf } from 'src/quests/outcomes/victory-knowledge';
 import {
     type CombatCatalog,
     ResolutionLoader,
@@ -447,6 +448,7 @@ export class AmbushResolutionService {
                     verdict: battle.verdict,
                     effects: battle.effects,
                     enemies: enemyFactsOf(catalog) ?? { entries: [], xp: 0 },
+                    victory: victoryKnowledgeOf(catalog),
                     nearCity: fight.nearCity,
                     nextAmbush: fight.next,
                     detour: fight.detour,

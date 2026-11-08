@@ -215,7 +215,33 @@ describe('ambush outcome plan', () => {
             levelAfter: 1,
             titleBefore: TitleType.rookie,
             titleAfter: TitleType.rookie,
+            loreUnlocked: [],
         });
+    });
+
+    it('teaches the enemies of a won ambush in the victory update (D-06)', () => {
+        const known = new Types.ObjectId('64b0000000000000000000c1');
+        const fresh = new Types.ObjectId('64b0000000000000000000c2');
+        const won = planAmbushOutcome(
+            inputWith({
+                snapshot: snapshotWith({ unlockedLore: [known] }),
+                victory: { enemyIds: [ENEMY_ID], loreIds: [known, fresh] },
+            }),
+        );
+        expect(won.update.$addToSet).toEqual({
+            'status.unlockedLore': { $each: [fresh] },
+            'status.knownEnemies': { $each: [ENEMY_ID] },
+        });
+        expect(won.report.loreUnlocked).toEqual([fresh]);
+        expect(Object.keys(won.update).sort()).toEqual([
+            '$addToSet',
+            '$push',
+            '$set',
+        ]);
+        expect(won.update.$push).toEqual({
+            'status.activeTravel.ambushReports': won.report,
+        });
+        expect(won.update.$set).toEqual(plan.update.$set);
     });
 
     it('anchors the spell recoveries at the ambush instant (D-20)', () => {
@@ -266,6 +292,19 @@ describe('ambush defeat plan', () => {
         });
     const rewrittenOf = (defeat: AmbushOutcomePlan) =>
         defeat.update.$set['status.activeTravel'] as Record<string, unknown>;
+
+    it('teaches nothing on a lost ambush (D-06)', () => {
+        const defeat = planAmbushOutcome(
+            defeatWith({
+                victory: {
+                    enemyIds: [ENEMY_ID],
+                    loreIds: [new Types.ObjectId('64b0000000000000000000c3')],
+                },
+            }),
+        );
+        expect(Object.keys(defeat.update)).toEqual(['$set']);
+        expect(defeat.report.loreUnlocked).toEqual([]);
+    });
 
     it('loses with at least one life point and the new wounds, no prize (D-11)', () => {
         const defeat = planAmbushOutcome(

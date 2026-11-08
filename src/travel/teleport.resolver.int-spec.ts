@@ -44,6 +44,7 @@ import { FakePushTransport } from '../../test/push/fake-push-transport';
 import { buildActiveTravelDoc } from '../../test/travel/active-travel.fixture';
 import { buildAmbushReport } from '../../test/travel/ambush-report.fixture';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
+import { persistGeography } from '../../test/lore/lore-world';
 import {
     foodStack,
     HARDY_LIFE_POINTS,
@@ -278,6 +279,37 @@ describe('teleportCharacter', () => {
             expect((await rawCharacter(alice))?.status.location).toEqual(
                 world.farQuestPoi,
             );
+        });
+
+        it('unlocks the city geography on a teleport to its marker (D-05)', async () => {
+            const geography = await persistGeography(harness.connection, {
+                name: 'Teletrasporto',
+                regions: 2,
+            });
+            const alice = await playerAt(world.markerA);
+
+            await travel.teleport(characterIdOf(alice), geography.marker);
+
+            const raw = await rawCharacter(alice);
+            expect(raw?.status.location).toEqual(geography.marker);
+            expect(
+                (raw?.status.unlockedLore as Types.ObjectId[])
+                    .map((id) => id.toHexString())
+                    .sort(),
+            ).toEqual(geography.geography.map((id) => id.toHexString()).sort());
+        });
+
+        it('unlocks nothing on a teleport to a territory point of interest (D-05, D-15)', async () => {
+            await persistGeography(harness.connection, {
+                name: 'Teletrasporto',
+            });
+            const alice = await playerAt(world.markerA);
+
+            await travel.teleport(characterIdOf(alice), world.farQuestPoi);
+
+            const raw = await rawCharacter(alice);
+            expect(raw?.status.location).toEqual(world.farQuestPoi);
+            expect(raw?.status.unlockedLore).toEqual([]);
         });
 
         it('refuses during a pending quest and writes nothing', async () => {

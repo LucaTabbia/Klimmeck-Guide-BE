@@ -7,6 +7,7 @@ import {
 } from '../common/asset-quantity.model';
 import { Coins, CoinsSchema } from '../common/coins.model';
 import { InjuryType } from '../enums/injury-type.enum';
+import { Lore } from '../lore.model';
 import { QuestOutcome } from '../enums/quest-outcome.enum';
 import { QuestResultKind } from '../enums/quest-result-kind.enum';
 import { Pet } from '../pet.model';
@@ -240,6 +241,15 @@ export class QuestResult {
         default: null,
     })
     spellLearned?: Types.ObjectId | Spell | null;
+
+    // sole lore nuove di questo esito (Phase 16 D-09): mai filtrate per viewer, sbloccate per costruzione
+    @Field(() => [Lore])
+    @Prop({
+        type: [MongooseSchema.Types.ObjectId],
+        ref: Lore.name,
+        default: [],
+    })
+    loreUnlocked: (Types.ObjectId | Lore)[];
 
     @Field(() => [QuestEnemy])
     @Prop({ type: [QuestEnemySchema], default: [] })

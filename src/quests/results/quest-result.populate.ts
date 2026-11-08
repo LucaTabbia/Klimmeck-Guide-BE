@@ -1,6 +1,7 @@
 import type { PopulateOptions } from 'mongoose';
 import { Enemy } from 'src/models/enemy.model';
 import { QuestResultKind } from 'src/models/enums/quest-result-kind.enum';
+import { Lore } from 'src/models/lore.model';
 import type { QuestResult } from 'src/models/quest-result/quest-result.model';
 import { Pet } from 'src/models/pet.model';
 import { Spell } from 'src/models/spell.model';
@@ -20,6 +21,7 @@ export const QUEST_RESULT_POPULATE: PopulateOptions[] = [
     { path: 'spellLearned', model: Spell.name },
     { path: 'enemies.enemy', model: Enemy.name },
     { path: 'rewards.pet', model: Pet.name },
+    { path: 'loreUnlocked', model: Lore.name },
 ];
 
 interface ResultItemEntry {
@@ -30,9 +32,10 @@ export interface ResultRefsHolder {
     consumablesUsed?: ResultItemEntry[] | null;
     rewards?: { items?: ResultItemEntry[] | null; pet?: unknown } | null;
     enemies?: QuestEnemyEntry[] | null;
+    loreUnlocked?: unknown[] | null;
 }
 
-// AssetQuantity.item è ItemUnion! ed Enemy! sta dentro [QuestEnemy!]!: una voce orfana annullerebbe l'intero risultato sul filo
+// AssetQuantity.item è ItemUnion!, Enemy! sta dentro [QuestEnemy!]! e loreUnlocked è [Lore!]!: una voce orfana annullerebbe l'intero risultato sul filo
 export function dropOrphanResultRefs(result: ResultRefsHolder): void {
     if (result.consumablesUsed) {
         result.consumablesUsed =
@@ -41,12 +44,22 @@ export function dropOrphanResultRefs(result: ResultRefsHolder): void {
     if (result.enemies) {
         result.enemies = result.enemies.filter(isResolvedEnemyEntry);
     }
+    if (result.loreUnlocked) {
+        dropUnresolvedInPlace(result.loreUnlocked);
+    }
     if (!result.rewards) return;
     if (result.rewards.items) {
         result.rewards.items = result.rewards.items.filter(isResolvedItemEntry);
     }
     if (!isResolvedRef(result.rewards.pet)) {
         result.rewards.pet = null;
+    }
+}
+
+// riassegnare un array di documenti a un path di soli ObjectId lo depopolerebbe: si toglie in place
+function dropUnresolvedInPlace(refs: unknown[]): void {
+    for (let index = refs.length - 1; index >= 0; index--) {
+        if (!isResolvedRef(refs[index])) refs.splice(index, 1);
     }
 }
 
@@ -64,6 +77,7 @@ export function unpopulatedResultOf(draft: QuestResultDraft): QuestResult {
         })),
         rewards: { coins: draft.rewards.coins, items: [], pet: null },
         spellLearned: null,
+        loreUnlocked: [],
         enemies: [],
     };
 }

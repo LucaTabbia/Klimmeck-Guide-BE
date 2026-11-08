@@ -178,6 +178,17 @@ describe('validateEnv', () => {
         });
     });
 
+    describe('lore study chance', () => {
+        it('throws on an invalid LORE_STUDY_CHANCE (D-08)', () => {
+            expect(() =>
+                validateEnv({
+                    JWT_SECRET: VALID_SECRET,
+                    LORE_STUDY_CHANCE: '2',
+                }),
+            ).toThrow(/LORE_STUDY_CHANCE/);
+        });
+    });
+
     describe('quest sweep', () => {
         it('throws on a malformed QUEST_SWEEP_INTERVAL_MS', () => {
             expect(() =>

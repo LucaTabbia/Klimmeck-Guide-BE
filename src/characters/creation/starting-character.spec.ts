@@ -40,6 +40,8 @@ describe('buildStartingCharacter', () => {
                 injuries: [],
                 spells: [],
                 spellStates: [],
+                unlockedLore: [],
+                knownEnemies: [],
                 coins: { gold: 0, silver: 5, copper: 0 },
                 currentLifePoints: 1000,
                 maxLifePoints: 1000,
@@ -54,6 +56,17 @@ describe('buildStartingCharacter', () => {
                 pet: null,
             },
         });
+    });
+
+    it('starts with the geography of the home city and no known enemy (D-04)', () => {
+        const geography = [new Types.ObjectId(), new Types.ObjectId()];
+        const [a, b] = geography;
+
+        const { status } = buildStartingCharacter(INPUT, locationId, geography);
+        geography.push(new Types.ObjectId());
+
+        expect(status.unlockedLore).toEqual([a, b]);
+        expect(status.knownEnemies).toEqual([]);
     });
 
     it('starts every character without owned pets (D-13)', () => {
