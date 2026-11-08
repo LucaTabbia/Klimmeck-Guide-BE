@@ -63,7 +63,7 @@ Al boot reale ogni personaggio attivo riceve per unione (operatore `$addToSet` c
 - Successo: `Backfill delle lore: personaggi <characters>, aggiornati <updated>, lore aggiunte <loreAdded>, nemici aggiunti <enemiesAdded>, senza città <withoutCity>`
 - Errore: `Backfill delle lore fallito (<describeError>), il boot prosegue`
 
-Al primo boot reale ci si aspetta `personaggi 4`; al secondo boot `aggiornati 0, lore aggiunte 0, nemici aggiunti 0` (verifica).
+Al primo boot reale ci si aspetta `personaggi 4`; al secondo boot `aggiornati 0, lore aggiunte 0, nemici aggiunti 0` (verifica). **Esito reale (2026-11-08):** `personaggi 3` (uno dei 4 documenti è archiviato e il filtro dei personaggi attivi lo esclude), `aggiornati 2, lore aggiunte 8, nemici aggiunti 1, senza città 1`; secondo boot `aggiornati 0, lore aggiunte 0, nemici aggiunti 0`.
 
 ## Procedura di rimozione (per il handoff)
 
@@ -71,6 +71,8 @@ Dopo il boot reale e il report dei conteggi, in un piano fuori da questa fase (m
 1. RED in `test/app.int-spec.ts`: il caso `mounts the one-off lore backfill at boot (16 D-11)` viene sostituito da un caso che legge i nomi dei moduli dal `ModulesContainer` del boot reale e non trova più `LoreBackfillModule`; commit `test(migrations): …`.
 2. `refactor(migrations): drop the 16 one-off lore backfill after its run`: cancella `src/migrations/lore-backfill/` (7 file) e l'import + il commento in `src/app.module.ts`.
 3. `npx tsc --noEmit -p tsconfig.json` 0, `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` verde, `git diff --exit-code src/schema.gql` 0.
+
+Eseguita il 2026-11-08: `80c3bf7` (RED sul boot reale: `ModulesContainer` senza `LoreBackfillModule`) → `0125058` (rimozione); terzo boot dalla build finale senza riga del backfill. Dettaglio nel handoff §5.
 
 ## Deviazioni dal piano
 

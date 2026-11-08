@@ -9,14 +9,14 @@ branch: feat/16-lore-sbloccabili
 head: 4322d82
 base: origin/develop (9103440)
 threats_total: 48
-threats_mitigated: 44
+threats_mitigated: 46
 threats_accepted: 2
 threats_transferred: 0
 threats_open: 0
 threats_open_blocking: 0
-threats_deferred: 2
+threats_deferred: 0
 open_ids: []
-deferred_ids: [T-16-41, T-16-48]
+deferred_ids: []
 transferred_ids: []
 updated: 2026-11-07T00:00:00Z
 ---
@@ -25,7 +25,7 @@ updated: 2026-11-07T00:00:00Z
 
 Audit in sola lettura dei blocchi threat model dei piani `16-01`…`16-12` (48 ID `T-16-01`…`T-16-48`, tutti distinti) sul codice FINALE di `feat/16-lore-sbloccabili` a `4322d82`, dopo i fix di `REVIEW-FIX.md` (4 corretti, 5 `not_needed`). Nessun file modificato oltre a questo, nessun commit, nessuna suite lanciata, nessuna lettura di `.env` o dell'ambiente. L'esito verde delle spec è quello registrato in `REVIEW-FIX.md` e `16-VERIFICATION.md`; qui le spec sono verificate per nome e posizione tramite i blocchi dei piani e i controlli trasversali.
 
-Disposizioni: `mitigated` 44, `accepted` 2 (T-16-06, T-16-31), `transferred` 0 (nessuna minaccia BE è di proprietà della FE), `deferred` 2 (T-16-41, T-16-48: passi del boot reale dell'orchestratore), `open` 0.
+Disposizioni: `mitigated` 46 (T-16-41 e T-16-48 chiuse il 2026-11-08 col boot reale e la rimozione del one-off, commit `0125058`), `accepted` 2 (T-16-06, T-16-31), `transferred` 0 (nessuna minaccia BE è di proprietà della FE), `deferred` 0, `open` 0.
 
 ## Registro delle minacce
 
@@ -71,14 +71,14 @@ Disposizioni: `mitigated` 44, `accepted` 2 (T-16-06, T-16-31), `transferred` 0 (
 | T-16-38 | Tampering | `LoreBackfillMigrator` | mitigated | solo add-to-set (grep di assenza del set), solo personaggi attivi (`ACTIVE_CHARACTER_FILTER`), idempotente (caso del secondo giro); nessun esecutore lo lancia contro il DB reale | piano 16-10 |
 | T-16-39 | Information disclosure | log del boot | mitigated | soli conteggi (caso del formato fisso); errore con `describeError` senza messaggio (caso `uri-segreta-da-non-loggare`) | piano 16-10 |
 | T-16-40 | Denial of service | boot | mitigated | `try/catch` intorno al passo: il boot prosegue (caso dell'errore) | piano 16-10 |
-| T-16-41 | Tampering (processo) | ciclo di vita del codice one-off | deferred | modulo importato solo da `AppModule` (caso dei metadati), rimozione in TDD in un piano successivo prima della merge, PR in draft fino ad allora | rimozione in TDD del modulo one-off prima della merge, a carico dell'orchestratore dopo il primo boot reale |
+| T-16-41 | Tampering (processo) | ciclo di vita del codice one-off | mitigated | modulo importato solo da `AppModule` (caso dei metadati), rimozione in TDD in un piano successivo prima della merge, PR in draft fino ad allora | rimozione in TDD del modulo one-off prima della merge, a carico dell'orchestratore dopo il primo boot reale |
 | T-16-42 | Tampering | `src/schema.gql` | mitigated | boot reale e diff contro `origin/develop`: zero righe tolte, tre aggiunte attese | piano 16-11 |
 | T-16-43 | Information disclosure | repo e documenti | mitigated | nessun `.env` nel diff, grep di URI Mongo nei `.md` della fase, `.env.example` con la sola `LORE_STUDY_CHANCE=`, nessun `process.env.` fuori da `src/config/` | piano 16-11 |
 | T-16-44 | Repudiation | commit | mitigated | grep dei trailer vietati su `origin/develop..HEAD` = 0 | piano 16-11 |
 | T-16-45 | Denial of service (qualità) | coverage e harness | mitigated | soglie lette e confrontate senza diff su `coverageThreshold`; ripiego per cartella scritto (Pitfall 12); `LoreBackfillModule` solo in `AppModule` | piano 16-11 |
 | T-16-46 | Information disclosure | handoff e dati della UAT | mitigated | soli segnaposto (`<characterId>`, `<twitchId del giocatore>`); variabili del bypass coi soli nomi; grep di URI Mongo = 0; operatori solo in code span | piano 16-12 |
 | T-16-47 | Tampering | storico delle decisioni e contratto | mitigated | emendamenti solo in coda (diff senza righe tolte); SDL copiato verbatim da `src/schema.gql` e verificato col grep del verify | piano 16-12 |
-| T-16-48 | Elevation (processo) | runbook del backfill | deferred | build prima dello stop (il BE gira da `dist/`), secondo boot a zero come verifica, rimozione in TDD e PR in draft fino ad allora | runbook del backfill: build prima dello stop, secondo boot a zero e rimozione in TDD sono passi del boot reale dell'orchestratore |
+| T-16-48 | Elevation (processo) | runbook del backfill | mitigated | build prima dello stop (il BE gira da `dist/`), secondo boot a zero come verifica, rimozione in TDD e PR in draft fino ad allora | runbook del backfill: build prima dello stop, secondo boot a zero e rimozione in TDD sono passi del boot reale dell'orchestratore |
 
 ## Controlli trasversali
 
@@ -101,10 +101,10 @@ Tutti lanciati dalla radice del repo a `4322d82`.
 
 Nessuna.
 
-## Deferred
+## Deferred (chiuse il 2026-11-08)
 
-- T-16-41 — il modulo one-off `LoreBackfillModule` va rimosso in TDD dopo il primo boot reale e prima della merge; la PR resta in draft fino ad allora. Verifica: orchestratore. Oggi il modulo è importato solo da `src/app.module.ts` (controllo H).
-- T-16-48 — runbook del backfill (build prima dello stop del BE da `dist/`, secondo boot a zero conteggi, rimozione in TDD). Verifica: boot reale dell'orchestratore.
+- T-16-41 — il modulo one-off `LoreBackfillModule` va rimosso in TDD dopo il primo boot reale e prima della merge; la PR resta in draft fino ad allora. Verifica: orchestratore. Oggi il modulo è importato solo da `src/app.module.ts` (controllo H). **Chiusa il 2026-11-08:** rimosso in TDD (`80c3bf7` → `0125058`), terzo boot dalla build finale senza il modulo.
+- T-16-48 — runbook del backfill (build prima dello stop del BE da `dist/`, secondo boot a zero conteggi, rimozione in TDD). Verifica: boot reale dell'orchestratore. **Chiusa il 2026-11-08:** build prima dello stop, primo boot coi conteggi, secondo boot a zero, rimozione in TDD, terzo boot pulito (handoff §5).
 
 ## Accepted
 

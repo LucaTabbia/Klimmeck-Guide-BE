@@ -228,7 +228,7 @@ Script dell'orchestratore fuori dal repo, dopo build e riavvio del BE dal branch
 - **(c) Arrivo su una città:** spostare `status.location` a DB **non sblocca nulla** (non è un arrivo). Usare il teleport del GM (`teleportCharacter` con `{ id: <characterId>, poiId: <id del marker della città> }`, bearer innkeeper) oppure un viaggio reale verso il marker della città con `status.activeTravel.endTime` portato nel passato: lo sweep lo completa entro un intervallo e la geografia della città entra nell'insieme.
 - **(d) Città sconosciuta sulla mappa:** togliere da `status.unlockedLore` l'id della lore di quella città (un `$pull` dell'id `<id>`): `City.relatedLore` torna `null` e il FE mostra «Non conosci ancora questa città.».
 - **(e) Ritratto oscurato:** togliere da `status.knownEnemies` l'id del nemico `<id>` (`$pull`): il nemico torna `known: false` alla rilettura.
-- **(f) Personaggi esistenti:** i 4 personaggi a DB hanno già la conoscenza scritta dal backfill (§5): geografia della città su cui si trovano + lore e nemici dei loro esiti vinti. Per una UAT «da zero» usare (a) o un personaggio nuovo.
+- **(f) Personaggi esistenti:** i 3 personaggi attivi a DB (il quarto documento, `6ae30a623a20a4350c47eda5`, è archiviato) hanno già la conoscenza scritta dal backfill del 2026-11-08 (§5; `6ae776554e5fe45caead56c5` è rimasto vuoto: marker senza città e nessuna vittoria con nemici): geografia della città su cui si trovano + lore e nemici dei loro esiti vinti. Per una UAT «da zero» usare (a) o un personaggio nuovo.
 - **(g) Verifiche:** a DB `characters.status.unlockedLore` / `status.knownEnemies` del personaggio; `questresults.loreUnlocked` dell'ultimo esito. Probe GraphQL col bearer del giocatore:
 
 ```graphql
@@ -249,7 +249,7 @@ Script dell'orchestratore fuori dal repo, dopo build e riavvio del BE dal branch
 
 ## 5. Boot reale col backfill e rimozione
 
-Il backfill one-off (D-11) inizializza i personaggi attivi esistenti (4 a DB): geografia della città del marker su cui si trovano (se è un marker di città) + lore e id dei nemici dei loro `questresults` vinti (`success` e `gmCompleted` con nemici, 26 risultati a DB). Idempotente per unione (add-to-set), mai bloccante, log di soli conteggi. Codice in `src/migrations/lore-backfill/`, modulo `LoreBackfillModule` importato **solo** da `src/app.module.ts`.
+Il backfill one-off (D-11) inizializza i personaggi attivi esistenti (4 documenti a DB, di cui 3 attivi: uno è archiviato con `deletedAt` e il filtro dei personaggi attivi lo esclude): geografia della città del marker su cui si trovano (se è un marker di città) + lore e id dei nemici dei loro `questresults` vinti (`success` e `gmCompleted` con nemici, 26 risultati a DB). Idempotente per unione (add-to-set), mai bloccante, log di soli conteggi. Codice in `src/migrations/lore-backfill/`, modulo `LoreBackfillModule` importato **solo** da `src/app.module.ts`.
 
 **Runbook dell'orchestratore:**
 
@@ -262,7 +262,13 @@ Il backfill one-off (D-11) inizializza i personaggi attivi esistenti (4 a DB): g
 
 ### Esito del boot reale
 
-_(da compilare a cura dell'orchestratore: riga del primo boot, riga del secondo boot, hash dei commit di rimozione)_
+Eseguito dall'orchestratore il 2026-11-08 dal branch `feat/16-lore-sbloccabili` (build di `a2c10cd`, `PORT=3001`; Redis locale spento come già nel boot precedente da `develop`: WARN al boot, i job partono al riconnesso e lo sweep copre).
+
+- **Primo boot (16:17):** `Backfill delle lore: personaggi 3, aggiornati 2, lore aggiunte 8, nemici aggiunti 1, senza città 1`. I documenti a DB sono 4, ma `6ae30a623a20a4350c47eda5` è archiviato (`deletedAt` 2026-10-29) e il filtro dei personaggi attivi lo esclude: il «4» atteso contava i documenti. Effetto letto a DB in sola lettura: `68c191de541d89c481b8322b` 5 lore + 1 nemico (città del marker + vittorie), `6ae777dd4db394a6354fd0a0` 3 lore (sola geografia), `6ae776554e5fe45caead56c5` invariato (marker senza città, nessuna vittoria con nemici: è il «senza città 1»).
+- **Secondo boot (16:19):** `Backfill delle lore: personaggi 3, aggiornati 0, lore aggiunte 0, nemici aggiunti 0, senza città 1` (idempotenza verificata).
+- **Rimozione in TDD:** `80c3bf7` test(migrations): expect the real boot without the one-off lore backfill (RED: il boot reale di `test/app.int-spec.ts` non trova più `LoreBackfillModule` fra i moduli del `ModulesContainer`) → `0125058` refactor(migrations): drop the 16 one-off lore backfill after its run (i 7 file di `src/migrations/lore-backfill/` più import e commento in `src/app.module.ts`; tsc 0, boot reale 77/77, SDL invariata).
+- **Terzo boot (16:20) dalla build finale:** nessuna riga del backfill, applicazione avviata; il BE resta in esecuzione da questo codice sulla 3001.
+- **CI:** rossa prima del boot per `lore-backfill.boot.spec.ts` che importava `AppModule` (senza `.env` la validazione dell'ambiente faceva crollare jest); corretta in `5fd6190`, verde dal commit `a2c10cd`.
 
 ---
 
