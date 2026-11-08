@@ -26,7 +26,6 @@ import { AmbushModule } from './travel/ambush/ambush.module';
 import { TravelModule } from './travel/travel.module';
 import { QuestOutcomesModule } from './quests/outcomes/quest-outcomes.module';
 import { QuestMaintenanceModule } from './quests/maintenance/quest-maintenance.module';
-import { LoreBackfillModule } from './migrations/lore-backfill/lore-backfill.module';
 import { QuestGenerationModule } from './quests/generation/quest-generation.module';
 import { QuestResultsModule } from './quests/results/quest-results.module';
 import { PartyLifecycleModule } from './quests/party/party-lifecycle.module';
@@ -114,8 +113,6 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         AmbushModule,
         QuestOutcomesModule,
         QuestMaintenanceModule,
-        // backfill una tantum delle lore (Phase 16 D-11): esce dal repo dopo il boot reale
-        LoreBackfillModule,
         QuestGenerationModule,
         PartyLifecycleModule,
         QuestResultsModule,
