@@ -68,7 +68,7 @@ Al primo boot reale ci si aspetta `personaggi 4`; al secondo boot `aggiornati 0,
 ## Procedura di rimozione (per il handoff)
 
 Dopo il boot reale e il report dei conteggi, in un piano fuori da questa fase (modello `3bdf65a`/`64ef914` della 13.1):
-1. RED: una spec che verifica che `Reflect.getMetadata('imports', AppModule)` NON contiene più `LoreBackfillModule` (o la rimozione del caso dei metadati da `lore-backfill.boot.spec.ts` sostituita da una spec di `AppModule`); commit `test(migrations): …`.
+1. RED in `test/app.int-spec.ts`: il caso `mounts the one-off lore backfill at boot (16 D-11)` viene sostituito da un caso che legge i nomi dei moduli dal `ModulesContainer` del boot reale e non trova più `LoreBackfillModule`; commit `test(migrations): …`.
 2. `refactor(migrations): drop the 16 one-off lore backfill after its run`: cancella `src/migrations/lore-backfill/` (7 file) e l'import + il commento in `src/app.module.ts`.
 3. `npx tsc --noEmit -p tsconfig.json` 0, `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` verde, `git diff --exit-code src/schema.gql` 0.
 
@@ -78,6 +78,7 @@ Dopo il boot reale e il report dei conteggi, in un piano fuori da questa fase (m
 - **Collection lette dal modello per tutte e tre** (non solo per i nemici): nessun nome di collection scritto a mano.
 - **[Rule 1 - Bug nella spec RED] POI del territorio**: `persistPoi(pois, { type: 'quest' })` non passa la validazione (`quest` non è un `PoiType`); nel commit GREEN i due casi usano `persistPoi(pois)` (POI senza città collegata).
 - Il caso `never touches an archived character (D-11)` usa `toMatchObject` sui due insiemi (vuoti in partenza) più `characters: 0`, `updated: 0`.
+- **Post-chiusura (CI della PR #25, 2026-11-08)**: il caso dei metadati di `AppModule` nella spec unitaria importava `src/app.module`, che al caricamento esegue `ConfigModule.forRoot` → `validateEnv`; senza `.env` (CI) il `JWT_SECRET` mancante usciva come eccezione non catturata e jest moriva senza riepilogo (in locale il `.env` lo copriva). Il controllo del cablaggio è passato a `test/app.int-spec.ts` (`mounts the one-off lore backfill at boot (16 D-11)`, boot reale con ambiente finto); la spec unitaria tiene solo i moduli feature (`is imported by no feature module (D-11)`). Commit `5fd6190`.
 
 ## Gate
 
