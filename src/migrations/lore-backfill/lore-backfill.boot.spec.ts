@@ -1,5 +1,4 @@
 import { Logger } from '@nestjs/common';
-import { AppModule } from 'src/app.module';
 import { CharacterCreationModule } from 'src/characters/creation/character-creation.module';
 import { LoreGeographyModule } from 'src/lore/lore-geography.module';
 import { LoreVisibilityModule } from 'src/lore/lore-visibility.module';
@@ -70,8 +69,9 @@ describe('LoreBackfillBoot', () => {
         expect(String(errorSpy.mock.calls[0][0])).not.toContain('uri-segreta');
     });
 
-    it('is imported by the application module only (D-11)', () => {
-        expect(importsOf(AppModule)).toContain(LoreBackfillModule);
+    // il cablaggio in AppModule è provato da test/app.int-spec.ts: importare qui src/app.module
+    // farebbe validare l'ambiente al caricamento e senza .env (CI) jest crolla
+    it('is imported by no feature module (D-11)', () => {
         for (const feature of [
             LoreModule,
             TravelModule,

@@ -26,6 +26,7 @@ import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
 import { WalletService } from 'src/economy/wallet.service';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 import { UnhandledExceptionFilter } from 'src/http/unhandled-exception.filter';
+import { LoreBackfillBoot } from 'src/migrations/lore-backfill/lore-backfill.boot';
 import { DisabledImageModerator } from 'src/moderation/disabled-image.moderator';
 import { ImageModerator } from 'src/moderation/image-moderator';
 import { ModerationStartupReporter } from 'src/moderation/moderation-startup.reporter';
@@ -873,6 +874,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(CombatResolver)).toBeInstanceOf(
             PlaceholderCombatResolver,
         );
+    });
+
+    it('mounts the one-off lore backfill at boot (16 D-11)', () => {
+        expect(app.get(LoreBackfillBoot)).toBeInstanceOf(LoreBackfillBoot);
     });
 
     it('mounts the quest result maintenance', () => {
