@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 17 eseguita (10/10, 2026-11-09) — handoff BACKEND-NOTES.md scritto, BE-SESSION-01..05 completi; PR verso develop dall'orchestratore (non in draft); FE Phase 12 sbloccata alla merge
-last_updated: "2026-11-09T16:40:09.167Z"
-last_activity: 2026-11-09 -- Phase 17 eseguita (10/10), PR verso develop, FE Phase 12 sbloccata alla merge
+stopped_at: Phase 17 execution complete (10/10, 2026-11-09) — PR verso develop aperta dall'orchestratore (nessun one-off, nessuna migrazione)
+last_updated: "2026-11-09T18:49:53.000Z"
+last_activity: 2026-11-09 -- Phase 17 complete: 10/10, review (3 warning / 15 info → 17 fix, 1 saltato con motivo), verification (passed_with_gaps, gap documentale chiuso dal 17-10), security (44 minacce, 0 open, 2 differite alla UAT FE); PR to develop
 progress:
   total_phases: 21
-  completed_phases: 20
+  completed_phases: 21
   total_plans: 261
-  completed_plans: 251
-  percent: 96
+  completed_plans: 261
+  percent: 100
 ---
 
 # Project State
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 17 — Autorizzazione e sessioni — ESEGUITA (10/10, 2026-11-09) su `feat/17-autorizzazione-e-sessioni` (da `develop` `31dba96`, la merge della PR #26): gate 17-09 verde, handoff `.planning/phases/17-autorizzazione-e-sessioni/BACKEND-NOTES.md` per la FE Phase 12, BE-SESSION-01..05 completi; PR verso `develop` a cura dell'orchestratore (non in draft: nessun one-off né migrazione). La FE Phase 12 Hardening (`refactor/12-hardening`) sblocca i piani gated alla merge.
+**Current focus:** Phase 17 — Autorizzazione e sessioni — COMPLETE (2026-11-09) su `feat/17-autorizzazione-e-sessioni` (da `develop` `31dba96`): 10/10 piani, gate 17-09 verde (380 suite / 4849 test prima dei fix; 381 / 4872 dopo, coverage src/auth 99,86 / 87,63 / 100), tre review per area (3 warning / 15 info → 17 fix, 1 saltato con motivo), verifica (passed_with_gaps, gap documentale chiuso dal 17-10), audit di sicurezza (44 minacce, 0 open, 2 differite alla UAT FE); PR verso `develop` aperta dall'orchestratore (nessun one-off né migrazione: SDL invariato, campo `Session.revokeReason` additivo). La FE Phase 12 Hardening (parcheggiata a 15/17 su `refactor/12-hardening`) riprende con 12-16/12-17 dopo la merge. Previous: Phase 16 — COMPLETE and merged (PR #25).
 
 ## Current Position
 
-Phase: 17 (Autorizzazione e sessioni) — EXECUTING since 2026-11-09 on `feat/17-autorizzazione-e-sessioni` (from `develop` `31dba96`): 10 plans in 10 sequential waves (enum + model + reason → session service → revocation fan-out and 4409 → connection_init → login revokes the others → role watcher → matrix foundations → authorization matrix → gate → handoff)
+Phase: 17 (Autorizzazione e sessioni) — COMPLETE 2026-11-09 on `feat/17-autorizzazione-e-sessioni` (from `develop` `31dba96`): 10/10 plans, gate 17-09 passed (380 suite / 4849 test prima dei fix; 381 / 4872 dopo, coverage src/auth 99,86 / 87,63 / 100), three area reviews (3 warning / 15 info → 17 fix, 1 saltato con motivo), verification (passed_with_gaps, gap documentale chiuso dal 17-10), security audit (44 minacce, 0 open, 2 differite alla UAT FE); PR to `develop` opened by the orchestrator; the FE Phase 12 (parked at 15/17) resumes with 12-16/12-17 after the merge
 Plan: 10 of 10
-Status: Phase 17 eseguita (10/10) — PR verso develop (non in draft); FE Phase 12 sbloccata alla merge (piani gated 12-16/12-17)
-Last activity: 2026-11-09 -- Phase 17 eseguita (10/10), PR verso develop, FE Phase 12 sbloccata alla merge
+Status: Phase 17 complete — PR to develop open; next: merge, then `npm run build` + restart of the BE from `develop` (the user's process on port 3001 runs the pre-17 build), then the FE Phase 12 gate 12-16 and the device UAT 12-17 (dual device + release via TLS tunnel) with the notes of the handoff
+Last activity: 2026-11-09 -- Phase 17 complete: review, verification, fixes and security audit done; PR to develop
 Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.
 
-Progress: [░░░░░░░░░░] 0/10 plans of Phase 17 (phases 1–16, 9.1, 9.2 and 13.1 complete and merged)
+Progress: [██████████] 10/10 plans of Phase 17 (phases 1–17, 9.1, 9.2 and 13.1 complete; 17 awaiting the merge)
 
 ## Performance Metrics
 
