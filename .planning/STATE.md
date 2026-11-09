@@ -5,7 +5,7 @@ milestone_name: milestone
 status: planning
 stopped_at: Phase 18 (Quest heal per taglia) context gathered on 2026-11-09 in the joint discuss with the FE Phase 18; branch `feat/18-quest-heal-per-taglia` from `develop` `31dba96` (worktree); planned now, executed after the Phase 17 (`feat/17-autorizzazione-e-sessioni`, planned by another session); next `/gsd-plan-phase 18` (REPO-RULES first)
 last_updated: "2026-11-09T16:50:00.000Z"
-last_activity: 2026-11-09 -- Phase 18 added as the BE companion of the FE Phase 18 (discuss from the FE repo): 18-CONTEXT.md D-01..D-14, BE-HEAL-01..05, ROADMAP section and alignment row
+last_activity: 2026-11-09 -- Phase 18 context extended the same evening: potions drunk from the Journal with a global recovery (`LootItem.recovery { time, turns }`, `potionRecoveryUntil`, `useItem`) and the lore «Il limite del corpo» (D-15..D-19, BE-HEAL-06..08)
 progress:
   total_phases: 21
   completed_phases: 20
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 18 — Quest heal per taglia — CONTEXT GATHERED (2026-11-09) su `feat/18-quest-heal-per-taglia` (da `develop` `31dba96`, la merge della PR #26; worktree): companion della FE Phase 18, discuss congiunto condotto dal repo FE; `18-CONTEXT.md` D-01..D-14 (`prizes.cure` con quota di vita a tetto 50/80/100 e lista `canHeal`, cura su ogni quest vinta che la porta, liste ≤20/≤40/tutte con ritocchi di lore, ore 2/5/8, `injuriesHealed`, contenuto a DB dopo la merge su file rivisto); **si esegue dopo la Phase 17** «Autorizzazione e sessioni» (sul suo ramo, pianificata in un'altra sessione; alla seconda merge riconciliare ROADMAP/STATE/REQUIREMENTS/PROJECT); prossimo passo `/gsd-plan-phase 18` con `18-REPO-RULES.md` scritto prima della ricerca.
+**Current focus:** Phase 18 — Quest heal per taglia — CONTEXT GATHERED (2026-11-09) su `feat/18-quest-heal-per-taglia` (da `develop` `31dba96`, la merge della PR #26; worktree): companion della FE Phase 18, discuss congiunto condotto dal repo FE; `18-CONTEXT.md` D-01..D-14 (`prizes.cure` con quota di vita a tetto 50/80/100 e lista `canHeal`, cura su ogni quest vinta che la porta, liste ≤20/≤40/tutte con ritocchi di lore, ore 2/5/8, `injuriesHealed`, contenuto a DB dopo la merge su file rivisto; D-15..D-19 aggiunte la sera stessa: pozioni dal Diario con ricarica globale `recovery { time, turns }` 30 min–24 h, `useItem` consentita in viaggio, `turns` solo dato per il combat dell'utente, lore «Il limite del corpo» sbloccata alla prima pozione via `LootItem.relatedLore`); **si esegue dopo la Phase 17** «Autorizzazione e sessioni» (sul suo ramo, pianificata in un'altra sessione; alla seconda merge riconciliare ROADMAP/STATE/REQUIREMENTS/PROJECT); prossimo passo `/gsd-plan-phase 18` con `18-REPO-RULES.md` scritto prima della ricerca.
 
 ## Current Position
 
-Phase: 18 (Quest heal per taglia) — CONTEXT GATHERED 2026-11-09 on `feat/18-quest-heal-per-taglia` (from `develop` `31dba96`, worktree): BE companion of the FE Phase 18 in a joint interactive discuss from the FE repo; `18-CONTEXT.md` D-01..D-14, requirements BE-HEAL-01..05; planned now, executed after the Phase 17 (`feat/17-autorizzazione-e-sessioni`); next `/gsd-plan-phase 18`
+Phase: 18 (Quest heal per taglia) — CONTEXT GATHERED 2026-11-09 on `feat/18-quest-heal-per-taglia` (from `develop` `31dba96`, worktree): BE companion of the FE Phase 18 in a joint interactive discuss from the FE repo; `18-CONTEXT.md` D-01..D-19, requirements BE-HEAL-01..08 (06..08 added the same evening: Journal potions with a global recovery and the lore «Il limite del corpo»); planned now, executed after the Phase 17 (`feat/17-autorizzazione-e-sessioni`); next `/gsd-plan-phase 18`
 Plan: 0 of TBD
 Status: Phase 18 context gathered — ready to plan (REPO-RULES with the contract names first: `QuestCure`, `lifePointsShare`, `canHeal`, `injuriesHealed`); Phases 15 and 16 and the quick tasks 261109-inj/inj2 merged on `develop` (`31dba96`); Phase 17 context gathered and being planned on its own branch by another session (2026-11-09)
-Last activity: 2026-11-09 -- Phase 18 context gathered (joint discuss with the FE Phase 18); ROADMAP, REQUIREMENTS, PROJECT and STATE updated
+Last activity: 2026-11-09 -- Phase 18 context extended with the Journal potions (global recovery `recovery { time, turns }`, `useItem`) and the lore «Il limite del corpo»; ROADMAP, REQUIREMENTS, PROJECT and STATE updated
 Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.
 
 Progress: [░░░░░░░░░░] 0/? plans of Phase 18 (phases 1–16, 9.1, 9.2 and 13.1 complete; 17 on its branch; 18 added 2026-11-09 as the FE Phase 18 companion, executed after 17)
