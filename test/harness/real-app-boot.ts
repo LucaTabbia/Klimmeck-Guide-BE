@@ -4,7 +4,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
-import type { Connection } from 'mongoose';
+import mongoose, { type Connection } from 'mongoose';
 import type { AddressInfo } from 'node:net';
 import { startRedis, stopRedis } from '../setup/redis';
 
@@ -69,6 +69,18 @@ async function createApp(): Promise<INestApplication> {
     return moduleRef.createNestApplication({ rawBody: true });
 }
 
+// connessione effimera: quella dell'app è già chiusa, e un drop con l'app viva invaliderebbe i change stream (C-IN-01)
+async function dropTestDatabase(uri: string, dbName: string): Promise<void> {
+    const connection = await mongoose
+        .createConnection(uri, { dbName })
+        .asPromise();
+    try {
+        await connection.dropDatabase();
+    } finally {
+        await connection.close();
+    }
+}
+
 async function listeningPortOf(app: INestApplication): Promise<number> {
     await app.listen(0);
     const server = app.getHttpServer() as { address(): AddressInfo };
@@ -79,6 +91,7 @@ export async function bootRealApp(
     options: RealAppBootOptions,
 ): Promise<RealAppBoot> {
     const envSnapshot = { ...process.env };
+    const mongoUri = process.env.MONGO_TEST_URI as string;
     const redis = await startRedis();
     let app: INestApplication | undefined;
     try {
@@ -93,9 +106,9 @@ export async function bootRealApp(
             port,
             connection,
             async close() {
-                await connection.dropDatabase();
                 await booted.close();
                 await stopRedis();
+                await dropTestDatabase(mongoUri, options.dbName);
                 process.env = envSnapshot;
             },
         };
