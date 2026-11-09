@@ -93,6 +93,23 @@ describe('SessionService (replSet)', () => {
         );
     }
 
+    // il logout concorrente arriva dopo la lettura dei candidati e prima dell'update
+    function revokeAfterTheCandidatesRead(sessionId: string): void {
+        const originalFind = SessionModel.find.bind(SessionModel);
+        jest.spyOn(SessionModel, 'find').mockImplementationOnce(((
+            ...args: Parameters<typeof SessionModel.find>
+        ) => {
+            const query = originalFind(...args);
+            const exec = query.exec.bind(query);
+            query.exec = async () => {
+                const candidates = await exec();
+                await service.revoke(sessionId, SessionRevokeReason.userLogout);
+                return candidates;
+            };
+            return query;
+        }) as unknown as typeof SessionModel.find);
+    }
+
     function retiredEntry(token: string, retiredAt: Date) {
         return { hash: sha256Hex(token), retiredAt };
     }
@@ -101,6 +118,8 @@ describe('SessionService (replSet)', () => {
         clock = new FixedClock();
         service = await buildService(TEST_JWT_SECRET);
     });
+
+    afterEach(() => jest.restoreAllMocks());
 
     describe('create', () => {
         it('issues an opaque refresh token bound to a new session', async () => {
@@ -338,6 +357,23 @@ describe('SessionService (replSet)', () => {
 
             expect(revoked).toEqual([]);
             expect((await readSession(b.sessionId))?.revokedAt).toBeNull();
+        });
+
+        it('does not return a session revoked by a concurrent logout between the read and the write (D-02, D-12)', async () => {
+            const raced = await service.create(USER_ID);
+            const kept = await service.create(USER_ID);
+            revokeAfterTheCandidatesRead(raced.sessionId);
+
+            const revoked = await service.revokeOthersOf(
+                USER_ID,
+                kept.sessionId,
+                SessionRevokeReason.newLogin,
+            );
+
+            expect(revoked).toEqual([]);
+            expect((await readSession(raced.sessionId))?.revokeReason).toBe(
+                'userLogout',
+            );
         });
 
         it('returns nothing for malformed ids (D-02)', async () => {
