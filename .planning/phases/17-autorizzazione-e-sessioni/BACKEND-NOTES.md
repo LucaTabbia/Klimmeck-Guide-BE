@@ -106,7 +106,7 @@ Il boot reale `test/app.int-spec.ts` monta `UserRoleChangesPublisher`, `SessionR
 
 ### Evidenza HARDEN-02
 
-`test/authz/authorization-matrix.int-spec.ts` gira sul **boot reale di `AppModule`** (`test/harness/real-app-boot.ts`, server in ascolto per il WS) ed è alimentata da `test/authz/expected-handlers.ts`, le stesse liste che `test/app.int-spec.ts` confronta coi metadati dei resolver (un handler nuovo senza fixture in `test/authz/handler-fixtures.ts` fa fallire la suite; `test/authz/handler-fixtures.spec.ts` valida i 30 documenti contro `src/schema.gql`). Attaccanti con sessioni vere, vittime vere (personaggio, PendingQuest, QuestResult); `adventurer` e `innkeeper` hanno un proprio personaggio attivo con corsia e risultato propri, così le righe di ownership provano lo scambio fra due giocatori attivi (review C-WR-01). 88 casi (85 da `17-08-SUMMARY.md` più le righe aggiunte dalla review):
+`test/authz/authorization-matrix.int-spec.ts` gira sul **boot reale di `AppModule`** (`test/harness/real-app-boot.ts`, server in ascolto per il WS) ed è alimentata da `test/authz/expected-handlers.ts`, le stesse liste che `test/app.int-spec.ts` confronta coi metadati dei resolver (un handler nuovo senza fixture in `test/authz/handler-fixtures.ts` fa fallire la suite; `test/authz/handler-fixtures.spec.ts` valida i 30 documenti contro `src/schema.gql`). Attaccanti con sessioni vere, vittime vere (personaggio, PendingQuest, QuestResult); `adventurer` e `innkeeper` hanno un proprio personaggio attivo con corsia e risultato propri, così le righe di ownership provano lo scambio fra due giocatori attivi (review C-WR-01). 89 casi (85 da `17-08-SUMMARY.md` più le righe aggiunte dalla review):
 
 | Gruppo | Handler | Casi | Esito |
 |--------|---------|------|-------|
@@ -116,7 +116,7 @@ Il boot reale `test/app.int-spec.ts` monta `UserRoleChangesPublisher`, `SessionR
 | ownership × `adventurer` sulla risorsa altrui | 19 (17 HTTP + 2 subscription) | 19 | `FORBIDDEN` |
 | owner-only × `innkeeper` | 8 (7 HTTP + 1 subscription) | 8 | `FORBIDDEN` |
 | completezza delle righe | — | 2 | chiavi = liste unite |
-| controlli positivi | — | 4 | proprietario (vittima e `adventurer`) servito, innkeeper servito sugli utenti e on-behalf sul personaggio altrui |
+| controlli positivi | — | 5 | proprietario (vittima e `adventurer`) servito, innkeeper servito sugli utenti e on-behalf sul personaggio altrui, proprietario sottoscritto a `characterUpdated` sul socket |
 
 Ogni rifiuto è un `toEqual({ code: 'FORBIDDEN' })` (o `UNAUTHENTICATED`) sull'intero `extensions`, un solo errore per risposta. Per rieseguirla:
 

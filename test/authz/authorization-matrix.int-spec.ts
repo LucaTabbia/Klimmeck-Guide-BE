@@ -2,6 +2,7 @@
 // metadati; validazione GraphQL prima dei guard → asserzioni toEqual sul codice (Pitfall 10)
 import request from 'supertest';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
+import { Character } from 'src/models/character/character.model';
 import {
     connectAndAwaitClose,
     graphqlWsUrl,
@@ -74,6 +75,13 @@ const INVALID_SOCKET_PAYLOADS: readonly {
 const CHARACTER_QUERY =
     'query Character($id: String!) { character(id: $id) { id } }';
 const USERS_QUERY = 'query Users { users { id } }';
+const OWN_CHARACTER_UPDATED =
+    'subscription OwnCharacter($id: String!) { characterUpdated(id: $id) { id status { coins { silver } } } }';
+const POSITIVE_SILVER = 42;
+
+type OwnCharacterUpdate = {
+    characterUpdated: { id: string; status: { coins: { silver: number } } };
+};
 
 function httpRows(list: readonly ProtectedHandler[]): ProtectedHandler[] {
     return list.filter((h) => HANDLER_FIXTURES[h].kind !== 'subscription');
@@ -325,6 +333,43 @@ describe('Authorization matrix (real boot)', () => {
             expect(body.data).toEqual({
                 character: { id: world.victims.characterId },
             });
+        });
+
+        it('lets the owner subscribe to its own character over the socket (D-01)', async () => {
+            const characterId = world.victims.characterId;
+            const subscription = openSubscription<OwnCharacterUpdate>(
+                graphqlWsUrl(portOf(boot)),
+                { Authorization: world.bearers.victim },
+                {
+                    query: OWN_CHARACTER_UPDATED,
+                    variables: { id: characterId },
+                },
+            );
+            try {
+                const snapshot = await subscription.next();
+                expect(snapshot.value?.errors).toBeUndefined();
+                expect(snapshot.value?.data?.characterUpdated.id).toBe(
+                    characterId,
+                );
+
+                await boot.connection
+                    .model(Character.name)
+                    .updateOne(
+                        { _id: characterId },
+                        { $set: { 'status.coins.silver': POSITIVE_SILVER } },
+                    );
+                const update = await subscription.next();
+
+                expect(update.value?.errors).toBeUndefined();
+                expect(update.value?.data).toEqual({
+                    characterUpdated: {
+                        id: characterId,
+                        status: { coins: { silver: POSITIVE_SILVER } },
+                    },
+                });
+            } finally {
+                await subscription.dispose();
+            }
         });
 
         it('lets the innkeeper list the users (D-01)', async () => {
