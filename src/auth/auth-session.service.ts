@@ -25,7 +25,8 @@ export class AuthSessionService {
 
     // l'ultimo login caccia l'altro (Phase 17 D-02): le altre sessioni attive dell'utente si revocano
     // dopo la creazione della nuova, mai la nuova; se la revoca fallisce il login fallisce e la
-    // sessione orfana scade da sola (D-12)
+    // sessione appena creata resta attiva a DB fino al TTL del refresh (il suo token non è mai stato
+    // consegnato) e il login successivo la revoca perché ha _id minore (D-12)
     async issueForUser(user: User): Promise<AuthSession> {
         const { sessionId, refreshToken } = await this.sessionService.create(
             user.id,

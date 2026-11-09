@@ -118,7 +118,9 @@ export class SessionService {
         reason: SessionRevokeReason,
     ): Promise<string[]> {
         if (!isObjectIdHex(userId) || !isObjectIdHex(keepSessionId)) return [];
-        // _id minore: fra due login concorrenti vince l'ultimo e nessuno caccia l'altro (D-12)
+        // _id minore: fra due login concorrenti vince l'ultimo e nessuno caccia l'altro (D-12);
+        // ordine valido con un solo processo BE (ObjectId monotoni nello stesso processo);
+        // con più nodi passare a createdAt con _id come spareggio
         return this.revokeActive(
             {
                 userId: new Types.ObjectId(userId),
