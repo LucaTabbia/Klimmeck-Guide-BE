@@ -152,6 +152,34 @@ describe('handler fixtures of the authorization matrix', () => {
         expect(ownershipCharacterTargets).toHaveLength(16);
     });
 
+    it('puts the victim id of its target in the variables of every fixture (D-01)', () => {
+        const victimIdOf: Record<
+            Exclude<HandlerFixture['target'], 'none'>,
+            string
+        > = {
+            character: SAMPLE_VICTIMS.characterId,
+            pendingQuest: SAMPLE_VICTIMS.pendingQuestId,
+            questResult: SAMPLE_VICTIMS.questResultId,
+        };
+        const carriesItsTarget = (fixture: HandlerFixture) => {
+            const serialized = JSON.stringify(
+                fixture.variables(SAMPLE_VICTIMS),
+            );
+            if (fixture.target !== 'none') {
+                return serialized.includes(victimIdOf[fixture.target]);
+            }
+            return Object.values(victimIdOf).every(
+                (victimId) => !serialized.includes(victimId),
+            );
+        };
+
+        expect(
+            entries
+                .filter(([, fixture]) => !carriesItsTarget(fixture))
+                .map(([handler]) => handler),
+        ).toEqual([]);
+    });
+
     it('routes the three subscriptions through the socket (D-01)', () => {
         expect(
             entries
