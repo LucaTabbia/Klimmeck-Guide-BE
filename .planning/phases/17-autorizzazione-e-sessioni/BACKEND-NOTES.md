@@ -106,13 +106,13 @@ Il boot reale `test/app.int-spec.ts` monta `UserRoleChangesPublisher`, `SessionR
 
 ### Evidenza HARDEN-02
 
-`test/authz/authorization-matrix.int-spec.ts` gira sul **boot reale di `AppModule`** (`test/harness/real-app-boot.ts`, server in ascolto per il WS) ed è alimentata da `test/authz/expected-handlers.ts`, le stesse liste che `test/app.int-spec.ts` confronta coi metadati dei resolver (un handler nuovo senza fixture in `test/authz/handler-fixtures.ts` fa fallire la suite; `test/authz/handler-fixtures.spec.ts` valida i 30 documenti contro `src/schema.gql`). Attaccanti con sessioni vere, vittime vere (personaggio, PendingQuest, QuestResult); `adventurer` e `innkeeper` hanno un proprio personaggio attivo con corsia e risultato propri, così le righe di ownership provano lo scambio fra due giocatori attivi (review C-WR-01). 86 casi (85 da `17-08-SUMMARY.md` più i controlli positivi della review):
+`test/authz/authorization-matrix.int-spec.ts` gira sul **boot reale di `AppModule`** (`test/harness/real-app-boot.ts`, server in ascolto per il WS) ed è alimentata da `test/authz/expected-handlers.ts`, le stesse liste che `test/app.int-spec.ts` confronta coi metadati dei resolver (un handler nuovo senza fixture in `test/authz/handler-fixtures.ts` fa fallire la suite; `test/authz/handler-fixtures.spec.ts` valida i 30 documenti contro `src/schema.gql`). Attaccanti con sessioni vere, vittime vere (personaggio, PendingQuest, QuestResult); `adventurer` e `innkeeper` hanno un proprio personaggio attivo con corsia e risultato propri, così le righe di ownership provano lo scambio fra due giocatori attivi (review C-WR-01). 87 casi (85 da `17-08-SUMMARY.md` più le righe aggiunte dalla review):
 
 | Gruppo | Handler | Casi | Esito |
 |--------|---------|------|-------|
 | innkeeper × `adventurer` / `guard` | 11 (10 HTTP + 1 subscription) | 22 | `FORBIDDEN` |
 | innkeeper × nessun bearer / bearer non JWT / firmato con altro secret, HTTP | 10 | 30 | `UNAUTHENTICATED` |
-| innkeeper × nessun bearer / bearer non JWT, WS | `connection_init` | 2 | close `4403 Forbidden` |
+| nessun bearer / bearer non JWT / firmato con altro secret, WS (una riga per payload, prima di ogni subscription) | `connection_init` | 3 | close `4403 Forbidden` |
 | ownership × `adventurer` sulla risorsa altrui | 19 (17 HTTP + 2 subscription) | 19 | `FORBIDDEN` |
 | owner-only × `innkeeper` | 8 (7 HTTP + 1 subscription) | 8 | `FORBIDDEN` |
 | completezza delle righe | — | 2 | chiavi = liste unite |

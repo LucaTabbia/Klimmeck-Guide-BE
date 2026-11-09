@@ -66,6 +66,10 @@ const INVALID_SOCKET_PAYLOADS: readonly {
         payloadCase: 'a bearer that is not a JWT',
         payload: { Authorization: NOT_A_JWT_BEARER },
     },
+    {
+        payloadCase: 'a JWT signed by another secret',
+        payload: { Authorization: foreignSecretBearer() },
+    },
 ];
 const CHARACTER_QUERY =
     'query Character($id: String!) { character(id: $id) { id } }';
@@ -219,12 +223,9 @@ describe('Authorization matrix (real boot)', () => {
             },
         );
 
-        it.each(
-            wsRows(EXPECTED_INNKEEPER_HANDLERS).flatMap((handler) =>
-                INVALID_SOCKET_PAYLOADS.map((row) => ({ handler, ...row })),
-            ),
-        )(
-            'closes the connection_init of $payloadCase with 4403 (D-01)',
+        // il rifiuto avviene alla connection_init, prima di ogni subscription: una riga per payload, non per handler
+        it.each(INVALID_SOCKET_PAYLOADS)(
+            'closes the connection_init of $payloadCase with 4403, before any subscription (D-01)',
             async ({ payload }) => {
                 await expect(
                     connectAndAwaitClose(graphqlWsUrl(portOf(boot)), payload),
