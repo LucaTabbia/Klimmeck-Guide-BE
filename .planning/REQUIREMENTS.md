@@ -236,10 +236,10 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 Deferred a post-v1.0. Tracciati ma non nella roadmap corrente.
 
-- **BE-FUT-01**: Refresh/rotazione del JWT di sessione (per v1.0: TTL breve + re-login trasparente FE)
+- ~~**BE-FUT-01**: Refresh/rotazione del JWT di sessione (per v1.0: TTL breve + re-login trasparente FE)~~ — **consegnato nella Phase 2** (2026-10-06): access JWT 15 min + refresh token rotante con reuse detection (BE-AUTH); la revoca delle altre sessioni al login è la Phase 17 _(riallineato 2026-11-09)_
 - **BE-FUT-02**: Redis PubSub adapter per scaling orizzontale delle subscription
 - **BE-FUT-03**: Pet/mount speed modifiers su `activeTravel.duration` (FE FUT-02)
-  _Anticipato nella Phase 8 (D-08, 2026-10-21): `Pet.speedModifier` modifica la durata di ogni viaggio._
+  _**Consegnato** nella Phase 8 (D-08, 2026-10-21): `Pet.speedModifier` modifica la durata di ogni viaggio; il compagno equipaggiato si sceglie dal Diario dalla FE Phase 13 (2026-11-03). Resta qui solo come traccia (riallineato 2026-11-09)._
 - **BE-FUT-04**: Combat log round-per-round (FE FUT-01)
 - **BE-FUT-05**: Riconciliazione/refund redemption EventSub (reject della redemption su Twitch quando il credito fallisce)
 
@@ -341,7 +341,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 
 - v1 requirements: 56 total (42 + BE-SYNC-01/02 aggiunti il 2026-10-14 + BE-SPELL-01..04 della 9.1 + BE-RESULT-01..04 della 9.2 + BE-HARD-05/06 della Phase 10, 2026-10-27 + BE-HARD-07 dalla UAT della FE Phase 9, 2026-10-29 + BE-HARD-08 dal discuss della FE Phase 10, 2026-10-29)
 - Mapped to phases: 50 / 50 ✓ (nessun orfano, nessun duplicato)
-- Estensione del 2026-10-29: +39 requisiti (BE-CONTENT-01..07, BE-SHOP-01..05, BE-QGEN-01..08, BE-FOOD-01..06, BE-AMBUSH-01..07, BE-LORE-01..06) mappati sulle Phase 11–16 → 95 totali, 89 mappati (i BE-TEST-01..04 restano nella Phase 1 non avviata e i 2 BE-SYNC assorbiti nella 3 come prima)
+- Estensione del 2026-10-29: +39 requisiti (BE-CONTENT-01..07, BE-SHOP-01..05, BE-QGEN-01..08, BE-FOOD-01..06, BE-AMBUSH-01..07, BE-LORE-01..06) mappati sulle Phase 11–16 → 95 totali, 89 mappati (i BE-TEST-01..04 della Phase 1, chiusa, e i 2 BE-SYNC assorbiti nella 3 sono contati a parte come prima)
 - Estensione del 2026-11-04 (discuss Phase 13 congiunto con la FE Phase 14): +3 requisiti (BE-QGEN-09 dungeon a tappe, BE-QGEN-10 premio pet, BE-QGEN-11 `accessoryUseTypes`) → 98 totali, 92 mappati
 - Inserimento del 2026-11-05 (Phase 13.1, dalla UAT della FE Phase 14): +5 requisiti (BE-QGEN-12 animali fuori, BE-QGEN-13 fasce contigue e budget per posti, BE-QGEN-14 taglie, BE-QGEN-15 tabellone per area, BE-QGEN-16 reset e revisione di hunt/dungeon al boot) → 103 totali, 97 mappati
 - Discuss del 2026-11-07 (Phase 16 congiunto con la FE Phase 17): BE-LORE-01..06 emendati (id sul filo, geografia città + regioni + stato, nemico esatto, `loreUnlocked`, studio al 50 %, filtri fuori dalla Biblioteca, backfill one-off); nessun requisito nuovo

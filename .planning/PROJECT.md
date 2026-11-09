@@ -39,19 +39,27 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 - ✓ Consegna dei risultati mai persa (BE-RESULT-01..04, Phase 9.2): `unacknowledgedQuestResults` (risultati dell'utente del bearer con conferma nulla, `resolvedAt` crescente, tetto 50, indice composto), `acknowledgeQuestResult(id)` idempotente owner-only (un solo update condizionale in transazione, `NOT_FOUND`/`FORBIDDEN` come `questResult`), `QuestResult.acknowledgedAt` additivo con backfill idempotente al boot; l'archivio di un partecipante a una quest avviata lascia un segnaposto interno (regola dell'utente: «Il BE non libera i posti delle quest avviate»), la risoluzione combatte con chi resta; il morto resta `currentCharacter` finché il suo risultato `death` non è confermato e la conferma lo stacca nella stessa transazione (D-12) — Phase 9.2
 - ✓ Modelli unificati GraphQL ObjectType + Mongoose Schema con `idTransformPlugin` globale — existing
 - ✓ Infrastruttura push FCM domain-agnostic: registro `push_devices` per-device (una riga per `(userId, deviceId)`, indice unico sul token, TTL 270 giorni, claim idempotente che sposta il token tra account), `PushService` → porta `PushTransport` (`FcmPushTransport` su firebase-admin 14 / `NoopPushTransport` senza credenziali, mai contattato nei test), data message con `type`/`id`/`title`/`body`/`sentAt` (mai stato di gioco; Android high priority, iOS background push), catalogo tipizzato `travelEnd`/`questEnd`/`streamerLive` (topic `streamer-live`), pruning solo su `registration-token-not-registered`/`invalid-registration-token`, invio best-effort che non lancia mai, mutation `registerPushDevice`/`unregisterPushDevice` sul bearer e `sendTestPush` innkeeper-only auditata, config `FIREBASE_SERVICE_ACCOUNT` fail-closed in produzione — Validated in Phase 5: Infrastruttura Push FCM (verifica 4/4, consegna reale su device nella UAT FE Phase 5; sblocca FE Phase 5)
+- ✓ Corsia standard risolta server-side alla scadenza dietro `CombatResolver` (segnaposto), `QuestResult` persistito per partecipante, catena soccorso/morte, coda live dell'oste con `completePendingRequest` — Phase 9 (2026-10-24); risultati mai persi con conferma esplicita — Phase 9.2 (2026-10-28)
+- ✓ Hardening trasversale: validazione input, introspection off, sanitization, throttling, coverage per cartella, moderazione immagini Sightengine, avvio atomico delle quest — Phase 10 (2026-10-30)
+- ✓ Il mondo a DB: ~520 lore, 206 nemici, 44 pet, 96 magie, equipaggiamento e consumabili, 166 heal e le altre quest fisse per città, dungeon sui POI; nessun file di contenuto nel repo (D-36) — Phase 11 (2026-11-02)
+- ✓ Negozi per città con pool per taglia curati a DB, `cityShop`, compagni posseduti ed equipaggiato — Phase 12 (2026-11-03)
+- ✓ Generazione server-side delle quest `enemy`/`boss` per fascia e taglia, `infos.enemies`, premi per rango, oggetti consigliati — Phase 13 (2026-11-04) + 13.1 (2026-11-05)
+- ✓ Cibo del viaggio: fabbisogno dal tempo di marcia, selezione a scarto minimo, km scoperti → HP, rifiuto per fame, anteprime — Phase 14 (2026-11-05)
+- ✓ Imboscate in viaggio con risorteggio, deviazione alla sconfitta e report consegnati all'arrivo — Phase 15 (2026-11-06)
+- ✓ Lore per personaggio (geografia, nemici vinti, studio) con query filtrate per il bearer e `known` sui nemici — Phase 16 (2026-11-08)
 
 ### Active
 
 <!-- Gap da chiudere in questa milestone. IDs formali in REQUIREMENTS.md -->
 
-- [ ] Contratto combat result ibrido: entità `CombatResult` persistita, payload completo su subscription, ID su push FCM, query `combatResult(id)`
+- [x] Contratto combat result ibrido: entità `QuestResult` persistita, payload completo su subscription owner-only, ID su push `questEnd`, query dei risultati e conferma esplicita — Phase 9 (2026-10-24) + Phase 9.2 (2026-10-28) _(riallineato 2026-11-09)_
 - [x] Validazione input (class-validator + ValidationPipe globale) e hardening GraphQL (introspection off in prod, error sanitization, nessun CORS per decisione D-06) — Phase 10 (2026-10-30)
-- [ ] Popolamento del mondo: file di contenuto + script idempotente (lore, nemici, pet, magie, oggetti, quest fisse) — Phase 11 _(aggiunto 2026-10-29)_
-- [ ] Negozi per città: `City.size`, pool per città, rifiuto fuori pool — Phase 12 ↔ FE Phase 13 _(aggiunto 2026-10-29)_
-- [ ] Generazione quest: `infos.enemies`, generatore `enemy`/`boss` reattivo + sweep + GM, tetto 3 per città, rango meno coperto nel mondo — Phase 13 ↔ FE Phase 14 _(aggiunto 2026-10-29)_
-- [ ] Viaggio e cibo: fabbisogno dal tempo di marcia, scarto minimo, km scoperti → HP, rifiuto per fame — Phase 14 ↔ FE Phase 15 _(aggiunto 2026-10-29)_
-- [ ] Imboscate in viaggio: probabilità per km e notte, nemico della zona, deviazione alla sconfitta, report sul `QuestResult` — Phase 15 ↔ FE Phase 16 _(aggiunto 2026-10-29)_
-- [ ] Lore sbloccabili per personaggio: città, nemici vinti, study; query filtrate e `known` — Phase 16 ↔ FE Phase 17 _(aggiunto 2026-10-29)_
+- [x] Popolamento del mondo: lore, nemici, pet, magie, oggetti, quest fisse a DB (file e CLI tolti dal repo, D-36: il mondo vive solo nel database) — Phase 11 (2026-11-02) _(aggiunto 2026-10-29, riallineato 2026-11-09)_
+- [x] Negozi per città: `City.size`, pool per città, rifiuto fuori pool — Phase 12 ↔ FE Phase 13 (2026-11-03) _(aggiunto 2026-10-29, riallineato 2026-11-09)_
+- [x] Generazione quest: `infos.enemies`, generatore `enemy`/`boss` reattivo + sweep + GM, tetto per taglia (1/2/4 dalla 13.1), rango meno coperto nel mondo — Phase 13 (2026-11-04) + 13.1 (2026-11-05) ↔ FE Phase 14 _(aggiunto 2026-10-29, riallineato 2026-11-09)_
+- [x] Viaggio e cibo: fabbisogno dal tempo di marcia, scarto minimo, km scoperti → HP, rifiuto per fame — Phase 14 (2026-11-05) ↔ FE Phase 15 _(aggiunto 2026-10-29, riallineato 2026-11-09; il pagamento lungo la strada è la Phase 20)_
+- [x] Imboscate in viaggio: probabilità per km e notte, nemico della zona, deviazione alla sconfitta, report sul `QuestResult` — Phase 15 (2026-11-06) ↔ FE Phase 16 _(aggiunto 2026-10-29, riallineato 2026-11-09)_
+- [x] Lore sbloccabili per personaggio: città, nemici vinti, study; query filtrate e `known` — Phase 16 (2026-11-08) ↔ FE Phase 17 _(aggiunto 2026-10-29, riallineato 2026-11-09)_
 - [ ] Quest heal per taglia: `prizes.cure` (quota di vita a tetto + lista `canHeal`), cura su ogni quest vinta che la porta, contenuto delle 166 heal per taglia (liste, ore 2/5/8, descrizioni), `injuriesHealed` sul risultato; pozioni heal bevute dal Diario con ricarica globale (`LootItem.recovery { time, turns }`, `status.potionRecoveryUntil`, `useItem`) e lore «Il limite del corpo» — Phase 18 ↔ FE Phase 18 _(aggiunto 2026-11-09, si esegue dopo la Phase 17)_
 - [ ] Revisione dei modelli: `Enemy.weaknesses`, magie dei nemici per riferimento, stato dei pet sul personaggio con il 10 % degli xp dei nemici al compagno (tetto `maxXp`) e `Pet.attack`/`Pet.defense` al posto di `damages`, `wornEquipment`/`feet`, una sola lista di magie, via `PointOfInterest.quest`, `City.shop`, `Lore.imagePath`; migratore one-off unico — Phase 19 ↔ FE Phase 19 _(aggiunto 2026-11-09, si esegue dopo la 18)_
 - [ ] Cibo e vita progressivi in viaggio: piano salvato alla partenza, vita scalata dallo sweep solo nel tratto scoperto, cibo tolto in blocco a confine, arrivo o sconfitta (selezione sui km percorsi) — Phase 20, solo BE _(aggiunto 2026-11-09, si esegue dopo la 19; supera la Phase 14 D-04)_
@@ -60,7 +68,7 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 
 - Gilde, arena, blog gilde — v2 (come da PROJECT.md FE)
 - Descrizioni delle quest via LLM, audio quest, speech-to-text — v2; la generazione e il posizionamento server-side delle quest `enemy`/`boss` è la Phase 13 (2026-10-29)
-- Sistema allineamento crime/guard — v2 (enum presenti ma non usati)
+- Sistema allineamento crime/guard — v2 (le quest fisse `crime`/`guard` esistono dalla Phase 11 come lavori; nessun allineamento buono/cattivo)
 - Multi-canale Twitch — il prodotto è single-channel per design
 - Scaling orizzontale del PubSub (Redis pub/sub adapter) — un'istanza basta per v1.0; rivalutare se il deployment diventa multi-istanza
 - Modifiche al repo FE — gli handoff avvengono via `BACKEND-NOTES.md` nel repo FE, il codice FE non si tocca da qui
