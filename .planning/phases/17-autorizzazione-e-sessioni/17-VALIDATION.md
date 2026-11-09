@@ -1,9 +1,9 @@
 ---
 phase: 17
 slug: autorizzazione-e-sessioni
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-09
 ---
 
@@ -62,8 +62,8 @@ created: 2026-11-09
 | 17-08-01 | 08 | 8 | BE-SESSION-01 | T-17-32, T-17-33, T-17-34, T-17-35 | righe HTTP: `FORBIDDEN` per ruolo e proprietà, `UNAUTHENTICATED` senza bearer valido, completezza e controlli positivi | integration | `npx jest test/authz/authorization-matrix.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 17-08-02 | 08 | 8 | BE-SESSION-01 | T-17-32, T-17-33 | righe WS: `FORBIDDEN` alla subscribe, `4403 Forbidden` alla `connection_init` senza bearer valido | integration | `npx jest test/authz/authorization-matrix.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 17-08-03 | 08 | 8 | BE-SESSION-01 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-08-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 17-09-01 | 09 | 9 | BE-SESSION-05 | T-17-36, T-17-37, T-17-38, T-17-39, T-17-40 | `tsc`, suite e coverage `./src/auth/` ≥ 97/84/98, boot reale, SDL e whitelist invariati, invarianti | gate | `npx tsc --noEmit -p tsconfig.json` + `npm run test:cov` (ripiego per cartella con `--coverageThreshold='{}'`) + `git diff --exit-code src/schema.gql` | ✅ | ⬜ pending |
-| 17-09-02 | 09 | 9 | BE-SESSION-05 | — | VALIDATION firmata | doc | `grep -q "nyquist_compliant: true" .planning/phases/17-autorizzazione-e-sessioni/17-VALIDATION.md` | ✅ | ⬜ pending |
+| 17-09-01 | 09 | 9 | BE-SESSION-05 | T-17-36, T-17-37, T-17-38, T-17-39, T-17-40 | `tsc`, suite e coverage `./src/auth/` ≥ 97/84/98, boot reale, SDL e whitelist invariati, invarianti | gate | `npx tsc --noEmit -p tsconfig.json` + `npm run test:cov` (ripiego per cartella con `--coverageThreshold='{}'`) + `git diff --exit-code src/schema.gql` | ✅ | ✅ green |
+| 17-09-02 | 09 | 9 | BE-SESSION-05 | — | VALIDATION firmata | doc | `grep -q "nyquist_compliant: true" .planning/phases/17-autorizzazione-e-sessioni/17-VALIDATION.md` | ✅ | ✅ green |
 | 17-09-03 | 09 | 9 | BE-SESSION-05 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-09-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
 | 17-10-01 | 10 | 10 | BE-SESSION-05 | T-17-41, T-17-42, T-17-43, T-17-44 | handoff col contratto verbatim, evidenza HARDEN-02, note UAT senza segreti | doc | `grep -q 4409 .planning/phases/17-autorizzazione-e-sessioni/BACKEND-NOTES.md` | ❌ W0 | ⬜ pending |
 | 17-10-02 | 10 | 10 | BE-SESSION-01, BE-SESSION-02, BE-SESSION-03, BE-SESSION-04, BE-SESSION-05 | — | requisiti completi solo nel piano di chiusura | doc | `grep -cE "\- \[x\] \*\*BE-SESSION-0[1-5]\*\*" .planning/REQUIREMENTS.md` = 5 | ✅ | ⬜ pending |
@@ -75,13 +75,13 @@ created: 2026-11-09
 
 ## Wave 0 Requirements
 
-- [ ] `test/authz/expected-handlers.ts` — le tre liste condivise (refactor di `test/app.int-spec.ts`, verde prima e dopo)
-- [ ] `test/harness/real-app-boot.ts` — env e boot reale di `AppModule` condivisi (C-2), usato da `test/app.int-spec.ts` e dalla matrice
-- [ ] `test/authz/handler-fixtures.ts` e `test/authz/authorization-matrix.int-spec.ts` — BE-SESSION-01
-- [ ] `src/auth/ws/ws-session-registry.spec.ts` — BE-SESSION-02
-- [ ] `test/auth/session-revocation.int-spec.ts` — filo WS + HTTP di D-02/D-03/D-05 (BE-SESSION-02/03)
-- [ ] `src/auth/session/user-role-changes.publisher.int-spec.ts` — BE-SESSION-04, con l'helper di priming (Pitfall 3)
-- [ ] `src/auth/session/session-revocation.service.int-spec.ts` — ordine DB → socket (BE-SESSION-02)
+- [x] `test/authz/expected-handlers.ts` — le tre liste condivise (refactor di `test/app.int-spec.ts`, verde prima e dopo)
+- [x] `test/harness/real-app-boot.ts` — env e boot reale di `AppModule` condivisi (C-2), usato da `test/app.int-spec.ts` e dalla matrice
+- [x] `test/authz/handler-fixtures.ts` e `test/authz/authorization-matrix.int-spec.ts` — BE-SESSION-01
+- [x] `src/auth/ws/ws-session-registry.spec.ts` — BE-SESSION-02
+- [x] `test/auth/session-revocation.int-spec.ts` — filo WS + HTTP di D-02/D-03/D-05 (BE-SESSION-02/03)
+- [x] `src/auth/session/user-role-changes.publisher.int-spec.ts` — BE-SESSION-04, con l'helper di priming (Pitfall 3)
+- [x] `src/auth/session/session-revocation.service.int-spec.ts` — ordine DB → socket (BE-SESSION-02)
 
 ---
 
@@ -97,11 +97,11 @@ created: 2026-11-09
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60 s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 60 s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-11-09
