@@ -203,11 +203,11 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 
 ### Authorization audit & sessioni per device (BE-SESSION) — Phase 17, aggiunta 2026-11-09 dal discuss della FE Phase 12
 
-- [ ] **BE-SESSION-01**: Matrice di autorizzazione table-driven in un int-spec alimentato dalle liste di `test/app.int-spec.ts` (modulo di test condiviso): ogni handler innkeeper → `FORBIDDEN` con JWT `adventurer` e `guard`, `UNAUTHENTICATED` senza bearer o con bearer invalido; ogni handler owner-only → `FORBIDDEN` sul personaggio altrui (subscription comprese); un handler in lista senza fixture fa fallire la spec → FE HARDEN-02
-- [ ] **BE-SESSION-02**: «L'ultimo login caccia l'altro»: il login revoca le altre sessioni attive dell'utente (`revokedAt` + `revokeReason: newLogin`, idempotente) e chiude subito le loro connessioni WS con un close code dedicato (reason = motivo); una `connection_init` con JWT di una sessione revocata è rifiutata con lo stesso codice; l'access JWT resta stateless fino alla scadenza (900 s) → FE HARDEN-06
-- [ ] **BE-SESSION-03**: Il rifiuto del refresh resta `SESSION_REVOKED` e porta `extensions.reason` (enum `newLogin`, `roleChanged`, `reuseDetected`, `userLogout`; nomi fissati in `17-REPO-RULES.md`); la reuse detection scrive `reuseDetected`; `Session.revokeReason` additivo e nullable, nessuna migrazione, SDL invariato → FE HARDEN-06 (notice specifici)
-- [ ] **BE-SESSION-04**: Un cambio del `role` di un utente (change stream di `users` sul campo, con backoff, o `UsersService.upsertWithRole`) revoca tutte le sue sessioni con `roleChanged`; il logout revoca la sola sessione corrente con `userLogout` → FE T-10-19
-- [ ] **BE-SESSION-05**: Gate (`tsc`, `test:cov` per cartella, boot reale con whitelist e SDL invariati) e handoff `BACKEND-NOTES.md` per la FE Phase 12: close code, enum dei motivi, finestra del JWT, evidenza HARDEN-02, note per la UAT dual-device e per la UAT della release via tunnel TLS
+- [x] **BE-SESSION-01**: Matrice di autorizzazione table-driven in un int-spec alimentato dalle liste di `test/app.int-spec.ts` (modulo di test condiviso): ogni handler innkeeper → `FORBIDDEN` con JWT `adventurer` e `guard`, `UNAUTHENTICATED` senza bearer o con bearer invalido; ogni handler owner-only → `FORBIDDEN` sul personaggio altrui (subscription comprese); un handler in lista senza fixture fa fallire la spec → FE HARDEN-02
+- [x] **BE-SESSION-02**: «L'ultimo login caccia l'altro»: il login revoca le altre sessioni attive dell'utente (`revokedAt` + `revokeReason: newLogin`, idempotente) e chiude subito le loro connessioni WS con un close code dedicato (reason = motivo); una `connection_init` con JWT di una sessione revocata è rifiutata con lo stesso codice; l'access JWT resta stateless fino alla scadenza (900 s) → FE HARDEN-06
+- [x] **BE-SESSION-03**: Il rifiuto del refresh resta `SESSION_REVOKED` e porta `extensions.reason` (enum `newLogin`, `roleChanged`, `reuseDetected`, `userLogout`; nomi fissati in `17-REPO-RULES.md`); la reuse detection scrive `reuseDetected`; `Session.revokeReason` additivo e nullable, nessuna migrazione, SDL invariato → FE HARDEN-06 (notice specifici)
+- [x] **BE-SESSION-04**: Un cambio del `role` di un utente (change stream di `users` sul campo, con backoff, o `UsersService.upsertWithRole`) revoca tutte le sue sessioni con `roleChanged`; il logout revoca la sola sessione corrente con `userLogout` → FE T-10-19
+- [x] **BE-SESSION-05**: Gate (`tsc`, `test:cov` per cartella, boot reale con whitelist e SDL invariati) e handoff `BACKEND-NOTES.md` per la FE Phase 12: close code, enum dei motivi, finestra del JWT, evidenza HARDEN-02, note per la UAT dual-device e per la UAT della release via tunnel TLS
 
 ## Future Requirements
 
@@ -310,7 +310,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-FOOD-01..06 | Phase 14 | Complete (gate 14-07, 2026-11-05; aggiunti 2026-10-29; discuss 2026-11-05, BE-FOOD-02/03/04 emendati) |
 | BE-AMBUSH-01..07 | Phase 15 | Complete (gate 15-11 e chiusura 15-12, 2026-11-06; aggiunti 2026-10-29, emendati 2026-11-06) |
 | BE-LORE-01..06 | Phase 16 | Complete (gate 16-11 e chiusura 16-12, 2026-11-07; aggiunti 2026-10-29, emendati 2026-11-07) |
-| BE-SESSION-01..05 | Phase 17 | Pending (aggiunti 2026-11-09 dal discuss congiunto con la FE Phase 12) |
+| BE-SESSION-01..05 | Phase 17 | Complete (gate 17-09 e chiusura 17-10, 2026-11-09; aggiunti 2026-11-09 dal discuss congiunto con la FE Phase 12) |
 
 **Coverage:**
 

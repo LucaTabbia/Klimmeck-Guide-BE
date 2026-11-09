@@ -631,6 +631,8 @@ Plans:
 - [x] 17-09-PLAN.md — Gate: `tsc`, controllo di wave, `test:cov` con ripiego per cartella e soglie 97/84/98, boot reale con SDL invariato e whitelist invariate, lint sui file toccati, grep degli invarianti, VALIDATION firmata (D-10, D-15)
 - [ ] 17-10-PLAN.md — Chiusura: handoff `BACKEND-NOTES.md` per la FE Phase 12 (contratto, matrice come evidenza HARDEN-02, note UAT dual-device e tunnel TLS, runbook), `requirements mark-complete BE-SESSION-01..05`, ROADMAP e STATE (D-09, D-16)
 
+**Stato (2026-11-09)**: 10/10 piani eseguiti; PR verso `develop` a cura dell'orchestratore (non in draft: nessun one-off né migrazione); la FE Phase 12 sblocca i piani gated alla merge (handoff in `.planning/phases/17-autorizzazione-e-sessioni/BACKEND-NOTES.md`)
+
 ## Backend ↔ Frontend alignment
 
 Vincoli d'ordine dichiarati dal FE, mappati sulle fasi BE:

@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 17 executing (0/10, 2026-11-09) — wave sequenziali; nessun one-off né migrazione; PR verso develop dall'orchestratore dopo il gate
+stopped_at: Phase 17 eseguita (10/10, 2026-11-09) — handoff BACKEND-NOTES.md scritto, BE-SESSION-01..05 completi; PR verso develop dall'orchestratore (non in draft); FE Phase 12 sbloccata alla merge
 last_updated: "2026-11-09T16:40:09.167Z"
-last_activity: 2026-11-09 -- Phase 17 execution started
+last_activity: 2026-11-09 -- Phase 17 eseguita (10/10), PR verso develop, FE Phase 12 sbloccata alla merge
 progress:
   total_phases: 21
   completed_phases: 20
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 17 — Autorizzazione e sessioni — EXECUTING (dal 2026-11-09) su `feat/17-autorizzazione-e-sessioni` (da `develop` `31dba96`, la merge della PR #26): 10 piani in 10 wave sequenziali (enum + modello + reason → session service → fan-out della revoca e 4409 → connection_init → il login caccia le altre sessioni → watcher del ruolo → fondazioni della matrice → matrice di autorizzazione → gate → handoff), plan-checker passato; nessun one-off né migrazione (PR non in draft dopo il gate). Companion della FE Phase 12 Hardening, in esecuzione nella stessa sessione su `refactor/12-hardening` (17 piani, gli ultimi due gated dalla merge di questa fase).
+**Current focus:** Phase 17 — Autorizzazione e sessioni — ESEGUITA (10/10, 2026-11-09) su `feat/17-autorizzazione-e-sessioni` (da `develop` `31dba96`, la merge della PR #26): gate 17-09 verde, handoff `.planning/phases/17-autorizzazione-e-sessioni/BACKEND-NOTES.md` per la FE Phase 12, BE-SESSION-01..05 completi; PR verso `develop` a cura dell'orchestratore (non in draft: nessun one-off né migrazione). La FE Phase 12 Hardening (`refactor/12-hardening`) sblocca i piani gated alla merge.
 
 ## Current Position
 
 Phase: 17 (Autorizzazione e sessioni) — EXECUTING since 2026-11-09 on `feat/17-autorizzazione-e-sessioni` (from `develop` `31dba96`): 10 plans in 10 sequential waves (enum + model + reason → session service → revocation fan-out and 4409 → connection_init → login revokes the others → role watcher → matrix foundations → authorization matrix → gate → handoff)
 Plan: 9 of 10
-Status: Executing Phase 17 — sequential waves; no one-off, no migration; FE Phase 12 executing in the same session on `refactor/12-hardening` (its gated plans 12-16/12-17 wait for this phase's merge)
-Last activity: 2026-11-09 -- Phase 17 execution started
+Status: Phase 17 eseguita (10/10) — PR verso develop (non in draft); FE Phase 12 sbloccata alla merge (piani gated 12-16/12-17)
+Last activity: 2026-11-09 -- Phase 17 eseguita (10/10), PR verso develop, FE Phase 12 sbloccata alla merge
 Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.
 
 Progress: [░░░░░░░░░░] 0/10 plans of Phase 17 (phases 1–16, 9.1, 9.2 and 13.1 complete and merged)
