@@ -259,21 +259,63 @@ describe('formatDomainError', () => {
         });
     });
 
-    it('keeps only the reason among the extensions of a coded exception (D-13)', () => {
+    it('keeps only the reason among the extensions of a revoked session (D-05, D-13)', () => {
         const result = formatDomainError(
             buildFormatted({ code: 'BAD_REQUEST' }),
             wrapAsResolverError(
                 badRequestWithExtensions({
-                    code: 'PROBE_CODE',
-                    reason: 'probe',
+                    code: 'SESSION_REVOKED',
+                    reason: SessionRevokeReason.newLogin,
                     secret: 'hidden',
                 }),
             ),
         );
 
         expect(result.extensions).toEqual({
-            code: 'PROBE_CODE',
-            reason: 'probe',
+            code: 'SESSION_REVOKED',
+            reason: 'newLogin',
+        });
+    });
+
+    it('drops the reason of a code other than SESSION_REVOKED (D-05, D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'PROBE_CODE',
+                    reason: 'probe',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'PROBE_CODE' });
+    });
+
+    it('drops a reason outside the revoke reasons (D-05, D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'SESSION_REVOKED',
+                    reason: 'zzz',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'SESSION_REVOKED' });
+    });
+
+    it('keeps every revoke reason of the enum, e.g. roleChanged (D-05, D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                AuthException.sessionRevoked(SessionRevokeReason.roleChanged),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'SESSION_REVOKED',
+            reason: 'roleChanged',
         });
     });
 

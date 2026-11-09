@@ -99,6 +99,39 @@ describe('sanitizeFormattedError', () => {
         });
     });
 
+    it('drops the reason of a code other than SESSION_REVOKED (D-05, D-13)', () => {
+        const sanitized = sanitizeFormattedError({
+            message: 'probe',
+            extensions: { code: 'PROBE_CODE', reason: 'probe' },
+        });
+
+        expect(sanitized.extensions).toEqual({ code: 'PROBE_CODE' });
+    });
+
+    it('drops a reason outside the revoke reasons (D-05, D-13)', () => {
+        const sanitized = sanitizeFormattedError({
+            message: 'Session revoked, sign in again',
+            extensions: { code: 'SESSION_REVOKED', reason: 'zzz' },
+        });
+
+        expect(sanitized.extensions).toEqual({ code: 'SESSION_REVOKED' });
+    });
+
+    it('keeps the roleChanged reason of a revoked session (D-05, D-13)', () => {
+        const sanitized = sanitizeFormattedError({
+            message: 'Session revoked, sign in again',
+            extensions: {
+                code: 'SESSION_REVOKED',
+                reason: SessionRevokeReason.roleChanged,
+            },
+        });
+
+        expect(sanitized.extensions).toEqual({
+            code: 'SESSION_REVOKED',
+            reason: 'roleChanged',
+        });
+    });
+
     it('drops the reason of an internal error (D-13)', () => {
         expect(
             sanitizeFormattedError({
