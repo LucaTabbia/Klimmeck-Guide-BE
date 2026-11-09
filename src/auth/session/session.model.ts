@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 
 @Schema({ _id: false, versionKey: false })
 export class RetiredRefreshToken {
@@ -40,6 +41,15 @@ export class Session {
 
     @Prop({ type: Date, default: null })
     revokedAt: Date | null;
+
+    // scritto insieme a revokedAt (Phase 17 D-08); null sulle sessioni attive, su quelle revocate
+    // prima della fase e sull'utente cancellato (D-11)
+    @Prop({
+        type: String,
+        enum: Object.values(SessionRevokeReason),
+        default: null,
+    })
+    revokeReason: SessionRevokeReason | null;
 
     @Prop({ type: Date, required: true })
     expiresAt: Date;
