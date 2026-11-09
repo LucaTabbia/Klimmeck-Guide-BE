@@ -5,7 +5,7 @@ import { buildLootItem } from '../../test/fixtures/catalog-item.fixture';
 import { InjuryType } from './enums/injury-type.enum';
 import { LootItemSchema } from './loot-item.model';
 
-const LootItemProbe = model('EffectedInjuriesLootItemProbe', LootItemSchema);
+const LootItemProbe = model('CanHealLootItemProbe', LootItemSchema);
 const SCHEMA_FILE = join(process.cwd(), 'src/schema.gql');
 
 interface EnumListPath {
@@ -13,8 +13,8 @@ interface EnumListPath {
     caster: { instance: string; enumValues: string[] };
 }
 
-function effectedInjuriesPath(): EnumListPath {
-    return LootItemSchema.path('effectedInjuries') as unknown as EnumListPath;
+function canHealPath(): EnumListPath {
+    return LootItemSchema.path('canHeal') as unknown as EnumListPath;
 }
 
 function lootItemTypeLines(): string[] {
@@ -23,9 +23,9 @@ function lootItemTypeLines(): string[] {
     return block ? block[1].split('\n') : [];
 }
 
-describe('LootItem effectedInjuries (quick 261109-inj)', () => {
+describe('LootItem canHeal (quick 261109-inj)', () => {
     it('declares the injuries a heal item can cure as a list of InjuryType', () => {
-        const path = effectedInjuriesPath();
+        const path = canHealPath();
 
         expect({
             instance: path.instance,
@@ -38,41 +38,36 @@ describe('LootItem effectedInjuries (quick 261109-inj)', () => {
         });
     });
 
-    it('defaults effectedInjuries to an empty list', () => {
+    it('defaults canHeal to an empty list', () => {
         const potion = new LootItemProbe(buildLootItem()).toObject();
 
-        expect(potion.effectedInjuries).toEqual([]);
+        expect(potion.canHeal).toEqual([]);
     });
 
     it('rejects an injury outside the enum', () => {
         const potion = new LootItemProbe(
-            buildLootItem({ effectedInjuries: ['brokenWing'] }),
+            buildLootItem({ canHeal: ['brokenWing'] }),
         );
 
         expect(Object.keys(potion.validateSync()?.errors ?? {})).toEqual([
-            'effectedInjuries.0',
+            'canHeal.0',
         ]);
     });
 
     it('accepts known injuries', () => {
         const potion = new LootItemProbe(
-            buildLootItem({ effectedInjuries: ['deepCut', 'infection'] }),
+            buildLootItem({ canHeal: ['deepCut', 'infection'] }),
         );
 
         expect(potion.validateSync()).toBeUndefined();
-        expect(potion.toObject().effectedInjuries).toEqual([
-            'deepCut',
-            'infection',
-        ]);
+        expect(potion.toObject().canHeal).toEqual(['deepCut', 'infection']);
     });
 
-    it('exposes effectedInjuries right after effect in the LootItem SDL', () => {
+    it('exposes canHeal right after buyPrice in the LootItem SDL', () => {
         const lines = lootItemTypeLines();
-        const effectIndex = lines.indexOf('  effect: String!');
+        const buyPriceIndex = lines.indexOf('  buyPrice: Coins');
 
-        expect(effectIndex).toBeGreaterThan(-1);
-        expect(lines[effectIndex + 1]).toBe(
-            '  effectedInjuries: [InjuryType!]!',
-        );
+        expect(buyPriceIndex).toBeGreaterThan(-1);
+        expect(lines[buyPriceIndex + 1]).toBe('  canHeal: [InjuryType!]!');
     });
 });
