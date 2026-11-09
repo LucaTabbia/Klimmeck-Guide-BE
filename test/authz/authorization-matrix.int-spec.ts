@@ -300,6 +300,19 @@ describe('Authorization matrix (real boot)', () => {
             });
         });
 
+        it('lets the adventurer read its own character (D-01)', async () => {
+            const ownCharacterId = world.ownCharacterIds.adventurer;
+
+            const body = await postGraphql(
+                CHARACTER_QUERY,
+                { id: ownCharacterId },
+                world.bearers.adventurer,
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data).toEqual({ character: { id: ownCharacterId } });
+        });
+
         it('lets the innkeeper list the users (D-01)', async () => {
             const body = await postGraphql(
                 USERS_QUERY,
