@@ -350,6 +350,7 @@ type LootItem {
   buyPrice: Coins
   description: String!
   effect: String!
+  effectedInjuries: [InjuryType!]!
   id: ID!
   itemType: String!
   name: String
