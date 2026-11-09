@@ -2,7 +2,13 @@ import { CitySize } from 'src/models/enums/city-size.enum';
 import { CityType } from 'src/models/enums/city-type.enum';
 import { CITY_SIZE_BY_TYPE, citySizeOf, isCityType } from './city-size';
 
-function sizeFromSuffix(type: CityType): CitySize {
+const CAPITALS_WITHOUT_SUFFIX: readonly CityType[] = [
+    CityType.ferrionCity,
+    CityType.necrorianCity,
+];
+
+function expectedSizeOf(type: CityType): CitySize {
+    if (CAPITALS_WITHOUT_SUFFIX.includes(type)) return CitySize.capital;
     if (type.endsWith('Village')) return CitySize.village;
     if (type.endsWith('Capital')) return CitySize.capital;
     return CitySize.city;
@@ -10,17 +16,20 @@ function sizeFromSuffix(type: CityType): CitySize {
 
 describe('citySizeOf', () => {
     it.each(Object.values(CityType))(
-        'derives the size of every CityType from its suffix (D-01): %s',
+        'derives the size of every CityType from its suffix, Ferrion and Necrorian aside (quick 261109-cap): %s',
         (type) => {
-            expect(citySizeOf(type)).toBe(sizeFromSuffix(type));
+            expect(citySizeOf(type)).toBe(expectedSizeOf(type));
         },
     );
 
     it('sizes the special types of the explicit table (D-01)', () => {
         expect(citySizeOf(CityType.elfCapital)).toBe(CitySize.capital);
         expect(citySizeOf(CityType.talmvereVillage)).toBe(CitySize.village);
-        expect(citySizeOf(CityType.ferrionCity)).toBe(CitySize.city);
-        expect(citySizeOf(CityType.necrorianCity)).toBe(CitySize.city);
+    });
+
+    it('sizes Ferrion and Necrorian as capitals (quick 261109-cap)', () => {
+        expect(citySizeOf(CityType.ferrionCity)).toBe(CitySize.capital);
+        expect(citySizeOf(CityType.necrorianCity)).toBe(CitySize.capital);
     });
 
     it('sells the sea cities as cities (D-02)', () => {
@@ -29,7 +38,7 @@ describe('citySizeOf', () => {
         expect(citySizeOf(CityType.mirwaSeaCity)).toBe(CitySize.city);
     });
 
-    it('counts 13 villages, 11 cities and 9 capitals (D-01)', () => {
+    it('counts 13 villages, 9 cities and 11 capitals (quick 261109-cap)', () => {
         const sizes: CitySize[] = Object.values(CITY_SIZE_BY_TYPE);
         const countOf = (size: CitySize) =>
             sizes.filter((value) => value === size).length;
@@ -38,7 +47,7 @@ describe('citySizeOf', () => {
             village: countOf(CitySize.village),
             city: countOf(CitySize.city),
             capital: countOf(CitySize.capital),
-        }).toEqual({ village: 13, city: 11, capital: 9 });
+        }).toEqual({ village: 13, city: 9, capital: 11 });
     });
 
     it('recognises only the city types of the size table (D-04)', () => {
