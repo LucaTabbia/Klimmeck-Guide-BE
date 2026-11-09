@@ -1,8 +1,11 @@
 import { Logger } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
+import { AuthException } from 'src/auth/auth.exception';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import {
     INTERNAL_ERROR_MESSAGE,
+    INTERNAL_SERVER_ERROR,
     sanitizeExecutionErrors,
     sanitizeFormattedError,
 } from 'src/graphql/production-errors';
@@ -79,6 +82,43 @@ describe('sanitizeFormattedError', () => {
             extensions: { code: 'GRAPHQL_VALIDATION_FAILED' },
         });
     });
+
+    it('keeps the revoke reason of a coded error (D-13)', () => {
+        expect(
+            sanitizeFormattedError({
+                message: 'Session revoked, sign in again',
+                extensions: {
+                    code: 'SESSION_REVOKED',
+                    reason: 'newLogin',
+                    stacktrace: ['x'],
+                },
+            }),
+        ).toEqual({
+            message: 'Session revoked, sign in again',
+            extensions: { code: 'SESSION_REVOKED', reason: 'newLogin' },
+        });
+    });
+
+    it('drops the reason of an internal error (D-13)', () => {
+        expect(
+            sanitizeFormattedError({
+                message: 'boom',
+                extensions: { reason: 'newLogin' },
+            }),
+        ).toEqual({
+            message: INTERNAL_ERROR_MESSAGE,
+            extensions: { code: INTERNAL_SERVER_ERROR },
+        });
+    });
+
+    it('drops a revoke reason that is not a string (D-13)', () => {
+        const sanitized = sanitizeFormattedError({
+            message: 'Session revoked, sign in again',
+            extensions: { code: 'SESSION_REVOKED', reason: { nested: true } },
+        });
+
+        expect(sanitized.extensions).toEqual({ code: 'SESSION_REVOKED' });
+    });
 });
 
 describe('sanitizeExecutionErrors', () => {
@@ -154,5 +194,24 @@ describe('sanitizeExecutionErrors', () => {
             'Errore interno req-4: Error',
             original.stack,
         );
+    });
+
+    it('keeps the revoke reason over graphql-ws in production (D-13)', () => {
+        const { logger, error } = fakeLogger();
+        const original = AuthException.sessionRevoked(
+            SessionRevokeReason.roleChanged,
+        );
+        const coded = new GraphQLError(original.message, {
+            path: ['probeRevoked'],
+            originalError: original,
+        });
+
+        const [sanitized] = sanitizeExecutionErrors([coded], 'req-5', logger);
+
+        expect(sanitized.extensions).toEqual({
+            code: 'SESSION_REVOKED',
+            reason: 'roleChanged',
+        });
+        expect(error).not.toHaveBeenCalled();
     });
 });
