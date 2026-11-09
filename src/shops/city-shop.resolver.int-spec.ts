@@ -297,7 +297,7 @@ describe('cityShop', () => {
                 city: {
                     id: city._id.toHexString(),
                     name: 'Necrorian',
-                    size: 'city',
+                    size: 'capital',
                     hasShop: false,
                 },
                 equipment: [],
