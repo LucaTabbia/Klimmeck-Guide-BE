@@ -193,9 +193,10 @@ describe('graphql-ws authentication on real sockets', () => {
             });
 
             it('closes with 4409 and userLogout a connection_init after logout (D-03)', async () => {
-                const { bearer } = await createAuthenticatedUser(harness, {
-                    twitchId: 'twitch-ws-logout',
-                });
+                const { session, bearer } = await createAuthenticatedUser(
+                    harness,
+                    { twitchId: 'twitch-ws-logout' },
+                );
                 await graphqlRequest(
                     harness.app,
                     'mutation { logout }',
@@ -210,6 +211,12 @@ describe('graphql-ws authentication on real sockets', () => {
                     reason: 'userLogout',
                     acknowledged: false,
                 });
+                await expect(
+                    waitUntilUnregistered(
+                        harness.app.get(WsSessionRegistry),
+                        sessionIdOf(session.accessToken),
+                    ),
+                ).resolves.toBe(true);
             });
 
             it('closes with 4409 and an empty reason a session revoked without reason (D-03)', async () => {

@@ -315,6 +315,20 @@ describe('WsConnectionAuthenticator', () => {
 
             expect(registry.unregister).not.toHaveBeenCalled();
         });
+        it('unregisters the socket of a session refused with 4409 when it closes (D-03)', async () => {
+            sessions.revokeReasonOf.mockResolvedValue({
+                reason: SessionRevokeReason.userLogout,
+            });
+            const context = buildContext({ Authorization: 'Bearer t' });
+            await authenticator.onConnect(context);
+
+            authenticator.onClose(context);
+
+            expect(registry.unregister.mock.calls).toEqual([
+                ['session-1', socket],
+            ]);
+        });
+
         it('clears the expiry timer so a closed socket is never closed again', async () => {
             const context = buildContext({ Authorization: 'Bearer t' });
             await authenticator.onConnect(context);
