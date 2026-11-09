@@ -1,6 +1,9 @@
 import type { Logger } from '@nestjs/common';
 import type { GraphQLError, GraphQLFormattedError } from 'graphql';
-import { formatDomainError } from 'src/graphql/format-domain-error';
+import {
+    formatDomainError,
+    revokeReasonOf,
+} from 'src/graphql/format-domain-error';
 import { describeError } from 'src/mongo/mongo-errors';
 
 export const INTERNAL_ERROR_MESSAGE = 'Errore interno';
@@ -18,7 +21,7 @@ export function sanitizeFormattedError(
         ...(formatted.path ? { path: formatted.path } : {}),
         extensions: internal
             ? { code: INTERNAL_SERVER_ERROR }
-            : { code, ...reasonOf(formatted) },
+            : { code, ...revokeReasonOf(code, formatted.extensions?.reason) },
     };
 }
 
@@ -59,11 +62,6 @@ export function logInternalError(
 function codeOf(formatted: GraphQLFormattedError): string | undefined {
     const code = formatted.extensions?.code;
     return typeof code === 'string' ? code : undefined;
-}
-
-function reasonOf(formatted: GraphQLFormattedError): { reason?: string } {
-    const reason = formatted.extensions?.reason;
-    return typeof reason === 'string' ? { reason } : {};
 }
 
 function isInternalCode(code: string | undefined): boolean {

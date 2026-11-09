@@ -69,6 +69,7 @@ Esempio di payload di un refresh rifiutato perché un altro login ha cacciato la
 - `extensions` di `SESSION_REVOKED` = `{ code, reason }` se la sessione ha un motivo, `{ code }` se non lo ha (revoche legacy, utente cancellato).
 - `SESSION_EXPIRED`, `UNAUTHENTICATED`, `LOGIN_TICKET_INVALID` restano `{ code }`, **senza `reason`**.
 - La `reason` arriva **anche in produzione**: i due formatter (`src/graphql/format-domain-error.ts`, `src/graphql/production-errors.ts`) conservano la sola chiave `reason` (allowlist di una chiave, mai lo spread delle extensions originali, D-13). Arriva **anche su WS** (stessa pipeline di formattazione).
+- La `reason` esce sul filo **solo con `code: SESSION_REVOKED` e solo coi quattro valori dell'enum** (review A-IN-04): una `reason` su un altro codice, o un valore fuori enum, viene scartata dai formatter (prima passava qualunque stringa). Per la FE non cambia nulla di osservabile oggi: nessun altro errore portava una `reason`.
 - Una `reason` **assente o ignota** va trattata come neutra (avviso generico, FE 12 D-12): l'enum potrà crescere senza rompere la FE.
 
 ### 1.4 Quando il BE chiude con `4409` e quando no
