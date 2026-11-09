@@ -3,6 +3,10 @@ import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum
 import { SessionService } from 'src/auth/session/session.service';
 import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
 
+export interface RoleChangeRevocationLimit {
+    createdBefore?: Date;
+}
+
 // fan-out della revoca (Phase 17 D-02, D-06): prima la revoca a DB, poi i socket, mai l'inverso (un client che si riconnette trova già la sessione revocata); logout e riuso non passano da qui e non chiudono i socket vivi (D-03)
 @Injectable()
 export class SessionRevocationService {
@@ -23,10 +27,14 @@ export class SessionRevocationService {
         this.registry.closeSessions(revoked, SessionRevokeReason.newLogin);
     }
 
-    async revokeAllForRoleChange(userId: string): Promise<void> {
+    async revokeAllForRoleChange(
+        userId: string,
+        { createdBefore }: RoleChangeRevocationLimit = {},
+    ): Promise<void> {
         const revoked = await this.sessions.revokeAllOf(
             userId,
             SessionRevokeReason.roleChanged,
+            createdBefore,
         );
         this.registry.closeSessions(revoked, SessionRevokeReason.roleChanged);
     }

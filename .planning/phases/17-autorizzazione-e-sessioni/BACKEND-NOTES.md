@@ -74,6 +74,7 @@ Esempio di payload di un refresh rifiutato perché un altro login ha cacciato la
 ### 1.4 Quando il BE chiude con `4409` e quando no
 
 - **Secondo login (`newLogin`) e cambio di ruolo (`roleChanged`)**: il BE revoca a DB **prima**, poi chiude **subito** tutti i socket vivi delle sessioni revocate con `4409` e il motivo.
+- **Il cambio di ruolo revoca solo le sessioni create fino al secondo dell'evento** (`clusterTime` del change stream, review B-WR-02): un evento consegnato in ritardo (per esempio in replay dopo una caduta dello stream) non revoca più le sessioni emesse dopo il cambio. Limite noto: un login avvenuto nello stesso secondo del cambio di ruolo viene revocato anch'esso con `roleChanged` (risoluzione al secondo di `clusterTime`); la FE lo vede come un normale `4409 roleChanged` e rifà il login.
 - **`userLogout` e `reuseDetected` NON chiudono i socket vivi**: al logout la FE smonta da sé il WS; sul riuso resta la finestra del JWT. In entrambi i casi **ogni `connection_init` successiva** col JWT di quella sessione riceve `4409` col motivo.
 - Una `connection_init` col JWT di una sessione **revocata** è chiusa con `4409` + motivo (`''` se senza motivo) e non viene accettata (niente ping-pong).
 - Una `connection_init` col JWT di una sessione **assente a DB** è accettata (il JWT è stateless; la sessione mancante non è una revoca).

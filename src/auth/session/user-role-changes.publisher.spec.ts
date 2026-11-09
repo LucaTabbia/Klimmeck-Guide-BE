@@ -28,14 +28,15 @@ describe('UserRoleChangesPublisher', () => {
 
     afterEach(() => jest.restoreAllMocks());
 
-    it('revokes the sessions of the user named by the event (D-06)', () => {
+    it('revokes the sessions of the user named by the event (D-06)', async () => {
         const userObjectId = new Types.ObjectId();
 
         receiver.onChange({ documentKey: { _id: userObjectId } });
+        await new Promise(setImmediate);
 
-        expect(revokeAllForRoleChange.mock.calls).toEqual([
-            [userObjectId.toHexString()],
-        ]);
+        expect(
+            revokeAllForRoleChange.mock.calls.map(([userId]) => userId),
+        ).toEqual([userObjectId.toHexString()]);
     });
 
     it('limits the revocation to the sessions created up to the second of the event (D-06)', async () => {

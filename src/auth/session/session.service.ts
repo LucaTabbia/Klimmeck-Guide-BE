@@ -128,13 +128,18 @@ export class SessionService {
         );
     }
 
+    // createdBefore esclude le sessioni emesse dopo l'evento che chiede la revoca (D-06)
     async revokeAllOf(
         userId: string,
         reason: SessionRevokeReason,
+        createdBefore?: Date,
     ): Promise<string[]> {
         if (!isObjectIdHex(userId)) return [];
         return this.revokeActive(
-            { userId: new Types.ObjectId(userId) },
+            {
+                userId: new Types.ObjectId(userId),
+                ...this.createdBeforeFilter(createdBefore),
+            },
             reason,
         );
     }
@@ -345,6 +350,10 @@ export class SessionService {
                 },
             },
         };
+    }
+
+    private createdBeforeFilter(createdBefore?: Date) {
+        return createdBefore ? { createdAt: { $lt: createdBefore } } : {};
     }
 
     private activeFilter(now: Date) {

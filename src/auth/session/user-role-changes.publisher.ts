@@ -13,6 +13,8 @@ import { describeError } from 'src/mongo/mongo-errors';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { SessionRevocationService } from './session-revocation.service';
 
+const MILLISECONDS_PER_SECOND = 1000;
+
 // il cambio del ruolo revoca ogni sessione dell'utente (Phase 17 D-06): chiude T-10-19 oltre la finestra del JWT;
 // vive in AuthModule perché UsersModule non può dipendere da AuthModule (C-3); upsertWithRole passa da qui attraverso il change stream (C-4);
 // il ruolo stantio perso a BE spento resta coperto dalla rilettura al refresh (D-10)
@@ -43,11 +45,21 @@ export class UserRoleChangesPublisher extends ChangeStreamPublisher<UserDocument
         const userId = documentIdOf(change.documentKey);
         if (!userId) return;
         this.revocation
-            .revokeAllForRoleChange(userId)
+            .revokeAllForRoleChange(userId, {
+                createdBefore: endOfEventSecond(change),
+            })
             .catch((error: unknown) =>
                 this.logger.error(
                     `Revoca delle sessioni per cambio ruolo fallita per l'utente ${userId}: ${describeError(error)}`,
                 ),
             );
     }
+}
+
+// clusterTime ha la risoluzione del secondo: il limite è la fine di quel secondo, quindi un login nello stesso secondo resta revocato
+function endOfEventSecond({
+    clusterTime,
+}: ChangeStreamEvent): Date | undefined {
+    if (!clusterTime) return undefined;
+    return new Date((clusterTime.getHighBits() + 1) * MILLISECONDS_PER_SECOND);
 }
