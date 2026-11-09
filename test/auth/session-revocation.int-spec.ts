@@ -2,6 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import WebSocket from 'ws';
 import { AuthSessionService } from 'src/auth/auth-session.service';
+import { sha256Hex } from 'src/auth/crypto/token-crypto';
 import type { AuthSession } from 'src/auth/dto/auth-session.model';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
 import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
@@ -27,6 +28,8 @@ const TWITCH_ID = 'twitch-last-login';
 const DEV_BEARER = `Bearer ${TEST_DEV_ACCESS_TOKEN}`;
 // sanity check: l'assenza di chiusura è provata dal socket ancora aperto e registrato subito dopo il logout
 const LOGOUT_SILENCE_MS = 300;
+const RETIRED_REFRESH_TOKEN = 'retired-refresh-token';
+const LONG_AGO = new Date('2020-01-01T00:00:00.000Z');
 const ME = '{ me { id } }';
 const LOGOUT = 'mutation { logout }';
 const REFRESH =
@@ -124,6 +127,23 @@ describe('last login wins (wire)', () => {
         return response.body as WireBody;
     }
 
+    // un token ritirato ben oltre la grace: presentarlo è un riuso (Phase 2 D-08)
+    async function retireTokenPastTheGrace(
+        session: AuthSession,
+    ): Promise<void> {
+        await sessions.updateOne(
+            { _id: sessionIdOf(session) },
+            {
+                $push: {
+                    retiredRefreshTokens: {
+                        hash: sha256Hex(RETIRED_REFRESH_TOKEN),
+                        retiredAt: LONG_AGO,
+                    },
+                },
+            },
+        );
+    }
+
     function refresh(session: AuthSession): Promise<WireBody> {
         return postGraphql(REFRESH, bearerOf(session), {
             refreshToken: session.refreshToken,
@@ -212,6 +232,28 @@ describe('last login wins (wire)', () => {
         ).resolves.toEqual({
             code: SESSION_REVOKED_CLOSE_CODE,
             reason: 'userLogout',
+            acknowledged: false,
+        });
+    });
+
+    it('closes a connection_init with the JWT of a session revoked for reuse with 4409 reuseDetected (D-03, D-05)', async () => {
+        const session = await login();
+        await retireTokenPastTheGrace(session);
+
+        const body = await refresh({
+            ...session,
+            refreshToken: RETIRED_REFRESH_TOKEN,
+        });
+
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'SESSION_REVOKED',
+            reason: 'reuseDetected',
+        });
+        await expect(
+            connectAndAwaitClose(url, { Authorization: bearerOf(session) }),
+        ).resolves.toEqual({
+            code: SESSION_REVOKED_CLOSE_CODE,
+            reason: 'reuseDetected',
             acknowledged: false,
         });
     });
