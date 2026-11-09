@@ -32,6 +32,9 @@ export const USER_ROLE_CHANGES: ChangeStreamSpec = {
 
 @Injectable()
 export class UserRoleChangesPublisher extends ChangeStreamPublisher<UserDocument> {
+    // revoche in fila nell'ordine degli eventi: una parte solo quando la precedente è finita
+    private tail: Promise<void> = Promise.resolve();
+
     constructor(
         @InjectModel(User.name) userModel: Model<UserDocument>,
         private readonly revocation: SessionRevocationService,
@@ -40,14 +43,17 @@ export class UserRoleChangesPublisher extends ChangeStreamPublisher<UserDocument
         super(userModel, USER_ROLE_CHANGES, pubSub);
     }
 
-    // un rifiuto non gestito abbatterebbe il processo; il log porta solo l'id e nome/codice dell'errore, mai il messaggio
+    // un rifiuto non gestito abbatterebbe il processo e spezzerebbe la fila; il log porta solo l'id e nome/codice dell'errore, mai il messaggio
     protected onChange(change: ChangeStreamEvent): void {
         const userId = documentIdOf(change.documentKey);
         if (!userId) return;
-        this.revocation
-            .revokeAllForRoleChange(userId, {
-                createdBefore: endOfEventSecond(change),
-            })
+        const createdBefore = endOfEventSecond(change);
+        this.tail = this.tail
+            .then(() =>
+                this.revocation.revokeAllForRoleChange(userId, {
+                    createdBefore,
+                }),
+            )
             .catch((error: unknown) =>
                 this.logger.error(
                     `Revoca delle sessioni per cambio ruolo fallita per l'utente ${userId}: ${describeError(error)}`,

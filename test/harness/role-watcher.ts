@@ -108,7 +108,7 @@ export async function primeRoleWatcher(harness: AuthTestApp): Promise<void> {
     }
 }
 
-// barriera: gli eventi dello stream arrivano in ordine, quindi alla revoca della barriera ogni evento precedente è già stato elaborato
+// barriera: gli eventi dello stream arrivano in ordine e il watcher li revoca in fila, quindi alla revoca della barriera ogni evento precedente è già stato elaborato
 export async function flushRoleWatcher(harness: AuthTestApp): Promise<void> {
     barrierCount++;
     const barrier = await createWatchedUser(
