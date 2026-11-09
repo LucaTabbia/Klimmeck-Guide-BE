@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 19 (Revisione dei modelli) context gathered on 2026-11-09 right after the Phase 18 (same session, joint discuss with the FE Phase 19); branch `feat/19-revisione-dei-modelli` stacked on `feat/18-quest-heal-per-taglia` (worktree); order 17 → 18 → 19; next `/gsd-plan-phase 18` then 19 (REPO-RULES first)
-last_updated: "2026-11-09T19:30:00.000Z"
-last_activity: 2026-11-09 -- Phase 19 (Revisione dei modelli) added as the BE companion of the FE Phase 19: 19-CONTEXT.md D-01..D-14, BE-MODEL-01..09, ROADMAP section and alignment row; stacked on the Phase 18 branch
+stopped_at: Phases 18, 19 and 20 context gathered on 2026-11-09 (same session, joint discuss from the FE repo for 18 and 19; 20 is BE-only); branches stacked `feat/18-quest-heal-per-taglia` → `feat/19-revisione-dei-modelli` → `feat/20-cibo-e-vita-progressivi` (worktree); order 17 → 18 → 19 → 20; next `/gsd-plan-phase 18` (REPO-RULES first)
+last_updated: "2026-11-09T20:30:00.000Z"
+last_activity: 2026-11-09 -- Phase 20 (Cibo e vita progressivi in viaggio, BE only) added: 20-CONTEXT.md D-01..D-12, BE-FOODP-01..05, ROADMAP section; stacked on the Phase 19 branch
 progress:
-  total_phases: 22
+  total_phases: 23
   completed_phases: 20
   total_plans: 251
   completed_plans: 251
-  percent: 91
+  percent: 87
 ---
 
 # Project State
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 18 — Quest heal per taglia — CONTEXT GATHERED (2026-11-09) su `feat/18-quest-heal-per-taglia` (`18-CONTEXT.md` D-01..D-19: `prizes.cure`, pozioni dal Diario con ricarica globale `recovery { time, turns }`, lore «Il limite del corpo») e **Phase 19 — Revisione dei modelli — CONTEXT GATHERED** la sera stessa su `feat/19-revisione-dei-modelli` impilato sulla 18 (`19-CONTEXT.md` D-01..D-14: `Enemy.weaknesses`, magie per riferimento, stato dei pet sul personaggio col 10 % degli xp dei nemici al compagno e `Pet.attack`/`Pet.defense` al posto di `damages`, `wornEquipment`/`feet`, una sola lista di magie, via `PointOfInterest.quest`, `City.shop`, `Lore.imagePath`, migratore unico); ordine d'esecuzione 17 → 18 → 19, la 17 vive sul suo ramo (altra sessione); prossimo passo `/gsd-plan-phase 18` con `18-REPO-RULES.md` prima della ricerca, poi la 19.
+**Current focus:** Phase 18 — Quest heal per taglia — CONTEXT GATHERED (2026-11-09) su `feat/18-quest-heal-per-taglia` (`18-CONTEXT.md` D-01..D-19: `prizes.cure`, pozioni dal Diario con ricarica globale `recovery { time, turns }`, lore «Il limite del corpo») e **Phase 19 — Revisione dei modelli — CONTEXT GATHERED** la sera stessa su `feat/19-revisione-dei-modelli` impilato sulla 18 (`19-CONTEXT.md` D-01..D-14: `Enemy.weaknesses`, magie per riferimento, stato dei pet sul personaggio col 10 % degli xp dei nemici al compagno e `Pet.attack`/`Pet.defense` al posto di `damages`, `wornEquipment`/`feet`, una sola lista di magie, via `PointOfInterest.quest`, `City.shop`, `Lore.imagePath`, migratore unico) e **Phase 20 — Cibo e vita progressivi in viaggio — CONTEXT GATHERED** (solo BE) su `feat/20-cibo-e-vita-progressivi` impilato sulla 19 (`20-CONTEXT.md` D-01..D-12: piano salvato alla partenza, vita incrementale allo sweep nel tratto scoperto, cibo in blocco in tre momenti, nessun cambio SDL); ordine d'esecuzione 17 → 18 → 19 → 20, la 17 vive sul suo ramo (altra sessione); prossimo passo `/gsd-plan-phase 18` con `18-REPO-RULES.md` prima della ricerca, poi 19 e 20.
 
 ## Current Position
 
-Phase: 19 (Revisione dei modelli) — CONTEXT GATHERED 2026-11-09 on `feat/19-revisione-dei-modelli` (stacked on `feat/18-quest-heal-per-taglia`, worktree): joint interactive discuss from the FE repo right after the Phase 18 discuss; `19-CONTEXT.md` D-01..D-14, requirements BE-MODEL-01..09; the Phase 18 (D-01..D-19, BE-HEAL-01..08) stays CONTEXT GATHERED on its branch; both planned next, executed after the Phase 17 in order 18 → 19
+Phase: 20 (Cibo e vita progressivi in viaggio) — CONTEXT GATHERED 2026-11-09 on `feat/20-cibo-e-vita-progressivi` (stacked on `feat/19-revisione-dei-modelli`, worktree): BE-only phase discussed from the FE repo right after the Phases 18 and 19; `20-CONTEXT.md` D-01..D-12, requirements BE-FOODP-01..05; the Phases 18 (D-01..D-19, BE-HEAL-01..08) and 19 (D-01..D-15, BE-MODEL-01..09) stay CONTEXT GATHERED on their branches; all planned next, executed after the Phase 17 in order 18 → 19 → 20
 Plan: 0 of TBD
-Status: Phases 18 and 19 context gathered — ready to plan in order (18 first: REPO-RULES with `QuestCure`, `recovery`, `useItem`…; then 19: `Weaknesses`, `OwnedPet`, `wornEquipment`, `SpellState.active`…); Phases 15 and 16 and the quick tasks 261109-inj/inj2 merged on `develop` (`31dba96`); Phase 17 context gathered and being planned on its own branch by another session (2026-11-09)
-Last activity: 2026-11-09 -- Phase 19 context gathered (joint discuss with the FE Phase 19, same session as the Phase 18); ROADMAP, REQUIREMENTS, PROJECT and STATE updated
+Status: Phases 18, 19 and 20 context gathered — ready to plan in order (18 first: REPO-RULES with `QuestCure`, `recovery`, `useItem`…; then 19: `Weaknesses`, `OwnedPet`, `attack`/`defense`, `wornEquipment`, `SpellState.active`…; then 20: `activeTravel.food`, `hungerBetween`); Phases 15 and 16 and the quick tasks 261109-inj/inj2 merged on `develop` (`31dba96`); Phase 17 context gathered and being planned on its own branch by another session (2026-11-09)
+Last activity: 2026-11-09 -- Phase 20 context gathered (BE only, discussed from the FE repo); ROADMAP, REQUIREMENTS, PROJECT and STATE updated
 Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.
 
-Progress: [░░░░░░░░░░] 0/? plans of Phases 18 and 19 (phases 1–16, 9.1, 9.2 and 13.1 complete; 17 on its branch; 18 and 19 added 2026-11-09 as the FE Phases 18/19 companions, executed after 17)
+Progress: [░░░░░░░░░░] 0/? plans of Phases 18, 19 and 20 (phases 1–16, 9.1, 9.2 and 13.1 complete; 17 on its branch; 18–20 added 2026-11-09, executed after 17)
 
 ## Performance Metrics
 

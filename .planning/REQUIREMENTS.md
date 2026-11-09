@@ -224,6 +224,14 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 - [ ] **BE-MODEL-08**: `Lore.image` → `Lore.imagePath` (modello, SDL non additivo, input, migratore); file enum `item_reference_type.enum.ts` e `slot_type.enum.ts` rinominati in kebab-case; modello `KGNotification` rimosso → FE MODEL-01
 - [ ] **BE-MODEL-09**: Un solo modulo one-off `src/migrations/model-review/` con un passo idempotente per decisione e log di soli conteggi, eseguito al boot reale dall'orchestratore dopo il backup e rimosso in TDD prima della merge; unit sui migratori e sul premio xp del pet, integration per area, SDL verbatim della FE, handoff `BACKEND-NOTES.md` con la tabella dei cambi SDL vecchio → nuovo
 
+### Progressive Travel Food (BE-FOODP) — Phase 20, aggiunta 2026-11-09
+
+- [ ] **BE-FOODP-01**: La partenza (libera e da quest) calcola il piano con `planTravelFood` come oggi (anteprima e rifiuto «arrivi vivo» identici) e lo salva su `activeTravel.food` (interno: fabbisogno, km coperti, perdita totale, km settati, cibo consumato) senza consumare cibo né scalare vita; i viaggi senza piano (iniziati prima del deploy) sono ignorati dalle regole nuove; nessun cambio SDL
+- [ ] **BE-FOODP-02**: Lo sweep del viaggio (`TRAVEL_SWEEP_INTERVAL_MS`) scala `currentLifePoints` solo oltre i km coperti, come perdita incrementale dei km fatti dall'ultimo passaggio con la curva triangolare della Phase 14 (il km scoperto n-esimo costa n HP), km dal tempo come il `km` dell'imboscata, scrittura atomica guardata da `settledKm`, mai sotto 1; pozioni e danni si sommano
+- [ ] **BE-FOODP-03**: Il cibo si toglie una sola volta per viaggio, in blocco, con la selezione a scarto minimo sul posseduto in quel momento: alla fine dei km coperti (fabbisogno totale), all'arrivo (come oggi) o alla sconfitta e al teleport a viaggio iniziato (fabbisogno dei soli km percorsi); consumo come vendita senza incasso con le guardie di quantità; la deviazione dopo la sconfitta non ha piano (né cibo né fame)
+- [ ] **BE-FOODP-04**: L'imboscata setta la fame esatta al suo km (e il cibo se oltre il confine) prima del combattimento; in vittoria il viaggio prosegue con lo stesso piano; l'arrivo setta la fame fino a fine percorso e il cibo nella transazione del completamento; i totali a fine viaggio coincidono con quelli della Phase 14
+- [ ] **BE-FOODP-05**: Unit (funzione pura, km dal tempo, selezione parziale), integration con orologio finto (partenza, sweep prima/dopo il confine, pozione fra due sweep, imboscata, sconfitta pro-rata, arrivo, teleport, legacy), boot reale con SDL identico, handoff `BACKEND-NOTES.md` con la semantica nuova e il piano di UAT su device
+
 ## Future Requirements
 
 Deferred a post-v1.0. Tracciati ma non nella roadmap corrente.
@@ -327,6 +335,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-LORE-01..06 | Phase 16 | Complete (gate 16-11 e chiusura 16-12, 2026-11-07; aggiunti 2026-10-29, emendati 2026-11-07) |
 | BE-HEAL-01..08 | Phase 18 | Pending (01..05 dal discuss congiunto con la FE Phase 18, 06..08 dalla riapertura delle pozioni la sera stessa, 2026-11-09; esecuzione dopo la Phase 17) |
 | BE-MODEL-01..09 | Phase 19 | Pending (aggiunti 2026-11-09 nel discuss congiunto con la FE Phase 19; esecuzione dopo la Phase 18) |
+| BE-FOODP-01..05 | Phase 20 | Pending (aggiunti 2026-11-09; solo BE, esecuzione dopo la Phase 19; superano la Phase 14 D-04) |
 
 **Coverage:**
 
@@ -339,6 +348,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 - Discuss del 2026-11-06 (Phase 15 congiunto con la FE Phase 16): BE-AMBUSH-01..07 emendati (rischio per km 0,2%/0,6%, più imboscate con risorteggio, POI più vicino + animali, fascia [Facile, Medio] per livello, città più vicina meta compresa, push su sconfitta, report trattenuti all'arrivo, `kind`/`ambush` sul `QuestResult`); conteggi invariati (103 totali, 97 mappati)
 - Discuss del 2026-11-09 (Phase 18 congiunto con la FE Phase 18): +8 requisiti (BE-HEAL-01..05: `prizes.cure` con quota di vita a tetto e lista `canHeal`, cura su ogni quest vinta che la porta, contenuto delle 166 heal per taglia, `injuriesHealed`, prove e handoff; BE-HEAL-06..08 aggiunti la sera stessa: `LootItem.recovery { time, turns }` + `relatedLore`, `potionRecoveryUntil`, mutation `useItem` con ricarica globale, tempi e lore «Il limite del corpo» a DB) → 106 totali, 100 mappati senza la Phase 17 (111 / 105 con i BE-SESSION-01..05 della Phase 17, sul ramo `feat/17-autorizzazione-e-sessioni`)
 - Discuss del 2026-11-09 (Phase 19 congiunto con la FE Phase 19): +9 requisiti (BE-MODEL-01..09: debolezze in un sotto-documento, magie dei nemici per riferimento, stato dei pet sul personaggio con il 10 % degli xp dei nemici al compagno e `maxXp` rivisti, `wornEquipment`/`feet`, una sola lista di magie, `maxActiveSpells` calcolato, via `PointOfInterest.quest`, `City.shop`, `Lore.imagePath`, enum e modello morto, migratore one-off unico) → 115 totali, 109 mappati senza la Phase 17 (120 / 114 con i BE-SESSION-01..05 della Phase 17)
+- Discuss del 2026-11-09 (Phase 20, solo BE): +5 requisiti (BE-FOODP-01..05: piano salvato alla partenza, vita incrementale allo sweep nel tratto scoperto, cibo in blocco in tre momenti con selezione sui km percorsi, imboscata e arrivo esatti, prove e handoff) → 120 totali, 114 mappati senza la Phase 17 (125 / 119 con i BE-SESSION-01..05 della Phase 17)
 
 ---
 
