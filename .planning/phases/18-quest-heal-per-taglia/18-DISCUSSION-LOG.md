@@ -86,3 +86,10 @@ Dati nella domanda: FE 12 Hardening discussa e ricercata sul suo ramo («ultima 
 - Uso degli oggetti heal dal Diario: stand-by (utente, «ci voglio ripensare bene»).
 - Cibo in viaggio (fame graduale, pasti progressivi, debito di fame): rinviato (utente, «rischia di complicare tutto di molto»).
 - Le cure restano in combattimento, nel motore dell'utente; la cura consigliata nelle quest non si tocca (utente).
+
+## Riapertura delle pozioni dal Diario (2026-11-09 sera, dopo il discuss, in chat)
+
+- Utente: le pozioni consumabili tornano con una **ricarica globale** («Ogni oggetto heal ha un suo recoveryTime, come per le magie… non posso più prendere pozioni di qualsiasi tipo»); minimo 30 min, massimo 24 h; in combattimento funzionano in modo diverso (motore suo, forse `recoveryTurns`); forma del modello scelta dall'utente: `recovery { time: int; turns: int }` («così teniamo il modello pulito»).
+- Claude: parere favorevole; un solo timestamp sul personaggio invece della macchina delle magie; onestà sul limite (la ricarica frena le raffiche, non il recupero su un viaggio di ore → tempi crescenti con la potenza); tabella dei 28 tempi proposta per potenza, rarità e ferita più grave (D-18), accettata come base da rivedere a DB.
+- Utente: «aggiungiamo anche la creazione di una nuova lore che spieghi come mai le pozioni non si possono bere in sequenza» → D-19: lore `knowledge` «Il limite del corpo», collegata dalle pozioni con `LootItem.relatedLore` e sbloccata alla prima pozione bevuta (alternative scartate: alla nascita, tiro di studio).
+
