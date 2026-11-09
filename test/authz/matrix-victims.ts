@@ -31,6 +31,12 @@ export interface MatrixBearers {
 export interface MatrixWorld {
     victims: MatrixVictims;
     bearers: MatrixBearers;
+    ownCharacterIds: { adventurer: string; innkeeper: string };
+}
+
+interface MatrixPlayer {
+    user: UserDocument;
+    resources: MatrixVictims;
 }
 
 export function foreignSecretBearer(): string {
@@ -50,7 +56,8 @@ async function bearerOf(
     return `Bearer ${session.accessToken}`;
 }
 
-async function persistAttacker(
+// utente senza personaggio: basta per i rifiuti di ruolo
+async function persistRoleOnlyAttacker(
     boot: RealAppBoot,
     role: RoleType,
 ): Promise<string> {
@@ -61,9 +68,13 @@ async function persistAttacker(
     return bearerOf(boot, user);
 }
 
-export async function createMatrixWorld(
+// giocatore attivo con personaggio, corsia e risultato propri: le righe di ownership provano lo scambio
+// fra due giocatori attivi, non il caso degenere dell'utente senza personaggio (C-WR-01)
+async function persistPlayer(
     boot: RealAppBoot,
-): Promise<MatrixWorld> {
+    twitchId: string,
+    role: RoleType,
+): Promise<MatrixPlayer> {
     const pendingQuest = await modelOf(boot, PendingQuest.name).create({
         startDate: PENDING_QUEST_START,
         waitingTime: 60,
@@ -72,7 +83,7 @@ export async function createMatrixWorld(
     const character = await persistCharacter(
         modelOf(boot, Character.name),
         {
-            infos: { ...buildCharacter().infos, name: 'Eroe matrix-victim' },
+            infos: { ...buildCharacter().infos, name: `Eroe ${twitchId}` },
             quests: {
                 ...buildCharacter().quests,
                 pendingQuest: pendingQuest._id,
@@ -80,26 +91,54 @@ export async function createMatrixWorld(
         },
         modelOf(boot, PointOfInterest.name),
     );
-    const victim = (await persistUser(modelOf(boot, User.name), {
-        twitchId: 'matrix-victim',
-        role: RoleType.adventurer,
+    const user = (await persistUser(modelOf(boot, User.name), {
+        twitchId,
+        role,
         currentCharacter: character._id,
     })) as UserDocument;
     const questResult = await persistQuestResult(
         modelOf(boot, QuestResult.name),
-        { user: victim._id, character: character._id },
+        { user: user._id, character: character._id },
     );
     return {
-        victims: {
+        user,
+        resources: {
             characterId: String(character._id),
             pendingQuestId: String(pendingQuest._id),
             questResultId: String(questResult._id),
         },
+    };
+}
+
+export async function createMatrixWorld(
+    boot: RealAppBoot,
+): Promise<MatrixWorld> {
+    const victim = await persistPlayer(
+        boot,
+        'matrix-victim',
+        RoleType.adventurer,
+    );
+    const adventurer = await persistPlayer(
+        boot,
+        `matrix-${RoleType.adventurer}`,
+        RoleType.adventurer,
+    );
+    const innkeeper = await persistPlayer(
+        boot,
+        `matrix-${RoleType.innkeeper}`,
+        RoleType.innkeeper,
+    );
+    return {
+        victims: victim.resources,
         bearers: {
-            adventurer: await persistAttacker(boot, RoleType.adventurer),
-            guard: await persistAttacker(boot, RoleType.guard),
-            innkeeper: await persistAttacker(boot, RoleType.innkeeper),
-            victim: await bearerOf(boot, victim),
+            adventurer: await bearerOf(boot, adventurer.user),
+            guard: await persistRoleOnlyAttacker(boot, RoleType.guard),
+            innkeeper: await bearerOf(boot, innkeeper.user),
+            victim: await bearerOf(boot, victim.user),
+        },
+        ownCharacterIds: {
+            adventurer: adventurer.resources.characterId,
+            innkeeper: innkeeper.resources.characterId,
         },
     };
 }
