@@ -11,6 +11,9 @@ import { join } from 'node:path';
 import request from 'supertest';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import { IS_PUBLIC_KEY } from 'src/auth/decorators/public.decorator';
+import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
+import { UserRoleChangesPublisher } from 'src/auth/session/user-role-changes.publisher';
+import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
 import type { AuthConfig } from 'src/config/auth-config';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { EventSubConfig } from 'src/config/eventsub-config';
@@ -913,6 +916,19 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(ArchivedCharacterQueueRefresher)).toBeInstanceOf(
             ArchivedCharacterQueueRefresher,
         );
+    });
+
+    it('mounts the user role changes publisher', () => {
+        expect(app.get(UserRoleChangesPublisher)).toBeInstanceOf(
+            UserRoleChangesPublisher,
+        );
+    });
+
+    it('mounts the session revocation', () => {
+        expect(app.get(SessionRevocationService)).toBeInstanceOf(
+            SessionRevocationService,
+        );
+        expect(app.get(WsSessionRegistry)).toBeInstanceOf(WsSessionRegistry);
     });
 
     it('mounts the runtime mode reporter', () => {

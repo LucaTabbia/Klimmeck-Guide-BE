@@ -9,6 +9,7 @@ import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
 import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
 import { SessionService } from 'src/auth/session/session.service';
+import { UserRoleChangesPublisher } from 'src/auth/session/user-role-changes.publisher';
 import { AccessTokenService } from 'src/auth/token/access-token.service';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
@@ -53,7 +54,11 @@ describe('AuthSessionService (harness)', () => {
 
     beforeAll(async () => {
         clock = new FixedClock();
-        harness = await createAuthTestApp({ clock });
+        // D-10 resta la rete di sicurezza al refresh: il watcher del ruolo (D-06) è provato nella sua spec, qui revocherebbe la sessione in gara col refresh (Phase 17 D-14)
+        harness = await createAuthTestApp({
+            clock,
+            overrides: [{ token: UserRoleChangesPublisher, useValue: {} }],
+        });
         service = harness.app.get(AuthSessionService);
         users = harness.connection.model<UserDocument>(User.name);
         sessions = harness.connection.model<SessionDocument>(Session.name);
