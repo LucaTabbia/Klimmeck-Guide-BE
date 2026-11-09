@@ -103,7 +103,7 @@ export class SessionService {
         sessionId: string,
         reason: SessionRevokeReason | null,
     ): Promise<void> {
-        if (!Types.ObjectId.isValid(sessionId)) return;
+        if (!isObjectIdHex(sessionId)) return;
         await this.sessionModel
             .updateOne(
                 { _id: sessionId, revokedAt: null },
