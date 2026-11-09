@@ -1,8 +1,9 @@
-import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
+import { ObjectType, Field, Int, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { AssetItem } from './interfaces/asset-item.model';
 import { EffectType } from './enums/effect-type.enum';
+import { InjuryType } from './enums/injury-type.enum';
 
 @ObjectType()
 @Schema()
@@ -14,6 +15,12 @@ export class LootItem extends AssetItem {
     @Field(() => String)
     @Prop({ type: String, enum: Object.values(EffectType) })
     effect: EffectType;
+
+    // ferite che un oggetto heal può curare (regola utente 2026-11-09); la meccanica arriva in una fase dedicata
+    // campo già presente a DB sui vecchi oggetti heal: riusato (utente 2026-11-09)
+    @Field(() => [InjuryType])
+    @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
+    canHeal: InjuryType[];
 }
 
 export type LootItemDocument = LootItem & Document;
@@ -41,5 +48,7 @@ export class LootItemInput {
 
     @Field(() => EffectType)
     effect: EffectType;
-}
 
+    @Field(() => [InjuryType], { nullable: true })
+    canHeal?: InjuryType[] | null;
+}

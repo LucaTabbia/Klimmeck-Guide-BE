@@ -23,6 +23,30 @@ describe('injury tables', () => {
         },
     );
 
+    // effetti provvisori dei nove di quick 261109-inj2 (D-02)
+    it.each<[InjuryType, readonly InjuryEffect[]]>([
+        [InjuryType.contusion, [InjuryEffect.pain]],
+        [InjuryType.punctureWound, [InjuryEffect.bleeding, InjuryEffect.pain]],
+        [InjuryType.muscleTear, [InjuryEffect.pain, InjuryEffect.staminaDrain]],
+        [InjuryType.exhaustion, [InjuryEffect.staminaDrain]],
+        [
+            InjuryType.sprain,
+            [InjuryEffect.pain, InjuryEffect.movementImpairment],
+        ],
+        [
+            InjuryType.dislocatedShoulder,
+            [InjuryEffect.pain, InjuryEffect.movementImpairment],
+        ],
+        [InjuryType.brokenNose, [InjuryEffect.pain, InjuryEffect.bleeding]],
+        [
+            InjuryType.hypothermia,
+            [InjuryEffect.movementImpairment, InjuryEffect.staminaDrain],
+        ],
+        [InjuryType.stunned, [InjuryEffect.consciousnessLoss]],
+    ])('maps %s to its provisional effects', (injury, effects) => {
+        expect(INJURY_EFFECTS[injury]).toEqual(effects);
+    });
+
     it.each(Object.values(InjuryEffect))(
         'gives %s factors within (0, 1]',
         (effect) => {

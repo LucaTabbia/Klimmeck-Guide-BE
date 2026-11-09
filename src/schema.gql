@@ -313,14 +313,19 @@ enum InjuryType {
   blindness
   brokenLeftArm
   brokenLeftLeg
+  brokenNose
   brokenRightArm
   brokenRightLeg
+  contusion
   crushedLeftHand
   crushedRightHand
   deepCut
+  dislocatedShoulder
+  exhaustion
   fracturedRib
   frostbite
   headConcussion
+  hypothermia
   infection
   internalBleeding
   missingLeftArm
@@ -331,11 +336,15 @@ enum InjuryType {
   missingRightEye
   missingRightHand
   missingRightLeg
+  muscleTear
   paralysis
   poisonInjection
+  punctureWound
   puncturedLung
   severeBurn
   spinalInjury
+  sprain
+  stunned
   traumaticBrainInjury
 }
 
@@ -348,6 +357,7 @@ input ItemUsageInput {
 
 type LootItem {
   buyPrice: Coins
+  canHeal: [InjuryType!]!
   description: String!
   effect: String!
   id: ID!

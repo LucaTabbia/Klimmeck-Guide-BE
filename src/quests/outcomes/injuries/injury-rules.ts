@@ -53,6 +53,15 @@ export const INJURY_EFFECTS: Readonly<
     [InjuryType.frostbite]: [pain, movementImpairment],
     [InjuryType.infection]: [infection],
     [InjuryType.spinalInjury]: [paralysis, movementImpairment],
+    [InjuryType.contusion]: [pain],
+    [InjuryType.punctureWound]: [bleeding, pain],
+    [InjuryType.muscleTear]: [pain, staminaDrain],
+    [InjuryType.exhaustion]: [staminaDrain],
+    [InjuryType.sprain]: [pain, movementImpairment],
+    [InjuryType.dislocatedShoulder]: [pain, movementImpairment],
+    [InjuryType.brokenNose]: [pain, bleeding],
+    [InjuryType.hypothermia]: [movementImpairment, staminaDrain],
+    [InjuryType.stunned]: [consciousnessLoss],
 };
 
 const modifiers = (

@@ -29,6 +29,7 @@ Phase: 16 (Lore sbloccabili) — CLOSED 2026-11-08 (real boot with the backfill 
 Plan: 12 of 12
 Status: Phase 16 closed — PR #25 (`feat/16-lore-sbloccabili` → `develop`) ready for review after the real boot with the backfill (2026-11-08) and the one-off removal; next: the user's merge, then the FE Phase 17 plans 17-09 (schema gate) and 17-10 (device UAT), then the FE PRs
 Last activity: 2026-11-08 -- Phase 16 real boot with the backfill, one-off removal in TDD, PR #25 ready for review
+Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.
 
 Progress: [██████████] 12/12 plans of Phase 16 (phases 1–16, 9.1, 9.2 and 13.1 complete; 16 awaiting the merge of PR #25)
 
