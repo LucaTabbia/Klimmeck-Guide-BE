@@ -3,6 +3,11 @@
 import request from 'supertest';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 import {
+    connectAndAwaitClose,
+    graphqlWsUrl,
+    openSubscription,
+} from '../auth/ws-test-client';
+import {
     bootRealApp,
     REAL_BOOT_TIMEOUT_MS,
     type RealAppBoot,
@@ -51,6 +56,17 @@ const INVALID_BEARERS: readonly Omit<InvalidBearerRow, 'handler'>[] = [
         bearer: foreignSecretBearer,
     },
 ];
+// C-1: il rifiuto alla connection_init è pinnato com'è, nessun errore GraphQL per operazione
+const INVALID_SOCKET_PAYLOADS: readonly {
+    payloadCase: string;
+    payload: Record<string, unknown> | undefined;
+}[] = [
+    { payloadCase: 'no bearer', payload: undefined },
+    {
+        payloadCase: 'a bearer that is not a JWT',
+        payload: { Authorization: NOT_A_JWT_BEARER },
+    },
+];
 const CHARACTER_QUERY =
     'query Character($id: String!) { character(id: $id) { id } }';
 const USERS_QUERY = 'query Users { users { id } }';
@@ -75,6 +91,11 @@ function invalidBearerRows(
     return handlers.flatMap((handler) =>
         INVALID_BEARERS.map((row) => ({ handler, ...row })),
     );
+}
+
+function portOf(boot: RealAppBoot): number {
+    if (boot.port === null) throw new Error('the matrix boot must listen');
+    return boot.port;
 }
 
 describe('Authorization matrix (real boot)', () => {
@@ -108,6 +129,32 @@ describe('Authorization matrix (real boot)', () => {
         expect(body.errors?.[0]?.extensions).toEqual(expected);
         // un campo nullable torna come null dentro data: si guarda il campo, non l'intero data
         expect(body.data?.[fixture.field] ?? null).toBeNull();
+    }
+
+    async function expectSubscriptionForbidden(
+        handler: ProtectedHandler,
+        bearer: string,
+    ): Promise<void> {
+        const fixture = HANDLER_FIXTURES[handler];
+        const subscription = openSubscription(
+            graphqlWsUrl(portOf(boot)),
+            { Authorization: bearer },
+            {
+                query: fixture.document,
+                variables: fixture.variables(world.victims),
+            },
+        );
+        try {
+            const first = await subscription.next();
+            expect(first.value?.errors).toEqual([
+                expect.objectContaining({
+                    path: [fixture.field],
+                    extensions: { code: 'FORBIDDEN' },
+                }),
+            ]);
+        } finally {
+            await subscription.dispose();
+        }
     }
 
     beforeAll(async () => {
@@ -160,6 +207,56 @@ describe('Authorization matrix (real boot)', () => {
                 await expectRejected(handler, world.bearers.innkeeper, {
                     code: 'FORBIDDEN',
                 });
+            },
+        );
+    });
+
+    describe('innkeeper subscription over WS', () => {
+        it.each(roleRows(wsRows(EXPECTED_INNKEEPER_HANDLERS)))(
+            'forbids the $role on $handler over the socket (D-01)',
+            async ({ handler, role }) => {
+                await expectSubscriptionForbidden(handler, world.bearers[role]);
+            },
+        );
+
+        it.each(
+            wsRows(EXPECTED_INNKEEPER_HANDLERS).flatMap((handler) =>
+                INVALID_SOCKET_PAYLOADS.map((row) => ({ handler, ...row })),
+            ),
+        )(
+            'closes the connection_init of $payloadCase with 4403 (D-01)',
+            async ({ payload }) => {
+                await expect(
+                    connectAndAwaitClose(graphqlWsUrl(portOf(boot)), payload),
+                ).resolves.toEqual({
+                    code: 4403,
+                    reason: 'Forbidden',
+                    acknowledged: false,
+                });
+            },
+        );
+    });
+
+    describe('ownership subscriptions over WS', () => {
+        it.each(wsRows(EXPECTED_OWNERSHIP_HANDLERS))(
+            'forbids an adventurer on the resource of another user via %s over the socket (D-01)',
+            async (handler) => {
+                await expectSubscriptionForbidden(
+                    handler,
+                    world.bearers.adventurer,
+                );
+            },
+        );
+    });
+
+    describe('owner-only subscriptions over WS', () => {
+        it.each(wsRows(EXPECTED_OWNER_ONLY_HANDLERS))(
+            'forbids the innkeeper on the resource of another user via %s over the socket (D-01)',
+            async (handler) => {
+                await expectSubscriptionForbidden(
+                    handler,
+                    world.bearers.innkeeper,
+                );
             },
         );
     });
