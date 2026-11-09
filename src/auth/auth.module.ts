@@ -15,6 +15,7 @@ import {
 } from 'src/auth/login-ticket/login-ticket.model';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
 import { Session, SessionSchema } from 'src/auth/session/session.model';
+import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
 import { SessionService } from 'src/auth/session/session.service';
 import { AccessTokenService } from 'src/auth/token/access-token.service';
 import { HttpTwitchOAuthClient } from 'src/auth/twitch/http-twitch-oauth.client';
@@ -23,6 +24,7 @@ import { TwitchAuthController } from 'src/auth/twitch/twitch-auth.controller';
 import { TwitchLoginService } from 'src/auth/twitch/twitch-login.service';
 import { TwitchOAuthClient } from 'src/auth/twitch/twitch-oauth.client';
 import { WsConnectionAuthenticator } from 'src/auth/ws/ws-connection-authenticator';
+import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
 import { AUTH_CONFIG, authConfigProvider } from 'src/config/auth-config';
 import { UsersModule } from 'src/users/users.module';
 
@@ -44,6 +46,8 @@ import { UsersModule } from 'src/users/users.module';
         AccessTokenService,
         OAuthStateService,
         SessionService,
+        WsSessionRegistry,
+        SessionRevocationService,
         LoginTicketService,
         DevAuthStrategy,
         AuthIdentityResolver,
