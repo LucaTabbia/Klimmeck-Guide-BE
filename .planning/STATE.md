@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 17 (Autorizzazione e sessioni) context gathered on 2026-11-09 in the joint discuss with the FE Phase 12 Hardening; branch `feat/17-autorizzazione-e-sessioni` from `develop` `31dba96`; next `/gsd-plan-phase 17` (REPO-RULES first)
-last_updated: "2026-11-09T14:30:00.000Z"
-last_activity: 2026-11-09 -- Phase 17 inserted as the companion of the FE Phase 12 Hardening (discuss from the FE repo): 17-CONTEXT.md D-01..D-10, BE-SESSION-01..05, ROADMAP section and alignment row
+stopped_at: Phase 17 planned (10 plans, 2026-11-09) — next: /gsd-execute-phase 17 (sequential waves)
+last_updated: "2026-11-09T15:46:25.000Z"
+last_activity: 2026-11-09 -- Phase 17 planned (10 plans, plan-checker passed); FE Phase 12 planned in the same session
 progress:
   total_phases: 21
   completed_phases: 20
-  total_plans: 251
+  total_plans: 261
   completed_plans: 251
-  percent: 95
+  percent: 96
 ---
 
 # Project State
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 17 — Autorizzazione e sessioni — CONTEXT GATHERED (2026-11-09) su `feat/17-autorizzazione-e-sessioni` (da `develop` `31dba96`, la merge della PR #26): companion della FE Phase 12 Hardening, discuss congiunto condotto dal repo FE; `17-CONTEXT.md` D-01..D-10 (matrice table-driven innkeeper + ownership, «l'ultimo login caccia l'altro» con WS chiuso subito e JWT stateless, `SESSION_REVOKED` + `reason`, cambio ruolo → revoca, logout invariato); prossimo passo `/gsd-plan-phase 17` con `17-REPO-RULES.md` scritto prima della ricerca.
+**Current focus:** Phase 17 — Autorizzazione e sessioni — PLANNED (2026-11-09) su `feat/17-autorizzazione-e-sessioni` (da `develop` `31dba96`): 10 piani in wave sequenziali, ricerca, REPO-RULES, VALIDATION e plan-checker registrati; companion della FE Phase 12 Hardening pianificata nella stessa sessione; prossimo passo `/gsd-execute-phase 17`.
 
 ## Current Position
 
-Phase: 17 (Autorizzazione e sessioni) — CONTEXT GATHERED 2026-11-09 on `feat/17-autorizzazione-e-sessioni` (from `develop` `31dba96`): inserted as the BE companion of the FE Phase 12 Hardening in a joint interactive discuss from the FE repo; `17-CONTEXT.md` D-01..D-10, requirements BE-SESSION-01..05; next `/gsd-plan-phase 17`
-Plan: 0 of TBD
-Status: Phase 17 context gathered — ready to plan (REPO-RULES with the contract names first: revoke reason enum, dedicated WS close code); Phases 15 and 16 and the quick tasks 261109-inj/inj2 merged on `develop` (`31dba96`)
-Last activity: 2026-11-09 -- Phase 17 context gathered (joint discuss with the FE Phase 12); ROADMAP, REQUIREMENTS, PROJECT and STATE updated
+Phase: 17 (Autorizzazione e sessioni) — PLANNED 2026-11-09 on `feat/17-autorizzazione-e-sessioni` (from `develop` `31dba96`): 10 plans in 10 sequential waves (enum + model + reason → session service → revocation at login → WS registry and 4409 → role watcher → authorization matrix → gate → handoff); research, repo rules, validation skeleton and plan-checker pass recorded; FE Phase 12 planned in the same session
+Plan: 0 of 10
+Status: Phase 17 planned — ready to execute (`/gsd-execute-phase 17`); no one-off, no migration; FE Phase 12 planned in the same session on `refactor/12-hardening`
+Last activity: 2026-11-09 -- Phase 17 planned: research, repo rules, 10 plans, checker passed
 Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.
 
-Progress: [░░░░░░░░░░] 0/? plans of Phase 17 (phases 1–16, 9.1, 9.2 and 13.1 complete; 17 inserted 2026-11-09 as the FE Phase 12 companion)
+Progress: [░░░░░░░░░░] 0/10 plans of Phase 17 (phases 1–16, 9.1, 9.2 and 13.1 complete and merged)
 
 ## Performance Metrics
 

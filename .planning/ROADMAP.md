@@ -619,7 +619,17 @@ Plans:
 **Decisioni del discuss (2026-11-09, `17-CONTEXT.md` D-01..D-10)**: matrice innkeeper + ownership table-driven; l'ultimo login caccia l'altro con WS chiuso subito e JWT stateless fino a scadenza; `SESSION_REVOKED` + `reason`; cambio ruolo → revoca; logout invariato; nomi del contratto in `17-REPO-RULES.md` prima della ricerca.
 **Unblocks (FE)**: FE Phase 12 (HARDEN-02 evidenza, HARDEN-06 e i notice specifici della revoca, piani gated + UAT dual-device).
 **Branch**: `feat/17-autorizzazione-e-sessioni` da `develop` (`31dba96`, la merge della PR #26) → PR a `develop`.
-**Plans**: TBD
+**Plans**: 10 piani (wave sequenziali)
+- [ ] 17-01-PLAN.md — Contratto del motivo di revoca: enum `SessionRevokeReason`, `Session.revokeReason` nullable, `AuthException.sessionRevoked(reason)`, la sola chiave `reason` conservata da `formatDomainError` e `sanitizeFormattedError` (D-05, D-08, D-11, D-13)
+- [ ] 17-02-PLAN.md — `SessionService`: `revoke(id, reason | null)` con i sei chiamanti aggiornati, `reuseDetected` nella reuse detection, rifiuto del refresh col motivo memorizzato, `revokeOthersOf` (`_id` minore), `revokeAllOf`, `revokeReasonOf`, logout → `userLogout`, utente cancellato → `null`, reason sul filo HTTP in produzione (D-02, D-05, D-07, D-11, D-12)
+- [ ] 17-03-PLAN.md — `WS_SESSION_REVOKED_CLOSE_CODE = 4409`, `WsSessionRegistry` e `SessionRevocationService` (prima la revoca a DB, poi i socket), provider di `AuthModule` (D-03)
+- [ ] 17-04-PLAN.md — `WsConnectionAuthenticator`: costruttore nuovo, ordine bearer → `extra.closed` → registrazione → lettura, `close(4409, reason)` + `return false`, registro svuotato in `onClose`, casi sul filo in `ws-auth.int-spec.ts` (D-03)
+- [ ] 17-05-PLAN.md — Revoca al login in `issueForUser` (errore propagato) e spec di filo `test/auth/session-revocation.int-spec.ts`: secondo login, `connection_init` revocata, refresh `newLogin`, JWT residuo servito, nuova sessione intatta, logout senza chiusura, dev bypass senza effetto (D-02, D-03, D-04, D-12)
+- [ ] 17-06-PLAN.md — Watcher `UserRoleChangesPublisher` in `src/auth/session/` (provider di `AuthModule`, `forFeature User`) con helper di priming, int-spec D-06 (cambio a mano, stesso valore, `upsertWithRole`, WS `4409 roleChanged`), le due spec instabili di D-14 sistemate (D-06, D-14)
+- [ ] 17-07-PLAN.md — Liste condivise `test/authz/expected-handlers.ts`, helper `test/harness/real-app-boot.ts` con refactor di `test/app.int-spec.ts`, tabella `test/authz/handler-fixtures.ts` (30 righe) con la spec di completezza e validazione sullo SDL (D-01)
+- [ ] 17-08-PLAN.md — Matrice `test/authz/authorization-matrix.int-spec.ts` sul boot reale con sessioni e vittime vere: righe HTTP innkeeper × ruoli e bearer, ownership × adventurer, owner-only × innkeeper, righe WS `FORBIDDEN` e `4403`, completezza (D-01)
+- [ ] 17-09-PLAN.md — Gate: `tsc`, controllo di wave, `test:cov` con ripiego per cartella e soglie 97/84/98, boot reale con SDL invariato e whitelist invariate, lint sui file toccati, grep degli invarianti, VALIDATION firmata (D-10, D-15)
+- [ ] 17-10-PLAN.md — Chiusura: handoff `BACKEND-NOTES.md` per la FE Phase 12 (contratto, matrice come evidenza HARDEN-02, note UAT dual-device e tunnel TLS, runbook), `requirements mark-complete BE-SESSION-01..05`, ROADMAP e STATE (D-09, D-16)
 
 ## Backend ↔ Frontend alignment
 
@@ -669,4 +679,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
 | 15. Imboscate in viaggio | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | 12/12 | Complete | 2026-11-07 |
-| 17. Autorizzazione e sessioni | 0/? | Context gathered 2026-11-09 | - |
+| 17. Autorizzazione e sessioni | 0/10 | Planned | - |
