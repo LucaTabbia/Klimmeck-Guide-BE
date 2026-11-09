@@ -4,6 +4,7 @@ import WebSocket from 'ws';
 import { AuthSessionService } from 'src/auth/auth-session.service';
 import type { AuthSession } from 'src/auth/dto/auth-session.model';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
+import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
 import { persistUser } from '../fixtures';
@@ -24,6 +25,7 @@ import {
 const SESSION_REVOKED_CLOSE_CODE = 4409;
 const TWITCH_ID = 'twitch-last-login';
 const DEV_BEARER = `Bearer ${TEST_DEV_ACCESS_TOKEN}`;
+// sanity check: l'assenza di chiusura è provata dal socket ancora aperto e registrato subito dopo il logout
 const LOGOUT_SILENCE_MS = 300;
 const ME = '{ me { id } }';
 const LOGOUT = 'mutation { logout }';
@@ -192,10 +194,16 @@ describe('last login wins (wire)', () => {
 
     it('does not close the live socket of a session at logout (D-03, D-07)', async () => {
         const session = await login();
-        const { closed } = await openTracked(session);
+        const { socket, closed } = await openTracked(session);
 
         await postGraphql(LOGOUT, bearerOf(session));
 
+        expect(socket.readyState).toBe(WebSocket.OPEN);
+        expect(
+            harness.app
+                .get(WsSessionRegistry)
+                .isRegistered(sessionIdOf(session)),
+        ).toBe(true);
         await expect(stateAfter(closed, LOGOUT_SILENCE_MS)).resolves.toBe(
             'open',
         );
