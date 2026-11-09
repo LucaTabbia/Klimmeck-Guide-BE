@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 16 closed (12/12) — real boot with the backfill done on 2026-11-08, one-off removed (`0125058`), PR #25 (`feat/16-lore-sbloccabili` → `develop`) ready for review, awaiting the user's merge
-last_updated: "2026-11-08T15:25:00.000Z"
-last_activity: 2026-11-08 -- Phase 16 real boot: CI fixed (5fd6190, a unit spec imported AppModule), backfill ran (3 active characters of 4 documents, 2 updated, 8 lore, 1 enemy; second boot zero), one-off removed in TDD (80c3bf7 → 0125058), third boot clean; PR #25 ready for review
+stopped_at: Phase 17 (Autorizzazione e sessioni) context gathered on 2026-11-09 in the joint discuss with the FE Phase 12 Hardening; branch `feat/17-autorizzazione-e-sessioni` from `develop` `31dba96`; next `/gsd-plan-phase 17` (REPO-RULES first)
+last_updated: "2026-11-09T14:30:00.000Z"
+last_activity: 2026-11-09 -- Phase 17 inserted as the companion of the FE Phase 12 Hardening (discuss from the FE repo): 17-CONTEXT.md D-01..D-10, BE-SESSION-01..05, ROADMAP section and alignment row
 progress:
-  total_phases: 20
+  total_phases: 21
   completed_phases: 20
   total_plans: 251
   completed_plans: 251
-  percent: 100
+  percent: 95
 ---
 
 # Project State
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 16 — Lore sbloccabili — CLOSED (2026-11-08) su `feat/16-lore-sbloccabili` (da `develop` `9103440`): 12/12 piani, pipeline review → ruling → fix → security chiusa, CI verde dopo il fix della spec unitaria che importava `AppModule` (`5fd6190`), boot reale col backfill eseguito (`personaggi 3, aggiornati 2, lore aggiunte 8, nemici aggiunti 1, senza città 1`; secondo boot a zero), one-off rimosso in TDD (`80c3bf7` → `0125058`), terzo boot dalla build finale pulito; PR #25 pronta per la review, in attesa della merge dell'utente; poi FE 17-09 (gate di schema) e 17-10 (UAT su device).
+**Current focus:** Phase 17 — Autorizzazione e sessioni — CONTEXT GATHERED (2026-11-09) su `feat/17-autorizzazione-e-sessioni` (da `develop` `31dba96`, la merge della PR #26): companion della FE Phase 12 Hardening, discuss congiunto condotto dal repo FE; `17-CONTEXT.md` D-01..D-10 (matrice table-driven innkeeper + ownership, «l'ultimo login caccia l'altro» con WS chiuso subito e JWT stateless, `SESSION_REVOKED` + `reason`, cambio ruolo → revoca, logout invariato); prossimo passo `/gsd-plan-phase 17` con `17-REPO-RULES.md` scritto prima della ricerca.
 
 ## Current Position
 
-Phase: 16 (Lore sbloccabili) — CLOSED 2026-11-08 (real boot with the backfill done, one-off removed) on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12/12 plans, gate 16-11 passed, three area reviews (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verification (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), security audit (48 threats, 0 open, 2 deferred to the real boot); PR #25 (draft, `feat/16-lore-sbloccabili` → `develop`) opened by the orchestrator as DRAFT until the real boot with the backfill and its removal; the FE Phase 17 (parked at 8/10) resumes with 17-09/17-10 after the merge
-Plan: 12 of 12
-Status: Phase 16 closed — PR #25 (`feat/16-lore-sbloccabili` → `develop`) ready for review after the real boot with the backfill (2026-11-08) and the one-off removal; next: the user's merge, then the FE Phase 17 plans 17-09 (schema gate) and 17-10 (device UAT), then the FE PRs
-Last activity: 2026-11-08 -- Phase 16 real boot with the backfill, one-off removal in TDD, PR #25 ready for review
+Phase: 17 (Autorizzazione e sessioni) — CONTEXT GATHERED 2026-11-09 on `feat/17-autorizzazione-e-sessioni` (from `develop` `31dba96`): inserted as the BE companion of the FE Phase 12 Hardening in a joint interactive discuss from the FE repo; `17-CONTEXT.md` D-01..D-10, requirements BE-SESSION-01..05; next `/gsd-plan-phase 17`
+Plan: 0 of TBD
+Status: Phase 17 context gathered — ready to plan (REPO-RULES with the contract names first: revoke reason enum, dedicated WS close code); Phases 15 and 16 and the quick tasks 261109-inj/inj2 merged on `develop` (`31dba96`)
+Last activity: 2026-11-09 -- Phase 17 context gathered (joint discuss with the FE Phase 12); ROADMAP, REQUIREMENTS, PROJECT and STATE updated
 Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.
 
-Progress: [██████████] 12/12 plans of Phase 16 (phases 1–16, 9.1, 9.2 and 13.1 complete; 16 awaiting the merge of PR #25)
+Progress: [░░░░░░░░░░] 0/? plans of Phase 17 (phases 1–16, 9.1, 9.2 and 13.1 complete; 17 inserted 2026-11-09 as the FE Phase 12 companion)
 
 ## Performance Metrics
 
