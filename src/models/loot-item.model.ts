@@ -42,4 +42,3 @@ export class LootItemInput {
     @Field(() => EffectType)
     effect: EffectType;
 }
-
