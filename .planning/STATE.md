@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 17 planned (10 plans, 2026-11-09) — next: /gsd-execute-phase 17 (sequential waves)
-last_updated: "2026-11-09T15:46:25.000Z"
-last_activity: 2026-11-09 -- Phase 17 planned (10 plans, plan-checker passed); FE Phase 12 planned in the same session
+stopped_at: Phase 17 executing (0/10, 2026-11-09) — wave sequenziali; nessun one-off né migrazione; PR verso develop dall'orchestratore dopo il gate
+last_updated: "2026-11-09T16:40:09.167Z"
+last_activity: 2026-11-09 -- Phase 17 execution started
 progress:
   total_phases: 21
   completed_phases: 20
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 17 — Autorizzazione e sessioni — PLANNED (2026-11-09) su `feat/17-autorizzazione-e-sessioni` (da `develop` `31dba96`): 10 piani in wave sequenziali, ricerca, REPO-RULES, VALIDATION e plan-checker registrati; companion della FE Phase 12 Hardening pianificata nella stessa sessione; prossimo passo `/gsd-execute-phase 17`.
+**Current focus:** Phase 17 — Autorizzazione e sessioni — EXECUTING (dal 2026-11-09) su `feat/17-autorizzazione-e-sessioni` (da `develop` `31dba96`, la merge della PR #26): 10 piani in 10 wave sequenziali (enum + modello + reason → session service → fan-out della revoca e 4409 → connection_init → il login caccia le altre sessioni → watcher del ruolo → fondazioni della matrice → matrice di autorizzazione → gate → handoff), plan-checker passato; nessun one-off né migrazione (PR non in draft dopo il gate). Companion della FE Phase 12 Hardening, in esecuzione nella stessa sessione su `refactor/12-hardening` (17 piani, gli ultimi due gated dalla merge di questa fase).
 
 ## Current Position
 
-Phase: 17 (Autorizzazione e sessioni) — PLANNED 2026-11-09 on `feat/17-autorizzazione-e-sessioni` (from `develop` `31dba96`): 10 plans in 10 sequential waves (enum + model + reason → session service → revocation at login → WS registry and 4409 → role watcher → authorization matrix → gate → handoff); research, repo rules, validation skeleton and plan-checker pass recorded; FE Phase 12 planned in the same session
+Phase: 17 (Autorizzazione e sessioni) — EXECUTING since 2026-11-09 on `feat/17-autorizzazione-e-sessioni` (from `develop` `31dba96`): 10 plans in 10 sequential waves (enum + model + reason → session service → revocation fan-out and 4409 → connection_init → login revokes the others → role watcher → matrix foundations → authorization matrix → gate → handoff)
 Plan: 0 of 10
-Status: Phase 17 planned — ready to execute (`/gsd-execute-phase 17`); no one-off, no migration; FE Phase 12 planned in the same session on `refactor/12-hardening`
-Last activity: 2026-11-09 -- Phase 17 planned: research, repo rules, 10 plans, checker passed
+Status: Executing Phase 17 — sequential waves; no one-off, no migration; FE Phase 12 executing in the same session on `refactor/12-hardening` (its gated plans 12-16/12-17 wait for this phase's merge)
+Last activity: 2026-11-09 -- Phase 17 execution started
 Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.
 
 Progress: [░░░░░░░░░░] 0/10 plans of Phase 17 (phases 1–16, 9.1, 9.2 and 13.1 complete and merged)
