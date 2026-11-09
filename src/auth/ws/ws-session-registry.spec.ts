@@ -60,6 +60,26 @@ describe('WsSessionRegistry', () => {
         expect(socket.close).toHaveBeenCalledTimes(1);
     });
 
+    it('keeps closing the other sockets when one close throws (D-03)', () => {
+        const broken = {
+            close: jest.fn(() => {
+                throw new Error('socket already gone');
+            }),
+        };
+        const sibling = buildSocket();
+        const otherSession = buildSocket();
+        registry.register('s1', broken);
+        registry.register('s1', sibling);
+        registry.register('s2', otherSession);
+
+        registry.closeSessions(['s1', 's2'], SessionRevokeReason.newLogin);
+
+        expect(sibling.close).toHaveBeenCalledWith(4409, 'newLogin');
+        expect(otherSession.close).toHaveBeenCalledWith(4409, 'newLogin');
+        expect(registry.isRegistered('s1')).toBe(false);
+        expect(registry.isRegistered('s2')).toBe(false);
+    });
+
     it('forgets a socket that closed by itself (D-03)', () => {
         const closedByItself = buildSocket();
         const live = buildSocket();
