@@ -38,9 +38,9 @@ created: 2026-11-09
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 17-01-01 | 01 | 1 | BE-SESSION-03 | T-17-02, T-17-03, T-17-04 | enum chiuso a quattro valori, campo nullable, `extensions.reason` solo nell'eccezione, body Nest invariato | unit | `npx jest src/auth/session/session.model.spec.ts src/auth/auth.exception.spec.ts test/fixtures/fixtures.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 17-01-02 | 01 | 1 | BE-SESSION-03 | T-17-01 | allowlist della sola chiave `reason` (stringa) nei due formatter, HTTP e WS, sviluppo e produzione | unit | `npx jest src/graphql --selectProjects unit` | ✅ | ⬜ pending |
-| 17-01-03 | 01 | 1 | BE-SESSION-03 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 17-01-01 | 01 | 1 | BE-SESSION-03 | T-17-02, T-17-03, T-17-04 | enum chiuso a quattro valori, campo nullable, `extensions.reason` solo nell'eccezione, body Nest invariato | unit | `npx jest src/auth/session/session.model.spec.ts src/auth/auth.exception.spec.ts test/fixtures/fixtures.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 17-01-02 | 01 | 1 | BE-SESSION-03 | T-17-01 | allowlist della sola chiave `reason` (stringa) nei due formatter, HTTP e WS, sviluppo e produzione | unit | `npx jest src/graphql --selectProjects unit` | ✅ | ✅ green |
+| 17-01-03 | 01 | 1 | BE-SESSION-03 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 17-02-01 | 02 | 2 | BE-SESSION-02, BE-SESSION-03, BE-SESSION-04 | T-17-06, T-17-07 | motivo scritto su ogni revoca, `reuseDetected`, motivo memorizzato o assente nel rifiuto, logout `userLogout` | integration | `npx jest src/auth/session/session.service.int-spec.ts src/auth/auth-session.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 17-02-02 | 02 | 2 | BE-SESSION-02, BE-SESSION-03 | T-17-05, T-17-08 | revoca per utente con `_id` minore della sessione da tenere, idempotente; lettura per la `connection_init`; reason sul filo HTTP in produzione | integration | `npx jest src/auth/session/session.service.int-spec.ts src/graphql/production-surface.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 17-02-03 | 02 | 2 | BE-SESSION-02 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-02-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |

@@ -620,7 +620,7 @@ Plans:
 **Unblocks (FE)**: FE Phase 12 (HARDEN-02 evidenza, HARDEN-06 e i notice specifici della revoca, piani gated + UAT dual-device).
 **Branch**: `feat/17-autorizzazione-e-sessioni` da `develop` (`31dba96`, la merge della PR #26) → PR a `develop`.
 **Plans**: 10 piani (wave sequenziali)
-- [ ] 17-01-PLAN.md — Contratto del motivo di revoca: enum `SessionRevokeReason`, `Session.revokeReason` nullable, `AuthException.sessionRevoked(reason)`, la sola chiave `reason` conservata da `formatDomainError` e `sanitizeFormattedError` (D-05, D-08, D-11, D-13)
+- [x] 17-01-PLAN.md — Contratto del motivo di revoca: enum `SessionRevokeReason`, `Session.revokeReason` nullable, `AuthException.sessionRevoked(reason)`, la sola chiave `reason` conservata da `formatDomainError` e `sanitizeFormattedError` (D-05, D-08, D-11, D-13)
 - [ ] 17-02-PLAN.md — `SessionService`: `revoke(id, reason | null)` con i sei chiamanti aggiornati, `reuseDetected` nella reuse detection, rifiuto del refresh col motivo memorizzato, `revokeOthersOf` (`_id` minore), `revokeAllOf`, `revokeReasonOf`, logout → `userLogout`, utente cancellato → `null`, reason sul filo HTTP in produzione (D-02, D-05, D-07, D-11, D-12)
 - [ ] 17-03-PLAN.md — `WS_SESSION_REVOKED_CLOSE_CODE = 4409`, `WsSessionRegistry` e `SessionRevocationService` (prima la revoca a DB, poi i socket), provider di `AuthModule` (D-03)
 - [ ] 17-04-PLAN.md — `WsConnectionAuthenticator`: costruttore nuovo, ordine bearer → `extra.closed` → registrazione → lettura, `close(4409, reason)` + `return false`, registro svuotato in `onClose`, casi sul filo in `ws-auth.int-spec.ts` (D-03)
@@ -679,4 +679,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
 | 15. Imboscate in viaggio | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | 12/12 | Complete | 2026-11-07 |
-| 17. Autorizzazione e sessioni | 0/10 | Planned | - |
+| 17. Autorizzazione e sessioni | 1/10 | In Progress | - |
