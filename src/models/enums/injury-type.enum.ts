@@ -29,6 +29,15 @@ export enum InjuryType {
     frostbite = 'frostbite',
     infection = 'infection',
     spinalInjury = 'spinalInjury',
+    contusion = 'contusion',
+    punctureWound = 'punctureWound',
+    muscleTear = 'muscleTear',
+    exhaustion = 'exhaustion',
+    sprain = 'sprain',
+    dislocatedShoulder = 'dislocatedShoulder',
+    brokenNose = 'brokenNose',
+    hypothermia = 'hypothermia',
+    stunned = 'stunned',
 }
 
 registerEnumType(InjuryType, { name: 'InjuryType' });
