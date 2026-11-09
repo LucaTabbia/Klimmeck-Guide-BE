@@ -17,6 +17,7 @@ import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
 import { Session, SessionSchema } from 'src/auth/session/session.model';
 import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
 import { SessionService } from 'src/auth/session/session.service';
+import { UserRoleChangesPublisher } from 'src/auth/session/user-role-changes.publisher';
 import { AccessTokenService } from 'src/auth/token/access-token.service';
 import { HttpTwitchOAuthClient } from 'src/auth/twitch/http-twitch-oauth.client';
 import { OAuthStateService } from 'src/auth/twitch/oauth-state.service';
@@ -26,6 +27,7 @@ import { TwitchOAuthClient } from 'src/auth/twitch/twitch-oauth.client';
 import { WsConnectionAuthenticator } from 'src/auth/ws/ws-connection-authenticator';
 import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
 import { AUTH_CONFIG, authConfigProvider } from 'src/config/auth-config';
+import { User, UserSchema } from 'src/models/user.model';
 import { UsersModule } from 'src/users/users.module';
 
 // JwtModule senza secret: ogni servizio passa config.jwtSecret per chiamata (unica sorgente = AUTH_CONFIG)
@@ -36,6 +38,7 @@ import { UsersModule } from 'src/users/users.module';
         MongooseModule.forFeature([
             { name: Session.name, schema: SessionSchema },
             { name: LoginTicket.name, schema: LoginTicketSchema },
+            { name: User.name, schema: UserSchema },
         ]),
     ],
     controllers: [TwitchAuthController],
@@ -48,6 +51,7 @@ import { UsersModule } from 'src/users/users.module';
         SessionService,
         WsSessionRegistry,
         SessionRevocationService,
+        UserRoleChangesPublisher,
         LoginTicketService,
         DevAuthStrategy,
         AuthIdentityResolver,
