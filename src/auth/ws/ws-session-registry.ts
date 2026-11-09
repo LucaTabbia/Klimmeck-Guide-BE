@@ -33,9 +33,20 @@ export class WsSessionRegistry {
     ): void {
         for (const sessionId of sessionIds) {
             for (const socket of this.sockets.get(sessionId) ?? []) {
-                socket.close(WS_SESSION_REVOKED_CLOSE_CODE, reason);
+                closeQuietly(socket, reason);
             }
             this.sockets.delete(sessionId);
         }
+    }
+}
+
+function closeQuietly(
+    socket: RegisteredSocket,
+    reason: SessionRevokeReason,
+): void {
+    try {
+        socket.close(WS_SESSION_REVOKED_CLOSE_CODE, reason);
+    } catch {
+        // perché: il socket è già andato e onClose lo toglie; il fan-out non deve far fallire un login già revocato a DB
     }
 }
