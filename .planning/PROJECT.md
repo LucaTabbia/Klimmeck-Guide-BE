@@ -64,6 +64,10 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 - [ ] Revisione dei modelli: `Enemy.weaknesses`, magie dei nemici per riferimento, stato dei pet sul personaggio con il 10 % degli xp dei nemici al compagno (tetto `maxXp`) e `Pet.attack`/`Pet.defense` al posto di `damages`, `wornEquipment`/`feet`, una sola lista di magie, via `PointOfInterest.quest`, `City.shop`, `Lore.imagePath`; migratore one-off unico — Phase 19 ↔ FE Phase 19 _(aggiunto 2026-11-09, si esegue dopo la 18)_
 - [ ] Cibo e vita progressivi in viaggio: piano salvato alla partenza, vita scalata dallo sweep solo nel tratto scoperto, cibo tolto in blocco a confine, arrivo o sconfitta (selezione sui km percorsi) — Phase 20, solo BE _(aggiunto 2026-11-09, si esegue dopo la 19; supera la Phase 14 D-04)_
 
+**Future (post v1.0):**
+
+- [ ] Stanze di presenza per il live share della posizione: fino a circa 50 personaggi per stanza, stanza creata da un giocatore, posizione e viaggio dei membri in tempo reale (FE FUT-05) _(aggiunto 2026-11-09)_
+
 ### Out of Scope
 
 - Gilde, arena, blog gilde — v2 (come da PROJECT.md FE)

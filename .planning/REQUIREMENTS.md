@@ -242,6 +242,7 @@ Deferred a post-v1.0. Tracciati ma non nella roadmap corrente.
   _**Consegnato** nella Phase 8 (D-08, 2026-10-21): `Pet.speedModifier` modifica la durata di ogni viaggio; il compagno equipaggiato si sceglie dal Diario dalla FE Phase 13 (2026-11-03). Resta qui solo come traccia (riallineato 2026-11-09)._
 - **BE-FUT-04**: Combat log round-per-round (FE FUT-01)
 - **BE-FUT-05**: Riconciliazione/refund redemption EventSub (reject della redemption su Twitch quando il credito fallisce)
+- **BE-FUT-06**: Stanze di presenza (FE FUT-05): un giocatore crea una stanza, altri entrano ed escono (tetto ≈ 50 membri), il server pubblica ai soli membri posizione, `activeTravel` e identità minima dei personaggi della stanza (subscription per stanza, snapshot all'ingresso, pulizia all'uscita o alla cancellazione del personaggio); nessun dato di gioco oltre la pedina; probabile dipendenza da BE-FUT-02 (PubSub Redis) per più istanze _(aggiunto 2026-11-09)_
 
 ## Out of Scope
 
