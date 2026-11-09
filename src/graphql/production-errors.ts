@@ -6,7 +6,7 @@ import { describeError } from 'src/mongo/mongo-errors';
 export const INTERNAL_ERROR_MESSAGE = 'Errore interno';
 export const INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR';
 
-// produzione: un errore codificato tiene solo il codice; ogni altro errore diventa generico (D-07)
+// produzione: un errore codificato tiene il codice e, per una sessione revocata, la sola reason (D-07, Phase 17 D-13); ogni altro errore diventa generico
 export function sanitizeFormattedError(
     formatted: GraphQLFormattedError,
 ): GraphQLFormattedError {
@@ -16,7 +16,9 @@ export function sanitizeFormattedError(
         message: internal ? INTERNAL_ERROR_MESSAGE : formatted.message,
         ...(formatted.locations ? { locations: formatted.locations } : {}),
         ...(formatted.path ? { path: formatted.path } : {}),
-        extensions: { code: internal ? INTERNAL_SERVER_ERROR : code },
+        extensions: internal
+            ? { code: INTERNAL_SERVER_ERROR }
+            : { code, ...reasonOf(formatted) },
     };
 }
 
@@ -57,6 +59,11 @@ export function logInternalError(
 function codeOf(formatted: GraphQLFormattedError): string | undefined {
     const code = formatted.extensions?.code;
     return typeof code === 'string' ? code : undefined;
+}
+
+function reasonOf(formatted: GraphQLFormattedError): { reason?: string } {
+    const reason = formatted.extensions?.reason;
+    return typeof reason === 'string' ? { reason } : {};
 }
 
 function isInternalCode(code: string | undefined): boolean {
