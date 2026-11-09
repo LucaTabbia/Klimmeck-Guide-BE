@@ -4,6 +4,7 @@ import { AuthException } from 'src/auth/auth.exception';
 import { Clock } from 'src/auth/clock';
 import { AuthSession } from 'src/auth/dto/auth-session.model';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { SessionService } from 'src/auth/session/session.service';
 import { AccessTokenService } from 'src/auth/token/access-token.service';
 import type { SignedAccessToken } from 'src/auth/token/access-token.service';
@@ -50,7 +51,7 @@ export class AuthSessionService {
         );
         const user = await this.findUserOrNull(session.userId);
         if (!user) {
-            await this.sessionService.revoke(session.sessionId);
+            await this.sessionService.revoke(session.sessionId, null);
             throw AuthException.sessionRevoked();
         }
         const signed = await this.signAccessToken(user, session.sessionId);
@@ -61,10 +62,13 @@ export class AuthSessionService {
         return this.toAuthSession(user, signed, rotated.refreshToken);
     }
 
-    // l'access JWT già emesso resta valido fino a exp (≤ 15 min, D-27); le identità dev non hanno sessione
+    // solo la sessione corrente, motivo userLogout (Phase 17 D-07); l'access JWT già emesso resta valido fino a exp (≤ 15 min, D-27); le identità dev non hanno sessione
     async logout(identity: AuthIdentity): Promise<boolean> {
         if (identity.sessionId) {
-            await this.sessionService.revoke(identity.sessionId);
+            await this.sessionService.revoke(
+                identity.sessionId,
+                SessionRevokeReason.userLogout,
+            );
         }
         return true;
     }

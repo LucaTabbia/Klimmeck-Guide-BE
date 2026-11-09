@@ -8,6 +8,7 @@ import {
     deriveRefreshTokenKey,
 } from 'src/auth/crypto/refresh-token-derivation';
 import { generateOpaqueToken, sha256Hex } from 'src/auth/crypto/token-crypto';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { AuthConfig } from 'src/config/auth-config';
@@ -24,6 +25,10 @@ export interface IssuedRefreshToken {
 export interface RotatableSession {
     sessionId: string;
     userId: string;
+}
+
+export interface RevokedSessionState {
+    reason: SessionRevokeReason | null;
 }
 
 @Injectable()
@@ -93,12 +98,15 @@ export class SessionService {
         return issued ?? this.rejectRefresh(presentedHash, now);
     }
 
-    async revoke(sessionId: string): Promise<void> {
+    async revoke(
+        sessionId: string,
+        reason: SessionRevokeReason | null,
+    ): Promise<void> {
         if (!Types.ObjectId.isValid(sessionId)) return;
         await this.sessionModel
             .updateOne(
                 { _id: sessionId, revokedAt: null },
-                { $set: { revokedAt: this.clock.now() } },
+                { $set: { revokedAt: this.clock.now(), revokeReason: reason } },
             )
             .exec();
     }
@@ -198,33 +206,45 @@ export class SessionService {
                     'retiredRefreshTokens.hash': presentedHash,
                     ...this.activeFilter(now),
                 },
-                { $set: { revokedAt: now } },
+                {
+                    $set: {
+                        revokedAt: now,
+                        revokeReason: SessionRevokeReason.reuseDetected,
+                    },
+                },
             )
             .exec();
         if (reused) {
             this.logger.warn(
                 `Refresh token reuse detected: session ${reused._id.toString()} revoked`,
             );
-            throw AuthException.sessionRevoked();
+            throw AuthException.sessionRevoked(
+                SessionRevokeReason.reuseDetected,
+            );
         }
-        if (await this.isRevokedSessionToken(presentedHash))
-            throw AuthException.sessionRevoked();
+        const revoked = await this.findRevokedByToken(presentedHash);
+        if (revoked) throw AuthException.sessionRevoked(revoked.reason);
         throw AuthException.sessionExpired();
     }
 
-    private async isRevokedSessionToken(
+    // il token di una sessione già revocata risponde col motivo memorizzato; i documenti precedenti alla fase non hanno il campo (Pitfall 4)
+    private async findRevokedByToken(
         presentedHash: string,
-    ): Promise<boolean> {
+    ): Promise<RevokedSessionState | null> {
         const revoked = await this.sessionModel
-            .exists({
-                $or: [
-                    { refreshTokenHash: presentedHash },
-                    { 'retiredRefreshTokens.hash': presentedHash },
-                ],
-                revokedAt: { $ne: null },
-            })
+            .findOne(
+                {
+                    $or: [
+                        { refreshTokenHash: presentedHash },
+                        { 'retiredRefreshTokens.hash': presentedHash },
+                    ],
+                    revokedAt: { $ne: null },
+                },
+                { revokeReason: 1 },
+            )
+            .lean<{ revokeReason?: SessionRevokeReason | null }>()
             .exec();
-        return revoked !== null;
+        return revoked ? { reason: revoked.revokeReason ?? null } : null;
     }
 
     private deriveToken(
