@@ -30,6 +30,7 @@ Plan: 10 of 10
 Status: Phase 17 complete — PR #27 to develop open (CI to check); next: merge, then `npm run build` + restart of the BE from `develop` (the user's process on port 3001 runs the pre-17 build), then the FE Phase 12 gate 12-16 and the device UAT 12-17 (dual device + release via TLS tunnel) with the notes of the handoff
 Last activity: 2026-11-09 -- Phase 17 complete: review, verification, fixes and security audit done; PR #27 to develop
 Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.
+Quick task 261109-cap (2026-11-09): `ferrionCity` e `necrorianCity` passano a `CitySize.capital` (regola dell'utente nella UAT FE 12: tutto capitale tranne Talmvere); nessun cambio SDL, Necrorian resta senza negozio (`NO_SHOP_CITY_TYPES`), pool a DB non rigenerati («la mano vince»), la generazione delle quest dà loro tetto e peso 4.
 
 Progress: [██████████] 10/10 plans of Phase 17 (phases 1–17, 9.1, 9.2 and 13.1 complete; 17 awaiting the merge)
 
