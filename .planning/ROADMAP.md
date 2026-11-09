@@ -621,7 +621,7 @@ Plans:
 **Branch**: `feat/17-autorizzazione-e-sessioni` da `develop` (`31dba96`, la merge della PR #26) → PR a `develop`.
 **Plans**: 10 piani (wave sequenziali)
 - [x] 17-01-PLAN.md — Contratto del motivo di revoca: enum `SessionRevokeReason`, `Session.revokeReason` nullable, `AuthException.sessionRevoked(reason)`, la sola chiave `reason` conservata da `formatDomainError` e `sanitizeFormattedError` (D-05, D-08, D-11, D-13)
-- [ ] 17-02-PLAN.md — `SessionService`: `revoke(id, reason | null)` con i sei chiamanti aggiornati, `reuseDetected` nella reuse detection, rifiuto del refresh col motivo memorizzato, `revokeOthersOf` (`_id` minore), `revokeAllOf`, `revokeReasonOf`, logout → `userLogout`, utente cancellato → `null`, reason sul filo HTTP in produzione (D-02, D-05, D-07, D-11, D-12)
+- [x] 17-02-PLAN.md — `SessionService`: `revoke(id, reason | null)` con i sei chiamanti aggiornati, `reuseDetected` nella reuse detection, rifiuto del refresh col motivo memorizzato, `revokeOthersOf` (`_id` minore), `revokeAllOf`, `revokeReasonOf`, logout → `userLogout`, utente cancellato → `null`, reason sul filo HTTP in produzione (D-02, D-05, D-07, D-11, D-12)
 - [ ] 17-03-PLAN.md — `WS_SESSION_REVOKED_CLOSE_CODE = 4409`, `WsSessionRegistry` e `SessionRevocationService` (prima la revoca a DB, poi i socket), provider di `AuthModule` (D-03)
 - [ ] 17-04-PLAN.md — `WsConnectionAuthenticator`: costruttore nuovo, ordine bearer → `extra.closed` → registrazione → lettura, `close(4409, reason)` + `return false`, registro svuotato in `onClose`, casi sul filo in `ws-auth.int-spec.ts` (D-03)
 - [ ] 17-05-PLAN.md — Revoca al login in `issueForUser` (errore propagato) e spec di filo `test/auth/session-revocation.int-spec.ts`: secondo login, `connection_init` revocata, refresh `newLogin`, JWT residuo servito, nuova sessione intatta, logout senza chiusura, dev bypass senza effetto (D-02, D-03, D-04, D-12)
@@ -679,4 +679,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
 | 15. Imboscate in viaggio | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | 12/12 | Complete | 2026-11-07 |
-| 17. Autorizzazione e sessioni | 1/10 | In Progress | - |
+| 17. Autorizzazione e sessioni | 2/10 | In Progress | - |
