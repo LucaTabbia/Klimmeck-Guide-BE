@@ -37,6 +37,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 15: Imboscate in viaggio** - Rischio per km di giorno e di notte (22–06, `AMBUSH_TIMEZONE`), più imboscate per viaggio con risorteggio dopo ogni vittoria, nemici del POI più vicino nella fascia [Facile, Medio] del livello, job al momento dell'imboscata con `CombatResolver`; vittoria → XP e monete del rango, sconfitta → HP ≥ 1 e ferite, rotta riscritta dal punto verso la città più vicina, quest abbandonata, push di sconfitta; report trattenuti e consegnati all'arrivo come `QuestResult` di tipo `ambush` _(aggiunta 2026-10-29, discussa 2026-11-06)_
 - [x] **Phase 16: Lore sbloccabili** - Due insiemi additivi sul `Character`: lore sbloccate (`status.unlockedLore`, id sul filo) e nemici sconfitti (`status.knownEnemies`, interno); geografia della città (lore + regioni + stato) alla nascita e a ogni arrivo sul marker di una città (viaggio, deviazione, salto, teleport); nemici alla vittoria (tutti i vincitori: lore del bestiario + id esatto); `study` senza magia → lore casuale al 50 %; query di lore filtrate per il personaggio del bearer (`City.relatedLore` null se chiusa), `known` per viewer sulle voci di `enemies`, `loreUnlocked` sugli esiti; innkeeper vede tutto. Discussa il 2026-11-07.
 - [ ] **Phase 18: Quest heal per taglia** - Le quest `heal` curano in base al luogo: sotto-documento additivo `prizes.cure` con la quota di vita a cui la quest riporta gli HP (tetto: villaggio 50 %, città 80 %, capitale 100 %) e la lista `canHeal` delle ferite che guarisce (stesso nome e semantica del campo degli oggetti heal), applicato a ogni quest vinta che lo porta; `QuestResult.injuriesHealed`; contenuto delle 166 heal scritto a DB per taglia (liste ≤20 / ≤40 / tutte con ritocchi di lore per tipo di città, ore 2 / 5 / 8, descrizioni per taglia) dopo la revisione dell'utente; heal gratuite; **pozioni heal bevute dal Diario** con ricarica globale (`LootItem.recovery { time, turns }`, `status.potionRecoveryUntil`, mutation `useItem`, tempi 30 min–24 h a DB, `turns` solo dato per il motore di combattimento) e lore nuova «Il limite del corpo» sbloccata alla prima pozione (`LootItem.relatedLore`) _(aggiunta 2026-11-09 nel discuss congiunto con la FE Phase 18; la Phase 17 «Autorizzazione e sessioni» vive sul ramo `feat/17-autorizzazione-e-sessioni`; la 18 si esegue dopo la 17)_
+- [ ] **Phase 19: Revisione dei modelli** - Pulizia dei modelli senza cambiare le regole, con cambi non additivi allo SDL dichiarati e un solo migratore one-off al boot reale: `Enemy.weaknesses { base, energy }`, magie dei nemici per riferimento, stato dei pet sul personaggio (`ownedPets [{ pet, xp, currentLifePoints }]`, il catalogo tiene le basi, `maxXp` rivisto e `attack`/`defense` al posto di `damages`) con il **10 % degli xp dei nemici al compagno equipaggiato** (tetto `maxXp`, `QuestResult.petXpGained`), `wornEquipment`/`feet`, una sola lista `spellStates` con `active` (via `status.spells` e `assets.activeSpells`), `maxActiveSpells` calcolato e non persistito, via `PointOfInterest.quest`, `City.shop { equipment, loot, pets }`, `Lore.imagePath`, file enum e modello morto _(aggiunta 2026-11-09, dopo la Phase 18)_
 
 ## Phase Details
 
@@ -624,6 +625,21 @@ Plans:
 **Branch**: `feat/18-quest-heal-per-taglia` da `develop` (`31dba96`), worktree → PR a `develop` dopo la merge della Phase 17.
 **Plans**: TBD
 
+### Phase 19: Revisione dei modelli
+**Goal**: I modelli perdono campi doppi, nomi storti e strutture parallele senza cambiare le regole di gioco, con una sola aggiunta decisa dall'utente: il compagno equipaggiato riceve il 10 % degli xp dei nemici sconfitti (tetto `maxXp` del catalogo) e per questo lo stato del pet (xp, vita) lascia il catalogo condiviso e vive sul personaggio. Tre aree, un migratore one-off al boot reale rimosso prima della merge, SDL non additivo consumato dalla FE Phase 19 con piani gated.
+**Depends on**: Phase 9 (esiti), Phase 9.1 (`spellStates`), Phase 12 (pet, pool), Phase 13 (`enemies`, debolezze nel generatore), Phase 16 (pattern del one-off), Phase 18 (stesso ramo, eseguita prima)
+**Requirements**: BE-MODEL-01, BE-MODEL-02, BE-MODEL-03, BE-MODEL-04, BE-MODEL-05, BE-MODEL-06, BE-MODEL-07, BE-MODEL-08, BE-MODEL-09
+**Success Criteria** (what must be TRUE):
+  1. Catalogo: `Enemy.weaknesses { base: [DamageType], energy: [EnergyType] }` sostituisce i due campi (modello, SDL, input; generatore e combattimento leggono il sotto-documento); `Enemy.spells` è una lista di riferimenti al catalogo con lo stesso SDL; `Pet` perde `xp` e `currentLifePoints`, tiene le basi e sostituisce `damages` con due campi piatti `attack` e `defense` (ciascuno `Damages { base, energy }`; i danni attuali diventano `attack`, `defense` nasce vuoto per la cura a DB).
+  2. Pet: `CharacterAssets.ownedPets: [OwnedPet { pet, xp, currentLifePoints }]` (non additivo); acquisto, vendita, premio e «già posseduto» lavorano sulle voci; a ogni vittoria con nemici il compagno equipaggiato riceve `round(Σ Enemy.xp × 0,10)` con tetto `maxXp`, nella stessa scrittura dell'esito (quest e imboscata), e il `QuestResult` porta `petXpGained`; `maxXp` dei 44 pet rivisti a DB dalla tabella approvata (contenuto dopo la merge).
+  3. Personaggio: `wornEquipment` con slot `feet`; `status.spellStates [{ spell, usages, recoveries, active }]` unica fonte (equip/unequip/uso/recupero/apprendimento/combattimento), `status.spells` e `assets.activeSpells` tolti; `maxActiveSpells` resolve field calcolato, non persistito.
+  4. Mondo e pulizia: `PointOfInterest.quest` tolto da modello, SDL e input; `City.shop { equipment, loot, pets }` letto da `cityShop`, report e vendita; `Lore.imagePath`; file enum senza underscore; `KGNotification` rimosso.
+  5. Un solo modulo one-off `src/migrations/model-review/` con un passo idempotente per decisione e log di conteggi, eseguito al boot reale e rimosso in TDD prima della merge; integration su ogni area e SDL verbatim; handoff `BACKEND-NOTES.md` con la tabella dei cambi SDL vecchio → nuovo per la FE Phase 19.
+**Decisioni del discuss (2026-11-09, `19-CONTEXT.md` D-01..D-15)**: come sopra, più `Pet.attack`/`Pet.defense` al posto di `Pet.damages` (aggiunta dell'utente a discuss chiuso); fuori scope la fusione di `ownedEquipments`/`ownedItems`, `Spell.damages`/`requiredLearnTime` (sessione dedicata alle magie), le corsie di `CharacterQuests`, le regole di combattimento.
+**Unblocks (FE)**: FE Phase 19 (MODEL-01..04).
+**Branch**: `feat/19-revisione-dei-modelli` impilato su `feat/18-quest-heal-per-taglia` → PR a `develop` dopo quella della Phase 18.
+**Plans**: TBD
+
 ## Backend ↔ Frontend alignment
 
 Vincoli d'ordine dichiarati dal FE, mappati sulle fasi BE:
@@ -642,13 +658,14 @@ Vincoli d'ordine dichiarati dal FE, mappati sulle fasi BE:
 | FE Phase 16 (imboscate) | Phase 15 (BE-AMBUSH) | `activeTravel` riscritto alla sconfitta + `QuestResult` di imboscata sulla pipeline esistente |
 | FE Phase 17 (lore sbloccabili) | Phase 16 (BE-LORE) + Phase 11 (lore) | Query di lore filtrate per personaggio + `known` sui nemici delle quest; additivi `CharacterStatus.unlockedLore`, `QuestResult.loreUnlocked`, `City.relatedLore` null se chiusa (discuss 2026-11-07) |
 | FE Phase 18 (quest heal per taglia + pozioni dal Diario) | Phase 18 (BE-HEAL) | `QuestPrizes.cure { lifePointsShare canHeal }`, `QuestResult.injuriesHealed`, `LootItem.recovery { time turns }`, `LootItem.relatedLore`, `CharacterStatus.potionRecoveryUntil`, mutation `useItem` → `UseItemResult` additivi; contenuto (liste, tempi, lore) a DB dopo la merge; esecuzione dopo la Phase 17 (discuss 2026-11-09) |
+| FE Phase 19 (model review companion) | Phase 19 (BE-MODEL) | SDL non additivo dichiarato: `Enemy.weaknesses`, `Pet.attack`/`Pet.defense` (via `Pet.damages`), `CharacterAssets.ownedPets: [OwnedPet!]!`, `QuestResult.petXpGained`, `wornEquipment`/`feet`, `SpellState.active` con `CharacterStatus.spells` e `CharacterAssets.activeSpells` tolti, `PointOfInterest.quest` tolto, `Lore.imagePath`; piani FE gated dalla merge (discuss 2026-11-09) |
 
 Nota compatibilità: i contratti di schema aggiunti (QUEST-04, TRAVEL-01, combat, connection_init) devono arrivare su staging **prima** delle fasi FE che li consumano; i contratti GraphQL esistenti non si rompono. Le fasi FE 2–10 continuano a girare sullo stub `DEV_AUTH_ACCESS_TOKEN` grazie al dev bypass fail-closed di Phase 2.
 
 ## Progress
 
 **Execution Order:**
-Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 _(11–16 aggiunte il 2026-10-29: il popolamento fornisce i dati, il multi-nemico della 13 precede l'imboscata della 15, il cibo della 14 lascia i punti d'innesto alla 15; 17 «Autorizzazione e sessioni» inserita il 2026-11-09 sul ramo `feat/17-autorizzazione-e-sessioni` come companion della FE Phase 12 Hardening; 18 aggiunta il 2026-11-09 e eseguita dopo la 17)_
+Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 19 _(11–16 aggiunte il 2026-10-29: il popolamento fornisce i dati, il multi-nemico della 13 precede l'imboscata della 15, il cibo della 14 lascia i punti d'innesto alla 15; 17 «Autorizzazione e sessioni» inserita il 2026-11-09 sul ramo `feat/17-autorizzazione-e-sessioni` come companion della FE Phase 12 Hardening; 18 aggiunta il 2026-11-09 e eseguita dopo la 17; 19 aggiunta il 2026-11-09 e eseguita dopo la 18)_
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -673,3 +690,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 15. Imboscate in viaggio | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | 12/12 | Complete | 2026-11-07 |
 | 18. Quest heal per taglia | 0/0 | Not started (after Phase 17) | - |
+| 19. Revisione dei modelli | 0/0 | Not started (after Phase 18) | - |

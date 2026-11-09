@@ -53,6 +53,7 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 - [ ] Imboscate in viaggio: probabilità per km e notte, nemico della zona, deviazione alla sconfitta, report sul `QuestResult` — Phase 15 ↔ FE Phase 16 _(aggiunto 2026-10-29)_
 - [ ] Lore sbloccabili per personaggio: città, nemici vinti, study; query filtrate e `known` — Phase 16 ↔ FE Phase 17 _(aggiunto 2026-10-29)_
 - [ ] Quest heal per taglia: `prizes.cure` (quota di vita a tetto + lista `canHeal`), cura su ogni quest vinta che la porta, contenuto delle 166 heal per taglia (liste, ore 2/5/8, descrizioni), `injuriesHealed` sul risultato; pozioni heal bevute dal Diario con ricarica globale (`LootItem.recovery { time, turns }`, `status.potionRecoveryUntil`, `useItem`) e lore «Il limite del corpo» — Phase 18 ↔ FE Phase 18 _(aggiunto 2026-11-09, si esegue dopo la Phase 17)_
+- [ ] Revisione dei modelli: `Enemy.weaknesses`, magie dei nemici per riferimento, stato dei pet sul personaggio con il 10 % degli xp dei nemici al compagno (tetto `maxXp`) e `Pet.attack`/`Pet.defense` al posto di `damages`, `wornEquipment`/`feet`, una sola lista di magie, via `PointOfInterest.quest`, `City.shop`, `Lore.imagePath`; migratore one-off unico — Phase 19 ↔ FE Phase 19 _(aggiunto 2026-11-09, si esegue dopo la 18)_
 
 ### Out of Scope
 
