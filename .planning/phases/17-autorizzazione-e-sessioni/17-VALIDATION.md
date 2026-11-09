@@ -41,13 +41,13 @@ created: 2026-11-09
 | 17-01-01 | 01 | 1 | BE-SESSION-03 | T-17-02, T-17-03, T-17-04 | enum chiuso a quattro valori, campo nullable, `extensions.reason` solo nell'eccezione, body Nest invariato | unit | `npx jest src/auth/session/session.model.spec.ts src/auth/auth.exception.spec.ts test/fixtures/fixtures.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 17-01-02 | 01 | 1 | BE-SESSION-03 | T-17-01 | allowlist della sola chiave `reason` (stringa) nei due formatter, HTTP e WS, sviluppo e produzione | unit | `npx jest src/graphql --selectProjects unit` | ✅ | ⬜ pending |
 | 17-01-03 | 01 | 1 | BE-SESSION-03 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
-| 17-02-01 | 02 | 2 | BE-SESSION-03, BE-SESSION-04 | T-17-06, T-17-07 | motivo scritto su ogni revoca, `reuseDetected`, motivo memorizzato o assente nel rifiuto, logout `userLogout` | integration | `npx jest src/auth/session/session.service.int-spec.ts src/auth/auth-session.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 17-02-01 | 02 | 2 | BE-SESSION-02, BE-SESSION-03, BE-SESSION-04 | T-17-06, T-17-07 | motivo scritto su ogni revoca, `reuseDetected`, motivo memorizzato o assente nel rifiuto, logout `userLogout` | integration | `npx jest src/auth/session/session.service.int-spec.ts src/auth/auth-session.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 17-02-02 | 02 | 2 | BE-SESSION-02, BE-SESSION-03 | T-17-05, T-17-08 | revoca per utente con `_id` minore della sessione da tenere, idempotente; lettura per la `connection_init`; reason sul filo HTTP in produzione | integration | `npx jest src/auth/session/session.service.int-spec.ts src/graphql/production-surface.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 17-02-03 | 02 | 2 | BE-SESSION-02 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-02-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
 | 17-03-01 | 03 | 3 | BE-SESSION-02 | T-17-09, T-17-11 | `closeSessions` chiude con `4409` + motivo solo i socket delle sessioni date e le dimentica | unit | `npx jest src/auth/ws --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 17-03-02 | 03 | 3 | BE-SESSION-02, BE-SESSION-04 | T-17-10, T-17-12 | revoca a DB prima della chiusura dei socket; nessuna chiusura se la revoca fallisce | integration | `npx jest src/auth/session/session-revocation.service.int-spec.ts test/auth/auth-test-app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 17-03-03 | 03 | 3 | BE-SESSION-02 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-03-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
-| 17-04-01 | 04 | 4 | BE-SESSION-02 | T-17-13, T-17-14, T-17-15, T-17-16, T-17-17 | registrazione prima della lettura, `4409` + `false` per una sessione revocata, nessuna registrazione su socket chiuso, pulizia in `onClose` | unit | `npx jest src/auth/ws --selectProjects unit` | ✅ | ⬜ pending |
+| 17-04-01 | 04 | 4 | BE-SESSION-02 | T-17-13, T-17-14, T-17-15, T-17-16, T-17-17 | registrazione prima della lettura, `4409` + `false` per una sessione revocata, nessuna registrazione né timer su socket chiuso (anche durante la lettura), pulizia in `onClose` | unit | `npx jest src/auth/ws --selectProjects unit` | ✅ | ⬜ pending |
 | 17-04-02 | 04 | 4 | BE-SESSION-02 | T-17-13, T-17-15 | `4409` sul filo reale alla `connection_init` e dal registro; socket chiuso dal client tolto dal registro | integration | `npx jest test/auth/ws-auth.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 17-04-03 | 04 | 4 | BE-SESSION-02 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-04-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
 | 17-05-01 | 05 | 5 | BE-SESSION-02 | T-17-20, T-17-21 | il login revoca le altre sessioni dopo aver creato la nuova; login fallito se la revoca fallisce | integration | `npx jest src/auth/auth-session.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
@@ -75,13 +75,13 @@ created: 2026-11-09
 
 ## Wave 0 Requirements
 
-- [x] `test/authz/expected-handlers.ts` — le tre liste condivise (refactor di `test/app.int-spec.ts`, verde prima e dopo) — piano 17-07
-- [x] `test/harness/real-app-boot.ts` — env e boot reale di `AppModule` condivisi (C-2), usato da `test/app.int-spec.ts` e dalla matrice — piano 17-07
-- [x] `test/authz/handler-fixtures.ts` e `test/authz/authorization-matrix.int-spec.ts` — BE-SESSION-01 — piano 17-07 (fixture) e 17-08 (matrice)
-- [x] `src/auth/ws/ws-session-registry.spec.ts` — BE-SESSION-02 — piano 17-03
-- [x] `test/auth/session-revocation.int-spec.ts` — filo WS + HTTP di D-02/D-03/D-05 (BE-SESSION-02/03) — piano 17-05
-- [x] `src/auth/session/user-role-changes.publisher.int-spec.ts` — BE-SESSION-04, con l'helper di priming (Pitfall 3) — piano 17-06 (helper `test/harness/role-watcher.ts`)
-- [x] `src/auth/session/session-revocation.service.int-spec.ts` — ordine DB → socket (BE-SESSION-02) — piano 17-03
+- [ ] `test/authz/expected-handlers.ts` — le tre liste condivise (refactor di `test/app.int-spec.ts`, verde prima e dopo)
+- [ ] `test/harness/real-app-boot.ts` — env e boot reale di `AppModule` condivisi (C-2), usato da `test/app.int-spec.ts` e dalla matrice
+- [ ] `test/authz/handler-fixtures.ts` e `test/authz/authorization-matrix.int-spec.ts` — BE-SESSION-01
+- [ ] `src/auth/ws/ws-session-registry.spec.ts` — BE-SESSION-02
+- [ ] `test/auth/session-revocation.int-spec.ts` — filo WS + HTTP di D-02/D-03/D-05 (BE-SESSION-02/03)
+- [ ] `src/auth/session/user-role-changes.publisher.int-spec.ts` — BE-SESSION-04, con l'helper di priming (Pitfall 3)
+- [ ] `src/auth/session/session-revocation.service.int-spec.ts` — ordine DB → socket (BE-SESSION-02)
 
 ---
 
