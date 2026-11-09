@@ -6,6 +6,7 @@ import { AuthSessionService } from 'src/auth/auth-session.service';
 import type { AuthSession } from 'src/auth/dto/auth-session.model';
 import { s256Challenge, sha256Hex } from 'src/auth/crypto/token-crypto';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
+import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
 import { SessionService } from 'src/auth/session/session.service';
 import { AccessTokenService } from 'src/auth/token/access-token.service';
@@ -21,6 +22,7 @@ const OPAQUE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const ACCESS_TOKEN_TTL_MS = 900 * 1000;
 const CLOCK_TOLERANCE_MS = 5000;
 const TWITCH_ID = 'twitch-session-1';
+const OTHER_TWITCH_ID = 'twitch-session-2';
 const BEYOND_GRACE_SECONDS = 31;
 const LAST_SECOND_WITHIN_GRACE = 29;
 const SLOW_USER_LOOKUP_SECONDS = 2;
@@ -101,6 +103,85 @@ describe('AuthSessionService (harness)', () => {
             ).toBeLessThan(CLOCK_TOLERANCE_MS);
             expect(session.refreshToken).toMatch(OPAQUE_TOKEN_PATTERN);
             expect(session.user.twitchId).toBe(TWITCH_ID);
+        });
+    });
+
+    describe('login revokes the other sessions', () => {
+        async function readSession(accessToken: string) {
+            return sessions
+                .findById(decodeClaims(accessToken).sid)
+                .lean()
+                .exec();
+        }
+
+        it('a new login revokes the other active sessions of the user with newLogin (D-02)', async () => {
+            const first = await service.issueForUser(user);
+            const second = await service.issueForUser(user);
+
+            const replaced = await readSession(first.accessToken);
+            const current = await readSession(second.accessToken);
+            expect(replaced?.revokeReason).toBe('newLogin');
+            expect(replaced?.revokedAt).toBeInstanceOf(Date);
+            expect(current?.revokedAt).toBeNull();
+        });
+
+        it('never touches the session it has just created (D-02)', async () => {
+            const first = await service.issueForUser(user);
+            const second = await service.issueForUser(user);
+            const third = await service.issueForUser(user);
+
+            const stored = await Promise.all(
+                [first, second, third].map(({ accessToken }) =>
+                    readSession(accessToken),
+                ),
+            );
+            expect(stored.map((session) => session?.revokeReason)).toEqual([
+                'newLogin',
+                'newLogin',
+                null,
+            ]);
+            expect(stored[2]?.revokedAt).toBeNull();
+        });
+
+        it('leaves the sessions of another user untouched (D-02)', async () => {
+            const other = await persistUser(users, {
+                twitchId: OTHER_TWITCH_ID,
+                role: RoleType.adventurer,
+            });
+            const otherSession = await service.issueForUser(other);
+
+            await service.issueForUser(user);
+
+            const untouched = await readSession(otherSession.accessToken);
+            expect(untouched?.revokedAt).toBeNull();
+            expect(untouched?.revokeReason).toBeNull();
+        });
+
+        it('keeps the reason of a session already revoked by a logout (D-02)', async () => {
+            const first = await service.issueForUser(user);
+            await service.logout(identityOf(first.accessToken));
+
+            await service.issueForUser(user);
+
+            const stored = await readSession(first.accessToken);
+            expect(stored?.revokeReason).toBe('userLogout');
+        });
+
+        it('fails the login when the revocation fails (D-12)', async () => {
+            const failure = jest
+                .spyOn(
+                    harness.app.get(SessionRevocationService),
+                    'revokeOthersOnLogin',
+                )
+                .mockRejectedValueOnce(new Error('revocation down'));
+
+            try {
+                await expect(service.issueForUser(user)).rejects.toThrow(
+                    'revocation down',
+                );
+            } finally {
+                failure.mockRestore();
+            }
         });
     });
 
