@@ -4,6 +4,7 @@ import { AuthException } from 'src/auth/auth.exception';
 import { Clock } from 'src/auth/clock';
 import { AuthSession } from 'src/auth/dto/auth-session.model';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
+import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
 import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { SessionService } from 'src/auth/session/session.service';
 import { AccessTokenService } from 'src/auth/token/access-token.service';
@@ -19,12 +20,17 @@ export class AuthSessionService {
         private readonly loginTicketService: LoginTicketService,
         private readonly usersService: UsersService,
         private readonly clock: Clock,
+        private readonly revocation: SessionRevocationService,
     ) {}
 
+    // l'ultimo login caccia l'altro (Phase 17 D-02): le altre sessioni attive dell'utente si revocano
+    // dopo la creazione della nuova, mai la nuova; se la revoca fallisce il login fallisce e la
+    // sessione orfana scade da sola (D-12)
     async issueForUser(user: User): Promise<AuthSession> {
         const { sessionId, refreshToken } = await this.sessionService.create(
             user.id,
         );
+        await this.revocation.revokeOthersOnLogin(user.id, sessionId);
         return this.buildSession(user, sessionId, refreshToken);
     }
 
