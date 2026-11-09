@@ -262,6 +262,23 @@ describe('SessionService (replSet)', () => {
             ).resolves.toBeUndefined();
         });
 
+        it('ignores a 12-character id that is not 24 hex digits (D-02)', async () => {
+            const issued = await service.create(USER_ID);
+            const castsToAnObjectId = 'abcdefghijkl';
+
+            await service.revoke(
+                castsToAnObjectId,
+                SessionRevokeReason.userLogout,
+            );
+
+            expect(
+                await SessionModel.countDocuments({
+                    revokedAt: { $ne: null },
+                }).exec(),
+            ).toBe(0);
+            expect((await readSession(issued.sessionId))?.revokedAt).toBeNull();
+        });
+
         it('does not throw for a malformed session id', async () => {
             await expect(
                 service.revoke(
