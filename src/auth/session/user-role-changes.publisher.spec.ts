@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import type { PubSub } from '@graphql-yoga/subscription';
-import { Types, type Model } from 'mongoose';
+import { mongo, Types, type Model } from 'mongoose';
 import type { UserDocument } from 'src/models/user.model';
 import type { ChangeStreamEvent } from 'src/mongo/change-stream-publisher';
 import type { PubSubEvents } from 'src/pubsub.module';
@@ -35,6 +35,35 @@ describe('UserRoleChangesPublisher', () => {
 
         expect(revokeAllForRoleChange.mock.calls).toEqual([
             [userObjectId.toHexString()],
+        ]);
+    });
+
+    it('limits the revocation to the sessions created up to the second of the event (D-06)', async () => {
+        const userObjectId = new Types.ObjectId();
+        const eventSeconds = 1_700_000_000;
+
+        receiver.onChange({
+            documentKey: { _id: userObjectId },
+            clusterTime: new mongo.Timestamp({ t: eventSeconds, i: 3 }),
+        });
+        await new Promise(setImmediate);
+
+        expect(revokeAllForRoleChange.mock.calls).toEqual([
+            [
+                userObjectId.toHexString(),
+                { createdBefore: new Date((eventSeconds + 1) * 1000) },
+            ],
+        ]);
+    });
+
+    it('sets no limit when the event carries no cluster time (D-06)', async () => {
+        const userObjectId = new Types.ObjectId();
+
+        receiver.onChange({ documentKey: { _id: userObjectId } });
+        await new Promise(setImmediate);
+
+        expect(revokeAllForRoleChange.mock.calls).toEqual([
+            [userObjectId.toHexString(), { createdBefore: undefined }],
         ]);
     });
 

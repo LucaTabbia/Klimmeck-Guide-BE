@@ -83,6 +83,16 @@ describe('SessionService (replSet)', () => {
         );
     }
 
+    async function setCreatedAt(
+        sessionId: string,
+        createdAt: Date,
+    ): Promise<void> {
+        await SessionModel.collection.updateOne(
+            { _id: new Types.ObjectId(sessionId) },
+            { $set: { createdAt } },
+        );
+    }
+
     function retiredEntry(token: string, retiredAt: Date) {
         return { hash: sha256Hex(token), retiredAt };
     }
@@ -371,6 +381,29 @@ describe('SessionService (replSet)', () => {
             expect((await readSession(a.sessionId))?.revokeReason).toBe(
                 'userLogout',
             );
+        });
+
+        it('revokes only the sessions created before the given limit (D-06)', async () => {
+            const earlier = await service.create(USER_ID);
+            const later = await service.create(USER_ID);
+            const createdBefore = new Date('2030-01-01T00:00:10.000Z');
+            await setCreatedAt(
+                earlier.sessionId,
+                new Date(createdBefore.getTime() - 1),
+            );
+            await setCreatedAt(later.sessionId, createdBefore);
+
+            const revoked = await service.revokeAllOf(
+                USER_ID,
+                SessionRevokeReason.roleChanged,
+                createdBefore,
+            );
+
+            expect(revoked).toEqual([earlier.sessionId]);
+            expect((await readSession(earlier.sessionId))?.revokeReason).toBe(
+                'roleChanged',
+            );
+            expect((await readSession(later.sessionId))?.revokedAt).toBeNull();
         });
 
         it('returns nothing for a malformed user id (D-06)', async () => {
