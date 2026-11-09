@@ -80,7 +80,7 @@ describe('WsSessionRegistry', () => {
         expect(registry.isRegistered('s2')).toBe(false);
     });
 
-    it('forgets a socket that closed by itself (D-03)', () => {
+    it('does not close a socket that closed by itself (D-03)', () => {
         const closedByItself = buildSocket();
         const live = buildSocket();
         registry.register('s1', closedByItself);
@@ -91,13 +91,18 @@ describe('WsSessionRegistry', () => {
 
         expect(closedByItself.close).not.toHaveBeenCalled();
         expect(live.close).toHaveBeenCalledWith(4409, 'newLogin');
+    });
 
-        const untouched = new WsSessionRegistry();
-        untouched.register('s1', closedByItself);
-        untouched.register('s1', live);
-        untouched.unregister('s1', closedByItself);
-        untouched.unregister('s1', live);
-        expect(untouched.isRegistered('s1')).toBe(false);
+    it('forgets a session once its last socket closed by itself (D-03)', () => {
+        const first = buildSocket();
+        const second = buildSocket();
+        registry.register('s1', first);
+        registry.register('s1', second);
+
+        registry.unregister('s1', first);
+        registry.unregister('s1', second);
+
+        expect(registry.isRegistered('s1')).toBe(false);
     });
 
     it('ignores unknown sessions and unknown sockets (D-03)', () => {

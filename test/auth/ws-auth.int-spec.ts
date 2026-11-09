@@ -5,6 +5,7 @@ import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum
 import { SessionService } from 'src/auth/session/session.service';
 import { OAuthStateService } from 'src/auth/twitch/oauth-state.service';
 import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
+import { pollUntil } from '../harness/poll-until';
 import { AuthProbeResolver } from './auth-probe.resolver';
 import {
     AuthTestApp,
@@ -52,17 +53,14 @@ function sessionIdOf(accessToken: string): string {
     return new JwtService().decode<{ sid: string }>(accessToken).sid;
 }
 
-async function waitUntilUnregistered(
+function waitUntilUnregistered(
     registry: WsSessionRegistry,
     sessionId: string,
 ): Promise<boolean> {
-    for (let attempt = 0; attempt < REGISTRY_POLL_ATTEMPTS; attempt++) {
-        if (!registry.isRegistered(sessionId)) return true;
-        await new Promise((resolve) =>
-            setTimeout(resolve, REGISTRY_POLL_INTERVAL_MS),
-        );
-    }
-    return !registry.isRegistered(sessionId);
+    return pollUntil(() => !registry.isRegistered(sessionId), {
+        intervalMs: REGISTRY_POLL_INTERVAL_MS,
+        attempts: REGISTRY_POLL_ATTEMPTS,
+    });
 }
 
 describe('graphql-ws authentication on real sockets', () => {

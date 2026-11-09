@@ -5,6 +5,7 @@ import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
 import type { AuthTestApp } from '../auth/auth-test-app';
 import { persistUser } from '../fixtures';
+import { pollUntil } from './poll-until';
 
 const POLL_INTERVAL_MS = 20;
 const DEFAULT_REVOCATION_TIMEOUT_MS = 3000;
@@ -25,10 +26,6 @@ interface WatchedUser {
 
 let barrierCount = 0;
 
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 function sessionsOf(harness: AuthTestApp): Model<SessionDocument> {
     return harness.connection.model<SessionDocument>(Session.name);
 }
@@ -40,21 +37,29 @@ export async function waitForRevocation(
     timeoutMs = DEFAULT_REVOCATION_TIMEOUT_MS,
 ): Promise<RevocationState> {
     const sessions = sessionsOf(harness);
-    const attempts = Math.max(1, Math.ceil(timeoutMs / POLL_INTERVAL_MS));
-    for (let attempt = 0; attempt < attempts; attempt++) {
-        const session = await sessions
-            .findById(sessionId, { revokedAt: 1, revokeReason: 1 })
-            .lean()
-            .exec();
-        if (session?.revokedAt) {
-            return {
+    let revocation: RevocationState | undefined;
+    const revoked = await pollUntil(
+        async () => {
+            const session = await sessions
+                .findById(sessionId, { revokedAt: 1, revokeReason: 1 })
+                .lean()
+                .exec();
+            if (!session?.revokedAt) return false;
+            revocation = {
                 revokedAt: session.revokedAt,
                 revokeReason: session.revokeReason ?? null,
             };
-        }
-        await sleep(POLL_INTERVAL_MS);
+            return true;
+        },
+        {
+            intervalMs: POLL_INTERVAL_MS,
+            attempts: Math.max(1, Math.ceil(timeoutMs / POLL_INTERVAL_MS)),
+        },
+    );
+    if (!revoked || !revocation) {
+        throw new Error(`session ${sessionId} was never revoked`);
     }
-    throw new Error(`session ${sessionId} was never revoked`);
+    return revocation;
 }
 
 async function createWatchedUser(
