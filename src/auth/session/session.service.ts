@@ -11,6 +11,7 @@ import { generateOpaqueToken, sha256Hex } from 'src/auth/crypto/token-crypto';
 import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
 import { AUTH_CONFIG } from 'src/config/auth-config';
+import { isObjectIdHex } from 'src/mongo/document-id';
 import type { AuthConfig } from 'src/config/auth-config';
 
 const MILLISECONDS_PER_SECOND = 1000;
@@ -109,6 +110,70 @@ export class SessionService {
                 { $set: { revokedAt: this.clock.now(), revokeReason: reason } },
             )
             .exec();
+    }
+
+    async revokeOthersOf(
+        userId: string,
+        keepSessionId: string,
+        reason: SessionRevokeReason,
+    ): Promise<string[]> {
+        if (!isObjectIdHex(userId) || !isObjectIdHex(keepSessionId)) return [];
+        // _id minore: fra due login concorrenti vince l'ultimo e nessuno caccia l'altro (D-12)
+        return this.revokeActive(
+            {
+                userId: new Types.ObjectId(userId),
+                _id: { $lt: new Types.ObjectId(keepSessionId) },
+            },
+            reason,
+        );
+    }
+
+    async revokeAllOf(
+        userId: string,
+        reason: SessionRevokeReason,
+    ): Promise<string[]> {
+        if (!isObjectIdHex(userId)) return [];
+        return this.revokeActive(
+            { userId: new Types.ObjectId(userId) },
+            reason,
+        );
+    }
+
+    // una lettura per connessione WS (D-03): solo revokedAt non nullo chiude, una sessione assente resta accettata
+    async revokeReasonOf(
+        sessionId: string,
+    ): Promise<RevokedSessionState | null> {
+        if (!isObjectIdHex(sessionId)) return null;
+        const session = await this.sessionModel
+            .findById(sessionId, { revokedAt: 1, revokeReason: 1 })
+            .lean<{
+                revokedAt?: Date | null;
+                revokeReason?: SessionRevokeReason | null;
+            }>()
+            .exec();
+        if (!session?.revokedAt) return null;
+        return { reason: session.revokeReason ?? null };
+    }
+
+    // id candidati poi update condizionale su revokedAt: una revoca già scritta non si sovrascrive
+    private async revokeActive(
+        owner: Record<string, unknown>,
+        reason: SessionRevokeReason,
+    ): Promise<string[]> {
+        const now = this.clock.now();
+        const candidates = await this.sessionModel
+            .find({ ...owner, ...this.activeFilter(now) }, { _id: 1 })
+            .lean<{ _id: Types.ObjectId }[]>()
+            .exec();
+        if (candidates.length === 0) return [];
+        const ids = candidates.map(({ _id }) => _id);
+        await this.sessionModel
+            .updateMany(
+                { _id: { $in: ids }, revokedAt: null },
+                { $set: { revokedAt: now, revokeReason: reason } },
+            )
+            .exec();
+        return ids.map((id) => id.toHexString());
     }
 
     // l'hash presentato nel filtro dell'update rende la rotazione atomica: un solo vincitore
