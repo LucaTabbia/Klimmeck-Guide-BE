@@ -160,25 +160,41 @@ export class SessionService {
         return { reason: session.revokeReason ?? null };
     }
 
-    // id candidati poi update condizionale su revokedAt: una revoca già scritta non si sovrascrive
+    // id candidati poi update condizionale su revokedAt: una revoca già scritta non si sovrascrive;
+    // la rilettura restituisce solo le sessioni che portano questo motivo, così la reason sul socket coincide con quella a DB
     private async revokeActive(
         owner: Record<string, unknown>,
         reason: SessionRevokeReason,
     ): Promise<string[]> {
         const now = this.clock.now();
-        const candidates = await this.sessionModel
-            .find({ ...owner, ...this.activeFilter(now) }, { _id: 1 })
-            .lean<{ _id: Types.ObjectId }[]>()
-            .exec();
-        if (candidates.length === 0) return [];
-        const ids = candidates.map(({ _id }) => _id);
+        const ids = await this.sessionIdsMatching({
+            ...owner,
+            ...this.activeFilter(now),
+        });
+        if (ids.length === 0) return [];
         await this.sessionModel
             .updateMany(
                 { _id: { $in: ids }, revokedAt: null },
                 { $set: { revokedAt: now, revokeReason: reason } },
             )
             .exec();
-        return ids.map((id) => id.toHexString());
+        const written = new Set(
+            await this.sessionIdsMatching({
+                _id: { $in: ids },
+                revokeReason: reason,
+            }),
+        );
+        return ids.filter((id) => written.has(id));
+    }
+
+    private async sessionIdsMatching(
+        filter: Record<string, unknown>,
+    ): Promise<string[]> {
+        const sessions = await this.sessionModel
+            .find(filter, { _id: 1 })
+            .lean<{ _id: Types.ObjectId }[]>()
+            .exec();
+        return sessions.map(({ _id }) => _id.toHexString());
     }
 
     // l'hash presentato nel filtro dell'update rende la rotazione atomica: un solo vincitore
