@@ -106,7 +106,7 @@ Il boot reale `test/app.int-spec.ts` monta `UserRoleChangesPublisher`, `SessionR
 
 ### Evidenza HARDEN-02
 
-`test/authz/authorization-matrix.int-spec.ts` gira sul **boot reale di `AppModule`** (`test/harness/real-app-boot.ts`, server in ascolto per il WS) ed è alimentata da `test/authz/expected-handlers.ts`, le stesse liste che `test/app.int-spec.ts` confronta coi metadati dei resolver (un handler nuovo senza fixture in `test/authz/handler-fixtures.ts` fa fallire la suite; `test/authz/handler-fixtures.spec.ts` valida i 30 documenti contro `src/schema.gql`). Attaccanti con sessioni vere, vittime vere (personaggio, PendingQuest, QuestResult); `adventurer` e `innkeeper` hanno un proprio personaggio attivo con corsia e risultato propri, così le righe di ownership provano lo scambio fra due giocatori attivi (review C-WR-01). 87 casi (85 da `17-08-SUMMARY.md` più le righe aggiunte dalla review):
+`test/authz/authorization-matrix.int-spec.ts` gira sul **boot reale di `AppModule`** (`test/harness/real-app-boot.ts`, server in ascolto per il WS) ed è alimentata da `test/authz/expected-handlers.ts`, le stesse liste che `test/app.int-spec.ts` confronta coi metadati dei resolver (un handler nuovo senza fixture in `test/authz/handler-fixtures.ts` fa fallire la suite; `test/authz/handler-fixtures.spec.ts` valida i 30 documenti contro `src/schema.gql`). Attaccanti con sessioni vere, vittime vere (personaggio, PendingQuest, QuestResult); `adventurer` e `innkeeper` hanno un proprio personaggio attivo con corsia e risultato propri, così le righe di ownership provano lo scambio fra due giocatori attivi (review C-WR-01). 88 casi (85 da `17-08-SUMMARY.md` più le righe aggiunte dalla review):
 
 | Gruppo | Handler | Casi | Esito |
 |--------|---------|------|-------|
@@ -116,7 +116,7 @@ Il boot reale `test/app.int-spec.ts` monta `UserRoleChangesPublisher`, `SessionR
 | ownership × `adventurer` sulla risorsa altrui | 19 (17 HTTP + 2 subscription) | 19 | `FORBIDDEN` |
 | owner-only × `innkeeper` | 8 (7 HTTP + 1 subscription) | 8 | `FORBIDDEN` |
 | completezza delle righe | — | 2 | chiavi = liste unite |
-| controlli positivi | — | 3 | proprietario (vittima e `adventurer`) e innkeeper serviti |
+| controlli positivi | — | 4 | proprietario (vittima e `adventurer`) servito, innkeeper servito sugli utenti e on-behalf sul personaggio altrui |
 
 Ogni rifiuto è un `toEqual({ code: 'FORBIDDEN' })` (o `UNAUTHENTICATED`) sull'intero `extensions`, un solo errore per risposta. Per rieseguirla:
 
@@ -164,7 +164,7 @@ npx jest test/authz/authorization-matrix.int-spec.ts --selectProjects integratio
 ## 5. Domande aperte e deviazioni
 
 - **Nessuna domanda aperta** per la FE.
-- Matrice: tutti gli 85 casi verdi al primo colpo (le regole di autorizzazione esistono dalle Phase 3/7); nessuna fixture corretta. L'esenzione auditata dell'innkeeper sugli handler ownership (Phase 3 D-09) non è asserita dalla matrice, per scelta: la matrice prova solo i rifiuti.
+- Matrice: tutti gli 85 casi verdi al primo colpo (le regole di autorizzazione esistono dalle Phase 3/7); nessuna fixture corretta. L'esenzione auditata dell'innkeeper sugli handler ownership (Phase 3 D-09) è asserita dalla matrice con un controllo positivo on-behalf sul personaggio altrui (review C-IN-05).
 - Gate: `test:cov` completo verde al primo colpo, il ripiego per cartella non è servito; coverage di `./src/auth/` 99,86 / 87,47 / 100 / 100.
 - Deviazioni minori dei piani (tutte nei SUMMARY): `DomainExtensions` come type alias invece di interface (17-01, tsc); timeout dedicato del `beforeAll` della spec D-06 (17-06); controllo del `data` del rifiuto sul campo dell'handler (17-08).
 - Rumore noto nei log dei test (non funzionale): `bootRealApp().close()` cancella il database prima di chiudere l'app, e ogni change stream logga una riapertura a fine suite.
