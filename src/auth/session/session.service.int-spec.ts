@@ -13,6 +13,7 @@ import {
     SessionDocument,
     SessionSchema,
 } from 'src/auth/session/session.model';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { SessionService } from 'src/auth/session/session.service';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import { FixedClock } from '../../../test/auth/fixed-clock';
@@ -62,6 +63,23 @@ describe('SessionService (replSet)', () => {
 
     function readSession(sessionId: string) {
         return SessionModel.findById(sessionId).lean().exec();
+    }
+
+    async function rejectionOf(promise: Promise<unknown>) {
+        try {
+            await promise;
+        } catch (error) {
+            return error as { code: string; extensions: object };
+        }
+        throw new Error('expected a rejection');
+    }
+
+    // i documenti precedenti alla fase non hanno il campo del motivo (Pitfall 4)
+    async function revokeAsLegacy(sessionId: string): Promise<void> {
+        await SessionModel.collection.updateOne(
+            { _id: new Types.ObjectId(sessionId) },
+            { $set: { revokedAt: clock.now() }, $unset: { revokeReason: '' } },
+        );
     }
 
     function retiredEntry(token: string, retiredAt: Date) {
@@ -154,22 +172,73 @@ describe('SessionService (replSet)', () => {
             const issued = await service.create(USER_ID);
             clock.advanceSeconds(5);
 
-            await service.revoke(issued.sessionId);
+            await service.revoke(
+                issued.sessionId,
+                SessionRevokeReason.userLogout,
+            );
 
             const stored = await SessionModel.findById(issued.sessionId).exec();
             expect(stored?.revokedAt?.getTime()).toBe(clock.now().getTime());
         });
 
+        it('stores the reason with the revocation time (D-05)', async () => {
+            const issued = await service.create(USER_ID);
+
+            await service.revoke(
+                issued.sessionId,
+                SessionRevokeReason.userLogout,
+            );
+
+            const stored = await readSession(issued.sessionId);
+            expect(stored?.revokedAt).toEqual(clock.now());
+            expect(stored?.revokeReason).toBe('userLogout');
+        });
+
+        it('stores no reason when revoked without one (D-11)', async () => {
+            const issued = await service.create(USER_ID);
+
+            await service.revoke(issued.sessionId, null);
+
+            const stored = await readSession(issued.sessionId);
+            expect(stored?.revokedAt).toEqual(clock.now());
+            expect(stored?.revokeReason).toBeNull();
+        });
+
+        it('keeps the first date and reason of an already revoked session (D-02)', async () => {
+            const issued = await service.create(USER_ID);
+            await service.revoke(
+                issued.sessionId,
+                SessionRevokeReason.userLogout,
+            );
+            const firstRevocation = clock.now();
+            clock.advanceSeconds(5);
+
+            await service.revoke(
+                issued.sessionId,
+                SessionRevokeReason.newLogin,
+            );
+
+            const stored = await readSession(issued.sessionId);
+            expect(stored?.revokedAt).toEqual(firstRevocation);
+            expect(stored?.revokeReason).toBe('userLogout');
+        });
+
         it('does not throw for an unknown session id', async () => {
             await expect(
-                service.revoke(new Types.ObjectId().toString()),
+                service.revoke(
+                    new Types.ObjectId().toString(),
+                    SessionRevokeReason.userLogout,
+                ),
             ).resolves.toBeUndefined();
         });
 
         it('does not throw for a malformed session id', async () => {
-            await expect(service.revoke('not-an-object-id')).resolves.toBe(
-                undefined,
-            );
+            await expect(
+                service.revoke(
+                    'not-an-object-id',
+                    SessionRevokeReason.userLogout,
+                ),
+            ).resolves.toBeUndefined();
         });
     });
 
@@ -572,7 +641,7 @@ describe('SessionService (replSet)', () => {
             const t0 = await service.create(USER_ID);
             await service.rotate(t0.refreshToken);
             clock.advanceSeconds(60);
-            await service.revoke(t0.sessionId);
+            await service.revoke(t0.sessionId, SessionRevokeReason.userLogout);
             const revokedAt = clock.now().getTime();
             clock.advanceSeconds(60);
 
@@ -587,7 +656,7 @@ describe('SessionService (replSet)', () => {
         it('a token retired within 30s on an already revoked session answers SESSION_REVOKED and re-issues nothing (REVIEW-3 IN-01)', async () => {
             const t0 = await service.create(USER_ID);
             await service.rotate(t0.refreshToken);
-            await service.revoke(t0.sessionId);
+            await service.revoke(t0.sessionId, SessionRevokeReason.userLogout);
             const afterRevocation = await readSession(t0.sessionId);
             clock.advanceSeconds(10);
 
@@ -636,6 +705,70 @@ describe('SessionService (replSet)', () => {
             ).rejects.toMatchObject(sessionExpired);
         });
 
+        it('answers a token that was never issued without a reason (D-05)', async () => {
+            const error = await rejectionOf(
+                service.rotate('never-issued-refresh-token'),
+            );
+
+            expect(error.extensions).toEqual({ code: 'SESSION_EXPIRED' });
+        });
+
+        it('reuse detection revokes with reuseDetected and answers it (D-05)', async () => {
+            const t0 = await service.create(USER_ID);
+            await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(31);
+
+            await expect(service.rotate(t0.refreshToken)).rejects.toMatchObject(
+                {
+                    code: AuthErrorCode.SESSION_REVOKED,
+                    extensions: {
+                        code: 'SESSION_REVOKED',
+                        reason: 'reuseDetected',
+                    },
+                },
+            );
+
+            const stored = await readSession(t0.sessionId);
+            expect(stored?.revokeReason).toBe('reuseDetected');
+        });
+
+        it('a token of a revoked session answers the stored reason (D-05)', async () => {
+            const t0 = await service.create(USER_ID);
+            await service.revoke(t0.sessionId, SessionRevokeReason.newLogin);
+
+            const error = await rejectionOf(service.rotate(t0.refreshToken));
+
+            expect(error.extensions).toEqual({
+                code: 'SESSION_REVOKED',
+                reason: 'newLogin',
+            });
+        });
+
+        it('a retired token of a revoked session answers the reason of the revocation (D-05)', async () => {
+            const t0 = await service.create(USER_ID);
+            await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(60);
+            await service.revoke(t0.sessionId, SessionRevokeReason.userLogout);
+            clock.advanceSeconds(60);
+
+            const error = await rejectionOf(service.rotate(t0.refreshToken));
+
+            expect(error.extensions).toEqual({
+                code: 'SESSION_REVOKED',
+                reason: 'userLogout',
+            });
+        });
+
+        it('a legacy revoked session without the field answers without a reason (D-11)', async () => {
+            const t0 = await service.create(USER_ID);
+            await revokeAsLegacy(t0.sessionId);
+
+            const error = await rejectionOf(service.rotate(t0.refreshToken));
+
+            expect(error.code).toBe(AuthErrorCode.SESSION_REVOKED);
+            expect(Object.keys(error.extensions)).toEqual(['code']);
+        });
+
         it('rejects the token of an expired session with SESSION_EXPIRED', async () => {
             await persistSession(SessionModel, {
                 refreshTokenHash: sha256Hex('expired-session-token'),
@@ -649,7 +782,7 @@ describe('SessionService (replSet)', () => {
 
         it('rejects the current token of a revoked session with SESSION_REVOKED', async () => {
             const t0 = await service.create(USER_ID);
-            await service.revoke(t0.sessionId);
+            await service.revoke(t0.sessionId, SessionRevokeReason.userLogout);
 
             await expect(service.rotate(t0.refreshToken)).rejects.toMatchObject(
                 sessionRevoked,

@@ -7,6 +7,7 @@ import type { AuthSession } from 'src/auth/dto/auth-session.model';
 import { s256Challenge, sha256Hex } from 'src/auth/crypto/token-crypto';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
+import { SessionService } from 'src/auth/session/session.service';
 import { AccessTokenService } from 'src/auth/token/access-token.service';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
@@ -197,6 +198,25 @@ describe('AuthSessionService (harness)', () => {
             expect(stored?.revokedAt).toBeInstanceOf(Date);
         });
 
+        it('revokes the session of a deleted user without a reason (D-11)', async () => {
+            const issued = await service.issueForUser(user);
+            const { sid } = decodeClaims(issued.accessToken);
+            await users.deleteOne({ _id: user._id }).exec();
+
+            const refused: unknown = await service
+                .refresh(issued.refreshToken)
+                .catch((error: unknown) => error);
+
+            expect(refused).toMatchObject({
+                code: AuthErrorCode.SESSION_REVOKED,
+            });
+            expect((refused as { extensions: object }).extensions).toEqual({
+                code: 'SESSION_REVOKED',
+            });
+            const stored = await sessions.findById(sid).lean().exec();
+            expect(stored?.revokeReason).toBeNull();
+        });
+
         it.each([
             [
                 'the user lookup',
@@ -357,6 +377,24 @@ describe('AuthSessionService (harness)', () => {
             await expect(
                 service.refresh(issued.refreshToken),
             ).rejects.toMatchObject({ code: AuthErrorCode.SESSION_REVOKED });
+        });
+
+        it('logout revokes only the current session with userLogout (D-07)', async () => {
+            const issued = await service.issueForUser(user);
+            const other = await harness.app.get(SessionService).create(user.id);
+
+            await service.logout(identityOf(issued.accessToken));
+
+            const current = await sessions
+                .findById(decodeClaims(issued.accessToken).sid)
+                .lean()
+                .exec();
+            const untouched = await sessions
+                .findById(other.sessionId)
+                .lean()
+                .exec();
+            expect(current?.revokeReason).toBe('userLogout');
+            expect(untouched?.revokedAt).toBeNull();
         });
 
         it('leaves the session revoked when a logout races concurrent refreshes, refusing every token', async () => {
