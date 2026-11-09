@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-07-16)
 ## Current Position
 
 Phase: 17 (Autorizzazione e sessioni) — EXECUTING since 2026-11-09 on `feat/17-autorizzazione-e-sessioni` (from `develop` `31dba96`): 10 plans in 10 sequential waves (enum + model + reason → session service → revocation fan-out and 4409 → connection_init → login revokes the others → role watcher → matrix foundations → authorization matrix → gate → handoff)
-Plan: 9 of 10
+Plan: 10 of 10
 Status: Phase 17 eseguita (10/10) — PR verso develop (non in draft); FE Phase 12 sbloccata alla merge (piani gated 12-16/12-17)
 Last activity: 2026-11-09 -- Phase 17 eseguita (10/10), PR verso develop, FE Phase 12 sbloccata alla merge
 Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.

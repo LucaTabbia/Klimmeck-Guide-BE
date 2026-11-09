@@ -629,7 +629,7 @@ Plans:
 - [x] 17-07-PLAN.md — Liste condivise `test/authz/expected-handlers.ts`, helper `test/harness/real-app-boot.ts` con refactor di `test/app.int-spec.ts`, tabella `test/authz/handler-fixtures.ts` (30 righe) con la spec di completezza e validazione sullo SDL (D-01)
 - [x] 17-08-PLAN.md — Matrice `test/authz/authorization-matrix.int-spec.ts` sul boot reale con sessioni e vittime vere: righe HTTP innkeeper × ruoli e bearer, ownership × adventurer, owner-only × innkeeper, righe WS `FORBIDDEN` e `4403`, completezza (D-01)
 - [x] 17-09-PLAN.md — Gate: `tsc`, controllo di wave, `test:cov` con ripiego per cartella e soglie 97/84/98, boot reale con SDL invariato e whitelist invariate, lint sui file toccati, grep degli invarianti, VALIDATION firmata (D-10, D-15)
-- [ ] 17-10-PLAN.md — Chiusura: handoff `BACKEND-NOTES.md` per la FE Phase 12 (contratto, matrice come evidenza HARDEN-02, note UAT dual-device e tunnel TLS, runbook), `requirements mark-complete BE-SESSION-01..05`, ROADMAP e STATE (D-09, D-16)
+- [x] 17-10-PLAN.md — Chiusura: handoff `BACKEND-NOTES.md` per la FE Phase 12 (contratto, matrice come evidenza HARDEN-02, note UAT dual-device e tunnel TLS, runbook), `requirements mark-complete BE-SESSION-01..05`, ROADMAP e STATE (D-09, D-16)
 
 **Stato (2026-11-09)**: 10/10 piani eseguiti; PR verso `develop` a cura dell'orchestratore (non in draft: nessun one-off né migrazione); la FE Phase 12 sblocca i piani gated alla merge (handoff in `.planning/phases/17-autorizzazione-e-sessioni/BACKEND-NOTES.md`)
 
@@ -681,4 +681,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
 | 15. Imboscate in viaggio | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | 12/12 | Complete | 2026-11-07 |
-| 17. Autorizzazione e sessioni | 9/10 | In Progress | - |
+| 17. Autorizzazione e sessioni | 10/10 | In Progress | - |
