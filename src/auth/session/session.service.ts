@@ -8,8 +8,10 @@ import {
     deriveRefreshTokenKey,
 } from 'src/auth/crypto/refresh-token-derivation';
 import { generateOpaqueToken, sha256Hex } from 'src/auth/crypto/token-crypto';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
 import { AUTH_CONFIG } from 'src/config/auth-config';
+import { isObjectIdHex } from 'src/mongo/document-id';
 import type { AuthConfig } from 'src/config/auth-config';
 
 const MILLISECONDS_PER_SECOND = 1000;
@@ -24,6 +26,10 @@ export interface IssuedRefreshToken {
 export interface RotatableSession {
     sessionId: string;
     userId: string;
+}
+
+export interface RevokedSessionState {
+    reason: SessionRevokeReason | null;
 }
 
 @Injectable()
@@ -93,14 +99,104 @@ export class SessionService {
         return issued ?? this.rejectRefresh(presentedHash, now);
     }
 
-    async revoke(sessionId: string): Promise<void> {
-        if (!Types.ObjectId.isValid(sessionId)) return;
+    async revoke(
+        sessionId: string,
+        reason: SessionRevokeReason | null,
+    ): Promise<void> {
+        if (!isObjectIdHex(sessionId)) return;
         await this.sessionModel
             .updateOne(
                 { _id: sessionId, revokedAt: null },
-                { $set: { revokedAt: this.clock.now() } },
+                { $set: { revokedAt: this.clock.now(), revokeReason: reason } },
             )
             .exec();
+    }
+
+    async revokeOthersOf(
+        userId: string,
+        keepSessionId: string,
+        reason: SessionRevokeReason,
+    ): Promise<string[]> {
+        if (!isObjectIdHex(userId) || !isObjectIdHex(keepSessionId)) return [];
+        // _id minore: fra due login concorrenti vince l'ultimo e nessuno caccia l'altro (D-12);
+        // ordine valido con un solo processo BE (ObjectId monotoni nello stesso processo);
+        // con più nodi passare a createdAt con _id come spareggio
+        return this.revokeActive(
+            {
+                userId: new Types.ObjectId(userId),
+                _id: { $lt: new Types.ObjectId(keepSessionId) },
+            },
+            reason,
+        );
+    }
+
+    // createdBefore esclude le sessioni emesse dopo l'evento che chiede la revoca (D-06)
+    async revokeAllOf(
+        userId: string,
+        reason: SessionRevokeReason,
+        createdBefore?: Date,
+    ): Promise<string[]> {
+        if (!isObjectIdHex(userId)) return [];
+        return this.revokeActive(
+            {
+                userId: new Types.ObjectId(userId),
+                ...this.createdBeforeFilter(createdBefore),
+            },
+            reason,
+        );
+    }
+
+    // una lettura per connessione WS (D-03): solo revokedAt non nullo chiude, una sessione assente resta accettata
+    async revokeReasonOf(
+        sessionId: string,
+    ): Promise<RevokedSessionState | null> {
+        if (!isObjectIdHex(sessionId)) return null;
+        const session = await this.sessionModel
+            .findById(sessionId, { revokedAt: 1, revokeReason: 1 })
+            .lean<{
+                revokedAt?: Date | null;
+                revokeReason?: SessionRevokeReason | null;
+            }>()
+            .exec();
+        if (!session?.revokedAt) return null;
+        return { reason: session.revokeReason ?? null };
+    }
+
+    // id candidati poi update condizionale su revokedAt: una revoca già scritta non si sovrascrive;
+    // la rilettura restituisce solo le sessioni che portano questo motivo, così la reason sul socket coincide con quella a DB
+    private async revokeActive(
+        owner: Record<string, unknown>,
+        reason: SessionRevokeReason,
+    ): Promise<string[]> {
+        const now = this.clock.now();
+        const ids = await this.sessionIdsMatching({
+            ...owner,
+            ...this.activeFilter(now),
+        });
+        if (ids.length === 0) return [];
+        await this.sessionModel
+            .updateMany(
+                { _id: { $in: ids }, revokedAt: null },
+                { $set: { revokedAt: now, revokeReason: reason } },
+            )
+            .exec();
+        const written = new Set(
+            await this.sessionIdsMatching({
+                _id: { $in: ids },
+                revokeReason: reason,
+            }),
+        );
+        return ids.filter((id) => written.has(id));
+    }
+
+    private async sessionIdsMatching(
+        filter: Record<string, unknown>,
+    ): Promise<string[]> {
+        const sessions = await this.sessionModel
+            .find(filter, { _id: 1 })
+            .lean<{ _id: Types.ObjectId }[]>()
+            .exec();
+        return sessions.map(({ _id }) => _id.toHexString());
     }
 
     // l'hash presentato nel filtro dell'update rende la rotazione atomica: un solo vincitore
@@ -198,33 +294,45 @@ export class SessionService {
                     'retiredRefreshTokens.hash': presentedHash,
                     ...this.activeFilter(now),
                 },
-                { $set: { revokedAt: now } },
+                {
+                    $set: {
+                        revokedAt: now,
+                        revokeReason: SessionRevokeReason.reuseDetected,
+                    },
+                },
             )
             .exec();
         if (reused) {
             this.logger.warn(
                 `Refresh token reuse detected: session ${reused._id.toString()} revoked`,
             );
-            throw AuthException.sessionRevoked();
+            throw AuthException.sessionRevoked(
+                SessionRevokeReason.reuseDetected,
+            );
         }
-        if (await this.isRevokedSessionToken(presentedHash))
-            throw AuthException.sessionRevoked();
+        const revoked = await this.findRevokedByToken(presentedHash);
+        if (revoked) throw AuthException.sessionRevoked(revoked.reason);
         throw AuthException.sessionExpired();
     }
 
-    private async isRevokedSessionToken(
+    // il token di una sessione già revocata risponde col motivo memorizzato; i documenti precedenti alla fase non hanno il campo (Pitfall 4)
+    private async findRevokedByToken(
         presentedHash: string,
-    ): Promise<boolean> {
+    ): Promise<RevokedSessionState | null> {
         const revoked = await this.sessionModel
-            .exists({
-                $or: [
-                    { refreshTokenHash: presentedHash },
-                    { 'retiredRefreshTokens.hash': presentedHash },
-                ],
-                revokedAt: { $ne: null },
-            })
+            .findOne(
+                {
+                    $or: [
+                        { refreshTokenHash: presentedHash },
+                        { 'retiredRefreshTokens.hash': presentedHash },
+                    ],
+                    revokedAt: { $ne: null },
+                },
+                { revokeReason: 1 },
+            )
+            .lean<{ revokeReason?: SessionRevokeReason | null }>()
             .exec();
-        return revoked !== null;
+        return revoked ? { reason: revoked.revokeReason ?? null } : null;
     }
 
     private deriveToken(
@@ -260,6 +368,10 @@ export class SessionService {
                 },
             },
         };
+    }
+
+    private createdBeforeFilter(createdBefore?: Date) {
+        return createdBefore ? { createdAt: { $lt: createdBefore } } : {};
     }
 
     private activeFilter(now: Date) {

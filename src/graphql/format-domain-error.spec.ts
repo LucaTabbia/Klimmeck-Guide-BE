@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { GraphQLError, type GraphQLFormattedError } from 'graphql';
 import { AuthException } from 'src/auth/auth.exception';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { AuthorizationException } from 'src/authz/authorization.exception';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
@@ -42,6 +43,20 @@ function codedBadRequest(code: string): BadRequestException {
             code,
         }),
         { extensions: { code } },
+    );
+}
+
+function badRequestWithExtensions(
+    extensions: Record<string, unknown>,
+): BadRequestException {
+    return Object.assign(
+        new BadRequestException({
+            statusCode: 400,
+            error: 'Bad Request',
+            message: 'probe',
+            code: 'PROBE_CODE',
+        }),
+        { extensions },
     );
 }
 
@@ -224,5 +239,94 @@ describe('formatDomainError', () => {
         expect(formatDomainError(formatted, new Error('opaque'))).toBe(
             formatted,
         );
+    });
+
+    it('keeps the revoke reason of a wrapped AuthException (D-13)', () => {
+        const formatted = buildFormatted();
+
+        const result = formatDomainError(
+            formatted,
+            wrapAsResolverError(
+                AuthException.sessionRevoked(SessionRevokeReason.newLogin),
+            ),
+        );
+
+        expect(result).toEqual({
+            message: formatted.message,
+            locations: formatted.locations,
+            path: formatted.path,
+            extensions: { code: 'SESSION_REVOKED', reason: 'newLogin' },
+        });
+    });
+
+    it('keeps only the reason among the extensions of a revoked session (D-05, D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'SESSION_REVOKED',
+                    reason: SessionRevokeReason.newLogin,
+                    secret: 'hidden',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'SESSION_REVOKED',
+            reason: 'newLogin',
+        });
+    });
+
+    it('drops the reason of a code other than SESSION_REVOKED (D-05, D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'PROBE_CODE',
+                    reason: 'probe',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'PROBE_CODE' });
+    });
+
+    it('drops a reason outside the revoke reasons (D-05, D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'SESSION_REVOKED',
+                    reason: 'zzz',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'SESSION_REVOKED' });
+    });
+
+    it('keeps every revoke reason of the enum, e.g. roleChanged (D-05, D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                AuthException.sessionRevoked(SessionRevokeReason.roleChanged),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'SESSION_REVOKED',
+            reason: 'roleChanged',
+        });
+    });
+
+    it('drops a reason that is not a string (D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({ code: 'PROBE_CODE', reason: 42 }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'PROBE_CODE' });
     });
 });

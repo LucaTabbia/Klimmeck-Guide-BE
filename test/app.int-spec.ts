@@ -2,15 +2,15 @@ import { getQueueToken } from '@nestjs/bull';
 import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { ModulesContainer } from '@nestjs/core';
-import { getConnectionToken } from '@nestjs/mongoose';
-import { Test } from '@nestjs/testing';
 import type { Application } from 'express';
-import type { Connection } from 'mongoose';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import request from 'supertest';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import { IS_PUBLIC_KEY } from 'src/auth/decorators/public.decorator';
+import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
+import { UserRoleChangesPublisher } from 'src/auth/session/user-role-changes.publisher';
+import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
 import type { AuthConfig } from 'src/config/auth-config';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { EventSubConfig } from 'src/config/eventsub-config';
@@ -61,9 +61,17 @@ import { TRAVEL_CONFIG } from 'src/config/travel-config';
 import { TravelCompletionService } from 'src/travel/travel-completion.service';
 import { TRAVEL_QUEUE } from 'src/travel/travel-job';
 import { TravelSweeper } from 'src/travel/travel-sweeper';
-import { startRedis, stopRedis } from './setup/redis';
+import {
+    EXPECTED_INNKEEPER_HANDLERS,
+    EXPECTED_OWNER_ONLY_HANDLERS,
+    EXPECTED_OWNERSHIP_HANDLERS,
+} from './authz/expected-handlers';
+import {
+    bootRealApp,
+    REAL_BOOT_TIMEOUT_MS,
+    type RealAppBoot,
+} from './harness/real-app-boot';
 
-const BOOT_TIMEOUT_MS = 60_000;
 const VALID_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 const SCHEMA_FILE = join(process.cwd(), 'src/schema.gql');
 // l'unico kind sul filo è quello dei risultati (Phase 15 D-14): il kind interno del viaggio resta fuori
@@ -116,53 +124,6 @@ const EXPECTED_THROTTLED_HANDLERS = [
     'TwitchAuthController.callback',
     'TwitchAuthController.start',
 ];
-// whitelist enumerate (D-15): ogni nuova operazione admin o sul personaggio deve passare da qui
-const EXPECTED_INNKEEPER_HANDLERS = [
-    'CharactersResolver.characters',
-    'PendingQuestsResolver.pendingQuests',
-    'PendingRequestsResolver.completePendingRequest',
-    'PendingRequestsResolver.pendingRequests',
-    'PendingRequestsResolver.pendingRequestsUpdated',
-    'PushResolver.sendTestPush',
-    'QuestGenerationResolver.generateQuests',
-    'ShopAdminResolver.shopPoolReport',
-    'TravelAdminResolver.teleportCharacter',
-    'UsersResolver.user',
-    'UsersResolver.users',
-];
-const EXPECTED_OWNERSHIP_HANDLERS = [
-    'CharactersResolver.character',
-    'CharactersResolver.characterUpdated',
-    'CharactersResolver.doTransaction',
-    'CharactersResolver.equipItem',
-    'CharactersResolver.equipPet',
-    'CharactersResolver.equipSpell',
-    'CharactersResolver.equipment',
-    'CharactersResolver.unequipPet',
-    'CharactersResolver.unequipSpell',
-    'CharactersResolver.useSpell',
-    'PartyResolver.abandonQuest',
-    'PendingQuestsResolver.pendingQuest',
-    'QuestAcceptanceResolver.acceptQuest',
-    'QuestAcceptanceResolver.questTravelPreview',
-    'QuestResultsResolver.acknowledgeQuestResult',
-    'QuestResultsResolver.questResult',
-    'QuestResultsResolver.questResultReceived',
-    'TravelResolver.startTravel',
-    'TravelResolver.travelPreview',
-];
-// nessun bypass innkeeper (07 D-11): ogni handler owner-only deve passare da qui
-const EXPECTED_OWNER_ONLY_HANDLERS = [
-    'PartyResolver.abandonQuest',
-    'QuestAcceptanceResolver.acceptQuest',
-    'QuestAcceptanceResolver.questTravelPreview',
-    'QuestResultsResolver.acknowledgeQuestResult',
-    'QuestResultsResolver.questResult',
-    'QuestResultsResolver.questResultReceived',
-    'TravelResolver.startTravel',
-    'TravelResolver.travelPreview',
-];
-
 interface PublicSurface {
     handlers: string[];
     publicClasses: string[];
@@ -254,11 +215,11 @@ function errorCodeOf(response: request.Response): unknown {
 
 /**
  * INTEGRATION: boots the REAL AppModule (Bull + Redis effimero, MongoMemoryReplSet)
- * with only a fake JWT_SECRET and no Twitch credentials. process.env is set by the
- * test BEFORE AppModule is imported, so it wins over any local .env (Pitfall 8).
+ * with only a fake JWT_SECRET and no Twitch credentials. bootRealApp sets process.env
+ * BEFORE AppModule is imported, so it wins over any local .env (Pitfall 8).
  */
 describe('AppModule (real boot without Twitch credentials)', () => {
-    const envSnapshot = { ...process.env };
+    let boot: RealAppBoot | undefined;
     let app: INestApplication;
     let fetchSpy: jest.SpiedFunction<typeof fetch>;
     let warnSpy: jest.SpiedFunction<Logger['warn']>;
@@ -267,56 +228,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         // spie passthrough attive prima del boot: catturano le chiamate di rete e il WARN di avvio
         fetchSpy = jest.spyOn(global, 'fetch');
         warnSpy = jest.spyOn(Logger.prototype, 'warn');
-        const redis = await startRedis();
-        Object.assign(process.env, {
-            MONGO_URI: process.env.MONGO_TEST_URI,
-            DB_NAME: 'app-boot-test',
-            REDIS_HOST: redis.host,
-            REDIS_PORT: String(redis.port),
-            JWT_SECRET: 'app-boot-test-secret-0123456789abcdef',
-            TWITCH_CLIENT_ID: '',
-            TWITCH_CLIENT_SECRET: '',
-            TWITCH_REDIRECT_URI: '',
-            APP_AUTH_REDIRECT_URL: 'klimmeck://auth',
-            DEV_AUTH_ENABLED: 'false',
-            // Pitfall 11: un .env locale con credenziali reali non deve mai accendere FCM nel test
-            FIREBASE_SERVICE_ACCOUNT: '',
-            // C2 / Pitfall 13: un .env locale con EventSub parziale non deve rompere il boot reale
-            TWITCH_LOGIN_SCOPES: '',
-            TWITCH_EVENTSUB_SECRET: '',
-            TWITCH_EVENTSUB_CALLBACK_URL: '',
-            TWITCH_BROADCASTER_ID: '',
-            // Pitfall 13: nessun timer dello sweep nel boot reale; il reconciler al boot gira comunque
-            TRAVEL_SWEEP_INTERVAL_MS: '0',
-            QUEST_SWEEP_INTERVAL_MS: '0',
-            SPELL_RECOVERY_SWEEP_INTERVAL_MS: '0',
-            // D-08: un .env locale con limiti propri non deve cambiare i default attesi dal boot reale
-            THROTTLE_TTL_MS: '',
-            THROTTLE_LIMIT: '',
-            THROTTLE_TRUST_PROXY: '',
-            // Pitfall 11: un .env locale con chiavi Sightengine reali non deve accendere la moderazione (D-14)
-            SIGHTENGINE_USER_ID: '',
-            SIGHTENGINE_API_SECRET: '',
-        });
-        // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
-        const { AppModule } =
-            jest.requireActual<typeof import('src/app.module')>(
-                'src/app.module',
-            );
-        const moduleRef = await Test.createTestingModule({
-            imports: [AppModule],
-        }).compile();
-        app = moduleRef.createNestApplication({ rawBody: true });
-        await app.init();
-    }, BOOT_TIMEOUT_MS);
+        boot = await bootRealApp({ dbName: 'app-boot-test' });
+        app = boot.app;
+    }, REAL_BOOT_TIMEOUT_MS);
 
     afterAll(async () => {
-        await app?.get<Connection>(getConnectionToken()).dropDatabase();
-        await app?.close();
-        await stopRedis();
+        await boot?.close();
         fetchSpy.mockRestore();
         warnSpy.mockRestore();
-        process.env = envSnapshot;
     });
 
     it('resolves an auth config without Twitch and without the dev bypass', () => {
@@ -913,6 +832,19 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(ArchivedCharacterQueueRefresher)).toBeInstanceOf(
             ArchivedCharacterQueueRefresher,
         );
+    });
+
+    it('mounts the user role changes publisher', () => {
+        expect(app.get(UserRoleChangesPublisher)).toBeInstanceOf(
+            UserRoleChangesPublisher,
+        );
+    });
+
+    it('mounts the session revocation', () => {
+        expect(app.get(SessionRevocationService)).toBeInstanceOf(
+            SessionRevocationService,
+        );
+        expect(app.get(WsSessionRegistry)).toBeInstanceOf(WsSessionRegistry);
     });
 
     it('mounts the runtime mode reporter', () => {

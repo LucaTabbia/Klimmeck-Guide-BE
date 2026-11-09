@@ -36,6 +36,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 14: Viaggio e cibo** - Il viaggio consuma oggetti `hunger` in base al tempo di marcia (1 power = 3 min), selezione a scarto minimo, km scoperti → vita persa (il km n-esimo costa n HP), partenza libera o da quest rifiutata se non si arriva con ≥ 1 HP, tutto alla partenza; teleport e salto esenti _(aggiunta 2026-10-29)_
 - [x] **Phase 15: Imboscate in viaggio** - Rischio per km di giorno e di notte (22–06, `AMBUSH_TIMEZONE`), più imboscate per viaggio con risorteggio dopo ogni vittoria, nemici del POI più vicino nella fascia [Facile, Medio] del livello, job al momento dell'imboscata con `CombatResolver`; vittoria → XP e monete del rango, sconfitta → HP ≥ 1 e ferite, rotta riscritta dal punto verso la città più vicina, quest abbandonata, push di sconfitta; report trattenuti e consegnati all'arrivo come `QuestResult` di tipo `ambush` _(aggiunta 2026-10-29, discussa 2026-11-06)_
 - [x] **Phase 16: Lore sbloccabili** - Due insiemi additivi sul `Character`: lore sbloccate (`status.unlockedLore`, id sul filo) e nemici sconfitti (`status.knownEnemies`, interno); geografia della città (lore + regioni + stato) alla nascita e a ogni arrivo sul marker di una città (viaggio, deviazione, salto, teleport); nemici alla vittoria (tutti i vincitori: lore del bestiario + id esatto); `study` senza magia → lore casuale al 50 %; query di lore filtrate per il personaggio del bearer (`City.relatedLore` null se chiusa), `known` per viewer sulle voci di `enemies`, `loreUnlocked` sugli esiti; innkeeper vede tutto. Discussa il 2026-11-07.
+- [x] **Phase 17: Autorizzazione e sessioni** - Matrice di autorizzazione table-driven sulle liste enumerate dal boot reale (11 handler innkeeper, 19 owner-only: `FORBIDDEN` per `adventurer`/`guard` e sul personaggio altrui, `UNAUTHENTICATED` senza bearer) come prova del requisito FE HARDEN-02; «l\'ultimo login caccia l\'altro»: il login revoca le altre sessioni dell\'utente e chiude subito i loro WS con un close code dedicato, JWT stateless fino alla scadenza; `SESSION_REVOKED` + `extensions.reason` (`newLogin`, `roleChanged`, `reuseDetected`, `userLogout`) sul rifiuto del refresh e nella reason del close; cambio di ruolo a DB → revoca delle sessioni; logout invariato. Companion della FE Phase 12 Hardening _(aggiunta 2026-11-09)_
 
 ## Phase Details
 
@@ -605,6 +606,33 @@ Plans:
 
 **Stato (2026-11-07)**: 12/12 piani eseguiti; PR verso `develop` in draft a cura dell'orchestratore fino al boot reale col backfill e alla sua rimozione; la FE Phase 17 parte dopo la merge (handoff in `.planning/phases/16-lore-sbloccabili/BACKEND-NOTES.md`)
 
+### Phase 17: Autorizzazione e sessioni
+**Goal**: Il server prova la propria autorizzazione e governa le sessioni per device: una matrice table-driven alimentata dalle liste già enumerate dal boot reale (`EXPECTED_INNKEEPER_HANDLERS`, `EXPECTED_OWNERSHIP_HANDLERS`) prova `FORBIDDEN` per ogni handler innkeeper con JWT `adventurer` e `guard` e `UNAUTHENTICATED` senza bearer o con bearer invalido, e `FORBIDDEN` per ogni handler owner-only sul personaggio altrui (la prova richiesta dal requisito FE HARDEN-02); il login revoca le altre sessioni attive dell'utente e chiude subito le loro connessioni WS con un close code dedicato, mentre l'access JWT residuo resta valido fino alla scadenza (900 s, nessuna lookup per richiesta); il rifiuto del refresh resta `SESSION_REVOKED` e porta `extensions.reason` (la stessa stringa viaggia nella reason del close WS); un cambio di ruolo a DB revoca le sessioni dell'utente (`roleChanged`); il logout chiude solo la sessione corrente. Companion della FE Phase 12 Hardening (HARDEN-02, HARDEN-06). _(aggiunta 2026-11-09 nel discuss congiunto con la FE Phase 12)_
+**Depends on**: Phase 2 (sessioni, rotazione, reuse detection, WS `connection_init`), Phase 3 (`@Roles`, ownership, audit), Phase 10 (sanitizzazione degli errori, coverage per cartella), boot reale di `test/app.int-spec.ts` (liste degli handler)
+**Requirements**: BE-SESSION-01, BE-SESSION-02, BE-SESSION-03, BE-SESSION-04, BE-SESSION-05
+**Success Criteria** (what must be TRUE):
+  1. Un int-spec table-driven, alimentato dalle stesse liste di `test/app.int-spec.ts` (modulo di test condiviso), prova per ognuno degli 11 handler innkeeper `FORBIDDEN` con JWT `adventurer` e con JWT `guard` e `UNAUTHENTICATED` senza bearer e con bearer invalido, e per ognuno dei 19 handler owner-only `FORBIDDEN` sul personaggio di un altro utente (subscription comprese, via l'harness WS); un handler in lista senza riga di fixture fa fallire la spec.
+  2. Il login revoca tutte le altre sessioni attive dell'utente (`revokedAt` + `revokeReason: newLogin`) nello stesso passo in cui crea la nuova, idempotente; le connessioni WS di una sessione revocata vengono chiuse subito con il close code dedicato e reason = motivo; una `connection_init` con un JWT di una sessione revocata è rifiutata con lo stesso close code (unica lettura della sessione ammessa, per connessione); le richieste HTTP col JWT residuo passano fino alla scadenza (documentato).
+  3. Il refresh di una sessione revocata risponde `SESSION_REVOKED` con `extensions.reason` dall'enum (`newLogin`, `roleChanged`, `reuseDetected`, `userLogout`); la reuse detection scrive `reuseDetected`; `SESSION_EXPIRED` resta senza reason; `Session.revokeReason` è additivo e nullable, nessuna migrazione, SDL invariato al boot reale.
+  4. Un cambio del `role` di un utente a DB (change stream di `users` filtrato sul campo, con backoff) o via `UsersService.upsertWithRole` revoca tutte le sue sessioni con `roleChanged`; il logout revoca la sola sessione corrente con `userLogout`.
+  5. Integration: matrice completa verde; secondo login → prima sessione revocata, WS chiuso col codice dedicato, refresh rifiutato con `newLogin`, nuova sessione intatta; `connection_init` con JWT revocato → close dedicato; cambio ruolo → `roleChanged` su tutte le sessioni; reuse → `reuseDetected`; logout → `userLogout` solo sulla propria; gate `tsc`, `test:cov` con le soglie per cartella, boot reale con whitelist e SDL invariati; handoff `BACKEND-NOTES.md` per la FE Phase 12 (close code, enum, finestra del JWT, evidenza HARDEN-02, note per la UAT dual-device e per la UAT della release via tunnel TLS).
+**Decisioni del discuss (2026-11-09, `17-CONTEXT.md` D-01..D-10)**: matrice innkeeper + ownership table-driven; l'ultimo login caccia l'altro con WS chiuso subito e JWT stateless fino a scadenza; `SESSION_REVOKED` + `reason`; cambio ruolo → revoca; logout invariato; nomi del contratto in `17-REPO-RULES.md` prima della ricerca.
+**Unblocks (FE)**: FE Phase 12 (HARDEN-02 evidenza, HARDEN-06 e i notice specifici della revoca, piani gated + UAT dual-device).
+**Branch**: `feat/17-autorizzazione-e-sessioni` da `develop` (`31dba96`, la merge della PR #26) → PR a `develop`.
+**Plans**: 10 piani (wave sequenziali)
+- [x] 17-01-PLAN.md — Contratto del motivo di revoca: enum `SessionRevokeReason`, `Session.revokeReason` nullable, `AuthException.sessionRevoked(reason)`, la sola chiave `reason` conservata da `formatDomainError` e `sanitizeFormattedError` (D-05, D-08, D-11, D-13)
+- [x] 17-02-PLAN.md — `SessionService`: `revoke(id, reason | null)` con i sei chiamanti aggiornati, `reuseDetected` nella reuse detection, rifiuto del refresh col motivo memorizzato, `revokeOthersOf` (`_id` minore), `revokeAllOf`, `revokeReasonOf`, logout → `userLogout`, utente cancellato → `null`, reason sul filo HTTP in produzione (D-02, D-05, D-07, D-11, D-12)
+- [x] 17-03-PLAN.md — `WS_SESSION_REVOKED_CLOSE_CODE = 4409`, `WsSessionRegistry` e `SessionRevocationService` (prima la revoca a DB, poi i socket), provider di `AuthModule` (D-03)
+- [x] 17-04-PLAN.md — `WsConnectionAuthenticator`: costruttore nuovo, ordine bearer → `extra.closed` → registrazione → lettura, `close(4409, reason)` + `return false`, registro svuotato in `onClose`, casi sul filo in `ws-auth.int-spec.ts` (D-03)
+- [x] 17-05-PLAN.md — Revoca al login in `issueForUser` (errore propagato) e spec di filo `test/auth/session-revocation.int-spec.ts`: secondo login, `connection_init` revocata, refresh `newLogin`, JWT residuo servito, nuova sessione intatta, logout senza chiusura, dev bypass senza effetto (D-02, D-03, D-04, D-12)
+- [x] 17-06-PLAN.md — Watcher `UserRoleChangesPublisher` in `src/auth/session/` (provider di `AuthModule`, `forFeature User`) con helper di priming, int-spec D-06 (cambio a mano, stesso valore, `upsertWithRole`, WS `4409 roleChanged`), le due spec instabili di D-14 sistemate (D-06, D-14)
+- [x] 17-07-PLAN.md — Liste condivise `test/authz/expected-handlers.ts`, helper `test/harness/real-app-boot.ts` con refactor di `test/app.int-spec.ts`, tabella `test/authz/handler-fixtures.ts` (30 righe) con la spec di completezza e validazione sullo SDL (D-01)
+- [x] 17-08-PLAN.md — Matrice `test/authz/authorization-matrix.int-spec.ts` sul boot reale con sessioni e vittime vere: righe HTTP innkeeper × ruoli e bearer, ownership × adventurer, owner-only × innkeeper, righe WS `FORBIDDEN` e `4403`, completezza (D-01)
+- [x] 17-09-PLAN.md — Gate: `tsc`, controllo di wave, `test:cov` con ripiego per cartella e soglie 97/84/98, boot reale con SDL invariato e whitelist invariate, lint sui file toccati, grep degli invarianti, VALIDATION firmata (D-10, D-15)
+- [x] 17-10-PLAN.md — Chiusura: handoff `BACKEND-NOTES.md` per la FE Phase 12 (contratto, matrice come evidenza HARDEN-02, note UAT dual-device e tunnel TLS, runbook), `requirements mark-complete BE-SESSION-01..05`, ROADMAP e STATE (D-09, D-16)
+
+**Stato (2026-11-09)**: 10/10 piani eseguiti; PR verso `develop` a cura dell'orchestratore (non in draft: nessun one-off né migrazione); la FE Phase 12 sblocca i piani gated alla merge (handoff in `.planning/phases/17-autorizzazione-e-sessioni/BACKEND-NOTES.md`)
+
 ## Backend ↔ Frontend alignment
 
 Vincoli d'ordine dichiarati dal FE, mappati sulle fasi BE:
@@ -622,13 +650,14 @@ Vincoli d'ordine dichiarati dal FE, mappati sulle fasi BE:
 | FE Phase 15 (viaggio e cibo) | Phase 14 (BE-FOOD) | Preview additiva di cibo e HP su `travelPreview` + preview dell'accettazione + codice di rifiuto |
 | FE Phase 16 (imboscate) | Phase 15 (BE-AMBUSH) | `activeTravel` riscritto alla sconfitta + `QuestResult` di imboscata sulla pipeline esistente |
 | FE Phase 17 (lore sbloccabili) | Phase 16 (BE-LORE) + Phase 11 (lore) | Query di lore filtrate per personaggio + `known` sui nemici delle quest; additivi `CharacterStatus.unlockedLore`, `QuestResult.loreUnlocked`, `City.relatedLore` null se chiusa (discuss 2026-11-07) |
+| FE Phase 12 (hardening) | Phase 17 (BE-SESSION) | Matrice di autorizzazione come evidenza di HARDEN-02; «l\'ultimo login caccia l\'altro» con close WS dedicato e `SESSION_REVOKED` + `reason`; revoca al cambio ruolo; i piani FE gated e la UAT dual-device partono dopo la merge (discuss 2026-11-09) |
 
 Nota compatibilità: i contratti di schema aggiunti (QUEST-04, TRAVEL-01, combat, connection_init) devono arrivare su staging **prima** delle fasi FE che li consumano; i contratti GraphQL esistenti non si rompono. Le fasi FE 2–10 continuano a girare sullo stub `DEV_AUTH_ACCESS_TOKEN` grazie al dev bypass fail-closed di Phase 2.
 
 ## Progress
 
 **Execution Order:**
-Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 _(11–16 aggiunte il 2026-10-29: il popolamento fornisce i dati, il multi-nemico della 13 precede l'imboscata della 15, il cibo della 14 lascia i punti d'innesto alla 15)_
+Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 _(17 aggiunta il 2026-11-09 come companion della FE Phase 12 Hardening, eseguita per ultima; 11–16 aggiunte il 2026-10-29: il popolamento fornisce i dati, il multi-nemico della 13 precede l'imboscata della 15, il cibo della 14 lascia i punti d'innesto alla 15)_
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -652,3 +681,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
 | 15. Imboscate in viaggio | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | 12/12 | Complete | 2026-11-07 |
+| 17. Autorizzazione e sessioni | 10/10 | Complete | 2026-11-09 |

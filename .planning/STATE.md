@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 16 closed (12/12) — real boot with the backfill done on 2026-11-08, one-off removed (`0125058`), PR #25 (`feat/16-lore-sbloccabili` → `develop`) ready for review, awaiting the user's merge
-last_updated: "2026-11-08T15:25:00.000Z"
-last_activity: 2026-11-08 -- Phase 16 real boot: CI fixed (5fd6190, a unit spec imported AppModule), backfill ran (3 active characters of 4 documents, 2 updated, 8 lore, 1 enemy; second boot zero), one-off removed in TDD (80c3bf7 → 0125058), third boot clean; PR #25 ready for review
+stopped_at: Phase 17 execution complete (10/10, 2026-11-09) — PR #27 verso develop aperta dall'orchestratore (nessun one-off, nessuna migrazione)
+last_updated: "2026-11-09T18:49:53.000Z"
+last_activity: 2026-11-09 -- Phase 17 complete: 10/10, review (3 warning / 15 info → 17 fix, 1 saltato con motivo), verification (passed_with_gaps, gap documentale chiuso dal 17-10), security (44 minacce, 0 open, 2 differite alla UAT FE); PR #27 to develop
 progress:
-  total_phases: 20
-  completed_phases: 20
-  total_plans: 251
-  completed_plans: 251
+  total_phases: 21
+  completed_phases: 21
+  total_plans: 261
+  completed_plans: 261
   percent: 100
 ---
 
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 16 — Lore sbloccabili — CLOSED (2026-11-08) su `feat/16-lore-sbloccabili` (da `develop` `9103440`): 12/12 piani, pipeline review → ruling → fix → security chiusa, CI verde dopo il fix della spec unitaria che importava `AppModule` (`5fd6190`), boot reale col backfill eseguito (`personaggi 3, aggiornati 2, lore aggiunte 8, nemici aggiunti 1, senza città 1`; secondo boot a zero), one-off rimosso in TDD (`80c3bf7` → `0125058`), terzo boot dalla build finale pulito; PR #25 pronta per la review, in attesa della merge dell'utente; poi FE 17-09 (gate di schema) e 17-10 (UAT su device).
+**Current focus:** Phase 17 — Autorizzazione e sessioni — COMPLETE (2026-11-09) su `feat/17-autorizzazione-e-sessioni` (da `develop` `31dba96`): 10/10 piani, gate 17-09 verde (380 suite / 4849 test prima dei fix; 381 / 4872 dopo, coverage src/auth 99,86 / 87,63 / 100), tre review per area (3 warning / 15 info → 17 fix, 1 saltato con motivo), verifica (passed_with_gaps, gap documentale chiuso dal 17-10), audit di sicurezza (44 minacce, 0 open, 2 differite alla UAT FE); PR #27 verso `develop` aperta dall'orchestratore (nessun one-off né migrazione: SDL invariato, campo `Session.revokeReason` additivo). La FE Phase 12 Hardening (parcheggiata a 15/17 su `refactor/12-hardening`) riprende con 12-16/12-17 dopo la merge. Previous: Phase 16 — COMPLETE and merged (PR #25).
 
 ## Current Position
 
-Phase: 16 (Lore sbloccabili) — CLOSED 2026-11-08 (real boot with the backfill done, one-off removed) on `feat/16-lore-sbloccabili` (from `develop` `9103440`): 12/12 plans, gate 16-11 passed, three area reviews (1 critical / 0 warning / 8 info → 4 fixed, 5 not needed), verification (passed: 5/5 ROADMAP criteria, BE-LORE-01..06 satisfied, the handoff gap closed by 16-12), security audit (48 threats, 0 open, 2 deferred to the real boot); PR #25 (draft, `feat/16-lore-sbloccabili` → `develop`) opened by the orchestrator as DRAFT until the real boot with the backfill and its removal; the FE Phase 17 (parked at 8/10) resumes with 17-09/17-10 after the merge
-Plan: 12 of 12
-Status: Phase 16 closed — PR #25 (`feat/16-lore-sbloccabili` → `develop`) ready for review after the real boot with the backfill (2026-11-08) and the one-off removal; next: the user's merge, then the FE Phase 17 plans 17-09 (schema gate) and 17-10 (device UAT), then the FE PRs
-Last activity: 2026-11-08 -- Phase 16 real boot with the backfill, one-off removal in TDD, PR #25 ready for review
+Phase: 17 (Autorizzazione e sessioni) — COMPLETE 2026-11-09 on `feat/17-autorizzazione-e-sessioni` (from `develop` `31dba96`): 10/10 plans, gate 17-09 passed (380 suite / 4849 test prima dei fix; 381 / 4872 dopo, coverage src/auth 99,86 / 87,63 / 100), three area reviews (3 warning / 15 info → 17 fix, 1 saltato con motivo), verification (passed_with_gaps, gap documentale chiuso dal 17-10), security audit (44 minacce, 0 open, 2 differite alla UAT FE); PR #27 to `develop` opened by the orchestrator; the FE Phase 12 (parked at 15/17) resumes with 12-16/12-17 after the merge
+Plan: 10 of 10
+Status: Phase 17 complete — PR #27 to develop open (CI to check); next: merge, then `npm run build` + restart of the BE from `develop` (the user's process on port 3001 runs the pre-17 build), then the FE Phase 12 gate 12-16 and the device UAT 12-17 (dual device + release via TLS tunnel) with the notes of the handoff
+Last activity: 2026-11-09 -- Phase 17 complete: review, verification, fixes and security audit done; PR #27 to develop
 Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.
 
-Progress: [██████████] 12/12 plans of Phase 16 (phases 1–16, 9.1, 9.2 and 13.1 complete; 16 awaiting the merge of PR #25)
+Progress: [██████████] 10/10 plans of Phase 17 (phases 1–17, 9.1, 9.2 and 13.1 complete; 17 awaiting the merge)
 
 ## Performance Metrics
 

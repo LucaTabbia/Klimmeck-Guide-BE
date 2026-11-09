@@ -201,6 +201,14 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 - [x] **BE-LORE-05**: `lores` e `lore(id)` filtrate sul personaggio corrente del bearer (`relatedLore` comprese, `NOT_FOUND` per una lore chiusa come per una inesistente); `City.relatedLore` null e `Enemy.relatedLore` filtrata per i giocatori finché chiuse; `Quest.infos.relatedLore` intera; l'innkeeper vede tutto; `characterUpdated` riemette al cambio dell'insieme _(emendato 2026-11-07)_ → FE LORE-01
 - [x] **BE-LORE-06**: Quest e risultati espongono per ogni voce di `enemies` se il nemico esatto è conosciuto dal personaggio del bearer (`QuestEnemy.known: Boolean!` risolto per viewer, innkeeper → true), non la specie _(emendato 2026-11-07)_ → FE LORE-02
 
+### Authorization audit & sessioni per device (BE-SESSION) — Phase 17, aggiunta 2026-11-09 dal discuss della FE Phase 12
+
+- [x] **BE-SESSION-01**: Matrice di autorizzazione table-driven in un int-spec alimentato dalle liste di `test/app.int-spec.ts` (modulo di test condiviso): ogni handler innkeeper → `FORBIDDEN` con JWT `adventurer` e `guard`, `UNAUTHENTICATED` senza bearer o con bearer invalido; ogni handler owner-only → `FORBIDDEN` sul personaggio altrui (subscription comprese); un handler in lista senza fixture fa fallire la spec → FE HARDEN-02
+- [x] **BE-SESSION-02**: «L'ultimo login caccia l'altro»: il login revoca le altre sessioni attive dell'utente (`revokedAt` + `revokeReason: newLogin`, idempotente) e chiude subito le loro connessioni WS con un close code dedicato (reason = motivo); una `connection_init` con JWT di una sessione revocata è rifiutata con lo stesso codice; l'access JWT resta stateless fino alla scadenza (900 s) → FE HARDEN-06
+- [x] **BE-SESSION-03**: Il rifiuto del refresh resta `SESSION_REVOKED` e porta `extensions.reason` (enum `newLogin`, `roleChanged`, `reuseDetected`, `userLogout`; nomi fissati in `17-REPO-RULES.md`); la reuse detection scrive `reuseDetected`; `Session.revokeReason` additivo e nullable, nessuna migrazione, SDL invariato → FE HARDEN-06 (notice specifici)
+- [x] **BE-SESSION-04**: Un cambio del `role` di un utente (change stream di `users` sul campo, con backoff, o `UsersService.upsertWithRole`) revoca tutte le sue sessioni con `roleChanged`; il logout revoca la sola sessione corrente con `userLogout` → FE T-10-19
+- [x] **BE-SESSION-05**: Gate (`tsc`, `test:cov` per cartella, boot reale con whitelist e SDL invariati) e handoff `BACKEND-NOTES.md` per la FE Phase 12: close code, enum dei motivi, finestra del JWT, evidenza HARDEN-02, note per la UAT dual-device e per la UAT della release via tunnel TLS
+
 ## Future Requirements
 
 Deferred a post-v1.0. Tracciati ma non nella roadmap corrente.
@@ -302,6 +310,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-FOOD-01..06 | Phase 14 | Complete (gate 14-07, 2026-11-05; aggiunti 2026-10-29; discuss 2026-11-05, BE-FOOD-02/03/04 emendati) |
 | BE-AMBUSH-01..07 | Phase 15 | Complete (gate 15-11 e chiusura 15-12, 2026-11-06; aggiunti 2026-10-29, emendati 2026-11-06) |
 | BE-LORE-01..06 | Phase 16 | Complete (gate 16-11 e chiusura 16-12, 2026-11-07; aggiunti 2026-10-29, emendati 2026-11-07) |
+| BE-SESSION-01..05 | Phase 17 | Complete (gate 17-09 e chiusura 17-10, 2026-11-09; aggiunti 2026-11-09 dal discuss congiunto con la FE Phase 12) |
 
 **Coverage:**
 
@@ -310,6 +319,8 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 - Estensione del 2026-10-29: +39 requisiti (BE-CONTENT-01..07, BE-SHOP-01..05, BE-QGEN-01..08, BE-FOOD-01..06, BE-AMBUSH-01..07, BE-LORE-01..06) mappati sulle Phase 11–16 → 95 totali, 89 mappati (i BE-TEST-01..04 restano nella Phase 1 non avviata e i 2 BE-SYNC assorbiti nella 3 come prima)
 - Estensione del 2026-11-04 (discuss Phase 13 congiunto con la FE Phase 14): +3 requisiti (BE-QGEN-09 dungeon a tappe, BE-QGEN-10 premio pet, BE-QGEN-11 `accessoryUseTypes`) → 98 totali, 92 mappati
 - Inserimento del 2026-11-05 (Phase 13.1, dalla UAT della FE Phase 14): +5 requisiti (BE-QGEN-12 animali fuori, BE-QGEN-13 fasce contigue e budget per posti, BE-QGEN-14 taglie, BE-QGEN-15 tabellone per area, BE-QGEN-16 reset e revisione di hunt/dungeon al boot) → 103 totali, 97 mappati
+- Inserimento del 2026-11-09 (Phase 17, companion della FE Phase 12 Hardening): +5 requisiti (BE-SESSION-01 matrice di autorizzazione, 02 ultimo login e close WS, 03 `reason` sul filo, 04 cambio ruolo, 05 gate e handoff) → 108 totali, 102 mappati
+- Discuss del 2026-11-09 (Phase 17 congiunto con la FE Phase 12): fase inserita come companion dell\'hardening FE; BE-SESSION-01..05 nuovi (matrice table-driven, l\'ultimo login caccia l\'altro con WS chiuso subito e JWT stateless, `SESSION_REVOKED` + `reason`, revoca al cambio ruolo, handoff); nessun requisito emendato
 - Discuss del 2026-11-07 (Phase 16 congiunto con la FE Phase 17): BE-LORE-01..06 emendati (id sul filo, geografia città + regioni + stato, nemico esatto, `loreUnlocked`, studio al 50 %, filtri fuori dalla Biblioteca, backfill one-off); nessun requisito nuovo
 - Discuss del 2026-11-06 (Phase 15 congiunto con la FE Phase 16): BE-AMBUSH-01..07 emendati (rischio per km 0,2%/0,6%, più imboscate con risorteggio, POI più vicino + animali, fascia [Facile, Medio] per livello, città più vicina meta compresa, push su sconfitta, report trattenuti all'arrivo, `kind`/`ambush` sul `QuestResult`); conteggi invariati (103 totali, 97 mappati)
 

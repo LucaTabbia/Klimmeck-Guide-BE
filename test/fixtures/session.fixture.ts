@@ -20,6 +20,7 @@ export function buildSession(overrides: Record<string, any> = {}) {
         rotationCount: 0,
         retiredRefreshTokens: [],
         revokedAt: null,
+        revokeReason: null,
         expiresAt: new Date(Date.now() + THIRTY_DAYS_MS),
         ...overrides,
     };

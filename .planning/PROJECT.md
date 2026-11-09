@@ -52,6 +52,7 @@ Il backend è la fonte di verità affidabile e sicura dello stato di gioco: ness
 - [ ] Viaggio e cibo: fabbisogno dal tempo di marcia, scarto minimo, km scoperti → HP, rifiuto per fame — Phase 14 ↔ FE Phase 15 _(aggiunto 2026-10-29)_
 - [ ] Imboscate in viaggio: probabilità per km e notte, nemico della zona, deviazione alla sconfitta, report sul `QuestResult` — Phase 15 ↔ FE Phase 16 _(aggiunto 2026-10-29)_
 - [ ] Lore sbloccabili per personaggio: città, nemici vinti, study; query filtrate e `known` — Phase 16 ↔ FE Phase 17 _(aggiunto 2026-10-29)_
+- [ ] Audit di autorizzazione table-driven, «l\'ultimo login caccia l\'altro» con close WS dedicato, `SESSION_REVOKED` + `reason`, revoca al cambio ruolo — Phase 17 ↔ FE Phase 12 Hardening _(aggiunto 2026-11-09)_
 
 ### Out of Scope
 

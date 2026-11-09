@@ -1,4 +1,6 @@
 import request from 'supertest';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
+import { SessionService } from 'src/auth/session/session.service';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 import { LoreModule } from 'src/lore/lore.module';
 import {
@@ -6,6 +8,7 @@ import {
     createAuthTestApp,
     graphqlRequest,
 } from '../../test/auth/auth-test-app';
+import { createAuthenticatedUser } from '../../test/auth/test-tokens';
 import { createPlayer } from '../../test/authz/player-fixture';
 import {
     PROBE_RAW_MESSAGE,
@@ -16,6 +19,8 @@ import { graphqlWsUrl, subscribeOnce } from '../../test/auth/ws-test-client';
 const INTROSPECTION = '{ __schema { queryType { name } } }';
 const MISSING_ID = '64b0000000000000000000ff';
 const UUID_PATTERN = /^[0-9a-f-]{36}$/;
+const REFRESH =
+    'mutation Refresh($refreshToken: String!) { refreshSession(refreshToken: $refreshToken) { accessToken } }';
 
 interface WireError {
     message: string;
@@ -62,6 +67,24 @@ async function overGraphqlWs(
     ).then(
         (value) => ({ value }),
         (errors: unknown) => ({ errors }),
+    );
+}
+
+// il refresh di una sessione revocata da un login successivo (D-02)
+async function refreshRevokedByNewLogin(
+    harness: AuthTestApp,
+    twitchId: string,
+): Promise<WireBody> {
+    const { user, session } = await createAuthenticatedUser(harness, {
+        twitchId,
+    });
+    await harness.app
+        .get(SessionService)
+        .revokeAllOf(user.id, SessionRevokeReason.newLogin);
+    return bodyOf(
+        await graphqlRequest(harness.app, REFRESH, {
+            refreshToken: session.refreshToken,
+        }),
     );
 }
 
@@ -183,6 +206,33 @@ describe('GraphQL surface in production (wire)', () => {
                 extensions: { code: 'NOT_FOUND' },
             },
         ]);
+    });
+
+    it('answers a refused refresh with SESSION_REVOKED and its reason in production (D-13)', async () => {
+        const body = await refreshRevokedByNewLogin(
+            harness,
+            'twitch-production-revoked',
+        );
+
+        expect(body.errors).toEqual([
+            expect.objectContaining({
+                message: 'Session revoked, sign in again',
+                path: ['refreshSession'],
+                extensions: { code: 'SESSION_REVOKED', reason: 'newLogin' },
+            }),
+        ]);
+    });
+
+    it('answers an expired refresh without a reason in production (D-13)', async () => {
+        const body = bodyOf(
+            await graphqlRequest(harness.app, REFRESH, {
+                refreshToken: 'never-issued-refresh-token',
+            }),
+        );
+
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'SESSION_EXPIRED',
+        });
     });
 
     it('refuses introspection over an authenticated graphql-ws socket in production (C7)', async () => {
@@ -309,6 +359,18 @@ describe('GraphQL surface outside production (wire)', () => {
 
         expect(outcome).toEqual({
             value: { data: { __schema: { queryType: { name: 'Query' } } } },
+        });
+    });
+
+    it('keeps the revoke reason of a refused refresh outside production (D-13)', async () => {
+        const body = await refreshRevokedByNewLogin(
+            harness,
+            'twitch-development-revoked',
+        );
+
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'SESSION_REVOKED',
+            reason: 'newLogin',
         });
     });
 

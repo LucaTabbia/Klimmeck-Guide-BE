@@ -1,15 +1,25 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
+
+export interface AuthExceptionExtensions {
+    code: AuthErrorCode;
+    reason?: SessionRevokeReason;
+}
 
 export class AuthException extends UnauthorizedException {
     readonly code: AuthErrorCode;
-    readonly extensions: { code: AuthErrorCode };
+    readonly extensions: AuthExceptionExtensions;
 
-    private constructor(code: AuthErrorCode, message: string) {
+    private constructor(
+        code: AuthErrorCode,
+        message: string,
+        reason: SessionRevokeReason | null = null,
+    ) {
         super({ statusCode: 401, error: 'Unauthorized', message, code });
         this.code = code;
         // graphql-js copia originalError.extensions nella risposta (anche su WS)
-        this.extensions = { code };
+        this.extensions = reason ? { code, reason } : { code };
     }
 
     static unauthenticated(): AuthException {
@@ -26,10 +36,13 @@ export class AuthException extends UnauthorizedException {
         );
     }
 
-    static sessionRevoked(): AuthException {
+    static sessionRevoked(
+        reason: SessionRevokeReason | null = null,
+    ): AuthException {
         return new AuthException(
             AuthErrorCode.SESSION_REVOKED,
             'Session revoked, sign in again',
+            reason,
         );
     }
 

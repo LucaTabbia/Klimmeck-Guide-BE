@@ -1,6 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import { AuthException } from 'src/auth/auth.exception';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 
 describe('AuthException', () => {
     const cases: Array<[string, () => AuthException, AuthErrorCode, string]> = [
@@ -47,6 +48,33 @@ describe('AuthException', () => {
             });
         },
     );
+
+    it.each(Object.values(SessionRevokeReason))(
+        'carries the revoke reason in the extensions only (D-05): %s',
+        (reason) => {
+            const exception = AuthException.sessionRevoked(reason);
+
+            expect(exception.extensions).toEqual({
+                code: AuthErrorCode.SESSION_REVOKED,
+                reason,
+            });
+            expect(exception.getResponse()).toEqual({
+                statusCode: 401,
+                error: 'Unauthorized',
+                message: 'Session revoked, sign in again',
+                code: AuthErrorCode.SESSION_REVOKED,
+            });
+        },
+    );
+
+    it('omits the reason when the revocation has none (D-11)', () => {
+        expect(
+            Object.keys(AuthException.sessionRevoked(null).extensions),
+        ).toEqual(['code']);
+        expect(Object.keys(AuthException.sessionRevoked().extensions)).toEqual([
+            'code',
+        ]);
+    });
 
     it('uses error codes whose values equal their names', () => {
         expect(Object.entries(AuthErrorCode)).toEqual([
