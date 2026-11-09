@@ -64,7 +64,7 @@ created: 2026-11-09
 | 17-08-03 | 08 | 8 | BE-SESSION-01 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-08-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 17-09-01 | 09 | 9 | BE-SESSION-05 | T-17-36, T-17-37, T-17-38, T-17-39, T-17-40 | `tsc`, suite e coverage `./src/auth/` ≥ 97/84/98, boot reale, SDL e whitelist invariati, invarianti | gate | `npx tsc --noEmit -p tsconfig.json` + `npm run test:cov` (ripiego per cartella con `--coverageThreshold='{}'`) + `git diff --exit-code src/schema.gql` | ✅ | ✅ green |
 | 17-09-02 | 09 | 9 | BE-SESSION-05 | — | VALIDATION firmata | doc | `grep -q "nyquist_compliant: true" .planning/phases/17-autorizzazione-e-sessioni/17-VALIDATION.md` | ✅ | ✅ green |
-| 17-09-03 | 09 | 9 | BE-SESSION-05 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-09-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 17-09-03 | 09 | 9 | BE-SESSION-05 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-09-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 17-10-01 | 10 | 10 | BE-SESSION-05 | T-17-41, T-17-42, T-17-43, T-17-44 | handoff col contratto verbatim, evidenza HARDEN-02, note UAT senza segreti | doc | `grep -q 4409 .planning/phases/17-autorizzazione-e-sessioni/BACKEND-NOTES.md` | ❌ W0 | ⬜ pending |
 | 17-10-02 | 10 | 10 | BE-SESSION-01, BE-SESSION-02, BE-SESSION-03, BE-SESSION-04, BE-SESSION-05 | — | requisiti completi solo nel piano di chiusura | doc | `grep -cE "\- \[x\] \*\*BE-SESSION-0[1-5]\*\*" .planning/REQUIREMENTS.md` = 5 | ✅ | ⬜ pending |
 | 17-10-03 | 10 | 10 | BE-SESSION-05 | — | bookkeeping | doc | `grep -qF -- "- [x] 17-10-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
