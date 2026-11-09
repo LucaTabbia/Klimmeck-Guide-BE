@@ -12,6 +12,16 @@ import {
 
 type ChangeReceiver = { onChange(change: ChangeStreamEvent): void };
 
+function controlledRevocation() {
+    let resolve!: () => void;
+    let reject!: (error: Error) => void;
+    const promise = new Promise<void>((onResolve, onReject) => {
+        resolve = onResolve;
+        reject = onReject;
+    });
+    return { promise, resolve, reject };
+}
+
 describe('UserRoleChangesPublisher', () => {
     let revokeAllForRoleChange: jest.Mock;
     let receiver: ChangeReceiver;
@@ -91,6 +101,39 @@ describe('UserRoleChangesPublisher', () => {
         expect(message).toContain(userObjectId.toHexString());
         expect(message).toContain('Error');
         expect(message).not.toContain('token-abc-secret');
+    });
+
+    it('starts the next revocation only after the previous one settled (D-06)', async () => {
+        const first = controlledRevocation();
+        revokeAllForRoleChange.mockReturnValueOnce(first.promise);
+
+        receiver.onChange({ documentKey: { _id: new Types.ObjectId() } });
+        receiver.onChange({ documentKey: { _id: new Types.ObjectId() } });
+        await new Promise(setImmediate);
+
+        expect(revokeAllForRoleChange).toHaveBeenCalledTimes(1);
+        first.resolve();
+        await new Promise(setImmediate);
+        expect(revokeAllForRoleChange).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps revoking after a failed revocation (D-06)', async () => {
+        jest.spyOn(Logger.prototype, 'error').mockImplementation(
+            () => undefined,
+        );
+        const first = controlledRevocation();
+        revokeAllForRoleChange.mockReturnValueOnce(first.promise);
+        const secondUser = new Types.ObjectId();
+
+        receiver.onChange({ documentKey: { _id: new Types.ObjectId() } });
+        receiver.onChange({ documentKey: { _id: secondUser } });
+        first.reject(new Error('revocation failed'));
+        await new Promise(setImmediate);
+
+        expect(revokeAllForRoleChange).toHaveBeenCalledTimes(2);
+        expect(revokeAllForRoleChange.mock.calls[1][0]).toBe(
+            secondUser.toHexString(),
+        );
     });
 
     it('watches only the updates that touch the role (D-06)', () => {
