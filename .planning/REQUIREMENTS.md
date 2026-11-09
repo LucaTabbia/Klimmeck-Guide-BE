@@ -201,6 +201,14 @@ Ogni requirement BE indica quale requirement/fase FE sblocca. Fonte: `Klimmeck-G
 - [x] **BE-LORE-05**: `lores` e `lore(id)` filtrate sul personaggio corrente del bearer (`relatedLore` comprese, `NOT_FOUND` per una lore chiusa come per una inesistente); `City.relatedLore` null e `Enemy.relatedLore` filtrata per i giocatori finché chiuse; `Quest.infos.relatedLore` intera; l'innkeeper vede tutto; `characterUpdated` riemette al cambio dell'insieme _(emendato 2026-11-07)_ → FE LORE-01
 - [x] **BE-LORE-06**: Quest e risultati espongono per ogni voce di `enemies` se il nemico esatto è conosciuto dal personaggio del bearer (`QuestEnemy.known: Boolean!` risolto per viewer, innkeeper → true), non la specie _(emendato 2026-11-07)_ → FE LORE-02
 
+### Heal Quests by Size (BE-HEAL) — Phase 18, aggiunta 2026-11-09
+
+- [ ] **BE-HEAL-01**: `Quest.prizes.cure` sotto-documento nullable `{ lifePointsShare: Number in [0, 1], canHeal: [InjuryType] }` (`QuestCure` sullo SDL, campo additivo `QuestPrizes.cure`, `QuestCureInput` in `QuestPrizesInput`); `canHeal` riusa nome e semantica di `LootItem.canHeal` (enum Mongoose, default vuota); `cure` assente = nessuna cura, nessuna migrazione → FE HEAL-01
+- [ ] **BE-HEAL-02**: Una quest vinta che porta `cure` riporta `currentLifePoints` almeno a `round(maxLifePoints × lifePointsShare)` (tetto: mai sopra il massimo né sotto il corrente, calcolato sul massimo dopo la progressione) e toglie da `status.injuries` le ferite presenti in `canHeal` nella stessa scrittura; vale per ogni tipo di quest (il ramo `type === heal` della Phase 9 D-15 è superato); primitiva pura `cureInjuries` riusabile → FE HEAL-01
+- [ ] **BE-HEAL-03**: Contenuto delle 166 heal fisse scritto a DB per taglia (`citySizeOf`) con script mirato fuori repo (D-36) dopo la revisione dell'utente su file e dopo la merge: liste villaggio 19 (gravità FE ≤ 20) / città 28 (≤ 40) / capitale 37, ritocchi per `CityType` (montagna/nord, deserto, tropicale, mare), quota 0,5 / 0,8 / 1, `timeToComplete` 2 / 5 / 8 h, tre descrizioni per taglia nella voce del tempio; titoli, `minTitle` rookie, gratuità e Necrorian invariati → FE HEAL-03
+- [ ] **BE-HEAL-04**: `QuestResult.injuriesHealed: [InjuryType!]!` (default vuota) con le ferite tolte da quell'esito per il partecipante, accanto a `hpBefore`/`hpAfter` → FE HEAL-02
+- [ ] **BE-HEAL-05**: Unit (primitiva, tetto, piano con `cure` null/0/1 e su quest non heal), integration (heal di villaggio: una ferita tolta e una no, HP al 50 %, `injuriesHealed` sul filo; SDL verbatim della FE), boot reale con SDL additivo, handoff `BACKEND-NOTES.md` per la FE Phase 18 con tre quest d'esempio e il runbook dello script di contenuto
+
 ## Future Requirements
 
 Deferred a post-v1.0. Tracciati ma non nella roadmap corrente.
@@ -302,6 +310,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 | BE-FOOD-01..06 | Phase 14 | Complete (gate 14-07, 2026-11-05; aggiunti 2026-10-29; discuss 2026-11-05, BE-FOOD-02/03/04 emendati) |
 | BE-AMBUSH-01..07 | Phase 15 | Complete (gate 15-11 e chiusura 15-12, 2026-11-06; aggiunti 2026-10-29, emendati 2026-11-06) |
 | BE-LORE-01..06 | Phase 16 | Complete (gate 16-11 e chiusura 16-12, 2026-11-07; aggiunti 2026-10-29, emendati 2026-11-07) |
+| BE-HEAL-01..05 | Phase 18 | Pending (aggiunti 2026-11-09 nel discuss congiunto con la FE Phase 18; esecuzione dopo la Phase 17) |
 
 **Coverage:**
 
@@ -312,6 +321,7 @@ Populated during roadmap creation (2026-07-16). Ogni requirement mappato a esatt
 - Inserimento del 2026-11-05 (Phase 13.1, dalla UAT della FE Phase 14): +5 requisiti (BE-QGEN-12 animali fuori, BE-QGEN-13 fasce contigue e budget per posti, BE-QGEN-14 taglie, BE-QGEN-15 tabellone per area, BE-QGEN-16 reset e revisione di hunt/dungeon al boot) → 103 totali, 97 mappati
 - Discuss del 2026-11-07 (Phase 16 congiunto con la FE Phase 17): BE-LORE-01..06 emendati (id sul filo, geografia città + regioni + stato, nemico esatto, `loreUnlocked`, studio al 50 %, filtri fuori dalla Biblioteca, backfill one-off); nessun requisito nuovo
 - Discuss del 2026-11-06 (Phase 15 congiunto con la FE Phase 16): BE-AMBUSH-01..07 emendati (rischio per km 0,2%/0,6%, più imboscate con risorteggio, POI più vicino + animali, fascia [Facile, Medio] per livello, città più vicina meta compresa, push su sconfitta, report trattenuti all'arrivo, `kind`/`ambush` sul `QuestResult`); conteggi invariati (103 totali, 97 mappati)
+- Discuss del 2026-11-09 (Phase 18 congiunto con la FE Phase 18): +5 requisiti (BE-HEAL-01..05: `prizes.cure` con quota di vita a tetto e lista `canHeal`, cura su ogni quest vinta che la porta, contenuto delle 166 heal per taglia, `injuriesHealed`, prove e handoff) → 103 totali, 97 mappati senza la Phase 17 (108 / 102 con i BE-SESSION-01..05 della Phase 17, sul ramo `feat/17-autorizzazione-e-sessioni`)
 
 ---
 

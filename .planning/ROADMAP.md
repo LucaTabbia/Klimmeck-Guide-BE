@@ -36,6 +36,7 @@ Questa milestone porta il backend brownfield da "completamente aperto e con bug 
 - [x] **Phase 14: Viaggio e cibo** - Il viaggio consuma oggetti `hunger` in base al tempo di marcia (1 power = 3 min), selezione a scarto minimo, km scoperti → vita persa (il km n-esimo costa n HP), partenza libera o da quest rifiutata se non si arriva con ≥ 1 HP, tutto alla partenza; teleport e salto esenti _(aggiunta 2026-10-29)_
 - [x] **Phase 15: Imboscate in viaggio** - Rischio per km di giorno e di notte (22–06, `AMBUSH_TIMEZONE`), più imboscate per viaggio con risorteggio dopo ogni vittoria, nemici del POI più vicino nella fascia [Facile, Medio] del livello, job al momento dell'imboscata con `CombatResolver`; vittoria → XP e monete del rango, sconfitta → HP ≥ 1 e ferite, rotta riscritta dal punto verso la città più vicina, quest abbandonata, push di sconfitta; report trattenuti e consegnati all'arrivo come `QuestResult` di tipo `ambush` _(aggiunta 2026-10-29, discussa 2026-11-06)_
 - [x] **Phase 16: Lore sbloccabili** - Due insiemi additivi sul `Character`: lore sbloccate (`status.unlockedLore`, id sul filo) e nemici sconfitti (`status.knownEnemies`, interno); geografia della città (lore + regioni + stato) alla nascita e a ogni arrivo sul marker di una città (viaggio, deviazione, salto, teleport); nemici alla vittoria (tutti i vincitori: lore del bestiario + id esatto); `study` senza magia → lore casuale al 50 %; query di lore filtrate per il personaggio del bearer (`City.relatedLore` null se chiusa), `known` per viewer sulle voci di `enemies`, `loreUnlocked` sugli esiti; innkeeper vede tutto. Discussa il 2026-11-07.
+- [ ] **Phase 18: Quest heal per taglia** - Le quest `heal` curano in base al luogo: sotto-documento additivo `prizes.cure` con la quota di vita a cui la quest riporta gli HP (tetto: villaggio 50 %, città 80 %, capitale 100 %) e la lista `canHeal` delle ferite che guarisce (stesso nome e semantica del campo degli oggetti heal), applicato a ogni quest vinta che lo porta; `QuestResult.injuriesHealed`; contenuto delle 166 heal scritto a DB per taglia (liste ≤20 / ≤40 / tutte con ritocchi di lore per tipo di città, ore 2 / 5 / 8, descrizioni per taglia) dopo la revisione dell'utente; heal gratuite _(aggiunta 2026-11-09 nel discuss congiunto con la FE Phase 18; la Phase 17 «Autorizzazione e sessioni» vive sul ramo `feat/17-autorizzazione-e-sessioni`; la 18 si esegue dopo la 17)_
 
 ## Phase Details
 
@@ -605,6 +606,21 @@ Plans:
 
 **Stato (2026-11-07)**: 12/12 piani eseguiti; PR verso `develop` in draft a cura dell'orchestratore fino al boot reale col backfill e alla sua rimozione; la FE Phase 17 parte dopo la merge (handoff in `.planning/phases/16-lore-sbloccabili/BACKEND-NOTES.md`)
 
+### Phase 18: Quest heal per taglia
+**Goal**: La cura è un premio esplicito della quest, non una regola del tipo: `Quest.prizes.cure { lifePointsShare, canHeal }` separa la vita restituita (tetto sulla quota del massimo) dalle ferite guarite (lista di `InjuryType`, stesso nome e semantica di `LootItem.canHeal`); il piano d'esito applica la cura a ogni quest vinta che la porta e registra le ferite guarite sul risultato; il contenuto delle 166 heal fisse è scritto a DB per taglia di città (`citySizeOf`) con ritocchi di lore per tipo di città, ore e descrizioni per taglia, dopo la revisione dell'utente su un file e dopo la merge; le heal restano gratuite. Supera la Phase 9 D-15 (heal vinta = tutte le ferite via + HP al massimo).
+**Depends on**: Phase 9 (piano d'esito, `QuestResult`), Phase 11 (heal fisse, descrizioni D-32), Phase 12 (`citySizeOf`), quick 261109-inj/inj2 (`LootItem.canHeal`, 37 `InjuryType`); **si esegue dopo la Phase 17** (ordine deciso dall'utente il 2026-11-09)
+**Requirements**: BE-HEAL-01, BE-HEAL-02, BE-HEAL-03, BE-HEAL-04, BE-HEAL-05
+**Success Criteria** (what must be TRUE):
+  1. `QuestPrizes.cure: QuestCure` nullable (`lifePointsShare: Float!` in [0, 1], `canHeal: [InjuryType!]!` validata dall'enum, default vuota) su schema Mongoose, SDL (additivo) e `QuestPrizesInput`; `cure` assente = nessuna cura (fail-safe), nessuna migrazione.
+  2. Una quest vinta con `cure` porta `currentLifePoints` almeno a `round(maxLifePoints × lifePointsShare)` (mai sopra il massimo, mai sotto il valore corrente, sul massimo dopo la progressione) e toglie da `status.injuries` le sole ferite presenti in `canHeal`, nella stessa scrittura dell'esito; il tipo della quest non conta (`heal` senza `cure` non cura; `job`/`story` con `cure` curano); la primitiva `cureInjuries` è pura e riusabile.
+  3. `QuestResult.injuriesHealed: [InjuryType!]!` elenca le ferite tolte da quell'esito per il partecipante (default vuota), accanto a `hpBefore`/`hpAfter`.
+  4. Contenuto (fuori repo, D-36): script di applicazione mirata con prova a secco, backup e file di revisione per le 166 heal: villaggio = 19 ferite (gravità FE ≤ 20), città = 28 (≤ 40), capitale = tutte e 37; ritocchi per `CityType` (montagna/nord + frostbite, hypothermia; deserto + severeBurn, exhaustion; tropicale + infection, poisonInjection; mare + hypothermia, infection); quota 0,5 / 0,8 / 1; `timeToComplete` 2 / 5 / 8 h; tre descrizioni per taglia nella voce del tempio; titoli, `minTitle` rookie, `requiredPoints` null e Necrorian invariati; applicato dopo l'OK dell'utente e dopo la merge, con i conteggi nel handoff.
+  5. Integration: heal di villaggio su un personaggio con una ferita in lista e una fuori → una tolta, HP al 50 %, `injuriesHealed` sul filo; `cure` null → nulla; quest non heal con `cure` → cura; SDL verbatim della FE; handoff `BACKEND-NOTES.md` per la FE Phase 18 con tre quest d'esempio (una per taglia) e il runbook dello script.
+**Decisioni del discuss (2026-11-09, `18-CONTEXT.md` D-01..D-14)**: vita e ferite separate; tetto 50/80/100; liste ≤20/≤40/tutte + lore; ore 2/5/8; cura su ogni quest vinta con `cure`; `injuriesHealed`; contenuto dopo la merge su file rivisto; fuori scope uso oggetti dal Diario (stand-by) e cibo (rinviato).
+**Unblocks (FE)**: FE Phase 18 (HEAL-01..03).
+**Branch**: `feat/18-quest-heal-per-taglia` da `develop` (`31dba96`), worktree → PR a `develop` dopo la merge della Phase 17.
+**Plans**: TBD
+
 ## Backend ↔ Frontend alignment
 
 Vincoli d'ordine dichiarati dal FE, mappati sulle fasi BE:
@@ -622,13 +638,14 @@ Vincoli d'ordine dichiarati dal FE, mappati sulle fasi BE:
 | FE Phase 15 (viaggio e cibo) | Phase 14 (BE-FOOD) | Preview additiva di cibo e HP su `travelPreview` + preview dell'accettazione + codice di rifiuto |
 | FE Phase 16 (imboscate) | Phase 15 (BE-AMBUSH) | `activeTravel` riscritto alla sconfitta + `QuestResult` di imboscata sulla pipeline esistente |
 | FE Phase 17 (lore sbloccabili) | Phase 16 (BE-LORE) + Phase 11 (lore) | Query di lore filtrate per personaggio + `known` sui nemici delle quest; additivi `CharacterStatus.unlockedLore`, `QuestResult.loreUnlocked`, `City.relatedLore` null se chiusa (discuss 2026-11-07) |
+| FE Phase 18 (quest heal per taglia) | Phase 18 (BE-HEAL) | `QuestPrizes.cure { lifePointsShare canHeal }` e `QuestResult.injuriesHealed` additivi; contenuto per taglia a DB dopo la merge; esecuzione dopo la Phase 17 (discuss 2026-11-09) |
 
 Nota compatibilità: i contratti di schema aggiunti (QUEST-04, TRAVEL-01, combat, connection_init) devono arrivare su staging **prima** delle fasi FE che li consumano; i contratti GraphQL esistenti non si rompono. Le fasi FE 2–10 continuano a girare sullo stub `DEV_AUTH_ACCESS_TOKEN` grazie al dev bypass fail-closed di Phase 2.
 
 ## Progress
 
 **Execution Order:**
-Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 _(11–16 aggiunte il 2026-10-29: il popolamento fornisce i dati, il multi-nemico della 13 precede l'imboscata della 15, il cibo della 14 lascia i punti d'innesto alla 15)_
+Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 _(11–16 aggiunte il 2026-10-29: il popolamento fornisce i dati, il multi-nemico della 13 precede l'imboscata della 15, il cibo della 14 lascia i punti d'innesto alla 15; 17 «Autorizzazione e sessioni» inserita il 2026-11-09 sul ramo `feat/17-autorizzazione-e-sessioni` come companion della FE Phase 12 Hardening; 18 aggiunta il 2026-11-09 e eseguita dopo la 17)_
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -652,3 +669,4 @@ Le fasi eseguono in ordine numerico: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 14. Viaggio e cibo | 8/8 | Complete | 2026-11-05 |
 | 15. Imboscate in viaggio | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | 12/12 | Complete | 2026-11-07 |
+| 18. Quest heal per taglia | 0/0 | Not started (after Phase 17) | - |
