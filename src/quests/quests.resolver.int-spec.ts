@@ -61,6 +61,9 @@ const CONCLUDED_AT = new Date('2026-10-24T10:00:00.000Z');
 const QUEST_NO_EFFECT =
     'query Quest($id: String!) { quest(id: $id) { id noEffect } }';
 const QUESTS_NO_EFFECT = 'query { quests { id noEffect } }';
+const CURE_FIELDS = 'id prizes { cure { lifePointsShare canHeal } }';
+const QUEST_CURES = `query { quests { ${CURE_FIELDS} } }`;
+const QUEST_CURE = `query Quest($id: String!) { quest(id: $id) { ${CURE_FIELDS} } }`;
 const VILLAGE_CURE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
 const FULL_LIFE = 1000;
 
@@ -111,6 +114,11 @@ interface WireQuestSpell {
 interface WireQuestPet {
     id: string;
     prizes: { pet: { id: string; name: string } | null };
+}
+
+interface WireQuestCure {
+    id: string;
+    prizes: { cure: { lifePointsShare: number; canHeal: string[] } | null };
 }
 
 interface WireNoEffect {
@@ -623,6 +631,77 @@ describe('quest catalog (wire)', () => {
             name: 'Gufo delle nevi',
         });
         expect(petOf(orphan._id)).toBeNull();
+    });
+
+    // il contenuto delle heal lo scrive uno script col driver nativo, senza validatori (Pitfall 1)
+    async function insertQuestWithCure(cure: unknown): Promise<Types.ObjectId> {
+        const base = buildQuest();
+        const _id = new Types.ObjectId();
+        await modelOf(Quest.name, QuestSchema).collection.insertOne({
+            ...base,
+            _id,
+            infos: { ...base.infos, type: 'heal', markerLocation: poi._id },
+            prizes: { ...base.prizes, cure },
+        });
+        return _id;
+    }
+
+    it('serves on quests the cure the server would apply, never an error (D-01, D-23)', async () => {
+        const noShare = await insertQuestWithCure({ canHeal: ['deepCut'] });
+        const outOfScale = await insertQuestWithCure({
+            lifePointsShare: 7,
+            canHeal: ['deepCut'],
+        });
+        const typo = await insertQuestWithCure({
+            lifePointsShare: 0.5,
+            canHeal: ['brokenWing', 'deepCut'],
+        });
+        const valid = await insertQuestWithCure(VILLAGE_CURE);
+
+        const body = bodyOf(
+            await graphqlRequest(harness.app, QUEST_CURES, {}, bearer),
+        );
+
+        expect(body.errors).toBeUndefined();
+        const quests = (body.data?.quests ?? []) as unknown as WireQuestCure[];
+        const cureOf = (id: Types.ObjectId) =>
+            quests.find((quest) => quest.id === String(id))?.prizes.cure;
+        expect(quests).toHaveLength(4);
+        expect(cureOf(noShare)).toEqual({
+            lifePointsShare: 0,
+            canHeal: ['deepCut'],
+        });
+        expect(cureOf(outOfScale)).toEqual({
+            lifePointsShare: 0,
+            canHeal: ['deepCut'],
+        });
+        expect(cureOf(typo)).toEqual({
+            lifePointsShare: 0.5,
+            canHeal: ['deepCut'],
+        });
+        expect(cureOf(valid)).toEqual(VILLAGE_CURE);
+    });
+
+    it('serves on quest(id) the cure the server would apply (D-01, D-23)', async () => {
+        const typo = await insertQuestWithCure({
+            lifePointsShare: 7,
+            canHeal: ['brokenWing'],
+        });
+
+        const body = bodyOf(
+            await graphqlRequest(
+                harness.app,
+                QUEST_CURE,
+                { id: String(typo) },
+                bearer,
+            ),
+        );
+
+        expect(body.errors).toBeUndefined();
+        expect(
+            (body.data?.quest as unknown as WireQuestCure | undefined)?.prizes
+                .cure,
+        ).toEqual({ lifePointsShare: 0, canHeal: [] });
     });
 
     it('requires a bearer', async () => {
