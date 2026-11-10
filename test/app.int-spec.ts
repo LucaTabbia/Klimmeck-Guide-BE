@@ -790,6 +790,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('enum PushEventType');
         expect(schema).toContain('  questCancelled\n');
         expect(schema).toContain('  ambushDefeat\n');
+        // liberazione dalla prigione (quick 261110-prp): valore additivo dell'enum
+        expect(schema).toContain('  prisonRelease\n');
         expect(schema).toContain('type PushDeliveryReport');
         expect(schema).toContain('targetUserId: ID');
         expect(schema).not.toContain('type PushDevice');

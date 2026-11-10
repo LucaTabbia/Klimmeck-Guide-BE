@@ -43,6 +43,12 @@ const SWEEP_INDEXES: SweepIndex[] = [
         key: { deletedAt: 1, 'status.activeTravel.ambush.at': 1 },
     },
     {
+        collection: 'characters',
+        name: 'character_imprisoned_until',
+        schema: CharacterSchema,
+        key: { deletedAt: 1, 'status.imprisonedUntil': 1 },
+    },
+    {
         collection: 'quests',
         name: 'quest_forming_parties',
         schema: QuestSchema,
