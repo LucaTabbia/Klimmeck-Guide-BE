@@ -1,39 +1,39 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Core Loop (BE)
-status: completed
-last_updated: "2026-11-10T01:40:00.000Z"
-last_activity: 2026-11-10 -- v1.0 Core Loop (BE) milestone completed and archived (21/21 phases, 261/261 plans)
+milestone: v1.1
+milestone_name: Cura e modelli
+status: planning
+last_updated: "2026-11-10T12:00:00.000Z"
+last_activity: 2026-11-10 -- Milestone v1.1 Cura e modelli started
 progress:
-  total_phases: 21
-  completed_phases: 21
-  total_plans: 261
-  completed_plans: 261
-  percent: 100
+  total_phases: 3
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-11-10 after the v1.0 milestone)
+See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Pianificazione della prossima milestone (v1.1) con `/gsd-new-milestone`
+**Current focus:** Phase 18 — Quest heal per taglia (contesto raccolto, pronta per il plan; ↔ FE Phase 18)
 
 ## Current Position
 
-Milestone: **v1.0 Core Loop (BE) — SHIPPED 2026-11-10** (archivio: `milestones/v1.0-ROADMAP.md`, `milestones/v1.0-REQUIREMENTS.md`; riepilogo: `MILESTONES.md`; retrospettiva: `RETROSPECTIVE.md`)
-Phase: nessuna attiva — tutte le 21 fasi complete (ultime: Phase 17 Autorizzazione e sessioni, PR #27 mergiata; quick task 261109-cap, PR #28 mergiata il 2026-11-10; `develop` `9973fcb1`)
+Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
+Phase: 18 di 20 (Quest heal per taglia) — contesto raccolto il 2026-11-09 (`18-CONTEXT.md`), pronta per il plan
 Plan: —
-Status: milestone v1.0 completa — chiusura registrata su `docs/v1-milestone-close` (PR → `develop`); tag `v1.0` da creare sul merge commit di `develop` dopo la merge
-Last activity: 2026-11-10 -- v1.0 milestone completed and archived
-Next step: `/gsd-new-milestone` (v1.1). Candidati già discussi: Phase 18 Quest heal per taglia (+ pozioni, `feat/18-quest-heal-per-taglia`, ↔ FE 18), Phase 19 Revisione dei modelli (`feat/19-revisione-dei-modelli`, ↔ FE 19), Phase 20 Cibo e vita progressivi (`feat/20-cibo-e-vita-progressivi`, solo BE; worktree `Klimmeck-Guide-BE-wt18`). Quei branch portano modifiche a `ROADMAP.md`, `REQUIREMENTS.md` e `STATE.md` precedenti alla chiusura e vanno ribasati: le sezioni di fase finiscono sotto la milestone v1.1 della roadmap nuova, `REQUIREMENTS.md` lo ricrea la nuova milestone.
+Status: Ready to plan
+Last activity: 2026-11-10 -- Milestone v1.1 started (requisiti e roadmap definiti, contesti delle Phase 18, 19 e 20 riportati dai branch dei discuss)
+Next step: `/gsd-plan-phase 18` insieme alla FE Phase 18, su `feat/18-quest-heal-per-taglia` ricreato da `develop` dopo la merge di `docs/v1.1-milestone-start` (i vecchi branch dei discuss `feat/18-quest-heal-per-taglia`, `feat/19-revisione-dei-modelli` e `feat/20-cibo-e-vita-progressivi` sono superati: i contesti sono su questo branch, le loro modifiche a ROADMAP/REQUIREMENTS/STATE sono sostituite dai file della v1.1).
 
 ## Current Milestone
 
-Nessuna — v1.0 Core Loop (BE) consegnata. La milestone FE v1.0 (17 fasi, 180 piani) è stata chiusa lo stesso giorno (FE PR #46).
+v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..08, ↔ FE 18) → Phase 19 Revisione dei modelli (BE-MODEL-01..09, ↔ FE 19) → Phase 20 Cibo e vita progressivi in viaggio (BE-FOODP-01..05, solo BE). Milestone FE gemella v1.1 «Healing & Models» (FE Phases 18–19). Ricerca di dominio saltata all'apertura (fasi già discusse); la ricerca per fase resta nel plan-phase.
 
 ## Accumulated Context
 
@@ -47,6 +47,7 @@ Nessuna — v1.0 Core Loop (BE) consegnata. La milestone FE v1.0 (17 fasi, 180 p
 
 - v1.0: 10 fasi dalla roadmap del 2026-07-16, inserite 2.1 (2026-10-09), 3.1 (2026-10-15), 9.1 e 9.2 (2026-10-27), estensione con le Phase 11–16 (2026-10-29), inserita 13.1 (2026-11-05), Phase 17 aggiunta il 2026-11-09 come companion della FE Phase 12 Hardening. Dettagli in `milestones/v1.0-ROADMAP.md`.
 - 2026-11-10: milestone archiviata; `REQUIREMENTS.md` rimosso (lo ricrea `/gsd-new-milestone`).
+- 2026-11-10: milestone v1.1 Cura e modelli aperta con le Phase 18–20 (scope confermato dall'utente: solo le fasi discusse il 2026-11-09); `REQUIREMENTS.md` ricreato con BE-HEAL-01..08, BE-MODEL-01..09 e BE-FOODP-01..05.
 
 ### Decisions
 
@@ -72,6 +73,6 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 
 ## Session Continuity
 
-Last session: 2026-11-10 — chiusura della milestone v1.0 (FE poi BE)
-Stopped at: milestone archiviata; PR `docs/v1-milestone-close` → `develop` da mergiare, poi tag `v1.0`
-Resume file: .planning/MILESTONES.md
+Last session: 2026-11-10 — apertura della milestone v1.1 (FE e BE)
+Stopped at: milestone inizializzata su `docs/v1.1-milestone-start` (PR → `develop`); prossimo: plan della Phase 18 insieme alla FE Phase 18
+Resume file: .planning/phases/18-quest-heal-per-taglia/18-CONTEXT.md
