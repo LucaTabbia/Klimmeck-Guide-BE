@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
+import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { PushEventType } from 'src/push/push-event-type.enum';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
@@ -323,7 +324,7 @@ describe('crime arrest and guard encounter at the conclusion (quick 261110-cgd, 
             const before = await characterOf(subject);
             scripted.willEnd('failure').willResolve(subject.characterId, {
                 hpAfter: 300,
-                injuriesAdded: ['deepCut'],
+                injuriesAdded: [InjuryType.deepCut],
             });
             chance.load([HIT, 0]);
 

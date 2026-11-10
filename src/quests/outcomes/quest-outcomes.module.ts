@@ -43,6 +43,7 @@ import {
 import { BossResolutionService } from './boss-resolution.service';
 import { ChanceSource, MathChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
+import { ConclusionEventDrawer } from './conclusion/conclusion-event.drawer';
 import { GmCompletionService } from './gm-completion.service';
 import { PlaceholderCombatResolver } from './combat/placeholder-combat-resolver';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
@@ -93,6 +94,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         { provide: ChanceSource, useClass: MathChanceSource },
         OutcomeWriter,
         ResolutionLoader,
+        ConclusionEventDrawer,
         BossResolutionService,
         RescueResolutionService,
         QuestResolutionService,
