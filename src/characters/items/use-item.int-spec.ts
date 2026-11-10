@@ -6,12 +6,8 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
-import {
-    LootItem,
-    LootItemDocument,
-    LootItemSchema,
-} from 'src/models/loot-item.model';
-import { Lore, LoreDocument, LoreSchema } from 'src/models/lore.model';
+import { LootItem } from 'src/models/loot-item.model';
+import { Lore } from 'src/models/lore.model';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
@@ -50,6 +46,11 @@ interface RawCharacter {
     assets: { ownedItems: RawStack[] };
 }
 
+interface Persisted {
+    _id: Types.ObjectId;
+    id: string;
+}
+
 interface PlayerShape {
     twitchId: string;
     role?: RoleType;
@@ -65,8 +66,8 @@ describe('useItem (wire)', () => {
     let harness: AuthTestApp;
     let clock: FixedClock;
     let characters: Model<CharacterDocument>;
-    let lootItems: Model<LootItemDocument>;
-    let lores: Model<LoreDocument>;
+    let lootItems: Model<any>;
+    let lores: Model<any>;
 
     function stackOf(item: Types.ObjectId, quantity = 2): RawStack {
         return { item, quantity };
@@ -98,17 +99,17 @@ describe('useItem (wire)', () => {
 
     async function potionWith(
         overrides: Record<string, unknown> = {},
-    ): Promise<{ potion: LootItemDocument; lore: LoreDocument }> {
+    ): Promise<{ potion: Persisted; lore: Persisted }> {
         const lore = (await persistLore(lores, {
             name: LORE_NAME,
-        })) as LoreDocument;
+        })) as Persisted;
         const potion = (await persistLootItem(lootItems, {
             power: 300,
             canHeal: ['deepCut'],
             recovery: { time: 1_800_000, turns: 3 },
             relatedLore: [lore._id],
             ...overrides,
-        })) as LootItemDocument;
+        })) as Persisted;
         return { potion, lore };
     }
 
@@ -145,8 +146,8 @@ describe('useItem (wire)', () => {
         )?.quantity;
     }
 
-    function wireLore(lore: LoreDocument) {
-        return { id: lore.id as string, name: LORE_NAME, type: 'knowledge' };
+    function wireLore(lore: Persisted) {
+        return { id: lore.id, name: LORE_NAME, type: 'knowledge' };
     }
 
     beforeAll(async () => {
@@ -158,19 +159,8 @@ describe('useItem (wire)', () => {
         characters = harness.connection.model<CharacterDocument>(
             Character.name,
         );
-        lootItems =
-            (harness.connection.models[LootItem.name] as
-                | Model<LootItemDocument>
-                | undefined) ??
-            harness.connection.model<LootItemDocument>(
-                LootItem.name,
-                LootItemSchema,
-            );
-        lores =
-            (harness.connection.models[Lore.name] as
-                | Model<LoreDocument>
-                | undefined) ??
-            harness.connection.model<LoreDocument>(Lore.name, LoreSchema);
+        lootItems = harness.connection.model(LootItem.name);
+        lores = harness.connection.model(Lore.name);
     });
 
     beforeEach(() => {
@@ -192,7 +182,7 @@ describe('useItem (wire)', () => {
             ownedItems: [stackOf(potion._id)],
         });
 
-        const body = await drink(player, potion.id as string);
+        const body = await drink(player, potion.id);
 
         expect(body.errors).toBeUndefined();
         expect(body.data?.useItem).toEqual({
@@ -219,9 +209,9 @@ describe('useItem (wire)', () => {
             twitchId: 'twitch-drink-recovering',
             ownedItems: [stackOf(potion._id)],
         });
-        await drink(player, potion.id as string);
+        await drink(player, potion.id);
 
-        const body = await drink(player, potion.id as string);
+        const body = await drink(player, potion.id);
 
         expect(body.errors?.[0]?.extensions).toEqual({
             code: 'POTION_RECOVERING',
@@ -237,10 +227,10 @@ describe('useItem (wire)', () => {
             twitchId: 'twitch-drink-again',
             ownedItems: [stackOf(potion._id)],
         });
-        await drink(player, potion.id as string);
+        await drink(player, potion.id);
         clock.advanceSeconds(1800);
 
-        const body = await drink(player, potion.id as string);
+        const body = await drink(player, potion.id);
 
         expect(body.errors).toBeUndefined();
         expect(body.data?.useItem).toMatchObject({
@@ -257,10 +247,10 @@ describe('useItem (wire)', () => {
             twitchId: 'twitch-drink-lore',
             ownedItems: [stackOf(potion._id)],
         });
-        await drink(player, potion.id as string);
+        await drink(player, potion.id);
         clock.advanceSeconds(1800);
 
-        const body = await drink(player, potion.id as string);
+        const body = await drink(player, potion.id);
 
         expect(
             (body.data?.useItem as { loreUnlocked: unknown }).loreUnlocked,
@@ -279,7 +269,7 @@ describe('useItem (wire)', () => {
         });
         const before = await rawCharacter(player);
 
-        const body = await drink(player, potion.id as string);
+        const body = await drink(player, potion.id);
 
         expect(codeOf(body)).toBe('ITEM_NO_EFFECT');
         expect(await rawCharacter(player)).toEqual(before);
@@ -300,7 +290,7 @@ describe('useItem (wire)', () => {
         });
         const before = await rawCharacter(player);
 
-        const body = await drink(player, potion.id as string);
+        const body = await drink(player, potion.id);
 
         expect(codeOf(body)).toBe('AWAITING_AID');
         expect(await rawCharacter(player)).toEqual(before);
@@ -329,7 +319,7 @@ describe('useItem (wire)', () => {
             ownedItems: [stackOf(potion._id)],
         });
 
-        const body = await drink(player, potion.id as string);
+        const body = await drink(player, potion.id);
 
         expect(body.errors).toBeUndefined();
         expect(body.data?.useItem).toEqual({
@@ -349,7 +339,7 @@ describe('useItem (wire)', () => {
         });
         const before = await rawCharacter(player);
 
-        const body = await drink(player, potion.id as string);
+        const body = await drink(player, potion.id);
 
         expect(codeOf(body)).toBe('ITEM_NOT_OWNED');
         expect(await rawCharacter(player)).toEqual(before);
@@ -385,7 +375,7 @@ describe('useItem (wire)', () => {
             });
             const before = await rawCharacter(player);
 
-            const body = await drink(player, item.id as string);
+            const body = await drink(player, item.id);
 
             expect(codeOf(body)).toBe('ITEM_NOT_USABLE');
             expect(await rawCharacter(player)).toEqual(before);
@@ -403,7 +393,7 @@ describe('useItem (wire)', () => {
             ownedItems: [stackOf(potion._id)],
         });
 
-        const body = await drink(player, potion.id as string);
+        const body = await drink(player, potion.id);
 
         expect(body.errors).toBeUndefined();
         expect(
@@ -419,7 +409,7 @@ describe('useItem (wire)', () => {
             ownedItems: [stackOf(potion._id, 1), stackOf(other, 1)],
         });
 
-        const body = await drink(player, potion.id as string);
+        const body = await drink(player, potion.id);
 
         expect(
             (body.data?.useItem as { quantityLeft: unknown }).quantityLeft,
@@ -444,7 +434,7 @@ describe('useItem (wire)', () => {
             withCharacter: false,
         });
 
-        const body = await drink(player, potion.id as string);
+        const body = await drink(player, potion.id);
 
         expect(codeOf(body)).toBe('NOT_FOUND');
     });
@@ -466,8 +456,8 @@ describe('useItem (wire)', () => {
         });
         const bystanderBefore = await rawCharacter(bystander);
 
-        const own = await drink(innkeeper, potion.id as string);
-        const refused = await drink(emptyHanded, potion.id as string);
+        const own = await drink(innkeeper, potion.id);
+        const refused = await drink(emptyHanded, potion.id);
 
         expect(own.errors).toBeUndefined();
         expect(stackQuantity(await rawCharacter(innkeeper), potion._id)).toBe(
@@ -496,7 +486,7 @@ describe('useItem (wire)', () => {
         };
 
         expect(await recoveryOf()).toBeNull();
-        await drink(player, potion.id as string);
+        await drink(player, potion.id);
         expect(await recoveryOf()).toBe(FIRST_RECOVERY_END);
     });
 });
