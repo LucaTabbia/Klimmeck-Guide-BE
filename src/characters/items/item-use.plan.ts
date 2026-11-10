@@ -6,8 +6,10 @@ import {
     soldQuantityGuards,
 } from 'src/economy/trade/trade-inventory';
 import type { TradeLine } from 'src/economy/trade/trade-line';
+import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import type { KnowledgeAddition } from 'src/lore/knowledge-addition';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
+import { EffectType } from 'src/models/enums/effect-type.enum';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf, sameId } from 'src/mongo/document-id';
@@ -120,6 +122,83 @@ const recoveryOver = (now: Date) => ({
     ],
 });
 
+interface UsablePotion {
+    power: number;
+    canHeal: readonly unknown[];
+    recoveryTime: number;
+    relatedLore: Types.ObjectId[];
+}
+
+interface DrinkEffect {
+    hpBefore: number;
+    hpAfter: number;
+    cured: { injuries: InjuryType[]; healed: InjuryType[] };
+}
+
+// ordine dei rifiuti deciso dallo snapshot (Phase 18 D-17), mai rileggendo dopo una scrittura fallita
+
+function refuseWhileAwaitingAid(snapshot: ItemUseCharacterSnapshot): void {
+    if (snapshot.status.awaitingAid != null) {
+        throw GameRuleException.awaitingAid();
+    }
+}
+
+function refuseUnlessOwned(
+    assets: InventorySnapshot | null | undefined,
+    itemId: Types.ObjectId,
+): void {
+    const owned = (assets?.ownedItems ?? []).some(
+        (entry) =>
+            sameId(entry.item, itemId) &&
+            Number.isInteger(entry.quantity) &&
+            entry.quantity >= 1,
+    );
+    if (!owned) throw GameRuleException.itemNotOwned();
+}
+
+function usablePotionOf(item: ItemUseCatalogSnapshot | null): UsablePotion {
+    const recoveryTime = recoveryTimeOf(item?.recovery);
+    if (!item || item.effect !== EffectType.heal || recoveryTime === null) {
+        throw GameRuleException.itemNotUsable();
+    }
+    return {
+        power: powerOf(item.power),
+        canHeal: canHealOf(item.canHeal),
+        recoveryTime,
+        relatedLore: relatedLoreIdsOf(item.relatedLore),
+    };
+}
+
+function refuseWhileRecovering(until: unknown, now: Date): void {
+    if (until instanceof Date && until.getTime() > now.getTime()) {
+        throw GameRuleException.potionRecovering(until);
+    }
+}
+
+function refuseWithoutEffect(effect: DrinkEffect): void {
+    if (
+        effect.hpAfter === effect.hpBefore &&
+        effect.cured.healed.length === 0
+    ) {
+        throw GameRuleException.itemNoEffect();
+    }
+}
+
+function drinkEffectOf(
+    snapshot: ItemUseCharacterSnapshot,
+    potion: UsablePotion,
+): DrinkEffect {
+    const facts = statusFactsOf(snapshot);
+    return {
+        hpBefore: facts.currentLifePoints,
+        hpAfter: lifePointsWithin(
+            facts.currentLifePoints + potion.power,
+            facts.maxLifePoints,
+        ),
+        cured: cureInjuries(snapshot.status.injuries ?? [], potion.canHeal),
+    };
+}
+
 function quantityLeftOf(
     ownedItems: readonly { item: unknown; quantity: number }[],
     itemId: Types.ObjectId,
@@ -129,50 +208,53 @@ function quantityLeftOf(
     );
 }
 
+function writeGuardOf(
+    snapshot: ItemUseCharacterSnapshot,
+    drink: TradeLine,
+    now: Date,
+): Record<string, unknown> {
+    return {
+        ...activeCharacterById(snapshot._id),
+        'status.awaitingAid': null,
+        'status.currentLifePoints': snapshot.status.currentLifePoints ?? null,
+        'status.injuries': [...(snapshot.status.injuries ?? [])],
+        ...soldQuantityGuards([drink], [recoveryOver(now)]),
+    };
+}
+
 export function planItemUse(input: ItemUsePlanInput): ItemUsePlan {
     const { snapshot, itemId, now } = input;
-    const item = input.item ?? {};
+    refuseWhileAwaitingAid(snapshot);
+    refuseUnlessOwned(snapshot.assets, itemId);
+    const potion = usablePotionOf(input.item);
+    refuseWhileRecovering(snapshot.status.potionRecoveryUntil, now);
+    const effect = drinkEffectOf(snapshot, potion);
+    refuseWithoutEffect(effect);
+
     const drink = drinkLineOf(itemId);
-    const injuries = snapshot.status.injuries ?? [];
-    const facts = statusFactsOf(snapshot);
-    const hpAfter = lifePointsWithin(
-        facts.currentLifePoints + powerOf(item.power),
-        facts.maxLifePoints,
-    );
-    const cured = cureInjuries(injuries, canHealOf(item.canHeal));
     const { ownedItems } = applyTradeToInventory(snapshot.assets ?? {}, [
         drink,
     ]);
-    const recoveryUntil = recoveryDueAt(
-        now,
-        recoveryTimeOf(item.recovery) ?? 0,
-    );
+    const recoveryUntil = recoveryDueAt(now, potion.recoveryTime);
     const knowledge = knowledgeUpdateOf(
         snapshot.status.unlockedLore,
-        relatedLoreIdsOf(item.relatedLore),
+        potion.relatedLore,
     );
     return {
-        filter: {
-            ...activeCharacterById(snapshot._id),
-            'status.awaitingAid': null,
-            'status.currentLifePoints':
-                snapshot.status.currentLifePoints ?? null,
-            'status.injuries': [...injuries],
-            ...soldQuantityGuards([drink], [recoveryOver(now)]),
-        },
+        filter: writeGuardOf(snapshot, drink, now),
         update: {
             $set: {
-                'status.currentLifePoints': hpAfter,
-                'status.injuries': cured.injuries,
+                'status.currentLifePoints': effect.hpAfter,
+                'status.injuries': effect.cured.injuries,
                 'assets.ownedItems': ownedItems,
                 'status.potionRecoveryUntil': recoveryUntil,
             },
             ...knowledge.addition,
         },
         outcome: {
-            hpBefore: facts.currentLifePoints,
-            hpAfter,
-            injuriesHealed: cured.healed,
+            hpBefore: effect.hpBefore,
+            hpAfter: effect.hpAfter,
+            injuriesHealed: effect.cured.healed,
             quantityLeft: quantityLeftOf(ownedItems, itemId),
             recoveryUntil,
             loreUnlocked: knowledge.fresh,
