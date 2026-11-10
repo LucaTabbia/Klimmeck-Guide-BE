@@ -562,7 +562,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type AwaitingAid {\n  aidQuest: ID!\n  quest: ID!\n  since: DateTime!\n}',
         );
         expect(schema.match(/type QuestPrizes \{[^}]*\}/)?.[0]).toBe(
-            'type QuestPrizes {\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
+            'type QuestPrizes {\n  cure: QuestCure\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
             'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
@@ -573,6 +573,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toMatch(
             /concludedAt|startedAt|archivedAt|\brescue\b|\bgrade\b/,
         );
+    });
+
+    it('writes the quest cure contract of the FE Phase 18 into the generated schema (D-01, D-24)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type QuestCure \{[^}]*\}/)?.[0]).toBe(
+            'type QuestCure {\n  canHeal: [InjuryType!]!\n  lifePointsShare: Float!\n}',
+        );
+        expect(schema).not.toMatch(/QuestCureInput|QuestPrizesInput/);
     });
 
     it('writes the quest result contract into the generated schema', () => {
