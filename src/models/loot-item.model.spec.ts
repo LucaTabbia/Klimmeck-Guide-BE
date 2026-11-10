@@ -71,3 +71,63 @@ describe('LootItem canHeal (quick 261109-inj)', () => {
         expect(lines[buyPriceIndex + 1]).toBe('  canHeal: [InjuryType!]!');
     });
 });
+
+interface RefListPath {
+    instance: string;
+    caster: { instance: string };
+    options: { ref: string };
+}
+
+function recoveryErrorsOf(recovery: unknown): string[] {
+    const potion = new LootItemProbe(buildLootItem({ recovery }));
+    return Object.keys(potion.validateSync()?.errors ?? {});
+}
+
+describe('LootItem recovery and related lore (Phase 18)', () => {
+    it('defaults the recovery of a loot item to null (D-15)', () => {
+        const potion = new LootItemProbe(buildLootItem()).toObject();
+
+        expect(potion.recovery).toBeNull();
+    });
+
+    it('stores a recovery with integer time and turns, without an id (D-15)', () => {
+        const potion = new LootItemProbe(
+            buildLootItem({ recovery: { time: 1800000, turns: 3 } }),
+        );
+
+        expect(potion.validateSync()).toBeUndefined();
+        expect(potion.toObject().recovery).toEqual({ time: 1800000, turns: 3 });
+    });
+
+    it.each([
+        [{ time: -1, turns: 0 }, 'recovery.time'],
+        [{ time: 1.5, turns: 0 }, 'recovery.time'],
+        [{ time: 0, turns: -1 }, 'recovery.turns'],
+        [{ time: 0, turns: 0.5 }, 'recovery.turns'],
+    ])('rejects the recovery %p on validation (D-15)', (recovery, key) => {
+        expect(recoveryErrorsOf(recovery)).toEqual([key]);
+    });
+
+    it('requires both fields of a recovery (D-15)', () => {
+        expect(recoveryErrorsOf({ time: 1000 })).toEqual(['recovery.turns']);
+        expect(recoveryErrorsOf({ turns: 1 })).toEqual(['recovery.time']);
+    });
+
+    it('accepts a recovery time of 0 in the schema (D-15)', () => {
+        expect(recoveryErrorsOf({ time: 0, turns: 0 })).toEqual([]);
+    });
+
+    it('defaults the related lore to an empty list of cast lore refs (D-19)', () => {
+        const potion = new LootItemProbe(buildLootItem()).toObject();
+        const path = LootItemSchema.path('relatedLore') as unknown as
+            | RefListPath
+            | undefined;
+
+        expect(potion.relatedLore).toEqual([]);
+        expect({
+            instance: path?.instance,
+            caster: path?.caster.instance,
+            ref: path?.options.ref,
+        }).toEqual({ instance: 'Array', caster: 'ObjectId', ref: 'Lore' });
+    });
+});

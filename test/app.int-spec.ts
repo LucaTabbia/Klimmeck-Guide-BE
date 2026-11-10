@@ -584,6 +584,18 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toMatch(/QuestCureInput|QuestPrizesInput/);
     });
 
+    it('writes the potion contract of the FE Phase 18 into the generated schema (D-15, D-19, D-24)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type LootRecovery \{[^}]*\}/)?.[0]).toBe(
+            'type LootRecovery {\n  time: Int!\n  turns: Int!\n}',
+        );
+        expect(schema.match(/type LootItem \{[^}]*\}/)?.[0]).toContain(
+            '  recovery: LootRecovery\n  relatedLore: [Lore!]!\n',
+        );
+        expect(schema).not.toMatch(/LootRecoveryInput|LootItemInput/);
+    });
+
     it('writes the quest result contract into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
