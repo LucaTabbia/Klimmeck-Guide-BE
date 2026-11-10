@@ -218,6 +218,12 @@ describe('GameRuleException', () => {
             GameRuleErrorCode.ITEM_NO_EFFECT,
             'Questa pozione non ti farebbe nulla adesso',
         ],
+        [
+            'questNoEffect',
+            () => GameRuleException.questNoEffect(),
+            GameRuleErrorCode.QUEST_NO_EFFECT,
+            'Queste cure non ti servirebbero adesso',
+        ],
     ];
 
     it.each(cases)(
@@ -269,6 +275,13 @@ describe('GameRuleException', () => {
                 "Il tuo corpo non reggerebbe un'altra pozione: aspetta che la prima si sia posata",
             code: 'POTION_RECOVERING',
         });
+    });
+
+    it('refuses a heal without effect with QUEST_NO_EFFECT (D-25)', () => {
+        const exception = GameRuleException.questNoEffect();
+
+        expect(exception.getStatus()).toBe(400);
+        expect(exception.extensions).toEqual({ code: 'QUEST_NO_EFFECT' });
     });
 
     it('refuses the completion of a busy participant with QUEST_IN_PROGRESS (D-24)', () => {
