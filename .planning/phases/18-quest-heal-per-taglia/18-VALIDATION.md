@@ -38,9 +38,9 @@ created: 2026-11-10
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 18-01-01 | 01 | 1 | BE-HEAL-02 | T-18-02 | `cureInjuries`: insieme, ordine del personaggio, voci ignote ignorate, input intatti | unit | `npx jest src/quests/outcomes/injuries/cure-injuries.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 18-01-02 | 01 | 1 | BE-HEAL-02 | T-18-01, T-18-03 | `cureOf` sanificante (quota fuori scala = 0, mai 1) e tetto con clamp | unit | `npx jest src/quests/outcomes/injuries --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 18-01-03 | 01 | 1 | BE-HEAL-02 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 18-01-01 | 01 | 1 | BE-HEAL-02 | T-18-02 | `cureInjuries`: insieme, ordine del personaggio, voci ignote ignorate, input intatti | unit | `npx jest src/quests/outcomes/injuries/cure-injuries.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 18-01-02 | 01 | 1 | BE-HEAL-02 | T-18-01, T-18-03 | `cureOf` sanificante (quota fuori scala = 0, mai 1) e tetto con clamp | unit | `npx jest src/quests/outcomes/injuries --selectProjects unit` | ✅ | ✅ green |
+| 18-01-03 | 01 | 1 | BE-HEAL-02 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 18-02-01 | 02 | 2 | BE-HEAL-01 | T-18-04, T-18-05, T-18-06, T-18-07 | schema della cura validato su `create`, SDL solo additivo, input fuori dallo SDL, aid senza cura | unit + integration | `npx jest src/models/quest src/quests/outcomes/aid --selectProjects unit` + `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 18-02-02 | 02 | 2 | BE-HEAL-04 | T-18-05, T-18-08 | `injuriesHealed` su modello, draft, soccorso, morte, fixture e SDL nello stesso commit | unit + integration | `npx jest src/models/quest-result src/quests/outcomes src/quests/results --selectProjects unit` + boot reale | ✅ | ⬜ pending |
 | 18-02-03 | 02 | 2 | BE-HEAL-01 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-02-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
@@ -80,8 +80,8 @@ created: 2026-11-10
 
 Le spec nuove nascono nel commit RED del task indicato (TDD, REPO-RULES): nessun piano di soli scaffold.
 
-- [ ] `src/quests/outcomes/injuries/cure-injuries.spec.ts` — primitiva delle ferite (BE-HEAL-02, task 18-01-01)
-- [ ] `src/quests/outcomes/injuries/quest-cure.spec.ts` — lettore sanificante e tetto (BE-HEAL-02, task 18-01-02)
+- [x] `src/quests/outcomes/injuries/cure-injuries.spec.ts` — primitiva delle ferite (BE-HEAL-02, task 18-01-01)
+- [x] `src/quests/outcomes/injuries/quest-cure.spec.ts` — lettore sanificante e tetto (BE-HEAL-02, task 18-01-02)
 - [ ] `src/models/quest/quest-prizes.schema.spec.ts` — schema della cura (BE-HEAL-01, task 18-02-01)
 - [ ] `src/models/character/character-status.schema.spec.ts` — data di ricarica (BE-HEAL-06, task 18-04-02)
 - [ ] `src/characters/items/item-use.plan.spec.ts` — piano puro della bevuta (BE-HEAL-07, task 18-07-01)
