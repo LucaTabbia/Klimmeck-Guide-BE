@@ -62,9 +62,9 @@ created: 2026-11-10
 | 18-08-01 | 08 | 8 | BE-HEAL-06, BE-HEAL-07, BE-HEAL-08 | T-18-32, T-18-36, T-18-38 | `useItem` sul filo: solo il personaggio del bearer, rifiuti senza scrittura, ricarica, lore alla prima bevuta, viaggio consentito | integration | `npx jest src/characters/items/use-item.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 18-08-02 | 08 | 8 | BE-HEAL-07 | T-18-33, T-18-34, T-18-35, T-18-37, T-18-39 | una scrittura in transazione, due bevute parallele, scrittura concorrente non persa; SDL e «senza bearer» nel boot reale; matrice invariata | integration | `npx jest src/characters/items test/app.int-spec.ts --selectProjects integration --runInBand` + `npx jest test/authz --selectProjects unit integration --runInBand` | ✅ | ✅ green |
 | 18-08-03 | 08 | 8 | BE-HEAL-07 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-08-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 18-09-01 | 09 | 9 | BE-HEAL-09 | T-18-42 | predicato puro `healHasNoEffect` (vita sotto/sul/sopra il tetto × ferite dentro/fuori lista, cura assente, quota 0) e codice `QUEST_NO_EFFECT` | unit | `npx jest src/quests/outcomes/injuries src/gameRules --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 18-09-02 | 09 | 9 | BE-HEAL-09 | T-18-40, T-18-41, T-18-43, T-18-44 | `acceptQuest` rifiuta la heal senza effetto prima di ogni scrittura; altri tipi accettati; eleggibilità prima | integration | `npx jest src/quests/acceptance --selectProjects unit integration --runInBand` | ✅ | ⬜ pending |
-| 18-09-03 | 09 | 9 | BE-HEAL-09 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-09-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 18-09-01 | 09 | 9 | BE-HEAL-09 | T-18-42 | predicato puro `healHasNoEffect` (vita sotto/sul/sopra il tetto × ferite dentro/fuori lista, cura assente, quota 0) e codice `QUEST_NO_EFFECT` | unit | `npx jest src/quests/outcomes/injuries src/gameRules --selectProjects unit` | ✅ | ✅ green |
+| 18-09-02 | 09 | 9 | BE-HEAL-09 | T-18-40, T-18-41, T-18-43, T-18-44 | `acceptQuest` rifiuta la heal senza effetto prima di ogni scrittura; altri tipi accettati; eleggibilità prima | integration | `npx jest src/quests/acceptance --selectProjects unit integration --runInBand` | ✅ | ✅ green |
+| 18-09-03 | 09 | 9 | BE-HEAL-09 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-09-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 18-10-01 | 10 | 10 | BE-HEAL-09 | T-18-45, T-18-46, T-18-47, T-18-48 | `Quest.noEffect` per viewer sulle query: due personaggi valori diversi, non heal → falso, oste con un proprio personaggio → stesso valore di chiunque, senza personaggio → falso, una lettura per richiesta | integration | `npx jest src/quests/quests.resolver.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 18-10-02 | 10 | 10 | BE-HEAL-09 | T-18-45, T-18-49 | campo risolto per subscriber e a ogni evento su `questUpdated`; SDL con la sola riga nuova | integration | `npx jest src/quests/quest-updated.subscription.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 18-10-03 | 10 | 10 | BE-HEAL-09 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-10-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
@@ -87,7 +87,7 @@ Le spec nuove nascono nel commit RED del task indicato (TDD, REPO-RULES): nessun
 - [x] `src/characters/items/item-use.plan.spec.ts` — piano puro della bevuta (BE-HEAL-07, task 18-07-01)
 - [x] `src/characters/items/use-item.int-spec.ts` — `useItem` sul filo (BE-HEAL-07, BE-HEAL-08, task 18-08-01)
 - [x] `src/characters/items/item-use.service.int-spec.ts` — transazione e bevute parallele (BE-HEAL-07, task 18-08-02)
-- [ ] `src/quests/outcomes/injuries/heal-no-effect.spec.ts` — predicato della heal senza effetto (BE-HEAL-09, task 18-09-01)
+- [x] `src/quests/outcomes/injuries/heal-no-effect.spec.ts` — predicato della heal senza effetto (BE-HEAL-09, task 18-09-01)
 - [x] Helper delle spec: `questOf` con la cura come terzo parametro (task 18-03-01); fixture `buildQuestResult` con `injuriesHealed: []` (task 18-02-02)
 
 Harness: nessuno nuovo (`createOutcomeHarness`, `createCharactersTestApp`, harness di `lore-related.int-spec.ts` e di `quest-updated.subscription.int-spec.ts`, boot reale).
