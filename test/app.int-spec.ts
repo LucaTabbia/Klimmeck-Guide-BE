@@ -83,6 +83,8 @@ const INTRUDER_MUTATION =
 const CREATE_CHARACTER = `mutation { createCharacter(input: { name: "Aria", sex: female, pronoun: she, race: human, classType: wizard, age: 25 }) { id } }`;
 const RACE_TRAITS = '{ raceTraits { race } }';
 const DELETE_CHARACTER = 'mutation { deleteCharacter { id } }';
+const USE_ITEM =
+    'mutation { useItem(itemId: "64b000000000000000000001") { hpAfter } }';
 const REGISTER_PUSH_DEVICE =
     'mutation { registerPushDevice(input: { deviceId: "d", token: "t", platform: android }) }';
 const ACCEPT_QUEST =
@@ -596,6 +598,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toMatch(/LootRecoveryInput|LootItemInput/);
     });
 
+    it('writes the useItem contract of the FE Phase 18 into the generated schema (D-17, D-21)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain('  useItem(itemId: ID!): UseItemResult!\n');
+        expect(schema.match(/type UseItemResult \{[^}]*\}/)?.[0]).toBe(
+            'type UseItemResult {\n  hpAfter: Int!\n  hpBefore: Int!\n  injuriesHealed: [InjuryType!]!\n  loreUnlocked: [Lore!]!\n  quantityLeft: Int!\n  recoveryUntil: DateTime!\n}',
+        );
+    });
+
     it('writes the quest result contract into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -994,6 +1005,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
         it('rejects deleteCharacter without a bearer', async () => {
             expect(errorCodeOf(await graphqlCall(app, DELETE_CHARACTER))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects useItem without a bearer (D-21)', async () => {
+            expect(errorCodeOf(await graphqlCall(app, USE_ITEM))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
         });
