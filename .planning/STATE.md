@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
-status: planning
-last_updated: "2026-11-10T12:00:00.000Z"
-last_activity: 2026-11-10 -- Milestone v1.1 Cura e modelli started
+status: executing
+last_updated: "2026-11-10T16:00:00.000Z"
+last_activity: 2026-11-10 -- Phase 18 execution started
 progress:
   total_phases: 3
   completed_phases: 0
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 18 — Quest heal per taglia (contesto raccolto, pronta per il plan; ↔ FE Phase 18)
+**Current focus:** Phase 18 — Quest heal per taglia — EXECUTING (dal 2026-11-10) su `feat/18-quest-heal-per-taglia`: 11 piani in 11 wave sequenziali, plan-checker passato; nessuna migrazione né seeder nel repo, il contenuto a DB lo scrive l'orchestratore dopo la merge (↔ FE Phase 18, in esecuzione nella stessa sessione)
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
-Phase: 18 di 20 (Quest heal per taglia) — contesto raccolto il 2026-11-09 (`18-CONTEXT.md`), pronta per il plan
-Plan: —
-Status: Ready to plan
-Last activity: 2026-11-10 -- Milestone v1.1 started (requisiti e roadmap definiti, contesti delle Phase 18, 19 e 20 riportati dai branch dei discuss)
-Next step: `/gsd-plan-phase 18` insieme alla FE Phase 18, su `feat/18-quest-heal-per-taglia` ricreato da `develop` dopo la merge di `docs/v1.1-milestone-start` (i vecchi branch dei discuss `feat/18-quest-heal-per-taglia`, `feat/19-revisione-dei-modelli` e `feat/20-cibo-e-vita-progressivi` sono superati: i contesti sono su questo branch, le loro modifiche a ROADMAP/REQUIREMENTS/STATE sono sostituite dai file della v1.1).
+Phase: 18 di 20 (Quest heal per taglia) — EXECUTING dal 2026-11-10 su `feat/18-quest-heal-per-taglia` (da `develop` `86095d89` + l'apertura della milestone): 11 piani in 11 wave sequenziali (primitive della cura → modello → piano d'esito → modelli delle pozioni → lore per viewer → codici e `recoveryUntil` → `planItemUse` → `useItem` → heal senza effetto, regola e campo → gate e handoff)
+Plan: 0 of 11
+Status: Executing Phase 18 — wave sequenziali; SDL solo additivo; FE Phase 18 in esecuzione nella stessa sessione su `feat/18-heal-quests-by-size` (i suoi piani 18-12/18-13 aspettano la merge di questa fase)
+Last activity: 2026-11-10 -- Phase 18 execution started (pianificata lo stesso giorno: ricerca, 11 piani, plan check passato)
+Next step: eseguire 18-01..18-11, poi review → fix → verify → security e PR verso `develop`; dopo la merge l'orchestratore applica a DB il contenuto (heal per taglia, `recovery` delle pozioni, lore «Il limite del corpo») dopo la revisione dell'utente.
 
 ## Current Milestone
 
@@ -74,5 +74,5 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 ## Session Continuity
 
 Last session: 2026-11-10 — apertura della milestone v1.1 (FE e BE)
-Stopped at: milestone inizializzata su `docs/v1.1-milestone-start` (PR → `develop`); prossimo: plan della Phase 18 insieme alla FE Phase 18
-Resume file: .planning/phases/18-quest-heal-per-taglia/18-CONTEXT.md
+Stopped at: Phase 18 executing (0/11, 2026-11-10)
+Resume file: .planning/phases/18-quest-heal-per-taglia/18-01-PLAN.md
