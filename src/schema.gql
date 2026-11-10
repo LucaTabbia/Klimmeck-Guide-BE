@@ -365,8 +365,15 @@ type LootItem {
   name: String
   power: Int!
   rarity: String
+  recovery: LootRecovery
+  relatedLore: [Lore!]!
   sellPrice: Coins
   sellable: Boolean
+}
+
+type LootRecovery {
+  time: Int!
+  turns: Int!
 }
 
 type Lore {
