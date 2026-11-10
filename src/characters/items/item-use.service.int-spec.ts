@@ -154,33 +154,44 @@ describe('ItemUseService (replSet)', () => {
         expect(options.session).not.toBeNull();
     });
 
-    it('keeps an inventory write that lands during the drink (D-22)', async () => {
+    // la scrittura rivale cade fra lo snapshot in sessione e la scrittura della bevuta: WriteConflict, il driver ritenta sul documento aggiornato
+    it('keeps an inventory write that lands between the snapshot and the drink (D-22)', async () => {
         const potion = await potionId();
         const other = new Types.ObjectId();
         const player = await drinkerWith('twitch-concurrent-inventory', potion);
         const shelves = harness.connection.db!.collection<ShelfDocument>(
             characters.collection.collectionName,
         );
-
-        await Promise.all([
-            service.useItem(String(player.user._id), potion.toHexString()),
-            shelves.updateOne(
-                { _id: idOf(player) },
-                {
-                    $push: {
-                        'assets.ownedItems': {
-                            itemType: 'LootItem',
-                            item: other,
-                            quantity: 1,
+        const original = characters.updateOne.bind(characters) as (
+            ...args: unknown[]
+        ) => { exec: () => Promise<unknown> };
+        const updateOne = jest
+            .spyOn(characters, 'updateOne')
+            .mockImplementationOnce(((...args: unknown[]) => ({
+                exec: async () => {
+                    await shelves.updateOne(
+                        { _id: idOf(player) },
+                        {
+                            $push: {
+                                'assets.ownedItems': {
+                                    itemType: 'LootItem',
+                                    item: other,
+                                    quantity: 1,
+                                },
+                            },
                         },
-                    },
+                    );
+                    return original(...args).exec();
                 },
-            ),
-        ]);
+            })) as never);
 
+        await service.useItem(String(player.user._id), potion.toHexString());
+
+        expect(updateOne).toHaveBeenCalledTimes(2);
         const after = await rawCharacter(player);
         expect(quantityOf(after, other)).toBe(1);
         expect(quantityOf(after, potion)).toBe(1);
+        expect(after.status.currentLifePoints).toBe(700);
     });
 
     // stati scritti col driver nativo (D-23): il piano li accetta, la scrittura deve combaciare invece di un ITEM_NOT_OWNED perpetuo
