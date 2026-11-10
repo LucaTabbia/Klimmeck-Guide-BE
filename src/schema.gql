@@ -589,6 +589,11 @@ type Quest {
   requirements: QuestRequirements!
 }
 
+type QuestCure {
+  canHeal: [InjuryType!]!
+  lifePointsShare: Float!
+}
+
 type QuestEnemy {
   enemy: Enemy!
   known: Boolean!
@@ -619,6 +624,7 @@ type QuestPartySlot {
 }
 
 type QuestPrizes {
+  cure: QuestCure
   pet: Pet
   prizeCoins: Coins
   prizeItem: AssetQuantity
