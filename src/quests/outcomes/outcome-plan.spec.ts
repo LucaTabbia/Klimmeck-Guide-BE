@@ -73,10 +73,12 @@ const snapshotWith = (
 const questOf = (
     type: QuestType,
     minTitle: TitleType | null = null,
+    cure?: unknown,
 ): OutcomeQuestSnapshot => ({
     _id: QUEST_ID,
     infos: { type, title: 'La quest di prova' },
     requirements: { minTitle },
+    ...(cure === undefined ? {} : { prizes: { cure } }),
 });
 
 const rewardsWith = (overrides: Partial<DrawnRewards> = {}): DrawnRewards => ({
@@ -452,25 +454,272 @@ describe('planParticipant', () => {
         ).toThrow('failure outcome requires an aid quest');
     });
 
-    it('heals every injury and restores the new maximum on a won heal', () => {
-        const plan = planParticipant(
-            inputWith({
-                quest: questOf(QuestType.heal),
-                snapshot: snapshotWith({
-                    status: {
-                        currentLifePoints: 400,
-                        injuries: [InjuryType.deepCut],
-                    },
+    describe('the cure of a won quest', () => {
+        const VILLAGE = { lifePointsShare: 0.5, canHeal: [InjuryType.deepCut] };
+
+        const woundedWith = (
+            currentLifePoints: number,
+            injuries: InjuryType[],
+        ): OutcomeCharacterSnapshot =>
+            snapshotWith({ status: { currentLifePoints, injuries } });
+
+        it('heals nothing on a won heal without a cure (D-07)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.heal),
+                    snapshot: woundedWith(400, [InjuryType.deepCut]),
+                    rewards: rewardsWith({ xpPrize: 300 }),
                 }),
-                rewards: rewardsWith({ xpPrize: 300 }),
-            }),
+            );
+
+            expect(plan.update.$set['status.injuries']).toEqual([
+                InjuryType.deepCut,
+            ]);
+            expect(plan.update.$set['status.currentLifePoints']).toBe(400);
+            expect(plan.result.hpAfter).toBe(400);
+            expect(plan.result.injuriesHealed).toEqual([]);
+        });
+
+        it('raises the life points to the share of the maximum and removes only the listed injuries (D-02)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.heal, null, VILLAGE),
+                    snapshot: woundedWith(400, [
+                        InjuryType.deepCut,
+                        InjuryType.infection,
+                    ]),
+                }),
+            );
+
+            expect(plan.update.$set['status.injuries']).toEqual([
+                InjuryType.infection,
+            ]);
+            expect(plan.update.$set['status.currentLifePoints']).toBe(500);
+            expect(plan.result).toMatchObject({
+                hpBefore: 400,
+                hpAfter: 500,
+                injuriesHealed: [InjuryType.deepCut],
+                injuriesAdded: [],
+            });
+        });
+
+        it('never lowers life points already above the floor (D-02)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.heal, null, VILLAGE),
+                    snapshot: woundedWith(700, []),
+                }),
+            );
+
+            expect(plan.update.$set['status.currentLifePoints']).toBe(700);
+        });
+
+        it('cures only the injuries with a share of 0 (D-02)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.heal, null, {
+                        lifePointsShare: 0,
+                        canHeal: [InjuryType.deepCut],
+                    }),
+                    snapshot: woundedWith(400, [InjuryType.deepCut]),
+                }),
+            );
+
+            expect(plan.update.$set['status.currentLifePoints']).toBe(400);
+            expect(plan.update.$set['status.injuries']).toEqual([]);
+        });
+
+        it('computes the floor on the maximum after the level up (D-02)', () => {
+            const healWith = (lifePointsShare: number) =>
+                planParticipant(
+                    inputWith({
+                        quest: questOf(QuestType.heal, null, {
+                            lifePointsShare,
+                            canHeal: [],
+                        }),
+                        snapshot: woundedWith(400, []),
+                        rewards: rewardsWith({ xpPrize: 300 }),
+                    }),
+                );
+
+            expect(healWith(0.5).update.$set['status.maxLifePoints']).toBe(
+                1200,
+            );
+            expect(healWith(0.5).update.$set['status.currentLifePoints']).toBe(
+                600,
+            );
+            expect(healWith(1).update.$set['status.currentLifePoints']).toBe(
+                1200,
+            );
+        });
+
+        it.each([QuestType.job, QuestType.story, QuestType.study])(
+            'cures a won %s that carries a cure (D-07)',
+            (type) => {
+                const plan = planParticipant(
+                    inputWith({
+                        quest: questOf(type, null, VILLAGE),
+                        snapshot: woundedWith(400, [InjuryType.deepCut]),
+                    }),
+                );
+
+                expect(plan.update.$set['status.currentLifePoints']).toBe(500);
+                expect(plan.update.$set['status.injuries']).toEqual([]);
+                expect(plan.result.injuriesHealed).toEqual([
+                    InjuryType.deepCut,
+                ]);
+            },
         );
 
-        expect(plan.update.$set['status.injuries']).toEqual([]);
-        expect(plan.update.$set['status.currentLifePoints']).toBe(1200);
-        expect(plan.result.hpAfter).toBe(1200);
-        expect(plan.result.injuriesAdded).toEqual([]);
-        expect(plan.result.injuriesHealed).toEqual([InjuryType.deepCut]);
+        it('cures a game master completion like a success (D-07)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.job, null, VILLAGE),
+                    snapshot: woundedWith(400, [InjuryType.deepCut]),
+                    verdict: QuestOutcome.gmCompleted,
+                }),
+            );
+
+            expect(plan.update.$set['status.currentLifePoints']).toBe(500);
+            expect(plan.update.$set['status.injuries']).toEqual([]);
+            expect(plan.result.injuriesHealed).toEqual([InjuryType.deepCut]);
+        });
+
+        it('cures nothing on a defeat (D-07)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.enemy, null, {
+                        lifePointsShare: 1,
+                        canHeal: [InjuryType.deepCut],
+                    }),
+                    verdict: QuestOutcome.failure,
+                    battle: battleWith({
+                        hpAfter: 300,
+                        injuriesAdded: [InjuryType.deepCut],
+                    }),
+                    aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                }),
+            );
+
+            expect(plan.update.$set['status.currentLifePoints']).toBe(300);
+            expect(plan.update.$set['status.injuries']).toEqual([
+                InjuryType.deepCut,
+            ]);
+            expect(plan.result.injuriesHealed).toEqual([]);
+        });
+
+        it('cures after the fight and after the progression: the wounds taken in the same outcome are healed too (D-20)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.job, null, {
+                        lifePointsShare: 0.5,
+                        canHeal: [InjuryType.deepCut, InjuryType.sprain],
+                    }),
+                    snapshot: woundedWith(1000, [
+                        InjuryType.sprain,
+                        InjuryType.infection,
+                    ]),
+                    battle: battleWith({
+                        hpAfter: 300,
+                        injuriesAdded: [
+                            InjuryType.deepCut,
+                            InjuryType.frostbite,
+                        ],
+                    }),
+                    rewards: rewardsWith({ xpPrize: 300 }),
+                }),
+            );
+
+            expect(plan.update.$set['status.injuries']).toEqual([
+                InjuryType.infection,
+                InjuryType.frostbite,
+            ]);
+            expect(plan.result.injuriesAdded).toEqual([
+                InjuryType.deepCut,
+                InjuryType.frostbite,
+            ]);
+            expect(plan.result.injuriesHealed).toEqual([
+                InjuryType.sprain,
+                InjuryType.deepCut,
+            ]);
+            expect(plan.update.$set['status.currentLifePoints']).toBe(600);
+            expect(plan.result.hpBefore).toBe(1000);
+            expect(plan.result.hpAfter).toBe(600);
+        });
+
+        it('keeps on the sheet a wound taken and healed in the same outcome, never on the character (D-20)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.job, null, VILLAGE),
+                    battle: battleWith({ injuriesAdded: [InjuryType.deepCut] }),
+                }),
+            );
+
+            expect(plan.update.$set['status.injuries']).toEqual([]);
+            expect(plan.result.injuriesAdded).toEqual([InjuryType.deepCut]);
+            expect(plan.result.injuriesHealed).toEqual([InjuryType.deepCut]);
+        });
+
+        it('reads a share outside the scale as 0 and still cures the injuries (D-23)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.heal, null, {
+                        lifePointsShare: 50,
+                        canHeal: [InjuryType.deepCut],
+                    }),
+                    snapshot: woundedWith(400, [InjuryType.deepCut]),
+                }),
+            );
+
+            expect(plan.update.$set['status.currentLifePoints']).toBe(400);
+            expect(plan.update.$set['status.injuries']).toEqual([]);
+        });
+
+        it('ignores a malformed cure (D-23)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.heal, null, 'full'),
+                    snapshot: woundedWith(400, [InjuryType.deepCut]),
+                }),
+            );
+
+            expect(plan.update.$set['status.currentLifePoints']).toBe(400);
+            expect(plan.update.$set['status.injuries']).toEqual([
+                InjuryType.deepCut,
+            ]);
+            expect(plan.result.injuriesHealed).toEqual([]);
+        });
+
+        it('keeps the write filter unchanged when curing (D-07)', () => {
+            const cured = planParticipant(
+                inputWith({ quest: questOf(QuestType.job, null, VILLAGE) }),
+            );
+            const plain = planParticipant(
+                inputWith({ quest: questOf(QuestType.job) }),
+            );
+
+            expect(cured.filter).toEqual(plain.filter);
+        });
+
+        it('never writes the potion recovery from an outcome (D-16)', () => {
+            const plan = planParticipant(
+                inputWith({ quest: questOf(QuestType.job, null, VILLAGE) }),
+            );
+
+            expect(Object.keys(plan.update.$set).sort()).toEqual(
+                [
+                    'status.xp',
+                    'status.level',
+                    'status.maxLifePoints',
+                    'status.currentLifePoints',
+                    'status.injuries',
+                    'assets.ownedItems',
+                    'assets.ownedEquipments',
+                    'quests.pendingQuest',
+                    'quests.completedQuests',
+                ].sort(),
+            );
+        });
     });
 
     it('lists no healed injury on a quest that heals nothing (D-08)', () => {
