@@ -316,6 +316,30 @@ describe('GraphQL surface in production (wire)', () => {
         });
     });
 
+    it('keeps the recovery instant of a potion refusal over graphql-ws in production (D-17)', async () => {
+        const outcome = await overGraphqlWs(
+            harness,
+            '{ probePotionRecovering }',
+        );
+
+        expect(outcome).toEqual({
+            value: {
+                data: null,
+                errors: [
+                    {
+                        message: POTION_RECOVERING_MESSAGE,
+                        locations: [{ line: 1, column: 3 }],
+                        path: ['probePotionRecovering'],
+                        extensions: {
+                            code: 'POTION_RECOVERING',
+                            recoveryUntil: RECOVERY_UNTIL_ISO,
+                        },
+                    },
+                ],
+            },
+        });
+    });
+
     it('hides an error raised inside a subscription iterator in production (C7)', async () => {
         const outcome = await overGraphqlWs(
             harness,
@@ -403,6 +427,28 @@ describe('GraphQL surface outside production (wire)', () => {
         expect(body.errors?.[0]?.extensions).toEqual({
             code: 'POTION_RECOVERING',
             recoveryUntil: RECOVERY_UNTIL_ISO,
+        });
+    });
+
+    it('keeps the recovery instant of a potion refusal over graphql-ws outside production (D-17)', async () => {
+        const outcome = await overGraphqlWs(
+            harness,
+            '{ probePotionRecovering }',
+        );
+
+        expect(outcome).toEqual({
+            value: {
+                data: null,
+                errors: [
+                    expect.objectContaining({
+                        path: ['probePotionRecovering'],
+                        extensions: {
+                            code: 'POTION_RECOVERING',
+                            recoveryUntil: RECOVERY_UNTIL_ISO,
+                        },
+                    }),
+                ],
+            },
         });
     });
 
