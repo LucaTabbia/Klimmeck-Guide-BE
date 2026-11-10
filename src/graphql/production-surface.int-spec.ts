@@ -17,6 +17,9 @@ import {
 import { graphqlWsUrl, subscribeOnce } from '../../test/auth/ws-test-client';
 
 const INTROSPECTION = '{ __schema { queryType { name } } }';
+const RECOVERY_UNTIL_ISO = '2026-11-10T12:30:00.000Z';
+const POTION_RECOVERING_MESSAGE =
+    "Il tuo corpo non reggerebbe un'altra pozione: aspetta che la prima si sia posata";
 const MISSING_ID = '64b0000000000000000000ff';
 const UUID_PATTERN = /^[0-9a-f-]{36}$/;
 const REFRESH =
@@ -208,6 +211,24 @@ describe('GraphQL surface in production (wire)', () => {
         ]);
     });
 
+    it('answers a potion refusal with POTION_RECOVERING and its recovery instant in production (D-17)', async () => {
+        const body = bodyOf(
+            await graphqlRequest(harness.app, '{ probePotionRecovering }'),
+        );
+
+        expect(body.errors).toEqual([
+            {
+                message: POTION_RECOVERING_MESSAGE,
+                locations: [{ line: 1, column: 3 }],
+                path: ['probePotionRecovering'],
+                extensions: {
+                    code: 'POTION_RECOVERING',
+                    recoveryUntil: RECOVERY_UNTIL_ISO,
+                },
+            },
+        ]);
+    });
+
     it('answers a refused refresh with SESSION_REVOKED and its reason in production (D-13)', async () => {
         const body = await refreshRevokedByNewLogin(
             harness,
@@ -371,6 +392,17 @@ describe('GraphQL surface outside production (wire)', () => {
         expect(body.errors?.[0]?.extensions).toEqual({
             code: 'SESSION_REVOKED',
             reason: 'newLogin',
+        });
+    });
+
+    it('keeps the recovery instant of a potion refusal outside production (D-17)', async () => {
+        const body = bodyOf(
+            await graphqlRequest(harness.app, '{ probePotionRecovering }'),
+        );
+
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'POTION_RECOVERING',
+            recoveryUntil: RECOVERY_UNTIL_ISO,
         });
     });
 
