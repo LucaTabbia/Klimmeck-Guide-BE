@@ -183,6 +183,46 @@ describe('ItemUseService (replSet)', () => {
         expect(quantityOf(after, potion)).toBe(1);
     });
 
+    // stati scritti col driver nativo (D-23): il piano li accetta, la scrittura deve combaciare invece di un ITEM_NOT_OWNED perpetuo
+    it.each<[string, Record<string, unknown>]>([
+        [
+            'a recovery stored as text',
+            { $set: { 'status.potionRecoveryUntil': 'soon' } },
+        ],
+        [
+            'a legacy without the recovery field',
+            { $unset: { 'status.potionRecoveryUntil': '' } },
+        ],
+        [
+            'a legacy without the injuries field',
+            { $unset: { 'status.injuries': '' } },
+        ],
+    ])(
+        'lets %s drink and stores a real recovery date (D-22, D-23)',
+        async (_case, rawUpdate) => {
+            const potion = await potionId();
+            const player = await drinkerWith('twitch-raw-drinker', potion);
+            await characters.collection.updateOne(
+                { _id: idOf(player) },
+                rawUpdate,
+            );
+
+            const result = await service.useItem(
+                String(player.user._id),
+                potion.toHexString(),
+            );
+
+            expect(result.hpAfter).toBe(700);
+            const raw = await characters.collection.findOne({
+                _id: idOf(player),
+            });
+            expect(raw?.status.potionRecoveryUntil).toEqual(
+                new Date(NOW.getTime() + 1_800_000),
+            );
+            expect(raw?.assets.ownedItems[0].quantity).toBe(1);
+        },
+    );
+
     it('answers ITEM_NOT_OWNED when the guarded write matches nothing (D-22)', async () => {
         const potion = await potionId();
         const player = await drinkerWith('twitch-guard-miss', potion);

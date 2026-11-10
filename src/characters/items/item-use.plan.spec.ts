@@ -198,13 +198,14 @@ describe('planItemUse — a potion that can be drunk', () => {
         expect(outcome.hpAfter).toBe(700);
     });
 
-    it('guards the write with the snapshot: identity, no aid, life points, injuries, stack and recovery over (D-22)', () => {
+    it('guards the write with the snapshot: identity, no aid, life points, injuries, recovery and stack (D-22)', () => {
         expect(planWith().filter).toEqual({
             _id: CHARACTER_ID,
             deletedAt: null,
             'status.awaitingAid': null,
             'status.currentLifePoints': 400,
             'status.injuries': [InjuryType.deepCut, InjuryType.infection],
+            'status.potionRecoveryUntil': null,
             $and: [
                 {
                     'assets.ownedItems': {
@@ -214,14 +215,34 @@ describe('planItemUse — a potion that can be drunk', () => {
                         },
                     },
                 },
-                {
-                    $or: [
-                        { 'status.potionRecoveryUntil': null },
-                        { 'status.potionRecoveryUntil': { $lte: NOW } },
-                    ],
-                },
             ],
         });
+    });
+
+    // il filtro ripete ciò che il piano ha letto, mai una regola sua: una forma che il piano accetta deve combaciare (D-22, D-23)
+    it.each<[string, unknown]>([
+        ['an ended date', new Date(NOW.getTime() - 60_000)],
+        ['the exact end', new Date(NOW.getTime())],
+        ['a text', 'soon'],
+        ['a number', 42],
+    ])(
+        'pins the recovery the plan read as over: %s (D-22, D-23)',
+        (_case, potionRecoveryUntil) => {
+            expect(
+                planWith({ status: { potionRecoveryUntil } }).filter[
+                    'status.potionRecoveryUntil'
+                ],
+            ).toEqual(potionRecoveryUntil);
+        },
+    );
+
+    it('pins a missing recovery and missing injuries as null, so a legacy can drink (D-22, D-23)', () => {
+        const { filter } = planWith({
+            status: { potionRecoveryUntil: undefined, injuries: undefined },
+        });
+
+        expect(filter['status.potionRecoveryUntil']).toBeNull();
+        expect(filter['status.injuries']).toBeNull();
     });
 
     it('guards a legacy snapshot without life points with null (D-22)', () => {
