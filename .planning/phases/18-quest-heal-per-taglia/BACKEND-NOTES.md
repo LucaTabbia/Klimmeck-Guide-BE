@@ -3,7 +3,7 @@
 - **Fase BE:** 18-quest-heal-per-taglia (requisiti BE-HEAL-01..09; decisioni D-01..D-25 in `18-CONTEXT.md`; nomi del contratto fissati in `18-REPO-RULES.md` insieme alla FE `18-REPO-RULES.md`).
 - **Data:** 2026-11-10. Documento scritto dopo il gate verde del piano 18-11; **review del codice in corso** (i fix della review possono aggiornare questo file prima della PR).
 - **Branch:** `feat/18-quest-heal-per-taglia` → PR verso `develop` a cura dell'orchestratore, **in draft** finché l'orchestratore non è pronto ad applicare gli script di contenuto subito dopo la merge e il riavvio del BE (finestra operativa, §3 e).
-- **Gate della FE Phase 18:** i piani che selezionano i nomi nuovi partono dopo la merge con `git -C <repo BE> show origin/develop:src/schema.gql | grep -cF '<nome>'` ≥ 1 per `type QuestCure`, `injuriesHealed`, `noEffect`, `type LootRecovery`, `potionRecoveryUntil`, `useItem(`, `type UseItemResult`.
+- **Gate della FE Phase 18:** i piani che selezionano i nomi nuovi partono dopo la merge con `git -C <repo BE> show origin/develop:src/schema.gql | grep -cF '<nome>'` ≥ 1 per `type QuestCure`, `injuriesHealed`, `noEffect`, `type LootRecovery`, `potionRecoveryUntil`, `useItem(`, `type UseItemResult`; per la quick 261110-cgd (§1.6) `imprisonedUntil`, `arrested: Boolean!`, `coinsLost`, `guardEncounter`.
 - **Schema:** `src/schema.gql` **solo additivo** rispetto a `origin/develop` (zero righe tolte o cambiate); il boot reale (`test/app.int-spec.ts`, 84 test) rigenera lo schema e `git diff --exit-code src/schema.gql` esce 0.
 - **Stato:** implementato e coperto da test. Gate 18-11: `npx tsc --noEmit` 0; unit 253 suite / 3219 test (+1 suite / 6 test aggiunti dal gate); integration 136 suite in quattro blocchi tutte verdi (dettaglio in `18-11-SUMMARY.md`); coverage di `./src/quests/acceptance/` 99,04 / 92,64 / 99,72 (statements / branches / lines; soglie 97 / 91 / 98). `npm run test:cov` lo lancia l'orchestratore dopo i fix della review. Nessuna variabile d'ambiente nuova, nessuna dipendenza nuova, nessuna migrazione né seeder.
 - **Fonte:** ogni nome e valore è copiato dal codice (`src/schema.gql`, `src/gameRules/game-rule.exception.ts`, `src/characters/items/item-use.plan.ts`, `src/quests/outcomes/injuries/heal-no-effect.ts`). **Il codice vince su questo documento.**
@@ -17,7 +17,8 @@
 3. **`QuestResult.injuriesHealed`** sul foglio d'esito accanto a `hpBefore` / `hpAfter`: le ferite tolte.
 4. **Pozioni dal Diario** con `useItem(itemId)` sul personaggio corrente del bearer; **ricarica globale** su `CharacterStatus.potionRecoveryUntil`; rifiuto `POTION_RECOVERING` con `extensions.recoveryUntil`.
 5. **Heal senza effetto:** `Quest.noEffect` (per viewer) per il foglio strappato e `QUEST_NO_EFFECT` su `acceptQuest`.
-6. **Il contenuto a DB arriva DOPO la merge** (166 heal per taglia, `recovery` delle 28 pozioni, lore «Il limite del corpo»): fino ad allora le heal non curano e nessuna pozione è bevibile. Vedi la **finestra operativa** al §3 e: merge e contenuto vanno applicati vicini, per questo la PR resta in draft.
+6. **Quick 261110-cgd (§1.6):** una `crime` vinta ha il 20 % di **arresto** (nessun premio, 25 % delle monete perse, 10 h di prigione su `CharacterStatus.imprisonedUntil`, rifiuto `CHARACTER_IMPRISONED` con `extensions.imprisonedUntil`); una `guard` vinta ha il 20 % di **scontro** (vinto: monete doppie e xp dei nemici; perso: vita 1 in città senza soccorso). Campi `QuestResult.arrested`, `coinsLost`, `guardEncounter`.
+7. **Il contenuto a DB arriva DOPO la merge** (166 heal per taglia, `recovery` delle 28 pozioni, lore «Il limite del corpo»): fino ad allora le heal non curano e nessuna pozione è bevibile. Vedi la **finestra operativa** al §3 e: merge e contenuto vanno applicati vicini, per questo la PR resta in draft.
 
 ---
 
@@ -141,6 +142,68 @@ Stringa ISO 8601 (UTC, millisecondi) della fine della ricarica, **solo** con `PO
 - La regola della heal senza effetto non tocca la risoluzione: una heal accettata quando aveva effetto e risolta quando non ne ha più si chiude come oggi.
 - `enum QuestType` guadagna `magic` (quick 261110-mag): si comporta come `study`; il rango minimo è un dato della quest (`requirements.minTitle`). Ripetibile, senza registrazione, corsia standard a costo zero; vinta sorteggia le lore di studio e, con `prizes.spellDraw`, la magia dal catalogo come la `study`; la generazione automatica non la produce mai. **Lo SDL non cambia:** l'enum è interno al BE, sul filo `Quest.infos.type` resta `String` e porta il valore `"magic"`.
 
+### 1.6 Arresto della crime e scontro della guard (quick 261110-cgd)
+
+Righe nuove (verbatim da `src/schema.gql`, gli altri campi invariati):
+
+```graphql
+type CharacterStatus {
+  imprisonedUntil: DateTime
+}
+
+type QuestResult {
+  arrested: Boolean!
+  coinsLost: Coins
+  guardEncounter: Boolean!
+}
+```
+
+**Prigione.** `CharacterStatus.imprisonedUntil` è la fine della prigione: `null` (o una data passata) = libero. Nessuno sweep la azzera: il BE confronta la data con la propria ora a ogni azione; il segnalino «In prigione» sopra la pedina e il conto alla rovescia sono della FE (la data arriva anche da `characterUpdated`). Durante la prigione queste operazioni rispondono **`CHARACTER_IMPRISONED`** (messaggio «Il tuo personaggio è in prigione») con **`extensions.imprisonedUntil`** (stringa ISO 8601 UTC con millisecondi, solo con quel codice, anche in produzione e su graphql-ws):
+
+| Operazione | Note |
+|------------|------|
+| `acceptQuest` | ogni corsia (standard, story, worldMission) e ogni tipo, registrate comprese (entrare in un party passa da qui); nessuna scrittura, nessun punto speso |
+| `startTravel` | prima del controllo del viaggio in corso |
+| `travelPreview` (query) | stesse letture dell'avvio, stesso rifiuto |
+| `doTransaction` | compra, vendi e scambio vuoto a totale zero (attenzione: l'attesa di soccorso qui risponde `SHOP_NOT_IN_CITY`, la prigione `CHARACTER_IMPRISONED`) |
+
+**Non bloccati in prigione:** `useItem` (pozioni dal Diario), Diario e ogni lettura, equipaggiamento, magie, `questTravelPreview`, il teleport del GM (come per l'attesa di soccorso). Il prigioniero non ha `awaitingAid`: non genera quest di aid, non compare fra i feriti né nelle richieste.
+
+```json
+{
+  "data": null,
+  "errors": [
+    {
+      "message": "Il tuo personaggio è in prigione",
+      "path": ["acceptQuest"],
+      "extensions": {
+        "code": "CHARACTER_IMPRISONED",
+        "imprisonedUntil": "2026-11-10T22:00:00.000Z"
+      }
+    }
+  ]
+}
+```
+
+**Il `QuestResult` nei tre casi** (`kind: quest`, push `questEnd` invariato per tutti e tre; il tiro avviene solo sulla quest vinta dalla risoluzione automatica: una crime o una guard **persa** in combattimento resta la sconfitta di sempre con l'aid):
+
+| Campo | Arresto (crime) | Scontro vinto (guard) | Scontro perso (guard) |
+|-------|-----------------|------------------------|------------------------|
+| `outcome` | `failure` | `success` | `failure` |
+| `arrested` | `true` | `false` | `false` |
+| `coinsLost` | 25 % del borsellino per difetto (es. 30 argento → `{gold: 0, silver: 7, copper: 50}`; borsellino vuoto → `{0, 0, 0}`) | `null` | `null` |
+| `guardEncounter` | `false` | `true` | `true` |
+| `rewards` | monete `{0,0,0}`, `items: []`, `pet: null` | premi della quest con `coins` **raddoppiate** (tutte e tre le monete), oggetti, pet e cura come sempre | monete `{0,0,0}`, `items: []`, `pet: null` |
+| `xpGained` | 0 | `xpPrize` + xp di **tutti** i nemici dello scontro (stessa somma delle vittorie, quantità comprese) | 0 |
+| `enemies` | nemici della quest (se ce n'erano) | nemici della quest + nemici dello scontro (`{ enemy, quantity }`: un nemico singolo o un branco di 2–3 unità) | come lo scontro vinto |
+| `hpAfter` | vita lasciata dal combattimento della quest (invariata senza nemici) | vita dopo lo scontro (e dopo l'eventuale cura) | **1** |
+| `injuriesAdded` | del combattimento della quest | dei due combattimenti | dei due combattimenti |
+| `loreUnlocked`, `spellLearned` | vuote / null | come ogni vittoria (le conoscenze includono i nemici dello scontro) | vuote / null |
+
+Stato del personaggio dopo l'esito: arresto → `imprisonedUntil` = conclusione + 10 h, monete scalate di `coinsLost`, corsia standard libera, nessuna `awaitingAid`; scontro perso → `currentLifePoints` 1, resta sul marker della città, corsia libera, nessuna `awaitingAid`, nessuna aid; scontro vinto → come una vittoria normale con le monete doppie. `knownEnemies` guadagna i nemici dello scontro solo alla vittoria.
+
+Regole dello scontro: nemici non leggendari con habitat `city` o `all` (animali compresi), fascia [Facile, Medio] del livello come nelle imboscate; prima un nemico singolo in fascia, altrimenti un branco di 2 o 3 più deboli fino a rientrare in fascia; se nemmeno il branco rientra, nessuno scontro (esito normale, `guardEncounter: false`). Un risultato scritto prima della quick legge `arrested: false`, `guardEncounter: false`, `coinsLost: null`.
+
 ---
 
 ## 2. Comportamenti provati
@@ -167,6 +230,11 @@ Stringa ISO 8601 (UTC, millisecondi) della fine della ricarica, **solo** con `PO
 | `QuestPrizes.cure` sul filo sanificata come la legge il server (quota mancante o fuori scala, ferita ignota), nessun `errors` | D-01, D-23 | `src/quests/quests.resolver.int-spec.ts` |
 | `POTION_RECOVERING` con `recoveryUntil` anche su graphql-ws, in produzione e fuori | D-17 | `src/graphql/production-surface.int-spec.ts` |
 | SDL additivo, `useItem` senza bearer → `UNAUTHENTICATED` | D-09, D-21 | `test/app.int-spec.ts` |
+| Prigione: lettura, rifiuto, guardia delle scritture; `CHARACTER_IMPRISONED` ed `extensions.imprisonedUntil` anche in produzione | quick 261110-cgd | `src/characters/imprisonment/imprisonment.spec.ts`, `src/gameRules/game-rule.exception.spec.ts`, `src/graphql/format-domain-error.spec.ts`, `src/graphql/production-errors.spec.ts` |
+| Prigione blocca accettazione (anche la corsa), viaggio e negozio; pozioni consentite; prigione finita = libero | quick 261110-cgd | `src/quests/acceptance/quest-acceptance.service.int-spec.ts`, `src/travel/travel-rules.spec.ts`, `src/travel/travel-planning.int-spec.ts`, `src/economy/trade/shop-transaction.service.int-spec.ts`, `src/characters/items/use-item.int-spec.ts` |
+| Arresto (multa, prigione, nessun premio), sconfitta della guard (vita 1, nessuna aid), monete doppie, effetti sommati | quick 261110-cgd | `src/quests/outcomes/crime/crime-arrest.spec.ts`, `src/quests/outcomes/guard/guard-outcome.spec.ts` |
+| Nemico o branco di 2–3 dello scontro, fascia vuota = nessuno scontro | quick 261110-cgd | `src/quests/outcomes/guard/guard-encounter.spec.ts` |
+| Conclusione reale di crime e guard nei casi con e senza evento | quick 261110-cgd | `src/quests/outcomes/crime-guard-conclusion.int-spec.ts` |
 
 Limiti noti, accettati nella review (B-IN-05): un id di `relatedLore` che punta a una lore cancellata entra comunque in `status.unlockedLore` ed è innocuo (la visibilità filtra per esistenza, come per ogni altra lore), quindi `loreUnlocked` può essere più corta della lista scritta. Le lore del risultato si leggono dopo il commit con una sola lettura idempotente: se fallisse, il client riceve un errore a bevuta avvenuta, riprova e ottiene `POTION_RECOVERING` con lo stato già aggiornato da `characterUpdated`.
 
@@ -215,6 +283,8 @@ Regole di forma (RESEARCH Pitfall 2 e 3; Mongoose non valida gli update e gli sc
 - `canHeal` con i soli nomi dell'enum `InjuryType` (un nome ignoto viene scartato in lettura).
 
 Quest magica (quick 261110-mag), stessi sei passi, collection `quests`: una quest nuova di tipo `magic` sul POI della città di Valantar (`requirements.minTitle: 'mage'`, `requiredPoints: null`, `infos.timeToComplete: 72000000` cioè 20 h, `prizes.spellDraw: true`, `xpPrize` come la study attuale) e la vecchia «Studi arcani a Valantar» con `prizes.spellDraw: false`, titolo e descrizione nuovi; prova a secco: 1 quest inserita, 1 quest aggiornata. Dettagli in `.planning/quick/261110-mag-quest-magic-type/261110-mag-SUMMARY.md`.
+
+Ranghi di crime, study, job e guard (quick 261110-cgd), stessi sei passi, collection `quests`: tutte le `crime`, `study` e `job` con `requirements.minTitle: 'rookie'` (rango più basso, «possono farlo tutti»), tutte le `guard` con `requirements.minTitle: 'paladin'`; prova a secco: 34 crime e 59 guard aggiornate (oggi crime 25 `adventurer` + 9 `paladin`, guard 59 `adventurer` + 9 `paladin`), job da contare, study già tutte `rookie`. La generazione automatica non produce nessuno di questi tipi. Dettagli in `.planning/quick/261110-cgd-crime-arrest-guard-encounter/261110-cgd-SUMMARY.md`.
 
 ### d) Tabella dei tempi D-18
 
