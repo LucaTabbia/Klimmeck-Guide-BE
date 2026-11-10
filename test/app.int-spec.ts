@@ -441,7 +441,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type TravelPath {\n  coordinates: [[Float!]!]!\n  distance: Float!\n}',
         );
         expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
-            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spellStates: [SpellState!]!\n  spells: [Spell!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}',
+            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  spells: [Spell!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}',
         );
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
             'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n  xp: Int!\n}',
