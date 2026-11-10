@@ -593,6 +593,7 @@ type Query {
 type Quest {
   id: ID!
   infos: QuestInfos!
+  noEffect: Boolean!
   prizes: QuestPrizes!
   registeredAdventurers: [QuestRegistration!]!
   requirements: QuestRequirements!
