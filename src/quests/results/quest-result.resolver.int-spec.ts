@@ -36,6 +36,8 @@ import {
 const QUEST_RESULT = `query QuestResult($id: String!) { questResult(id: $id) { id character user outcome resolvedAt acknowledgedAt hpBefore hpAfter maxLifePoints injuriesAdded xpGained xpBefore xpAfter levelBefore levelAfter titleBefore titleAfter rescuedCharacters quest { id type title } rewards { coins { gold silver copper } items { quantity item { ... on LootItem { id name } ... on EquipmentItem { id name } } } pet { id name } } consumablesUsed { quantity item { ... on LootItem { id name } } } spellsUsed { usages spell { id name } } spellLearned { id name } enemies { quantity enemy { id name } } stagesCleared stagesTotal } }`;
 const QUEST_RESULT_LORE =
     'query QuestResult($id: String!) { questResult(id: $id) { id spellLearned { id name } loreUnlocked { id name type } } }';
+const QUEST_RESULT_HEALED =
+    'query QuestResult($id: String!) { questResult(id: $id) { id hpBefore hpAfter injuriesHealed } }';
 const MISSING_ID = '64b0000000000000000000ff';
 const CONFIRMED_AT = new Date('2026-10-25T09:30:00.000Z');
 
@@ -377,6 +379,58 @@ describe('questResult(id) (wire)', () => {
                     id: String(result._id),
                     spellLearned: null,
                     loreUnlocked: [],
+                },
+            },
+        });
+    });
+
+    it('serves the injuries healed by the outcome (D-08)', async () => {
+        const result = await persistAliceResult({
+            injuriesHealed: ['deepCut', 'sprain'],
+        });
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_HEALED,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    hpBefore: 1000,
+                    hpAfter: 1000,
+                    injuriesHealed: ['deepCut', 'sprain'],
+                },
+            },
+        });
+    });
+
+    it('serves an old result without healed injuries as an empty list (D-08)', async () => {
+        const result = await persistAliceResult();
+        await modelOf<QuestResultDocument>(
+            QuestResult.name,
+        ).collection.updateOne(
+            { _id: result._id },
+            { $unset: { injuriesHealed: '' } },
+        );
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_HEALED,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    hpBefore: 1000,
+                    hpAfter: 1000,
+                    injuriesHealed: [],
                 },
             },
         });
