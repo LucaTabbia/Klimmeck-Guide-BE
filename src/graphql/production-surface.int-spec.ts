@@ -12,12 +12,13 @@ import { createAuthenticatedUser } from '../../test/auth/test-tokens';
 import { createPlayer } from '../../test/authz/player-fixture';
 import {
     PROBE_RAW_MESSAGE,
+    PROBE_RECOVERY_UNTIL,
     ProductionProbeResolver,
 } from '../../test/graphql/production-probe.resolver';
 import { graphqlWsUrl, subscribeOnce } from '../../test/auth/ws-test-client';
 
 const INTROSPECTION = '{ __schema { queryType { name } } }';
-const RECOVERY_UNTIL_ISO = '2026-11-10T12:30:00.000Z';
+const RECOVERY_UNTIL_ISO = PROBE_RECOVERY_UNTIL.toISOString();
 const POTION_RECOVERING_MESSAGE =
     "Il tuo corpo non reggerebbe un'altra pozione: aspetta che la prima si sia posata";
 const MISSING_ID = '64b0000000000000000000ff';
