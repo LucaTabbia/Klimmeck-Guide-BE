@@ -634,7 +634,7 @@ describe('QuestAcceptanceService (replSet)', () => {
 
         async function curingQuestOf(
             type: string,
-            cure: unknown = VILLAGE_CURE,
+            prizes: Record<string, unknown> = { cure: VILLAGE_CURE },
         ): Promise<Types.ObjectId> {
             const base = buildQuest();
             const quest = await persistQuest(quests, {
@@ -643,10 +643,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                     type,
                     markerLocation: world.questMarker,
                 },
-                prizes: {
-                    ...base.prizes,
-                    ...(cure === undefined ? {} : { cure }),
-                },
+                prizes: { ...base.prizes, ...prizes },
             });
             return quest._id as Types.ObjectId;
         }
@@ -729,7 +726,7 @@ describe('QuestAcceptanceService (replSet)', () => {
         it('refuses a heal without a cure for anyone (D-25)', async () => {
             await expectRefusedWithoutWrites(
                 await woundedAt(1, ['deepCut', 'infection']),
-                await curingQuestOf('heal', undefined),
+                await curingQuestOf('heal', {}),
             );
         });
 

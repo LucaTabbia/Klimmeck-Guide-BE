@@ -21,6 +21,8 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { idForms, refIdOf, sameId } from 'src/mongo/document-id';
+import { healHasNoEffect } from 'src/quests/outcomes/injuries/heal-no-effect';
+import { statusFactsOf } from 'src/quests/outcomes/progression/status-facts';
 import { QuestResolutionScheduler } from 'src/quests/outcomes/scheduling/quest-resolution.scheduler';
 import { initialLaneDatesOf } from 'src/quests/party/party-rules';
 import {
@@ -75,6 +77,7 @@ interface QuestAcceptanceSnapshot extends QuestEligibilitySnapshot {
         markerLocation?: unknown;
         timeToComplete?: number | null;
     };
+    prizes?: { cure?: unknown } | null;
 }
 
 interface CharacterAcceptanceSnapshot extends CharacterEligibilitySnapshot {
@@ -84,6 +87,9 @@ interface CharacterAcceptanceSnapshot extends CharacterEligibilitySnapshot {
         awaitingAid?: unknown;
         activeTravel?: unknown;
         injuries?: unknown[];
+        xp?: number;
+        currentLifePoints?: number;
+        maxLifePoints?: number;
     };
     assets?: { pet?: unknown } | null;
 }
@@ -111,6 +117,7 @@ const QUEST_PROJECTION = {
     'infos.timeToComplete': 1,
     requirements: 1,
     registeredAdventurers: 1,
+    'prizes.cure': 1,
 };
 
 // della polilinea del viaggio basta la presenza: endTime evita di leggere le coordinate
@@ -120,6 +127,9 @@ const CHARACTER_PROJECTION = {
     'status.activeTravel.endTime': 1,
     'status.awaitingAid': 1,
     'status.injuries': 1,
+    'status.currentLifePoints': 1,
+    'status.maxLifePoints': 1,
+    'status.xp': 1,
     quests: 1,
     'assets.pet': 1,
 };
@@ -162,6 +172,8 @@ export class QuestAcceptanceService {
         const character = await this.readCharacter(characterId);
         const rejection = classifyEligibility(quest, character, lane, rule);
         if (rejection) throw rejection;
+        // una heal senza effetto non si accetta (Phase 18 D-25): dopo l'eleggibilità, prima di città, movimento, fame e transazione; solo il tipo heal
+        this.effectiveOrReject(quest, character);
         // solo la story si accetta da qualunque città: standard e worldMission sono legate alla città del marker (D-26 emendata 2026-10-22)
         const location =
             lane !== QuestLane.story
@@ -333,6 +345,22 @@ export class QuestAcceptanceService {
                   // catalogo letto fuori dalla transazione, come il piano del viaggio (Phase 16 D-05)
                   geography: await this.geography.ofMarker(request.to),
               };
+    }
+
+    // la corsa con una pozione bevuta dopo la pre-lettura non si richiude nel claim: la risoluzione resta com'è (D-25)
+    private effectiveOrReject(
+        quest: QuestAcceptanceSnapshot,
+        character: CharacterAcceptanceSnapshot,
+    ): void {
+        if (quest.infos.type !== QuestType.heal) return;
+        const { currentLifePoints, maxLifePoints } = statusFactsOf(character);
+        const subject = {
+            currentLifePoints,
+            maxLifePoints,
+            injuries: character.status.injuries ?? [],
+        };
+        if (healHasNoEffect(subject, quest.prizes?.cure))
+            throw GameRuleException.questNoEffect();
     }
 
     // pre-verifica fuori sessione: solo il viaggio mangia (D-13)
