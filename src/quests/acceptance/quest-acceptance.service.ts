@@ -31,6 +31,10 @@ import {
 } from 'src/quests/party/quest-start.service';
 import { mealGuardsOf, mealSetOf } from 'src/travel/food/travel-food.updates';
 import {
+    notImprisonedAt,
+    refusalWhileImprisoned,
+} from 'src/characters/imprisonment/imprisonment';
+import {
     PlannedMeal,
     TravelPantryReader,
 } from 'src/travel/food/travel-pantry.reader';
@@ -85,6 +89,7 @@ interface CharacterAcceptanceSnapshot extends CharacterEligibilitySnapshot {
         title: TitleType;
         location?: unknown;
         awaitingAid?: unknown;
+        imprisonedUntil?: unknown;
         activeTravel?: unknown;
         injuries?: unknown[];
         xp?: number;
@@ -102,6 +107,8 @@ interface Registrant {
 
 interface LaneClaim {
     characterId: Types.ObjectId;
+    // istante della prigione riaffermata nel filtro (quick 261110-cgd)
+    now: Date;
     quest: ClaimedQuest;
     claim: LaneClaimSnapshot;
     pendingQuestId: Types.ObjectId;
@@ -109,7 +116,7 @@ interface LaneClaim {
     meal: PlannedMeal | null;
 }
 
-type ClaimTarget = Pick<LaneClaim, 'characterId' | 'quest' | 'claim'>;
+type ClaimTarget = Pick<LaneClaim, 'characterId' | 'quest' | 'claim' | 'now'>;
 
 const QUEST_PROJECTION = {
     'infos.type': 1,
@@ -126,6 +133,7 @@ const CHARACTER_PROJECTION = {
     'status.location': 1,
     'status.activeTravel.endTime': 1,
     'status.awaitingAid': 1,
+    'status.imprisonedUntil': 1,
     'status.injuries': 1,
     'status.currentLifePoints': 1,
     'status.maxLifePoints': 1,
@@ -170,7 +178,11 @@ export class QuestAcceptanceService {
         const cost = this.costOrReject(quest, lane);
         const rule = this.seatRuleOrReject(quest);
         const character = await this.readCharacter(characterId);
-        const rejection = classifyEligibility(quest, character, lane, rule);
+        const now = this.clock.now();
+        // in prigione nessuna corsia si accetta, come in attesa di soccorso (quick 261110-cgd)
+        const rejection =
+            refusalWhileImprisoned(character.status, now) ??
+            classifyEligibility(quest, character, lane, rule);
         if (rejection) throw rejection;
         // una heal senza effetto non si accetta (Phase 18 D-25): dopo l'eleggibilità, prima di città, movimento, fame e transazione; solo il tipo heal
         this.effectiveOrReject(quest, character);
@@ -196,7 +208,6 @@ export class QuestAcceptanceService {
             minTitle: quest.requirements?.minTitle,
         };
         const pendingQuestId = new Types.ObjectId();
-        const now = this.clock.now();
         // arrivo ≠ avvio per i party (utente 2026-10-25); una quest da soli sul marker parte con il claim (D-22)
         const laneDates = initialLaneDatesOf(lane, movement, now);
         const dates = {
@@ -222,6 +233,7 @@ export class QuestAcceptanceService {
             await this.claimLane(
                 {
                     characterId,
+                    now,
                     quest: claimed,
                     claim,
                     pendingQuestId,
@@ -466,6 +478,7 @@ export class QuestAcceptanceService {
     private async claimLane(
         {
             characterId,
+            now,
             quest,
             claim,
             pendingQuestId,
@@ -474,7 +487,7 @@ export class QuestAcceptanceService {
         }: LaneClaim,
         session: ClientSession,
     ): Promise<void> {
-        const target = { characterId, quest, claim };
+        const target = { characterId, quest, claim, now };
         if (meal && !meal.plan.arrivesAlive)
             throw await this.starvingOrRace(target, session);
         const lane = laneOf(quest.type);
@@ -486,7 +499,12 @@ export class QuestAcceptanceService {
                     claim,
                     quest.id,
                     isRepeatable(quest.type),
-                    meal ? mealGuardsOf(meal.plan, meal.pantry.hpRaw) : {},
+                    {
+                        ...notImprisonedAt(now),
+                        ...(meal
+                            ? mealGuardsOf(meal.plan, meal.pantry.hpRaw)
+                            : {}),
+                    },
                 ),
                 laneClaimUpdate(
                     lane,
@@ -507,7 +525,7 @@ export class QuestAcceptanceService {
         target: ClaimTarget,
         session: ClientSession,
     ): Promise<Error> {
-        const { characterId, quest, claim } = target;
+        const { characterId, quest, claim, now } = target;
         const claimable = await this.characterModel
             .exists(
                 laneClaimFilter(
@@ -516,6 +534,7 @@ export class QuestAcceptanceService {
                     claim,
                     quest.id,
                     isRepeatable(quest.type),
+                    notImprisonedAt(now),
                 ),
             )
             .session(session)
@@ -527,15 +546,18 @@ export class QuestAcceptanceService {
 
     // la rilettura in sessione sceglie solo il codice (Phase 4)
     private async unclaimedError(
-        { characterId, quest, claim }: ClaimTarget,
+        { characterId, quest, claim, now }: ClaimTarget,
         session: ClientSession,
     ): Promise<Error> {
         const fresh = await this.characterModel
             .findOne(activeCharacterById(characterId), CHARACTER_PROJECTION)
             .session(session)
-            .lean<UnclaimedSnapshot | null>()
+            .lean<CharacterAcceptanceSnapshot | null>()
             .exec();
-        return classifyUnclaimed(fresh, quest, claim);
+        return (
+            refusalWhileImprisoned(fresh?.status, now) ??
+            classifyUnclaimed(fresh, quest, claim)
+        );
     }
 
     // ritorna i registrati prima della scrittura: la prima registrazione apre la finestra delle 24 ore
