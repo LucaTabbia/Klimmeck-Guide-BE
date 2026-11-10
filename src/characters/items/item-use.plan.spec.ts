@@ -155,6 +155,35 @@ describe('planItemUse — a potion that can be drunk', () => {
         ).toBe(1000);
     });
 
+    // stesso principio del tetto delle heal (D-02): il massimo limita la cura, non ridimensiona la vita
+    it('never lowers life points above the maximum and still cures the injury (D-17, D-02)', () => {
+        const { outcome } = planWith({
+            status: {
+                currentLifePoints: 1200,
+                injuries: [InjuryType.deepCut],
+            },
+        });
+
+        expect(outcome.hpBefore).toBe(1200);
+        expect(outcome.hpAfter).toBe(1200);
+        expect(outcome.injuriesHealed).toEqual([InjuryType.deepCut]);
+    });
+
+    it('refuses a potion above the maximum without a curable injury (D-17, D-02)', () => {
+        expect(() =>
+            planWith({
+                status: {
+                    currentLifePoints: 1200,
+                    injuries: [InjuryType.infection],
+                },
+            }),
+        ).toThrow(
+            expect.objectContaining({
+                extensions: { code: 'ITEM_NO_EFFECT' },
+            }) as Error,
+        );
+    });
+
     it('removes the stack at quantity 0 (D-17)', () => {
         const plan = planWith({
             assets: {
