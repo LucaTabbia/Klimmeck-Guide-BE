@@ -3,7 +3,7 @@
 - **Fase BE:** 18-quest-heal-per-taglia (requisiti BE-HEAL-01..09; decisioni D-01..D-25 in `18-CONTEXT.md`; nomi del contratto fissati in `18-REPO-RULES.md` insieme alla FE `18-REPO-RULES.md`).
 - **Data:** 2026-11-10. Documento scritto dopo il gate verde del piano 18-11; **review del codice in corso** (i fix della review possono aggiornare questo file prima della PR).
 - **Branch:** `feat/18-quest-heal-per-taglia` → PR verso `develop` a cura dell'orchestratore, **in draft** finché l'orchestratore non è pronto ad applicare gli script di contenuto subito dopo la merge e il riavvio del BE (finestra operativa, §3 e).
-- **Gate della FE Phase 18:** i piani che selezionano i nomi nuovi partono dopo la merge con `git -C <repo BE> show origin/develop:src/schema.gql | grep -cF '<nome>'` ≥ 1 per `type QuestCure`, `injuriesHealed`, `noEffect`, `type LootRecovery`, `potionRecoveryUntil`, `useItem(`, `type UseItemResult`; per la quick 261110-cgd (§1.6) `imprisonedUntil`, `arrested: Boolean!`, `coinsLost`, `guardEncounter`.
+- **Gate della FE Phase 18:** i piani che selezionano i nomi nuovi partono dopo la merge con `git -C <repo BE> show origin/develop:src/schema.gql | grep -cF '<nome>'` ≥ 1 per `type QuestCure`, `injuriesHealed`, `noEffect`, `type LootRecovery`, `potionRecoveryUntil`, `useItem(`, `type UseItemResult`; per la quick 261110-cgd (§1.6) `imprisonedUntil`, `arrested: Boolean!`, `coinsLost`, `guardEncounter`; per la quick 261110-prp (§1.6, «Push di liberazione») `prisonRelease`.
 - **Schema:** `src/schema.gql` **solo additivo** rispetto a `origin/develop` (zero righe tolte o cambiate); il boot reale (`test/app.int-spec.ts`, 84 test) rigenera lo schema e `git diff --exit-code src/schema.gql` esce 0.
 - **Stato:** implementato e coperto da test. Gate 18-11: `npx tsc --noEmit` 0; unit 253 suite / 3219 test (+1 suite / 6 test aggiunti dal gate); integration 136 suite in quattro blocchi tutte verdi (dettaglio in `18-11-SUMMARY.md`); coverage di `./src/quests/acceptance/` 99,04 / 92,64 / 99,72 (statements / branches / lines; soglie 97 / 91 / 98). `npm run test:cov` lo lancia l'orchestratore dopo i fix della review. Nessuna variabile d'ambiente nuova, nessuna dipendenza nuova, nessuna migrazione né seeder.
 - **Fonte:** ogni nome e valore è copiato dal codice (`src/schema.gql`, `src/gameRules/game-rule.exception.ts`, `src/characters/items/item-use.plan.ts`, `src/quests/outcomes/injuries/heal-no-effect.ts`). **Il codice vince su questo documento.**
@@ -17,7 +17,7 @@
 3. **`QuestResult.injuriesHealed`** sul foglio d'esito accanto a `hpBefore` / `hpAfter`: le ferite tolte.
 4. **Pozioni dal Diario** con `useItem(itemId)` sul personaggio corrente del bearer; **ricarica globale** su `CharacterStatus.potionRecoveryUntil`; rifiuto `POTION_RECOVERING` con `extensions.recoveryUntil`.
 5. **Heal senza effetto:** `Quest.noEffect` (per viewer) per il foglio strappato e `QUEST_NO_EFFECT` su `acceptQuest`.
-6. **Quick 261110-cgd (§1.6):** una `crime` vinta ha il 20 % di **arresto** (nessun premio, 25 % delle monete perse, 10 h di prigione su `CharacterStatus.imprisonedUntil`, rifiuto `CHARACTER_IMPRISONED` con `extensions.imprisonedUntil`); una `guard` vinta ha il 20 % di **scontro** (vinto: monete doppie e xp dei nemici; perso: vita 1 in città senza soccorso). Campi `QuestResult.arrested`, `coinsLost`, `guardEncounter`.
+6. **Quick 261110-cgd (§1.6):** una `crime` vinta ha il 20 % di **arresto** (nessun premio, 25 % delle monete perse, 10 h di prigione su `CharacterStatus.imprisonedUntil`, rifiuto `CHARACTER_IMPRISONED` con `extensions.imprisonedUntil`); una `guard` vinta ha il 20 % di **scontro** (vinto: monete doppie e xp dei nemici; perso: vita 1 in città senza soccorso). Campi `QuestResult.arrested`, `coinsLost`, `guardEncounter`. **Quick 261110-prp:** alla fine della prigione parte un push data-only `prisonRelease` (id = personaggio) e `imprisonedUntil` torna `null`.
 7. **Il contenuto a DB arriva DOPO la merge** (166 heal per taglia, `recovery` delle 28 pozioni, lore «Il limite del corpo»): fino ad allora le heal non curano e nessuna pozione è bevibile. Vedi la **finestra operativa** al §3 e: merge e contenuto vanno applicati vicini, per questo la PR resta in draft.
 
 ---
@@ -158,7 +158,7 @@ type QuestResult {
 }
 ```
 
-**Prigione.** `CharacterStatus.imprisonedUntil` è la fine della prigione: `null` (o una data passata) = libero. Nessuno sweep la azzera: il BE confronta la data con la propria ora a ogni azione; il segnalino «In prigione» sopra la pedina e il conto alla rovescia sono della FE (la data arriva anche da `characterUpdated`). Durante la prigione queste operazioni rispondono **`CHARACTER_IMPRISONED`** (messaggio «Il tuo personaggio è in prigione») con **`extensions.imprisonedUntil`** (stringa ISO 8601 UTC con millisecondi, solo con quel codice, anche in produzione e su graphql-ws):
+**Prigione.** `CharacterStatus.imprisonedUntil` è la fine della prigione: `null` (o una data passata) = libero. Il BE confronta la data con la propria ora a ogni azione; dalla quick 261110-prp uno sweep la riporta a `null` alla liberazione e invia il push (sotto-sezione «Push di liberazione»), ma la regola della FE non cambia: `null` o passata = libero; il segnalino «In prigione» sopra la pedina e il conto alla rovescia sono della FE (la data arriva anche da `characterUpdated`). Durante la prigione queste operazioni rispondono **`CHARACTER_IMPRISONED`** (messaggio «Il tuo personaggio è in prigione») con **`extensions.imprisonedUntil`** (stringa ISO 8601 UTC con millisecondi, solo con quel codice, anche in produzione e su graphql-ws):
 
 | Operazione | Note |
 |------------|------|
@@ -202,6 +202,32 @@ type QuestResult {
 
 Stato del personaggio dopo l'esito: arresto → `imprisonedUntil` = conclusione + 10 h, monete scalate di `coinsLost`, corsia standard libera, nessuna `awaitingAid`; scontro perso → `currentLifePoints` 1, resta sul marker della città, corsia libera, nessuna `awaitingAid`, nessuna aid; scontro vinto → come una vittoria normale con le monete doppie. `knownEnemies` guadagna i nemici dello scontro solo alla vittoria.
 
+#### Push di liberazione (quick 261110-prp)
+
+Parole dell'utente (2026-11-10): «Vorrei che venisse inviata una notifica quando esci di prigione.»
+
+**Payload FCM** (data-only, stesso trasporto, registro device, TTL e intestazioni Android/APNs di `travelEnd` e `questEnd`; ogni valore è una stringa):
+
+```json
+{
+  "type": "prisonRelease",
+  "id": "<id del personaggio, 24 caratteri esadecimali>",
+  "title": "Di nuovo libero",
+  "body": "La prigionia è finita: torna all'avventura.",
+  "sentAt": "<ISO 8601 UTC dell'invio>"
+}
+```
+
+TTL 1 h (`android.ttl` 3600000 ms, `apns-expiration` = invio + 3600 s), come gli altri push personali. `id` è il personaggio (come `travelEnd`), non un risultato: nessuna query da fare dopo, basta lo stato del personaggio. Nessun altro dato (né data, né città, né twitchId). `PushEventType` guadagna il valore `prisonRelease` (unica riga nuova dello SDL, additiva; vale anche per `sendTestPush`, che lo tratta come tipo personale con `id`).
+
+**Quando parte.** Uno sweep (`PrisonReleaseSweeper`, `src/characters/imprisonment/prison-release.sweeper.ts`) gira al boot (liberazioni scadute a processo fermo comprese) e poi ogni `QUEST_SWEEP_INTERVAL_MS` (lo stesso intervallo dello sweep delle missioni, default 60 s, nessuna variabile nuova): il push arriva quindi **entro circa un minuto** dalla data di `imprisonedUntil`, non al millisecondo. Il conto alla rovescia della FE può arrivare a zero un po' prima del push: la FE non deve aspettare il push per mostrare il personaggio libero. Lo sweep legge i personaggi attivi con `imprisonedUntil` non più futura (stesso confine del rifiuto `CHARACTER_IMPRISONED`: alla data esatta si è già liberi) con l'indice `character_imprisoned_until`.
+
+**Idempotenza: un push per arresto.** La liberazione è un solo update condizionale sul personaggio (filtro: attivo e data non più futura → `imprisonedUntil` = `null`); solo l'update che modifica davvero il documento invia il push, quindi due sweep o due istanze non notificano due volte (provato con due liberazioni in parallelo). Una data spostata a mano dal GM viene seguita: se spostata nel futuro, la liberazione aspetta la nuova data. Il push parte dopo la scrittura ed è best-effort come gli altri (un errore FCM non annulla la liberazione).
+
+**Nessun push** per: personaggio cancellato/archiviato prima della scadenza (non è attivo: data lasciata com'è, nessun errore), personaggio inesistente, personaggio che nessun utente gioca più (la data torna `null`, nessun device da notificare), utente senza device registrati.
+
+**Dopo la liberazione** `CharacterStatus.imprisonedUntil` è **`null`** (non più la data passata): il contratto della FE resta valido (`null` o passata = libero). Lo stato nuovo arriva anche su **`characterUpdated`**: la liberazione è un normale update del documento del personaggio e il change stream lo pubblica come ogni altro (nessuna pubblicazione a mano; non c'è una spec dedicata a questo caso, vale la pipeline `src/characters/character-changes.pipeline.ts` che pubblica ogni update di un personaggio attivo).
+
 Regole dello scontro: nemici non leggendari con habitat `city` o `all` (animali compresi), fascia [Facile, Medio] del livello come nelle imboscate; prima un nemico singolo in fascia, altrimenti un branco di 2 o 3 più deboli fino a rientrare in fascia; se nemmeno il branco rientra, nessuno scontro (esito normale, `guardEncounter: false`). Un risultato scritto prima della quick legge `arrested: false`, `guardEncounter: false`, `coinsLost: null`.
 
 ---
@@ -235,6 +261,8 @@ Regole dello scontro: nemici non leggendari con habitat `city` o `all` (animali 
 | Arresto (multa, prigione, nessun premio), sconfitta della guard (vita 1, nessuna aid), monete doppie, effetti sommati | quick 261110-cgd | `src/quests/outcomes/crime/crime-arrest.spec.ts`, `src/quests/outcomes/guard/guard-outcome.spec.ts` |
 | Nemico o branco di 2–3 dello scontro, fascia vuota = nessuno scontro | quick 261110-cgd | `src/quests/outcomes/guard/guard-encounter.spec.ts` |
 | Conclusione reale di crime e guard nei casi con e senza evento | quick 261110-cgd | `src/quests/outcomes/crime-guard-conclusion.int-spec.ts` |
+| Push `prisonRelease`: payload, valore dell'enum nello SDL, indice dello sweep | quick 261110-prp | `src/push/push-events.spec.ts`, `src/push/push.exception.spec.ts`, `src/models/sweep-indexes.schema.spec.ts`, `src/mongo/sweep-index.verifier.int-spec.ts`, `test/app.int-spec.ts` |
+| Liberazione: un push per arresto (sweep ripetuti e claim paralleli), confine alla data esatta, data futura intatta, data spostata a mano seguita, nessun push per archiviati, inesistenti e personaggi non più giocati; sweeper (boot, intervallo, single-flight, arresto, log) | quick 261110-prp | `src/characters/imprisonment/prison-release.int-spec.ts`, `src/characters/imprisonment/prison-release.sweeper.spec.ts` |
 
 Limiti noti, accettati nella review (B-IN-05): un id di `relatedLore` che punta a una lore cancellata entra comunque in `status.unlockedLore` ed è innocuo (la visibilità filtra per esistenza, come per ogni altra lore), quindi `loreUnlocked` può essere più corta della lista scritta. Le lore del risultato si leggono dopo il commit con una sola lettura idempotente: se fallisse, il client riceve un errore a bevuta avvenuta, riprova e ottiene `POTION_RECOVERING` con lo stato già aggiornato da `characterUpdated`.
 
