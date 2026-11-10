@@ -18,6 +18,7 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 - [ ] **BE-HEAL-06**: `LootItem.recovery` sotto-documento nullable `{ time: ms intero ≥ 0, turns: intero ≥ 0 }` (`LootRecovery` sullo SDL, input admin) e `LootItem.relatedLore: [Lore]` (ref, filtrata per viewer come le altre) additivi; `CharacterStatus.potionRecoveryUntil: DateTime` nullable additivo, una sola data per personaggio, nessun processor; `turns` solo dato per il motore di combattimento (il combattimento non legge né scrive la ricarica) → FE HEAL-04, HEAL-05
 - [ ] **BE-HEAL-07**: Mutation `useItem(itemId: ID!): UseItemResult` sul bearer: rifiuti in ordine `AWAITING_AID`, `ITEM_NOT_OWNED`, `ITEM_NOT_USABLE` (effetto non heal o `recovery.time` assente), `POTION_RECOVERING` (con `recoveryUntil` nelle extensions), `ITEM_NO_EFFECT` (HP pieni e nessuna ferita in `canHeal`: nessun consumo né ricarica); consentita in città e in viaggio; una sola scrittura atomica (HP + `power` fino al massimo, ferite − `canHeal` con `cureInjuries`, pila − 1 con le guardie di quantità, `potionRecoveryUntil = now + recovery.time`, `relatedLore` dell'oggetto in `unlockedLore`) e risultato `{ hpBefore, hpAfter, injuriesHealed, quantityLeft, recoveryUntil, loreUnlocked }` → FE HEAL-04, HEAL-05
 - [ ] **BE-HEAL-08**: Contenuto fuori repo dopo la merge e la revisione dell'utente: `recovery.time` delle 28 pozioni heal dalla tabella (30 min–24 h: base per potenza, scalino per rarità, minimi per ferita più grave), `turns` dalla bozza, lore nuova «Il limite del corpo» (`knowledge`) scritta a DB e collegata dalle 28 pozioni; integration su prima pozione, seconda entro la ricarica, nessun effetto, attesa di soccorso, viaggio; handoff aggiornato con lo script e la lore → FE HEAL-04, HEAL-05
+- [ ] **BE-HEAL-09**: Una quest `heal` senza effetto per il personaggio (vita già pari o sopra il tetto della quest e nessuna sua ferita in `cure.canHeal`, oppure `cure` assente) non si accetta: `acceptQuest` rifiuta con `QUEST_NO_EFFECT` senza toccare corsie e punti, e il campo additivo per viewer `Quest.noEffect: Boolean!` lo dichiara al tabellone (vero solo per il tipo `heal`; falso per gli altri tipi, senza personaggio e per l'oste); un solo predicato puro per rifiuto e campo, risolto per subscriber → FE HEAL-06 _(aggiunto 2026-11-10, regola dell'utente a plan in corso)_
 
 ### Model Review (BE-MODEL) — Phase 19, aggiunta 2026-11-09
 
@@ -72,6 +73,7 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-HEAL-06 | Phase 18 | Pending |
 | BE-HEAL-07 | Phase 18 | Pending |
 | BE-HEAL-08 | Phase 18 | Pending |
+| BE-HEAL-09 | Phase 18 | Pending |
 | BE-MODEL-01 | Phase 19 | Pending |
 | BE-MODEL-02 | Phase 19 | Pending |
 | BE-MODEL-03 | Phase 19 | Pending |
@@ -87,7 +89,7 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-FOODP-04 | Phase 20 | Pending |
 | BE-FOODP-05 | Phase 20 | Pending |
 
-**Coverage:** 22 / 22 requisiti v1.1 mappati (8 BE-HEAL → Phase 18, 9 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20). Nessun orfano, nessun duplicato.
+**Coverage:** 23 / 23 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 9 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20). Nessun orfano, nessun duplicato.
 
 ---
 

@@ -28,7 +28,7 @@ _Confermato alla chiusura della v1.0 (2026-11-10): guard deny-by-default, matric
 - **Phase 19 — Revisione dei modelli** (↔ FE 19): weaknesses, magie per ref, pet con stato sul personaggio e 10 % xp dei nemici al compagno (tetto `maxXp`), attack/defense piatti, `wornEquipment/feet`, una sola lista di magie, via `POI.quest`, `City.shop`, `Lore.imagePath`; un solo migratore one-off.
 - **Phase 20 — Cibo e vita progressivi** (solo BE): piano salvato alla partenza, vita incrementale allo sweep nel tratto scoperto, cibo in blocco a confine/arrivo/sconfitta, deviazione senza costi.
 
-**Scope (decisione dell'utente, 2026-11-10):** solo le fasi già discusse il 2026-11-09; il resto del backlog resta dopo la v1.1. Requisiti in `.planning/REQUIREMENTS.md` (BE-HEAL-01..08, BE-MODEL-01..09, BE-FOODP-01..05), fasi in `.planning/ROADMAP.md`.
+**Scope (decisione dell'utente, 2026-11-10):** solo le fasi già discusse il 2026-11-09; il resto del backlog resta dopo la v1.1. Requisiti in `.planning/REQUIREMENTS.md` (BE-HEAL-01..09, BE-MODEL-01..09, BE-FOODP-01..05), fasi in `.planning/ROADMAP.md`.
 
 ## Requirements
 
@@ -61,7 +61,7 @@ _Confermato alla chiusura della v1.0 (2026-11-10): guard deny-by-default, matric
 
 **v1.1 Cura e modelli (in corso):**
 
-- [ ] Quest heal per taglia e pozioni dal Diario con ricarica globale — BE-HEAL-01..08 (Phase 18 ↔ FE 18)
+- [ ] Quest heal per taglia e pozioni dal Diario con ricarica globale — BE-HEAL-01..09 (Phase 18 ↔ FE 18)
 - [ ] Revisione dei modelli condivisa BE/FE — BE-MODEL-01..09 (Phase 19 ↔ FE 19)
 - [ ] Cibo e vita progressivi in viaggio — BE-FOODP-01..05 (Phase 20, solo BE)
 
