@@ -17,7 +17,7 @@ import {
 } from 'src/economy/trade/trade-inventory';
 import type { TradeLine } from 'src/economy/trade/trade-line';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
-import { InjuryType } from 'src/models/enums/injury-type.enum';
+import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
@@ -32,6 +32,7 @@ import {
 import type { ParticipantEffects } from './combat/combat-resolver';
 import { cureInjuries } from './injuries/cure-injuries';
 import { isInjuryType } from './injuries/injury-rules';
+import { cureOf, lifePointsAfterCure } from './injuries/quest-cure';
 import { isPositiveInteger } from './outcome-numbers';
 import { lifePointsWithin, progressionAfter } from './progression/level-table';
 import { statusFactsOf } from './progression/status-facts';
@@ -83,6 +84,7 @@ export interface OutcomeQuestSnapshot {
     _id: Types.ObjectId;
     infos: { type: QuestType; title: string };
     requirements?: { minTitle?: TitleType | null } | null;
+    prizes?: { cure?: unknown } | null;
 }
 
 export interface ConsumableUsage {
@@ -348,21 +350,20 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         xpEarned,
         hpFought,
     );
-    // la heal vinta toglie tutte le ferite e riporta gli HP al nuovo massimo (D-15)
-    const healed = won && quest.infos.type === QuestType.heal;
-    const currentLifePoints = healed
-        ? progression.maxLifePoints
-        : progression.currentLifePoints;
-    const wounds = healed
-        ? { injuries: [], added: [] }
-        : woundsAfter(
-              snapshot.status.injuries ?? [],
-              battle?.injuriesAdded ?? [],
-          );
-    const injuriesHealed = cureInjuries(
+    // la cura è un premio della quest vinta, qualunque sia il tipo (Phase 18 D-07): dopo il combattimento e dopo la progressione (D-20)
+    const cure = won ? cureOf(quest.prizes?.cure) : null;
+    const fought = woundsAfter(
         snapshot.status.injuries ?? [],
-        healed ? Object.values(InjuryType) : [],
-    ).healed;
+        battle?.injuriesAdded ?? [],
+    );
+    const cured = cureInjuries(fought.injuries, cure?.canHeal ?? []);
+    const currentLifePoints = cure
+        ? lifePointsAfterCure(
+              progression.currentLifePoints,
+              progression.maxLifePoints,
+              cure.lifePointsShare,
+          )
+        : progression.currentLifePoints;
     // il titolo avanza solo con la story vinta del titolo esatto (D-14, T-09-24)
     const titleAfter =
         won && quest.infos.type === QuestType.story
@@ -435,7 +436,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         'status.level': progression.level,
         'status.maxLifePoints': progression.maxLifePoints,
         'status.currentLifePoints': currentLifePoints,
-        'status.injuries': wounds.injuries,
+        'status.injuries': cured.injuries,
         'assets.ownedItems': inventory.ownedItems,
         'assets.ownedEquipments': inventory.ownedEquipments,
         [lanePath]: null,
@@ -485,8 +486,8 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             hpBefore: before.currentLifePoints,
             hpAfter: currentLifePoints,
             maxLifePoints: progression.maxLifePoints,
-            injuriesAdded: wounds.added,
-            injuriesHealed,
+            injuriesAdded: fought.added,
+            injuriesHealed: cured.healed,
             consumablesUsed: consumables,
             spellsUsed: spells.used,
             rewards: {
