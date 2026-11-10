@@ -523,5 +523,40 @@ describe('questUpdated subscription (wire)', () => {
                 noEffect: false,
             });
         });
+
+        function setLife(player: TestPlayer, currentLifePoints: number) {
+            return harness.connection
+                .model(Character.name)
+                .collection.updateOne(
+                    { _id: characterIdOf(player) },
+                    { $set: { 'status.currentLifePoints': currentLifePoints } },
+                );
+        }
+
+        // la memo non deve tenere la vita fra due eventi dello stesso subscriber: tetto 50 su un massimo di 100
+        it('resolves noEffect again when only the life changes between events (D-25)', async () => {
+            await setLife(alice, 40);
+            const heal = await persistHeal();
+            const id = String(heal._id);
+            const subscription = subscribeToNoEffect(id, alice.bearer);
+            expect(await nextNoEffect(subscription)).toEqual({
+                id,
+                noEffect: false,
+            });
+
+            await setLife(alice, 60);
+            await retitle(heal._id);
+            expect(await nextNoEffect(subscription)).toEqual({
+                id,
+                noEffect: true,
+            });
+
+            await setLife(alice, 40);
+            await retitle(heal._id);
+            expect(await nextNoEffect(subscription)).toEqual({
+                id,
+                noEffect: false,
+            });
+        });
     });
 });
