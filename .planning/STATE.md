@@ -1,11 +1,10 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: executing
-stopped_at: Phase 17 execution complete (10/10, 2026-11-09) — PR #27 verso develop aperta dall'orchestratore (nessun one-off, nessuna migrazione)
-last_updated: "2026-11-09T18:49:53.000Z"
-last_activity: 2026-11-09 -- Phase 17 complete: 10/10, review (3 warning / 15 info → 17 fix, 1 saltato con motivo), verification (passed_with_gaps, gap documentale chiuso dal 17-10), security (44 minacce, 0 open, 2 differite alla UAT FE); PR #27 to develop
+milestone_name: Core Loop (BE)
+status: completed
+last_updated: "2026-11-10T01:40:00.000Z"
+last_activity: 2026-11-10 -- v1.0 Core Loop (BE) milestone completed and archived (21/21 phases, 261/261 plans)
 progress:
   total_phases: 21
   completed_phases: 21
@@ -18,275 +17,61 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-16)
+See: .planning/PROJECT.md (updated 2026-11-10 after the v1.0 milestone)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 17 — Autorizzazione e sessioni — COMPLETE (2026-11-09) su `feat/17-autorizzazione-e-sessioni` (da `develop` `31dba96`): 10/10 piani, gate 17-09 verde (380 suite / 4849 test prima dei fix; 381 / 4872 dopo, coverage src/auth 99,86 / 87,63 / 100), tre review per area (3 warning / 15 info → 17 fix, 1 saltato con motivo), verifica (passed_with_gaps, gap documentale chiuso dal 17-10), audit di sicurezza (44 minacce, 0 open, 2 differite alla UAT FE); PR #27 verso `develop` aperta dall'orchestratore (nessun one-off né migrazione: SDL invariato, campo `Session.revokeReason` additivo). La FE Phase 12 Hardening (parcheggiata a 15/17 su `refactor/12-hardening`) riprende con 12-16/12-17 dopo la merge. Previous: Phase 16 — COMPLETE and merged (PR #25).
+**Current focus:** Pianificazione della prossima milestone (v1.1) con `/gsd-new-milestone`
 
 ## Current Position
 
-Phase: 17 (Autorizzazione e sessioni) — COMPLETE 2026-11-09 on `feat/17-autorizzazione-e-sessioni` (from `develop` `31dba96`): 10/10 plans, gate 17-09 passed (380 suite / 4849 test prima dei fix; 381 / 4872 dopo, coverage src/auth 99,86 / 87,63 / 100), three area reviews (3 warning / 15 info → 17 fix, 1 saltato con motivo), verification (passed_with_gaps, gap documentale chiuso dal 17-10), security audit (44 minacce, 0 open, 2 differite alla UAT FE); PR #27 to `develop` opened by the orchestrator; the FE Phase 12 (parked at 15/17) resumes with 12-16/12-17 after the merge
-Plan: 10 of 10
-Status: Phase 17 complete — PR #27 to develop open (CI to check); next: merge, then `npm run build` + restart of the BE from `develop` (the user's process on port 3001 runs the pre-17 build), then the FE Phase 12 gate 12-16 and the device UAT 12-17 (dual device + release via TLS tunnel) with the notes of the handoff
-Last activity: 2026-11-09 -- Phase 17 complete: review, verification, fixes and security audit done; PR #27 to develop
-Quick task 261109-inj (2026-11-09): `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente) (default `[]`, `[InjuryType!]!` sullo schema, confermato al boot reale dal ramo); solo il campo, meccanica di cura in una fase dedicata; gemello FE sullo stesso nome di branch.
-Quick task 261109-cap (2026-11-09): `ferrionCity` e `necrorianCity` passano a `CitySize.capital` (regola dell'utente nella UAT FE 12: tutto capitale tranne Talmvere); nessun cambio SDL, Necrorian resta senza negozio (`NO_SHOP_CITY_TYPES`), pool a DB non rigenerati («la mano vince»), la generazione delle quest dà loro tetto e peso 4.
+Milestone: **v1.0 Core Loop (BE) — SHIPPED 2026-11-10** (archivio: `milestones/v1.0-ROADMAP.md`, `milestones/v1.0-REQUIREMENTS.md`; riepilogo: `MILESTONES.md`; retrospettiva: `RETROSPECTIVE.md`)
+Phase: nessuna attiva — tutte le 21 fasi complete (ultime: Phase 17 Autorizzazione e sessioni, PR #27 mergiata; quick task 261109-cap, PR #28 mergiata il 2026-11-10; `develop` `9973fcb1`)
+Plan: —
+Status: milestone v1.0 completa — chiusura registrata su `docs/v1-milestone-close` (PR → `develop`); tag `v1.0` da creare sul merge commit di `develop` dopo la merge
+Last activity: 2026-11-10 -- v1.0 milestone completed and archived
+Next step: `/gsd-new-milestone` (v1.1). Candidati già discussi: Phase 18 Quest heal per taglia (+ pozioni, `feat/18-quest-heal-per-taglia`, ↔ FE 18), Phase 19 Revisione dei modelli (`feat/19-revisione-dei-modelli`, ↔ FE 19), Phase 20 Cibo e vita progressivi (`feat/20-cibo-e-vita-progressivi`, solo BE; worktree `Klimmeck-Guide-BE-wt18`). Quei branch portano modifiche a `ROADMAP.md`, `REQUIREMENTS.md` e `STATE.md` precedenti alla chiusura e vanno ribasati: le sezioni di fase finiscono sotto la milestone v1.1 della roadmap nuova, `REQUIREMENTS.md` lo ricrea la nuova milestone.
 
-Progress: [██████████] 10/10 plans of Phase 17 (phases 1–17, 9.1, 9.2 and 13.1 complete; 17 awaiting the merge)
+## Current Milestone
 
-## Performance Metrics
-
-**Velocity:**
-
-- Total plans completed: 124
-- Average duration: - min
-- Total execution time: 0 hours
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01 | 5 | - | - |
-| 2 | 9 | - | - |
-| 02.1 | 8 | - | - |
-| 03 | 10 | - | - |
-| 03.1 | 6 | - | - |
-| 03.1 | 6 | - | - |
-| 5 | 8 | - | - |
-| 8 | 14 | - | - |
-| 09.1 | 10 | - | - |
-| 09.2 | 7 | - | - |
-
-**Recent Trend:**
-
-- Last 5 plans: -
-- Trend: -
-
-*Updated after each plan completion*
-| Phase 01 P01 | 6 | 4 tasks | 14 files |
-| Phase 01 P02 | 6 | 3 tasks | 10 files |
-| Phase 01 P01-03 | 9 | 3 tasks | 4 files |
-| Phase 01 P04 | 1 | 2 tasks | 1 files |
-| Phase 02 P01 | 7 min | 3 tasks | 25 files |
-| Phase 02 P02 | 6 min | 3 tasks | 9 files |
-| Phase 02 P03 | 10min | 3 tasks | 12 files |
-| Phase 02 P04 | 9 min | 3 tasks | 12 files |
-| Phase 02 P05 | 10 min | 3 tasks | 13 files |
-| Phase 02 P06 | 8 min | 3 tasks | 16 files |
-| Phase 02 P07 | 7 min | 3 tasks | 12 files |
-| Phase 02 P08 | 6 min | 2 tasks | 3 files |
-| Phase 02 P09 | 7 min | 2 tasks | 1 files |
-| Phase 02 P10 | 9 min | 3 tasks | 8 files |
-| Phase 02.1 P01 | 3 min | 2 tasks | 10 files |
-| Phase 02.1 P02 | 4 min | 2 tasks | 7 files |
-| Phase 02.1 P04 | 3 min | 2 tasks | 6 files |
-| Phase 02.1 P03 | 2min | 2 tasks | 7 files |
-| Phase 02.1 P05 | 5min | 2 tasks | 7 files |
-| Phase 02.1 P06 | 6min | 2 tasks | 5 files |
-| Phase 02.1 P07 | 3min | 2 tasks | 4 files |
-| Phase 02.1 P08 | 5min | 2 tasks | 4 files |
-| Phase 04 P01 | 15 min | 3 tasks | 15 files |
-| Phase 04 P02 | 10 min | 2 tasks | 3 files |
-| Phase 04 P03 | 15 min | 3 tasks | 14 files |
-| Phase 04 P04 | 3 min | 2 tasks | 5 files |
-| Phase 04 P05 | 6 min | 2 tasks | 7 files |
-| Phase 04 P06 | 15 min | 2 tasks | 8 files |
-| Phase 04 P07 | 12 min | 2 tasks | 5 files |
-| Phase 04 P08 | 12 min | 2 tasks | 9 files |
-| Phase 04 P09 | 6 min | 2 tasks | 3 files |
-| Phase 05 P01 | 6 min | 3 tasks | 11 files |
-| Phase 05 P02 | 4 min | 3 tasks | 11 files |
-| Phase 05 P03 | 4 min | 3 tasks | 9 files |
-| Phase 05 P04 | 5 min | 2 tasks | 5 files |
-| Phase 05 P05 | 4 min | 3 tasks | 5 files |
-| Phase 05 P06 | 9 min | 3 tasks | 6 files |
-| Phase 05 P07 | 4 min | 2 tasks | 3 files |
-| Phase 05 P08 | 7 min | 2 tasks | 3 files |
-| Phase 06 P01 | 6 min | 3 tasks | 12 files |
-| Phase 06 P02 | 6 min | 3 tasks | 8 files |
-| Phase 06 P03 | 6 min | 2 tasks | 8 files |
-| Phase 06 P04 | 8 min | 3 tasks | 9 files |
-| Phase 06 P05 | 9 min | 2 tasks | 4 files |
-| Phase 06 P06 | 5 min | 2 tasks | 5 files |
-| Phase 06 P07 | 5 min | 2 tasks | 6 files |
-| Phase 06 P08 | 5 min | 2 tasks | 3 files |
-| Phase 06 P09 | 25 min | 3 tasks | 8 files |
-| Phase 07 P01 | 4 min | 2 tasks | 10 files |
-| Phase 07 P02 | 6 min | 3 tasks | 9 files |
-| Phase 07 P03 | 7 min | 2 tasks | 9 files |
-| Phase 07 P04 | 6 min | 2 tasks | 6 files |
-| Phase 07 P05 | 5 min | 2 tasks | 7 files |
-| Phase 07 P06 | 5 min | 2 tasks | 3 files |
-| Phase 07 P07 | 6 min | 2 tasks | 6 files |
-| Phase 07 P08 | 10 min | 2 tasks | 4 files |
-| Phase 08 P01 | 4 min | 2 tasks | 14 files |
-| Phase 08 P02 | 3 min | 2 tasks | 9 files |
-| Phase 08 P04 | 8 min | 2 tasks | 6 files |
-| Phase 08 P03 | 6 min | 2 tasks | 8 files |
-| Phase 08 P05 | 6 min | 3 tasks | 13 files |
-| Phase 08 P06 | 9 min | 3 tasks | 7 files |
-| Phase 08 P07 | 6 min | 1 tasks | 3 files |
-| Phase 08 P08 | 6 min | 2 tasks | 8 files |
-| Phase 08 P09 | 12 min | 2 tasks | 6 files |
-| Phase 08 P10 | 7 min | 2 tasks | 6 files |
-| Phase 08 P11 | 12 min | 2 tasks | 6 files |
-| Phase 08 P12 | 10 min | 2 tasks | 9 files |
-| Phase 08 P13 | 9 min | 2 tasks | 6 files |
-| Phase 08 P14 | 14 min | 2 tasks | 3 files |
-| Phase 09 P12 | 11 min | 3 tasks | 10 files |
-| Phase 09 P13 | 17 min | 3 tasks | 14 files |
+Nessuna — v1.0 Core Loop (BE) consegnata. La milestone FE v1.0 (17 fasi, 180 piani) è stata chiusa lo stesso giorno (FE PR #46).
 
 ## Accumulated Context
 
+- Stack: NestJS 11 + Mongoose 8 + Apollo code-first (HTTP + `graphql-ws`) + Bull/ioredis + firebase-admin 14; Jest con `mongodb-memory-server` (replica set) e Redis effimero; CI GitHub Actions (lint, unit, integration, build + diff schema, secret scan).
+- Il mondo vive solo nel DB (D-36): semina idempotente al boot, cura a DB, nessun seeder/migratore nel repo dopo il boot reale (resta il report nell'handoff).
+- Il processo dell'utente gira da `dist/` su `develop` (porta 3001): `npm run build` è vietato mentre gira; riavvio dall'orchestratore con build prima del TaskStop.
+- `test:cov` ≈ 630 s: solo in background; `npm run lint` e il filtro jest hanno trappole note (memoria dell'orchestratore).
+- Handoff FE in `.planning/phases/NN-<slug>/BACKEND-NOTES.md` dei due repo; le regole di gioco dette dall'utente diventano D-NN.
+
 ### Roadmap Evolution
 
-- Phase 02.1 inserted after Phase 2: Character Creation Contract (URGENT) — 2026-10-09, richiesto dalla FE Phase 2 (nessuna mutation di creazione personaggio esisteva); branch `feat/02.1-character-creation-contract`
-- Phase 03.1 inserted after Phase 3: Character Deletion Contract (URGENT) — 2026-10-15, richiesto dalla FE Phase 4 (SET-05: cancellazione esplicita del personaggio dalle impostazioni; nessuna mutation di cancellazione esisteva); branch `feat/03.1-character-deletion-contract`
-- Phase 09.2 inserted after Phase 9.1: Quest Result Delivery Contract — 2026-10-27, richiesto dalla FE Phase 9 (COMBAT-09/10: risultati non confermati + ack, posti delle quest avviate mantenuti dall'archivio); branch `feat/09.2-quest-result-delivery-contract`; la Phase 10 si sposta sopra (stacked)
-- Phases 11–16 added 2026-10-29 (user request, before closing v1.0): 11 Popolamento del mondo (contenuto dal documento `World building.docx`, script idempotente, intake delle voci nuove dell'utente), 12 Negozi per città (↔ FE 13), 13 Generazione quest con `infos.enemies` al posto di `infos.enemy` (↔ FE 14), 14 Viaggio e cibo (↔ FE 15), 15 Imboscate in viaggio (↔ FE 16), 16 Lore sbloccabili (↔ FE 17). Ordine deciso dall'utente 11 → 16; contratti del discuss del 2026-10-29 nei dettagli di fase della ROADMAP. Scritte sul branch `docs/v1-world-phases` (worktree) mentre l'executor della Phase 10 girava su `feat/10-hardening`; non riportate prima della PR #16: fuse in `feat/11-popolamento-del-mondo` (da `develop` `4dc7e89`) con `b55d47b` il 2026-11-01.
-- Phase 13.1 inserted after Phase 13: Correzioni generazione quest (URGENT) — 2026-11-05, dalla UAT su device della FE Phase 14 (animali nelle quest generate, fasce con buchi, capitali come i villaggi, tabellone del mondo intero, hunt e dungeon da rivedere); branch `feat/13.1-correzioni-generazione-quest` da `develop` `162c1f5`; decisioni in `13.1-CONTEXT.md`
+- v1.0: 10 fasi dalla roadmap del 2026-07-16, inserite 2.1 (2026-10-09), 3.1 (2026-10-15), 9.1 e 9.2 (2026-10-27), estensione con le Phase 11–16 (2026-10-29), inserita 13.1 (2026-11-05), Phase 17 aggiunta il 2026-11-09 come companion della FE Phase 12 Hardening. Dettagli in `milestones/v1.0-ROADMAP.md`.
+- 2026-11-10: milestone archiviata; `REQUIREMENTS.md` rimosso (lo ricrea `/gsd-new-milestone`).
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per piano delle fasi v1.0 sono nei `NN-CONTEXT.md` e nei SUMMARY delle fasi.
 
-- [Phase 1]: Test con mongodb-memory-server in modalità replica set (change stream + transazioni); Bull mockato al confine DI negli unit + Redis effimero reale nei processor test (ioredis-mock NON viabile per Bull).
-- [Phase 2]: Auth = JWT di sessione proprio; il login Twitch è **mediato dal BE** (authorization code scambiato lato server + login ticket monouso legato a challenge S256 — Twitch non supporta PKCE e richiede `client_secret`, D-01); dev bypass fail-closed compatibile con lo stub FE `DEV_AUTH_ACCESS_TOKEN`.
-- [Phase 8]: Il DB (`endTime` persistito) è la fonte di verità dei timer viaggio; il job Bull è solo un trigger + reconciler al boot.
-- [Phase 01]: Harness test: MongoMemoryReplSet single-node condiviso via globalSetup; split Jest unit/integration via projects; Redis effimero dietro env; pre-create collection prima delle transazioni multi-doc su replSet.
-- [Phase 01]: Fixture two-tier buildX/persistX deterministiche per i 6 modelli; Character con xp:20000 (virtual maxActiveSpells) e location POI reale via persistCharacter
-- [Phase 01]: Fix D-06 minimale (solo riordino validazione useSpell, RED->GREEN); attesa job Bull via polling documento (no job.finished, evita open handle); processor test senza CharactersService per non aprire il change stream
-- [Phase 01]: CI GitHub Actions: lint+unit+integration su ogni push+PR, Redis service container reale (redis:7), cache binari mongodb-memory-server con MONGOMS_VERSION pinnata (8.0.4); dir vuota src/spellRecovery/ rimossa
-- [Phase 02]: Boot fail-closed: validateEnv (ConfigModule.forRoot validate) delega a parseAuthConfig puro; JWT_SECRET >= 32, DEV_AUTH_ENABLED solo === 'true' e vietato in production, Twitch opzionale (twitch: null), APP_AUTH_REDIRECT_URL solo deep link
-- [Phase 02]: Identità User: indice unico su twitchId + findOneAndUpdate upsert atomico con un solo retry su E11000 (findOrCreateByTwitchId / upsertWithRole)
-- [Phase 02]: Sessioni BE: solo sha256 del refresh token opaco; rotate atomico (current → grace 30s ancorata alla prima rotazione); riuso fuori grace revoca l'intera sessione (SESSION_REVOKED); ogni query filtra revokedAt null + expiresAt > now
-- [Phase 02]: Riferimenti ObjectId nei @Prop: usare MongooseSchema.Types.ObjectId (Types.ObjectId diventa Mixed in Mongoose 8, niente cast)
-- [Phase 02]: D-32: TwitchIdIndexVerifier al boot logga i twitchId duplicati se l'indice unico non si costruisce, senza bloccare l'avvio
-- [Phase 02]: Single AuthIdentityResolver (dev strategy first, then HS256 session JWT) is the only bearer-to-identity path for HTTP, REST and WS
-- [Phase 02]: graphql-ws onConnect returns false on any auth failure (close 4403), per-socket timer closes 4401 'Token expired' at JWT exp
-- [Phase 02]: Login ticket monouso: findOneAndDelete atomico con filtro expiresAt > now, consumato prima del controllo S256 del verifier; a DB solo sha256
-- [Phase 02]: TwitchOAuthClient classe astratta come token DI; HttpTwitchOAuthClient normalizza ogni errore (status, rete, timeout, JSON) in TwitchOAuthError senza code/token/secret
-- [Phase 02]: AuthModule not imported by AppModule until 02-06; Twitch REST flow always 302s to config.appAuthRedirectUrl with typed error codes
-- [Phase 02]: Auth integration tests use createAuthTestApp (isolated Nest app, fake Twitch, shared auth-test DB dropped on close)
-- [Phase 02]: AppModule and auth test harness share createGraphQLOptions (forRootAsync + WsConnectionAuthenticator hooks); installSubscriptionHandlers removed
-- [Phase 02]: formatAuthError restores AuthErrorCode on the wire and strips originalError/stacktrace
-- [Phase 02]: Real AppModule boot test loads AppModule via jest.requireActual after setting env (native import() unsupported in Jest CJS)
-- [Phase 02]: AuthGuard is a deny-by-default APP_GUARD; the WS branch trusts only extra.identity (re-checking expiresAt), HTTP/REST reuse AuthIdentityResolver.resolveBearer
-- [Phase 02]: Public whitelist is exactly 5 handlers (AppController.getHello, AuthResolver.exchangeLoginTicket/refreshSession, TwitchAuthController.start/callback), asserted on the real AppModule
-- [Phase 02]: WS auth contract proven on real sockets: 4403 Forbidden at connect, 4401 Token expired on live socket; legacy graphql-ws subprotocol never acknowledged (client sees 1006, server closes 4406)
-- [Phase 02]: CI builds the project and fails if committed src/schema.gql differs from the one regenerated by the real-boot test
-- [Phase 02]: BACKEND-NOTES: malformed/unknown refresh token answers SESSION_EXPIRED; only SESSION_EXPIRED/SESSION_REVOKED are terminal on refresh
-- [Phase 02]: D-35 implemented (02-10): previous refresh token inside the 30 s grace gets the current token back (derived HKDF+HMAC, verified against hash, no write); unrebuildable token -> SESSION_EXPIRED without revoke
-- [Phase 02.1]: formatDomainError: solo HttpException con extensions.code stringa diventano codici di dominio sul wire; fallback body Nest limitato agli AuthErrorCode
-- [Phase 02.1]: isDuplicateKeyOn riconosce E11000 per path via keyPattern/errorResponse.keyPattern, mai via chiave collation opaca
-- [Phase 02.1]: CharacterCreationException extends BadRequestException (400) con extensions.code; RACE_TRAITS e RACE_HOME_CITY_TYPES in un unico modulo puro src/characters/creation/race-traits.ts
-- [Phase 02.1]: createAuthTestApp accetta imports (moduli feature senza Bull) e overrides generici di provider; fixture City two-tier con POI reale come markerLocation
-- [Phase 02.1]: Starting location: flat pick among existing home cities sorted by _id, only ObjectId markers with existing POI (02.1-05)
-- [Phase 02.1]: Unicità del nome personaggio = indice unico character_name_ci_unique (collation en/2); il verifier di boot non logga mai i nomi in collisione
-- [Phase 02.1]: createCharacter: transazione claim-then-insert (User con currentCharacter null prima, poi Character con _id pre-generato); nessun pre-check del nome, E11000 su infos.name → CHARACTER_NAME_TAKEN
-- [Phase 02.1]: Nessuna divergenza di nomi con la proposta FE: BACKEND-NOTES FE non toccato (D-13)
-- [Phase 02.1]: Handoff: sullo User restituito da createCharacter selezionare solo currentCharacter { id } + scalari di infos
-- [Phase 04]: GameRuleErrorCode è un enum TS puro (nessun registerEnumType); coinsDeltaStages tipizzato UpdateWithAggregationPipeline; limite $toInt 2^31 rame accettato
-- [Phase 04]: WalletService è l'unico scrittore dei saldi: coins con un solo findOneAndUpdate condizionale (pipeline coinsDeltaStages), twitchPoints con $inc guardato da $gte; session opzionale; importi punti validati nel service (intero > 0)
-- [Phase 04]: 04-03: classifyUnequipSpellFailure takes only the snapshot (single guard 'active')
-- [Phase 04]: 04-03: malformed ids short-circuit without DB access: equipSpell SPELL_NOT_KNOWN, unequipSpell SPELL_NOT_ACTIVE, equipItem ITEM_NOT_OWNED, character NOT_FOUND
-- [Phase 04]: Trade planner puro in src/economy/trade: prezzo solo dal catalogo, totale client solo cross-check, guard $elemMatch $gte per le vendite
-- [Phase 04]: useSpell: spellId malformato → SPELL_NOT_ACTIVE; compensazione con recoverSpellFilter (mai oltre maxUsages), fallimento loggato con soli id
-- [Phase 04]: Payload job spell-recovery invariato (id stringa); il processor salta job malformati con warn
-- [Phase 04]: ShopTransactionService: catalogo e controlli puri fuori dalla transazione, inventario con soldQuantityGuards + delta coins via WalletService nella stessa session (Pattern 3)
-- [Phase 04]: 04-07: accettazione quest single-flight in transazione (claim slot pendingQuest null → insert PendingQuest → debito wallet), waitingTime = timeToComplete ?? 0 (A1), nessuna superficie GraphQL (D-09)
-- [Phase 04]: 04-08: doTransaction delega a ShopTransactionService; fixture ownership/archived a scambio vuoto totale zero (A2)
-- [Phase 04]: Phase 4 gate verde (unit 54/625, int 41/472, build, lint 58 file, schema diff 0); BACKEND-NOTES consegnato, BE-ATOM-01..05 Complete
-- [Phase 05]: 05-01: parsePushConfig fail-closed (prod senza FIREBASE_SERVICE_ACCOUNT → boot rifiutato, dev/test → serviceAccount null), messaggi fissi senza eco del valore; readEnvKeys condiviso da auth e push
-- [Phase 05]: 05-02: PushException (HttpException, PUSH_INVALID_DEVICE_ID/PUSH_INVALID_TOKEN 400, PUSH_DISABLED 503) con extensions.code; validatore puro deviceId→token; catalogo Record<PushEventType> unico per copy/TTL (1h personali, 15min broadcast), streamerLive senza id
-- [Phase 05]: 05-03: porta PushTransport (classe astratta DI) con NoopPushTransport/FcmPushTransport/FakePushTransport; toFcmBase data-only (Android high ttl ms, APNs background prio 5 + expiration assoluta); FcmPushTransport non lancia mai sugli invii (codici stringa messaging/<code> o transport-error), connect() idempotente su app 'klimmeck-push'
-- [Phase 05]: 05-04: registro push_devices con indici unici (userId,deviceId) e token + TTL 270g su lastSeenAt; claim = deleteMany altri detentori ($nor) → upsert returnDocument before → un retry su E11000; PushDeviceIndexVerifier non bloccante (solo nome+codice errore)
-- [Phase 05]: 05-05: PushService best-effort (sendToUser batch 500 + pruning con regola del testimone per invalid-argument, broadcast su streamer-live), registerDevice/unregisterDevice con topic best-effort, sendTest PUSH_DISABLED/NOT_FOUND; log solo conteggi/codici/suffisso 6 caratteri
-- [Phase 05]: PushModule registers User locally (forFeature) so consumers do not pull UsersModule and its change stream
-- [Phase 05]: 05-07: PushModule montato in AppModule; src/schema.gql rigenerato con diff solo additivo (3 mutation, PushDeliveryReport, PushEventType, PushPlatform, 2 input); real-boot test con FIREBASE_SERVICE_ACCOUNT vuota → NoopPushTransport
-- [Phase 05]: 05-08: gate di fase verde (unit 66/807, int 43/515, build, eslint, schema drift 0); BACKEND-NOTES Phase 5 pubblicato; fuga di dati tra suite in spell-recovery.processor.int-spec corretta con afterEach
-- [Phase 06]: 06-01: parseEventSubConfig fail-closed a tre modalità (disabled/local/managed): prod senza EventSub o config parziale → boot rifiutato, callback http loopback fuori prod = local senza Helix, managed legge TWITCH_CLIENT_ID/SECRET direttamente; TWITCH_LOGIN_SCOPES → scope dell'authorize url; url-rules condiviso
-- [Phase 06]: 06-02: funzioni pure del webhook: readEventSubHeaders (4 header stringa singola non vuota ≤ 200, subscription-type ignorato), verifyEventSubSignature HMAC sui byte grezzi + controllo lunghezza + timingSafeEqual + replay 10 min / +60 s, parseNotification a tipo discriminato con dispatch via Map (solo stringhe validate e interi positivi sicuri); fixture firmate condivise in test/eventsub
-- [Phase 06]: 06-03: ledger eventsub_messages (indice unico messageId, unico parziale {type,eventId} per C7, TTL 604800 s) costruito da EventSubMessageIndexVerifier non bloccante; PointsCreditService: lookup twitchId fuori transazione, poi insert di dedup + WalletService.creditUserPoints nella stessa transazione, E11000 su messageId/eventId ⇒ duplicate, ResourceNotFoundException ⇒ unknownViewer, altri errori rilanciati; StreamOnlineRecorder insert singolo; servizi senza Logger (i log li fa il webhook)
-- [Phase 06]: 06-04: porta astratta TwitchHelixClient (token DI) con TwitchHelixError {status} e describeHelixError (errori estranei ridotti al name); helper twitch-http senza cause; TwitchAppTokenCache client credentials su TWITCH_TOKEN_URL con clientId/clientSecret di EventSubConfig managed, solo in memoria, margine 5 min, single-flight, nessuna promessa fallita in cache, expires_in assente o 0 => nessun riuso; HttpTwitchHelixClient: Bearer + Client-Id, timeout 5 s per richiesta (anche nel retry), cursore con tetto 20 pagine, 401 => invalidate + un retry, DELETE 404 idempotente, 202 senza subscription => errore, mapping difensivo; FakeTwitchHelixClient con gli stessi messaggi del client reale
-- [Phase 06]: 06-05: planReconciliation pura: per ogni tipo desiderato le subscription possedute (webhook, stesso tipo, stesso broadcaster) ordinate per createdAt/id; si tiene una sola (la più vecchia enabled, altrimenti pending, fra le esatte sul callback normalizzato con new URL().href), tutte le altre possedute rimosse, create se nessuna tenuta, non possedute ignorate; EventSubSubscriptionManager: boot con void reconcileSafely, setInterval unref (0 = nessun timer) pulito in onModuleDestroy, single-flight con un rerun, delete prima delle create, 409 WARN, 403 redemption ERROR con STREAMER_SCOPE_REMEDY, riepilogo solo tipo/id/status, nessuna chiamata Helix fuori da managed
-- [Phase 06]: 06-06: EventSubWebhookService.handle restituisce un WebhookReply discriminato (challenge/noContent/forbidden/retryLater) e non lancia mai (try/catch esterno → retryLater con describeMongoError); disabled → forbidden, poi header e firma prima di ogni ramo (nessun messageId nei log dei rifiuti), routing su messageTypeOf (type guard), revocation → ERROR (+ STREAMER_SCOPE_REMEDY solo per authorization_revoked sulla redemption) e void reconcileSafely, broadcaster diverso → WARN 204, unknownViewer/duplicate solo DEBUG, retryLater solo su errore DB, stream.online recorded → void broadcast(streamerLive()) con catch WARN; EventSubStartupReporter WARN disabled/local, LOG managed, nessun secret
-- [Phase 06]: 06-07: EventSubController sottile (@Res, 200 text/plain col solo challenge, 204/403/500 con end()), decoratore pubblico solo su receive; EventSubModule foglia (EconomyModule, PushModule, forFeature EventSubMessage+User, Clock locale, Helix -> HttpTwitchHelixClient) non ancora in AppModule; harness createAuthTestApp con rawBody: true incondizionato (retrocompatibile, 46 suite verdi); createEventSubTestApp drena il reconcile di boot con manager.reconcile(); prova sul filo: 5 consegne concorrenti e C7 -> un credito, stream.online -> un topicSends streamer-live, revocation -> delete+create
-- [Phase 06]: 06-08: EventSubModule montato in AppModule subito dopo PushModule; NestFactory.create(AppModule, { rawBody: true }) e real boot con createNestApplication({ rawBody: true }) speculare; whitelist @Public a 6 voci con EventSubController.receive, publicClasses vuoto; spie passthrough su fetch e Logger.prototype.warn prima del boot: disabled, WARN `EventSub disabled`, nessuna fetch verso twitch.tv, POST webhook -> 403 body vuoto; schema.gql invariato (D-16)
-- [Phase 06]: 06-09: gate di fase verde (unit 79/1098, int 46/550, build, lint filtrato 0, schema.gql invariato, invarianti); UAT 2026-10-20: test A (Twitch CLI locale) passed, test B (E2E managed) e C (C4) differiti a prima della produzione, 06-HUMAN-UAT `status: partial`; ogni ambiente richiede `roles/firebasecloudmessaging.admin` sul service account Firebase per i topic FCM (`roles/firebasenotifications.admin` non basta)
-- [Phase 07]: 07-01: corsie activeStoryQuest/activeWorldMissionQuest (ref MongooseSchema.Types.ObjectId, default null), PendingQuest.pointsSpent Int! default 0, QuestRequirements.party: [QuestPartySlot!]! (title String! dell'enum TitleType, count min 1, default []), Quest.registrations interno senza @Field (mai in src/schema.gql); schema.gql solo additivo
-- [Phase 07]: 07-02: regole pure di accettazione in src/quests/acceptance (corsia dal solo QuestType, titolo esatto per story e >= altrove, costo intero 1..2147483647 altrimenti invalid, slot esatti per rango), 5 codici nuovi (QUEST_FULL, QUEST_ALREADY_TAKEN, QUEST_TITLE_MISMATCH, QUEST_NOT_IN_CITY, QUEST_NOT_ACCEPTABLE); ordine pre-verifica ALREADY_TAKEN → TITLE_MISMATCH → SLOT_BUSY → FULL, dopo un claim fallito SLOT_BUSY per primo
-- [Phase 07]: 07-03: CHARACTER_QUESTS_POPULATE (corsie da QUEST_LANES come PendingQuest con quest select '_id', completedQuests select '_id') in findOne/findAll: character, characters e characterUpdated risolvono quest { id }; ref orfano ⇒ null, elemento orfano scartato; PendingQuest/Quest in CharactersModule e harness; primeCharactersChangeStream condiviso in test/characters
-- [Phase 07]: 07-04: @OwnsCharacter(selectId, { ownerOnly: true }) con ownerOnly in OWNERSHIP_KEY (default false, bypass innkeeper D-09 invariato altrove): innkeeper su personaggio altrui ⇒ FORBIDDEN/NOT_FOUND, mai onBehalf né audit; pendingQuest(id) riconosce il proprietario sulle tre corsie (proiezione da QUEST_LANES, C4)
-- [Phase 07]: 07-05: query serverTime: DateTime! autenticata (AuthGuard globale, nessun @Public, whitelist invariate) in ServerTimeModule con Clock locale (SystemClock), resolver sincrono su Clock.now(); montata in AppModule dopo QuestAcceptanceModule, schema.gql +1 riga (D-15)
-- [Phase 07]: 07-06: QuestAcceptanceService.accept({ ownerId, characterId, questId }) lane-aware: pre-letture lean → regole pure → costo validato prima della transazione (QUEST_NOT_ACCEPTABLE + WARN con solo id e corsia) → città del marker in una query cities.exists → transazione claim → registrazione $expr (solo condivise) → PendingQuest con pointsSpent → debitUserPoints(ownerId, cost, session); Character.coins mai toccato, costCopper rimosso (D-08, D-18)
-- [Phase 07]: 07-07: acceptQuest(request: AcceptQuestRequest { id, questId }): CommonResponse! owner-only in QuestAcceptanceResolver (QuestAcceptanceModule + AuthzModule), resolver senza logica (objectIdFromHex/requireCharacterObjectId ⇒ NOT_FOUND); corsia su characterUpdated, saldo su userUpdated; real boot con EXPECTED_OWNER_ONLY_HANDLERS e SDL additivo (D-11, D-12, C5)
-- [Phase 07]: 07-08: gate di fase verde — unit 85 suite / 1259 test, integration 49 / 606 (dopo l'aggiornamento dell'aspettativa obsoleta delle corsie in character-creation.resolver.int-spec.ts, solo test), build ok, lint filtrato 0 righe, schema.gql senza drift e solo additivo, un solo ownerOnly, @Public 7 = develop, nessuna dipendenza nuova; BACKEND-NOTES.md per FE Phase 6 e BE 8/9, BE-QUEST-01..04 Complete, 07-VALIDATION approved
-- [Phase 08]: 08-01: contratto SDL in Wave 1 — CharacterStatus.activeTravel: ActiveTravel { duration Float! ms, endTime, road: TravelPath { coordinates [[Float!]!]!, distance km }, startTime, to: ID! (hex del POI, nessun populate) }, kind (free|quest) persistito ma mai su GraphQL; PendingQuest.startDate e Pet.speedModifier nullable default null; requiredAdventurers: [QuestPartySlot!]! con title nullable (jolly), registeredAdventurers: [QuestRegistration!]! { character: ID!, title }; party/registrations rimossi; diff SDL vs develop = solo le 5 righe D-20; int-spec di src/quests/acceptance rotte fino a 08-06
-- [Phase 08]: 08-02: codici D-19 (TRAVEL_IN_PROGRESS, TRAVEL_SAME_LOCATION, TRAVEL_DESTINATION_NOT_ALLOWED, TRAVEL_NO_PATH, QUEST_IN_PROGRESS) con messaggi italiani fissi, ResourceNotFoundException.pointOfInterest 'Luogo non trovato', refIdOf condiviso in src/mongo/document-id.ts; quest-capacity.ts puro (slotsOf fail-closed, slotRuleOf, hasSeatFor D-32 slot esatti prima dei jolly, isFullForEveryone, seatAvailableExpr specchio $expr) pronto per 08-06
-- [Phase 08]: 08-04: RoadsService.routeBetween(from, to): RoadRoute | null (mai eccezioni: grafo assente, snap > 5 km, stesso nodo, nessun cammino ⇒ null) su routeOf puro in src/roads/road-route.ts; polilinea orientata con estremi = POI originali, km/ore solo sugli archi; lightestEdge = arco parallelo di peso minimo (graphology elenca i paralleli dal più recente); getShortestPath invariato; RoadsModule registra PointOfInterest (C3)
-- [Phase 08]: 08-03: catalogo quest D-31 — QUEST_CATALOG_POPULATE (markerLocation, enemy, relatedLore, item di recommendedLoot/prizeItem/randomLoot) con cloni assetQuantitySchemaAt(path) a refPath assoluto (AssetQuantitySchema originale invariato), dropOrphanCatalogRefs (enemy null, voci orfane scartate, prizeItem null), quest(id) malformato/inesistente ⇒ NOT_FOUND 'Missione non trovata', QuestsModule registra i 6 modelli; schema.gql invariato
-- [Phase 08]: 08-05: regole pure del viaggio in src/travel — speedOf (10 × speedModifier, fallback 10 con invalid), durationMsOf round(baseHours×3.6e6×10/speed), buildActiveTravel (duration = endTime − startTime), classifyFreeTravel DESTINATION_NOT_ALLOWED → TRAVEL_IN_PROGRESS → QUEST_IN_PROGRESS → SAME_LOCATION → NO_PATH; filtri puri di avvio/completamento (identità startTime+endTime, endTime ≤ now, pipeline $status.activeTravel.to)/countdown/teleport (solo pendingQuest blocca)/scaduti, mai $$NOW; job Bull coda 'travel', job 'complete', jobId travel-<hex>-<startMs>, travelJobDataOf valida i dati; TRAVEL_SWEEP_INTERVAL_MS opzionale fail-closed (vuota 60000, 0 = off, max 2147483647)
-- [Phase 08]: 08-06: accettazione a slot D-32 — REGISTERED_TYPES { worldMission, boss, enemy, aid }, registrationRuleOf ('invalid' ⇒ QUEST_NOT_ACCEPTABLE prima della transazione, WARN con solo id), TRAVEL_IN_PROGRESS prima regola e 'status.activeTravel': null nel filtro di ogni corsia, città del marker solo per QuestLane.standard (story/worldMission da qualunque città), registrationFilter $expr = seatAvailableExpr su registeredAdventurers { character, title }; int-spec di src/quests/acceptance di nuovo verdi
-- [Phase 08]: 08-07: archiveCurrentCharacter libera i posti (D-30) con updateMany + $pull su registeredAdventurers.character nella stessa session dell'archivio, solo se il personaggio è stato archiviato; Quest nel forFeature di CharacterDeletionModule; PendingQuest e activeTravel restano sul documento archiviato
-- [Phase 08]: 08-08: TravelPlanner (planFree lean senza scritture: NOT_FOUND personaggio/luogo, poi classifyFreeTravel, rotta da routeBetween, velocità dal pet con WARN solo per modificatore invalido; planAuto null + WARN coi soli id = salto istantaneo) e TravelScheduler (jobId travel-<hex>-<startMs>, delay max(0, endTime − clock), removeOnComplete, mai throw; cancel best-effort) in TravelPlanningModule (coda 'travel' esportata, RoadsModule, Clock locale, senza PushModule C6); helper di test persistTravelWorld, FakeTravelQueue, buildPet/persistPet
-- [Phase 08]: 08-09: TravelCompletionService.complete = un findOneAndUpdate condizionale (identità startTime+endTime, endTime ≤ clock, attivo) a pipeline in connection.transaction con returnDocument before; countdown quest a endTime pianificato nella stessa session solo se startDate null; push travelEnd solo kind free, dopo il commit, solo dalla chiamata che ha matchato (owner via currentCharacter); TravelSweeper reconciler al boot (void) + setInterval unref single-flight (0 = off), completamenti in serie con errore loggato per id+codice; TravelModule (Character/PendingQuest/User, PushModule, TRAVEL_CONFIG, Clock locale) esporta completion e sweeper, non ancora in AppModule
-- [Phase 08]: 08-10: TravelCompletionProcessor (@Processor('travel') @Process('complete')) = solo trigger: travelJobDataOf ⇒ WARN `Job di viaggio <job.id> malformato: ignorato`, endTime > clock ⇒ LOG `Job di viaggio <jobId> in anticipo: lo completerà lo sweep` senza scritture né ri-accodamento (C10), altrimenti TravelCompletionService.complete; TravelModule importa TravelPlanningModule (coda) ed è montato in AppModule dopo QuestAcceptanceModule; real boot con TRAVEL_SWEEP_INTERVAL_MS='0', schema.gql invariato; prova su Redis effimero reale con SystemClock e polling
-- [Phase 08]: 08-11: accept esteso (non duplicato) col viaggio automatico della sola corsia standard — movementTo/planAuto prima della transazione, LaneMovement nello stesso $set del claim (status.activeTravel per il viaggio, status.location = marker per il salto senza strada con WARN coi soli id), PendingQuest con startDate null in viaggio e ora altrimenti (marker = posizione ⇒ nessun movimento), scheduler.schedule dopo il commit (best-effort, lo sweep copre); QuestAcceptanceModule importa TravelPlanningModule, mai PushModule (C6); nessuna asserzione esistente da adattare, schema.gql invariato
-- [Phase 08]: 08-12: startTravel (Mutation) / travelPreview (Query) owner-only (D-18) in TravelResolver, TravelModule importa AuthzModule ed esporta TravelService; avvio = planFree + un solo findOneAndUpdate condizionale + schedule best-effort; preview stesso piano senza scritture; TravelRequest { id, poiId } riusabile dal teleport; poiId malformato ⇒ NOT_FOUND 'Luogo non trovato'; schema.gql solo additivo
-- [Phase 08]: 08-13: teleportCharacter(request: TravelRequest!) @Roles(innkeeper) in TravelAdminResolver; TravelService.teleport = esistenza POI + un solo findOneAndUpdate condizionale (attivo, pendingQuest null) con returnDocument before + scheduler.cancel best-effort dallo startTime before; qualsiasi POI (TravelModule registra PointOfInterest); audit target { type: 'CommonResponse', id: null } con args.request; nessuna push, nessuna scrittura quest; SDL +1 riga
-- [Phase 08]: 08-14: gate finale verde senza fix (unit 95/1415, int 57/739); BACKEND-NOTES con dati UAT in §11 e scala delle durate (speedFactor e geometria come sole leve) in §8; BE-TRAVEL-01..04 Complete
-- [Phase 09]: 09-01: SDL additivo di Wave 1 — CharacterStatus.awaitingAid (AwaitingAid { aidQuest, quest, since }) e QuestPrizes.spell (populate prizes.spell, Spell registrato in QuestsModule); Quest.concludedAt/rescue interni senza @Field; QuestResult (collection questresults, 7 ref MongooseSchema.Types.ObjectId, refPath assoluti) + enum QuestOutcome, non ancora nello schema (09-06); slot magia solo da mage (maxActiveSpellsFor(xp, title), $cond sul titolo vivo nel filtro, proiezione status.title), fixture resta rookie e le suite delle magie passano title mage
-- [Phase 09]: 09-08: AWAITING_AID nel viaggio dopo la meta ammessa (classifyFreeTravel, startTravelFilter 'status.awaitingAid': null, classifyUnstarted) e come prima regola dell'accettazione (classifyEligibility, laneClaimFilter, classifyUnclaimed); teleportFilter invariato (D-07); velocità = pet × travelSpeedFactorOf(injuries) su planFree e planAuto (AutoTravelRequest.injuries, D-15); readQuest/registrationFilter/QuestsService con concludedAt: null, classifyUnregistered → NOT_FOUND su quest conclusa (D-06, C9)
-- [Phase 09]: 09-07: coda live dell'innkeeper — read model piatto PendingRequest* (nessun @Schema, nessun populate) da quattro letture lean (personaggi attivi con corsia story/worldMission, PendingQuest, quest, utenti per currentCharacter con idForms); voci con PendingQuest/quest/utente/location mancanti saltate con WARN di soli id; pendingRequests + pendingRequestsUpdated (subscribeWithSnapshot) @Roles(innkeeper) in PendingRequestsResolver; PendingRequestsPublisher su change stream insert/delete di pendingquests con ricalcolo single-flight con rerun; PendingRequestsModule in AppModule dopo QuestResultsModule, esporta il servizio per 09-15
-- [Phase 09]: 09-12: OutcomeWriter è l'unico punto delle scritture dell'esito (findOneAndUpdate condizionale → StaleResolution, WalletService con session, QuestResult nella stessa session, deleteOne della PendingQuest, updateQuest claim|bestEffort, createAid) e della consegna dopo il commit (push questEnd(resultId) per risultato, aid-timeout, recover sulla coda spell-recovery con withinTimeout, best-effort per voce); QuestResolutionService.resolveIndividual rilegge il trigger dal DB (startDate uguale, scadenza ≤ Clock, personaggio attivo in corsia, proprietario), cataloghi fuori dalla transazione, combattimento dalla porta dentro il callback (esito per characterId), sconfitta = awaitingAid + aid clonata; QuestOutcomesModule senza change stream, non montato (09-14); ogni harness degli esiti usa QUIET_OUTCOME_OVERRIDES (createOutcomeHarness)
-- [Phase 09]: 09-13: resolveStandard è l'unico ingresso dei trigger standard (resolutionKindOf: boss → gruppo, aid con rescue → soccorso, resto → individuale); il boss si risolve in una transazione per gruppo con claim questClaimFilter + $size in modalità 'claim', esiti per characterId, registrati incoerenti o senza proprietario rimossi con WARN (questUpdateOf dropped); soccorso riuscito = ferito liberato al marker della città con HP invariati e risultato 'rescued'; soccorso fallito = dieWithin (proprietario in sessione, archiveWithin death, risultato 'death') e nuova aid al soccorritore clonata dall'originale (o dalla aid se l'originale non c'è); timeoutAid = claim aidTimeoutClaimFilter + dieWithin, sospeso con un soccorritore registrato (C5); ferito già scollegato = no-op loggato (C1)
-- [Phase 09]: 09-15: completePendingRequest (innkeeper, audit automatico con target QuestResult) chiama GmCompletionService: story = il solo titolare, worldMission = tutti i personaggi attivi con una PendingQuest della quest in corsia; override del GM (hpAfter 1..maxLifePoints, ferite, consumi e magie entro il posseduto) validati da validateOverrides prima di ogni scrittura e di nuovo sugli snapshot in sessione, poi passati come ParticipantOutcome 'success' a planParticipant (verdetto gmCompleted, aid null); una transazione per l'intera richiesta, StaleResolution ⇒ NOT_FOUND al perdente; le magie degli override ricevono il job di recupero anche senza nemico (recoveryTimesOf); PendingRequestsModule importa QuestOutcomesModule e QuestResultsReadModule, ogni suo harness usa push/code finte e QUIET_OUTCOME_OVERRIDES
-- [Phase 09]: 09-16: gate di fase verde senza correzioni di codice; handoff BACKEND-NOTES.md (SDL verbatim, codici, esiti, regole segnaposto, dati UAT mongosh con placeholder); handoff Phase 5 emendato (questEnd con l'id del risultato, nessun combatResult); traceability BE-COMBAT-01..03 / BE-ADMIN-01..02 Complete; la morte ha un unico punto archiveWithin (dieWithin) per aid fallita e timeout
-- [Phase 09]: 09-17: CombatResolver returns CombatResolution { verdict, participants: ParticipantEffects[] } — one verdict per fight (A3, user 2026-10-25), effects per participant; placeholder rolls victory once; ScriptedCombatResolver.willEnd; C5 confirmed (suspension = cancellation while a rescuer is registered); A2 placeholders stay provisional
-- [Phase 09]: 09-18: one aid per lost fight — Quest.rescue { characters: [Character], failedQuest }, aid seats = Σ count of the failed quest's requiredAdventurers (min 1, wildcard), group rescue on the shared roster reader (resolves when every registered rescuer is due, one verdict), success frees every wounded (rescuedCharacters on each rescuer's result), failure kills every wounded and chains ONE new aid for the rescuers, timeout kills every wounded, archiver pulls the wounded and concludes the aid only when none is left; SDL rescuedCharacter → rescuedCharacters (born in this PR, additive vs develop); resolving without a full party is transitional until plan 09-19 (user rule 2026-10-25: the party must be complete to start)
-- [Phase 09]: 09-19: registered standard quests (boss, aid, enemy) start only with every seat taken and everyone on the marker — PendingQuest.arrivedAt (wire) marks the arrival, QuestStartService is the only writer of the standard lane startDate (same startDate = latest arrival, internal Quest.startedAt identity claim, resolve jobs only there), started quests take no registration (QUEST_FULL), a lost boss resets startedAt; abandonQuest owner-only while waiting on the marker (QUEST_NOT_WAITING otherwise); QuestRegistration.registeredAt (wire) opens a 24h window (party-timeout job + sweep with one-time legacy backfill) after which the party is disbanded with push questCancelled (id = quest id) and the quest stays on the board, rescuer parties included; aid timer suspended only by a started rescue with rescuers (C5 revised), an expired incomplete rescue party is released; the archive resets startedAt on open quests left empty; technical defaults proposed to the user 2026-10-25 in 09-CONTEXT
-- [Phase 09]: 09-20: user decisions 2026-10-26 — the aid copies the failed quest's requiredAdventurers as they are (aidSlotsOf, rank slots included, fresh objects; no valid slots ⇒ [{ title: null, count: 1 }]), superseding the 09-18 wildcard-sum default; live party counter via questUpdated(questId: String!): Quest! (snapshot at subscribe through subscribeWithSnapshot, QuestsPublisher change stream on quests update/replace re-reading QuestsService.findOne, concluded ⇒ debug + no publish, NOT_FOUND on concluded/malformed id, any authenticated user, 4403 without bearer); abandon only on the marker confirmed
+## Open Questions / Blockers
 
-### Pending Todos
+- **Promemoria operativi di produzione (Phase 10):** conferma della tabella di policy Sightengine e dei default del throttler (`BACKEND-NOTES.md` §11 della Phase 10), una chiamata Sightengine reale, `THROTTLE_TRUST_PROXY` quando la topologia sarà nota; topologia Mongo (replica set) e policy Redis (eviction dei delayed job).
+- **EventSub:** E2E managed con tunnel HTTPS e verifica C4 prima della produzione (Phase 6).
+- **«Esci da tutti i dispositivi»** (mutation che revoca ogni sessione) — backlog dalla Phase 2, non necessaria finché «l'ultimo login caccia l'altro».
+- **Branch locali già mergiati** (23 `feat/*`, `fix/*`, `docs/*`) lasciati in place: cancellabili con `git branch -d`.
 
-[From .planning/todos/pending/ — ideas captured during sessions]
-
-None yet.
-
-### Blockers/Concerns
-
-[Issues that affect future work]
-
-- Conteggio requirement: REQUIREMENTS.md riporta "38 total" nella riga di summary, ma l'enumerazione effettiva dei BE-* ID è **42** (AUTH ha 6, ATOM ha 5, ecc.). La roadmap mappa tutti i 42. La riga di summary in REQUIREMENTS.md è stata corretta a 42.
-- Research flags da approfondire in planning: Phase 1 (replica-set CI flakiness), Phase 2 (context graphql-ws #1756), Phase 6 (Twitch Helix subscription lifecycle).
-- Verificare topologia MongoDB prod (replica set?) prima del layer transazioni; runtime Node prod (18/20 vs 22) per firebase-admin 13 vs 14; policy Redis prod (eviction dei delayed job Bull).
-- **Phase 2 — decisione D-26 in sospeso (finestra di grazia del refresh):** la variante attuale (30 s) ha un caso limite documentato (richiesta bloccata + retry → rotazioni in ordine inverso → logout forzato al refresh successivo; fail-closed). Opzioni A/B/C in `02-HUMAN-UAT.md` §4 e `BACKEND-NOTES.md` §9 (j). Le varianti A e B richiedono un plan di gap-closure.
-- **Phase 2 — UAT umane pendenti** (`02-HUMAN-UAT.md`): login Twitch reale (chiavi non ancora disponibili), pipeline GitHub Actions reale, controllo duplicati `twitchId` sui dati reali.
-- **Branch non pushati:** `feat/01-fondazione-test-consolidamento-spell-wip` e `feat/02-auth-identity-foundation` (la Phase 2 poggia sulla Phase 1, non ancora su `develop`); PR da aprire a mano verso `develop`.
-- `JWT_SECRET` (≥ 32 caratteri) è ora obbligatoria al boot su ogni ambiente; righe `.env` per il dev bypass in `BACKEND-NOTES.md` §7.
-- FE: branch `feat/party-waiting` (etichetta "In attesa del gruppo", abbandono, push questCancelled) da mergiare dopo la PR FE Phase 7 e la PR BE #13.
-- **Phase 10 — PR #16 fusa su `develop` il 2026-10-30 (`4dc7e89`); la FE Phase 10 l'ha consumata (piano 10-11, E2E su device 10/10 il 2026-11-01).** Le voci 1, 3, 4 e 5 della lista restano un promemoria operativo per l'utente (non bloccano le Phase 11–16); la lista originale:
-  1. migrazione dei ref secondo `docs/runbooks/mixed-refs-migration.md`: backup, poi copia ripristinata, poi produzione col codice attuale PRIMA del deploy; allegare alla PR i report JSON di `--verify` (copia e produzione); dopo il deploy di nuovo `--apply` + `--verify` e controllo del log del verificatore;
-  2. ~~primo `workflow_dispatch` di `Secret scan`~~ **FATTO il 2026-10-30** (commit e99ab5d): 1228 commit scansionati, 3 falsi positivi gestiti con allowlist `^\.planning/` e fingerprint del badge del template NestJS, nessun secret da ruotare; push, PR e dispatch verdi;
-  3. conferma della tabella di policy Sightengine e dei default del throttler (`BACKEND-NOTES.md` §11 della Phase 10, 10 voci);
-  4. una chiamata Sightengine reale per A2 (un'immagine accettabile e una da rifiutare, chiavi nel proprio `.env`);
-  5. `THROTTLE_TRUST_PROXY` da impostare quando la topologia di produzione sarà nota (vuota = spenta).
-  Dopo la merge: UAT del pannello del GM nella FE Phase 10 (piano gated 10-11).
-
-- **Phase 11 — completa il 2026-11-02, pipeline review → fix → security chiusa (`REVIEW.md`, `REVIEW-FIX.md` 34/39 corretti, `11-SECURITY.md` 93/96), PR #17 `feat/11-popolamento-del-mondo` → `develop` pronta per la review (FE #36 mergiata il 2026-11-02).** Ricarica dopo la review fatta il 2026-11-02 a BE fermo (4 lore + 23 quest, `--verify` 0/0, seconda `--apply` nulla, report `reports/11-fix-*.json`); hunt nei gruppi di una sola città (Ko Shaeras, Talmvere, Ferrion): restano senza per decisione dell'utente (D-35); file di contenuto, CLI, generatore e runbook tolti dal repo con `e857802` (D-36: il mondo vive solo nel database, strumento nella storia fino a `b4983d7`), la PR porta solo le modifiche applicative e `.planning/`. Il quick task FE (PR LucaTabbia/Klimmeck-Guide#36, branch `fix/lore-unlocked-field`), mergiato il 2026-11-02, toglie `unlocked` da `lib/graphql/queries/lore_queries.dart:9` e `lib/models/lore.dart` (`BACKEND-NOTES.md` §1); il contenuto è già nel DB reale (piano 11-24). Restano all'utente: revisione dei contenuti (581 quest contro la stima di 475, titolo doppio di Necrorian `6ae80db9da5c5f8cc552680c`, numeri da calibrare elencati nell'handoff), lettura dell'handoff, UAT sul device nelle FE Phase 13+.
-
-### Quick Tasks Completed
+### Quick Tasks Completed (v1.0)
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 261022-f0n | worldMission accettabile solo dalla sua città (D-26 emendata: solo la story da qualunque città; correzione utente) | 2026-10-22 | bc7b7f7 | [261022-f0n-worldmission-accettabile-solo-dalla-sua-](./quick/261022-f0n-worldmission-accettabile-solo-dalla-sua-/) |
+| 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |
 | 261105-hea | `heal` come nono `UseType` delle magie (regola dell'utente, revisione dei mostri 2026-11-05); nessuna modifica SDL; cura a DB delle magie di cura dopo la merge e la FE gemella | 2026-11-05 | 34adf5f | [261105-hea-spell-heal-use-type](./quick/261105-hea-spell-heal-use-type/) |
+| 261109-inj | `LootItem.canHeal: InjuryType[]` (campo già a DB, riusato su correzione dell'utente; `[InjuryType!]!` sullo schema, confermato al boot reale); solo il campo, meccanica di cura nella Phase 18; gemello FE | 2026-11-09 | branch `fix/…` gemello | [261109-inj-loot-effected-injuries](./quick/261109-inj-loot-effected-injuries/) |
+| 261109-inj2 | nove `InjuryType` nuovi (37) con effetti provvisori a DB; gemello FE | 2026-11-09 | branch gemello | [261109-inj2-new-injury-types](./quick/261109-inj2-new-injury-types/) |
+| 261109-cap | `ferrionCity` e `necrorianCity` a `CitySize.capital` (regola dell'utente nella UAT FE 12); nessun cambio SDL, Necrorian resta senza negozio, pool a DB non rigenerati | 2026-11-09 | PR #28 | [261109-cap-city-size-capitals](./quick/261109-cap-city-size-capitals/) |
 
 ## Session Continuity
 
-Last session: 2026-11-03T12:00:00.000Z
-Stopped at: Phase 12 execution complete (19/19), PR by the orchestrator after the post-execution review
-Resume file: .planning/phases/12-negozi-per-citta/BACKEND-NOTES.md
-| 261022-rhs | travel scheduler: Bull queue calls bounded by a 2 s timeout, Redis error logged once (UAT 2026-10-22: acceptQuest hung with Redis down) | 2026-10-22 | 2c77334 | [261022-rhs-travel-scheduler-bound-the-bull-queue-ca](./quick/261022-rhs-travel-scheduler-bound-the-bull-queue-ca/) |
+Last session: 2026-11-10 — chiusura della milestone v1.0 (FE poi BE)
+Stopped at: milestone archiviata; PR `docs/v1-milestone-close` → `develop` da mergiare, poi tag `v1.0`
+Resume file: .planning/MILESTONES.md
