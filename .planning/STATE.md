@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
 Phase: 18 di 20 (Quest heal per taglia) — EXECUTING dal 2026-11-10 su `feat/18-quest-heal-per-taglia` (da `develop` `86095d89` + l'apertura della milestone): 11 piani in 11 wave sequenziali (primitive della cura → modello → piano d'esito → modelli delle pozioni → lore per viewer → codici e `recoveryUntil` → `planItemUse` → `useItem` → heal senza effetto, regola e campo → gate e handoff)
-Plan: 5 of 11
+Plan: 6 of 11
 Status: Executing Phase 18 — wave sequenziali; SDL solo additivo; FE Phase 18 in esecuzione nella stessa sessione su `feat/18-heal-quests-by-size` (i suoi piani 18-12/18-13 aspettano la merge di questa fase)
 Last activity: 2026-11-10 -- Phase 18 execution started (pianificata lo stesso giorno: ricerca, 11 piani, plan check passato)
 Next step: eseguire 18-01..18-11, poi review → fix → verify → security e PR verso `develop`; dopo la merge l'orchestratore applica a DB il contenuto (heal per taglia, `recovery` delle pozioni, lore «Il limite del corpo») dopo la revisione dell'utente.
