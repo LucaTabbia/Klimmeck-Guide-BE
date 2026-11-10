@@ -37,3 +37,16 @@ describe('character status potion recovery', () => {
         expect(stored?.getTime()).toBe(until.getTime());
     });
 });
+
+describe('character status imprisonment', () => {
+    it('defaults the prison release of a character to null (quick 261110-cgd)', () => {
+        const character = new PotionRecoveryCharacterProbe(
+            buildCharacter(),
+        ).toObject();
+
+        expect(character.status.imprisonedUntil).toBeNull();
+        expect(CharacterStatusSchema.path('imprisonedUntil').instance).toBe(
+            'Date',
+        );
+    });
+});

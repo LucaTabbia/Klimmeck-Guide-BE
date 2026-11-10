@@ -152,6 +152,40 @@ describe('quest result schema', () => {
         );
     });
 
+    it('defaults a result to not arrested, without a guard encounter and without coins lost (quick 261110-cgd)', () => {
+        const result = new Result(validResultDoc()).toObject();
+
+        expect(result.arrested).toBe(false);
+        expect(result.guardEncounter).toBe(false);
+        expect(result.coinsLost).toBeNull();
+    });
+
+    it('reads a legacy result without the new fields as not arrested and without a guard encounter (quick 261110-cgd)', () => {
+        const legacy = Result.hydrate({
+            _id: new Types.ObjectId(),
+            ...validResultDoc(),
+        });
+
+        expect(legacy.arrested).toBe(false);
+        expect(legacy.guardEncounter).toBe(false);
+        expect(legacy.coinsLost).toBeNull();
+    });
+
+    it('stores the coins lost to an arrest (quick 261110-cgd)', () => {
+        const result = new Result({
+            ...validResultDoc(),
+            arrested: true,
+            coinsLost: { gold: 0, silver: 2, copper: 5 },
+        });
+
+        expect(result.validateSync()).toBeUndefined();
+        expect(result.toObject().coinsLost).toEqual({
+            gold: 0,
+            silver: 2,
+            copper: 5,
+        });
+    });
+
     it('rejects a healed injury outside the enum (D-08)', () => {
         const errors =
             new Result({
