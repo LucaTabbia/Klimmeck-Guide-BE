@@ -184,13 +184,17 @@ function drinkEffectOf(
     snapshot: ItemUseCharacterSnapshot,
     potion: UsablePotion,
 ): DrinkEffect {
-    const facts = statusFactsOf(snapshot);
+    const { currentLifePoints, maxLifePoints } = statusFactsOf(snapshot);
+    const healed = lifePointsWithin(
+        currentLifePoints + potion.power,
+        maxLifePoints,
+    );
+    // il massimo limita la cura, non ridimensiona una vita già oltre (stesso principio di D-02)
     return {
-        hpBefore: facts.currentLifePoints,
-        hpAfter: lifePointsWithin(
-            facts.currentLifePoints + potion.power,
-            facts.maxLifePoints,
-        ),
+        hpBefore: currentLifePoints,
+        hpAfter: Number.isFinite(currentLifePoints)
+            ? Math.max(currentLifePoints, healed)
+            : healed,
         cured: cureInjuries(snapshot.status.injuries ?? [], potion.canHeal),
     };
 }
