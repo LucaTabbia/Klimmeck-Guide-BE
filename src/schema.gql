@@ -408,6 +408,7 @@ type Mutation {
   unequipPet(request: UnequipPetRequest!): CommonResponse!
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
   unregisterPushDevice(deviceId: String!): Boolean!
+  useItem(itemId: ID!): UseItemResult!
   useSpell(request: UseSpellRequest!): CommonResponse!
 }
 
@@ -849,6 +850,15 @@ input TravelRequest {
 
 input UnequipPetRequest {
   id: String!
+}
+
+type UseItemResult {
+  hpAfter: Int!
+  hpBefore: Int!
+  injuriesHealed: [InjuryType!]!
+  loreUnlocked: [Lore!]!
+  quantityLeft: Int!
+  recoveryUntil: DateTime!
 }
 
 input UseSpellRequest {
