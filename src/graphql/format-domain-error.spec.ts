@@ -11,6 +11,8 @@ import { ResourceNotFoundException } from 'src/authz/resource-not-found.exceptio
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { formatDomainError } from 'src/graphql/format-domain-error';
 
+const ISO = '2026-11-10T12:30:00.000Z';
+
 function buildFormatted(
     extensions: Record<string, unknown> = {},
 ): GraphQLFormattedError {
@@ -329,4 +331,131 @@ describe('formatDomainError', () => {
 
         expect(result.extensions).toEqual({ code: 'PROBE_CODE' });
     });
+
+    it('keeps the recovery instant of a wrapped potion refusal (D-17)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                GameRuleException.potionRecovering(new Date(ISO)),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'POTION_RECOVERING',
+            recoveryUntil: ISO,
+        });
+    });
+
+    it('keeps only the recovery instant among the extensions of a potion refusal (D-17)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'POTION_RECOVERING',
+                    recoveryUntil: ISO,
+                    secret: 'hidden',
+                    reason: 'newLogin',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'POTION_RECOVERING',
+            recoveryUntil: ISO,
+        });
+    });
+
+    it('drops a recovery instant carried by another code (D-17)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'PROBE_CODE',
+                    recoveryUntil: ISO,
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'PROBE_CODE' });
+    });
+
+    it.each(['tomorrow', '2026-11-10', 1731241800000, null, { nested: true }])(
+        'drops the recovery instant %p that is not an ISO string (D-17)',
+        (recoveryUntil) => {
+            const result = formatDomainError(
+                buildFormatted({ code: 'BAD_REQUEST' }),
+                wrapAsResolverError(
+                    badRequestWithExtensions({
+                        code: 'POTION_RECOVERING',
+                        recoveryUntil,
+                    }),
+                ),
+            );
+
+            expect(result.extensions).toEqual({ code: 'POTION_RECOVERING' });
+        },
+    );
+    it('keeps the prison instant of a wrapped prison refusal (quick 261110-cgd)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                GameRuleException.characterImprisoned(new Date(ISO)),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'CHARACTER_IMPRISONED',
+            imprisonedUntil: ISO,
+        });
+    });
+
+    it('keeps only the prison instant among the extensions of a prison refusal (quick 261110-cgd)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'CHARACTER_IMPRISONED',
+                    imprisonedUntil: ISO,
+                    recoveryUntil: ISO,
+                    secret: 'hidden',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'CHARACTER_IMPRISONED',
+            imprisonedUntil: ISO,
+        });
+    });
+
+    it('drops a prison instant carried by another code (quick 261110-cgd)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'POTION_RECOVERING',
+                    imprisonedUntil: ISO,
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'POTION_RECOVERING' });
+    });
+
+    it.each(['tomorrow', 1731241800000, null])(
+        'drops the prison instant %p that is not an ISO string (quick 261110-cgd)',
+        (imprisonedUntil) => {
+            const result = formatDomainError(
+                buildFormatted({ code: 'BAD_REQUEST' }),
+                wrapAsResolverError(
+                    badRequestWithExtensions({
+                        code: 'CHARACTER_IMPRISONED',
+                        imprisonedUntil,
+                    }),
+                ),
+            );
+
+            expect(result.extensions).toEqual({ code: 'CHARACTER_IMPRISONED' });
+        },
+    );
 });

@@ -19,6 +19,7 @@ describe('quest lanes', () => {
         [QuestType.boss]: QuestLane.standard,
         [QuestType.dungeon]: QuestLane.standard,
         [QuestType.study]: QuestLane.standard,
+        [QuestType.magic]: QuestLane.standard,
         [QuestType.heal]: QuestLane.standard,
         [QuestType.job]: QuestLane.standard,
         [QuestType.crime]: QuestLane.standard,

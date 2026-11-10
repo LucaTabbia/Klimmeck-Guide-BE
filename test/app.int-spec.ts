@@ -49,6 +49,7 @@ import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
 import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholder-combat-resolver';
 import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
+import { PrisonReleaseSweeper } from 'src/characters/imprisonment/prison-release.sweeper';
 import { QuestResultMaintenance } from 'src/quests/results/quest-result-maintenance';
 import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
 import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
@@ -83,6 +84,8 @@ const INTRUDER_MUTATION =
 const CREATE_CHARACTER = `mutation { createCharacter(input: { name: "Aria", sex: female, pronoun: she, race: human, classType: wizard, age: 25 }) { id } }`;
 const RACE_TRAITS = '{ raceTraits { race } }';
 const DELETE_CHARACTER = 'mutation { deleteCharacter { id } }';
+const USE_ITEM =
+    'mutation { useItem(itemId: "64b000000000000000000001") { hpAfter } }';
 const REGISTER_PUSH_DEVICE =
     'mutation { registerPushDevice(input: { deviceId: "d", token: "t", platform: android }) }';
 const ACCEPT_QUEST =
@@ -390,7 +393,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
-            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
         );
         expect(schema).not.toMatch(/\bparty\b|registrations/);
     });
@@ -441,7 +444,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type TravelPath {\n  coordinates: [[Float!]!]!\n  distance: Float!\n}',
         );
         expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
-            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spellStates: [SpellState!]!\n  spells: [Spell!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}',
+            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  spells: [Spell!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}',
         );
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
             'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n  xp: Int!\n}',
@@ -562,10 +565,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type AwaitingAid {\n  aidQuest: ID!\n  quest: ID!\n  since: DateTime!\n}',
         );
         expect(schema.match(/type QuestPrizes \{[^}]*\}/)?.[0]).toBe(
-            'type QuestPrizes {\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
+            'type QuestPrizes {\n  cure: QuestCure\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
-            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
         );
         expect(schema.match(/type QuestRegistration \{[^}]*\}/)?.[0]).toBe(
             'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
@@ -575,11 +578,50 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the quest cure contract of the FE Phase 18 into the generated schema (D-01, D-24)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type QuestCure \{[^}]*\}/)?.[0]).toBe(
+            'type QuestCure {\n  canHeal: [InjuryType!]!\n  lifePointsShare: Float!\n}',
+        );
+        expect(schema).not.toMatch(/QuestCureInput|QuestPrizesInput/);
+    });
+
+    it('writes the potion contract of the FE Phase 18 into the generated schema (D-15, D-19, D-24)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type LootRecovery \{[^}]*\}/)?.[0]).toBe(
+            'type LootRecovery {\n  time: Int!\n  turns: Int!\n}',
+        );
+        expect(schema.match(/type LootItem \{[^}]*\}/)?.[0]).toContain(
+            '  recovery: LootRecovery\n  relatedLore: [Lore!]!\n',
+        );
+        expect(schema).not.toMatch(/LootRecoveryInput|LootItemInput/);
+    });
+
+    it('writes the useItem contract of the FE Phase 18 into the generated schema (D-17, D-21)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain('  useItem(itemId: ID!): UseItemResult!\n');
+        expect(schema.match(/type UseItemResult \{[^}]*\}/)?.[0]).toBe(
+            'type UseItemResult {\n  hpAfter: Int!\n  hpBefore: Int!\n  injuriesHealed: [InjuryType!]!\n  loreUnlocked: [Lore!]!\n  quantityLeft: Int!\n  recoveryUntil: DateTime!\n}',
+        );
+    });
+
+    it('writes the no-effect heal flag of the FE Phase 18 into the generated schema (D-25)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toContain(
+            '  noEffect: Boolean!\n',
+        );
+        expect(schema).not.toMatch(/QUEST_NO_EFFECT/);
+    });
+
     it('writes the quest result contract into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  kind: QuestResultKind!\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  character: ID!\n  coinsLost: Coins\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  kind: QuestResultKind!\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
         );
         expect(schema.match(/type QuestResultQuest \{[^}]*\}/)?.[0]).toBe(
             'type QuestResultQuest {\n  id: ID!\n  title: String!\n  type: String!\n}',
@@ -749,6 +791,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('enum PushEventType');
         expect(schema).toContain('  questCancelled\n');
         expect(schema).toContain('  ambushDefeat\n');
+        // liberazione dalla prigione (quick 261110-prp): valore additivo dell'enum
+        expect(schema).toContain('  prisonRelease\n');
         expect(schema).toContain('type PushDeliveryReport');
         expect(schema).toContain('targetUserId: ID');
         expect(schema).not.toContain('type PushDevice');
@@ -784,6 +828,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
         expect(app.get(QuestResolutionService)).toBeInstanceOf(
             QuestResolutionService,
+        );
+        // liberazione dalla prigione (quick 261110-prp): stesso intervallo dello sweep delle missioni
+        expect(app.get(PrisonReleaseSweeper)).toBeInstanceOf(
+            PrisonReleaseSweeper,
         );
         expect(app.get(getQueueToken(QUEST_RESOLUTION_QUEUE))).toBeDefined();
         expect(app.get<QuestConfig>(QUEST_CONFIG)).toEqual({
@@ -973,6 +1021,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
         it('rejects deleteCharacter without a bearer', async () => {
             expect(errorCodeOf(await graphqlCall(app, DELETE_CHARACTER))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects useItem without a bearer (D-21)', async () => {
+            expect(errorCodeOf(await graphqlCall(app, USE_ITEM))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
         });

@@ -219,6 +219,29 @@ describe('buildAidQuest', () => {
             pet: null,
         });
     });
+
+    it('does not clone the cure of the failed quest (D-23)', () => {
+        const healing = {
+            ...original,
+            prizes: {
+                ...original.prizes,
+                cure: { lifePointsShare: 1, canHeal: ['deepCut'] },
+            },
+        };
+
+        expect(
+            Object.keys(
+                buildAidQuest(healing, [INJURED_ID], AID_ID).prizes,
+            ).sort(),
+        ).toEqual([
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'xpPrize',
+        ]);
+    });
 });
 
 describe('aidSlotsOf', () => {

@@ -17,7 +17,7 @@ import {
 } from 'src/economy/trade/trade-inventory';
 import type { TradeLine } from 'src/economy/trade/trade-line';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
-import { InjuryType } from 'src/models/enums/injury-type.enum';
+import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
@@ -30,7 +30,9 @@ import {
     STANDARD_LANE_FREE,
 } from 'src/quests/acceptance/quest-lanes';
 import type { ParticipantEffects } from './combat/combat-resolver';
+import { cureInjuries } from './injuries/cure-injuries';
 import { isInjuryType } from './injuries/injury-rules';
+import { cureOf, lifePointsAfterCure } from './injuries/quest-cure';
 import { isPositiveInteger } from './outcome-numbers';
 import { lifePointsWithin, progressionAfter } from './progression/level-table';
 import { statusFactsOf } from './progression/status-facts';
@@ -63,6 +65,8 @@ export interface OutcomeCharacterSnapshot {
         spellStates?: SpellStateEntry[];
         location?: unknown;
         awaitingAid?: unknown;
+        // borsellino letto dalla multa dell'arresto (quick 261110-cgd)
+        coins?: Partial<CoinPurse> | null;
         unlockedLore?: unknown[];
         knownEnemies?: unknown[];
     };
@@ -82,6 +86,7 @@ export interface OutcomeQuestSnapshot {
     _id: Types.ObjectId;
     infos: { type: QuestType; title: string };
     requirements?: { minTitle?: TitleType | null } | null;
+    prizes?: { cure?: unknown } | null;
 }
 
 export interface ConsumableUsage {
@@ -112,6 +117,7 @@ export interface QuestResultDraft {
     hpAfter: number;
     maxLifePoints: number;
     injuriesAdded: InjuryType[];
+    injuriesHealed: InjuryType[];
     consumablesUsed: ConsumableUsage[];
     spellsUsed: { spell: Types.ObjectId; usages: number }[];
     rewards: {
@@ -133,6 +139,10 @@ export interface QuestResultDraft {
     stagesCleared: number | null;
     stagesTotal: number | null;
     rescuedCharacters: Types.ObjectId[];
+    // esiti della quick 261110-cgd: arresto con multa, scontro di guardia
+    arrested: boolean;
+    coinsLost: CoinPurse | null;
+    guardEncounter: boolean;
 }
 
 export type PlanVerdict =
@@ -316,8 +326,9 @@ function petWonBy(
     return owned.some((id) => sameId(id, pet)) ? null : pet;
 }
 
-function participantFilter(
-    input: ParticipantPlanInput,
+// riusato dai piani senza premio (quick 261110-cgd)
+export function participantFilter(
+    input: Pick<ParticipantPlanInput, 'snapshot' | 'pendingQuestId' | 'lane'>,
     lanePath: string,
 ): Record<string, unknown> {
     const { xp } = input.snapshot.status;
@@ -346,17 +357,20 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         xpEarned,
         hpFought,
     );
-    // la heal vinta toglie tutte le ferite e riporta gli HP al nuovo massimo (D-15)
-    const healed = won && quest.infos.type === QuestType.heal;
-    const currentLifePoints = healed
-        ? progression.maxLifePoints
+    // la cura è un premio della quest vinta, qualunque sia il tipo (Phase 18 D-07): dopo il combattimento e dopo la progressione (D-20)
+    const cure = won ? cureOf(quest.prizes?.cure) : null;
+    const fought = woundsAfter(
+        snapshot.status.injuries ?? [],
+        battle?.injuriesAdded ?? [],
+    );
+    const cured = cureInjuries(fought.injuries, cure?.canHeal ?? []);
+    const currentLifePoints = cure
+        ? lifePointsAfterCure(
+              progression.currentLifePoints,
+              progression.maxLifePoints,
+              cure.lifePointsShare,
+          )
         : progression.currentLifePoints;
-    const wounds = healed
-        ? { injuries: [], added: [] }
-        : woundsAfter(
-              snapshot.status.injuries ?? [],
-              battle?.injuriesAdded ?? [],
-          );
     // il titolo avanza solo con la story vinta del titolo esatto (D-14, T-09-24)
     const titleAfter =
         won && quest.infos.type === QuestType.story
@@ -429,7 +443,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         'status.level': progression.level,
         'status.maxLifePoints': progression.maxLifePoints,
         'status.currentLifePoints': currentLifePoints,
-        'status.injuries': wounds.injuries,
+        'status.injuries': cured.injuries,
         'assets.ownedItems': inventory.ownedItems,
         'assets.ownedEquipments': inventory.ownedEquipments,
         [lanePath]: null,
@@ -479,7 +493,8 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             hpBefore: before.currentLifePoints,
             hpAfter: currentLifePoints,
             maxLifePoints: progression.maxLifePoints,
-            injuriesAdded: wounds.added,
+            injuriesAdded: fought.added,
+            injuriesHealed: cured.healed,
             consumablesUsed: consumables,
             spellsUsed: spells.used,
             rewards: {
@@ -505,6 +520,9 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
                 input.verdict === QuestOutcome.success
                     ? [...(input.rescuedCharacters ?? [])]
                     : [],
+            arrested: false,
+            coinsLost: null,
+            guardEncounter: false,
         },
         spellRecoveries: spells.recoveries,
     };

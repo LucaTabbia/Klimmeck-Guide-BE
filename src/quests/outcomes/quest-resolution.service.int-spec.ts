@@ -227,21 +227,82 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         expect(orphan).not.toContain('Caccia segreta');
     });
 
-    it('heals every wound and restores the hit points on a heal quest', async () => {
-        const subject = await quester({
-            questOverrides: jobQuest({}, 'heal'),
-            characterOverrides: {
-                status: { currentLifePoints: 400, injuries: ['deepCut'] },
-            },
+    describe('the cure of a won quest', () => {
+        const VILLAGE_CURE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
+
+        it('cures a village heal: the listed wound goes, the other stays, life points at half (D-02)', async () => {
+            const subject = await quester({
+                questOverrides: jobQuest({ cure: VILLAGE_CURE }, 'heal'),
+                characterOverrides: {
+                    status: {
+                        currentLifePoints: 400,
+                        injuries: ['deepCut', 'infection'],
+                    },
+                },
+            });
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const character = await characterOf(subject);
+            expect(character.status.injuries).toEqual(['infection']);
+            expect(character.status.currentLifePoints).toBe(500);
+            const [result] = await resultsOf(subject);
+            expect(result).toMatchObject({ hpBefore: 400, hpAfter: 500 });
+            expect(result.injuriesHealed).toEqual(['deepCut']);
         });
 
-        await service.resolveStandard(triggerOf(subject));
+        it('cures nothing on a heal quest without a cure (D-01)', async () => {
+            const subject = await quester({
+                questOverrides: jobQuest({}, 'heal'),
+                characterOverrides: {
+                    status: { currentLifePoints: 400, injuries: ['deepCut'] },
+                },
+            });
 
-        const character = await characterOf(subject);
-        expect(character.status.injuries).toEqual([]);
-        expect(character.status.currentLifePoints).toBe(
-            character.status.maxLifePoints,
-        );
+            await service.resolveStandard(triggerOf(subject));
+
+            const character = await characterOf(subject);
+            expect(character.status.injuries).toEqual(['deepCut']);
+            expect(character.status.currentLifePoints).toBe(400);
+            const [result] = await resultsOf(subject);
+            expect(result.injuriesHealed).toEqual([]);
+        });
+
+        it('cures and teaches on a study that carries a cure (D-07)', async () => {
+            const spell = await persistSpell(world.models.spells, {
+                minXpToLearn: 200,
+                maxUsages: 4,
+            });
+            const subject = await quester({
+                questOverrides: jobQuest(
+                    { xpPrize: 300, spell: spell._id, cure: VILLAGE_CURE },
+                    'study',
+                ),
+                characterOverrides: { status: { injuries: ['deepCut'] } },
+            });
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const character = await characterOf(subject);
+            expect(character.status.spells.map(String)).toEqual([
+                String(spell._id),
+            ]);
+            expect(character.status.injuries).toEqual([]);
+        });
+
+        it('cures on a job that carries a cure (D-07)', async () => {
+            const subject = await quester({
+                questOverrides: jobQuest({ xpPrize: 10, cure: VILLAGE_CURE }),
+                characterOverrides: { status: { injuries: ['deepCut'] } },
+            });
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const character = await characterOf(subject);
+            expect(character.status.injuries).toEqual([]);
+            const [result] = await resultsOf(subject);
+            expect(result.injuriesHealed).toEqual(['deepCut']);
+        });
     });
 
     it('teaches the study spell when the xp after the prize is enough', async () => {

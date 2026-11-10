@@ -91,6 +91,16 @@ export class CharacterStatus {
     @Prop({ type: Number })
     maxLifePoints: number;
 
+    // fine della ricarica delle pozioni (Phase 18 D-15): una sola data per personaggio, confrontata all'uso; null = nessuna ricarica; il combattimento non la legge né la scrive (D-16)
+    @Field(() => Date, { nullable: true })
+    @Prop({ type: Date, default: null })
+    potionRecoveryUntil?: Date | null;
+
+    // fine della prigione dopo un arresto (quick 261110-cgd): null o passata = libero; nessuno sweep la azzera
+    @Field(() => Date, { nullable: true })
+    @Prop({ type: Date, default: null })
+    imprisonedUntil?: Date | null;
+
     @Field(() => Int)
     maxActiveSpells: number;
 }

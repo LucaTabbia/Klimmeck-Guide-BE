@@ -12,11 +12,15 @@ import { createAuthenticatedUser } from '../../test/auth/test-tokens';
 import { createPlayer } from '../../test/authz/player-fixture';
 import {
     PROBE_RAW_MESSAGE,
+    PROBE_RECOVERY_UNTIL,
     ProductionProbeResolver,
 } from '../../test/graphql/production-probe.resolver';
 import { graphqlWsUrl, subscribeOnce } from '../../test/auth/ws-test-client';
 
 const INTROSPECTION = '{ __schema { queryType { name } } }';
+const RECOVERY_UNTIL_ISO = PROBE_RECOVERY_UNTIL.toISOString();
+const POTION_RECOVERING_MESSAGE =
+    "Il tuo corpo non reggerebbe un'altra pozione: aspetta che la prima si sia posata";
 const MISSING_ID = '64b0000000000000000000ff';
 const UUID_PATTERN = /^[0-9a-f-]{36}$/;
 const REFRESH =
@@ -208,6 +212,24 @@ describe('GraphQL surface in production (wire)', () => {
         ]);
     });
 
+    it('answers a potion refusal with POTION_RECOVERING and its recovery instant in production (D-17)', async () => {
+        const body = bodyOf(
+            await graphqlRequest(harness.app, '{ probePotionRecovering }'),
+        );
+
+        expect(body.errors).toEqual([
+            {
+                message: POTION_RECOVERING_MESSAGE,
+                locations: [{ line: 1, column: 3 }],
+                path: ['probePotionRecovering'],
+                extensions: {
+                    code: 'POTION_RECOVERING',
+                    recoveryUntil: RECOVERY_UNTIL_ISO,
+                },
+            },
+        ]);
+    });
+
     it('answers a refused refresh with SESSION_REVOKED and its reason in production (D-13)', async () => {
         const body = await refreshRevokedByNewLogin(
             harness,
@@ -295,6 +317,30 @@ describe('GraphQL surface in production (wire)', () => {
         });
     });
 
+    it('keeps the recovery instant of a potion refusal over graphql-ws in production (D-17)', async () => {
+        const outcome = await overGraphqlWs(
+            harness,
+            '{ probePotionRecovering }',
+        );
+
+        expect(outcome).toEqual({
+            value: {
+                data: null,
+                errors: [
+                    {
+                        message: POTION_RECOVERING_MESSAGE,
+                        locations: [{ line: 1, column: 3 }],
+                        path: ['probePotionRecovering'],
+                        extensions: {
+                            code: 'POTION_RECOVERING',
+                            recoveryUntil: RECOVERY_UNTIL_ISO,
+                        },
+                    },
+                ],
+            },
+        });
+    });
+
     it('hides an error raised inside a subscription iterator in production (C7)', async () => {
         const outcome = await overGraphqlWs(
             harness,
@@ -371,6 +417,39 @@ describe('GraphQL surface outside production (wire)', () => {
         expect(body.errors?.[0]?.extensions).toEqual({
             code: 'SESSION_REVOKED',
             reason: 'newLogin',
+        });
+    });
+
+    it('keeps the recovery instant of a potion refusal outside production (D-17)', async () => {
+        const body = bodyOf(
+            await graphqlRequest(harness.app, '{ probePotionRecovering }'),
+        );
+
+        expect(body.errors?.[0]?.extensions).toEqual({
+            code: 'POTION_RECOVERING',
+            recoveryUntil: RECOVERY_UNTIL_ISO,
+        });
+    });
+
+    it('keeps the recovery instant of a potion refusal over graphql-ws outside production (D-17)', async () => {
+        const outcome = await overGraphqlWs(
+            harness,
+            '{ probePotionRecovering }',
+        );
+
+        expect(outcome).toEqual({
+            value: {
+                data: null,
+                errors: [
+                    expect.objectContaining({
+                        path: ['probePotionRecovering'],
+                        extensions: {
+                            code: 'POTION_RECOVERING',
+                            recoveryUntil: RECOVERY_UNTIL_ISO,
+                        },
+                    }),
+                ],
+            },
         });
     });
 

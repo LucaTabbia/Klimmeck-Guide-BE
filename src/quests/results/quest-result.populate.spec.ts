@@ -22,6 +22,7 @@ const draftWith = (
     hpAfter: 900,
     maxLifePoints: 1200,
     injuriesAdded: [],
+    injuriesHealed: [],
     consumablesUsed: [],
     spellsUsed: [],
     rewards: {
@@ -41,6 +42,9 @@ const draftWith = (
     stagesCleared: null,
     stagesTotal: null,
     rescuedCharacters: [],
+    arrested: false,
+    coinsLost: null,
+    guardEncounter: false,
     ...overrides,
 });
 

@@ -144,6 +144,26 @@ describe('QuestResolutionService.resolveStandard with a study lore draw (replSet
             expect(chance.drawn).toEqual([...STUDY_ROLLS_BEFORE_LORE, 0.1, 0]);
         });
 
+        it('learns a study lore from a won magic quest too (quick 261110-mag)', async () => {
+            const { world, service, chance } = state;
+            const { knowledge, god } = await library();
+            const subject = await quester(world, {
+                unlockedLore: [knowledge._id],
+                questOverrides: questOfType('magic'),
+            });
+            chance.load([...STUDY_ROLLS_BEFORE_LORE, 0.1, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            expect(await unlockedOf(world, subject)).toEqual([
+                String(knowledge._id),
+                String(god._id),
+            ]);
+            expect(await loreUnlockedOf(world, subject)).toEqual([
+                String(god._id),
+            ]);
+        });
+
         it('never draws a city or a bestiary page (D-08)', async () => {
             const { world, service, chance } = state;
             const { knowledge, god, ceremony } = await library();

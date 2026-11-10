@@ -78,7 +78,7 @@ const PARTY_PROJECTIONS: LaneProjections = {
     pendingQuest: { arrivedAt: 1, waitingTime: 1 },
 };
 
-// hunt, dungeon, job, heal, study: l'avvio coincide con l'arrivo (D-13), scritto nella stessa scrittura (D-22)
+// hunt, dungeon, job, heal, study, magic: l'avvio coincide con l'arrivo (D-13), scritto nella stessa scrittura (D-22)
 export function soloStartDateOf(
     type: QuestType,
     arrivedAt: Date | null,

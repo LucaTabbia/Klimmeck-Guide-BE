@@ -59,6 +59,7 @@ const unchangedSheet = {
     hpAfter: 120,
     maxLifePoints: 1200,
     injuriesAdded: [],
+    injuriesHealed: [],
     consumablesUsed: [],
     spellsUsed: [],
     rewards: {
@@ -79,6 +80,9 @@ const unchangedSheet = {
     stagesCleared: null,
     stagesTotal: null,
     rescuedCharacters: [],
+    arrested: false,
+    coinsLost: null,
+    guardEncounter: false,
 };
 
 describe('planRescued', () => {

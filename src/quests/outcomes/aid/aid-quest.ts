@@ -30,6 +30,7 @@ export interface AidSourceQuest {
         randomLoot?: unknown[] | null;
         spell?: unknown;
         pet?: unknown;
+        cure?: unknown;
     } | null;
     rescue?: { failedQuest?: unknown } | null;
 }
@@ -70,6 +71,7 @@ function aidTitleOf(title: string): string {
         : AID_TITLE_PREFIX + title;
 }
 
+// la aid non eredita la cura della quest fallita (Phase 18 D-23): il soccorritore non è il paziente
 function clonedPrizesOf(
     prizes: AidSourceQuest['prizes'],
 ): AidQuestDraft['prizes'] {

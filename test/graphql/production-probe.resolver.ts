@@ -3,6 +3,7 @@ import { Public } from 'src/auth/decorators/public.decorator';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 
 export const PROBE_RAW_MESSAGE = 'E11000 duplicate key mongodb://user:pw@host';
+export const PROBE_RECOVERY_UNTIL = new Date('2026-11-10T12:30:00.000Z');
 
 // sonda solo-test: mai registrata in src; errori grezzi e codificati per la superficie di produzione
 @Resolver()
@@ -17,6 +18,12 @@ export class ProductionProbeResolver {
     @Query(() => String)
     probeDomain(): string {
         throw GameRuleException.insufficientFunds();
+    }
+
+    @Public()
+    @Query(() => String)
+    probePotionRecovering(): string {
+        throw GameRuleException.potionRecovering(PROBE_RECOVERY_UNTIL);
     }
 
     @Public()

@@ -2,6 +2,8 @@ import type { Logger } from '@nestjs/common';
 import type { GraphQLError, GraphQLFormattedError } from 'graphql';
 import {
     formatDomainError,
+    imprisonmentOf,
+    potionRecoveryOf,
     revokeReasonOf,
 } from 'src/graphql/format-domain-error';
 import { describeError } from 'src/mongo/mongo-errors';
@@ -9,7 +11,7 @@ import { describeError } from 'src/mongo/mongo-errors';
 export const INTERNAL_ERROR_MESSAGE = 'Errore interno';
 export const INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR';
 
-// produzione: un errore codificato tiene il codice e, per una sessione revocata, la sola reason (D-07, Phase 17 D-13); ogni altro errore diventa generico
+// produzione: un errore codificato tiene il codice e, per una sessione revocata, la sola reason (D-07, Phase 17 D-13) e, per una pozione in ricarica o una prigione, la sola data (Phase 18 D-17, quick 261110-cgd); ogni altro errore diventa generico
 export function sanitizeFormattedError(
     formatted: GraphQLFormattedError,
 ): GraphQLFormattedError {
@@ -21,7 +23,18 @@ export function sanitizeFormattedError(
         ...(formatted.path ? { path: formatted.path } : {}),
         extensions: internal
             ? { code: INTERNAL_SERVER_ERROR }
-            : { code, ...revokeReasonOf(code, formatted.extensions?.reason) },
+            : {
+                  code,
+                  ...revokeReasonOf(code, formatted.extensions?.reason),
+                  ...potionRecoveryOf(
+                      code,
+                      formatted.extensions?.recoveryUntil,
+                  ),
+                  ...imprisonmentOf(
+                      code,
+                      formatted.extensions?.imprisonedUntil,
+                  ),
+              },
     };
 }
 

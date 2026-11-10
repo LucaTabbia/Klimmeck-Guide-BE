@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
+import { Clock } from 'src/auth/clock';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { requireCharacterObjectId } from 'src/characters/character-id';
+import {
+    notImprisonedAt,
+    refusalWhileImprisoned,
+} from 'src/characters/imprisonment/imprisonment';
 import { toCopper, type CoinPurse } from 'src/economy/coins';
 import { WalletService } from 'src/economy/wallet.service';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
@@ -48,6 +53,7 @@ interface TradeSnapshot {
         location?: unknown;
         activeTravel?: unknown;
         awaitingAid?: unknown;
+        imprisonedUntil?: unknown;
     };
     assets?: InventorySnapshot & PetSnapshot;
 }
@@ -55,11 +61,20 @@ interface TradeSnapshot {
 interface TraderAtShop {
     characterId: Types.ObjectId;
     location: Types.ObjectId;
+    now: Date;
 }
 
 interface TradeOutcome {
     inventory: InventoryOutcome;
     pets: PetOutcome | null;
+}
+
+interface PricedTrade {
+    characterId: Types.ObjectId;
+    lines: readonly TradeLine[];
+    netCopper: number;
+    catalogue: CatalogPrices;
+    now: Date;
 }
 
 interface ShopAtMarker {
@@ -79,6 +94,7 @@ const TRADE_SNAPSHOT_PROJECTION = {
     'status.location': 1,
     'status.activeTravel.endTime': 1,
     'status.awaitingAid': 1,
+    'status.imprisonedUntil': 1,
     'assets.ownedItems': 1,
     'assets.ownedEquipments': 1,
     'assets.wearedEquipment': 1,
@@ -118,6 +134,7 @@ export class ShopTransactionService {
         private readonly cityModel: Model<CityDocument>,
         private readonly catalogPrices: CatalogPricesReader,
         private readonly wallet: WalletService,
+        private readonly clock: Clock,
     ) {}
 
     // fattibilità prima della scrittura, inventario + coins in un'unica transazione (04 D-07); il prezzo lo decide il catalogo (D-06)
@@ -127,13 +144,17 @@ export class ShopTransactionService {
         const catalogue = await this.catalogPrices.read(lines);
         const { netCopper } = priceTrade(lines, catalogue);
         assertClientTotalMatches(request, netCopper);
+        const now = this.clock.now();
         // scambio vuoto a totale zero (A2): no-op valido senza transazione, ma il personaggio deve esistere (l'innkeeper salta l'ownership) e stare in città
         if (lines.length === 0) {
-            await this.assertCharacterCanTrade(characterId);
+            await this.assertCharacterCanTrade(characterId, now);
             return TRADE_SUCCEEDED;
         }
         await this.connection.transaction((session) =>
-            this.applyTrade(characterId, lines, netCopper, catalogue, session),
+            this.applyTrade(
+                { characterId, lines, netCopper, catalogue, now },
+                session,
+            ),
         );
         return TRADE_SUCCEEDED;
     }
@@ -141,6 +162,7 @@ export class ShopTransactionService {
     // stesso esito della transazione per il FE (D-18), senza sessione: nessuna scrittura da proteggere
     private async assertCharacterCanTrade(
         characterId: Types.ObjectId,
+        now: Date,
     ): Promise<void> {
         const snapshot = await this.characterModel
             .findOne(
@@ -150,14 +172,18 @@ export class ShopTransactionService {
             .lean<TradeSnapshot | null>()
             .exec();
         if (!snapshot) throw ResourceNotFoundException.character();
-        await this.shopOrReject(snapshot, null);
+        await this.shopOrReject(snapshot, now, null);
     }
 
     // negozio solo sul marker di una città, fuori dal viaggio e dal soccorso (D-18); la stessa lettura porta il pool (D-19, D-23); session null per lo scambio vuoto
     private async shopOrReject(
         snapshot: TradeSnapshot,
+        now: Date,
         session: ClientSession | null,
     ): Promise<ShopAtMarker> {
+        // in prigione il negozio è chiuso col codice della prigione (quick 261110-cgd)
+        const imprisoned = refusalWhileImprisoned(snapshot.status, now);
+        if (imprisoned) throw imprisoned;
         const location = refIdOf(snapshot.status?.location);
         if (
             !location ||
@@ -180,10 +206,7 @@ export class ShopTransactionService {
 
     // rieseguibile dal driver sui WriteConflict: niente side effect, niente letture parallele in sessione (04 Pitfall 6)
     private async applyTrade(
-        characterId: Types.ObjectId,
-        lines: readonly TradeLine[],
-        netCopper: number,
-        catalogue: CatalogPrices,
+        { characterId, lines, netCopper, catalogue, now }: PricedTrade,
         session: ClientSession,
     ): Promise<void> {
         const snapshot = await this.characterModel
@@ -195,7 +218,11 @@ export class ShopTransactionService {
             .lean<TradeSnapshot | null>()
             .exec();
         if (!snapshot) throw ResourceNotFoundException.character();
-        const { location, pool } = await this.shopOrReject(snapshot, session);
+        const { location, pool } = await this.shopOrReject(
+            snapshot,
+            now,
+            session,
+        );
         assertBuysInShop(lines, pool, catalogue);
         const assets = snapshot.assets ?? {};
         assertPetsNotOwned(lines, assets);
@@ -205,7 +232,7 @@ export class ShopTransactionService {
             throw GameRuleException.insufficientFunds();
         }
         await this.writeInventory(
-            { characterId, location },
+            { characterId, location, now },
             lines,
             { inventory, pets },
             session,
@@ -222,7 +249,7 @@ export class ShopTransactionService {
 
     // città, quantità vendute e pet posseduti riaffermati nel filtro (rete di sicurezza, 04 D-10, D-14): la contesa la risolve il WriteConflict della transazione
     private async writeInventory(
-        { characterId, location }: TraderAtShop,
+        { characterId, location, now }: TraderAtShop,
         lines: readonly TradeLine[],
         { inventory, pets }: TradeOutcome,
         session: ClientSession,
@@ -234,6 +261,7 @@ export class ShopTransactionService {
                     'status.location': { $in: idForms(location) },
                     'status.activeTravel': null,
                     'status.awaitingAid': null,
+                    ...notImprisonedAt(now),
                     ...soldQuantityGuards(lines, petOwnershipGuards(lines)),
                 },
                 { $set: inventoryChanges(inventory, pets) },

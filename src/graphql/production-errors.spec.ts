@@ -10,6 +10,8 @@ import {
     sanitizeFormattedError,
 } from 'src/graphql/production-errors';
 
+const ISO = '2026-11-10T12:30:00.000Z';
+
 function fakeLogger(): { logger: Logger; error: jest.Mock } {
     const error = jest.fn();
     return { logger: { error } as unknown as Logger, error };
@@ -152,6 +154,80 @@ describe('sanitizeFormattedError', () => {
 
         expect(sanitized.extensions).toEqual({ code: 'SESSION_REVOKED' });
     });
+
+    it('keeps the recovery instant of a potion refusal in production (D-17)', () => {
+        expect(
+            sanitizeFormattedError({
+                message: 'm',
+                extensions: {
+                    code: 'POTION_RECOVERING',
+                    recoveryUntil: ISO,
+                    stacktrace: ['x'],
+                },
+            }),
+        ).toEqual({
+            message: 'm',
+            extensions: { code: 'POTION_RECOVERING', recoveryUntil: ISO },
+        });
+    });
+
+    it('drops a recovery instant carried by another code in production (D-17)', () => {
+        const sanitized = sanitizeFormattedError({
+            message: 'probe',
+            extensions: { code: 'PROBE_CODE', recoveryUntil: ISO },
+        });
+
+        expect(sanitized.extensions).toEqual({ code: 'PROBE_CODE' });
+    });
+
+    it('drops a recovery instant that is not an ISO string in production (D-17)', () => {
+        const sanitized = sanitizeFormattedError({
+            message: 'm',
+            extensions: {
+                code: 'POTION_RECOVERING',
+                recoveryUntil: 'tomorrow',
+            },
+        });
+
+        expect(sanitized.extensions).toEqual({ code: 'POTION_RECOVERING' });
+    });
+
+    it('keeps the prison instant of a prison refusal in production (quick 261110-cgd)', () => {
+        expect(
+            sanitizeFormattedError({
+                message: 'm',
+                extensions: {
+                    code: 'CHARACTER_IMPRISONED',
+                    imprisonedUntil: ISO,
+                    stacktrace: ['x'],
+                },
+            }),
+        ).toEqual({
+            message: 'm',
+            extensions: { code: 'CHARACTER_IMPRISONED', imprisonedUntil: ISO },
+        });
+    });
+
+    it('drops a prison instant carried by another code in production (quick 261110-cgd)', () => {
+        const sanitized = sanitizeFormattedError({
+            message: 'probe',
+            extensions: { code: 'PROBE_CODE', imprisonedUntil: ISO },
+        });
+
+        expect(sanitized.extensions).toEqual({ code: 'PROBE_CODE' });
+    });
+
+    it('drops the recovery instant of an internal error (D-17)', () => {
+        expect(
+            sanitizeFormattedError({
+                message: 'boom',
+                extensions: { recoveryUntil: ISO },
+            }),
+        ).toEqual({
+            message: INTERNAL_ERROR_MESSAGE,
+            extensions: { code: INTERNAL_SERVER_ERROR },
+        });
+    });
 });
 
 describe('sanitizeExecutionErrors', () => {
@@ -244,6 +320,23 @@ describe('sanitizeExecutionErrors', () => {
         expect(sanitized.extensions).toEqual({
             code: 'SESSION_REVOKED',
             reason: 'roleChanged',
+        });
+        expect(error).not.toHaveBeenCalled();
+    });
+
+    it('keeps the recovery instant over graphql-ws in production (D-17)', () => {
+        const { logger, error } = fakeLogger();
+        const original = GameRuleException.potionRecovering(new Date(ISO));
+        const coded = new GraphQLError(original.message, {
+            path: ['useItem'],
+            originalError: original,
+        });
+
+        const [sanitized] = sanitizeExecutionErrors([coded], 'req-6', logger);
+
+        expect(sanitized.extensions).toEqual({
+            code: 'POTION_RECOVERING',
+            recoveryUntil: ISO,
         });
         expect(error).not.toHaveBeenCalled();
     });

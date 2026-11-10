@@ -3,19 +3,27 @@ import { HttpException } from '@nestjs/common';
 import type { GraphQLFormattedError } from 'graphql';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
+import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 
 const AUTH_ERROR_CODES: readonly unknown[] = Object.values(AuthErrorCode);
 const SESSION_REVOKE_REASONS: readonly unknown[] =
     Object.values(SessionRevokeReason);
 
 type CodedHttpException = HttpException & {
-    extensions: { code: string; reason?: unknown };
+    extensions: {
+        code: string;
+        reason?: unknown;
+        recoveryUntil?: unknown;
+        imprisonedUntil?: unknown;
+    };
 };
 
 // alias e non interface: GraphQLFormattedErrorExtensions richiede una index signature implicita
 type DomainExtensions = {
     code: string;
     reason?: SessionRevokeReason;
+    recoveryUntil?: string;
+    imprisonedUntil?: string;
 };
 
 // Nest riscrive il codice di ogni HttpException prima del formatter utente: qui si ripristina il codice di dominio
@@ -44,10 +52,16 @@ function resolveDomainExtensions(
     return code ? { code } : undefined;
 }
 
-// allowlist di una sola chiave (Phase 17 D-13): la reason della revoca e nient'altro delle extensions dell'eccezione
+// allowlist di una chiave per codice (Phase 17 D-13, Phase 18 D-17, quick 261110-cgd): nient'altro delle extensions dell'eccezione
 function extensionsOf(exception: CodedHttpException): DomainExtensions {
-    const { code, reason } = exception.extensions;
-    return { code, ...revokeReasonOf(code, reason) };
+    const { code, reason, recoveryUntil, imprisonedUntil } =
+        exception.extensions;
+    return {
+        code,
+        ...revokeReasonOf(code, reason),
+        ...potionRecoveryOf(code, recoveryUntil),
+        ...imprisonmentOf(code, imprisonedUntil),
+    };
 }
 
 // la reason esce solo con SESSION_REVOKED e solo coi valori dell'enum (D-05, D-13): un testo libero di un'altra eccezione non arriva al client
@@ -59,6 +73,32 @@ export function revokeReasonOf(
     return SESSION_REVOKE_REASONS.includes(reason)
         ? { reason: reason as SessionRevokeReason }
         : {};
+}
+
+// la data di fine ricarica esce solo con POTION_RECOVERING e solo come istante ISO (Phase 18 D-17): un testo libero di un'altra eccezione non arriva al client
+export function potionRecoveryOf(
+    code: unknown,
+    recoveryUntil: unknown,
+): { recoveryUntil?: string } {
+    if (code !== GameRuleErrorCode.POTION_RECOVERING) return {};
+    return isIsoInstant(recoveryUntil) ? { recoveryUntil } : {};
+}
+
+// la data di fine prigione esce solo con CHARACTER_IMPRISONED e solo come istante ISO (quick 261110-cgd)
+export function imprisonmentOf(
+    code: unknown,
+    imprisonedUntil: unknown,
+): { imprisonedUntil?: string } {
+    if (code !== GameRuleErrorCode.CHARACTER_IMPRISONED) return {};
+    return isIsoInstant(imprisonedUntil) ? { imprisonedUntil } : {};
+}
+
+function isIsoInstant(value: unknown): value is string {
+    return (
+        typeof value === 'string' &&
+        !Number.isNaN(Date.parse(value)) &&
+        new Date(value).toISOString() === value
+    );
 }
 
 function isCodedHttpException(error: unknown): error is CodedHttpException {

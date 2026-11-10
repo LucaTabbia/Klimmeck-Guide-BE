@@ -3,6 +3,7 @@ import type { PubSub } from '@graphql-yoga/subscription';
 import { Model, Types } from 'mongoose';
 import { CharacterArchiveModule } from 'src/characters/deletion/character-archive.module';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
+import { Character } from 'src/models/character/character.model';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
@@ -25,6 +26,9 @@ import {
 
 const QUEST_UPDATED =
     'subscription OnQuestUpdated($questId: String!) { questUpdated(questId: $questId) { id registeredAdventurers { character title } requirements { requiredAdventurers { title count } } infos { title } } }';
+const QUEST_NO_EFFECT =
+    'subscription OnQuestNoEffect($questId: String!) { questUpdated(questId: $questId) { id noEffect } }';
+const VILLAGE_CURE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
 const PARTY_SEATS = [{ title: null, count: 3 }];
 const MALFORMED_QUEST_ID = 'not-a-quest-id';
 const PUBLISHED_WAIT_MS = 2000;
@@ -44,7 +48,13 @@ interface WireQuest {
     infos: { title: string };
 }
 
+interface WireNoEffect {
+    id: string;
+    noEffect: boolean;
+}
+
 type QuestUpdated = { questUpdated: WireQuest };
+type QuestNoEffect = { questUpdated: WireNoEffect };
 type QuestUpdatedSubscription = OpenSubscription<QuestUpdated>;
 
 describe('questUpdated subscription (wire)', () => {
@@ -411,5 +421,142 @@ describe('questUpdated subscription (wire)', () => {
             String(characterIdOf(alice)),
             String(characterIdOf(bruno)),
         ]);
+    });
+
+    describe('Quest.noEffect per subscriber', () => {
+        function persistHeal() {
+            return quests.create(
+                buildQuest({
+                    infos: {
+                        ...buildQuest().infos,
+                        type: 'heal',
+                        title: `La guaritrice ${nextId()}`,
+                    },
+                    prizes: { ...buildQuest().prizes, cure: VILLAGE_CURE },
+                }),
+            );
+        }
+
+        function subscribeToNoEffect(
+            questId: string,
+            bearer: string,
+        ): OpenSubscription<QuestNoEffect> {
+            const subscription = openSubscription<QuestNoEffect>(
+                url,
+                { Authorization: bearer },
+                { query: QUEST_NO_EFFECT, variables: { questId } },
+            );
+            opened.push(subscription as unknown as QuestUpdatedSubscription);
+            return subscription;
+        }
+
+        async function nextNoEffect(
+            subscription: OpenSubscription<QuestNoEffect>,
+        ): Promise<WireNoEffect> {
+            const result = await subscription.next();
+            expect(result.done).toBe(false);
+            expect(result.value.errors).toBeUndefined();
+            return result.value.data?.questUpdated as WireNoEffect;
+        }
+
+        function woundWithDeepCut(player: TestPlayer) {
+            return harness.connection
+                .model(Character.name)
+                .collection.updateOne(
+                    { _id: characterIdOf(player) },
+                    { $set: { 'status.injuries': ['deepCut'] } },
+                );
+        }
+
+        function retitle(questId: unknown) {
+            return quests.updateOne(
+                { _id: questId },
+                { $set: { 'infos.title': `La guaritrice ${nextId()}` } },
+            );
+        }
+
+        it('resolves noEffect for each subscriber of the same quest event (D-25)', async () => {
+            await woundWithDeepCut(bruno);
+            const heal = await persistHeal();
+            const id = String(heal._id);
+            const seenByAlice = subscribeToNoEffect(id, alice.bearer);
+            const seenByBruno = subscribeToNoEffect(id, bruno.bearer);
+
+            expect(await nextNoEffect(seenByAlice)).toEqual({
+                id,
+                noEffect: true,
+            });
+            expect(await nextNoEffect(seenByBruno)).toEqual({
+                id,
+                noEffect: false,
+            });
+
+            await retitle(heal._id);
+
+            const [aliceEvent, brunoEvent] = await Promise.all([
+                nextNoEffect(seenByAlice),
+                nextNoEffect(seenByBruno),
+            ]);
+            expect(aliceEvent).toEqual({ id, noEffect: true });
+            expect(brunoEvent).toEqual({ id, noEffect: false });
+        });
+
+        it('resolves noEffect again at every event (D-25)', async () => {
+            const heal = await persistHeal();
+            const id = String(heal._id);
+            const subscription = subscribeToNoEffect(id, alice.bearer);
+            expect(await nextNoEffect(subscription)).toEqual({
+                id,
+                noEffect: true,
+            });
+
+            await retitle(heal._id);
+            expect(await nextNoEffect(subscription)).toEqual({
+                id,
+                noEffect: true,
+            });
+
+            await woundWithDeepCut(alice);
+            await retitle(heal._id);
+            expect(await nextNoEffect(subscription)).toEqual({
+                id,
+                noEffect: false,
+            });
+        });
+
+        function setLife(player: TestPlayer, currentLifePoints: number) {
+            return harness.connection
+                .model(Character.name)
+                .collection.updateOne(
+                    { _id: characterIdOf(player) },
+                    { $set: { 'status.currentLifePoints': currentLifePoints } },
+                );
+        }
+
+        // la memo non deve tenere la vita fra due eventi dello stesso subscriber: tetto 50 su un massimo di 100
+        it('resolves noEffect again when only the life changes between events (D-25)', async () => {
+            await setLife(alice, 40);
+            const heal = await persistHeal();
+            const id = String(heal._id);
+            const subscription = subscribeToNoEffect(id, alice.bearer);
+            expect(await nextNoEffect(subscription)).toEqual({
+                id,
+                noEffect: false,
+            });
+
+            await setLife(alice, 60);
+            await retitle(heal._id);
+            expect(await nextNoEffect(subscription)).toEqual({
+                id,
+                noEffect: true,
+            });
+
+            await setLife(alice, 40);
+            await retitle(heal._id);
+            expect(await nextNoEffect(subscription)).toEqual({
+                id,
+                noEffect: false,
+            });
+        });
     });
 });

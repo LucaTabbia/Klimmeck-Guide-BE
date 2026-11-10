@@ -42,14 +42,16 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         await world.harness.close();
     });
 
-    const studyQuest = (prizes: Record<string, unknown>) => ({
+    const questOfType = (type: string, prizes: Record<string, unknown>) => ({
         infos: {
             ...buildQuest().infos,
-            type: 'study',
+            type,
             title: 'Studio a Valantar',
         },
         prizes: { ...buildQuest().prizes, ...prizes },
     });
+    const studyQuest = (prizes: Record<string, unknown>) =>
+        questOfType('study', prizes);
 
     async function quester(
         options: Partial<QuesterOptions> = {},
@@ -121,6 +123,39 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         expect(character.status.spellStates).toEqual([
             { spell: known._id, usages: 3, recoveries: [] },
             { spell: drawn._id, usages: 4, recoveries: [] },
+        ]);
+        expect(String((await resultOf(subject)).spellLearned)).toBe(
+            String(drawn._id),
+        );
+        expect(chance.drawn).toEqual([0]);
+    });
+
+    it('teaches a magic quest the spell a study draws with the same seed (quick 261110-mag)', async () => {
+        const known = await persistSpell(world.models.spells, {
+            minXpToLearn: 200,
+            maxUsages: 3,
+        });
+        const drawn = await persistSpell(world.models.spells, {
+            minXpToLearn: 200,
+            maxUsages: 4,
+        });
+        await persistSpell(world.models.spells, { minXpToLearn: 9000 });
+        const book = spellBook([{ spell: known._id, usages: 3 }]);
+        const subject = await quester({
+            questOverrides: questOfType('magic', { xpPrize: 300 }),
+            characterOverrides: {
+                status: { spells: book.spells, spellStates: book.spellStates },
+            },
+        });
+        await drawSpellOn(subject);
+        chance.load([0]);
+
+        await service.resolveStandard(triggerOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.status.spells.map(String)).toEqual([
+            String(known._id),
+            String(drawn._id),
         ]);
         expect(String((await resultOf(subject)).spellLearned)).toBe(
             String(drawn._id),

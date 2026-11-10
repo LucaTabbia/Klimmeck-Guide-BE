@@ -5,6 +5,7 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import {
     BOSS_PET_PRIZE_CHANCE,
+    GENERATED_PRIZES,
     GeneratedQuestType,
     LOOT_POOLS,
     PetCandidate,
@@ -72,6 +73,15 @@ function countByRarity(ids: readonly string[]): Record<string, number> {
     }
     return counts;
 }
+
+describe('generated quest types', () => {
+    it('generates only enemy and boss quests, never a magic one (quick 261110-mag)', () => {
+        expect(Object.keys(GENERATED_PRIZES).sort()).toEqual([
+            QuestType.boss,
+            QuestType.enemy,
+        ]);
+    });
+});
 
 describe('prizesOf', () => {
     it('pays coins and xp from the table times the rank multiplier (D-19)', () => {

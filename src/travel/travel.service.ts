@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
+import {
+    notImprisonedAt,
+    refusalWhileImprisoned,
+} from 'src/characters/imprisonment/imprisonment';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { LoreGeographyReader } from 'src/lore/lore-geography.reader';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
@@ -39,6 +43,7 @@ import {
 
 const UNSTARTED_PROJECTION = {
     'status.awaitingAid': 1,
+    'status.imprisonedUntil': 1,
     'status.activeTravel.endTime': 1,
     'status.location': 1,
     'quests.pendingQuest': 1,
@@ -114,53 +119,68 @@ export class TravelService {
             plan.travel,
             session,
         );
+        // la partenza pianificata è l'istante della prigione riaffermata nel filtro (quick 261110-cgd)
+        const now = plan.travel.startTime;
         if (!meal.arrivesAlive)
             throw await this.starvingOrRace(
                 characterId,
                 plan.location,
+                now,
                 session,
             );
         const started = await this.characterModel
             .findOneAndUpdate(
-                startTravelFilter(
-                    characterId,
-                    plan.location,
-                    mealGuardsOf(meal, pantry.hpRaw),
-                ),
+                startTravelFilter(characterId, plan.location, {
+                    ...notImprisonedAt(now),
+                    ...mealGuardsOf(meal, pantry.hpRaw),
+                }),
                 startTravelUpdate(plan.travel, mealSetOf(meal, pantry.assets)),
                 { session, projection: { _id: 1 } },
             )
             .lean()
             .exec();
-        if (!started) throw await this.unstartedError(characterId, session);
+        if (!started)
+            throw await this.unstartedError(characterId, now, session);
     }
 
     // in corsa il codice della corsa viene prima della fame (D-11): la fame vale solo se la partenza è ancora possibile
     private async starvingOrRace(
         characterId: Types.ObjectId,
         location: Types.ObjectId,
+        now: Date,
         session: ClientSession,
     ): Promise<Error> {
         const startable = await this.characterModel
-            .exists(startTravelFilter(characterId, location))
+            .exists(
+                startTravelFilter(characterId, location, notImprisonedAt(now)),
+            )
             .session(session)
             .exec();
         return startable
             ? GameRuleException.travelStarving()
-            : this.unstartedError(characterId, session);
+            : this.unstartedError(characterId, now, session);
     }
 
     // la rilettura sceglie solo il codice (Phase 8 D-21)
     private async unstartedError(
         characterId: Types.ObjectId,
+        now: Date,
         session: ClientSession,
     ): Promise<Error> {
         const fresh = await this.characterModel
             .findOne(activeCharacterById(characterId), UNSTARTED_PROJECTION)
             .session(session)
-            .lean<UnstartedSnapshot | null>()
+            .lean<
+                | (UnstartedSnapshot & {
+                      status?: { imprisonedUntil?: unknown } | null;
+                  })
+                | null
+            >()
             .exec();
-        return classifyUnstarted(fresh);
+        return (
+            refusalWhileImprisoned(fresh?.status, now) ??
+            classifyUnstarted(fresh)
+        );
     }
 
     // un solo findOneAndUpdate in transazione (D-16, "il filtro è la regola"): location sovrascritta e viaggio cancellato insieme, report trattenuti consegnati nello stesso commit (Phase 15 D-13); nessuna push, nessuna quest toccata

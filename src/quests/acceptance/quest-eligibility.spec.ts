@@ -49,12 +49,26 @@ describe('quest eligibility rules', () => {
         );
     });
 
+    it.each([
+        [TitleType.paladin, false],
+        [TitleType.mage, true],
+        [TitleType.hero, true],
+    ])(
+        'a magic quest with minTitle mage admits a %s: %s (quick 261110-mag)',
+        (title, expected) => {
+            expect(meetsTitle(QuestType.magic, title, TitleType.mage)).toBe(
+                expected,
+            );
+        },
+    );
+
     const repeatable: Record<QuestType, boolean> = {
         [QuestType.hunt]: true,
         [QuestType.dungeon]: true,
         [QuestType.heal]: true,
         [QuestType.job]: true,
         [QuestType.study]: true,
+        [QuestType.magic]: true,
         [QuestType.crime]: true,
         [QuestType.guard]: true,
         [QuestType.story]: false,
@@ -92,6 +106,7 @@ describe('quest eligibility rules', () => {
         QuestType.job,
         QuestType.heal,
         QuestType.study,
+        QuestType.magic,
         QuestType.story,
         QuestType.crime,
         QuestType.guard,

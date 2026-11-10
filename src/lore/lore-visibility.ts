@@ -1,4 +1,5 @@
-import { documentIdOf, refIdOf } from 'src/mongo/document-id';
+import type { Types } from 'mongoose';
+import { documentIdOf, objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 import { isResolvedRef } from 'src/quests/quest-catalog.populate';
 
 // chi vede cosa (Phase 16 D-07, D-10): l'innkeeper tutto, il giocatore i suoi due insiemi, nessun personaggio nulla; confronto per esadecimale su ogni forma di ref
@@ -67,4 +68,19 @@ export function visibleRelated<T>(
     return (related ?? []).filter(
         (entry) => isResolvedRef(entry) && isVisible(visibility, entry),
     );
+}
+
+// id visibili fra ref non popolati (Phase 18 D-19): per i tipi le cui letture non popolano le lore;
+// refIdOf non legge un documento popolato, quindi si passa dall'esadecimale; ordine dei ref, duplicati e ref illeggibili scartati (D-23)
+export function visibleLoreIdsOf(
+    visibility: LoreVisibility,
+    refs: readonly unknown[] | null | undefined,
+): Types.ObjectId[] {
+    const hexes = new Set((refs ?? []).map(refHexOf).filter(isString));
+    return [...hexes]
+        .map(objectIdFromHex)
+        .filter(
+            (id): id is Types.ObjectId =>
+                id !== null && isVisible(visibility, id),
+        );
 }

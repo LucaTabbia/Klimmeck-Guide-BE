@@ -56,7 +56,7 @@ Ordine seguito: numerico, con le inserite subito dopo la fase madre; ogni contra
 ### Phase 18: Quest heal per taglia
 **Goal**: La cura è un premio esplicito della quest, non una regola del tipo: `Quest.prizes.cure { lifePointsShare, canHeal }` separa la vita restituita (tetto sulla quota del massimo) dalle ferite guarite (lista di `InjuryType`, stesso nome e semantica di `LootItem.canHeal`); il piano d'esito applica la cura a ogni quest vinta che la porta e registra le ferite guarite sul risultato; il contenuto delle 166 heal fisse è scritto a DB per taglia di città (`citySizeOf`) con ritocchi di lore per tipo di città, ore e descrizioni per taglia, dopo la revisione dell'utente su un file e dopo la merge; le heal restano gratuite. Supera la Phase 9 D-15 (heal vinta = tutte le ferite via + HP al massimo). Nella stessa fase le pozioni heal si bevono dal Diario (`useItem`) con una ricarica globale per personaggio (`LootItem.recovery { time, turns }`, `status.potionRecoveryUntil`, 30 min–24 h a DB; `turns` solo dato per il motore di combattimento dell'utente) e una lore nuova «Il limite del corpo» spiega la regola, sbloccata alla prima pozione tramite `LootItem.relatedLore`.
 **Depends on**: Phase 9 (piano d'esito, `QuestResult`), Phase 11 (heal fisse, descrizioni D-32), Phase 12 (`citySizeOf`), quick 261109-inj/inj2 (`LootItem.canHeal`, 37 `InjuryType`); **si esegue dopo la Phase 17** (ordine deciso dall'utente il 2026-11-09)
-**Requirements**: BE-HEAL-01, BE-HEAL-02, BE-HEAL-03, BE-HEAL-04, BE-HEAL-05, BE-HEAL-06, BE-HEAL-07, BE-HEAL-08
+**Requirements**: BE-HEAL-01, BE-HEAL-02, BE-HEAL-03, BE-HEAL-04, BE-HEAL-05, BE-HEAL-06, BE-HEAL-07, BE-HEAL-08, BE-HEAL-09
 **Success Criteria** (what must be TRUE):
   1. `QuestPrizes.cure: QuestCure` nullable (`lifePointsShare: Float!` in [0, 1], `canHeal: [InjuryType!]!` validata dall'enum, default vuota) su schema Mongoose, SDL (additivo) e `QuestPrizesInput`; `cure` assente = nessuna cura (fail-safe), nessuna migrazione.
   2. Una quest vinta con `cure` porta `currentLifePoints` almeno a `round(maxLifePoints × lifePointsShare)` (mai sopra il massimo, mai sotto il valore corrente, sul massimo dopo la progressione) e toglie da `status.injuries` le sole ferite presenti in `canHeal`, nella stessa scrittura dell'esito; il tipo della quest non conta (`heal` senza `cure` non cura; `job`/`story` con `cure` curano); la primitiva `cureInjuries` è pura e riusabile.
@@ -69,7 +69,22 @@ Ordine seguito: numerico, con le inserite subito dopo la fase madre; ogni contra
 **Decisioni del discuss (2026-11-09, `18-CONTEXT.md` D-01..D-19)**: vita e ferite separate; tetto 50/80/100; liste ≤20/≤40/tutte + lore; ore 2/5/8; cura su ogni quest vinta con `cure`; `injuriesHealed`; contenuto dopo la merge su file rivisto; pozioni dal Diario con ricarica globale `recovery { time, turns }` (30 min–24 h, `turns` solo dato), `useItem` consentita in viaggio, lore «Il limite del corpo» sbloccata alla prima pozione; fuori scope il cibo (rinviato) e le pozioni in combattimento (motore dell'utente).
 **Unblocks (FE)**: FE Phase 18 (HEAL-01..03).
 **Branch**: `feat/18-quest-heal-per-taglia` da `develop` (`31dba96`), worktree → PR a `develop` dopo la merge della Phase 17.
-**Plans**: TBD
+**Plans**: 11 plans
+
+Plans:
+- [x] 18-01-PLAN.md — Primitive pure della cura: `cureInjuries`, `cureOf`, `lifePointsAfterCure`
+- [x] 18-02-PLAN.md — Modello della cura e `injuriesHealed` (modello, draft, rescue, aid senza cura, SDL)
+- [x] 18-03-PLAN.md — Cura nel piano d'esito (D-20, heal di villaggio sul filo)
+- [x] 18-04-PLAN.md — Modelli delle pozioni: `LootRecovery`, `recovery`, `relatedLore`, `potionRecoveryUntil`, SDL
+- [x] 18-05-PLAN.md — `LootItem.relatedLore` filtrata per viewer
+- [x] 18-06-PLAN.md — Codici di rifiuto e `extensions.recoveryUntil` nei due formatter
+- [x] 18-07-PLAN.md — Piano puro `planItemUse` (percorso felice e cinque rifiuti in ordine)
+- [x] 18-08-PLAN.md — `ItemUseService`, mutation `useItem`, `UseItemResult`, transazione D-22, SDL, boot reale
+- [x] 18-09-PLAN.md — Heal senza effetto, regola: `healHasNoEffect`, `QUEST_NO_EFFECT`, rifiuto di `acceptQuest`
+- [x] 18-10-PLAN.md — Heal senza effetto, campo: `Quest.noEffect` per viewer su query e `questUpdated`, SDL
+- [x] 18-11-PLAN.md — Gate, `BACKEND-NOTES.md`, validazione, requisiti chiusi dal codice
+
+**Stato (2026-11-10)**: 11/11 piani eseguiti; gate passato, review corretta (11 fix, 3 chiusi per ruling), verifica `passed`, security senza minacce aperte, `test:cov` 390 suite / 5131 test verdi; PR verso `develop` in draft fino al contenuto a DB (BE-HEAL-03 e BE-HEAL-08 aperti: script dell'orchestratore dopo la merge).
 
 ### Phase 19: Revisione dei modelli
 **Goal**: I modelli perdono campi doppi, nomi storti e strutture parallele senza cambiare le regole di gioco, con una sola aggiunta decisa dall'utente: il compagno equipaggiato riceve il 10 % degli xp dei nemici sconfitti (tetto `maxXp` del catalogo) e per questo lo stato del pet (xp, vita) lascia il catalogo condiviso e vive sul personaggio. Tre aree, un migratore one-off al boot reale rimosso prima della merge, SDL non additivo consumato dalla FE Phase 19 con piani gated.
@@ -105,7 +120,7 @@ Ordine seguito: numerico, con le inserite subito dopo la fase madre; ogni contra
 
 | Vincolo FE | Fase BE che lo soddisfa | Nota |
 |-----------|------------------------|------|
-| FE Phase 18 (quest heal per taglia + pozioni dal Diario) | Phase 18 (BE-HEAL) | `QuestPrizes.cure { lifePointsShare canHeal }`, `QuestResult.injuriesHealed`, `LootItem.recovery { time turns }`, `LootItem.relatedLore`, `CharacterStatus.potionRecoveryUntil`, mutation `useItem` → `UseItemResult` additivi; contenuto (liste, tempi, lore) a DB dopo la merge; esecuzione dopo la Phase 17 (discuss 2026-11-09) |
+| FE Phase 18 (quest heal per taglia + pozioni dal Diario) | Phase 18 (BE-HEAL) | `QuestPrizes.cure { lifePointsShare canHeal }`, `QuestResult.injuriesHealed`, `LootItem.recovery { time turns }`, `LootItem.relatedLore`, `CharacterStatus.potionRecoveryUntil`, mutation `useItem` → `UseItemResult` additivi; contenuto (liste, tempi, lore) a DB dopo la merge; esecuzione dopo la Phase 17 (discuss 2026-11-09); aggiunti il 2026-11-10: `Quest.noEffect` per viewer e codice `QUEST_NO_EFFECT` (heal senza effetto, D-25) |
 | FE Phase 19 (model review companion) | Phase 19 (BE-MODEL) | SDL non additivo dichiarato: `Enemy.weaknesses`, `Pet.attack`/`Pet.defense` (via `Pet.damages`), `CharacterAssets.ownedPets: [OwnedPet!]!`, `QuestResult.petXpGained`, `wornEquipment`/`feet`, `SpellState.active` con `CharacterStatus.spells` e `CharacterAssets.activeSpells` tolti, `PointOfInterest.quest` tolto, `Lore.imagePath`; piani FE gated dalla merge (discuss 2026-11-09) |
 | (nessuna fase FE) | Phase 20 (BE-FOODP) | Nessun cambio sul filo: vita e dispensa arrivano dallo stream durante il viaggio; la nota «inventario e HP cambiano solo via subscription» della FE Phase 15 resta vera (discuss 2026-11-09) |
 
@@ -137,7 +152,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 15. Imboscate in viaggio | v1.0 | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | v1.0 | 12/12 | Complete | 2026-11-07 |
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
-| 18. Quest heal per taglia | v1.1 | 0/0 | Not started | - |
+| 18. Quest heal per taglia | v1.1 | 11/11 | In Progress | - |
 | 19. Revisione dei modelli | v1.1 | 0/0 | Not started | - |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
 

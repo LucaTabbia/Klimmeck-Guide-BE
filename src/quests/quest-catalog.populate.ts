@@ -3,6 +3,7 @@ import { Enemy } from 'src/models/enemy.model';
 import { Lore } from 'src/models/lore.model';
 import { Pet } from 'src/models/pet.model';
 import { Spell } from 'src/models/spell.model';
+import { cureOf } from 'src/quests/outcomes/injuries/quest-cure';
 
 // tutti i ref che il FE seleziona sul catalogo (D-31): SDL invariato, solo comportamento
 export const QUEST_CATALOG_POPULATE: PopulateOptions[] = [
@@ -34,6 +35,7 @@ export interface CatalogRefsHolder {
         prizeItem?: CatalogItemEntry | null;
         randomLoot?: CatalogItemEntry[] | null;
         pet?: unknown;
+        cure?: unknown;
     } | null;
 }
 
@@ -74,5 +76,7 @@ export function dropOrphanCatalogRefs(quest: CatalogRefsHolder): void {
         if (!isResolvedRef(prizes.pet)) {
             prizes.pet = null;
         }
+        // sul filo la cura che il server applicherebbe: una quota mancante su Float! o un refuso sull'enum annullerebbero la lista (D-23)
+        prizes.cure = cureOf(prizes.cure);
     }
 }

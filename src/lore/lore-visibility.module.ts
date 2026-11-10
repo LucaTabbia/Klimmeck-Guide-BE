@@ -10,6 +10,7 @@ import { KnownEnemiesResolver } from './known-enemies.resolver';
 import {
     CityRelatedLoreResolver,
     EnemyRelatedLoreResolver,
+    LootItemRelatedLoreResolver,
     LoreRelatedLoreResolver,
 } from './related-lore.resolvers';
 import { ViewerKnowledgeService } from './viewer-knowledge.service';
@@ -27,6 +28,7 @@ import { ViewerKnowledgeService } from './viewer-knowledge.service';
         LoreRelatedLoreResolver,
         CityRelatedLoreResolver,
         EnemyRelatedLoreResolver,
+        LootItemRelatedLoreResolver,
         KnownEnemiesResolver,
     ],
     exports: [ViewerKnowledgeService],

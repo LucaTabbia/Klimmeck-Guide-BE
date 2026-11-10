@@ -23,6 +23,8 @@ export interface PrizesSnapshot {
     spell?: unknown;
     spellDraw?: unknown;
     pet?: unknown;
+    // cura esplicita (Phase 18 D-01): la legge e la sanifica cureOf
+    cure?: unknown;
 }
 
 export interface RewardItem {
