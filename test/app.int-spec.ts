@@ -49,6 +49,7 @@ import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
 import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholder-combat-resolver';
 import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
+import { PrisonReleaseSweeper } from 'src/characters/imprisonment/prison-release.sweeper';
 import { QuestResultMaintenance } from 'src/quests/results/quest-result-maintenance';
 import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
 import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
@@ -827,6 +828,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
         expect(app.get(QuestResolutionService)).toBeInstanceOf(
             QuestResolutionService,
+        );
+        // liberazione dalla prigione (quick 261110-prp): stesso intervallo dello sweep delle missioni
+        expect(app.get(PrisonReleaseSweeper)).toBeInstanceOf(
+            PrisonReleaseSweeper,
         );
         expect(app.get(getQueueToken(QUEST_RESOLUTION_QUEUE))).toBeDefined();
         expect(app.get<QuestConfig>(QUEST_CONFIG)).toEqual({
