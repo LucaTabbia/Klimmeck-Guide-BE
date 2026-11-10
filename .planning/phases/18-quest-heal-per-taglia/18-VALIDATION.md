@@ -47,9 +47,9 @@ created: 2026-11-10
 | 18-03-01 | 03 | 3 | BE-HEAL-02 | T-18-09, T-18-10, T-18-11, T-18-12, T-18-13 | cura da `prizes.cure` dopo combattimento e progressione (D-20), nulla su sconfitta, filtro invariato, ricarica mai scritta dall'esito | unit + integration | `npx jest src/quests/outcomes --selectProjects unit` + `npx jest src/quests/outcomes/quest-resolution.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 18-03-02 | 03 | 3 | BE-HEAL-04, BE-HEAL-05 | T-18-09 | cura sopra l'override del GM; `injuriesHealed` sul filo, legacy → lista vuota | integration | `npx jest src/quests/outcomes/gm-completion.service.int-spec.ts src/quests/results/quest-result.resolver.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 18-03-03 | 03 | 3 | BE-HEAL-02 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-03-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 18-04-01 | 04 | 4 | BE-HEAL-06 | T-18-14, T-18-15, T-18-16, T-18-17 | `recovery` interi non negativi su `create`, `relatedLore` ref non Mixed, input fuori dallo SDL | unit + integration | `npx jest src/models/loot-item.model.spec.ts src/migrations/mixed-refs/mixed-ref-paths.spec.ts test/fixtures/fixtures.spec.ts --selectProjects unit` + boot reale | ✅ | ⬜ pending |
-| 18-04-02 | 04 | 4 | BE-HEAL-06 | T-18-17, T-18-18 | `potionRecoveryUntil` data nullable, fuori da ogni input | unit + integration | `npx jest src/models/character --selectProjects unit` + boot reale | ❌ W0 | ⬜ pending |
-| 18-04-03 | 04 | 4 | BE-HEAL-06 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-04-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 18-04-01 | 04 | 4 | BE-HEAL-06 | T-18-14, T-18-15, T-18-16, T-18-17 | `recovery` interi non negativi su `create`, `relatedLore` ref non Mixed, input fuori dallo SDL | unit + integration | `npx jest src/models/loot-item.model.spec.ts src/migrations/mixed-refs/mixed-ref-paths.spec.ts test/fixtures/fixtures.spec.ts --selectProjects unit` + boot reale | ✅ | ✅ green |
+| 18-04-02 | 04 | 4 | BE-HEAL-06 | T-18-17, T-18-18 | `potionRecoveryUntil` data nullable, fuori da ogni input | unit + integration | `npx jest src/models/character --selectProjects unit` + boot reale | ✅ | ✅ green |
+| 18-04-03 | 04 | 4 | BE-HEAL-06 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-04-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 18-05-01 | 05 | 5 | BE-HEAL-06 | T-18-22 | id visibili da ref non popolati: stringhe lette, illeggibili e duplicati scartati | unit | `npx jest src/lore/lore-visibility.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
 | 18-05-02 | 05 | 5 | BE-HEAL-06, BE-HEAL-08 | T-18-19, T-18-20, T-18-21 | `LootItem.relatedLore` per viewer: giocatore le sole sbloccate, oste tutte, nessun personaggio nulla, orfani scartati, nessuna query senza lore visibili | integration | `npx jest src/lore/lore-related.int-spec.ts src/lore/viewer-knowledge.service.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 18-05-03 | 05 | 5 | BE-HEAL-06 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-05-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
@@ -83,7 +83,7 @@ Le spec nuove nascono nel commit RED del task indicato (TDD, REPO-RULES): nessun
 - [x] `src/quests/outcomes/injuries/cure-injuries.spec.ts` — primitiva delle ferite (BE-HEAL-02, task 18-01-01)
 - [x] `src/quests/outcomes/injuries/quest-cure.spec.ts` — lettore sanificante e tetto (BE-HEAL-02, task 18-01-02)
 - [x] `src/models/quest/quest-prizes.schema.spec.ts` — schema della cura (BE-HEAL-01, task 18-02-01)
-- [ ] `src/models/character/character-status.schema.spec.ts` — data di ricarica (BE-HEAL-06, task 18-04-02)
+- [x] `src/models/character/character-status.schema.spec.ts` — data di ricarica (BE-HEAL-06, task 18-04-02)
 - [ ] `src/characters/items/item-use.plan.spec.ts` — piano puro della bevuta (BE-HEAL-07, task 18-07-01)
 - [ ] `src/characters/items/use-item.int-spec.ts` — `useItem` sul filo (BE-HEAL-07, BE-HEAL-08, task 18-08-01)
 - [ ] `src/characters/items/item-use.service.int-spec.ts` — transazione e bevute parallele (BE-HEAL-07, task 18-08-02)

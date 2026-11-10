@@ -75,7 +75,7 @@ Plans:
 - [x] 18-01-PLAN.md — Primitive pure della cura: `cureInjuries`, `cureOf`, `lifePointsAfterCure`
 - [x] 18-02-PLAN.md — Modello della cura e `injuriesHealed` (modello, draft, rescue, aid senza cura, SDL)
 - [x] 18-03-PLAN.md — Cura nel piano d'esito (D-20, heal di villaggio sul filo)
-- [ ] 18-04-PLAN.md — Modelli delle pozioni: `LootRecovery`, `recovery`, `relatedLore`, `potionRecoveryUntil`, SDL
+- [x] 18-04-PLAN.md — Modelli delle pozioni: `LootRecovery`, `recovery`, `relatedLore`, `potionRecoveryUntil`, SDL
 - [ ] 18-05-PLAN.md — `LootItem.relatedLore` filtrata per viewer
 - [ ] 18-06-PLAN.md — Codici di rifiuto e `extensions.recoveryUntil` nei due formatter
 - [ ] 18-07-PLAN.md — Piano puro `planItemUse` (percorso felice e cinque rifiuti in ordine)
@@ -150,7 +150,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 15. Imboscate in viaggio | v1.0 | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | v1.0 | 12/12 | Complete | 2026-11-07 |
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
-| 18. Quest heal per taglia | v1.1 | 3/11 | In Progress | - |
+| 18. Quest heal per taglia | v1.1 | 4/11 | In Progress | - |
 | 19. Revisione dei modelli | v1.1 | 0/0 | Not started | - |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
 
