@@ -9,6 +9,7 @@ export enum QuestType {
     dungeon = 'dungeon',
     story = 'story',
     study = 'study',
+    magic = 'magic',
     heal = 'heal',
     job = 'job',
     crime = 'crime',

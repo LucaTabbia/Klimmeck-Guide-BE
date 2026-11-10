@@ -626,7 +626,8 @@ export class ResolutionLoader {
     private async readStudyLorePool(
         quest: ResolutionQuest,
     ): Promise<Types.ObjectId[]> {
-        if (quest.infos?.type !== QuestType.study) return [];
+        const type = quest.infos?.type;
+        if (type !== QuestType.study && type !== QuestType.magic) return [];
         const lore = await this.loreModel
             .find({ type: { $in: [...STUDY_LORE_TYPES] } }, { _id: 1 })
             .lean<{ _id: Types.ObjectId }[]>()
