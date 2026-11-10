@@ -47,8 +47,7 @@ export class LootItem extends AssetItem {
     @Prop({ type: String, enum: Object.values(EffectType) })
     effect: EffectType;
 
-    // ferite che un oggetto heal può curare (regola utente 2026-11-09); la meccanica arriva in una fase dedicata
-    // campo già presente a DB sui vecchi oggetti heal: riusato (utente 2026-11-09)
+    // ferite che una pozione heal cura alla bevuta (Phase 18 D-13); campo già presente a DB sui vecchi oggetti heal, riusato (utente 2026-11-09)
     @Field(() => [InjuryType])
     @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
     canHeal: InjuryType[];
