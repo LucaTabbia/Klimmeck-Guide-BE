@@ -80,6 +80,9 @@ const unchangedSheet = {
     stagesCleared: null,
     stagesTotal: null,
     rescuedCharacters: [],
+    arrested: false,
+    coinsLost: null,
+    guardEncounter: false,
 };
 
 describe('planRescued', () => {

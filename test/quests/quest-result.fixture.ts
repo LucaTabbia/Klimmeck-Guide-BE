@@ -35,6 +35,9 @@ export function buildQuestResult(overrides: Record<string, any> = {}) {
         stagesCleared: null,
         stagesTotal: null,
         rescuedCharacters: [],
+        arrested: false,
+        coinsLost: null,
+        guardEncounter: false,
         ...overrides,
     };
 }

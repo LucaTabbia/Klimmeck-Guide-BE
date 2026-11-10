@@ -96,6 +96,11 @@ export class CharacterStatus {
     @Prop({ type: Date, default: null })
     potionRecoveryUntil?: Date | null;
 
+    // fine della prigione dopo un arresto (quick 261110-cgd): null o passata = libero; nessuno sweep la azzera
+    @Field(() => Date, { nullable: true })
+    @Prop({ type: Date, default: null })
+    imprisonedUntil?: Date | null;
+
     @Field(() => Int)
     maxActiveSpells: number;
 }

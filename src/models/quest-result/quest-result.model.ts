@@ -268,6 +268,21 @@ export class QuestResult {
         default: [],
     })
     rescuedCharacters: Types.ObjectId[];
+
+    // crime conclusa con l'arresto (quick 261110-cgd): nessun premio, prigione e multa
+    @Field(() => Boolean)
+    @Prop({ type: Boolean, default: false })
+    arrested: boolean;
+
+    // monete perse all'arresto (quick 261110-cgd): null per ogni altro esito
+    @Field(() => Coins, { nullable: true })
+    @Prop({ type: CoinsSchema, default: null })
+    coinsLost?: Coins | null;
+
+    // guard con lo scontro casuale (quick 261110-cgd): i nemici dello scontro stanno in enemies
+    @Field(() => Boolean)
+    @Prop({ type: Boolean, default: false })
+    guardEncounter: boolean;
 }
 
 export type QuestResultDocument = QuestResult & Document;

@@ -109,6 +109,7 @@ type CharacterStatus {
   awaitingAid: AwaitingAid
   coins: Coins!
   currentLifePoints: Int!
+  imprisonedUntil: DateTime
   injuries: [InjuryType!]!
   level: Int!
   location: PointOfInterest!
@@ -659,9 +660,12 @@ type QuestRequirements {
 type QuestResult {
   acknowledgedAt: DateTime
   ambush: AmbushReport
+  arrested: Boolean!
   character: ID!
+  coinsLost: Coins
   consumablesUsed: [AssetQuantity!]!
   enemies: [QuestEnemy!]!
+  guardEncounter: Boolean!
   hpAfter: Int!
   hpBefore: Int!
   id: ID!

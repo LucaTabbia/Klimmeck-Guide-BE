@@ -137,6 +137,10 @@ export interface QuestResultDraft {
     stagesCleared: number | null;
     stagesTotal: number | null;
     rescuedCharacters: Types.ObjectId[];
+    // esiti della quick 261110-cgd: arresto con multa, scontro di guardia
+    arrested: boolean;
+    coinsLost: CoinPurse | null;
+    guardEncounter: boolean;
 }
 
 export type PlanVerdict =
@@ -513,6 +517,9 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
                 input.verdict === QuestOutcome.success
                     ? [...(input.rescuedCharacters ?? [])]
                     : [],
+            arrested: false,
+            coinsLost: null,
+            guardEncounter: false,
         },
         spellRecoveries: spells.recoveries,
     };
