@@ -296,6 +296,23 @@ describe('useItem (wire)', () => {
         expect(await rawCharacter(player)).toEqual(before);
     });
 
+    it('drinks while imprisoned (quick 261110-cgd)', async () => {
+        const { potion } = await potionWith();
+        const player = await playerWith({
+            twitchId: 'twitch-drink-imprisoned',
+            status: { imprisonedUntil: new Date('2026-11-10T22:00:00.000Z') },
+            ownedItems: [stackOf(potion._id)],
+        });
+
+        const body = await drink(player, potion.id);
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.useItem).toMatchObject({
+            hpBefore: 400,
+            hpAfter: 700,
+        });
+    });
+
     it('drinks while travelling (D-17)', async () => {
         const { potion, lore } = await potionWith();
         const player = await playerWith({

@@ -1073,6 +1073,92 @@ describe('QuestAcceptanceService (replSet)', () => {
         );
     }
 
+    function imprison(characterId: Types.ObjectId, until: Date) {
+        return characters.collection.updateOne(
+            { _id: characterId },
+            { $set: { 'status.imprisonedUntil': until } },
+        );
+    }
+
+    describe('prison guard (quick 261110-cgd)', () => {
+        const RELEASE = new Date(ACCEPTED_AT.getTime() + 60_000);
+
+        it('rejects every lane of an imprisoned character with CHARACTER_IMPRISONED and writes nothing (quick 261110-cgd)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            await imprison(charId, RELEASE);
+            const questIds = [
+                await questOf('crime'),
+                await questOf('story', {
+                    requiredPoints: 1000,
+                    minTitle: 'rookie',
+                }),
+                await questOf('worldMission', {
+                    requiredPoints: 3000,
+                    requiredAdventurers: ANY_THREE,
+                }),
+                await questOf('aid', { requiredAdventurers: ANY_THREE }),
+            ];
+            const before = await raw(charId);
+
+            for (const questId of questIds)
+                await expect(
+                    accept(ownerId, charId, questId),
+                ).rejects.toMatchObject({
+                    code: 'CHARACTER_IMPRISONED',
+                    extensions: {
+                        code: 'CHARACTER_IMPRISONED',
+                        imprisonedUntil: RELEASE.toISOString(),
+                    },
+                });
+
+            expect(await raw(charId)).toEqual(before);
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+            for (const questId of questIds)
+                expect(
+                    (await rawQuest(questId))?.registeredAdventurers,
+                ).toEqual([]);
+            expect(queue.added).toEqual([]);
+        });
+
+        it('rejects with CHARACTER_IMPRISONED when the prison starts after the pre-check (quick 261110-cgd)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                requiredAdventurers: ANY_THREE,
+            });
+            const transaction = interleaveBeforeTransaction(() =>
+                imprison(charId, RELEASE),
+            );
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'CHARACTER_IMPRISONED' });
+
+            expect(transaction).toHaveBeenCalledTimes(1);
+            const character = await raw(charId);
+            expect(
+                character?.quests.activeWorldMissionQuest ?? null,
+            ).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('accepts a quest once the prison has ended (quick 261110-cgd)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            await imprison(charId, ACCEPTED_AT);
+            const questId = await questOf('crime');
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).resolves.toBeInstanceOf(Types.ObjectId);
+            expect(await pendingCount()).toBe(1);
+        });
+    });
+
     describe('aid wait guard (D-07)', () => {
         it('rejects every lane of a character awaiting aid with AWAITING_AID and writes nothing', async () => {
             const ownerId = await ownerWith(6000);
