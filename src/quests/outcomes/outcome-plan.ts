@@ -65,6 +65,8 @@ export interface OutcomeCharacterSnapshot {
         spellStates?: SpellStateEntry[];
         location?: unknown;
         awaitingAid?: unknown;
+        // borsellino letto dalla multa dell'arresto (quick 261110-cgd)
+        coins?: Partial<CoinPurse> | null;
         unlockedLore?: unknown[];
         knownEnemies?: unknown[];
     };
@@ -324,8 +326,9 @@ function petWonBy(
     return owned.some((id) => sameId(id, pet)) ? null : pet;
 }
 
-function participantFilter(
-    input: ParticipantPlanInput,
+// riusato dai piani senza premio (quick 261110-cgd)
+export function participantFilter(
+    input: Pick<ParticipantPlanInput, 'snapshot' | 'pendingQuestId' | 'lane'>,
     lanePath: string,
 ): Record<string, unknown> {
     const { xp } = input.snapshot.status;
