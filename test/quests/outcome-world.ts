@@ -4,6 +4,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import { Types } from 'mongoose';
 import type { Clock } from 'src/auth/clock';
+import { PrisonReleaseSweeper } from 'src/characters/imprisonment/prison-release.sweeper';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { PUSH_CONFIG } from 'src/config/push-config';
 import { QUEST_CONFIG } from 'src/config/quest-config';
@@ -56,10 +57,18 @@ export const IDLE_QUEST_SWEEPER = {
     sweep: () => Promise.resolve({ resolved: 0, timedOut: 0 }),
 };
 
+// nessuna liberazione dalla prigione concorrente con il setup dei test (quick 261110-prp)
+export const IDLE_PRISON_RELEASE_SWEEPER = {
+    onApplicationBootstrap: () => undefined,
+    onModuleDestroy: () => undefined,
+    sweep: () => Promise.resolve(0),
+};
+
 // ogni harness che monta QuestOutcomesModule o PendingRequestsModule lo usa: nessuno sweep periodico né reconciler concorrente con il setup dei test
 export const QUIET_OUTCOME_OVERRIDES: ProviderOverride[] = [
     QUIET_SWEEP_CONFIG,
     { token: QuestResolutionSweeper, useValue: IDLE_QUEST_SWEEPER },
+    { token: PrisonReleaseSweeper, useValue: IDLE_PRISON_RELEASE_SWEEPER },
 ];
 
 export const OUTCOME_START = new Date('2026-10-24T10:00:00.000Z');

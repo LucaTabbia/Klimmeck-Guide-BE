@@ -68,7 +68,10 @@ describe('prison release (replSet)', () => {
             characterOverrides: { status, ...extra },
         });
         await registerDevice(world.harness, player);
-        return { ...player, characterId: player.character!._id };
+        return {
+            ...player,
+            characterId: player.character!._id as Types.ObjectId,
+        };
     }
 
     async function imprisonedUntilOf(id: Types.ObjectId): Promise<unknown> {
