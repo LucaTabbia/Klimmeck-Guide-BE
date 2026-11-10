@@ -89,7 +89,7 @@ type Mutation {
 |---|--------|-----------|--------|
 | 1 | `AWAITING_AID` | «Il tuo personaggio è in attesa di soccorso» | il personaggio corrente è in attesa di soccorso |
 | 2 | `ITEM_NOT_OWNED` | «Oggetto non posseduto» | nessuna pila dell'oggetto o quantità 0 (anche: scrittura condizionale non applicata, caso quasi irraggiungibile) |
-| 3 | `ITEM_NOT_USABLE` | «Questo oggetto non si può usare» | `effect` diverso da heal, `recovery` assente o `recovery.time` non intero maggiore di 0, oggetto assente dal catalogo |
+| 3 | `ITEM_NOT_USABLE` | «Questo oggetto non si può usare» | `effect` diverso da heal, `recovery` assente o `recovery.time` non intero in (0, 2 147 483 647], oggetto assente dal catalogo |
 | 4 | `POTION_RECOVERING` | «Il tuo corpo non reggerebbe un'altra pozione: aspetta che la prima si sia posata» | `potionRecoveryUntil` nel futuro rispetto all'ora del BE; porta `extensions.recoveryUntil` |
 | 5 | `ITEM_NO_EFFECT` | «Questa pozione non ti farebbe nulla adesso» | l'esito pianificato non cambia nulla (HP invariati e nessuna ferita guarita): nessun consumo, nessuna ricarica |
 
@@ -126,13 +126,13 @@ Stringa ISO 8601 (UTC, millisecondi) della fine della ricarica, **solo** con `PO
 
 ### 1.5 Semantica
 
-- **`lifePointsShare` è un tetto**, non un incremento: la quest vinta porta `currentLifePoints` almeno a `round(maxLifePoints × quota)`, mai sopra il massimo né sotto il valore corrente; il massimo usato è quello **dopo** la progressione dello stesso esito (D-02). Quota 0 = cura solo ferite. Una quota letta dal DB non finita o fuori da [0, 1] vale 0 (fail-safe D-23, mai 1).
+- **`lifePointsShare` è un tetto**, non un incremento: la quest vinta porta `currentLifePoints` almeno a `round(maxLifePoints × quota)`, mai sopra il massimo né sotto il valore corrente; il massimo usato è quello **dopo** la progressione dello stesso esito (D-02). Quota 0 = cura solo ferite. Una quota letta dal DB non finita o fuori da [0, 1] vale 0 (fail-safe D-23, mai 1). **Sul filo `QuestPrizes.cure` arriva già come la legge il server** (review A-WR-01): quota mancante o fuori scala = 0, ferite fuori dall'enum scartate da `canHeal`, cura che non è un oggetto = `null`; un documento scritto male non produce mai `errors` su `quests`, `quest(id)` o `questUpdated`.
 - **Ordine dell'esito (D-20):** combattimento → ferite nuove → progressione → cura. `injuriesAdded` resta la lista del combattimento; `injuriesHealed` elenca tutte le ferite tolte, comprese quelle appena prese. Una ferita presa e guarita nello stesso esito non resta su `status.injuries`. Una ferita fuori da `canHeal` resta: si può uscire dal tempio ancora feriti.
 - **Chi cura (D-07):** ogni quest vinta (`success` o `gmCompleted`) che porta `cure`, qualunque `infos.type`; la sconfitta non cura. L'override del GM entra come combattimento e la cura si applica sopra. La quest `aid` clonata non eredita `cure`.
 - **Le heal restano gratuite (D-06):** `pointsCostOf` invariata, corsia standard a costo zero.
 - **`LootRecovery.time`** in millisecondi (stesso significato di `Spell.recoveryTime`); **`turns` è solo dato** per il motore di combattimento (D-16): il combattimento non legge né scrive `potionRecoveryUntil`.
 - **`potionRecoveryUntil`** null = nessuna ricarica. Il conto alla rovescia è della FE; il giudice è il BE (al millisecondo esatto della fine si beve di nuovo).
-- **`useItem`** agisce sul personaggio corrente del bearer, oste compreso (D-21: niente id del personaggio nell'argomento, nessun bypass di ruolo); consentita in città e **in viaggio**. HP = min(massimo, HP + `power`); ferite in `canHeal` tolte; una unità in meno (pila rimossa a 0); `potionRecoveryUntil` = ora + `recovery.time`; le `relatedLore` dell'oggetto aggiunte a `status.unlockedLore`. Una transazione con snapshot in sessione e **una sola** scrittura (D-22): di due bevute parallele una scrive, l'altra riceve `POTION_RECOVERING`.
+- **`useItem`** agisce sul personaggio corrente del bearer, oste compreso (D-21: niente id del personaggio nell'argomento, nessun bypass di ruolo); consentita in città e **in viaggio**. HP = min(massimo, HP + `power`), **mai sotto il valore corrente** (review B-IN-01: una vita già oltre il massimo resta com'è, la bevuta cura solo le ferite; senza ferite curabili `ITEM_NO_EFFECT`); ferite in `canHeal` tolte; una unità in meno (pila rimossa a 0); `potionRecoveryUntil` = ora + `recovery.time`; le `relatedLore` dell'oggetto aggiunte a `status.unlockedLore`. Una transazione con snapshot in sessione e **una sola** scrittura (D-22): di due bevute parallele una scrive, l'altra riceve `POTION_RECOVERING`. La scrittura ripete ciò che il piano ha letto (review B-WR-01): un personaggio legacy senza `status.injuries` o con `potionRecoveryUntil` scritto come testo o numero beve normalmente, mai un `ITEM_NOT_OWNED` perpetuo.
 - **`loreUnlocked`** porta le sole lore **nuove** per il personaggio (vuota alla seconda bevuta della stessa famiglia di pozioni).
 - **`characterUpdated`** viene riemesso dal change stream dopo la bevuta (nessuna pubblicazione a mano): la FE riceve vita, ferite, inventario e `potionRecoveryUntil` aggiornati per la stessa via di sempre.
 - **`LootItem.relatedLore`** è filtrata per il viewer come `Enemy.relatedLore` / `City.relatedLore` (Phase 16 D-07): il giocatore vede le sole lore sbloccate, l'oste tutte, senza personaggio nulla. La FE non seleziona il campo. **N+1 dichiarato (T-18-21, accettato):** per l'oste ogni oggetto con lore visibili costa una query sulle lore (28 pozioni oggi), solo se il campo è selezionato; nessuna memo per richiesta.
@@ -150,20 +150,24 @@ Stringa ISO 8601 (UTC, millisecondi) della fine della ricarica, **solo** con `PO
 | `cureOf` sanificante (quota fuori scala = 0, mai 1) e tetto con clamp | D-02, D-23 | `src/quests/outcomes/injuries/quest-cure.spec.ts` |
 | Schema della cura validato su `create`, input fuori dallo SDL, aid senza cura | D-01, D-09, D-23, D-24 | `src/models/quest/quest-prizes.schema.spec.ts`, `src/quests/outcomes/aid/aid-quest.spec.ts` |
 | `injuriesHealed` su modello e risultato (default vuoto) | D-08 | `src/models/quest-result/quest-result.schema.spec.ts` |
-| `recovery` interi non negativi, `relatedLore` ref | D-15, D-19 | `src/models/loot-item.model.spec.ts` |
+| `recovery` interi in [0, 2 147 483 647], `relatedLore` ref | D-15, D-19 | `src/models/loot-item.model.spec.ts` |
 | `potionRecoveryUntil` data nullable, fuori da ogni input | D-15 | `src/models/character/character-status.schema.spec.ts` |
 | Piano d'esito: cura da `prizes.cure` dopo combattimento e progressione, nulla su sconfitta, tipo indifferente | D-02, D-07, D-20 | `src/quests/outcomes/outcome-plan.spec.ts` |
 | Heal di villaggio risolta (una ferita tolta, HP al 50 %), cura sopra l'override del GM | D-02, D-07, D-08 | `src/quests/outcomes/quest-resolution.service.int-spec.ts`, `src/quests/outcomes/gm-completion.service.int-spec.ts` |
 | `injuriesHealed` sul filo del foglio, legacy → lista vuota | D-08 | `src/quests/results/quest-result.resolver.int-spec.ts` |
 | `LootItem.relatedLore` per viewer (giocatore, oste, senza personaggio, orfani) | D-19 | `src/lore/lore-related.int-spec.ts` |
 | Codici, factory ed `extensions.recoveryUntil` anche in produzione | D-17 | `src/gameRules/game-rule.exception.spec.ts`, `src/graphql/format-domain-error.spec.ts`, `src/graphql/production-errors.spec.ts`, `src/graphql/production-surface.int-spec.ts` |
-| Piano della bevuta: cinque rifiuti in ordine, confine al millisecondo, nessun effetto sull'esito pianificato | D-17, D-22, D-23 | `src/characters/items/item-use.plan.spec.ts` |
+| Piano della bevuta: cinque rifiuti in ordine, confine al millisecondo, nessun effetto sull'esito pianificato, vita mai abbassata, filtro sui valori letti, ricarica oltre l'Int GraphQL non bevibile | D-02, D-15, D-17, D-22, D-23 | `src/characters/items/item-use.plan.spec.ts` |
 | `useItem` sul filo: solo il personaggio del bearer (oste compreso), rifiuti senza scrittura, ricarica, lore alla prima bevuta, viaggio consentito, `BAD_USER_INPUT`, `NOT_FOUND` | D-15, D-17, D-19, D-21, D-23 | `src/characters/items/use-item.int-spec.ts` |
-| Una scrittura in transazione, due bevute parallele, scrittura concorrente non persa | D-22 | `src/characters/items/item-use.service.int-spec.ts` |
+| Una scrittura in transazione, due bevute parallele, scrittura concorrente fra snapshot e scrittura non persa (ritentativo provato), legacy senza ferite e ricarica testo o numero bevibili | D-22, D-23 | `src/characters/items/item-use.service.int-spec.ts` |
 | Predicato della heal senza effetto | D-25 | `src/quests/outcomes/injuries/heal-no-effect.spec.ts` |
-| `acceptQuest` rifiuta la heal senza effetto prima di ogni scrittura, sul servizio e sul filo | D-25 | `src/quests/acceptance/quest-acceptance.service.int-spec.ts`, `src/quests/acceptance/accept-quest.resolver.int-spec.ts` |
-| `Quest.noEffect` per viewer sulle query, per subscriber su `questUpdated`, letture dei vitali del viewer | D-25 | `src/quests/quests.resolver.int-spec.ts`, `src/quests/quest-updated.subscription.int-spec.ts`, `src/quests/no-effect/viewer-vitals.service.spec.ts` |
+| `acceptQuest` rifiuta la heal senza effetto prima di ogni scrittura, sul servizio e sul filo; rifiuto e `Quest.noEffect` danno lo stesso verdetto sugli stessi fatti, legacy senza vita, massimo o xp compresi | D-25 | `src/quests/acceptance/quest-acceptance.service.int-spec.ts`, `src/quests/acceptance/accept-quest.resolver.int-spec.ts` |
+| `Quest.noEffect` per viewer sulle query, per subscriber su `questUpdated` (anche quando fra due eventi cambia solo la vita), letture dei vitali del viewer | D-25 | `src/quests/quests.resolver.int-spec.ts`, `src/quests/quest-updated.subscription.int-spec.ts`, `src/quests/no-effect/viewer-vitals.service.spec.ts` |
+| `QuestPrizes.cure` sul filo sanificata come la legge il server (quota mancante o fuori scala, ferita ignota), nessun `errors` | D-01, D-23 | `src/quests/quests.resolver.int-spec.ts` |
+| `POTION_RECOVERING` con `recoveryUntil` anche su graphql-ws, in produzione e fuori | D-17 | `src/graphql/production-surface.int-spec.ts` |
 | SDL additivo, `useItem` senza bearer → `UNAUTHENTICATED` | D-09, D-21 | `test/app.int-spec.ts` |
+
+Limiti noti, accettati nella review (B-IN-05): un id di `relatedLore` che punta a una lore cancellata entra comunque in `status.unlockedLore` ed è innocuo (la visibilità filtra per esistenza, come per ogni altra lore), quindi `loreUnlocked` può essere più corta della lista scritta. Le lore del risultato si leggono dopo il commit con una sola lettura idempotente: se fallisse, il client riceve un errore a bevuta avvenuta, riprova e ottiene `POTION_RECOVERING` con lo stato già aggiornato da `characterUpdated`.
 
 ---
 
@@ -205,8 +209,8 @@ Fuori repo (D-14, D-36): qui solo i passi, mai il sorgente. Ordine comune a ogni
 Regole di forma (RESEARCH Pitfall 2 e 3; Mongoose non valida gli update e gli script usano il driver nativo, i lettori del BE sanificano ma un errore di forma diventa «nessuna cura» o «pozione non bevibile»):
 
 - id come `ObjectId` veri (in `relatedLore` e negli id dei documenti), mai stringhe;
-- `lifePointsShare` numero fra 0 e 1 (estremi compresi);
-- `time` e `turns` entrambi presenti e interi, `time` maggiore di 0 (altrimenti `ITEM_NOT_USABLE`);
+- `lifePointsShare` numero fra 0 e 1 (estremi compresi; fuori scala il BE la legge 0 anche sul filo);
+- `recovery.time` intero in (0, 2^31 − 1] e `recovery.turns` intero in [0, 2^31 − 1], entrambi presenti (review B-WR-02): un `time` fuori scala rende la pozione non bevibile (`ITEM_NOT_USABLE`), ma `LootItem.recovery` **non è sanificata sul filo**, quindi un valore oltre 2^31 − 1 scritto col driver nativo rompe la serializzazione di ogni lista che seleziona `recovery` (inventario, negozio, premi): lo script deve validarlo prima di scrivere;
 - `canHeal` con i soli nomi dell'enum `InjuryType` (un nome ignoto viene scartato in lettura).
 
 ### d) Tabella dei tempi D-18
