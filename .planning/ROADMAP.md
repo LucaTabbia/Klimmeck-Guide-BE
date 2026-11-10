@@ -82,7 +82,7 @@ Plans:
 - [x] 18-08-PLAN.md — `ItemUseService`, mutation `useItem`, `UseItemResult`, transazione D-22, SDL, boot reale
 - [x] 18-09-PLAN.md — Heal senza effetto, regola: `healHasNoEffect`, `QUEST_NO_EFFECT`, rifiuto di `acceptQuest`
 - [x] 18-10-PLAN.md — Heal senza effetto, campo: `Quest.noEffect` per viewer su query e `questUpdated`, SDL
-- [ ] 18-11-PLAN.md — Gate, `BACKEND-NOTES.md`, validazione, requisiti chiusi dal codice
+- [x] 18-11-PLAN.md — Gate, `BACKEND-NOTES.md`, validazione, requisiti chiusi dal codice
 
 **Stato (2026-11-10)**: 11/11 piani eseguiti; gate passato, review in corso; PR verso `develop` a cura dell'orchestratore; BE-HEAL-03 e BE-HEAL-08 restano aperti fino all'applicazione degli script di contenuto a DB dopo la merge (runbook in `.planning/phases/18-quest-heal-per-taglia/BACKEND-NOTES.md` §3)
 
@@ -152,7 +152,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 15. Imboscate in viaggio | v1.0 | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | v1.0 | 12/12 | Complete | 2026-11-07 |
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
-| 18. Quest heal per taglia | v1.1 | 10/11 | In Progress | - |
+| 18. Quest heal per taglia | v1.1 | 11/11 | In Progress | - |
 | 19. Revisione dei modelli | v1.1 | 0/0 | Not started | - |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
 

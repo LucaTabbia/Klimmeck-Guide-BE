@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
 Phase: 18 di 20 (Quest heal per taglia) — EXECUTING dal 2026-11-10 su `feat/18-quest-heal-per-taglia` (da `develop` `86095d89` + l'apertura della milestone): 11 piani in 11 wave sequenziali (primitive della cura → modello → piano d'esito → modelli delle pozioni → lore per viewer → codici e `recoveryUntil` → `planItemUse` → `useItem` → heal senza effetto, regola e campo → gate e handoff)
-Plan: 10 of 11
+Plan: 11 of 11
 Status: Phase 18 eseguita (11/11), gate passato e review in corso; PR verso develop dopo fix e security; contenuto a DB dopo la merge (BE-HEAL-03 e BE-HEAL-08 aperti, runbook in `BACKEND-NOTES.md` §3)
 Last activity: 2026-11-10 -- Phase 18 eseguita (11/11): gate del piano 18-11 verde, handoff `BACKEND-NOTES.md` scritto, VALIDATION firmata, sette requisiti chiusi dal codice
 Next step: eseguire 18-01..18-11, poi review → fix → verify → security e PR verso `develop`; dopo la merge l'orchestratore applica a DB il contenuto (heal per taglia, `recovery` delle pozioni, lore «Il limite del corpo») dopo la revisione dell'utente.
