@@ -4,6 +4,7 @@ import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 export interface GameRuleExtensions {
     code: GameRuleErrorCode;
     recoveryUntil?: string;
+    imprisonedUntil?: string;
 }
 
 export class GameRuleException extends BadRequestException {
@@ -13,7 +14,7 @@ export class GameRuleException extends BadRequestException {
     private constructor(
         code: GameRuleErrorCode,
         message: string,
-        extra: { recoveryUntil?: string } = {},
+        extra: Omit<GameRuleExtensions, 'code'> = {},
     ) {
         super({ statusCode: 400, error: 'Bad Request', message, code });
         this.code = code;
@@ -298,6 +299,15 @@ export class GameRuleException extends BadRequestException {
         return new GameRuleException(
             GameRuleErrorCode.QUEST_NO_EFFECT,
             'Queste cure non ti servirebbero adesso',
+        );
+    }
+
+    // prigione dopo l'arresto in una crime (quick 261110-cgd): blocca quel che blocca l'attesa di soccorso; la data di fine viaggia solo nelle extensions
+    static characterImprisoned(until: Date): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.CHARACTER_IMPRISONED,
+            'Il tuo personaggio è in prigione',
+            { imprisonedUntil: until.toISOString() },
         );
     }
 }
