@@ -593,24 +593,26 @@ export function potionRecoveryOf(
 | A5 | La memo per richiesta del resolver della lore è opzionale | F-8 | N+1 per l'oste su una query che la FE non fa |
 | A6 | `src/travel` integration resta verde con i campi additivi | F-10, F-11 | lo scopre il gate; non misurato qui |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Ordine fra ferite del combattimento e cura nello stesso esito.**
+Tutte chiuse il 2026-11-10 in `18-CONTEXT.md`: 1 → D-20 (utente), 2 e 3 → D-23, 4 → D-23, 5 → D-21.
+
+1. **Ordine fra ferite del combattimento e cura nello stesso esito.** — RESOLVED: D-20
    - Fatto: D-08 dice «`injuriesHealed` = ferite **correnti** presenti in `cure.canHeal`» e «`woundsAfter` continua ad aggiungere quelle del combattimento»; D-02 mette il tetto degli HP **dopo** la progressione, quindi dopo il combattimento.
    - Non chiaro: una `job` con nemici e `cure` guarisce anche le ferite appena prese?
    - Inferenza e raccomandazione: cura **dopo** il combattimento per ferite e HP (`cureInjuries(woundsAfter(existing, added).injuries, canHeal)`), coerente con D-02; `injuriesAdded` resta la lista del combattimento. Oggi nessun contenuto ha entrambi (le heal non hanno nemici): serve solo la regola e un test che la pinni. **Decisione dell'orchestratore.**
-2. **Predicato di `ITEM_NO_EFFECT`.**
+2. **Predicato di `ITEM_NO_EFFECT`.** — RESOLVED: D-23
    - Fatto: D-17 dice «HP già al massimo e nessuna ferita in `canHeal`»; il CONTEXT registra pozioni con potenza 0.
    - Non chiaro: una pozione a potenza 0 senza ferite curabili, a HP non pieni, si consuma senza fare nulla?
    - Raccomandazione: predicato sull'esito, `hpAfter === hpBefore` e nessuna ferita guarita (sovrainsieme di D-17, copre la potenza 0). **Decisione dell'orchestratore.**
-3. **`recovery.time` uguale a 0.**
+3. **`recovery.time` uguale a 0.** — RESOLVED: D-23
    - Fatto: D-15 dice «intero ≥ 0» e «senza `recovery` o senza `time` non si beve».
    - Non chiaro: 0 è un valore valido (pozione senza ricarica) o un buco di contenuto?
    - Raccomandazione: bevibile solo con `time` intero **> 0** («un buco di contenuto si vede, non regala nulla»); lo schema resta `min: 0`. **Decisione dell'utente o dell'orchestratore.**
-4. **La aid clonata eredita la cura?**
+4. **La aid clonata eredita la cura?** — RESOLVED: D-23
    - Fatto: `clonedPrizesOf` copia i premi campo per campo; senza modifiche `cure` non passa.
    - Raccomandazione: non clonarla (il soccorritore non è il paziente); un test lo pinna. **Conferma dell'orchestratore.**
-5. **Bypass dell'oste su `useItem`.**
+5. **Bypass dell'oste su `useItem`.** — RESOLVED: D-21
    - Fatto: senza id del personaggio l'oste beve solo per il proprio personaggio; `equipItem` invece ammette l'oste per conto di altri.
    - Raccomandazione: accettare (nessun caso d'uso; la FE non lo chiede). **Conferma dell'orchestratore**, perché cambia la frase «ownership come `equipItem`» delle REPO-RULES.
 
