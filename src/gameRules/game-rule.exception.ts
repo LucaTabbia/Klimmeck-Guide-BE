@@ -292,4 +292,12 @@ export class GameRuleException extends BadRequestException {
             'Questa pozione non ti farebbe nulla adesso',
         );
     }
+
+    // una heal che non cambierebbe nulla non si accetta (Phase 18 D-25): nessuna corsia, nessun punto, nessun viaggio
+    static questNoEffect(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.QUEST_NO_EFFECT,
+            'Queste cure non ti servirebbero adesso',
+        );
+    }
 }
