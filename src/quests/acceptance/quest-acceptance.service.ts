@@ -64,7 +64,6 @@ import {
     LaneMovement,
     registrationFilter,
     registrationUpdate,
-    UnclaimedSnapshot,
     UnregisteredSnapshot,
 } from './quest-acceptance.updates';
 import { laneOf, QuestLane } from './quest-lanes';
