@@ -78,7 +78,7 @@ Plans:
 - [x] 18-04-PLAN.md — Modelli delle pozioni: `LootRecovery`, `recovery`, `relatedLore`, `potionRecoveryUntil`, SDL
 - [x] 18-05-PLAN.md — `LootItem.relatedLore` filtrata per viewer
 - [x] 18-06-PLAN.md — Codici di rifiuto e `extensions.recoveryUntil` nei due formatter
-- [ ] 18-07-PLAN.md — Piano puro `planItemUse` (percorso felice e cinque rifiuti in ordine)
+- [x] 18-07-PLAN.md — Piano puro `planItemUse` (percorso felice e cinque rifiuti in ordine)
 - [ ] 18-08-PLAN.md — `ItemUseService`, mutation `useItem`, `UseItemResult`, transazione D-22, SDL, boot reale
 - [ ] 18-09-PLAN.md — Heal senza effetto, regola: `healHasNoEffect`, `QUEST_NO_EFFECT`, rifiuto di `acceptQuest`
 - [ ] 18-10-PLAN.md — Heal senza effetto, campo: `Quest.noEffect` per viewer su query e `questUpdated`, SDL
@@ -150,7 +150,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 15. Imboscate in viaggio | v1.0 | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | v1.0 | 12/12 | Complete | 2026-11-07 |
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
-| 18. Quest heal per taglia | v1.1 | 6/11 | In Progress | - |
+| 18. Quest heal per taglia | v1.1 | 7/11 | In Progress | - |
 | 19. Revisione dei modelli | v1.1 | 0/0 | Not started | - |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
 

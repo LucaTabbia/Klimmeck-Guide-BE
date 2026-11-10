@@ -56,9 +56,9 @@ created: 2026-11-10
 | 18-06-01 | 06 | 6 | BE-HEAL-07 | T-18-24 | tre codici con factory; la data solo nelle `extensions`, mai nel body | unit | `npx jest src/gameRules --selectProjects unit` | ✅ | ✅ green |
 | 18-06-02 | 06 | 6 | BE-HEAL-07 | T-18-23, T-18-25, T-18-26 | allowlist della sola chiave `recoveryUntil` col suo codice e in forma ISO, anche in produzione; `reason` della Phase 17 intatta | unit + integration | `npx jest src/graphql src/gameRules --selectProjects unit` + `npx jest src/graphql/production-surface.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 18-06-03 | 06 | 6 | BE-HEAL-07 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-06-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 18-07-01 | 07 | 7 | BE-HEAL-07 | T-18-27, T-18-28, T-18-30 | piano puro della bevuta: lettori sanificanti, cinque path, filtro con lo snapshot | unit | `npx jest src/characters/items/item-use.plan.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 18-07-02 | 07 | 7 | BE-HEAL-07 | T-18-28, T-18-29, T-18-31 | cinque rifiuti in ordine, confine al millisecondo, nessun effetto sull'esito pianificato | unit | `npx jest src/characters/items/item-use.plan.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 18-07-03 | 07 | 7 | BE-HEAL-07 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-07-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 18-07-01 | 07 | 7 | BE-HEAL-07 | T-18-27, T-18-28, T-18-30 | piano puro della bevuta: lettori sanificanti, cinque path, filtro con lo snapshot | unit | `npx jest src/characters/items/item-use.plan.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 18-07-02 | 07 | 7 | BE-HEAL-07 | T-18-28, T-18-29, T-18-31 | cinque rifiuti in ordine, confine al millisecondo, nessun effetto sull'esito pianificato | unit | `npx jest src/characters/items/item-use.plan.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 18-07-03 | 07 | 7 | BE-HEAL-07 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-07-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 18-08-01 | 08 | 8 | BE-HEAL-06, BE-HEAL-07, BE-HEAL-08 | T-18-32, T-18-36, T-18-38 | `useItem` sul filo: solo il personaggio del bearer, rifiuti senza scrittura, ricarica, lore alla prima bevuta, viaggio consentito | integration | `npx jest src/characters/items/use-item.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 18-08-02 | 08 | 8 | BE-HEAL-07 | T-18-33, T-18-34, T-18-35, T-18-37, T-18-39 | una scrittura in transazione, due bevute parallele, scrittura concorrente non persa; SDL e «senza bearer» nel boot reale; matrice invariata | integration | `npx jest src/characters/items test/app.int-spec.ts --selectProjects integration --runInBand` + `npx jest test/authz --selectProjects unit integration --runInBand` | ❌ W0 | ⬜ pending |
 | 18-08-03 | 08 | 8 | BE-HEAL-07 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-08-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
@@ -84,7 +84,7 @@ Le spec nuove nascono nel commit RED del task indicato (TDD, REPO-RULES): nessun
 - [x] `src/quests/outcomes/injuries/quest-cure.spec.ts` — lettore sanificante e tetto (BE-HEAL-02, task 18-01-02)
 - [x] `src/models/quest/quest-prizes.schema.spec.ts` — schema della cura (BE-HEAL-01, task 18-02-01)
 - [x] `src/models/character/character-status.schema.spec.ts` — data di ricarica (BE-HEAL-06, task 18-04-02)
-- [ ] `src/characters/items/item-use.plan.spec.ts` — piano puro della bevuta (BE-HEAL-07, task 18-07-01)
+- [x] `src/characters/items/item-use.plan.spec.ts` — piano puro della bevuta (BE-HEAL-07, task 18-07-01)
 - [ ] `src/characters/items/use-item.int-spec.ts` — `useItem` sul filo (BE-HEAL-07, BE-HEAL-08, task 18-08-01)
 - [ ] `src/characters/items/item-use.service.int-spec.ts` — transazione e bevute parallele (BE-HEAL-07, task 18-08-02)
 - [ ] `src/quests/outcomes/injuries/heal-no-effect.spec.ts` — predicato della heal senza effetto (BE-HEAL-09, task 18-09-01)
