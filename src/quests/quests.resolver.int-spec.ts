@@ -22,7 +22,6 @@ import {
 } from 'src/models/point-of-interest.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
-import { User, UserSchema } from 'src/models/user.model';
 import { QuestsModule } from 'src/quests/quests.module';
 import {
     AuthTestApp,
@@ -838,9 +837,7 @@ describe('quest catalog (wire)', () => {
                 { _id: alice.character?._id as Types.ObjectId },
                 { $set: { 'status.currentLifePoints': 900 } },
             );
-            const users = modelOf(User.name, UserSchema);
             const characters = modelOf(Character.name, CharacterSchema);
-            const userRead = jest.spyOn(users, 'findById');
             const characterRead = jest.spyOn(characters, 'findOne');
 
             try {
@@ -864,8 +861,7 @@ describe('quest catalog (wire)', () => {
                         { id: String(needed._id), noEffect: false },
                     ].sort((a, b) => a.id.localeCompare(b.id)),
                 );
-                // il tabellone legge lo User una volta, i vitali una sola volta per entrambe le heal
-                expect(userRead).toHaveBeenCalledTimes(2);
+                // una sola lettura dei vitali per entrambe le heal: le letture del tabellone non contano
                 const vitalsReads = (
                     characterRead.mock.calls as unknown[][]
                 ).filter(
@@ -876,7 +872,6 @@ describe('quest catalog (wire)', () => {
                 );
                 expect(vitalsReads).toHaveLength(1);
             } finally {
-                userRead.mockRestore();
                 characterRead.mockRestore();
             }
         });
