@@ -392,7 +392,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
-            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
         );
         expect(schema).not.toMatch(/\bparty\b|registrations/);
     });
@@ -567,7 +567,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type QuestPrizes {\n  cure: QuestCure\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
-            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
         );
         expect(schema.match(/type QuestRegistration \{[^}]*\}/)?.[0]).toBe(
             'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
@@ -605,6 +605,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema.match(/type UseItemResult \{[^}]*\}/)?.[0]).toBe(
             'type UseItemResult {\n  hpAfter: Int!\n  hpBefore: Int!\n  injuriesHealed: [InjuryType!]!\n  loreUnlocked: [Lore!]!\n  quantityLeft: Int!\n  recoveryUntil: DateTime!\n}',
         );
+    });
+
+    it('writes the no-effect heal flag of the FE Phase 18 into the generated schema (D-25)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toContain(
+            '  noEffect: Boolean!\n',
+        );
+        expect(schema).not.toMatch(/QUEST_NO_EFFECT/);
     });
 
     it('writes the quest result contract into the generated schema', () => {
