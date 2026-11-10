@@ -114,14 +114,6 @@ const drinkLineOf = (itemId: Types.ObjectId): TradeLine => ({
     quantity: 1,
 });
 
-// legacy senza il campo compresi (Pitfall 5); in ricarica solo se until è oltre now (Pitfall 6)
-const recoveryOver = (now: Date) => ({
-    $or: [
-        { 'status.potionRecoveryUntil': null },
-        { 'status.potionRecoveryUntil': { $lte: now } },
-    ],
-});
-
 interface UsablePotion {
     power: number;
     canHeal: readonly unknown[];
@@ -208,17 +200,27 @@ function quantityLeftOf(
     );
 }
 
+// Mongoose fa il cast del filtro sul path Date: un testo non passerebbe e un numero diventerebbe un'altra data;
+// la forma «non data», che il piano legge come ricarica finita, si pinna per tipo e non combacia con una ricarica scritta nel frattempo
+const recoveryAsRead = (until: unknown): unknown =>
+    until == null || until instanceof Date
+        ? (until ?? null)
+        : { $not: { $type: 'date' } };
+
+// ripete ciò che il piano ha letto, assente = null (Pitfall 5): una forma che il piano accetta deve combaciare, altrimenti ITEM_NOT_OWNED perpetuo (D-23)
 function writeGuardOf(
     snapshot: ItemUseCharacterSnapshot,
     drink: TradeLine,
-    now: Date,
 ): Record<string, unknown> {
+    const { currentLifePoints, injuries, potionRecoveryUntil } =
+        snapshot.status;
     return {
         ...activeCharacterById(snapshot._id),
         'status.awaitingAid': null,
-        'status.currentLifePoints': snapshot.status.currentLifePoints ?? null,
-        'status.injuries': [...(snapshot.status.injuries ?? [])],
-        ...soldQuantityGuards([drink], [recoveryOver(now)]),
+        'status.currentLifePoints': currentLifePoints ?? null,
+        'status.injuries': injuries ?? null,
+        'status.potionRecoveryUntil': recoveryAsRead(potionRecoveryUntil),
+        ...soldQuantityGuards([drink]),
     };
 }
 
@@ -241,7 +243,7 @@ export function planItemUse(input: ItemUsePlanInput): ItemUsePlan {
         potion.relatedLore,
     );
     return {
-        filter: writeGuardOf(snapshot, drink, now),
+        filter: writeGuardOf(snapshot, drink),
         update: {
             $set: {
                 'status.currentLifePoints': effect.hpAfter,

@@ -223,8 +223,6 @@ describe('planItemUse — a potion that can be drunk', () => {
     it.each<[string, unknown]>([
         ['an ended date', new Date(NOW.getTime() - 60_000)],
         ['the exact end', new Date(NOW.getTime())],
-        ['a text', 'soon'],
-        ['a number', 42],
     ])(
         'pins the recovery the plan read as over: %s (D-22, D-23)',
         (_case, potionRecoveryUntil) => {
@@ -233,6 +231,18 @@ describe('planItemUse — a potion that can be drunk', () => {
                     'status.potionRecoveryUntil'
                 ],
             ).toEqual(potionRecoveryUntil);
+        },
+    );
+
+    // il cast di Mongoose sul path Date renderebbe impossibile l'uguaglianza con un testo o un numero
+    it.each(['soon', 42])(
+        'pins a recovery that is not a date by its type: %p (D-22, D-23)',
+        (potionRecoveryUntil) => {
+            expect(
+                planWith({ status: { potionRecoveryUntil } }).filter[
+                    'status.potionRecoveryUntil'
+                ],
+            ).toEqual({ $not: { $type: 'date' } });
         },
     );
 

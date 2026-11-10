@@ -190,6 +190,10 @@ describe('ItemUseService (replSet)', () => {
             { $set: { 'status.potionRecoveryUntil': 'soon' } },
         ],
         [
+            'a recovery stored as a number',
+            { $set: { 'status.potionRecoveryUntil': 42 } },
+        ],
+        [
             'a legacy without the recovery field',
             { $unset: { 'status.potionRecoveryUntil': '' } },
         ],
