@@ -185,6 +185,11 @@ export class QuestResult {
     @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
     injuriesAdded: InjuryType[];
 
+    // ferite tolte da questo esito (Phase 18 D-08): la FE le elenca accanto a hpBefore e hpAfter
+    @Field(() => [InjuryType])
+    @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
+    injuriesHealed: InjuryType[];
+
     @Field(() => [AssetQuantity])
     @Prop({ type: [assetQuantitySchemaAt('consumablesUsed')], default: [] })
     consumablesUsed: AssetQuantity[];

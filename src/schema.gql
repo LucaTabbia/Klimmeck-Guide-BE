@@ -656,6 +656,7 @@ type QuestResult {
   hpBefore: Int!
   id: ID!
   injuriesAdded: [InjuryType!]!
+  injuriesHealed: [InjuryType!]!
   kind: QuestResultKind!
   levelAfter: Int!
   levelBefore: Int!

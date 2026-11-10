@@ -30,6 +30,7 @@ import {
     STANDARD_LANE_FREE,
 } from 'src/quests/acceptance/quest-lanes';
 import type { ParticipantEffects } from './combat/combat-resolver';
+import { cureInjuries } from './injuries/cure-injuries';
 import { isInjuryType } from './injuries/injury-rules';
 import { isPositiveInteger } from './outcome-numbers';
 import { lifePointsWithin, progressionAfter } from './progression/level-table';
@@ -112,6 +113,7 @@ export interface QuestResultDraft {
     hpAfter: number;
     maxLifePoints: number;
     injuriesAdded: InjuryType[];
+    injuriesHealed: InjuryType[];
     consumablesUsed: ConsumableUsage[];
     spellsUsed: { spell: Types.ObjectId; usages: number }[];
     rewards: {
@@ -357,6 +359,10 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
               snapshot.status.injuries ?? [],
               battle?.injuriesAdded ?? [],
           );
+    const injuriesHealed = cureInjuries(
+        snapshot.status.injuries ?? [],
+        healed ? Object.values(InjuryType) : [],
+    ).healed;
     // il titolo avanza solo con la story vinta del titolo esatto (D-14, T-09-24)
     const titleAfter =
         won && quest.infos.type === QuestType.story
@@ -480,6 +486,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             hpAfter: currentLifePoints,
             maxLifePoints: progression.maxLifePoints,
             injuriesAdded: wounds.added,
+            injuriesHealed,
             consumablesUsed: consumables,
             spellsUsed: spells.used,
             rewards: {

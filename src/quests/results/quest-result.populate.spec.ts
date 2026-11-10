@@ -22,6 +22,7 @@ const draftWith = (
     hpAfter: 900,
     maxLifePoints: 1200,
     injuriesAdded: [],
+    injuriesHealed: [],
     consumablesUsed: [],
     spellsUsed: [],
     rewards: {

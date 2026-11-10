@@ -63,6 +63,7 @@ function unchangedResult(
         hpAfter: status.currentLifePoints,
         maxLifePoints: status.maxLifePoints,
         injuriesAdded: [],
+        injuriesHealed: [],
         consumablesUsed: [],
         spellsUsed: [],
         rewards: {
