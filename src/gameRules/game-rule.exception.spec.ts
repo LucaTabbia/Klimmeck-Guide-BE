@@ -248,6 +248,7 @@ describe('GameRuleException', () => {
         const producedCodes = [
             ...cases.map(([, factory]) => factory().code),
             GameRuleException.potionRecovering(UNTIL).code,
+            GameRuleException.characterImprisoned(UNTIL).code,
         ].sort();
 
         expect(producedCodes).toEqual(Object.values(GameRuleErrorCode).sort());
@@ -274,6 +275,23 @@ describe('GameRuleException', () => {
             message:
                 "Il tuo corpo non reggerebbe un'altra pozione: aspetta che la prima si sia posata",
             code: 'POTION_RECOVERING',
+        });
+    });
+
+    it('carries the end of the prison as an ISO instant in the extensions only (quick 261110-cgd)', () => {
+        const exception = GameRuleException.characterImprisoned(UNTIL);
+
+        expect(exception).toBeInstanceOf(BadRequestException);
+        expect(exception.getStatus()).toBe(400);
+        expect(exception.extensions).toEqual({
+            code: 'CHARACTER_IMPRISONED',
+            imprisonedUntil: '2026-11-10T12:30:00.000Z',
+        });
+        expect(exception.getResponse()).toEqual({
+            statusCode: 400,
+            error: 'Bad Request',
+            message: 'Il tuo personaggio è in prigione',
+            code: 'CHARACTER_IMPRISONED',
         });
     });
 

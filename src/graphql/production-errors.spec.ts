@@ -192,6 +192,31 @@ describe('sanitizeFormattedError', () => {
         expect(sanitized.extensions).toEqual({ code: 'POTION_RECOVERING' });
     });
 
+    it('keeps the prison instant of a prison refusal in production (quick 261110-cgd)', () => {
+        expect(
+            sanitizeFormattedError({
+                message: 'm',
+                extensions: {
+                    code: 'CHARACTER_IMPRISONED',
+                    imprisonedUntil: ISO,
+                    stacktrace: ['x'],
+                },
+            }),
+        ).toEqual({
+            message: 'm',
+            extensions: { code: 'CHARACTER_IMPRISONED', imprisonedUntil: ISO },
+        });
+    });
+
+    it('drops a prison instant carried by another code in production (quick 261110-cgd)', () => {
+        const sanitized = sanitizeFormattedError({
+            message: 'probe',
+            extensions: { code: 'PROBE_CODE', imprisonedUntil: ISO },
+        });
+
+        expect(sanitized.extensions).toEqual({ code: 'PROBE_CODE' });
+    });
+
     it('drops the recovery instant of an internal error (D-17)', () => {
         expect(
             sanitizeFormattedError({
