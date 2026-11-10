@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
-status: executing
-last_updated: "2026-11-10T16:00:00.000Z"
-last_activity: 2026-11-10 -- Phase 18 execution started
+status: verifying
+last_updated: "2026-11-10T20:00:00.000Z"
+last_activity: 2026-11-10 -- Phase 18 code complete (11/11), PR in draft until the DB content
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 11
-  completed_plans: 0
-  percent: 0
+  completed_plans: 11
+  percent: 100
 ---
 
 # Project State
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 18 — Quest heal per taglia — eseguita (11/11) su `feat/18-quest-heal-per-taglia`: gate passato, review in corso; poi PR verso develop; il contenuto a DB (BE-HEAL-03, BE-HEAL-08) lo scrive l'orchestratore dopo la merge (↔ FE Phase 18)
+**Current focus:** Phase 18 — Quest heal per taglia — codice completo (11/11) su `feat/18-quest-heal-per-taglia`: gate, review (11 fix), verifica e security chiusi; PR verso `develop` in draft fino alla revisione del contenuto da parte dell'utente; BE-HEAL-03 e BE-HEAL-08 aperti fino agli script di contenuto dell'orchestratore (↔ FE Phase 18, parcheggiata a 11/13 in attesa di questa merge)
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
-Phase: 18 di 20 (Quest heal per taglia) — EXECUTING dal 2026-11-10 su `feat/18-quest-heal-per-taglia` (da `develop` `86095d89` + l'apertura della milestone): 11 piani in 11 wave sequenziali (primitive della cura → modello → piano d'esito → modelli delle pozioni → lore per viewer → codici e `recoveryUntil` → `planItemUse` → `useItem` → heal senza effetto, regola e campo → gate e handoff)
+Phase: 18 di 20 (Quest heal per taglia) — codice completo dal 2026-11-10 su `feat/18-quest-heal-per-taglia` (da `develop` `86095d89` + l'apertura della milestone): 11/11 piani, PR in draft; la fase si chiude con il contenuto a DB dopo la merge
 Plan: 11 of 11
-Status: Phase 18 eseguita (11/11), gate passato e review in corso; PR verso develop dopo fix e security; contenuto a DB dopo la merge (BE-HEAL-03 e BE-HEAL-08 aperti, runbook in `BACKEND-NOTES.md` §3)
-Last activity: 2026-11-10 -- Phase 18 eseguita (11/11): gate del piano 18-11 verde, handoff `BACKEND-NOTES.md` scritto, VALIDATION firmata, sette requisiti chiusi dal codice
-Next step: eseguire 18-01..18-11, poi review → fix → verify → security e PR verso `develop`; dopo la merge l'orchestratore applica a DB il contenuto (heal per taglia, `recovery` delle pozioni, lore «Il limite del corpo») dopo la revisione dell'utente.
+Status: In verifica — Phase 18 eseguita (11/11): gate verde; review 0 critical / 3 warning / 11 info → 11 corretti, 3 chiusi per ruling (`18-REVIEW-FIX.md`); verifica `passed` 8/8 con 2 differiti di contenuto (`18-VERIFICATION.md`); security 56 minacce, 0 aperte (`18-SECURITY.md`); `test:cov` dopo i fix 390 suite / 5131 test verdi, soglie rispettate (totale 97,34 / 85,91 / 93,86 / 97,89). PR verso `develop` in draft: fra la merge e gli script di contenuto ogni heal è rifiutata con `QUEST_NO_EFFECT` e nessuna pozione è bevibile, quindi merge e contenuto vanno applicati vicini.
+Last activity: 2026-11-10 -- Phase 18: review corretta, verifica e security chiuse, `test:cov` verde, PR in draft
+Next step: l'utente rivede il contenuto (166 heal per taglia con `cure`, `recovery` delle 28 pozioni, lore «Il limite del corpo»); merge della PR; l'orchestratore applica gli script di contenuto fuori repo con prova a secco (runbook in `BACKEND-NOTES.md` §3 c), riavvia il BE da `develop` e chiude BE-HEAL-03 e BE-HEAL-08; poi la FE esegue 18-12 e 18-13.
 
 ## Current Milestone
 
@@ -74,5 +74,5 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 ## Session Continuity
 
 Last session: 2026-11-10 — apertura della milestone v1.1 (FE e BE)
-Stopped at: Phase 18 eseguita (11/11, 2026-11-10) — gate passato, review in corso; PR verso develop, contenuto a DB dopo la merge
-Resume file: .planning/phases/18-quest-heal-per-taglia/18-01-PLAN.md
+Stopped at: Phase 18 codice completo (11/11, 2026-11-10) — PR in draft, contenuto a DB dopo la merge
+Resume file: .planning/phases/18-quest-heal-per-taglia/BACKEND-NOTES.md

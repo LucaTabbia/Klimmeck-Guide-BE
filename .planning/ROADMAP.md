@@ -84,7 +84,7 @@ Plans:
 - [x] 18-10-PLAN.md — Heal senza effetto, campo: `Quest.noEffect` per viewer su query e `questUpdated`, SDL
 - [x] 18-11-PLAN.md — Gate, `BACKEND-NOTES.md`, validazione, requisiti chiusi dal codice
 
-**Stato (2026-11-10)**: 11/11 piani eseguiti; gate passato, review in corso; PR verso `develop` a cura dell'orchestratore; BE-HEAL-03 e BE-HEAL-08 restano aperti fino all'applicazione degli script di contenuto a DB dopo la merge (runbook in `.planning/phases/18-quest-heal-per-taglia/BACKEND-NOTES.md` §3)
+**Stato (2026-11-10)**: 11/11 piani eseguiti; gate passato, review corretta (11 fix, 3 chiusi per ruling), verifica `passed`, security senza minacce aperte, `test:cov` 390 suite / 5131 test verdi; PR verso `develop` in draft fino al contenuto a DB (BE-HEAL-03 e BE-HEAL-08 aperti: script dell'orchestratore dopo la merge).
 
 ### Phase 19: Revisione dei modelli
 **Goal**: I modelli perdono campi doppi, nomi storti e strutture parallele senza cambiare le regole di gioco, con una sola aggiunta decisa dall'utente: il compagno equipaggiato riceve il 10 % degli xp dei nemici sconfitti (tetto `maxXp` del catalogo) e per questo lo stato del pet (xp, vita) lascia il catalogo condiviso e vive sul personaggio. Tre aree, un migratore one-off al boot reale rimosso prima della merge, SDL non additivo consumato dalla FE Phase 19 con piani gated.
