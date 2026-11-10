@@ -139,6 +139,7 @@ Stringa ISO 8601 (UTC, millisecondi) della fine della ricarica, **solo** con `PO
 - **`Quest.noEffect`** è vero solo per una `heal` senza effetto per il personaggio corrente del bearer (vita già pari o sopra il tetto della quest E nessuna ferita in `canHeal`; una heal senza `cure` non ha effetto per nessuno); falso per ogni altro tipo (una `story` o una `job` con `cure` resta sempre accettabile) e senza personaggio corrente; **nessuna eccezione di ruolo**: l'oste che gioca con un proprio personaggio riceve lo stesso valore di chiunque, coerente con `acceptQuest`. Risolto per il singolo subscriber anche su `questUpdated` (mai da una cache condivisa fra subscriber); un predicato unico (`healHasNoEffect`) per il campo e per il rifiuto.
 - `noEffect` è una fotografia alla lettura: la FE rilegge il tabellone su `characterUpdated` quando cambiano vita o ferite; il giudice resta `acceptQuest`.
 - La regola della heal senza effetto non tocca la risoluzione: una heal accettata quando aveva effetto e risolta quando non ne ha più si chiude come oggi.
+- `enum QuestType` guadagna `magic` (quick 261110-mag): si comporta come `study`; il rango minimo è un dato della quest (`requirements.minTitle`). Ripetibile, senza registrazione, corsia standard a costo zero; vinta sorteggia le lore di studio e, con `prizes.spellDraw`, la magia dal catalogo come la `study`; la generazione automatica non la produce mai. **Lo SDL non cambia:** l'enum è interno al BE, sul filo `Quest.infos.type` resta `String` e porta il valore `"magic"`.
 
 ---
 
@@ -212,6 +213,8 @@ Regole di forma (RESEARCH Pitfall 2 e 3; Mongoose non valida gli update e gli sc
 - `lifePointsShare` numero fra 0 e 1 (estremi compresi; fuori scala il BE la legge 0 anche sul filo);
 - `recovery.time` intero in (0, 2^31 − 1] e `recovery.turns` intero in [0, 2^31 − 1], entrambi presenti (review B-WR-02): un `time` fuori scala rende la pozione non bevibile (`ITEM_NOT_USABLE`), ma `LootItem.recovery` **non è sanificata sul filo**, quindi un valore oltre 2^31 − 1 scritto col driver nativo rompe la serializzazione di ogni lista che seleziona `recovery` (inventario, negozio, premi): lo script deve validarlo prima di scrivere;
 - `canHeal` con i soli nomi dell'enum `InjuryType` (un nome ignoto viene scartato in lettura).
+
+Quest magica (quick 261110-mag), stessi sei passi, collection `quests`: una quest nuova di tipo `magic` sul POI della città di Valantar (`requirements.minTitle: 'mage'`, `requiredPoints: null`, `infos.timeToComplete: 72000000` cioè 20 h, `prizes.spellDraw: true`, `xpPrize` come la study attuale) e la vecchia «Studi arcani a Valantar» con `prizes.spellDraw: false`, titolo e descrizione nuovi; prova a secco: 1 quest inserita, 1 quest aggiornata. Dettagli in `.planning/quick/261110-mag-quest-magic-type/261110-mag-SUMMARY.md`.
 
 ### d) Tabella dei tempi D-18
 
