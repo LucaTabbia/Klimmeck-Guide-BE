@@ -44,9 +44,9 @@ created: 2026-11-10
 | 18-02-01 | 02 | 2 | BE-HEAL-01 | T-18-04, T-18-05, T-18-06, T-18-07 | schema della cura validato su `create`, SDL solo additivo, input fuori dallo SDL, aid senza cura | unit + integration | `npx jest src/models/quest src/quests/outcomes/aid --selectProjects unit` + `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 18-02-02 | 02 | 2 | BE-HEAL-04 | T-18-05, T-18-08 | `injuriesHealed` su modello, draft, soccorso, morte, fixture e SDL nello stesso commit | unit + integration | `npx jest src/models/quest-result src/quests/outcomes src/quests/results --selectProjects unit` + boot reale | ✅ | ✅ green |
 | 18-02-03 | 02 | 2 | BE-HEAL-01 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-02-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 18-03-01 | 03 | 3 | BE-HEAL-02 | T-18-09, T-18-10, T-18-11, T-18-12, T-18-13 | cura da `prizes.cure` dopo combattimento e progressione (D-20), nulla su sconfitta, filtro invariato, ricarica mai scritta dall'esito | unit + integration | `npx jest src/quests/outcomes --selectProjects unit` + `npx jest src/quests/outcomes/quest-resolution.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| 18-03-02 | 03 | 3 | BE-HEAL-04, BE-HEAL-05 | T-18-09 | cura sopra l'override del GM; `injuriesHealed` sul filo, legacy → lista vuota | integration | `npx jest src/quests/outcomes/gm-completion.service.int-spec.ts src/quests/results/quest-result.resolver.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| 18-03-03 | 03 | 3 | BE-HEAL-02 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-03-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 18-03-01 | 03 | 3 | BE-HEAL-02 | T-18-09, T-18-10, T-18-11, T-18-12, T-18-13 | cura da `prizes.cure` dopo combattimento e progressione (D-20), nulla su sconfitta, filtro invariato, ricarica mai scritta dall'esito | unit + integration | `npx jest src/quests/outcomes --selectProjects unit` + `npx jest src/quests/outcomes/quest-resolution.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 18-03-02 | 03 | 3 | BE-HEAL-04, BE-HEAL-05 | T-18-09 | cura sopra l'override del GM; `injuriesHealed` sul filo, legacy → lista vuota | integration | `npx jest src/quests/outcomes/gm-completion.service.int-spec.ts src/quests/results/quest-result.resolver.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 18-03-03 | 03 | 3 | BE-HEAL-02 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-03-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 18-04-01 | 04 | 4 | BE-HEAL-06 | T-18-14, T-18-15, T-18-16, T-18-17 | `recovery` interi non negativi su `create`, `relatedLore` ref non Mixed, input fuori dallo SDL | unit + integration | `npx jest src/models/loot-item.model.spec.ts src/migrations/mixed-refs/mixed-ref-paths.spec.ts test/fixtures/fixtures.spec.ts --selectProjects unit` + boot reale | ✅ | ⬜ pending |
 | 18-04-02 | 04 | 4 | BE-HEAL-06 | T-18-17, T-18-18 | `potionRecoveryUntil` data nullable, fuori da ogni input | unit + integration | `npx jest src/models/character --selectProjects unit` + boot reale | ❌ W0 | ⬜ pending |
 | 18-04-03 | 04 | 4 | BE-HEAL-06 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-04-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
@@ -88,7 +88,7 @@ Le spec nuove nascono nel commit RED del task indicato (TDD, REPO-RULES): nessun
 - [ ] `src/characters/items/use-item.int-spec.ts` — `useItem` sul filo (BE-HEAL-07, BE-HEAL-08, task 18-08-01)
 - [ ] `src/characters/items/item-use.service.int-spec.ts` — transazione e bevute parallele (BE-HEAL-07, task 18-08-02)
 - [ ] `src/quests/outcomes/injuries/heal-no-effect.spec.ts` — predicato della heal senza effetto (BE-HEAL-09, task 18-09-01)
-- [ ] Helper delle spec: `questOf` con la cura come terzo parametro (task 18-03-01); fixture `buildQuestResult` con `injuriesHealed: []` (task 18-02-02)
+- [x] Helper delle spec: `questOf` con la cura come terzo parametro (task 18-03-01); fixture `buildQuestResult` con `injuriesHealed: []` (task 18-02-02)
 
 Harness: nessuno nuovo (`createOutcomeHarness`, `createCharactersTestApp`, harness di `lore-related.int-spec.ts` e di `quest-updated.subscription.int-spec.ts`, boot reale).
 
