@@ -977,6 +977,34 @@ describe('QuestAcceptanceService (replSet)', () => {
 
             expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
         });
+
+        it('rejects a magic quest for a paladin when minTitle is mage with QUEST_TITLE_MISMATCH (quick 261110-mag)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker, 'paladin');
+            const questId = await questOf('magic', { minTitle: 'mage' });
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_TITLE_MISMATCH' });
+
+            expect((await raw(charId))?.quests.pendingQuest).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it.each(['mage', 'hero'])(
+            'accepts a magic quest for a %s when minTitle is mage, at no cost (quick 261110-mag)',
+            async (title) => {
+                const ownerId = await ownerWith(6000);
+                const charId = await characterAt(world.cityMarker, title);
+                const questId = await questOf('magic', { minTitle: 'mage' });
+
+                const pqId = await accept(ownerId, charId, questId);
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+                expect(await pointsOf(ownerId)).toBe(6000);
+            },
+        );
     });
 
     describe('travel guard (D-06)', () => {
