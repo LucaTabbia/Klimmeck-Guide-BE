@@ -104,6 +104,8 @@ describe('LootItem recovery and related lore (Phase 18)', () => {
         [{ time: 1.5, turns: 0 }, 'recovery.time'],
         [{ time: 0, turns: -1 }, 'recovery.turns'],
         [{ time: 0, turns: 0.5 }, 'recovery.turns'],
+        [{ time: 2_147_483_648, turns: 0 }, 'recovery.time'],
+        [{ time: 0, turns: 2_147_483_648 }, 'recovery.turns'],
     ])('rejects the recovery %p on validation (D-15)', (recovery, key) => {
         expect(recoveryErrorsOf(recovery)).toEqual([key]);
     });
@@ -111,6 +113,12 @@ describe('LootItem recovery and related lore (Phase 18)', () => {
     it('requires both fields of a recovery (D-15)', () => {
         expect(recoveryErrorsOf({ time: 1000 })).toEqual(['recovery.turns']);
         expect(recoveryErrorsOf({ turns: 1 })).toEqual(['recovery.time']);
+    });
+
+    it('accepts time and turns at the GraphQL Int ceiling (D-15)', () => {
+        expect(
+            recoveryErrorsOf({ time: 2_147_483_647, turns: 2_147_483_647 }),
+        ).toEqual([]);
     });
 
     it('accepts a recovery time of 0 in the schema (D-15)', () => {

@@ -365,6 +365,17 @@ describe('useItem (wire)', () => {
                 return potion;
             },
         ],
+        [
+            'a recovery beyond the GraphQL Int written by a content script',
+            async () => {
+                const { potion } = await potionWith();
+                await lootItems.collection.updateOne(
+                    { _id: potion._id },
+                    { $set: { 'recovery.time': 9e15 } },
+                );
+                return potion;
+            },
+        ],
     ])(
         'refuses a loot item that cannot be drunk: %s (D-23)',
         async (_label, itemOf) => {

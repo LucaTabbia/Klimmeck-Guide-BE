@@ -9,6 +9,7 @@ import {
 import type { InventorySnapshot } from 'src/economy/trade/trade-inventory';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
+import { MAX_RECOVERY_VALUE } from 'src/models/loot-item.model';
 import { TitleType } from 'src/models/enums/title-type.enum';
 
 const NOW = new Date('2026-11-10T12:00:00.000Z');
@@ -75,6 +76,7 @@ describe('recoveryTimeOf', () => {
     it.each([
         [{ time: 1_800_000, turns: 0 }, 1_800_000],
         [{ time: 1 }, 1],
+        [{ time: 2_147_483_647, turns: 0 }, 2_147_483_647],
     ])('reads the recovery %p as %i milliseconds (D-23)', (recovery, ms) => {
         expect(recoveryTimeOf(recovery)).toBe(ms);
     });
@@ -91,8 +93,23 @@ describe('recoveryTimeOf', () => {
         { time: '1800000' },
         { time: NaN },
         { time: Infinity },
+        { time: 2_147_483_648 },
+        { time: 9e15 },
     ])('reads no recovery time from %p (D-23)', (recovery) => {
         expect(recoveryTimeOf(recovery)).toBeNull();
+    });
+
+    // il tetto dell'Int GraphQL tiene la fine della ricarica lontana dal limite delle date di JavaScript
+    it('plans a valid end of recovery at the longest readable time (D-15, D-23)', () => {
+        const { recoveryUntil } = planWith(
+            {},
+            { recovery: { time: MAX_RECOVERY_VALUE, turns: 0 } },
+        ).outcome;
+
+        expect(recoveryUntil.getTime()).toBe(
+            NOW.getTime() + MAX_RECOVERY_VALUE,
+        );
+        expect(Number.isNaN(recoveryUntil.getTime())).toBe(false);
     });
 });
 
