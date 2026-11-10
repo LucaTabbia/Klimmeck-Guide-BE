@@ -725,7 +725,7 @@ describe('quest catalog (wire)', () => {
             expect(await noEffectOf(heal._id, innkeeper.bearer)).toBe(true);
 
             await modelOf(Character.name, CharacterSchema).collection.updateOne(
-                { _id: innkeeper.character?._id },
+                { _id: innkeeper.character?._id as Types.ObjectId },
                 { $set: { 'status.injuries': ['deepCut'] } },
             );
 
@@ -756,7 +756,7 @@ describe('quest catalog (wire)', () => {
                 canHeal: [],
             });
             await modelOf(Character.name, CharacterSchema).collection.updateOne(
-                { _id: alice.character?._id },
+                { _id: alice.character?._id as Types.ObjectId },
                 { $set: { 'status.currentLifePoints': 900 } },
             );
             const users = modelOf(User.name, UserSchema);
@@ -787,7 +787,9 @@ describe('quest catalog (wire)', () => {
                 );
                 // il tabellone legge lo User una volta, i vitali una sola volta per entrambe le heal
                 expect(userRead).toHaveBeenCalledTimes(2);
-                const vitalsReads = characterRead.mock.calls.filter(
+                const vitalsReads = (
+                    characterRead.mock.calls as unknown[][]
+                ).filter(
                     ([, projection]) =>
                         typeof projection === 'object' &&
                         projection !== null &&
