@@ -69,7 +69,20 @@ Ordine seguito: numerico, con le inserite subito dopo la fase madre; ogni contra
 **Decisioni del discuss (2026-11-09, `18-CONTEXT.md` D-01..D-19)**: vita e ferite separate; tetto 50/80/100; liste ≤20/≤40/tutte + lore; ore 2/5/8; cura su ogni quest vinta con `cure`; `injuriesHealed`; contenuto dopo la merge su file rivisto; pozioni dal Diario con ricarica globale `recovery { time, turns }` (30 min–24 h, `turns` solo dato), `useItem` consentita in viaggio, lore «Il limite del corpo» sbloccata alla prima pozione; fuori scope il cibo (rinviato) e le pozioni in combattimento (motore dell'utente).
 **Unblocks (FE)**: FE Phase 18 (HEAL-01..03).
 **Branch**: `feat/18-quest-heal-per-taglia` da `develop` (`31dba96`), worktree → PR a `develop` dopo la merge della Phase 17.
-**Plans**: TBD
+**Plans**: 11 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — Primitive pure della cura: `cureInjuries`, `cureOf`, `lifePointsAfterCure`
+- [ ] 18-02-PLAN.md — Modello della cura e `injuriesHealed` (modello, draft, rescue, aid senza cura, SDL)
+- [ ] 18-03-PLAN.md — Cura nel piano d'esito (D-20, heal di villaggio sul filo)
+- [ ] 18-04-PLAN.md — Modelli delle pozioni: `LootRecovery`, `recovery`, `relatedLore`, `potionRecoveryUntil`, SDL
+- [ ] 18-05-PLAN.md — `LootItem.relatedLore` filtrata per viewer
+- [ ] 18-06-PLAN.md — Codici di rifiuto e `extensions.recoveryUntil` nei due formatter
+- [ ] 18-07-PLAN.md — Piano puro `planItemUse` (percorso felice e cinque rifiuti in ordine)
+- [ ] 18-08-PLAN.md — `ItemUseService`, mutation `useItem`, `UseItemResult`, transazione D-22, SDL, boot reale
+- [ ] 18-09-PLAN.md — Heal senza effetto, regola: `healHasNoEffect`, `QUEST_NO_EFFECT`, rifiuto di `acceptQuest`
+- [ ] 18-10-PLAN.md — Heal senza effetto, campo: `Quest.noEffect` per viewer su query e `questUpdated`, SDL
+- [ ] 18-11-PLAN.md — Gate, `BACKEND-NOTES.md`, validazione, requisiti chiusi dal codice
 
 ### Phase 19: Revisione dei modelli
 **Goal**: I modelli perdono campi doppi, nomi storti e strutture parallele senza cambiare le regole di gioco, con una sola aggiunta decisa dall'utente: il compagno equipaggiato riceve il 10 % degli xp dei nemici sconfitti (tetto `maxXp` del catalogo) e per questo lo stato del pet (xp, vita) lascia il catalogo condiviso e vive sul personaggio. Tre aree, un migratore one-off al boot reale rimosso prima della merge, SDL non additivo consumato dalla FE Phase 19 con piani gated.
@@ -137,7 +150,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 15. Imboscate in viaggio | v1.0 | 12/12 | Complete | 2026-11-06 |
 | 16. Lore sbloccabili | v1.0 | 12/12 | Complete | 2026-11-07 |
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
-| 18. Quest heal per taglia | v1.1 | 0/0 | Not started | - |
+| 18. Quest heal per taglia | v1.1 | 0/11 | Planned | - |
 | 19. Revisione dei modelli | v1.1 | 0/0 | Not started | - |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
 

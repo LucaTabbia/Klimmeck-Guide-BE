@@ -8,7 +8,7 @@ last_activity: 2026-11-10 -- Milestone v1.1 Cura e modelli started
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
+  total_plans: 11
   completed_plans: 0
   percent: 0
 ---
