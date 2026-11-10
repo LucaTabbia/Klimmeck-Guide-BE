@@ -12,6 +12,7 @@ import { activeCharacterById } from 'src/models/character/active-character.filte
 import { EffectType } from 'src/models/enums/effect-type.enum';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
+import { MAX_RECOVERY_VALUE } from 'src/models/loot-item.model';
 import { refIdOf, sameId } from 'src/mongo/document-id';
 import { cureInjuries } from 'src/quests/outcomes/injuries/cure-injuries';
 import { lifePointsWithin } from 'src/quests/outcomes/progression/level-table';
@@ -82,11 +83,14 @@ export interface ItemUsePlan {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
-// stessa unità di Spell.recoveryTime (ms); 0 o una forma non intera danno una pozione senza ricarica (D-23)
+// stessa unità di Spell.recoveryTime (ms); 0, una forma non intera o un valore oltre l'Int GraphQL danno una pozione senza ricarica (D-23)
 export function recoveryTimeOf(recovery: unknown): number | null {
     if (!isRecord(recovery)) return null;
     const { time } = recovery;
-    return typeof time === 'number' && Number.isSafeInteger(time) && time > 0
+    return typeof time === 'number' &&
+        Number.isInteger(time) &&
+        time > 0 &&
+        time <= MAX_RECOVERY_VALUE
         ? time
         : null;
 }

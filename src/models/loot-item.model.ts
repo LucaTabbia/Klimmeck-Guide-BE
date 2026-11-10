@@ -6,16 +6,31 @@ import { EffectType } from './enums/effect-type.enum';
 import { InjuryType } from './enums/injury-type.enum';
 import { Lore } from './lore.model';
 
+// tetto dell'Int GraphQL a 32 bit: oltre, la serializzazione di recovery fallirebbe su ogni lista che la seleziona
+export const MAX_RECOVERY_VALUE = 2_147_483_647;
+
 // ricarica di una pozione (Phase 18 D-15): time in millisecondi come Spell.recoveryTime; turns è solo dato per il motore di combattimento (D-16)
 @ObjectType()
 @Schema({ _id: false })
 export class LootRecovery {
     @Field(() => Int)
-    @Prop({ type: Number, required: true, min: 0, validate: Number.isInteger })
+    @Prop({
+        type: Number,
+        required: true,
+        min: 0,
+        max: MAX_RECOVERY_VALUE,
+        validate: Number.isInteger,
+    })
     time: number;
 
     @Field(() => Int)
-    @Prop({ type: Number, required: true, min: 0, validate: Number.isInteger })
+    @Prop({
+        type: Number,
+        required: true,
+        min: 0,
+        max: MAX_RECOVERY_VALUE,
+        validate: Number.isInteger,
+    })
     turns: number;
 }
 
