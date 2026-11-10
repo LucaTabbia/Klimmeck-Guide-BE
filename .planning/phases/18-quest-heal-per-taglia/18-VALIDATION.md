@@ -1,9 +1,9 @@
 ---
 phase: 18
 slug: quest-heal-per-taglia
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-10
 ---
 
@@ -68,9 +68,9 @@ created: 2026-11-10
 | 18-10-01 | 10 | 10 | BE-HEAL-09 | T-18-45, T-18-46, T-18-47, T-18-48 | `Quest.noEffect` per viewer sulle query: due personaggi valori diversi, non heal → falso, oste con un proprio personaggio → stesso valore di chiunque, senza personaggio → falso, una lettura per richiesta | integration | `npx jest src/quests/quests.resolver.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 18-10-02 | 10 | 10 | BE-HEAL-09 | T-18-45, T-18-49 | campo risolto per subscriber e a ogni evento su `questUpdated`; SDL con la sola riga nuova | integration | `npx jest src/quests/quest-updated.subscription.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 18-10-03 | 10 | 10 | BE-HEAL-09 | — | bookkeeping | doc | `grep -qF -- "- [x] 18-10-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 18-11-01 | 11 | 11 | BE-HEAL-05 | T-18-50, T-18-51, T-18-52, T-18-53, T-18-54 | `tsc`, unit e integration complete a blocchi (con `src/travel`), boot reale, SDL solo additivo, coverage per cartella, invarianti | gate | `npx tsc --noEmit -p tsconfig.json` + `npx jest --selectProjects unit` + blocchi integration + `git diff --exit-code src/schema.gql` | ✅ | ⬜ pending |
-| 18-11-02 | 11 | 11 | BE-HEAL-03, BE-HEAL-05, BE-HEAL-08 | T-18-52, T-18-56 | handoff col contratto verbatim, prove, UAT e runbook del contenuto, senza segreti | doc | `grep -q recoveryUntil .planning/phases/18-quest-heal-per-taglia/BACKEND-NOTES.md` | ❌ W0 | ⬜ pending |
-| 18-11-03 | 11 | 11 | BE-HEAL-01, BE-HEAL-02, BE-HEAL-04, BE-HEAL-05, BE-HEAL-06, BE-HEAL-07, BE-HEAL-09 | T-18-55 | sette requisiti chiusi dal codice, BE-HEAL-03 e BE-HEAL-08 lasciati aperti; VALIDATION firmata; bookkeeping | doc | `grep -cE "\- \[x\] \*\*BE-HEAL-0[1245679]\*\*" .planning/REQUIREMENTS.md` = 7 | ✅ | ⬜ pending |
+| 18-11-01 | 11 | 11 | BE-HEAL-05 | T-18-50, T-18-51, T-18-52, T-18-53, T-18-54 | `tsc`, unit e integration complete a blocchi (con `src/travel`), boot reale, SDL solo additivo, coverage per cartella, invarianti | gate | `npx tsc --noEmit -p tsconfig.json` + `npx jest --selectProjects unit` + blocchi integration + `git diff --exit-code src/schema.gql` | ✅ | ✅ green |
+| 18-11-02 | 11 | 11 | BE-HEAL-03, BE-HEAL-05, BE-HEAL-08 | T-18-52, T-18-56 | handoff col contratto verbatim, prove, UAT e runbook del contenuto, senza segreti | doc | `grep -q recoveryUntil .planning/phases/18-quest-heal-per-taglia/BACKEND-NOTES.md` | ✅ | ✅ green |
+| 18-11-03 | 11 | 11 | BE-HEAL-01, BE-HEAL-02, BE-HEAL-04, BE-HEAL-05, BE-HEAL-06, BE-HEAL-07, BE-HEAL-09 | T-18-55 | sette requisiti chiusi dal codice, BE-HEAL-03 e BE-HEAL-08 lasciati aperti; VALIDATION firmata; bookkeeping | doc | `grep -cE "\- \[x\] \*\*BE-HEAL-0[1245679]\*\*" .planning/REQUIREMENTS.md` = 7 | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -107,11 +107,11 @@ Harness: nessuno nuovo (`createOutcomeHarness`, `createCharactersTestApp`, harne
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 150 s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 150 s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-11-10 (gate del piano 18-11 verde; review del codice in corso, `npm run test:cov` all'orchestratore dopo i fix)

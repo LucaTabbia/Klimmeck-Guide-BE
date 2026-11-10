@@ -20,15 +20,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 18 — Quest heal per taglia — EXECUTING (dal 2026-11-10) su `feat/18-quest-heal-per-taglia`: 11 piani in 11 wave sequenziali, plan-checker passato; nessuna migrazione né seeder nel repo, il contenuto a DB lo scrive l'orchestratore dopo la merge (↔ FE Phase 18, in esecuzione nella stessa sessione)
+**Current focus:** Phase 18 — Quest heal per taglia — eseguita (11/11) su `feat/18-quest-heal-per-taglia`: gate passato, review in corso; poi PR verso develop; il contenuto a DB (BE-HEAL-03, BE-HEAL-08) lo scrive l'orchestratore dopo la merge (↔ FE Phase 18)
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
 Phase: 18 di 20 (Quest heal per taglia) — EXECUTING dal 2026-11-10 su `feat/18-quest-heal-per-taglia` (da `develop` `86095d89` + l'apertura della milestone): 11 piani in 11 wave sequenziali (primitive della cura → modello → piano d'esito → modelli delle pozioni → lore per viewer → codici e `recoveryUntil` → `planItemUse` → `useItem` → heal senza effetto, regola e campo → gate e handoff)
 Plan: 10 of 11
-Status: Executing Phase 18 — wave sequenziali; SDL solo additivo; FE Phase 18 in esecuzione nella stessa sessione su `feat/18-heal-quests-by-size` (i suoi piani 18-12/18-13 aspettano la merge di questa fase)
-Last activity: 2026-11-10 -- Phase 18 execution started (pianificata lo stesso giorno: ricerca, 11 piani, plan check passato)
+Status: Phase 18 eseguita (11/11), gate passato e review in corso; PR verso develop dopo fix e security; contenuto a DB dopo la merge (BE-HEAL-03 e BE-HEAL-08 aperti, runbook in `BACKEND-NOTES.md` §3)
+Last activity: 2026-11-10 -- Phase 18 eseguita (11/11): gate del piano 18-11 verde, handoff `BACKEND-NOTES.md` scritto, VALIDATION firmata, sette requisiti chiusi dal codice
 Next step: eseguire 18-01..18-11, poi review → fix → verify → security e PR verso `develop`; dopo la merge l'orchestratore applica a DB il contenuto (heal per taglia, `recovery` delle pozioni, lore «Il limite del corpo») dopo la revisione dell'utente.
 
 ## Current Milestone
@@ -74,5 +74,5 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 ## Session Continuity
 
 Last session: 2026-11-10 — apertura della milestone v1.1 (FE e BE)
-Stopped at: Phase 18 executing (0/11, 2026-11-10)
+Stopped at: Phase 18 eseguita (11/11, 2026-11-10) — gate passato, review in corso; PR verso develop, contenuto a DB dopo la merge
 Resume file: .planning/phases/18-quest-heal-per-taglia/18-01-PLAN.md
