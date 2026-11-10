@@ -146,6 +146,22 @@ describe('quest result schema', () => {
         ).toBeDefined();
     });
 
+    it('defaults the healed injuries to an empty list (D-08)', () => {
+        expect(new Result(validResultDoc()).toObject().injuriesHealed).toEqual(
+            [],
+        );
+    });
+
+    it('rejects a healed injury outside the enum (D-08)', () => {
+        const errors =
+            new Result({
+                ...validResultDoc(),
+                injuriesHealed: ['brokenWing'],
+            }).validateSync()?.errors ?? {};
+
+        expect(errors['injuriesHealed.0']).toBeDefined();
+    });
+
     it('requires the identity, the outcome and the progression snapshot', () => {
         const errors = new Result({}).validateSync()?.errors ?? {};
 

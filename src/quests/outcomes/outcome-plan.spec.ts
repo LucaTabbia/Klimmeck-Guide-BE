@@ -194,6 +194,7 @@ describe('planParticipant', () => {
                 hpAfter: 1000,
                 maxLifePoints: 1200,
                 injuriesAdded: [],
+                injuriesHealed: [],
                 consumablesUsed: [],
                 spellsUsed: [],
                 rewards: {
@@ -469,6 +470,23 @@ describe('planParticipant', () => {
         expect(plan.update.$set['status.currentLifePoints']).toBe(1200);
         expect(plan.result.hpAfter).toBe(1200);
         expect(plan.result.injuriesAdded).toEqual([]);
+        expect(plan.result.injuriesHealed).toEqual([InjuryType.deepCut]);
+    });
+
+    it('lists no healed injury on a quest that heals nothing (D-08)', () => {
+        const plan = planParticipant(
+            inputWith({
+                quest: questOf(QuestType.job),
+                snapshot: snapshotWith({
+                    status: { injuries: [InjuryType.deepCut] },
+                }),
+            }),
+        );
+
+        expect(plan.result.injuriesHealed).toEqual([]);
+        expect(plan.update.$set['status.injuries']).toEqual([
+            InjuryType.deepCut,
+        ]);
     });
 
     it('keeps existing injuries and records only the new ones', () => {

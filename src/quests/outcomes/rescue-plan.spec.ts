@@ -59,6 +59,7 @@ const unchangedSheet = {
     hpAfter: 120,
     maxLifePoints: 1200,
     injuriesAdded: [],
+    injuriesHealed: [],
     consumablesUsed: [],
     spellsUsed: [],
     rewards: {
