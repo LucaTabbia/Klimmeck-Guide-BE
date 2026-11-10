@@ -629,6 +629,142 @@ describe('QuestAcceptanceService (replSet)', () => {
         });
     });
 
+    describe('a heal without effect (D-25)', () => {
+        const VILLAGE_CURE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
+
+        async function curingQuestOf(
+            type: string,
+            cure: unknown = VILLAGE_CURE,
+        ): Promise<Types.ObjectId> {
+            const base = buildQuest();
+            const quest = await persistQuest(quests, {
+                infos: {
+                    ...base.infos,
+                    type,
+                    markerLocation: world.questMarker,
+                },
+                prizes: {
+                    ...base.prizes,
+                    ...(cure === undefined ? {} : { cure }),
+                },
+            });
+            return quest._id as Types.ObjectId;
+        }
+
+        async function woundedAt(
+            hp: number,
+            injuries: string[],
+            questsState: Record<string, unknown> = {},
+        ): Promise<Types.ObjectId> {
+            const charId = await characterAt(
+                world.cityMarker,
+                'rookie',
+                questsState,
+            );
+            await characters.collection.updateOne(
+                { _id: charId },
+                {
+                    $set: {
+                        'status.currentLifePoints': hp,
+                        'status.maxLifePoints': 1000,
+                        'status.injuries': injuries,
+                    },
+                },
+            );
+            return charId;
+        }
+
+        async function everything() {
+            const [rawCharacters, rawQuestDocs, rawPending, rawUsers] =
+                await Promise.all([
+                    characters.collection.find().toArray(),
+                    quests.collection.find().toArray(),
+                    pendingQuests.collection.find().toArray(),
+                    users.collection.find().toArray(),
+                ]);
+            return {
+                characters: rawCharacters,
+                quests: rawQuestDocs,
+                pendingQuests: rawPending,
+                users: rawUsers,
+                travelJobs: [...queue.added],
+                questJobs: [...questQueue.added],
+            };
+        }
+
+        async function expectRefusedWithoutWrites(
+            charId: Types.ObjectId,
+            questId: Types.ObjectId,
+        ): Promise<void> {
+            const ownerId = await ownerWith(6000);
+            const before = await everything();
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({
+                extensions: { code: 'QUEST_NO_EFFECT' },
+            });
+
+            expect(await everything()).toEqual(before);
+            expect(before.travelJobs).toEqual([]);
+            expect(before.questJobs).toEqual([]);
+        }
+
+        async function expectAccepted(
+            charId: Types.ObjectId,
+            questId: Types.ObjectId,
+        ): Promise<void> {
+            const pqId = await accept(await ownerWith(0), charId, questId);
+
+            expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+        }
+
+        it('refuses a heal without effect with QUEST_NO_EFFECT and writes nothing (D-25)', async () => {
+            await expectRefusedWithoutWrites(
+                await woundedAt(500, []),
+                await curingQuestOf('heal'),
+            );
+        });
+
+        it('refuses a heal without a cure for anyone (D-25)', async () => {
+            await expectRefusedWithoutWrites(
+                await woundedAt(1, ['deepCut', 'infection']),
+                await curingQuestOf('heal', undefined),
+            );
+        });
+
+        it('accepts a heal that would cure an injury at full life points (D-25)', async () => {
+            await expectAccepted(
+                await woundedAt(1000, ['deepCut']),
+                await curingQuestOf('heal'),
+            );
+        });
+
+        it('accepts a heal below the ceiling without curable injuries (D-25)', async () => {
+            await expectAccepted(
+                await woundedAt(400, ['infection']),
+                await curingQuestOf('heal'),
+            );
+        });
+
+        it('accepts a job that carries a cure even when it would cure nothing (D-25)', async () => {
+            await expectAccepted(
+                await woundedAt(1000, []),
+                await curingQuestOf('job'),
+            );
+        });
+
+        it('answers the eligibility refusals before the heal without effect (D-25)', async () => {
+            const charId = await woundedAt(1000, [], {
+                pendingQuest: new Types.ObjectId(),
+            });
+
+            await expect(
+                accept(await ownerWith(0), charId, await curingQuestOf('heal')),
+            ).rejects.toMatchObject({ code: 'QUEST_SLOT_BUSY' });
+        });
+    });
+
     describe('concurrency (SC2/SC3)', () => {
         it('rejects with QUEST_SLOT_BUSY when the lane is taken after the pre-check, writing nothing', async () => {
             const ownerId = await ownerWith(6000);

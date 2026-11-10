@@ -981,6 +981,36 @@ describe('acceptQuest (wire)', () => {
         expect(queue.added).toEqual([]);
     });
 
+    it('answers QUEST_NO_EFFECT on the wire for a heal without effect (D-25)', async () => {
+        const dave = await playerWith('healthy-wire', { lifePoints: 1000 });
+        const base = buildQuest();
+        const quest = await persistQuest(quests, {
+            infos: {
+                ...base.infos,
+                type: 'heal',
+                markerLocation: world.questMarker,
+            },
+            prizes: {
+                ...base.prizes,
+                cure: { lifePointsShare: 0.5, canHeal: ['deepCut'] },
+            },
+        });
+        const before = await rawCharacter(dave);
+
+        const body = await accept(
+            { id: characterIdOf(dave), questId: String(quest._id) },
+            dave.bearer,
+        );
+
+        expectRejected(
+            body,
+            'QUEST_NO_EFFECT',
+            'Queste cure non ti servirebbero adesso',
+        );
+        expect(await rawCharacter(dave)).toEqual(before);
+        expect(await pendingQuests.countDocuments()).toBe(0);
+    });
+
     describe('questTravelPreview (wire)', () => {
         async function previewQuestTravel(
             request: AcceptRequest,
