@@ -18,13 +18,17 @@ _Confermato alla chiusura della v1.0 (2026-11-10): guard deny-by-default, matric
 - **Produzione:** processo di sviluppo dell'utente su `develop` `9973fcb1` (porta 3001); migrazione dei ref `Mixed` fatta con il runbook della Phase 10; secret scan eseguito il 2026-10-30.
 - **Companion FE:** milestone v1.0 Core Loop chiusa lo stesso giorno (17 fasi, 180 piani, FE PR #45/#46).
 
-## Next Milestone: v1.1 (da definire con `/gsd-new-milestone`)
+## Current Milestone: v1.1 Cura e modelli
 
-Candidati già discussi su branch (i branch toccano `ROADMAP.md`, `REQUIREMENTS.md` e `STATE.md` e vanno ribasati sulla chiusura):
+**Goal:** le quest heal curano in base al luogo e le pozioni hanno una ricarica globale, i modelli vengono ripuliti senza cambiare le regole e il viaggio consuma cibo e vita in modo progressivo — sempre con il backend come unica fonte di verità.
 
-- **Phase 18 — Quest heal per taglia** (`feat/18-quest-heal-per-taglia` ↔ FE 18): HP guariti separati dalle ferite guarite, liste di ferite per taglia (≤20/≤40/tutte + lore), tetto 50/80/100, 2/5/8 ore, gratuite, a Necrorian solo enemy/boss/dungeon; pozioni dal Diario con ricarica globale `recovery { time, turns }` 30 min–24 h e lore «Il limite del corpo».
-- **Phase 19 — Revisione dei modelli** (`feat/19-revisione-dei-modelli` ↔ FE 19): weaknesses, magie per ref, pet con stato sul personaggio e 10 % xp dei nemici al compagno (tetto `maxXp`), attack/defense piatti, `wornEquipment/feet`, una sola lista di magie, via `POI.quest`, `City.shop`, `Lore.imagePath`.
-- **Phase 20 — Cibo e vita progressivi** (`feat/20-cibo-e-vita-progressivi`, solo BE): piano salvato alla partenza, vita incrementale allo sweep nel tratto scoperto, cibo in blocco a confine/arrivo/sconfitta, deviazione senza costi.
+**Target features:**
+
+- **Phase 18 — Quest heal per taglia** (↔ FE 18): `prizes.cure` con HP guariti separati dalle ferite guarite, liste di ferite per taglia (≤20/≤40/tutte + lore), tetto 50/80/100, 2/5/8 ore, gratuite, a Necrorian solo enemy/boss/dungeon; pozioni dal Diario con `useItem`, ricarica globale `recovery { time, turns }` 30 min–24 h e lore «Il limite del corpo».
+- **Phase 19 — Revisione dei modelli** (↔ FE 19): weaknesses, magie per ref, pet con stato sul personaggio e 10 % xp dei nemici al compagno (tetto `maxXp`), attack/defense piatti, `wornEquipment/feet`, una sola lista di magie, via `POI.quest`, `City.shop`, `Lore.imagePath`; un solo migratore one-off.
+- **Phase 20 — Cibo e vita progressivi** (solo BE): piano salvato alla partenza, vita incrementale allo sweep nel tratto scoperto, cibo in blocco a confine/arrivo/sconfitta, deviazione senza costi.
+
+**Scope (decisione dell'utente, 2026-11-10):** solo le fasi già discusse il 2026-11-09; il resto del backlog resta dopo la v1.1. Requisiti in `.planning/REQUIREMENTS.md` (BE-HEAL-01..08, BE-MODEL-01..09, BE-FOODP-01..05), fasi in `.planning/ROADMAP.md`.
 
 ## Requirements
 
@@ -55,12 +59,16 @@ Candidati già discussi su branch (i branch toccano `ROADMAP.md`, `REQUIREMENTS.
 
 ### Active
 
-**Post v1.0 (candidati v1.1, da confermare nel `/gsd-new-milestone`):**
+**v1.1 Cura e modelli (in corso):**
 
-- [ ] Quest heal per taglia e pozioni dal Diario con ricarica globale (Phase 18 ↔ FE 18, contesto su `feat/18-quest-heal-per-taglia`)
-- [ ] Revisione dei modelli condivisa BE/FE (Phase 19 ↔ FE 19, contesto su `feat/19-revisione-dei-modelli`)
-- [ ] Cibo e vita progressivi in viaggio (Phase 20, solo BE, contesto su `feat/20-cibo-e-vita-progressivi`)
+- [ ] Quest heal per taglia e pozioni dal Diario con ricarica globale — BE-HEAL-01..08 (Phase 18 ↔ FE 18)
+- [ ] Revisione dei modelli condivisa BE/FE — BE-MODEL-01..09 (Phase 19 ↔ FE 19)
+- [ ] Cibo e vita progressivi in viaggio — BE-FOODP-01..05 (Phase 20, solo BE)
+
+**Backlog (dopo la v1.1):**
+
 - [ ] «Esci da tutti i dispositivi»: mutation che revoca ogni sessione dell'utente (backlog dalla Phase 2)
+- [ ] Stanze di presenza per la posizione live degli altri giocatori (BE-FUT-06 ↔ FE FUT-05)
 - [ ] E2E EventSub managed con tunnel HTTPS e verifica C4 prima della produzione (Phase 6)
 - [ ] Promemoria operativi di produzione: policy Sightengine e default del throttler da confermare, una chiamata Sightengine reale, `THROTTLE_TRUST_PROXY`, topologia Mongo (replica set) e Redis (eviction dei delayed job)
 
@@ -156,4 +164,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-11-10 after the v1.0 Core Loop (BE) milestone (21 fasi consegnate; revisione completa di What This Is, Core Value, requisiti, Out of Scope, Context e Key Decisions; storia dei footer precedenti in `milestones/v1.0-ROADMAP.md` e in git)*
+*Last updated: 2026-11-10 — milestone v1.1 Cura e modelli aperta (Phases 18–20; scope: solo le fasi discusse il 2026-11-09)*
