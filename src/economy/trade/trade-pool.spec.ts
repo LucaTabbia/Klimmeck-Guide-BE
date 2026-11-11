@@ -161,9 +161,11 @@ describe('trade pool', () => {
 
     it('reads pool ids curated as hex strings (D-19)', () => {
         const curated = poolOfCity({
-            shopEquipment: [sword.toHexString()],
-            shopLoot: [potion.toHexString()],
-            shopPets: [horse.toHexString()],
+            shop: {
+                equipment: [sword.toHexString()],
+                loot: [potion.toHexString()],
+                pets: [horse.toHexString()],
+            },
         });
 
         expect(
@@ -197,8 +199,9 @@ describe('trade pool', () => {
     });
 
     it('reads null pool lists as empty (D-19)', () => {
-        expect(
-            poolOfCity({ shopEquipment: null, shopLoot: null, shopPets: null }),
-        ).toEqual(emptyPool);
+        expect([
+            poolOfCity({ shop: { equipment: null, loot: null, pets: null } }),
+            poolOfCity({ shop: null }),
+        ]).toEqual([emptyPool, emptyPool]);
     });
 });

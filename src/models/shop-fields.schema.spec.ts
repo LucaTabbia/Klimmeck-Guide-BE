@@ -26,7 +26,7 @@ function referenceListPath(
 }
 
 describe('city shop pool fields', () => {
-    it('leaves the three pool lists absent on create (D-22)', () => {
+    it('leaves the shop pool absent on create (D-10)', () => {
         const city = new CityProbe(buildCity()).toObject();
 
         expect(
@@ -34,21 +34,22 @@ describe('city shop pool fields', () => {
         ).toEqual([]);
     });
 
-    it('keeps a stored empty pool list empty (D-03)', () => {
-        const city = CityProbe.hydrate({
-            ...buildCity(),
-            shopLoot: [],
-        }).toObject();
+    it('keeps a stored empty pool list empty and the others absent (D-10)', () => {
+        const curated = { ...buildCity(), shop: { loot: [] } };
 
-        expect(city.shopLoot).toEqual([]);
-        expect(city.shopEquipment).toBeUndefined();
+        const stored = CityProbe.hydrate(curated).toObject();
+        const created = new CityProbe(curated).toObject();
+
+        expect(stored.shop).toEqual({ loot: [] });
+        expect(created.shop).toEqual({ loot: [] });
+        expect(stored.shop?.equipment).toBeUndefined();
     });
 
     it.each([
-        ['shopEquipment', 'EquipmentItem'],
-        ['shopLoot', 'LootItem'],
-        ['shopPets', 'Pet'],
-    ])('stores the pool lists as typed references (D-03): %s', (path, ref) => {
+        ['shop.equipment', 'EquipmentItem'],
+        ['shop.loot', 'LootItem'],
+        ['shop.pets', 'Pet'],
+    ])('stores the pool lists as typed references (D-10): %s', (path, ref) => {
         const schemaPath = referenceListPath(path);
 
         expect({
