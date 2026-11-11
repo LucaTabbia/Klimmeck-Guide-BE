@@ -1,14 +1,18 @@
 // stato finale calcolato prima della scrittura (Phase 4 applyTrade): un solo $set condizionale, unico scrittore di level/maxLifePoints (D-12, D-21)
 import type { Types } from 'mongoose';
 import {
-    type ActiveSpellEntry,
     learnedSpellState,
-    mirrorFromStates,
     recoveryDueAt,
     spendFromState,
     type SpellStateEntry,
-    spellStatesOrMigrated,
 } from 'src/characters/spells/spell-state.snapshot';
+import {
+    newOwnedPetEntry,
+    normalisedOwnedPets,
+    ownsPet,
+    type NewOwnedPetEntry,
+    type OwnedPetEntry,
+} from 'src/characters/pets/owned-pet-entry';
 import { type CoinPurse, fromCopper } from 'src/economy/coins';
 import {
     applyTradeToInventory,
@@ -37,6 +41,7 @@ import { isPositiveInteger } from './outcome-numbers';
 import { lifePointsWithin, progressionAfter } from './progression/level-table';
 import { statusFactsOf } from './progression/status-facts';
 import { nextTitleAfterStory } from './progression/title-progression';
+import { companionXpAward } from './pets/companion-xp';
 import {
     canLearnSpell,
     type DrawnRewards,
@@ -61,7 +66,7 @@ export interface OutcomeCharacterSnapshot {
         currentLifePoints?: number;
         maxLifePoints?: number;
         injuries?: InjuryType[];
-        spells?: unknown[];
+        // unica lista delle magie, in ordine di apprendimento (Phase 19 D-07)
         spellStates?: SpellStateEntry[];
         location?: unknown;
         awaitingAid?: unknown;
@@ -76,8 +81,9 @@ export interface OutcomeCharacterSnapshot {
     } | null;
     assets?:
         | (InventorySnapshot & {
-              activeSpells?: { spell?: unknown; usages?: number }[];
-              ownedPets?: unknown[] | null;
+              // compagno equipaggiato: riceve la sua quota degli xp dei nemici (Phase 19 D-04)
+              pet?: unknown;
+              ownedPets?: OwnedPetEntry[] | null;
           })
         | null;
 }
@@ -126,6 +132,8 @@ export interface QuestResultDraft {
         pet: Types.ObjectId | null;
     };
     xpGained: number;
+    // guadagno effettivo del compagno dopo il tetto (Phase 19 D-17)
+    petXpGained: number;
     xpBefore: number;
     xpAfter: number;
     levelBefore: number;
@@ -169,7 +177,8 @@ export interface ParticipantPlanInput {
     rewards: DrawnRewards;
     aid: { aidQuestId: Types.ObjectId; failedQuestId: Types.ObjectId } | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
-    spellMaxUsages: ReadonlyMap<string, number>;
+    // tetti di xp dei pet a catalogo, per esadecimale (Phase 19 D-17)
+    petMaxXp: ReadonlyMap<string, number>;
     rescuedCharacters?: readonly Types.ObjectId[];
     // solo le dungeon a tappe (D-12): null altrove
     stages?: DungeonStages | null;
@@ -246,8 +255,8 @@ const buyLine = ({ itemType, item, quantity }: RewardItem): TradeLine => ({
 });
 
 export interface SpellsSpent {
+    // null se nessuna magia è stata spesa
     spellStates: SpellStateEntry[] | null;
-    activeSpells: ActiveSpellEntry[] | null;
     used: QuestResultDraft['spellsUsed'];
     recoveries: SpellRecovery[];
 }
@@ -256,10 +265,9 @@ const sameRecovery = (left: SpellRecovery, right: SpellRecovery) =>
     left.spellId === right.spellId &&
     left.dueAt.getTime() === right.dueAt.getTime();
 
-// solo magie negli slot, usi dallo stato e mai sotto 0 (T-09-23); istanti now + recoveryTime con i duplicati (D-02, D-06); un trigger per magia e istante
+// solo le voci attive (Phase 19 D-07), usi della voce e mai sotto 0 (T-09-23); istanti now + recoveryTime con i duplicati (D-02, D-06); un trigger per magia e istante
 export function spellsSpent(
     characterId: Types.ObjectId,
-    active: readonly ActiveSpellEntry[] | undefined,
     baseStates: readonly SpellStateEntry[],
     requested: ParticipantEffects['spellsUsed'],
     recoveryTimes: ReadonlyMap<string, number>,
@@ -272,9 +280,8 @@ export function spellsSpent(
     for (const { spellId, usages } of requested) {
         const spell = objectIdFromHex(spellId);
         if (!spell || !isPositiveInteger(usages)) continue;
-        if (!active?.some((entry) => sameId(entry.spell, spell))) continue;
         const index = states.findIndex((state) => sameId(state.spell, spell));
-        if (index < 0) continue;
+        if (index < 0 || states[index].active !== true) continue;
         const taken = Math.min(usages, Math.max(0, states[index].usages ?? 0));
         if (taken <= 0) continue;
         // senza un tempo di recupero noto (magia orfana nel catalogo) gli usi si scalano comunque, nessun istante né job
@@ -296,10 +303,8 @@ export function spellsSpent(
         if (!recoveries.some((queued) => sameRecovery(queued, recovery)))
             recoveries.push(recovery);
     }
-    const spent = used.length > 0;
     return {
-        spellStates: spent ? states : null,
-        activeSpells: spent ? mirrorFromStates(active, states) : null,
+        spellStates: used.length > 0 ? states : null,
         used,
         recoveries,
     };
@@ -316,14 +321,27 @@ function completedQuestsAfter(
 }
 
 // idempotente sullo snapshot in sessione (D-21): già posseduto ⇒ nulla, nessun errore; ownedPets fuori dall'update se non cambia (Pitfall 5)
+// il pet vinto è una voce intera con la vita massima del catalogo (Phase 19 D-03)
 function petWonBy(
     snapshot: OutcomeCharacterSnapshot,
     won: boolean,
     pet: Types.ObjectId | null,
-): Types.ObjectId | null {
+    lifePoints: unknown,
+): NewOwnedPetEntry | null {
     if (!won || !pet) return null;
-    const owned = snapshot.assets?.ownedPets ?? [];
-    return owned.some((id) => sameId(id, pet)) ? null : pet;
+    return ownsPet(snapshot.assets?.ownedPets, pet)
+        ? null
+        : newOwnedPetEntry(pet, lifePoints);
+}
+
+// un solo valore finale dei posseduti (Phase 19 D-04, Pitfall 4): compagno premiato e pet vinto nello stesso array; null = nulla da scrivere
+function ownedPetsAfterOutcome(
+    owned: readonly OwnedPetEntry[] | null | undefined,
+    awarded: NewOwnedPetEntry[] | null,
+    petWon: NewOwnedPetEntry | null,
+): NewOwnedPetEntry[] | null {
+    if (!petWon) return awarded;
+    return [...(awarded ?? normalisedOwnedPets(owned)), petWon];
 }
 
 // riusato dai piani senza premio (quick 261110-cgd)
@@ -351,7 +369,8 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     const hpFought = battle
         ? lifePointsWithin(battle.hpAfter, before.maxLifePoints)
         : before.currentLifePoints;
-    const xpEarned = won ? rewards.xpPrize + (input.enemies?.xp ?? 0) : 0;
+    const enemiesXp = won ? (input.enemies?.xp ?? 0) : 0;
+    const xpEarned = won ? rewards.xpPrize + enemiesXp : 0;
     const progression = progressionAfter(
         { xp: before.xp, currentLifePoints: hpFought },
         xpEarned,
@@ -385,12 +404,11 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         ...consumables.map(sellLine),
         ...rewardItems.map(buyLine),
     ]);
-    const knownSpells = snapshot.status.spells ?? [];
-    // base migrata in memoria se lo snapshot precede la migrazione (F6): stessa base per spesa e apprendimento, mai una lista parziale nel $set
-    const knownStates = spellStatesOrMigrated(snapshot, input.spellMaxUsages);
+    // stessa base per spesa e apprendimento: «già conosciuta» si decide sulle voci (Phase 19 D-07)
+    const knownStates = snapshot.status.spellStates ?? [];
+    const knownSpells = knownStates.map((state) => state.spell);
     const spells = spellsSpent(
         snapshot._id,
-        snapshot.assets?.activeSpells,
         knownStates,
         battle?.spellsUsed ?? [],
         input.spellRecoveryTimes,
@@ -419,7 +437,18 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         ? completedQuestsAfter(snapshot, quest._id)
         : null;
     const coinsDelta = won ? rewards.coinsCopper : 0;
-    const petWon = petWonBy(snapshot, won, rewards.pet);
+    const petWon = petWonBy(snapshot, won, rewards.pet, rewards.petLifePoints);
+    // la quota del compagno viene dai soli nemici, mai dal premio della quest (Phase 19 D-04, D-18)
+    const companion = companionXpAward(
+        snapshot.assets,
+        enemiesXp,
+        input.petMaxXp,
+    );
+    const ownedPetsAfter = ownedPetsAfterOutcome(
+        snapshot.assets?.ownedPets,
+        companion.ownedPets,
+        petWon,
+    );
     const victory = won ? (input.victory ?? null) : null;
     const victoryLore = victory?.loreIds ?? [];
     // la study vinta senza magia apprende una lore chiusa, mai una già sbloccata dallo stesso esito (Phase 16 D-08, Pitfall 6)
@@ -430,10 +459,12 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
                   ...victoryLore,
               ])
             : null;
-    // ordine D-09: lore dei nemici, poi quella dello studio
+    // le lore del pet solo con la voce aggiunta in questo esito (Phase 19 D-26)
+    const petLore = petWon ? rewards.petLore : [];
+    // ordine D-09: lore dei nemici, poi quella dello studio, poi quelle del pet vinto
     const learned = knowledgeUpdateOf(
         snapshot.status.unlockedLore,
-        [...victoryLore, ...(studyLore ? [studyLore] : [])],
+        [...victoryLore, ...(studyLore ? [studyLore] : []), ...petLore],
         victory?.enemyIds ?? [],
     );
     const lanePath = lanePathOf(input.lane);
@@ -449,23 +480,10 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         [lanePath]: null,
         ...(titleAfter !== before.title ? { 'status.title': titleAfter } : {}),
         ...(statesAfter ? { 'status.spellStates': statesAfter } : {}),
-        ...(spells.activeSpells
-            ? { 'assets.activeSpells': spells.activeSpells }
-            : {}),
-        ...(learnedState
-            ? { 'status.spells': [...knownSpells, learnedState.spell] }
-            : {}),
         ...(completedQuests
             ? { 'quests.completedQuests': completedQuests }
             : {}),
-        ...(petWon
-            ? {
-                  'assets.ownedPets': [
-                      ...(snapshot.assets?.ownedPets ?? []),
-                      petWon,
-                  ],
-              }
-            : {}),
+        ...(ownedPetsAfter ? { 'assets.ownedPets': ownedPetsAfter } : {}),
         // il fallimento aspetta il soccorso sul marker della quest (D-07, D-08)
         ...(!won && aid
             ? {
@@ -500,10 +518,11 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             rewards: {
                 coins: fromCopper(coinsDelta),
                 items: rewardItems,
-                pet: petWon,
+                pet: petWon?.pet ?? null,
             },
             // guadagno effettivo dopo il clamp a MAX_XP: xpAfter = xpBefore + xpGained sul foglio
             xpGained: Math.max(0, progression.xp - before.xp),
+            petXpGained: companion.gained,
             xpBefore: before.xp,
             xpAfter: progression.xp,
             levelBefore: before.level,

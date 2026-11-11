@@ -70,7 +70,7 @@ export class SpellRecoverySweeper
         return this.inFlight;
     }
 
-    // nessun filtro sugli slot: il recupero vale anche per le magie disequipaggiate (D-01)
+    // nessun filtro sul flag `active`: il recupero vale anche per le magie disequipaggiate (D-01)
     private async runOnce(): Promise<number> {
         const now = this.clock.now();
         const due = await this.characterModel

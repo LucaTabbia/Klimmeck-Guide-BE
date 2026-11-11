@@ -23,6 +23,10 @@ import {
     persistLootItem,
     persistPet,
 } from '../../../test/fixtures';
+import {
+    buildOwnedPet,
+    type OwnedPetSeed,
+} from '../../../test/fixtures/owned-pet.fixture';
 import { buildActiveTravelDoc } from '../../../test/travel/active-travel.fixture';
 
 const DO_TRANSACTION =
@@ -63,7 +67,7 @@ interface OwnedEntry {
 interface Inventory {
     ownedEquipments?: OwnedEntry[];
     ownedItems?: OwnedEntry[];
-    ownedPets?: Types.ObjectId[];
+    ownedPets?: OwnedPetSeed[];
 }
 
 interface TradeInput {
@@ -504,10 +508,10 @@ describe('doTransaction (wire)', () => {
             expect([soldState, keptState]).toContainEqual({
                 coins: after?.status.coins,
                 ownedEquipments: after?.assets.ownedEquipments,
-                head: after?.assets.wearedEquipment.head,
+                head: after?.assets.wornEquipment.head,
             });
             if (isSuccess(sold)) {
-                expect(after?.assets.wearedEquipment.head).toBeNull();
+                expect(after?.assets.wornEquipment.head).toBeNull();
             } else {
                 expect(equipBody.data?.equipItem?.successful).toBe(true);
             }
@@ -701,7 +705,9 @@ describe('doTransaction (wire)', () => {
             expect(bought.errors).toBeUndefined();
             expect(bought.data?.doTransaction).toEqual(SUCCESS);
             const afterBuy = await raw(player);
-            expect(afterBuy?.assets.ownedPets).toEqual([idOf(horse)]);
+            expect(afterBuy?.assets.ownedPets).toEqual([
+                buildOwnedPet(idOf(horse)),
+            ]);
             expect(afterBuy?.assets.pet).toBeNull();
             expect(afterBuy?.status.coins).toEqual(coins(0, 0, 0));
 
@@ -722,7 +728,7 @@ describe('doTransaction (wire)', () => {
             const player = await playerAtPetShop(
                 'twitch-trade-pet-owned',
                 coins(2, 0, 0),
-                { ownedPets: [idOf(horse)] },
+                { ownedPets: [buildOwnedPet(idOf(horse))] },
             );
             const before = await raw(player);
 

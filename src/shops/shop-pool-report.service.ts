@@ -23,13 +23,7 @@ export interface ShopPoolReport {
     withoutPool: number;
 }
 
-const CITY_PROJECTION = {
-    name: 1,
-    type: 1,
-    shopEquipment: 1,
-    shopLoot: 1,
-    shopPets: 1,
-};
+const CITY_PROJECTION = { name: 1, type: 1, shop: 1 };
 const CATALOGUE_PROJECTION = { name: 1, rarity: 1, sellable: 1 };
 
 // sola lettura (D-06): letture lean fuori da qualsiasi transazione, nessuna correzione (D-05)

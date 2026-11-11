@@ -17,11 +17,6 @@ enum AccessoryUseType {
   defense
 }
 
-type ActiveSpell {
-  spell: Spell
-  usages: Int!
-}
-
 type ActiveTravel {
   duration: Float!
   endTime: DateTime!
@@ -78,12 +73,11 @@ type Character {
 }
 
 type CharacterAssets {
-  activeSpells: [ActiveSpell!]!
   ownedEquipments: [AssetQuantity!]!
   ownedItems: [AssetQuantity!]!
-  ownedPets: [Pet!]!
+  ownedPets: [OwnedPet!]!
   pet: Pet
-  wearedEquipment: Equipment!
+  wornEquipment: Equipment!
 }
 
 type CharacterInfos {
@@ -117,7 +111,6 @@ type CharacterStatus {
   maxLifePoints: Int!
   potionRecoveryUntil: DateTime
   spellStates: [SpellState!]!
-  spells: [Spell!]!
   title: String!
   unlockedLore: [ID!]!
   xp: Int!
@@ -232,6 +225,12 @@ input CreateCharacterInput {
   sex: SexType!
 }
 
+enum DamageType {
+  blunt
+  cut
+  pierce
+}
+
 type Damages {
   base: [BaseDamage!]!
   energy: [EnergyDamage!]!
@@ -243,9 +242,7 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 scalar DateTime
 
 type Enemy {
-  baseWeaknesses: [String!]!
   damages: Damages!
-  energyWeaknesses: [String!]!
   id: ID!
   imagePath: String!
   legendary: Boolean!
@@ -254,12 +251,27 @@ type Enemy {
   name: String!
   relatedLore: [Lore!]!
   spells: [Spell!]!
+  weaknesses: Weaknesses!
   xp: Int!
 }
 
 type EnergyDamage {
   power: Int!
   type: String!
+}
+
+enum EnergyType {
+  acid
+  cold
+  enhancing
+  fire
+  force
+  lightning
+  necrotic
+  poison
+  psychic
+  radiant
+  thunder
 }
 
 input EquipItemRequest {
@@ -282,8 +294,8 @@ input EquipSpellRequest {
 type Equipment {
   arms: EquipmentItem
   chest: EquipmentItem
+  feet: EquipmentItem
   firstAccessory: EquipmentItem
-  foots: EquipmentItem
   head: EquipmentItem
   leftHand: EquipmentItem
   legs: EquipmentItem
@@ -381,7 +393,7 @@ type LootRecovery {
 type Lore {
   description: String!
   id: ID!
-  image: String
+  imagePath: String
   name: String!
   relatedLore: [Lore!]!
   type: String!
@@ -411,6 +423,12 @@ type Mutation {
   unregisterPushDevice(deviceId: String!): Boolean!
   useItem(itemId: ID!): UseItemResult!
   useSpell(request: UseSpellRequest!): CommonResponse!
+}
+
+type OwnedPet {
+  currentLifePoints: Int!
+  pet: Pet!
+  xp: Int!
 }
 
 input ParticipantOverrideInput {
@@ -468,18 +486,19 @@ type PendingRequestUser {
 }
 
 type Pet {
+  attack: Damages!
   buyPrice: Coins!
-  currentLifePoints: Int!
-  damages: Damages!
+  defense: Damages!
   id: ID!
   imagePath: String!
   maxLifePoints: Int!
   maxXp: Int!
   name: String!
+  rarity: RarityType
+  relatedLore: [Lore!]!
   sellPrice: Coins!
   sellable: Boolean
   speedModifier: Float
-  xp: Int!
 }
 
 enum PoiType {
@@ -518,7 +537,6 @@ type PointOfInterest {
   city: City
   id: ID!
   location: [Float!]!
-  quest: ID
   type: [PoiType!]!
 }
 
@@ -678,6 +696,7 @@ type QuestResult {
   loreUnlocked: [Lore!]!
   maxLifePoints: Int!
   outcome: QuestOutcome!
+  petXpGained: Int!
   quest: QuestResultQuest
   rescuedCharacters: [ID!]!
   resolvedAt: DateTime!
@@ -729,6 +748,14 @@ enum RaceType {
   tiefling
 }
 
+enum RarityType {
+  common
+  legendary
+  rare
+  ultrarare
+  uncommon
+}
+
 input RegisterPushDeviceInput {
   deviceId: String!
   platform: PushPlatform!
@@ -771,8 +798,8 @@ type ShopPoolReportItem {
 enum SlotType {
   arms
   chest
+  feet
   firstAccessory
-  foots
   head
   leftHand
   legs
@@ -793,6 +820,7 @@ type Spell {
 }
 
 type SpellState {
+  active: Boolean!
   recoveries: [DateTime!]!
   spell: Spell!
   usages: Int!
@@ -878,4 +906,9 @@ type User {
   role: RoleType!
   twitchId: String!
   twitchPoints: Int!
+}
+
+type Weaknesses {
+  base: [DamageType!]!
+  energy: [EnergyType!]!
 }

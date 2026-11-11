@@ -23,6 +23,7 @@ export function buildQuestResult(overrides: Record<string, any> = {}) {
         spellsUsed: [],
         rewards: { coins: { gold: 0, silver: 0, copper: 0 }, items: [] },
         xpGained: 0,
+        petXpGained: 0,
         xpBefore: 0,
         xpAfter: 0,
         levelBefore: 1,

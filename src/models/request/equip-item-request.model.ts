@@ -1,7 +1,7 @@
 import { InputType, Field } from '@nestjs/graphql';
 import { IsEnum, IsOptional } from 'class-validator';
 import { IsObjectIdHex } from 'src/validation/is-object-id-hex.decorator';
-import { SlotType } from '../enums/slot_type.enum';
+import { SlotType } from '../enums/slot-type.enum';
 
 @InputType()
 export class EquipItemRequest {

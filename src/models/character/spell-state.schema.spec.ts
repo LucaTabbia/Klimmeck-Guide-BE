@@ -71,4 +71,25 @@ describe('spell state schemas', () => {
             new State({ spell: new Types.ObjectId(), usages: 1 }).recoveries,
         ).toHaveLength(0);
     });
+
+    it('defaults a spell state to not active (D-07)', () => {
+        const State = model('SpellStateActiveDefaultProbe', SpellStateSchema);
+
+        expect(
+            new State({ spell: new Types.ObjectId(), usages: 1 }).toObject(),
+        ).toMatchObject({ active: false });
+        expect(SpellStateSchema.path('active').instance).toBe('Boolean');
+    });
+
+    it('keeps the active flag of a stored spell state (D-07)', () => {
+        const State = model('SpellStateActiveStoredProbe', SpellStateSchema);
+
+        expect(
+            new State({
+                spell: new Types.ObjectId(),
+                usages: 1,
+                active: true,
+            }).toObject(),
+        ).toMatchObject({ active: true });
+    });
 });

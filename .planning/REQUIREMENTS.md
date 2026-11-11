@@ -12,25 +12,28 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 
 - [x] **BE-HEAL-01**: `Quest.prizes.cure` sotto-documento nullable `{ lifePointsShare: Number in [0, 1], canHeal: [InjuryType] }` (`QuestCure` sullo SDL, campo additivo `QuestPrizes.cure`, `QuestCureInput` in `QuestPrizesInput`); `canHeal` riusa nome e semantica di `LootItem.canHeal` (enum Mongoose, default vuota); `cure` assente = nessuna cura, nessuna migrazione → FE HEAL-01
 - [x] **BE-HEAL-02**: Una quest vinta che porta `cure` riporta `currentLifePoints` almeno a `round(maxLifePoints × lifePointsShare)` (tetto: mai sopra il massimo né sotto il corrente, calcolato sul massimo dopo la progressione) e toglie da `status.injuries` le ferite presenti in `canHeal` nella stessa scrittura; vale per ogni tipo di quest (il ramo `type === heal` della Phase 9 D-15 è superato); primitiva pura `cureInjuries` riusabile → FE HEAL-01
-- [ ] **BE-HEAL-03**: Contenuto delle 166 heal fisse scritto a DB per taglia (`citySizeOf`) con script mirato fuori repo (D-36) dopo la revisione dell'utente su file e dopo la merge: liste villaggio 19 (gravità FE ≤ 20) / città 28 (≤ 40) / capitale 37, ritocchi per `CityType` (montagna/nord, deserto, tropicale, mare), quota 0,5 / 0,8 / 1, `timeToComplete` 2 / 5 / 8 h, tre descrizioni per taglia nella voce del tempio; titoli, `minTitle` rookie, gratuità e Necrorian invariati → FE HEAL-03
+- [x] **BE-HEAL-03**: Contenuto delle 166 heal fisse scritto a DB per taglia (`citySizeOf`) con script mirato fuori repo (D-36) dopo la revisione dell'utente su file e dopo la merge: liste villaggio 19 (gravità FE ≤ 20) / città 28 (≤ 40) / capitale 37, ritocchi per `CityType` (montagna/nord, deserto, tropicale, mare), quota 0,5 / 0,8 / 1, `timeToComplete` 2 / 5 / 8 h, tre descrizioni per taglia nella voce del tempio; titoli, `minTitle` rookie, gratuità e Necrorian invariati → FE HEAL-03
 - [x] **BE-HEAL-04**: `QuestResult.injuriesHealed: [InjuryType!]!` (default vuota) con le ferite tolte da quell'esito per il partecipante, accanto a `hpBefore`/`hpAfter` → FE HEAL-02
 - [x] **BE-HEAL-05**: Unit (primitiva, tetto, piano con `cure` null/0/1 e su quest non heal), integration (heal di villaggio: una ferita tolta e una no, HP al 50 %, `injuriesHealed` sul filo; SDL verbatim della FE), boot reale con SDL additivo, handoff `BACKEND-NOTES.md` per la FE Phase 18 con tre quest d'esempio e il runbook dello script di contenuto
 - [x] **BE-HEAL-06**: `LootItem.recovery` sotto-documento nullable `{ time: ms intero ≥ 0, turns: intero ≥ 0 }` (`LootRecovery` sullo SDL, input admin) e `LootItem.relatedLore: [Lore]` (ref, filtrata per viewer come le altre) additivi; `CharacterStatus.potionRecoveryUntil: DateTime` nullable additivo, una sola data per personaggio, nessun processor; `turns` solo dato per il motore di combattimento (il combattimento non legge né scrive la ricarica) → FE HEAL-04, HEAL-05
 - [x] **BE-HEAL-07**: Mutation `useItem(itemId: ID!): UseItemResult` sul bearer: rifiuti in ordine `AWAITING_AID`, `ITEM_NOT_OWNED`, `ITEM_NOT_USABLE` (effetto non heal o `recovery.time` assente), `POTION_RECOVERING` (con `recoveryUntil` nelle extensions), `ITEM_NO_EFFECT` (HP pieni e nessuna ferita in `canHeal`: nessun consumo né ricarica); consentita in città e in viaggio; una sola scrittura atomica (HP + `power` fino al massimo, ferite − `canHeal` con `cureInjuries`, pila − 1 con le guardie di quantità, `potionRecoveryUntil = now + recovery.time`, `relatedLore` dell'oggetto in `unlockedLore`) e risultato `{ hpBefore, hpAfter, injuriesHealed, quantityLeft, recoveryUntil, loreUnlocked }` → FE HEAL-04, HEAL-05
-- [ ] **BE-HEAL-08**: Contenuto fuori repo dopo la merge e la revisione dell'utente: `recovery.time` delle 28 pozioni heal dalla tabella (30 min–24 h: base per potenza, scalino per rarità, minimi per ferita più grave), `turns` dalla bozza, lore nuova «Il limite del corpo» (`knowledge`) scritta a DB e collegata dalle 28 pozioni; integration su prima pozione, seconda entro la ricarica, nessun effetto, attesa di soccorso, viaggio; handoff aggiornato con lo script e la lore → FE HEAL-04, HEAL-05
+- [x] **BE-HEAL-08**: Contenuto fuori repo dopo la merge e la revisione dell'utente: `recovery.time` delle 28 pozioni heal dalla tabella (30 min–24 h: base per potenza, scalino per rarità, minimi per ferita più grave), `turns` dalla bozza, lore nuova «Il limite del corpo» (`knowledge`) scritta a DB e collegata dalle 28 pozioni; integration su prima pozione, seconda entro la ricarica, nessun effetto, attesa di soccorso, viaggio; handoff aggiornato con lo script e la lore → FE HEAL-04, HEAL-05
 - [x] **BE-HEAL-09**: Una quest `heal` senza effetto per il personaggio (vita già pari o sopra il tetto della quest e nessuna sua ferita in `cure.canHeal`, oppure `cure` assente) non si accetta: `acceptQuest` rifiuta con `QUEST_NO_EFFECT` senza toccare corsie e punti, e il campo additivo per viewer `Quest.noEffect: Boolean!` lo dichiara al tabellone (vero solo per il tipo `heal`; falso per gli altri tipi e senza personaggio corrente, nessuna eccezione per ruolo); un solo predicato puro per rifiuto e campo, risolto per subscriber → FE HEAL-06 _(aggiunto 2026-11-10, regola dell'utente a plan in corso)_
 
 ### Model Review (BE-MODEL) — Phase 19, aggiunta 2026-11-09
 
-- [ ] **BE-MODEL-01**: `Enemy.weaknesses { base: [DamageType], energy: [EnergyType] }` sostituisce `energyWeaknesses` e `baseWeaknesses` (modello, SDL non additivo, `EnemyInput`); generatore (`recommended-loot`) e combattimento leggono il sotto-documento; migratore idempotente sui 206 nemici → FE MODEL-01
-- [ ] **BE-MODEL-02**: `Enemy.spells` diventa una lista di riferimenti al catalogo (stesso SDL `[Spell!]!`); il migratore abbina le copie incorporate per `_id` o per `name` e riporta nel log quelle senza corrispondenza, senza inventarle → FE MODEL-01
-- [ ] **BE-MODEL-03**: Lo stato del pet vive sul personaggio: `CharacterAssets.ownedPets: [OwnedPet { pet, xp, currentLifePoints }]` (non additivo), il catalogo `Pet` perde `xp` e `currentLifePoints`, tiene `maxLifePoints`, `maxXp`, prezzi, `speedModifier`, `sellable`, `imagePath` e sostituisce `damages` con `attack: Damages` e `defense: Damages` (SDL non additivo; migratore: i danni attuali → `attack`, `defense` vuoto per la cura a DB); acquisto, vendita, premio e «già posseduto» sulle voci; `assets.pet` resta il riferimento al catalogo; migratore (`xp` 0, vita = `maxLifePoints`) → FE MODEL-02
-- [ ] **BE-MODEL-04**: A ogni vittoria con nemici (quest individuale, party, dungeon, imboscata vinta) il compagno equipaggiato riceve `round(Σ Enemy.xp × PET_XP_SHARE)` con `PET_XP_SHARE` 0,10 (costante), senza il premio della quest, tetto `maxXp` del catalogo, nella stessa scrittura dell'esito; `QuestResult.petXpGained: Int!` additivo (default 0); `maxXp` dei 44 pet rivisti a DB dalla tabella approvata (contenuto dopo la merge) → FE MODEL-02
-- [ ] **BE-MODEL-05**: `CharacterAssets.wearedEquipment` → `wornEquipment` e `Equipment.foots` → `feet` (modello, SDL non additivo, input, filtri di `equipItem` e del negozio); migratore con rinomina → FE MODEL-03
-- [ ] **BE-MODEL-06**: `status.spellStates [{ spell, usages, recoveries, active }]` è l'unica lista delle magie: `status.spells` e `assets.activeSpells` tolti da modello e SDL; equip/unequip scrivono `active`, uso/recupero/apprendimento/combattimento lavorano sulle voci; `maxActiveSpells` resta sullo SDL come resolve field calcolato e perde il `@Prop`; migratore che fonde le tre liste (log sui conflitti di `usages`) → FE MODEL-03
-- [ ] **BE-MODEL-07**: `PointOfInterest.quest` tolto da modello, SDL e input (nessun lettore, 0 su 642 POI); `City.shop { equipment, loot, pets }` sostituisce i tre array del pool (solo Mongoose; `cityShop`, report e vendita lo leggono; pool presenti conservati) → FE MODEL-01
-- [ ] **BE-MODEL-08**: `Lore.image` → `Lore.imagePath` (modello, SDL non additivo, input, migratore); file enum `item_reference_type.enum.ts` e `slot_type.enum.ts` rinominati in kebab-case; modello `KGNotification` rimosso → FE MODEL-01
-- [ ] **BE-MODEL-09**: Un solo modulo one-off `src/migrations/model-review/` con un passo idempotente per decisione e log di soli conteggi, eseguito al boot reale dall'orchestratore dopo il backup e rimosso in TDD prima della merge; unit sui migratori e sul premio xp del pet, integration per area, SDL verbatim della FE, handoff `BACKEND-NOTES.md` con la tabella dei cambi SDL vecchio → nuovo
+- [x] **BE-MODEL-01**: `Enemy.weaknesses { base: [DamageType], energy: [EnergyType] }` sostituisce `energyWeaknesses` e `baseWeaknesses` (modello, SDL non additivo, `EnemyInput`); generatore (`recommended-loot`) e combattimento leggono il sotto-documento; migratore idempotente sui 206 nemici → FE MODEL-01
+- [x] **BE-MODEL-02**: `Enemy.spells` diventa una lista di riferimenti al catalogo (stesso SDL `[Spell!]!`); il migratore abbina le copie incorporate per `_id` o per `name` e riporta nel log quelle senza corrispondenza, senza inventarle → FE MODEL-01
+- [x] **BE-MODEL-03**: Lo stato del pet vive sul personaggio: `CharacterAssets.ownedPets: [OwnedPet { pet, xp, currentLifePoints }]` (non additivo), il catalogo `Pet` perde `xp` e `currentLifePoints`, tiene `maxLifePoints`, `maxXp`, prezzi, `speedModifier`, `sellable`, `imagePath` e sostituisce `damages` con `attack: Damages` e `defense: Damages` (SDL non additivo; migratore: i danni attuali → `attack`, `defense` vuoto per la cura a DB); acquisto, vendita, premio e «già posseduto» sulle voci; `assets.pet` resta il riferimento al catalogo; migratore (`xp` 0, vita = `maxLifePoints`) → FE MODEL-02
+- [x] **BE-MODEL-04**: A ogni vittoria con nemici (quest individuale, party, dungeon, imboscata vinta) il compagno equipaggiato riceve `round(Σ Enemy.xp × PET_XP_SHARE)` con `PET_XP_SHARE` 0,10 (costante), senza il premio della quest, tetto `maxXp` del catalogo, nella stessa scrittura dell'esito; `QuestResult.petXpGained: Int!` additivo (default 0); `maxXp` dei 44 pet rivisti a DB dalla tabella approvata (contenuto a DB dentro la fase, D-25) → FE MODEL-02 _(chiuso l'11 novembre 2026: `maxXp` dei 44 pet a DB (script di contenuto fuori repo))_
+- [x] **BE-MODEL-05**: `CharacterAssets.wearedEquipment` → `wornEquipment` e `Equipment.foots` → `feet` (modello, SDL non additivo, input, filtri di `equipItem` e del negozio); migratore con rinomina → FE MODEL-03
+- [x] **BE-MODEL-06**: `status.spellStates [{ spell, usages, recoveries, active }]` è l'unica lista delle magie: `status.spells` e `assets.activeSpells` tolti da modello e SDL; equip/unequip scrivono `active`, uso/recupero/apprendimento/combattimento lavorano sulle voci; `maxActiveSpells` resta sullo SDL come resolve field calcolato e perde il `@Prop`; migratore che fonde le tre liste (log sui conflitti di `usages`) → FE MODEL-03
+- [x] **BE-MODEL-07**: `PointOfInterest.quest` tolto da modello, SDL e input (nessun lettore, 0 su 642 POI); `City.shop { equipment, loot, pets }` sostituisce i tre array del pool (solo Mongoose; `cityShop`, report e vendita lo leggono; pool presenti conservati) → FE MODEL-01
+- [x] **BE-MODEL-08**: `Lore.image` → `Lore.imagePath` (modello, SDL non additivo, input, migratore); file enum `item_reference_type.enum.ts` e `slot_type.enum.ts` rinominati in kebab-case; modello `KGNotification` rimosso → FE MODEL-01
+- [x] **BE-MODEL-09**: Un solo modulo one-off `src/migrations/model-review/` con un passo idempotente per decisione e log di soli conteggi, eseguito al boot reale dall'orchestratore dopo il backup e rimosso in TDD prima della merge; unit sui migratori e sul premio xp del pet, integration per area, SDL verbatim della FE, handoff `BACKEND-NOTES.md` con la tabella dei cambi SDL vecchio → nuovo _(chiuso l'11 novembre 2026: boot reale (primo boot coi conteggi attesi, secondo a zero) e modulo rimosso in TDD (`c3492ced`, `0822feee`))_
+- [x] **BE-MODEL-10**: `Pet.relatedLore: [Lore!]!` additivo (ref, default vuoto, filtrato per viewer come `LootItem.relatedLore`); l'acquisto di un pet e il pet in premio aggiungono le sue lore a `status.unlockedLore` nella stessa scrittura della voce di `ownedPets` (nessun duplicato, la vendita non le toglie); contenuto a DB nella fase: 44 pet collegati alla propria lore, lore nuova «Cavallo da viaggio» → nessun cambio FE (flusso `unlockedLore` della FE Phase 17) _(aggiunto 2026-11-11, regola dell'utente a plan in corso)_ _(chiuso l'11 novembre 2026: 44 pet collegati alle lore (43 esistenti + la lore nuova «Cavallo da viaggio»))_
+- [x] **BE-MODEL-11**: `Pet.rarity: RarityType` additivo (nullable, enum esistente); contenuto a DB nella fase dalla tabella approvata (negozio common/uncommon, solo quest uncommon → legendary per `maxXp`), «Scheletro di cavallo da guerra» ultrarare con statistiche di fascia, «Molosso da guerra» vendibile → FE: rarità mostrata sul compagno _(aggiunto 2026-11-11, regola dell'utente a plan in corso)_ _(chiuso l'11 novembre 2026: 44 rarità a DB (13 common, 8 uncommon, 8 rare, 12 ultrarare, 3 legendary), Molosso vendibile, Scheletro ultrarare)_
+- [x] **BE-MODEL-12**: pet in premio nelle quest generate `enemy` e `boss` per legame: `Pet.enemy` (ref, solo Mongoose), tre fasce che si sommano in un solo tiro (10 % pet di un nemico della quest, 5 % pet di zona dalle `locations` del nemico collegato, 5 % pet non vendibile qualunque solo boss), tetto di rarità dal pool di loot del rango; 20 % alla vittoria invariato; contenuto: 31 legami pet → nemico _(aggiunto 2026-11-11, supera la Phase 13 D-21)_ _(chiuso l'11 novembre 2026: 31 legami pet → nemico come ObjectId (13 pet senza nemico corrispondente))_
 
 ### Progressive Travel Food (BE-FOODP) — Phase 20, aggiunta 2026-11-09
 
@@ -67,29 +70,32 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | ----------- | ----- | ------ |
 | BE-HEAL-01 | Phase 18 | Complete |
 | BE-HEAL-02 | Phase 18 | Complete |
-| BE-HEAL-03 | Phase 18 | Pending |
+| BE-HEAL-03 | Phase 18 | Complete |
 | BE-HEAL-04 | Phase 18 | Complete |
 | BE-HEAL-05 | Phase 18 | Complete |
 | BE-HEAL-06 | Phase 18 | Complete |
 | BE-HEAL-07 | Phase 18 | Complete |
-| BE-HEAL-08 | Phase 18 | Pending |
+| BE-HEAL-08 | Phase 18 | Complete |
 | BE-HEAL-09 | Phase 18 | Complete |
-| BE-MODEL-01 | Phase 19 | Pending |
-| BE-MODEL-02 | Phase 19 | Pending |
-| BE-MODEL-03 | Phase 19 | Pending |
-| BE-MODEL-04 | Phase 19 | Pending |
-| BE-MODEL-05 | Phase 19 | Pending |
-| BE-MODEL-06 | Phase 19 | Pending |
-| BE-MODEL-07 | Phase 19 | Pending |
-| BE-MODEL-08 | Phase 19 | Pending |
-| BE-MODEL-09 | Phase 19 | Pending |
+| BE-MODEL-01 | Phase 19 | Complete |
+| BE-MODEL-02 | Phase 19 | Complete |
+| BE-MODEL-03 | Phase 19 | Complete |
+| BE-MODEL-04 | Phase 19 | Complete — chiuso l'11 novembre 2026: `maxXp` dei 44 pet a DB (script di contenuto fuori repo) |
+| BE-MODEL-05 | Phase 19 | Complete |
+| BE-MODEL-06 | Phase 19 | Complete |
+| BE-MODEL-07 | Phase 19 | Complete |
+| BE-MODEL-08 | Phase 19 | Complete |
+| BE-MODEL-09 | Phase 19 | Complete — chiuso l'11 novembre 2026: boot reale (primo boot coi conteggi attesi, secondo a zero) e modulo rimosso in TDD (`c3492ced`, `0822feee`) |
+| BE-MODEL-10 | Phase 19 | Complete — chiuso l'11 novembre 2026: 44 pet collegati alle lore (43 esistenti + la lore nuova «Cavallo da viaggio») |
+| BE-MODEL-11 | Phase 19 | Complete — chiuso l'11 novembre 2026: 44 rarità a DB (13 common, 8 uncommon, 8 rare, 12 ultrarare, 3 legendary), Molosso vendibile, Scheletro ultrarare |
+| BE-MODEL-12 | Phase 19 | Complete — chiuso l'11 novembre 2026: 31 legami pet → nemico come ObjectId (13 pet senza nemico corrispondente) |
 | BE-FOODP-01 | Phase 20 | Pending |
 | BE-FOODP-02 | Phase 20 | Pending |
 | BE-FOODP-03 | Phase 20 | Pending |
 | BE-FOODP-04 | Phase 20 | Pending |
 | BE-FOODP-05 | Phase 20 | Pending |
 
-**Coverage:** 23 / 23 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 9 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20). Nessun orfano, nessun duplicato.
+**Coverage:** 26 / 26 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20). Nessun orfano, nessun duplicato.
 
 ---
 

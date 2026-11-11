@@ -10,8 +10,11 @@ const fakeModel = (entries: readonly unknown[] = []) => ({
     })),
 });
 
-// solo i modelli del catalogo del combattimento: nemici, loot, equipaggiamento, magie, lore dello studio
-const loaderWith = (enemyModel: ReturnType<typeof fakeModel>) =>
+// solo i modelli del catalogo del combattimento: nemici, loot, equipaggiamento, magie, pet, lore dello studio
+const loaderWith = (
+    enemyModel: ReturnType<typeof fakeModel>,
+    petModel: ReturnType<typeof fakeModel> = fakeModel(),
+) =>
     new ResolutionLoader(
         null as never,
         null as never,
@@ -21,7 +24,7 @@ const loaderWith = (enemyModel: ReturnType<typeof fakeModel>) =>
         fakeModel() as never,
         fakeModel() as never,
         fakeModel() as never,
-        null as never,
+        petModel as never,
         fakeModel() as never,
         undefined,
     );
@@ -50,8 +53,7 @@ describe('ResolutionLoader enemy read', () => {
                 lifePoints: 1,
                 xp: 1,
                 damages: 1,
-                baseWeaknesses: 1,
-                energyWeaknesses: 1,
+                weaknesses: 1,
                 relatedLore: 1,
             },
         );
@@ -65,8 +67,7 @@ describe('ResolutionLoader enemy read', () => {
             lifePoints: 11,
             xp: 5,
             damages: [],
-            baseWeaknesses: [],
-            energyWeaknesses: [],
+            weaknesses: { base: [], energy: [] },
         };
         const loader = loaderWith(fakeModel([snapshot]));
 
@@ -82,8 +83,35 @@ describe('ResolutionLoader enemy read', () => {
             spells: new Map(),
             loot: new Map(),
             recoveryTimes: new Map(),
-            spellMaxUsages: new Map(),
+            petMaxXp: new Map(),
         });
+    });
+
+    it('carries no spell usages catalogue in the combat catalog (D-07)', async () => {
+        const enemy = { _id: new Types.ObjectId(), name: 'Lupo', xp: 5 };
+        const withEnemies = await loaderWith(
+            fakeModel([enemy]),
+        ).readCombatCatalog(
+            [{ enemy: enemy._id, quantity: 1 }],
+            [],
+            AMBUSH_SUBJECT,
+        );
+        const withoutEnemies = await loaderWith(fakeModel()).readCombatCatalog(
+            [],
+            [],
+            AMBUSH_SUBJECT,
+        );
+
+        const keys = [
+            'enemies',
+            'equipment',
+            'loot',
+            'petMaxXp',
+            'recoveryTimes',
+            'spells',
+        ];
+        expect(Object.keys(withEnemies).sort()).toEqual(keys);
+        expect(Object.keys(withoutEnemies).sort()).toEqual(keys);
     });
 
     it('drops an orphan ambush enemy with an id only warning (D-09)', async () => {
@@ -105,5 +133,69 @@ describe('ResolutionLoader enemy read', () => {
                 `Nemico ${orphan.toHexString()} ${AMBUSH_SUBJECT} inesistente: voce scartata`,
             ],
         ]);
+    });
+
+    it('reads the xp caps of the whole pet catalogue (D-17)', async () => {
+        const wolf = new Types.ObjectId();
+        const dragon = new Types.ObjectId();
+        const petModel = fakeModel([
+            { _id: wolf, maxXp: 100 },
+            { _id: dragon, maxXp: 2350 },
+            { _id: new Types.ObjectId() },
+        ]);
+        const enemy = { _id: new Types.ObjectId(), name: 'Lupo', xp: 5 };
+        const loader = loaderWith(fakeModel([enemy]), petModel);
+
+        const catalog = await loader.readCombatCatalog(
+            [{ enemy: enemy._id, quantity: 1 }],
+            [],
+            AMBUSH_SUBJECT,
+        );
+
+        expect(catalog.petMaxXp).toEqual(
+            new Map([
+                [wolf.toHexString(), 100],
+                [dragon.toHexString(), 2350],
+            ]),
+        );
+        expect(petModel.find.mock.calls).toEqual([[{}, { maxXp: 1 }]]);
+    });
+
+    it('leaves a pet without a valid cap out of the caps (D-17)', async () => {
+        const valid = new Types.ObjectId();
+        const petModel = fakeModel([
+            { _id: new Types.ObjectId(), maxXp: 0 },
+            { _id: new Types.ObjectId(), maxXp: -100 },
+            { _id: new Types.ObjectId(), maxXp: 12.5 },
+            { _id: new Types.ObjectId(), maxXp: '100' },
+            { _id: new Types.ObjectId(), maxXp: null },
+            { _id: new Types.ObjectId(), maxXp: NaN },
+            { _id: valid, maxXp: 1 },
+        ]);
+        const enemy = { _id: new Types.ObjectId(), name: 'Lupo', xp: 5 };
+        const loader = loaderWith(fakeModel([enemy]), petModel);
+
+        const catalog = await loader.readCombatCatalog(
+            [{ enemy: enemy._id, quantity: 1 }],
+            [],
+            AMBUSH_SUBJECT,
+        );
+
+        expect(catalog.petMaxXp).toEqual(new Map([[valid.toHexString(), 1]]));
+    });
+
+    it('returns the pet caps even without enemies (D-17)', async () => {
+        const wolf = new Types.ObjectId();
+        const petModel = fakeModel([{ _id: wolf, maxXp: 100 }]);
+        const loader = loaderWith(fakeModel(), petModel);
+
+        const catalog = await loader.readCombatCatalog(
+            [],
+            [],
+            'della missione x',
+        );
+
+        expect(catalog.enemies).toEqual([]);
+        expect(catalog.petMaxXp).toEqual(new Map([[wolf.toHexString(), 100]]));
     });
 });

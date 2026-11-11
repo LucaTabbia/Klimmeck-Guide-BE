@@ -1,6 +1,5 @@
 // esito senza premio e senza soccorso (quick 261110-cgd): arresto nella crime, sconfitta nello scontro di guardia; compone gli helper di outcome-plan come l'imboscata
 import type { Types } from 'mongoose';
-import { spellStatesOrMigrated } from 'src/characters/spells/spell-state.snapshot';
 import { applyTradeToInventory } from 'src/economy/trade/trade-inventory';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { lanePathOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
@@ -30,7 +29,6 @@ export interface UnrewardedPlanInput {
     battle: ParticipantEffects | null;
     enemies: EnemyFacts | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
-    spellMaxUsages: ReadonlyMap<string, number>;
     now: Date;
 }
 
@@ -72,8 +70,7 @@ export function planUnrewarded(
     );
     const spells = spellsSpent(
         snapshot._id,
-        snapshot.assets?.activeSpells,
-        spellStatesOrMigrated(snapshot, input.spellMaxUsages),
+        snapshot.status.spellStates ?? [],
         battle?.spellsUsed ?? [],
         input.spellRecoveryTimes,
         input.now,
@@ -91,9 +88,6 @@ export function planUnrewarded(
                 [lanePath]: null,
                 ...(spells.spellStates
                     ? { 'status.spellStates': spells.spellStates }
-                    : {}),
-                ...(spells.activeSpells
-                    ? { 'assets.activeSpells': spells.activeSpells }
                     : {}),
                 ...conclusion.extraSet,
             },
@@ -115,6 +109,7 @@ export function planUnrewarded(
             spellsUsed: spells.used,
             rewards: { coins: NO_COINS, items: [], pet: null },
             xpGained: 0,
+            petXpGained: 0,
             xpBefore: before.xp,
             xpAfter: before.xp,
             levelBefore: before.level,

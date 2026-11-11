@@ -5,7 +5,7 @@ import { Test } from '@nestjs/testing';
 import { Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { Character } from 'src/models/character/character.model';
-import { SlotType } from 'src/models/enums/slot_type.enum';
+import { SlotType } from 'src/models/enums/slot-type.enum';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
 import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
@@ -101,7 +101,7 @@ describe('CharactersService (unit — spell mutations)', () => {
         const c = new Types.ObjectId();
         const s = new Types.ObjectId();
 
-        it('equipSpell copies the state usages with a single conditional pipeline update', async () => {
+        it('equipSpell sets the active flag of the spell state with a single conditional update (D-07)', async () => {
             mockSpellModel.findById.mockReturnValue(
                 asLeanQuery({ maxUsages: 3 }),
             );
@@ -115,10 +115,11 @@ describe('CharactersService (unit — spell mutations)', () => {
 
             expect(result.successful).toBe(true);
             expect(mockCharacterModel.updateOne).toHaveBeenCalledTimes(1);
-            const [filter, update] = mockCharacterModel.updateOne.mock.calls[0];
-            expect(filter).toEqual(equipSpellFilter(c, s));
-            expect(update).toEqual(equipSpellUpdate(s, 3));
-            expect(Array.isArray(update)).toBe(true);
+            expect(mockCharacterModel.updateOne).toHaveBeenCalledWith(
+                equipSpellFilter(c, s),
+                equipSpellUpdate(),
+                spellStateArrayFilters(s),
+            );
             expect(mockCharacterModel.findOne).not.toHaveBeenCalled();
         });
 
@@ -170,10 +171,7 @@ describe('CharactersService (unit — spell mutations)', () => {
             );
             mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
             mockCharacterModel.findOne.mockReturnValue(
-                asLeanQuery({
-                    status: { spells: [] },
-                    assets: { activeSpells: [] },
-                }),
+                asLeanQuery({ status: { spellStates: [] } }),
             );
 
             await expect(
@@ -196,14 +194,22 @@ describe('CharactersService (unit — spell mutations)', () => {
             mockCharacterModel.findOne
                 .mockReturnValueOnce(
                     asLeanQuery({
-                        status: { spells: [s], xp: 20000, title: 'mage' },
-                        assets: { activeSpells: [] },
+                        status: {
+                            spellStates: [{ spell: s, usages: 3 }],
+                            xp: 20000,
+                            title: 'mage',
+                        },
                     }),
                 )
                 .mockReturnValueOnce(
                     asLeanQuery({
-                        status: { spells: [s], xp: 20000, title: 'mage' },
-                        assets: { activeSpells: [{ spell: s, usages: 3 }] },
+                        status: {
+                            spellStates: [
+                                { spell: s, usages: 3, active: true },
+                            ],
+                            xp: 20000,
+                            title: 'mage',
+                        },
                     }),
                 );
 
@@ -222,8 +228,11 @@ describe('CharactersService (unit — spell mutations)', () => {
             );
             mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
             const freeSlot = {
-                status: { spells: [s], xp: 20000, title: 'mage' },
-                assets: { activeSpells: [] },
+                status: {
+                    spellStates: [{ spell: s, usages: 3, active: false }],
+                    xp: 20000,
+                    title: 'mage',
+                },
             };
             mockCharacterModel.findOne
                 .mockReturnValueOnce(asLeanQuery(freeSlot))
@@ -243,7 +252,7 @@ describe('CharactersService (unit — spell mutations)', () => {
         const c = new Types.ObjectId();
         const s = new Types.ObjectId();
 
-        it('unequipSpell pulls the spell with a conditional update', async () => {
+        it('unequipSpell clears the active flag of the spell state with a conditional update (D-07)', async () => {
             mockCharacterModel.updateOne.mockReturnValue(asUpdate(1));
 
             const result = await service.unequipSpell({
@@ -252,15 +261,17 @@ describe('CharactersService (unit — spell mutations)', () => {
             });
 
             expect(result.successful).toBe(true);
-            const [filter, update] = mockCharacterModel.updateOne.mock.calls[0];
-            expect(filter).toEqual(unequipSpellFilter(c, s));
-            expect(update).toEqual(unequipSpellUpdate(s));
+            expect(mockCharacterModel.updateOne).toHaveBeenCalledWith(
+                unequipSpellFilter(c, s),
+                unequipSpellUpdate(),
+                spellStateArrayFilters(s),
+            );
         });
 
         it('unequipSpell answers SPELL_NOT_ACTIVE when nothing matched', async () => {
             mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
             mockCharacterModel.findOne.mockReturnValue(
-                asLeanQuery({ status: {}, assets: { activeSpells: [] } }),
+                asLeanQuery({ status: { spellStates: [] } }),
             );
 
             await expect(
@@ -355,10 +366,15 @@ describe('CharactersService (unit — spell mutations)', () => {
             mockCharacterModel.findOne.mockReturnValueOnce(
                 asLeanQuery({
                     status: {
-                        spells: [s],
-                        spellStates: [{ spell: s, usages: 0, recoveries: [] }],
+                        spellStates: [
+                            {
+                                spell: s,
+                                usages: 0,
+                                recoveries: [],
+                                active: true,
+                            },
+                        ],
                     },
-                    assets: { activeSpells: [{ spell: s, usages: 0 }] },
                 }),
             );
 
@@ -375,18 +391,29 @@ describe('CharactersService (unit — spell mutations)', () => {
                 .mockReturnValueOnce(
                     asLeanQuery({
                         status: {
-                            spells: [s],
                             spellStates: [
-                                { spell: s, usages: 1, recoveries: [] },
+                                {
+                                    spell: s,
+                                    usages: 1,
+                                    recoveries: [],
+                                    active: true,
+                                },
                             ],
                         },
-                        assets: { activeSpells: [{ spell: s, usages: 1 }] },
                     }),
                 )
                 .mockReturnValueOnce(
                     asLeanQuery({
-                        status: { spells: [s] },
-                        assets: { activeSpells: [] },
+                        status: {
+                            spellStates: [
+                                {
+                                    spell: s,
+                                    usages: 1,
+                                    recoveries: [],
+                                    active: false,
+                                },
+                            ],
+                        },
                     }),
                 );
 
@@ -402,10 +429,10 @@ describe('CharactersService (unit — spell mutations)', () => {
             mockCharacterModel.updateOne.mockReturnValueOnce(asUpdate(0));
             const usageLeft = {
                 status: {
-                    spells: [s],
-                    spellStates: [{ spell: s, usages: 1, recoveries: [] }],
+                    spellStates: [
+                        { spell: s, usages: 1, recoveries: [], active: true },
+                    ],
                 },
-                assets: { activeSpells: [{ spell: s, usages: 1 }] },
             };
             mockCharacterModel.findOne
                 .mockReturnValueOnce(asLeanQuery(usageLeft))
@@ -464,12 +491,8 @@ describe('CharactersService (unit — spell mutations)', () => {
 
         it('populates the quest lanes and the completed quests with the quest id only', async () => {
             const query = asPopulatableQuery({
-                assets: {
-                    ownedEquipments: [],
-                    wearedEquipment: {},
-                    activeSpells: [],
-                },
-                status: { spells: [] },
+                assets: { ownedEquipments: [], wornEquipment: {} },
+                status: { spellStates: [] },
             });
             mockCharacterModel.findOne.mockReturnValue(query);
 
@@ -507,14 +530,10 @@ describe('CharactersService (unit — spell mutations)', () => {
             ]);
         });
 
-        it('populates the equipped and the owned pets from the Pet catalogue (D-23)', async () => {
+        it('populates the equipped pet and the pet of every owned entry from the Pet catalogue (D-03, D-23)', async () => {
             const query = asPopulatableQuery({
-                assets: {
-                    ownedEquipments: [],
-                    wearedEquipment: {},
-                    activeSpells: [],
-                },
-                status: { spells: [] },
+                assets: { ownedEquipments: [], wornEquipment: {} },
+                status: { spellStates: [] },
             });
             mockCharacterModel.findOne.mockReturnValue(query);
 
@@ -525,9 +544,34 @@ describe('CharactersService (unit — spell mutations)', () => {
                 model: 'Pet',
             });
             expect(query.populate).toHaveBeenCalledWith({
-                path: 'assets.ownedPets',
+                path: 'assets.ownedPets.pet',
                 model: 'Pet',
             });
+        });
+
+        it('populates the spell of every spell state and no other spell list (D-07)', async () => {
+            const assets = { ownedEquipments: [], wornEquipment: {} };
+            const query = asPopulatableQuery({
+                assets,
+                status: { spellStates: [] },
+            });
+            mockCharacterModel.findOne.mockReturnValue(query);
+
+            const served = await service.findOne(
+                new Types.ObjectId().toString(),
+            );
+
+            const spellPaths = (
+                query.populate.mock.calls as [{ path?: string }][]
+            )
+                .map(([options]) => options.path)
+                .filter((path) => path?.startsWith('status.spell'));
+            expect(spellPaths).toEqual(['status.spellStates.spell']);
+            expect(Object.keys(served.assets).sort()).toEqual([
+                'ownedEquipments',
+                'ownedPets',
+                'wornEquipment',
+            ]);
         });
 
         it('reports an archived character as not found on findOne', async () => {
@@ -543,6 +587,25 @@ describe('CharactersService (unit — spell mutations)', () => {
                 _id: id,
                 deletedAt: null,
             });
+        });
+
+        it('populates every slot of the worn equipment and serves it (D-06)', async () => {
+            const wornEquipment = { feet: null };
+            const query = asPopulatableQuery({ assets: { wornEquipment } });
+            mockCharacterModel.findOne.mockReturnValue(query);
+
+            await expect(
+                service.getEquipment(new Types.ObjectId().toString()),
+            ).resolves.toBe(wornEquipment);
+
+            expect(query.populate.mock.calls).toEqual(
+                Object.values(SlotType).map((slot) => [
+                    `assets.wornEquipment.${slot}`,
+                ]),
+            );
+            expect(query.populate).toHaveBeenCalledWith(
+                'assets.wornEquipment.feet',
+            );
         });
 
         it('reports an archived character as not found on getEquipment', async () => {

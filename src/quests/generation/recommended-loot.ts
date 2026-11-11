@@ -62,8 +62,8 @@ function withinRarity(item: PrizeCatalogItem, maxRank: number): boolean {
 function weaknessesOf(enemies: readonly EnemyCandidate[]): Set<string> {
     return new Set(
         enemies.flatMap((enemy) => [
-            ...enemy.baseWeaknesses,
-            ...enemy.energyWeaknesses,
+            ...enemy.weaknesses.base,
+            ...enemy.weaknesses.energy,
         ]),
     );
 }

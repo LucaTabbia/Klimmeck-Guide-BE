@@ -4,7 +4,11 @@ import { CitySize } from 'src/models/enums/city-size.enum';
 import { CityType } from 'src/models/enums/city-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
 import { NO_SHOP_CITY_TYPES } from './shop-pool.constants';
-import { allowedRaritiesOf, isShelfEligible } from './shop-pool.rules';
+import {
+    allowedRaritiesOf,
+    isShelfEligible,
+    ShopPoolLists,
+} from './shop-pool.rules';
 
 export interface ReportedItem {
     id: string;
@@ -36,13 +40,10 @@ export interface ShopCatalogue {
     pets: ReadonlyMap<string, CatalogueEntry>;
 }
 
-export interface ReportedCity {
+export interface ReportedCity extends ShopPoolLists {
     _id: Types.ObjectId;
     name?: string | null;
     type: CityType;
-    shopEquipment?: readonly unknown[] | null;
-    shopLoot?: readonly unknown[] | null;
-    shopPets?: readonly unknown[] | null;
 }
 
 interface PoolList {
@@ -53,9 +54,8 @@ interface PoolList {
 
 // tre liste presenti, anche vuote: il report giudica solo le città con un pool a DB (D-06)
 export function hasPool(city: ReportedCity): boolean {
-    return [city.shopEquipment, city.shopLoot, city.shopPets].every(
-        (list) => list !== undefined,
-    );
+    const { equipment, loot, pets } = city.shop ?? {};
+    return [equipment, loot, pets].every((list) => list !== undefined);
 }
 
 // sola lettura: la mano vince (D-05), il report segnala e non corregge (D-06)
@@ -74,19 +74,20 @@ export function violationsOf(
         vetoed: [],
         missing: [],
     };
+    const { equipment, loot, pets } = city.shop ?? {};
     const lists: PoolList[] = [
         {
-            ids: city.shopEquipment ?? [],
+            ids: equipment ?? [],
             catalogue: catalogue.equipment,
             checksSize: true,
         },
         {
-            ids: city.shopLoot ?? [],
+            ids: loot ?? [],
             catalogue: catalogue.loot,
             checksSize: true,
         },
         {
-            ids: city.shopPets ?? [],
+            ids: pets ?? [],
             catalogue: catalogue.pets,
             checksSize: false,
         },

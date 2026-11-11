@@ -4,10 +4,13 @@ import { PushEventType } from 'src/push/push-event-type.enum';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildQuest,
+    persistEnemy,
     persistLootItem,
+    persistPet,
     persistSpell,
-    spellBook,
+    spellStatesOf,
 } from '../../../test/fixtures';
+import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
     createOutcomeHarness,
     OUTCOME_START,
@@ -17,6 +20,7 @@ import {
     type QuesterOptions,
     registerDevice,
 } from '../../../test/quests/outcome-world';
+import { ScriptedCombatResolver } from '../../../test/quests/scripted-combat-resolver';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
 import { OutcomeWriter, StaleResolution } from './outcome-writer.service';
 import { QuestResolutionService } from './quest-resolution.service';
@@ -284,9 +288,11 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
             await service.resolveStandard(triggerOf(subject));
 
             const character = await characterOf(subject);
-            expect(character.status.spells.map(String)).toEqual([
-                String(spell._id),
-            ]);
+            expect(
+                character.status.spellStates.map((state: { spell: unknown }) =>
+                    String(state.spell),
+                ),
+            ).toEqual([String(spell._id)]);
             expect(character.status.injuries).toEqual([]);
         });
 
@@ -312,7 +318,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
             minXpToLearn: 200,
             maxUsages: 4,
         });
-        const book = spellBook([
+        const spellStates = spellStatesOf([
             { spell: known._id, usages: 1, recoveries: [recoveryAt] },
         ]);
         const subject = await quester({
@@ -321,20 +327,21 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                 'study',
             ),
             characterOverrides: {
-                status: { spells: book.spells, spellStates: book.spellStates },
+                status: { spellStates },
             },
         });
 
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells.map(String)).toEqual([
-            String(known._id),
-            String(spell._id),
-        ]);
         expect(character.status.spellStates).toEqual([
-            { spell: known._id, usages: 1, recoveries: [recoveryAt] },
-            { spell: spell._id, usages: 4, recoveries: [] },
+            {
+                spell: known._id,
+                usages: 1,
+                recoveries: [recoveryAt],
+                active: false,
+            },
+            { spell: spell._id, usages: 4, recoveries: [], active: false },
         ]);
         const [result] = await resultsOf(subject);
         expect(String(result.spellLearned)).toBe(String(spell._id));
@@ -358,7 +365,6 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells).toEqual([]);
         expect(character.status.spellStates).toEqual([]);
         const [result] = await resultsOf(subject);
         expect(result.spellLearned).toBeNull();
@@ -378,7 +384,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells).toEqual([]);
+        expect(character.status.spellStates).toEqual([]);
         const [result] = await resultsOf(subject);
         expect(result.spellLearned).toBeNull();
     });
@@ -538,5 +544,196 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
 
         expect(deliver).not.toHaveBeenCalled();
         await expectUntouched(subject);
+    });
+});
+
+describe('QuestResolutionService.resolveStandard with an equipped companion (replSet)', () => {
+    const ENEMY_XP = 100;
+    const ENEMY_QUANTITY = 2;
+    const COMPANION_SHARE = 20;
+    const TWO_SEATS = [{ title: null, count: 2 }];
+    let world: OutcomeHarness;
+    let service: QuestResolutionService;
+    let seq = 0;
+    const clock = new FixedClock(NOW);
+    const chance = new SequenceChance();
+    const scripted = new ScriptedCombatResolver();
+
+    beforeAll(async () => {
+        world = await createOutcomeHarness({ clock, chance, combat: scripted });
+        service = world.harness.app.get(QuestResolutionService);
+    });
+
+    beforeEach(async () => {
+        await world.reset();
+        chance.load([]);
+        scripted.reset();
+    });
+
+    afterAll(async () => {
+        await world.harness.close();
+    });
+
+    const companionPet = (name: string) =>
+        persistPet(world.models.pets, {
+            name,
+            maxXp: 1000,
+            maxLifePoints: 40,
+        }) as Promise<{ _id: Types.ObjectId }>;
+
+    const withCompanion = (
+        petId: Types.ObjectId,
+        entry: Partial<{ xp: number; currentLifePoints: number }> = {},
+    ) => ({
+        assets: { pet: petId, ownedPets: [buildOwnedPet(petId, entry)] },
+    });
+
+    async function huntQuest(type: string, seats: unknown[]) {
+        const foe = (await persistEnemy(world.models.enemies, {
+            xp: ENEMY_XP,
+        })) as { _id: Types.ObjectId };
+        return {
+            infos: {
+                ...buildQuest().infos,
+                type,
+                title: 'Il branco del guado',
+                enemies: [{ enemy: foe._id, quantity: ENEMY_QUANTITY }],
+            },
+            requirements: {
+                ...buildQuest().requirements,
+                requiredAdventurers: seats,
+            },
+            prizes: { ...buildQuest().prizes, xpPrize: 5000 },
+        };
+    }
+
+    async function quester(
+        options: Partial<QuesterOptions> = {},
+    ): Promise<Quester> {
+        seq += 1;
+        return persistQuester(world.harness, {
+            twitchId: `tw-companion-${seq}`,
+            ...options,
+            characterOverrides: {
+                ...options.characterOverrides,
+                status: {
+                    ...FRESH_STATUS,
+                    ...options.characterOverrides?.status,
+                },
+            },
+        });
+    }
+
+    const resolve = (subject: Quester) =>
+        service.resolveStandard({
+            pendingQuestId: subject.pendingQuest._id as Types.ObjectId,
+            startDate: OUTCOME_START,
+        });
+
+    const rawOwnedPetsOf = async (subject: Quester) =>
+        (
+            await world.models.characters.collection.findOne({
+                _id: subject.characterId,
+            })
+        )?.assets.ownedPets;
+
+    const resultOf = async (subject: Quester) => {
+        const [result] = await world.models.questResults
+            .find({ character: subject.characterId })
+            .lean<any[]>();
+        return result;
+    };
+
+    it('raises the equipped companion by a tenth of the enemies xp in the outcome write (D-04)', async () => {
+        const pet = await companionPet('Lupo grigio');
+        const subject = await quester({
+            questOverrides: await huntQuest('enemy', [
+                { title: null, count: 1 },
+            ]),
+            characterOverrides: withCompanion(pet._id, {
+                currentLifePoints: 7,
+            }),
+        });
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(await rawOwnedPetsOf(subject)).toEqual([
+            { pet: pet._id, xp: COMPANION_SHARE, currentLifePoints: 7 },
+        ]);
+        const result = await resultOf(subject);
+        expect(result.petXpGained).toBe(COMPANION_SHARE);
+        expect(result.xpGained).toBe(5000 + ENEMY_XP * ENEMY_QUANTITY);
+    });
+
+    it("gives each party member's own companion the full share (D-04)", async () => {
+        const wolf = await companionPet('Lupo grigio');
+        const owl = await companionPet('Gufo delle nevi');
+        const first = await quester({
+            questOverrides: await huntQuest('boss', TWO_SEATS),
+            characterOverrides: withCompanion(wolf._id),
+        });
+        const second = await quester({
+            quest: first.quest,
+            characterOverrides: withCompanion(owl._id, { xp: 300 }),
+        });
+
+        await expect(resolve(first)).resolves.toBe('resolved');
+
+        expect(await rawOwnedPetsOf(first)).toEqual([
+            { pet: wolf._id, xp: COMPANION_SHARE, currentLifePoints: 10 },
+        ]);
+        expect(await rawOwnedPetsOf(second)).toEqual([
+            {
+                pet: owl._id,
+                xp: 300 + COMPANION_SHARE,
+                currentLifePoints: 10,
+            },
+        ]);
+        expect((await resultOf(first)).petXpGained).toBe(COMPANION_SHARE);
+        expect((await resultOf(second)).petXpGained).toBe(COMPANION_SHARE);
+    });
+
+    it('awards no companion xp on a won quest without enemies (D-04)', async () => {
+        const pet = await companionPet('Lupo grigio');
+        const subject = await quester({
+            questOverrides: {
+                infos: {
+                    ...buildQuest().infos,
+                    type: 'job',
+                    title: 'Lavoro al porto',
+                },
+                prizes: { ...buildQuest().prizes, xpPrize: 5000 },
+            },
+            characterOverrides: withCompanion(pet._id, { xp: 12 }),
+        });
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(await rawOwnedPetsOf(subject)).toEqual([
+            { pet: pet._id, xp: 12, currentLifePoints: 10 },
+        ]);
+        const result = await resultOf(subject);
+        expect(result.outcome).toBe('success');
+        expect(result.petXpGained).toBe(0);
+    });
+
+    it('awards no companion xp on a lost fight (D-04)', async () => {
+        const pet = await companionPet('Lupo grigio');
+        const subject = await quester({
+            questOverrides: await huntQuest('enemy', [
+                { title: null, count: 1 },
+            ]),
+            characterOverrides: withCompanion(pet._id, { xp: 12 }),
+        });
+        scripted.willEnd('failure');
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(await rawOwnedPetsOf(subject)).toEqual([
+            { pet: pet._id, xp: 12, currentLifePoints: 10 },
+        ]);
+        const result = await resultOf(subject);
+        expect(result.outcome).toBe('failure');
+        expect(result.petXpGained).toBe(0);
     });
 });

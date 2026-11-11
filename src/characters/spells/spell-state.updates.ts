@@ -1,25 +1,20 @@
 import { Types } from 'mongoose';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
-import { idForms } from 'src/mongo/document-id';
 
-// s = voce di stato (ref castato), a = mirror nello slot (ref Mixed: entrambe le forme, 04 Pitfall 1); un solo update → un solo change event (D-04a)
+// s = voce di stato (ref castato): l'unico filtro d'array di ogni scrittura sulle magie (Phase 19 D-07); un solo update → un solo change event (D-04a)
 export const spellStateArrayFilters = (spellId: Types.ObjectId) => ({
-    arrayFilters: [
-        { 's.spell': spellId },
-        { 'a.spell': { $in: idForms(spellId) } },
-    ],
+    arrayFilters: [{ 's.spell': spellId }],
 });
 
-// attiva e con almeno un uso nello stato (D-06)
+// la stessa voce è attiva e ha almeno un uso (D-06, D-07)
 export function useSpellFilter(
     characterId: Types.ObjectId,
     spellId: Types.ObjectId,
 ) {
     return {
         ...activeCharacterById(characterId),
-        'assets.activeSpells.spell': { $in: idForms(spellId) },
         'status.spellStates': {
-            $elemMatch: { spell: spellId, usages: { $gte: 1 } },
+            $elemMatch: { spell: spellId, usages: { $gte: 1 }, active: true },
         },
     };
 }
@@ -29,10 +24,7 @@ export function spendUsagesUpdate(dueAt: readonly Date[]) {
     if (dueAt.length === 0)
         throw new Error('spendUsagesUpdate requires at least one instant');
     return {
-        $inc: {
-            'status.spellStates.$[s].usages': -dueAt.length,
-            'assets.activeSpells.$[a].usages': -dueAt.length,
-        },
+        $inc: { 'status.spellStates.$[s].usages': -dueAt.length },
         $push: {
             'status.spellStates.$[s].recoveries': {
                 $each: [...dueAt],
@@ -42,7 +34,7 @@ export function spendUsagesUpdate(dueAt: readonly Date[]) {
     };
 }
 
-// l'istante più vecchio già scaduto torna come uso; la magia può essere fuori dagli slot (D-01); stesso update per processor e sweep
+// l'istante più vecchio già scaduto torna come uso; la magia può non essere equipaggiata (D-01); stesso update per processor e sweep
 export function dueCreditFilter(
     characterId: Types.ObjectId,
     spellId: Types.ObjectId,
@@ -62,10 +54,7 @@ export function dueCreditFilter(
 }
 
 export const CREDIT_DUE_USAGE = {
-    $inc: {
-        'status.spellStates.$[s].usages': 1,
-        'assets.activeSpells.$[a].usages': 1,
-    },
+    $inc: { 'status.spellStates.$[s].usages': 1 },
     $pop: { 'status.spellStates.$[s].recoveries': -1 },
 };
 
@@ -123,8 +112,5 @@ export function legacyCreditFilter(
 }
 
 export const CREDIT_LEGACY_USAGE = {
-    $inc: {
-        'status.spellStates.$[s].usages': 1,
-        'assets.activeSpells.$[a].usages': 1,
-    },
+    $inc: { 'status.spellStates.$[s].usages': 1 },
 };

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { WeaknessesModule } from 'src/enemies/weaknesses.module';
 import { LoreVisibilityModule } from 'src/lore/lore-visibility.module';
 import {
     Character,
@@ -50,6 +51,7 @@ import { QuestsService } from './quests.service';
             { name: City.name, schema: CitySchema },
         ]),
         LoreVisibilityModule,
+        WeaknessesModule,
     ],
     providers: [
         QuestsService,

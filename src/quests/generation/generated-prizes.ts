@@ -5,8 +5,21 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import { GeneratedRank } from 'src/quests/generation/generation-rules';
+import {
+    indexOf,
+    LOOT_POOLS,
+    RARITY_RANK,
+    type GeneratedQuestType,
+    type LootSlot,
+} from 'src/quests/generation/loot-pools';
+import { petPrizeOf, type PetCandidate } from 'src/quests/generation/pet-prize';
 
-export type GeneratedQuestType = QuestType.enemy | QuestType.boss;
+export {
+    LOOT_POOLS,
+    RARITY_RANK,
+    type GeneratedQuestType,
+    type LootSlot,
+} from 'src/quests/generation/loot-pools';
 
 // voce del catalogo letta lean dal generatore (13-13): rarità ed effetto non tipizzati, curati a mano a DB
 export interface PrizeCatalogItem {
@@ -17,11 +30,6 @@ export interface PrizeCatalogItem {
     power?: number | null;
     equipType?: string | null;
     damages?: unknown;
-}
-
-// già filtrati sellable: false dal servizio (D-21)
-export interface PetCandidate {
-    id: string;
 }
 
 export interface GeneratedAssetRef {
@@ -42,13 +50,10 @@ export interface PrizesInput {
     rank: GeneratedRank;
     catalog: readonly PrizeCatalogItem[];
     pets: readonly PetCandidate[];
+    // nemici della quest e tipi del suo POI: legano il pet in premio (Phase 19 D-28)
+    enemyIds: readonly string[];
+    poiTypes: readonly string[];
     chance: ChanceSource;
-}
-
-export interface LootSlot {
-    rarity: RarityType;
-    min: number;
-    max: number;
 }
 
 // monete in rame e XP base come le fisse (D-19); × moltiplicatore del rango; ritoccabili
@@ -68,65 +73,8 @@ export const TIER_MULTIPLIER: Readonly<Record<GeneratedRank, number>> = {
     hero: 25,
 };
 
-const slot = (rarity: RarityType, min: number, max = min): LootSlot => ({
-    rarity,
-    min,
-    max,
-});
-
-const HERO_BOSS_POOL: readonly LootSlot[] = [
-    slot(RarityType.legendary, 1),
-    slot(RarityType.ultrarare, 2),
-    slot(RarityType.rare, 4),
-];
-
-// pool ampi per tipo e rango: legendary solo dai boss hero (D-20)
-export const LOOT_POOLS: Readonly<
-    Record<
-        GeneratedQuestType,
-        Readonly<Record<GeneratedRank, readonly LootSlot[]>>
-    >
-> = {
-    [QuestType.boss]: {
-        hero: HERO_BOSS_POOL,
-        mage: [
-            slot(RarityType.ultrarare, 1),
-            slot(RarityType.rare, 2),
-            slot(RarityType.uncommon, 4),
-        ],
-        paladin: [
-            slot(RarityType.rare, 1),
-            slot(RarityType.uncommon, 2),
-            slot(RarityType.common, 4),
-        ],
-        adventurer: [slot(RarityType.uncommon, 1), slot(RarityType.common, 4)],
-        rookie: [slot(RarityType.common, 2)],
-    },
-    [QuestType.enemy]: {
-        hero: [slot(RarityType.ultrarare, 1), slot(RarityType.rare, 2)],
-        mage: [slot(RarityType.rare, 1), slot(RarityType.uncommon, 2)],
-        paladin: [slot(RarityType.uncommon, 1), slot(RarityType.common, 2)],
-        adventurer: [slot(RarityType.common, 1, 2)],
-        rookie: [slot(RarityType.common, 1, 2)],
-    },
-};
-
-// «probabilità estremamente bassa» (D-21)
-export const BOSS_PET_PRIZE_CHANCE = 0.01;
-
-export const RARITY_RANK: Readonly<Record<RarityType, number>> = {
-    common: 0,
-    uncommon: 1,
-    rare: 2,
-    ultrarare: 3,
-    legendary: 4,
-};
-
 // da rare in su niente effect hunger (D-20)
 const FOOD_FREE_FROM: RarityType = RarityType.rare;
-
-const indexOf = (length: number, chance: ChanceSource): number =>
-    Math.min(length - 1, Math.floor(chance.next() * length));
 
 const byTypeThenId = (a: PrizeCatalogItem, b: PrizeCatalogItem): number =>
     a.itemType.localeCompare(b.itemType) || a.id.localeCompare(b.id);
@@ -167,20 +115,10 @@ function drawSlot(
     return drawn;
 }
 
-function petOf(
-    type: GeneratedQuestType,
-    pets: readonly PetCandidate[],
-    chance: ChanceSource,
-): string | null {
-    if (type !== QuestType.boss) return null;
-    if (chance.next() >= BOSS_PET_PRIZE_CHANCE) return null;
-    if (pets.length === 0) return null;
-    const sorted = [...pets].sort((a, b) => a.id.localeCompare(b.id));
-    return sorted[indexOf(sorted.length, chance)].id;
-}
-
+// ordine dei tiri (le spec a seme fisso ne dipendono): il loot slot per slot, poi per OGNI quest generata
+// un tiro di fascia del pet, più l'indice se la fascia colpita ha candidati (Phase 19 D-28)
 export function prizesOf(input: PrizesInput): GeneratedPrizes {
-    const { type, rank, catalog, pets, chance } = input;
+    const { type, rank, catalog, pets, enemyIds, poiTypes, chance } = input;
     const base = GENERATED_PRIZES[type];
     const multiplier = TIER_MULTIPLIER[rank];
     const randomLoot = LOOT_POOLS[type][rank].flatMap((lootSlot) =>
@@ -190,6 +128,6 @@ export function prizesOf(input: PrizesInput): GeneratedPrizes {
         prizeCoins: fromCopper(base.copper * multiplier),
         xpPrize: base.xp * multiplier,
         randomLoot,
-        pet: petOf(type, pets, chance),
+        pet: petPrizeOf({ type, rank, pets, enemyIds, poiTypes, chance }),
     };
 }

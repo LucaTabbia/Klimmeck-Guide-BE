@@ -10,7 +10,7 @@ import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildCharacter,
     persistSpell,
-    spellBook,
+    spellStatesOf,
     SpellBookEntry,
 } from '../../../test/fixtures';
 import { SpellRecoveryService } from './spell-recovery.service';
@@ -36,9 +36,9 @@ interface RawCharacter {
             spell: Types.ObjectId;
             usages: number;
             recoveries: Date[];
+            active: boolean;
         }[];
     };
-    assets: { activeSpells: { spell: unknown; usages: number }[] };
 }
 
 let heroes = 0;
@@ -48,20 +48,19 @@ async function insertBook(
     entries: readonly SpellBookEntry[],
     extra: Record<string, unknown> = {},
 ): Promise<Types.ObjectId> {
+    // le sole voci, nessuna delle due liste vecchie (D-07)
     const base = buildCharacter();
-    const book = spellBook(entries);
     heroes += 1;
+    const status: Record<string, unknown> = {
+        ...base.status,
+        spellStates: spellStatesOf(entries),
+    };
     const _id = new Types.ObjectId();
     await CharacterModel.collection.insertOne({
         ...base,
         _id,
         infos: { ...base.infos, name: `Hero ${heroes}` },
-        status: {
-            ...base.status,
-            spells: book.spells,
-            spellStates: book.spellStates,
-        },
-        assets: { ...base.assets, activeSpells: book.activeSpells },
+        status,
         ...extra,
     } as never);
     return _id;
@@ -130,14 +129,12 @@ describe('SpellRecoverySweeper (replSet)', () => {
 
         const a = await rawOf(equipped);
         expect(a.status.spellStates).toEqual([
-            { spell, usages: 2, recoveries: [at(HOUR)] },
+            { spell, usages: 2, recoveries: [at(HOUR)], active: true },
         ]);
-        expect(a.assets.activeSpells).toEqual([{ spell, usages: 2 }]);
         const b = await rawOf(unequipped);
         expect(b.status.spellStates).toEqual([
-            { spell, usages: 3, recoveries: [] },
+            { spell, usages: 3, recoveries: [], active: false },
         ]);
-        expect(b.assets.activeSpells).toEqual([]);
     });
 
     it('leaves an archived character alone', async () => {
@@ -179,11 +176,9 @@ describe('SpellRecoverySweeper (replSet)', () => {
         ]);
 
         expect(swept + triggered).toBe(2);
-        const after = await rawOf(racing);
-        expect(after.status.spellStates).toEqual([
-            { spell, usages: 3, recoveries: [] },
+        expect((await rawOf(racing)).status.spellStates).toEqual([
+            { spell, usages: 3, recoveries: [], active: true },
         ]);
-        expect(after.assets.activeSpells).toEqual([{ spell, usages: 3 }]);
     });
 
     it('warns once about a spell missing from the catalog and stops asking for its credit, leaving the entry in place', async () => {
@@ -208,8 +203,13 @@ describe('SpellRecoverySweeper (replSet)', () => {
             ),
         ).toHaveLength(1);
         expect((await rawOf(id)).status.spellStates).toEqual([
-            { spell: orphan, usages: 0, recoveries: [at(-SECOND)] },
-            { spell, usages: 2, recoveries: [at(HOUR)] },
+            {
+                spell: orphan,
+                usages: 0,
+                recoveries: [at(-SECOND)],
+                active: false,
+            },
+            { spell, usages: 2, recoveries: [at(HOUR)], active: false },
         ]);
     });
 });

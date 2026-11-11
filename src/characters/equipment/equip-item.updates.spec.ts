@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { SlotType } from 'src/models/enums/slot_type.enum';
+import { SlotType } from 'src/models/enums/slot-type.enum';
 import {
     classifyEquipItemFailure,
     equipItemFilter,
@@ -24,10 +24,16 @@ describe('equip item builders', () => {
 
     it('equipItemUpdate sets the slot to the item or to null', () => {
         expect(equipItemUpdate(SlotType.head, i)).toEqual({
-            $set: { 'assets.wearedEquipment.head': i },
+            $set: { 'assets.wornEquipment.head': i },
         });
         expect(equipItemUpdate(SlotType.leftHand, null)).toEqual({
-            $set: { 'assets.wearedEquipment.leftHand': null },
+            $set: { 'assets.wornEquipment.leftHand': null },
+        });
+    });
+
+    it('writes the feet slot under the worn equipment (D-06)', () => {
+        expect(equipItemUpdate(SlotType.feet, i)).toEqual({
+            $set: { 'assets.wornEquipment.feet': i },
         });
     });
 

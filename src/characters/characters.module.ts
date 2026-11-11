@@ -19,6 +19,7 @@ import {
     QUEUE_CALL_TIMEOUT,
     QUEUE_CALL_TIMEOUT_MS,
 } from 'src/queues/queue-call-timeout';
+import { CharacterStatusResolver } from './character-status.resolver';
 import { CharacterUpdatesPublisher } from './character-updates.publisher';
 import { CharactersResolver } from './characters.resolver';
 import { PendingQuestStartPublisher } from './pending-quest-start.publisher';
@@ -44,6 +45,7 @@ import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
     providers: [
         CharactersService,
         CharactersResolver,
+        CharacterStatusResolver,
         CharacterUpdatesPublisher,
         PendingQuestStartPublisher,
         { provide: Clock, useClass: SystemClock },

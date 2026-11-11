@@ -151,7 +151,7 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
             : NO_REWARDS,
         aid,
         spellRecoveryTimes: catalog.recoveryTimes,
-        spellMaxUsages: catalog.spellMaxUsages,
+        petMaxXp: catalog.petMaxXp,
         rescuedCharacters: input.rescuedCharacters,
         stages: battle?.stages ?? null,
         now: input.now,

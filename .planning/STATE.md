@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
-status: verifying
-last_updated: "2026-11-10T20:00:00.000Z"
-last_activity: 2026-11-10 -- Phase 18 code complete (11/11), PR in draft until the DB content
+status: in_progress
+last_updated: "2026-11-11T11:20:00.000Z"
+last_activity: 2026-11-11 -- Phase 19 completa (23/23; boot reale col migratore, contenuto dei pet a DB, modulo una tantum rimosso in TDD, BE-MODEL-01..12 chiusi)
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 11
-  completed_plans: 11
+  completed_phases: 2
+  total_plans: 34
+  completed_plans: 34
   percent: 100
 ---
 
@@ -20,20 +20,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 18 — Quest heal per taglia — codice completo (11/11) su `feat/18-quest-heal-per-taglia`: gate, review (11 fix), verifica e security chiusi; PR verso `develop` in draft fino alla revisione del contenuto da parte dell'utente; BE-HEAL-03 e BE-HEAL-08 aperti fino agli script di contenuto dell'orchestratore (↔ FE Phase 18, parcheggiata a 11/13 in attesa di questa merge)
+**Current focus:** Phase 19 — Revisione dei modelli — COMPLETA (23/23) su `feat/19-revisione-dei-modelli`: boot reale col migratore, contenuto dei pet a DB e modulo una tantum rimosso in TDD l'11 novembre 2026 (esito in `.planning/phases/19-revisione-dei-modelli/BACKEND-NOTES.md`); PR #33 verso `develop` (in draft fino a questa rimozione, poi pronta, a cura dell'orchestratore); la Phase 18 è chiusa (PR #31 mergiata, contenuto a DB, BE-HEAL-01..09 completi) (↔ FE Phase 19, piani gated dalla merge della PR #33)
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
-Phase: 18 di 20 (Quest heal per taglia) — codice completo dal 2026-11-10 su `feat/18-quest-heal-per-taglia` (da `develop` `86095d89` + l'apertura della milestone): 11/11 piani, PR in draft; la fase si chiude con il contenuto a DB dopo la merge
-Plan: 11 of 11
-Status: In verifica — Phase 18 eseguita (11/11): gate verde; review 0 critical / 3 warning / 11 info → 11 corretti, 3 chiusi per ruling (`18-REVIEW-FIX.md`); verifica `passed` 8/8 con 2 differiti di contenuto (`18-VERIFICATION.md`); security 56 minacce, 0 aperte (`18-SECURITY.md`); `test:cov` dopo i fix 390 suite / 5131 test verdi, soglie rispettate (totale 97,34 / 85,91 / 93,86 / 97,89). PR verso `develop` in draft: fra la merge e gli script di contenuto ogni heal è rifiutata con `QUEST_NO_EFFECT` e nessuna pozione è bevibile, quindi merge e contenuto vanno applicati vicini.
-Last activity: 2026-11-10 -- Phase 18: review corretta, verifica e security chiuse, `test:cov` verde, PR in draft
-Next step: l'utente rivede il contenuto (166 heal per taglia con `cure`, `recovery` delle 28 pozioni, lore «Il limite del corpo»); merge della PR; l'orchestratore applica gli script di contenuto fuori repo con prova a secco (runbook in `BACKEND-NOTES.md` §3 c), riavvia il BE da `develop` e chiude BE-HEAL-03 e BE-HEAL-08; poi la FE esegue 18-12 e 18-13.
+Phase: 19 di 20 (Revisione dei modelli) — COMPLETA l'11 novembre 2026; contesto del 2026-11-09 (D-01..D-15) esteso l'11 novembre 2026 (D-16..D-28), `19-REPO-RULES.md` coi nomi del contratto; 23 piani eseguiti l'11 novembre 2026
+Plan: 23 of 23
+Status: Phase 19 COMPLETA (23/23) — review corretta, verifica, security, boot reale (primo boot coi conteggi attesi, secondo a zero), contenuto dei pet a DB (D-25..D-28), modulo una tantum rimosso in TDD (`c3492ced`, `0822feee`); dopo la rimozione `tsc` 0, unit 272 suite / 3497 test, integration 140 suite / 1990 test, boot reale di test 91 test, SDL invariato; BE-MODEL-01..12 tutti chiusi. La milestone v1.1 resta in corso: la Phase 20 non ha ancora piani (i 34 piani contati sono quelli delle Phase 18 e 19).
+Last activity: 2026-11-11 -- Phase 19 completa: boot reale col migratore, contenuto dei pet a DB, rimozione del modulo una tantum in TDD, chiusura di BE-MODEL-04, 09, 10, 11 e 12
+Next step: `npm run test:cov` dopo la rimozione, PR #33 fuori dal draft e merge su `develop` (dell'utente); poi Phase 20 «Cibo e vita progressivi in viaggio» (solo BE) e, nel repo FE, i piani gated della FE Phase 19. Il terzo boot reale dalla build di `7ca680fa` è stato eseguito (nessuna riga «Revisione dei modelli»): il BE gira da questa build sulla porta 3001.
 
 ## Current Milestone
 
-v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..09, ↔ FE 18) → Phase 19 Revisione dei modelli (BE-MODEL-01..09, ↔ FE 19) → Phase 20 Cibo e vita progressivi in viaggio (BE-FOODP-01..05, solo BE). Milestone FE gemella v1.1 «Healing & Models» (FE Phases 18–19). Ricerca di dominio saltata all'apertura (fasi già discusse); la ricerca per fase resta nel plan-phase.
+v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..09, ↔ FE 18) → Phase 19 Revisione dei modelli (BE-MODEL-01..12, ↔ FE 19) → Phase 20 Cibo e vita progressivi in viaggio (BE-FOODP-01..05, solo BE). Milestone FE gemella v1.1 «Healing & Models» (FE Phases 18–19). Ricerca di dominio saltata all'apertura (fasi già discusse); la ricerca per fase resta nel plan-phase.
 
 ## Accumulated Context
 
@@ -59,6 +59,10 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 - **EventSub:** E2E managed con tunnel HTTPS e verifica C4 prima della produzione (Phase 6).
 - **«Esci da tutti i dispositivi»** (mutation che revoca ogni sessione) — backlog dalla Phase 2, non necessaria finché «l'ultimo login caccia l'altro».
 - **Branch locali già mergiati** (23 `feat/*`, `fix/*`, `docs/*`) lasciati in place: cancellabili con `git branch -d`.
+- **Int-spec instabile «real Redis»** (Phase 19): `src/quests/outcomes/quest-resolution.processor.int-spec.ts` è fallita per intero una volta su una corsa completa di `src/quests` e mai più; usa il Redis locale vero, lo stesso del processo dell'utente (possibile contesa sui job).
+- **`pointsOfInterest { city { id } }` a profondità 2 non è popolato** (Phase 19, fuori dal ruling C-WR-06): la FE non lo seleziona; vale una regola o resta così?
+- **Sorteggio della lore di studio** (Phase 19): può cadere sulla lore di un pet vinto nello stesso esito (nessun doppione in lista, ma il tiro è «speso»); vale una regola?
+- **Redis locale non raggiungibile ai due boot reali dell'11 novembre 2026** (`ECONNREFUSED`, preesistente): gli scheduler hanno loggato il ripiego («lo sweep copre»).
 
 ### Quick Tasks Completed (v1.0)
 
@@ -77,6 +81,6 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 
 ## Session Continuity
 
-Last session: 2026-11-10 — apertura della milestone v1.1 (FE e BE)
-Stopped at: Phase 18 codice completo (11/11, 2026-11-10) — PR in draft, contenuto a DB dopo la merge
-Resume file: .planning/phases/18-quest-heal-per-taglia/BACKEND-NOTES.md
+Last session: 2026-11-11 — esecuzione e chiusura della Phase 19 (23 piani, boot reale, contenuto, rimozione del modulo una tantum)
+Stopped at: Phase 19 completa (23/23, 2026-11-11) — PR #33 da togliere dal draft e mergiare su `develop`; poi Phase 20 (solo BE) e piani gated della FE Phase 19
+Resume file: .planning/phases/19-revisione-dei-modelli/BACKEND-NOTES.md

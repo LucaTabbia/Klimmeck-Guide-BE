@@ -6,7 +6,7 @@ import { stringsOf } from 'src/mongo/lean-values';
 import { EnemyCandidate } from 'src/quests/generation/enemy-pool';
 
 export const ENEMY_CANDIDATE_FIELDS =
-    '_id name xp locations legendary relatedLore baseWeaknesses energyWeaknesses';
+    '_id name xp locations legendary relatedLore weaknesses';
 
 export interface LeanEnemyCandidate {
     _id: Types.ObjectId;
@@ -15,8 +15,8 @@ export interface LeanEnemyCandidate {
     locations?: unknown;
     legendary?: unknown;
     relatedLore?: Types.ObjectId[] | null;
-    baseWeaknesses?: unknown;
-    energyWeaknesses?: unknown;
+    // assente sui nemici non ancora migrati (Phase 19 D-01)
+    weaknesses?: { base?: unknown; energy?: unknown } | null;
 }
 
 export function enemyCandidateOf(
@@ -32,8 +32,10 @@ export function enemyCandidateOf(
         // passato così com'è: il filtro dei pool è fail-closed (D-04 della Phase 13)
         legendary: enemy.legendary,
         relatedLore,
-        baseWeaknesses: stringsOf(enemy.baseWeaknesses),
-        energyWeaknesses: stringsOf(enemy.energyWeaknesses),
+        weaknesses: {
+            base: stringsOf(enemy.weaknesses?.base),
+            energy: stringsOf(enemy.weaknesses?.energy),
+        },
         animal: relatedLore.some((id) => animalLoreIds.has(id)),
     };
 }

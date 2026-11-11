@@ -1,19 +1,17 @@
 import { Types } from 'mongoose';
+import {
+    knownDamageTypesOf,
+    knownEnergyTypesOf,
+} from 'src/enemies/known-weaknesses';
 import { AccessoryUseType } from 'src/models/enums/accessory-use-type.enum';
 import { EffectType } from 'src/models/enums/effect-type.enum';
 import { EquipType } from 'src/models/enums/equip-type.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
-import { SlotType } from 'src/models/enums/slot_type.enum';
+import { SlotType } from 'src/models/enums/slot-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
-import { stringsOf } from 'src/mongo/lean-values';
-import {
-    NO_SPELL_MAX_USAGES,
-    type SpellStateEntry,
-    spellStatesOrMigrated,
-    usagesFromState,
-} from 'src/characters/spells/spell-state.snapshot';
+import type { SpellStateEntry } from 'src/characters/spells/spell-state.snapshot';
 import { statusFactsOf } from '../progression/status-facts';
 import {
     CombatContext,
@@ -32,12 +30,10 @@ export interface CombatCharacterSnapshot {
         currentLifePoints?: number;
         maxLifePoints?: number;
         injuries?: InjuryType[];
-        spells?: unknown[];
         spellStates?: SpellStateEntry[];
     };
     assets?: {
-        wearedEquipment?: Partial<Record<SlotType, unknown>> | null;
-        activeSpells?: { spell?: unknown; usages?: number }[];
+        wornEquipment?: Partial<Record<SlotType, unknown>> | null;
         ownedEquipments?: { item?: unknown; quantity?: number }[];
         ownedItems?: { itemType?: string; item?: unknown; quantity?: number }[];
     } | null;
@@ -49,8 +45,8 @@ export interface CombatEnemySnapshot {
     lifePoints?: number;
     xp?: number;
     damages?: unknown;
-    baseWeaknesses?: string[];
-    energyWeaknesses?: string[];
+    // assente sui nemici non ancora migrati (Phase 19 D-01)
+    weaknesses?: { base?: unknown; energy?: unknown } | null;
     relatedLore?: unknown[];
 }
 
@@ -83,7 +79,6 @@ const KNOWN_EQUIP_TYPES: ReadonlySet<unknown> = new Set(
 const KNOWN_ACCESSORY_USE_TYPES: ReadonlySet<unknown> = new Set(
     Object.values(AccessoryUseType),
 );
-
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -120,20 +115,18 @@ export const refOf = (value: unknown): Types.ObjectId | null =>
 
 const wornOf = (snapshot: CombatCharacterSnapshot) =>
     Object.values(SlotType).flatMap((slot) => {
-        const itemId = refOf(snapshot.assets?.wearedEquipment?.[slot]);
+        const itemId = refOf(snapshot.assets?.wornEquipment?.[slot]);
         return itemId ? [{ slot, itemId }] : [];
     });
 
-// slot per sapere quali magie entrano in combattimento, usi dalla voce di stato (D-03, D-04a)
-const activeSpellsOf = (snapshot: CombatCharacterSnapshot) => {
-    const states = spellStatesOrMigrated(snapshot, NO_SPELL_MAX_USAGES);
-    return (snapshot.assets?.activeSpells ?? []).flatMap((entry) => {
-        const spellId = refOf(entry?.spell);
+// in combattimento entrano le sole voci attive, con gli usi della voce e nell'ordine di apprendimento (Phase 19 D-07, D-16)
+const activeSpellsOf = (snapshot: CombatCharacterSnapshot) =>
+    (snapshot.status.spellStates ?? []).flatMap((state) => {
+        const spellId = state?.active === true ? refOf(state.spell) : null;
         return spellId
-            ? [{ spellId, usages: usagesFromState(states, spellId) }]
+            ? [{ spellId, usages: Math.max(0, state.usages ?? 0) }]
             : [];
     });
-};
 
 const ownedLootOf = (snapshot: CombatCharacterSnapshot) =>
     (snapshot.assets?.ownedItems ?? []).flatMap((entry) => {
@@ -245,8 +238,10 @@ const enemyOf = (
     lifePoints: numberOr(enemy.lifePoints, 0),
     xp: numberOr(enemy.xp, 0),
     damages: normalizeDamages(enemy.damages),
-    baseWeaknesses: stringsOf(enemy.baseWeaknesses),
-    energyWeaknesses: stringsOf(enemy.energyWeaknesses),
+    weaknesses: {
+        base: knownDamageTypesOf(enemy.weaknesses?.base),
+        energy: knownEnergyTypesOf(enemy.weaknesses?.energy),
+    },
 });
 
 // funzione pura: gli snapshot e le mappe del catalogo sono letti dal servizio, qui nessun I/O; ordine per id = esiti riproducibili

@@ -22,6 +22,7 @@ const A = A_ID.toHexString();
 const B = B_ID.toHexString();
 const POTION = POTION_ID.toHexString();
 const S1 = S1_ID.toHexString();
+const INACTIVE_SPELL = INACTIVE_SPELL_ID.toHexString();
 
 const participants: OverrideParticipant[] = [
     {
@@ -266,7 +267,15 @@ describe('overrideParticipantOf', () => {
                 title: TitleType.rookie,
                 currentLifePoints: 600,
                 maxLifePoints: 1000,
-                spells: [S1_ID],
+                spellStates: [
+                    { spell: S1_ID, usages: 2, recoveries: [], active: true },
+                    {
+                        spell: 'not-an-id',
+                        usages: 4,
+                        recoveries: [],
+                        active: true,
+                    },
+                ],
             },
             assets: {
                 ownedItems: [
@@ -280,10 +289,6 @@ describe('overrideParticipantOf', () => {
                         quantity: 1,
                     },
                 ],
-                activeSpells: [
-                    { spell: S1_ID, usages: 2 },
-                    { spell: 'not-an-id', usages: 4 },
-                ],
             },
         });
 
@@ -294,54 +299,95 @@ describe('overrideParticipantOf', () => {
         expect([...participant.activeSpells.entries()]).toEqual([[S1, 2]]);
     });
 
-    const divergentSnapshot = () => ({
+    const knowingSnapshot = () => ({
         _id: A_ID,
         status: {
             xp: 0,
             title: TitleType.rookie,
-            spells: [S1_ID, INACTIVE_SPELL_ID],
             spellStates: [
-                { spell: S1_ID, usages: 1, recoveries: [] },
-                { spell: INACTIVE_SPELL_ID, usages: 5, recoveries: [] },
+                {
+                    spell: INACTIVE_SPELL_ID,
+                    usages: 5,
+                    recoveries: [],
+                    active: false,
+                },
+                { spell: S1_ID, usages: 1, recoveries: [], active: true },
             ],
         },
-        assets: { activeSpells: [{ spell: S1_ID, usages: 3 }] },
+    });
+    const spending =
+        (spell: string, usages: number) =>
+        (): ReturnType<typeof validateOverrides> =>
+            validateOverrides(
+                [overrideOf({ spellsUsed: [{ spell, usages }] })],
+                [overrideParticipantOf(knowingSnapshot())],
+            );
+    const invalidOverride = expect.objectContaining({
+        code: GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+        message: 'Esito non valido per questo personaggio',
     });
 
-    it('reads the usages of a character not migrated yet from its spell slots', () => {
-        const participant = overrideParticipantOf({
-            _id: A_ID,
-            status: { xp: 0, title: TitleType.rookie, spells: [S1_ID] },
-            assets: { activeSpells: [{ spell: S1_ID, usages: 2 }] },
-        });
-
-        expect([...participant.activeSpells.entries()]).toEqual([[S1, 2]]);
-    });
-
-    it('takes the usages of the active spells from the spell state, never from the slots', () => {
-        const participant = overrideParticipantOf(divergentSnapshot());
+    it('reads the override limits of the spells from the active spell states (D-07)', () => {
+        const participant = overrideParticipantOf(knowingSnapshot());
 
         expect([...participant.activeSpells.entries()]).toEqual([[S1, 1]]);
     });
 
-    it('rejects an override that spends more usages than the spell state holds', () => {
-        const participant = overrideParticipantOf(divergentSnapshot());
-        const spending = (usages: number) => () =>
-            validateOverrides(
-                [overrideOf({ spellsUsed: [{ spell: S1, usages }] })],
-                [participant],
-            );
+    it('reads a spell state stored without the flag as not active (D-07)', () => {
+        const participant = overrideParticipantOf({
+            _id: A_ID,
+            status: {
+                xp: 0,
+                title: TitleType.rookie,
+                spellStates: [{ spell: S1_ID, usages: 2, recoveries: [] }],
+            },
+        });
 
-        expect(spending(2)).toThrow(
-            expect.objectContaining({
-                code: GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
-                message: 'Esito non valido per questo personaggio',
-            }),
-        );
-        expect(codeOf(spending(1))).toBeUndefined();
-        expect(spending(1)().get(A)?.spellsUsed).toEqual([
+        expect(participant.activeSpells.size).toBe(0);
+    });
+
+    it('skips an empty entry next to one without the flag and keeps the active one (D-07)', () => {
+        const participant = overrideParticipantOf({
+            _id: A_ID,
+            status: {
+                xp: 0,
+                title: TitleType.rookie,
+                spellStates: [
+                    null,
+                    { spell: INACTIVE_SPELL_ID, usages: 2, recoveries: [] },
+                    { spell: S1_ID, usages: 1, recoveries: [], active: true },
+                ] as never,
+            },
+        });
+
+        expect([...participant.activeSpells.entries()]).toEqual([[S1, 1]]);
+    });
+
+    it('never reads a negative limit from an active spell state (D-07)', () => {
+        const participant = overrideParticipantOf({
+            _id: A_ID,
+            status: {
+                xp: 0,
+                title: TitleType.rookie,
+                spellStates: [
+                    { spell: S1_ID, usages: -3, recoveries: [], active: true },
+                ],
+            },
+        });
+
+        expect([...participant.activeSpells.entries()]).toEqual([[S1, 0]]);
+    });
+
+    it('rejects an override that spends more usages than the active spell state holds (D-07)', () => {
+        expect(spending(S1, 2)).toThrow(invalidOverride);
+        expect(codeOf(spending(S1, 1))).toBeUndefined();
+        expect(spending(S1, 1)().get(A)?.spellsUsed).toEqual([
             { spellId: S1, usages: 1 },
         ]);
+    });
+
+    it('rejects an override that spends a spell whose state is not active (D-07)', () => {
+        expect(spending(INACTIVE_SPELL, 1)).toThrow(invalidOverride);
     });
 
     it('falls back to the level table for a legacy snapshot', () => {

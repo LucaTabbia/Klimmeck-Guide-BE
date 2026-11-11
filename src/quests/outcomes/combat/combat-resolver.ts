@@ -1,9 +1,11 @@
 import { AccessoryUseType } from 'src/models/enums/accessory-use-type.enum';
+import { DamageType } from 'src/models/enums/damage-type.enum';
 import { EffectType } from 'src/models/enums/effect-type.enum';
+import { EnergyType } from 'src/models/enums/energy-type.enum';
 import { EquipType } from 'src/models/enums/equip-type.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
-import { SlotType } from 'src/models/enums/slot_type.enum';
+import { SlotType } from 'src/models/enums/slot-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 
@@ -57,8 +59,7 @@ export interface CombatEnemy {
     lifePoints: number;
     xp: number;
     damages: CombatDamages;
-    baseWeaknesses: string[];
-    energyWeaknesses: string[];
+    weaknesses: { base: DamageType[]; energy: EnergyType[] };
     quantity: number;
 }
 

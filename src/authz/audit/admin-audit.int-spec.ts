@@ -14,7 +14,7 @@ import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
 import {
     buildCharacter,
     persistSpell,
-    spellBook,
+    spellStatesOf,
 } from '../../../test/fixtures';
 
 const EQUIP_ITEM =
@@ -88,7 +88,7 @@ describe('Admin audit log (wire)', () => {
         const spellA = await persistSpell(spells, { name: 'Dardo' });
         const spellB = await persistSpell(spells, { name: 'Scudo' });
         inactiveSpellId = String(spellA._id);
-        const book = spellBook([
+        const spellStates = spellStatesOf([
             { spell: spellA._id, usages: 3 },
             { spell: spellB._id, usages: 1, active: true },
         ]);
@@ -96,12 +96,7 @@ describe('Admin audit log (wire)', () => {
             status: {
                 ...buildCharacter().status,
                 xp: 25000,
-                spells: book.spells,
-                spellStates: book.spellStates,
-            },
-            assets: {
-                ...buildCharacter().assets,
-                activeSpells: book.activeSpells,
+                spellStates,
             },
         };
         alice = await createPlayer(harness, {

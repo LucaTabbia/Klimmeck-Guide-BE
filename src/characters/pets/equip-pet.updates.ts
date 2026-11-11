@@ -4,14 +4,14 @@ import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import { idForms } from 'src/mongo/document-id';
 
-// si equipaggia solo un pet posseduto (D-15); le due forme dell'id come per gli altri ref
+// si equipaggia solo un pet presente in una voce dei posseduti (D-15, Phase 19 D-03); le due forme dell'id come per gli altri ref
 export function equipPetFilter(
     characterId: Types.ObjectId,
     petId: Types.ObjectId,
 ) {
     return {
         ...activeCharacterById(characterId),
-        'assets.ownedPets': { $in: idForms(petId) },
+        'assets.ownedPets.pet': { $in: idForms(petId) },
     };
 }
 

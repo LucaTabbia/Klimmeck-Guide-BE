@@ -1,16 +1,30 @@
+import {
+    newOwnedPetEntry,
+    normalisedOwnedPets,
+    ownsPet,
+    type NewOwnedPetEntry,
+    type OwnedPetEntry,
+} from 'src/characters/pets/owned-pet-entry';
+import type { Types } from 'mongoose';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { idForms, sameId } from 'src/mongo/document-id';
 import type { TradeLine } from './trade-line';
 
 export interface PetSnapshot {
-    ownedPets?: readonly unknown[] | null;
+    ownedPets?: readonly OwnedPetEntry[] | null;
     pet?: unknown;
 }
 
 export interface PetOutcome {
-    ownedPets: unknown[];
+    ownedPets: NewOwnedPetEntry[];
     unequip: boolean;
 }
+
+// esadecimale del pet → `maxLifePoints` del catalogo, non validato
+export type PetLifePoints = ReadonlyMap<string, unknown>;
+
+// esadecimale del pet → lore collegate a catalogo, già sanificate (Phase 19 D-26)
+export type PetLore = ReadonlyMap<string, readonly Types.ObjectId[]>;
 
 const petLines = (lines: readonly TradeLine[]) =>
     lines.filter((line) => line.kind === 'Pet');
@@ -20,30 +34,38 @@ export function assertPetsNotOwned(
     lines: readonly TradeLine[],
     snapshot: PetSnapshot,
 ): void {
-    const owned = snapshot.ownedPets ?? [];
     for (const line of petLines(lines)) {
         if (line.direction !== 'buy') continue;
-        if (owned.some((id) => sameId(id, line.itemId))) {
+        if (ownsPet(snapshot.ownedPets, line.itemId)) {
             throw GameRuleException.petAlreadyOwned();
         }
     }
 }
 
 // null senza righe pet: ownedPets e pet restano fuori dall'update (Pitfall 5); comprare non equipaggia mai (D-14)
+// si comprano e si vendono voci intere: il comprato parte dalla vita del catalogo, le altre voci tengono il loro stato, normalizzato (Phase 19 D-03)
 export function applyTradeToPets(
     snapshot: PetSnapshot,
     lines: readonly TradeLine[],
+    petLifePoints: PetLifePoints,
 ): PetOutcome | null {
     const pets = petLines(lines);
     if (pets.length === 0) return null;
-    const ownedPets = [...(snapshot.ownedPets ?? [])];
+    const ownedPets = normalisedOwnedPets(snapshot.ownedPets);
     let unequip = false;
     for (const line of pets) {
         if (line.direction === 'buy') {
-            ownedPets.push(line.itemId);
+            ownedPets.push(
+                newOwnedPetEntry(
+                    line.itemId,
+                    petLifePoints.get(line.itemId.toHexString()),
+                ),
+            );
             continue;
         }
-        const index = ownedPets.findIndex((id) => sameId(id, line.itemId));
+        const index = ownedPets.findIndex((entry) =>
+            entry.pet.equals(line.itemId),
+        );
         if (index === -1) throw GameRuleException.itemNotOwned();
         ownedPets.splice(index, 1);
         if (sameId(snapshot.pet, line.itemId)) unequip = true;
@@ -51,12 +73,26 @@ export function applyTradeToPets(
     return { ownedPets, unequip };
 }
 
+// le lore dei soli pet comprati, nell'ordine delle righe e senza ripetizioni: vendere non toglie nulla (Phase 19 D-26)
+export function boughtPetLore(
+    lines: readonly TradeLine[],
+    petLore: PetLore,
+): Types.ObjectId[] {
+    const byHex = new Map(
+        petLines(lines)
+            .filter((line) => line.direction === 'buy')
+            .flatMap((line) => petLore.get(line.itemId.toHexString()) ?? [])
+            .map((lore) => [lore.toHexString(), lore] as const),
+    );
+    return [...byHex.values()];
+}
+
 // rete di sicurezza nel filtro della scrittura: il comprato è ancora assente, il venduto ancora presente (D-14)
 export function petOwnershipGuards(
     lines: readonly TradeLine[],
 ): Record<string, unknown>[] {
     return petLines(lines).map((line) => ({
-        'assets.ownedPets':
+        'assets.ownedPets.pet':
             line.direction === 'buy'
                 ? { $nin: idForms(line.itemId) }
                 : { $in: idForms(line.itemId) },

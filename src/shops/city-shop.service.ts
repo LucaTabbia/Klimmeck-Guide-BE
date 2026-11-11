@@ -35,14 +35,15 @@ export class CityShopService {
             .populate(cityRelations())
             .exec();
         if (!city) throw ResourceNotFoundException.city();
+        const pool = city.shop;
         const [equipment, loot, pets] = await Promise.all([
             this.shelve<EquipmentItem>(
                 this.equipmentModel,
-                city.shopEquipment,
+                pool?.equipment,
                 'addedSpell',
             ),
-            this.shelve<LootItem>(this.lootModel, city.shopLoot),
-            this.shelve<Pet>(this.petModel, city.shopPets),
+            this.shelve<LootItem>(this.lootModel, pool?.loot),
+            this.shelve<Pet>(this.petModel, pool?.pets),
         ]);
         // quantità 1 solo forma: scorte infinite (D-12); veti solo D-05, nessun filtro di taglia (la mano vince)
         return {

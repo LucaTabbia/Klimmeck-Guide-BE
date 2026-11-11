@@ -77,6 +77,20 @@ const VALID_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 const SCHEMA_FILE = join(process.cwd(), 'src/schema.gql');
 // l'unico kind sul filo è quello dei risultati (Phase 15 D-14): il kind interno del viaggio resta fuori
 const ONLY_RESULT_KIND = ['  kind: QuestResultKind!'];
+const CATALOGUE_PET_BLOCK =
+    'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  rarity: RarityType\n  relatedLore: [Lore!]!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
+const RARITY_TYPE_BLOCK =
+    'enum RarityType {\n  common\n  legendary\n  rare\n  ultrarare\n  uncommon\n}';
+const OWNED_PET_BLOCK =
+    'type OwnedPet {\n  currentLifePoints: Int!\n  pet: Pet!\n  xp: Int!\n}';
+const CHARACTER_STATUS_BLOCK =
+    'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}';
+const CHARACTER_ASSETS_BLOCK =
+    'type CharacterAssets {\n  ownedEquipments: [AssetQuantity!]!\n  ownedItems: [AssetQuantity!]!\n  ownedPets: [OwnedPet!]!\n  pet: Pet\n  wornEquipment: Equipment!\n}';
+const EQUIPMENT_BLOCK =
+    'type Equipment {\n  arms: EquipmentItem\n  chest: EquipmentItem\n  feet: EquipmentItem\n  firstAccessory: EquipmentItem\n  head: EquipmentItem\n  leftHand: EquipmentItem\n  legs: EquipmentItem\n  rightHand: EquipmentItem\n  secondAccessory: EquipmentItem\n}';
+const SLOT_TYPE_BLOCK =
+    'enum SlotType {\n  arms\n  chest\n  feet\n  firstAccessory\n  head\n  leftHand\n  legs\n  rightHand\n  secondAccessory\n}';
 const kindLinesOf = (schema: string): string[] =>
     schema.match(/^.*\bkind\b.*$/gm) ?? [];
 const INTRUDER_MUTATION =
@@ -226,7 +240,6 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     let app: INestApplication;
     let fetchSpy: jest.SpiedFunction<typeof fetch>;
     let warnSpy: jest.SpiedFunction<Logger['warn']>;
-
     beforeAll(async () => {
         // spie passthrough attive prima del boot: catturano le chiamate di rete e il WARN di avvio
         fetchSpy = jest.spyOn(global, 'fetch');
@@ -237,8 +250,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
     afterAll(async () => {
         await boot?.close();
-        fetchSpy.mockRestore();
-        warnSpy.mockRestore();
+        jest.restoreAllMocks();
     });
 
     it('resolves an auth config without Twitch and without the dev bypass', () => {
@@ -360,11 +372,72 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
-    it('writes the lore without the global unlocked flag (11 D-25)', () => {
+    it('writes the lore with its image path and without the global unlocked flag (11 D-25, D-11)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type Lore \{[^}]*\}/)?.[0]).toBe(
-            'type Lore {\n  description: String!\n  id: ID!\n  image: String\n  name: String!\n  relatedLore: [Lore!]!\n  type: String!\n}',
+            'type Lore {\n  description: String!\n  id: ID!\n  imagePath: String\n  name: String!\n  relatedLore: [Lore!]!\n  type: String!\n}',
+        );
+    });
+
+    it('writes the enemy weaknesses in place of the two lists (D-01)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Enemy \{[^}]*\}/)?.[0]).toBe(
+            'type Enemy {\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  legendary: Boolean!\n  lifePoints: Int!\n  locations: [PoiType!]!\n  name: String!\n  relatedLore: [Lore!]!\n  spells: [Spell!]!\n  weaknesses: Weaknesses!\n  xp: Int!\n}',
+        );
+        expect(schema.match(/type Weaknesses \{[^}]*\}/)?.[0]).toBe(
+            'type Weaknesses {\n  base: [DamageType!]!\n  energy: [EnergyType!]!\n}',
+        );
+        expect(schema).toContain('enum DamageType {');
+        expect(schema).toContain('enum EnergyType {');
+        expect(schema).not.toContain('input WeaknessesInput');
+        expect(schema).not.toContain('input EnemyInput');
+    });
+
+    it('writes the catalogue pet with attack and defense and without state (D-03, D-15)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
+            CATALOGUE_PET_BLOCK,
+        );
+        expect(schema).not.toContain('input PetInput');
+    });
+
+    it('writes the nullable pet rarity into the generated schema (D-27)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
+            CATALOGUE_PET_BLOCK,
+        );
+        expect(schema.match(/enum RarityType \{[^}]*\}/)?.[0]).toBe(
+            RARITY_TYPE_BLOCK,
+        );
+        expect(schema).not.toContain('input PetInput');
+    });
+
+    it('writes the owned pets as entries with their own state (D-03)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type OwnedPet \{[^}]*\}/)?.[0]).toBe(
+            OWNED_PET_BLOCK,
+        );
+        expect(schema.match(/type CharacterAssets \{[^}]*\}/)?.[0]).toBe(
+            CHARACTER_ASSETS_BLOCK,
+        );
+    });
+
+    it('writes the worn equipment and the feet slot into the generated schema (D-06)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type CharacterAssets \{[^}]*\}/)?.[0]).toBe(
+            CHARACTER_ASSETS_BLOCK,
+        );
+        expect(schema.match(/type Equipment \{[^}]*\}/)?.[0]).toBe(
+            EQUIPMENT_BLOCK,
+        );
+        expect(schema.match(/enum SlotType \{[^}]*\}/)?.[0]).toBe(
+            SLOT_TYPE_BLOCK,
         );
     });
 
@@ -444,24 +517,28 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type TravelPath {\n  coordinates: [[Float!]!]!\n  distance: Float!\n}',
         );
         expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
-            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  spells: [Spell!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}',
+            CHARACTER_STATUS_BLOCK,
         );
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
-            'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n  xp: Int!\n}',
+            CATALOGUE_PET_BLOCK,
         );
         expect(schema).not.toMatch(/TravelKind/);
         expect(kindLinesOf(schema)).toEqual(ONLY_RESULT_KIND);
     });
 
-    it('writes the spell state contract into the generated schema', () => {
+    it('writes the single spell state list and drops the two old spell lists (D-07)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
-        expect(schema).toContain(
-            'type SpellState {\n  recoveries: [DateTime!]!\n  spell: Spell!\n  usages: Int!\n}',
+        expect(schema.match(/type SpellState \{[^}]*\}/)?.[0]).toBe(
+            'type SpellState {\n  active: Boolean!\n  recoveries: [DateTime!]!\n  spell: Spell!\n  usages: Int!\n}',
         );
-        expect(schema.match(/type ActiveSpell \{[^}]*\}/)?.[0]).toBe(
-            'type ActiveSpell {\n  spell: Spell\n  usages: Int!\n}',
+        expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
+            CHARACTER_STATUS_BLOCK,
         );
+        expect(schema.match(/type CharacterAssets \{[^}]*\}/)?.[0]).toBe(
+            CHARACTER_ASSETS_BLOCK,
+        );
+        expect(schema).not.toMatch(/type ActiveSpell \{/);
     });
 
     it('writes the city size and the shop flag into the generated schema without the pool lists (D-01, D-18)', () => {
@@ -472,6 +549,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
         expect(schema).toContain(
             'enum CitySize {\n  capital\n  city\n  village\n}',
+        );
+    });
+
+    it('writes the point of interest without the quest back link (D-09)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type PointOfInterest \{[^}]*\}/)?.[0]).toBe(
+            'type PointOfInterest {\n  city: City\n  id: ID!\n  location: [Float!]!\n  type: [PoiType!]!\n}',
         );
     });
 
@@ -495,7 +580,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'enum CitySize {\n  capital\n  city\n  village\n}',
             'hasShop: Boolean!',
             'size: CitySize!',
-            'ownedPets: [Pet!]!',
+            'ownedPets: [OwnedPet!]!',
             'petAssets: [AssetQuantityInput!]\n',
             'equipPet(request: EquipPetRequest!): CommonResponse!',
             'unequipPet(request: UnequipPetRequest!): CommonResponse!',
@@ -621,7 +706,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  character: ID!\n  coinsLost: Coins\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  kind: QuestResultKind!\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  character: ID!\n  coinsLost: Coins\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  kind: QuestResultKind!\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  petXpGained: Int!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
         );
         expect(schema.match(/type QuestResultQuest \{[^}]*\}/)?.[0]).toBe(
             'type QuestResultQuest {\n  id: ID!\n  title: String!\n  type: String!\n}',
@@ -848,6 +933,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
 
         expect(moduleNames).not.toContain('LoreBackfillModule');
+    });
+
+    it('does not mount the one-off model review migration (D-12)', () => {
+        const moduleNames = [...app.get(ModulesContainer).values()].map(
+            (moduleRef) => moduleRef.metatype.name,
+        );
+
+        expect(moduleNames).not.toContain('ModelReviewMigrationModule');
     });
 
     it('mounts the quest result maintenance', () => {

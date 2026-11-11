@@ -5,6 +5,6 @@ export function cityRelations(): PopulateOptions[] {
     return [
         { path: 'relatedLore' },
         { path: 'markerLocation' },
-        { path: 'pointsOfInterest', populate: { path: 'quest' } },
+        { path: 'pointsOfInterest' },
     ];
 }

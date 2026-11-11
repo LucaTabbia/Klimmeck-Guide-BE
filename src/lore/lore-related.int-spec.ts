@@ -7,29 +7,40 @@ import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
+import { Pet, PetSchema } from 'src/models/pet.model';
+import { Spell, SpellSchema } from 'src/models/spell.model';
+import { PetsModule } from 'src/pets/pets.module';
 import {
     AuthTestApp,
     createAuthTestApp,
     graphqlRequest,
 } from '../../test/auth/auth-test-app';
 import { createPlayer } from '../../test/authz/player-fixture';
-import { persistEnemy, persistLore } from '../../test/fixtures';
+import { persistEnemy, persistLore, persistSpell } from '../../test/fixtures';
 import { persistLootItem } from '../../test/fixtures/catalog-item.fixture';
+import { persistPet } from '../../test/fixtures/pet.fixture';
 import { playerKnowing } from '../../test/lore/lore-world';
 import { LoreModule } from './lore.module';
 
 // selezione FE verbatim (lib/graphql/queries/lore_queries.dart)
 const LORES =
-    'query { lores { id image type name description relatedLore { id name } } }';
+    'query { lores { id imagePath type name description relatedLore { id name } } }';
 const LORE =
-    'query lore($id: String!) { lore(id: $id) { id image type name description relatedLore { id name } } }';
+    'query lore($id: String!) { lore(id: $id) { id imagePath type name description relatedLore { id name } } }';
 const ENEMIES = 'query { enemys { id name relatedLore { id name } } }';
 const ENEMY_RELATED = 'query { enemys { id relatedLore { id } } }';
 const ENEMY =
     'query Enemy($id: String!) { enemy(id: $id) { id name relatedLore { id name } } }';
+const ENEMIES_SPELLS = 'query { enemys { id spells { id name } } }';
+const ENEMY_SPELLS =
+    'query Enemy($id: String!) { enemy(id: $id) { id spells { id name } } }';
 const LOOT_ITEMS = 'query { lootItems { id relatedLore { id name } } }';
 const LOOT_ITEM =
     'query LootItem($id: String!) { lootItem(id: $id) { id relatedLore { id name } } }';
+
+const PETS = 'query { pets { id relatedLore { id name } } }';
+const PET =
+    'query Pet($id: String!) { pet(id: $id) { id relatedLore { id name } } }';
 
 interface WireRelated {
     id: string;
@@ -38,6 +49,7 @@ interface WireRelated {
 
 interface WireWithRelated {
     id: string;
+    imagePath?: string | null;
     relatedLore: WireRelated[];
 }
 
@@ -49,6 +61,8 @@ interface WireBody {
         enemy?: WireWithRelated;
         lootItems?: WireWithRelated[];
         lootItem?: WireWithRelated;
+        pets?: WireWithRelated[];
+        pet?: WireWithRelated;
     } | null;
     errors?: { message: string; extensions?: { code?: unknown } }[];
 }
@@ -99,6 +113,12 @@ describe('related lore (wire)', () => {
         });
     }
 
+    async function petWith(
+        relatedLore: unknown[],
+    ): Promise<{ _id: Types.ObjectId }> {
+        return persistPet(modelOf(Pet.name, PetSchema), { relatedLore });
+    }
+
     function idsOf(entries: { id: string }[] | undefined): string[] {
         return (entries ?? []).map((entry) => entry.id).sort();
     }
@@ -112,7 +132,7 @@ describe('related lore (wire)', () => {
 
     beforeAll(async () => {
         harness = await createAuthTestApp({
-            imports: [LoreModule, EnemiesModule, LootItemsModule],
+            imports: [LoreModule, EnemiesModule, LootItemsModule, PetsModule],
         });
     });
 
@@ -152,6 +172,16 @@ describe('related lore (wire)', () => {
         expect(relatedOf(body.data?.lores, loreB._id)).toEqual([
             { id: String(loreA._id), name: 'A' },
         ]);
+    });
+
+    it('serves the image path of a lore (D-11)', async () => {
+        const imagePath = 'https://cdn.test/lore-a.png';
+        await loreModel.updateOne({ _id: loreA._id }, { imagePath });
+
+        const body = await request(LORE, { id: String(loreA._id) });
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.lore?.imagePath).toBe(imagePath);
     });
 
     it('drops a related lore that no longer exists instead of failing the list (D-10)', async () => {
@@ -300,6 +330,28 @@ describe('related lore (wire)', () => {
         ]);
     });
 
+    // Spell.name è String!: un id nudo o pendente annullerebbe il nemico sul filo
+    it('serves the spells of every enemy from the catalogue (D-02)', async () => {
+        const spell = await persistSpell(modelOf(Spell.name, SpellSchema), {
+            name: 'Soffio gelido',
+        });
+        const enemy = await persistEnemy(modelOf(Enemy.name, EnemySchema), {
+            spells: [spell._id, new Types.ObjectId()],
+        });
+        const expected = {
+            id: String(enemy._id),
+            spells: [{ id: String(spell._id), name: 'Soffio gelido' }],
+        };
+
+        const list = await request(ENEMIES_SPELLS);
+        const single = await request(ENEMY_SPELLS, { id: String(enemy._id) });
+
+        expect(list.errors).toBeUndefined();
+        expect(list.data?.enemys).toEqual([expected]);
+        expect(single.errors).toBeUndefined();
+        expect(single.data?.enemy).toEqual(expected);
+    });
+
     describe('the related lore of a loot item', () => {
         const wireOf = (lore: { _id: Types.ObjectId }, name: string) => ({
             id: String(lore._id),
@@ -401,6 +453,92 @@ describe('related lore (wire)', () => {
 
             expect(body.errors).toBeUndefined();
             expect(relatedOf(body.data?.lootItems, potion._id)).toEqual([
+                wireOf(loreA, 'A'),
+            ]);
+        });
+    });
+
+    describe('the related lore of a pet', () => {
+        const wireOf = (lore: { _id: Types.ObjectId }, name: string) => ({
+            id: String(lore._id),
+            name,
+        });
+
+        it('serves a player only the unlocked lore of a pet (D-26)', async () => {
+            const pet = await petWith([loreA._id, loreC._id]);
+
+            const body = await request(PETS);
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.pets, pet._id)).toEqual([
+                wireOf(loreA, 'A'),
+            ]);
+        });
+
+        it('serves the innkeeper every lore of a pet in the order of the refs (D-26)', async () => {
+            const pet = await petWith([loreC._id, loreA._id]);
+
+            const body = await request(
+                PETS,
+                undefined,
+                await innkeeperBearer(),
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.pets, pet._id)).toEqual([
+                wireOf(loreC, 'C'),
+                wireOf(loreA, 'A'),
+            ]);
+        });
+
+        it('serves no lore of a pet to a user without a current character (D-26)', async () => {
+            const pet = await petWith([loreA._id, loreC._id]);
+            const { bearer: homeless } = await createPlayer(harness, {
+                twitchId: 'twitch-pet-homeless',
+                withCharacter: false,
+            });
+
+            const body = await request(PETS, undefined, homeless);
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.pets, pet._id)).toEqual([]);
+        });
+
+        it('drops a lore of a pet that no longer exists (D-26)', async () => {
+            const pet = await petWith([loreA._id, new Types.ObjectId()]);
+
+            const body = await request(
+                PETS,
+                undefined,
+                await innkeeperBearer(),
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.pets, pet._id)).toEqual([
+                wireOf(loreA, 'A'),
+            ]);
+        });
+
+        it('serves the unlocked lore on the single pet query too (D-26)', async () => {
+            const pet = await petWith([loreA._id, loreC._id]);
+
+            const body = await request(PET, { id: String(pet._id) });
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.pet?.relatedLore).toEqual([wireOf(loreA, 'A')]);
+        });
+
+        it('reads a pet lore id written as a string by a content script (D-26)', async () => {
+            const pet = await petWith([]);
+            await modelOf(Pet.name, PetSchema).collection.updateOne(
+                { _id: pet._id },
+                { $set: { relatedLore: [loreA._id.toHexString()] } },
+            );
+
+            const body = await request(PETS);
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.pets, pet._id)).toEqual([
                 wireOf(loreA, 'A'),
             ]);
         });

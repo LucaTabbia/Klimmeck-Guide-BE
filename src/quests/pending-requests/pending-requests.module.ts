@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthzModule } from 'src/authz/authz.module';
+import { WeaknessesModule } from 'src/enemies/weaknesses.module';
 import { LoreVisibilityModule } from 'src/lore/lore-visibility.module';
 import {
     Character,
@@ -31,6 +32,7 @@ import { PendingRequestsService } from './pending-requests.service';
         QuestOutcomesModule,
         QuestResultsReadModule,
         LoreVisibilityModule,
+        WeaknessesModule,
     ],
     providers: [
         PendingRequestsService,

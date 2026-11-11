@@ -68,7 +68,7 @@ describe('CityShopService', () => {
     ) {
         const city = await persistCity(models.city, { name, type });
         await models.city.collection.updateOne({ _id: city._id }, {
-            $set: pool,
+            $set: { shop: pool },
         } as never);
         return city;
     }
@@ -78,16 +78,16 @@ describe('CityShopService', () => {
 
     it('serves the pool in the order stored in the database (D-18)', async () => {
         const city = await persistPooledCity('Valantar', 'valanCapital', {
-            shopEquipment: [
+            equipment: [
                 byName(catalogue.equipment, 'Equip rare 01'),
                 byName(catalogue.equipment, 'Equip common 01'),
                 byName(catalogue.equipment, 'Equip uncommon 01'),
             ],
-            shopLoot: [
+            loot: [
                 byName(catalogue.loot, 'Loot common heal 01'),
                 byName(catalogue.loot, 'Loot common hunger 01'),
             ],
-            shopPets: [
+            pets: [
                 byName(catalogue.pets, 'Cammello del Mar Sabbioso'),
                 byName(catalogue.pets, 'Cavallo leggero'),
             ],
@@ -114,12 +114,12 @@ describe('CityShopService', () => {
 
     it('serves every entry with quantity 1 for an infinite stock (D-12)', async () => {
         const city = await persistPooledCity('Valantar', 'valanCapital', {
-            shopEquipment: [
+            equipment: [
                 byName(catalogue.equipment, 'Equip common 01'),
                 byName(catalogue.equipment, 'Equip common 02'),
             ],
-            shopLoot: [byName(catalogue.loot, 'Loot common heal 01')],
-            shopPets: [],
+            loot: [byName(catalogue.loot, 'Loot common heal 01')],
+            pets: [],
         });
 
         const shop = await service.read(city._id.toHexString());
@@ -138,16 +138,16 @@ describe('CityShopService', () => {
 
     it('never serves a legendary, a sellable false item or a quest-only pet (D-05)', async () => {
         const city = await persistPooledCity('Valantar', 'valanCapital', {
-            shopEquipment: [
+            equipment: [
                 byName(catalogue.equipment, 'Equip legendary 01'),
                 byName(catalogue.equipment, 'Equip vietato'),
                 byName(catalogue.equipment, 'Equip common 01'),
             ],
-            shopLoot: [
+            loot: [
                 byName(catalogue.loot, 'Loot legendary none 01'),
                 byName(catalogue.loot, 'Loot rare none 01'),
             ],
-            shopPets: [
+            pets: [
                 byName(catalogue.pets, 'Pegaso'),
                 byName(catalogue.pets, 'Cavallo leggero'),
                 byName(catalogue.pets, 'Grifone'),
@@ -169,9 +169,9 @@ describe('CityShopService', () => {
 
     it('serves an ultrarare item curated by hand in a village (D-05)', async () => {
         const city = await persistPooledCity('Fineglen', 'valanVillage', {
-            shopEquipment: [byName(catalogue.equipment, 'Equip ultrarare 01')],
-            shopLoot: [byName(catalogue.loot, 'Loot ultrarare none 01')],
-            shopPets: [],
+            equipment: [byName(catalogue.equipment, 'Equip ultrarare 01')],
+            loot: [byName(catalogue.loot, 'Loot ultrarare none 01')],
+            pets: [],
         });
 
         const shop = await service.read(city._id.toHexString());
@@ -184,12 +184,12 @@ describe('CityShopService', () => {
 
     it('skips ids missing from the catalogue (D-06)', async () => {
         const city = await persistPooledCity('Valantar', 'valanCapital', {
-            shopEquipment: [
+            equipment: [
                 new Types.ObjectId(),
                 byName(catalogue.equipment, 'Equip common 01'),
             ],
-            shopLoot: [new Types.ObjectId()],
-            shopPets: [new Types.ObjectId()],
+            loot: [new Types.ObjectId()],
+            pets: [new Types.ObjectId()],
         });
 
         const shop = await service.read(city._id.toHexString());
@@ -208,9 +208,9 @@ describe('CityShopService', () => {
             addedSpell: spell._id,
         });
         const city = await persistPooledCity('Valantar', 'valanCapital', {
-            shopEquipment: [staff._id],
-            shopLoot: [],
-            shopPets: [],
+            equipment: [staff._id],
+            loot: [],
+            pets: [],
         });
 
         const shop = await service.read(city._id.toHexString());
@@ -229,9 +229,9 @@ describe('CityShopService', () => {
             'Necrorian',
             'necrorianCity',
             {
-                shopEquipment: [],
-                shopLoot: [],
-                shopPets: [],
+                equipment: [],
+                loot: [],
+                pets: [],
             },
         );
 

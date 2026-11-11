@@ -152,6 +152,10 @@ describe('quest result schema', () => {
         );
     });
 
+    it('defaults the companion xp gain to 0 (D-04)', () => {
+        expect(new Result(validResultDoc()).toObject().petXpGained).toBe(0);
+    });
+
     it('defaults a result to not arrested, without a guard encounter and without coins lost (quick 261110-cgd)', () => {
         const result = new Result(validResultDoc()).toObject();
 

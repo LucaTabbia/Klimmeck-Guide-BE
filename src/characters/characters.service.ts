@@ -19,7 +19,7 @@ import { EquipmentItem } from 'src/models/equipment-item.model';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
 import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
-import { SlotType } from 'src/models/enums/slot_type.enum';
+import { SlotType } from 'src/models/enums/slot-type.enum';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
@@ -58,7 +58,8 @@ import {
 } from './spells/spell-recovery-job';
 import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
 import { isUsageCount, recoveryDueAt } from './spells/spell-state.snapshot';
-import { spellsOnTheWire } from './spells/spell-state.mapper';
+import { ownedPetsOnTheWire } from './pets/owned-pets.mapper';
+import { spellStatesOnTheWire } from './spells/spell-state.mapper';
 import {
     spellStateArrayFilters,
     spendUsagesUpdate,
@@ -102,10 +103,6 @@ export class CharactersService {
                 model: 'EquipmentItem',
                 populate: { path: 'addedSpell' },
             })
-            .populate({
-                path: 'status.spells',
-                model: 'Spell',
-            })
             .populate({ path: 'status.spellStates.spell', model: 'Spell' })
             .populate({
                 path: 'status.location',
@@ -114,9 +111,9 @@ export class CharactersService {
                 path: 'assets.ownedItems.item',
                 model: 'LootItem',
             })
-            // compagno equipaggiato e posseduti dal catalogo Pet: il fragment FE li seleziona entrambi (D-13, D-23)
+            // compagno equipaggiato e pet di ogni voce posseduta dal catalogo Pet: il fragment FE li seleziona entrambi (D-13, D-23)
             .populate({ path: 'assets.pet', model: 'Pet' })
-            .populate({ path: 'assets.ownedPets', model: 'Pet' })
+            .populate({ path: 'assets.ownedPets.pet', model: 'Pet' })
             .populate(CHARACTER_QUESTS_POPULATE)
             .exec();
 
@@ -133,30 +130,30 @@ export class CharactersService {
             }
         });
 
-        const wearedEquipment = character.assets.wearedEquipment;
+        const wornEquipment = character.assets.wornEquipment;
 
         Object.values(SlotType).forEach((slot) => {
-            const itemId = wearedEquipment[slot];
+            const itemId = wornEquipment[slot];
 
             if (itemId instanceof Types.ObjectId) {
                 const populatedItem = ownedEquipmentsMap.get(
                     itemId.toHexString(),
                 );
                 if (populatedItem) {
-                    wearedEquipment[slot] = populatedItem;
+                    wornEquipment[slot] = populatedItem;
                 } else {
-                    wearedEquipment[slot] = null;
+                    wornEquipment[slot] = null;
                 }
             }
         });
 
-        // usi dallo stato, ordine degli slot, orfani fuori dal filo (D-04a, D-05)
-        const wire = spellsOnTheWire(
-            character.status,
-            character.assets.activeSpells,
+        // le voci di una magia cancellata dal catalogo restano fuori dal filo (Phase 19 D-07)
+        character.status.spellStates = spellStatesOnTheWire(
+            character.status.spellStates,
         );
-        character.status.spellStates = wire.spellStates;
-        character.assets.activeSpells = wire.activeSpells;
+        character.assets.ownedPets = ownedPetsOnTheWire(
+            character.assets.ownedPets,
+        );
 
         return character;
     }
@@ -164,14 +161,14 @@ export class CharactersService {
     async getEquipment(id: string): Promise<Equipment> {
         let query = this.characterModel.findOne(activeCharacterById(id));
         for (const slot of Object.values(SlotType)) {
-            query = query.populate(`assets.wearedEquipment.${slot}`);
+            query = query.populate(`assets.wornEquipment.${slot}`);
         }
         const character = await query.exec();
 
         if (!character) {
             throw ResourceNotFoundException.character();
         }
-        return character.assets.wearedEquipment;
+        return character.assets.wornEquipment;
     }
 
     async equipItem(request: EquipItemRequest): Promise<CommonResponse> {
@@ -237,19 +234,20 @@ export class CharactersService {
         const spellId = objectIdFromHex(request.spellId);
         if (!spellId) throw GameRuleException.spellNotKnown();
 
-        // usi copiati dalla voce di stato (D-01, D-07): il valore del client è ignorato; maxUsages del catalogo solo come fallback della pipeline
+        // controllo di esistenza a catalogo: una magia assente o con maxUsages malformato risponde NOT_FOUND, come recoveryTime in useSpell; gli usi del client sono ignorati (D-01)
         const spell = await this.spellModel
             .findById(spellId, { maxUsages: 1 })
             .lean<{ maxUsages?: unknown } | null>()
             .exec();
-        // un maxUsages malformato vale come magia assente, come recoveryTime in useSpell: il fallback non scrive mai un uso nullo
-        const maxUsages = spell?.maxUsages;
-        if (!isUsageCount(maxUsages)) throw ResourceNotFoundException.spell();
+        if (!isUsageCount(spell?.maxUsages))
+            throw ResourceNotFoundException.spell();
 
+        // un solo update: il flag della voce, con la capacità valutata sul documento vivo (Phase 19 D-07)
         const equipped = await this.characterModel
             .updateOne(
                 equipSpellFilter(characterId, spellId),
-                equipSpellUpdate(spellId, maxUsages),
+                equipSpellUpdate(),
+                spellStateArrayFilters(spellId),
             )
             .exec();
         if (equipped.matchedCount === 0) {
@@ -273,7 +271,8 @@ export class CharactersService {
         const unequipped = await this.characterModel
             .updateOne(
                 unequipSpellFilter(characterId, spellId),
-                unequipSpellUpdate(spellId),
+                unequipSpellUpdate(),
+                spellStateArrayFilters(spellId),
             )
             .exec();
         if (unequipped.matchedCount === 0) {
@@ -329,7 +328,7 @@ export class CharactersService {
         if (!spell || !Number.isFinite(spell.recoveryTime))
             throw ResourceNotFoundException.spell();
 
-        // un solo update: usi della voce di stato e del mirror, istante in ordine crescente (D-04a, D-06)
+        // un solo update sulla voce di stato: usi e istante in ordine crescente (D-04a, D-06, Phase 19 D-07)
         const dueAt = recoveryDueAt(this.clock.now(), spell.recoveryTime);
         const used = await this.characterModel
             .updateOne(

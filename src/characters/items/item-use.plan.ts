@@ -13,7 +13,8 @@ import { EffectType } from 'src/models/enums/effect-type.enum';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
 import { MAX_RECOVERY_VALUE } from 'src/models/loot-item.model';
-import { refIdOf, sameId } from 'src/mongo/document-id';
+import { relatedLoreIdsOf } from 'src/lore/related-lore-ids';
+import { sameId } from 'src/mongo/document-id';
 import { cureInjuries } from 'src/quests/outcomes/injuries/cure-injuries';
 import { lifePointsWithin } from 'src/quests/outcomes/progression/level-table';
 import { statusFactsOf } from 'src/quests/outcomes/progression/status-facts';
@@ -102,14 +103,6 @@ const powerOf = (power: unknown): number =>
 
 const canHealOf = (canHeal: unknown): readonly unknown[] =>
     Array.isArray(canHeal) ? canHeal : [];
-
-const isObjectId = (id: Types.ObjectId | null): id is Types.ObjectId =>
-    id !== null;
-
-const relatedLoreIdsOf = (relatedLore: unknown): Types.ObjectId[] =>
-    Array.isArray(relatedLore)
-        ? relatedLore.map(refIdOf).filter(isObjectId)
-        : [];
 
 const drinkLineOf = (itemId: Types.ObjectId): TradeLine => ({
     direction: 'sell',

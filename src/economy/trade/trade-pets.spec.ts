@@ -4,6 +4,7 @@ import type { TradeLine } from './trade-line';
 import {
     applyTradeToPets,
     assertPetsNotOwned,
+    boughtPetLore,
     petOwnershipGuards,
 } from './trade-pets';
 
@@ -17,6 +18,17 @@ const line = (
     itemId: Types.ObjectId,
 ): TradeLine => ({ direction, kind, itemId, quantity: 1 });
 
+const entry = (
+    pet: Types.ObjectId | string,
+    xp = 0,
+    currentLifePoints = 10,
+) => ({ pet, xp, currentLifePoints });
+
+const lifePoints = (...pairs: [Types.ObjectId, unknown][]) =>
+    new Map<string, unknown>(pairs.map(([id, max]) => [id.toHexString(), max]));
+
+const NO_LIFE_POINTS = lifePoints();
+
 function codeThrownBy(action: () => unknown): GameRuleErrorCode | undefined {
     try {
         action();
@@ -28,18 +40,18 @@ function codeThrownBy(action: () => unknown): GameRuleErrorCode | undefined {
 
 describe('trade pets', () => {
     describe('assertPetsNotOwned', () => {
-        it('refuses buying a pet already owned with PET_ALREADY_OWNED (D-14)', () => {
+        it('refuses to buy a pet already owned as an entry (D-03)', () => {
             expect(
                 codeThrownBy(() =>
                     assertPetsNotOwned([line('buy', 'Pet', horse)], {
-                        ownedPets: [horse],
+                        ownedPets: [entry(horse, 12, 3)],
                     }),
                 ),
             ).toBe(GameRuleErrorCode.PET_ALREADY_OWNED);
             expect(
                 codeThrownBy(() =>
                     assertPetsNotOwned([line('buy', 'Pet', horse)], {
-                        ownedPets: [horse.toHexString()],
+                        ownedPets: [entry(horse.toHexString())],
                     }),
                 ),
             ).toBe(GameRuleErrorCode.PET_ALREADY_OWNED);
@@ -54,7 +66,7 @@ describe('trade pets', () => {
                             line('sell', 'Pet', camel),
                             line('buy', 'LootItem', camel),
                         ],
-                        { ownedPets: [camel] },
+                        { ownedPets: [entry(camel)] },
                     ),
                 ),
             ).toBeUndefined();
@@ -69,55 +81,112 @@ describe('trade pets', () => {
     describe('applyTradeToPets', () => {
         it('returns no pet outcome for a trade without pet lines (Pitfall 5)', () => {
             expect(
-                applyTradeToPets({ ownedPets: [horse], pet: horse }, [
-                    line('buy', 'LootItem', potion),
-                ]),
+                applyTradeToPets(
+                    { ownedPets: [entry(horse)], pet: horse },
+                    [line('buy', 'LootItem', potion)],
+                    NO_LIFE_POINTS,
+                ),
             ).toBeNull();
         });
 
-        it('adds a bought pet to the owned pets without equipping it (D-14)', () => {
+        it('adds a whole entry for a bought pet (D-03)', () => {
             expect(
-                applyTradeToPets({ ownedPets: [camel], pet: null }, [
-                    line('buy', 'Pet', horse),
-                ]),
-            ).toEqual({ ownedPets: [camel, horse], unequip: false });
-            expect(applyTradeToPets({}, [line('buy', 'Pet', horse)])).toEqual({
-                ownedPets: [horse],
+                applyTradeToPets(
+                    { ownedPets: [entry(camel, 40, 6)], pet: null },
+                    [line('buy', 'Pet', horse)],
+                    lifePoints([horse, 300], [camel, 80]),
+                ),
+            ).toEqual({
+                ownedPets: [
+                    { pet: camel, xp: 40, currentLifePoints: 6 },
+                    { pet: horse, xp: 0, currentLifePoints: 300 },
+                ],
+                unequip: false,
+            });
+            expect(
+                applyTradeToPets(
+                    {},
+                    [line('buy', 'Pet', horse)],
+                    NO_LIFE_POINTS,
+                ),
+            ).toEqual({
+                ownedPets: [{ pet: horse, xp: 0, currentLifePoints: 0 }],
                 unequip: false,
             });
         });
 
-        it('removes a sold pet from the owned pets (D-14)', () => {
+        it('heals the broken entries of the list it rewrites and leaves out an unreadable one (D-03)', () => {
             expect(
                 applyTradeToPets(
-                    { ownedPets: [camel, horse.toHexString()], pet: camel },
-                    [line('sell', 'Pet', horse)],
+                    {
+                        ownedPets: [
+                            { pet: 'not-an-id', xp: 1, currentLifePoints: 1 },
+                            { pet: camel, xp: null, currentLifePoints: 6.5 },
+                        ] as never,
+                        pet: null,
+                    },
+                    [line('buy', 'Pet', horse)],
+                    lifePoints([horse, 300]),
                 ),
-            ).toEqual({ ownedPets: [camel], unequip: false });
+            ).toEqual({
+                ownedPets: [
+                    { pet: camel, xp: 0, currentLifePoints: 6 },
+                    { pet: horse, xp: 0, currentLifePoints: 300 },
+                ],
+                unequip: false,
+            });
         });
 
-        it('unequips the sold pet when it was the equipped one (D-14)', () => {
+        it('removes the whole entry of a sold pet and keeps the others untouched (D-03)', () => {
             expect(
                 applyTradeToPets(
-                    { ownedPets: [camel, horse], pet: horse.toHexString() },
+                    {
+                        ownedPets: [
+                            entry(camel, 40, 6),
+                            entry(horse.toHexString(), 15, 2),
+                        ],
+                        pet: camel,
+                    },
                     [line('sell', 'Pet', horse)],
+                    NO_LIFE_POINTS,
                 ),
-            ).toEqual({ ownedPets: [camel], unequip: true });
+            ).toEqual({
+                ownedPets: [{ pet: camel, xp: 40, currentLifePoints: 6 }],
+                unequip: false,
+            });
         });
 
-        it('refuses selling a pet not owned with ITEM_NOT_OWNED (D-14)', () => {
+        it('unequips the companion when its entry is sold (D-03)', () => {
+            expect(
+                applyTradeToPets(
+                    {
+                        ownedPets: [entry(camel, 40, 6), entry(horse, 15, 2)],
+                        pet: horse.toHexString(),
+                    },
+                    [line('sell', 'Pet', horse)],
+                    NO_LIFE_POINTS,
+                ),
+            ).toEqual({
+                ownedPets: [{ pet: camel, xp: 40, currentLifePoints: 6 }],
+                unequip: true,
+            });
+        });
+
+        it('refuses to sell a pet that is in no entry (D-03)', () => {
             expect(
                 codeThrownBy(() =>
-                    applyTradeToPets({ ownedPets: [camel], pet: horse }, [
-                        line('sell', 'Pet', horse),
-                    ]),
+                    applyTradeToPets(
+                        { ownedPets: [entry(camel)], pet: horse },
+                        [line('sell', 'Pet', horse)],
+                        NO_LIFE_POINTS,
+                    ),
                 ),
             ).toBe(GameRuleErrorCode.ITEM_NOT_OWNED);
         });
     });
 
     describe('petOwnershipGuards', () => {
-        it('guards a bought pet as absent and a sold pet as present in the write (D-14)', () => {
+        it('guards the write on the entry reference (D-03)', () => {
             expect(
                 petOwnershipGuards([
                     line('buy', 'Pet', horse),
@@ -126,18 +195,67 @@ describe('trade pets', () => {
                 ]),
             ).toEqual([
                 {
-                    'assets.ownedPets': {
+                    'assets.ownedPets.pet': {
                         $nin: [horse, horse.toHexString()],
                     },
                 },
                 {
-                    'assets.ownedPets': {
+                    'assets.ownedPets.pet': {
                         $in: [camel, camel.toHexString()],
                     },
                 },
             ]);
             expect(
                 petOwnershipGuards([line('sell', 'LootItem', potion)]),
+            ).toEqual([]);
+        });
+    });
+
+    describe('boughtPetLore', () => {
+        const page = new Types.ObjectId();
+        const tale = new Types.ObjectId();
+        const legend = new Types.ObjectId();
+        const lore = (...pairs: [Types.ObjectId, Types.ObjectId[]][]) =>
+            new Map(pairs.map(([id, pages]) => [id.toHexString(), pages]));
+
+        it('collects the lore of the bought pets only (D-26)', () => {
+            expect(
+                boughtPetLore(
+                    [
+                        line('sell', 'Pet', camel),
+                        line('buy', 'Pet', horse),
+                        line('buy', 'LootItem', potion),
+                    ],
+                    lore(
+                        [camel, [legend]],
+                        [horse, [page, tale]],
+                        [potion, [legend]],
+                    ),
+                ),
+            ).toEqual([page, tale]);
+        });
+
+        it('collects the lore in the order of the lines without repeating a page (D-26)', () => {
+            expect(
+                boughtPetLore(
+                    [line('buy', 'Pet', camel), line('buy', 'Pet', horse)],
+                    lore([horse, [page, tale]], [camel, [tale, legend]]),
+                ),
+            ).toEqual([tale, legend, page]);
+        });
+
+        it('collects nothing for a pet without lore or for a trade without pets (D-26)', () => {
+            expect(
+                boughtPetLore([line('buy', 'Pet', horse)], lore([horse, []])),
+            ).toEqual([]);
+            expect(boughtPetLore([line('buy', 'Pet', horse)], lore())).toEqual(
+                [],
+            );
+            expect(
+                boughtPetLore(
+                    [line('buy', 'LootItem', potion)],
+                    lore([horse, [page]]),
+                ),
             ).toEqual([]);
         });
     });

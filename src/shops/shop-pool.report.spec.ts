@@ -34,14 +34,17 @@ function catalogueOf(
     };
 }
 
-function village(overrides: Partial<ReportedCity> = {}): ReportedCity {
+type ReportedPool = NonNullable<ReportedCity['shop']>;
+
+function village(
+    pool: ReportedPool = {},
+    overrides: Partial<ReportedCity> = {},
+): ReportedCity {
     return {
         _id: new Types.ObjectId(),
         name: 'Fineglen',
         type: CityType.valanVillage,
-        shopEquipment: [],
-        shopLoot: [],
-        shopPets: [],
+        shop: { equipment: [], loot: [], pets: [], ...pool },
         ...overrides,
     };
 }
@@ -53,9 +56,9 @@ describe('shop pool report', () => {
 
     it('reports nothing for a pool within the rules (D-06)', () => {
         const city = village({
-            shopEquipment: [common._id],
-            shopLoot: [potion._id],
-            shopPets: [horse._id],
+            equipment: [common._id],
+            loot: [potion._id],
+            pets: [horse._id],
         });
 
         const violation = violationsOf(
@@ -77,7 +80,7 @@ describe('shop pool report', () => {
 
     it('reports an ultrarare item in a village as out of size without removing it (D-05, D-06)', () => {
         const ultrarare = entry('Lama rara', RarityType.ultrarare);
-        const city = village({ shopEquipment: [common._id, ultrarare._id] });
+        const city = village({ equipment: [common._id, ultrarare._id] });
 
         const violation = violationsOf(city, catalogueOf([common, ultrarare]));
 
@@ -88,13 +91,13 @@ describe('shop pool report', () => {
                 rarity: RarityType.ultrarare,
             },
         ]);
-        expect(city.shopEquipment).toEqual([common._id, ultrarare._id]);
+        expect(city.shop?.equipment).toEqual([common._id, ultrarare._id]);
         expect(hasViolations(violation)).toBe(true);
     });
 
     it('reports an item without rarity as out of size (D-06)', () => {
         const bare = entry('Senza rarità');
-        const city = village({ shopLoot: [bare._id] });
+        const city = village({ loot: [bare._id] });
 
         const violation = violationsOf(city, catalogueOf([], [bare]));
 
@@ -104,16 +107,17 @@ describe('shop pool report', () => {
     });
 
     it('reports a legendary, a sellable false item and a quest-only pet as vetoed (D-05, D-06)', () => {
-        const capital = village({
-            name: 'Valantar',
-            type: CityType.valanCapital,
-        });
         const legendary = entry('Spada leggendaria', RarityType.legendary);
         const forbidden = entry('Pozione vietata', RarityType.common, false);
         const pegasus = entry('Pegaso', null, false);
-        capital.shopEquipment = [legendary._id];
-        capital.shopLoot = [forbidden._id];
-        capital.shopPets = [pegasus._id];
+        const capital = village(
+            {
+                equipment: [legendary._id],
+                loot: [forbidden._id],
+                pets: [pegasus._id],
+            },
+            { name: 'Valantar', type: CityType.valanCapital },
+        );
 
         const violation = violationsOf(
             capital,
@@ -139,8 +143,8 @@ describe('shop pool report', () => {
     it('reports the ids missing from the catalogue, malformed ones included (D-06)', () => {
         const gone = new Types.ObjectId();
         const city = village({
-            shopEquipment: [gone],
-            shopPets: ['not-an-id'],
+            equipment: [gone],
+            pets: ['not-an-id'],
         });
 
         const violation = violationsOf(city, catalogueOf([]));
@@ -150,7 +154,7 @@ describe('shop pool report', () => {
 
     it('marks an unreadable pool entry by its position without printing it (D-06)', () => {
         const gone = new Types.ObjectId();
-        const city = village({ shopLoot: [gone, {}, null] });
+        const city = village({ loot: [gone, {}, null] });
 
         const violation = violationsOf(city, catalogueOf([]));
 
@@ -163,7 +167,7 @@ describe('shop pool report', () => {
 
     it('classifies each item once, missing before vetoed before out of size (D-06)', () => {
         const legendary = entry('Spada leggendaria', RarityType.legendary);
-        const city = village({ shopEquipment: [legendary._id] });
+        const city = village({ equipment: [legendary._id] });
 
         const violation = violationsOf(city, catalogueOf([legendary]));
 
@@ -182,10 +186,10 @@ describe('shop pool report', () => {
     });
 
     it('never reports the empty pool of Necrorian (D-04, D-06)', () => {
-        const necrorian = village({
-            name: 'Necrorian',
-            type: CityType.necrorianCity,
-        });
+        const necrorian = village(
+            {},
+            { name: 'Necrorian', type: CityType.necrorianCity },
+        );
 
         const violation = violationsOf(necrorian, catalogueOf([]));
 
@@ -195,8 +199,8 @@ describe('shop pool report', () => {
 
     it('reads ids curated as hex strings (D-06)', () => {
         const city = village({
-            shopEquipment: [common._id.toHexString()],
-            shopPets: [horse._id.toHexString()],
+            equipment: [common._id.toHexString()],
+            pets: [horse._id.toHexString()],
         });
 
         const violation = violationsOf(
@@ -209,7 +213,7 @@ describe('shop pool report', () => {
 
     it('describes a violation with ids, names and counts only (D-06)', () => {
         const ultrarare = entry('Lama rara', RarityType.ultrarare);
-        const city = village({ shopEquipment: [ultrarare._id] });
+        const city = village({ equipment: [ultrarare._id] });
         const empty = village();
 
         expect(
@@ -222,15 +226,13 @@ describe('shop pool report', () => {
         );
     });
 
-    it('tells a city with a pool from one without (D-06)', () => {
-        expect(hasPool(village())).toBe(true);
+    it('judges only a city whose three pool lists are present, even empty (D-10)', () => {
+        const withoutShop = village({}, { shop: undefined });
+        const withTwoLists = village({}, { shop: { equipment: [], loot: [] } });
+        const withThreeEmptyLists = village();
+
         expect(
-            hasPool({
-                _id: new Types.ObjectId(),
-                name: 'Fineglen',
-                type: CityType.valanVillage,
-                shopEquipment: [],
-            }),
-        ).toBe(false);
+            [withoutShop, withTwoLists, withThreeEmptyLists].map(hasPool),
+        ).toEqual([false, false, true]);
     });
 });

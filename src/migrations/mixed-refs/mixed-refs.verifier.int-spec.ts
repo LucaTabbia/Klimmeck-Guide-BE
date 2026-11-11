@@ -45,15 +45,15 @@ describe('MixedRefsVerifier (replSet)', () => {
         await connection
             .collection('characters')
             .insertMany([
-                { status: { spells: [hex, new Types.ObjectId()] } },
-                { status: { spells: [hex] } },
+                { quests: { completedQuests: [hex, new Types.ObjectId()] } },
+                { quests: { completedQuests: [hex] } },
             ]);
 
         await verifier.verify();
 
         expect(errorSpy.mock.calls).toEqual([
             [
-                'Ref stringa ancora da migrare: users:currentCharacter=1, characters:status.spells=2. Eseguire la migrazione (runbook) prima del deploy del codice ritipizzato',
+                'Ref stringa ancora da migrare: users:currentCharacter=1, characters:quests.completedQuests=2. Eseguire la migrazione (runbook) prima del deploy del codice ritipizzato',
             ],
         ]);
     });

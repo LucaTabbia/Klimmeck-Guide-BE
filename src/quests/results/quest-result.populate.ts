@@ -19,7 +19,12 @@ export const QUEST_RESULT_POPULATE: PopulateOptions[] = [
     { path: 'rewards.items.item' },
     { path: 'spellsUsed.spell', model: Spell.name },
     { path: 'spellLearned', model: Spell.name },
-    { path: 'enemies.enemy', model: Enemy.name },
+    {
+        path: 'enemies.enemy',
+        model: Enemy.name,
+        // Enemy.spells è [Spell!]!: senza populate un id nudo annullerebbe il nemico (Phase 19 D-02)
+        populate: { path: 'spells', model: Spell.name },
+    },
     { path: 'rewards.pet', model: Pet.name },
     { path: 'loreUnlocked', model: Lore.name },
 ];
