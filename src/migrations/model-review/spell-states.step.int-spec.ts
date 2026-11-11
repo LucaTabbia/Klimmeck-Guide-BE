@@ -228,6 +228,7 @@ describe('SpellStatesStep (replSet)', () => {
             ],
             activeSpells: [],
         });
+        // voce scritta dal codice nuovo: il suo flag vince sulla lista vecchia (C-WR-01)
         const untouched = await rawCharacter(alreadyNew);
 
         await expect(step.run()).resolves.toEqual({
@@ -240,7 +241,7 @@ describe('SpellStatesStep (replSet)', () => {
         expect(await rawCharacter(alreadyNew)).toEqual(untouched);
         const status = await statusOf(flaggedButOld);
         expect(status.spellStates).toEqual([
-            { spell: fireball, usages: 2, recoveries: [], active: false },
+            { spell: fireball, usages: 2, recoveries: [], active: true },
         ]);
         expect(Object.keys(status).sort()).toEqual(STATUS_KEYS);
     });
@@ -259,7 +260,43 @@ describe('SpellStatesStep (replSet)', () => {
         ]);
     });
 
-    it('counts the anomalies of a character and logs them with its id only (D-07)', async () => {
+    it('keeps the entries the new code wrote before the step and loses none (C-WR-01)', async () => {
+        const fireball = await insertCatalogSpell(3);
+        const studied = await insertCatalogSpell(4);
+        const id = await insertCharacter({
+            spells: [fireball],
+            spellStates: [
+                { spell: fireball, usages: 2, recoveries: [], active: true },
+                {
+                    spell: studied,
+                    usages: 4,
+                    recoveries: [FIRST_RECOVERY],
+                    active: false,
+                },
+            ],
+            activeSpells: [],
+        });
+
+        await expect(step.run()).resolves.toEqual({
+            found: 1,
+            migrated: 1,
+            alreadyDone: 0,
+            unmatched: 0,
+        });
+
+        expect((await statusOf(id)).spellStates).toEqual([
+            { spell: fireball, usages: 2, recoveries: [], active: true },
+            {
+                spell: studied,
+                usages: 4,
+                recoveries: [FIRST_RECOVERY],
+                active: false,
+            },
+        ]);
+        expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('counts the anomalies of a character and logs its id with the spell ids left out (D-07, C-WR-01)', async () => {
         const fireball = await insertCatalogSpell(3);
         const unknownActive = new Types.ObjectId();
         const unknownState = new Types.ObjectId();
@@ -287,7 +324,7 @@ describe('SpellStatesStep (replSet)', () => {
         ]);
         expect(warnSpy.mock.calls).toEqual([
             [
-                `Revisione dei modelli, lista delle magie: personaggio ${id.toHexString()}, usi in conflitto 1, equipaggiate non conosciute 1, stati lasciati fuori 1`,
+                `Revisione dei modelli, lista delle magie: personaggio ${id.toHexString()}, usi in conflitto 1, equipaggiate non conosciute 1 [${unknownActive.toHexString()}], stati lasciati fuori 1 [${unknownState.toHexString()}]`,
             ],
         ]);
     });

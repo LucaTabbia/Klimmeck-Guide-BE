@@ -12,7 +12,7 @@ const MAX_USAGES = new Map<string, number>([
     [FROST.toHexString(), 5],
 ]);
 
-const NO_ANOMALY = { usageConflicts: 0, unknownActive: 0, droppedStates: 0 };
+const NO_ANOMALY = { usageConflicts: 0, unknownActive: [], droppedStates: [] };
 
 const stateOf = (spell: unknown, usages: number, recoveries: Date[] = []) => ({
     spell,
@@ -156,7 +156,7 @@ describe('mergeSpellLists', () => {
         ).toEqual([entryOf(FIREBALL, 1, false, recoveries), entryOf(FROST, 5)]);
     });
 
-    it('creates no entry for an equipped spell that is not known and counts it (D-07)', () => {
+    it('creates no entry for an equipped spell that is not known and reports its id (D-07, C-WR-01)', () => {
         expect(
             mergeSpellLists(
                 {
@@ -169,12 +169,12 @@ describe('mergeSpellLists', () => {
         ).toEqual({
             spellStates: [entryOf(FIREBALL, 2)],
             usageConflicts: 0,
-            unknownActive: 1,
-            droppedStates: 0,
+            unknownActive: [UNKNOWN.toHexString()],
+            droppedStates: [],
         });
     });
 
-    it('leaves out the state of a spell that is not known and counts it (D-07)', () => {
+    it('leaves out the legacy state of a spell that is not known and reports its id (D-07, C-WR-01)', () => {
         expect(
             mergeSpellLists(
                 {
@@ -187,8 +187,106 @@ describe('mergeSpellLists', () => {
         ).toEqual({
             spellStates: [entryOf(FIREBALL, 2)],
             usageConflicts: 0,
-            unknownActive: 0,
-            droppedStates: 1,
+            unknownActive: [],
+            droppedStates: [UNKNOWN.toHexString()],
+        });
+    });
+
+    it('reports a left out state without a readable spell by a placeholder (C-WR-01)', () => {
+        expect(
+            mergeSpellLists(
+                {
+                    spells: [FIREBALL],
+                    spellStates: [
+                        stateOf(FIREBALL, 2),
+                        stateOf('non-un-id', 1),
+                        { ...stateOf(undefined, 1), active: true },
+                    ],
+                    activeSpells: [{ usages: 1 }],
+                },
+                MAX_USAGES,
+            ),
+        ).toEqual({
+            spellStates: [entryOf(FIREBALL, 2)],
+            usageConflicts: 0,
+            unknownActive: ['<senza riferimento>'],
+            droppedStates: ['<senza riferimento>', '<senza riferimento>'],
+        });
+    });
+
+    it('keeps an entry written by the new code even if its spell is not in the old known list (C-WR-01)', () => {
+        const recoveries = [new Date('2026-11-11T10:00:00.000Z')];
+
+        expect(
+            mergeSpellLists(
+                {
+                    spells: [FIREBALL],
+                    spellStates: [
+                        { ...stateOf(SPARK, 1, recoveries), active: false },
+                        stateOf(FIREBALL, 2),
+                        { ...stateOf(FROST, 4), active: true },
+                    ],
+                    activeSpells: [],
+                },
+                MAX_USAGES,
+            ),
+        ).toEqual({
+            spellStates: [
+                entryOf(FIREBALL, 2),
+                entryOf(SPARK, 1, false, recoveries),
+                entryOf(FROST, 4, true),
+            ],
+            ...NO_ANOMALY,
+        });
+    });
+
+    it('keeps one entry per spell when the new code wrote a double (C-WR-01)', () => {
+        expect(
+            mergeSpellLists(
+                {
+                    spells: [FIREBALL],
+                    spellStates: [
+                        stateOf(FIREBALL, 2),
+                        { ...stateOf(FIREBALL, 3), active: true },
+                        { ...stateOf(SPARK, 1), active: true },
+                        { ...stateOf(SPARK, 0), active: false },
+                    ],
+                    activeSpells: [],
+                },
+                MAX_USAGES,
+            ),
+        ).toEqual({
+            spellStates: [entryOf(FIREBALL, 2), entryOf(SPARK, 1, true)],
+            usageConflicts: 0,
+            unknownActive: [],
+            droppedStates: [FIREBALL.toHexString(), SPARK.toHexString()],
+        });
+    });
+
+    it('lets a boolean flag of the state win over the old equipped list (C-WR-01)', () => {
+        expect(
+            mergeSpellLists(
+                {
+                    spells: [FROST, FIREBALL, SPARK],
+                    spellStates: [
+                        { ...stateOf(FROST, 4), active: true },
+                        { ...stateOf(FIREBALL, 2), active: false },
+                        stateOf(SPARK, 1),
+                    ],
+                    activeSpells: [
+                        { spell: FIREBALL, usages: 2 },
+                        { spell: SPARK, usages: 1 },
+                    ],
+                },
+                MAX_USAGES,
+            ),
+        ).toEqual({
+            spellStates: [
+                entryOf(FROST, 4, true),
+                entryOf(FIREBALL, 2),
+                entryOf(SPARK, 1, true),
+            ],
+            ...NO_ANOMALY,
         });
     });
 
