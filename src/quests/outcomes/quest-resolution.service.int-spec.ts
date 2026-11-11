@@ -337,8 +337,13 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
             String(spell._id),
         ]);
         expect(character.status.spellStates).toEqual([
-            { spell: known._id, usages: 1, recoveries: [recoveryAt] },
-            { spell: spell._id, usages: 4, recoveries: [] },
+            {
+                spell: known._id,
+                usages: 1,
+                recoveries: [recoveryAt],
+                active: false,
+            },
+            { spell: spell._id, usages: 4, recoveries: [], active: false },
         ]);
         const [result] = await resultsOf(subject);
         expect(String(result.spellLearned)).toBe(String(spell._id));

@@ -121,8 +121,8 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             String(drawn._id),
         ]);
         expect(character.status.spellStates).toEqual([
-            { spell: known._id, usages: 3, recoveries: [] },
-            { spell: drawn._id, usages: 4, recoveries: [] },
+            { spell: known._id, usages: 3, recoveries: [], active: false },
+            { spell: drawn._id, usages: 4, recoveries: [], active: false },
         ]);
         expect(String((await resultOf(subject)).spellLearned)).toBe(
             String(drawn._id),

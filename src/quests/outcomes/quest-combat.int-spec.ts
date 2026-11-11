@@ -416,7 +416,7 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         const dueAt = new Date(NOW.getTime() + 5000);
         const character = await characterOf(subject);
         expect(character.status.spellStates).toEqual([
-            { spell: spell._id, usages: 1, recoveries: [dueAt] },
+            { spell: spell._id, usages: 1, recoveries: [dueAt], active: false },
         ]);
         expect(character.assets.activeSpells).toEqual([
             expect.objectContaining({ spell: spell._id, usages: 1 }),
