@@ -83,6 +83,31 @@ export function legacyPoi(overrides: RawDocument = {}): RawDocument {
     });
 }
 
+export interface LegacyCityPool {
+    equipment?: readonly unknown[];
+    loot?: readonly unknown[];
+    pets?: readonly unknown[];
+}
+
+// città nella forma vecchia: il pool del negozio in tre campi sciolti sulla radice; una lista non data resta assente
+export function legacyCity(
+    pool: LegacyCityPool = {},
+    overrides: RawDocument = {},
+): RawDocument {
+    return withoutUndefined({
+        type: 'valanVillage',
+        name: 'Fineglen',
+        area: [],
+        markerLocation: new Types.ObjectId(),
+        relatedLore: null,
+        pointsOfInterest: [],
+        shopEquipment: pool.equipment,
+        shopLoot: pool.loot,
+        shopPets: pool.pets,
+        ...overrides,
+    });
+}
+
 // l'indice unico dei nomi dei personaggi attivi vuole un nome diverso per fixture
 let characterSequence = 0;
 
