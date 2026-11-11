@@ -39,6 +39,17 @@ Fuori scope (decisioni dell'utente del 2026-11-09): la fusione di `ownedEquipmen
 - **D-14 (utente, «Coppia 19 dopo la 18»):** si pianifica dopo la Phase 18 e si esegue dopo la sua merge; branch impilato sulla 18, PR verso `develop` dopo quella della 18.
 - **Prove (default tecnico):** unit sui migratori (idempotenza, abbinamento magie per id e per nome, voce pet con HP del catalogo, rinomina slot, fusione delle tre liste di magie con conflitto di `usages`), sul premio xp del pet (10 % dei soli nemici, tetto, nessun compagno, imboscata), sulle letture (debolezze nel generatore, pool nel negozio); integration: boot con migratore su fixture di ogni area, esito con compagno → `petXpGained` e voce aggiornata, `cityShop` dal sotto-documento, SDL verbatim; handoff `BACKEND-NOTES.md` con la tabella dei cambi SDL vecchio → nuovo per la FE Phase 19.
 
+### Dopo la ricerca (2026-11-11)
+- **D-16 (utente, «Ordine di apprendimento»):** le magie attive seguono l'ordine di `spellStates`; nessun ordine di equipaggiamento.
+- **D-17 (Claude):** `petXpGained` = guadagno effettivo dopo il tetto; `maxXp` non valido = nessun premio.
+- **D-18 (Claude):** il premio del compagno vale per ogni vittoria che somma xp di nemici (anche completamento del GM, soccorso vinto, scontro di guardia vinto).
+- **D-19 (Claude):** imboscata: `petXpGained` viaggia nel report trattenuto e arriva nel `QuestResult` creato all'arrivo.
+- **D-20 (Claude):** `item_reference_type.enum.ts` (vuoto) cancellato invece che rinominato.
+- **D-21 (Claude):** `SpellStateMigrator` ridotto al solo taglio (che conserva `active`).
+- **D-22 (Claude):** debolezze rinominate anche su `CombatEnemy`; `CombatParticipant.activeSpells` resta.
+- **D-23 (Claude):** pet posseduto orfano nel migratore → voce con vita 0, contata nel log; tolta dal filo.
+- **D-24 (correzioni):** `maxActiveSpells` è una virtual (D-08: virtual → resolve field); `PointOfInterestInput` non esiste; gli input dei modelli non sono nello SDL; `SlotType.foots` → `feet` è un valore sul filo; compaiono `enum DamageType`/`enum EnergyType`, sparisce `type ActiveSpell`. Inventario a DB dell'11 novembre in `19-REPO-RULES.md` (nessun caso limite nei dati reali).
+
 ### Claude's Discretion
 - Nomi definitivi in `19-REPO-RULES.md` (default sopra: `Weaknesses`, `attack`/`defense` sul Pet, `OwnedPet`, `wornEquipment`, `feet`, `SpellState.active`, `City.shop`, `imagePath`, `petXpGained`, `PET_XP_SHARE`).
 - Struttura del modulo di migrazione e dei log; ordine dei piani dentro le wave; forma della tabella SDL nel handoff.
