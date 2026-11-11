@@ -1156,6 +1156,7 @@ describe('planParticipant', () => {
                                     maxUsages: 2,
                                 },
                             ],
+                            gate: 0.1,
                             roll: 0.6,
                         },
                     }),
@@ -1167,6 +1168,31 @@ describe('planParticipant', () => {
                 { spell: DRAWN_SPELL_ID, usages: 2, recoveries: [] },
             ]);
             expect(plan.result.spellLearned).toBe(DRAWN_SPELL_ID);
+        });
+
+        it('learns no drawn spell when the gate misses the 30% chance (quick 261111-sdc)', () => {
+            expectNothingLearned(
+                studyWith(
+                    300,
+                    {},
+                    {
+                        rewards: rewardsWith({
+                            xpPrize: 300,
+                            spellDraw: {
+                                pool: [
+                                    {
+                                        spellId: DRAWN_SPELL_ID,
+                                        minXpToLearn: 0,
+                                        maxUsages: 2,
+                                    },
+                                ],
+                                gate: 0.3,
+                                roll: 0,
+                            },
+                        }),
+                    },
+                ),
+            );
         });
 
         it('keeps the fixed spell of the study when present (D-31)', () => {
@@ -1189,6 +1215,7 @@ describe('planParticipant', () => {
                                     maxUsages: 2,
                                 },
                             ],
+                            gate: 0.99,
                             roll: 0,
                         },
                     }),
@@ -1218,6 +1245,7 @@ describe('planParticipant', () => {
                                         maxUsages: 2,
                                     },
                                 ],
+                                gate: 0,
                                 roll: 0,
                             },
                         }),
