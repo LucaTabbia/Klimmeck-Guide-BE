@@ -150,6 +150,35 @@ describe('WornEquipmentStep (replSet)', () => {
         expect(await wornOf(active)).toEqual({ feet: boots });
     });
 
+    it('never overwrites an equipment already under the new name: counted and untouched (C-WR-03)', async () => {
+        const oldBoots = new Types.ObjectId();
+        const newHelmet = new Types.ObjectId();
+        const withBoth = await insertCharacter(
+            { [OLD_SLOT]: oldBoots },
+            { assets: { wornEquipment: { head: newHelmet } } },
+        );
+        const legacy = await insertCharacter({ [OLD_SLOT]: oldBoots });
+        const untouched = await rawCharacter(withBoth);
+
+        await expect(step.run()).resolves.toEqual({
+            found: 2,
+            migrated: 1,
+            alreadyDone: 0,
+            unmatched: 1,
+        });
+
+        expect(await rawCharacter(withBoth)).toEqual(untouched);
+        expect(await wornOf(legacy)).toEqual({ feet: oldBoots });
+
+        await expect(step.run()).resolves.toEqual({
+            found: 2,
+            migrated: 0,
+            alreadyDone: 1,
+            unmatched: 1,
+        });
+        expect(await rawCharacter(withBoth)).toEqual(untouched);
+    });
+
     it('changes nothing on a second run (D-06)', async () => {
         const characters = [
             await insertCharacter({ [OLD_SLOT]: new Types.ObjectId() }),
