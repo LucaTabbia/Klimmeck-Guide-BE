@@ -115,6 +115,28 @@ describe('trade pets', () => {
             });
         });
 
+        it('heals the broken entries of the list it rewrites and leaves out an unreadable one (D-03)', () => {
+            expect(
+                applyTradeToPets(
+                    {
+                        ownedPets: [
+                            { pet: 'not-an-id', xp: 1, currentLifePoints: 1 },
+                            { pet: camel, xp: null, currentLifePoints: 6.5 },
+                        ] as never,
+                        pet: null,
+                    },
+                    [line('buy', 'Pet', horse)],
+                    lifePoints([horse, 300]),
+                ),
+            ).toEqual({
+                ownedPets: [
+                    { pet: camel, xp: 0, currentLifePoints: 6 },
+                    { pet: horse, xp: 0, currentLifePoints: 300 },
+                ],
+                unequip: false,
+            });
+        });
+
         it('removes the whole entry of a sold pet and keeps the others untouched (D-03)', () => {
             expect(
                 applyTradeToPets(

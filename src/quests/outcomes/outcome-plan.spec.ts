@@ -511,6 +511,25 @@ describe('planParticipant', () => {
             ]);
         });
 
+        it('heals the broken entries of the list rewritten for a won pet (D-03)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    snapshot: snapshotWith({
+                        assets: assetsWithPets([
+                            { pet: 'not-an-id', xp: 1, currentLifePoints: 1 },
+                            { pet: OWNED_PET_ID, xp: null },
+                        ] as never),
+                    }),
+                    rewards: rewardsWith({ pet: PET_ID, petLifePoints: 450 }),
+                }),
+            );
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                { pet: OWNED_PET_ID, xp: 0, currentLifePoints: 0 },
+                { pet: PET_ID, xp: 0, currentLifePoints: 450 },
+            ]);
+        });
+
         it('unlocks no pet lore when the pet is already owned (D-26)', () => {
             const plan = wonFight(petRewards([PET_PAGE_ID]), {
                 ownedItems: [],

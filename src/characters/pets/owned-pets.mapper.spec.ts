@@ -32,6 +32,32 @@ describe('owned pets on the wire', () => {
         ).toEqual([horse]);
     });
 
+    it('serves the numbers of a broken entry as valid amounts and keeps its pet (D-03)', () => {
+        const horse = populated('Cavallo');
+        const cat = populated('Gatto');
+        const owl = populated('Gufo');
+
+        expect(
+            ownedPetsOnTheWire([
+                entryOf(horse, null as unknown as number, 12.9),
+                entryOf(cat, -4, undefined as unknown as number),
+                entryOf(owl, 120.5, Number.NaN),
+            ]),
+        ).toEqual([
+            { pet: horse, xp: 0, currentLifePoints: 12 },
+            { pet: cat, xp: 0, currentLifePoints: 0 },
+            { pet: owl, xp: 120, currentLifePoints: 0 },
+        ]);
+    });
+
+    it('drops a null entry instead of throwing (D-23)', () => {
+        const horse = entryOf(populated('Cavallo'));
+
+        expect(
+            ownedPetsOnTheWire([null as unknown as OwnedPet, horse]),
+        ).toEqual([horse]);
+    });
+
     it('reads a missing list as empty (D-23)', () => {
         expect(ownedPetsOnTheWire(undefined)).toEqual([]);
         expect(ownedPetsOnTheWire(null)).toEqual([]);

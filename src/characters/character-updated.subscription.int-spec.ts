@@ -591,6 +591,79 @@ describe('characterUpdated subscription (wire)', () => {
         expect(raw?.assets.ownedPets).toEqual(owned);
     });
 
+    // uno script col driver nativo salta i validatori: numeri nulli, assenti o frazionari, ref non leggibile
+    async function giveAliceBrokenOwnedPets(): Promise<WireOwnedPet[]> {
+        const pets = harness.connection.model(Pet.name);
+        const named = async (name: string) =>
+            (await persistPet(pets, { name, speedModifier: null }))
+                ._id as Types.ObjectId;
+        const [cavallo, gatto, gufo] = [
+            await named('Cavallo'),
+            await named('Gatto'),
+            await named('Gufo'),
+        ];
+        await characters.collection.updateOne(
+            { _id: alice.character?._id as Types.ObjectId },
+            {
+                $set: {
+                    'assets.ownedPets': [
+                        { pet: cavallo, xp: null, currentLifePoints: 80 },
+                        { pet: gatto, xp: 12 },
+                        { pet: 'not-an-id', xp: 1, currentLifePoints: 1 },
+                        { pet: gufo, xp: 120.5, currentLifePoints: -4 },
+                    ],
+                },
+            },
+        );
+        const served = (id: Types.ObjectId, name: string) => ({
+            id: String(id),
+            name,
+            speedModifier: null,
+            sellable: null,
+        });
+        return [
+            { pet: served(cavallo, 'Cavallo'), xp: 0, currentLifePoints: 80 },
+            { pet: served(gatto, 'Gatto'), xp: 12, currentLifePoints: 0 },
+            { pet: served(gufo, 'Gufo'), xp: 120, currentLifePoints: 0 },
+        ];
+    }
+
+    it('serves a broken owned pet entry with valid amounts instead of nulling the character (D-03, D-23)', async () => {
+        const ownedPets = await giveAliceBrokenOwnedPets();
+
+        const served = await graphqlRequest(
+            harness.app,
+            CHARACTER_PETS_QUERY,
+            { id: aliceCharId },
+            alice.bearer,
+        );
+
+        expect(served.body).toEqual({
+            data: { character: { assets: { pet: null, ownedPets } } },
+        });
+    });
+
+    it('carries a broken owned pet entry with valid amounts in the snapshot (D-03, D-23)', async () => {
+        const ownedPets = await giveAliceBrokenOwnedPets();
+        const subscription = openSubscription<PetsUpdatedResult>(
+            url,
+            { Authorization: alice.bearer },
+            { query: CHARACTER_PETS_UPDATED, variables: { id: aliceCharId } },
+        );
+        opened.push(subscription);
+
+        const snapshot = await subscription.next();
+
+        expect(snapshot).toEqual({
+            done: false,
+            value: {
+                data: {
+                    characterUpdated: { assets: { pet: null, ownedPets } },
+                },
+            },
+        });
+    });
+
     it('serves a legacy character without owned pets as an empty list (D-13, D-23)', async () => {
         await characters.collection.updateOne(
             { _id: alice.character?._id as Types.ObjectId },

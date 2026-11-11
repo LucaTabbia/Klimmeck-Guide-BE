@@ -35,8 +35,6 @@ describe('companionXpAward', () => {
             gained: 13,
         });
         expect(award.ownedPets).not.toBe(owned);
-        expect(award.ownedPets?.[0]).toBe(owned[0]);
-        expect(award.ownedPets?.[2]).toBe(owned[2]);
         expect(owned).toEqual(ownedPets());
     });
 
@@ -152,8 +150,29 @@ describe('companionXpAward', () => {
         );
 
         expect(award).toEqual({
+            ownedPets: [{ pet: hawk, xp: 53, currentLifePoints: 7 }],
+            gained: 13,
+        });
+    });
+
+    it('heals the broken entries of the list it rewrites and leaves out an unreadable one (D-03)', () => {
+        const award = companionXpAward(
+            {
+                pet: hawk,
+                ownedPets: [
+                    { pet: 'not-an-id', xp: 1, currentLifePoints: 1 },
+                    { pet: wolf, xp: null, currentLifePoints: 12.5 },
+                    { pet: hawk, xp: 40 },
+                ] as never,
+            },
+            130,
+            capsOf([wolf, 1000], [hawk, 1000]),
+        );
+
+        expect(award).toEqual({
             ownedPets: [
-                { pet: hawk.toHexString(), xp: 53, currentLifePoints: 7 },
+                { pet: wolf, xp: 0, currentLifePoints: 12 },
+                { pet: hawk, xp: 53, currentLifePoints: 0 },
             ],
             gained: 13,
         });
