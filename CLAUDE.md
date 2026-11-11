@@ -125,14 +125,14 @@ Backend **NestJS 11 + MongoDB (Mongoose 8) + GraphQL (Apollo code-first, HTTP + 
 - Modules: `{feature}.module.ts` (e.g., `characters.module.ts`)
 - Models: `{entity}.model.ts` (e.g., `character.model.ts`, `spell.model.ts`)
 - Request/Response DTOs: `{name}-request.model.ts`, `{name}-response.model.ts`
-- Enums: `{entity}-type.enum.ts` or `{entity}_type.enum.ts` (inconsistent: both kebab and snake_case used)
+- Enums: `{entity}-type.enum.ts`, always kebab-case (e.g., `slot-type.enum.ts`, `rarity-type.enum.ts`)
 - Processors: `{feature}.processor.ts` (e.g., `spell-recovery.processor.ts`)
 - Verb-based: `findAll()`, `findOne()`, `doTransaction()`, `equipItem()`, `handleSpellRecovery()`
 - camelCase consistently used
 - Private helper methods prefixed when needed: `private roundCoord()`, `private toRad()`
-- camelCase: `characterId`, `spellId`, `activeSpell`, `wearedEquipment`
+- camelCase: `characterId`, `spellId`, `spellStates`, `wornEquipment`
 - Constants in UPPER_SNAKE_CASE: `MAX_SNAP_DISTANCE_KM`, `R` (radius constant)
-- Database model properties use camelCase: `ownedEquipments`, `activeSpells`, `wearedEquipment`
+- Database model properties use camelCase: `ownedEquipments`, `ownedPets`, `spellStates`, `wornEquipment`
 - PascalCase: `Character`, `Spell`, `Equipment`, `CommonResponse`
 - Enum names PascalCase: `SlotType`, `ClassType`
 - Enum values lowercase with camelCase properties: 
