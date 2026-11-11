@@ -4,6 +4,7 @@ import { classifyFreeTravel, FreeTravelFacts } from './travel-rules';
 const OK: FreeTravelFacts = {
     destinationIsCityMarker: true,
     awaitingAid: false,
+    imprisonedUntil: null,
     travelling: false,
     onQuest: false,
     sameLocation: false,
@@ -26,6 +27,11 @@ describe('classifyFreeTravel', () => {
             GameRuleErrorCode.TRAVEL_DESTINATION_NOT_ALLOWED,
         ],
         ['awaiting aid', { awaitingAid: true }, GameRuleErrorCode.AWAITING_AID],
+        [
+            'imprisoned (quick 261110-cgd)',
+            { imprisonedUntil: new Date('2026-11-10T22:00:00.000Z') },
+            GameRuleErrorCode.CHARACTER_IMPRISONED,
+        ],
         [
             'travelling',
             { travelling: true },
@@ -83,5 +89,22 @@ describe('classifyFreeTravel', () => {
         ],
     ])('orders the rejections: %s', (_label, facts, code) => {
         expect(codeOf(facts)).toBe(code);
+    });
+
+    it('refuses an imprisoned character after the destination and before the running travel, with the release instant (quick 261110-cgd)', () => {
+        const until = new Date('2026-11-10T22:00:00.000Z');
+
+        expect(
+            codeOf({ imprisonedUntil: until, destinationIsCityMarker: false }),
+        ).toBe(GameRuleErrorCode.TRAVEL_DESTINATION_NOT_ALLOWED);
+        expect(codeOf({ imprisonedUntil: until, travelling: true })).toBe(
+            GameRuleErrorCode.CHARACTER_IMPRISONED,
+        );
+        expect(
+            classifyFreeTravel({ ...OK, imprisonedUntil: until })?.extensions,
+        ).toEqual({
+            code: 'CHARACTER_IMPRISONED',
+            imprisonedUntil: until.toISOString(),
+        });
     });
 });

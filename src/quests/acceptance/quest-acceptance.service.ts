@@ -21,6 +21,8 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { idForms, refIdOf, sameId } from 'src/mongo/document-id';
+import { healHasNoEffect } from 'src/quests/outcomes/injuries/heal-no-effect';
+import { statusFactsOf } from 'src/quests/outcomes/progression/status-facts';
 import { QuestResolutionScheduler } from 'src/quests/outcomes/scheduling/quest-resolution.scheduler';
 import { initialLaneDatesOf } from 'src/quests/party/party-rules';
 import {
@@ -28,6 +30,10 @@ import {
     soloStartDateOf,
 } from 'src/quests/party/quest-start.service';
 import { mealGuardsOf, mealSetOf } from 'src/travel/food/travel-food.updates';
+import {
+    notImprisonedAt,
+    refusalWhileImprisoned,
+} from 'src/characters/imprisonment/imprisonment';
 import {
     PlannedMeal,
     TravelPantryReader,
@@ -58,7 +64,6 @@ import {
     LaneMovement,
     registrationFilter,
     registrationUpdate,
-    UnclaimedSnapshot,
     UnregisteredSnapshot,
 } from './quest-acceptance.updates';
 import { laneOf, QuestLane } from './quest-lanes';
@@ -75,6 +80,7 @@ interface QuestAcceptanceSnapshot extends QuestEligibilitySnapshot {
         markerLocation?: unknown;
         timeToComplete?: number | null;
     };
+    prizes?: { cure?: unknown } | null;
 }
 
 interface CharacterAcceptanceSnapshot extends CharacterEligibilitySnapshot {
@@ -82,8 +88,12 @@ interface CharacterAcceptanceSnapshot extends CharacterEligibilitySnapshot {
         title: TitleType;
         location?: unknown;
         awaitingAid?: unknown;
+        imprisonedUntil?: unknown;
         activeTravel?: unknown;
         injuries?: unknown[];
+        xp?: number;
+        currentLifePoints?: number;
+        maxLifePoints?: number;
     };
     assets?: { pet?: unknown } | null;
 }
@@ -96,6 +106,8 @@ interface Registrant {
 
 interface LaneClaim {
     characterId: Types.ObjectId;
+    // istante della prigione riaffermata nel filtro (quick 261110-cgd)
+    now: Date;
     quest: ClaimedQuest;
     claim: LaneClaimSnapshot;
     pendingQuestId: Types.ObjectId;
@@ -103,7 +115,7 @@ interface LaneClaim {
     meal: PlannedMeal | null;
 }
 
-type ClaimTarget = Pick<LaneClaim, 'characterId' | 'quest' | 'claim'>;
+type ClaimTarget = Pick<LaneClaim, 'characterId' | 'quest' | 'claim' | 'now'>;
 
 const QUEST_PROJECTION = {
     'infos.type': 1,
@@ -111,6 +123,7 @@ const QUEST_PROJECTION = {
     'infos.timeToComplete': 1,
     requirements: 1,
     registeredAdventurers: 1,
+    'prizes.cure': 1,
 };
 
 // della polilinea del viaggio basta la presenza: endTime evita di leggere le coordinate
@@ -119,7 +132,11 @@ const CHARACTER_PROJECTION = {
     'status.location': 1,
     'status.activeTravel.endTime': 1,
     'status.awaitingAid': 1,
+    'status.imprisonedUntil': 1,
     'status.injuries': 1,
+    'status.currentLifePoints': 1,
+    'status.maxLifePoints': 1,
+    'status.xp': 1,
     quests: 1,
     'assets.pet': 1,
 };
@@ -160,8 +177,14 @@ export class QuestAcceptanceService {
         const cost = this.costOrReject(quest, lane);
         const rule = this.seatRuleOrReject(quest);
         const character = await this.readCharacter(characterId);
-        const rejection = classifyEligibility(quest, character, lane, rule);
+        const now = this.clock.now();
+        // in prigione nessuna corsia si accetta, come in attesa di soccorso (quick 261110-cgd)
+        const rejection =
+            refusalWhileImprisoned(character.status, now) ??
+            classifyEligibility(quest, character, lane, rule);
         if (rejection) throw rejection;
+        // una heal senza effetto non si accetta (Phase 18 D-25): dopo l'eleggibilità, prima di città, movimento, fame e transazione; solo il tipo heal
+        this.effectiveOrReject(quest, character);
         // solo la story si accetta da qualunque città: standard e worldMission sono legate alla città del marker (D-26 emendata 2026-10-22)
         const location =
             lane !== QuestLane.story
@@ -184,7 +207,6 @@ export class QuestAcceptanceService {
             minTitle: quest.requirements?.minTitle,
         };
         const pendingQuestId = new Types.ObjectId();
-        const now = this.clock.now();
         // arrivo ≠ avvio per i party (utente 2026-10-25); una quest da soli sul marker parte con il claim (D-22)
         const laneDates = initialLaneDatesOf(lane, movement, now);
         const dates = {
@@ -210,6 +232,7 @@ export class QuestAcceptanceService {
             await this.claimLane(
                 {
                     characterId,
+                    now,
                     quest: claimed,
                     claim,
                     pendingQuestId,
@@ -335,6 +358,22 @@ export class QuestAcceptanceService {
               };
     }
 
+    // la corsa con una pozione bevuta dopo la pre-lettura non si richiude nel claim: la risoluzione resta com'è (D-25)
+    private effectiveOrReject(
+        quest: QuestAcceptanceSnapshot,
+        character: CharacterAcceptanceSnapshot,
+    ): void {
+        if (quest.infos.type !== QuestType.heal) return;
+        const { currentLifePoints, maxLifePoints } = statusFactsOf(character);
+        const subject = {
+            currentLifePoints,
+            maxLifePoints,
+            injuries: character.status.injuries ?? [],
+        };
+        if (healHasNoEffect(subject, quest.prizes?.cure))
+            throw GameRuleException.questNoEffect();
+    }
+
     // pre-verifica fuori sessione: solo il viaggio mangia (D-13)
     private async fedOrReject(
         characterId: Types.ObjectId,
@@ -438,6 +477,7 @@ export class QuestAcceptanceService {
     private async claimLane(
         {
             characterId,
+            now,
             quest,
             claim,
             pendingQuestId,
@@ -446,7 +486,7 @@ export class QuestAcceptanceService {
         }: LaneClaim,
         session: ClientSession,
     ): Promise<void> {
-        const target = { characterId, quest, claim };
+        const target = { characterId, quest, claim, now };
         if (meal && !meal.plan.arrivesAlive)
             throw await this.starvingOrRace(target, session);
         const lane = laneOf(quest.type);
@@ -458,7 +498,12 @@ export class QuestAcceptanceService {
                     claim,
                     quest.id,
                     isRepeatable(quest.type),
-                    meal ? mealGuardsOf(meal.plan, meal.pantry.hpRaw) : {},
+                    {
+                        ...notImprisonedAt(now),
+                        ...(meal
+                            ? mealGuardsOf(meal.plan, meal.pantry.hpRaw)
+                            : {}),
+                    },
                 ),
                 laneClaimUpdate(
                     lane,
@@ -479,7 +524,7 @@ export class QuestAcceptanceService {
         target: ClaimTarget,
         session: ClientSession,
     ): Promise<Error> {
-        const { characterId, quest, claim } = target;
+        const { characterId, quest, claim, now } = target;
         const claimable = await this.characterModel
             .exists(
                 laneClaimFilter(
@@ -488,6 +533,7 @@ export class QuestAcceptanceService {
                     claim,
                     quest.id,
                     isRepeatable(quest.type),
+                    notImprisonedAt(now),
                 ),
             )
             .session(session)
@@ -499,15 +545,18 @@ export class QuestAcceptanceService {
 
     // la rilettura in sessione sceglie solo il codice (Phase 4)
     private async unclaimedError(
-        { characterId, quest, claim }: ClaimTarget,
+        { characterId, quest, claim, now }: ClaimTarget,
         session: ClientSession,
     ): Promise<Error> {
         const fresh = await this.characterModel
             .findOne(activeCharacterById(characterId), CHARACTER_PROJECTION)
             .session(session)
-            .lean<UnclaimedSnapshot | null>()
+            .lean<CharacterAcceptanceSnapshot | null>()
             .exec();
-        return classifyUnclaimed(fresh, quest, claim);
+        return (
+            refusalWhileImprisoned(fresh?.status, now) ??
+            classifyUnclaimed(fresh, quest, claim)
+        );
     }
 
     // ritorna i registrati prima della scrittura: la prima registrazione apre la finestra delle 24 ore

@@ -5,6 +5,8 @@ import { Clock, SystemClock } from 'src/auth/clock';
 import { loreConfigProvider } from 'src/config/lore-config';
 import { questConfigProvider } from 'src/config/quest-config';
 import { CharacterArchiveModule } from 'src/characters/deletion/character-archive.module';
+import { PrisonReleaseService } from 'src/characters/imprisonment/prison-release.service';
+import { PrisonReleaseSweeper } from 'src/characters/imprisonment/prison-release.sweeper';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { EconomyModule } from 'src/economy/economy.module';
 import { LoreGeographyModule } from 'src/lore/lore-geography.module';
@@ -43,6 +45,7 @@ import {
 import { BossResolutionService } from './boss-resolution.service';
 import { ChanceSource, MathChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
+import { ConclusionEventDrawer } from './conclusion/conclusion-event.drawer';
 import { GmCompletionService } from './gm-completion.service';
 import { PlaceholderCombatResolver } from './combat/placeholder-combat-resolver';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
@@ -93,6 +96,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         { provide: ChanceSource, useClass: MathChanceSource },
         OutcomeWriter,
         ResolutionLoader,
+        ConclusionEventDrawer,
         BossResolutionService,
         RescueResolutionService,
         QuestResolutionService,
@@ -101,6 +105,9 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         loreConfigProvider,
         QuestResolutionSweeper,
         GmCompletionService,
+        // la prigione nasce dall'arresto di una crime (quick 261110-cgd): liberazione e push accanto agli sweep delle missioni (quick 261110-prp)
+        PrisonReleaseService,
+        PrisonReleaseSweeper,
     ],
     // la porta del motore per quest e imboscate (combattimento, composizione); il sorteggio della partenza ha un secondo binding
     // in TravelPlanningModule (importare questo modulo creerebbe un ciclo): stessa classe senza stato, gli harness li sovrascrivono per token in tutti i moduli

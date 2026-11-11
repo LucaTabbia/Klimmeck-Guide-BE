@@ -629,6 +629,139 @@ describe('QuestAcceptanceService (replSet)', () => {
         });
     });
 
+    describe('a heal without effect (D-25)', () => {
+        const VILLAGE_CURE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
+
+        async function curingQuestOf(
+            type: string,
+            prizes: Record<string, unknown> = { cure: VILLAGE_CURE },
+        ): Promise<Types.ObjectId> {
+            const base = buildQuest();
+            const quest = await persistQuest(quests, {
+                infos: {
+                    ...base.infos,
+                    type,
+                    markerLocation: world.questMarker,
+                },
+                prizes: { ...base.prizes, ...prizes },
+            });
+            return quest._id as Types.ObjectId;
+        }
+
+        async function woundedAt(
+            hp: number,
+            injuries: string[],
+            questsState: Record<string, unknown> = {},
+        ): Promise<Types.ObjectId> {
+            const charId = await characterAt(
+                world.cityMarker,
+                'rookie',
+                questsState,
+            );
+            await characters.collection.updateOne(
+                { _id: charId },
+                {
+                    $set: {
+                        'status.currentLifePoints': hp,
+                        'status.maxLifePoints': 1000,
+                        'status.injuries': injuries,
+                    },
+                },
+            );
+            return charId;
+        }
+
+        async function everything() {
+            const [rawCharacters, rawQuestDocs, rawPending, rawUsers] =
+                await Promise.all([
+                    characters.collection.find().toArray(),
+                    quests.collection.find().toArray(),
+                    pendingQuests.collection.find().toArray(),
+                    users.collection.find().toArray(),
+                ]);
+            return {
+                characters: rawCharacters,
+                quests: rawQuestDocs,
+                pendingQuests: rawPending,
+                users: rawUsers,
+                travelJobs: [...queue.added],
+                questJobs: [...questQueue.added],
+            };
+        }
+
+        async function expectRefusedWithoutWrites(
+            charId: Types.ObjectId,
+            questId: Types.ObjectId,
+        ): Promise<void> {
+            const ownerId = await ownerWith(6000);
+            const before = await everything();
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({
+                extensions: { code: 'QUEST_NO_EFFECT' },
+            });
+
+            expect(await everything()).toEqual(before);
+            expect(before.travelJobs).toEqual([]);
+            expect(before.questJobs).toEqual([]);
+        }
+
+        async function expectAccepted(
+            charId: Types.ObjectId,
+            questId: Types.ObjectId,
+        ): Promise<void> {
+            const pqId = await accept(await ownerWith(0), charId, questId);
+
+            expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+        }
+
+        it('refuses a heal without effect with QUEST_NO_EFFECT and writes nothing (D-25)', async () => {
+            await expectRefusedWithoutWrites(
+                await woundedAt(500, []),
+                await curingQuestOf('heal'),
+            );
+        });
+
+        it('refuses a heal without a cure for anyone (D-25)', async () => {
+            await expectRefusedWithoutWrites(
+                await woundedAt(1, ['deepCut', 'infection']),
+                await curingQuestOf('heal', {}),
+            );
+        });
+
+        it('accepts a heal that would cure an injury at full life points (D-25)', async () => {
+            await expectAccepted(
+                await woundedAt(1000, ['deepCut']),
+                await curingQuestOf('heal'),
+            );
+        });
+
+        it('accepts a heal below the ceiling without curable injuries (D-25)', async () => {
+            await expectAccepted(
+                await woundedAt(400, ['infection']),
+                await curingQuestOf('heal'),
+            );
+        });
+
+        it('accepts a job that carries a cure even when it would cure nothing (D-25)', async () => {
+            await expectAccepted(
+                await woundedAt(1000, []),
+                await curingQuestOf('job'),
+            );
+        });
+
+        it('answers the eligibility refusals before the heal without effect (D-25)', async () => {
+            const charId = await woundedAt(1000, [], {
+                pendingQuest: new Types.ObjectId(),
+            });
+
+            await expect(
+                accept(await ownerWith(0), charId, await curingQuestOf('heal')),
+            ).rejects.toMatchObject({ code: 'QUEST_SLOT_BUSY' });
+        });
+    });
+
     describe('concurrency (SC2/SC3)', () => {
         it('rejects with QUEST_SLOT_BUSY when the lane is taken after the pre-check, writing nothing', async () => {
             const ownerId = await ownerWith(6000);
@@ -844,6 +977,34 @@ describe('QuestAcceptanceService (replSet)', () => {
 
             expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
         });
+
+        it('rejects a magic quest for a paladin when minTitle is mage with QUEST_TITLE_MISMATCH (quick 261110-mag)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker, 'paladin');
+            const questId = await questOf('magic', { minTitle: 'mage' });
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_TITLE_MISMATCH' });
+
+            expect((await raw(charId))?.quests.pendingQuest).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it.each(['mage', 'hero'])(
+            'accepts a magic quest for a %s when minTitle is mage, at no cost (quick 261110-mag)',
+            async (title) => {
+                const ownerId = await ownerWith(6000);
+                const charId = await characterAt(world.cityMarker, title);
+                const questId = await questOf('magic', { minTitle: 'mage' });
+
+                const pqId = await accept(ownerId, charId, questId);
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+                expect(await pointsOf(ownerId)).toBe(6000);
+            },
+        );
     });
 
     describe('travel guard (D-06)', () => {
@@ -911,6 +1072,92 @@ describe('QuestAcceptanceService (replSet)', () => {
             { $set: { concludedAt: ACCEPTED_AT } },
         );
     }
+
+    function imprison(characterId: Types.ObjectId, until: Date) {
+        return characters.collection.updateOne(
+            { _id: characterId },
+            { $set: { 'status.imprisonedUntil': until } },
+        );
+    }
+
+    describe('prison guard (quick 261110-cgd)', () => {
+        const RELEASE = new Date(ACCEPTED_AT.getTime() + 60_000);
+
+        it('rejects every lane of an imprisoned character with CHARACTER_IMPRISONED and writes nothing (quick 261110-cgd)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            await imprison(charId, RELEASE);
+            const questIds = [
+                await questOf('crime'),
+                await questOf('story', {
+                    requiredPoints: 1000,
+                    minTitle: 'rookie',
+                }),
+                await questOf('worldMission', {
+                    requiredPoints: 3000,
+                    requiredAdventurers: ANY_THREE,
+                }),
+                await questOf('aid', { requiredAdventurers: ANY_THREE }),
+            ];
+            const before = await raw(charId);
+
+            for (const questId of questIds)
+                await expect(
+                    accept(ownerId, charId, questId),
+                ).rejects.toMatchObject({
+                    code: 'CHARACTER_IMPRISONED',
+                    extensions: {
+                        code: 'CHARACTER_IMPRISONED',
+                        imprisonedUntil: RELEASE.toISOString(),
+                    },
+                });
+
+            expect(await raw(charId)).toEqual(before);
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+            for (const questId of questIds)
+                expect(
+                    (await rawQuest(questId))?.registeredAdventurers,
+                ).toEqual([]);
+            expect(queue.added).toEqual([]);
+        });
+
+        it('rejects with CHARACTER_IMPRISONED when the prison starts after the pre-check (quick 261110-cgd)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                requiredAdventurers: ANY_THREE,
+            });
+            const transaction = interleaveBeforeTransaction(() =>
+                imprison(charId, RELEASE),
+            );
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'CHARACTER_IMPRISONED' });
+
+            expect(transaction).toHaveBeenCalledTimes(1);
+            const character = await raw(charId);
+            expect(
+                character?.quests.activeWorldMissionQuest ?? null,
+            ).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('accepts a quest once the prison has ended (quick 261110-cgd)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            await imprison(charId, ACCEPTED_AT);
+            const questId = await questOf('crime');
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).resolves.toBeInstanceOf(Types.ObjectId);
+            expect(await pendingCount()).toBe(1);
+        });
+    });
 
     describe('aid wait guard (D-07)', () => {
         it('rejects every lane of a character awaiting aid with AWAITING_AID and writes nothing', async () => {

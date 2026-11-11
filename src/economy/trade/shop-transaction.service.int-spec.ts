@@ -819,6 +819,46 @@ describe('ShopTransactionService (replSet)', () => {
             await expectShopNotInCity(id, buySword(id));
         });
 
+        it('rejects an imprisoned character at a city marker with CHARACTER_IMPRISONED and writes nothing (quick 261110-cgd)', async () => {
+            const until = new Date('2999-01-01T00:00:00.000Z');
+            const id = await persistTrader(
+                coins(0, 5, 0),
+                {},
+                {},
+                { imprisonedUntil: until },
+            );
+            const before = await raw(id);
+
+            await expect(shop.execute(buySword(id))).rejects.toMatchObject({
+                code: 'CHARACTER_IMPRISONED',
+                extensions: {
+                    code: 'CHARACTER_IMPRISONED',
+                    imprisonedUntil: until.toISOString(),
+                },
+            });
+            await expect(
+                shop.execute(
+                    trade({
+                        id,
+                        total: coins(0, 0, 0),
+                        isTotalPositive: false,
+                    }),
+                ),
+            ).rejects.toMatchObject({ code: 'CHARACTER_IMPRISONED' });
+            expect(await raw(id)).toEqual(before);
+        });
+
+        it('trades once the prison has ended (quick 261110-cgd)', async () => {
+            const id = await persistTrader(
+                coins(0, 5, 0),
+                {},
+                {},
+                { imprisonedUntil: new Date('2000-01-01T00:00:00.000Z') },
+            );
+
+            await expect(shop.execute(buySword(id))).resolves.toEqual(SUCCESS);
+        });
+
         it('honours only the city marker, not the other points of interest of the city', async () => {
             const character = await persistCharacterOutsideCity(coins(0, 5, 0));
             await persistCity(cityModelOf({ connection }), {

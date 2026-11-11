@@ -136,7 +136,7 @@ describe('CitiesResolver size and hasShop', () => {
         await persist({ type: CityType.mirwaCity, name: 'Senza pool' });
 
         expect(byName(await queryCities())).toEqual({
-            Necrorian: { size: 'city', hasShop: false },
+            Necrorian: { size: 'capital', hasShop: false },
             'Senza pool': { size: 'city', hasShop: false },
         });
     });

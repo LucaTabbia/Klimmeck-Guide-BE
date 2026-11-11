@@ -4,6 +4,7 @@ import {
     NO_REWARDS,
     PrizesSnapshot,
     QUEST_PET_WIN_CHANCE,
+    SPELL_DRAW_CHANCE,
     RewardCatalog,
     SpellCandidate,
     canLearnSpell,
@@ -210,8 +211,8 @@ describe('drawRewards with a spell draw', () => {
             ...overrides,
         });
 
-    it('draws one roll for the spell after the loot roll when the quest draws a spell (D-31)', () => {
-        const chance = new SequenceChance([0.1, 0.7]);
+    it('draws the spell gate and then the pick after the loot roll when the quest draws a spell (D-31, quick 261111-sdc)', () => {
+        const chance = new SequenceChance([0.1, 0.2, 0.7]);
 
         const rewards = drawRewards(
             lootPrizes({ spellDraw: true }),
@@ -224,9 +225,32 @@ describe('drawRewards with a spell draw', () => {
         ]);
         expect(rewards.spellDraw).toEqual({
             pool: [SPELL_A, SPELL_B],
+            gate: 0.2,
             roll: 0.7,
         });
-        expect(chance.drawn).toEqual([0.1, 0.7]);
+        expect(chance.drawn).toEqual([0.1, 0.2, 0.7]);
+    });
+
+    it('pins the spell draw chance at 30% (quick 261111-sdc)', () => {
+        expect(SPELL_DRAW_CHANCE).toBe(0.3);
+    });
+
+    it('keeps a fixed spell prize out of the spell draw rolls (quick 261111-sdc)', () => {
+        const chance = new SequenceChance([0.1, 0.9, 0.7]);
+
+        const rewards = drawRewards(
+            lootPrizes({ spell: SPELL_ID }),
+            drawCatalog,
+            chance,
+        );
+
+        expect(rewards.spellCandidate).toEqual({
+            spellId: SPELL_ID,
+            minXpToLearn: 4000,
+            maxUsages: 4,
+        });
+        expect(rewards.spellDraw).toBeNull();
+        expect(chance.drawn).toEqual([0.1]);
     });
 
     it('consumes no extra roll without the spell draw flag', () => {
@@ -270,22 +294,26 @@ describe('drawRewards with a pet prize', () => {
         });
 
     it('wins the pet prize on a roll below 20% after the loot and spell draws (D-21)', () => {
-        const chance = new SequenceChance([0.1, 0.7, 0.19]);
+        const chance = new SequenceChance([0.1, 0.2, 0.7, 0.19]);
 
         const rewards = drawRewards(petPrizes(), petCatalog, chance);
 
         expect(rewards.pet).toEqual(PET_ID);
-        expect(rewards.spellDraw).toEqual({ pool: [SPELL_A], roll: 0.7 });
-        expect(chance.drawn).toEqual([0.1, 0.7, 0.19]);
+        expect(rewards.spellDraw).toEqual({
+            pool: [SPELL_A],
+            gate: 0.2,
+            roll: 0.7,
+        });
+        expect(chance.drawn).toEqual([0.1, 0.2, 0.7, 0.19]);
     });
 
     it('loses the pet prize on a roll of 20% (D-21)', () => {
-        const chance = new SequenceChance([0.1, 0.7, 0.2]);
+        const chance = new SequenceChance([0.1, 0.2, 0.7, 0.2]);
 
         const rewards = drawRewards(petPrizes(), petCatalog, chance);
 
         expect(rewards.pet).toBeNull();
-        expect(chance.drawn).toEqual([0.1, 0.7, 0.2]);
+        expect(chance.drawn).toEqual([0.1, 0.2, 0.7, 0.2]);
     });
 
     it('pins the pet win chance at 20% (D-21)', () => {
@@ -293,7 +321,7 @@ describe('drawRewards with a pet prize', () => {
     });
 
     it('skips the pet draw when the quest has no pet prize (D-21)', () => {
-        const chance = new SequenceChance([0.1, 0.7, 0.1]);
+        const chance = new SequenceChance([0.1, 0.2, 0.7, 0.1]);
 
         const rewards = drawRewards(
             petPrizes({ pet: null }),
@@ -302,11 +330,11 @@ describe('drawRewards with a pet prize', () => {
         );
 
         expect(rewards.pet).toBeNull();
-        expect(chance.drawn).toEqual([0.1, 0.7]);
+        expect(chance.drawn).toEqual([0.1, 0.2, 0.7]);
     });
 
     it('ignores an orphan pet prize without drawing (D-21)', () => {
-        const chance = new SequenceChance([0.1, 0.7, 0.1]);
+        const chance = new SequenceChance([0.1, 0.2, 0.7, 0.1]);
 
         const rewards = drawRewards(
             petPrizes({ pet: ORPHAN_PET_ID }),
@@ -315,7 +343,7 @@ describe('drawRewards with a pet prize', () => {
         );
 
         expect(rewards.pet).toBeNull();
-        expect(chance.drawn).toEqual([0.1, 0.7]);
+        expect(chance.drawn).toEqual([0.1, 0.2, 0.7]);
     });
 });
 
@@ -341,7 +369,7 @@ describe('drawRewards with a study lore pool', () => {
     });
 
     it('queues the study draws after the loot, spell and pet draws (D-08)', () => {
-        const chance = new SequenceChance([0.1, 0.7, 0.19, 0.3, 0.4]);
+        const chance = new SequenceChance([0.1, 0.2, 0.7, 0.19, 0.3, 0.4]);
 
         const rewards = drawRewards(
             prizesWith({
@@ -357,7 +385,7 @@ describe('drawRewards with a study lore pool', () => {
 
         expect(rewards.pet).toEqual(PET_ID);
         expect(rewards.loreDraw).toMatchObject({ gate: 0.3, pick: 0.4 });
-        expect(chance.drawn).toEqual([0.1, 0.7, 0.19, 0.3, 0.4]);
+        expect(chance.drawn).toEqual([0.1, 0.2, 0.7, 0.19, 0.3, 0.4]);
     });
 
     it.each([
@@ -426,7 +454,7 @@ describe('drawStudyLore', () => {
 
 describe('drawLearnableSpell', () => {
     it('picks among the unknown spells the xp after the prizes can learn (D-31)', () => {
-        const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], roll: 0 };
+        const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], gate: 0, roll: 0 };
 
         expect(drawLearnableSpell(draw, 400, [SPELL_A.spellId])).toEqual(
             SPELL_B,
@@ -434,7 +462,7 @@ describe('drawLearnableSpell', () => {
     });
 
     it('treats a known spell stored as a legacy string as known (D-31)', () => {
-        const draw = { pool: [SPELL_A, SPELL_B], roll: 0 };
+        const draw = { pool: [SPELL_A, SPELL_B], gate: 0, roll: 0 };
 
         expect(
             drawLearnableSpell(draw, 400, [SPELL_A.spellId.toHexString()]),
@@ -442,7 +470,7 @@ describe('drawLearnableSpell', () => {
     });
 
     it('returns no spell when nothing is learnable (D-31)', () => {
-        const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], roll: 0 };
+        const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], gate: 0, roll: 0 };
 
         expect(drawLearnableSpell(draw, 50, [])).toBeNull();
     });
@@ -450,20 +478,35 @@ describe('drawLearnableSpell', () => {
     it('maps the roll onto the learnable spells only (D-31)', () => {
         const pool = [SPELL_A, SPELL_C, SPELL_B, SPELL_D];
 
-        expect(drawLearnableSpell({ pool, roll: 0.99 }, 400, [])).toEqual(
-            SPELL_D,
-        );
-        expect(drawLearnableSpell({ pool, roll: 0.34 }, 400, [])).toEqual(
-            SPELL_B,
-        );
+        expect(
+            drawLearnableSpell({ pool, gate: 0, roll: 0.99 }, 400, []),
+        ).toEqual(SPELL_D);
+        expect(
+            drawLearnableSpell({ pool, gate: 0, roll: 0.34 }, 400, []),
+        ).toEqual(SPELL_B);
     });
+
+    it('teaches a learnable spell when the gate falls below 30% (quick 261111-sdc)', () => {
+        const draw = { pool: [SPELL_A, SPELL_B], gate: 0.29, roll: 0 };
+
+        expect(drawLearnableSpell(draw, 400, [])).toEqual(SPELL_A);
+    });
+
+    it.each([[0.3], [0.31], [0.99]])(
+        'teaches no spell with a learnable pool when the gate is %p (quick 261111-sdc)',
+        (gate) => {
+            const draw = { pool: [SPELL_A, SPELL_B], gate, roll: 0 };
+
+            expect(drawLearnableSpell(draw, 400, [])).toBeNull();
+        },
+    );
 
     it('returns no spell without a draw', () => {
         expect(drawLearnableSpell(null, 50000, [])).toBeNull();
     });
 
     it('clamps a roll out of range onto the last learnable spell', () => {
-        const draw = { pool: [SPELL_A, SPELL_B, SPELL_D], roll: 1 };
+        const draw = { pool: [SPELL_A, SPELL_B, SPELL_D], gate: 0, roll: 1 };
 
         expect(drawLearnableSpell(draw, 400, [])).toEqual(SPELL_D);
     });

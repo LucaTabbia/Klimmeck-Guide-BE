@@ -5,10 +5,13 @@ import {
 } from '@nestjs/common';
 import { GraphQLError, type GraphQLFormattedError } from 'graphql';
 import { AuthException } from 'src/auth/auth.exception';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { AuthorizationException } from 'src/authz/authorization.exception';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { formatDomainError } from 'src/graphql/format-domain-error';
+
+const ISO = '2026-11-10T12:30:00.000Z';
 
 function buildFormatted(
     extensions: Record<string, unknown> = {},
@@ -42,6 +45,20 @@ function codedBadRequest(code: string): BadRequestException {
             code,
         }),
         { extensions: { code } },
+    );
+}
+
+function badRequestWithExtensions(
+    extensions: Record<string, unknown>,
+): BadRequestException {
+    return Object.assign(
+        new BadRequestException({
+            statusCode: 400,
+            error: 'Bad Request',
+            message: 'probe',
+            code: 'PROBE_CODE',
+        }),
+        { extensions },
     );
 }
 
@@ -225,4 +242,220 @@ describe('formatDomainError', () => {
             formatted,
         );
     });
+
+    it('keeps the revoke reason of a wrapped AuthException (D-13)', () => {
+        const formatted = buildFormatted();
+
+        const result = formatDomainError(
+            formatted,
+            wrapAsResolverError(
+                AuthException.sessionRevoked(SessionRevokeReason.newLogin),
+            ),
+        );
+
+        expect(result).toEqual({
+            message: formatted.message,
+            locations: formatted.locations,
+            path: formatted.path,
+            extensions: { code: 'SESSION_REVOKED', reason: 'newLogin' },
+        });
+    });
+
+    it('keeps only the reason among the extensions of a revoked session (D-05, D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'SESSION_REVOKED',
+                    reason: SessionRevokeReason.newLogin,
+                    secret: 'hidden',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'SESSION_REVOKED',
+            reason: 'newLogin',
+        });
+    });
+
+    it('drops the reason of a code other than SESSION_REVOKED (D-05, D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'PROBE_CODE',
+                    reason: 'probe',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'PROBE_CODE' });
+    });
+
+    it('drops a reason outside the revoke reasons (D-05, D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'SESSION_REVOKED',
+                    reason: 'zzz',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'SESSION_REVOKED' });
+    });
+
+    it('keeps every revoke reason of the enum, e.g. roleChanged (D-05, D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                AuthException.sessionRevoked(SessionRevokeReason.roleChanged),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'SESSION_REVOKED',
+            reason: 'roleChanged',
+        });
+    });
+
+    it('drops a reason that is not a string (D-13)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({ code: 'PROBE_CODE', reason: 42 }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'PROBE_CODE' });
+    });
+
+    it('keeps the recovery instant of a wrapped potion refusal (D-17)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                GameRuleException.potionRecovering(new Date(ISO)),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'POTION_RECOVERING',
+            recoveryUntil: ISO,
+        });
+    });
+
+    it('keeps only the recovery instant among the extensions of a potion refusal (D-17)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'POTION_RECOVERING',
+                    recoveryUntil: ISO,
+                    secret: 'hidden',
+                    reason: 'newLogin',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'POTION_RECOVERING',
+            recoveryUntil: ISO,
+        });
+    });
+
+    it('drops a recovery instant carried by another code (D-17)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'PROBE_CODE',
+                    recoveryUntil: ISO,
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'PROBE_CODE' });
+    });
+
+    it.each(['tomorrow', '2026-11-10', 1731241800000, null, { nested: true }])(
+        'drops the recovery instant %p that is not an ISO string (D-17)',
+        (recoveryUntil) => {
+            const result = formatDomainError(
+                buildFormatted({ code: 'BAD_REQUEST' }),
+                wrapAsResolverError(
+                    badRequestWithExtensions({
+                        code: 'POTION_RECOVERING',
+                        recoveryUntil,
+                    }),
+                ),
+            );
+
+            expect(result.extensions).toEqual({ code: 'POTION_RECOVERING' });
+        },
+    );
+    it('keeps the prison instant of a wrapped prison refusal (quick 261110-cgd)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                GameRuleException.characterImprisoned(new Date(ISO)),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'CHARACTER_IMPRISONED',
+            imprisonedUntil: ISO,
+        });
+    });
+
+    it('keeps only the prison instant among the extensions of a prison refusal (quick 261110-cgd)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'CHARACTER_IMPRISONED',
+                    imprisonedUntil: ISO,
+                    recoveryUntil: ISO,
+                    secret: 'hidden',
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'CHARACTER_IMPRISONED',
+            imprisonedUntil: ISO,
+        });
+    });
+
+    it('drops a prison instant carried by another code (quick 261110-cgd)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'POTION_RECOVERING',
+                    imprisonedUntil: ISO,
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'POTION_RECOVERING' });
+    });
+
+    it.each(['tomorrow', 1731241800000, null])(
+        'drops the prison instant %p that is not an ISO string (quick 261110-cgd)',
+        (imprisonedUntil) => {
+            const result = formatDomainError(
+                buildFormatted({ code: 'BAD_REQUEST' }),
+                wrapAsResolverError(
+                    badRequestWithExtensions({
+                        code: 'CHARACTER_IMPRISONED',
+                        imprisonedUntil,
+                    }),
+                ),
+            );
+
+            expect(result.extensions).toEqual({ code: 'CHARACTER_IMPRISONED' });
+        },
+    );
 });

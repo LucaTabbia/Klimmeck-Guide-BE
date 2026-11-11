@@ -1,8 +1,11 @@
+import { getModelToken } from '@nestjs/mongoose';
 import { Model, Schema, Types } from 'mongoose';
 import type request from 'supertest';
 import { EnemiesModule } from 'src/enemies/enemies.module';
+import { LootItemsModule } from 'src/lootItems/loot-items.module';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
 import {
     AuthTestApp,
@@ -11,6 +14,7 @@ import {
 } from '../../test/auth/auth-test-app';
 import { createPlayer } from '../../test/authz/player-fixture';
 import { persistEnemy, persistLore } from '../../test/fixtures';
+import { persistLootItem } from '../../test/fixtures/catalog-item.fixture';
 import { playerKnowing } from '../../test/lore/lore-world';
 import { LoreModule } from './lore.module';
 
@@ -23,6 +27,9 @@ const ENEMIES = 'query { enemys { id name relatedLore { id name } } }';
 const ENEMY_RELATED = 'query { enemys { id relatedLore { id } } }';
 const ENEMY =
     'query Enemy($id: String!) { enemy(id: $id) { id name relatedLore { id name } } }';
+const LOOT_ITEMS = 'query { lootItems { id relatedLore { id name } } }';
+const LOOT_ITEM =
+    'query LootItem($id: String!) { lootItem(id: $id) { id relatedLore { id name } } }';
 
 interface WireRelated {
     id: string;
@@ -40,6 +47,8 @@ interface WireBody {
         lore?: WireWithRelated;
         enemys?: WireWithRelated[];
         enemy?: WireWithRelated;
+        lootItems?: WireWithRelated[];
+        lootItem?: WireWithRelated;
     } | null;
     errors?: { message: string; extensions?: { code?: unknown } }[];
 }
@@ -82,6 +91,14 @@ describe('related lore (wire)', () => {
         return innkeeper.bearer;
     }
 
+    async function potionWith(
+        relatedLore: unknown[],
+    ): Promise<{ _id: Types.ObjectId }> {
+        return persistLootItem(modelOf(LootItem.name, LootItemSchema), {
+            relatedLore,
+        });
+    }
+
     function idsOf(entries: { id: string }[] | undefined): string[] {
         return (entries ?? []).map((entry) => entry.id).sort();
     }
@@ -95,7 +112,7 @@ describe('related lore (wire)', () => {
 
     beforeAll(async () => {
         harness = await createAuthTestApp({
-            imports: [LoreModule, EnemiesModule],
+            imports: [LoreModule, EnemiesModule, LootItemsModule],
         });
     });
 
@@ -281,5 +298,111 @@ describe('related lore (wire)', () => {
             { id: String(loreA._id) },
             { id: String(loreC._id) },
         ]);
+    });
+
+    describe('the related lore of a loot item', () => {
+        const wireOf = (lore: { _id: Types.ObjectId }, name: string) => ({
+            id: String(lore._id),
+            name,
+        });
+
+        it('serves a player only the unlocked lore of a loot item (D-19)', async () => {
+            const potion = await potionWith([loreA._id, loreC._id]);
+
+            const body = await request(LOOT_ITEMS);
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.lootItems, potion._id)).toEqual([
+                wireOf(loreA, 'A'),
+            ]);
+        });
+
+        it('serves the innkeeper every lore of a loot item in the order of the refs (D-19)', async () => {
+            const potion = await potionWith([loreC._id, loreA._id]);
+
+            const body = await request(
+                LOOT_ITEMS,
+                undefined,
+                await innkeeperBearer(),
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.lootItems, potion._id)).toEqual([
+                wireOf(loreC, 'C'),
+                wireOf(loreA, 'A'),
+            ]);
+        });
+
+        it('serves no lore of a loot item to a user without a current character (D-19)', async () => {
+            const potion = await potionWith([loreA._id, loreC._id]);
+            const { bearer: homeless } = await createPlayer(harness, {
+                twitchId: 'twitch-loot-homeless',
+                withCharacter: false,
+            });
+
+            const body = await request(LOOT_ITEMS, undefined, homeless);
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.lootItems, potion._id)).toEqual([]);
+        });
+
+        it('drops a lore of a loot item that no longer exists (D-19)', async () => {
+            const potion = await potionWith([loreA._id, new Types.ObjectId()]);
+
+            const body = await request(
+                LOOT_ITEMS,
+                undefined,
+                await innkeeperBearer(),
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.lootItems, potion._id)).toEqual([
+                wireOf(loreA, 'A'),
+            ]);
+        });
+
+        it('serves the unlocked lore on the single loot item query too (D-19)', async () => {
+            const potion = await potionWith([loreA._id, loreC._id]);
+
+            const body = await request(LOOT_ITEM, { id: String(potion._id) });
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.lootItem?.relatedLore).toEqual([
+                wireOf(loreA, 'A'),
+            ]);
+        });
+
+        it('runs no lore query for a loot item without visible lore (D-19)', async () => {
+            const potion = await potionWith([loreC._id]);
+            const injected = harness.app.get<Model<unknown>>(
+                getModelToken(Lore.name),
+            );
+            const find = jest.spyOn(injected, 'find');
+
+            try {
+                const body = await request(LOOT_ITEMS);
+
+                expect(body.errors).toBeUndefined();
+                expect(relatedOf(body.data?.lootItems, potion._id)).toEqual([]);
+                expect(find).not.toHaveBeenCalled();
+            } finally {
+                find.mockRestore();
+            }
+        });
+
+        it('reads a lore id written as a string by a content script (D-23)', async () => {
+            const potion = await potionWith([]);
+            await modelOf(LootItem.name, LootItemSchema).collection.updateOne(
+                { _id: potion._id },
+                { $set: { relatedLore: [loreA._id.toHexString()] } },
+            );
+
+            const body = await request(LOOT_ITEMS);
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.lootItems, potion._id)).toEqual([
+                wireOf(loreA, 'A'),
+            ]);
+        });
     });
 });

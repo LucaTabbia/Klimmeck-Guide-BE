@@ -109,11 +109,13 @@ type CharacterStatus {
   awaitingAid: AwaitingAid
   coins: Coins!
   currentLifePoints: Int!
+  imprisonedUntil: DateTime
   injuries: [InjuryType!]!
   level: Int!
   location: PointOfInterest!
   maxActiveSpells: Int!
   maxLifePoints: Int!
+  potionRecoveryUntil: DateTime
   spellStates: [SpellState!]!
   spells: [Spell!]!
   title: String!
@@ -365,8 +367,15 @@ type LootItem {
   name: String
   power: Int!
   rarity: String
+  recovery: LootRecovery
+  relatedLore: [Lore!]!
   sellPrice: Coins
   sellable: Boolean
+}
+
+type LootRecovery {
+  time: Int!
+  turns: Int!
 }
 
 type Lore {
@@ -400,6 +409,7 @@ type Mutation {
   unequipPet(request: UnequipPetRequest!): CommonResponse!
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
   unregisterPushDevice(deviceId: String!): Boolean!
+  useItem(itemId: ID!): UseItemResult!
   useSpell(request: UseSpellRequest!): CommonResponse!
 }
 
@@ -527,6 +537,7 @@ type PushDeliveryReport {
 
 enum PushEventType {
   ambushDefeat
+  prisonRelease
   questCancelled
   questEnd
   streamerLive
@@ -584,9 +595,15 @@ type Query {
 type Quest {
   id: ID!
   infos: QuestInfos!
+  noEffect: Boolean!
   prizes: QuestPrizes!
   registeredAdventurers: [QuestRegistration!]!
   requirements: QuestRequirements!
+}
+
+type QuestCure {
+  canHeal: [InjuryType!]!
+  lifePointsShare: Float!
 }
 
 type QuestEnemy {
@@ -619,6 +636,7 @@ type QuestPartySlot {
 }
 
 type QuestPrizes {
+  cure: QuestCure
   pet: Pet
   prizeCoins: Coins
   prizeItem: AssetQuantity
@@ -643,13 +661,17 @@ type QuestRequirements {
 type QuestResult {
   acknowledgedAt: DateTime
   ambush: AmbushReport
+  arrested: Boolean!
   character: ID!
+  coinsLost: Coins
   consumablesUsed: [AssetQuantity!]!
   enemies: [QuestEnemy!]!
+  guardEncounter: Boolean!
   hpAfter: Int!
   hpBefore: Int!
   id: ID!
   injuriesAdded: [InjuryType!]!
+  injuriesHealed: [InjuryType!]!
   kind: QuestResultKind!
   levelAfter: Int!
   levelBefore: Int!
@@ -834,6 +856,15 @@ input TravelRequest {
 
 input UnequipPetRequest {
   id: String!
+}
+
+type UseItemResult {
+  hpAfter: Int!
+  hpBefore: Int!
+  injuriesHealed: [InjuryType!]!
+  loreUnlocked: [Lore!]!
+  quantityLeft: Int!
+  recoveryUntil: DateTime!
 }
 
 input UseSpellRequest {

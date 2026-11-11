@@ -216,6 +216,37 @@ describe('GmCompletionService.complete (replSet)', () => {
         ]);
     });
 
+    it('applies the cure on top of the game master override (D-07)', async () => {
+        const subject = await storyQuester({
+            questOverrides: gmQuest('story', {
+                xpPrize: 400,
+                cure: { lifePointsShare: 1, canHeal: [InjuryType.deepCut] },
+            }),
+        });
+
+        await service.complete(
+            inputOf(subject, [
+                {
+                    characterId: String(subject.characterId),
+                    hpAfter: 300,
+                    injuries: [InjuryType.deepCut],
+                },
+            ]),
+        );
+
+        const character = await characterOf(subject);
+        expect(character.status.maxLifePoints).toBe(1200);
+        expect(character.status.currentLifePoints).toBe(1200);
+        expect(character.status.injuries).toEqual([]);
+        const [result] = await resultsOf(subject);
+        expect(result).toMatchObject({
+            hpBefore: 1000,
+            hpAfter: 1200,
+            injuriesAdded: [InjuryType.deepCut],
+        });
+        expect(result.injuriesHealed).toEqual([InjuryType.deepCut]);
+    });
+
     it('closes a world mission for every registered character with one result each (D-04, D-06)', async () => {
         const potion = (await persistLootItem(world.models.lootItems))
             ._id as Types.ObjectId;

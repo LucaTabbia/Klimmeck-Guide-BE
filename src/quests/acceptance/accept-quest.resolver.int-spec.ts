@@ -67,6 +67,8 @@ const TRAVEL_SUBSCRIPTION =
     'subscription OnTravel($id: String!) { characterUpdated(id: $id) { id status { location { id } activeTravel { road { coordinates distance } startTime endTime duration to } } quests { pendingQuest { id startDate waitingTime } } } }';
 const QUEST_TRAVEL_PREVIEW_QUERY =
     'query QuestTravel($request: AcceptQuestRequest!) { questTravelPreview(request: $request) { distance duration hpLost arrivesAlive food { quantity item { id name } } } }';
+const NO_EFFECT_QUERY =
+    'query Quest($id: String!) { quest(id: $id) { noEffect } }';
 const QUESTS_QUERY =
     'query { quests { id registeredAdventurers { character title } requirements { requiredAdventurers { title count } } } }';
 const MISSING_QUEST_ID = '64b0000000000000000000ff';
@@ -110,6 +112,11 @@ interface WireQuest {
 
 interface QuestsBody {
     data?: { quests: WireQuest[] } | null;
+    errors?: WireError[];
+}
+
+interface NoEffectBody {
+    data?: { quest: { noEffect: boolean } | null } | null;
     errors?: WireError[];
 }
 
@@ -979,6 +986,199 @@ describe('acceptQuest (wire)', () => {
         expect(await pendingQuests.countDocuments()).toBe(0);
         expect(await pointsOf(carol)).toBe(RICH_BALANCE);
         expect(queue.added).toEqual([]);
+    });
+
+    it('answers QUEST_NO_EFFECT on the wire for a heal without effect (D-25)', async () => {
+        const dave = await playerWith('healthy-wire', { lifePoints: 1000 });
+        const base = buildQuest();
+        const quest = await persistQuest(quests, {
+            infos: {
+                ...base.infos,
+                type: 'heal',
+                markerLocation: world.questMarker,
+            },
+            prizes: {
+                ...base.prizes,
+                cure: { lifePointsShare: 0.5, canHeal: ['deepCut'] },
+            },
+        });
+        const before = await rawCharacter(dave);
+
+        const body = await accept(
+            { id: characterIdOf(dave), questId: String(quest._id) },
+            dave.bearer,
+        );
+
+        expectRejected(
+            body,
+            'QUEST_NO_EFFECT',
+            'Queste cure non ti servirebbero adesso',
+        );
+        expect(await rawCharacter(dave)).toEqual(before);
+        expect(await pendingQuests.countDocuments()).toBe(0);
+    });
+
+    describe('heal verdicts on the refusal and on Quest.noEffect (D-25)', () => {
+        async function healOf(cure: unknown): Promise<string> {
+            const base = buildQuest();
+            const quest = await persistQuest(quests, {
+                infos: {
+                    ...base.infos,
+                    type: 'heal',
+                    markerLocation: world.questMarker,
+                },
+                prizes: { ...base.prizes, cure },
+            });
+            return String(quest._id);
+        }
+
+        async function noEffectOf(
+            player: TestPlayer,
+            questId: string,
+        ): Promise<boolean | undefined> {
+            const body = (
+                await graphqlRequest(
+                    harness.app,
+                    NO_EFFECT_QUERY,
+                    { id: questId },
+                    player.bearer,
+                )
+            ).body as NoEffectBody;
+            expect(body.errors).toBeUndefined();
+            return body.data?.quest?.noEffect;
+        }
+
+        // il campo si legge prima: l'accettazione riuscita cambia le corsie, non vita e ferite
+        async function verdictsOf(
+            player: TestPlayer,
+            questId: string,
+        ): Promise<{ noEffect: boolean | undefined; refused: boolean }> {
+            const noEffect = await noEffectOf(player, questId);
+            const body = await accept(
+                { id: characterIdOf(player), questId },
+                player.bearer,
+            );
+            const refused =
+                body.errors?.[0]?.extensions.code === 'QUEST_NO_EFFECT';
+            if (!refused) expect(body.data?.acceptQuest?.successful).toBe(true);
+            return { noEffect, refused };
+        }
+
+        function unsetStatus(player: TestPlayer, fields: string[]) {
+            return characters.collection.updateOne(
+                { _id: player.character?._id as Types.ObjectId },
+                {
+                    $unset: Object.fromEntries(
+                        fields.map((field) => [`status.${field}`, '']),
+                    ),
+                },
+            );
+        }
+
+        it.each([
+            {
+                name: 'a legacy without life, maximum and xp',
+                unset: ['currentLifePoints', 'maxLifePoints', 'xp'],
+                injuries: [],
+                verdict: true,
+            },
+            {
+                name: 'a legacy without life, maximum and xp but with a curable wound',
+                unset: ['currentLifePoints', 'maxLifePoints', 'xp'],
+                injuries: ['deepCut'],
+                verdict: false,
+            },
+            {
+                name: 'a legacy without maximum whose xp sets it from the table',
+                unset: ['maxLifePoints'],
+                injuries: [],
+                verdict: false,
+            },
+        ])(
+            'gives $name the same verdict on both paths (D-25)',
+            async ({ unset, injuries, verdict }) => {
+                const legacy = await playerWith('legacy', { lifePoints: 1500 });
+                await characters.collection.updateOne(
+                    { _id: legacy.character?._id as Types.ObjectId },
+                    { $set: { 'status.injuries': injuries } },
+                );
+                await unsetStatus(legacy, unset);
+                const heal = await healOf({
+                    lifePointsShare: 1,
+                    canHeal: ['deepCut'],
+                });
+
+                expect(await verdictsOf(legacy, heal)).toEqual({
+                    noEffect: verdict,
+                    refused: verdict,
+                });
+            },
+        );
+
+        it.each([
+            {
+                name: 'full life without wounds',
+                verdict: true,
+                life: 1000,
+                injuries: [],
+                cure: { lifePointsShare: 0.5, canHeal: ['deepCut'] },
+            },
+            {
+                name: 'life under the ceiling',
+                verdict: false,
+                life: 400,
+                injuries: [],
+                cure: { lifePointsShare: 0.5, canHeal: [] },
+            },
+            {
+                name: 'life at the ceiling',
+                verdict: true,
+                life: 500,
+                injuries: [],
+                cure: { lifePointsShare: 0.5, canHeal: [] },
+            },
+            {
+                name: 'a curable wound',
+                verdict: false,
+                life: 1000,
+                injuries: ['deepCut'],
+                cure: { lifePointsShare: 0, canHeal: ['deepCut'] },
+            },
+            {
+                name: 'a wound the heal does not cure',
+                verdict: true,
+                life: 1000,
+                injuries: ['frostbite'],
+                cure: { lifePointsShare: 0.5, canHeal: ['deepCut'] },
+            },
+            {
+                name: 'a heal without a cure',
+                verdict: true,
+                life: 400,
+                injuries: ['deepCut'],
+                cure: null,
+            },
+        ])(
+            'refuses the heal exactly when noEffect is true with $name (D-25)',
+            async ({ life, injuries, cure, verdict }) => {
+                const player = await playerWith('parity', { lifePoints: 1000 });
+                await characters.collection.updateOne(
+                    { _id: player.character?._id as Types.ObjectId },
+                    {
+                        $set: {
+                            'status.currentLifePoints': life,
+                            'status.injuries': injuries,
+                        },
+                    },
+                );
+                const heal = await healOf(cure);
+
+                const { noEffect, refused } = await verdictsOf(player, heal);
+
+                expect(noEffect).toBe(verdict);
+                expect(refused).toBe(noEffect);
+            },
+        );
     });
 
     describe('questTravelPreview (wire)', () => {

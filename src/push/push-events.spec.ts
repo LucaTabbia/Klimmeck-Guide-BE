@@ -1,5 +1,6 @@
 import {
     ambushDefeat,
+    prisonRelease,
     questCancelled,
     questEnd,
     streamerLive,
@@ -15,12 +16,14 @@ const BUILDERS: Record<PushEventType, (id: string) => PushMessage> = {
     [PushEventType.streamerLive]: () => streamerLive(),
     [PushEventType.questCancelled]: questCancelled,
     [PushEventType.ambushDefeat]: (id) => ambushDefeat(id, 'Crocevia'),
+    [PushEventType.prisonRelease]: prisonRelease,
 };
 const IDENTIFIED_TYPES = [
     PushEventType.travelEnd,
     PushEventType.questEnd,
     PushEventType.questCancelled,
     PushEventType.ambushDefeat,
+    PushEventType.prisonRelease,
 ];
 // il builder compone il corpo con la città (D-12): il push di prova tiene quello generico del catalogo
 const COMPOSED_BODY_TYPES = [PushEventType.ambushDefeat];
@@ -74,6 +77,17 @@ describe('push event catalog', () => {
             id: 'a',
             title: 'Imboscata!',
             body: 'Sei stato sconfitto: la via torna verso la città più vicina.',
+            ttlSeconds: 3600,
+        });
+    });
+
+    // liberazione dalla prigione (quick 261110-prp): personale, id = personaggio
+    it('builds prisonRelease with the character id and a 1 h ttl (quick 261110-prp)', () => {
+        expect(prisonRelease('64b0000000000000000000c1')).toEqual({
+            type: PushEventType.prisonRelease,
+            id: '64b0000000000000000000c1',
+            title: 'Di nuovo libero',
+            body: "La prigionia è finita: torna all'avventura.",
             ttlSeconds: 3600,
         });
     });
@@ -148,6 +162,11 @@ describe('push event catalog', () => {
         [
             'ambushDefeat',
             ambushDefeat('a', 'Crocevia'),
+            ['body', 'id', 'title', 'ttlSeconds', 'type'],
+        ],
+        [
+            'prisonRelease',
+            prisonRelease('a'),
             ['body', 'id', 'title', 'ttlSeconds', 'type'],
         ],
         [

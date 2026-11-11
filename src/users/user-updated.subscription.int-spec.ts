@@ -14,6 +14,10 @@ import {
     graphqlRequest,
 } from '../../test/auth/auth-test-app';
 import {
+    TEST_DEV_ACCESS_TOKEN,
+    TEST_DEV_TWITCH_ID,
+} from '../../test/auth/test-auth-config';
+import {
     graphqlWsUrl,
     OpenSubscription,
     openSubscription,
@@ -229,15 +233,13 @@ describe('userUpdated subscription (wire)', () => {
         });
     });
 
+    // bearer dev: identità senza sessione, il watcher del ruolo non la chiude mai (Phase 17 D-14)
     it('streams a role changed by hand on the database', async () => {
-        const { user, bearer } = await createPlayer(harness, {
-            twitchId: 'twitch-sub-1',
-        });
-        const subscription = subscribeAs(bearer);
+        const subscription = subscribeAs(`Bearer ${TEST_DEV_ACCESS_TOKEN}`);
         await nextUser(subscription);
 
         await users.updateOne(
-            { _id: user._id },
+            { twitchId: TEST_DEV_TWITCH_ID },
             { $set: { role: 'innkeeper' } },
         );
 
