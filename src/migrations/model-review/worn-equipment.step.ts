@@ -9,12 +9,25 @@ import type {
 } from './model-review.step';
 
 const OLD_FIELD = 'assets.wearedEquipment';
+const NEW_FIELD = 'assets.wornEquipment';
 const OLD_SLOT = `${OLD_FIELD}.foots`;
+
+// guardia di idempotenza: il campo vecchio presente e quello nuovo assente; sparito il campo, la seconda corsa non trova nulla
+const WITH_OLD_FIELD_ONLY = {
+    [OLD_FIELD]: { $exists: true },
+    [NEW_FIELD]: { $exists: false },
+};
+
+// anomalia: entrambi i campi presenti (il codice nuovo ha già equipaggiato); la rinomina sovrascriverebbe, quindi il passo non sceglie
+const WITH_BOTH_FIELDS = {
+    [OLD_FIELD]: { $exists: true },
+    [NEW_FIELD]: { $exists: true },
+};
 
 // lo slot si rinomina DENTRO il campo vecchio: le due rinomine nella stessa scrittura confliggono
 const RENAME_SLOT = { $rename: { [OLD_SLOT]: `${OLD_FIELD}.feet` } };
 
-const RENAME_FIELD = { $rename: { [OLD_FIELD]: 'assets.wornEquipment' } };
+const RENAME_FIELD = { $rename: { [OLD_FIELD]: NEW_FIELD } };
 
 @Injectable()
 export class WornEquipmentStep implements ModelReviewStep {
@@ -27,14 +40,19 @@ export class WornEquipmentStep implements ModelReviewStep {
         const characters = this.connection.model(Character.name).collection;
         const found = await characters.countDocuments({});
         await characters.updateMany(
-            { [OLD_SLOT]: { $exists: true } },
+            { ...WITH_OLD_FIELD_ONLY, [OLD_SLOT]: { $exists: true } },
             RENAME_SLOT,
         );
-        // guardia di idempotenza: il campo vecchio presente; sparito il campo, la seconda corsa non trova nulla
         const { modifiedCount: migrated } = await characters.updateMany(
-            { [OLD_FIELD]: { $exists: true } },
+            WITH_OLD_FIELD_ONLY,
             RENAME_FIELD,
         );
-        return { found, migrated, alreadyDone: found - migrated, unmatched: 0 };
+        const unmatched = await characters.countDocuments(WITH_BOTH_FIELDS);
+        return {
+            found,
+            migrated,
+            alreadyDone: found - migrated - unmatched,
+            unmatched,
+        };
     }
 }
