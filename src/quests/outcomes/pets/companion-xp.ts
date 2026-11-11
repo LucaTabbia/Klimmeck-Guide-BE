@@ -15,11 +15,10 @@ export interface CompanionAssets {
 
 const NO_AWARD: CompanionXpAward = { ownedPets: null, gained: 0 };
 
+// un valore frazionario scritto a mano si arrotonda per difetto: il premio non scrive mai sotto la parte intera già posseduta (D-04)
 const experienceOf = (entry: OwnedPetEntry): number =>
-    typeof entry.xp === 'number' &&
-    Number.isSafeInteger(entry.xp) &&
-    entry.xp >= 0
-        ? entry.xp
+    typeof entry.xp === 'number' && Number.isFinite(entry.xp) && entry.xp >= 0
+        ? Math.floor(entry.xp)
         : 0;
 
 // premio di xp al compagno equipaggiato (D-04): senza compagno, senza voce, senza tetto valido o senza guadagno nulla cambia (D-17)
