@@ -32,6 +32,8 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 - [ ] **BE-MODEL-08**: `Lore.image` → `Lore.imagePath` (modello, SDL non additivo, input, migratore); file enum `item_reference_type.enum.ts` e `slot_type.enum.ts` rinominati in kebab-case; modello `KGNotification` rimosso → FE MODEL-01
 - [ ] **BE-MODEL-09**: Un solo modulo one-off `src/migrations/model-review/` con un passo idempotente per decisione e log di soli conteggi, eseguito al boot reale dall'orchestratore dopo il backup e rimosso in TDD prima della merge; unit sui migratori e sul premio xp del pet, integration per area, SDL verbatim della FE, handoff `BACKEND-NOTES.md` con la tabella dei cambi SDL vecchio → nuovo
 - [ ] **BE-MODEL-10**: `Pet.relatedLore: [Lore!]!` additivo (ref, default vuoto, filtrato per viewer come `LootItem.relatedLore`); l'acquisto di un pet e il pet in premio aggiungono le sue lore a `status.unlockedLore` nella stessa scrittura della voce di `ownedPets` (nessun duplicato, la vendita non le toglie); contenuto a DB nella fase: 44 pet collegati alla propria lore, lore nuova «Cavallo da viaggio» → nessun cambio FE (flusso `unlockedLore` della FE Phase 17) _(aggiunto 2026-11-11, regola dell'utente a plan in corso)_
+- [ ] **BE-MODEL-11**: `Pet.rarity: RarityType` additivo (nullable, enum esistente); contenuto a DB nella fase dalla tabella approvata (negozio common/uncommon, solo quest uncommon → legendary per `maxXp`), «Scheletro di cavallo da guerra» legendary con statistiche di fascia, «Molosso da guerra» vendibile → FE: rarità mostrata sul compagno _(aggiunto 2026-11-11, regola dell'utente a plan in corso)_
+- [ ] **BE-MODEL-12**: pet in premio nelle quest generate `enemy` e `boss` per legame: `Pet.enemy` (ref, solo Mongoose), tre fasce che si sommano in un solo tiro (10 % pet di un nemico della quest, 5 % pet di zona dalle `locations` del nemico collegato, 5 % pet non vendibile qualunque solo boss), tetto di rarità dal pool di loot del rango; 20 % alla vittoria invariato; contenuto: 31 legami pet → nemico _(aggiunto 2026-11-11, supera la Phase 13 D-21)_
 
 ### Progressive Travel Food (BE-FOODP) — Phase 20, aggiunta 2026-11-09
 
@@ -85,6 +87,8 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-MODEL-08 | Phase 19 | Pending |
 | BE-MODEL-09 | Phase 19 | Pending |
 | BE-MODEL-10 | Phase 19 | Pending |
+| BE-MODEL-11 | Phase 19 | Pending |
+| BE-MODEL-12 | Phase 19 | Pending |
 | BE-FOODP-01 | Phase 20 | Pending |
 | BE-FOODP-02 | Phase 20 | Pending |
 | BE-FOODP-03 | Phase 20 | Pending |
