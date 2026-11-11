@@ -126,7 +126,7 @@ Plans:
 - [x] 19-20-PLAN.md — D-07 4/4: contrazione di modello, input, populate, registro e SDL
 - [x] 19-21-PLAN.md — D-27 `Pet.rarity` (modello, SDL con `enum RarityType`)
 - [x] 19-22-PLAN.md — D-28 pet in premio nelle quest generate per nemico e zona: `Pet.enemy`, `petPrizeOf`, generatore
-- [ ] 19-23-PLAN.md — Gate, `BACKEND-NOTES.md` (tabella SDL, runbook del boot reale e del contenuto), validazione
+- [x] 19-23-PLAN.md — Gate, `BACKEND-NOTES.md` (tabella SDL, runbook del boot reale e del contenuto), validazione
 
 **Stato (2026-11-11)**: 23/23 piani eseguiti; PR verso `develop` in draft a cura dell'orchestratore; BE-MODEL-09 e le parti di contenuto di BE-MODEL-04, BE-MODEL-10, BE-MODEL-11 e BE-MODEL-12 restano aperti e si chiudono dentro la fase dopo il boot reale col migratore, lo script di contenuto e la rimozione del modulo (runbook in `.planning/phases/19-revisione-dei-modelli/BACKEND-NOTES.md` §3)
 
@@ -182,7 +182,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 16. Lore sbloccabili | v1.0 | 12/12 | Complete | 2026-11-07 |
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
-| 19. Revisione dei modelli | v1.1 | 22/23 | In Progress | - |
+| 19. Revisione dei modelli | v1.1 | 23/23 | In Progress | - |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
 
 ---
