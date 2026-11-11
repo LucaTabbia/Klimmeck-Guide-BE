@@ -111,8 +111,8 @@ describe('mergeSpellLists', () => {
         ).toEqual({
             spellStates: [entryOf(FROST, 4, true), entryOf(FIREBALL, 2, true)],
             usageConflicts: 1,
-            unknownActive: 0,
-            droppedStates: 0,
+            unknownActive: [],
+            droppedStates: [],
         });
     });
 

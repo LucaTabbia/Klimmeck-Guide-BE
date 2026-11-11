@@ -44,11 +44,13 @@ export interface MergedSpellLists {
     spellStates: MergedSpellState[];
     // usi diversi fra voce e lista delle equipaggiate: vince la voce
     usageConflicts: number;
-    // equipaggiate di magie non conosciute: nessuna voce
-    unknownActive: number;
-    // stati di magie non conosciute (o doppi): lasciati fuori
-    droppedStates: number;
+    // equipaggiate di magie non conosciute, per id: nessuna voce
+    unknownActive: string[];
+    // stati lasciati fuori, per id della magia: legacy di magie non conosciute, doppi, senza riferimento
+    droppedStates: string[];
 }
+
+const NO_REFERENCE = '<senza riferimento>';
 
 // guardia di idempotenza: uno dei due campi vecchi presente, mai il flag sulle voci; nessun filtro sugli archiviati
 const WITH_OLD_LISTS = {
@@ -79,13 +81,22 @@ const recoveriesOf = (state: LegacySpellState | undefined): Date[] =>
           )
         : [];
 
+const referenceLabelOf = (entry: { spell?: unknown } | undefined): string =>
+    hexOf(entry?.spell) ?? NO_REFERENCE;
+
+// il modello vecchio non aveva il flag: una voce che lo porta booleano l'ha scritta il codice nuovo
+const isWrittenByNewCode = (
+    state: LegacySpellState | undefined,
+): state is LegacySpellState & { active: boolean } =>
+    typeof state?.active === 'boolean';
+
 export function mergeSpellLists(
     lists: LegacySpellLists,
     maxUsagesOf: ReadonlyMap<string, number>,
 ): MergedSpellLists {
     const states = listOf(lists.spellStates);
     const equipped = listOf(lists.activeSpells);
-    // senza la lista delle equipaggiate (già tolta a mano) il flag della voce resta com'è
+    // senza la lista delle equipaggiate (già tolta a mano) nessuna voce legacy è attiva
     const equippedIsKnown = Array.isArray(lists.activeSpells);
     // senza la lista delle conosciute (già tolta a mano) le conosciute sono le magie delle voci
     const learned = Array.isArray(lists.spells)
@@ -102,17 +113,11 @@ export function mergeSpellLists(
     const merged = new Map<string, MergedSpellState>();
     let usageConflicts = 0;
 
-    learned.forEach((ref, index) => {
-        const spell = refIdOf(ref);
-        if (!spell) return;
+    const merge = (
+        spell: Types.ObjectId,
+        state: LegacySpellState | undefined,
+    ): void => {
         const hex = spell.toHexString();
-        if (merged.has(hex)) return;
-
-        // stesso indice se punta alla stessa magia, altrimenti la prima voce con lo stesso id
-        const state =
-            hexOf(states[index]?.spell) === hex
-                ? states[index]
-                : states.find((candidate) => hexOf(candidate?.spell) === hex);
         if (state) usedStates.add(state);
 
         const equippedEntry = equippedOf.get(hex);
@@ -131,22 +136,51 @@ export function mergeSpellLists(
             // la voce vince; voce mancante: usi dell'equipaggiata, poi massimo a catalogo, poi 0
             usages: stateUsages ?? equippedUsages ?? maxUsagesOf.get(hex) ?? 0,
             recoveries: recoveriesOf(state),
-            active: equippedIsKnown
-                ? equippedEntry !== undefined
-                : state?.active === true,
+            // il flag scritto dal codice nuovo vince sulla lista vecchia delle equipaggiate
+            active: isWrittenByNewCode(state)
+                ? state.active
+                : equippedIsKnown && equippedEntry !== undefined,
         });
+    };
+
+    learned.forEach((ref, index) => {
+        const spell = refIdOf(ref);
+        if (!spell) return;
+        const hex = spell.toHexString();
+        if (merged.has(hex)) return;
+
+        // stesso indice se punta alla stessa magia, altrimenti la prima voce con lo stesso id
+        const state =
+            hexOf(states[index]?.spell) === hex
+                ? states[index]
+                : states.find((candidate) => hexOf(candidate?.spell) === hex);
+        merge(spell, state);
     });
+
+    // voci scritte dal codice nuovo per magie fuori dalla lista vecchia (studio concluso prima del passo): restano, in coda
+    for (const state of states) {
+        if (usedStates.has(state) || !isWrittenByNewCode(state)) continue;
+        const spell = refIdOf(state.spell);
+        if (spell && !merged.has(spell.toHexString())) merge(spell, state);
+    }
 
     return {
         spellStates: [...merged.values()],
         usageConflicts,
-        unknownActive: equipped.filter((entry) => {
-            const hex = hexOf(entry?.spell);
-            return !hex || !merged.has(hex);
-        }).length,
-        droppedStates: states.filter((state) => !usedStates.has(state)).length,
+        unknownActive: equipped
+            .filter((entry) => {
+                const hex = hexOf(entry?.spell);
+                return !hex || !merged.has(hex);
+            })
+            .map(referenceLabelOf),
+        droppedStates: states
+            .filter((state) => !usedStates.has(state))
+            .map(referenceLabelOf),
     };
 }
+
+const counted = (labels: readonly string[]): string =>
+    `${labels.length} [${labels.join(', ')}]`;
 
 interface CharacterWithOldLists {
     _id: Types.ObjectId;
@@ -197,12 +231,12 @@ export class SpellStatesStep implements ModelReviewStep {
             );
             const anomalies =
                 merge.usageConflicts +
-                merge.unknownActive +
-                merge.droppedStates;
+                merge.unknownActive.length +
+                merge.droppedStates.length;
             unmatched += anomalies;
             if (anomalies > 0) {
                 this.logger.warn(
-                    `${MODEL_REVIEW_LOG_PREFIX}${LABEL}: personaggio ${character._id.toHexString()}, usi in conflitto ${merge.usageConflicts}, equipaggiate non conosciute ${merge.unknownActive}, stati lasciati fuori ${merge.droppedStates}`,
+                    `${MODEL_REVIEW_LOG_PREFIX}${LABEL}: personaggio ${character._id.toHexString()}, usi in conflitto ${merge.usageConflicts}, equipaggiate non conosciute ${counted(merge.unknownActive)}, stati lasciati fuori ${counted(merge.droppedStates)}`,
                 );
             }
         }
