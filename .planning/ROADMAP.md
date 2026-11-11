@@ -114,7 +114,7 @@ Plans:
 - [x] 19-08-PLAN.md — Primitive degli xp del compagno: `PET_XP_SHARE`, `petXpAward`, tetti nel catalogo di combattimento
 - [x] 19-09-PLAN.md — Xp del compagno nel piano d'esito e `petXpGained` (modello, draft, SDL)
 - [x] 19-10-PLAN.md — Xp del compagno nell'imboscata vinta: report trattenuto e risultato all'arrivo (D-19)
-- [ ] 19-11-PLAN.md — D-26 `Pet.relatedLore` per viewer e lore sbloccata all'acquisto e al premio
+- [x] 19-11-PLAN.md — D-26 `Pet.relatedLore` per viewer e lore sbloccata all'acquisto e al premio
 - [ ] 19-12-PLAN.md — D-09 via `PointOfInterest.quest` (modello, `cityRelations`, registro) e passo
 - [ ] 19-13-PLAN.md — D-10 `City.shop` (sotto-documento, lettori) e passo
 - [ ] 19-14-PLAN.md — D-11/D-20 `Lore.imagePath` e passo, `slot-type.enum.ts`, file vuoto e `KGNotification` rimossi
@@ -180,7 +180,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 16. Lore sbloccabili | v1.0 | 12/12 | Complete | 2026-11-07 |
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
-| 19. Revisione dei modelli | v1.1 | 10/23 | In Progress | - |
+| 19. Revisione dei modelli | v1.1 | 11/23 | In Progress | - |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
 
 ---
