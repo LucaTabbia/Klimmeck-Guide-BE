@@ -346,6 +346,23 @@ describe('overrideParticipantOf', () => {
         expect(participant.activeSpells.size).toBe(0);
     });
 
+    it('skips an empty entry next to one without the flag and keeps the active one (D-07)', () => {
+        const participant = overrideParticipantOf({
+            _id: A_ID,
+            status: {
+                xp: 0,
+                title: TitleType.rookie,
+                spellStates: [
+                    null,
+                    { spell: INACTIVE_SPELL_ID, usages: 2, recoveries: [] },
+                    { spell: S1_ID, usages: 1, recoveries: [], active: true },
+                ] as never,
+            },
+        });
+
+        expect([...participant.activeSpells.entries()]).toEqual([[S1, 1]]);
+    });
+
     it('never reads a negative limit from an active spell state (D-07)', () => {
         const participant = overrideParticipantOf({
             _id: A_ID,
