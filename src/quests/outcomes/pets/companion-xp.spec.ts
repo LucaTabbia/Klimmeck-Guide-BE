@@ -171,4 +171,33 @@ describe('companionXpAward', () => {
             gained: 10,
         });
     });
+
+    it('floors a fractional stored experience and never writes below its integer part (D-04)', () => {
+        const award = companionXpAward(
+            {
+                pet: wolf,
+                ownedPets: [{ pet: wolf, xp: 120.5, currentLifePoints: 3 }],
+            },
+            40,
+            capsOf([wolf, 1000]),
+        );
+
+        expect(award).toEqual({
+            ownedPets: [{ pet: wolf, xp: 124, currentLifePoints: 3 }],
+            gained: 4,
+        });
+    });
+
+    it('changes nothing when the integer part of a fractional experience is already over the cap (D-04)', () => {
+        expect(
+            companionXpAward(
+                {
+                    pet: wolf,
+                    ownedPets: [{ pet: wolf, xp: 120.5, currentLifePoints: 3 }],
+                },
+                40,
+                capsOf([wolf, 100]),
+            ),
+        ).toEqual(NO_CHANGE);
+    });
 });
