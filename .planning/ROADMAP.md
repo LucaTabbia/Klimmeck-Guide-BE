@@ -117,7 +117,7 @@ Plans:
 - [x] 19-11-PLAN.md — D-26 `Pet.relatedLore` per viewer e lore sbloccata all'acquisto e al premio
 - [x] 19-12-PLAN.md — D-09 via `PointOfInterest.quest` (modello, `cityRelations`, registro) e passo
 - [x] 19-13-PLAN.md — D-10 `City.shop` (sotto-documento, lettori) e passo
-- [ ] 19-14-PLAN.md — D-11/D-20 `Lore.imagePath` e passo, `slot-type.enum.ts`, file vuoto e `KGNotification` rimossi
+- [x] 19-14-PLAN.md — D-11/D-20 `Lore.imagePath` e passo, `slot-type.enum.ts`, file vuoto e `KGNotification` rimossi
 - [ ] 19-15-PLAN.md — D-06 `wornEquipment`/`feet` (enum, modello, lettori, SDL) e passo a due rinomine
 - [ ] 19-16-PLAN.md — D-08 `maxActiveSpells` da virtual a resolve field
 - [ ] 19-17-PLAN.md — D-07 1/4: `SpellState.active` additivo, `mergeSpellLists` e passo
@@ -180,7 +180,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 16. Lore sbloccabili | v1.0 | 12/12 | Complete | 2026-11-07 |
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
-| 19. Revisione dei modelli | v1.1 | 13/23 | In Progress | - |
+| 19. Revisione dei modelli | v1.1 | 14/23 | In Progress | - |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
 
 ---
