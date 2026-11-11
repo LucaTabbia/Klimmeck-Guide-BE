@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
-status: verifying
-last_updated: "2026-11-10T20:00:00.000Z"
-last_activity: 2026-11-10 -- Phase 18 code complete (11/11), PR in draft until the DB content
+status: planning
+last_updated: "2026-11-11T21:00:00.000Z"
+last_activity: 2026-11-11 -- Phase 18 chiusa (PR #31 mergiata, contenuto a DB); Phase 19 in pianificazione
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 11
   completed_plans: 11
   percent: 100
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 18 — Quest heal per taglia — codice completo (11/11) su `feat/18-quest-heal-per-taglia`: gate, review (11 fix), verifica e security chiusi; PR verso `develop` in draft fino alla revisione del contenuto da parte dell'utente; BE-HEAL-03 e BE-HEAL-08 aperti fino agli script di contenuto dell'orchestratore (↔ FE Phase 18, parcheggiata a 11/13 in attesa di questa merge)
+**Current focus:** Phase 19 — Revisione dei modelli — in pianificazione su `feat/19-revisione-dei-modelli` (riallineato a `develop` `bc92fb6f`); la Phase 18 è chiusa (PR #31 mergiata, contenuto a DB, BE-HEAL-01..09 completi) (↔ FE Phase 19, piani gated dalla merge di questa fase)
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
-Phase: 18 di 20 (Quest heal per taglia) — codice completo dal 2026-11-10 su `feat/18-quest-heal-per-taglia` (da `develop` `86095d89` + l'apertura della milestone): 11/11 piani, PR in draft; la fase si chiude con il contenuto a DB dopo la merge
-Plan: 11 of 11
-Status: In verifica — Phase 18 eseguita (11/11): gate verde; review 0 critical / 3 warning / 11 info → 11 corretti, 3 chiusi per ruling (`18-REVIEW-FIX.md`); verifica `passed` 8/8 con 2 differiti di contenuto (`18-VERIFICATION.md`); security 56 minacce, 0 aperte (`18-SECURITY.md`); `test:cov` dopo i fix 390 suite / 5131 test verdi, soglie rispettate (totale 97,34 / 85,91 / 93,86 / 97,89). PR verso `develop` in draft: fra la merge e gli script di contenuto ogni heal è rifiutata con `QUEST_NO_EFFECT` e nessuna pozione è bevibile, quindi merge e contenuto vanno applicati vicini.
-Last activity: 2026-11-10 -- Phase 18: review corretta, verifica e security chiuse, `test:cov` verde, PR in draft
-Next step: l'utente rivede il contenuto (166 heal per taglia con `cure`, `recovery` delle 28 pozioni, lore «Il limite del corpo»); merge della PR; l'orchestratore applica gli script di contenuto fuori repo con prova a secco (runbook in `BACKEND-NOTES.md` §3 c), riavvia il BE da `develop` e chiude BE-HEAL-03 e BE-HEAL-08; poi la FE esegue 18-12 e 18-13.
+Phase: 19 di 20 (Revisione dei modelli) — contesto del 2026-11-09 (D-01..D-15), `19-REPO-RULES.md` con i nomi del contratto scritto l'11 novembre 2026; ricerca e piani in corso
+Plan: 0 of TBD
+Status: In pianificazione — Phase 18 completa (11/11, PR #31 su `develop` `66df2ef2`; contenuto verificato a DB l'11 novembre 2026: 166 heal con `prizes.cure`, 28 pozioni con `recovery` e `relatedLore`); dopo la 18 sono entrati su `develop` il quick task `261111-sdc` (30 % sul sorteggio della magia, PR #32).
+Last activity: 2026-11-11 -- Phase 18 chiusa nei documenti; Phase 19: branch riallineato, regole comuni scritte
+Next step: ricerca e piani della Phase 19 (`/gsd-plan-phase 19`), poi esecuzione; la PR resta in draft fino al boot reale col migratore (backup prima, rimozione del modulo in TDD dopo), poi la FE esegue i piani gated.
 
 ## Current Milestone
 
