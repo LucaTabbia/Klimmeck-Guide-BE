@@ -22,6 +22,38 @@ export async function rawById(
     return connection.model(modelName).collection.findOne({ _id: id });
 }
 
+interface ReadCursor {
+    toArray(): Promise<unknown[]>;
+}
+
+type CursorRead = (...args: unknown[]) => ReadCursor;
+
+// scrittura concorrente simulata: `write` parte dopo la prossima lettura a cursore della collection, prima che il passo scriva
+export function writeAfterNextRead(
+    connection: Connection,
+    modelName: string,
+    write: () => Promise<unknown>,
+): void {
+    const collection = connection.model(modelName).collection as unknown as {
+        find(...args: unknown[]): ReadCursor;
+    };
+    const read = collection.find.bind(collection) as CursorRead;
+    let pending: (() => Promise<unknown>) | undefined = write;
+    collection.find = (...args: unknown[]): ReadCursor => {
+        const cursor = read(...args);
+        const concurrentWrite = pending;
+        pending = undefined;
+        if (!concurrentWrite) return cursor;
+        const toArray = cursor.toArray.bind(cursor) as ReadCursor['toArray'];
+        cursor.toArray = async () => {
+            const documents = await toArray();
+            await concurrentWrite();
+            return documents;
+        };
+        return cursor;
+    };
+}
+
 function withoutUndefined(doc: RawDocument): RawDocument {
     return Object.fromEntries(
         Object.entries(doc).filter(([, value]) => value !== undefined),

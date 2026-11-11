@@ -1,7 +1,7 @@
 // UNA TANTUM (Phase 19 D-12): prova sul replica set il passo delle magie dei nemici con documenti grezzi — esce dal repo dopo il boot reale
 import { Logger } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { mongo, Types } from 'mongoose';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import {
@@ -14,6 +14,7 @@ import {
     insertLegacy,
     legacyEnemyWithSpells,
     rawById,
+    writeAfterNextRead,
 } from './legacy-fixtures';
 
 describe('EnemySpellsStep (replSet)', () => {
@@ -110,6 +111,64 @@ describe('EnemySpellsStep (replSet)', () => {
                 `Revisione dei modelli, magie dei nemici: copia senza corrispondenza «Magia perduta» sul nemico ${id.toHexString()}`,
             ],
         ]);
+    });
+
+    it('leaves for the next boot an enemy written while the step runs (C-WR-02)', async () => {
+        const fireball = await insertCatalogSpell('Palla di fuoco');
+        const frost = await insertCatalogSpell('Soffio gelido');
+        const id = await insertEnemy([copyOf('Palla di fuoco', fireball)]);
+        const curated = [
+            copyOf('Palla di fuoco', fireball),
+            copyOf('Soffio gelido', frost),
+        ];
+        const enemies = harness.connection.model(Enemy.name).collection;
+        // una cura a mano cade fra la lettura e la scrittura del passo
+        writeAfterNextRead(harness.connection, Enemy.name, () =>
+            enemies.updateOne({ _id: id }, { $set: { spells: curated } }),
+        );
+
+        await expect(step.run()).resolves.toEqual({
+            found: 1,
+            migrated: 0,
+            alreadyDone: 0,
+            unmatched: 1,
+        });
+
+        expect((await rawEnemy(id))?.spells).toEqual(curated);
+        expect(warnSpy.mock.calls).toEqual([
+            [
+                `Revisione dei modelli, magie dei nemici: nemico ${id.toHexString()} cambiato durante il passo, scrittura non applicata: si ritenta al prossimo boot`,
+            ],
+        ]);
+
+        await expect(step.run()).resolves.toEqual({
+            found: 1,
+            migrated: 1,
+            alreadyDone: 0,
+            unmatched: 0,
+        });
+        expect((await rawEnemy(id))?.spells).toEqual([fireball, frost]);
+    });
+
+    it('still writes an enemy whose copies store numbers as doubles or longs (C-WR-02)', async () => {
+        const fireball = await insertCatalogSpell('Palla di fuoco');
+        const id = await insertEnemy([
+            {
+                ...copyOf('Palla di fuoco', fireball),
+                maxUsages: new mongo.Double(3),
+                cooldown: mongo.Long.fromNumber(7),
+                nested: { power: new mongo.Double(40), since: new Date(0) },
+            },
+        ]);
+
+        await expect(step.run()).resolves.toEqual({
+            found: 1,
+            migrated: 1,
+            alreadyDone: 0,
+            unmatched: 0,
+        });
+
+        expect((await rawEnemy(id))?.spells).toEqual([fireball]);
     });
 
     it('skips an enemy whose spells are already references (D-02)', async () => {

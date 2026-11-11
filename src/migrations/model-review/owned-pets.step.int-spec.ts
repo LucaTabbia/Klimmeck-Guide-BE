@@ -1,4 +1,5 @@
 // UNA TANTUM (Phase 19 D-12): prova sul replica set il passo dei pet posseduti con documenti grezzi — esce dal repo dopo il boot reale
+import { Logger } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import {
@@ -15,6 +16,7 @@ import {
     insertLegacy,
     legacyCharacterWithPets,
     rawById,
+    writeAfterNextRead,
 } from './legacy-fixtures';
 import { OwnedPetsStep } from './owned-pets.step';
 
@@ -124,6 +126,50 @@ describe('OwnedPetsStep (replSet)', () => {
         expect((await assetsOf(id)).ownedPets).toEqual([
             { pet: gone, xp: 0, currentLifePoints: 0 },
             { pet: mastiff, xp: 0, currentLifePoints: 10 },
+        ]);
+    });
+
+    it('leaves for the next boot a character written while the step runs (C-WR-02)', async () => {
+        const mastiff = await insertCatalogPet(10);
+        const horse = await insertCatalogPet(25);
+        const id = await insertCharacter([mastiff]);
+        const prize = { pet: horse, xp: 0, currentLifePoints: 25 };
+        const characters = harness.connection.model(Character.name).collection;
+        const warnSpy = jest
+            .spyOn(Logger.prototype, 'warn')
+            .mockImplementation(() => undefined);
+        // un pet in premio cade fra la lettura e la scrittura del passo
+        writeAfterNextRead(harness.connection, Character.name, () =>
+            characters.updateOne(
+                { _id: id },
+                { $set: { 'assets.ownedPets': [mastiff, prize] } },
+            ),
+        );
+
+        await expect(step.run()).resolves.toEqual({
+            found: 1,
+            migrated: 0,
+            alreadyDone: 0,
+            unmatched: 1,
+        });
+
+        expect((await assetsOf(id)).ownedPets).toEqual([mastiff, prize]);
+        expect(warnSpy.mock.calls).toEqual([
+            [
+                `Revisione dei modelli, pet posseduti: personaggio ${id.toHexString()} cambiato durante il passo, scrittura non applicata: si ritenta al prossimo boot`,
+            ],
+        ]);
+        warnSpy.mockRestore();
+
+        await expect(step.run()).resolves.toEqual({
+            found: 1,
+            migrated: 1,
+            alreadyDone: 0,
+            unmatched: 0,
+        });
+        expect((await assetsOf(id)).ownedPets).toEqual([
+            { pet: mastiff, xp: 0, currentLifePoints: 10 },
+            prize,
         ]);
     });
 

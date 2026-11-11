@@ -1,7 +1,7 @@
 // UNA TANTUM (Phase 19 D-12): prova sul replica set il passo della lista unica delle magie con documenti grezzi — esce dal repo dopo il boot reale
 import { Logger } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { mongo, Types } from 'mongoose';
 import {
     Character,
     CharacterSchema,
@@ -17,6 +17,7 @@ import {
     legacyCharacterWithSpells,
     type LegacySpellListsFixture,
     rawById,
+    writeAfterNextRead,
 } from './legacy-fixtures';
 import { SpellStatesStep } from './spell-states.step';
 
@@ -326,6 +327,85 @@ describe('SpellStatesStep (replSet)', () => {
             [
                 `Revisione dei modelli, lista delle magie: personaggio ${id.toHexString()}, usi in conflitto 1, equipaggiate non conosciute 1 [${unknownActive.toHexString()}], stati lasciati fuori 1 [${unknownState.toHexString()}]`,
             ],
+        ]);
+    });
+
+    it('leaves for the next boot a character written while the step runs (C-WR-02)', async () => {
+        const fireball = await insertCatalogSpell(3);
+        const id = await insertCharacter({
+            spells: [fireball],
+            spellStates: [{ spell: fireball, usages: 1, recoveries: [] }],
+            activeSpells: [{ spell: fireball, usages: 1 }],
+        });
+        const characters = harness.connection.model(Character.name).collection;
+        // un credito di recupero cade fra la lettura e la scrittura del passo
+        writeAfterNextRead(harness.connection, Character.name, () =>
+            characters.updateOne(
+                { _id: id },
+                { $inc: { 'status.spellStates.0.usages': 1 } },
+            ),
+        );
+
+        await expect(step.run()).resolves.toEqual({
+            found: 1,
+            migrated: 0,
+            alreadyDone: 0,
+            unmatched: 1,
+        });
+
+        const status = await statusOf(id);
+        expect(status[OLD_KNOWN_LIST]).toEqual([fireball]);
+        expect(status.spellStates).toEqual([
+            { spell: fireball, usages: 2, recoveries: [] },
+        ]);
+        expect(warnSpy.mock.calls).toEqual([
+            [
+                `Revisione dei modelli, lista delle magie: personaggio ${id.toHexString()} cambiato durante il passo, scrittura non applicata: si ritenta al prossimo boot`,
+            ],
+        ]);
+
+        await expect(step.run()).resolves.toEqual({
+            found: 1,
+            migrated: 1,
+            alreadyDone: 0,
+            unmatched: 1,
+        });
+        expect((await statusOf(id)).spellStates).toEqual([
+            { spell: fireball, usages: 2, recoveries: [], active: true },
+        ]);
+    });
+
+    it('still writes a character whose numbers are stored as doubles or longs (C-WR-02)', async () => {
+        const fireball = await insertCatalogSpell(3);
+        const frost = await insertCatalogSpell(5);
+        const id = await insertCharacter({
+            spells: [fireball, frost],
+            spellStates: [
+                {
+                    spell: fireball,
+                    usages: new mongo.Double(2),
+                    recoveries: [FIRST_RECOVERY],
+                },
+                { spell: frost, usages: mongo.Long.fromNumber(5) },
+            ],
+            activeSpells: [{ spell: frost, usages: new mongo.Double(5) }],
+        });
+
+        await expect(step.run()).resolves.toEqual({
+            found: 1,
+            migrated: 1,
+            alreadyDone: 0,
+            unmatched: 0,
+        });
+
+        expect((await statusOf(id)).spellStates).toEqual([
+            {
+                spell: fireball,
+                usages: 2,
+                recoveries: [FIRST_RECOVERY],
+                active: false,
+            },
+            { spell: frost, usages: 5, recoveries: [], active: true },
         ]);
     });
 
