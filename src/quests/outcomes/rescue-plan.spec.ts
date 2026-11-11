@@ -68,6 +68,7 @@ const unchangedSheet = {
         pet: null,
     },
     xpGained: 0,
+    petXpGained: 0,
     xpBefore: 300,
     xpAfter: 300,
     levelBefore: 2,

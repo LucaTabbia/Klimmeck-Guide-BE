@@ -60,6 +60,7 @@ describe('crime arrest (quick 261110-cgd)', () => {
             hpBefore: 900,
             hpAfter: 900,
             xpGained: 0,
+            petXpGained: 0,
             xpBefore: 300,
             xpAfter: 300,
             levelBefore: 2,

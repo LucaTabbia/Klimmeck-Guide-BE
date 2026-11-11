@@ -18,6 +18,7 @@ import {
     DrawnRewards,
     NO_REWARDS,
 } from 'src/quests/outcomes/rewards/quest-rewards';
+import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 
 const NOW = new Date('2026-10-24T10:00:00.000Z');
 const CHARACTER_ID = new Types.ObjectId('64b0000000000000000000e1');
@@ -114,6 +115,7 @@ const inputWith = (
     aid: null,
     spellRecoveryTimes: new Map(),
     spellMaxUsages: new Map(),
+    petMaxXp: new Map(),
     now: NOW,
     ...overrides,
 });
@@ -206,6 +208,7 @@ describe('planParticipant', () => {
                     pet: null,
                 },
                 xpGained: 300,
+                petXpGained: 0,
                 xpBefore: 0,
                 xpAfter: 300,
                 levelBefore: 1,
@@ -472,6 +475,183 @@ describe('planParticipant', () => {
                 expect(plan.result.rewards.pet).toEqual(PET_ID);
             },
         );
+    });
+
+    describe('the xp of the equipped companion', () => {
+        const COMPANION_ID = OWNED_PET_ID;
+        const companionAssets = (
+            ownedPets: OwnedPetEntry[],
+            pet: unknown = COMPANION_ID,
+        ) => ({
+            ownedItems: [],
+            ownedEquipments: [],
+            activeSpells: [],
+            pet,
+            ownedPets,
+        });
+        const capsOf = (maxXp: number) =>
+            new Map([[COMPANION_ID.toHexString(), maxXp]]);
+        const enemiesWorth = (xp: number) => ({
+            entries: [{ enemy: ENEMY_ID, quantity: 2 }],
+            xp,
+        });
+        const wonFightWith = (
+            ownedPets: OwnedPetEntry[],
+            overrides: Partial<ParticipantPlanInput> = {},
+        ) =>
+            planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.enemy),
+                    snapshot: snapshotWith({
+                        assets: companionAssets(ownedPets),
+                    }),
+                    battle: battleWith({ hpAfter: 700 }),
+                    enemies: enemiesWorth(200),
+                    petMaxXp: capsOf(1000),
+                    ...overrides,
+                }),
+            );
+
+        it('gives the equipped companion a tenth of the enemies xp only (D-04)', () => {
+            const plan = wonFightWith(
+                [buildOwnedPet(COMPANION_ID, { xp: 10 })],
+                { rewards: rewardsWith({ xpPrize: 5000 }) },
+            );
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                { pet: COMPANION_ID, xp: 30, currentLifePoints: 10 },
+            ]);
+            expect(plan.result.petXpGained).toBe(20);
+        });
+
+        it('writes the owned pets as one whole list and leaves the other entries untouched (D-04)', () => {
+            const first = buildOwnedPet(PET_ID, { xp: 7 });
+            const last = buildOwnedPet(new Types.ObjectId(), { xp: 400 });
+            const plan = wonFightWith([
+                first,
+                buildOwnedPet(COMPANION_ID, { xp: 10 }),
+                last,
+            ]);
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                first,
+                { pet: COMPANION_ID, xp: 30, currentLifePoints: 10 },
+                last,
+            ]);
+        });
+
+        it('caps the companion at the catalogue maximum and records the effective gain (D-04, D-17)', () => {
+            const plan = wonFightWith([
+                buildOwnedPet(COMPANION_ID, { xp: 990 }),
+            ]);
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                { pet: COMPANION_ID, xp: 1000, currentLifePoints: 10 },
+            ]);
+            expect(plan.result.petXpGained).toBe(10);
+        });
+
+        const expectNoAward = (plan: ParticipantPlan) => {
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'assets.ownedPets',
+            );
+            expect(plan.result.petXpGained).toBe(0);
+        };
+
+        it('leaves the owned pets out of the write without an equipped companion (D-04)', () => {
+            expectNoAward(
+                wonFightWith([buildOwnedPet(COMPANION_ID)], {
+                    snapshot: snapshotWith({
+                        assets: companionAssets(
+                            [buildOwnedPet(COMPANION_ID)],
+                            null,
+                        ),
+                    }),
+                }),
+            );
+        });
+
+        it('leaves the owned pets out of the write when the companion is already at the cap (D-04)', () => {
+            expectNoAward(
+                wonFightWith([buildOwnedPet(COMPANION_ID, { xp: 1000 })]),
+            );
+        });
+
+        it('leaves the owned pets out of the write on a won quest without enemies (D-04)', () => {
+            expectNoAward(
+                wonFightWith([buildOwnedPet(COMPANION_ID)], {
+                    battle: null,
+                    enemies: null,
+                    rewards: rewardsWith({ xpPrize: 5000 }),
+                }),
+            );
+        });
+
+        it('awards nothing on a defeat (D-04)', () => {
+            expectNoAward(
+                wonFightWith([buildOwnedPet(COMPANION_ID)], {
+                    verdict: QuestOutcome.failure,
+                    aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                }),
+            );
+        });
+
+        it('awards the companion on a game master completion with enemies (D-18)', () => {
+            const plan = wonFightWith([buildOwnedPet(COMPANION_ID)], {
+                verdict: QuestOutcome.gmCompleted,
+            });
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                { pet: COMPANION_ID, xp: 20, currentLifePoints: 10 },
+            ]);
+            expect(plan.result.petXpGained).toBe(20);
+        });
+
+        it('awards nothing when the catalogue has no valid cap for the companion (D-17)', () => {
+            expectNoAward(
+                wonFightWith([buildOwnedPet(COMPANION_ID)], {
+                    petMaxXp: new Map(),
+                }),
+            );
+        });
+
+        it('writes the companion xp and the won pet as a single list (D-04)', () => {
+            const other = buildOwnedPet(new Types.ObjectId(), { xp: 3 });
+            const plan = wonFightWith(
+                [other, buildOwnedPet(COMPANION_ID, { xp: 10 })],
+                { rewards: rewardsWith({ pet: PET_ID, petLifePoints: 450 }) },
+            );
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                other,
+                { pet: COMPANION_ID, xp: 30, currentLifePoints: 10 },
+                { pet: PET_ID, xp: 0, currentLifePoints: 450 },
+            ]);
+            expect(plan.result.petXpGained).toBe(20);
+            expect(plan.result.rewards.pet).toEqual(PET_ID);
+        });
+
+        it('never changes the life points of the companion (D-04)', () => {
+            const plan = wonFightWith([
+                buildOwnedPet(COMPANION_ID, { currentLifePoints: 3 }),
+            ]);
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                { pet: COMPANION_ID, xp: 20, currentLifePoints: 3 },
+            ]);
+        });
+
+        it('leaves the snapshot entries untouched (D-04)', () => {
+            const entry = buildOwnedPet(COMPANION_ID, { xp: 10 });
+
+            wonFightWith([entry]);
+
+            expect(entry).toEqual({
+                pet: COMPANION_ID,
+                xp: 10,
+                currentLifePoints: 10,
+            });
+        });
     });
 
     it('refuses a failure without an aid quest', () => {

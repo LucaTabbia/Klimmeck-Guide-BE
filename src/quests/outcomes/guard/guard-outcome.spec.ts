@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
+import { buildOwnedPet } from '../../../../test/fixtures/owned-pet.fixture';
 import {
     UNREWARDED_IDS,
     unrewardedBattle,
@@ -15,10 +16,24 @@ import {
     mergedEffects,
     planGuardDefeat,
 } from './guard-outcome';
+import { ChanceSource } from '../chance-source';
+import { planCombatant } from '../combatant-plan';
+import type {
+    CombatCatalog,
+    ResolutionCatalog,
+    ResolutionCharacter,
+} from '../resolution-loader.service';
 
 const SPELL_A = new Types.ObjectId('64c0000000000000000000b1');
 const SPELL_B = new Types.ObjectId('64c0000000000000000000b2');
 const OTHER_ENEMY = new Types.ObjectId('64c0000000000000000000b3');
+const COMPANION = new Types.ObjectId('64c0000000000000000000b4');
+
+class NoDrawChance extends ChanceSource {
+    next(): number {
+        return 0.99;
+    }
+}
 
 describe('guard outcome (quick 261110-cgd)', () => {
     it('leaves a defeated guard at one life point in the city without aid nor prize (quick 261110-cgd)', () => {
@@ -55,6 +70,7 @@ describe('guard outcome (quick 261110-cgd)', () => {
             hpAfter: 1,
             injuriesAdded: ['deepCut'],
             xpGained: 0,
+            petXpGained: 0,
             enemies: [{ enemy: UNREWARDED_IDS.enemy, quantity: 2 }],
             rewards: {
                 coins: { gold: 0, silver: 0, copper: 0 },
@@ -171,6 +187,73 @@ describe('guard outcome (quick 261110-cgd)', () => {
         expect([...merged.recoveryTimes.entries()]).toEqual([
             ['a', 1],
             ['b', 2],
+        ]);
+    });
+
+    it('awards the companion on a won guard encounter with the merged enemies (D-18)', () => {
+        const combat: CombatCatalog = {
+            enemies: [],
+            equipment: new Map(),
+            spells: new Map(),
+            loot: new Map(),
+            recoveryTimes: new Map(),
+            spellMaxUsages: new Map(),
+            petMaxXp: new Map(),
+        };
+        const questCatalog: ResolutionCatalog = {
+            ...combat,
+            enemies: [
+                {
+                    snapshot: { _id: UNREWARDED_IDS.enemy, xp: 120 },
+                    quantity: 1,
+                },
+            ],
+            rewards: {
+                rarities: new Map(),
+                spells: new Map(),
+                spellPool: [],
+                pets: new Map(),
+            },
+            petMaxXp: new Map([[COMPANION.toHexString(), 1000]]),
+        };
+        const encounterCatalog: CombatCatalog = {
+            ...combat,
+            enemies: [{ snapshot: { _id: OTHER_ENEMY, xp: 40 }, quantity: 2 }],
+        };
+        const base = unrewardedSnapshot();
+        const snapshot = {
+            ...base,
+            assets: {
+                ...base.assets,
+                pet: COMPANION,
+                ownedPets: [buildOwnedPet(COMPANION, { xp: 15 })],
+            },
+        } as ResolutionCharacter;
+
+        const { plan } = planCombatant({
+            quest: doubledCoinPrizes({
+                _id: UNREWARDED_IDS.quest,
+                infos: {
+                    type: QuestType.guard,
+                    title: 'Ronda',
+                    markerLocation: new Types.ObjectId(),
+                },
+            }),
+            catalog: encounterCatalogOf(questCatalog, encounterCatalog),
+            snapshot,
+            battle: { verdict: 'success', effects: unrewardedBattle() },
+            resultId: UNREWARDED_IDS.result,
+            aidQuestId: new Types.ObjectId(),
+            pendingQuestId: UNREWARDED_IDS.pending,
+            userId: UNREWARDED_IDS.user,
+            chance: new NoDrawChance(),
+            now: new Date('2026-11-10T12:00:00.000Z'),
+        });
+
+        expect(plan.result.xpGained).toBe(200);
+        expect(plan.result.petXpGained).toBe(20);
+        expect(plan.update.$set['assets.ownedPets']).toEqual([
+            { pet: COMPANION, xp: 35, currentLifePoints: 10 },
         ]);
     });
 });
