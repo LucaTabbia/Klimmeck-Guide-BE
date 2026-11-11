@@ -1,7 +1,7 @@
 import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
-import { SpellSchema, Spell } from './spell.model';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
+import { Spell } from './spell.model';
 import { Damages, DamagesInput, DamagesSchema } from './common/damages.model';
 import {
     Weaknesses,
@@ -43,8 +43,12 @@ export class Enemy {
     xp: number;
 
     @Field(() => [Spell])
-    @Prop({ type: [SpellSchema] })
-    spells: Spell[];
+    @Prop({
+        type: [MongooseSchema.Types.ObjectId],
+        ref: Spell.name,
+        default: [],
+    })
+    spells: (Types.ObjectId | Spell)[];
 
     @Field(() => Int)
     @Prop({ type: Number })

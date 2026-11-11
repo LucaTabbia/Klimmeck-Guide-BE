@@ -8,7 +8,12 @@ import { cureOf } from 'src/quests/outcomes/injuries/quest-cure';
 // tutti i ref che il FE seleziona sul catalogo (D-31): SDL invariato, solo comportamento
 export const QUEST_CATALOG_POPULATE: PopulateOptions[] = [
     { path: 'infos.markerLocation' },
-    { path: 'infos.enemies.enemy', model: Enemy.name },
+    {
+        path: 'infos.enemies.enemy',
+        model: Enemy.name,
+        // Enemy.spells è [Spell!]!: senza populate un id nudo annullerebbe il nemico (Phase 19 D-02)
+        populate: { path: 'spells', model: Spell.name },
+    },
     { path: 'infos.relatedLore', model: Lore.name },
     { path: 'requirements.recommendedLoot.item' },
     { path: 'prizes.prizeItem.item' },

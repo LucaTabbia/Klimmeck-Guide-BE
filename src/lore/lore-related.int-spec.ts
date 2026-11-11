@@ -7,13 +7,14 @@ import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
+import { Spell, SpellSchema } from 'src/models/spell.model';
 import {
     AuthTestApp,
     createAuthTestApp,
     graphqlRequest,
 } from '../../test/auth/auth-test-app';
 import { createPlayer } from '../../test/authz/player-fixture';
-import { persistEnemy, persistLore } from '../../test/fixtures';
+import { persistEnemy, persistLore, persistSpell } from '../../test/fixtures';
 import { persistLootItem } from '../../test/fixtures/catalog-item.fixture';
 import { playerKnowing } from '../../test/lore/lore-world';
 import { LoreModule } from './lore.module';
@@ -27,6 +28,9 @@ const ENEMIES = 'query { enemys { id name relatedLore { id name } } }';
 const ENEMY_RELATED = 'query { enemys { id relatedLore { id } } }';
 const ENEMY =
     'query Enemy($id: String!) { enemy(id: $id) { id name relatedLore { id name } } }';
+const ENEMIES_SPELLS = 'query { enemys { id spells { id name } } }';
+const ENEMY_SPELLS =
+    'query Enemy($id: String!) { enemy(id: $id) { id spells { id name } } }';
 const LOOT_ITEMS = 'query { lootItems { id relatedLore { id name } } }';
 const LOOT_ITEM =
     'query LootItem($id: String!) { lootItem(id: $id) { id relatedLore { id name } } }';
@@ -298,6 +302,28 @@ describe('related lore (wire)', () => {
             { id: String(loreA._id) },
             { id: String(loreC._id) },
         ]);
+    });
+
+    // Spell.name è String!: un id nudo o pendente annullerebbe il nemico sul filo
+    it('serves the spells of every enemy from the catalogue (D-02)', async () => {
+        const spell = await persistSpell(modelOf(Spell.name, SpellSchema), {
+            name: 'Soffio gelido',
+        });
+        const enemy = await persistEnemy(modelOf(Enemy.name, EnemySchema), {
+            spells: [spell._id, new Types.ObjectId()],
+        });
+        const expected = {
+            id: String(enemy._id),
+            spells: [{ id: String(spell._id), name: 'Soffio gelido' }],
+        };
+
+        const list = await request(ENEMIES_SPELLS);
+        const single = await request(ENEMY_SPELLS, { id: String(enemy._id) });
+
+        expect(list.errors).toBeUndefined();
+        expect(list.data?.enemys).toEqual([expected]);
+        expect(single.errors).toBeUndefined();
+        expect(single.data?.enemy).toEqual(expected);
     });
 
     describe('the related lore of a loot item', () => {
