@@ -101,7 +101,32 @@ Plans:
 **Decisioni del discuss (2026-11-09, `19-CONTEXT.md` D-01..D-15)**: come sopra, più `Pet.attack`/`Pet.defense` al posto di `Pet.damages` (aggiunta dell'utente a discuss chiuso); fuori scope la fusione di `ownedEquipments`/`ownedItems`, `Spell.damages`/`requiredLearnTime` (sessione dedicata alle magie), le corsie di `CharacterQuests`, le regole di combattimento.
 **Unblocks (FE)**: FE Phase 19 (MODEL-01..04).
 **Branch**: `feat/19-revisione-dei-modelli` impilato su `feat/18-quest-heal-per-taglia` → PR a `develop` dopo quella della Phase 18.
-**Plans**: TBD
+**Plans**: 23 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — Scheletro del migratore una tantum (`src/migrations/model-review/`), boot a passi, fixture nella forma vecchia
+- [ ] 19-02-PLAN.md — D-01 `Enemy.weaknesses` (modello, lettori, SDL) e passo del migratore
+- [ ] 19-03-PLAN.md — D-02 magie dei nemici per riferimento (tre punti di populate) e passo di abbinamento
+- [ ] 19-04-PLAN.md — D-03/D-15 catalogo dei pet: `attack`/`defense`, stato fuori dal catalogo, SDL e passo
+- [ ] 19-05-PLAN.md — `OwnedPet` sul personaggio: modello, populate senza orfani, `equipPet`, SDL
+- [ ] 19-06-PLAN.md — Scrittori delle voci dei pet: acquisto, vendita, «già posseduto», pet in premio
+- [ ] 19-07-PLAN.md — Passo del migratore dei pet posseduti (archiviati compresi, orfani D-23)
+- [ ] 19-08-PLAN.md — Primitive degli xp del compagno: `PET_XP_SHARE`, `petXpAward`, tetti nel catalogo di combattimento
+- [ ] 19-09-PLAN.md — Xp del compagno nel piano d'esito e `petXpGained` (modello, draft, SDL)
+- [ ] 19-10-PLAN.md — Xp del compagno nell'imboscata vinta: report trattenuto e risultato all'arrivo (D-19)
+- [ ] 19-11-PLAN.md — D-26 `Pet.relatedLore` per viewer e lore sbloccata all'acquisto e al premio
+- [ ] 19-12-PLAN.md — D-09 via `PointOfInterest.quest` (modello, `cityRelations`, registro) e passo
+- [ ] 19-13-PLAN.md — D-10 `City.shop` (sotto-documento, lettori) e passo
+- [ ] 19-14-PLAN.md — D-11/D-20 `Lore.imagePath` e passo, `slot-type.enum.ts`, file vuoto e `KGNotification` rimossi
+- [ ] 19-15-PLAN.md — D-06 `wornEquipment`/`feet` (enum, modello, lettori, SDL) e passo a due rinomine
+- [ ] 19-16-PLAN.md — D-08 `maxActiveSpells` da virtual a resolve field
+- [ ] 19-17-PLAN.md — D-07 1/4: `SpellState.active` additivo, `mergeSpellLists` e passo
+- [ ] 19-18-PLAN.md — D-07 2/4: `SpellStateMigrator` ridotto al taglio (D-21), equip/unequip/uso/recupero sulla voce
+- [ ] 19-19-PLAN.md — D-07 3/4: piani d'esito, combattimento, override del GM, imboscata
+- [ ] 19-20-PLAN.md — D-07 4/4: contrazione di modello, input, populate, registro e SDL
+- [ ] 19-21-PLAN.md — D-27 `Pet.rarity` (modello, SDL con `enum RarityType`)
+- [ ] 19-22-PLAN.md — D-28 pet in premio nelle quest generate per nemico e zona: `Pet.enemy`, `petPrizeOf`, generatore
+- [ ] 19-23-PLAN.md — Gate, `BACKEND-NOTES.md` (tabella SDL, runbook del boot reale e del contenuto), validazione
 
 ### Phase 20: Cibo e vita progressivi in viaggio
 **Goal**: Cibo e vita del viaggio si pagano mentre si cammina. La partenza calcola e salva il piano (stessa selezione a scarto minimo, stessa anteprima, stesso rifiuto se non si arriva vivi) senza consumare né scalare nulla; lo sweep del viaggio scrive ogni minuto la perdita incrementale dei chilometri scoperti fatti dall'ultimo passaggio (pozioni e danni d'imboscata si sommano, nulla li cancella; mai sotto 1), esatta al chilometro dell'imboscata e all'arrivo; il cibo si toglie in blocco alla fine dei chilometri coperti, all'arrivo o alla sconfitta (selezione sul fabbisogno dei soli chilometri percorsi, sul posseduto in quel momento). La deviazione resta senza cibo e senza fame. Supera la Phase 14 D-04 e la lettura «nessun rimborso» della BE-AMBUSH-05.
@@ -155,7 +180,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 16. Lore sbloccabili | v1.0 | 12/12 | Complete | 2026-11-07 |
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
-| 19. Revisione dei modelli | v1.1 | 0/0 | Not started | - |
+| 19. Revisione dei modelli | v1.1 | 0/23 | Planned | - |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
 
 ---
