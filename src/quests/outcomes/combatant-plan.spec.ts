@@ -54,7 +54,6 @@ const catalogWith = (
     spells: new Map(),
     loot: new Map(),
     recoveryTimes: new Map(),
-    spellMaxUsages: new Map(),
     petMaxXp: new Map(),
 });
 
@@ -140,10 +139,9 @@ const explorer: ResolutionCharacter = {
         currentLifePoints: 1000,
         maxLifePoints: 1000,
         injuries: [],
-        spells: [],
     },
     quests: { completedQuests: [] },
-    assets: { ownedItems: [], ownedEquipments: [], activeSpells: [] },
+    assets: { ownedItems: [], ownedEquipments: [] },
 } as ResolutionCharacter;
 
 const effectsOf = (hpAfter: number): ParticipantEffects => ({

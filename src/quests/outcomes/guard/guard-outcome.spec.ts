@@ -163,7 +163,6 @@ describe('guard outcome (quick 261110-cgd)', () => {
             spells: new Map(),
             loot: new Map(),
             recoveryTimes: new Map([['a', 1]]),
-            spellMaxUsages: new Map([['a', 3]]),
         };
         const encounterCatalog = {
             enemies: [encounterEnemy],
@@ -171,7 +170,6 @@ describe('guard outcome (quick 261110-cgd)', () => {
             spells: new Map([['s', {}]]),
             loot: new Map([['l', {}]]),
             recoveryTimes: new Map([['b', 2]]),
-            spellMaxUsages: new Map([['a', 3]]),
         };
 
         const merged = encounterCatalogOf(
@@ -197,7 +195,6 @@ describe('guard outcome (quick 261110-cgd)', () => {
             spells: new Map(),
             loot: new Map(),
             recoveryTimes: new Map(),
-            spellMaxUsages: new Map(),
             petMaxXp: new Map(),
         };
         const questCatalog: ResolutionCatalog = {

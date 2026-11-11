@@ -129,7 +129,6 @@ const inputWith = (
     nextAmbush: null,
     detour: null,
     spellRecoveryTimes: new Map([[SPELL_ID.toHexString(), RECOVERY_MS]]),
-    spellMaxUsages: new Map([[SPELL_ID.toHexString(), 2]]),
     petMaxXp: new Map(),
     now: NOW,
     ...overrides,

@@ -12,7 +12,7 @@ import {
     persistLootItem,
     persistPet,
     persistSpell,
-    spellBook,
+    spellStatesOf,
 } from '../../../test/fixtures';
 import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
@@ -28,14 +28,14 @@ import { GmCompletionService } from './gm-completion.service';
 import { ResolutionLoader } from './resolution-loader.service';
 
 const NOW = new Date('2026-10-24T12:00:00.000Z');
-// mirror e stato coerenti (D-03): gli usi della magia attiva stanno nella voce di stato
-const knowingSpell = (spell: Types.ObjectId, usages: number) => {
-    const book = spellBook([{ spell, usages, active: true }]);
-    return {
-        status: { spells: book.spells, spellStates: book.spellStates },
-        assets: { activeSpells: book.activeSpells },
-    };
-};
+// la sola lista delle voci (Phase 19 D-07): la magia equipaggiata è la voce attiva
+const knowingSpell = (
+    spell: Types.ObjectId,
+    usages: number,
+    active = true,
+) => ({
+    status: { spellStates: spellStatesOf([{ spell, usages, active }]) },
+});
 const FRESH_STATUS = {
     xp: 0,
     level: 1,
@@ -357,6 +357,54 @@ describe('GmCompletionService.complete (replSet)', () => {
                 options: expect.objectContaining({ delay: 5000 }),
             }),
         ]);
+    });
+
+    it('rejects a game master override beyond the usages of an active spell state (D-07)', async () => {
+        const spell = await persistSpell(world.models.spells, {
+            recoveryTime: 5000,
+        });
+        const subject = await storyQuester({
+            characterOverrides: knowingSpell(spell._id, 1),
+        });
+
+        await expect(
+            service.complete(
+                inputOf(subject, [
+                    {
+                        characterId: String(subject.characterId),
+                        spellsUsed: [{ spell: String(spell._id), usages: 2 }],
+                    },
+                ]),
+            ),
+        ).rejects.toMatchObject({
+            code: GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+        });
+
+        await expectUntouched([subject], QuestLane.story);
+    });
+
+    it('rejects a game master override on a spell whose state is not active (D-07)', async () => {
+        const spell = await persistSpell(world.models.spells, {
+            recoveryTime: 5000,
+        });
+        const subject = await storyQuester({
+            characterOverrides: knowingSpell(spell._id, 2, false),
+        });
+
+        await expect(
+            service.complete(
+                inputOf(subject, [
+                    {
+                        characterId: String(subject.characterId),
+                        spellsUsed: [{ spell: String(spell._id), usages: 1 }],
+                    },
+                ]),
+            ),
+        ).rejects.toMatchObject({
+            code: GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+        });
+
+        await expectUntouched([subject], QuestLane.story);
     });
 
     it('rejects an override on a character outside the request without writing', async () => {

@@ -83,9 +83,35 @@ describe('ResolutionLoader enemy read', () => {
             spells: new Map(),
             loot: new Map(),
             recoveryTimes: new Map(),
-            spellMaxUsages: new Map(),
             petMaxXp: new Map(),
         });
+    });
+
+    it('carries no spell usages catalogue in the combat catalog (D-07)', async () => {
+        const enemy = { _id: new Types.ObjectId(), name: 'Lupo', xp: 5 };
+        const withEnemies = await loaderWith(
+            fakeModel([enemy]),
+        ).readCombatCatalog(
+            [{ enemy: enemy._id, quantity: 1 }],
+            [],
+            AMBUSH_SUBJECT,
+        );
+        const withoutEnemies = await loaderWith(fakeModel()).readCombatCatalog(
+            [],
+            [],
+            AMBUSH_SUBJECT,
+        );
+
+        const keys = [
+            'enemies',
+            'equipment',
+            'loot',
+            'petMaxXp',
+            'recoveryTimes',
+            'spells',
+        ];
+        expect(Object.keys(withEnemies).sort()).toEqual(keys);
+        expect(Object.keys(withoutEnemies).sort()).toEqual(keys);
     });
 
     it('drops an orphan ambush enemy with an id only warning (D-09)', async () => {

@@ -110,7 +110,6 @@ const inputWith = (
     rewards: NO_REWARDS,
     aid: null,
     spellRecoveryTimes: new Map(),
-    spellMaxUsages: new Map(),
     petMaxXp: new Map(),
     now: NOW,
     ...overrides,

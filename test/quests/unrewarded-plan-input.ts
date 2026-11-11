@@ -78,7 +78,6 @@ export function unrewardedInput(
         battle: null,
         enemies: null,
         spellRecoveryTimes: new Map(),
-        spellMaxUsages: new Map(),
         now: UNREWARDED_NOW,
         ...overrides,
     };
