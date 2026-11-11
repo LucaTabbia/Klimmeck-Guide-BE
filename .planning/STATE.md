@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
-status: planned
-last_updated: "2026-11-11T21:00:00.000Z"
-last_activity: 2026-11-11 -- Phase 19 pianificata (23 piani; aggiunte dell'utente D-25..D-28: contenuto dei pet nella fase, lore dei pet, rarità, pet in premio per nemico e zona)
+status: in_progress
+last_updated: "2026-11-11T11:20:00.000Z"
+last_activity: 2026-11-11 -- Phase 19 completa (23/23; boot reale col migratore, contenuto dei pet a DB, modulo una tantum rimosso in TDD, BE-MODEL-01..12 chiusi)
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 34
-  completed_plans: 11
-  percent: 32
+  completed_plans: 34
+  percent: 100
 ---
 
 # Project State
@@ -20,20 +20,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 19 — Revisione dei modelli — eseguita (23/23) su `feat/19-revisione-dei-modelli`, PR verso `develop` in draft a cura dell'orchestratore; restano dentro la fase il boot reale col migratore, il contenuto dei pet a DB e la rimozione del modulo una tantum (runbook in `.planning/phases/19-revisione-dei-modelli/BACKEND-NOTES.md` §3); la Phase 18 è chiusa (PR #31 mergiata, contenuto a DB, BE-HEAL-01..09 completi) (↔ FE Phase 19, piani gated dalla merge di questa fase)
+**Current focus:** Phase 19 — Revisione dei modelli — COMPLETA (23/23) su `feat/19-revisione-dei-modelli`: boot reale col migratore, contenuto dei pet a DB e modulo una tantum rimosso in TDD l'11 novembre 2026 (esito in `.planning/phases/19-revisione-dei-modelli/BACKEND-NOTES.md`); PR #33 verso `develop` (in draft fino a questa rimozione, poi pronta, a cura dell'orchestratore); la Phase 18 è chiusa (PR #31 mergiata, contenuto a DB, BE-HEAL-01..09 completi) (↔ FE Phase 19, piani gated dalla merge della PR #33)
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
-Phase: 19 di 20 (Revisione dei modelli) — contesto del 2026-11-09 (D-01..D-15) esteso l'11 novembre 2026 (D-16..D-28), `19-REPO-RULES.md` coi nomi del contratto; 23 piani eseguiti l'11 novembre 2026
+Phase: 19 di 20 (Revisione dei modelli) — COMPLETA l'11 novembre 2026; contesto del 2026-11-09 (D-01..D-15) esteso l'11 novembre 2026 (D-16..D-28), `19-REPO-RULES.md` coi nomi del contratto; 23 piani eseguiti l'11 novembre 2026
 Plan: 23 of 23
-Status: Phase 19 eseguita (23/23), PR in draft, boot reale col migratore e contenuto a cura dell'orchestratore — gate 19-23 verde (`tsc` 0, unit 275 suite / 3501 test, integration 148 suite / 2033 test, boot reale 91 test, SDL cambiato solo come dichiarato, coverage per cartella sopra le sette soglie a rischio); BE-MODEL-01, 02, 03, 05, 06, 07, 08 chiusi dal codice; BE-MODEL-09 e le parti di contenuto di BE-MODEL-04, 10, 11 e 12 restano aperti e si chiudono dentro la fase.
-Last activity: 2026-11-11 -- Phase 19 eseguita (23/23): gate, handoff `BACKEND-NOTES.md` per la FE Phase 19 con il runbook del boot reale, validazione firmata, sette requisiti chiusi dal codice
-Next step: `npm run test:cov` in background (orchestratore), review, verifica, security; poi PR in draft e runbook del handoff §3 — processo dell'utente fermo, backup, prova a secco, build SOLO dalla HEAD della fase, primo boot (nove righe) e secondo boot a zero, script di contenuto dei pet con prova a secco (D-25..D-28), rimozione del modulo in TDD, chiusura di BE-MODEL-04, 09, 10, 11 e 12, PR pronta; mai codice pre-19 sul database migrato; la FE esegue i piani gated dopo la merge.
+Status: Phase 19 COMPLETA (23/23) — review corretta, verifica, security, boot reale (primo boot coi conteggi attesi, secondo a zero), contenuto dei pet a DB (D-25..D-28), modulo una tantum rimosso in TDD (`c3492ced`, `0822feee`); dopo la rimozione `tsc` 0, unit 272 suite / 3497 test, integration 140 suite / 1990 test, boot reale di test 91 test, SDL invariato; BE-MODEL-01..12 tutti chiusi. La milestone v1.1 resta in corso: la Phase 20 non ha ancora piani (i 34 piani contati sono quelli delle Phase 18 e 19).
+Last activity: 2026-11-11 -- Phase 19 completa: boot reale col migratore, contenuto dei pet a DB, rimozione del modulo una tantum in TDD, chiusura di BE-MODEL-04, 09, 10, 11 e 12
+Next step: orchestratore — `npm run test:cov` in background, terzo boot reale dalla build dopo la rimozione (nessuna riga «Revisione dei modelli»: il processo in esecuzione viene ancora dalla build di `66ff10ec`), PR #33 fuori dal draft e merge su `develop`; poi Phase 20 «Cibo e vita progressivi in viaggio» (solo BE) e i piani gated della FE Phase 19 dopo la merge. Mai codice pre-19 sul database migrato.
 
 ## Current Milestone
 
-v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..09, ↔ FE 18) → Phase 19 Revisione dei modelli (BE-MODEL-01..09, ↔ FE 19) → Phase 20 Cibo e vita progressivi in viaggio (BE-FOODP-01..05, solo BE). Milestone FE gemella v1.1 «Healing & Models» (FE Phases 18–19). Ricerca di dominio saltata all'apertura (fasi già discusse); la ricerca per fase resta nel plan-phase.
+v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..09, ↔ FE 18) → Phase 19 Revisione dei modelli (BE-MODEL-01..12, ↔ FE 19) → Phase 20 Cibo e vita progressivi in viaggio (BE-FOODP-01..05, solo BE). Milestone FE gemella v1.1 «Healing & Models» (FE Phases 18–19). Ricerca di dominio saltata all'apertura (fasi già discusse); la ricerca per fase resta nel plan-phase.
 
 ## Accumulated Context
 
@@ -59,6 +59,11 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 - **EventSub:** E2E managed con tunnel HTTPS e verifica C4 prima della produzione (Phase 6).
 - **«Esci da tutti i dispositivi»** (mutation che revoca ogni sessione) — backlog dalla Phase 2, non necessaria finché «l'ultimo login caccia l'altro».
 - **Branch locali già mergiati** (23 `feat/*`, `fix/*`, `docs/*`) lasciati in place: cancellabili con `git branch -d`.
+- **Int-spec instabile «real Redis»** (Phase 19): `src/quests/outcomes/quest-resolution.processor.int-spec.ts` è fallita per intero una volta su una corsa completa di `src/quests` e mai più; usa il Redis locale vero, lo stesso del processo dell'utente (possibile contesa sui job).
+- **`pointsOfInterest { city { id } }` a profondità 2 non è popolato** (Phase 19, fuori dal ruling C-WR-06): la FE non lo seleziona; vale una regola o resta così?
+- **Sorteggio della lore di studio** (Phase 19): può cadere sulla lore di un pet vinto nello stesso esito (nessun doppione in lista, ma il tiro è «speso»); vale una regola?
+- **Redis locale non raggiungibile ai due boot reali dell'11 novembre 2026** (`ECONNREFUSED`, preesistente): gli scheduler hanno loggato il ripiego («lo sweep copre»).
+- **Terzo boot reale della Phase 19** (build dopo la rimozione del modulo una tantum, nessuna riga «Revisione dei modelli»): da fare al prossimo riavvio del BE dalla HEAD.
 
 ### Quick Tasks Completed (v1.0)
 
@@ -77,6 +82,6 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 
 ## Session Continuity
 
-Last session: 2026-11-11 — esecuzione della Phase 19 (23 piani)
-Stopped at: Phase 19 codice completo (23/23, 2026-11-11) — PR in draft, boot reale col migratore, contenuto e rimozione del modulo a cura dell'orchestratore
+Last session: 2026-11-11 — esecuzione e chiusura della Phase 19 (23 piani, boot reale, contenuto, rimozione del modulo una tantum)
+Stopped at: Phase 19 completa (23/23, 2026-11-11) — PR #33 da togliere dal draft e mergiare su `develop`; poi Phase 20 (solo BE) e piani gated della FE Phase 19
 Resume file: .planning/phases/19-revisione-dei-modelli/BACKEND-NOTES.md
