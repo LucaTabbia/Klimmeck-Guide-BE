@@ -224,8 +224,33 @@ async function persistPets(models: GenerationModels): Promise<void> {
     await persistPet(models.pets, { name: 'Pet in vendita', sellable: true });
 }
 
+export interface LinkedPet {
+    id: Types.ObjectId;
+    enemyId: Types.ObjectId;
+}
+
+// un pet legato a ogni nemico dato (Phase 19 D-28); `rarity` null = non ancora curato
+export async function persistLinkedPets(
+    models: GenerationModels,
+    enemyIds: readonly Types.ObjectId[],
+    rarity: RarityType | null = RarityType.common,
+): Promise<LinkedPet[]> {
+    const linked: LinkedPet[] = [];
+    for (const enemyId of enemyIds) {
+        const pet = await persistPet(models.pets, {
+            name: `Pet di ${enemyId.toHexString()}`,
+            sellable: true,
+            rarity,
+            enemy: enemyId,
+        });
+        linked.push({ id: pet._id as Types.ObjectId, enemyId });
+    }
+    return linked;
+}
+
 // città con marker `city` e POI `forest`, un nemico e un leggendario per ogni voce di `enemyXps`,
-// un animale per ogni voce di `animalXps` (lore `animal`, 13.1 D-01), catalogo per rarità, pet
+// un animale per ogni voce di `animalXps` (lore `animal`, 13.1 D-01), catalogo per rarità,
+// tre pet senza rarità né legame (mai candidati al premio, Phase 19 D-28)
 export async function persistGenerationWorld(
     models: GenerationModels,
     options: GenerationWorldOptions,
