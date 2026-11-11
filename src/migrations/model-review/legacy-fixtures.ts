@@ -1,5 +1,5 @@
 // UNA TANTUM (Phase 19 D-12): inserisce e rilegge col driver nativo le fixture nella forma vecchia (lo strict dei modelli scarterebbe i campi tolti) — esce dal repo dopo il boot reale
-import type { Connection, Types } from 'mongoose';
+import { type Connection, Types } from 'mongoose';
 
 type RawDocument = Record<string, unknown>;
 
@@ -69,5 +69,49 @@ export function legacyPet(overrides: RawDocument = {}): RawDocument {
         imagePath: 'pets/test.png',
         speedModifier: null,
         ...overrides,
+    });
+}
+
+// personaggio nella forma vecchia dei posseduti: lista di soli riferimenti (o di ciò che il test ci mette); un override di `assets` si fonde con quelli di base
+export function legacyCharacterWithPets(
+    petRefs: readonly unknown[],
+    overrides: RawDocument = {},
+): RawDocument {
+    const { assets, ...rest } = overrides;
+    return withoutUndefined({
+        infos: {
+            sex: 'male',
+            name: 'Personaggio vecchio',
+            race: 'human',
+            pronoun: 'he',
+            classType: 'fighter',
+            age: 20,
+            background: 'test',
+            imagePath: null,
+        },
+        status: {
+            xp: 20000,
+            level: 1,
+            location: new Types.ObjectId(),
+            title: 'rookie',
+            injuries: [],
+            spells: [],
+            spellStates: [],
+            coins: { gold: 0, silver: 0, copper: 0 },
+            currentLifePoints: 100,
+            maxLifePoints: 100,
+        },
+        quests: { completedQuests: [], pendingQuest: null },
+        assets: withoutUndefined({
+            ownedEquipments: [],
+            ownedItems: [],
+            wearedEquipment: {},
+            activeSpells: [],
+            ownedPets: [...petRefs],
+            pet: null,
+            ...(assets as RawDocument | undefined),
+        }),
+        deletedAt: null,
+        ...rest,
     });
 }
