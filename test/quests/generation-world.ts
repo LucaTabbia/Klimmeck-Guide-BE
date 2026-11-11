@@ -149,7 +149,7 @@ async function persistEnemies(
             name: `${legendary ? 'Leggendario' : 'Nemico'} ${xp}`,
             xp,
             locations: [WORLD_HABITAT],
-            baseWeaknesses: ['cut'],
+            weaknesses: { base: ['cut'], energy: [] },
             legendary,
         });
         ids.push(enemy._id as Types.ObjectId);
@@ -172,7 +172,7 @@ async function persistAnimals(
             name: `Animale ${xp}`,
             xp,
             locations: [WORLD_HABITAT],
-            baseWeaknesses: ['cut'],
+            weaknesses: { base: ['cut'], energy: [] },
             legendary: false,
             relatedLore: [bestiary._id],
         });

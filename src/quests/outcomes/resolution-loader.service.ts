@@ -157,8 +157,7 @@ const COMBAT_ENEMY_PROJECTION = {
     lifePoints: 1,
     xp: 1,
     damages: 1,
-    baseWeaknesses: 1,
-    energyWeaknesses: 1,
+    weaknesses: 1,
     // le lore dei nemici per la conoscenza della vittoria (Phase 16 D-06); stesso catalogo per quest e imboscate
     relatedLore: 1,
 } as const;

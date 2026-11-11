@@ -232,6 +232,12 @@ input CreateCharacterInput {
   sex: SexType!
 }
 
+enum DamageType {
+  blunt
+  cut
+  pierce
+}
+
 type Damages {
   base: [BaseDamage!]!
   energy: [EnergyDamage!]!
@@ -243,9 +249,7 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 scalar DateTime
 
 type Enemy {
-  baseWeaknesses: [String!]!
   damages: Damages!
-  energyWeaknesses: [String!]!
   id: ID!
   imagePath: String!
   legendary: Boolean!
@@ -254,12 +258,27 @@ type Enemy {
   name: String!
   relatedLore: [Lore!]!
   spells: [Spell!]!
+  weaknesses: Weaknesses!
   xp: Int!
 }
 
 type EnergyDamage {
   power: Int!
   type: String!
+}
+
+enum EnergyType {
+  acid
+  cold
+  enhancing
+  fire
+  force
+  lightning
+  necrotic
+  poison
+  psychic
+  radiant
+  thunder
 }
 
 input EquipItemRequest {
@@ -878,4 +897,9 @@ type User {
   role: RoleType!
   twitchId: String!
   twitchPoints: Int!
+}
+
+type Weaknesses {
+  base: [DamageType!]!
+  energy: [EnergyType!]!
 }

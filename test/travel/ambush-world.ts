@@ -164,7 +164,7 @@ export async function persistAmbushEnemies(
     ): Promise<Types.ObjectId> =>
         (
             await persistEnemy(enemies, {
-                baseWeaknesses: ['cut'],
+                weaknesses: { base: ['cut'], energy: [] },
                 legendary: false,
                 ...overrides,
             })

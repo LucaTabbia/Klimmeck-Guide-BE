@@ -1,6 +1,8 @@
 import { Types } from 'mongoose';
 import { AccessoryUseType } from 'src/models/enums/accessory-use-type.enum';
+import { DamageType } from 'src/models/enums/damage-type.enum';
 import { EffectType } from 'src/models/enums/effect-type.enum';
+import { EnergyType } from 'src/models/enums/energy-type.enum';
 import { EquipType } from 'src/models/enums/equip-type.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
@@ -49,8 +51,8 @@ export interface CombatEnemySnapshot {
     lifePoints?: number;
     xp?: number;
     damages?: unknown;
-    baseWeaknesses?: string[];
-    energyWeaknesses?: string[];
+    // assente sui nemici non ancora migrati (Phase 19 D-01)
+    weaknesses?: { base?: unknown; energy?: unknown } | null;
     relatedLore?: unknown[];
 }
 
@@ -83,6 +85,18 @@ const KNOWN_EQUIP_TYPES: ReadonlySet<unknown> = new Set(
 const KNOWN_ACCESSORY_USE_TYPES: ReadonlySet<unknown> = new Set(
     Object.values(AccessoryUseType),
 );
+const KNOWN_DAMAGE_TYPES: ReadonlySet<string> = new Set(
+    Object.values(DamageType),
+);
+const KNOWN_ENERGY_TYPES: ReadonlySet<string> = new Set(
+    Object.values(EnergyType),
+);
+
+// il motore riceve solo debolezze dei due enum (Phase 19 D-22): lista assente o nulla = vuota
+const knownOf = <T extends string>(
+    value: unknown,
+    known: ReadonlySet<string>,
+): T[] => stringsOf(value).filter((item): item is T => known.has(item));
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -245,8 +259,10 @@ const enemyOf = (
     lifePoints: numberOr(enemy.lifePoints, 0),
     xp: numberOr(enemy.xp, 0),
     damages: normalizeDamages(enemy.damages),
-    baseWeaknesses: stringsOf(enemy.baseWeaknesses),
-    energyWeaknesses: stringsOf(enemy.energyWeaknesses),
+    weaknesses: {
+        base: knownOf(enemy.weaknesses?.base, KNOWN_DAMAGE_TYPES),
+        energy: knownOf(enemy.weaknesses?.energy, KNOWN_ENERGY_TYPES),
+    },
 });
 
 // funzione pura: gli snapshot e le mappe del catalogo sono letti dal servizio, qui nessun I/O; ordine per id = esiti riproducibili

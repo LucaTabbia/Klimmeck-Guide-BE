@@ -1,10 +1,13 @@
 import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
-import { EnergyType } from './enums/energy-type.enum';
-import { DamageType } from './enums/damage-type.enum';
 import { SpellSchema, Spell } from './spell.model';
 import { Damages, DamagesInput, DamagesSchema } from './common/damages.model';
+import {
+    Weaknesses,
+    WeaknessesInput,
+    WeaknessesSchema,
+} from './common/weaknesses.model';
 import { Lore, LoreInput } from './lore.model';
 import { PoiType } from './enums/poi-type.enum';
 
@@ -22,13 +25,10 @@ export class Enemy {
     @Prop({ type: [String], enum: Object.values(PoiType), default: [] })
     locations: PoiType[];
 
-    @Field(() => [String])
-    @Prop({ type: [String], enum: Object.values(EnergyType) })
-    energyWeaknesses: EnergyType[];
-
-    @Field(() => [String])
-    @Prop({ type: [String], enum: Object.values(DamageType) })
-    baseWeaknesses: DamageType[];
+    // default a funzione: un nemico salvato senza il campo si idrata con le due liste vuote (Phase 19 D-01)
+    @Field(() => Weaknesses)
+    @Prop({ type: WeaknessesSchema, default: () => ({}) })
+    weaknesses: Weaknesses;
 
     @Field(() => [Lore])
     @Prop({
@@ -78,11 +78,8 @@ export class EnemyInput {
     @Field(() => [PoiType])
     locations: PoiType[];
 
-    @Field(() => [EnergyType])
-    energyWeaknesses: EnergyType[];
-
-    @Field(() => [DamageType])
-    baseWeaknesses: DamageType[];
+    @Field(() => WeaknessesInput)
+    weaknesses: WeaknessesInput;
 
     @Field(() => [LoreInput], { nullable: true })
     relatedLore?: LoreInput[];
