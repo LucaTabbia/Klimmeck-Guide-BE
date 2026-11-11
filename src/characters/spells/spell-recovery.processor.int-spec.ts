@@ -18,7 +18,7 @@ import { Spell, SpellDocument, SpellSchema } from 'src/models/spell.model';
 import {
     buildCharacter,
     persistSpell,
-    spellBook,
+    spellStatesOf,
     SpellBookEntry,
 } from '../../../test/fixtures';
 import { startRedis, stopRedis } from '../../../test/setup/redis';
@@ -60,6 +60,7 @@ interface RawSpellState {
     spell: Types.ObjectId;
     usages: number;
     recoveries: Date[];
+    active: boolean;
 }
 
 /**
@@ -140,20 +141,23 @@ describe('SpellRecoveryProcessor (real Redis)', () => {
     async function insertBook(
         entries: readonly SpellBookEntry[],
     ): Promise<Types.ObjectId> {
+        // le sole voci, nessuna delle due liste vecchie (D-07)
         const base = buildCharacter();
-        const book = spellBook(entries);
         heroes += 1;
+        const status: Record<string, unknown> = {
+            ...base.status,
+            spellStates: spellStatesOf(entries),
+        };
+        delete status.spells;
+        const assets: Record<string, unknown> = { ...base.assets };
+        delete assets.activeSpells;
         const _id = new Types.ObjectId();
         await characters.collection.insertOne({
             ...base,
             _id,
             infos: { ...base.infos, name: `Hero ${heroes}` },
-            status: {
-                ...base.status,
-                spells: book.spells,
-                spellStates: book.spellStates,
-            },
-            assets: { ...base.assets, activeSpells: book.activeSpells },
+            status,
+            assets,
         } as never);
         return _id;
     }
@@ -201,8 +205,8 @@ describe('SpellRecoveryProcessor (real Redis)', () => {
                 spell,
                 usages: 2,
                 recoveries: [],
+                active: false,
             });
-            expect((await rawOf(id))?.assets.activeSpells).toEqual([]);
         },
         TEST_TIMEOUT_MS,
     );
@@ -222,6 +226,7 @@ describe('SpellRecoveryProcessor (real Redis)', () => {
                 spell,
                 usages: 2,
                 recoveries: [],
+                active: false,
             });
         },
         TEST_TIMEOUT_MS,
@@ -301,6 +306,7 @@ describe('SpellRecoveryProcessor (real Redis)', () => {
                 spell,
                 usages: 2,
                 recoveries: [],
+                active: false,
             });
         },
         TEST_TIMEOUT_MS,

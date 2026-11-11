@@ -14,6 +14,7 @@ import {
     buildLootItem,
     buildEnemy,
     spellBook,
+    spellStatesOf,
 } from './index';
 
 /**
@@ -107,11 +108,31 @@ describe('fixtures builders', () => {
             ).toEqual({
                 spells: [first, second],
                 spellStates: [
-                    { spell: first, usages: 1, recoveries: [later, earlier] },
-                    { spell: second, usages: 3, recoveries: [] },
+                    {
+                        spell: first,
+                        usages: 1,
+                        recoveries: [later, earlier],
+                        active: true,
+                    },
+                    { spell: second, usages: 3, recoveries: [], active: false },
                 ],
                 activeSpells: [{ spell: first, usages: 1 }],
             });
+        });
+
+        it('builds the single list of spell states with the active flag on every entry (D-07)', () => {
+            const entries = [
+                { spell: first, usages: 1, recoveries: [later], active: true },
+                { spell: second.toHexString(), usages: 3 },
+            ];
+
+            expect(spellStatesOf(entries)).toEqual([
+                { spell: first, usages: 1, recoveries: [later], active: true },
+                { spell: second, usages: 3, recoveries: [], active: false },
+            ]);
+            expect(spellBook(entries).spellStates).toEqual(
+                spellStatesOf(entries),
+            );
         });
 
         it('keeps a legacy string ref on spells and active spells and casts it on the state', () => {

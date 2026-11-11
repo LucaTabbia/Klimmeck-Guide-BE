@@ -62,6 +62,16 @@ export interface SpellBookEntry {
     active?: boolean;
 }
 
+// la sola lista della revisione dei modelli (Phase 19 D-07): una voce per magia nell'ordine dato, equipaggiata = flag della voce
+export function spellStatesOf(entries: readonly SpellBookEntry[]) {
+    return entries.map((entry) => ({
+        spell: new Types.ObjectId(String(entry.spell)),
+        usages: entry.usages,
+        recoveries: [...(entry.recoveries ?? [])],
+        active: entry.active === true,
+    }));
+}
+
 // stato coerente per i test (D-03): spells, spellStates e activeSpells con lo stesso ordine; il mirror vale quanto lo stato (D-04)
 export function spellBook(entries: readonly SpellBookEntry[]) {
     return {

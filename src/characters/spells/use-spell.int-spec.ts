@@ -15,9 +15,8 @@ import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
 import {
     buildCharacter,
     persistSpell,
-    spellBook,
+    spellStatesOf,
 } from '../../../test/fixtures';
-import { migrateLegacyRefs } from '../../../test/migrations/migrate-legacy-refs';
 
 const USE_SPELL =
     'mutation($request: UseSpellRequest!) { useSpell(request: $request) { successful response } }';
@@ -34,11 +33,12 @@ interface RawSpellState {
     spell: Types.ObjectId;
     usages: number;
     recoveries: Date[];
+    active: boolean;
 }
 
 interface RawCharacter {
     status: { spellStates: RawSpellState[] };
-    assets: { activeSpells: { spell: unknown; usages: number }[] };
+    assets: Record<string, unknown>;
 }
 
 interface RecoveryOptions {
@@ -87,23 +87,13 @@ describe('useSpell (wire)', () => {
         twitchId: string,
         entries: BookEntry[],
     ): Promise<TestPlayer> {
-        const book = spellBook(
-            entries.map((entry) => ({
-                ...entry,
-                spell: new Types.ObjectId(entry.spell),
-            })),
-        );
+        // le sole voci, nessuna delle due liste vecchie (D-07)
         return createPlayer(harness, {
             twitchId,
             characterOverrides: {
                 status: {
                     ...buildCharacter().status,
-                    spells: book.spells,
-                    spellStates: book.spellStates,
-                },
-                assets: {
-                    ...buildCharacter().assets,
-                    activeSpells: book.activeSpells,
+                    spellStates: spellStatesOf(entries),
                 },
             },
         });
@@ -121,10 +111,6 @@ describe('useSpell (wire)', () => {
 
     async function stateOf(characterId: string): Promise<RawSpellState> {
         return (await rawOf(characterId)).status.spellStates[0];
-    }
-
-    async function mirrorUsagesOf(characterId: string): Promise<number> {
-        return (await rawOf(characterId)).assets.activeSpells[0].usages;
     }
 
     async function useSpell(
@@ -161,12 +147,13 @@ describe('useSpell (wire)', () => {
         await harness.close();
     });
 
-    it('spends one usage of the spell state and its mirror, records the instant and queues its trigger', async () => {
+    it('spends one usage of the spell state, records the instant and queues its trigger', async () => {
         const spellId = await dardo();
         const player = await playerWith('twitch-use-happy', [
             { spell: spellId, usages: 2, active: true },
         ]);
         const charId = idOf(player);
+        const before = await rawOf(charId);
 
         const body = await useSpell(player, spellId);
 
@@ -175,10 +162,16 @@ describe('useSpell (wire)', () => {
             successful: true,
             response: 'Magia utilizzata con successo',
         });
-        const state = await stateOf(charId);
-        expect(state.usages).toBe(1);
-        expect(state.recoveries).toEqual([at(RECOVERY_TIME_MS)]);
-        expect(await mirrorUsagesOf(charId)).toBe(1);
+        const after = await rawOf(charId);
+        expect(after.status.spellStates).toEqual([
+            {
+                spell: new Types.ObjectId(spellId),
+                usages: 1,
+                recoveries: [at(RECOVERY_TIME_MS)],
+                active: true,
+            },
+        ]);
+        expect(after.assets).toEqual(before.assets);
         expect(queue.add).toHaveBeenCalledTimes(1);
         const dueAtMs = at(RECOVERY_TIME_MS).getTime();
         expect(queue.add).toHaveBeenCalledWith(
@@ -206,31 +199,6 @@ describe('useSpell (wire)', () => {
             at(RECOVERY_TIME_MS),
             at(5000),
         ]);
-    });
-
-    it('uses an active spell whose mirror stores a legacy string id after the reference migration (D-17d)', async () => {
-        const spellId = await dardo();
-        const player = await playerWith('twitch-use-legacy', [
-            { spell: spellId, usages: 2 },
-        ]);
-        const charId = idOf(player);
-        // scrittura raw: i dati legacy hanno l'id della magia salvato come stringa (04 Pitfall 1)
-        await characters.collection.updateOne(
-            { _id: new Types.ObjectId(charId) },
-            {
-                $set: {
-                    'assets.activeSpells': [{ spell: spellId, usages: 2 }],
-                },
-            },
-        );
-        await migrateLegacyRefs(harness.connection);
-
-        const body = await useSpell(player, spellId);
-
-        expect(isSuccess(body)).toBe(true);
-        expect((await stateOf(charId)).usages).toBe(1);
-        expect(await mirrorUsagesOf(charId)).toBe(1);
-        expect(queue.add).toHaveBeenCalledTimes(1);
     });
 
     it('leaves the spell state at 0 with exactly one success under concurrent uses', async () => {
@@ -282,6 +250,30 @@ describe('useSpell (wire)', () => {
         expect(jobIds.size).toBe(1);
     });
 
+    it('refuses to use a known spell that is not active (D-07)', async () => {
+        const active = await dardo();
+        const inactive = (
+            (
+                await persistSpell(spells, {
+                    name: 'Scudo',
+                    maxUsages: 3,
+                    recoveryTime: RECOVERY_TIME_MS,
+                })
+            )._id as Types.ObjectId
+        ).toHexString();
+        const player = await playerWith('twitch-use-not-active', [
+            { spell: active, usages: 2, active: true },
+            { spell: inactive, usages: 3 },
+        ]);
+        const before = await rawOf(idOf(player));
+
+        const body = await useSpell(player, inactive);
+
+        expect(codeOf(body)).toBe('SPELL_NOT_ACTIVE');
+        expect(await rawOf(idOf(player))).toEqual(before);
+        expect(queue.add).not.toHaveBeenCalled();
+    });
+
     it('answers SPELL_NOT_ACTIVE for a known inactive spell and BAD_USER_INPUT for a malformed spell id (D-02)', async () => {
         const spellId = await dardo();
         const player = await playerWith('twitch-use-inactive', [
@@ -312,7 +304,6 @@ describe('useSpell (wire)', () => {
         expect(codeOf(body)).toBe('SPELL_NO_USAGES_LEFT');
         expect(messageOf(body)).toBe('Magia senza utilizzi rimasti');
         expect((await stateOf(idOf(player))).usages).toBe(0);
-        expect(await mirrorUsagesOf(idOf(player))).toBe(0);
         expect(queue.add).not.toHaveBeenCalled();
     });
 
@@ -328,7 +319,6 @@ describe('useSpell (wire)', () => {
         const state = await stateOf(idOf(player));
         expect(state.usages).toBe(1);
         expect(state.recoveries).toEqual([]);
-        expect(await mirrorUsagesOf(idOf(player))).toBe(1);
         expect(queue.add).not.toHaveBeenCalled();
     });
 
@@ -349,7 +339,6 @@ describe('useSpell (wire)', () => {
         const state = await stateOf(idOf(player));
         expect(state.usages).toBe(1);
         expect(state.recoveries).toEqual([at(RECOVERY_TIME_MS)]);
-        expect(await mirrorUsagesOf(idOf(player))).toBe(1);
         expect(warn).toHaveBeenCalledWith(
             expect.stringContaining('lo restituirà lo sweep'),
         );

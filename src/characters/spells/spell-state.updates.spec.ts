@@ -12,39 +12,45 @@ import {
 describe('spell state write builders', () => {
     const c = new Types.ObjectId();
     const s = new Types.ObjectId();
-    const forms = [s, s.toHexString()];
+    const arraysNamedBy = (update: object) => [
+        ...new Set(
+            Object.values(update)
+                .flatMap((paths) => Object.keys(paths as object))
+                .map((path) => path.slice(0, path.indexOf('.$[') + 5)),
+        ),
+    ];
 
-    it('spellStateArrayFilters targets the cast state entry and the mirror stored in either id form', () => {
-        const options = spellStateArrayFilters(s);
-
-        expect(options).toEqual({
-            arrayFilters: [{ 's.spell': s }, { 'a.spell': { $in: forms } }],
-        });
-        expect(options.arrayFilters[0]['s.spell']).toBeInstanceOf(
-            Types.ObjectId,
-        );
-    });
-
-    it('useSpellFilter requires the spell to be active with at least one usage in its state', () => {
+    it('uses a spell only from an active state with usages left (D-07)', () => {
         expect(useSpellFilter(c, s)).toEqual({
             _id: c,
             deletedAt: null,
-            'assets.activeSpells.spell': { $in: forms },
             'status.spellStates': {
-                $elemMatch: { spell: s, usages: { $gte: 1 } },
+                $elemMatch: { spell: s, usages: { $gte: 1 }, active: true },
             },
         });
     });
 
-    it('spendUsagesUpdate spends one usage per instant on state and mirror, pushing sorted instants', () => {
+    it('spends and credits the usages on the spell state alone, with a single array filter (D-07)', () => {
+        const options = spellStateArrayFilters(s);
+
+        expect(options).toEqual({ arrayFilters: [{ 's.spell': s }] });
+        expect(options.arrayFilters[0]['s.spell']).toBeInstanceOf(
+            Types.ObjectId,
+        );
+        for (const update of [
+            spendUsagesUpdate([new Date(1_000)]),
+            CREDIT_DUE_USAGE,
+            CREDIT_LEGACY_USAGE,
+        ])
+            expect(arraysNamedBy(update)).toEqual(['status.spellStates.$[s]']);
+    });
+
+    it('spendUsagesUpdate spends one usage per instant on the state, pushing sorted instants', () => {
         const d1 = new Date(2_000);
         const d2 = new Date(1_000);
 
         expect(spendUsagesUpdate([d1, d2])).toEqual({
-            $inc: {
-                'status.spellStates.$[s].usages': -2,
-                'assets.activeSpells.$[a].usages': -2,
-            },
+            $inc: { 'status.spellStates.$[s].usages': -2 },
             $push: {
                 'status.spellStates.$[s].recoveries': {
                     $each: [d1, d2],
@@ -93,10 +99,7 @@ describe('spell state write builders', () => {
 
     it('«Il timer di recupero non si interrompe mai»: the due credit returns one usage and consumes the oldest instant', () => {
         expect(CREDIT_DUE_USAGE).toEqual({
-            $inc: {
-                'status.spellStates.$[s].usages': 1,
-                'assets.activeSpells.$[a].usages': 1,
-            },
+            $inc: { 'status.spellStates.$[s].usages': 1 },
             $pop: { 'status.spellStates.$[s].recoveries': -1 },
         });
     });
@@ -155,10 +158,7 @@ describe('spell state write builders', () => {
 
     it('CREDIT_LEGACY_USAGE returns one usage and leaves the instants untouched', () => {
         expect(CREDIT_LEGACY_USAGE).toEqual({
-            $inc: {
-                'status.spellStates.$[s].usages': 1,
-                'assets.activeSpells.$[a].usages': 1,
-            },
+            $inc: { 'status.spellStates.$[s].usages': 1 },
         });
     });
 });

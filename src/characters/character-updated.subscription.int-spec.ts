@@ -23,7 +23,7 @@ import {
     characterTouch,
     primeChangeStream,
 } from '../../test/harness/prime-change-stream';
-import { persistSpell, spellBook } from '../../test/fixtures';
+import { persistSpell, spellStatesOf } from '../../test/fixtures';
 import { buildOwnedPet } from '../../test/fixtures/owned-pet.fixture';
 import { persistPet } from '../../test/fixtures/pet.fixture';
 
@@ -39,7 +39,10 @@ type CharacterUpdatedResult = { characterUpdated: WireCharacter };
 type CharacterSubscription = OpenSubscription<CharacterUpdatedResult>;
 
 const CHARACTER_SPELLS_UPDATED =
-    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { spellStates { spell { id } usages recoveries } } assets { activeSpells { usages spell { id } } } } }';
+    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { spellStates { spell { id } usages recoveries active } } assets { activeSpells { usages spell { id } } } } }';
+
+const EQUIP_SPELL =
+    'mutation($request: EquipSpellRequest!) { equipSpell(request: $request) { successful response } }';
 
 const USE_SPELL =
     'mutation($request: UseSpellRequest!) { useSpell(request: $request) { successful response } }';
@@ -98,6 +101,7 @@ interface WireSpellCharacter {
             spell: { id: string };
             usages: number;
             recoveries: string[];
+            active: boolean;
         }[];
     };
     assets: { activeSpells: { usages: number; spell: { id: string } }[] };
@@ -396,24 +400,23 @@ describe('characterUpdated subscription (wire)', () => {
             recoveryTime: 10 * MINUTE_MS,
         });
         const spellId = (spell._id as Types.ObjectId).toHexString();
-        const book = spellBook([
-            {
-                spell: spell._id as Types.ObjectId,
-                usages: 1,
-                recoveries: [
-                    new Date(Date.now() + 2 * MINUTE_MS),
-                    new Date(Date.now() + 30 * MINUTE_MS),
-                ],
-                active: true,
-            },
-        ]);
+        // la sola lista delle voci (D-07): la magia è conosciuta ma non ancora equipaggiata
         await characters.updateOne(
             { _id: alice.character?._id },
             {
                 $set: {
-                    'status.spells': book.spells,
-                    'status.spellStates': book.spellStates,
-                    'assets.activeSpells': book.activeSpells,
+                    'status.title': 'mage',
+                    'status.xp': 20000,
+                    'status.spellStates': spellStatesOf([
+                        {
+                            spell: spell._id as Types.ObjectId,
+                            usages: 1,
+                            recoveries: [
+                                new Date(Date.now() + 2 * MINUTE_MS),
+                                new Date(Date.now() + 30 * MINUTE_MS),
+                            ],
+                        },
+                    ]),
                 },
             },
         );
@@ -434,6 +437,30 @@ describe('characterUpdated subscription (wire)', () => {
                 Date.now(),
             ),
         ).toBe(true);
+        expect(snapshot.status.spellStates[0].active).toBe(false);
+        expect(snapshot.assets.activeSpells).toEqual([]);
+
+        const equipped = await graphqlRequest(
+            harness.app,
+            EQUIP_SPELL,
+            { request: { id: aliceCharId, spellId } },
+            alice.bearer,
+        );
+        expect(equipped.body).toEqual({
+            data: {
+                equipSpell: {
+                    successful: true,
+                    response: 'Magia equipaggiata con successo',
+                },
+            },
+        });
+        // dopo equipSpell la voce è attiva e la lista derivata la serve (D-07)
+        let afterEquip = snapshot;
+        while (!afterEquip.status.spellStates[0].active)
+            afterEquip = await nextSpellCharacter(subscription);
+        expect(afterEquip.assets.activeSpells).toEqual([
+            { usages: 1, spell: { id: spellId } },
+        ]);
 
         const used = await graphqlRequest(
             harness.app,
@@ -451,8 +478,8 @@ describe('characterUpdated subscription (wire)', () => {
         });
 
         // tutte le emissioni fino a quella con l'uso speso: stato e slot coincidono in ognuna
-        const emissions = [snapshot];
-        let last = snapshot;
+        const emissions = [afterEquip];
+        let last = afterEquip;
         while (last.status.spellStates[0].usages !== 0) {
             last = await nextSpellCharacter(subscription);
             emissions.push(last);

@@ -11,8 +11,8 @@ import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildCharacter,
     persistSpell,
-    spellBook,
     SpellBookEntry,
+    spellStatesOf,
 } from '../../../test/fixtures';
 import { SpellRecoveryJobData, spellRecoveryJobId } from './spell-recovery-job';
 import { SpellRecoveryProcessor } from './spell-recovery.processor';
@@ -36,52 +36,44 @@ const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 interface RawCharacter {
     _id: Types.ObjectId;
     status: {
+        spells?: unknown[];
         spellStates?: {
             spell: Types.ObjectId;
             usages: number;
             recoveries: Date[];
+            active: boolean;
         }[];
     };
-    assets: { activeSpells?: { spell: unknown; usages: number }[] };
+    assets: { activeSpells?: unknown[] };
 }
 
 let heroes = 0;
 
 // nome unico: l'indice character_name_active_ci_unique vale anche per gli insert grezzi
-function rawCharacter(
-    status: Record<string, unknown>,
-    assets: Record<string, unknown>,
+// documento grezzo nella forma della revisione dei modelli (D-07): le sole voci, nessuna delle due liste vecchie
+async function insertBook(
+    entries: readonly SpellBookEntry[],
     extra: Record<string, unknown> = {},
 ) {
     const base = buildCharacter();
     heroes += 1;
-    return {
+    const status: Record<string, unknown> = {
+        ...base.status,
+        spellStates: spellStatesOf(entries),
+    };
+    delete status.spells;
+    const assets: Record<string, unknown> = { ...base.assets };
+    delete assets.activeSpells;
+    const _id = new Types.ObjectId();
+    await CharacterModel.collection.insertOne({
         ...base,
-        _id: new Types.ObjectId(),
+        _id,
         infos: { ...base.infos, name: `Hero ${heroes}` },
-        status: { ...base.status, ...status },
+        status,
         assets,
         ...extra,
-    };
-}
-
-async function insert(doc: ReturnType<typeof rawCharacter>) {
-    await CharacterModel.collection.insertOne(doc as never);
-    return doc._id;
-}
-
-function insertBook(
-    entries: readonly SpellBookEntry[],
-    extra: Record<string, unknown> = {},
-) {
-    const book = spellBook(entries);
-    return insert(
-        rawCharacter(
-            { spells: book.spells, spellStates: book.spellStates },
-            { ...buildCharacter().assets, activeSpells: book.activeSpells },
-            extra,
-        ),
-    );
+    } as never);
+    return _id;
 }
 
 async function rawOf(id: Types.ObjectId): Promise<RawCharacter> {
@@ -142,14 +134,47 @@ describe('SpellRecoveryService (replSet)', () => {
 
             expect(await service.recoverDue(id, a)).toBe(1);
 
-            const after = await rawOf(id);
-            expect(after.status.spellStates).toEqual([
-                { spell: a, usages: 2, recoveries: [at(10 * MINUTE)] },
+            expect((await rawOf(id)).status.spellStates).toEqual([
+                {
+                    spell: a,
+                    usages: 2,
+                    recoveries: [at(10 * MINUTE)],
+                    active: false,
+                },
             ]);
-            expect(after.assets.activeSpells).toEqual([]);
         });
 
-        it('credits the state and the slot mirror in the same update', async () => {
+        it('credits a recovered usage on the spell state of a character without the old lists (D-07, D-21)', async () => {
+            const other = (
+                await persistSpell(SpellModel, { name: 'B', maxUsages: 2 })
+            )._id as Types.ObjectId;
+            const id = await insertBook([
+                { spell: other, usages: 2 },
+                {
+                    spell: a,
+                    usages: 1,
+                    recoveries: [at(-SECOND), at(HOUR)],
+                    active: true,
+                },
+            ]);
+            const before = await rawOf(id);
+
+            expect(await service.recoverDue(id, a)).toBe(1);
+
+            const after = await rawOf(id);
+            expect(after.status.spellStates).toEqual([
+                { spell: other, usages: 2, recoveries: [], active: false },
+                { spell: a, usages: 2, recoveries: [at(HOUR)], active: true },
+            ]);
+            expect(after.assets).toEqual(before.assets);
+            expect(Object.keys(after.status).sort()).toEqual(
+                Object.keys(before.status).sort(),
+            );
+            expect(after.status.spells).toBeUndefined();
+            expect(after.assets.activeSpells).toBeUndefined();
+        });
+
+        it('credits an active spell state and keeps it active', async () => {
             const id = await insertBook([
                 {
                     spell: a,
@@ -161,12 +186,8 @@ describe('SpellRecoveryService (replSet)', () => {
 
             expect(await service.recoverDue(id, a)).toBe(1);
 
-            const after = await rawOf(id);
-            expect(after.status.spellStates).toEqual([
-                { spell: a, usages: 2, recoveries: [] },
-            ]);
-            expect(after.assets.activeSpells).toEqual([
-                { spell: a, usages: 2 },
+            expect((await rawOf(id)).status.spellStates).toEqual([
+                { spell: a, usages: 2, recoveries: [], active: true },
             ]);
         });
 
@@ -182,7 +203,7 @@ describe('SpellRecoveryService (replSet)', () => {
             expect(await service.recoverDue(id, a)).toBe(2);
 
             expect((await rawOf(id)).status.spellStates).toEqual([
-                { spell: a, usages: 2, recoveries: [at(HOUR)] },
+                { spell: a, usages: 2, recoveries: [at(HOUR)], active: false },
             ]);
         });
 
@@ -201,12 +222,8 @@ describe('SpellRecoveryService (replSet)', () => {
             );
 
             expect(credits.reduce((sum, credit) => sum + credit, 0)).toBe(2);
-            const after = await rawOf(id);
-            expect(after.status.spellStates).toEqual([
-                { spell: a, usages: 2, recoveries: [at(HOUR)] },
-            ]);
-            expect(after.assets.activeSpells).toEqual([
-                { spell: a, usages: 2 },
+            expect((await rawOf(id)).status.spellStates).toEqual([
+                { spell: a, usages: 2, recoveries: [at(HOUR)], active: true },
             ]);
         });
 
@@ -239,11 +256,10 @@ describe('SpellRecoveryService (replSet)', () => {
 
             expect(await service.recoverDue(id, a)).toBe(0);
 
-            const after = await rawOf(id);
-            expect(after.status.spellStates?.[0].usages).toBe(3);
-            expect(after.assets.activeSpells).toEqual([
-                { spell: a, usages: 3 },
-            ]);
+            expect((await rawOf(id)).status.spellStates?.[0]).toMatchObject({
+                usages: 3,
+                active: true,
+            });
         });
 
         it('credits nothing to an archived character', async () => {
@@ -353,12 +369,8 @@ describe('SpellRecoveryService (replSet)', () => {
 
             expect(await service.recoverLegacy(id, a)).toBe(true);
 
-            const after = await rawOf(id);
-            expect(after.status.spellStates).toEqual([
-                { spell: a, usages: 2, recoveries: [at(HOUR)] },
-            ]);
-            expect(after.assets.activeSpells).toEqual([
-                { spell: a, usages: 2 },
+            expect((await rawOf(id)).status.spellStates).toEqual([
+                { spell: a, usages: 2, recoveries: [at(HOUR)], active: true },
             ]);
             expect(await service.recoverLegacy(id, a)).toBe(false);
         });
@@ -374,7 +386,7 @@ describe('SpellRecoveryService (replSet)', () => {
 
             expect(credits.filter(Boolean)).toHaveLength(1);
             expect((await rawOf(id)).status.spellStates).toEqual([
-                { spell: a, usages: 2, recoveries: [at(HOUR)] },
+                { spell: a, usages: 2, recoveries: [at(HOUR)], active: false },
             ]);
         });
 
@@ -450,10 +462,7 @@ describe('SpellRecoveryService (replSet)', () => {
             await processor.recover(job);
 
             expect(credited.status.spellStates).toEqual([
-                { spell: a, usages: 2, recoveries: [at(HOUR)] },
-            ]);
-            expect(credited.assets.activeSpells).toEqual([
-                { spell: a, usages: 2 },
+                { spell: a, usages: 2, recoveries: [at(HOUR)], active: true },
             ]);
             expect(await rawOf(id)).toEqual(credited);
         });
