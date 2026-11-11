@@ -12,7 +12,6 @@ export function buildPoi(overrides: Record<string, any> = {}) {
         type: 'city', // PoiType.city
         location: [0, 0],
         city: new Types.ObjectId(),
-        quest: null,
         ...overrides,
     };
 }

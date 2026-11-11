@@ -1,7 +1,6 @@
 import { ObjectType, Field, ID, Float } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Schema as MongooseSchema, Types } from 'mongoose';
-import { Quest } from './quest/quest.model';
 import { City } from './city.model';
 import { PoiType } from './enums/poi-type.enum';
 
@@ -22,14 +21,6 @@ export class PointOfInterest {
     @Field(() => City, { nullable: true })
     @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'City' })
     city: Types.ObjectId | City;
-
-    @Field(() => ID, { nullable: true })
-    @Prop({
-        type: MongooseSchema.Types.ObjectId,
-        ref: 'Quest',
-        required: false,
-    })
-    quest?: Types.ObjectId | Quest | null;
 }
 
 export type PointOfInterestDocument = PointOfInterest & Document;

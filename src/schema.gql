@@ -543,7 +543,6 @@ type PointOfInterest {
   city: City
   id: ID!
   location: [Float!]!
-  quest: ID
   type: [PoiType!]!
 }
 

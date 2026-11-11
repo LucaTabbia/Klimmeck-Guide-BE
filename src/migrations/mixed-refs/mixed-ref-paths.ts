@@ -62,7 +62,6 @@ export const MIXED_REF_PATHS: readonly MixedRefPath[] = [
     scalar('cities', 'markerLocation'),
     scalar('cities', 'relatedLore'),
     scalar('pointsofinterest', 'city'),
-    scalar('pointsofinterest', 'quest'),
     array('enemies', 'relatedLore'),
     array('lore', 'relatedLore'),
     array('pets', 'relatedLore'),
