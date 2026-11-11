@@ -1,6 +1,6 @@
 // UNA TANTUM (Phase 19 D-12): modulo della revisione dei modelli con la lista ordinata dei passi — esce dal repo dopo il boot reale
 import { Module, type Type } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import {
     Character,
     CharacterSchema,
@@ -18,8 +18,8 @@ import { CityShopStep } from './city-shop.step';
 import { EnemySpellsStep } from './enemy-spells.step';
 import { EnemyWeaknessesStep } from './enemy-weaknesses.step';
 import { LoreImagePathStep } from './lore-image-path.step';
-import { ModelReviewBoot } from './model-review.boot';
-import { MODEL_REVIEW_STEPS, type ModelReviewStep } from './model-review.step';
+import { modelReviewBootProvider } from './model-review.boot';
+import type { ModelReviewStep } from './model-review.step';
 import { OwnedPetsStep } from './owned-pets.step';
 import { PetCatalogStep } from './pet-catalog.step';
 import { PoiQuestStep } from './poi-quest.step';
@@ -39,27 +39,26 @@ const STEPS: Type<ModelReviewStep>[] = [
     SpellStatesStep,
 ];
 
+// modelli letti dai passi: i passi li prendono dalla connessione, quindi vanno registrati PRIMA che la factory del boot li esegua
+const MODELS = [
+    { name: Enemy.name, schema: EnemySchema },
+    { name: Spell.name, schema: SpellSchema },
+    { name: Pet.name, schema: PetSchema },
+    { name: Character.name, schema: CharacterSchema },
+    { name: PointOfInterest.name, schema: PointOfInterestSchema },
+    { name: City.name, schema: CitySchema },
+    { name: Lore.name, schema: LoreSchema },
+];
+
 // importato SOLO da AppModule: gli harness non migrano; rimosso prima della merge
 @Module({
-    imports: [
-        MongooseModule.forFeature([
-            { name: Enemy.name, schema: EnemySchema },
-            { name: Spell.name, schema: SpellSchema },
-            { name: Pet.name, schema: PetSchema },
-            { name: Character.name, schema: CharacterSchema },
-            { name: PointOfInterest.name, schema: PointOfInterestSchema },
-            { name: City.name, schema: CitySchema },
-            { name: Lore.name, schema: LoreSchema },
-        ]),
-    ],
+    imports: [MongooseModule.forFeature(MODELS)],
     providers: [
         ...STEPS,
-        {
-            provide: MODEL_REVIEW_STEPS,
-            useFactory: (...steps: ModelReviewStep[]) => steps,
-            inject: STEPS,
-        },
-        ModelReviewBoot,
+        modelReviewBootProvider(
+            STEPS,
+            MODELS.map((model) => getModelToken(model.name)),
+        ),
     ],
 })
 export class ModelReviewMigrationModule {}
