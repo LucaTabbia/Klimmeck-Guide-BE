@@ -702,6 +702,7 @@ type QuestResult {
   loreUnlocked: [Lore!]!
   maxLifePoints: Int!
   outcome: QuestOutcome!
+  petXpGained: Int!
   quest: QuestResultQuest
   rescuedCharacters: [ID!]!
   resolvedAt: DateTime!

@@ -43,6 +43,7 @@ import { isPositiveInteger } from './outcome-numbers';
 import { lifePointsWithin, progressionAfter } from './progression/level-table';
 import { statusFactsOf } from './progression/status-facts';
 import { nextTitleAfterStory } from './progression/title-progression';
+import { companionXpAward } from './pets/companion-xp';
 import {
     canLearnSpell,
     type DrawnRewards,
@@ -83,6 +84,8 @@ export interface OutcomeCharacterSnapshot {
     assets?:
         | (InventorySnapshot & {
               activeSpells?: { spell?: unknown; usages?: number }[];
+              // compagno equipaggiato: riceve la sua quota degli xp dei nemici (Phase 19 D-04)
+              pet?: unknown;
               ownedPets?: OwnedPetEntry[] | null;
           })
         | null;
@@ -132,6 +135,8 @@ export interface QuestResultDraft {
         pet: Types.ObjectId | null;
     };
     xpGained: number;
+    // guadagno effettivo del compagno dopo il tetto (Phase 19 D-17)
+    petXpGained: number;
     xpBefore: number;
     xpAfter: number;
     levelBefore: number;
@@ -176,6 +181,8 @@ export interface ParticipantPlanInput {
     aid: { aidQuestId: Types.ObjectId; failedQuestId: Types.ObjectId } | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
     spellMaxUsages: ReadonlyMap<string, number>;
+    // tetti di xp dei pet a catalogo, per esadecimale (Phase 19 D-17)
+    petMaxXp: ReadonlyMap<string, number>;
     rescuedCharacters?: readonly Types.ObjectId[];
     // solo le dungeon a tappe (D-12): null altrove
     stages?: DungeonStages | null;
@@ -335,6 +342,16 @@ function petWonBy(
         : newOwnedPetEntry(pet, lifePoints);
 }
 
+// un solo valore finale dei posseduti (Phase 19 D-04, Pitfall 4): compagno premiato e pet vinto nello stesso array; null = nulla da scrivere
+function ownedPetsAfterOutcome(
+    owned: readonly OwnedPetEntry[] | null | undefined,
+    awarded: OwnedPetEntry[] | null,
+    petWon: NewOwnedPetEntry | null,
+): OwnedPetEntry[] | null {
+    if (!petWon) return awarded;
+    return [...(awarded ?? owned ?? []), petWon];
+}
+
 // riusato dai piani senza premio (quick 261110-cgd)
 export function participantFilter(
     input: Pick<ParticipantPlanInput, 'snapshot' | 'pendingQuestId' | 'lane'>,
@@ -360,7 +377,8 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     const hpFought = battle
         ? lifePointsWithin(battle.hpAfter, before.maxLifePoints)
         : before.currentLifePoints;
-    const xpEarned = won ? rewards.xpPrize + (input.enemies?.xp ?? 0) : 0;
+    const enemiesXp = won ? (input.enemies?.xp ?? 0) : 0;
+    const xpEarned = won ? rewards.xpPrize + enemiesXp : 0;
     const progression = progressionAfter(
         { xp: before.xp, currentLifePoints: hpFought },
         xpEarned,
@@ -429,6 +447,17 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         : null;
     const coinsDelta = won ? rewards.coinsCopper : 0;
     const petWon = petWonBy(snapshot, won, rewards.pet, rewards.petLifePoints);
+    // la quota del compagno viene dai soli nemici, mai dal premio della quest (Phase 19 D-04, D-18)
+    const companion = companionXpAward(
+        snapshot.assets,
+        enemiesXp,
+        input.petMaxXp,
+    );
+    const ownedPetsAfter = ownedPetsAfterOutcome(
+        snapshot.assets?.ownedPets,
+        companion.ownedPets,
+        petWon,
+    );
     const victory = won ? (input.victory ?? null) : null;
     const victoryLore = victory?.loreIds ?? [];
     // la study vinta senza magia apprende una lore chiusa, mai una già sbloccata dallo stesso esito (Phase 16 D-08, Pitfall 6)
@@ -467,14 +496,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         ...(completedQuests
             ? { 'quests.completedQuests': completedQuests }
             : {}),
-        ...(petWon
-            ? {
-                  'assets.ownedPets': [
-                      ...(snapshot.assets?.ownedPets ?? []),
-                      petWon,
-                  ],
-              }
-            : {}),
+        ...(ownedPetsAfter ? { 'assets.ownedPets': ownedPetsAfter } : {}),
         // il fallimento aspetta il soccorso sul marker della quest (D-07, D-08)
         ...(!won && aid
             ? {
@@ -513,6 +535,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             },
             // guadagno effettivo dopo il clamp a MAX_XP: xpAfter = xpBefore + xpGained sul foglio
             xpGained: Math.max(0, progression.xp - before.xp),
+            petXpGained: companion.gained,
             xpBefore: before.xp,
             xpAfter: progression.xp,
             levelBefore: before.level,

@@ -31,6 +31,7 @@ const draftWith = (
         pet: null,
     },
     xpGained: 100,
+    petXpGained: 0,
     xpBefore: 0,
     xpAfter: 100,
     levelBefore: 1,

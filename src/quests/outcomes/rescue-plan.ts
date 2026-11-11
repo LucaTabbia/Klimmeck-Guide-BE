@@ -72,6 +72,7 @@ function unchangedResult(
             pet: null,
         },
         xpGained: 0,
+        petXpGained: 0,
         xpBefore: status.xp,
         xpAfter: status.xp,
         levelBefore: status.level,

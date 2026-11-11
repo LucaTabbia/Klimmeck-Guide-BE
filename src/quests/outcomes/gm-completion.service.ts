@@ -320,6 +320,7 @@ export class GmCompletionService {
                         aid: null,
                         spellRecoveryTimes: recoveryTimes,
                         spellMaxUsages: catalog.spellMaxUsages,
+                        petMaxXp: catalog.petMaxXp,
                         now,
                     });
                     await this.writer.writeParticipant(plan, session);

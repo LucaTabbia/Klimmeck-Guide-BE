@@ -115,6 +115,7 @@ export function planUnrewarded(
             spellsUsed: spells.used,
             rewards: { coins: NO_COINS, items: [], pet: null },
             xpGained: 0,
+            petXpGained: 0,
             xpBefore: before.xp,
             xpAfter: before.xp,
             levelBefore: before.level,

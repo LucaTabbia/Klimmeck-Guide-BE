@@ -215,6 +215,11 @@ export class QuestResult {
     @Prop({ type: Number, required: true })
     xpGained: number;
 
+    // xp dati al compagno equipaggiato, dopo il tetto del catalogo (Phase 19 D-04, D-17): 0 sui risultati precedenti
+    @Field(() => Int)
+    @Prop({ type: Number, default: 0 })
+    petXpGained: number;
+
     @Field(() => Int)
     @Prop({ type: Number, required: true })
     xpBefore: number;
