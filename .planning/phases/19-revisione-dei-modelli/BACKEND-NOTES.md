@@ -1,11 +1,11 @@
 # BACKEND-NOTES — Phase 19 Revisione dei modelli (handoff per la FE Phase 19)
 
 - **Fase BE:** 19-revisione-dei-modelli (requisiti BE-MODEL-01..12; decisioni D-01..D-28 in `19-CONTEXT.md`; nomi del contratto fissati in `19-REPO-RULES.md` insieme alla FE `19-REPO-RULES.md`).
-- **Data:** 2026-11-11. Documento scritto dopo il gate verde del piano 19-23; **review del codice in corso** (i fix della review possono aggiornare questo file prima della PR).
+- **Data:** 2026-11-11. Documento scritto dopo il gate verde del piano 19-23; **review del codice chiusa** (tre review per area, `19-REVIEW-RULINGS.md`, `19-REVIEW-FIX.md`): 32 finding, 16 corretti, 16 chiusi per ruling. Questo file è allineato ai fix.
 - **Branch:** `feat/19-revisione-dei-modelli` → PR verso `develop` a cura dell'orchestratore, **in draft** finché l'orchestratore non ha fatto il boot reale col migratore, scritto il contenuto dei pet e rimosso il modulo una tantum (§3).
 - **Gate della FE Phase 19:** i piani che selezionano i nomi cambiati partono dopo la merge di questa PR con `git -C <repo BE> show origin/develop:src/schema.gql | grep -cF '<nome>'` ≥ 1 per `type Weaknesses`, `type OwnedPet`, `petXpGained`, `wornEquipment`, `feet`, `imagePath`, `attack: Damages!` e = 0 per `energyWeaknesses`, `baseWeaknesses`, `wearedEquipment`, `foots`, `activeSpells`, più i controlli ancorati al blocco della FE D-19 e D-20 (`type Lore` con `imagePath` e senza `image:`, `type SpellState` con `active: Boolean!`, `type CharacterStatus` senza `spells:`, `enum SlotType` con `feet`, `type CharacterAssets` con `ownedPets: [OwnedPet!]!`, `type Pet` con `defense: Damages!` e `rarity: RarityType`). Sullo SDL di questa HEAD ognuno di questi controlli dà già l'esito atteso.
-- **Schema:** `src/schema.gql` **NON additivo, cambiato solo come dichiarato** (§1): 17 righe tolte e 46 aggiunte rispetto alla base della fase `12a47d1f`; il boot reale (`test/app.int-spec.ts`, 91 test) rigenera lo schema e `git diff --exit-code src/schema.gql` esce 0.
-- **Stato:** implementato e coperto da test. Gate 19-23: `npx tsc --noEmit` 0; unit 275 suite / 3501 test; integration 148 suite / 2033 test in quattro blocchi tutti verdi (dettaglio in `19-23-SUMMARY.md`); coverage per cartella sopra le sette soglie a rischio. `npm run test:cov` lo lancia l'orchestratore in background dopo questo piano.
+- **Schema:** `src/schema.gql` **NON additivo, cambiato solo come dichiarato** (§1): 17 righe tolte e 46 aggiunte rispetto alla base della fase `12a47d1f`; il boot reale (`test/app.int-spec.ts`, 92 test) rigenera lo schema e `git diff --exit-code src/schema.gql` esce 0.
+- **Stato:** implementato e coperto da test. Gate 19-23: `npx tsc --noEmit` 0; unit 275 suite / 3501 test; integration 148 suite / 2033 test in quattro blocchi tutti verdi (dettaglio in `19-23-SUMMARY.md`); coverage per cartella sopra le sette soglie a rischio. **Dopo i fix della review** (conteggi correnti): unit 276 suite / 3534 test; integration 149 suite / 2050 test; boot reale 92 test; `npx tsc --noEmit` 0 e `git diff --exit-code src/schema.gql` 0 (nessun fix cambia lo SDL). `npm run test:cov` lo lancia l'orchestratore in background dopo questo piano.
 - **Fonte:** ogni nome e valore è copiato dal codice (`src/schema.gql`, `src/migrations/model-review/`, `src/quests/outcomes/pets/pet-xp.ts`, `src/quests/generation/pet-prize.ts`). **Il codice vince su questo documento.**
 
 ---
@@ -237,16 +237,18 @@ type QuestResult {
 
 ## 2. Comportamenti provati
 
-Ogni riga è verde nel gate 19-23. I titoli dei casi nominano la decisione fra parentesi.
+Ogni riga è verde nel gate 19-23; le righe che citano un finding (A-WR-01, A-WR-03, C-WR-06, C-CR-01) sono verdi nelle corse dopo i fix della review. I titoli dei casi nominano la decisione fra parentesi.
 
 | Comportamento | Decisione | Spec |
 |---------------|-----------|------|
 | Debolezze in un sotto-documento, liste vuote di default, valore fuori enum rifiutato sul path della lista | D-01 | `src/models/enemy.schema.spec.ts` |
 | Il generatore consiglia il loot dalle debolezze nuove | D-01 | `src/quests/generation/recommended-loot.spec.ts`, `src/quests/generation/enemy-candidate.spec.ts` |
 | Il combattimento riceve solo debolezze dei due enum; nemico senza sotto-documento = due liste vuote | D-01, D-22 | `src/quests/outcomes/combat/combat-context.spec.ts` |
+| **Debolezze filtrate ai due enum sul filo:** un valore fuori enum a DB (o una lista nulla) non arriva e non dà errore; nemici, lista `quests` e risultati non si annullano. Un solo filtro, lo stesso del motore | D-01 (review A-WR-01) | `src/enemies/weaknesses.wire.int-spec.ts`, `src/enemies/known-weaknesses.spec.ts`, `src/quests/quests.resolver.int-spec.ts` |
 | Magie dei nemici per riferimento, popolate nel catalogo dei nemici, nel catalogo delle quest e nel foglio del risultato; un ref orfano non rompe la risposta | D-02 | `src/models/enemy.schema.spec.ts`, `src/lore/lore-related.int-spec.ts`, `src/quests/quests.resolver.int-spec.ts`, `src/quests/results/quest-result.resolver.int-spec.ts` |
 | Catalogo dei pet con `attack` e `defense` e senza stato | D-03, D-15 | `src/models/pet.schema.spec.ts` |
 | Voci dei pet posseduti sul filo, orfani tolti dalla risposta senza scritture | D-03, D-23 | `src/characters/pets/owned-pets.mapper.spec.ts`, `src/characters/character-updated.subscription.int-spec.ts` |
+| **Voce di `ownedPets` normalizzata sul filo e alla riscrittura:** `xp` e vita non validi (nulli, assenti, negativi, oltre il tetto di `Int`) serviti come 0, frazionari arrotondati per difetto; voce senza pet leggibile tolta dal filo; il personaggio non si annulla. Premio del compagno, pet vinto e negozio riscrivono l'array normalizzato (ref stringa → `ObjectId`, voce senza ref tolta): una voce rotta guarisce alla prima riscrittura | D-03, D-23 (review A-WR-03, A-IN-04) | `src/characters/pets/owned-pet-entry.spec.ts`, `src/characters/pets/owned-pets.mapper.spec.ts`, `src/characters/character-updated.subscription.int-spec.ts` |
 | `equipPet` accetta solo un pet presente in una voce e non ne tocca lo stato | D-03 | `src/characters/pets/equip-pet.int-spec.ts`, `src/characters/pets/equip-pet.updates.spec.ts` |
 | Negozio: il pet comprato è una voce con `xp` 0 e la vita del catalogo; la vendita toglie la voce intera e lascia lo stato delle altre | D-03 | `src/economy/trade/trade-pets.spec.ts`, `src/economy/trade/shop-transaction.service.int-spec.ts`, `test/shops/city-shops.e2e.int-spec.ts` |
 | Pet in premio come voce intera; vita non valida a catalogo = 0 | D-03 | `src/characters/pets/owned-pet-entry.spec.ts`, `src/quests/outcomes/quest-pet-prize.int-spec.ts` |
@@ -264,6 +266,7 @@ Ogni riga è verde nel gate 19-23. I titoli dei casi nominano la decisione fra p
 | **Pet in premio delle quest generate: un tiro, tre fasce che si sommano** — 10 % stesso nemico, 5 % zona, 5 % solo boss fra i non vendibili —, tetto di rarità dal pool di loot del rango, pet senza rarità mai candidato, fascia vuota che non passa alle altre, contratto dei tiri | D-28 | `src/quests/generation/pet-prize.spec.ts`, `src/quests/generation/pet-candidate.spec.ts`, `src/quests/generation/generated-prizes.spec.ts`, `src/quests/generation/quest-generator.int-spec.ts` |
 | 20 % del pet alla vittoria invariato (`QUEST_PET_WIN_CHANCE`) | D-28 | `src/quests/outcomes/rewards/quest-rewards.spec.ts` |
 | POI senza back-link; `city(id)` serve i POI senza populate annidato | D-09 | `src/models/point-of-interest.schema.spec.ts`, `src/cities/cities.resolver.int-spec.ts` |
+| **`cities { pointsOfInterest { id } }` popolato:** anche la lista `cities` serve i POI di ogni città (una query in più per tutti i POI, nessun N+1), non più un errore parziale con `pointsOfInterest: null` | review C-WR-06 | `src/cities/cities.resolver.int-spec.ts` |
 | Pool dei negozi nel sotto-documento: assente ≠ vuota, `cityShop`, `hasShop`, report, acquisto | D-10 | `src/models/shop-fields.schema.spec.ts`, `src/shops/shop-pool.rules.spec.ts`, `src/shops/shop-pool.report.spec.ts`, `src/shops/city-shop.service.int-spec.ts`, `src/shops/city-shop.resolver.int-spec.ts`, `src/economy/trade/trade-pool.spec.ts` |
 | `Lore.imagePath` su schema e filo | D-11 | `src/models/lore.schema.spec.ts`, `src/lore/lore-related.int-spec.ts`, `src/cities/cities.resolver.int-spec.ts` |
 | Slot `feet` su `equipItem` (scrittura e lettura), valore fuori enum = `BAD_USER_INPUT`, slot liberato dalla vendita dell'ultimo esemplare | D-06 | `src/characters/equipment/equip-item.int-spec.ts`, `src/characters/equipment/equip-item.updates.spec.ts`, `src/economy/trade/shop-transaction.service.int-spec.ts` |
@@ -276,7 +279,7 @@ Ogni riga è verde nel gate 19-23. I titoli dei casi nominano la decisione fra p
 | Magie sul filo: sole voci, attive in ordine di apprendimento | D-07, D-16 | `src/characters/spells/spell-state.mapper.spec.ts`, `src/characters/spells/spell-state.wire.int-spec.ts` |
 | Una sola lista di magie su schema, documento appena creato e SDL | D-07 | `src/models/character/character-status.schema.spec.ts`, `src/characters/creation/character-creation.resolver.int-spec.ts` |
 | Registro permanente dei ref: 33 riferimenti in 11 collection (con `pets:relatedLore` e `pets:enemy`) | D-26, D-28 | `src/migrations/mixed-refs/mixed-ref-paths.spec.ts` |
-| Boot reale: SDL coi blocchi esatti dei tipi toccati, modulo una tantum montato | D-12 | `test/app.int-spec.ts` |
+| Boot reale: SDL coi blocchi esatti dei tipi toccati, modulo una tantum montato, passi conclusi prima di ogni lifecycle hook (sonde su `BullExplorer.onModuleInit`, `QuestResolutionSweeper.onApplicationBootstrap`, `SpellStateMigrator.onApplicationBootstrap`) | D-12 (review C-CR-01) | `test/app.int-spec.ts` |
 
 I nove passi del migratore una tantum (ordine di `STEPS` in `src/migrations/model-review/model-review.module.ts`), ognuno con la prova «seconda corsa = zero scritture»:
 
@@ -292,7 +295,9 @@ I nove passi del migratore una tantum (ordine di `STEPS` in `src/migrations/mode
 | 8 | `WornEquipmentStep` | `equipaggiamento indossato` | `worn-equipment.step.int-spec.ts` |
 | 9 | `SpellStatesStep` | `lista delle magie` | `spell-states.step.spec.ts`, `spell-states.step.int-spec.ts` |
 
-Boot a passi (ordine, formato dei log, errore non bloccante): `src/migrations/model-review/model-review.boot.spec.ts`.
+Boot a passi (ordine, formato dei log, passi conclusi nella factory del provider prima di ogni hook, passo fallito che ferma il boot): `src/migrations/model-review/model-review.boot.spec.ts`.
+
+Guardie aggiunte dai fix della review, ognuna con il suo caso nella spec del passo: il flag `active` scritto dal codice nuovo vince sulla lista vecchia (passo 9, C-WR-01); scrittura con il valore letto nel filtro, «cambiato durante il passo» = non applicata e ritentata al boot successivo (passi 2, 4 e 9, C-WR-02); la rinomina dell'equipaggiamento non sovrascrive un campo nuovo già presente (passo 8, C-WR-03); un nemico con una copia non abbinata non viene scritto (passo 2, C-WR-04).
 
 ---
 
@@ -305,7 +310,10 @@ Regole in evidenza:
 - «**mai codice pre-19 sul database migrato**»: il vecchio migratore delle magie (Phase 9.1, prima del piano 19-18) ricostruisce gli stati dalla lista dei conosciuti, che il passo 9 toglie: vedrebbe «nessuna magia conosciuta» e azzererebbe `spellStates`. **Il ritorno indietro è SOLO il ripristino del backup**, mai un checkout di `develop` di oggi sul database migrato.
 - «**build SOLO dalla HEAD della fase**»: mai da un commit intermedio (fra 19-17 e 19-19 il passo una tantum delle magie e la riparazione permanente coesistono e sono incompatibili; il migratore permanente ridotto al taglio e il passo 9 devono partire insieme).
 - «il passo dei pet crea `defense` vuota: la difesa la scrive lo script di contenuto dell'orchestratore in questa fase» (D-25).
-- **Finestra del boot** (RESEARCH M-4): per il tempo dei passi (sotto il secondo) il codice nuovo legge dati vecchi senza errori — debolezze vuote, magie dei nemici vuote, negozi chiusi, nessuna magia equipaggiata. Per questo il boot si fa **a client fermi**. `ShopBoot` può loggare una volta «167 senza pool» se il suo report parte prima del passo 6: è atteso al solo primo boot.
+- **Ordine del boot** (review C-CR-01): i nove passi girano dentro la factory asincrona di un provider (`modelReviewBootProvider` in `model-review.boot.ts`) e finiscono **prima di OGNI lifecycle hook**: prima dei processor Bull, degli sweep di quest, viaggi, imboscate e recupero, del taglio di `SpellStateMigrator`, dei verifier degli indici e di `ShopBoot`, e prima che HTTP e WS ascoltino. Nessun processor, sweep o listener vede dati non migrati. Il boot si fa comunque **a client fermi** e senza un secondo BE sullo stesso database.
+- **Il WARN «167 senza pool» di `ShopBoot` NON è più atteso al primo boot:** `ShopBoot` gira dopo il passo 6. Se compare, il passo dei pool non ha scritto.
+- «**un passo fallito ferma il processo**» (review C-WR-05): uscita 1, HTTP e WS mai aperti, nessun hook. I passi prima di quello fallito restano applicati (sono idempotenti), quelli dopo non partono: si corregge la causa (o si ripristina il backup) e **si ripete semplicemente il boot**; le righe dei passi già fatti diranno `migrati 0`. Righe e dettagli al passo 4.
+- **Il controllo «nulla in scadenza» prima del boot resta** (passo 3), come difesa in profondità: l'ordine del boot è provato dai test, non ancora sui dati reali.
 
 ### Passo 1 — fermare tutto
 
@@ -335,18 +343,39 @@ Controlli in più (Domanda aperta 8 della ricerca e note degli esecutori):
 
 - **valori di debolezza fuori dai due enum = 0** (`blunt`, `cut`, `pierce`; gli undici di `EnergyType`): il passo li copia e li conta in «senza corrispondenza», non li corregge;
 - **valori legacy non-lista = 0**: `energyWeaknesses` / `baseWeaknesses` salvati come stringa o altro tipo non-lista verrebbero copiati tali e quali e NON contati (19-02); lo stesso controllo del tipo su `status.spells`, `assets.activeSpells` e sui tre array del pool;
-- copie di magie non abbinabili = 0; nomi duplicati nel catalogo delle 96 magie = 0;
+- copie di magie non abbinabili = 0; nomi duplicati nel catalogo delle 96 magie = 0 (un nemico con anche una sola copia non abbinata o ambigua non viene scritto: le sue copie restano e il nemico ricompare a ogni boot finché non lo si cura — review C-WR-04);
 - pet con `damages` nullo o assente = 0; pet con `maxLifePoints` non intero = 0;
 - città con solo una o due delle tre liste: contarle (il passo rinomina quello che c'è; una lista assente resta assente);
 - **lore: due numeri distinti** — documenti con `image` esistente e documenti con `image` non nullo; lore con entrambi i campi = 0;
-- **personaggi con ENTRAMBI i campi dell'equipaggiamento (`assets.wearedEquipment` e `assets.wornEquipment`) = 0**: la rinomina sovrascriverebbe il campo nuovo (19-15); personaggi con `assets.wearedEquipment.foots` non nullo = 2 (annotare `<characterId>` e id dell'oggetto per il confronto dopo il boot);
+- **personaggi con ENTRAMBI i campi dell'equipaggiamento (`assets.wearedEquipment` e `assets.wornEquipment`) = 0**: un personaggio con entrambi i campi NON viene sovrascritto né toccato (review C-WR-03), conta in «senza corrispondenza» e ricompare a ogni boot finché non lo si cura a mano; il controllo resta utile ma non è più distruttivo se fallisce; personaggi con `assets.wearedEquipment.foots` non nullo = 2 (annotare `<characterId>` e id dell'oggetto per il confronto dopo il boot);
 - pet posseduti orfani = 0; `assets.pet` non presente in `ownedPets` = 0;
 - equipaggiate di magie non conosciute = 0; conflitti di usi fra voce ed equipaggiata = 0; `status.maxActiveSpells` persistito = 0; magie attive in tutto = 3;
-- versione del server ≥ 4.2 (scritture a pipeline; l'inventario dice 8.0.37).
+- versione del server ≥ 4.2 (scritture a pipeline; l'inventario dice 8.0.37);
+- **«nulla in scadenza» = 0** (review C-CR-01 e B-WR-01, difesa in profondità), da contare PRIMA di fermare il processo pre-19: se qualcosa è in scadenza lo si lascia risolvere al processo pre-19 e solo dopo lo si ferma. In Mongo, per ogni personaggio non archiviato: nessuna quest in corsia con risoluzione scaduta o nei prossimi minuti, nessun `status.activeTravel` con `endTime` entro adesso più un margine, nessuna imboscata pendente sul viaggio, nessun `awaitingAid` vicino al timeout, nessun party in formazione vicino alla scadenza. In Redis: nessun job in attesa o ritardato già dovuto nelle code di risoluzione delle quest e dei viaggi. (Filtri esatti dei campi e margine in minuti: **da verificare** dall'orchestratore sul modello, questo documento non li fissa.)
 
 ### Passo 4 — build dalla HEAD della fase e PRIMO boot
 
-Build SOLO dalla HEAD della fase, poi il boot. Nove righe attese, nell'ordine, formato `Revisione dei modelli, <label>: trovati N, migrati N, già a posto N, senza corrispondenza N`; **nessuna riga `fallito`** (`Revisione dei modelli, <label>: fallito (…), il boot prosegue`) e nessuna riga WARN di dettaglio (copia senza corrispondenza, personaggio con anomalie).
+Build SOLO dalla HEAD della fase, poi il boot. Nove righe attese, nell'ordine, formato `Revisione dei modelli, <label>: trovati N, migrati N, già a posto N, senza corrispondenza N`; **nessuna riga `fallito`** e nessuna riga WARN di dettaglio. Le nove righe escono durante la creazione dei provider, prima di ogni `onModuleInit`; in caso di successo non c'è alcuna riga di riepilogo.
+
+**Un passo fallito ferma il processo** (uscita 1, HTTP e WS mai aperti, nessun hook parte). Due righe a livello ERROR, poi l'errore stampato da Nest:
+
+```
+Revisione dei modelli, <label>: fallito (<NomeErrore>, code <N>), il boot si ferma
+Revisione dei modelli, boot interrotto: passi conclusi <K> su 9, fallito «<label>», non eseguiti <M>
+Revisione dei modelli: boot interrotto dal passo «<label>»
+```
+
+I passi prima di quello fallito restano applicati (idempotenti), quelli dopo non sono partiti: correggere la causa o ripristinare il backup, poi ripetere il boot (le righe dei passi già fatti diranno `migrati 0`). L'errore rilanciato è nuovo e senza causa: lo stack stampato da Nest non porta quello del driver.
+
+Righe WARN di dettaglio (nessuna è attesa sui dati reali; testo dopo i fix della review):
+
+```
+Revisione dei modelli, lista delle magie: personaggio <id>, usi in conflitto N, equipaggiate non conosciute N [<idMagia>, …], stati lasciati fuori N [<idMagia>, …]
+Revisione dei modelli, magie dei nemici: copia senza corrispondenza «<nome>» sul nemico <id>: nemico non scritto, le copie restano
+Revisione dei modelli, <label>: personaggio|nemico <id> cambiato durante il passo, scrittura non applicata: si ritenta al prossimo boot
+```
+
+Nella prima una voce senza riferimento leggibile compare come `<senza riferimento>`; la terza può uscire dai passi «magie dei nemici», «pet posseduti» e «lista delle magie» e NON ferma il boot. **Con «senza corrispondenza» ≠ 0 su una riga non aprire ai client:** riavviare e rileggere la riga del passo a `senza corrispondenza 0` (per un nemico con copia non abbinata o un personaggio con entrambi i campi dell'equipaggiamento serve prima la cura a mano).
 
 Tabella dei conteggi (inventario dell'11 novembre 2026):
 
@@ -361,6 +390,13 @@ Tabella dei conteggi (inventario dell'11 novembre 2026):
 | immagini delle lore | 522 | 438 (522 se le altre 84 hanno `image: null`: lo dice la prova a secco) | il resto | 0 |
 | equipaggiamento indossato | 7 | 7 | 0 | 0 |
 | lista delle magie | 7 | 7 se i due campi vecchi esistono su tutti (anche vuoti), altrimenti quanti li hanno (minimo 2): lo dice la prova a secco | il resto | 0 |
+
+Sui dati dell'inventario i fix della review non cambiano i numeri attesi; cambia il significato dei conteggi nei casi anomali:
+
+- **magie dei nemici:** un nemico con una copia non abbinata non è né migrato né già a posto, ogni sua copia non abbinata conta in «senza corrispondenza» e il nemico ricompare con gli stessi numeri a ogni boot finché non lo si cura;
+- **equipaggiamento indossato:** un personaggio con entrambi i campi conta in «senza corrispondenza», non è sovrascritto e ricompare a ogni boot finché non lo si cura a mano;
+- **lista delle magie:** una voce con `active` booleano fuori da `status.spells` resta nella lista (in coda) e non conta in «stati lasciati fuori»;
+- **lista delle magie, pet posseduti, magie dei nemici:** una scrittura non applicata (documento cambiato fra lettura e scrittura) conta 1 in «senza corrispondenza», non è né migrata né già a posto e si ritenta al boot successivo.
 
 Righe del PRIMO boot, verbatim dai SUMMARY dei passi:
 
@@ -427,17 +463,25 @@ Note del codice per lo script:
 - `relatedLore` e `enemy` sono nel registro permanente dei ref: vanno scritti come **ObjectId veri** (una stringa esadecimale è letta comunque da negozio, premio e generatore, ma il verificatore dei ref al boot la segnalerebbe);
 - il passo 3 rispetta un `attack` o una `defense` già scritti a mano («la mano vince»): l'ordine «boot, poi contenuto» resta quello previsto;
 - **finché le rarità non sono a DB nessuna quest generata offre un pet** (fail-safe voluto): un pet senza `rarity` non è mai candidato, qualunque sia il legame;
-- la zona di un pet è quella del NEMICO collegato (`Enemy.locations`), leggendari compresi; un pet senza legame può uscire solo nella terza fascia, e solo con `sellable` uguale a `false` (assente o nullo non basta); i `legendary` non escono dalle quest generate finché nessun pool li prevede;
+- la zona di un pet è quella del NEMICO collegato (`Enemy.locations`), leggendari compresi; un pet senza legame può uscire solo nella terza fascia, e solo con `sellable` uguale a `false` (assente o nullo non basta); un pet `legendary` può uscire SOLO dalle quest generate `boss` di rango hero (l'unico pool di loot con uno slot `legendary`; D-28 emendata dal ruling dell'utente del 2026-11-12, «Sì dai boss hero»), nelle tre fasce; mai dalle `enemy` né dagli altri ranghi;
+- la fascia «zona» è un'inclusione semplice del tipo del POI della quest fra le `locations` del nemico collegato (D-28 alla lettera, review A-IN-03): un pet il cui nemico vive solo in `city` o `all` non è mai candidato di zona, a differenza della nozione di «dintorni» del generatore dei nemici. Da sapere quando si curano i legami `Pet.enemy`;
 - i pet già posseduti prima dei collegamenti non ricevono le lore a posteriori (a DB oggi nessun personaggio possiede pet);
 - le quest già a tabellone non cambiano: il premio nasce alla generazione.
 
 ### Passo 7 — rimozione del modulo in TDD (RESEARCH M-5)
 
-1. **RED** in `test/app.int-spec.ts`: il caso «mounts the one-off model review migration at boot (D-12)» diventa «boots without the one-off model review migration (19 D-12)» (`ModulesContainer` senza `ModelReviewMigrationModule`); via l'asserzione su `ModelReviewBoot` **e il suo import** (`src/migrations/model-review/model-review.boot`). Commit `test(migrations): …`.
+1. **RED** in `test/app.int-spec.ts`: i due casi alle righe 992-1010 — «mounts the one-off model review migration at boot (D-12)» e «ends the one-off model review steps before any lifecycle hook runs (D-12)» — sono sostituiti da un solo caso «boots without the one-off model review migration (19 D-12)» (`ModulesContainer` senza `ModelReviewMigrationModule`). Dallo stesso file esce tutto quello che serve solo al migratore (numeri di riga alla HEAD dopo i fix della review, da ricontrollare se il file cambia):
+   - riga 2: import di `BullExplorer` (`@nestjs/bull/dist/bull.explorer`), usato solo dalle sonde;
+   - riga 59: import di `ModelReviewBoot` (`src/migrations/model-review/model-review.boot`);
+   - righe 146-163: costanti `MODEL_REVIEW_PREFIX` e `MODEL_REVIEW_STEP_LINES`, tipo `LifecycleHook`;
+   - righe 264-286: `logSpy`, `modelReviewLinesSeenBy`, `modelReviewLinesSoFar`, `probeLifecycleHook`;
+   - righe 291-300: la spia sul log e le tre sonde in `beforeAll`.
+   **Restano:** gli import di `SpellStateMigrator` (riga 48) e `QuestResolutionSweeper` (riga 52), usati da altri casi (righe 965 e 1112), e `jest.restoreAllMocks()` in `afterAll` (riga 307). Commit `test(migrations): …`.
 2. **GREEN** `refactor(migrations): drop the 19 one-off model review after its run`. Cosa cancellare:
-   - l'intera cartella `src/migrations/model-review/` (26 file): `model-review.module.ts`, `model-review.boot.ts` e la sua spec, `model-review.step.ts` (contratto), i nove file `*.step.ts` dei passi con le loro spec e int-spec, `legacy-fixtures.ts`;
-   - in `src/app.module.ts` l'import di `ModelReviewMigrationModule`, la voce in `imports` e il commento sopra («revisione dei modelli una tantum (Phase 19 D-12): esce dal repo dopo il boot reale»).
-   Nessun codice che resta dipende dalla cartella (verificato nel gate); la dipendenza è in un solo verso (`owned-pets.step.ts` importa `newOwnedPetEntry`, che resta).
+   - l'intera cartella `src/migrations/model-review/` (26 file): `model-review.module.ts`, `model-review.boot.ts`, `model-review.boot.spec.ts`, `model-review.step.ts` (contratto), `legacy-fixtures.ts`; i nove passi `enemy-weaknesses.step.ts`, `enemy-spells.step.ts`, `pet-catalog.step.ts`, `owned-pets.step.ts`, `poi-quest.step.ts`, `city-shop.step.ts`, `lore-image-path.step.ts`, `worn-equipment.step.ts`, `spell-states.step.ts`; le nove int-spec `*.step.int-spec.ts`; le tre unit `enemy-spells.step.spec.ts`, `owned-pets.step.spec.ts`, `spell-states.step.spec.ts`;
+   - in `src/app.module.ts` la riga 29 (import di `ModelReviewMigrationModule`) e le righe 117-118 (il commento «revisione dei modelli una tantum (Phase 19 D-12): esce dal repo dopo il boot reale» e la voce in `imports`).
+   Nessun codice che resta dipende dalla cartella (verificato nel gate e nella verifica): la dipendenza è in un solo verso (i passi importano `owned-pet-entry`, `mongo/document-id`, `mongo/mongo-errors` e i modelli, che restano); nessuna soglia di coverage in `package.json` nomina la cartella.
+   **Le suite scendono di conseguenza:** unit 276 → 272 suite (via la spec del boot e le tre unit dei passi), integration 149 → 140 suite (via le nove int-spec dei passi), boot reale 92 → 91 test (due casi sostituiti da uno). Numero dei test unit e integration dopo la rimozione: **da verificare** alla corsa del passo 3 (le fonti non danno i test per file).
 3. `npx tsc --noEmit -p tsconfig.json` 0, boot reale di test verde, `git diff --exit-code src/schema.gql` 0; dopo la rimozione `grep -rnwE 'energyWeaknesses|baseWeaknesses|wearedEquipment|foots|shopEquipment|shopLoot|shopPets' src test --include='*.ts'` non stampa nulla.
 4. **Terzo boot reale** senza le righe `Revisione dei modelli, …`.
 5. Chiusura dei requisiti rimasti aperti (§4) e riga di stato in ROADMAP, STATE e REQUIREMENTS.
@@ -472,12 +516,13 @@ PR fuori dal draft e merge verso `develop`; poi i piani gated della FE Phase 19 
 
 ### Domande e osservazioni per l'utente
 
-1. **Difetto latente preesistente: `cities { pointsOfInterest { id } }`** (19-12). `CitiesService.findAll` non popola `pointsOfInterest`: il filo riceve degli ObjectId e risponde un errore parziale con `pointsOfInterest: null`. Esiste da prima della fase; la FE non seleziona il campo su `cities`, quindi oggi è latente. Da decidere: popolare anche in `findAll` (642 POI in una query in più) o lasciare il campo solo a `city(id)`.
+1. **CHIUSA — difetto latente preesistente: `cities { pointsOfInterest { id } }`** (19-12). Corretto nella review (C-WR-06, commit `e7a5a4ed`): `CitiesService.findAll` popola con `cityRelations()` (una query in più per tutti i POI, nessun N+1), con un caso sul filo in `src/cities/cities.resolver.int-spec.ts`. **Resta aperto** (fuori dal ruling): `pointsOfInterest { city { id } }` a profondità 2 non è popolato; la FE non lo seleziona. Vale una regola o resta così?
 2. **Sorteggio della lore di studio** (19-11): esclude le lore già note e quelle della vittoria, non quelle del pet vinto nello stesso esito. Se coincidono la lista finale non ha doppioni, ma il tiro dello studio è «speso» su una lore che il pet avrebbe dato comunque. Caso raro (study con pet in premio): vale una regola?
-3. **Ciclo d'import `generated-prizes.ts` ↔ `pet-prize.ts`** (19-22): i due moduli si importano a vicenda; funziona perché ogni uso incrociato è dentro una funzione ed è coperto dalle due unit nei due ordini di caricamento. Scioglierlo (tabelle del loot in un file loro) è un refactor fuori scope: candidato per la review.
+3. **CHIUSA — ciclo d'import `generated-prizes.ts` ↔ `pet-prize.ts`** (19-22). Sciolto nella review (A-IN-01, commit `7df00338`): tabelle e primitive del loot nel modulo foglia `src/quests/generation/loot-pools.ts`; `pet-prize.ts` non importa più da `generated-prizes.ts`, che riesporta i nomi per gli importatori esistenti.
 4. **Int-spec instabile «real Redis»** (19-19): `src/quests/outcomes/quest-resolution.processor.int-spec.ts` è fallita per intero una volta su una corsa completa di `src/quests` e mai più (verde anche nel gate). Usa il Redis locale vero, lo stesso del processo BE dell'utente: possibile contesa sui job.
 5. **Subject di 74 caratteri** in `00bd8556` (`refactor(models): drop the empty enum file and the dead notification model`, 19-14): oltre il limite di 72, non correggibile senza riscrivere la storia. È l'unico della fase. L'orchestratore decide se lasciarlo.
-6. **Nomi vecchi nella sezione generata del `CLAUDE.md` del BE** («Conventions»: `wearedEquipment` e `activeSpells` fra gli esempi di naming). File fuori dai piani: da rigenerare o correggere con il via dell'utente.
+6. **CHIUSA — nomi vecchi nella sezione generata del `CLAUDE.md` del BE** («Conventions»: `wearedEquipment` e `activeSpells` fra gli esempi di naming). Corretti nel commit `e67d36a1` (`docs(claude): align the naming examples with the reviewed models`).
+7. **Zona della fascia dei pet per inclusione semplice** (review A-IN-03, chiusa per ruling come D-28 alla lettera): la fascia «zona» guarda solo se il tipo del POI della quest è fra le `locations` del nemico collegato; per i nemici il generatore intende «nei dintorni» in modo più largo (tipi del POI più l'habitat `city`, `all` come ripiego). Un pet il cui nemico vive in `city` o `all` non è mai candidato di zona. Resta così o si allinea alle due nozioni?
 
 ### Deviazioni della fase (dai SUMMARY)
 

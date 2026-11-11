@@ -113,7 +113,7 @@ created: 2026-11-11
 
 Le spec nuove nascono nel commit RED del task indicato (TDD, REPO-RULES): nessun piano di soli scaffold.
 
-- [x] `src/migrations/model-review/model-review.boot.spec.ts` — ordine dei passi, formato dei log, errore non bloccante (BE-MODEL-09, task 19-01-01)
+- [x] `src/migrations/model-review/model-review.boot.spec.ts` — ordine dei passi, formato dei log, passi conclusi nella factory del provider prima di ogni hook, passo fallito che ferma il boot (BE-MODEL-09, task 19-01-01; la regola «errore non bloccante» del piano è superata dai fix C-CR-01 e C-WR-05 della review)
 - [x] `src/migrations/model-review/legacy-fixtures.ts` — inserimento e lettura grezza col driver nativo; un builder della forma vecchia per passo (task 19-01-01 e i task dei passi)
 - [x] `src/models/enemy.schema.spec.ts` — debolezze e magie per riferimento (BE-MODEL-01, BE-MODEL-02, task 19-02-01, 19-03-01)
 - [x] `src/migrations/model-review/enemy-weaknesses.step.int-spec.ts` (task 19-02-02), `enemy-spells.step.spec.ts` e `.int-spec.ts` (19-03-02), `pet-catalog.step.int-spec.ts` (19-04-02), `owned-pets.step.spec.ts` e `.int-spec.ts` (19-07-01), `poi-quest.step.int-spec.ts` (19-12-02), `city-shop.step.int-spec.ts` (19-13-02), `lore-image-path.step.int-spec.ts` (19-14-01), `worn-equipment.step.int-spec.ts` (19-15-01), `spell-states.step.spec.ts` e `.int-spec.ts` (19-17-02)
