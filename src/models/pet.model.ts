@@ -1,6 +1,6 @@
 import { ObjectType, Field, Float, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { DamagesSchema, Damages, DamagesInput } from './common/damages.model';
 import { CoinsSchema, Coins, CoinsInput } from './common/coins.model';
 import { RarityType } from './enums/rarity-type.enum';
@@ -67,6 +67,10 @@ export class Pet {
     @Field(() => RarityType, { nullable: true })
     @Prop({ type: String, enum: Object.values(RarityType), default: null })
     rarity?: RarityType | null;
+
+    // legame col nemico corrispondente (Phase 19 D-28): solo Mongoose, guida i pet in premio delle quest generate
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Enemy', default: null })
+    enemy?: Types.ObjectId | null;
 }
 
 export type PetDocument = Pet & Document;

@@ -63,6 +63,7 @@ export const MIXED_REF_PATHS: readonly MixedRefPath[] = [
     array('enemies', 'relatedLore'),
     array('lore', 'relatedLore'),
     array('pets', 'relatedLore'),
+    scalar('pets', 'enemy'),
     scalar('equipmentitems', 'addedSpell'),
     subdocArray('questresults', 'consumablesUsed', 'item'),
     subdocArray('questresults', 'rewards.items', 'item'),

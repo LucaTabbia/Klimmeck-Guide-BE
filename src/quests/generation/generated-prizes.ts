@@ -125,7 +125,7 @@ export const RARITY_RANK: Readonly<Record<RarityType, number>> = {
 // da rare in su niente effect hunger (D-20)
 const FOOD_FREE_FROM: RarityType = RarityType.rare;
 
-const indexOf = (length: number, chance: ChanceSource): number =>
+export const indexOf = (length: number, chance: ChanceSource): number =>
     Math.min(length - 1, Math.floor(chance.next() * length));
 
 const byTypeThenId = (a: PrizeCatalogItem, b: PrizeCatalogItem): number =>

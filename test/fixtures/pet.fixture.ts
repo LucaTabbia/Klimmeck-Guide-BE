@@ -4,7 +4,8 @@ import { Model } from 'mongoose';
  * Two-tier Pet fixture — valid against src/models/pet.model.ts and complete
  * for the wire (every non-null GraphQL field is set). speedModifier null = not
  * rideable (D-08); override it to build a mount. rarity null = not curated
- * yet (Phase 19 D-27); override it where a spec needs one.
+ * yet (Phase 19 D-27); override it where a spec needs one. enemy null = no
+ * linked enemy (Phase 19 D-28).
  */
 export function buildPet(overrides: Record<string, any> = {}) {
     return {
@@ -19,6 +20,7 @@ export function buildPet(overrides: Record<string, any> = {}) {
         speedModifier: null,
         relatedLore: [],
         rarity: null,
+        enemy: null,
         ...overrides,
     };
 }
