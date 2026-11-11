@@ -72,6 +72,9 @@ export function legacyPet(overrides: RawDocument = {}): RawDocument {
     });
 }
 
+// l'indice unico dei nomi dei personaggi attivi vuole un nome diverso per fixture
+let characterSequence = 0;
+
 // personaggio nella forma vecchia dei posseduti: lista di soli riferimenti (o di ciò che il test ci mette); un override di `assets` si fonde con quelli di base
 export function legacyCharacterWithPets(
     petRefs: readonly unknown[],
@@ -81,7 +84,7 @@ export function legacyCharacterWithPets(
     return withoutUndefined({
         infos: {
             sex: 'male',
-            name: 'Personaggio vecchio',
+            name: `Personaggio vecchio ${++characterSequence}`,
             race: 'human',
             pronoun: 'he',
             classType: 'fighter',
