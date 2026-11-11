@@ -19,6 +19,7 @@ import {
     persistSpell,
     spellBook,
 } from '../../test/fixtures';
+import { buildOwnedPet } from '../../test/fixtures/owned-pet.fixture';
 
 const MISSING_CHARACTER_ID = '64b0000000000000000000ff';
 const MALFORMED_CHARACTER_ID = 'abc';
@@ -199,7 +200,7 @@ describe('Character ownership on mutations and queries (wire)', () => {
             assets: {
                 ...buildCharacter().assets,
                 activeSpells: book.activeSpells,
-                ownedPets: [petA._id],
+                ownedPets: [buildOwnedPet(petA._id as Types.ObjectId)],
             },
         };
         alice = await createPlayer(harness, {

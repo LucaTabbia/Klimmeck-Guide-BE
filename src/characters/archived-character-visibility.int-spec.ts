@@ -17,6 +17,7 @@ import {
     persistSpell,
     spellBook,
 } from '../../test/fixtures';
+import { buildOwnedPet } from '../../test/fixtures/owned-pet.fixture';
 
 interface WireError {
     message: string;
@@ -203,7 +204,7 @@ describe('Archived characters on player paths (wire)', () => {
             assets: {
                 ...buildCharacter().assets,
                 activeSpells: book.activeSpells,
-                ownedPets: [petA._id],
+                ownedPets: [buildOwnedPet(petA._id as Types.ObjectId)],
             },
         };
         alice = await createPlayer(harness, {
