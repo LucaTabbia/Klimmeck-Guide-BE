@@ -4,6 +4,7 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
@@ -17,6 +18,9 @@ import {
 
 const CHARACTER =
     'query($id: String!) { character(id: $id) { status { spells { id } spellStates { spell { id name maxUsages } usages recoveries } } assets { activeSpells { usages spell { id } } } } }';
+
+const CHARACTER_SLOTS =
+    'query($id: String!) { character(id: $id) { status { maxActiveSpells } } }';
 
 const MINUTE_MS = 60_000;
 
@@ -97,6 +101,16 @@ describe('spell states on the character query (wire)', () => {
             player.bearer,
         );
         return response.body as WireBody;
+    }
+
+    async function slotsOf(player: TestPlayer): Promise<unknown> {
+        const response: request.Response = await graphqlRequest(
+            harness.app,
+            CHARACTER_SLOTS,
+            { id: idOf(player) },
+            player.bearer,
+        );
+        return response.body;
     }
 
     async function characterOf(player: TestPlayer): Promise<WireCharacter> {
@@ -219,6 +233,25 @@ describe('spell states on the character query (wire)', () => {
         expect(character.assets.activeSpells).toEqual([
             { usages: 2, spell: { id: a.toHexString() } },
         ]);
+    });
+
+    it('serves the computed max active spells of the character (D-08)', async () => {
+        const mage = await createPlayer(harness, {
+            twitchId: 'twitch-wire-slots-mage',
+            characterOverrides: {
+                status: { ...buildCharacter().status, title: TitleType.mage },
+            },
+        });
+        const rookie = await createPlayer(harness, {
+            twitchId: 'twitch-wire-slots-rookie',
+        });
+
+        expect(await slotsOf(mage)).toEqual({
+            data: { character: { status: { maxActiveSpells: 1 } } },
+        });
+        expect(await slotsOf(rookie)).toEqual({
+            data: { character: { status: { maxActiveSpells: 0 } } },
+        });
     });
 
     it('serves the slots in their order, not in the order of the known spells', async () => {

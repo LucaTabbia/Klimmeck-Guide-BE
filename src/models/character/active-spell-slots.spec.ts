@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import {
     maxActiveSpellsExpression,
     maxActiveSpellsFor,
@@ -31,21 +30,10 @@ describe('active spell slots', () => {
         },
     );
 
-    it.each(SLOTS_BY_XP_AND_TITLE)(
-        'the maxActiveSpells virtual answers %i xp as %s with %i slots',
-        (xp, title, slots) => {
-            const StatusProbe =
-                mongoose.models.CharacterStatusSlotsProbe ??
-                mongoose.model(
-                    'CharacterStatusSlotsProbe',
-                    CharacterStatusSchema,
-                );
-
-            expect(new StatusProbe({ xp, title }).get('maxActiveSpells')).toBe(
-                slots,
-            );
-        },
-    );
+    it('declares no persisted or virtual max active spells on the status schema (D-08)', () => {
+        expect(CharacterStatusSchema.path('maxActiveSpells')).toBeUndefined();
+        expect(CharacterStatusSchema.virtualpath('maxActiveSpells')).toBeNull();
+    });
 
     it('opens spell slots from the mage rank up', () => {
         expect(SPELL_CASTER_TITLES).toEqual(['mage', 'hero', 'legend']);

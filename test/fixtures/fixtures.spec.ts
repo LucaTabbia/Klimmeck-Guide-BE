@@ -1,6 +1,7 @@
 import mongoose, { Types } from 'mongoose';
-import { CharacterStatusSchema } from 'src/models/character/character-status.model';
+import { maxActiveSpellsFor } from 'src/models/character/active-spell-slots';
 import { EnemySchema } from 'src/models/enemy.model';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import {
     buildCity,
     buildSpell,
@@ -61,23 +62,15 @@ describe('fixtures builders', () => {
     });
 
     describe('buildCharacter', () => {
-        it('defaults to a rookie with 20000 xp: no spell slot until the mage rank', () => {
-            const StatusProbe =
-                mongoose.models.FixtureStatusSlotsProbe ??
-                mongoose.model(
-                    'FixtureStatusSlotsProbe',
-                    CharacterStatusSchema,
-                );
+        it('defaults to a rookie with 20000 xp: no spell slot until the mage rank (D-08)', () => {
             const status = buildCharacter().status;
 
             expect(status.xp).toBe(20000);
             expect(status.title).toBe('rookie');
-            expect(new StatusProbe(status).get('maxActiveSpells')).toBe(0);
             expect(
-                new StatusProbe({ ...status, title: 'mage' }).get(
-                    'maxActiveSpells',
-                ),
-            ).toBe(1);
+                maxActiveSpellsFor(status.xp, status.title as TitleType),
+            ).toBe(0);
+            expect(maxActiveSpellsFor(status.xp, TitleType.mage)).toBe(1);
         });
 
         it('sets a required location ObjectId', () => {

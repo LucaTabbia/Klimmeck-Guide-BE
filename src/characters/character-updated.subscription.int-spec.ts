@@ -6,6 +6,7 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import { Pet } from 'src/models/pet.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { User, UserDocument } from 'src/models/user.model';
@@ -80,6 +81,13 @@ const CHARACTER_LORE_UPDATED =
 
 type LoreUpdatedResult = {
     characterUpdated: { status: { unlockedLore: string[] } };
+};
+
+const CHARACTER_SLOTS_UPDATED =
+    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { maxActiveSpells } } }';
+
+type SlotsUpdatedResult = {
+    characterUpdated: { status: { maxActiveSpells: number } };
 };
 
 const MINUTE_MS = 60_000;
@@ -661,6 +669,34 @@ describe('characterUpdated subscription (wire)', () => {
                         status: { unlockedLore: [loreId.toHexString()] },
                     },
                 },
+            },
+        });
+    });
+
+    it('serves the computed max active spells on the character stream (D-08)', async () => {
+        const subscription = openSubscription<SlotsUpdatedResult>(
+            url,
+            { Authorization: alice.bearer },
+            { query: CHARACTER_SLOTS_UPDATED, variables: { id: aliceCharId } },
+        );
+        opened.push(subscription);
+
+        expect(await subscription.next()).toEqual({
+            done: false,
+            value: {
+                data: { characterUpdated: { status: { maxActiveSpells: 0 } } },
+            },
+        });
+
+        await characters.updateOne(
+            { _id: alice.character?._id },
+            { $set: { 'status.title': TitleType.mage } },
+        );
+
+        expect(await subscription.next()).toEqual({
+            done: false,
+            value: {
+                data: { characterUpdated: { status: { maxActiveSpells: 1 } } },
             },
         });
     });
