@@ -111,7 +111,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             },
         });
         await drawSpellOn(subject);
-        chance.load([0]);
+        chance.load([0, 0]);
 
         await service.resolveStandard(triggerOf(subject));
 
@@ -127,7 +127,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         expect(String((await resultOf(subject)).spellLearned)).toBe(
             String(drawn._id),
         );
-        expect(chance.drawn).toEqual([0]);
+        expect(chance.drawn).toEqual([0, 0]);
     });
 
     it('teaches a magic quest the spell a study draws with the same seed (quick 261110-mag)', async () => {
@@ -148,7 +148,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             },
         });
         await drawSpellOn(subject);
-        chance.load([0]);
+        chance.load([0, 0]);
 
         await service.resolveStandard(triggerOf(subject));
 
@@ -160,7 +160,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         expect(String((await resultOf(subject)).spellLearned)).toBe(
             String(drawn._id),
         );
-        expect(chance.drawn).toEqual([0]);
+        expect(chance.drawn).toEqual([0, 0]);
     });
 
     it('leaves a catalog spell without max usages out of the draw (D-31)', async () => {
@@ -179,7 +179,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             questOverrides: studyQuest({ xpPrize: 300 }),
         });
         await drawSpellOn(subject);
-        chance.load([0.99]);
+        chance.load([0, 0.99]);
 
         await service.resolveStandard(triggerOf(subject));
 
@@ -194,6 +194,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             questOverrides: studyQuest({ xpPrize: 300 }),
         });
         await drawSpellOn(subject);
+        chance.load([0, 0]);
 
         await service.resolveStandard(triggerOf(subject));
 
@@ -201,6 +202,23 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         expect(character.status.spells).toEqual([]);
         expect(character.status.xp).toBe(300);
         expect((await resultOf(subject)).spellLearned).toBeNull();
+    });
+
+    it('teaches no spell from a learnable pool when the 30% gate misses (quick 261111-sdc)', async () => {
+        await persistSpell(world.models.spells, { minXpToLearn: 200 });
+        const subject = await quester({
+            questOverrides: questOfType('magic', { xpPrize: 300 }),
+        });
+        await drawSpellOn(subject);
+        chance.load([0.3, 0]);
+
+        await service.resolveStandard(triggerOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.status.spells).toEqual([]);
+        expect(character.status.xp).toBe(300);
+        expect((await resultOf(subject)).spellLearned).toBeNull();
+        expect(chance.drawn).toEqual([0.3, 0]);
     });
 
     it('ignores the spell catalog for a study without the flag', async () => {

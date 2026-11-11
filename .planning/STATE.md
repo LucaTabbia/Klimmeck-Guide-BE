@@ -73,6 +73,7 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 | 261110-mag | tipo di quest `magic` (si comporta come `study`, ripetibile, rango minimo come dato della quest); SDL invariato; sul ramo della Phase 18 (PR #31) | 2026-11-10 | 63847cb4 | [261110-mag-quest-magic-type](./quick/261110-mag-quest-magic-type/) |
 | 261110-cgd | arresto nelle `crime` (20 % alla conclusione, 10 ore di prigione, 25 % delle monete, `CharacterStatus.imprisonedUntil`, `CHARACTER_IMPRISONED`) e scontro nelle `guard` (20 %, nemico o branco city/all in fascia, monete doppie e xp dei nemici in vittoria, vita a 1 senza soccorso in sconfitta); ranghi a DB dopo la merge; sul ramo della Phase 18 (PR #31) | 2026-11-10 | 6c4e28f4 | [261110-cgd-crime-arrest-guard-encounter](./quick/261110-cgd-crime-arrest-guard-encounter/) |
 | 261110-prp | push `prisonRelease` alla scadenza della prigione (sweep, un push per arresto, `imprisonedUntil` torna `null`); sul ramo della Phase 18 (PR #31) | 2026-11-10 | e50dba8c | [261110-prp-prison-release-push](./quick/261110-prp-prison-release-push/) |
+| 261111-sdc | magia delle quest `magic` (`prizes.spellDraw`) con probabilità 30 % (`SPELL_DRAW_CHANCE`, gate tirato prima della scelta, solo col booleano); magia fissa senza gate; SDL invariato; ramo `feat/quick-spell-draw-chance` | 2026-11-11 | 5134cc5b | [261111-sdc-spell-draw-chance](./quick/261111-sdc-spell-draw-chance/) |
 
 ## Session Continuity
 
