@@ -6,10 +6,8 @@ import {
     GeneratedAssetRef,
     GeneratedPrizes,
 } from 'src/quests/generation/generated-prizes';
-import {
-    ENEMY_SEATS,
-    GeneratedRank,
-} from 'src/quests/generation/generation-rules';
+import { RankSlot, soloSlots } from 'src/quests/acceptance/quest-capacity';
+import { GeneratedRank } from 'src/quests/generation/generation-rules';
 import { Composition } from 'src/quests/generation/quest-composition';
 import {
     announcementOf,
@@ -53,7 +51,7 @@ export interface GeneratedQuestDraft {
     requirements: {
         minTitle: GeneratedRank;
         requiredPoints: number | null;
-        requiredAdventurers: { title: GeneratedRank; count: number }[];
+        requiredAdventurers: RankSlot[];
         recommendedLoot: GeneratedAssetQuantity[];
     };
     prizes: {
@@ -74,9 +72,12 @@ export interface GeneratedQuestDraft {
 
 const objectIdOf = (hex: string): Types.ObjectId => new Types.ObjectId(hex);
 
-// enemy sempre a un posto; il boss tiene i posti della formula (13.1 D-09)
-const seatsOf = (composition: Composition): number =>
-    composition.type === QuestType.enemy ? ENEMY_SEATS : composition.seats;
+// enemy: un solo posto senza titolo, si prende da soli col rango di minTitle (quick 261111-enm, supera D-09 per il solo tipo enemy);
+// boss: posti a titolo esatto della formula, nessun jolly (13.1 D-09)
+const seatsOf = (composition: Composition): RankSlot[] =>
+    composition.type === QuestType.enemy
+        ? soloSlots()
+        : [{ title: composition.rank, count: composition.seats }];
 
 const assetOf = (ref: GeneratedAssetRef): GeneratedAssetQuantity => ({
     itemType: ref.itemType,
@@ -117,10 +118,7 @@ export function generatedQuestDraftOf(
         requirements: {
             minTitle: composition.rank,
             requiredPoints: null,
-            // posti a titolo esatto (D-09 emendata): nessun jolly
-            requiredAdventurers: [
-                { title: composition.rank, count: seatsOf(composition) },
-            ],
+            requiredAdventurers: seatsOf(composition),
             recommendedLoot: input.recommendedLoot.map(assetOf),
         },
         prizes: {

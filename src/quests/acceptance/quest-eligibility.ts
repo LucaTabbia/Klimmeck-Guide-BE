@@ -5,10 +5,10 @@ import { TitleType } from 'src/models/enums/title-type.enum';
 import { sameId } from 'src/mongo/document-id';
 import {
     hasSeatFor,
+    questSlotsOf,
     RegisteredAdventurer,
     SlotRule,
     slotRuleOf,
-    slotsOf,
 } from './quest-capacity';
 import { QuestLane } from './quest-lanes';
 
@@ -99,7 +99,7 @@ export function registrationRuleOf(
     requirements: QuestRequirementsSnapshot | null | undefined,
 ): SlotRule | null | 'invalid' {
     if (!isRegistered(type)) return null;
-    const slots = slotsOf(requirements?.requiredAdventurers);
+    const slots = questSlotsOf(type, requirements?.requiredAdventurers);
     return slots === 'invalid' ? 'invalid' : slotRuleOf(slots);
 }
 
