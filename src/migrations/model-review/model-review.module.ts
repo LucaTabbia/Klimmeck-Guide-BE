@@ -7,6 +7,10 @@ import {
 } from 'src/models/character/character.model';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
+import {
+    PointOfInterest,
+    PointOfInterestSchema,
+} from 'src/models/point-of-interest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { EnemySpellsStep } from './enemy-spells.step';
 import { EnemyWeaknessesStep } from './enemy-weaknesses.step';
@@ -14,6 +18,7 @@ import { ModelReviewBoot } from './model-review.boot';
 import { MODEL_REVIEW_STEPS, type ModelReviewStep } from './model-review.step';
 import { OwnedPetsStep } from './owned-pets.step';
 import { PetCatalogStep } from './pet-catalog.step';
+import { PoiQuestStep } from './poi-quest.step';
 
 // lista ordinata (D-13): ogni piano accoda la classe del proprio passo e aggiunge agli imports il forFeature dei modelli che legge
 const STEPS: Type<ModelReviewStep>[] = [
@@ -21,6 +26,7 @@ const STEPS: Type<ModelReviewStep>[] = [
     EnemySpellsStep,
     PetCatalogStep,
     OwnedPetsStep,
+    PoiQuestStep,
 ];
 
 // importato SOLO da AppModule: gli harness non migrano; rimosso prima della merge
@@ -31,6 +37,7 @@ const STEPS: Type<ModelReviewStep>[] = [
             { name: Spell.name, schema: SpellSchema },
             { name: Pet.name, schema: PetSchema },
             { name: Character.name, schema: CharacterSchema },
+            { name: PointOfInterest.name, schema: PointOfInterestSchema },
         ]),
     ],
     providers: [
