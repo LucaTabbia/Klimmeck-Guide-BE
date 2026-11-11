@@ -1,16 +1,24 @@
+import {
+    newOwnedPetEntry,
+    ownsPet,
+    type OwnedPetEntry,
+} from 'src/characters/pets/owned-pet-entry';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { idForms, sameId } from 'src/mongo/document-id';
 import type { TradeLine } from './trade-line';
 
 export interface PetSnapshot {
-    ownedPets?: readonly unknown[] | null;
+    ownedPets?: readonly OwnedPetEntry[] | null;
     pet?: unknown;
 }
 
 export interface PetOutcome {
-    ownedPets: unknown[];
+    ownedPets: OwnedPetEntry[];
     unequip: boolean;
 }
+
+// esadecimale del pet → `maxLifePoints` del catalogo, non validato
+export type PetLifePoints = ReadonlyMap<string, unknown>;
 
 const petLines = (lines: readonly TradeLine[]) =>
     lines.filter((line) => line.kind === 'Pet');
@@ -20,19 +28,20 @@ export function assertPetsNotOwned(
     lines: readonly TradeLine[],
     snapshot: PetSnapshot,
 ): void {
-    const owned = snapshot.ownedPets ?? [];
     for (const line of petLines(lines)) {
         if (line.direction !== 'buy') continue;
-        if (owned.some((id) => sameId(id, line.itemId))) {
+        if (ownsPet(snapshot.ownedPets, line.itemId)) {
             throw GameRuleException.petAlreadyOwned();
         }
     }
 }
 
 // null senza righe pet: ownedPets e pet restano fuori dall'update (Pitfall 5); comprare non equipaggia mai (D-14)
+// si comprano e si vendono voci intere: il comprato parte dalla vita del catalogo, le altre voci tengono il loro stato (Phase 19 D-03)
 export function applyTradeToPets(
     snapshot: PetSnapshot,
     lines: readonly TradeLine[],
+    petLifePoints: PetLifePoints,
 ): PetOutcome | null {
     const pets = petLines(lines);
     if (pets.length === 0) return null;
@@ -40,10 +49,17 @@ export function applyTradeToPets(
     let unequip = false;
     for (const line of pets) {
         if (line.direction === 'buy') {
-            ownedPets.push(line.itemId);
+            ownedPets.push(
+                newOwnedPetEntry(
+                    line.itemId,
+                    petLifePoints.get(line.itemId.toHexString()),
+                ),
+            );
             continue;
         }
-        const index = ownedPets.findIndex((id) => sameId(id, line.itemId));
+        const index = ownedPets.findIndex((entry) =>
+            sameId(entry?.pet, line.itemId),
+        );
         if (index === -1) throw GameRuleException.itemNotOwned();
         ownedPets.splice(index, 1);
         if (sameId(snapshot.pet, line.itemId)) unequip = true;
@@ -56,7 +72,7 @@ export function petOwnershipGuards(
     lines: readonly TradeLine[],
 ): Record<string, unknown>[] {
     return petLines(lines).map((line) => ({
-        'assets.ownedPets':
+        'assets.ownedPets.pet':
             line.direction === 'buy'
                 ? { $nin: idForms(line.itemId) }
                 : { $in: idForms(line.itemId) },

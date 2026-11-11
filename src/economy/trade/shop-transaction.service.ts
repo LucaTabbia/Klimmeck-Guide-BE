@@ -32,6 +32,7 @@ import {
     applyTradeToPets,
     assertPetsNotOwned,
     petOwnershipGuards,
+    type PetLifePoints,
     type PetOutcome,
     type PetSnapshot,
 } from './trade-pets';
@@ -74,6 +75,7 @@ interface PricedTrade {
     lines: readonly TradeLine[];
     netCopper: number;
     catalogue: CatalogPrices;
+    petLifePoints: PetLifePoints;
     now: Date;
 }
 
@@ -141,7 +143,8 @@ export class ShopTransactionService {
     async execute(request: TransactionRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.id);
         const lines = planTradeLines(request);
-        const catalogue = await this.catalogPrices.read(lines);
+        const { prices: catalogue, petLifePoints } =
+            await this.catalogPrices.read(lines);
         const { netCopper } = priceTrade(lines, catalogue);
         assertClientTotalMatches(request, netCopper);
         const now = this.clock.now();
@@ -152,7 +155,14 @@ export class ShopTransactionService {
         }
         await this.connection.transaction((session) =>
             this.applyTrade(
-                { characterId, lines, netCopper, catalogue, now },
+                {
+                    characterId,
+                    lines,
+                    netCopper,
+                    catalogue,
+                    petLifePoints,
+                    now,
+                },
                 session,
             ),
         );
@@ -206,7 +216,14 @@ export class ShopTransactionService {
 
     // rieseguibile dal driver sui WriteConflict: niente side effect, niente letture parallele in sessione (04 Pitfall 6)
     private async applyTrade(
-        { characterId, lines, netCopper, catalogue, now }: PricedTrade,
+        {
+            characterId,
+            lines,
+            netCopper,
+            catalogue,
+            petLifePoints,
+            now,
+        }: PricedTrade,
         session: ClientSession,
     ): Promise<void> {
         const snapshot = await this.characterModel
@@ -227,7 +244,7 @@ export class ShopTransactionService {
         const assets = snapshot.assets ?? {};
         assertPetsNotOwned(lines, assets);
         const inventory = applyTradeToInventory(assets, lines);
-        const pets = applyTradeToPets(assets, lines);
+        const pets = applyTradeToPets(assets, lines, petLifePoints);
         if (toCopper(snapshot.status?.coins) < -netCopper) {
             throw GameRuleException.insufficientFunds();
         }
