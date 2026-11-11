@@ -59,7 +59,7 @@ import {
 import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
 import { isUsageCount, recoveryDueAt } from './spells/spell-state.snapshot';
 import { ownedPetsOnTheWire } from './pets/owned-pets.mapper';
-import { spellsOnTheWire } from './spells/spell-state.mapper';
+import { spellStatesOnTheWire } from './spells/spell-state.mapper';
 import {
     spellStateArrayFilters,
     spendUsagesUpdate,
@@ -102,10 +102,6 @@ export class CharactersService {
                 path: 'assets.ownedEquipments.item',
                 model: 'EquipmentItem',
                 populate: { path: 'addedSpell' },
-            })
-            .populate({
-                path: 'status.spells',
-                model: 'Spell',
             })
             .populate({ path: 'status.spellStates.spell', model: 'Spell' })
             .populate({
@@ -151,10 +147,10 @@ export class CharactersService {
             }
         });
 
-        // le equipaggiate derivano dalle voci attive, in ordine di apprendimento; orfani fuori dal filo (Phase 19 D-07, D-16)
-        const wire = spellsOnTheWire(character.status);
-        character.status.spellStates = wire.spellStates;
-        character.assets.activeSpells = wire.activeSpells;
+        // le voci di una magia cancellata dal catalogo restano fuori dal filo (Phase 19 D-07)
+        character.status.spellStates = spellStatesOnTheWire(
+            character.status.spellStates,
+        );
         character.assets.ownedPets = ownedPetsOnTheWire(
             character.assets.ownedPets,
         );

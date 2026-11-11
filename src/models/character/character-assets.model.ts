@@ -13,11 +13,6 @@ import {
 } from '../common/equipment.model';
 import { Pet } from '../pet.model';
 import { OwnedPet, OwnedPetSchema } from './owned-pet.model';
-import {
-    ActiveSpell,
-    ActiveSpellInput,
-    ActiveSpellSchema,
-} from '../common/active-spell.model';
 
 @ObjectType()
 @Schema({ _id: false })
@@ -33,10 +28,6 @@ export class CharacterAssets {
     @Field(() => Equipment)
     @Prop({ type: EquipmentSchema })
     wornEquipment: Equipment;
-
-    @Field(() => [ActiveSpell])
-    @Prop({ type: [ActiveSpellSchema] })
-    activeSpells: ActiveSpell[];
 
     // posseduti, distinti dal compagno equipaggiato in `pet` (D-13); default implicito [] voluto: nuovi e legacy leggono una lista
     @Field(() => [OwnedPet])
@@ -63,9 +54,6 @@ export class CharacterAssetsInput {
 
     @Field(() => EquipmentInput)
     wornEquipment: EquipmentInput;
-
-    @Field(() => [ActiveSpellInput])
-    activeSpells: ActiveSpellInput[];
 
     @Field(() => ID, { nullable: true })
     pet?: string | null;

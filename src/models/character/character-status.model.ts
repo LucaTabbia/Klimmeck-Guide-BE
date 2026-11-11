@@ -6,7 +6,6 @@ import { InjuryType } from '../enums/injury-type.enum';
 import { TitleType } from '../enums/title-type.enum';
 import { Enemy } from '../enemy.model';
 import { Lore } from '../lore.model';
-import { Spell } from '../spell.model';
 import { PointOfInterest } from '../point-of-interest.model';
 import { ActiveTravel, ActiveTravelSchema } from './active-travel.model';
 import { AwaitingAid, AwaitingAidSchema } from './awaiting-aid.model';
@@ -49,15 +48,7 @@ export class CharacterStatus {
     @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
     injuries: InjuryType[];
 
-    @Field(() => [Spell])
-    @Prop({
-        type: [MongooseSchema.Types.ObjectId],
-        ref: Spell.name,
-        default: [],
-    })
-    spells: Spell[];
-
-    // una voce per ogni magia di spells, stesso ordine (D-03)
+    // l'unica lista delle magie: una voce per magia conosciuta, in ordine di apprendimento; equipaggiata = flag della voce (Phase 19 D-07, D-16)
     @Field(() => [SpellState])
     @Prop({ type: [SpellStateSchema], default: [] })
     spellStates: SpellState[];
@@ -121,9 +112,6 @@ export class CharacterStatusInput {
 
     @Field(() => [InjuryType])
     injuries: InjuryType[];
-
-    @Field(() => [ID])
-    spells: string[];
 
     @Field(() => CoinsInput)
     coins: CoinsInput;

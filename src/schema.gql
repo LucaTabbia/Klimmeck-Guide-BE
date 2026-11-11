@@ -17,11 +17,6 @@ enum AccessoryUseType {
   defense
 }
 
-type ActiveSpell {
-  spell: Spell
-  usages: Int!
-}
-
 type ActiveTravel {
   duration: Float!
   endTime: DateTime!
@@ -78,7 +73,6 @@ type Character {
 }
 
 type CharacterAssets {
-  activeSpells: [ActiveSpell!]!
   ownedEquipments: [AssetQuantity!]!
   ownedItems: [AssetQuantity!]!
   ownedPets: [OwnedPet!]!
@@ -117,7 +111,6 @@ type CharacterStatus {
   maxLifePoints: Int!
   potionRecoveryUntil: DateTime
   spellStates: [SpellState!]!
-  spells: [Spell!]!
   title: String!
   unlockedLore: [ID!]!
   xp: Int!

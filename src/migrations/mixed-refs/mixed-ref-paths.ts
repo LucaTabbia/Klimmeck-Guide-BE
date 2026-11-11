@@ -43,7 +43,6 @@ export const MIXED_REF_PATHS: readonly MixedRefPath[] = [
     scalar('users', 'currentCharacter'),
     scalar('pendingquests', 'quest'),
     scalar('characters', 'status.location'),
-    array('characters', 'status.spells'),
     array('characters', 'quests.completedQuests'),
     scalar('characters', 'quests.pendingQuest'),
     subdocArray('characters', 'assets.ownedEquipments', 'item'),
@@ -51,7 +50,6 @@ export const MIXED_REF_PATHS: readonly MixedRefPath[] = [
     ...WORN_EQUIPMENT_SLOTS.map((slot) =>
         scalar('characters', `assets.wornEquipment.${slot}`),
     ),
-    subdocArray('characters', 'assets.activeSpells', 'spell'),
     scalar('characters', 'assets.pet'),
     subdocArray('quests', 'infos.enemies', 'enemy'),
     scalar('quests', 'infos.markerLocation'),
