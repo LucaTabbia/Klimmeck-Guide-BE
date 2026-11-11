@@ -76,7 +76,7 @@ function messageOf(body: WireBody): unknown {
 }
 
 // le magie equipaggiate: le voci col flag, nell'ordine della lista
-function activeSpellsOf(raw: RawCharacter): unknown[] {
+function equippedSpellsOf(raw: RawCharacter): unknown[] {
     return raw.status.spellStates
         .filter((state) => state.active)
         .map((state) => state.spell);
@@ -387,7 +387,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             const body = await equip(player, dardo.toHexString());
 
             expect(codeOf(body)).toBe('MAX_ACTIVE_SPELLS_REACHED');
-            expect(activeSpellsOf(await rawCharacter(idOf(player)))).toEqual(
+            expect(equippedSpellsOf(await rawCharacter(idOf(player)))).toEqual(
                 [],
             );
         });
@@ -437,7 +437,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
                 ]).toContain(codeOf(loser));
             }
             expect(
-                activeSpellsOf(await rawCharacter(idOf(player))),
+                equippedSpellsOf(await rawCharacter(idOf(player))),
             ).toHaveLength(1);
         });
 
@@ -462,8 +462,8 @@ describe('equipSpell / unequipSpell (wire)', () => {
             ).toHaveLength(2);
             const raw = await rawCharacter(idOf(player));
             expect(raw.status.spellStates).toHaveLength(3);
-            expect(new Set(activeSpellsOf(raw).map(String)).size).toBe(2);
-            expect(activeSpellsOf(raw)).toHaveLength(2);
+            expect(new Set(equippedSpellsOf(raw).map(String)).size).toBe(2);
+            expect(equippedSpellsOf(raw)).toHaveLength(2);
         });
 
         it('evaluates the capacity expression exactly like maxActiveSpellsFor across xp and titles', async () => {
@@ -646,7 +646,7 @@ describe('equipSpell / unequipSpell (wire)', () => {
             for (const loser of losers) {
                 expect(codeOf(loser)).toBe('SPELL_NOT_ACTIVE');
             }
-            expect(activeSpellsOf(await rawCharacter(idOf(player)))).toEqual(
+            expect(equippedSpellsOf(await rawCharacter(idOf(player)))).toEqual(
                 [],
             );
         });
