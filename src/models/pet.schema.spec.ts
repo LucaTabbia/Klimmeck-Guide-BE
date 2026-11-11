@@ -19,6 +19,7 @@ const CATALOGUE_PATHS = [
     'attack',
     'buyPrice',
     'defense',
+    'enemy',
     'imagePath',
     'maxLifePoints',
     'maxXp',
@@ -66,6 +67,21 @@ describe('catalogue pet schema', () => {
             new PetProbe(STORED_WITHOUT_ATTACK_AND_DEFENSE).toObject()
                 .relatedLore,
         ).toEqual([]);
+    });
+
+    it('links a pet to its enemy with a typed reference that stays off the wire (D-28)', () => {
+        const path = PetSchema.path('enemy') as unknown as {
+            instance: string;
+            options?: { ref?: unknown };
+        };
+
+        expect({ instance: path?.instance, ref: path?.options?.ref }).toEqual({
+            instance: 'ObjectId',
+            ref: 'Enemy',
+        });
+        expect(
+            new PetProbe(STORED_WITHOUT_ATTACK_AND_DEFENSE).toObject().enemy,
+        ).toBeNull();
     });
 
     it('leaves the rarity of a pet null until it is curated (D-27)', () => {
