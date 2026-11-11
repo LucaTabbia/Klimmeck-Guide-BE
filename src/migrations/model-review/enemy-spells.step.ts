@@ -20,7 +20,7 @@ export interface CatalogSpell {
 export interface EmbeddedSpellMatch {
     // nell'ordine delle copie, senza ripetere un id già presente
     ids: Types.ObjectId[];
-    // etichette degli elementi lasciati fuori: nome della copia, '<senza nome>' o il ref pendente
+    // etichette degli elementi senza corrispondenza: nome della copia, '<senza nome>' o il ref pendente
     unmatched: string[];
 }
 
@@ -120,17 +120,30 @@ export class EnemySpellsStep implements ModelReviewStep {
             .toArray();
 
         let migrated = 0;
-        let notApplied = 0;
+        // nemici lasciati com'erano: copie non abbinate, oppure cambiati durante il passo
+        let notWritten = 0;
         let unmatched = 0;
         for (const enemy of withCopies) {
             const match = matchEmbeddedSpells(enemy.spells, catalog);
+            // la copia incorporata è l'unico posto dove vive quel dato: con una sola copia non abbinata o ambigua il nemico non si scrive (D-02)
+            if (match.unmatched.length > 0) {
+                notWritten += 1;
+                unmatched += match.unmatched.length;
+                for (const name of match.unmatched) {
+                    this.logger.warn(
+                        `${MODEL_REVIEW_LOG_PREFIX}${LABEL}: copia senza corrispondenza «${name}» sul nemico ${enemy._id.toHexString()}: nemico non scritto, le copie restano`,
+                    );
+                }
+                continue;
+            }
             // la lista letta sta nel filtro (e porta con sé la guardia): una scrittura caduta nel mezzo non viene sovrascritta
             const { matchedCount } = await enemies.updateOne(
                 { _id: enemy._id, spells: enemy.spells },
                 { $set: { spells: match.ids } },
             );
             if (matchedCount === 0) {
-                notApplied += 1;
+                notWritten += 1;
+                unmatched += 1;
                 this.logger.warn(
                     writeNotAppliedLine(
                         LABEL,
@@ -141,18 +154,12 @@ export class EnemySpellsStep implements ModelReviewStep {
                 continue;
             }
             migrated += 1;
-            unmatched += match.unmatched.length;
-            for (const name of match.unmatched) {
-                this.logger.warn(
-                    `${MODEL_REVIEW_LOG_PREFIX}${LABEL}: copia senza corrispondenza «${name}» sul nemico ${enemy._id.toHexString()}`,
-                );
-            }
         }
         return {
             found,
             migrated,
-            alreadyDone: found - migrated - notApplied,
-            unmatched: unmatched + notApplied,
+            alreadyDone: found - migrated - notWritten,
+            unmatched,
         };
     }
 }
