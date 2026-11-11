@@ -22,6 +22,7 @@ const CATALOGUE_PATHS = [
     'maxLifePoints',
     'maxXp',
     'name',
+    'relatedLore',
     'sellPrice',
     'sellable',
     'speedModifier',
@@ -45,6 +46,24 @@ describe('catalogue pet schema', () => {
 
         expect(pet.attack).toEqual(attack);
         expect(pet.defense).toEqual(defense);
+    });
+
+    it('stores the related lore of a pet as typed references, empty by default (D-26)', () => {
+        const path = PetSchema.path('relatedLore') as unknown as {
+            instance: string;
+            caster?: { instance: string; options?: { ref?: unknown } };
+            options?: { ref?: unknown };
+        };
+
+        expect({
+            instance: path?.instance,
+            caster: path?.caster?.instance,
+            ref: path?.options?.ref ?? path?.caster?.options?.ref,
+        }).toEqual({ instance: 'Array', caster: 'ObjectId', ref: 'Lore' });
+        expect(
+            new PetProbe(STORED_WITHOUT_ATTACK_AND_DEFENSE).toObject()
+                .relatedLore,
+        ).toEqual([]);
     });
 
     it('declares no state on the catalogue pet (D-03)', () => {
