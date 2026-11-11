@@ -107,7 +107,7 @@ Plans:
 - [x] 19-01-PLAN.md — Scheletro del migratore una tantum (`src/migrations/model-review/`), boot a passi, fixture nella forma vecchia
 - [x] 19-02-PLAN.md — D-01 `Enemy.weaknesses` (modello, lettori, SDL) e passo del migratore
 - [x] 19-03-PLAN.md — D-02 magie dei nemici per riferimento (tre punti di populate) e passo di abbinamento
-- [ ] 19-04-PLAN.md — D-03/D-15 catalogo dei pet: `attack`/`defense`, stato fuori dal catalogo, SDL e passo
+- [x] 19-04-PLAN.md — D-03/D-15 catalogo dei pet: `attack`/`defense`, stato fuori dal catalogo, SDL e passo
 - [ ] 19-05-PLAN.md — `OwnedPet` sul personaggio: modello, populate senza orfani, `equipPet`, SDL
 - [ ] 19-06-PLAN.md — Scrittori delle voci dei pet: acquisto, vendita, «già posseduto», pet in premio
 - [ ] 19-07-PLAN.md — Passo del migratore dei pet posseduti (archiviati compresi, orfani D-23)
@@ -180,7 +180,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 16. Lore sbloccabili | v1.0 | 12/12 | Complete | 2026-11-07 |
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
-| 19. Revisione dei modelli | v1.1 | 3/23 | In Progress | - |
+| 19. Revisione dei modelli | v1.1 | 4/23 | In Progress | - |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
 
 ---
