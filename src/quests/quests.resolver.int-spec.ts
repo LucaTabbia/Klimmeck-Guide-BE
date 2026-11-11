@@ -58,6 +58,8 @@ const QUEST_SPELLS =
 const QUEST_PETS = 'query { quests { id prizes { pet { id name } } } }';
 const QUEST_ENEMY_SPELLS =
     'query { quests { id infos { enemies { enemy { id spells { id name } } } } } }';
+const QUEST_ENEMY_WEAKNESSES =
+    'query { quests { id infos { enemies { enemy { id weaknesses { base energy } } } } } }';
 const CONCLUDED_AT = new Date('2026-10-24T10:00:00.000Z');
 const QUEST_NO_EFFECT =
     'query Quest($id: String!) { quest(id: $id) { id noEffect } }';
@@ -642,6 +644,50 @@ describe('quest catalog (wire)', () => {
         expect(quests).toHaveLength(1);
         expect(quests[0].infos.enemies[0].enemy.spells).toEqual([
             { id: String(spell._id), name: 'Soffio gelido' },
+        ]);
+    });
+
+    it('drops an enemy weakness stored outside the enum instead of nulling the quests list (D-01)', async () => {
+        // il contenuto lo scrive uno script col driver nativo, senza i validatori dello schema
+        await modelOf(Enemy.name, EnemySchema).collection.updateOne(
+            { _id: enemy._id },
+            {
+                $set: {
+                    weaknesses: {
+                        base: ['tickle', 'cut'],
+                        energy: ['fire', 'moonlight'],
+                    },
+                },
+            },
+        );
+        const quest = await persistCatalogQuest({
+            infos: { enemies: [{ enemy: enemy._id, quantity: 1 }] },
+        });
+
+        const body = bodyOf(
+            await graphqlRequest(
+                harness.app,
+                QUEST_ENEMY_WEAKNESSES,
+                {},
+                bearer,
+            ),
+        );
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.quests).toEqual([
+            {
+                id: String(quest._id),
+                infos: {
+                    enemies: [
+                        {
+                            enemy: {
+                                id: String(enemy._id),
+                                weaknesses: { base: ['cut'], energy: ['fire'] },
+                            },
+                        },
+                    ],
+                },
+            },
         ]);
     });
 
