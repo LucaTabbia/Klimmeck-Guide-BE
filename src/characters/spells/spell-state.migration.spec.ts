@@ -330,6 +330,29 @@ describe('spell state migration pipeline', () => {
         ]);
     });
 
+    it('keeps the active flag of a trimmed spell state (D-21)', () => {
+        const [stage] = spellStatesTrimPipeline(catalog) as unknown as [
+            {
+                $set: {
+                    'status.spellStates': {
+                        $map: { in: { $let: { in: { $cond: unknown[] } } } };
+                    };
+                };
+            },
+        ];
+        const [, rebuilt, untouched] =
+            stage.$set['status.spellStates'].$map.in.$let.in.$cond;
+
+        expect(Object.keys(rebuilt as object).sort()).toEqual([
+            'active',
+            'recoveries',
+            'spell',
+            'usages',
+        ]);
+        expect(rebuilt).toMatchObject({ active: '$$state.active' });
+        expect(untouched).toBe('$$state');
+    });
+
     it('selects the active characters never migrated', () => {
         expect(unmigratedFilter()).toEqual({
             deletedAt: null,

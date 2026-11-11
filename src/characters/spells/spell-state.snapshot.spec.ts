@@ -68,6 +68,22 @@ describe('spell state snapshot readers', () => {
                 ),
             ).toEqual({ spell: s, usages: 2, recoveries: [t300] });
         });
+
+        it('keeps the active flag when spending usages (D-07)', () => {
+            const entry = {
+                spell: s,
+                usages: 3,
+                recoveries: [t300],
+                active: true,
+            };
+
+            expect(spendFromState(entry, 1, t100)).toEqual({
+                spell: s,
+                usages: 2,
+                recoveries: [t100, t300],
+                active: true,
+            });
+        });
     });
 
     it('learnedSpellState starts with every usage and no instant', () => {

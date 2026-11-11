@@ -32,6 +32,7 @@ interface RawState {
     spell: Types.ObjectId;
     usages: number;
     recoveries: Date[];
+    active?: boolean;
 }
 
 interface RawCharacter {
@@ -78,6 +79,14 @@ function coherentCharacter(book: ReturnType<typeof spellBook>) {
         spellStates: book.spellStates,
         assets: { ...buildCharacter().assets, activeSpells: book.activeSpells },
     });
+}
+
+// forma dopo la revisione dei modelli (Phase 19 D-07): la sola lista delle voci, nessuna delle due liste vecchie
+function singleListCharacter(spellStates: RawState[]) {
+    const doc = rawCharacter({ spells: [], spellStates });
+    delete doc.status.spells;
+    delete doc.assets.activeSpells;
+    return doc;
 }
 
 async function insert(...docs: ReturnType<typeof rawCharacter>[]) {
@@ -408,6 +417,76 @@ describe('SpellStateMigrator (replSet)', () => {
                 repaired: 0,
                 trimmed: 0,
             });
+        });
+    });
+
+    describe('trim only (Phase 19)', () => {
+        it('trims the instants of an active spell state and keeps it active (D-21)', async () => {
+            const tooMany = singleListCharacter([
+                {
+                    spell: a,
+                    usages: 1,
+                    recoveries: [hoursFrom(1), hoursFrom(2), hoursFrom(3)],
+                    active: true,
+                },
+                { spell: b, usages: 2, recoveries: [], active: false },
+            ]);
+            await insert(tooMany);
+
+            await migrator.migrateAll();
+
+            expect((await rawOf(tooMany._id)).status.spellStates).toEqual([
+                {
+                    spell: a,
+                    usages: 1,
+                    recoveries: [hoursFrom(2), hoursFrom(3)],
+                    active: true,
+                },
+                { spell: b, usages: 2, recoveries: [], active: false },
+            ]);
+            expectOnlyIdsWarned(tooMany._id);
+        });
+
+        it('never rebuilds the spell states of a character without the old lists (D-21)', async () => {
+            const settled = singleListCharacter([
+                {
+                    spell: a,
+                    usages: 1,
+                    recoveries: [hoursFrom(1), hoursFrom(2)],
+                    active: true,
+                },
+                { spell: b, usages: 2, recoveries: [], active: false },
+                { spell: orphan, usages: 0, recoveries: [], active: false },
+            ]);
+            const withoutSpells = singleListCharacter([]);
+            await insert(settled, withoutSpells);
+            const before = await snapshotAll();
+
+            await migrator.migrateAll();
+            expect(await snapshotAll()).toEqual(before);
+
+            expect(await migrator.migrateOne(settled._id)).toBe(false);
+            expect(await migrator.migrateOne(withoutSpells._id)).toBe(false);
+            expect(await snapshotAll()).toEqual(before);
+            expect(warnings()).toEqual([]);
+        });
+
+        it('reports only the trimmed characters (D-21)', async () => {
+            const full = singleListCharacter([
+                {
+                    spell: a,
+                    usages: 3,
+                    recoveries: [hoursFrom(-1)],
+                    active: true,
+                },
+            ]);
+            const settled = singleListCharacter([
+                { spell: b, usages: 2, recoveries: [], active: false },
+            ]);
+            await insert(full, settled);
+
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 1 });
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 0 });
         });
     });
 

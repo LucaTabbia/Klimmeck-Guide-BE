@@ -69,6 +69,32 @@ describe('buildStartingCharacter', () => {
         expect(status.knownEnemies).toEqual([]);
     });
 
+    it('starts a character with the single empty list of spell states (D-07)', () => {
+        const { status, assets } = buildStartingCharacter(INPUT, locationId);
+
+        expect(Object.keys(status).sort()).toEqual([
+            'coins',
+            'currentLifePoints',
+            'injuries',
+            'knownEnemies',
+            'level',
+            'location',
+            'maxLifePoints',
+            'spellStates',
+            'title',
+            'unlockedLore',
+            'xp',
+        ]);
+        expect(Object.keys(assets).sort()).toEqual([
+            'ownedEquipments',
+            'ownedItems',
+            'ownedPets',
+            'pet',
+            'wornEquipment',
+        ]);
+        expect(status.spellStates).toEqual([]);
+    });
+
     it('starts every character without owned pets (D-13)', () => {
         const { assets } = buildStartingCharacter(INPUT, locationId);
 
