@@ -5,7 +5,7 @@ import { Test } from '@nestjs/testing';
 import { Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { Character } from 'src/models/character/character.model';
-import { SlotType } from 'src/models/enums/slot_type.enum';
+import { SlotType } from 'src/models/enums/slot-type.enum';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
 import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';

@@ -1,5 +1,5 @@
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
-import { SlotType } from 'src/models/enums/slot_type.enum';
+import { SlotType } from 'src/models/enums/slot-type.enum';
 import { idForms, sameId } from 'src/mongo/document-id';
 import type { ItemReferenceType } from 'src/models/common/asset-quantity.model';
 import {

@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { SlotType } from 'src/models/enums/slot_type.enum';
+import { SlotType } from 'src/models/enums/slot-type.enum';
 import {
     classifyEquipItemFailure,
     equipItemFilter,

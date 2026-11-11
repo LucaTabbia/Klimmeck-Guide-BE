@@ -1,5 +1,5 @@
 import { ItemReferenceType } from 'src/models/common/asset-quantity.model';
-import { SlotType } from 'src/models/enums/slot_type.enum';
+import { SlotType } from 'src/models/enums/slot-type.enum';
 import {
     CombatCharacterSnapshot,
     isRecord,
