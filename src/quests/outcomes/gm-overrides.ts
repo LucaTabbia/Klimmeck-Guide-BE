@@ -52,9 +52,9 @@ export function overrideParticipantOf(
     // limite degli usi dalle sole voci attive (Phase 19 D-07, T-9.1-32)
     const activeSpells = new Map<string, number>();
     for (const state of snapshot.status.spellStates ?? []) {
-        const spell = state.active === true ? refIdOf(state.spell) : null;
+        const spell = state?.active === true ? refIdOf(state.spell) : null;
         if (!spell) continue;
-        activeSpells.set(spell.toHexString(), Math.max(0, state.usages ?? 0));
+        activeSpells.set(spell.toHexString(), Math.max(0, state?.usages ?? 0));
     }
     return {
         characterId: snapshot._id,
