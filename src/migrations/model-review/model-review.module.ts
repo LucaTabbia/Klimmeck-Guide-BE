@@ -5,6 +5,7 @@ import {
     Character,
     CharacterSchema,
 } from 'src/models/character/character.model';
+import { City, CitySchema } from 'src/models/city.model';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import {
@@ -12,6 +13,7 @@ import {
     PointOfInterestSchema,
 } from 'src/models/point-of-interest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
+import { CityShopStep } from './city-shop.step';
 import { EnemySpellsStep } from './enemy-spells.step';
 import { EnemyWeaknessesStep } from './enemy-weaknesses.step';
 import { ModelReviewBoot } from './model-review.boot';
@@ -27,6 +29,7 @@ const STEPS: Type<ModelReviewStep>[] = [
     PetCatalogStep,
     OwnedPetsStep,
     PoiQuestStep,
+    CityShopStep,
 ];
 
 // importato SOLO da AppModule: gli harness non migrano; rimosso prima della merge
@@ -38,6 +41,7 @@ const STEPS: Type<ModelReviewStep>[] = [
             { name: Pet.name, schema: PetSchema },
             { name: Character.name, schema: CharacterSchema },
             { name: PointOfInterest.name, schema: PointOfInterestSchema },
+            { name: City.name, schema: CitySchema },
         ]),
     ],
     providers: [
