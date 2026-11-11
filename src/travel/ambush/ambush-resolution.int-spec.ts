@@ -11,7 +11,7 @@ import {
     persistPet,
     persistQuest,
     persistSpell,
-    spellBook,
+    spellStatesOf,
 } from '../../../test/fixtures';
 import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
@@ -428,12 +428,14 @@ describe('AmbushResolutionService (replica set)', () => {
             recoveryTime: RECOVERY_MS,
             maxUsages: 2,
         });
-        const book = spellBook([{ spell: spell._id, usages: 2, active: true }]);
         const subject = await traveller({
             km: 10,
             characterOverrides: {
-                status: { spells: book.spells, spellStates: book.spellStates },
-                assets: { activeSpells: book.activeSpells },
+                status: {
+                    spellStates: spellStatesOf([
+                        { spell: spell._id, usages: 2, active: true },
+                    ]),
+                },
             },
         });
         chance.load([0, 0]);
@@ -453,6 +455,50 @@ describe('AmbushResolutionService (replica set)', () => {
                 },
             }),
         ]);
+    });
+
+    it('spends the active spell states in a won ambush (D-07)', async () => {
+        const equipped = await persistSpell(world.models.spells, {
+            recoveryTime: RECOVERY_MS,
+            maxUsages: 2,
+        });
+        const idle = await persistSpell(world.models.spells, {
+            recoveryTime: RECOVERY_MS,
+            maxUsages: 2,
+        });
+        const subject = await traveller({
+            km: 10,
+            characterOverrides: {
+                status: {
+                    spellStates: spellStatesOf([
+                        { spell: idle._id, usages: 2 },
+                        { spell: equipped._id, usages: 2, active: true },
+                    ]),
+                },
+            },
+        });
+        chance.load([0, 0]);
+        combat.willResolve(subject.characterId, {
+            spellsUsed: [
+                { spellId: String(idle._id), usages: 1 },
+                { spellId: String(equipped._id), usages: 1 },
+            ],
+        });
+
+        await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        const dueAt = new Date(subject.identity.at.getTime() + RECOVERY_MS);
+        const raw = await rawOf(subject);
+        expect(raw.status.spellStates).toEqual([
+            { spell: idle._id, usages: 2, recoveries: [], active: false },
+            {
+                spell: equipped._id,
+                usages: 1,
+                recoveries: [dueAt],
+                active: true,
+            },
+        ]);
+        expect(raw.assets.activeSpells ?? []).toEqual([]);
     });
 
     it('never pushes on a victory (D-12)', async () => {

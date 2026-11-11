@@ -8,7 +8,7 @@ import {
     persistEquipmentItem,
     persistLootItem,
     persistSpell,
-    spellBook,
+    spellStatesOf,
 } from '../../../test/fixtures';
 import {
     createOutcomeHarness,
@@ -26,14 +26,10 @@ import { QuestResolutionService } from './quest-resolution.service';
 const NOW = new Date('2026-10-24T12:00:00.000Z');
 const QUEST_TITLE = 'Il bandito del passo';
 const COINS = { gold: 0, silver: 0, copper: 0 };
-// mirror e stato coerenti (D-03): gli usi della magia attiva stanno nella voce di stato
-const knowingSpell = (spell: Types.ObjectId, usages: number) => {
-    const book = spellBook([{ spell, usages, active: true }]);
-    return {
-        status: { spells: book.spells, spellStates: book.spellStates },
-        assets: { activeSpells: book.activeSpells },
-    };
-};
+// la sola lista delle voci (Phase 19 D-07): la magia equipaggiata è la voce attiva
+const knowingSpell = (spell: Types.ObjectId, usages: number) => ({
+    status: { spellStates: spellStatesOf([{ spell, usages, active: true }]) },
+});
 const FRESH_STATUS = {
     xp: 0,
     level: 1,
@@ -398,6 +394,50 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         expect(String(aid.rescue.failedQuest)).toBe(String(subject.quest._id));
     });
 
+    it('spends in a fought quest only the spells whose state is active (D-07)', async () => {
+        const foe = await enemy();
+        const equipped = await persistSpell(world.models.spells, {
+            recoveryTime: 5000,
+        });
+        const idle = await persistSpell(world.models.spells, {
+            recoveryTime: 5000,
+        });
+        const subject = await fighter('enemy', foe._id, {
+            characterOverrides: {
+                status: {
+                    spellStates: spellStatesOf([
+                        { spell: idle._id, usages: 2 },
+                        { spell: equipped._id, usages: 2, active: true },
+                    ]),
+                },
+            },
+        });
+        scripted.willResolve(subject.characterId, {
+            spellsUsed: [
+                { spellId: String(idle._id), usages: 1 },
+                { spellId: String(equipped._id), usages: 1 },
+            ],
+        });
+
+        await resolve(subject);
+
+        const dueAt = new Date(NOW.getTime() + 5000);
+        const character = await characterOf(subject);
+        expect(character.status.spellStates).toEqual([
+            { spell: idle._id, usages: 2, recoveries: [], active: false },
+            {
+                spell: equipped._id,
+                usages: 1,
+                recoveries: [dueAt],
+                active: true,
+            },
+        ]);
+        const result = await resultOf(subject);
+        expect(result.spellsUsed).toEqual([
+            expect.objectContaining({ spell: equipped._id, usages: 1 }),
+        ]);
+    });
+
     it('spends the spell usages and schedules their recovery', async () => {
         const foe = await enemy();
         const spell = await persistSpell(world.models.spells, {
@@ -417,9 +457,6 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         const character = await characterOf(subject);
         expect(character.status.spellStates).toEqual([
             { spell: spell._id, usages: 1, recoveries: [dueAt], active: true },
-        ]);
-        expect(character.assets.activeSpells).toEqual([
-            expect.objectContaining({ spell: spell._id, usages: 1 }),
         ]);
         const result = await resultOf(subject);
         expect(result.spellsUsed).toEqual([

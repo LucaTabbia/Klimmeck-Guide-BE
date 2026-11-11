@@ -28,6 +28,7 @@ const CROCEVIA_ID = new Types.ObjectId('64b0000000000000000000b9');
 const PENDING_ID = new Types.ObjectId('64b0000000000000000000ba');
 const COMPANION_ID = new Types.ObjectId('64b0000000000000000000bb');
 const OTHER_PET_ID = new Types.ObjectId('64b0000000000000000000bc');
+const IDLE_SPELL_ID = new Types.ObjectId('64b0000000000000000000bd');
 const COMPANION_MAX_XP = 1000;
 const COMPANION_LIFE = 7;
 
@@ -75,8 +76,9 @@ const snapshotWith = (
         currentLifePoints: 1000,
         maxLifePoints: 1000,
         injuries: [],
-        spells: [SPELL_ID],
-        spellStates: [{ spell: SPELL_ID, usages: 2, recoveries: [] }],
+        spellStates: [
+            { spell: SPELL_ID, usages: 2, recoveries: [], active: true },
+        ],
         activeTravel: travel,
         ...status,
     },
@@ -84,7 +86,6 @@ const snapshotWith = (
     assets: {
         ownedItems: [{ itemType: 'LootItem', item: POTION_ID, quantity: 3 }],
         ownedEquipments: [],
-        activeSpells: [{ spell: SPELL_ID, usages: 2 }],
         ...assets,
     },
 });
@@ -160,16 +161,65 @@ describe('ambush outcome plan', () => {
         expect($set['assets.ownedItems']).toEqual([
             { itemType: 'LootItem', item: POTION_ID, quantity: 2 },
         ]);
-        expect($set['assets.activeSpells']).toEqual([
-            { spell: SPELL_ID, usages: 1 },
-        ]);
         expect($set['status.spellStates']).toEqual([
             {
                 spell: SPELL_ID,
                 usages: 1,
                 recoveries: [new Date(AT.getTime() + RECOVERY_MS)],
+                active: true,
             },
         ]);
+    });
+
+    it('spends only the active spell states (D-07)', () => {
+        const idle = {
+            spell: IDLE_SPELL_ID,
+            usages: 3,
+            recoveries: [],
+            active: false,
+        };
+        const spent = planAmbushOutcome(
+            inputWith({
+                snapshot: snapshotWith({
+                    spellStates: [
+                        idle,
+                        {
+                            spell: SPELL_ID,
+                            usages: 2,
+                            recoveries: [],
+                            active: true,
+                        },
+                    ],
+                }),
+                effects: effectsWith({
+                    spellsUsed: [
+                        { spellId: IDLE_SPELL_ID.toHexString(), usages: 1 },
+                        { spellId: SPELL_ID.toHexString(), usages: 1 },
+                    ],
+                }),
+            }),
+        );
+
+        expect(spent.update.$set['status.spellStates']).toEqual([
+            idle,
+            {
+                spell: SPELL_ID,
+                usages: 1,
+                recoveries: [new Date(AT.getTime() + RECOVERY_MS)],
+                active: true,
+            },
+        ]);
+        expect(spent.report.spellsUsed).toEqual([
+            { spell: SPELL_ID, usages: 1 },
+        ]);
+    });
+
+    it('writes no other spell list than the spell states (D-07)', () => {
+        const spellKeys = Object.keys(plan.update.$set).filter((key) =>
+            /spell/i.test(key),
+        );
+
+        expect(spellKeys).toEqual(['status.spellStates']);
     });
 
     it('keeps the title while the level rises (D-10)', () => {
@@ -438,7 +488,6 @@ describe('ambush defeat plan', () => {
         expect($set['status.xp']).toBe(0);
         expect(defeat.coinsDelta).toBe(0);
         expect(Object.keys($set).sort()).toEqual([
-            'assets.activeSpells',
             'assets.ownedEquipments',
             'assets.ownedItems',
             'status.activeTravel',

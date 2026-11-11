@@ -347,9 +347,6 @@ describe('GmCompletionService.complete (replSet)', () => {
         expect(character.status.spellStates).toEqual([
             { spell: spell._id, usages: 1, recoveries: [dueAt], active: true },
         ]);
-        expect(character.assets.activeSpells).toEqual([
-            expect.objectContaining({ spell: spell._id, usages: 1 }),
-        ]);
         expect(world.spellQueue.added).toEqual([
             expect.objectContaining({
                 data: {

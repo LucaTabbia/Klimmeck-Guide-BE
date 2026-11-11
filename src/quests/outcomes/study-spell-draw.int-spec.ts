@@ -1,6 +1,10 @@
 import { Types } from 'mongoose';
 import { FixedClock } from '../../../test/auth/fixed-clock';
-import { buildQuest, persistSpell, spellBook } from '../../../test/fixtures';
+import {
+    buildQuest,
+    persistSpell,
+    spellStatesOf,
+} from '../../../test/fixtures';
 import {
     createOutcomeHarness,
     OUTCOME_START,
@@ -103,11 +107,11 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             maxUsages: 4,
         });
         await persistSpell(world.models.spells, { minXpToLearn: 9000 });
-        const book = spellBook([{ spell: known._id, usages: 3 }]);
+        const spellStates = spellStatesOf([{ spell: known._id, usages: 3 }]);
         const subject = await quester({
             questOverrides: studyQuest({ xpPrize: 300 }),
             characterOverrides: {
-                status: { spells: book.spells, spellStates: book.spellStates },
+                status: { spellStates },
             },
         });
         await drawSpellOn(subject);
@@ -116,10 +120,6 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells.map(String)).toEqual([
-            String(known._id),
-            String(drawn._id),
-        ]);
         expect(character.status.spellStates).toEqual([
             { spell: known._id, usages: 3, recoveries: [], active: false },
             { spell: drawn._id, usages: 4, recoveries: [], active: false },
@@ -128,6 +128,40 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             String(drawn._id),
         );
         expect(chance.drawn).toEqual([0, 0]);
+    });
+
+    it('adds the learned spell as a state that is not active (D-07)', async () => {
+        const equipped = await persistSpell(world.models.spells, {
+            minXpToLearn: 200,
+            maxUsages: 3,
+        });
+        const drawn = await persistSpell(world.models.spells, {
+            minXpToLearn: 200,
+            maxUsages: 4,
+        });
+        const subject = await quester({
+            questOverrides: studyQuest({ xpPrize: 300 }),
+            characterOverrides: {
+                status: {
+                    spellStates: spellStatesOf([
+                        { spell: equipped._id, usages: 1, active: true },
+                    ]),
+                },
+            },
+        });
+        await drawSpellOn(subject);
+        chance.load([0, 0]);
+
+        await service.resolveStandard(triggerOf(subject));
+
+        // lettura grezza: le sole voci cambiano, le liste della forma vecchia restano come sono nate
+        const raw = await characterOf(subject);
+        expect(raw.status.spellStates).toEqual([
+            { spell: equipped._id, usages: 1, recoveries: [], active: true },
+            { spell: drawn._id, usages: 4, recoveries: [], active: false },
+        ]);
+        expect(raw.status.spells ?? []).toEqual([]);
+        expect(raw.assets.activeSpells ?? []).toEqual([]);
     });
 
     it('teaches a magic quest the spell a study draws with the same seed (quick 261110-mag)', async () => {
@@ -140,11 +174,11 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             maxUsages: 4,
         });
         await persistSpell(world.models.spells, { minXpToLearn: 9000 });
-        const book = spellBook([{ spell: known._id, usages: 3 }]);
+        const spellStates = spellStatesOf([{ spell: known._id, usages: 3 }]);
         const subject = await quester({
             questOverrides: questOfType('magic', { xpPrize: 300 }),
             characterOverrides: {
-                status: { spells: book.spells, spellStates: book.spellStates },
+                status: { spellStates },
             },
         });
         await drawSpellOn(subject);
@@ -153,10 +187,11 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells.map(String)).toEqual([
-            String(known._id),
-            String(drawn._id),
-        ]);
+        expect(
+            character.status.spellStates.map((state: { spell: unknown }) =>
+                String(state.spell),
+            ),
+        ).toEqual([String(known._id), String(drawn._id)]);
         expect(String((await resultOf(subject)).spellLearned)).toBe(
             String(drawn._id),
         );
@@ -199,7 +234,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells).toEqual([]);
+        expect(character.status.spellStates).toEqual([]);
         expect(character.status.xp).toBe(300);
         expect((await resultOf(subject)).spellLearned).toBeNull();
     });
@@ -215,7 +250,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells).toEqual([]);
+        expect(character.status.spellStates).toEqual([]);
         expect(character.status.xp).toBe(300);
         expect((await resultOf(subject)).spellLearned).toBeNull();
         expect(chance.drawn).toEqual([0.3, 0]);
@@ -230,7 +265,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells).toEqual([]);
+        expect(character.status.spellStates).toEqual([]);
         expect((await resultOf(subject)).spellLearned).toBeNull();
         expect(chance.drawn).toEqual([]);
     });

@@ -13,6 +13,7 @@ import {
     ParticipantPlan,
     ParticipantPlanInput,
     planParticipant,
+    spellsSpent,
 } from 'src/quests/outcomes/outcome-plan';
 import {
     DrawnRewards,
@@ -61,15 +62,10 @@ const snapshotWith = (
         currentLifePoints: 1000,
         maxLifePoints: 1000,
         injuries: [],
-        spells: [],
         ...overrides.status,
     },
     quests: overrides.quests ?? { completedQuests: [] },
-    assets: overrides.assets ?? {
-        ownedItems: [],
-        ownedEquipments: [],
-        activeSpells: [],
-    },
+    assets: overrides.assets ?? { ownedItems: [], ownedEquipments: [] },
 });
 
 const questOf = (
@@ -169,9 +165,7 @@ describe('planParticipant', () => {
             for (const key of [
                 'status.awaitingAid',
                 'status.title',
-                'status.spells',
                 'status.spellStates',
-                'assets.activeSpells',
                 'assets.ownedPets',
             ]) {
                 expect(plan.update.$set).not.toHaveProperty([key]);
@@ -387,7 +381,6 @@ describe('planParticipant', () => {
         const assetsWithPets = (ownedPets: OwnedPetEntry[]) => ({
             ownedItems: [],
             ownedEquipments: [],
-            activeSpells: [],
             ownedPets,
         });
 
@@ -523,7 +516,6 @@ describe('planParticipant', () => {
             const plan = wonFight(petRewards([PET_PAGE_ID]), {
                 ownedItems: [],
                 ownedEquipments: [],
-                activeSpells: [],
                 ownedPets: [buildOwnedPet(PET_ID)],
             });
 
@@ -557,7 +549,6 @@ describe('planParticipant', () => {
         ) => ({
             ownedItems: [],
             ownedEquipments: [],
-            activeSpells: [],
             pet,
             ownedPets,
         });
@@ -1050,7 +1041,6 @@ describe('planParticipant', () => {
                         assets: {
                             ownedItems: [potionStack(2)],
                             ownedEquipments: [],
-                            activeSpells: [],
                         },
                     }),
                     battle: battleWith({ consumablesUsed }),
@@ -1093,26 +1083,22 @@ describe('planParticipant', () => {
         const RECOVERY_MS = 5000;
         const DUE = new Date(NOW.getTime() + RECOVERY_MS);
         const LATER = new Date(NOW.getTime() + 60000);
-        const slotsWith = (
-            activeSpells: { spell: unknown; usages: number }[],
-        ) => ({
-            ownedItems: [],
-            ownedEquipments: [],
-            activeSpells,
-        });
+        const stateOf = (
+            usages: number,
+            recoveries: Date[] = [],
+            active = true,
+            spell: unknown = SPELL_ID,
+        ) => ({ spell, usages, recoveries, active });
+        const knowing = (
+            ...spellStates: NonNullable<
+                OutcomeCharacterSnapshot['status']['spellStates']
+            >
+        ): SnapshotOverrides => ({ status: { spellStates } });
         const knowingSpell = (
             usages: number,
             recoveries: Date[] = [],
-            activeSpells: { spell: unknown; usages: number }[] = [
-                { spell: SPELL_ID, usages },
-            ],
-        ): SnapshotOverrides => ({
-            status: {
-                spells: [SPELL_ID],
-                spellStates: [{ spell: SPELL_ID, usages, recoveries }],
-            },
-            assets: slotsWith(activeSpells),
-        });
+            active = true,
+        ) => knowing(stateOf(usages, recoveries, active));
         const fightWith = (
             snapshot: SnapshotOverrides,
             spellsUsed: ParticipantEffects['spellsUsed'],
@@ -1141,10 +1127,7 @@ describe('planParticipant', () => {
             const plan = fightWith(knowingSpell(3, [LATER]), using(2));
 
             expect(plan.update.$set['status.spellStates']).toEqual([
-                { spell: SPELL_ID, usages: 1, recoveries: [DUE, DUE, LATER] },
-            ]);
-            expect(plan.update.$set['assets.activeSpells']).toEqual([
-                { spell: SPELL_ID, usages: 1 },
+                stateOf(1, [DUE, DUE, LATER]),
             ]);
             expect(plan.result.spellsUsed).toEqual([
                 { spell: SPELL_ID, usages: 2 },
@@ -1169,10 +1152,7 @@ describe('planParticipant', () => {
             const plan = fightWith(knowingSpell(2), using(3));
 
             expect(plan.update.$set['status.spellStates']).toEqual([
-                { spell: SPELL_ID, usages: 0, recoveries: [DUE, DUE] },
-            ]);
-            expect(plan.update.$set['assets.activeSpells']).toEqual([
-                { spell: SPELL_ID, usages: 0 },
+                stateOf(0, [DUE, DUE]),
             ]);
             expect(plan.result.spellsUsed).toEqual([
                 { spell: SPELL_ID, usages: 2 },
@@ -1180,40 +1160,60 @@ describe('planParticipant', () => {
             expect(plan.spellRecoveries).toEqual([triggerOf()]);
         });
 
-        it('takes the usages from the spell state, never from the slots', () => {
+        it('spends only the spells whose state is active (D-07)', () => {
             const plan = fightWith(
-                knowingSpell(
-                    1,
-                    [LATER, LATER],
-                    [{ spell: SPELL_ID, usages: 3 }],
-                ),
-                using(2),
+                knowing(stateOf(2), stateOf(2, [], false, OTHER_SPELL_ID)),
+                [...using(1), ...using(1, OTHER_SPELL_ID)],
             );
 
-            expect(plan.update.$set['status.spellStates']).toEqual([
-                { spell: SPELL_ID, usages: 0, recoveries: [DUE, LATER, LATER] },
-            ]);
             expect(plan.result.spellsUsed).toEqual([
                 { spell: SPELL_ID, usages: 1 },
             ]);
+            expect(plan.update.$set['status.spellStates']).toEqual([
+                stateOf(1, [DUE]),
+                stateOf(2, [], false, OTHER_SPELL_ID),
+            ]);
+            expect(plan.spellRecoveries).toEqual([triggerOf()]);
         });
 
-        it('spends nothing from a spell known but not in the slots', () => {
-            const plan = fightWith(knowingSpell(2, [], []), using(1));
+        it('spends nothing from a known spell whose state is not active (D-07)', () => {
+            const plan = fightWith(knowingSpell(2, [], false), using(1));
 
-            const keys = Object.keys(plan.update.$set);
-            expect(keys).not.toContain('status.spellStates');
-            expect(keys).not.toContain('assets.activeSpells');
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'status.spellStates',
+            );
             expect(plan.result.spellsUsed).toEqual([]);
             expect(plan.spellRecoveries).toEqual([]);
         });
 
-        it('ignores a spell that is not active', () => {
+        it('reads a spell state stored without the flag as not active (D-07)', () => {
+            const plan = fightWith(
+                knowing({ spell: SPELL_ID, usages: 2, recoveries: [] }),
+                using(1),
+            );
+
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'status.spellStates',
+            );
+            expect(plan.result.spellsUsed).toEqual([]);
+        });
+
+        it('ignores a spell without a state', () => {
             const plan = fightWith(knowingSpell(2), using(1, OTHER_SPELL_ID));
 
-            const keys = Object.keys(plan.update.$set);
-            expect(keys).not.toContain('status.spellStates');
-            expect(keys).not.toContain('assets.activeSpells');
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'status.spellStates',
+            );
+            expect(plan.spellRecoveries).toEqual([]);
+        });
+
+        it('spends nothing for a character without spell states (D-07)', () => {
+            const plan = fightWith({}, using(1));
+
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'status.spellStates',
+            );
+            expect(plan.result.spellsUsed).toEqual([]);
             expect(plan.spellRecoveries).toEqual([]);
         });
 
@@ -1223,40 +1223,77 @@ describe('planParticipant', () => {
             });
 
             expect(plan.update.$set['status.spellStates']).toEqual([
-                { spell: SPELL_ID, usages: 1, recoveries: [] },
-            ]);
-            expect(plan.update.$set['assets.activeSpells']).toEqual([
-                { spell: SPELL_ID, usages: 1 },
+                stateOf(1),
             ]);
             expect(plan.spellRecoveries).toEqual([]);
         });
 
-        it('writes neither the spell state nor the slots when no spell is used', () => {
+        it('writes no spell state when no spell is used', () => {
             const plan = fightWith(knowingSpell(2), []);
 
-            const keys = Object.keys(plan.update.$set);
-            expect(keys).not.toContain('status.spellStates');
-            expect(keys).not.toContain('assets.activeSpells');
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'status.spellStates',
+            );
             expect(plan.spellRecoveries).toEqual([]);
         });
 
-        it('keeps the slot reference in its stored legacy form', () => {
+        it('keeps the active flag and the order of the spell states it writes (D-07)', () => {
             const plan = fightWith(
-                knowingSpell(
-                    2,
-                    [],
-                    [{ spell: SPELL_ID.toHexString(), usages: 2 }],
+                knowing(
+                    stateOf(1, [LATER], false, OTHER_SPELL_ID),
+                    stateOf(2),
+                    stateOf(0, [LATER, LATER], true, LEARNED_SPELL_ID),
                 ),
                 using(1),
             );
 
             expect(plan.update.$set['status.spellStates']).toEqual([
-                { spell: SPELL_ID, usages: 1, recoveries: [DUE] },
+                stateOf(1, [LATER], false, OTHER_SPELL_ID),
+                stateOf(1, [DUE]),
+                stateOf(0, [LATER, LATER], true, LEARNED_SPELL_ID),
             ]);
-            expect(plan.update.$set['assets.activeSpells']).toEqual([
-                { spell: SPELL_ID.toHexString(), usages: 1 },
+        });
+
+        it('writes the spell states alone when spells are spent (D-07)', () => {
+            const plan = fightWith(knowingSpell(2), using(1));
+
+            expect(Object.keys(plan.update.$set).sort()).toEqual([
+                'assets.ownedEquipments',
+                'assets.ownedItems',
+                'quests.completedQuests',
+                'quests.pendingQuest',
+                'status.currentLifePoints',
+                'status.injuries',
+                'status.level',
+                'status.maxLifePoints',
+                'status.spellStates',
+                'status.xp',
             ]);
-            expect(plan.spellRecoveries).toEqual([triggerOf()]);
+        });
+
+        it('returns the spent states, the usages and the triggers, nothing else (D-07)', () => {
+            const spent = spellsSpent(
+                CHARACTER_ID,
+                [stateOf(2), stateOf(1, [], false, OTHER_SPELL_ID)],
+                using(1),
+                new Map([[SPELL_ID.toHexString(), RECOVERY_MS]]),
+                NOW,
+            );
+
+            expect(spent).toEqual({
+                spellStates: [
+                    stateOf(1, [DUE]),
+                    stateOf(1, [], false, OTHER_SPELL_ID),
+                ],
+                used: [{ spell: SPELL_ID, usages: 1 }],
+                recoveries: [triggerOf()],
+            });
+        });
+
+        it('returns no states when nothing is spent (D-07)', () => {
+            expect(
+                spellsSpent(CHARACTER_ID, [stateOf(2)], [], new Map(), NOW),
+            ).toEqual({ spellStates: null, used: [], recoveries: [] });
         });
 
         it('composes spending and learning in one spell state', () => {
@@ -1272,42 +1309,10 @@ describe('planParticipant', () => {
                 }),
             });
 
-            expect(plan.update.$set['status.spells']).toEqual([
-                SPELL_ID,
-                LEARNED_SPELL_ID,
-            ]);
             expect(plan.update.$set['status.spellStates']).toEqual([
-                { spell: SPELL_ID, usages: 1, recoveries: [DUE] },
-                { spell: LEARNED_SPELL_ID, usages: 4, recoveries: [] },
+                stateOf(1, [DUE]),
+                stateOf(4, [], false, LEARNED_SPELL_ID),
             ]);
-            expect(plan.update.$set['assets.activeSpells']).toEqual([
-                { spell: SPELL_ID, usages: 1 },
-            ]);
-        });
-
-        it('spends on the whole migrated spell state for a character not migrated yet', () => {
-            const plan = fightWith(
-                {
-                    status: { spells: [SPELL_ID, OTHER_SPELL_ID] },
-                    assets: slotsWith([{ spell: SPELL_ID, usages: 2 }]),
-                },
-                using(1),
-                {
-                    spellMaxUsages: new Map([
-                        [SPELL_ID.toHexString(), 3],
-                        [OTHER_SPELL_ID.toHexString(), 2],
-                    ]),
-                },
-            );
-
-            expect(plan.update.$set['status.spellStates']).toEqual([
-                { spell: SPELL_ID, usages: 1, recoveries: [DUE] },
-                { spell: OTHER_SPELL_ID, usages: 2, recoveries: [] },
-            ]);
-            expect(plan.update.$set['assets.activeSpells']).toEqual([
-                { spell: SPELL_ID, usages: 1 },
-            ]);
-            expect(plan.spellRecoveries).toEqual([triggerOf()]);
         });
 
         it('leaves the snapshot spell state untouched', () => {
@@ -1315,9 +1320,7 @@ describe('planParticipant', () => {
 
             fightWith(snapshot, using(1));
 
-            expect(snapshot.status?.spellStates).toEqual([
-                { spell: SPELL_ID, usages: 2, recoveries: [] },
-            ]);
+            expect(snapshot.status?.spellStates).toEqual([stateOf(2)]);
         });
     });
 
@@ -1327,6 +1330,7 @@ describe('planParticipant', () => {
             spell: LEARNED_SPELL_ID,
             usages: 4,
             recoveries: [],
+            active: false,
         };
         const studyWith = (
             minXpToLearn: number,
@@ -1349,9 +1353,9 @@ describe('planParticipant', () => {
                 }),
             );
         const expectNothingLearned = (plan: ParticipantPlan) => {
-            const keys = Object.keys(plan.update.$set);
-            expect(keys).not.toContain('status.spells');
-            expect(keys).not.toContain('status.spellStates');
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'status.spellStates',
+            );
             expect(plan.result.spellLearned).toBeNull();
         };
 
@@ -1360,48 +1364,63 @@ describe('planParticipant', () => {
                 spell: SPELL_ID,
                 usages: 1,
                 recoveries: [RECOVERY_AT],
+                active: true,
             };
-            const snapshot = {
-                status: { spells: [SPELL_ID], spellStates: [known] },
-            };
+            const snapshot = { status: { spellStates: [known] } };
 
             const plan = studyWith(300, snapshot);
 
-            expect(plan.update.$set['status.spells']).toEqual([
-                SPELL_ID,
-                LEARNED_SPELL_ID,
-            ]);
             expect(plan.update.$set['status.spellStates']).toEqual([
-                { spell: SPELL_ID, usages: 1, recoveries: [RECOVERY_AT] },
+                {
+                    spell: SPELL_ID,
+                    usages: 1,
+                    recoveries: [RECOVERY_AT],
+                    active: true,
+                },
                 learnedState,
             ]);
             expect(plan.result.spellLearned).toBe(LEARNED_SPELL_ID);
             expect(snapshot.status.spellStates).toEqual([known]);
         });
 
-        it('writes the whole migrated spell state for a character not migrated yet', () => {
-            const plan = studyWith(
-                300,
-                {
-                    status: { spells: [SPELL_ID, OTHER_SPELL_ID] },
-                    assets: {
-                        ownedItems: [],
-                        ownedEquipments: [],
-                        activeSpells: [{ spell: SPELL_ID, usages: 1 }],
-                    },
+        it('appends a learned spell as a state that is not active (D-07)', () => {
+            const plan = studyWith(300, {
+                status: {
+                    spellStates: [
+                        {
+                            spell: SPELL_ID,
+                            usages: 2,
+                            recoveries: [],
+                            active: true,
+                        },
+                    ],
                 },
-                {
-                    spellMaxUsages: new Map([
-                        [SPELL_ID.toHexString(), 3],
-                        [OTHER_SPELL_ID.toHexString(), 2],
-                    ]),
-                },
-            );
+            });
 
-            expect(plan.update.$set['status.spellStates']).toEqual([
-                { spell: SPELL_ID, usages: 1, recoveries: [] },
-                { spell: OTHER_SPELL_ID, usages: 2, recoveries: [] },
-                learnedState,
+            const written = plan.update.$set['status.spellStates'] as unknown[];
+            expect(written).toHaveLength(2);
+            expect(written.at(-1)).toEqual({
+                spell: LEARNED_SPELL_ID,
+                usages: 4,
+                recoveries: [],
+                active: false,
+            });
+        });
+
+        it('writes the spell states alone when a spell is learned (D-07)', () => {
+            const plan = studyWith(300);
+
+            expect(Object.keys(plan.update.$set).sort()).toEqual([
+                'assets.ownedEquipments',
+                'assets.ownedItems',
+                'quests.completedQuests',
+                'quests.pendingQuest',
+                'status.currentLifePoints',
+                'status.injuries',
+                'status.level',
+                'status.maxLifePoints',
+                'status.spellStates',
+                'status.xp',
             ]);
         });
 
@@ -1409,10 +1428,35 @@ describe('planParticipant', () => {
             expectNothingLearned(studyWith(400));
         });
 
-        it('does not learn a spell already known as a legacy string', () => {
+        it('never learns a spell that already has a state (D-07)', () => {
             expectNothingLearned(
                 studyWith(300, {
-                    status: { spells: [LEARNED_SPELL_ID.toHexString()] },
+                    status: {
+                        spellStates: [
+                            {
+                                spell: LEARNED_SPELL_ID,
+                                usages: 0,
+                                recoveries: [],
+                                active: false,
+                            },
+                        ],
+                    },
+                }),
+            );
+        });
+
+        it('does not learn a spell whose state holds a legacy string ref', () => {
+            expectNothingLearned(
+                studyWith(300, {
+                    status: {
+                        spellStates: [
+                            {
+                                spell: LEARNED_SPELL_ID.toHexString(),
+                                usages: 1,
+                                recoveries: [],
+                            },
+                        ],
+                    },
                 }),
             );
         });
@@ -1443,11 +1487,51 @@ describe('planParticipant', () => {
                 }),
             );
 
-            expect(plan.update.$set['status.spells']).toEqual([DRAWN_SPELL_ID]);
             expect(plan.update.$set['status.spellStates']).toEqual([
-                { spell: DRAWN_SPELL_ID, usages: 2, recoveries: [] },
+                {
+                    spell: DRAWN_SPELL_ID,
+                    usages: 2,
+                    recoveries: [],
+                    active: false,
+                },
             ]);
             expect(plan.result.spellLearned).toBe(DRAWN_SPELL_ID);
+        });
+
+        it('never draws a spell that already has a state (D-07, D-31)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.study),
+                    snapshot: snapshotWith({
+                        status: {
+                            spellStates: [
+                                {
+                                    spell: DRAWN_SPELL_ID,
+                                    usages: 2,
+                                    recoveries: [],
+                                    active: true,
+                                },
+                            ],
+                        },
+                    }),
+                    rewards: rewardsWith({
+                        xpPrize: 300,
+                        spellDraw: {
+                            pool: [
+                                {
+                                    spellId: DRAWN_SPELL_ID,
+                                    minXpToLearn: 0,
+                                    maxUsages: 2,
+                                },
+                            ],
+                            gate: 0,
+                            roll: 0,
+                        },
+                    }),
+                }),
+            );
+
+            expectNothingLearned(plan);
         });
 
         it('learns no drawn spell when the gate misses the 30% chance (quick 261111-sdc)', () => {

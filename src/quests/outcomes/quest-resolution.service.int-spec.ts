@@ -8,7 +8,7 @@ import {
     persistLootItem,
     persistPet,
     persistSpell,
-    spellBook,
+    spellStatesOf,
 } from '../../../test/fixtures';
 import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
@@ -288,9 +288,11 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
             await service.resolveStandard(triggerOf(subject));
 
             const character = await characterOf(subject);
-            expect(character.status.spells.map(String)).toEqual([
-                String(spell._id),
-            ]);
+            expect(
+                character.status.spellStates.map((state: { spell: unknown }) =>
+                    String(state.spell),
+                ),
+            ).toEqual([String(spell._id)]);
             expect(character.status.injuries).toEqual([]);
         });
 
@@ -316,7 +318,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
             minXpToLearn: 200,
             maxUsages: 4,
         });
-        const book = spellBook([
+        const spellStates = spellStatesOf([
             { spell: known._id, usages: 1, recoveries: [recoveryAt] },
         ]);
         const subject = await quester({
@@ -325,17 +327,13 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                 'study',
             ),
             characterOverrides: {
-                status: { spells: book.spells, spellStates: book.spellStates },
+                status: { spellStates },
             },
         });
 
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells.map(String)).toEqual([
-            String(known._id),
-            String(spell._id),
-        ]);
         expect(character.status.spellStates).toEqual([
             {
                 spell: known._id,
@@ -367,7 +365,6 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells).toEqual([]);
         expect(character.status.spellStates).toEqual([]);
         const [result] = await resultsOf(subject);
         expect(result.spellLearned).toBeNull();
@@ -387,7 +384,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         await service.resolveStandard(triggerOf(subject));
 
         const character = await characterOf(subject);
-        expect(character.status.spells).toEqual([]);
+        expect(character.status.spellStates).toEqual([]);
         const [result] = await resultsOf(subject);
         expect(result.spellLearned).toBeNull();
     });

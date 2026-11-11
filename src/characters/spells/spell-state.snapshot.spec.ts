@@ -86,11 +86,12 @@ describe('spell state snapshot readers', () => {
         });
     });
 
-    it('learnedSpellState starts with every usage and no instant', () => {
-        expect(learnedSpellState(s, 4)).toEqual({
+    it('starts a learned spell as not active (D-07)', () => {
+        expect(learnedSpellState(s, 3)).toEqual({
             spell: s,
-            usages: 4,
+            usages: 3,
             recoveries: [],
+            active: false,
         });
     });
 

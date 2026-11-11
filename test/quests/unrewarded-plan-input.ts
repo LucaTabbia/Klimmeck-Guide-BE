@@ -30,7 +30,6 @@ export function unrewardedSnapshot(
             currentLifePoints: 900,
             maxLifePoints: 1200,
             injuries: [InjuryType.sprain],
-            spells: [],
             coins: { gold: 0, silver: 30, copper: 0 },
             ...status,
         },
@@ -44,7 +43,6 @@ export function unrewardedSnapshot(
                 },
             ],
             ownedEquipments: [],
-            activeSpells: [],
         },
     };
 }
