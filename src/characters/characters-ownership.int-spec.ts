@@ -17,7 +17,7 @@ import {
     buildCharacter,
     persistPet,
     persistSpell,
-    spellBook,
+    spellStatesOf,
 } from '../../test/fixtures';
 import { buildOwnedPet } from '../../test/fixtures/owned-pet.fixture';
 
@@ -185,7 +185,7 @@ describe('Character ownership on mutations and queries (wire)', () => {
             spellB: String(spellB._id),
             petA: String(petA._id),
         };
-        const book = spellBook([
+        const spellStates = spellStatesOf([
             { spell: spellA._id, usages: 3 },
             { spell: spellB._id, usages: 1, active: true },
         ]);
@@ -194,7 +194,7 @@ describe('Character ownership on mutations and queries (wire)', () => {
                 ...buildCharacter().status,
                 title: 'mage',
                 xp: 25000,
-                spellStates: book.spellStates,
+                spellStates,
             },
             assets: {
                 ...buildCharacter().assets,

@@ -13,7 +13,6 @@ import {
     buildEquipmentItem,
     buildLootItem,
     buildEnemy,
-    spellBook,
     spellStatesOf,
 } from './index';
 
@@ -110,14 +109,14 @@ describe('fixtures builders', () => {
         });
     });
 
-    describe('spellBook', () => {
+    describe('spellStatesOf', () => {
         const first = new Types.ObjectId();
         const second = new Types.ObjectId();
         const earlier = new Date('2026-10-27T10:00:00.000Z');
         const later = new Date('2026-10-27T10:05:00.000Z');
 
-        it('builds the spell states alone, in the given order (D-07)', () => {
-            const book = spellBook([
+        it('builds the spell states in the given order (D-07)', () => {
+            const states = spellStatesOf([
                 {
                     spell: first,
                     usages: 1,
@@ -127,8 +126,7 @@ describe('fixtures builders', () => {
                 { spell: second, usages: 3 },
             ]);
 
-            expect(Object.keys(book).sort()).toEqual(['spellStates']);
-            expect(book.spellStates).toEqual([
+            expect(states).toEqual([
                 {
                     spell: first,
                     usages: 1,
@@ -149,27 +147,26 @@ describe('fixtures builders', () => {
                 { spell: first, usages: 1, recoveries: [later], active: true },
                 { spell: second, usages: 3, recoveries: [], active: false },
             ]);
-            expect(spellBook(entries).spellStates).toEqual(
-                spellStatesOf(entries),
-            );
         });
 
         it('casts a legacy string ref on the state', () => {
             const legacy = new Types.ObjectId().toHexString();
-            const book = spellBook([
+            const [state] = spellStatesOf([
                 { spell: legacy, usages: 2, active: true },
             ]);
 
-            expect(book.spellStates[0].spell).toBeInstanceOf(Types.ObjectId);
-            expect(book.spellStates[0].spell.toHexString()).toBe(legacy);
+            expect(state.spell).toBeInstanceOf(Types.ObjectId);
+            expect(state.spell.toHexString()).toBe(legacy);
         });
 
         it('copies the given recoveries', () => {
             const recoveries = [earlier];
-            const book = spellBook([{ spell: first, usages: 0, recoveries }]);
+            const [state] = spellStatesOf([
+                { spell: first, usages: 0, recoveries },
+            ]);
 
-            expect(book.spellStates[0].recoveries).toEqual(recoveries);
-            expect(book.spellStates[0].recoveries).not.toBe(recoveries);
+            expect(state.recoveries).toEqual(recoveries);
+            expect(state.recoveries).not.toBe(recoveries);
         });
     });
 

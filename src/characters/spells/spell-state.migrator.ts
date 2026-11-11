@@ -23,6 +23,8 @@ interface StoredSpellState {
     spell?: unknown;
     usages?: unknown;
     recoveries?: unknown;
+    // il taglio la conserva così com'è (Phase 19 D-21)
+    active?: unknown;
 }
 
 interface OutOfRangeCharacter {

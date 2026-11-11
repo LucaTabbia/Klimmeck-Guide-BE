@@ -69,11 +69,6 @@ export function spellStatesOf(entries: readonly SpellBookEntry[]) {
     }));
 }
 
-// libro delle magie dei test: la sola lista delle voci, nell'ordine dato (Phase 19 D-07)
-export function spellBook(entries: readonly SpellBookEntry[]) {
-    return { spellStates: spellStatesOf(entries) };
-}
-
 export async function persistCharacter(
     model: Model<any>,
     overrides: Record<string, any> = {},
