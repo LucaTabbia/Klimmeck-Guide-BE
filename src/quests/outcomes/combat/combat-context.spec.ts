@@ -29,7 +29,9 @@ const heroA = (): CombatCharacterSnapshot => ({
         currentLifePoints: 700,
         maxLifePoints: 1000,
         injuries: [InjuryType.deepCut],
-        spells: [fireballId],
+        spellStates: [
+            { spell: fireballId, usages: 2, recoveries: [], active: true },
+        ],
     },
     assets: {
         wornEquipment: {
@@ -37,7 +39,6 @@ const heroA = (): CombatCharacterSnapshot => ({
             leftHand: shieldId.toHexString(),
             head: null,
         },
-        activeSpells: [{ spell: fireballId, usages: 2 }],
         ownedItems: [
             { itemType: 'LootItem', item: potionId, quantity: 2 },
             { itemType: 'LootItem', item: herbId, quantity: 0 },
@@ -388,67 +389,121 @@ describe('buildCombatContext', () => {
         ]);
     });
 
-    it('reads the usages of a character not migrated yet from its spell slots', () => {
-        const [hero] = buildCombatContext(hydration()).participants;
+    describe('the spells of a participant', () => {
+        const spellOf = (
+            spell: Types.ObjectId,
+            usages: number,
+            type: string,
+            power: number,
+        ) => ({
+            spellId: spell.toHexString(),
+            usages,
+            damage: { type, power },
+        });
+        const fighterWith = (
+            spellStates: CombatCharacterSnapshot['status']['spellStates'],
+        ) => {
+            const source = hydration();
+            source.spells = new Map([
+                [
+                    fireballId.toHexString(),
+                    { energyDamage: { type: 'fire', power: 40 } },
+                ],
+                [
+                    iceId.toHexString(),
+                    { energyDamage: { type: 'ice', power: 10 } },
+                ],
+                [
+                    windId.toHexString(),
+                    { energyDamage: { type: 'wind', power: 5 } },
+                ],
+            ]);
+            const hero = heroA();
+            source.participants = [
+                { ...hero, status: { ...hero.status, spellStates } },
+            ];
+            const [fighter] = buildCombatContext(source).participants;
+            return fighter;
+        };
 
-        expect(hero.activeSpells).toEqual([
-            {
-                spellId: fireballId.toHexString(),
-                usages: 2,
-                damage: { type: 'fire', power: 40 },
-            },
-        ]);
-    });
+        it('brings into the fight only the active spell states with their usages (D-07)', () => {
+            const fighter = fighterWith([
+                { spell: fireballId, usages: 1, recoveries: [], active: true },
+                { spell: iceId, usages: 2, recoveries: [], active: false },
+                { spell: windId, usages: 4, recoveries: [], active: true },
+            ]);
 
-    it('takes the usages of the active spells from the spell state, never from the slots', () => {
-        const source = hydration();
-        source.spells = new Map([
-            [
-                fireballId.toHexString(),
-                { energyDamage: { type: 'fire', power: 40 } },
-            ],
-            [iceId.toHexString(), { energyDamage: { type: 'ice', power: 10 } }],
-            [
-                windId.toHexString(),
-                { energyDamage: { type: 'wind', power: 5 } },
-            ],
-        ]);
-        const hero = heroA();
-        source.participants = [
-            {
-                ...hero,
-                status: {
-                    ...hero.status,
-                    spells: [fireballId, iceId, windId],
-                    spellStates: [
-                        { spell: fireballId, usages: 1, recoveries: [] },
-                        { spell: windId, usages: 4, recoveries: [] },
-                    ],
+            expect(fighter.activeSpells).toEqual([
+                spellOf(fireballId, 1, 'fire', 40),
+                spellOf(windId, 4, 'wind', 5),
+            ]);
+        });
+
+        it('keeps the learning order of the active spells (D-16)', () => {
+            const fighter = fighterWith([
+                { spell: windId, usages: 4, recoveries: [], active: true },
+                { spell: fireballId, usages: 1, recoveries: [], active: false },
+                { spell: iceId, usages: 2, recoveries: [], active: true },
+            ]);
+
+            expect(fighter.activeSpells).toEqual([
+                spellOf(windId, 4, 'wind', 5),
+                spellOf(iceId, 2, 'ice', 10),
+            ]);
+        });
+
+        it('brings no spell for a character without spell states (D-07)', () => {
+            expect(fighterWith(undefined).activeSpells).toEqual([]);
+        });
+
+        it('reads a spell state stored without the flag as not active (D-07)', () => {
+            const fighter = fighterWith([
+                { spell: fireballId, usages: 3, recoveries: [] },
+            ]);
+
+            expect(fighter.activeSpells).toEqual([]);
+        });
+
+        it('never brings negative usages nor an unreadable spell ref (D-07)', () => {
+            const fighter = fighterWith([
+                { spell: fireballId, usages: -2, recoveries: [], active: true },
+                { spell: 'xyz', usages: 2, recoveries: [], active: true },
+                { spell: iceId, recoveries: [], active: true },
+            ]);
+
+            expect(fighter.activeSpells).toEqual([
+                spellOf(fireballId, 0, 'fire', 40),
+                spellOf(iceId, 0, 'ice', 10),
+            ]);
+        });
+
+        it('collects the catalogue refs of the active spell states only (D-07)', () => {
+            const hero = heroA();
+            const refs = combatCatalogRefsOf([
+                {
+                    ...hero,
+                    status: {
+                        ...hero.status,
+                        spellStates: [
+                            {
+                                spell: iceId,
+                                usages: 2,
+                                recoveries: [],
+                                active: false,
+                            },
+                            {
+                                spell: windId,
+                                usages: 4,
+                                recoveries: [],
+                                active: true,
+                            },
+                        ],
+                    },
                 },
-                assets: {
-                    ...hero.assets,
-                    activeSpells: [
-                        { spell: fireballId, usages: 3 },
-                        { spell: iceId, usages: 2 },
-                    ],
-                },
-            },
-        ];
+            ]);
 
-        const [fighter] = buildCombatContext(source).participants;
-
-        expect(fighter.activeSpells).toEqual([
-            {
-                spellId: fireballId.toHexString(),
-                usages: 1,
-                damage: { type: 'fire', power: 40 },
-            },
-            {
-                spellId: iceId.toHexString(),
-                usages: 0,
-                damage: { type: 'ice', power: 10 },
-            },
-        ]);
+            expect(refs.spellIds.map(String)).toEqual([String(windId)]);
+        });
     });
 
     it('does not mutate the input snapshots', () => {
