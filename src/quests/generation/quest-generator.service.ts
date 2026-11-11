@@ -36,7 +36,7 @@ import {
     prizesOf,
 } from 'src/quests/generation/generated-prizes';
 import { readPetCandidates } from 'src/quests/generation/pet-candidate';
-import { PetCandidate } from 'src/quests/generation/pet-prize';
+import type { PetCandidate } from 'src/quests/generation/pet-prize';
 import { generatedQuestDraftOf } from 'src/quests/generation/generated-quest-draft';
 import { readPrizeCatalog } from 'src/quests/generation/prize-catalog';
 import {

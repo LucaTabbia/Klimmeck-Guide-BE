@@ -5,9 +5,21 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import { GeneratedRank } from 'src/quests/generation/generation-rules';
-import { PetCandidate, petPrizeOf } from 'src/quests/generation/pet-prize';
+import {
+    indexOf,
+    LOOT_POOLS,
+    RARITY_RANK,
+    type GeneratedQuestType,
+    type LootSlot,
+} from 'src/quests/generation/loot-pools';
+import { petPrizeOf, type PetCandidate } from 'src/quests/generation/pet-prize';
 
-export type GeneratedQuestType = QuestType.enemy | QuestType.boss;
+export {
+    LOOT_POOLS,
+    RARITY_RANK,
+    type GeneratedQuestType,
+    type LootSlot,
+} from 'src/quests/generation/loot-pools';
 
 // voce del catalogo letta lean dal generatore (13-13): rarità ed effetto non tipizzati, curati a mano a DB
 export interface PrizeCatalogItem {
@@ -44,12 +56,6 @@ export interface PrizesInput {
     chance: ChanceSource;
 }
 
-export interface LootSlot {
-    rarity: RarityType;
-    min: number;
-    max: number;
-}
-
 // monete in rame e XP base come le fisse (D-19); × moltiplicatore del rango; ritoccabili
 export const GENERATED_PRIZES: Readonly<
     Record<GeneratedQuestType, { copper: number; xp: number }>
@@ -67,62 +73,8 @@ export const TIER_MULTIPLIER: Readonly<Record<GeneratedRank, number>> = {
     hero: 25,
 };
 
-const slot = (rarity: RarityType, min: number, max = min): LootSlot => ({
-    rarity,
-    min,
-    max,
-});
-
-const HERO_BOSS_POOL: readonly LootSlot[] = [
-    slot(RarityType.legendary, 1),
-    slot(RarityType.ultrarare, 2),
-    slot(RarityType.rare, 4),
-];
-
-// pool ampi per tipo e rango: legendary solo dai boss hero (D-20)
-export const LOOT_POOLS: Readonly<
-    Record<
-        GeneratedQuestType,
-        Readonly<Record<GeneratedRank, readonly LootSlot[]>>
-    >
-> = {
-    [QuestType.boss]: {
-        hero: HERO_BOSS_POOL,
-        mage: [
-            slot(RarityType.ultrarare, 1),
-            slot(RarityType.rare, 2),
-            slot(RarityType.uncommon, 4),
-        ],
-        paladin: [
-            slot(RarityType.rare, 1),
-            slot(RarityType.uncommon, 2),
-            slot(RarityType.common, 4),
-        ],
-        adventurer: [slot(RarityType.uncommon, 1), slot(RarityType.common, 4)],
-        rookie: [slot(RarityType.common, 2)],
-    },
-    [QuestType.enemy]: {
-        hero: [slot(RarityType.ultrarare, 1), slot(RarityType.rare, 2)],
-        mage: [slot(RarityType.rare, 1), slot(RarityType.uncommon, 2)],
-        paladin: [slot(RarityType.uncommon, 1), slot(RarityType.common, 2)],
-        adventurer: [slot(RarityType.common, 1, 2)],
-        rookie: [slot(RarityType.common, 1, 2)],
-    },
-};
-
-export const RARITY_RANK: Readonly<Record<RarityType, number>> = {
-    common: 0,
-    uncommon: 1,
-    rare: 2,
-    ultrarare: 3,
-    legendary: 4,
-};
-
 // da rare in su niente effect hunger (D-20)
 const FOOD_FREE_FROM: RarityType = RarityType.rare;
-
-export const indexOf = (length: number, chance: ChanceSource): number =>
-    Math.min(length - 1, Math.floor(chance.next() * length));
 
 const byTypeThenId = (a: PrizeCatalogItem, b: PrizeCatalogItem): number =>
     a.itemType.localeCompare(b.itemType) || a.id.localeCompare(b.id);

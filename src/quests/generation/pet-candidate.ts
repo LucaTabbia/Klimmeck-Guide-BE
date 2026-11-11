@@ -3,7 +3,7 @@ import { EnemyDocument } from 'src/models/enemy.model';
 import { PetDocument } from 'src/models/pet.model';
 import { refIdOf } from 'src/mongo/document-id';
 import { stringsOf } from 'src/mongo/lean-values';
-import { PetCandidate } from 'src/quests/generation/pet-prize';
+import type { PetCandidate } from 'src/quests/generation/pet-prize';
 
 export const PET_CANDIDATE_FIELDS = '_id rarity sellable enemy';
 

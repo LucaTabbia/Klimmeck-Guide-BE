@@ -1,13 +1,13 @@
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
+import type { GeneratedRank } from 'src/quests/generation/generation-rules';
 import {
-    GeneratedQuestType,
     indexOf,
     LOOT_POOLS,
     RARITY_RANK,
-} from 'src/quests/generation/generated-prizes';
-import { GeneratedRank } from 'src/quests/generation/generation-rules';
-import { ChanceSource } from 'src/quests/outcomes/chance-source';
+    type GeneratedQuestType,
+} from 'src/quests/generation/loot-pools';
+import type { ChanceSource } from 'src/quests/outcomes/chance-source';
 
 // tre fasce che si sommano su un solo tiro (Phase 19 D-28, supera la Phase 13 D-21)
 export const SAME_ENEMY_PET_PRIZE_CHANCE = 0.1;
