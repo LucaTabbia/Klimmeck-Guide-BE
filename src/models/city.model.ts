@@ -1,6 +1,7 @@
 import { ObjectType, Field, ID, Float, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Schema as MongooseSchema, Types } from 'mongoose';
+import { CityShopPool, CityShopPoolSchema } from './city-shop-pool.model';
 import { CityType } from './enums/city-type.enum';
 import { Lore } from './lore.model';
 import { PointOfInterest } from './point-of-interest.model';
@@ -47,23 +48,8 @@ export class City {
     pointsOfInterest?: (Types.ObjectId | PointOfInterest)[];
 
     // solo Mongoose: il pool viaggia con cityShop, mai con cities (D-18); assente finché la cura a DB non lo scrive (D-03, D-22)
-    @Prop({
-        type: [{ type: MongooseSchema.Types.ObjectId, ref: 'EquipmentItem' }],
-        default: undefined,
-    })
-    shopEquipment?: Types.ObjectId[];
-
-    @Prop({
-        type: [{ type: MongooseSchema.Types.ObjectId, ref: 'LootItem' }],
-        default: undefined,
-    })
-    shopLoot?: Types.ObjectId[];
-
-    @Prop({
-        type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Pet' }],
-        default: undefined,
-    })
-    shopPets?: Types.ObjectId[];
+    @Prop({ type: CityShopPoolSchema, default: undefined })
+    shop?: CityShopPool;
 }
 
 export type CityDocument = City & Document;

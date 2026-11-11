@@ -883,7 +883,7 @@ describe('ShopTransactionService (replSet)', () => {
                     character.status.location as Types.ObjectId
                 ).toHexString(),
                 pointsOfInterest: [],
-                shopEquipment: [idOf(sword)],
+                shop: { equipment: [idOf(sword)] },
             });
             await migrateLegacyRefs(connection);
             const id = character._id as Types.ObjectId;
@@ -1201,11 +1201,7 @@ describe('ShopTransactionService (replSet)', () => {
                 projection(): unknown;
             };
             expect(query.getOptions().session).toBeDefined();
-            expect(query.projection()).toEqual({
-                shopEquipment: 1,
-                shopLoot: 1,
-                shopPets: 1,
-            });
+            expect(query.projection()).toEqual({ shop: 1 });
         });
     });
 

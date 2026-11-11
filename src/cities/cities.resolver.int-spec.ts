@@ -120,7 +120,7 @@ describe('CitiesResolver size and hasShop', () => {
         await persist({
             type: CityType.drusteaCity,
             name: 'Mercato',
-            shopLoot: [new Types.ObjectId()],
+            shop: { loot: [new Types.ObjectId()] },
         });
 
         expect(byName(await queryCities())).toEqual({
@@ -132,9 +132,7 @@ describe('CitiesResolver size and hasShop', () => {
         await persist({
             type: CityType.necrorianCity,
             name: 'Necrorian',
-            shopEquipment: [],
-            shopLoot: [],
-            shopPets: [],
+            shop: { equipment: [], loot: [], pets: [] },
         });
         await persist({ type: CityType.mirwaCity, name: 'Senza pool' });
 
@@ -148,7 +146,7 @@ describe('CitiesResolver size and hasShop', () => {
         const city = await persist({
             type: CityType.talmvereVillage,
             name: 'Talmvere',
-            shopPets: [new Types.ObjectId()],
+            shop: { pets: [new Types.ObjectId()] },
         });
 
         const response = await graphqlRequest(

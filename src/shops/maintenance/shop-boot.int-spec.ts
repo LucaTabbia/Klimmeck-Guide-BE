@@ -84,9 +84,7 @@ describe('ShopBoot at application bootstrap (replSet)', () => {
         });
         await cities.collection.updateOne({ _id: city._id }, {
             $set: {
-                shopEquipment: [ultrarare._id],
-                shopLoot: [],
-                shopPets: [],
+                shop: { equipment: [ultrarare._id], loot: [], pets: [] },
             },
         } as never);
 

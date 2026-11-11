@@ -96,7 +96,7 @@ const TRADE_SUCCEEDED: CommonResponse = {
     successful: true,
 };
 
-const CITY_POOL_PROJECTION = { shopEquipment: 1, shopLoot: 1, shopPets: 1 };
+const CITY_POOL_PROJECTION = { shop: 1 };
 
 const TRADE_SNAPSHOT_PROJECTION = {
     'status.coins': 1,

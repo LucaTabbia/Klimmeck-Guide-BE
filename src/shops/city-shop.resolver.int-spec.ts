@@ -136,9 +136,11 @@ describe('cityShop', () => {
             {
                 name: 'Valantar',
                 type: 'valanCapital',
-                shopEquipment: [rare._id, staff._id],
-                shopLoot: [heal._id],
-                shopPets: [horse._id],
+                shop: {
+                    equipment: [rare._id, staff._id],
+                    loot: [heal._id],
+                    pets: [horse._id],
+                },
             },
             pointsOfInterest,
         );
@@ -208,9 +210,7 @@ describe('cityShop', () => {
                 name: 'Valantar',
                 type: 'valanCapital',
                 relatedLore: lore._id,
-                shopEquipment: [],
-                shopLoot: [],
-                shopPets: [],
+                shop: { equipment: [], loot: [], pets: [] },
             },
             pointsOfInterest,
         );
@@ -283,9 +283,7 @@ describe('cityShop', () => {
             {
                 name: 'Necrorian',
                 type: 'necrorianCity',
-                shopEquipment: [],
-                shopLoot: [],
-                shopPets: [],
+                shop: { equipment: [], loot: [], pets: [] },
             },
             pointsOfInterest,
         );
