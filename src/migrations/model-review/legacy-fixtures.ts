@@ -22,6 +22,12 @@ export async function rawById(
     return connection.model(modelName).collection.findOne({ _id: id });
 }
 
+function withoutUndefined(doc: RawDocument): RawDocument {
+    return Object.fromEntries(
+        Object.entries(doc).filter(([, value]) => value !== undefined),
+    );
+}
+
 // nemico nella forma vecchia: due liste al posto del sotto-documento; un override `undefined` toglie il campo
 export function legacyEnemy(overrides: RawDocument = {}): RawDocument {
     const enemy: RawDocument = {
@@ -38,9 +44,7 @@ export function legacyEnemy(overrides: RawDocument = {}): RawDocument {
         energyWeaknesses: [],
         ...overrides,
     };
-    return Object.fromEntries(
-        Object.entries(enemy).filter(([, value]) => value !== undefined),
-    );
+    return withoutUndefined(enemy);
 }
 
 // nemico nella forma vecchia delle magie: copie incorporate (o già ref) al posto della lista di soli ref
@@ -49,4 +53,21 @@ export function legacyEnemyWithSpells(
     overrides: RawDocument = {},
 ): RawDocument {
     return legacyEnemy({ spells: [...copies], ...overrides });
+}
+
+// pet a catalogo nella forma vecchia: danni in un solo ramo e stato (xp, vita corrente) sul catalogo; un override `undefined` toglie il campo
+export function legacyPet(overrides: RawDocument = {}): RawDocument {
+    return withoutUndefined({
+        name: 'Pet vecchio',
+        damages: { base: [{ type: 'cut', power: 30 }], energy: [] },
+        buyPrice: { gold: 0, silver: 1, copper: 0 },
+        sellPrice: { gold: 0, silver: 0, copper: 50 },
+        xp: 0,
+        maxXp: 100,
+        currentLifePoints: 10,
+        maxLifePoints: 10,
+        imagePath: 'pets/test.png',
+        speedModifier: null,
+        ...overrides,
+    });
 }
