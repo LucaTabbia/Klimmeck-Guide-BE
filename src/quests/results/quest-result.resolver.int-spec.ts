@@ -36,6 +36,8 @@ import {
 const QUEST_RESULT = `query QuestResult($id: String!) { questResult(id: $id) { id character user outcome resolvedAt acknowledgedAt hpBefore hpAfter maxLifePoints injuriesAdded xpGained xpBefore xpAfter levelBefore levelAfter titleBefore titleAfter rescuedCharacters quest { id type title } rewards { coins { gold silver copper } items { quantity item { ... on LootItem { id name } ... on EquipmentItem { id name } } } pet { id name } } consumablesUsed { quantity item { ... on LootItem { id name } } } spellsUsed { usages spell { id name } } spellLearned { id name } enemies { quantity enemy { id name } } stagesCleared stagesTotal } }`;
 const QUEST_RESULT_LORE =
     'query QuestResult($id: String!) { questResult(id: $id) { id spellLearned { id name } loreUnlocked { id name type } } }';
+const QUEST_RESULT_COMPANION =
+    'query QuestResult($id: String!) { questResult(id: $id) { id xpGained petXpGained } }';
 const QUEST_RESULT_HEALED =
     'query QuestResult($id: String!) { questResult(id: $id) { id hpBefore hpAfter injuriesHealed } }';
 const QUEST_RESULT_ENEMY_SPELLS =
@@ -469,6 +471,57 @@ describe('questResult(id) (wire)', () => {
                     hpBefore: 1000,
                     hpAfter: 1000,
                     injuriesHealed: [],
+                },
+            },
+        });
+    });
+
+    it('serves the companion xp gained by the outcome (D-04)', async () => {
+        const result = await persistAliceResult({
+            xpGained: 250,
+            petXpGained: 20,
+        });
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_COMPANION,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    xpGained: 250,
+                    petXpGained: 20,
+                },
+            },
+        });
+    });
+
+    it('serves an old result without the companion xp as 0 (D-04)', async () => {
+        const result = await persistAliceResult({ xpGained: 250 });
+        await modelOf<QuestResultDocument>(
+            QuestResult.name,
+        ).collection.updateOne(
+            { _id: result._id },
+            { $unset: { petXpGained: '' } },
+        );
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_COMPANION,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    xpGained: 250,
+                    petXpGained: 0,
                 },
             },
         });

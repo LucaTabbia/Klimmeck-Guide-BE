@@ -10,9 +10,11 @@ import {
     buildQuest,
     persistEnemy,
     persistLootItem,
+    persistPet,
     persistSpell,
     spellBook,
 } from '../../../test/fixtures';
+import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
     createOutcomeHarness,
     type OutcomeHarness,
@@ -507,6 +509,44 @@ describe('GmCompletionService.complete (replSet)', () => {
             .lean<any>();
         expect(result.xpGained).toBe(500);
         expect(result.enemies).toEqual([{ enemy: enemy._id, quantity: 1 }]);
+    });
+
+    it('awards the companion on a game master completion with enemies (D-18)', async () => {
+        const enemy = await persistEnemy(world.models.enemies, { xp: 100 });
+        const pet = (await persistPet(world.models.pets, {
+            name: 'Lupo grigio',
+            maxXp: 1000,
+        })) as { _id: Types.ObjectId };
+        const subject = await quester({
+            lane: QuestLane.story,
+            questOverrides: gmQuest(
+                'story',
+                { xpPrize: 400 },
+                { enemies: [{ enemy: enemy._id, quantity: 3 }] },
+            ),
+            characterOverrides: {
+                assets: {
+                    pet: pet._id,
+                    ownedPets: [
+                        buildOwnedPet(pet._id, { xp: 5, currentLifePoints: 4 }),
+                    ],
+                },
+            },
+        });
+
+        const [draft] = await service.complete(inputOf(subject));
+
+        const raw = await world.models.characters.collection.findOne({
+            _id: subject.characterId,
+        });
+        expect(raw?.assets.ownedPets).toEqual([
+            { pet: pet._id, xp: 35, currentLifePoints: 4 },
+        ]);
+        const result = await world.models.questResults
+            .findById(draft._id)
+            .lean<any>();
+        expect(result.outcome).toBe(QuestOutcome.gmCompleted);
+        expect(result.petXpGained).toBe(30);
     });
 
     it('completes a multi-enemy quest with the summed enemy xp (D-02)', async () => {

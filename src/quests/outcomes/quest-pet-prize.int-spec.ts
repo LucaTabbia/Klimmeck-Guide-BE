@@ -194,12 +194,45 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
         await expect(resolve(subject)).resolves.toBe('resolved');
 
         expect(await rawOwnedPetsOf(subject)).toEqual([
-            { pet: companion._id, xp: 30, currentLifePoints: 7 },
+            { pet: companion._id, xp: 40, currentLifePoints: 7 },
             { pet: pet._id, xp: 0, currentLifePoints: 450 },
         ]);
         expect(String((await characterOf(subject)).assets.pet)).toBe(
             String(companion._id),
         );
+    });
+
+    it('stores the won pet and the companion xp in the same outcome (D-04)', async () => {
+        const pet = await questPet({ maxLifePoints: 450 });
+        const companion = await questPet({ name: 'Lupo grigio', maxXp: 35 });
+        const other = await questPet({ name: 'Corvo' });
+        const subject = await quester({
+            questOverrides: await petQuest('enemy', pet._id, ONE_SEAT),
+            characterOverrides: {
+                assets: {
+                    ownedPets: [
+                        buildOwnedPet(other._id, { xp: 2 }),
+                        buildOwnedPet(companion._id, {
+                            xp: 30,
+                            currentLifePoints: 7,
+                        }),
+                    ],
+                    pet: companion._id,
+                },
+            },
+        });
+        chance.load([LUCKY_ROLL]);
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(await rawOwnedPetsOf(subject)).toEqual([
+            { pet: other._id, xp: 2, currentLifePoints: 10 },
+            { pet: companion._id, xp: 35, currentLifePoints: 7 },
+            { pet: pet._id, xp: 0, currentLifePoints: 450 },
+        ]);
+        const result = await resultOf(subject);
+        expect(result.petXpGained).toBe(5);
+        expect(String(result.rewards.pet)).toBe(String(pet._id));
     });
 
     it('stores a won pet at 0 life points when the catalogue has no valid amount (D-03)', async () => {
