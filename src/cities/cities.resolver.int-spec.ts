@@ -23,6 +23,8 @@ import { CitiesModule } from './cities.module';
 const CITIES = '{ cities { id name size hasShop } }';
 const CITY_WITH_POINTS =
     'query($id: String!) { city(id: $id) { name pointsOfInterest { id type location } } }';
+const CITIES_WITH_POINTS =
+    '{ cities { name pointsOfInterest { id location } } }';
 const CITY = 'query($id: String!) { city(id: $id) { id size hasShop } }';
 // selezione FE verbatim (lib/graphql/queries/city_queries.dart)
 const CITIES_FE = `query cities {
@@ -198,6 +200,39 @@ describe('CitiesResolver size and hasShop', () => {
                 },
             },
         });
+    });
+
+    it('serves the points of interest of every city with cities (C-WR-06)', async () => {
+        const ruins = await persistPoi(pointsOfInterest, { location: [1, 2] });
+        const cave = await persistPoi(pointsOfInterest, { location: [3, 4] });
+        await persist({
+            name: 'Con due luoghi',
+            pointsOfInterest: [ruins._id, cave._id],
+        });
+        await persist({ name: 'Senza luoghi', pointsOfInterest: [] });
+
+        const response = await graphqlRequest(
+            harness.app,
+            CITIES_WITH_POINTS,
+            undefined,
+            bearer,
+        ).expect(200);
+
+        expect(response.body).toEqual({
+            data: {
+                cities: expect.arrayContaining([
+                    {
+                        name: 'Con due luoghi',
+                        pointsOfInterest: [
+                            { id: ruins._id.toString(), location: [1, 2] },
+                            { id: cave._id.toString(), location: [3, 4] },
+                        ],
+                    },
+                    { name: 'Senza luoghi', pointsOfInterest: [] },
+                ]),
+            },
+        });
+        expect(response.body.data.cities).toHaveLength(2);
     });
 
     async function cityLoreOnWire(
