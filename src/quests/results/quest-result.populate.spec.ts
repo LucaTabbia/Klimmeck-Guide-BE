@@ -49,13 +49,17 @@ const draftWith = (
 });
 
 describe('QUEST_RESULT_POPULATE', () => {
-    it('populates the fought enemies one level deep and the pet reward (D-01, D-21)', () => {
+    it('populates the fought enemies with their spells and the pet reward (D-01, D-02, D-21)', () => {
         expect(QUEST_RESULT_POPULATE).toEqual([
             { path: 'consumablesUsed.item' },
             { path: 'rewards.items.item' },
             { path: 'spellsUsed.spell', model: 'Spell' },
             { path: 'spellLearned', model: 'Spell' },
-            { path: 'enemies.enemy', model: 'Enemy' },
+            {
+                path: 'enemies.enemy',
+                model: 'Enemy',
+                populate: { path: 'spells', model: 'Spell' },
+            },
             { path: 'rewards.pet', model: 'Pet' },
             { path: 'loreUnlocked', model: 'Lore' },
         ]);
