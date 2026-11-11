@@ -56,7 +56,6 @@ import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publ
 import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
 import { SweepIndexVerifier } from 'src/mongo/sweep-index.verifier';
 import { MixedRefsVerifier } from 'src/migrations/mixed-refs/mixed-refs.verifier';
-import { ModelReviewBoot } from 'src/migrations/model-review/model-review.boot';
 import { ArchivedCharacterQueueRefresher } from 'src/quests/pending-requests/archived-character-queue.refresher';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import type { TravelConfig } from 'src/config/travel-config';
@@ -989,24 +988,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(moduleNames).not.toContain('LoreBackfillModule');
     });
 
-    it('mounts the one-off model review migration at boot (D-12)', () => {
+    it('does not mount the one-off model review migration (D-12)', () => {
         const moduleNames = [...app.get(ModulesContainer).values()].map(
             (moduleRef) => moduleRef.metatype.name,
         );
 
-        expect(moduleNames).toContain('ModelReviewMigrationModule');
-        expect(app.get(ModelReviewBoot)).toBeInstanceOf(ModelReviewBoot);
-    });
-
-    it('ends the one-off model review steps before any lifecycle hook runs (D-12)', () => {
-        expect(modelReviewLinesSeenBy).toEqual({
-            // i processor Bull si agganciano qui: prima non consumano nessun job
-            'BullExplorer.onModuleInit': MODEL_REVIEW_STEP_LINES,
-            'QuestResolutionSweeper.onApplicationBootstrap':
-                MODEL_REVIEW_STEP_LINES,
-            'SpellStateMigrator.onApplicationBootstrap':
-                MODEL_REVIEW_STEP_LINES,
-        });
+        expect(moduleNames).not.toContain('ModelReviewMigrationModule');
     });
 
     it('mounts the quest result maintenance', () => {
