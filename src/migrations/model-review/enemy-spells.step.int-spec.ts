@@ -91,24 +91,38 @@ describe('EnemySpellsStep (replSet)', () => {
         expect(warnSpy).not.toHaveBeenCalled();
     });
 
-    it('reports and leaves out a copy without a match (D-02)', async () => {
+    it('never writes an enemy with a copy without a match: every copy stays and is reported (D-02, C-WR-04)', async () => {
         const fireball = await insertCatalogSpell('Palla di fuoco');
-        const id = await insertEnemy([
+        await insertCatalogSpell('Gemella');
+        await insertCatalogSpell('Gemella');
+        const lost = await insertEnemy([
             copyOf('Palla di fuoco', fireball),
             copyOf('Magia perduta', new Types.ObjectId()),
         ]);
+        const ambiguous = await insertEnemy([
+            copyOf('Gemella', new Types.ObjectId()),
+            copyOf('Palla di fuoco', fireball),
+        ]);
+        const matched = await insertEnemy([copyOf('Palla di fuoco', fireball)]);
+        const before = [await rawEnemy(lost), await rawEnemy(ambiguous)];
 
         await expect(step.run()).resolves.toEqual({
-            found: 1,
+            found: 3,
             migrated: 1,
             alreadyDone: 0,
-            unmatched: 1,
+            unmatched: 2,
         });
 
-        expect((await rawEnemy(id))?.spells).toEqual([fireball]);
+        expect([await rawEnemy(lost), await rawEnemy(ambiguous)]).toEqual(
+            before,
+        );
+        expect((await rawEnemy(matched))?.spells).toEqual([fireball]);
         expect(warnSpy.mock.calls).toEqual([
             [
-                `Revisione dei modelli, magie dei nemici: copia senza corrispondenza «Magia perduta» sul nemico ${id.toHexString()}`,
+                `Revisione dei modelli, magie dei nemici: copia senza corrispondenza «Magia perduta» sul nemico ${lost.toHexString()}: nemico non scritto, le copie restano`,
+            ],
+            [
+                `Revisione dei modelli, magie dei nemici: copia senza corrispondenza «Gemella» sul nemico ${ambiguous.toHexString()}: nemico non scritto, le copie restano`,
             ],
         ]);
     });
@@ -193,7 +207,7 @@ describe('EnemySpellsStep (replSet)', () => {
         ]).toEqual(before);
     });
 
-    it('changes nothing on a second run (D-02)', async () => {
+    it('changes nothing on a second run and reports again the enemy it did not write (D-02, C-WR-04)', async () => {
         const fireball = await insertCatalogSpell('Palla di fuoco');
         const ids = [
             await insertEnemy([copyOf('Palla di fuoco')]),
@@ -203,20 +217,26 @@ describe('EnemySpellsStep (replSet)', () => {
             ]),
             await insertEnemy([fireball]),
         ];
-        await step.run();
+        const unmatchedCopies = (await rawEnemy(ids[1]))?.spells;
+        await expect(step.run()).resolves.toEqual({
+            found: 3,
+            migrated: 1,
+            alreadyDone: 1,
+            unmatched: 1,
+        });
         const afterFirstRun = await Promise.all(ids.map(rawEnemy));
 
         await expect(step.run()).resolves.toEqual({
             found: 3,
             migrated: 0,
-            alreadyDone: 3,
-            unmatched: 0,
+            alreadyDone: 2,
+            unmatched: 1,
         });
 
         expect(await Promise.all(ids.map(rawEnemy))).toEqual(afterFirstRun);
         expect(afterFirstRun.map((enemy) => enemy?.spells)).toEqual([
             [fireball],
-            [fireball],
+            unmatchedCopies,
             [fireball],
         ]);
     });
