@@ -35,7 +35,7 @@ metrics:
   duration: 23 min
   completed: 2026-11-11
   tasks: 3
-  files: 30
+  files: 31
 ---
 
 # Phase 19 Plan 20: contrazione delle liste di magie su modello, populate, registro e SDL — Summary
