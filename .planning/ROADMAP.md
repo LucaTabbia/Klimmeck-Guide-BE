@@ -119,7 +119,7 @@ Plans:
 - [x] 19-13-PLAN.md — D-10 `City.shop` (sotto-documento, lettori) e passo
 - [x] 19-14-PLAN.md — D-11/D-20 `Lore.imagePath` e passo, `slot-type.enum.ts`, file vuoto e `KGNotification` rimossi
 - [x] 19-15-PLAN.md — D-06 `wornEquipment`/`feet` (enum, modello, lettori, SDL) e passo a due rinomine
-- [ ] 19-16-PLAN.md — D-08 `maxActiveSpells` da virtual a resolve field
+- [x] 19-16-PLAN.md — D-08 `maxActiveSpells` da virtual a resolve field
 - [ ] 19-17-PLAN.md — D-07 1/4: `SpellState.active` additivo, `mergeSpellLists` e passo
 - [ ] 19-18-PLAN.md — D-07 2/4: `SpellStateMigrator` ridotto al taglio (D-21), equip/unequip/uso/recupero sulla voce
 - [ ] 19-19-PLAN.md — D-07 3/4: piani d'esito, combattimento, override del GM, imboscata
@@ -180,7 +180,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 16. Lore sbloccabili | v1.0 | 12/12 | Complete | 2026-11-07 |
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
-| 19. Revisione dei modelli | v1.1 | 15/23 | In Progress | - |
+| 19. Revisione dei modelli | v1.1 | 16/23 | In Progress | - |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
 
 ---
