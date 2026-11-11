@@ -11,6 +11,7 @@ import {
 import { toCopper, type CoinPurse } from 'src/economy/coins';
 import { WalletService } from 'src/economy/wallet.service';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
+import type { KnowledgeAddition } from 'src/lore/knowledge-addition';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import {
     Character,
@@ -20,6 +21,7 @@ import { City, CityDocument } from 'src/models/city.model';
 import type { CommonResponse } from 'src/models/common/common-response.model';
 import type { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
+import { knowledgeUpdateOf } from 'src/quests/outcomes/victory-knowledge';
 import { CatalogPricesReader } from './catalog-prices.reader';
 import type { CatalogPrices, TradeLine } from './trade-line';
 import {
@@ -31,8 +33,10 @@ import {
 import {
     applyTradeToPets,
     assertPetsNotOwned,
+    boughtPetLore,
     petOwnershipGuards,
     type PetLifePoints,
+    type PetLore,
     type PetOutcome,
     type PetSnapshot,
 } from './trade-pets';
@@ -55,6 +59,7 @@ interface TradeSnapshot {
         activeTravel?: unknown;
         awaitingAid?: unknown;
         imprisonedUntil?: unknown;
+        unlockedLore?: unknown[] | null;
     };
     assets?: InventorySnapshot & PetSnapshot;
 }
@@ -68,6 +73,7 @@ interface TraderAtShop {
 interface TradeOutcome {
     inventory: InventoryOutcome;
     pets: PetOutcome | null;
+    knowledge: KnowledgeAddition;
 }
 
 interface PricedTrade {
@@ -76,6 +82,7 @@ interface PricedTrade {
     netCopper: number;
     catalogue: CatalogPrices;
     petLifePoints: PetLifePoints;
+    petLore: PetLore;
     now: Date;
 }
 
@@ -97,6 +104,7 @@ const TRADE_SNAPSHOT_PROJECTION = {
     'status.activeTravel.endTime': 1,
     'status.awaitingAid': 1,
     'status.imprisonedUntil': 1,
+    'status.unlockedLore': 1,
     'assets.ownedItems': 1,
     'assets.ownedEquipments': 1,
     'assets.wearedEquipment': 1,
@@ -143,8 +151,11 @@ export class ShopTransactionService {
     async execute(request: TransactionRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.id);
         const lines = planTradeLines(request);
-        const { prices: catalogue, petLifePoints } =
-            await this.catalogPrices.read(lines);
+        const {
+            prices: catalogue,
+            petLifePoints,
+            petLore,
+        } = await this.catalogPrices.read(lines);
         const { netCopper } = priceTrade(lines, catalogue);
         assertClientTotalMatches(request, netCopper);
         const now = this.clock.now();
@@ -161,6 +172,7 @@ export class ShopTransactionService {
                     netCopper,
                     catalogue,
                     petLifePoints,
+                    petLore,
                     now,
                 },
                 session,
@@ -222,6 +234,7 @@ export class ShopTransactionService {
             netCopper,
             catalogue,
             petLifePoints,
+            petLore,
             now,
         }: PricedTrade,
         session: ClientSession,
@@ -248,10 +261,15 @@ export class ShopTransactionService {
         if (toCopper(snapshot.status?.coins) < -netCopper) {
             throw GameRuleException.insufficientFunds();
         }
+        // le lore dei pet comprati entrano nella stessa scrittura che aggiunge la voce, solo le nuove (Phase 19 D-26)
+        const { addition: knowledge } = knowledgeUpdateOf(
+            snapshot.status?.unlockedLore,
+            boughtPetLore(lines, petLore),
+        );
         await this.writeInventory(
             { characterId, location, now },
             lines,
-            { inventory, pets },
+            { inventory, pets, knowledge },
             session,
         );
         // l'unico scrittore dei coins (04 D-04): la sua guard $expr è l'autorità dei fondi
@@ -268,7 +286,7 @@ export class ShopTransactionService {
     private async writeInventory(
         { characterId, location, now }: TraderAtShop,
         lines: readonly TradeLine[],
-        { inventory, pets }: TradeOutcome,
+        { inventory, pets, knowledge }: TradeOutcome,
         session: ClientSession,
     ): Promise<void> {
         const written = await this.characterModel
@@ -281,7 +299,7 @@ export class ShopTransactionService {
                     ...notImprisonedAt(now),
                     ...soldQuantityGuards(lines, petOwnershipGuards(lines)),
                 },
-                { $set: inventoryChanges(inventory, pets) },
+                { $set: inventoryChanges(inventory, pets), ...knowledge },
                 { session },
             )
             .exec();

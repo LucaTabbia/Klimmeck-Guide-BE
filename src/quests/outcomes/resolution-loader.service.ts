@@ -30,6 +30,7 @@ import {
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { User, UserDocument } from 'src/models/user.model';
+import { relatedLoreIdsOf } from 'src/lore/related-lore-ids';
 import { STUDY_LORE_TYPES } from 'src/lore/study-lore-types';
 import { idForms, refIdOf } from 'src/mongo/document-id';
 import { ownersOf } from 'src/mongo/owners-of';
@@ -146,6 +147,11 @@ const byHex = <T extends { _id: Types.ObjectId }>(
     entries: readonly T[],
 ): Map<string, T> =>
     new Map(entries.map((entry) => [entry._id.toHexString(), entry]));
+
+type PrizePetEntry = CatalogEntry<{
+    maxLifePoints?: unknown;
+    relatedLore?: unknown;
+}>;
 
 type LearnableSpellEntry = CatalogEntry<{
     minXpToLearn?: unknown;
@@ -624,20 +630,26 @@ export class ResolutionLoader {
                     : [],
             ),
             spellPool: await this.readSpellPool(prizes),
-            pets: await this.readPrizePets(refs.petId),
+            ...(await this.readPrizePets(refs.petId)),
         };
     }
 
-    // D-21: il pet in premio vale solo se esiste ancora a catalogo; un ref orfano non consuma il tiro; la sua vita massima apre la voce del vincitore (Phase 19 D-03)
+    // D-21: il pet in premio vale solo se esiste ancora a catalogo; un ref orfano non consuma il tiro; la sua vita massima apre la voce del vincitore (Phase 19 D-03) e le sue lore si sbloccano con la voce (D-26)
     private async readPrizePets(
         petId: Types.ObjectId | null,
-    ): Promise<Map<string, unknown>> {
-        if (!petId) return new Map();
-        const pet = await this.petModel
-            .findById(petId, { maxLifePoints: 1 })
-            .lean<{ _id: Types.ObjectId; maxLifePoints?: unknown } | null>()
-            .exec();
-        return new Map(pet ? [[pet._id.toHexString(), pet.maxLifePoints]] : []);
+    ): Promise<Pick<RewardCatalog, 'pets' | 'petLore'>> {
+        const pet = petId
+            ? await this.petModel
+                  .findById(petId, { maxLifePoints: 1, relatedLore: 1 })
+                  .lean<PrizePetEntry | null>()
+                  .exec()
+            : null;
+        if (!pet) return { pets: new Map(), petLore: new Map() };
+        const hex = pet._id.toHexString();
+        return {
+            pets: new Map([[hex, pet.maxLifePoints]]),
+            petLore: new Map([[hex, relatedLoreIdsOf(pet.relatedLore)]]),
+        };
     }
 
     // D-08, C-3: pool intero fuori transazione, il piano lo filtra contro lo snapshot in sessione; ordine per id così il tiro è riproducibile

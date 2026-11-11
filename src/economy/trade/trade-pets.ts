@@ -3,6 +3,7 @@ import {
     ownsPet,
     type OwnedPetEntry,
 } from 'src/characters/pets/owned-pet-entry';
+import type { Types } from 'mongoose';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { idForms, sameId } from 'src/mongo/document-id';
 import type { TradeLine } from './trade-line';
@@ -19,6 +20,9 @@ export interface PetOutcome {
 
 // esadecimale del pet → `maxLifePoints` del catalogo, non validato
 export type PetLifePoints = ReadonlyMap<string, unknown>;
+
+// esadecimale del pet → lore collegate a catalogo, già sanificate (Phase 19 D-26)
+export type PetLore = ReadonlyMap<string, readonly Types.ObjectId[]>;
 
 const petLines = (lines: readonly TradeLine[]) =>
     lines.filter((line) => line.kind === 'Pet');
@@ -65,6 +69,20 @@ export function applyTradeToPets(
         if (sameId(snapshot.pet, line.itemId)) unequip = true;
     }
     return { ownedPets, unequip };
+}
+
+// le lore dei soli pet comprati, nell'ordine delle righe e senza ripetizioni: vendere non toglie nulla (Phase 19 D-26)
+export function boughtPetLore(
+    lines: readonly TradeLine[],
+    petLore: PetLore,
+): Types.ObjectId[] {
+    const byHex = new Map(
+        petLines(lines)
+            .filter((line) => line.direction === 'buy')
+            .flatMap((line) => petLore.get(line.itemId.toHexString()) ?? [])
+            .map((lore) => [lore.toHexString(), lore] as const),
+    );
+    return [...byHex.values()];
 }
 
 // rete di sicurezza nel filtro della scrittura: il comprato è ancora assente, il venduto ancora presente (D-14)

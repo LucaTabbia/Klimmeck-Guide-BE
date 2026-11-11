@@ -6,6 +6,7 @@ import {
     EquipmentItem,
     EquipmentItemDocument,
 } from 'src/models/equipment-item.model';
+import { relatedLoreIdsOf } from 'src/lore/related-lore-ids';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 import { Pet, PetDocument } from 'src/models/pet.model';
 import {
@@ -15,7 +16,7 @@ import {
     type TradeItemKind,
     type TradeLine,
 } from './trade-line';
-import type { PetLifePoints } from './trade-pets';
+import type { PetLifePoints, PetLore } from './trade-pets';
 
 interface PricedItem {
     _id: Types.ObjectId;
@@ -27,16 +28,22 @@ interface PricedItem {
 
 interface PricedPet extends PricedItem {
     maxLifePoints?: unknown;
+    relatedLore?: unknown;
 }
 
-// i prezzi di ogni riga e, per i pet, la vita massima da cui parte la voce comprata (Phase 19 D-03)
+// i prezzi di ogni riga e, per i pet, la vita massima da cui parte la voce comprata (Phase 19 D-03) e le lore che il pet sblocca (D-26)
 export interface CatalogReading {
     prices: CatalogPrices;
     petLifePoints: PetLifePoints;
+    petLore: PetLore;
 }
 
 const PRICE_PROJECTION = { buyPrice: 1, sellPrice: 1, rarity: 1, sellable: 1 };
-const PET_PROJECTION = { ...PRICE_PROJECTION, maxLifePoints: 1 };
+const PET_PROJECTION = {
+    ...PRICE_PROJECTION,
+    maxLifePoints: 1,
+    relatedLore: 1,
+};
 
 // prezzi e veto (D-23) autorevoli dal catalogo (04 D-06), letti prima della transazione: qui le letture parallele sono ammesse
 @Injectable()
@@ -76,6 +83,12 @@ export class CatalogPricesReader {
             ]),
             petLifePoints: new Map(
                 pets.map((pet) => [pet._id.toHexString(), pet.maxLifePoints]),
+            ),
+            petLore: new Map(
+                pets.map((pet) => [
+                    pet._id.toHexString(),
+                    relatedLoreIdsOf(pet.relatedLore),
+                ]),
             ),
         };
     }

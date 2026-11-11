@@ -468,10 +468,12 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
                   ...victoryLore,
               ])
             : null;
-    // ordine D-09: lore dei nemici, poi quella dello studio
+    // le lore del pet solo con la voce aggiunta in questo esito (Phase 19 D-26)
+    const petLore = petWon ? rewards.petLore : [];
+    // ordine D-09: lore dei nemici, poi quella dello studio, poi quelle del pet vinto
     const learned = knowledgeUpdateOf(
         snapshot.status.unlockedLore,
-        [...victoryLore, ...(studyLore ? [studyLore] : [])],
+        [...victoryLore, ...(studyLore ? [studyLore] : []), ...petLore],
         victory?.enemyIds ?? [],
     );
     const lanePath = lanePathOf(input.lane);
