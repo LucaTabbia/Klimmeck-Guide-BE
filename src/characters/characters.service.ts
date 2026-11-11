@@ -58,6 +58,7 @@ import {
 } from './spells/spell-recovery-job';
 import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
 import { isUsageCount, recoveryDueAt } from './spells/spell-state.snapshot';
+import { ownedPetsOnTheWire } from './pets/owned-pets.mapper';
 import { spellsOnTheWire } from './spells/spell-state.mapper';
 import {
     spellStateArrayFilters,
@@ -114,9 +115,9 @@ export class CharactersService {
                 path: 'assets.ownedItems.item',
                 model: 'LootItem',
             })
-            // compagno equipaggiato e posseduti dal catalogo Pet: il fragment FE li seleziona entrambi (D-13, D-23)
+            // compagno equipaggiato e pet di ogni voce posseduta dal catalogo Pet: il fragment FE li seleziona entrambi (D-13, D-23)
             .populate({ path: 'assets.pet', model: 'Pet' })
-            .populate({ path: 'assets.ownedPets', model: 'Pet' })
+            .populate({ path: 'assets.ownedPets.pet', model: 'Pet' })
             .populate(CHARACTER_QUESTS_POPULATE)
             .exec();
 
@@ -157,6 +158,9 @@ export class CharactersService {
         );
         character.status.spellStates = wire.spellStates;
         character.assets.activeSpells = wire.activeSpells;
+        character.assets.ownedPets = ownedPetsOnTheWire(
+            character.assets.ownedPets,
+        );
 
         return character;
     }

@@ -81,7 +81,7 @@ type CharacterAssets {
   activeSpells: [ActiveSpell!]!
   ownedEquipments: [AssetQuantity!]!
   ownedItems: [AssetQuantity!]!
-  ownedPets: [Pet!]!
+  ownedPets: [OwnedPet!]!
   pet: Pet
   wearedEquipment: Equipment!
 }
@@ -430,6 +430,12 @@ type Mutation {
   unregisterPushDevice(deviceId: String!): Boolean!
   useItem(itemId: ID!): UseItemResult!
   useSpell(request: UseSpellRequest!): CommonResponse!
+}
+
+type OwnedPet {
+  currentLifePoints: Int!
+  pet: Pet!
+  xp: Int!
 }
 
 input ParticipantOverrideInput {

@@ -1,6 +1,6 @@
 import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema, Types } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import {
     AssetQuantity,
     AssetQuantityInput,
@@ -12,6 +12,7 @@ import {
     EquipmentSchema,
 } from '../common/equipment.model';
 import { Pet } from '../pet.model';
+import { OwnedPet, OwnedPetSchema } from './owned-pet.model';
 import {
     ActiveSpell,
     ActiveSpellInput,
@@ -38,9 +39,9 @@ export class CharacterAssets {
     activeSpells: ActiveSpell[];
 
     // posseduti, distinti dal compagno equipaggiato in `pet` (D-13); default implicito [] voluto: nuovi e legacy leggono una lista
-    @Field(() => [Pet])
-    @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: Pet.name }] })
-    ownedPets: (Types.ObjectId | Pet)[];
+    @Field(() => [OwnedPet])
+    @Prop({ type: [OwnedPetSchema] })
+    ownedPets: OwnedPet[];
 
     // il compagno equipaggiato: l'unico letto dal viaggio (D-13)
     @Field(() => Pet, { nullable: true })
