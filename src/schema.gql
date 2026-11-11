@@ -400,7 +400,7 @@ type LootRecovery {
 type Lore {
   description: String!
   id: ID!
-  image: String
+  imagePath: String
   name: String!
   relatedLore: [Lore!]!
   type: String!

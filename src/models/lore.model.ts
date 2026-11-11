@@ -15,7 +15,7 @@ export class Lore {
 
     @Field(() => String, { nullable: true })
     @Prop({ type: String, default: null })
-    image?: string | null;
+    imagePath?: string | null;
 
     @Field(() => String)
     @Prop({ type: String, default: null })
@@ -46,7 +46,7 @@ export class LoreInput {
     type?: LoreType;
 
     @Field(() => String, { nullable: true })
-    image?: string;
+    imagePath?: string;
 
     @Field(() => String, { nullable: true })
     name?: string;
