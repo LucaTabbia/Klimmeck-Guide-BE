@@ -108,6 +108,18 @@ export function legacyCity(
     });
 }
 
+// lore nella forma vecchia: l'immagine nel campo `image` (nullo come a DB quando manca); un override `undefined` toglie il campo
+export function legacyLore(overrides: RawDocument = {}): RawDocument {
+    return withoutUndefined({
+        type: 'knowledge',
+        image: null,
+        name: 'Lore vecchia',
+        description: 'Una voce di prova.',
+        relatedLore: [],
+        ...overrides,
+    });
+}
+
 // l'indice unico dei nomi dei personaggi attivi vuole un nome diverso per fixture
 let characterSequence = 0;
 
