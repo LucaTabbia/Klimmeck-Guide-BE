@@ -609,16 +609,16 @@ export class ResolutionLoader {
         };
     }
 
-    // D-21: il pet in premio vale solo se esiste ancora a catalogo; un ref orfano non consuma il tiro
+    // D-21: il pet in premio vale solo se esiste ancora a catalogo; un ref orfano non consuma il tiro; la sua vita massima apre la voce del vincitore (Phase 19 D-03)
     private async readPrizePets(
         petId: Types.ObjectId | null,
-    ): Promise<Set<string>> {
-        if (!petId) return new Set();
+    ): Promise<Map<string, unknown>> {
+        if (!petId) return new Map();
         const pet = await this.petModel
-            .findById(petId, { _id: 1 })
-            .lean<{ _id: Types.ObjectId } | null>()
+            .findById(petId, { maxLifePoints: 1 })
+            .lean<{ _id: Types.ObjectId; maxLifePoints?: unknown } | null>()
             .exec();
-        return new Set(pet ? [pet._id.toHexString()] : []);
+        return new Map(pet ? [[pet._id.toHexString(), pet.maxLifePoints]] : []);
     }
 
     // D-08, C-3: pool intero fuori transazione, il piano lo filtra contro lo snapshot in sessione; ordine per id così il tiro è riproducibile

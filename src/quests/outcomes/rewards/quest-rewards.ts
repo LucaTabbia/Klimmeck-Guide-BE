@@ -61,6 +61,8 @@ export interface DrawnRewards {
     spellCandidate: SpellCandidate | null;
     spellDraw: SpellDraw | null;
     pet: Types.ObjectId | null;
+    // `maxLifePoints` del pet vinto come sta a catalogo, non validato: lo sanifica la voce (Phase 19 D-03)
+    petLifePoints: unknown;
     loreDraw: LoreDraw | null;
 }
 
@@ -68,8 +70,8 @@ export interface RewardCatalog {
     rarities: ReadonlyMap<string, RarityType | null>;
     spells: ReadonlyMap<string, { minXpToLearn: number; maxUsages: number }>;
     spellPool: readonly SpellCandidate[];
-    // hex dei pet esistenti fra quelli in premio (D-21)
-    pets: ReadonlySet<string>;
+    // hex dei pet esistenti fra quelli in premio (D-21) → `maxLifePoints` del catalogo (Phase 19 D-03)
+    pets: ReadonlyMap<string, unknown>;
     // solo per una study (Phase 16 D-08, C-3): tutte le lore dei tipi dello studio, il piano le filtra contro lo snapshot
     studyLorePool?: readonly Types.ObjectId[];
     studyLoreChance?: number;
@@ -88,6 +90,7 @@ export const NO_REWARDS: DrawnRewards = {
     spellCandidate: null,
     spellDraw: null,
     pet: null,
+    petLifePoints: null,
     loreDraw: null,
 };
 
@@ -249,6 +252,7 @@ export function drawRewards(
         spellCandidate: spellCandidateOf(prizes, catalog),
         spellDraw,
         pet,
+        petLifePoints: pet ? catalog.pets.get(pet.toHexString()) : null,
         loreDraw,
     };
 }

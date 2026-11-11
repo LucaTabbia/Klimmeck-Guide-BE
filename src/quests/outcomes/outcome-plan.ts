@@ -9,6 +9,12 @@ import {
     type SpellStateEntry,
     spellStatesOrMigrated,
 } from 'src/characters/spells/spell-state.snapshot';
+import {
+    newOwnedPetEntry,
+    ownsPet,
+    type NewOwnedPetEntry,
+    type OwnedPetEntry,
+} from 'src/characters/pets/owned-pet-entry';
 import { type CoinPurse, fromCopper } from 'src/economy/coins';
 import {
     applyTradeToInventory,
@@ -77,7 +83,7 @@ export interface OutcomeCharacterSnapshot {
     assets?:
         | (InventorySnapshot & {
               activeSpells?: { spell?: unknown; usages?: number }[];
-              ownedPets?: unknown[] | null;
+              ownedPets?: OwnedPetEntry[] | null;
           })
         | null;
 }
@@ -316,14 +322,17 @@ function completedQuestsAfter(
 }
 
 // idempotente sullo snapshot in sessione (D-21): già posseduto ⇒ nulla, nessun errore; ownedPets fuori dall'update se non cambia (Pitfall 5)
+// il pet vinto è una voce intera con la vita massima del catalogo (Phase 19 D-03)
 function petWonBy(
     snapshot: OutcomeCharacterSnapshot,
     won: boolean,
     pet: Types.ObjectId | null,
-): Types.ObjectId | null {
+    lifePoints: unknown,
+): NewOwnedPetEntry | null {
     if (!won || !pet) return null;
-    const owned = snapshot.assets?.ownedPets ?? [];
-    return owned.some((id) => sameId(id, pet)) ? null : pet;
+    return ownsPet(snapshot.assets?.ownedPets, pet)
+        ? null
+        : newOwnedPetEntry(pet, lifePoints);
 }
 
 // riusato dai piani senza premio (quick 261110-cgd)
@@ -419,7 +428,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         ? completedQuestsAfter(snapshot, quest._id)
         : null;
     const coinsDelta = won ? rewards.coinsCopper : 0;
-    const petWon = petWonBy(snapshot, won, rewards.pet);
+    const petWon = petWonBy(snapshot, won, rewards.pet, rewards.petLifePoints);
     const victory = won ? (input.victory ?? null) : null;
     const victoryLore = victory?.loreIds ?? [];
     // la study vinta senza magia apprende una lore chiusa, mai una già sbloccata dallo stesso esito (Phase 16 D-08, Pitfall 6)
@@ -500,7 +509,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             rewards: {
                 coins: fromCopper(coinsDelta),
                 items: rewardItems,
-                pet: petWon,
+                pet: petWon?.pet ?? null,
             },
             // guadagno effettivo dopo il clamp a MAX_XP: xpAfter = xpBefore + xpGained sul foglio
             xpGained: Math.max(0, progression.xp - before.xp),
