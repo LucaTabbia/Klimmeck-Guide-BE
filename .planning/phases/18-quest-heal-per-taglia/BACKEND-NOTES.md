@@ -230,6 +230,14 @@ TTL 1 h (`android.ttl` 3600000 ms, `apns-expiration` = invio + 3600 s), come gli
 
 Regole dello scontro: nemici non leggendari con habitat `city` o `all` (animali compresi), fascia [Facile, Medio] del livello come nelle imboscate; prima un nemico singolo in fascia, altrimenti un branco di 2 o 3 più deboli fino a rientrare in fascia; se nemmeno il branco rientra, nessuno scontro (esito normale, `guardEncounter: false`). Un risultato scritto prima della quick legge `arrested: false`, `guardEncounter: false`, `coinsLost: null`.
 
+### 1.7 Magia delle quest `magic`: probabilità del 30 % (quick 261111-sdc)
+
+Parole dell'utente (2026-11-11): «vorrei che ci fosse il 30% di probabilità di ottenere una magia»
+
+Una quest vinta col sorteggio di magia (`prizes.spellDraw`, le `magic`) insegna una magia **con probabilità 30 %**; nel 70 % nessuna magia, il resto dei premi (monete, xp, loot, pet, lore) invariato. Col 30 % riuscito ma nessuna magia imparabile (xp dopo i premi < `minXpToLearn` o magie già note), nessuna magia, come prima. Una magia fissa scritta a mano (`prizes.spell`) non passa dal 30 %.
+
+**Per la FE:** nessun cambio SDL. `QuestResult.spellLearned` resta `null` nel 70 % dei casi: la copy non deve promettere una magia certa (es. «Puoi imparare una magia», non «Imparerai una magia»).
+
 ---
 
 ## 2. Comportamenti provati
