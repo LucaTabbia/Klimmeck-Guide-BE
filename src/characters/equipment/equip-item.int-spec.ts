@@ -16,6 +16,8 @@ import { buildCharacter, persistEquipmentItem } from '../../../test/fixtures';
 
 const EQUIP_ITEM =
     'mutation($request: EquipItemRequest!) { equipItem(request: $request) { successful response } }';
+const WORN_FEET =
+    'query($id: String!) { character(id: $id) { assets { wornEquipment { feet { id } } } } }';
 const EQUIPPED = {
     successful: true,
     response: 'Equipaggiamento cambiato con successo',
@@ -238,6 +240,58 @@ describe('equipItem (wire)', () => {
         expect(character.assets.wornEquipment.head).toMatchObject({
             name: 'Elmo',
         });
+    });
+
+    it('equips an owned item in the feet slot (D-06)', async () => {
+        const equipment = harness.connection.model<EquipmentItemDocument>(
+            EquipmentItem.name,
+        );
+        const boots = await persistEquipmentItem(equipment, {
+            name: 'Stivali',
+        });
+        const bootsId = boots._id as Types.ObjectId;
+        const player = await playerWith('twitch-item-feet', {
+            ownedEquipments: [
+                { itemType: 'EquipmentItem', item: bootsId, quantity: 1 },
+            ],
+        });
+
+        const body = await equip(player, {
+            slotType: 'feet',
+            itemId: bootsId.toHexString(),
+        });
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.equipItem).toEqual(EQUIPPED);
+        expect((await rawCharacter(player)).assets.wornEquipment.feet).toEqual(
+            bootsId,
+        );
+        const served: request.Response = await graphqlRequest(
+            harness.app,
+            WORN_FEET,
+            { id: idOf(player) },
+            player.bearer,
+        );
+        expect((served.body as WireBody).errors).toBeUndefined();
+        expect((served.body as WireBody).data?.character).toEqual({
+            assets: {
+                wornEquipment: { feet: { id: bootsId.toHexString() } },
+            },
+        });
+    });
+
+    it('rejects a slot value outside the enum as invalid input (D-06)', async () => {
+        const player = await ownerOfSword('twitch-item-unknown-slot');
+        const before = await rawCharacter(player);
+
+        const body = await equip(player, {
+            slotType: 'shoes',
+            itemId: sword.toHexString(),
+        });
+
+        expect(body.data).toBeUndefined();
+        expect(codeOf(body)).toBe('BAD_USER_INPUT');
+        expect(await rawCharacter(player)).toEqual(before);
     });
 
     it('does not equip an item owned only as loot', async () => {
