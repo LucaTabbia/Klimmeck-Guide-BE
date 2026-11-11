@@ -9,6 +9,7 @@ import {
     MODEL_REVIEW_LOG_PREFIX,
     type ModelReviewStep,
     type ModelReviewStepReport,
+    writeNotAppliedLine,
 } from './model-review.step';
 
 export interface CatalogSpell {
@@ -118,13 +119,28 @@ export class EnemySpellsStep implements ModelReviewStep {
             }>(WITH_EMBEDDED_COPIES, { projection: { spells: 1 } })
             .toArray();
 
+        let migrated = 0;
+        let notApplied = 0;
         let unmatched = 0;
         for (const enemy of withCopies) {
             const match = matchEmbeddedSpells(enemy.spells, catalog);
-            await enemies.updateOne(
-                { _id: enemy._id },
+            // la lista letta sta nel filtro (e porta con sé la guardia): una scrittura caduta nel mezzo non viene sovrascritta
+            const { matchedCount } = await enemies.updateOne(
+                { _id: enemy._id, spells: enemy.spells },
                 { $set: { spells: match.ids } },
             );
+            if (matchedCount === 0) {
+                notApplied += 1;
+                this.logger.warn(
+                    writeNotAppliedLine(
+                        LABEL,
+                        'nemico',
+                        enemy._id.toHexString(),
+                    ),
+                );
+                continue;
+            }
+            migrated += 1;
             unmatched += match.unmatched.length;
             for (const name of match.unmatched) {
                 this.logger.warn(
@@ -132,7 +148,11 @@ export class EnemySpellsStep implements ModelReviewStep {
                 );
             }
         }
-        const migrated = withCopies.length;
-        return { found, migrated, alreadyDone: found - migrated, unmatched };
+        return {
+            found,
+            migrated,
+            alreadyDone: found - migrated - notApplied,
+            unmatched: unmatched + notApplied,
+        };
     }
 }

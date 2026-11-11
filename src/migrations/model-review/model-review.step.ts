@@ -41,3 +41,17 @@ export function bootAbortedLine(abort: BootAbort): string {
 export function bootAbortedMessage(failedLabel: string): string {
     return `${MODEL_REVIEW_NAME}: boot interrotto dal passo «${failedLabel}»`;
 }
+
+// condizione di scrittura sul valore letto: un campo assente alla lettura deve esserlo ancora
+export function asRead(value: unknown): unknown {
+    return value === undefined ? { $exists: false } : value;
+}
+
+// il documento è cambiato fra la lettura e la scrittura del passo: resta com'è e la guardia lo ritrova al prossimo boot
+export function writeNotAppliedLine(
+    label: string,
+    subject: string,
+    id: string,
+): string {
+    return `${MODEL_REVIEW_LOG_PREFIX}${label}: ${subject} ${id} cambiato durante il passo, scrittura non applicata: si ritenta al prossimo boot`;
+}

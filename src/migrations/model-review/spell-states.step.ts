@@ -6,9 +6,11 @@ import { Character } from 'src/models/character/character.model';
 import { Spell } from 'src/models/spell.model';
 import { refIdOf } from 'src/mongo/document-id';
 import {
+    asRead,
     MODEL_REVIEW_LOG_PREFIX,
     type ModelReviewStep,
     type ModelReviewStepReport,
+    writeNotAppliedLine,
 } from './model-review.step';
 
 const LABEL = 'lista delle magie';
@@ -211,24 +213,43 @@ export class SpellStatesStep implements ModelReviewStep {
             })
             .toArray();
 
+        let migrated = 0;
+        let notApplied = 0;
         let unmatched = 0;
         for (const character of withOldLists) {
-            const merge = mergeSpellLists(
+            const lists: LegacySpellLists = {
+                spells: character.status?.spells,
+                spellStates: character.status?.spellStates,
+                activeSpells: character.assets?.activeSpells,
+            };
+            const merge = mergeSpellLists(lists, maxUsagesOf);
+            // una sola scrittura: la lista unica entra e i campi vecchi escono insieme, così la guardia non rivede il documento;
+            // la guardia e le tre liste lette stanno nel filtro: una scrittura caduta nel mezzo non viene sovrascritta
+            const { matchedCount } = await characters.updateOne(
                 {
-                    spells: character.status?.spells,
-                    spellStates: character.status?.spellStates,
-                    activeSpells: character.assets?.activeSpells,
+                    _id: character._id,
+                    ...WITH_OLD_LISTS,
+                    'status.spells': asRead(lists.spells),
+                    'status.spellStates': asRead(lists.spellStates),
+                    'assets.activeSpells': asRead(lists.activeSpells),
                 },
-                maxUsagesOf,
-            );
-            // una sola scrittura: la lista unica entra e i campi vecchi escono insieme, così la guardia non rivede il documento
-            await characters.updateOne(
-                { _id: character._id },
                 {
                     $set: { 'status.spellStates': merge.spellStates },
                     $unset: DROP_OLD_LISTS,
                 },
             );
+            if (matchedCount === 0) {
+                notApplied += 1;
+                this.logger.warn(
+                    writeNotAppliedLine(
+                        LABEL,
+                        'personaggio',
+                        character._id.toHexString(),
+                    ),
+                );
+                continue;
+            }
+            migrated += 1;
             const anomalies =
                 merge.usageConflicts +
                 merge.unknownActive.length +
@@ -240,8 +261,12 @@ export class SpellStatesStep implements ModelReviewStep {
                 );
             }
         }
-        const migrated = withOldLists.length;
-        return { found, migrated, alreadyDone: found - migrated, unmatched };
+        return {
+            found,
+            migrated,
+            alreadyDone: found - migrated - notApplied,
+            unmatched: unmatched + notApplied,
+        };
     }
 
     private async readCatalogMaxUsages(): Promise<Map<string, number>> {

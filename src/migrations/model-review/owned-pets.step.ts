@@ -1,14 +1,15 @@
 // UNA TANTUM (Phase 19 D-12): trasforma i riferimenti ai pet posseduti dei personaggi in voci con stato — esce dal repo dopo il boot reale
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import type { Connection, Types } from 'mongoose';
 import { newOwnedPetEntry } from 'src/characters/pets/owned-pet-entry';
 import { Character } from 'src/models/character/character.model';
 import { Pet } from 'src/models/pet.model';
 import { refIdOf } from 'src/mongo/document-id';
-import type {
-    ModelReviewStep,
-    ModelReviewStepReport,
+import {
+    type ModelReviewStep,
+    type ModelReviewStepReport,
+    writeNotAppliedLine,
 } from './model-review.step';
 
 export interface OwnedPetsMigration {
@@ -24,6 +25,8 @@ export interface OwnedPetsMigration {
 const WITH_BARE_REFERENCES = {
     'assets.ownedPets': { $elemMatch: { $type: ['objectId', 'string'] } },
 };
+
+const LABEL = 'pet posseduti';
 
 export function ownedPetEntriesOf(
     owned: readonly unknown[],
@@ -44,7 +47,9 @@ export function ownedPetEntriesOf(
 
 @Injectable()
 export class OwnedPetsStep implements ModelReviewStep {
-    readonly label = 'pet posseduti';
+    readonly label = LABEL;
+
+    private readonly logger = new Logger(OwnedPetsStep.name);
 
     constructor(@InjectConnection() private readonly connection: Connection) {}
 
@@ -61,22 +66,38 @@ export class OwnedPetsStep implements ModelReviewStep {
             .toArray();
 
         let migrated = 0;
+        let notApplied = 0;
         let unmatched = 0;
         for (const character of withReferences) {
-            const migration = ownedPetEntriesOf(
-                character.assets.ownedPets,
-                lifePointsOf,
-            );
+            const owned = character.assets.ownedPets;
+            const migration = ownedPetEntriesOf(owned, lifePointsOf);
             // una stringa che non è un id fa scattare la guardia ma non si converte: nessuna scrittura
             if (migration.converted === 0) continue;
-            await characters.updateOne(
-                { _id: character._id },
+            // la lista letta sta nel filtro (e porta con sé la guardia): una scrittura caduta nel mezzo non viene sovrascritta
+            const { matchedCount } = await characters.updateOne(
+                { _id: character._id, 'assets.ownedPets': owned },
                 { $set: { 'assets.ownedPets': migration.entries } },
             );
+            if (matchedCount === 0) {
+                notApplied += 1;
+                this.logger.warn(
+                    writeNotAppliedLine(
+                        LABEL,
+                        'personaggio',
+                        character._id.toHexString(),
+                    ),
+                );
+                continue;
+            }
             migrated += 1;
             unmatched += migration.orphans;
         }
-        return { found, migrated, alreadyDone: found - migrated, unmatched };
+        return {
+            found,
+            migrated,
+            alreadyDone: found - migrated - notApplied,
+            unmatched: unmatched + notApplied,
+        };
     }
 
     private async readCatalogLifePoints(): Promise<Map<string, unknown>> {
