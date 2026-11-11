@@ -374,7 +374,7 @@ describe('quest generation end to end (replSet)', () => {
     });
 
     // ultimo caso: il seme è condiviso, così i tiri dei casi precedenti non cambiano
-    it('writes one seat on every generated enemy quest, boss excepted (D-09)', async () => {
+    it('writes one rank-free seat on every generated enemy quest, boss excepted (quick 261111-enm)', async () => {
         await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
         config.target = 12;
 

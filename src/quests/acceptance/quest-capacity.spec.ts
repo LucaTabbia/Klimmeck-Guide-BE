@@ -1,12 +1,15 @@
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import {
     RankSlot,
     RegisteredAdventurer,
     hasSeatFor,
     isFullForEveryone,
+    questSlotsOf,
     seatAvailableExpr,
     slotRuleOf,
     slotsOf,
+    soloSlots,
 } from 'src/quests/acceptance/quest-capacity';
 
 const TITLES = ['rookie', 'adventurer', 'paladin', 'mage', 'hero', 'legend'];
@@ -70,6 +73,41 @@ function FOLDED_HERO(legendSeats: number) {
 }
 
 describe('quest capacity (D-32)', () => {
+    describe('questSlotsOf (quick 261111-enm)', () => {
+        const ONE_FREE_SEAT = [{ title: null, count: 1 }];
+
+        it('gives a solo quest one seat without a title', () => {
+            expect(soloSlots()).toEqual(ONE_FREE_SEAT);
+            expect(soloSlots()).not.toBe(soloSlots());
+        });
+
+        it.each([
+            ['the rank-exact seat written before the rule', [hero(1)]],
+            ['a seat without a title', [{ title: null, count: 1 }]],
+            ['more than one seat', [paladin(3)]],
+            ['mixed seats', [hero(1), { title: null, count: 2 }]],
+        ])('reads an enemy with %s as one rank-free seat', (_label, value) => {
+            expect(questSlotsOf(QuestType.enemy, value)).toEqual(ONE_FREE_SEAT);
+        });
+
+        it.each([undefined, null, 1, [], [{ title: 'king', count: 1 }]])(
+            'keeps an enemy with the seats %p invalid (D-27)',
+            (value) => {
+                expect(questSlotsOf(QuestType.enemy, value)).toBe('invalid');
+            },
+        );
+
+        it.each([QuestType.boss, QuestType.worldMission, QuestType.aid])(
+            'keeps the seats of a %s as written',
+            (type) => {
+                expect(
+                    questSlotsOf(type, [hero(2), { title: null, count: 1 }]),
+                ).toEqual([hero(2), { title: null, count: 1 }]);
+                expect(questSlotsOf(type, [])).toBe('invalid');
+            },
+        );
+    });
+
     describe('slotsOf', () => {
         it.each([undefined, null, 0, 1, 'hero', {}, []])(
             'rejects %p as invalid',

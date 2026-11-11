@@ -302,6 +302,28 @@ describe('QuestStartService.tryStart (replSet)', () => {
         expect(resolveJobs()).toHaveLength(2);
     });
 
+    // quick 261111-enm: una enemy si prende da soli, qualunque posto porti a DB
+    it('starts an enemy at the arrival of its only taker whatever seats it carries (quick 261111-enm)', async () => {
+        const solo = await quester({
+            questOverrides: {
+                infos: { ...buildQuest().infos, type: 'enemy' },
+                requirements: {
+                    ...buildQuest().requirements,
+                    requiredAdventurers: [{ title: 'rookie', count: 3 }],
+                },
+            },
+            arrivedAt: TEN,
+        });
+
+        await expect(service.tryStart(triggerOf(solo))).resolves.toBe(
+            'started',
+        );
+
+        expect((await pendingQuestOf(solo)).startDate).toEqual(TEN);
+        expect((await questById(solo.quest._id)).startedAt).toEqual(TEN);
+        expect(resolveJobs()).toHaveLength(1);
+    });
+
     it('starts a single seat enemy at the arrival', async () => {
         const solo = await quester({
             questOverrides: questOf('enemy', 1),
