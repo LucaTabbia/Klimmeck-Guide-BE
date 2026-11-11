@@ -23,6 +23,11 @@ export class SpellState {
     @Field(() => [Date])
     @Prop({ type: [Date], default: [] })
     recoveries: Date[];
+
+    // una sola lista in ordine di apprendimento: equipaggiata è un flag della voce, non una seconda lista (D-07, D-16)
+    @Field(() => Boolean)
+    @Prop({ type: Boolean, default: false })
+    active: boolean;
 }
 
 export const SpellStateSchema = SchemaFactory.createForClass(SpellState);

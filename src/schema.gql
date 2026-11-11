@@ -818,6 +818,7 @@ type Spell {
 }
 
 type SpellState {
+  active: Boolean!
   recoveries: [DateTime!]!
   spell: Spell!
   usages: Int!
