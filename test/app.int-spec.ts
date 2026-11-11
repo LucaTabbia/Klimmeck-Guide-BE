@@ -79,7 +79,9 @@ const SCHEMA_FILE = join(process.cwd(), 'src/schema.gql');
 // l'unico kind sul filo è quello dei risultati (Phase 15 D-14): il kind interno del viaggio resta fuori
 const ONLY_RESULT_KIND = ['  kind: QuestResultKind!'];
 const CATALOGUE_PET_BLOCK =
-    'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  relatedLore: [Lore!]!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
+    'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  rarity: RarityType\n  relatedLore: [Lore!]!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
+const RARITY_TYPE_BLOCK =
+    'enum RarityType {\n  common\n  legendary\n  rare\n  ultrarare\n  uncommon\n}';
 const OWNED_PET_BLOCK =
     'type OwnedPet {\n  currentLifePoints: Int!\n  pet: Pet!\n  xp: Int!\n}';
 const CHARACTER_STATUS_BLOCK =
@@ -401,6 +403,18 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
             CATALOGUE_PET_BLOCK,
+        );
+        expect(schema).not.toContain('input PetInput');
+    });
+
+    it('writes the nullable pet rarity into the generated schema (D-27)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
+            CATALOGUE_PET_BLOCK,
+        );
+        expect(schema.match(/enum RarityType \{[^}]*\}/)?.[0]).toBe(
+            RARITY_TYPE_BLOCK,
         );
         expect(schema).not.toContain('input PetInput');
     });

@@ -1,5 +1,6 @@
 import { model } from 'mongoose';
 import { buildPet } from '../../test/fixtures/pet.fixture';
+import { RarityType } from './enums/rarity-type.enum';
 import { PetSchema } from './pet.model';
 
 const PetProbe = model('PetSchemaProbe', PetSchema);
@@ -22,6 +23,7 @@ const CATALOGUE_PATHS = [
     'maxLifePoints',
     'maxXp',
     'name',
+    'rarity',
     'relatedLore',
     'sellPrice',
     'sellable',
@@ -64,6 +66,31 @@ describe('catalogue pet schema', () => {
             new PetProbe(STORED_WITHOUT_ATTACK_AND_DEFENSE).toObject()
                 .relatedLore,
         ).toEqual([]);
+    });
+
+    it('leaves the rarity of a pet null until it is curated (D-27)', () => {
+        const pet = new PetProbe(STORED_WITHOUT_ATTACK_AND_DEFENSE);
+
+        expect(pet.validateSync()).toBeUndefined();
+        expect(pet.toObject().rarity).toBeNull();
+    });
+
+    it.each(Object.values(RarityType))(
+        'stores a rarity of the existing enum: %s (D-27)',
+        (rarity) => {
+            const pet = new PetProbe(buildPet({ rarity }));
+
+            expect(pet.validateSync()).toBeUndefined();
+            expect(pet.toObject().rarity).toBe(rarity);
+        },
+    );
+
+    it('rejects a rarity outside the enum (D-27)', () => {
+        const pet = new PetProbe(buildPet({ rarity: 'mythic' }));
+
+        expect(Object.keys(pet.validateSync()?.errors ?? {})).toEqual([
+            'rarity',
+        ]);
     });
 
     it('declares no state on the catalogue pet (D-03)', () => {
