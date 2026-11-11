@@ -75,3 +75,16 @@ commits:
 - **Clonazione della aid** aggiunta al perimetro (era fra i lettori da controllare): senza, la aid di una `enemy` vecchia presa da un rango più alto sarebbe rimasta soccorribile solo dal titolo esatto del posto.
 - **Posti non validi:** una `enemy` senza posti validi resta non accettabile (D-27), anche se la regola nuova non usa i posti. Scelta conservativa: il difetto di catalogo continua a emergere nel log invece di diventare silenzioso.
 - `ENEMY_SEATS` (`generation-rules.ts`) resta per il budget di PE della composizione; il posto scritto dal generatore viene da `soloSlots()`.
+
+## Eseguito dall'orchestratore dopo il task (2026-11-11, UAT su device della FE Phase 19)
+
+- **Contenuto a DB (allineamento del filo):** le 155 quest `enemy` aperte portano ora un solo posto senza rango (`title` nullo, `count` 1); prova a secco prima della scrittura; nessuna `aid` aperta da allineare; nessuna `enemy` con registrati.
+- **Build e riavvio:** BE ricostruito e riavviato da questo branch (porta 3001); verificato su device: una recluta vede strappate le «Minaccia» di rango superiore, una leggenda accetta una «Minaccia» da recluta, il boss resta coi posti a rango esatto.
+- **Gemello FE:** quick task con lo stesso nome sul branch `feat/19-model-review` (nessun posto disegnato sulle `enemy`, «Titolo minimo: …» come le cacce).
+
+## Altra cura a DB della stessa UAT: negozi dei pet (regola dell'utente)
+
+Parole dell'utente: «Valantar non dovrebbe vendere tutti quei pet. Andrebbero contestualizzati un po'. Il cammello viene venduto solo in un villaggio nel deserto. Gatti normali e cani normali nelle grandi città (chiaramente non tutti nella stessa)»; «ogni villaggio può vendere un solo pet […]. Nelle città mettiamo massimo 2 animali, nelle capitali massimo 3. Cavallo leggero solo nel Valan, cavallo da viaggio: Cliffbreak e Bellport. […] vanno bene le ripetizioni. Ogni capitale deve vendere pet»; «Niente gatto a Ko Shaeras. Le capitali devono avere sempre pet e massimo 3, ma possono averne anche 1 o 2»; «Talmvere non è un villaggio del nord».
+
+Applicato in una transazione su `cities.shop.pets` («la mano vince»: nessun codice): 53 città vendono pet (10 capitali, 12 città, 31 villaggi), ogni pet vendibile è in vendita in almeno una città. Supera, per i soli pet, i pool generati della Phase 12 e l'aggiunta del Molosso da guerra ai negozi del Mastino fatta dal contenuto della Phase 19.
+
