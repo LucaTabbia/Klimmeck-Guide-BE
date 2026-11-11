@@ -8,6 +8,7 @@ import {
 } from 'src/characters/spells/spell-state.snapshot';
 import {
     newOwnedPetEntry,
+    normalisedOwnedPets,
     ownsPet,
     type NewOwnedPetEntry,
     type OwnedPetEntry,
@@ -336,11 +337,11 @@ function petWonBy(
 // un solo valore finale dei posseduti (Phase 19 D-04, Pitfall 4): compagno premiato e pet vinto nello stesso array; null = nulla da scrivere
 function ownedPetsAfterOutcome(
     owned: readonly OwnedPetEntry[] | null | undefined,
-    awarded: OwnedPetEntry[] | null,
+    awarded: NewOwnedPetEntry[] | null,
     petWon: NewOwnedPetEntry | null,
-): OwnedPetEntry[] | null {
+): NewOwnedPetEntry[] | null {
     if (!petWon) return awarded;
-    return [...(awarded ?? owned ?? []), petWon];
+    return [...(awarded ?? normalisedOwnedPets(owned)), petWon];
 }
 
 // riusato dai piani senza premio (quick 261110-cgd)

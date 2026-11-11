@@ -1,6 +1,8 @@
 import {
     newOwnedPetEntry,
+    normalisedOwnedPets,
     ownsPet,
+    type NewOwnedPetEntry,
     type OwnedPetEntry,
 } from 'src/characters/pets/owned-pet-entry';
 import type { Types } from 'mongoose';
@@ -14,7 +16,7 @@ export interface PetSnapshot {
 }
 
 export interface PetOutcome {
-    ownedPets: OwnedPetEntry[];
+    ownedPets: NewOwnedPetEntry[];
     unequip: boolean;
 }
 
@@ -41,7 +43,7 @@ export function assertPetsNotOwned(
 }
 
 // null senza righe pet: ownedPets e pet restano fuori dall'update (Pitfall 5); comprare non equipaggia mai (D-14)
-// si comprano e si vendono voci intere: il comprato parte dalla vita del catalogo, le altre voci tengono il loro stato (Phase 19 D-03)
+// si comprano e si vendono voci intere: il comprato parte dalla vita del catalogo, le altre voci tengono il loro stato, normalizzato (Phase 19 D-03)
 export function applyTradeToPets(
     snapshot: PetSnapshot,
     lines: readonly TradeLine[],
@@ -49,7 +51,7 @@ export function applyTradeToPets(
 ): PetOutcome | null {
     const pets = petLines(lines);
     if (pets.length === 0) return null;
-    const ownedPets = [...(snapshot.ownedPets ?? [])];
+    const ownedPets = normalisedOwnedPets(snapshot.ownedPets);
     let unequip = false;
     for (const line of pets) {
         if (line.direction === 'buy') {
@@ -62,7 +64,7 @@ export function applyTradeToPets(
             continue;
         }
         const index = ownedPets.findIndex((entry) =>
-            sameId(entry?.pet, line.itemId),
+            entry.pet.equals(line.itemId),
         );
         if (index === -1) throw GameRuleException.itemNotOwned();
         ownedPets.splice(index, 1);

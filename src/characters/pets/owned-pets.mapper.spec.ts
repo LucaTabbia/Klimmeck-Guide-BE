@@ -40,7 +40,7 @@ describe('owned pets on the wire', () => {
         expect(
             ownedPetsOnTheWire([
                 entryOf(horse, null as unknown as number, 12.9),
-                entryOf(cat, -4, undefined as unknown as number),
+                { pet: cat, xp: -4 } as unknown as OwnedPet,
                 entryOf(owl, 120.5, Number.NaN),
             ]),
         ).toEqual([

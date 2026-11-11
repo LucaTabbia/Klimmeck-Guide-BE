@@ -1,10 +1,14 @@
-import type { OwnedPetEntry } from 'src/characters/pets/owned-pet-entry';
-import { refIdOf, sameId } from 'src/mongo/document-id';
+import {
+    normalisedOwnedPets,
+    type NewOwnedPetEntry,
+    type OwnedPetEntry,
+} from 'src/characters/pets/owned-pet-entry';
+import { refIdOf } from 'src/mongo/document-id';
 import { petXpAward } from 'src/quests/outcomes/pets/pet-xp';
 
 export interface CompanionXpAward {
     // array intero nuovo, mai un path posizionale: nell'esito convive col pet in premio (Phase 19 Pitfall 4)
-    ownedPets: OwnedPetEntry[] | null;
+    ownedPets: NewOwnedPetEntry[] | null;
     gained: number;
 }
 
@@ -15,12 +19,6 @@ export interface CompanionAssets {
 
 const NO_AWARD: CompanionXpAward = { ownedPets: null, gained: 0 };
 
-// un valore frazionario scritto a mano si arrotonda per difetto: il premio non scrive mai sotto la parte intera già posseduta (D-04)
-const experienceOf = (entry: OwnedPetEntry): number =>
-    typeof entry.xp === 'number' && Number.isFinite(entry.xp) && entry.xp >= 0
-        ? Math.floor(entry.xp)
-        : 0;
-
 // premio di xp al compagno equipaggiato (D-04): senza compagno, senza voce, senza tetto valido o senza guadagno nulla cambia (D-17)
 export function companionXpAward(
     assets: CompanionAssets | null | undefined,
@@ -29,12 +27,13 @@ export function companionXpAward(
 ): CompanionXpAward {
     const companionId = refIdOf(assets?.pet);
     if (!companionId) return NO_AWARD;
-    const owned = assets?.ownedPets ?? [];
-    const index = owned.findIndex((entry) => sameId(entry?.pet, companionId));
+    // l'array si riscrive intero: le voci passano dalla normalizzazione condivisa, xp frazionari arrotondati per difetto compresi
+    const owned = normalisedOwnedPets(assets?.ownedPets);
+    const index = owned.findIndex((entry) => entry.pet.equals(companionId));
     const maxXp = petMaxXp.get(companionId.toHexString());
     if (index < 0 || maxXp === undefined) return NO_AWARD;
     const entry = owned[index];
-    const { xp, gained } = petXpAward(enemiesXp, experienceOf(entry), maxXp);
+    const { xp, gained } = petXpAward(enemiesXp, entry.xp, maxXp);
     if (gained <= 0) return NO_AWARD;
     return {
         ownedPets: owned.map((other, position) =>
