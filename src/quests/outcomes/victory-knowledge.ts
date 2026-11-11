@@ -4,7 +4,7 @@ import {
     knowledgeAdditionOf,
 } from 'src/lore/knowledge-addition';
 import { refHexOf } from 'src/lore/lore-visibility';
-import { refIdOf } from 'src/mongo/document-id';
+import { isObjectId, refIdOf } from 'src/mongo/document-id';
 
 // conoscenza di una vittoria (Phase 16 D-06, D-09): lore dei nemici e id esatti, separata da enemyFactsOf perché quella è pinnata e serve all'xp (D-14)
 
@@ -33,9 +33,6 @@ function uniqueByHex(ids: readonly Types.ObjectId[]): Types.ObjectId[] {
         return true;
     });
 }
-
-const isObjectId = (id: Types.ObjectId | null): id is Types.ObjectId =>
-    id !== null;
 
 export function victoryKnowledgeOf(
     catalog: VictoryCatalog,

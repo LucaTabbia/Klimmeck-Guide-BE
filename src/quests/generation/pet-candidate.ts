@@ -1,7 +1,7 @@
 import { Model, Types } from 'mongoose';
 import { EnemyDocument } from 'src/models/enemy.model';
 import { PetDocument } from 'src/models/pet.model';
-import { refIdOf } from 'src/mongo/document-id';
+import { isObjectId, refIdOf } from 'src/mongo/document-id';
 import { stringsOf } from 'src/mongo/lean-values';
 import type { PetCandidate } from 'src/quests/generation/pet-prize';
 
@@ -21,9 +21,6 @@ interface LeanLinkedEnemy {
 }
 
 type EnemyLocations = ReadonlyMap<string, readonly string[]>;
-
-const isObjectId = (id: Types.ObjectId | null): id is Types.ObjectId =>
-    id !== null;
 
 // un legame illeggibile vale nessun legame; un nemico sparito non dà nessuna zona (Phase 19 D-28)
 export function petCandidateOf(
