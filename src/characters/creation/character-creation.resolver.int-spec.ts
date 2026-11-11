@@ -355,6 +355,18 @@ describe('CharacterCreationResolver (wire)', () => {
             expect(raw?.assets.ownedItems).toEqual([]);
             expect(raw?.assets.pet).toBeNull();
             expect(raw?.assets.wornEquipment).toEqual(EMPTY_WORN_EQUIPMENT);
+            expect(Object.keys(raw?.assets ?? {}).sort()).toEqual([
+                'ownedEquipments',
+                'ownedItems',
+                'ownedPets',
+                'pet',
+                'wornEquipment',
+            ]);
+            expect(
+                Object.keys(raw?.status ?? {}).filter((key) =>
+                    key.startsWith('spell'),
+                ),
+            ).toEqual(['spellStates']);
 
             const rawOwner = await rawUser(user._id);
             const currentCharacter = rawOwner?.currentCharacter as unknown;

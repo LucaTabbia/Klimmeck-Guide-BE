@@ -1562,7 +1562,6 @@ describe('ShopTransactionService (replSet)', () => {
 
             const after = await raw(id);
             expect(Object.keys(after?.assets ?? {}).sort()).toEqual([
-                'activeSpells',
                 'ownedEquipments',
                 'ownedItems',
                 'wornEquipment',

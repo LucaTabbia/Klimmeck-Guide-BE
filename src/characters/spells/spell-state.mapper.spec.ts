@@ -1,6 +1,6 @@
 import type { SpellState } from 'src/models/character/spell-state.model';
 import type { Spell } from 'src/models/spell.model';
-import { spellsOnTheWire } from './spell-state.mapper';
+import { spellStatesOnTheWire } from './spell-state.mapper';
 
 // come dopo il populate: oggetti Spell con id esadecimale
 function populatedSpell(name: string, id: string): Spell {
@@ -16,69 +16,53 @@ function state(
     return { spell, usages, recoveries, active } as SpellState;
 }
 
-describe('spellsOnTheWire', () => {
+describe('spellStatesOnTheWire', () => {
     const a = populatedSpell('Dardo', 'a'.repeat(24));
     const b = populatedSpell('Scudo', 'b'.repeat(24));
     const c = populatedSpell('Lampo', 'c'.repeat(24));
     const t1 = new Date(1_000);
     const t2 = new Date(2_000);
 
-    it('serves the spell states whose spell is still in the catalogue (D-07)', () => {
-        const wire = spellsOnTheWire({
-            spellStates: [
-                state(b, 1, false, [t2]),
-                state(null, 2, true),
-                state({ name: 'senza id' } as Spell, 2, true),
-                state(a, 0, true, [t1]),
-            ],
-        });
+    it('serves the spell states whose spell is populated, in the learning order (D-07, D-16)', () => {
+        const states = [
+            state(c, 2, true),
+            state(a, 1, false, [t2]),
+            state(b, 0, true, [t1]),
+        ];
 
-        expect(wire).toEqual({
-            spellStates: [state(b, 1, false, [t2]), state(a, 0, true, [t1])],
-            activeSpells: [{ spell: a, usages: 0 }],
-        });
+        const wire = spellStatesOnTheWire(states);
+
+        expect(wire).toEqual(states);
+        expect(wire.map((entry) => entry.spell)).toEqual([c, a, b]);
+        expect(wire[0]).toBe(states[0]);
     });
 
-    it('derives the active spells from the active states in the learning order (D-16)', () => {
-        const wire = spellsOnTheWire({
-            spellStates: [
-                state(a, 2, true),
-                state(b, 1, false),
-                state(c, 0, true),
-            ],
-        });
-
-        expect(wire.activeSpells).toEqual([
-            { spell: a, usages: 2 },
-            { spell: c, usages: 0 },
+    it('drops the state of a spell that is gone from the catalogue (D-07)', () => {
+        const wire = spellStatesOnTheWire([
+            state(b, 1, false, [t2]),
+            state(null, 2, true),
+            state({ name: 'senza id' } as Spell, 2, true),
+            state(a, 0, true, [t1]),
         ]);
-        expect(wire.activeSpells[0].spell).toBe(a);
+
+        expect(wire).toEqual([
+            state(b, 1, false, [t2]),
+            state(a, 0, true, [t1]),
+        ]);
     });
 
-    it('reads a spell state stored without the flag as not active', () => {
-        const wire = spellsOnTheWire({ spellStates: [state(a, 3)] });
-
-        expect(wire).toEqual({
-            spellStates: [state(a, 3)],
-            activeSpells: [],
-        });
+    it('reads a missing list as empty (D-07)', () => {
+        expect(spellStatesOnTheWire(undefined)).toEqual([]);
+        expect(spellStatesOnTheWire(null)).toEqual([]);
     });
 
-    it('tolerates a missing list of spell states', () => {
-        const wire = spellsOnTheWire({
-            spellStates: undefined as unknown as SpellState[],
-        });
-
-        expect(wire).toEqual({ spellStates: [], activeSpells: [] });
-    });
-
-    it('returns new lists and leaves its input untouched', () => {
+    it('returns a new list and leaves its input untouched', () => {
         const spellStates = [state(a, 1, true, [t1]), state(null, 2)];
         const before = spellStates.map((entry) => ({ ...entry }));
 
-        const wire = spellsOnTheWire({ spellStates });
+        const wire = spellStatesOnTheWire(spellStates);
 
-        expect(wire.spellStates).not.toBe(spellStates);
+        expect(wire).not.toBe(spellStates);
         expect(spellStates).toEqual(before);
     });
 });

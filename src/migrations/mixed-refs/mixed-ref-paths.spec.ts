@@ -158,12 +158,12 @@ describe('MIXED_REF_PATHS', () => {
         ).toBe('users:currentCharacter');
     });
 
-    it('counts 34 references in 11 collections (D-17d)', () => {
+    it('counts 32 references in 11 collections (D-17d)', () => {
         const collections = new Set(
             MIXED_REF_PATHS.map((ref) => ref.collection),
         );
 
-        expect(MIXED_REF_PATHS).toHaveLength(34);
+        expect(MIXED_REF_PATHS).toHaveLength(32);
         expect([...collections].sort()).toEqual([
             'characters',
             'cities',

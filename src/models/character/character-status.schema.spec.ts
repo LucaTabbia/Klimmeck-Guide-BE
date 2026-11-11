@@ -1,6 +1,7 @@
 import { model } from 'mongoose';
 import { buildCharacter } from '../../../test/fixtures/character.fixture';
 import { CharacterSchema } from './character.model';
+import { CharacterAssetsSchema } from './character-assets.model';
 import { CharacterStatusSchema } from './character-status.model';
 
 const PotionRecoveryCharacterProbe = model(
@@ -48,5 +49,22 @@ describe('character status imprisonment', () => {
         expect(CharacterStatusSchema.path('imprisonedUntil').instance).toBe(
             'Date',
         );
+    });
+});
+
+describe('character spell lists', () => {
+    it('keeps the spell states as the only spell list of the character (D-07)', () => {
+        const spellPaths = Object.keys(CharacterStatusSchema.paths)
+            .filter((path) => path.startsWith('spell'))
+            .sort();
+
+        expect(spellPaths).toEqual(['spellStates']);
+        expect(Object.keys(CharacterAssetsSchema.paths).sort()).toEqual([
+            'ownedEquipments',
+            'ownedItems',
+            'ownedPets',
+            'pet',
+            'wornEquipment',
+        ]);
     });
 });

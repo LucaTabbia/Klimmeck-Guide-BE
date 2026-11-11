@@ -82,8 +82,10 @@ const CATALOGUE_PET_BLOCK =
     'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  relatedLore: [Lore!]!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
 const OWNED_PET_BLOCK =
     'type OwnedPet {\n  currentLifePoints: Int!\n  pet: Pet!\n  xp: Int!\n}';
+const CHARACTER_STATUS_BLOCK =
+    'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}';
 const CHARACTER_ASSETS_BLOCK =
-    'type CharacterAssets {\n  activeSpells: [ActiveSpell!]!\n  ownedEquipments: [AssetQuantity!]!\n  ownedItems: [AssetQuantity!]!\n  ownedPets: [OwnedPet!]!\n  pet: Pet\n  wornEquipment: Equipment!\n}';
+    'type CharacterAssets {\n  ownedEquipments: [AssetQuantity!]!\n  ownedItems: [AssetQuantity!]!\n  ownedPets: [OwnedPet!]!\n  pet: Pet\n  wornEquipment: Equipment!\n}';
 const EQUIPMENT_BLOCK =
     'type Equipment {\n  arms: EquipmentItem\n  chest: EquipmentItem\n  feet: EquipmentItem\n  firstAccessory: EquipmentItem\n  head: EquipmentItem\n  leftHand: EquipmentItem\n  legs: EquipmentItem\n  rightHand: EquipmentItem\n  secondAccessory: EquipmentItem\n}';
 const SLOT_TYPE_BLOCK =
@@ -504,7 +506,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type TravelPath {\n  coordinates: [[Float!]!]!\n  distance: Float!\n}',
         );
         expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
-            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  spells: [Spell!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}',
+            CHARACTER_STATUS_BLOCK,
         );
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
             CATALOGUE_PET_BLOCK,
@@ -513,15 +515,19 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(kindLinesOf(schema)).toEqual(ONLY_RESULT_KIND);
     });
 
-    it('writes the spell state contract into the generated schema', () => {
+    it('writes the single spell state list and drops the two old spell lists (D-07)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type SpellState \{[^}]*\}/)?.[0]).toBe(
             'type SpellState {\n  active: Boolean!\n  recoveries: [DateTime!]!\n  spell: Spell!\n  usages: Int!\n}',
         );
-        expect(schema.match(/type ActiveSpell \{[^}]*\}/)?.[0]).toBe(
-            'type ActiveSpell {\n  spell: Spell\n  usages: Int!\n}',
+        expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
+            CHARACTER_STATUS_BLOCK,
         );
+        expect(schema.match(/type CharacterAssets \{[^}]*\}/)?.[0]).toBe(
+            CHARACTER_ASSETS_BLOCK,
+        );
+        expect(schema).not.toMatch(/type ActiveSpell \{/);
     });
 
     it('writes the city size and the shop flag into the generated schema without the pool lists (D-01, D-18)', () => {

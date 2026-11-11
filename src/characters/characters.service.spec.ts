@@ -549,6 +549,31 @@ describe('CharactersService (unit — spell mutations)', () => {
             });
         });
 
+        it('populates the spell of every spell state and no other spell list (D-07)', async () => {
+            const assets = { ownedEquipments: [], wornEquipment: {} };
+            const query = asPopulatableQuery({
+                assets,
+                status: { spellStates: [] },
+            });
+            mockCharacterModel.findOne.mockReturnValue(query);
+
+            const served = await service.findOne(
+                new Types.ObjectId().toString(),
+            );
+
+            const spellPaths = (
+                query.populate.mock.calls as [{ path?: string }][]
+            )
+                .map(([options]) => options.path)
+                .filter((path) => path?.startsWith('status.spell'));
+            expect(spellPaths).toEqual(['status.spellStates.spell']);
+            expect(Object.keys(served.assets).sort()).toEqual([
+                'ownedEquipments',
+                'ownedPets',
+                'wornEquipment',
+            ]);
+        });
+
         it('reports an archived character as not found on findOne', async () => {
             const id = new Types.ObjectId().toString();
             mockCharacterModel.findOne.mockReturnValue(
