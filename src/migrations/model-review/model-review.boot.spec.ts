@@ -1,6 +1,7 @@
 // UNA TANTUM (Phase 19 D-12): prova il boot a passi della revisione dei modelli — esce dal repo dopo il boot reale
-import { Logger } from '@nestjs/common';
-import { ModelReviewBoot } from './model-review.boot';
+import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { ModelReviewBoot, modelReviewBootProvider } from './model-review.boot';
 import {
     type ModelReviewStep,
     type ModelReviewStepReport,
@@ -19,6 +20,20 @@ const SECOND_REPORT: ModelReviewStepReport = {
     alreadyDone: 5,
     unmatched: 4,
 };
+
+const FIRST_STEP = Symbol('FIRST_STEP');
+const SECOND_STEP = Symbol('SECOND_STEP');
+
+@Injectable()
+class LifecycleProbe implements OnModuleInit {
+    completedAtModuleInit: boolean | undefined;
+
+    constructor(private readonly boot: ModelReviewBoot) {}
+
+    onModuleInit(): void {
+        this.completedAtModuleInit = this.boot.completed;
+    }
+}
 
 describe('ModelReviewBoot', () => {
     let logSpy: jest.SpyInstance;
@@ -52,6 +67,18 @@ describe('ModelReviewBoot', () => {
         return new ModelReviewBoot(steps);
     }
 
+    // contenitore Nest vero: la factory del boot più una sonda di lifecycle
+    function containerWith(first: ModelReviewStep, second: ModelReviewStep) {
+        return Test.createTestingModule({
+            providers: [
+                { provide: FIRST_STEP, useValue: first },
+                { provide: SECOND_STEP, useValue: second },
+                modelReviewBootProvider([FIRST_STEP, SECOND_STEP]),
+                LifecycleProbe,
+            ],
+        });
+    }
+
     beforeEach(() => {
         runOrder = [];
         logSpy = jest
@@ -78,10 +105,12 @@ describe('ModelReviewBoot', () => {
     });
 
     it('runs the steps in the given order and logs one line per step (D-12)', async () => {
-        await boot([
+        const modelReviewBoot = boot([
             stepNamed('primo', FIRST_REPORT),
             stepNamed('secondo', SECOND_REPORT),
-        ]).onApplicationBootstrap();
+        ]);
+
+        await modelReviewBoot.run();
 
         expect(runOrder).toEqual(['primo', 'secondo']);
         expect(logSpy.mock.calls).toEqual([
@@ -93,45 +122,94 @@ describe('ModelReviewBoot', () => {
             ],
         ]);
         expect(errorSpy).not.toHaveBeenCalled();
+        expect(modelReviewBoot.completed).toBe(true);
     });
 
-    it('logs a failed step by name and code only and runs the next one (D-12)', async () => {
+    it('stops at a failed step, logs it by name and code only with a summary, and rejects (C-WR-05)', async () => {
         const failure = Object.assign(new Error('uri-segreta-da-non-loggare'), {
             name: 'MongoServerError',
             code: 11000,
         });
-
-        await expect(
-            boot([
-                failingStepNamed('primo', failure),
-                stepNamed('secondo', SECOND_REPORT),
-            ]).onApplicationBootstrap(),
-        ).resolves.toBeUndefined();
-
-        expect(runOrder).toEqual(['primo', 'secondo']);
-        expect(errorSpy.mock.calls).toEqual([
-            [
-                'Revisione dei modelli, primo: fallito (MongoServerError, code 11000), il boot prosegue',
-            ],
+        const modelReviewBoot = boot([
+            stepNamed('primo', FIRST_REPORT),
+            failingStepNamed('secondo', failure),
+            stepNamed('terzo', SECOND_REPORT),
         ]);
+
+        const rejection = await modelReviewBoot.run().then(
+            () => undefined,
+            (error: unknown) => error,
+        );
+
+        expect(rejection).toBeInstanceOf(Error);
+        expect((rejection as Error).message).toBe(
+            'Revisione dei modelli: boot interrotto dal passo «secondo»',
+        );
+        expect((rejection as Error).cause).toBeUndefined();
+        expect(runOrder).toEqual(['primo', 'secondo']);
         expect(logSpy.mock.calls).toEqual([
             [
-                'Revisione dei modelli, secondo: trovati 5, migrati 0, già a posto 5, senza corrispondenza 4',
+                'Revisione dei modelli, primo: trovati 3, migrati 2, già a posto 1, senza corrispondenza 0',
             ],
         ]);
+        expect(errorSpy.mock.calls).toEqual([
+            [
+                'Revisione dei modelli, secondo: fallito (MongoServerError, code 11000), il boot si ferma',
+            ],
+            [
+                'Revisione dei modelli, boot interrotto: passi conclusi 1 su 3, fallito «secondo», non eseguiti 1',
+            ],
+        ]);
+        expect(modelReviewBoot.completed).toBe(false);
         const loggedText = JSON.stringify([
             ...logSpy.mock.calls,
             ...errorSpy.mock.calls,
+            String((rejection as Error).stack),
         ]);
         expect(loggedText).not.toContain('uri-segreta');
     });
 
     it('resolves without logging when there are no steps (D-12)', async () => {
-        await expect(
-            boot([]).onApplicationBootstrap(),
-        ).resolves.toBeUndefined();
+        await expect(boot([]).run()).resolves.toBeUndefined();
 
         expect(logSpy).not.toHaveBeenCalled();
         expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    it('ends every step inside the provider factory, before any lifecycle hook (C-CR-01)', async () => {
+        const moduleRef = await containerWith(
+            stepNamed('primo', FIRST_REPORT),
+            stepNamed('secondo', SECOND_REPORT),
+        ).compile();
+
+        // nessun init: i passi sono già conclusi quando il contenitore è pronto
+        expect(runOrder).toEqual(['primo', 'secondo']);
+        expect(moduleRef.get(LifecycleProbe).completedAtModuleInit).toBe(
+            undefined,
+        );
+
+        await moduleRef.init();
+
+        expect(moduleRef.get(LifecycleProbe).completedAtModuleInit).toBe(true);
+        await moduleRef.close();
+    });
+
+    it('fails the container when a step fails: no provider reaches its lifecycle hook (C-WR-05)', async () => {
+        const moduleInitSpy = jest.spyOn(
+            LifecycleProbe.prototype,
+            'onModuleInit',
+        );
+
+        await expect(
+            containerWith(
+                failingStepNamed('primo', new Error('guasto')),
+                stepNamed('secondo', SECOND_REPORT),
+            ).compile(),
+        ).rejects.toThrow(
+            'Revisione dei modelli: boot interrotto dal passo «primo»',
+        );
+
+        expect(runOrder).toEqual(['primo']);
+        expect(moduleInitSpy).not.toHaveBeenCalled();
     });
 });

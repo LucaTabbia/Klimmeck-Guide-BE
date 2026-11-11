@@ -1,4 +1,5 @@
 import { getQueueToken } from '@nestjs/bull';
+import { BullExplorer } from '@nestjs/bull/dist/bull.explorer';
 import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { ModulesContainer } from '@nestjs/core';
@@ -142,6 +143,25 @@ const EXPECTED_THROTTLED_HANDLERS = [
     'TwitchAuthController.callback',
     'TwitchAuthController.start',
 ];
+// UNA TANTUM (Phase 19 D-12): righe dei nove passi su database vuoto, nell'ordine — escono col migratore
+const MODEL_REVIEW_PREFIX = 'Revisione dei modelli, ';
+const MODEL_REVIEW_STEP_LINES = [
+    'debolezze dei nemici',
+    'magie dei nemici',
+    'catalogo dei pet',
+    'pet posseduti',
+    'back-link dei POI',
+    'pool dei negozi',
+    'immagini delle lore',
+    'equipaggiamento indossato',
+    'lista delle magie',
+].map(
+    (label) =>
+        `${MODEL_REVIEW_PREFIX}${label}: trovati 0, migrati 0, già a posto 0, senza corrispondenza 0`,
+);
+
+type LifecycleHook = (this: unknown) => unknown;
+
 interface PublicSurface {
     handlers: string[];
     publicClasses: string[];
@@ -241,19 +261,50 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     let app: INestApplication;
     let fetchSpy: jest.SpiedFunction<typeof fetch>;
     let warnSpy: jest.SpiedFunction<Logger['warn']>;
+    let logSpy: jest.SpiedFunction<Logger['log']>;
+    const modelReviewLinesSeenBy: Record<string, string[]> = {};
+
+    const modelReviewLinesSoFar = (): string[] =>
+        logSpy.mock.calls
+            .map(([message]): unknown => message)
+            .filter(
+                (message): message is string =>
+                    typeof message === 'string' &&
+                    message.startsWith(MODEL_REVIEW_PREFIX),
+            );
+
+    // sonda: il lifecycle hook annota le righe del migratore già uscite quando Nest lo chiama, poi fa il suo lavoro
+    function probeLifecycleHook(prototype: object, hook: string): void {
+        const hooks = prototype as Record<string, LifecycleHook>;
+        const original = hooks[hook];
+        const name = `${prototype.constructor.name}.${hook}`;
+        jest.spyOn(hooks, hook).mockImplementation(function (this: unknown) {
+            modelReviewLinesSeenBy[name] ??= modelReviewLinesSoFar();
+            return original.call(this);
+        });
+    }
 
     beforeAll(async () => {
         // spie passthrough attive prima del boot: catturano le chiamate di rete e il WARN di avvio
         fetchSpy = jest.spyOn(global, 'fetch');
         warnSpy = jest.spyOn(Logger.prototype, 'warn');
+        logSpy = jest.spyOn(Logger.prototype, 'log');
+        probeLifecycleHook(BullExplorer.prototype, 'onModuleInit');
+        probeLifecycleHook(
+            QuestResolutionSweeper.prototype,
+            'onApplicationBootstrap',
+        );
+        probeLifecycleHook(
+            SpellStateMigrator.prototype,
+            'onApplicationBootstrap',
+        );
         boot = await bootRealApp({ dbName: 'app-boot-test' });
         app = boot.app;
     }, REAL_BOOT_TIMEOUT_MS);
 
     afterAll(async () => {
         await boot?.close();
-        fetchSpy.mockRestore();
-        warnSpy.mockRestore();
+        jest.restoreAllMocks();
     });
 
     it('resolves an auth config without Twitch and without the dev bypass', () => {
@@ -945,6 +996,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
         expect(moduleNames).toContain('ModelReviewMigrationModule');
         expect(app.get(ModelReviewBoot)).toBeInstanceOf(ModelReviewBoot);
+    });
+
+    it('ends the one-off model review steps before any lifecycle hook runs (D-12)', () => {
+        expect(modelReviewLinesSeenBy).toEqual({
+            // i processor Bull si agganciano qui: prima non consumano nessun job
+            'BullExplorer.onModuleInit': MODEL_REVIEW_STEP_LINES,
+            'QuestResolutionSweeper.onApplicationBootstrap':
+                MODEL_REVIEW_STEP_LINES,
+            'SpellStateMigrator.onApplicationBootstrap':
+                MODEL_REVIEW_STEP_LINES,
+        });
     });
 
     it('mounts the quest result maintenance', () => {
