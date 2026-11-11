@@ -13,6 +13,7 @@ import { AuthTestApp, graphqlRequest } from '../auth/auth-test-app';
 import { createCharactersTestApp } from '../authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../authz/player-fixture';
 import { buildCharacter } from '../fixtures';
+import { buildOwnedPet } from '../fixtures/owned-pet.fixture';
 import {
     persistShopCatalogue,
     persistShopCities,
@@ -303,7 +304,7 @@ describe('city shops end to end on a curated world (BE-SHOP-05)', () => {
     it('refuses a duplicate pet without writes (D-14)', async () => {
         const horse = petId('Cavallo da viaggio');
         const player = await playerIn('twitch-e2e-duplicate', 'Talmvere', {
-            ownedPets: [horse],
+            ownedPets: [buildOwnedPet(horse)],
         });
         const before = await raw(player);
 
@@ -361,7 +362,7 @@ describe('city shops end to end on a curated world (BE-SHOP-05)', () => {
 
         expect(bought.errors).toBeUndefined();
         const afterBuy = await raw(player);
-        expect(afterBuy?.assets.ownedPets).toEqual([horse]);
+        expect(afterBuy?.assets.ownedPets).toEqual([buildOwnedPet(horse)]);
         expect(afterBuy?.assets.pet).toBeNull();
 
         const equipped = await send(

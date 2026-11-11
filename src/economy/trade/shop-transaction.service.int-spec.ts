@@ -36,6 +36,10 @@ import {
     persistLootItem,
     persistPet,
 } from '../../../test/fixtures';
+import {
+    buildOwnedPet,
+    type OwnedPetSeed,
+} from '../../../test/fixtures/owned-pet.fixture';
 import { buildActiveTravelDoc } from '../../../test/travel/active-travel.fixture';
 import { migrateLegacyRefs } from '../../../test/migrations/migrate-legacy-refs';
 
@@ -198,7 +202,7 @@ describe('ShopTransactionService (replSet)', () => {
         ownedEquipments?: OwnedEntry[];
         ownedItems?: OwnedEntry[];
         wearedEquipment?: Record<string, Types.ObjectId | null>;
-        ownedPets?: Types.ObjectId[];
+        ownedPets?: OwnedPetSeed[];
         pet?: Types.ObjectId | null;
     }
 
@@ -1270,7 +1274,7 @@ describe('ShopTransactionService (replSet)', () => {
         it('buys a pet of the city pool into the owned pets without equipping it (D-14)', async () => {
             const id = await persistTrader(
                 coins(2, 0, 0),
-                { ownedPets: [idOf(camel)] },
+                { ownedPets: [buildOwnedPet(idOf(camel))] },
                 {},
                 {},
                 petPool(),
@@ -1282,14 +1286,72 @@ describe('ShopTransactionService (replSet)', () => {
 
             const after = await raw(id);
             expect(after?.status.coins).toEqual(coins(1, 0, 0));
-            expect(after?.assets.ownedPets).toEqual([idOf(camel), idOf(horse)]);
+            expect(after?.assets.ownedPets).toEqual([
+                buildOwnedPet(idOf(camel)),
+                buildOwnedPet(idOf(horse)),
+            ]);
+            expect(after?.assets.pet).toBeNull();
+        });
+
+        it('stores a bought pet as an entry with the catalogue life points (D-03)', async () => {
+            const drake = await persistPet(pets, {
+                name: 'Drago nano',
+                buyPrice: coins(1, 0, 0),
+                sellPrice: coins(0, 50, 0),
+                sellable: true,
+                maxLifePoints: 300,
+            });
+            const id = await persistTrader(
+                coins(2, 0, 0),
+                {
+                    ownedPets: [
+                        buildOwnedPet(idOf(camel), {
+                            xp: 40,
+                            currentLifePoints: 6,
+                        }),
+                    ],
+                },
+                {},
+                {},
+                { ...catalogPool(), pets: [idOf(drake)] },
+            );
+
+            await shop.execute(buyPet(id, drake));
+
+            expect((await raw(id))?.assets.ownedPets).toEqual([
+                { pet: idOf(camel), xp: 40, currentLifePoints: 6 },
+                { pet: idOf(drake), xp: 0, currentLifePoints: 300 },
+            ]);
+        });
+
+        it('removes the entry and keeps the state of the other pets on a sale (D-03)', async () => {
+            const id = await persistTrader(coins(0, 0, 0), {
+                ownedPets: [
+                    buildOwnedPet(idOf(camel), {
+                        xp: 40,
+                        currentLifePoints: 6,
+                    }),
+                    buildOwnedPet(idOf(horse), {
+                        xp: 15,
+                        currentLifePoints: 2,
+                    }),
+                ],
+                pet: idOf(horse),
+            });
+
+            await shop.execute(sellPet(id, horse));
+
+            const after = await raw(id);
+            expect(after?.assets.ownedPets).toEqual([
+                { pet: idOf(camel), xp: 40, currentLifePoints: 6 },
+            ]);
             expect(after?.assets.pet).toBeNull();
         });
 
         it('refuses a pet already owned with PET_ALREADY_OWNED and writes nothing (D-14)', async () => {
             const id = await persistTrader(
                 coins(2, 0, 0),
-                { ownedPets: [idOf(horse)] },
+                { ownedPets: [buildOwnedPet(idOf(horse))] },
                 {},
                 {},
                 petPool(),
@@ -1301,7 +1363,7 @@ describe('ShopTransactionService (replSet)', () => {
         it('refuses a pet outside the pool before checking a duplicate (D-19)', async () => {
             const id = await persistTrader(
                 coins(2, 0, 0),
-                { ownedPets: [idOf(horse)] },
+                { ownedPets: [buildOwnedPet(idOf(horse))] },
                 {},
                 {},
                 { ...catalogPool(), pets: [idOf(camel)] },
@@ -1313,7 +1375,7 @@ describe('ShopTransactionService (replSet)', () => {
         it('refuses a duplicate pet before the funds (D-19)', async () => {
             const id = await persistTrader(
                 coins(0, 0, 0),
-                { ownedPets: [idOf(horse)] },
+                { ownedPets: [buildOwnedPet(idOf(horse))] },
                 {},
                 {},
                 petPool(),
@@ -1341,7 +1403,10 @@ describe('ShopTransactionService (replSet)', () => {
 
         it('sells an owned pet in any city (D-12, D-14)', async () => {
             const id = await persistTrader(coins(0, 0, 0), {
-                ownedPets: [idOf(camel), idOf(horse)],
+                ownedPets: [
+                    buildOwnedPet(idOf(camel)),
+                    buildOwnedPet(idOf(horse)),
+                ],
                 pet: idOf(camel),
             });
 
@@ -1351,12 +1416,14 @@ describe('ShopTransactionService (replSet)', () => {
 
             const after = await raw(id);
             expect(after?.status.coins).toEqual(coins(0, 50, 0));
-            expect(after?.assets.ownedPets).toEqual([idOf(camel)]);
+            expect(after?.assets.ownedPets).toEqual([
+                buildOwnedPet(idOf(camel)),
+            ]);
         });
 
         it('empties the equipped slot when selling the equipped pet (D-14)', async () => {
             const id = await persistTrader(coins(0, 0, 0), {
-                ownedPets: [idOf(horse)],
+                ownedPets: [buildOwnedPet(idOf(horse))],
                 pet: idOf(horse),
             });
 
@@ -1370,20 +1437,25 @@ describe('ShopTransactionService (replSet)', () => {
 
         it('keeps the equipped pet when selling another owned pet (D-14)', async () => {
             const id = await persistTrader(coins(0, 0, 0), {
-                ownedPets: [idOf(camel), idOf(horse)],
+                ownedPets: [
+                    buildOwnedPet(idOf(camel)),
+                    buildOwnedPet(idOf(horse)),
+                ],
                 pet: idOf(camel),
             });
 
             await shop.execute(sellPet(id, horse));
 
             const after = await raw(id);
-            expect(after?.assets.ownedPets).toEqual([idOf(camel)]);
+            expect(after?.assets.ownedPets).toEqual([
+                buildOwnedPet(idOf(camel)),
+            ]);
             expect(after?.assets.pet).toEqual(idOf(camel));
         });
 
         it('refuses selling a pet not owned with ITEM_NOT_OWNED (D-14)', async () => {
             const id = await persistTrader(coins(0, 0, 0), {
-                ownedPets: [idOf(camel)],
+                ownedPets: [buildOwnedPet(idOf(camel))],
                 pet: idOf(camel),
             });
 
@@ -1417,7 +1489,7 @@ describe('ShopTransactionService (replSet)', () => {
         it('refuses a pet bought meanwhile at write time and pays nothing (D-14)', async () => {
             const id = await persistTrader(
                 coins(2, 0, 0),
-                { ownedPets: [idOf(horse)] },
+                { ownedPets: [buildOwnedPet(idOf(horse))] },
                 {},
                 {},
                 petPool(),
@@ -1454,7 +1526,7 @@ describe('ShopTransactionService (replSet)', () => {
 
         it('refuses a pet sold meanwhile at write time and pays nothing (D-14)', async () => {
             const id = await persistTrader(coins(0, 0, 0), {
-                ownedPets: [idOf(camel)],
+                ownedPets: [buildOwnedPet(idOf(camel))],
             });
             const before = await raw(id);
             const realFindOne = characters.findOne.bind(characters);
@@ -1473,7 +1545,10 @@ describe('ShopTransactionService (replSet)', () => {
                         ...snapshot,
                         assets: {
                             ...snapshot?.assets,
-                            ownedPets: [idOf(camel), idOf(horse)],
+                            ownedPets: [
+                                buildOwnedPet(idOf(camel)),
+                                buildOwnedPet(idOf(horse)),
+                            ],
                         },
                     };
                 };
@@ -1514,7 +1589,9 @@ describe('ShopTransactionService (replSet)', () => {
                 ]).toContain(code);
             }
             const after = await raw(id);
-            expect(after?.assets.ownedPets).toEqual([idOf(horse)]);
+            expect(after?.assets.ownedPets).toEqual([
+                buildOwnedPet(idOf(horse)),
+            ]);
             expect(after?.status.coins).toEqual(coins(4, 0, 0));
         });
     });

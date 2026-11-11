@@ -77,7 +77,7 @@ describe('CatalogPricesReader (replSet)', () => {
         const sword = await persistEquipmentItem(equipment);
         const potion = await persistLootItem(loot);
 
-        const prices = await reader.read([
+        const { prices } = await reader.read([
             line('buy', 'EquipmentItem', sword._id as Types.ObjectId),
             line('sell', 'LootItem', potion._id as Types.ObjectId),
         ]);
@@ -100,7 +100,9 @@ describe('CatalogPricesReader (replSet)', () => {
         const sword = await persistEquipmentItem(equipment);
         const swordId = sword._id as Types.ObjectId;
 
-        const prices = await reader.read([line('buy', 'LootItem', swordId)]);
+        const { prices } = await reader.read([
+            line('buy', 'LootItem', swordId),
+        ]);
 
         expect(prices.has(priceKey('LootItem', swordId))).toBe(false);
     });
@@ -113,7 +115,9 @@ describe('CatalogPricesReader (replSet)', () => {
         });
         const relicId = relic._id as Types.ObjectId;
 
-        const prices = await reader.read([line('buy', 'LootItem', relicId)]);
+        const { prices } = await reader.read([
+            line('buy', 'LootItem', relicId),
+        ]);
 
         expect(prices.get(priceKey('LootItem', relicId))?.buyPrice).toBeNull();
         expect(prices.get(priceKey('LootItem', relicId))?.sellPrice).toBeNull();
@@ -123,7 +127,9 @@ describe('CatalogPricesReader (replSet)', () => {
         const legacyId = new Types.ObjectId();
         await loot.collection.insertOne({ _id: legacyId, name: 'Legacy' });
 
-        const prices = await reader.read([line('sell', 'LootItem', legacyId)]);
+        const { prices } = await reader.read([
+            line('sell', 'LootItem', legacyId),
+        ]);
 
         expect(prices.get(priceKey('LootItem', legacyId))).toEqual({
             buyPrice: null,
@@ -139,7 +145,7 @@ describe('CatalogPricesReader (replSet)', () => {
         const equipmentFind = jest.spyOn(equipment, 'find');
         const lootFind = jest.spyOn(loot, 'find');
 
-        const prices = await reader.read([
+        const { prices } = await reader.read([
             line('buy', 'EquipmentItem', sword._id as Types.ObjectId),
             line('sell', 'LootItem', potion._id as Types.ObjectId),
         ]);
@@ -161,13 +167,32 @@ describe('CatalogPricesReader (replSet)', () => {
         });
         const horseId = horse._id as Types.ObjectId;
 
-        const prices = await reader.read([line('buy', 'Pet', horseId)]);
+        const { prices } = await reader.read([line('buy', 'Pet', horseId)]);
 
         expect([...prices.keys()]).toEqual([priceKey('Pet', horseId)]);
         expect(prices.get(priceKey('Pet', horseId))).toMatchObject({
             buyPrice: { gold: 2, silver: 0, copper: 0 },
             sellPrice: { gold: 1, silver: 0, copper: 0 },
         });
+    });
+
+    it('reads the max life points of the pets next to the prices (D-03)', async () => {
+        const horse = await persistPet(pets, { maxLifePoints: 300 });
+        const sword = await persistEquipmentItem(equipment);
+        const horseId = horse._id as Types.ObjectId;
+        const bareId = new Types.ObjectId();
+        await pets.collection.insertOne({ _id: bareId, name: 'Senza vita' });
+
+        const { petLifePoints } = await reader.read([
+            line('buy', 'Pet', horseId),
+            line('buy', 'Pet', bareId),
+            line('buy', 'EquipmentItem', sword._id as Types.ObjectId),
+        ]);
+
+        expect([...petLifePoints.entries()]).toEqual([
+            [horseId.toHexString(), 300],
+            [bareId.toHexString(), undefined],
+        ]);
     });
 
     it('carries rarity and sellable with the prices (D-23)', async () => {
@@ -187,7 +212,7 @@ describe('CatalogPricesReader (replSet)', () => {
         const relicId = relic._id as Types.ObjectId;
         const wolfId = wolf._id as Types.ObjectId;
 
-        const prices = await reader.read([
+        const { prices } = await reader.read([
             line('buy', 'EquipmentItem', crownId),
             line('buy', 'LootItem', relicId),
             line('buy', 'Pet', wolfId),
@@ -209,7 +234,7 @@ describe('CatalogPricesReader (replSet)', () => {
     it('skips the database when there are no lines', async () => {
         const findSpy = jest.spyOn(equipment, 'find');
 
-        const prices = await reader.read([]);
+        const { prices } = await reader.read([]);
 
         expect(prices.size).toBe(0);
         expect(findSpy).not.toHaveBeenCalled();

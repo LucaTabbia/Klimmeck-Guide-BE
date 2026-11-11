@@ -309,7 +309,7 @@ describe('trade inventory', () => {
         });
 
         it('adds the extra guards to the same and-list (D-14)', () => {
-            const petGuard = { 'assets.ownedPets': { $in: [horse] } };
+            const petGuard = { 'assets.ownedPets.pet': { $in: [horse] } };
 
             expect(
                 soldQuantityGuards(
