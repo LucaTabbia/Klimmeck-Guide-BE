@@ -345,7 +345,7 @@ describe('GmCompletionService.complete (replSet)', () => {
         const dueAt = new Date(NOW.getTime() + 5000);
         const character = await characterOf(subject);
         expect(character.status.spellStates).toEqual([
-            { spell: spell._id, usages: 1, recoveries: [dueAt], active: false },
+            { spell: spell._id, usages: 1, recoveries: [dueAt], active: true },
         ]);
         expect(character.assets.activeSpells).toEqual([
             expect.objectContaining({ spell: spell._id, usages: 1 }),

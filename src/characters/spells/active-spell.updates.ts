@@ -7,65 +7,39 @@ import {
     maxActiveSpellsFor,
 } from 'src/models/character/active-spell-slots';
 import { TitleType } from 'src/models/enums/title-type.enum';
-import { idForms, sameId } from 'src/mongo/document-id';
-import { SpellStateEntry, usagesFromState } from './spell-state.snapshot';
+import {
+    SpellStateEntry,
+    stateEntryOf,
+    usagesFromState,
+} from './spell-state.snapshot';
+
+// una sola lista (Phase 19 D-07): conosciuta = esiste la voce, equipaggiata = flag della voce; una voce senza flag vale non equipaggiata
+const ACTIVE_STATES_COUNT = {
+    $size: {
+        $filter: {
+            input: { $ifNull: ['$status.spellStates', []] },
+            cond: { $eq: ['$$this.active', true] },
+        },
+    },
+};
 
 // il filtro è la regola (04 D-10): conosciuta, non già attiva, capacità valutata sul documento vivo nello stesso update
-// ogni ref di magia si confronta in entrambe le forme salvate (04 Pitfall 1): filtro e classificatore (sameId) coincidono
 export function equipSpellFilter(
     characterId: Types.ObjectId,
     spellId: Types.ObjectId,
 ) {
     return {
         ...activeCharacterById(characterId),
-        'status.spells': { $in: idForms(spellId) },
-        'assets.activeSpells.spell': { $nin: idForms(spellId) },
-        $expr: {
-            $lt: [
-                { $size: { $ifNull: ['$assets.activeSpells', []] } },
-                maxActiveSpellsExpression(),
-            ],
+        'status.spellStates': {
+            $elemMatch: { spell: spellId, active: { $ne: true } },
         },
+        $expr: { $lt: [ACTIVE_STATES_COUNT, maxActiveSpellsExpression()] },
     };
 }
 
-// equip non tocca usi né recuperi (D-01, D-07; Phase 4 D-11 superata): il mirror nasce uguale alla voce di stato nello stesso update, maxUsages solo se la voce manca
-export function equipSpellUpdate(spellId: Types.ObjectId, maxUsages: number) {
-    const stateUsages = {
-        $let: {
-            vars: {
-                state: {
-                    $arrayElemAt: [
-                        {
-                            $filter: {
-                                input: { $ifNull: ['$status.spellStates', []] },
-                                cond: { $eq: ['$$this.spell', spellId] },
-                            },
-                        },
-                        0,
-                    ],
-                },
-            },
-            in: '$$state.usages',
-        },
-    };
-    return [
-        {
-            $set: {
-                'assets.activeSpells': {
-                    $concatArrays: [
-                        { $ifNull: ['$assets.activeSpells', []] },
-                        [
-                            {
-                                spell: spellId,
-                                usages: { $ifNull: [stateUsages, maxUsages] },
-                            },
-                        ],
-                    ],
-                },
-            },
-        },
-    ];
+// equip e unequip non toccano usi né recuperi (D-01, D-07): solo il flag della voce `s` di spellStateArrayFilters
+export function equipSpellUpdate() {
+    return { $set: { 'status.spellStates.$[s].active': true } };
 }
 
 export function unequipSpellFilter(
@@ -74,49 +48,38 @@ export function unequipSpellFilter(
 ) {
     return {
         ...activeCharacterById(characterId),
-        'assets.activeSpells.spell': { $in: idForms(spellId) },
+        'status.spellStates': { $elemMatch: { spell: spellId, active: true } },
     };
 }
 
-export function unequipSpellUpdate(spellId: Types.ObjectId) {
-    return {
-        $pull: { 'assets.activeSpells': { spell: { $in: idForms(spellId) } } },
-    };
+export function unequipSpellUpdate() {
+    return { $set: { 'status.spellStates.$[s].active': false } };
 }
 
 export const ACTIVE_SPELL_SNAPSHOT_PROJECTION = {
-    'status.spells': 1,
     'status.xp': 1,
     'status.title': 1,
     'status.spellStates': 1,
-    'assets.activeSpells': 1,
 };
 
 export interface ActiveSpellSnapshot {
     status?: {
-        spells?: unknown[];
         xp?: number;
         title?: TitleType;
         spellStates?: SpellStateEntry[];
     };
-    assets?: { activeSpells?: { spell?: unknown; usages?: number }[] };
 }
 
-function isKnown(snapshot: ActiveSpellSnapshot, spellId: Types.ObjectId) {
-    return (snapshot.status?.spells ?? []).some((spell) =>
-        sameId(spell, spellId),
-    );
-}
-
-function activeEntryOf(snapshot: ActiveSpellSnapshot, spellId: Types.ObjectId) {
-    return (snapshot.assets?.activeSpells ?? []).find((active) =>
-        sameId(active.spell, spellId),
-    );
+function isActive(snapshot: ActiveSpellSnapshot, spellId: Types.ObjectId) {
+    return stateEntryOf(snapshot.status?.spellStates, spellId)?.active === true;
 }
 
 function hasNoFreeSlot(snapshot: ActiveSpellSnapshot) {
+    const activeStates = (snapshot.status?.spellStates ?? []).filter(
+        (state) => state.active === true,
+    );
     return (
-        (snapshot.assets?.activeSpells ?? []).length >=
+        activeStates.length >=
         maxActiveSpellsFor(snapshot.status?.xp ?? 0, snapshot.status?.title)
     );
 }
@@ -127,8 +90,9 @@ export function classifyEquipSpellFailure(
     spellId: Types.ObjectId,
 ): Error | undefined {
     if (!snapshot) return ResourceNotFoundException.character();
-    if (!isKnown(snapshot, spellId)) return GameRuleException.spellNotKnown();
-    if (activeEntryOf(snapshot, spellId))
+    if (!stateEntryOf(snapshot.status?.spellStates, spellId))
+        return GameRuleException.spellNotKnown();
+    if (isActive(snapshot, spellId))
         return GameRuleException.spellAlreadyActive();
     if (hasNoFreeSlot(snapshot))
         return GameRuleException.maxActiveSpellsReached();
@@ -143,14 +107,13 @@ export function classifyUnequipSpellFailure(
     return GameRuleException.spellNotActive();
 }
 
-// attiva dallo slot, usi dalla voce di stato (D-03): il mirror non decide mai
+// attiva e usi dalla stessa voce (D-07): prima il flag, poi gli usi
 export function classifyUseSpellFailure(
     snapshot: ActiveSpellSnapshot | null,
     spellId: Types.ObjectId,
 ): Error | undefined {
     if (!snapshot) return ResourceNotFoundException.character();
-    if (!activeEntryOf(snapshot, spellId))
-        return GameRuleException.spellNotActive();
+    if (!isActive(snapshot, spellId)) return GameRuleException.spellNotActive();
     if (usagesFromState(snapshot.status?.spellStates, spellId) < 1)
         return GameRuleException.spellNoUsagesLeft();
     return undefined;

@@ -15,6 +15,8 @@ import { persistPoi } from './poi.fixture';
  *    since overrides replace status/assets whole:
  *    status: { ...buildCharacter().status, spells: book.spells, spellStates: book.spellStates },
  *    assets: { ...buildCharacter().assets, activeSpells: book.activeSpells }
+ *    The single list alone (Phase 19 D-07), with the active flag on every entry:
+ *    status: { ...buildCharacter().status, spellStates: spellStatesOf(entries) }
  */
 export function buildCharacter(overrides: Record<string, any> = {}) {
     return {
@@ -72,15 +74,11 @@ export function spellStatesOf(entries: readonly SpellBookEntry[]) {
     }));
 }
 
-// stato coerente per i test (D-03): spells, spellStates e activeSpells con lo stesso ordine; il mirror vale quanto lo stato (D-04)
+// stato coerente per i test (D-03): spells, spellStates e activeSpells con lo stesso ordine; le due liste vecchie restano finché gli esiti le leggono (Phase 19 D-07)
 export function spellBook(entries: readonly SpellBookEntry[]) {
     return {
         spells: entries.map((entry) => entry.spell),
-        spellStates: entries.map((entry) => ({
-            spell: new Types.ObjectId(String(entry.spell)),
-            usages: entry.usages,
-            recoveries: [...(entry.recoveries ?? [])],
-        })),
+        spellStates: spellStatesOf(entries),
         activeSpells: entries
             .filter((entry) => entry.active)
             .map((entry) => ({ spell: entry.spell, usages: entry.usages })),

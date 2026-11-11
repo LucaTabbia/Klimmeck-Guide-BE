@@ -151,11 +151,8 @@ export class CharactersService {
             }
         });
 
-        // usi dallo stato, ordine degli slot, orfani fuori dal filo (D-04a, D-05)
-        const wire = spellsOnTheWire(
-            character.status,
-            character.assets.activeSpells,
-        );
+        // le equipaggiate derivano dalle voci attive, in ordine di apprendimento; orfani fuori dal filo (Phase 19 D-07, D-16)
+        const wire = spellsOnTheWire(character.status);
         character.status.spellStates = wire.spellStates;
         character.assets.activeSpells = wire.activeSpells;
         character.assets.ownedPets = ownedPetsOnTheWire(
@@ -241,19 +238,20 @@ export class CharactersService {
         const spellId = objectIdFromHex(request.spellId);
         if (!spellId) throw GameRuleException.spellNotKnown();
 
-        // usi copiati dalla voce di stato (D-01, D-07): il valore del client è ignorato; maxUsages del catalogo solo come fallback della pipeline
+        // controllo di esistenza a catalogo: una magia assente o con maxUsages malformato risponde NOT_FOUND, come recoveryTime in useSpell; gli usi del client sono ignorati (D-01)
         const spell = await this.spellModel
             .findById(spellId, { maxUsages: 1 })
             .lean<{ maxUsages?: unknown } | null>()
             .exec();
-        // un maxUsages malformato vale come magia assente, come recoveryTime in useSpell: il fallback non scrive mai un uso nullo
-        const maxUsages = spell?.maxUsages;
-        if (!isUsageCount(maxUsages)) throw ResourceNotFoundException.spell();
+        if (!isUsageCount(spell?.maxUsages))
+            throw ResourceNotFoundException.spell();
 
+        // un solo update: il flag della voce, con la capacità valutata sul documento vivo (Phase 19 D-07)
         const equipped = await this.characterModel
             .updateOne(
                 equipSpellFilter(characterId, spellId),
-                equipSpellUpdate(spellId, maxUsages),
+                equipSpellUpdate(),
+                spellStateArrayFilters(spellId),
             )
             .exec();
         if (equipped.matchedCount === 0) {
@@ -277,7 +275,8 @@ export class CharactersService {
         const unequipped = await this.characterModel
             .updateOne(
                 unequipSpellFilter(characterId, spellId),
-                unequipSpellUpdate(spellId),
+                unequipSpellUpdate(),
+                spellStateArrayFilters(spellId),
             )
             .exec();
         if (unequipped.matchedCount === 0) {
@@ -333,7 +332,7 @@ export class CharactersService {
         if (!spell || !Number.isFinite(spell.recoveryTime))
             throw ResourceNotFoundException.spell();
 
-        // un solo update: usi della voce di stato e del mirror, istante in ordine crescente (D-04a, D-06)
+        // un solo update sulla voce di stato: usi e istante in ordine crescente (D-04a, D-06, Phase 19 D-07)
         const dueAt = recoveryDueAt(this.clock.now(), spell.recoveryTime);
         const used = await this.characterModel
             .updateOne(
