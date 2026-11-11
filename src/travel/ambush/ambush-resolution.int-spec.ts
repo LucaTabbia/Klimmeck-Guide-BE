@@ -8,10 +8,12 @@ import { travelJobId } from 'src/travel/travel-job';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildQuest,
+    persistPet,
     persistQuest,
     persistSpell,
     spellBook,
 } from '../../../test/fixtures';
+import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
     createOutcomeHarness,
     type OutcomeHarness,
@@ -48,6 +50,10 @@ const LEVEL_TWO_XP = 250;
 const LEVEL_TWENTY_XP = 50_000;
 const WOLF_XP = 5;
 const RECOVERY_MS = 5_000;
+// lontano dal mezzo punto dell'arrotondamento: round(7 × 0,10) = 1, ancora nella fascia 4–7 del livello 1
+const COMPANION_WOLF_XP = 7;
+const COMPANION_SHARE = 1;
+const COMPANION_LIFE = 7;
 
 describe('AmbushResolutionService (replica set)', () => {
     const clock = new FixedClock(START);
@@ -102,6 +108,27 @@ describe('AmbushResolutionService (replica set)', () => {
 
     const ambushJobs = () =>
         travelQueue.added.filter((job) => job.name === 'ambush');
+
+    // in viaggio col compagno equipaggiato (voce a xp 0, tetto 100) accanto a un altro pet posseduto
+    const travellerWithCompanion = async () => {
+        const companion = (await persistPet(world.models.pets, { maxXp: 100 }))
+            ._id;
+        const other = (await persistPet(world.models.pets, { name: 'Altro' }))
+            ._id;
+        const ownedPets = [
+            buildOwnedPet(other, { xp: 12 }),
+            buildOwnedPet(companion, { currentLifePoints: COMPANION_LIFE }),
+        ];
+        await world.models.enemies.updateOne(
+            { _id: enemies.wolf },
+            { $set: { xp: COMPANION_WOLF_XP } },
+        );
+        const subject = await traveller({
+            km: 10,
+            characterOverrides: { assets: { pet: companion, ownedPets } },
+        });
+        return { subject, companion, ownedPets };
+    };
 
     beforeAll(async () => {
         world = await createOutcomeHarness({
@@ -251,6 +278,28 @@ describe('AmbushResolutionService (replica set)', () => {
             }),
         );
         expect(await world.models.questResults.countDocuments()).toBe(0);
+    });
+
+    it('raises the equipped companion and holds its gain in the report on a won ambush (D-04, D-19)', async () => {
+        const { subject, companion, ownedPets } =
+            await travellerWithCompanion();
+        chance.load([0, 0]);
+
+        await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        const raw = await rawOf(subject);
+        expect(raw.assets.ownedPets).toEqual([
+            ownedPets[0],
+            {
+                pet: companion,
+                xp: COMPANION_SHARE,
+                currentLifePoints: COMPANION_LIFE,
+            },
+        ]);
+        expect(raw.status.xp).toBe(40 + COMPANION_WOLF_XP);
+        expect(raw.status.activeTravel.ambushReports.at(-1).petXpGained).toBe(
+            COMPANION_SHARE,
+        );
     });
 
     it('stops redrawing with less than ten km left and re-enqueues the arrival (D-03, D-13)', async () => {
@@ -446,6 +495,21 @@ describe('AmbushResolutionService (replica set)', () => {
             expect(raw.status.awaitingAid ?? null).toBeNull();
             expect(raw.status.xp).toBe(before.status.xp);
             expect(raw.status.coins).toEqual(before.status.coins);
+        });
+
+        it('awards no companion xp on a lost ambush (D-04)', async () => {
+            const { subject, ownedPets } = await travellerWithCompanion();
+            defeatOf(subject);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const raw = await rawOf(subject);
+            expect(raw.assets.ownedPets).toEqual(ownedPets);
+            expect(
+                raw.status.activeTravel.ambushReports.at(-1).petXpGained,
+            ).toBe(0);
         });
 
         it('rewrites the travel from the point towards the nearest city by road (D-11)', async () => {
