@@ -516,8 +516,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     it('writes the spell state contract into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
-        expect(schema).toContain(
-            'type SpellState {\n  recoveries: [DateTime!]!\n  spell: Spell!\n  usages: Int!\n}',
+        expect(schema.match(/type SpellState \{[^}]*\}/)?.[0]).toBe(
+            'type SpellState {\n  active: Boolean!\n  recoveries: [DateTime!]!\n  spell: Spell!\n  usages: Int!\n}',
         );
         expect(schema.match(/type ActiveSpell \{[^}]*\}/)?.[0]).toBe(
             'type ActiveSpell {\n  spell: Spell\n  usages: Int!\n}',
