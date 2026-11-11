@@ -1,12 +1,12 @@
 ---
 phase: 19-revisione-dei-modelli
-fixed_at: 2026-11-11T10:07:11Z
+fixed_at: 2026-11-11T10:34:09Z
 review_path: .planning/phases/19-revisione-dei-modelli/19-REVIEW-RULINGS.md
 iteration: 1
-findings_in_scope: 7
-fixed: 7
-skipped: 0
-status: all_fixed
+findings_in_scope: 16
+fixed: 15
+skipped: 1
+status: partial
 ---
 
 # Phase 19: Code Review Fix Report
@@ -14,7 +14,7 @@ status: all_fixed
 **Sorgente:** `19-REVIEW-RULINGS.md` (ruling su `19-REVIEW-A.md`, `19-REVIEW-B.md`, `19-REVIEW-C.md`)
 **Iterazione:** 1
 
-I conteggi del frontmatter valgono per il solo Blocco 1; il Blocco 2 lo aggiunge il secondo fixer.
+I conteggi del frontmatter contano le righe «FIX» dei due blocchi (7 del Blocco 1, 9 del Blocco 2): 15 corrette, 1 chiusa con motivo dal fixer (A-IN-02, «FIX se banale»). I conteggi per finding delle tre review sono in fondo al Blocco 2.
 
 ## Blocco 1 — migratore e primo boot
 
@@ -104,3 +104,50 @@ Al primo boot sui dati reali nessuna di queste righe è attesa.
 ---
 
 _Fixer: Claude (gsd-code-fixer), Blocco 1, 2026-11-11_
+
+## Blocco 2 — pet, catalogo, personaggio
+
+Un finding = RED (`test(...)`) + GREEN (`fix(...)`); un refactor senza cambio di comportamento = un solo commit `refactor(...)` con le suite verdi prima e dopo. Lo SDL non cambia.
+
+| Finding | Esito | Commit | Cosa cambia |
+|---------|-------|--------|-------------|
+| A-WR-01 | corretto | RED `931a1e9b`, GREEN `6c24da6e` | Resolver sui campi `base` ed `energy` di `Weaknesses` (`src/enemies/weaknesses.resolver.ts`) che lascia passare solo i valori dei due enum; lista assente o nulla = vuota. Il filtro è uno solo (`src/enemies/known-weaknesses.ts`) e lo usa anche il motore (`combat-context.ts`, che prima aveva la sua copia). Il resolver vive in `WeaknessesModule`, importato da `EnemiesModule`, `QuestsModule`, `QuestResultsModule` e `PendingRequestsModule`. Casi sul filo: `src/enemies/weaknesses.wire.int-spec.ts` (`enemys`, `enemy`, valore fuori enum e liste nulle scritti col driver) e un caso in `quests.resolver.int-spec.ts` (la lista `quests` non si annulla). |
+| A-WR-02 | chiuso per ruling | — | Nessun cambio di codice (ruling dell'utente: i pet leggendari possono uscire dalle quest boss di rango hero). Controllato: nessun titolo di spec né commento afferma il contrario; `pet-prize.spec.ts` pinna già boss/hero → `legendary`. |
+| A-WR-03 | corretto | RED `b7c44299`, GREEN `412127b5` | Un solo helper in `src/characters/pets/owned-pet-entry.ts`: `ownedPetCountOf` (numero da 0 al tetto di `Int` arrotondato per difetto, ogni altro valore 0) e `normalisedOwnedPets` (ref letto anche da stringa, numeri normalizzati, voce senza ref leggibile lasciata fuori). Lo usano il filo (`ownedPetsOnTheWire`: la voce si serve coi numeri validi, quella senza pet popolato resta fuori) e i tre punti che riscrivono l'array intero: premio del compagno (`companion-xp.ts`, quindi esiti e imboscate), pet vinto (`outcome-plan.ts`), negozio (`trade-pets.ts`). Una voce rotta guarisce alla prima riscrittura e non fa più fallire il cast dell'array a ogni tentativo. Casi sul filo in `character-updated.subscription.int-spec.ts`: query `character` e snapshot di `characterUpdated` con `xp` nullo, vita assente, valori frazionari e negativi, ref non leggibile. |
+| A-IN-01 | corretto | `7df00338` (refactor) | Tabelle e primitive del loot (`GeneratedQuestType`, `LootSlot`, `LOOT_POOLS`, `RARITY_RANK`, `indexOf`) nel modulo foglia `src/quests/generation/loot-pools.ts`; `pet-prize.ts` non importa più da `generated-prizes.ts` (che riesporta i nomi per gli importatori esistenti); `import type` per `PetCandidate`. `BOSS_PET_PRIZE_CHANCE` resta definita solo in `pet-prize.ts`. |
+| A-IN-02 | chiuso con motivo | — | Non banale. La lettura dei tetti prima dell'early return è voluta e pinnata («returns the pet caps even without enemies (D-17)» in `resolution-loader.service.spec.ts`): una quest `guard` non ha nemici propri e il premio del compagno sullo scontro di guardia vinto usa proprio i tetti del catalogo della quest, che `encounterCatalogOf` conserva (caso pinnato in `guard-outcome.spec.ts`). Spostare la lettura vorrebbe dire cambiare la firma del loader e chi porta i tetti nello scontro, per risparmiare una query piccola. |
+| A-IN-04 | corretto | RED `f61619e4`, GREEN `7831e7cf` | Gli xp frazionari del compagno si arrotondano per difetto invece di valere 0: il premio non scrive mai sotto la parte intera già posseduta; sopra il tetto non cambia nulla. Dal GREEN di A-WR-03 la regola vive in `ownedPetCountOf` (una sola definizione). |
+| A-IN-05 | corretto | `a50defc2` (refactor) | Una sola guardia `isObjectId` esportata da `src/mongo/document-id.ts` (con il suo caso unitario) al posto delle tre copie. |
+| A-IN-07 | corretto | `69e94eb0` (test) | Caso «refuses a legendary pet curated in the pool with ITEM_NOT_IN_SHOP (D-05, D-27)» in `shop-transaction.service.int-spec.ts`; verde al primo colpo (pinna un comportamento già presente). |
+| B-IN-04 | corretto | RED `71f82f7b`, GREEN `65c03c2a` | `state?.active` e `state?.usages` in `gm-overrides.ts`; caso con un elemento vuoto accanto a una voce senza flag. |
+| B-IN-06 | corretto | `911bb28a` (refactor) | Tolto il wrapper `spellBook()` (i tre chiamanti usano `spellStatesOf`), `StoredSpellState` elenca `active`, i due commenti «slot» parlano ora del flag `active`. |
+| A-IN-03, A-IN-06, A-IN-08, B-IN-01, B-IN-02, B-IN-03, B-IN-05 | chiusi per ruling | — | Non toccati: A-IN-03 è D-28 alla lettera (riga nel runbook); B-IN-03 è coperto dal Blocco 1; gli altri richiedono dati incoerenti scritti a mano a DB o sono forme già esistenti prima della fase. |
+
+I fix di A-WR-01, A-WR-03, A-IN-04 e B-IN-04 sono di logica: coperti da un caso rosso prima e verde dopo, ma da confermare a occhio (stato «corretto, da verificare»).
+
+### Scelte dichiarate
+
+- **A-WR-03, valore oltre il tetto di `Int`:** un numero sopra 2^31 − 1 non è servibile sullo SDL e vale 0, come ogni altro valore non valido (il ruling dice «interi ≥ 0, altrimenti 0»).
+- **A-WR-03, voce senza ref leggibile:** viene tolta dall'array alla prima riscrittura, senza log (le funzioni sono pure e non conoscono l'id del personaggio; il WARN proposto dal reviewer non è nel ruling). Finché nessuno riscrive l'array la voce resta a DB e fuori dal filo.
+- **A-WR-03, ref salvato come stringa:** alla riscrittura torna `ObjectId` (prima restava stringa); il caso della spec del compagno è stato aggiornato di conseguenza, insieme alle due asserzioni d'identità «le altre voci sono lo stesso oggetto», superate dal ruling.
+- **A-WR-01, harness:** nell'app il resolver vale per tutto lo schema; negli harness, che montano un modulo alla volta, vale dove il modulo importa `WeaknessesModule` (i quattro elencati).
+- Nel GREEN di A-WR-03 sono entrate due correzioni delle spec del RED: un caso di `outcome-plan.spec.ts` era finito nel `describe` sbagliato (falliva per un nome non definito) e una fixture di `owned-pets.mapper.spec.ts` riceveva il valore di default al posto di «assente».
+- In `quest-composition.ts` resta una seconda copia locale di `indexOf`: fuori dal finding, non toccata.
+
+### Conteggi finali delle tre review
+
+1 critical, 10 warning, 21 info (32 finding):
+
+- **corretti 16:** 1 critical (C-CR-01), 9 warning (B-WR-01, C-WR-01…06, A-WR-01, A-WR-03), 6 info (A-IN-01, A-IN-04, A-IN-05, A-IN-07, B-IN-04, B-IN-06);
+- **chiusi per ruling 16:** 1 warning (A-WR-02, ruling dell'utente), 15 info (A-IN-02 con motivo dal fixer, A-IN-03, A-IN-06, A-IN-08, B-IN-01, B-IN-02, B-IN-03, B-IN-05, C-IN-01…07).
+
+### Verifiche
+
+- Unit: 276 suite / 3534 test (base 275 / 3507).
+- Integrazione, intero progetto a blocchi sequenziali: 149 suite / 2050 test (base 148 / 2042) — 36/554, 29/422, 35/520, 49/554. Boot reale: 92 test (invariato).
+- `tsc --noEmit` 0 dopo ogni GREEN e a fine blocco; `git diff --exit-code src/schema.gql` 0.
+- Nel range del blocco c'è anche `e67d36a1` (`docs(claude)`, solo `CLAUDE.md`): non è del fixer.
+
+---
+
+_Fixer: Claude (gsd-code-fixer), Blocco 2, 2026-11-11_
