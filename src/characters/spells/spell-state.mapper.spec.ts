@@ -56,7 +56,7 @@ describe('spellStatesOnTheWire', () => {
         expect(spellStatesOnTheWire(null)).toEqual([]);
     });
 
-    it('returns a new list and leaves its input untouched', () => {
+    it('returns a new list and leaves its input untouched (D-07)', () => {
         const spellStates = [state(a, 1, true, [t1]), state(null, 2)];
         const before = spellStates.map((entry) => ({ ...entry }));
 
