@@ -181,3 +181,33 @@ export function legacyCharacterWithEquipment(
         },
     });
 }
+
+export interface LegacySpellListsFixture {
+    spells?: readonly unknown[];
+    spellStates?: readonly unknown[];
+    activeSpells?: readonly unknown[];
+}
+
+// personaggio nella forma vecchia delle magie: conosciute, stati paralleli ed equipaggiate in tre liste; una lista non data resta assente; gli override di `status` e `assets` si fondono con quelli di base
+export function legacyCharacterWithSpells(
+    lists: LegacySpellListsFixture,
+    overrides: RawDocument = {},
+): RawDocument {
+    const { status, assets, ...rest } = overrides;
+    const base = legacyCharacterWithPets([], {
+        ...rest,
+        assets: {
+            activeSpells: lists.activeSpells,
+            ...(assets as RawDocument | undefined),
+        },
+    });
+    return {
+        ...base,
+        status: withoutUndefined({
+            ...(base.status as RawDocument),
+            spells: lists.spells,
+            spellStates: lists.spellStates,
+            ...(status as RawDocument | undefined),
+        }),
+    };
+}
