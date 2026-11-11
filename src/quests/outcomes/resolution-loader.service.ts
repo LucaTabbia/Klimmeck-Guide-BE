@@ -53,6 +53,7 @@ import {
     type OutcomeQuestSnapshot,
 } from './outcome-plan';
 import { StaleResolution } from './outcome-writer.service';
+import { isPetXpCap } from './pets/pet-xp';
 import { type QuestEnemyRef, validQuestEnemiesOf } from './quest-enemies';
 import {
     type PrizesSnapshot,
@@ -119,6 +120,8 @@ export interface ResolutionCatalog {
     loot: ReadonlyMap<string, { effect?: unknown; power?: unknown }>;
     recoveryTimes: ReadonlyMap<string, number>;
     spellMaxUsages: ReadonlyMap<string, number>;
+    // tetti di xp dell'intero catalogo dei pet: solo quelli validi (Phase 19 D-17)
+    petMaxXp: ReadonlyMap<string, number>;
 }
 
 // il catalogo del combattimento senza i premi: quest e imboscate (Phase 15 D-09)
@@ -438,6 +441,7 @@ export class ResolutionLoader {
     ): Promise<CombatCatalog> {
         const enemies = await this.readEnemies(entries, subject);
         const spellMaxUsages = await this.readSpellMaxUsages();
+        const petMaxXp = await this.readPetMaxXp();
         if (enemies.length === 0) {
             return {
                 enemies,
@@ -446,6 +450,7 @@ export class ResolutionLoader {
                 loot: new Map(),
                 recoveryTimes: new Map(),
                 spellMaxUsages,
+                petMaxXp,
             };
         }
         const refs = combatCatalogRefsOf(participants);
@@ -479,6 +484,7 @@ export class ResolutionLoader {
             loot: byHex(loot),
             recoveryTimes: recoveryTimesFrom(spells),
             spellMaxUsages,
+            petMaxXp,
         };
     }
 
@@ -493,6 +499,19 @@ export class ResolutionLoader {
                 isUsageCount(maxUsages)
                     ? [[_id.toHexString(), maxUsages] as const]
                     : [],
+            ),
+        );
+    }
+
+    // tetti dell'intero catalogo (piccolo): il compagno equipaggiato può cambiare fra questa lettura e lo snapshot in sessione
+    private async readPetMaxXp(): Promise<Map<string, number>> {
+        const pets = await this.petModel
+            .find({}, { maxXp: 1 })
+            .lean<CatalogEntry<{ maxXp?: unknown }>[]>()
+            .exec();
+        return new Map(
+            pets.flatMap(({ _id, maxXp }) =>
+                isPetXpCap(maxXp) ? [[_id.toHexString(), maxXp] as const] : [],
             ),
         );
     }
