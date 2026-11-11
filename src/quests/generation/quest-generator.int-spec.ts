@@ -395,10 +395,14 @@ describe('QuestGenerator (replSet)', () => {
                 (quest) => quest.requirements.minTitle === TitleType.legend,
             ),
         ).toEqual([]);
+        // quick 261111-enm: il posto a titolo resta ai soli boss, la enemy porta un posto senza titolo
         for (const quest of created) {
             expect(quest.requirements.requiredAdventurers).toEqual([
                 {
-                    title: quest.requirements.minTitle,
+                    title:
+                        quest.infos.type === QuestType.boss
+                            ? quest.requirements.minTitle
+                            : null,
                     count: quest.requirements.requiredAdventurers[0].count,
                 },
             ]);
@@ -435,8 +439,9 @@ describe('QuestGenerator (replSet)', () => {
                 expect(xpOf(quest)).toBeGreaterThan(RANK_XP_BANDS[rank].max);
                 continue;
             }
+            // quick 261111-enm: un posto senza titolo, il rango resta in minTitle
             expect(quest.requirements.requiredAdventurers).toEqual([
-                { title: rank, count: 1 },
+                { title: null, count: 1 },
             ]);
             const budget = budgetOf(rank, 1);
             expect(xpOf(quest)).toBeGreaterThanOrEqual(budget.min);

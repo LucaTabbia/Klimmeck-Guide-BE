@@ -2639,6 +2639,143 @@ describe('QuestAcceptanceService (replSet)', () => {
             ).toHaveLength(1);
         });
 
+        describe('enemy quests taken by one player of a sufficient rank (quick 261111-enm)', () => {
+            const SEAT_SHAPES: [string, string | null][] = [
+                ['a seat without a title', null],
+                ['the rank-exact seat written before the rule', 'rookie'],
+            ];
+
+            async function generatedQuestOf(
+                type: string,
+                minTitle: string,
+                seat: { title: string | null; count: number },
+            ): Promise<Types.ObjectId> {
+                const base = buildQuest();
+                const quest = await persistQuest(quests, {
+                    generated: true,
+                    infos: {
+                        ...base.infos,
+                        type,
+                        markerLocation: world.questMarker,
+                    },
+                    requirements: {
+                        ...base.requirements,
+                        minTitle,
+                        requiredAdventurers: [seat],
+                    },
+                });
+                return quest._id as Types.ObjectId;
+            }
+
+            it.each(SEAT_SHAPES)(
+                'lets a paladin take a rookie enemy quest with %s, starts it and refuses a second taker',
+                async (_label, title) => {
+                    const { owners, chars } = await heroesRacing(2, 'paladin');
+                    const questId = await generatedQuestOf('enemy', 'rookie', {
+                        title,
+                        count: 1,
+                    });
+
+                    const pqId = await accept(owners[0], chars[0], questId);
+
+                    const quest = await rawQuest(questId);
+                    expect(quest?.registeredAdventurers).toEqual([
+                        {
+                            character: chars[0],
+                            title: 'paladin',
+                            registeredAt: ACCEPTED_AT,
+                        },
+                    ]);
+                    expect(quest?.startedAt).toEqual(ACCEPTED_AT);
+                    expect((await pendingOf(pqId))?.startDate).toEqual(
+                        ACCEPTED_AT,
+                    );
+                    expect(
+                        questQueue.added.filter(
+                            ({ name }) => name === 'resolve',
+                        ),
+                    ).toHaveLength(1);
+                    await expect(
+                        accept(owners[1], chars[1], questId),
+                    ).rejects.toMatchObject({ code: 'QUEST_FULL' });
+                    expect(
+                        (await rawQuest(questId))?.registeredAdventurers,
+                    ).toHaveLength(1);
+                    expect(await pendingCount()).toBe(1);
+                },
+            );
+
+            it.each(SEAT_SHAPES)(
+                'lets exactly one of an adventurer, a hero and a legend racing take the enemy quest with %s',
+                async (_label, title) => {
+                    const titles = ['adventurer', 'hero', 'legend'];
+                    const owners: Types.ObjectId[] = [];
+                    const chars: Types.ObjectId[] = [];
+                    for (const rank of titles) {
+                        owners.push(await ownerWith(0));
+                        chars.push(await characterAt(world.cityMarker, rank));
+                    }
+                    const questId = await generatedQuestOf('enemy', 'rookie', {
+                        title,
+                        count: 1,
+                    });
+
+                    const results = await Promise.allSettled(
+                        chars.map((charId, i) =>
+                            accept(owners[i], charId, questId),
+                        ),
+                    );
+
+                    expect(winnersOf(results)).toHaveLength(1);
+                    expect(losersOf(results)).toEqual([
+                        'QUEST_FULL',
+                        'QUEST_FULL',
+                    ]);
+                    expect(
+                        (await rawQuest(questId))?.registeredAdventurers,
+                    ).toHaveLength(1);
+                    expect(await pendingCount()).toBe(1);
+                },
+            );
+
+            it.each([null, 'paladin'])(
+                'refuses a rookie on a paladin enemy quest with the seat title %p and writes nothing',
+                async (title) => {
+                    const ownerId = await ownerWith(0);
+                    const charId = await characterAt(world.cityMarker);
+                    const questId = await generatedQuestOf('enemy', 'paladin', {
+                        title,
+                        count: 1,
+                    });
+
+                    await expect(
+                        accept(ownerId, charId, questId),
+                    ).rejects.toMatchObject({ code: 'QUEST_TITLE_MISMATCH' });
+
+                    expect(
+                        (await rawQuest(questId))?.registeredAdventurers,
+                    ).toEqual([]);
+                    expect(await pendingCount()).toBe(0);
+                },
+            );
+
+            it('keeps the seats of a generated boss rank-exact', async () => {
+                const { owners, chars } = await heroesRacing(1, 'paladin');
+                const questId = await generatedQuestOf('boss', 'rookie', {
+                    title: 'rookie',
+                    count: 2,
+                });
+
+                await expect(
+                    accept(owners[0], chars[0], questId),
+                ).rejects.toMatchObject({ code: 'QUEST_FULL' });
+
+                expect(
+                    (await rawQuest(questId))?.registeredAdventurers,
+                ).toEqual([]);
+            });
+        });
+
         it('lets exactly one of two concurrent legends take the last hero seat (D-08)', async () => {
             const { owners, chars } = await heroesRacing(2, 'legend');
             const questId = await questOf('boss', {

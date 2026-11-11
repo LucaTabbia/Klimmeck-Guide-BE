@@ -220,6 +220,31 @@ describe('buildAidQuest', () => {
         });
     });
 
+    // quick 261111-enm: la aid di una enemy non eredita il posto a titolo scritto prima della regola
+    it.each([
+        ['the rank-exact seat written before the rule', TitleType.rookie],
+        ['a seat without a title', null],
+    ])(
+        'gives the aid of an enemy quest with %s one rank-free seat (quick 261111-enm)',
+        (_label, title) => {
+            const enemyQuest: AidSourceQuest = {
+                ...original,
+                infos: { ...original.infos, type: QuestType.enemy },
+                requirements: {
+                    minTitle: TitleType.rookie,
+                    requiredAdventurers: [{ title, count: 1 }],
+                },
+            };
+
+            const rescue = buildAidQuest(enemyQuest, [INJURED_ID], AID_ID);
+
+            expect(rescue.requirements.requiredAdventurers).toEqual([
+                { title: null, count: 1 },
+            ]);
+            expect(rescue.requirements.minTitle).toBe(TitleType.rookie);
+        },
+    );
+
     it('does not clone the cure of the failed quest (D-23)', () => {
         const healing = {
             ...original,
@@ -261,6 +286,15 @@ describe('aidSlotsOf', () => {
         expect(copied).toEqual(slots);
         expect(copied).not.toBe(slots);
         copied.forEach((slot, index) => expect(slot).not.toBe(slots[index]));
+    });
+
+    it('reads the seats of an enemy quest as one rank-free seat (quick 261111-enm)', () => {
+        expect(
+            aidSlotsOf([{ title: TitleType.mage, count: 1 }], QuestType.enemy),
+        ).toEqual([{ title: null, count: 1 }]);
+        expect(
+            aidSlotsOf([{ title: TitleType.mage, count: 2 }], QuestType.boss),
+        ).toEqual([{ title: TitleType.mage, count: 2 }]);
     });
 
     it('reads a missing title as a wildcard seat', () => {

@@ -2,7 +2,11 @@ import { Types } from 'mongoose';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
-import { RankSlot, slotsOf } from 'src/quests/acceptance/quest-capacity';
+import {
+    questSlotsOf,
+    RankSlot,
+    soloSlots,
+} from 'src/quests/acceptance/quest-capacity';
 import { type QuestEnemyRef, validQuestEnemiesOf } from '../quest-enemies';
 
 export const AID_TITLE_PREFIX = 'Soccorso: ';
@@ -12,6 +16,7 @@ export interface AidSourceQuest {
     infos: {
         title: string;
         description?: string | null;
+        type?: QuestType;
         markerLocation: unknown;
         enemies?: unknown;
         enemy?: unknown;
@@ -86,9 +91,13 @@ function clonedPrizesOf(
 }
 
 // posti della aid identici a quelli della quest fallita (utente 2026-10-26: "I posti della aid sono identici a quelli della missione da cui è nata."); slot assenti o non validi ⇒ un posto jolly, mai una aid inaccettabile (T-09-86)
-export function aidSlotsOf(requiredAdventurers: unknown): RankSlot[] {
-    const slots = slotsOf(requiredAdventurers);
-    if (slots === 'invalid') return [{ title: null, count: 1 }];
+// i posti sono quelli letti dalla regola del tipo: la aid di una enemy non eredita un posto a titolo (quick 261111-enm)
+export function aidSlotsOf(
+    requiredAdventurers: unknown,
+    type?: QuestType,
+): RankSlot[] {
+    const slots = questSlotsOf(type, requiredAdventurers);
+    if (slots === 'invalid') return soloSlots();
     return slots.map(({ title, count }) => ({ title, count }));
 }
 
@@ -115,7 +124,10 @@ export function buildAidQuest(
         requirements: {
             minTitle: requirements?.minTitle ?? null,
             requiredPoints: null,
-            requiredAdventurers: aidSlotsOf(requirements?.requiredAdventurers),
+            requiredAdventurers: aidSlotsOf(
+                requirements?.requiredAdventurers,
+                infos.type,
+            ),
             recommendedLoot: [...(requirements?.recommendedLoot ?? [])],
         },
         prizes: clonedPrizesOf(original.prizes),

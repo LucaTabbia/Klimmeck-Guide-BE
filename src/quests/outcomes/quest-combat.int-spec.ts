@@ -381,6 +381,34 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         expect(scripted.contexts).toHaveLength(1);
     });
 
+    // quick 261111-enm: il posto a titolo scritto prima della regola non passa alla aid
+    it('gives the aid of a lost enemy quest one rank-free seat (quick 261111-enm)', async () => {
+        const foe = await enemy();
+        const lost = combatQuest('enemy', foe._id);
+        const subject = await fighter('enemy', foe._id, {
+            questOverrides: {
+                ...lost,
+                requirements: {
+                    ...lost.requirements,
+                    minTitle: 'rookie',
+                    requiredAdventurers: [{ title: 'rookie', count: 1 }],
+                },
+            },
+        });
+        scripted
+            .willEnd('failure')
+            .willResolve(subject.characterId, { hpAfter: 300 });
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        const character = await characterOf(subject);
+        const aid = await questOf(character.status.awaitingAid.aidQuest);
+        expect(aid.requirements.minTitle).toBe('rookie');
+        expect(aid.requirements.requiredAdventurers).toEqual([
+            expect.objectContaining({ title: null, count: 1 }),
+        ]);
+    });
+
     it('creates an aid for a lost hunt too', async () => {
         const foe = await enemy();
         const subject = await fighter('hunt', foe._id);

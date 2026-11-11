@@ -140,6 +140,31 @@ describe('quest eligibility rules', () => {
             },
         );
 
+        it.each([
+            [[{ title: TitleType.rookie, count: 1 }]],
+            [[{ title: TitleType.hero, count: 1 }]],
+            [[{ title: TitleType.paladin, count: 3 }]],
+        ])(
+            'reads the seats %p of an enemy as one rank-free seat (quick 261111-enm)',
+            (requiredAdventurers) => {
+                expect(
+                    registrationRuleOf(QuestType.enemy, {
+                        requiredAdventurers,
+                    }),
+                ).toEqual({ seats: {}, wildcard: 1, total: 1 });
+            },
+        );
+
+        it('keeps the rank-exact seats of a boss (quick 261111-enm)', () => {
+            expect(
+                registrationRuleOf(QuestType.boss, {
+                    requiredAdventurers: [
+                        { title: TitleType.rookie, count: 2 },
+                    ],
+                }),
+            ).toEqual({ seats: { rookie: 2 }, wildcard: 0, total: 2 });
+        });
+
         it('a registered quest without requirements is invalid', () => {
             expect(registrationRuleOf(QuestType.enemy, null)).toBe('invalid');
             expect(registrationRuleOf(QuestType.aid, {})).toBe('invalid');
@@ -528,6 +553,95 @@ describe('quest eligibility rules', () => {
                 ).toMatchObject({ code: 'QUEST_FULL' });
             },
         );
+
+        describe('enemy quests taken by one player of a sufficient rank (quick 261111-enm)', () => {
+            const enemyOf = (
+                minTitle: TitleType,
+                seatTitle: TitleType | null,
+                registeredAdventurers: QuestEligibilitySnapshot['registeredAdventurers'] = [],
+            ) =>
+                questOf(QuestType.enemy, {
+                    requirements: {
+                        minTitle,
+                        requiredAdventurers: [{ title: seatTitle, count: 1 }],
+                    },
+                    registeredAdventurers,
+                });
+            const SEAT_SHAPES: [string, TitleType | null][] = [
+                ['a seat without a title', null],
+                [
+                    'the rank-exact seat written before the rule',
+                    TitleType.rookie,
+                ],
+            ];
+            const HIGHER_TITLES = [
+                TitleType.rookie,
+                TitleType.adventurer,
+                TitleType.paladin,
+                TitleType.mage,
+                TitleType.hero,
+                TitleType.legend,
+            ];
+
+            describe.each(SEAT_SHAPES)('with %s', (_label, seatTitle) => {
+                it.each(HIGHER_TITLES)(
+                    'lets a %s take a rookie enemy quest',
+                    (title) => {
+                        expect(
+                            classify(
+                                enemyOf(TitleType.rookie, seatTitle),
+                                characterOf(title),
+                            ),
+                        ).toBeNull();
+                    },
+                );
+
+                it('refuses a second taker of any rank as full', () => {
+                    const taken = enemyOf(TitleType.rookie, seatTitle, [
+                        {
+                            character: new Types.ObjectId(),
+                            title: TitleType.legend,
+                        },
+                    ]);
+
+                    for (const title of HIGHER_TITLES) {
+                        expect(
+                            classify(taken, characterOf(title)),
+                        ).toMatchObject({ code: 'QUEST_FULL' });
+                    }
+                });
+            });
+
+            it.each([null, TitleType.paladin])(
+                'refuses a rookie on a paladin enemy quest with the seat title %p',
+                (seatTitle) => {
+                    expect(
+                        classify(
+                            enemyOf(TitleType.paladin, seatTitle),
+                            characterOf(TitleType.rookie),
+                        ),
+                    ).toMatchObject({ code: 'QUEST_TITLE_MISMATCH' });
+                },
+            );
+
+            it('keeps the seats of a boss rank-exact', () => {
+                const boss = questOf(QuestType.boss, {
+                    requirements: {
+                        minTitle: TitleType.rookie,
+                        requiredAdventurers: [
+                            { title: TitleType.rookie, count: 2 },
+                        ],
+                    },
+                });
+
+                expect(
+                    classify(boss, characterOf(TitleType.rookie)),
+                ).toBeNull();
+                expect(
+                    classify(boss, characterOf(TitleType.paladin)),
+                ).toMatchObject({ code: 'QUEST_FULL' });
+            });
+        });
 
         it('applies the canonical case shared with the FE (D-32)', () => {
             const quest = questOf(QuestType.worldMission, {
