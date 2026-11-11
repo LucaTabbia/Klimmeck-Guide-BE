@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 19 — Revisione dei modelli — in pianificazione su `feat/19-revisione-dei-modelli` (riallineato a `develop` `bc92fb6f`); la Phase 18 è chiusa (PR #31 mergiata, contenuto a DB, BE-HEAL-01..09 completi) (↔ FE Phase 19, piani gated dalla merge di questa fase)
+**Current focus:** Phase 19 — Revisione dei modelli — eseguita (23/23) su `feat/19-revisione-dei-modelli`, PR verso `develop` in draft a cura dell'orchestratore; restano dentro la fase il boot reale col migratore, il contenuto dei pet a DB e la rimozione del modulo una tantum (runbook in `.planning/phases/19-revisione-dei-modelli/BACKEND-NOTES.md` §3); la Phase 18 è chiusa (PR #31 mergiata, contenuto a DB, BE-HEAL-01..09 completi) (↔ FE Phase 19, piani gated dalla merge di questa fase)
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
-Phase: 19 di 20 (Revisione dei modelli) — contesto del 2026-11-09 (D-01..D-15), `19-REPO-RULES.md` con i nomi del contratto scritto l'11 novembre 2026; ricerca e piani in corso
+Phase: 19 di 20 (Revisione dei modelli) — contesto del 2026-11-09 (D-01..D-15) esteso l'11 novembre 2026 (D-16..D-28), `19-REPO-RULES.md` coi nomi del contratto; 23 piani eseguiti l'11 novembre 2026
 Plan: 22 of 23
-Status: Pronta per l'esecuzione — Phase 18 completa (PR #31 su `develop`, contenuto verificato a DB); Phase 19 pianificata in 23 piani sequenziali (catalogo 01–11, mondo 12–14, personaggio 15–20, rarità e pet in premio 21–22, gate 23); BE-MODEL-10..12 aggiunti a plan in corso.
-Last activity: 2026-11-11 -- Phase 19: ricerca, regole, 23 piani, mappa di validazione
-Next step: esecuzione dei piani 19-01..19-23 (`/gsd-execute-phase 19`), review, verifica, security; poi PR in draft, boot reale col migratore (processo dell'utente fermo, backup prima), script di contenuto dei pet con prova a secco, rimozione del modulo in TDD, PR pronta; la FE esegue i piani gated dopo la merge.
+Status: Phase 19 eseguita (23/23), PR in draft, boot reale col migratore e contenuto a cura dell'orchestratore — gate 19-23 verde (`tsc` 0, unit 275 suite / 3501 test, integration 148 suite / 2033 test, boot reale 91 test, SDL cambiato solo come dichiarato, coverage per cartella sopra le sette soglie a rischio); BE-MODEL-01, 02, 03, 05, 06, 07, 08 chiusi dal codice; BE-MODEL-09 e le parti di contenuto di BE-MODEL-04, 10, 11 e 12 restano aperti e si chiudono dentro la fase.
+Last activity: 2026-11-11 -- Phase 19 eseguita (23/23): gate, handoff `BACKEND-NOTES.md` per la FE Phase 19 con il runbook del boot reale, validazione firmata, sette requisiti chiusi dal codice
+Next step: `npm run test:cov` in background (orchestratore), review, verifica, security; poi PR in draft e runbook del handoff §3 — processo dell'utente fermo, backup, prova a secco, build SOLO dalla HEAD della fase, primo boot (nove righe) e secondo boot a zero, script di contenuto dei pet con prova a secco (D-25..D-28), rimozione del modulo in TDD, chiusura di BE-MODEL-04, 09, 10, 11 e 12, PR pronta; mai codice pre-19 sul database migrato; la FE esegue i piani gated dopo la merge.
 
 ## Current Milestone
 
@@ -77,6 +77,6 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 
 ## Session Continuity
 
-Last session: 2026-11-10 — apertura della milestone v1.1 (FE e BE)
-Stopped at: Phase 18 codice completo (11/11, 2026-11-10) — PR in draft, contenuto a DB dopo la merge
-Resume file: .planning/phases/18-quest-heal-per-taglia/BACKEND-NOTES.md
+Last session: 2026-11-11 — esecuzione della Phase 19 (23 piani)
+Stopped at: Phase 19 codice completo (23/23, 2026-11-11) — PR in draft, boot reale col migratore, contenuto e rimozione del modulo a cura dell'orchestratore
+Resume file: .planning/phases/19-revisione-dei-modelli/BACKEND-NOTES.md

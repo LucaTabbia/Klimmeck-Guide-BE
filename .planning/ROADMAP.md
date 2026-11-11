@@ -128,6 +128,8 @@ Plans:
 - [x] 19-22-PLAN.md — D-28 pet in premio nelle quest generate per nemico e zona: `Pet.enemy`, `petPrizeOf`, generatore
 - [ ] 19-23-PLAN.md — Gate, `BACKEND-NOTES.md` (tabella SDL, runbook del boot reale e del contenuto), validazione
 
+**Stato (2026-11-11)**: 23/23 piani eseguiti; PR verso `develop` in draft a cura dell'orchestratore; BE-MODEL-09 e le parti di contenuto di BE-MODEL-04, BE-MODEL-10, BE-MODEL-11 e BE-MODEL-12 restano aperti e si chiudono dentro la fase dopo il boot reale col migratore, lo script di contenuto e la rimozione del modulo (runbook in `.planning/phases/19-revisione-dei-modelli/BACKEND-NOTES.md` §3)
+
 ### Phase 20: Cibo e vita progressivi in viaggio
 **Goal**: Cibo e vita del viaggio si pagano mentre si cammina. La partenza calcola e salva il piano (stessa selezione a scarto minimo, stessa anteprima, stesso rifiuto se non si arriva vivi) senza consumare né scalare nulla; lo sweep del viaggio scrive ogni minuto la perdita incrementale dei chilometri scoperti fatti dall'ultimo passaggio (pozioni e danni d'imboscata si sommano, nulla li cancella; mai sotto 1), esatta al chilometro dell'imboscata e all'arrivo; il cibo si toglie in blocco alla fine dei chilometri coperti, all'arrivo o alla sconfitta (selezione sul fabbisogno dei soli chilometri percorsi, sul posseduto in quel momento). La deviazione resta senza cibo e senza fame. Supera la Phase 14 D-04 e la lettura «nessun rimborso» della BE-AMBUSH-05.
 **Depends on**: Phase 14 (piano, selezione, curva, guardie), Phase 15 (km dell'imboscata, deviazione), Phase 18 (pozioni in viaggio), Phase 19 (stesso ramo, eseguita prima)
