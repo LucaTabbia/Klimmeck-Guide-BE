@@ -359,7 +359,7 @@ Controllo finale: 0 pet senza difesa, 0 senza rarità, 31 con nemico, 44 con una
 - nessuna spec che resta usava i builder della cartella rimossa (`spell-state.migrator.int-spec.ts` era già indipendente);
 - coverage per cartella rimisurata (statements / branches / lines): `./src/characters/spells/` 99,11 / 89,1 / 99,33 (soglie 97 / 88 / 97); `./src/travel/` 98,57 / 84,55 / 99,34 (soglie 97 / 84 / 98). `npm run test:cov` lo rilancia l'orchestratore.
 
-**Ancora da fare, a cura dell'orchestratore:** il **terzo boot reale** dalla build dopo la rimozione (nessuna riga `Revisione dei modelli, …`). Il processo oggi in esecuzione viene dalla build di `66ff10ec`, che contiene ancora il modulo: è innocuo (secondo boot a zero), ma la prova del terzo boot arriva al prossimo riavvio dalla HEAD.
+**Terzo boot reale eseguito dall'orchestratore l'11 novembre 2026** dalla build di `7ca680fa` (cartella del migratore assente da `dist/`): processo in ascolto sulla porta 3001, nessuna riga `Revisione dei modelli, …`, nessun errore, nessun WARN «senza pool». Il BE resta in esecuzione da questa build.
 
 **Nota d'ambiente** (preesistente, non di questa fase): a entrambi i boot il Redis locale non era raggiungibile (`ECONNREFUSED`); gli scheduler hanno loggato il ripiego («lo sweep copre»).
 
@@ -534,7 +534,7 @@ Note del codice per lo script:
 - i pet già posseduti prima dei collegamenti non ricevono le lore a posteriori (a DB oggi nessun personaggio possiede pet);
 - le quest già a tabellone non cambiano: il premio nasce alla generazione.
 
-### Passo 7 — rimozione del modulo in TDD (RESEARCH M-5) — ESEGUITO (commit `c3492ced`, `0822feee`); terzo boot reale ancora da fare
+### Passo 7 — rimozione del modulo in TDD (RESEARCH M-5) — ESEGUITO (commit `c3492ced`, `0822feee`); terzo boot reale eseguito
 
 **Come è andata rispetto al testo qui sotto:** per indicazione dell'orchestratore il caso nuovo si chiama «does not mount the one-off model review migration (D-12)» e il commit GREEN `refactor(migrations): remove the one-off model review migration` (non i due nomi scritti ai punti 1 e 2); i numeri di riga erano quelli previsti. Punti 1, 2, 3 e 5 fatti; **punto 4 (terzo boot reale) aperto**, a cura dell'orchestratore al prossimo riavvio dalla HEAD.
 
@@ -581,7 +581,7 @@ PR fuori dal draft e merge verso `develop`; poi i piani gated della FE Phase 19 
   - **BE-MODEL-10** — 44 pet collegati alle lore, lore nuova «Cavallo da viaggio»;
   - **BE-MODEL-11** — 44 rarità, Molosso vendibile, Scheletro `ultrarare`;
   - **BE-MODEL-12** — 31 legami pet → nemico come ObjectId.
-- **Nessun requisito della fase resta aperto.** Resta un solo passo operativo: il terzo boot reale dalla build dopo la rimozione.
+- **Nessun requisito della fase resta aperto.** Anche il terzo boot reale dalla build dopo la rimozione è stato eseguito (nessuna riga del migratore).
 
 ### Domande e osservazioni per l'utente
 

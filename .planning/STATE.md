@@ -29,7 +29,7 @@ Phase: 19 di 20 (Revisione dei modelli) — COMPLETA l'11 novembre 2026; contest
 Plan: 23 of 23
 Status: Phase 19 COMPLETA (23/23) — review corretta, verifica, security, boot reale (primo boot coi conteggi attesi, secondo a zero), contenuto dei pet a DB (D-25..D-28), modulo una tantum rimosso in TDD (`c3492ced`, `0822feee`); dopo la rimozione `tsc` 0, unit 272 suite / 3497 test, integration 140 suite / 1990 test, boot reale di test 91 test, SDL invariato; BE-MODEL-01..12 tutti chiusi. La milestone v1.1 resta in corso: la Phase 20 non ha ancora piani (i 34 piani contati sono quelli delle Phase 18 e 19).
 Last activity: 2026-11-11 -- Phase 19 completa: boot reale col migratore, contenuto dei pet a DB, rimozione del modulo una tantum in TDD, chiusura di BE-MODEL-04, 09, 10, 11 e 12
-Next step: orchestratore — `npm run test:cov` in background, terzo boot reale dalla build dopo la rimozione (nessuna riga «Revisione dei modelli»: il processo in esecuzione viene ancora dalla build di `66ff10ec`), PR #33 fuori dal draft e merge su `develop`; poi Phase 20 «Cibo e vita progressivi in viaggio» (solo BE) e i piani gated della FE Phase 19 dopo la merge. Mai codice pre-19 sul database migrato.
+Next step: `npm run test:cov` dopo la rimozione, PR #33 fuori dal draft e merge su `develop` (dell'utente); poi Phase 20 «Cibo e vita progressivi in viaggio» (solo BE) e, nel repo FE, i piani gated della FE Phase 19. Il terzo boot reale dalla build di `7ca680fa` è stato eseguito (nessuna riga «Revisione dei modelli»): il BE gira da questa build sulla porta 3001.
 
 ## Current Milestone
 
@@ -63,7 +63,6 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 - **`pointsOfInterest { city { id } }` a profondità 2 non è popolato** (Phase 19, fuori dal ruling C-WR-06): la FE non lo seleziona; vale una regola o resta così?
 - **Sorteggio della lore di studio** (Phase 19): può cadere sulla lore di un pet vinto nello stesso esito (nessun doppione in lista, ma il tiro è «speso»); vale una regola?
 - **Redis locale non raggiungibile ai due boot reali dell'11 novembre 2026** (`ECONNREFUSED`, preesistente): gli scheduler hanno loggato il ripiego («lo sweep copre»).
-- **Terzo boot reale della Phase 19** (build dopo la rimozione del modulo una tantum, nessuna riga «Revisione dei modelli»): da fare al prossimo riavvio del BE dalla HEAD.
 
 ### Quick Tasks Completed (v1.0)
 

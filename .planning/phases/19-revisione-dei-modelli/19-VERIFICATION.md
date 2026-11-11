@@ -186,6 +186,6 @@ _Verifier: Claude (gsd-verifier)_
 | 4. Rimozione del modulo in TDD | Fatta: RED `c3492ced`, GREEN `0822feee`. Cartella `src/migrations/model-review/` assente, `AppModule` e boot di test senza riferimenti (resta il solo caso «does not mount the one-off model review migration (D-12)», nome del modulo come stringa), `tsc` 0, SDL invariato, grep dei nomi vecchi vuoto senza esclusioni. Unit 272 suite / 3497 test, integration 140 suite / 1990 test, boot reale di test 91 test |
 | 5. Chiusura dei requisiti | BE-MODEL-04, 09, 10, 11, 12 chiusi in REQUIREMENTS, ROADMAP e STATE |
 
-**Unico residuo operativo:** il **terzo boot reale** dalla build dopo la rimozione (nessuna riga «Revisione dei modelli») non è ancora stato fatto: il processo in esecuzione viene dalla build di `66ff10ec`, che contiene ancora il modulo (secondo boot a zero, innocuo). Lo fa l'orchestratore al prossimo riavvio dalla HEAD; non tocca il codice né i dati.
+**Nessun residuo operativo.** **Terzo boot reale eseguito dall'orchestratore l'11 novembre 2026** dalla build di `7ca680fa` (cartella del migratore assente da `dist/`): processo in ascolto sulla porta 3001, nessuna riga `Revisione dei modelli, …`, nessun errore, nessun WARN «senza pool». Il BE resta in esecuzione da questa build.
 
 _Aggiornato: 2026-11-11 — esecutore della chiusura (gsd-executor), sui fatti del boot riferiti dall'orchestratore_
