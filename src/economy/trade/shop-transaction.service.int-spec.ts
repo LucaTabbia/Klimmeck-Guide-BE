@@ -201,7 +201,7 @@ describe('ShopTransactionService (replSet)', () => {
     interface TraderInventory {
         ownedEquipments?: OwnedEntry[];
         ownedItems?: OwnedEntry[];
-        wearedEquipment?: Record<string, Types.ObjectId | null>;
+        wornEquipment?: Record<string, Types.ObjectId | null>;
         ownedPets?: OwnedPetSeed[];
         pet?: Types.ObjectId | null;
     }
@@ -366,7 +366,7 @@ describe('ShopTransactionService (replSet)', () => {
                     owned('EquipmentItem', sword, 1),
                     owned('EquipmentItem', helmet, 1),
                 ],
-                wearedEquipment: {
+                wornEquipment: {
                     rightHand: idOf(sword),
                     head: idOf(helmet),
                 },
@@ -387,14 +387,14 @@ describe('ShopTransactionService (replSet)', () => {
             expect(after?.assets.ownedEquipments).toEqual([
                 owned('EquipmentItem', helmet, 1),
             ]);
-            expect(after?.assets.wearedEquipment.rightHand).toBeNull();
-            expect(after?.assets.wearedEquipment.head).toEqual(idOf(helmet));
+            expect(after?.assets.wornEquipment.rightHand).toBeNull();
+            expect(after?.assets.wornEquipment.head).toEqual(idOf(helmet));
         });
 
         it('keeps a worn equipment equipped while a copy remains', async () => {
             const id = await persistTrader(coins(0, 0, 0), {
                 ownedEquipments: [owned('EquipmentItem', sword, 2)],
-                wearedEquipment: { rightHand: idOf(sword) },
+                wornEquipment: { rightHand: idOf(sword) },
             });
 
             await expect(
@@ -412,9 +412,7 @@ describe('ShopTransactionService (replSet)', () => {
             expect(after?.assets.ownedEquipments).toEqual([
                 owned('EquipmentItem', sword, 1),
             ]);
-            expect(after?.assets.wearedEquipment.rightHand).toEqual(
-                idOf(sword),
-            );
+            expect(after?.assets.wornEquipment.rightHand).toEqual(idOf(sword));
         });
 
         it('sells a legacy entry whose item id was stored as a string after the reference migration (D-17d)', async () => {
@@ -1545,7 +1543,7 @@ describe('ShopTransactionService (replSet)', () => {
                 'activeSpells',
                 'ownedEquipments',
                 'ownedItems',
-                'wearedEquipment',
+                'wornEquipment',
             ]);
         });
 

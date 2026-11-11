@@ -134,19 +134,19 @@ export class CharactersService {
             }
         });
 
-        const wearedEquipment = character.assets.wearedEquipment;
+        const wornEquipment = character.assets.wornEquipment;
 
         Object.values(SlotType).forEach((slot) => {
-            const itemId = wearedEquipment[slot];
+            const itemId = wornEquipment[slot];
 
             if (itemId instanceof Types.ObjectId) {
                 const populatedItem = ownedEquipmentsMap.get(
                     itemId.toHexString(),
                 );
                 if (populatedItem) {
-                    wearedEquipment[slot] = populatedItem;
+                    wornEquipment[slot] = populatedItem;
                 } else {
-                    wearedEquipment[slot] = null;
+                    wornEquipment[slot] = null;
                 }
             }
         });
@@ -168,14 +168,14 @@ export class CharactersService {
     async getEquipment(id: string): Promise<Equipment> {
         let query = this.characterModel.findOne(activeCharacterById(id));
         for (const slot of Object.values(SlotType)) {
-            query = query.populate(`assets.wearedEquipment.${slot}`);
+            query = query.populate(`assets.wornEquipment.${slot}`);
         }
         const character = await query.exec();
 
         if (!character) {
             throw ResourceNotFoundException.character();
         }
-        return character.assets.wearedEquipment;
+        return character.assets.wornEquipment;
     }
 
     async equipItem(request: EquipItemRequest): Promise<CommonResponse> {

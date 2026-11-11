@@ -15,7 +15,7 @@ const WORN_EQUIPMENT_SLOTS = [
     'chest',
     'arms',
     'legs',
-    'foots',
+    'feet',
     'leftHand',
     'rightHand',
     'firstAccessory',
@@ -49,7 +49,7 @@ export const MIXED_REF_PATHS: readonly MixedRefPath[] = [
     subdocArray('characters', 'assets.ownedEquipments', 'item'),
     subdocArray('characters', 'assets.ownedItems', 'item'),
     ...WORN_EQUIPMENT_SLOTS.map((slot) =>
-        scalar('characters', `assets.wearedEquipment.${slot}`),
+        scalar('characters', `assets.wornEquipment.${slot}`),
     ),
     subdocArray('characters', 'assets.activeSpells', 'spell'),
     scalar('characters', 'assets.pet'),

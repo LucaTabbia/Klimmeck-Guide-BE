@@ -47,7 +47,7 @@ export function buildCharacter(overrides: Record<string, any> = {}) {
         assets: {
             ownedEquipments: [],
             ownedItems: [],
-            wearedEquipment: {},
+            wornEquipment: {},
             activeSpells: [],
             pet: null,
         },

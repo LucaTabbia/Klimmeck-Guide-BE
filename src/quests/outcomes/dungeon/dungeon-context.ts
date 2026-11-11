@@ -57,7 +57,7 @@ const wornCopiesOf = (
 ): number =>
     Object.values(SlotType).filter(
         (slot) =>
-            refOf(snapshot.assets?.wearedEquipment?.[slot])?.toHexString() ===
+            refOf(snapshot.assets?.wornEquipment?.[slot])?.toHexString() ===
             itemId,
     ).length;
 

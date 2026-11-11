@@ -9,7 +9,7 @@ export enum SlotType {
     head = 'head',
     firstAccessory = 'firstAccessory',
     secondAccessory = 'secondAccessory',
-    foots = 'foots',
+    feet = 'feet',
 }
 
 registerEnumType(SlotType, { name: 'SlotType' });

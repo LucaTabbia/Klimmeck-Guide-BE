@@ -52,12 +52,12 @@ const CREATE_CHARACTER = `
 
 const RACE_TRAITS_QUERY = '{ raceTraits { race minAge maxAge } }';
 
-const EMPTY_WEARED_EQUIPMENT = {
+const EMPTY_WORN_EQUIPMENT = {
     head: null,
     chest: null,
     arms: null,
     legs: null,
-    foots: null,
+    feet: null,
     leftHand: null,
     rightHand: null,
     firstAccessory: null,
@@ -356,7 +356,7 @@ describe('CharacterCreationResolver (wire)', () => {
             expect(raw?.assets.ownedItems).toEqual([]);
             expect(raw?.assets.activeSpells).toEqual([]);
             expect(raw?.assets.pet).toBeNull();
-            expect(raw?.assets.wearedEquipment).toEqual(EMPTY_WEARED_EQUIPMENT);
+            expect(raw?.assets.wornEquipment).toEqual(EMPTY_WORN_EQUIPMENT);
 
             const rawOwner = await rawUser(user._id);
             const currentCharacter = rawOwner?.currentCharacter as unknown;

@@ -169,7 +169,7 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         });
         const subject = await fighter('enemy', foe._id, {
             characterOverrides: {
-                assets: { wearedEquipment: { rightHand: sword._id } },
+                assets: { wornEquipment: { rightHand: sword._id } },
             },
         });
         scripted.willResolve(subject.characterId, { hpAfter: 700 });

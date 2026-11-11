@@ -32,7 +32,7 @@ export class CharacterAssets {
 
     @Field(() => Equipment)
     @Prop({ type: EquipmentSchema })
-    wearedEquipment: Equipment;
+    wornEquipment: Equipment;
 
     @Field(() => [ActiveSpell])
     @Prop({ type: [ActiveSpellSchema] })
@@ -62,7 +62,7 @@ export class CharacterAssetsInput {
     ownedItems: AssetQuantityInput[];
 
     @Field(() => EquipmentInput)
-    wearedEquipment: EquipmentInput;
+    wornEquipment: EquipmentInput;
 
     @Field(() => [ActiveSpellInput])
     activeSpells: ActiveSpellInput[];

@@ -23,6 +23,7 @@ import { MODEL_REVIEW_STEPS, type ModelReviewStep } from './model-review.step';
 import { OwnedPetsStep } from './owned-pets.step';
 import { PetCatalogStep } from './pet-catalog.step';
 import { PoiQuestStep } from './poi-quest.step';
+import { WornEquipmentStep } from './worn-equipment.step';
 
 // lista ordinata (D-13): ogni piano accoda la classe del proprio passo e aggiunge agli imports il forFeature dei modelli che legge
 const STEPS: Type<ModelReviewStep>[] = [
@@ -33,6 +34,7 @@ const STEPS: Type<ModelReviewStep>[] = [
     PoiQuestStep,
     CityShopStep,
     LoreImagePathStep,
+    WornEquipmentStep,
 ];
 
 // importato SOLO da AppModule: gli harness non migrano; rimosso prima della merge

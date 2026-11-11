@@ -18,7 +18,7 @@ export function equipItemFilter(
 }
 
 export function equipItemUpdate(slot: SlotType, itemId: Types.ObjectId | null) {
-    return { $set: { [`assets.wearedEquipment.${slot}`]: itemId } };
+    return { $set: { [`assets.wornEquipment.${slot}`]: itemId } };
 }
 
 export function classifyEquipItemFailure(characterExists: boolean): Error {

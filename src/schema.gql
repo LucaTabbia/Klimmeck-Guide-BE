@@ -83,7 +83,7 @@ type CharacterAssets {
   ownedItems: [AssetQuantity!]!
   ownedPets: [OwnedPet!]!
   pet: Pet
-  wearedEquipment: Equipment!
+  wornEquipment: Equipment!
 }
 
 type CharacterInfos {
@@ -301,8 +301,8 @@ input EquipSpellRequest {
 type Equipment {
   arms: EquipmentItem
   chest: EquipmentItem
+  feet: EquipmentItem
   firstAccessory: EquipmentItem
-  foots: EquipmentItem
   head: EquipmentItem
   leftHand: EquipmentItem
   legs: EquipmentItem
@@ -796,8 +796,8 @@ type ShopPoolReportItem {
 enum SlotType {
   arms
   chest
+  feet
   firstAccessory
-  foots
   head
   leftHand
   legs

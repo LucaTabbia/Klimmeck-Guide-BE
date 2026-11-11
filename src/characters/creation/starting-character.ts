@@ -32,7 +32,7 @@ export interface StartingCharacter {
     assets: {
         ownedEquipments: never[];
         ownedItems: never[];
-        wearedEquipment: Record<string, never>;
+        wornEquipment: Record<string, never>;
         activeSpells: never[];
         ownedPets: never[];
         pet: null;
@@ -77,7 +77,7 @@ export function buildStartingCharacter(
             ownedEquipments: [],
             ownedItems: [],
             // esplicito: senza, Mongoose non crea il sottodocumento e il campo GraphQL non-null si rompe
-            wearedEquipment: {},
+            wornEquipment: {},
             activeSpells: [],
             ownedPets: [],
             pet: null,

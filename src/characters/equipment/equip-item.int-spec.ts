@@ -27,7 +27,7 @@ interface WireBody {
 }
 
 interface RawCharacter {
-    assets: { wearedEquipment: Record<string, unknown> };
+    assets: { wornEquipment: Record<string, unknown> };
 }
 
 function codeOf(body: WireBody): unknown {
@@ -53,13 +53,13 @@ describe('equipItem (wire)', () => {
 
     function ownerOfSword(
         twitchId: string,
-        wearedEquipment: Record<string, unknown> = {},
+        wornEquipment: Record<string, unknown> = {},
     ): Promise<TestPlayer> {
         return playerWith(twitchId, {
             ownedEquipments: [
                 { itemType: 'EquipmentItem', item: sword, quantity: 1 },
             ],
-            wearedEquipment,
+            wornEquipment,
         });
     }
 
@@ -109,13 +109,13 @@ describe('equipItem (wire)', () => {
 
         expect(body.errors).toBeUndefined();
         expect(body.data?.equipItem).toEqual(EQUIPPED);
-        expect(
-            (await rawCharacter(player)).assets.wearedEquipment.head,
-        ).toEqual(sword);
+        expect((await rawCharacter(player)).assets.wornEquipment.head).toEqual(
+            sword,
+        );
         expect(
             await characters.collection.countDocuments({
                 _id: new Types.ObjectId(idOf(player)),
-                'assets.wearedEquipment.head': { $type: 'objectId' },
+                'assets.wornEquipment.head': { $type: 'objectId' },
             }),
         ).toBe(1);
     });
@@ -153,19 +153,19 @@ describe('equipItem (wire)', () => {
 
         expect((await equip(player, {})).data?.equipItem).toEqual(EQUIPPED);
         expect(
-            (await rawCharacter(player)).assets.wearedEquipment.head,
+            (await rawCharacter(player)).assets.wornEquipment.head,
         ).toBeNull();
 
         await characters.collection.updateOne(
             { _id: new Types.ObjectId(idOf(player)) },
-            { $set: { 'assets.wearedEquipment.head': sword } },
+            { $set: { 'assets.wornEquipment.head': sword } },
         );
 
         expect((await equip(player, { itemId: null })).data?.equipItem).toEqual(
             EQUIPPED,
         );
         expect(
-            (await rawCharacter(player)).assets.wearedEquipment.head,
+            (await rawCharacter(player)).assets.wornEquipment.head,
         ).toBeNull();
     });
 
@@ -188,7 +188,7 @@ describe('equipItem (wire)', () => {
         expect(bodies.map((body) => body.data?.equipItem)).toEqual(
             Array.from({ length: 4 }, () => EQUIPPED),
         );
-        const worn = (await rawCharacter(player)).assets.wearedEquipment;
+        const worn = (await rawCharacter(player)).assets.wornEquipment;
         expect([helmet, crown]).toContainEqual(worn.head);
         expect(
             Object.values(worn).filter(
@@ -235,7 +235,7 @@ describe('equipItem (wire)', () => {
             .get(CharactersService)
             .findOne(idOf(player));
 
-        expect(character.assets.wearedEquipment.head).toMatchObject({
+        expect(character.assets.wornEquipment.head).toMatchObject({
             name: 'Elmo',
         });
     });

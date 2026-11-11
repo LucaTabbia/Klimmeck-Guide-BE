@@ -18,7 +18,7 @@ export interface InventoryEntry {
 export interface InventorySnapshot {
     ownedItems?: InventoryEntry[];
     ownedEquipments?: InventoryEntry[];
-    wearedEquipment?: Partial<Record<SlotType, unknown>> | null;
+    wornEquipment?: Partial<Record<SlotType, unknown>> | null;
 }
 
 export interface InventoryOutcome {
@@ -95,7 +95,7 @@ function slotsWearingSoldOut(
         );
     return Object.values(SlotType).filter((slot) =>
         soldOut.some((itemId) =>
-            sameId(snapshot.wearedEquipment?.[slot], itemId),
+            sameId(snapshot.wornEquipment?.[slot], itemId),
         ),
     );
 }

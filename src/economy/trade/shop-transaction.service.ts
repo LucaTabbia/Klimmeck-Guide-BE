@@ -107,7 +107,7 @@ const TRADE_SNAPSHOT_PROJECTION = {
     'status.unlockedLore': 1,
     'assets.ownedItems': 1,
     'assets.ownedEquipments': 1,
-    'assets.wearedEquipment': 1,
+    'assets.wornEquipment': 1,
     'assets.ownedPets': 1,
     'assets.pet': 1,
 };
@@ -119,7 +119,7 @@ function inventoryChanges(
 ) {
     const vacated = Object.fromEntries(
         inventory.vacatedSlots.map((slot) => [
-            `assets.wearedEquipment.${slot}`,
+            `assets.wornEquipment.${slot}`,
             null,
         ]),
     );

@@ -38,7 +38,7 @@ export interface CombatCharacterSnapshot {
         spellStates?: SpellStateEntry[];
     };
     assets?: {
-        wearedEquipment?: Partial<Record<SlotType, unknown>> | null;
+        wornEquipment?: Partial<Record<SlotType, unknown>> | null;
         activeSpells?: { spell?: unknown; usages?: number }[];
         ownedEquipments?: { item?: unknown; quantity?: number }[];
         ownedItems?: { itemType?: string; item?: unknown; quantity?: number }[];
@@ -134,7 +134,7 @@ export const refOf = (value: unknown): Types.ObjectId | null =>
 
 const wornOf = (snapshot: CombatCharacterSnapshot) =>
     Object.values(SlotType).flatMap((slot) => {
-        const itemId = refOf(snapshot.assets?.wearedEquipment?.[slot]);
+        const itemId = refOf(snapshot.assets?.wornEquipment?.[slot]);
         return itemId ? [{ slot, itemId }] : [];
     });
 

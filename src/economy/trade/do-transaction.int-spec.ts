@@ -508,10 +508,10 @@ describe('doTransaction (wire)', () => {
             expect([soldState, keptState]).toContainEqual({
                 coins: after?.status.coins,
                 ownedEquipments: after?.assets.ownedEquipments,
-                head: after?.assets.wearedEquipment.head,
+                head: after?.assets.wornEquipment.head,
             });
             if (isSuccess(sold)) {
-                expect(after?.assets.wearedEquipment.head).toBeNull();
+                expect(after?.assets.wornEquipment.head).toBeNull();
             } else {
                 expect(equipBody.data?.equipItem?.successful).toBe(true);
             }
