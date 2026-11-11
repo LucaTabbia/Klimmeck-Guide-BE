@@ -5,6 +5,7 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import { GeneratedRank } from 'src/quests/generation/generation-rules';
+import { PetCandidate, petPrizeOf } from 'src/quests/generation/pet-prize';
 
 export type GeneratedQuestType = QuestType.enemy | QuestType.boss;
 
@@ -17,11 +18,6 @@ export interface PrizeCatalogItem {
     power?: number | null;
     equipType?: string | null;
     damages?: unknown;
-}
-
-// già filtrati sellable: false dal servizio (D-21)
-export interface PetCandidate {
-    id: string;
 }
 
 export interface GeneratedAssetRef {
@@ -42,6 +38,9 @@ export interface PrizesInput {
     rank: GeneratedRank;
     catalog: readonly PrizeCatalogItem[];
     pets: readonly PetCandidate[];
+    // nemici della quest e tipi del suo POI: legano il pet in premio (Phase 19 D-28)
+    enemyIds: readonly string[];
+    poiTypes: readonly string[];
     chance: ChanceSource;
 }
 
@@ -111,9 +110,6 @@ export const LOOT_POOLS: Readonly<
     },
 };
 
-// «probabilità estremamente bassa» (D-21)
-export const BOSS_PET_PRIZE_CHANCE = 0.01;
-
 export const RARITY_RANK: Readonly<Record<RarityType, number>> = {
     common: 0,
     uncommon: 1,
@@ -167,20 +163,10 @@ function drawSlot(
     return drawn;
 }
 
-function petOf(
-    type: GeneratedQuestType,
-    pets: readonly PetCandidate[],
-    chance: ChanceSource,
-): string | null {
-    if (type !== QuestType.boss) return null;
-    if (chance.next() >= BOSS_PET_PRIZE_CHANCE) return null;
-    if (pets.length === 0) return null;
-    const sorted = [...pets].sort((a, b) => a.id.localeCompare(b.id));
-    return sorted[indexOf(sorted.length, chance)].id;
-}
-
+// ordine dei tiri (le spec a seme fisso ne dipendono): il loot slot per slot, poi per OGNI quest generata
+// un tiro di fascia del pet, più l'indice se la fascia colpita ha candidati (Phase 19 D-28)
 export function prizesOf(input: PrizesInput): GeneratedPrizes {
-    const { type, rank, catalog, pets, chance } = input;
+    const { type, rank, catalog, pets, enemyIds, poiTypes, chance } = input;
     const base = GENERATED_PRIZES[type];
     const multiplier = TIER_MULTIPLIER[rank];
     const randomLoot = LOOT_POOLS[type][rank].flatMap((lootSlot) =>
@@ -190,6 +176,6 @@ export function prizesOf(input: PrizesInput): GeneratedPrizes {
         prizeCoins: fromCopper(base.copper * multiplier),
         xpPrize: base.xp * multiplier,
         randomLoot,
-        pet: petOf(type, pets, chance),
+        pet: petPrizeOf({ type, rank, pets, enemyIds, poiTypes, chance }),
     };
 }

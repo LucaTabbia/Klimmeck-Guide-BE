@@ -319,8 +319,15 @@ describe('quest generation end to end (replSet)', () => {
             poisPerCity: 2,
         });
         const created = await generate();
-        // il tabellone è per area (13.1 D-05): un avventuriero sul marker della prima città
-        const [home] = world.cities;
+        const generated = await generatedQuests();
+        // il tabellone è per area (13.1 D-05): un avventuriero sul marker di una città con una quest generata,
+        // quale che sia la città scelta dal seme (Phase 19 D-28: un tiro in più per quest sposta la distribuzione)
+        const home = world.cities.find((city) =>
+            city.poiIds.some((id) =>
+                id.equals(generated[0]?.infos.markerLocation),
+            ),
+        );
+        if (home === undefined) throw new Error('nessuna quest generata');
         const viewer = await createPlayer(harness, {
             twitchId: `tw-e2e-board-${seq}`,
             characterOverrides: {
@@ -339,7 +346,6 @@ describe('quest generation end to end (replSet)', () => {
         };
 
         expect(body.errors).toBeUndefined();
-        const generated = await generatedQuests();
         expect(generated).toHaveLength(created);
         expect(generated.map((quest) => quest.concludedAt ?? null)).toEqual(
             generated.map(() => null),

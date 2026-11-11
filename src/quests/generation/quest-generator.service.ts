@@ -32,10 +32,11 @@ import { stringsOf } from 'src/mongo/lean-values';
 import { readEnemyCandidates } from 'src/quests/generation/enemy-candidate';
 import { EnemyCandidate } from 'src/quests/generation/enemy-pool';
 import {
-    PetCandidate,
     PrizeCatalogItem,
     prizesOf,
 } from 'src/quests/generation/generated-prizes';
+import { readPetCandidates } from 'src/quests/generation/pet-candidate';
+import { PetCandidate } from 'src/quests/generation/pet-prize';
 import { generatedQuestDraftOf } from 'src/quests/generation/generated-quest-draft';
 import { readPrizeCatalog } from 'src/quests/generation/prize-catalog';
 import {
@@ -192,7 +193,8 @@ export class QuestGenerator extends QuestGenerationTrigger {
     // una quest alla volta fino al target (D-15) col tetto per taglia (13.1 D-04); a mondo pieno 0
     // ordine dei tiri per quest, da non spostare (le spec a seme fisso ne dipendono):
     // pickCity (1) → pickPoi (1) → composeQuest per ogni rango provato (vedi quest-composition.ts)
-    // → prizesOf (vedi generated-prizes.ts) → announcementOf (1, in generated-quest-draft.ts)
+    // → prizesOf (loot, poi un tiro di fascia del pet per ogni quest e l'indice se la fascia ha candidati,
+    // Phase 19 D-28: vedi generated-prizes.ts) → announcementOf (1, in generated-quest-draft.ts)
     private async runOnce(): Promise<number> {
         const world = await this.readWorld();
         const target = this.config.target ?? world.cityCount;
@@ -253,16 +255,16 @@ export class QuestGenerator extends QuestGenerationTrigger {
         city: WorldCity,
         poiId: string,
     ): Promise<GeneratedRank | null> {
-        const composition = this.compositionFor(
-            world,
-            world.poiTypes.get(poiId) ?? [],
-        );
+        const poiTypes = world.poiTypes.get(poiId) ?? [];
+        const composition = this.compositionFor(world, poiTypes);
         if (composition === null) return null;
         const prizes = prizesOf({
             type: composition.type,
             rank: composition.rank,
             catalog: world.catalog,
             pets: world.pets,
+            enemyIds: composition.enemies.map((entry) => entry.enemy.id),
+            poiTypes,
             chance: this.chance,
         });
         const recommendedLoot = recommendedLootOf({
@@ -418,13 +420,8 @@ export class QuestGenerator extends QuestGenerationTrigger {
         return readPrizeCatalog(this.equipmentModel, this.lootModel);
     }
 
-    // pool dei pet da quest: solo i non vendibili (D-21)
-    private async readPets(): Promise<PetCandidate[]> {
-        const pets = await this.petModel
-            .find({ sellable: false })
-            .select('_id')
-            .sort({ _id: 1 })
-            .lean<{ _id: Types.ObjectId }[]>();
-        return pets.map((pet) => ({ id: pet._id.toHexString() }));
+    // tutti i pet con rarità, vendibilità e zona del nemico collegato (Phase 19 D-28)
+    private readPets(): Promise<PetCandidate[]> {
+        return readPetCandidates(this.petModel, this.enemyModel);
     }
 }

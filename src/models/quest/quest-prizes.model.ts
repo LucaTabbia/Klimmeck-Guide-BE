@@ -55,7 +55,7 @@ export class QuestPrizes {
     })
     spell?: Types.ObjectId | Spell | null;
 
-    // pet premio (D-21): il generatore lo mette solo sui boss all'1%, la vittoria lo tira al 20% per vincitore; orfano = null sul filo
+    // pet premio (D-21): il generatore lo offre per nemico, zona o boss (Phase 19 D-28), la vittoria lo tira al 20% per vincitore; orfano = null sul filo
     @Field(() => Pet, { nullable: true })
     @Prop({ type: MongooseSchema.Types.ObjectId, ref: Pet.name, default: null })
     pet?: Types.ObjectId | Pet | null;
