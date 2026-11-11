@@ -198,12 +198,10 @@ describe('Archived characters on player paths (wire)', () => {
                 ...buildCharacter().status,
                 title: 'mage',
                 xp: 25000,
-                spells: book.spells,
                 spellStates: book.spellStates,
             },
             assets: {
                 ...buildCharacter().assets,
-                activeSpells: book.activeSpells,
                 ownedPets: [buildOwnedPet(petA._id as Types.ObjectId)],
             },
         };

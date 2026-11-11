@@ -33,37 +33,30 @@ interface RawState {
 
 interface RawCharacter {
     _id: Types.ObjectId;
-    status: { spells?: unknown[]; spellStates?: RawState[] };
-    assets: { activeSpells?: { spell: unknown; usages: number }[] };
+    status: { spellStates?: RawState[] };
 }
 
 // nome unico: l'indice character_name_active_ci_unique vale anche per gli insert grezzi
 let heroes = 0;
 
-// documento grezzo nella forma della revisione dei modelli (Phase 19 D-07): la sola lista delle voci, nessuna delle due liste vecchie
+// documento grezzo nella forma della revisione dei modelli (Phase 19 D-07): la sola lista delle voci
 function rawCharacter(spellStates: RawState[], deletedAt?: Date) {
     const base = buildCharacter();
     heroes += 1;
     const status: Record<string, unknown> = { ...base.status, spellStates };
-    delete status.spells;
-    const assets: Record<string, unknown> = { ...base.assets };
-    delete assets.activeSpells;
     return {
         _id: new Types.ObjectId(),
         ...base,
         infos: { ...base.infos, name: `Hero ${heroes}` },
         status,
-        assets,
         ...(deletedAt ? { deletedAt } : {}),
     };
 }
 
-// documento scritto prima della revisione: liste vecchie presenti, voci senza il flag oppure del tutto assenti
-function oldShapeCharacter(spells: unknown[], spellStates?: RawState[]) {
+// voci scritte prima della revisione: senza il flag oppure del tutto assenti
+function preReviewCharacter(spellStates?: RawState[]) {
     const doc = rawCharacter(spellStates ?? []);
-    doc.status.spells = spells;
     if (spellStates === undefined) delete doc.status.spellStates;
-    doc.assets.activeSpells = spells.map((spell) => ({ spell, usages: 1 }));
     return doc;
 }
 
@@ -199,22 +192,16 @@ describe('SpellStateMigrator (replSet)', () => {
             expect(await migrator.migrateAll()).toEqual({ trimmed: 0 });
         });
 
-        it('leaves a character still carrying the old lists as stored, in whatever state', async () => {
-            const neverMigrated = oldShapeCharacter([a, 'xyz', orphan]);
-            const reversed = oldShapeCharacter(
-                [a, b],
-                [
-                    { spell: b, usages: 1, recoveries: [hoursFrom(1)] },
-                    { spell: a, usages: 3, recoveries: [] },
-                ],
-            );
-            const orphanState = oldShapeCharacter(
-                [a],
-                [
-                    { spell: a, usages: 1, recoveries: [hoursFrom(1)] },
-                    { spell: b, usages: 2, recoveries: [] },
-                ],
-            );
+        it('leaves a character written before the review as stored, in whatever state', async () => {
+            const neverMigrated = preReviewCharacter();
+            const reversed = preReviewCharacter([
+                { spell: b, usages: 1, recoveries: [hoursFrom(1)] },
+                { spell: a, usages: 3, recoveries: [] },
+            ]);
+            const orphanState = preReviewCharacter([
+                { spell: a, usages: 1, recoveries: [hoursFrom(1)] },
+                { spell: orphan, usages: 2, recoveries: [] },
+            ]);
             await insert(neverMigrated, reversed, orphanState);
             const before = await snapshotAll();
 
@@ -229,10 +216,9 @@ describe('SpellStateMigrator (replSet)', () => {
         });
 
         it('trims a state stored without the flag and adds no flag to it', async () => {
-            const preReview = oldShapeCharacter(
-                [a],
-                [{ spell: a, usages: 3, recoveries: [hoursFrom(-1)] }],
-            );
+            const preReview = preReviewCharacter([
+                { spell: a, usages: 3, recoveries: [hoursFrom(-1)] },
+            ]);
             await insert(preReview);
 
             expect(await migrator.migrateAll()).toEqual({ trimmed: 1 });
@@ -240,10 +226,6 @@ describe('SpellStateMigrator (replSet)', () => {
             const after = await rawOf(preReview._id);
             expect(after.status.spellStates).toEqual([
                 { spell: a, usages: 3, recoveries: [] },
-            ]);
-            expect(after.status.spells).toEqual([a]);
-            expect(after.assets.activeSpells).toEqual([
-                { spell: a, usages: 1 },
             ]);
         });
 

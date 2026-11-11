@@ -498,7 +498,6 @@ describe('AmbushResolutionService (replica set)', () => {
                 active: true,
             },
         ]);
-        expect(raw.assets.activeSpells ?? []).toEqual([]);
     });
 
     it('never pushes on a victory (D-12)', async () => {

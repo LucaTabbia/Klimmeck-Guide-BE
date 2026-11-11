@@ -55,16 +55,12 @@ async function insertBook(
         ...base.status,
         spellStates: spellStatesOf(entries),
     };
-    delete status.spells;
-    const assets: Record<string, unknown> = { ...base.assets };
-    delete assets.activeSpells;
     const _id = new Types.ObjectId();
     await CharacterModel.collection.insertOne({
         ...base,
         _id,
         infos: { ...base.infos, name: `Hero ${heroes}` },
         status,
-        assets,
         ...extra,
     } as never);
     return _id;

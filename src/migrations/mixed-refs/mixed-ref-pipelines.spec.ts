@@ -18,7 +18,7 @@ const SCALAR: MixedRefPath = {
 };
 const ARRAY: MixedRefPath = {
     collection: 'characters',
-    path: 'status.spells',
+    path: 'quests.completedQuests',
     shape: 'array',
 };
 const SUBDOC_ARRAY: MixedRefPath = {
@@ -59,17 +59,17 @@ describe('mixed reference pipelines', () => {
         });
         expect(conversionStage(ARRAY)).toEqual({
             $set: {
-                'status.spells': {
+                'quests.completedQuests': {
                     $cond: {
-                        if: { $isArray: '$status.spells' },
+                        if: { $isArray: '$quests.completedQuests' },
                         then: {
                             $map: {
-                                input: '$status.spells',
+                                input: '$quests.completedQuests',
                                 as: 'ref',
                                 in: expectedConversion('$$ref'),
                             },
                         },
-                        else: '$status.spells',
+                        else: '$quests.completedQuests',
                     },
                 },
             },
@@ -118,7 +118,7 @@ describe('mixed reference pipelines', () => {
 
         expect(convertibleFilter(SCALAR)).toEqual({ currentCharacter: hex });
         expect(convertibleFilter(ARRAY)).toEqual({
-            'status.spells': { $elemMatch: hex },
+            'quests.completedQuests': { $elemMatch: hex },
         });
         expect(convertibleFilter(SUBDOC_ARRAY)).toEqual({
             'assets.ownedItems': { $elemMatch: { item: hex } },

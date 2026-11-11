@@ -154,14 +154,12 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
 
         await service.resolveStandard(triggerOf(subject));
 
-        // lettura grezza: le sole voci cambiano, le liste della forma vecchia restano come sono nate
+        // lettura grezza: la magia imparata è una voce in coda, non attiva
         const raw = await characterOf(subject);
         expect(raw.status.spellStates).toEqual([
             { spell: equipped._id, usages: 1, recoveries: [], active: true },
             { spell: drawn._id, usages: 4, recoveries: [], active: false },
         ]);
-        expect(raw.status.spells ?? []).toEqual([]);
-        expect(raw.assets.activeSpells ?? []).toEqual([]);
     });
 
     it('teaches a magic quest the spell a study draws with the same seed (quick 261110-mag)', async () => {

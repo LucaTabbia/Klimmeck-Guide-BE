@@ -96,12 +96,7 @@ describe('Admin audit log (wire)', () => {
             status: {
                 ...buildCharacter().status,
                 xp: 25000,
-                spells: book.spells,
                 spellStates: book.spellStates,
-            },
-            assets: {
-                ...buildCharacter().assets,
-                activeSpells: book.activeSpells,
             },
         };
         alice = await createPlayer(harness, {

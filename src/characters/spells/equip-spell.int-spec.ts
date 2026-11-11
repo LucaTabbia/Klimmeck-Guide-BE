@@ -26,7 +26,7 @@ const EQUIP_SPELL =
 const UNEQUIP_SPELL =
     'mutation($request: EquipSpellRequest!) { unequipSpell(request: $request) { successful response } }';
 const CHARACTER_SPELLS =
-    'query($id: String!) { character(id: $id) { status { spellStates { active spell { id } } } assets { activeSpells { usages spell { id } } } } }';
+    'query($id: String!) { character(id: $id) { status { spellStates { active spell { id } usages } } } }';
 
 interface WireBody {
     data?: Record<string, unknown> | null;
@@ -46,8 +46,13 @@ interface RawCharacter {
 }
 
 interface WireSpells {
-    status: { spellStates: { active: boolean; spell: { id: string } }[] };
-    assets: { activeSpells: { usages: number; spell: { id: string } }[] };
+    status: {
+        spellStates: {
+            active: boolean;
+            spell: { id: string };
+            usages: number;
+        }[];
+    };
 }
 
 interface Loadout {
@@ -150,7 +155,9 @@ describe('equipSpell / unequipSpell (wire)', () => {
         return String(player.character?._id);
     }
 
-    async function spellsOnTheWireOf(player: TestPlayer): Promise<WireSpells> {
+    async function spellStatesOnTheWireOf(
+        player: TestPlayer,
+    ): Promise<WireSpells> {
         const response: request.Response = await graphqlRequest(
             harness.app,
             CHARACTER_SPELLS,
@@ -268,15 +275,15 @@ describe('equipSpell / unequipSpell (wire)', () => {
                 ).toBe(true);
             }
 
-            const wire = await spellsOnTheWireOf(player);
-            expect(wire.assets.activeSpells).toEqual([
-                { usages: 2, spell: { id: dardo.toHexString() } },
-                { usages: 1, spell: { id: lampo.toHexString() } },
-            ]);
+            const wire = await spellStatesOnTheWireOf(player);
             expect(wire.status.spellStates).toEqual([
-                { active: true, spell: { id: dardo.toHexString() } },
-                { active: false, spell: { id: scudo.toHexString() } },
-                { active: true, spell: { id: lampo.toHexString() } },
+                { active: true, spell: { id: dardo.toHexString() }, usages: 2 },
+                {
+                    active: false,
+                    spell: { id: scudo.toHexString() },
+                    usages: 3,
+                },
+                { active: true, spell: { id: lampo.toHexString() }, usages: 1 },
             ]);
         });
 

@@ -86,6 +86,28 @@ describe('fixtures builders', () => {
         it('starts with empty spell states (D-03)', () => {
             expect(buildCharacter().status.spellStates).toEqual([]);
         });
+
+        it('carries the spell states as the only spell list (D-07)', () => {
+            const hero = buildCharacter();
+
+            expect(Object.keys(hero.status).sort()).toEqual([
+                'coins',
+                'currentLifePoints',
+                'injuries',
+                'level',
+                'location',
+                'maxLifePoints',
+                'spellStates',
+                'title',
+                'xp',
+            ]);
+            expect(Object.keys(hero.assets).sort()).toEqual([
+                'ownedEquipments',
+                'ownedItems',
+                'pet',
+                'wornEquipment',
+            ]);
+        });
     });
 
     describe('spellBook', () => {
@@ -94,30 +116,27 @@ describe('fixtures builders', () => {
         const earlier = new Date('2026-10-27T10:00:00.000Z');
         const later = new Date('2026-10-27T10:05:00.000Z');
 
-        it('builds spells, spell states and active spells in the same order', () => {
-            expect(
-                spellBook([
-                    {
-                        spell: first,
-                        usages: 1,
-                        recoveries: [later, earlier],
-                        active: true,
-                    },
-                    { spell: second, usages: 3 },
-                ]),
-            ).toEqual({
-                spells: [first, second],
-                spellStates: [
-                    {
-                        spell: first,
-                        usages: 1,
-                        recoveries: [later, earlier],
-                        active: true,
-                    },
-                    { spell: second, usages: 3, recoveries: [], active: false },
-                ],
-                activeSpells: [{ spell: first, usages: 1 }],
-            });
+        it('builds the spell states alone, in the given order (D-07)', () => {
+            const book = spellBook([
+                {
+                    spell: first,
+                    usages: 1,
+                    recoveries: [later, earlier],
+                    active: true,
+                },
+                { spell: second, usages: 3 },
+            ]);
+
+            expect(Object.keys(book).sort()).toEqual(['spellStates']);
+            expect(book.spellStates).toEqual([
+                {
+                    spell: first,
+                    usages: 1,
+                    recoveries: [later, earlier],
+                    active: true,
+                },
+                { spell: second, usages: 3, recoveries: [], active: false },
+            ]);
         });
 
         it('builds the single list of spell states with the active flag on every entry (D-07)', () => {
@@ -135,14 +154,12 @@ describe('fixtures builders', () => {
             );
         });
 
-        it('keeps a legacy string ref on spells and active spells and casts it on the state', () => {
+        it('casts a legacy string ref on the state', () => {
             const legacy = new Types.ObjectId().toHexString();
             const book = spellBook([
                 { spell: legacy, usages: 2, active: true },
             ]);
 
-            expect(book.spells[0]).toBe(legacy);
-            expect(book.activeSpells[0].spell).toBe(legacy);
             expect(book.spellStates[0].spell).toBeInstanceOf(Types.ObjectId);
             expect(book.spellStates[0].spell.toHexString()).toBe(legacy);
         });

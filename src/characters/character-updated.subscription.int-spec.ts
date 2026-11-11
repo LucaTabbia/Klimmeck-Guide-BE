@@ -39,7 +39,7 @@ type CharacterUpdatedResult = { characterUpdated: WireCharacter };
 type CharacterSubscription = OpenSubscription<CharacterUpdatedResult>;
 
 const CHARACTER_SPELLS_UPDATED =
-    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { spellStates { spell { id } usages recoveries active } } assets { activeSpells { usages spell { id } } } } }';
+    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { spellStates { active spell { id } usages recoveries } } } }';
 
 const EQUIP_SPELL =
     'mutation($request: EquipSpellRequest!) { equipSpell(request: $request) { successful response } }';
@@ -104,7 +104,6 @@ interface WireSpellCharacter {
             active: boolean;
         }[];
     };
-    assets: { activeSpells: { usages: number; spell: { id: string } }[] };
 }
 
 type SpellsUpdatedResult = { characterUpdated: WireSpellCharacter };
@@ -438,7 +437,6 @@ describe('characterUpdated subscription (wire)', () => {
             ),
         ).toBe(true);
         expect(snapshot.status.spellStates[0].active).toBe(false);
-        expect(snapshot.assets.activeSpells).toEqual([]);
 
         const equipped = await graphqlRequest(
             harness.app,
@@ -454,12 +452,12 @@ describe('characterUpdated subscription (wire)', () => {
                 },
             },
         });
-        // dopo equipSpell la voce è attiva e la lista derivata la serve (D-07)
+        // dopo equipSpell la voce è attiva, con gli usi che aveva (D-07)
         let afterEquip = snapshot;
         while (!afterEquip.status.spellStates[0].active)
             afterEquip = await nextSpellCharacter(subscription);
-        expect(afterEquip.assets.activeSpells).toEqual([
-            { usages: 1, spell: { id: spellId } },
+        expect(afterEquip.status.spellStates).toMatchObject([
+            { active: true, usages: 1, spell: { id: spellId } },
         ]);
 
         const used = await graphqlRequest(
@@ -477,7 +475,7 @@ describe('characterUpdated subscription (wire)', () => {
             },
         });
 
-        // tutte le emissioni fino a quella con l'uso speso: stato e slot coincidono in ognuna
+        // tutte le emissioni fino a quella con l'uso speso: la voce resta l'unica ed equipaggiata in ognuna
         const emissions = [afterEquip];
         let last = afterEquip;
         while (last.status.spellStates[0].usages !== 0) {
@@ -485,12 +483,11 @@ describe('characterUpdated subscription (wire)', () => {
             emissions.push(last);
         }
         for (const emission of emissions) {
-            expect(emission.assets.activeSpells).toHaveLength(1);
-            expect(emission.assets.activeSpells[0].usages).toBe(
-                emission.status.spellStates[0].usages,
-            );
+            expect(emission.status.spellStates).toHaveLength(1);
+            expect(emission.status.spellStates[0].active).toBe(true);
         }
-        expect(last.assets.activeSpells[0]).toEqual({
+        expect(last.status.spellStates[0]).toMatchObject({
+            active: true,
             usages: 0,
             spell: { id: spellId },
         });

@@ -148,16 +148,12 @@ describe('SpellRecoveryProcessor (real Redis)', () => {
             ...base.status,
             spellStates: spellStatesOf(entries),
         };
-        delete status.spells;
-        const assets: Record<string, unknown> = { ...base.assets };
-        delete assets.activeSpells;
         const _id = new Types.ObjectId();
         await characters.collection.insertOne({
             ...base,
             _id,
             infos: { ...base.infos, name: `Hero ${heroes}` },
             status,
-            assets,
         } as never);
         return _id;
     }

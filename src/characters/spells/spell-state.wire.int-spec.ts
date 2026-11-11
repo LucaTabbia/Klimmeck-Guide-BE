@@ -17,7 +17,7 @@ import {
 } from '../../../test/fixtures';
 
 const CHARACTER =
-    'query($id: String!) { character(id: $id) { status { spellStates { spell { id name maxUsages } usages recoveries active } } assets { activeSpells { usages spell { id } } } } }';
+    'query($id: String!) { character(id: $id) { status { spellStates { active spell { id name maxUsages } usages recoveries } } } }';
 
 const EQUIP_SPELL =
     'mutation($request: EquipSpellRequest!) { equipSpell(request: $request) { successful response } }';
@@ -36,7 +36,21 @@ interface WireSpellState {
 
 interface WireCharacter {
     status: { spellStates: WireSpellState[] };
-    assets: { activeSpells: { usages: number; spell: { id: string } }[] };
+}
+
+interface EquippedSpell {
+    usages: number;
+    spell: { id: string };
+}
+
+// quali magie sono equipaggiate, con quanti usi, in che ordine: le voci attive
+function equippedOf(character: WireCharacter): EquippedSpell[] {
+    return character.status.spellStates
+        .filter((state) => state.active)
+        .map((state) => ({
+            usages: state.usages,
+            spell: { id: state.spell.id },
+        }));
 }
 
 interface WireBody {
@@ -157,7 +171,7 @@ describe('spell states on the character query (wire)', () => {
                 state.spell.maxUsages - state.usages,
             );
         }
-        expect(character.assets.activeSpells).toEqual([
+        expect(equippedOf(character)).toEqual([
             { usages: 1, spell: { id: a.toHexString() } },
         ]);
     });
@@ -168,7 +182,7 @@ describe('spell states on the character query (wire)', () => {
         const character = await characterOf(player);
 
         expect(character.status.spellStates).toEqual([]);
-        expect(character.assets.activeSpells).toEqual([]);
+        expect(equippedOf(character)).toEqual([]);
     });
 
     it('keeps the query alive and leaves out the state of a spell deleted from the catalog, active or not', async () => {
@@ -198,12 +212,12 @@ describe('spell states on the character query (wire)', () => {
                 active: true,
             },
         ]);
-        expect(character.assets.activeSpells).toEqual([
+        expect(equippedOf(character)).toEqual([
             { usages: 3, spell: { id: a.toHexString() } },
         ]);
     });
 
-    it('serves a spell state as active after equipSpell, with the usages of the state in the active spells (D-07)', async () => {
+    it('serves a spell state as active after equipSpell, with the usages of the state (D-07)', async () => {
         const a = await catalogSpell('Dardo', 3);
         const player = await playerWith('twitch-wire-equip', [
             {
@@ -212,7 +226,7 @@ describe('spell states on the character query (wire)', () => {
                 recoveries: [fromNow(MINUTE_MS), fromNow(2 * MINUTE_MS)],
             },
         ]);
-        expect((await characterOf(player)).assets.activeSpells).toEqual([]);
+        expect(equippedOf(await characterOf(player))).toEqual([]);
 
         const equipped: request.Response = await graphqlRequest(
             harness.app,
@@ -226,7 +240,7 @@ describe('spell states on the character query (wire)', () => {
         expect(character.status.spellStates).toMatchObject([
             { usages: 1, active: true },
         ]);
-        expect(character.assets.activeSpells).toEqual([
+        expect(equippedOf(character)).toEqual([
             { usages: 1, spell: { id: a.toHexString() } },
         ]);
     });
@@ -251,7 +265,7 @@ describe('spell states on the character query (wire)', () => {
         expect(character.status.spellStates).toMatchObject([
             { usages: 2, active: false },
         ]);
-        expect(character.assets.activeSpells).toEqual([]);
+        expect(equippedOf(character)).toEqual([]);
     });
 
     it('serves the computed max active spells of the character (D-08)', async () => {
@@ -273,7 +287,7 @@ describe('spell states on the character query (wire)', () => {
         });
     });
 
-    it('serves the active spells in the learning order, whatever the old equipped list says (D-16)', async () => {
+    it('serves the active spell states in the learning order (D-16)', async () => {
         const a = await catalogSpell('Dardo', 3);
         const b = await catalogSpell('Scudo', 2);
         const player = await playerWith(
@@ -284,22 +298,10 @@ describe('spell states on the character query (wire)', () => {
             ],
             25000,
         );
-        // scrittura raw: una lista vecchia rimasta sul documento, in un altro ordine e con altri usi, non conta più
-        await characters.collection.updateOne(
-            { _id: new Types.ObjectId(idOf(player)) },
-            {
-                $set: {
-                    'assets.activeSpells': [
-                        { spell: b, usages: 0 },
-                        { spell: a, usages: 0 },
-                    ],
-                },
-            },
-        );
 
         const character = await characterOf(player);
 
-        expect(character.assets.activeSpells).toEqual([
+        expect(equippedOf(character)).toEqual([
             { usages: 3, spell: { id: a.toHexString() } },
             { usages: 2, spell: { id: b.toHexString() } },
         ]);

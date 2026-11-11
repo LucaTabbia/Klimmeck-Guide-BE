@@ -44,7 +44,7 @@ interface RawCharacter {
             active: boolean;
         }[];
     };
-    assets: { activeSpells?: unknown[] };
+    assets: Record<string, unknown>;
 }
 
 let heroes = 0;
@@ -61,16 +61,12 @@ async function insertBook(
         ...base.status,
         spellStates: spellStatesOf(entries),
     };
-    delete status.spells;
-    const assets: Record<string, unknown> = { ...base.assets };
-    delete assets.activeSpells;
     const _id = new Types.ObjectId();
     await CharacterModel.collection.insertOne({
         ...base,
         _id,
         infos: { ...base.infos, name: `Hero ${heroes}` },
         status,
-        assets,
         ...extra,
     } as never);
     return _id;
@@ -170,8 +166,6 @@ describe('SpellRecoveryService (replSet)', () => {
             expect(Object.keys(after.status).sort()).toEqual(
                 Object.keys(before.status).sort(),
             );
-            expect(after.status.spells).toBeUndefined();
-            expect(after.assets.activeSpells).toBeUndefined();
         });
 
         it('credits an active spell state and keeps it active', async () => {
