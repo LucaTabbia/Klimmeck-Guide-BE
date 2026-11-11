@@ -30,7 +30,7 @@ const emptyCatalog: RewardCatalog = {
     rarities: new Map(),
     spells: new Map(),
     spellPool: [],
-    pets: new Set(),
+    pets: new Map(),
 };
 
 const catalog: RewardCatalog = {
@@ -42,7 +42,7 @@ const catalog: RewardCatalog = {
         [SPELL_ID.toHexString(), { minXpToLearn: 4000, maxUsages: 4 }],
     ]),
     spellPool: [],
-    pets: new Set(),
+    pets: new Map(),
 };
 
 const spellOf = (
@@ -81,6 +81,7 @@ describe('drawRewards', () => {
             spellCandidate: null,
             spellDraw: null,
             pet: null,
+            petLifePoints: null,
             loreDraw: null,
         });
     });
@@ -99,6 +100,7 @@ describe('drawRewards', () => {
             spellCandidate: null,
             spellDraw: null,
             pet: null,
+            petLifePoints: null,
             loreDraw: null,
         });
     });
@@ -283,7 +285,7 @@ describe('drawRewards with a pet prize', () => {
     const petCatalog: RewardCatalog = {
         ...catalog,
         spellPool: [SPELL_A],
-        pets: new Set([PET_ID.toHexString()]),
+        pets: new Map([[PET_ID.toHexString(), 450]]),
     };
     const petPrizes = (overrides: PrizesSnapshot = {}): PrizesSnapshot =>
         prizesWith({
@@ -307,12 +309,30 @@ describe('drawRewards with a pet prize', () => {
         expect(chance.drawn).toEqual([0.1, 0.2, 0.7, 0.19]);
     });
 
+    it('carries the catalogue life points of the won pet as they are (D-03)', () => {
+        const won = drawRewards(
+            petPrizes(),
+            petCatalog,
+            new SequenceChance([0.1, 0.2, 0.7, 0.19]),
+        );
+        const malformed = drawRewards(
+            petPrizes(),
+            { ...petCatalog, pets: new Map([[PET_ID.toHexString(), '450']]) },
+            new SequenceChance([0.1, 0.2, 0.7, 0.19]),
+        );
+
+        expect(won.petLifePoints).toBe(450);
+        expect(malformed.pet).toEqual(PET_ID);
+        expect(malformed.petLifePoints).toBe('450');
+    });
+
     it('loses the pet prize on a roll of 20% (D-21)', () => {
         const chance = new SequenceChance([0.1, 0.2, 0.7, 0.2]);
 
         const rewards = drawRewards(petPrizes(), petCatalog, chance);
 
         expect(rewards.pet).toBeNull();
+        expect(rewards.petLifePoints).toBeNull();
         expect(chance.drawn).toEqual([0.1, 0.2, 0.7, 0.2]);
     });
 
@@ -379,7 +399,7 @@ describe('drawRewards with a study lore pool', () => {
                 spellDraw: true,
                 pet: PET_ID,
             }),
-            { ...loreCatalog, pets: new Set([PET_ID.toHexString()]) },
+            { ...loreCatalog, pets: new Map([[PET_ID.toHexString(), 450]]) },
             chance,
         );
 

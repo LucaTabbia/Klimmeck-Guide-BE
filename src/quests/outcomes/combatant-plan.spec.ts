@@ -46,7 +46,7 @@ const catalogWith = (
         rarities: new Map(),
         spells: new Map(),
         spellPool: [],
-        pets: new Set(),
+        pets: new Map(),
     },
     equipment: new Map(),
     spells: new Map(),

@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import type { OwnedPetEntry } from 'src/characters/pets/owned-pet-entry';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
@@ -380,37 +381,44 @@ describe('planParticipant', () => {
     });
 
     describe('the pet prize', () => {
-        const assetsWithPets = (ownedPets: unknown[]) => ({
+        const assetsWithPets = (ownedPets: OwnedPetEntry[]) => ({
             ownedItems: [],
             ownedEquipments: [],
             activeSpells: [],
             ownedPets,
         });
 
-        it('adds the won pet to the owned pets in the same update (D-21)', () => {
+        it('adds the won pet as a whole entry with the catalogue life points (D-03)', () => {
+            const owned = { pet: OWNED_PET_ID, xp: 30, currentLifePoints: 7 };
             const plan = planParticipant(
                 inputWith({
                     snapshot: snapshotWith({
-                        assets: assetsWithPets([OWNED_PET_ID]),
+                        assets: assetsWithPets([owned]),
                     }),
-                    rewards: rewardsWith({ pet: PET_ID }),
+                    rewards: rewardsWith({ pet: PET_ID, petLifePoints: 450 }),
                 }),
             );
 
             expect(plan.update.$set['assets.ownedPets']).toEqual([
-                OWNED_PET_ID,
-                PET_ID,
+                { pet: OWNED_PET_ID, xp: 30, currentLifePoints: 7 },
+                { pet: PET_ID, xp: 0, currentLifePoints: 450 },
             ]);
             expect(plan.result.rewards.pet).toEqual(PET_ID);
         });
 
-        it('writes nothing for a pet already owned (D-21)', () => {
+        it('leaves the owned pets out of the write when the won pet is already an entry (D-03)', () => {
             const plan = planParticipant(
                 inputWith({
                     snapshot: snapshotWith({
-                        assets: assetsWithPets([PET_ID.toHexString()]),
+                        assets: assetsWithPets([
+                            {
+                                pet: PET_ID.toHexString(),
+                                xp: 30,
+                                currentLifePoints: 7,
+                            },
+                        ]),
                     }),
-                    rewards: rewardsWith({ pet: PET_ID }),
+                    rewards: rewardsWith({ pet: PET_ID, petLifePoints: 450 }),
                 }),
             );
 
@@ -439,11 +447,31 @@ describe('planParticipant', () => {
 
         it('starts the owned pets from an empty list when the sheet has none (D-21)', () => {
             const plan = planParticipant(
-                inputWith({ rewards: rewardsWith({ pet: PET_ID }) }),
+                inputWith({
+                    rewards: rewardsWith({ pet: PET_ID, petLifePoints: 450 }),
+                }),
             );
 
-            expect(plan.update.$set['assets.ownedPets']).toEqual([PET_ID]);
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                { pet: PET_ID, xp: 0, currentLifePoints: 450 },
+            ]);
         });
+
+        it.each([null, undefined, -3, 12.5, '450'])(
+            'gives a won pet 0 life points when the catalogue has no valid amount (D-03): %p',
+            (petLifePoints) => {
+                const plan = planParticipant(
+                    inputWith({
+                        rewards: rewardsWith({ pet: PET_ID, petLifePoints }),
+                    }),
+                );
+
+                expect(plan.update.$set['assets.ownedPets']).toEqual([
+                    { pet: PET_ID, xp: 0, currentLifePoints: 0 },
+                ]);
+                expect(plan.result.rewards.pet).toEqual(PET_ID);
+            },
+        );
     });
 
     it('refuses a failure without an aid quest', () => {

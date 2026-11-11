@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import { buildQuest, persistEnemy, persistPet } from '../../../test/fixtures';
+import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
     createOutcomeHarness,
     OUTCOME_START,
@@ -49,10 +50,11 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
         await world.harness.close();
     });
 
-    const questPet = () =>
+    const questPet = (overrides: Record<string, unknown> = {}) =>
         persistPet(world.models.pets, {
             name: 'Gufo delle nevi',
             sellable: false,
+            ...overrides,
         }) as Promise<{ _id: Types.ObjectId }>;
 
     async function petQuest(
@@ -112,7 +114,16 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
     };
 
     const ownedPetsOf = async (subject: Quester) =>
-        ((await characterOf(subject)).assets.ownedPets ?? []).map(String);
+        ((await characterOf(subject)).assets.ownedPets ?? []).map(
+            (entry: { pet: unknown }) => String(entry.pet),
+        );
+
+    const rawOwnedPetsOf = async (subject: Quester) =>
+        (
+            await world.models.characters.collection.findOne({
+                _id: subject.characterId,
+            })
+        )?.assets.ownedPets;
 
     it('adds the pet prize to a winner on a lucky roll (D-21)', async () => {
         const pet = await questPet();
@@ -124,9 +135,7 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
         await expect(resolve(subject)).resolves.toBe('resolved');
 
         const character = await characterOf(subject);
-        expect(character.assets.ownedPets.map(String)).toEqual([
-            String(pet._id),
-        ]);
+        expect(character.assets.ownedPets).toEqual([buildOwnedPet(pet._id)]);
         expect(character.assets.pet ?? null).toBeNull();
         expect(String((await resultOf(subject)).rewards.pet)).toBe(
             String(pet._id),
@@ -151,7 +160,9 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
         const pet = await questPet();
         const subject = await quester({
             questOverrides: await petQuest('enemy', pet._id, ONE_SEAT),
-            characterOverrides: { assets: { ownedPets: [pet._id] } },
+            characterOverrides: {
+                assets: { ownedPets: [buildOwnedPet(pet._id)] },
+            },
         });
         chance.load([LUCKY_ROLL]);
 
@@ -159,6 +170,55 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
 
         expect(await ownedPetsOf(subject)).toEqual([String(pet._id)]);
         expect((await resultOf(subject)).rewards.pet).toBeNull();
+    });
+
+    it('stores the won pet as an entry next to the existing ones (D-03)', async () => {
+        const pet = await questPet({ maxLifePoints: 450 });
+        const companion = await questPet({ name: 'Lupo grigio' });
+        const subject = await quester({
+            questOverrides: await petQuest('enemy', pet._id, ONE_SEAT),
+            characterOverrides: {
+                assets: {
+                    ownedPets: [
+                        buildOwnedPet(companion._id, {
+                            xp: 30,
+                            currentLifePoints: 7,
+                        }),
+                    ],
+                    pet: companion._id,
+                },
+            },
+        });
+        chance.load([LUCKY_ROLL]);
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(await rawOwnedPetsOf(subject)).toEqual([
+            { pet: companion._id, xp: 30, currentLifePoints: 7 },
+            { pet: pet._id, xp: 0, currentLifePoints: 450 },
+        ]);
+        expect(String((await characterOf(subject)).assets.pet)).toBe(
+            String(companion._id),
+        );
+    });
+
+    it('stores a won pet at 0 life points when the catalogue has no valid amount (D-03)', async () => {
+        const petId = new Types.ObjectId();
+        await world.models.pets.collection.insertOne({
+            _id: petId,
+            name: 'Gufo senza vita',
+            sellable: false,
+        });
+        const subject = await quester({
+            questOverrides: await petQuest('enemy', petId, ONE_SEAT),
+        });
+        chance.load([LUCKY_ROLL]);
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(await rawOwnedPetsOf(subject)).toEqual([
+            { pet: petId, xp: 0, currentLifePoints: 0 },
+        ]);
     });
 
     it('rolls the pet for each winner of a boss (D-21)', async () => {
