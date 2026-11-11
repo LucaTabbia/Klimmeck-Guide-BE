@@ -78,6 +78,8 @@ const VALID_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 const SCHEMA_FILE = join(process.cwd(), 'src/schema.gql');
 // l'unico kind sul filo è quello dei risultati (Phase 15 D-14): il kind interno del viaggio resta fuori
 const ONLY_RESULT_KIND = ['  kind: QuestResultKind!'];
+const CATALOGUE_PET_BLOCK =
+    'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
 const kindLinesOf = (schema: string): string[] =>
     schema.match(/^.*\bkind\b.*$/gm) ?? [];
 const INTRUDER_MUTATION =
@@ -384,6 +386,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toContain('input EnemyInput');
     });
 
+    it('writes the catalogue pet with attack and defense and without state (D-03, D-15)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
+            CATALOGUE_PET_BLOCK,
+        );
+    });
+
     it('writes the quest enemies list in place of the single enemy (D-01)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -463,7 +473,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  spells: [Spell!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}',
         );
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
-            'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n  xp: Int!\n}',
+            CATALOGUE_PET_BLOCK,
         );
         expect(schema).not.toMatch(/TravelKind/);
         expect(kindLinesOf(schema)).toEqual(ONLY_RESULT_KIND);
