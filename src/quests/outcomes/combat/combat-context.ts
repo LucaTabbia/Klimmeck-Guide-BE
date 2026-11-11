@@ -10,12 +10,7 @@ import { SlotType } from 'src/models/enums/slot-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
 import { stringsOf } from 'src/mongo/lean-values';
-import {
-    NO_SPELL_MAX_USAGES,
-    type SpellStateEntry,
-    spellStatesOrMigrated,
-    usagesFromState,
-} from 'src/characters/spells/spell-state.snapshot';
+import type { SpellStateEntry } from 'src/characters/spells/spell-state.snapshot';
 import { statusFactsOf } from '../progression/status-facts';
 import {
     CombatContext,
@@ -34,12 +29,10 @@ export interface CombatCharacterSnapshot {
         currentLifePoints?: number;
         maxLifePoints?: number;
         injuries?: InjuryType[];
-        spells?: unknown[];
         spellStates?: SpellStateEntry[];
     };
     assets?: {
         wornEquipment?: Partial<Record<SlotType, unknown>> | null;
-        activeSpells?: { spell?: unknown; usages?: number }[];
         ownedEquipments?: { item?: unknown; quantity?: number }[];
         ownedItems?: { itemType?: string; item?: unknown; quantity?: number }[];
     } | null;
@@ -138,16 +131,14 @@ const wornOf = (snapshot: CombatCharacterSnapshot) =>
         return itemId ? [{ slot, itemId }] : [];
     });
 
-// slot per sapere quali magie entrano in combattimento, usi dalla voce di stato (D-03, D-04a)
-const activeSpellsOf = (snapshot: CombatCharacterSnapshot) => {
-    const states = spellStatesOrMigrated(snapshot, NO_SPELL_MAX_USAGES);
-    return (snapshot.assets?.activeSpells ?? []).flatMap((entry) => {
-        const spellId = refOf(entry?.spell);
+// in combattimento entrano le sole voci attive, con gli usi della voce e nell'ordine di apprendimento (Phase 19 D-07, D-16)
+const activeSpellsOf = (snapshot: CombatCharacterSnapshot) =>
+    (snapshot.status.spellStates ?? []).flatMap((state) => {
+        const spellId = state?.active === true ? refOf(state.spell) : null;
         return spellId
-            ? [{ spellId, usages: usagesFromState(states, spellId) }]
+            ? [{ spellId, usages: Math.max(0, state.usages ?? 0) }]
             : [];
     });
-};
 
 const ownedLootOf = (snapshot: CombatCharacterSnapshot) =>
     (snapshot.assets?.ownedItems ?? []).flatMap((entry) => {

@@ -1,6 +1,5 @@
 // piano puro dell'imboscata (Phase 15): compone gli helper di outcome-plan senza planParticipant (lancia sul fallimento, scrive awaitingAid, azzera la corsia); mai awaitingAid, mai la corsia, mai completedQuests
 import type { Types } from 'mongoose';
-import { spellStatesOrMigrated } from 'src/characters/spells/spell-state.snapshot';
 import { type CoinPurse, fromCopper } from 'src/economy/coins';
 import { applyTradeToInventory } from 'src/economy/trade/trade-inventory';
 import { TravelKind } from 'src/models/character/active-travel.model';
@@ -188,8 +187,7 @@ function foughtOutcomeOf(input: AmbushPlanInput, won: boolean): FoughtOutcome {
         // ancorati all'istante dell'imboscata, non al ritardo dello sweep (D-20)
         spells: spellsSpent(
             snapshot._id,
-            snapshot.assets?.activeSpells,
-            spellStatesOrMigrated(snapshot, input.spellMaxUsages),
+            snapshot.status.spellStates ?? [],
             effects?.spellsUsed ?? [],
             input.spellRecoveryTimes,
             input.identity.at,
@@ -217,9 +215,6 @@ function commonSetOf(fought: FoughtOutcome): Record<string, unknown> {
         'assets.ownedEquipments': inventory.ownedEquipments,
         ...(spells.spellStates
             ? { 'status.spellStates': spells.spellStates }
-            : {}),
-        ...(spells.activeSpells
-            ? { 'assets.activeSpells': spells.activeSpells }
             : {}),
         ...(companion.ownedPets
             ? { 'assets.ownedPets': companion.ownedPets }

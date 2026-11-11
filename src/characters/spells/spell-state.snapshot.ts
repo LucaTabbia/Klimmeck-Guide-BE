@@ -22,6 +22,7 @@ export interface LearnedSpellState {
     spell: Types.ObjectId;
     usages: number;
     recoveries: Date[];
+    active: false;
 }
 
 // maxUsages del catalogo utilizzabile: intero non negativo (il catalogo non ha validazione lato DB)
@@ -64,11 +65,12 @@ export function spendFromState(
     return { ...entry, usages: (entry.usages ?? 0) - taken, recoveries };
 }
 
+// una magia imparata nasce non equipaggiata, in coda alla lista (Phase 19 D-07, D-16)
 export function learnedSpellState(
     spellId: Types.ObjectId,
     maxUsages: number,
 ): LearnedSpellState {
-    return { spell: spellId, usages: maxUsages, recoveries: [] };
+    return { spell: spellId, usages: maxUsages, recoveries: [], active: false };
 }
 
 // il ref resta nella forma salvata; gli usi vengono dallo stato, l'entry vale solo se la voce manca

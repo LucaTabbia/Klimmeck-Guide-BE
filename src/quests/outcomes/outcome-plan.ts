@@ -1,13 +1,10 @@
 // stato finale calcolato prima della scrittura (Phase 4 applyTrade): un solo $set condizionale, unico scrittore di level/maxLifePoints (D-12, D-21)
 import type { Types } from 'mongoose';
 import {
-    type ActiveSpellEntry,
     learnedSpellState,
-    mirrorFromStates,
     recoveryDueAt,
     spendFromState,
     type SpellStateEntry,
-    spellStatesOrMigrated,
 } from 'src/characters/spells/spell-state.snapshot';
 import {
     newOwnedPetEntry,
@@ -69,6 +66,7 @@ export interface OutcomeCharacterSnapshot {
         maxLifePoints?: number;
         injuries?: InjuryType[];
         spells?: unknown[];
+        // unica lista delle magie, in ordine di apprendimento (Phase 19 D-07)
         spellStates?: SpellStateEntry[];
         location?: unknown;
         awaitingAid?: unknown;
@@ -259,8 +257,8 @@ const buyLine = ({ itemType, item, quantity }: RewardItem): TradeLine => ({
 });
 
 export interface SpellsSpent {
+    // null se nessuna magia è stata spesa
     spellStates: SpellStateEntry[] | null;
-    activeSpells: ActiveSpellEntry[] | null;
     used: QuestResultDraft['spellsUsed'];
     recoveries: SpellRecovery[];
 }
@@ -269,10 +267,9 @@ const sameRecovery = (left: SpellRecovery, right: SpellRecovery) =>
     left.spellId === right.spellId &&
     left.dueAt.getTime() === right.dueAt.getTime();
 
-// solo magie negli slot, usi dallo stato e mai sotto 0 (T-09-23); istanti now + recoveryTime con i duplicati (D-02, D-06); un trigger per magia e istante
+// solo le voci attive (Phase 19 D-07), usi della voce e mai sotto 0 (T-09-23); istanti now + recoveryTime con i duplicati (D-02, D-06); un trigger per magia e istante
 export function spellsSpent(
     characterId: Types.ObjectId,
-    active: readonly ActiveSpellEntry[] | undefined,
     baseStates: readonly SpellStateEntry[],
     requested: ParticipantEffects['spellsUsed'],
     recoveryTimes: ReadonlyMap<string, number>,
@@ -285,9 +282,8 @@ export function spellsSpent(
     for (const { spellId, usages } of requested) {
         const spell = objectIdFromHex(spellId);
         if (!spell || !isPositiveInteger(usages)) continue;
-        if (!active?.some((entry) => sameId(entry.spell, spell))) continue;
         const index = states.findIndex((state) => sameId(state.spell, spell));
-        if (index < 0) continue;
+        if (index < 0 || states[index].active !== true) continue;
         const taken = Math.min(usages, Math.max(0, states[index].usages ?? 0));
         if (taken <= 0) continue;
         // senza un tempo di recupero noto (magia orfana nel catalogo) gli usi si scalano comunque, nessun istante né job
@@ -309,10 +305,8 @@ export function spellsSpent(
         if (!recoveries.some((queued) => sameRecovery(queued, recovery)))
             recoveries.push(recovery);
     }
-    const spent = used.length > 0;
     return {
-        spellStates: spent ? states : null,
-        activeSpells: spent ? mirrorFromStates(active, states) : null,
+        spellStates: used.length > 0 ? states : null,
         used,
         recoveries,
     };
@@ -412,12 +406,11 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         ...consumables.map(sellLine),
         ...rewardItems.map(buyLine),
     ]);
-    const knownSpells = snapshot.status.spells ?? [];
-    // base migrata in memoria se lo snapshot precede la migrazione (F6): stessa base per spesa e apprendimento, mai una lista parziale nel $set
-    const knownStates = spellStatesOrMigrated(snapshot, input.spellMaxUsages);
+    // stessa base per spesa e apprendimento: «già conosciuta» si decide sulle voci (Phase 19 D-07)
+    const knownStates = snapshot.status.spellStates ?? [];
+    const knownSpells = knownStates.map((state) => state.spell);
     const spells = spellsSpent(
         snapshot._id,
-        snapshot.assets?.activeSpells,
         knownStates,
         battle?.spellsUsed ?? [],
         input.spellRecoveryTimes,
@@ -489,12 +482,6 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         [lanePath]: null,
         ...(titleAfter !== before.title ? { 'status.title': titleAfter } : {}),
         ...(statesAfter ? { 'status.spellStates': statesAfter } : {}),
-        ...(spells.activeSpells
-            ? { 'assets.activeSpells': spells.activeSpells }
-            : {}),
-        ...(learnedState
-            ? { 'status.spells': [...knownSpells, learnedState.spell] }
-            : {}),
         ...(completedQuests
             ? { 'quests.completedQuests': completedQuests }
             : {}),
