@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { AuthzModule } from 'src/authz/authz.module';
+import { WeaknessesModule } from 'src/enemies/weaknesses.module';
 import { LoreVisibilityModule } from 'src/lore/lore-visibility.module';
 import {
     QuestResult,
@@ -20,6 +21,7 @@ import { QuestResultsResolver } from './quest-results.resolver';
         QuestResultsReadModule,
         AuthzModule,
         LoreVisibilityModule,
+        WeaknessesModule,
         MongooseModule.forFeature([
             { name: QuestResult.name, schema: QuestResultSchema },
             { name: User.name, schema: UserSchema },

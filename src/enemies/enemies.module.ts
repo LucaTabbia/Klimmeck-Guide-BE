@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EnemiesResolver } from './enemies.resolver';
 import { EnemiesService } from './enemies.service';
+import { WeaknessesModule } from './weaknesses.module';
 import { LoreVisibilityModule } from 'src/lore/lore-visibility.module';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
@@ -16,6 +17,7 @@ import { Spell, SpellSchema } from 'src/models/spell.model';
             { name: Spell.name, schema: SpellSchema },
         ]),
         LoreVisibilityModule,
+        WeaknessesModule,
     ],
     providers: [EnemiesService, EnemiesResolver],
     exports: [EnemiesService],

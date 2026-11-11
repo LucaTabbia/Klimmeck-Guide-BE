@@ -1,15 +1,16 @@
 import { Types } from 'mongoose';
+import {
+    knownDamageTypesOf,
+    knownEnergyTypesOf,
+} from 'src/enemies/known-weaknesses';
 import { AccessoryUseType } from 'src/models/enums/accessory-use-type.enum';
-import { DamageType } from 'src/models/enums/damage-type.enum';
 import { EffectType } from 'src/models/enums/effect-type.enum';
-import { EnergyType } from 'src/models/enums/energy-type.enum';
 import { EquipType } from 'src/models/enums/equip-type.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { SlotType } from 'src/models/enums/slot-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
-import { stringsOf } from 'src/mongo/lean-values';
 import type { SpellStateEntry } from 'src/characters/spells/spell-state.snapshot';
 import { statusFactsOf } from '../progression/status-facts';
 import {
@@ -78,19 +79,6 @@ const KNOWN_EQUIP_TYPES: ReadonlySet<unknown> = new Set(
 const KNOWN_ACCESSORY_USE_TYPES: ReadonlySet<unknown> = new Set(
     Object.values(AccessoryUseType),
 );
-const KNOWN_DAMAGE_TYPES: ReadonlySet<string> = new Set(
-    Object.values(DamageType),
-);
-const KNOWN_ENERGY_TYPES: ReadonlySet<string> = new Set(
-    Object.values(EnergyType),
-);
-
-// il motore riceve solo debolezze dei due enum (Phase 19 D-22): lista assente o nulla = vuota
-const knownOf = <T extends string>(
-    value: unknown,
-    known: ReadonlySet<string>,
-): T[] => stringsOf(value).filter((item): item is T => known.has(item));
-
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -251,8 +239,8 @@ const enemyOf = (
     xp: numberOr(enemy.xp, 0),
     damages: normalizeDamages(enemy.damages),
     weaknesses: {
-        base: knownOf(enemy.weaknesses?.base, KNOWN_DAMAGE_TYPES),
-        energy: knownOf(enemy.weaknesses?.energy, KNOWN_ENERGY_TYPES),
+        base: knownDamageTypesOf(enemy.weaknesses?.base),
+        energy: knownEnergyTypesOf(enemy.weaknesses?.energy),
     },
 });
 
