@@ -2,6 +2,7 @@ import { getQueueToken } from '@nestjs/bull';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { AuthzModule } from 'src/authz/authz.module';
+import { CharacterStatusResolver } from 'src/characters/character-status.resolver';
 import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
 import { CharactersResolver } from 'src/characters/characters.resolver';
 import { CharactersService } from 'src/characters/characters.service';
@@ -60,6 +61,7 @@ export async function createCharactersTestApp(
         providers: [
             CharactersService,
             CharactersResolver,
+            CharacterStatusResolver,
             CharacterUpdatesPublisher,
             PendingQuestStartPublisher,
             {

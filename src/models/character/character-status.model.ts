@@ -8,7 +8,6 @@ import { Enemy } from '../enemy.model';
 import { Lore } from '../lore.model';
 import { Spell } from '../spell.model';
 import { PointOfInterest } from '../point-of-interest.model';
-import { maxActiveSpellsFor } from './active-spell-slots';
 import { ActiveTravel, ActiveTravelSchema } from './active-travel.model';
 import { AwaitingAid, AwaitingAidSchema } from './awaiting-aid.model';
 import { SpellState, SpellStateSchema } from './spell-state.model';
@@ -100,20 +99,11 @@ export class CharacterStatus {
     @Field(() => Date, { nullable: true })
     @Prop({ type: Date, default: null })
     imprisonedUntil?: Date | null;
-
-    @Field(() => Int)
-    maxActiveSpells: number;
 }
 
 export type CharacterStatusDocument = CharacterStatus & Document;
-export const CharacterStatusSchema = (() => {
-    const schema = SchemaFactory.createForClass(CharacterStatus);
-    schema.virtual('maxActiveSpells').get(function (this: CharacterStatus) {
-        return maxActiveSpellsFor(this.xp ?? 0, this.title);
-    });
-
-    return schema;
-})();
+export const CharacterStatusSchema =
+    SchemaFactory.createForClass(CharacterStatus);
 
 @InputType()
 export class CharacterStatusInput {
