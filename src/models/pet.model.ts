@@ -15,8 +15,12 @@ export class Pet {
     name: string;
 
     @Field(() => Damages)
-    @Prop({ type: DamagesSchema, default: null })
-    damages: Damages;
+    @Prop({ type: DamagesSchema, default: () => ({}) })
+    attack: Damages;
+
+    @Field(() => Damages)
+    @Prop({ type: DamagesSchema, default: () => ({}) })
+    defense: Damages;
 
     @Field(() => Coins)
     @Prop({ type: CoinsSchema, default: null })
@@ -28,15 +32,7 @@ export class Pet {
 
     @Field(() => Int)
     @Prop({ type: Number, default: null })
-    xp: number;
-
-    @Field(() => Int)
-    @Prop({ type: Number, default: null })
     maxXp: number;
-
-    @Field(() => Int)
-    @Prop({ type: Number, default: null })
-    currentLifePoints: number;
 
     @Field(() => Int)
     @Prop({ type: Number, default: null })
@@ -69,7 +65,10 @@ export class PetInput {
     name?: string;
 
     @Field(() => DamagesInput, { nullable: true })
-    damages?: DamagesInput;
+    attack?: DamagesInput;
+
+    @Field(() => DamagesInput, { nullable: true })
+    defense?: DamagesInput;
 
     @Field(() => CoinsInput, { nullable: true })
     buyPrice?: CoinsInput;
@@ -78,13 +77,7 @@ export class PetInput {
     sellPrice?: CoinsInput;
 
     @Field(() => Int, { nullable: true })
-    xp?: number;
-
-    @Field(() => Int, { nullable: true })
     maxXp?: number;
-
-    @Field(() => Int, { nullable: true })
-    currentLifePoints?: number;
 
     @Field(() => Int, { nullable: true })
     maxLifePoints?: number;

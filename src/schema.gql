@@ -487,9 +487,9 @@ type PendingRequestUser {
 }
 
 type Pet {
+  attack: Damages!
   buyPrice: Coins!
-  currentLifePoints: Int!
-  damages: Damages!
+  defense: Damages!
   id: ID!
   imagePath: String!
   maxLifePoints: Int!
@@ -498,7 +498,6 @@ type Pet {
   sellPrice: Coins!
   sellable: Boolean
   speedModifier: Float
-  xp: Int!
 }
 
 enum PoiType {

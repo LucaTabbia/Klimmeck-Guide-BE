@@ -8,12 +8,11 @@ import { Model } from 'mongoose';
 export function buildPet(overrides: Record<string, any> = {}) {
     return {
         name: 'Test Mount',
-        damages: { base: [], energy: [] },
+        attack: { base: [], energy: [] },
+        defense: { base: [], energy: [] },
         buyPrice: { gold: 0, silver: 1, copper: 0 },
         sellPrice: { gold: 0, silver: 0, copper: 50 },
-        xp: 0,
         maxXp: 100,
-        currentLifePoints: 10,
         maxLifePoints: 10,
         imagePath: 'pets/test-mount.png',
         speedModifier: null,
