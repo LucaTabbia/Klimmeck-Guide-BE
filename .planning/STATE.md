@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
 Phase: 19 di 20 (Revisione dei modelli) — contesto del 2026-11-09 (D-01..D-15), `19-REPO-RULES.md` con i nomi del contratto scritto l'11 novembre 2026; ricerca e piani in corso
-Plan: 16 of 23
+Plan: 17 of 23
 Status: Pronta per l'esecuzione — Phase 18 completa (PR #31 su `develop`, contenuto verificato a DB); Phase 19 pianificata in 23 piani sequenziali (catalogo 01–11, mondo 12–14, personaggio 15–20, rarità e pet in premio 21–22, gate 23); BE-MODEL-10..12 aggiunti a plan in corso.
 Last activity: 2026-11-11 -- Phase 19: ricerca, regole, 23 piani, mappa di validazione
 Next step: esecuzione dei piani 19-01..19-23 (`/gsd-execute-phase 19`), review, verifica, security; poi PR in draft, boot reale col migratore (processo dell'utente fermo, backup prima), script di contenuto dei pet con prova a secco, rimozione del modulo in TDD, PR pronta; la FE esegue i piani gated dopo la merge.
