@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { model, Schema, Types } from 'mongoose';
 import { buildEquipmentItem } from '../../test/fixtures/catalog-item.fixture';
 import { buildCity } from '../../test/fixtures/city.fixture';
 import { buildPet } from '../../test/fixtures/pet.fixture';
@@ -91,16 +91,36 @@ describe('character owned pets', () => {
         expect(new AssetsProbe({}).toObject().ownedPets).toEqual([]);
     });
 
-    it('stores ownedPets as typed references to Pet (D-13)', () => {
-        const schemaPath = referenceListPath(
-            'ownedPets',
-            CharacterAssetsSchema,
-        );
+    it('stores the owned pets as entries with a typed reference to the catalogue (D-03)', () => {
+        const entry = CharacterAssetsSchema.path('ownedPets').schema;
+        const pet = entry?.path('pet') as unknown as
+            | { instance: string; options: { ref: string } }
+            | undefined;
 
-        expect({
-            instance: schemaPath.instance,
-            caster: schemaPath.caster.instance,
-            ref: schemaPath.caster.options.ref,
-        }).toEqual({ instance: 'Array', caster: 'ObjectId', ref: 'Pet' });
+        expect({ instance: pet?.instance, ref: pet?.options.ref }).toEqual({
+            instance: 'ObjectId',
+            ref: 'Pet',
+        });
+        expect(Object.keys(entry?.paths ?? {}).sort()).toEqual([
+            'currentLifePoints',
+            'pet',
+            'xp',
+        ]);
+    });
+
+    it('defaults the experience of an owned pet to 0 and requires its life points (D-03)', () => {
+        const pet = new Types.ObjectId();
+
+        const stored = new AssetsProbe({
+            ownedPets: [{ pet, currentLifePoints: 80 }],
+        });
+        const lifeless = new AssetsProbe({ ownedPets: [{ pet }] });
+
+        expect(stored.toObject().ownedPets).toEqual([
+            { pet, xp: 0, currentLifePoints: 80 },
+        ]);
+        expect(Object.keys(lifeless.validateSync()?.errors ?? {})).toEqual([
+            'ownedPets.0.currentLifePoints',
+        ]);
     });
 });

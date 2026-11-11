@@ -507,7 +507,7 @@ describe('CharactersService (unit — spell mutations)', () => {
             ]);
         });
 
-        it('populates the equipped and the owned pets from the Pet catalogue (D-23)', async () => {
+        it('populates the equipped pet and the pet of every owned entry from the Pet catalogue (D-03, D-23)', async () => {
             const query = asPopulatableQuery({
                 assets: {
                     ownedEquipments: [],
@@ -525,7 +525,7 @@ describe('CharactersService (unit — spell mutations)', () => {
                 model: 'Pet',
             });
             expect(query.populate).toHaveBeenCalledWith({
-                path: 'assets.ownedPets',
+                path: 'assets.ownedPets.pet',
                 model: 'Pet',
             });
         });

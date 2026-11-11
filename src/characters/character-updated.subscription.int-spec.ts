@@ -23,6 +23,7 @@ import {
     primeChangeStream,
 } from '../../test/harness/prime-change-stream';
 import { persistSpell, spellBook } from '../../test/fixtures';
+import { buildOwnedPet } from '../../test/fixtures/owned-pet.fixture';
 import { persistPet } from '../../test/fixtures/pet.fixture';
 
 const CHARACTER_UPDATED =
@@ -43,7 +44,7 @@ const USE_SPELL =
     'mutation($request: UseSpellRequest!) { useSpell(request: $request) { successful response } }';
 
 const CHARACTER_PETS_SELECTION =
-    'assets { pet { id name speedModifier } ownedPets { id name speedModifier sellable } }';
+    'assets { pet { id name speedModifier } ownedPets { pet { id name speedModifier sellable } xp currentLifePoints } }';
 
 const CHARACTER_PETS_UPDATED = `subscription OnCharacter($id: String!) { characterUpdated(id: $id) { ${CHARACTER_PETS_SELECTION} } }`;
 
@@ -56,8 +57,14 @@ interface WirePet {
     sellable?: boolean | null;
 }
 
+interface WireOwnedPet {
+    pet: WirePet;
+    xp: number;
+    currentLifePoints: number;
+}
+
 interface WirePetsCharacter {
-    assets: { pet: WirePet | null; ownedPets: WirePet[] };
+    assets: { pet: WirePet | null; ownedPets: WireOwnedPet[] };
 }
 
 type PetsUpdatedResult = { characterUpdated: WirePetsCharacter };
@@ -170,7 +177,13 @@ describe('characterUpdated subscription (wire)', () => {
             {
                 $set: {
                     'assets.pet': cavallo._id,
-                    'assets.ownedPets': [cavallo._id, gatto._id],
+                    'assets.ownedPets': [
+                        buildOwnedPet(cavallo._id as Types.ObjectId, {
+                            xp: 12,
+                            currentLifePoints: 80,
+                        }),
+                        buildOwnedPet(gatto._id as Types.ObjectId),
+                    ],
                 },
             },
         );
@@ -186,16 +199,24 @@ describe('characterUpdated subscription (wire)', () => {
             },
             ownedPets: [
                 {
-                    id: cavalloId,
-                    name: 'Cavallo da viaggio',
-                    speedModifier: 2,
-                    sellable: null,
+                    pet: {
+                        id: cavalloId,
+                        name: 'Cavallo da viaggio',
+                        speedModifier: 2,
+                        sellable: null,
+                    },
+                    xp: 12,
+                    currentLifePoints: 80,
                 },
                 {
-                    id: gattoId,
-                    name: 'Gatto',
-                    speedModifier: null,
-                    sellable: null,
+                    pet: {
+                        id: gattoId,
+                        name: 'Gatto',
+                        speedModifier: null,
+                        sellable: null,
+                    },
+                    xp: 0,
+                    currentLifePoints: 10,
                 },
             ],
         };
@@ -485,6 +506,57 @@ describe('characterUpdated subscription (wire)', () => {
                 character: { assets: expectedPetsAssets(cavalloId, gattoId) },
             },
         });
+    });
+
+    it('serves the state of an owned pet and hides an orphan entry (D-03, D-23)', async () => {
+        const cavallo = await persistPet(harness.connection.model(Pet.name), {
+            name: 'Cavallo da viaggio',
+            speedModifier: 2,
+        });
+        const owned = [
+            buildOwnedPet(cavallo._id as Types.ObjectId, {
+                xp: 12,
+                currentLifePoints: 80,
+            }),
+            buildOwnedPet(new Types.ObjectId(), { currentLifePoints: 0 }),
+        ];
+        await characters.updateOne(
+            { _id: alice.character?._id },
+            { $set: { 'assets.ownedPets': owned } },
+        );
+
+        const served = await graphqlRequest(
+            harness.app,
+            CHARACTER_PETS_QUERY,
+            { id: aliceCharId },
+            alice.bearer,
+        );
+
+        expect(served.body).toEqual({
+            data: {
+                character: {
+                    assets: {
+                        pet: null,
+                        ownedPets: [
+                            {
+                                pet: {
+                                    id: String(cavallo._id),
+                                    name: 'Cavallo da viaggio',
+                                    speedModifier: 2,
+                                    sellable: null,
+                                },
+                                xp: 12,
+                                currentLifePoints: 80,
+                            },
+                        ],
+                    },
+                },
+            },
+        });
+        const raw = await characters.collection.findOne({
+            _id: alice.character?._id as Types.ObjectId,
+        });
+        expect(raw?.assets.ownedPets).toEqual(owned);
     });
 
     it('serves a legacy character without owned pets as an empty list (D-13, D-23)', async () => {
