@@ -736,19 +736,19 @@ export class CharacterStatusResolver {
 | A7 | Il completamento del GM, il soccorso vinto e lo scontro di guardia vinto premiano il compagno come ogni vittoria con nemici | F-5 | regola di prodotto più larga di quella elencata in D-04 |
 | A8 | I personaggi archiviati si migrano come gli attivi | M-2 | conteggi attesi diversi (3 invece di 6) |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Imboscata e `petXpGained`.** L'imboscata produce un `QuestResult`, ma all'arrivo: il valore passa dal report trattenuto (`AmbushReportSnapshot`, solo Mongoose) al risultato. Sullo SDL `AmbushReport` non cambia e i report trattenuti prima del deploy valgono 0. Va bene così, o la FE vuole il dato anche prima dell'arrivo? Raccomandazione: così.
-2. **`item_reference_type.enum.ts` è vuoto e senza importatori.** Cancellarlo (raccomandato) invece di rinominarlo? In alternativa spostarci il tipo `ItemReferenceType` da `asset-quantity.model.ts` (13 importatori da cambiare: fuori dallo spirito «soli import»).
-3. **`SlotType.foots` → `feet` è un valore sul filo** (`equipItem`, `EquipItemRequest.slotType`): da aggiungere alla tabella dei nomi e al handoff (la FE lo invia).
-4. **Due blocchi enum nuovi nello SDL** (`DamageType`, `EnergyType`) come effetto di `Weaknesses`: da dichiarare fra gli aggiunti.
-5. **Ordine delle magie attive**: da ordine di equipaggiamento a ordine di apprendimento. Accettato?
-6. **Semantica di `petXpGained`**: guadagno effettivo dopo il tetto (raccomandato, come `xpGained`) o quota calcolata? E con `maxXp` non valido a catalogo: nessun premio (raccomandato)?
-7. **Vittorie «con nemici» oltre le quattro elencate**: completamento del GM, soccorso vinto, scontro di guardia vinto passano dalla stessa somma e premierebbero il compagno. Confermare.
-8. **Conteggi freschi a DB (sola lettura, orchestratore) prima di pianificare o nella prova a secco:** valori distinti di `energyWeaknesses` e `baseWeaknesses` fuori dai due enum; copie di magie dei nemici con `_id` che coincide col catalogo, abbinabili solo per nome, non abbinabili; nomi duplicati nel catalogo delle 96 magie; pet con `damages` nullo o assente; città con solo una o due delle tre liste; lore con `image` e `imagePath` insieme; personaggi con `assets.pet` non presente in `ownedPets` o con pet orfani; personaggi con `status.maxActiveSpells` o con `activeSpells` che puntano a magie non conosciute; versione del server.
-9. **Pet posseduto orfano nel migratore**: voce con vita 0 e conteggio nel log (raccomandato) o voce scartata?
-10. **`SpellStateMigrator`**: ridotto al solo taglio (raccomandato) o tolto del tutto? Se resta, tiene il nome (e `test/app.int-spec.ts:953` non cambia).
-11. **Nomi interni del motore** (`CombatEnemy.baseWeaknesses`/`energyWeaknesses`, `CombatParticipant.activeSpells`): rinominare le debolezze in `weaknesses { base, energy }` (raccomandato) e lasciare `activeSpells` (è il vocabolario del motore dell'utente)?
+1. **Imboscata e `petXpGained`.** L'imboscata produce un `QuestResult`, ma all'arrivo: il valore passa dal report trattenuto (`AmbushReportSnapshot`, solo Mongoose) al risultato. Sullo SDL `AmbushReport` non cambia e i report trattenuti prima del deploy valgono 0. Va bene così, o la FE vuole il dato anche prima dell'arrivo? Raccomandazione: così. **RESOLVED: D-19.**
+2. **`item_reference_type.enum.ts` è vuoto e senza importatori.** Cancellarlo (raccomandato) invece di rinominarlo? In alternativa spostarci il tipo `ItemReferenceType` da `asset-quantity.model.ts` (13 importatori da cambiare: fuori dallo spirito «soli import»). **RESOLVED: D-20.**
+3. **`SlotType.foots` → `feet` è un valore sul filo** (`equipItem`, `EquipItemRequest.slotType`): da aggiungere alla tabella dei nomi e al handoff (la FE lo invia). **RESOLVED: D-24.**
+4. **Due blocchi enum nuovi nello SDL** (`DamageType`, `EnergyType`) come effetto di `Weaknesses`: da dichiarare fra gli aggiunti. **RESOLVED: D-24.**
+5. **Ordine delle magie attive**: da ordine di equipaggiamento a ordine di apprendimento. Accettato? **RESOLVED: D-16.**
+6. **Semantica di `petXpGained`**: guadagno effettivo dopo il tetto (raccomandato, come `xpGained`) o quota calcolata? E con `maxXp` non valido a catalogo: nessun premio (raccomandato)? **RESOLVED: D-17.**
+7. **Vittorie «con nemici» oltre le quattro elencate**: completamento del GM, soccorso vinto, scontro di guardia vinto passano dalla stessa somma e premierebbero il compagno. Confermare. **RESOLVED: D-18.**
+8. **Conteggi freschi a DB (sola lettura, orchestratore) prima di pianificare o nella prova a secco:** valori distinti di `energyWeaknesses` e `baseWeaknesses` fuori dai due enum; copie di magie dei nemici con `_id` che coincide col catalogo, abbinabili solo per nome, non abbinabili; nomi duplicati nel catalogo delle 96 magie; pet con `damages` nullo o assente; città con solo una o due delle tre liste; lore con `image` e `imagePath` insieme; personaggi con `assets.pet` non presente in `ownedPets` o con pet orfani; personaggi con `status.maxActiveSpells` o con `activeSpells` che puntano a magie non conosciute; versione del server. **RESOLVED: inventario dell'11 novembre in 19-REPO-RULES.md.**
+9. **Pet posseduto orfano nel migratore**: voce con vita 0 e conteggio nel log (raccomandato) o voce scartata? **RESOLVED: D-23.**
+10. **`SpellStateMigrator`**: ridotto al solo taglio (raccomandato) o tolto del tutto? Se resta, tiene il nome (e `test/app.int-spec.ts:953` non cambia). **RESOLVED: D-21.**
+11. **Nomi interni del motore** (`CombatEnemy.baseWeaknesses`/`energyWeaknesses`, `CombatParticipant.activeSpells`): rinominare le debolezze in `weaknesses { base, energy }` (raccomandato) e lasciare `activeSpells` (è il vocabolario del motore dell'utente)? **RESOLVED: D-22.**
 
 ## Environment Availability
 
