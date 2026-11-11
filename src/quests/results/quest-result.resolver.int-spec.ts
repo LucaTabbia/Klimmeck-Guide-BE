@@ -75,8 +75,7 @@ describe('questResult(id) (wire)', () => {
         // locations omesso: lo schema Enemy lo dichiara String singolo (deferred-items.md, 09-04)
         return modelOf<EnemyDocument>(Enemy.name).create({
             name: 'Test Bandit',
-            energyWeaknesses: [],
-            baseWeaknesses: [],
+            weaknesses: { base: [], energy: [] },
             relatedLore: [],
             xp: 100,
             spells: [],

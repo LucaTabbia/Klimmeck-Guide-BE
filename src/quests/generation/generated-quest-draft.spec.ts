@@ -34,8 +34,7 @@ function candidate(name: string, relatedLore: string[] = []): EnemyCandidate {
         locations: ['forest'],
         legendary: false,
         relatedLore,
-        baseWeaknesses: [],
-        energyWeaknesses: [],
+        weaknesses: { base: [], energy: [] },
         animal: false,
     };
 }

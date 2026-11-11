@@ -369,6 +369,21 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the enemy weaknesses in place of the two lists (D-01)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Enemy \{[^}]*\}/)?.[0]).toBe(
+            'type Enemy {\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  legendary: Boolean!\n  lifePoints: Int!\n  locations: [PoiType!]!\n  name: String!\n  relatedLore: [Lore!]!\n  spells: [Spell!]!\n  weaknesses: Weaknesses!\n  xp: Int!\n}',
+        );
+        expect(schema.match(/type Weaknesses \{[^}]*\}/)?.[0]).toBe(
+            'type Weaknesses {\n  base: [DamageType!]!\n  energy: [EnergyType!]!\n}',
+        );
+        expect(schema).toContain('enum DamageType {');
+        expect(schema).toContain('enum EnergyType {');
+        expect(schema).not.toContain('input WeaknessesInput');
+        expect(schema).not.toContain('input EnemyInput');
+    });
+
     it('writes the quest enemies list in place of the single enemy (D-01)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 

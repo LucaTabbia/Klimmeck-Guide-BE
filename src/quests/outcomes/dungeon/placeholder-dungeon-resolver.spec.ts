@@ -64,8 +64,7 @@ const enemy = (name: string, quantity = 1): CombatEnemy => ({
     lifePoints: 100,
     xp: 20,
     damages: { base: [], energy: [] },
-    baseWeaknesses: [],
-    energyWeaknesses: [],
+    weaknesses: { base: [], energy: [] },
     quantity,
 });
 

@@ -65,8 +65,7 @@ const hydration = (): CombatHydration => ({
                 lifePoints: 1000,
                 xp: 100,
                 damages: { base: { type: 'cut', power: 80 } },
-                baseWeaknesses: ['blunt'],
-                energyWeaknesses: ['fire'],
+                weaknesses: { base: ['blunt'], energy: ['fire'] },
             },
             quantity: 1,
         },
@@ -158,8 +157,7 @@ describe('buildCombatContext', () => {
                 lifePoints: 1000,
                 xp: 100,
                 damages: { base: [{ type: 'cut', power: 80 }], energy: [] },
-                baseWeaknesses: ['blunt'],
-                energyWeaknesses: ['fire'],
+                weaknesses: { base: ['blunt'], energy: ['fire'] },
                 quantity: 1,
             },
         ]);
@@ -199,8 +197,7 @@ describe('buildCombatContext', () => {
                 lifePoints: 100,
                 xp: 10,
                 damages: { base: [], energy: [] },
-                baseWeaknesses: [],
-                energyWeaknesses: [],
+                weaknesses: { base: [], energy: [] },
                 quantity: 3,
             },
             {
@@ -209,8 +206,7 @@ describe('buildCombatContext', () => {
                 lifePoints: 600,
                 xp: 63,
                 damages: { base: [], energy: [] },
-                baseWeaknesses: [],
-                energyWeaknesses: [],
+                weaknesses: { base: [], energy: [] },
                 quantity: 1,
             },
         ]);
@@ -256,6 +252,42 @@ describe('buildCombatContext', () => {
         });
     });
 
+    it('reads an enemy without the weaknesses sub-document as two empty lists (D-01)', () => {
+        const source = hydration();
+        source.enemies = [
+            { snapshot: { _id: id('b2'), weaknesses: null }, quantity: 1 },
+            { snapshot: { _id: id('b3'), weaknesses: {} }, quantity: 1 },
+        ];
+
+        expect(
+            buildCombatContext(source).enemies.map((enemy) => enemy.weaknesses),
+        ).toEqual([
+            { base: [], energy: [] },
+            { base: [], energy: [] },
+        ]);
+    });
+
+    it('keeps only the weaknesses of the two enums in the combat context (D-22)', () => {
+        const source = hydration();
+        source.enemies = [
+            {
+                snapshot: {
+                    _id: id('b2'),
+                    weaknesses: {
+                        base: ['cut', 'laser'],
+                        energy: ['fire', 'cut'],
+                    },
+                },
+                quantity: 1,
+            },
+        ];
+
+        expect(buildCombatContext(source).enemies[0].weaknesses).toEqual({
+            base: ['cut'],
+            energy: ['fire'],
+        });
+    });
+
     it('fills missing numbers with safe defaults', () => {
         const source = hydration();
         source.enemies = [{ snapshot: { _id: id('b2') }, quantity: 1 }];
@@ -280,8 +312,7 @@ describe('buildCombatContext', () => {
                 lifePoints: 0,
                 xp: 0,
                 damages: { base: [], energy: [] },
-                baseWeaknesses: [],
-                energyWeaknesses: [],
+                weaknesses: { base: [], energy: [] },
                 quantity: 1,
             },
         ]);

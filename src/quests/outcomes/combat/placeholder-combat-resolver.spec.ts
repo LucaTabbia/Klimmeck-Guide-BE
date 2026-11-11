@@ -66,8 +66,7 @@ const enemy = (
     lifePoints,
     xp: 100,
     damages: { base: [{ type: 'cut', power: damage }], energy: [] },
-    baseWeaknesses: [],
-    energyWeaknesses: [],
+    weaknesses: { base: [], energy: [] },
     quantity,
 });
 

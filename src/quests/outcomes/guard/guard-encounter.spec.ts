@@ -20,8 +20,7 @@ const candidate = (
     locations,
     legendary: false,
     relatedLore: [],
-    baseWeaknesses: [],
-    energyWeaknesses: [],
+    weaknesses: { base: [], energy: [] },
     animal: false,
     ...overrides,
 });

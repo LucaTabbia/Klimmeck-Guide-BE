@@ -50,8 +50,7 @@ describe('ResolutionLoader enemy read', () => {
                 lifePoints: 1,
                 xp: 1,
                 damages: 1,
-                baseWeaknesses: 1,
-                energyWeaknesses: 1,
+                weaknesses: 1,
                 relatedLore: 1,
             },
         );
@@ -65,8 +64,7 @@ describe('ResolutionLoader enemy read', () => {
             lifePoints: 11,
             xp: 5,
             damages: [],
-            baseWeaknesses: [],
-            energyWeaknesses: [],
+            weaknesses: { base: [], energy: [] },
         };
         const loader = loaderWith(fakeModel([snapshot]));
 

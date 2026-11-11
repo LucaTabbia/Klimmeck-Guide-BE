@@ -1,5 +1,7 @@
+import { Types } from 'mongoose';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { enemyCandidateOf } from 'src/quests/generation/enemy-candidate';
 import { EnemyCandidate } from 'src/quests/generation/enemy-pool';
 import { PrizeCatalogItem } from 'src/quests/generation/generated-prizes';
 import {
@@ -9,8 +11,8 @@ import {
 
 const enemy = (
     id: string,
-    baseWeaknesses: readonly string[],
-    energyWeaknesses: readonly string[],
+    base: readonly string[],
+    energy: readonly string[],
 ): EnemyCandidate => ({
     id,
     name: id,
@@ -18,8 +20,7 @@ const enemy = (
     locations: ['forest'],
     legendary: false,
     relatedLore: [],
-    baseWeaknesses,
-    energyWeaknesses,
+    weaknesses: { base, energy },
     animal: false,
 });
 
@@ -155,6 +156,30 @@ describe('recommendedLootOf', () => {
                 rank: TitleType.hero,
                 enemies: [],
                 catalog: [],
+            }),
+        ).toEqual([]);
+    });
+
+    it('recommends nothing from an enemy without the weaknesses sub-document (D-01)', () => {
+        const notMigrated = enemyCandidateOf(
+            { _id: new Types.ObjectId(), name: 'Non migrato', xp: 10 },
+            new Set(),
+        );
+        const catalog = [
+            gear('w-club', RarityType.common, [{ type: 'blunt', power: 5 }]),
+            gear(
+                'w-torch',
+                RarityType.common,
+                [],
+                [{ type: 'fire', power: 5 }],
+            ),
+        ];
+
+        expect(
+            recommendedLootOf({
+                rank: TitleType.rookie,
+                enemies: [notMigrated],
+                catalog,
             }),
         ).toEqual([]);
     });

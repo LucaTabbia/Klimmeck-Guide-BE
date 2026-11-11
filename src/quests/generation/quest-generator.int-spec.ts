@@ -582,8 +582,7 @@ describe('QuestGenerator (replSet)', () => {
             xp: 30,
             locations: [WORLD_HABITAT],
             relatedLore: [],
-            baseWeaknesses: [],
-            energyWeaknesses: [],
+            weaknesses: { base: [], energy: [] },
         });
 
         await expect(generatorWith({ target: 4 }).generate()).resolves.toBe(0);

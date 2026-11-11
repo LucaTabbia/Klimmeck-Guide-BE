@@ -14,8 +14,7 @@ describe('enemy candidate read by the generator', () => {
             locations: ['swamp'],
             legendary: false,
             relatedLore: [cityLore, animalLore],
-            baseWeaknesses: ['cut'],
-            energyWeaknesses: [],
+            weaknesses: { base: ['cut'], energy: [] },
         };
 
         const marked = enemyCandidateOf(
@@ -57,8 +56,7 @@ describe('enemy candidate read by the generator', () => {
             locations: [],
             legendary: undefined,
             relatedLore: [],
-            baseWeaknesses: [],
-            energyWeaknesses: [],
+            weaknesses: { base: [], energy: [] },
             animal: false,
         });
     });
