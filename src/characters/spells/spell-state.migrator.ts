@@ -9,18 +9,13 @@ import { Spell, SpellDocument } from 'src/models/spell.model';
 import { describeError } from 'src/mongo/mongo-errors';
 import { isUsageCount } from './spell-state.snapshot';
 import {
-    inconsistentFilter,
     isSpellStateOutOfRange,
     outOfRangeFilter,
     SpellCatalogEntry,
-    spellStatesRepairPipeline,
     spellStatesTrimPipeline,
-    unmigratedFilter,
 } from './spell-state.migration';
 
 export interface SpellStateMigrationReport {
-    migrated: number;
-    repaired: number;
     trimmed: number;
 }
 
@@ -37,11 +32,11 @@ interface OutOfRangeCharacter {
 
 const OUT_OF_RANGE_WARNINGS_LIMIT = 50;
 
-// le pipeline del piano 02 sono documenti Mongo puri: Mongoose le passa al driver senza cast
+// la pipeline del taglio è un documento Mongo puro: Mongoose la passa al driver senza cast
 const asUpdatePipeline = (stages: Record<string, unknown>[]) =>
     stages as unknown as UpdateWithAggregationPipeline;
 
-// atteso dal boot ma mai bloccante (D-08): un errore è solo loggato, il credito migra comunque per personaggio (F6)
+// solo taglio (Phase 19 D-21): le voci non si ricostruiscono mai da altre liste; atteso dal boot ma mai bloccante (D-08): un errore è solo loggato, il credito taglia comunque per personaggio (F6)
 @Injectable()
 export class SpellStateMigrator implements OnApplicationBootstrap {
     private readonly logger = new Logger(SpellStateMigrator.name);
@@ -58,43 +53,24 @@ export class SpellStateMigrator implements OnApplicationBootstrap {
             await this.migrateAll();
         } catch (error) {
             this.logger.error(
-                `Migrazione degli stati delle magie fallita (${describeError(error)}): i recuperi migrano per personaggio al primo credito`,
+                `Taglio degli stati delle magie fallito (${describeError(error)}): i recuperi tagliano per personaggio al primo credito`,
             );
         }
     }
 
     async migrateAll(): Promise<SpellStateMigrationReport> {
         const catalog = await this.catalog();
-        const repair = asUpdatePipeline(spellStatesRepairPipeline(catalog));
-        const migrated = await this.characterModel
-            .updateMany(unmigratedFilter(), repair)
-            .exec();
-        const repaired = await this.characterModel
-            .updateMany(inconsistentFilter(), repair)
-            .exec();
-        const trimmed = await this.trim(outOfRangeFilter(catalog), catalog);
-        this.reportRun(migrated.modifiedCount, repaired);
-        return {
-            migrated: migrated.modifiedCount,
-            repaired: repaired.modifiedCount,
-            trimmed,
-        };
+        return { trimmed: await this.trim(outOfRangeFilter(catalog), catalog) };
     }
 
-    // no-op su un personaggio coerente; precede ogni credito perché processor e sweep partono prima del boot hook (F6)
+    // no-op su un personaggio nei limiti; precede ogni credito perché processor e sweep partono prima del boot hook (F6)
     async migrateOne(characterId: Types.ObjectId): Promise<boolean> {
         const catalog = await this.catalog();
-        const repaired = await this.characterModel
-            .updateOne(
-                { ...inconsistentFilter(), _id: characterId },
-                asUpdatePipeline(spellStatesRepairPipeline(catalog)),
-            )
-            .exec();
         const trimmed = await this.trim(
             { ...outOfRangeFilter(catalog), _id: characterId },
             catalog,
         );
-        return repaired.modifiedCount === 1 || trimmed > 0;
+        return trimmed > 0;
     }
 
     // istanti che il credito non può più consumare (usages ≥ maxUsages o lista troppo lunga): WARN per voce, poi taglio; gli usi restano (D-03)
@@ -137,26 +113,6 @@ export class SpellStateMigrator implements OnApplicationBootstrap {
                 );
             }
         }
-    }
-
-    private reportRun(
-        migrated: number,
-        repaired: { matchedCount: number; modifiedCount: number },
-    ): void {
-        if (migrated > 0)
-            this.logger.log(
-                `Stati delle magie: migrati ${migrated} personaggi`,
-            );
-        if (repaired.modifiedCount > 0)
-            this.logger.warn(
-                `Stati delle magie riparati per ${repaired.modifiedCount} personaggi`,
-            );
-        // un mirror che punta a una magia non conosciuta resta incoerente: la pipeline non lo cambia, lo segnala ogni boot
-        const unrepairable = repaired.matchedCount - repaired.modifiedCount;
-        if (unrepairable > 0)
-            this.logger.warn(
-                `Stati delle magie incoerenti ma non riparabili per ${unrepairable} personaggi: slot di magie non conosciute`,
-            );
     }
 
     private async catalog(): Promise<SpellCatalogEntry[]> {

@@ -5,6 +5,7 @@ export interface SpellStateEntry {
     spell?: unknown;
     usages?: number;
     recoveries?: Date[];
+    active?: boolean;
 }
 
 export interface ActiveSpellEntry {

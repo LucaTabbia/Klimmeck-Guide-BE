@@ -331,7 +331,7 @@ describe('SpellRecoveryService (replSet)', () => {
             expect(service.isKnownUncreditable(second, missing)).toBe(false);
         });
 
-        it('credits nothing and lets the error through when the per-character migration fails', async () => {
+        it('credits nothing and lets the error through when the per-character trim fails', async () => {
             const id = await insertBook([
                 { spell: a, usages: 1, recoveries: [at(-SECOND)] },
             ]);
@@ -343,51 +343,9 @@ describe('SpellRecoveryService (replSet)', () => {
 
             expect(await rawOf(id)).toEqual(before);
         });
-
-        it('credits a character whose slots array was never written', async () => {
-            const book = spellBook([
-                { spell: a, usages: 1, recoveries: [at(-SECOND)] },
-            ]);
-            const id = await insert(
-                rawCharacter(
-                    { spells: book.spells, spellStates: book.spellStates },
-                    {},
-                ),
-            );
-
-            expect(await service.recoverDue(id, a)).toBe(1);
-
-            const after = await rawOf(id);
-            expect(after.status.spellStates).toEqual([
-                { spell: a, usages: 2, recoveries: [] },
-            ]);
-            expect(after.assets.activeSpells).toEqual([]);
-        });
     });
 
     describe('recoverLegacy', () => {
-        it('migrates a character without spell states before the credit', async () => {
-            const legacy = rawCharacter(
-                { spells: [a] },
-                {
-                    ...buildCharacter().assets,
-                    activeSpells: [{ spell: a, usages: 1 }],
-                },
-            );
-            delete (legacy.status as Record<string, unknown>).spellStates;
-            const id = await insert(legacy);
-
-            expect(await service.recoverLegacy(id, a)).toBe(true);
-
-            const after = await rawOf(id);
-            expect(after.status.spellStates).toEqual([
-                { spell: a, usages: 2, recoveries: [] },
-            ]);
-            expect(after.assets.activeSpells).toEqual([
-                { spell: a, usages: 2 },
-            ]);
-        });
-
         it('gives back only the untracked deficit and leaves the instants alone', async () => {
             const id = await insertBook([
                 { spell: a, usages: 1, recoveries: [at(HOUR)], active: true },

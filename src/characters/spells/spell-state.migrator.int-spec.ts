@@ -6,11 +6,7 @@ import {
     CharacterSchema,
 } from 'src/models/character/character.model';
 import { Spell, SpellDocument, SpellSchema } from 'src/models/spell.model';
-import {
-    buildCharacter,
-    persistSpell,
-    spellBook,
-} from '../../../test/fixtures';
+import { buildCharacter, persistSpell } from '../../../test/fixtures';
 import {
     isSpellStateOutOfRange,
     outOfRangeFilter,
@@ -37,32 +33,21 @@ interface RawState {
 
 interface RawCharacter {
     _id: Types.ObjectId;
-    status: { spells: unknown[]; spellStates?: RawState[] };
+    status: { spells?: unknown[]; spellStates?: RawState[] };
     assets: { activeSpells?: { spell: unknown; usages: number }[] };
-}
-
-interface RawFixture {
-    spells: unknown[];
-    spellStates?: RawState[];
-    assets?: Record<string, unknown>;
-    deletedAt?: Date;
 }
 
 // nome unico: l'indice character_name_active_ci_unique vale anche per gli insert grezzi
 let heroes = 0;
 
-// documento grezzo: senza spellStates quando assente, come i personaggi scritti prima della fase (nessun default di Mongoose)
-function rawCharacter({
-    spells,
-    spellStates,
-    assets = { ...buildCharacter().assets },
-    deletedAt,
-}: RawFixture) {
+// documento grezzo nella forma della revisione dei modelli (Phase 19 D-07): la sola lista delle voci, nessuna delle due liste vecchie
+function rawCharacter(spellStates: RawState[], deletedAt?: Date) {
     const base = buildCharacter();
     heroes += 1;
-    const status: Record<string, unknown> = { ...base.status, spells };
-    if (spellStates === undefined) delete status.spellStates;
-    else status.spellStates = spellStates;
+    const status: Record<string, unknown> = { ...base.status, spellStates };
+    delete status.spells;
+    const assets: Record<string, unknown> = { ...base.assets };
+    delete assets.activeSpells;
     return {
         _id: new Types.ObjectId(),
         ...base,
@@ -73,19 +58,12 @@ function rawCharacter({
     };
 }
 
-function coherentCharacter(book: ReturnType<typeof spellBook>) {
-    return rawCharacter({
-        spells: book.spells,
-        spellStates: book.spellStates,
-        assets: { ...buildCharacter().assets, activeSpells: book.activeSpells },
-    });
-}
-
-// forma dopo la revisione dei modelli (Phase 19 D-07): la sola lista delle voci, nessuna delle due liste vecchie
-function singleListCharacter(spellStates: RawState[]) {
-    const doc = rawCharacter({ spells: [], spellStates });
-    delete doc.status.spells;
-    delete doc.assets.activeSpells;
+// documento scritto prima della revisione: liste vecchie presenti, voci senza il flag oppure del tutto assenti
+function oldShapeCharacter(spells: unknown[], spellStates?: RawState[]) {
+    const doc = rawCharacter(spellStates ?? []);
+    doc.status.spells = spells;
+    if (spellStates === undefined) delete doc.status.spellStates;
+    doc.assets.activeSpells = spells.map((spell) => ({ spell, usages: 1 }));
     return doc;
 }
 
@@ -153,276 +131,8 @@ describe('SpellStateMigrator (replSet)', () => {
     }
 
     describe('migrateAll', () => {
-        it('migrates every active character on the first run and changes nothing on the second', async () => {
-            const legacyString = rawCharacter({
-                spells: [a.toHexString()],
-                assets: {
-                    ...buildCharacter().assets,
-                    activeSpells: [{ spell: a.toHexString(), usages: 1 }],
-                },
-            });
-            const inactiveWithoutSlots = rawCharacter({
-                spells: [b],
-                assets: {},
-            });
-            const garbageAndOrphan = rawCharacter({
-                spells: ['xyz', orphan],
-            });
-            const divergentMirror = rawCharacter({
-                spells: [a],
-                spellStates: [
-                    { spell: a, usages: 2, recoveries: [hoursFrom(1)] },
-                ],
-                assets: {
-                    ...buildCharacter().assets,
-                    activeSpells: [{ spell: a, usages: 3 }],
-                },
-            });
-            const orphanState = rawCharacter({
-                spells: [a],
-                spellStates: [
-                    { spell: a, usages: 1, recoveries: [hoursFrom(1)] },
-                    { spell: b, usages: 2, recoveries: [] },
-                ],
-            });
-            const empty = rawCharacter({ spells: [] });
-            const coherent = coherentCharacter(
-                spellBook([
-                    {
-                        spell: a,
-                        usages: 1,
-                        recoveries: [hoursFrom(1), hoursFrom(2)],
-                        active: true,
-                    },
-                ]),
-            );
-            const archived = rawCharacter({
-                spells: [a],
-                assets: {
-                    ...buildCharacter().assets,
-                    activeSpells: [{ spell: a, usages: 0 }],
-                },
-                deletedAt: ARCHIVED_AT,
-            });
-            await insert(
-                legacyString,
-                inactiveWithoutSlots,
-                garbageAndOrphan,
-                divergentMirror,
-                orphanState,
-                empty,
-                coherent,
-                archived,
-            );
-            const coherentBefore = await rawOf(coherent._id);
-            const archivedBefore = await rawOf(archived._id);
-
-            const firstRun = await migrator.migrateAll();
-
-            expect(firstRun).toEqual({ migrated: 4, repaired: 2, trimmed: 0 });
-            const legacyAfter = await rawOf(legacyString._id);
-            expect(legacyAfter.status.spellStates).toEqual([
-                { spell: a, usages: 1, recoveries: [] },
-            ]);
-            expect(legacyAfter.assets.activeSpells).toEqual([
-                { spell: a.toHexString(), usages: 1 },
-            ]);
-            const inactiveAfter = await rawOf(inactiveWithoutSlots._id);
-            expect(inactiveAfter.status.spellStates).toEqual([
-                { spell: b, usages: 2, recoveries: [] },
-            ]);
-            expect(inactiveAfter.assets.activeSpells).toEqual([]);
-            expect(
-                (await rawOf(garbageAndOrphan._id)).status.spellStates,
-            ).toEqual([{ spell: orphan, usages: 0, recoveries: [] }]);
-            const divergentAfter = await rawOf(divergentMirror._id);
-            expect(divergentAfter.status.spellStates).toEqual([
-                { spell: a, usages: 2, recoveries: [hoursFrom(1)] },
-            ]);
-            expect(divergentAfter.assets.activeSpells).toEqual([
-                { spell: a, usages: 2 },
-            ]);
-            expect((await rawOf(orphanState._id)).status.spellStates).toEqual([
-                { spell: a, usages: 1, recoveries: [hoursFrom(1)] },
-            ]);
-            expect((await rawOf(empty._id)).status.spellStates).toEqual([]);
-            expect(await rawOf(coherent._id)).toEqual(coherentBefore);
-            expect(await rawOf(archived._id)).toEqual(archivedBefore);
-            expect(archivedBefore.status.spellStates).toBeUndefined();
-
-            const afterFirstRun = await snapshotAll();
-            const secondRun = await migrator.migrateAll();
-
-            expect(secondRun).toEqual({ migrated: 0, repaired: 0, trimmed: 0 });
-            expect(await snapshotAll()).toEqual(afterFirstRun);
-        });
-
-        it('keeps the entries in the order of status.spells', async () => {
-            const reversed = rawCharacter({
-                spells: [a, b],
-                spellStates: [
-                    { spell: b, usages: 1, recoveries: [hoursFrom(1)] },
-                    { spell: a, usages: 3, recoveries: [] },
-                ],
-            });
-            await insert(reversed);
-
-            expect(await migrator.migrateAll()).toEqual({
-                migrated: 0,
-                repaired: 1,
-                trimmed: 0,
-            });
-
-            expect((await rawOf(reversed._id)).status.spellStates).toEqual([
-                { spell: a, usages: 3, recoveries: [] },
-                { spell: b, usages: 1, recoveries: [hoursFrom(1)] },
-            ]);
-        });
-
-        it('reports a mirror slot of an unknown spell without counting it as repaired', async () => {
-            const unknownSlot = rawCharacter({
-                spells: [],
-                spellStates: [],
-                assets: {
-                    ...buildCharacter().assets,
-                    activeSpells: [{ spell: a, usages: 2 }],
-                },
-            });
-            await insert(unknownSlot);
-            const before = await snapshotAll();
-
-            expect(await migrator.migrateAll()).toEqual({
-                migrated: 0,
-                repaired: 0,
-                trimmed: 0,
-            });
-
-            expect(await snapshotAll()).toEqual(before);
-            expect(
-                warnings().some((message) => message.includes('1 personaggi')),
-            ).toBe(true);
-        });
-
-        it('drops every instant of a spell already at its maximum usages, leaving the usages alone', async () => {
-            const full = coherentCharacter(
-                spellBook([
-                    { spell: a, usages: 3, recoveries: [hoursFrom(-1)] },
-                ]),
-            );
-            await insert(full);
-
-            expect(await migrator.migrateAll()).toEqual({
-                migrated: 0,
-                repaired: 0,
-                trimmed: 1,
-            });
-
-            expect((await rawOf(full._id)).status.spellStates).toEqual([
-                { spell: a, usages: 3, recoveries: [] },
-            ]);
-            expectOnlyIdsWarned(full._id);
-            expect(await migrator.migrateAll()).toEqual({
-                migrated: 0,
-                repaired: 0,
-                trimmed: 0,
-            });
-        });
-
-        it('leaves the states of a catalog spell with an invalid maxUsages as stored, without warnings', async () => {
-            const broken = new Types.ObjectId();
-            await SpellModel.collection.insertOne({
-                _id: broken,
-                name: 'Broken',
-                maxUsages: 'three',
-            } as never);
-            const holder = coherentCharacter(
-                spellBook([
-                    {
-                        spell: broken,
-                        usages: 5,
-                        recoveries: [hoursFrom(1), hoursFrom(2)],
-                    },
-                ]),
-            );
-            await insert(holder);
-            const before = await rawOf(holder._id);
-
-            expect(await migrator.migrateAll()).toEqual({
-                migrated: 0,
-                repaired: 0,
-                trimmed: 0,
-            });
-
-            expect(await rawOf(holder._id)).toEqual(before);
-            expect(
-                warnings().filter((message) =>
-                    message.includes(holder._id.toHexString()),
-                ),
-            ).toEqual([]);
-        });
-
-        it('drops the oldest instants that no credit can consume, leaving the usages alone', async () => {
-            const tooMany = coherentCharacter(
-                spellBook([
-                    {
-                        spell: a,
-                        usages: 1,
-                        recoveries: [hoursFrom(1), hoursFrom(2), hoursFrom(3)],
-                    },
-                ]),
-            );
-            await insert(tooMany);
-
-            expect(await migrator.migrateAll()).toEqual({
-                migrated: 0,
-                repaired: 0,
-                trimmed: 1,
-            });
-
-            expect((await rawOf(tooMany._id)).status.spellStates).toEqual([
-                {
-                    spell: a,
-                    usages: 1,
-                    recoveries: [hoursFrom(2), hoursFrom(3)],
-                },
-            ]);
-            expectOnlyIdsWarned(tooMany._id);
-            expect(await migrator.migrateAll()).toEqual({
-                migrated: 0,
-                repaired: 0,
-                trimmed: 0,
-            });
-        });
-
-        it('never lowers usages above the catalog maximum, only drops their instants', async () => {
-            const over = coherentCharacter(
-                spellBook([
-                    { spell: a, usages: 5, recoveries: [hoursFrom(1)] },
-                ]),
-            );
-            await insert(over);
-
-            expect(await migrator.migrateAll()).toEqual({
-                migrated: 0,
-                repaired: 0,
-                trimmed: 1,
-            });
-
-            expect((await rawOf(over._id)).status.spellStates).toEqual([
-                { spell: a, usages: 5, recoveries: [] },
-            ]);
-            expectOnlyIdsWarned(over._id);
-            expect(await migrator.migrateAll()).toEqual({
-                migrated: 0,
-                repaired: 0,
-                trimmed: 0,
-            });
-        });
-    });
-
-    describe('trim only (Phase 19)', () => {
         it('trims the instants of an active spell state and keeps it active (D-21)', async () => {
-            const tooMany = singleListCharacter([
+            const tooMany = rawCharacter([
                 {
                     spell: a,
                     usages: 1,
@@ -448,7 +158,7 @@ describe('SpellStateMigrator (replSet)', () => {
         });
 
         it('never rebuilds the spell states of a character without the old lists (D-21)', async () => {
-            const settled = singleListCharacter([
+            const settled = rawCharacter([
                 {
                     spell: a,
                     usages: 1,
@@ -458,7 +168,7 @@ describe('SpellStateMigrator (replSet)', () => {
                 { spell: b, usages: 2, recoveries: [], active: false },
                 { spell: orphan, usages: 0, recoveries: [], active: false },
             ]);
-            const withoutSpells = singleListCharacter([]);
+            const withoutSpells = rawCharacter([]);
             await insert(settled, withoutSpells);
             const before = await snapshotAll();
 
@@ -472,7 +182,7 @@ describe('SpellStateMigrator (replSet)', () => {
         });
 
         it('reports only the trimmed characters (D-21)', async () => {
-            const full = singleListCharacter([
+            const full = rawCharacter([
                 {
                     spell: a,
                     usages: 3,
@@ -480,7 +190,7 @@ describe('SpellStateMigrator (replSet)', () => {
                     active: true,
                 },
             ]);
-            const settled = singleListCharacter([
+            const settled = rawCharacter([
                 { spell: b, usages: 2, recoveries: [], active: false },
             ]);
             await insert(full, settled);
@@ -488,36 +198,191 @@ describe('SpellStateMigrator (replSet)', () => {
             expect(await migrator.migrateAll()).toEqual({ trimmed: 1 });
             expect(await migrator.migrateAll()).toEqual({ trimmed: 0 });
         });
+
+        it('leaves a character still carrying the old lists as stored, in whatever state', async () => {
+            const neverMigrated = oldShapeCharacter([a, 'xyz', orphan]);
+            const reversed = oldShapeCharacter(
+                [a, b],
+                [
+                    { spell: b, usages: 1, recoveries: [hoursFrom(1)] },
+                    { spell: a, usages: 3, recoveries: [] },
+                ],
+            );
+            const orphanState = oldShapeCharacter(
+                [a],
+                [
+                    { spell: a, usages: 1, recoveries: [hoursFrom(1)] },
+                    { spell: b, usages: 2, recoveries: [] },
+                ],
+            );
+            await insert(neverMigrated, reversed, orphanState);
+            const before = await snapshotAll();
+
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 0 });
+            expect(await migrator.migrateOne(neverMigrated._id)).toBe(false);
+
+            expect(await snapshotAll()).toEqual(before);
+            expect(
+                (await rawOf(neverMigrated._id)).status.spellStates,
+            ).toBeUndefined();
+            expect(warnings()).toEqual([]);
+        });
+
+        it('trims a state stored without the flag and adds no flag to it', async () => {
+            const preReview = oldShapeCharacter(
+                [a],
+                [{ spell: a, usages: 3, recoveries: [hoursFrom(-1)] }],
+            );
+            await insert(preReview);
+
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 1 });
+
+            const after = await rawOf(preReview._id);
+            expect(after.status.spellStates).toEqual([
+                { spell: a, usages: 3, recoveries: [] },
+            ]);
+            expect(after.status.spells).toEqual([a]);
+            expect(after.assets.activeSpells).toEqual([
+                { spell: a, usages: 1 },
+            ]);
+        });
+
+        it('leaves an archived character alone', async () => {
+            const archived = rawCharacter(
+                [
+                    {
+                        spell: a,
+                        usages: 3,
+                        recoveries: [hoursFrom(-1)],
+                        active: true,
+                    },
+                ],
+                ARCHIVED_AT,
+            );
+            await insert(archived);
+            const before = await rawOf(archived._id);
+
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 0 });
+
+            expect(await rawOf(archived._id)).toEqual(before);
+        });
+
+        it('drops every instant of a spell already at its maximum usages, leaving the usages alone', async () => {
+            const full = rawCharacter([
+                {
+                    spell: a,
+                    usages: 3,
+                    recoveries: [hoursFrom(-1)],
+                    active: false,
+                },
+            ]);
+            await insert(full);
+
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 1 });
+
+            expect((await rawOf(full._id)).status.spellStates).toEqual([
+                { spell: a, usages: 3, recoveries: [], active: false },
+            ]);
+            expectOnlyIdsWarned(full._id);
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 0 });
+        });
+
+        it('leaves the states of a catalog spell with an invalid maxUsages as stored, without warnings', async () => {
+            const broken = new Types.ObjectId();
+            await SpellModel.collection.insertOne({
+                _id: broken,
+                name: 'Broken',
+                maxUsages: 'three',
+            } as never);
+            const holder = rawCharacter([
+                {
+                    spell: broken,
+                    usages: 5,
+                    recoveries: [hoursFrom(1), hoursFrom(2)],
+                    active: true,
+                },
+            ]);
+            await insert(holder);
+            const before = await rawOf(holder._id);
+
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 0 });
+
+            expect(await rawOf(holder._id)).toEqual(before);
+            expect(
+                warnings().filter((message) =>
+                    message.includes(holder._id.toHexString()),
+                ),
+            ).toEqual([]);
+        });
+
+        it('drops the oldest instants that no credit can consume, leaving the usages alone', async () => {
+            const tooMany = rawCharacter([
+                {
+                    spell: a,
+                    usages: 1,
+                    recoveries: [hoursFrom(1), hoursFrom(2), hoursFrom(3)],
+                    active: false,
+                },
+            ]);
+            await insert(tooMany);
+
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 1 });
+
+            expect((await rawOf(tooMany._id)).status.spellStates).toEqual([
+                {
+                    spell: a,
+                    usages: 1,
+                    recoveries: [hoursFrom(2), hoursFrom(3)],
+                    active: false,
+                },
+            ]);
+            expectOnlyIdsWarned(tooMany._id);
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 0 });
+        });
+
+        it('never lowers usages above the catalog maximum, only drops their instants', async () => {
+            const over = rawCharacter([
+                {
+                    spell: a,
+                    usages: 5,
+                    recoveries: [hoursFrom(1)],
+                    active: true,
+                },
+            ]);
+            await insert(over);
+
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 1 });
+
+            expect((await rawOf(over._id)).status.spellStates).toEqual([
+                { spell: a, usages: 5, recoveries: [], active: true },
+            ]);
+            expectOnlyIdsWarned(over._id);
+            expect(await migrator.migrateAll()).toEqual({ trimmed: 0 });
+        });
     });
 
     describe('malformed entries', () => {
         // voce scritta a mano: usi assenti e istanti non in lista; nessun credito può toccarla
         function corruptCharacter() {
-            return rawCharacter({
-                spells: [a, b],
-                spellStates: [
-                    { spell: a, recoveries: 'soon' },
-                    { spell: b, usages: 2, recoveries: [hoursFrom(1)] },
-                ] as unknown as RawState[],
-            });
+            return rawCharacter([
+                { spell: a, recoveries: 'soon' },
+                { spell: b, usages: 2, recoveries: [hoursFrom(1)] },
+            ] as unknown as RawState[]);
         }
 
         it('completes the batch around a corrupt entry, trimming every other document and leaving the corrupt entry as stored', async () => {
             const corrupt = corruptCharacter();
-            const tooMany = coherentCharacter(
-                spellBook([
-                    {
-                        spell: a,
-                        usages: 1,
-                        recoveries: [hoursFrom(1), hoursFrom(2), hoursFrom(3)],
-                    },
-                ]),
-            );
+            const tooMany = rawCharacter([
+                {
+                    spell: a,
+                    usages: 1,
+                    recoveries: [hoursFrom(1), hoursFrom(2), hoursFrom(3)],
+                    active: false,
+                },
+            ]);
             await insert(corrupt, tooMany);
 
             await expect(migrator.migrateAll()).resolves.toEqual({
-                migrated: 0,
-                repaired: 0,
                 trimmed: 2,
             });
 
@@ -530,6 +395,7 @@ describe('SpellStateMigrator (replSet)', () => {
                     spell: a,
                     usages: 1,
                     recoveries: [hoursFrom(2), hoursFrom(3)],
+                    active: false,
                 },
             ]);
             expect(errorSpy).not.toHaveBeenCalled();
@@ -613,12 +479,7 @@ describe('SpellStateMigrator (replSet)', () => {
             ];
             const catalog = [{ id: a, maxUsages: 3 }];
             const docs = cases.map(([, state]) =>
-                rawCharacter({
-                    spells: [a],
-                    spellStates: [
-                        { spell: a, ...state },
-                    ] as unknown as RawState[],
-                }),
+                rawCharacter([{ spell: a, ...state }] as unknown as RawState[]),
             );
             await insert(...docs);
 
@@ -644,33 +505,43 @@ describe('SpellStateMigrator (replSet)', () => {
     });
 
     describe('migrateOne', () => {
-        it('migrates a legacy character once and then is a no-op', async () => {
-            const legacy = rawCharacter({
-                spells: [a],
-                assets: {
-                    ...buildCharacter().assets,
-                    activeSpells: [{ spell: a, usages: 1 }],
-                },
-            });
-            const untouched = rawCharacter({ spells: [b] });
-            await insert(legacy, untouched);
+        it('trims one character and leaves every other one alone', async () => {
+            const full = () =>
+                rawCharacter([
+                    {
+                        spell: a,
+                        usages: 3,
+                        recoveries: [hoursFrom(-1)],
+                        active: true,
+                    },
+                ]);
+            const target = full();
+            const untouched = full();
+            await insert(target, untouched);
+            const untouchedBefore = await rawOf(untouched._id);
 
-            expect(await migrator.migrateOne(legacy._id)).toBe(true);
+            expect(await migrator.migrateOne(target._id)).toBe(true);
 
-            expect((await rawOf(legacy._id)).status.spellStates).toEqual([
-                { spell: a, usages: 1, recoveries: [] },
+            expect((await rawOf(target._id)).status.spellStates).toEqual([
+                { spell: a, usages: 3, recoveries: [], active: true },
             ]);
-            expect(
-                (await rawOf(untouched._id)).status.spellStates,
-            ).toBeUndefined();
-            expect(await migrator.migrateOne(legacy._id)).toBe(false);
+            expect(await rawOf(untouched._id)).toEqual(untouchedBefore);
+            expectOnlyIdsWarned(target._id);
+            expect(await migrator.migrateOne(target._id)).toBe(false);
         });
 
         it('leaves an archived character alone', async () => {
-            const archived = rawCharacter({
-                spells: [a],
-                deletedAt: ARCHIVED_AT,
-            });
+            const archived = rawCharacter(
+                [
+                    {
+                        spell: a,
+                        usages: 3,
+                        recoveries: [hoursFrom(-1)],
+                        active: true,
+                    },
+                ],
+                ARCHIVED_AT,
+            );
             await insert(archived);
             const before = await rawOf(archived._id);
 
@@ -679,48 +550,26 @@ describe('SpellStateMigrator (replSet)', () => {
             expect(await rawOf(archived._id)).toEqual(before);
         });
 
-        it('drops the instants of a spell at its maximum usages', async () => {
-            const full = coherentCharacter(
-                spellBook([
-                    { spell: a, usages: 3, recoveries: [hoursFrom(-1)] },
-                ]),
-            );
-            await insert(full);
-
-            expect(await migrator.migrateOne(full._id)).toBe(true);
-
-            expect((await rawOf(full._id)).status.spellStates).toEqual([
-                { spell: a, usages: 3, recoveries: [] },
-            ]);
-            expectOnlyIdsWarned(full._id);
-            expect(await migrator.migrateOne(full._id)).toBe(false);
-        });
-
         it('drops the oldest instants in excess of the missing usages', async () => {
-            const tooMany = coherentCharacter(
-                spellBook([
-                    {
-                        spell: a,
-                        usages: 1,
-                        recoveries: [hoursFrom(1), hoursFrom(2), hoursFrom(3)],
-                        active: true,
-                    },
-                ]),
-            );
+            const tooMany = rawCharacter([
+                {
+                    spell: a,
+                    usages: 1,
+                    recoveries: [hoursFrom(1), hoursFrom(2), hoursFrom(3)],
+                    active: true,
+                },
+            ]);
             await insert(tooMany);
 
             expect(await migrator.migrateOne(tooMany._id)).toBe(true);
 
-            const after = await rawOf(tooMany._id);
-            expect(after.status.spellStates).toEqual([
+            expect((await rawOf(tooMany._id)).status.spellStates).toEqual([
                 {
                     spell: a,
                     usages: 1,
                     recoveries: [hoursFrom(2), hoursFrom(3)],
+                    active: true,
                 },
-            ]);
-            expect(after.assets.activeSpells).toEqual([
-                { spell: a, usages: 1 },
             ]);
             expectOnlyIdsWarned(tooMany._id);
             expect(await migrator.migrateOne(tooMany._id)).toBe(false);
@@ -728,18 +577,25 @@ describe('SpellStateMigrator (replSet)', () => {
     });
 
     describe('onApplicationBootstrap', () => {
-        it('migrates the characters at boot', async () => {
-            const legacy = rawCharacter({ spells: [b] });
-            await insert(legacy);
+        it('trims the characters at boot', async () => {
+            const full = rawCharacter([
+                {
+                    spell: b,
+                    usages: 2,
+                    recoveries: [hoursFrom(1)],
+                    active: true,
+                },
+            ]);
+            await insert(full);
 
             await migrator.onApplicationBootstrap();
 
-            expect((await rawOf(legacy._id)).status.spellStates).toEqual([
-                { spell: b, usages: 2, recoveries: [] },
+            expect((await rawOf(full._id)).status.spellStates).toEqual([
+                { spell: b, usages: 2, recoveries: [], active: true },
             ]);
         });
 
-        it('never blocks the boot when the migration fails', async () => {
+        it('never blocks the boot when the trim fails', async () => {
             const failure = Object.assign(new Error('boom'), { code: 91 });
             jest.spyOn(CharacterModel, 'updateMany').mockReturnValueOnce({
                 exec: () => Promise.reject(failure),

@@ -342,9 +342,8 @@ describe('CharacterCreationResolver (wire)', () => {
                 maxLifePoints: 1000,
                 coins: { gold: 0, silver: 5, copper: 0 },
                 injuries: [],
-                spells: [],
+                spellStates: [],
             });
-            expect(raw?.status.spellStates).toEqual([]);
             await expectLocation(character, drustea);
             expect(raw?.quests).toEqual({
                 activeStoryQuest: null,
@@ -354,7 +353,6 @@ describe('CharacterCreationResolver (wire)', () => {
             });
             expect(raw?.assets.ownedEquipments).toEqual([]);
             expect(raw?.assets.ownedItems).toEqual([]);
-            expect(raw?.assets.activeSpells).toEqual([]);
             expect(raw?.assets.pet).toBeNull();
             expect(raw?.assets.wornEquipment).toEqual(EMPTY_WORN_EQUIPMENT);
 

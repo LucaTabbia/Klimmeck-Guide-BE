@@ -17,7 +17,6 @@ export interface StartingCharacter {
         title: TitleType;
         location: Types.ObjectId;
         injuries: never[];
-        spells: never[];
         spellStates: never[];
         unlockedLore: Types.ObjectId[];
         knownEnemies: never[];
@@ -33,7 +32,6 @@ export interface StartingCharacter {
         ownedEquipments: never[];
         ownedItems: never[];
         wornEquipment: Record<string, never>;
-        activeSpells: never[];
         ownedPets: never[];
         pet: null;
     };
@@ -61,7 +59,6 @@ export function buildStartingCharacter(
             title: TitleType.rookie,
             location: locationId,
             injuries: [],
-            spells: [],
             spellStates: [],
             unlockedLore: [...unlockedLore],
             knownEnemies: [],
@@ -78,7 +75,6 @@ export function buildStartingCharacter(
             ownedItems: [],
             // esplicito: senza, Mongoose non crea il sottodocumento e il campo GraphQL non-null si rompe
             wornEquipment: {},
-            activeSpells: [],
             ownedPets: [],
             pet: null,
         },
