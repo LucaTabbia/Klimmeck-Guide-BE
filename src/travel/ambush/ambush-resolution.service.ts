@@ -454,6 +454,7 @@ export class AmbushResolutionService {
                     detour: fight.detour,
                     spellRecoveryTimes: catalog.recoveryTimes,
                     spellMaxUsages: catalog.spellMaxUsages,
+                    petMaxXp: catalog.petMaxXp,
                     now,
                 });
                 await this.writer.writeCharacterUpdate(

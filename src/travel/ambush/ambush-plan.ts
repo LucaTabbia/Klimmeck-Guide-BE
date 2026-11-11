@@ -24,6 +24,10 @@ import {
     woundsAfter,
 } from 'src/quests/outcomes/outcome-plan';
 import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
+import {
+    type CompanionXpAward,
+    companionXpAward,
+} from 'src/quests/outcomes/pets/companion-xp';
 import type { KnowledgeAddition } from 'src/lore/knowledge-addition';
 import {
     lifePointsWithin,
@@ -66,7 +70,6 @@ export type AmbushCharacterSnapshot = OutcomeCharacterSnapshot & {
     status: OutcomeCharacterSnapshot['status'] & {
         activeTravel: AmbushTravelSnapshot;
     };
-    assets?: OutcomeCharacterSnapshot['assets'] & { pet?: unknown };
 };
 
 export interface AmbushReportDraft {
@@ -93,6 +96,8 @@ export interface AmbushReportDraft {
     titleAfter: TitleType;
     // il piano lo scrive sempre; assente nei report trattenuti prima della Phase 16
     loreUnlocked?: Types.ObjectId[];
+    // il piano lo scrive sempre; assente nei report trattenuti prima della Phase 19
+    petXpGained?: number;
 }
 
 // deviazione verso la città più vicina dopo una sconfitta (D-11); ripiego sulla strada residua verso la meta (D-25)
@@ -122,6 +127,7 @@ export interface AmbushPlanInput {
     detour: DetourDraft | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
     spellMaxUsages: ReadonlyMap<string, number>;
+    petMaxXp: ReadonlyMap<string, number>;
     now: Date;
 }
 
@@ -145,6 +151,7 @@ interface FoughtOutcome {
     consumables: ConsumableUsage[];
     inventory: ReturnType<typeof applyTradeToInventory>;
     spells: SpellsSpent;
+    companion: CompanionXpAward;
     coinsDelta: number;
 }
 
@@ -187,13 +194,19 @@ function foughtOutcomeOf(input: AmbushPlanInput, won: boolean): FoughtOutcome {
             input.spellRecoveryTimes,
             input.identity.at,
         ),
+        // quota sugli xp grezzi dei nemici, non sul premio di grado (Phase 19 D-04)
+        companion: companionXpAward(
+            snapshot.assets,
+            won ? input.enemies.xp : 0,
+            input.petMaxXp,
+        ),
         coinsDelta: won ? prizes.copper : 0,
     };
 }
 
 // il titolo resta fermo (C2): avanza solo con la story del titolo
 function commonSetOf(fought: FoughtOutcome): Record<string, unknown> {
-    const { progression, wounds, inventory, spells } = fought;
+    const { progression, wounds, inventory, spells, companion } = fought;
     return {
         'status.xp': progression.xp,
         'status.level': progression.level,
@@ -207,6 +220,9 @@ function commonSetOf(fought: FoughtOutcome): Record<string, unknown> {
             : {}),
         ...(spells.activeSpells
             ? { 'assets.activeSpells': spells.activeSpells }
+            : {}),
+        ...(companion.ownedPets
+            ? { 'assets.ownedPets': companion.ownedPets }
             : {}),
     };
 }
@@ -241,6 +257,7 @@ function reportOf(
         titleBefore: before.title,
         titleAfter: before.title,
         loreUnlocked: learned.fresh,
+        petXpGained: fought.companion.gained,
     };
 }
 

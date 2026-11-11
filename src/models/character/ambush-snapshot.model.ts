@@ -124,6 +124,10 @@ export class AmbushReportSnapshot {
     // sole lore nuove della vittoria (Phase 16 D-09): senza @Prop la strict mode lo scarterebbe nel push (Pitfall 3)
     @Prop({ type: [MongooseSchema.Types.ObjectId], ref: 'Lore', default: [] })
     loreUnlocked: Types.ObjectId[];
+
+    // xp dati al compagno dalla vittoria (Phase 19 D-19): senza @Prop la strict mode lo scarterebbe nel push
+    @Prop({ type: Number, default: 0 })
+    petXpGained: number;
 }
 
 export const AmbushReportSnapshotSchema =
