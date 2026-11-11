@@ -10,11 +10,18 @@ describe('companion updates', () => {
     const c = new Types.ObjectId();
     const p = new Types.ObjectId();
 
-    it('equips only a pet among the owned pets of an active character (D-15)', () => {
-        expect(equipPetFilter(c, p)).toEqual({
+    it('matches only a character that owns the pet in one of its entries (D-03)', () => {
+        const filter = equipPetFilter(c, p);
+
+        expect(filter).toEqual({
             ...activeCharacterById(c),
-            'assets.ownedPets': { $in: [p, p.toHexString()] },
+            'assets.ownedPets.pet': { $in: [p, p.toHexString()] },
         });
+        expect(Object.keys(filter).sort()).toEqual([
+            '_id',
+            'assets.ownedPets.pet',
+            'deletedAt',
+        ]);
     });
 
     it('sets the companion slot or empties it (D-15)', () => {
