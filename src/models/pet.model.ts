@@ -3,6 +3,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 import { DamagesSchema, Damages, DamagesInput } from './common/damages.model';
 import { CoinsSchema, Coins, CoinsInput } from './common/coins.model';
+import { RarityType } from './enums/rarity-type.enum';
 import { Lore } from './lore.model';
 
 @ObjectType()
@@ -61,6 +62,11 @@ export class Pet {
         default: [],
     })
     relatedLore: Lore[];
+
+    // rarità del pet (Phase 19 D-27): null finché la cura a DB non la scrive; tetto dei pet in premio (D-28)
+    @Field(() => RarityType, { nullable: true })
+    @Prop({ type: String, enum: Object.values(RarityType), default: null })
+    rarity?: RarityType | null;
 }
 
 export type PetDocument = Pet & Document;
@@ -97,4 +103,7 @@ export class PetInput {
 
     @Field(() => Float, { nullable: true })
     speedModifier?: number | null;
+
+    @Field(() => RarityType, { nullable: true })
+    rarity?: RarityType | null;
 }
