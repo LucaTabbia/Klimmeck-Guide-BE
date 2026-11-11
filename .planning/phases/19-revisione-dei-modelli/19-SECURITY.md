@@ -198,7 +198,7 @@ Esame del codice per area:
 - **(f) DoS da dati malformati su campi non nullable.** Coperti: voci di `ownedPets` (orfane, xp/vita nulli, frazionari, negativi, oltre `Int`), `spellStates` con magia sparita, debolezze fuori enum o nulle, `Pet.rarity` fuori enum, `Enemy.spells` orfane, `petXpGained` assente. Residui non coperti e già noti (chiusi per ruling C-IN): `Enemy.weaknesses: null` esplicito (il default Mongoose vale solo per il campo assente; il resolver filtra le liste, non il sotto-documento) e un pet a catalogo con un campo `…!` nullo (`maxXp`, `imagePath`, …) dentro `OwnedPet.pet: Pet!`, che annullerebbe `assets`: forma preesistente (`ownedPets: [Pet!]!` aveva la stessa esposizione), a carico del controllo dei contenuti del Passo 6.
 - **(g) Ambiente e segreti.** Nessuna variabile nuova (`PET_XP_SHARE` è una costante, `pet-xp.ts:2`), nessun segreto, nessun `process.env.` aggiunto.
 
-## Mitigazioni operative — da eseguire
+## Mitigazioni operative — da eseguire (ESEGUITE l'11 novembre 2026: vedi «Mitigazioni operative eseguite» in fondo)
 
 | ID | Cosa resta da fare | Runbook |
 | --- | --- | --- |
@@ -235,3 +235,18 @@ Nessuna minaccia differita. Residuo operativo, non una minaccia aperta: BE-MODEL
 ## Flag di minaccia non registrati
 
 Nessuno dai SUMMARY: i 23 SUMMARY dichiarano «nessuna superficie nuova fuori dal threat model» (i piani 19-01…19-04 non hanno la sezione). Le sole voci non registrate sono N-19-01…N-19-04, nate dai fix della review.
+
+## Mitigazioni operative eseguite (2026-11-11)
+
+Fatti del boot reale riferiti dall'orchestratore e rimozione del modulo fatta in TDD; il registro sopra resta com'era all'audit.
+
+| ID | Cosa è stato fatto | Esito |
+| --- | --- | --- |
+| T-19-86 | Boot reale col migratore prima di ogni uso dei dati, dalla HEAD `66ff10ec`: prova a secco pulita (91 copie di magie identiche al catalogo, nessun personaggio con entrambi i campi dell'equipaggiamento, nessuna debolezza fuori enum); primo boot: debolezze 206 / 206, magie dei nemici 206 / 45 (161 già a posto), catalogo dei pet 44 / 44, pet posseduti 7 / 0 (7 già a posto), back-link dei POI 642 / 642, pool dei negozi 167 / 167, immagini delle lore 522 / 522, equipaggiamento 7 / 7, lista delle magie 7 / 7; «senza corrispondenza» 0 ovunque, nessun `fallito`, nessun WARN. Controllo contro il backup: nessun campo vecchio rimasto, valori identici. Secondo boot: nove righe a `migrati 0` | ESEGUITA |
+| T-19-89 | Processo dell'utente fermato prima del boot, nulla in scadenza (0 quest avviate, 0 pendenti, 0 viaggi attivi, 0 in attesa di soccorso, 0 recuperi di magie pendenti); backup fuori repo di `enemies`, `pets`, `characters`, `cities`, `lore`, `pointsofinterest`, `spells`, `quests` prima di ogni scrittura; sul database migrato è girato solo codice della Phase 19 | ESEGUITA |
+| T-19-90 | Modulo una tantum rimosso in TDD dopo il boot e il contenuto: RED `c3492ced`, GREEN `0822feee`; cartella assente, nessun riferimento in `src` e `test` oltre al caso «does not mount…» del boot di test; `tsc` 0, SDL invariato. BE-MODEL-09 `[x]` / `Complete`. PR #33 fuori dal draft solo dopo questa rimozione | ESEGUITA — resta il terzo boot reale dalla build dopo la rimozione (il processo in esecuzione viene ancora dalla build di `66ff10ec`) |
+| T-19-93 | Script di contenuto fuori repo, prova a secco e poi una sola transazione: 44 `maxXp`, 44 `defense` non vuote, 44 `rarity` nei soli cinque nomi dell'enum (13 common, 8 uncommon, 8 rare, 12 ultrarare, 3 legendary), 44 `relatedLore`, 31 `Pet.enemy` come ObjectId. Controllo finale: 0 pet senza difesa, 0 senza rarità, 31 con nemico, 44 con una lore | ESEGUITA |
+
+**N-19-01 chiusa dalla rimozione:** il modulo che fermava il boot al primo passo fallito non è più nel repo (`0822feee`); nessun processo che compila `AppModule` dalla HEAD lo esegue. La regola «non mergiare con il modulo dentro» è rispettata. N-19-02, N-19-03 e N-19-04 non si sono materializzate (nessun WARN, «senza corrispondenza» 0 su tutte le righe) e decadono col modulo.
+
+Le mitigazioni di accompagnamento (backup prima del boot, prova a secco, build dalla sola HEAD della fase, rarità coi nomi dell'enum) sono coperte dai fatti sopra.

@@ -1,7 +1,7 @@
 ---
 phase: 19-revisione-dei-modelli
 verified: 2026-11-11T10:38:00Z
-status: human_needed
+status: passed
 score: 5/5 criteri verificati sul codice (2 con coda operativa aperta dentro la fase)
 overrides_applied: 0
 human_verification:
@@ -173,3 +173,19 @@ Nessuna lacuna di codice: ogni criterio, requisito e decisione con comportamento
 
 _Verified: 2026-11-11T10:38:00Z_
 _Verifier: Claude (gsd-verifier)_
+
+## Aggiornamento dopo il boot reale (2026-11-11)
+
+**Status:** passed — i passi umani sono stati eseguiti; il report sopra resta com'era (verifica sul codice a `6dbbe80a`).
+
+| Passo umano | Esito |
+|-------------|-------|
+| 1. Allineare `BACKEND-NOTES.md` | Fatto dall'orchestratore prima del boot (commit `66ff10ec`) |
+| 2. Boot reale sul database dell'utente | Fatto l'11 novembre 2026 dalla HEAD `66ff10ec`: processo fermo, nulla in scadenza (0 quest avviate, 0 pendenti, 0 viaggi attivi, 0 in attesa di soccorso, 0 recuperi di magie), backup di otto collezioni, prova a secco pulita; primo boot con nove righe senza `fallito` né WARN (lore `migrati 522`, magie `migrati 7`: i due «da verificare» sono chiusi); controllo contro il backup identico; secondo boot a `migrati 0` su tutte e nove |
+| 3. Script di contenuto fuori repo | Fatto, prova a secco e poi una transazione: `maxXp` 44 / `defense` 44 non vuote / `rarity` 44 nei cinque valori / `relatedLore` 44 + la lore «Cavallo da viaggio» / `enemy` 31 come ObjectId / Molosso vendibile nei pool delle 7 città del Mastino |
+| 4. Rimozione del modulo in TDD | Fatta: RED `c3492ced`, GREEN `0822feee`. Cartella `src/migrations/model-review/` assente, `AppModule` e boot di test senza riferimenti (resta il solo caso «does not mount the one-off model review migration (D-12)», nome del modulo come stringa), `tsc` 0, SDL invariato, grep dei nomi vecchi vuoto senza esclusioni. Unit 272 suite / 3497 test, integration 140 suite / 1990 test, boot reale di test 91 test |
+| 5. Chiusura dei requisiti | BE-MODEL-04, 09, 10, 11, 12 chiusi in REQUIREMENTS, ROADMAP e STATE |
+
+**Unico residuo operativo:** il **terzo boot reale** dalla build dopo la rimozione (nessuna riga «Revisione dei modelli») non è ancora stato fatto: il processo in esecuzione viene dalla build di `66ff10ec`, che contiene ancora il modulo (secondo boot a zero, innocuo). Lo fa l'orchestratore al prossimo riavvio dalla HEAD; non tocca il codice né i dati.
+
+_Aggiornato: 2026-11-11 — esecutore della chiusura (gsd-executor), sui fatti del boot riferiti dall'orchestratore_
