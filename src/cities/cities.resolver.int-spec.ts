@@ -16,10 +16,13 @@ import {
 import { createPlayer } from '../../test/authz/player-fixture';
 import { persistCity } from '../../test/fixtures/city.fixture';
 import { persistLore } from '../../test/fixtures/lore.fixture';
+import { persistPoi } from '../../test/fixtures/poi.fixture';
 import { playerKnowing } from '../../test/lore/lore-world';
 import { CitiesModule } from './cities.module';
 
 const CITIES = '{ cities { id name size hasShop } }';
+const CITY_WITH_POINTS =
+    'query($id: String!) { city(id: $id) { name pointsOfInterest { id type location } } }';
 const CITY = 'query($id: String!) { city(id: $id) { id size hasShop } }';
 // selezione FE verbatim (lib/graphql/queries/city_queries.dart)
 const CITIES_FE = `query cities {
@@ -161,6 +164,39 @@ describe('CitiesResolver size and hasShop', () => {
                     id: city._id.toString(),
                     size: 'village',
                     hasShop: true,
+                },
+            },
+        });
+    });
+
+    it('serves the points of interest of a city without the quest back link (D-09)', async () => {
+        const ruins = await persistPoi(pointsOfInterest, {
+            type: ['ruins'],
+            location: [12.5, 41.9],
+        });
+        const city = await persist({
+            name: 'Con rovine',
+            pointsOfInterest: [ruins._id],
+        });
+
+        const response = await graphqlRequest(
+            harness.app,
+            CITY_WITH_POINTS,
+            { id: city._id.toString() },
+            bearer,
+        ).expect(200);
+
+        expect(response.body).toEqual({
+            data: {
+                city: {
+                    name: 'Con rovine',
+                    pointsOfInterest: [
+                        {
+                            id: ruins._id.toString(),
+                            type: ['ruins'],
+                            location: [12.5, 41.9],
+                        },
+                    ],
                 },
             },
         });

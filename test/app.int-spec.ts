@@ -517,6 +517,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the point of interest without the quest back link (D-09)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type PointOfInterest \{[^}]*\}/)?.[0]).toBe(
+            'type PointOfInterest {\n  city: City\n  id: ID!\n  location: [Float!]!\n  type: [PoiType!]!\n}',
+        );
+    });
+
     it('deprecates the global catalogue queries for cityShop (D-20)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
