@@ -1,0 +1,173 @@
+// UNA TANTUM (Phase 19 D-12): prova sul replica set il passo delle magie dei nemici con documenti grezzi — esce dal repo dopo il boot reale
+import { Logger } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Types } from 'mongoose';
+import { Enemy, EnemySchema } from 'src/models/enemy.model';
+import { Spell, SpellSchema } from 'src/models/spell.model';
+import {
+    AuthTestApp,
+    createAuthTestApp,
+} from '../../../test/auth/auth-test-app';
+import { buildSpell } from '../../../test/fixtures/spell.fixture';
+import { EnemySpellsStep } from './enemy-spells.step';
+import {
+    insertLegacy,
+    legacyEnemyWithSpells,
+    rawById,
+} from './legacy-fixtures';
+
+describe('EnemySpellsStep (replSet)', () => {
+    let harness: AuthTestApp;
+    let step: EnemySpellsStep;
+    let warnSpy: jest.SpyInstance;
+
+    const insertCatalogSpell = (name: string): Promise<Types.ObjectId> =>
+        insertLegacy(harness.connection, Spell.name, buildSpell({ name }));
+
+    const copyOf = (name: string, id?: Types.ObjectId) => ({
+        ...(id ? { _id: id } : {}),
+        ...buildSpell({ name }),
+    });
+
+    const insertEnemy = (copies: readonly unknown[]): Promise<Types.ObjectId> =>
+        insertLegacy(
+            harness.connection,
+            Enemy.name,
+            legacyEnemyWithSpells(copies),
+        );
+
+    const rawEnemy = (id: Types.ObjectId) =>
+        rawById(harness.connection, Enemy.name, id);
+
+    beforeAll(async () => {
+        harness = await createAuthTestApp({
+            imports: [
+                MongooseModule.forFeature([
+                    { name: Enemy.name, schema: EnemySchema },
+                    { name: Spell.name, schema: SpellSchema },
+                ]),
+            ],
+            providers: [EnemySpellsStep],
+        });
+        step = harness.app.get(EnemySpellsStep);
+    });
+
+    beforeEach(() => {
+        warnSpy = jest
+            .spyOn(Logger.prototype, 'warn')
+            .mockImplementation(() => undefined);
+    });
+
+    afterEach(async () => {
+        warnSpy.mockRestore();
+        await harness.clearDatabase();
+    });
+
+    afterAll(async () => {
+        await harness.close();
+    });
+
+    it('replaces the embedded copies with the catalogue ids (D-02)', async () => {
+        const fireball = await insertCatalogSpell('Palla di fuoco');
+        const frost = await insertCatalogSpell('Soffio gelido');
+        const id = await insertEnemy([
+            copyOf('Palla di fuoco', fireball),
+            copyOf('Soffio gelido', new Types.ObjectId()),
+        ]);
+        const before = await rawEnemy(id);
+
+        await expect(step.run()).resolves.toEqual({
+            found: 1,
+            migrated: 1,
+            alreadyDone: 0,
+            unmatched: 0,
+        });
+
+        expect(await rawEnemy(id)).toEqual({
+            ...before,
+            spells: [fireball, frost],
+        });
+        expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('reports and leaves out a copy without a match (D-02)', async () => {
+        const fireball = await insertCatalogSpell('Palla di fuoco');
+        const id = await insertEnemy([
+            copyOf('Palla di fuoco', fireball),
+            copyOf('Magia perduta', new Types.ObjectId()),
+        ]);
+
+        await expect(step.run()).resolves.toEqual({
+            found: 1,
+            migrated: 1,
+            alreadyDone: 0,
+            unmatched: 1,
+        });
+
+        expect((await rawEnemy(id))?.spells).toEqual([fireball]);
+        expect(warnSpy.mock.calls).toEqual([
+            [
+                `Revisione dei modelli, magie dei nemici: copia senza corrispondenza «Magia perduta» sul nemico ${id.toHexString()}`,
+            ],
+        ]);
+    });
+
+    it('skips an enemy whose spells are already references (D-02)', async () => {
+        const fireball = await insertCatalogSpell('Palla di fuoco');
+        const withRefs = await insertEnemy([fireball, new Types.ObjectId()]);
+        const withoutSpells = await insertEnemy([]);
+        const before = [
+            await rawEnemy(withRefs),
+            await rawEnemy(withoutSpells),
+        ];
+
+        await expect(step.run()).resolves.toEqual({
+            found: 2,
+            migrated: 0,
+            alreadyDone: 2,
+            unmatched: 0,
+        });
+
+        expect([
+            await rawEnemy(withRefs),
+            await rawEnemy(withoutSpells),
+        ]).toEqual(before);
+    });
+
+    it('changes nothing on a second run (D-02)', async () => {
+        const fireball = await insertCatalogSpell('Palla di fuoco');
+        const ids = [
+            await insertEnemy([copyOf('Palla di fuoco')]),
+            await insertEnemy([
+                copyOf('Magia perduta'),
+                copyOf('Palla di fuoco', fireball),
+            ]),
+            await insertEnemy([fireball]),
+        ];
+        await step.run();
+        const afterFirstRun = await Promise.all(ids.map(rawEnemy));
+
+        await expect(step.run()).resolves.toEqual({
+            found: 3,
+            migrated: 0,
+            alreadyDone: 3,
+            unmatched: 0,
+        });
+
+        expect(await Promise.all(ids.map(rawEnemy))).toEqual(afterFirstRun);
+        expect(afterFirstRun.map((enemy) => enemy?.spells)).toEqual([
+            [fireball],
+            [fireball],
+            [fireball],
+        ]);
+    });
+
+    it('reports zero on an empty collection (D-12)', async () => {
+        await expect(step.run()).resolves.toEqual({
+            found: 0,
+            migrated: 0,
+            alreadyDone: 0,
+            unmatched: 0,
+        });
+    });
+});

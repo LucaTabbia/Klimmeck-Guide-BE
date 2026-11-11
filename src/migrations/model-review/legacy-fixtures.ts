@@ -42,3 +42,11 @@ export function legacyEnemy(overrides: RawDocument = {}): RawDocument {
         Object.entries(enemy).filter(([, value]) => value !== undefined),
     );
 }
+
+// nemico nella forma vecchia delle magie: copie incorporate (o già ref) al posto della lista di soli ref
+export function legacyEnemyWithSpells(
+    copies: readonly unknown[],
+    overrides: RawDocument = {},
+): RawDocument {
+    return legacyEnemy({ spells: [...copies], ...overrides });
+}
