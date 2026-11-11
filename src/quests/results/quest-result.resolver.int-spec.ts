@@ -38,6 +38,8 @@ const QUEST_RESULT_LORE =
     'query QuestResult($id: String!) { questResult(id: $id) { id spellLearned { id name } loreUnlocked { id name type } } }';
 const QUEST_RESULT_HEALED =
     'query QuestResult($id: String!) { questResult(id: $id) { id hpBefore hpAfter injuriesHealed } }';
+const QUEST_RESULT_ENEMY_SPELLS =
+    'query QuestResult($id: String!) { questResult(id: $id) { id enemies { quantity enemy { id spells { id name } } } } }';
 const MISSING_ID = '64b0000000000000000000ff';
 const CONFIRMED_AT = new Date('2026-10-25T09:30:00.000Z');
 
@@ -71,7 +73,7 @@ describe('questResult(id) (wire)', () => {
         );
     }
 
-    function persistTestEnemy() {
+    function persistTestEnemy(overrides: Record<string, unknown> = {}) {
         // locations omesso: lo schema Enemy lo dichiara String singolo (deferred-items.md, 09-04)
         return modelOf<EnemyDocument>(Enemy.name).create({
             name: 'Test Bandit',
@@ -82,6 +84,7 @@ describe('questResult(id) (wire)', () => {
             lifePoints: 1000,
             imagePath: 'enemies/test.png',
             damages: { base: [{ type: 'cut', power: 100 }], energy: [] },
+            ...overrides,
         });
     }
 
@@ -320,6 +323,42 @@ describe('questResult(id) (wire)', () => {
             spellsUsed: [{ usages: 1, spell: null }],
             spellLearned: null,
             enemies: [],
+        });
+    });
+
+    // Spell.name è String!: un id nudo o pendente annullerebbe il nemico sul filo
+    it('serves the spells of a fought enemy on the result sheet (D-02)', async () => {
+        const spell = await persistSpell(modelOf(Spell.name), {
+            name: 'Soffio gelido',
+        });
+        const enemy = await persistTestEnemy({
+            spells: [spell._id, new Types.ObjectId()],
+        });
+        const result = await persistAliceResult({
+            enemies: [{ enemy: enemy._id, quantity: 1 }],
+        });
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_ENEMY_SPELLS,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response).errors).toBeUndefined();
+        expect(bodyOf(response).data?.questResult).toEqual({
+            id: String(result._id),
+            enemies: [
+                {
+                    quantity: 1,
+                    enemy: {
+                        id: String(enemy._id),
+                        spells: [
+                            { id: String(spell._id), name: 'Soffio gelido' },
+                        ],
+                    },
+                },
+            ],
         });
     });
 

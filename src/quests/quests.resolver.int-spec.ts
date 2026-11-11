@@ -56,6 +56,8 @@ const QUEST_IDS = 'query { quests { id } }';
 const QUEST_SPELLS =
     'query { quests { id prizes { spell { id name minXpToLearn } } } }';
 const QUEST_PETS = 'query { quests { id prizes { pet { id name } } } }';
+const QUEST_ENEMY_SPELLS =
+    'query { quests { id infos { enemies { enemy { id spells { id name } } } } } }';
 const CONCLUDED_AT = new Date('2026-10-24T10:00:00.000Z');
 const QUEST_NO_EFFECT =
     'query Quest($id: String!) { quest(id: $id) { id noEffect } }';
@@ -113,6 +115,18 @@ interface WireQuestSpell {
 interface WireQuestPet {
     id: string;
     prizes: { pet: { id: string; name: string } | null };
+}
+
+interface WireQuestEnemySpells {
+    id: string;
+    infos: {
+        enemies: { enemy: { id: string; spells: WireRef[] } }[];
+    };
+}
+
+interface WireRef {
+    id: string;
+    name: string;
 }
 
 interface WireQuestCure {
@@ -603,6 +617,32 @@ describe('quest catalog (wire)', () => {
             minXpToLearn: 40000,
         });
         expect(spellOf(orphan._id)).toBeNull();
+    });
+
+    // Spell.name è String!: un id nudo o pendente annullerebbe il nemico sul filo
+    it('serves the spells of a quest enemy from the catalogue (D-02)', async () => {
+        const spell = await persistSpell(modelOf(Spell.name, SpellSchema), {
+            name: 'Soffio gelido',
+        });
+        const caster = await persistEnemy(modelOf(Enemy.name, EnemySchema), {
+            name: 'Sciamano',
+            spells: [spell._id, new Types.ObjectId()],
+        });
+        await persistCatalogQuest({
+            infos: { enemies: [{ enemy: caster._id, quantity: 1 }] },
+        });
+
+        const body = bodyOf(
+            await graphqlRequest(harness.app, QUEST_ENEMY_SPELLS, {}, bearer),
+        );
+
+        expect(body.errors).toBeUndefined();
+        const quests = (body.data?.quests ??
+            []) as unknown as WireQuestEnemySpells[];
+        expect(quests).toHaveLength(1);
+        expect(quests[0].infos.enemies[0].enemy.spells).toEqual([
+            { id: String(spell._id), name: 'Soffio gelido' },
+        ]);
     });
 
     it('populates prizes.pet and nulls an orphan pet without nulling the list (D-21, D-28)', async () => {

@@ -37,3 +37,18 @@ describe('enemy weaknesses sub-document', () => {
         expect(Object.keys(error?.errors ?? {})).toEqual(['weaknesses.base.0']);
     });
 });
+
+describe('enemy spells references', () => {
+    it('stores the enemy spells as typed references to the catalogue (D-02)', () => {
+        const spells = EnemySchema.path('spells') as unknown as {
+            instance: string;
+            caster?: { instance: string; options: { ref: string } };
+        };
+
+        expect({
+            instance: spells.instance,
+            caster: spells.caster?.instance,
+            ref: spells.caster?.options.ref,
+        }).toEqual({ instance: 'Array', caster: 'ObjectId', ref: 'Spell' });
+    });
+});
