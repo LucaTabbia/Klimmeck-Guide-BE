@@ -65,7 +65,6 @@ export interface OutcomeCharacterSnapshot {
         currentLifePoints?: number;
         maxLifePoints?: number;
         injuries?: InjuryType[];
-        spells?: unknown[];
         // unica lista delle magie, in ordine di apprendimento (Phase 19 D-07)
         spellStates?: SpellStateEntry[];
         location?: unknown;
@@ -81,7 +80,6 @@ export interface OutcomeCharacterSnapshot {
     } | null;
     assets?:
         | (InventorySnapshot & {
-              activeSpells?: { spell?: unknown; usages?: number }[];
               // compagno equipaggiato: riceve la sua quota degli xp dei nemici (Phase 19 D-04)
               pet?: unknown;
               ownedPets?: OwnedPetEntry[] | null;
@@ -178,7 +176,6 @@ export interface ParticipantPlanInput {
     rewards: DrawnRewards;
     aid: { aidQuestId: Types.ObjectId; failedQuestId: Types.ObjectId } | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
-    spellMaxUsages: ReadonlyMap<string, number>;
     // tetti di xp dei pet a catalogo, per esadecimale (Phase 19 D-17)
     petMaxXp: ReadonlyMap<string, number>;
     rescuedCharacters?: readonly Types.ObjectId[];

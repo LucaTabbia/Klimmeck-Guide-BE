@@ -125,7 +125,6 @@ export interface AmbushPlanInput {
     nextAmbush: DrawnAmbush | null;
     detour: DetourDraft | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
-    spellMaxUsages: ReadonlyMap<string, number>;
     petMaxXp: ReadonlyMap<string, number>;
     now: Date;
 }

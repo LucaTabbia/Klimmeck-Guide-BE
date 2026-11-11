@@ -29,7 +29,6 @@ export interface UnrewardedPlanInput {
     battle: ParticipantEffects | null;
     enemies: EnemyFacts | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
-    spellMaxUsages: ReadonlyMap<string, number>;
     now: Date;
 }
 

@@ -319,7 +319,6 @@ export class GmCompletionService {
                         ),
                         aid: null,
                         spellRecoveryTimes: recoveryTimes,
-                        spellMaxUsages: catalog.spellMaxUsages,
                         petMaxXp: catalog.petMaxXp,
                         now,
                     });

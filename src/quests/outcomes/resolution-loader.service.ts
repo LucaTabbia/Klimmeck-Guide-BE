@@ -120,7 +120,6 @@ export interface ResolutionCatalog {
     spells: ReadonlyMap<string, { energyDamage?: unknown }>;
     loot: ReadonlyMap<string, { effect?: unknown; power?: unknown }>;
     recoveryTimes: ReadonlyMap<string, number>;
-    spellMaxUsages: ReadonlyMap<string, number>;
     // tetti di xp dell'intero catalogo dei pet: solo quelli validi (Phase 19 D-17)
     petMaxXp: ReadonlyMap<string, number>;
 }
@@ -439,14 +438,13 @@ export class ResolutionLoader {
         return { ...combat, rewards };
     }
 
-    // nemici nell'ordine delle voci, usi massimi, oggetti del combattimento; subject nomina la fonte nel WARN delle voci orfane
+    // nemici nell'ordine delle voci, tetti dei pet, oggetti del combattimento; subject nomina la fonte nel WARN delle voci orfane
     async readCombatCatalog(
         entries: readonly QuestEnemyRef[],
         participants: readonly CombatCharacterSnapshot[],
         subject: string,
     ): Promise<CombatCatalog> {
         const enemies = await this.readEnemies(entries, subject);
-        const spellMaxUsages = await this.readSpellMaxUsages();
         const petMaxXp = await this.readPetMaxXp();
         if (enemies.length === 0) {
             return {
@@ -455,7 +453,6 @@ export class ResolutionLoader {
                 spells: new Map(),
                 loot: new Map(),
                 recoveryTimes: new Map(),
-                spellMaxUsages,
                 petMaxXp,
             };
         }
@@ -489,24 +486,8 @@ export class ResolutionLoader {
             spells: byHex(spells),
             loot: byHex(loot),
             recoveryTimes: recoveryTimesFrom(spells),
-            spellMaxUsages,
             petMaxXp,
         };
-    }
-
-    // usi massimi dell'intero catalogo (piccolo): base migrata in memoria per gli snapshot che precedono la migrazione (F6)
-    private async readSpellMaxUsages(): Promise<Map<string, number>> {
-        const spells = await this.spellModel
-            .find({}, { maxUsages: 1 })
-            .lean<CatalogEntry<{ maxUsages?: unknown }>[]>()
-            .exec();
-        return new Map(
-            spells.flatMap(({ _id, maxUsages }) =>
-                isUsageCount(maxUsages)
-                    ? [[_id.toHexString(), maxUsages] as const]
-                    : [],
-            ),
-        );
     }
 
     // tetti dell'intero catalogo (piccolo): il compagno equipaggiato può cambiare fra questa lettura e lo snapshot in sessione
