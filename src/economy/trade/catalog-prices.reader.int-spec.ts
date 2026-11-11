@@ -195,6 +195,35 @@ describe('CatalogPricesReader (replSet)', () => {
         ]);
     });
 
+    it('reads the related lore of the pets next to the prices, whatever the stored form (D-26)', async () => {
+        const page = new Types.ObjectId();
+        const tale = new Types.ObjectId();
+        const horse = await persistPet(pets, { relatedLore: [page] });
+        const horseId = horse._id as Types.ObjectId;
+        const scriptedId = new Types.ObjectId();
+        const bareId = new Types.ObjectId();
+        await pets.collection.insertMany([
+            {
+                _id: scriptedId,
+                name: 'Da script',
+                relatedLore: [tale.toHexString(), 'non un id', null],
+            },
+            { _id: bareId, name: 'Senza lore' },
+        ]);
+
+        const { petLore } = await reader.read([
+            line('buy', 'Pet', horseId),
+            line('buy', 'Pet', scriptedId),
+            line('buy', 'Pet', bareId),
+        ]);
+
+        expect([...petLore.entries()]).toEqual([
+            [horseId.toHexString(), [page]],
+            [scriptedId.toHexString(), [tale]],
+            [bareId.toHexString(), []],
+        ]);
+    });
+
     it('carries rarity and sellable with the prices (D-23)', async () => {
         const crown = await persistEquipmentItem(equipment, {
             name: 'Corona del re',

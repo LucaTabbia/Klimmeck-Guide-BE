@@ -1348,6 +1348,73 @@ describe('ShopTransactionService (replSet)', () => {
             expect(after?.assets.pet).toBeNull();
         });
 
+        describe('the lore of a pet', () => {
+            const page = new Types.ObjectId();
+            const tale = new Types.ObjectId();
+
+            const persistStoried = () =>
+                persistPet(pets, {
+                    name: 'Drago nano',
+                    buyPrice: coins(1, 0, 0),
+                    sellPrice: coins(0, 50, 0),
+                    sellable: true,
+                    relatedLore: [page, tale],
+                });
+
+            it('unlocks the lore of a bought pet in the purchase write (D-26)', async () => {
+                const drake = await persistStoried();
+                const id = await persistTrader(
+                    coins(2, 0, 0),
+                    {},
+                    {},
+                    { unlockedLore: [tale] },
+                    { ...catalogPool(), pets: [idOf(drake)] },
+                );
+
+                await shop.execute(buyPet(id, drake));
+
+                const after = await raw(id);
+                expect(after?.status.unlockedLore).toEqual([tale, page]);
+                expect(after?.assets.ownedPets).toEqual([
+                    buildOwnedPet(idOf(drake)),
+                ]);
+            });
+
+            it('keeps the unlocked lore when the pet is sold (D-26)', async () => {
+                const drake = await persistStoried();
+                const id = await persistTrader(
+                    coins(0, 0, 0),
+                    { ownedPets: [buildOwnedPet(idOf(drake))] },
+                    {},
+                    { unlockedLore: [page, tale] },
+                );
+
+                await shop.execute(sellPet(id, drake));
+
+                const after = await raw(id);
+                expect(after?.status.unlockedLore).toEqual([page, tale]);
+                expect(after?.assets.ownedPets).toEqual([]);
+            });
+
+            it('leaves the unlocked lore untouched when the bought pet has no lore (D-26)', async () => {
+                const id = await persistTrader(
+                    coins(2, 0, 0),
+                    {},
+                    {},
+                    { unlockedLore: [tale] },
+                    petPool(),
+                );
+
+                await shop.execute(buyPet(id, horse));
+
+                const after = await raw(id);
+                expect(after?.status.unlockedLore).toEqual([tale]);
+                expect(after?.assets.ownedPets).toEqual([
+                    buildOwnedPet(idOf(horse)),
+                ]);
+            });
+        });
+
         it('refuses a pet already owned with PET_ALREADY_OWNED and writes nothing (D-14)', async () => {
             const id = await persistTrader(
                 coins(2, 0, 0),

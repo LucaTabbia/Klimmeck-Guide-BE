@@ -4,6 +4,7 @@ import type { TradeLine } from './trade-line';
 import {
     applyTradeToPets,
     assertPetsNotOwned,
+    boughtPetLore,
     petOwnershipGuards,
 } from './trade-pets';
 
@@ -184,6 +185,55 @@ describe('trade pets', () => {
             ]);
             expect(
                 petOwnershipGuards([line('sell', 'LootItem', potion)]),
+            ).toEqual([]);
+        });
+    });
+
+    describe('boughtPetLore', () => {
+        const page = new Types.ObjectId();
+        const tale = new Types.ObjectId();
+        const legend = new Types.ObjectId();
+        const lore = (...pairs: [Types.ObjectId, Types.ObjectId[]][]) =>
+            new Map(pairs.map(([id, pages]) => [id.toHexString(), pages]));
+
+        it('collects the lore of the bought pets only (D-26)', () => {
+            expect(
+                boughtPetLore(
+                    [
+                        line('sell', 'Pet', camel),
+                        line('buy', 'Pet', horse),
+                        line('buy', 'LootItem', potion),
+                    ],
+                    lore(
+                        [camel, [legend]],
+                        [horse, [page, tale]],
+                        [potion, [legend]],
+                    ),
+                ),
+            ).toEqual([page, tale]);
+        });
+
+        it('collects the lore in the order of the lines without repeating a page (D-26)', () => {
+            expect(
+                boughtPetLore(
+                    [line('buy', 'Pet', camel), line('buy', 'Pet', horse)],
+                    lore([horse, [page, tale]], [camel, [tale, legend]]),
+                ),
+            ).toEqual([tale, legend, page]);
+        });
+
+        it('collects nothing for a pet without lore or for a trade without pets (D-26)', () => {
+            expect(
+                boughtPetLore([line('buy', 'Pet', horse)], lore([horse, []])),
+            ).toEqual([]);
+            expect(boughtPetLore([line('buy', 'Pet', horse)], lore())).toEqual(
+                [],
+            );
+            expect(
+                boughtPetLore(
+                    [line('buy', 'LootItem', potion)],
+                    lore([horse, [page]]),
+                ),
             ).toEqual([]);
         });
     });

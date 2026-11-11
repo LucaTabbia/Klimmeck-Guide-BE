@@ -82,6 +82,7 @@ describe('drawRewards', () => {
             spellDraw: null,
             pet: null,
             petLifePoints: null,
+            petLore: [],
             loreDraw: null,
         });
     });
@@ -101,6 +102,7 @@ describe('drawRewards', () => {
             spellDraw: null,
             pet: null,
             petLifePoints: null,
+            petLore: [],
             loreDraw: null,
         });
     });
@@ -324,6 +326,34 @@ describe('drawRewards with a pet prize', () => {
         expect(won.petLifePoints).toBe(450);
         expect(malformed.pet).toEqual(PET_ID);
         expect(malformed.petLifePoints).toBe('450');
+    });
+
+    it('carries the lore of the won pet and none without the pet (D-26)', () => {
+        const lore = [new Types.ObjectId(), new Types.ObjectId()];
+        const storied = {
+            ...petCatalog,
+            petLore: new Map([[PET_ID.toHexString(), lore]]),
+        };
+
+        const won = drawRewards(
+            petPrizes(),
+            storied,
+            new SequenceChance([0.1, 0.2, 0.7, 0.19]),
+        );
+        const lost = drawRewards(
+            petPrizes(),
+            storied,
+            new SequenceChance([0.1, 0.2, 0.7, 0.2]),
+        );
+        const plain = drawRewards(
+            petPrizes(),
+            petCatalog,
+            new SequenceChance([0.1, 0.2, 0.7, 0.19]),
+        );
+
+        expect(won.petLore).toEqual(lore);
+        expect(lost.petLore).toEqual([]);
+        expect(plain.petLore).toEqual([]);
     });
 
     it('loses the pet prize on a roll of 20% (D-21)', () => {

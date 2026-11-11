@@ -254,6 +254,26 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
         ]);
     });
 
+    it('unlocks the lore of the pet won as a prize and reports it on the result (D-26)', async () => {
+        const known = new Types.ObjectId();
+        const page = new Types.ObjectId();
+        const pet = await questPet({ relatedLore: [known, page] });
+        const subject = await quester({
+            questOverrides: await petQuest('enemy', pet._id, ONE_SEAT),
+            characterOverrides: { status: { unlockedLore: [known] } },
+        });
+        chance.load([LUCKY_ROLL]);
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        const raw = await world.models.characters.collection.findOne({
+            _id: subject.characterId,
+        });
+        expect(raw?.status.unlockedLore).toEqual([known, page]);
+        expect(raw?.assets.ownedPets).toEqual([buildOwnedPet(pet._id)]);
+        expect((await resultOf(subject)).loreUnlocked).toEqual([page]);
+    });
+
     it('rolls the pet for each winner of a boss (D-21)', async () => {
         const pet = await questPet();
         const first = await quester({

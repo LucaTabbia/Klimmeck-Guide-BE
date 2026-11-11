@@ -477,6 +477,78 @@ describe('planParticipant', () => {
         );
     });
 
+    describe('the lore of the won pet', () => {
+        const PET_PAGE_ID = new Types.ObjectId('64b0000000000000000000f7');
+        const victory = { enemyIds: [ENEMY_ID], loreIds: [NEW_PAGE_ID] };
+        const petRewards = (petLore: Types.ObjectId[]) =>
+            rewardsWith({ pet: PET_ID, petLifePoints: 450, petLore });
+        const wonFight = (
+            rewards: DrawnRewards,
+            assets?: OutcomeCharacterSnapshot['assets'],
+        ) =>
+            planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.enemy),
+                    snapshot: snapshotWith({
+                        status: { unlockedLore: [KNOWN_PAGE_ID] },
+                        assets,
+                    }),
+                    battle: battleWith(),
+                    enemies: {
+                        entries: [{ enemy: ENEMY_ID, quantity: 1 }],
+                        xp: 100,
+                    },
+                    victory,
+                    rewards,
+                }),
+            );
+
+        it('unlocks the lore of the won pet with the knowledge of the outcome (D-26)', () => {
+            const plan = wonFight(petRewards([KNOWN_PAGE_ID, PET_PAGE_ID]));
+
+            expect(plan.update.$addToSet).toEqual({
+                'status.unlockedLore': { $each: [NEW_PAGE_ID, PET_PAGE_ID] },
+                'status.knownEnemies': { $each: [ENEMY_ID] },
+            });
+            expect(plan.result.loreUnlocked).toEqual([
+                NEW_PAGE_ID,
+                PET_PAGE_ID,
+            ]);
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                { pet: PET_ID, xp: 0, currentLifePoints: 450 },
+            ]);
+        });
+
+        it('unlocks no pet lore when the pet is already owned (D-26)', () => {
+            const plan = wonFight(petRewards([PET_PAGE_ID]), {
+                ownedItems: [],
+                ownedEquipments: [],
+                activeSpells: [],
+                ownedPets: [buildOwnedPet(PET_ID)],
+            });
+
+            expect(plan.update.$addToSet).toEqual({
+                'status.unlockedLore': { $each: [NEW_PAGE_ID] },
+                'status.knownEnemies': { $each: [ENEMY_ID] },
+            });
+            expect(plan.result.loreUnlocked).toEqual([NEW_PAGE_ID]);
+        });
+
+        it('keeps the update unchanged for a won pet without lore (D-26)', () => {
+            const plan = wonFight(petRewards([]));
+            const beforeTheLore = wonFight(
+                rewardsWith({ pet: PET_ID, petLifePoints: 450 }),
+            );
+
+            expect(plan.update).toEqual(beforeTheLore.update);
+            expect(plan.update.$addToSet).toEqual({
+                'status.unlockedLore': { $each: [NEW_PAGE_ID] },
+                'status.knownEnemies': { $each: [ENEMY_ID] },
+            });
+            expect(plan.result.loreUnlocked).toEqual([NEW_PAGE_ID]);
+        });
+    });
+
     describe('the xp of the equipped companion', () => {
         const COMPANION_ID = OWNED_PET_ID;
         const companionAssets = (
