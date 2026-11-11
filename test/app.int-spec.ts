@@ -83,7 +83,11 @@ const CATALOGUE_PET_BLOCK =
 const OWNED_PET_BLOCK =
     'type OwnedPet {\n  currentLifePoints: Int!\n  pet: Pet!\n  xp: Int!\n}';
 const CHARACTER_ASSETS_BLOCK =
-    'type CharacterAssets {\n  activeSpells: [ActiveSpell!]!\n  ownedEquipments: [AssetQuantity!]!\n  ownedItems: [AssetQuantity!]!\n  ownedPets: [OwnedPet!]!\n  pet: Pet\n  wearedEquipment: Equipment!\n}';
+    'type CharacterAssets {\n  activeSpells: [ActiveSpell!]!\n  ownedEquipments: [AssetQuantity!]!\n  ownedItems: [AssetQuantity!]!\n  ownedPets: [OwnedPet!]!\n  pet: Pet\n  wornEquipment: Equipment!\n}';
+const EQUIPMENT_BLOCK =
+    'type Equipment {\n  arms: EquipmentItem\n  chest: EquipmentItem\n  feet: EquipmentItem\n  firstAccessory: EquipmentItem\n  head: EquipmentItem\n  leftHand: EquipmentItem\n  legs: EquipmentItem\n  rightHand: EquipmentItem\n  secondAccessory: EquipmentItem\n}';
+const SLOT_TYPE_BLOCK =
+    'enum SlotType {\n  arms\n  chest\n  feet\n  firstAccessory\n  head\n  leftHand\n  legs\n  rightHand\n  secondAccessory\n}';
 const kindLinesOf = (schema: string): string[] =>
     schema.match(/^.*\bkind\b.*$/gm) ?? [];
 const INTRUDER_MUTATION =
@@ -407,6 +411,20 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
         expect(schema.match(/type CharacterAssets \{[^}]*\}/)?.[0]).toBe(
             CHARACTER_ASSETS_BLOCK,
+        );
+    });
+
+    it('writes the worn equipment and the feet slot into the generated schema (D-06)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type CharacterAssets \{[^}]*\}/)?.[0]).toBe(
+            CHARACTER_ASSETS_BLOCK,
+        );
+        expect(schema.match(/type Equipment \{[^}]*\}/)?.[0]).toBe(
+            EQUIPMENT_BLOCK,
+        );
+        expect(schema.match(/enum SlotType \{[^}]*\}/)?.[0]).toBe(
+            SLOT_TYPE_BLOCK,
         );
     });
 

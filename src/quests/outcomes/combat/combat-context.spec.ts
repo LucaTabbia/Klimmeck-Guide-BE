@@ -32,7 +32,7 @@ const heroA = (): CombatCharacterSnapshot => ({
         spells: [fireballId],
     },
     assets: {
-        wearedEquipment: {
+        wornEquipment: {
             rightHand: swordId,
             leftHand: shieldId.toHexString(),
             head: null,
@@ -469,7 +469,7 @@ describe('jewel use types in the combat context', () => {
             {
                 _id: id('a5'),
                 status: { title: TitleType.rookie },
-                assets: { wearedEquipment: { firstAccessory: ringId } },
+                assets: { wornEquipment: { firstAccessory: ringId } },
             },
         ];
         source.equipment = new Map([[ringId.toHexString(), item]]);

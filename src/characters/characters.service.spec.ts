@@ -466,7 +466,7 @@ describe('CharactersService (unit — spell mutations)', () => {
             const query = asPopulatableQuery({
                 assets: {
                     ownedEquipments: [],
-                    wearedEquipment: {},
+                    wornEquipment: {},
                     activeSpells: [],
                 },
                 status: { spells: [] },
@@ -511,7 +511,7 @@ describe('CharactersService (unit — spell mutations)', () => {
             const query = asPopulatableQuery({
                 assets: {
                     ownedEquipments: [],
-                    wearedEquipment: {},
+                    wornEquipment: {},
                     activeSpells: [],
                 },
                 status: { spells: [] },
@@ -543,6 +543,25 @@ describe('CharactersService (unit — spell mutations)', () => {
                 _id: id,
                 deletedAt: null,
             });
+        });
+
+        it('populates every slot of the worn equipment and serves it (D-06)', async () => {
+            const wornEquipment = { feet: null };
+            const query = asPopulatableQuery({ assets: { wornEquipment } });
+            mockCharacterModel.findOne.mockReturnValue(query);
+
+            await expect(
+                service.getEquipment(new Types.ObjectId().toString()),
+            ).resolves.toBe(wornEquipment);
+
+            expect(query.populate.mock.calls).toEqual(
+                Object.values(SlotType).map((slot) => [
+                    `assets.wornEquipment.${slot}`,
+                ]),
+            );
+            expect(query.populate).toHaveBeenCalledWith(
+                'assets.wornEquipment.feet',
+            );
         });
 
         it('reports an archived character as not found on getEquipment', async () => {

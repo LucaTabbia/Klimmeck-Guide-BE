@@ -50,7 +50,7 @@ describe('buildStartingCharacter', () => {
             assets: {
                 ownedEquipments: [],
                 ownedItems: [],
-                wearedEquipment: {},
+                wornEquipment: {},
                 activeSpells: [],
                 ownedPets: [],
                 pet: null,
@@ -91,8 +91,8 @@ describe('buildStartingCharacter', () => {
         expect(first.status.coins).not.toBe(second.status.coins);
         expect(first.status.injuries).not.toBe(second.status.injuries);
         expect(first.status.spellStates).not.toBe(second.status.spellStates);
-        expect(first.assets.wearedEquipment).not.toBe(
-            second.assets.wearedEquipment,
+        expect(first.assets.wornEquipment).not.toBe(
+            second.assets.wornEquipment,
         );
     });
 

@@ -166,3 +166,18 @@ export function legacyCharacterWithPets(
         ...rest,
     });
 }
+
+// personaggio nella forma vecchia dell'equipaggiamento: gli slot dati sotto il campo vecchio; un override di `assets` si fonde con quelli di base
+export function legacyCharacterWithEquipment(
+    slots: RawDocument,
+    overrides: RawDocument = {},
+): RawDocument {
+    const { assets, ...rest } = overrides;
+    return legacyCharacterWithPets([], {
+        ...rest,
+        assets: {
+            wearedEquipment: slots,
+            ...(assets as RawDocument | undefined),
+        },
+    });
+}

@@ -148,7 +148,7 @@ describe('trade inventory', () => {
             const outcome = applyTradeToInventory(
                 {
                     ownedEquipments: [equipment(sword, 1), equipment(other, 1)],
-                    wearedEquipment: {
+                    wornEquipment: {
                         head: other,
                         leftHand: sword.toHexString(),
                         rightHand: sword,
@@ -166,7 +166,7 @@ describe('trade inventory', () => {
             const outcome = applyTradeToInventory(
                 {
                     ownedEquipments: [equipment(sword, 2)],
-                    wearedEquipment: { rightHand: sword },
+                    wornEquipment: { rightHand: sword },
                 },
                 [line('sell', 'EquipmentItem', sword, 1)],
             );
