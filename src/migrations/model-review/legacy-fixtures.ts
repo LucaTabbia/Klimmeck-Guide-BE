@@ -72,6 +72,17 @@ export function legacyPet(overrides: RawDocument = {}): RawDocument {
     });
 }
 
+// POI nella forma vecchia: porta il back-link morto verso una quest (nullo come a DB); un override `undefined` toglie il campo
+export function legacyPoi(overrides: RawDocument = {}): RawDocument {
+    return withoutUndefined({
+        type: ['ruins'],
+        location: [12.5, 41.9],
+        city: new Types.ObjectId(),
+        quest: null,
+        ...overrides,
+    });
+}
+
 // l'indice unico dei nomi dei personaggi attivi vuole un nome diverso per fixture
 let characterSequence = 0;
 
