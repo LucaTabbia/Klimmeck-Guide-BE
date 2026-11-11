@@ -16,6 +16,7 @@ export function buildPet(overrides: Record<string, any> = {}) {
         maxLifePoints: 10,
         imagePath: 'pets/test-mount.png',
         speedModifier: null,
+        relatedLore: [],
         ...overrides,
     };
 }

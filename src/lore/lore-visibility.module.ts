@@ -12,6 +12,8 @@ import {
     EnemyRelatedLoreResolver,
     LootItemRelatedLoreResolver,
     LoreRelatedLoreResolver,
+    PetRelatedLoreResolver,
+    VisibleLoreLoader,
 } from './related-lore.resolvers';
 import { ViewerKnowledgeService } from './viewer-knowledge.service';
 
@@ -28,7 +30,9 @@ import { ViewerKnowledgeService } from './viewer-knowledge.service';
         LoreRelatedLoreResolver,
         CityRelatedLoreResolver,
         EnemyRelatedLoreResolver,
+        VisibleLoreLoader,
         LootItemRelatedLoreResolver,
+        PetRelatedLoreResolver,
         KnownEnemiesResolver,
     ],
     exports: [ViewerKnowledgeService],

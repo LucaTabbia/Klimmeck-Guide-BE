@@ -501,6 +501,7 @@ type Pet {
   maxLifePoints: Int!
   maxXp: Int!
   name: String!
+  relatedLore: [Lore!]!
   sellPrice: Coins!
   sellable: Boolean
   speedModifier: Float

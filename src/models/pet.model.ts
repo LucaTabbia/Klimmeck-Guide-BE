@@ -1,8 +1,9 @@
 import { ObjectType, Field, Float, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 import { DamagesSchema, Damages, DamagesInput } from './common/damages.model';
 import { CoinsSchema, Coins, CoinsInput } from './common/coins.model';
+import { Lore } from './lore.model';
 
 @ObjectType()
 @Schema()
@@ -51,6 +52,15 @@ export class Pet {
     @Field(() => Boolean, { nullable: true })
     @Prop({ type: Boolean })
     sellable?: boolean | null;
+
+    // lore sbloccate quando il pet viene ottenuto (Phase 19 D-26); sul filo filtrate per viewer dal resolver sul tipo
+    @Field(() => [Lore])
+    @Prop({
+        type: [MongooseSchema.Types.ObjectId],
+        ref: Lore.name,
+        default: [],
+    })
+    relatedLore: Lore[];
 }
 
 export type PetDocument = Pet & Document;
