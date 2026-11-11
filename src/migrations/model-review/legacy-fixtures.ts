@@ -21,3 +21,24 @@ export async function rawById(
 ): Promise<RawDocument | null> {
     return connection.model(modelName).collection.findOne({ _id: id });
 }
+
+// nemico nella forma vecchia: due liste al posto del sotto-documento; un override `undefined` toglie il campo
+export function legacyEnemy(overrides: RawDocument = {}): RawDocument {
+    const enemy: RawDocument = {
+        name: 'Nemico vecchio',
+        locations: [],
+        relatedLore: [],
+        xp: 100,
+        spells: [],
+        lifePoints: 1000,
+        imagePath: 'enemies/test.png',
+        legendary: false,
+        damages: { base: [{ type: 'cut', power: 100 }], energy: [] },
+        baseWeaknesses: [],
+        energyWeaknesses: [],
+        ...overrides,
+    };
+    return Object.fromEntries(
+        Object.entries(enemy).filter(([, value]) => value !== undefined),
+    );
+}
