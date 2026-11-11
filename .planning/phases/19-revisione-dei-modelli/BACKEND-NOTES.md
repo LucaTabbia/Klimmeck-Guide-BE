@@ -2,11 +2,11 @@
 
 - **Fase BE:** 19-revisione-dei-modelli (requisiti BE-MODEL-01..12; decisioni D-01..D-28 in `19-CONTEXT.md`; nomi del contratto fissati in `19-REPO-RULES.md` insieme alla FE `19-REPO-RULES.md`).
 - **Data:** 2026-11-11. Documento scritto dopo il gate verde del piano 19-23; **review del codice chiusa** (tre review per area, `19-REVIEW-RULINGS.md`, `19-REVIEW-FIX.md`): 32 finding, 16 corretti, 16 chiusi per ruling. Questo file è allineato ai fix.
-- **Branch:** `feat/19-revisione-dei-modelli` → PR verso `develop` a cura dell'orchestratore, **in draft** finché l'orchestratore non ha fatto il boot reale col migratore, scritto il contenuto dei pet e rimosso il modulo una tantum (§3).
+- **Branch:** `feat/19-revisione-dei-modelli` → PR #33 verso `develop`. **Boot reale eseguito, contenuto dei pet a DB e modulo una tantum RIMOSSO l'11 novembre 2026** (esito qui sotto, runbook in §3 segnato passo per passo): la PR esce dal draft a cura dell'orchestratore.
 - **Gate della FE Phase 19:** i piani che selezionano i nomi cambiati partono dopo la merge di questa PR con `git -C <repo BE> show origin/develop:src/schema.gql | grep -cF '<nome>'` ≥ 1 per `type Weaknesses`, `type OwnedPet`, `petXpGained`, `wornEquipment`, `feet`, `imagePath`, `attack: Damages!` e = 0 per `energyWeaknesses`, `baseWeaknesses`, `wearedEquipment`, `foots`, `activeSpells`, più i controlli ancorati al blocco della FE D-19 e D-20 (`type Lore` con `imagePath` e senza `image:`, `type SpellState` con `active: Boolean!`, `type CharacterStatus` senza `spells:`, `enum SlotType` con `feet`, `type CharacterAssets` con `ownedPets: [OwnedPet!]!`, `type Pet` con `defense: Damages!` e `rarity: RarityType`). Sullo SDL di questa HEAD ognuno di questi controlli dà già l'esito atteso.
-- **Schema:** `src/schema.gql` **NON additivo, cambiato solo come dichiarato** (§1): 17 righe tolte e 46 aggiunte rispetto alla base della fase `12a47d1f`; il boot reale (`test/app.int-spec.ts`, 92 test) rigenera lo schema e `git diff --exit-code src/schema.gql` esce 0.
-- **Stato:** implementato e coperto da test. Gate 19-23: `npx tsc --noEmit` 0; unit 275 suite / 3501 test; integration 148 suite / 2033 test in quattro blocchi tutti verdi (dettaglio in `19-23-SUMMARY.md`); coverage per cartella sopra le sette soglie a rischio. **Dopo i fix della review** (conteggi correnti): unit 276 suite / 3534 test; integration 149 suite / 2050 test; boot reale 92 test; `npx tsc --noEmit` 0 e `git diff --exit-code src/schema.gql` 0 (nessun fix cambia lo SDL). `npm run test:cov` lo lancia l'orchestratore in background dopo questo piano.
-- **Fonte:** ogni nome e valore è copiato dal codice (`src/schema.gql`, `src/migrations/model-review/`, `src/quests/outcomes/pets/pet-xp.ts`, `src/quests/generation/pet-prize.ts`). **Il codice vince su questo documento.**
+- **Schema:** `src/schema.gql` **NON additivo, cambiato solo come dichiarato** (§1): 17 righe tolte e 46 aggiunte rispetto alla base della fase `12a47d1f`; il boot reale di test (`test/app.int-spec.ts`, 91 test dopo la rimozione del modulo, 92 prima) rigenera lo schema e `git diff --exit-code src/schema.gql` esce 0.
+- **Stato:** implementato e coperto da test. Gate 19-23: `npx tsc --noEmit` 0; unit 275 suite / 3501 test; integration 148 suite / 2033 test in quattro blocchi tutti verdi (dettaglio in `19-23-SUMMARY.md`); coverage per cartella sopra le sette soglie a rischio. **Dopo i fix della review** (conteggi correnti): unit 276 suite / 3534 test; integration 149 suite / 2050 test; boot reale 92 test; `npx tsc --noEmit` 0 e `git diff --exit-code src/schema.gql` 0 (nessun fix cambia lo SDL). `npm run test:cov` lo lancia l'orchestratore in background dopo questo piano. **Dopo la rimozione del modulo una tantum** (commit `c3492ced` RED, `0822feee` GREEN; conteggi correnti): unit 272 suite / 3497 test; integration 140 suite / 1990 test in quattro blocchi tutti verdi (27 / 494, 29 / 422, 35 / 520, 49 / 554); boot reale di test 91 test; `npx tsc --noEmit` 0; `git diff --exit-code src/schema.gql` 0.
+- **Fonte:** ogni nome e valore è copiato dal codice (`src/schema.gql`, `src/quests/outcomes/pets/pet-xp.ts`, `src/quests/generation/pet-prize.ts`). **Il codice vince su questo documento.** La cartella `src/migrations/model-review/` citata in §2 e §3 **non esiste più**: quelle righe restano come registro di ciò che è girato.
 
 ---
 
@@ -19,7 +19,7 @@
 5. **Le quest generate `enemy` e `boss` possono offrire un pet in premio** legato al nemico o alla zona (prima solo le `boss`); alla vittoria il pet esce col 20 % di prima.
 6. **`equipItem` vuole `slotType: feet`**: il valore vecchio dello slot dei piedi è rifiutato con `BAD_USER_INPUT`.
 7. **Magie:** le equipaggiate sono le voci di `status.spellStates` con `active: true`, **in ordine di apprendimento** (non più di equipaggiamento); una magia imparata arriva non equipaggiata.
-8. **La PR resta in draft** finché l'orchestratore non ha fatto il boot reale col migratore, scritto il contenuto e rimosso il modulo (§3). I piani gated della FE partono dopo la merge.
+8. **Boot reale fatto, contenuto dei pet a DB, modulo una tantum rimosso** (11 novembre 2026, esito nella sezione dopo §2). Il BE su questa macchina gira già col codice della Phase 19, i dati migrati e il contenuto dei pet. I piani gated della FE partono appena la PR #33 è mergiata su `develop`.
 
 ---
 
@@ -279,9 +279,9 @@ Ogni riga è verde nel gate 19-23; le righe che citano un finding (A-WR-01, A-WR
 | Magie sul filo: sole voci, attive in ordine di apprendimento | D-07, D-16 | `src/characters/spells/spell-state.mapper.spec.ts`, `src/characters/spells/spell-state.wire.int-spec.ts` |
 | Una sola lista di magie su schema, documento appena creato e SDL | D-07 | `src/models/character/character-status.schema.spec.ts`, `src/characters/creation/character-creation.resolver.int-spec.ts` |
 | Registro permanente dei ref: 33 riferimenti in 11 collection (con `pets:relatedLore` e `pets:enemy`) | D-26, D-28 | `src/migrations/mixed-refs/mixed-ref-paths.spec.ts` |
-| Boot reale: SDL coi blocchi esatti dei tipi toccati, modulo una tantum montato, passi conclusi prima di ogni lifecycle hook (sonde su `BullExplorer.onModuleInit`, `QuestResolutionSweeper.onApplicationBootstrap`, `SpellStateMigrator.onApplicationBootstrap`) | D-12 (review C-CR-01) | `test/app.int-spec.ts` |
+| Boot reale di test: SDL coi blocchi esatti dei tipi toccati; **modulo una tantum NON montato** dopo la rimozione («does not mount the one-off model review migration (D-12)»). Le sonde sull'ordine del boot (review C-CR-01) sono uscite col modulo | D-12 | `test/app.int-spec.ts` |
 
-I nove passi del migratore una tantum (ordine di `STEPS` in `src/migrations/model-review/model-review.module.ts`), ognuno con la prova «seconda corsa = zero scritture»:
+**RIMOSSO dopo il boot reale (commit `0822feee`): la tabella resta come registro.** I nove passi del migratore una tantum (ordine di `STEPS` in `src/migrations/model-review/model-review.module.ts`), ognuno con la prova «seconda corsa = zero scritture» finché è esistito:
 
 | # | Classe | Label nel log | Spec |
 |---|--------|---------------|------|
@@ -295,15 +295,81 @@ I nove passi del migratore una tantum (ordine di `STEPS` in `src/migrations/mode
 | 8 | `WornEquipmentStep` | `equipaggiamento indossato` | `worn-equipment.step.int-spec.ts` |
 | 9 | `SpellStatesStep` | `lista delle magie` | `spell-states.step.spec.ts`, `spell-states.step.int-spec.ts` |
 
-Boot a passi (ordine, formato dei log, passi conclusi nella factory del provider prima di ogni hook, passo fallito che ferma il boot): `src/migrations/model-review/model-review.boot.spec.ts`.
+Boot a passi (ordine, formato dei log, passi conclusi nella factory del provider prima di ogni hook, passo fallito che ferma il boot): `src/migrations/model-review/model-review.boot.spec.ts` (rimossa col modulo).
 
 Guardie aggiunte dai fix della review, ognuna con il suo caso nella spec del passo: il flag `active` scritto dal codice nuovo vince sulla lista vecchia (passo 9, C-WR-01); scrittura con il valore letto nel filtro, «cambiato durante il passo» = non applicata e ritentata al boot successivo (passi 2, 4 e 9, C-WR-02); la rinomina dell'equipaggiamento non sovrascrive un campo nuovo già presente (passo 8, C-WR-03); un nemico con una copia non abbinata non viene scritto (passo 2, C-WR-04).
 
 ---
 
-## 3. Runbook del boot reale e note per la UAT
+## Esito del boot reale (2026-11-11)
 
-**Per l'orchestratore. Nessun esecutore ha eseguito né esegue questi passi: nessun esecutore ha toccato il database reale.**
+Eseguito dall'orchestratore l'11 novembre 2026 sul database dell'utente. Nessun esecutore ha toccato il database reale né il processo: i fatti qui sotto sono quelli riferiti dall'orchestratore.
+
+**Prima di ogni scrittura**
+
+- Processo dell'utente fermato; **nulla in scadenza**: 0 quest avviate, 0 quest pendenti, 0 viaggi attivi, 0 personaggi in attesa di soccorso, 0 recuperi di magie pendenti.
+- Backup fuori repo di otto collezioni, prima di ogni scrittura: `enemies`, `pets`, `characters`, `cities`, `lore`, `pointsofinterest`, `spells`, `quests` (le sei del runbook più `spells` e `quests`).
+- Prova a secco pulita: le 91 copie di magie incorporate nei nemici tutte identiche al catalogo, nessun personaggio con entrambi i campi dell'equipaggiamento, nessuna debolezza fuori enum.
+
+**Primo boot** — build dalla HEAD della fase `66ff10ec`. Righe, verbatim:
+
+```
+debolezze dei nemici: trovati 206, migrati 206, già a posto 0, senza corrispondenza 0
+magie dei nemici: trovati 206, migrati 45, già a posto 161, senza corrispondenza 0
+catalogo dei pet: trovati 44, migrati 44, già a posto 0, senza corrispondenza 0
+pet posseduti: trovati 7, migrati 0, già a posto 7, senza corrispondenza 0
+back-link dei POI: trovati 642, migrati 642, già a posto 0, senza corrispondenza 0
+pool dei negozi: trovati 167, migrati 167, già a posto 0, senza corrispondenza 0
+immagini delle lore: trovati 522, migrati 522, già a posto 0, senza corrispondenza 0
+equipaggiamento indossato: trovati 7, migrati 7, già a posto 0, senza corrispondenza 0
+lista delle magie: trovati 7, migrati 7, già a posto 0, senza corrispondenza 0
+```
+
+Nessuna riga `fallito`, nessun WARN del migratore, nessun WARN «senza pool».
+
+- **Lore, punto aperto «438 oppure 522» chiuso:** tutte e 522 le lore portavano il campo `image`, 438 con valore non nullo → `migrati 522`.
+- **Magie, punto aperto «7 oppure 2» chiuso:** tutti e 7 i personaggi portavano i campi vecchi delle liste → `migrati 7`.
+
+**Controllo dopo il boot contro il backup (sola lettura)**
+
+- Nessun campo vecchio rimasto in nessuna delle sei collezioni.
+- IDENTICI al backup: debolezze, id delle magie dei nemici, `attack` dei pet = `damages` di prima, basi dei pet, i tre pool del negozio di ogni città, percorsi delle immagini delle lore, slot indossati (stivali passati a `feet` su 2 personaggi), ordine delle magie / insieme delle attive / usi / recuperi di ogni personaggio.
+- Ogni altro campo dei personaggi invariato.
+
+**Secondo boot** — tutte e nove le righe con `migrati 0` e `già a posto` = trovati. Processo lasciato in esecuzione.
+
+**Contenuto (D-25..D-28)** — script fuori repo, prova a secco e poi una sola transazione:
+
+- 44 pet con `maxXp` (valori distinti: 100, 150, 300, 400, 450, 500, 600, 800, 900, 1100, 1250, 1500, 2350);
+- 44 `defense` non vuote;
+- 44 `rarity`: 13 common, 8 uncommon, 8 rare, 12 ultrarare, 3 legendary;
+- 44 collegamenti `relatedLore`: 43 a lore esistenti più la lore nuova «Cavallo da viaggio» (tipo `animal`, con `imagePath`);
+- 31 legami `Pet.enemy` come ObjectId (13 pet senza un nemico corrispondente);
+- «Molosso da guerra» vendibile e aggiunto a `shop.pets` delle 7 città che vendono il Mastino: Fineglen, Shadmus, Cliffbreak, Croce Marina, Valantar, Bellport, Talmvere;
+- statistiche a catalogo di «Lupo invernale addestrato» (vita 2300, attacco pierce 900, 90 argento, ultrarare) e di «Scheletro di cavallo da guerra» (vita 3800, attacco blunt 1200 + necrotic 400, ultrarare);
+- `imagePath` di «Cavallo da viaggio».
+
+Controllo finale: 0 pet senza difesa, 0 senza rarità, 31 con nemico, 44 con una lore.
+
+**Rimozione del modulo una tantum** — in TDD, dopo il boot e il contenuto:
+
+- RED `c3492ced` `test(migrations): expect the real boot without the model review one-off`: in `test/app.int-spec.ts` i due casi sul modulo montato e sull'ordine del boot sono sostituiti da «does not mount the one-off model review migration (D-12)», rosso finché `AppModule` importa il modulo (90 verdi, 1 rosso);
+- GREEN `0822feee` `refactor(migrations): remove the one-off model review migration`: via la cartella `src/migrations/model-review/` (26 file, `legacy-fixtures.ts` e spec comprese), via import e voce in `src/app.module.ts`, via da `test/app.int-spec.ts` sonde, costanti, spia sul log e import di `BullExplorer`;
+- dopo la rimozione: `tsc` 0; unit 272 suite / 3497 test; integration 140 suite / 1990 test (blocchi 27 / 494, 29 / 422, 35 / 520, 49 / 554); boot reale di test 91 test; `git diff --exit-code src/schema.gql` 0; `grep -rn "model-review\|ModelReview\|UNA TANTUM (Phase 19" src test` stampa la sola riga del caso nuovo (nome del modulo come stringa, nessun import); il grep dei nomi vecchi senza più l'esclusione della cartella non stampa nulla; `activeSpells` solo sotto `src/quests/outcomes/combat/`, `…/dungeon/` e `…/gm-overrides*`;
+- nessuna spec che resta usava i builder della cartella rimossa (`spell-state.migrator.int-spec.ts` era già indipendente);
+- coverage per cartella rimisurata (statements / branches / lines): `./src/characters/spells/` 99,11 / 89,1 / 99,33 (soglie 97 / 88 / 97); `./src/travel/` 98,57 / 84,55 / 99,34 (soglie 97 / 84 / 98). `npm run test:cov` lo rilancia l'orchestratore.
+
+**Ancora da fare, a cura dell'orchestratore:** il **terzo boot reale** dalla build dopo la rimozione (nessuna riga `Revisione dei modelli, …`). Il processo oggi in esecuzione viene dalla build di `66ff10ec`, che contiene ancora il modulo: è innocuo (secondo boot a zero), ma la prova del terzo boot arriva al prossimo riavvio dalla HEAD.
+
+**Nota d'ambiente** (preesistente, non di questa fase): a entrambi i boot il Redis locale non era raggiungibile (`ECONNREFUSED`); gli scheduler hanno loggato il ripiego («lo sweep copre»).
+
+**Per la FE:** il BE su questa macchina gira col codice della Phase 19, coi dati migrati e col contenuto dei pet. I piani gated possono partire appena la PR #33 è mergiata su `develop` (gate sullo SDL di `origin/develop`, in testa a questo documento).
+
+---
+
+## 3. Runbook del boot reale e note per la UAT — ESEGUITO l'11 novembre 2026
+
+**Runbook ESEGUITO dall'orchestratore l'11 novembre 2026** (esito nella sezione qui sopra; ogni passo porta il suo segno). Nessun esecutore ha toccato il database reale né il processo. Il testo dei passi resta come registro di ciò che era previsto.
 
 Regole in evidenza:
 
@@ -315,15 +381,15 @@ Regole in evidenza:
 - «**un passo fallito ferma il processo**» (review C-WR-05): uscita 1, HTTP e WS mai aperti, nessun hook. I passi prima di quello fallito restano applicati (sono idempotenti), quelli dopo non partono: si corregge la causa (o si ripristina il backup) e **si ripete semplicemente il boot**; le righe dei passi già fatti diranno `migrati 0`. Righe e dettagli al passo 4.
 - **Il controllo «nulla in scadenza» prima del boot resta** (passo 3), come difesa in profondità: l'ordine del boot è provato dai test, non ancora sui dati reali.
 
-### Passo 1 — fermare tutto
+### Passo 1 — fermare tutto — ESEGUITO
 
 Fermare il processo BE dell'utente (gira da `dist/` di QUESTO stesso albero: la build cancella `dist/`) e ogni client (app sul device, secondo BE). Build prima dello stop, come nelle fasi precedenti, se il processo va tenuto vivo fino all'ultimo.
 
-### Passo 2 — backup
+### Passo 2 — backup — ESEGUITO
 
-Backup delle sei collezioni toccate: `enemies`, `pets`, `characters`, `cities`, `lore`, `pointsofinterest`.
+Backup delle sei collezioni toccate: `enemies`, `pets`, `characters`, `cities`, `lore`, `pointsofinterest`. **Fatto fuori repo prima di ogni scrittura, con in più `spells` e `quests` (otto collezioni).**
 
-### Passo 3 — prova a secco (sola lettura)
+### Passo 3 — prova a secco (sola lettura) — ESEGUITO, pulita
 
 Conteggi di ogni guardia (il numero di documenti che il passo scriverà = `migrati` atteso):
 
@@ -335,9 +401,9 @@ Conteggi di ogni guardia (il numero di documenti che il passo scriverà = `migra
 | 4 | personaggi con almeno un elemento di `assets.ownedPets` di tipo ObjectId o stringa | 0 |
 | 5 | POI con il campo `quest` presente (anche nullo) | 642 |
 | 6 | città con almeno uno dei tre campi vecchi del pool presente | 167 |
-| 7 | lore con `image` **esistente** (anche nullo) e `imagePath` non esistente | **da verificare nella prova a secco** (438 oppure 522) |
+| 7 | lore con `image` **esistente** (anche nullo) e `imagePath` non esistente | **522** (verificato al boot reale: tutte le lore portavano `image`, 438 con valore non nullo) |
 | 8 | personaggi con `assets.wearedEquipment` presente | 7 |
-| 9 | personaggi con `status.spells` o `assets.activeSpells` **presenti** (anche vuoti) | **da verificare nella prova a secco** (7 oppure 2) |
+| 9 | personaggi con `status.spells` o `assets.activeSpells` **presenti** (anche vuoti) | **7** (verificato al boot reale: tutti i personaggi portavano i campi vecchi) |
 
 Controlli in più (Domanda aperta 8 della ricerca e note degli esecutori):
 
@@ -351,9 +417,9 @@ Controlli in più (Domanda aperta 8 della ricerca e note degli esecutori):
 - pet posseduti orfani = 0; `assets.pet` non presente in `ownedPets` = 0;
 - equipaggiate di magie non conosciute = 0; conflitti di usi fra voce ed equipaggiata = 0; `status.maxActiveSpells` persistito = 0; magie attive in tutto = 3;
 - versione del server ≥ 4.2 (scritture a pipeline; l'inventario dice 8.0.37);
-- **«nulla in scadenza» = 0** (review C-CR-01 e B-WR-01, difesa in profondità), da contare PRIMA di fermare il processo pre-19: se qualcosa è in scadenza lo si lascia risolvere al processo pre-19 e solo dopo lo si ferma. In Mongo, per ogni personaggio non archiviato: nessuna quest in corsia con risoluzione scaduta o nei prossimi minuti, nessun `status.activeTravel` con `endTime` entro adesso più un margine, nessuna imboscata pendente sul viaggio, nessun `awaitingAid` vicino al timeout, nessun party in formazione vicino alla scadenza. In Redis: nessun job in attesa o ritardato già dovuto nelle code di risoluzione delle quest e dei viaggi. (Filtri esatti dei campi e margine in minuti: **da verificare** dall'orchestratore sul modello, questo documento non li fissa.)
+- **«nulla in scadenza» = 0** (review C-CR-01 e B-WR-01, difesa in profondità), da contare PRIMA di fermare il processo pre-19: se qualcosa è in scadenza lo si lascia risolvere al processo pre-19 e solo dopo lo si ferma. In Mongo, per ogni personaggio non archiviato: nessuna quest in corsia con risoluzione scaduta o nei prossimi minuti, nessun `status.activeTravel` con `endTime` entro adesso più un margine, nessuna imboscata pendente sul viaggio, nessun `awaitingAid` vicino al timeout, nessun party in formazione vicino alla scadenza. In Redis: nessun job in attesa o ritardato già dovuto nelle code di risoluzione delle quest e dei viaggi. **Controllo come eseguito l'11 novembre 2026, a processo fermo:** 0 quest avviate, 0 quest pendenti, 0 viaggi attivi, 0 personaggi in attesa di soccorso, 0 recuperi di magie pendenti. Con zero ovunque nessun margine in minuti è servito.
 
-### Passo 4 — build dalla HEAD della fase e PRIMO boot
+### Passo 4 — build dalla HEAD della fase e PRIMO boot — ESEGUITO (HEAD `66ff10ec`)
 
 Build SOLO dalla HEAD della fase, poi il boot. Nove righe attese, nell'ordine, formato `Revisione dei modelli, <label>: trovati N, migrati N, già a posto N, senza corrispondenza N`; **nessuna riga `fallito`** e nessuna riga WARN di dettaglio. Le nove righe escono durante la creazione dei provider, prima di ogni `onModuleInit`; in caso di successo non c'è alcuna riga di riepilogo.
 
@@ -387,9 +453,9 @@ Tabella dei conteggi (inventario dell'11 novembre 2026):
 | pet posseduti | 7 | 0 | 7 | 0 |
 | back-link dei POI | 642 | 642 | 0 | 0 |
 | pool dei negozi | 167 | 167 | 0 | 0 |
-| immagini delle lore | 522 | 438 (522 se le altre 84 hanno `image: null`: lo dice la prova a secco) | il resto | 0 |
+| immagini delle lore | 522 | 522 (reale: le altre 84 avevano `image: null`) | 0 | 0 |
 | equipaggiamento indossato | 7 | 7 | 0 | 0 |
-| lista delle magie | 7 | 7 se i due campi vecchi esistono su tutti (anche vuoti), altrimenti quanti li hanno (minimo 2): lo dice la prova a secco | il resto | 0 |
+| lista delle magie | 7 | 7 (reale: i campi vecchi esistevano su tutti) | 0 | 0 |
 
 Sui dati dell'inventario i fix della review non cambiano i numeri attesi; cambia il significato dei conteggi nei casi anomali:
 
@@ -398,7 +464,7 @@ Sui dati dell'inventario i fix della review non cambiano i numeri attesi; cambia
 - **lista delle magie:** una voce con `active` booleano fuori da `status.spells` resta nella lista (in coda) e non conta in «stati lasciati fuori»;
 - **lista delle magie, pet posseduti, magie dei nemici:** una scrittura non applicata (documento cambiato fra lettura e scrittura) conta 1 in «senza corrispondenza», non è né migrata né già a posto e si ritenta al boot successivo.
 
-Righe del PRIMO boot, verbatim dai SUMMARY dei passi:
+Righe del PRIMO boot (le nove righe reali dell'11 novembre 2026 coincidono con queste):
 
 ```
 Revisione dei modelli, debolezze dei nemici: trovati 206, migrati 206, già a posto 0, senza corrispondenza 0
@@ -407,14 +473,14 @@ Revisione dei modelli, catalogo dei pet: trovati 44, migrati 44, già a posto 0,
 Revisione dei modelli, pet posseduti: trovati 7, migrati 0, già a posto 7, senza corrispondenza 0
 Revisione dei modelli, back-link dei POI: trovati 642, migrati 642, già a posto 0, senza corrispondenza 0
 Revisione dei modelli, pool dei negozi: trovati 167, migrati 167, già a posto 0, senza corrispondenza 0
-Revisione dei modelli, immagini delle lore: trovati 522, migrati 438, già a posto 84, senza corrispondenza 0
+Revisione dei modelli, immagini delle lore: trovati 522, migrati 522, già a posto 0, senza corrispondenza 0
 Revisione dei modelli, equipaggiamento indossato: trovati 7, migrati 7, già a posto 0, senza corrispondenza 0
 Revisione dei modelli, lista delle magie: trovati 7, migrati 7, già a posto 0, senza corrispondenza 0
 ```
 
-**Da verificare nella prova a secco** (segnalate dagli esecutori dei piani 19-14 e 19-17): la settima riga può essere `migrati 522, già a posto 0` (il passo conta il campo esistente, anche nullo; i 438 dell'inventario potrebbero essere le sole lore con un valore); la nona può essere `migrati 2, già a posto 5` o un numero intermedio (il passo conta i personaggi che hanno ancora uno dei due campi vecchi, non «quelli con magie»).
+**Verificato al boot reale** (i due punti segnalati dagli esecutori dei piani 19-14 e 19-17): la settima riga è `migrati 522, già a posto 0` (il passo conta il campo esistente, anche nullo; i 438 dell'inventario erano le sole lore con un valore); la nona è `migrati 7, già a posto 0` (tutti e 7 i personaggi avevano ancora i campi vecchi).
 
-Verifiche dopo il primo boot:
+Verifiche dopo il primo boot (**fatte contro il backup, in sola lettura: tutto identico**, dettaglio nell'esito):
 
 - nemici: tutti con `weaknesses`, nessuno coi due campi vecchi; 56 con almeno una debolezza (5 con entrambe, 51 solo energia); `spells` di soli ObjectId, stesso numero di magie di prima (91 su 45 nemici);
 - pet: `attack` uguale ai danni del backup, `defense` vuota su tutti e 44, nessuno dei tre campi vecchi;
@@ -423,7 +489,7 @@ Verifiche dopo il primo boot:
 - lore: `image` esistente su 0; `imagePath` di ogni lore = `image` del backup (nullo compreso); 438 con `imagePath` non nullo;
 - personaggi: `assets.wearedEquipment` su 0, `assets.wornEquipment` su 7, `assets.wornEquipment.feet` non nullo su 2 con gli stessi id annotati, nessuna chiave `foots`, gli altri otto slot identici al backup; `status.spells` e `assets.activeSpells` su 0; 3 voci con `active: true` in tutto; somma delle voci = somma delle conosciute di prima.
 
-### Passo 5 — SECONDO boot
+### Passo 5 — SECONDO boot — ESEGUITO (nove righe a `migrati 0`)
 
 Nove righe con `migrati 0`:
 
@@ -439,7 +505,7 @@ Revisione dei modelli, equipaggiamento indossato: trovati 7, migrati 0, già a p
 Revisione dei modelli, lista delle magie: trovati 7, migrati 0, già a posto 7, senza corrispondenza 0
 ```
 
-### Passo 6 — contenuto dentro la fase (D-25, D-26, D-27, D-28)
+### Passo 6 — contenuto dentro la fase (D-25, D-26, D-27, D-28) — ESEGUITO
 
 Script dell'orchestratore **FUORI repo** (D-36: nessun sorgente né file di contenuto qui), con prova a secco e applicazione dopo la revisione dell'utente sulla proposta. Cosa scrivere e cosa verificare:
 
@@ -456,7 +522,7 @@ Script dell'orchestratore **FUORI repo** (D-36: nessun sorgente né file di cont
 | «Scheletro di cavallo da guerra» | `ultrarare` (ultima parola dell'utente) con le statistiche portate nella fascia | `rarity: ultrarare`, `maxXp` ≤ 1250 e statistiche della proposta approvata |
 | «Cavallo da viaggio» | `imagePath` | `imagePath` valorizzato sul pet e sulla sua lore nuova |
 
-Conteggi finali da riportare qui dopo l'applicazione: `maxXp` 44 / `defense` 44 / `rarity` 44 / `relatedLore` 44 + 1 lore nuova / `enemy` 31.
+Conteggi finali dopo l'applicazione (11 novembre 2026, una transazione dopo la prova a secco): `maxXp` 44 / `defense` 44 / `rarity` 44 (13 common, 8 uncommon, 8 rare, 12 ultrarare, 3 legendary) / `relatedLore` 44 + 1 lore nuova / `enemy` 31 (13 senza nemico corrispondente). Controllo finale: 0 pet senza difesa, 0 senza rarità, 31 con nemico, 44 con una lore.
 
 Note del codice per lo script:
 
@@ -468,7 +534,9 @@ Note del codice per lo script:
 - i pet già posseduti prima dei collegamenti non ricevono le lore a posteriori (a DB oggi nessun personaggio possiede pet);
 - le quest già a tabellone non cambiano: il premio nasce alla generazione.
 
-### Passo 7 — rimozione del modulo in TDD (RESEARCH M-5)
+### Passo 7 — rimozione del modulo in TDD (RESEARCH M-5) — ESEGUITO (commit `c3492ced`, `0822feee`); terzo boot reale ancora da fare
+
+**Come è andata rispetto al testo qui sotto:** per indicazione dell'orchestratore il caso nuovo si chiama «does not mount the one-off model review migration (D-12)» e il commit GREEN `refactor(migrations): remove the one-off model review migration` (non i due nomi scritti ai punti 1 e 2); i numeri di riga erano quelli previsti. Punti 1, 2, 3 e 5 fatti; **punto 4 (terzo boot reale) aperto**, a cura dell'orchestratore al prossimo riavvio dalla HEAD.
 
 1. **RED** in `test/app.int-spec.ts`: i due casi alle righe 992-1010 — «mounts the one-off model review migration at boot (D-12)» e «ends the one-off model review steps before any lifecycle hook runs (D-12)» — sono sostituiti da un solo caso «boots without the one-off model review migration (19 D-12)» (`ModulesContainer` senza `ModelReviewMigrationModule`). Dallo stesso file esce tutto quello che serve solo al migratore (numeri di riga alla HEAD dopo i fix della review, da ricontrollare se il file cambia):
    - riga 2: import di `BullExplorer` (`@nestjs/bull/dist/bull.explorer`), usato solo dalle sonde;
@@ -481,12 +549,12 @@ Note del codice per lo script:
    - l'intera cartella `src/migrations/model-review/` (26 file): `model-review.module.ts`, `model-review.boot.ts`, `model-review.boot.spec.ts`, `model-review.step.ts` (contratto), `legacy-fixtures.ts`; i nove passi `enemy-weaknesses.step.ts`, `enemy-spells.step.ts`, `pet-catalog.step.ts`, `owned-pets.step.ts`, `poi-quest.step.ts`, `city-shop.step.ts`, `lore-image-path.step.ts`, `worn-equipment.step.ts`, `spell-states.step.ts`; le nove int-spec `*.step.int-spec.ts`; le tre unit `enemy-spells.step.spec.ts`, `owned-pets.step.spec.ts`, `spell-states.step.spec.ts`;
    - in `src/app.module.ts` la riga 29 (import di `ModelReviewMigrationModule`) e le righe 117-118 (il commento «revisione dei modelli una tantum (Phase 19 D-12): esce dal repo dopo il boot reale» e la voce in `imports`).
    Nessun codice che resta dipende dalla cartella (verificato nel gate e nella verifica): la dipendenza è in un solo verso (i passi importano `owned-pet-entry`, `mongo/document-id`, `mongo/mongo-errors` e i modelli, che restano); nessuna soglia di coverage in `package.json` nomina la cartella.
-   **Le suite scendono di conseguenza:** unit 276 → 272 suite (via la spec del boot e le tre unit dei passi), integration 149 → 140 suite (via le nove int-spec dei passi), boot reale 92 → 91 test (due casi sostituiti da uno). Numero dei test unit e integration dopo la rimozione: **da verificare** alla corsa del passo 3 (le fonti non danno i test per file).
+   **Le suite scendono di conseguenza:** unit 276 → 272 suite (via la spec del boot e le tre unit dei passi), integration 149 → 140 suite (via le nove int-spec dei passi), boot reale 92 → 91 test (due casi sostituiti da uno). **Numeri reali dopo la rimozione:** unit 272 suite / 3497 test (da 276 / 3534); integration 140 suite / 1990 test (da 149 / 2050; blocchi 27 / 494, 29 / 422, 35 / 520, 49 / 554); boot reale di test 91 test.
 3. `npx tsc --noEmit -p tsconfig.json` 0, boot reale di test verde, `git diff --exit-code src/schema.gql` 0; dopo la rimozione `grep -rnwE 'energyWeaknesses|baseWeaknesses|wearedEquipment|foots|shopEquipment|shopLoot|shopPets' src test --include='*.ts'` non stampa nulla.
 4. **Terzo boot reale** senza le righe `Revisione dei modelli, …`.
 5. Chiusura dei requisiti rimasti aperti (§4) e riga di stato in ROADMAP, STATE e REQUIREMENTS.
 
-### Passo 8 — PR e FE
+### Passo 8 — PR e FE — a cura dell'orchestratore (PR #33 fuori dal draft dopo la rimozione)
 
 PR fuori dal draft e merge verso `develop`; poi i piani gated della FE Phase 19 (gate sullo SDL di `origin/develop`, in testa a questo documento).
 
@@ -507,12 +575,13 @@ PR fuori dal draft e merge verso `develop`; poi i piani gated della FE Phase 19 
 ### Stato dei requisiti
 
 - **Chiusi dal codice in questo piano:** BE-MODEL-01, BE-MODEL-02, BE-MODEL-03, BE-MODEL-05, BE-MODEL-06, BE-MODEL-07, BE-MODEL-08.
-- **Restano aperti e si chiudono dentro la fase**, a cura dell'orchestratore, dopo il boot reale, lo script di contenuto e la rimozione del modulo (passi 4–7 del runbook):
-  - **BE-MODEL-09** — boot reale col migratore e rimozione del modulo in TDD;
-  - **BE-MODEL-04** — codice completo; resta `maxXp` dei 44 pet a DB;
-  - **BE-MODEL-10** — codice completo; restano i collegamenti dei pet alle lore e la lore nuova;
-  - **BE-MODEL-11** — codice completo; restano le 44 rarità (e i ritocchi di Molosso e Scheletro);
-  - **BE-MODEL-12** — codice completo; restano i 31 legami pet → nemico.
+- **Chiusi l'11 novembre 2026** dal boot reale, dallo script di contenuto e dalla rimozione del modulo:
+  - **BE-MODEL-09** — boot reale col migratore (primo boot coi conteggi attesi, secondo a zero) e modulo rimosso in TDD (`c3492ced`, `0822feee`);
+  - **BE-MODEL-04** — `maxXp` dei 44 pet a DB;
+  - **BE-MODEL-10** — 44 pet collegati alle lore, lore nuova «Cavallo da viaggio»;
+  - **BE-MODEL-11** — 44 rarità, Molosso vendibile, Scheletro `ultrarare`;
+  - **BE-MODEL-12** — 31 legami pet → nemico come ObjectId.
+- **Nessun requisito della fase resta aperto.** Resta un solo passo operativo: il terzo boot reale dalla build dopo la rimozione.
 
 ### Domande e osservazioni per l'utente
 
