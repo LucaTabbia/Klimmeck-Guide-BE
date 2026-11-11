@@ -24,9 +24,9 @@ import { LoreModule } from './lore.module';
 
 // selezione FE verbatim (lib/graphql/queries/lore_queries.dart)
 const LORES =
-    'query { lores { id image type name description relatedLore { id name } } }';
+    'query { lores { id imagePath type name description relatedLore { id name } } }';
 const LORE =
-    'query lore($id: String!) { lore(id: $id) { id image type name description relatedLore { id name } } }';
+    'query lore($id: String!) { lore(id: $id) { id imagePath type name description relatedLore { id name } } }';
 const ENEMIES = 'query { enemys { id name relatedLore { id name } } }';
 const ENEMY_RELATED = 'query { enemys { id relatedLore { id } } }';
 const ENEMY =
@@ -49,6 +49,7 @@ interface WireRelated {
 
 interface WireWithRelated {
     id: string;
+    imagePath?: string | null;
     relatedLore: WireRelated[];
 }
 
@@ -171,6 +172,16 @@ describe('related lore (wire)', () => {
         expect(relatedOf(body.data?.lores, loreB._id)).toEqual([
             { id: String(loreA._id), name: 'A' },
         ]);
+    });
+
+    it('serves the image path of a lore (D-11)', async () => {
+        const imagePath = 'https://cdn.test/lore-a.png';
+        await loreModel.updateOne({ _id: loreA._id }, { imagePath });
+
+        const body = await request(LORE, { id: String(loreA._id) });
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.lore?.imagePath).toBe(imagePath);
     });
 
     it('drops a related lore that no longer exists instead of failing the list (D-10)', async () => {

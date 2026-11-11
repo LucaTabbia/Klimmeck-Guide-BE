@@ -367,11 +367,11 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
-    it('writes the lore without the global unlocked flag (11 D-25)', () => {
+    it('writes the lore with its image path and without the global unlocked flag (11 D-25, D-11)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type Lore \{[^}]*\}/)?.[0]).toBe(
-            'type Lore {\n  description: String!\n  id: ID!\n  image: String\n  name: String!\n  relatedLore: [Lore!]!\n  type: String!\n}',
+            'type Lore {\n  description: String!\n  id: ID!\n  imagePath: String\n  name: String!\n  relatedLore: [Lore!]!\n  type: String!\n}',
         );
     });
 

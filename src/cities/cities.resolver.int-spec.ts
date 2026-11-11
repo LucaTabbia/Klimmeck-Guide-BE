@@ -26,7 +26,7 @@ const CITY_WITH_POINTS =
 const CITY = 'query($id: String!) { city(id: $id) { id size hasShop } }';
 // selezione FE verbatim (lib/graphql/queries/city_queries.dart)
 const CITIES_FE = `query cities {
-    cities { id type name size hasShop markerLocation { id location } relatedLore { id description image } }
+    cities { id type name size hasShop markerLocation { id location } relatedLore { id description imagePath } }
 }`;
 
 interface WireCityLore {
@@ -34,7 +34,7 @@ interface WireCityLore {
     relatedLore: {
         id: string;
         description: string;
-        image: string | null;
+        imagePath: string | null;
     } | null;
 }
 
@@ -233,7 +233,7 @@ describe('CitiesResolver size and hasShop', () => {
             type: 'city',
             name: 'Drustea',
             description: 'La città del porto.',
-            image: 'https://cdn.test/drustea.png',
+            imagePath: 'https://cdn.test/drustea.png',
         });
         const lockedLore = await persistLore(lores, {
             type: 'city',
@@ -249,7 +249,7 @@ describe('CitiesResolver size and hasShop', () => {
         const drustea = {
             id: knownLore._id.toHexString(),
             description: 'La città del porto.',
-            image: 'https://cdn.test/drustea.png',
+            imagePath: 'https://cdn.test/drustea.png',
         };
 
         expect(await cityLoreOnWire(player.bearer)).toEqual({
@@ -261,7 +261,7 @@ describe('CitiesResolver size and hasShop', () => {
             Valantar: {
                 id: lockedLore._id.toHexString(),
                 description: 'La capitale chiusa.',
-                image: null,
+                imagePath: null,
             },
         });
     });
