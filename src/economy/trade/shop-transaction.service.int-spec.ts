@@ -1484,6 +1484,24 @@ describe('ShopTransactionService (replSet)', () => {
             await expectRefused(id, buyPet(id, griffin), 'ITEM_NOT_IN_SHOP');
         });
 
+        it('refuses a legendary pet curated in the pool with ITEM_NOT_IN_SHOP (D-05, D-27)', async () => {
+            const pegasus = await persistPet(pets, {
+                name: 'Pegaso',
+                buyPrice: coins(1, 0, 0),
+                sellable: true,
+                rarity: 'legendary',
+            });
+            const id = await persistTrader(
+                coins(2, 0, 0),
+                {},
+                {},
+                {},
+                { ...catalogPool(), pets: [idOf(pegasus)] },
+            );
+
+            await expectRefused(id, buyPet(id, pegasus), 'ITEM_NOT_IN_SHOP');
+        });
+
         it('sells an owned pet in any city (D-12, D-14)', async () => {
             const id = await persistTrader(coins(0, 0, 0), {
                 ownedPets: [
