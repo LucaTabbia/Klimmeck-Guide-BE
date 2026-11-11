@@ -38,9 +38,9 @@ created: 2026-11-11
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 19-01-01 | 01 | 1 | BE-MODEL-09 | T-19-01, T-19-02 | boot a passi mai bloccante, una riga di soli conteggi, errore con solo nome e codice | unit | `npx jest src/migrations/model-review --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 19-01-02 | 01 | 1 | BE-MODEL-09 | T-19-03, T-19-04 | modulo una tantum importato solo da `AppModule`, montato al boot reale, SDL invariato | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| 19-01-03 | 01 | 1 | BE-MODEL-09 | — | bookkeeping | doc | `grep -qF -- "- [x] 19-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 19-01-01 | 01 | 1 | BE-MODEL-09 | T-19-01, T-19-02 | boot a passi mai bloccante, una riga di soli conteggi, errore con solo nome e codice | unit | `npx jest src/migrations/model-review --selectProjects unit` | ❌ W0 | ✅ green |
+| 19-01-02 | 01 | 1 | BE-MODEL-09 | T-19-03, T-19-04 | modulo una tantum importato solo da `AppModule`, montato al boot reale, SDL invariato | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 19-01-03 | 01 | 1 | BE-MODEL-09 | — | bookkeeping | doc | `grep -qF -- "- [x] 19-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 19-02-01 | 02 | 2 | BE-MODEL-01 | T-19-05, T-19-07, T-19-08 | `Enemy.weaknesses` su schema (enum validato, default che regge ai non migrati), lettori, SDL esatto, `WeaknessesInput` fuori dallo SDL | unit + integration | `npx jest src/models src/quests/generation src/quests/outcomes src/travel/ambush --selectProjects unit` + `npx jest test/app.int-spec.ts src/quests/generation --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 19-02-02 | 02 | 2 | BE-MODEL-01 | T-19-05, T-19-06 | passo D-01: copia e rimozione, seconda corsa a zero, fuori enum contati | integration | `npx jest src/migrations/model-review test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 19-02-03 | 02 | 2 | BE-MODEL-01 | — | bookkeeping | doc | `grep -qF -- "- [x] 19-02-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
