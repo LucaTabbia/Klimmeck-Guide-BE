@@ -79,6 +79,9 @@ Le righe per task le scrive il piano (bookkeeping di fine piano, REPO-RULES); qu
 | 20-07-01 | 07 | 7 | BE-FOODP-03 | T-20-32 | `teleportUpdate` col set di chiusura (solo vita e dispensa) e `TELEPORT_FOOD_PROJECTION` | unit | `npx jest src/travel/travel.updates.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 20-07-02 | 07 | 7 | BE-FOODP-03, BE-FOODP-05 | T-20-30, T-20-31, T-20-32, T-20-33 | teleport a viaggio iniziato = sconfitta: cibo dei km percorsi, fame fino al km del momento (anche all'imboscata pendente), dispensa abbondante pro-rata, legacy e fermo intatti | integration | `npx jest src/travel/teleport.resolver.int-spec.ts src/travel/travel.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 20-07-03 | 07 | 7 | — | — | bookkeeping del piano 07 | — | `grep -qF -- "- [x] 20-07-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
+| 20-08-01 | 08 | 8 | BE-FOODP-01, BE-FOODP-05 | T-20-34, T-20-35, T-20-36 | partenza libera: piano salvato su `activeTravel.food` nella transazione, dispensa e vita intatte, rifiuto e corsa identici, due partenze concorrenti = un piano | integration | `npx jest src/travel/travel.updates.spec.ts --selectProjects unit && npx jest src/travel/travel.service.int-spec.ts src/travel/travel.resolver.int-spec.ts src/travel/food/travel-pantry.reader.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 20-08-02 | 08 | 8 | BE-FOODP-04, BE-FOODP-05 | T-20-37 | fine a fine: partenza, sweep a scatti e arrivo danno i totali della Phase 14 (vita e dispensa) | integration | `npx jest src/travel/travel.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 20-08-03 | 08 | 8 | — | — | bookkeeping del piano 08 | — | `grep -qF -- "- [x] 20-08-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
