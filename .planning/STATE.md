@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Completed 20-11-PLAN.md (11/11, 2026-11-13): in attesa di riavvio reale, UAT su device e PR"
+stopped_at: "Phase 20 eseguita (11/11), review, verifica e audit chiusi, PR #35 draft — in attesa di riavvio reale e UAT su device"
 last_updated: "2026-11-12T23:01:28.000Z"
 last_activity: 2026-11-13 -- Phase 20 piano 11 completato (handoff e chiusura, 11/11)
 progress:
@@ -30,7 +30,7 @@ Phase: 20 di 22 (Cibo e vita progressivi in viaggio) — contesto del 2026-11-09
 Plan: 11 of 11
 Status: Phase 20 eseguita (11/11) — executing — in attesa di riavvio reale e UAT su device (PR, riavvio e UAT a cura dell'orchestratore)
 Last activity: 2026-11-13 -- Phase 20 piano 11 completato (handoff `BACKEND-NOTES.md` §0–§5 con piano di UAT su device, VALIDATION firmata, BE-FOODP-01..05 chiusi; gate dopo i fix della review: unit 274/3591, integration 141/2037, coverage travel 98,75/86,99/99,37 e acceptance 99,06/92,79/99,73, SDL identico; 11/11)
-Next step: orchestratore — `npm run test:cov`, verifica e audit di sicurezza della Phase 20, build e riavvio del BE dal ramo, UAT su device con l'app com'è (handoff §4), PR verso `develop`; le Phase 21 e 22 (contesti sui rami `feat/21-…` e `feat/22-…`) restano da pianificare con le FE Phase 20 e 21.
+Next step: riavvio reale del BE dal ramo `feat/20-cibo-e-vita-progressivi` (build prima dello stop del processo in corso; indice `character_active_travel_food` al boot) e UAT su device con l'app com'è (handoff §4); poi PR #35 fuori dal draft e merge su `develop`. `test:cov` 415 suite / 5628 test verdi, verifica `passed` 14/14, audit `secured` (0 aperte). Le Phase 21 e 22 restano da pianificare con le FE Phase 20 e 21.
 
 ## Current Milestone
 
