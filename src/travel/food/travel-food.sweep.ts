@@ -7,6 +7,11 @@ import {
 } from 'src/models/character/character.model';
 import { describeError } from 'src/mongo/mongo-errors';
 import {
+    curveChangeMessageOf,
+    curveChangeOf,
+    type FoodCurveChange,
+} from './food-curve-change';
+import {
     FOOD_LEG_PROJECTION,
     foodLegOf,
     foodProgressSetOf,
@@ -35,14 +40,9 @@ interface FoodTraveller {
     };
 }
 
-interface CurveChange {
-    before: number;
-    after: number;
-}
-
 interface SettleOutcome {
     settled: boolean;
-    curve: CurveChange | null;
+    curve: FoodCurveChange | null;
 }
 
 const NOTHING_SETTLED: SettleOutcome = { settled: false, curve: null };
@@ -168,14 +168,10 @@ export class TravelFoodSweep {
             )
             .exec();
         const settled = written.matchedCount === 1;
-        const curve =
-            settled && settlement.curve
-                ? {
-                      before: leg.food.uncoveredKm,
-                      after: settlement.curve.uncoveredKm,
-                  }
-                : null;
-        return { settled, curve };
+        return {
+            settled,
+            curve: settled ? curveChangeOf(leg.food, settlement) : null,
+        };
     }
 
     // una riga per viaggio, non una al minuto (D-11, D-15)
@@ -192,10 +188,7 @@ export class TravelFoodSweep {
     }
 
     // il fail-safe del confine (D-19): solo id e km scoperti
-    private logCurveChange(id: string, curve: CurveChange | null): void {
-        if (!curve) return;
-        this.logger.warn(
-            `Viaggio del personaggio ${id}: cibo cambiato al confine, km scoperti ${curve.before} → ${curve.after}`,
-        );
+    private logCurveChange(id: string, curve: FoodCurveChange | null): void {
+        if (curve) this.logger.warn(curveChangeMessageOf(id, curve));
     }
 }
