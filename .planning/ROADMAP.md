@@ -150,7 +150,7 @@ Plans:
 Plans:
 - [x] 20-01-PLAN.md — Fondamenta della fase
 - [x] 20-02-PLAN.md — Assestamento puro della fase
-- [ ] 20-03-PLAN.md — L'arrivo assesta fame e cibo
+- [x] 20-03-PLAN.md — L'arrivo assesta fame e cibo
 - [ ] 20-04-PLAN.md — Il passo «fame» dello sweep
 - [ ] 20-05-PLAN.md — Imboscata, parte pura
 - [ ] 20-06-PLAN.md — Imboscata, cablaggio nel servizio
@@ -198,7 +198,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
-| 20. Cibo e vita progressivi in viaggio | v1.1 | 2/11 | In Progress | - |
+| 20. Cibo e vita progressivi in viaggio | v1.1 | 3/11 | In Progress | - |
 
 ---
 

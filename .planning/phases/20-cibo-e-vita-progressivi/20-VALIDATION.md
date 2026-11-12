@@ -64,6 +64,9 @@ Le righe per task le scrive il piano (bookkeeping di fine piano, REPO-RULES); qu
 | 20-02-01 | 02 | 2 | BE-FOODP-02, BE-FOODP-03, BE-FOODP-05 | T-20-05, T-20-06, T-20-09 | `settlementOf`, `settlementIsDue`, `reachedKmOf`, `foodLegOf`: fame incrementale clampata, pasto nei tre momenti, fail-safe del confine | unit | `npx jest src/travel/food/travel-food-settlement.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 20-02-02 | 02 | 2 | BE-FOODP-02, BE-FOODP-03, BE-FOODP-05 | T-20-05, T-20-07, T-20-08, T-20-10 | `settlementSetOf`, `foodProgressSetOf`, `settlementGuardsOf`; `foodCatalogFor` pubblico, `stacksOf` esportato | unit + integration | `npx jest src/travel/food --selectProjects unit`; `npx jest src/travel/food/travel-pantry.reader.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 20-02-03 | 02 | 2 | — | — | bookkeeping del piano 02 | — | `grep -qF -- "- [x] 20-02-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
+| 20-03-01 | 03 | 3 | BE-FOODP-04 | T-20-11 | `COMPLETION_PROJECTION` con distanza, durata e piano; fixture `buildActiveTravelFood` / `buildFoodTravelDoc` | unit | `npx jest src/travel/travel.updates.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 20-03-02 | 03 | 3 | BE-FOODP-03, BE-FOODP-04, BE-FOODP-05 | T-20-11, T-20-12, T-20-13 | `settleArrivalFood`: fame fino a fine percorso e pasto (b) nella transazione dell'arrivo, concorrente una volta, legacy intatto | integration | `npx jest src/travel/travel-completion.int-spec.ts src/travel/travel-completion.processor.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 20-03-03 | 03 | 3 | — | — | bookkeeping del piano 03 | — | `grep -qF -- "- [x] 20-03-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
