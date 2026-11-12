@@ -219,7 +219,7 @@ describe('active travel schemas', () => {
             });
         });
 
-        it('keeps only the food plan fields, never on the wire type (D-10)', () => {
+        it('keeps only the food plan fields (D-10)', () => {
             expect(Object.keys(ActiveTravelFoodSchema.paths).sort()).toEqual([
                 'coveredKm',
                 'foodConsumedAt',
