@@ -36,12 +36,12 @@ Questo file è parte del contesto di OGNI piano `20-NN-PLAN.md` (citato con `@` 
 | Chilometro dal tempo (D-02) | funzione pura **`travelKmAt`** | `distanceKm × (now − startTime) / duration`, limitata a `[0, distanceKm]`; funzione nuova in `src/travel/travel-timing.ts` (la Phase 15 va dal km al tempo, D-16) |
 | Fame fra due chilometri (D-01, D-08) | funzioni pure **`travelHungerAt`** e **`hungerBetween`** in `src/travel/food/` | curva triangolare della Phase 14 spostata sui chilometri scoperti; `hungerBetween(plan, 0, distanceKm)` = `hpLostTotal`; il km scoperto n-esimo si paga quando lo si completa |
 | Fabbisogno dei km percorsi (D-03 c) | `foodNeededFor` esistente sul tempo percorso | selezione con `selectFood` esistente sul posseduto in quel momento |
-| Passo dello sweep (D-08) | passo «fame» chiamato da `TravelSweeper.runOnce` | filtro: in viaggio, `food` presente, `settledKm < nowKm`, `nowKm > coveredKm` oppure cibo da consumare al confine; scrittura atomica guardata da `settledKm` |
+| Passo dello sweep (D-08) | passo «fame» chiamato da `TravelSweeper.runOnce` | selezione per presenza del piano (`food.settledKm` presente), chilometro e incremento calcolati in codice; scrittura atomica guardata da `settledKm` |
 
 - Le mutation e le query esistenti (`startTravel`, `travelPreview`, accettazione di una quest, teleport) tengono nome, argomenti, forma della risposta e codici di rifiuto: cambia solo quando si scrivono inventario e vita.
 - `currentLifePoints` mai sotto `MIN_LIFE_POINTS` per la fame (D-01); la fame è sempre una perdita incrementale calcolata dalla lettura in sessione e scritta con la guardia su `settledKm` (D-14): mai un valore calcolato da una lettura fuori transazione, mai un `$inc` semplice sulla vita.
 - Il cibo si toglie una sola volta per viaggio (`foodConsumedAt`): fine dei km coperti, arrivo, sconfitta/teleport a viaggio iniziato (D-03, D-06). La deviazione dopo la sconfitta nasce senza `food` (D-04).
-- Handoff: `.planning/phases/20-cibo-e-vita-progressivi/BACKEND-NOTES.md` con §1 «nessun cambio sul filo» (prova: SDL identico), §2 semantica nuova per la FE Phase 15 (vita a scatti di un minuto nel tratto scoperto, cibo in blocco al confine, all'arrivo, alla sconfitta), §3 comportamenti provati (percorso delle spec), §4 piano di UAT su device con l'app com'è (viaggio lungo con poco cibo, sconfitta seminata al km 30), §5 domande.
+- Handoff: `.planning/phases/20-cibo-e-vita-progressivi/BACKEND-NOTES.md` con §1 «nessun cambio sul filo» (prova: SDL identico), §2 semantica nuova per la FE Phase 15 (vita a scatti di un chilometro nel tratto scoperto, controllata ogni minuto, cibo in blocco al confine, all'arrivo, alla sconfitta), §3 comportamenti provati (percorso delle spec), §4 piano di UAT su device con l'app com'è (viaggio lungo con poco cibo, sconfitta seminata al km 30), §5 domande.
 
 ## Documenti e bookkeeping
 
@@ -78,3 +78,11 @@ Scritto il 12 novembre 2026. Dove questa sezione e il resto del file divergono, 
 - **Prettier:** i 44 file probabili sono già puliti: nessun commit `style` preliminare atteso.
 - **Coverage a rischio:** `./src/travel/` 97/84/98 e `./src/quests/acceptance/` 97/91/98: i rami nuovi (errore per personaggio, piano non valido, fail-safe D-19) hanno una prova ciascuno.
 - **Tempi:** unit di `src/travel/food` e vicini 2,6 s; le cinque int-spec del viaggio 28 s.
+
+### Scelte del planner accettate dall'orchestratore (2026-11-12)
+
+- Il piano viaggia come un solo oggetto `FoodLeg` (`{ food, distanceKm, durationMs }`) validato da `foodLegOf(travel)`; un piano malformato (campi mancanti, `hpLostTotal` incoerente con `uncoveredKm`, distanza ≤ 0) vale «nessun piano» e lo sweep lo segnala con un warn col solo id.
+- Builder in più `foodProgressSetOf` per i path `status.activeTravel.food.*` (sweep e vittoria); `settlementSetOf` scrive solo vita e inventario (arrivo, teleport e sconfitta riscrivono o tolgono `activeTravel` nello stesso update). Guardie: `settlementGuardsOf(food | null, settlement | null, hpRaw, extra = [])`.
+- D-19 riscrive la curva quando la copertura reale è diversa dal piano (in più o in meno), solo al pasto del confine; con la dispensa vuota il confine registra comunque `foodConsumedAt`.
+- `travelHungerAt` arrotonda al metro il chilometro del chiamante; vittoria dentro il tratto coperto senza fame né pasto = nessuna scrittura del piano; arrivo con guardia mancata = transazione abortita, lo riprende lo sweep; il teleport legge la dispensa in sessione.
+- Le spec di RESEARCH §Q1 non sono tutte: vanno riscritte anche le tre D-01 di `travel.service.int-spec.ts` con `eatenAtDeparture` e «feeds the slower march of an injured character (D-01)» di `quest-acceptance.service.int-spec.ts`; `teleport.resolver.int-spec.ts:344` è sostituita nel piano 07 da casi a viaggio seminato.

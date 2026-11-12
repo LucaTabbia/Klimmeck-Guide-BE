@@ -144,8 +144,21 @@ Plans:
   5. Unit sulla funzione pura e sulla selezione parziale, integration con orologio finto (partenza senza scritture, sweep prima e dopo il confine, pozione fra due sweep, imboscata al km 290, sconfitta al km 30 con cibo pro-rata, arrivo, teleport, viaggio legacy), SDL identico al boot reale, handoff `BACKEND-NOTES.md` (semantica nuova per la FE Phase 15, piano di UAT su device con l'app com'è).
 **Decisioni del discuss (2026-11-09, `20-CONTEXT.md` D-01..D-12)**: vita allo sweep solo nel tratto scoperto, incrementale; cibo prima e fame in coda; cibo in blocco in tre momenti con la selezione a scarto minimo sui km percorsi; deviazione senza costi; niente debito di fame né riga in app; fase solo BE dopo la 19.
 **Unblocks (FE)**: nessuna fase FE (nessun cambio sul filo).
-**Branch**: `feat/20-cibo-e-vita-progressivi` impilato su `feat/19-revisione-dei-modelli` → PR a `develop` dopo quella della Phase 19.
-**Plans**: TBD
+**Branch**: `feat/20-cibo-e-vita-progressivi` da `develop` (riallineato il 2026-11-12 con una merge: la Phase 19 è già dentro) → PR a `develop`.
+**Plans**: 11 plans
+
+Plans:
+- [ ] 20-01-PLAN.md — Fondamenta della fase
+- [ ] 20-02-PLAN.md — Assestamento puro della fase
+- [ ] 20-03-PLAN.md — L'arrivo assesta fame e cibo
+- [ ] 20-04-PLAN.md — Il passo «fame» dello sweep
+- [ ] 20-05-PLAN.md — Imboscata, parte pura
+- [ ] 20-06-PLAN.md — Imboscata, cablaggio nel servizio
+- [ ] 20-07-PLAN.md — Teleport a viaggio iniziato
+- [ ] 20-08-PLAN.md — La partenza libera salva il piano e smette di consumare
+- [ ] 20-09-PLAN.md — La partenza da quest salva il piano e smette di consumare
+- [ ] 20-10-PLAN.md — Gate della fase
+- [ ] 20-11-PLAN.md — Chiusura della fase
 
 ## Backend ↔ Frontend alignment (v1.1)
 
@@ -185,7 +198,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
-| 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
+| 20. Cibo e vita progressivi in viaggio | v1.1 | 0/11 | Planned | - |
 
 ---
 
