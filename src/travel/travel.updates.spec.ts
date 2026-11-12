@@ -180,12 +180,15 @@ describe('travel write builders', () => {
             ]);
         });
 
-        it('COMPLETION_PROJECTION reads the pending quest, the travel kind, the destination and the held reports (D-13, D-05)', () => {
+        it('COMPLETION_PROJECTION reads the pending quest, the travel kind, the destination, the held reports and the food plan (D-13, D-05, D-07)', () => {
             expect(COMPLETION_PROJECTION).toEqual({
                 'quests.pendingQuest': 1,
                 'status.activeTravel.kind': 1,
                 'status.activeTravel.to': 1,
                 'status.activeTravel.ambushReports': 1,
+                'status.activeTravel.road.distance': 1,
+                'status.activeTravel.duration': 1,
+                'status.activeTravel.food': 1,
             });
         });
 
