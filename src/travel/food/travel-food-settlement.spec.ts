@@ -353,6 +353,25 @@ describe('food settlement', () => {
             expect(foodLegOf(candidate)).toBeNull();
         }
     });
+
+    it('rejects a plan whose travel start is not a valid date (D-11, D-15)', () => {
+        const withoutStart = {
+            road: { distance: SHORT_ROAD_KM },
+            duration: SHORT_ROAD_MS,
+            food: shortPlan(),
+        };
+        const malformed: unknown[] = [
+            withoutStart,
+            { ...withoutStart, startTime: '2026-11-12T08:00:00.000Z' },
+            { ...withoutStart, startTime: new Date('not a date') },
+        ];
+        for (const candidate of malformed) {
+            expect(foodLegOf(candidate)).toBeNull();
+        }
+        expect(
+            foodLegOf({ ...withoutStart, startTime: EATEN_AT }),
+        ).not.toBeNull();
+    });
 });
 
 describe('food settlement writes', () => {

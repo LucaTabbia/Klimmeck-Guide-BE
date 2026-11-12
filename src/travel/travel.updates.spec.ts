@@ -198,6 +198,7 @@ describe('travel write builders', () => {
                 'status.activeTravel.kind': 1,
                 'status.activeTravel.to': 1,
                 'status.activeTravel.ambushReports': 1,
+                'status.activeTravel.startTime': 1,
                 'status.activeTravel.road.distance': 1,
                 'status.activeTravel.duration': 1,
                 'status.activeTravel.food': 1,

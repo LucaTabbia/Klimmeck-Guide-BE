@@ -255,6 +255,30 @@ describe('TravelFoodSweep (replSet)', () => {
         ]);
     });
 
+    it('skips a travel whose start is not a date and still settles the others (D-11, D-15)', async () => {
+        const broken = await foodTraveller({
+            ownedItems: await tenFoodUnits(),
+        });
+        const healthy = await foodTraveller({
+            ownedItems: await tenFoodUnits(),
+        });
+        await characters.collection.updateOne(
+            { _id: broken },
+            { $set: { 'status.activeTravel.startTime': START.toISOString() } },
+        );
+        const before = await rawCharacter(broken);
+        const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+
+        await expect(sweep('08:30')).resolves.toBe(1);
+
+        expect(await rawCharacter(broken)).toEqual(before);
+        expect((await rawCharacter(healthy))?.assets.ownedItems).toEqual([]);
+        expect(warn.mock.calls.map(([message]) => String(message))).toEqual([
+            `Viaggio del personaggio ${broken.toHexString()}: piano del cibo non valido, ignorato`,
+        ]);
+    });
+
     it('rewrites the curve when the pantry covers less than the plan (D-19)', async () => {
         const food = await persistFood(lootItems, 1);
         const id = await foodTraveller({ ownedItems: [foodStack(food, 4)] });
