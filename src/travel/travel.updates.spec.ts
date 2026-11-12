@@ -66,38 +66,49 @@ describe('travel write builders', () => {
             });
         });
 
-        it('startTravelFilter appends the food and life guards (D-12)', () => {
-            const guards = { $and: [{ 'status.currentLifePoints': 100 }] };
+        it('startTravelFilter appends the extra guards of the departure (D-05)', () => {
+            const until = new Date('2026-10-21T09:00:00.000Z');
 
-            expect(startTravelFilter(id, loc, guards)).toEqual({
+            const filter = startTravelFilter(id, loc, {
+                'status.imprisonedUntil': until,
+            });
+
+            expect(filter).toEqual({
                 _id: id,
                 deletedAt: null,
                 'status.awaitingAid': null,
                 'status.activeTravel': null,
                 'quests.pendingQuest': null,
                 'status.location': { $in: [loc, loc.toHexString()] },
-                $and: [{ 'status.currentLifePoints': 100 }],
+                'status.imprisonedUntil': until,
             });
+            expect(Object.keys(filter)).not.toContain('$and');
         });
 
-        it('startTravelUpdate sets the food and life cost with the travel (D-12)', () => {
+        it('startTravelUpdate writes the saved food plan inside the travel and nothing else (D-05)', () => {
             const travel: ActiveTravelDraft = {
-                road: { coordinates: [[0, 0]], distance: 0 },
+                road: { coordinates: [[0, 0]], distance: 20 },
                 startTime: start,
                 endTime: end,
                 duration: 3_600_000,
                 to: poi,
                 kind: TravelKind.free,
             };
+            const food = {
+                needed: 20,
+                uncoveredKm: 10,
+                coveredKm: 10,
+                hpLostTotal: 55,
+                settledKm: 0,
+                foodConsumedAt: null,
+            };
 
-            expect(
-                startTravelUpdate(travel, { 'status.currentLifePoints': 85 }),
-            ).toEqual({
-                $set: {
-                    'status.activeTravel': travel,
-                    'status.currentLifePoints': 85,
-                },
+            const update = startTravelUpdate({ ...travel, food });
+
+            expect(update).toEqual({
+                $set: { 'status.activeTravel': { ...travel, food } },
             });
+            expect(Object.keys(update.$set)).toEqual(['status.activeTravel']);
         });
 
         it('classifyUnstarted: missing character → NOT_FOUND', () => {

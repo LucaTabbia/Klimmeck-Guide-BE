@@ -296,7 +296,7 @@ describe('TravelService (replSet)', () => {
         });
     });
 
-    describe('food at departure (D-12)', () => {
+    describe('food plan at departure (D-05)', () => {
         let lootItems: Model<any>;
         let route: RoadRoute;
         let needed: number;
@@ -309,7 +309,13 @@ describe('TravelService (replSet)', () => {
             needed = foodNeededFor(expectedDuration());
         });
 
-        it('eats the selected food at departure and keeps the life points when covered (D-06, D-12)', async () => {
+        function foodOf(id: Types.ObjectId) {
+            return rawCharacter(id).then(
+                (raw) => raw?.status.activeTravel.food,
+            );
+        }
+
+        it('saves the food plan at departure and leaves food and life untouched when covered (D-05)', async () => {
             expect(needed).toBeGreaterThan(0);
             expect(needed).toBeLessThan(5);
             const food1 = await persistFood(lootItems, 1);
@@ -324,15 +330,26 @@ describe('TravelService (replSet)', () => {
             ).resolves.toBeUndefined();
 
             const raw = await rawCharacter(id);
-            expect(raw?.assets.ownedItems).toEqual([foodStack(food5, 1)]);
+            expect(raw?.assets.ownedItems).toEqual([
+                foodStack(food1, needed),
+                foodStack(food5, 1),
+            ]);
             expect(raw?.status.currentLifePoints).toBe(100);
             expect(raw?.status.activeTravel).toMatchObject({
                 to: world.markerB,
             });
+            expect(raw?.status.activeTravel.food).toEqual({
+                needed,
+                uncoveredKm: 0,
+                coveredKm: route.distanceKm,
+                hpLostTotal: 0,
+                settledKm: 0,
+                foodConsumedAt: null,
+            });
             expect(queue.added).toHaveLength(1);
         });
 
-        it('eats all the food and lowers the life points on a partial cover (D-03, D-04)', async () => {
+        it('saves the uncovered kilometres of a partial cover without eating nor charging (D-05, D-13)', async () => {
             expect(needed).toBeGreaterThan(1);
             const food1 = await persistFood(lootItems, 1);
             const id = await characterAt(world.markerA, {
@@ -343,17 +360,19 @@ describe('TravelService (replSet)', () => {
             await travel.startTravel(id, world.markerB);
 
             const raw = await rawCharacter(id);
-            expect(raw?.assets.ownedItems).toEqual([]);
-            expect(raw?.status.currentLifePoints).toBe(
-                HARDY_LIFE_POINTS -
-                    hpLostFor(uncoveredKmOf(needed, 1, route.distanceKm)),
-            );
-            expect(raw?.status.currentLifePoints).toBeLessThan(
-                HARDY_LIFE_POINTS,
-            );
+            const uncoveredKm = uncoveredKmOf(needed, 1, route.distanceKm);
+            expect(raw?.assets.ownedItems).toEqual([foodStack(food1, 1)]);
+            expect(raw?.status.currentLifePoints).toBe(HARDY_LIFE_POINTS);
+            expect(raw?.status.activeTravel.food).toMatchObject({
+                needed,
+                uncoveredKm,
+                coveredKm: Math.max(0, route.distanceKm - uncoveredKm),
+                hpLostTotal: hpLostFor(uncoveredKm),
+            });
+            expect(hpLostFor(uncoveredKm)).toBeGreaterThan(0);
         });
 
-        it('charges the life of the whole road without food (D-02)', async () => {
+        it('saves the whole road as uncovered without food and keeps the life (D-05)', async () => {
             const id = await characterAt(world.markerA, {
                 lifePoints: HARDY_LIFE_POINTS,
             });
@@ -365,8 +384,9 @@ describe('TravelService (replSet)', () => {
             );
             expect(hpLost).toBeGreaterThan(0);
             expect((await rawCharacter(id))?.status.currentLifePoints).toBe(
-                HARDY_LIFE_POINTS - hpLost,
+                HARDY_LIFE_POINTS,
             );
+            expect((await foodOf(id))?.hpLostTotal).toBe(hpLost);
         });
 
         it('refuses a starving departure with TRAVEL_STARVING and writes nothing (D-11)', async () => {
@@ -404,8 +424,8 @@ describe('TravelService (replSet)', () => {
             expect(queue.added).toEqual([]);
         });
 
-        // cibo a grana fine: le unità mangiate sono il fabbisogno esatto
-        async function eatenAtDeparture(options: {
+        // dispensa abbondante: il fabbisogno salvato segue la marcia e la partenza non tocca la dispensa
+        async function neededAtDeparture(options: {
             pet?: unknown;
             injuries?: string[];
         }): Promise<number> {
@@ -415,14 +435,12 @@ describe('TravelService (replSet)', () => {
                 ownedItems: [foodStack(food1, LARDER)],
             });
             await travel.startTravel(id, world.markerB);
-            const left = (await rawCharacter(id))?.assets.ownedItems.find(
-                (entry: { item: Types.ObjectId }) =>
-                    entry.item.equals(food1._id as Types.ObjectId),
-            );
-            return LARDER - (left?.quantity ?? 0);
+            const raw = await rawCharacter(id);
+            expect(raw?.assets.ownedItems).toEqual([foodStack(food1, LARDER)]);
+            return raw?.status.activeTravel.food.needed;
         }
 
-        it('halves the food with a mount of speed two (D-01)', async () => {
+        it('halves the food need with a mount of speed two (D-01)', async () => {
             const pets = harness.app.get<Model<any>>(getModelToken(Pet.name));
             const pet = await persistPet(pets, { speedModifier: 2 });
             const onFoot = foodNeededFor(
@@ -432,13 +450,13 @@ describe('TravelService (replSet)', () => {
                 durationMsOf(route.baseHours, BASE_SPEED * 2),
             );
 
-            expect(await eatenAtDeparture({})).toBe(onFoot);
-            expect(await eatenAtDeparture({ pet: pet._id })).toBe(mounted);
+            expect(await neededAtDeparture({})).toBe(onFoot);
+            expect(await neededAtDeparture({ pet: pet._id })).toBe(mounted);
             expect(mounted).toBeLessThan(onFoot);
             expect(mounted).toBeLessThanOrEqual(Math.ceil(onFoot / 2));
         });
 
-        it('raises the food of an injured traveller with the slower march (D-01)', async () => {
+        it('raises the food need of an injured traveller with the slower march (D-01)', async () => {
             const injured = foodNeededFor(
                 durationMsOf(
                     route.baseHours,
@@ -446,11 +464,13 @@ describe('TravelService (replSet)', () => {
                 ),
             );
 
-            expect(await eatenAtDeparture({ injuries: ONE_LEG })).toBe(injured);
+            expect(await neededAtDeparture({ injuries: ONE_LEG })).toBe(
+                injured,
+            );
             expect(injured).toBeGreaterThan(needed);
         });
 
-        it('costs more food on a slow road than on the plain (D-01)', async () => {
+        it('needs more food on a slow road than on the plain (D-01)', async () => {
             const roadModel = harness.app.get<Model<any>>(
                 getModelToken(Road.name),
             );
@@ -464,11 +484,11 @@ describe('TravelService (replSet)', () => {
                 durationMsOf(slowRoute.baseHours, BASE_SPEED),
             );
 
-            expect(await eatenAtDeparture({})).toBe(slow);
+            expect(await neededAtDeparture({})).toBe(slow);
             expect(slow).toBeGreaterThan(needed);
         });
 
-        it('lets exactly one of two concurrent departures eat the same food (D-12)', async () => {
+        it('lets exactly one of two concurrent departures save its food plan (D-05, D-14)', async () => {
             const food1 = await persistFood(lootItems, 1);
             const food5 = await persistFood(lootItems, 5);
             const id = await characterAt(world.markerA, {
@@ -492,12 +512,14 @@ describe('TravelService (replSet)', () => {
                 code: 'TRAVEL_IN_PROGRESS',
             });
             expect((await rawCharacter(id))?.assets.ownedItems).toEqual([
+                foodStack(food1, needed),
                 foodStack(food5, 1),
             ]);
+            expect((await foodOf(id))?.needed).toBe(needed);
             expect(queue.added).toHaveLength(1);
         });
 
-        it('keeps a concurrent non-food purchase made after the pantry read (D-20)', async () => {
+        it('keeps a concurrent purchase made after the pantry read without eating at departure (D-05, D-14)', async () => {
             const pantryReader = harness.app.get(TravelPantryReader);
             const food1 = await persistFood(lootItems, 1);
             const potion = await persistLootItem(lootItems, {
@@ -532,7 +554,7 @@ describe('TravelService (replSet)', () => {
             ).resolves.toBeUndefined();
 
             expect((await rawCharacter(id))?.assets.ownedItems).toEqual([
-                foodStack(food1, 3),
+                foodStack(food1, needed + 3),
                 foodStack(potion, 1),
             ]);
             expect(read.mock.calls.length).toBeGreaterThanOrEqual(2);
@@ -669,6 +691,7 @@ describe('TravelService ambush at departure (Phase 15)', () => {
         expect(Object.keys(active as object).sort()).toEqual([
             'duration',
             'endTime',
+            'food',
             'kind',
             'road',
             'startTime',
