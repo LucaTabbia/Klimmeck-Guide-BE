@@ -43,7 +43,14 @@ import {
     type VictoryKnowledge,
 } from 'src/quests/outcomes/victory-knowledge';
 import type { LonLat } from 'src/roads/road-route';
+import {
+    type FoodSettlement,
+    foodProgressSetOf,
+    settlementGuardsOf,
+} from 'src/travel/food/travel-food-settlement';
+import { mealLinesOf } from 'src/travel/food/travel-food.updates';
 import { durationMsOf } from 'src/travel/travel-timing';
+import { type AmbushFood, defeatSettlementOf } from './ambush-food';
 import type { DrawnAmbush } from './ambush-draw';
 import type { AmbushIdentity } from './ambush-job';
 import { ambushPrizesOf } from './ambush-rules';
@@ -63,6 +70,8 @@ export interface AmbushTravelSnapshot {
     kind: TravelKind;
     ambush: { at: Date; km: number; attempts?: number };
     ambushReports?: AmbushReportDraft[];
+    // piano del cibo salvato alla partenza, validato da foodLegOf (Phase 20 D-05)
+    food?: unknown;
 }
 
 export type AmbushCharacterSnapshot = OutcomeCharacterSnapshot & {
@@ -127,6 +136,8 @@ export interface AmbushPlanInput {
     spellRecoveryTimes: ReadonlyMap<string, number>;
     petMaxXp: ReadonlyMap<string, number>;
     now: Date;
+    // passo «cibo»: lo snapshot arriva già assestato al km dell'imboscata (Phase 20 D-07, D-18); null = viaggio senza piano
+    food?: AmbushFood | null;
 }
 
 export interface AmbushOutcomePlan {
@@ -179,10 +190,11 @@ function foughtOutcomeOf(input: AmbushPlanInput, won: boolean): FoughtOutcome {
             effects?.injuriesAdded ?? [],
         ),
         consumables,
-        inventory: applyTradeToInventory(
-            snapshot.assets ?? {},
-            consumables.map(sellLine),
-        ),
+        // in sconfitta si mangia il cibo dei km percorsi (Phase 20 D-03)
+        inventory: applyTradeToInventory(snapshot.assets ?? {}, [
+            ...consumables.map(sellLine),
+            ...(won ? [] : mealLinesOf(input.food?.defeat?.consumed ?? [])),
+        ]),
         // ancorati all'istante dell'imboscata, non al ritardo dello sweep (D-20)
         spells: spellsSpent(
             snapshot._id,
@@ -266,17 +278,28 @@ function victoryUpdateOf(
         $set: {
             ...commonSetOf(fought),
             'status.activeTravel.ambush': nextAmbushEntry(input.nextAmbush),
+            // dentro il tratto coperto la vittoria non tocca il piano (Phase 20 D-07)
+            ...(input.food?.progress
+                ? foodProgressSetOf(input.food.progress)
+                : {}),
         },
         $push: { [REPORT_PATH]: report },
         ...learned.addition,
     };
 }
 
-function filterOf(input: AmbushPlanInput): Record<string, unknown> {
+// l'unica lista di guardie viene dal cibo: il filtro dell'imboscata non ne ha (Phase 20 D-14, Pitfall 9)
+function filterOf(
+    input: AmbushPlanInput,
+    guarded: FoodSettlement | null,
+): Record<string, unknown> {
     const { xp } = input.snapshot.status;
     return {
         ...ambushFilter(input.identity, input.now),
         ...(typeof xp === 'number' ? { 'status.xp': xp } : {}),
+        ...(input.food
+            ? settlementGuardsOf(input.food.food, guarded, input.food.hpRaw)
+            : {}),
     };
 }
 
@@ -319,8 +342,12 @@ function defeatPlanOf(
     const lane = input.snapshot.quests?.pendingQuest
         ? { 'quests.pendingQuest': null }
         : {};
+    // il viaggio riscritto non porta il piano (Phase 20 D-04)
     return {
-        filter: filterOf(input),
+        filter: filterOf(
+            input,
+            input.food ? defeatSettlementOf(input.food) : null,
+        ),
         update: {
             $set: {
                 ...commonSetOf(fought),
@@ -354,7 +381,7 @@ export function planAmbushOutcome(input: AmbushPlanInput): AmbushOutcomePlan {
     }
     const travel = input.snapshot.status.activeTravel;
     return {
-        filter: filterOf(input),
+        filter: filterOf(input, input.food?.progress ?? null),
         update: victoryUpdateOf(input, fought, learned, report),
         coinsDelta: fought.coinsDelta,
         report,
