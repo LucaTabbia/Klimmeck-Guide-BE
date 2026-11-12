@@ -32,11 +32,6 @@ export interface Pantry {
     hpBefore: number;
 }
 
-export interface PlannedMeal {
-    plan: TravelFoodPlan;
-    pantry: Pantry;
-}
-
 export type TravelLeg = Pick<ActiveTravelDraft, 'duration' | 'road'>;
 
 interface PantrySnapshot extends StatusSnapshot {
@@ -129,22 +124,21 @@ export class TravelPantryReader {
         characterId: Types.ObjectId,
         travel: TravelLeg,
         session: ClientSession | null = null,
-    ): Promise<PlannedMeal> {
+    ): Promise<TravelFoodPlan> {
         const pantry = await this.read(characterId, session);
-        const plan = planTravelFood({
+        return planTravelFood({
             durationMs: travel.duration,
             distanceKm: travel.road.distance,
             hpBefore: pantry.hpBefore,
             stacks: pantry.stacks,
         });
-        return { pantry, plan };
     }
 
     async previewOf(
         characterId: Types.ObjectId,
         travel: TravelLeg,
     ): Promise<TravelPreview> {
-        const { plan } = await this.planFor(characterId, travel);
+        const plan = await this.planFor(characterId, travel);
         return {
             distance: travel.road.distance,
             duration: travel.duration,

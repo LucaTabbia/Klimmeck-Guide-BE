@@ -144,7 +144,7 @@ export class TravelService {
         plan: FreeTravelPlan,
         session: ClientSession,
     ): Promise<void> {
-        const { plan: meal } = await this.pantry.planFor(
+        const meal = await this.pantry.planFor(
             characterId,
             plan.travel,
             session,

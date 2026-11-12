@@ -29,15 +29,12 @@ import {
     QuestStartService,
     soloStartDateOf,
 } from 'src/quests/party/quest-start.service';
-import { foodPlanOf } from 'src/travel/food/travel-food';
+import { foodPlanOf, type TravelFoodPlan } from 'src/travel/food/travel-food';
 import {
     notImprisonedAt,
     refusalWhileImprisoned,
 } from 'src/characters/imprisonment/imprisonment';
-import {
-    PlannedMeal,
-    TravelPantryReader,
-} from 'src/travel/food/travel-pantry.reader';
+import { TravelPantryReader } from 'src/travel/food/travel-pantry.reader';
 import {
     AutoTravelRequest,
     TravelPlanner,
@@ -112,7 +109,7 @@ interface LaneClaim {
     claim: LaneClaimSnapshot;
     pendingQuestId: Types.ObjectId;
     movement: LaneMovement | null;
-    meal: PlannedMeal | null;
+    meal: TravelFoodPlan | null;
 }
 
 type ClaimTarget = Pick<LaneClaim, 'characterId' | 'quest' | 'claim' | 'now'>;
@@ -144,14 +141,14 @@ const CHARACTER_PROJECTION = {
 // il viaggio automatico salva il piano del cibo letto in sessione (Phase 20 D-05); salto e nessun movimento restano senza piano (D-06)
 function movementWithFoodPlan(
     movement: LaneMovement | null,
-    meal: PlannedMeal | null,
+    meal: TravelFoodPlan | null,
 ): LaneMovement | null {
     if (movement?.kind !== 'travel' || !meal) return movement;
     return {
         kind: 'travel',
         travel: {
             ...movement.travel,
-            food: foodPlanOf(meal.plan, movement.travel.road.distance),
+            food: foodPlanOf(meal, movement.travel.road.distance),
         },
     };
 }
@@ -395,10 +392,7 @@ export class QuestAcceptanceService {
         movement: LaneMovement | null,
     ): Promise<void> {
         if (movement?.kind !== 'travel') return;
-        const { plan } = await this.pantry.planFor(
-            characterId,
-            movement.travel,
-        );
+        const plan = await this.pantry.planFor(characterId, movement.travel);
         if (!plan.arrivesAlive) throw GameRuleException.travelStarving();
     }
 
@@ -502,7 +496,7 @@ export class QuestAcceptanceService {
         session: ClientSession,
     ): Promise<void> {
         const target = { characterId, quest, claim, now };
-        if (meal && !meal.plan.arrivesAlive)
+        if (meal && !meal.arrivesAlive)
             throw await this.starvingOrRace(target, session);
         const lane = laneOf(quest.type);
         const claimed = await this.characterModel
