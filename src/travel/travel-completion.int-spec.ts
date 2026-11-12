@@ -26,6 +26,7 @@ import { PushTransport } from 'src/push/transport/push-transport';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { QuestStartService } from 'src/quests/party/quest-start.service';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
+import { TravelPantryReader } from './food/travel-pantry.reader';
 import { TravelCompletionService } from './travel-completion.service';
 import { TRAVEL_QUEUE } from './travel-job';
 import { TravelSweeper } from './travel-sweeper';
@@ -573,6 +574,46 @@ describe('TravelCompletionService (replSet)', () => {
             const raw = await rawCharacter(id);
             expect(raw?.status.currentLifePoints).toBe(HARDY_LIFE_POINTS - 55);
             expect(raw?.assets.ownedItems).toEqual([]);
+        });
+
+        it('aborts the arrival when the food write misses its guards and lets the sweep retry it (D-07, D-14)', async () => {
+            const id = await foodTraveller(new Types.ObjectId());
+            const before = await rawCharacter(id);
+            const pantry = harness.app.get(TravelPantryReader);
+            const original = pantry.read.bind(pantry);
+            const read = jest
+                .spyOn(pantry, 'read')
+                .mockImplementationOnce(async (characterId, session) => ({
+                    ...(await original(characterId, session)),
+                    hpRaw: HARDY_LIFE_POINTS + 1,
+                }));
+            const error = jest
+                .spyOn(Logger.prototype, 'error')
+                .mockImplementation();
+            const log = jest
+                .spyOn(Logger.prototype, 'log')
+                .mockImplementation();
+
+            try {
+                await expect(
+                    completion.complete(identityOf(id)),
+                ).rejects.toThrow('arrival food settlement lost its guards');
+                expect(await rawCharacter(id)).toEqual(before);
+
+                await expect(
+                    harness.app.get(TravelSweeper).sweep(),
+                ).resolves.toBe(1);
+                const raw = await rawCharacter(id);
+                expect(raw?.status.activeTravel).toBeNull();
+                expect(raw?.status.currentLifePoints).toBe(
+                    HARDY_LIFE_POINTS - 55,
+                );
+                expect(error).not.toHaveBeenCalled();
+            } finally {
+                read.mockRestore();
+                error.mockRestore();
+                log.mockRestore();
+            }
         });
 
         it('arrives as before with a legacy travel without a food plan (D-11)', async () => {
