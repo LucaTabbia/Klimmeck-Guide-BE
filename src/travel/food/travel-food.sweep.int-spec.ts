@@ -203,6 +203,48 @@ describe('TravelFoodSweep (replSet)', () => {
         expect(raw?.status.activeTravel.food.settledKm).toBe(13);
     });
 
+    it('writes nothing when the settled kilometre moved after the read in session (D-14)', async () => {
+        const id = await foodTraveller({ food: AFTER_MEAL });
+        const original = pantry.read.bind(pantry);
+        jest.spyOn(pantry, 'read').mockImplementationOnce(
+            async (characterId, session) => {
+                await characters.updateOne(
+                    { _id: characterId },
+                    { $set: { 'status.activeTravel.food.settledKm': 13 } },
+                    { session },
+                );
+                return original(characterId, session);
+            },
+        );
+
+        await expect(sweep('08:39')).resolves.toBe(0);
+
+        const raw = await rawCharacter(id);
+        expect(raw?.status.currentLifePoints).toBe(LIFE);
+        expect(raw?.status.activeTravel.food.settledKm).toBe(13);
+    });
+
+    it('writes nothing when the travel changed between the two reads (D-14)', async () => {
+        const id = await foodTraveller({ food: AFTER_MEAL });
+        const before = await rawCharacter(id);
+        const replaced = {
+            _id: id,
+            status: {
+                activeTravel: {
+                    ...before?.status.activeTravel,
+                    startTime: new Date(START.getTime() - 3_600_000),
+                },
+            },
+        };
+        jest.spyOn(characters, 'find').mockReturnValueOnce({
+            lean: () => ({ exec: () => Promise.resolve([replaced]) }),
+        } as unknown as ReturnType<typeof characters.find>);
+
+        await expect(sweep('08:39')).resolves.toBe(0);
+
+        expect(await rawCharacter(id)).toEqual(before);
+    });
+
     it('stops the hunger at a pending ambush kilometre (D-16)', async () => {
         const id = await foodTraveller({
             food: AFTER_MEAL,
