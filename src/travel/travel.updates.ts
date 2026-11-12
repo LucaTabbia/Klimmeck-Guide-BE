@@ -147,15 +147,30 @@ export function teleportFilter(
 }
 
 // il teleport sul marker di una città insegna la sua geografia nello stesso update (Phase 16 D-05)
+// il teleport a viaggio iniziato chiude come una sconfitta (Phase 20 D-06, D-17): closingSet porta solo vita e dispensa
 export function teleportUpdate(
     poiId: Types.ObjectId,
     geography: readonly Types.ObjectId[] = [],
+    closingSet: Record<string, unknown> = {},
 ) {
     return {
-        $set: { 'status.location': poiId, 'status.activeTravel': null },
+        $set: {
+            'status.location': poiId,
+            'status.activeTravel': null,
+            ...closingSet,
+        },
         ...knowledgeAdditionOf(geography),
     };
 }
+
+// il teleport a viaggio iniziato chiude come una sconfitta (Phase 20 D-06, D-17): ora, strada, imboscata pendente e piano del cibo
+export const TELEPORT_FOOD_PROJECTION = {
+    'status.activeTravel.startTime': 1,
+    'status.activeTravel.duration': 1,
+    'status.activeTravel.road.distance': 1,
+    'status.activeTravel.ambush.km': 1,
+    'status.activeTravel.food': 1,
+} as const;
 
 // documento prima dell'update: startTime e imboscata pendente ricostruiscono i jobId da rimuovere, i report si consegnano (Phase 15 D-13)
 export const TELEPORT_PROJECTION = {
