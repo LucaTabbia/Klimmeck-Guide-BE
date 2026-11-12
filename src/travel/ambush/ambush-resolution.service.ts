@@ -50,10 +50,7 @@ import { WalletService } from 'src/economy/wallet.service';
 import { gameDistanceKm } from 'src/roads/game-distance';
 import type { LonLat, RouteTarget } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
-import {
-    type FoodCatalogEntry,
-    TravelPantryReader,
-} from '../food/travel-pantry.reader';
+import { TravelPantryReader } from '../food/travel-pantry.reader';
 import { TravelPlanner } from '../travel-planner.service';
 import { TravelScheduler } from '../travel-scheduler.service';
 import { detourFallbacksOf, residualDetourOf } from './ambush-detour';
@@ -105,7 +102,6 @@ interface Fight {
     jobId: string;
     snapshot: AmbushCharacter;
     catalog: CombatCatalog;
-    foodCatalog: FoodCatalogEntry[];
     nearCity: AmbushCity;
     next: DrawnAmbush | null;
     detour: DetourDraft;
@@ -286,9 +282,6 @@ export class AmbushResolutionService {
             jobId,
             snapshot,
             catalog,
-            foodCatalog: await this.pantry.foodCatalogFor(
-                snapshot.assets?.ownedItems ?? [],
-            ),
             nearCity: place.nearCity,
             next,
             detour: await this.detourOf(snapshot, place, place.nearCity, jobId),
@@ -431,10 +424,13 @@ export class AmbushResolutionService {
                     .lean<AmbushCharacter | null>()
                     .exec();
                 if (!inSession) throw new StaleResolution();
-                // vita vera del punto: fame e pasto al km salvato prima del combattimento (Phase 20 D-07, D-16)
+                // vita vera del punto: fame e pasto al km salvato prima del combattimento, catalogo dalla dispensa letta in sessione (Phase 20 D-07, D-14, D-16)
                 const food = ambushFoodOf({
                     snapshot: inSession,
-                    catalog: fight.foodCatalog,
+                    catalog: await this.pantry.foodCatalogFor(
+                        inSession.assets?.ownedItems ?? [],
+                        session,
+                    ),
                     now,
                 });
                 const fighter = withFoodSettlement(
