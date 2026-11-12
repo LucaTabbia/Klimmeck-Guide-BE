@@ -126,8 +126,8 @@ describe('TravelSweeper', () => {
 
     it.each([
         ['the error name', new TypeError('raw driver message'), 'TypeError'],
-        ['unknown for a bare value', 'raw driver message', 'unknown'],
-        ['unknown for null', null, 'unknown'],
+        ['UnknownError for a bare value', 'raw driver message', 'UnknownError'],
+        ['UnknownError for null', null, 'UnknownError'],
     ])(
         'logs %s when a completion fails without a code',
         async (_label, failure, expected) => {
@@ -146,7 +146,7 @@ describe('TravelSweeper', () => {
         },
     );
 
-    it('logs only the code when the boot sweep fails to read the due travels', async () => {
+    it('logs only the name and code when the boot sweep fails to read the due travels', async () => {
         const failure = Object.assign(new Error('raw driver message'), {
             code: 'ECONNRESET',
         });
@@ -160,7 +160,7 @@ describe('TravelSweeper', () => {
         await jest.runAllTimersAsync();
 
         expect(error.mock.calls.map(([value]) => String(value))).toEqual([
-            'Sweep dei viaggi fallito: ECONNRESET',
+            'Sweep dei viaggi fallito: Error, code ECONNRESET',
         ]);
         expect(complete).not.toHaveBeenCalled();
     });
@@ -223,7 +223,9 @@ describe('TravelSweeper', () => {
 
     it('still returns the completions when the hunger step fails (D-15)', async () => {
         find = findResolving(Promise.resolve([dueTravel()]));
-        settleDue.mockRejectedValueOnce(new Error('boom'));
+        settleDue.mockRejectedValueOnce(
+            Object.assign(new Error('raw driver message'), { code: 112 }),
+        );
         jest.spyOn(Logger.prototype, 'log').mockImplementation();
         const error = jest
             .spyOn(Logger.prototype, 'error')
@@ -232,7 +234,7 @@ describe('TravelSweeper', () => {
         await expect(sweeperWith(0).sweep()).resolves.toBe(1);
 
         expect(error.mock.calls.map(([value]) => String(value))).toEqual([
-            'Sweep della fame fallito: Error',
+            'Sweep della fame fallito: Error, code 112',
         ]);
     });
 

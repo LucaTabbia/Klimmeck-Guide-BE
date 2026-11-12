@@ -16,7 +16,6 @@ import {
     questArrivalUpdate,
     startTravelFilter,
     startTravelUpdate,
-    TELEPORT_FOOD_PROJECTION,
     TELEPORT_PROJECTION,
     teleportFilter,
     teleportUpdate,
@@ -272,16 +271,6 @@ describe('travel write builders', () => {
                     'status.currentLifePoints': 994,
                     'assets.ownedItems': [],
                 },
-            });
-        });
-
-        it('TELEPORT_FOOD_PROJECTION reads the identity, the clock fields, the pending ambush kilometre and the food plan (D-17)', () => {
-            expect(TELEPORT_FOOD_PROJECTION).toEqual({
-                'status.activeTravel.startTime': 1,
-                'status.activeTravel.duration': 1,
-                'status.activeTravel.road.distance': 1,
-                'status.activeTravel.ambush.km': 1,
-                'status.activeTravel.food': 1,
             });
         });
 

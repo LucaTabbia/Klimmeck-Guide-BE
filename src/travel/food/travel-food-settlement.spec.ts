@@ -8,6 +8,7 @@ import type { FoodStack } from './food-selection';
 import type { ActiveTravelFoodDraft } from './travel-food';
 import { mealLinesOf } from './travel-food.updates';
 import {
+    FOOD_LEG_PROJECTION,
     FoodLeg,
     FoodMoment,
     FoodSettlement,
@@ -371,6 +372,16 @@ describe('food settlement', () => {
         expect(
             foodLegOf({ ...withoutStart, startTime: EATEN_AT }),
         ).not.toBeNull();
+    });
+
+    it('projects only what the food leg and the reached kilometre read (D-15, D-17)', () => {
+        expect(FOOD_LEG_PROJECTION).toEqual({
+            'status.activeTravel.startTime': 1,
+            'status.activeTravel.duration': 1,
+            'status.activeTravel.road.distance': 1,
+            'status.activeTravel.ambush.km': 1,
+            'status.activeTravel.food': 1,
+        });
     });
 });
 
