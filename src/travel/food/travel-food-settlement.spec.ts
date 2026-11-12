@@ -1,18 +1,23 @@
 import { Types } from 'mongoose';
-import type {
-    InventoryEntry,
-    InventorySnapshot,
+import {
+    type InventoryEntry,
+    type InventorySnapshot,
+    soldQuantityGuards,
 } from 'src/economy/trade/trade-inventory';
 import type { FoodStack } from './food-selection';
 import type { ActiveTravelFoodDraft } from './travel-food';
+import { mealLinesOf } from './travel-food.updates';
 import {
     FoodLeg,
     FoodMoment,
     FoodSettlement,
     foodLegOf,
+    foodProgressSetOf,
     reachedKmOf,
+    settlementGuardsOf,
     settlementIsDue,
     settlementOf,
+    settlementSetOf,
 } from './travel-food-settlement';
 
 const F1 = new Types.ObjectId('64b000000000000000000001');
@@ -347,5 +352,107 @@ describe('food settlement', () => {
         for (const candidate of malformed) {
             expect(foodLegOf(candidate)).toBeNull();
         }
+    });
+});
+
+describe('food settlement writes', () => {
+    const FOOD_PATH = 'status.activeTravel.food.';
+
+    const boundary = (): FoodSettlement =>
+        settle(shortLeg(), 10, 'progress') as FoodSettlement;
+    const pastBoundary = (): FoodSettlement =>
+        settle(shortLeg(afterMeal(10)), 13, 'progress') as FoodSettlement;
+    const hungryMeal = (): FoodSettlement =>
+        settle(shortLeg(), 20, 'arrival') as FoodSettlement;
+    const shortPantry = (): FoodSettlement =>
+        settle(shortLeg(), 10, 'progress', fourF1) as FoodSettlement;
+
+    it('sets the life only when hunger bites and the pantry only after a meal (D-14)', () => {
+        expect(settlementSetOf(pastBoundary())).toEqual({
+            'status.currentLifePoints': 994,
+        });
+        expect(settlementSetOf(boundary())).toEqual({
+            'assets.ownedItems': [],
+        });
+        expect(Object.keys(settlementSetOf(hungryMeal())).sort()).toEqual([
+            'assets.ownedItems',
+            'status.currentLifePoints',
+        ]);
+    });
+
+    it('moves the settled kilometre and records the meal on the saved plan (D-01, D-03)', () => {
+        expect(foodProgressSetOf(boundary())).toEqual({
+            [`${FOOD_PATH}settledKm`]: 10,
+            [`${FOOD_PATH}foodConsumedAt`]: NOW,
+        });
+        expect(foodProgressSetOf(pastBoundary())).toEqual({
+            [`${FOOD_PATH}settledKm`]: 13,
+        });
+    });
+
+    it('rewrites the curve on the saved plan after a short pantry (D-19)', () => {
+        expect(foodProgressSetOf(shortPantry())).toEqual({
+            [`${FOOD_PATH}settledKm`]: 10,
+            [`${FOOD_PATH}foodConsumedAt`]: NOW,
+            [`${FOOD_PATH}uncoveredKm`]: 16,
+            [`${FOOD_PATH}coveredKm`]: 4,
+            [`${FOOD_PATH}hpLostTotal`]: 136,
+        });
+    });
+
+    it('guards the settled kilometre, the pending meal, the life and the eaten stacks (D-14)', () => {
+        const settlement = hungryMeal();
+        expect(settlementGuardsOf(shortPlan(), settlement, 1000)).toEqual({
+            [`${FOOD_PATH}settledKm`]: 0,
+            [`${FOOD_PATH}foodConsumedAt`]: null,
+            ...soldQuantityGuards(mealLinesOf(settlement.consumed), [
+                { 'status.currentLifePoints': 1000 },
+            ]),
+        });
+    });
+
+    it('guards a legacy life without points with null (D-14)', () => {
+        const settlement = pastBoundary();
+        expect(
+            settlementGuardsOf(afterMeal(10), settlement, undefined),
+        ).toEqual({
+            [`${FOOD_PATH}settledKm`]: 10,
+            $and: [{ 'status.currentLifePoints': null }],
+        });
+    });
+
+    it('keeps a single and-list with the caller guards (D-14)', () => {
+        const settlement = hungryMeal();
+        const guards = settlementGuardsOf(shortPlan(), settlement, 1000, [
+            { 'status.xp': 40 },
+        ]);
+        expect(guards).toEqual({
+            [`${FOOD_PATH}settledKm`]: 0,
+            [`${FOOD_PATH}foodConsumedAt`]: null,
+            ...soldQuantityGuards(mealLinesOf(settlement.consumed), [
+                { 'status.currentLifePoints': 1000 },
+                { 'status.xp': 40 },
+            ]),
+        });
+        expect(Object.keys(guards).filter((key) => key === '$and')).toEqual([
+            '$and',
+        ]);
+        expect(guards.$and).toContainEqual({ 'status.xp': 40 });
+        expect(guards.$and).toHaveLength(3);
+    });
+
+    it('never guards a saved plan on a travel without one (D-11)', () => {
+        const guards = settlementGuardsOf(null, hungryMeal(), 1000);
+        expect(
+            Object.keys(guards).filter((key) =>
+                key.startsWith('status.activeTravel.food'),
+            ),
+        ).toEqual([]);
+    });
+
+    it('guards only the settled kilometre without a settlement (D-14)', () => {
+        expect(settlementGuardsOf(shortPlan(), null, 1000)).toEqual({
+            [`${FOOD_PATH}settledKm`]: 0,
+        });
     });
 });
