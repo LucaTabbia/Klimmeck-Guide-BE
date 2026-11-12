@@ -13,6 +13,7 @@ import { AuthTestApp, graphqlRequest } from '../auth/auth-test-app';
 import { createCharactersTestApp } from '../authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../authz/player-fixture';
 import { buildCharacter } from '../fixtures';
+import { buildOwnedPet } from '../fixtures/owned-pet.fixture';
 import {
     persistShopCatalogue,
     persistShopCities,
@@ -73,9 +74,11 @@ interface Trade {
 interface RawCity {
     _id: Types.ObjectId;
     markerLocation: Types.ObjectId;
-    shopEquipment?: Types.ObjectId[];
-    shopLoot?: Types.ObjectId[];
-    shopPets?: Types.ObjectId[];
+    shop?: {
+        equipment?: Types.ObjectId[];
+        loot?: Types.ObjectId[];
+        pets?: Types.ObjectId[];
+    };
 }
 
 const coins = (gold: number, silver: number, copper: number): CoinPurse => ({
@@ -201,8 +204,8 @@ describe('city shops end to end on a curated world (BE-SHOP-05)', () => {
     }
 
     function onlyInValantar(): Types.ObjectId {
-        const fineglen = new Set(hexOf(cities.Fineglen.shopEquipment));
-        const id = (cities.Valantar.shopEquipment ?? []).find(
+        const fineglen = new Set(hexOf(cities.Fineglen.shop?.equipment));
+        const id = (cities.Valantar.shop?.equipment ?? []).find(
             (candidate) => !fineglen.has(candidate.toHexString()),
         );
         if (!id)
@@ -271,13 +274,13 @@ describe('city shops end to end on a curated world (BE-SHOP-05)', () => {
         expect(shops.map(idsOf)).toEqual(
             names.map((name) =>
                 hexOf([
-                    ...(cities[name].shopEquipment ?? []),
-                    ...(cities[name].shopLoot ?? []),
+                    ...(cities[name].shop?.equipment ?? []),
+                    ...(cities[name].shop?.loot ?? []),
                 ]).sort(),
             ),
         );
         expect(shops.map((shop) => shop.pets.map(({ id }) => id))).toEqual(
-            names.map((name) => hexOf(cities[name].shopPets)),
+            names.map((name) => hexOf(cities[name].shop?.pets)),
         );
         const rarities = shops.flatMap((shop) =>
             [...shop.equipment, ...shop.loot].map(({ item }) => item.rarity),
@@ -303,7 +306,7 @@ describe('city shops end to end on a curated world (BE-SHOP-05)', () => {
     it('refuses a duplicate pet without writes (D-14)', async () => {
         const horse = petId('Cavallo da viaggio');
         const player = await playerIn('twitch-e2e-duplicate', 'Talmvere', {
-            ownedPets: [horse],
+            ownedPets: [buildOwnedPet(horse)],
         });
         const before = await raw(player);
 
@@ -319,7 +322,7 @@ describe('city shops end to end on a curated world (BE-SHOP-05)', () => {
     });
 
     it('sells outside the pool and sells an owned legendary (D-11, D-12)', async () => {
-        const fineglenLoot = new Set(hexOf(cities.Fineglen.shopLoot));
+        const fineglenLoot = new Set(hexOf(cities.Fineglen.shop?.loot));
         const foreignLoot = catalogue.loot.find(
             (item) => !fineglenLoot.has(item._id.toHexString()),
         )._id as Types.ObjectId;
@@ -361,7 +364,7 @@ describe('city shops end to end on a curated world (BE-SHOP-05)', () => {
 
         expect(bought.errors).toBeUndefined();
         const afterBuy = await raw(player);
-        expect(afterBuy?.assets.ownedPets).toEqual([horse]);
+        expect(afterBuy?.assets.ownedPets).toEqual([buildOwnedPet(horse)]);
         expect(afterBuy?.assets.pet).toBeNull();
 
         const equipped = await send(
@@ -378,7 +381,7 @@ describe('city shops end to end on a curated world (BE-SHOP-05)', () => {
         expect(equipped.data?.equipPet).toEqual({ successful: true });
         expect((await raw(player))?.assets.pet).toEqual(horse);
 
-        expect(cities['Porto Saldo'].shopPets).toEqual([]);
+        expect(cities['Porto Saldo'].shop?.pets).toEqual([]);
         await characters.collection.updateOne({ _id: characterIdOf(player) }, {
             $set: {
                 'status.location': cities['Porto Saldo'].markerLocation,

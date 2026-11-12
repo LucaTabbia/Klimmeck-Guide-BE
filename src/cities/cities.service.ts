@@ -10,11 +10,7 @@ export class CitiesService {
     constructor(@InjectModel(City.name) private cityModel: Model<City>) {}
 
     async findAll(): Promise<City[]> {
-        return await this.cityModel
-            .find()
-            .populate('relatedLore')
-            .populate('markerLocation')
-            .exec();
+        return await this.cityModel.find().populate(cityRelations()).exec();
     }
 
     async findOne(id: string): Promise<City> {

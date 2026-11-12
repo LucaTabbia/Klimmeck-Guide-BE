@@ -5,10 +5,10 @@ import { TitleType } from 'src/models/enums/title-type.enum';
 import { sameId } from 'src/mongo/document-id';
 import {
     hasSeatFor,
+    questSlotsOf,
     RegisteredAdventurer,
     SlotRule,
     slotRuleOf,
-    slotsOf,
 } from './quest-capacity';
 import { QuestLane } from './quest-lanes';
 
@@ -30,11 +30,12 @@ const REPEATABLE_TYPES: ReadonlySet<QuestType> = new Set([
     QuestType.heal,
     QuestType.job,
     QuestType.study,
+    QuestType.magic,
     QuestType.crime,
     QuestType.guard,
 ]);
 
-// registrazione sulla Quest con capienza (Phase 7 D-03 + D-27); hunt, dungeon, job, heal, study restano senza registrazione
+// registrazione sulla Quest con capienza (Phase 7 D-03 + D-27); hunt, dungeon, job, heal, study, magic restano senza registrazione
 const REGISTERED_TYPES: ReadonlySet<QuestType> = new Set([
     QuestType.worldMission,
     QuestType.boss,
@@ -98,7 +99,7 @@ export function registrationRuleOf(
     requirements: QuestRequirementsSnapshot | null | undefined,
 ): SlotRule | null | 'invalid' {
     if (!isRegistered(type)) return null;
-    const slots = slotsOf(requirements?.requiredAdventurers);
+    const slots = questSlotsOf(type, requirements?.requiredAdventurers);
     return slots === 'invalid' ? 'invalid' : slotRuleOf(slots);
 }
 

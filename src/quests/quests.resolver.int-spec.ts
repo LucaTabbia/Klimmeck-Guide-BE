@@ -1,6 +1,10 @@
 import { Model, Schema, Types } from 'mongoose';
 import type request from 'supertest';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
+import {
+    Character,
+    CharacterSchema,
+} from 'src/models/character/character.model';
 import { City, CitySchema } from 'src/models/city.model';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import {
@@ -8,6 +12,7 @@ import {
     EquipmentItemSchema,
 } from 'src/models/equipment-item.model';
 import { LoreType } from 'src/models/enums/lore-type.enum';
+import { RoleType } from 'src/models/enums/role-type.enum';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
@@ -23,8 +28,9 @@ import {
     createAuthTestApp,
     graphqlRequest,
 } from '../../test/auth/auth-test-app';
-import { createPlayer } from '../../test/authz/player-fixture';
+import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
 import {
+    buildCharacter,
     buildQuest,
     persistCity,
     persistEnemy,
@@ -50,7 +56,19 @@ const QUEST_IDS = 'query { quests { id } }';
 const QUEST_SPELLS =
     'query { quests { id prizes { spell { id name minXpToLearn } } } }';
 const QUEST_PETS = 'query { quests { id prizes { pet { id name } } } }';
+const QUEST_ENEMY_SPELLS =
+    'query { quests { id infos { enemies { enemy { id spells { id name } } } } } }';
+const QUEST_ENEMY_WEAKNESSES =
+    'query { quests { id infos { enemies { enemy { id weaknesses { base energy } } } } } }';
 const CONCLUDED_AT = new Date('2026-10-24T10:00:00.000Z');
+const QUEST_NO_EFFECT =
+    'query Quest($id: String!) { quest(id: $id) { id noEffect } }';
+const QUESTS_NO_EFFECT = 'query { quests { id noEffect } }';
+const CURE_FIELDS = 'id prizes { cure { lifePointsShare canHeal } }';
+const QUEST_CURES = `query { quests { ${CURE_FIELDS} } }`;
+const QUEST_CURE = `query Quest($id: String!) { quest(id: $id) { ${CURE_FIELDS} } }`;
+const VILLAGE_CURE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
+const FULL_LIFE = 1000;
 
 interface WireItem {
     id: string;
@@ -101,6 +119,33 @@ interface WireQuestPet {
     prizes: { pet: { id: string; name: string } | null };
 }
 
+interface WireQuestEnemySpells {
+    id: string;
+    infos: {
+        enemies: { enemy: { id: string; spells: WireRef[] } }[];
+    };
+}
+
+interface WireRef {
+    id: string;
+    name: string;
+}
+
+interface WireQuestCure {
+    id: string;
+    prizes: { cure: { lifePointsShare: number; canHeal: string[] } | null };
+}
+
+interface WireNoEffect {
+    id: string;
+    noEffect: boolean;
+}
+
+interface WireNoEffectBody {
+    data?: { quests?: WireNoEffect[]; quest?: WireNoEffect } | null;
+    errors?: { message: string; extensions: Record<string, unknown> }[];
+}
+
 interface WireBody {
     data?: { quests?: WireQuest[]; quest?: WireQuest } | null;
     errors?: { message: string; extensions: Record<string, unknown> }[];
@@ -113,6 +158,7 @@ function bodyOf(response: request.Response): WireBody {
 describe('quest catalog (wire)', () => {
     let harness: AuthTestApp;
     let bearer: string;
+    let cityMarker: unknown;
     let poi: { _id: Types.ObjectId };
     let enemy: { _id: Types.ObjectId };
     let loreA: { _id: Types.ObjectId };
@@ -234,6 +280,7 @@ describe('quest catalog (wire)', () => {
             twitchId: 'twitch-catalog-reader',
         });
         bearer = reader.bearer;
+        cityMarker = reader.character?.status.location;
         poi = await persistPoi(
             modelOf(PointOfInterest.name, PointOfInterestSchema),
         );
@@ -574,6 +621,76 @@ describe('quest catalog (wire)', () => {
         expect(spellOf(orphan._id)).toBeNull();
     });
 
+    // Spell.name è String!: un id nudo o pendente annullerebbe il nemico sul filo
+    it('serves the spells of a quest enemy from the catalogue (D-02)', async () => {
+        const spell = await persistSpell(modelOf(Spell.name, SpellSchema), {
+            name: 'Soffio gelido',
+        });
+        const caster = await persistEnemy(modelOf(Enemy.name, EnemySchema), {
+            name: 'Sciamano',
+            spells: [spell._id, new Types.ObjectId()],
+        });
+        await persistCatalogQuest({
+            infos: { enemies: [{ enemy: caster._id, quantity: 1 }] },
+        });
+
+        const body = bodyOf(
+            await graphqlRequest(harness.app, QUEST_ENEMY_SPELLS, {}, bearer),
+        );
+
+        expect(body.errors).toBeUndefined();
+        const quests = (body.data?.quests ??
+            []) as unknown as WireQuestEnemySpells[];
+        expect(quests).toHaveLength(1);
+        expect(quests[0].infos.enemies[0].enemy.spells).toEqual([
+            { id: String(spell._id), name: 'Soffio gelido' },
+        ]);
+    });
+
+    it('drops an enemy weakness stored outside the enum instead of nulling the quests list (D-01)', async () => {
+        // il contenuto lo scrive uno script col driver nativo, senza i validatori dello schema
+        await modelOf(Enemy.name, EnemySchema).collection.updateOne(
+            { _id: enemy._id },
+            {
+                $set: {
+                    weaknesses: {
+                        base: ['tickle', 'cut'],
+                        energy: ['fire', 'moonlight'],
+                    },
+                },
+            },
+        );
+        const quest = await persistCatalogQuest({
+            infos: { enemies: [{ enemy: enemy._id, quantity: 1 }] },
+        });
+
+        const body = bodyOf(
+            await graphqlRequest(
+                harness.app,
+                QUEST_ENEMY_WEAKNESSES,
+                {},
+                bearer,
+            ),
+        );
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.quests).toEqual([
+            {
+                id: String(quest._id),
+                infos: {
+                    enemies: [
+                        {
+                            enemy: {
+                                id: String(enemy._id),
+                                weaknesses: { base: ['cut'], energy: ['fire'] },
+                            },
+                        },
+                    ],
+                },
+            },
+        ]);
+    });
+
     it('populates prizes.pet and nulls an orphan pet without nulling the list (D-21, D-28)', async () => {
         const pet = await persistPet(modelOf(Pet.name, PetSchema), {
             name: 'Gufo delle nevi',
@@ -601,11 +718,248 @@ describe('quest catalog (wire)', () => {
         expect(petOf(orphan._id)).toBeNull();
     });
 
+    // il contenuto delle heal lo scrive uno script col driver nativo, senza validatori (Pitfall 1)
+    async function insertQuestWithCure(cure: unknown): Promise<Types.ObjectId> {
+        const base = buildQuest();
+        const _id = new Types.ObjectId();
+        await modelOf(Quest.name, QuestSchema).collection.insertOne({
+            ...base,
+            _id,
+            infos: { ...base.infos, type: 'heal', markerLocation: poi._id },
+            prizes: { ...base.prizes, cure },
+        });
+        return _id;
+    }
+
+    it('serves on quests the cure the server would apply, never an error (D-01, D-23)', async () => {
+        const noShare = await insertQuestWithCure({ canHeal: ['deepCut'] });
+        const outOfScale = await insertQuestWithCure({
+            lifePointsShare: 7,
+            canHeal: ['deepCut'],
+        });
+        const typo = await insertQuestWithCure({
+            lifePointsShare: 0.5,
+            canHeal: ['brokenWing', 'deepCut'],
+        });
+        const valid = await insertQuestWithCure(VILLAGE_CURE);
+
+        const body = bodyOf(
+            await graphqlRequest(harness.app, QUEST_CURES, {}, bearer),
+        );
+
+        expect(body.errors).toBeUndefined();
+        const quests = (body.data?.quests ?? []) as unknown as WireQuestCure[];
+        const cureOf = (id: Types.ObjectId) =>
+            quests.find((quest) => quest.id === String(id))?.prizes.cure;
+        expect(quests).toHaveLength(4);
+        expect(cureOf(noShare)).toEqual({
+            lifePointsShare: 0,
+            canHeal: ['deepCut'],
+        });
+        expect(cureOf(outOfScale)).toEqual({
+            lifePointsShare: 0,
+            canHeal: ['deepCut'],
+        });
+        expect(cureOf(typo)).toEqual({
+            lifePointsShare: 0.5,
+            canHeal: ['deepCut'],
+        });
+        expect(cureOf(valid)).toEqual(VILLAGE_CURE);
+    });
+
+    it('serves on quest(id) the cure the server would apply (D-01, D-23)', async () => {
+        const typo = await insertQuestWithCure({
+            lifePointsShare: 7,
+            canHeal: ['brokenWing'],
+        });
+
+        const body = bodyOf(
+            await graphqlRequest(
+                harness.app,
+                QUEST_CURE,
+                { id: String(typo) },
+                bearer,
+            ),
+        );
+
+        expect(body.errors).toBeUndefined();
+        expect(
+            (body.data?.quest as unknown as WireQuestCure | undefined)?.prizes
+                .cure,
+        ).toEqual({ lifePointsShare: 0, canHeal: [] });
+    });
+
     it('requires a bearer', async () => {
         const body = bodyOf(await graphqlRequest(harness.app, QUESTS));
 
         expect(body.errors?.[0]?.extensions).toEqual({
             code: AuthErrorCode.UNAUTHENTICATED,
+        });
+    });
+
+    describe('Quest.noEffect (D-25)', () => {
+        function playerAtFullLife(
+            name: string,
+            injuries: string[],
+            role?: RoleType,
+        ): Promise<TestPlayer> {
+            const base = buildCharacter();
+            return createPlayer(harness, {
+                twitchId: `twitch-no-effect-${name}`,
+                role,
+                characterOverrides: {
+                    status: {
+                        ...base.status,
+                        location: cityMarker,
+                        currentLifePoints: FULL_LIFE,
+                        maxLifePoints: FULL_LIFE,
+                        injuries,
+                    },
+                },
+            });
+        }
+
+        function persistCuringQuest(
+            type: string,
+            cure: unknown = VILLAGE_CURE,
+        ) {
+            return persistCatalogQuest({
+                infos: { type },
+                prizes: { ...buildQuest().prizes, cure },
+            });
+        }
+
+        async function noEffectOf(
+            questId: unknown,
+            viewerBearer: string,
+        ): Promise<boolean | undefined> {
+            const body = (
+                await graphqlRequest(
+                    harness.app,
+                    QUEST_NO_EFFECT,
+                    { id: String(questId) },
+                    viewerBearer,
+                )
+            ).body as WireNoEffectBody;
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.quest?.id).toBe(String(questId));
+            return body.data?.quest?.noEffect;
+        }
+
+        it('marks a heal without effect for the character of the bearer (D-25)', async () => {
+            const alice = await playerAtFullLife('alice', []);
+            const heal = await persistCuringQuest('heal');
+
+            expect(await noEffectOf(heal._id, alice.bearer)).toBe(true);
+        });
+
+        it('gives two characters different values on the same heal (D-25)', async () => {
+            const alice = await playerAtFullLife('alice', []);
+            const bruno = await playerAtFullLife('bruno', ['deepCut']);
+            const heal = await persistCuringQuest('heal');
+
+            expect(await noEffectOf(heal._id, alice.bearer)).toBe(true);
+            expect(await noEffectOf(heal._id, bruno.bearer)).toBe(false);
+        });
+
+        it('answers false for a quest of another type that carries a cure (D-25)', async () => {
+            const alice = await playerAtFullLife('alice', []);
+            const job = await persistCuringQuest('job');
+
+            expect(await noEffectOf(job._id, alice.bearer)).toBe(false);
+        });
+
+        it('marks a heal without a cure for every character (D-25)', async () => {
+            const alice = await playerAtFullLife('alice', []);
+            const bruno = await playerAtFullLife('bruno', ['deepCut']);
+            const bare = await persistCatalogQuest({ infos: { type: 'heal' } });
+
+            expect(await noEffectOf(bare._id, alice.bearer)).toBe(true);
+            expect(await noEffectOf(bare._id, bruno.bearer)).toBe(true);
+        });
+
+        it('gives the innkeeper playing an own character the same value as anyone (D-25)', async () => {
+            const innkeeper = await playerAtFullLife(
+                'innkeeper',
+                [],
+                RoleType.innkeeper,
+            );
+            const heal = await persistCuringQuest('heal');
+
+            expect(await noEffectOf(heal._id, innkeeper.bearer)).toBe(true);
+
+            await modelOf(Character.name, CharacterSchema).collection.updateOne(
+                { _id: innkeeper.character?._id as Types.ObjectId },
+                { $set: { 'status.injuries': ['deepCut'] } },
+            );
+
+            expect(await noEffectOf(heal._id, innkeeper.bearer)).toBe(false);
+        });
+
+        it('answers false to a user without a current character, whatever the role (D-25)', async () => {
+            const wanderer = await createPlayer(harness, {
+                twitchId: 'twitch-no-effect-wanderer',
+                withCharacter: false,
+            });
+            const innkeeper = await createPlayer(harness, {
+                twitchId: 'twitch-no-effect-bare-innkeeper',
+                role: RoleType.innkeeper,
+                withCharacter: false,
+            });
+            const heal = await persistCuringQuest('heal');
+
+            expect(await noEffectOf(heal._id, wanderer.bearer)).toBe(false);
+            expect(await noEffectOf(heal._id, innkeeper.bearer)).toBe(false);
+        });
+
+        it('reads the character once per request for a board of heals (D-25)', async () => {
+            const alice = await playerAtFullLife('alice', []);
+            const healed = await persistCuringQuest('heal');
+            const needed = await persistCuringQuest('heal', {
+                lifePointsShare: 1,
+                canHeal: [],
+            });
+            await modelOf(Character.name, CharacterSchema).collection.updateOne(
+                { _id: alice.character?._id as Types.ObjectId },
+                { $set: { 'status.currentLifePoints': 900 } },
+            );
+            const characters = modelOf(Character.name, CharacterSchema);
+            const characterRead = jest.spyOn(characters, 'findOne');
+
+            try {
+                const body = (
+                    await graphqlRequest(
+                        harness.app,
+                        QUESTS_NO_EFFECT,
+                        {},
+                        alice.bearer,
+                    )
+                ).body as WireNoEffectBody;
+
+                expect(body.errors).toBeUndefined();
+                expect(
+                    [...(body.data?.quests ?? [])].sort((a, b) =>
+                        a.id.localeCompare(b.id),
+                    ),
+                ).toEqual(
+                    [
+                        { id: String(healed._id), noEffect: true },
+                        { id: String(needed._id), noEffect: false },
+                    ].sort((a, b) => a.id.localeCompare(b.id)),
+                );
+                // una sola lettura dei vitali per entrambe le heal: le letture del tabellone non contano
+                const vitalsReads = (
+                    characterRead.mock.calls as unknown[][]
+                ).filter(
+                    ([, projection]) =>
+                        typeof projection === 'object' &&
+                        projection !== null &&
+                        'status.injuries' in projection,
+                );
+                expect(vitalsReads).toHaveLength(1);
+            } finally {
+                characterRead.mockRestore();
+            }
         });
     });
 });

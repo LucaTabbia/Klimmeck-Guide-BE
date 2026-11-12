@@ -28,7 +28,6 @@ const injured: OutcomeCharacterSnapshot = {
         currentLifePoints: 120,
         maxLifePoints: 1200,
         injuries: [],
-        spells: [],
         awaitingAid: {
             quest: FAILED_ID,
             aidQuest: AID_ID,
@@ -36,7 +35,7 @@ const injured: OutcomeCharacterSnapshot = {
         },
     },
     quests: { completedQuests: [] },
-    assets: { ownedItems: [], ownedEquipments: [], activeSpells: [] },
+    assets: { ownedItems: [], ownedEquipments: [] },
 };
 
 const aidQuest: OutcomeQuestSnapshot = {
@@ -59,6 +58,7 @@ const unchangedSheet = {
     hpAfter: 120,
     maxLifePoints: 1200,
     injuriesAdded: [],
+    injuriesHealed: [],
     consumablesUsed: [],
     spellsUsed: [],
     rewards: {
@@ -67,6 +67,7 @@ const unchangedSheet = {
         pet: null,
     },
     xpGained: 0,
+    petXpGained: 0,
     xpBefore: 300,
     xpAfter: 300,
     levelBefore: 2,
@@ -79,6 +80,9 @@ const unchangedSheet = {
     stagesCleared: null,
     stagesTotal: null,
     rescuedCharacters: [],
+    arrested: false,
+    coinsLost: null,
+    guardEncounter: false,
 };
 
 describe('planRescued', () => {

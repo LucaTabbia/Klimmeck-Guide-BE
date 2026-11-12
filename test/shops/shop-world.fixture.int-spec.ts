@@ -103,22 +103,24 @@ describe('shop world fixture', () => {
         const petId = (name: string) =>
             catalogue.pets.find((pet) => pet.name === name)._id;
         const hex = (ids: any[]) => ids.map((id) => id.toHexString());
-        expect(byName.Necrorian).toMatchObject({
-            shopEquipment: [],
-            shopLoot: [],
-            shopPets: [],
+        expect(byName.Necrorian.shop).toEqual({
+            equipment: [],
+            loot: [],
+            pets: [],
         });
-        expect(byName.Talmvere.shopPets).toEqual([petId('Cavallo da viaggio')]);
-        expect(byName.Valantar.shopPets).toEqual([
+        expect(byName.Talmvere.shop.pets).toEqual([
+            petId('Cavallo da viaggio'),
+        ]);
+        expect(byName.Valantar.shop.pets).toEqual([
             petId('Cavallo leggero'),
             petId('Cammello del Mar Sabbioso'),
         ]);
-        expect(byName['Porto Saldo'].shopPets).toEqual([]);
-        expect(byName.Fineglen.shopEquipment).toHaveLength(4);
-        expect(byName.Fineglen.shopLoot).toHaveLength(4);
+        expect(byName['Porto Saldo'].shop.pets).toEqual([]);
+        expect(byName.Fineglen.shop.equipment).toHaveLength(4);
+        expect(byName.Fineglen.shop.loot).toHaveLength(4);
         expect(
-            hex(byName.Valantar.shopEquipment).filter((id) =>
-                hex(byName.Fineglen.shopEquipment).includes(id),
+            hex(byName.Valantar.shop.equipment).filter((id) =>
+                hex(byName.Fineglen.shop.equipment).includes(id),
             ),
         ).toEqual([]);
         for (const name of [
@@ -128,7 +130,7 @@ describe('shop world fixture', () => {
             'Cliffbreak',
         ])
             expect(Object.keys(byName[name])).not.toEqual(
-                expect.arrayContaining(['shopEquipment']),
+                expect.arrayContaining(['shop']),
             );
     });
 });

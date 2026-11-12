@@ -28,6 +28,7 @@ export interface AmbushResultDraft {
     spellsUsed: { spell: Types.ObjectId; usages: number }[];
     rewards: { coins: CoinPurse; items: []; pet: null };
     xpGained: number;
+    petXpGained: number;
     xpBefore: number;
     xpAfter: number;
     levelBefore: number;
@@ -82,6 +83,8 @@ function resultDraftOf(
         spellsUsed: report.spellsUsed,
         rewards: { coins: report.coins, items: [], pet: null },
         xpGained: report.xpGained,
+        // i report trattenuti prima della Phase 19 non hanno il campo (D-19)
+        petXpGained: report.petXpGained ?? 0,
         xpBefore: report.xpBefore,
         xpAfter: report.xpAfter,
         levelBefore: report.levelBefore,

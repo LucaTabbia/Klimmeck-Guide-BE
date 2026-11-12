@@ -25,10 +25,11 @@ const POOL_LIST = {
 
 // una città senza pool vende nulla: le liste assenti valgono vuote
 export function poolOfCity(city: CityPoolDocument): CityPool {
+    const { equipment, loot, pets } = city.shop ?? {};
     return {
-        equipment: city.shopEquipment ?? [],
-        loot: city.shopLoot ?? [],
-        pets: city.shopPets ?? [],
+        equipment: equipment ?? [],
+        loot: loot ?? [],
+        pets: pets ?? [],
     };
 }
 

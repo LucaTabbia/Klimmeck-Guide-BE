@@ -16,14 +16,19 @@ import {
 import { createPlayer } from '../../test/authz/player-fixture';
 import { persistCity } from '../../test/fixtures/city.fixture';
 import { persistLore } from '../../test/fixtures/lore.fixture';
+import { persistPoi } from '../../test/fixtures/poi.fixture';
 import { playerKnowing } from '../../test/lore/lore-world';
 import { CitiesModule } from './cities.module';
 
 const CITIES = '{ cities { id name size hasShop } }';
+const CITY_WITH_POINTS =
+    'query($id: String!) { city(id: $id) { name pointsOfInterest { id type location } } }';
+const CITIES_WITH_POINTS =
+    '{ cities { name pointsOfInterest { id location } } }';
 const CITY = 'query($id: String!) { city(id: $id) { id size hasShop } }';
 // selezione FE verbatim (lib/graphql/queries/city_queries.dart)
 const CITIES_FE = `query cities {
-    cities { id type name size hasShop markerLocation { id location } relatedLore { id description image } }
+    cities { id type name size hasShop markerLocation { id location } relatedLore { id description imagePath } }
 }`;
 
 interface WireCityLore {
@@ -31,7 +36,7 @@ interface WireCityLore {
     relatedLore: {
         id: string;
         description: string;
-        image: string | null;
+        imagePath: string | null;
     } | null;
 }
 
@@ -117,7 +122,7 @@ describe('CitiesResolver size and hasShop', () => {
         await persist({
             type: CityType.drusteaCity,
             name: 'Mercato',
-            shopLoot: [new Types.ObjectId()],
+            shop: { loot: [new Types.ObjectId()] },
         });
 
         expect(byName(await queryCities())).toEqual({
@@ -129,14 +134,12 @@ describe('CitiesResolver size and hasShop', () => {
         await persist({
             type: CityType.necrorianCity,
             name: 'Necrorian',
-            shopEquipment: [],
-            shopLoot: [],
-            shopPets: [],
+            shop: { equipment: [], loot: [], pets: [] },
         });
         await persist({ type: CityType.mirwaCity, name: 'Senza pool' });
 
         expect(byName(await queryCities())).toEqual({
-            Necrorian: { size: 'city', hasShop: false },
+            Necrorian: { size: 'capital', hasShop: false },
             'Senza pool': { size: 'city', hasShop: false },
         });
     });
@@ -145,7 +148,7 @@ describe('CitiesResolver size and hasShop', () => {
         const city = await persist({
             type: CityType.talmvereVillage,
             name: 'Talmvere',
-            shopPets: [new Types.ObjectId()],
+            shop: { pets: [new Types.ObjectId()] },
         });
 
         const response = await graphqlRequest(
@@ -164,6 +167,72 @@ describe('CitiesResolver size and hasShop', () => {
                 },
             },
         });
+    });
+
+    it('serves the points of interest of a city without the quest back link (D-09)', async () => {
+        const ruins = await persistPoi(pointsOfInterest, {
+            type: ['ruins'],
+            location: [12.5, 41.9],
+        });
+        const city = await persist({
+            name: 'Con rovine',
+            pointsOfInterest: [ruins._id],
+        });
+
+        const response = await graphqlRequest(
+            harness.app,
+            CITY_WITH_POINTS,
+            { id: city._id.toString() },
+            bearer,
+        ).expect(200);
+
+        expect(response.body).toEqual({
+            data: {
+                city: {
+                    name: 'Con rovine',
+                    pointsOfInterest: [
+                        {
+                            id: ruins._id.toString(),
+                            type: ['ruins'],
+                            location: [12.5, 41.9],
+                        },
+                    ],
+                },
+            },
+        });
+    });
+
+    it('serves the points of interest of every city with cities (C-WR-06)', async () => {
+        const ruins = await persistPoi(pointsOfInterest, { location: [1, 2] });
+        const cave = await persistPoi(pointsOfInterest, { location: [3, 4] });
+        await persist({
+            name: 'Con due luoghi',
+            pointsOfInterest: [ruins._id, cave._id],
+        });
+        await persist({ name: 'Senza luoghi', pointsOfInterest: [] });
+
+        const response = await graphqlRequest(
+            harness.app,
+            CITIES_WITH_POINTS,
+            undefined,
+            bearer,
+        ).expect(200);
+
+        expect(response.body).toEqual({
+            data: {
+                cities: expect.arrayContaining([
+                    {
+                        name: 'Con due luoghi',
+                        pointsOfInterest: [
+                            { id: ruins._id.toString(), location: [1, 2] },
+                            { id: cave._id.toString(), location: [3, 4] },
+                        ],
+                    },
+                    { name: 'Senza luoghi', pointsOfInterest: [] },
+                ]),
+            },
+        });
+        expect(response.body.data.cities).toHaveLength(2);
     });
 
     async function cityLoreOnWire(
@@ -199,7 +268,7 @@ describe('CitiesResolver size and hasShop', () => {
             type: 'city',
             name: 'Drustea',
             description: 'La città del porto.',
-            image: 'https://cdn.test/drustea.png',
+            imagePath: 'https://cdn.test/drustea.png',
         });
         const lockedLore = await persistLore(lores, {
             type: 'city',
@@ -215,7 +284,7 @@ describe('CitiesResolver size and hasShop', () => {
         const drustea = {
             id: knownLore._id.toHexString(),
             description: 'La città del porto.',
-            image: 'https://cdn.test/drustea.png',
+            imagePath: 'https://cdn.test/drustea.png',
         };
 
         expect(await cityLoreOnWire(player.bearer)).toEqual({
@@ -227,7 +296,7 @@ describe('CitiesResolver size and hasShop', () => {
             Valantar: {
                 id: lockedLore._id.toHexString(),
                 description: 'La capitale chiusa.',
-                image: null,
+                imagePath: null,
             },
         });
     });

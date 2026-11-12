@@ -10,9 +10,11 @@ import {
     buildQuest,
     persistEnemy,
     persistLootItem,
+    persistPet,
     persistSpell,
-    spellBook,
+    spellStatesOf,
 } from '../../../test/fixtures';
+import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
     createOutcomeHarness,
     type OutcomeHarness,
@@ -26,14 +28,14 @@ import { GmCompletionService } from './gm-completion.service';
 import { ResolutionLoader } from './resolution-loader.service';
 
 const NOW = new Date('2026-10-24T12:00:00.000Z');
-// mirror e stato coerenti (D-03): gli usi della magia attiva stanno nella voce di stato
-const knowingSpell = (spell: Types.ObjectId, usages: number) => {
-    const book = spellBook([{ spell, usages, active: true }]);
-    return {
-        status: { spells: book.spells, spellStates: book.spellStates },
-        assets: { activeSpells: book.activeSpells },
-    };
-};
+// la sola lista delle voci (Phase 19 D-07): la magia equipaggiata è la voce attiva
+const knowingSpell = (
+    spell: Types.ObjectId,
+    usages: number,
+    active = true,
+) => ({
+    status: { spellStates: spellStatesOf([{ spell, usages, active }]) },
+});
 const FRESH_STATUS = {
     xp: 0,
     level: 1,
@@ -216,6 +218,37 @@ describe('GmCompletionService.complete (replSet)', () => {
         ]);
     });
 
+    it('applies the cure on top of the game master override (D-07)', async () => {
+        const subject = await storyQuester({
+            questOverrides: gmQuest('story', {
+                xpPrize: 400,
+                cure: { lifePointsShare: 1, canHeal: [InjuryType.deepCut] },
+            }),
+        });
+
+        await service.complete(
+            inputOf(subject, [
+                {
+                    characterId: String(subject.characterId),
+                    hpAfter: 300,
+                    injuries: [InjuryType.deepCut],
+                },
+            ]),
+        );
+
+        const character = await characterOf(subject);
+        expect(character.status.maxLifePoints).toBe(1200);
+        expect(character.status.currentLifePoints).toBe(1200);
+        expect(character.status.injuries).toEqual([]);
+        const [result] = await resultsOf(subject);
+        expect(result).toMatchObject({
+            hpBefore: 1000,
+            hpAfter: 1200,
+            injuriesAdded: [InjuryType.deepCut],
+        });
+        expect(result.injuriesHealed).toEqual([InjuryType.deepCut]);
+    });
+
     it('closes a world mission for every registered character with one result each (D-04, D-06)', async () => {
         const potion = (await persistLootItem(world.models.lootItems))
             ._id as Types.ObjectId;
@@ -312,10 +345,7 @@ describe('GmCompletionService.complete (replSet)', () => {
         const dueAt = new Date(NOW.getTime() + 5000);
         const character = await characterOf(subject);
         expect(character.status.spellStates).toEqual([
-            { spell: spell._id, usages: 1, recoveries: [dueAt] },
-        ]);
-        expect(character.assets.activeSpells).toEqual([
-            expect.objectContaining({ spell: spell._id, usages: 1 }),
+            { spell: spell._id, usages: 1, recoveries: [dueAt], active: true },
         ]);
         expect(world.spellQueue.added).toEqual([
             expect.objectContaining({
@@ -327,6 +357,54 @@ describe('GmCompletionService.complete (replSet)', () => {
                 options: expect.objectContaining({ delay: 5000 }),
             }),
         ]);
+    });
+
+    it('rejects a game master override beyond the usages of an active spell state (D-07)', async () => {
+        const spell = await persistSpell(world.models.spells, {
+            recoveryTime: 5000,
+        });
+        const subject = await storyQuester({
+            characterOverrides: knowingSpell(spell._id, 1),
+        });
+
+        await expect(
+            service.complete(
+                inputOf(subject, [
+                    {
+                        characterId: String(subject.characterId),
+                        spellsUsed: [{ spell: String(spell._id), usages: 2 }],
+                    },
+                ]),
+            ),
+        ).rejects.toMatchObject({
+            code: GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+        });
+
+        await expectUntouched([subject], QuestLane.story);
+    });
+
+    it('rejects a game master override on a spell whose state is not active (D-07)', async () => {
+        const spell = await persistSpell(world.models.spells, {
+            recoveryTime: 5000,
+        });
+        const subject = await storyQuester({
+            characterOverrides: knowingSpell(spell._id, 2, false),
+        });
+
+        await expect(
+            service.complete(
+                inputOf(subject, [
+                    {
+                        characterId: String(subject.characterId),
+                        spellsUsed: [{ spell: String(spell._id), usages: 1 }],
+                    },
+                ]),
+            ),
+        ).rejects.toMatchObject({
+            code: GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+        });
+
+        await expectUntouched([subject], QuestLane.story);
     });
 
     it('rejects an override on a character outside the request without writing', async () => {
@@ -476,6 +554,44 @@ describe('GmCompletionService.complete (replSet)', () => {
             .lean<any>();
         expect(result.xpGained).toBe(500);
         expect(result.enemies).toEqual([{ enemy: enemy._id, quantity: 1 }]);
+    });
+
+    it('awards the companion on a game master completion with enemies (D-18)', async () => {
+        const enemy = await persistEnemy(world.models.enemies, { xp: 100 });
+        const pet = (await persistPet(world.models.pets, {
+            name: 'Lupo grigio',
+            maxXp: 1000,
+        })) as { _id: Types.ObjectId };
+        const subject = await quester({
+            lane: QuestLane.story,
+            questOverrides: gmQuest(
+                'story',
+                { xpPrize: 400 },
+                { enemies: [{ enemy: enemy._id, quantity: 3 }] },
+            ),
+            characterOverrides: {
+                assets: {
+                    pet: pet._id,
+                    ownedPets: [
+                        buildOwnedPet(pet._id, { xp: 5, currentLifePoints: 4 }),
+                    ],
+                },
+            },
+        });
+
+        const [draft] = await service.complete(inputOf(subject));
+
+        const raw = await world.models.characters.collection.findOne({
+            _id: subject.characterId,
+        });
+        expect(raw?.assets.ownedPets).toEqual([
+            { pet: pet._id, xp: 35, currentLifePoints: 4 },
+        ]);
+        const result = await world.models.questResults
+            .findById(draft._id)
+            .lean<any>();
+        expect(result.outcome).toBe(QuestOutcome.gmCompleted);
+        expect(result.petXpGained).toBe(30);
     });
 
     it('completes a multi-enemy quest with the summed enemy xp (D-02)', async () => {

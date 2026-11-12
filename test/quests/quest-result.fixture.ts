@@ -18,10 +18,12 @@ export function buildQuestResult(overrides: Record<string, any> = {}) {
         hpAfter: 1000,
         maxLifePoints: 1000,
         injuriesAdded: [],
+        injuriesHealed: [],
         consumablesUsed: [],
         spellsUsed: [],
         rewards: { coins: { gold: 0, silver: 0, copper: 0 }, items: [] },
         xpGained: 0,
+        petXpGained: 0,
         xpBefore: 0,
         xpAfter: 0,
         levelBefore: 1,
@@ -34,6 +36,9 @@ export function buildQuestResult(overrides: Record<string, any> = {}) {
         stagesCleared: null,
         stagesTotal: null,
         rescuedCharacters: [],
+        arrested: false,
+        coinsLost: null,
+        guardEncounter: false,
         ...overrides,
     };
 }

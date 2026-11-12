@@ -629,6 +629,139 @@ describe('QuestAcceptanceService (replSet)', () => {
         });
     });
 
+    describe('a heal without effect (D-25)', () => {
+        const VILLAGE_CURE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
+
+        async function curingQuestOf(
+            type: string,
+            prizes: Record<string, unknown> = { cure: VILLAGE_CURE },
+        ): Promise<Types.ObjectId> {
+            const base = buildQuest();
+            const quest = await persistQuest(quests, {
+                infos: {
+                    ...base.infos,
+                    type,
+                    markerLocation: world.questMarker,
+                },
+                prizes: { ...base.prizes, ...prizes },
+            });
+            return quest._id as Types.ObjectId;
+        }
+
+        async function woundedAt(
+            hp: number,
+            injuries: string[],
+            questsState: Record<string, unknown> = {},
+        ): Promise<Types.ObjectId> {
+            const charId = await characterAt(
+                world.cityMarker,
+                'rookie',
+                questsState,
+            );
+            await characters.collection.updateOne(
+                { _id: charId },
+                {
+                    $set: {
+                        'status.currentLifePoints': hp,
+                        'status.maxLifePoints': 1000,
+                        'status.injuries': injuries,
+                    },
+                },
+            );
+            return charId;
+        }
+
+        async function everything() {
+            const [rawCharacters, rawQuestDocs, rawPending, rawUsers] =
+                await Promise.all([
+                    characters.collection.find().toArray(),
+                    quests.collection.find().toArray(),
+                    pendingQuests.collection.find().toArray(),
+                    users.collection.find().toArray(),
+                ]);
+            return {
+                characters: rawCharacters,
+                quests: rawQuestDocs,
+                pendingQuests: rawPending,
+                users: rawUsers,
+                travelJobs: [...queue.added],
+                questJobs: [...questQueue.added],
+            };
+        }
+
+        async function expectRefusedWithoutWrites(
+            charId: Types.ObjectId,
+            questId: Types.ObjectId,
+        ): Promise<void> {
+            const ownerId = await ownerWith(6000);
+            const before = await everything();
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({
+                extensions: { code: 'QUEST_NO_EFFECT' },
+            });
+
+            expect(await everything()).toEqual(before);
+            expect(before.travelJobs).toEqual([]);
+            expect(before.questJobs).toEqual([]);
+        }
+
+        async function expectAccepted(
+            charId: Types.ObjectId,
+            questId: Types.ObjectId,
+        ): Promise<void> {
+            const pqId = await accept(await ownerWith(0), charId, questId);
+
+            expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+        }
+
+        it('refuses a heal without effect with QUEST_NO_EFFECT and writes nothing (D-25)', async () => {
+            await expectRefusedWithoutWrites(
+                await woundedAt(500, []),
+                await curingQuestOf('heal'),
+            );
+        });
+
+        it('refuses a heal without a cure for anyone (D-25)', async () => {
+            await expectRefusedWithoutWrites(
+                await woundedAt(1, ['deepCut', 'infection']),
+                await curingQuestOf('heal', {}),
+            );
+        });
+
+        it('accepts a heal that would cure an injury at full life points (D-25)', async () => {
+            await expectAccepted(
+                await woundedAt(1000, ['deepCut']),
+                await curingQuestOf('heal'),
+            );
+        });
+
+        it('accepts a heal below the ceiling without curable injuries (D-25)', async () => {
+            await expectAccepted(
+                await woundedAt(400, ['infection']),
+                await curingQuestOf('heal'),
+            );
+        });
+
+        it('accepts a job that carries a cure even when it would cure nothing (D-25)', async () => {
+            await expectAccepted(
+                await woundedAt(1000, []),
+                await curingQuestOf('job'),
+            );
+        });
+
+        it('answers the eligibility refusals before the heal without effect (D-25)', async () => {
+            const charId = await woundedAt(1000, [], {
+                pendingQuest: new Types.ObjectId(),
+            });
+
+            await expect(
+                accept(await ownerWith(0), charId, await curingQuestOf('heal')),
+            ).rejects.toMatchObject({ code: 'QUEST_SLOT_BUSY' });
+        });
+    });
+
     describe('concurrency (SC2/SC3)', () => {
         it('rejects with QUEST_SLOT_BUSY when the lane is taken after the pre-check, writing nothing', async () => {
             const ownerId = await ownerWith(6000);
@@ -844,6 +977,34 @@ describe('QuestAcceptanceService (replSet)', () => {
 
             expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
         });
+
+        it('rejects a magic quest for a paladin when minTitle is mage with QUEST_TITLE_MISMATCH (quick 261110-mag)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker, 'paladin');
+            const questId = await questOf('magic', { minTitle: 'mage' });
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_TITLE_MISMATCH' });
+
+            expect((await raw(charId))?.quests.pendingQuest).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it.each(['mage', 'hero'])(
+            'accepts a magic quest for a %s when minTitle is mage, at no cost (quick 261110-mag)',
+            async (title) => {
+                const ownerId = await ownerWith(6000);
+                const charId = await characterAt(world.cityMarker, title);
+                const questId = await questOf('magic', { minTitle: 'mage' });
+
+                const pqId = await accept(ownerId, charId, questId);
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+                expect(await pointsOf(ownerId)).toBe(6000);
+            },
+        );
     });
 
     describe('travel guard (D-06)', () => {
@@ -911,6 +1072,92 @@ describe('QuestAcceptanceService (replSet)', () => {
             { $set: { concludedAt: ACCEPTED_AT } },
         );
     }
+
+    function imprison(characterId: Types.ObjectId, until: Date) {
+        return characters.collection.updateOne(
+            { _id: characterId },
+            { $set: { 'status.imprisonedUntil': until } },
+        );
+    }
+
+    describe('prison guard (quick 261110-cgd)', () => {
+        const RELEASE = new Date(ACCEPTED_AT.getTime() + 60_000);
+
+        it('rejects every lane of an imprisoned character with CHARACTER_IMPRISONED and writes nothing (quick 261110-cgd)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            await imprison(charId, RELEASE);
+            const questIds = [
+                await questOf('crime'),
+                await questOf('story', {
+                    requiredPoints: 1000,
+                    minTitle: 'rookie',
+                }),
+                await questOf('worldMission', {
+                    requiredPoints: 3000,
+                    requiredAdventurers: ANY_THREE,
+                }),
+                await questOf('aid', { requiredAdventurers: ANY_THREE }),
+            ];
+            const before = await raw(charId);
+
+            for (const questId of questIds)
+                await expect(
+                    accept(ownerId, charId, questId),
+                ).rejects.toMatchObject({
+                    code: 'CHARACTER_IMPRISONED',
+                    extensions: {
+                        code: 'CHARACTER_IMPRISONED',
+                        imprisonedUntil: RELEASE.toISOString(),
+                    },
+                });
+
+            expect(await raw(charId)).toEqual(before);
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+            for (const questId of questIds)
+                expect(
+                    (await rawQuest(questId))?.registeredAdventurers,
+                ).toEqual([]);
+            expect(queue.added).toEqual([]);
+        });
+
+        it('rejects with CHARACTER_IMPRISONED when the prison starts after the pre-check (quick 261110-cgd)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            const questId = await questOf('worldMission', {
+                requiredPoints: 3000,
+                requiredAdventurers: ANY_THREE,
+            });
+            const transaction = interleaveBeforeTransaction(() =>
+                imprison(charId, RELEASE),
+            );
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'CHARACTER_IMPRISONED' });
+
+            expect(transaction).toHaveBeenCalledTimes(1);
+            const character = await raw(charId);
+            expect(
+                character?.quests.activeWorldMissionQuest ?? null,
+            ).toBeNull();
+            expect(await pendingCount()).toBe(0);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('accepts a quest once the prison has ended (quick 261110-cgd)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            await imprison(charId, ACCEPTED_AT);
+            const questId = await questOf('crime');
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).resolves.toBeInstanceOf(Types.ObjectId);
+            expect(await pendingCount()).toBe(1);
+        });
+    });
 
     describe('aid wait guard (D-07)', () => {
         it('rejects every lane of a character awaiting aid with AWAITING_AID and writes nothing', async () => {
@@ -2390,6 +2637,143 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect(
                 (await rawQuest(questId))?.registeredAdventurers,
             ).toHaveLength(1);
+        });
+
+        describe('enemy quests taken by one player of a sufficient rank (quick 261111-enm)', () => {
+            const SEAT_SHAPES: [string, string | null][] = [
+                ['a seat without a title', null],
+                ['the rank-exact seat written before the rule', 'rookie'],
+            ];
+
+            async function generatedQuestOf(
+                type: string,
+                minTitle: string,
+                seat: { title: string | null; count: number },
+            ): Promise<Types.ObjectId> {
+                const base = buildQuest();
+                const quest = await persistQuest(quests, {
+                    generated: true,
+                    infos: {
+                        ...base.infos,
+                        type,
+                        markerLocation: world.questMarker,
+                    },
+                    requirements: {
+                        ...base.requirements,
+                        minTitle,
+                        requiredAdventurers: [seat],
+                    },
+                });
+                return quest._id as Types.ObjectId;
+            }
+
+            it.each(SEAT_SHAPES)(
+                'lets a paladin take a rookie enemy quest with %s, starts it and refuses a second taker',
+                async (_label, title) => {
+                    const { owners, chars } = await heroesRacing(2, 'paladin');
+                    const questId = await generatedQuestOf('enemy', 'rookie', {
+                        title,
+                        count: 1,
+                    });
+
+                    const pqId = await accept(owners[0], chars[0], questId);
+
+                    const quest = await rawQuest(questId);
+                    expect(quest?.registeredAdventurers).toEqual([
+                        {
+                            character: chars[0],
+                            title: 'paladin',
+                            registeredAt: ACCEPTED_AT,
+                        },
+                    ]);
+                    expect(quest?.startedAt).toEqual(ACCEPTED_AT);
+                    expect((await pendingOf(pqId))?.startDate).toEqual(
+                        ACCEPTED_AT,
+                    );
+                    expect(
+                        questQueue.added.filter(
+                            ({ name }) => name === 'resolve',
+                        ),
+                    ).toHaveLength(1);
+                    await expect(
+                        accept(owners[1], chars[1], questId),
+                    ).rejects.toMatchObject({ code: 'QUEST_FULL' });
+                    expect(
+                        (await rawQuest(questId))?.registeredAdventurers,
+                    ).toHaveLength(1);
+                    expect(await pendingCount()).toBe(1);
+                },
+            );
+
+            it.each(SEAT_SHAPES)(
+                'lets exactly one of an adventurer, a hero and a legend racing take the enemy quest with %s',
+                async (_label, title) => {
+                    const titles = ['adventurer', 'hero', 'legend'];
+                    const owners: Types.ObjectId[] = [];
+                    const chars: Types.ObjectId[] = [];
+                    for (const rank of titles) {
+                        owners.push(await ownerWith(0));
+                        chars.push(await characterAt(world.cityMarker, rank));
+                    }
+                    const questId = await generatedQuestOf('enemy', 'rookie', {
+                        title,
+                        count: 1,
+                    });
+
+                    const results = await Promise.allSettled(
+                        chars.map((charId, i) =>
+                            accept(owners[i], charId, questId),
+                        ),
+                    );
+
+                    expect(winnersOf(results)).toHaveLength(1);
+                    expect(losersOf(results)).toEqual([
+                        'QUEST_FULL',
+                        'QUEST_FULL',
+                    ]);
+                    expect(
+                        (await rawQuest(questId))?.registeredAdventurers,
+                    ).toHaveLength(1);
+                    expect(await pendingCount()).toBe(1);
+                },
+            );
+
+            it.each([null, 'paladin'])(
+                'refuses a rookie on a paladin enemy quest with the seat title %p and writes nothing',
+                async (title) => {
+                    const ownerId = await ownerWith(0);
+                    const charId = await characterAt(world.cityMarker);
+                    const questId = await generatedQuestOf('enemy', 'paladin', {
+                        title,
+                        count: 1,
+                    });
+
+                    await expect(
+                        accept(ownerId, charId, questId),
+                    ).rejects.toMatchObject({ code: 'QUEST_TITLE_MISMATCH' });
+
+                    expect(
+                        (await rawQuest(questId))?.registeredAdventurers,
+                    ).toEqual([]);
+                    expect(await pendingCount()).toBe(0);
+                },
+            );
+
+            it('keeps the seats of a generated boss rank-exact', async () => {
+                const { owners, chars } = await heroesRacing(1, 'paladin');
+                const questId = await generatedQuestOf('boss', 'rookie', {
+                    title: 'rookie',
+                    count: 2,
+                });
+
+                await expect(
+                    accept(owners[0], chars[0], questId),
+                ).rejects.toMatchObject({ code: 'QUEST_FULL' });
+
+                expect(
+                    (await rawQuest(questId))?.registeredAdventurers,
+                ).toEqual([]);
+            });
         });
 
         it('lets exactly one of two concurrent legends take the last hero seat (D-08)', async () => {

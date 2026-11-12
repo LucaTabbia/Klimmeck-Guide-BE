@@ -6,9 +6,7 @@ import { InjuryType } from '../enums/injury-type.enum';
 import { TitleType } from '../enums/title-type.enum';
 import { Enemy } from '../enemy.model';
 import { Lore } from '../lore.model';
-import { Spell } from '../spell.model';
 import { PointOfInterest } from '../point-of-interest.model';
-import { maxActiveSpellsFor } from './active-spell-slots';
 import { ActiveTravel, ActiveTravelSchema } from './active-travel.model';
 import { AwaitingAid, AwaitingAidSchema } from './awaiting-aid.model';
 import { SpellState, SpellStateSchema } from './spell-state.model';
@@ -50,15 +48,7 @@ export class CharacterStatus {
     @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
     injuries: InjuryType[];
 
-    @Field(() => [Spell])
-    @Prop({
-        type: [MongooseSchema.Types.ObjectId],
-        ref: Spell.name,
-        default: [],
-    })
-    spells: Spell[];
-
-    // una voce per ogni magia di spells, stesso ordine (D-03)
+    // l'unica lista delle magie: una voce per magia conosciuta, in ordine di apprendimento; equipaggiata = flag della voce (Phase 19 D-07, D-16)
     @Field(() => [SpellState])
     @Prop({ type: [SpellStateSchema], default: [] })
     spellStates: SpellState[];
@@ -91,19 +81,20 @@ export class CharacterStatus {
     @Prop({ type: Number })
     maxLifePoints: number;
 
-    @Field(() => Int)
-    maxActiveSpells: number;
+    // fine della ricarica delle pozioni (Phase 18 D-15): una sola data per personaggio, confrontata all'uso; null = nessuna ricarica; il combattimento non la legge né la scrive (D-16)
+    @Field(() => Date, { nullable: true })
+    @Prop({ type: Date, default: null })
+    potionRecoveryUntil?: Date | null;
+
+    // fine della prigione dopo un arresto (quick 261110-cgd): null o passata = libero; nessuno sweep la azzera
+    @Field(() => Date, { nullable: true })
+    @Prop({ type: Date, default: null })
+    imprisonedUntil?: Date | null;
 }
 
 export type CharacterStatusDocument = CharacterStatus & Document;
-export const CharacterStatusSchema = (() => {
-    const schema = SchemaFactory.createForClass(CharacterStatus);
-    schema.virtual('maxActiveSpells').get(function (this: CharacterStatus) {
-        return maxActiveSpellsFor(this.xp ?? 0, this.title);
-    });
-
-    return schema;
-})();
+export const CharacterStatusSchema =
+    SchemaFactory.createForClass(CharacterStatus);
 
 @InputType()
 export class CharacterStatusInput {
@@ -121,9 +112,6 @@ export class CharacterStatusInput {
 
     @Field(() => [InjuryType])
     injuries: InjuryType[];
-
-    @Field(() => [ID])
-    spells: string[];
 
     @Field(() => CoinsInput)
     coins: CoinsInput;

@@ -52,12 +52,12 @@ const CREATE_CHARACTER = `
 
 const RACE_TRAITS_QUERY = '{ raceTraits { race minAge maxAge } }';
 
-const EMPTY_WEARED_EQUIPMENT = {
+const EMPTY_WORN_EQUIPMENT = {
     head: null,
     chest: null,
     arms: null,
     legs: null,
-    foots: null,
+    feet: null,
     leftHand: null,
     rightHand: null,
     firstAccessory: null,
@@ -342,9 +342,8 @@ describe('CharacterCreationResolver (wire)', () => {
                 maxLifePoints: 1000,
                 coins: { gold: 0, silver: 5, copper: 0 },
                 injuries: [],
-                spells: [],
+                spellStates: [],
             });
-            expect(raw?.status.spellStates).toEqual([]);
             await expectLocation(character, drustea);
             expect(raw?.quests).toEqual({
                 activeStoryQuest: null,
@@ -354,9 +353,20 @@ describe('CharacterCreationResolver (wire)', () => {
             });
             expect(raw?.assets.ownedEquipments).toEqual([]);
             expect(raw?.assets.ownedItems).toEqual([]);
-            expect(raw?.assets.activeSpells).toEqual([]);
             expect(raw?.assets.pet).toBeNull();
-            expect(raw?.assets.wearedEquipment).toEqual(EMPTY_WEARED_EQUIPMENT);
+            expect(raw?.assets.wornEquipment).toEqual(EMPTY_WORN_EQUIPMENT);
+            expect(Object.keys(raw?.assets ?? {}).sort()).toEqual([
+                'ownedEquipments',
+                'ownedItems',
+                'ownedPets',
+                'pet',
+                'wornEquipment',
+            ]);
+            expect(
+                Object.keys(raw?.status ?? {}).filter((key) =>
+                    key.startsWith('spell'),
+                ),
+            ).toEqual(['spellStates']);
 
             const rawOwner = await rawUser(user._id);
             const currentCharacter = rawOwner?.currentCharacter as unknown;

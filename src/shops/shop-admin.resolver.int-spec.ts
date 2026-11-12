@@ -111,10 +111,7 @@ describe('shopPoolReport', () => {
             {
                 name,
                 type,
-                shopEquipment: [],
-                shopLoot: [],
-                shopPets: [],
-                ...pools,
+                shop: { equipment: [], loot: [], pets: [], ...pools },
             },
             pointsOfInterest,
         );
@@ -122,9 +119,9 @@ describe('shopPoolReport', () => {
 
     async function persistRuleAbidingCity() {
         return persistShopCity('Valantar', 'valanCapital', {
-            shopEquipment: [byName(catalogue.equipment, 'Equip rare 01')._id],
-            shopLoot: [byName(catalogue.loot, 'Loot common heal 01')._id],
-            shopPets: [byName(catalogue.pets, 'Cavallo leggero')._id],
+            equipment: [byName(catalogue.equipment, 'Equip rare 01')._id],
+            loot: [byName(catalogue.loot, 'Loot common heal 01')._id],
+            pets: [byName(catalogue.pets, 'Cavallo leggero')._id],
         });
     }
 
@@ -133,7 +130,7 @@ describe('shopPoolReport', () => {
         const ultrarare = byName(catalogue.equipment, 'Equip ultrarare 01');
         const legendary = byName(catalogue.equipment, 'Equip legendary 01');
         const village = await persistShopCity('Fineglen', 'valanVillage', {
-            shopEquipment: [common._id, ultrarare._id, legendary._id],
+            equipment: [common._id, ultrarare._id, legendary._id],
         });
         const city = await persistShopCity('Porto Saldo', 'drusteaSeaCity', {});
         await persistShopCity('Necrorian', 'necrorianCity', {});
@@ -212,7 +209,7 @@ describe('shopPoolReport', () => {
     it('never writes while reporting (D-06)', async () => {
         const ultrarare = byName(catalogue.equipment, 'Equip ultrarare 01');
         await persistShopCity('Fineglen', 'valanVillage', {
-            shopEquipment: [ultrarare._id],
+            equipment: [ultrarare._id],
         });
         await persistShopCity('Porto Saldo', 'drusteaSeaCity', {});
         await persistCity(

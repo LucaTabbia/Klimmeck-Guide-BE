@@ -45,7 +45,7 @@ describe('ShopPoolReportService', () => {
     ) {
         const city = await persistCity(models.city, { name, type });
         await models.city.collection.updateOne({ _id: city._id }, {
-            $set: pool,
+            $set: { shop: pool },
         } as never);
         return city;
     }
@@ -54,31 +54,31 @@ describe('ShopPoolReportService', () => {
         const common = byName(catalogue.equipment, 'Equip common 01');
         const ultrarare = byName(catalogue.equipment, 'Equip ultrarare 01');
         await persistPooledCity('Valantar', 'valanCapital', {
-            shopEquipment: [common],
-            shopLoot: [],
-            shopPets: [],
+            equipment: [common],
+            loot: [],
+            pets: [],
         });
         await persistPooledCity('Shadmus', 'desertVillage', {
-            shopEquipment: [ultrarare],
-            shopLoot: [],
-            shopPets: [],
+            equipment: [ultrarare],
+            loot: [],
+            pets: [],
         });
         await persistPooledCity('Fineglen', 'valanVillage', {
-            shopEquipment: [],
-            shopLoot: [],
-            shopPets: [],
+            equipment: [],
+            loot: [],
+            pets: [],
         });
         await persistPooledCity('Necrorian', 'necrorianCity', {
-            shopEquipment: [],
-            shopLoot: [],
-            shopPets: [],
+            equipment: [],
+            loot: [],
+            pets: [],
         });
         await persistCity(models.city, {
             name: 'Talmvere',
             type: 'talmvereVillage',
         });
         await persistPooledCity('Porto Saldo', 'drusteaSeaCity', {
-            shopEquipment: [common],
+            equipment: [common],
         });
     }
 

@@ -34,8 +34,7 @@ function candidate(name: string, relatedLore: string[] = []): EnemyCandidate {
         locations: ['forest'],
         legendary: false,
         relatedLore,
-        baseWeaknesses: [],
-        energyWeaknesses: [],
+        weaknesses: { base: [], energy: [] },
         animal: false,
     };
 }
@@ -89,7 +88,8 @@ const RECOMMENDED_REFS = [
 ];
 
 describe('generatedQuestDraftOf', () => {
-    it('builds an enemy quest with one exact seat of the rank (D-09)', () => {
+    // quick 261111-enm: le enemy non hanno posti a titolo, il rango lo decide minTitle (supera D-09 per il solo tipo enemy)
+    it('builds an enemy quest with one rank-free seat and the rank as minTitle (quick 261111-enm)', () => {
         const draft = draftOf(
             composition(QuestType.enemy, TitleType.paladin, 1),
         );
@@ -97,14 +97,14 @@ describe('generatedQuestDraftOf', () => {
         expect(draft.requirements).toEqual({
             minTitle: TitleType.paladin,
             requiredPoints: null,
-            requiredAdventurers: [{ title: TitleType.paladin, count: 1 }],
+            requiredAdventurers: [{ title: null, count: 1 }],
             recommendedLoot: RECOMMENDED_REFS,
         });
         expect(draft.infos.type).toBe(QuestType.enemy);
         expect(draft.infos.timeToComplete).toBe(3_600_000);
     });
 
-    it('builds a boss quest with the seats of the formula (D-05)', () => {
+    it('builds a boss quest with the rank-exact seats of the formula (D-05)', () => {
         const draft = draftOf(composition(QuestType.boss, TitleType.hero, 2));
 
         expect(draft.requirements.requiredAdventurers).toEqual([
@@ -125,7 +125,7 @@ describe('generatedQuestDraftOf', () => {
         );
 
         expect(draft.requirements.requiredAdventurers).toEqual([
-            { title: TitleType.mage, count: 1 },
+            { title: null, count: 1 },
         ]);
         expect(draft.requirements.minTitle).toBe(TitleType.mage);
     });

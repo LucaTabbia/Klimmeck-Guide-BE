@@ -26,6 +26,11 @@ const CITY_ID = new Types.ObjectId('64b0000000000000000000b7');
 const TO_ID = new Types.ObjectId('64b0000000000000000000b8');
 const CROCEVIA_ID = new Types.ObjectId('64b0000000000000000000b9');
 const PENDING_ID = new Types.ObjectId('64b0000000000000000000ba');
+const COMPANION_ID = new Types.ObjectId('64b0000000000000000000bb');
+const OTHER_PET_ID = new Types.ObjectId('64b0000000000000000000bc');
+const IDLE_SPELL_ID = new Types.ObjectId('64b0000000000000000000bd');
+const COMPANION_MAX_XP = 1000;
+const COMPANION_LIFE = 7;
 
 const START = new Date('2026-10-21T10:00:00.000Z');
 const DURATION = 20 * 3_600_000;
@@ -61,6 +66,7 @@ const travel = {
 
 const snapshotWith = (
     status: Partial<AmbushCharacterSnapshot['status']> = {},
+    assets: Partial<NonNullable<AmbushCharacterSnapshot['assets']>> = {},
 ): AmbushCharacterSnapshot => ({
     _id: CHARACTER_ID,
     status: {
@@ -70,8 +76,9 @@ const snapshotWith = (
         currentLifePoints: 1000,
         maxLifePoints: 1000,
         injuries: [],
-        spells: [SPELL_ID],
-        spellStates: [{ spell: SPELL_ID, usages: 2, recoveries: [] }],
+        spellStates: [
+            { spell: SPELL_ID, usages: 2, recoveries: [], active: true },
+        ],
         activeTravel: travel,
         ...status,
     },
@@ -79,9 +86,23 @@ const snapshotWith = (
     assets: {
         ownedItems: [{ itemType: 'LootItem', item: POTION_ID, quantity: 3 }],
         ownedEquipments: [],
-        activeSpells: [{ spell: SPELL_ID, usages: 2 }],
+        ...assets,
     },
 });
+
+const otherPet = { pet: OTHER_PET_ID, xp: 12, currentLifePoints: 4 };
+
+const companionSnapshot = (xp: number): AmbushCharacterSnapshot =>
+    snapshotWith(
+        {},
+        {
+            pet: COMPANION_ID,
+            ownedPets: [
+                otherPet,
+                { pet: COMPANION_ID, xp, currentLifePoints: COMPANION_LIFE },
+            ],
+        },
+    );
 
 const effectsWith = (
     overrides: Partial<ParticipantEffects> = {},
@@ -108,10 +129,21 @@ const inputWith = (
     nextAmbush: null,
     detour: null,
     spellRecoveryTimes: new Map([[SPELL_ID.toHexString(), RECOVERY_MS]]),
-    spellMaxUsages: new Map([[SPELL_ID.toHexString(), 2]]),
+    petMaxXp: new Map(),
     now: NOW,
     ...overrides,
 });
+
+const companionInput = (
+    xp: number,
+    overrides: Partial<AmbushPlanInput> = {},
+): AmbushPlanInput =>
+    inputWith({
+        snapshot: companionSnapshot(xp),
+        enemies: { entries: [{ enemy: ENEMY_ID, quantity: 1 }], xp: 300 },
+        petMaxXp: new Map([[COMPANION_ID.toHexString(), COMPANION_MAX_XP]]),
+        ...overrides,
+    });
 
 describe('ambush outcome plan', () => {
     let plan: AmbushOutcomePlan;
@@ -128,16 +160,65 @@ describe('ambush outcome plan', () => {
         expect($set['assets.ownedItems']).toEqual([
             { itemType: 'LootItem', item: POTION_ID, quantity: 2 },
         ]);
-        expect($set['assets.activeSpells']).toEqual([
-            { spell: SPELL_ID, usages: 1 },
-        ]);
         expect($set['status.spellStates']).toEqual([
             {
                 spell: SPELL_ID,
                 usages: 1,
                 recoveries: [new Date(AT.getTime() + RECOVERY_MS)],
+                active: true,
             },
         ]);
+    });
+
+    it('spends only the active spell states (D-07)', () => {
+        const idle = {
+            spell: IDLE_SPELL_ID,
+            usages: 3,
+            recoveries: [],
+            active: false,
+        };
+        const spent = planAmbushOutcome(
+            inputWith({
+                snapshot: snapshotWith({
+                    spellStates: [
+                        idle,
+                        {
+                            spell: SPELL_ID,
+                            usages: 2,
+                            recoveries: [],
+                            active: true,
+                        },
+                    ],
+                }),
+                effects: effectsWith({
+                    spellsUsed: [
+                        { spellId: IDLE_SPELL_ID.toHexString(), usages: 1 },
+                        { spellId: SPELL_ID.toHexString(), usages: 1 },
+                    ],
+                }),
+            }),
+        );
+
+        expect(spent.update.$set['status.spellStates']).toEqual([
+            idle,
+            {
+                spell: SPELL_ID,
+                usages: 1,
+                recoveries: [new Date(AT.getTime() + RECOVERY_MS)],
+                active: true,
+            },
+        ]);
+        expect(spent.report.spellsUsed).toEqual([
+            { spell: SPELL_ID, usages: 1 },
+        ]);
+    });
+
+    it('writes no other spell list than the spell states (D-07)', () => {
+        const spellKeys = Object.keys(plan.update.$set).filter((key) =>
+            /spell/i.test(key),
+        );
+
+        expect(spellKeys).toEqual(['status.spellStates']);
     });
 
     it('keeps the title while the level rises (D-10)', () => {
@@ -216,6 +297,7 @@ describe('ambush outcome plan', () => {
             titleBefore: TitleType.rookie,
             titleAfter: TitleType.rookie,
             loreUnlocked: [],
+            petXpGained: 0,
         });
     });
 
@@ -259,6 +341,90 @@ describe('ambush outcome plan', () => {
             ...ambushFilter(identity, NOW),
             'status.xp': 0,
         });
+    });
+});
+
+describe('the companion xp of an ambush', () => {
+    it('raises the equipped companion on a won ambush in the victory write (D-04)', () => {
+        const won = planAmbushOutcome(companionInput(0));
+
+        expect(won.update.$set['assets.ownedPets']).toEqual([
+            otherPet,
+            { pet: COMPANION_ID, xp: 30, currentLifePoints: COMPANION_LIFE },
+        ]);
+        expect(won.report.petXpGained).toBe(30);
+        expect(won.update.$push).toEqual({
+            'status.activeTravel.ambushReports': won.report,
+        });
+    });
+
+    it('shares the raw enemies xp, not the rank prize of the character (D-04)', () => {
+        const won = planAmbushOutcome(companionInput(0));
+
+        expect(won.report.xpGained).toBe(340);
+        expect(won.report.petXpGained).toBe(30);
+    });
+
+    it('caps the companion and reports the effective gain (D-04)', () => {
+        const won = planAmbushOutcome(companionInput(990));
+
+        expect(won.update.$set['assets.ownedPets']).toEqual([
+            otherPet,
+            {
+                pet: COMPANION_ID,
+                xp: COMPANION_MAX_XP,
+                currentLifePoints: COMPANION_LIFE,
+            },
+        ]);
+        expect(won.report.petXpGained).toBe(10);
+    });
+
+    it('leaves the owned pets out of the write without a companion (D-04)', () => {
+        const won = planAmbushOutcome(
+            companionInput(0, {
+                snapshot: snapshotWith({}, { ownedPets: [otherPet] }),
+            }),
+        );
+
+        expect(Object.keys(won.update.$set)).not.toContain('assets.ownedPets');
+        expect(won.report.petXpGained).toBe(0);
+    });
+
+    it('awards no companion xp on a lost ambush (D-04)', () => {
+        const lost = planAmbushOutcome(
+            companionInput(0, {
+                verdict: 'failure',
+                effects: effectsWith({ hpAfter: 0 }),
+                detour: {
+                    road: { coordinates: [[0, 4.5]], distance: 0 },
+                    to: CROCEVIA_ID,
+                    reachedCity: { id: CROCEVIA_ID, name: 'Crocevia' },
+                    baseHours: 0,
+                    residualMs: null,
+                    petSpeed: 10,
+                },
+            }),
+        );
+
+        expect(Object.keys(lost.update.$set)).not.toContain('assets.ownedPets');
+        expect(lost.report.petXpGained).toBe(0);
+    });
+
+    it('keeps the life points of the companion untouched (D-04)', () => {
+        const input = companionInput(0);
+        const won = planAmbushOutcome(input);
+        const written = won.update.$set['assets.ownedPets'] as {
+            currentLifePoints: number;
+        }[];
+
+        expect(written.map((entry) => entry.currentLifePoints)).toEqual([
+            otherPet.currentLifePoints,
+            COMPANION_LIFE,
+        ]);
+        expect(input.snapshot.assets?.ownedPets).toEqual([
+            otherPet,
+            { pet: COMPANION_ID, xp: 0, currentLifePoints: COMPANION_LIFE },
+        ]);
     });
 });
 
@@ -321,7 +487,6 @@ describe('ambush defeat plan', () => {
         expect($set['status.xp']).toBe(0);
         expect(defeat.coinsDelta).toBe(0);
         expect(Object.keys($set).sort()).toEqual([
-            'assets.activeSpells',
             'assets.ownedEquipments',
             'assets.ownedItems',
             'status.activeTravel',

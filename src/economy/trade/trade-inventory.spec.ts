@@ -148,7 +148,7 @@ describe('trade inventory', () => {
             const outcome = applyTradeToInventory(
                 {
                     ownedEquipments: [equipment(sword, 1), equipment(other, 1)],
-                    wearedEquipment: {
+                    wornEquipment: {
                         head: other,
                         leftHand: sword.toHexString(),
                         rightHand: sword,
@@ -166,7 +166,7 @@ describe('trade inventory', () => {
             const outcome = applyTradeToInventory(
                 {
                     ownedEquipments: [equipment(sword, 2)],
-                    wearedEquipment: { rightHand: sword },
+                    wornEquipment: { rightHand: sword },
                 },
                 [line('sell', 'EquipmentItem', sword, 1)],
             );
@@ -309,7 +309,7 @@ describe('trade inventory', () => {
         });
 
         it('adds the extra guards to the same and-list (D-14)', () => {
-            const petGuard = { 'assets.ownedPets': { $in: [horse] } };
+            const petGuard = { 'assets.ownedPets.pet': { $in: [horse] } };
 
             expect(
                 soldQuantityGuards(

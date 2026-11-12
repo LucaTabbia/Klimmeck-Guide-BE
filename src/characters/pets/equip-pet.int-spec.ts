@@ -10,6 +10,10 @@ import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
 import { buildCharacter, persistPet } from '../../../test/fixtures';
+import {
+    buildOwnedPet,
+    type OwnedPetSeed,
+} from '../../../test/fixtures/owned-pet.fixture';
 import { buildActiveTravelDoc } from '../../../test/travel/active-travel.fixture';
 
 const EQUIP_PET =
@@ -50,7 +54,7 @@ describe('equipPet / unequipPet (wire)', () => {
 
     function ownerOf(
         twitchId: string,
-        ownedPets: Types.ObjectId[],
+        ownedPets: OwnedPetSeed[],
         overrides: Record<string, unknown> = {},
     ): Promise<TestPlayer> {
         return createPlayer(harness, {
@@ -135,7 +139,9 @@ describe('equipPet / unequipPet (wire)', () => {
     });
 
     it('equips an owned pet as the companion (D-15)', async () => {
-        const player = await ownerOf('twitch-pet-owned', [horseId]);
+        const player = await ownerOf('twitch-pet-owned', [
+            buildOwnedPet(horseId),
+        ]);
 
         const body = await equip(player, horse);
 
@@ -155,7 +161,9 @@ describe('equipPet / unequipPet (wire)', () => {
     });
 
     it('stays idempotent when equipping twice (D-15)', async () => {
-        const player = await ownerOf('twitch-pet-twice', [horseId]);
+        const player = await ownerOf('twitch-pet-twice', [
+            buildOwnedPet(horseId),
+        ]);
 
         await equip(player, horse);
         const body = await equip(player, horse);
@@ -165,8 +173,27 @@ describe('equipPet / unequipPet (wire)', () => {
         expect((await rawCharacter(player)).assets.pet).toEqual(horseId);
     });
 
-    it('refuses a pet not owned with PET_NOT_OWNED and writes nothing (D-15)', async () => {
-        const player = await ownerOf('twitch-pet-unowned', [catId]);
+    it('equips a pet owned as an entry and leaves its state untouched (D-03)', async () => {
+        const entry = buildOwnedPet(horseId, { xp: 12, currentLifePoints: 7 });
+        const player = await ownerOf('twitch-pet-entry', [
+            buildOwnedPet(catId),
+            entry,
+        ]);
+
+        const body = await equip(player, horse);
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.equipPet).toEqual(EQUIPPED);
+        expect((await rawCharacter(player)).assets).toMatchObject({
+            pet: horseId,
+            ownedPets: [buildOwnedPet(catId), entry],
+        });
+    });
+
+    it('refuses a pet that is not in any entry with PET_NOT_OWNED and writes nothing (D-03)', async () => {
+        const player = await ownerOf('twitch-pet-unowned', [
+            buildOwnedPet(catId),
+        ]);
         const before = await rawCharacter(player);
 
         const body = await equip(player, horse);
@@ -176,7 +203,9 @@ describe('equipPet / unequipPet (wire)', () => {
     });
 
     it('unequips the companion idempotently (D-15)', async () => {
-        const player = await ownerOf('twitch-pet-unequip', [horseId]);
+        const player = await ownerOf('twitch-pet-unequip', [
+            buildOwnedPet(horseId),
+        ]);
         await equip(player, horse);
 
         const first = await unequip(player);
@@ -186,16 +215,20 @@ describe('equipPet / unequipPet (wire)', () => {
         expect(second.data?.unequipPet).toEqual(UNEQUIPPED);
         const raw = await rawCharacter(player);
         expect(raw.assets.pet).toBeNull();
-        expect(raw.assets.ownedPets).toEqual([horseId]);
+        expect(raw.assets.ownedPets).toEqual([buildOwnedPet(horseId)]);
     });
 
     it('equips during a travel without changing the travel (D-15)', async () => {
-        const player = await ownerOf('twitch-pet-travel', [horseId], {
-            status: {
-                ...buildCharacter().status,
-                activeTravel: buildActiveTravelDoc(),
+        const player = await ownerOf(
+            'twitch-pet-travel',
+            [buildOwnedPet(horseId)],
+            {
+                status: {
+                    ...buildCharacter().status,
+                    activeTravel: buildActiveTravelDoc(),
+                },
             },
-        });
+        );
         const before = (await rawCharacter(player)).status.activeTravel;
 
         const body = await equip(player, horse);
@@ -207,7 +240,7 @@ describe('equipPet / unequipPet (wire)', () => {
     });
 
     it('equips a companion that is not a mount (D-15)', async () => {
-        const player = await ownerOf('twitch-pet-cat', [catId]);
+        const player = await ownerOf('twitch-pet-cat', [buildOwnedPet(catId)]);
 
         const body = await equip(player, cat);
 
@@ -217,7 +250,9 @@ describe('equipPet / unequipPet (wire)', () => {
     });
 
     it('lets the innkeeper equip for a character (D-15, C1)', async () => {
-        const player = await ownerOf('twitch-pet-owner', [horseId]);
+        const player = await ownerOf('twitch-pet-owner', [
+            buildOwnedPet(horseId),
+        ]);
         const oste = await createPlayer(harness, {
             twitchId: 'twitch-pet-innkeeper',
             role: RoleType.innkeeper,

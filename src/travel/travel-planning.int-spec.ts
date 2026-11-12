@@ -269,6 +269,35 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
             expect(await rawCharacter(id)).toEqual(before);
         });
 
+        it('rejects an imprisoned character with CHARACTER_IMPRISONED and writes nothing (quick 261110-cgd)', async () => {
+            const until = new Date(PLANNED_AT.getTime() + 60_000);
+            const id = await characterAt(world.markerA, {
+                status: { imprisonedUntil: until },
+            });
+            const before = await rawCharacter(id);
+
+            await expect(
+                planner.planFree(id, world.markerB),
+            ).rejects.toMatchObject({
+                code: 'CHARACTER_IMPRISONED',
+                extensions: {
+                    code: 'CHARACTER_IMPRISONED',
+                    imprisonedUntil: until.toISOString(),
+                },
+            });
+            expect(await rawCharacter(id)).toEqual(before);
+        });
+
+        it('plans the travel of a character whose prison has ended (quick 261110-cgd)', async () => {
+            const id = await characterAt(world.markerA, {
+                status: { imprisonedUntil: PLANNED_AT },
+            });
+
+            await expect(
+                planner.planFree(id, world.markerB),
+            ).resolves.toMatchObject({ location: world.markerA });
+        });
+
         it('rejects a destination that is not a city marker', async () => {
             const id = await characterAt(world.markerA);
 

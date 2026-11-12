@@ -12,21 +12,30 @@ describe('hasShopOf', () => {
     it('opens the shop when one pool list has an item (D-04)', () => {
         expect(
             hasShopOf({
-                shopEquipment: [],
-                shopLoot: [new Types.ObjectId()],
-                shopPets: [],
+                shop: {
+                    equipment: [],
+                    loot: [new Types.ObjectId()],
+                    pets: [],
+                },
             }),
         ).toBe(true);
     });
 
     it('keeps the shop closed on three empty lists like Necrorian (D-04)', () => {
-        expect(
-            hasShopOf({ shopEquipment: [], shopLoot: [], shopPets: [] }),
-        ).toBe(false);
+        expect(hasShopOf({ shop: { equipment: [], loot: [], pets: [] } })).toBe(
+            false,
+        );
     });
 
-    it('keeps the shop closed on a city without a pool (D-04)', () => {
-        expect(hasShopOf({})).toBe(false);
+    it('keeps the shop closed on a city without pool lists (D-04)', () => {
+        expect(hasShopOf({ shop: {} })).toBe(false);
+    });
+
+    it('keeps a city without the shop sub-document closed (D-10)', () => {
+        expect([hasShopOf({}), hasShopOf({ shop: null })]).toEqual([
+            false,
+            false,
+        ]);
     });
 });
 

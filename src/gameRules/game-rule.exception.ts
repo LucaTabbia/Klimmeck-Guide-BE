@@ -1,15 +1,25 @@
 import { BadRequestException } from '@nestjs/common';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 
+export interface GameRuleExtensions {
+    code: GameRuleErrorCode;
+    recoveryUntil?: string;
+    imprisonedUntil?: string;
+}
+
 export class GameRuleException extends BadRequestException {
     readonly code: GameRuleErrorCode;
-    readonly extensions: { code: GameRuleErrorCode };
+    readonly extensions: GameRuleExtensions;
 
-    private constructor(code: GameRuleErrorCode, message: string) {
+    private constructor(
+        code: GameRuleErrorCode,
+        message: string,
+        extra: Omit<GameRuleExtensions, 'code'> = {},
+    ) {
         super({ statusCode: 400, error: 'Bad Request', message, code });
         this.code = code;
         // graphql-js copia originalError.extensions; formatDomainError ripristina il codice dopo la riscrittura di Nest
-        this.extensions = { code };
+        this.extensions = { code, ...extra };
     }
 
     static insufficientFunds(): GameRuleException {
@@ -256,6 +266,48 @@ export class GameRuleException extends BadRequestException {
         return new GameRuleException(
             GameRuleErrorCode.PET_NOT_OWNED,
             'Compagno non posseduto',
+        );
+    }
+
+    // solo le pozioni heal con una ricarica valida si bevono dal Diario (Phase 18 D-17, D-23)
+    static itemNotUsable(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.ITEM_NOT_USABLE,
+            'Questo oggetto non si può usare',
+        );
+    }
+
+    // ricarica globale delle pozioni (D-15): la data di fine viaggia solo nelle extensions
+    static potionRecovering(until: Date): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.POTION_RECOVERING,
+            "Il tuo corpo non reggerebbe un'altra pozione: aspetta che la prima si sia posata",
+            { recoveryUntil: until.toISOString() },
+        );
+    }
+
+    // nessun consumo e nessuna ricarica se la pozione non cambierebbe nulla (D-23)
+    static itemNoEffect(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.ITEM_NO_EFFECT,
+            'Questa pozione non ti farebbe nulla adesso',
+        );
+    }
+
+    // una heal che non cambierebbe nulla non si accetta (Phase 18 D-25): nessuna corsia, nessun punto, nessun viaggio
+    static questNoEffect(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.QUEST_NO_EFFECT,
+            'Queste cure non ti servirebbero adesso',
+        );
+    }
+
+    // prigione dopo l'arresto in una crime (quick 261110-cgd): blocca quel che blocca l'attesa di soccorso; la data di fine viaggia solo nelle extensions
+    static characterImprisoned(until: Date): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.CHARACTER_IMPRISONED,
+            'Il tuo personaggio è in prigione',
+            { imprisonedUntil: until.toISOString() },
         );
     }
 }

@@ -4,17 +4,20 @@ import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
 import { SHOP_ALLOWED_RARITIES } from './shop-pool.constants';
 
+type PoolList = readonly unknown[] | null;
+
 export interface ShopPoolLists {
-    shopEquipment?: readonly unknown[] | null;
-    shopLoot?: readonly unknown[] | null;
-    shopPets?: readonly unknown[] | null;
+    shop?: {
+        equipment?: PoolList;
+        loot?: PoolList;
+        pets?: PoolList;
+    } | null;
 }
 
 // pool grezzo: almeno una lista non vuota apre il negozio; Necrorian e le città senza pool restano chiuse (D-04)
 export function hasShopOf(city: ShopPoolLists): boolean {
-    return [city.shopEquipment, city.shopLoot, city.shopPets].some(
-        (list) => (list?.length ?? 0) > 0,
-    );
+    const { equipment, loot, pets } = city.shop ?? {};
+    return [equipment, loot, pets].some((list) => (list?.length ?? 0) > 0);
 }
 
 export interface ShelfFlags {

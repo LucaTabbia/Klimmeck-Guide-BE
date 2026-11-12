@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { Clock, SystemClock } from 'src/auth/clock';
 import { CatalogPricesReader } from 'src/economy/trade/catalog-prices.reader';
 import { ShopTransactionService } from 'src/economy/trade/shop-transaction.service';
 import { WalletService } from 'src/economy/wallet.service';
@@ -28,7 +29,12 @@ import { User, UserSchema } from 'src/models/user.model';
             { name: Pet.name, schema: PetSchema },
         ]),
     ],
-    providers: [WalletService, CatalogPricesReader, ShopTransactionService],
+    providers: [
+        { provide: Clock, useClass: SystemClock },
+        WalletService,
+        CatalogPricesReader,
+        ShopTransactionService,
+    ],
     exports: [WalletService, ShopTransactionService],
 })
 export class EconomyModule {}

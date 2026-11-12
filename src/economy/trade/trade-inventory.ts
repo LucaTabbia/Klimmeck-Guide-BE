@@ -1,5 +1,5 @@
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
-import { SlotType } from 'src/models/enums/slot_type.enum';
+import { SlotType } from 'src/models/enums/slot-type.enum';
 import { idForms, sameId } from 'src/mongo/document-id';
 import type { ItemReferenceType } from 'src/models/common/asset-quantity.model';
 import {
@@ -18,7 +18,7 @@ export interface InventoryEntry {
 export interface InventorySnapshot {
     ownedItems?: InventoryEntry[];
     ownedEquipments?: InventoryEntry[];
-    wearedEquipment?: Partial<Record<SlotType, unknown>> | null;
+    wornEquipment?: Partial<Record<SlotType, unknown>> | null;
 }
 
 export interface InventoryOutcome {
@@ -95,7 +95,7 @@ function slotsWearingSoldOut(
         );
     return Object.values(SlotType).filter((slot) =>
         soldOut.some((itemId) =>
-            sameId(snapshot.wearedEquipment?.[slot], itemId),
+            sameId(snapshot.wornEquipment?.[slot], itemId),
         ),
     );
 }

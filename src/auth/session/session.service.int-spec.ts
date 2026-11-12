@@ -13,6 +13,7 @@ import {
     SessionDocument,
     SessionSchema,
 } from 'src/auth/session/session.model';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { SessionService } from 'src/auth/session/session.service';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import { FixedClock } from '../../../test/auth/fixed-clock';
@@ -26,6 +27,7 @@ const SessionModel: Model<SessionDocument> =
     mongoose.models.Session || mongoose.model(Session.name, SessionSchema);
 
 const USER_ID = '64b0000000000000000000b1';
+const OTHER_USER_ID = '64b0000000000000000000b2';
 const REFRESH_TOKEN_TTL_MS = 2_592_000 * 1000;
 const OPAQUE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const RETIRED_REFRESH_TOKENS_LIMIT = 10;
@@ -64,6 +66,50 @@ describe('SessionService (replSet)', () => {
         return SessionModel.findById(sessionId).lean().exec();
     }
 
+    async function rejectionOf(promise: Promise<unknown>) {
+        try {
+            await promise;
+        } catch (error) {
+            return error as { code: string; extensions: object };
+        }
+        throw new Error('expected a rejection');
+    }
+
+    // i documenti precedenti alla fase non hanno il campo del motivo (Pitfall 4)
+    async function revokeAsLegacy(sessionId: string): Promise<void> {
+        await SessionModel.collection.updateOne(
+            { _id: new Types.ObjectId(sessionId) },
+            { $set: { revokedAt: clock.now() }, $unset: { revokeReason: '' } },
+        );
+    }
+
+    async function setCreatedAt(
+        sessionId: string,
+        createdAt: Date,
+    ): Promise<void> {
+        await SessionModel.collection.updateOne(
+            { _id: new Types.ObjectId(sessionId) },
+            { $set: { createdAt } },
+        );
+    }
+
+    // il logout concorrente arriva dopo la lettura dei candidati e prima dell'update
+    function revokeAfterTheCandidatesRead(sessionId: string): void {
+        const originalFind = SessionModel.find.bind(SessionModel);
+        jest.spyOn(SessionModel, 'find').mockImplementationOnce(((
+            ...args: Parameters<typeof SessionModel.find>
+        ) => {
+            const query = originalFind(...args);
+            const exec = query.exec.bind(query);
+            query.exec = async () => {
+                const candidates = await exec();
+                await service.revoke(sessionId, SessionRevokeReason.userLogout);
+                return candidates;
+            };
+            return query;
+        }) as unknown as typeof SessionModel.find);
+    }
+
     function retiredEntry(token: string, retiredAt: Date) {
         return { hash: sha256Hex(token), retiredAt };
     }
@@ -72,6 +118,8 @@ describe('SessionService (replSet)', () => {
         clock = new FixedClock();
         service = await buildService(TEST_JWT_SECRET);
     });
+
+    afterEach(() => jest.restoreAllMocks());
 
     describe('create', () => {
         it('issues an opaque refresh token bound to a new session', async () => {
@@ -154,22 +202,322 @@ describe('SessionService (replSet)', () => {
             const issued = await service.create(USER_ID);
             clock.advanceSeconds(5);
 
-            await service.revoke(issued.sessionId);
+            await service.revoke(
+                issued.sessionId,
+                SessionRevokeReason.userLogout,
+            );
 
             const stored = await SessionModel.findById(issued.sessionId).exec();
             expect(stored?.revokedAt?.getTime()).toBe(clock.now().getTime());
         });
 
+        it('stores the reason with the revocation time (D-05)', async () => {
+            const issued = await service.create(USER_ID);
+
+            await service.revoke(
+                issued.sessionId,
+                SessionRevokeReason.userLogout,
+            );
+
+            const stored = await readSession(issued.sessionId);
+            expect(stored?.revokedAt).toEqual(clock.now());
+            expect(stored?.revokeReason).toBe('userLogout');
+        });
+
+        it('stores no reason when revoked without one (D-11)', async () => {
+            const issued = await service.create(USER_ID);
+
+            await service.revoke(issued.sessionId, null);
+
+            const stored = await readSession(issued.sessionId);
+            expect(stored?.revokedAt).toEqual(clock.now());
+            expect(stored?.revokeReason).toBeNull();
+        });
+
+        it('keeps the first date and reason of an already revoked session (D-02)', async () => {
+            const issued = await service.create(USER_ID);
+            await service.revoke(
+                issued.sessionId,
+                SessionRevokeReason.userLogout,
+            );
+            const firstRevocation = clock.now();
+            clock.advanceSeconds(5);
+
+            await service.revoke(
+                issued.sessionId,
+                SessionRevokeReason.newLogin,
+            );
+
+            const stored = await readSession(issued.sessionId);
+            expect(stored?.revokedAt).toEqual(firstRevocation);
+            expect(stored?.revokeReason).toBe('userLogout');
+        });
+
         it('does not throw for an unknown session id', async () => {
             await expect(
-                service.revoke(new Types.ObjectId().toString()),
+                service.revoke(
+                    new Types.ObjectId().toString(),
+                    SessionRevokeReason.userLogout,
+                ),
             ).resolves.toBeUndefined();
         });
 
-        it('does not throw for a malformed session id', async () => {
-            await expect(service.revoke('not-an-object-id')).resolves.toBe(
-                undefined,
+        it('ignores a 12-character id that is not 24 hex digits (D-02)', async () => {
+            const issued = await service.create(USER_ID);
+            const castsToAnObjectId = 'abcdefghijkl';
+
+            await service.revoke(
+                castsToAnObjectId,
+                SessionRevokeReason.userLogout,
             );
+
+            expect(
+                await SessionModel.countDocuments({
+                    revokedAt: { $ne: null },
+                }).exec(),
+            ).toBe(0);
+            expect((await readSession(issued.sessionId))?.revokedAt).toBeNull();
+        });
+
+        it('does not throw for a malformed session id', async () => {
+            await expect(
+                service.revoke(
+                    'not-an-object-id',
+                    SessionRevokeReason.userLogout,
+                ),
+            ).resolves.toBeUndefined();
+        });
+    });
+
+    describe('revokeOthersOf', () => {
+        it('revokes the other active sessions of the user with newLogin and keeps the new one (D-02)', async () => {
+            const a = await service.create(USER_ID);
+            const b = await service.create(USER_ID);
+            const c = await service.create(USER_ID);
+
+            const revoked = await service.revokeOthersOf(
+                USER_ID,
+                c.sessionId,
+                SessionRevokeReason.newLogin,
+            );
+
+            expect([...revoked].sort()).toEqual(
+                [a.sessionId, b.sessionId].sort(),
+            );
+            for (const sessionId of [a.sessionId, b.sessionId]) {
+                const stored = await readSession(sessionId);
+                expect(stored?.revokeReason).toBe('newLogin');
+                expect(stored?.revokedAt).toEqual(clock.now());
+            }
+            expect((await readSession(c.sessionId))?.revokedAt).toBeNull();
+        });
+
+        it('leaves the sessions of other users untouched (D-02)', async () => {
+            const foreign = await service.create(OTHER_USER_ID);
+            const kept = await service.create(USER_ID);
+
+            const revoked = await service.revokeOthersOf(
+                USER_ID,
+                kept.sessionId,
+                SessionRevokeReason.newLogin,
+            );
+
+            expect(revoked).toEqual([]);
+            expect(
+                (await readSession(foreign.sessionId))?.revokedAt,
+            ).toBeNull();
+        });
+
+        it('keeps date and reason of an already revoked session and does not return it (D-02)', async () => {
+            const a = await service.create(USER_ID);
+            await service.revoke(a.sessionId, SessionRevokeReason.userLogout);
+            const firstRevocation = clock.now();
+            clock.advanceSeconds(5);
+            const kept = await service.create(USER_ID);
+
+            const revoked = await service.revokeOthersOf(
+                USER_ID,
+                kept.sessionId,
+                SessionRevokeReason.newLogin,
+            );
+
+            expect(revoked).toEqual([]);
+            const stored = await readSession(a.sessionId);
+            expect(stored?.revokedAt).toEqual(firstRevocation);
+            expect(stored?.revokeReason).toBe('userLogout');
+        });
+
+        it('ignores the expired sessions of the user (D-02)', async () => {
+            const a = await service.create(USER_ID);
+            clock.advanceSeconds(REFRESH_TOKEN_TTL_MS / 1000 + 1);
+            const b = await service.create(USER_ID);
+
+            const revoked = await service.revokeOthersOf(
+                USER_ID,
+                b.sessionId,
+                SessionRevokeReason.newLogin,
+            );
+
+            expect(revoked).toEqual([]);
+            expect((await readSession(a.sessionId))?.revokedAt).toBeNull();
+        });
+
+        it('a concurrent later login is not revoked by an earlier one (D-12)', async () => {
+            const a = await service.create(USER_ID);
+            const b = await service.create(USER_ID);
+
+            const revoked = await service.revokeOthersOf(
+                USER_ID,
+                a.sessionId,
+                SessionRevokeReason.newLogin,
+            );
+
+            expect(revoked).toEqual([]);
+            expect((await readSession(b.sessionId))?.revokedAt).toBeNull();
+        });
+
+        it('does not return a session revoked by a concurrent logout between the read and the write (D-02, D-12)', async () => {
+            const raced = await service.create(USER_ID);
+            const kept = await service.create(USER_ID);
+            revokeAfterTheCandidatesRead(raced.sessionId);
+
+            const revoked = await service.revokeOthersOf(
+                USER_ID,
+                kept.sessionId,
+                SessionRevokeReason.newLogin,
+            );
+
+            expect(revoked).toEqual([]);
+            expect((await readSession(raced.sessionId))?.revokeReason).toBe(
+                'userLogout',
+            );
+        });
+
+        it('returns nothing for malformed ids (D-02)', async () => {
+            await expect(
+                service.revokeOthersOf('x', 'y', SessionRevokeReason.newLogin),
+            ).resolves.toEqual([]);
+        });
+    });
+
+    describe('revokeAllOf', () => {
+        it('revokes every active session of the user with the given reason (D-06)', async () => {
+            const a = await service.create(USER_ID);
+            const b = await service.create(USER_ID);
+
+            const revoked = await service.revokeAllOf(
+                USER_ID,
+                SessionRevokeReason.roleChanged,
+            );
+
+            expect([...revoked].sort()).toEqual(
+                [a.sessionId, b.sessionId].sort(),
+            );
+            for (const sessionId of [a.sessionId, b.sessionId]) {
+                const stored = await readSession(sessionId);
+                expect(stored?.revokeReason).toBe('roleChanged');
+                expect(stored?.revokedAt).toEqual(clock.now());
+            }
+        });
+
+        it('does not touch an already revoked session (D-06)', async () => {
+            const a = await service.create(USER_ID);
+            await service.revoke(a.sessionId, SessionRevokeReason.userLogout);
+            const b = await service.create(USER_ID);
+
+            const revoked = await service.revokeAllOf(
+                USER_ID,
+                SessionRevokeReason.roleChanged,
+            );
+
+            expect(revoked).toEqual([b.sessionId]);
+            expect((await readSession(a.sessionId))?.revokeReason).toBe(
+                'userLogout',
+            );
+        });
+
+        it('revokes only the sessions created before the given limit (D-06)', async () => {
+            const earlier = await service.create(USER_ID);
+            const later = await service.create(USER_ID);
+            const createdBefore = new Date('2030-01-01T00:00:10.000Z');
+            await setCreatedAt(
+                earlier.sessionId,
+                new Date(createdBefore.getTime() - 1),
+            );
+            await setCreatedAt(later.sessionId, createdBefore);
+
+            const revoked = await service.revokeAllOf(
+                USER_ID,
+                SessionRevokeReason.roleChanged,
+                createdBefore,
+            );
+
+            expect(revoked).toEqual([earlier.sessionId]);
+            expect((await readSession(earlier.sessionId))?.revokeReason).toBe(
+                'roleChanged',
+            );
+            expect((await readSession(later.sessionId))?.revokedAt).toBeNull();
+        });
+
+        it('returns nothing for a malformed user id (D-06)', async () => {
+            await expect(
+                service.revokeAllOf(
+                    'not-an-object-id',
+                    SessionRevokeReason.roleChanged,
+                ),
+            ).resolves.toEqual([]);
+        });
+    });
+
+    describe('revokeReasonOf', () => {
+        it('answers null for an active session (D-03)', async () => {
+            const issued = await service.create(USER_ID);
+
+            await expect(
+                service.revokeReasonOf(issued.sessionId),
+            ).resolves.toBeNull();
+        });
+
+        it('answers null for a missing session (D-03)', async () => {
+            await expect(
+                service.revokeReasonOf(new Types.ObjectId().toString()),
+            ).resolves.toBeNull();
+        });
+
+        it('answers null for a malformed id (D-03)', async () => {
+            await expect(
+                service.revokeReasonOf('not-an-object-id'),
+            ).resolves.toBeNull();
+        });
+
+        it('answers the stored reason of a revoked session (D-03)', async () => {
+            const issued = await service.create(USER_ID);
+            await service.revoke(
+                issued.sessionId,
+                SessionRevokeReason.newLogin,
+            );
+
+            await expect(
+                service.revokeReasonOf(issued.sessionId),
+            ).resolves.toEqual({ reason: 'newLogin' });
+        });
+
+        it('answers a null reason for a session revoked without one (D-03, D-11)', async () => {
+            const issued = await service.create(USER_ID);
+            await service.revoke(issued.sessionId, null);
+
+            await expect(
+                service.revokeReasonOf(issued.sessionId),
+            ).resolves.toEqual({ reason: null });
+        });
+
+        it('answers a null reason for a legacy revoked session (D-03, D-11)', async () => {
+            const issued = await service.create(USER_ID);
+            await revokeAsLegacy(issued.sessionId);
+
+            await expect(
+                service.revokeReasonOf(issued.sessionId),
+            ).resolves.toEqual({ reason: null });
         });
     });
 
@@ -572,7 +920,7 @@ describe('SessionService (replSet)', () => {
             const t0 = await service.create(USER_ID);
             await service.rotate(t0.refreshToken);
             clock.advanceSeconds(60);
-            await service.revoke(t0.sessionId);
+            await service.revoke(t0.sessionId, SessionRevokeReason.userLogout);
             const revokedAt = clock.now().getTime();
             clock.advanceSeconds(60);
 
@@ -587,7 +935,7 @@ describe('SessionService (replSet)', () => {
         it('a token retired within 30s on an already revoked session answers SESSION_REVOKED and re-issues nothing (REVIEW-3 IN-01)', async () => {
             const t0 = await service.create(USER_ID);
             await service.rotate(t0.refreshToken);
-            await service.revoke(t0.sessionId);
+            await service.revoke(t0.sessionId, SessionRevokeReason.userLogout);
             const afterRevocation = await readSession(t0.sessionId);
             clock.advanceSeconds(10);
 
@@ -636,6 +984,70 @@ describe('SessionService (replSet)', () => {
             ).rejects.toMatchObject(sessionExpired);
         });
 
+        it('answers a token that was never issued without a reason (D-05)', async () => {
+            const error = await rejectionOf(
+                service.rotate('never-issued-refresh-token'),
+            );
+
+            expect(error.extensions).toEqual({ code: 'SESSION_EXPIRED' });
+        });
+
+        it('reuse detection revokes with reuseDetected and answers it (D-05)', async () => {
+            const t0 = await service.create(USER_ID);
+            await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(31);
+
+            await expect(service.rotate(t0.refreshToken)).rejects.toMatchObject(
+                {
+                    code: AuthErrorCode.SESSION_REVOKED,
+                    extensions: {
+                        code: 'SESSION_REVOKED',
+                        reason: 'reuseDetected',
+                    },
+                },
+            );
+
+            const stored = await readSession(t0.sessionId);
+            expect(stored?.revokeReason).toBe('reuseDetected');
+        });
+
+        it('a token of a revoked session answers the stored reason (D-05)', async () => {
+            const t0 = await service.create(USER_ID);
+            await service.revoke(t0.sessionId, SessionRevokeReason.newLogin);
+
+            const error = await rejectionOf(service.rotate(t0.refreshToken));
+
+            expect(error.extensions).toEqual({
+                code: 'SESSION_REVOKED',
+                reason: 'newLogin',
+            });
+        });
+
+        it('a retired token of a revoked session answers the reason of the revocation (D-05)', async () => {
+            const t0 = await service.create(USER_ID);
+            await service.rotate(t0.refreshToken);
+            clock.advanceSeconds(60);
+            await service.revoke(t0.sessionId, SessionRevokeReason.userLogout);
+            clock.advanceSeconds(60);
+
+            const error = await rejectionOf(service.rotate(t0.refreshToken));
+
+            expect(error.extensions).toEqual({
+                code: 'SESSION_REVOKED',
+                reason: 'userLogout',
+            });
+        });
+
+        it('a legacy revoked session without the field answers without a reason (D-11)', async () => {
+            const t0 = await service.create(USER_ID);
+            await revokeAsLegacy(t0.sessionId);
+
+            const error = await rejectionOf(service.rotate(t0.refreshToken));
+
+            expect(error.code).toBe(AuthErrorCode.SESSION_REVOKED);
+            expect(Object.keys(error.extensions)).toEqual(['code']);
+        });
+
         it('rejects the token of an expired session with SESSION_EXPIRED', async () => {
             await persistSession(SessionModel, {
                 refreshTokenHash: sha256Hex('expired-session-token'),
@@ -649,7 +1061,7 @@ describe('SessionService (replSet)', () => {
 
         it('rejects the current token of a revoked session with SESSION_REVOKED', async () => {
             const t0 = await service.create(USER_ID);
-            await service.revoke(t0.sessionId);
+            await service.revoke(t0.sessionId, SessionRevokeReason.userLogout);
 
             await expect(service.rotate(t0.refreshToken)).rejects.toMatchObject(
                 sessionRevoked,

@@ -24,8 +24,10 @@ import {
 import {
     buildCharacter,
     buildQuest,
+    persistPet,
     persistQuest,
 } from '../../../test/fixtures';
+import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
     primeChangeStream,
     questResultTouch,
@@ -391,6 +393,45 @@ describe('ambush lifecycle (replSet)', () => {
         expect(
             delivered.map(({ loreUnlocked }) => loreUnlocked.map(String)),
         ).toEqual([[], wolf.relatedLore.map(String)]);
+    });
+
+    it('delivers the companion xp of the ambush in the result created at arrival (D-19)', async () => {
+        const player = await departingPlayer();
+        const companion = (await persistPet(world.models.pets, { maxXp: 100 }))
+            ._id;
+        await world.models.characters.updateOne(
+            { _id: player.character!._id },
+            {
+                $set: {
+                    'assets.pet': companion,
+                    'assets.ownedPets': [buildOwnedPet(companion)],
+                },
+            },
+        );
+        // il bandito al km 3 vale 6 xp: round(6 × 0,10) = 1
+        chance.load([...rollsHittingKm(3), ...SINGLE_FIRST_CANDIDATE]);
+        await startTravel(player);
+        await resolvePendingAmbush(player);
+        const [held] = (await rawTravelOf(player)).ambushReports as {
+            petXpGained: number;
+        }[];
+        expect(held.petXpGained).toBe(1);
+        expect(await world.models.questResults.countDocuments()).toBe(0);
+
+        await arrive(player);
+
+        const delivered = await world.models.questResults
+            .find({ character: player.character!._id, kind: 'ambush' })
+            .lean<any[]>();
+        expect(delivered.map(({ petXpGained }) => petXpGained)).toEqual([
+            held.petXpGained,
+        ]);
+        const arrived = await world.models.characters
+            .findById(player.character!._id)
+            .lean<any>();
+        expect(arrived.assets.ownedPets).toEqual([
+            { ...buildOwnedPet(companion), xp: 1 },
+        ]);
     });
 
     it('shows the victory effects at once and holds the report until arrival (D-17)', async () => {

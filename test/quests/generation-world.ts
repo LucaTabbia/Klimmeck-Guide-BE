@@ -149,7 +149,7 @@ async function persistEnemies(
             name: `${legendary ? 'Leggendario' : 'Nemico'} ${xp}`,
             xp,
             locations: [WORLD_HABITAT],
-            baseWeaknesses: ['cut'],
+            weaknesses: { base: ['cut'], energy: [] },
             legendary,
         });
         ids.push(enemy._id as Types.ObjectId);
@@ -172,7 +172,7 @@ async function persistAnimals(
             name: `Animale ${xp}`,
             xp,
             locations: [WORLD_HABITAT],
-            baseWeaknesses: ['cut'],
+            weaknesses: { base: ['cut'], energy: [] },
             legendary: false,
             relatedLore: [bestiary._id],
         });
@@ -224,8 +224,33 @@ async function persistPets(models: GenerationModels): Promise<void> {
     await persistPet(models.pets, { name: 'Pet in vendita', sellable: true });
 }
 
+export interface LinkedPet {
+    id: Types.ObjectId;
+    enemyId: Types.ObjectId;
+}
+
+// un pet legato a ogni nemico dato (Phase 19 D-28); `rarity` null = non ancora curato
+export async function persistLinkedPets(
+    models: GenerationModels,
+    enemyIds: readonly Types.ObjectId[],
+    rarity: RarityType | null = RarityType.common,
+): Promise<LinkedPet[]> {
+    const linked: LinkedPet[] = [];
+    for (const enemyId of enemyIds) {
+        const pet = await persistPet(models.pets, {
+            name: `Pet di ${enemyId.toHexString()}`,
+            sellable: true,
+            rarity,
+            enemy: enemyId,
+        });
+        linked.push({ id: pet._id as Types.ObjectId, enemyId });
+    }
+    return linked;
+}
+
 // città con marker `city` e POI `forest`, un nemico e un leggendario per ogni voce di `enemyXps`,
-// un animale per ogni voce di `animalXps` (lore `animal`, 13.1 D-01), catalogo per rarità, pet
+// un animale per ogni voce di `animalXps` (lore `animal`, 13.1 D-01), catalogo per rarità,
+// tre pet senza rarità né legame (mai candidati al premio, Phase 19 D-28)
 export async function persistGenerationWorld(
     models: GenerationModels,
     options: GenerationWorldOptions,
@@ -283,17 +308,16 @@ export interface SeatedQuest {
     };
 }
 
-// enemy a un solo posto del rango, boss da due posti in su (13.1 D-09); ritorna le quest fuori regola
+// enemy a un solo posto senza titolo (quick 261111-enm), boss da due posti del rango in su (13.1 D-09); ritorna le quest fuori regola
 export function seatViolationsOf(quests: readonly SeatedQuest[]): string[] {
     return quests.flatMap(({ infos, requirements }) => {
         const { minTitle, requiredAdventurers } = requirements;
         const [seat] = requiredAdventurers;
-        const exact =
-            requiredAdventurers.length === 1 && seat.title === minTitle;
+        const single = requiredAdventurers.length === 1;
         const ok =
             infos.type === QuestType.boss
-                ? exact && seat.count >= 2
-                : exact && seat.count === 1;
+                ? single && seat.title === minTitle && seat.count >= 2
+                : single && seat.title === null && seat.count === 1;
         if (ok) return [];
         const seats = requiredAdventurers
             .map(({ title, count }) => `${title}x${count}`)

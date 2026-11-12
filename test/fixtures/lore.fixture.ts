@@ -3,7 +3,7 @@ import { Model } from 'mongoose';
 export function buildLore(overrides: Record<string, any> = {}) {
     return {
         type: 'knowledge',
-        image: null,
+        imagePath: null,
         name: 'Test Lore',
         description: 'Una voce di prova.',
         relatedLore: [],

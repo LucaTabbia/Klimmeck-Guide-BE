@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
+import { imprisonedUntilOf } from 'src/characters/imprisonment/imprisonment';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { TravelKind } from 'src/models/character/active-travel.model';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
@@ -47,6 +48,7 @@ interface CharacterTravelSnapshot {
         location?: unknown;
         activeTravel?: unknown;
         awaitingAid?: unknown;
+        imprisonedUntil?: unknown;
         injuries?: unknown[];
     };
     quests?: { pendingQuest?: unknown };
@@ -68,6 +70,7 @@ const CHARACTER_PROJECTION = {
     'quests.pendingQuest': 1,
     'assets.pet': 1,
     'status.awaitingAid': 1,
+    'status.imprisonedUntil': 1,
     'status.injuries': 1,
 };
 
@@ -112,9 +115,11 @@ export class TravelPlanner {
             location && !sameLocation
                 ? await this.routeFrom(location, destination)
                 : null;
+        const now = this.clock.now();
         const rejection = classifyFreeTravel({
             destinationIsCityMarker,
             awaitingAid: character.status?.awaitingAid != null,
+            imprisonedUntil: imprisonedUntilOf(character.status, now),
             travelling: character.status?.activeTravel != null,
             onQuest: character.quests?.pendingQuest != null,
             sameLocation,
@@ -128,7 +133,7 @@ export class TravelPlanner {
         const travel = buildActiveTravel({
             route: route as RoadRoute,
             speed,
-            now: this.clock.now(),
+            now,
             to: poiId,
             kind: TravelKind.free,
         });

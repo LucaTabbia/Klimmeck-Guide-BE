@@ -102,31 +102,39 @@ const singleForm: Form = (pool, budget, cap, chance) => {
 function drawPack(
     candidates: readonly EnemyCandidate[],
     budget: XpBand,
+    maxUnits: number,
     chance: ChanceSource,
 ): ComposedEnemy[] | null {
-    const types = 1 + Math.floor(chance.next() * MAX_PACK_TYPES);
+    const types =
+        1 + Math.floor(chance.next() * Math.min(MAX_PACK_TYPES, maxUnits));
     const entries = drawTypes(candidates, types, chance);
-    while (xpOf(entries) < budget.min && unitsOf(entries) < MAX_PACK_UNITS) {
+    while (xpOf(entries) < budget.min && unitsOf(entries) < maxUnits) {
         addUnit(entries, chance);
     }
     const units = unitsOf(entries);
     const valid =
         inBand(xpOf(entries), budget) &&
         units >= MIN_PACK_UNITS &&
-        units <= MAX_PACK_UNITS;
+        units <= maxUnits;
     return valid ? entries : null;
 }
 
-// branco di nemici della fascia o inferiori, tentativi limitati (T-13-10b, 13.1 D-03)
-const packForm: Form = (pool, budget, cap, chance) => {
-    const candidates = pool.filter((enemy) => enemy.xp >= 1 && enemy.xp <= cap);
-    if (candidates.length === 0) return null;
-    for (let attempt = 0; attempt < PACK_ATTEMPTS; attempt += 1) {
-        const pack = drawPack(candidates, budget, chance);
-        if (pack !== null) return pack;
-    }
-    return null;
-};
+// branco di nemici della fascia o inferiori, tentativi limitati (T-13-10b, 13.1 D-03); il tetto delle unità è del chiamante
+const packFormWithin =
+    (maxUnits: number): Form =>
+    (pool, budget, cap, chance) => {
+        const candidates = pool.filter(
+            (enemy) => enemy.xp >= 1 && enemy.xp <= cap,
+        );
+        if (candidates.length === 0) return null;
+        for (let attempt = 0; attempt < PACK_ATTEMPTS; attempt += 1) {
+            const pack = drawPack(candidates, budget, maxUnits, chance);
+            if (pack !== null) return pack;
+        }
+        return null;
+    };
+
+const packForm = packFormWithin(MAX_PACK_UNITS);
 
 function bossOf(
     pool: readonly EnemyCandidate[],
@@ -150,6 +158,32 @@ export function composeEnemies(
         chance.next() < SINGLE_FORM_SHARE
             ? [singleForm, packForm]
             : [packForm, singleForm];
+    return composeWithForms(forms, budget, cap, pools, chance);
+}
+
+// senza tiro della forma: prima un nemico singolo nella fascia, poi un branco di deboli entro maxUnits (scontro di guardia, quick 261110-cgd)
+export function composeSingleThenPack(
+    budget: XpBand,
+    maxUnits: number,
+    pools: readonly (readonly EnemyCandidate[])[],
+    chance: ChanceSource,
+): ComposedEnemy[] | null {
+    return composeWithForms(
+        [singleForm, packFormWithin(maxUnits)],
+        budget,
+        budget.max,
+        pools,
+        chance,
+    );
+}
+
+function composeWithForms(
+    forms: readonly Form[],
+    budget: XpBand,
+    cap: number,
+    pools: readonly (readonly EnemyCandidate[])[],
+    chance: ChanceSource,
+): ComposedEnemy[] | null {
     for (const pool of pools) {
         for (const form of forms) {
             const enemies = form(pool, budget, cap, chance);

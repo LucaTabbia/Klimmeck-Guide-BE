@@ -1,9 +1,4 @@
 import type { Types } from 'mongoose';
-import {
-    NO_SPELL_MAX_USAGES,
-    spellStatesOrMigrated,
-    usagesFromState,
-} from 'src/characters/spells/spell-state.snapshot';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { MAX_OVERRIDE_ENTRIES } from 'src/models/request/complete-pending-request.model';
@@ -54,13 +49,12 @@ export function overrideParticipantOf(
         if (entry.itemType !== 'LootItem' || !item) continue;
         addTo(ownedLoot, item.toHexString(), entry.quantity);
     }
-    // limite degli usi dalla voce di stato, mai dal mirror degli slot (D-04a, T-9.1-32)
-    const states = spellStatesOrMigrated(snapshot, NO_SPELL_MAX_USAGES);
+    // limite degli usi dalle sole voci attive (Phase 19 D-07, T-9.1-32)
     const activeSpells = new Map<string, number>();
-    for (const entry of snapshot.assets?.activeSpells ?? []) {
-        const spell = refIdOf(entry.spell);
+    for (const state of snapshot.status.spellStates ?? []) {
+        const spell = state?.active === true ? refIdOf(state.spell) : null;
         if (!spell) continue;
-        activeSpells.set(spell.toHexString(), usagesFromState(states, spell));
+        activeSpells.set(spell.toHexString(), Math.max(0, state?.usages ?? 0));
     }
     return {
         characterId: snapshot._id,

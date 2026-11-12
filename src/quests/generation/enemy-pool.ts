@@ -6,8 +6,7 @@ export interface EnemyCandidate {
     locations: readonly string[];
     legendary: unknown;
     relatedLore: readonly string[];
-    baseWeaknesses: readonly string[];
-    energyWeaknesses: readonly string[];
+    weaknesses: { base: readonly string[]; energy: readonly string[] };
     // calcolato dalla lore `animal` del nemico, mai un campo di Enemy (13.1 D-01)
     animal: boolean;
 }

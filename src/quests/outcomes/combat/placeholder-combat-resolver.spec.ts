@@ -2,7 +2,7 @@ import { EffectType } from 'src/models/enums/effect-type.enum';
 import { EquipType } from 'src/models/enums/equip-type.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
-import { SlotType } from 'src/models/enums/slot_type.enum';
+import { SlotType } from 'src/models/enums/slot-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { SequenceChance } from '../../../../test/quests/sequence-chance';
 import {
@@ -66,8 +66,7 @@ const enemy = (
     lifePoints,
     xp: 100,
     damages: { base: [{ type: 'cut', power: damage }], energy: [] },
-    baseWeaknesses: [],
-    energyWeaknesses: [],
+    weaknesses: { base: [], energy: [] },
     quantity,
 });
 

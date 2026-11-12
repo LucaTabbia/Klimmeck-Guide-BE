@@ -5,6 +5,7 @@ import { TitleType } from 'src/models/enums/title-type.enum';
 import { ChanceSource } from './chance-source';
 import type { CombatEnemySnapshot } from './combat/combat-context';
 import type { ParticipantEffects } from './combat/combat-resolver';
+import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
     type CombatantBattle,
     combatContextOf,
@@ -22,6 +23,7 @@ const id = (hex: string) => new Types.ObjectId(hex.padStart(24, '0'));
 
 const GOBLIN_ID = id('c1');
 const CAPO_ID = id('c2');
+const COMPANION_ID = id('e1');
 
 const quest: ResolutionQuest = {
     _id: id('91'),
@@ -46,13 +48,13 @@ const catalogWith = (
         rarities: new Map(),
         spells: new Map(),
         spellPool: [],
-        pets: new Set(),
+        pets: new Map(),
     },
     equipment: new Map(),
     spells: new Map(),
     loot: new Map(),
     recoveryTimes: new Map(),
-    spellMaxUsages: new Map(),
+    petMaxXp: new Map(),
 });
 
 const goblins = { snapshot: { _id: GOBLIN_ID, xp: 10 }, quantity: 3 };
@@ -137,10 +139,9 @@ const explorer: ResolutionCharacter = {
         currentLifePoints: 1000,
         maxLifePoints: 1000,
         injuries: [],
-        spells: [],
     },
     quests: { completedQuests: [] },
-    assets: { ownedItems: [], ownedEquipments: [], activeSpells: [] },
+    assets: { ownedItems: [], ownedEquipments: [] },
 } as ResolutionCharacter;
 
 const effectsOf = (hpAfter: number): ParticipantEffects => ({
@@ -206,6 +207,80 @@ describe('planCombatant', () => {
 
         expect(plan.result.stagesCleared).toBeNull();
         expect(plan.result.stagesTotal).toBeNull();
+    });
+
+    it('awards the companion on a won rescue like on any won fight (D-18)', () => {
+        const aid: ResolutionQuest = {
+            _id: id('93'),
+            infos: {
+                type: QuestType.aid,
+                title: 'Soccorso: Goblin al passo',
+                markerLocation: id('83'),
+            },
+            rescue: { failedQuest: quest._id },
+        } as ResolutionQuest;
+        const rescuer = {
+            ...explorer,
+            assets: {
+                ...explorer.assets,
+                pet: COMPANION_ID,
+                ownedPets: [buildOwnedPet(COMPANION_ID, { xp: 5 })],
+            },
+        } as ResolutionCharacter;
+
+        const { plan, verdict } = planCombatant({
+            quest: aid,
+            catalog: {
+                ...catalogWith([goblins, capo]),
+                petMaxXp: new Map([[COMPANION_ID.toHexString(), 1000]]),
+            },
+            snapshot: rescuer,
+            battle: { verdict: 'success', effects: effectsOf(600) },
+            resultId: id('d1'),
+            aidQuestId: id('d2'),
+            pendingQuestId: id('d3'),
+            userId: id('d4'),
+            chance: new NoDrawChance(),
+            rescuedCharacters: [id('a9')],
+            now: new Date('2026-11-04T10:00:00.000Z'),
+        });
+
+        expect(verdict).toBe(QuestOutcome.success);
+        expect(plan.result.rescuedCharacters).toEqual([id('a9')]);
+        expect(plan.result.petXpGained).toBe(9);
+        expect(plan.update.$set['assets.ownedPets']).toEqual([
+            { pet: COMPANION_ID, xp: 14, currentLifePoints: 10 },
+        ]);
+    });
+
+    it('awards no companion xp to a rescuer who lost the fight (D-18)', () => {
+        const rescuer = {
+            ...explorer,
+            assets: {
+                ...explorer.assets,
+                pet: COMPANION_ID,
+                ownedPets: [buildOwnedPet(COMPANION_ID, { xp: 5 })],
+            },
+        } as ResolutionCharacter;
+
+        const { plan } = planCombatant({
+            quest,
+            catalog: {
+                ...catalogWith([goblins, capo]),
+                petMaxXp: new Map([[COMPANION_ID.toHexString(), 1000]]),
+            },
+            snapshot: rescuer,
+            battle: { verdict: 'failure', effects: effectsOf(0) },
+            resultId: id('d1'),
+            aidQuestId: id('d2'),
+            pendingQuestId: id('d3'),
+            userId: id('d4'),
+            chance: new NoDrawChance(),
+            now: new Date('2026-11-04T10:00:00.000Z'),
+        });
+
+        expect(plan.result.petXpGained).toBe(0);
+        expect(Object.keys(plan.update.$set)).not.toContain('assets.ownedPets');
     });
 });
 

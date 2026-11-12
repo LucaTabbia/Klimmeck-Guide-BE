@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import {
     documentIdOf,
     idForms,
+    isObjectId,
     isObjectIdHex,
     objectIdFromHex,
     refIdOf,
@@ -113,5 +114,13 @@ describe('refIdOf', () => {
         ['an uppercase hex id', id.toHexString().toUpperCase()],
     ])('returns null for %s', (_name, value) => {
         expect(refIdOf(value)).toBeNull();
+    });
+});
+
+describe('isObjectId', () => {
+    it('keeps the readable refs of a mapped list and drops the nulls', () => {
+        const id = new Types.ObjectId();
+
+        expect([id, 'abc', null].map(refIdOf).filter(isObjectId)).toEqual([id]);
     });
 });

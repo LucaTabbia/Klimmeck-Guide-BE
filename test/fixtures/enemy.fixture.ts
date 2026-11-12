@@ -8,8 +8,7 @@ import { Model } from 'mongoose';
 export function buildEnemy(overrides: Record<string, any> = {}) {
     return {
         name: 'Test Bandit',
-        energyWeaknesses: [],
-        baseWeaknesses: [],
+        weaknesses: { base: [], energy: [] },
         relatedLore: [],
         xp: 100,
         spells: [],

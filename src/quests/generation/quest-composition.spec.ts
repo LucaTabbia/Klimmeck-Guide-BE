@@ -29,8 +29,7 @@ const enemy = (
     locations,
     legendary,
     relatedLore: [],
-    baseWeaknesses: [],
-    energyWeaknesses: [],
+    weaknesses: { base: [], energy: [] },
     animal: false,
 });
 

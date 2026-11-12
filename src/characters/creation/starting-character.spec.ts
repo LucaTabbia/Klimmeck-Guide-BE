@@ -38,7 +38,6 @@ describe('buildStartingCharacter', () => {
                 title: 'rookie',
                 location: locationId,
                 injuries: [],
-                spells: [],
                 spellStates: [],
                 unlockedLore: [],
                 knownEnemies: [],
@@ -50,8 +49,7 @@ describe('buildStartingCharacter', () => {
             assets: {
                 ownedEquipments: [],
                 ownedItems: [],
-                wearedEquipment: {},
-                activeSpells: [],
+                wornEquipment: {},
                 ownedPets: [],
                 pet: null,
             },
@@ -67,6 +65,32 @@ describe('buildStartingCharacter', () => {
 
         expect(status.unlockedLore).toEqual([a, b]);
         expect(status.knownEnemies).toEqual([]);
+    });
+
+    it('starts a character with the single empty list of spell states (D-07)', () => {
+        const { status, assets } = buildStartingCharacter(INPUT, locationId);
+
+        expect(Object.keys(status).sort()).toEqual([
+            'coins',
+            'currentLifePoints',
+            'injuries',
+            'knownEnemies',
+            'level',
+            'location',
+            'maxLifePoints',
+            'spellStates',
+            'title',
+            'unlockedLore',
+            'xp',
+        ]);
+        expect(Object.keys(assets).sort()).toEqual([
+            'ownedEquipments',
+            'ownedItems',
+            'ownedPets',
+            'pet',
+            'wornEquipment',
+        ]);
+        expect(status.spellStates).toEqual([]);
     });
 
     it('starts every character without owned pets (D-13)', () => {
@@ -91,8 +115,8 @@ describe('buildStartingCharacter', () => {
         expect(first.status.coins).not.toBe(second.status.coins);
         expect(first.status.injuries).not.toBe(second.status.injuries);
         expect(first.status.spellStates).not.toBe(second.status.spellStates);
-        expect(first.assets.wearedEquipment).not.toBe(
-            second.assets.wearedEquipment,
+        expect(first.assets.wornEquipment).not.toBe(
+            second.assets.wornEquipment,
         );
     });
 

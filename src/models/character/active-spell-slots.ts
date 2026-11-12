@@ -1,6 +1,6 @@
 import { TitleType } from '../enums/title-type.enum';
 
-// un'unica tabella delle soglie (04 D-11): la virtual e il filtro di equipSpell non possono divergere
+// un'unica tabella delle soglie (04 D-11): il resolve field e il filtro di equipSpell non possono divergere
 export const ACTIVE_SPELL_SLOT_THRESHOLDS = [
     { minXp: 40000, slots: 4 },
     { minXp: 30000, slots: 3 },

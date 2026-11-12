@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { model, Schema, Types } from 'mongoose';
 import { buildEquipmentItem } from '../../test/fixtures/catalog-item.fixture';
 import { buildCity } from '../../test/fixtures/city.fixture';
 import { buildPet } from '../../test/fixtures/pet.fixture';
@@ -26,7 +26,7 @@ function referenceListPath(
 }
 
 describe('city shop pool fields', () => {
-    it('leaves the three pool lists absent on create (D-22)', () => {
+    it('leaves the shop pool absent on create (D-10)', () => {
         const city = new CityProbe(buildCity()).toObject();
 
         expect(
@@ -34,21 +34,22 @@ describe('city shop pool fields', () => {
         ).toEqual([]);
     });
 
-    it('keeps a stored empty pool list empty (D-03)', () => {
-        const city = CityProbe.hydrate({
-            ...buildCity(),
-            shopLoot: [],
-        }).toObject();
+    it('keeps a stored empty pool list empty and the others absent (D-10)', () => {
+        const curated = { ...buildCity(), shop: { loot: [] } };
 
-        expect(city.shopLoot).toEqual([]);
-        expect(city.shopEquipment).toBeUndefined();
+        const stored = CityProbe.hydrate(curated).toObject();
+        const created = new CityProbe(curated).toObject();
+
+        expect(stored.shop).toEqual({ loot: [] });
+        expect(created.shop).toEqual({ loot: [] });
+        expect(stored.shop?.equipment).toBeUndefined();
     });
 
     it.each([
-        ['shopEquipment', 'EquipmentItem'],
-        ['shopLoot', 'LootItem'],
-        ['shopPets', 'Pet'],
-    ])('stores the pool lists as typed references (D-03): %s', (path, ref) => {
+        ['shop.equipment', 'EquipmentItem'],
+        ['shop.loot', 'LootItem'],
+        ['shop.pets', 'Pet'],
+    ])('stores the pool lists as typed references (D-10): %s', (path, ref) => {
         const schemaPath = referenceListPath(path);
 
         expect({
@@ -91,16 +92,36 @@ describe('character owned pets', () => {
         expect(new AssetsProbe({}).toObject().ownedPets).toEqual([]);
     });
 
-    it('stores ownedPets as typed references to Pet (D-13)', () => {
-        const schemaPath = referenceListPath(
-            'ownedPets',
-            CharacterAssetsSchema,
-        );
+    it('stores the owned pets as entries with a typed reference to the catalogue (D-03)', () => {
+        const entry = CharacterAssetsSchema.path('ownedPets').schema;
+        const pet = entry?.path('pet') as unknown as
+            | { instance: string; options: { ref: string } }
+            | undefined;
 
-        expect({
-            instance: schemaPath.instance,
-            caster: schemaPath.caster.instance,
-            ref: schemaPath.caster.options.ref,
-        }).toEqual({ instance: 'Array', caster: 'ObjectId', ref: 'Pet' });
+        expect({ instance: pet?.instance, ref: pet?.options.ref }).toEqual({
+            instance: 'ObjectId',
+            ref: 'Pet',
+        });
+        expect(Object.keys(entry?.paths ?? {}).sort()).toEqual([
+            'currentLifePoints',
+            'pet',
+            'xp',
+        ]);
+    });
+
+    it('defaults the experience of an owned pet to 0 and requires its life points (D-03)', () => {
+        const pet = new Types.ObjectId();
+
+        const stored = new AssetsProbe({
+            ownedPets: [{ pet, currentLifePoints: 80 }],
+        });
+        const lifeless = new AssetsProbe({ ownedPets: [{ pet }] });
+
+        expect(stored.toObject().ownedPets).toEqual([
+            { pet, xp: 0, currentLifePoints: 80 },
+        ]);
+        expect(Object.keys(lifeless.validateSync()?.errors ?? {})).toEqual([
+            'ownedPets.0.currentLifePoints',
+        ]);
     });
 });

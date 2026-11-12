@@ -13,8 +13,9 @@ import {
     type CombatantBattle,
     combatContextOf,
     dungeonBattleOf,
-    planCombatant,
 } from './combatant-plan';
+import { ConclusionEventDrawer } from './conclusion/conclusion-event.drawer';
+import { planConclusion } from './conclusion/conclusion-plan';
 import { buildDungeonContext } from './dungeon/dungeon-context';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
 import {
@@ -51,6 +52,7 @@ export class QuestResolutionService {
         private readonly dungeon: DungeonResolver,
         private readonly chance: ChanceSource,
         private readonly clock: Clock,
+        private readonly conclusionEvents: ConclusionEventDrawer,
     ) {}
 
     // unico ingresso dei trigger della corsia standard: smista su individuale, gruppo boss o soccorso (D-01, D-05, D-09)
@@ -92,6 +94,11 @@ export class QuestResolutionService {
         const catalog = await this.loader.readCatalog(loaded.quest, [
             loaded.character,
         ]);
+        // arresto della crime e scontro della guard tirati prima della transazione (quick 261110-cgd)
+        const event = await this.conclusionEvents.drawFor(
+            loaded.quest,
+            loaded.character,
+        );
         const resultId = new Types.ObjectId();
         const aidQuestId = new Types.ObjectId();
         const outcome: {
@@ -108,7 +115,9 @@ export class QuestResolutionService {
                     pendingQuestId,
                     session,
                 );
-                const { plan, verdict, aid } = planCombatant({
+                const { plan, verdict, aid } = planConclusion({
+                    event,
+                    combat: this.combat,
                     quest: loaded.quest,
                     catalog,
                     snapshot,

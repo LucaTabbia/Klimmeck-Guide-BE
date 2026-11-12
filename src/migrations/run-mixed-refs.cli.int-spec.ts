@@ -53,7 +53,7 @@ async function seedLegacyReferences(db: Db): Promise<void> {
         .collection('users')
         .insertOne({ currentCharacter: new ObjectId().toHexString() });
     await db.collection('characters').insertOne({
-        status: { spells: [new ObjectId().toHexString()] },
+        quests: { completedQuests: [new ObjectId().toHexString()] },
         assets: {
             ownedItems: [{ item: new ObjectId().toHexString(), quantity: 2 }],
         },

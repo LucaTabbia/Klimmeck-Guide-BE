@@ -43,3 +43,7 @@ export function refIdOf(value: unknown): Types.ObjectId | null {
         ? value
         : objectIdFromHex(typeof value === 'string' ? value : null);
 }
+
+// guardia di tipo per `.map(refIdOf).filter(isObjectId)`: i ref illeggibili restano fuori
+export const isObjectId = (id: Types.ObjectId | null): id is Types.ObjectId =>
+    id !== null;

@@ -4,6 +4,8 @@ import { AuthException } from 'src/auth/auth.exception';
 import { Clock } from 'src/auth/clock';
 import { AuthSession } from 'src/auth/dto/auth-session.model';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
+import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { SessionService } from 'src/auth/session/session.service';
 import { AccessTokenService } from 'src/auth/token/access-token.service';
 import type { SignedAccessToken } from 'src/auth/token/access-token.service';
@@ -18,12 +20,18 @@ export class AuthSessionService {
         private readonly loginTicketService: LoginTicketService,
         private readonly usersService: UsersService,
         private readonly clock: Clock,
+        private readonly revocation: SessionRevocationService,
     ) {}
 
+    // l'ultimo login caccia l'altro (Phase 17 D-02): le altre sessioni attive dell'utente si revocano
+    // dopo la creazione della nuova, mai la nuova; se la revoca fallisce il login fallisce e la
+    // sessione appena creata resta attiva a DB fino al TTL del refresh (il suo token non è mai stato
+    // consegnato) e il login successivo la revoca perché ha _id minore (D-12)
     async issueForUser(user: User): Promise<AuthSession> {
         const { sessionId, refreshToken } = await this.sessionService.create(
             user.id,
         );
+        await this.revocation.revokeOthersOnLogin(user.id, sessionId);
         return this.buildSession(user, sessionId, refreshToken);
     }
 
@@ -50,7 +58,7 @@ export class AuthSessionService {
         );
         const user = await this.findUserOrNull(session.userId);
         if (!user) {
-            await this.sessionService.revoke(session.sessionId);
+            await this.sessionService.revoke(session.sessionId, null);
             throw AuthException.sessionRevoked();
         }
         const signed = await this.signAccessToken(user, session.sessionId);
@@ -61,10 +69,13 @@ export class AuthSessionService {
         return this.toAuthSession(user, signed, rotated.refreshToken);
     }
 
-    // l'access JWT già emesso resta valido fino a exp (≤ 15 min, D-27); le identità dev non hanno sessione
+    // solo la sessione corrente, motivo userLogout (Phase 17 D-07); l'access JWT già emesso resta valido fino a exp (≤ 15 min, D-27); le identità dev non hanno sessione
     async logout(identity: AuthIdentity): Promise<boolean> {
         if (identity.sessionId) {
-            await this.sessionService.revoke(identity.sessionId);
+            await this.sessionService.revoke(
+                identity.sessionId,
+                SessionRevokeReason.userLogout,
+            );
         }
         return true;
     }

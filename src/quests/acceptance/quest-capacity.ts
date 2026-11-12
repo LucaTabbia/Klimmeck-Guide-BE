@@ -1,3 +1,4 @@
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 
 export interface RankSlot {
@@ -29,6 +30,22 @@ export function slotsOf(value: unknown): RankSlot[] | 'invalid' {
         slots.push(slot);
     }
     return slots;
+}
+
+// un solo posto senza titolo: la quest si prende da soli e il rango lo decide minTitle
+export function soloSlots(): RankSlot[] {
+    return [{ title: null, count: 1 }];
+}
+
+// unica lettura dei posti di una quest (quick 261111-enm, utente 2026-11-11): la enemy si prende da soli e senza posto a titolo, qualunque posto porti a DB;
+// gli altri tipi tengono i posti scritti. Posti assenti o non validi restano 'invalid' anche per la enemy (D-27)
+export function questSlotsOf(
+    type: QuestType | undefined,
+    value: unknown,
+): RankSlot[] | 'invalid' {
+    const slots = slotsOf(value);
+    if (slots === 'invalid') return 'invalid';
+    return type === QuestType.enemy ? soloSlots() : slots;
 }
 
 export function slotRuleOf(slots: readonly RankSlot[]): SlotRule {

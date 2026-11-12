@@ -1,6 +1,7 @@
 import mongoose, { Types } from 'mongoose';
-import { CharacterStatusSchema } from 'src/models/character/character-status.model';
+import { maxActiveSpellsFor } from 'src/models/character/active-spell-slots';
 import { EnemySchema } from 'src/models/enemy.model';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import {
     buildCity,
     buildSpell,
@@ -12,7 +13,7 @@ import {
     buildEquipmentItem,
     buildLootItem,
     buildEnemy,
-    spellBook,
+    spellStatesOf,
 } from './index';
 
 /**
@@ -61,23 +62,15 @@ describe('fixtures builders', () => {
     });
 
     describe('buildCharacter', () => {
-        it('defaults to a rookie with 20000 xp: no spell slot until the mage rank', () => {
-            const StatusProbe =
-                mongoose.models.FixtureStatusSlotsProbe ??
-                mongoose.model(
-                    'FixtureStatusSlotsProbe',
-                    CharacterStatusSchema,
-                );
+        it('defaults to a rookie with 20000 xp: no spell slot until the mage rank (D-08)', () => {
             const status = buildCharacter().status;
 
             expect(status.xp).toBe(20000);
             expect(status.title).toBe('rookie');
-            expect(new StatusProbe(status).get('maxActiveSpells')).toBe(0);
             expect(
-                new StatusProbe({ ...status, title: 'mage' }).get(
-                    'maxActiveSpells',
-                ),
-            ).toBe(1);
+                maxActiveSpellsFor(status.xp, status.title as TitleType),
+            ).toBe(0);
+            expect(maxActiveSpellsFor(status.xp, TitleType.mage)).toBe(1);
         });
 
         it('sets a required location ObjectId', () => {
@@ -92,53 +85,88 @@ describe('fixtures builders', () => {
         it('starts with empty spell states (D-03)', () => {
             expect(buildCharacter().status.spellStates).toEqual([]);
         });
+
+        it('carries the spell states as the only spell list (D-07)', () => {
+            const hero = buildCharacter();
+
+            expect(Object.keys(hero.status).sort()).toEqual([
+                'coins',
+                'currentLifePoints',
+                'injuries',
+                'level',
+                'location',
+                'maxLifePoints',
+                'spellStates',
+                'title',
+                'xp',
+            ]);
+            expect(Object.keys(hero.assets).sort()).toEqual([
+                'ownedEquipments',
+                'ownedItems',
+                'pet',
+                'wornEquipment',
+            ]);
+        });
     });
 
-    describe('spellBook', () => {
+    describe('spellStatesOf', () => {
         const first = new Types.ObjectId();
         const second = new Types.ObjectId();
         const earlier = new Date('2026-10-27T10:00:00.000Z');
         const later = new Date('2026-10-27T10:05:00.000Z');
 
-        it('builds spells, spell states and active spells in the same order', () => {
-            expect(
-                spellBook([
-                    {
-                        spell: first,
-                        usages: 1,
-                        recoveries: [later, earlier],
-                        active: true,
-                    },
-                    { spell: second, usages: 3 },
-                ]),
-            ).toEqual({
-                spells: [first, second],
-                spellStates: [
-                    { spell: first, usages: 1, recoveries: [later, earlier] },
-                    { spell: second, usages: 3, recoveries: [] },
-                ],
-                activeSpells: [{ spell: first, usages: 1 }],
-            });
+        it('builds the spell states in the given order (D-07)', () => {
+            const states = spellStatesOf([
+                {
+                    spell: first,
+                    usages: 1,
+                    recoveries: [later, earlier],
+                    active: true,
+                },
+                { spell: second, usages: 3 },
+            ]);
+
+            expect(states).toEqual([
+                {
+                    spell: first,
+                    usages: 1,
+                    recoveries: [later, earlier],
+                    active: true,
+                },
+                { spell: second, usages: 3, recoveries: [], active: false },
+            ]);
         });
 
-        it('keeps a legacy string ref on spells and active spells and casts it on the state', () => {
+        it('builds the single list of spell states with the active flag on every entry (D-07)', () => {
+            const entries = [
+                { spell: first, usages: 1, recoveries: [later], active: true },
+                { spell: second.toHexString(), usages: 3 },
+            ];
+
+            expect(spellStatesOf(entries)).toEqual([
+                { spell: first, usages: 1, recoveries: [later], active: true },
+                { spell: second, usages: 3, recoveries: [], active: false },
+            ]);
+        });
+
+        it('casts a legacy string ref on the state', () => {
             const legacy = new Types.ObjectId().toHexString();
-            const book = spellBook([
+            const [state] = spellStatesOf([
                 { spell: legacy, usages: 2, active: true },
             ]);
 
-            expect(book.spells[0]).toBe(legacy);
-            expect(book.activeSpells[0].spell).toBe(legacy);
-            expect(book.spellStates[0].spell).toBeInstanceOf(Types.ObjectId);
-            expect(book.spellStates[0].spell.toHexString()).toBe(legacy);
+            expect(state.spell).toBeInstanceOf(Types.ObjectId);
+            expect(state.spell.toHexString()).toBe(legacy);
         });
 
         it('copies the given recoveries', () => {
             const recoveries = [earlier];
-            const book = spellBook([{ spell: first, usages: 0, recoveries }]);
+            const [state] = spellStatesOf([
+                { spell: first, usages: 0, recoveries },
+            ]);
 
-            expect(book.spellStates[0].recoveries).toEqual(recoveries);
-            expect(book.spellStates[0].recoveries).not.toBe(recoveries);
+            expect(state.recoveries).toEqual(recoveries);
+            expect(state.recoveries).not.toBe(recoveries);
         });
     });
 

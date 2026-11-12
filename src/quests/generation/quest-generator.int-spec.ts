@@ -31,6 +31,7 @@ import {
     AuthTestApp,
     createAuthTestApp,
 } from '../../../test/auth/auth-test-app';
+import { SequenceChance } from '../../../test/quests/sequence-chance';
 import {
     buildCity,
     buildQuest,
@@ -41,7 +42,9 @@ import {
     GenerationModels,
     GenerationWorld,
     HERO_BAND_ENEMY_XPS,
+    LinkedPet,
     persistGenerationWorld,
+    persistLinkedPets,
     QUIET_GENERATION_CONFIG,
     seatViolationsOf,
     STANDARD_ENEMY_XPS,
@@ -57,6 +60,7 @@ type LeanQuest = {
         markerLocation: Types.ObjectId;
         enemies: { enemy: Types.ObjectId; quantity: number }[];
     };
+    prizes?: { pet?: Types.ObjectId | null };
     requirements: {
         minTitle: string;
         requiredPoints?: number | null;
@@ -112,6 +116,29 @@ describe('QuestGenerator (replSet)', () => {
             counts[key] = (counts[key] ?? 0) + 1;
         }
         return counts;
+    }
+
+    // per ogni quest generata: il nemico legato al pet offerto (null senza pet) e i nemici della quest
+    function offeredPetsOf(
+        created: readonly LeanQuest[],
+        linked: readonly LinkedPet[],
+    ) {
+        const enemyOfPet = new Map(
+            linked.map((pet) => [
+                pet.id.toHexString(),
+                pet.enemyId.toHexString(),
+            ]),
+        );
+        return created.map((quest) => {
+            const pet = quest.prizes?.pet ?? null;
+            return {
+                offered: pet !== null,
+                petEnemy: pet ? enemyOfPet.get(pet.toHexString()) : undefined,
+                questEnemies: quest.infos.enemies.map((entry) =>
+                    entry.enemy.toHexString(),
+                ),
+            };
+        });
     }
 
     async function insertOpenGenerated(
@@ -368,10 +395,14 @@ describe('QuestGenerator (replSet)', () => {
                 (quest) => quest.requirements.minTitle === TitleType.legend,
             ),
         ).toEqual([]);
+        // quick 261111-enm: il posto a titolo resta ai soli boss, la enemy porta un posto senza titolo
         for (const quest of created) {
             expect(quest.requirements.requiredAdventurers).toEqual([
                 {
-                    title: quest.requirements.minTitle,
+                    title:
+                        quest.infos.type === QuestType.boss
+                            ? quest.requirements.minTitle
+                            : null,
                     count: quest.requirements.requiredAdventurers[0].count,
                 },
             ]);
@@ -408,8 +439,9 @@ describe('QuestGenerator (replSet)', () => {
                 expect(xpOf(quest)).toBeGreaterThan(RANK_XP_BANDS[rank].max);
                 continue;
             }
+            // quick 261111-enm: un posto senza titolo, il rango resta in minTitle
             expect(quest.requirements.requiredAdventurers).toEqual([
-                { title: rank, count: 1 },
+                { title: null, count: 1 },
             ]);
             const budget = budgetOf(rank, 1);
             expect(xpOf(quest)).toBeGreaterThanOrEqual(budget.min);
@@ -582,8 +614,7 @@ describe('QuestGenerator (replSet)', () => {
             xp: 30,
             locations: [WORLD_HABITAT],
             relatedLore: [],
-            baseWeaknesses: [],
-            energyWeaknesses: [],
+            weaknesses: { base: [], energy: [] },
         });
 
         await expect(generatorWith({ target: 4 }).generate()).resolves.toBe(0);
@@ -631,6 +662,78 @@ describe('QuestGenerator (replSet)', () => {
 
         await expect(generatorWith({ target: 4 }).generate()).resolves.toBe(0);
         expect(await quests.countDocuments()).toBe(0);
+    });
+
+    it('offers on a generated quest the pet linked to one of its enemies (D-28)', async () => {
+        const world = await persistGenerationWorld(models, {
+            cities: 4,
+            poisPerCity: 3,
+        });
+        const linked = await persistLinkedPets(models, [
+            ...world.enemyIds,
+            ...world.legendaryIds,
+        ]);
+
+        const created = await generatorWith(
+            { target: 8 },
+            { chance: new SequenceChance([], 0.05) },
+        ).generate();
+
+        const offers = offeredPetsOf(await generatedQuests(), linked);
+        expect(created).toBeGreaterThan(0);
+        expect(offers).toHaveLength(created);
+        expect(
+            offers.filter(
+                (offer) =>
+                    offer.petEnemy === undefined ||
+                    !offer.questEnemies.includes(offer.petEnemy),
+            ),
+        ).toEqual([]);
+    });
+
+    it('offers a zone pet when the roll falls in the second band (D-28)', async () => {
+        const world = await persistGenerationWorld(models, {
+            cities: 4,
+            poisPerCity: 3,
+        });
+        const linked = await persistLinkedPets(models, [
+            ...world.enemyIds,
+            ...world.legendaryIds,
+        ]);
+
+        const created = await generatorWith(
+            { target: 8 },
+            { chance: new SequenceChance([], 0.12) },
+        ).generate();
+
+        const offers = offeredPetsOf(await generatedQuests(), linked);
+        expect(created).toBeGreaterThan(0);
+        expect(offers).toHaveLength(created);
+        expect(
+            offers.filter(
+                (offer) =>
+                    offer.petEnemy === undefined ||
+                    offer.questEnemies.includes(offer.petEnemy),
+            ),
+        ).toEqual([]);
+    });
+
+    it('offers no pet while the pets have no rarity (D-28)', async () => {
+        const world = await persistGenerationWorld(models, {
+            cities: 4,
+            poisPerCity: 3,
+        });
+        const linked = await persistLinkedPets(models, world.enemyIds, null);
+
+        const created = await generatorWith(
+            { target: 8 },
+            { chance: new SequenceChance([], 0.05) },
+        ).generate();
+
+        const offers = offeredPetsOf(await generatedQuests(), linked);
+        expect(created).toBeGreaterThan(0);
+        expect(offers).toHaveLength(created);
+        expect(offers.filter((offer) => offer.offered)).toEqual([]);
     });
 
     it('repeats the same quests for the same seed (D-17)', async () => {

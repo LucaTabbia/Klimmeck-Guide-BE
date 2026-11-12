@@ -12,6 +12,7 @@ export interface ChangeStreamEvent {
     _id?: unknown;
     documentKey?: unknown;
     fullDocument?: unknown;
+    clusterTime?: mongo.Timestamp;
 }
 
 export interface ChangeStreamSpec {

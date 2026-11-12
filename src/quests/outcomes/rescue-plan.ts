@@ -63,6 +63,7 @@ function unchangedResult(
         hpAfter: status.currentLifePoints,
         maxLifePoints: status.maxLifePoints,
         injuriesAdded: [],
+        injuriesHealed: [],
         consumablesUsed: [],
         spellsUsed: [],
         rewards: {
@@ -71,6 +72,7 @@ function unchangedResult(
             pet: null,
         },
         xpGained: 0,
+        petXpGained: 0,
         xpBefore: status.xp,
         xpAfter: status.xp,
         levelBefore: status.level,
@@ -83,6 +85,9 @@ function unchangedResult(
         stagesCleared: null,
         stagesTotal: null,
         rescuedCharacters: [],
+        arrested: false,
+        coinsLost: null,
+        guardEncounter: false,
     };
 }
 

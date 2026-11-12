@@ -48,10 +48,14 @@ describe('quest catalog asset quantity schemas', () => {
 });
 
 describe('QUEST_CATALOG_POPULATE', () => {
-    it('populates every ref the FE selects on the catalog, enemies one level deep (D-01, D-21)', () => {
+    it('populates every ref the FE selects on the catalog, enemies with their spells (D-01, D-02, D-21)', () => {
         expect(QUEST_CATALOG_POPULATE).toEqual([
             { path: 'infos.markerLocation' },
-            { path: 'infos.enemies.enemy', model: 'Enemy' },
+            {
+                path: 'infos.enemies.enemy',
+                model: 'Enemy',
+                populate: { path: 'spells', model: 'Spell' },
+            },
             { path: 'infos.relatedLore', model: 'Lore' },
             { path: 'requirements.recommendedLoot.item' },
             { path: 'prizes.prizeItem.item' },

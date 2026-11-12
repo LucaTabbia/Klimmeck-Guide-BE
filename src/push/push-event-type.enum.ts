@@ -9,6 +9,8 @@ export enum PushEventType {
     questCancelled = 'questCancelled',
     // sconfitta in imboscata (Phase 15 D-12): personale, id = personaggio
     ambushDefeat = 'ambushDefeat',
+    // fine della prigione dopo l'arresto (quick 261110-prp): personale, id = personaggio
+    prisonRelease = 'prisonRelease',
 }
 
 registerEnumType(PushEventType, { name: 'PushEventType' });

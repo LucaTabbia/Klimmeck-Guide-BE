@@ -11,10 +11,9 @@ import { persistPoi } from './poi.fixture';
  *  - status.location is a REQUIRED ref to PointOfInterest. buildCharacter uses a
  *    throwaway ObjectId; persistCharacter creates a real POI when none is given.
  *
- * Spells: build a coherent spell book with spellBook(...) and spread it in,
- *    since overrides replace status/assets whole:
- *    status: { ...buildCharacter().status, spells: book.spells, spellStates: book.spellStates },
- *    assets: { ...buildCharacter().assets, activeSpells: book.activeSpells }
+ * Spells: the single list (Phase 19 D-07), with the active flag on every entry;
+ *    spread it in, since overrides replace status whole:
+ *    status: { ...buildCharacter().status, spellStates: spellStatesOf(entries) }
  */
 export function buildCharacter(overrides: Record<string, any> = {}) {
     return {
@@ -34,7 +33,6 @@ export function buildCharacter(overrides: Record<string, any> = {}) {
             location: new Types.ObjectId(), // ref POI (required) — replaced in persist
             title: 'rookie', // TitleType.rookie
             injuries: [],
-            spells: [],
             spellStates: [],
             coins: { gold: 0, silver: 0, copper: 0 },
             currentLifePoints: 100,
@@ -47,8 +45,7 @@ export function buildCharacter(overrides: Record<string, any> = {}) {
         assets: {
             ownedEquipments: [],
             ownedItems: [],
-            wearedEquipment: {},
-            activeSpells: [],
+            wornEquipment: {},
             pet: null,
         },
         ...overrides,
@@ -62,19 +59,14 @@ export interface SpellBookEntry {
     active?: boolean;
 }
 
-// stato coerente per i test (D-03): spells, spellStates e activeSpells con lo stesso ordine; il mirror vale quanto lo stato (D-04)
-export function spellBook(entries: readonly SpellBookEntry[]) {
-    return {
-        spells: entries.map((entry) => entry.spell),
-        spellStates: entries.map((entry) => ({
-            spell: new Types.ObjectId(String(entry.spell)),
-            usages: entry.usages,
-            recoveries: [...(entry.recoveries ?? [])],
-        })),
-        activeSpells: entries
-            .filter((entry) => entry.active)
-            .map((entry) => ({ spell: entry.spell, usages: entry.usages })),
-    };
+// la sola lista della revisione dei modelli (Phase 19 D-07): una voce per magia nell'ordine dato, equipaggiata = flag della voce
+export function spellStatesOf(entries: readonly SpellBookEntry[]) {
+    return entries.map((entry) => ({
+        spell: new Types.ObjectId(String(entry.spell)),
+        usages: entry.usages,
+        recoveries: [...(entry.recoveries ?? [])],
+        active: entry.active === true,
+    }));
 }
 
 export async function persistCharacter(

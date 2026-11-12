@@ -12,6 +12,7 @@ describe('ambushResultDraftsOf', () => {
             injuriesAdded: [InjuryType.brokenLeftLeg],
             spellsUsed: [{ spell: new Types.ObjectId(), usages: 1 }],
             loreUnlocked: [new Types.ObjectId()],
+            petXpGained: 12,
         });
 
         const [draft] = ambushResultDraftsOf([report], characterId);
@@ -38,6 +39,7 @@ describe('ambushResultDraftsOf', () => {
             spellsUsed: report.spellsUsed,
             rewards: { coins: report.coins, items: [], pet: null },
             xpGained: report.xpGained,
+            petXpGained: 12,
             xpBefore: report.xpBefore,
             xpAfter: report.xpAfter,
             levelBefore: report.levelBefore,
@@ -67,6 +69,7 @@ describe('ambushResultDraftsOf', () => {
             'loreUnlocked',
             'maxLifePoints',
             'outcome',
+            'petXpGained',
             'quest',
             'rescuedCharacters',
             'resolvedAt',
@@ -91,6 +94,23 @@ describe('ambushResultDraftsOf', () => {
         const [draft] = ambushResultDraftsOf([old], characterId);
 
         expect(draft.loreUnlocked).toEqual([]);
+    });
+
+    it('carries the companion xp from the held report to the result (D-19)', () => {
+        const report = buildAmbushReport({ petXpGained: 30 });
+
+        const [draft] = ambushResultDraftsOf([report], characterId);
+
+        expect(draft.petXpGained).toBe(30);
+    });
+
+    it('delivers an old held report without the companion xp as 0 (D-19)', () => {
+        const old = buildAmbushReport();
+        expect(Object.keys(old)).not.toContain('petXpGained');
+
+        const [draft] = ambushResultDraftsOf([old], characterId);
+
+        expect(draft.petXpGained).toBe(0);
     });
 
     it('keeps the reached city of a defeat (D-13, D-14)', () => {

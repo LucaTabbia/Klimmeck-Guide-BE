@@ -1,8 +1,10 @@
 import { ObjectType, Field, Float, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { DamagesSchema, Damages, DamagesInput } from './common/damages.model';
 import { CoinsSchema, Coins, CoinsInput } from './common/coins.model';
+import { RarityType } from './enums/rarity-type.enum';
+import { Lore } from './lore.model';
 
 @ObjectType()
 @Schema()
@@ -15,8 +17,12 @@ export class Pet {
     name: string;
 
     @Field(() => Damages)
-    @Prop({ type: DamagesSchema, default: null })
-    damages: Damages;
+    @Prop({ type: DamagesSchema, default: () => ({}) })
+    attack: Damages;
+
+    @Field(() => Damages)
+    @Prop({ type: DamagesSchema, default: () => ({}) })
+    defense: Damages;
 
     @Field(() => Coins)
     @Prop({ type: CoinsSchema, default: null })
@@ -28,15 +34,7 @@ export class Pet {
 
     @Field(() => Int)
     @Prop({ type: Number, default: null })
-    xp: number;
-
-    @Field(() => Int)
-    @Prop({ type: Number, default: null })
     maxXp: number;
-
-    @Field(() => Int)
-    @Prop({ type: Number, default: null })
-    currentLifePoints: number;
 
     @Field(() => Int)
     @Prop({ type: Number, default: null })
@@ -55,6 +53,24 @@ export class Pet {
     @Field(() => Boolean, { nullable: true })
     @Prop({ type: Boolean })
     sellable?: boolean | null;
+
+    // lore sbloccate quando il pet viene ottenuto (Phase 19 D-26); sul filo filtrate per viewer dal resolver sul tipo
+    @Field(() => [Lore])
+    @Prop({
+        type: [MongooseSchema.Types.ObjectId],
+        ref: Lore.name,
+        default: [],
+    })
+    relatedLore: Lore[];
+
+    // rarità del pet (Phase 19 D-27): null finché la cura a DB non la scrive; tetto dei pet in premio (D-28)
+    @Field(() => RarityType, { nullable: true })
+    @Prop({ type: String, enum: Object.values(RarityType), default: null })
+    rarity?: RarityType | null;
+
+    // legame col nemico corrispondente (Phase 19 D-28): solo Mongoose, guida i pet in premio delle quest generate
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Enemy', default: null })
+    enemy?: Types.ObjectId | null;
 }
 
 export type PetDocument = Pet & Document;
@@ -69,7 +85,10 @@ export class PetInput {
     name?: string;
 
     @Field(() => DamagesInput, { nullable: true })
-    damages?: DamagesInput;
+    attack?: DamagesInput;
+
+    @Field(() => DamagesInput, { nullable: true })
+    defense?: DamagesInput;
 
     @Field(() => CoinsInput, { nullable: true })
     buyPrice?: CoinsInput;
@@ -78,13 +97,7 @@ export class PetInput {
     sellPrice?: CoinsInput;
 
     @Field(() => Int, { nullable: true })
-    xp?: number;
-
-    @Field(() => Int, { nullable: true })
     maxXp?: number;
-
-    @Field(() => Int, { nullable: true })
-    currentLifePoints?: number;
 
     @Field(() => Int, { nullable: true })
     maxLifePoints?: number;
@@ -94,4 +107,7 @@ export class PetInput {
 
     @Field(() => Float, { nullable: true })
     speedModifier?: number | null;
+
+    @Field(() => RarityType, { nullable: true })
+    rarity?: RarityType | null;
 }

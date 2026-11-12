@@ -65,6 +65,7 @@ describe('PushException', () => {
             'streamerLive',
             'questCancelled',
             'ambushDefeat',
+            'prisonRelease',
         ]);
     });
 });

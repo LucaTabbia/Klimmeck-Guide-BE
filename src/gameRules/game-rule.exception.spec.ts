@@ -2,6 +2,8 @@ import { BadRequestException } from '@nestjs/common';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 
+const UNTIL = new Date('2026-11-10T12:30:00.000Z');
+
 describe('GameRuleException', () => {
     const cases: Array<
         [string, () => GameRuleException, GameRuleErrorCode, string]
@@ -204,6 +206,24 @@ describe('GameRuleException', () => {
             GameRuleErrorCode.PET_NOT_OWNED,
             'Compagno non posseduto',
         ],
+        [
+            'itemNotUsable',
+            () => GameRuleException.itemNotUsable(),
+            GameRuleErrorCode.ITEM_NOT_USABLE,
+            'Questo oggetto non si può usare',
+        ],
+        [
+            'itemNoEffect',
+            () => GameRuleException.itemNoEffect(),
+            GameRuleErrorCode.ITEM_NO_EFFECT,
+            'Questa pozione non ti farebbe nulla adesso',
+        ],
+        [
+            'questNoEffect',
+            () => GameRuleException.questNoEffect(),
+            GameRuleErrorCode.QUEST_NO_EFFECT,
+            'Queste cure non ti servirebbero adesso',
+        ],
     ];
 
     it.each(cases)(
@@ -225,9 +245,61 @@ describe('GameRuleException', () => {
     );
 
     it('covers every GameRuleErrorCode exactly once', () => {
-        const producedCodes = cases.map(([, factory]) => factory().code).sort();
+        const producedCodes = [
+            ...cases.map(([, factory]) => factory().code),
+            GameRuleException.potionRecovering(UNTIL).code,
+            GameRuleException.characterImprisoned(UNTIL).code,
+        ].sort();
 
         expect(producedCodes).toEqual(Object.values(GameRuleErrorCode).sort());
+    });
+
+    it('names the three refusals of useItem (D-17)', () => {
+        expect(GameRuleErrorCode.ITEM_NOT_USABLE).toBe('ITEM_NOT_USABLE');
+        expect(GameRuleErrorCode.POTION_RECOVERING).toBe('POTION_RECOVERING');
+        expect(GameRuleErrorCode.ITEM_NO_EFFECT).toBe('ITEM_NO_EFFECT');
+    });
+
+    it('carries the end of the potion recovery as an ISO instant in the extensions only (D-17)', () => {
+        const exception = GameRuleException.potionRecovering(UNTIL);
+
+        expect(exception).toBeInstanceOf(BadRequestException);
+        expect(exception.getStatus()).toBe(400);
+        expect(exception.extensions).toEqual({
+            code: 'POTION_RECOVERING',
+            recoveryUntil: '2026-11-10T12:30:00.000Z',
+        });
+        expect(exception.getResponse()).toEqual({
+            statusCode: 400,
+            error: 'Bad Request',
+            message:
+                "Il tuo corpo non reggerebbe un'altra pozione: aspetta che la prima si sia posata",
+            code: 'POTION_RECOVERING',
+        });
+    });
+
+    it('carries the end of the prison as an ISO instant in the extensions only (quick 261110-cgd)', () => {
+        const exception = GameRuleException.characterImprisoned(UNTIL);
+
+        expect(exception).toBeInstanceOf(BadRequestException);
+        expect(exception.getStatus()).toBe(400);
+        expect(exception.extensions).toEqual({
+            code: 'CHARACTER_IMPRISONED',
+            imprisonedUntil: '2026-11-10T12:30:00.000Z',
+        });
+        expect(exception.getResponse()).toEqual({
+            statusCode: 400,
+            error: 'Bad Request',
+            message: 'Il tuo personaggio è in prigione',
+            code: 'CHARACTER_IMPRISONED',
+        });
+    });
+
+    it('refuses a heal without effect with QUEST_NO_EFFECT (D-25)', () => {
+        const exception = GameRuleException.questNoEffect();
+
+        expect(exception.getStatus()).toBe(400);
+        expect(exception.extensions).toEqual({ code: 'QUEST_NO_EFFECT' });
     });
 
     it('refuses the completion of a busy participant with QUEST_IN_PROGRESS (D-24)', () => {

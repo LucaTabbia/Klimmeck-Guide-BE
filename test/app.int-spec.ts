@@ -2,15 +2,15 @@ import { getQueueToken } from '@nestjs/bull';
 import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { ModulesContainer } from '@nestjs/core';
-import { getConnectionToken } from '@nestjs/mongoose';
-import { Test } from '@nestjs/testing';
 import type { Application } from 'express';
-import type { Connection } from 'mongoose';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import request from 'supertest';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import { IS_PUBLIC_KEY } from 'src/auth/decorators/public.decorator';
+import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
+import { UserRoleChangesPublisher } from 'src/auth/session/user-role-changes.publisher';
+import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
 import type { AuthConfig } from 'src/config/auth-config';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { EventSubConfig } from 'src/config/eventsub-config';
@@ -49,6 +49,7 @@ import { CombatResolver } from 'src/quests/outcomes/combat/combat-resolver';
 import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholder-combat-resolver';
 import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
+import { PrisonReleaseSweeper } from 'src/characters/imprisonment/prison-release.sweeper';
 import { QuestResultMaintenance } from 'src/quests/results/quest-result-maintenance';
 import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
 import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
@@ -61,13 +62,35 @@ import { TRAVEL_CONFIG } from 'src/config/travel-config';
 import { TravelCompletionService } from 'src/travel/travel-completion.service';
 import { TRAVEL_QUEUE } from 'src/travel/travel-job';
 import { TravelSweeper } from 'src/travel/travel-sweeper';
-import { startRedis, stopRedis } from './setup/redis';
+import {
+    EXPECTED_INNKEEPER_HANDLERS,
+    EXPECTED_OWNER_ONLY_HANDLERS,
+    EXPECTED_OWNERSHIP_HANDLERS,
+} from './authz/expected-handlers';
+import {
+    bootRealApp,
+    REAL_BOOT_TIMEOUT_MS,
+    type RealAppBoot,
+} from './harness/real-app-boot';
 
-const BOOT_TIMEOUT_MS = 60_000;
 const VALID_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 const SCHEMA_FILE = join(process.cwd(), 'src/schema.gql');
 // l'unico kind sul filo è quello dei risultati (Phase 15 D-14): il kind interno del viaggio resta fuori
 const ONLY_RESULT_KIND = ['  kind: QuestResultKind!'];
+const CATALOGUE_PET_BLOCK =
+    'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  rarity: RarityType\n  relatedLore: [Lore!]!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
+const RARITY_TYPE_BLOCK =
+    'enum RarityType {\n  common\n  legendary\n  rare\n  ultrarare\n  uncommon\n}';
+const OWNED_PET_BLOCK =
+    'type OwnedPet {\n  currentLifePoints: Int!\n  pet: Pet!\n  xp: Int!\n}';
+const CHARACTER_STATUS_BLOCK =
+    'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}';
+const CHARACTER_ASSETS_BLOCK =
+    'type CharacterAssets {\n  ownedEquipments: [AssetQuantity!]!\n  ownedItems: [AssetQuantity!]!\n  ownedPets: [OwnedPet!]!\n  pet: Pet\n  wornEquipment: Equipment!\n}';
+const EQUIPMENT_BLOCK =
+    'type Equipment {\n  arms: EquipmentItem\n  chest: EquipmentItem\n  feet: EquipmentItem\n  firstAccessory: EquipmentItem\n  head: EquipmentItem\n  leftHand: EquipmentItem\n  legs: EquipmentItem\n  rightHand: EquipmentItem\n  secondAccessory: EquipmentItem\n}';
+const SLOT_TYPE_BLOCK =
+    'enum SlotType {\n  arms\n  chest\n  feet\n  firstAccessory\n  head\n  leftHand\n  legs\n  rightHand\n  secondAccessory\n}';
 const kindLinesOf = (schema: string): string[] =>
     schema.match(/^.*\bkind\b.*$/gm) ?? [];
 const INTRUDER_MUTATION =
@@ -75,6 +98,8 @@ const INTRUDER_MUTATION =
 const CREATE_CHARACTER = `mutation { createCharacter(input: { name: "Aria", sex: female, pronoun: she, race: human, classType: wizard, age: 25 }) { id } }`;
 const RACE_TRAITS = '{ raceTraits { race } }';
 const DELETE_CHARACTER = 'mutation { deleteCharacter { id } }';
+const USE_ITEM =
+    'mutation { useItem(itemId: "64b000000000000000000001") { hpAfter } }';
 const REGISTER_PUSH_DEVICE =
     'mutation { registerPushDevice(input: { deviceId: "d", token: "t", platform: android }) }';
 const ACCEPT_QUEST =
@@ -116,53 +141,6 @@ const EXPECTED_THROTTLED_HANDLERS = [
     'TwitchAuthController.callback',
     'TwitchAuthController.start',
 ];
-// whitelist enumerate (D-15): ogni nuova operazione admin o sul personaggio deve passare da qui
-const EXPECTED_INNKEEPER_HANDLERS = [
-    'CharactersResolver.characters',
-    'PendingQuestsResolver.pendingQuests',
-    'PendingRequestsResolver.completePendingRequest',
-    'PendingRequestsResolver.pendingRequests',
-    'PendingRequestsResolver.pendingRequestsUpdated',
-    'PushResolver.sendTestPush',
-    'QuestGenerationResolver.generateQuests',
-    'ShopAdminResolver.shopPoolReport',
-    'TravelAdminResolver.teleportCharacter',
-    'UsersResolver.user',
-    'UsersResolver.users',
-];
-const EXPECTED_OWNERSHIP_HANDLERS = [
-    'CharactersResolver.character',
-    'CharactersResolver.characterUpdated',
-    'CharactersResolver.doTransaction',
-    'CharactersResolver.equipItem',
-    'CharactersResolver.equipPet',
-    'CharactersResolver.equipSpell',
-    'CharactersResolver.equipment',
-    'CharactersResolver.unequipPet',
-    'CharactersResolver.unequipSpell',
-    'CharactersResolver.useSpell',
-    'PartyResolver.abandonQuest',
-    'PendingQuestsResolver.pendingQuest',
-    'QuestAcceptanceResolver.acceptQuest',
-    'QuestAcceptanceResolver.questTravelPreview',
-    'QuestResultsResolver.acknowledgeQuestResult',
-    'QuestResultsResolver.questResult',
-    'QuestResultsResolver.questResultReceived',
-    'TravelResolver.startTravel',
-    'TravelResolver.travelPreview',
-];
-// nessun bypass innkeeper (07 D-11): ogni handler owner-only deve passare da qui
-const EXPECTED_OWNER_ONLY_HANDLERS = [
-    'PartyResolver.abandonQuest',
-    'QuestAcceptanceResolver.acceptQuest',
-    'QuestAcceptanceResolver.questTravelPreview',
-    'QuestResultsResolver.acknowledgeQuestResult',
-    'QuestResultsResolver.questResult',
-    'QuestResultsResolver.questResultReceived',
-    'TravelResolver.startTravel',
-    'TravelResolver.travelPreview',
-];
-
 interface PublicSurface {
     handlers: string[];
     publicClasses: string[];
@@ -254,69 +232,25 @@ function errorCodeOf(response: request.Response): unknown {
 
 /**
  * INTEGRATION: boots the REAL AppModule (Bull + Redis effimero, MongoMemoryReplSet)
- * with only a fake JWT_SECRET and no Twitch credentials. process.env is set by the
- * test BEFORE AppModule is imported, so it wins over any local .env (Pitfall 8).
+ * with only a fake JWT_SECRET and no Twitch credentials. bootRealApp sets process.env
+ * BEFORE AppModule is imported, so it wins over any local .env (Pitfall 8).
  */
 describe('AppModule (real boot without Twitch credentials)', () => {
-    const envSnapshot = { ...process.env };
+    let boot: RealAppBoot | undefined;
     let app: INestApplication;
     let fetchSpy: jest.SpiedFunction<typeof fetch>;
     let warnSpy: jest.SpiedFunction<Logger['warn']>;
-
     beforeAll(async () => {
         // spie passthrough attive prima del boot: catturano le chiamate di rete e il WARN di avvio
         fetchSpy = jest.spyOn(global, 'fetch');
         warnSpy = jest.spyOn(Logger.prototype, 'warn');
-        const redis = await startRedis();
-        Object.assign(process.env, {
-            MONGO_URI: process.env.MONGO_TEST_URI,
-            DB_NAME: 'app-boot-test',
-            REDIS_HOST: redis.host,
-            REDIS_PORT: String(redis.port),
-            JWT_SECRET: 'app-boot-test-secret-0123456789abcdef',
-            TWITCH_CLIENT_ID: '',
-            TWITCH_CLIENT_SECRET: '',
-            TWITCH_REDIRECT_URI: '',
-            APP_AUTH_REDIRECT_URL: 'klimmeck://auth',
-            DEV_AUTH_ENABLED: 'false',
-            // Pitfall 11: un .env locale con credenziali reali non deve mai accendere FCM nel test
-            FIREBASE_SERVICE_ACCOUNT: '',
-            // C2 / Pitfall 13: un .env locale con EventSub parziale non deve rompere il boot reale
-            TWITCH_LOGIN_SCOPES: '',
-            TWITCH_EVENTSUB_SECRET: '',
-            TWITCH_EVENTSUB_CALLBACK_URL: '',
-            TWITCH_BROADCASTER_ID: '',
-            // Pitfall 13: nessun timer dello sweep nel boot reale; il reconciler al boot gira comunque
-            TRAVEL_SWEEP_INTERVAL_MS: '0',
-            QUEST_SWEEP_INTERVAL_MS: '0',
-            SPELL_RECOVERY_SWEEP_INTERVAL_MS: '0',
-            // D-08: un .env locale con limiti propri non deve cambiare i default attesi dal boot reale
-            THROTTLE_TTL_MS: '',
-            THROTTLE_LIMIT: '',
-            THROTTLE_TRUST_PROXY: '',
-            // Pitfall 11: un .env locale con chiavi Sightengine reali non deve accendere la moderazione (D-14)
-            SIGHTENGINE_USER_ID: '',
-            SIGHTENGINE_API_SECRET: '',
-        });
-        // import differito: native import() non è disponibile in Jest CJS (module nodenext lo preserva)
-        const { AppModule } =
-            jest.requireActual<typeof import('src/app.module')>(
-                'src/app.module',
-            );
-        const moduleRef = await Test.createTestingModule({
-            imports: [AppModule],
-        }).compile();
-        app = moduleRef.createNestApplication({ rawBody: true });
-        await app.init();
-    }, BOOT_TIMEOUT_MS);
+        boot = await bootRealApp({ dbName: 'app-boot-test' });
+        app = boot.app;
+    }, REAL_BOOT_TIMEOUT_MS);
 
     afterAll(async () => {
-        await app?.get<Connection>(getConnectionToken()).dropDatabase();
-        await app?.close();
-        await stopRedis();
-        fetchSpy.mockRestore();
-        warnSpy.mockRestore();
-        process.env = envSnapshot;
+        await boot?.close();
+        jest.restoreAllMocks();
     });
 
     it('resolves an auth config without Twitch and without the dev bypass', () => {
@@ -438,11 +372,72 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
-    it('writes the lore without the global unlocked flag (11 D-25)', () => {
+    it('writes the lore with its image path and without the global unlocked flag (11 D-25, D-11)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type Lore \{[^}]*\}/)?.[0]).toBe(
-            'type Lore {\n  description: String!\n  id: ID!\n  image: String\n  name: String!\n  relatedLore: [Lore!]!\n  type: String!\n}',
+            'type Lore {\n  description: String!\n  id: ID!\n  imagePath: String\n  name: String!\n  relatedLore: [Lore!]!\n  type: String!\n}',
+        );
+    });
+
+    it('writes the enemy weaknesses in place of the two lists (D-01)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Enemy \{[^}]*\}/)?.[0]).toBe(
+            'type Enemy {\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  legendary: Boolean!\n  lifePoints: Int!\n  locations: [PoiType!]!\n  name: String!\n  relatedLore: [Lore!]!\n  spells: [Spell!]!\n  weaknesses: Weaknesses!\n  xp: Int!\n}',
+        );
+        expect(schema.match(/type Weaknesses \{[^}]*\}/)?.[0]).toBe(
+            'type Weaknesses {\n  base: [DamageType!]!\n  energy: [EnergyType!]!\n}',
+        );
+        expect(schema).toContain('enum DamageType {');
+        expect(schema).toContain('enum EnergyType {');
+        expect(schema).not.toContain('input WeaknessesInput');
+        expect(schema).not.toContain('input EnemyInput');
+    });
+
+    it('writes the catalogue pet with attack and defense and without state (D-03, D-15)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
+            CATALOGUE_PET_BLOCK,
+        );
+        expect(schema).not.toContain('input PetInput');
+    });
+
+    it('writes the nullable pet rarity into the generated schema (D-27)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
+            CATALOGUE_PET_BLOCK,
+        );
+        expect(schema.match(/enum RarityType \{[^}]*\}/)?.[0]).toBe(
+            RARITY_TYPE_BLOCK,
+        );
+        expect(schema).not.toContain('input PetInput');
+    });
+
+    it('writes the owned pets as entries with their own state (D-03)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type OwnedPet \{[^}]*\}/)?.[0]).toBe(
+            OWNED_PET_BLOCK,
+        );
+        expect(schema.match(/type CharacterAssets \{[^}]*\}/)?.[0]).toBe(
+            CHARACTER_ASSETS_BLOCK,
+        );
+    });
+
+    it('writes the worn equipment and the feet slot into the generated schema (D-06)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type CharacterAssets \{[^}]*\}/)?.[0]).toBe(
+            CHARACTER_ASSETS_BLOCK,
+        );
+        expect(schema.match(/type Equipment \{[^}]*\}/)?.[0]).toBe(
+            EQUIPMENT_BLOCK,
+        );
+        expect(schema.match(/enum SlotType \{[^}]*\}/)?.[0]).toBe(
+            SLOT_TYPE_BLOCK,
         );
     });
 
@@ -471,7 +466,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
-            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
         );
         expect(schema).not.toMatch(/\bparty\b|registrations/);
     });
@@ -522,24 +517,28 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type TravelPath {\n  coordinates: [[Float!]!]!\n  distance: Float!\n}',
         );
         expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
-            'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  spellStates: [SpellState!]!\n  spells: [Spell!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}',
+            CHARACTER_STATUS_BLOCK,
         );
         expect(schema.match(/type Pet \{[^}]*\}/)?.[0]).toBe(
-            'type Pet {\n  buyPrice: Coins!\n  currentLifePoints: Int!\n  damages: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n  xp: Int!\n}',
+            CATALOGUE_PET_BLOCK,
         );
         expect(schema).not.toMatch(/TravelKind/);
         expect(kindLinesOf(schema)).toEqual(ONLY_RESULT_KIND);
     });
 
-    it('writes the spell state contract into the generated schema', () => {
+    it('writes the single spell state list and drops the two old spell lists (D-07)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
-        expect(schema).toContain(
-            'type SpellState {\n  recoveries: [DateTime!]!\n  spell: Spell!\n  usages: Int!\n}',
+        expect(schema.match(/type SpellState \{[^}]*\}/)?.[0]).toBe(
+            'type SpellState {\n  active: Boolean!\n  recoveries: [DateTime!]!\n  spell: Spell!\n  usages: Int!\n}',
         );
-        expect(schema.match(/type ActiveSpell \{[^}]*\}/)?.[0]).toBe(
-            'type ActiveSpell {\n  spell: Spell\n  usages: Int!\n}',
+        expect(schema.match(/type CharacterStatus \{[^}]*\}/)?.[0]).toBe(
+            CHARACTER_STATUS_BLOCK,
         );
+        expect(schema.match(/type CharacterAssets \{[^}]*\}/)?.[0]).toBe(
+            CHARACTER_ASSETS_BLOCK,
+        );
+        expect(schema).not.toMatch(/type ActiveSpell \{/);
     });
 
     it('writes the city size and the shop flag into the generated schema without the pool lists (D-01, D-18)', () => {
@@ -550,6 +549,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
         expect(schema).toContain(
             'enum CitySize {\n  capital\n  city\n  village\n}',
+        );
+    });
+
+    it('writes the point of interest without the quest back link (D-09)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type PointOfInterest \{[^}]*\}/)?.[0]).toBe(
+            'type PointOfInterest {\n  city: City\n  id: ID!\n  location: [Float!]!\n  type: [PoiType!]!\n}',
         );
     });
 
@@ -573,7 +580,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'enum CitySize {\n  capital\n  city\n  village\n}',
             'hasShop: Boolean!',
             'size: CitySize!',
-            'ownedPets: [Pet!]!',
+            'ownedPets: [OwnedPet!]!',
             'petAssets: [AssetQuantityInput!]\n',
             'equipPet(request: EquipPetRequest!): CommonResponse!',
             'unequipPet(request: UnequipPetRequest!): CommonResponse!',
@@ -643,10 +650,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type AwaitingAid {\n  aidQuest: ID!\n  quest: ID!\n  since: DateTime!\n}',
         );
         expect(schema.match(/type QuestPrizes \{[^}]*\}/)?.[0]).toBe(
-            'type QuestPrizes {\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
+            'type QuestPrizes {\n  cure: QuestCure\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
-            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
         );
         expect(schema.match(/type QuestRegistration \{[^}]*\}/)?.[0]).toBe(
             'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
@@ -656,11 +663,50 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the quest cure contract of the FE Phase 18 into the generated schema (D-01, D-24)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type QuestCure \{[^}]*\}/)?.[0]).toBe(
+            'type QuestCure {\n  canHeal: [InjuryType!]!\n  lifePointsShare: Float!\n}',
+        );
+        expect(schema).not.toMatch(/QuestCureInput|QuestPrizesInput/);
+    });
+
+    it('writes the potion contract of the FE Phase 18 into the generated schema (D-15, D-19, D-24)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type LootRecovery \{[^}]*\}/)?.[0]).toBe(
+            'type LootRecovery {\n  time: Int!\n  turns: Int!\n}',
+        );
+        expect(schema.match(/type LootItem \{[^}]*\}/)?.[0]).toContain(
+            '  recovery: LootRecovery\n  relatedLore: [Lore!]!\n',
+        );
+        expect(schema).not.toMatch(/LootRecoveryInput|LootItemInput/);
+    });
+
+    it('writes the useItem contract of the FE Phase 18 into the generated schema (D-17, D-21)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain('  useItem(itemId: ID!): UseItemResult!\n');
+        expect(schema.match(/type UseItemResult \{[^}]*\}/)?.[0]).toBe(
+            'type UseItemResult {\n  hpAfter: Int!\n  hpBefore: Int!\n  injuriesHealed: [InjuryType!]!\n  loreUnlocked: [Lore!]!\n  quantityLeft: Int!\n  recoveryUntil: DateTime!\n}',
+        );
+    });
+
+    it('writes the no-effect heal flag of the FE Phase 18 into the generated schema (D-25)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toContain(
+            '  noEffect: Boolean!\n',
+        );
+        expect(schema).not.toMatch(/QUEST_NO_EFFECT/);
+    });
+
     it('writes the quest result contract into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  character: ID!\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  kind: QuestResultKind!\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  character: ID!\n  coinsLost: Coins\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  kind: QuestResultKind!\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  petXpGained: Int!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
         );
         expect(schema.match(/type QuestResultQuest \{[^}]*\}/)?.[0]).toBe(
             'type QuestResultQuest {\n  id: ID!\n  title: String!\n  type: String!\n}',
@@ -830,6 +876,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('enum PushEventType');
         expect(schema).toContain('  questCancelled\n');
         expect(schema).toContain('  ambushDefeat\n');
+        // liberazione dalla prigione (quick 261110-prp): valore additivo dell'enum
+        expect(schema).toContain('  prisonRelease\n');
         expect(schema).toContain('type PushDeliveryReport');
         expect(schema).toContain('targetUserId: ID');
         expect(schema).not.toContain('type PushDevice');
@@ -866,6 +914,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(QuestResolutionService)).toBeInstanceOf(
             QuestResolutionService,
         );
+        // liberazione dalla prigione (quick 261110-prp): stesso intervallo dello sweep delle missioni
+        expect(app.get(PrisonReleaseSweeper)).toBeInstanceOf(
+            PrisonReleaseSweeper,
+        );
         expect(app.get(getQueueToken(QUEST_RESOLUTION_QUEUE))).toBeDefined();
         expect(app.get<QuestConfig>(QUEST_CONFIG)).toEqual({
             sweepIntervalMs: 0,
@@ -881,6 +933,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
 
         expect(moduleNames).not.toContain('LoreBackfillModule');
+    });
+
+    it('does not mount the one-off model review migration (D-12)', () => {
+        const moduleNames = [...app.get(ModulesContainer).values()].map(
+            (moduleRef) => moduleRef.metatype.name,
+        );
+
+        expect(moduleNames).not.toContain('ModelReviewMigrationModule');
     });
 
     it('mounts the quest result maintenance', () => {
@@ -913,6 +973,19 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(ArchivedCharacterQueueRefresher)).toBeInstanceOf(
             ArchivedCharacterQueueRefresher,
         );
+    });
+
+    it('mounts the user role changes publisher', () => {
+        expect(app.get(UserRoleChangesPublisher)).toBeInstanceOf(
+            UserRoleChangesPublisher,
+        );
+    });
+
+    it('mounts the session revocation', () => {
+        expect(app.get(SessionRevocationService)).toBeInstanceOf(
+            SessionRevocationService,
+        );
+        expect(app.get(WsSessionRegistry)).toBeInstanceOf(WsSessionRegistry);
     });
 
     it('mounts the runtime mode reporter', () => {
@@ -1041,6 +1114,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
         it('rejects deleteCharacter without a bearer', async () => {
             expect(errorCodeOf(await graphqlCall(app, DELETE_CHARACTER))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects useItem without a bearer (D-21)', async () => {
+            expect(errorCodeOf(await graphqlCall(app, USE_ITEM))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
         });

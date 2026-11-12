@@ -19,10 +19,12 @@ import {
     QUEUE_CALL_TIMEOUT,
     QUEUE_CALL_TIMEOUT_MS,
 } from 'src/queues/queue-call-timeout';
+import { CharacterStatusResolver } from './character-status.resolver';
 import { CharacterUpdatesPublisher } from './character-updates.publisher';
 import { CharactersResolver } from './characters.resolver';
 import { PendingQuestStartPublisher } from './pending-quest-start.publisher';
 import { CharactersService } from './characters.service';
+import { ItemUseModule } from './items/item-use.module';
 import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
 
 @Module({
@@ -37,10 +39,13 @@ import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
         BullModule.registerQueue({ name: SPELL_RECOVERY_QUEUE }),
         AuthzModule,
         EconomyModule,
+        // bevuta dal Diario (Phase 18): modulo sibling senza Bull
+        ItemUseModule,
     ],
     providers: [
         CharactersService,
         CharactersResolver,
+        CharacterStatusResolver,
         CharacterUpdatesPublisher,
         PendingQuestStartPublisher,
         { provide: Clock, useClass: SystemClock },

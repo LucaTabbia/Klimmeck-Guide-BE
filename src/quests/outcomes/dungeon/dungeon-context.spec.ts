@@ -25,8 +25,7 @@ const combat = (): CombatContext => ({
             lifePoints: 100,
             xp: 20,
             damages: { base: [], energy: [] },
-            baseWeaknesses: [],
-            energyWeaknesses: [],
+            weaknesses: { base: [], energy: [] },
             quantity: 3,
         },
     ],
@@ -108,7 +107,7 @@ describe('buildDungeonContext', () => {
                         { itemType: 'LootItem', item: herbId, quantity: 3 },
                     ],
                     ownedEquipments: [{ item: swordId, quantity: 1 }],
-                    wearedEquipment: { rightHand: swordId },
+                    wornEquipment: { rightHand: swordId },
                 }),
                 snapshot(otherId, {
                     ownedItems: [
@@ -148,22 +147,22 @@ describe('buildDungeonContext', () => {
             participants: [
                 snapshot(heroId, {
                     ownedEquipments: [{ item: swordId, quantity: 1 }],
-                    wearedEquipment: { rightHand: swordId },
+                    wornEquipment: { rightHand: swordId },
                 }),
                 snapshot(otherId, {
                     ownedEquipments: [
                         { item: swordId, quantity: 1 },
                         { item: { _id: swordId }, quantity: 1 },
                     ],
-                    wearedEquipment: { rightHand: swordId },
+                    wornEquipment: { rightHand: swordId },
                 }),
                 snapshot(wornOnlyId, {
                     ownedEquipments: [],
-                    wearedEquipment: { rightHand: swordId },
+                    wornEquipment: { rightHand: swordId },
                 }),
                 snapshot(twoHandsId, {
                     ownedEquipments: [{ item: swordId, quantity: 1 }],
-                    wearedEquipment: {
+                    wornEquipment: {
                         rightHand: swordId,
                         leftHand: swordId.toHexString(),
                     },

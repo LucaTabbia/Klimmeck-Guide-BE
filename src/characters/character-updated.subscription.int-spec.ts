@@ -6,6 +6,7 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import { Pet } from 'src/models/pet.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { User, UserDocument } from 'src/models/user.model';
@@ -22,7 +23,8 @@ import {
     characterTouch,
     primeChangeStream,
 } from '../../test/harness/prime-change-stream';
-import { persistSpell, spellBook } from '../../test/fixtures';
+import { persistSpell, spellStatesOf } from '../../test/fixtures';
+import { buildOwnedPet } from '../../test/fixtures/owned-pet.fixture';
 import { persistPet } from '../../test/fixtures/pet.fixture';
 
 const CHARACTER_UPDATED =
@@ -37,13 +39,16 @@ type CharacterUpdatedResult = { characterUpdated: WireCharacter };
 type CharacterSubscription = OpenSubscription<CharacterUpdatedResult>;
 
 const CHARACTER_SPELLS_UPDATED =
-    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { spellStates { spell { id } usages recoveries } } assets { activeSpells { usages spell { id } } } } }';
+    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { spellStates { active spell { id } usages recoveries } } } }';
+
+const EQUIP_SPELL =
+    'mutation($request: EquipSpellRequest!) { equipSpell(request: $request) { successful response } }';
 
 const USE_SPELL =
     'mutation($request: UseSpellRequest!) { useSpell(request: $request) { successful response } }';
 
 const CHARACTER_PETS_SELECTION =
-    'assets { pet { id name speedModifier } ownedPets { id name speedModifier sellable } }';
+    'assets { pet { id name speedModifier } ownedPets { pet { id name speedModifier sellable } xp currentLifePoints } }';
 
 const CHARACTER_PETS_UPDATED = `subscription OnCharacter($id: String!) { characterUpdated(id: $id) { ${CHARACTER_PETS_SELECTION} } }`;
 
@@ -56,8 +61,14 @@ interface WirePet {
     sellable?: boolean | null;
 }
 
+interface WireOwnedPet {
+    pet: WirePet;
+    xp: number;
+    currentLifePoints: number;
+}
+
 interface WirePetsCharacter {
-    assets: { pet: WirePet | null; ownedPets: WirePet[] };
+    assets: { pet: WirePet | null; ownedPets: WireOwnedPet[] };
 }
 
 type PetsUpdatedResult = { characterUpdated: WirePetsCharacter };
@@ -75,6 +86,13 @@ type LoreUpdatedResult = {
     characterUpdated: { status: { unlockedLore: string[] } };
 };
 
+const CHARACTER_SLOTS_UPDATED =
+    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { maxActiveSpells } } }';
+
+type SlotsUpdatedResult = {
+    characterUpdated: { status: { maxActiveSpells: number } };
+};
+
 const MINUTE_MS = 60_000;
 
 interface WireSpellCharacter {
@@ -83,9 +101,9 @@ interface WireSpellCharacter {
             spell: { id: string };
             usages: number;
             recoveries: string[];
+            active: boolean;
         }[];
     };
-    assets: { activeSpells: { usages: number; spell: { id: string } }[] };
 }
 
 type SpellsUpdatedResult = { characterUpdated: WireSpellCharacter };
@@ -170,7 +188,13 @@ describe('characterUpdated subscription (wire)', () => {
             {
                 $set: {
                     'assets.pet': cavallo._id,
-                    'assets.ownedPets': [cavallo._id, gatto._id],
+                    'assets.ownedPets': [
+                        buildOwnedPet(cavallo._id as Types.ObjectId, {
+                            xp: 12,
+                            currentLifePoints: 80,
+                        }),
+                        buildOwnedPet(gatto._id as Types.ObjectId),
+                    ],
                 },
             },
         );
@@ -186,16 +210,24 @@ describe('characterUpdated subscription (wire)', () => {
             },
             ownedPets: [
                 {
-                    id: cavalloId,
-                    name: 'Cavallo da viaggio',
-                    speedModifier: 2,
-                    sellable: null,
+                    pet: {
+                        id: cavalloId,
+                        name: 'Cavallo da viaggio',
+                        speedModifier: 2,
+                        sellable: null,
+                    },
+                    xp: 12,
+                    currentLifePoints: 80,
                 },
                 {
-                    id: gattoId,
-                    name: 'Gatto',
-                    speedModifier: null,
-                    sellable: null,
+                    pet: {
+                        id: gattoId,
+                        name: 'Gatto',
+                        speedModifier: null,
+                        sellable: null,
+                    },
+                    xp: 0,
+                    currentLifePoints: 10,
                 },
             ],
         };
@@ -367,24 +399,23 @@ describe('characterUpdated subscription (wire)', () => {
             recoveryTime: 10 * MINUTE_MS,
         });
         const spellId = (spell._id as Types.ObjectId).toHexString();
-        const book = spellBook([
-            {
-                spell: spell._id as Types.ObjectId,
-                usages: 1,
-                recoveries: [
-                    new Date(Date.now() + 2 * MINUTE_MS),
-                    new Date(Date.now() + 30 * MINUTE_MS),
-                ],
-                active: true,
-            },
-        ]);
+        // la sola lista delle voci (D-07): la magia è conosciuta ma non ancora equipaggiata
         await characters.updateOne(
             { _id: alice.character?._id },
             {
                 $set: {
-                    'status.spells': book.spells,
-                    'status.spellStates': book.spellStates,
-                    'assets.activeSpells': book.activeSpells,
+                    'status.title': 'mage',
+                    'status.xp': 20000,
+                    'status.spellStates': spellStatesOf([
+                        {
+                            spell: spell._id as Types.ObjectId,
+                            usages: 1,
+                            recoveries: [
+                                new Date(Date.now() + 2 * MINUTE_MS),
+                                new Date(Date.now() + 30 * MINUTE_MS),
+                            ],
+                        },
+                    ]),
                 },
             },
         );
@@ -405,6 +436,29 @@ describe('characterUpdated subscription (wire)', () => {
                 Date.now(),
             ),
         ).toBe(true);
+        expect(snapshot.status.spellStates[0].active).toBe(false);
+
+        const equipped = await graphqlRequest(
+            harness.app,
+            EQUIP_SPELL,
+            { request: { id: aliceCharId, spellId } },
+            alice.bearer,
+        );
+        expect(equipped.body).toEqual({
+            data: {
+                equipSpell: {
+                    successful: true,
+                    response: 'Magia equipaggiata con successo',
+                },
+            },
+        });
+        // dopo equipSpell la voce è attiva, con gli usi che aveva (D-07)
+        let afterEquip = snapshot;
+        while (!afterEquip.status.spellStates[0].active)
+            afterEquip = await nextSpellCharacter(subscription);
+        expect(afterEquip.status.spellStates).toMatchObject([
+            { active: true, usages: 1, spell: { id: spellId } },
+        ]);
 
         const used = await graphqlRequest(
             harness.app,
@@ -421,20 +475,19 @@ describe('characterUpdated subscription (wire)', () => {
             },
         });
 
-        // tutte le emissioni fino a quella con l'uso speso: stato e slot coincidono in ognuna
-        const emissions = [snapshot];
-        let last = snapshot;
+        // tutte le emissioni fino a quella con l'uso speso: la voce resta l'unica ed equipaggiata in ognuna
+        const emissions = [afterEquip];
+        let last = afterEquip;
         while (last.status.spellStates[0].usages !== 0) {
             last = await nextSpellCharacter(subscription);
             emissions.push(last);
         }
         for (const emission of emissions) {
-            expect(emission.assets.activeSpells).toHaveLength(1);
-            expect(emission.assets.activeSpells[0].usages).toBe(
-                emission.status.spellStates[0].usages,
-            );
+            expect(emission.status.spellStates).toHaveLength(1);
+            expect(emission.status.spellStates[0].active).toBe(true);
         }
-        expect(last.assets.activeSpells[0]).toEqual({
+        expect(last.status.spellStates[0]).toMatchObject({
+            active: true,
             usages: 0,
             spell: { id: spellId },
         });
@@ -483,6 +536,130 @@ describe('characterUpdated subscription (wire)', () => {
         expect(served.body).toEqual({
             data: {
                 character: { assets: expectedPetsAssets(cavalloId, gattoId) },
+            },
+        });
+    });
+
+    it('serves the state of an owned pet and hides an orphan entry (D-03, D-23)', async () => {
+        const cavallo = await persistPet(harness.connection.model(Pet.name), {
+            name: 'Cavallo da viaggio',
+            speedModifier: 2,
+        });
+        const owned = [
+            buildOwnedPet(cavallo._id as Types.ObjectId, {
+                xp: 12,
+                currentLifePoints: 80,
+            }),
+            buildOwnedPet(new Types.ObjectId(), { currentLifePoints: 0 }),
+        ];
+        await characters.updateOne(
+            { _id: alice.character?._id },
+            { $set: { 'assets.ownedPets': owned } },
+        );
+
+        const served = await graphqlRequest(
+            harness.app,
+            CHARACTER_PETS_QUERY,
+            { id: aliceCharId },
+            alice.bearer,
+        );
+
+        expect(served.body).toEqual({
+            data: {
+                character: {
+                    assets: {
+                        pet: null,
+                        ownedPets: [
+                            {
+                                pet: {
+                                    id: String(cavallo._id),
+                                    name: 'Cavallo da viaggio',
+                                    speedModifier: 2,
+                                    sellable: null,
+                                },
+                                xp: 12,
+                                currentLifePoints: 80,
+                            },
+                        ],
+                    },
+                },
+            },
+        });
+        const raw = await characters.collection.findOne({
+            _id: alice.character?._id as Types.ObjectId,
+        });
+        expect(raw?.assets.ownedPets).toEqual(owned);
+    });
+
+    // uno script col driver nativo salta i validatori: numeri nulli, assenti o frazionari, ref non leggibile
+    async function giveAliceBrokenOwnedPets(): Promise<WireOwnedPet[]> {
+        const pets = harness.connection.model(Pet.name);
+        const named = async (name: string) =>
+            (await persistPet(pets, { name, speedModifier: null }))
+                ._id as Types.ObjectId;
+        const [cavallo, gatto, gufo] = [
+            await named('Cavallo'),
+            await named('Gatto'),
+            await named('Gufo'),
+        ];
+        await characters.collection.updateOne(
+            { _id: alice.character?._id as Types.ObjectId },
+            {
+                $set: {
+                    'assets.ownedPets': [
+                        { pet: cavallo, xp: null, currentLifePoints: 80 },
+                        { pet: gatto, xp: 12 },
+                        { pet: 'not-an-id', xp: 1, currentLifePoints: 1 },
+                        { pet: gufo, xp: 120.5, currentLifePoints: -4 },
+                    ],
+                },
+            },
+        );
+        const served = (id: Types.ObjectId, name: string) => ({
+            id: String(id),
+            name,
+            speedModifier: null,
+            sellable: null,
+        });
+        return [
+            { pet: served(cavallo, 'Cavallo'), xp: 0, currentLifePoints: 80 },
+            { pet: served(gatto, 'Gatto'), xp: 12, currentLifePoints: 0 },
+            { pet: served(gufo, 'Gufo'), xp: 120, currentLifePoints: 0 },
+        ];
+    }
+
+    it('serves a broken owned pet entry with valid amounts instead of nulling the character (D-03, D-23)', async () => {
+        const ownedPets = await giveAliceBrokenOwnedPets();
+
+        const served = await graphqlRequest(
+            harness.app,
+            CHARACTER_PETS_QUERY,
+            { id: aliceCharId },
+            alice.bearer,
+        );
+
+        expect(served.body).toEqual({
+            data: { character: { assets: { pet: null, ownedPets } } },
+        });
+    });
+
+    it('carries a broken owned pet entry with valid amounts in the snapshot (D-03, D-23)', async () => {
+        const ownedPets = await giveAliceBrokenOwnedPets();
+        const subscription = openSubscription<PetsUpdatedResult>(
+            url,
+            { Authorization: alice.bearer },
+            { query: CHARACTER_PETS_UPDATED, variables: { id: aliceCharId } },
+        );
+        opened.push(subscription);
+
+        const snapshot = await subscription.next();
+
+        expect(snapshot).toEqual({
+            done: false,
+            value: {
+                data: {
+                    characterUpdated: { assets: { pet: null, ownedPets } },
+                },
             },
         });
     });
@@ -589,6 +766,34 @@ describe('characterUpdated subscription (wire)', () => {
                         status: { unlockedLore: [loreId.toHexString()] },
                     },
                 },
+            },
+        });
+    });
+
+    it('serves the computed max active spells on the character stream (D-08)', async () => {
+        const subscription = openSubscription<SlotsUpdatedResult>(
+            url,
+            { Authorization: alice.bearer },
+            { query: CHARACTER_SLOTS_UPDATED, variables: { id: aliceCharId } },
+        );
+        opened.push(subscription);
+
+        expect(await subscription.next()).toEqual({
+            done: false,
+            value: {
+                data: { characterUpdated: { status: { maxActiveSpells: 0 } } },
+            },
+        });
+
+        await characters.updateOne(
+            { _id: alice.character?._id },
+            { $set: { 'status.title': TitleType.mage } },
+        );
+
+        expect(await subscription.next()).toEqual({
+            done: false,
+            value: {
+                data: { characterUpdated: { status: { maxActiveSpells: 1 } } },
             },
         });
     });

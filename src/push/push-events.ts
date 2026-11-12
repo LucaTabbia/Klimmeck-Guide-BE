@@ -37,6 +37,12 @@ const CATALOG: Record<PushEventType, CatalogEntry> = {
         body: 'Sei stato sconfitto: la via torna verso la città più vicina.',
         ttlSeconds: PERSONAL_TTL_SECONDS,
     },
+    [PushEventType.prisonRelease]: {
+        type: PushEventType.prisonRelease,
+        title: 'Di nuovo libero',
+        body: "La prigionia è finita: torna all'avventura.",
+        ttlSeconds: PERSONAL_TTL_SECONDS,
+    },
 };
 
 const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
@@ -44,6 +50,7 @@ const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
     PushEventType.questEnd,
     PushEventType.questCancelled,
     PushEventType.ambushDefeat,
+    PushEventType.prisonRelease,
 ]);
 
 // Phase 8 (fine viaggio), Phase 9 (esiti delle missioni, OutcomeWriter), Phase 6 (stream.online) chiamano PushService con questi builder (D-12)
@@ -72,6 +79,12 @@ export const ambushDefeat = (
     ...CATALOG[PushEventType.ambushDefeat],
     id: characterId,
     body: `Sei stato sconfitto: la via torna verso ${cityName}`,
+});
+
+// fine della prigione (quick 261110-prp): id = personaggio, come travelEnd
+export const prisonRelease = (characterId: string): PushMessage => ({
+    ...CATALOG[PushEventType.prisonRelease],
+    id: characterId,
 });
 
 export const streamerLive = (): PushMessage => ({

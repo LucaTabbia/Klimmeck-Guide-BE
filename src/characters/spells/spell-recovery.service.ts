@@ -23,7 +23,7 @@ const UNCREDITABLE_MEMORY_LIMIT = 1_000;
 const pairKey = (characterId: Types.ObjectId, spellId: Types.ObjectId) =>
     `${characterId.toHexString()}:${spellId.toHexString()}`;
 
-// unico punto del credito per processor e sweep: nessun filtro sullo slot, la magia recupera anche fuori dagli slot (D-01)
+// unico punto del credito per processor e sweep: nessun filtro sul flag `active`, la magia recupera anche da non equipaggiata (D-01)
 @Injectable()
 export class SpellRecoveryService {
     private readonly logger = new Logger(SpellRecoveryService.name);

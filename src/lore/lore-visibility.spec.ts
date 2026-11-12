@@ -5,6 +5,7 @@ import {
     isVisible,
     knowsEnemy,
     visibilityOf,
+    visibleLoreIdsOf,
     visibleRelated,
 } from 'src/lore/lore-visibility';
 
@@ -64,5 +65,44 @@ describe('lore visibility', () => {
             docC,
         ]);
         expect(visibleRelated(visibility, undefined)).toEqual([]);
+    });
+
+    describe('visibleLoreIdsOf', () => {
+        const player = visibilityOf({ unlockedLore: [a, b], knownEnemies: [] });
+
+        it('keeps every readable ref for a viewer that sees everything (D-19)', () => {
+            expect(visibleLoreIdsOf(SEES_EVERYTHING, [c, a])).toEqual([c, a]);
+        });
+
+        it('keeps only the unlocked refs of a player, in the order of the refs (D-19)', () => {
+            expect(visibleLoreIdsOf(player, [c, b, a])).toEqual([b, a]);
+        });
+
+        it('returns nothing for a viewer that sees nothing (D-19)', () => {
+            expect(visibleLoreIdsOf(SEES_NOTHING, [a])).toEqual([]);
+            expect(visibleLoreIdsOf(SEES_EVERYTHING, null)).toEqual([]);
+            expect(visibleLoreIdsOf(SEES_EVERYTHING, undefined)).toEqual([]);
+        });
+
+        it('reads ids stored as strings and populated documents alike (D-23)', () => {
+            expect(
+                visibleLoreIdsOf(SEES_EVERYTHING, [
+                    a.toHexString(),
+                    { _id: b },
+                ]),
+            ).toEqual([a, b]);
+        });
+
+        it('drops unreadable refs and duplicates (D-23)', () => {
+            expect(
+                visibleLoreIdsOf(SEES_EVERYTHING, [
+                    a,
+                    'nope',
+                    null,
+                    42,
+                    a.toHexString(),
+                ]),
+            ).toEqual([a]);
+        });
     });
 });

@@ -4,13 +4,13 @@ import { TitleType } from 'src/models/enums/title-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import {
-    BOSS_PET_PRIZE_CHANCE,
+    GENERATED_PRIZES,
     GeneratedQuestType,
     LOOT_POOLS,
-    PetCandidate,
     PrizeCatalogItem,
     prizesOf,
 } from 'src/quests/generation/generated-prizes';
+import { PetCandidate } from 'src/quests/generation/pet-prize';
 import {
     GENERATED_RANKS,
     GeneratedRank,
@@ -50,7 +50,29 @@ const catalog: PrizeCatalogItem[] = RARITIES.flatMap((rarity) => [
     loot(`${rarity}-l3`, rarity),
 ]);
 
-const pets: PetCandidate[] = [{ id: 'p2' }, { id: 'p1' }, { id: 'p3' }];
+const QUEST_ENEMY = 'e1';
+const QUEST_POI_TYPE = 'forest';
+
+const pet = (
+    id: string,
+    overrides: Partial<PetCandidate> = {},
+): PetCandidate => ({
+    id,
+    rarity: RarityType.common,
+    sellable: false,
+    enemyId: null,
+    enemyLocations: [],
+    ...overrides,
+});
+
+// due mai in vendita (p2, p3), uno legato al nemico della quest (p1), uno della zona (p3)
+const pets: PetCandidate[] = [
+    pet('p2'),
+    pet('p1', { sellable: true, enemyId: QUEST_ENEMY }),
+    pet('p3', { enemyId: 'e9', enemyLocations: [QUEST_POI_TYPE] }),
+];
+
+const NO_LOOT: PrizeCatalogItem[] = [];
 
 const rarityOf = (id: string): string =>
     catalog.find((entry) => entry.id === id)?.rarity ?? 'missing';
@@ -61,7 +83,15 @@ function draw(
     chance: ChanceSource = new SequenceChance([], 0),
     items: readonly PrizeCatalogItem[] = catalog,
 ) {
-    return prizesOf({ type, rank, catalog: items, pets, chance });
+    return prizesOf({
+        type,
+        rank,
+        catalog: items,
+        pets,
+        enemyIds: [QUEST_ENEMY],
+        poiTypes: [QUEST_POI_TYPE],
+        chance,
+    });
 }
 
 function countByRarity(ids: readonly string[]): Record<string, number> {
@@ -72,6 +102,15 @@ function countByRarity(ids: readonly string[]): Record<string, number> {
     }
     return counts;
 }
+
+describe('generated quest types', () => {
+    it('generates only enemy and boss quests, never a magic one (quick 261110-mag)', () => {
+        expect(Object.keys(GENERATED_PRIZES).sort()).toEqual([
+            QuestType.boss,
+            QuestType.enemy,
+        ]);
+    });
+});
 
 describe('prizesOf', () => {
     it('pays coins and xp from the table times the rank multiplier (D-19)', () => {
@@ -157,22 +196,20 @@ describe('prizesOf', () => {
             loot('food-common', RarityType.common, EffectType.hunger),
         ];
 
-        const rare = prizesOf({
-            type: QuestType.enemy,
-            rank: TitleType.mage,
-            catalog: items,
-            pets,
-            chance: new SequenceChance([], 0),
-        });
+        const rare = draw(
+            QuestType.enemy,
+            TitleType.mage,
+            new SequenceChance([], 0),
+            items,
+        );
         expect(rare.randomLoot).toEqual([]);
 
-        const common = prizesOf({
-            type: QuestType.enemy,
-            rank: TitleType.rookie,
-            catalog: items,
-            pets,
-            chance: new SequenceChance([0], 0),
-        });
+        const common = draw(
+            QuestType.enemy,
+            TitleType.rookie,
+            new SequenceChance([0], 0),
+            items,
+        );
         expect(common.randomLoot).toEqual([
             { itemType: 'LootItem', item: 'food-common', quantity: 1 },
         ]);
@@ -193,47 +230,58 @@ describe('prizesOf', () => {
         ]);
     });
 
-    it('puts a pet prize only on bosses one time in a hundred (D-21)', () => {
-        expect(BOSS_PET_PRIZE_CHANCE).toBe(0.01);
-        const noLoot: PrizeCatalogItem[] = [];
+    it('offers the pet linked to a quest enemy on an enemy quest too (D-28)', () => {
+        const { pet: offered } = draw(
+            QuestType.enemy,
+            TitleType.paladin,
+            new SequenceChance([0.05, 0]),
+            NO_LOOT,
+        );
 
-        const won = prizesOf({
-            type: QuestType.boss,
-            rank: TitleType.rookie,
-            catalog: noLoot,
-            pets,
-            chance: new SequenceChance([0.009, 0.5]),
-        });
-        expect(won.pet).toBe('p2');
+        expect(offered).toBe('p1');
+    });
 
-        const lost = prizesOf({
-            type: QuestType.boss,
-            rank: TitleType.rookie,
-            catalog: noLoot,
-            pets,
-            chance: new SequenceChance([0.01, 0.5]),
-        });
-        expect(lost.pet).toBeNull();
+    it('offers a boss-only pet in the third band (D-28)', () => {
+        const onType = (type: GeneratedQuestType) =>
+            draw(
+                type,
+                TitleType.paladin,
+                new SequenceChance([0.17, 0]),
+                NO_LOOT,
+            ).pet;
 
-        const enemyChance = new SequenceChance([0], 0);
-        const enemy = prizesOf({
+        expect(onType(QuestType.boss)).toBe('p2');
+        expect(onType(QuestType.enemy)).toBeNull();
+    });
+
+    it('draws the pet roll after the loot on every generated quest (D-28)', () => {
+        const withoutPets = new SequenceChance([0], 0);
+        const none = prizesOf({
             type: QuestType.enemy,
             rank: TitleType.paladin,
-            catalog: noLoot,
-            pets,
-            chance: enemyChance,
-        });
-        expect(enemy.pet).toBeNull();
-        expect(enemyChance.drawn).toEqual([]);
-
-        const empty = prizesOf({
-            type: QuestType.boss,
-            rank: TitleType.rookie,
-            catalog: noLoot,
+            catalog: NO_LOOT,
             pets: [],
-            chance: new SequenceChance([0], 0),
+            enemyIds: [QUEST_ENEMY],
+            poiTypes: [QUEST_POI_TYPE],
+            chance: withoutPets,
         });
-        expect(empty.pet).toBeNull();
+        expect(none.pet).toBeNull();
+        expect(withoutPets.drawn).toEqual([0]);
+
+        const afterLoot = new SequenceChance([0.9, 0.9, 0.9, 0.05, 0]);
+        const full = draw(QuestType.enemy, TitleType.paladin, afterLoot);
+        expect(full.randomLoot).toHaveLength(3);
+        expect(full.pet).toBe('p1');
+        expect(afterLoot.drawn).toEqual([0.9, 0.9, 0.9, 0.05, 0]);
+    });
+
+    it('offers no pet when the roll misses every band (D-28)', () => {
+        const chance = new SequenceChance([0.2, 0]);
+
+        expect(
+            draw(QuestType.boss, TitleType.paladin, chance, NO_LOOT).pet,
+        ).toBeNull();
+        expect(chance.drawn).toEqual([0.2]);
     });
 
     it('shrinks a pool slot to what the catalogue has (D-20)', () => {

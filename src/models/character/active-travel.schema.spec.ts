@@ -170,6 +170,19 @@ describe('active travel schemas', () => {
         ).toContain('ambushReports.0.nearCity');
     });
 
+    it('keeps the companion xp of a held report through the schema (D-19)', () => {
+        const Travel = model('ActiveTravelCompanionProbe', ActiveTravelSchema);
+        const reportsOf = (reports: Record<string, unknown>[]) =>
+            new Travel({ ...AMBUSH_TRAVEL, ambushReports: reports }).toObject()
+                .ambushReports ?? [];
+
+        expect(
+            reportsOf([{ ...heldReport(), petXpGained: 30 }, heldReport()]).map(
+                (report) => report.petXpGained,
+            ),
+        ).toEqual([30, 0]);
+    });
+
     it('knows only free and quest travels', () => {
         expect(Object.values(TravelKind)).toEqual(['free', 'quest']);
     });

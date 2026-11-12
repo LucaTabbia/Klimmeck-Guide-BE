@@ -44,7 +44,7 @@ export class Equipment {
         ref: EquipmentItem.name,
         default: null,
     })
-    foots?: Types.ObjectId | EquipmentItem | null;
+    feet?: Types.ObjectId | EquipmentItem | null;
 
     @Field(() => EquipmentItem, { nullable: true })
     @Prop({
@@ -97,7 +97,7 @@ export class EquipmentInput {
     legs?: string | null;
 
     @Field(() => ID, { nullable: true })
-    foots?: string | null;
+    feet?: string | null;
 
     @Field(() => ID, { nullable: true })
     leftHand?: string | null;

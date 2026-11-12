@@ -23,6 +23,8 @@ export interface PrizesSnapshot {
     spell?: unknown;
     spellDraw?: unknown;
     pet?: unknown;
+    // cura esplicita (Phase 18 D-01): la legge e la sanifica cureOf
+    cure?: unknown;
 }
 
 export interface RewardItem {
@@ -37,9 +39,10 @@ export interface SpellCandidate {
     maxUsages: number;
 }
 
-// pool ordinato per id esadecimale crescente: lo stesso tiro dà la stessa magia
+// pool ordinato per id esadecimale crescente: gate decide se si impara, roll sceglie fra le imparabili (quick 261111-sdc)
 export interface SpellDraw {
     pool: readonly SpellCandidate[];
+    gate: number;
     roll: number;
 }
 
@@ -58,6 +61,10 @@ export interface DrawnRewards {
     spellCandidate: SpellCandidate | null;
     spellDraw: SpellDraw | null;
     pet: Types.ObjectId | null;
+    // `maxLifePoints` del pet vinto come sta a catalogo, non validato: lo sanifica la voce (Phase 19 D-03)
+    petLifePoints: unknown;
+    // lore collegate al pet vinto, vuota senza pet (Phase 19 D-26)
+    petLore: Types.ObjectId[];
     loreDraw: LoreDraw | null;
 }
 
@@ -65,8 +72,10 @@ export interface RewardCatalog {
     rarities: ReadonlyMap<string, RarityType | null>;
     spells: ReadonlyMap<string, { minXpToLearn: number; maxUsages: number }>;
     spellPool: readonly SpellCandidate[];
-    // hex dei pet esistenti fra quelli in premio (D-21)
-    pets: ReadonlySet<string>;
+    // hex dei pet esistenti fra quelli in premio (D-21) → `maxLifePoints` del catalogo (Phase 19 D-03)
+    pets: ReadonlyMap<string, unknown>;
+    // hex del pet in premio → lore collegate a catalogo, già sanificate (Phase 19 D-26)
+    petLore?: ReadonlyMap<string, readonly Types.ObjectId[]>;
     // solo per una study (Phase 16 D-08, C-3): tutte le lore dei tipi dello studio, il piano le filtra contro lo snapshot
     studyLorePool?: readonly Types.ObjectId[];
     studyLoreChance?: number;
@@ -85,11 +94,16 @@ export const NO_REWARDS: DrawnRewards = {
     spellCandidate: null,
     spellDraw: null,
     pet: null,
+    petLifePoints: null,
+    petLore: [],
     loreDraw: null,
 };
 
 // «un 20% può andare bene» (D-21)
 export const QUEST_PET_WIN_CHANCE = 0.2;
+
+// «vorrei che ci fosse il 30% di probabilità di ottenere una magia» (quick 261111-sdc)
+export const SPELL_DRAW_CHANCE = 0.3;
 
 const REWARD_ITEM_TYPES: readonly unknown[] = [
     'EquipmentItem',
@@ -180,15 +194,19 @@ function spellCandidateOf(
         : null;
 }
 
-// D-31: tiro dopo quello del loot e solo col booleano true, così le altre quest consumano gli stessi tiri di prima
+// D-31: tiri dopo quello del loot e solo col booleano true, così le altre quest consumano gli stessi tiri di prima;
+// prima il gate e poi la scelta, come lo studio delle lore (quick 261111-sdc)
 function spellDrawOf(
     prizes: PrizesSnapshot,
     catalog: RewardCatalog,
     chance: ChanceSource,
 ): SpellDraw | null {
-    return prizes.spellDraw === true
-        ? { pool: catalog.spellPool, roll: chance.next() }
-        : null;
+    if (prizes.spellDraw !== true) return null;
+    return {
+        pool: catalog.spellPool,
+        gate: chance.next(),
+        roll: chance.next(),
+    };
 }
 
 // D-21: tiro dopo loot e magia e solo per un pet a catalogo, così le quest senza pet consumano gli stessi tiri di prima
@@ -239,6 +257,8 @@ export function drawRewards(
         spellCandidate: spellCandidateOf(prizes, catalog),
         spellDraw,
         pet,
+        petLifePoints: pet ? catalog.pets.get(pet.toHexString()) : null,
+        petLore: [...((pet && catalog.petLore?.get(pet.toHexString())) ?? [])],
         loreDraw,
     };
 }
@@ -255,13 +275,13 @@ export function canLearnSpell(
         : candidate.spellId;
 }
 
-// D-31: stesso cancello di canLearnSpell (xp dopo i premi, magia non nota) applicato a tutto il pool
+// D-31: stesso cancello di canLearnSpell (xp dopo i premi, magia non nota) applicato a tutto il pool, dopo il gate del 30%
 export function drawLearnableSpell(
     draw: SpellDraw | null,
     xpAfter: number,
     knownSpells: readonly unknown[],
 ): SpellCandidate | null {
-    if (!draw) return null;
+    if (!draw || draw.gate >= SPELL_DRAW_CHANCE) return null;
     const learnable = draw.pool.filter(
         (candidate) =>
             candidate.minXpToLearn <= xpAfter &&
