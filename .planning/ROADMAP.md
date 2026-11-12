@@ -198,7 +198,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
-| 20. Cibo e vita progressivi in viaggio | v1.1 | 0/11 | Planned | - |
+| 20. Cibo e vita progressivi in viaggio | v1.1 | 0/11 | In Progress | - |
 
 ---
 

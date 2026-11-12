@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Phase 20 pianificata (11 piani, 2026-11-12) — prossimo passo /gsd-execute-phase 20"
+stopped_at: "Phase 20 in esecuzione (0/11, 2026-11-12)"
 last_updated: "2026-11-12T19:04:44.629Z"
-last_activity: 2026-11-12 -- Phase 20 pianificata (ricerca, regole di repo, validazione, 11 piani)
+last_activity: 2026-11-12 -- Phase 20 in esecuzione (executor sequenziali, 0/11)
 progress:
   total_phases: 3
   completed_phases: 2
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 20 — Cibo e vita progressivi in viaggio (solo BE) — PIANIFICATA il 12 novembre 2026 su `feat/20-cibo-e-vita-progressivi` (da `develop`): 11 piani in catena, ready to execute; la Phase 19 è chiusa e in `develop`
+**Current focus:** Phase 20 — Cibo e vita progressivi in viaggio (solo BE) — IN ESECUZIONE dal 12 novembre 2026 su `feat/20-cibo-e-vita-progressivi` (da `develop`): 11 piani in catena, un executor alla volta sull'albero principale; la Phase 19 è chiusa e in `develop`
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
 Phase: 20 di 22 (Cibo e vita progressivi in viaggio) — contesto del 2026-11-09 (D-01..D-12) emendato il 2026-11-12 dopo la ricerca (D-13..D-19), `20-REPO-RULES.md`, `20-RESEARCH.md`, `20-VALIDATION.md`, 11 piani scritti il 2026-11-12
 Plan: 0 of 11
-Status: Phase 20 pianificata — ready to execute (11 piani sequenziali: modello e funzioni pure, assestamento, arrivo, sweep, imboscata ×2, teleport, partenza libera, partenza da quest, gate, handoff)
-Last activity: 2026-11-12 -- Phase 20 pianificata (ricerca, regole di repo, validazione, 11 piani)
+Status: Phase 20 in esecuzione — executing (11 piani sequenziali: modello e funzioni pure, assestamento, arrivo, sweep, imboscata ×2, teleport, partenza libera, partenza da quest, gate, handoff)
+Last activity: 2026-11-12 -- Phase 20 in esecuzione (executor sequenziali, 0/11)
 Next step: `/gsd-execute-phase 20` con executor sequenziali sull'albero principale; poi riavvio del BE dal ramo e UAT su device con l'app com'è (handoff §4); le Phase 21 e 22 (contesti sui rami `feat/21-…` e `feat/22-…`) restano da pianificare con le FE Phase 20 e 21.
 
 ## Current Milestone
