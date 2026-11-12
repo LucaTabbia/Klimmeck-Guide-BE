@@ -191,7 +191,7 @@ describe('TravelPantryReader (replSet)', () => {
             assets: { ownedItems: [foodStack(food20, 2)] },
         });
 
-        const { plan, pantry } = await reader.planFor(id, LEG);
+        const plan = await reader.planFor(id, LEG);
 
         expect(plan).toEqual({
             consumed: [{ itemId: idOf(food20), quantity: 2 }],
@@ -202,7 +202,6 @@ describe('TravelPantryReader (replSet)', () => {
             hpAfter: 85,
             arrivesAlive: true,
         });
-        expect(pantry.hpRaw).toBe(100);
     });
     it('skips a food without catalog document (D-09)', async () => {
         const food20 = await persistFood(lootItems, 20);
