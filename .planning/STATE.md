@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
 Phase: 20 di 22 (Cibo e vita progressivi in viaggio) — contesto del 2026-11-09 (D-01..D-12) emendato il 2026-11-12 dopo la ricerca (D-13..D-19), `20-REPO-RULES.md`, `20-RESEARCH.md`, `20-VALIDATION.md`, 11 piani scritti il 2026-11-12
-Plan: 10 of 11
+Plan: 11 of 11
 Status: Phase 20 eseguita (11/11) — executing — in attesa di riavvio reale e UAT su device (PR, riavvio e UAT a cura dell'orchestratore)
 Last activity: 2026-11-13 -- Phase 20 piano 11 completato (handoff `BACKEND-NOTES.md` §0–§5 con piano di UAT su device, VALIDATION firmata, BE-FOODP-01..05 chiusi; gate dopo i fix della review: unit 274/3591, integration 141/2037, coverage travel 98,75/86,99/99,37 e acceptance 99,06/92,79/99,73, SDL identico; 11/11)
 Next step: orchestratore — `npm run test:cov`, verifica e audit di sicurezza della Phase 20, build e riavvio del BE dal ramo, UAT su device con l'app com'è (handoff §4), PR verso `develop`; le Phase 21 e 22 (contesti sui rami `feat/21-…` e `feat/22-…`) restano da pianificare con le FE Phase 20 e 21.

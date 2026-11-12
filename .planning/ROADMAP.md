@@ -158,7 +158,7 @@ Plans:
 - [x] 20-08-PLAN.md — La partenza libera salva il piano e smette di consumare
 - [x] 20-09-PLAN.md — La partenza da quest salva il piano e smette di consumare
 - [x] 20-10-PLAN.md — Gate della fase
-- [ ] 20-11-PLAN.md — Chiusura della fase
+- [x] 20-11-PLAN.md — Chiusura della fase
 
 **Stato (2026-11-13)**: 11/11 piani eseguiti; gate verde (dopo i fix della review: unit 274/3591, integration 141/2037); handoff `BACKEND-NOTES.md` scritto; `test:cov`, verifica e audit di sicurezza, PR verso develop, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §4) a cura dell'orchestratore
 
@@ -200,7 +200,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
-| 20. Cibo e vita progressivi in viaggio | v1.1 | 10/11 | In Progress | - |
+| 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | In Progress | - |
 
 ---
 
