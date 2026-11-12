@@ -73,6 +73,9 @@ Le righe per task le scrive il piano (bookkeeping di fine piano, REPO-RULES); qu
 | 20-05-01 | 05 | 5 | BE-FOODP-03, BE-FOODP-04, BE-FOODP-05 | T-20-22, T-20-23 | `ambushFoodOf`, `withFoodSettlement`, `defeatSettlementOf`: fame e pasto al km salvato (mai dall'ora), pasto dei km percorsi per la sconfitta, legacy e piano malformato senza passo | unit | `npx jest src/travel/ambush/ambush-food.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 20-05-02 | 05 | 5 | BE-FOODP-03, BE-FOODP-04, BE-FOODP-05 | T-20-23, T-20-24, T-20-25 | `planAmbushOutcome` col passo «cibo»: vittoria con `settledKm` e pasto, `hpBefore` fame compresa, sconfitta col cibo dei km percorsi e deviazione senza piano, guardie in una sola lista, legacy senza path | unit | `npx jest src/travel/ambush --selectProjects unit` | ✅ | ✅ green |
 | 20-05-03 | 05 | 5 | — | — | bookkeeping del piano 05 | — | `grep -qF -- "- [x] 20-05-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
+| 20-06-01 | 06 | 6 | BE-FOODP-05 | — | `TravellerOptions` con `distanceKm`, `durationMs`, `food`; default identici | integration | `npx jest src/travel/ambush/ambush-resolution.int-spec.ts src/travel/ambush/ambush-sweeper.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 20-06-02 | 06 | 6 | BE-FOODP-03, BE-FOODP-04, BE-FOODP-05 | T-20-26, T-20-27, T-20-28 | `AmbushResolutionService`: catalogo del cibo fuori dalla transazione, combattimento con la vita del km salvato (945 al km 290), vittoria col piano, sconfitta col cibo dei km percorsi e deviazione senza piano, legacy intatto | integration | `npx jest src/travel/ambush --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 20-06-03 | 06 | 6 | — | — | bookkeeping del piano 06 | — | `grep -qF -- "- [x] 20-06-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

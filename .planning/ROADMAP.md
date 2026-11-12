@@ -153,7 +153,7 @@ Plans:
 - [x] 20-03-PLAN.md — L'arrivo assesta fame e cibo
 - [x] 20-04-PLAN.md — Il passo «fame» dello sweep
 - [x] 20-05-PLAN.md — Imboscata, parte pura
-- [ ] 20-06-PLAN.md — Imboscata, cablaggio nel servizio
+- [x] 20-06-PLAN.md — Imboscata, cablaggio nel servizio
 - [ ] 20-07-PLAN.md — Teleport a viaggio iniziato
 - [ ] 20-08-PLAN.md — La partenza libera salva il piano e smette di consumare
 - [ ] 20-09-PLAN.md — La partenza da quest salva il piano e smette di consumare
@@ -198,7 +198,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
-| 20. Cibo e vita progressivi in viaggio | v1.1 | 5/11 | In Progress | - |
+| 20. Cibo e vita progressivi in viaggio | v1.1 | 6/11 | In Progress | - |
 
 ---
 
