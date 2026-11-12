@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
 Phase: 20 di 22 (Cibo e vita progressivi in viaggio) — contesto del 2026-11-09 (D-01..D-12) emendato il 2026-11-12 dopo la ricerca (D-13..D-19), `20-REPO-RULES.md`, `20-RESEARCH.md`, `20-VALIDATION.md`, 11 piani scritti il 2026-11-12
-Plan: 06 of 11
+Plan: 07 of 11
 Status: Phase 20 in esecuzione — executing (11 piani sequenziali: modello e funzioni pure, assestamento, arrivo, sweep, imboscata ×2, teleport, partenza libera, partenza da quest, gate, handoff)
-Last activity: 2026-11-12 -- Phase 20 piano 06 completato (imboscata cablata nel servizio: catalogo del cibo fuori dalla transazione, combattimento con la vita vera del km salvato, sconfitta col cibo dei km percorsi, provato sul replica set; 6/11)
+Last activity: 2026-11-12 -- Phase 20 piano 07 completato (teleport dell'oste a viaggio iniziato chiuso come una sconfitta: cibo dei km percorsi e fame fino al km del momento nello stesso update, legacy, deviazione e personaggio fermo intatti, provato sul replica set; 7/11)
 Next step: `/gsd-execute-phase 20` con executor sequenziali sull'albero principale; poi riavvio del BE dal ramo e UAT su device con l'app com'è (handoff §4); le Phase 21 e 22 (contesti sui rami `feat/21-…` e `feat/22-…`) restano da pianificare con le FE Phase 20 e 21.
 
 ## Current Milestone

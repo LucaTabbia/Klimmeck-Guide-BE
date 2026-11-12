@@ -76,6 +76,9 @@ Le righe per task le scrive il piano (bookkeeping di fine piano, REPO-RULES); qu
 | 20-06-01 | 06 | 6 | BE-FOODP-05 | — | `TravellerOptions` con `distanceKm`, `durationMs`, `food`; default identici | integration | `npx jest src/travel/ambush/ambush-resolution.int-spec.ts src/travel/ambush/ambush-sweeper.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 20-06-02 | 06 | 6 | BE-FOODP-03, BE-FOODP-04, BE-FOODP-05 | T-20-26, T-20-27, T-20-28 | `AmbushResolutionService`: catalogo del cibo fuori dalla transazione, combattimento con la vita del km salvato (945 al km 290), vittoria col piano, sconfitta col cibo dei km percorsi e deviazione senza piano, legacy intatto | integration | `npx jest src/travel/ambush --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 20-06-03 | 06 | 6 | — | — | bookkeeping del piano 06 | — | `grep -qF -- "- [x] 20-06-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
+| 20-07-01 | 07 | 7 | BE-FOODP-03 | T-20-32 | `teleportUpdate` col set di chiusura (solo vita e dispensa) e `TELEPORT_FOOD_PROJECTION` | unit | `npx jest src/travel/travel.updates.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 20-07-02 | 07 | 7 | BE-FOODP-03, BE-FOODP-05 | T-20-30, T-20-31, T-20-32, T-20-33 | teleport a viaggio iniziato = sconfitta: cibo dei km percorsi, fame fino al km del momento (anche all'imboscata pendente), dispensa abbondante pro-rata, legacy e fermo intatti | integration | `npx jest src/travel/teleport.resolver.int-spec.ts src/travel/travel.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 20-07-03 | 07 | 7 | — | — | bookkeeping del piano 07 | — | `grep -qF -- "- [x] 20-07-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
