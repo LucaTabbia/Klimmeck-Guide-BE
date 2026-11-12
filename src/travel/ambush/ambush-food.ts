@@ -29,9 +29,9 @@ export function ambushFoodOf(input: AmbushFoodInput): AmbushFood | null {
     const { snapshot, catalog, now } = input;
     const travel = snapshot.status.activeTravel;
     const leg = foodLegOf(travel);
-    if (!leg) return null;
-    // km salvato, mai dall'ora (Phase 20 D-16)
+    // km salvato, mai dall'ora (Phase 20 D-16); senza un km finito nessun passo del cibo, come reachedKmOf
     const km = travel.ambush.km;
+    if (!leg || !Number.isFinite(km)) return null;
     const ownedItems = snapshot.assets?.ownedItems ?? [];
     const lifeNow = statusFactsOf(snapshot).currentLifePoints;
     const progress = settlementOf({
