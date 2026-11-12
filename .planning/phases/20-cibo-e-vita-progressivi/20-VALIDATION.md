@@ -61,6 +61,9 @@ Le righe per task le scrive il piano (bookkeeping di fine piano, REPO-RULES); qu
 | 20-01-01 | 01 | 1 | BE-FOODP-01, BE-FOODP-05 | T-20-01, T-20-04 | `ActiveTravelFood` interno su `ActiveTravel.food`, assente sui legacy, SDL identico | unit + integration | `npx jest src/models/character/active-travel.schema.spec.ts --selectProjects unit`; `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` + `git diff --exit-code src/schema.gql` | ✅ | ✅ green |
 | 20-01-02 | 01 | 1 | BE-FOODP-02, BE-FOODP-05 | T-20-02, T-20-03 | `travelKmAt`, `coveredKmOf`, `travelHungerAt`, `hungerBetween`, `foodPlanOf`; griglia di 350 partizioni sui totali della Phase 14 | unit | `npx jest src/travel/food src/travel/travel-timing.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 20-01-03 | 01 | 1 | — | — | bookkeeping del piano 01 | — | `grep -qF -- "- [x] 20-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
+| 20-02-01 | 02 | 2 | BE-FOODP-02, BE-FOODP-03, BE-FOODP-05 | T-20-05, T-20-06, T-20-09 | `settlementOf`, `settlementIsDue`, `reachedKmOf`, `foodLegOf`: fame incrementale clampata, pasto nei tre momenti, fail-safe del confine | unit | `npx jest src/travel/food/travel-food-settlement.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 20-02-02 | 02 | 2 | BE-FOODP-02, BE-FOODP-03, BE-FOODP-05 | T-20-05, T-20-07, T-20-08, T-20-10 | `settlementSetOf`, `foodProgressSetOf`, `settlementGuardsOf`; `foodCatalogFor` pubblico, `stacksOf` esportato | unit + integration | `npx jest src/travel/food --selectProjects unit`; `npx jest src/travel/food/travel-pantry.reader.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 20-02-03 | 02 | 2 | — | — | bookkeeping del piano 02 | — | `grep -qF -- "- [x] 20-02-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -72,7 +75,7 @@ Le spec nuove nascono nel commit RED del task che le usa (TDD, REPO-RULES): ness
 
 - [ ] `test/travel/ambush-world.ts` — `TravellerOptions` con `distanceKm`, `durationMs`, `food` (viaggi da 400 km sulla polilinea R1)
 - [ ] `test/travel/active-travel.fixture.ts` — opzione `food` per `buildActiveTravelDoc` e builder `buildActiveTravelFood(overrides)`
-- [ ] `src/travel/food/travel-food-settlement.spec.ts` — unit dell'assestamento puro (BE-FOODP-02, BE-FOODP-03)
+- [x] `src/travel/food/travel-food-settlement.spec.ts` — unit dell'assestamento puro (BE-FOODP-02, BE-FOODP-03)
 - [ ] `src/travel/food/travel-food.sweep.int-spec.ts` — sweep con `FixedClock` e `sweepIntervalMs: 0` (BE-FOODP-02, BE-FOODP-03)
 
 Harness: nessuno nuovo. Nessuna installazione di framework.
