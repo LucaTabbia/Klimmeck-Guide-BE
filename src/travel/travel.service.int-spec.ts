@@ -2,6 +2,10 @@ import { getQueueToken } from '@nestjs/bull';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { PUSH_CONFIG } from 'src/config/push-config';
+import {
+    applyTradeToInventory,
+    type InventoryEntry,
+} from 'src/economy/trade/trade-inventory';
 import { TRAVEL_CONFIG } from 'src/config/travel-config';
 import {
     Character,
@@ -19,8 +23,11 @@ import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-res
 import { AMBUSH_JOB, ambushJobId } from './ambush/ambush-job';
 import { TravelPantryReader } from './food/travel-pantry.reader';
 import { foodNeededFor, hpLostFor, uncoveredKmOf } from './food/travel-food';
+import { selectFood } from './food/food-selection';
+import { mealLinesOf } from './food/travel-food.updates';
 import { travelJobId, TRAVEL_QUEUE } from './travel-job';
 import { TravelPlanner } from './travel-planner.service';
+import { TravelSweeper } from './travel-sweeper';
 import { BASE_SPEED, durationMsOf } from './travel-timing';
 import { TravelModule } from './travel.module';
 import { TravelService } from './travel.service';
@@ -706,5 +713,167 @@ describe('TravelService ambush at departure (Phase 15)', () => {
         await travel.preview(id, world.markers.borgo);
 
         expect(chance.drawn.length).toBe(0);
+    });
+});
+
+const END_TO_END_STEPS = 7;
+const MILLISECONDS_PER_SECOND = 1000;
+
+// partenza, sweep a scatti e arrivo veri (Phase 20): totali di fine viaggio identici alla Phase 14
+describe('TravelService progressive food end to end (Phase 20)', () => {
+    let harness: AuthTestApp;
+    let travel: TravelService;
+    let roads: RoadsService;
+    let characters: Model<CharacterDocument>;
+    let lootItems: Model<any>;
+    let world: AmbushWorld;
+    let seq = 0;
+    const clock = new FixedClock(STARTED_AT);
+
+    beforeAll(async () => {
+        harness = await createCharactersTestApp({
+            clock,
+            imports: [TravelModule],
+            overrides: [
+                {
+                    token: getQueueToken(TRAVEL_QUEUE),
+                    useValue: new FakeTravelQueue(),
+                },
+                {
+                    token: getQueueToken(QUEST_RESOLUTION_QUEUE),
+                    useValue: new FakeTravelQueue(),
+                },
+                { token: PushTransport, useValue: new FakePushTransport() },
+                { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
+                { token: TRAVEL_CONFIG, useValue: { sweepIntervalMs: 0 } },
+                { token: ChanceSource, useValue: new SequenceChance() },
+            ],
+        });
+        travel = harness.app.get(TravelService);
+        roads = harness.app.get(RoadsService);
+        characters = harness.app.get<Model<CharacterDocument>>(
+            getModelToken(Character.name),
+        );
+        lootItems = harness.app.get<Model<any>>(getModelToken(LootItem.name));
+        await Promise.all([characters.init(), lootItems.init()]);
+    });
+
+    beforeEach(async () => {
+        await harness.clearDatabase();
+        world = await persistAmbushWorld(harness.connection, roads);
+        moveClockTo(STARTED_AT);
+    });
+
+    afterAll(async () => {
+        await harness.close();
+    });
+
+    function moveClockTo(date: Date): void {
+        clock.advanceSeconds(
+            (date.getTime() - clock.now().getTime()) / MILLISECONDS_PER_SECOND,
+        );
+    }
+
+    async function travellerAtAlba(): Promise<Types.ObjectId> {
+        seq += 1;
+        const base = buildCharacter();
+        const player = await createPlayer(harness, {
+            twitchId: `tw-travel-food-${seq}`,
+            characterOverrides: {
+                infos: { ...base.infos, name: `Viandante affamato ${seq}` },
+                status: {
+                    ...base.status,
+                    location: world.markers.alba,
+                    activeTravel: null,
+                    currentLifePoints: HARDY_LIFE_POINTS,
+                    maxLifePoints: HARDY_LIFE_POINTS,
+                    injuries: [],
+                },
+                assets: { ...base.assets, ownedItems: [], pet: null },
+            },
+        });
+        return player.character!._id as Types.ObjectId;
+    }
+
+    function rawCharacter(id: Types.ObjectId) {
+        return characters.collection.findOne({ _id: id });
+    }
+
+    async function fillPantry(id: Types.ObjectId, ownedItems: unknown[]) {
+        await characters.collection.updateOne(
+            { _id: id },
+            { $set: { 'assets.ownedItems': ownedItems } },
+        );
+    }
+
+    // sette scatti dentro la durata, poi uno oltre la fine: l'ultimo sweep completa il viaggio
+    async function walkToTheEnd(
+        id: Types.ObjectId,
+        duration: number,
+    ): Promise<number[]> {
+        const lives: number[] = [];
+        const step = duration / END_TO_END_STEPS / MILLISECONDS_PER_SECOND;
+        for (let i = 0; i <= END_TO_END_STEPS; i++) {
+            clock.advanceSeconds(step);
+            await harness.app.get(TravelSweeper).sweep();
+            lives.push((await rawCharacter(id))?.status.currentLifePoints);
+        }
+        return lives;
+    }
+
+    it('charges at the end of the road exactly the Phase 14 total, step by step (D-02, D-13)', async () => {
+        const f1 = await persistFood(lootItems, 1);
+        const id = await travellerAtAlba();
+        const preview = await travel.preview(id, world.markers.borgo);
+        const needed = foodNeededFor(preview.duration);
+        const covered = Math.floor(needed / 2);
+        const distance = preview.distance;
+        await fillPantry(id, [foodStack(f1, covered)]);
+
+        await travel.startTravel(id, world.markers.borgo);
+
+        const departed = await rawCharacter(id);
+        expect(departed?.status.activeTravel.food.needed).toBe(needed);
+        expect(departed?.assets.ownedItems).toEqual([foodStack(f1, covered)]);
+        expect(departed?.status.currentLifePoints).toBe(HARDY_LIFE_POINTS);
+
+        const lives = await walkToTheEnd(id, preview.duration);
+
+        const arrived = await rawCharacter(id);
+        const hpLost = hpLostFor(uncoveredKmOf(needed, covered, distance));
+        expect(hpLost).toBeGreaterThan(0);
+        expect(arrived?.status.activeTravel).toBeNull();
+        expect(arrived?.status.location).toEqual(world.markers.borgo);
+        expect(HARDY_LIFE_POINTS - arrived?.status.currentLifePoints).toBe(
+            hpLost,
+        );
+        expect(arrived?.assets.ownedItems).toEqual([]);
+        lives.forEach((life, i) =>
+            expect(life).toBeLessThanOrEqual(lives[i - 1] ?? HARDY_LIFE_POINTS),
+        );
+    });
+
+    it('eats at the boundary the same food the Phase 14 ate at departure (D-03, D-13)', async () => {
+        const f1 = await persistFood(lootItems, 1);
+        const f5 = await persistFood(lootItems, 5);
+        const id = await travellerAtAlba();
+        const preview = await travel.preview(id, world.markers.borgo);
+        const needed = foodNeededFor(preview.duration);
+        const ownedItems = [foodStack(f1, needed), foodStack(f5, 2)];
+        await fillPantry(id, ownedItems);
+        const { stacks } = await harness.app.get(TravelPantryReader).read(id);
+        const expected = applyTradeToInventory(
+            { ownedItems: ownedItems as InventoryEntry[] },
+            mealLinesOf(selectFood(needed, stacks).consumed),
+        ).ownedItems;
+
+        await travel.startTravel(id, world.markers.borgo);
+        await walkToTheEnd(id, preview.duration);
+
+        const arrived = await rawCharacter(id);
+        expect(arrived?.status.activeTravel).toBeNull();
+        expect(arrived?.assets.ownedItems).toEqual(expected);
+        expect(arrived?.assets.ownedItems).not.toEqual(ownedItems);
+        expect(arrived?.status.currentLifePoints).toBe(HARDY_LIFE_POINTS);
     });
 });
