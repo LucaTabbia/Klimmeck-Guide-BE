@@ -29,7 +29,7 @@ import {
     QuestStartService,
     soloStartDateOf,
 } from 'src/quests/party/quest-start.service';
-import { mealGuardsOf, mealSetOf } from 'src/travel/food/travel-food.updates';
+import { foodPlanOf } from 'src/travel/food/travel-food';
 import {
     notImprisonedAt,
     refusalWhileImprisoned,
@@ -141,6 +141,21 @@ const CHARACTER_PROJECTION = {
     'assets.pet': 1,
 };
 
+// il viaggio automatico salva il piano del cibo letto in sessione (Phase 20 D-05); salto e nessun movimento restano senza piano (D-06)
+function movementWithFoodPlan(
+    movement: LaneMovement | null,
+    meal: PlannedMeal | null,
+): LaneMovement | null {
+    if (movement?.kind !== 'travel' || !meal) return movement;
+    return {
+        kind: 'travel',
+        travel: {
+            ...movement.travel,
+            food: foodPlanOf(meal.plan, movement.travel.road.distance),
+        },
+    };
+}
+
 @Injectable()
 export class QuestAcceptanceService {
     private readonly logger = new Logger(QuestAcceptanceService.name);
@@ -220,7 +235,7 @@ export class QuestAcceptanceService {
         await this.connection.transaction(async (session) => {
             // il callback viene rieseguito sui WriteConflict: lo stato riparte da zero
             registration.before = null;
-            // la dispensa in sessione prima del claim (D-12): salto, nessun movimento, story e worldMission non mangiano (D-13)
+            // la dispensa in sessione prima del claim fa fede per fame e piano (Phase 20 D-05): salto, nessun movimento, story e worldMission non la leggono (D-06)
             const meal =
                 movement?.kind === 'travel'
                     ? await this.pantry.planFor(
@@ -374,7 +389,7 @@ export class QuestAcceptanceService {
             throw GameRuleException.questNoEffect();
     }
 
-    // pre-verifica fuori sessione: solo il viaggio mangia (D-13)
+    // pre-verifica fuori sessione: solo il viaggio ha un piano del cibo (D-13)
     private async fedOrReject(
         characterId: Types.ObjectId,
         movement: LaneMovement | null,
@@ -473,7 +488,7 @@ export class QuestAcceptanceService {
         return location;
     }
 
-    // consumo e HP nello stesso update condizionale del claim, quantità e HP riaffermati nel filtro (D-12)
+    // piano del cibo nello stesso update condizionale del claim, nessun consumo (Phase 20 D-05)
     private async claimLane(
         {
             characterId,
@@ -498,18 +513,12 @@ export class QuestAcceptanceService {
                     claim,
                     quest.id,
                     isRepeatable(quest.type),
-                    {
-                        ...notImprisonedAt(now),
-                        ...(meal
-                            ? mealGuardsOf(meal.plan, meal.pantry.hpRaw)
-                            : {}),
-                    },
+                    notImprisonedAt(now),
                 ),
                 laneClaimUpdate(
                     lane,
                     pendingQuestId,
-                    movement,
-                    meal ? mealSetOf(meal.plan, meal.pantry.assets) : {},
+                    movementWithFoodPlan(movement, meal),
                 ),
                 { session, projection: { _id: 1 } },
             )
