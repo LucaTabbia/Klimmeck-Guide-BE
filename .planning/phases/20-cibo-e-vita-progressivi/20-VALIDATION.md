@@ -1,9 +1,9 @@
 ---
 phase: 20
 slug: cibo-e-vita-progressivi
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-12
 ---
 
@@ -40,24 +40,24 @@ Le righe per task le scrive il piano (bookkeeping di fine piano, REPO-RULES); qu
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| (mappa 01) | — | — | BE-FOODP-01 | — | piano salvato alla partenza libera, inventario e vita intatti | integration | `npx jest src/travel/travel.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| (mappa 02) | — | — | BE-FOODP-01 | — | piano salvato nel claim, salto e marker senza piano | integration | `npx jest src/quests/acceptance/quest-acceptance.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| (mappa 03) | — | — | BE-FOODP-01 | — | builder di partenza/claim con `food`, nessun meal set | unit | `npx jest src/travel/travel.updates.spec.ts src/quests/acceptance/quest-acceptance.updates.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
-| (mappa 04) | — | — | BE-FOODP-01 | — | `foodPlanOf` (campi, `uncoveredKm`, clamp di `coveredKm`) | unit | `npx jest src/travel/food/travel-food.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
-| (mappa 05) | — | — | BE-FOODP-02 | — | `travelKmAt` (0, metà, clamp, duration 0) | unit | `npx jest src/travel/travel-timing.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
-| (mappa 06) | — | — | BE-FOODP-02 | — | `travelHungerAt`/`hungerBetween`: 0 km, confine, oltre, intero, proprietà dei totali, nessun negativo | unit | `npx jest src/travel/food/travel-food.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
-| (mappa 07) | — | — | BE-FOODP-02 | — | `settlementOf`: clamp a 1, nessuna scrittura a incremento zero, vita oltre il massimo non abbassata | unit | `npx jest src/travel/food/travel-food-settlement.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
-| (mappa 08) | — | — | BE-FOODP-02 | — | sweep: niente prima del confine; scatti dopo; pozione fra due sweep; imboscata pendente limita il km; doppio sweep idempotente; legacy ignorato | integration | `npx jest src/travel/food/travel-food.sweep.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
-| (mappa 09) | — | — | BE-FOODP-02 | — | `TravelSweeper` chiama il passo dopo i completamenti, errore isolato | unit | `npx jest src/travel/travel-sweeper.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
-| (mappa 10) | — | — | BE-FOODP-03 | — | selezione parziale: 30 km su 400 → fabbisogno di 30 km; 400 → tutto; dopo il confine = (a) | unit | `npx jest src/travel/food/travel-food-settlement.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
-| (mappa 11) | — | — | BE-FOODP-03 | — | pasto al confine una volta sola; acquisto/pozione concorrente conservati | integration | `npx jest src/travel/food/travel-food.sweep.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
-| (mappa 12) | — | — | BE-FOODP-03 | — | teleport a metà: (c) + fame al km; senza viaggio/deviazione/legacy nulla | integration | `npx jest src/travel/teleport.resolver.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| (mappa 13) | — | — | BE-FOODP-04 | — | imboscata al km 290: vita d'ingresso esatta nel contesto; vittoria conserva il piano con `settledKm = km` | integration | `npx jest src/travel/ambush/ambush-resolution.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| (mappa 14) | — | — | BE-FOODP-04 | — | sconfitta al km 30 di 400: cibo pro-rata, deviazione senza `food`; legacy invariato (701) | integration | idem | ✅ | ⬜ pending |
-| (mappa 15) | — | — | BE-FOODP-04 | — | arrivo: fame fino a `distanceKm`, pasto (b), totali = Phase 14; doppio trigger una volta; legacy invariato | integration | `npx jest src/travel/travel-completion.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| (mappa 16) | — | — | BE-FOODP-04 | — | piano puro dell'imboscata con assestamento (vittoria/sconfitta, legacy) | unit | `npx jest src/travel/ambush/ambush-plan.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
-| (mappa 17) | — | — | BE-FOODP-05 | — | SDL identico al boot reale | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` + `git diff --exit-code src/schema.gql` | ✅ | ⬜ pending |
-| (mappa 18) | — | — | BE-FOODP-05 | — | indice dichiarato e costruito (se OQ-4) | unit + integration | `npx jest src/models/sweep-indexes.schema.spec.ts --selectProjects unit`; `npx jest src/mongo/sweep-index.verifier.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| (mappa 01) | — | — | BE-FOODP-01 | — | piano salvato alla partenza libera, inventario e vita intatti | integration | `npx jest src/travel/travel.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| (mappa 02) | — | — | BE-FOODP-01 | — | piano salvato nel claim, salto e marker senza piano | integration | `npx jest src/quests/acceptance/quest-acceptance.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| (mappa 03) | — | — | BE-FOODP-01 | — | builder di partenza/claim con `food`, nessun meal set | unit | `npx jest src/travel/travel.updates.spec.ts src/quests/acceptance/quest-acceptance.updates.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| (mappa 04) | — | — | BE-FOODP-01 | — | `foodPlanOf` (campi, `uncoveredKm`, clamp di `coveredKm`) | unit | `npx jest src/travel/food/travel-food.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| (mappa 05) | — | — | BE-FOODP-02 | — | `travelKmAt` (0, metà, clamp, duration 0) | unit | `npx jest src/travel/travel-timing.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| (mappa 06) | — | — | BE-FOODP-02 | — | `travelHungerAt`/`hungerBetween`: 0 km, confine, oltre, intero, proprietà dei totali, nessun negativo | unit | `npx jest src/travel/food/travel-food.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| (mappa 07) | — | — | BE-FOODP-02 | — | `settlementOf`: clamp a 1, nessuna scrittura a incremento zero, vita oltre il massimo non abbassata | unit | `npx jest src/travel/food/travel-food-settlement.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| (mappa 08) | — | — | BE-FOODP-02 | — | sweep: niente prima del confine; scatti dopo; pozione fra due sweep; imboscata pendente limita il km; doppio sweep idempotente; legacy ignorato | integration | `npx jest src/travel/food/travel-food.sweep.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| (mappa 09) | — | — | BE-FOODP-02 | — | `TravelSweeper` chiama il passo dopo i completamenti, errore isolato | unit | `npx jest src/travel/travel-sweeper.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| (mappa 10) | — | — | BE-FOODP-03 | — | selezione parziale: 30 km su 400 → fabbisogno di 30 km; 400 → tutto; dopo il confine = (a) | unit | `npx jest src/travel/food/travel-food-settlement.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| (mappa 11) | — | — | BE-FOODP-03 | — | pasto al confine una volta sola; acquisto/pozione concorrente conservati | integration | `npx jest src/travel/food/travel-food.sweep.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| (mappa 12) | — | — | BE-FOODP-03 | — | teleport a metà: (c) + fame al km; senza viaggio/deviazione/legacy nulla | integration | `npx jest src/travel/teleport.resolver.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| (mappa 13) | — | — | BE-FOODP-04 | — | imboscata al km 290: vita d'ingresso esatta nel contesto; vittoria conserva il piano con `settledKm = km` | integration | `npx jest src/travel/ambush/ambush-resolution.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| (mappa 14) | — | — | BE-FOODP-04 | — | sconfitta al km 30 di 400: cibo pro-rata, deviazione senza `food`; legacy invariato (701) | integration | idem | ✅ | ✅ green |
+| (mappa 15) | — | — | BE-FOODP-04 | — | arrivo: fame fino a `distanceKm`, pasto (b), totali = Phase 14; doppio trigger una volta; legacy invariato | integration | `npx jest src/travel/travel-completion.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| (mappa 16) | — | — | BE-FOODP-04 | — | piano puro dell'imboscata con assestamento (vittoria/sconfitta, legacy) | unit | `npx jest src/travel/ambush/ambush-plan.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| (mappa 17) | — | — | BE-FOODP-05 | — | SDL identico al boot reale | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` + `git diff --exit-code src/schema.gql` | ✅ | ✅ green |
+| (mappa 18) | — | — | BE-FOODP-05 | — | indice dichiarato e costruito (se OQ-4) | unit + integration | `npx jest src/models/sweep-indexes.schema.spec.ts --selectProjects unit`; `npx jest src/mongo/sweep-index.verifier.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 20-01-01 | 01 | 1 | BE-FOODP-01, BE-FOODP-05 | T-20-01, T-20-04 | `ActiveTravelFood` interno su `ActiveTravel.food`, assente sui legacy, SDL identico | unit + integration | `npx jest src/models/character/active-travel.schema.spec.ts --selectProjects unit`; `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` + `git diff --exit-code src/schema.gql` | ✅ | ✅ green |
 | 20-01-02 | 01 | 1 | BE-FOODP-02, BE-FOODP-05 | T-20-02, T-20-03 | `travelKmAt`, `coveredKmOf`, `travelHungerAt`, `hungerBetween`, `foodPlanOf`; griglia di 350 partizioni sui totali della Phase 14 | unit | `npx jest src/travel/food src/travel/travel-timing.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 20-01-03 | 01 | 1 | — | — | bookkeeping del piano 01 | — | `grep -qF -- "- [x] 20-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
@@ -87,6 +87,8 @@ Le righe per task le scrive il piano (bookkeeping di fine piano, REPO-RULES); qu
 | 20-09-03 | 09 | 9 | — | — | bookkeeping del piano 09 | — | `grep -qF -- "- [x] 20-09-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 20-10-01 | 10 | 10 | BE-FOODP-01, BE-FOODP-02, BE-FOODP-03, BE-FOODP-04, BE-FOODP-05 | T-20-42, T-20-43, T-20-44, T-20-45, T-20-46, T-20-47 | gate: tsc, unit e integration complete senza coverage, boot reale, SDL identico alla base, coverage per cartella di travel e acceptance, lint mirato, invarianti | unit + integration | `npx tsc --noEmit -p tsconfig.json && npx jest --selectProjects unit && npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` | ✅ | ✅ green |
 | 20-10-02 | 10 | 10 | — | — | bookkeeping del piano 10 | — | `grep -qF -- "- [x] 20-10-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
+| 20-11-01 | 11 | 11 | BE-FOODP-05 | T-20-48 | handoff `BACKEND-NOTES.md`: §1 nessun cambio sul filo, §2 semantica nuova per la FE Phase 15, §3 prove, §4 UAT su device, §5 domande; nessun segreto, operatori solo in code span | doc | `grep -cE "^## [0-5]\." .planning/phases/20-cibo-e-vita-progressivi/BACKEND-NOTES.md` = 6 | ✅ | ✅ green |
+| 20-11-02 | 11 | 11 | BE-FOODP-01, BE-FOODP-02, BE-FOODP-03, BE-FOODP-04, BE-FOODP-05 | T-20-49 | VALIDATION firmata, requisiti chiusi dopo il gate, ROADMAP e STATE a 11/11 | doc | `grep -cE '\- \[x\] \*\*BE-FOODP-0[1-5]\*\*' .planning/REQUIREMENTS.md` = 5 | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -96,10 +98,10 @@ Le righe per task le scrive il piano (bookkeeping di fine piano, REPO-RULES); qu
 
 Le spec nuove nascono nel commit RED del task che le usa (TDD, REPO-RULES): nessun piano di soli scaffold.
 
-- [ ] `test/travel/ambush-world.ts` — `TravellerOptions` con `distanceKm`, `durationMs`, `food` (viaggi da 400 km sulla polilinea R1)
-- [ ] `test/travel/active-travel.fixture.ts` — opzione `food` per `buildActiveTravelDoc` e builder `buildActiveTravelFood(overrides)`
+- [x] `test/travel/ambush-world.ts` — `TravellerOptions` con `distanceKm`, `durationMs`, `food` (viaggi da 400 km sulla polilinea R1)
+- [x] `test/travel/active-travel.fixture.ts` — opzione `food` per `buildActiveTravelDoc` e builder `buildActiveTravelFood(overrides)`
 - [x] `src/travel/food/travel-food-settlement.spec.ts` — unit dell'assestamento puro (BE-FOODP-02, BE-FOODP-03)
-- [ ] `src/travel/food/travel-food.sweep.int-spec.ts` — sweep con `FixedClock` e `sweepIntervalMs: 0` (BE-FOODP-02, BE-FOODP-03)
+- [x] `src/travel/food/travel-food.sweep.int-spec.ts` — sweep con `FixedClock` e `sweepIntervalMs: 0` (BE-FOODP-02, BE-FOODP-03)
 
 Harness: nessuno nuovo. Nessuna installazione di framework.
 
@@ -116,11 +118,11 @@ Harness: nessuno nuovo. Nessuna installazione di framework.
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 150 s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 150 s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-11-13

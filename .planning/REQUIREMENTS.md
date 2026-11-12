@@ -37,11 +37,11 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 
 ### Progressive Travel Food (BE-FOODP) — Phase 20, aggiunta 2026-11-09
 
-- [ ] **BE-FOODP-01**: La partenza (libera e da quest) calcola il piano con `planTravelFood` come oggi (anteprima e rifiuto «arrivi vivo» identici) e lo salva su `activeTravel.food` (interno: fabbisogno, km coperti, perdita totale, km settati, cibo consumato) senza consumare cibo né scalare vita; i viaggi senza piano (iniziati prima del deploy) sono ignorati dalle regole nuove; nessun cambio SDL
-- [ ] **BE-FOODP-02**: Lo sweep del viaggio (`TRAVEL_SWEEP_INTERVAL_MS`) scala `currentLifePoints` solo oltre i km coperti, come perdita incrementale dei km fatti dall'ultimo passaggio con la curva triangolare della Phase 14 (il km scoperto n-esimo costa n HP), km dal tempo come il `km` dell'imboscata, scrittura atomica guardata da `settledKm`, mai sotto 1; pozioni e danni si sommano
-- [ ] **BE-FOODP-03**: Il cibo si toglie una sola volta per viaggio, in blocco, con la selezione a scarto minimo sul posseduto in quel momento: alla fine dei km coperti (fabbisogno totale), all'arrivo (come oggi) o alla sconfitta e al teleport a viaggio iniziato (fabbisogno dei soli km percorsi); consumo come vendita senza incasso con le guardie di quantità; la deviazione dopo la sconfitta non ha piano (né cibo né fame)
-- [ ] **BE-FOODP-04**: L'imboscata setta la fame esatta al suo km (e il cibo se oltre il confine) prima del combattimento; in vittoria il viaggio prosegue con lo stesso piano; l'arrivo setta la fame fino a fine percorso e il cibo nella transazione del completamento; i totali a fine viaggio coincidono con quelli della Phase 14
-- [ ] **BE-FOODP-05**: Unit (funzione pura, km dal tempo, selezione parziale), integration con orologio finto (partenza, sweep prima/dopo il confine, pozione fra due sweep, imboscata, sconfitta pro-rata, arrivo, teleport, legacy), boot reale con SDL identico, handoff `BACKEND-NOTES.md` con la semantica nuova e il piano di UAT su device
+- [x] **BE-FOODP-01**: La partenza (libera e da quest) calcola il piano con `planTravelFood` come oggi (anteprima e rifiuto «arrivi vivo» identici) e lo salva su `activeTravel.food` (interno: fabbisogno, km coperti, perdita totale, km settati, cibo consumato) senza consumare cibo né scalare vita; i viaggi senza piano (iniziati prima del deploy) sono ignorati dalle regole nuove; nessun cambio SDL
+- [x] **BE-FOODP-02**: Lo sweep del viaggio (`TRAVEL_SWEEP_INTERVAL_MS`) scala `currentLifePoints` solo oltre i km coperti, come perdita incrementale dei km fatti dall'ultimo passaggio con la curva triangolare della Phase 14 (il km scoperto n-esimo costa n HP), km dal tempo come il `km` dell'imboscata, scrittura atomica guardata da `settledKm`, mai sotto 1; pozioni e danni si sommano
+- [x] **BE-FOODP-03**: Il cibo si toglie una sola volta per viaggio, in blocco, con la selezione a scarto minimo sul posseduto in quel momento: alla fine dei km coperti (fabbisogno totale), all'arrivo (come oggi) o alla sconfitta e al teleport a viaggio iniziato (fabbisogno dei soli km percorsi); consumo come vendita senza incasso con le guardie di quantità; la deviazione dopo la sconfitta non ha piano (né cibo né fame)
+- [x] **BE-FOODP-04**: L'imboscata setta la fame esatta al suo km (e il cibo se oltre il confine) prima del combattimento; in vittoria il viaggio prosegue con lo stesso piano; l'arrivo setta la fame fino a fine percorso e il cibo nella transazione del completamento; i totali a fine viaggio coincidono con quelli della Phase 14
+- [x] **BE-FOODP-05**: Unit (funzione pura, km dal tempo, selezione parziale), integration con orologio finto (partenza, sweep prima/dopo il confine, pozione fra due sweep, imboscata, sconfitta pro-rata, arrivo, teleport, legacy), boot reale con SDL identico, handoff `BACKEND-NOTES.md` con la semantica nuova e il piano di UAT su device
 
 ## Future Requirements
 
@@ -89,11 +89,11 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-MODEL-10 | Phase 19 | Complete — chiuso l'11 novembre 2026: 44 pet collegati alle lore (43 esistenti + la lore nuova «Cavallo da viaggio») |
 | BE-MODEL-11 | Phase 19 | Complete — chiuso l'11 novembre 2026: 44 rarità a DB (13 common, 8 uncommon, 8 rare, 12 ultrarare, 3 legendary), Molosso vendibile, Scheletro ultrarare |
 | BE-MODEL-12 | Phase 19 | Complete — chiuso l'11 novembre 2026: 31 legami pet → nemico come ObjectId (13 pet senza nemico corrispondente) |
-| BE-FOODP-01 | Phase 20 | Pending |
-| BE-FOODP-02 | Phase 20 | Pending |
-| BE-FOODP-03 | Phase 20 | Pending |
-| BE-FOODP-04 | Phase 20 | Pending |
-| BE-FOODP-05 | Phase 20 | Pending |
+| BE-FOODP-01 | Phase 20 | Complete |
+| BE-FOODP-02 | Phase 20 | Complete |
+| BE-FOODP-03 | Phase 20 | Complete |
+| BE-FOODP-04 | Phase 20 | Complete |
+| BE-FOODP-05 | Phase 20 | Complete |
 
 **Coverage:** 26 / 26 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20). Nessun orfano, nessun duplicato.
 

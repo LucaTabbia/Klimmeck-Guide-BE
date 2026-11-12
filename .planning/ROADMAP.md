@@ -160,6 +160,8 @@ Plans:
 - [x] 20-10-PLAN.md — Gate della fase
 - [ ] 20-11-PLAN.md — Chiusura della fase
 
+**Stato (2026-11-13)**: 11/11 piani eseguiti; gate verde (dopo i fix della review: unit 274/3591, integration 141/2037); handoff `BACKEND-NOTES.md` scritto; `test:cov`, verifica e audit di sicurezza, PR verso develop, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §4) a cura dell'orchestratore
+
 ## Backend ↔ Frontend alignment (v1.1)
 
 | Vincolo FE | Fase BE che lo soddisfa | Nota |
