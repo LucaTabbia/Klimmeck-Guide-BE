@@ -157,7 +157,7 @@ Plans:
 - [x] 20-07-PLAN.md — Teleport a viaggio iniziato
 - [x] 20-08-PLAN.md — La partenza libera salva il piano e smette di consumare
 - [x] 20-09-PLAN.md — La partenza da quest salva il piano e smette di consumare
-- [ ] 20-10-PLAN.md — Gate della fase
+- [x] 20-10-PLAN.md — Gate della fase
 - [ ] 20-11-PLAN.md — Chiusura della fase
 
 ## Backend ↔ Frontend alignment (v1.1)
@@ -198,7 +198,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
-| 20. Cibo e vita progressivi in viaggio | v1.1 | 9/11 | In Progress | - |
+| 20. Cibo e vita progressivi in viaggio | v1.1 | 10/11 | In Progress | - |
 
 ---
 

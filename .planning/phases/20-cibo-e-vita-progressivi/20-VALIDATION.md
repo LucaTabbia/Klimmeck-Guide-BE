@@ -85,6 +85,8 @@ Le righe per task le scrive il piano (bookkeeping di fine piano, REPO-RULES); qu
 | 20-09-01 | 09 | 9 | BE-FOODP-01, BE-FOODP-05 | T-20-38, T-20-39, T-20-40 | claim della corsia standard: piano salvato su `activeTravel.food` nello stesso update, dispensa e vita intatte, rifiuto e corsa identici, due claim concorrenti = un piano, salto e marker senza piano | integration | `npx jest src/quests/acceptance/quest-acceptance.updates.spec.ts --selectProjects unit && npx jest src/quests/acceptance --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 20-09-02 | 09 | 9 | BE-FOODP-01 | T-20-41 | builder del consumo alla partenza rimossi, `mealLinesOf` resta per l'assestamento | unit | `npx jest src/travel/food --selectProjects unit` | ✅ | ✅ green |
 | 20-09-03 | 09 | 9 | — | — | bookkeeping del piano 09 | — | `grep -qF -- "- [x] 20-09-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
+| 20-10-01 | 10 | 10 | BE-FOODP-01, BE-FOODP-02, BE-FOODP-03, BE-FOODP-04, BE-FOODP-05 | T-20-42, T-20-43, T-20-44, T-20-45, T-20-46, T-20-47 | gate: tsc, unit e integration complete senza coverage, boot reale, SDL identico alla base, coverage per cartella di travel e acceptance, lint mirato, invarianti | unit + integration | `npx tsc --noEmit -p tsconfig.json && npx jest --selectProjects unit && npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` | ✅ | ✅ green |
+| 20-10-02 | 10 | 10 | — | — | bookkeeping del piano 10 | — | `grep -qF -- "- [x] 20-10-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
