@@ -37,6 +37,9 @@ const twentyEightF20 = () => [
     { itemType: 'LootItem' as const, item: F20, quantity: 28 },
 ];
 
+// viaggio legacy: nessuna chiave food nel viaggio
+const NO_PLAN = null;
+
 const snapshotAt = (
     km: number,
     food: unknown = plan(),
@@ -64,7 +67,7 @@ const snapshotAt = (
             to: TO_ID,
             kind: TravelKind.free,
             ambush: { at: atKm(km), km, attempts: 0 },
-            ...(food === undefined ? {} : { food }),
+            ...(food === NO_PLAN ? {} : { food }),
         },
     },
     quests: { completedQuests: [] },
@@ -76,7 +79,7 @@ const foodAt = (km: number, food: unknown = plan(), now = atKm(km)) =>
 
 describe('ambush food step', () => {
     it('has no food step for a travel without a saved plan (D-11)', () => {
-        expect(foodAt(290, undefined)).toBeNull();
+        expect(foodAt(290, NO_PLAN)).toBeNull();
         expect(foodAt(290, plan({ hpLostTotal: 1 }))).toBeNull();
     });
 
