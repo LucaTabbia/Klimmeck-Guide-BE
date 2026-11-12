@@ -1,6 +1,6 @@
 # Phase 22: Completamento guidato delle missioni - Context
 
-**Gathered:** 2026-11-12 (discuss fatto nella FE Phase 21, `Klimmeck-Guide/.planning/phases/21-innkeeper-mission-completion-flow/21-CONTEXT.md`, stessa numerazione D-01..D-11)
+**Gathered:** 2026-11-12 (discuss fatto nella FE Phase 21, `Klimmeck-Guide/.planning/phases/21-innkeeper-mission-completion-flow/21-CONTEXT.md`, stessa numerazione D-01..D-12)
 **Status:** Ready for planning — dopo la Phase 21 (blocchi premio per titolo)
 
 <domain>
@@ -24,6 +24,9 @@ L'oste completa una `story` o `worldMission` con un flusso guidato al posto del 
 - **D-09:** **Bozza salvata nel BE** sulla richiesta (passo, luogo, scontri e nemici, risultati simulati, correzioni, premi), ripresa da qualunque dispositivo dell'oste; si invalida se la richiesta sparisce; nessun effetto sui personaggi finché non si completa (il teleport è già reale).
 - **D-10:** I giocatori vedono il teleport, un **avviso «Missione in corso»** (stato esposto sul loro personaggio) e l'esito finale; bozza e simulazioni mai esposte a loro (utente, 2026-11-12, correggendo la prima risposta).
 - **D-11:** Dall'**avvio del flusso** (bozza creata) all'**arrivo del risultato** i partecipanti sono **bloccati**: niente partenza di viaggi né accettazione di quest, rifiuto nel BE con un codice proprio — utente: «Vorrei che avessero anche l'avviso "Missione in corso" e che fossero bloccati (così non rischio che inizino viaggi o quest mentre eseguo la loro quest) fino all'arrivo del risultato». Sblocco al completamento o allo scarto della bozza da parte dell'oste. **Bloccati anche acquisti e vendite, cambio di equipaggiamento e compagno, equip delle magie e pozioni** (cambiano lo stato su cui si simula; utente, 2026-11-12: «Blocchiamo anche quelle azioni»).
+
+### Stesso blocco per ogni missione (aggiunta 2026-11-12)
+- **D-12:** Lacuna trovata nel discuss: nelle missioni normali il personaggio si legge **solo alla risoluzione** (`resolution-loader.service.ts:382`) e `equipItem`/`equipPet`/`equipSpell`, `useItem` (rifiutata solo in attesa di soccorso) e il negozio (solo «in città») non controllano la missione in corso: si può cambiare arma o bere una pozione un minuto prima dello scontro. Scelta dell'utente (opzione 1 di 2, scartato lo snapshot all'inizio): **il blocco di D-11 vale per ogni missione** dall'**inizio effettivo** (corsia standard: arrivo alla quest, cioè il tempo d'attesa; boss e quest registrate: party avviato, `startedAt`) **fino all'esito**: niente cambi di equipaggiamento, compagno o magie, niente `useSpell` fuori combattimento, niente pozioni, niente negozio, con lo stesso stato «missione in corso»; viaggi e accettazioni sono già bloccati dalla corsia occupata. Una sola guardia nel BE (un predicato «personaggio bloccato» condiviso dalle mutation) e un solo avviso nella FE.
 
 ### Claude's Discretion
 - Forma SDL (query `missionEnemies`, mutation di simulazione, documento bozza vs campo sulla PendingQuest, completamento esteso vs mutation nuova), rimozione o convivenza del vecchio `completePendingRequest` con override (consiglio: il nuovo flusso lo sostituisce, FE gated).

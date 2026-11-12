@@ -61,6 +61,7 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 - [ ] **BE-GMFLOW-05**: Premi per personaggio dal blocco del titolo (Phase 21) con aggiunte/rimozioni dal catalogo filtrato per titolo, rivalidati nel BE (tetto di rarità, pet, magie solo `isSpellCaster` e con `minXpToLearn`)
 - [ ] **BE-GMFLOW-06**: Completamento in una transazione: stato finale, nemici in `QuestResult.enemies`, xp dei nemici e del compagno, conoscenza e lore di vittoria, premi scelti; sempre `gmCompleted`, nessuna aid
 - [ ] **BE-GMFLOW-08**: Dall'avvio del flusso al risultato i partecipanti espongono lo stato «missione in corso» e non possono partire, accettare quest, comprare o vendere, cambiare equipaggiamento, compagno o magie equipaggiate, né bere pozioni (codice di rifiuto proprio); sblocco al completamento o allo scarto della bozza
+- [ ] **BE-GMFLOW-09**: Lo stesso blocco vale per ogni missione dall'inizio effettivo (arrivo alla quest della corsia standard, `startedAt` delle registrate) all'esito: `equipItem`, `equipPet`, `unequipPet`, `equipSpell`, `unequipSpell`, `useSpell`, `useItem` e le transazioni del negozio rifiutate con lo stesso codice; stato «missione in corso» esposto sul personaggio
 - [ ] **BE-GMFLOW-07**: Ruolo innkeeper e audit su ogni operazione nuova; unit + integration; SDL al boot reale; handoff `BACKEND-NOTES.md` per la FE Phase 21 con una worldMission e una story d'esempio per l'UAT
 
 ## Future Requirements
@@ -128,8 +129,9 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-GMFLOW-06 | Phase 22 | Pending |
 | BE-GMFLOW-07 | Phase 22 | Pending |
 | BE-GMFLOW-08 | Phase 22 | Pending |
+| BE-GMFLOW-09 | Phase 22 | Pending |
 
-**Coverage:** 40 / 40 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21, 8 BE-GMFLOW → Phase 22). Nessun orfano, nessun duplicato.
+**Coverage:** 41 / 41 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21, 9 BE-GMFLOW → Phase 22). Nessun orfano, nessun duplicato.
 
 ---
 
