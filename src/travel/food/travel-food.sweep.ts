@@ -47,10 +47,20 @@ interface SettleOutcome {
 
 const NOTHING_SETTLED: SettleOutcome = { settled: false, curve: null };
 
+// memoria limitata dei viaggi già segnalati: oltre il tetto si svuota e un viaggio può essere segnalato di nuovo (D-15)
+export const MALFORMED_PLAN_WARNINGS_KEPT = 1_000;
+
+// l'istante di partenza distingue due viaggi dello stesso personaggio, anche quando non è una data
+function travelKeyOf(id: string, startTime: unknown): string {
+    const start = startTime instanceof Date ? startTime.getTime() : startTime;
+    return `${id}@${String(start)}`;
+}
+
 // passo «fame» dello sweep (Phase 20 D-01, D-03, D-15): nessuna scrittura nel tratto coperto, pasto al confine, fame a scatti di km oltre
 @Injectable()
 export class TravelFoodSweep {
     private readonly logger = new Logger(TravelFoodSweep.name);
+    private readonly warnedTravels = new Set<string>();
 
     constructor(
         @InjectConnection() private readonly connection: Connection,
@@ -85,9 +95,7 @@ export class TravelFoodSweep {
             const travel = traveller.status.activeTravel;
             const leg = foodLegOf(travel);
             if (!leg) {
-                this.logger.warn(
-                    `Viaggio del personaggio ${id}: piano del cibo non valido, ignorato`,
-                );
+                this.warnMalformedOnce(id, travel.startTime);
                 return false;
             }
             // niente transazione né characterUpdated quando non c'è nulla da scrivere (Pitfall 6)
@@ -169,6 +177,19 @@ export class TravelFoodSweep {
                   }
                 : null;
         return { settled, curve };
+    }
+
+    // una riga per viaggio, non una al minuto (D-11, D-15)
+    private warnMalformedOnce(id: string, startTime: unknown): void {
+        const key = travelKeyOf(id, startTime);
+        if (this.warnedTravels.has(key)) return;
+        if (this.warnedTravels.size >= MALFORMED_PLAN_WARNINGS_KEPT) {
+            this.warnedTravels.clear();
+        }
+        this.warnedTravels.add(key);
+        this.logger.warn(
+            `Viaggio del personaggio ${id}: piano del cibo non valido, ignorato`,
+        );
     }
 
     // il fail-safe del confine (D-19): solo id e km scoperti
