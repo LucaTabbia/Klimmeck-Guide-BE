@@ -69,6 +69,15 @@ export interface ReachableTravel {
 const NO_MEAL: FoodSelection = { consumed: [], covered: 0 };
 const FOOD_PATH = 'status.activeTravel.food';
 
+// solo ciò che leggono foodLegOf e reachedKmOf: sweep e teleport (D-15, D-17)
+export const FOOD_LEG_PROJECTION = {
+    'status.activeTravel.startTime': 1,
+    'status.activeTravel.duration': 1,
+    'status.activeTravel.road.distance': 1,
+    'status.activeTravel.ambush.km': 1,
+    'status.activeTravel.food': 1,
+} as const;
+
 export function settlementOf(
     input: FoodSettlementInput,
 ): FoodSettlement | null {

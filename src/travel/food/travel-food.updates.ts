@@ -34,12 +34,3 @@ export function foodTravellerFilter(
         'status.activeTravel.startTime': startTime,
     };
 }
-
-// solo i campi del chilometro raggiunto e del piano (D-15)
-export const FOOD_TRAVELLER_PROJECTION = {
-    'status.activeTravel.startTime': 1,
-    'status.activeTravel.duration': 1,
-    'status.activeTravel.road.distance': 1,
-    'status.activeTravel.ambush.km': 1,
-    'status.activeTravel.food': 1,
-} as const;

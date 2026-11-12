@@ -7,6 +7,7 @@ import {
 } from 'src/models/character/character.model';
 import { describeError } from 'src/mongo/mongo-errors';
 import {
+    FOOD_LEG_PROJECTION,
     foodLegOf,
     foodProgressSetOf,
     reachedKmOf,
@@ -16,7 +17,6 @@ import {
     settlementSetOf,
 } from './travel-food-settlement';
 import {
-    FOOD_TRAVELLER_PROJECTION,
     foodTravellerFilter,
     foodTravellersFilter,
 } from './travel-food.updates';
@@ -61,7 +61,7 @@ export class TravelFoodSweep {
 
     async settleDue(now: Date): Promise<number> {
         const travellers = await this.characterModel
-            .find(foodTravellersFilter(), FOOD_TRAVELLER_PROJECTION)
+            .find(foodTravellersFilter(), FOOD_LEG_PROJECTION)
             .lean<FoodTraveller[]>()
             .exec();
         let settled = 0;
@@ -127,7 +127,7 @@ export class TravelFoodSweep {
             traveller.status.activeTravel.startTime,
         );
         const current = await this.characterModel
-            .findOne(filter, FOOD_TRAVELLER_PROJECTION)
+            .findOne(filter, FOOD_LEG_PROJECTION)
             .session(session)
             .lean<FoodTraveller | null>()
             .exec();

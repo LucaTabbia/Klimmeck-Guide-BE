@@ -14,6 +14,7 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { describeError } from 'src/mongo/mongo-errors';
 import { TravelFoodSweep } from './food/travel-food.sweep';
 import { TravelCompletionService } from './travel-completion.service';
 import { DUE_TRAVEL_PROJECTION, dueTravelsFilter } from './travel.updates';
@@ -21,15 +22,6 @@ import { DUE_TRAVEL_PROJECTION, dueTravelsFilter } from './travel.updates';
 interface DueTravel {
     _id: Types.ObjectId;
     status: { activeTravel: { startTime: Date; endTime: Date } };
-}
-
-// solo codice o nome dell'errore nei log, mai il messaggio grezzo
-function codeOf(error: unknown): string {
-    const code = (error as { code?: unknown } | null)?.code;
-    if (typeof code === 'string' || typeof code === 'number') {
-        return String(code);
-    }
-    return error instanceof Error ? error.name : 'unknown';
 }
 
 @Injectable()
@@ -89,7 +81,7 @@ export class TravelSweeper implements OnApplicationBootstrap, OnModuleDestroy {
                 if (outcome === 'completed') completed++;
             } catch (error) {
                 this.logger.error(
-                    `Completamento del viaggio del personaggio ${character._id.toHexString()} fallito: ${codeOf(error)}`,
+                    `Completamento del viaggio del personaggio ${character._id.toHexString()} fallito: ${describeError(error)}`,
                 );
             }
         }
@@ -106,7 +98,9 @@ export class TravelSweeper implements OnApplicationBootstrap, OnModuleDestroy {
         try {
             await this.foodSweep.settleDue(now);
         } catch (error) {
-            this.logger.error(`Sweep della fame fallito: ${codeOf(error)}`);
+            this.logger.error(
+                `Sweep della fame fallito: ${describeError(error)}`,
+            );
         }
     }
 
@@ -114,7 +108,9 @@ export class TravelSweeper implements OnApplicationBootstrap, OnModuleDestroy {
         return this.sweep().then(
             () => undefined,
             (error: unknown) =>
-                this.logger.error(`Sweep dei viaggi fallito: ${codeOf(error)}`),
+                this.logger.error(
+                    `Sweep dei viaggi fallito: ${describeError(error)}`,
+                ),
         );
     }
 }

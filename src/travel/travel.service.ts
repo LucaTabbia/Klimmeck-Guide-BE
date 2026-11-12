@@ -28,6 +28,7 @@ import { AmbushPlanner } from './ambush/ambush-planner.service';
 import { ambushResultDraftsOf } from './ambush/ambush-results';
 import { type ActiveTravelFoodDraft, foodPlanOf } from './food/travel-food';
 import {
+    FOOD_LEG_PROJECTION,
     FoodSettlement,
     foodLegOf,
     reachedKmOf,
@@ -43,7 +44,6 @@ import {
     classifyUnteleported,
     startTravelFilter,
     startTravelUpdate,
-    TELEPORT_FOOD_PROJECTION,
     TELEPORT_PROJECTION,
     teleportFilter,
     teleportUpdate,
@@ -294,7 +294,7 @@ export class TravelService {
         session: ClientSession,
     ): Promise<ClosingFood | null> {
         const current = await this.characterModel
-            .findOne(teleportFilter(characterId), TELEPORT_FOOD_PROJECTION)
+            .findOne(teleportFilter(characterId), FOOD_LEG_PROJECTION)
             .session(session)
             .lean<TeleportFoodSnapshot | null>()
             .exec();
