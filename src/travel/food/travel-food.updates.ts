@@ -1,9 +1,14 @@
+import type { Types } from 'mongoose';
 import {
     applyTradeToInventory,
     type InventorySnapshot,
     soldQuantityGuards,
 } from 'src/economy/trade/trade-inventory';
 import type { TradeLine } from 'src/economy/trade/trade-line';
+import {
+    ACTIVE_CHARACTER_FILTER,
+    activeCharacterById,
+} from 'src/models/character/active-character.filter';
 import type { ConsumedFood } from './food-selection';
 import type { TravelFoodPlan } from './travel-food';
 
@@ -46,3 +51,31 @@ export function mealSetOf(
             : {}),
     };
 }
+
+// selezione dello sweep della fame per presenza del piano: limiti d'indice stretti, i viaggi legacy non matchano (Phase 20 D-11, D-15)
+export function foodTravellersFilter(): Record<string, unknown> {
+    return {
+        ...ACTIVE_CHARACTER_FILTER,
+        'status.activeTravel.food.settledKm': { $gte: 0 },
+    };
+}
+
+// l'istante di partenza è l'identità del viaggio: un viaggio nuovo non eredita l'assestamento del vecchio (D-14)
+export function foodTravellerFilter(
+    characterId: Types.ObjectId,
+    startTime: Date,
+): Record<string, unknown> {
+    return {
+        ...activeCharacterById(characterId),
+        'status.activeTravel.startTime': startTime,
+    };
+}
+
+// solo i campi del chilometro raggiunto e del piano (D-15)
+export const FOOD_TRAVELLER_PROJECTION = {
+    'status.activeTravel.startTime': 1,
+    'status.activeTravel.duration': 1,
+    'status.activeTravel.road.distance': 1,
+    'status.activeTravel.ambush.km': 1,
+    'status.activeTravel.food': 1,
+} as const;
