@@ -75,23 +75,23 @@ export class TravelFoodSweep {
         return settled;
     }
 
-    // un personaggio rotto non ferma gli altri: solo id e nome/codice dell'errore (D-15)
+    // un personaggio rotto non ferma gli altri: ogni lettura del documento sta nel try, nei log solo id e nome/codice dell'errore (D-15)
     private async settleSafely(
         traveller: FoodTraveller,
         now: Date,
     ): Promise<boolean> {
         const id = traveller._id.toHexString();
-        const travel = traveller.status.activeTravel;
-        const leg = foodLegOf(travel);
-        if (!leg) {
-            this.logger.warn(
-                `Viaggio del personaggio ${id}: piano del cibo non valido, ignorato`,
-            );
-            return false;
-        }
-        // niente transazione né characterUpdated quando non c'è nulla da scrivere (Pitfall 6)
-        if (!settlementIsDue(leg, reachedKmOf(travel, now))) return false;
         try {
+            const travel = traveller.status.activeTravel;
+            const leg = foodLegOf(travel);
+            if (!leg) {
+                this.logger.warn(
+                    `Viaggio del personaggio ${id}: piano del cibo non valido, ignorato`,
+                );
+                return false;
+            }
+            // niente transazione né characterUpdated quando non c'è nulla da scrivere (Pitfall 6)
+            if (!settlementIsDue(leg, reachedKmOf(travel, now))) return false;
             const outcome = await this.settleOne(traveller, now);
             this.logCurveChange(id, outcome.curve);
             return outcome.settled;

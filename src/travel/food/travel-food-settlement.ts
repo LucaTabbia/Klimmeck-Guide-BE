@@ -124,9 +124,10 @@ export function reachedKmOf(travel: ReachableTravel, now: Date): number {
     );
 }
 
-// un piano malformato vale «nessun piano» (D-11)
+// un piano malformato vale «nessun piano» (D-11); senza una partenza valida il km raggiunto non si calcola (D-15)
 export function foodLegOf(travel: unknown): FoodLeg | null {
     if (!isRecord(travel) || !isRecord(travel.road)) return null;
+    if (!isValidDate(travel.startTime)) return null;
     const distanceKm = travel.road.distance;
     const durationMs = travel.duration;
     if (!isFiniteNumber(distanceKm) || distanceKm <= 0) return null;
@@ -280,6 +281,10 @@ function foodDraftOf(raw: unknown): ActiveTravelFoodDraft | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
+}
+
+function isValidDate(value: unknown): value is Date {
+    return value instanceof Date && Number.isFinite(value.getTime());
 }
 
 function isFiniteNumber(value: unknown): value is number {

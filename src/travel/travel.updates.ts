@@ -39,6 +39,7 @@ export interface CompletedSnapshot {
             kind?: TravelKind;
             to?: unknown;
             ambushReports?: AmbushReportDraft[];
+            startTime?: Date;
             road?: { distance?: number };
             duration?: number;
             food?: unknown;
@@ -111,6 +112,7 @@ export const COMPLETION_PROJECTION = {
     'status.activeTravel.kind': 1,
     'status.activeTravel.to': 1,
     'status.activeTravel.ambushReports': 1,
+    'status.activeTravel.startTime': 1,
     'status.activeTravel.road.distance': 1,
     'status.activeTravel.duration': 1,
     'status.activeTravel.food': 1,
