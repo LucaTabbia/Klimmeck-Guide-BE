@@ -94,7 +94,7 @@ export const stacksOf = (
     });
 };
 
-// la dispensa del viaggiatore: cibo hunger nell'ordine dell'inventario + HP (Phase 14 D-12, D-17); in sessione dentro la transazione della partenza
+// la dispensa del viaggiatore: cibo hunger nell'ordine dell'inventario + HP (Phase 14 D-12, D-17); letta in sessione dentro le transazioni di partenza, sweep, arrivo e teleport (Phase 20 D-14)
 @Injectable()
 export class TravelPantryReader {
     constructor(
@@ -171,7 +171,7 @@ export class TravelPantryReader {
         });
     }
 
-    // imboscata e teleport costruiscono gli stack dalla dispensa letta in sessione (Phase 20 D-15)
+    // l'imboscata costruisce gli stack dalla dispensa del suo snapshot letto in sessione; read lo usa per tutti gli altri (Phase 20 D-14)
     async foodCatalogFor(
         ownedItems: readonly InventoryEntry[],
         session: ClientSession | null = null,

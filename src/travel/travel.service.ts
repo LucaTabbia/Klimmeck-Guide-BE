@@ -217,14 +217,14 @@ export class TravelService {
         );
     }
 
-    // un solo findOneAndUpdate in transazione (D-16, "il filtro è la regola"): location sovrascritta e viaggio cancellato insieme, report trattenuti consegnati nello stesso commit (Phase 15 D-13); nessuna push, nessuna quest toccata
+    // una transazione (D-16, "il filtro è la regola"): lettura in sessione del viaggio e della dispensa, poi un solo findOneAndUpdate che sovrascrive la location, cancella il viaggio e chiude cibo e fame (Phase 20 D-17); report trattenuti consegnati nello stesso commit (Phase 15 D-13); nessuna push, nessuna quest toccata
     async teleport(
         characterId: Types.ObjectId,
         poiId: Types.ObjectId,
     ): Promise<void> {
         if (!(await this.poiModel.exists({ _id: poiId })))
             throw ResourceNotFoundException.pointOfInterest();
-        // catalogo letto fuori dal callback: nella transazione solo scritture (Phase 16 D-05)
+        // geografia letta fuori dal callback (Phase 16 D-05): nella transazione solo il viaggio, la dispensa e le scritture
         const geography = await this.geography.ofMarker(poiId);
         const now = this.clock.now();
         const outcome: { before: TeleportedSnapshot | null } = { before: null };
