@@ -117,9 +117,8 @@ export class TravelFoodSweep {
         now: Date,
     ): Promise<SettleOutcome> {
         let outcome = NOTHING_SETTLED;
+        // il callback viene rieseguito sui WriteConflict: vale l'esito dell'ultima esecuzione
         await this.connection.transaction(async (session) => {
-            // il callback viene rieseguito sui WriteConflict: l'esito riparte da zero
-            outcome = NOTHING_SETTLED;
             outcome = await this.settleInSession(traveller, now, session);
         });
         return outcome;

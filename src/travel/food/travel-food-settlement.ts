@@ -228,13 +228,13 @@ function mealIsDue(
     return moment !== 'progress' || targetKm >= food.coveredKm;
 }
 
-// alla sosta si mangia il cibo dei km percorsi, mai più del piano (D-06)
+// alla sosta si mangia il cibo dei km percorsi, mai più del piano (D-06); la distanza è sempre positiva (foodLegOf)
 function mealNeedOf(
     leg: FoodLeg,
     targetKm: number,
     moment: FoodMoment,
 ): number {
-    if (moment !== 'stop' || leg.distanceKm <= 0) return leg.food.needed;
+    if (moment !== 'stop') return leg.food.needed;
     return Math.min(
         leg.food.needed,
         foodNeededFor((leg.durationMs * targetKm) / leg.distanceKm),

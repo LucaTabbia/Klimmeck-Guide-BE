@@ -232,15 +232,6 @@ describe('food settlement', () => {
         expect(stop?.consumed).toEqual([{ itemId: F20, quantity: 28 }]);
     });
 
-    it('eats the whole need on a stop of a road without length (D-03)', () => {
-        const leg: FoodLeg = { ...shortLeg(), distanceKm: 0 };
-        const settlement = settle(leg, 0, 'stop', {
-            assets: { ownedItems: [entry(F1, 30)] },
-            stacks: [stack(F1, 1, 30)],
-        });
-        expect(settlement?.consumed).toEqual([{ itemId: F1, quantity: 20 }]);
-    });
-
     it('rewrites the uncovered kilometres when the pantry covers less than the plan (D-19)', () => {
         const settlement = settle(shortLeg(), 10, 'progress', fourF1);
         expect(settlement?.consumed).toEqual([{ itemId: F1, quantity: 4 }]);
