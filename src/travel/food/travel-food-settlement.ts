@@ -3,6 +3,7 @@ import {
     applyTradeToInventory,
     type InventoryEntry,
     type InventorySnapshot,
+    soldQuantityGuards,
 } from 'src/economy/trade/trade-inventory';
 import { MIN_LIFE_POINTS } from 'src/quests/outcomes/progression/level-table';
 import { travelKmAt } from '../travel-timing';
@@ -66,6 +67,7 @@ export interface ReachableTravel {
 }
 
 const NO_MEAL: FoodSelection = { consumed: [], covered: 0 };
+const FOOD_PATH = 'status.activeTravel.food';
 
 export function settlementOf(
     input: FoodSettlementInput,
@@ -131,6 +133,71 @@ export function foodLegOf(travel: unknown): FoodLeg | null {
     if (!isFiniteNumber(durationMs) || durationMs < 0) return null;
     const food = foodDraftOf(travel.food);
     return food ? { food, distanceKm, durationMs } : null;
+}
+
+// vita e dispensa: arrivo, teleport e sconfitta riscrivono activeTravel nello stesso update (D-14)
+export function settlementSetOf(
+    settlement: FoodSettlement,
+): Record<string, unknown> {
+    return {
+        ...(settlement.hpLoss > 0
+            ? { 'status.currentLifePoints': settlement.lifeAfter }
+            : {}),
+        ...(settlement.ownedItems !== null
+            ? { 'assets.ownedItems': settlement.ownedItems }
+            : {}),
+    };
+}
+
+// i path del piano salvato, solo dove il piano c'è (D-01, D-03, D-19, Pitfall 3)
+export function foodProgressSetOf(
+    settlement: FoodSettlement,
+): Record<string, unknown> {
+    return {
+        [`${FOOD_PATH}.settledKm`]: settlement.settledKm,
+        ...(settlement.foodConsumedAt
+            ? { [`${FOOD_PATH}.foodConsumedAt`]: settlement.foodConsumedAt }
+            : {}),
+        ...(settlement.curve
+            ? {
+                  [`${FOOD_PATH}.uncoveredKm`]: settlement.curve.uncoveredKm,
+                  [`${FOOD_PATH}.coveredKm`]: settlement.curve.coveredKm,
+                  [`${FOOD_PATH}.hpLostTotal`]: settlement.curve.hpLostTotal,
+              }
+            : {}),
+    };
+}
+
+// km assestato e pasto pendente riaffermati solo col piano; una sola lista di guardie con quelle del chiamante (D-14, Pitfall 9)
+export function settlementGuardsOf(
+    food: ActiveTravelFoodDraft | null,
+    settlement: FoodSettlement | null,
+    hpRaw: number | null | undefined,
+    extra: readonly Record<string, unknown>[] = [],
+): Record<string, unknown> {
+    const life =
+        settlement && settlement.hpLoss > 0
+            ? [{ 'status.currentLifePoints': hpRaw ?? null }]
+            : [];
+    return {
+        ...(food ? planGuardsOf(food, settlement) : {}),
+        ...soldQuantityGuards(mealLinesOf(settlement?.consumed ?? []), [
+            ...life,
+            ...extra,
+        ]),
+    };
+}
+
+function planGuardsOf(
+    food: ActiveTravelFoodDraft,
+    settlement: FoodSettlement | null,
+): Record<string, unknown> {
+    return {
+        [`${FOOD_PATH}.settledKm`]: food.settledKm,
+        ...(settlement?.foodConsumedAt
+            ? { [`${FOOD_PATH}.foodConsumedAt`]: null }
+            : {}),
+    };
 }
 
 function curveOf(leg: FoodLeg): TravelFoodCurve {

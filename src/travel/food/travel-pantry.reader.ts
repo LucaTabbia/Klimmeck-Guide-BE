@@ -43,7 +43,7 @@ interface PantrySnapshot extends StatusSnapshot {
     assets?: { ownedItems?: InventoryEntry[] };
 }
 
-interface FoodCatalogEntry {
+export interface FoodCatalogEntry {
     _id: Types.ObjectId;
     power?: number;
     sellPrice?: Partial<CoinPurse> | null;
@@ -73,7 +73,7 @@ const lootIdsOf = (entries: readonly InventoryEntry[]): Types.ObjectId[] => [
 ];
 
 // la validità di power e quantità la filtra selectFood (Phase 14 D-06)
-const stacksOf = (
+export const stacksOf = (
     entries: readonly InventoryEntry[],
     catalog: readonly FoodCatalogEntry[],
 ): FoodStack[] => {
@@ -116,10 +116,7 @@ export class TravelPantryReader {
             .exec();
         if (!snapshot) throw ResourceNotFoundException.character();
         const ownedItems = snapshot.assets?.ownedItems ?? [];
-        const catalog = await this.foodCatalogOf(
-            lootIdsOf(ownedItems),
-            session,
-        );
+        const catalog = await this.foodCatalogFor(ownedItems, session);
         return {
             stacks: stacksOf(ownedItems, catalog),
             assets: { ownedItems },
@@ -172,6 +169,14 @@ export class TravelPantryReader {
             );
             return item ? [{ item, quantity }] : [];
         });
+    }
+
+    // imboscata e teleport costruiscono gli stack dalla dispensa letta in sessione (Phase 20 D-15)
+    async foodCatalogFor(
+        ownedItems: readonly InventoryEntry[],
+        session: ClientSession | null = null,
+    ): Promise<FoodCatalogEntry[]> {
+        return this.foodCatalogOf(lootIdsOf(ownedItems), session);
     }
 
     private async foodCatalogOf(
