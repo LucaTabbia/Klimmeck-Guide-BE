@@ -431,14 +431,34 @@ describe('teleportCharacter', () => {
                 });
             });
 
-            it('eats only the pro-rata food past the covered kilometres with a plentiful pantry (D-17)', async () => {
-                const traveller = await travellerAtKm5(STARVING_PLAN, 10);
+            // 10 cibi da 1 power su 20 km: il piano che la partenza salva (10 km coperti, 10 scoperti)
+            it('eats only the pro-rata food of the travelled kilometres from the pantry of its plan (D-17)', async () => {
+                const traveller = await travellerAtKm5({}, 10);
 
                 await travel.teleport(characterIdOf(traveller), world.questPoi);
 
                 expect(await pantryOf(traveller)).toEqual({
                     ownedItems: [foodStack(f1, 5)],
-                    currentLifePoints: HARDY_LIFE_POINTS - 6,
+                    currentLifePoints: HARDY_LIFE_POINTS,
+                });
+            });
+
+            // pasto del confine già fatto dallo sweep al km 10, fame assestata al km 13; il cibo in dispensa arriva dopo il pasto (premio del GM)
+            it('charges only the hunger left past the boundary and never eats a second meal (D-03, D-17)', async () => {
+                const traveller = await travellerAtKm5(
+                    { settledKm: 13, foodConsumedAt: minutesFromNow(-15) },
+                    5,
+                    {
+                        startTime: minutesFromNow(-45),
+                        endTime: minutesFromNow(15),
+                    },
+                );
+
+                await travel.teleport(characterIdOf(traveller), world.questPoi);
+
+                expect(await pantryOf(traveller)).toEqual({
+                    ownedItems: [foodStack(f1, 5)],
+                    currentLifePoints: HARDY_LIFE_POINTS - 9,
                 });
             });
 
@@ -455,7 +475,7 @@ describe('teleportCharacter', () => {
                 });
             });
 
-            it('teleports a legacy traveller and a resting character without touching food nor life (D-04, D-11, D-17)', async () => {
+            it('teleports a legacy traveller and a resting character without touching food nor life (D-11, D-17)', async () => {
                 const legacy = await travellerAtKm5(null, 5);
                 const resting = await playerAt(world.markerA, {
                     lifePoints: HARDY_LIFE_POINTS,
