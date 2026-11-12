@@ -82,6 +82,9 @@ Le righe per task le scrive il piano (bookkeeping di fine piano, REPO-RULES); qu
 | 20-08-01 | 08 | 8 | BE-FOODP-01, BE-FOODP-05 | T-20-34, T-20-35, T-20-36 | partenza libera: piano salvato su `activeTravel.food` nella transazione, dispensa e vita intatte, rifiuto e corsa identici, due partenze concorrenti = un piano | integration | `npx jest src/travel/travel.updates.spec.ts --selectProjects unit && npx jest src/travel/travel.service.int-spec.ts src/travel/travel.resolver.int-spec.ts src/travel/food/travel-pantry.reader.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 20-08-02 | 08 | 8 | BE-FOODP-04, BE-FOODP-05 | T-20-37 | fine a fine: partenza, sweep a scatti e arrivo danno i totali della Phase 14 (vita e dispensa) | integration | `npx jest src/travel/travel.service.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 20-08-03 | 08 | 8 | — | — | bookkeeping del piano 08 | — | `grep -qF -- "- [x] 20-08-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
+| 20-09-01 | 09 | 9 | BE-FOODP-01, BE-FOODP-05 | T-20-38, T-20-39, T-20-40 | claim della corsia standard: piano salvato su `activeTravel.food` nello stesso update, dispensa e vita intatte, rifiuto e corsa identici, due claim concorrenti = un piano, salto e marker senza piano | integration | `npx jest src/quests/acceptance/quest-acceptance.updates.spec.ts --selectProjects unit && npx jest src/quests/acceptance --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 20-09-02 | 09 | 9 | BE-FOODP-01 | T-20-41 | builder del consumo alla partenza rimossi, `mealLinesOf` resta per l'assestamento | unit | `npx jest src/travel/food --selectProjects unit` | ✅ | ✅ green |
+| 20-09-03 | 09 | 9 | — | — | bookkeeping del piano 09 | — | `grep -qF -- "- [x] 20-09-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
