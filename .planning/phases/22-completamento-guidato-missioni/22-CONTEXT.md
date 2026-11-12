@@ -1,6 +1,6 @@
 # Phase 22: Completamento guidato delle missioni - Context
 
-**Gathered:** 2026-11-12 (discuss fatto nella FE Phase 21, `Klimmeck-Guide/.planning/phases/21-innkeeper-mission-completion-flow/21-CONTEXT.md`, stessa numerazione D-01..D-10)
+**Gathered:** 2026-11-12 (discuss fatto nella FE Phase 21, `Klimmeck-Guide/.planning/phases/21-innkeeper-mission-completion-flow/21-CONTEXT.md`, stessa numerazione D-01..D-11)
 **Status:** Ready for planning — dopo la Phase 21 (blocchi premio per titolo)
 
 <domain>
@@ -22,7 +22,8 @@ L'oste completa una `story` o `worldMission` con un flusso guidato al posto del 
 - **D-07:** Premi per personaggio: si parte dal **blocco del titolo** (Phase 21) e l'oste toglie o aggiunge voci dal catalogo filtrato per titolo (tetto di rarità del loot del titolo, pet con lo stesso tetto, magie solo `isSpellCaster` e con `minXpToLearn`); il BE **rivalida** ogni premio contro il filtro (mai fidarsi del client). Xp dei nemici, xp del compagno (10 %, Phase 19), conoscenza e lore di vittoria (Phase 16/17) dai nemici scelti, come una vittoria.
 - **D-08:** Completamento in **una transazione** come `GmCompletionService` oggi: stato finale corretto, scontri e nemici (in `QuestResult.enemies`), premi scelti; foglio dell'esito ai giocatori come oggi.
 - **D-09:** **Bozza salvata nel BE** sulla richiesta (passo, luogo, scontri e nemici, risultati simulati, correzioni, premi), ripresa da qualunque dispositivo dell'oste; si invalida se la richiesta sparisce; nessun effetto sui personaggi finché non si completa (il teleport è già reale).
-- **D-10:** I giocatori vedono solo il teleport e l'esito finale: bozza e simulazioni mai esposte a loro (solo innkeeper, nessun evento sui loro stream).
+- **D-10:** I giocatori vedono il teleport, un **avviso «Missione in corso»** (stato esposto sul loro personaggio) e l'esito finale; bozza e simulazioni mai esposte a loro (utente, 2026-11-12, correggendo la prima risposta).
+- **D-11:** Dall'**avvio del flusso** (bozza creata) all'**arrivo del risultato** i partecipanti sono **bloccati**: niente partenza di viaggi né accettazione di quest, rifiuto nel BE con un codice proprio — utente: «Vorrei che avessero anche l'avviso "Missione in corso" e che fossero bloccati (così non rischio che inizino viaggi o quest mentre eseguo la loro quest) fino all'arrivo del risultato». Sblocco al completamento o allo scarto della bozza da parte dell'oste. Acquisti, equipaggiamento e pozioni (cambiano lo stato su cui si simula): da confermare con l'utente prima del plan (consiglio: bloccati anche loro).
 
 ### Claude's Discretion
 - Forma SDL (query `missionEnemies`, mutation di simulazione, documento bozza vs campo sulla PendingQuest, completamento esteso vs mutation nuova), rimozione o convivenza del vecchio `completePendingRequest` con override (consiglio: il nuovo flusso lo sostituisce, FE gated).
