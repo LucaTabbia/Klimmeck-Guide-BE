@@ -12,6 +12,7 @@ import { LootItem } from 'src/models/loot-item.model';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { TRAVEL_QUEUE } from '../travel-job';
+import { TravelSweeper } from '../travel-sweeper';
 import { TravelModule } from '../travel.module';
 import { TravelFoodSweep } from './travel-food.sweep';
 import { TravelPantryReader } from './travel-pantry.reader';
@@ -308,6 +309,15 @@ describe('TravelFoodSweep (replSet)', () => {
             foodStack(potion, 1),
         ]);
         expect(read.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('settles the hunger from the travel sweep (D-15)', async () => {
+        const id = await foodTraveller({ ownedItems: await tenFoodUnits() });
+        moveClockTo(at('08:30'));
+
+        await expect(harness.app.get(TravelSweeper).sweep()).resolves.toBe(0);
+
+        expect((await rawCharacter(id))?.assets.ownedItems).toEqual([]);
     });
 
     it('isolates a failing traveller and logs only its id and error code (D-15)', async () => {
