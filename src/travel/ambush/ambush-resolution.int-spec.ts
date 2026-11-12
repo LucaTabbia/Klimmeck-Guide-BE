@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { toCopper } from 'src/economy/coins';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
+import { ResolutionLoader } from 'src/quests/outcomes/resolution-loader.service';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { RoadsService } from 'src/roads/roads.service';
@@ -863,6 +864,36 @@ describe('AmbushResolutionService (replica set)', () => {
             );
             expect(raw.status.activeTravel.food.uncoveredKm).toBe(120);
             expect(raw.status.activeTravel.ambushReports[0].hpBefore).toBe(945);
+        });
+
+        it('builds the boundary meal from the food catalog read in session (D-14)', async () => {
+            const subject = await traveller({
+                km: 290,
+                distanceKm: 400,
+                durationMs: 144_000_000,
+                food: LONG_PLAN,
+            });
+            const loader = world.harness.app.get(ResolutionLoader);
+            const original = loader.readCombatCatalog.bind(loader);
+            jest.spyOn(loader, 'readCombatCatalog').mockImplementationOnce(
+                async (...args) => {
+                    await world.models.characters.updateOne(
+                        { _id: subject.characterId },
+                        { $set: { 'assets.ownedItems': [foodStack(F20, 28)] } },
+                    );
+                    return original(...args);
+                },
+            );
+            chance.load([0, 0]);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+
+            expect(entryLifeOf()).toBe(945);
+            const raw = await rawOf(subject);
+            expect(raw.assets.ownedItems).toEqual([]);
+            expect(raw.status.activeTravel.food.uncoveredKm).toBe(120);
         });
 
         it('eats only the food of the travelled kilometres on a defeat and detours without a plan (D-03, D-04)', async () => {
