@@ -14,6 +14,7 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { TravelFoodSweep } from './food/travel-food.sweep';
 import { TravelCompletionService } from './travel-completion.service';
 import { DUE_TRAVEL_PROJECTION, dueTravelsFilter } from './travel.updates';
 
@@ -43,6 +44,7 @@ export class TravelSweeper implements OnApplicationBootstrap, OnModuleDestroy {
         private readonly characterModel: Model<CharacterDocument>,
         private readonly completion: TravelCompletionService,
         private readonly clock: Clock,
+        private readonly foodSweep: TravelFoodSweep,
     ) {}
 
     // il DB decide (STATE [Phase 8]): il reconciler gira sempre al boot, mai atteso; 0 spegne solo lo sweep periodico (D-12)
@@ -70,8 +72,9 @@ export class TravelSweeper implements OnApplicationBootstrap, OnModuleDestroy {
     }
 
     private async runOnce(): Promise<number> {
+        const now = this.clock.now();
         const due = await this.characterModel
-            .find(dueTravelsFilter(this.clock.now()), DUE_TRAVEL_PROJECTION)
+            .find(dueTravelsFilter(now), DUE_TRAVEL_PROJECTION)
             .lean<DueTravel[]>()
             .exec();
         let completed = 0;
@@ -93,7 +96,18 @@ export class TravelSweeper implements OnApplicationBootstrap, OnModuleDestroy {
         if (completed > 0) {
             this.logger.log(`Sweep dei viaggi: ${completed} completati`);
         }
+        // dopo i completamenti, stesso istante (Phase 20 D-15): un viaggio appena arrivato non ha più piano
+        await this.settleHungerSafely(now);
         return completed;
+    }
+
+    // un errore del passo «fame» non cambia i completamenti restituiti (D-15)
+    private async settleHungerSafely(now: Date): Promise<void> {
+        try {
+            await this.foodSweep.settleDue(now);
+        } catch (error) {
+            this.logger.error(`Sweep della fame fallito: ${codeOf(error)}`);
+        }
     }
 
     private sweepSafely(): Promise<void> {

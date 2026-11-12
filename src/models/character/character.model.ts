@@ -82,6 +82,8 @@ export const CHARACTER_SPELL_RECOVERIES_INDEX = 'character_spell_recoveries';
 export const CHARACTER_ACTIVE_TRAVEL_AMBUSH_INDEX =
     'character_active_travel_ambush';
 export const CHARACTER_IMPRISONED_UNTIL_INDEX = 'character_imprisoned_until';
+export const CHARACTER_ACTIVE_TRAVEL_FOOD_INDEX =
+    'character_active_travel_food';
 
 // serve le letture della corsia standard, l'archivio e il publisher dell'avvio (D-17b)
 CharacterSchema.index(
@@ -112,6 +114,11 @@ CharacterSchema.index(
 CharacterSchema.index(
     { deletedAt: 1, 'status.imprisonedUntil': 1 },
     { name: CHARACTER_IMPRISONED_UNTIL_INDEX },
+);
+// serve lo sweep della fame (Phase 20 D-15, pattern D-17b)
+CharacterSchema.index(
+    { deletedAt: 1, 'status.activeTravel.food.settledKm': 1 },
+    { name: CHARACTER_ACTIVE_TRAVEL_FOOD_INDEX },
 );
 
 @InputType()
