@@ -896,6 +896,37 @@ describe('AmbushResolutionService (replica set)', () => {
             expect(raw.status.activeTravel.food.uncoveredKm).toBe(120);
         });
 
+        it('logs the rewritten curve of a short pantry after the commit (D-19)', async () => {
+            const subject = await traveller({
+                km: 290,
+                distanceKm: 400,
+                durationMs: 144_000_000,
+                food: LONG_PLAN,
+                characterOverrides: {
+                    assets: { ownedItems: [foodStack(F20, 14)] },
+                },
+            });
+            const warn = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation(() => undefined);
+            chance.load([0, 0]);
+
+            try {
+                await expect(service.resolve(subject.identity)).resolves.toBe(
+                    'won',
+                );
+                const raw = await rawOf(subject);
+                expect(raw.status.activeTravel.food.uncoveredKm).toBe(260);
+                expect(
+                    warn.mock.calls.map(([message]) => String(message)),
+                ).toEqual([
+                    `Viaggio del personaggio ${subject.characterId.toHexString()}: cibo cambiato al confine, km scoperti 120 → 260`,
+                ]);
+            } finally {
+                warn.mockRestore();
+            }
+        });
+
         it('eats only the food of the travelled kilometres on a defeat and detours without a plan (D-03, D-04)', async () => {
             const subject = await longTraveller(30);
             defeatOf(subject);
