@@ -2,10 +2,15 @@ import { Types } from 'mongoose';
 import { MIN_LIFE_POINTS } from 'src/quests/outcomes/progression/level-table';
 import { FoodStack } from './food-selection';
 import {
+    coveredKmOf,
     FOOD_RULES,
     foodNeededFor,
+    foodPlanOf,
     hpLostFor,
+    hungerBetween,
     planTravelFood,
+    travelHungerAt,
+    TravelFoodCurve,
     uncoveredKmOf,
 } from './travel-food';
 
@@ -136,6 +141,164 @@ describe('travel food plan', () => {
             hpLost: 276,
             hpAfter: 724,
             arrivesAlive: true,
+        });
+    });
+});
+
+const GRID_DISTANCES = [
+    0.44, 1, 2.7, 16, 20.37, 22.24, 49.999, 100, 400, 506.3,
+];
+const GRID_NEEDED = 100;
+const GRID_COVERAGES = [0, 1, 33, 50, 99, 100, 105];
+
+function steppedPartition(distanceKm: number, stepKm: number): number[] {
+    const points: number[] = [];
+    for (let index = 0; index * stepKm < distanceKm; index += 1)
+        points.push(index * stepKm);
+    return [...points, distanceKm];
+}
+
+function partitionsOf(curve: TravelFoodCurve): number[][] {
+    const distanceKm = curve.distanceKm;
+    return [
+        steppedPartition(distanceKm, 1),
+        steppedPartition(distanceKm, 0.37),
+        steppedPartition(distanceKm, distanceKm / 7),
+        [0, coveredKmOf(curve), distanceKm],
+        [0, distanceKm],
+    ];
+}
+
+describe('progressive hunger (Phase 20)', () => {
+    const curve: TravelFoodCurve = {
+        distanceKm: 20,
+        uncoveredKm: 10,
+        hpLostTotal: 55,
+    };
+
+    it('puts the covered kilometres first and clamps them at zero (D-02, D-13)', () => {
+        expect(coveredKmOf({ distanceKm: 20, uncoveredKm: 10 })).toBe(10);
+        expect(coveredKmOf({ distanceKm: 22.24, uncoveredKm: 23 })).toBe(0);
+        expect(coveredKmOf({ distanceKm: 20.37, uncoveredKm: 21 })).toBe(0);
+    });
+
+    it('costs nothing inside the covered stretch (D-01)', () => {
+        expect(travelHungerAt(curve, 0)).toBe(0);
+        expect(travelHungerAt(curve, 10)).toBe(0);
+    });
+
+    it('charges the n-th uncovered kilometre once it is completed (D-02)', () => {
+        expect(travelHungerAt(curve, 10.999)).toBe(0);
+        expect(travelHungerAt(curve, 11)).toBe(1);
+        expect(travelHungerAt(curve, 13)).toBe(6);
+        expect(travelHungerAt(curve, 19.5)).toBe(45);
+    });
+
+    it('charges exactly the Phase 14 total at the destination (D-13)', () => {
+        expect(travelHungerAt(curve, 20)).toBe(55);
+        expect(travelHungerAt(curve, 25)).toBe(55);
+        expect(
+            travelHungerAt(
+                { distanceKm: 22.24, uncoveredKm: 23, hpLostTotal: 276 },
+                22.24,
+            ),
+        ).toBe(276);
+    });
+
+    it('charges the first uncovered kilometre early when the rounding exceeds the distance (D-13)', () => {
+        const rounded = {
+            distanceKm: 20.37,
+            uncoveredKm: 21,
+            hpLostTotal: 231,
+        };
+
+        expect(travelHungerAt(rounded, 0)).toBe(0);
+        expect(travelHungerAt(rounded, 0.37)).toBe(1);
+    });
+
+    it('never gives a negative increment (D-16)', () => {
+        expect(hungerBetween(curve, 13, 12.5)).toBe(0);
+        expect(hungerBetween(curve, 13, 13)).toBe(0);
+    });
+
+    it('sums the increments to the Phase 14 total over any partition (D-13)', () => {
+        let partitions = 0;
+        for (const distanceKm of GRID_DISTANCES)
+            for (const covered of GRID_COVERAGES) {
+                const uncoveredKm = uncoveredKmOf(
+                    GRID_NEEDED,
+                    covered,
+                    distanceKm,
+                );
+                const gridCurve = {
+                    distanceKm,
+                    uncoveredKm,
+                    hpLostTotal: hpLostFor(uncoveredKm),
+                };
+                for (const points of partitionsOf(gridCurve)) {
+                    const increments = points.slice(1).map((toKm, index) => ({
+                        toKm,
+                        hunger: hungerBetween(gridCurve, points[index], toKm),
+                    }));
+                    const total = increments.reduce(
+                        (sum, step) => sum + step.hunger,
+                        0,
+                    );
+
+                    expect(total).toBe(hpLostFor(uncoveredKm));
+                    expect(increments.every((step) => step.hunger >= 0)).toBe(
+                        true,
+                    );
+                    expect(
+                        increments
+                            .filter(
+                                (step) => step.toKm <= coveredKmOf(gridCurve),
+                            )
+                            .every((step) => step.hunger === 0),
+                    ).toBe(true);
+                    partitions += 1;
+                }
+            }
+
+        expect(partitions).toBe(350);
+    });
+
+    it('saves the departure plan with the covered boundary (D-05, D-13)', () => {
+        expect(
+            foodPlanOf(
+                planTravelFood({
+                    durationMs: 3_600_000,
+                    distanceKm: 20,
+                    hpBefore: 1000,
+                    stacks: [stack(A, 1, 10)],
+                }),
+                20,
+            ),
+        ).toEqual({
+            needed: 20,
+            uncoveredKm: 10,
+            coveredKm: 10,
+            hpLostTotal: 55,
+            settledKm: 0,
+            foodConsumedAt: null,
+        });
+        expect(
+            foodPlanOf(
+                planTravelFood({
+                    durationMs: 16_012_800,
+                    distanceKm: 22.24,
+                    hpBefore: 1000,
+                    stacks: [],
+                }),
+                22.24,
+            ),
+        ).toEqual({
+            needed: 89,
+            uncoveredKm: 23,
+            coveredKm: 0,
+            hpLostTotal: 276,
+            settledKm: 0,
+            foodConsumedAt: null,
         });
     });
 });
