@@ -26,7 +26,7 @@ import { TravelPreview } from 'src/models/travel-preview.model';
 import type { AmbushReportDraft } from './ambush/ambush-plan';
 import { AmbushPlanner } from './ambush/ambush-planner.service';
 import { ambushResultDraftsOf } from './ambush/ambush-results';
-import type { ActiveTravelFoodDraft } from './food/travel-food';
+import { type ActiveTravelFoodDraft, foodPlanOf } from './food/travel-food';
 import {
     FoodSettlement,
     foodLegOf,
@@ -36,7 +36,6 @@ import {
     settlementSetOf,
 } from './food/travel-food-settlement';
 import { TravelPantryReader } from './food/travel-pantry.reader';
-import { mealGuardsOf, mealSetOf } from './food/travel-food.updates';
 import { FreeTravelPlan, TravelPlanner } from './travel-planner.service';
 import { TravelScheduler } from './travel-scheduler.service';
 import {
@@ -116,7 +115,7 @@ export class TravelService {
         return this.pantry.previewOf(characterId, travel);
     }
 
-    // regole di Phase 8 fuori dalla transazione; dispensa letta in sessione e consumo nello stesso update della partenza (Phase 14 D-12): un rifiuto non scrive nulla; il job dopo il commit è best-effort
+    // regole di Phase 8 fuori dalla transazione; dispensa letta in sessione e piano del cibo salvato nella stessa transazione della partenza, nessun consumo (Phase 20 D-05): un rifiuto non scrive nulla; il job dopo il commit è best-effort
     async startTravel(
         characterId: Types.ObjectId,
         poiId: Types.ObjectId,
@@ -127,9 +126,9 @@ export class TravelService {
             ...planned,
             travel: this.ambushPlanner.withAmbush(planned.travel),
         };
-        // rieseguito dal driver sui WriteConflict: la dispensa si rilegge, la partenza ricalcola sul cibo del momento (D-10)
+        // rieseguito dal driver sui WriteConflict: la dispensa si rilegge, il piano si ricalcola sul cibo del momento (Phase 14 D-10)
         await this.connection.transaction((session) =>
-            this.departWithMeal(characterId, plan, session),
+            this.departWithFoodPlan(characterId, plan, session),
         );
         await this.scheduler.schedule(characterId, plan.travel);
         if (plan.travel.ambush)
@@ -140,12 +139,12 @@ export class TravelService {
             );
     }
 
-    private async departWithMeal(
+    private async departWithFoodPlan(
         characterId: Types.ObjectId,
         plan: FreeTravelPlan,
         session: ClientSession,
     ): Promise<void> {
-        const { plan: meal, pantry } = await this.pantry.planFor(
+        const { plan: meal } = await this.pantry.planFor(
             characterId,
             plan.travel,
             session,
@@ -161,11 +160,15 @@ export class TravelService {
             );
         const started = await this.characterModel
             .findOneAndUpdate(
-                startTravelFilter(characterId, plan.location, {
-                    ...notImprisonedAt(now),
-                    ...mealGuardsOf(meal, pantry.hpRaw),
+                startTravelFilter(
+                    characterId,
+                    plan.location,
+                    notImprisonedAt(now),
+                ),
+                startTravelUpdate({
+                    ...plan.travel,
+                    food: foodPlanOf(meal, plan.travel.road.distance),
                 }),
-                startTravelUpdate(plan.travel, mealSetOf(meal, pantry.assets)),
                 { session, projection: { _id: 1 } },
             )
             .lean()

@@ -47,7 +47,7 @@ export interface CompletedSnapshot {
 }
 
 // il filtro è la regola (Phase 4, D-21): due avvii concorrenti ⇒ uno solo trova activeTravel null
-// il cibo e gli HP della partenza (Phase 14 D-12) arrivano come guardie extra: rete di sicurezza della transazione
+// le guardie extra arrivano dal chiamante: oggi la prigione (quick 261110-cgd)
 export function startTravelFilter(
     characterId: Types.ObjectId,
     location: Types.ObjectId,
@@ -63,11 +63,9 @@ export function startTravelFilter(
     };
 }
 
-export function startTravelUpdate(
-    travel: ActiveTravelDraft,
-    mealSet: Record<string, unknown> = {},
-) {
-    return { $set: { 'status.activeTravel': travel, ...mealSet } };
+// il piano del cibo viaggia dentro il draft (Phase 20 D-05): nessun consumo alla partenza
+export function startTravelUpdate(travel: ActiveTravelDraft) {
+    return { $set: { 'status.activeTravel': travel } };
 }
 
 // rilettura solo per scegliere il codice: una posizione cambiata senza viaggio né quest è un movimento concorrente
