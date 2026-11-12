@@ -83,6 +83,26 @@ describe('ambush food step', () => {
         expect(foodAt(290, plan({ hpLostTotal: 1 }))).toBeNull();
     });
 
+    it('has no food step for an ambush without a finite kilometre (D-11, D-16)', () => {
+        for (const km of [Number.NaN, Infinity, undefined]) {
+            const snapshot = snapshotAt(290);
+            const travel = snapshot.status.activeTravel;
+            const broken = {
+                ...snapshot,
+                status: {
+                    ...snapshot.status,
+                    activeTravel: {
+                        ...travel,
+                        ambush: { ...travel.ambush, km: km as number },
+                    },
+                },
+            };
+            expect(
+                ambushFoodOf({ snapshot: broken, catalog, now: atKm(290) }),
+            ).toBeNull();
+        }
+    });
+
     it('charges the hunger up to the ambush kilometre and eats the boundary meal (D-07)', () => {
         const food = foodAt(290);
 
