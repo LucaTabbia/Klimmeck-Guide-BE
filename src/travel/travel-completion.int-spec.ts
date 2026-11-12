@@ -10,6 +10,7 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { LootItem } from 'src/models/loot-item.model';
 import { PendingQuest } from 'src/models/pending-quest.model';
 import {
     QuestResult,
@@ -46,9 +47,17 @@ import {
     persistQuest,
 } from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
-import { buildActiveTravelDoc } from '../../test/travel/active-travel.fixture';
+import {
+    buildActiveTravelDoc,
+    buildFoodTravelDoc,
+} from '../../test/travel/active-travel.fixture';
 import { buildAmbushReport } from '../../test/travel/ambush-report.fixture';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
+import {
+    foodStack,
+    HARDY_LIFE_POINTS,
+    persistFood,
+} from '../../test/travel/travel-food.fixture';
 import { persistGeography } from '../../test/lore/lore-world';
 
 const NOW = new Date('2026-10-21T10:00:00.000Z');
@@ -61,6 +70,8 @@ const BOOT_DEADLINE_MS = 10_000;
 const POLL_STEP_MS = 100;
 const BOOT_TEST_TIMEOUT_MS = 30_000;
 const EVENT_WAIT_MS = 3_000;
+const SETTLED_KM = 13;
+const EATEN_AT = new Date('2026-10-21T08:30:00.000Z');
 
 const pause = (ms: number): Promise<void> =>
     new Promise((resolve) => setTimeout(resolve, ms));
@@ -74,6 +85,7 @@ describe('TravelCompletionService (replSet)', () => {
     let quests: Model<QuestDocument>;
     let users: Model<UserDocument>;
     let questResults: Model<QuestResultDocument>;
+    let lootItems: Model<LootItem>;
     let clock: FixedClock;
     let seq = 0;
     const push = new FakePushTransport();
@@ -110,9 +122,13 @@ describe('TravelCompletionService (replSet)', () => {
         questResults = harness.app.get<Model<QuestResultDocument>>(
             getModelToken(QuestResult.name),
         );
+        lootItems = harness.app.get<Model<LootItem>>(
+            getModelToken(LootItem.name),
+        );
         // collection pronte prima delle transazioni multi-documento (Pitfall 5)
         await Promise.all([
             characters.init(),
+            lootItems.init(),
             pendingQuests.init(),
             quests.init(),
             users.init(),
@@ -441,6 +457,142 @@ describe('TravelCompletionService (replSet)', () => {
             expect(await questResults.countDocuments()).toBe(1);
         });
     });
+
+    describe('progressive food on arrival (Phase 20)', () => {
+        const SETTLED_PLAN = {
+            settledKm: SETTLED_KM,
+            foodConsumedAt: EATEN_AT,
+        };
+
+        // lo status passa per intero: il `to` casuale di buildActiveTravelDoc non deve sovrascrivere la meta
+        async function foodTraveller(
+            destination: Types.ObjectId,
+            {
+                lifePoints = HARDY_LIFE_POINTS,
+                maxLifePoints = HARDY_LIFE_POINTS,
+                ownedItems = [] as unknown[],
+                food = {} as Record<string, unknown> | null,
+            } = {},
+        ): Promise<Types.ObjectId> {
+            seq += 1;
+            const player = await createPlayer(harness, {
+                twitchId: `tw-food-${seq}`,
+                characterOverrides: {
+                    status: {
+                        ...buildCharacter().status,
+                        location: new Types.ObjectId(),
+                        activeTravel: buildFoodTravelDoc(food, {
+                            to: destination,
+                        }),
+                        currentLifePoints: lifePoints,
+                        maxLifePoints,
+                    },
+                    assets: { ...buildCharacter().assets, ownedItems },
+                },
+            });
+            return player.character!._id as Types.ObjectId;
+        }
+
+        async function tenFoodUnits() {
+            const food = await persistFood(lootItems, 1);
+            return [foodStack(food, 10)];
+        }
+
+        it('charges the hunger left and eats the whole need on arrival (D-03, D-07)', async () => {
+            const destination = new Types.ObjectId();
+            const id = await foodTraveller(destination, {
+                ownedItems: await tenFoodUnits(),
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            const raw = await rawCharacter(id);
+            expect(raw?.status.currentLifePoints).toBe(HARDY_LIFE_POINTS - 55);
+            expect(raw?.assets.ownedItems).toEqual([]);
+            expect(raw?.status.activeTravel).toBeNull();
+            expect(raw?.status.location).toEqual(destination);
+        });
+
+        it('charges only the kilometres after the settled ones and eats nothing twice (D-03, D-07)', async () => {
+            const ownedItems = await tenFoodUnits();
+            const id = await foodTraveller(new Types.ObjectId(), {
+                ownedItems,
+                food: SETTLED_PLAN,
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            const raw = await rawCharacter(id);
+            expect(raw?.status.currentLifePoints).toBe(HARDY_LIFE_POINTS - 49);
+            expect(raw?.assets.ownedItems).toEqual(ownedItems);
+        });
+
+        it('never lowers the life under one on arrival (D-01)', async () => {
+            const id = await foodTraveller(new Types.ObjectId(), {
+                lifePoints: 10,
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            expect((await rawCharacter(id))?.status.currentLifePoints).toBe(1);
+        });
+
+        it('keeps a life above the maximum above it (D-14)', async () => {
+            const id = await foodTraveller(new Types.ObjectId(), {
+                lifePoints: 1200,
+                maxLifePoints: 1000,
+                food: SETTLED_PLAN,
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            expect((await rawCharacter(id))?.status.currentLifePoints).toBe(
+                1151,
+            );
+        });
+
+        it('settles the food once under concurrent completions (D-07)', async () => {
+            const id = await foodTraveller(new Types.ObjectId(), {
+                ownedItems: await tenFoodUnits(),
+            });
+
+            const outcomes = await Promise.all([
+                completion.complete(identityOf(id)),
+                completion.complete(identityOf(id)),
+            ]);
+
+            expect([...outcomes].sort()).toEqual(['completed', 'stale']);
+            const raw = await rawCharacter(id);
+            expect(raw?.status.currentLifePoints).toBe(HARDY_LIFE_POINTS - 55);
+            expect(raw?.assets.ownedItems).toEqual([]);
+        });
+
+        it('arrives as before with a legacy travel without a food plan (D-11)', async () => {
+            const ownedItems = await tenFoodUnits();
+            const id = await foodTraveller(new Types.ObjectId(), {
+                ownedItems,
+                food: null,
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            const raw = await rawCharacter(id);
+            expect(raw?.status.currentLifePoints).toBe(HARDY_LIFE_POINTS);
+            expect(raw?.assets.ownedItems).toEqual(ownedItems);
+            expect(raw?.status.activeTravel).toBeNull();
+        });
+    });
+
     describe('city geography on arrival (D-05)', () => {
         function hexesOf(ids: readonly Types.ObjectId[]): string[] {
             return ids.map((id) => id.toHexString()).sort();
