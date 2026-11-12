@@ -719,6 +719,13 @@ describe('TravelService ambush at departure (Phase 15)', () => {
 const END_TO_END_STEPS = 7;
 const MILLISECONDS_PER_SECOND = 1000;
 
+// uno scatto dello sweep: food nullo = viaggio già chiuso dall'arrivo
+interface WalkStep {
+    life: number;
+    ownedItems: unknown[];
+    food: { coveredKm: number; foodConsumedAt: Date | null } | null;
+}
+
 // partenza, sweep a scatti e arrivo veri (Phase 20): totali di fine viaggio identici alla Phase 14
 describe('TravelService progressive food end to end (Phase 20)', () => {
     let harness: AuthTestApp;
@@ -810,15 +817,20 @@ describe('TravelService progressive food end to end (Phase 20)', () => {
     async function walkToTheEnd(
         id: Types.ObjectId,
         duration: number,
-    ): Promise<number[]> {
-        const lives: number[] = [];
+    ): Promise<WalkStep[]> {
+        const steps: WalkStep[] = [];
         const step = duration / END_TO_END_STEPS / MILLISECONDS_PER_SECOND;
         for (let i = 0; i <= END_TO_END_STEPS; i++) {
             clock.advanceSeconds(step);
             await harness.app.get(TravelSweeper).sweep();
-            lives.push((await rawCharacter(id))?.status.currentLifePoints);
+            const raw = await rawCharacter(id);
+            steps.push({
+                life: raw?.status.currentLifePoints,
+                ownedItems: raw?.assets.ownedItems,
+                food: raw?.status.activeTravel?.food ?? null,
+            });
         }
-        return lives;
+        return steps;
     }
 
     it('charges at the end of the road exactly the Phase 14 total, step by step (D-02, D-13)', async () => {
@@ -837,7 +849,7 @@ describe('TravelService progressive food end to end (Phase 20)', () => {
         expect(departed?.assets.ownedItems).toEqual([foodStack(f1, covered)]);
         expect(departed?.status.currentLifePoints).toBe(HARDY_LIFE_POINTS);
 
-        const lives = await walkToTheEnd(id, preview.duration);
+        const steps = await walkToTheEnd(id, preview.duration);
 
         const arrived = await rawCharacter(id);
         const hpLost = hpLostFor(uncoveredKmOf(needed, covered, distance));
@@ -848,12 +860,24 @@ describe('TravelService progressive food end to end (Phase 20)', () => {
             hpLost,
         );
         expect(arrived?.assets.ownedItems).toEqual([]);
+        const lives = steps.map(({ life }) => life);
         lives.forEach((life, i) =>
             expect(life).toBeLessThanOrEqual(lives[i - 1] ?? HARDY_LIFE_POINTS),
         );
+        const open = steps.filter(({ food }) => food !== null);
+        expect(open.some(({ life }) => life < HARDY_LIFE_POINTS)).toBe(true);
+        expect(new Set(lives).size).toBeGreaterThan(2);
+        const beforeMeal = open.filter(({ food }) => !food?.foodConsumedAt);
+        const afterMeal = open.filter(({ food }) => food?.foodConsumedAt);
+        expect(beforeMeal.length).toBeGreaterThan(0);
+        expect(afterMeal.length).toBeGreaterThan(0);
+        beforeMeal.forEach(({ ownedItems }) =>
+            expect(ownedItems).toEqual([foodStack(f1, covered)]),
+        );
+        afterMeal.forEach(({ ownedItems }) => expect(ownedItems).toEqual([]));
     });
 
-    it('eats at the boundary the same food the Phase 14 ate at departure (D-03, D-13)', async () => {
+    it('eats on arrival the same food the Phase 14 ate at departure (D-03, D-13)', async () => {
         const f1 = await persistFood(lootItems, 1);
         const f5 = await persistFood(lootItems, 5);
         const id = await travellerAtAlba();
