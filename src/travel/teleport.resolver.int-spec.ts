@@ -41,7 +41,10 @@ import {
 } from '../../test/harness/prime-change-stream';
 import { buildCharacter } from '../../test/fixtures';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
-import { buildActiveTravelDoc } from '../../test/travel/active-travel.fixture';
+import {
+    buildActiveTravelDoc,
+    buildFoodTravelDoc,
+} from '../../test/travel/active-travel.fixture';
 import { buildAmbushReport } from '../../test/travel/ambush-report.fixture';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
 import { persistGeography } from '../../test/lore/lore-world';
@@ -341,41 +344,139 @@ describe('teleportCharacter', () => {
             );
         });
 
-        it('teleports without eating nor refunding the food (D-13)', async () => {
-            const food20 = await persistFood(
-                harness.connection.model(LootItem.name),
-                20,
-            );
-            const pantryOf = async (player: TestPlayer) => {
+        describe('progressive food on teleport (Phase 20)', () => {
+            const MS_PER_MINUTE = 60_000;
+            const STARVING_PLAN = {
+                needed: 20,
+                uncoveredKm: 18,
+                coveredKm: 2,
+                hpLostTotal: 171,
+            };
+            const COVERED_PLAN = {
+                uncoveredKm: 0,
+                coveredKm: 20,
+                hpLostTotal: 0,
+            };
+            let f1: { _id: Types.ObjectId };
+
+            beforeEach(async () => {
+                f1 = await persistFood(
+                    harness.connection.model(LootItem.name),
+                    1,
+                );
+            });
+
+            function minutesFromNow(minutes: number): Date {
+                return new Date(
+                    clock.now().getTime() + minutes * MS_PER_MINUTE,
+                );
+            }
+
+            // 20 km in un'ora iniziati 15 minuti fa: il km del momento è il 5
+            async function travellerAtKm5(
+                food: Record<string, unknown> | null,
+                units: number,
+                travel: Record<string, unknown> = {},
+            ): Promise<TestPlayer> {
+                const player = await playerAt(world.markerA, {
+                    lifePoints: HARDY_LIFE_POINTS,
+                    ownedItems: [foodStack(f1, units)],
+                });
+                await characters.collection.updateOne(
+                    { _id: characterIdOf(player) },
+                    {
+                        $set: {
+                            'status.activeTravel': buildFoodTravelDoc(food, {
+                                startTime: minutesFromNow(-15),
+                                endTime: minutesFromNow(45),
+                                to: world.markerB,
+                                ...travel,
+                            }),
+                        },
+                    },
+                );
+                return player;
+            }
+
+            async function pantryOf(player: TestPlayer) {
                 const raw = await rawCharacter(player);
                 return {
                     ownedItems: raw?.assets.ownedItems,
                     currentLifePoints: raw?.status.currentLifePoints,
                 };
-            };
-            const traveller = await playerAt(world.markerA, {
-                lifePoints: HARDY_LIFE_POINTS,
-                ownedItems: [foodStack(food20, 5)],
-            });
-            const resting = await playerAt(world.markerA, {
-                ownedItems: [foodStack(food20, 5)],
-            });
-            await travellingToB(traveller);
-            const departed = await pantryOf(traveller);
-            const idle = await pantryOf(resting);
-            expect(departed.ownedItems).not.toEqual([foodStack(food20, 5)]);
+            }
 
-            await travel.teleport(characterIdOf(traveller), world.questPoi);
-            await travel.teleport(characterIdOf(resting), world.markerB);
+            it('eats the food of the travelled kilometres and charges the hunger up to the moment (D-06, D-17)', async () => {
+                const traveller = await travellerAtKm5(STARVING_PLAN, 2);
 
-            expect(await pantryOf(traveller)).toEqual(departed);
-            expect(await pantryOf(resting)).toEqual(idle);
-            expect((await rawCharacter(traveller))?.status.location).toEqual(
-                world.questPoi,
-            );
-            expect((await rawCharacter(resting))?.status.location).toEqual(
-                world.markerB,
-            );
+                await travel.teleport(characterIdOf(traveller), world.questPoi);
+
+                const raw = await rawCharacter(traveller);
+                expect(raw?.status.currentLifePoints).toBe(
+                    HARDY_LIFE_POINTS - 6,
+                );
+                expect(raw?.assets.ownedItems).toEqual([]);
+                expect(raw?.status.activeTravel).toBeNull();
+                expect(raw?.status.location).toEqual(world.questPoi);
+            });
+
+            it('eats only the food of the travelled kilometres on a covered road (D-06, D-17)', async () => {
+                const traveller = await travellerAtKm5(COVERED_PLAN, 20);
+
+                await travel.teleport(characterIdOf(traveller), world.questPoi);
+
+                expect(await pantryOf(traveller)).toEqual({
+                    ownedItems: [foodStack(f1, 15)],
+                    currentLifePoints: HARDY_LIFE_POINTS,
+                });
+            });
+
+            it('eats only the pro-rata food past the covered kilometres with a plentiful pantry (D-17)', async () => {
+                const traveller = await travellerAtKm5(STARVING_PLAN, 10);
+
+                await travel.teleport(characterIdOf(traveller), world.questPoi);
+
+                expect(await pantryOf(traveller)).toEqual({
+                    ownedItems: [foodStack(f1, 5)],
+                    currentLifePoints: HARDY_LIFE_POINTS - 6,
+                });
+            });
+
+            it('stops at a pending ambush kilometre (D-17)', async () => {
+                const traveller = await travellerAtKm5(STARVING_PLAN, 2, {
+                    ambush: { at: minutesFromNow(-6), km: 3, attempts: 0 },
+                });
+
+                await travel.teleport(characterIdOf(traveller), world.questPoi);
+
+                expect(await pantryOf(traveller)).toEqual({
+                    ownedItems: [],
+                    currentLifePoints: HARDY_LIFE_POINTS - 1,
+                });
+            });
+
+            it('teleports a legacy traveller and a resting character without touching food nor life (D-04, D-11, D-17)', async () => {
+                const legacy = await travellerAtKm5(null, 5);
+                const resting = await playerAt(world.markerA, {
+                    lifePoints: HARDY_LIFE_POINTS,
+                    ownedItems: [foodStack(f1, 5)],
+                });
+                const legacyBefore = await pantryOf(legacy);
+                const restingBefore = await pantryOf(resting);
+
+                await travel.teleport(characterIdOf(legacy), world.questPoi);
+                await travel.teleport(characterIdOf(resting), world.markerB);
+
+                expect(await pantryOf(legacy)).toEqual(legacyBefore);
+                expect(await pantryOf(resting)).toEqual(restingBefore);
+                expect(legacyBefore.ownedItems).toEqual([foodStack(f1, 5)]);
+                expect((await rawCharacter(legacy))?.status.location).toEqual(
+                    world.questPoi,
+                );
+                expect((await rawCharacter(resting))?.status.location).toEqual(
+                    world.markerB,
+                );
+            });
         });
 
         it('answers NOT_FOUND for an unknown point of interest or character', async () => {
