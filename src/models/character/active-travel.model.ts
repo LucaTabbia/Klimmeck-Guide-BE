@@ -2,6 +2,10 @@ import { Field, Float, ID, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Schema as MongooseSchema, Types } from 'mongoose';
 import {
+    ActiveTravelFood,
+    ActiveTravelFoodSchema,
+} from './active-travel-food.model';
+import {
     AmbushPlanEntry,
     AmbushPlanEntrySchema,
     AmbushReportSnapshot,
@@ -68,6 +72,10 @@ export class ActiveTravel {
 
     @Prop({ type: [AmbushReportSnapshotSchema], default: undefined })
     ambushReports?: AmbushReportSnapshot[];
+
+    // assente = viaggio legacy o deviazione (Phase 20 D-04, D-11)
+    @Prop({ type: ActiveTravelFoodSchema, required: false })
+    food?: ActiveTravelFood | null;
 }
 
 export const ActiveTravelSchema = SchemaFactory.createForClass(ActiveTravel);
