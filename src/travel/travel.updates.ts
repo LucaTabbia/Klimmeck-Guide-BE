@@ -39,6 +39,9 @@ export interface CompletedSnapshot {
             kind?: TravelKind;
             to?: unknown;
             ambushReports?: AmbushReportDraft[];
+            road?: { distance?: number };
+            duration?: number;
+            food?: unknown;
         } | null;
     } | null;
 }
@@ -104,12 +107,15 @@ export const COMPLETION_UPDATE = [
 ];
 
 // documento prima dell'update: quest da far partire, tipo del viaggio per la push (D-14, D-16), report trattenuti da consegnare (Phase 15 D-13)
-// la meta del before apre la geografia della città (Phase 16 D-05, C-4)
+// la meta del before apre la geografia della città (Phase 16 D-05, C-4) e il piano del cibo per l'arrivo (Phase 20 D-07)
 export const COMPLETION_PROJECTION = {
     'quests.pendingQuest': 1,
     'status.activeTravel.kind': 1,
     'status.activeTravel.to': 1,
     'status.activeTravel.ambushReports': 1,
+    'status.activeTravel.road.distance': 1,
+    'status.activeTravel.duration': 1,
+    'status.activeTravel.food': 1,
 } as const;
 
 // l'arrivo sul marker si scrive una volta sola (D-16); la regola d'avvio resta di QuestStartService (utente 2026-10-25, D-22)
