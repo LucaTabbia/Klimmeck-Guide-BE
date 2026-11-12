@@ -52,6 +52,16 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 - [x] **BE-RANKP-05**: Dungeon a turni (esplorazione → scontro → …): la sconfitta, anche in un turno di esplorazione, salva sull'aid il turno (indice e tipo); l'aid di una dungeon percorre i turni fino a quello e il soccorritore deve completarlo per salvare il ferito, poi l'aid finisce; premio del soccorritore in proporzione ai turni completati; struttura + segnaposto, il motore a turni è dell'utente
 - [x] **BE-RANKP-06**: L'archiviatore che conclude un'aid libera corsie e PendingQuest dei soccorritori iscritti come il timeout (RED prima); unit + integration, SDL al boot reale, handoff `BACKEND-NOTES.md` per la FE Phase 20
 
+### Guided Mission Completion (BE-GMFLOW) — Phase 22, aggiunta 2026-11-12
+
+- [ ] **BE-GMFLOW-01**: Query solo innkeeper della lista nemici per una richiesta: tipi del POI + habitat `city` nella fascia xp del titolo della missione, leggendari ammessi per le worldMission, opzione «mostra tutti»
+- [ ] **BE-GMFLOW-02**: Simulazione a secco di uno scontro (uno o più nemici con quantità) col `CombatResolver` sullo stato corrente o su quello lasciato dallo scontro precedente; nessuna scrittura su personaggi, quest o risultati; esito, HP, ferite, consumabili e magie per personaggio
+- [ ] **BE-GMFLOW-03**: Bozza del flusso salvata sulla richiesta (passo, luogo, scontri, simulazioni, correzioni, premi), ripresa da qualunque dispositivo dell'oste, invisibile ai giocatori, invalidata se la richiesta sparisce
+- [ ] **BE-GMFLOW-04**: Correzioni per personaggio (ferite tolte o aggiunte, vita 1..max, consumabili e magie usati) validate come gli override di oggi
+- [ ] **BE-GMFLOW-05**: Premi per personaggio dal blocco del titolo (Phase 21) con aggiunte/rimozioni dal catalogo filtrato per titolo, rivalidati nel BE (tetto di rarità, pet, magie solo `isSpellCaster` e con `minXpToLearn`)
+- [ ] **BE-GMFLOW-06**: Completamento in una transazione: stato finale, nemici in `QuestResult.enemies`, xp dei nemici e del compagno, conoscenza e lore di vittoria, premi scelti; sempre `gmCompleted`, nessuna aid
+- [ ] **BE-GMFLOW-07**: Ruolo innkeeper e audit su ogni operazione nuova; unit + integration; SDL al boot reale; handoff `BACKEND-NOTES.md` per la FE Phase 21 con una worldMission e una story d'esempio per l'UAT
+
 ## Future Requirements
 
 Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
@@ -109,8 +119,15 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-RANKP-04 | Phase 21 | Complete |
 | BE-RANKP-05 | Phase 21 | Complete |
 | BE-RANKP-06 | Phase 21 | Complete |
+| BE-GMFLOW-01 | Phase 22 | Pending |
+| BE-GMFLOW-02 | Phase 22 | Pending |
+| BE-GMFLOW-03 | Phase 22 | Pending |
+| BE-GMFLOW-04 | Phase 22 | Pending |
+| BE-GMFLOW-05 | Phase 22 | Pending |
+| BE-GMFLOW-06 | Phase 22 | Pending |
+| BE-GMFLOW-07 | Phase 22 | Pending |
 
-**Coverage:** 32 / 32 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21). Nessun orfano, nessun duplicato.
+**Coverage:** 39 / 39 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21, 7 BE-GMFLOW → Phase 22). Nessun orfano, nessun duplicato.
 
 ---
 

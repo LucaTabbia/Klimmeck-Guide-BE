@@ -1,13 +1,13 @@
 # Roadmap: Klimmeck Guide — Backend
 
 **Created:** 2026-07-16
-**Last updated:** 2026-11-12 — aggiunta la Phase 21 Premi per rango e soccorsi (↔ FE Phase 20); milestone v1.1 Cura e modelli aperta il 2026-11-10; v1.0 Core Loop (BE) archiviata in `milestones/v1.0-ROADMAP.md`
-**Milestone:** v1.1 Cura e modelli — Phases 18–21 (gemella della milestone FE v1.1 «Healing & Models», FE Phases 18–19)
+**Last updated:** 2026-11-12 — aggiunte la Phase 21 Premi per rango e soccorsi (↔ FE Phase 20) e la Phase 22 Completamento guidato delle missioni (↔ FE Phase 21); milestone v1.1 Cura e modelli aperta il 2026-11-10; v1.0 Core Loop (BE) archiviata in `milestones/v1.0-ROADMAP.md`
+**Milestone:** v1.1 Cura e modelli — Phases 18–22 (gemella della milestone FE v1.1 «Healing & Models», FE Phases 18–19)
 
 ## Milestones
 
 - ✅ **v1.0 Core Loop (BE)** — Phases 1–17 con le inserite 2.1, 3.1, 9.1, 9.2, 13.1 (consegnata il 2026-11-10) — [archivio roadmap](milestones/v1.0-ROADMAP.md) · [archivio requisiti](milestones/v1.0-REQUIREMENTS.md) · [riepilogo](MILESTONES.md)
-- 🚧 **v1.1 Cura e modelli** — Phases 18–21 (aperta il 2026-11-10; Phase 21 aggiunta il 2026-11-12) — quest heal per taglia con le pozioni dal Diario (↔ FE Phase 18), revisione dei modelli (↔ FE Phase 19), cibo e vita progressivi in viaggio (solo BE)
+- 🚧 **v1.1 Cura e modelli** — Phases 18–22 (aperta il 2026-11-10; Phases 21–22 aggiunte il 2026-11-12) — quest heal per taglia con le pozioni dal Diario (↔ FE Phase 18), revisione dei modelli (↔ FE Phase 19), cibo e vita progressivi in viaggio (solo BE)
 
 ## Phases
 
@@ -49,6 +49,7 @@ Ordine seguito: numerico, con le inserite subito dopo la fase madre; ogni contra
 - [x] **Phase 19: Revisione dei modelli** - Pulizia dei modelli senza cambiare le regole, con cambi non additivi allo SDL dichiarati e un solo migratore one-off al boot reale: `Enemy.weaknesses { base, energy }`, magie dei nemici per riferimento, stato dei pet sul personaggio (`ownedPets [{ pet, xp, currentLifePoints }]`, il catalogo tiene le basi, `maxXp` rivisto e `attack`/`defense` al posto di `damages`) con il **10 % degli xp dei nemici al compagno equipaggiato** (tetto `maxXp`, `QuestResult.petXpGained`), `wornEquipment`/`feet`, una sola lista `spellStates` con `active` (via `status.spells` e `assets.activeSpells`), `maxActiveSpells` calcolato e non persistito, via `PointOfInterest.quest`, `City.shop { equipment, loot, pets }`, `Lore.imagePath`, file enum e modello morto _(aggiunta 2026-11-09, dopo la Phase 18)_ (completed 2026-11-11)
 - [x] **Phase 20: Cibo e vita progressivi in viaggio** - Il piano del cibo si calcola alla partenza come oggi (stessa selezione, anteprima e rifiuto) ma si paga lungo la strada: vita scalata dallo sweep ogni minuto solo nel tratto scoperto come perdita incrementale (esatta all'imboscata e all'arrivo, mai sotto 1), cibo tolto in blocco in tre momenti (fine dei km coperti, arrivo, sconfitta con la selezione a scarto minimo sui soli km percorsi); deviazione senza cibo né fame; nessun cambio SDL, nessuna companion FE _(aggiunta 2026-11-09, dopo la Phase 19; supera la Phase 14 D-04)_
 - [x] **Phase 21: Premi per rango e soccorsi** - Le quest di gruppo portano un blocco premio per titolo (monete, xp, loot, pet, cura e magia per titolo; pet sorteggiato una volta per blocco, magia solo da mage in su), risolto sul titolo del personaggio; solitarie col premio unico sul `minTitle`; boss generati misti col titolo inferiore; aid solo da enemy/boss/hunt/dungeon/aid, aid della dungeon a turni fino al turno della sconfitta con premio proporzionale, archiviatore che libera le corsie _(aggiunta 2026-11-12 nel discuss della FE Phase 20)_
+- [ ] **Phase 22: Completamento guidato delle missioni** - L'oste completa story/worldMission con un flusso guidato: teleport (città e POI interni) → uno o più scontri con nemici da una lista filtrata per tipo di POI e fascia del titolo (leggendari per le worldMission, «mostra tutti») → simulazione a secco col `CombatResolver` → correzioni → premi dal blocco del titolo con aggiunte dal catalogo filtrato e rivalidate → completamento in una transazione, sempre `gmCompleted`; bozza salvata nel BE, invisibile ai giocatori _(aggiunta 2026-11-12 nel discuss della FE Phase 21)_
 
 **Ordine di esecuzione:** 18 → 19 → 20. Ogni contratto consumato dalla FE arriva su `develop` prima dei piani gated della fase FE gemella. Requisiti: [REQUIREMENTS.md](REQUIREMENTS.md).
 
@@ -197,6 +198,21 @@ Plans:
 
 **Stato (2026-11-13)**: 14/14 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §6, da eseguire) a cura dell'orchestratore
 
+### Phase 22: Completamento guidato delle missioni
+**Goal**: Il completamento di story e worldMission diventa un flusso guidato posseduto dal BE: lista dei nemici per luogo e titolo, simulazioni a secco degli scontri in sequenza, correzioni, premi per personaggio dal blocco del titolo, bozza ripresa da qualunque dispositivo, scrittura finale in una transazione.
+**Depends on**: Phase 3 (ruoli, audit), Phase 8 (teleport), Phase 9 (`completePendingRequest`, nessun rifiuto), Phase 13 (pool di zona, fasce xp), Phase 16/17 (conoscenza e lore di vittoria), Phase 19 (xp del compagno), Phase 21 (blocchi per titolo)
+**Requirements**: BE-GMFLOW-01, BE-GMFLOW-02, BE-GMFLOW-03, BE-GMFLOW-04, BE-GMFLOW-05, BE-GMFLOW-06, BE-GMFLOW-07
+**Success Criteria** (what must be TRUE):
+  1. Per una worldMission mage presso delle rovine la lista nemici di default contiene solo nemici delle rovine o `city` nella fascia mage più i leggendari; «mostra tutti» il bestiario intero; un adventurer riceve `FORBIDDEN`.
+  2. Due scontri simulati in sequenza: il secondo parte dallo stato corretto del primo; nessun documento di personaggio, quest o risultato cambia.
+  3. La bozza sopravvive alla chiusura dell'app e si riprende da un altro dispositivo; sparisce con la richiesta.
+  4. Il completamento scrive stato corretto, nemici, xp, lore e premi scelti in una transazione; un premio fuori dal filtro del titolo è rifiutato; esito sempre `gmCompleted`.
+  5. SDL al boot reale; handoff per la FE Phase 21.
+**Decisioni del discuss (2026-11-12, `22-CONTEXT.md` D-01..D-10)**: discuss fatto nella FE (`21-CONTEXT.md`).
+**Unblocks (FE)**: FE Phase 21.
+**Branch**: `feat/22-completamento-guidato-missioni` impilato su `feat/21-premi-per-rango-e-soccorsi`.
+**Plans**: TBD
+
 ## Backend ↔ Frontend alignment (v1.1)
 
 | Vincolo FE | Fase BE che lo soddisfa | Nota |
@@ -205,6 +221,7 @@ Plans:
 | FE Phase 19 (model review companion) | Phase 19 (BE-MODEL) | SDL non additivo dichiarato: `Enemy.weaknesses`, `Pet.attack`/`Pet.defense` (via `Pet.damages`), `CharacterAssets.ownedPets: [OwnedPet!]!`, `QuestResult.petXpGained`, `wornEquipment`/`feet`, `SpellState.active` con `CharacterStatus.spells` e `CharacterAssets.activeSpells` tolti, `PointOfInterest.quest` tolto, `Lore.imagePath`; piani FE gated dalla merge (discuss 2026-11-09) |
 | (nessuna fase FE) | Phase 20 (BE-FOODP) | Nessun cambio sul filo: vita e dispensa arrivano dallo stream durante il viaggio; la nota «inventario e HP cambiano solo via subscription» della FE Phase 15 resta vera (discuss 2026-11-09) |
 | FE Phase 20 (rank-specific prizes for group quests) | Phase 21 (BE-RANKP) | Blocchi premio per titolo, blocco del viewer sul filo, contatori dei turni nell'aid di dungeon; forma SDL decisa nel plan (discuss 2026-11-12) |
+| FE Phase 21 (innkeeper mission completion flow) | Phase 22 (BE-GMFLOW) | Lista nemici, simulazione a secco, bozza, completamento con premi per personaggio; forma SDL decisa nel plan (discuss 2026-11-12) |
 
 La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md).
 
@@ -238,6 +255,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
+| 22. Completamento guidato delle missioni | v1.1 | 0/0 | Not started | - |
 
 ---
 
