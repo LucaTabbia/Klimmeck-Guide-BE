@@ -308,19 +308,30 @@ describe('food settlement', () => {
     });
 
     it('reads a valid saved plan and rejects malformed ones (D-11)', () => {
-        const { foodConsumedAt: _omitted, ...savedFood } = shortPlan();
-        const travel = {
+        const savedFood = {
+            needed: 20,
+            uncoveredKm: 10,
+            coveredKm: 10,
+            hpLostTotal: 55,
+            settledKm: 0,
+        };
+        const withoutFood = {
             road: { distance: SHORT_ROAD_KM },
             startTime: new Date('2026-11-12T08:00:00.000Z'),
             duration: SHORT_ROAD_MS,
-            food: savedFood,
         };
+        const travel = { ...withoutFood, food: savedFood };
         expect(foodLegOf(travel)).toEqual({
             food: shortPlan(),
             distanceKm: 20,
             durationMs: 3_600_000,
         });
-        const { food: _food, ...withoutFood } = travel;
+        expect(
+            foodLegOf({
+                ...travel,
+                food: { ...savedFood, foodConsumedAt: EATEN_AT },
+            })?.food.foodConsumedAt,
+        ).toEqual(EATEN_AT);
         const malformed: unknown[] = [
             undefined,
             withoutFood,
@@ -329,6 +340,9 @@ describe('food settlement', () => {
             { ...travel, food: { ...savedFood, settledKm: -1 } },
             { ...travel, food: { ...savedFood, hpLostTotal: 54 } },
             { ...travel, road: { distance: 0 } },
+            { ...travel, duration: -1 },
+            { food: savedFood },
+            { ...travel, food: { ...savedFood, foodConsumedAt: 'yesterday' } },
         ];
         for (const candidate of malformed) {
             expect(foodLegOf(candidate)).toBeNull();
