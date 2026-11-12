@@ -211,7 +211,7 @@ describe('TravelFoodSweep (replSet)', () => {
                 await characters.updateOne(
                     { _id: characterId },
                     { $set: { 'status.activeTravel.food.settledKm': 13 } },
-                    { session },
+                    { session: session ?? undefined },
                 );
                 return original(characterId, session);
             },
