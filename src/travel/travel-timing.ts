@@ -1,6 +1,7 @@
 import type { Types } from 'mongoose';
 import { TravelKind } from 'src/models/character/active-travel.model';
 import type { LonLat, RoadRoute } from 'src/roads/road-route';
+import type { ActiveTravelFoodDraft } from './food/travel-food';
 
 // velocità base del personaggio (D-08): futuro attributo del personaggio (deferred), oggi costante
 export const BASE_SPEED = 10;
@@ -25,6 +26,7 @@ export interface ActiveTravelDraft {
     to: Types.ObjectId;
     kind: TravelKind;
     ambush?: ActiveTravelAmbush;
+    food?: ActiveTravelFoodDraft;
 }
 
 // null = non cavalcabile; un modificatore non valido vale come assente e il chiamante logga il solo id del pet (D-08)
@@ -68,4 +70,17 @@ export function buildActiveTravel(input: {
         to: input.to,
         kind: input.kind,
     };
+}
+
+// km dal tempo a velocità uniforme (Phase 20 D-02): la Phase 15 va dal km al tempo, questa è la funzione inversa
+export function travelKmAt(
+    travel: { road: { distance: number }; startTime: Date; duration: number },
+    now: Date,
+): number {
+    if (travel.duration <= 0) return travel.road.distance;
+    const elapsed = now.getTime() - travel.startTime.getTime();
+    return Math.min(
+        travel.road.distance,
+        Math.max(0, (travel.road.distance * elapsed) / travel.duration),
+    );
 }

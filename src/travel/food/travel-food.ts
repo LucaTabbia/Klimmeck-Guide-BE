@@ -25,6 +25,22 @@ export interface TravelFoodPlan {
     arrivesAlive: boolean;
 }
 
+// piano salvato su activeTravel.food (Phase 20 D-05, D-13): uncoveredKm intero della Phase 14, coveredKm confine del pasto
+export interface ActiveTravelFoodDraft {
+    needed: number;
+    uncoveredKm: number;
+    coveredKm: number;
+    hpLostTotal: number;
+    settledKm: number;
+    foodConsumedAt: Date | null;
+}
+
+export interface TravelFoodCurve {
+    distanceKm: number;
+    uncoveredKm: number;
+    hpLostTotal: number;
+}
+
 const MS_PER_MINUTE = 60_000;
 const MS_PER_POWER = FOOD_RULES.minutesPerPower * MS_PER_MINUTE;
 const METRES_PER_KM = 1000;
@@ -65,5 +81,53 @@ export function planTravelFood(input: TravelFoodInput): TravelFoodPlan {
         hpLost,
         hpAfter,
         arrivesAlive: hpAfter >= FOOD_RULES.minLifePoints,
+    };
+}
+
+// cibo prima, fame in coda (Phase 20 D-02, D-13): mai negativo quando l'arrotondamento supera la distanza
+export function coveredKmOf(
+    curve: Pick<TravelFoodCurve, 'distanceKm' | 'uncoveredKm'>,
+): number {
+    return Math.max(0, curve.distanceKm - curve.uncoveredKm);
+}
+
+// fame cumulata fino al km: scoperti gli ultimi, il km n-esimo si paga completato (Phase 20 D-02, D-13)
+export function travelHungerAt(curve: TravelFoodCurve, km: number): number {
+    if (km >= curve.distanceKm) return curve.hpLostTotal;
+    const remainingMetres =
+        Math.round(curve.distanceKm * METRES_PER_KM) -
+        Math.round(Math.max(0, km) * METRES_PER_KM);
+    const completed = Math.min(
+        curve.uncoveredKm,
+        Math.max(
+            0,
+            curve.uncoveredKm - Math.ceil(remainingMetres / METRES_PER_KM),
+        ),
+    );
+    return hpLostFor(completed);
+}
+
+// incremento fra due km, mai negativo (Phase 20 D-08, D-16): le differenze sommano al totale della Phase 14
+export function hungerBetween(
+    curve: TravelFoodCurve,
+    fromKm: number,
+    toKm: number,
+): number {
+    if (toKm <= fromKm) return 0;
+    return travelHungerAt(curve, toKm) - travelHungerAt(curve, fromKm);
+}
+
+// piano della partenza nei campi salvati (Phase 20 D-05, D-13): nulla assestato, nessun pasto
+export function foodPlanOf(
+    plan: TravelFoodPlan,
+    distanceKm: number,
+): ActiveTravelFoodDraft {
+    return {
+        needed: plan.needed,
+        uncoveredKm: plan.uncoveredKm,
+        coveredKm: coveredKmOf({ distanceKm, uncoveredKm: plan.uncoveredKm }),
+        hpLostTotal: plan.hpLost,
+        settledKm: 0,
+        foodConsumedAt: null,
     };
 }
