@@ -14,7 +14,10 @@ import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-res
 import { TRAVEL_QUEUE } from '../travel-job';
 import { TravelSweeper } from '../travel-sweeper';
 import { TravelModule } from '../travel.module';
-import { TravelFoodSweep } from './travel-food.sweep';
+import {
+    MALFORMED_PLAN_WARNINGS_KEPT,
+    TravelFoodSweep,
+} from './travel-food.sweep';
 import { TravelPantryReader } from './travel-pantry.reader';
 import { AuthTestApp } from '../../../test/auth/auth-test-app';
 import { FixedClock } from '../../../test/auth/fixed-clock';
@@ -253,6 +256,46 @@ describe('TravelFoodSweep (replSet)', () => {
         expect(warn.mock.calls.map(([message]) => String(message))).toEqual([
             `Viaggio del personaggio ${id.toHexString()}: piano del cibo non valido, ignorato`,
         ]);
+    });
+
+    it('warns about a malformed food plan once per travel (D-11, D-15)', async () => {
+        const id = await foodTraveller({ food: AFTER_MEAL });
+        await characters.collection.updateOne(
+            { _id: id },
+            { $set: { 'status.activeTravel.food.hpLostTotal': 54 } },
+        );
+        const before = await rawCharacter(id);
+        const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+
+        await expect(sweep('08:45')).resolves.toBe(0);
+        await expect(sweep('08:46')).resolves.toBe(0);
+
+        expect(await rawCharacter(id)).toEqual(before);
+        expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('forgets the warned travels past the memory bound (D-15)', async () => {
+        const malformed = () => ({
+            _id: new Types.ObjectId(),
+            status: { activeTravel: buildFoodTravelDoc({ hpLostTotal: 54 }) },
+        });
+        const crowd = Array.from(
+            { length: MALFORMED_PLAN_WARNINGS_KEPT + 1 },
+            malformed,
+        );
+        const find = jest.spyOn(characters, 'find');
+        const travellersOf = (travellers: unknown[]) =>
+            ({
+                lean: () => ({ exec: () => Promise.resolve(travellers) }),
+            }) as unknown as ReturnType<typeof characters.find>;
+        find.mockReturnValueOnce(travellersOf(crowd));
+        find.mockReturnValueOnce(travellersOf([crowd[0]]));
+        const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+
+        await sweep('08:45');
+        await sweep('08:46');
+
+        expect(warn).toHaveBeenCalledTimes(MALFORMED_PLAN_WARNINGS_KEPT + 2);
     });
 
     it('skips a travel whose start is not a date and still settles the others (D-11, D-15)', async () => {
