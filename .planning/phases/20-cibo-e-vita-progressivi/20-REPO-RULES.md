@@ -86,3 +86,10 @@ Scritto il 12 novembre 2026. Dove questa sezione e il resto del file divergono, 
 - D-19 riscrive la curva quando la copertura reale è diversa dal piano (in più o in meno), solo al pasto del confine; con la dispensa vuota il confine registra comunque `foodConsumedAt`.
 - `travelHungerAt` arrotonda al metro il chilometro del chiamante; vittoria dentro il tratto coperto senza fame né pasto = nessuna scrittura del piano; arrivo con guardia mancata = transazione abortita, lo riprende lo sweep; il teleport legge la dispensa in sessione.
 - Le spec di RESEARCH §Q1 non sono tutte: vanno riscritte anche le tre D-01 di `travel.service.int-spec.ts` con `eatenAtDeparture` e «feeds the slower march of an injured character (D-01)» di `quest-acceptance.service.int-spec.ts`; `teleport.resolver.int-spec.ts:344` è sostituita nel piano 07 da casi a viaggio seminato.
+
+### Note del checker (2026-11-12, verifica passata senza blocker né warning)
+
+- Piani 08 e 09: oltre al verify del piano, l'esecutore lancia anche `npx jest src/travel/ambush/ambush-lifecycle.int-spec.ts --selectProjects integration --runInBand` (e nel 09 la int-spec `standard-lane-liveness`) e ne annota l'esito nel SUMMARY: avviano un viaggio vero e altrimenti girerebbero solo al gate.
+- Piano 05: l'import da `ambush-plan.ts` dentro `ambush-food.ts` resta `import type` (nessun ciclo a runtime).
+- Piano 07: aggiungere un caso di teleport oltre il confine con dispensa abbondante (power posseduta maggiore del fabbisogno pro-rata) che fissi quanto cibo si toglie (D-17).
+- Piano 01: il titolo del caso sui campi del piano dice «the food plan fields» (i path sono sei).

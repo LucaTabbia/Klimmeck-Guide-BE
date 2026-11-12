@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Phase 19 completa (23/23, 2026-11-11) — PR #33 da togliere dal draft e mergiare su `develop`; poi Phase 20 (solo BE) e piani gated della FE Phase 19"
+stopped_at: "Phase 20 pianificata (11 piani, 2026-11-12) — prossimo passo /gsd-execute-phase 20"
 last_updated: "2026-11-12T19:04:44.629Z"
 last_activity: 2026-11-12 -- Phase 20 pianificata (ricerca, regole di repo, validazione, 11 piani)
 progress:
