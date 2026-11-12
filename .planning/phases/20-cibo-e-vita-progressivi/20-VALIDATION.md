@@ -58,6 +58,9 @@ Le righe per task le scrive il piano (bookkeeping di fine piano, REPO-RULES); qu
 | (mappa 16) | — | — | BE-FOODP-04 | — | piano puro dell'imboscata con assestamento (vittoria/sconfitta, legacy) | unit | `npx jest src/travel/ambush/ambush-plan.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
 | (mappa 17) | — | — | BE-FOODP-05 | — | SDL identico al boot reale | integration | `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` + `git diff --exit-code src/schema.gql` | ✅ | ⬜ pending |
 | (mappa 18) | — | — | BE-FOODP-05 | — | indice dichiarato e costruito (se OQ-4) | unit + integration | `npx jest src/models/sweep-indexes.schema.spec.ts --selectProjects unit`; `npx jest src/mongo/sweep-index.verifier.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
+| 20-01-01 | 01 | 1 | BE-FOODP-01, BE-FOODP-05 | T-20-01, T-20-04 | `ActiveTravelFood` interno su `ActiveTravel.food`, assente sui legacy, SDL identico | unit + integration | `npx jest src/models/character/active-travel.schema.spec.ts --selectProjects unit`; `npx jest test/app.int-spec.ts --selectProjects integration --runInBand` + `git diff --exit-code src/schema.gql` | ✅ | ✅ green |
+| 20-01-02 | 01 | 1 | BE-FOODP-02, BE-FOODP-05 | T-20-02, T-20-03 | `travelKmAt`, `coveredKmOf`, `travelHungerAt`, `hungerBetween`, `foodPlanOf`; griglia di 350 partizioni sui totali della Phase 14 | unit | `npx jest src/travel/food src/travel/travel-timing.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 20-01-03 | 01 | 1 | — | — | bookkeeping del piano 01 | — | `grep -qF -- "- [x] 20-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
