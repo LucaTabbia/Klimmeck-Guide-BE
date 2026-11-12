@@ -32,14 +32,14 @@ Questo file è parte del contesto di OGNI piano `20-NN-PLAN.md` (citato con `@` 
 
 | Cosa | Nome | Note |
 |------|------|------|
-| Piano salvato alla partenza (D-05) | sotto-documento **`ActiveTravelFood`** su **`ActiveTravel.food`** (solo Mongoose, `_id: false`, opzionale: assente = viaggio legacy o deviazione) | campi **`needed`** (power del fabbisogno totale), **`coveredKm`**, **`hpLostTotal`**, **`settledKm`** (default 0), **`foodConsumedAt`** (`Date`, default `null`) |
-| Chilometro dal tempo (D-02) | funzione pura **`travelKmAt`** | `distanceKm × (now − startTime) / duration`, limitata a `[0, distanceKm]`; la stessa proporzione del `km` dell'imboscata (se la Phase 15 ha già una funzione equivalente si riusa quella e questo nome cade) |
+| Piano salvato alla partenza (D-05) | sotto-documento **`ActiveTravelFood`** su **`ActiveTravel.food`** (solo Mongoose, `_id: false`, opzionale: assente = viaggio legacy o deviazione) | campi **`needed`** (power del fabbisogno totale), **`uncoveredKm`** (intero, D-13), **`coveredKm`**, **`hpLostTotal`**, **`settledKm`** (default 0), **`foodConsumedAt`** (`Date`, default `null`) |
+| Chilometro dal tempo (D-02) | funzione pura **`travelKmAt`** | `distanceKm × (now − startTime) / duration`, limitata a `[0, distanceKm]`; funzione nuova in `src/travel/travel-timing.ts` (la Phase 15 va dal km al tempo, D-16) |
 | Fame fra due chilometri (D-01, D-08) | funzioni pure **`travelHungerAt`** e **`hungerBetween`** in `src/travel/food/` | curva triangolare della Phase 14 spostata sui chilometri scoperti; `hungerBetween(plan, 0, distanceKm)` = `hpLostTotal`; il km scoperto n-esimo si paga quando lo si completa |
 | Fabbisogno dei km percorsi (D-03 c) | `foodNeededFor` esistente sul tempo percorso | selezione con `selectFood` esistente sul posseduto in quel momento |
 | Passo dello sweep (D-08) | passo «fame» chiamato da `TravelSweeper.runOnce` | filtro: in viaggio, `food` presente, `settledKm < nowKm`, `nowKm > coveredKm` oppure cibo da consumare al confine; scrittura atomica guardata da `settledKm` |
 
 - Le mutation e le query esistenti (`startTravel`, `travelPreview`, accettazione di una quest, teleport) tengono nome, argomenti, forma della risposta e codici di rifiuto: cambia solo quando si scrivono inventario e vita.
-- `currentLifePoints` mai sotto `MIN_LIFE_POINTS` per la fame (D-01); la fame è sempre una perdita incrementale (`$inc` negativo o equivalente guardato), mai un valore assoluto calcolato da una lettura vecchia.
+- `currentLifePoints` mai sotto `MIN_LIFE_POINTS` per la fame (D-01); la fame è sempre una perdita incrementale calcolata dalla lettura in sessione e scritta con la guardia su `settledKm` (D-14): mai un valore calcolato da una lettura fuori transazione, mai un `$inc` semplice sulla vita.
 - Il cibo si toglie una sola volta per viaggio (`foodConsumedAt`): fine dei km coperti, arrivo, sconfitta/teleport a viaggio iniziato (D-03, D-06). La deviazione dopo la sconfitta nasce senza `food` (D-04).
 - Handoff: `.planning/phases/20-cibo-e-vita-progressivi/BACKEND-NOTES.md` con §1 «nessun cambio sul filo» (prova: SDL identico), §2 semantica nuova per la FE Phase 15 (vita a scatti di un minuto nel tratto scoperto, cibo in blocco al confine, all'arrivo, alla sconfitta), §3 comportamenti provati (percorso delle spec), §4 piano di UAT su device con l'app com'è (viaggio lungo con poco cibo, sconfitta seminata al km 30), §5 domande.
 
@@ -53,4 +53,28 @@ Questo file è parte del contesto di OGNI piano `20-NN-PLAN.md` (citato con `@` 
 
 ## Completato dopo la ricerca
 
-_Da scrivere dopo `20-RESEARCH.md`._
+Scritto il 12 novembre 2026. Dove questa sezione e il resto del file divergono, vince questa sezione. I riferimenti file:riga completi sono in `20-RESEARCH.md`; i ruling sono in `20-CONTEXT.md` D-13..D-19.
+
+### Nomi aggiunti
+
+| Cosa | Nome | Dove |
+|------|------|------|
+| Classe del piano | `ActiveTravelFood` con `@Schema({ _id: false })` **senza** `@ObjectType` né `@Field` (precedente `AmbushPlanEntry`) | `src/models/character/active-travel-food.model.ts`; `@Prop({ type: ActiveTravelFoodSchema, required: false }) food?` su `ActiveTravel` |
+| Piano dalla partenza | `foodPlanOf` (da `planTravelFood` ai campi salvati), `coveredKmOf` | `src/travel/food/travel-food.ts` |
+| Assestamento puro | `settlementOf(input) → FoodSettlement | null` (`null` = niente da scrivere), `settlementSetOf`, `settlementGuardsOf`; momenti `'progress' | 'arrival' | 'stop'` | `src/travel/food/travel-food-settlement.ts` |
+| Passo dello sweep | `TravelFoodSweep` con `settleDue(now)` | `src/travel/food/travel-food.sweep.ts`, registrato in `TravelPlanningModule` |
+| Indice | `character_active_travel_food` `{ deletedAt: 1, 'status.activeTravel.food.settledKm': 1 }` | modello del personaggio, col pattern degli indici di sweep e le voci nelle due spec degli indici |
+
+### Regole dure
+
+- **Pasto:** con `foodConsumedAt` nullo — `progress` con bersaglio ≥ `coveredKm` → `selectFood(needed, …)`; `arrival` → `selectFood(needed, …)`; `stop` → `selectFood(min(needed, foodNeededFor(durata × km / distanza)), …)`. Il consumo scrive `ownedItems` come array intero calcolato in sessione, sempre dentro la transazione (fuori sessione cancellerebbe una pozione bevuta in mezzo).
+- **Bersaglio:** sweep e teleport `min(travelKmAt(now), ambush.km)` con imboscata pendente; imboscata `ambush.km` salvato; arrivo `distanceKm`. `settledKm` dopo = `max(settledKm, bersaglio)`.
+- **Vita:** `Math.max(MIN_LIFE_POINTS, vita − fame)`; mai `lifePointsWithin` per la fame.
+- **Niente scritture a vuoto:** incremento 0 e nessun pasto dovuto = nessuna scrittura (nessun `characterUpdated`).
+- **Mai un path `status.activeTravel.food.*` su un viaggio senza piano:** ogni filtro di scrittura richiede `food` presente; i legacy, le deviazioni e i personaggi fermi passano intatti (una prova per percorso).
+- **Non inserire fixture con `food` prima che l'app di test sia avviata** (il reconciler al boot gira comunque); sweep nelle int-spec con `harness.app.get(TravelSweeper).sweep()` atteso, `sweepIntervalMs: 0`, orologio `FixedClock`.
+- **Filtri:** attenzione alla collisione di `$and` quando si compongono le guardie (Pitfall 9 della ricerca).
+- **Ordine:** la partenza (libera e `claimLane`) cambia nel penultimo piano di codice; le spec che pinnano «tutto alla partenza» (elenco in RESEARCH §Q1) vanno RED lì, `teleport.resolver.int-spec.ts:344` nel piano del teleport.
+- **Prettier:** i 44 file probabili sono già puliti: nessun commit `style` preliminare atteso.
+- **Coverage a rischio:** `./src/travel/` 97/84/98 e `./src/quests/acceptance/` 97/91/98: i rami nuovi (errore per personaggio, piano non valido, fail-safe D-19) hanno una prova ciascuno.
+- **Tempi:** unit di `src/travel/food` e vicini 2,6 s; le cinque int-spec del viaggio 28 s.
