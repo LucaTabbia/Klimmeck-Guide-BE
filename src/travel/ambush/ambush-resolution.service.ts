@@ -50,10 +50,15 @@ import { WalletService } from 'src/economy/wallet.service';
 import { gameDistanceKm } from 'src/roads/game-distance';
 import type { LonLat, RouteTarget } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
+import {
+    type FoodCatalogEntry,
+    TravelPantryReader,
+} from '../food/travel-pantry.reader';
 import { TravelPlanner } from '../travel-planner.service';
 import { TravelScheduler } from '../travel-scheduler.service';
 import { detourFallbacksOf, residualDetourOf } from './ambush-detour';
 import type { DrawnAmbush } from './ambush-draw';
+import { ambushFoodOf, withFoodSettlement } from './ambush-food';
 import { type AmbushIdentity, ambushJobId } from './ambush-job';
 import {
     type AmbushCharacterSnapshot,
@@ -100,6 +105,7 @@ interface Fight {
     jobId: string;
     snapshot: AmbushCharacter;
     catalog: CombatCatalog;
+    foodCatalog: FoodCatalogEntry[];
     nearCity: AmbushCity;
     next: DrawnAmbush | null;
     detour: DetourDraft;
@@ -198,6 +204,7 @@ export class AmbushResolutionService {
         private readonly travelPlanner: TravelPlanner,
         private readonly push: PushService,
         private readonly clock: Clock,
+        private readonly pantry: TravelPantryReader,
     ) {}
 
     async resolve(identity: AmbushIdentity): Promise<AmbushOutcome> {
@@ -279,6 +286,9 @@ export class AmbushResolutionService {
             jobId,
             snapshot,
             catalog,
+            foodCatalog: await this.pantry.foodCatalogFor(
+                snapshot.assets?.ownedItems ?? [],
+            ),
             nearCity: place.nearCity,
             next,
             detour: await this.detourOf(snapshot, place, place.nearCity, jobId),
@@ -421,6 +431,16 @@ export class AmbushResolutionService {
                     .lean<AmbushCharacter | null>()
                     .exec();
                 if (!inSession) throw new StaleResolution();
+                // vita vera del punto: fame e pasto al km salvato prima del combattimento (Phase 20 D-07, D-16)
+                const food = ambushFoodOf({
+                    snapshot: inSession,
+                    catalog: fight.foodCatalog,
+                    now,
+                });
+                const fighter = withFoodSettlement(
+                    inSession,
+                    food?.progress ?? null,
+                );
                 const context = buildCombatContext({
                     quest: {
                         _id: resultId,
@@ -430,7 +450,7 @@ export class AmbushResolutionService {
                         },
                     },
                     enemies: catalog.enemies,
-                    participants: [inSession],
+                    participants: [fighter],
                     equipment: catalog.equipment,
                     spells: catalog.spells,
                     loot: catalog.loot,
@@ -441,7 +461,8 @@ export class AmbushResolutionService {
                 );
                 if (!battle) throw new Error('ambush combat without a verdict');
                 const plan = planAmbushOutcome({
-                    snapshot: inSession,
+                    snapshot: fighter,
+                    food,
                     identity,
                     resultId,
                     userId: fight.userId,
