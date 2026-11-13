@@ -6,6 +6,7 @@ import { sameId } from 'src/mongo/document-id';
 import {
     hasSeatFor,
     questSlotsOf,
+    RankSlot,
     RegisteredAdventurer,
     SlotRule,
     slotRuleOf,
@@ -41,6 +42,12 @@ const REGISTERED_TYPES: ReadonlySet<QuestType> = new Set([
     QuestType.boss,
     QuestType.enemy,
     QuestType.aid,
+]);
+
+// nelle quest di gruppo ogni posto ha un titolo (D-02, D-24): l'aid tiene il posto senza titolo della solitaria soccorsa
+const TITLED_SEAT_TYPES: ReadonlySet<QuestType> = new Set([
+    QuestType.boss,
+    QuestType.worldMission,
 ]);
 
 export interface QuestRequirementsSnapshot {
@@ -100,7 +107,18 @@ export function registrationRuleOf(
 ): SlotRule | null | 'invalid' {
     if (!isRegistered(type)) return null;
     const slots = questSlotsOf(type, requirements?.requiredAdventurers);
-    return slots === 'invalid' ? 'invalid' : slotRuleOf(slots);
+    if (slots === 'invalid' || hasUntitledGroupSeat(type, slots))
+        return 'invalid';
+    return slotRuleOf(slots);
+}
+
+function hasUntitledGroupSeat(
+    type: QuestType,
+    slots: readonly RankSlot[],
+): boolean {
+    return (
+        TITLED_SEAT_TYPES.has(type) && slots.some(({ title }) => title === null)
+    );
 }
 
 // un costo di catalogo assente o non valido rende la missione non accettabile, mai gratuita (D-09)
