@@ -21,6 +21,11 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { idForms, refIdOf, sameId } from 'src/mongo/document-id';
+import { locksWhileRescued } from 'src/quests/outcomes/aid/aid-opening';
+import {
+    awaitsRescue,
+    questsAwaitingRescue,
+} from 'src/quests/outcomes/aid/rescue-lock';
 import { healHasNoEffect } from 'src/quests/outcomes/injuries/heal-no-effect';
 import { statusFactsOf } from 'src/quests/outcomes/progression/status-facts';
 import { QuestResolutionScheduler } from 'src/quests/outcomes/scheduling/quest-resolution.scheduler';
@@ -232,6 +237,7 @@ export class QuestAcceptanceService {
         await this.connection.transaction(async (session) => {
             // il callback viene rieseguito sui WriteConflict: lo stato riparte da zero
             registration.before = null;
+            await this.notAwaitingRescueOrReject(quest, session);
             // la dispensa in sessione prima del claim fa fede per fame e piano (Phase 20 D-05): salto, nessun movimento, story e worldMission non la leggono (D-06)
             const meal =
                 movement?.kind === 'travel'
@@ -384,6 +390,21 @@ export class QuestAcceptanceService {
         };
         if (healHasNoEffect(subject, quest.prizes?.cure))
             throw GameRuleException.questNoEffect();
+    }
+
+    // hunt e dungeon strappate per tutti finché un'aid aperta nasce da loro (quick 261113-aql, supera la D-15 della Phase 21):
+    // letta in sessione prima di ogni scrittura, quindi un rifiuto non scrive nulla; gli altri tipi non leggono
+    private async notAwaitingRescueOrReject(
+        quest: QuestAcceptanceSnapshot,
+        session: ClientSession,
+    ): Promise<void> {
+        if (!locksWhileRescued(quest.infos.type)) return;
+        const awaiting = await questsAwaitingRescue(this.questModel, {
+            sources: [quest._id],
+            session,
+        });
+        if (awaitsRescue(quest, awaiting))
+            throw GameRuleException.questNotAcceptable();
     }
 
     // pre-verifica fuori sessione: solo il viaggio ha un piano del cibo (D-13)

@@ -10,8 +10,13 @@ const CHANGE_STREAM_HISTORY_LOST = 286;
 
 export interface ChangeStreamEvent {
     _id?: unknown;
+    operationType?: string;
     documentKey?: unknown;
     fullDocument?: unknown;
+    updateDescription?: {
+        updatedFields?: Record<string, unknown> | null;
+        removedFields?: string[] | null;
+    };
     clusterTime?: mongo.Timestamp;
 }
 

@@ -616,6 +616,7 @@ type Query {
 }
 
 type Quest {
+  awaitingRescue: Boolean!
   id: ID!
   infos: QuestInfos!
   noEffect: Boolean!

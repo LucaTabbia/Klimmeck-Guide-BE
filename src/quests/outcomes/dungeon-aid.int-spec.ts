@@ -3,7 +3,6 @@ import { Types } from 'mongoose';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { FixedClock } from '../../../test/auth/fixed-clock';
-import { createPlayer } from '../../../test/authz/player-fixture';
 import {
     buildQuest,
     persistEnemy,
@@ -29,6 +28,7 @@ import {
     registrationRuleOf,
 } from '../acceptance/quest-eligibility';
 import { AID_TIMEOUT_MS } from './aid/aid-timeout';
+import { awaitsRescue, questsAwaitingRescue } from './aid/rescue-lock';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
 import { PlaceholderDungeonResolver } from './dungeon/placeholder-dungeon-resolver';
 import { QuestResolutionService } from './quest-resolution.service';
@@ -233,6 +233,28 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
 
     const rescuerOn = (aid: any) => quester({ quest: { _id: aid._id } });
 
+    // utente 2026-11-13: «Se sei al secondo turno su 8, allora dev'essere un quarto. 1 ora dungeon completo -> 15 minuti aid»
+    it('writes a quarter of the dungeon time on the aid born on turn 2 of 8 (quick 261113-aql)', async () => {
+        const quest = questWithEnemies('dungeon', await fourGroups());
+        const wounded = await quester({
+            questOverrides: {
+                ...quest,
+                infos: { ...quest.infos, timeToComplete: 3_600_000 },
+            },
+        });
+        dungeon.use(new TurnFailingDungeonResolver(dungeon.placeholder, [1]));
+
+        await expect(resolve(wounded)).resolves.toBe('resolved');
+
+        const character = await characterOf(wounded.characterId);
+        const aid = await questOf(character.status.awaitingAid.aidQuest);
+        expect(aid.rescue.turn).toEqual(turnAt(1));
+        expect(aid.infos.timeToComplete).toBe(900_000);
+        expect((await questOf(wounded.quest._id)).infos.timeToComplete).toBe(
+            3_600_000,
+        );
+    });
+
     it('walks the rescuer through the turns up to the saved one (D-12, D-13)', async () => {
         const { wounded, aid } = await dungeonAidWorld();
         const rescuer = await rescuerOn(aid);
@@ -285,21 +307,93 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
         expect(refusalOf(original, freed)).toBeNull();
     });
 
-    // prova con l'eligibilità dell'accettazione: la dungeon resta senza chiusura e un secondo personaggio la può accettare
-    it('keeps the dungeon open to the others while its aid is open (D-15)', async () => {
-        const { wounded, aid } = await dungeonAidWorld();
-        seq += 1;
-        const other = await createPlayer(world.harness, {
-            twitchId: `tw-dungeon-aid-${seq}`,
+    // regola dell'utente 2026-11-13 (supera D-15): la quest d'origine resta strappata per tutti finché un'aid aperta nasce da lei;
+    // stato derivato dalle aid aperte e letto con la regola dell'accettazione, su ogni percorso che chiude un'aid
+    describe('the source quest awaiting its rescue (quick 261113-aql)', () => {
+        async function lockedNow(questId: unknown): Promise<boolean> {
+            const quest = await questOf(questId);
+            return awaitsRescue(
+                quest,
+                await questsAwaitingRescue(world.models.quests),
+            );
+        }
+
+        it('locks the lost dungeon for everyone while its aid is open (quick 261113-aql)', async () => {
+            const { wounded } = await dungeonAidWorld();
+
+            expect(await lockedNow(wounded.quest._id)).toBe(true);
+            const original = await questOf(wounded.quest._id);
+            expect(original.concludedAt ?? null).toBeNull();
         });
 
-        const open = await questOf(aid._id);
-        expect(open.concludedAt ?? null).toBeNull();
-        const original = await questOf(wounded.quest._id);
-        expect(original.concludedAt ?? null).toBeNull();
-        expect(
-            refusalOf(original, await characterOf(other.character!._id)),
-        ).toBeNull();
+        it('locks the lost hunt for everyone while its aid is open (quick 261113-aql)', async () => {
+            const [ghoul, rat] = await fourGroups();
+            const wounded = await quester({
+                questOverrides: questWithEnemies('hunt', [ghoul, rat]),
+            });
+            scripted.willEnd('failure');
+
+            await expect(resolve(wounded)).resolves.toBe('resolved');
+
+            expect(await lockedNow(wounded.quest._id)).toBe(true);
+        });
+
+        it('frees the dungeon when the rescue succeeds (quick 261113-aql)', async () => {
+            const { wounded, aid } = await dungeonAidWorld();
+            const rescuer = await rescuerOn(aid);
+
+            await expect(resolve(rescuer)).resolves.toBe('resolved');
+
+            expect(await lockedNow(wounded.quest._id)).toBe(false);
+        });
+
+        it('keeps the dungeon locked on the next aid of a lost rescue (quick 261113-aql)', async () => {
+            const { wounded, aid } = await dungeonAidWorld();
+            const rescuer = await rescuerOn(aid);
+            scripted.willEnd('failure');
+
+            await expect(resolve(rescuer)).resolves.toBe('resolved');
+
+            expect((await questOf(aid._id)).concludedAt).toBeInstanceOf(Date);
+            expect(await lockedNow(wounded.quest._id)).toBe(true);
+        });
+
+        it('frees the dungeon when the wounded dies by the aid timeout (quick 261113-aql)', async () => {
+            const { wounded, aid } = await dungeonAidWorld();
+            await world.models.characters.updateOne(
+                { _id: wounded.characterId },
+                {
+                    $set: {
+                        'status.awaitingAid.since': new Date(
+                            NOW.getTime() - AID_TIMEOUT_MS,
+                        ),
+                    },
+                },
+            );
+
+            await expect(
+                rescues.timeoutAid({ aidQuestId: aid._id }),
+            ).resolves.toBe('resolved');
+
+            expect(await lockedNow(wounded.quest._id)).toBe(false);
+        });
+
+        it('frees the dungeon when the archive of the wounded concludes the aid (quick 261113-aql)', async () => {
+            const { wounded } = await dungeonAidWorld();
+
+            await world.harness.connection.transaction((session) =>
+                world.harness.app
+                    .get(CharacterArchiver)
+                    .archiveWithinReporting(session, {
+                        userId: wounded.player.user._id as Types.ObjectId,
+                        characterId: wounded.characterId,
+                        reason: DeletionReason.user_request,
+                        now: NOW,
+                    }),
+            );
+
+            expect(await lockedNow(wounded.quest._id)).toBe(false);
+        });
     });
 
     // 4 xp: l'aid ne porta 4 × 5/8 = 2; la nuova aid dall'originale 4 × 2/8 = 1, dall'aid già scalata 2 × 2/5 = 0

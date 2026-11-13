@@ -109,6 +109,15 @@ export function facedEnemyCountOf(turn: RescueTurn): number {
     return Math.floor((turn.index + 1) / TURNS_PER_ENEMY);
 }
 
+// D-12: i gruppi affrontati fino al turno salvato, per la risoluzione e per il filo; null senza un turno valido (si affrontano tutti)
+export function facedEnemiesOf<T>(
+    enemies: readonly T[],
+    turn: unknown,
+): T[] | null {
+    const saved = rescueTurnOf(turn);
+    return saved ? enemies.slice(0, facedEnemyCountOf(saved)) : null;
+}
+
 // D-21: il ferito di un'aid di dungeon è caduto sul turno salvato
 export function fallenCountersOf(turn: RescueTurn): TurnCounters {
     return {

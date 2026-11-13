@@ -26,6 +26,9 @@ import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { User, UserSchema } from 'src/models/user.model';
+import { QuestFacedEnemiesResolver } from './aid-enemies/quest-faced-enemies.resolver';
+import { QuestAwaitingRescueResolver } from './awaiting-rescue/quest-awaiting-rescue.resolver';
+import { QuestsAwaitingRescueService } from './awaiting-rescue/quests-awaiting-rescue.service';
 import { QuestNoEffectResolver } from './no-effect/quest-no-effect.resolver';
 import { ViewerVitalsService } from './no-effect/viewer-vitals.service';
 import { QuestPrizesResolver } from './prizes/quest-prizes.resolver';
@@ -61,6 +64,9 @@ import { QuestsService } from './quests.service';
         ViewerVitalsService,
         QuestNoEffectResolver,
         QuestPrizesResolver,
+        QuestsAwaitingRescueService,
+        QuestAwaitingRescueResolver,
+        QuestFacedEnemiesResolver,
     ],
     exports: [QuestsService],
 })

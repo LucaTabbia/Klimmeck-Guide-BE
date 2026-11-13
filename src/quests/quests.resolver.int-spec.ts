@@ -69,6 +69,9 @@ const CONCLUDED_AT = new Date('2026-10-24T10:00:00.000Z');
 const QUEST_NO_EFFECT =
     'query Quest($id: String!) { quest(id: $id) { id noEffect } }';
 const QUESTS_NO_EFFECT = 'query { quests { id noEffect } }';
+const QUEST_AWAITING_RESCUE =
+    'query Quest($id: String!) { quest(id: $id) { id awaitingRescue } }';
+const QUESTS_AWAITING_RESCUE = 'query { quests { id awaitingRescue } }';
 const CURE_FIELDS = 'id prizes { cure { lifePointsShare canHeal } }';
 const QUEST_CURES = `query { quests { ${CURE_FIELDS} } }`;
 const QUEST_CURE = `query Quest($id: String!) { quest(id: $id) { ${CURE_FIELDS} } }`;
@@ -160,6 +163,19 @@ interface WireNoEffect {
 
 interface WireNoEffectBody {
     data?: { quests?: WireNoEffect[]; quest?: WireNoEffect } | null;
+    errors?: { message: string; extensions: Record<string, unknown> }[];
+}
+
+interface WireAwaitingRescue {
+    id: string;
+    awaitingRescue: boolean;
+}
+
+interface WireAwaitingRescueBody {
+    data?: {
+        quests?: WireAwaitingRescue[];
+        quest?: WireAwaitingRescue;
+    } | null;
     errors?: { message: string; extensions: Record<string, unknown> }[];
 }
 
@@ -1333,5 +1349,363 @@ describe('quest catalog (wire)', () => {
                 },
             ]);
         });
+    });
+
+    // regola dell'utente 2026-11-13: la hunt o la dungeon con un'aid aperta nata da lei è strappata per tutti (supera la D-15 della Phase 21)
+    describe('Quest.awaitingRescue (quick 261113-aql)', () => {
+        const byId = (a: WireAwaitingRescue, b: WireAwaitingRescue) =>
+            a.id.localeCompare(b.id);
+
+        function questsModel(): Model<any> {
+            return modelOf(Quest.name, QuestSchema);
+        }
+
+        // l'aid sta fuori dal tabellone del lettore: conta solo il suo rescue.failedQuest
+        async function aidFrom(
+            failedQuest: unknown,
+            concludedAt: Date | null = null,
+        ): Promise<void> {
+            const base = buildQuest();
+            await questsModel().collection.insertOne({
+                ...base,
+                _id: new Types.ObjectId(),
+                infos: {
+                    ...base.infos,
+                    type: 'aid',
+                    markerLocation: new Types.ObjectId(),
+                },
+                rescue: { characters: [new Types.ObjectId()], failedQuest },
+                concludedAt,
+            });
+        }
+
+        async function awaitingRescueOf(
+            questId: unknown,
+            viewerBearer: string,
+        ): Promise<boolean | undefined> {
+            const body = (
+                await graphqlRequest(
+                    harness.app,
+                    QUEST_AWAITING_RESCUE,
+                    { id: String(questId) },
+                    viewerBearer,
+                )
+            ).body as WireAwaitingRescueBody;
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.quest?.id).toBe(String(questId));
+            return body.data?.quest?.awaitingRescue;
+        }
+
+        it.each(['hunt', 'dungeon'])(
+            'marks a %s with an open aid born from it for every viewer (quick 261113-aql)',
+            async (type) => {
+                const quest = await persistCatalogQuest({ infos: { type } });
+                await aidFrom(quest._id);
+                const other = await createPlayer(harness, {
+                    twitchId: `twitch-awaiting-rescue-${type}`,
+                });
+                const wanderer = await createPlayer(harness, {
+                    twitchId: `twitch-awaiting-rescue-bare-${type}`,
+                    withCharacter: false,
+                });
+
+                expect(await awaitingRescueOf(quest._id, bearer)).toBe(true);
+                expect(await awaitingRescueOf(quest._id, other.bearer)).toBe(
+                    true,
+                );
+                expect(await awaitingRescueOf(quest._id, wanderer.bearer)).toBe(
+                    true,
+                );
+            },
+        );
+
+        it.each(['hunt', 'dungeon'])(
+            'answers false for a %s without an open aid or once its aid concluded (quick 261113-aql)',
+            async (type) => {
+                const free = await persistCatalogQuest({ infos: { type } });
+                const rescued = await persistCatalogQuest({ infos: { type } });
+                await aidFrom(rescued._id, CONCLUDED_AT);
+
+                expect(await awaitingRescueOf(free._id, bearer)).toBe(false);
+                expect(await awaitingRescueOf(rescued._id, bearer)).toBe(false);
+            },
+        );
+
+        it('keeps the quest marked while the next aid of a lost rescue is open (quick 261113-aql)', async () => {
+            const quest = await persistCatalogQuest({
+                infos: { type: 'hunt' },
+            });
+            await aidFrom(quest._id, CONCLUDED_AT);
+            await aidFrom(quest._id);
+
+            expect(await awaitingRescueOf(quest._id, bearer)).toBe(true);
+        });
+
+        it.each(['enemy', 'boss', 'job', 'heal', 'story', 'worldMission'])(
+            'answers false for a quest of type %s even with an open aid pointing at it (quick 261113-aql)',
+            async (type) => {
+                const quest = await persistCatalogQuest({ infos: { type } });
+                await aidFrom(quest._id);
+
+                expect(await awaitingRescueOf(quest._id, bearer)).toBe(false);
+            },
+        );
+
+        it('reads the open aids once per request for a board of quests (quick 261113-aql)', async () => {
+            const lockedHunt = await persistCatalogQuest({
+                infos: { type: 'hunt' },
+            });
+            const lockedDungeon = await persistCatalogQuest({
+                infos: { type: 'dungeon' },
+            });
+            const freeHunt = await persistCatalogQuest({
+                infos: { type: 'hunt' },
+            });
+            const boss = await persistCatalogQuest({ infos: { type: 'boss' } });
+            await aidFrom(lockedHunt._id);
+            await aidFrom(lockedDungeon._id);
+            await aidFrom(boss._id);
+            const aidReads = jest.spyOn(questsModel(), 'distinct');
+
+            try {
+                const body = (
+                    await graphqlRequest(
+                        harness.app,
+                        QUESTS_AWAITING_RESCUE,
+                        {},
+                        bearer,
+                    )
+                ).body as WireAwaitingRescueBody;
+
+                expect(body.errors).toBeUndefined();
+                expect([...(body.data?.quests ?? [])].sort(byId)).toEqual(
+                    [
+                        { id: String(lockedHunt._id), awaitingRescue: true },
+                        { id: String(lockedDungeon._id), awaitingRescue: true },
+                        { id: String(freeHunt._id), awaitingRescue: false },
+                        { id: String(boss._id), awaitingRescue: false },
+                    ].sort(byId),
+                );
+                expect(aidReads).toHaveBeenCalledTimes(1);
+            } finally {
+                aidReads.mockRestore();
+            }
+        });
+    });
+
+    // UAT 2026-11-13: «nella quest aid vedo 4 arbusto maligno. Non dovrei vederne solo 1?»; a DB l'aid tiene i gruppi dell'originale (D-09)
+    describe('the enemies of a dungeon aid on the wire (quick 261113-aql)', () => {
+        const AID_ENEMIES =
+            'query { quests { id infos { type enemies { quantity enemy { name } } } } }';
+        const AID_QUEST_ENEMIES =
+            'query Quest($id: String!) { quest(id: $id) { id infos { type enemies { quantity enemy { name } } } } }';
+        const GROUP_NAMES = ['Arbusto', 'Ratto', 'Ghoul', 'Drago'];
+
+        interface WireEnemyGroup {
+            quantity: number;
+            enemy: { name: string };
+        }
+
+        interface WireAidQuest {
+            id: string;
+            infos: { type: string; enemies: WireEnemyGroup[] };
+        }
+
+        interface WireAidBody {
+            data?: { quests?: WireAidQuest[]; quest?: WireAidQuest } | null;
+            errors?: { message: string }[];
+        }
+
+        const groupsOf = (count: number): WireEnemyGroup[] =>
+            GROUP_NAMES.slice(0, count).map((name, index) => ({
+                quantity: index + 1,
+                enemy: { name },
+            }));
+
+        async function fourGroups() {
+            const enemies = modelOf(Enemy.name, EnemySchema);
+            const groups: { enemy: Types.ObjectId; quantity: number }[] = [];
+            for (const [index, name] of GROUP_NAMES.entries()) {
+                const enemy = await persistEnemy(enemies, { name });
+                groups.push({ enemy: enemy._id, quantity: index + 1 });
+            }
+            return groups;
+        }
+
+        async function persistGroupsQuest(
+            type: string,
+            turn?: Record<string, unknown>,
+        ) {
+            return persistCatalogQuest({
+                infos: { type, enemies: await fourGroups() },
+                ...(type === 'aid' || turn
+                    ? {
+                          rescue: {
+                              characters: [new Types.ObjectId()],
+                              failedQuest: new Types.ObjectId(),
+                              ...(turn ? { turn } : {}),
+                          },
+                      }
+                    : {}),
+            });
+        }
+
+        async function boardEnemiesOf(questId: unknown) {
+            const body = (
+                await graphqlRequest(harness.app, AID_ENEMIES, {}, bearer)
+            ).body as WireAidBody;
+            expect(body.errors).toBeUndefined();
+            return body.data?.quests?.find(({ id }) => id === String(questId))
+                ?.infos.enemies;
+        }
+
+        async function questEnemiesOf(questId: unknown, viewer = bearer) {
+            const body = (
+                await graphqlRequest(
+                    harness.app,
+                    AID_QUEST_ENEMIES,
+                    { id: String(questId) },
+                    viewer,
+                )
+            ).body as WireAidBody;
+            expect(body.errors).toBeUndefined();
+            return body.data?.quest?.infos.enemies;
+        }
+
+        it.each([
+            { index: 1, kind: 'fight', faced: 1 },
+            { index: 4, kind: 'exploration', faced: 2 },
+            { index: 7, kind: 'fight', faced: 4 },
+            { index: 0, kind: 'exploration', faced: 0 },
+        ])(
+            'serves only the groups faced up to the saved turn $index of a dungeon aid (quick 261113-aql)',
+            async ({ index, kind, faced }) => {
+                const aid = await persistGroupsQuest('aid', {
+                    index,
+                    kind,
+                    total: 8,
+                });
+                const other = await createPlayer(harness, {
+                    twitchId: `twitch-aid-enemies-${index}`,
+                });
+
+                expect(await boardEnemiesOf(aid._id)).toEqual(groupsOf(faced));
+                expect(await questEnemiesOf(aid._id)).toEqual(groupsOf(faced));
+                expect(await questEnemiesOf(aid._id, other.bearer)).toEqual(
+                    groupsOf(faced),
+                );
+            },
+        );
+
+        it('keeps the four groups of the dungeon aid on the database (quick 261113-aql)', async () => {
+            const aid = await persistGroupsQuest('aid', {
+                index: 1,
+                kind: 'fight',
+                total: 8,
+            });
+
+            expect(await questEnemiesOf(aid._id)).toEqual(groupsOf(1));
+            const stored = await modelOf(
+                Quest.name,
+                QuestSchema,
+            ).collection.findOne({ _id: aid._id });
+            expect(stored?.infos.enemies).toHaveLength(4);
+        });
+
+        // l'oggetto infos dell'aid col turno è ricostruito campo per campo: ogni campo che non è enemies arriva come quello del sottodocumento
+        it('serves every other field of the infos of a dungeon aid as the aid without a turn (quick 261113-aql, IN-06)', async () => {
+            const ALL_INFOS =
+                'query Quest($id: String!) { quest(id: $id) { infos { timeToComplete title type description markerLocation { id } relatedLore { id } enemies { quantity enemy { name } } } } }';
+            const infos = {
+                type: 'aid',
+                title: 'Soccorso: Le cripte',
+                description: 'Le cripte crollate',
+                timeToComplete: 900_000,
+                relatedLore: [loreA._id, loreB._id],
+                enemies: await fourGroups(),
+            };
+            const rescue = {
+                characters: [new Types.ObjectId()],
+                failedQuest: new Types.ObjectId(),
+            };
+            const withTurn = await persistCatalogQuest({
+                infos,
+                rescue: {
+                    ...rescue,
+                    turn: { index: 1, kind: 'fight', total: 8 },
+                },
+            });
+            const withoutTurn = await persistCatalogQuest({ infos, rescue });
+            const infosOf = async (questId: unknown) => {
+                const body = (
+                    await graphqlRequest(
+                        harness.app,
+                        ALL_INFOS,
+                        { id: String(questId) },
+                        bearer,
+                    )
+                ).body as {
+                    data?: {
+                        quest?: { infos: { enemies: WireEnemyGroup[] } };
+                    };
+                    errors?: unknown;
+                };
+                expect(body.errors).toBeUndefined();
+                return body.data?.quest?.infos;
+            };
+
+            const { enemies: faced, ...served } =
+                (await infosOf(withTurn._id)) ?? {};
+            const { enemies: all, ...stored } =
+                (await infosOf(withoutTurn._id)) ?? {};
+
+            expect(faced).toEqual(groupsOf(1));
+            expect(all).toEqual(groupsOf(4));
+            expect(served).toEqual(stored);
+            expect(served).toEqual({
+                timeToComplete: 900_000,
+                title: 'Soccorso: Le cripte',
+                type: 'aid',
+                description: 'Le cripte crollate',
+                markerLocation: { id: String(poi._id) },
+                relatedLore: [
+                    { id: String(loreA._id) },
+                    { id: String(loreB._id) },
+                ],
+            });
+        });
+
+        it('serves every group of an aid without a saved turn (quick 261113-aql)', async () => {
+            const aid = await persistGroupsQuest('aid');
+
+            expect(await boardEnemiesOf(aid._id)).toEqual(groupsOf(4));
+            expect(await questEnemiesOf(aid._id)).toEqual(groupsOf(4));
+        });
+
+        it('serves every group of an aid whose saved turn is not valid (quick 261113-aql)', async () => {
+            const aid = await persistGroupsQuest('aid', {
+                index: 1,
+                kind: 'exploration',
+                total: 8,
+            });
+
+            expect(await questEnemiesOf(aid._id)).toEqual(groupsOf(4));
+        });
+
+        it.each(['dungeon', 'hunt', 'boss'])(
+            'serves every group of a %s, even with a stray saved turn (quick 261113-aql)',
+            async (type) => {
+                const plain = await persistGroupsQuest(type);
+                const stray = await persistGroupsQuest(type, {
+                    index: 1,
+                    kind: 'fight',
+                    total: 8,
+                });
+
+                expect(await boardEnemiesOf(plain._id)).toEqual(groupsOf(4));
+                expect(await questEnemiesOf(plain._id)).toEqual(groupsOf(4));
+                expect(await questEnemiesOf(stray._id)).toEqual(groupsOf(4));
+            },
+        );
     });
 });

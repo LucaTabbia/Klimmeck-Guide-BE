@@ -16,7 +16,11 @@ import { type QuestEnemyRef, validQuestEnemiesOf } from '../quest-enemies';
 import {
     type AidPrizes,
     proportionalPrizesOf,
-    rescueShareOf,
+    rescueFractionOf,
+    type RescueShare,
+    shareRatioOf,
+    shareValueOf,
+    sharedTimeOf,
 } from './rescue-share';
 
 export const AID_TITLE_PREFIX = 'Soccorso: ';
@@ -112,19 +116,14 @@ function clonedPrizesOf(source: AidSourceQuest): AidQuestDraft['prizes'] {
     return { ...cloned, rankPrizes: blocks.map(clonedRankBlockOf) };
 }
 
-// D-20: la quota dei turni è scritta sull'aid alla nascita; la catena clona l'originale (denominatore 1),
-// una sorgente già scalata si riscala col rapporto delle quote (I3)
-function aidPrizesOf(
+// D-20: la quota dei turni è scritta sull'aid alla nascita, sul premio e sulla durata (quick 261113-aql); la catena clona l'originale (denominatore 1),
+// una sorgente già scalata si riscala col rapporto delle quote (I3); senza turno tutto resta intero
+function aidShareOf(
     original: AidSourceQuest,
     turn: RescueTurn | null,
-): AidQuestDraft['prizes'] {
-    const cloned = clonedPrizesOf(original);
-    if (!turn) return cloned;
-    const sourceTurn = rescueTurnOf(original.rescue?.turn);
-    return proportionalPrizesOf(
-        cloned,
-        rescueShareOf(turn) / rescueShareOf(sourceTurn),
-    );
+): RescueShare {
+    const sourceTurn = turn ? rescueTurnOf(original.rescue?.turn) : null;
+    return shareRatioOf(rescueFractionOf(turn), rescueFractionOf(sourceTurn));
 }
 
 // blocchi per titolo della quest di gruppo copiati campo per campo (un sottodocumento idratato non si spande), senza cura (D-11, Phase 18 D-23)
@@ -165,6 +164,7 @@ export function buildAidQuest(
     turn: RescueTurn | null = null,
 ): AidQuestDraft {
     const { infos, requirements } = original;
+    const share = aidShareOf(original, turn);
     return {
         _id: aidId,
         infos: {
@@ -174,7 +174,7 @@ export function buildAidQuest(
             markerLocation:
                 refIdOf(infos.markerLocation) ?? infos.markerLocation,
             enemies: validQuestEnemiesOf(infos),
-            timeToComplete: infos.timeToComplete ?? null,
+            timeToComplete: sharedTimeOf(infos.timeToComplete ?? null, share),
             relatedLore: [...(infos.relatedLore ?? [])],
         },
         requirements: {
@@ -186,7 +186,10 @@ export function buildAidQuest(
             ),
             recommendedLoot: [...(requirements?.recommendedLoot ?? [])],
         },
-        prizes: aidPrizesOf(original, turn),
+        prizes: proportionalPrizesOf(
+            clonedPrizesOf(original),
+            shareValueOf(share),
+        ),
         registeredAdventurers: [],
         concludedAt: null,
         rescue: {

@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { describeError } from 'src/mongo/mongo-errors';
+import { DungeonOrderReportService } from './dungeon-order-report.service';
 import { GroupPrizeReportService } from './group-prize-report.service';
 import { QuestEnemiesMigrator } from './quest-enemies.migrator';
 
@@ -11,6 +12,7 @@ export class QuestMaintenanceBoot implements OnApplicationBootstrap {
     constructor(
         private readonly enemies: QuestEnemiesMigrator,
         private readonly groupPrizes: GroupPrizeReportService,
+        private readonly dungeonOrder: DungeonOrderReportService,
     ) {}
 
     async onApplicationBootstrap(): Promise<void> {
@@ -20,6 +22,10 @@ export class QuestMaintenanceBoot implements OnApplicationBootstrap {
         // sola lettura (D-24, D-28): elenca le quest di gruppo da correggere a mano
         await this.step('report dei premi per titolo', () =>
             this.groupPrizes.report(),
+        );
+        // sola lettura (quick 261113-aql): elenca le dungeon senza il nemico più forte all'ultimo gruppo
+        await this.step("report dell'ordine delle dungeon", () =>
+            this.dungeonOrder.report(),
         );
     }
 

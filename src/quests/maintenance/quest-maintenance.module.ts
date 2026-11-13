@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import {
     QuestResult,
     QuestResultSchema,
 } from 'src/models/quest-result/quest-result.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
+import { DungeonOrderReportService } from './dungeon-order-report.service';
 import { GroupPrizeReportService } from './group-prize-report.service';
 import { QuestEnemiesMigrator } from './quest-enemies.migrator';
 import { QuestMaintenanceBoot } from './quest-maintenance.boot';
@@ -15,11 +17,13 @@ import { QuestMaintenanceBoot } from './quest-maintenance.boot';
         MongooseModule.forFeature([
             { name: Quest.name, schema: QuestSchema },
             { name: QuestResult.name, schema: QuestResultSchema },
+            { name: Enemy.name, schema: EnemySchema },
         ]),
     ],
     providers: [
         QuestEnemiesMigrator,
         GroupPrizeReportService,
+        DungeonOrderReportService,
         QuestMaintenanceBoot,
     ],
 })

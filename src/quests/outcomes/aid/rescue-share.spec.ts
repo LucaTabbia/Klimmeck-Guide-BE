@@ -5,7 +5,10 @@ import { TitleType } from 'src/models/enums/title-type.enum';
 import {
     AidPrizes,
     proportionalPrizesOf,
+    rescueFractionOf,
     rescueShareOf,
+    shareRatioOf,
+    sharedTimeOf,
 } from 'src/quests/outcomes/aid/rescue-share';
 
 const LOOT_ID = new Types.ObjectId('64b0000000000000000000e1');
@@ -37,6 +40,35 @@ describe('rescueShareOf', () => {
             expect(rescueShareOf(turn)).toBe(share);
         },
     );
+});
+
+// una sola quota: la frazione intera da cui escono sia il numero dei premi sia l'aritmetica intera della durata (IN-04)
+describe('rescueFractionOf', () => {
+    it('reads the completed turns over the total as whole numbers (quick 261113-aql, IN-04)', () => {
+        expect(
+            rescueFractionOf({
+                index: 6,
+                kind: DungeonTurnKind.exploration,
+                total: 10,
+            }),
+        ).toEqual({ numerator: 7, denominator: 10 });
+    });
+
+    it('is the full share without a turn (quick 261113-aql, IN-04)', () => {
+        expect(rescueFractionOf(null)).toEqual({
+            numerator: 1,
+            denominator: 1,
+        });
+    });
+
+    it('rescales a share by the share of its source as whole numbers (quick 261113-aql, IN-04)', () => {
+        expect(
+            shareRatioOf(
+                { numerator: 3, denominator: 10 },
+                { numerator: 4, denominator: 10 },
+            ),
+        ).toEqual({ numerator: 30, denominator: 40 });
+    });
 });
 
 describe('proportionalPrizesOf', () => {
@@ -151,5 +183,47 @@ describe('proportionalPrizesOf', () => {
                 prizeItem: { itemType: 'LootItem', item: LOOT_ID, quantity: 1 },
             },
         ]);
+    });
+});
+
+// utente 2026-11-13: «1 ora dungeon completo -> 15 minuti aid»
+describe('sharedTimeOf', () => {
+    const share = (numerator: number, denominator: number) => ({
+        numerator,
+        denominator,
+    });
+
+    it.each([
+        [3_600_000, share(1, 4), 900_000],
+        [3_600_000, share(2, 8), 900_000],
+        [3_600_000, share(5, 8), 2_250_000],
+        [3_600_000, share(1, 1), 3_600_000],
+        [1_000_001, share(1, 2), 500_000],
+    ])(
+        'writes the share of the aid time rounded down to the millisecond (quick 261113-aql): %d × %o → %d',
+        (time, fraction, shared) => {
+            expect(sharedTimeOf(time, fraction)).toBe(shared);
+        },
+    );
+
+    // 86 400 000 × 0.7 vale 60 479 999.99… in virgola mobile: la durata si divide fra interi, senza tolleranza
+    it.each([
+        [86_400_000, share(7, 10), 60_480_000],
+        [34_560_000, share(30, 40), 25_920_000],
+    ])(
+        'never loses a millisecond on a long time (quick 261113-aql, IN-04): %d × %o → %d',
+        (time, fraction, shared) => {
+            expect(sharedTimeOf(time, fraction)).toBe(shared);
+        },
+    );
+
+    it('never brings a positive time below one millisecond (quick 261113-aql)', () => {
+        expect(sharedTimeOf(3, share(1, 8))).toBe(1);
+    });
+
+    it('keeps a missing, zero or malformed time as it is (quick 261113-aql)', () => {
+        expect(sharedTimeOf(null, share(1, 4))).toBeNull();
+        expect(sharedTimeOf(0, share(1, 4))).toBe(0);
+        expect(sharedTimeOf(-5, share(1, 4))).toBe(-5);
     });
 });

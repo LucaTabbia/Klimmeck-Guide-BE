@@ -7,7 +7,7 @@ import {
     MongooseModule,
 } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
-import { Connection, Model, Types } from 'mongoose';
+import { ClientSession, Connection, Model, Query, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import {
     Character,
@@ -15,6 +15,7 @@ import {
 } from 'src/models/character/character.model';
 import { City, CityDocument } from 'src/models/city.model';
 import { LootItem } from 'src/models/loot-item.model';
+import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import {
     PendingQuest,
@@ -25,6 +26,10 @@ import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
+import {
+    AidSourceQuest,
+    buildAidQuest,
+} from 'src/quests/outcomes/aid/aid-quest';
 import {
     hasSeatFor,
     RankSlot,
@@ -355,14 +360,33 @@ describe('QuestAcceptanceService (replSet)', () => {
     // lo stato cambia fra la pre-verifica e la transazione: il rifiuto può venire solo dal filtro (IN-04)
     function interleaveBeforeTransaction(
         interlude: () => Promise<unknown>,
+        onSession?: (session: ClientSession) => void,
     ): jest.SpyInstance {
         const transaction = connection.transaction.bind(connection);
         return jest
             .spyOn(connection, 'transaction')
             .mockImplementationOnce(async (fn, options) => {
                 await interlude();
-                return transaction(fn, options);
+                return transaction((session) => {
+                    onSession?.(session);
+                    return fn(session);
+                }, options);
             });
+    }
+
+    // la lettura del blocco porta la sessione della transazione (IN-07): una lettura fuori sessione vedrebbe la stessa aid già committata
+    function rescueLockSessionsOf(
+        sessionCalls: jest.SpyInstance,
+    ): (ClientSession | null | undefined)[] {
+        const contexts = sessionCalls.mock.contexts as Query<
+            unknown,
+            unknown
+        >[];
+        return contexts.flatMap((query, call) =>
+            'rescue.failedQuest' in query.getFilter()
+                ? [sessionCalls.mock.calls[call]?.[0] as ClientSession | null]
+                : [],
+        );
     }
 
     // ogni posto di una quest di gruppo ha un titolo (D-02, D-24): i jolly restano solo nell'aid
@@ -1224,6 +1248,196 @@ describe('QuestAcceptanceService (replSet)', () => {
                 [],
             );
         });
+    });
+
+    // regola dell'utente 2026-11-13: la hunt o la dungeon che ha aperto un soccorso resta strappata per tutti finché l'aid è aperta (supera D-15)
+    describe('a source quest awaiting its rescue (quick 261113-aql)', () => {
+        const LOCKED_TYPES = ['hunt', 'dungeon'];
+
+        async function openAidFrom(
+            failedQuest: Types.ObjectId,
+            concludedAt: Date | null = null,
+        ): Promise<Types.ObjectId> {
+            const base = buildQuest();
+            const _id = new Types.ObjectId();
+            await quests.collection.insertOne({
+                ...base,
+                _id,
+                infos: {
+                    ...base.infos,
+                    type: 'aid',
+                    markerLocation: world.questMarker,
+                },
+                requirements: {
+                    ...base.requirements,
+                    requiredAdventurers: [{ title: null, count: 1 }],
+                },
+                registeredAdventurers: [],
+                rescue: { characters: [new Types.ObjectId()], failedQuest },
+                concludedAt,
+            });
+            return _id;
+        }
+
+        async function expectRejectedWithNothingWritten(
+            ownerId: Types.ObjectId,
+            charId: Types.ObjectId,
+            questId: Types.ObjectId,
+        ): Promise<void> {
+            const before = await raw(charId);
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({
+                code: 'QUEST_NOT_ACCEPTABLE',
+                message: 'Missione non disponibile',
+            });
+
+            expect(await raw(charId)).toEqual(before);
+        }
+
+        it.each(LOCKED_TYPES)(
+            'rejects a %s awaiting the rescue of its aid for anyone with QUEST_NOT_ACCEPTABLE and writes nothing (quick 261113-aql)',
+            async (type) => {
+                const questId = await questOf(type);
+                await openAidFrom(questId);
+                const rookieOwner = await ownerWith(6000);
+                const rookie = await characterAt(world.cityMarker, 'rookie');
+                const heroOwner = await ownerWith(6000);
+                const hero = await characterAt(world.cityMarker, 'hero');
+                const questBefore = await rawQuest(questId);
+
+                await expectRejectedWithNothingWritten(
+                    rookieOwner,
+                    rookie,
+                    questId,
+                );
+                await expectRejectedWithNothingWritten(
+                    heroOwner,
+                    hero,
+                    questId,
+                );
+
+                expect(await pendingCount()).toBe(0);
+                expect(await pointsOf(rookieOwner)).toBe(6000);
+                expect(await pointsOf(heroOwner)).toBe(6000);
+                expect(await rawQuest(questId)).toEqual(questBefore);
+                expect(queue.added).toEqual([]);
+                expect(questQueue.added).toEqual([]);
+            },
+        );
+
+        it.each(LOCKED_TYPES)(
+            'accepts a %s again once its aid has concluded (quick 261113-aql)',
+            async (type) => {
+                const questId = await questOf(type);
+                await openAidFrom(questId, ACCEPTED_AT);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(world.cityMarker);
+
+                const pqId = await accept(ownerId, charId, questId);
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+            },
+        );
+
+        it.each(LOCKED_TYPES)(
+            'keeps a %s locked while the next aid of a lost rescue is open (quick 261113-aql)',
+            async (type) => {
+                const questId = await questOf(type);
+                await openAidFrom(questId, ACCEPTED_AT);
+                await openAidFrom(questId);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(world.cityMarker);
+
+                await expectRejectedWithNothingWritten(
+                    ownerId,
+                    charId,
+                    questId,
+                );
+
+                expect(await pendingCount()).toBe(0);
+            },
+        );
+
+        it.each(LOCKED_TYPES)(
+            'keeps a %s free when the open aid comes from another quest (quick 261113-aql)',
+            async (type) => {
+                const questId = await questOf(type);
+                await openAidFrom(await questOf(type));
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(world.cityMarker);
+
+                const pqId = await accept(ownerId, charId, questId);
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+            },
+        );
+
+        it.each([
+            ['enemy', { requiredAdventurers: [{ title: null, count: 1 }] }],
+            ['boss', { requiredAdventurers: THREE_ROOKIES }],
+            ['job', {}],
+            ['study', {}],
+            ['crime', {}],
+        ])(
+            'leaves a quest of type %s as it is with an open aid pointing at it (quick 261113-aql)',
+            async (type, requirements) => {
+                const questId = await questOf(type, requirements);
+                await openAidFrom(questId);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(world.cityMarker);
+
+                const pqId = await accept(ownerId, charId, questId);
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+            },
+        );
+
+        it('rejects from the read in the transaction an aid born after the pre-check (quick 261113-aql)', async () => {
+            const questId = await questOf('hunt');
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(world.cityMarker);
+            const transactionSessions: ClientSession[] = [];
+            const transaction = interleaveBeforeTransaction(
+                () => openAidFrom(questId),
+                (session) => transactionSessions.push(session),
+            );
+            const sessionCalls = jest.spyOn(Query.prototype, 'session');
+
+            await expectRejectedWithNothingWritten(ownerId, charId, questId);
+
+            expect(transaction).toHaveBeenCalledTimes(1);
+            expect(await pendingCount()).toBe(0);
+            const lockSessions = rescueLockSessionsOf(sessionCalls);
+            expect(transactionSessions).toHaveLength(1);
+            expect(lockSessions).toHaveLength(1);
+            expect(lockSessions[0]).toBe(transactionSessions[0]);
+        });
+    });
+
+    // utente 2026-11-13: «1 ora dungeon completo -> 15 minuti aid»; l'attesa del soccorritore viene dal tempo dell'aid, già in proporzione
+    it('gives the rescuer of a dungeon aid born on turn 2 of 8 a quarter of the dungeon time to wait (quick 261113-aql)', async () => {
+        const dungeonId = await questOf(
+            'dungeon',
+            { requiredAdventurers: [{ title: null, count: 1 }] },
+            { timeToComplete: 3_600_000 },
+        );
+        const source = await quests.collection.findOne({ _id: dungeonId });
+        const aid = buildAidQuest(
+            source as unknown as AidSourceQuest,
+            [new Types.ObjectId()],
+            new Types.ObjectId(),
+            { index: 1, kind: DungeonTurnKind.fight, total: 8 },
+        );
+        await quests.collection.insertOne({ ...aid });
+        const ownerId = await ownerWith(0);
+        const charId = await characterAt(world.cityMarker);
+
+        const pqId = await accept(ownerId, charId, aid._id);
+
+        expect(aid.infos.timeToComplete).toBe(900_000);
+        expect((await pendingOf(pqId))?.waitingTime).toBe(900_000);
     });
 
     describe('concluded quests (D-06, C9)', () => {
