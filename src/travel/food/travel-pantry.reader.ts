@@ -32,18 +32,13 @@ export interface Pantry {
     hpBefore: number;
 }
 
-export interface PlannedMeal {
-    plan: TravelFoodPlan;
-    pantry: Pantry;
-}
-
 export type TravelLeg = Pick<ActiveTravelDraft, 'duration' | 'road'>;
 
 interface PantrySnapshot extends StatusSnapshot {
     assets?: { ownedItems?: InventoryEntry[] };
 }
 
-interface FoodCatalogEntry {
+export interface FoodCatalogEntry {
     _id: Types.ObjectId;
     power?: number;
     sellPrice?: Partial<CoinPurse> | null;
@@ -73,7 +68,7 @@ const lootIdsOf = (entries: readonly InventoryEntry[]): Types.ObjectId[] => [
 ];
 
 // la validità di power e quantità la filtra selectFood (Phase 14 D-06)
-const stacksOf = (
+export const stacksOf = (
     entries: readonly InventoryEntry[],
     catalog: readonly FoodCatalogEntry[],
 ): FoodStack[] => {
@@ -94,7 +89,7 @@ const stacksOf = (
     });
 };
 
-// la dispensa del viaggiatore: cibo hunger nell'ordine dell'inventario + HP (Phase 14 D-12, D-17); in sessione dentro la transazione della partenza
+// la dispensa del viaggiatore: cibo hunger nell'ordine dell'inventario + HP (Phase 14 D-12, D-17); letta in sessione dentro le transazioni di partenza, sweep, arrivo e teleport (Phase 20 D-14)
 @Injectable()
 export class TravelPantryReader {
     constructor(
@@ -116,10 +111,7 @@ export class TravelPantryReader {
             .exec();
         if (!snapshot) throw ResourceNotFoundException.character();
         const ownedItems = snapshot.assets?.ownedItems ?? [];
-        const catalog = await this.foodCatalogOf(
-            lootIdsOf(ownedItems),
-            session,
-        );
+        const catalog = await this.foodCatalogFor(ownedItems, session);
         return {
             stacks: stacksOf(ownedItems, catalog),
             assets: { ownedItems },
@@ -132,22 +124,21 @@ export class TravelPantryReader {
         characterId: Types.ObjectId,
         travel: TravelLeg,
         session: ClientSession | null = null,
-    ): Promise<PlannedMeal> {
+    ): Promise<TravelFoodPlan> {
         const pantry = await this.read(characterId, session);
-        const plan = planTravelFood({
+        return planTravelFood({
             durationMs: travel.duration,
             distanceKm: travel.road.distance,
             hpBefore: pantry.hpBefore,
             stacks: pantry.stacks,
         });
-        return { pantry, plan };
     }
 
     async previewOf(
         characterId: Types.ObjectId,
         travel: TravelLeg,
     ): Promise<TravelPreview> {
-        const { plan } = await this.planFor(characterId, travel);
+        const plan = await this.planFor(characterId, travel);
         return {
             distance: travel.road.distance,
             duration: travel.duration,
@@ -172,6 +163,14 @@ export class TravelPantryReader {
             );
             return item ? [{ item, quantity }] : [];
         });
+    }
+
+    // l'imboscata costruisce gli stack dalla dispensa del suo snapshot letto in sessione; read lo usa per tutti gli altri (Phase 20 D-14)
+    async foodCatalogFor(
+        ownedItems: readonly InventoryEntry[],
+        session: ClientSession | null = null,
+    ): Promise<FoodCatalogEntry[]> {
+        return this.foodCatalogOf(lootIdsOf(ownedItems), session);
     }
 
     private async foodCatalogOf(

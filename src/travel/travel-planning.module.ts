@@ -24,6 +24,7 @@ import {
     QUEUE_CALL_TIMEOUT_MS,
 } from 'src/queues/queue-call-timeout';
 import { AmbushPlanner } from './ambush/ambush-planner.service';
+import { TravelFoodSweep } from './food/travel-food.sweep';
 import { TravelPantryReader } from './food/travel-pantry.reader';
 import { TRAVEL_QUEUE } from './travel-job';
 import { TravelPlanner } from './travel-planner.service';
@@ -33,7 +34,7 @@ const TRAVEL_QUEUE_REGISTRATION = BullModule.registerQueue({
     name: TRAVEL_QUEUE,
 });
 
-// planner + scheduler condivisi da viaggio libero e accettazione quest (D-21); senza il modulo push (C6); e dispensa del viaggio (Phase 14); sorteggio delle imboscate alla partenza (Phase 15)
+// planner + scheduler condivisi da viaggio libero e accettazione quest (D-21); senza il modulo push (C6); e dispensa del viaggio (Phase 14); sorteggio delle imboscate alla partenza (Phase 15); passo «fame» dello sweep, servito a TravelSweeper (Phase 20 D-15)
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -50,6 +51,7 @@ const TRAVEL_QUEUE_REGISTRATION = BullModule.registerQueue({
         TravelPlanner,
         TravelScheduler,
         TravelPantryReader,
+        TravelFoodSweep,
         { provide: Clock, useClass: SystemClock },
         { provide: QUEUE_CALL_TIMEOUT, useValue: QUEUE_CALL_TIMEOUT_MS },
         ambushConfigProvider,
@@ -62,6 +64,7 @@ const TRAVEL_QUEUE_REGISTRATION = BullModule.registerQueue({
         TravelPlanner,
         TravelScheduler,
         TravelPantryReader,
+        TravelFoodSweep,
         AmbushPlanner,
         TRAVEL_QUEUE_REGISTRATION,
     ],

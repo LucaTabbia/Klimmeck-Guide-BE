@@ -1634,6 +1634,12 @@ describe('QuestAcceptanceService (replSet)', () => {
                 }));
             }
 
+            function savedPlanOf(id: Types.ObjectId) {
+                return raw(id).then(
+                    (character) => character?.status.activeTravel?.food,
+                );
+            }
+
             // marker di B aggiunto alla città di A: la strada A→B costa più di un power (numeri reali, D-18)
             async function longHunt(): Promise<{
                 questId: Types.ObjectId;
@@ -1651,7 +1657,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                 };
             }
 
-            it('eats the food of the automatic travel in the claim (D-06, D-12)', async () => {
+            it('saves the food plan of the automatic travel in the claim without eating (D-05)', async () => {
                 expect(needed).toBeGreaterThan(0);
                 expect(needed).toBeLessThan(5);
                 const food1 = await persistFood(lootItems, 1);
@@ -1678,6 +1684,7 @@ describe('QuestAcceptanceService (replSet)', () => {
 
                 const character = await raw(charId);
                 expect(character?.assets.ownedItems).toEqual([
+                    foodStack(food1, needed),
                     foodStack(food5, 1),
                 ]);
                 expect(character?.status.currentLifePoints).toBe(100);
@@ -1685,12 +1692,20 @@ describe('QuestAcceptanceService (replSet)', () => {
                     kind: 'quest',
                     to: travel.questPoi,
                 });
+                expect(character?.status.activeTravel.food).toEqual({
+                    needed,
+                    uncoveredKm: 0,
+                    coveredKm: route.distanceKm,
+                    hpLostTotal: 0,
+                    settledKm: 0,
+                    foodConsumedAt: null,
+                });
                 expect(character?.quests.pendingQuest).toEqual(pqId);
                 expect(await pendingCount()).toBe(1);
                 expect(queue.added).toHaveLength(1);
             });
 
-            it('eats all the food and lowers the life points of a partial cover in the claim (D-03, D-04)', async () => {
+            it('saves the uncovered kilometres of a partial cover in the claim without charging (D-05, D-13)', async () => {
                 const food1 = await persistFood(lootItems, 1);
                 const { questId, longRoute } = await longHunt();
                 const longNeeded = foodNeededFor(
@@ -1710,16 +1725,25 @@ describe('QuestAcceptanceService (replSet)', () => {
 
                 await accept(ownerId, charId, questId);
 
-                const hpLost = hpLostFor(
-                    uncoveredKmOf(longNeeded, 1, longRoute.distanceKm),
+                const uncoveredKm = uncoveredKmOf(
+                    longNeeded,
+                    1,
+                    longRoute.distanceKm,
                 );
-                expect(hpLost).toBeGreaterThan(0);
+                expect(hpLostFor(uncoveredKm)).toBeGreaterThan(0);
                 expect(await foodOf(charId)).toEqual({
-                    ownedItems: [],
-                    lifePoints: 100 - hpLost,
+                    ownedItems: [foodStack(food1, 1)],
+                    lifePoints: 100,
                 });
                 expect((await raw(charId))?.status.activeTravel).toMatchObject({
                     to: travel.markerB,
+                });
+                expect(await savedPlanOf(charId)).toMatchObject({
+                    needed: longNeeded,
+                    uncoveredKm,
+                    hpLostTotal: hpLostFor(uncoveredKm),
+                    settledKm: 0,
+                    foodConsumedAt: null,
                 });
             });
 
@@ -1866,6 +1890,12 @@ describe('QuestAcceptanceService (replSet)', () => {
                 expect((await raw(jumperId))?.status.location).toEqual(
                     travel.farQuestPoi,
                 );
+                expect(
+                    (await raw(jumperId))?.status.activeTravel ?? null,
+                ).toBeNull();
+                expect(
+                    (await raw(standingId))?.status.activeTravel ?? null,
+                ).toBeNull();
                 expect(read).not.toHaveBeenCalled();
             });
 
@@ -1918,7 +1948,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                 expect(read).not.toHaveBeenCalled();
             });
 
-            it('lets exactly one of two concurrent quest departures eat the same food (D-12)', async () => {
+            it('lets exactly one of two concurrent quest departures save its food plan (D-05, D-14)', async () => {
                 const food1 = await persistFood(lootItems, 1);
                 const food5 = await persistFood(lootItems, 5);
                 const ownerId = await ownerWith(0);
@@ -1950,15 +1980,25 @@ describe('QuestAcceptanceService (replSet)', () => {
                 expect(['QUEST_SLOT_BUSY', 'TRAVEL_IN_PROGRESS']).toContain(
                     codeOf(rejected[0]),
                 );
-                expect((await raw(charId))?.assets.ownedItems).toEqual([
+                const character = await raw(charId);
+                expect(character?.assets.ownedItems).toEqual([
+                    foodStack(food1, needed),
                     foodStack(food5, 1),
                 ]);
+                expect(character?.status.activeTravel.food).toEqual({
+                    needed,
+                    uncoveredKm: 0,
+                    coveredKm: route.distanceKm,
+                    hpLostTotal: 0,
+                    settledKm: 0,
+                    foodConsumedAt: null,
+                });
                 expect(await pendingCount()).toBe(1);
                 expect(queue.added).toHaveLength(1);
             });
 
             // la seconda lettura è la prima del callback: l'acquisto arriva dopo la lettura in sessione e prima del claim
-            it('keeps a concurrent non-food purchase made after the pantry read of the claim (D-20)', async () => {
+            it('keeps a concurrent purchase made after the pantry read of the claim without eating (D-05, D-14)', async () => {
                 const pantryReader = app.get(TravelPantryReader);
                 const food1 = await persistFood(lootItems, 1);
                 const potion = await persistLootItem(lootItems, {
@@ -1997,14 +2037,14 @@ describe('QuestAcceptanceService (replSet)', () => {
                 await accept(ownerId, charId, await huntTo(travel.questPoi));
 
                 expect((await raw(charId))?.assets.ownedItems).toEqual([
-                    foodStack(food1, 3),
+                    foodStack(food1, needed + 3),
                     foodStack(potion, 1),
                 ]);
                 expect(read.mock.calls.length).toBeGreaterThanOrEqual(3);
                 expect(read.mock.calls[1][1]).not.toBeNull();
             });
 
-            it('feeds the slower march of an injured character (D-01)', async () => {
+            it('saves the food need of the slower march of an injured character (D-01, D-05)', async () => {
                 const food1 = await persistFood(lootItems, 1);
                 const ownerId = await ownerWith(0);
                 const charId = await characterAt(
@@ -2025,8 +2065,9 @@ describe('QuestAcceptanceService (replSet)', () => {
                 const injured = foodNeededFor(
                     durationMsOf(route.baseHours, BASE_SPEED * 0.8),
                 );
+                expect((await savedPlanOf(charId))?.needed).toBe(injured);
                 expect((await raw(charId))?.assets.ownedItems).toEqual([
-                    foodStack(food1, LARDER - injured),
+                    foodStack(food1, LARDER),
                 ]);
                 expect(injured).toBeGreaterThan(needed);
             });

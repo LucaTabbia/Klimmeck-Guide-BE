@@ -23,3 +23,36 @@ export function buildActiveTravelDoc(overrides: Record<string, any> = {}) {
         ...overrides,
     };
 }
+
+export const FOOD_TRAVEL_KM = 20;
+
+// 20 km in un'ora (1 km ogni 3 minuti), 20 power di fabbisogno, 10 power posseduti: 10 km scoperti, 55 HP (Phase 14 D-02)
+export function buildActiveTravelFood(overrides: Record<string, unknown> = {}) {
+    return {
+        needed: 20,
+        uncoveredKm: 10,
+        coveredKm: 10,
+        hpLostTotal: 55,
+        settledKm: 0,
+        foodConsumedAt: null,
+        ...overrides,
+    };
+}
+
+// food null = viaggio legacy senza piano (D-11)
+export function buildFoodTravelDoc(
+    food: Record<string, unknown> | null = {},
+    overrides: Record<string, any> = {},
+) {
+    return buildActiveTravelDoc({
+        road: {
+            coordinates: [
+                [0, 0],
+                [0, 9],
+            ],
+            distance: FOOD_TRAVEL_KM,
+        },
+        ...(food ? { food: buildActiveTravelFood(food) } : {}),
+        ...overrides,
+    });
+}

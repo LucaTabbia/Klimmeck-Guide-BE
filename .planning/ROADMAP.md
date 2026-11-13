@@ -47,7 +47,7 @@ Ordine seguito: numerico, con le inserite subito dopo la fase madre; ogni contra
 
 - [x] **Phase 18: Quest heal per taglia** - Le quest `heal` curano in base al luogo: sotto-documento additivo `prizes.cure` con la quota di vita a cui la quest riporta gli HP (tetto: villaggio 50 %, città 80 %, capitale 100 %) e la lista `canHeal` delle ferite che guarisce (stesso nome e semantica del campo degli oggetti heal), applicato a ogni quest vinta che lo porta; `QuestResult.injuriesHealed`; contenuto delle 166 heal scritto a DB per taglia (liste ≤20 / ≤40 / tutte con ritocchi di lore per tipo di città, ore 2 / 5 / 8, descrizioni per taglia) dopo la revisione dell'utente; heal gratuite; **pozioni heal bevute dal Diario** con ricarica globale (`LootItem.recovery { time, turns }`, `status.potionRecoveryUntil`, mutation `useItem`, tempi 30 min–24 h a DB, `turns` solo dato per il motore di combattimento) e lore nuova «Il limite del corpo» sbloccata alla prima pozione (`LootItem.relatedLore`) _(aggiunta 2026-11-09 nel discuss congiunto con la FE Phase 18; la Phase 17 «Autorizzazione e sessioni» vive sul ramo `feat/17-autorizzazione-e-sessioni`; la 18 si esegue dopo la 17)_
 - [x] **Phase 19: Revisione dei modelli** - Pulizia dei modelli senza cambiare le regole, con cambi non additivi allo SDL dichiarati e un solo migratore one-off al boot reale: `Enemy.weaknesses { base, energy }`, magie dei nemici per riferimento, stato dei pet sul personaggio (`ownedPets [{ pet, xp, currentLifePoints }]`, il catalogo tiene le basi, `maxXp` rivisto e `attack`/`defense` al posto di `damages`) con il **10 % degli xp dei nemici al compagno equipaggiato** (tetto `maxXp`, `QuestResult.petXpGained`), `wornEquipment`/`feet`, una sola lista `spellStates` con `active` (via `status.spells` e `assets.activeSpells`), `maxActiveSpells` calcolato e non persistito, via `PointOfInterest.quest`, `City.shop { equipment, loot, pets }`, `Lore.imagePath`, file enum e modello morto _(aggiunta 2026-11-09, dopo la Phase 18)_ (completed 2026-11-11)
-- [ ] **Phase 20: Cibo e vita progressivi in viaggio** - Il piano del cibo si calcola alla partenza come oggi (stessa selezione, anteprima e rifiuto) ma si paga lungo la strada: vita scalata dallo sweep ogni minuto solo nel tratto scoperto come perdita incrementale (esatta all'imboscata e all'arrivo, mai sotto 1), cibo tolto in blocco in tre momenti (fine dei km coperti, arrivo, sconfitta con la selezione a scarto minimo sui soli km percorsi); deviazione senza cibo né fame; nessun cambio SDL, nessuna companion FE _(aggiunta 2026-11-09, dopo la Phase 19; supera la Phase 14 D-04)_
+- [x] **Phase 20: Cibo e vita progressivi in viaggio** - Il piano del cibo si calcola alla partenza come oggi (stessa selezione, anteprima e rifiuto) ma si paga lungo la strada: vita scalata dallo sweep ogni minuto solo nel tratto scoperto come perdita incrementale (esatta all'imboscata e all'arrivo, mai sotto 1), cibo tolto in blocco in tre momenti (fine dei km coperti, arrivo, sconfitta con la selezione a scarto minimo sui soli km percorsi); deviazione senza cibo né fame; nessun cambio SDL, nessuna companion FE _(aggiunta 2026-11-09, dopo la Phase 19; supera la Phase 14 D-04)_
 
 **Ordine di esecuzione:** 18 → 19 → 20. Ogni contratto consumato dalla FE arriva su `develop` prima dei piani gated della fase FE gemella. Requisiti: [REQUIREMENTS.md](REQUIREMENTS.md).
 
@@ -144,8 +144,23 @@ Plans:
   5. Unit sulla funzione pura e sulla selezione parziale, integration con orologio finto (partenza senza scritture, sweep prima e dopo il confine, pozione fra due sweep, imboscata al km 290, sconfitta al km 30 con cibo pro-rata, arrivo, teleport, viaggio legacy), SDL identico al boot reale, handoff `BACKEND-NOTES.md` (semantica nuova per la FE Phase 15, piano di UAT su device con l'app com'è).
 **Decisioni del discuss (2026-11-09, `20-CONTEXT.md` D-01..D-12)**: vita allo sweep solo nel tratto scoperto, incrementale; cibo prima e fame in coda; cibo in blocco in tre momenti con la selezione a scarto minimo sui km percorsi; deviazione senza costi; niente debito di fame né riga in app; fase solo BE dopo la 19.
 **Unblocks (FE)**: nessuna fase FE (nessun cambio sul filo).
-**Branch**: `feat/20-cibo-e-vita-progressivi` impilato su `feat/19-revisione-dei-modelli` → PR a `develop` dopo quella della Phase 19.
-**Plans**: TBD
+**Branch**: `feat/20-cibo-e-vita-progressivi` da `develop` (riallineato il 2026-11-12 con una merge: la Phase 19 è già dentro) → PR a `develop`.
+**Plans**: 11 plans
+
+Plans:
+- [x] 20-01-PLAN.md — Fondamenta della fase
+- [x] 20-02-PLAN.md — Assestamento puro della fase
+- [x] 20-03-PLAN.md — L'arrivo assesta fame e cibo
+- [x] 20-04-PLAN.md — Il passo «fame» dello sweep
+- [x] 20-05-PLAN.md — Imboscata, parte pura
+- [x] 20-06-PLAN.md — Imboscata, cablaggio nel servizio
+- [x] 20-07-PLAN.md — Teleport a viaggio iniziato
+- [x] 20-08-PLAN.md — La partenza libera salva il piano e smette di consumare
+- [x] 20-09-PLAN.md — La partenza da quest salva il piano e smette di consumare
+- [x] 20-10-PLAN.md — Gate della fase
+- [x] 20-11-PLAN.md — Chiusura della fase
+
+**Stato (2026-11-13)**: 11/11 piani eseguiti; gate verde (dopo i fix della review: unit 274/3591, integration 141/2037); handoff `BACKEND-NOTES.md` scritto; `test:cov`, verifica e audit di sicurezza, PR verso develop, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §4) a cura dell'orchestratore
 
 ## Backend ↔ Frontend alignment (v1.1)
 
@@ -185,7 +200,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 17. Autorizzazione e sessioni | v1.0 | 10/10 | Complete | 2026-11-09 |
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
-| 20. Cibo e vita progressivi in viaggio | v1.1 | 0/0 | Not started | - |
+| 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
 
 ---
 

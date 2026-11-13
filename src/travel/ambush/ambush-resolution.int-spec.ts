@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { toCopper } from 'src/economy/coins';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
+import { ResolutionLoader } from 'src/quests/outcomes/resolution-loader.service';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { RoadsService } from 'src/roads/roads.service';
@@ -108,6 +109,17 @@ describe('AmbushResolutionService (replica set)', () => {
 
     const ambushJobs = () =>
         travelQueue.added.filter((job) => job.name === 'ambush');
+
+    const defeatOf = (
+        subject: Traveller,
+        injuriesAdded: InjuryType[] = [],
+    ): void => {
+        chance.load([0, 0]);
+        combat.willEnd('failure').willResolve(subject.characterId, {
+            hpAfter: 0,
+            injuriesAdded,
+        });
+    };
 
     // in viaggio col compagno equipaggiato (voce a xp 0, tetto 100) accanto a un altro pet posseduto
     const travellerWithCompanion = async () => {
@@ -511,17 +523,6 @@ describe('AmbushResolutionService (replica set)', () => {
     });
 
     describe('defeat', () => {
-        const defeatOf = (
-            subject: Traveller,
-            injuriesAdded: InjuryType[] = [],
-        ): void => {
-            chance.load([0, 0]);
-            combat.willEnd('failure').willResolve(subject.characterId, {
-                hpAfter: 0,
-                injuriesAdded,
-            });
-        };
-
         const completeJobs = () =>
             travelQueue.added.filter((job) => job.name === 'complete');
 
@@ -812,6 +813,148 @@ describe('AmbushResolutionService (replica set)', () => {
             expect(world.push.sent[0].message.body).toBe(
                 'Sei stato sconfitto: la via torna verso Borgo',
             );
+        });
+    });
+
+    describe('progressive food (Phase 20)', () => {
+        // 400 km, 280 coperti da 28 cibi da 20 power, 120 scoperti: fame 7260 sull'intero tratto (piano 05)
+        const LONG_PLAN = {
+            needed: 800,
+            uncoveredKm: 120,
+            coveredKm: 280,
+            hpLostTotal: 7260,
+            settledKm: 0,
+            foodConsumedAt: null,
+        };
+        let F20: { _id: unknown };
+
+        const longTraveller = (km: number): Promise<Traveller> =>
+            traveller({
+                km,
+                distanceKm: 400,
+                durationMs: 144_000_000,
+                food: LONG_PLAN,
+                characterOverrides: {
+                    assets: { ownedItems: [foodStack(F20, 28)] },
+                },
+            });
+
+        const entryLifeOf = (index = 0): number | undefined =>
+            combat.contexts[index].participants[0].currentLifePoints;
+
+        beforeEach(async () => {
+            F20 = await persistFood(world.models.lootItems, 20);
+        });
+
+        it('fights with the exact life of the ambush kilometre and keeps the plan on a victory (D-07, D-16, D-18)', async () => {
+            const subject = await longTraveller(290);
+            chance.load([0, 0]);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+
+            expect(entryLifeOf()).toBe(945);
+            const raw = await rawOf(subject);
+            expect(raw.status.currentLifePoints).toBe(945);
+            expect(raw.assets.ownedItems).toEqual([]);
+            expect(raw.status.activeTravel.food.settledKm).toBe(290);
+            expect(raw.status.activeTravel.food.foodConsumedAt).toEqual(
+                clock.now(),
+            );
+            expect(raw.status.activeTravel.food.uncoveredKm).toBe(120);
+            expect(raw.status.activeTravel.ambushReports[0].hpBefore).toBe(945);
+        });
+
+        it('builds the boundary meal from the food catalog read in session (D-14)', async () => {
+            const subject = await traveller({
+                km: 290,
+                distanceKm: 400,
+                durationMs: 144_000_000,
+                food: LONG_PLAN,
+            });
+            const loader = world.harness.app.get(ResolutionLoader);
+            const original = loader.readCombatCatalog.bind(loader);
+            jest.spyOn(loader, 'readCombatCatalog').mockImplementationOnce(
+                async (...args) => {
+                    await world.models.characters.updateOne(
+                        { _id: subject.characterId },
+                        { $set: { 'assets.ownedItems': [foodStack(F20, 28)] } },
+                    );
+                    return original(...args);
+                },
+            );
+            chance.load([0, 0]);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+
+            expect(entryLifeOf()).toBe(945);
+            const raw = await rawOf(subject);
+            expect(raw.assets.ownedItems).toEqual([]);
+            expect(raw.status.activeTravel.food.uncoveredKm).toBe(120);
+        });
+
+        it('logs the rewritten curve of a short pantry after the commit (D-19)', async () => {
+            const subject = await traveller({
+                km: 290,
+                distanceKm: 400,
+                durationMs: 144_000_000,
+                food: LONG_PLAN,
+                characterOverrides: {
+                    assets: { ownedItems: [foodStack(F20, 14)] },
+                },
+            });
+            const warn = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation(() => undefined);
+            chance.load([0, 0]);
+
+            try {
+                await expect(service.resolve(subject.identity)).resolves.toBe(
+                    'won',
+                );
+                const raw = await rawOf(subject);
+                expect(raw.status.activeTravel.food.uncoveredKm).toBe(260);
+                expect(
+                    warn.mock.calls.map(([message]) => String(message)),
+                ).toEqual([
+                    `Viaggio del personaggio ${subject.characterId.toHexString()}: cibo cambiato al confine, km scoperti 120 → 260`,
+                ]);
+            } finally {
+                warn.mockRestore();
+            }
+        });
+
+        it('eats only the food of the travelled kilometres on a defeat and detours without a plan (D-03, D-04)', async () => {
+            const subject = await longTraveller(30);
+            defeatOf(subject);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            expect(entryLifeOf()).toBe(1000);
+            const raw = await rawOf(subject);
+            expect(raw.assets.ownedItems).toEqual([foodStack(F20, 25)]);
+            expect(raw.status.currentLifePoints).toBe(1);
+            expect(Object.keys(raw.status.activeTravel)).not.toContain('food');
+        });
+
+        it('fights a legacy travel without a plan with the life it has (D-11)', async () => {
+            const subject = await traveller({ km: 10, hp: 700 });
+            const before = await rawOf(subject);
+            chance.load([0, 0]);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+
+            expect(entryLifeOf()).toBe(700);
+            const raw = await rawOf(subject);
+            expect(raw.status.activeTravel.food).toBeUndefined();
+            expect(raw.assets.ownedItems).toEqual(before.assets.ownedItems);
         });
     });
 });

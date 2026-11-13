@@ -17,7 +17,7 @@ import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-res
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { TRAVEL_QUEUE } from '../travel-job';
 import { TravelPlanningModule } from '../travel-planning.module';
-import { TravelPantryReader } from './travel-pantry.reader';
+import { stacksOf, TravelPantryReader } from './travel-pantry.reader';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildCharacter,
@@ -191,7 +191,7 @@ describe('TravelPantryReader (replSet)', () => {
             assets: { ownedItems: [foodStack(food20, 2)] },
         });
 
-        const { plan, pantry } = await reader.planFor(id, LEG);
+        const plan = await reader.planFor(id, LEG);
 
         expect(plan).toEqual({
             consumed: [{ itemId: idOf(food20), quantity: 2 }],
@@ -202,7 +202,6 @@ describe('TravelPantryReader (replSet)', () => {
             hpAfter: 85,
             arrivesAlive: true,
         });
-        expect(pantry.hpRaw).toBe(100);
     });
     it('skips a food without catalog document (D-09)', async () => {
         const food20 = await persistFood(lootItems, 20);
@@ -261,5 +260,24 @@ describe('TravelPantryReader (replSet)', () => {
             { id: idOf(food50).toHexString(), name: 'Cibo 50', quantity: 1 },
         ]);
         expect(await reader.foodItemsOf([])).toEqual([]);
+    });
+
+    it('reads the food catalogue of the owned items for the ambush and the teleport (D-15)', async () => {
+        const food1 = await persistFood(lootItems, 1);
+        const potion = await persistLootItem(lootItems);
+        const id = await traveller({
+            assets: {
+                ownedItems: [foodStack(food1, 2), foodStack(potion, 1)],
+            },
+        });
+        const { assets, stacks } = await reader.read(id);
+        const ownedItems = assets.ownedItems ?? [];
+
+        const catalogue = await reader.foodCatalogFor(ownedItems);
+
+        expect(
+            catalogue.map((food) => ({ id: idOf(food), power: food.power })),
+        ).toEqual([{ id: idOf(food1), power: 1 }]);
+        expect(stacksOf(ownedItems, catalogue)).toEqual(stacks);
     });
 });

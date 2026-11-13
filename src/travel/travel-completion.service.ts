@@ -30,6 +30,13 @@ import {
 import { travelEnd } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
 import { ambushResultDraftsOf } from './ambush/ambush-results';
+import {
+    foodLegOf,
+    settlementGuardsOf,
+    settlementOf,
+    settlementSetOf,
+} from './food/travel-food-settlement';
+import { TravelPantryReader } from './food/travel-pantry.reader';
 import { travelJobId } from './travel-job';
 import {
     COMPLETION_PROJECTION,
@@ -73,6 +80,7 @@ export class TravelCompletionService {
         private readonly clock: Clock,
         private readonly questStart: QuestStartService,
         private readonly geography: LoreGeographyReader,
+        private readonly pantry: TravelPantryReader,
     ) {}
 
     // trigger idempotente (D-12): il filtro d'identità decide; solo chi ha matchato invia la push (Pitfall 11)
@@ -100,6 +108,12 @@ export class TravelCompletionService {
                 .exec();
             if (!before) return;
             outcome.completed = before;
+            await this.settleArrivalFood(
+                before,
+                identity.characterId,
+                now,
+                session,
+            );
             await this.unlockArrivalGeography(
                 before,
                 identity.characterId,
@@ -136,6 +150,41 @@ export class TravelCompletionService {
             await this.notifyOwner(identity.characterId);
         }
         return 'completed';
+    }
+
+    // fame residua e pasto (b) nello stesso callback del completamento (Phase 20 D-07): la pipeline resta intatta come per la geografia
+    private async settleArrivalFood(
+        before: CompletedSnapshot,
+        characterId: Types.ObjectId,
+        now: Date,
+        session: ClientSession,
+    ): Promise<void> {
+        const leg = foodLegOf(before.status?.activeTravel);
+        if (!leg) return;
+        const pantry = await this.pantry.read(characterId, session);
+        const settlement = settlementOf({
+            leg,
+            targetKm: leg.distanceKm,
+            moment: 'arrival',
+            lifeNow: pantry.hpBefore,
+            assets: pantry.assets,
+            stacks: pantry.stacks,
+            now,
+        });
+        if (!settlement) return;
+        const written = await this.characterModel
+            .updateOne(
+                {
+                    _id: characterId,
+                    ...settlementGuardsOf(null, settlement, pantry.hpRaw),
+                },
+                { $set: settlementSetOf(settlement) },
+                { session },
+            )
+            .exec();
+        if (written.matchedCount !== 1) {
+            throw new Error('arrival food settlement lost its guards');
+        }
     }
 
     // la meta si conosce solo dal before: secondo update nello stesso callback, la pipeline del completamento resta intatta (Phase 16 D-05, C-4)

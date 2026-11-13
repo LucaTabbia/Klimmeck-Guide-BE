@@ -5,6 +5,7 @@ import {
     buildActiveTravel,
     durationMsOf,
     speedOf,
+    travelKmAt,
 } from './travel-timing';
 
 describe('travel timing', () => {
@@ -113,6 +114,39 @@ describe('travel timing', () => {
             expect(travel.endTime).toEqual(
                 new Date('2026-10-21T12:00:00.000Z'),
             );
+        });
+    });
+
+    describe('travelKmAt', () => {
+        const startTime = new Date('2026-10-21T08:00:00.000Z');
+        const travel = {
+            road: { distance: 20 },
+            startTime,
+            duration: 3_600_000,
+        };
+        const after = (minutes: number) =>
+            new Date(startTime.getTime() + minutes * 60_000);
+
+        it('is at kilometre zero at the departure (D-02)', () => {
+            expect(travelKmAt(travel, startTime)).toBe(0);
+        });
+
+        it('walks the polyline at uniform speed (D-02)', () => {
+            expect(travelKmAt(travel, after(15))).toBe(5);
+            expect(travelKmAt(travel, after(30))).toBe(10);
+            expect(travelKmAt(travel, after(45))).toBe(15);
+        });
+
+        it('stops at the destination after the end (D-02)', () => {
+            expect(travelKmAt(travel, after(120))).toBe(20);
+        });
+
+        it('never goes behind the departure (D-02)', () => {
+            expect(travelKmAt(travel, after(-1))).toBe(0);
+        });
+
+        it('is at the destination for a travel without duration (D-02)', () => {
+            expect(travelKmAt({ ...travel, duration: 0 }, startTime)).toBe(20);
         });
     });
 });
