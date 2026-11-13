@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { CharacterArchiveModule } from 'src/characters/deletion/character-archive.module';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
 import { Character } from 'src/models/character/character.model';
+import { LootItem } from 'src/models/loot-item.model';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
@@ -18,7 +19,11 @@ import {
     withTimeout,
 } from '../../test/auth/ws-test-client';
 import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
-import { buildQuest } from '../../test/fixtures';
+import {
+    buildCharacter,
+    buildQuest,
+    persistLootItem,
+} from '../../test/fixtures';
 import {
     questTouch,
     primeChangeStream,
@@ -28,6 +33,8 @@ const QUEST_UPDATED =
     'subscription OnQuestUpdated($questId: String!) { questUpdated(questId: $questId) { id registeredAdventurers { character title } requirements { requiredAdventurers { title count } } infos { title } } }';
 const QUEST_NO_EFFECT =
     'subscription OnQuestNoEffect($questId: String!) { questUpdated(questId: $questId) { id noEffect } }';
+const QUEST_PRIZES =
+    'subscription OnQuestPrizes($questId: String!) { questUpdated(questId: $questId) { id prizes { xpPrize randomLoot { quantity } } } }';
 const VILLAGE_CURE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
 const PARTY_SEATS = [{ title: null, count: 3 }];
 const MALFORMED_QUEST_ID = 'not-a-quest-id';
@@ -55,6 +62,13 @@ interface WireNoEffect {
 
 type QuestUpdated = { questUpdated: WireQuest };
 type QuestNoEffect = { questUpdated: WireNoEffect };
+
+interface WirePrizes {
+    id: string;
+    prizes: { xpPrize: number | null; randomLoot: { quantity: number }[] };
+}
+
+type QuestPrizes = { questUpdated: WirePrizes };
 type QuestUpdatedSubscription = OpenSubscription<QuestUpdated>;
 
 describe('questUpdated subscription (wire)', () => {
@@ -557,6 +571,151 @@ describe('questUpdated subscription (wire)', () => {
                 id,
                 noEffect: false,
             });
+        });
+    });
+
+    describe('Quest.prizes per subscriber (D-07, D-22)', () => {
+        function subscribeToPrizes(
+            questId: string,
+            bearer: string,
+        ): OpenSubscription<QuestPrizes> {
+            const subscription = openSubscription<QuestPrizes>(
+                url,
+                { Authorization: bearer },
+                { query: QUEST_PRIZES, variables: { questId } },
+            );
+            opened.push(subscription as unknown as QuestUpdatedSubscription);
+            return subscription;
+        }
+
+        async function nextPrizes(
+            subscription: OpenSubscription<QuestPrizes>,
+        ): Promise<WirePrizes> {
+            const result = await subscription.next();
+            expect(result.done).toBe(false);
+            expect(result.value.errors).toBeUndefined();
+            return result.value.data?.questUpdated as WirePrizes;
+        }
+
+        function titledPlayer(title: string): Promise<TestPlayer> {
+            return createPlayer(harness, {
+                twitchId: `twitch-qu-${title}-${nextId()}`,
+                characterOverrides: {
+                    status: { ...buildCharacter().status, title },
+                },
+            });
+        }
+
+        function retitle(questId: unknown) {
+            return quests.updateOne(
+                { _id: questId },
+                { $set: { 'infos.title': `Il premio ${nextId()}` } },
+            );
+        }
+
+        it('keeps the single prize of a solo quest on the event (D-01)', async () => {
+            const potion = await persistLootItem(
+                harness.connection.model(LootItem.name),
+            );
+            const hunt = await quests.create(
+                buildQuest({
+                    infos: {
+                        ...buildQuest().infos,
+                        title: `La caccia ${nextId()}`,
+                    },
+                    prizes: {
+                        ...buildQuest().prizes,
+                        xpPrize: 70,
+                        randomLoot: [
+                            {
+                                itemType: 'LootItem',
+                                item: potion._id,
+                                quantity: 3,
+                            },
+                        ],
+                    },
+                }),
+            );
+            const id = String(hunt._id);
+            const subscription = subscribeToPrizes(id, alice.bearer);
+            await nextPrizes(subscription);
+
+            await retitle(hunt._id);
+
+            expect(await nextPrizes(subscription)).toEqual({
+                id,
+                prizes: { xpPrize: 70, randomLoot: [{ quantity: 3 }] },
+            });
+        });
+
+        it('resolves the prize block for each subscriber of the same quest event (D-07, D-22)', async () => {
+            const mage = await titledPlayer('mage');
+            const paladin = await titledPlayer('paladin');
+            const boss = await quests.create(
+                buildQuest({
+                    infos: {
+                        ...buildQuest().infos,
+                        type: 'boss',
+                        title: `Il drago ${nextId()}`,
+                    },
+                    requirements: {
+                        ...buildQuest().requirements,
+                        minTitle: 'paladin',
+                        requiredAdventurers: [
+                            { title: 'mage', count: 1 },
+                            { title: 'paladin', count: 1 },
+                        ],
+                    },
+                    prizes: {
+                        ...buildQuest().prizes,
+                        xpPrize: 10,
+                        rankPrizes: [
+                            { title: 'mage', xpPrize: 300, randomLoot: [] },
+                            { title: 'paladin', xpPrize: 150, randomLoot: [] },
+                        ],
+                    },
+                }),
+            );
+            const id = String(boss._id);
+            const seenByMage = subscribeToPrizes(id, mage.bearer);
+            const seenByPaladin = subscribeToPrizes(id, paladin.bearer);
+            await nextPrizes(seenByMage);
+            await nextPrizes(seenByPaladin);
+            const pubSub = harness.app.get<PubSub<PubSubEvents>>(PUB_SUB);
+            const internal = pubSub.subscribe('questUpdated', id);
+            const published = internal.next();
+
+            try {
+                await retitle(boss._id);
+
+                const [mageEvent, paladinEvent] = await Promise.all([
+                    nextPrizes(seenByMage),
+                    nextPrizes(seenByPaladin),
+                ]);
+                expect(mageEvent).toEqual({
+                    id,
+                    prizes: { xpPrize: 300, randomLoot: [] },
+                });
+                expect(paladinEvent).toEqual({
+                    id,
+                    prizes: { xpPrize: 150, randomLoot: [] },
+                });
+                const payload = (
+                    await withTimeout(published, PUBLISHED_WAIT_MS)
+                ).value?.questUpdated;
+                expect(payload?.prizes.xpPrize).toBe(10);
+                expect(
+                    payload?.prizes.rankPrizes?.map(({ title, xpPrize }) => ({
+                        title,
+                        xpPrize,
+                    })),
+                ).toEqual([
+                    { title: 'mage', xpPrize: 300 },
+                    { title: 'paladin', xpPrize: 150 },
+                ]);
+            } finally {
+                await internal.return?.();
+            }
         });
     });
 });

@@ -78,10 +78,37 @@ describe('ViewerVitalsService', () => {
         });
 
         await expect(service.of(playerIdentity(), {})).resolves.toEqual({
+            title: TitleType.rookie,
             currentLifePoints: 400,
             maxLifePoints: 1000,
             injuries: [],
         });
+    });
+
+    it('returns the viewer title with the vitals in one read (D-18)', async () => {
+        const { service, findOne } = vitalsWith(userWithCharacter, {
+            status: {
+                title: TitleType.mage,
+                xp: 0,
+                currentLifePoints: 300,
+                maxLifePoints: 1000,
+                injuries: ['deepCut'],
+            },
+        });
+        const event = {};
+        const identity = playerIdentity();
+
+        const first = await service.of(identity, event);
+        const second = await service.of(identity, event);
+
+        expect(first).toEqual({
+            title: TitleType.mage,
+            currentLifePoints: 300,
+            maxLifePoints: 1000,
+            injuries: ['deepCut'],
+        });
+        expect(second).toBe(first);
+        expect(findOne).toHaveBeenCalledTimes(1);
     });
 
     it('reads once per viewer within the same request and again in another one (D-25)', async () => {

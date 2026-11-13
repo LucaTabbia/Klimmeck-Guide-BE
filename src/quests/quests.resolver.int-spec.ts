@@ -15,6 +15,10 @@ import { LoreType } from 'src/models/enums/lore-type.enum';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
+import {
+    PendingQuest,
+    PendingQuestSchema,
+} from 'src/models/pending-quest.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import {
     PointOfInterest,
@@ -22,6 +26,7 @@ import {
 } from 'src/models/point-of-interest.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
+import { PendingQuestsModule } from 'src/pendingQuests/pending-quests.module';
 import { QuestsModule } from 'src/quests/quests.module';
 import {
     AuthTestApp,
@@ -69,6 +74,16 @@ const QUEST_CURES = `query { quests { ${CURE_FIELDS} } }`;
 const QUEST_CURE = `query Quest($id: String!) { quest(id: $id) { ${CURE_FIELDS} } }`;
 const VILLAGE_CURE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
 const FULL_LIFE = 1000;
+const VIEWER_PRIZE_FIELDS =
+    'prizes { prizeCoins { gold silver copper } xpPrize randomLoot { item { __typename } } pet { id } }';
+const QUESTS_VIEWER_PRIZES = `query { quests { id ${VIEWER_PRIZE_FIELDS} } }`;
+const QUEST_VIEWER_PRIZES = `query Quest($id: String!) { quest(id: $id) { id ${VIEWER_PRIZE_FIELDS} } }`;
+const QUESTS_RANK_PRIZES =
+    'query { quests { id rankPrizes { title prizes { xpPrize } } } }';
+const QUESTS_SOLO_PRIZES =
+    'query { quests { id prizes { xpPrize randomLoot { quantity } } } }';
+const PENDING_QUEST_PRIZES =
+    'query { pendingQuests { id quest { prizes { prizeCoins { gold } xpPrize randomLoot { quantity } pet { id } } } } }';
 
 interface WireItem {
     id: string;
@@ -271,7 +286,9 @@ describe('quest catalog (wire)', () => {
     }
 
     beforeAll(async () => {
-        harness = await createAuthTestApp({ imports: [QuestsModule] });
+        harness = await createAuthTestApp({
+            imports: [QuestsModule, PendingQuestsModule],
+        });
     });
 
     beforeEach(async () => {
@@ -960,6 +977,297 @@ describe('quest catalog (wire)', () => {
             } finally {
                 characterRead.mockRestore();
             }
+        });
+    });
+
+    describe('Quest.prizes for each viewer (D-07, D-18, D-22)', () => {
+        interface WireViewerPrizes {
+            prizeCoins: { gold: number; silver: number; copper: number } | null;
+            xpPrize: number | null;
+            randomLoot: { item: { __typename: string } }[];
+            pet: { id: string } | null;
+        }
+
+        interface WireViewerQuest {
+            id: string;
+            prizes: WireViewerPrizes;
+        }
+
+        interface WireRankQuest {
+            id: string;
+            rankPrizes: { title: string; prizes: { xpPrize: number | null } }[];
+        }
+
+        interface WirePrizeBody<T> {
+            data?: { quests?: T[]; quest?: T } | null;
+            errors?: { message: string; extensions: Record<string, unknown> }[];
+        }
+
+        const MAGE_COINS = { gold: 0, silver: 3, copper: 0 };
+        const PALADIN_COINS = { gold: 0, silver: 1, copper: 50 };
+
+        function titledPlayer(
+            name: string,
+            title: string,
+        ): Promise<TestPlayer> {
+            const base = buildCharacter();
+            return createPlayer(harness, {
+                twitchId: `twitch-prizes-${name}`,
+                characterOverrides: {
+                    status: { ...base.status, location: cityMarker, title },
+                },
+            });
+        }
+
+        function blockOf(
+            title: string,
+            xpPrize: number,
+            overrides: Record<string, unknown> = {},
+        ) {
+            return { title, xpPrize, randomLoot: [], ...overrides };
+        }
+
+        async function persistMixedBoss(petId: unknown = null) {
+            const pet =
+                petId ??
+                (
+                    await persistPet(modelOf(Pet.name, PetSchema), {
+                        name: 'Falco del mago',
+                    })
+                )._id;
+            return persistCatalogQuest({
+                infos: { type: 'boss' },
+                requirements: {
+                    ...buildQuest().requirements,
+                    minTitle: 'paladin',
+                    requiredAdventurers: [
+                        { title: 'mage', count: 1 },
+                        { title: 'paladin', count: 1 },
+                    ],
+                },
+                prizes: {
+                    ...buildQuest().prizes,
+                    xpPrize: 10,
+                    rankPrizes: [
+                        blockOf('mage', 300, {
+                            prizeCoins: MAGE_COINS,
+                            randomLoot: [
+                                {
+                                    itemType: 'LootItem',
+                                    item: loot._id,
+                                    quantity: 2,
+                                },
+                            ],
+                            pet,
+                        }),
+                        blockOf('paladin', 150, { prizeCoins: PALADIN_COINS }),
+                    ],
+                },
+            });
+        }
+
+        async function boardOf<T>(query: string, viewerBearer: string) {
+            const body = (
+                await graphqlRequest(harness.app, query, {}, viewerBearer)
+            ).body as WirePrizeBody<T>;
+            expect(body.errors).toBeUndefined();
+            return body.data?.quests ?? [];
+        }
+
+        async function viewerPrizesOf(
+            questId: unknown,
+            viewerBearer: string,
+        ): Promise<WireViewerPrizes | undefined> {
+            const quests = await boardOf<WireViewerQuest>(
+                QUESTS_VIEWER_PRIZES,
+                viewerBearer,
+            );
+            return quests.find((quest) => quest.id === String(questId))?.prizes;
+        }
+
+        it('shows each viewer the prize block of their title (D-07, D-22)', async () => {
+            const mage = await titledPlayer('mage', 'mage');
+            const paladin = await titledPlayer('paladin', 'paladin');
+            const boss = await persistMixedBoss();
+
+            const seenByMage = await viewerPrizesOf(boss._id, mage.bearer);
+            const seenByPaladin = await viewerPrizesOf(
+                boss._id,
+                paladin.bearer,
+            );
+
+            expect(seenByMage?.xpPrize).toBe(300);
+            expect(seenByMage?.prizeCoins).toEqual(MAGE_COINS);
+            expect(seenByMage?.randomLoot).toEqual([
+                { item: { __typename: 'LootItem' } },
+            ]);
+            expect(seenByMage?.pet).not.toBeNull();
+            expect(seenByPaladin).toEqual({
+                prizeCoins: PALADIN_COINS,
+                xpPrize: 150,
+                randomLoot: [],
+                pet: null,
+            });
+        });
+
+        it('shows the minimum title block to a viewer without a character (D-18)', async () => {
+            const wanderer = await createPlayer(harness, {
+                twitchId: 'twitch-prizes-wanderer',
+                withCharacter: false,
+            });
+            const boss = await persistMixedBoss();
+
+            const body = (
+                await graphqlRequest(
+                    harness.app,
+                    QUEST_VIEWER_PRIZES,
+                    { id: String(boss._id) },
+                    wanderer.bearer,
+                )
+            ).body as WirePrizeBody<WireViewerQuest>;
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.quest?.prizes.xpPrize).toBe(150);
+        });
+
+        it('shows a legend the hero block (D-18)', async () => {
+            const legend = await titledPlayer('legend', 'legend');
+            const boss = await persistCatalogQuest({
+                infos: { type: 'boss' },
+                requirements: {
+                    ...buildQuest().requirements,
+                    minTitle: 'hero',
+                    requiredAdventurers: [{ title: 'hero', count: 2 }],
+                },
+                prizes: {
+                    ...buildQuest().prizes,
+                    xpPrize: 10,
+                    rankPrizes: [blockOf('hero', 900)],
+                },
+            });
+
+            expect(
+                (await viewerPrizesOf(boss._id, legend.bearer))?.xpPrize,
+            ).toBe(900);
+        });
+
+        it('lists every rank block in seat order (D-22)', async () => {
+            const boss = await persistMixedBoss();
+            const hunt = await persistCatalogQuest({
+                prizes: { ...buildQuest().prizes, xpPrize: 40 },
+            });
+            const legacyBoss = await persistCatalogQuest({
+                infos: { type: 'boss' },
+                requirements: {
+                    ...buildQuest().requirements,
+                    minTitle: 'mage',
+                    requiredAdventurers: [{ title: 'mage', count: 2 }],
+                },
+                prizes: { ...buildQuest().prizes, xpPrize: 70 },
+            });
+
+            const quests = await boardOf<WireRankQuest>(
+                QUESTS_RANK_PRIZES,
+                bearer,
+            );
+            const rankPrizesOf = (id: unknown) =>
+                quests.find((quest) => quest.id === String(id))?.rankPrizes;
+
+            expect(rankPrizesOf(boss._id)).toEqual([
+                { title: 'mage', prizes: { xpPrize: 300 } },
+                { title: 'paladin', prizes: { xpPrize: 150 } },
+            ]);
+            expect(rankPrizesOf(hunt._id)).toEqual([]);
+            expect(rankPrizesOf(legacyBoss._id)).toEqual([]);
+        });
+
+        it('keeps the list alive with an orphan pet in a block (D-05)', async () => {
+            const mage = await titledPlayer('orphan-mage', 'mage');
+            const boss = await persistMixedBoss(new Types.ObjectId());
+
+            const quests = await boardOf<WireViewerQuest>(
+                QUESTS_VIEWER_PRIZES,
+                mage.bearer,
+            );
+
+            const seen = quests.find((quest) => quest.id === String(boss._id));
+            expect(seen?.prizes.xpPrize).toBe(300);
+            expect(seen?.prizes.pet).toBeNull();
+        });
+
+        it('keeps the single prize of a solo quest on the wire (D-01)', async () => {
+            const hunt = await persistCatalogQuest({
+                prizes: {
+                    ...buildQuest().prizes,
+                    xpPrize: 70,
+                    randomLoot: [
+                        { itemType: 'LootItem', item: loot._id, quantity: 3 },
+                        {
+                            itemType: 'EquipmentItem',
+                            item: sword._id,
+                            quantity: 1,
+                        },
+                    ],
+                },
+            });
+
+            const quests = await boardOf<{
+                id: string;
+                prizes: { xpPrize: number; randomLoot: { quantity: number }[] };
+            }>(QUESTS_SOLO_PRIZES, bearer);
+
+            expect(quests).toEqual([
+                {
+                    id: String(hunt._id),
+                    prizes: {
+                        xpPrize: 70,
+                        randomLoot: [{ quantity: 3 }, { quantity: 1 }],
+                    },
+                },
+            ]);
+        });
+
+        it('answers an empty prize for a quest without prizes (D-22)', async () => {
+            const innkeeper = await createPlayer(harness, {
+                twitchId: 'twitch-prizes-innkeeper',
+                role: RoleType.innkeeper,
+                withCharacter: false,
+            });
+            const pendingQuest = await modelOf(
+                PendingQuest.name,
+                PendingQuestSchema,
+            ).create({
+                startDate: null,
+                waitingTime: 60,
+                quest: (await persistMixedBoss())._id,
+            });
+
+            const body = (
+                await graphqlRequest(
+                    harness.app,
+                    PENDING_QUEST_PRIZES,
+                    {},
+                    innkeeper.bearer,
+                )
+            ).body as {
+                data?: { pendingQuests?: unknown[] } | null;
+                errors?: unknown[];
+            };
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.pendingQuests).toEqual([
+                {
+                    id: String(pendingQuest._id),
+                    quest: {
+                        prizes: {
+                            prizeCoins: null,
+                            xpPrize: null,
+                            randomLoot: [],
+                            pet: null,
+                        },
+                    },
+                },
+            ]);
         });
     });
 });

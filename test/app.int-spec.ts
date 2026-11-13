@@ -466,7 +466,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
-            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  rankPrizes: [QuestRankPrizes!]!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
         );
         expect(schema).not.toMatch(/\bparty\b|registrations/);
     });
@@ -653,7 +653,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type QuestPrizes {\n  cure: QuestCure\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
-            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
+            'type Quest {\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  rankPrizes: [QuestRankPrizes!]!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
         );
         expect(schema.match(/type QuestRegistration \{[^}]*\}/)?.[0]).toBe(
             'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
@@ -700,6 +700,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             '  noEffect: Boolean!\n',
         );
         expect(schema).not.toMatch(/QUEST_NO_EFFECT/);
+    });
+
+    it('adds the rank prize blocks to the schema (D-22)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type QuestRankPrizes \{[^}]*\}/)?.[0]).toBe(
+            'type QuestRankPrizes {\n  prizes: QuestPrizes!\n  title: String!\n}',
+        );
     });
 
     it('writes the quest result contract into the generated schema', () => {
