@@ -83,10 +83,11 @@ export interface RewardCatalog {
     studyLoreChance?: number;
 }
 
+// unione dei ref di tutti i blocchi premio, ognuno una volta (D-05, D-05a)
 export interface RewardRefs {
     items: { itemType: ItemReferenceType; item: Types.ObjectId }[];
-    spellId: Types.ObjectId | null;
-    petId: Types.ObjectId | null;
+    spellIds: Types.ObjectId[];
+    petIds: Types.ObjectId[];
 }
 
 export const NO_REWARDS: DrawnRewards = {
@@ -138,18 +139,36 @@ function validRewardItems(prizes: PrizesSnapshot): RewardItem[] {
         .filter((entry): entry is RewardItem => entry !== null);
 }
 
-// per le pre-letture del catalogo: solo le voci formalmente valide
+function uniqueBy<T>(entries: readonly T[], keyOf: (entry: T) => string): T[] {
+    const byKey = new Map<string, T>();
+    for (const entry of entries) {
+        if (!byKey.has(keyOf(entry))) byKey.set(keyOf(entry), entry);
+    }
+    return [...byKey.values()];
+}
+
+const presentIds = (refs: readonly unknown[]): Types.ObjectId[] =>
+    uniqueBy(
+        refs.map(refIdOf).filter((id): id is Types.ObjectId => id !== null),
+        (id) => id.toHexString(),
+    );
+
+// per le pre-letture del catalogo: solo le voci formalmente valide, unite su tutti i blocchi (D-05, D-05a)
 export function rewardRefsOf(
-    prizes: PrizesSnapshot | null | undefined,
+    blocks: readonly (PrizesSnapshot | null | undefined)[],
 ): RewardRefs {
-    if (!prizes) return { items: [], spellId: null, petId: null };
+    const present = blocks.filter(
+        (block): block is PrizesSnapshot => block != null,
+    );
     return {
-        items: validRewardItems(prizes).map(({ itemType, item }) => ({
-            itemType,
-            item,
-        })),
-        spellId: refIdOf(prizes.spell),
-        petId: refIdOf(prizes.pet),
+        items: uniqueBy(
+            present
+                .flatMap(validRewardItems)
+                .map(({ itemType, item }) => ({ itemType, item })),
+            ({ itemType, item }) => priceKey(itemType, item),
+        ),
+        spellIds: presentIds(present.map(({ spell }) => spell)),
+        petIds: presentIds(present.map(({ pet }) => pet)),
     };
 }
 
