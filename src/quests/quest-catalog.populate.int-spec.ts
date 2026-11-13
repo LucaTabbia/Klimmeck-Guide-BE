@@ -72,7 +72,7 @@ describe('quest catalog populate of the rank prize blocks (replSet)', () => {
                 },
             }),
         );
-        return { questId: quest._id, petId: pet._id };
+        return { questId: quest._id as Types.ObjectId, petId: pet._id };
     }
 
     async function catalogBlockOf(questId: Types.ObjectId) {
