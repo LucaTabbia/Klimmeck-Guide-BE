@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Phase 21 pianificata (14 piani, 2026-11-13) — prossimo passo /gsd-execute-phase 21"
+stopped_at: "Phase 21 in esecuzione (0/14, 2026-11-13)"
 last_updated: "2026-11-12T23:01:28.000Z"
 last_activity: 2026-11-13 -- Phase 21 pianificata (ricerca, regole di repo, validazione, 14 piani)
 progress:
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 21 di 22 (Premi per rango e soccorsi) — contesto del 2026-11-12 (D-01..D-17) emendato il 2026-11-13 dopo la ricerca e le risposte dell'utente (D-18..D-30), `21-REPO-RULES.md`, `21-RESEARCH.md`, `21-VALIDATION.md`, 14 piani scritti il 2026-11-13
 Plan: 0 of 14
-Status: Phase 21 pianificata — ready to execute (14 piani sequenziali: magia ai caster, blocchi ×2, posto null, aid per tipo, archiviatore, boss misti, dungeon a turni ×2, soccorritore, quota, filo, gate, handoff); i piani hanno passato il plan-checker dopo una revisione
-Last activity: 2026-11-13 -- Phase 21 pianificata (ricerca, regole di repo, validazione, 14 piani)
+Status: Phase 21 in esecuzione — executing (14 piani sequenziali, un executor alla volta sull'albero principale)
+Last activity: 2026-11-13 -- Phase 21 in esecuzione (executor sequenziali, 0/14)
 Next step: `/gsd-execute-phase 21` con executor sequenziali sull'albero principale; poi review, verifica, audit, riavvio reale del BE dal ramo e UAT su device con la FE Phase 20 (piani 20-03 e 20-04 della FE bloccati sulla merge di questa fase); la Phase 22 (contesto sul ramo `feat/22-…`, impilato sul 21) resta da pianificare con la FE Phase 21. Il BE locale gira da `dist/` del codice della Phase 20 sulla porta 3001: nessuna build durante l'esecuzione.
 
 ## Current Milestone

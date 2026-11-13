@@ -235,7 +235,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
-| 21. Premi per rango e soccorsi | v1.1 | 0/14 | Planned | - |
+| 21. Premi per rango e soccorsi | v1.1 | 0/14 | In Progress | - |
 
 ---
 
