@@ -1524,14 +1524,12 @@ describe('quest catalog (wire)', () => {
 
         async function fourGroups() {
             const enemies = modelOf(Enemy.name, EnemySchema);
-            const persisted = [];
-            for (const name of GROUP_NAMES) {
-                persisted.push(await persistEnemy(enemies, { name }));
+            const groups: { enemy: Types.ObjectId; quantity: number }[] = [];
+            for (const [index, name] of GROUP_NAMES.entries()) {
+                const enemy = await persistEnemy(enemies, { name });
+                groups.push({ enemy: enemy._id, quantity: index + 1 });
             }
-            return persisted.map((group, index) => ({
-                enemy: group._id,
-                quantity: index + 1,
-            }));
+            return groups;
         }
 
         async function persistGroupsQuest(

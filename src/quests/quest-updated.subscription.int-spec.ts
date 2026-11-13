@@ -832,7 +832,7 @@ describe('questUpdated subscription (wire)', () => {
 
         async function persistDungeonAid() {
             const enemyModel = harness.connection.model(Enemy.name);
-            const groups = [];
+            const groups: { enemy: Types.ObjectId; quantity: number }[] = [];
             for (const [index, name] of GROUP_NAMES.entries()) {
                 const enemy = await persistEnemy(enemyModel, { name });
                 groups.push({ enemy: enemy._id, quantity: index + 1 });

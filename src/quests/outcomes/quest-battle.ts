@@ -12,7 +12,7 @@ import type { DungeonResolver } from './dungeon/dungeon-resolver';
 import {
     checkedDungeonResolution,
     dungeonTurnsOf,
-    facedEnemyCountOf,
+    facedEnemiesOf,
     type RescueTurn,
     rescueTurnOf,
     savedTurnOf,
@@ -103,10 +103,6 @@ export function facedCatalogOf(
     catalog: ResolutionCatalog,
     quest: Pick<ResolutionQuest, 'rescue'>,
 ): ResolutionCatalog {
-    const saved = rescueTurnOf(quest.rescue?.turn);
-    if (!saved) return catalog;
-    return {
-        ...catalog,
-        enemies: catalog.enemies.slice(0, facedEnemyCountOf(saved)),
-    };
+    const faced = facedEnemiesOf(catalog.enemies, quest.rescue?.turn);
+    return faced ? { ...catalog, enemies: faced } : catalog;
 }
