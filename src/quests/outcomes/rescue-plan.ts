@@ -7,6 +7,7 @@ import { activeCharacterById } from 'src/models/character/active-character.filte
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { idForms } from 'src/mongo/document-id';
 import {
+    NO_TURN_COUNTERS,
     type OutcomeCharacterSnapshot,
     type OutcomeQuestSnapshot,
     questFactsOf,
@@ -84,6 +85,7 @@ function unchangedResult(
         enemies: [],
         stagesCleared: null,
         stagesTotal: null,
+        ...NO_TURN_COUNTERS,
         rescuedCharacters: [],
         arrested: false,
         coinsLost: null,

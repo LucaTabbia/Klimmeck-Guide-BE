@@ -7,6 +7,7 @@ import type { ParticipantEffects } from './combat/combat-resolver';
 import {
     consumablesSpent,
     type EnemyFacts,
+    NO_TURN_COUNTERS,
     type OutcomeCharacterSnapshot,
     type OutcomeQuestSnapshot,
     participantFilter,
@@ -121,6 +122,7 @@ export function planUnrewarded(
             enemies: [...(input.enemies?.entries ?? [])],
             stagesCleared: null,
             stagesTotal: null,
+            ...NO_TURN_COUNTERS,
             rescuedCharacters: [],
             ...conclusion.result,
         },

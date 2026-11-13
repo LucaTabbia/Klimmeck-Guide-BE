@@ -6,6 +6,7 @@ import {
     assetQuantitySchemaAt,
 } from '../common/asset-quantity.model';
 import { Coins, CoinsSchema } from '../common/coins.model';
+import { DungeonTurnKind } from '../enums/dungeon-turn-kind.enum';
 import { InjuryType } from '../enums/injury-type.enum';
 import { Lore } from '../lore.model';
 import { QuestOutcome } from '../enums/quest-outcome.enum';
@@ -206,6 +207,23 @@ export class QuestResult {
     @Field(() => Int, { nullable: true })
     @Prop({ type: Number, default: null })
     stagesTotal?: number | null;
+
+    // turni della dungeon e dell'aid di dungeon (D-21), lastTurn 1-based: null altrove; sul filo dal piano 12
+    @Prop({ type: Number, default: null })
+    turnsTotal?: number | null;
+
+    @Prop({ type: Number, default: null })
+    turnsCompleted?: number | null;
+
+    @Prop({ type: Number, default: null })
+    lastTurn?: number | null;
+
+    @Prop({
+        type: String,
+        enum: [...Object.values(DungeonTurnKind), null],
+        default: null,
+    })
+    lastTurnKind?: DungeonTurnKind | null;
 
     @Field(() => QuestRewards)
     @Prop({ type: QuestRewardsSchema, required: true })

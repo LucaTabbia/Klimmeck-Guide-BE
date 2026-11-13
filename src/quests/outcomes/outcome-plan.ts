@@ -21,6 +21,7 @@ import {
 } from 'src/economy/trade/trade-inventory';
 import type { TradeLine } from 'src/economy/trade/trade-line';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
+import type { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
@@ -112,7 +113,7 @@ export interface EnemyFacts {
     xp: number;
 }
 
-export interface QuestResultDraft {
+export interface QuestResultDraft extends DungeonTurnFields {
     _id: Types.ObjectId;
     character: Types.ObjectId;
     user: Types.ObjectId;
@@ -158,10 +159,35 @@ export type PlanVerdict =
     | QuestOutcome.failure
     | QuestOutcome.gmCompleted;
 
-export interface DungeonStages {
+// contatori dei turni (D-21): tutti valorizzati in una dungeon, tutti null altrove
+export interface DungeonTurnFields {
+    turnsTotal: number | null;
+    turnsCompleted: number | null;
+    lastTurn: number | null;
+    lastTurnKind: DungeonTurnKind | null;
+}
+
+export const NO_TURN_COUNTERS: DungeonTurnFields = {
+    turnsTotal: null,
+    turnsCompleted: null,
+    lastTurn: null,
+    lastTurnKind: null,
+};
+
+export interface DungeonStages extends DungeonTurnFields {
     cleared: number;
     total: number;
 }
+
+const turnFieldsOf = (stages: DungeonStages | null | undefined) =>
+    stages
+        ? {
+              turnsTotal: stages.turnsTotal,
+              turnsCompleted: stages.turnsCompleted,
+              lastTurn: stages.lastTurn,
+              lastTurnKind: stages.lastTurnKind,
+          }
+        : NO_TURN_COUNTERS;
 
 export interface ParticipantPlanInput {
     resultId: Types.ObjectId;
@@ -540,6 +566,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             enemies: [...(input.enemies?.entries ?? [])],
             stagesCleared: input.stages?.cleared ?? null,
             stagesTotal: input.stages?.total ?? null,
+            ...turnFieldsOf(input.stages),
             // solo chi ha vinto il soccorso ha salvato qualcuno
             rescuedCharacters:
                 input.verdict === QuestOutcome.success

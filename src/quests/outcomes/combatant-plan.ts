@@ -14,6 +14,7 @@ import type {
 } from './combat/combat-resolver';
 import { planDefeatWithoutAid } from './defeat-without-aid';
 import type { DungeonResolution } from './dungeon/dungeon-resolver';
+import { turnCountersOf } from './dungeon/dungeon-turns';
 import {
     type DungeonStages,
     type EnemyFacts,
@@ -109,7 +110,7 @@ export function battleOf(
     };
 }
 
-// l'esplorazione a tappe porta i suoi contatori nel risultato (D-12)
+// l'esplorazione a tappe porta tappe e turni nel risultato (D-12, D-21)
 export function dungeonBattleOf(
     resolution: DungeonResolution,
     characterId: Types.ObjectId,
@@ -120,6 +121,7 @@ export function dungeonBattleOf(
         stages: {
             cleared: resolution.stagesCleared,
             total: resolution.stagesTotal,
+            ...turnCountersOf(resolution),
         },
     };
 }
