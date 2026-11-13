@@ -5,6 +5,7 @@ import {
     aidSlotsOf,
     buildAidQuest,
 } from 'src/quests/outcomes/aid/aid-quest';
+import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 
@@ -156,6 +157,24 @@ describe('buildAidQuest', () => {
             characters: [INJURED_ID, OTHER_INJURED_ID],
             failedQuest: ORIGINAL_ID,
         });
+    });
+
+    it('saves the turn of the defeat on a dungeon aid (D-12)', () => {
+        const dungeon: AidSourceQuest = {
+            ...original,
+            infos: { ...original.infos, type: QuestType.dungeon },
+        };
+        const turn = { index: 4, kind: DungeonTurnKind.exploration, total: 8 };
+
+        const saved = buildAidQuest(dungeon, [INJURED_ID], AID_ID, turn);
+        const unsaved = buildAidQuest(dungeon, [INJURED_ID], AID_ID);
+
+        expect(saved.rescue.turn).toEqual(turn);
+        expect(saved.rescue.turn).not.toBe(turn);
+        expect(Object.keys(unsaved.rescue).sort()).toEqual([
+            'characters',
+            'failedQuest',
+        ]);
     });
 
     it('does not share the wounded list with the caller', () => {
