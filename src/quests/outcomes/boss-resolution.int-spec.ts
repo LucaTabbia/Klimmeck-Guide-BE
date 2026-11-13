@@ -739,6 +739,52 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
             expect(sheet.rewards.coins).toEqual(MAGE_COINS);
         });
 
+        it('opens an aid with the seats and the rank blocks of a lost boss (D-09, D-11)', async () => {
+            const seats = [
+                { title: 'mage', count: 1 },
+                { title: 'paladin', count: 1 },
+            ];
+            const mage = await quester({
+                ...titled('mage'),
+                questOverrides: await rankedBoss(seats, 'paladin', [
+                    {
+                        title: 'mage',
+                        prizeCoins: MAGE_COINS,
+                        xpPrize: 400,
+                        cure: { lifePointsShare: 1, canHeal: ['deepCut'] },
+                    },
+                    {
+                        title: 'paladin',
+                        prizeCoins: PALADIN_COINS,
+                        xpPrize: 100,
+                    },
+                ]),
+            });
+            await quester({ ...titled('paladin'), quest: mage.quest });
+            scripted.willEnd('failure');
+
+            await expect(
+                service.resolveStandard(triggerOf(mage)),
+            ).resolves.toBe('resolved');
+
+            const [aid] = await aids();
+            expect(aid.requirements.requiredAdventurers).toEqual(seats);
+            expect(aid.prizes.rankPrizes).toEqual([
+                expect.objectContaining({
+                    title: 'mage',
+                    prizeCoins: MAGE_COINS,
+                    xpPrize: 400,
+                    cure: null,
+                }),
+                expect.objectContaining({
+                    title: 'paladin',
+                    prizeCoins: PALADIN_COINS,
+                    xpPrize: 100,
+                    cure: null,
+                }),
+            ]);
+        });
+
         it('reads a legacy boss without blocks as its minimum title prize (D-28)', async () => {
             const quest = await bossQuest([
                 { title: 'mage', count: 1 },

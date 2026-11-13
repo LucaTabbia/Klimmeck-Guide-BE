@@ -269,6 +269,68 @@ describe('buildAidQuest', () => {
     });
 });
 
+describe('buildAidQuest rank blocks', () => {
+    const mageBlock = {
+        title: TitleType.mage,
+        prizeCoins: { gold: 3, silver: 0, copper: 0 },
+        xpPrize: 500,
+        prizeItem: lootEntry,
+        randomLoot: [lootEntry],
+        spell: null,
+        pet: PET_ID,
+        cure: { lifePointsShare: 1, canHeal: ['deepCut'] },
+    };
+    const paladinBlock = {
+        title: TitleType.paladin,
+        prizeCoins: { gold: 2, silver: 0, copper: 0 },
+        xpPrize: 300,
+        prizeItem: null,
+        randomLoot: [],
+        spell: null,
+        pet: null,
+        cure: null,
+    };
+
+    it('clones the rank blocks of a group quest without their cure (D-11)', () => {
+        const boss: AidSourceQuest = {
+            ...original,
+            prizes: {
+                ...original.prizes,
+                rankPrizes: [mageBlock, paladinBlock],
+            },
+        };
+
+        const { prizes } = buildAidQuest(boss, [INJURED_ID], AID_ID);
+
+        expect(prizes.rankPrizes).toEqual([
+            { ...mageBlock, cure: null },
+            { ...paladinBlock, cure: null },
+        ]);
+        const [clonedMage] = prizes.rankPrizes as (typeof mageBlock)[];
+        expect(clonedMage.randomLoot).not.toBe(mageBlock.randomLoot);
+    });
+
+    it('keeps the single prize on the aid of a solo quest (D-11)', () => {
+        const hunt: AidSourceQuest = {
+            ...original,
+            infos: { ...original.infos, type: QuestType.hunt },
+        };
+
+        expect(
+            Object.keys(
+                buildAidQuest(hunt, [INJURED_ID], AID_ID).prizes,
+            ).sort(),
+        ).toEqual([
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'xpPrize',
+        ]);
+    });
+});
+
 describe('aidSlotsOf', () => {
     it.each([
         ['a single rank slot', [{ title: TitleType.hero, count: 5 }]],

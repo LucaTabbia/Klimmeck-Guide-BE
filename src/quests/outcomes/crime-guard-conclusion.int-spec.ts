@@ -133,7 +133,7 @@ describe('crime arrest and guard encounter at the conclusion (quick 261110-cgd, 
         world.models.quests.countDocuments({ 'infos.type': 'aid' });
 
     describe('crime', () => {
-        it('arrests the character: ten hours of prison, a quarter of the coins lost, no prize (quick 261110-cgd)', async () => {
+        it('keeps the crime arrest as it is: ten hours of prison, a quarter of the coins lost, no prize (D-09b)', async () => {
             const potion = await persistLootItem(world.models.lootItems);
             const subject = await quester('crime', {
                 prizeItem: {
@@ -207,7 +207,7 @@ describe('crime arrest and guard encounter at the conclusion (quick 261110-cgd, 
             });
         });
 
-        it('opens the usual aid after a lost crime fight and never arrests (quick 261110-cgd)', async () => {
+        it('leaves a lost crime fight at one life point without aid and never arrests (D-19, D-09b)', async () => {
             const foe = await enemy({ locations: ['forest'] });
             const subject = await quester(
                 'crime',
@@ -221,12 +221,16 @@ describe('crime arrest and guard encounter at the conclusion (quick 261110-cgd, 
 
             const character = await characterOf(subject);
             expect(character.status.imprisonedUntil ?? null).toBeNull();
-            expect(character.status.awaitingAid).not.toBeNull();
+            expect(character.status.awaitingAid ?? null).toBeNull();
+            expect(character.status.currentLifePoints).toBe(1);
+            expect(character.quests.pendingQuest).toBeNull();
             expect(character.status.coins).toEqual(PURSE);
-            expect(await aidQuests()).toBe(1);
+            expect(await aidQuests()).toBe(0);
             expect(await resultOf(subject)).toMatchObject({
                 outcome: 'failure',
                 arrested: false,
+                coinsLost: null,
+                guardEncounter: false,
             });
         });
 

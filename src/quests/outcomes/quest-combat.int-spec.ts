@@ -409,7 +409,40 @@ describe('QuestResolutionService.resolveStandard (individual) with an enemy (rep
         ]);
     });
 
-    it('creates an aid for a lost hunt too', async () => {
+    it('creates no aid for a lost job and leaves one life point (D-19)', async () => {
+        const foe = await enemy();
+        const subject = await fighter('job', foe._id, {
+            questOverrides: combatQuest('job', foe._id, {
+                xpPrize: 50,
+                prizeCoins: { gold: 0, silver: 2, copper: 0 },
+            }),
+        });
+        scripted
+            .willEnd('failure')
+            .willResolve(subject.characterId, { hpAfter: 300 });
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        const character = await characterOf(subject);
+        expect(character.status.currentLifePoints).toBe(1);
+        expect(character.status.awaitingAid ?? null).toBeNull();
+        expect(character.quests.pendingQuest).toBeNull();
+        expect(character.status.coins).toEqual(COINS);
+        expect(
+            await world.models.quests.countDocuments({ 'infos.type': 'aid' }),
+        ).toBe(0);
+        const result = await resultOf(subject);
+        expect(result).toMatchObject({
+            outcome: 'failure',
+            xpGained: 0,
+            guardEncounter: false,
+            arrested: false,
+            rewards: { coins: COINS, items: [], pet: null },
+        });
+        expect(world.questQueue.added).toEqual([]);
+    });
+
+    it('creates an aid for a lost hunt too (D-09)', async () => {
         const foe = await enemy();
         const subject = await fighter('hunt', foe._id);
         scripted.willEnd('failure');
