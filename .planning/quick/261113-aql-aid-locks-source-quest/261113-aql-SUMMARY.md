@@ -109,8 +109,10 @@ Risposte dell'utente a due domande dell'orchestratore (scelte fra opzioni propos
 ## Deviazioni e note
 
 - **Controllo solo nella transazione.** Nessuna pre-verifica fuori sessione (come chiesto: una sola lettura, una sola regola). Conseguenza: per hunt e dungeon bloccate, i rifiuti che vengono prima (titolo, corsia occupata, città, fame) hanno la precedenza su `QUEST_NOT_ACCEPTABLE`, e la pianificazione del viaggio automatico è calcolata prima del rifiuto (nessuna scrittura, nessun job).
-- **Corsa residua dichiarata:** un'aid che nasce dopo la lettura in sessione e prima del commit dell'accettazione non la blocca (hunt e dungeon non hanno registrazione sul documento, quindi non c'è un WriteConflict che la richiuda). Chi accetta in quell'istante ha accettato prima che l'aid esistesse; il caso «aid nata dopo la pre-verifica» invece è rifiutato ed è provato.
-- **Aid cancellata a mano da DB:** il change stream non riceve il documento cancellato, quindi la quest d'origine non viene ripubblicata (il valore torna giusto alla richiesta o all'evento successivo). Nessun percorso del codice cancella aid.
+- **Corsa residua dichiarata (frase riscritta dopo la review, IN-03):** un'aid committata dopo lo snapshot della lettura in sessione dell'accettazione non la blocca, anche se l'accettazione fa commit **dopo** la nascita dell'aid (la FE può ricevere prima `questUpdated { awaitingRescue: true }` e poi l'esito positivo di `acceptQuest`). Hunt e dungeon non hanno registrazione sul documento e nessuna delle due transazioni scrive sulla quest d'origine, quindi non c'è un WriteConflict che la richiuda; la finestra è la durata della transazione. L'effetto è quello di chi aveva già la quest in corsia (sotto). Il caso «aid nata dopo la pre-verifica» invece è rifiutato ed è provato, con la sessione della transazione (IN-07).
+- **Aid cancellata a mano da DB:** il change stream non riceve il documento cancellato, quindi la quest d'origine non viene ripubblicata (il valore torna giusto alla richiesta o all'evento successivo). Nessun percorso del codice cancella aid. Riapertura a mano (conclusione tornata nulla o rimossa) e `replace` del documento dell'aid invece ripubblicano (WR-01).
+- **Chi ha già la quest in corsia (review IN-02):** il blocco agisce solo su `acceptQuest`; chi aveva accettato la hunt o la dungeon prima della nascita dell'aid prosegue e la risolve normalmente, e riceve la propria quest in corso con `awaitingRescue: true` (il suo Tabellone include le quest delle sue corsie): per la FE lo stato «in corso» ha la precedenza sul foglio strappato. Se perde anche lui nascono due aid dalla stessa quest e il blocco dura finché si chiudono entrambe.
+- **`awaitingRescue` sulle quest annidate (review IN-01):** affidabile solo su `quests`, `quest(id)` e `questUpdated`. Le quest annidate nel personaggio e nel `PendingQuest` arrivano col solo id (`infos` assente), quindi il campo risponde `false` senza errore: come `noEffect`, nessun cambio di codice.
 - **Handoff:** oltre alla sezione in coda a `BACKEND-NOTES.md`, la voce D-15 del §4 e la riga D-15 del §5 sono marcate «superata» con un rimando alla sezione nuova, per non lasciare al FE un'indicazione contraria.
 
 ## Aggiunta dalla UAT: nemici dell'aid di dungeon
@@ -141,7 +143,7 @@ Risposte dell'utente a due domande dell'orchestratore (scelte fra opzioni propos
 
 **Regola dell'utente (2026-11-13, verbatim):** «Naturalmente anche il tempo richiesto per il soccorso dev'essere corretto in base a quanto dungeon è stato completato. Se sei al secondo turno su 8, allora dev'essere un quarto. 1 ora dungeon completo -> 15 minuti aid»
 
-**Regola:** `infos.timeToComplete` dell'aid di dungeon si scala con la stessa quota del premio, `rescueShareOf(turno)` = `(index + 1) / total`, scritta alla nascita in `buildAidQuest`. Una sola quota: `aidShareOf(original, turn)` (`src/quests/outcomes/aid/aid-quest.ts`) dà 1 senza turno e, sulla catena, il rapporto delle quote sulla sorgente; la usano sia `proportionalPrizesOf` sia `sharedTimeOf` (`src/quests/outcomes/aid/rescue-share.ts`). Arrotondamento per difetto al millisecondo intero con la stessa tolleranza dei premi; **minimo 1 ms** se l'originale è positivo (0 vorrebbe dire nessuna attesa: un soccorso non dura mai zero); un tempo nullo, zero o non valido resta com'è.
+**Regola:** `infos.timeToComplete` dell'aid di dungeon si scala con la stessa quota del premio, `rescueShareOf(turno)` = `(index + 1) / total`, scritta alla nascita in `buildAidQuest`. Una sola quota: `aidShareOf(original, turn)` (`src/quests/outcomes/aid/aid-quest.ts`) dà 1 senza turno e, sulla catena, il rapporto delle quote sulla sorgente; la usano sia `proportionalPrizesOf` sia `sharedTimeOf` (`src/quests/outcomes/aid/rescue-share.ts`). Arrotondamento per difetto al millisecondo intero (dopo la review: in aritmetica intera sulla frazione della quota, senza la tolleranza dei premi, IN-04); **minimo 1 ms** se l'originale è positivo (0 vorrebbe dire nessuna attesa: un soccorso non dura mai zero); un tempo nullo, zero o non valido resta com'è.
 
 **Cosa non cambia:** il `waitingTime` del `PendingQuest` del soccorritore viene già da `infos.timeToComplete` dell'aid (`waitingTimeOf` in `src/quests/acceptance/quest-eligibility.ts`, corsia standard), quindi risulta in proporzione senza altri cambi (pinnato); il timeout di 7 giorni dell'aid (`AID_TIMEOUT_MS`, `src/quests/outcomes/aid/aid-timeout.ts`) è una costante indipendente e non è toccato; aid senza turno (hunt, enemy, boss, solitarie) tengono il tempo intero; SDL invariato. Le aid già aperte a DB tengono il tempo con cui sono nate (nessun migratore).
 
@@ -184,6 +186,15 @@ Risposte dell'utente a due domande dell'orchestratore (scelte fra opzioni propos
 **RED (`94f10929`):** le due spec nuove fallivano alla risoluzione del modulo (`./dungeon-order.report` assente); nel boot 2 falliti su 3 (terzo passo assente).
 
 **Gate dopo la terza aggiunta:** tsc 0 su `tsconfig.json` e `tsconfig.build.json`; `npx jest src/quests --selectProjects unit` 76 suite / 1326 test; integration di `src/quests` senza `outcomes` 25 suite / 433 test; `test/` 17 suite / 275 test; `src/quests/outcomes` (non toccata dalla terza aggiunta) 14 suite / 205 test al gate precedente; diff dello SDL = 1 riga; nessun jest rimasto attivo.
+
+## Fix della code review (2026-11-13)
+
+Report completo in `261113-aql-REVIEW-FIX.md`. Comportamenti cambiati:
+
+- **WR-01:** `QuestsPublisher` ripubblica la quest d'origine a ogni cambio di `concludedAt` di un'aid (una data, il ritorno a nullo, la rimozione del campo, `touchesConclusion`) e su ogni `replace` del documento; `ChangeStreamEvent.updateDescription` porta anche `removedFields`. La cancellazione a mano resta un limite dichiarato.
+- **IN-04:** la quota è una frazione di interi (`RescueShare`, `rescueFractionOf`, `shareRatioOf` sulla catena); `sharedTimeOf` divide in aritmetica intera senza tolleranza (86 400 000 ms al 7° turno di 10 → 60 480 000, la catena 34 560 000 × (3/10)/(4/10) → 25 920 000). Premi e soglie leggono la stessa quota come numero (`shareValueOf`), valori pinnati invariati.
+- **IN-05:** `rescue-share.ts` riusa `isPositiveInteger` di `outcome-numbers.ts`.
+- Solo test: WR-02 (soccorso perso sul filo e raffica nella unit), IN-06 (tutti i campi di `infos` dell'aid di dungeon), IN-07 (lettura del blocco con la sessione della transazione). Solo commenti: IN-08 (indice `quest_forming_parties`, subscription `questUpdated`).
 
 ## Self-Check: PASSED
 
