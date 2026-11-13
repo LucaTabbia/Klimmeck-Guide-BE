@@ -14,7 +14,9 @@ import {
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { PushService } from 'src/push/push.service';
+import { questSlotsOf } from 'src/quests/acceptance/quest-capacity';
 import {
+    hasUntitledGroupSeat,
     QuestRequirementsSnapshot,
     registrationRuleOf,
 } from 'src/quests/acceptance/quest-eligibility';
@@ -51,6 +53,15 @@ interface FormingQuestSnapshot {
     concludedAt?: Date | null;
     startedAt?: Date | null;
 }
+
+// D-24: un posto senza titolo rende il party incompletabile (nessuno entra, nessuno parte), ma non lo lascia appeso
+const hasUntitledSeat = (quest: FormingQuestSnapshot): boolean => {
+    const slots = questSlotsOf(
+        quest.infos.type,
+        quest.requirements?.requiredAdventurers,
+    );
+    return slots !== 'invalid' && hasUntitledGroupSeat(quest.infos.type, slots);
+};
 
 const FORMING_QUEST_PROJECTION = {
     'infos.type': 1,
@@ -89,9 +100,12 @@ export class PartyTimeoutService {
         const members = registeredIdsOf(quest.registeredAdventurers);
         if (members.length === 0) return 'stale';
         const rule = registrationRuleOf(quest.infos.type, quest.requirements);
-        if (rule === null || rule === 'invalid') return 'stale';
+        if (rule === null) return 'stale';
+        const untitled = rule === 'invalid' && hasUntitledSeat(quest);
+        if (rule === 'invalid' && !untitled) return 'stale';
         // posti pieni: si aspetta solo l'arrivo, il party non scade (default tecnico 2026-10-25)
-        if (members.length >= rule.total) return 'waiting';
+        if (rule !== 'invalid' && members.length >= rule.total)
+            return 'waiting';
         const since = partyFormingSinceOf(quest.registeredAdventurers ?? []);
         if (!since || !isPartyExpired(since, this.clock.now()))
             return 'waiting';
@@ -125,6 +139,11 @@ export class PartyTimeoutService {
         } catch (error) {
             if (error instanceof StaleResolution) return 'stale';
             throw error;
+        }
+        if (untitled) {
+            this.logger.warn(
+                `Missione ${questId.toHexString()} con un posto senza titolo (D-24): party sciolto alla scadenza`,
+            );
         }
         this.logger.log(
             `Party della missione ${questId.toHexString()} sciolto dopo 24 ore senza posti pieni: ${state.released.length} liberati`,
