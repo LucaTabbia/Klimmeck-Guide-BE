@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { QuestType } from 'src/models/enums/quest-type.enum';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
+import { GROUP_PRIZE_TYPES } from '../prizes/rank-prizes';
 import {
     describeGroupPrizeViolations,
     GROUP_PRIZE_REPORT_WARNINGS_LIMIT,
@@ -14,12 +14,6 @@ export interface GroupPrizeReport {
     checked: number;
     invalid: number;
 }
-
-const OPEN_GROUP_TYPES: readonly QuestType[] = [
-    QuestType.boss,
-    QuestType.worldMission,
-    QuestType.aid,
-];
 
 // sola lettura (D-24, D-28): la mano vince, il boot rende visibili le quest di gruppo da correggere senza toccarle
 @Injectable()
@@ -55,7 +49,7 @@ export class GroupPrizeReportService {
             .find(
                 {
                     concludedAt: null,
-                    'infos.type': { $in: OPEN_GROUP_TYPES },
+                    'infos.type': { $in: [...GROUP_PRIZE_TYPES] },
                 },
                 { infos: 1, requirements: 1, prizes: 1 },
             )
