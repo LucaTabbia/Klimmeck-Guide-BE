@@ -234,7 +234,7 @@ Per l'orchestratore e l'utente, **dopo** questo piano, insieme alla FE Phase 20 
 
 **Domanda aperta per l'utente**
 
-- **Testo del push dell'archiviatore:** il soccorritore liberato da una cancellazione o da una morte riceve il testo del timeout («Il gruppo non si è formato in tempo: la missione è stata annullata.»), come chiesto dal piano. Se l'utente vuole un testo diverso per l'archivio, è un cambio piccolo in una fase successiva.
+- **Testo del push dell'archiviatore:** il soccorritore liberato da una cancellazione o da una morte riceve il testo del timeout («Il gruppo non si è formato in tempo: la missione è stata annullata.»), come chiesto dal piano. **Deciso dall'utente il 2026-11-13:** alla domanda se volesse un testo dedicato per l'archivio ha risposto «No, va bene così»: il testo resta quello del timeout.
 
 **Comportamenti cambiati dalla review (dichiarati qui, nessun effetto sul filo)**
 
