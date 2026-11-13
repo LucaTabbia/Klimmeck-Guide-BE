@@ -681,25 +681,64 @@ describe('rewardRefsOf', () => {
             spell: SPELL_ID,
         });
 
-        expect(rewardRefsOf(prizes)).toEqual({
+        expect(rewardRefsOf([prizes])).toEqual({
             items: [
                 { itemType: 'EquipmentItem', item: POTION_ID },
                 { itemType: 'LootItem', item: BONE_ID },
             ],
-            spellId: SPELL_ID,
-            petId: null,
+            spellIds: [SPELL_ID],
+            petIds: [],
         });
     });
 
     it('lists the pet prize ref for the catalog reads (D-21)', () => {
-        expect(rewardRefsOf(prizesWith({ pet: PET_ID })).petId).toEqual(PET_ID);
+        expect(rewardRefsOf([prizesWith({ pet: PET_ID })]).petIds).toEqual([
+            PET_ID,
+        ]);
     });
 
-    it('returns no refs without prizes', () => {
-        expect(rewardRefsOf(null)).toEqual({
-            items: [],
-            spellId: null,
-            petId: null,
+    it('collects the refs of a single block like today (D-01)', () => {
+        const prizes = prizesWith({
+            randomLoot: [{ itemType: 'LootItem', item: BONE_ID, quantity: 1 }],
+            spell: SPELL_ID,
+            pet: PET_ID,
         });
+
+        expect(rewardRefsOf([prizes])).toEqual({
+            items: [{ itemType: 'LootItem', item: BONE_ID }],
+            spellIds: [SPELL_ID],
+            petIds: [PET_ID],
+        });
+    });
+
+    it('collects the refs of every rank block once (D-05, D-05a)', () => {
+        const mage = prizesWith({
+            randomLoot: [{ itemType: 'LootItem', item: BONE_ID, quantity: 1 }],
+            spell: SPELL_ID,
+            pet: PET_ID,
+        });
+        const paladin = prizesWith({
+            prizeItem: {
+                itemType: 'LootItem',
+                item: BONE_ID.toHexString(),
+                quantity: 3,
+            },
+            randomLoot: [{ itemType: 'LootItem', item: BONE_ID, quantity: 2 }],
+            spell: SPELL_ID.toHexString(),
+            pet: ORPHAN_PET_ID,
+        });
+
+        expect(rewardRefsOf([mage, paladin])).toEqual({
+            items: [{ itemType: 'LootItem', item: BONE_ID }],
+            spellIds: [SPELL_ID],
+            petIds: [PET_ID, ORPHAN_PET_ID],
+        });
+    });
+
+    it('ignores absent blocks (D-01)', () => {
+        const none = { items: [], spellIds: [], petIds: [] };
+
+        expect(rewardRefsOf([])).toEqual(none);
+        expect(rewardRefsOf([null])).toEqual(none);
     });
 });

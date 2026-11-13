@@ -1,5 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
+import { QuestType } from 'src/models/enums/quest-type.enum';
+import { RarityType } from 'src/models/enums/rarity-type.enum';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import { ResolutionLoader } from './resolution-loader.service';
 
 const AMBUSH_SUBJECT = "dell'imboscata x";
@@ -197,5 +200,103 @@ describe('ResolutionLoader enemy read', () => {
 
         expect(catalog.enemies).toEqual([]);
         expect(catalog.petMaxXp).toEqual(new Map([[wolf.toHexString(), 100]]));
+    });
+});
+
+type CatalogDoc = { _id: Types.ObjectId } & Record<string, unknown>;
+
+// risponde al filtro sugli id come il driver; un filtro senza id restituisce tutto il catalogo
+const catalogModel = (entries: readonly CatalogDoc[] = []) => ({
+    find: jest.fn((filter: { _id?: { $in: Types.ObjectId[] } }) => {
+        const wanted = filter._id?.$in.map((id) => id.toHexString());
+        const found = wanted
+            ? entries.filter(({ _id }) => wanted.includes(_id.toHexString()))
+            : entries;
+        return { lean: () => ({ exec: () => Promise.resolve(found) }) };
+    }),
+});
+
+const rewardLoaderWith = (models: {
+    loot?: CatalogDoc[];
+    equipment?: CatalogDoc[];
+    spells?: CatalogDoc[];
+    pets?: CatalogDoc[];
+}) =>
+    new ResolutionLoader(
+        null as never,
+        null as never,
+        null as never,
+        null as never,
+        catalogModel() as never,
+        catalogModel(models.loot) as never,
+        catalogModel(models.equipment) as never,
+        catalogModel(models.spells) as never,
+        catalogModel(models.pets) as never,
+        catalogModel() as never,
+        undefined,
+    );
+
+const rankedBoss = (rankPrizes: Record<string, unknown>[]) => ({
+    _id: new Types.ObjectId(),
+    infos: { type: QuestType.boss, title: 'Boss', markerLocation: null },
+    requirements: { minTitle: TitleType.paladin },
+    prizes: { prizeCoins: null, xpPrize: 10, randomLoot: [], rankPrizes },
+});
+
+describe('ResolutionLoader reward catalog', () => {
+    it('reads the reward catalog of every rank block (D-05, D-05a)', async () => {
+        const P1 = new Types.ObjectId();
+        const P2 = new Types.ObjectId();
+        const L1 = new Types.ObjectId();
+        const E1 = new Types.ObjectId();
+        const loader = rewardLoaderWith({
+            loot: [{ _id: L1, rarity: RarityType.rare }],
+            equipment: [{ _id: E1, rarity: RarityType.common }],
+            pets: [{ _id: P1, maxLifePoints: 30, relatedLore: [] }],
+        });
+        const quest = rankedBoss([
+            {
+                title: TitleType.mage,
+                pet: P1,
+                randomLoot: [{ itemType: 'LootItem', item: L1, quantity: 1 }],
+            },
+            {
+                title: TitleType.paladin,
+                pet: P2,
+                randomLoot: [
+                    { itemType: 'EquipmentItem', item: E1, quantity: 1 },
+                ],
+            },
+        ]);
+
+        const { rewards } = await loader.readCatalog(quest as never, []);
+
+        expect([...rewards.pets.keys()]).toEqual([P1.toHexString()]);
+        expect(Object.fromEntries(rewards.rarities)).toEqual({
+            [`LootItem:${L1.toHexString()}`]: RarityType.rare,
+            [`EquipmentItem:${E1.toHexString()}`]: RarityType.common,
+        });
+    });
+
+    it('reads the fixed spells of every rank block (D-05)', async () => {
+        const S1 = new Types.ObjectId();
+        const S2 = new Types.ObjectId();
+        const loader = rewardLoaderWith({
+            spells: [
+                { _id: S1, minXpToLearn: 100, maxUsages: 2 },
+                { _id: S2, minXpToLearn: 300, maxUsages: 1 },
+            ],
+        });
+        const quest = rankedBoss([
+            { title: TitleType.mage, spell: S1 },
+            { title: TitleType.paladin, spell: S2 },
+        ]);
+
+        const { rewards } = await loader.readCatalog(quest as never, []);
+
+        expect(Object.fromEntries(rewards.spells)).toEqual({
+            [S1.toHexString()]: { minXpToLearn: 100, maxUsages: 2 },
+            [S2.toHexString()]: { minXpToLearn: 300, maxUsages: 1 },
+        });
     });
 });
