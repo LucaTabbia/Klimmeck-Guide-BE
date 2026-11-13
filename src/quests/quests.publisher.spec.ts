@@ -185,12 +185,36 @@ describe('QuestsPublisher', () => {
                 },
             });
 
-        const aidUpdated = (updatedFields: Record<string, unknown>) =>
+        const aidUpdated = (
+            updatedFields: Record<string, unknown>,
+            removedFields: string[] = [],
+        ) =>
             stream.emit('change', {
                 operationType: 'update',
                 documentKey: { _id: new Types.ObjectId(AID_ID) },
-                updateDescription: { updatedFields, removedFields: [] },
+                updateDescription: { updatedFields, removedFields },
             });
+
+        const aidReplaced = () =>
+            stream.emit('change', {
+                operationType: 'replace',
+                documentKey: { _id: new Types.ObjectId(AID_ID) },
+                fullDocument: {
+                    _id: new Types.ObjectId(AID_ID),
+                    infos: { type: 'aid' },
+                    rescue: { failedQuest: new Types.ObjectId(QUEST_ID) },
+                },
+            });
+
+        const expectSourceRepublished = () => {
+            expect(aidRead).toHaveBeenCalledWith(
+                { _id: new Types.ObjectId(AID_ID), 'infos.type': 'aid' },
+                { 'rescue.failedQuest': 1 },
+            );
+            expect(publish).toHaveBeenCalledWith('questUpdated', QUEST_ID, {
+                questUpdated: questState(QUEST_ID, 'read'),
+            });
+        };
 
         beforeEach(() => {
             findOne.mockImplementation((id) =>
@@ -238,6 +262,34 @@ describe('QuestsPublisher', () => {
             expect(publish).toHaveBeenCalledWith('questUpdated', QUEST_ID, {
                 questUpdated: questState(QUEST_ID, 'read'),
             });
+        });
+
+        it('republishes the source quest when its aid is reopened with a null conclusion (quick 261113-aql, WR-01)', async () => {
+            aidUpdated({ concludedAt: null });
+            await settle();
+
+            expectSourceRepublished();
+        });
+
+        it('republishes the source quest when the conclusion of its aid is removed (quick 261113-aql, WR-01)', async () => {
+            aidUpdated({}, ['concludedAt']);
+            await settle();
+
+            expectSourceRepublished();
+        });
+
+        it('republishes the source quest when its aid is replaced (quick 261113-aql, WR-01)', async () => {
+            aidReplaced();
+            await settle();
+
+            expectSourceRepublished();
+        });
+
+        it('reads no source on an update that removes another field (quick 261113-aql, WR-01)', async () => {
+            aidUpdated({}, ['infos.description']);
+            await settle();
+
+            expect(aidRead).not.toHaveBeenCalled();
         });
 
         it('reads no source on an update that concludes nothing (quick 261113-aql)', async () => {
