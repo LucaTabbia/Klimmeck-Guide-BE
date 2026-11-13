@@ -112,7 +112,7 @@ export function registrationRuleOf(
     return slotRuleOf(slots);
 }
 
-function hasUntitledGroupSeat(
+export function hasUntitledGroupSeat(
     type: QuestType,
     slots: readonly RankSlot[],
 ): boolean {

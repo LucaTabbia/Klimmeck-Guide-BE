@@ -5,6 +5,7 @@ import {
     QuestResultSchema,
 } from 'src/models/quest-result/quest-result.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
+import { GroupPrizeReportService } from './group-prize-report.service';
 import { QuestEnemiesMigrator } from './quest-enemies.migrator';
 import { QuestMaintenanceBoot } from './quest-maintenance.boot';
 
@@ -16,6 +17,10 @@ import { QuestMaintenanceBoot } from './quest-maintenance.boot';
             { name: QuestResult.name, schema: QuestResultSchema },
         ]),
     ],
-    providers: [QuestEnemiesMigrator, QuestMaintenanceBoot],
+    providers: [
+        QuestEnemiesMigrator,
+        GroupPrizeReportService,
+        QuestMaintenanceBoot,
+    ],
 })
 export class QuestMaintenanceModule {}
