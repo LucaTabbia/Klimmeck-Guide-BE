@@ -501,6 +501,54 @@ describe('buildAidQuest proportional prize', () => {
         expect(prizes.xpPrize).toBe(1);
     });
 
+    // utente 2026-11-13: «Se sei al secondo turno su 8, allora dev'essere un quarto. 1 ora dungeon completo -> 15 minuti aid»
+    it.each([
+        [1, 900_000],
+        [4, 2_250_000],
+        [7, 3_600_000],
+    ])(
+        'writes the shared time on a dungeon aid fallen on turn %d of 8 at birth (quick 261113-aql)',
+        (index, time) => {
+            const { infos } = buildAidQuest(
+                dungeon,
+                [INJURED_ID],
+                AID_ID,
+                turnOf(index),
+            );
+
+            expect(infos.timeToComplete).toBe(time);
+        },
+    );
+
+    it('rescales the time of an already shared aid by the ratio of the shares (quick 261113-aql)', () => {
+        const sharedAid: AidSourceQuest = {
+            ...dungeon,
+            _id: AID_ID,
+            infos: { ...dungeon.infos, timeToComplete: 900_000 },
+            rescue: { failedQuest: ORIGINAL_ID, turn: turnOf(1) },
+        };
+
+        const { infos } = buildAidQuest(
+            sharedAid,
+            [RESCUER_ID],
+            NEXT_AID_ID,
+            turnOf(0),
+        );
+
+        expect(infos.timeToComplete).toBe(450_000);
+    });
+
+    it('keeps the full time on an aid without a turn (quick 261113-aql)', () => {
+        const hunt: AidSourceQuest = {
+            ...dungeon,
+            infos: { ...dungeon.infos, type: QuestType.hunt },
+        };
+
+        const { infos } = buildAidQuest(hunt, [INJURED_ID], AID_ID);
+
+        expect(infos.timeToComplete).toBe(3_600_000);
+    });
+
     it('keeps the full prize on an aid without a turn (D-14)', () => {
         const hunt: AidSourceQuest = {
             ...dungeon,

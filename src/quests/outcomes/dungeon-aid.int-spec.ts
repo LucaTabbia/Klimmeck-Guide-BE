@@ -233,6 +233,28 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
 
     const rescuerOn = (aid: any) => quester({ quest: { _id: aid._id } });
 
+    // utente 2026-11-13: «Se sei al secondo turno su 8, allora dev'essere un quarto. 1 ora dungeon completo -> 15 minuti aid»
+    it('writes a quarter of the dungeon time on the aid born on turn 2 of 8 (quick 261113-aql)', async () => {
+        const quest = questWithEnemies('dungeon', await fourGroups());
+        const wounded = await quester({
+            questOverrides: {
+                ...quest,
+                infos: { ...quest.infos, timeToComplete: 3_600_000 },
+            },
+        });
+        dungeon.use(new TurnFailingDungeonResolver(dungeon.placeholder, [1]));
+
+        await expect(resolve(wounded)).resolves.toBe('resolved');
+
+        const character = await characterOf(wounded.characterId);
+        const aid = await questOf(character.status.awaitingAid.aidQuest);
+        expect(aid.rescue.turn).toEqual(turnAt(1));
+        expect(aid.infos.timeToComplete).toBe(900_000);
+        expect((await questOf(wounded.quest._id)).infos.timeToComplete).toBe(
+            3_600_000,
+        );
+    });
+
     it('walks the rescuer through the turns up to the saved one (D-12, D-13)', async () => {
         const { wounded, aid } = await dungeonAidWorld();
         const rescuer = await rescuerOn(aid);

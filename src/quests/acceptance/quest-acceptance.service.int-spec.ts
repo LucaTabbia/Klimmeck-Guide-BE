@@ -15,6 +15,7 @@ import {
 } from 'src/models/character/character.model';
 import { City, CityDocument } from 'src/models/city.model';
 import { LootItem } from 'src/models/loot-item.model';
+import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import {
     PendingQuest,
@@ -25,6 +26,10 @@ import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { QuestAcceptanceModule } from 'src/quests/acceptance/quest-acceptance.module';
 import { QuestAcceptanceService } from 'src/quests/acceptance/quest-acceptance.service';
+import {
+    AidSourceQuest,
+    buildAidQuest,
+} from 'src/quests/outcomes/aid/aid-quest';
 import {
     hasSeatFor,
     RankSlot,
@@ -1383,6 +1388,30 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect(transaction).toHaveBeenCalledTimes(1);
             expect(await pendingCount()).toBe(0);
         });
+    });
+
+    // utente 2026-11-13: «1 ora dungeon completo -> 15 minuti aid»; l'attesa del soccorritore viene dal tempo dell'aid, già in proporzione
+    it('gives the rescuer of a dungeon aid born on turn 2 of 8 a quarter of the dungeon time to wait (quick 261113-aql)', async () => {
+        const dungeonId = await questOf(
+            'dungeon',
+            { requiredAdventurers: [{ title: null, count: 1 }] },
+            { timeToComplete: 3_600_000 },
+        );
+        const source = await quests.collection.findOne({ _id: dungeonId });
+        const aid = buildAidQuest(
+            source as unknown as AidSourceQuest,
+            [new Types.ObjectId()],
+            new Types.ObjectId(),
+            { index: 1, kind: DungeonTurnKind.fight, total: 8 },
+        );
+        await quests.collection.insertOne({ ...aid });
+        const ownerId = await ownerWith(0);
+        const charId = await characterAt(world.cityMarker);
+
+        const pqId = await accept(ownerId, charId, aid._id);
+
+        expect(aid.infos.timeToComplete).toBe(900_000);
+        expect((await pendingOf(pqId))?.waitingTime).toBe(900_000);
     });
 
     describe('concluded quests (D-06, C9)', () => {

@@ -6,6 +6,7 @@ import {
     AidPrizes,
     proportionalPrizesOf,
     rescueShareOf,
+    sharedTimeOf,
 } from 'src/quests/outcomes/aid/rescue-share';
 
 const LOOT_ID = new Types.ObjectId('64b0000000000000000000e1');
@@ -151,5 +152,30 @@ describe('proportionalPrizesOf', () => {
                 prizeItem: { itemType: 'LootItem', item: LOOT_ID, quantity: 1 },
             },
         ]);
+    });
+});
+
+// utente 2026-11-13: «1 ora dungeon completo -> 15 minuti aid»
+describe('sharedTimeOf', () => {
+    it.each([
+        [3_600_000, 0.25, 900_000],
+        [3_600_000, 0.625, 2_250_000],
+        [3_600_000, 1, 3_600_000],
+        [1_000_001, 0.5, 500_000],
+    ])(
+        'writes the share of the aid time rounded down to the millisecond (quick 261113-aql): %d × %d → %d',
+        (time, share, shared) => {
+            expect(sharedTimeOf(time, share)).toBe(shared);
+        },
+    );
+
+    it('never brings a positive time below one millisecond (quick 261113-aql)', () => {
+        expect(sharedTimeOf(3, 0.125)).toBe(1);
+    });
+
+    it('keeps a missing, zero or malformed time as it is (quick 261113-aql)', () => {
+        expect(sharedTimeOf(null, 0.25)).toBeNull();
+        expect(sharedTimeOf(0, 0.25)).toBe(0);
+        expect(sharedTimeOf(-5, 0.25)).toBe(-5);
     });
 });
