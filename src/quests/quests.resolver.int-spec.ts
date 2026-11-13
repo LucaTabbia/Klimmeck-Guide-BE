@@ -1612,6 +1612,69 @@ describe('quest catalog (wire)', () => {
             expect(stored?.infos.enemies).toHaveLength(4);
         });
 
+        // l'oggetto infos dell'aid col turno è ricostruito campo per campo: ogni campo che non è enemies arriva come quello del sottodocumento
+        it('serves every other field of the infos of a dungeon aid as the aid without a turn (quick 261113-aql, IN-06)', async () => {
+            const ALL_INFOS =
+                'query Quest($id: String!) { quest(id: $id) { infos { timeToComplete title type description markerLocation { id } relatedLore { id } enemies { quantity enemy { name } } } } }';
+            const infos = {
+                type: 'aid',
+                title: 'Soccorso: Le cripte',
+                description: 'Le cripte crollate',
+                timeToComplete: 900_000,
+                relatedLore: [loreA._id, loreB._id],
+                enemies: await fourGroups(),
+            };
+            const rescue = {
+                characters: [new Types.ObjectId()],
+                failedQuest: new Types.ObjectId(),
+            };
+            const withTurn = await persistCatalogQuest({
+                infos,
+                rescue: {
+                    ...rescue,
+                    turn: { index: 1, kind: 'fight', total: 8 },
+                },
+            });
+            const withoutTurn = await persistCatalogQuest({ infos, rescue });
+            const infosOf = async (questId: unknown) => {
+                const body = (
+                    await graphqlRequest(
+                        harness.app,
+                        ALL_INFOS,
+                        { id: String(questId) },
+                        bearer,
+                    )
+                ).body as {
+                    data?: {
+                        quest?: { infos: { enemies: WireEnemyGroup[] } };
+                    };
+                    errors?: unknown;
+                };
+                expect(body.errors).toBeUndefined();
+                return body.data?.quest?.infos;
+            };
+
+            const { enemies: faced, ...served } =
+                (await infosOf(withTurn._id)) ?? {};
+            const { enemies: all, ...stored } =
+                (await infosOf(withoutTurn._id)) ?? {};
+
+            expect(faced).toEqual(groupsOf(1));
+            expect(all).toEqual(groupsOf(4));
+            expect(served).toEqual(stored);
+            expect(served).toEqual({
+                timeToComplete: 900_000,
+                title: 'Soccorso: Le cripte',
+                type: 'aid',
+                description: 'Le cripte crollate',
+                markerLocation: { id: String(poi._id) },
+                relatedLore: [
+                    { id: String(loreA._id) },
+                    { id: String(loreB._id) },
+                ],
+            });
+        });
+
         it('serves every group of an aid without a saved turn (quick 261113-aql)', async () => {
             const aid = await persistGroupsQuest('aid');
 
