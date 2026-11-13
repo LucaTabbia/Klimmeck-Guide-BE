@@ -329,6 +329,62 @@ describe('buildAidQuest rank blocks', () => {
         expect(clonedMage.randomLoot).not.toBe(mageBlock.randomLoot);
     });
 
+    const bossWith = (rankPrizes: unknown[]): AidSourceQuest => ({
+        ...original,
+        prizes: { ...original.prizes, rankPrizes },
+    });
+
+    // lo schema vuole un titolo dell'enum: un blocco illeggibile farebbe fallire la nascita dell'aid
+    it('clones only the blocks the boss reads, with a valid title (B-WR-02, D-01)', () => {
+        const { prizes } = buildAidQuest(
+            bossWith([
+                null,
+                { ...paladinBlock, title: 'Mage' },
+                mageBlock,
+                { ...paladinBlock, title: undefined },
+            ]),
+            [INJURED_ID],
+            AID_ID,
+        );
+
+        expect(prizes.rankPrizes).toEqual([{ ...mageBlock, cure: null }]);
+    });
+
+    it('clones the first block of a repeated title, the one the boss reads (B-WR-02, D-18)', () => {
+        const { prizes } = buildAidQuest(
+            bossWith([mageBlock, paladinBlock, { ...mageBlock, xpPrize: 1 }]),
+            [INJURED_ID],
+            AID_ID,
+        );
+
+        expect(prizes.rankPrizes).toEqual([
+            { ...mageBlock, cure: null },
+            { ...paladinBlock, cure: null },
+        ]);
+    });
+
+    it('writes no blocks when none has a valid title (B-WR-02, D-01)', () => {
+        const { prizes } = buildAidQuest(
+            bossWith([{ ...mageBlock, title: 'mago' }]),
+            [INJURED_ID],
+            AID_ID,
+        );
+
+        expect(Object.keys(prizes)).not.toContain('rankPrizes');
+    });
+
+    it('does not inherit the blocks left on a solo quest (A-WR-02, D-01, D-11)', () => {
+        const hunt: AidSourceQuest = {
+            ...bossWith([mageBlock]),
+            infos: { ...original.infos, type: QuestType.hunt },
+        };
+
+        const { prizes } = buildAidQuest(hunt, [INJURED_ID], AID_ID);
+
+        expect(Object.keys(prizes)).not.toContain('rankPrizes');
+        expect(prizes.xpPrize).toBe(800);
+    });
+
     it('keeps the single prize on the aid of a solo quest (D-11)', () => {
         const hunt: AidSourceQuest = {
             ...original,
