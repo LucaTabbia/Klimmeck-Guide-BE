@@ -471,6 +471,42 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
         });
     });
 
+    // ripiego muto prima: un turno ritoccato a mano a DB degrada l'aid al combattimento unico, ora con un WARN di soli id e conteggi
+    it.each([
+        [
+            'a malformed saved turn',
+            { index: 3, kind: 'exploration', total: 8 },
+            (aidHex: string) =>
+                `Soccorso ${aidHex}: turno salvato non valido, combattimento unico contro tutti i gruppi`,
+            0,
+        ],
+        [
+            'a saved turn on another total',
+            { index: 4, kind: 'exploration', total: 10 },
+            (aidHex: string) =>
+                `Soccorso ${aidHex}: turno salvato su 10 turni, i gruppi dell'aid ne contano 8`,
+            1,
+        ],
+    ])(
+        'warns once with ids only about %s (C-IN-02, D-12)',
+        async (_, turn, messageOf, explorations) => {
+            const { aid } = await dungeonAidWorld();
+            await world.models.quests.updateOne(
+                { _id: aid._id },
+                { $set: { 'rescue.turn': turn } },
+            );
+            const rescuer = await rescuerOn(aid);
+            const warn = jest.spyOn(Logger.prototype, 'warn');
+
+            await expect(resolve(rescuer)).resolves.toBe('resolved');
+
+            expect(dungeon.contexts).toHaveLength(explorations);
+            expect(warn.mock.calls.map(([message]) => String(message))).toEqual(
+                [messageOf(String(aid._id))],
+            );
+        },
+    );
+
     // il ferito attende da sette giorni: la data si sposta a DB, l'orologio condiviso dagli altri casi resta fermo
     it('writes where the wounded fell on a death by aid timeout (D-21)', async () => {
         const { wounded, aid } = await dungeonAidWorld();
