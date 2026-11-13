@@ -518,7 +518,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
         const rescue = await rescueWorld();
         const { rescuer, injuredId } = rescue;
         scripted.willEnd('failure');
-        jest.spyOn(archiver, 'archiveWithin').mockRejectedValueOnce(
+        jest.spyOn(archiver, 'archiveWithinReporting').mockRejectedValueOnce(
             new StaleResolution(),
         );
         const deliver = jest.spyOn(writer, 'deliver');
