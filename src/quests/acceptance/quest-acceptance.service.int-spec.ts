@@ -7,7 +7,7 @@ import {
     MongooseModule,
 } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
-import { Connection, Model, Types } from 'mongoose';
+import { ClientSession, Connection, Model, Query, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import {
     Character,
@@ -360,14 +360,33 @@ describe('QuestAcceptanceService (replSet)', () => {
     // lo stato cambia fra la pre-verifica e la transazione: il rifiuto può venire solo dal filtro (IN-04)
     function interleaveBeforeTransaction(
         interlude: () => Promise<unknown>,
+        onSession?: (session: ClientSession) => void,
     ): jest.SpyInstance {
         const transaction = connection.transaction.bind(connection);
         return jest
             .spyOn(connection, 'transaction')
             .mockImplementationOnce(async (fn, options) => {
                 await interlude();
-                return transaction(fn, options);
+                return transaction((session) => {
+                    onSession?.(session);
+                    return fn(session);
+                }, options);
             });
+    }
+
+    // la lettura del blocco porta la sessione della transazione (IN-07): una lettura fuori sessione vedrebbe la stessa aid già committata
+    function rescueLockSessionsOf(
+        sessionCalls: jest.SpyInstance,
+    ): (ClientSession | null | undefined)[] {
+        const contexts = sessionCalls.mock.contexts as Query<
+            unknown,
+            unknown
+        >[];
+        return contexts.flatMap((query, call) =>
+            'rescue.failedQuest' in query.getFilter()
+                ? [sessionCalls.mock.calls[call]?.[0] as ClientSession | null]
+                : [],
+        );
     }
 
     // ogni posto di una quest di gruppo ha un titolo (D-02, D-24): i jolly restano solo nell'aid
@@ -1379,14 +1398,21 @@ describe('QuestAcceptanceService (replSet)', () => {
             const questId = await questOf('hunt');
             const ownerId = await ownerWith(0);
             const charId = await characterAt(world.cityMarker);
-            const transaction = interleaveBeforeTransaction(() =>
-                openAidFrom(questId),
+            const transactionSessions: ClientSession[] = [];
+            const transaction = interleaveBeforeTransaction(
+                () => openAidFrom(questId),
+                (session) => transactionSessions.push(session),
             );
+            const sessionCalls = jest.spyOn(Query.prototype, 'session');
 
             await expectRejectedWithNothingWritten(ownerId, charId, questId);
 
             expect(transaction).toHaveBeenCalledTimes(1);
             expect(await pendingCount()).toBe(0);
+            const lockSessions = rescueLockSessionsOf(sessionCalls);
+            expect(transactionSessions).toHaveLength(1);
+            expect(lockSessions).toHaveLength(1);
+            expect(lockSessions[0]).toBe(transactionSessions[0]);
         });
     });
 
