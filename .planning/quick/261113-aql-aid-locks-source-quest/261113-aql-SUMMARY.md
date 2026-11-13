@@ -9,7 +9,15 @@ key-files:
     - src/quests/awaiting-rescue/quest-awaiting-rescue.resolver.ts
     - src/quests/awaiting-rescue/quests-awaiting-rescue.service.ts
     - src/quests/outcomes/aid/rescue-lock.spec.ts
+    - src/quests/aid-enemies/quest-faced-enemies.resolver.ts
   modified:
+    - src/quests/outcomes/dungeon/dungeon-turns.ts
+    - src/quests/outcomes/quest-battle.ts
+    - src/quests/outcomes/aid/rescue-share.ts
+    - src/quests/outcomes/aid/aid-quest.ts
+    - src/quests/outcomes/dungeon/dungeon-turns.spec.ts
+    - src/quests/outcomes/aid/rescue-share.spec.ts
+    - src/quests/outcomes/aid/aid-quest.spec.ts
     - src/quests/outcomes/aid/aid-opening.ts
     - src/quests/acceptance/quest-acceptance.service.ts
     - src/quests/quests.module.ts
@@ -29,6 +37,10 @@ commits:
   - { hash: b429a532, message: "feat(quests): refuse a hunt or dungeon while its aid is open" }
   - { hash: 50e9133e, message: "test(quests): pin awaitingRescue on the wire and its live updates" }
   - { hash: 6ab6eef8, message: "feat(quests): serve awaitingRescue and republish the aid source" }
+  - { hash: 72241fb8, message: "test(quests): expect a dungeon aid to show only the groups faced" }
+  - { hash: b6e60eab, message: "feat(quests): serve only the groups a dungeon aid rescuer faces" }
+  - { hash: 20a268ac, message: "test(quests): expect a dungeon aid to last its share of the dungeon" }
+  - { hash: 54692c61, message: "feat(quests): write the share of the dungeon time on its aid" }
 metrics:
   started: 2026-11-13T18:47:07Z
   completed: 2026-11-13
@@ -91,6 +103,55 @@ Risposte dell'utente a due domande dell'orchestratore (scelte fra opzioni propos
 - **Aid cancellata a mano da DB:** il change stream non riceve il documento cancellato, quindi la quest d'origine non viene ripubblicata (il valore torna giusto alla richiesta o all'evento successivo). Nessun percorso del codice cancella aid.
 - **Handoff:** oltre alla sezione in coda a `BACKEND-NOTES.md`, la voce D-15 del §4 e la riga D-15 del §5 sono marcate «superata» con un rimando alla sezione nuova, per non lasciare al FE un'indicazione contraria.
 
+## Aggiunta dalla UAT: nemici dell'aid di dungeon
+
+**Osservazione dell'utente (2026-11-13, verbatim):** «nella quest aid vedo 4 arbusto maligno. Non dovrei vederne solo 1?»
+
+**Fatto verificato a DB dall'orchestratore:** l'aid di una dungeon da 4 gruppi persa al 2° turno (`rescue.turn { index: 1, kind: fight, total: 8 }`) porta in `infos.enemies` tutti e 4 i gruppi (clone dell'originale, D-09); la risoluzione faceva già affrontare solo i gruppi fino al turno salvato (`facedCatalogOf`) e il premio era già in proporzione, ma il filo serviva l'elenco intero.
+
+**Regola (correzione della Phase 21, coerente con D-12/D-20):** sul filo un'aid con un `rescue.turn` valido (letto con `rescueTurnOf`) mostra solo i gruppi affrontati fino al turno salvato, per ogni viewer; elenco vuoto se la caduta è sulla prima esplorazione. Ogni altra quest (aid senza turno o con turno non valido, dungeon, hunt, boss, anche con un turno spurio) resta com'è.
+
+**Via scelta:** `@ResolveField('infos')` su `Quest` (`QuestFacedEnemiesResolver`, `src/quests/aid-enemies/quest-faced-enemies.resolver.ts`), non un resolver sul tipo dei nemici: `QuestInfos` non conosce `rescue`, mentre `Quest` sì. Un punto solo per `quests`, `quest(id)`, `questUpdated` e per ogni `Quest` annidata servita popolata. Per un'aid col turno l'oggetto `infos` si ricostruisce campo per campo (il documento è idratato, `findOne` / `find` con populate: niente spread né `toObject`), negli altri casi si restituisce il sottodocumento così com'è, quindi il comportamento è identico al resolver di default. Il parent condiviso dell'evento WS non si muta (provato). A DB nulla cambia: l'aid tiene i 4 gruppi, la catena dei soccorsi, il percorso a turni e `savedTurnWarningOf` restano validi e l'aid già aperta nella UAT funziona senza semine.
+
+**Una sola regola:** `facedEnemiesOf(enemies, turn)` in `src/quests/outcomes/dungeon/dungeon-turns.ts` (usa `rescueTurnOf` e `facedEnemyCountOf`, null senza turno valido); `facedCatalogOf` ora la riusa.
+
+**`QuestResult.enemies` del soccorritore:** già giusto prima di questa aggiunta (scritto da `enemyFactsOf` sul catalogo ridotto da `facedCatalogOf`) e già pinnato in `src/quests/outcomes/dungeon-aid.int-spec.ts` («gives the rescuer the xp of the enemy groups faced up to the turn (D-12)», «walks no enemy group when the wounded fell on the first turn», «walks the rescuer through the turns up to the saved one (C-WR-01, D-12, D-21)»): nessun caso nuovo.
+
+**SDL invariato:** `git diff develop -- src/schema.gql` resta di una sola riga (`awaitingRescue`); `test/app.int-spec.ts` verde.
+
+**Spec**
+
+- Unit: `src/quests/outcomes/dungeon/dungeon-turns.spec.ts` (describe «facedEnemiesOf»).
+- Filo: `src/quests/quests.resolver.int-spec.ts` (describe «the enemies of a dungeon aid on the wire (quick 261113-aql)»): turni 1/fight → 1 gruppo, 4/exploration → 2, 7/fight → 4, 0/exploration → nessuno, da `quests` e da `quest(id)` per due viewer; a DB 4 gruppi; aid senza turno e con turno non valido → 4; dungeon, hunt e boss, anche con un turno spurio → 4.
+- Diretta: `src/quests/quest-updated.subscription.int-spec.ts` (describe «the enemies of a dungeon aid on the event (quick 261113-aql)»): snapshot ed evento con 1 gruppo per due subscriber, payload interno con 4.
+
+**RED (`72241fb8`):** unit 4 falliti su 12 (`facedEnemiesOf` assente); integration 5 falliti (turni 1, 4, 0, il caso del DB, la subscription). Verdi già in RED come guardie: turno 7 (4 gruppi su 4), aid senza turno, turno non valido, dungeon/hunt/boss.
+
+## Aggiunta dalla UAT: durata dell'aid di dungeon
+
+**Regola dell'utente (2026-11-13, verbatim):** «Naturalmente anche il tempo richiesto per il soccorso dev'essere corretto in base a quanto dungeon è stato completato. Se sei al secondo turno su 8, allora dev'essere un quarto. 1 ora dungeon completo -> 15 minuti aid»
+
+**Regola:** `infos.timeToComplete` dell'aid di dungeon si scala con la stessa quota del premio, `rescueShareOf(turno)` = `(index + 1) / total`, scritta alla nascita in `buildAidQuest`. Una sola quota: `aidShareOf(original, turn)` (`src/quests/outcomes/aid/aid-quest.ts`) dà 1 senza turno e, sulla catena, il rapporto delle quote sulla sorgente; la usano sia `proportionalPrizesOf` sia `sharedTimeOf` (`src/quests/outcomes/aid/rescue-share.ts`). Arrotondamento per difetto al millisecondo intero con la stessa tolleranza dei premi; **minimo 1 ms** se l'originale è positivo (0 vorrebbe dire nessuna attesa: un soccorso non dura mai zero); un tempo nullo, zero o non valido resta com'è.
+
+**Cosa non cambia:** il `waitingTime` del `PendingQuest` del soccorritore viene già da `infos.timeToComplete` dell'aid (`waitingTimeOf` in `src/quests/acceptance/quest-eligibility.ts`, corsia standard), quindi risulta in proporzione senza altri cambi (pinnato); il timeout di 7 giorni dell'aid (`AID_TIMEOUT_MS`, `src/quests/outcomes/aid/aid-timeout.ts`) è una costante indipendente e non è toccato; aid senza turno (hunt, enemy, boss, solitarie) tengono il tempo intero; SDL invariato. Le aid già aperte a DB tengono il tempo con cui sono nate (nessun migratore).
+
+**Spec**
+
+- Unit: `src/quests/outcomes/aid/rescue-share.spec.ts` (describe «sharedTimeOf»: 3 600 000 × 1/4 → 900 000, × 5/8 → 2 250 000, × 1 → invariato, per difetto, minimo 1 ms, nullo/zero/negativo invariati); `src/quests/outcomes/aid/aid-quest.spec.ts` («writes the shared time on a dungeon aid fallen on turn %d of 8 at birth», «rescales the time of an already shared aid by the ratio of the shares» 900 000 → 450 000, «keeps the full time on an aid without a turn»).
+- Integrazione: `src/quests/outcomes/dungeon-aid.int-spec.ts` «writes a quarter of the dungeon time on the aid born on turn 2 of 8 (quick 261113-aql)» (sconfitta reale, la dungeon resta a 3 600 000); `src/quests/acceptance/quest-acceptance.service.int-spec.ts` «gives the rescuer of a dungeon aid born on turn 2 of 8 a quarter of the dungeon time to wait (quick 261113-aql)» (`waitingTime` 900 000).
+
+**RED (`20a268ac`):** unit 9 falliti (`sharedTimeOf` assente, tempo intero sull'aid); integration 2 falliti (900 000 atteso, 3 600 000 ricevuto — l'attesa del soccorritore seguiva già il tempo dell'aid). Verdi già in RED come guardie: turno 7 di 8 e aid senza turno.
+
+## Gate delle aggiunte
+
+- `npx tsc --noEmit -p tsconfig.json`: 0; `-p tsconfig.build.json`: 0.
+- `npx jest src/quests --selectProjects unit`: 75 suite / 1318 test verdi.
+- `npx jest src/quests/outcomes --selectProjects integration --runInBand`: 14 suite / 205 test verdi.
+- `npx jest src/quests --selectProjects integration --runInBand --testPathIgnorePatterns '/node_modules/' 'src/quests/outcomes/'`: 24 suite / 430 test verdi.
+- `npx jest test/ --selectProjects integration --runInBand`: 17 suite / 275 test verdi.
+- `git diff develop -- src/schema.gql | grep -cE '^[+-][^+-]'`: 1.
+- Deviazione: nel commit GREEN dei nemici ho tipizzato gli array dei gruppi delle due spec nuove (tsc li inferiva `never`), nessun cambio di comportamento.
+
 ## Self-Check: PASSED
 
-File creati presenti, commit `ca67e7c2`, `f734255a`, `b429a532`, `50e9133e`, `6ab6eef8` presenti in `git log`.
+File creati presenti, commit `ca67e7c2`, `f734255a`, `b429a532`, `50e9133e`, `6ab6eef8`, `72241fb8`, `b6e60eab`, `20a268ac`, `54692c61` presenti in `git log`.

@@ -263,7 +263,7 @@ Per l'orchestratore e l'utente, **dopo** questo piano, insieme alla FE Phase 20 
 
 ## Aggiornamento 2026-11-13 — quick 261113-aql
 
-Ramo `feat/quick-aid-locks-source-quest` (da `develop` `7f3506ac`), documenti in `.planning/quick/261113-aql-aid-locks-source-quest/`. Commit `ca67e7c2`, `f734255a`, `b429a532`, `50e9133e`, `6ab6eef8`.
+Ramo `feat/quick-aid-locks-source-quest` (da `develop` `7f3506ac`), documenti in `.planning/quick/261113-aql-aid-locks-source-quest/`. Commit `ca67e7c2`, `f734255a`, `b429a532`, `50e9133e`, `6ab6eef8`; aggiunte dalla UAT `72241fb8`, `b6e60eab`, `20a268ac`, `54692c61`.
 
 **Regola dell'utente (2026-11-13, verbatim):** «Quando un personaggio attiva una aid a partire da una hunt o da un dungeon (quindi le uniche quest ripetibili che possono creare una aid) la quest che le ha generate deve risultare strappata e quindi non accettable, finché il soccorso non va a buon fine.» Risposte dell'utente a due domande dell'orchestratore: bloccata **per tutti**; torna libera **quando l'aid si chiude**, in ogni modo (soccorso riuscito, ferito morto per timeout, ferito archiviato); se i soccorritori perdono nasce una nuova aid dalla stessa quest e il blocco continua finché anche quella non si chiude.
 
@@ -300,3 +300,27 @@ type Quest {
 - Diretta: `src/quests/quests.publisher.spec.ts` (describe «the source quest of an aid (quick 261113-aql)»); `src/quests/quest-updated.subscription.int-spec.ts` «republishes the hunt when an aid is born from it and when the aid concludes (quick 261113-aql)», «stays silent on the hunt when an aid of another quest is born (quick 261113-aql)».
 
 **Limiti noti:** un'aid nata fra la lettura in sessione e il commit di un'accettazione non la blocca (chi accetta in quell'istante ha accettato prima dell'aid); un'aid cancellata a mano da DB non ripubblica la quest d'origine (il valore torna giusto alla lettura successiva).
+
+### Aggiunta dalla UAT: nemici dell'aid di dungeon
+
+**Osservazione dell'utente (2026-11-13, verbatim):** «nella quest aid vedo 4 arbusto maligno. Non dovrei vederne solo 1?»
+
+**Regola:** sul filo un'aid di dungeon (aid con un `rescue.turn` valido) mostra in `Quest.infos.enemies` solo i gruppi che il soccorritore affronta fino al turno salvato, gli stessi che la risoluzione gli fa combattere, uguale per ogni viewer; elenco vuoto se il ferito è caduto sulla prima esplorazione. Esempio della UAT: dungeon da 4 gruppi persa al 2° turno di 8 → 1 gruppo. Ogni altra quest resta com'è. A DB l'aid tiene l'elenco intero (la catena clona sempre l'originale).
+
+**Per la FE:** nessun cambio di forma né di SDL: l'app stampa i nemici che riceve da `quests`, `quest(id)` e `questUpdated`. `QuestResult.enemies` del soccorritore elencava già i soli gruppi affrontati.
+
+**Dove vive:** `QuestFacedEnemiesResolver` (`src/quests/aid-enemies/quest-faced-enemies.resolver.ts`, `@ResolveField('infos')` su `Quest`, ricostruisce `infos` campo per campo senza mutare il payload condiviso dell'evento) con la regola unica `facedEnemiesOf` (`src/quests/outcomes/dungeon/dungeon-turns.ts`), riusata da `facedCatalogOf` della risoluzione.
+
+**Spec:** `src/quests/outcomes/dungeon/dungeon-turns.spec.ts` (describe «facedEnemiesOf»); `src/quests/quests.resolver.int-spec.ts` (describe «the enemies of a dungeon aid on the wire (quick 261113-aql)»); `src/quests/quest-updated.subscription.int-spec.ts` (describe «the enemies of a dungeon aid on the event (quick 261113-aql)»); esito del soccorritore già pinnato in `src/quests/outcomes/dungeon-aid.int-spec.ts` («gives the rescuer the xp of the enemy groups faced up to the turn (D-12)»).
+
+### Aggiunta dalla UAT: durata dell'aid di dungeon
+
+**Regola dell'utente (2026-11-13, verbatim):** «Naturalmente anche il tempo richiesto per il soccorso dev'essere corretto in base a quanto dungeon è stato completato. Se sei al secondo turno su 8, allora dev'essere un quarto. 1 ora dungeon completo -> 15 minuti aid»
+
+**Regola:** `Quest.infos.timeToComplete` di un'aid di dungeon è scritto alla nascita con la stessa quota del premio, `(index + 1) / total` del turno salvato: 1 ora con caduta al 2° turno di 8 → 15 minuti (900 000 ms). Per difetto al millisecondo, mai sotto 1 ms se la dungeon ha una durata; un'aid nata da un soccorso perso si riscala col rapporto delle quote (mai la quota due volte); un'aid senza turno salvato (hunt, enemy, boss, solitarie) tiene il tempo intero.
+
+**Per la FE:** nessun cambio di forma né di SDL: l'app stampa il tempo che riceve; l'attesa del soccorritore (`waitingTime` del suo `PendingQuest`) segue già il tempo dell'aid. Il timeout di 7 giorni del ferito non cambia. Le aid già aperte a DB tengono il tempo con cui sono nate.
+
+**Dove vive:** `aidShareOf` e `buildAidQuest` (`src/quests/outcomes/aid/aid-quest.ts`), `sharedTimeOf` accanto a `proportionalPrizesOf` (`src/quests/outcomes/aid/rescue-share.ts`).
+
+**Spec:** `src/quests/outcomes/aid/rescue-share.spec.ts` (describe «sharedTimeOf»); `src/quests/outcomes/aid/aid-quest.spec.ts` (casi «quick 261113-aql» del describe «buildAidQuest proportional prize»); `src/quests/outcomes/dungeon-aid.int-spec.ts` «writes a quarter of the dungeon time on the aid born on turn 2 of 8 (quick 261113-aql)»; `src/quests/acceptance/quest-acceptance.service.int-spec.ts` «gives the rescuer of a dungeon aid born on turn 2 of 8 a quarter of the dungeon time to wait (quick 261113-aql)».
