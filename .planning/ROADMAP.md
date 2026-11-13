@@ -189,7 +189,7 @@ Plans:
 - [x] 21-07-PLAN.md — Boss generati misti col titolo inferiore
 - [x] 21-08-PLAN.md — Dungeon a turni: porta, segnaposto e contatori
 - [x] 21-09-PLAN.md — Turni negli esiti e turno salvato sull'aid
-- [ ] 21-10-PLAN.md — Il soccorritore percorre i turni dell'aid di dungeon
+- [x] 21-10-PLAN.md — Il soccorritore percorre i turni dell'aid di dungeon
 - [ ] 21-11-PLAN.md — Premio proporzionale ai turni completati
 - [ ] 21-12-PLAN.md — Premio per viewer, blocchi e turni sul filo
 - [ ] 21-13-PLAN.md — Gate della fase
@@ -235,7 +235,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
-| 21. Premi per rango e soccorsi | v1.1 | 9/14 | In Progress | - |
+| 21. Premi per rango e soccorsi | v1.1 | 10/14 | In Progress | - |
 
 ---
 
