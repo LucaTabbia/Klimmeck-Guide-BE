@@ -343,8 +343,11 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
         ).toBeNull();
     });
 
+    // 4 xp: l'aid ne porta 4 × 5/8 = 2; la nuova aid dall'originale 4 × 2/8 = 1, dall'aid già scalata 2 × 2/5 = 0
     it('applies the lost aid rule and saves the turn where the rescuers fell (D-10, D-26)', async () => {
-        const { wounded, aid } = await dungeonAidWorld();
+        const { wounded, aid } = await dungeonAidWorld({
+            prizes: { xpPrize: 4 },
+        });
         const rescuer = await rescuerOn(aid);
         scripted.willEnd('failure');
 
@@ -382,6 +385,89 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
             index: 1,
             kind: 'fight',
             total: 8,
+        });
+        expect(chained.prizes.xpPrize).toBe(1);
+    });
+
+    it('saves the exploration turn where the rescuers fell (C-IN-04, D-26, D-29)', async () => {
+        const { wounded, aid } = await dungeonAidWorld();
+        const rescuer = await rescuerOn(aid);
+        dungeon.use(new TurnFailingDungeonResolver(dungeon.placeholder, [2]));
+
+        await expect(resolve(rescuer)).resolves.toBe('resolved');
+
+        expect(scripted.contexts).toHaveLength(1);
+        expect((await characterOf(wounded.characterId)).deletionReason).toBe(
+            'death',
+        );
+        const fallen = await resultOf(rescuer.characterId);
+        expect(fallen.outcome).toBe('failure');
+        expect(turnsOf(fallen)).toEqual({
+            turnsTotal: 8,
+            turnsCompleted: 2,
+            lastTurn: 3,
+            lastTurnKind: 'exploration',
+        });
+        const rescuerAfter = await characterOf(rescuer.characterId);
+        const chained = await questOf(rescuerAfter.status.awaitingAid.aidQuest);
+        expect(chained.rescue.turn).toEqual(turnAt(2));
+    });
+
+    // caduta sulla prima esplorazione: il soccorritore esplora e basta, nessun gruppo affrontato, quota 1/8 (50 xp → 6)
+    it('walks no enemy group when the wounded fell on the first turn (C-IN-04, D-12, D-20)', async () => {
+        const { aid } = await dungeonAidWorld({ failingTurn: 0 });
+        expect(aid.prizes.xpPrize).toBe(6);
+        const rescuer = await rescuerOn(aid);
+
+        await expect(resolve(rescuer)).resolves.toBe('resolved');
+
+        expect(
+            dungeon.contexts.map((context) => context.lastTurnIndex),
+        ).toEqual([0]);
+        expect(scripted.contexts).toHaveLength(0);
+        const result = await resultOf(rescuer.characterId);
+        expect(result.outcome).toBe('success');
+        expect(result.enemies ?? []).toEqual([]);
+        expect(result.xpGained).toBe(6);
+        expect(turnsOf(result)).toEqual({
+            turnsTotal: 8,
+            turnsCompleted: 1,
+            lastTurn: 1,
+            lastTurnKind: 'exploration',
+        });
+        expect(result).toMatchObject({ stagesCleared: 0, stagesTotal: 4 });
+    });
+
+    // una dungeon da un gruppo ha due turni: caduta nello scontro = quota 2/2, premio intero
+    it('rescues a one group dungeon with the whole prize (C-IN-04, D-12, D-20)', async () => {
+        const [ghoul] = await fourGroups();
+        const wounded = await quester({
+            questOverrides: questWithEnemies('dungeon', [ghoul]),
+        });
+        dungeon.use(new TurnFailingDungeonResolver(dungeon.placeholder, [1]));
+        await expect(resolve(wounded)).resolves.toBe('resolved');
+        const character = await characterOf(wounded.characterId);
+        const aid = await questOf(character.status.awaitingAid.aidQuest);
+        expect(aid.rescue.turn).toEqual({ index: 1, kind: 'fight', total: 2 });
+        expect(aid.prizes.xpPrize).toBe(50);
+        scripted.reset();
+        dungeon.reset();
+        const rescuer = await rescuerOn(aid);
+
+        await expect(resolve(rescuer)).resolves.toBe('resolved');
+
+        expect(
+            dungeon.contexts.map((context) => context.lastTurnIndex),
+        ).toEqual([1]);
+        expect(scripted.contexts).toHaveLength(1);
+        const result = await resultOf(rescuer.characterId);
+        expect(result.outcome).toBe('success');
+        expect(result.xpGained).toBe(50 + 20);
+        expect(turnsOf(result)).toEqual({
+            turnsTotal: 2,
+            turnsCompleted: 2,
+            lastTurn: 2,
+            lastTurnKind: 'fight',
         });
     });
 

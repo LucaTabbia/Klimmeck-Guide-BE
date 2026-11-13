@@ -452,7 +452,8 @@ describe('planCombatant rescue share', () => {
             now: new Date('2026-11-04T10:00:00.000Z'),
         });
 
-    it('scales the loot and pet chances of a dungeon aid rescuer (D-20)', () => {
+    // la soglia del loot scalata è provata da cascading-loot.spec e da dungeon-aid.int-spec
+    it('scales the pet chance of a dungeon aid rescuer (D-20)', () => {
         const shared = new SequenceChance([0.15]);
         const whole = new SequenceChance([0.15]);
         const failedQuest = id('92');

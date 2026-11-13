@@ -444,7 +444,7 @@ describe('buildAidQuest proportional prize', () => {
         expect(prizes.pet).toEqual(PET_ID);
     });
 
-    it('shares again from the original in a chain (D-20)', () => {
+    it('shares the original by the turn of each defeat, not by the earlier one (D-20)', () => {
         const first = buildAidQuest(dungeon, [INJURED_ID], AID_ID, turnOf(3));
         const second = buildAidQuest(
             dungeon,
