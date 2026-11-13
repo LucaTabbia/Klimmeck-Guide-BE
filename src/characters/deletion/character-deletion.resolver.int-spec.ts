@@ -9,10 +9,19 @@ import {
 } from 'src/models/character/character.model';
 import { City, CityDocument } from 'src/models/city.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { PendingQuest } from 'src/models/pending-quest.model';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
+import { PUSH_CONFIG } from 'src/config/push-config';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
+import { questCancelled } from 'src/push/push-events';
+import { PushMessage } from 'src/push/push-message';
+import { PushPlatform } from 'src/push/push-platform.enum';
+import {
+    PushTransport,
+    TokenDeliveryOutcome,
+} from 'src/push/transport/push-transport';
 import { QuestsModule } from 'src/quests/quests.module';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { FixedClock } from '../../../test/auth/fixed-clock';
@@ -32,6 +41,7 @@ import {
     persistQuest,
     persistUser,
 } from '../../../test/fixtures';
+import { FakePushTransport } from '../../../test/push/fake-push-transport';
 
 const DELETE_CHARACTER =
     'mutation { deleteCharacter { id twitchId twitchPoints role currentCharacter { id } } }';
@@ -56,6 +66,20 @@ const USER_UPDATED =
 
 // l'archivio prende l'istante dall'orologio del server: con un orologio fisso le date scritte sono esatte
 const NOW = new Date('2026-10-27T12:00:00.000Z');
+
+// il push parte dopo il commit (D-27): il trasporto legge il DB fuori dalla transazione nell'istante dell'invio
+class CommitObservingPushTransport extends FakePushTransport {
+    observe: (() => Promise<unknown>) | null = null;
+    readonly observed: unknown[] = [];
+
+    async sendToTokens(
+        tokens: string[],
+        message: PushMessage,
+    ): Promise<TokenDeliveryOutcome[]> {
+        if (this.observe) this.observed.push(await this.observe());
+        return super.sendToTokens(tokens, message);
+    }
+}
 
 const PRIMING_ATTEMPTS = 25;
 const PRIMING_WAIT_MS = 200;
@@ -115,6 +139,8 @@ describe('deleteCharacter (wire)', () => {
     let cities: Model<CityDocument>;
     let pois: Model<PointOfInterest>;
     let quests: Model<QuestDocument>;
+    let pendingQuests: Model<PendingQuest>;
+    const push = new CommitObservingPushTransport();
     const opened: OpenSubscription<UserUpdatedResult>[] = [];
 
     async function call(
@@ -175,6 +201,10 @@ describe('deleteCharacter (wire)', () => {
                 QuestsModule,
             ],
             clock: new FixedClock(NOW),
+            overrides: [
+                { token: PushTransport, useValue: push },
+                { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
+            ],
         });
         users = harness.connection.model<UserDocument>(User.name);
         characters = harness.connection.model<CharacterDocument>(
@@ -183,6 +213,9 @@ describe('deleteCharacter (wire)', () => {
         cities = harness.connection.model<CityDocument>(City.name);
         pois = harness.connection.model<PointOfInterest>(PointOfInterest.name);
         quests = harness.connection.model<QuestDocument>(Quest.name);
+        pendingQuests = harness.connection.model<PendingQuest>(
+            PendingQuest.name,
+        );
         // indici e collection prima delle transazioni (Pitfall 9)
         await Promise.all(
             [
@@ -191,6 +224,7 @@ describe('deleteCharacter (wire)', () => {
                 City.name,
                 PointOfInterest.name,
                 Quest.name,
+                PendingQuest.name,
             ].map((name) => harness.connection.model(name).init()),
         );
         await primeUsersChangeStream(harness);
@@ -210,6 +244,9 @@ describe('deleteCharacter (wire)', () => {
         );
         await harness.clearDatabase();
         jest.restoreAllMocks();
+        push.reset();
+        push.observe = null;
+        push.observed.length = 0;
     });
 
     afterAll(async () => {
@@ -683,6 +720,95 @@ describe('deleteCharacter (wire)', () => {
             expect(await rawSeats(quest._id)).toEqual([
                 { character: other, title: 'hero' },
             ]);
+        });
+    });
+
+    describe('rescuers released by the deletion (D-27)', () => {
+        async function woundedOnAid(rescuerIds: Types.ObjectId[]) {
+            const wounded = await createPlayer(harness, {
+                twitchId: 'twitch-del-wounded',
+            });
+            const aid = await persistQuest(quests, {
+                infos: { ...buildQuest().infos, type: 'aid' },
+                rescue: {
+                    characters: [wounded.character?._id],
+                    failedQuest: new Types.ObjectId(),
+                },
+                registeredAdventurers: rescuerIds.map((character) => ({
+                    character,
+                    title: 'rookie',
+                    registeredAt: NOW,
+                })),
+            });
+            return { wounded, aidId: aid._id as Types.ObjectId };
+        }
+
+        async function registeredRescuer(twitchId: string) {
+            const pendingQuestId = new Types.ObjectId();
+            const rescuer = await createPlayer(harness, {
+                twitchId,
+                characterOverrides: {
+                    quests: {
+                        completedQuests: [],
+                        pendingQuest: pendingQuestId,
+                    },
+                },
+            });
+            // device scritto a mano: il modulo della cancellazione non espone PushService
+            await harness.connection.collection('push_devices').insertOne({
+                userId: rescuer.user._id,
+                deviceId: 'dev-rescuer',
+                token: `tok-${twitchId}`,
+                platform: PushPlatform.android,
+                lastSeenAt: NOW,
+            });
+            return { rescuer, pendingQuestId };
+        }
+
+        it('cancels the quest of the rescuers released by a deletion (D-27)', async () => {
+            const { rescuer, pendingQuestId } =
+                await registeredRescuer('twitch-del-rescuer');
+            const { wounded, aidId } = await woundedOnAid([
+                rescuer.character?._id as Types.ObjectId,
+            ]);
+            await pendingQuests.collection.insertOne({
+                _id: pendingQuestId,
+                quest: aidId,
+                startDate: null,
+                arrivedAt: null,
+                waitingTime: 0,
+                pointsSpent: 0,
+            });
+            push.observe = async () => ({
+                pendingQuest: await pendingQuests.collection.findOne({
+                    _id: pendingQuestId,
+                }),
+                lane: (
+                    await rawCharacter(rescuer.character?._id as Types.ObjectId)
+                )?.quests?.pendingQuest,
+            });
+
+            const body = await deleteAs(wounded.bearer);
+
+            expect(deletedUserOf(body)).toMatchObject({
+                id: String(wounded.user._id),
+                currentCharacter: null,
+            });
+            expect(push.sent).toEqual([
+                {
+                    tokens: ['tok-twitch-del-rescuer'],
+                    message: questCancelled(aidId.toHexString()),
+                },
+            ]);
+            expect(push.observed).toEqual([{ pendingQuest: null, lane: null }]);
+        });
+
+        it('sends no push when the deletion releases nobody (D-27)', async () => {
+            const { wounded } = await woundedOnAid([]);
+
+            deletedUserOf(await deleteAs(wounded.bearer));
+
+            expect(push.sent).toEqual([]);
         });
     });
 });
