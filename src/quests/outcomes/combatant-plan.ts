@@ -4,6 +4,7 @@ import { refIdOf } from 'src/mongo/document-id';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { prizeBlockFor } from 'src/quests/prizes/rank-prizes';
 import { opensAid } from './aid/aid-opening';
+import { rescueShareOf } from './aid/rescue-share';
 import type { ChanceSource } from './chance-source';
 import { buildCombatContext } from './combat/combat-context';
 import type {
@@ -14,7 +15,7 @@ import type {
 } from './combat/combat-resolver';
 import { planDefeatWithoutAid } from './defeat-without-aid';
 import type { DungeonResolution } from './dungeon/dungeon-resolver';
-import { turnCountersOf } from './dungeon/dungeon-turns';
+import { rescueTurnOf, turnCountersOf } from './dungeon/dungeon-turns';
 import {
     type DungeonStages,
     type EnemyFacts,
@@ -169,11 +170,13 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
         enemies: enemyFactsOf(catalog),
         victory: victoryKnowledgeOf(catalog),
         // il blocco del titolo del personaggio letto in sessione, non del posto (D-04, D-18)
+        // la quota del soccorritore di una dungeon scala le soglie di loot e pet (D-20)
         rewards: won
             ? drawRewards(
                   prizeBlockFor(quest, snapshot.status.title),
                   catalog.rewards,
                   input.chance,
+                  rescueShareOf(rescueTurnOf(quest.rescue?.turn)),
               )
             : NO_REWARDS,
         aid,
