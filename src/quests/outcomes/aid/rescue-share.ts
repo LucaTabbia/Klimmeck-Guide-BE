@@ -4,7 +4,7 @@ import { isRecord } from '../combat/combat-context';
 import type { RescueTurn } from '../dungeon/dungeon-turns';
 import { isNonNegativeInteger } from '../rewards/quest-rewards';
 
-// assorbe l'errore di rappresentazione delle quote non binarie (5/6 × 6 = 4.999…), mai un'unità intera
+// assorbe l'errore di rappresentazione delle quote non binarie (90 × 7/10 = 62.999…, 5 × (1/6)/(5/6) = 0.999…), mai un'unità intera
 const SHARE_EPSILON = 1e-9;
 
 export interface AidPrizes {

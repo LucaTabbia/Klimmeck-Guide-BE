@@ -83,6 +83,49 @@ describe('proportionalPrizesOf', () => {
         expect(proportionalPrizesOf(bare, 0.5)).toEqual(bare);
     });
 
+    // 90 × 7/10 vale 62.999… in virgola mobile: senza l'assorbimento uscirebbe 62
+    it('writes a non binary share exactly, never a unit less (C-IN-01, D-20)', () => {
+        const share = rescueShareOf({
+            index: 6,
+            kind: DungeonTurnKind.exploration,
+            total: 10,
+        });
+
+        const shared = proportionalPrizesOf(
+            prizesWith({
+                prizeCoins: { gold: 0, silver: 0, copper: 90 },
+                xpPrize: 90,
+                prizeItem: {
+                    itemType: 'LootItem',
+                    item: LOOT_ID,
+                    quantity: 90,
+                },
+            }),
+            share,
+        );
+
+        expect(shared.xpPrize).toBe(63);
+        expect(shared.prizeCoins).toEqual({ gold: 0, silver: 0, copper: 63 });
+        expect(shared.prizeItem).toEqual({
+            itemType: 'LootItem',
+            item: LOOT_ID,
+            quantity: 63,
+        });
+    });
+
+    // 89 × 7/10 = 62.3 e 5 × 1/5 = 1 esatto: l'assorbimento non aggiunge mai un'unità
+    it('never rounds a share up beyond the exact amount (C-IN-01, D-20)', () => {
+        expect(
+            proportionalPrizesOf(prizesWith({ xpPrize: 89 }), 0.7).xpPrize,
+        ).toBe(62);
+        expect(
+            proportionalPrizesOf(prizesWith({ xpPrize: 5 }), 0.2).xpPrize,
+        ).toBe(1);
+        expect(
+            proportionalPrizesOf(prizesWith({ xpPrize: 4 }), 0.2).xpPrize,
+        ).toBe(0);
+    });
+
     it('shares every rank block the same way (D-20)', () => {
         const block = {
             title: TitleType.mage,

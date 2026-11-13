@@ -480,6 +480,27 @@ describe('buildAidQuest proportional prize', () => {
         expect(prizes.xpPrize).toBe(25);
     });
 
+    // (1/6) / (5/6) vale 0.1999… in virgola mobile: 5 xp già scalati tornano a 1, non a 0
+    it('rescales by a non binary ratio of the shares without losing a unit (C-IN-01, D-20)', () => {
+        const sharedAid: AidSourceQuest = {
+            ...dungeon,
+            _id: AID_ID,
+            prizes: { ...dungeon.prizes, xpPrize: 5 },
+            rescue: {
+                failedQuest: ORIGINAL_ID,
+                turn: { index: 4, kind: DungeonTurnKind.exploration, total: 6 },
+            },
+        };
+
+        const { prizes } = buildAidQuest(sharedAid, [RESCUER_ID], NEXT_AID_ID, {
+            index: 0,
+            kind: DungeonTurnKind.exploration,
+            total: 6,
+        });
+
+        expect(prizes.xpPrize).toBe(1);
+    });
+
     it('keeps the full prize on an aid without a turn (D-14)', () => {
         const hunt: AidSourceQuest = {
             ...dungeon,
