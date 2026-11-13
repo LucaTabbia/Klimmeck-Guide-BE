@@ -1,7 +1,10 @@
 import { Types } from 'mongoose';
+import { LoreType } from 'src/models/enums/lore-type.enum';
+import { Lore } from 'src/models/lore.model';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildQuest,
+    persistLore,
     persistSpell,
     spellStatesOf,
 } from '../../../test/fixtures';
@@ -66,8 +69,10 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             ...options,
             characterOverrides: {
                 ...options.characterOverrides,
+                // la magia si impara solo dai titoli ≥ mage (D-05b): il quester di base è un mage
                 status: {
                     ...FRESH_STATUS,
+                    title: 'mage',
                     ...options.characterOverrides?.status,
                 },
             },
@@ -253,6 +258,53 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         expect((await resultOf(subject)).spellLearned).toBeNull();
         expect(chance.drawn).toEqual([0.3, 0]);
     });
+
+    it.each([
+        ['rookie', false],
+        ['mage', true],
+    ])(
+        'teaches the Valantar spell only to a caster (D-05b, D-25): %s',
+        async (title, caster) => {
+            const spell = await persistSpell(world.models.spells, {
+                minXpToLearn: 200,
+                maxUsages: 4,
+            });
+            const studyLore = (await persistLore(
+                world.harness.connection.model(Lore.name),
+                { type: LoreType.knowledge, name: 'Trattato di Valantar' },
+            )) as { _id: Types.ObjectId };
+            const subject = await quester({
+                questOverrides: studyQuest({ xpPrize: 300 }),
+                characterOverrides: { status: { title } },
+            });
+            await drawSpellOn(subject);
+            chance.load([0, 0, 0.1, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const character = await characterOf(subject);
+            const result = await resultOf(subject);
+            expect(character.status.spellStates).toEqual(
+                caster
+                    ? [
+                          {
+                              spell: spell._id,
+                              usages: 4,
+                              recoveries: [],
+                              active: false,
+                          },
+                      ]
+                    : [],
+            );
+            expect(
+                result.spellLearned ? String(result.spellLearned) : null,
+            ).toBe(caster ? String(spell._id) : null);
+            expect((result.loreUnlocked as unknown[]).map(String)).toEqual(
+                caster ? [] : [String(studyLore._id)],
+            );
+            expect(chance.drawn).toEqual([0, 0, 0.1, 0]);
+        },
+    );
 
     it('ignores the spell catalog for a study without the flag', async () => {
         await persistSpell(world.models.spells, { minXpToLearn: 0 });

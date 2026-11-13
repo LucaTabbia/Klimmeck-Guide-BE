@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import {
     NO_REWARDS,
     PrizesSnapshot,
@@ -506,40 +507,57 @@ describe('drawLearnableSpell', () => {
     it('picks among the unknown spells the xp after the prizes can learn (D-31)', () => {
         const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], gate: 0, roll: 0 };
 
-        expect(drawLearnableSpell(draw, 400, [SPELL_A.spellId])).toEqual(
-            SPELL_B,
-        );
+        expect(
+            drawLearnableSpell(draw, 400, [SPELL_A.spellId], TitleType.mage),
+        ).toEqual(SPELL_B);
     });
 
     it('treats a known spell stored as a legacy string as known (D-31)', () => {
         const draw = { pool: [SPELL_A, SPELL_B], gate: 0, roll: 0 };
 
         expect(
-            drawLearnableSpell(draw, 400, [SPELL_A.spellId.toHexString()]),
+            drawLearnableSpell(
+                draw,
+                400,
+                [SPELL_A.spellId.toHexString()],
+                TitleType.mage,
+            ),
         ).toEqual(SPELL_B);
     });
 
     it('returns no spell when nothing is learnable (D-31)', () => {
         const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], gate: 0, roll: 0 };
 
-        expect(drawLearnableSpell(draw, 50, [])).toBeNull();
+        expect(drawLearnableSpell(draw, 50, [], TitleType.mage)).toBeNull();
     });
 
     it('maps the roll onto the learnable spells only (D-31)', () => {
         const pool = [SPELL_A, SPELL_C, SPELL_B, SPELL_D];
 
         expect(
-            drawLearnableSpell({ pool, gate: 0, roll: 0.99 }, 400, []),
+            drawLearnableSpell(
+                { pool, gate: 0, roll: 0.99 },
+                400,
+                [],
+                TitleType.mage,
+            ),
         ).toEqual(SPELL_D);
         expect(
-            drawLearnableSpell({ pool, gate: 0, roll: 0.34 }, 400, []),
+            drawLearnableSpell(
+                { pool, gate: 0, roll: 0.34 },
+                400,
+                [],
+                TitleType.mage,
+            ),
         ).toEqual(SPELL_B);
     });
 
     it('teaches a learnable spell when the gate falls below 30% (quick 261111-sdc)', () => {
         const draw = { pool: [SPELL_A, SPELL_B], gate: 0.29, roll: 0 };
 
-        expect(drawLearnableSpell(draw, 400, [])).toEqual(SPELL_A);
+        expect(drawLearnableSpell(draw, 400, [], TitleType.mage)).toEqual(
+            SPELL_A,
+        );
     });
 
     it.each([[0.3], [0.31], [0.99]])(
@@ -547,18 +565,22 @@ describe('drawLearnableSpell', () => {
         (gate) => {
             const draw = { pool: [SPELL_A, SPELL_B], gate, roll: 0 };
 
-            expect(drawLearnableSpell(draw, 400, [])).toBeNull();
+            expect(
+                drawLearnableSpell(draw, 400, [], TitleType.mage),
+            ).toBeNull();
         },
     );
 
     it('returns no spell without a draw', () => {
-        expect(drawLearnableSpell(null, 50000, [])).toBeNull();
+        expect(drawLearnableSpell(null, 50000, [], TitleType.mage)).toBeNull();
     });
 
     it('clamps a roll out of range onto the last learnable spell', () => {
         const draw = { pool: [SPELL_A, SPELL_B, SPELL_D], gate: 0, roll: 1 };
 
-        expect(drawLearnableSpell(draw, 400, [])).toEqual(SPELL_D);
+        expect(drawLearnableSpell(draw, 400, [], TitleType.mage)).toEqual(
+            SPELL_D,
+        );
     });
 });
 
@@ -566,21 +588,76 @@ describe('canLearnSpell', () => {
     const candidate = { spellId: SPELL_ID, minXpToLearn: 4000, maxUsages: 4 };
 
     it('teaches the spell once the experience reaches the threshold', () => {
-        expect(canLearnSpell(candidate, 4000, [])).toBe(SPELL_ID);
+        expect(canLearnSpell(candidate, 4000, [], TitleType.mage)).toBe(
+            SPELL_ID,
+        );
     });
 
     it('does not teach it below the threshold', () => {
-        expect(canLearnSpell(candidate, 3999, [])).toBeNull();
+        expect(canLearnSpell(candidate, 3999, [], TitleType.mage)).toBeNull();
     });
 
     it('does not teach a spell already known, even as a legacy string', () => {
         expect(
-            canLearnSpell(candidate, 50000, [SPELL_ID.toHexString()]),
+            canLearnSpell(
+                candidate,
+                50000,
+                [SPELL_ID.toHexString()],
+                TitleType.mage,
+            ),
         ).toBeNull();
     });
 
     it('teaches nothing without a candidate', () => {
-        expect(canLearnSpell(null, 50000, [])).toBeNull();
+        expect(canLearnSpell(null, 50000, [], TitleType.mage)).toBeNull();
+    });
+});
+
+describe('spell learning by title', () => {
+    const candidate = { spellId: SPELL_ID, minXpToLearn: 4000, maxUsages: 4 };
+    const draw = { pool: [SPELL_A, SPELL_B], gate: 0.1, roll: 0.99 };
+
+    it.each([
+        [TitleType.rookie, null],
+        [TitleType.adventurer, null],
+        [TitleType.paladin, null],
+        [TitleType.mage, SPELL_ID],
+        [TitleType.hero, SPELL_ID],
+        [TitleType.legend, SPELL_ID],
+        [null, null],
+        [undefined, null],
+    ])(
+        'teaches a fixed spell only to a caster title (D-05b, D-25): %p',
+        (title, expected) => {
+            expect(canLearnSpell(candidate, 50000, [], title)).toBe(expected);
+        },
+    );
+
+    it.each([
+        [TitleType.rookie, null],
+        [TitleType.paladin, null],
+        [TitleType.mage, SPELL_B],
+    ])(
+        'draws a learnable spell only for a caster title (D-05b, D-25): %p',
+        (title, expected) => {
+            expect(drawLearnableSpell(draw, 400, [], title)).toEqual(expected);
+        },
+    );
+
+    it('keeps the xp and known spell gates for casters (D-05b)', () => {
+        expect(canLearnSpell(candidate, 3999, [], TitleType.mage)).toBeNull();
+        expect(
+            canLearnSpell(candidate, 50000, [SPELL_ID], TitleType.mage),
+        ).toBeNull();
+        expect(drawLearnableSpell(draw, 50, [], TitleType.mage)).toBeNull();
+        expect(
+            drawLearnableSpell(
+                draw,
+                400,
+                [SPELL_A.spellId, SPELL_B.spellId],
+                TitleType.mage,
+            ),
+        ).toBeNull();
     });
 });
 

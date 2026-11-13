@@ -36,6 +36,8 @@ const FRESH_STATUS = {
     maxLifePoints: 1000,
     coins: { gold: 0, silver: 0, copper: 0 },
 };
+// la magia si impara solo dai titoli ≥ mage (D-05b): i casi della magia della study partono da un mage
+const CASTER_TITLE = 'mage';
 
 describe('QuestResolutionService.resolveStandard (individual) without an enemy (replSet)', () => {
     let world: OutcomeHarness;
@@ -282,7 +284,9 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                     { xpPrize: 300, spell: spell._id, cure: VILLAGE_CURE },
                     'study',
                 ),
-                characterOverrides: { status: { injuries: ['deepCut'] } },
+                characterOverrides: {
+                    status: { injuries: ['deepCut'], title: CASTER_TITLE },
+                },
             });
 
             await service.resolveStandard(triggerOf(subject));
@@ -327,7 +331,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                 'study',
             ),
             characterOverrides: {
-                status: { spellStates },
+                status: { spellStates, title: CASTER_TITLE },
             },
         });
 
@@ -360,6 +364,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                 { xpPrize: 300, spell: spell._id },
                 'study',
             ),
+            characterOverrides: { status: { title: CASTER_TITLE } },
         });
 
         await service.resolveStandard(triggerOf(subject));
@@ -379,6 +384,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                 { xpPrize: 300, spell: spell._id },
                 'study',
             ),
+            characterOverrides: { status: { title: CASTER_TITLE } },
         });
 
         await service.resolveStandard(triggerOf(subject));

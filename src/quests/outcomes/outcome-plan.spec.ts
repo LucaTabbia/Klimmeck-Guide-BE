@@ -68,6 +68,12 @@ const snapshotWith = (
     assets: overrides.assets ?? { ownedItems: [], ownedEquipments: [] },
 });
 
+// la magia si impara solo dai titoli ≥ mage (D-05b): i casi che insegnano una magia partono da un mage
+const asMage = (overrides: SnapshotOverrides = {}): SnapshotOverrides => ({
+    ...overrides,
+    status: { title: TitleType.mage, ...overrides.status },
+});
+
 const questOf = (
     type: QuestType,
     minTitle: TitleType | null = null,
@@ -1315,7 +1321,7 @@ describe('planParticipant', () => {
         });
 
         it('composes spending and learning in one spell state', () => {
-            const plan = fightWith(knowingSpell(2), using(1), {
+            const plan = fightWith(asMage(knowingSpell(2)), using(1), {
                 quest: questOf(QuestType.study),
                 rewards: rewardsWith({
                     xpPrize: 300,
@@ -1358,7 +1364,7 @@ describe('planParticipant', () => {
             planParticipant(
                 inputWith({
                     quest: questOf(QuestType.study),
-                    snapshot: snapshotWith(snapshot),
+                    snapshot: snapshotWith(asMage(snapshot)),
                     rewards: rewardsWith({
                         xpPrize: 300,
                         spellCandidate: {
@@ -1483,6 +1489,7 @@ describe('planParticipant', () => {
             const plan = planParticipant(
                 inputWith({
                     quest: questOf(QuestType.study),
+                    snapshot: snapshotWith(asMage()),
                     rewards: rewardsWith({
                         xpPrize: 300,
                         spellDraw: {
@@ -1520,18 +1527,20 @@ describe('planParticipant', () => {
             const plan = planParticipant(
                 inputWith({
                     quest: questOf(QuestType.study),
-                    snapshot: snapshotWith({
-                        status: {
-                            spellStates: [
-                                {
-                                    spell: DRAWN_SPELL_ID,
-                                    usages: 2,
-                                    recoveries: [],
-                                    active: true,
-                                },
-                            ],
-                        },
-                    }),
+                    snapshot: snapshotWith(
+                        asMage({
+                            status: {
+                                spellStates: [
+                                    {
+                                        spell: DRAWN_SPELL_ID,
+                                        usages: 2,
+                                        recoveries: [],
+                                        active: true,
+                                    },
+                                ],
+                            },
+                        }),
+                    ),
                     rewards: rewardsWith({
                         xpPrize: 300,
                         spellDraw: {
@@ -1647,6 +1656,99 @@ describe('planParticipant', () => {
                     },
                 ),
             );
+        });
+    });
+
+    describe('spell learning by title', () => {
+        const FIXED_SPELL = {
+            spellId: LEARNED_SPELL_ID,
+            minXpToLearn: 0,
+            maxUsages: 4,
+        };
+        const spellDraw = {
+            pool: [{ spellId: DRAWN_SPELL_ID, minXpToLearn: 0, maxUsages: 2 }],
+            gate: 0.1,
+            roll: 0,
+        };
+        const loreDraw = {
+            pool: [STUDY_LORE_ID],
+            chance: 0.5,
+            gate: 0,
+            pick: 0,
+        };
+        const expectNoSpell = (plan: ParticipantPlan) => {
+            expect(plan.result.spellLearned).toBeNull();
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'status.spellStates',
+            );
+        };
+
+        it.each<[string, Partial<ParticipantPlanInput>]>([
+            [
+                'a fixed spell',
+                { rewards: rewardsWith({ spellCandidate: FIXED_SPELL }) },
+            ],
+            ['a drawn spell', { rewards: rewardsWith({ spellDraw }) }],
+            [
+                'a game master completion',
+                {
+                    verdict: QuestOutcome.gmCompleted,
+                    rewards: rewardsWith({ spellCandidate: FIXED_SPELL }),
+                },
+            ],
+        ])(
+            'never teaches a spell to a rookie on any path (D-05b, D-05c): %s',
+            (_label, overrides) => {
+                const plan = planParticipant(
+                    inputWith({
+                        quest: questOf(QuestType.magic),
+                        snapshot: snapshotWith({
+                            status: { title: TitleType.rookie, xp: 50000 },
+                        }),
+                        ...overrides,
+                    }),
+                );
+
+                expectNoSpell(plan);
+            },
+        );
+
+        it('uses the title after the outcome to teach a spell (D-25)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.story, TitleType.paladin),
+                    lane: QuestLane.story,
+                    snapshot: snapshotWith({
+                        status: { title: TitleType.paladin },
+                    }),
+                    rewards: rewardsWith({
+                        xpPrize: 300,
+                        spellCandidate: { ...FIXED_SPELL, minXpToLearn: 300 },
+                    }),
+                }),
+            );
+
+            expect(plan.result.titleAfter).toBe(TitleType.mage);
+            expect(plan.result.spellLearned).toBe(LEARNED_SPELL_ID);
+        });
+
+        it('sends a non caster who wins a study to the study lore (D-25)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.study),
+                    snapshot: snapshotWith({
+                        status: { title: TitleType.paladin },
+                    }),
+                    rewards: rewardsWith({
+                        xpPrize: 300,
+                        spellDraw,
+                        loreDraw,
+                    }),
+                }),
+            );
+
+            expectNoSpell(plan);
+            expect(plan.result.loreUnlocked).toEqual([STUDY_LORE_ID]);
         });
     });
 
@@ -1859,6 +1961,9 @@ describe('planParticipant', () => {
         it('learns no study lore when a spell is learned (D-08)', () => {
             const plan = planParticipant(
                 studyWith({
+                    snapshot: snapshotWith(
+                        asMage({ status: { unlockedLore: [KNOWN_PAGE_ID] } }),
+                    ),
                     rewards: rewardsWith({
                         xpPrize: 300,
                         loreDraw,
