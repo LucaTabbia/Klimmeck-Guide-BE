@@ -5,12 +5,14 @@ describe('QuestMaintenanceBoot', () => {
     let calls: string[];
     let migrateAll: jest.Mock;
     let report: jest.Mock;
+    let dungeonOrder: jest.Mock;
     let errorSpy: jest.SpyInstance;
 
     function boot(): QuestMaintenanceBoot {
         return new QuestMaintenanceBoot(
             { migrateAll } as never,
             { report } as never,
+            { report: dungeonOrder } as never,
         );
     }
 
@@ -30,6 +32,10 @@ describe('QuestMaintenanceBoot', () => {
         report = jest.fn(() => {
             calls.push('report');
             return Promise.resolve({ checked: 0, invalid: 0 });
+        });
+        dungeonOrder = jest.fn(() => {
+            calls.push('dungeonOrder');
+            return Promise.resolve({ checked: 0, outOfOrder: 0 });
         });
         errorSpy = jest
             .spyOn(Logger.prototype, 'error')
@@ -62,7 +68,7 @@ describe('QuestMaintenanceBoot', () => {
     it('runs the group prize report after the enemy migration without blocking (D-24)', async () => {
         await boot().onApplicationBootstrap();
 
-        expect(calls).toEqual(['migrateAll', 'report']);
+        expect(calls).toEqual(['migrateAll', 'report', 'dungeonOrder']);
 
         report.mockRejectedValue(secretError());
 
@@ -71,6 +77,20 @@ describe('QuestMaintenanceBoot', () => {
         expect(errorSpy.mock.calls).toEqual([
             [
                 'Manutenzione missioni: report dei premi per titolo fallita (MongoServerError, code 11000), il boot prosegue',
+            ],
+        ]);
+    });
+
+    it('runs the dungeon order report last without blocking (quick 261113-aql)', async () => {
+        dungeonOrder.mockRejectedValue(secretError());
+
+        await expect(boot().onApplicationBootstrap()).resolves.toBeUndefined();
+
+        expect(calls).toEqual(['migrateAll', 'report']);
+        expect(dungeonOrder).toHaveBeenCalledTimes(1);
+        expect(errorSpy.mock.calls).toEqual([
+            [
+                "Manutenzione missioni: report dell'ordine delle dungeon fallita (MongoServerError, code 11000), il boot prosegue",
             ],
         ]);
     });
