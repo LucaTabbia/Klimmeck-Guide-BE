@@ -69,6 +69,7 @@ Handoff `BACKEND-NOTES.md` con SDL verbatim, semantica del premio per viewer, ma
 - **Nessuna spec eseguita (sanzionata dall'orchestratore):** il piano non chiede spec; l'orchestratore esegue `npm run test:cov` in background sullo stesso albero, quindi niente jest in questo piano. Il gate post-fix è verde.
 - **§7 con le risposte alle domande della FE:** le otto domande della FE Phase 20 (§4 del suo handoff) hanno risposta esplicita, oltre al contenuto chiesto dal piano.
 - **§6 con l'elenco dei dati da seminare** chiesto dalle note dell'orchestratore (boss misto con iscritti, dungeon per l'aid, secondo personaggio, job con nemici, ferito con soccorritore iscritto); l'aid di dungeon nasce da una sconfitta vera, non da una semina.
+- **[Rule 1 - Doc] Riga D-26 della Decision Coverage riallineata:** il caso `saves the turn where the rescuers fell (D-26)` di `dungeon-turns.spec.ts` non esiste più (il fixer ha tolto `nextRescueTurnOf`); la riga ora cita `src/quests/outcomes/quest-battle.spec.ts` «saves the turn of the fall on the total of the saved turn (D-26)» (1 occorrenza sulla HEAD). Commit separato dopo il bookkeeping.
 - Documenti scritti con heredoc Bash / python3 `utf-8` (preferenza dell'utente per i documenti di pianificazione; STATE solo python3 come da REPO-RULES).
 
 ## Known Stubs

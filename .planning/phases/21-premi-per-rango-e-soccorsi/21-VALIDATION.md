@@ -116,7 +116,7 @@ Ogni decisione del CONTEXT → piano-task e caso NUOVO che la prova. Il gate 13 
 | D-23 | 07-01, 07-02 | `src/quests/generation/generation-rules.spec.ts` | `mixes one boss out of two (D-23)` |
 | D-24 | 04-01, 04-02 | `src/quests/acceptance/quest-acceptance.service.int-spec.ts` | `rejects a group quest with a seat without a title with QUEST_NOT_ACCEPTABLE and writes nothing (D-24)` |
 | D-25 | 01-01 | `src/quests/outcomes/study-spell-draw.int-spec.ts` | `teaches the Valantar spell only to a caster (D-05b, D-25)` |
-| D-26 | 10-01, 10-02 | `src/quests/outcomes/dungeon/dungeon-turns.spec.ts` | `saves the turn where the rescuers fell (D-26)` |
+| D-26 | 10-01, 10-02 | `src/quests/outcomes/quest-battle.spec.ts` | `saves the turn of the fall on the total of the saved turn (D-26)` |
 | D-27 | 06-01, 06-02 | `src/characters/deletion/character-deletion.resolver.int-spec.ts` | `cancels the quest of the rescuers released by a deletion (D-27)` |
 | D-28 | 02-01, 03-02, 04-02, 13-01 | `src/quests/prizes/rank-prizes.spec.ts` | `reads a legacy boss without blocks as one block on its minimum title (D-28)` |
 | D-29 | 08-01 | `src/quests/outcomes/dungeon/placeholder-dungeon-resolver.spec.ts` | `passes every exploration without drawing (D-29)` |
