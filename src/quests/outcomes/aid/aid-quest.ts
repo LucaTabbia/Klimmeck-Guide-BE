@@ -155,7 +155,8 @@ export function aidSlotsOf(
     return slots.map(({ title, count }) => ({ title, count }));
 }
 
-// clone della quest fallita (D-08 emendata il 2026-10-26): una aid per combattimento perso, stessi posti della quest fallita, mai ripetibile; in una catena si clona sempre l'originale (D-09)
+// clone della quest fallita (D-08 emendata il 2026-10-26): una aid per combattimento perso, stessi posti della quest fallita, mai ripetibile; il soccorso di gruppo clona l'originale (D-09),
+// il soccorritore risolto da solo (aid svuotata dall'archivio, aid fatta a mano) clona l'aid stessa e la quota si riscala col rapporto
 // la aid non porta `generated` (D-17): non conta nel tetto né rilancia il generatore; la sconfitta in dungeon salva il suo turno (D-12)
 export function buildAidQuest(
     original: AidSourceQuest,

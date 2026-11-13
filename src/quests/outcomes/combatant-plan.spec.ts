@@ -310,20 +310,17 @@ describe('planCombatant defeat by quest type', () => {
         QuestType.magic,
         QuestType.crime,
         QuestType.guard,
-    ])(
-        'concludes a lost job without aid at one life point (D-19): %s',
-        (type) => {
-            const { plan, verdict, aid } = lostBy(questOfType(type, '97'));
+    ])('concludes a lost %s without aid at one life point (D-19)', (type) => {
+        const { plan, verdict, aid } = lostBy(questOfType(type, '97'));
 
-            expect(aid).toBeNull();
-            expect(verdict).toBe(QuestOutcome.failure);
-            expect(plan.update.$set['status.currentLifePoints']).toBe(1);
-            expect(Object.keys(plan.update.$set)).not.toContain(
-                'status.awaitingAid',
-            );
-            expect(plan.result.guardEncounter).toBe(false);
-        },
-    );
+        expect(aid).toBeNull();
+        expect(verdict).toBe(QuestOutcome.failure);
+        expect(plan.update.$set['status.currentLifePoints']).toBe(1);
+        expect(Object.keys(plan.update.$set)).not.toContain(
+            'status.awaitingAid',
+        );
+        expect(plan.result.guardEncounter).toBe(false);
+    });
 
     it('keeps the aid of a lost boss and of a lost aid (D-09, D-10)', () => {
         const failedQuest = id('9a');
