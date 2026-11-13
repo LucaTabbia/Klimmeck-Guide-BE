@@ -62,6 +62,23 @@ describe('QUEST_CATALOG_POPULATE', () => {
             { path: 'prizes.randomLoot.item' },
             { path: 'prizes.spell', model: 'Spell' },
             { path: 'prizes.pet', model: 'Pet' },
+            { path: 'prizes.rankPrizes.prizeItem.item' },
+            { path: 'prizes.rankPrizes.randomLoot.item' },
+            { path: 'prizes.rankPrizes.spell', model: 'Spell' },
+            { path: 'prizes.rankPrizes.pet', model: 'Pet' },
+        ]);
+    });
+
+    it('populates the refs of every rank prize block (D-05)', () => {
+        expect(
+            QUEST_CATALOG_POPULATE.filter(({ path }) =>
+                path.startsWith('prizes.rankPrizes.'),
+            ),
+        ).toEqual([
+            { path: 'prizes.rankPrizes.prizeItem.item' },
+            { path: 'prizes.rankPrizes.randomLoot.item' },
+            { path: 'prizes.rankPrizes.spell', model: 'Spell' },
+            { path: 'prizes.rankPrizes.pet', model: 'Pet' },
         ]);
     });
 });
@@ -148,6 +165,50 @@ describe('dropOrphanCatalogRefs', () => {
         expect(resolved.prizes.pet).toBe(pet);
     });
 
+    it('drops orphan refs inside every block like the plain fields (D-05)', () => {
+        const raw = new Types.ObjectId();
+        const pet = { _id: new Types.ObjectId(), name: 'Gufo' };
+        const orphanBlock = {
+            title: 'mage',
+            prizeItem: { item: raw } as { item: unknown } | null,
+            randomLoot: [{ item: raw }, { item: B }],
+            pet: new Types.ObjectId() as unknown,
+            cure: { lifePointsShare: 'x', canHeal: ['deepCut', 'brokenWing'] },
+        };
+        const resolvedBlock = {
+            title: 'paladin',
+            prizeItem: { item: C } as { item: unknown } | null,
+            randomLoot: [{ item: A }],
+            pet: pet as unknown,
+            cure: null as unknown,
+        };
+        const quest = {
+            prizes: {
+                randomLoot: [],
+                rankPrizes: [orphanBlock, resolvedBlock],
+            },
+        };
+
+        dropOrphanCatalogRefs(quest);
+
+        expect(quest.prizes.rankPrizes).toEqual([
+            {
+                title: 'mage',
+                prizeItem: null,
+                randomLoot: [{ item: B }],
+                pet: null,
+                cure: { lifePointsShare: 0, canHeal: ['deepCut'] },
+            },
+            {
+                title: 'paladin',
+                prizeItem: { item: C },
+                randomLoot: [{ item: A }],
+                pet,
+                cure: null,
+            },
+        ]);
+    });
+
     it('tolerates missing sections', () => {
         expect(() => dropOrphanCatalogRefs({})).not.toThrow();
         expect(() =>
@@ -156,6 +217,9 @@ describe('dropOrphanCatalogRefs', () => {
                 requirements: { recommendedLoot: null },
                 prizes: { prizeItem: null, randomLoot: null },
             }),
+        ).not.toThrow();
+        expect(() =>
+            dropOrphanCatalogRefs({ prizes: { rankPrizes: null } }),
         ).not.toThrow();
     });
 });
