@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { CharacterArchiveModule } from 'src/characters/deletion/character-archive.module';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
 import { Character } from 'src/models/character/character.model';
+import { Enemy } from 'src/models/enemy.model';
 import { LootItem } from 'src/models/loot-item.model';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
@@ -22,6 +23,7 @@ import { createPlayer, TestPlayer } from '../../test/authz/player-fixture';
 import {
     buildCharacter,
     buildQuest,
+    persistEnemy,
     persistLootItem,
 } from '../../test/fixtures';
 import {
@@ -35,6 +37,8 @@ const QUEST_NO_EFFECT =
     'subscription OnQuestNoEffect($questId: String!) { questUpdated(questId: $questId) { id noEffect } }';
 const QUEST_PRIZES =
     'subscription OnQuestPrizes($questId: String!) { questUpdated(questId: $questId) { id prizes { xpPrize randomLoot { quantity } } } }';
+const QUEST_ENEMIES =
+    'subscription OnQuestEnemies($questId: String!) { questUpdated(questId: $questId) { id infos { enemies { quantity enemy { name } } } } }';
 const QUEST_AWAITING_RESCUE =
     'subscription OnQuestAwaitingRescue($questId: String!) { questUpdated(questId: $questId) { id awaitingRescue } }';
 const VILLAGE_CURE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
@@ -812,6 +816,102 @@ describe('questUpdated subscription (wire)', () => {
             await openAidFrom(new Types.ObjectId());
 
             await expectSilence(subscription, TRAILING_WINDOW_MS);
+        });
+    });
+
+    // UAT 2026-11-13: l'aid di una dungeon persa al secondo turno mostra solo il primo gruppo; il payload condiviso tiene i quattro gruppi del DB
+    describe('the enemies of a dungeon aid on the event (quick 261113-aql)', () => {
+        const GROUP_NAMES = ['Arbusto', 'Ratto', 'Ghoul', 'Drago'];
+
+        interface WireEnemies {
+            id: string;
+            infos: { enemies: { quantity: number; enemy: { name: string } }[] };
+        }
+
+        type QuestEnemies = { questUpdated: WireEnemies };
+
+        async function persistDungeonAid() {
+            const enemyModel = harness.connection.model(Enemy.name);
+            const groups = [];
+            for (const [index, name] of GROUP_NAMES.entries()) {
+                const enemy = await persistEnemy(enemyModel, { name });
+                groups.push({ enemy: enemy._id, quantity: index + 1 });
+            }
+            return quests.create(
+                buildQuest({
+                    infos: {
+                        ...buildQuest().infos,
+                        type: 'aid',
+                        title: `Il soccorso ${nextId()}`,
+                        enemies: groups,
+                    },
+                    rescue: {
+                        characters: [new Types.ObjectId()],
+                        failedQuest: new Types.ObjectId(),
+                        turn: { index: 1, kind: 'fight', total: 8 },
+                    },
+                }),
+            );
+        }
+
+        function subscribeToEnemies(
+            questId: string,
+            bearer: string,
+        ): OpenSubscription<QuestEnemies> {
+            const subscription = openSubscription<QuestEnemies>(
+                url,
+                { Authorization: bearer },
+                { query: QUEST_ENEMIES, variables: { questId } },
+            );
+            opened.push(subscription as unknown as QuestUpdatedSubscription);
+            return subscription;
+        }
+
+        async function nextEnemies(
+            subscription: OpenSubscription<QuestEnemies>,
+        ): Promise<WireEnemies> {
+            const result = await subscription.next();
+            expect(result.done).toBe(false);
+            expect(result.value.errors).toBeUndefined();
+            return result.value.data?.questUpdated as WireEnemies;
+        }
+
+        it('serves only the group faced up to the saved turn on the snapshot and the event without touching the payload (quick 261113-aql)', async () => {
+            const aid = await persistDungeonAid();
+            const id = String(aid._id);
+            const faced = {
+                id,
+                infos: {
+                    enemies: [{ quantity: 1, enemy: { name: 'Arbusto' } }],
+                },
+            };
+            const seenByAlice = subscribeToEnemies(id, alice.bearer);
+            const seenByBruno = subscribeToEnemies(id, bruno.bearer);
+            expect(await nextEnemies(seenByAlice)).toEqual(faced);
+            expect(await nextEnemies(seenByBruno)).toEqual(faced);
+            const pubSub = harness.app.get<PubSub<PubSubEvents>>(PUB_SUB);
+            const internal = pubSub.subscribe('questUpdated', id);
+            const published = internal.next();
+
+            try {
+                await quests.updateOne(
+                    { _id: aid._id },
+                    { $set: { 'infos.title': `Il soccorso ${nextId()}` } },
+                );
+
+                const [aliceEvent, brunoEvent] = await Promise.all([
+                    nextEnemies(seenByAlice),
+                    nextEnemies(seenByBruno),
+                ]);
+                expect(aliceEvent).toEqual(faced);
+                expect(brunoEvent).toEqual(faced);
+                const payload = (
+                    await withTimeout(published, PUBLISHED_WAIT_MS)
+                ).value?.questUpdated;
+                expect(payload?.infos.enemies).toHaveLength(4);
+            } finally {
+                await internal.return?.();
+            }
         });
     });
 });

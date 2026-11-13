@@ -1492,4 +1492,159 @@ describe('quest catalog (wire)', () => {
             }
         });
     });
+
+    // UAT 2026-11-13: «nella quest aid vedo 4 arbusto maligno. Non dovrei vederne solo 1?»; a DB l'aid tiene i gruppi dell'originale (D-09)
+    describe('the enemies of a dungeon aid on the wire (quick 261113-aql)', () => {
+        const AID_ENEMIES =
+            'query { quests { id infos { type enemies { quantity enemy { name } } } } }';
+        const AID_QUEST_ENEMIES =
+            'query Quest($id: String!) { quest(id: $id) { id infos { type enemies { quantity enemy { name } } } } }';
+        const GROUP_NAMES = ['Arbusto', 'Ratto', 'Ghoul', 'Drago'];
+
+        interface WireEnemyGroup {
+            quantity: number;
+            enemy: { name: string };
+        }
+
+        interface WireAidQuest {
+            id: string;
+            infos: { type: string; enemies: WireEnemyGroup[] };
+        }
+
+        interface WireAidBody {
+            data?: { quests?: WireAidQuest[]; quest?: WireAidQuest } | null;
+            errors?: { message: string }[];
+        }
+
+        const groupsOf = (count: number): WireEnemyGroup[] =>
+            GROUP_NAMES.slice(0, count).map((name, index) => ({
+                quantity: index + 1,
+                enemy: { name },
+            }));
+
+        async function fourGroups() {
+            const enemies = modelOf(Enemy.name, EnemySchema);
+            const persisted = [];
+            for (const name of GROUP_NAMES) {
+                persisted.push(await persistEnemy(enemies, { name }));
+            }
+            return persisted.map((group, index) => ({
+                enemy: group._id,
+                quantity: index + 1,
+            }));
+        }
+
+        async function persistGroupsQuest(
+            type: string,
+            turn?: Record<string, unknown>,
+        ) {
+            return persistCatalogQuest({
+                infos: { type, enemies: await fourGroups() },
+                ...(type === 'aid' || turn
+                    ? {
+                          rescue: {
+                              characters: [new Types.ObjectId()],
+                              failedQuest: new Types.ObjectId(),
+                              ...(turn ? { turn } : {}),
+                          },
+                      }
+                    : {}),
+            });
+        }
+
+        async function boardEnemiesOf(questId: unknown) {
+            const body = (
+                await graphqlRequest(harness.app, AID_ENEMIES, {}, bearer)
+            ).body as WireAidBody;
+            expect(body.errors).toBeUndefined();
+            return body.data?.quests?.find(({ id }) => id === String(questId))
+                ?.infos.enemies;
+        }
+
+        async function questEnemiesOf(questId: unknown, viewer = bearer) {
+            const body = (
+                await graphqlRequest(
+                    harness.app,
+                    AID_QUEST_ENEMIES,
+                    { id: String(questId) },
+                    viewer,
+                )
+            ).body as WireAidBody;
+            expect(body.errors).toBeUndefined();
+            return body.data?.quest?.infos.enemies;
+        }
+
+        it.each([
+            { index: 1, kind: 'fight', faced: 1 },
+            { index: 4, kind: 'exploration', faced: 2 },
+            { index: 7, kind: 'fight', faced: 4 },
+            { index: 0, kind: 'exploration', faced: 0 },
+        ])(
+            'serves only the groups faced up to the saved turn $index of a dungeon aid (quick 261113-aql)',
+            async ({ index, kind, faced }) => {
+                const aid = await persistGroupsQuest('aid', {
+                    index,
+                    kind,
+                    total: 8,
+                });
+                const other = await createPlayer(harness, {
+                    twitchId: `twitch-aid-enemies-${index}`,
+                });
+
+                expect(await boardEnemiesOf(aid._id)).toEqual(groupsOf(faced));
+                expect(await questEnemiesOf(aid._id)).toEqual(groupsOf(faced));
+                expect(await questEnemiesOf(aid._id, other.bearer)).toEqual(
+                    groupsOf(faced),
+                );
+            },
+        );
+
+        it('keeps the four groups of the dungeon aid on the database (quick 261113-aql)', async () => {
+            const aid = await persistGroupsQuest('aid', {
+                index: 1,
+                kind: 'fight',
+                total: 8,
+            });
+
+            expect(await questEnemiesOf(aid._id)).toEqual(groupsOf(1));
+            const stored = await modelOf(
+                Quest.name,
+                QuestSchema,
+            ).collection.findOne({ _id: aid._id });
+            expect(stored?.infos.enemies).toHaveLength(4);
+        });
+
+        it('serves every group of an aid without a saved turn (quick 261113-aql)', async () => {
+            const aid = await persistGroupsQuest('aid');
+
+            expect(await boardEnemiesOf(aid._id)).toEqual(groupsOf(4));
+            expect(await questEnemiesOf(aid._id)).toEqual(groupsOf(4));
+        });
+
+        it('serves every group of an aid whose saved turn is not valid (quick 261113-aql)', async () => {
+            const aid = await persistGroupsQuest('aid', {
+                index: 1,
+                kind: 'exploration',
+                total: 8,
+            });
+
+            expect(await questEnemiesOf(aid._id)).toEqual(groupsOf(4));
+        });
+
+        it.each(['dungeon', 'hunt', 'boss'])(
+            'serves every group of a %s, even with a stray saved turn (quick 261113-aql)',
+            async (type) => {
+                const plain = await persistGroupsQuest(type);
+                const stray = await persistGroupsQuest(type, {
+                    index: 1,
+                    kind: 'fight',
+                    total: 8,
+                });
+
+                expect(await boardEnemiesOf(plain._id)).toEqual(groupsOf(4));
+                expect(await questEnemiesOf(plain._id)).toEqual(groupsOf(4));
+                expect(await questEnemiesOf(stray._id)).toEqual(groupsOf(4));
+            },
+        );
+    });
 });

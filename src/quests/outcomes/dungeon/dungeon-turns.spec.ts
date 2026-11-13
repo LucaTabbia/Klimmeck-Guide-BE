@@ -1,6 +1,7 @@
 import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import {
     dungeonTurnsOf,
+    facedEnemiesOf,
     facedEnemyCountOf,
     fallenCountersOf,
     rescueTurnOf,
@@ -167,6 +168,28 @@ describe('rescue turn helpers', () => {
         ).toBeNull();
         expect(
             savedTurnOf({ ...fell(1, fight), verdict: 'success' }, 8),
+        ).toBeNull();
+    });
+});
+
+describe('facedEnemiesOf', () => {
+    const groups = ['shrub', 'rat', 'ghoul', 'dragon'] as const;
+
+    it.each([
+        [{ index: 1, kind: fight, total: 8 }, ['shrub']],
+        [{ index: 4, kind: exploration, total: 8 }, ['shrub', 'rat']],
+        [{ index: 0, kind: exploration, total: 8 }, []],
+    ])(
+        'keeps the groups faced up to the saved turn %o (quick 261113-aql)',
+        (turn, faced) => {
+            expect(facedEnemiesOf(groups, turn)).toEqual(faced);
+        },
+    );
+
+    it('answers null without a valid saved turn, all groups are faced (quick 261113-aql)', () => {
+        expect(facedEnemiesOf(groups, undefined)).toBeNull();
+        expect(
+            facedEnemiesOf(groups, { index: 1, kind: exploration, total: 8 }),
         ).toBeNull();
     });
 });
