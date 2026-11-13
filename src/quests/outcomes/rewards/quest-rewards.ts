@@ -116,7 +116,7 @@ const REWARD_ITEM_TYPES: readonly unknown[] = [
     'LootItem',
 ] satisfies ItemReferenceType[];
 
-const isNonNegativeInteger = (value: unknown): value is number =>
+export const isNonNegativeInteger = (value: unknown): value is number =>
     Number.isSafeInteger(value) && (value as number) >= 0;
 
 // premi scritti a mano nel catalogo (D-16, T-09-11): tipo dell'enum, ref valido, quantità intera ≥ 1, altrimenti scartato
@@ -189,6 +189,7 @@ function rolledLootOf(
     prizes: PrizesSnapshot,
     catalog: RewardCatalog,
     chance: ChanceSource,
+    share: number,
 ): RewardItem | null {
     const candidates = (prizes.randomLoot ?? [])
         .map((entry) => catalogued(rewardItemOf(entry), catalog))
@@ -197,7 +198,7 @@ function rolledLootOf(
             ...entry,
             rarity: catalog.rarities.get(catalogKeyOf(entry)) ?? null,
         }));
-    const rolled = rollLoot(candidates, chance);
+    const rolled = rollLoot(candidates, chance, share);
     if (!rolled) return null;
     const { itemType, item, quantity } = rolled;
     return { itemType, item, quantity };
@@ -238,10 +239,11 @@ function petDrawOf(
     prizes: PrizesSnapshot,
     catalog: RewardCatalog,
     chance: ChanceSource,
+    share: number,
 ): Types.ObjectId | null {
     const petId = refIdOf(prizes.pet);
     if (!petId || !catalog.pets.has(petId.toHexString())) return null;
-    return chance.next() < QUEST_PET_WIN_CHANCE ? petId : null;
+    return chance.next() < QUEST_PET_WIN_CHANCE * share ? petId : null;
 }
 
 // D-08: due tiri dopo loot, magia e pet e solo con pool, così le altre quest consumano gli stessi tiri di prima (Pitfall 5)
@@ -260,17 +262,19 @@ function loreDrawOf(
 }
 
 // premi della quest vinta (D-16, D-17): voci orfane o malformate scartate, mai un'eccezione (T-09-12)
+// la quota del soccorritore di una dungeon scala le soglie di loot e pet con gli stessi tiri (D-20)
 export function drawRewards(
     prizes: PrizesSnapshot | null | undefined,
     catalog: RewardCatalog,
     chance: ChanceSource,
+    share = 1,
 ): DrawnRewards {
     if (!prizes) return NO_REWARDS;
     const coinsCopper = toCopper(prizes.prizeCoins);
     const prizeItem = catalogued(rewardItemOf(prizes.prizeItem), catalog);
-    const rolledLoot = rolledLootOf(prizes, catalog, chance);
+    const rolledLoot = rolledLootOf(prizes, catalog, chance, share);
     const spellDraw = spellDrawOf(prizes, catalog, chance);
-    const pet = petDrawOf(prizes, catalog, chance);
+    const pet = petDrawOf(prizes, catalog, chance, share);
     const loreDraw = loreDrawOf(catalog, chance);
     return {
         coinsCopper: isNonNegativeInteger(coinsCopper) ? coinsCopper : 0,

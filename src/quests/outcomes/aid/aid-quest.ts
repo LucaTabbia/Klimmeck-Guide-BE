@@ -8,8 +8,13 @@ import {
     soloSlots,
 } from 'src/quests/acceptance/quest-capacity';
 import { isRecord } from '../combat/combat-context';
-import type { RescueTurn } from '../dungeon/dungeon-turns';
+import { type RescueTurn, rescueTurnOf } from '../dungeon/dungeon-turns';
 import { type QuestEnemyRef, validQuestEnemiesOf } from '../quest-enemies';
+import {
+    type AidPrizes,
+    proportionalPrizesOf,
+    rescueShareOf,
+} from './rescue-share';
 
 export const AID_TITLE_PREFIX = 'Soccorso: ';
 
@@ -40,7 +45,7 @@ export interface AidSourceQuest {
         cure?: unknown;
         rankPrizes?: unknown[] | null;
     } | null;
-    rescue?: { failedQuest?: unknown } | null;
+    rescue?: { failedQuest?: unknown; turn?: unknown } | null;
 }
 
 export interface AidQuestDraft {
@@ -60,15 +65,7 @@ export interface AidQuestDraft {
         requiredAdventurers: RankSlot[];
         recommendedLoot: unknown[];
     };
-    prizes: {
-        prizeCoins: unknown;
-        xpPrize: unknown;
-        prizeItem: unknown;
-        randomLoot: unknown[];
-        spell: unknown;
-        pet: Types.ObjectId | null;
-        rankPrizes?: unknown[];
-    };
+    prizes: AidPrizes;
     registeredAdventurers: [];
     concludedAt: null;
     rescue: {
@@ -99,6 +96,21 @@ function clonedPrizesOf(
     const blocks = (prizes?.rankPrizes ?? []).filter(isRecord);
     if (blocks.length === 0) return cloned;
     return { ...cloned, rankPrizes: blocks.map(clonedRankBlockOf) };
+}
+
+// D-20: la quota dei turni è scritta sull'aid alla nascita; la catena clona l'originale (denominatore 1),
+// una sorgente già scalata si riscala col rapporto delle quote (I3)
+function aidPrizesOf(
+    original: AidSourceQuest,
+    turn: RescueTurn | null,
+): AidQuestDraft['prizes'] {
+    const cloned = clonedPrizesOf(original.prizes);
+    if (!turn) return cloned;
+    const sourceTurn = rescueTurnOf(original.rescue?.turn);
+    return proportionalPrizesOf(
+        cloned,
+        rescueShareOf(turn) / rescueShareOf(sourceTurn),
+    );
 }
 
 // blocchi per titolo della quest di gruppo copiati campo per campo (un sottodocumento idratato non si spande), senza cura (D-11, Phase 18 D-23)
@@ -159,7 +171,7 @@ export function buildAidQuest(
             ),
             recommendedLoot: [...(requirements?.recommendedLoot ?? [])],
         },
-        prizes: clonedPrizesOf(original.prizes),
+        prizes: aidPrizesOf(original, turn),
         registeredAdventurers: [],
         concludedAt: null,
         rescue: {
