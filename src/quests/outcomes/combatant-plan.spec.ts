@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
@@ -415,6 +416,9 @@ describe('dungeonBattleOf', () => {
                     participants: [effects],
                     stagesCleared: 2,
                     stagesTotal: 4,
+                    turnsTotal: 8,
+                    turnsCompleted: 5,
+                    failedTurn: { index: 5, kind: DungeonTurnKind.fight },
                 },
                 explorer._id,
             ),
