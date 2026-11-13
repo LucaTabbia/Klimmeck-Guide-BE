@@ -156,12 +156,14 @@ describe('RescueResolutionService.timeoutAid (replSet)', () => {
     // archivio reale nella transazione dell'harness, come deleteCharacter
     const archive = (userId: unknown, characterId: Types.ObjectId) =>
         world.harness.connection.transaction((session) =>
-            world.harness.app.get(CharacterArchiver).archiveWithin(session, {
-                userId: userId as Types.ObjectId,
-                characterId,
-                reason: DeletionReason.user_request,
-                now: HOUR_AGO,
-            }),
+            world.harness.app
+                .get(CharacterArchiver)
+                .archiveWithinReporting(session, {
+                    userId: userId as Types.ObjectId,
+                    characterId,
+                    reason: DeletionReason.user_request,
+                    now: HOUR_AGO,
+                }),
         );
 
     async function expectUntouched(subject: TimeoutWorld): Promise<void> {

@@ -208,7 +208,7 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
     // archivio reale nella transazione dell'harness, come deleteCharacter
     const archive = (userId: unknown, characterId: Types.ObjectId) =>
         world.harness.connection.transaction((session) =>
-            archiver.archiveWithin(session, {
+            archiver.archiveWithinReporting(session, {
                 userId: userId as Types.ObjectId,
                 characterId,
                 reason: DeletionReason.user_request,

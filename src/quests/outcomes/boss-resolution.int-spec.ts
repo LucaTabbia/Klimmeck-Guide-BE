@@ -143,12 +143,14 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
     // archivio reale nella transazione dell'harness, come deleteCharacter
     const archive = (userId: unknown, characterId: Types.ObjectId) =>
         world.harness.connection.transaction((session) =>
-            world.harness.app.get(CharacterArchiver).archiveWithin(session, {
-                userId: userId as Types.ObjectId,
-                characterId,
-                reason: DeletionReason.user_request,
-                now: NOW,
-            }),
+            world.harness.app
+                .get(CharacterArchiver)
+                .archiveWithinReporting(session, {
+                    userId: userId as Types.ObjectId,
+                    characterId,
+                    reason: DeletionReason.user_request,
+                    now: NOW,
+                }),
         );
 
     const markStarted = (questId: unknown) =>

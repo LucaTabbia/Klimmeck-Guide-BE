@@ -31,7 +31,7 @@ const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const STARTED_AT = new Date(NOW.getTime() - 60 * 60 * 1000);
 const CONCURRENT_ITERATIONS = 5;
 
-describe('CharacterArchiver.archiveWithin (replSet)', () => {
+describe('CharacterArchiver.archiveWithinReporting (replSet)', () => {
     let harness: AuthTestApp;
     let archiver: CharacterArchiver;
     let users: Model<UserDocument>;
@@ -155,13 +155,16 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
         characterId: Types.ObjectId,
         reason: DeletionReason = DeletionReason.user_request,
     ): Promise<ArchiveOutcome> {
-        return harness.connection.transaction((session) =>
-            archiver.archiveWithin(session, {
-                userId,
-                characterId,
-                reason,
-                now: NOW,
-            }),
+        return harness.connection.transaction(
+            async (session) =>
+                (
+                    await archiver.archiveWithinReporting(session, {
+                        userId,
+                        characterId,
+                        reason,
+                        now: NOW,
+                    })
+                ).outcome,
         );
     }
 
@@ -736,7 +739,7 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
 
         await expect(
             harness.connection.transaction(async (session) => {
-                await archiver.archiveWithin(session, {
+                await archiver.archiveWithinReporting(session, {
                     userId: scene.userId,
                     characterId: scene.characterId,
                     reason: DeletionReason.death,

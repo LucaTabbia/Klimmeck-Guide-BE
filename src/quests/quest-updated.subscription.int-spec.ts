@@ -174,7 +174,7 @@ describe('questUpdated subscription (wire)', () => {
 
     function archive(player: TestPlayer) {
         return harness.connection.transaction((session) =>
-            harness.app.get(CharacterArchiver).archiveWithin(session, {
+            harness.app.get(CharacterArchiver).archiveWithinReporting(session, {
                 userId: player.user._id as Types.ObjectId,
                 characterId: characterIdOf(player),
                 reason: DeletionReason.user_request,

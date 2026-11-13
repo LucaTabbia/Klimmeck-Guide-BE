@@ -57,13 +57,6 @@ export class CharacterArchiver {
         private readonly pendingQuestModel: Model<PendingQuestDocument>,
     ) {}
 
-    async archiveWithin(
-        session: ClientSession,
-        request: ArchiveRequest,
-    ): Promise<ArchiveOutcome> {
-        return (await this.archiveWithinReporting(session, request)).outcome;
-    }
-
     async archiveWithinReporting(
         session: ClientSession,
         { userId, characterId, reason, now }: ArchiveRequest,
