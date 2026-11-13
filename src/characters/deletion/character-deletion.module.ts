@@ -5,6 +5,7 @@ import { CharacterArchiveModule } from 'src/characters/deletion/character-archiv
 import { CharacterDeletionResolver } from 'src/characters/deletion/character-deletion.resolver';
 import { CharacterDeletionService } from 'src/characters/deletion/character-deletion.service';
 import { User, UserSchema } from 'src/models/user.model';
+import { PushModule } from 'src/push/push.module';
 import { UsersModule } from 'src/users/users.module';
 
 // modulo sibling della creazione (03.1 D-02), senza Bull
@@ -14,6 +15,8 @@ import { UsersModule } from 'src/users/users.module';
         // archivio condiviso con la morte (Phase 9 C1): posti liberati e aid chiuse
         CharacterArchiveModule,
         UsersModule,
+        // questCancelled ai soccorritori liberati dall'archivio, dopo il commit (D-27)
+        PushModule,
     ],
     providers: [
         CharacterDeletionResolver,
