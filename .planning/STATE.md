@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
-status: planning
-stopped_at: "Phase 21 in pianificazione (ramo riallineato a develop il 2026-11-13)"
+status: executing
+stopped_at: "Phase 21 pianificata (14 piani, 2026-11-13) — prossimo passo /gsd-execute-phase 21"
 last_updated: "2026-11-12T23:01:28.000Z"
-last_activity: 2026-11-13 -- Phase 20 in develop (PR #35), Phase 21 in pianificazione
+last_activity: 2026-11-13 -- Phase 21 pianificata (ricerca, regole di repo, validazione, 14 piani)
 progress:
-  total_phases: 4
-  completed_phases: 2
-  total_plans: 45
-  completed_plans: 34
+  total_phases: 5
+  completed_phases: 3
+  total_plans: 59
+  completed_plans: 45
   percent: 76
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 21 — Premi per rango e soccorsi (↔ FE Phase 20) — IN PIANIFICAZIONE dal 13 novembre 2026 su `feat/21-premi-per-rango-e-soccorsi` (riallineato a `develop` `1f9db973` con una merge); la Phase 20 è chiusa e in `develop` (PR #35)
+**Current focus:** Phase 21 — Premi per rango e soccorsi (↔ FE Phase 20) — PIANIFICATA il 13 novembre 2026 su `feat/21-premi-per-rango-e-soccorsi` (da `develop` `1f9db973`): 14 piani in catena, ready to execute; la Phase 20 è chiusa e in `develop` (PR #35)
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
-Phase: 21 di 22 (Premi per rango e soccorsi) — contesto del 2026-11-12 (D-01..D-17, discuss fatto nella FE Phase 20); ricerca e piani in corso
-Plan: 0 of 0
-Status: Phase 21 — planning (ricerca, regole di repo, validazione, piani); la FE Phase 20 si pianifica nella stessa sessione
-Last activity: 2026-11-13 -- Phase 20 in develop (PR #35), Phase 21 in pianificazione
-Next step: chiudere `/gsd-plan-phase 21` (ricerca → emendamento del contesto → piani → plan-checker), poi `/gsd-execute-phase 21`; la Phase 22 (contesto sul ramo `feat/22-…`, impilato sul 21) resta da pianificare con la FE Phase 21. Il BE locale gira da `dist/` del ramo della Phase 20 sulla porta 3001: nessuna build durante il lavoro.
+Phase: 21 di 22 (Premi per rango e soccorsi) — contesto del 2026-11-12 (D-01..D-17) emendato il 2026-11-13 dopo la ricerca e le risposte dell'utente (D-18..D-30), `21-REPO-RULES.md`, `21-RESEARCH.md`, `21-VALIDATION.md`, 14 piani scritti il 2026-11-13
+Plan: 0 of 14
+Status: Phase 21 pianificata — ready to execute (14 piani sequenziali: magia ai caster, blocchi ×2, posto null, aid per tipo, archiviatore, boss misti, dungeon a turni ×2, soccorritore, quota, filo, gate, handoff); i piani hanno passato il plan-checker dopo una revisione
+Last activity: 2026-11-13 -- Phase 21 pianificata (ricerca, regole di repo, validazione, 14 piani)
+Next step: `/gsd-execute-phase 21` con executor sequenziali sull'albero principale; poi review, verifica, audit, riavvio reale del BE dal ramo e UAT su device con la FE Phase 20 (piani 20-03 e 20-04 della FE bloccati sulla merge di questa fase); la Phase 22 (contesto sul ramo `feat/22-…`, impilato sul 21) resta da pianificare con la FE Phase 21. Il BE locale gira da `dist/` del codice della Phase 20 sulla porta 3001: nessuna build durante l'esecuzione.
 
 ## Current Milestone
 

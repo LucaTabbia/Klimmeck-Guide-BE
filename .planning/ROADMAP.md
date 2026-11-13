@@ -176,7 +176,24 @@ Plans:
 **Decisioni del discuss (2026-11-12, `21-CONTEXT.md` D-01..D-17)**: discuss fatto nella FE (`20-CONTEXT.md`), riportato qui.
 **Unblocks (FE)**: FE Phase 20 (foglio della quest col blocco del proprio titolo, contatori dei turni nell'esito dell'aid di dungeon) e FE Phase 21 (passo dei premi per personaggio).
 **Branch**: `feat/21-premi-per-rango-e-soccorsi` da `develop`.
-**Plans**: TBD
+**Decisioni dopo la ricerca (2026-11-13, `21-CONTEXT.md` D-18..D-30)**: ripiego del blocco (il più alto non superiore al titolo), sconfitta senza aid come la guardia persa, quota vera già sul foglio dell'aid di dungeon, turni sull'esito, filo additivo, boss misti con `minTitle` più basso, nessun migratore.
+**Plans**: 14 plans
+
+Plans:
+- [ ] 21-01-PLAN.md — Magia solo ai titoli ≥ mage
+- [ ] 21-02-PLAN.md — Blocchi premio per titolo: schema, lettura e scelta
+- [ ] 21-03-PLAN.md — Ognuno vince il blocco del proprio titolo
+- [ ] 21-04-PLAN.md — Posto null nelle quest di gruppo: rifiuto e report al boot
+- [ ] 21-05-PLAN.md — Aid per tipo, sconfitta senza aid e clone dei blocchi
+- [ ] 21-06-PLAN.md — L'archiviatore libera i soccorritori iscritti
+- [ ] 21-07-PLAN.md — Boss generati misti col titolo inferiore
+- [ ] 21-08-PLAN.md — Dungeon a turni: porta, segnaposto e contatori
+- [ ] 21-09-PLAN.md — Turni negli esiti e turno salvato sull'aid
+- [ ] 21-10-PLAN.md — Il soccorritore percorre i turni dell'aid di dungeon
+- [ ] 21-11-PLAN.md — Premio proporzionale ai turni completati
+- [ ] 21-12-PLAN.md — Premio per viewer, blocchi e turni sul filo
+- [ ] 21-13-PLAN.md — Gate della fase
+- [ ] 21-14-PLAN.md — Chiusura della fase
 
 ## Backend ↔ Frontend alignment (v1.1)
 
@@ -218,7 +235,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
-| 21. Premi per rango e soccorsi | v1.1 | 0/0 | Not started | - |
+| 21. Premi per rango e soccorsi | v1.1 | 0/14 | Planned | - |
 
 ---
 
