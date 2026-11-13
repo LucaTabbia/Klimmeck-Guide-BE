@@ -10,7 +10,14 @@ key-files:
     - src/quests/awaiting-rescue/quests-awaiting-rescue.service.ts
     - src/quests/outcomes/aid/rescue-lock.spec.ts
     - src/quests/aid-enemies/quest-faced-enemies.resolver.ts
+    - src/quests/maintenance/dungeon-order.report.ts
+    - src/quests/maintenance/dungeon-order-report.service.ts
+    - src/quests/maintenance/dungeon-order.report.spec.ts
+    - src/quests/maintenance/dungeon-order-report.service.int-spec.ts
   modified:
+    - src/quests/maintenance/quest-maintenance.module.ts
+    - src/quests/maintenance/quest-maintenance.boot.ts
+    - src/quests/maintenance/quest-maintenance.boot.spec.ts
     - src/quests/outcomes/dungeon/dungeon-turns.ts
     - src/quests/outcomes/quest-battle.ts
     - src/quests/outcomes/aid/rescue-share.ts
@@ -41,6 +48,9 @@ commits:
   - { hash: b6e60eab, message: "feat(quests): serve only the groups a dungeon aid rescuer faces" }
   - { hash: 20a268ac, message: "test(quests): expect a dungeon aid to last its share of the dungeon" }
   - { hash: 54692c61, message: "feat(quests): write the share of the dungeon time on its aid" }
+  - { hash: 919e348e, message: "docs(quick-261113-aql): record the aid enemies and time from the UAT" }
+  - { hash: 94f10929, message: "test(quests): expect a boot report of dungeons not ending on the boss" }
+  - { hash: fb75a6d9, message: "feat(quests): report at boot the dungeons not ending on the boss" }
 metrics:
   started: 2026-11-13T18:47:07Z
   completed: 2026-11-13
@@ -152,6 +162,29 @@ Risposte dell'utente a due domande dell'orchestratore (scelte fra opzioni propos
 - `git diff develop -- src/schema.gql | grep -cE '^[+-][^+-]'`: 1.
 - Deviazione: nel commit GREEN dei nemici ho tipizzato gli array dei gruppi delle due spec nuove (tsc li inferiva `never`), nessun cambio di comportamento.
 
+## Aggiunta dalla UAT: il nemico più forte all'ultimo turno della dungeon
+
+**Regola dell'utente (2026-11-13, verbatim):** «Nelle quest boss e dungeon vorrei che il nemico presnete sul foglio della quest fosse il nemico più forte. Nel caso del dungeon bisogna anche asssicurarsi che il nemico più forte sia presente nell'ultimo turno di combattimento (come un boss di un dungeon)»
+
+**Scelte dell'utente:** il foglio «Va già bene com'è» (la FE mostra già il ritratto del nemico con l'`xp` più alto e l'elenco completo); per l'ordine «Riordino i dati a DB»: l'orchestratore ha già riordinato i dati con uno script fuori repo (40 dungeon su 40 con un nemico dall'`xp` massimo all'ultimo gruppo). Il BE continua a combattere i gruppi nell'ordine scritto: nessun riordino nel codice.
+
+**Cosa fa il BE:** un report di sola lettura al boot, ultimo passo di `QuestMaintenanceBoot` dopo il report dei premi per titolo (stesso stile: WARN con soli id e conteggi, tetto di 20 righe, riga riassuntiva, muto se tutto è in ordine, mai una scrittura, un errore non blocca il boot). Elenca le `dungeon` aperte (`concludedAt` nullo) con almeno due gruppi validi in cui l'ultimo gruppo non ha l'`xp` massimo.
+
+- Regola pura `strongestEnemyIsLast(groups, xpById)` (`src/quests/maintenance/dungeon-order.report.ts`): «più forte» = `xp` più alto del catalogo `Enemy`, `null` (o non numerico) vale 0, la stessa misura del ritratto della FE; a parità basta che uno dei più forti sia in fondo. **Scelta dichiarata:** un gruppo il cui nemico manca dal catalogo è saltato (la risoluzione e il filo scartano le voci orfane, quindi non si combatte); i gruppi si leggono con `validQuestEnemiesOf`, la stessa lettura dell'aid; meno di due gruppi validi = in ordine.
+- Servizio `DungeonOrderReportService` (`src/quests/maintenance/dungeon-order-report.service.ts`): due letture (le dungeon aperte, poi gli `xp` dei nemici referenziati in un solo `find`), restituisce `{ checked, outOfOrder }`. Righe: «Ordine della dungeon: missione `<id>` senza il nemico più forte all'ultimo gruppo» e «Ordine della dungeon: N dungeon da riordinare su M».
+- `QuestMaintenanceModule` registra anche il modello `Enemy`.
+
+**Per la FE:** nessun cambio. SDL invariato, `test/app.int-spec.ts` verde.
+
+**Spec**
+
+- Unit: `src/quests/maintenance/dungeon-order.report.spec.ts` (ultimo più forte, più forte in mezzo, parità con uno dei più forti in fondo, un solo gruppo o nessuno, `xp` nullo come zero, nemico mancante dal catalogo, testo della riga); `src/quests/maintenance/quest-maintenance.boot.spec.ts` «runs the dungeon order report last without blocking (quick 261113-aql)» e l'ordine dei tre passi.
+- Integrazione: `src/quests/maintenance/dungeon-order-report.service.int-spec.ts` (muto quando in ordine, anche con un boss non in ordine e una dungeon da un gruppo; una riga con l'id quando fuori ordine, dungeon conclusa esclusa, nessuna scrittura; tetto e riga riassuntiva).
+
+**RED (`94f10929`):** le due spec nuove fallivano alla risoluzione del modulo (`./dungeon-order.report` assente); nel boot 2 falliti su 3 (terzo passo assente).
+
+**Gate dopo la terza aggiunta:** tsc 0 su `tsconfig.json` e `tsconfig.build.json`; `npx jest src/quests --selectProjects unit` 76 suite / 1326 test; integration di `src/quests` senza `outcomes` 25 suite / 433 test; `test/` 17 suite / 275 test; `src/quests/outcomes` (non toccata dalla terza aggiunta) 14 suite / 205 test al gate precedente; diff dello SDL = 1 riga; nessun jest rimasto attivo.
+
 ## Self-Check: PASSED
 
-File creati presenti, commit `ca67e7c2`, `f734255a`, `b429a532`, `50e9133e`, `6ab6eef8`, `72241fb8`, `b6e60eab`, `20a268ac`, `54692c61` presenti in `git log`.
+File creati presenti, commit `ca67e7c2`, `f734255a`, `b429a532`, `50e9133e`, `6ab6eef8`, `72241fb8`, `b6e60eab`, `20a268ac`, `54692c61`, `919e348e`, `94f10929`, `fb75a6d9` presenti in `git log`.

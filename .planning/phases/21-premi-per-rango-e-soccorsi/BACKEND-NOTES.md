@@ -263,7 +263,7 @@ Per l'orchestratore e l'utente, **dopo** questo piano, insieme alla FE Phase 20 
 
 ## Aggiornamento 2026-11-13 — quick 261113-aql
 
-Ramo `feat/quick-aid-locks-source-quest` (da `develop` `7f3506ac`), documenti in `.planning/quick/261113-aql-aid-locks-source-quest/`. Commit `ca67e7c2`, `f734255a`, `b429a532`, `50e9133e`, `6ab6eef8`; aggiunte dalla UAT `72241fb8`, `b6e60eab`, `20a268ac`, `54692c61`.
+Ramo `feat/quick-aid-locks-source-quest` (da `develop` `7f3506ac`), documenti in `.planning/quick/261113-aql-aid-locks-source-quest/`. Commit `ca67e7c2`, `f734255a`, `b429a532`, `50e9133e`, `6ab6eef8`; aggiunte dalla UAT `72241fb8`, `b6e60eab`, `20a268ac`, `54692c61`, `94f10929`, `fb75a6d9`.
 
 **Regola dell'utente (2026-11-13, verbatim):** «Quando un personaggio attiva una aid a partire da una hunt o da un dungeon (quindi le uniche quest ripetibili che possono creare una aid) la quest che le ha generate deve risultare strappata e quindi non accettable, finché il soccorso non va a buon fine.» Risposte dell'utente a due domande dell'orchestratore: bloccata **per tutti**; torna libera **quando l'aid si chiude**, in ogni modo (soccorso riuscito, ferito morto per timeout, ferito archiviato); se i soccorritori perdono nasce una nuova aid dalla stessa quest e il blocco continua finché anche quella non si chiude.
 
@@ -324,3 +324,15 @@ type Quest {
 **Dove vive:** `aidShareOf` e `buildAidQuest` (`src/quests/outcomes/aid/aid-quest.ts`), `sharedTimeOf` accanto a `proportionalPrizesOf` (`src/quests/outcomes/aid/rescue-share.ts`).
 
 **Spec:** `src/quests/outcomes/aid/rescue-share.spec.ts` (describe «sharedTimeOf»); `src/quests/outcomes/aid/aid-quest.spec.ts` (casi «quick 261113-aql» del describe «buildAidQuest proportional prize»); `src/quests/outcomes/dungeon-aid.int-spec.ts` «writes a quarter of the dungeon time on the aid born on turn 2 of 8 (quick 261113-aql)»; `src/quests/acceptance/quest-acceptance.service.int-spec.ts` «gives the rescuer of a dungeon aid born on turn 2 of 8 a quarter of the dungeon time to wait (quick 261113-aql)».
+
+### Aggiunta dalla UAT: il nemico più forte all'ultimo turno della dungeon
+
+**Regola dell'utente (2026-11-13, verbatim):** «Nelle quest boss e dungeon vorrei che il nemico presnete sul foglio della quest fosse il nemico più forte. Nel caso del dungeon bisogna anche asssicurarsi che il nemico più forte sia presente nell'ultimo turno di combattimento (come un boss di un dungeon)»
+
+**Scelte dell'utente:** il foglio va già bene (la FE stampa il ritratto del nemico con l'`xp` più alto e l'elenco completo); l'ordine si sistema a DB, e l'orchestratore l'ha già fatto fuori repo (40 dungeon su 40). Il BE combatte i gruppi nell'ordine scritto, nessun riordino nel codice.
+
+**Per la FE:** nessun cambio, SDL invariato.
+
+**Dove vive:** report di sola lettura al boot, ultimo passo di `QuestMaintenanceBoot`: `strongestEnemyIsLast` (`src/quests/maintenance/dungeon-order.report.ts`, `xp` più alto del catalogo `Enemy`, `null` vale 0, parità ammessa, voci assenti dal catalogo saltate come nel combattimento) e `DungeonOrderReportService` (`src/quests/maintenance/dungeon-order-report.service.ts`): WARN con soli id e conteggi sulle `dungeon` aperte con almeno due gruppi il cui ultimo gruppo non è un più forte, tetto di 20 righe e riga riassuntiva, muto se tutto è in ordine, mai una scrittura.
+
+**Spec:** `src/quests/maintenance/dungeon-order.report.spec.ts`; `src/quests/maintenance/dungeon-order-report.service.int-spec.ts`; `src/quests/maintenance/quest-maintenance.boot.spec.ts` «runs the dungeon order report last without blocking (quick 261113-aql)».
