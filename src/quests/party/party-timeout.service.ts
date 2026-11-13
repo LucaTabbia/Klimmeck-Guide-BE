@@ -3,10 +3,6 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import {
-    ACTIVE_CHARACTER_FILTER,
-    activeCharacterById,
-} from 'src/models/character/active-character.filter';
-import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
@@ -17,9 +13,6 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
-import { idForms, refIdOf } from 'src/mongo/document-id';
-import { ownersOf } from 'src/mongo/owners-of';
-import { questCancelled } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
 import {
     QuestRequirementsSnapshot,
@@ -32,6 +25,12 @@ import {
     partyFormingSinceOf,
     registeredIdsOf,
 } from './party-rules';
+import {
+    notifyQuestCancelled,
+    type RegisteredReleaseModels,
+    releaseMembersWithin,
+    releaseRegisteredWithin,
+} from './registered-release';
 
 export type DisbandOutcome = 'disbanded' | 'waiting' | 'stale';
 
@@ -114,10 +113,13 @@ export class PartyTimeoutService {
                     .lean<{ registeredAdventurers?: Registration[] } | null>()
                     .exec();
                 if (!claimed) throw new StaleResolution();
-                state.released = await this.releaseMembers(
+                // il claim ha già svuotato i registrati: si liberano i membri letti dal claim (W4)
+                state.released = await releaseMembersWithin(
+                    this.releaseModels(),
                     questId,
                     registeredIdsOf(claimed.registeredAdventurers),
                     session,
+                    this.logger,
                 );
             });
         } catch (error) {
@@ -132,26 +134,16 @@ export class PartyTimeoutService {
     }
 
     // registrati riletti in sessione (non dalla pre-lettura): la push la fa il chiamante dopo il commit
-    async releaseRegistered(
+    releaseRegistered(
         questId: Types.ObjectId,
         session: ClientSession,
     ): Promise<Types.ObjectId[]> {
-        const quest = await this.questModel
-            .findById(questId, { registeredAdventurers: 1 })
-            .session(session)
-            .lean<{ registeredAdventurers?: Registration[] } | null>()
-            .exec();
-        const members = registeredIdsOf(quest?.registeredAdventurers);
-        if (members.length === 0) return [];
-        const released = await this.releaseMembers(questId, members, session);
-        await this.questModel
-            .updateOne(
-                { _id: questId },
-                { $set: { registeredAdventurers: [] } },
-                { session },
-            )
-            .exec();
-        return released;
+        return releaseRegisteredWithin(
+            this.releaseModels(),
+            questId,
+            session,
+            this.logger,
+        );
     }
 
     // registrazioni legacy senza registeredAt: retrodatate a now una sola volta, così anche loro scadono (T-09-95); conta le quest toccate
@@ -171,72 +163,23 @@ export class PartyTimeoutService {
         return result.modifiedCount;
     }
 
-    async notifyCancelled(
+    notifyCancelled(
         questId: Types.ObjectId,
         characterIds: readonly Types.ObjectId[],
     ): Promise<void> {
-        if (characterIds.length === 0) return;
-        const owners = await ownersOf(this.userModel, characterIds);
-        const message = questCancelled(questId.toHexString());
-        for (const ownerId of owners.values()) {
-            await this.push.sendToUser(ownerId, message);
-        }
+        return notifyQuestCancelled(
+            this.userModel,
+            this.push,
+            questId,
+            characterIds,
+        );
     }
 
-    // solo PendingQuest di questa quest ancora non avviate: un membro legacy con startDate scritto resta intatto, con un WARN per la pulizia a mano (BACKEND-NOTES §16)
-    private async releaseMembers(
-        questId: Types.ObjectId,
-        members: readonly Types.ObjectId[],
-        session: ClientSession,
-    ): Promise<Types.ObjectId[]> {
-        const characters = await this.characterModel
-            .find(
-                {
-                    ...ACTIVE_CHARACTER_FILTER,
-                    _id: { $in: members.flatMap((id) => idForms(id)) },
-                },
-                { 'quests.pendingQuest': 1 },
-            )
-            .session(session)
-            .lean<
-                {
-                    _id: Types.ObjectId;
-                    quests?: { pendingQuest?: unknown } | null;
-                }[]
-            >()
-            .exec();
-        const released: Types.ObjectId[] = [];
-        for (const character of characters) {
-            const pendingQuestId = refIdOf(character.quests?.pendingQuest);
-            if (!pendingQuestId) continue;
-            const deleted = await this.pendingQuestModel
-                .deleteOne(
-                    {
-                        _id: pendingQuestId,
-                        quest: { $in: idForms(questId) },
-                        startDate: null,
-                    },
-                    { session },
-                )
-                .exec();
-            if (deleted.deletedCount !== 1) {
-                this.logger.warn(
-                    `Registrato ${character._id.toHexString()} della missione ${questId.toHexString()} non liberato: la missione in attesa ${pendingQuestId.toHexString()} è già avviata o di un'altra missione (dato legacy, pulizia manuale)`,
-                );
-                continue;
-            }
-            await this.characterModel
-                .updateOne(
-                    {
-                        ...activeCharacterById(character._id),
-                        'quests.pendingQuest': { $in: idForms(pendingQuestId) },
-                    },
-                    { $set: { 'quests.pendingQuest': null } },
-                    { session },
-                )
-                .exec();
-            released.push(character._id);
-        }
-        return released;
+    private releaseModels(): RegisteredReleaseModels {
+        return {
+            questModel: this.questModel,
+            characterModel: this.characterModel,
+            pendingQuestModel: this.pendingQuestModel,
+        };
     }
 }
