@@ -68,7 +68,8 @@ export const QuestSchema = SchemaFactory.createForClass(Quest);
 export const QUEST_FORMING_PARTIES_INDEX = 'quest_forming_parties';
 export const QUEST_REGISTERED_CHARACTER_INDEX = 'quest_registered_character';
 
-// serve lo sweep dei party in formazione (D-17b)
+// serve lo sweep dei party in formazione (D-17b); il prefisso infos.type + concludedAt regge anche la lettura delle aid aperte
+// (blocco di acceptQuest e Quest.awaitingRescue, quick 261113-aql) e il report al boot dell'ordine delle dungeon: non toglierlo senza un sostituto
 QuestSchema.index(
     { 'infos.type': 1, concludedAt: 1, startedAt: 1 },
     { name: QUEST_FORMING_PARTIES_INDEX },

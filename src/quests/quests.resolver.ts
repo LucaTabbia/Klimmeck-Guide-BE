@@ -27,7 +27,8 @@ export class QuestsResolver {
         return this.questsService.findOne(id);
     }
 
-    // quest(id) e questUpdated restano leggibili per id da ogni utente autenticato (13.1 D-05): snapshot alla subscribe come pendingRequestsUpdated, poi un evento a ogni update;
+    // quest(id) e questUpdated restano leggibili per id da ogni utente autenticato (13.1 D-05): snapshot alla subscribe come pendingRequestsUpdated, poi un evento a ogni update
+    // e a ogni nascita o cambio della conclusione di un'aid nata dalla quest (quick 261113-aql);
     // id malformato ⇒ BAD_USER_INPUT dalla pipe; quest conclusa ⇒ NOT_FOUND come quest(id)
     @Subscription(() => Quest, { name: 'questUpdated' })
     questUpdated(
