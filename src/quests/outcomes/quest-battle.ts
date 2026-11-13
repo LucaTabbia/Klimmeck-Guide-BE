@@ -8,17 +8,13 @@ import {
     dungeonBattleOf,
 } from './combatant-plan';
 import { buildDungeonContext } from './dungeon/dungeon-context';
-import type {
-    DungeonResolution,
-    DungeonResolver,
-} from './dungeon/dungeon-resolver';
+import type { DungeonResolver } from './dungeon/dungeon-resolver';
 import {
+    checkedDungeonResolution,
     facedEnemyCountOf,
-    nextRescueTurnOf,
-    rescueTurnFromStages,
     type RescueTurn,
     rescueTurnOf,
-    turnCountersOf,
+    savedTurnOf,
 } from './dungeon/dungeon-turns';
 import type {
     ResolutionCatalog,
@@ -43,18 +39,6 @@ export interface QuestBattleInput {
 
 const NO_BATTLE: QuestBattle = { battleOf: () => null, fallenTurn: null };
 
-const fallenTurnOf = (
-    resolution: DungeonResolution,
-    saved: RescueTurn | null,
-): RescueTurn | null =>
-    saved
-        ? nextRescueTurnOf(resolution, saved)
-        : rescueTurnFromStages({
-              cleared: resolution.stagesCleared,
-              total: resolution.stagesTotal,
-              ...turnCountersOf(resolution),
-          });
-
 // unica regola della battaglia per ogni percorso (D-12, D-13, D-20): la dungeon e l'aid col turno salvato passano dalla porta,
 // l'aid fino al turno salvato compreso; le altre combattono una volta
 export function questBattleOf({
@@ -74,20 +58,26 @@ export function questBattleOf({
             fallenTurn: null,
         };
     }
-    const resolution = dungeon.explore(
-        {
-            ...buildDungeonContext({
-                combat: combatContext,
-                recommendedLoot: quest.requirements?.recommendedLoot,
-                participants,
-            }),
-            ...(saved ? { lastTurnIndex: saved.index } : {}),
-        },
-        chance,
+    const resolution = checkedDungeonResolution(
+        dungeon.explore(
+            {
+                ...buildDungeonContext({
+                    combat: combatContext,
+                    recommendedLoot: quest.requirements?.recommendedLoot,
+                    participants,
+                }),
+                ...(saved ? { lastTurnIndex: saved.index } : {}),
+            },
+            chance,
+        ),
+        saved?.index,
     );
     return {
         battleOf: (id) => dungeonBattleOf(resolution, id),
-        fallenTurn: fallenTurnOf(resolution, saved),
+        fallenTurn: savedTurnOf(
+            resolution,
+            saved?.total ?? resolution.turnsTotal,
+        ),
     };
 }
 

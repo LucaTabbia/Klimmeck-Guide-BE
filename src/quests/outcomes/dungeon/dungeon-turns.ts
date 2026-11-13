@@ -1,6 +1,5 @@
 import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { isRecord } from '../combat/combat-context';
-import type { DungeonStages } from '../outcome-plan';
 import { DungeonResolution } from './dungeon-resolver';
 
 const TURNS_PER_ENEMY = 2;
@@ -58,7 +57,35 @@ export function rescueTurnOf(value: unknown): RescueTurn | null {
     return { index: turnIndex, kind, total: turnsTotal };
 }
 
-// D-21: lastTurn è 1-based; un successo parziale (soccorso fermo al turno salvato) chiude sul turno turnsCompleted − 1
+export class DungeonContractViolation extends Error {
+    constructor(reason: string) {
+        super(`Dungeon resolution breaks the port contract: ${reason}`);
+        this.name = DungeonContractViolation.name;
+    }
+}
+
+// C-WR-02, D-13: il contratto della porta, imposto dove si legge la risoluzione; una sconfitta incoerente abortisce la transazione
+export function checkedDungeonResolution(
+    resolution: DungeonResolution,
+    lastTurnIndex?: number,
+): DungeonResolution {
+    if (resolution.verdict !== 'failure') return resolution;
+    const { failedTurn, turnsTotal, turnsCompleted } = resolution;
+    if (!failedTurn)
+        throw new DungeonContractViolation('failure without failedTurn');
+    const { index, kind } = failedTurn;
+    if (!Number.isInteger(index) || index < 0 || index >= turnsTotal)
+        throw new DungeonContractViolation('failedTurn outside the turns');
+    if (lastTurnIndex !== undefined && index > lastTurnIndex)
+        throw new DungeonContractViolation('failedTurn past the last turn');
+    if (kind !== turnKindOf(index))
+        throw new DungeonContractViolation('failedTurn of the wrong kind');
+    if (turnsCompleted !== index)
+        throw new DungeonContractViolation('turnsCompleted is not failedTurn');
+    return resolution;
+}
+
+// D-21: lastTurn è 1-based; un successo parziale (soccorso fermo al turno salvato) chiude sull'ultimo turno completato
 export function turnCountersOf(
     resolution: Pick<
         DungeonResolution,
@@ -67,12 +94,7 @@ export function turnCountersOf(
 ): TurnCounters {
     const { turnsTotal, failedTurn } = resolution;
     if (resolution.verdict === 'failure' && failedTurn) {
-        return {
-            turnsTotal,
-            turnsCompleted: failedTurn.index,
-            lastTurn: failedTurn.index + 1,
-            lastTurnKind: failedTurn.kind,
-        };
+        return fallenCountersOf({ ...failedTurn, total: turnsTotal });
     }
     return {
         turnsTotal,
@@ -80,22 +102,6 @@ export function turnCountersOf(
         lastTurn: resolution.turnsCompleted,
         lastTurnKind: turnKindOf(resolution.turnsCompleted - 1),
     };
-}
-
-// D-12, D-20: il turno da salvare sull'aid, letto dai contatori della battaglia; la sconfitta la dice l'aid, non questa funzione
-export function rescueTurnFromStages(
-    stages: DungeonStages | null | undefined,
-): RescueTurn | null {
-    if (!stages || stages.turnsCompleted === null) return null;
-    const { lastTurn, lastTurnKind, turnsTotal } = stages;
-    if (lastTurn === null || lastTurnKind === null || turnsTotal === null)
-        return null;
-    // stessa sanificazione della rilettura: mai un turno incoerente a DB (T-21-48)
-    return rescueTurnOf({
-        index: lastTurn - 1,
-        kind: lastTurnKind,
-        total: turnsTotal,
-    });
 }
 
 // D-12: gli scontri giocati fino al turno salvato compreso (uno ogni esplorazione + scontro)
@@ -113,16 +119,16 @@ export function fallenCountersOf(turn: RescueTurn): TurnCounters {
     };
 }
 
-// D-26: la nuova aid salva il turno dove sono caduti i soccorritori, sul totale della dungeon
-export function nextRescueTurnOf(
-    resolution: Pick<DungeonResolution, 'failedTurn'>,
-    saved: RescueTurn,
+// D-12, D-26: unico turno da salvare sulla nuova aid, dal turno della caduta e sul totale della dungeon; sanificato come la rilettura
+export function savedTurnOf(
+    resolution: Pick<DungeonResolution, 'verdict' | 'failedTurn'>,
+    total: number,
 ): RescueTurn | null {
     const { failedTurn } = resolution;
-    if (!failedTurn) return null;
-    return {
+    if (resolution.verdict !== 'failure' || !failedTurn) return null;
+    return rescueTurnOf({
         index: failedTurn.index,
         kind: failedTurn.kind,
-        total: saved.total,
-    };
+        total,
+    });
 }

@@ -3,8 +3,8 @@ import {
     dungeonTurnsOf,
     facedEnemyCountOf,
     fallenCountersOf,
-    nextRescueTurnOf,
     rescueTurnOf,
+    savedTurnOf,
     turnCountersOf,
 } from './dungeon-turns';
 
@@ -150,12 +150,23 @@ describe('rescue turn helpers', () => {
         });
     });
 
-    it('saves the turn where the rescuers fell (D-26)', () => {
-        const saved = { index: 4, kind: exploration, total: 8 };
+    it('saves the turn where the rescuers fell, sanitized (D-26, C-WR-02)', () => {
+        const fell = (index: number, kind: DungeonTurnKind) => ({
+            verdict: 'failure' as const,
+            failedTurn: { index, kind },
+        });
 
+        expect(savedTurnOf(fell(1, fight), 8)).toEqual({
+            index: 1,
+            kind: fight,
+            total: 8,
+        });
+        expect(savedTurnOf(fell(9, exploration), 8)).toBeNull();
         expect(
-            nextRescueTurnOf({ failedTurn: { index: 1, kind: fight } }, saved),
-        ).toEqual({ index: 1, kind: fight, total: 8 });
-        expect(nextRescueTurnOf({ failedTurn: null }, saved)).toBeNull();
+            savedTurnOf({ verdict: 'failure', failedTurn: null }, 8),
+        ).toBeNull();
+        expect(
+            savedTurnOf({ ...fell(1, fight), verdict: 'success' }, 8),
+        ).toBeNull();
     });
 });

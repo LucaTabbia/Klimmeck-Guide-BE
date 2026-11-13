@@ -27,6 +27,8 @@ export interface FailedTurn {
 }
 
 // tappe = scontri, turni = esplorazioni e scontri (D-12, D-21); i totali sono sempre dell'intera dungeon
+// contratto (C-WR-02, imposto da checkedDungeonResolution): una sconfitta porta failedTurn entro i turni e non oltre lastTurnIndex,
+// del tipo del suo indice, con turnsCompleted uguale all'indice; altrimenti la risoluzione abortisce
 export interface DungeonResolution extends CombatResolution {
     stagesCleared: number;
     stagesTotal: number;
