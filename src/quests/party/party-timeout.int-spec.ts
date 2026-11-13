@@ -56,7 +56,7 @@ describe('PartyTimeoutService.disband (replSet)', () => {
         infos: { ...buildQuest().infos, type: 'boss' },
         requirements: {
             ...buildQuest().requirements,
-            requiredAdventurers: [{ title: null, count: seats }],
+            requiredAdventurers: [{ title: 'rookie', count: seats }],
         },
     });
 

@@ -54,7 +54,7 @@ describe('QuestStartService.tryStart (replSet)', () => {
         infos: { ...buildQuest().infos, type },
         requirements: {
             ...buildQuest().requirements,
-            requiredAdventurers: [{ title: null, count: seats }],
+            requiredAdventurers: [{ title: 'rookie', count: seats }],
         },
     });
 

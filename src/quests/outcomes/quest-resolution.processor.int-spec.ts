@@ -296,7 +296,7 @@ describe('QuestResolutionProcessor (real Redis)', () => {
                 infos: { ...buildQuest().infos, type: 'boss' },
                 requirements: {
                     ...buildQuest().requirements,
-                    requiredAdventurers: [{ title: null, count: 2 }],
+                    requiredAdventurers: [{ title: 'rookie', count: 2 }],
                 },
             },
             startDate: null,

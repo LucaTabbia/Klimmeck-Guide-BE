@@ -701,7 +701,7 @@ describe('acceptQuest (wire)', () => {
         });
         const questId = await questOf('worldMission', {
             requiredPoints: 3000,
-            requiredAdventurers: [{ title: null, count: 3 }],
+            requiredAdventurers: [{ title: 'rookie', count: 3 }],
         });
 
         const body = await accept({ id: characterIdOf(p), questId }, p.bearer);
