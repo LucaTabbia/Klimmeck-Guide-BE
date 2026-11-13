@@ -7,7 +7,10 @@ import {
     RankSlot,
     soloSlots,
 } from 'src/quests/acceptance/quest-capacity';
-import { isRecord } from '../combat/combat-context';
+import {
+    type RankPrizeBlock,
+    rankBlocksOf,
+} from 'src/quests/prizes/rank-prizes';
 import { type RescueTurn, rescueTurnOf } from '../dungeon/dungeon-turns';
 import { type QuestEnemyRef, validQuestEnemiesOf } from '../quest-enemies';
 import {
@@ -81,10 +84,21 @@ function aidTitleOf(title: string): string {
         : AID_TITLE_PREFIX + title;
 }
 
+// i blocchi che la quest sorgente legge davvero (D-01, D-18): tipo di gruppo, titolo valido, il primo per titolo
+function readBlocksOf(source: AidSourceQuest): RankPrizeBlock[] {
+    const blocks = rankBlocksOf({
+        infos: { type: source.infos.type },
+        prizes: { rankPrizes: source.prizes?.rankPrizes },
+    });
+    return blocks.filter(
+        (block, index) =>
+            blocks.findIndex(({ title }) => title === block.title) === index,
+    );
+}
+
 // la aid non eredita la cura della quest fallita (Phase 18 D-23): il soccorritore non è il paziente
-function clonedPrizesOf(
-    prizes: AidSourceQuest['prizes'],
-): AidQuestDraft['prizes'] {
+function clonedPrizesOf(source: AidSourceQuest): AidQuestDraft['prizes'] {
+    const { prizes } = source;
     const cloned: AidQuestDraft['prizes'] = {
         prizeCoins: prizes?.prizeCoins ?? null,
         xpPrize: prizes?.xpPrize ?? null,
@@ -93,7 +107,7 @@ function clonedPrizesOf(
         spell: prizes?.spell ?? null,
         pet: refIdOf(prizes?.pet),
     };
-    const blocks = (prizes?.rankPrizes ?? []).filter(isRecord);
+    const blocks = readBlocksOf(source);
     if (blocks.length === 0) return cloned;
     return { ...cloned, rankPrizes: blocks.map(clonedRankBlockOf) };
 }
@@ -104,7 +118,7 @@ function aidPrizesOf(
     original: AidSourceQuest,
     turn: RescueTurn | null,
 ): AidQuestDraft['prizes'] {
-    const cloned = clonedPrizesOf(original.prizes);
+    const cloned = clonedPrizesOf(original);
     if (!turn) return cloned;
     const sourceTurn = rescueTurnOf(original.rescue?.turn);
     return proportionalPrizesOf(
@@ -114,8 +128,8 @@ function aidPrizesOf(
 }
 
 // blocchi per titolo della quest di gruppo copiati campo per campo (un sottodocumento idratato non si spande), senza cura (D-11, Phase 18 D-23)
-function clonedRankBlockOf(block: Record<string, unknown>) {
-    const randomLoot = block.randomLoot;
+function clonedRankBlockOf(block: RankPrizeBlock) {
+    const randomLoot: unknown = block.randomLoot;
     return {
         title: block.title,
         prizeCoins: block.prizeCoins ?? null,
