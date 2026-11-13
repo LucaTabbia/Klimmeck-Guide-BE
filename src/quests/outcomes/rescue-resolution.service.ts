@@ -43,7 +43,11 @@ import {
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
-import { facedCatalogOf, questBattleOf } from './quest-battle';
+import {
+    facedCatalogOf,
+    questBattleOf,
+    savedTurnWarningOf,
+} from './quest-battle';
 import { questClaimFilter, questUpdateOf } from './quest-outcome-plan';
 import {
     type ResolutionCatalog,
@@ -240,6 +244,7 @@ export class RescueResolutionService {
         }
         if (!state.committed) return 'stale';
         this.writeNotes(state.notes);
+        this.warnSavedTurn(aid, context.catalog);
         for (const { character } of roster.seatHolders) {
             this.logger.log(
                 `Segnaposto di posto ${character._id.toHexString()} della missione ${aidHex} in combattimento`,
@@ -642,6 +647,15 @@ export class RescueResolutionService {
             });
         }
         return wounded;
+    }
+
+    // una volta per risoluzione, dopo il commit: l'aid si risolve comunque (C-IN-02)
+    private warnSavedTurn(
+        aid: ResolutionQuest,
+        catalog: ResolutionCatalog,
+    ): void {
+        const warning = savedTurnWarningOf(aid, catalog.enemies.length);
+        if (warning) this.logger.warn(warning);
     }
 
     private writeNotes(notes: readonly RescueNote[]): void {

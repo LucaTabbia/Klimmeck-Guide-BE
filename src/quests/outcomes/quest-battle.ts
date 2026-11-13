@@ -11,6 +11,7 @@ import { buildDungeonContext } from './dungeon/dungeon-context';
 import type { DungeonResolver } from './dungeon/dungeon-resolver';
 import {
     checkedDungeonResolution,
+    dungeonTurnsOf,
     facedEnemyCountOf,
     type RescueTurn,
     rescueTurnOf,
@@ -79,6 +80,22 @@ export function questBattleOf({
             saved?.total ?? resolution.turnsTotal,
         ),
     };
+}
+
+// C-IN-02: un turno salvato che l'aid non può percorrere come la dungeon, detto con soli id e conteggi; null se assente o coerente
+export function savedTurnWarningOf(
+    quest: Pick<ResolutionQuest, '_id' | 'rescue'>,
+    enemyCount: number,
+): string | null {
+    const raw = quest.rescue?.turn;
+    if (raw == null) return null;
+    const hex = quest._id.toHexString();
+    const saved = rescueTurnOf(raw);
+    if (!saved)
+        return `Soccorso ${hex}: turno salvato non valido, combattimento unico contro tutti i gruppi`;
+    const turnsTotal = dungeonTurnsOf(enemyCount).length;
+    if (saved.total === turnsTotal) return null;
+    return `Soccorso ${hex}: turno salvato su ${saved.total} turni, i gruppi dell'aid ne contano ${turnsTotal}`;
 }
 
 // xp e conoscenze dei soli gruppi affrontati fino al turno salvato (D-12)

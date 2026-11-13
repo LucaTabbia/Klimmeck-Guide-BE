@@ -20,6 +20,7 @@ import {
     facedCatalogOf,
     type QuestBattle,
     questBattleOf,
+    savedTurnWarningOf,
 } from './quest-battle';
 import { questUpdateOf, regeneratesAfter } from './quest-outcome-plan';
 import {
@@ -168,6 +169,11 @@ export class QuestResolutionService {
             return 'stale';
         }
         if (!outcome.committed) return 'stale';
+        const turnWarning = savedTurnWarningOf(
+            loaded.quest,
+            catalog.enemies.length,
+        );
+        if (turnWarning) this.logger.warn(turnWarning);
         await this.writer.deliver(outcome.committed);
         this.logger.log(
             `Missione in attesa ${pendingQuestId.toHexString()} risolta: ${outcome.verdict}`,

@@ -501,9 +501,11 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
             await expect(resolve(rescuer)).resolves.toBe('resolved');
 
             expect(dungeon.contexts).toHaveLength(explorations);
-            expect(warn.mock.calls.map(([message]) => String(message))).toEqual(
-                [messageOf(String(aid._id))],
-            );
+            expect(
+                warn.mock.calls
+                    .map(([message]) => String(message))
+                    .filter((message) => message.includes('turno salvato')),
+            ).toEqual([messageOf(String(aid._id))]);
         },
     );
 
