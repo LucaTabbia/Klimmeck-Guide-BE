@@ -19,7 +19,9 @@ import {
     registerDevice,
 } from '../../../test/quests/outcome-world';
 import { ScriptedCombatResolver } from '../../../test/quests/scripted-combat-resolver';
+import { NO_TURNS, turnsOf } from '../../../test/quests/dungeon-turns.fixture';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
+import { SwappableDungeonResolver } from '../../../test/quests/swappable-dungeon-resolver';
 import { TurnFailingDungeonResolver } from '../../../test/quests/turn-failing-dungeon-resolver';
 import { QuestLane } from '../acceptance/quest-lanes';
 import {
@@ -27,12 +29,7 @@ import {
     registrationRuleOf,
 } from '../acceptance/quest-eligibility';
 import { AID_TIMEOUT_MS } from './aid/aid-timeout';
-import type { ChanceSource } from './chance-source';
-import {
-    type DungeonContext,
-    type DungeonResolution,
-    DungeonResolver,
-} from './dungeon/dungeon-resolver';
+import { DungeonResolver } from './dungeon/dungeon-resolver';
 import { PlaceholderDungeonResolver } from './dungeon/placeholder-dungeon-resolver';
 import { QuestResolutionService } from './quest-resolution.service';
 import { RescueResolutionService } from './rescue-resolution.service';
@@ -49,12 +46,6 @@ const FRESH_STATUS = {
 };
 const ONE_SEAT = [{ title: null, count: 1 }];
 const SAVED_TURN = { index: 4, kind: 'exploration', total: 8 };
-const NO_TURNS = {
-    turnsTotal: null,
-    turnsCompleted: null,
-    lastTurn: null,
-    lastTurnKind: null,
-};
 
 type EnemyEntry = { enemy: Types.ObjectId; quantity: number };
 
@@ -68,31 +59,6 @@ interface DungeonAidOptions {
     failingTurn?: number;
     prizes?: Record<string, unknown>;
     enemies?: EnemyEntry[];
-}
-
-// l'harness accetta solo useValue: la porta della dungeon si sostituisce per caso e registra i contesti ricevuti
-class SwappableDungeonResolver extends DungeonResolver {
-    readonly contexts: DungeonContext[] = [];
-    private current: DungeonResolver;
-
-    constructor(readonly placeholder: DungeonResolver) {
-        super();
-        this.current = placeholder;
-    }
-
-    use(resolver: DungeonResolver): void {
-        this.current = resolver;
-    }
-
-    reset(): void {
-        this.current = this.placeholder;
-        this.contexts.length = 0;
-    }
-
-    explore(context: DungeonContext, chance: ChanceSource): DungeonResolution {
-        this.contexts.push(context);
-        return this.current.explore(context, chance);
-    }
 }
 
 // l'aid di dungeon nasce da una vera dungeon da 4 gruppi persa al turno 4 (esplorazione) con la porta di test: rescue.turn { 4, exploration, 8 }
@@ -218,13 +184,6 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
 
     const aidResultOf = (id: unknown, aid: { _id: unknown }) =>
         resultOf(id, aid._id);
-
-    const turnsOf = (result: Record<string, unknown>) => ({
-        turnsTotal: result.turnsTotal,
-        turnsCompleted: result.turnsCompleted,
-        lastTurn: result.lastTurn,
-        lastTurnKind: result.lastTurnKind,
-    });
 
     const asStrings = (entries: readonly EnemyEntry[]) =>
         entries.map(({ enemy: ref, quantity }) => ({

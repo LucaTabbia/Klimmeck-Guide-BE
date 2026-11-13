@@ -378,4 +378,24 @@ describe('TurnFailingDungeonResolver', () => {
         });
         expect(combat.contexts).toHaveLength(5);
     });
+
+    it('rejects a turn the dungeon does not have or past the saved one (C-IN-05)', () => {
+        const port = (index: number) =>
+            new TurnFailingDungeonResolver(
+                new PlaceholderDungeonResolver(new StagedCombatResolver([])),
+                [index],
+            );
+        const missing = port(6);
+        const pastSaved = port(3);
+
+        expect(() => missing.explore(dungeon(), new SequenceChance())).toThrow(
+            'Turn 6 is not a turn of this dungeon',
+        );
+        expect(() =>
+            pastSaved.explore(
+                { ...dungeon(), lastTurnIndex: 2 },
+                new SequenceChance(),
+            ),
+        ).toThrow('Turn 3 is past the last turn 2');
+    });
 });

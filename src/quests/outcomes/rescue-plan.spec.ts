@@ -7,9 +7,9 @@ import { idForms } from 'src/mongo/document-id';
 import {
     OutcomeCharacterSnapshot,
     OutcomeQuestSnapshot,
-    QuestResultDraft,
 } from 'src/quests/outcomes/outcome-plan';
 import { deathResultOf, planRescued } from 'src/quests/outcomes/rescue-plan';
+import { NO_TURNS, turnsOf } from '../../../test/quests/dungeon-turns.fixture';
 
 const NOW = new Date('2026-10-24T10:00:00.000Z');
 const INJURED_ID = new Types.ObjectId('64b0000000000000000000f1');
@@ -45,20 +45,6 @@ const aidQuest: OutcomeQuestSnapshot = {
     infos: { type: QuestType.aid, title: 'Soccorso: Il drago di Valantar' },
     requirements: { minTitle: TitleType.rookie },
 };
-
-const NO_TURNS = {
-    turnsTotal: null,
-    turnsCompleted: null,
-    lastTurn: null,
-    lastTurnKind: null,
-};
-
-const turnsOf = (sheet: QuestResultDraft) => ({
-    turnsTotal: sheet.turnsTotal,
-    turnsCompleted: sheet.turnsCompleted,
-    lastTurn: sheet.lastTurn,
-    lastTurnKind: sheet.lastTurnKind,
-});
 
 const unchangedSheet = {
     _id: RESULT_ID,

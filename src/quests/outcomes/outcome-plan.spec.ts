@@ -22,6 +22,7 @@ import {
     NO_REWARDS,
 } from 'src/quests/outcomes/rewards/quest-rewards';
 import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
+import { NO_TURNS } from '../../../test/quests/dungeon-turns.fixture';
 
 const NOW = new Date('2026-10-24T10:00:00.000Z');
 const CHARACTER_ID = new Types.ObjectId('64b0000000000000000000e1');
@@ -122,13 +123,6 @@ const inputWith = (
     now: NOW,
     ...overrides,
 });
-
-const NO_TURNS = {
-    turnsTotal: null,
-    turnsCompleted: null,
-    lastTurn: null,
-    lastTurnKind: null,
-};
 
 const stagesOf = (
     cleared: number,

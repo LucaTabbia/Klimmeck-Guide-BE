@@ -11,14 +11,11 @@ import {
     registerDevice,
 } from '../../../test/quests/outcome-world';
 import { ScriptedCombatResolver } from '../../../test/quests/scripted-combat-resolver';
+import { turnsOf } from '../../../test/quests/dungeon-turns.fixture';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
+import { SwappableDungeonResolver } from '../../../test/quests/swappable-dungeon-resolver';
 import { TurnFailingDungeonResolver } from '../../../test/quests/turn-failing-dungeon-resolver';
-import type { ChanceSource } from './chance-source';
-import {
-    type DungeonContext,
-    type DungeonResolution,
-    DungeonResolver,
-} from './dungeon/dungeon-resolver';
+import { DungeonResolver } from './dungeon/dungeon-resolver';
 import { PlaceholderDungeonResolver } from './dungeon/placeholder-dungeon-resolver';
 import { QuestResolutionService } from './quest-resolution.service';
 
@@ -36,28 +33,6 @@ const FRESH_STATUS = {
 const ONE_SEAT = [{ title: null, count: 1 }];
 
 type EnemyEntry = { enemy: Types.ObjectId; quantity: number };
-
-// l'harness accetta solo useValue: la porta della dungeon si sostituisce per caso, il segnaposto reale resta il default
-class SwappableDungeonResolver extends DungeonResolver {
-    private current: DungeonResolver;
-
-    constructor(readonly placeholder: DungeonResolver) {
-        super();
-        this.current = placeholder;
-    }
-
-    use(resolver: DungeonResolver): void {
-        this.current = resolver;
-    }
-
-    reset(): void {
-        this.current = this.placeholder;
-    }
-
-    explore(context: DungeonContext, chance: ChanceSource): DungeonResolution {
-        return this.current.explore(context, chance);
-    }
-}
 
 // la dungeon passa dal segnaposto reale del modulo (DungeonResolver), che gioca una tappa per voce sulla porta di combattimento scriptata (D-12)
 describe('QuestResolutionService.resolveStandard (individual) with a staged dungeon (replSet)', () => {
@@ -278,13 +253,6 @@ describe('QuestResolutionService.resolveStandard (individual) with a staged dung
         expect(character.status.knownEnemies).toEqual([]);
         expect(result.loreUnlocked).toEqual([]);
         expect(aid.rescue.turn).toEqual({ index: 3, kind: 'fight', total: 6 });
-    });
-
-    const turnsOf = (result: Record<string, unknown>) => ({
-        turnsTotal: result.turnsTotal,
-        turnsCompleted: result.turnsCompleted,
-        lastTurn: result.lastTurn,
-        lastTurnKind: result.lastTurnKind,
     });
 
     const aidOf = async (subject: Quester) => {

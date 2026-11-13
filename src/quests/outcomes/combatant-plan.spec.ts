@@ -21,6 +21,7 @@ import type {
     ResolutionCharacter,
     ResolutionQuest,
 } from './resolution-loader.service';
+import { NO_TURNS } from '../../../test/quests/dungeon-turns.fixture';
 
 const id = (hex: string) => new Types.ObjectId(hex.padStart(24, '0'));
 
@@ -154,13 +155,6 @@ const effectsOf = (hpAfter: number): ParticipantEffects => ({
     consumablesUsed: [],
     spellsUsed: [],
 });
-
-const NO_TURNS = {
-    turnsTotal: null,
-    turnsCompleted: null,
-    lastTurn: null,
-    lastTurnKind: null,
-};
 
 const planWith = (quest: ResolutionQuest, battle: CombatantBattle) =>
     planCombatant({
