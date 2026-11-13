@@ -1,5 +1,6 @@
 import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { isRecord } from '../combat/combat-context';
+import type { DungeonStages } from '../outcome-plan';
 import { DungeonResolution } from './dungeon-resolver';
 
 const TURNS_PER_ENEMY = 2;
@@ -79,4 +80,20 @@ export function turnCountersOf(
         lastTurn: resolution.turnsCompleted,
         lastTurnKind: turnKindOf(resolution.turnsCompleted - 1),
     };
+}
+
+// D-12, D-20: il turno da salvare sull'aid, letto dai contatori della battaglia; la sconfitta la dice l'aid, non questa funzione
+export function rescueTurnFromStages(
+    stages: DungeonStages | null | undefined,
+): RescueTurn | null {
+    if (!stages || stages.turnsCompleted === null) return null;
+    const { lastTurn, lastTurnKind, turnsTotal } = stages;
+    if (lastTurn === null || lastTurnKind === null || turnsTotal === null)
+        return null;
+    // stessa sanificazione della rilettura: mai un turno incoerente a DB (T-21-48)
+    return rescueTurnOf({
+        index: lastTurn - 1,
+        kind: lastTurnKind,
+        total: turnsTotal,
+    });
 }

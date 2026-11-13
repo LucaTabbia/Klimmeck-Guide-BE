@@ -18,6 +18,7 @@ import { ConclusionEventDrawer } from './conclusion/conclusion-event.drawer';
 import { planConclusion } from './conclusion/conclusion-plan';
 import { buildDungeonContext } from './dungeon/dungeon-context';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
+import { rescueTurnFromStages } from './dungeon/dungeon-turns';
 import {
     type CommittedOutcome,
     OutcomeWriter,
@@ -115,13 +116,14 @@ export class QuestResolutionService {
                     pendingQuestId,
                     session,
                 );
+                const battle = this.fight(loaded, catalog, snapshot);
                 const { plan, verdict, aid } = planConclusion({
                     event,
                     combat: this.combat,
                     quest: loaded.quest,
                     catalog,
                     snapshot,
-                    battle: this.fight(loaded, catalog, snapshot),
+                    battle,
                     resultId,
                     aidQuestId,
                     pendingQuestId,
@@ -144,7 +146,12 @@ export class QuestResolutionService {
                 );
                 if (aid) {
                     await this.writer.createAid(
-                        buildAidQuest(loaded.quest, [snapshot._id], aidQuestId),
+                        buildAidQuest(
+                            loaded.quest,
+                            [snapshot._id],
+                            aidQuestId,
+                            rescueTurnFromStages(battle?.stages),
+                        ),
                         session,
                     );
                 }

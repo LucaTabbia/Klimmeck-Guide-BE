@@ -8,6 +8,7 @@ import {
     soloSlots,
 } from 'src/quests/acceptance/quest-capacity';
 import { isRecord } from '../combat/combat-context';
+import type { RescueTurn } from '../dungeon/dungeon-turns';
 import { type QuestEnemyRef, validQuestEnemiesOf } from '../quest-enemies';
 
 export const AID_TITLE_PREFIX = 'Soccorso: ';
@@ -70,7 +71,11 @@ export interface AidQuestDraft {
     };
     registeredAdventurers: [];
     concludedAt: null;
-    rescue: { characters: Types.ObjectId[]; failedQuest: Types.ObjectId };
+    rescue: {
+        characters: Types.ObjectId[];
+        failedQuest: Types.ObjectId;
+        turn?: RescueTurn;
+    };
 }
 
 function aidTitleOf(title: string): string {
@@ -125,11 +130,12 @@ export function aidSlotsOf(
 }
 
 // clone della quest fallita (D-08 emendata il 2026-10-26): una aid per combattimento perso, stessi posti della quest fallita, mai ripetibile; in una catena si clona sempre l'originale (D-09)
-// la aid non porta `generated` (D-17): non conta nel tetto né rilancia il generatore
+// la aid non porta `generated` (D-17): non conta nel tetto né rilancia il generatore; la sconfitta in dungeon salva il suo turno (D-12)
 export function buildAidQuest(
     original: AidSourceQuest,
     injuredIds: readonly Types.ObjectId[],
     aidId: Types.ObjectId,
+    turn: RescueTurn | null = null,
 ): AidQuestDraft {
     const { infos, requirements } = original;
     return {
@@ -159,6 +165,7 @@ export function buildAidQuest(
         rescue: {
             characters: [...injuredIds],
             failedQuest: refIdOf(original.rescue?.failedQuest) ?? original._id,
+            ...(turn ? { turn: { ...turn } } : {}),
         },
     };
 }

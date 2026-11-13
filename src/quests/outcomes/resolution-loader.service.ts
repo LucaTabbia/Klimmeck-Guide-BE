@@ -92,6 +92,7 @@ export type ResolutionQuest = OutcomeQuestSnapshot &
         rescue?: {
             characters?: unknown[] | null;
             failedQuest?: unknown;
+            turn?: unknown;
         } | null;
     };
 
