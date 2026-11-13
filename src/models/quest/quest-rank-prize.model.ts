@@ -10,7 +10,7 @@ import { Pet } from '../pet.model';
 import { Spell } from '../spell.model';
 import { QuestCure, QuestCureSchema } from './quest-cure.model';
 
-// blocco premio per titolo delle quest di gruppo (D-01, D-05), solo a DB: sul filo lo porta il tipo QuestRankPrizes del piano 12 (nome quasi uguale)
+// blocco premio per titolo delle quest di gruppo (D-01, D-05), solo a DB: sul filo lo porta il tipo QuestRankPrizes (D-22, nome quasi uguale)
 @Schema({ _id: false })
 export class QuestRankPrize {
     @Prop({ type: String, enum: Object.values(TitleType), required: true })

@@ -101,7 +101,7 @@ export const isBossCandidate = (xp: number, rank: GeneratedRank): boolean =>
 export const isGeneratedRank = (title: unknown): title is GeneratedRank =>
     (GENERATED_RANKS as readonly unknown[]).includes(title);
 
-// D-15: conteggio per minTitle delle generate aperte; parità → rango più basso
+// D-15, D-23: conteggio per rango di copertura delle generate aperte (minTitle, per i boss il titolo più alto dei posti); parità → rango più basso
 export function leastCoveredRank(
     counts: Readonly<Partial<Record<GeneratedRank, number>>>,
 ): GeneratedRank {

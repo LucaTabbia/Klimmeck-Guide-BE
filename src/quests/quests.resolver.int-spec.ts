@@ -1215,7 +1215,7 @@ describe('quest catalog (wire)', () => {
             ).toBe(900);
         });
 
-        it('lists every rank block in seat order (D-22)', async () => {
+        it('lists every rank block in its stored order (D-22)', async () => {
             const boss = await persistMixedBoss();
             const hunt = await persistCatalogQuest({
                 prizes: { ...buildQuest().prizes, xpPrize: 40 },

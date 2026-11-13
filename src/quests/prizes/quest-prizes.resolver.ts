@@ -37,7 +37,7 @@ export class QuestPrizesResolver {
         return prizeBlockFor(quest, subject?.title ?? null) ?? EMPTY_PRIZES;
     }
 
-    // tutti i blocchi nell'ordine dei posti; [] per le solitarie e i boss senza blocchi (D-22, D-28)
+    // tutti i blocchi validi nell'ordine di prizes.rankPrizes a DB (per le generate coincide coi posti); [] per le solitarie e i boss senza blocchi (D-22, D-28)
     @ResolveField('rankPrizes', () => [QuestRankPrizes])
     rankPrizes(@Parent() quest: Quest): QuestRankPrizes[] {
         return rankBlocksOf(quest).map((block) => ({
