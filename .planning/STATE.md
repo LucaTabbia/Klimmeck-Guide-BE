@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 21 — Premi per rango e soccorsi (↔ FE Phase 20) — PIANIFICATA il 13 novembre 2026 su `feat/21-premi-per-rango-e-soccorsi` (da `develop` `1f9db973`): 14 piani in catena, ready to execute; la Phase 20 è chiusa e in `develop` (PR #35)
+**Current focus:** Phase 21 — Premi per rango e soccorsi (↔ FE Phase 20) — ESEGUITA (14/14) il 13 novembre 2026 su `feat/21-premi-per-rango-e-soccorsi`: gate verde dopo i fix della review, handoff `BACKEND-NOTES.md` scritto, BE-RANKP-01..06 chiusi; test:cov, verifica, audit, PR, riavvio del BE dal ramo e UAT su device a cura dell'orchestratore
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 21 di 22 (Premi per rango e soccorsi) — contesto del 2026-11-12 (D-01..D-17) emendato il 2026-11-13 dopo la ricerca e le risposte dell'utente (D-18..D-30), `21-REPO-RULES.md`, `21-RESEARCH.md`, `21-VALIDATION.md`, 14 piani scritti il 2026-11-13
 Plan: 13 of 14
-Status: Phase 21 in esecuzione — executing (14 piani sequenziali, un executor alla volta sull'albero principale)
-Last activity: 2026-11-13 -- Phase 21 in esecuzione (executor sequenziali, 0/14)
-Next step: `/gsd-execute-phase 21` con executor sequenziali sull'albero principale; poi review, verifica, audit, riavvio reale del BE dal ramo e UAT su device con la FE Phase 20 (piani 20-03 e 20-04 della FE bloccati sulla merge di questa fase); la Phase 22 (contesto sul ramo `feat/22-…`, impilato sul 21) resta da pianificare con la FE Phase 21. Il BE locale gira da `dist/` del codice della Phase 20 sulla porta 3001: nessuna build durante l'esecuzione.
+Status: executing — Phase 21 eseguita (14/14), in attesa di test:cov, verifica, audit, riavvio reale del BE dal ramo e UAT su device
+Last activity: 2026-11-13 -- Phase 21 eseguita (14/14): handoff `BACKEND-NOTES.md`, VALIDATION firmata, BE-RANKP-01..06 chiusi; test:cov, PR, riavvio e UAT su device a cura dell'orchestratore
+Next step: orchestratore — `npm run test:cov` in background, verifica (`21-VERIFICATION.md`) e audit (`21-SECURITY.md`), PR verso `develop`, riavvio del BE dal ramo e UAT su device col piano di `BACKEND-NOTES.md` §6 insieme ai piani 20-03 e 20-04 della FE (stato «da eseguire»); poi `phase complete` alla merge. La Phase 22 (contesto sul ramo `feat/22-…`, impilato sul 21) resta da pianificare con la FE Phase 21. Il BE locale gira da `dist/` del codice della Phase 20 sulla porta 3001: la build la lancia l'orchestratore a BE fermo.
 
 ## Current Milestone
 

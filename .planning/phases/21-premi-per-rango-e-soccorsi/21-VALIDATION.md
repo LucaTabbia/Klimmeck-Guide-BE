@@ -1,9 +1,9 @@
 ---
 phase: 21
 slug: premi-per-rango-e-soccorsi
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-13
 ---
 
@@ -74,8 +74,8 @@ created: 2026-11-13
 | 21-12-03 | 12 | 12 | — | — | bookkeeping del piano 12 | — | `grep -qF -- "- [x] 21-12-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 21-13-01 | 13 | 13 | BE-RANKP-01..06 | T-21-40, T-21-41, T-21-42, T-21-43, T-21-44 | gate: tsc, unit e integration complete senza coverage, boot reale, SDL additivo, coverage per cartella, lint mirato, invarianti, tabella di copertura per titolo del caso | unit + integration | `npx tsc --noEmit -p tsconfig.json && npx jest --selectProjects unit && npx jest test/app.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql` | ✅ | ✅ green |
 | 21-13-02 | 13 | 13 | — | — | bookkeeping del piano 13 | — | `grep -qF -- "- [x] 21-13-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 21-14-01 | 14 | 14 | BE-RANKP-06 | T-21-45 | handoff `BACKEND-NOTES.md` §0–§7 con SDL verbatim, matrice dei turni, lettura dell'aid di dungeon, UAT; nessun segreto | doc | `grep -cE "^## [0-7]\." .planning/phases/21-premi-per-rango-e-soccorsi/BACKEND-NOTES.md` = 8 | ✅ | ⬜ pending |
-| 21-14-02 | 14 | 14 | BE-RANKP-01..06 | T-21-46 | VALIDATION firmata, requisiti chiusi dopo il gate, ROADMAP e STATE a 14/14 | doc | `grep -cE '\- \[x\] \*\*BE-RANKP-0[1-6]\*\*' .planning/REQUIREMENTS.md` = 6 | ✅ | ⬜ pending |
+| 21-14-01 | 14 | 14 | BE-RANKP-06 | T-21-45 | handoff `BACKEND-NOTES.md` §0–§7 con SDL verbatim, matrice dei turni, lettura dell'aid di dungeon, UAT; nessun segreto | doc | `grep -cE "^## [0-7]\." .planning/phases/21-premi-per-rango-e-soccorsi/BACKEND-NOTES.md` = 8 | ✅ | ✅ green |
+| 21-14-02 | 14 | 14 | BE-RANKP-01..06 | T-21-46 | VALIDATION firmata, requisiti chiusi dopo il gate, ROADMAP e STATE a 14/14 | doc | `grep -cE '\- \[x\] \*\*BE-RANKP-0[1-6]\*\*' .planning/REQUIREMENTS.md` = 6 | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -149,13 +149,13 @@ Ogni decisione del CONTEXT → piano-task e caso NUOVO che la prova. Il gate 13 
 
 Le spec nuove nascono nel commit RED del task che le usa (TDD, REPO-RULES): nessun piano di soli scaffold.
 
-- [ ] `src/quests/prizes/rank-prizes.spec.ts` — lettura e scelta dei blocchi (BE-RANKP-01/02), piano 02
-- [ ] `src/quests/quest-catalog.populate.int-spec.ts` — ref dei blocchi su query vera (BE-RANKP-01), piano 02
-- [ ] `src/quests/maintenance/group-prize.report.spec.ts` e `group-prize-report.service.int-spec.ts` — report D-24, piano 04
-- [ ] `src/quests/outcomes/aid/aid-opening.spec.ts`, `src/quests/outcomes/defeat-without-aid.spec.ts` — D-09, D-19, piano 05
-- [ ] `src/quests/outcomes/dungeon/dungeon-turns.spec.ts` e `test/quests/turn-failing-dungeon-resolver.ts` — turni e porta di test (BE-RANKP-05), piano 08
-- [ ] `src/quests/outcomes/dungeon-aid.int-spec.ts` — percorso del soccorritore e quota (BE-RANKP-05), piani 10–11
-- [ ] `src/quests/outcomes/aid/rescue-share.spec.ts` — quota proporzionale (BE-RANKP-05), piano 11
+- [x] `src/quests/prizes/rank-prizes.spec.ts` — lettura e scelta dei blocchi (BE-RANKP-01/02), piano 02
+- [x] `src/quests/quest-catalog.populate.int-spec.ts` — ref dei blocchi su query vera (BE-RANKP-01), piano 02
+- [x] `src/quests/maintenance/group-prize.report.spec.ts` e `group-prize-report.service.int-spec.ts` — report D-24, piano 04
+- [x] `src/quests/outcomes/aid/aid-opening.spec.ts`, `src/quests/outcomes/defeat-without-aid.spec.ts` — D-09, D-19, piano 05
+- [x] `src/quests/outcomes/dungeon/dungeon-turns.spec.ts` e `test/quests/turn-failing-dungeon-resolver.ts` — turni e porta di test (BE-RANKP-05), piano 08
+- [x] `src/quests/outcomes/dungeon-aid.int-spec.ts` — percorso del soccorritore e quota (BE-RANKP-05), piani 10–11
+- [x] `src/quests/outcomes/aid/rescue-share.spec.ts` — quota proporzionale (BE-RANKP-05), piano 11
 
 Harness: nessuno nuovo. Nessuna installazione di framework.
 
@@ -165,18 +165,18 @@ Harness: nessuno nuovo. Nessuna installazione di framework.
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| UAT su device: foglio del boss misto con blocchi diversi per mage e paladin, premi per titolo alla vittoria, aid di dungeon a metà premio con la riga dei turni, job persa a 1 di vita senza aid, `questCancelled` dopo la cancellazione di un ferito | BE-RANKP-01..06 | Device reale e database reale: fuori dagli esecutori (REPO-RULES) | Piano nel handoff `BACKEND-NOTES.md` §6 (stato «da eseguire»); semine con script fuori repo a cura dell'orchestratore dopo il riavvio del BE dal ramo |
+| UAT su device: foglio del boss misto con blocchi diversi per mage e paladin, premi per titolo alla vittoria, aid di dungeon a metà premio con la riga dei turni, job persa a 1 di vita senza aid, `questCancelled` dopo la cancellazione di un ferito | BE-RANKP-01..06 | Device reale e database reale: fuori dagli esecutori (REPO-RULES) | Piano nel handoff `BACKEND-NOTES.md` §6 (stato «da eseguire», insieme ai piani 20-03 e 20-04 della FE); semine con script fuori repo a cura dell'orchestratore dopo il riavvio del BE dal ramo |
 | `npm run test:cov` con le soglie per cartella | BE-RANKP-06 | ≈ 630 s, oltre i 600 s dello strumento: mai da un esecutore | Lanciato dall'orchestratore in background dopo il gate; il piano 13 misura la coverage per cartella come ripiego |
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 150 s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 150 s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-11-13
