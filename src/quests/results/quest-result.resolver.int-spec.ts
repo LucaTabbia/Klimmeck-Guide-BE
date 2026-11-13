@@ -42,6 +42,10 @@ const QUEST_RESULT_HEALED =
     'query QuestResult($id: String!) { questResult(id: $id) { id hpBefore hpAfter injuriesHealed } }';
 const QUEST_RESULT_ENEMY_SPELLS =
     'query QuestResult($id: String!) { questResult(id: $id) { id enemies { quantity enemy { id spells { id name } } } } }';
+const QUEST_RESULT_TURNS =
+    'query QuestResult($id: String!) { questResult(id: $id) { id stagesCleared stagesTotal turnsTotal turnsCompleted lastTurn lastTurnKind } }';
+const QUEST_RESULT_REWARDS =
+    'query QuestResult($id: String!) { questResult(id: $id) { id rewards { coins { gold silver copper } items { quantity } pet { id } } } }';
 const MISSING_ID = '64b0000000000000000000ff';
 const CONFIRMED_AT = new Date('2026-10-25T09:30:00.000Z');
 
@@ -552,6 +556,109 @@ describe('questResult(id) (wire)', () => {
         expect(bodyOf(orphaned).data?.questResult).toMatchObject({
             id: String(result._id),
             rewards: { pet: null },
+        });
+    });
+
+    it('exposes the turn counters of a dungeon result (D-21)', async () => {
+        const result = await persistAliceResult({
+            quest: {
+                id: new Types.ObjectId(),
+                type: 'dungeon',
+                title: 'La cripta',
+            },
+            outcome: 'failure',
+            stagesCleared: 2,
+            stagesTotal: 4,
+            turnsTotal: 8,
+            turnsCompleted: 5,
+            lastTurn: 5,
+            lastTurnKind: 'exploration',
+        });
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_TURNS,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    stagesCleared: 2,
+                    stagesTotal: 4,
+                    turnsTotal: 8,
+                    turnsCompleted: 5,
+                    lastTurn: 5,
+                    lastTurnKind: 'exploration',
+                },
+            },
+        });
+    });
+
+    it('exposes null turn counters outside a dungeon (D-21)', async () => {
+        const result = await persistAliceResult({
+            quest: {
+                id: new Types.ObjectId(),
+                type: 'hunt',
+                title: 'La caccia',
+            },
+        });
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_TURNS,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    stagesCleared: null,
+                    stagesTotal: null,
+                    turnsTotal: null,
+                    turnsCompleted: null,
+                    lastTurn: null,
+                    lastTurnKind: null,
+                },
+            },
+        });
+    });
+
+    it('keeps the rewards of each participant in the same shape (D-08)', async () => {
+        const potion = await persistLootItem(modelOf(LootItem.name));
+        const pet = await persistPet(modelOf(Pet.name), { name: 'Volpe' });
+        const result = await persistAliceResult({
+            rewards: {
+                coins: { gold: 1, silver: 2, copper: 3 },
+                items: [
+                    { itemType: 'LootItem', item: potion._id, quantity: 2 },
+                ],
+                pet: pet._id,
+            },
+        });
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_REWARDS,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    rewards: {
+                        coins: { gold: 1, silver: 2, copper: 3 },
+                        items: [{ quantity: 2 }],
+                        pet: { id: String(pet._id) },
+                    },
+                },
+            },
         });
     });
 
