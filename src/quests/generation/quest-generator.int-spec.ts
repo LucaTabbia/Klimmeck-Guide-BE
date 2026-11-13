@@ -20,6 +20,7 @@ import { QuestGenerationTrigger } from 'src/quests/generation/quest-generation-t
 import { QuestGenerationTriggerModule } from 'src/quests/generation/quest-generation-trigger.module';
 import {
     budgetOf,
+    coverageRankOf,
     GeneratedRank,
     RANK_XP_BANDS,
 } from 'src/quests/generation/generation-rules';
@@ -51,20 +52,41 @@ import {
     WORLD_HABITAT,
 } from '../../../test/quests/generation-world';
 
+type LeanAsset = { itemType: string; item: Types.ObjectId; quantity: number };
+
+type LeanPrizeBlock = {
+    prizeCoins?: unknown;
+    xpPrize?: number | null;
+    prizeItem?: unknown;
+    randomLoot?: LeanAsset[];
+    spell?: unknown;
+    pet?: Types.ObjectId | null;
+};
+
+type LeanPrizes = LeanPrizeBlock & {
+    spellDraw?: boolean;
+    rankPrizes?: (LeanPrizeBlock & { title: string; cure?: unknown })[];
+};
+
+// mondo senza candidati boss: nessun nemico sopra la fascia adventurer (13.1 D-03)
+const NO_BOSS_ENEMY_XPS: readonly number[] = [8, 12, 22, 30, 45, 60];
+
 type LeanQuest = {
     _id: Types.ObjectId;
     generated?: boolean;
     infos: {
         title: string;
         type: string;
+        description?: string;
         markerLocation: Types.ObjectId;
         enemies: { enemy: Types.ObjectId; quantity: number }[];
     };
-    prizes?: { pet?: Types.ObjectId | null };
+    prizes?: LeanPrizes;
     requirements: {
         minTitle: string;
         requiredPoints?: number | null;
         requiredAdventurers: { title: string | null; count: number }[];
+        recommendedLoot?: LeanAsset[];
     };
     concludedAt?: Date | null;
 };
@@ -153,6 +175,86 @@ describe('QuestGenerator (replSet)', () => {
             generated: true,
             concludedAt: null,
         });
+    }
+
+    async function insertOpenMixedBoss(): Promise<void> {
+        const base = buildQuest();
+        await quests.collection.insertOne({
+            ...base,
+            infos: {
+                ...base.infos,
+                type: QuestType.boss,
+                markerLocation: new Types.ObjectId(),
+            },
+            requirements: {
+                ...base.requirements,
+                minTitle: TitleType.paladin,
+                requiredAdventurers: [
+                    { title: TitleType.mage, count: 3 },
+                    { title: TitleType.paladin, count: 1 },
+                ],
+            },
+            generated: true,
+            concludedAt: null,
+        });
+    }
+
+    const coverageOf = (quest: LeanQuest): GeneratedRank | null =>
+        coverageRankOf(quest);
+
+    // nomi al posto degli id: la stessa corsa su due mondi dà la stessa istantanea
+    async function namesById(): Promise<Map<string, string>> {
+        const named: { _id: Types.ObjectId; name: string }[] = [];
+        for (const model of [models.enemies, models.equipment, models.loot]) {
+            named.push(
+                ...(await model
+                    .find({})
+                    .lean<{ _id: Types.ObjectId; name: string }[]>()),
+            );
+        }
+        return new Map(named.map((doc) => [doc._id.toHexString(), doc.name]));
+    }
+
+    async function runSnapshotOf(world: GenerationWorld, linked: LinkedPet[]) {
+        const names = await namesById();
+        const enemyOfPet = new Map(
+            linked.map((pet) => [
+                pet.id.toHexString(),
+                names.get(pet.enemyId.toHexString()),
+            ]),
+        );
+        const nameOf = (id: Types.ObjectId): string | undefined =>
+            names.get(id.toHexString());
+        const assetsOf = (assets: readonly LeanAsset[] = []) =>
+            assets.map((asset) => `${nameOf(asset.item)}x${asset.quantity}`);
+        const poiOf = (poi: Types.ObjectId): string => {
+            const cityIndex = world.cities.findIndex((city) =>
+                city.poiIds.some((id) => id.equals(poi)),
+            );
+            const poiIndex = world.cities[cityIndex].poiIds.findIndex((id) =>
+                id.equals(poi),
+            );
+            return `${cityIndex}:${poiIndex}`;
+        };
+        return (await generatedQuests()).map((quest) => ({
+            title: quest.infos.title,
+            type: quest.infos.type,
+            description: quest.infos.description,
+            poi: poiOf(quest.infos.markerLocation),
+            enemies: quest.infos.enemies.map(
+                (entry) => `${nameOf(entry.enemy)}x${entry.quantity}`,
+            ),
+            minTitle: quest.requirements.minTitle,
+            seats: quest.requirements.requiredAdventurers,
+            recommendedLoot: assetsOf(quest.requirements.recommendedLoot),
+            prizeKeys: Object.keys(quest.prizes ?? {}).sort(),
+            prizeCoins: quest.prizes?.prizeCoins,
+            xpPrize: quest.prizes?.xpPrize,
+            randomLoot: assetsOf(quest.prizes?.randomLoot),
+            pet: quest.prizes?.pet
+                ? (enemyOfPet.get(quest.prizes.pet.toHexString()) ?? 'other')
+                : null,
+        }));
     }
 
     beforeAll(async () => {
@@ -370,7 +472,7 @@ describe('QuestGenerator (replSet)', () => {
         const [first] = (await generatedQuests()).filter(
             (quest) => quest.infos.title !== 'Test Quest',
         );
-        expect(first.requirements.minTitle).toBe(TitleType.adventurer);
+        expect(coverageOf(first)).toBe(TitleType.adventurer);
     });
 
     it('rotates the five ranks and never generates a legend quest (D-02)', async () => {
@@ -380,10 +482,7 @@ describe('QuestGenerator (replSet)', () => {
             12,
         );
         const created = await generatedQuests();
-        const perRank = countBy(
-            created,
-            (quest) => quest.requirements.minTitle,
-        );
+        const perRank = countBy(created, (quest) => String(coverageOf(quest)));
         expect(Object.keys(perRank).sort()).toEqual(
             ['adventurer', 'hero', 'mage', 'paladin', 'rookie'].sort(),
         );
@@ -395,18 +494,8 @@ describe('QuestGenerator (replSet)', () => {
                 (quest) => quest.requirements.minTitle === TitleType.legend,
             ),
         ).toEqual([]);
-        // quick 261111-enm: il posto a titolo resta ai soli boss, la enemy porta un posto senza titolo
-        for (const quest of created) {
-            expect(quest.requirements.requiredAdventurers).toEqual([
-                {
-                    title:
-                        quest.infos.type === QuestType.boss
-                            ? quest.requirements.minTitle
-                            : null,
-                    count: quest.requirements.requiredAdventurers[0].count,
-                },
-            ]);
-        }
+        // quick 261111-enm: posti a titolo ai soli boss, del rango e al più dell'inferiore (D-03, D-23)
+        expect(seatViolationsOf(created)).toEqual([]);
     });
 
     it('keeps every generated enemy quest on one seat within the budget (D-03, D-09)', async () => {
@@ -433,7 +522,7 @@ describe('QuestGenerator (replSet)', () => {
         expect(seatViolationsOf(created)).toEqual([]);
 
         for (const quest of created) {
-            const rank = quest.requirements.minTitle as GeneratedRank;
+            const rank = coverageOf(quest) as GeneratedRank;
             if (quest.infos.type === QuestType.boss) {
                 expect(quest.infos.enemies).toHaveLength(1);
                 expect(xpOf(quest)).toBeGreaterThan(RANK_XP_BANDS[rank].max);
@@ -594,7 +683,7 @@ describe('QuestGenerator (replSet)', () => {
         const [created] = (await generatedQuests()).filter((quest) =>
             quest.infos.markerLocation.equals(world.cities[0].poiIds[0]),
         );
-        expect(created.requirements.minTitle).toBe(TitleType.rookie);
+        expect(coverageOf(created)).toBe(TitleType.rookie);
     });
 
     it('creates nothing without generatable enemies (D-04)', async () => {
@@ -679,6 +768,8 @@ describe('QuestGenerator (replSet)', () => {
             { chance: new SequenceChance([], 0.05) },
         ).generate();
 
+        // il fallback basso apre anche il cancello del boss misto: i tiri nuovi sono in coda (D-23)
+        expect(seatViolationsOf(await generatedQuests())).toEqual([]);
         const offers = offeredPetsOf(await generatedQuests(), linked);
         expect(created).toBeGreaterThan(0);
         expect(offers).toHaveLength(created);
@@ -706,6 +797,8 @@ describe('QuestGenerator (replSet)', () => {
             { chance: new SequenceChance([], 0.12) },
         ).generate();
 
+        // il fallback basso apre anche il cancello del boss misto: i tiri nuovi sono in coda (D-23)
+        expect(seatViolationsOf(await generatedQuests())).toEqual([]);
         const offers = offeredPetsOf(await generatedQuests(), linked);
         expect(created).toBeGreaterThan(0);
         expect(offers).toHaveLength(created);
@@ -730,6 +823,8 @@ describe('QuestGenerator (replSet)', () => {
             { chance: new SequenceChance([], 0.05) },
         ).generate();
 
+        // il fallback basso apre anche il cancello del boss misto: i tiri nuovi sono in coda (D-23)
+        expect(seatViolationsOf(await generatedQuests())).toEqual([]);
         const offers = offeredPetsOf(await generatedQuests(), linked);
         expect(created).toBeGreaterThan(0);
         expect(offers).toHaveLength(created);
@@ -768,4 +863,381 @@ describe('QuestGenerator (replSet)', () => {
         expect(first).toHaveLength(8);
         expect(second).toEqual(first);
     });
+
+    describe('mixed bosses (D-03, D-23)', () => {
+        const MIXED_SEED = 7;
+
+        it('generates mixed bosses with the lower title only (D-03, D-23)', async () => {
+            await persistGenerationWorld(models, {
+                cities: 6,
+                poisPerCity: 5,
+            });
+
+            await generatorWith(
+                { target: 24 },
+                { chance: new SeededChanceSource(MIXED_SEED) },
+            ).generate();
+
+            const created = await generatedQuests();
+            const bosses = created.filter(
+                (quest) => quest.infos.type === QuestType.boss,
+            );
+            expect(seatViolationsOf(created)).toEqual([]);
+            expect(
+                bosses.filter(
+                    (boss) =>
+                        boss.requirements.requiredAdventurers.length === 2,
+                ).length,
+            ).toBeGreaterThan(0);
+            for (const boss of bosses) {
+                const seats = boss.requirements.requiredAdventurers;
+                const blocks = boss.prizes?.rankPrizes ?? [];
+                expect(blocks.map((block) => block.title)).toEqual(
+                    seats.map((seat) => seat.title),
+                );
+                expect(boss.requirements.minTitle).toBe(seats.at(-1)?.title);
+                const [highest] = blocks;
+                expect({
+                    prizeCoins: boss.prizes?.prizeCoins,
+                    xpPrize: boss.prizes?.xpPrize,
+                    randomLoot: boss.prizes?.randomLoot,
+                    pet: boss.prizes?.pet ?? null,
+                }).toEqual({
+                    prizeCoins: highest.prizeCoins,
+                    xpPrize: highest.xpPrize,
+                    randomLoot: highest.randomLoot,
+                    pet: highest.pet ?? null,
+                });
+                for (const block of blocks) {
+                    expect(block.spell ?? null).toBeNull();
+                    expect(block.cure ?? null).toBeNull();
+                }
+            }
+        });
+
+        it('keeps the enemies identical draw by draw (D-23)', async () => {
+            const world = await persistGenerationWorld(models, {
+                cities: 4,
+                poisPerCity: 3,
+                enemyXps: NO_BOSS_ENEMY_XPS,
+            });
+            const linked = await persistLinkedPets(models, world.enemyIds);
+
+            await generatorWith(
+                { target: 8 },
+                { chance: new SeededChanceSource(7) },
+            ).generate();
+
+            expect(await runSnapshotOf(world, linked)).toEqual(
+                ENEMY_RUN_BEFORE_MIXED_BOSSES,
+            );
+        });
+
+        it('counts a mixed boss on its highest seat title (D-23)', async () => {
+            await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
+            for (const title of [
+                TitleType.rookie,
+                TitleType.adventurer,
+                TitleType.mage,
+                TitleType.hero,
+            ]) {
+                await insertOpenGenerated(title);
+            }
+            await insertOpenMixedBoss();
+
+            await expect(generatorWith({ target: 6 }).generate()).resolves.toBe(
+                1,
+            );
+            // il boss misto conta come mage: il meno coperto è paladin, non rookie
+            const [first] = (await generatedQuests()).filter(
+                (quest) => quest.infos.title !== 'Test Quest',
+            );
+            expect(coverageOf(first)).toBe(TitleType.paladin);
+        });
+
+        it('never seeds blocks on hand written quests (D-06)', async () => {
+            await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
+            const base = buildQuest();
+            const handWritten = [
+                {
+                    ...base,
+                    infos: { ...base.infos, type: QuestType.worldMission },
+                    requirements: {
+                        ...base.requirements,
+                        minTitle: TitleType.paladin,
+                        requiredAdventurers: [
+                            { title: TitleType.mage, count: 2 },
+                            { title: TitleType.paladin, count: 1 },
+                        ],
+                    },
+                    concludedAt: null,
+                },
+                {
+                    ...base,
+                    infos: {
+                        ...base.infos,
+                        type: QuestType.boss,
+                        markerLocation: new Types.ObjectId(),
+                    },
+                    requirements: {
+                        ...base.requirements,
+                        minTitle: TitleType.hero,
+                        requiredAdventurers: [
+                            { title: TitleType.hero, count: 3 },
+                        ],
+                    },
+                    concludedAt: null,
+                },
+            ];
+            await quests.collection.insertMany(handWritten);
+            const handWrittenFilter = { generated: { $exists: false } };
+            const before = await quests.collection
+                .find(handWrittenFilter)
+                .sort({ _id: 1 })
+                .toArray();
+
+            await expect(
+                generatorWith({ target: 12 }).generate(),
+            ).resolves.toBeGreaterThan(0);
+
+            const after = await quests.collection
+                .find(handWrittenFilter)
+                .sort({ _id: 1 })
+                .toArray();
+            expect(before).toHaveLength(2);
+            expect(after).toEqual(before);
+        });
+    });
 });
+
+// corsa a seme 7 sul codice di PRIMA del boss misto (HEAD 9f7006d4, generatore non ancora cablato), mondo senza boss
+const ENEMY_RUN_BEFORE_MIXED_BOSSES: unknown[] = [
+    {
+        title: 'Minaccia: 1 Nemico 12 e 1 Nemico 8 presso Città 0',
+        type: 'enemy',
+        description:
+            'Qui parla il capitano della guardia di Città 0. Avvistati 1 Nemico 12 e 1 Nemico 8 nei dintorni: i miei uomini non bastano, servono avventurieri.',
+        poi: '0:0',
+        enemies: ['Nemico 12x1', 'Nemico 8x1'],
+        minTitle: 'rookie',
+        seats: [{ title: null, count: 1 }],
+        recommendedLoot: ['Spada commonx1', 'Pozione commonx1'],
+        prizeKeys: [
+            'cure',
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'spellDraw',
+            'xpPrize',
+        ],
+        prizeCoins: { gold: 0, silver: 1, copper: 50 },
+        xpPrize: 40,
+        randomLoot: ['Spada commonx1'],
+        pet: null,
+    },
+    {
+        title: 'Minaccia: 3 Nemico 8 presso Città 1',
+        type: 'enemy',
+        description:
+            'Le carovane dirette a Città 1 non arrivano più: 3 Nemico 8 assaltano chiunque passi sulla strada. Pagherò bene chi riaprirà la via.',
+        poi: '1:0',
+        enemies: ['Nemico 8x3'],
+        minTitle: 'adventurer',
+        seats: [{ title: null, count: 1 }],
+        recommendedLoot: [
+            'Spada commonx1',
+            'Spada uncommonx1',
+            'Pozione commonx1',
+        ],
+        prizeKeys: [
+            'cure',
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'spellDraw',
+            'xpPrize',
+        ],
+        prizeCoins: { gold: 0, silver: 3, copper: 0 },
+        xpPrize: 80,
+        randomLoot: ['Pane commonx1', 'Spada commonx1'],
+        pet: null,
+    },
+    {
+        title: 'Minaccia: 1 Nemico 45, 2 Nemico 8 e 1 Nemico 12 presso Città 2',
+        type: 'enemy',
+        description:
+            'Le carovane dirette a Città 2 non arrivano più: 1 Nemico 45, 2 Nemico 8 e 1 Nemico 12 assaltano chiunque passi sulla strada. Pagherò bene chi riaprirà la via.',
+        poi: '2:2',
+        enemies: ['Nemico 45x1', 'Nemico 8x2', 'Nemico 12x1'],
+        minTitle: 'paladin',
+        seats: [{ title: null, count: 1 }],
+        recommendedLoot: [
+            'Spada commonx1',
+            'Spada uncommonx1',
+            'Pozione commonx1',
+        ],
+        prizeKeys: [
+            'cure',
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'spellDraw',
+            'xpPrize',
+        ],
+        prizeCoins: { gold: 0, silver: 7, copper: 50 },
+        xpPrize: 200,
+        randomLoot: [
+            'Pozione uncommonx1',
+            'Spada commonx1',
+            'Pozione commonx1',
+        ],
+        pet: null,
+    },
+    {
+        title: 'Minaccia: 1 Nemico 8 e 5 Nemico 45 presso Città 1',
+        type: 'enemy',
+        description:
+            'Qui parla il capitano della guardia di Città 1. Avvistati 1 Nemico 8 e 5 Nemico 45 nei dintorni: i miei uomini non bastano, servono avventurieri.',
+        poi: '1:1',
+        enemies: ['Nemico 8x1', 'Nemico 45x5'],
+        minTitle: 'mage',
+        seats: [{ title: null, count: 1 }],
+        recommendedLoot: [
+            'Spada commonx1',
+            'Spada uncommonx1',
+            'Pozione commonx1',
+        ],
+        prizeKeys: [
+            'cure',
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'spellDraw',
+            'xpPrize',
+        ],
+        prizeCoins: { gold: 0, silver: 18, copper: 0 },
+        xpPrize: 480,
+        randomLoot: ['Pozione rarex1', 'Spada uncommonx1', 'Pane uncommonx1'],
+        pet: null,
+    },
+    {
+        title: 'Minaccia: 1 Nemico 8 e 1 Nemico 12 presso Città 3',
+        type: 'enemy',
+        description:
+            'Qui parla il capitano della guardia di Città 3. Avvistati 1 Nemico 8 e 1 Nemico 12 nei dintorni: i miei uomini non bastano, servono avventurieri.',
+        poi: '3:2',
+        enemies: ['Nemico 8x1', 'Nemico 12x1'],
+        minTitle: 'rookie',
+        seats: [{ title: null, count: 1 }],
+        recommendedLoot: ['Spada commonx1', 'Pozione commonx1'],
+        prizeKeys: [
+            'cure',
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'spellDraw',
+            'xpPrize',
+        ],
+        prizeCoins: { gold: 0, silver: 1, copper: 50 },
+        xpPrize: 40,
+        randomLoot: ['Spada commonx1', 'Pozione commonx1'],
+        pet: null,
+    },
+    {
+        title: 'Minaccia: Nemico 30 presso Città 2',
+        type: 'enemy',
+        description:
+            'Sono un contadino di Città 2: Nemico 30 razziano i nostri campi da giorni. Vi supplico, liberateci da questa minaccia prima del raccolto.',
+        poi: '2:0',
+        enemies: ['Nemico 30x1'],
+        minTitle: 'adventurer',
+        seats: [{ title: null, count: 1 }],
+        recommendedLoot: [
+            'Spada commonx1',
+            'Spada uncommonx1',
+            'Pozione commonx1',
+        ],
+        prizeKeys: [
+            'cure',
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'spellDraw',
+            'xpPrize',
+        ],
+        prizeCoins: { gold: 0, silver: 3, copper: 0 },
+        xpPrize: 80,
+        randomLoot: ['Pane commonx1'],
+        pet: null,
+    },
+    {
+        title: 'Minaccia: 4 Nemico 22 presso Città 0',
+        type: 'enemy',
+        description:
+            'Le carovane dirette a Città 0 non arrivano più: 4 Nemico 22 assaltano chiunque passi sulla strada. Pagherò bene chi riaprirà la via.',
+        poi: '0:1',
+        enemies: ['Nemico 22x4'],
+        minTitle: 'paladin',
+        seats: [{ title: null, count: 1 }],
+        recommendedLoot: [
+            'Spada commonx1',
+            'Spada uncommonx1',
+            'Pozione commonx1',
+        ],
+        prizeKeys: [
+            'cure',
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'spellDraw',
+            'xpPrize',
+        ],
+        prizeCoins: { gold: 0, silver: 7, copper: 50 },
+        xpPrize: 200,
+        randomLoot: ['Spada uncommonx1', 'Pozione commonx1', 'Pane commonx1'],
+        pet: null,
+    },
+    {
+        title: 'Minaccia: 8 Nemico 30 presso Città 3',
+        type: 'enemy',
+        description:
+            'Le carovane dirette a Città 3 non arrivano più: 8 Nemico 30 assaltano chiunque passi sulla strada. Pagherò bene chi riaprirà la via.',
+        poi: '3:1',
+        enemies: ['Nemico 30x8'],
+        minTitle: 'mage',
+        seats: [{ title: null, count: 1 }],
+        recommendedLoot: [
+            'Spada commonx1',
+            'Spada uncommonx1',
+            'Pozione commonx1',
+        ],
+        prizeKeys: [
+            'cure',
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'spellDraw',
+            'xpPrize',
+        ],
+        prizeCoins: { gold: 0, silver: 18, copper: 0 },
+        xpPrize: 480,
+        randomLoot: ['Pozione rarex1', 'Pane uncommonx1', 'Spada uncommonx1'],
+        pet: null,
+    },
+];
