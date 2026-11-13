@@ -26,6 +26,18 @@ export function rescueShareOf(turn: RescueTurn | null): number {
 const sharedAmountOf = (amount: number, share: number): number =>
     Math.floor(amount * share + SHARE_EPSILON);
 
+const isPositiveInteger = (value: unknown): value is number =>
+    isNonNegativeInteger(value) && value > 0;
+
+// la durata dell'aid in proporzione, per difetto al millisecondo (quick 261113-aql); mai sotto 1 ms se l'originale dura (0 vorrebbe dire nessuna attesa)
+export function sharedTimeOf(
+    time: number | null,
+    share: number,
+): number | null {
+    if (share >= 1 || !isPositiveInteger(time)) return time;
+    return Math.max(1, sharedAmountOf(time, share));
+}
+
 function sharedCoinsOf(coins: unknown, share: number): unknown {
     if (!isRecord(coins)) return coins;
     const copper = toCopper(coins as Partial<CoinPurse>);
