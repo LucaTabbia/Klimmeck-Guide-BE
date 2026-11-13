@@ -208,16 +208,20 @@ export class QuestResult {
     @Prop({ type: Number, default: null })
     stagesTotal?: number | null;
 
-    // turni della dungeon e dell'aid di dungeon (D-21), lastTurn 1-based: null altrove; sul filo dal piano 12
+    // turni della dungeon e dell'aid di dungeon (D-21), lastTurn 1-based: null altrove
+    @Field(() => Int, { nullable: true })
     @Prop({ type: Number, default: null })
     turnsTotal?: number | null;
 
+    @Field(() => Int, { nullable: true })
     @Prop({ type: Number, default: null })
     turnsCompleted?: number | null;
 
+    @Field(() => Int, { nullable: true })
     @Prop({ type: Number, default: null })
     lastTurn?: number | null;
 
+    @Field(() => DungeonTurnKind, { nullable: true })
     @Prop({
         type: String,
         enum: [...Object.values(DungeonTurnKind), null],
