@@ -933,6 +933,54 @@ describe('QuestGenerator (replSet)', () => {
             );
         });
 
+        // mondo con candidati boss a seme fisso: cancello, proporzione e premi del titolo inferiore in coda alla quest; spostarne uno cambia posti, blocchi e numero di tiri
+        it('pins the draws of a mixed boss at the tail of its quest (A-IN-02, D-23)', async () => {
+            const world = await persistGenerationWorld(models, {
+                cities: 6,
+                poisPerCity: 5,
+            });
+            const seeded = new SeededChanceSource(MIXED_SEED);
+            let draws = 0;
+            const counting = new (class extends ChanceSource {
+                next(): number {
+                    draws += 1;
+                    return seeded.next();
+                }
+            })();
+
+            await generatorWith(
+                { target: 24 },
+                { chance: counting },
+            ).generate();
+
+            const names = await namesById();
+            const assetsOf = (assets: readonly LeanAsset[] = []) =>
+                assets.map(
+                    (asset) =>
+                        `${names.get(asset.item.toHexString())}x${asset.quantity}`,
+                );
+            const poiOf = (poi: Types.ObjectId): string => {
+                const cityIndex = world.cities.findIndex((city) =>
+                    city.poiIds.some((id) => id.equals(poi)),
+                );
+                return `${cityIndex}:${world.cities[cityIndex].poiIds.findIndex((id) => id.equals(poi))}`;
+            };
+            const bosses = (await generatedQuests())
+                .filter((quest) => quest.infos.type === QuestType.boss)
+                .map((boss) => ({
+                    poi: poiOf(boss.infos.markerLocation),
+                    seats: boss.requirements.requiredAdventurers,
+                    blocks: (boss.prizes?.rankPrizes ?? []).map((block) => ({
+                        title: block.title,
+                        prizeCoins: block.prizeCoins,
+                        xpPrize: block.xpPrize,
+                        randomLoot: assetsOf(block.randomLoot),
+                        pet: block.pet != null,
+                    })),
+                }));
+            expect({ draws, bosses }).toEqual(MIXED_BOSS_RUN);
+        });
+
         it('counts a mixed boss on its highest seat title (D-23)', async () => {
             await persistGenerationWorld(models, { cities: 4, poisPerCity: 3 });
             for (const title of [
@@ -1241,3 +1289,91 @@ const ENEMY_RUN_BEFORE_MIXED_BOSSES: unknown[] = [
         pet: null,
     },
 ];
+
+// corsa a seme 7 su un mondo con candidati boss (A-IN-02): i boss generati con posti e blocchi e il numero dei tiri della corsa
+const MIXED_BOSS_RUN: unknown = {
+    draws: 284,
+    bosses: [
+        {
+            poi: '5:3',
+            seats: [{ title: 'adventurer', count: 2 }],
+            blocks: [
+                {
+                    title: 'adventurer',
+                    prizeCoins: { gold: 0, silver: 12, copper: 0 },
+                    xpPrize: 240,
+                    randomLoot: [
+                        'Pozione uncommonx1',
+                        'Pozione commonx1',
+                        'Pane commonx1',
+                        'Spada commonx1',
+                    ],
+                    pet: false,
+                },
+            ],
+        },
+        {
+            poi: '0:1',
+            seats: [
+                { title: 'paladin', count: 2 },
+                { title: 'adventurer', count: 1 },
+            ],
+            blocks: [
+                {
+                    title: 'paladin',
+                    prizeCoins: { gold: 0, silver: 30, copper: 0 },
+                    xpPrize: 600,
+                    randomLoot: [
+                        'Pozione rarex1',
+                        'Pane uncommonx1',
+                        'Pozione uncommonx1',
+                        'Pane commonx1',
+                        'Spada commonx1',
+                        'Pozione commonx1',
+                    ],
+                    pet: false,
+                },
+                {
+                    title: 'adventurer',
+                    prizeCoins: { gold: 0, silver: 12, copper: 0 },
+                    xpPrize: 240,
+                    randomLoot: [
+                        'Pane uncommonx1',
+                        'Pane commonx1',
+                        'Pozione commonx1',
+                        'Spada commonx1',
+                    ],
+                    pet: false,
+                },
+            ],
+        },
+        {
+            poi: '3:2',
+            seats: [
+                { title: 'adventurer', count: 3 },
+                { title: 'rookie', count: 2 },
+            ],
+            blocks: [
+                {
+                    title: 'adventurer',
+                    prizeCoins: { gold: 0, silver: 12, copper: 0 },
+                    xpPrize: 240,
+                    randomLoot: [
+                        'Spada uncommonx1',
+                        'Pozione commonx1',
+                        'Spada commonx1',
+                        'Pane commonx1',
+                    ],
+                    pet: false,
+                },
+                {
+                    title: 'rookie',
+                    prizeCoins: { gold: 0, silver: 6, copper: 0 },
+                    xpPrize: 120,
+                    randomLoot: ['Spada commonx1', 'Pozione commonx1'],
+                    pet: false,
+                },
+            ],
+        },
+    ],
+};
