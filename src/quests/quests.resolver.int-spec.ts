@@ -80,6 +80,8 @@ const QUESTS_VIEWER_PRIZES = `query { quests { id ${VIEWER_PRIZE_FIELDS} } }`;
 const QUEST_VIEWER_PRIZES = `query Quest($id: String!) { quest(id: $id) { id ${VIEWER_PRIZE_FIELDS} } }`;
 const QUESTS_RANK_PRIZES =
     'query { quests { id rankPrizes { title prizes { xpPrize } } } }';
+const QUESTS_MIXED_LOOT =
+    'query { quests { id prizes { randomLoot { quantity item { __typename ... on EquipmentItem { id } ... on LootItem { id } } } } } }';
 const QUESTS_SOLO_PRIZES =
     'query { quests { id prizes { xpPrize randomLoot { quantity } } } }';
 const PENDING_QUEST_PRIZES =
@@ -1108,6 +1110,68 @@ describe('quest catalog (wire)', () => {
                 randomLoot: [],
                 pet: null,
             });
+        });
+
+        // forma del boss misto generato: due blocchi pieni, oggetti misti, una voce orfana accanto a una sorella che resta
+        it('populates two full blocks of mixed items for viewers of each title (A-IN-01, D-05, D-23)', async () => {
+            const mage = await titledPlayer('mixed-mage', 'mage');
+            const paladin = await titledPlayer('mixed-paladin', 'paladin');
+            const entry = (
+                itemType: string,
+                item: unknown,
+                quantity: number,
+            ) => ({ itemType, item, quantity });
+            const boss = await persistCatalogQuest({
+                infos: { type: 'boss' },
+                requirements: {
+                    ...buildQuest().requirements,
+                    minTitle: 'paladin',
+                    requiredAdventurers: [
+                        { title: 'mage', count: 1 },
+                        { title: 'paladin', count: 1 },
+                    ],
+                },
+                prizes: {
+                    ...buildQuest().prizes,
+                    rankPrizes: [
+                        blockOf('mage', 300, {
+                            randomLoot: [
+                                entry('EquipmentItem', sword._id, 1),
+                                entry('LootItem', new Types.ObjectId(), 1),
+                                entry('LootItem', loot._id, 2),
+                            ],
+                        }),
+                        blockOf('paladin', 150, {
+                            randomLoot: [
+                                entry('LootItem', loot._id, 3),
+                                entry('EquipmentItem', sword._id, 1),
+                            ],
+                        }),
+                    ],
+                },
+            });
+            const lootOf = async (viewerBearer: string) =>
+                (
+                    await boardOf<{
+                        id: string;
+                        prizes: { randomLoot: unknown[] };
+                    }>(QUESTS_MIXED_LOOT, viewerBearer)
+                ).find((quest) => quest.id === String(boss._id))?.prizes
+                    .randomLoot;
+            const equipment = {
+                __typename: 'EquipmentItem',
+                id: String(sword._id),
+            };
+            const lootItem = { __typename: 'LootItem', id: String(loot._id) };
+
+            expect(await lootOf(mage.bearer)).toEqual([
+                { quantity: 1, item: equipment },
+                { quantity: 2, item: lootItem },
+            ]);
+            expect(await lootOf(paladin.bearer)).toEqual([
+                { quantity: 3, item: lootItem },
+                { quantity: 1, item: equipment },
+            ]);
         });
 
         it('shows the minimum title block to a viewer without a character (D-18)', async () => {
