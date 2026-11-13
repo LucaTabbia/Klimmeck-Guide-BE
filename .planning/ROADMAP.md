@@ -192,7 +192,7 @@ Plans:
 - [x] 21-10-PLAN.md — Il soccorritore percorre i turni dell'aid di dungeon
 - [x] 21-11-PLAN.md — Premio proporzionale ai turni completati
 - [x] 21-12-PLAN.md — Premio per viewer, blocchi e turni sul filo
-- [ ] 21-13-PLAN.md — Gate della fase
+- [x] 21-13-PLAN.md — Gate della fase
 - [ ] 21-14-PLAN.md — Chiusura della fase
 
 ## Backend ↔ Frontend alignment (v1.1)
@@ -235,7 +235,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
-| 21. Premi per rango e soccorsi | v1.1 | 12/14 | In Progress | - |
+| 21. Premi per rango e soccorsi | v1.1 | 13/14 | In Progress | - |
 
 ---
 
