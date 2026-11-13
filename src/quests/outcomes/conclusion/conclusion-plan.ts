@@ -39,7 +39,7 @@ const unrewardedInputOf = (
     ...overrides,
 });
 
-// l'evento vale solo per la quest vinta (quick 261110-cgd): una sconfitta resta quella di sempre, con la aid
+// l'evento vale solo per la quest vinta (quick 261110-cgd): una sconfitta passa da planCombatant, senza aid per crime e guard (D-19)
 export function planConclusion(input: ConclusionPlanInput): CombatantPlan {
     const { event, battle } = input;
     if (!event || battle?.verdict === 'failure') return planCombatant(input);

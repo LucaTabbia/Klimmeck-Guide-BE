@@ -3,6 +3,7 @@ import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { refIdOf } from 'src/mongo/document-id';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { prizeBlockFor } from 'src/quests/prizes/rank-prizes';
+import { opensAid } from './aid/aid-opening';
 import type { ChanceSource } from './chance-source';
 import { buildCombatContext } from './combat/combat-context';
 import type {
@@ -11,6 +12,7 @@ import type {
     CombatVerdict,
     ParticipantEffects,
 } from './combat/combat-resolver';
+import { planDefeatWithoutAid } from './defeat-without-aid';
 import type { DungeonResolution } from './dungeon/dungeon-resolver';
 import {
     type DungeonStages,
@@ -122,7 +124,7 @@ export function dungeonBattleOf(
     };
 }
 
-// calcolo puro dentro il callback: la sconfitta apre la aid riferita alla quest originale (D-06..D-09)
+// calcolo puro dentro il callback: la sconfitta apre la aid riferita alla quest originale solo per i tipi di soccorso (D-06..D-09, D-19)
 export function planCombatant(input: CombatantPlanInput): CombatantPlan {
     const { quest, catalog, snapshot, battle } = input;
     const verdict =
@@ -130,6 +132,23 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
             ? QuestOutcome.failure
             : QuestOutcome.success;
     const won = verdict === QuestOutcome.success;
+    if (!won && !opensAid(quest.infos?.type)) {
+        return {
+            plan: planDefeatWithoutAid({
+                resultId: input.resultId,
+                snapshot,
+                quest,
+                pendingQuestId: input.pendingQuestId,
+                userId: input.userId,
+                battle: battle?.effects ?? null,
+                enemies: enemyFactsOf(catalog),
+                spellRecoveryTimes: catalog.recoveryTimes,
+                now: input.now,
+            }),
+            verdict: QuestOutcome.failure,
+            aid: null,
+        };
+    }
     const aid = won
         ? null
         : {

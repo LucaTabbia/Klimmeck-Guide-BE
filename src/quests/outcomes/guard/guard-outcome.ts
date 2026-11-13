@@ -12,15 +12,24 @@ import type {
 import { woundsAfter } from '../outcome-plan';
 import { MIN_LIFE_POINTS } from '../progression/level-table';
 import type { PrizesSnapshot } from '../rewards/quest-rewards';
-import { planUnrewarded, type UnrewardedPlanInput } from '../unrewarded-plan';
+import {
+    planUnrewarded,
+    type UnrewardedConclusion,
+    type UnrewardedPlanInput,
+} from '../unrewarded-plan';
 
 const GUARD_COIN_MULTIPLIER = 2;
 
+// vita a 1 in città, nessuna moneta tolta né campo in più: lo scontro di guardia perso e la sconfitta senza soccorso (D-19)
+export const ONE_LIFE_POINT_CONCLUSION: Omit<UnrewardedConclusion, 'result'> = {
+    lifePointsAfter: () => MIN_LIFE_POINTS,
+    extraSet: {},
+    coinsDelta: 0,
+};
+
 export function planGuardDefeat(input: UnrewardedPlanInput): ParticipantPlan {
     return planUnrewarded(input, {
-        lifePointsAfter: () => MIN_LIFE_POINTS,
-        extraSet: {},
-        coinsDelta: 0,
+        ...ONE_LIFE_POINT_CONCLUSION,
         result: { arrested: false, coinsLost: null, guardEncounter: true },
     });
 }
