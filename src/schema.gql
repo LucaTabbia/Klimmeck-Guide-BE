@@ -615,6 +615,7 @@ type Quest {
   infos: QuestInfos!
   noEffect: Boolean!
   prizes: QuestPrizes!
+  rankPrizes: [QuestRankPrizes!]!
   registeredAdventurers: [QuestRegistration!]!
   requirements: QuestRequirements!
 }
@@ -661,6 +662,11 @@ type QuestPrizes {
   randomLoot: [AssetQuantity!]!
   spell: Spell
   xpPrize: Int
+}
+
+type QuestRankPrizes {
+  prizes: QuestPrizes!
+  title: String!
 }
 
 type QuestRegistration {
