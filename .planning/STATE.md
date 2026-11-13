@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
-status: completed
-stopped_at: "Phase 20 completa (11/11, UAT su device passata il 2026-11-13) — PR #35 da togliere dal draft e mergiare su `develop`"
+status: planning
+stopped_at: "Phase 21 in pianificazione (ramo riallineato a develop il 2026-11-13)"
 last_updated: "2026-11-12T23:01:28.000Z"
-last_activity: 2026-11-13 -- Phase 20 completa (riavvio reale dal ramo, UAT su device passi 1–6 pass)
+last_activity: 2026-11-13 -- Phase 20 in develop (PR #35), Phase 21 in pianificazione
 progress:
   total_phases: 4
   completed_phases: 2
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 20 — Cibo e vita progressivi in viaggio (solo BE) — eseguita (11/11) su `feat/20-cibo-e-vita-progressivi` (da `develop`): codice, fix della review e handoff `BACKEND-NOTES.md` completi; restano all'orchestratore `test:cov`, verifica e audit di sicurezza, riavvio del BE dal ramo, UAT su device e PR verso `develop`
+**Current focus:** Phase 21 — Premi per rango e soccorsi (↔ FE Phase 20) — IN PIANIFICAZIONE dal 13 novembre 2026 su `feat/21-premi-per-rango-e-soccorsi` (riallineato a `develop` `1f9db973` con una merge); la Phase 20 è chiusa e in `develop` (PR #35)
 
 ## Current Position
 
-Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
-Phase: 20 di 22 (Cibo e vita progressivi in viaggio) — contesto del 2026-11-09 (D-01..D-12) emendato il 2026-11-12 dopo la ricerca (D-13..D-19), `20-REPO-RULES.md`, `20-RESEARCH.md`, `20-VALIDATION.md`, 11 piani scritti il 2026-11-12
-Plan: 11 of 11
-Status: Phase 20 complete — 11/11, review, verifica, audit, riavvio reale e UAT su device chiusi; PR #35 draft verso `develop`
-Last activity: 2026-11-13 -- Phase 20 completa (riavvio reale dal ramo, UAT su device passi 1–6 pass)
-Next step: PR #35 fuori dal draft e merge su `develop` (dell'utente); poi le Phase 21 e 22 (contesti sui rami `feat/21-…` e `feat/22-…`) da pianificare con le FE Phase 20 e 21. Il BE locale gira dal ramo della Phase 20 sulla porta 3001.
+Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
+Phase: 21 di 22 (Premi per rango e soccorsi) — contesto del 2026-11-12 (D-01..D-17, discuss fatto nella FE Phase 20); ricerca e piani in corso
+Plan: 0 of 0
+Status: Phase 21 — planning (ricerca, regole di repo, validazione, piani); la FE Phase 20 si pianifica nella stessa sessione
+Last activity: 2026-11-13 -- Phase 20 in develop (PR #35), Phase 21 in pianificazione
+Next step: chiudere `/gsd-plan-phase 21` (ricerca → emendamento del contesto → piani → plan-checker), poi `/gsd-execute-phase 21`; la Phase 22 (contesto sul ramo `feat/22-…`, impilato sul 21) resta da pianificare con la FE Phase 21. Il BE locale gira da `dist/` del ramo della Phase 20 sulla porta 3001: nessuna build durante il lavoro.
 
 ## Current Milestone
 
