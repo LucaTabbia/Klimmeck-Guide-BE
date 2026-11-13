@@ -54,9 +54,57 @@ describe('groupPrizeViolationsOf', () => {
                 questOf(QuestType.boss, seats, [{ title: TitleType.mage }]),
             ),
         ).toEqual(['seatWithoutBlock']);
-        expect(groupPrizeViolationsOf(questOf(QuestType.boss, seats))).toEqual(
-            [],
-        );
+    });
+
+    // un boss legacy a titolo unico vale il premio unico del minTitle (D-28); a più titoli senza blocchi tutti prendono lo stesso premio
+    it('reports a quest of many seat titles without blocks, never a single title one (A-IN-03, D-24, D-28)', () => {
+        const seats = [
+            { title: TitleType.mage, count: 1 },
+            { title: TitleType.paladin, count: 1 },
+        ];
+
+        expect(groupPrizeViolationsOf(questOf(QuestType.boss, seats))).toEqual([
+            'seatWithoutBlock',
+        ]);
+        expect(
+            groupPrizeViolationsOf(
+                questOf(QuestType.boss, [{ title: TitleType.mage, count: 3 }]),
+            ),
+        ).toEqual([]);
+    });
+
+    it('reports the blocks the quest discards: invalid title or repeated title (A-IN-03, D-18, D-24)', () => {
+        const seats = [{ title: TitleType.mage, count: 2 }];
+
+        expect(
+            groupPrizeViolationsOf(
+                questOf(QuestType.boss, seats, [
+                    { title: TitleType.mage },
+                    { title: 'Mage' },
+                ]),
+            ),
+        ).toEqual(['invalidBlock']);
+        expect(
+            groupPrizeViolationsOf(
+                questOf(QuestType.boss, seats, [
+                    { title: TitleType.mage },
+                    null,
+                ]),
+            ),
+        ).toEqual(['invalidBlock']);
+        expect(
+            groupPrizeViolationsOf(
+                questOf(QuestType.boss, seats, [
+                    { title: TitleType.mage, xpPrize: 1 },
+                    { title: TitleType.mage, xpPrize: 2 },
+                ]),
+            ),
+        ).toEqual(['invalidBlock']);
+        expect(
+            groupPrizeViolationsOf(
+                questOf(QuestType.boss, seats, [{ title: TitleType.mage }]),
+            ),
+        ).toEqual([]);
     });
 
     it('reports a spell in a block below mage (D-05c, D-24)', () => {
@@ -94,6 +142,7 @@ describe('groupPrizeViolationsOf', () => {
             [
                 { title: TitleType.mage },
                 { title: TitleType.adventurer, spell: SPELL },
+                { title: 'Legend' },
             ],
         );
 
@@ -101,6 +150,7 @@ describe('groupPrizeViolationsOf', () => {
             'nullSeat',
             'seatWithoutBlock',
             'spellBelowMage',
+            'invalidBlock',
         ]);
     });
 
