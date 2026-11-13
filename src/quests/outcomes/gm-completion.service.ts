@@ -51,6 +51,7 @@ import {
     ResolutionLoader,
     type ResolutionQuest,
 } from './resolution-loader.service';
+import { prizeBlockFor } from '../prizes/rank-prizes';
 import { drawRewards } from './rewards/quest-rewards';
 import { victoryKnowledgeOf } from './victory-knowledge';
 
@@ -312,8 +313,9 @@ export class GmCompletionService {
                         enemies: enemyFactsOf(catalog),
                         // gmCompleted con nemici insegna come un success (Phase 16 D-06, C-1): stesso predicato dell'xp dei nemici
                         victory: victoryKnowledgeOf(catalog),
+                        // il blocco del titolo del partecipante letto in sessione (D-04, D-18)
                         rewards: drawRewards(
-                            quest.prizes,
+                            prizeBlockFor(quest, snapshot.status.title),
                             catalog.rewards,
                             this.chance,
                         ),

@@ -55,7 +55,7 @@ import {
 } from './outcome-plan';
 import { StaleResolution } from './outcome-writer.service';
 import { isPetXpCap } from './pets/pet-xp';
-import { prizeBlocksOf } from '../prizes/rank-prizes';
+import { prizeBlocksOf, type RankPrizesHolder } from '../prizes/rank-prizes';
 import { type QuestEnemyRef, validQuestEnemiesOf } from './quest-enemies';
 import {
     type PrizesSnapshot,
@@ -81,7 +81,8 @@ export type LaneCharacter<L extends QuestLane> = ResolutionCharacter & {
 
 export type ResolutionQuest = OutcomeQuestSnapshot &
     AidSourceQuest & {
-        prizes?: PrizesSnapshot | null;
+        // i campi di oggi più i blocchi per titolo delle quest di gruppo (D-01)
+        prizes?: RankPrizesHolder['prizes'];
         concludedAt?: Date | null;
         startedAt?: Date | null;
         generated?: unknown;

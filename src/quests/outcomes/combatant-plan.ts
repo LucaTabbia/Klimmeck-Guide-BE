@@ -2,6 +2,7 @@ import type { Types } from 'mongoose';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { refIdOf } from 'src/mongo/document-id';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
+import { prizeBlockFor } from 'src/quests/prizes/rank-prizes';
 import type { ChanceSource } from './chance-source';
 import { buildCombatContext } from './combat/combat-context';
 import type {
@@ -146,8 +147,13 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
         battle: battle?.effects ?? null,
         enemies: enemyFactsOf(catalog),
         victory: victoryKnowledgeOf(catalog),
+        // il blocco del titolo del personaggio letto in sessione, non del posto (D-04, D-18)
         rewards: won
-            ? drawRewards(quest.prizes, catalog.rewards, input.chance)
+            ? drawRewards(
+                  prizeBlockFor(quest, snapshot.status.title),
+                  catalog.rewards,
+                  input.chance,
+              )
             : NO_REWARDS,
         aid,
         spellRecoveryTimes: catalog.recoveryTimes,

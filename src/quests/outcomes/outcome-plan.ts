@@ -376,8 +376,9 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         xpEarned,
         hpFought,
     );
-    // la cura è un premio della quest vinta, qualunque sia il tipo (Phase 18 D-07): dopo il combattimento e dopo la progressione (D-20)
-    const cure = won ? cureOf(quest.prizes?.cure) : null;
+    // la cura è un premio della quest vinta, qualunque sia il tipo (Phase 18 D-07): dopo il combattimento e dopo la progressione (D-20);
+    // viaggia col blocco tirato per il titolo, mai riletta dalla quest (D-05)
+    const cure = won ? cureOf(rewards.cure) : null;
     const fought = woundsAfter(
         snapshot.status.injuries ?? [],
         battle?.injuriesAdded ?? [],

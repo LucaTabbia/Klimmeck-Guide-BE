@@ -68,6 +68,8 @@ export interface DrawnRewards {
     // lore collegate al pet vinto, vuota senza pet (Phase 19 D-26)
     petLore: Types.ObjectId[];
     loreDraw: LoreDraw | null;
+    // cura del blocco tirato, non validata e senza tiri: la sanifica cureOf in planParticipant (D-05)
+    cure: unknown;
 }
 
 export interface RewardCatalog {
@@ -100,6 +102,7 @@ export const NO_REWARDS: DrawnRewards = {
     petLifePoints: null,
     petLore: [],
     loreDraw: null,
+    cure: null,
 };
 
 // «un 20% può andare bene» (D-21)
@@ -281,6 +284,7 @@ export function drawRewards(
         petLifePoints: pet ? catalog.pets.get(pet.toHexString()) : null,
         petLore: [...((pet && catalog.petLore?.get(pet.toHexString())) ?? [])],
         loreDraw,
+        cure: prizes.cure ?? null,
     };
 }
 
