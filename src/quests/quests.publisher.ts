@@ -44,8 +44,14 @@ function sourceIdOf(aid: unknown): string | undefined {
     )?.toHexString();
 }
 
-function concludes(change: ChangeStreamEvent): boolean {
-    return change.updateDescription?.updatedFields?.concludedAt != null;
+// ogni cambio della conclusione conta, anche il ritorno a nullo o la rimozione scritti a mano in UAT; un replace non dice cosa cambia
+function touchesConclusion(change: ChangeStreamEvent): boolean {
+    if (change.operationType === 'replace') return true;
+    const { updatedFields, removedFields } = change.updateDescription ?? {};
+    return (
+        (updatedFields != null && 'concludedAt' in updatedFields) ||
+        (removedFields ?? []).includes('concludedAt')
+    );
 }
 
 // contatore del party in tempo reale (utente 2026-10-26: "il counter degli avventurieri mancanti deve aggiornarsi nel momento in cui qualcuno accetta la missione"):
@@ -76,14 +82,14 @@ export class QuestsPublisher extends ChangeStreamPublisher<QuestDocument> {
         const questId = documentIdOf(change.documentKey);
         if (!questId) return;
         this.reads.request(questId);
-        if (concludes(change)) void this.republishSourceOf(questId);
+        if (touchesConclusion(change)) void this.republishSourceOf(questId);
     }
 
     private republish(questId: string | undefined): void {
         if (questId) this.reads.request(questId);
     }
 
-    // solo le conclusioni: una lettura dell'aid per prendere la sua quest d'origine; le altre quest concluse non ne hanno
+    // solo i cambi della conclusione: una lettura dell'aid per prendere la sua quest d'origine; le altre quest non ne hanno
     private async republishSourceOf(questId: string): Promise<void> {
         try {
             const aid = await this.questModel

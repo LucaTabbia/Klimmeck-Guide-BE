@@ -13,7 +13,10 @@ export interface ChangeStreamEvent {
     operationType?: string;
     documentKey?: unknown;
     fullDocument?: unknown;
-    updateDescription?: { updatedFields?: Record<string, unknown> | null };
+    updateDescription?: {
+        updatedFields?: Record<string, unknown> | null;
+        removedFields?: string[] | null;
+    };
     clusterTime?: mongo.Timestamp;
 }
 
