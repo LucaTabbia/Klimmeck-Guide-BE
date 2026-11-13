@@ -6,6 +6,7 @@ import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { durationMsOf } from 'src/travel/travel-timing';
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
+import { ambushFoodOf, withFoodSettlement } from './ambush-food';
 import type { AmbushIdentity } from './ambush-job';
 import {
     type AmbushCharacterSnapshot,
@@ -603,5 +604,162 @@ describe('ambush defeat plan', () => {
             'to',
         ]);
         expect(defeat.travelAfter.ambush).toBeNull();
+    });
+});
+
+describe('progressive food in the ambush plan (Phase 20)', () => {
+    const F20 = new Types.ObjectId('64b000000000000000000020');
+    const catalog = [{ _id: F20, power: 20 }];
+    const ROAD_KM = 400;
+    const FOOD_DURATION = 144_000_000;
+    const FOOD_PLAN = {
+        needed: 800,
+        uncoveredKm: 120,
+        coveredKm: 280,
+        hpLostTotal: 7260,
+        settledKm: 0,
+        foodConsumedAt: null,
+    };
+    const f20 = (quantity: number) => ({
+        itemType: 'LootItem' as const,
+        item: F20,
+        quantity,
+    });
+    const atKm = (km: number) =>
+        new Date(START.getTime() + (FOOD_DURATION * km) / ROAD_KM);
+    const foodIdentityAt = (km: number): AmbushIdentity => ({
+        characterId: CHARACTER_ID,
+        startTime: START,
+        at: atKm(km),
+    });
+    const foodNowAt = (km: number) => new Date(atKm(km).getTime() + 60_000);
+    const rawAt = (km: number, food: unknown = FOOD_PLAN) =>
+        snapshotWith(
+            {
+                activeTravel: {
+                    ...travel,
+                    road: { ...travel.road, distance: ROAD_KM },
+                    endTime: new Date(START.getTime() + FOOD_DURATION),
+                    duration: FOOD_DURATION,
+                    ambush: { at: atKm(km), km, attempts: 0 },
+                    ...(food === null ? {} : { food }),
+                },
+            },
+            { ownedItems: [f20(28)] },
+        );
+    const foodDetour: DetourDraft = {
+        road: { coordinates: [[0, 1]], distance: 0 },
+        to: CROCEVIA_ID,
+        reachedCity: { id: CROCEVIA_ID, name: 'Crocevia' },
+        baseHours: 0,
+        residualMs: null,
+        petSpeed: 10,
+    };
+    const foodInputAt = (
+        km: number,
+        overrides: Partial<AmbushPlanInput> = {},
+    ): AmbushPlanInput => {
+        const raw = rawAt(km);
+        const now = foodNowAt(km);
+        const food = ambushFoodOf({ snapshot: raw, catalog, now });
+        return inputWith({
+            snapshot: withFoodSettlement(raw, food?.progress ?? null),
+            identity: foodIdentityAt(km),
+            effects: null,
+            food,
+            now,
+            ...overrides,
+        });
+    };
+    const lostAt = (km: number) =>
+        foodInputAt(km, { verdict: 'failure', detour: foodDetour });
+    const foodKeysOf = (record: Record<string, unknown>) =>
+        Object.keys(record).filter((key) =>
+            key.startsWith('status.activeTravel.food'),
+        );
+
+    it('writes the settled kilometre and the boundary meal with a won ambush (D-07, D-16)', () => {
+        const { $set } = planAmbushOutcome(foodInputAt(290)).update;
+
+        expect($set['status.activeTravel.food.settledKm']).toBe(290);
+        expect($set['status.activeTravel.food.foodConsumedAt']).toEqual(
+            foodNowAt(290),
+        );
+        expect($set['assets.ownedItems']).toEqual([]);
+    });
+
+    it('reports the life at the ambush kilometre, hunger included (D-18)', () => {
+        const won = planAmbushOutcome(foodInputAt(290));
+
+        expect(won.report.hpBefore).toBe(945);
+        expect(won.update.$set['status.currentLifePoints']).toBe(945);
+    });
+
+    it('keeps the saved plan untouched on a victory inside the covered stretch (D-07)', () => {
+        const { $set } = planAmbushOutcome(foodInputAt(30)).update;
+
+        expect(foodKeysOf($set)).toEqual([]);
+        expect($set['assets.ownedItems']).toEqual([f20(28)]);
+    });
+
+    it('eats the meal of the travelled kilometres on a defeat and drops the plan (D-03, D-04)', () => {
+        const { $set } = planAmbushOutcome(lostAt(30)).update;
+
+        expect($set['assets.ownedItems']).toEqual([f20(25)]);
+        expect(
+            Object.keys($set['status.activeTravel'] as Record<string, unknown>),
+        ).not.toContain('food');
+        expect(foodKeysOf($set)).toEqual([]);
+    });
+
+    it('eats nothing more on a defeat past the boundary meal (D-03)', () => {
+        const { $set } = planAmbushOutcome(lostAt(290)).update;
+
+        expect($set['assets.ownedItems']).toEqual([]);
+    });
+
+    it('guards the settled kilometre, the pending meal, the life and the eaten food (D-14)', () => {
+        const { filter } = planAmbushOutcome(foodInputAt(290));
+
+        expect(filter).toEqual({
+            ...ambushFilter(foodIdentityAt(290), foodNowAt(290)),
+            'status.xp': 0,
+            'status.activeTravel.food.settledKm': 0,
+            'status.activeTravel.food.foodConsumedAt': null,
+            $and: [
+                {
+                    'assets.ownedItems': {
+                        $elemMatch: {
+                            item: { $in: [F20, F20.toHexString()] },
+                            quantity: { $gte: 28 },
+                        },
+                    },
+                },
+                { 'status.currentLifePoints': 1000 },
+            ],
+        });
+    });
+
+    it('writes and guards no food path for a legacy travel (D-11)', () => {
+        const legacyInputs = [null, undefined].flatMap((food) =>
+            [rawAt(290), rawAt(290, null)].flatMap((snapshot) => [
+                foodInputAt(290, { snapshot, food }),
+                foodInputAt(290, {
+                    snapshot,
+                    food,
+                    verdict: 'failure',
+                    detour: foodDetour,
+                }),
+            ]),
+        );
+
+        for (const input of legacyInputs) {
+            const outcome = planAmbushOutcome(input);
+            expect(foodKeysOf(outcome.update.$set)).toEqual([]);
+            expect(outcome.filter).toEqual({
+                ...ambushFilter(foodIdentityAt(290), foodNowAt(290)),
+                'status.xp': 0,
+            });
+        }
     });
 });

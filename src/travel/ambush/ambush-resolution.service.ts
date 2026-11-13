@@ -50,10 +50,17 @@ import { WalletService } from 'src/economy/wallet.service';
 import { gameDistanceKm } from 'src/roads/game-distance';
 import type { LonLat, RouteTarget } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
+import {
+    curveChangeMessageOf,
+    curveChangeOf,
+    type FoodCurveChange,
+} from '../food/food-curve-change';
+import { TravelPantryReader } from '../food/travel-pantry.reader';
 import { TravelPlanner } from '../travel-planner.service';
 import { TravelScheduler } from '../travel-scheduler.service';
 import { detourFallbacksOf, residualDetourOf } from './ambush-detour';
 import type { DrawnAmbush } from './ambush-draw';
+import { ambushFoodOf, withFoodSettlement } from './ambush-food';
 import { type AmbushIdentity, ambushJobId } from './ambush-job';
 import {
     type AmbushCharacterSnapshot,
@@ -198,6 +205,7 @@ export class AmbushResolutionService {
         private readonly travelPlanner: TravelPlanner,
         private readonly push: PushService,
         private readonly clock: Clock,
+        private readonly pantry: TravelPantryReader,
     ) {}
 
     async resolve(identity: AmbushIdentity): Promise<AmbushOutcome> {
@@ -407,11 +415,15 @@ export class AmbushResolutionService {
     private async fight(fight: Fight): Promise<AmbushOutcome> {
         const { identity, jobId, catalog, now } = fight;
         const resultId = new Types.ObjectId();
-        const outcome: { plan: AmbushOutcomePlan | null } = { plan: null };
+        const outcome: {
+            plan: AmbushOutcomePlan | null;
+            curve: FoodCurveChange | null;
+        } = { plan: null, curve: null };
         try {
             await this.connection.transaction(async (session) => {
                 // il callback viene rieseguito sui WriteConflict: l'esito riparte da zero
                 outcome.plan = null;
+                outcome.curve = null;
                 const inSession = await this.characterModel
                     .findOne(
                         ambushFilter(identity, now),
@@ -421,6 +433,19 @@ export class AmbushResolutionService {
                     .lean<AmbushCharacter | null>()
                     .exec();
                 if (!inSession) throw new StaleResolution();
+                // vita vera del punto: fame e pasto al km salvato prima del combattimento, catalogo dalla dispensa letta in sessione (Phase 20 D-07, D-14, D-16)
+                const food = ambushFoodOf({
+                    snapshot: inSession,
+                    catalog: await this.pantry.foodCatalogFor(
+                        inSession.assets?.ownedItems ?? [],
+                        session,
+                    ),
+                    now,
+                });
+                const fighter = withFoodSettlement(
+                    inSession,
+                    food?.progress ?? null,
+                );
                 const context = buildCombatContext({
                     quest: {
                         _id: resultId,
@@ -430,7 +455,7 @@ export class AmbushResolutionService {
                         },
                     },
                     enemies: catalog.enemies,
-                    participants: [inSession],
+                    participants: [fighter],
                     equipment: catalog.equipment,
                     spells: catalog.spells,
                     loot: catalog.loot,
@@ -441,7 +466,8 @@ export class AmbushResolutionService {
                 );
                 if (!battle) throw new Error('ambush combat without a verdict');
                 const plan = planAmbushOutcome({
-                    snapshot: inSession,
+                    snapshot: fighter,
+                    food,
                     identity,
                     resultId,
                     userId: fight.userId,
@@ -472,12 +498,24 @@ export class AmbushResolutionService {
                     );
                 }
                 outcome.plan = plan;
+                outcome.curve = food
+                    ? curveChangeOf(food.food, food.progress)
+                    : null;
             });
         } catch (error) {
             if (!(error instanceof StaleResolution)) throw error;
             return this.stale(jobId);
         }
         if (!outcome.plan) return this.stale(jobId);
+        // il fail-safe del confine eseguito dall'imboscata, dopo il commit (Phase 20 D-19)
+        if (outcome.curve) {
+            this.logger.warn(
+                curveChangeMessageOf(
+                    identity.characterId.toHexString(),
+                    outcome.curve,
+                ),
+            );
+        }
         await this.writer.deliver({
             ...emptyCommitted(),
             spellRecoveries: outcome.plan.spellRecoveries,

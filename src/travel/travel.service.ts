@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
+import { Clock } from 'src/auth/clock';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import {
     notImprisonedAt,
@@ -25,8 +26,17 @@ import { TravelPreview } from 'src/models/travel-preview.model';
 import type { AmbushReportDraft } from './ambush/ambush-plan';
 import { AmbushPlanner } from './ambush/ambush-planner.service';
 import { ambushResultDraftsOf } from './ambush/ambush-results';
+import { type ActiveTravelFoodDraft, foodPlanOf } from './food/travel-food';
+import {
+    FOOD_LEG_PROJECTION,
+    FoodSettlement,
+    foodLegOf,
+    reachedKmOf,
+    settlementGuardsOf,
+    settlementOf,
+    settlementSetOf,
+} from './food/travel-food-settlement';
 import { TravelPantryReader } from './food/travel-pantry.reader';
-import { mealGuardsOf, mealSetOf } from './food/travel-food.updates';
 import { FreeTravelPlan, TravelPlanner } from './travel-planner.service';
 import { TravelScheduler } from './travel-scheduler.service';
 import {
@@ -59,6 +69,25 @@ interface TeleportedSnapshot {
     } | null;
 }
 
+interface TeleportFoodSnapshot {
+    status?: {
+        activeTravel?: {
+            startTime: Date;
+            duration: number;
+            road: { distance: number };
+            ambush?: { km?: unknown } | null;
+            food?: unknown;
+        } | null;
+    } | null;
+}
+
+interface ClosingFood {
+    startTime: Date;
+    food: ActiveTravelFoodDraft;
+    settlement: FoodSettlement;
+    hpRaw: number | null | undefined;
+}
+
 @Injectable()
 export class TravelService {
     constructor(
@@ -74,6 +103,7 @@ export class TravelService {
         private readonly pantry: TravelPantryReader,
         private readonly ambushPlanner: AmbushPlanner,
         private readonly geography: LoreGeographyReader,
+        private readonly clock: Clock,
     ) {}
 
     // stesse letture e stessi codici dell'avvio, nessuna scrittura (Phase 8 D-11); cibo e vita coi numeri, mai il codice di fame (Phase 14 D-09)
@@ -85,7 +115,7 @@ export class TravelService {
         return this.pantry.previewOf(characterId, travel);
     }
 
-    // regole di Phase 8 fuori dalla transazione; dispensa letta in sessione e consumo nello stesso update della partenza (Phase 14 D-12): un rifiuto non scrive nulla; il job dopo il commit è best-effort
+    // regole di Phase 8 fuori dalla transazione; dispensa letta in sessione e piano del cibo salvato nella stessa transazione della partenza, nessun consumo (Phase 20 D-05): un rifiuto non scrive nulla; il job dopo il commit è best-effort
     async startTravel(
         characterId: Types.ObjectId,
         poiId: Types.ObjectId,
@@ -96,9 +126,9 @@ export class TravelService {
             ...planned,
             travel: this.ambushPlanner.withAmbush(planned.travel),
         };
-        // rieseguito dal driver sui WriteConflict: la dispensa si rilegge, la partenza ricalcola sul cibo del momento (D-10)
+        // rieseguito dal driver sui WriteConflict: la dispensa si rilegge, il piano si ricalcola sul cibo del momento (Phase 14 D-10)
         await this.connection.transaction((session) =>
-            this.departWithMeal(characterId, plan, session),
+            this.departWithFoodPlan(characterId, plan, session),
         );
         await this.scheduler.schedule(characterId, plan.travel);
         if (plan.travel.ambush)
@@ -109,12 +139,12 @@ export class TravelService {
             );
     }
 
-    private async departWithMeal(
+    private async departWithFoodPlan(
         characterId: Types.ObjectId,
         plan: FreeTravelPlan,
         session: ClientSession,
     ): Promise<void> {
-        const { plan: meal, pantry } = await this.pantry.planFor(
+        const meal = await this.pantry.planFor(
             characterId,
             plan.travel,
             session,
@@ -130,11 +160,15 @@ export class TravelService {
             );
         const started = await this.characterModel
             .findOneAndUpdate(
-                startTravelFilter(characterId, plan.location, {
-                    ...notImprisonedAt(now),
-                    ...mealGuardsOf(meal, pantry.hpRaw),
+                startTravelFilter(
+                    characterId,
+                    plan.location,
+                    notImprisonedAt(now),
+                ),
+                startTravelUpdate({
+                    ...plan.travel,
+                    food: foodPlanOf(meal, plan.travel.road.distance),
                 }),
-                startTravelUpdate(plan.travel, mealSetOf(meal, pantry.assets)),
                 { session, projection: { _id: 1 } },
             )
             .lean()
@@ -183,15 +217,16 @@ export class TravelService {
         );
     }
 
-    // un solo findOneAndUpdate in transazione (D-16, "il filtro è la regola"): location sovrascritta e viaggio cancellato insieme, report trattenuti consegnati nello stesso commit (Phase 15 D-13); nessuna push, nessuna quest toccata
+    // una transazione (D-16, "il filtro è la regola"): lettura in sessione del viaggio e della dispensa, poi un solo findOneAndUpdate che sovrascrive la location, cancella il viaggio e chiude cibo e fame (Phase 20 D-17); report trattenuti consegnati nello stesso commit (Phase 15 D-13); nessuna push, nessuna quest toccata
     async teleport(
         characterId: Types.ObjectId,
         poiId: Types.ObjectId,
     ): Promise<void> {
         if (!(await this.poiModel.exists({ _id: poiId })))
             throw ResourceNotFoundException.pointOfInterest();
-        // catalogo letto fuori dal callback: nella transazione solo scritture (Phase 16 D-05)
+        // geografia letta fuori dal callback (Phase 16 D-05): nella transazione solo il viaggio, la dispensa e le scritture
         const geography = await this.geography.ofMarker(poiId);
+        const now = this.clock.now();
         const outcome: { before: TeleportedSnapshot | null } = { before: null };
         await this.connection.transaction(async (session) => {
             // il callback viene rieseguito sui WriteConflict: l'esito riparte da zero
@@ -200,6 +235,7 @@ export class TravelService {
                 characterId,
                 poiId,
                 geography,
+                now,
                 session,
             );
         });
@@ -210,12 +246,28 @@ export class TravelService {
         characterId: Types.ObjectId,
         poiId: Types.ObjectId,
         geography: readonly Types.ObjectId[],
+        now: Date,
         session: ClientSession,
     ): Promise<TeleportedSnapshot> {
+        const closing = await this.closingFoodOf(characterId, now, session);
         const before = await this.characterModel
             .findOneAndUpdate(
-                teleportFilter(characterId),
-                teleportUpdate(poiId, geography),
+                closing
+                    ? {
+                          ...teleportFilter(characterId),
+                          'status.activeTravel.startTime': closing.startTime,
+                          ...settlementGuardsOf(
+                              closing.food,
+                              closing.settlement,
+                              closing.hpRaw,
+                          ),
+                      }
+                    : teleportFilter(characterId),
+                teleportUpdate(
+                    poiId,
+                    geography,
+                    closing ? settlementSetOf(closing.settlement) : {},
+                ),
                 {
                     session,
                     returnDocument: 'before',
@@ -233,6 +285,39 @@ export class TravelService {
             );
         }
         return before;
+    }
+
+    // teleport a viaggio iniziato = sconfitta: cibo dei km percorsi e fame fino al km del momento (Phase 20 D-06, D-17; supera la Phase 14 D-13 per questo caso)
+    private async closingFoodOf(
+        characterId: Types.ObjectId,
+        now: Date,
+        session: ClientSession,
+    ): Promise<ClosingFood | null> {
+        const current = await this.characterModel
+            .findOne(teleportFilter(characterId), FOOD_LEG_PROJECTION)
+            .session(session)
+            .lean<TeleportFoodSnapshot | null>()
+            .exec();
+        const travel = current?.status?.activeTravel;
+        const leg = travel ? foodLegOf(travel) : null;
+        if (!travel || !leg) return null;
+        const pantry = await this.pantry.read(characterId, session);
+        const settlement = settlementOf({
+            leg,
+            targetKm: reachedKmOf(travel, now),
+            moment: 'stop',
+            lifeNow: pantry.hpBefore,
+            assets: pantry.assets,
+            stacks: pantry.stacks,
+            now,
+        });
+        if (!settlement) return null;
+        return {
+            startTime: travel.startTime,
+            food: leg.food,
+            settlement,
+            hpRaw: pantry.hpRaw,
+        };
     }
 
     private async unteleportedError(

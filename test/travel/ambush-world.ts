@@ -216,6 +216,11 @@ export interface TravellerOptions {
         assets?: Record<string, unknown>;
     };
     reports?: unknown[];
+    // la polilinea R1 resta: punto e deviazione usano la frazione km / distanza
+    distanceKm?: number;
+    durationMs?: number;
+    // piano del cibo salvato sul viaggio (Phase 20); assente = viaggio legacy
+    food?: Record<string, unknown>;
 }
 
 export interface Traveller {
@@ -232,24 +237,24 @@ export async function persistTraveller(
     options: TravellerOptions,
 ): Promise<Traveller> {
     const startMs = options.startTime.getTime();
+    const distance = options.distanceKm ?? AMBUSH_ROUTE_KM;
+    const duration = options.durationMs ?? AMBUSH_ROUTE_DURATION_MS;
     const at = new Date(
-        startMs +
-            Math.floor(
-                (options.km / AMBUSH_ROUTE_KM) * AMBUSH_ROUTE_DURATION_MS,
-            ),
+        startMs + Math.floor((options.km / distance) * duration),
     );
     const travel = {
         road: {
             coordinates: R1.map(([lon, lat]): LonLat => [lon, lat]),
-            distance: AMBUSH_ROUTE_KM,
+            distance,
         },
         startTime: options.startTime,
-        endTime: new Date(startMs + AMBUSH_ROUTE_DURATION_MS),
-        duration: AMBUSH_ROUTE_DURATION_MS,
+        endTime: new Date(startMs + duration),
+        duration,
         to: world.markers.borgo,
         kind: TravelKind.free,
         ambush: { at, km: options.km, attempts: 0 },
         ...(options.reports ? { ambushReports: options.reports } : {}),
+        ...(options.food ? { food: options.food } : {}),
     };
     const base = buildCharacter();
     const xp = options.xp ?? 0;

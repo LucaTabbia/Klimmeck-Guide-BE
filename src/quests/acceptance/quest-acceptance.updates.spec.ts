@@ -84,14 +84,19 @@ describe('quest acceptance write builders', () => {
             });
         });
 
-        it('laneClaimFilter appends the food and life guards of the automatic travel (D-12)', () => {
-            const guard = { 'status.currentLifePoints': 100 };
+        it('laneClaimFilter appends the extra guards of the claim (D-05)', () => {
+            const guard = { 'status.imprisonedUntil': null };
 
-            expect(
-                laneClaimFilter(c, QuestLane.standard, expected, q, true, {
-                    $and: [guard],
-                }),
-            ).toEqual({
+            const filter = laneClaimFilter(
+                c,
+                QuestLane.standard,
+                expected,
+                q,
+                true,
+                guard,
+            );
+
+            expect(filter).toEqual({
                 _id: c,
                 deletedAt: null,
                 'quests.pendingQuest': null,
@@ -99,8 +104,9 @@ describe('quest acceptance write builders', () => {
                 'status.activeTravel': null,
                 'status.title': 'rookie',
                 'status.location': { $in: [loc, loc.toHexString()] },
-                $and: [guard],
+                'status.imprisonedUntil': null,
             });
+            expect(Object.keys(filter)).not.toContain('$and');
         });
     });
 
@@ -193,11 +199,11 @@ describe('quest acceptance write builders', () => {
             });
         });
 
-        it('laneClaimUpdate sets the food and life cost with the automatic travel (D-12)', () => {
+        it('laneClaimUpdate writes the saved food plan inside the automatic travel and nothing else (D-05)', () => {
             const travel = {
                 road: {
                     coordinates: [[0, 0]] as [number, number][],
-                    distance: 0,
+                    distance: 20,
                 },
                 startTime: new Date('2026-03-04T05:06:07.000Z'),
                 endTime: new Date('2026-03-04T06:06:07.000Z'),
@@ -205,19 +211,24 @@ describe('quest acceptance write builders', () => {
                 to: loc,
                 kind: TravelKind.quest,
             };
+            const food = {
+                needed: 20,
+                uncoveredKm: 10,
+                coveredKm: 10,
+                hpLostTotal: 55,
+                settledKm: 0,
+                foodConsumedAt: null,
+            };
 
             expect(
-                laneClaimUpdate(
-                    QuestLane.standard,
-                    p,
-                    { kind: 'travel', travel },
-                    { 'status.currentLifePoints': 85 },
-                ),
+                laneClaimUpdate(QuestLane.standard, p, {
+                    kind: 'travel',
+                    travel: { ...travel, food },
+                }),
             ).toEqual({
                 $set: {
                     'quests.pendingQuest': p,
-                    'status.activeTravel': travel,
-                    'status.currentLifePoints': 85,
+                    'status.activeTravel': { ...travel, food },
                 },
             });
         });

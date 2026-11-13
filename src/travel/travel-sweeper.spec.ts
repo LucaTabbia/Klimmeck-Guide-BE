@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { CharacterDocument } from 'src/models/character/character.model';
+import { TravelFoodSweep } from './food/travel-food.sweep';
 import { TravelCompletionService } from './travel-completion.service';
 import { TravelSweeper } from './travel-sweeper';
 import { FixedClock } from '../../test/auth/fixed-clock';
@@ -24,6 +25,7 @@ function dueTravel(): DueTravel {
 describe('TravelSweeper', () => {
     let find: jest.Mock;
     let complete: jest.Mock;
+    let settleDue: jest.Mock;
 
     function sweeperWith(sweepIntervalMs: number): TravelSweeper {
         const characterModel = { find } as unknown as Model<CharacterDocument>;
@@ -35,6 +37,7 @@ describe('TravelSweeper', () => {
             characterModel,
             completion,
             new FixedClock(NOW),
+            { settleDue } as unknown as TravelFoodSweep,
         );
     }
 
@@ -46,6 +49,7 @@ describe('TravelSweeper', () => {
         jest.useFakeTimers();
         find = findResolving(Promise.resolve([]));
         complete = jest.fn().mockResolvedValue('completed');
+        settleDue = jest.fn().mockResolvedValue(0);
     });
 
     afterEach(() => {
@@ -122,8 +126,8 @@ describe('TravelSweeper', () => {
 
     it.each([
         ['the error name', new TypeError('raw driver message'), 'TypeError'],
-        ['unknown for a bare value', 'raw driver message', 'unknown'],
-        ['unknown for null', null, 'unknown'],
+        ['UnknownError for a bare value', 'raw driver message', 'UnknownError'],
+        ['UnknownError for null', null, 'UnknownError'],
     ])(
         'logs %s when a completion fails without a code',
         async (_label, failure, expected) => {
@@ -142,7 +146,7 @@ describe('TravelSweeper', () => {
         },
     );
 
-    it('logs only the code when the boot sweep fails to read the due travels', async () => {
+    it('logs only the name and code when the boot sweep fails to read the due travels', async () => {
         const failure = Object.assign(new Error('raw driver message'), {
             code: 'ECONNRESET',
         });
@@ -156,7 +160,7 @@ describe('TravelSweeper', () => {
         await jest.runAllTimersAsync();
 
         expect(error.mock.calls.map(([value]) => String(value))).toEqual([
-            'Sweep dei viaggi fallito: ECONNRESET',
+            'Sweep dei viaggi fallito: Error, code ECONNRESET',
         ]);
         expect(complete).not.toHaveBeenCalled();
     });
@@ -202,6 +206,36 @@ describe('TravelSweeper', () => {
         await jest.advanceTimersByTimeAsync(200);
         expect(find).toHaveBeenCalledTimes(1);
         expect(complete).toHaveBeenCalledTimes(1);
+    });
+
+    it('settles the hunger after the completions at the same instant (D-15)', async () => {
+        find = findResolving(Promise.resolve([dueTravel()]));
+        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+
+        await expect(sweeperWith(0).sweep()).resolves.toBe(1);
+
+        expect(settleDue).toHaveBeenCalledTimes(1);
+        expect(settleDue).toHaveBeenCalledWith(NOW);
+        expect(complete.mock.invocationCallOrder[0]).toBeLessThan(
+            settleDue.mock.invocationCallOrder[0],
+        );
+    });
+
+    it('still returns the completions when the hunger step fails (D-15)', async () => {
+        find = findResolving(Promise.resolve([dueTravel()]));
+        settleDue.mockRejectedValueOnce(
+            Object.assign(new Error('raw driver message'), { code: 112 }),
+        );
+        jest.spyOn(Logger.prototype, 'log').mockImplementation();
+        const error = jest
+            .spyOn(Logger.prototype, 'error')
+            .mockImplementation();
+
+        await expect(sweeperWith(0).sweep()).resolves.toBe(1);
+
+        expect(error.mock.calls.map(([value]) => String(value))).toEqual([
+            'Sweep della fame fallito: Error, code 112',
+        ]);
     });
 
     it('does not count a stale completion as completed', async () => {

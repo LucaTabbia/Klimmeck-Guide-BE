@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
-status: in_progress
-last_updated: "2026-11-11T11:20:00.000Z"
-last_activity: 2026-11-11 -- Phase 19 completa (23/23; boot reale col migratore, contenuto dei pet a DB, modulo una tantum rimosso in TDD, BE-MODEL-01..12 chiusi)
+status: completed
+stopped_at: "Phase 20 completa (11/11, UAT su device passata il 2026-11-13) — PR #35 da togliere dal draft e mergiare su `develop`"
+last_updated: "2026-11-12T23:01:28.000Z"
+last_activity: 2026-11-13 -- Phase 20 completa (riavvio reale dal ramo, UAT su device passi 1–6 pass)
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 34
+  total_plans: 45
   completed_plans: 34
-  percent: 100
+  percent: 76
 ---
 
 # Project State
@@ -20,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 19 — Revisione dei modelli — COMPLETA (23/23) su `feat/19-revisione-dei-modelli`: boot reale col migratore, contenuto dei pet a DB e modulo una tantum rimosso in TDD l'11 novembre 2026 (esito in `.planning/phases/19-revisione-dei-modelli/BACKEND-NOTES.md`); PR #33 verso `develop` (in draft fino a questa rimozione, poi pronta, a cura dell'orchestratore); la Phase 18 è chiusa (PR #31 mergiata, contenuto a DB, BE-HEAL-01..09 completi) (↔ FE Phase 19, piani gated dalla merge della PR #33)
+**Current focus:** Phase 20 — Cibo e vita progressivi in viaggio (solo BE) — eseguita (11/11) su `feat/20-cibo-e-vita-progressivi` (da `develop`): codice, fix della review e handoff `BACKEND-NOTES.md` completi; restano all'orchestratore `test:cov`, verifica e audit di sicurezza, riavvio del BE dal ramo, UAT su device e PR verso `develop`
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
-Phase: 19 di 20 (Revisione dei modelli) — COMPLETA l'11 novembre 2026; contesto del 2026-11-09 (D-01..D-15) esteso l'11 novembre 2026 (D-16..D-28), `19-REPO-RULES.md` coi nomi del contratto; 23 piani eseguiti l'11 novembre 2026
-Plan: 23 of 23
-Status: Phase 19 COMPLETA (23/23) — review corretta, verifica, security, boot reale (primo boot coi conteggi attesi, secondo a zero), contenuto dei pet a DB (D-25..D-28), modulo una tantum rimosso in TDD (`c3492ced`, `0822feee`); dopo la rimozione `tsc` 0, unit 272 suite / 3497 test, integration 140 suite / 1990 test, boot reale di test 91 test, SDL invariato; BE-MODEL-01..12 tutti chiusi. La milestone v1.1 resta in corso: la Phase 20 non ha ancora piani (i 34 piani contati sono quelli delle Phase 18 e 19).
-Last activity: 2026-11-11 -- Phase 19 completa: boot reale col migratore, contenuto dei pet a DB, rimozione del modulo una tantum in TDD, chiusura di BE-MODEL-04, 09, 10, 11 e 12
-Next step: `npm run test:cov` dopo la rimozione, PR #33 fuori dal draft e merge su `develop` (dell'utente); poi Phase 20 «Cibo e vita progressivi in viaggio» (solo BE) e, nel repo FE, i piani gated della FE Phase 19. Il terzo boot reale dalla build di `7ca680fa` è stato eseguito (nessuna riga «Revisione dei modelli»): il BE gira da questa build sulla porta 3001.
+Phase: 20 di 22 (Cibo e vita progressivi in viaggio) — contesto del 2026-11-09 (D-01..D-12) emendato il 2026-11-12 dopo la ricerca (D-13..D-19), `20-REPO-RULES.md`, `20-RESEARCH.md`, `20-VALIDATION.md`, 11 piani scritti il 2026-11-12
+Plan: 11 of 11
+Status: Phase 20 complete — 11/11, review, verifica, audit, riavvio reale e UAT su device chiusi; PR #35 draft verso `develop`
+Last activity: 2026-11-13 -- Phase 20 completa (riavvio reale dal ramo, UAT su device passi 1–6 pass)
+Next step: PR #35 fuori dal draft e merge su `develop` (dell'utente); poi le Phase 21 e 22 (contesti sui rami `feat/21-…` e `feat/22-…`) da pianificare con le FE Phase 20 e 21. Il BE locale gira dal ramo della Phase 20 sulla porta 3001.
 
 ## Current Milestone
 
@@ -55,6 +56,8 @@ v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..09, ↔ FE 18) 
 Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per piano delle fasi v1.0 sono nei `NN-CONTEXT.md` e nei SUMMARY delle fasi.
 
 ## Open Questions / Blockers
+
+- **Durata dei viaggi** (UAT della Phase 20, 2026-11-13): lo `speedFactor` della strada vale come km/h del terreno (valori a DB da 3 a 7), non come moltiplicatore dei 10 km/h di base; l'utente se lo aspettava diverso e ha deciso «Per adesso teniamo com'è». Se cambia: riscalare gli `speedFactor` a DB, nessun cambio di codice.
 
 - **Promemoria operativi di produzione (Phase 10):** conferma della tabella di policy Sightengine e dei default del throttler (`BACKEND-NOTES.md` §11 della Phase 10), una chiamata Sightengine reale, `THROTTLE_TRUST_PROXY` quando la topologia sarà nota; topologia Mongo (replica set) e policy Redis (eviction dei delayed job).
 - **EventSub:** E2E managed con tunnel HTTPS e verifica C4 prima della produzione (Phase 6).

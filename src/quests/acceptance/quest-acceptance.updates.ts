@@ -77,12 +77,11 @@ export type LaneMovement =
           geography?: readonly Types.ObjectId[];
       };
 
-// cibo e HP del viaggio automatico nello stesso claim (Phase 14 D-12); salto e nessun movimento non consumano
+// il viaggio automatico porta con sé il piano del cibo (Phase 20 D-05); salto e nessun movimento non hanno piano
 export function laneClaimUpdate(
     lane: QuestLane,
     pendingQuestId: Types.ObjectId,
     movement: LaneMovement | null = null,
-    mealSet: Record<string, unknown> = {},
 ) {
     return {
         $set: {
@@ -93,7 +92,6 @@ export function laneClaimUpdate(
             ...(movement?.kind === 'jump'
                 ? { 'status.location': movement.marker }
                 : {}),
-            ...mealSet,
         },
         // il salto sul marker di una città insegna la sua geografia nello stesso claim (Phase 16 D-05)
         ...(movement?.kind === 'jump'

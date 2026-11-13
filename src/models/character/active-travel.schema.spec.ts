@@ -4,6 +4,7 @@ import { QuestOutcome } from '../enums/quest-outcome.enum';
 import { TitleType } from '../enums/title-type.enum';
 import { PendingQuestSchema } from '../pending-quest.model';
 import { PetSchema } from '../pet.model';
+import { ActiveTravelFoodSchema } from './active-travel-food.model';
 import {
     ActiveTravelSchema,
     TravelKind,
@@ -181,6 +182,53 @@ describe('active travel schemas', () => {
                 (report) => report.petXpGained,
             ),
         ).toEqual([30, 0]);
+    });
+
+    describe('saved food plan (Phase 20)', () => {
+        const Probe = model('ActiveTravelFoodProbe', ActiveTravelSchema);
+
+        it('keeps the saved food plan as an internal embedded path (D-05)', () => {
+            expect(ActiveTravelSchema.path('food').instance).toBe('Embedded');
+        });
+
+        it('leaves the food plan absent on a legacy travel (D-11)', () => {
+            expect(new Probe(AMBUSH_TRAVEL).toObject().food).toBeUndefined();
+            expect(
+                Probe.hydrate(AMBUSH_TRAVEL).toObject().food,
+            ).toBeUndefined();
+        });
+
+        it('defaults the settled kilometres and the meal instant of a saved plan (D-05, D-13)', () => {
+            expect(
+                new Probe({
+                    ...AMBUSH_TRAVEL,
+                    food: {
+                        needed: 20,
+                        uncoveredKm: 10,
+                        coveredKm: 10,
+                        hpLostTotal: 55,
+                    },
+                }).toObject().food,
+            ).toEqual({
+                needed: 20,
+                uncoveredKm: 10,
+                coveredKm: 10,
+                hpLostTotal: 55,
+                settledKm: 0,
+                foodConsumedAt: null,
+            });
+        });
+
+        it('keeps only the food plan fields (D-10)', () => {
+            expect(Object.keys(ActiveTravelFoodSchema.paths).sort()).toEqual([
+                'coveredKm',
+                'foodConsumedAt',
+                'hpLostTotal',
+                'needed',
+                'settledKm',
+                'uncoveredKm',
+            ]);
+        });
     });
 
     it('knows only free and quest travels', () => {
