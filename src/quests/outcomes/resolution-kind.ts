@@ -8,7 +8,8 @@ const hasWounded = (characters: unknown): boolean =>
     characters.some((character) => refIdOf(character) !== null);
 
 // boss = gruppo (D-05); aid automatica con almeno un ferito = soccorso di gruppo (D-09); il resto, aid fatte a mano comprese, è individuale
-// una aid rimasta senza feriti (tutti cancellati) è conclusa dall'archivio; un soccorritore già in corsia si risolve come individuale
+// una aid rimasta senza feriti (tutti cancellati) è conclusa dall'archivio; un soccorritore già in corsia si risolve come individuale,
+// sui turni della dungeon se l'aid porta il turno salvato (C-WR-01)
 export function resolutionKindOf(quest: {
     infos: { type: QuestType };
     rescue?: { characters?: unknown } | null;

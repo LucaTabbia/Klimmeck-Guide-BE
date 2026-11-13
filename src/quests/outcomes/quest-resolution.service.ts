@@ -3,27 +3,24 @@ import { InjectConnection } from '@nestjs/mongoose';
 import { Connection, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
-import { QuestType } from 'src/models/enums/quest-type.enum';
 import { buildAidQuest } from './aid/aid-quest';
 import { BossResolutionService } from './boss-resolution.service';
 import { ChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
-import {
-    battleOf,
-    type CombatantBattle,
-    combatContextOf,
-    dungeonBattleOf,
-} from './combatant-plan';
+import { combatContextOf } from './combatant-plan';
 import { ConclusionEventDrawer } from './conclusion/conclusion-event.drawer';
 import { planConclusion } from './conclusion/conclusion-plan';
-import { buildDungeonContext } from './dungeon/dungeon-context';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
-import { rescueTurnFromStages } from './dungeon/dungeon-turns';
 import {
     type CommittedOutcome,
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
+import {
+    facedCatalogOf,
+    type QuestBattle,
+    questBattleOf,
+} from './quest-battle';
 import { questUpdateOf, regeneratesAfter } from './quest-outcome-plan';
 import {
     type ResolutionCatalog,
@@ -86,7 +83,7 @@ export class QuestResolutionService {
         return loaded;
     }
 
-    // individuale: enemy, hunt, dungeon e aid senza soccorso
+    // individuale: enemy, hunt, dungeon e aid senza feriti (un'aid col turno salvato resta un'aid di dungeon)
     private async resolveLoadedIndividual(
         loaded: StandardLoad,
         now: Date,
@@ -121,9 +118,9 @@ export class QuestResolutionService {
                     event,
                     combat: this.combat,
                     quest: loaded.quest,
-                    catalog,
+                    catalog: facedCatalogOf(catalog, loaded.quest),
                     snapshot,
-                    battle,
+                    battle: battle.battleOf(snapshot._id),
                     resultId,
                     aidQuestId,
                     pendingQuestId,
@@ -150,7 +147,7 @@ export class QuestResolutionService {
                             loaded.quest,
                             [snapshot._id],
                             aidQuestId,
-                            rescueTurnFromStages(battle?.stages),
+                            battle.fallenTurn,
                         ),
                         session,
                     );
@@ -178,29 +175,20 @@ export class QuestResolutionService {
         return 'resolved';
     }
 
-    // il combattimento passa solo dalla porta (D-02); le dungeon sono esplorazioni a tappe sulla stessa porta per tappa, con i contatori nel risultato (D-12)
+    // il combattimento passa solo dalla porta (D-02); le dungeon e le aid col turno salvato percorrono i turni sulla stessa porta (D-12, D-13)
     private fight(
         loaded: StandardLoad,
         catalog: ResolutionCatalog,
         snapshot: ResolutionCharacter,
-    ): CombatantBattle | null {
-        const context = combatContextOf(loaded.quest, catalog, [snapshot]);
+    ): QuestBattle {
         // senza nemici validi ogni tipo, dungeon compresa, è un successo automatico con stages null (C6/D-01)
-        if (!context) return null;
-        if (loaded.quest.infos.type === QuestType.dungeon) {
-            const exploration = this.dungeon.explore(
-                buildDungeonContext({
-                    combat: context,
-                    recommendedLoot: loaded.quest.requirements?.recommendedLoot,
-                    participants: [snapshot],
-                }),
-                this.chance,
-            );
-            return dungeonBattleOf(exploration, snapshot._id);
-        }
-        return battleOf(
-            this.combat.resolve(context, this.chance),
-            snapshot._id,
-        );
+        return questBattleOf({
+            quest: loaded.quest,
+            combatContext: combatContextOf(loaded.quest, catalog, [snapshot]),
+            participants: [snapshot],
+            combat: this.combat,
+            dungeon: this.dungeon,
+            chance: this.chance,
+        });
     }
 }

@@ -26,22 +26,10 @@ import {
     isAidTimeoutDue,
 } from './aid/aid-timeout';
 import { ChanceSource } from './chance-source';
-import { type CombatContext, CombatResolver } from './combat/combat-resolver';
-import {
-    battleOf,
-    type CombatantBattle,
-    combatContextOf,
-    dungeonBattleOf,
-    planCombatant,
-} from './combatant-plan';
-import { buildDungeonContext } from './dungeon/dungeon-context';
+import { CombatResolver } from './combat/combat-resolver';
+import { combatContextOf, planCombatant } from './combatant-plan';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
-import {
-    facedEnemyCountOf,
-    nextRescueTurnOf,
-    type RescueTurn,
-    rescueTurnOf,
-} from './dungeon/dungeon-turns';
+import { type RescueTurn, rescueTurnOf } from './dungeon/dungeon-turns';
 import {
     fightersOf,
     type GroupRoster,
@@ -58,6 +46,7 @@ import {
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
+import { facedCatalogOf, questBattleOf } from './quest-battle';
 import { questClaimFilter, questUpdateOf } from './quest-outcome-plan';
 import {
     type ResolutionCatalog,
@@ -167,12 +156,6 @@ interface RescueFight {
     committed: CommittedOutcome;
     fallen: Types.ObjectId[];
     // turno da salvare sulla nuova aid se i soccorritori cadono in una dungeon (D-26)
-    nextTurn: RescueTurn | null;
-}
-
-// battaglia per posto e turno della caduta: un'aid di dungeon percorre i turni, le altre combattono una volta
-interface RescueBattle {
-    battleOf(characterId: Types.ObjectId): CombatantBattle | null;
     nextTurn: RescueTurn | null;
 }
 
@@ -437,21 +420,15 @@ export class RescueResolutionService {
             );
         }
         const participants = [...rescuers, ...holders];
-        const turn = rescueTurnOf(aid.rescue?.turn);
-        const combatContext = combatContextOf(aid, catalog, participants);
-        const battle = this.rescueBattleOf(
-            aid,
-            combatContext,
+        const battle = questBattleOf({
+            quest: aid,
+            combatContext: combatContextOf(aid, catalog, participants),
             participants,
-            turn,
-        );
-        // xp e conoscenze dei soli gruppi affrontati fino al turno salvato (D-12)
-        const faced = turn
-            ? {
-                  ...catalog,
-                  enemies: catalog.enemies.slice(0, facedEnemyCountOf(turn)),
-              }
-            : catalog;
+            combat: this.combat,
+            dungeon: this.dungeon,
+            chance: this.chance,
+        });
+        const faced = facedCatalogOf(catalog, aid);
         const committed = emptyCommitted();
         const verdicts: Parameters<typeof questUpdateOf>[0]['verdicts'] = [];
         const fallen: Types.ObjectId[] = [];
@@ -505,39 +482,7 @@ export class RescueResolutionService {
             session,
             'claim',
         );
-        return { committed, fallen, nextTurn: battle.nextTurn };
-    }
-
-    // stessa porta della dungeon fino al turno salvato (D-12, D-13); senza turno salvato il combattimento unico di sempre
-    private rescueBattleOf(
-        aid: ResolutionQuest,
-        combatContext: CombatContext | null,
-        participants: readonly ResolutionCharacter[],
-        turn: RescueTurn | null,
-    ): RescueBattle {
-        if (!combatContext) return { battleOf: () => null, nextTurn: null };
-        if (!turn) {
-            const resolution = this.combat.resolve(combatContext, this.chance);
-            return {
-                battleOf: (id) => battleOf(resolution, id),
-                nextTurn: null,
-            };
-        }
-        const resolution = this.dungeon.explore(
-            {
-                ...buildDungeonContext({
-                    combat: combatContext,
-                    recommendedLoot: aid.requirements?.recommendedLoot,
-                    participants,
-                }),
-                lastTurnIndex: turn.index,
-            },
-            this.chance,
-        );
-        return {
-            battleOf: (id) => dungeonBattleOf(resolution, id),
-            nextTurn: nextRescueTurnOf(resolution, turn),
-        };
+        return { committed, fallen, nextTurn: battle.fallenTurn };
     }
 
     // un solo verdetto per tutti i feriti: liberati se nessun soccorritore è caduto, altrimenti morti e una nuova aid per i caduti
