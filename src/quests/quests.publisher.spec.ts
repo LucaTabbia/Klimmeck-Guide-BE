@@ -285,6 +285,32 @@ describe('QuestsPublisher', () => {
             expectSourceRepublished();
         });
 
+        it('publishes the source last from a read started after a lost rescue closed the aid and opened the next (quick 261113-aql, WR-02)', async () => {
+            const stale = deferred<Quest>();
+            findOne.mockImplementation((id) => {
+                if (id !== QUEST_ID)
+                    return Promise.resolve(questState(id, 'read'));
+                return findOne.mock.calls.filter(([key]) => key === QUEST_ID)
+                    .length === 1
+                    ? stale.promise
+                    : Promise.resolve(questState(QUEST_ID, 'fresh'));
+            });
+
+            aidUpdated({ concludedAt: CONCLUDED_AT });
+            aidBornFrom(new Types.ObjectId(QUEST_ID));
+            await settle();
+            stale.resolve(questState(QUEST_ID, 'stale'));
+            await settle();
+
+            const sourceReads = findOne.mock.calls.filter(
+                ([key]) => key === QUEST_ID,
+            );
+            expect(sourceReads).toHaveLength(2);
+            expect(publish).toHaveBeenLastCalledWith('questUpdated', QUEST_ID, {
+                questUpdated: questState(QUEST_ID, 'fresh'),
+            });
+        });
+
         it('reads no source on an update that removes another field (quick 261113-aql, WR-01)', async () => {
             aidUpdated({}, ['infos.description']);
             await settle();

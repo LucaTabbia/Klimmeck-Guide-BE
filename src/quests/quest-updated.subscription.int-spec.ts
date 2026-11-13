@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import type { PubSub } from '@graphql-yoga/subscription';
-import { Model, Types } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import { CharacterArchiveModule } from 'src/characters/deletion/character-archive.module';
 import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
 import { Character } from 'src/models/character/character.model';
@@ -748,17 +748,37 @@ describe('questUpdated subscription (wire)', () => {
 
         async function openAidFrom(
             failedQuest: unknown,
+            session?: ClientSession,
         ): Promise<Types.ObjectId> {
             const base = buildQuest();
             const _id = new Types.ObjectId();
-            await quests.collection.insertOne({
-                ...base,
-                _id,
-                infos: { ...base.infos, type: 'aid' },
-                rescue: { characters: [new Types.ObjectId()], failedQuest },
-                concludedAt: null,
-            });
+            await quests.collection.insertOne(
+                {
+                    ...base,
+                    _id,
+                    infos: { ...base.infos, type: 'aid' },
+                    rescue: { characters: [new Types.ObjectId()], failedQuest },
+                    concludedAt: null,
+                },
+                { session },
+            );
             return _id;
+        }
+
+        // dopo il primo evento: raccoglie quelli che arrivano ancora entro la finestra
+        async function awaitingRescueUntilSilence(
+            subscription: OpenSubscription<QuestAwaitingRescue>,
+        ): Promise<WireAwaitingRescue[]> {
+            const seen = [await nextAwaitingRescue(subscription)];
+            for (;;) {
+                const result = await subscription
+                    .next(TRAILING_WINDOW_MS)
+                    .catch(() => undefined);
+                if (!result || result.done) return seen;
+                seen.push(
+                    result.value.data?.questUpdated as WireAwaitingRescue,
+                );
+            }
         }
 
         function subscribeToAwaitingRescue(
@@ -805,6 +825,30 @@ describe('questUpdated subscription (wire)', () => {
                 id,
                 awaitingRescue: false,
             });
+        });
+
+        it('ends on awaitingRescue true when a lost rescue closes the aid and opens the next one in one transaction (quick 261113-aql, WR-02)', async () => {
+            const hunt = await persistHunt();
+            const id = String(hunt._id);
+            const lostAidId = await openAidFrom(hunt._id);
+            const subscription = subscribeToAwaitingRescue(id);
+            expect(await nextAwaitingRescue(subscription)).toEqual({
+                id,
+                awaitingRescue: true,
+            });
+
+            await harness.connection.transaction(async (session) => {
+                await quests.collection.updateOne(
+                    { _id: lostAidId },
+                    { $set: { concludedAt: CONCLUDED_AT } },
+                    { session },
+                );
+                await openAidFrom(hunt._id, session);
+            });
+
+            const events = await awaitingRescueUntilSilence(subscription);
+            expect(events.length).toBeLessThanOrEqual(2);
+            expect(events.at(-1)).toEqual({ id, awaitingRescue: true });
         });
 
         it('stays silent on the hunt when an aid of another quest is born (quick 261113-aql)', async () => {
