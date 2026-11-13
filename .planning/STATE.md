@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Phase 21 in esecuzione (0/14, 2026-11-13)"
+stopped_at: "Phase 21 eseguita (14/14), review, verifica e audit chiusi (2026-11-13) — in attesa di riavvio reale e UAT su device con la FE Phase 20"
 last_updated: "2026-11-12T23:01:28.000Z"
 last_activity: 2026-11-13 -- Phase 21 pianificata (ricerca, regole di repo, validazione, 14 piani)
 progress:
@@ -30,7 +30,7 @@ Phase: 21 di 22 (Premi per rango e soccorsi) — contesto del 2026-11-12 (D-01..
 Plan: 14 of 14
 Status: executing — Phase 21 eseguita (14/14), in attesa di test:cov, verifica, audit, riavvio reale del BE dal ramo e UAT su device
 Last activity: 2026-11-13 -- Phase 21 eseguita (14/14): handoff `BACKEND-NOTES.md`, VALIDATION firmata, BE-RANKP-01..06 chiusi; test:cov, PR, riavvio e UAT su device a cura dell'orchestratore
-Next step: orchestratore — `npm run test:cov` in background, verifica (`21-VERIFICATION.md`) e audit (`21-SECURITY.md`), PR verso `develop`, riavvio del BE dal ramo e UAT su device col piano di `BACKEND-NOTES.md` §6 insieme ai piani 20-03 e 20-04 della FE (stato «da eseguire»); poi `phase complete` alla merge. La Phase 22 (contesto sul ramo `feat/22-…`, impilato sul 21) resta da pianificare con la FE Phase 21. Il BE locale gira da `dist/` del codice della Phase 20 sulla porta 3001: la build la lancia l'orchestratore a BE fermo.
+Next step: build e riavvio reale del BE dal ramo `feat/21-premi-per-rango-e-soccorsi` (nessun migratore; report di sola lettura dei premi di gruppo al boot), semine a DB e UAT su device insieme ai piani 20-03 e 20-04 della FE Phase 20 (handoff §6); poi PR fuori dal draft e merge su `develop`. `test:cov` 425 suite / 5851 test verdi, verifica `passed` 20/20, audit `secured` (0 aperte). La Phase 22 (ramo `feat/22-…`, da riallineare) resta da pianificare con la FE Phase 21.
 
 ## Current Milestone
 
