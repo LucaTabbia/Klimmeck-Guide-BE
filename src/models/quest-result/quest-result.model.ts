@@ -199,7 +199,7 @@ export class QuestResult {
     @Prop({ type: [SpellUsageSchema], default: [] })
     spellsUsed: SpellUsage[];
 
-    // tappe superate e totali, solo dalle dungeon (D-12): null per ogni altro tipo
+    // tappe superate e totali delle dungeon e dei soccorritori di un'aid di dungeon (D-12, D-21): null per ogni altro esito
     @Field(() => Int, { nullable: true })
     @Prop({ type: Number, default: null })
     stagesCleared?: number | null;

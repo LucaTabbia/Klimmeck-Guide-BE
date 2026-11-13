@@ -357,7 +357,7 @@ export class RescueResolutionService {
         return 'resolved';
     }
 
-    // un solo combattimento per i soccorritori, poi la aid (claim), poi i feriti; una sconfitta apre UNA nuova aid clonata dall'originale (D-09)
+    // una sola battaglia per i soccorritori (combattimento unico, o i turni della dungeon fino al turno salvato), poi la aid (claim), poi i feriti; una sconfitta apre UNA nuova aid clonata dall'originale (D-09, D-12)
     private async commitRescue(
         context: RescueContext,
         session: ClientSession,
@@ -379,7 +379,7 @@ export class RescueResolutionService {
         return committed;
     }
 
-    // combattimento dei soccorritori vivi e dei segnaposto di posto, esiti dei soli soccorritori, poi il claim della aid
+    // battaglia dei soccorritori vivi e dei segnaposto di posto, esiti dei soli soccorritori, poi il claim della aid
     private async fightRescuers(
         context: RescueContext,
         session: ClientSession,

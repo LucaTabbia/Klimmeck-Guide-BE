@@ -206,7 +206,7 @@ export interface ParticipantPlanInput {
     // tetti di xp dei pet a catalogo, per esadecimale (Phase 19 D-17)
     petMaxXp: ReadonlyMap<string, number>;
     rescuedCharacters?: readonly Types.ObjectId[];
-    // solo le dungeon a tappe (D-12): null altrove
+    // le dungeon a tappe e i soccorritori di un'aid di dungeon (D-12, D-21): null altrove
     stages?: DungeonStages | null;
     now: Date;
 }
