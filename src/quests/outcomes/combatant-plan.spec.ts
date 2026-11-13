@@ -284,6 +284,61 @@ describe('planCombatant', () => {
     });
 });
 
+const questOfType = (type: QuestType, hex: string): ResolutionQuest => ({
+    _id: id(hex),
+    infos: { type, title: 'Quest persa', markerLocation: id('86') },
+});
+
+const lostBy = (lost: ResolutionQuest) =>
+    planWith(lost, { verdict: 'failure', effects: effectsOf(0) });
+
+describe('planCombatant defeat by quest type', () => {
+    it('opens an aid for a lost hunt (D-09)', () => {
+        const { aid } = lostBy(questOfType(QuestType.hunt, '96'));
+
+        expect(aid).toEqual({ aidQuestId: id('d2'), failedQuestId: id('96') });
+    });
+
+    it.each([
+        QuestType.heal,
+        QuestType.job,
+        QuestType.study,
+        QuestType.magic,
+        QuestType.crime,
+        QuestType.guard,
+    ])(
+        'concludes a lost job without aid at one life point (D-19): %s',
+        (type) => {
+            const { plan, verdict, aid } = lostBy(questOfType(type, '97'));
+
+            expect(aid).toBeNull();
+            expect(verdict).toBe(QuestOutcome.failure);
+            expect(plan.update.$set['status.currentLifePoints']).toBe(1);
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'status.awaitingAid',
+            );
+            expect(plan.result.guardEncounter).toBe(false);
+        },
+    );
+
+    it('keeps the aid of a lost boss and of a lost aid (D-09, D-10)', () => {
+        const failedQuest = id('9a');
+        const lostAid = {
+            ...questOfType(QuestType.aid, '99'),
+            rescue: { failedQuest },
+        } as ResolutionQuest;
+
+        expect(lostBy(questOfType(QuestType.boss, '98')).aid).toEqual({
+            aidQuestId: id('d2'),
+            failedQuestId: id('98'),
+        });
+        expect(lostBy(lostAid).aid).toEqual({
+            aidQuestId: id('d2'),
+            failedQuestId: failedQuest,
+        });
+    });
+});
+
 const winnerWithTitle = (title: TitleType): ResolutionCharacter =>
     ({
         ...explorer,
