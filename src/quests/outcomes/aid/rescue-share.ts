@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { CoinPurse, fromCopper, toCopper } from 'src/economy/coins';
 import { isRecord } from '../combat/combat-context';
 import type { RescueTurn } from '../dungeon/dungeon-turns';
+import { isPositiveInteger } from '../outcome-numbers';
 import { isNonNegativeInteger } from '../rewards/quest-rewards';
 
 // assorbe l'errore di rappresentazione delle quote non binarie (90 × 7/10 = 62.999…, 5 × (1/6)/(5/6) = 0.999…), mai un'unità intera
@@ -25,9 +26,6 @@ export function rescueShareOf(turn: RescueTurn | null): number {
 
 const sharedAmountOf = (amount: number, share: number): number =>
     Math.floor(amount * share + SHARE_EPSILON);
-
-const isPositiveInteger = (value: unknown): value is number =>
-    isNonNegativeInteger(value) && value > 0;
 
 // la durata dell'aid in proporzione, per difetto al millisecondo (quick 261113-aql); mai sotto 1 ms se l'originale dura (0 vorrebbe dire nessuna attesa)
 export function sharedTimeOf(
