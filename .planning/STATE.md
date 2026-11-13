@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
-status: executing
-stopped_at: "Phase 20 eseguita (11/11), review, verifica e audit chiusi, PR #35 draft — in attesa di riavvio reale e UAT su device"
+status: completed
+stopped_at: "Phase 20 completa (11/11, UAT su device passata il 2026-11-13) — PR #35 da togliere dal draft e mergiare su `develop`"
 last_updated: "2026-11-12T23:01:28.000Z"
-last_activity: 2026-11-13 -- Phase 20 piano 11 completato (handoff e chiusura, 11/11)
+last_activity: 2026-11-13 -- Phase 20 completa (riavvio reale dal ramo, UAT su device passi 1–6 pass)
 progress:
   total_phases: 3
   completed_phases: 2
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
 Phase: 20 di 22 (Cibo e vita progressivi in viaggio) — contesto del 2026-11-09 (D-01..D-12) emendato il 2026-11-12 dopo la ricerca (D-13..D-19), `20-REPO-RULES.md`, `20-RESEARCH.md`, `20-VALIDATION.md`, 11 piani scritti il 2026-11-12
 Plan: 11 of 11
-Status: Phase 20 eseguita (11/11) — executing — in attesa di riavvio reale e UAT su device (PR, riavvio e UAT a cura dell'orchestratore)
-Last activity: 2026-11-13 -- Phase 20 piano 11 completato (handoff `BACKEND-NOTES.md` §0–§5 con piano di UAT su device, VALIDATION firmata, BE-FOODP-01..05 chiusi; gate dopo i fix della review: unit 274/3591, integration 141/2037, coverage travel 98,75/86,99/99,37 e acceptance 99,06/92,79/99,73, SDL identico; 11/11)
-Next step: riavvio reale del BE dal ramo `feat/20-cibo-e-vita-progressivi` (build prima dello stop del processo in corso; indice `character_active_travel_food` al boot) e UAT su device con l'app com'è (handoff §4); poi PR #35 fuori dal draft e merge su `develop`. `test:cov` 415 suite / 5628 test verdi, verifica `passed` 14/14, audit `secured` (0 aperte). Le Phase 21 e 22 restano da pianificare con le FE Phase 20 e 21.
+Status: Phase 20 complete — 11/11, review, verifica, audit, riavvio reale e UAT su device chiusi; PR #35 draft verso `develop`
+Last activity: 2026-11-13 -- Phase 20 completa (riavvio reale dal ramo, UAT su device passi 1–6 pass)
+Next step: PR #35 fuori dal draft e merge su `develop` (dell'utente); poi le Phase 21 e 22 (contesti sui rami `feat/21-…` e `feat/22-…`) da pianificare con le FE Phase 20 e 21. Il BE locale gira dal ramo della Phase 20 sulla porta 3001.
 
 ## Current Milestone
 
@@ -55,6 +55,8 @@ v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..09, ↔ FE 18) 
 Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per piano delle fasi v1.0 sono nei `NN-CONTEXT.md` e nei SUMMARY delle fasi.
 
 ## Open Questions / Blockers
+
+- **Durata dei viaggi** (UAT della Phase 20, 2026-11-13): lo `speedFactor` della strada vale come km/h del terreno (valori a DB da 3 a 7), non come moltiplicatore dei 10 km/h di base; l'utente se lo aspettava diverso e ha deciso «Per adesso teniamo com'è». Se cambia: riscalare gli `speedFactor` a DB, nessun cambio di codice.
 
 - **Promemoria operativi di produzione (Phase 10):** conferma della tabella di policy Sightengine e dei default del throttler (`BACKEND-NOTES.md` §11 della Phase 10), una chiamata Sightengine reale, `THROTTLE_TRUST_PROXY` quando la topologia sarà nota; topologia Mongo (replica set) e policy Redis (eviction dei delayed job).
 - **EventSub:** E2E managed con tunnel HTTPS e verifica C4 prima della produzione (Phase 6).
