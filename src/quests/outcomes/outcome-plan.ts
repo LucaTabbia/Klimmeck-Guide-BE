@@ -417,9 +417,14 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     // la magia fissa della study vince sul sorteggio (D-31): il sorteggio vale solo senza prizes.spell
     const spellCandidate =
         rewards.spellCandidate ??
-        drawLearnableSpell(rewards.spellDraw, progression.xp, knownSpells);
+        drawLearnableSpell(
+            rewards.spellDraw,
+            progression.xp,
+            knownSpells,
+            titleAfter,
+        );
     const spellLearned = won
-        ? canLearnSpell(spellCandidate, progression.xp, knownSpells)
+        ? canLearnSpell(spellCandidate, progression.xp, knownSpells, titleAfter)
         : null;
     // la magia imparata entra nello stato nello stesso $set (D-03, D-07): usi pieni, nessun recupero
     const learnedState =

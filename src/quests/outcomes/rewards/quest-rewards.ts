@@ -2,9 +2,11 @@ import { Types } from 'mongoose';
 import { DEFAULT_LORE_STUDY_CHANCE } from 'src/config/lore-config';
 import { CoinPurse, toCopper } from 'src/economy/coins';
 import { priceKey } from 'src/economy/trade/trade-line';
+import { isSpellCaster } from 'src/models/character/active-spell-slots';
 import { ItemReferenceType } from 'src/models/common/asset-quantity.model';
 import { refHexOf } from 'src/lore/lore-visibility';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf, sameId } from 'src/mongo/document-id';
 import { ChanceSource } from '../chance-source';
 import { rollLoot } from './cascading-loot';
@@ -268,7 +270,10 @@ export function canLearnSpell(
     candidate: SpellCandidate | null,
     xpAfter: number,
     knownSpells: readonly unknown[],
+    title: TitleType | null | undefined,
 ): Types.ObjectId | null {
+    // la magia si impara solo dai titoli ≥ mage, col titolo dopo l'esito (D-05b, D-25)
+    if (!isSpellCaster(title)) return null;
     if (!candidate || xpAfter < candidate.minXpToLearn) return null;
     return knownSpells.some((spell) => sameId(spell, candidate.spellId))
         ? null
@@ -280,7 +285,10 @@ export function drawLearnableSpell(
     draw: SpellDraw | null,
     xpAfter: number,
     knownSpells: readonly unknown[],
+    title: TitleType | null | undefined,
 ): SpellCandidate | null {
+    // stesso cancello del titolo di canLearnSpell (D-05b, D-25): i tiri restano consumati in drawRewards
+    if (!isSpellCaster(title)) return null;
     if (!draw || draw.gate >= SPELL_DRAW_CHANCE) return null;
     const learnable = draw.pool.filter(
         (candidate) =>
