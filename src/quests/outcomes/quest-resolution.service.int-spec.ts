@@ -416,6 +416,42 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         ]);
     });
 
+    it('gives the minimum title prize of a solo quest to any winner (D-01)', async () => {
+        const hunt = jobQuest(
+            {
+                prizeCoins: COINS_PRIZE,
+                xpPrize: 40,
+                rankPrizes: [
+                    {
+                        title: CASTER_TITLE,
+                        prizeCoins: { gold: 3, silver: 0, copper: 0 },
+                        xpPrize: 900,
+                    },
+                ],
+            },
+            'hunt',
+        );
+        const subject = await quester({
+            questOverrides: {
+                ...hunt,
+                requirements: {
+                    ...buildQuest().requirements,
+                    minTitle: 'rookie',
+                },
+            },
+            characterOverrides: { status: { title: CASTER_TITLE } },
+        });
+
+        await expect(service.resolveStandard(triggerOf(subject))).resolves.toBe(
+            'resolved',
+        );
+
+        const [result] = await resultsOf(subject);
+        expect(result.xpGained).toBe(40);
+        expect(result.rewards.coins).toEqual(COINS_PRIZE);
+        expect((await characterOf(subject)).status.coins).toEqual(COINS_PRIZE);
+    });
+
     it('turns a duplicate trigger into a no-op', async () => {
         const subject = await quester({
             questOverrides: jobQuest({ prizeCoins: COINS_PRIZE }),

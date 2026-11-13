@@ -755,6 +755,48 @@ describe('planParticipant', () => {
     describe('the cure of a won quest', () => {
         const VILLAGE = { lifePointsShare: 0.5, canHeal: [InjuryType.deepCut] };
 
+        // la cura viaggia col blocco premio tirato per il titolo (D-05): la porta DrawnRewards, non la quest
+        const curing = (
+            cure: unknown,
+            overrides: Partial<DrawnRewards> = {},
+        ): DrawnRewards => rewardsWith({ ...overrides, cure });
+
+        it('heals with the cure of the character title block (D-05)', () => {
+            const questCure = {
+                lifePointsShare: 1,
+                canHeal: [InjuryType.infection],
+            };
+            const wounded = woundedWith(400, [
+                InjuryType.deepCut,
+                InjuryType.infection,
+            ]);
+            const blockCured = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.boss, null, questCure),
+                    snapshot: wounded,
+                    rewards: curing(VILLAGE),
+                }),
+            );
+            const blockWithoutCure = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.boss, null, questCure),
+                    snapshot: wounded,
+                    rewards: curing(null),
+                }),
+            );
+
+            expect(blockCured.update.$set['status.currentLifePoints']).toBe(
+                500,
+            );
+            expect(blockCured.result.injuriesHealed).toEqual([
+                InjuryType.deepCut,
+            ]);
+            expect(
+                blockWithoutCure.update.$set['status.currentLifePoints'],
+            ).toBe(400);
+            expect(blockWithoutCure.result.injuriesHealed).toEqual([]);
+        });
+
         const woundedWith = (
             currentLifePoints: number,
             injuries: InjuryType[],
@@ -781,7 +823,8 @@ describe('planParticipant', () => {
         it('raises the life points to the share of the maximum and removes only the listed injuries (D-02)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.heal, null, VILLAGE),
+                    quest: questOf(QuestType.heal),
+                    rewards: curing(VILLAGE),
                     snapshot: woundedWith(400, [
                         InjuryType.deepCut,
                         InjuryType.infection,
@@ -804,7 +847,8 @@ describe('planParticipant', () => {
         it('never lowers life points already above the floor (D-02)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.heal, null, VILLAGE),
+                    quest: questOf(QuestType.heal),
+                    rewards: curing(VILLAGE),
                     snapshot: woundedWith(700, []),
                 }),
             );
@@ -815,7 +859,8 @@ describe('planParticipant', () => {
         it('cures only the injuries with a share of 0 (D-02)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.heal, null, {
+                    quest: questOf(QuestType.heal),
+                    rewards: curing({
                         lifePointsShare: 0,
                         canHeal: [InjuryType.deepCut],
                     }),
@@ -831,12 +876,12 @@ describe('planParticipant', () => {
             const healWith = (lifePointsShare: number) =>
                 planParticipant(
                     inputWith({
-                        quest: questOf(QuestType.heal, null, {
-                            lifePointsShare,
-                            canHeal: [],
-                        }),
+                        quest: questOf(QuestType.heal),
+                        rewards: curing(
+                            { lifePointsShare, canHeal: [] },
+                            { xpPrize: 300 },
+                        ),
                         snapshot: woundedWith(400, []),
-                        rewards: rewardsWith({ xpPrize: 300 }),
                     }),
                 );
 
@@ -856,7 +901,8 @@ describe('planParticipant', () => {
             (type) => {
                 const plan = planParticipant(
                     inputWith({
-                        quest: questOf(type, null, VILLAGE),
+                        quest: questOf(type),
+                        rewards: curing(VILLAGE),
                         snapshot: woundedWith(400, [InjuryType.deepCut]),
                     }),
                 );
@@ -872,7 +918,8 @@ describe('planParticipant', () => {
         it('cures a game master completion like a success (D-07)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.job, null, VILLAGE),
+                    quest: questOf(QuestType.job),
+                    rewards: curing(VILLAGE),
                     snapshot: woundedWith(400, [InjuryType.deepCut]),
                     verdict: QuestOutcome.gmCompleted,
                 }),
@@ -886,7 +933,8 @@ describe('planParticipant', () => {
         it('cures nothing on a defeat (D-07)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.enemy, null, {
+                    quest: questOf(QuestType.enemy),
+                    rewards: curing({
                         lifePointsShare: 1,
                         canHeal: [InjuryType.deepCut],
                     }),
@@ -909,10 +957,14 @@ describe('planParticipant', () => {
         it('cures after the fight and after the progression: the wounds taken in the same outcome are healed too (D-20)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.job, null, {
-                        lifePointsShare: 0.5,
-                        canHeal: [InjuryType.deepCut, InjuryType.sprain],
-                    }),
+                    quest: questOf(QuestType.job),
+                    rewards: curing(
+                        {
+                            lifePointsShare: 0.5,
+                            canHeal: [InjuryType.deepCut, InjuryType.sprain],
+                        },
+                        { xpPrize: 300 },
+                    ),
                     snapshot: woundedWith(1000, [
                         InjuryType.sprain,
                         InjuryType.infection,
@@ -924,7 +976,6 @@ describe('planParticipant', () => {
                             InjuryType.frostbite,
                         ],
                     }),
-                    rewards: rewardsWith({ xpPrize: 300 }),
                 }),
             );
 
@@ -948,7 +999,8 @@ describe('planParticipant', () => {
         it('keeps on the sheet a wound taken and healed in the same outcome, never on the character (D-20)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.job, null, VILLAGE),
+                    quest: questOf(QuestType.job),
+                    rewards: curing(VILLAGE),
                     battle: battleWith({ injuriesAdded: [InjuryType.deepCut] }),
                 }),
             );
@@ -961,7 +1013,8 @@ describe('planParticipant', () => {
         it('reads a share outside the scale as 0 and still cures the injuries (D-23)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.heal, null, {
+                    quest: questOf(QuestType.heal),
+                    rewards: curing({
                         lifePointsShare: 50,
                         canHeal: [InjuryType.deepCut],
                     }),
@@ -976,7 +1029,8 @@ describe('planParticipant', () => {
         it('ignores a malformed cure (D-23)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.heal, null, 'full'),
+                    quest: questOf(QuestType.heal),
+                    rewards: curing('full'),
                     snapshot: woundedWith(400, [InjuryType.deepCut]),
                 }),
             );
@@ -990,7 +1044,10 @@ describe('planParticipant', () => {
 
         it('keeps the write filter unchanged when curing (D-07)', () => {
             const cured = planParticipant(
-                inputWith({ quest: questOf(QuestType.job, null, VILLAGE) }),
+                inputWith({
+                    quest: questOf(QuestType.job),
+                    rewards: curing(VILLAGE),
+                }),
             );
             const plain = planParticipant(
                 inputWith({ quest: questOf(QuestType.job) }),
@@ -1001,7 +1058,10 @@ describe('planParticipant', () => {
 
         it('never writes the potion recovery from an outcome (D-16)', () => {
             const plan = planParticipant(
-                inputWith({ quest: questOf(QuestType.job, null, VILLAGE) }),
+                inputWith({
+                    quest: questOf(QuestType.job),
+                    rewards: curing(VILLAGE),
+                }),
             );
 
             expect(Object.keys(plan.update.$set).sort()).toEqual(

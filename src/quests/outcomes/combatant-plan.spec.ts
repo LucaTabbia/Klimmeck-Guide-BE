@@ -284,6 +284,71 @@ describe('planCombatant', () => {
     });
 });
 
+const winnerWithTitle = (title: TitleType): ResolutionCharacter =>
+    ({
+        ...explorer,
+        status: { ...explorer.status, title },
+    }) as ResolutionCharacter;
+
+const planWonBy = (quest: ResolutionQuest, title: TitleType) =>
+    planCombatant({
+        quest,
+        catalog: catalogWith([]),
+        snapshot: winnerWithTitle(title),
+        battle: null,
+        resultId: id('d1'),
+        aidQuestId: id('d2'),
+        pendingQuestId: id('d3'),
+        userId: id('d4'),
+        chance: new NoDrawChance(),
+        now: new Date('2026-11-04T10:00:00.000Z'),
+    });
+
+describe('planCombatant prize block', () => {
+    it('draws the rewards from the block of the character title (D-04, D-05)', () => {
+        const boss: ResolutionQuest = {
+            _id: id('94'),
+            infos: {
+                type: QuestType.boss,
+                title: 'Il drago di Bosa',
+                markerLocation: id('84'),
+            },
+            requirements: { minTitle: TitleType.paladin },
+            prizes: {
+                xpPrize: 300,
+                rankPrizes: [
+                    { title: TitleType.mage, xpPrize: 300 },
+                    { title: TitleType.paladin, xpPrize: 120 },
+                ],
+            },
+        };
+
+        const { plan } = planWonBy(boss, TitleType.paladin);
+
+        expect(plan.result.xpGained).toBe(120);
+    });
+
+    it('draws the minimum title prize of a solo quest for any title (D-01)', () => {
+        const hunt: ResolutionQuest = {
+            _id: id('95'),
+            infos: {
+                type: QuestType.hunt,
+                title: 'La caccia al cinghiale',
+                markerLocation: id('85'),
+            },
+            requirements: { minTitle: TitleType.rookie },
+            prizes: {
+                xpPrize: 40,
+                rankPrizes: [{ title: TitleType.mage, xpPrize: 300 }],
+            },
+        };
+
+        const { plan } = planWonBy(hunt, TitleType.mage);
+
+        expect(plan.result.xpGained).toBe(40);
+    });
+});
+
 describe('dungeonBattleOf', () => {
     it('reads the verdict, the effects and the stages of the exploration (D-12)', () => {
         const effects = effectsOf(400);

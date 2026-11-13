@@ -85,6 +85,7 @@ describe('drawRewards', () => {
             petLifePoints: null,
             petLore: [],
             loreDraw: null,
+            cure: null,
         });
     });
 
@@ -105,6 +106,7 @@ describe('drawRewards', () => {
             petLifePoints: null,
             petLore: [],
             loreDraw: null,
+            cure: null,
         });
     });
 
@@ -658,6 +660,23 @@ describe('spell learning by title', () => {
                 TitleType.mage,
             ),
         ).toBeNull();
+    });
+});
+
+describe('drawRewards cure', () => {
+    it('carries the cure of the drawn block without drawing (D-05)', () => {
+        const cure = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
+        const withCure = new SequenceChance([0.1, 0.2, 0.3]);
+        const withoutCure = new SequenceChance([0.1, 0.2, 0.3]);
+        const prizes = prizesWith({
+            randomLoot: [{ itemType: 'LootItem', item: BONE_ID, quantity: 1 }],
+        });
+
+        const rewards = drawRewards({ ...prizes, cure }, catalog, withCure);
+        drawRewards(prizes, catalog, withoutCure);
+
+        expect(rewards.cure).toBe(cure);
+        expect(withCure.drawn).toEqual(withoutCure.drawn);
     });
 });
 
