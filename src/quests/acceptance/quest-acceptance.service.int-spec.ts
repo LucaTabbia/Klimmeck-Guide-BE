@@ -1226,6 +1226,165 @@ describe('QuestAcceptanceService (replSet)', () => {
         });
     });
 
+    // regola dell'utente 2026-11-13: la hunt o la dungeon che ha aperto un soccorso resta strappata per tutti finché l'aid è aperta (supera D-15)
+    describe('a source quest awaiting its rescue (quick 261113-aql)', () => {
+        const LOCKED_TYPES = ['hunt', 'dungeon'];
+
+        async function openAidFrom(
+            failedQuest: Types.ObjectId,
+            concludedAt: Date | null = null,
+        ): Promise<Types.ObjectId> {
+            const base = buildQuest();
+            const _id = new Types.ObjectId();
+            await quests.collection.insertOne({
+                ...base,
+                _id,
+                infos: {
+                    ...base.infos,
+                    type: 'aid',
+                    markerLocation: world.questMarker,
+                },
+                requirements: {
+                    ...base.requirements,
+                    requiredAdventurers: [{ title: null, count: 1 }],
+                },
+                registeredAdventurers: [],
+                rescue: { characters: [new Types.ObjectId()], failedQuest },
+                concludedAt,
+            });
+            return _id;
+        }
+
+        async function expectRejectedWithNothingWritten(
+            ownerId: Types.ObjectId,
+            charId: Types.ObjectId,
+            questId: Types.ObjectId,
+        ): Promise<void> {
+            const before = await raw(charId);
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({
+                code: 'QUEST_NOT_ACCEPTABLE',
+                message: 'Missione non disponibile',
+            });
+
+            expect(await raw(charId)).toEqual(before);
+        }
+
+        it.each(LOCKED_TYPES)(
+            'rejects a %s awaiting the rescue of its aid for anyone with QUEST_NOT_ACCEPTABLE and writes nothing (quick 261113-aql)',
+            async (type) => {
+                const questId = await questOf(type);
+                await openAidFrom(questId);
+                const rookieOwner = await ownerWith(6000);
+                const rookie = await characterAt(world.cityMarker, 'rookie');
+                const heroOwner = await ownerWith(6000);
+                const hero = await characterAt(world.cityMarker, 'hero');
+                const questBefore = await rawQuest(questId);
+
+                await expectRejectedWithNothingWritten(
+                    rookieOwner,
+                    rookie,
+                    questId,
+                );
+                await expectRejectedWithNothingWritten(
+                    heroOwner,
+                    hero,
+                    questId,
+                );
+
+                expect(await pendingCount()).toBe(0);
+                expect(await pointsOf(rookieOwner)).toBe(6000);
+                expect(await pointsOf(heroOwner)).toBe(6000);
+                expect(await rawQuest(questId)).toEqual(questBefore);
+                expect(queue.added).toEqual([]);
+                expect(questQueue.added).toEqual([]);
+            },
+        );
+
+        it.each(LOCKED_TYPES)(
+            'accepts a %s again once its aid has concluded (quick 261113-aql)',
+            async (type) => {
+                const questId = await questOf(type);
+                await openAidFrom(questId, ACCEPTED_AT);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(world.cityMarker);
+
+                const pqId = await accept(ownerId, charId, questId);
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+            },
+        );
+
+        it.each(LOCKED_TYPES)(
+            'keeps a %s locked while the next aid of a lost rescue is open (quick 261113-aql)',
+            async (type) => {
+                const questId = await questOf(type);
+                await openAidFrom(questId, ACCEPTED_AT);
+                await openAidFrom(questId);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(world.cityMarker);
+
+                await expectRejectedWithNothingWritten(
+                    ownerId,
+                    charId,
+                    questId,
+                );
+
+                expect(await pendingCount()).toBe(0);
+            },
+        );
+
+        it.each(LOCKED_TYPES)(
+            'keeps a %s free when the open aid comes from another quest (quick 261113-aql)',
+            async (type) => {
+                const questId = await questOf(type);
+                await openAidFrom(await questOf(type));
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(world.cityMarker);
+
+                const pqId = await accept(ownerId, charId, questId);
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+            },
+        );
+
+        it.each([
+            ['enemy', { requiredAdventurers: [{ title: null, count: 1 }] }],
+            ['boss', { requiredAdventurers: THREE_ROOKIES }],
+            ['job', {}],
+            ['study', {}],
+            ['crime', {}],
+        ])(
+            'leaves a quest of type %s as it is with an open aid pointing at it (quick 261113-aql)',
+            async (type, requirements) => {
+                const questId = await questOf(type, requirements);
+                await openAidFrom(questId);
+                const ownerId = await ownerWith(0);
+                const charId = await characterAt(world.cityMarker);
+
+                const pqId = await accept(ownerId, charId, questId);
+
+                expect((await raw(charId))?.quests.pendingQuest).toEqual(pqId);
+            },
+        );
+
+        it('rejects from the read in the transaction an aid born after the pre-check (quick 261113-aql)', async () => {
+            const questId = await questOf('hunt');
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(world.cityMarker);
+            const transaction = interleaveBeforeTransaction(() =>
+                openAidFrom(questId),
+            );
+
+            await expectRejectedWithNothingWritten(ownerId, charId, questId);
+
+            expect(transaction).toHaveBeenCalledTimes(1);
+            expect(await pendingCount()).toBe(0);
+        });
+    });
+
     describe('concluded quests (D-06, C9)', () => {
         it('answers NOT_FOUND for a concluded quest and writes nothing', async () => {
             const ownerId = await ownerWith(6000);
