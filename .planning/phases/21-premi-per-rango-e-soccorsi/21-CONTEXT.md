@@ -2,6 +2,7 @@
 
 **Gathered:** 2026-11-12 (discuss fatto nella FE Phase 20, `Klimmeck-Guide/.planning/phases/20-rank-specific-prizes-for-group-quests/20-CONTEXT.md`; qui le stesse decisioni con la numerazione della FE)
 **Status:** Ready for planning
+**Amended:** 2026-11-13 dopo `21-RESEARCH.md` e le risposte dell'utente — decisioni nuove D-18..D-30 nella sezione «Aggiunte dopo la ricerca». Dove divergono dal testo sopra, vincono le aggiunte.
 
 <domain>
 ## Phase Boundary
@@ -43,6 +44,24 @@ Blocchi premio per titolo sulle quest di gruppo, risolti sul titolo del personag
 
 ### Pulizia DB (fatta nel discuss, 2026-11-12)
 - **D-17:** Le 3 aid concluse a DB erano avanzi delle UAT (sconfitte vere, chiuse a mano, nessun `QuestResult` sull'aid): backup EJSON nello scratchpad della sessione (`aid-cleanup-backup-2026-11-12.json`) e cancellazione su ordine dell'utente; 0 aid a DB.
+
+### Aggiunte dopo la ricerca (2026-11-13)
+
+Risposte dell'utente del 2026-11-13 (scelte fra opzioni proposte, non frasi sue) e default tecnici accettati dall'orchestratore. Riferimenti file:riga in `21-RESEARCH.md`.
+
+- **D-18 (utente, P-1; completa D-04):** se manca il blocco del titolo del personaggio vale **il blocco più alto non superiore al suo titolo, altrimenti il più basso** (un legend seduto sui posti hero di un boss hero prende il blocco hero); chi apre il foglio **senza personaggio** vede il blocco del `minTitle`. **Una sola funzione** per foglio e risoluzione (`prizeBlockFor(quest, title)`).
+- **D-19 (utente, P-2; completa D-09):** una sconfitta in combattimento in una quest che non apre soccorso (`heal`, `job`, `study`, `magic`, `crime`, `guard`) vale **come lo scontro con le guardie perso**: vita a 1, resta in città, corsia libera, ferite e consumi dello scontro tenuti, nessun premio, nessuna aid. Serve un piano d'esito dedicato (oggi `planParticipant` lancia su una sconfitta senza aid).
+- **D-20 (utente, PQ2; completa D-14):** l'aid di una dungeon porta **la quota vera già sul foglio**: unità = turni, quota `(indice + 1) / totale`; monete, xp e quantità del `prizeItem` scritte **già in proporzione sull'aid alla nascita** (per difetto); `randomLoot` e pet restano sull'aid e la loro soglia di vittoria è moltiplicata per la quota alla risoluzione (nessun tiro nuovo). Turno salvato in `rescue.turn { index, kind, total }`; la sua presenza dice «aid di dungeon» (l'aid perde il tipo d'origine).
+- **D-21 (utente, PQ3; completa D-12, D-13):** l'esito porta **i turni per dungeon e aid di dungeon** (la FE stampa una sola riga dei turni al posto della riga delle tappe): campi nuovi nullable su `QuestResult` — `turnsTotal`, `turnsCompleted`, `lastTurn` (1-based, ultimo turno giocato), `lastTurnKind: DungeonTurnKind { exploration, fight }` — `null` fuori da dungeon e aid di dungeon; `stagesCleared` / `stagesTotal` restano come sono (ripiego della FE) e si valorizzano anche per i soccorritori di un'aid di dungeon.
+- **D-22 (C-9; fissa D-07): il filo resta ADDITIVO.** `Quest.prizes` tiene nome e tipo `QuestPrizes!` e diventa risolto per viewer (titolo del personaggio corrente del bearer, HTTP e WS per sottoscrittore con memo per evento come `noEffect`); `Quest.rankPrizes: [QuestRankPrizes!]!` con `QuestRankPrizes { title: String!, prizes: QuestPrizes! }` (lista vuota sulle solitarie; lo userà la Phase 22 / FE 21); `type QuestPrizes` invariato; nessun argomento nuovo su `quests`. SDL proposto verbatim in `21-RESEARCH.md` §Q7. Cambia solo la semantica di `prizes`.
+- **D-23 (C-4; completa D-03):** il boss misto scrive **`minTitle` = titolo più basso dei posti** (l'accettazione controlla il titolo prima dei posti); posti in ordine `[rango, inferiore]`, mai null; **1 boss su 2 misto** (`MIXED_BOSS_SHARE = 0.5`), da 1 a metà dei posti al titolo inferiore; il generatore conta la copertura dei boss sul titolo più alto dei posti; i tiri nuovi in coda alla quest e solo per i boss; i campi di oggi di `prizes` restano uguali al blocco del rango del boss; blocchi a DB in `prizes.rankPrizes` (solo Mongoose).
+- **D-24 (C-2; completa D-02):** un posto a titolo null in un `boss` o una `worldMission` rende la quest **non accettabile** (`QUEST_NOT_ACCEPTABLE`, fail-closed); il boot riporta in sola lettura le quest di gruppo aperte con posti null, titoli dei posti senza blocco o magie in blocchi sotto mage.
+- **D-25 (C-11; completa D-05b):** il cancello della magia vive in `canLearnSpell` / `drawLearnableSpell` e usa **il titolo dopo l'esito**; una study di Valantar vinta da un non caster passa al ramo della lore dello studio.
+- **D-26 (C-5; completa D-10):** la nuova aid nata da un'aid di dungeon persa salva il turno dove sono caduti i soccorritori.
+- **D-27 (C-8; completa D-16):** l'archiviatore libera corsie e PendingQuest dei soccorritori non partiti con **la stessa routine del timeout** e i chiamanti mandano lo stesso push `questCancelled` dopo il commit (bug riprodotto dalla sonda 1 della ricerca).
+- **D-28 (C-10): nessun migratore né one-off.** Un boss senza blocchi si legge come premio unico = blocco del suo `minTitle`; i 12 boss a DB restano come sono.
+- **D-29 (default tecnico, D-13):** nel segnaposto l'esplorazione è sempre superata e non consuma tiri (i tiri di una dungeon intera restano identici a oggi); la sconfitta in esplorazione si prova con una porta di test. Ritmo dei turni: esplorazione, scontro, esplorazione, scontro… (una dungeon da 4 gruppi = 8 turni).
+- **D-30 (C-1):** il criterio 4 della ROADMAP è corretto di conseguenza (il 4° turno è uno scontro, il 5° un'esplorazione).
 
 ### Claude's Discretion
 - Forma sul filo del blocco del viewer e nomi dei campi (`rankPrizes`, turno salvato su `rescue`).

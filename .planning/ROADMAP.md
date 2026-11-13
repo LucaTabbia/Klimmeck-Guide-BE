@@ -171,7 +171,7 @@ Plans:
   1. Un boss misto (posti mage + paladin) vinto: il mage riceve il blocco mage (col pet del suo sorteggio, se esce), il paladin il blocco paladin col suo sorteggio; una solitaria rookie dà il premio del `minTitle` a chiunque la vinca; nessun rookie impara una magia da nessun percorso.
   2. Il generatore produce boss misti solo col titolo inferiore e scrive i blocchi con le tabelle; una worldMission scritta a mano coi blocchi li usa così come sono; un posto a titolo null in una quest di gruppo è rifiutato o riportato.
   3. Una hunt persa crea l'aid, una job persa no; un boss perso crea un'aid coi blocchi e i posti del boss; la crime resta coll'arresto senza aid.
-  4. Una dungeon persa al 4° turno (esplorazione) salva il turno sull'aid; il soccorritore percorre 4 turni, completa il 4° e salva il ferito con metà dei premi di una dungeon da 8 turni; perso prima del 4° → regola dell'aid persa.
+  4. Una dungeon da 4 gruppi (8 turni) persa al 5° turno (esplorazione) salva il turno sull'aid; il soccorritore percorre 5 turni, completa il 5° e salva il ferito con 5/8 dei premi (già scritti in proporzione sul foglio dell'aid); persa al 4° (scontro) → metà; soccorso perso prima → regola dell'aid persa. Una heal, job, study, magic, crime o guard persa in combattimento lascia a 1 di vita senza aid.
   5. L'archiviatore che chiude un'aid con soccorritori iscritti libera corsie e PendingQuest; SDL al boot reale; handoff per la FE Phase 20.
 **Decisioni del discuss (2026-11-12, `21-CONTEXT.md` D-01..D-17)**: discuss fatto nella FE (`20-CONTEXT.md`), riportato qui.
 **Unblocks (FE)**: FE Phase 20 (foglio della quest col blocco del proprio titolo, contatori dei turni nell'esito dell'aid di dungeon) e FE Phase 21 (passo dei premi per personaggio).
