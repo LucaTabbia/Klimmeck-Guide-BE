@@ -37,13 +37,20 @@ import {
 } from 'src/quests/generation/generated-prizes';
 import { readPetCandidates } from 'src/quests/generation/pet-candidate';
 import type { PetCandidate } from 'src/quests/generation/pet-prize';
-import { generatedQuestDraftOf } from 'src/quests/generation/generated-quest-draft';
+import {
+    GeneratedQuestDraft,
+    generatedQuestDraftOf,
+    mixedBossDraftOf,
+} from 'src/quests/generation/generated-quest-draft';
 import { readPrizeCatalog } from 'src/quests/generation/prize-catalog';
 import {
+    coverageRankOf,
+    CoverageQuest,
     GENERATED_RANKS,
     GeneratedRank,
-    isGeneratedRank,
     leastCoveredRank,
+    lowerRankOf,
+    mixedSeatsOf,
 } from 'src/quests/generation/generation-rules';
 import {
     Composition,
@@ -51,6 +58,7 @@ import {
 } from 'src/quests/generation/quest-composition';
 import { QuestGenerationTrigger } from 'src/quests/generation/quest-generation-trigger';
 import { recommendedLootOf } from 'src/quests/generation/recommended-loot';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 
 type RankCounts = Partial<Record<GeneratedRank, number>>;
@@ -70,10 +78,9 @@ interface LeanPoi {
     location?: unknown;
 }
 
-interface LeanOpenQuest {
+interface LeanOpenQuest extends CoverageQuest {
     generated?: boolean | null;
-    infos?: { markerLocation?: Types.ObjectId | null } | null;
-    requirements?: { minTitle?: unknown } | null;
+    infos?: { markerLocation?: Types.ObjectId | null; type?: unknown } | null;
 }
 
 interface WorldCity extends CityNode {
@@ -195,6 +202,8 @@ export class QuestGenerator extends QuestGenerationTrigger {
     // pickCity (1) → pickPoi (1) → composeQuest per ogni rango provato (vedi quest-composition.ts)
     // → prizesOf (loot, poi un tiro di fascia del pet per ogni quest e l'indice se la fascia ha candidati,
     // Phase 19 D-28: vedi generated-prizes.ts) → announcementOf (1, in generated-quest-draft.ts)
+    // → solo per i boss, in coda (D-23): cancello del misto (1) → proporzione (1, se metà dei posti > 1)
+    // → prizesOf del titolo inferiore (se misto)
     private async runOnce(): Promise<number> {
         const world = await this.readWorld();
         const target = this.config.target ?? world.cityCount;
@@ -272,14 +281,19 @@ export class QuestGenerator extends QuestGenerationTrigger {
             enemies: composition.enemies.map((entry) => entry.enemy),
             catalog: world.catalog,
         });
-        const draft = generatedQuestDraftOf({
+        const draft = this.mixedOf(
+            generatedQuestDraftOf({
+                composition,
+                poiId,
+                city: { name: city.name, relatedLore: city.relatedLore },
+                prizes,
+                recommendedLoot,
+                chance: this.chance,
+            }),
             composition,
-            poiId,
-            city: { name: city.name, relatedLore: city.relatedLore },
-            prizes,
-            recommendedLoot,
-            chance: this.chance,
-        });
+            world,
+            poiTypes,
+        );
         try {
             await this.questModel.create(draft);
             return composition.rank;
@@ -290,6 +304,29 @@ export class QuestGenerator extends QuestGenerationTrigger {
             );
             return null;
         }
+    }
+
+    // tiri del boss misto dopo l'annuncio e solo per i boss: le enemy restano identiche tiro per tiro (D-23)
+    private mixedOf(
+        draft: GeneratedQuestDraft,
+        composition: Composition,
+        world: GenerationWorld,
+        poiTypes: readonly string[],
+    ): GeneratedQuestDraft {
+        if (composition.type !== QuestType.boss) return draft;
+        const lowerSeats = mixedSeatsOf(composition.seats, this.chance);
+        const lower = lowerRankOf(composition.rank);
+        if (lowerSeats === 0 || lower === null) return draft;
+        const lowerPrizes = prizesOf({
+            type: composition.type,
+            rank: lower,
+            catalog: world.catalog,
+            pets: world.pets,
+            enemyIds: composition.enemies.map((entry) => entry.enemy.id),
+            poiTypes,
+            chance: this.chance,
+        });
+        return mixedBossDraftOf(draft, { lower, lowerSeats, lowerPrizes });
     }
 
     // il rango meno coperto prima; se il POI non lo compone, gli altri per copertura (D-15)
@@ -336,7 +373,9 @@ export class QuestGenerator extends QuestGenerationTrigger {
         );
         const openQuests = await this.questModel
             .find({ concludedAt: null })
-            .select('generated infos.markerLocation requirements.minTitle')
+            .select(
+                'generated infos.markerLocation infos.type requirements.minTitle requirements.requiredAdventurers',
+            )
             .lean<LeanOpenQuest[]>();
         const occupied = new Set(
             openQuests
@@ -391,10 +430,8 @@ export class QuestGenerator extends QuestGenerationTrigger {
                     (generatedPerCity.get(cityId) ?? 0) + 1,
                 );
             }
-            const rank = quest.requirements?.minTitle;
-            if (isGeneratedRank(rank)) {
-                rankCounts[rank] = (rankCounts[rank] ?? 0) + 1;
-            }
+            const rank = coverageRankOf(quest);
+            if (rank !== null) rankCounts[rank] = (rankCounts[rank] ?? 0) + 1;
         }
         return {
             cities: worldCities,
