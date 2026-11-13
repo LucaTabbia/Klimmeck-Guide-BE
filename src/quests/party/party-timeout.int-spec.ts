@@ -187,6 +187,73 @@ describe('PartyTimeoutService.disband (replSet)', () => {
         expect(cancelledPushes()).toHaveLength(1);
     });
 
+    // nessuno può più entrare né partire (fail-closed): alla scadenza il party si scioglie con la routine di sempre, anche a posti pieni;
+    // la worldMission è della corsia del GM e non ha la finestra delle 24 ore (Phase 7 D-03)
+    it.each([
+        [3, 2],
+        [1, 1],
+    ])(
+        'disbands after 24 hours a boss with an untitled seat for %i taken by %i (D-24)',
+        async (seats, registered) => {
+            const first = await member({
+                questOverrides: {
+                    infos: { ...buildQuest().infos, type: 'boss' },
+                    requirements: {
+                        ...buildQuest().requirements,
+                        requiredAdventurers: [{ title: null, count: seats }],
+                    },
+                },
+            });
+            const members = [first];
+            while (members.length < registered) {
+                members.push(await member({ quest: first.quest }));
+            }
+            const questId = first.quest._id as Types.ObjectId;
+            await registeredSince(questId, DAY_AGO);
+            const warn = jest.spyOn(Logger.prototype, 'warn');
+
+            await expect(service.disband({ questId })).resolves.toBe(
+                'disbanded',
+            );
+
+            expect((await questOf(questId)).registeredAdventurers).toEqual([]);
+            for (const subject of members) {
+                expect(await pendingQuestExists(subject)).toBe(false);
+                expect(
+                    (await characterOf(subject)).quests.pendingQuest,
+                ).toBeNull();
+            }
+            expect(cancelledPushes()).toHaveLength(registered);
+            expect(warn.mock.calls.map(([message]) => String(message))).toEqual(
+                [
+                    `Missione ${questId.toHexString()} con un posto senza titolo (D-24): party sciolto alla scadenza`,
+                ],
+            );
+        },
+    );
+
+    it('keeps a party with an untitled seat within its 24 hours (D-24)', async () => {
+        const waiting = await member({
+            questOverrides: {
+                infos: { ...buildQuest().infos, type: 'boss' },
+                requirements: {
+                    ...buildQuest().requirements,
+                    requiredAdventurers: [{ title: null, count: 1 }],
+                },
+            },
+        });
+        await registeredSince(
+            waiting.quest._id,
+            new Date(NOW.getTime() - 23 * HOUR_MS),
+        );
+
+        await expect(
+            service.disband({ questId: waiting.quest._id }),
+        ).resolves.toBe('waiting');
+
+        await expectUntouched(waiting);
+    });
+
     it('keeps a full party waiting for a member still travelling', async () => {
         const waiting = await member({ questOverrides: bossOf(2) });
         const travelling = await member({

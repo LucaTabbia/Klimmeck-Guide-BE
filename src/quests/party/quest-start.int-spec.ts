@@ -151,6 +151,31 @@ describe('QuestStartService.tryStart (replSet)', () => {
         expect(world.questQueue.added).toEqual([]);
     });
 
+    // la worldMission è della corsia del GM e non passa dall'avvio del party (Phase 7 D-16)
+    it('starts no boss with an untitled seat, even with every seat taken (D-24)', async () => {
+        const a = await quester({
+            questOverrides: {
+                ...questOf('boss', 2),
+                requirements: {
+                    ...buildQuest().requirements,
+                    requiredAdventurers: [{ title: null, count: 2 }],
+                },
+            },
+            arrivedAt: TEN,
+        });
+        const b = await quester({ quest: a.quest, arrivedAt: TEN_THIRTY });
+
+        await expect(service.tryStart(triggerOf(b))).resolves.toBe('stale');
+
+        expect((await pendingQuestOf(a)).startDate).toBeNull();
+        expect((await pendingQuestOf(b)).startDate).toBeNull();
+        expect((await questById(a.quest._id)).startedAt).toBeNull();
+        expect(world.questQueue.added).toEqual([]);
+        expect(warn.mock.calls.map(([message]) => String(message))).toEqual([
+            `Missione ${String(a.quest._id)} con requiredAdventurers non valido: nessun avvio`,
+        ]);
+    });
+
     it('waits while a member of a full party is still travelling', async () => {
         const { a, b } = await pair('boss', 2, [TEN, null]);
 
