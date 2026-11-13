@@ -538,6 +538,42 @@ describe('buildAidQuest proportional prize', () => {
         expect(infos.timeToComplete).toBe(450_000);
     });
 
+    // 86 400 000 × 7/10 e la catena 34 560 000 × (3/10)/(4/10) perdevano 1 ms con la tolleranza dei premi
+    it('writes the exact share of a long dungeon time at birth (quick 261113-aql, IN-04)', () => {
+        const longDungeon: AidSourceQuest = {
+            ...dungeon,
+            infos: { ...dungeon.infos, timeToComplete: 86_400_000 },
+        };
+
+        const { infos } = buildAidQuest(longDungeon, [INJURED_ID], AID_ID, {
+            index: 6,
+            kind: DungeonTurnKind.exploration,
+            total: 10,
+        });
+
+        expect(infos.timeToComplete).toBe(60_480_000);
+    });
+
+    it('rescales a long shared time exactly by the ratio of the shares (quick 261113-aql, IN-04)', () => {
+        const sharedAid: AidSourceQuest = {
+            ...dungeon,
+            _id: AID_ID,
+            infos: { ...dungeon.infos, timeToComplete: 34_560_000 },
+            rescue: {
+                failedQuest: ORIGINAL_ID,
+                turn: { index: 3, kind: DungeonTurnKind.fight, total: 10 },
+            },
+        };
+
+        const { infos } = buildAidQuest(sharedAid, [RESCUER_ID], NEXT_AID_ID, {
+            index: 2,
+            kind: DungeonTurnKind.exploration,
+            total: 10,
+        });
+
+        expect(infos.timeToComplete).toBe(25_920_000);
+    });
+
     it('keeps the full time on an aid without a turn (quick 261113-aql)', () => {
         const hunt: AidSourceQuest = {
             ...dungeon,
