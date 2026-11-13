@@ -183,7 +183,7 @@ Plans:
 - [x] 21-01-PLAN.md — Magia solo ai titoli ≥ mage
 - [x] 21-02-PLAN.md — Blocchi premio per titolo: schema, lettura e scelta
 - [x] 21-03-PLAN.md — Ognuno vince il blocco del proprio titolo
-- [ ] 21-04-PLAN.md — Posto null nelle quest di gruppo: rifiuto e report al boot
+- [x] 21-04-PLAN.md — Posto null nelle quest di gruppo: rifiuto e report al boot
 - [ ] 21-05-PLAN.md — Aid per tipo, sconfitta senza aid e clone dei blocchi
 - [ ] 21-06-PLAN.md — L'archiviatore libera i soccorritori iscritti
 - [ ] 21-07-PLAN.md — Boss generati misti col titolo inferiore
@@ -235,7 +235,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
-| 21. Premi per rango e soccorsi | v1.1 | 3/14 | In Progress | - |
+| 21. Premi per rango e soccorsi | v1.1 | 4/14 | In Progress | - |
 
 ---
 
