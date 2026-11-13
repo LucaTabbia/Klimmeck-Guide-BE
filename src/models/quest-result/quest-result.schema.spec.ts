@@ -133,6 +133,37 @@ describe('quest result schema', () => {
         expect(enemies.schema.path('enemy').instance).toBe('ObjectId');
     });
 
+    it('stores the turn counters of a dungeon with null defaults (D-21)', () => {
+        const result = new Result(validResultDoc()).toObject();
+
+        expect({
+            turnsTotal: result.turnsTotal,
+            turnsCompleted: result.turnsCompleted,
+            lastTurn: result.lastTurn,
+            lastTurnKind: result.lastTurnKind,
+        }).toEqual({
+            turnsTotal: null,
+            turnsCompleted: null,
+            lastTurn: null,
+            lastTurnKind: null,
+        });
+        expect(
+            new Result({
+                ...validResultDoc(),
+                turnsTotal: 8,
+                turnsCompleted: 4,
+                lastTurn: 5,
+                lastTurnKind: 'exploration',
+            }).validateSync(),
+        ).toBeUndefined();
+        expect(
+            new Result({
+                ...validResultDoc(),
+                lastTurnKind: 'nap',
+            }).validateSync()?.errors.lastTurnKind,
+        ).toBeDefined();
+    });
+
     it('rejects unknown outcomes and injuries', () => {
         expect(
             new Result({ ...validResultDoc(), outcome: 'grade' }).validateSync()

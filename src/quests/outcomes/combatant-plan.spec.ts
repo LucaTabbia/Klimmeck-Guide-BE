@@ -6,6 +6,7 @@ import { TitleType } from 'src/models/enums/title-type.enum';
 import { ChanceSource } from './chance-source';
 import type { CombatEnemySnapshot } from './combat/combat-context';
 import type { ParticipantEffects } from './combat/combat-resolver';
+import type { DungeonResolution } from './dungeon/dungeon-resolver';
 import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
     type CombatantBattle,
@@ -153,6 +154,13 @@ const effectsOf = (hpAfter: number): ParticipantEffects => ({
     spellsUsed: [],
 });
 
+const NO_TURNS = {
+    turnsTotal: null,
+    turnsCompleted: null,
+    lastTurn: null,
+    lastTurnKind: null,
+};
+
 const planWith = (quest: ResolutionQuest, battle: CombatantBattle) =>
     planCombatant({
         quest,
@@ -172,7 +180,7 @@ describe('planCombatant', () => {
         const { plan, verdict } = planWith(dungeon, {
             verdict: 'success',
             effects: effectsOf(700),
-            stages: { cleared: 3, total: 3 },
+            stages: { cleared: 3, total: 3, ...NO_TURNS },
         });
 
         expect(verdict).toBe(QuestOutcome.success);
@@ -185,7 +193,7 @@ describe('planCombatant', () => {
         const { plan, verdict, aid } = planWith(dungeon, {
             verdict: 'failure',
             effects: effectsOf(0),
-            stages: { cleared: 1, total: 3 },
+            stages: { cleared: 1, total: 3, ...NO_TURNS },
         });
 
         expect(verdict).toBe(QuestOutcome.failure);
@@ -425,7 +433,60 @@ describe('dungeonBattleOf', () => {
         ).toEqual({
             verdict: 'failure',
             effects,
-            stages: { cleared: 2, total: 4 },
+            stages: {
+                cleared: 2,
+                total: 4,
+                turnsTotal: 8,
+                turnsCompleted: 5,
+                lastTurn: 6,
+                lastTurnKind: DungeonTurnKind.fight,
+            },
+        });
+    });
+
+    it('carries the turn counters of a dungeon battle (D-21)', () => {
+        const effects = effectsOf(400);
+        const stagesOf = (
+            resolution: Omit<DungeonResolution, 'participants'>,
+        ) =>
+            dungeonBattleOf(
+                { ...resolution, participants: [effects] },
+                explorer._id,
+            ).stages;
+
+        expect(
+            stagesOf({
+                verdict: 'success',
+                stagesCleared: 2,
+                stagesTotal: 4,
+                turnsTotal: 8,
+                turnsCompleted: 5,
+                failedTurn: null,
+            }),
+        ).toEqual({
+            cleared: 2,
+            total: 4,
+            turnsTotal: 8,
+            turnsCompleted: 5,
+            lastTurn: 5,
+            lastTurnKind: DungeonTurnKind.exploration,
+        });
+        expect(
+            stagesOf({
+                verdict: 'failure',
+                stagesCleared: 1,
+                stagesTotal: 4,
+                turnsTotal: 8,
+                turnsCompleted: 3,
+                failedTurn: { index: 3, kind: DungeonTurnKind.fight },
+            }),
+        ).toEqual({
+            cleared: 1,
+            total: 4,
+            turnsTotal: 8,
+            turnsCompleted: 3,
+            lastTurn: 4,
+            lastTurnKind: DungeonTurnKind.fight,
         });
     });
 });

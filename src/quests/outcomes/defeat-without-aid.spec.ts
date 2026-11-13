@@ -68,4 +68,20 @@ describe('planDefeatWithoutAid', () => {
         expect(withoutAid.outcome).toBe(QuestOutcome.failure);
         expect({ ...withoutAid, guardEncounter: true }).toEqual(guardDefeat);
     });
+
+    it('leaves the turn counters null on a defeat without aid (D-19, D-21)', () => {
+        const { result } = planDefeatWithoutAid(lostJob());
+
+        expect({
+            turnsTotal: result.turnsTotal,
+            turnsCompleted: result.turnsCompleted,
+            lastTurn: result.lastTurn,
+            lastTurnKind: result.lastTurnKind,
+        }).toEqual({
+            turnsTotal: null,
+            turnsCompleted: null,
+            lastTurn: null,
+            lastTurnKind: null,
+        });
+    });
 });

@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import type { OwnedPetEntry } from 'src/characters/pets/owned-pet-entry';
+import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
@@ -8,6 +9,7 @@ import { idForms } from 'src/mongo/document-id';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
 import {
+    type DungeonStages,
     OutcomeCharacterSnapshot,
     OutcomeQuestSnapshot,
     ParticipantPlan,
@@ -121,6 +123,19 @@ const inputWith = (
     ...overrides,
 });
 
+const NO_TURNS = {
+    turnsTotal: null,
+    turnsCompleted: null,
+    lastTurn: null,
+    lastTurnKind: null,
+};
+
+const stagesOf = (
+    cleared: number,
+    total: number,
+    turns: Omit<DungeonStages, 'cleared' | 'total'> = NO_TURNS,
+): DungeonStages => ({ cleared, total, ...turns });
+
 const potionStack = (quantity: number) => ({
     itemType: 'LootItem' as const,
     item: POTION_ID,
@@ -219,6 +234,7 @@ describe('planParticipant', () => {
                 enemies: [],
                 stagesCleared: null,
                 stagesTotal: null,
+                ...NO_TURNS,
                 rescuedCharacters: [],
                 arrested: false,
                 coinsLost: null,
@@ -231,12 +247,74 @@ describe('planParticipant', () => {
         const plan = planParticipant(
             inputWith({
                 quest: questOf(QuestType.dungeon),
-                stages: { cleared: 2, total: 3 },
+                stages: stagesOf(2, 3),
             }),
         );
 
         expect(plan.result.stagesCleared).toBe(2);
         expect(plan.result.stagesTotal).toBe(3);
+    });
+
+    describe('the turn counters of a dungeon', () => {
+        const turnCountersOf = (plan: ParticipantPlan) => ({
+            turnsTotal: plan.result.turnsTotal,
+            turnsCompleted: plan.result.turnsCompleted,
+            lastTurn: plan.result.lastTurn,
+            lastTurnKind: plan.result.lastTurnKind,
+        });
+
+        it('writes the turn counters of a cleared dungeon (D-21)', () => {
+            const counters = {
+                turnsTotal: 8,
+                turnsCompleted: 8,
+                lastTurn: 8,
+                lastTurnKind: DungeonTurnKind.fight,
+            };
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.dungeon),
+                    stages: stagesOf(4, 4, counters),
+                }),
+            );
+
+            expect(turnCountersOf(plan)).toEqual(counters);
+            expect(plan.result.stagesCleared).toBe(4);
+            expect(plan.result.stagesTotal).toBe(4);
+        });
+
+        it('writes the turn counters of a lost dungeon (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.dungeon),
+                    verdict: QuestOutcome.failure,
+                    aid: { aidQuestId: AID_ID, failedQuestId: QUEST_ID },
+                    stages: stagesOf(2, 4, {
+                        turnsTotal: 8,
+                        turnsCompleted: 4,
+                        lastTurn: 5,
+                        lastTurnKind: DungeonTurnKind.exploration,
+                    }),
+                }),
+            );
+
+            expect(turnCountersOf(plan)).toEqual({
+                turnsTotal: 8,
+                turnsCompleted: 4,
+                lastTurn: 5,
+                lastTurnKind: DungeonTurnKind.exploration,
+            });
+        });
+
+        it('leaves the turn counters null outside a dungeon (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.enemy),
+                    verdict: QuestOutcome.gmCompleted,
+                }),
+            );
+
+            expect(turnCountersOf(plan)).toEqual(NO_TURNS);
+        });
     });
 
     it('requires a free standard lane in the write filter of the game master lanes only (D-24)', () => {
