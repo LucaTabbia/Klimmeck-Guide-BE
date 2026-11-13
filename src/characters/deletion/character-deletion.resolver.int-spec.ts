@@ -803,6 +803,57 @@ describe('deleteCharacter (wire)', () => {
             expect(push.observed).toEqual([{ pendingQuest: null, lane: null }]);
         });
 
+        // la lettura dei proprietari dopo il commit cade: la cancellazione è già scritta e resta riuscita
+        it('keeps a committed deletion when the cancellation push fails (B-IN-04, D-27)', async () => {
+            const { rescuer, pendingQuestId } = await registeredRescuer(
+                'twitch-del-rescuer-lost-push',
+            );
+            const { wounded, aidId } = await woundedOnAid([
+                rescuer.character?._id as Types.ObjectId,
+            ]);
+            await pendingQuests.collection.insertOne({
+                _id: pendingQuestId,
+                quest: aidId,
+                startDate: null,
+                arrivedAt: null,
+                waitingTime: 0,
+                pointsSpent: 0,
+            });
+            const find = users.find.bind(users) as (...args: any[]) => any;
+            jest.spyOn(users, 'find').mockImplementation(((...args: any[]) => {
+                if (args[0]?.currentCharacter) {
+                    throw Object.assign(new Error('owners lost'), {
+                        name: 'MongoNetworkError',
+                        code: 'ECONNRESET',
+                    });
+                }
+                return find(...args);
+            }) as any);
+            const warn = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation(() => undefined);
+
+            const body = await deleteAs(wounded.bearer);
+
+            expect(deletedUserOf(body)).toMatchObject({
+                id: String(wounded.user._id),
+                currentCharacter: null,
+            });
+            expect(
+                (await rawCharacter(wounded.character?._id as Types.ObjectId))
+                    ?.deletionReason,
+            ).toBe('user_request');
+            expect(
+                await pendingQuests.collection.findOne({ _id: pendingQuestId }),
+            ).toBeNull();
+            expect(push.sent).toEqual([]);
+            expect(warn.mock.calls.map(([message]) => String(message))).toEqual(
+                [
+                    `Push questCancelled della missione ${aidId.toHexString()} non inviata: MongoNetworkError, code ECONNRESET`,
+                ],
+            );
+        });
+
         it('sends no push when the deletion releases nobody (D-27)', async () => {
             const { wounded } = await woundedOnAid([]);
 
