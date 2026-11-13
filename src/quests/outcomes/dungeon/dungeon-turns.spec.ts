@@ -1,5 +1,12 @@
 import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
-import { dungeonTurnsOf, rescueTurnOf, turnCountersOf } from './dungeon-turns';
+import {
+    dungeonTurnsOf,
+    facedEnemyCountOf,
+    fallenCountersOf,
+    nextRescueTurnOf,
+    rescueTurnOf,
+    turnCountersOf,
+} from './dungeon-turns';
 
 const { exploration, fight } = DungeonTurnKind;
 
@@ -116,5 +123,39 @@ describe('turnCountersOf', () => {
             lastTurn: 4,
             lastTurnKind: fight,
         });
+    });
+});
+
+describe('rescue turn helpers', () => {
+    it('counts the enemy groups faced up to a saved turn (D-12)', () => {
+        expect(
+            [0, 1, 3, 4, 7].map((index) =>
+                facedEnemyCountOf({
+                    index,
+                    kind: index % 2 === 1 ? fight : exploration,
+                    total: 8,
+                }),
+            ),
+        ).toEqual([0, 1, 2, 2, 4]);
+    });
+
+    it('counts a wounded who fell on the saved turn (D-21)', () => {
+        expect(
+            fallenCountersOf({ index: 4, kind: exploration, total: 8 }),
+        ).toEqual({
+            turnsTotal: 8,
+            turnsCompleted: 4,
+            lastTurn: 5,
+            lastTurnKind: exploration,
+        });
+    });
+
+    it('saves the turn where the rescuers fell (D-26)', () => {
+        const saved = { index: 4, kind: exploration, total: 8 };
+
+        expect(
+            nextRescueTurnOf({ failedTurn: { index: 1, kind: fight } }, saved),
+        ).toEqual({ index: 1, kind: fight, total: 8 });
+        expect(nextRescueTurnOf({ failedTurn: null }, saved)).toBeNull();
     });
 });

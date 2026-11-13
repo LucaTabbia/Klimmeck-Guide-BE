@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
@@ -6,6 +7,7 @@ import { idForms } from 'src/mongo/document-id';
 import {
     OutcomeCharacterSnapshot,
     OutcomeQuestSnapshot,
+    QuestResultDraft,
 } from 'src/quests/outcomes/outcome-plan';
 import { deathResultOf, planRescued } from 'src/quests/outcomes/rescue-plan';
 
@@ -43,6 +45,20 @@ const aidQuest: OutcomeQuestSnapshot = {
     infos: { type: QuestType.aid, title: 'Soccorso: Il drago di Valantar' },
     requirements: { minTitle: TitleType.rookie },
 };
+
+const NO_TURNS = {
+    turnsTotal: null,
+    turnsCompleted: null,
+    lastTurn: null,
+    lastTurnKind: null,
+};
+
+const turnsOf = (sheet: QuestResultDraft) => ({
+    turnsTotal: sheet.turnsTotal,
+    turnsCompleted: sheet.turnsCompleted,
+    lastTurn: sheet.lastTurn,
+    lastTurnKind: sheet.lastTurnKind,
+});
 
 const unchangedSheet = {
     _id: RESULT_ID,
@@ -180,5 +196,60 @@ describe('deathResultOf', () => {
                 now: NOW,
             }),
         ).toEqual({ ...unchangedSheet, outcome: QuestOutcome.death });
+    });
+
+    it('writes where the wounded fell on a death in a dungeon aid (D-21)', () => {
+        expect(
+            deathResultOf({
+                resultId: RESULT_ID,
+                snapshot: injured,
+                quest: aidQuest,
+                userId: USER_ID,
+                now: NOW,
+                turn: { index: 3, kind: DungeonTurnKind.fight, total: 8 },
+            }),
+        ).toEqual({
+            ...unchangedSheet,
+            outcome: QuestOutcome.death,
+            turnsTotal: 8,
+            turnsCompleted: 3,
+            lastTurn: 4,
+            lastTurnKind: DungeonTurnKind.fight,
+        });
+    });
+
+    it('leaves the turns null on a death outside a dungeon aid (D-21)', () => {
+        const sheet = deathResultOf({
+            resultId: RESULT_ID,
+            snapshot: injured,
+            quest: aidQuest,
+            userId: USER_ID,
+            now: NOW,
+            turn: null,
+        });
+
+        expect(turnsOf(sheet)).toEqual(NO_TURNS);
+    });
+});
+
+describe('planRescued in a dungeon aid', () => {
+    it('leaves the turns null on a rescued wounded (D-21)', () => {
+        const dungeonAid = {
+            ...aidQuest,
+            rescue: {
+                turn: { index: 4, kind: DungeonTurnKind.exploration, total: 8 },
+            },
+        };
+
+        const plan = planRescued({
+            resultId: RESULT_ID,
+            snapshot: injured,
+            aidQuest: dungeonAid,
+            userId: USER_ID,
+            cityMarker: CITY_MARKER_ID,
+            now: NOW,
+        });
+
+        expect(turnsOf(plan.result)).toEqual(NO_TURNS);
     });
 });
