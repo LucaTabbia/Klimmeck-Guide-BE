@@ -35,6 +35,8 @@ const QUEST_NO_EFFECT =
     'subscription OnQuestNoEffect($questId: String!) { questUpdated(questId: $questId) { id noEffect } }';
 const QUEST_PRIZES =
     'subscription OnQuestPrizes($questId: String!) { questUpdated(questId: $questId) { id prizes { xpPrize randomLoot { quantity } } } }';
+const QUEST_AWAITING_RESCUE =
+    'subscription OnQuestAwaitingRescue($questId: String!) { questUpdated(questId: $questId) { id awaitingRescue } }';
 const VILLAGE_CURE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
 const PARTY_SEATS = [{ title: null, count: 3 }];
 const MALFORMED_QUEST_ID = 'not-a-quest-id';
@@ -69,6 +71,13 @@ interface WirePrizes {
 }
 
 type QuestPrizes = { questUpdated: WirePrizes };
+
+interface WireAwaitingRescue {
+    id: string;
+    awaitingRescue: boolean;
+}
+
+type QuestAwaitingRescue = { questUpdated: WireAwaitingRescue };
 type QuestUpdatedSubscription = OpenSubscription<QuestUpdated>;
 
 describe('questUpdated subscription (wire)', () => {
@@ -716,6 +725,93 @@ describe('questUpdated subscription (wire)', () => {
             } finally {
                 await internal.return?.();
             }
+        });
+    });
+
+    // la nascita e la chiusura dell'aid non toccano il documento d'origine: il publisher lo ripubblica dal change stream, dopo il commit
+    describe('a source quest awaiting its rescue (quick 261113-aql)', () => {
+        function persistHunt() {
+            return quests.create(
+                buildQuest({
+                    infos: {
+                        ...buildQuest().infos,
+                        type: 'hunt',
+                        title: `La caccia ${nextId()}`,
+                    },
+                }),
+            );
+        }
+
+        async function openAidFrom(
+            failedQuest: unknown,
+        ): Promise<Types.ObjectId> {
+            const base = buildQuest();
+            const _id = new Types.ObjectId();
+            await quests.collection.insertOne({
+                ...base,
+                _id,
+                infos: { ...base.infos, type: 'aid' },
+                rescue: { characters: [new Types.ObjectId()], failedQuest },
+                concludedAt: null,
+            });
+            return _id;
+        }
+
+        function subscribeToAwaitingRescue(
+            questId: string,
+        ): OpenSubscription<QuestAwaitingRescue> {
+            const subscription = openSubscription<QuestAwaitingRescue>(
+                url,
+                { Authorization: alice.bearer },
+                { query: QUEST_AWAITING_RESCUE, variables: { questId } },
+            );
+            opened.push(subscription as unknown as QuestUpdatedSubscription);
+            return subscription;
+        }
+
+        async function nextAwaitingRescue(
+            subscription: OpenSubscription<QuestAwaitingRescue>,
+        ): Promise<WireAwaitingRescue> {
+            const result = await subscription.next(PUBLISHED_WAIT_MS);
+            expect(result.done).toBe(false);
+            expect(result.value.errors).toBeUndefined();
+            return result.value.data?.questUpdated as WireAwaitingRescue;
+        }
+
+        it('republishes the hunt when an aid is born from it and when the aid concludes (quick 261113-aql)', async () => {
+            const hunt = await persistHunt();
+            const id = String(hunt._id);
+            const subscription = subscribeToAwaitingRescue(id);
+            expect(await nextAwaitingRescue(subscription)).toEqual({
+                id,
+                awaitingRescue: false,
+            });
+
+            const aidId = await openAidFrom(hunt._id);
+            expect(await nextAwaitingRescue(subscription)).toEqual({
+                id,
+                awaitingRescue: true,
+            });
+
+            await quests.collection.updateOne(
+                { _id: aidId },
+                { $set: { concludedAt: CONCLUDED_AT } },
+            );
+            expect(await nextAwaitingRescue(subscription)).toEqual({
+                id,
+                awaitingRescue: false,
+            });
+        });
+
+        it('stays silent on the hunt when an aid of another quest is born (quick 261113-aql)', async () => {
+            const hunt = await persistHunt();
+            const id = String(hunt._id);
+            const subscription = subscribeToAwaitingRescue(id);
+            await nextAwaitingRescue(subscription);
+
+            await openAidFrom(new Types.ObjectId());
+
+            await expectSilence(subscription, TRAILING_WINDOW_MS);
         });
     });
 });
