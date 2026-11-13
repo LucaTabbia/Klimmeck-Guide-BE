@@ -16,7 +16,10 @@ import { type QuestEnemyRef, validQuestEnemiesOf } from '../quest-enemies';
 import {
     type AidPrizes,
     proportionalPrizesOf,
-    rescueShareOf,
+    rescueFractionOf,
+    type RescueShare,
+    shareRatioOf,
+    shareValueOf,
     sharedTimeOf,
 } from './rescue-share';
 
@@ -115,10 +118,12 @@ function clonedPrizesOf(source: AidSourceQuest): AidQuestDraft['prizes'] {
 
 // D-20: la quota dei turni è scritta sull'aid alla nascita, sul premio e sulla durata (quick 261113-aql); la catena clona l'originale (denominatore 1),
 // una sorgente già scalata si riscala col rapporto delle quote (I3); senza turno tutto resta intero
-function aidShareOf(original: AidSourceQuest, turn: RescueTurn | null): number {
-    if (!turn) return 1;
-    const sourceTurn = rescueTurnOf(original.rescue?.turn);
-    return rescueShareOf(turn) / rescueShareOf(sourceTurn);
+function aidShareOf(
+    original: AidSourceQuest,
+    turn: RescueTurn | null,
+): RescueShare {
+    const sourceTurn = turn ? rescueTurnOf(original.rescue?.turn) : null;
+    return shareRatioOf(rescueFractionOf(turn), rescueFractionOf(sourceTurn));
 }
 
 // blocchi per titolo della quest di gruppo copiati campo per campo (un sottodocumento idratato non si spande), senza cura (D-11, Phase 18 D-23)
@@ -181,7 +186,10 @@ export function buildAidQuest(
             ),
             recommendedLoot: [...(requirements?.recommendedLoot ?? [])],
         },
-        prizes: proportionalPrizesOf(clonedPrizesOf(original), share),
+        prizes: proportionalPrizesOf(
+            clonedPrizesOf(original),
+            shareValueOf(share),
+        ),
         registeredAdventurers: [],
         concludedAt: null,
         rescue: {

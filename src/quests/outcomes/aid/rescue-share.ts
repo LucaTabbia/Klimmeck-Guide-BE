@@ -5,8 +5,17 @@ import type { RescueTurn } from '../dungeon/dungeon-turns';
 import { isPositiveInteger } from '../outcome-numbers';
 import { isNonNegativeInteger } from '../rewards/quest-rewards';
 
-// assorbe l'errore di rappresentazione delle quote non binarie (90 × 7/10 = 62.999…, 5 × (1/6)/(5/6) = 0.999…), mai un'unità intera
+// premi: assorbe l'errore di rappresentazione delle quote non binarie (90 × 7/10 = 62.999…, 5 × (1/6)/(5/6) = 0.999…), mai un'unità intera;
+// la durata non ne ha bisogno: si divide fra interi (sui millisecondi l'errore supera la tolleranza oltre qualche ora, IN-04)
 const SHARE_EPSILON = 1e-9;
+
+// la quota come frazione di interi: la stessa sorgente dà il numero dei premi e delle soglie e l'aritmetica intera della durata
+export interface RescueShare {
+    numerator: number;
+    denominator: number;
+}
+
+const FULL_SHARE: RescueShare = { numerator: 1, denominator: 1 };
 
 export interface AidPrizes {
     prizeCoins: unknown;
@@ -19,21 +28,43 @@ export interface AidPrizes {
 }
 
 // quota del soccorritore in turni completati sul totale della dungeon; senza turno il premio è intero (D-14, D-20)
+export function rescueFractionOf(turn: RescueTurn | null): RescueShare {
+    if (!turn) return FULL_SHARE;
+    return { numerator: turn.index + 1, denominator: turn.total };
+}
+
+export const shareValueOf = ({ numerator, denominator }: RescueShare): number =>
+    numerator / denominator;
+
 export function rescueShareOf(turn: RescueTurn | null): number {
-    if (!turn) return 1;
-    return (turn.index + 1) / turn.total;
+    return shareValueOf(rescueFractionOf(turn));
+}
+
+// una sorgente già scalata si riscala col rapporto delle due quote, sempre fra interi
+export function shareRatioOf(
+    share: RescueShare,
+    source: RescueShare,
+): RescueShare {
+    return {
+        numerator: share.numerator * source.denominator,
+        denominator: share.denominator * source.numerator,
+    };
 }
 
 const sharedAmountOf = (amount: number, share: number): number =>
     Math.floor(amount * share + SHARE_EPSILON);
 
+// divisione intera per difetto, esatta sugli interi sicuri non negativi
+const wholeQuotientOf = (dividend: number, divisor: number): number =>
+    (dividend - (dividend % divisor)) / divisor;
+
 // la durata dell'aid in proporzione, per difetto al millisecondo (quick 261113-aql); mai sotto 1 ms se l'originale dura (0 vorrebbe dire nessuna attesa)
 export function sharedTimeOf(
     time: number | null,
-    share: number,
+    { numerator, denominator }: RescueShare,
 ): number | null {
-    if (share >= 1 || !isPositiveInteger(time)) return time;
-    return Math.max(1, sharedAmountOf(time, share));
+    if (numerator >= denominator || !isPositiveInteger(time)) return time;
+    return Math.max(1, wholeQuotientOf(time * numerator, denominator));
 }
 
 function sharedCoinsOf(coins: unknown, share: number): unknown {
