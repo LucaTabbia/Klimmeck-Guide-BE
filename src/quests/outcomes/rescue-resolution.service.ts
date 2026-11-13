@@ -2,10 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
-import {
-    CharacterArchiver,
-    ReleasedRescuers,
-} from 'src/characters/deletion/character-archiver';
+import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
 import { LoreGeographyReader } from 'src/lore/lore-geography.reader';
 import { registeredIdsOf } from 'src/quests/party/party-rules';
 import { PartyTimeoutService } from 'src/quests/party/party-timeout.service';
@@ -108,8 +105,6 @@ interface DeathRequest {
     aid: ResolutionQuest;
     resultId: Types.ObjectId;
     now: Date;
-    // soccorritori liberati dall'archivio del morto: il push parte dopo il commit (D-27)
-    released: ReleasedRescuers[];
 }
 
 interface ReturnCity {
@@ -147,7 +142,6 @@ interface WoundedStep {
     wounded: Wounded[];
     session: ClientSession;
     notes: RescueNote[];
-    released: ReleasedRescuers[];
 }
 
 type WoundedResult = CommittedOutcome['results'][number];
@@ -225,19 +219,16 @@ export class RescueResolutionService {
         const state: {
             committed: CommittedOutcome | null;
             notes: RescueNote[];
-            released: ReleasedRescuers[];
-        } = { committed: null, notes: [], released: [] };
+        } = { committed: null, notes: [] };
         try {
             await this.connection.transaction(async (session) => {
                 // il callback viene rieseguito sui WriteConflict: l'esito riparte da zero
                 state.committed = null;
                 state.notes = [];
-                state.released = [];
                 state.committed = await this.commitRescue(
                     context,
                     session,
                     state.notes,
-                    state.released,
                 );
             });
         } catch (error) {
@@ -260,7 +251,6 @@ export class RescueResolutionService {
             );
         }
         await this.writer.deliver(state.committed);
-        await this.notifyReleased(state.released);
         this.logger.log(
             `Soccorso ${aidHex} risolto per ${roster.seats.length} soccorritori e ${woundedIds.length} feriti`,
         );
@@ -302,12 +292,10 @@ export class RescueResolutionService {
             committed: CommittedOutcome | null;
             unlinked: Types.ObjectId[];
             released: Types.ObjectId[];
-            archiveReleased: ReleasedRescuers[];
         } = {
             committed: null,
             unlinked: [],
             released: [],
-            archiveReleased: [],
         };
         try {
             await this.connection.transaction(async (session) => {
@@ -315,7 +303,6 @@ export class RescueResolutionService {
                 state.committed = null;
                 state.unlinked = [];
                 state.released = [];
-                state.archiveReleased = [];
                 // claim prima della morte: l'archivio toglie il morto da rescue.characters e a lista vuota concluderebbe la aid, facendo fallire il claim
                 const claimed = await this.questModel
                     .findOneAndUpdate(
@@ -333,7 +320,6 @@ export class RescueResolutionService {
                         aid,
                         resultId: resultIds.get(injured._id.toHexString())!,
                         now,
-                        released: state.archiveReleased,
                     });
                     if (death) committed.results.push(death);
                     else state.unlinked.push(injured._id);
@@ -360,7 +346,6 @@ export class RescueResolutionService {
         }
         await this.writer.deliver(state.committed);
         await this.partyTimeout.notifyCancelled(aidQuestId, state.released);
-        await this.notifyReleased(state.archiveReleased);
         this.logger.log(
             `Soccorso ${aidHex} scaduto dopo 7 giorni: ${state.released.length} soccorritori liberati`,
         );
@@ -372,7 +357,6 @@ export class RescueResolutionService {
         context: RescueContext,
         session: ClientSession,
         notes: RescueNote[],
-        released: ReleasedRescuers[],
     ): Promise<CommittedOutcome> {
         const wounded = await this.woundedInSession(context, session, notes);
         const { committed, fallen, nextTurn } = await this.fightRescuers(
@@ -381,7 +365,7 @@ export class RescueResolutionService {
             rescuableOf(wounded),
         );
         const settled = await this.settleWounded(
-            { context, wounded, session, notes, released },
+            { context, wounded, session, notes },
             fallen,
             nextTurn,
         );
@@ -562,7 +546,6 @@ export class RescueResolutionService {
         wounded,
         session,
         notes,
-        released,
     }: WoundedStep): Promise<WoundedResult[]> {
         const results: WoundedResult[] = [];
         for (const { snapshot } of wounded) {
@@ -572,7 +555,6 @@ export class RescueResolutionService {
                 aid: context.loaded.quest,
                 resultId: context.woundedResultIds.get(injuredHex)!,
                 now: context.now,
-                released,
             });
             if (death) {
                 results.push(death);
@@ -587,20 +569,23 @@ export class RescueResolutionService {
     }
 
     // morte nella stessa transazione dell'esito (D-09, D-10): proprietario letto in sessione prima dell'archivio, risultato del suo utente
+    // l'aid è già conclusa dal claim e il ferito attende solo questa: l'archivio non conclude altre aid né libera soccorritori (B-IN-01)
     private async dieWithin(
         session: ClientSession,
-        { injured, aid, resultId, now, released }: DeathRequest,
+        { injured, aid, resultId, now }: DeathRequest,
     ): Promise<WoundedResult | null> {
         const owner = await this.ownerInSession(injured._id, session);
         if (!owner) return null;
-        const archived = await this.archiver.archiveWithinReporting(session, {
-            userId: owner,
-            characterId: injured._id,
-            reason: DeletionReason.death,
-            now,
-        });
-        released.push(...archived.released);
-        if (archived.outcome !== 'archived') return null;
+        const { outcome } = await this.archiver.archiveWithinReporting(
+            session,
+            {
+                userId: owner,
+                characterId: injured._id,
+                reason: DeletionReason.death,
+                now,
+            },
+        );
+        if (outcome !== 'archived') return null;
         await this.writer.writeResult(
             deathResultOf({
                 resultId,
@@ -657,15 +642,6 @@ export class RescueResolutionService {
             });
         }
         return wounded;
-    }
-
-    // dopo il commit, come il timeout del party (D-27)
-    private async notifyReleased(
-        released: readonly ReleasedRescuers[],
-    ): Promise<void> {
-        for (const { questId, characterIds } of released) {
-            await this.partyTimeout.notifyCancelled(questId, characterIds);
-        }
     }
 
     private writeNotes(notes: readonly RescueNote[]): void {
