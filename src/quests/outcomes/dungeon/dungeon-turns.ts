@@ -97,3 +97,32 @@ export function rescueTurnFromStages(
         total: turnsTotal,
     });
 }
+
+// D-12: gli scontri giocati fino al turno salvato compreso (uno ogni esplorazione + scontro)
+export function facedEnemyCountOf(turn: RescueTurn): number {
+    return Math.floor((turn.index + 1) / TURNS_PER_ENEMY);
+}
+
+// D-21: il ferito di un'aid di dungeon è caduto sul turno salvato
+export function fallenCountersOf(turn: RescueTurn): TurnCounters {
+    return {
+        turnsTotal: turn.total,
+        turnsCompleted: turn.index,
+        lastTurn: turn.index + 1,
+        lastTurnKind: turn.kind,
+    };
+}
+
+// D-26: la nuova aid salva il turno dove sono caduti i soccorritori, sul totale della dungeon
+export function nextRescueTurnOf(
+    resolution: Pick<DungeonResolution, 'failedTurn'>,
+    saved: RescueTurn,
+): RescueTurn | null {
+    const { failedTurn } = resolution;
+    if (!failedTurn) return null;
+    return {
+        index: failedTurn.index,
+        kind: failedTurn.kind,
+        total: saved.total,
+    };
+}
