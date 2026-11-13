@@ -2,7 +2,11 @@ import { Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import { createPlayer } from '../../../test/authz/player-fixture';
-import { buildQuest, persistEnemy } from '../../../test/fixtures';
+import {
+    buildQuest,
+    persistEnemy,
+    persistLootItem,
+} from '../../../test/fixtures';
 import {
     createOutcomeHarness,
     OUTCOME_START,
@@ -56,6 +60,12 @@ interface DungeonAidWorld {
     enemies: EnemyEntry[];
     wounded: Quester;
     aid: any;
+}
+
+interface DungeonAidOptions {
+    failingTurn?: number;
+    prizes?: Record<string, unknown>;
+    enemies?: EnemyEntry[];
 }
 
 // l'harness accetta solo useValue: la porta della dungeon si sostituisce per caso e registra i contesti ricevuti
@@ -147,7 +157,11 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
         ];
     }
 
-    function questWithEnemies(type: string, enemies: EnemyEntry[]) {
+    function questWithEnemies(
+        type: string,
+        enemies: EnemyEntry[],
+        prizes: Record<string, unknown> = {},
+    ) {
         return {
             infos: {
                 ...buildQuest().infos,
@@ -159,7 +173,7 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
                 ...buildQuest().requirements,
                 requiredAdventurers: ONE_SEAT,
             },
-            prizes: { ...buildQuest().prizes, xpPrize: 50 },
+            prizes: { ...buildQuest().prizes, xpPrize: 50, ...prizes },
         };
     }
 
@@ -228,17 +242,29 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
         );
     };
 
-    // vera sconfitta in esplorazione al turno 4 di 8; poi la porta torna al segnaposto e la porta di combattimento riparte da zero
-    async function dungeonAidWorld(): Promise<DungeonAidWorld> {
-        const enemies = await fourGroups();
+    const turnAt = (index: number) => ({
+        index,
+        kind: index % 2 === 0 ? 'exploration' : 'fight',
+        total: 8,
+    });
+
+    // vera sconfitta al turno indicato (di default il 4 di 8, esplorazione); poi la porta torna al segnaposto e la porta di combattimento riparte da zero
+    async function dungeonAidWorld({
+        failingTurn = SAVED_TURN.index,
+        prizes = {},
+        enemies: given,
+    }: DungeonAidOptions = {}): Promise<DungeonAidWorld> {
+        const enemies = given ?? (await fourGroups());
         const wounded = await quester({
-            questOverrides: questWithEnemies('dungeon', enemies),
+            questOverrides: questWithEnemies('dungeon', enemies, prizes),
         });
-        dungeon.use(new TurnFailingDungeonResolver(dungeon.placeholder, [4]));
+        dungeon.use(
+            new TurnFailingDungeonResolver(dungeon.placeholder, [failingTurn]),
+        );
         await expect(resolve(wounded)).resolves.toBe('resolved');
         const character = await characterOf(wounded.characterId);
         const aid = await questOf(character.status.awaitingAid.aidQuest);
-        expect(aid.rescue.turn).toEqual(SAVED_TURN);
+        expect(aid.rescue.turn).toEqual(turnAt(failingTurn));
         scripted.reset();
         dungeon.reset();
         return { enemies, wounded, aid };
@@ -428,5 +454,135 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
         const result = await resultOf(rescuer.characterId);
         expect(result.outcome).toBe('success');
         expect(turnsOf(result)).toEqual(NO_TURNS);
+    });
+
+    describe('the shared prize of the rescuer', () => {
+        const PRIZE_COINS = { gold: 1, silver: 0, copper: 1 };
+        const potion = () =>
+            persistLootItem(world.models.lootItems, {
+                name: 'Pozione delle cripte',
+            }) as Promise<{ _id: Types.ObjectId }>;
+        const fixedPrizes = (item: Types.ObjectId) => ({
+            prizeCoins: PRIZE_COINS,
+            xpPrize: 80,
+            prizeItem: { itemType: 'LootItem', item, quantity: 3 },
+        });
+        const prizeOf = (aid: any) => ({
+            coins: aid.prizes.prizeCoins,
+            xp: aid.prizes.xpPrize,
+            item: aid.prizes.prizeItem && {
+                item: String(aid.prizes.prizeItem.item),
+                quantity: aid.prizes.prizeItem.quantity,
+            },
+        });
+        const rewardOf = (result: any) => ({
+            coins: result.rewards.coins,
+            items: result.rewards.items.map(
+                ({ item, quantity }: { item: unknown; quantity: number }) => ({
+                    item: String(item),
+                    quantity,
+                }),
+            ),
+        });
+
+        // 10001 rame × 5/8 = 6250 per difetto; xp 80 × 5/8 = 50; 3 pozioni × 5/8 = 1
+        it('rescues a dungeon lost on the fifth turn with five eighths of the prize (D-14, D-20, D-30)', async () => {
+            const item = await potion();
+            const { wounded, aid } = await dungeonAidWorld({
+                prizes: fixedPrizes(item._id),
+            });
+            const shared = {
+                coins: { gold: 0, silver: 62, copper: 50 },
+                xp: 50,
+                item: { item: String(item._id), quantity: 1 },
+            };
+            expect(prizeOf(aid)).toEqual(shared);
+            const rescuer = await rescuerOn(aid);
+
+            await expect(resolve(rescuer)).resolves.toBe('resolved');
+
+            expect(dungeon.contexts.map((c) => c.lastTurnIndex)).toEqual([4]);
+            const result = await resultOf(rescuer.characterId);
+            expect(result.outcome).toBe('success');
+            expect(result.xpGained).toBe(50 + 20 + 2 * 5);
+            expect(rewardOf(result)).toEqual({
+                coins: shared.coins,
+                items: [shared.item],
+            });
+            expect((await aidResultOf(wounded.characterId, aid)).outcome).toBe(
+                'rescued',
+            );
+        });
+
+        // 10001 rame × 1/2 = 5000 per difetto; xp 80 × 1/2 = 40; 3 pozioni × 1/2 = 1
+        it('rescues a dungeon lost on the fourth turn with half of the prize (D-14, D-20, D-30)', async () => {
+            const item = await potion();
+            const { wounded, aid } = await dungeonAidWorld({
+                failingTurn: 3,
+                prizes: fixedPrizes(item._id),
+            });
+            const shared = {
+                coins: { gold: 0, silver: 50, copper: 0 },
+                xp: 40,
+                item: { item: String(item._id), quantity: 1 },
+            };
+            expect(prizeOf(aid)).toEqual(shared);
+            const rescuer = await rescuerOn(aid);
+
+            await expect(resolve(rescuer)).resolves.toBe('resolved');
+
+            expect(dungeon.contexts.map((c) => c.lastTurnIndex)).toEqual([3]);
+            const result = await resultOf(rescuer.characterId);
+            expect(result.outcome).toBe('success');
+            expect(result.xpGained).toBe(40 + 20 + 2 * 5);
+            expect(rewardOf(result)).toEqual({
+                coins: shared.coins,
+                items: [shared.item],
+            });
+            expect((await aidResultOf(wounded.characterId, aid)).outcome).toBe(
+                'rescued',
+            );
+        });
+
+        // pozione rara (soglia 0.15) e tiro 0.1: esce con quota 8/8, non con quota 4/8 (soglia 0.075)
+        it('rolls the loot of a dungeon aid with the shared chances (D-20)', async () => {
+            const rare = await persistLootItem(world.models.lootItems, {
+                name: 'Fiala rara delle cripte',
+                rarity: 'rare',
+            });
+            const prizes = {
+                randomLoot: [
+                    { itemType: 'LootItem', item: rare._id, quantity: 1 },
+                ],
+            };
+            const enemies = await fourGroups();
+            const whole = await dungeonAidWorld({
+                failingTurn: 7,
+                prizes,
+                enemies,
+            });
+            const half = await dungeonAidWorld({
+                failingTurn: 3,
+                prizes,
+                enemies,
+            });
+            const draws = Array.from({ length: 10 }, () => 0.1);
+            const wholeRescuer = await rescuerOn(whole.aid);
+            const halfRescuer = await rescuerOn(half.aid);
+
+            chance.load(draws);
+            await expect(resolve(wholeRescuer)).resolves.toBe('resolved');
+            const wholeDrawn = [...chance.drawn];
+            chance.load(draws);
+            await expect(resolve(halfRescuer)).resolves.toBe('resolved');
+
+            expect(chance.drawn).toEqual(wholeDrawn);
+            expect(
+                rewardOf(await resultOf(wholeRescuer.characterId)).items,
+            ).toEqual([{ item: String(rare._id), quantity: 1 }]);
+            expect(
+                rewardOf(await resultOf(halfRescuer.characterId)).items,
+            ).toEqual([]);
+        });
     });
 });

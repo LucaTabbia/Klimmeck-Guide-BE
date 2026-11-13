@@ -8,6 +8,7 @@ import type { CombatEnemySnapshot } from './combat/combat-context';
 import type { ParticipantEffects } from './combat/combat-resolver';
 import type { DungeonResolution } from './dungeon/dungeon-resolver';
 import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
+import { SequenceChance } from '../../../test/quests/sequence-chance';
 import {
     type CombatantBattle,
     combatContextOf,
@@ -410,6 +411,64 @@ describe('planCombatant prize block', () => {
         const { plan } = planWonBy(hunt, TitleType.mage);
 
         expect(plan.result.xpGained).toBe(40);
+    });
+});
+
+describe('planCombatant rescue share', () => {
+    const PET_ID = id('e2');
+    const dungeonAid = (
+        rescue: ResolutionQuest['rescue'],
+    ): ResolutionQuest => ({
+        _id: id('96'),
+        infos: {
+            type: QuestType.aid,
+            title: 'Soccorso: Le cripte di Bosa',
+            markerLocation: id('86'),
+        },
+        prizes: { xpPrize: 25, pet: PET_ID },
+        rescue,
+    });
+    const petCatalog = (): ResolutionCatalog => {
+        const catalog = catalogWith([]);
+        return {
+            ...catalog,
+            rewards: {
+                ...catalog.rewards,
+                pets: new Map([[PET_ID.toHexString(), 450]]),
+            },
+        };
+    };
+    const rescuedWith = (aid: ResolutionQuest, chance: SequenceChance) =>
+        planCombatant({
+            quest: aid,
+            catalog: petCatalog(),
+            snapshot: explorer,
+            battle: null,
+            resultId: id('d1'),
+            aidQuestId: id('d2'),
+            pendingQuestId: id('d3'),
+            userId: id('d4'),
+            chance,
+            now: new Date('2026-11-04T10:00:00.000Z'),
+        });
+
+    it('scales the loot and pet chances of a dungeon aid rescuer (D-20)', () => {
+        const shared = new SequenceChance([0.15]);
+        const whole = new SequenceChance([0.15]);
+        const failedQuest = id('92');
+
+        const sharedPlan = rescuedWith(
+            dungeonAid({
+                failedQuest,
+                turn: { index: 3, kind: DungeonTurnKind.fight, total: 8 },
+            }),
+            shared,
+        );
+        const wholePlan = rescuedWith(dungeonAid({ failedQuest }), whole);
+
+        expect(sharedPlan.plan.result.rewards.pet).toBeNull();
+        expect(wholePlan.plan.result.rewards.pet).toEqual(PET_ID);
+        expect(shared.drawn).toEqual(whole.drawn);
     });
 });
 
