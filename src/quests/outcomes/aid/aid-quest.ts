@@ -7,6 +7,7 @@ import {
     RankSlot,
     soloSlots,
 } from 'src/quests/acceptance/quest-capacity';
+import { isRecord } from '../combat/combat-context';
 import { type QuestEnemyRef, validQuestEnemiesOf } from '../quest-enemies';
 
 export const AID_TITLE_PREFIX = 'Soccorso: ';
@@ -36,6 +37,7 @@ export interface AidSourceQuest {
         spell?: unknown;
         pet?: unknown;
         cure?: unknown;
+        rankPrizes?: unknown[] | null;
     } | null;
     rescue?: { failedQuest?: unknown } | null;
 }
@@ -64,6 +66,7 @@ export interface AidQuestDraft {
         randomLoot: unknown[];
         spell: unknown;
         pet: Types.ObjectId | null;
+        rankPrizes?: unknown[];
     };
     registeredAdventurers: [];
     concludedAt: null;
@@ -80,13 +83,33 @@ function aidTitleOf(title: string): string {
 function clonedPrizesOf(
     prizes: AidSourceQuest['prizes'],
 ): AidQuestDraft['prizes'] {
-    return {
+    const cloned: AidQuestDraft['prizes'] = {
         prizeCoins: prizes?.prizeCoins ?? null,
         xpPrize: prizes?.xpPrize ?? null,
         prizeItem: prizes?.prizeItem ?? null,
         randomLoot: [...(prizes?.randomLoot ?? [])],
         spell: prizes?.spell ?? null,
         pet: refIdOf(prizes?.pet),
+    };
+    const blocks = (prizes?.rankPrizes ?? []).filter(isRecord);
+    if (blocks.length === 0) return cloned;
+    return { ...cloned, rankPrizes: blocks.map(clonedRankBlockOf) };
+}
+
+// blocchi per titolo della quest di gruppo copiati campo per campo (un sottodocumento idratato non si spande), senza cura (D-11, Phase 18 D-23)
+function clonedRankBlockOf(block: Record<string, unknown>) {
+    const randomLoot = block.randomLoot;
+    return {
+        title: block.title,
+        prizeCoins: block.prizeCoins ?? null,
+        xpPrize: block.xpPrize ?? null,
+        prizeItem: block.prizeItem ?? null,
+        randomLoot: Array.isArray(randomLoot)
+            ? [...(randomLoot as unknown[])]
+            : [],
+        spell: block.spell ?? null,
+        pet: refIdOf(block.pet),
+        cure: null,
     };
 }
 
