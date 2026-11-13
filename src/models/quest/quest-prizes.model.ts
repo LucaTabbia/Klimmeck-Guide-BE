@@ -10,21 +10,8 @@ import { Coins, CoinsInput, CoinsSchema } from '../common/coins.model';
 import { InjuryType } from '../enums/injury-type.enum';
 import { Pet } from '../pet.model';
 import { Spell } from '../spell.model';
-
-// cura esplicita della quest (Phase 18 D-01): quota di vita come tetto e ferite guarite; assente o null = la quest non cura
-@ObjectType()
-@Schema({ _id: false })
-export class QuestCure {
-    @Field(() => Float)
-    @Prop({ type: Number, required: true, min: 0, max: 1 })
-    lifePointsShare: number;
-
-    @Field(() => [InjuryType])
-    @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
-    canHeal: InjuryType[];
-}
-
-export const QuestCureSchema = SchemaFactory.createForClass(QuestCure);
+import { QuestCure, QuestCureSchema } from './quest-cure.model';
+import { QuestRankPrize, QuestRankPrizeSchema } from './quest-rank-prize.model';
 
 @ObjectType()
 @Schema({ _id: false })
@@ -67,6 +54,10 @@ export class QuestPrizes {
     // D-31: la study di Valantar sorteggia la magia alla risoluzione; campo interno, mai nello SDL
     @Prop({ type: Boolean, default: false })
     spellDraw: boolean;
+
+    // blocchi per titolo delle quest di gruppo (D-01, D-05): solo a DB, assenti sulle quest senza blocchi (D-28)
+    @Prop({ type: [QuestRankPrizeSchema], default: undefined })
+    rankPrizes?: QuestRankPrize[];
 }
 
 export type QuestPrizesDocument = QuestPrizes & Document;

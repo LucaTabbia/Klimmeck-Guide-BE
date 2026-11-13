@@ -21,6 +21,7 @@ import {
 } from 'src/economy/trade/trade-inventory';
 import type { TradeLine } from 'src/economy/trade/trade-line';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
+import type { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
@@ -112,7 +113,7 @@ export interface EnemyFacts {
     xp: number;
 }
 
-export interface QuestResultDraft {
+export interface QuestResultDraft extends DungeonTurnFields {
     _id: Types.ObjectId;
     character: Types.ObjectId;
     user: Types.ObjectId;
@@ -158,10 +159,35 @@ export type PlanVerdict =
     | QuestOutcome.failure
     | QuestOutcome.gmCompleted;
 
-export interface DungeonStages {
+// contatori dei turni (D-21): tutti valorizzati in una dungeon, tutti null altrove
+export interface DungeonTurnFields {
+    turnsTotal: number | null;
+    turnsCompleted: number | null;
+    lastTurn: number | null;
+    lastTurnKind: DungeonTurnKind | null;
+}
+
+export const NO_TURN_COUNTERS: DungeonTurnFields = {
+    turnsTotal: null,
+    turnsCompleted: null,
+    lastTurn: null,
+    lastTurnKind: null,
+};
+
+export interface DungeonStages extends DungeonTurnFields {
     cleared: number;
     total: number;
 }
+
+const turnFieldsOf = (stages: DungeonStages | null | undefined) =>
+    stages
+        ? {
+              turnsTotal: stages.turnsTotal,
+              turnsCompleted: stages.turnsCompleted,
+              lastTurn: stages.lastTurn,
+              lastTurnKind: stages.lastTurnKind,
+          }
+        : NO_TURN_COUNTERS;
 
 export interface ParticipantPlanInput {
     resultId: Types.ObjectId;
@@ -180,7 +206,7 @@ export interface ParticipantPlanInput {
     // tetti di xp dei pet a catalogo, per esadecimale (Phase 19 D-17)
     petMaxXp: ReadonlyMap<string, number>;
     rescuedCharacters?: readonly Types.ObjectId[];
-    // solo le dungeon a tappe (D-12): null altrove
+    // le dungeon a tappe e i soccorritori di un'aid di dungeon (D-12, D-21): null altrove
     stages?: DungeonStages | null;
     now: Date;
 }
@@ -376,8 +402,9 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         xpEarned,
         hpFought,
     );
-    // la cura è un premio della quest vinta, qualunque sia il tipo (Phase 18 D-07): dopo il combattimento e dopo la progressione (D-20)
-    const cure = won ? cureOf(quest.prizes?.cure) : null;
+    // la cura è un premio della quest vinta, qualunque sia il tipo (Phase 18 D-07): dopo il combattimento e dopo la progressione (D-20);
+    // viaggia col blocco tirato per il titolo, mai riletta dalla quest (D-05)
+    const cure = won ? cureOf(rewards.cure) : null;
     const fought = woundsAfter(
         snapshot.status.injuries ?? [],
         battle?.injuriesAdded ?? [],
@@ -417,9 +444,14 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     // la magia fissa della study vince sul sorteggio (D-31): il sorteggio vale solo senza prizes.spell
     const spellCandidate =
         rewards.spellCandidate ??
-        drawLearnableSpell(rewards.spellDraw, progression.xp, knownSpells);
+        drawLearnableSpell(
+            rewards.spellDraw,
+            progression.xp,
+            knownSpells,
+            titleAfter,
+        );
     const spellLearned = won
-        ? canLearnSpell(spellCandidate, progression.xp, knownSpells)
+        ? canLearnSpell(spellCandidate, progression.xp, knownSpells, titleAfter)
         : null;
     // la magia imparata entra nello stato nello stesso $set (D-03, D-07): usi pieni, nessun recupero
     const learnedState =
@@ -534,6 +566,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             enemies: [...(input.enemies?.entries ?? [])],
             stagesCleared: input.stages?.cleared ?? null,
             stagesTotal: input.stages?.total ?? null,
+            ...turnFieldsOf(input.stages),
             // solo chi ha vinto il soccorso ha salvato qualcuno
             rescuedCharacters:
                 input.verdict === QuestOutcome.success

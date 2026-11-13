@@ -31,7 +31,7 @@ const ARCHIVED_AT = new Date('2026-01-01T00:00:00.000Z');
 const STARTED_AT = new Date(NOW.getTime() - 60 * 60 * 1000);
 const CONCURRENT_ITERATIONS = 5;
 
-describe('CharacterArchiver.archiveWithin (replSet)', () => {
+describe('CharacterArchiver.archiveWithinReporting (replSet)', () => {
     let harness: AuthTestApp;
     let archiver: CharacterArchiver;
     let users: Model<UserDocument>;
@@ -155,13 +155,16 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
         characterId: Types.ObjectId,
         reason: DeletionReason = DeletionReason.user_request,
     ): Promise<ArchiveOutcome> {
-        return harness.connection.transaction((session) =>
-            archiver.archiveWithin(session, {
-                userId,
-                characterId,
-                reason,
-                now: NOW,
-            }),
+        return harness.connection.transaction(
+            async (session) =>
+                (
+                    await archiver.archiveWithinReporting(session, {
+                        userId,
+                        characterId,
+                        reason,
+                        now: NOW,
+                    })
+                ).outcome,
         );
     }
 
@@ -548,6 +551,172 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
         });
     });
 
+    describe('rescuers registered on an aid the archive concludes (D-16, D-27)', () => {
+        interface RescueScene {
+            wounded: { userId: Types.ObjectId; characterId: Types.ObjectId };
+            rescuerId: Types.ObjectId;
+            pendingQuestId: Types.ObjectId;
+            aidId: Types.ObjectId;
+        }
+
+        function pendingQuests() {
+            return harness.connection.collection('pendingquests');
+        }
+
+        async function persistRescueScene({
+            rescuerStartDate = null,
+            otherWounded = [],
+            aidStartedAt = null,
+        }: {
+            rescuerStartDate?: Date | null;
+            otherWounded?: Types.ObjectId[];
+            aidStartedAt?: Date | null;
+        } = {}): Promise<RescueScene> {
+            const wounded = await persistLinkedCharacter(
+                'Wounded Hero',
+                'twitch-wounded',
+            );
+            const pendingQuestId = new Types.ObjectId();
+            const rescuer = await persistCharacter(characters, {
+                infos: { ...buildCharacter().infos, name: 'Rescuer Hero' },
+                quests: { completedQuests: [], pendingQuest: pendingQuestId },
+            });
+            const rescuerId = rescuer._id as Types.ObjectId;
+            const aid = await persistQuest(quests, {
+                infos: { ...buildQuest().infos, type: 'aid' },
+                rescue: {
+                    characters: [wounded.characterId, ...otherWounded],
+                    failedQuest: new Types.ObjectId(),
+                },
+                registeredAdventurers: [
+                    {
+                        character: rescuerId,
+                        title: 'rookie',
+                        registeredAt: NOW,
+                    },
+                ],
+                startedAt: aidStartedAt,
+                concludedAt: null,
+            });
+            const aidId = aid._id as Types.ObjectId;
+            await pendingQuests().insertOne({
+                _id: pendingQuestId,
+                quest: aidId,
+                startDate: rescuerStartDate,
+                arrivedAt: null,
+                waitingTime: 0,
+                pointsSpent: 0,
+            });
+            return { wounded, rescuerId, pendingQuestId, aidId };
+        }
+
+        function archiveReporting(scene: RescueScene) {
+            return harness.connection.transaction((session) =>
+                archiver.archiveWithinReporting(session, {
+                    userId: scene.wounded.userId,
+                    characterId: scene.wounded.characterId,
+                    reason: DeletionReason.user_request,
+                    now: NOW,
+                }),
+            );
+        }
+
+        // corsia e PendingQuest del soccorritore intatte; il posto sull'aid lo controlla ogni caso
+        async function expectRescuerInLane(scene: RescueScene): Promise<void> {
+            expect(
+                await pendingQuests().findOne({ _id: scene.pendingQuestId }),
+            ).not.toBeNull();
+            expect(
+                (await rawCharacter(scene.rescuerId))?.quests?.pendingQuest,
+            ).toEqual(scene.pendingQuestId);
+        }
+
+        it('releases the registered rescuers of an aid it concludes (D-16, D-27)', async () => {
+            const scene = await persistRescueScene();
+
+            const report = await archiveReporting(scene);
+
+            const aid = await rawQuest(scene.aidId);
+            expect(aid?.concludedAt).toEqual(NOW);
+            expect(aid?.registeredAdventurers).toEqual([]);
+            expect(
+                await pendingQuests().findOne({ _id: scene.pendingQuestId }),
+            ).toBeNull();
+            expect(
+                (await rawCharacter(scene.rescuerId))?.quests?.pendingQuest,
+            ).toBeNull();
+            expect(report).toEqual({
+                outcome: 'archived',
+                released: [
+                    { questId: scene.aidId, characterIds: [scene.rescuerId] },
+                ],
+            });
+        });
+
+        it('leaves a started rescuer untouched with a warning of ids only (D-27)', async () => {
+            const warnSpy = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation(() => undefined);
+            const scene = await persistRescueScene({
+                rescuerStartDate: STARTED_AT,
+            });
+
+            const report = await archiveReporting(scene);
+
+            const aid = await rawQuest(scene.aidId);
+            expect(aid?.concludedAt).toEqual(NOW);
+            expect(aid?.registeredAdventurers).toEqual([]);
+            await expectRescuerInLane(scene);
+            expect(report).toEqual({ outcome: 'archived', released: [] });
+            expect(warnSpy).toHaveBeenCalledTimes(1);
+            const [warning] = warnSpy.mock.calls[0] as [string];
+            expect(warning).toContain(scene.rescuerId.toHexString());
+            expect(warning).toContain(scene.aidId.toHexString());
+            expect(warning).toContain(scene.pendingQuestId.toHexString());
+            expect(warning).not.toContain('Rescuer Hero');
+            expect(warning).not.toContain('twitch-wounded');
+        });
+
+        // il countdown è partito: l'aid si conclude ma il soccorritore resta iscritto e si risolve (RESEARCH Q11, C-WR-01)
+        it('keeps the rescuers of a started aid it concludes (B-WR-04, D-27)', async () => {
+            const warnSpy = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation(() => undefined);
+            const scene = await persistRescueScene({
+                aidStartedAt: STARTED_AT,
+                rescuerStartDate: STARTED_AT,
+            });
+
+            const report = await archiveReporting(scene);
+
+            const aid = await rawQuest(scene.aidId);
+            expect(aid?.concludedAt).toEqual(NOW);
+            expect(await seatedCharacters(scene.aidId)).toEqual([
+                String(scene.rescuerId),
+            ]);
+            await expectRescuerInLane(scene);
+            expect(report).toEqual({ outcome: 'archived', released: [] });
+            expect(warnSpy).not.toHaveBeenCalled();
+        });
+
+        it('keeps an aid with other wounded open and its rescuers registered (D-16)', async () => {
+            const otherWounded = await persistNamedCharacter('Second Wounded');
+            const scene = await persistRescueScene({
+                otherWounded: [otherWounded],
+            });
+
+            const report = await archiveReporting(scene);
+
+            const aid = await rawQuest(scene.aidId);
+            expect(aid?.concludedAt).toBeNull();
+            expect(await seatedCharacters(scene.aidId)).toEqual([
+                String(scene.rescuerId),
+            ]);
+            await expectRescuerInLane(scene);
+            expect(report).toEqual({ outcome: 'archived', released: [] });
+        });
+    });
+
     it('keeps an aid with two wounded open for the one left to rescue', async () => {
         const scene = await persistScene();
 
@@ -595,7 +764,7 @@ describe('CharacterArchiver.archiveWithin (replSet)', () => {
 
         await expect(
             harness.connection.transaction(async (session) => {
-                await archiver.archiveWithin(session, {
+                await archiver.archiveWithinReporting(session, {
                     userId: scene.userId,
                     characterId: scene.characterId,
                     reason: DeletionReason.death,

@@ -2,7 +2,10 @@ import { Types } from 'mongoose';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
-import type { QuestResultDraft } from 'src/quests/outcomes/outcome-plan';
+import {
+    NO_TURN_COUNTERS,
+    type QuestResultDraft,
+} from 'src/quests/outcomes/outcome-plan';
 import {
     dropOrphanResultRefs,
     QUEST_RESULT_POPULATE,
@@ -42,6 +45,7 @@ const draftWith = (
     enemies: [],
     stagesCleared: null,
     stagesTotal: null,
+    ...NO_TURN_COUNTERS,
     rescuedCharacters: [],
     arrested: false,
     coinsLost: null,

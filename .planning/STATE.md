@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
-status: completed
-stopped_at: "Phase 20 completa (11/11, UAT su device passata il 2026-11-13) — PR #35 da togliere dal draft e mergiare su `develop`"
+status: executing
+stopped_at: "Phase 21 eseguita (14/14), review, verifica e audit chiusi (2026-11-13) — in attesa di riavvio reale e UAT su device con la FE Phase 20"
 last_updated: "2026-11-12T23:01:28.000Z"
-last_activity: 2026-11-13 -- Phase 20 completa (riavvio reale dal ramo, UAT su device passi 1–6 pass)
+last_activity: 2026-11-13 -- Phase 21 pianificata (ricerca, regole di repo, validazione, 14 piani)
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 45
-  completed_plans: 34
+  total_phases: 5
+  completed_phases: 3
+  total_plans: 59
+  completed_plans: 45
   percent: 76
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 20 — Cibo e vita progressivi in viaggio (solo BE) — eseguita (11/11) su `feat/20-cibo-e-vita-progressivi` (da `develop`): codice, fix della review e handoff `BACKEND-NOTES.md` completi; restano all'orchestratore `test:cov`, verifica e audit di sicurezza, riavvio del BE dal ramo, UAT su device e PR verso `develop`
+**Current focus:** Phase 21 — Premi per rango e soccorsi (↔ FE Phase 20) — ESEGUITA (14/14) il 13 novembre 2026 su `feat/21-premi-per-rango-e-soccorsi`: gate verde dopo i fix della review, handoff `BACKEND-NOTES.md` scritto, BE-RANKP-01..06 chiusi; test:cov, verifica, audit, PR, riavvio del BE dal ramo e UAT su device a cura dell'orchestratore
 
 ## Current Position
 
-Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–20; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`)
-Phase: 20 di 22 (Cibo e vita progressivi in viaggio) — contesto del 2026-11-09 (D-01..D-12) emendato il 2026-11-12 dopo la ricerca (D-13..D-19), `20-REPO-RULES.md`, `20-RESEARCH.md`, `20-VALIDATION.md`, 11 piani scritti il 2026-11-12
-Plan: 11 of 11
-Status: Phase 20 complete — 11/11, review, verifica, audit, riavvio reale e UAT su device chiusi; PR #35 draft verso `develop`
-Last activity: 2026-11-13 -- Phase 20 completa (riavvio reale dal ramo, UAT su device passi 1–6 pass)
-Next step: PR #35 fuori dal draft e merge su `develop` (dell'utente); poi le Phase 21 e 22 (contesti sui rami `feat/21-…` e `feat/22-…`) da pianificare con le FE Phase 20 e 21. Il BE locale gira dal ramo della Phase 20 sulla porta 3001.
+Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
+Phase: 21 di 22 (Premi per rango e soccorsi) — contesto del 2026-11-12 (D-01..D-17) emendato il 2026-11-13 dopo la ricerca e le risposte dell'utente (D-18..D-30), `21-REPO-RULES.md`, `21-RESEARCH.md`, `21-VALIDATION.md`, 14 piani scritti il 2026-11-13
+Plan: 14 of 14
+Status: executing — Phase 21 eseguita (14/14), in attesa di test:cov, verifica, audit, riavvio reale del BE dal ramo e UAT su device
+Last activity: 2026-11-13 -- Phase 21 eseguita (14/14): handoff `BACKEND-NOTES.md`, VALIDATION firmata, BE-RANKP-01..06 chiusi; test:cov, PR, riavvio e UAT su device a cura dell'orchestratore
+Next step: build e riavvio reale del BE dal ramo `feat/21-premi-per-rango-e-soccorsi` (nessun migratore; report di sola lettura dei premi di gruppo al boot), semine a DB e UAT su device insieme ai piani 20-03 e 20-04 della FE Phase 20 (handoff §6); poi PR fuori dal draft e merge su `develop`. `test:cov` 425 suite / 5851 test verdi, verifica `passed` 20/20, audit `secured` (0 aperte). La Phase 22 (ramo `feat/22-…`, da riallineare) resta da pianificare con la FE Phase 21.
 
 ## Current Milestone
 
@@ -49,6 +49,7 @@ v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..09, ↔ FE 18) 
 - v1.0: 10 fasi dalla roadmap del 2026-07-16, inserite 2.1 (2026-10-09), 3.1 (2026-10-15), 9.1 e 9.2 (2026-10-27), estensione con le Phase 11–16 (2026-10-29), inserita 13.1 (2026-11-05), Phase 17 aggiunta il 2026-11-09 come companion della FE Phase 12 Hardening. Dettagli in `milestones/v1.0-ROADMAP.md`.
 - 2026-11-10: milestone archiviata; `REQUIREMENTS.md` rimosso (lo ricrea `/gsd-new-milestone`).
 - 2026-11-10: milestone v1.1 Cura e modelli aperta con le Phase 18–20 (scope confermato dall'utente: solo le fasi discusse il 2026-11-09); `REQUIREMENTS.md` ricreato con BE-HEAL-01..09, BE-MODEL-01..09 e BE-FOODP-01..05.
+- 2026-11-12: aggiunta la Phase 21 Premi per rango e soccorsi (BE-RANKP-01..06), gemella della FE Phase 20, dal discuss della FE; 3 aid concluse a mano nelle UAT cancellate a DB su ordine dell'utente (backup EJSON nello scratchpad della sessione).
 
 ### Decisions
 

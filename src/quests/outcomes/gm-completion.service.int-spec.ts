@@ -324,6 +324,126 @@ describe('GmCompletionService.complete (replSet)', () => {
         expect(questEndPushes()).toHaveLength(3);
     });
 
+    describe('the prize block of each title', () => {
+        const MAGE_AND_PALADIN = [
+            { title: 'mage', count: 1 },
+            { title: 'paladin', count: 1 },
+        ];
+
+        const rankedWorldMission = (
+            prizes: Record<string, unknown>,
+            rankPrizes: Record<string, unknown>[],
+        ) => {
+            const quest = gmQuest('worldMission', { ...prizes, rankPrizes });
+            return {
+                ...quest,
+                requirements: {
+                    ...quest.requirements,
+                    minTitle: 'paladin',
+                    requiredAdventurers: MAGE_AND_PALADIN,
+                },
+            };
+        };
+
+        async function mageAndPaladin(
+            questOverrides: Record<string, unknown>,
+            status: Record<string, unknown> = {},
+        ) {
+            const mage = await quester({
+                lane: QuestLane.worldMission,
+                questOverrides,
+                characterOverrides: { status: { ...status, title: 'mage' } },
+            });
+            const paladin = await quester({
+                lane: QuestLane.worldMission,
+                quest: mage.quest,
+                characterOverrides: {
+                    status: { ...status, title: 'paladin' },
+                },
+            });
+            return { mage, paladin };
+        }
+
+        it('uses the hand written blocks of a world mission as they are (D-06, D-04)', async () => {
+            const { mage, paladin } = await mageAndPaladin(
+                rankedWorldMission(
+                    {
+                        xpPrize: 50,
+                        prizeCoins: { gold: 0, silver: 0, copper: 7 },
+                    },
+                    [
+                        {
+                            title: 'mage',
+                            xpPrize: 300,
+                            prizeCoins: { gold: 0, silver: 3, copper: 0 },
+                        },
+                        {
+                            title: 'paladin',
+                            xpPrize: 120,
+                            prizeCoins: { gold: 0, silver: 1, copper: 0 },
+                        },
+                    ],
+                ),
+            );
+
+            await service.complete(inputOf(paladin));
+
+            const [mageResult] = await resultsOf(mage);
+            const [paladinResult] = await resultsOf(paladin);
+            expect(mageResult.xpGained).toBe(300);
+            expect(mageResult.rewards.coins).toEqual({
+                gold: 0,
+                silver: 3,
+                copper: 0,
+            });
+            expect(paladinResult.xpGained).toBe(120);
+            expect(paladinResult.rewards.coins).toEqual({
+                gold: 0,
+                silver: 1,
+                copper: 0,
+            });
+        });
+
+        it('heals each participant with the cure of their block (D-05)', async () => {
+            const { mage, paladin } = await mageAndPaladin(
+                rankedWorldMission(
+                    {
+                        cure: {
+                            lifePointsShare: 1,
+                            canHeal: [InjuryType.deepCut],
+                        },
+                    },
+                    [
+                        {
+                            title: 'mage',
+                            cure: {
+                                lifePointsShare: 0.5,
+                                canHeal: [InjuryType.deepCut],
+                            },
+                        },
+                        { title: 'paladin' },
+                    ],
+                ),
+                { currentLifePoints: 400, injuries: [InjuryType.deepCut] },
+            );
+
+            await service.complete(inputOf(mage));
+
+            expect((await characterOf(mage)).status).toMatchObject({
+                currentLifePoints: 500,
+                injuries: [],
+            });
+            expect((await characterOf(paladin)).status).toMatchObject({
+                currentLifePoints: 400,
+                injuries: [InjuryType.deepCut],
+            });
+            const [mageResult] = await resultsOf(mage);
+            const [paladinResult] = await resultsOf(paladin);
+            expect(mageResult.injuriesHealed).toEqual([InjuryType.deepCut]);
+            expect(paladinResult.injuriesHealed).toEqual([]);
+        });
+    });
+
     it('schedules a recovery for every spell use the game master reports', async () => {
         const spell = await persistSpell(world.models.spells, {
             recoveryTime: 5000,

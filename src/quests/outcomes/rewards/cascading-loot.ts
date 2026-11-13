@@ -28,16 +28,18 @@ export interface LootCandidate {
 }
 
 // cascading rolls (D-16): dalla rarità più alta presente in giù, al massimo un oggetto; rarità assente sull'item = common
+// la quota scala la soglia di ogni rarità senza spostare tiri (D-20)
 export function rollLoot<T extends LootCandidate>(
     candidates: readonly T[],
     chance: ChanceSource,
+    share = 1,
 ): T | null {
     for (const rarity of RARITY_ORDER) {
         const pool = candidates.filter(
             (entry) => (entry.rarity ?? RarityType.common) === rarity,
         );
         if (pool.length === 0) continue;
-        if (chance.next() >= DROP_RATES[rarity]) continue;
+        if (chance.next() >= DROP_RATES[rarity] * share) continue;
         if (pool.length === 1) return pool[0];
         return pool[
             Math.min(pool.length - 1, Math.floor(chance.next() * pool.length))

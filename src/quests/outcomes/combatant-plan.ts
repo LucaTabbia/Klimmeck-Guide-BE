@@ -2,6 +2,9 @@ import type { Types } from 'mongoose';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { refIdOf } from 'src/mongo/document-id';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
+import { prizeBlockFor } from 'src/quests/prizes/rank-prizes';
+import { opensAid } from './aid/aid-opening';
+import { rescueShareOf } from './aid/rescue-share';
 import type { ChanceSource } from './chance-source';
 import { buildCombatContext } from './combat/combat-context';
 import type {
@@ -10,7 +13,9 @@ import type {
     CombatVerdict,
     ParticipantEffects,
 } from './combat/combat-resolver';
+import { planDefeatWithoutAid } from './defeat-without-aid';
 import type { DungeonResolution } from './dungeon/dungeon-resolver';
+import { rescueTurnOf, turnCountersOf } from './dungeon/dungeon-turns';
 import {
     type DungeonStages,
     type EnemyFacts,
@@ -106,7 +111,7 @@ export function battleOf(
     };
 }
 
-// l'esplorazione a tappe porta i suoi contatori nel risultato (D-12)
+// l'esplorazione a tappe porta tappe e turni nel risultato (D-12, D-21)
 export function dungeonBattleOf(
     resolution: DungeonResolution,
     characterId: Types.ObjectId,
@@ -117,11 +122,12 @@ export function dungeonBattleOf(
         stages: {
             cleared: resolution.stagesCleared,
             total: resolution.stagesTotal,
+            ...turnCountersOf(resolution),
         },
     };
 }
 
-// calcolo puro dentro il callback: la sconfitta apre la aid riferita alla quest originale (D-06..D-09)
+// calcolo puro dentro il callback: la sconfitta apre la aid riferita alla quest originale solo per i tipi di soccorso (D-06..D-09, D-19)
 export function planCombatant(input: CombatantPlanInput): CombatantPlan {
     const { quest, catalog, snapshot, battle } = input;
     const verdict =
@@ -129,6 +135,23 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
             ? QuestOutcome.failure
             : QuestOutcome.success;
     const won = verdict === QuestOutcome.success;
+    if (!won && !opensAid(quest.infos?.type)) {
+        return {
+            plan: planDefeatWithoutAid({
+                resultId: input.resultId,
+                snapshot,
+                quest,
+                pendingQuestId: input.pendingQuestId,
+                userId: input.userId,
+                battle: battle?.effects ?? null,
+                enemies: enemyFactsOf(catalog),
+                spellRecoveryTimes: catalog.recoveryTimes,
+                now: input.now,
+            }),
+            verdict: QuestOutcome.failure,
+            aid: null,
+        };
+    }
     const aid = won
         ? null
         : {
@@ -146,8 +169,15 @@ export function planCombatant(input: CombatantPlanInput): CombatantPlan {
         battle: battle?.effects ?? null,
         enemies: enemyFactsOf(catalog),
         victory: victoryKnowledgeOf(catalog),
+        // il blocco del titolo del personaggio letto in sessione, non del posto (D-04, D-18)
+        // la quota del soccorritore di una dungeon scala le soglie di loot e pet (D-20)
         rewards: won
-            ? drawRewards(quest.prizes, catalog.rewards, input.chance)
+            ? drawRewards(
+                  prizeBlockFor(quest, snapshot.status.title),
+                  catalog.rewards,
+                  input.chance,
+                  rescueShareOf(rescueTurnOf(quest.rescue?.turn)),
+              )
             : NO_REWARDS,
         aid,
         spellRecoveryTimes: catalog.recoveryTimes,

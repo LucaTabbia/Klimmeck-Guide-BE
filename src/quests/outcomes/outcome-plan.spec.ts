@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import type { OwnedPetEntry } from 'src/characters/pets/owned-pet-entry';
+import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
@@ -8,6 +9,7 @@ import { idForms } from 'src/mongo/document-id';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
 import {
+    type DungeonStages,
     OutcomeCharacterSnapshot,
     OutcomeQuestSnapshot,
     ParticipantPlan,
@@ -20,6 +22,7 @@ import {
     NO_REWARDS,
 } from 'src/quests/outcomes/rewards/quest-rewards';
 import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
+import { NO_TURNS } from '../../../test/quests/dungeon-turns.fixture';
 
 const NOW = new Date('2026-10-24T10:00:00.000Z');
 const CHARACTER_ID = new Types.ObjectId('64b0000000000000000000e1');
@@ -68,6 +71,12 @@ const snapshotWith = (
     assets: overrides.assets ?? { ownedItems: [], ownedEquipments: [] },
 });
 
+// la magia si impara solo dai titoli ≥ mage (D-05b): i casi che insegnano una magia partono da un mage
+const asMage = (overrides: SnapshotOverrides = {}): SnapshotOverrides => ({
+    ...overrides,
+    status: { title: TitleType.mage, ...overrides.status },
+});
+
 const questOf = (
     type: QuestType,
     minTitle: TitleType | null = null,
@@ -114,6 +123,12 @@ const inputWith = (
     now: NOW,
     ...overrides,
 });
+
+const stagesOf = (
+    cleared: number,
+    total: number,
+    turns: Omit<DungeonStages, 'cleared' | 'total'> = NO_TURNS,
+): DungeonStages => ({ cleared, total, ...turns });
 
 const potionStack = (quantity: number) => ({
     itemType: 'LootItem' as const,
@@ -213,6 +228,7 @@ describe('planParticipant', () => {
                 enemies: [],
                 stagesCleared: null,
                 stagesTotal: null,
+                ...NO_TURNS,
                 rescuedCharacters: [],
                 arrested: false,
                 coinsLost: null,
@@ -225,12 +241,74 @@ describe('planParticipant', () => {
         const plan = planParticipant(
             inputWith({
                 quest: questOf(QuestType.dungeon),
-                stages: { cleared: 2, total: 3 },
+                stages: stagesOf(2, 3),
             }),
         );
 
         expect(plan.result.stagesCleared).toBe(2);
         expect(plan.result.stagesTotal).toBe(3);
+    });
+
+    describe('the turn counters of a dungeon', () => {
+        const turnCountersOf = (plan: ParticipantPlan) => ({
+            turnsTotal: plan.result.turnsTotal,
+            turnsCompleted: plan.result.turnsCompleted,
+            lastTurn: plan.result.lastTurn,
+            lastTurnKind: plan.result.lastTurnKind,
+        });
+
+        it('writes the turn counters of a cleared dungeon (D-21)', () => {
+            const counters = {
+                turnsTotal: 8,
+                turnsCompleted: 8,
+                lastTurn: 8,
+                lastTurnKind: DungeonTurnKind.fight,
+            };
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.dungeon),
+                    stages: stagesOf(4, 4, counters),
+                }),
+            );
+
+            expect(turnCountersOf(plan)).toEqual(counters);
+            expect(plan.result.stagesCleared).toBe(4);
+            expect(plan.result.stagesTotal).toBe(4);
+        });
+
+        it('writes the turn counters of a lost dungeon (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.dungeon),
+                    verdict: QuestOutcome.failure,
+                    aid: { aidQuestId: AID_ID, failedQuestId: QUEST_ID },
+                    stages: stagesOf(2, 4, {
+                        turnsTotal: 8,
+                        turnsCompleted: 4,
+                        lastTurn: 5,
+                        lastTurnKind: DungeonTurnKind.exploration,
+                    }),
+                }),
+            );
+
+            expect(turnCountersOf(plan)).toEqual({
+                turnsTotal: 8,
+                turnsCompleted: 4,
+                lastTurn: 5,
+                lastTurnKind: DungeonTurnKind.exploration,
+            });
+        });
+
+        it('leaves the turn counters null outside a dungeon (D-21)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.enemy),
+                    verdict: QuestOutcome.gmCompleted,
+                }),
+            );
+
+            expect(turnCountersOf(plan)).toEqual(NO_TURNS);
+        });
     });
 
     it('requires a free standard lane in the write filter of the game master lanes only (D-24)', () => {
@@ -749,6 +827,48 @@ describe('planParticipant', () => {
     describe('the cure of a won quest', () => {
         const VILLAGE = { lifePointsShare: 0.5, canHeal: [InjuryType.deepCut] };
 
+        // la cura viaggia col blocco premio tirato per il titolo (D-05): la porta DrawnRewards, non la quest
+        const curing = (
+            cure: unknown,
+            overrides: Partial<DrawnRewards> = {},
+        ): DrawnRewards => rewardsWith({ ...overrides, cure });
+
+        it('heals with the cure of the character title block (D-05)', () => {
+            const questCure = {
+                lifePointsShare: 1,
+                canHeal: [InjuryType.infection],
+            };
+            const wounded = woundedWith(400, [
+                InjuryType.deepCut,
+                InjuryType.infection,
+            ]);
+            const blockCured = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.boss, null, questCure),
+                    snapshot: wounded,
+                    rewards: curing(VILLAGE),
+                }),
+            );
+            const blockWithoutCure = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.boss, null, questCure),
+                    snapshot: wounded,
+                    rewards: curing(null),
+                }),
+            );
+
+            expect(blockCured.update.$set['status.currentLifePoints']).toBe(
+                500,
+            );
+            expect(blockCured.result.injuriesHealed).toEqual([
+                InjuryType.deepCut,
+            ]);
+            expect(
+                blockWithoutCure.update.$set['status.currentLifePoints'],
+            ).toBe(400);
+            expect(blockWithoutCure.result.injuriesHealed).toEqual([]);
+        });
+
         const woundedWith = (
             currentLifePoints: number,
             injuries: InjuryType[],
@@ -775,7 +895,8 @@ describe('planParticipant', () => {
         it('raises the life points to the share of the maximum and removes only the listed injuries (D-02)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.heal, null, VILLAGE),
+                    quest: questOf(QuestType.heal),
+                    rewards: curing(VILLAGE),
                     snapshot: woundedWith(400, [
                         InjuryType.deepCut,
                         InjuryType.infection,
@@ -798,7 +919,8 @@ describe('planParticipant', () => {
         it('never lowers life points already above the floor (D-02)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.heal, null, VILLAGE),
+                    quest: questOf(QuestType.heal),
+                    rewards: curing(VILLAGE),
                     snapshot: woundedWith(700, []),
                 }),
             );
@@ -809,7 +931,8 @@ describe('planParticipant', () => {
         it('cures only the injuries with a share of 0 (D-02)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.heal, null, {
+                    quest: questOf(QuestType.heal),
+                    rewards: curing({
                         lifePointsShare: 0,
                         canHeal: [InjuryType.deepCut],
                     }),
@@ -825,12 +948,12 @@ describe('planParticipant', () => {
             const healWith = (lifePointsShare: number) =>
                 planParticipant(
                     inputWith({
-                        quest: questOf(QuestType.heal, null, {
-                            lifePointsShare,
-                            canHeal: [],
-                        }),
+                        quest: questOf(QuestType.heal),
+                        rewards: curing(
+                            { lifePointsShare, canHeal: [] },
+                            { xpPrize: 300 },
+                        ),
                         snapshot: woundedWith(400, []),
-                        rewards: rewardsWith({ xpPrize: 300 }),
                     }),
                 );
 
@@ -850,7 +973,8 @@ describe('planParticipant', () => {
             (type) => {
                 const plan = planParticipant(
                     inputWith({
-                        quest: questOf(type, null, VILLAGE),
+                        quest: questOf(type),
+                        rewards: curing(VILLAGE),
                         snapshot: woundedWith(400, [InjuryType.deepCut]),
                     }),
                 );
@@ -866,7 +990,8 @@ describe('planParticipant', () => {
         it('cures a game master completion like a success (D-07)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.job, null, VILLAGE),
+                    quest: questOf(QuestType.job),
+                    rewards: curing(VILLAGE),
                     snapshot: woundedWith(400, [InjuryType.deepCut]),
                     verdict: QuestOutcome.gmCompleted,
                 }),
@@ -880,7 +1005,8 @@ describe('planParticipant', () => {
         it('cures nothing on a defeat (D-07)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.enemy, null, {
+                    quest: questOf(QuestType.enemy),
+                    rewards: curing({
                         lifePointsShare: 1,
                         canHeal: [InjuryType.deepCut],
                     }),
@@ -903,10 +1029,14 @@ describe('planParticipant', () => {
         it('cures after the fight and after the progression: the wounds taken in the same outcome are healed too (D-20)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.job, null, {
-                        lifePointsShare: 0.5,
-                        canHeal: [InjuryType.deepCut, InjuryType.sprain],
-                    }),
+                    quest: questOf(QuestType.job),
+                    rewards: curing(
+                        {
+                            lifePointsShare: 0.5,
+                            canHeal: [InjuryType.deepCut, InjuryType.sprain],
+                        },
+                        { xpPrize: 300 },
+                    ),
                     snapshot: woundedWith(1000, [
                         InjuryType.sprain,
                         InjuryType.infection,
@@ -918,7 +1048,6 @@ describe('planParticipant', () => {
                             InjuryType.frostbite,
                         ],
                     }),
-                    rewards: rewardsWith({ xpPrize: 300 }),
                 }),
             );
 
@@ -942,7 +1071,8 @@ describe('planParticipant', () => {
         it('keeps on the sheet a wound taken and healed in the same outcome, never on the character (D-20)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.job, null, VILLAGE),
+                    quest: questOf(QuestType.job),
+                    rewards: curing(VILLAGE),
                     battle: battleWith({ injuriesAdded: [InjuryType.deepCut] }),
                 }),
             );
@@ -955,7 +1085,8 @@ describe('planParticipant', () => {
         it('reads a share outside the scale as 0 and still cures the injuries (D-23)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.heal, null, {
+                    quest: questOf(QuestType.heal),
+                    rewards: curing({
                         lifePointsShare: 50,
                         canHeal: [InjuryType.deepCut],
                     }),
@@ -970,7 +1101,8 @@ describe('planParticipant', () => {
         it('ignores a malformed cure (D-23)', () => {
             const plan = planParticipant(
                 inputWith({
-                    quest: questOf(QuestType.heal, null, 'full'),
+                    quest: questOf(QuestType.heal),
+                    rewards: curing('full'),
                     snapshot: woundedWith(400, [InjuryType.deepCut]),
                 }),
             );
@@ -984,7 +1116,10 @@ describe('planParticipant', () => {
 
         it('keeps the write filter unchanged when curing (D-07)', () => {
             const cured = planParticipant(
-                inputWith({ quest: questOf(QuestType.job, null, VILLAGE) }),
+                inputWith({
+                    quest: questOf(QuestType.job),
+                    rewards: curing(VILLAGE),
+                }),
             );
             const plain = planParticipant(
                 inputWith({ quest: questOf(QuestType.job) }),
@@ -995,7 +1130,10 @@ describe('planParticipant', () => {
 
         it('never writes the potion recovery from an outcome (D-16)', () => {
             const plan = planParticipant(
-                inputWith({ quest: questOf(QuestType.job, null, VILLAGE) }),
+                inputWith({
+                    quest: questOf(QuestType.job),
+                    rewards: curing(VILLAGE),
+                }),
             );
 
             expect(Object.keys(plan.update.$set).sort()).toEqual(
@@ -1315,7 +1453,7 @@ describe('planParticipant', () => {
         });
 
         it('composes spending and learning in one spell state', () => {
-            const plan = fightWith(knowingSpell(2), using(1), {
+            const plan = fightWith(asMage(knowingSpell(2)), using(1), {
                 quest: questOf(QuestType.study),
                 rewards: rewardsWith({
                     xpPrize: 300,
@@ -1358,7 +1496,7 @@ describe('planParticipant', () => {
             planParticipant(
                 inputWith({
                     quest: questOf(QuestType.study),
-                    snapshot: snapshotWith(snapshot),
+                    snapshot: snapshotWith(asMage(snapshot)),
                     rewards: rewardsWith({
                         xpPrize: 300,
                         spellCandidate: {
@@ -1483,6 +1621,7 @@ describe('planParticipant', () => {
             const plan = planParticipant(
                 inputWith({
                     quest: questOf(QuestType.study),
+                    snapshot: snapshotWith(asMage()),
                     rewards: rewardsWith({
                         xpPrize: 300,
                         spellDraw: {
@@ -1520,18 +1659,20 @@ describe('planParticipant', () => {
             const plan = planParticipant(
                 inputWith({
                     quest: questOf(QuestType.study),
-                    snapshot: snapshotWith({
-                        status: {
-                            spellStates: [
-                                {
-                                    spell: DRAWN_SPELL_ID,
-                                    usages: 2,
-                                    recoveries: [],
-                                    active: true,
-                                },
-                            ],
-                        },
-                    }),
+                    snapshot: snapshotWith(
+                        asMage({
+                            status: {
+                                spellStates: [
+                                    {
+                                        spell: DRAWN_SPELL_ID,
+                                        usages: 2,
+                                        recoveries: [],
+                                        active: true,
+                                    },
+                                ],
+                            },
+                        }),
+                    ),
                     rewards: rewardsWith({
                         xpPrize: 300,
                         spellDraw: {
@@ -1647,6 +1788,99 @@ describe('planParticipant', () => {
                     },
                 ),
             );
+        });
+    });
+
+    describe('spell learning by title', () => {
+        const FIXED_SPELL = {
+            spellId: LEARNED_SPELL_ID,
+            minXpToLearn: 0,
+            maxUsages: 4,
+        };
+        const spellDraw = {
+            pool: [{ spellId: DRAWN_SPELL_ID, minXpToLearn: 0, maxUsages: 2 }],
+            gate: 0.1,
+            roll: 0,
+        };
+        const loreDraw = {
+            pool: [STUDY_LORE_ID],
+            chance: 0.5,
+            gate: 0,
+            pick: 0,
+        };
+        const expectNoSpell = (plan: ParticipantPlan) => {
+            expect(plan.result.spellLearned).toBeNull();
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'status.spellStates',
+            );
+        };
+
+        it.each<[string, Partial<ParticipantPlanInput>]>([
+            [
+                'a fixed spell',
+                { rewards: rewardsWith({ spellCandidate: FIXED_SPELL }) },
+            ],
+            ['a drawn spell', { rewards: rewardsWith({ spellDraw }) }],
+            [
+                'a game master completion',
+                {
+                    verdict: QuestOutcome.gmCompleted,
+                    rewards: rewardsWith({ spellCandidate: FIXED_SPELL }),
+                },
+            ],
+        ])(
+            'never teaches a spell to a rookie on any path (D-05b, D-05c): %s',
+            (_label, overrides) => {
+                const plan = planParticipant(
+                    inputWith({
+                        quest: questOf(QuestType.magic),
+                        snapshot: snapshotWith({
+                            status: { title: TitleType.rookie, xp: 50000 },
+                        }),
+                        ...overrides,
+                    }),
+                );
+
+                expectNoSpell(plan);
+            },
+        );
+
+        it('uses the title after the outcome to teach a spell (D-25)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.story, TitleType.paladin),
+                    lane: QuestLane.story,
+                    snapshot: snapshotWith({
+                        status: { title: TitleType.paladin },
+                    }),
+                    rewards: rewardsWith({
+                        xpPrize: 300,
+                        spellCandidate: { ...FIXED_SPELL, minXpToLearn: 300 },
+                    }),
+                }),
+            );
+
+            expect(plan.result.titleAfter).toBe(TitleType.mage);
+            expect(plan.result.spellLearned).toBe(LEARNED_SPELL_ID);
+        });
+
+        it('sends a non caster who wins a study to the study lore (D-25)', () => {
+            const plan = planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.study),
+                    snapshot: snapshotWith({
+                        status: { title: TitleType.paladin },
+                    }),
+                    rewards: rewardsWith({
+                        xpPrize: 300,
+                        spellDraw,
+                        loreDraw,
+                    }),
+                }),
+            );
+
+            expectNoSpell(plan);
+            expect(plan.result.loreUnlocked).toEqual([STUDY_LORE_ID]);
         });
     });
 
@@ -1859,6 +2093,9 @@ describe('planParticipant', () => {
         it('learns no study lore when a spell is learned (D-08)', () => {
             const plan = planParticipant(
                 studyWith({
+                    snapshot: snapshotWith(
+                        asMage({ status: { unlockedLore: [KNOWN_PAGE_ID] } }),
+                    ),
                     rewards: rewardsWith({
                         xpPrize: 300,
                         loreDraw,

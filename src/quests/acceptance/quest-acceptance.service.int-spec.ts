@@ -365,7 +365,9 @@ describe('QuestAcceptanceService (replSet)', () => {
             });
     }
 
+    // ogni posto di una quest di gruppo ha un titolo (D-02, D-24): i jolly restano solo nell'aid
     const ANY_THREE = [{ title: null, count: 3 }];
+    const THREE_ROOKIES = [{ title: 'rookie', count: 3 }];
 
     describe('lanes and points', () => {
         it('claims the story lane, records the paid points and debits the owner', async () => {
@@ -400,7 +402,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             const charId = await characterAt(world.cityMarker);
             const questId = await questOf('worldMission', {
                 requiredPoints: 3000,
-                requiredAdventurers: ANY_THREE,
+                requiredAdventurers: THREE_ROOKIES,
             });
 
             const pqId = await accept(ownerId, charId, questId);
@@ -545,7 +547,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             const charId = await characterAt(world.cityMarker);
             const questId = await questOf('worldMission', {
                 requiredPoints: null,
-                requiredAdventurers: ANY_THREE,
+                requiredAdventurers: THREE_ROOKIES,
             });
 
             await expect(
@@ -933,7 +935,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             const charId = await characterAt(world.cityMarker);
             const questId = await questOf('worldMission', {
                 requiredPoints: 3000,
-                requiredAdventurers: ANY_THREE,
+                requiredAdventurers: THREE_ROOKIES,
             });
             await accept(ownerId, charId, questId);
 
@@ -1095,7 +1097,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                 }),
                 await questOf('worldMission', {
                     requiredPoints: 3000,
-                    requiredAdventurers: ANY_THREE,
+                    requiredAdventurers: THREE_ROOKIES,
                 }),
                 await questOf('aid', { requiredAdventurers: ANY_THREE }),
             ];
@@ -1127,7 +1129,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             const charId = await characterAt(world.cityMarker);
             const questId = await questOf('worldMission', {
                 requiredPoints: 3000,
-                requiredAdventurers: ANY_THREE,
+                requiredAdventurers: THREE_ROOKIES,
             });
             const transaction = interleaveBeforeTransaction(() =>
                 imprison(charId, RELEASE),
@@ -1172,7 +1174,7 @@ describe('QuestAcceptanceService (replSet)', () => {
                 }),
                 await questOf('worldMission', {
                     requiredPoints: 3000,
-                    requiredAdventurers: ANY_THREE,
+                    requiredAdventurers: THREE_ROOKIES,
                 }),
                 await questOf('aid', { requiredAdventurers: ANY_THREE }),
             ];
@@ -1201,7 +1203,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             const charId = await characterAt(world.cityMarker);
             const questId = await questOf('worldMission', {
                 requiredPoints: 3000,
-                requiredAdventurers: ANY_THREE,
+                requiredAdventurers: THREE_ROOKIES,
             });
             const transaction = interleaveBeforeTransaction(() =>
                 awaitAid(charId),
@@ -1253,7 +1255,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             const charId = await characterAt(world.cityMarker);
             const questId = await questOf('worldMission', {
                 requiredPoints: 3000,
-                requiredAdventurers: ANY_THREE,
+                requiredAdventurers: THREE_ROOKIES,
             });
             const transaction = interleaveBeforeTransaction(() =>
                 conclude(questId),
@@ -1536,7 +1538,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             );
             const missionId = await huntTo(
                 travel.questPoi,
-                { requiredPoints: 1000, requiredAdventurers: ANY_THREE },
+                { requiredPoints: 1000, requiredAdventurers: THREE_ROOKIES },
                 'worldMission',
             );
 
@@ -1926,7 +1928,10 @@ describe('QuestAcceptanceService (replSet)', () => {
                 );
                 const missionId = await huntTo(
                     travel.questPoi,
-                    { requiredPoints: 1000, requiredAdventurers: ANY_THREE },
+                    {
+                        requiredPoints: 1000,
+                        requiredAdventurers: THREE_ROOKIES,
+                    },
                     'worldMission',
                 );
 
@@ -2145,7 +2150,10 @@ describe('QuestAcceptanceService (replSet)', () => {
                 );
                 const missionId = await huntTo(
                     travel.questPoi,
-                    { requiredPoints: 1000, requiredAdventurers: ANY_THREE },
+                    {
+                        requiredPoints: 1000,
+                        requiredAdventurers: THREE_ROOKIES,
+                    },
                     'worldMission',
                 );
 
@@ -2246,7 +2254,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             const charId = await characterAt(await otherCityMarker());
             const questId = await questOf('worldMission', {
                 requiredPoints: 3000,
-                requiredAdventurers: ANY_THREE,
+                requiredAdventurers: THREE_ROOKIES,
             });
 
             await expect(
@@ -2268,7 +2276,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             const charId = await characterAt(world.cityPoi);
             const questId = await questOf('worldMission', {
                 requiredPoints: 3000,
-                requiredAdventurers: ANY_THREE,
+                requiredAdventurers: THREE_ROOKIES,
             });
 
             const pqId = await accept(ownerId, charId, questId);
@@ -2463,6 +2471,41 @@ describe('QuestAcceptanceService (replSet)', () => {
             },
         );
 
+        it('rejects a group quest with a seat without a title with QUEST_NOT_ACCEPTABLE and writes nothing (D-24)', async () => {
+            const warn = jest
+                .spyOn(Logger.prototype, 'warn')
+                .mockImplementation();
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker, 'mage');
+            const questId = await questOf('boss', {
+                minTitle: 'mage',
+                requiredAdventurers: [
+                    { title: 'mage', count: 2 },
+                    { title: null, count: 1 },
+                ],
+            });
+            const before = {
+                quest: await rawQuest(questId),
+                character: await raw(charId),
+                pending: await pendingCount(),
+                points: await pointsOf(ownerId),
+            };
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_NOT_ACCEPTABLE' });
+
+            expect({
+                quest: await rawQuest(questId),
+                character: await raw(charId),
+                pending: await pendingCount(),
+                points: await pointsOf(ownerId),
+            }).toEqual(before);
+            expect(warn).toHaveBeenCalledWith(
+                `Missione ${questId.toHexString()} non accettabile: requiredAdventurers non valido`,
+            );
+        });
+
         it('ignores the slots of a hunt', async () => {
             const { owners, chars } = await heroesRacing(2, 'rookie');
             const questId = await insertQuest('hunt', {
@@ -2506,12 +2549,14 @@ describe('QuestAcceptanceService (replSet)', () => {
             ).toBeNull();
         });
 
+        // il caso canonico coi soli posti a titolo di una quest di gruppo (D-02, D-24)
         it('applies the canonical case shared with the FE', async () => {
             const questId = await questOf('worldMission', {
                 requiredPoints: 3000,
                 requiredAdventurers: [
                     { title: 'hero', count: 1 },
-                    { title: null, count: 2 },
+                    { title: 'paladin', count: 1 },
+                    { title: 'mage', count: 1 },
                 ],
             });
             const registered = [
@@ -2542,7 +2587,7 @@ describe('QuestAcceptanceService (replSet)', () => {
 
         it('fills exact seats before wildcards under concurrency', async () => {
             const { owners, chars } = await heroesRacing(3, 'hero');
-            const questId = await questOf('worldMission', {
+            const questId = await questOf('aid', {
                 requiredPoints: 1000,
                 requiredAdventurers: [
                     { title: 'hero', count: 1 },
@@ -2840,7 +2885,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             const charId = await characterAt(world.cityMarker);
             const questId = await questOf('worldMission', {
                 requiredPoints: 3000,
-                requiredAdventurers: ANY_THREE,
+                requiredAdventurers: THREE_ROOKIES,
             });
 
             await expect(
@@ -2897,7 +2942,7 @@ describe('QuestAcceptanceService (replSet)', () => {
         });
 
         describe('party start (utente 2026-10-25)', () => {
-            const TWO_SEATS = [{ title: null, count: 2 }];
+            const TWO_SEATS = [{ title: 'rookie', count: 2 }];
 
             const resolveJobs = () =>
                 questQueue.added.filter(({ name }) => name === 'resolve');
@@ -2966,7 +3011,7 @@ describe('QuestAcceptanceService (replSet)', () => {
             it('opens the 24 hour window at the first registration only', async () => {
                 const { owners, chars } = await heroesRacing(3, 'rookie');
                 const questId = await questOf('boss', {
-                    requiredAdventurers: [{ title: null, count: 3 }],
+                    requiredAdventurers: [{ title: 'rookie', count: 3 }],
                 });
 
                 await accept(owners[0], chars[0], questId);

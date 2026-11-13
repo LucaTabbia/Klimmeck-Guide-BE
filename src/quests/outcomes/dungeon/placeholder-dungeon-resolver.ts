@@ -1,5 +1,6 @@
-// PROVVISORIO (D-10): l'algoritmo di esplorazione dell'utente sostituisce questo segnaposto via DI; la prova di esplorazione fra le tappe è neutra e non costa nulla
+// PROVVISORIO (D-10, D-29): l'algoritmo di esplorazione dell'utente sostituisce questo segnaposto via DI; il turno di esplorazione fra gli scontri è sempre superato e non costa nulla
 import { Injectable } from '@nestjs/common';
+import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import {
     CombatParticipant,
@@ -10,7 +11,14 @@ import {
     DungeonContext,
     DungeonResolution,
     DungeonResolver,
+    FailedTurn,
 } from './dungeon-resolver';
+import { dungeonTurnsOf } from './dungeon-turns';
+
+type DungeonProgress = Pick<
+    DungeonResolution,
+    'stagesCleared' | 'stagesTotal' | 'turnsCompleted' | 'turnsTotal'
+>;
 
 const unique = <T>(values: readonly T[]): T[] => [...new Set(values)];
 
@@ -101,18 +109,25 @@ export class PlaceholderDungeonResolver extends DungeonResolver {
         super();
     }
 
-    // D-12: una tappa per voce di `enemies`, in sequenza dagli HP residui; la prima sconfitta ferma l'esplorazione
+    // D-12, D-13: i turni di dungeonTurnsOf in sequenza dagli HP residui fino a lastTurnIndex; la prima sconfitta ferma l'esplorazione
     explore(context: DungeonContext, chance: ChanceSource): DungeonResolution {
-        const stagesTotal = context.enemies.length;
+        const turns = dungeonTurnsOf(context.enemies.length);
+        const totals = {
+            stagesTotal: context.enemies.length,
+            turnsTotal: turns.length,
+        };
         // difensivo: il servizio non chiama la porta senza nemici validi (successo automatico, C6/D-01)
-        if (stagesTotal === 0) {
+        if (turns.length === 0) {
             return {
                 verdict: 'success',
                 participants: [],
                 stagesCleared: 0,
-                stagesTotal,
+                turnsCompleted: 0,
+                failedTurn: null,
+                ...totals,
             };
         }
+        const lastTurnIndex = context.lastTurnIndex ?? turns.length - 1;
         let participants = context.participants;
         const merged = new Map(
             participants.map((participant) => [
@@ -120,10 +135,21 @@ export class PlaceholderDungeonResolver extends DungeonResolver {
                 noEffects(participant),
             ]),
         );
-        let stagesCleared = 0;
-        for (const enemy of context.enemies) {
+        const progress = { stagesCleared: 0, turnsCompleted: 0, ...totals };
+        for (const turn of turns.filter(
+            (entry) => entry.index <= lastTurnIndex,
+        )) {
+            // D-29: il segnaposto supera sempre l'esplorazione e non consuma tiri
+            if (turn.kind === DungeonTurnKind.exploration) {
+                progress.turnsCompleted += 1;
+                continue;
+            }
             const stage = this.combat.resolve(
-                { quest: context.quest, enemies: [enemy], participants },
+                {
+                    quest: context.quest,
+                    enemies: [context.enemies[turn.enemyIndex]],
+                    participants,
+                },
                 chance,
             );
             const effectsById = new Map(
@@ -144,31 +170,30 @@ export class PlaceholderDungeonResolver extends DungeonResolver {
                 ),
             );
             if (stage.verdict === 'failure') {
-                return this.resolutionOf(
-                    'failure',
-                    merged,
-                    stagesCleared,
-                    stagesTotal,
-                );
+                return this.resolutionOf('failure', merged, progress, {
+                    index: turn.index,
+                    kind: turn.kind,
+                });
             }
-            stagesCleared += 1;
+            progress.stagesCleared += 1;
+            progress.turnsCompleted += 1;
         }
-        return this.resolutionOf('success', merged, stagesCleared, stagesTotal);
+        return this.resolutionOf('success', merged, progress, null);
     }
 
     private resolutionOf(
         verdict: DungeonResolution['verdict'],
         merged: ReadonlyMap<string, ParticipantEffects>,
-        stagesCleared: number,
-        stagesTotal: number,
+        progress: DungeonProgress,
+        failedTurn: FailedTurn | null,
     ): DungeonResolution {
         return {
             verdict,
             participants: [...merged.values()].sort((a, b) =>
                 a.characterId.localeCompare(b.characterId),
             ),
-            stagesCleared,
-            stagesTotal,
+            ...progress,
+            failedTurn,
         };
     }
 }

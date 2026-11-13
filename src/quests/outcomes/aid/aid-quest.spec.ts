@@ -5,6 +5,7 @@ import {
     aidSlotsOf,
     buildAidQuest,
 } from 'src/quests/outcomes/aid/aid-quest';
+import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 
@@ -158,6 +159,24 @@ describe('buildAidQuest', () => {
         });
     });
 
+    it('saves the turn of the defeat on a dungeon aid (D-12)', () => {
+        const dungeon: AidSourceQuest = {
+            ...original,
+            infos: { ...original.infos, type: QuestType.dungeon },
+        };
+        const turn = { index: 4, kind: DungeonTurnKind.exploration, total: 8 };
+
+        const saved = buildAidQuest(dungeon, [INJURED_ID], AID_ID, turn);
+        const unsaved = buildAidQuest(dungeon, [INJURED_ID], AID_ID);
+
+        expect(saved.rescue.turn).toEqual(turn);
+        expect(saved.rescue.turn).not.toBe(turn);
+        expect(Object.keys(unsaved.rescue).sort()).toEqual([
+            'characters',
+            'failedQuest',
+        ]);
+    });
+
     it('does not share the wounded list with the caller', () => {
         const injured = [INJURED_ID];
 
@@ -266,6 +285,238 @@ describe('buildAidQuest', () => {
             'spell',
             'xpPrize',
         ]);
+    });
+});
+
+describe('buildAidQuest rank blocks', () => {
+    const mageBlock = {
+        title: TitleType.mage,
+        prizeCoins: { gold: 3, silver: 0, copper: 0 },
+        xpPrize: 500,
+        prizeItem: lootEntry,
+        randomLoot: [lootEntry],
+        spell: null,
+        pet: PET_ID,
+        cure: { lifePointsShare: 1, canHeal: ['deepCut'] },
+    };
+    const paladinBlock = {
+        title: TitleType.paladin,
+        prizeCoins: { gold: 2, silver: 0, copper: 0 },
+        xpPrize: 300,
+        prizeItem: null,
+        randomLoot: [],
+        spell: null,
+        pet: null,
+        cure: null,
+    };
+
+    it('clones the rank blocks of a group quest without their cure (D-11)', () => {
+        const boss: AidSourceQuest = {
+            ...original,
+            prizes: {
+                ...original.prizes,
+                rankPrizes: [mageBlock, paladinBlock],
+            },
+        };
+
+        const { prizes } = buildAidQuest(boss, [INJURED_ID], AID_ID);
+
+        expect(prizes.rankPrizes).toEqual([
+            { ...mageBlock, cure: null },
+            { ...paladinBlock, cure: null },
+        ]);
+        const [clonedMage] = prizes.rankPrizes as (typeof mageBlock)[];
+        expect(clonedMage.randomLoot).not.toBe(mageBlock.randomLoot);
+    });
+
+    const bossWith = (rankPrizes: unknown[]): AidSourceQuest => ({
+        ...original,
+        prizes: { ...original.prizes, rankPrizes },
+    });
+
+    // lo schema vuole un titolo dell'enum: un blocco illeggibile farebbe fallire la nascita dell'aid
+    it('clones only the blocks the boss reads, with a valid title (B-WR-02, D-01)', () => {
+        const { prizes } = buildAidQuest(
+            bossWith([
+                null,
+                { ...paladinBlock, title: 'Mage' },
+                mageBlock,
+                { ...paladinBlock, title: undefined },
+            ]),
+            [INJURED_ID],
+            AID_ID,
+        );
+
+        expect(prizes.rankPrizes).toEqual([{ ...mageBlock, cure: null }]);
+    });
+
+    it('clones the first block of a repeated title, the one the boss reads (B-WR-02, D-18)', () => {
+        const { prizes } = buildAidQuest(
+            bossWith([mageBlock, paladinBlock, { ...mageBlock, xpPrize: 1 }]),
+            [INJURED_ID],
+            AID_ID,
+        );
+
+        expect(prizes.rankPrizes).toEqual([
+            { ...mageBlock, cure: null },
+            { ...paladinBlock, cure: null },
+        ]);
+    });
+
+    it('writes no blocks when none has a valid title (B-WR-02, D-01)', () => {
+        const { prizes } = buildAidQuest(
+            bossWith([{ ...mageBlock, title: 'mago' }]),
+            [INJURED_ID],
+            AID_ID,
+        );
+
+        expect(Object.keys(prizes)).not.toContain('rankPrizes');
+    });
+
+    it('does not inherit the blocks left on a solo quest (A-WR-02, D-01, D-11)', () => {
+        const hunt: AidSourceQuest = {
+            ...bossWith([mageBlock]),
+            infos: { ...original.infos, type: QuestType.hunt },
+        };
+
+        const { prizes } = buildAidQuest(hunt, [INJURED_ID], AID_ID);
+
+        expect(Object.keys(prizes)).not.toContain('rankPrizes');
+        expect(prizes.xpPrize).toBe(800);
+    });
+
+    it('keeps the single prize on the aid of a solo quest (D-11)', () => {
+        const hunt: AidSourceQuest = {
+            ...original,
+            infos: { ...original.infos, type: QuestType.hunt },
+        };
+
+        expect(
+            Object.keys(
+                buildAidQuest(hunt, [INJURED_ID], AID_ID).prizes,
+            ).sort(),
+        ).toEqual([
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'xpPrize',
+        ]);
+    });
+});
+
+describe('buildAidQuest proportional prize', () => {
+    const dungeon: AidSourceQuest = {
+        ...original,
+        infos: { ...original.infos, type: QuestType.dungeon },
+        requirements: { minTitle: TitleType.rookie },
+        prizes: {
+            prizeCoins: { gold: 1, silver: 0, copper: 1 },
+            xpPrize: 101,
+            prizeItem: lootEntry,
+            randomLoot: [lootEntry],
+            spell: null,
+            pet: PET_ID,
+        },
+    };
+    const turnOf = (index: number) => ({
+        index,
+        kind:
+            index % 2 === 0
+                ? DungeonTurnKind.exploration
+                : DungeonTurnKind.fight,
+        total: 8,
+    });
+
+    it('writes the shared prize on a dungeon aid at birth (D-20)', () => {
+        const { prizes } = buildAidQuest(
+            dungeon,
+            [INJURED_ID],
+            AID_ID,
+            turnOf(3),
+        );
+
+        expect(prizes.xpPrize).toBe(50);
+        expect(prizes.prizeCoins).toEqual({ gold: 0, silver: 50, copper: 0 });
+        expect(prizes.prizeItem).toBeNull();
+        expect(prizes.randomLoot).toEqual([lootEntry]);
+        expect(prizes.pet).toEqual(PET_ID);
+    });
+
+    it('shares the original by the turn of each defeat, not by the earlier one (D-20)', () => {
+        const first = buildAidQuest(dungeon, [INJURED_ID], AID_ID, turnOf(3));
+        const second = buildAidQuest(
+            dungeon,
+            [RESCUER_ID],
+            NEXT_AID_ID,
+            turnOf(1),
+        );
+
+        expect(first.prizes.xpPrize).toBe(50);
+        expect(second.prizes.xpPrize).toBe(25);
+        expect(second.prizes.prizeCoins).toEqual({
+            gold: 0,
+            silver: 25,
+            copper: 0,
+        });
+    });
+
+    it('rescales an already shared aid by the ratio of the shares (D-20)', () => {
+        const sharedAid: AidSourceQuest = {
+            ...dungeon,
+            _id: AID_ID,
+            prizes: { ...dungeon.prizes, xpPrize: 50 },
+            rescue: { failedQuest: ORIGINAL_ID, turn: turnOf(3) },
+        };
+
+        const { prizes } = buildAidQuest(
+            sharedAid,
+            [RESCUER_ID],
+            NEXT_AID_ID,
+            turnOf(1),
+        );
+
+        expect(prizes.xpPrize).toBe(25);
+    });
+
+    // (1/6) / (5/6) vale 0.1999… in virgola mobile: 5 xp già scalati tornano a 1, non a 0
+    it('rescales by a non binary ratio of the shares without losing a unit (C-IN-01, D-20)', () => {
+        const sharedAid: AidSourceQuest = {
+            ...dungeon,
+            _id: AID_ID,
+            prizes: { ...dungeon.prizes, xpPrize: 5 },
+            rescue: {
+                failedQuest: ORIGINAL_ID,
+                turn: { index: 4, kind: DungeonTurnKind.exploration, total: 6 },
+            },
+        };
+
+        const { prizes } = buildAidQuest(sharedAid, [RESCUER_ID], NEXT_AID_ID, {
+            index: 0,
+            kind: DungeonTurnKind.exploration,
+            total: 6,
+        });
+
+        expect(prizes.xpPrize).toBe(1);
+    });
+
+    it('keeps the full prize on an aid without a turn (D-14)', () => {
+        const hunt: AidSourceQuest = {
+            ...dungeon,
+            infos: { ...dungeon.infos, type: QuestType.hunt },
+        };
+
+        const { prizes } = buildAidQuest(hunt, [INJURED_ID], AID_ID);
+
+        expect(prizes).toEqual({
+            prizeCoins: { gold: 1, silver: 0, copper: 1 },
+            xpPrize: 101,
+            prizeItem: lootEntry,
+            randomLoot: [lootEntry],
+            spell: null,
+            pet: PET_ID,
+        });
     });
 });
 

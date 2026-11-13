@@ -36,6 +36,8 @@ const FRESH_STATUS = {
     maxLifePoints: 1000,
     coins: { gold: 0, silver: 0, copper: 0 },
 };
+// la magia si impara solo dai titoli ≥ mage (D-05b): i casi della magia della study partono da un mage
+const CASTER_TITLE = 'mage';
 
 describe('QuestResolutionService.resolveStandard (individual) without an enemy (replSet)', () => {
     let world: OutcomeHarness;
@@ -282,7 +284,9 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                     { xpPrize: 300, spell: spell._id, cure: VILLAGE_CURE },
                     'study',
                 ),
-                characterOverrides: { status: { injuries: ['deepCut'] } },
+                characterOverrides: {
+                    status: { injuries: ['deepCut'], title: CASTER_TITLE },
+                },
             });
 
             await service.resolveStandard(triggerOf(subject));
@@ -327,7 +331,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                 'study',
             ),
             characterOverrides: {
-                status: { spellStates },
+                status: { spellStates, title: CASTER_TITLE },
             },
         });
 
@@ -360,6 +364,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                 { xpPrize: 300, spell: spell._id },
                 'study',
             ),
+            characterOverrides: { status: { title: CASTER_TITLE } },
         });
 
         await service.resolveStandard(triggerOf(subject));
@@ -379,6 +384,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
                 { xpPrize: 300, spell: spell._id },
                 'study',
             ),
+            characterOverrides: { status: { title: CASTER_TITLE } },
         });
 
         await service.resolveStandard(triggerOf(subject));
@@ -408,6 +414,42 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         expect(result.rewards.items).toEqual([
             expect.objectContaining({ item, quantity: 1 }),
         ]);
+    });
+
+    it('gives the minimum title prize of a solo quest to any winner (D-01)', async () => {
+        const hunt = jobQuest(
+            {
+                prizeCoins: COINS_PRIZE,
+                xpPrize: 40,
+                rankPrizes: [
+                    {
+                        title: CASTER_TITLE,
+                        prizeCoins: { gold: 3, silver: 0, copper: 0 },
+                        xpPrize: 900,
+                    },
+                ],
+            },
+            'hunt',
+        );
+        const subject = await quester({
+            questOverrides: {
+                ...hunt,
+                requirements: {
+                    ...buildQuest().requirements,
+                    minTitle: 'rookie',
+                },
+            },
+            characterOverrides: { status: { title: CASTER_TITLE } },
+        });
+
+        await expect(service.resolveStandard(triggerOf(subject))).resolves.toBe(
+            'resolved',
+        );
+
+        const [result] = await resultsOf(subject);
+        expect(result.xpGained).toBe(40);
+        expect(result.rewards.coins).toEqual(COINS_PRIZE);
+        expect((await characterOf(subject)).status.coins).toEqual(COINS_PRIZE);
     });
 
     it('turns a duplicate trigger into a no-op', async () => {

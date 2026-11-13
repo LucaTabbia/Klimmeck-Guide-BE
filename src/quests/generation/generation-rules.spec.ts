@@ -5,22 +5,27 @@ import {
     bossSeatsFor,
     bossSeatsOf,
     budgetOf,
+    coverageRankOf,
     ENEMY_SEATS,
     GENERATED_RANKS,
     HERO_XP_MAX,
     isBossCandidate,
     isGeneratedRank,
     leastCoveredRank,
+    lowerRankOf,
     MAX_BOSS_SEATS,
     MAX_PACK_TYPES,
     MAX_PACK_UNITS,
     MIN_BOSS_SEATS,
+    MIXED_BOSS_SHARE,
+    mixedSeatsOf,
     PACK_ATTEMPTS,
     RANK_XP_BANDS,
     RANK_XP_FLOORS,
     SINGLE_FORM_SHARE,
     XP_SCALE,
 } from 'src/quests/generation/generation-rules';
+import { SequenceChance } from '../../../test/quests/sequence-chance';
 
 describe('generation rules', () => {
     it('pins the five contiguous bands from rookie 1 to hero 803 (D-02)', () => {
@@ -166,5 +171,107 @@ describe('generation rules', () => {
         expect(MAX_PACK_UNITS).toBe(8);
         expect(MAX_PACK_TYPES).toBe(3);
         expect(PACK_ATTEMPTS).toBe(20);
+    });
+
+    describe('mixed bosses', () => {
+        it.each([
+            [TitleType.rookie, null],
+            [TitleType.adventurer, TitleType.rookie],
+            [TitleType.paladin, TitleType.adventurer],
+            [TitleType.mage, TitleType.paladin],
+            [TitleType.hero, TitleType.mage],
+        ] as const)(
+            'names the title just below each boss rank (D-03): %s',
+            (rank, lower) => {
+                expect(lowerRankOf(rank)).toBe(lower);
+            },
+        );
+
+        it('mixes one boss out of two (D-23)', () => {
+            expect(MIXED_BOSS_SHARE).toBe(0.5);
+            const mixed = new SequenceChance([0.49, 0]);
+            expect(mixedSeatsOf(4, mixed)).toBe(1);
+            expect(mixed.drawn).toEqual([0.49, 0]);
+
+            const plain = new SequenceChance([0.5, 0.25]);
+            expect(mixedSeatsOf(4, plain)).toBe(0);
+            expect(plain.drawn).toEqual([0.5]);
+            expect(plain.next()).toBe(0.25);
+        });
+
+        it('puts from one to half of the seats on the lower title (D-03, D-23)', () => {
+            const cases: [number, number[], number][] = [
+                [2, [0], 1],
+                [3, [0], 1],
+                [4, [0, 0], 1],
+                [4, [0, 0.99], 2],
+                [5, [0, 0.99], 2],
+                [6, [0, 0], 1],
+                [6, [0, 0.5], 2],
+                [6, [0, 0.99], 3],
+                [6, [0, 1], 3],
+                [4, [0, 1], 2],
+            ];
+            for (const [seats, draws, lowerSeats] of cases) {
+                const chance = new SequenceChance(draws, 0.42);
+                expect(mixedSeatsOf(seats, chance)).toBe(lowerSeats);
+                expect(chance.drawn).toEqual(draws);
+            }
+            const twoSeats = new SequenceChance([0, 0.7]);
+            mixedSeatsOf(2, twoSeats);
+            expect(twoSeats.drawn).toEqual([0]);
+        });
+
+        it('counts a boss on its highest seat title and an enemy on its minimum title (D-23)', () => {
+            expect(
+                coverageRankOf({
+                    infos: { type: 'boss' },
+                    requirements: {
+                        minTitle: TitleType.paladin,
+                        requiredAdventurers: [
+                            { title: TitleType.mage, count: 3 },
+                            { title: TitleType.paladin, count: 1 },
+                        ],
+                    },
+                }),
+            ).toBe(TitleType.mage);
+            expect(
+                coverageRankOf({
+                    infos: { type: 'enemy' },
+                    requirements: {
+                        minTitle: TitleType.adventurer,
+                        requiredAdventurers: [{ title: null, count: 1 }],
+                    },
+                }),
+            ).toBe(TitleType.adventurer);
+            expect(
+                coverageRankOf({
+                    infos: { type: 'boss' },
+                    requirements: {
+                        minTitle: TitleType.hero,
+                        requiredAdventurers: [
+                            { title: TitleType.hero, count: 4 },
+                        ],
+                    },
+                }),
+            ).toBe(TitleType.hero);
+            expect(
+                coverageRankOf({
+                    infos: { type: 'enemy' },
+                    requirements: { minTitle: TitleType.legend },
+                }),
+            ).toBeNull();
+            expect(
+                coverageRankOf({
+                    infos: { type: 'boss' },
+                    requirements: {
+                        minTitle: TitleType.legend,
+                        requiredAdventurers: [
+                            { title: TitleType.legend, count: 2 },
+                        ],
+                    },
+                }),
+            ).toBeNull();
+        });
     });
 });

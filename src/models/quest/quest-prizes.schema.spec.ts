@@ -1,5 +1,6 @@
-import { model } from 'mongoose';
+import { model, Schema as MongooseSchema } from 'mongoose';
 import { buildQuest } from '../../../test/fixtures/quest.fixture';
+import { QuestPrizesSchema } from './quest-prizes.model';
 import { QuestSchema } from './quest.model';
 
 describe('quest cure', () => {
@@ -61,5 +62,77 @@ describe('quest cure', () => {
     it('accepts the bounds 0 and 1 of the share (D-02)', () => {
         expect(errorKeysOf({ lifePointsShare: 0, canHeal: [] })).toEqual([]);
         expect(errorKeysOf({ lifePointsShare: 1, canHeal: [] })).toEqual([]);
+    });
+});
+
+describe('quest rank prize blocks', () => {
+    const Probe = model('QuestRankPrizeProbe', QuestSchema);
+
+    const questWithBlocks = (rankPrizes: Record<string, unknown>[]) => ({
+        ...buildQuest({ infos: { ...buildQuest().infos, type: 'boss' } }),
+        prizes: { ...buildQuest().prizes, rankPrizes },
+    });
+
+    const errorKeysOf = (rankPrizes: Record<string, unknown>[]) =>
+        Object.keys(
+            new Probe(questWithBlocks(rankPrizes)).validateSync()?.errors ?? {},
+        );
+
+    const blockItemRefPathOf = (field: 'prizeItem' | 'randomLoot') =>
+        (
+            QuestPrizesSchema.path('rankPrizes') as unknown as {
+                schema: MongooseSchema;
+            }
+        ).schema
+            .path(field)
+            .schema.path('item').options.refPath;
+
+    it('stores rank prize blocks with the title enum (D-01, D-05)', () => {
+        const quest = new Probe(
+            questWithBlocks([
+                { title: 'mage', xpPrize: 40, randomLoot: [] },
+                { title: 'paladin', xpPrize: 20, randomLoot: [] },
+            ]),
+        );
+
+        expect(quest.validateSync()).toBeUndefined();
+        expect(
+            quest
+                .toObject()
+                .prizes.rankPrizes?.map((block) => [
+                    block.title,
+                    block.xpPrize,
+                ]),
+        ).toEqual([
+            ['mage', 40],
+            ['paladin', 20],
+        ]);
+        expect(errorKeysOf([{ title: 'emperor', randomLoot: [] }])).toEqual([
+            'prizes.rankPrizes.0.title',
+        ]);
+    });
+
+    it('points the block items at absolute ref paths (D-05)', () => {
+        expect(blockItemRefPathOf('prizeItem')).toBe(
+            'prizes.rankPrizes.prizeItem.itemType',
+        );
+        expect(blockItemRefPathOf('randomLoot')).toBe(
+            'prizes.rankPrizes.randomLoot.itemType',
+        );
+    });
+
+    it('leaves quests without blocks untouched (D-28)', () => {
+        expect(
+            Object.keys(new Probe(buildQuest()).toObject().prizes).sort(),
+        ).toEqual([
+            'cure',
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'spellDraw',
+            'xpPrize',
+        ]);
     });
 });

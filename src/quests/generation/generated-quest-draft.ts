@@ -38,6 +38,24 @@ export interface GeneratedAssetQuantity {
     quantity: number;
 }
 
+// un blocco per titolo dei posti del boss generato: niente cura né magia (D-05, D-05c)
+export interface GeneratedRankPrize {
+    title: GeneratedRank;
+    prizeCoins: CoinPurse;
+    xpPrize: number;
+    prizeItem: null;
+    randomLoot: GeneratedAssetQuantity[];
+    spell: null;
+    pet: Types.ObjectId | null;
+    cure: null;
+}
+
+export interface MixedBossInput {
+    lower: GeneratedRank;
+    lowerSeats: number;
+    lowerPrizes: GeneratedPrizes;
+}
+
 export interface GeneratedQuestDraft {
     infos: {
         title: string;
@@ -62,6 +80,7 @@ export interface GeneratedQuestDraft {
         spell: null;
         spellDraw: false;
         pet: Types.ObjectId | null;
+        rankPrizes?: GeneratedRankPrize[];
     };
     registeredAdventurers: [];
     concludedAt: null;
@@ -84,6 +103,34 @@ const assetOf = (ref: GeneratedAssetRef): GeneratedAssetQuantity => ({
     item: objectIdOf(ref.item),
     quantity: ref.quantity,
 });
+
+const petOf = (pet: string | null): Types.ObjectId | null =>
+    pet === null ? null : objectIdOf(pet);
+
+function rankPrizeOf(
+    title: GeneratedRank,
+    prizes: GeneratedPrizes,
+): GeneratedRankPrize {
+    return {
+        title,
+        prizeCoins: prizes.prizeCoins,
+        xpPrize: prizes.xpPrize,
+        prizeItem: null,
+        randomLoot: prizes.randomLoot.map(assetOf),
+        spell: null,
+        pet: petOf(prizes.pet),
+        cure: null,
+    };
+}
+
+// solo i boss hanno blocchi: le enemy sono solitarie col premio unico sul minTitle (D-01, D-23)
+const rankPrizesOf = (
+    composition: Composition,
+    prizes: GeneratedPrizes,
+): { rankPrizes?: GeneratedRankPrize[] } =>
+    composition.type === QuestType.boss
+        ? { rankPrizes: [rankPrizeOf(composition.rank, prizes)] }
+        : {};
 
 // un solo tiro (l'annuncio); nessuna scadenza (D-14): mai startedAt né concludedAt
 export function generatedQuestDraftOf(
@@ -128,12 +175,42 @@ export function generatedQuestDraftOf(
             randomLoot: prizes.randomLoot.map(assetOf),
             spell: null,
             spellDraw: false,
-            pet: prizes.pet === null ? null : objectIdOf(prizes.pet),
+            pet: petOf(prizes.pet),
+            ...rankPrizesOf(composition, prizes),
         },
         registeredAdventurers: [],
         concludedAt: null,
         startedAt: null,
         rescue: null,
         generated: true,
+    };
+}
+
+// posti [rango, inferiore] e minTitle sul titolo più basso, se no l'accettazione rifiuta l'inferiore prima dei posti (D-23)
+export function mixedBossDraftOf(
+    draft: GeneratedQuestDraft,
+    mix: MixedBossInput,
+): GeneratedQuestDraft {
+    const [rankSeat] = draft.requirements.requiredAdventurers;
+    return {
+        ...draft,
+        requirements: {
+            ...draft.requirements,
+            minTitle: mix.lower,
+            requiredAdventurers: [
+                {
+                    title: rankSeat.title,
+                    count: rankSeat.count - mix.lowerSeats,
+                },
+                { title: mix.lower, count: mix.lowerSeats },
+            ],
+        },
+        prizes: {
+            ...draft.prizes,
+            rankPrizes: [
+                ...(draft.prizes.rankPrizes ?? []),
+                rankPrizeOf(mix.lower, mix.lowerPrizes),
+            ],
+        },
     };
 }

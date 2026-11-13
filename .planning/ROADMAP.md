@@ -1,13 +1,13 @@
 # Roadmap: Klimmeck Guide — Backend
 
 **Created:** 2026-07-16
-**Last updated:** 2026-11-10 — milestone v1.1 Cura e modelli aperta (Phases 18–20); v1.0 Core Loop (BE) archiviata in `milestones/v1.0-ROADMAP.md`
-**Milestone:** v1.1 Cura e modelli — Phases 18–20 (gemella della milestone FE v1.1 «Healing & Models», FE Phases 18–19)
+**Last updated:** 2026-11-12 — aggiunta la Phase 21 Premi per rango e soccorsi (↔ FE Phase 20); milestone v1.1 Cura e modelli aperta il 2026-11-10; v1.0 Core Loop (BE) archiviata in `milestones/v1.0-ROADMAP.md`
+**Milestone:** v1.1 Cura e modelli — Phases 18–21 (gemella della milestone FE v1.1 «Healing & Models», FE Phases 18–19)
 
 ## Milestones
 
 - ✅ **v1.0 Core Loop (BE)** — Phases 1–17 con le inserite 2.1, 3.1, 9.1, 9.2, 13.1 (consegnata il 2026-11-10) — [archivio roadmap](milestones/v1.0-ROADMAP.md) · [archivio requisiti](milestones/v1.0-REQUIREMENTS.md) · [riepilogo](MILESTONES.md)
-- 🚧 **v1.1 Cura e modelli** — Phases 18–20 (aperta il 2026-11-10) — quest heal per taglia con le pozioni dal Diario (↔ FE Phase 18), revisione dei modelli (↔ FE Phase 19), cibo e vita progressivi in viaggio (solo BE)
+- 🚧 **v1.1 Cura e modelli** — Phases 18–21 (aperta il 2026-11-10; Phase 21 aggiunta il 2026-11-12) — quest heal per taglia con le pozioni dal Diario (↔ FE Phase 18), revisione dei modelli (↔ FE Phase 19), cibo e vita progressivi in viaggio (solo BE)
 
 ## Phases
 
@@ -48,6 +48,7 @@ Ordine seguito: numerico, con le inserite subito dopo la fase madre; ogni contra
 - [x] **Phase 18: Quest heal per taglia** - Le quest `heal` curano in base al luogo: sotto-documento additivo `prizes.cure` con la quota di vita a cui la quest riporta gli HP (tetto: villaggio 50 %, città 80 %, capitale 100 %) e la lista `canHeal` delle ferite che guarisce (stesso nome e semantica del campo degli oggetti heal), applicato a ogni quest vinta che lo porta; `QuestResult.injuriesHealed`; contenuto delle 166 heal scritto a DB per taglia (liste ≤20 / ≤40 / tutte con ritocchi di lore per tipo di città, ore 2 / 5 / 8, descrizioni per taglia) dopo la revisione dell'utente; heal gratuite; **pozioni heal bevute dal Diario** con ricarica globale (`LootItem.recovery { time, turns }`, `status.potionRecoveryUntil`, mutation `useItem`, tempi 30 min–24 h a DB, `turns` solo dato per il motore di combattimento) e lore nuova «Il limite del corpo» sbloccata alla prima pozione (`LootItem.relatedLore`) _(aggiunta 2026-11-09 nel discuss congiunto con la FE Phase 18; la Phase 17 «Autorizzazione e sessioni» vive sul ramo `feat/17-autorizzazione-e-sessioni`; la 18 si esegue dopo la 17)_
 - [x] **Phase 19: Revisione dei modelli** - Pulizia dei modelli senza cambiare le regole, con cambi non additivi allo SDL dichiarati e un solo migratore one-off al boot reale: `Enemy.weaknesses { base, energy }`, magie dei nemici per riferimento, stato dei pet sul personaggio (`ownedPets [{ pet, xp, currentLifePoints }]`, il catalogo tiene le basi, `maxXp` rivisto e `attack`/`defense` al posto di `damages`) con il **10 % degli xp dei nemici al compagno equipaggiato** (tetto `maxXp`, `QuestResult.petXpGained`), `wornEquipment`/`feet`, una sola lista `spellStates` con `active` (via `status.spells` e `assets.activeSpells`), `maxActiveSpells` calcolato e non persistito, via `PointOfInterest.quest`, `City.shop { equipment, loot, pets }`, `Lore.imagePath`, file enum e modello morto _(aggiunta 2026-11-09, dopo la Phase 18)_ (completed 2026-11-11)
 - [x] **Phase 20: Cibo e vita progressivi in viaggio** - Il piano del cibo si calcola alla partenza come oggi (stessa selezione, anteprima e rifiuto) ma si paga lungo la strada: vita scalata dallo sweep ogni minuto solo nel tratto scoperto come perdita incrementale (esatta all'imboscata e all'arrivo, mai sotto 1), cibo tolto in blocco in tre momenti (fine dei km coperti, arrivo, sconfitta con la selezione a scarto minimo sui soli km percorsi); deviazione senza cibo né fame; nessun cambio SDL, nessuna companion FE _(aggiunta 2026-11-09, dopo la Phase 19; supera la Phase 14 D-04)_
+- [ ] **Phase 21: Premi per rango e soccorsi** - Le quest di gruppo portano un blocco premio per titolo (monete, xp, loot, pet, cura e magia per titolo; pet sorteggiato una volta per blocco, magia solo da mage in su), risolto sul titolo del personaggio; solitarie col premio unico sul `minTitle`; boss generati misti col titolo inferiore; aid solo da enemy/boss/hunt/dungeon/aid, aid della dungeon a turni fino al turno della sconfitta con premio proporzionale, archiviatore che libera le corsie _(aggiunta 2026-11-12 nel discuss della FE Phase 20)_
 
 **Ordine di esecuzione:** 18 → 19 → 20. Ogni contratto consumato dalla FE arriva su `develop` prima dei piani gated della fase FE gemella. Requisiti: [REQUIREMENTS.md](REQUIREMENTS.md).
 
@@ -162,6 +163,40 @@ Plans:
 
 **Stato (2026-11-13)**: 11/11 piani eseguiti; gate verde (dopo i fix della review: unit 274/3591, integration 141/2037); handoff `BACKEND-NOTES.md` scritto; `test:cov`, verifica e audit di sicurezza, PR verso develop, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §4) a cura dell'orchestratore
 
+### Phase 21: Premi per rango e soccorsi
+**Goal**: In una quest di gruppo ogni partecipante vince il premio del proprio titolo: un blocco per ogni titolo dei posti (monete, xp, loot, pet, cura e magia, dalle tabelle del generatore o scritti a mano dall'utente; il pet sorteggiato una volta per blocco con la regola della Phase 19), la magia solo ai titoli ≥ mage; le solitarie restano col premio unico sul `minTitle`. Il generatore crea boss misti col titolo inferiore. Il flusso delle aid si allinea alla regola dell'utente: aid solo dalle quest elencate, aid della dungeon che percorre i turni fino a quello della sconfitta (esplorazione o scontro) con premio proporzionale, archiviatore che libera i soccorritori.
+**Depends on**: Phase 9 (aid, D-08/D-09), Phase 13 (generatore, pool per rango, dungeon a tappe), Phase 18 (cura non ereditata), Phase 19 (pet in premio, modelli puliti)
+**Requirements**: BE-RANKP-01, BE-RANKP-02, BE-RANKP-03, BE-RANKP-04, BE-RANKP-05, BE-RANKP-06
+**Success Criteria** (what must be TRUE):
+  1. Un boss misto (posti mage + paladin) vinto: il mage riceve il blocco mage (col pet del suo sorteggio, se esce), il paladin il blocco paladin col suo sorteggio; una solitaria rookie dà il premio del `minTitle` a chiunque la vinca; nessun rookie impara una magia da nessun percorso.
+  2. Il generatore produce boss misti solo col titolo inferiore e scrive i blocchi con le tabelle; una worldMission scritta a mano coi blocchi li usa così come sono; un posto a titolo null in una quest di gruppo è rifiutato o riportato.
+  3. Una hunt persa crea l'aid, una job persa no; un boss perso crea un'aid coi blocchi e i posti del boss; la crime resta coll'arresto senza aid.
+  4. Una dungeon da 4 gruppi (8 turni) persa al 5° turno (esplorazione) salva il turno sull'aid; il soccorritore percorre 5 turni, completa il 5° e salva il ferito con 5/8 dei premi (già scritti in proporzione sul foglio dell'aid); persa al 4° (scontro) → metà; soccorso perso prima → regola dell'aid persa. Una heal, job, study, magic, crime o guard persa in combattimento lascia a 1 di vita senza aid.
+  5. L'archiviatore che chiude un'aid con soccorritori iscritti libera corsie e PendingQuest; SDL al boot reale; handoff per la FE Phase 20.
+**Decisioni del discuss (2026-11-12, `21-CONTEXT.md` D-01..D-17)**: discuss fatto nella FE (`20-CONTEXT.md`), riportato qui.
+**Unblocks (FE)**: FE Phase 20 (foglio della quest col blocco del proprio titolo, contatori dei turni nell'esito dell'aid di dungeon) e FE Phase 21 (passo dei premi per personaggio).
+**Branch**: `feat/21-premi-per-rango-e-soccorsi` da `develop`.
+**Decisioni dopo la ricerca (2026-11-13, `21-CONTEXT.md` D-18..D-30)**: ripiego del blocco (il più alto non superiore al titolo), sconfitta senza aid come la guardia persa, quota vera già sul foglio dell'aid di dungeon, turni sull'esito, filo additivo, boss misti con `minTitle` più basso, nessun migratore.
+**Plans**: 14 plans
+
+Plans:
+- [x] 21-01-PLAN.md — Magia solo ai titoli ≥ mage
+- [x] 21-02-PLAN.md — Blocchi premio per titolo: schema, lettura e scelta
+- [x] 21-03-PLAN.md — Ognuno vince il blocco del proprio titolo
+- [x] 21-04-PLAN.md — Posto null nelle quest di gruppo: rifiuto e report al boot
+- [x] 21-05-PLAN.md — Aid per tipo, sconfitta senza aid e clone dei blocchi
+- [x] 21-06-PLAN.md — L'archiviatore libera i soccorritori iscritti
+- [x] 21-07-PLAN.md — Boss generati misti col titolo inferiore
+- [x] 21-08-PLAN.md — Dungeon a turni: porta, segnaposto e contatori
+- [x] 21-09-PLAN.md — Turni negli esiti e turno salvato sull'aid
+- [x] 21-10-PLAN.md — Il soccorritore percorre i turni dell'aid di dungeon
+- [x] 21-11-PLAN.md — Premio proporzionale ai turni completati
+- [x] 21-12-PLAN.md — Premio per viewer, blocchi e turni sul filo
+- [x] 21-13-PLAN.md — Gate della fase
+- [x] 21-14-PLAN.md — Chiusura della fase
+
+**Stato (2026-11-13)**: 14/14 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §6, da eseguire) a cura dell'orchestratore
+
 ## Backend ↔ Frontend alignment (v1.1)
 
 | Vincolo FE | Fase BE che lo soddisfa | Nota |
@@ -169,6 +204,7 @@ Plans:
 | FE Phase 18 (quest heal per taglia + pozioni dal Diario) | Phase 18 (BE-HEAL) | `QuestPrizes.cure { lifePointsShare canHeal }`, `QuestResult.injuriesHealed`, `LootItem.recovery { time turns }`, `LootItem.relatedLore`, `CharacterStatus.potionRecoveryUntil`, mutation `useItem` → `UseItemResult` additivi; contenuto (liste, tempi, lore) a DB dopo la merge; esecuzione dopo la Phase 17 (discuss 2026-11-09); aggiunti il 2026-11-10: `Quest.noEffect` per viewer e codice `QUEST_NO_EFFECT` (heal senza effetto, D-25) |
 | FE Phase 19 (model review companion) | Phase 19 (BE-MODEL) | SDL non additivo dichiarato: `Enemy.weaknesses`, `Pet.attack`/`Pet.defense` (via `Pet.damages`), `CharacterAssets.ownedPets: [OwnedPet!]!`, `QuestResult.petXpGained`, `wornEquipment`/`feet`, `SpellState.active` con `CharacterStatus.spells` e `CharacterAssets.activeSpells` tolti, `PointOfInterest.quest` tolto, `Lore.imagePath`; piani FE gated dalla merge (discuss 2026-11-09) |
 | (nessuna fase FE) | Phase 20 (BE-FOODP) | Nessun cambio sul filo: vita e dispensa arrivano dallo stream durante il viaggio; la nota «inventario e HP cambiano solo via subscription» della FE Phase 15 resta vera (discuss 2026-11-09) |
+| FE Phase 20 (rank-specific prizes for group quests) | Phase 21 (BE-RANKP) | Blocchi premio per titolo, blocco del viewer sul filo, contatori dei turni nell'aid di dungeon; forma SDL decisa nel plan (discuss 2026-11-12) |
 
 La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md).
 
@@ -201,6 +237,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 18. Quest heal per taglia | v1.1 | 11/11 | Complete | 2026-11-11 |
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
+| 21. Premi per rango e soccorsi | v1.1 | 14/14 | In Progress | - |
 
 ---
 

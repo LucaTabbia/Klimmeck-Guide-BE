@@ -20,6 +20,11 @@ export const QUEST_CATALOG_POPULATE: PopulateOptions[] = [
     { path: 'prizes.randomLoot.item' },
     { path: 'prizes.spell', model: Spell.name },
     { path: 'prizes.pet', model: Pet.name },
+    // stessi quattro ref dentro ogni blocco per titolo (D-05): un orfano annullerebbe la lista quests (Pitfall 1)
+    { path: 'prizes.rankPrizes.prizeItem.item' },
+    { path: 'prizes.rankPrizes.randomLoot.item' },
+    { path: 'prizes.rankPrizes.spell', model: Spell.name },
+    { path: 'prizes.rankPrizes.pet', model: Pet.name },
 ];
 
 interface CatalogItemEntry {
@@ -30,18 +35,22 @@ export interface QuestEnemyEntry {
     enemy?: unknown;
 }
 
+export interface PrizeRefsHolder {
+    prizeItem?: CatalogItemEntry | null;
+    randomLoot?: CatalogItemEntry[] | null;
+    pet?: unknown;
+    cure?: unknown;
+}
+
 export interface CatalogRefsHolder {
     infos?: {
         relatedLore?: unknown[] | null;
         enemies?: QuestEnemyEntry[] | null;
     } | null;
     requirements?: { recommendedLoot?: CatalogItemEntry[] | null } | null;
-    prizes?: {
-        prizeItem?: CatalogItemEntry | null;
-        randomLoot?: CatalogItemEntry[] | null;
-        pet?: unknown;
-        cure?: unknown;
-    } | null;
+    prizes?:
+        | (PrizeRefsHolder & { rankPrizes?: PrizeRefsHolder[] | null })
+        | null;
 }
 
 // risolto = documento popolato; un ObjectId grezzo è un ref rimasto tale (refPath irrisolto o documento cancellato, D-28)
@@ -72,16 +81,25 @@ export function dropOrphanCatalogRefs(quest: CatalogRefsHolder): void {
             requirements.recommendedLoot.filter(isResolvedItemEntry);
     }
     if (prizes) {
-        if (prizes.prizeItem && !isResolvedItemEntry(prizes.prizeItem)) {
-            prizes.prizeItem = null;
-        }
-        if (prizes.randomLoot) {
-            prizes.randomLoot = prizes.randomLoot.filter(isResolvedItemEntry);
-        }
-        if (!isResolvedRef(prizes.pet)) {
-            prizes.pet = null;
-        }
-        // sul filo la cura che il server applicherebbe: una quota mancante su Float! o un refuso sull'enum annullerebbero la lista (D-23)
-        prizes.cure = cureOf(prizes.cure);
+        sanitizePrizeRefs(prizes);
+        // una voce non oggetto scritta a mano non deve far cadere la lista: la scarta già la lettura dei blocchi
+        prizes.rankPrizes
+            ?.filter((block) => block != null && typeof block === 'object')
+            .forEach(sanitizePrizeRefs);
     }
+}
+
+// una sola regola per i campi di oggi e per ogni blocco per titolo (D-05)
+function sanitizePrizeRefs(prizes: PrizeRefsHolder): void {
+    if (prizes.prizeItem && !isResolvedItemEntry(prizes.prizeItem)) {
+        prizes.prizeItem = null;
+    }
+    if (prizes.randomLoot) {
+        prizes.randomLoot = prizes.randomLoot.filter(isResolvedItemEntry);
+    }
+    if (!isResolvedRef(prizes.pet)) {
+        prizes.pet = null;
+    }
+    // sul filo la cura che il server applicherebbe: una quota mancante su Float! o un refuso sull'enum annullerebbero la lista (D-23)
+    prizes.cure = cureOf(prizes.cure);
 }

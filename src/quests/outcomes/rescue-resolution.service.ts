@@ -24,7 +24,9 @@ import {
 } from './aid/aid-timeout';
 import { ChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
-import { battleOf, combatContextOf, planCombatant } from './combatant-plan';
+import { combatContextOf, planCombatant } from './combatant-plan';
+import { DungeonResolver } from './dungeon/dungeon-resolver';
+import { type RescueTurn, rescueTurnOf } from './dungeon/dungeon-turns';
 import {
     fightersOf,
     type GroupRoster,
@@ -41,6 +43,11 @@ import {
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
+import {
+    facedCatalogOf,
+    questBattleOf,
+    savedTurnWarningOf,
+} from './quest-battle';
 import { questClaimFilter, questUpdateOf } from './quest-outcome-plan';
 import {
     type ResolutionCatalog,
@@ -146,6 +153,8 @@ type WoundedResult = CommittedOutcome['results'][number];
 interface RescueFight {
     committed: CommittedOutcome;
     fallen: Types.ObjectId[];
+    // turno da salvare sulla nuova aid se i soccorritori cadono in una dungeon (D-26)
+    nextTurn: RescueTurn | null;
 }
 
 type WoundedSettlement = Pick<CommittedOutcome, 'results' | 'aids'>;
@@ -170,6 +179,7 @@ export class RescueResolutionService {
         private readonly writer: OutcomeWriter,
         private readonly archiver: CharacterArchiver,
         private readonly combat: CombatResolver,
+        private readonly dungeon: DungeonResolver,
         private readonly chance: ChanceSource,
         private readonly partyTimeout: PartyTimeoutService,
         private readonly clock: Clock,
@@ -234,6 +244,7 @@ export class RescueResolutionService {
         }
         if (!state.committed) return 'stale';
         this.writeNotes(state.notes);
+        this.warnSavedTurn(aid, context.catalog);
         for (const { character } of roster.seatHolders) {
             this.logger.log(
                 `Segnaposto di posto ${character._id.toHexString()} della missione ${aidHex} in combattimento`,
@@ -286,7 +297,11 @@ export class RescueResolutionService {
             committed: CommittedOutcome | null;
             unlinked: Types.ObjectId[];
             released: Types.ObjectId[];
-        } = { committed: null, unlinked: [], released: [] };
+        } = {
+            committed: null,
+            unlinked: [],
+            released: [],
+        };
         try {
             await this.connection.transaction(async (session) => {
                 // il callback viene rieseguito sui WriteConflict: l'esito riparte da zero
@@ -342,14 +357,14 @@ export class RescueResolutionService {
         return 'resolved';
     }
 
-    // un solo combattimento per i soccorritori, poi la aid (claim), poi i feriti; una sconfitta apre UNA nuova aid clonata dall'originale (D-09)
+    // una sola battaglia per i soccorritori (combattimento unico, o i turni della dungeon fino al turno salvato), poi la aid (claim), poi i feriti; una sconfitta apre UNA nuova aid clonata dall'originale (D-09, D-12)
     private async commitRescue(
         context: RescueContext,
         session: ClientSession,
         notes: RescueNote[],
     ): Promise<CommittedOutcome> {
         const wounded = await this.woundedInSession(context, session, notes);
-        const { committed, fallen } = await this.fightRescuers(
+        const { committed, fallen, nextTurn } = await this.fightRescuers(
             context,
             session,
             rescuableOf(wounded),
@@ -357,13 +372,14 @@ export class RescueResolutionService {
         const settled = await this.settleWounded(
             { context, wounded, session, notes },
             fallen,
+            nextTurn,
         );
         committed.results.push(...settled.results);
         committed.aids.push(...settled.aids);
         return committed;
     }
 
-    // combattimento dei soccorritori vivi e dei segnaposto di posto, esiti dei soli soccorritori, poi il claim della aid
+    // battaglia dei soccorritori vivi e dei segnaposto di posto, esiti dei soli soccorritori, poi il claim della aid
     private async fightRescuers(
         context: RescueContext,
         session: ClientSession,
@@ -392,13 +408,16 @@ export class RescueResolutionService {
                 ),
             );
         }
-        const combatContext = combatContextOf(aid, catalog, [
-            ...rescuers,
-            ...holders,
-        ]);
-        const resolution = combatContext
-            ? this.combat.resolve(combatContext, this.chance)
-            : null;
+        const participants = [...rescuers, ...holders];
+        const battle = questBattleOf({
+            quest: aid,
+            combatContext: combatContextOf(aid, catalog, participants),
+            participants,
+            combat: this.combat,
+            dungeon: this.dungeon,
+            chance: this.chance,
+        });
+        const faced = facedCatalogOf(catalog, aid);
         const committed = emptyCommitted();
         const verdicts: Parameters<typeof questUpdateOf>[0]['verdicts'] = [];
         const fallen: Types.ObjectId[] = [];
@@ -410,9 +429,9 @@ export class RescueResolutionService {
                 aid: nextAid,
             } = planCombatant({
                 quest: aid,
-                catalog,
+                catalog: faced,
                 snapshot,
-                battle: battleOf(resolution, snapshot._id),
+                battle: battle.battleOf(snapshot._id),
                 resultId: seat.resultId,
                 aidQuestId: context.nextAidId,
                 pendingQuestId: seat.pendingQuestId,
@@ -452,13 +471,14 @@ export class RescueResolutionService {
             session,
             'claim',
         );
-        return { committed, fallen };
+        return { committed, fallen, nextTurn: battle.fallenTurn };
     }
 
     // un solo verdetto per tutti i feriti: liberati se nessun soccorritore è caduto, altrimenti morti e una nuova aid per i caduti
     private async settleWounded(
         step: WoundedStep,
         fallen: readonly Types.ObjectId[],
+        nextTurn: RescueTurn | null,
     ): Promise<WoundedSettlement> {
         if (fallen.length === 0) {
             return { results: await this.liberate(step), aids: [] };
@@ -470,6 +490,7 @@ export class RescueResolutionService {
                 context.original ?? context.loaded.quest,
                 fallen,
                 context.nextAidId,
+                nextTurn,
             ),
             session,
         );
@@ -553,19 +574,23 @@ export class RescueResolutionService {
     }
 
     // morte nella stessa transazione dell'esito (D-09, D-10): proprietario letto in sessione prima dell'archivio, risultato del suo utente
+    // l'aid è già conclusa dal claim e il ferito attende solo questa: l'archivio non conclude altre aid né libera soccorritori (B-IN-01)
     private async dieWithin(
         session: ClientSession,
         { injured, aid, resultId, now }: DeathRequest,
     ): Promise<WoundedResult | null> {
         const owner = await this.ownerInSession(injured._id, session);
         if (!owner) return null;
-        const archived = await this.archiver.archiveWithin(session, {
-            userId: owner,
-            characterId: injured._id,
-            reason: DeletionReason.death,
-            now,
-        });
-        if (archived !== 'archived') return null;
+        const { outcome } = await this.archiver.archiveWithinReporting(
+            session,
+            {
+                userId: owner,
+                characterId: injured._id,
+                reason: DeletionReason.death,
+                now,
+            },
+        );
+        if (outcome !== 'archived') return null;
         await this.writer.writeResult(
             deathResultOf({
                 resultId,
@@ -573,6 +598,7 @@ export class RescueResolutionService {
                 quest: aid,
                 userId: owner,
                 now,
+                turn: rescueTurnOf(aid.rescue?.turn),
             }),
             session,
         );
@@ -621,6 +647,15 @@ export class RescueResolutionService {
             });
         }
         return wounded;
+    }
+
+    // una volta per risoluzione, dopo il commit: l'aid si risolve comunque (C-IN-02)
+    private warnSavedTurn(
+        aid: ResolutionQuest,
+        catalog: ResolutionCatalog,
+    ): void {
+        const warning = savedTurnWarningOf(aid, catalog.enemies.length);
+        if (warning) this.logger.warn(warning);
     }
 
     private writeNotes(notes: readonly RescueNote[]): void {

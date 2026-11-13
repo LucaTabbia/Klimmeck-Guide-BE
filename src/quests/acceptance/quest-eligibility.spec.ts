@@ -165,6 +165,48 @@ describe('quest eligibility rules', () => {
             ).toEqual({ seats: { rookie: 2 }, wildcard: 0, total: 2 });
         });
 
+        it.each([QuestType.boss, QuestType.worldMission])(
+            'rejects a boss or a world mission with a seat without a title (D-02, D-24): %s',
+            (type) => {
+                expect(
+                    registrationRuleOf(type, {
+                        requiredAdventurers: [
+                            { title: TitleType.mage, count: 2 },
+                            { title: null, count: 1 },
+                        ],
+                    }),
+                ).toBe('invalid');
+                expect(
+                    registrationRuleOf(type, {
+                        requiredAdventurers: [
+                            { title: TitleType.mage, count: 2 },
+                            { title: TitleType.paladin, count: 1 },
+                        ],
+                    }),
+                ).toEqual({
+                    seats: { mage: 2, paladin: 1 },
+                    wildcard: 0,
+                    total: 3,
+                });
+            },
+        );
+
+        it('keeps the solo seat of an aid and of an enemy (D-24)', () => {
+            expect(
+                registrationRuleOf(QuestType.aid, {
+                    requiredAdventurers: [{ title: null, count: 1 }],
+                }),
+            ).toEqual({ seats: {}, wildcard: 1, total: 1 });
+            expect(
+                registrationRuleOf(QuestType.enemy, {
+                    requiredAdventurers: [
+                        { title: TitleType.mage, count: 2 },
+                        { title: null, count: 1 },
+                    ],
+                }),
+            ).toEqual({ seats: {}, wildcard: 1, total: 1 });
+        });
+
         it('a registered quest without requirements is invalid', () => {
             expect(registrationRuleOf(QuestType.enemy, null)).toBe('invalid');
             expect(registrationRuleOf(QuestType.aid, {})).toBe('invalid');
@@ -543,7 +585,7 @@ describe('quest eligibility rules', () => {
                         questOf(type, {
                             requirements: {
                                 requiredAdventurers: [
-                                    { title: null, count: 1 },
+                                    { title: TitleType.hero, count: 1 },
                                 ],
                             },
                             registeredAdventurers: [otherHero],
@@ -643,8 +685,9 @@ describe('quest eligibility rules', () => {
             });
         });
 
+        // i posti jolly restano solo nell'aid (D-02, D-24)
         it('applies the canonical case shared with the FE (D-32)', () => {
-            const quest = questOf(QuestType.worldMission, {
+            const quest = questOf(QuestType.aid, {
                 requirements: {
                     requiredAdventurers: [
                         { title: TitleType.hero, count: 1 },

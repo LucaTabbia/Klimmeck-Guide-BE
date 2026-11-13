@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import {
     NO_REWARDS,
     PrizesSnapshot,
@@ -84,6 +85,7 @@ describe('drawRewards', () => {
             petLifePoints: null,
             petLore: [],
             loreDraw: null,
+            cure: null,
         });
     });
 
@@ -104,6 +106,7 @@ describe('drawRewards', () => {
             petLifePoints: null,
             petLore: [],
             loreDraw: null,
+            cure: null,
         });
     });
 
@@ -395,6 +398,30 @@ describe('drawRewards with a pet prize', () => {
         expect(rewards.pet).toBeNull();
         expect(chance.drawn).toEqual([0.1, 0.2, 0.7]);
     });
+
+    it('scales the pet chance by the share with the same draws (D-20)', () => {
+        const halved = new SequenceChance([0.9, 0.2, 0.7, 0.15]);
+        const full = new SequenceChance([0.9, 0.2, 0.7, 0.15]);
+
+        const shared = drawRewards(petPrizes(), petCatalog, halved, 0.5);
+        const whole = drawRewards(petPrizes(), petCatalog, full, 1);
+
+        expect(shared.pet).toBeNull();
+        expect(whole.pet).toEqual(PET_ID);
+        expect(halved.drawn).toEqual(full.drawn);
+    });
+
+    it('draws as today without a share (D-14)', () => {
+        const chance = new SequenceChance([0.1, 0.2, 0.7, 0.15]);
+
+        const rewards = drawRewards(petPrizes(), petCatalog, chance);
+
+        expect(rewards.pet).toEqual(PET_ID);
+        expect(rewards.items).toEqual([
+            { itemType: 'LootItem', item: BONE_ID, quantity: 1 },
+        ]);
+        expect(chance.drawn).toEqual([0.1, 0.2, 0.7, 0.15]);
+    });
 });
 
 describe('drawRewards with a study lore pool', () => {
@@ -506,40 +533,57 @@ describe('drawLearnableSpell', () => {
     it('picks among the unknown spells the xp after the prizes can learn (D-31)', () => {
         const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], gate: 0, roll: 0 };
 
-        expect(drawLearnableSpell(draw, 400, [SPELL_A.spellId])).toEqual(
-            SPELL_B,
-        );
+        expect(
+            drawLearnableSpell(draw, 400, [SPELL_A.spellId], TitleType.mage),
+        ).toEqual(SPELL_B);
     });
 
     it('treats a known spell stored as a legacy string as known (D-31)', () => {
         const draw = { pool: [SPELL_A, SPELL_B], gate: 0, roll: 0 };
 
         expect(
-            drawLearnableSpell(draw, 400, [SPELL_A.spellId.toHexString()]),
+            drawLearnableSpell(
+                draw,
+                400,
+                [SPELL_A.spellId.toHexString()],
+                TitleType.mage,
+            ),
         ).toEqual(SPELL_B);
     });
 
     it('returns no spell when nothing is learnable (D-31)', () => {
         const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], gate: 0, roll: 0 };
 
-        expect(drawLearnableSpell(draw, 50, [])).toBeNull();
+        expect(drawLearnableSpell(draw, 50, [], TitleType.mage)).toBeNull();
     });
 
     it('maps the roll onto the learnable spells only (D-31)', () => {
         const pool = [SPELL_A, SPELL_C, SPELL_B, SPELL_D];
 
         expect(
-            drawLearnableSpell({ pool, gate: 0, roll: 0.99 }, 400, []),
+            drawLearnableSpell(
+                { pool, gate: 0, roll: 0.99 },
+                400,
+                [],
+                TitleType.mage,
+            ),
         ).toEqual(SPELL_D);
         expect(
-            drawLearnableSpell({ pool, gate: 0, roll: 0.34 }, 400, []),
+            drawLearnableSpell(
+                { pool, gate: 0, roll: 0.34 },
+                400,
+                [],
+                TitleType.mage,
+            ),
         ).toEqual(SPELL_B);
     });
 
     it('teaches a learnable spell when the gate falls below 30% (quick 261111-sdc)', () => {
         const draw = { pool: [SPELL_A, SPELL_B], gate: 0.29, roll: 0 };
 
-        expect(drawLearnableSpell(draw, 400, [])).toEqual(SPELL_A);
+        expect(drawLearnableSpell(draw, 400, [], TitleType.mage)).toEqual(
+            SPELL_A,
+        );
     });
 
     it.each([[0.3], [0.31], [0.99]])(
@@ -547,18 +591,22 @@ describe('drawLearnableSpell', () => {
         (gate) => {
             const draw = { pool: [SPELL_A, SPELL_B], gate, roll: 0 };
 
-            expect(drawLearnableSpell(draw, 400, [])).toBeNull();
+            expect(
+                drawLearnableSpell(draw, 400, [], TitleType.mage),
+            ).toBeNull();
         },
     );
 
     it('returns no spell without a draw', () => {
-        expect(drawLearnableSpell(null, 50000, [])).toBeNull();
+        expect(drawLearnableSpell(null, 50000, [], TitleType.mage)).toBeNull();
     });
 
     it('clamps a roll out of range onto the last learnable spell', () => {
         const draw = { pool: [SPELL_A, SPELL_B, SPELL_D], gate: 0, roll: 1 };
 
-        expect(drawLearnableSpell(draw, 400, [])).toEqual(SPELL_D);
+        expect(drawLearnableSpell(draw, 400, [], TitleType.mage)).toEqual(
+            SPELL_D,
+        );
     });
 });
 
@@ -566,21 +614,93 @@ describe('canLearnSpell', () => {
     const candidate = { spellId: SPELL_ID, minXpToLearn: 4000, maxUsages: 4 };
 
     it('teaches the spell once the experience reaches the threshold', () => {
-        expect(canLearnSpell(candidate, 4000, [])).toBe(SPELL_ID);
+        expect(canLearnSpell(candidate, 4000, [], TitleType.mage)).toBe(
+            SPELL_ID,
+        );
     });
 
     it('does not teach it below the threshold', () => {
-        expect(canLearnSpell(candidate, 3999, [])).toBeNull();
+        expect(canLearnSpell(candidate, 3999, [], TitleType.mage)).toBeNull();
     });
 
     it('does not teach a spell already known, even as a legacy string', () => {
         expect(
-            canLearnSpell(candidate, 50000, [SPELL_ID.toHexString()]),
+            canLearnSpell(
+                candidate,
+                50000,
+                [SPELL_ID.toHexString()],
+                TitleType.mage,
+            ),
         ).toBeNull();
     });
 
     it('teaches nothing without a candidate', () => {
-        expect(canLearnSpell(null, 50000, [])).toBeNull();
+        expect(canLearnSpell(null, 50000, [], TitleType.mage)).toBeNull();
+    });
+});
+
+describe('spell learning by title', () => {
+    const candidate = { spellId: SPELL_ID, minXpToLearn: 4000, maxUsages: 4 };
+    const draw = { pool: [SPELL_A, SPELL_B], gate: 0.1, roll: 0.99 };
+
+    it.each([
+        [TitleType.rookie, null],
+        [TitleType.adventurer, null],
+        [TitleType.paladin, null],
+        [TitleType.mage, SPELL_ID],
+        [TitleType.hero, SPELL_ID],
+        [TitleType.legend, SPELL_ID],
+        [null, null],
+        [undefined, null],
+    ])(
+        'teaches a fixed spell only to a caster title (D-05b, D-25): %p',
+        (title, expected) => {
+            expect(canLearnSpell(candidate, 50000, [], title)).toBe(expected);
+        },
+    );
+
+    it.each([
+        [TitleType.rookie, null],
+        [TitleType.paladin, null],
+        [TitleType.mage, SPELL_B],
+    ])(
+        'draws a learnable spell only for a caster title (D-05b, D-25): %p',
+        (title, expected) => {
+            expect(drawLearnableSpell(draw, 400, [], title)).toEqual(expected);
+        },
+    );
+
+    it('keeps the xp and known spell gates for casters (D-05b)', () => {
+        expect(canLearnSpell(candidate, 3999, [], TitleType.mage)).toBeNull();
+        expect(
+            canLearnSpell(candidate, 50000, [SPELL_ID], TitleType.mage),
+        ).toBeNull();
+        expect(drawLearnableSpell(draw, 50, [], TitleType.mage)).toBeNull();
+        expect(
+            drawLearnableSpell(
+                draw,
+                400,
+                [SPELL_A.spellId, SPELL_B.spellId],
+                TitleType.mage,
+            ),
+        ).toBeNull();
+    });
+});
+
+describe('drawRewards cure', () => {
+    it('carries the cure of the drawn block without drawing (D-05)', () => {
+        const cure = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
+        const withCure = new SequenceChance([0.1, 0.2, 0.3]);
+        const withoutCure = new SequenceChance([0.1, 0.2, 0.3]);
+        const prizes = prizesWith({
+            randomLoot: [{ itemType: 'LootItem', item: BONE_ID, quantity: 1 }],
+        });
+
+        const rewards = drawRewards({ ...prizes, cure }, catalog, withCure);
+        drawRewards(prizes, catalog, withoutCure);
+
+        expect(rewards.cure).toBe(cure);
+        expect(withCure.drawn).toEqual(withoutCure.drawn);
     });
 });
 
@@ -604,25 +724,64 @@ describe('rewardRefsOf', () => {
             spell: SPELL_ID,
         });
 
-        expect(rewardRefsOf(prizes)).toEqual({
+        expect(rewardRefsOf([prizes])).toEqual({
             items: [
                 { itemType: 'EquipmentItem', item: POTION_ID },
                 { itemType: 'LootItem', item: BONE_ID },
             ],
-            spellId: SPELL_ID,
-            petId: null,
+            spellIds: [SPELL_ID],
+            petIds: [],
         });
     });
 
     it('lists the pet prize ref for the catalog reads (D-21)', () => {
-        expect(rewardRefsOf(prizesWith({ pet: PET_ID })).petId).toEqual(PET_ID);
+        expect(rewardRefsOf([prizesWith({ pet: PET_ID })]).petIds).toEqual([
+            PET_ID,
+        ]);
     });
 
-    it('returns no refs without prizes', () => {
-        expect(rewardRefsOf(null)).toEqual({
-            items: [],
-            spellId: null,
-            petId: null,
+    it('collects the refs of a single block like today (D-01)', () => {
+        const prizes = prizesWith({
+            randomLoot: [{ itemType: 'LootItem', item: BONE_ID, quantity: 1 }],
+            spell: SPELL_ID,
+            pet: PET_ID,
         });
+
+        expect(rewardRefsOf([prizes])).toEqual({
+            items: [{ itemType: 'LootItem', item: BONE_ID }],
+            spellIds: [SPELL_ID],
+            petIds: [PET_ID],
+        });
+    });
+
+    it('collects the refs of every rank block once (D-05, D-05a)', () => {
+        const mage = prizesWith({
+            randomLoot: [{ itemType: 'LootItem', item: BONE_ID, quantity: 1 }],
+            spell: SPELL_ID,
+            pet: PET_ID,
+        });
+        const paladin = prizesWith({
+            prizeItem: {
+                itemType: 'LootItem',
+                item: BONE_ID.toHexString(),
+                quantity: 3,
+            },
+            randomLoot: [{ itemType: 'LootItem', item: BONE_ID, quantity: 2 }],
+            spell: SPELL_ID.toHexString(),
+            pet: ORPHAN_PET_ID,
+        });
+
+        expect(rewardRefsOf([mage, paladin])).toEqual({
+            items: [{ itemType: 'LootItem', item: BONE_ID }],
+            spellIds: [SPELL_ID],
+            petIds: [PET_ID, ORPHAN_PET_ID],
+        });
+    });
+
+    it('ignores absent blocks (D-01)', () => {
+        const none = { items: [], spellIds: [], petIds: [] };
+
+        expect(rewardRefsOf([])).toEqual(none);
+        expect(rewardRefsOf([null])).toEqual(none);
     });
 });

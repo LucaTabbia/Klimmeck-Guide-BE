@@ -271,7 +271,7 @@ describe('QuestResolutionSweeper (replSet)', () => {
                     infos: { ...buildQuest().infos, type: 'boss' },
                     requirements: {
                         ...buildQuest().requirements,
-                        requiredAdventurers: [{ title: null, count: 2 }],
+                        requiredAdventurers: [{ title: 'rookie', count: 2 }],
                     },
                 },
             });
@@ -307,7 +307,7 @@ describe('QuestResolutionSweeper (replSet)', () => {
                     infos: { ...buildQuest().infos, type: 'boss' },
                     requirements: {
                         ...buildQuest().requirements,
-                        requiredAdventurers: [{ title: null, count: 3 }],
+                        requiredAdventurers: [{ title: 'rookie', count: 3 }],
                     },
                 },
             });

@@ -308,16 +308,54 @@ export interface SeatedQuest {
     };
 }
 
-// enemy a un solo posto senza titolo (quick 261111-enm), boss da due posti del rango in su (13.1 D-09); ritorna le quest fuori regola
+type Seat = SeatedQuest['requirements']['requiredAdventurers'][number];
+
+// ordine dei titoli generati scritto qui, indipendente dal codice sotto prova
+const SEAT_RANKS: readonly string[] = [
+    'rookie',
+    'adventurer',
+    'paladin',
+    'mage',
+    'hero',
+];
+
+const isTotalBossSeats = (seats: readonly Seat[]): boolean => {
+    const total = seats.reduce((sum, { count }) => sum + count, 0);
+    return total >= 2 && total <= 6;
+};
+
+// boss a titolo unico (13.1 D-09) o misto [rango, inferiore] col titolo immediatamente sotto, minTitle sull'inferiore,
+// il rango con almeno tanti posti quanti l'inferiore e almeno uno all'inferiore (D-03, D-23)
+function isValidBossSeating(
+    minTitle: string | null | undefined,
+    seats: readonly Seat[],
+): boolean {
+    if (!isTotalBossSeats(seats)) return false;
+    const [rank, lower] = seats;
+    if (seats.length === 1) return rank.title === minTitle && rank.count >= 2;
+    if (seats.length !== 2 || rank.title === null || lower.title === null)
+        return false;
+    const rankIndex = SEAT_RANKS.indexOf(rank.title);
+    return (
+        rankIndex > 0 &&
+        SEAT_RANKS[rankIndex - 1] === lower.title &&
+        minTitle === lower.title &&
+        lower.count >= 1 &&
+        rank.count >= lower.count
+    );
+}
+
+// enemy a un solo posto senza titolo (quick 261111-enm), boss valido per isValidBossSeating; ritorna le quest fuori regola
 export function seatViolationsOf(quests: readonly SeatedQuest[]): string[] {
     return quests.flatMap(({ infos, requirements }) => {
         const { minTitle, requiredAdventurers } = requirements;
         const [seat] = requiredAdventurers;
-        const single = requiredAdventurers.length === 1;
         const ok =
             infos.type === QuestType.boss
-                ? single && seat.title === minTitle && seat.count >= 2
-                : single && seat.title === null && seat.count === 1;
+                ? isValidBossSeating(minTitle, requiredAdventurers)
+                : requiredAdventurers.length === 1 &&
+                  seat.title === null &&
+                  seat.count === 1;
         if (ok) return [];
         const seats = requiredAdventurers
             .map(({ title, count }) => `${title}x${count}`)

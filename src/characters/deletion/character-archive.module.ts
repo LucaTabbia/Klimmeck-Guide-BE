@@ -5,6 +5,10 @@ import {
     Character,
     CharacterSchema,
 } from 'src/models/character/character.model';
+import {
+    PendingQuest,
+    PendingQuestSchema,
+} from 'src/models/pending-quest.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { User, UserSchema } from 'src/models/user.model';
 
@@ -15,6 +19,7 @@ import { User, UserSchema } from 'src/models/user.model';
             { name: User.name, schema: UserSchema },
             { name: Character.name, schema: CharacterSchema },
             { name: Quest.name, schema: QuestSchema },
+            { name: PendingQuest.name, schema: PendingQuestSchema },
         ]),
     ],
     providers: [CharacterArchiver],

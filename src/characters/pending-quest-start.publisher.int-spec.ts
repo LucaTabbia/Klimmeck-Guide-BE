@@ -86,7 +86,7 @@ describe('PendingQuestStartPublisher (replSet)', () => {
             infos: { ...buildQuest().infos, type: 'boss' },
             requirements: {
                 ...buildQuest().requirements,
-                requiredAdventurers: [{ title: null, count: 2 }],
+                requiredAdventurers: [{ title: 'rookie', count: 2 }],
             },
         });
         const questId = quest._id as Types.ObjectId;

@@ -28,6 +28,7 @@ import { Spell, SpellSchema } from 'src/models/spell.model';
 import { User, UserSchema } from 'src/models/user.model';
 import { QuestNoEffectResolver } from './no-effect/quest-no-effect.resolver';
 import { ViewerVitalsService } from './no-effect/viewer-vitals.service';
+import { QuestPrizesResolver } from './prizes/quest-prizes.resolver';
 import { QuestsPublisher } from './quests.publisher';
 import { QuestsResolver } from './quests.resolver';
 import { QuestsService } from './quests.service';
@@ -59,6 +60,7 @@ import { QuestsService } from './quests.service';
         QuestsPublisher,
         ViewerVitalsService,
         QuestNoEffectResolver,
+        QuestPrizesResolver,
     ],
     exports: [QuestsService],
 })

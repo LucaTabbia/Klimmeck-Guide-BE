@@ -6,8 +6,15 @@ import {
     GeneratedAssetRef,
     GeneratedPrizes,
 } from 'src/quests/generation/generated-prizes';
-import { generatedQuestDraftOf } from 'src/quests/generation/generated-quest-draft';
-import { GeneratedRank } from 'src/quests/generation/generation-rules';
+import {
+    generatedQuestDraftOf,
+    mixedBossDraftOf,
+} from 'src/quests/generation/generated-quest-draft';
+import {
+    GeneratedRank,
+    isGeneratedRank,
+} from 'src/quests/generation/generation-rules';
+import { TITLE_RANK } from 'src/quests/acceptance/quest-eligibility';
 import { Composition } from 'src/quests/generation/quest-composition';
 import {
     BOSS_ANNOUNCEMENTS,
@@ -25,6 +32,8 @@ const PET = hex();
 const SWORD = hex();
 const POTION = hex();
 const LOOT = hex();
+const LOWER_PET = hex();
+const LOWER_LOOT = hex();
 
 function candidate(name: string, relatedLore: string[] = []): EnemyCandidate {
     return {
@@ -225,5 +234,127 @@ describe('generatedQuestDraftOf', () => {
         expect(draft.prizes.randomLoot).toEqual([]);
         expect(draft.requirements.recommendedLoot).toEqual([]);
         expect(chance.drawn).toEqual([0.99]);
+    });
+});
+
+describe('generated boss rank blocks', () => {
+    const BOSS_BLOCK_OF_TODAY = {
+        prizeCoins: { gold: 0, silver: 7, copper: 50 },
+        xpPrize: 200,
+        prizeItem: null,
+        randomLoot: [
+            {
+                itemType: 'LootItem',
+                item: new Types.ObjectId(LOOT),
+                quantity: 1,
+            },
+        ],
+        spell: null,
+        pet: new Types.ObjectId(PET),
+        cure: null,
+    };
+
+    const LOWER_PRIZES: GeneratedPrizes = {
+        prizeCoins: { gold: 0, silver: 3, copper: 0 },
+        xpPrize: 80,
+        randomLoot: [{ itemType: 'LootItem', item: LOWER_LOOT, quantity: 1 }],
+        pet: LOWER_PET,
+    };
+
+    const mixedMage = () =>
+        mixedBossDraftOf(
+            draftOf(composition(QuestType.boss, TitleType.mage, 4)),
+            {
+                lower: TitleType.paladin,
+                lowerSeats: 2,
+                lowerPrizes: LOWER_PRIZES,
+            },
+        );
+
+    it('writes one rank block on every generated boss (D-05, D-23)', () => {
+        const draft = draftOf(composition(QuestType.boss, TitleType.mage, 3));
+
+        expect(draft.prizes.rankPrizes).toEqual([
+            { title: TitleType.mage, ...BOSS_BLOCK_OF_TODAY },
+        ]);
+        expect(draft.requirements.requiredAdventurers).toEqual([
+            { title: TitleType.mage, count: 3 },
+        ]);
+    });
+
+    it('writes no rank block on a generated enemy (D-01)', () => {
+        const draft = draftOf(
+            composition(QuestType.enemy, TitleType.paladin, 1),
+        );
+
+        expect(Object.keys(draft.prizes).sort()).toEqual([
+            'pet',
+            'prizeCoins',
+            'prizeItem',
+            'randomLoot',
+            'spell',
+            'spellDraw',
+            'xpPrize',
+        ]);
+    });
+
+    it('mixes a boss with the lower title only (D-03, D-23)', () => {
+        const draft = mixedMage();
+
+        expect(draft.requirements.minTitle).toBe(TitleType.paladin);
+        expect(draft.requirements.requiredAdventurers).toEqual([
+            { title: TitleType.mage, count: 2 },
+            { title: TitleType.paladin, count: 2 },
+        ]);
+        expect(draft.prizes.rankPrizes?.map((block) => block.title)).toEqual([
+            TitleType.mage,
+            TitleType.paladin,
+        ]);
+        expect(draft.prizes).toMatchObject({
+            prizeCoins: BOSS_BLOCK_OF_TODAY.prizeCoins,
+            xpPrize: BOSS_BLOCK_OF_TODAY.xpPrize,
+            randomLoot: BOSS_BLOCK_OF_TODAY.randomLoot,
+            pet: BOSS_BLOCK_OF_TODAY.pet,
+            prizeItem: null,
+            spell: null,
+            spellDraw: false,
+        });
+        for (const seat of draft.requirements.requiredAdventurers) {
+            expect(isGeneratedRank(seat.title)).toBe(true);
+            expect(TITLE_RANK[seat.title as GeneratedRank]).toBeLessThanOrEqual(
+                TITLE_RANK.mage,
+            );
+        }
+        expect(draft.infos.type).toBe(QuestType.boss);
+    });
+
+    it('keeps cure and spell out of the generated blocks (D-05c)', () => {
+        for (const block of mixedMage().prizes.rankPrizes ?? []) {
+            expect(block.spell).toBeNull();
+            expect(block.cure).toBeNull();
+            expect(block.prizeItem).toBeNull();
+        }
+    });
+
+    it('draws the pet of each block with its own rank cap (D-05a)', () => {
+        const [mage, paladin] = mixedMage().prizes.rankPrizes ?? [];
+
+        expect(mage.pet).toEqual(new Types.ObjectId(PET));
+        expect(paladin).toEqual({
+            title: TitleType.paladin,
+            prizeCoins: { gold: 0, silver: 3, copper: 0 },
+            xpPrize: 80,
+            prizeItem: null,
+            randomLoot: [
+                {
+                    itemType: 'LootItem',
+                    item: new Types.ObjectId(LOWER_LOOT),
+                    quantity: 1,
+                },
+            ],
+            spell: null,
+            pet: new Types.ObjectId(LOWER_PET),
+            cure: null,
+        });
     });
 });

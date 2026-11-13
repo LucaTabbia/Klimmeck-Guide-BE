@@ -2,9 +2,11 @@ import { Types } from 'mongoose';
 import { DEFAULT_LORE_STUDY_CHANCE } from 'src/config/lore-config';
 import { CoinPurse, toCopper } from 'src/economy/coins';
 import { priceKey } from 'src/economy/trade/trade-line';
+import { isSpellCaster } from 'src/models/character/active-spell-slots';
 import { ItemReferenceType } from 'src/models/common/asset-quantity.model';
 import { refHexOf } from 'src/lore/lore-visibility';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf, sameId } from 'src/mongo/document-id';
 import { ChanceSource } from '../chance-source';
 import { rollLoot } from './cascading-loot';
@@ -66,6 +68,8 @@ export interface DrawnRewards {
     // lore collegate al pet vinto, vuota senza pet (Phase 19 D-26)
     petLore: Types.ObjectId[];
     loreDraw: LoreDraw | null;
+    // cura del blocco tirato, non validata e senza tiri: la sanifica cureOf in planParticipant (D-05)
+    cure: unknown;
 }
 
 export interface RewardCatalog {
@@ -81,10 +85,11 @@ export interface RewardCatalog {
     studyLoreChance?: number;
 }
 
+// unione dei ref di tutti i blocchi premio, ognuno una volta (D-05, D-05a)
 export interface RewardRefs {
     items: { itemType: ItemReferenceType; item: Types.ObjectId }[];
-    spellId: Types.ObjectId | null;
-    petId: Types.ObjectId | null;
+    spellIds: Types.ObjectId[];
+    petIds: Types.ObjectId[];
 }
 
 export const NO_REWARDS: DrawnRewards = {
@@ -97,6 +102,7 @@ export const NO_REWARDS: DrawnRewards = {
     petLifePoints: null,
     petLore: [],
     loreDraw: null,
+    cure: null,
 };
 
 // «un 20% può andare bene» (D-21)
@@ -110,7 +116,7 @@ const REWARD_ITEM_TYPES: readonly unknown[] = [
     'LootItem',
 ] satisfies ItemReferenceType[];
 
-const isNonNegativeInteger = (value: unknown): value is number =>
+export const isNonNegativeInteger = (value: unknown): value is number =>
     Number.isSafeInteger(value) && (value as number) >= 0;
 
 // premi scritti a mano nel catalogo (D-16, T-09-11): tipo dell'enum, ref valido, quantità intera ≥ 1, altrimenti scartato
@@ -136,18 +142,36 @@ function validRewardItems(prizes: PrizesSnapshot): RewardItem[] {
         .filter((entry): entry is RewardItem => entry !== null);
 }
 
-// per le pre-letture del catalogo: solo le voci formalmente valide
+function uniqueBy<T>(entries: readonly T[], keyOf: (entry: T) => string): T[] {
+    const byKey = new Map<string, T>();
+    for (const entry of entries) {
+        if (!byKey.has(keyOf(entry))) byKey.set(keyOf(entry), entry);
+    }
+    return [...byKey.values()];
+}
+
+const presentIds = (refs: readonly unknown[]): Types.ObjectId[] =>
+    uniqueBy(
+        refs.map(refIdOf).filter((id): id is Types.ObjectId => id !== null),
+        (id) => id.toHexString(),
+    );
+
+// per le pre-letture del catalogo: solo le voci formalmente valide, unite su tutti i blocchi (D-05, D-05a)
 export function rewardRefsOf(
-    prizes: PrizesSnapshot | null | undefined,
+    blocks: readonly (PrizesSnapshot | null | undefined)[],
 ): RewardRefs {
-    if (!prizes) return { items: [], spellId: null, petId: null };
+    const present = blocks.filter(
+        (block): block is PrizesSnapshot => block != null,
+    );
     return {
-        items: validRewardItems(prizes).map(({ itemType, item }) => ({
-            itemType,
-            item,
-        })),
-        spellId: refIdOf(prizes.spell),
-        petId: refIdOf(prizes.pet),
+        items: uniqueBy(
+            present
+                .flatMap(validRewardItems)
+                .map(({ itemType, item }) => ({ itemType, item })),
+            ({ itemType, item }) => priceKey(itemType, item),
+        ),
+        spellIds: presentIds(present.map(({ spell }) => spell)),
+        petIds: presentIds(present.map(({ pet }) => pet)),
     };
 }
 
@@ -165,6 +189,7 @@ function rolledLootOf(
     prizes: PrizesSnapshot,
     catalog: RewardCatalog,
     chance: ChanceSource,
+    share: number,
 ): RewardItem | null {
     const candidates = (prizes.randomLoot ?? [])
         .map((entry) => catalogued(rewardItemOf(entry), catalog))
@@ -173,7 +198,7 @@ function rolledLootOf(
             ...entry,
             rarity: catalog.rarities.get(catalogKeyOf(entry)) ?? null,
         }));
-    const rolled = rollLoot(candidates, chance);
+    const rolled = rollLoot(candidates, chance, share);
     if (!rolled) return null;
     const { itemType, item, quantity } = rolled;
     return { itemType, item, quantity };
@@ -214,10 +239,11 @@ function petDrawOf(
     prizes: PrizesSnapshot,
     catalog: RewardCatalog,
     chance: ChanceSource,
+    share: number,
 ): Types.ObjectId | null {
     const petId = refIdOf(prizes.pet);
     if (!petId || !catalog.pets.has(petId.toHexString())) return null;
-    return chance.next() < QUEST_PET_WIN_CHANCE ? petId : null;
+    return chance.next() < QUEST_PET_WIN_CHANCE * share ? petId : null;
 }
 
 // D-08: due tiri dopo loot, magia e pet e solo con pool, così le altre quest consumano gli stessi tiri di prima (Pitfall 5)
@@ -236,17 +262,19 @@ function loreDrawOf(
 }
 
 // premi della quest vinta (D-16, D-17): voci orfane o malformate scartate, mai un'eccezione (T-09-12)
+// la quota del soccorritore di una dungeon scala le soglie di loot e pet con gli stessi tiri (D-20)
 export function drawRewards(
     prizes: PrizesSnapshot | null | undefined,
     catalog: RewardCatalog,
     chance: ChanceSource,
+    share = 1,
 ): DrawnRewards {
     if (!prizes) return NO_REWARDS;
     const coinsCopper = toCopper(prizes.prizeCoins);
     const prizeItem = catalogued(rewardItemOf(prizes.prizeItem), catalog);
-    const rolledLoot = rolledLootOf(prizes, catalog, chance);
+    const rolledLoot = rolledLootOf(prizes, catalog, chance, share);
     const spellDraw = spellDrawOf(prizes, catalog, chance);
-    const pet = petDrawOf(prizes, catalog, chance);
+    const pet = petDrawOf(prizes, catalog, chance, share);
     const loreDraw = loreDrawOf(catalog, chance);
     return {
         coinsCopper: isNonNegativeInteger(coinsCopper) ? coinsCopper : 0,
@@ -260,6 +288,7 @@ export function drawRewards(
         petLifePoints: pet ? catalog.pets.get(pet.toHexString()) : null,
         petLore: [...((pet && catalog.petLore?.get(pet.toHexString())) ?? [])],
         loreDraw,
+        cure: prizes.cure ?? null,
     };
 }
 
@@ -268,7 +297,10 @@ export function canLearnSpell(
     candidate: SpellCandidate | null,
     xpAfter: number,
     knownSpells: readonly unknown[],
+    title: TitleType | null | undefined,
 ): Types.ObjectId | null {
+    // la magia si impara solo dai titoli ≥ mage, col titolo dopo l'esito (D-05b, D-25)
+    if (!isSpellCaster(title)) return null;
     if (!candidate || xpAfter < candidate.minXpToLearn) return null;
     return knownSpells.some((spell) => sameId(spell, candidate.spellId))
         ? null
@@ -280,7 +312,10 @@ export function drawLearnableSpell(
     draw: SpellDraw | null,
     xpAfter: number,
     knownSpells: readonly unknown[],
+    title: TitleType | null | undefined,
 ): SpellCandidate | null {
+    // stesso cancello del titolo di canLearnSpell (D-05b, D-25): i tiri restano consumati in drawRewards
+    if (!isSpellCaster(title)) return null;
     if (!draw || draw.gate >= SPELL_DRAW_CHANCE) return null;
     const learnable = draw.pool.filter(
         (candidate) =>

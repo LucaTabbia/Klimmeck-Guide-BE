@@ -6,7 +6,10 @@ import {
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { idForms } from 'src/mongo/document-id';
+import { fallenCountersOf, type RescueTurn } from './dungeon/dungeon-turns';
 import {
+    type DungeonTurnFields,
+    NO_TURN_COUNTERS,
     type OutcomeCharacterSnapshot,
     type OutcomeQuestSnapshot,
     questFactsOf,
@@ -40,6 +43,8 @@ export interface DeathResultInput {
     quest: OutcomeQuestSnapshot;
     userId: Types.ObjectId;
     now: Date;
+    // turno salvato dell'aid di dungeon: dove era caduto il ferito (D-21)
+    turn?: RescueTurn | null;
 }
 
 // foglio di un esito che non tocca il personaggio: valori prima = dopo, nessun premio
@@ -50,6 +55,7 @@ function unchangedResult(
     outcome: QuestOutcome.rescued | QuestOutcome.death,
     resultId: Types.ObjectId,
     now: Date,
+    turns: DungeonTurnFields,
 ): QuestResultDraft {
     const status = statusFactsOf(snapshot);
     return {
@@ -84,6 +90,7 @@ function unchangedResult(
         enemies: [],
         stagesCleared: null,
         stagesTotal: null,
+        ...turns,
         rescuedCharacters: [],
         arrested: false,
         coinsLost: null,
@@ -116,6 +123,7 @@ export function planRescued(input: RescuedPlanInput): RescuedPlan {
             QuestOutcome.rescued,
             input.resultId,
             input.now,
+            NO_TURN_COUNTERS,
         ),
     };
 }
@@ -129,5 +137,6 @@ export function deathResultOf(input: DeathResultInput): QuestResultDraft {
         QuestOutcome.death,
         input.resultId,
         input.now,
+        input.turn ? fallenCountersOf(input.turn) : NO_TURN_COUNTERS,
     );
 }

@@ -156,7 +156,7 @@ describe('death confirmation (wire)', () => {
 
     function die(player: TestPlayer): Promise<unknown> {
         return harness.connection.transaction((session) =>
-            harness.app.get(CharacterArchiver).archiveWithin(session, {
+            harness.app.get(CharacterArchiver).archiveWithinReporting(session, {
                 userId: player.user._id as Types.ObjectId,
                 characterId: player.character!._id as Types.ObjectId,
                 reason: DeletionReason.death,

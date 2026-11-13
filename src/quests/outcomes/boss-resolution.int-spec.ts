@@ -5,7 +5,7 @@ import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { PushEventType } from 'src/push/push-event-type.enum';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import { createPlayer } from '../../../test/authz/player-fixture';
-import { buildQuest, persistEnemy } from '../../../test/fixtures';
+import { buildQuest, persistEnemy, persistPet } from '../../../test/fixtures';
 import {
     createOutcomeHarness,
     OUTCOME_START,
@@ -143,12 +143,14 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
     // archivio reale nella transazione dell'harness, come deleteCharacter
     const archive = (userId: unknown, characterId: Types.ObjectId) =>
         world.harness.connection.transaction((session) =>
-            world.harness.app.get(CharacterArchiver).archiveWithin(session, {
-                userId: userId as Types.ObjectId,
-                characterId,
-                reason: DeletionReason.user_request,
-                now: NOW,
-            }),
+            world.harness.app
+                .get(CharacterArchiver)
+                .archiveWithinReporting(session, {
+                    userId: userId as Types.ObjectId,
+                    characterId,
+                    reason: DeletionReason.user_request,
+                    now: NOW,
+                }),
         );
 
     const markStarted = (questId: unknown) =>
@@ -628,6 +630,193 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
                 expect(hexes(character.status.unlockedLore)).toEqual(expected);
                 expect(hexes(character.status.knownEnemies)).toEqual([]);
                 expect((await sheetOf(member)).loreUnlocked).toEqual([]);
+            }
+        });
+    });
+
+    describe('the prize block of each title', () => {
+        const LUCKY_PET_ROLL = 0.1;
+        const MAGE_COINS = { gold: 0, silver: 5, copper: 0 };
+        const PALADIN_COINS = { gold: 0, silver: 1, copper: 0 };
+
+        async function rankedBoss(
+            seats: unknown[],
+            minTitle: string,
+            rankPrizes: Record<string, unknown>[],
+        ) {
+            const quest = await bossQuest(seats);
+            return {
+                ...quest,
+                requirements: { ...quest.requirements, minTitle },
+                prizes: { ...quest.prizes, rankPrizes },
+            };
+        }
+
+        const titled = (title: string) => ({
+            characterOverrides: { status: { title } },
+        });
+
+        const sheetOf = (subject: Quester) =>
+            world.models.questResults
+                .findOne({ character: subject.characterId })
+                .lean<any>();
+
+        it('gives each seat the block of its own title in a mixed boss (D-04, D-05, D-05a)', async () => {
+            const pet = (await persistPet(world.models.pets, {
+                name: 'Fenice del passo',
+                sellable: false,
+            })) as { _id: Types.ObjectId };
+            const mage = await quester({
+                ...titled('mage'),
+                questOverrides: await rankedBoss(
+                    [
+                        { title: 'mage', count: 1 },
+                        { title: 'paladin', count: 1 },
+                    ],
+                    'paladin',
+                    [
+                        {
+                            title: 'mage',
+                            prizeCoins: MAGE_COINS,
+                            xpPrize: 400,
+                            pet: pet._id,
+                        },
+                        {
+                            title: 'paladin',
+                            prizeCoins: PALADIN_COINS,
+                            xpPrize: 100,
+                        },
+                    ],
+                ),
+            });
+            const paladin = await quester({
+                ...titled('paladin'),
+                quest: mage.quest,
+            });
+            scripted.willEnd('success');
+            // un vincitore alla volta nell'ordine dei posti: loot del suo blocco (nessuno qui), poi il pet solo
+            // se il suo blocco ne ha uno a catalogo; il mage consuma il primo tiro, il paladin nessuno
+            chance.load([LUCKY_PET_ROLL, LUCKY_PET_ROLL]);
+
+            await expect(
+                service.resolveStandard(triggerOf(mage)),
+            ).resolves.toBe('resolved');
+
+            const mageSheet = await sheetOf(mage);
+            const paladinSheet = await sheetOf(paladin);
+            expect(mageSheet.xpGained).toBe(500);
+            expect(mageSheet.rewards.coins).toEqual(MAGE_COINS);
+            expect(String(mageSheet.rewards.pet)).toBe(String(pet._id));
+            expect(paladinSheet.xpGained).toBe(200);
+            expect(paladinSheet.rewards.coins).toEqual(PALADIN_COINS);
+            expect(paladinSheet.rewards.pet).toBeNull();
+            expect(
+                (await characterOf(mage)).assets.ownedPets.map(
+                    (entry: { pet: unknown }) => String(entry.pet),
+                ),
+            ).toEqual([String(pet._id)]);
+            expect((await characterOf(paladin)).assets.ownedPets ?? []).toEqual(
+                [],
+            );
+            expect(chance.drawn).toEqual([LUCKY_PET_ROLL]);
+        });
+
+        it('gives a legend on hero seats the hero block (D-18)', async () => {
+            const legend = await quester({
+                ...titled('legend'),
+                questOverrides: await rankedBoss(
+                    [{ title: 'hero', count: 2 }],
+                    'hero',
+                    [{ title: 'hero', prizeCoins: MAGE_COINS, xpPrize: 250 }],
+                ),
+            });
+            scripted.willEnd('success');
+
+            await expect(
+                service.resolveStandard(triggerOf(legend)),
+            ).resolves.toBe('resolved');
+
+            const sheet = await sheetOf(legend);
+            expect(sheet.xpGained).toBe(350);
+            expect(sheet.rewards.coins).toEqual(MAGE_COINS);
+        });
+
+        it('opens an aid with the seats and the rank blocks of a lost boss (D-09, D-11)', async () => {
+            const seats = [
+                { title: 'mage', count: 1 },
+                { title: 'paladin', count: 1 },
+            ];
+            const mage = await quester({
+                ...titled('mage'),
+                questOverrides: await rankedBoss(seats, 'paladin', [
+                    {
+                        title: 'mage',
+                        prizeCoins: MAGE_COINS,
+                        xpPrize: 400,
+                        cure: { lifePointsShare: 1, canHeal: ['deepCut'] },
+                    },
+                    {
+                        title: 'paladin',
+                        prizeCoins: PALADIN_COINS,
+                        xpPrize: 100,
+                    },
+                ]),
+            });
+            await quester({ ...titled('paladin'), quest: mage.quest });
+            scripted.willEnd('failure');
+
+            await expect(
+                service.resolveStandard(triggerOf(mage)),
+            ).resolves.toBe('resolved');
+
+            const [aid] = await aids();
+            expect(aid.requirements.requiredAdventurers).toEqual(seats);
+            expect(aid.prizes.rankPrizes).toEqual([
+                expect.objectContaining({
+                    title: 'mage',
+                    prizeCoins: MAGE_COINS,
+                    xpPrize: 400,
+                    cure: null,
+                }),
+                expect.objectContaining({
+                    title: 'paladin',
+                    prizeCoins: PALADIN_COINS,
+                    xpPrize: 100,
+                    cure: null,
+                }),
+            ]);
+        });
+
+        it('reads a legacy boss without blocks as its minimum title prize (D-28)', async () => {
+            const quest = await bossQuest([
+                { title: 'mage', count: 1 },
+                { title: 'paladin', count: 1 },
+            ]);
+            const mage = await quester({
+                ...titled('mage'),
+                questOverrides: {
+                    ...quest,
+                    requirements: {
+                        ...quest.requirements,
+                        minTitle: 'paladin',
+                    },
+                    prizes: { ...quest.prizes, prizeCoins: PALADIN_COINS },
+                },
+            });
+            const paladin = await quester({
+                ...titled('paladin'),
+                quest: mage.quest,
+            });
+            scripted.willEnd('success');
+
+            await expect(
+                service.resolveStandard(triggerOf(mage)),
+            ).resolves.toBe('resolved');
+
+            for (const member of [mage, paladin]) {
+                const sheet = await sheetOf(member);
+                expect(sheet.xpGained).toBe(150);
+                expect(sheet.rewards.coins).toEqual(PALADIN_COINS);
             }
         });
     });

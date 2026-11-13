@@ -55,6 +55,7 @@ import {
 } from './outcome-plan';
 import { StaleResolution } from './outcome-writer.service';
 import { isPetXpCap } from './pets/pet-xp';
+import { prizeBlocksOf, type RankPrizesHolder } from '../prizes/rank-prizes';
 import { type QuestEnemyRef, validQuestEnemiesOf } from './quest-enemies';
 import {
     type PrizesSnapshot,
@@ -80,7 +81,8 @@ export type LaneCharacter<L extends QuestLane> = ResolutionCharacter & {
 
 export type ResolutionQuest = OutcomeQuestSnapshot &
     AidSourceQuest & {
-        prizes?: PrizesSnapshot | null;
+        // i campi di oggi più i blocchi per titolo delle quest di gruppo (D-01)
+        prizes?: RankPrizesHolder['prizes'];
         concludedAt?: Date | null;
         startedAt?: Date | null;
         generated?: unknown;
@@ -90,6 +92,7 @@ export type ResolutionQuest = OutcomeQuestSnapshot &
         rescue?: {
             characters?: unknown[] | null;
             failedQuest?: unknown;
+            turn?: unknown;
         } | null;
     };
 
@@ -430,7 +433,7 @@ export class ResolutionLoader {
             `della missione ${quest._id.toHexString()}`,
         );
         const rewards = {
-            ...(await this.readRewardCatalog(quest.prizes)),
+            ...(await this.readRewardCatalog(quest)),
             studyLorePool: await this.readStudyLorePool(quest),
             studyLoreChance:
                 this.loreConfig?.studyChance ?? DEFAULT_LORE_STUDY_CHANCE,
@@ -559,10 +562,11 @@ export class ResolutionLoader {
         });
     }
 
+    // rarità, magie fisse e pet sull'unione dei blocchi premio: ogni vincitore tira dal suo (D-05, D-05a)
     private async readRewardCatalog(
-        prizes: PrizesSnapshot | null | undefined,
+        quest: ResolutionQuest,
     ): Promise<RewardCatalog> {
-        const refs = rewardRefsOf(prizes);
+        const refs = rewardRefsOf(prizeBlocksOf(quest));
         const idsOf = (itemType: string) =>
             refs.items
                 .filter((entry) => entry.itemType === itemType)
@@ -576,13 +580,6 @@ export class ResolutionLoader {
             .find({ _id: { $in: idsOf('EquipmentItem') } }, rarityProjection)
             .lean<CatalogEntry<{ rarity?: RarityType | null }>[]>()
             .exec();
-        const spell = refs.spellId
-            ? await this.spellModel
-                  .findById(refs.spellId, LEARNABLE_SPELL_PROJECTION)
-                  .lean<LearnableSpellEntry | null>()
-                  .exec()
-            : null;
-        const fixedSpell = spell && learnableSpellOf(spell);
         return {
             rarities: new Map([
                 ...lootItems.map(
@@ -597,39 +594,57 @@ export class ResolutionLoader {
                         ] as const,
                 ),
             ]),
-            spells: new Map(
-                fixedSpell
-                    ? [
-                          [
-                              fixedSpell.spellId.toHexString(),
-                              {
-                                  minXpToLearn: fixedSpell.minXpToLearn,
-                                  maxUsages: fixedSpell.maxUsages,
-                              },
-                          ],
-                      ]
-                    : [],
-            ),
-            spellPool: await this.readSpellPool(prizes),
-            ...(await this.readPrizePets(refs.petId)),
+            spells: await this.readFixedSpells(refs.spellIds),
+            spellPool: await this.readSpellPool(quest.prizes),
+            ...(await this.readPrizePets(refs.petIds)),
         };
     }
 
-    // D-21: il pet in premio vale solo se esiste ancora a catalogo; un ref orfano non consuma il tiro; la sua vita massima apre la voce del vincitore (Phase 19 D-03) e le sue lore si sbloccano con la voce (D-26)
+    // magie fisse imparabili di tutti i blocchi (D-05): una magia senza soglia valida resta fuori
+    private async readFixedSpells(
+        spellIds: readonly Types.ObjectId[],
+    ): Promise<RewardCatalog['spells']> {
+        if (spellIds.length === 0) return new Map();
+        const spells = await this.spellModel
+            .find({ _id: { $in: spellIds } }, LEARNABLE_SPELL_PROJECTION)
+            .lean<LearnableSpellEntry[]>()
+            .exec();
+        return new Map(
+            spells
+                .map(learnableSpellOf)
+                .filter(isSpellCandidate)
+                .map(({ spellId, minXpToLearn, maxUsages }) => [
+                    spellId.toHexString(),
+                    { minXpToLearn, maxUsages },
+                ]),
+        );
+    }
+
+    // D-21: il pet in premio vale solo se esiste ancora a catalogo; un ref orfano non consuma il tiro; la sua vita massima apre la voce del vincitore (Phase 19 D-03) e le sue lore si sbloccano con la voce (D-26); un pet per blocco (D-05a)
     private async readPrizePets(
-        petId: Types.ObjectId | null,
+        petIds: readonly Types.ObjectId[],
     ): Promise<Pick<RewardCatalog, 'pets' | 'petLore'>> {
-        const pet = petId
-            ? await this.petModel
-                  .findById(petId, { maxLifePoints: 1, relatedLore: 1 })
-                  .lean<PrizePetEntry | null>()
-                  .exec()
-            : null;
-        if (!pet) return { pets: new Map(), petLore: new Map() };
-        const hex = pet._id.toHexString();
+        if (petIds.length === 0) return { pets: new Map(), petLore: new Map() };
+        const pets = await this.petModel
+            .find(
+                { _id: { $in: petIds } },
+                { maxLifePoints: 1, relatedLore: 1 },
+            )
+            .lean<PrizePetEntry[]>()
+            .exec();
         return {
-            pets: new Map([[hex, pet.maxLifePoints]]),
-            petLore: new Map([[hex, relatedLoreIdsOf(pet.relatedLore)]]),
+            pets: new Map(
+                pets.map(({ _id, maxLifePoints }) => [
+                    _id.toHexString(),
+                    maxLifePoints,
+                ]),
+            ),
+            petLore: new Map(
+                pets.map(({ _id, relatedLore }) => [
+                    _id.toHexString(),
+                    relatedLoreIdsOf(relatedLore),
+                ]),
+            ),
         };
     }
 

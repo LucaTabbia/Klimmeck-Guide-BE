@@ -1,4 +1,8 @@
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { slotsOf } from 'src/quests/acceptance/quest-capacity';
+import { TITLE_RANK } from 'src/quests/acceptance/quest-eligibility';
+import { ChanceSource } from 'src/quests/outcomes/chance-source';
 
 // xp = max(1, round(PE × XP_SCALE)) come la Phase 11 (D-11): il DB ha solo xp, mai i PE
 export const XP_SCALE = 0.14084507;
@@ -97,7 +101,7 @@ export const isBossCandidate = (xp: number, rank: GeneratedRank): boolean =>
 export const isGeneratedRank = (title: unknown): title is GeneratedRank =>
     (GENERATED_RANKS as readonly unknown[]).includes(title);
 
-// D-15: conteggio per minTitle delle generate aperte; parità → rango più basso
+// D-15, D-23: conteggio per rango di copertura delle generate aperte (minTitle, per i boss il titolo più alto dei posti); parità → rango più basso
 export function leastCoveredRank(
     counts: Readonly<Partial<Record<GeneratedRank, number>>>,
 ): GeneratedRank {
@@ -106,4 +110,51 @@ export function leastCoveredRank(
         if ((counts[rank] ?? 0) < (counts[least] ?? 0)) least = rank;
     }
     return least;
+}
+
+// un boss generato su due ha anche posti del titolo inferiore, mai superiore (D-03, D-23)
+export const MIXED_BOSS_SHARE = 0.5;
+
+export function lowerRankOf(rank: GeneratedRank): GeneratedRank | null {
+    const index = GENERATED_RANKS.indexOf(rank);
+    return index > 0 ? GENERATED_RANKS[index - 1] : null;
+}
+
+// tiri solo per i boss e in coda alla quest (D-23): il cancello sempre, la proporzione solo se metà > 1
+export function mixedSeatsOf(seats: number, chance: ChanceSource): number {
+    if (chance.next() >= MIXED_BOSS_SHARE) return 0;
+    const half = Math.floor(seats / 2);
+    if (half <= 1) return 1;
+    return Math.min(half, 1 + Math.floor(chance.next() * half));
+}
+
+export interface CoverageQuest {
+    infos?: { type?: unknown } | null;
+    requirements?: {
+        minTitle?: unknown;
+        requiredAdventurers?: unknown;
+    } | null;
+}
+
+// il boss misto abbassa minTitle: la copertura lo conta sul titolo più alto dei posti (D-23)
+function highestSeatTitleOf(seatsValue: unknown): TitleType | null {
+    const slots = slotsOf(seatsValue);
+    if (slots === 'invalid') return null;
+    let highest: TitleType | null = null;
+    for (const { title } of slots) {
+        if (title === null) continue;
+        if (highest === null || TITLE_RANK[title] > TITLE_RANK[highest])
+            highest = title;
+    }
+    return highest;
+}
+
+export function coverageRankOf(quest: CoverageQuest): GeneratedRank | null {
+    const minTitle = quest.requirements?.minTitle;
+    const rank =
+        quest.infos?.type === QuestType.boss
+            ? (highestSeatTitleOf(quest.requirements?.requiredAdventurers) ??
+              minTitle)
+            : minTitle;
+    return isGeneratedRank(rank) ? rank : null;
 }

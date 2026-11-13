@@ -241,6 +241,11 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+enum DungeonTurnKind {
+  exploration
+  fight
+}
+
 type Enemy {
   damages: Damages!
   id: ID!
@@ -615,6 +620,7 @@ type Quest {
   infos: QuestInfos!
   noEffect: Boolean!
   prizes: QuestPrizes!
+  rankPrizes: [QuestRankPrizes!]!
   registeredAdventurers: [QuestRegistration!]!
   requirements: QuestRequirements!
 }
@@ -663,6 +669,11 @@ type QuestPrizes {
   xpPrize: Int
 }
 
+type QuestRankPrizes {
+  prizes: QuestPrizes!
+  title: String!
+}
+
 type QuestRegistration {
   character: ID!
   registeredAt: DateTime
@@ -691,6 +702,8 @@ type QuestResult {
   injuriesAdded: [InjuryType!]!
   injuriesHealed: [InjuryType!]!
   kind: QuestResultKind!
+  lastTurn: Int
+  lastTurnKind: DungeonTurnKind
   levelAfter: Int!
   levelBefore: Int!
   loreUnlocked: [Lore!]!
@@ -707,6 +720,8 @@ type QuestResult {
   stagesTotal: Int
   titleAfter: String!
   titleBefore: String!
+  turnsCompleted: Int
+  turnsTotal: Int
   user: ID!
   xpAfter: Int!
   xpBefore: Int!

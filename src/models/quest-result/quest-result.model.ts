@@ -6,6 +6,7 @@ import {
     assetQuantitySchemaAt,
 } from '../common/asset-quantity.model';
 import { Coins, CoinsSchema } from '../common/coins.model';
+import { DungeonTurnKind } from '../enums/dungeon-turn-kind.enum';
 import { InjuryType } from '../enums/injury-type.enum';
 import { Lore } from '../lore.model';
 import { QuestOutcome } from '../enums/quest-outcome.enum';
@@ -198,7 +199,7 @@ export class QuestResult {
     @Prop({ type: [SpellUsageSchema], default: [] })
     spellsUsed: SpellUsage[];
 
-    // tappe superate e totali, solo dalle dungeon (D-12): null per ogni altro tipo
+    // tappe superate e totali delle dungeon e dei soccorritori di un'aid di dungeon (D-12, D-21): null per ogni altro esito
     @Field(() => Int, { nullable: true })
     @Prop({ type: Number, default: null })
     stagesCleared?: number | null;
@@ -206,6 +207,27 @@ export class QuestResult {
     @Field(() => Int, { nullable: true })
     @Prop({ type: Number, default: null })
     stagesTotal?: number | null;
+
+    // turni della dungeon e dell'aid di dungeon (D-21), lastTurn 1-based: null altrove
+    @Field(() => Int, { nullable: true })
+    @Prop({ type: Number, default: null })
+    turnsTotal?: number | null;
+
+    @Field(() => Int, { nullable: true })
+    @Prop({ type: Number, default: null })
+    turnsCompleted?: number | null;
+
+    @Field(() => Int, { nullable: true })
+    @Prop({ type: Number, default: null })
+    lastTurn?: number | null;
+
+    @Field(() => DungeonTurnKind, { nullable: true })
+    @Prop({
+        type: String,
+        enum: [...Object.values(DungeonTurnKind), null],
+        default: null,
+    })
+    lastTurnKind?: DungeonTurnKind | null;
 
     @Field(() => QuestRewards)
     @Prop({ type: QuestRewardsSchema, required: true })

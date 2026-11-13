@@ -2,8 +2,10 @@ import { EffectType } from 'src/models/enums/effect-type.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import { SequenceChance } from '../../../../test/quests/sequence-chance';
+import { TurnFailingDungeonResolver } from '../../../../test/quests/turn-failing-dungeon-resolver';
 import {
     CombatContext,
     CombatEnemy,
@@ -13,7 +15,7 @@ import {
     CombatVerdict,
     ParticipantEffects,
 } from '../combat/combat-resolver';
-import { DungeonContext } from './dungeon-resolver';
+import { DungeonContext, DungeonResolution } from './dungeon-resolver';
 import { PlaceholderDungeonResolver } from './placeholder-dungeon-resolver';
 
 type StageEffects = Partial<Omit<ParticipantEffects, 'characterId'>>;
@@ -93,14 +95,24 @@ const dungeon = (): DungeonContext => ({
 const explore = (
     stages: readonly StageScript[],
     chance = new SequenceChance(),
+    context = dungeon(),
 ) => {
     const combat = new StagedCombatResolver(stages);
     const resolution = new PlaceholderDungeonResolver(combat).explore(
-        dungeon(),
+        context,
         chance,
     );
     return { combat, resolution, chance };
 };
+
+const countersOf = (resolution: DungeonResolution) => ({
+    verdict: resolution.verdict,
+    turnsTotal: resolution.turnsTotal,
+    turnsCompleted: resolution.turnsCompleted,
+    failedTurn: resolution.failedTurn,
+    stagesCleared: resolution.stagesCleared,
+    stagesTotal: resolution.stagesTotal,
+});
 
 describe('PlaceholderDungeonResolver', () => {
     it('resolves one stage per enemy entry in order (D-12)', () => {
@@ -268,7 +280,122 @@ describe('PlaceholderDungeonResolver', () => {
             participants: [],
             stagesCleared: 0,
             stagesTotal: 0,
+            turnsTotal: 0,
+            turnsCompleted: 0,
+            failedTurn: null,
         });
         expect(combat.contexts).toHaveLength(0);
+    });
+
+    it('passes every exploration without drawing (D-29)', () => {
+        const { combat, resolution, chance } = explore(
+            [],
+            new SequenceChance([0.1, 0.2, 0.3, 0.4]),
+        );
+
+        expect(chance.drawn).toEqual([0.1, 0.2, 0.3]);
+        expect(combat.contexts).toHaveLength(3);
+        expect(countersOf(resolution)).toEqual({
+            verdict: 'success',
+            turnsTotal: 6,
+            turnsCompleted: 6,
+            failedTurn: null,
+            stagesCleared: 3,
+            stagesTotal: 3,
+        });
+    });
+
+    it('stops on the fight it loses and names the turn (D-12, D-13)', () => {
+        const { combat, resolution } = explore([
+            { verdict: 'success' },
+            { verdict: 'failure' },
+        ]);
+
+        expect(combat.contexts).toHaveLength(2);
+        expect(countersOf(resolution)).toEqual({
+            verdict: 'failure',
+            turnsTotal: 6,
+            turnsCompleted: 3,
+            failedTurn: { index: 3, kind: DungeonTurnKind.fight },
+            stagesCleared: 1,
+            stagesTotal: 3,
+        });
+    });
+
+    it('plays the turns up to the last one asked (D-13)', () => {
+        const { combat, resolution } = explore([], new SequenceChance(), {
+            ...dungeon(),
+            enemies: [...dungeon().enemies, enemy('Drago')],
+            lastTurnIndex: 4,
+        });
+
+        expect(combat.contexts.map((context) => context.enemies)).toEqual([
+            [enemy('Goblin', 3)],
+            [enemy('Troll')],
+        ]);
+        expect(countersOf(resolution)).toEqual({
+            verdict: 'success',
+            turnsTotal: 8,
+            turnsCompleted: 5,
+            failedTurn: null,
+            stagesCleared: 2,
+            stagesTotal: 4,
+        });
+    });
+});
+
+describe('TurnFailingDungeonResolver', () => {
+    it('loses on a chosen exploration turn, then delegates to the placeholder (D-13, D-29)', () => {
+        const combat = new StagedCombatResolver([
+            { verdict: 'success', effects: { [HERO]: { hpAfter: 700 } } },
+        ]);
+        const port = new TurnFailingDungeonResolver(
+            new PlaceholderDungeonResolver(combat),
+            [4],
+        );
+
+        const lost = port.explore(dungeon(), new SequenceChance());
+        const cleared = port.explore(dungeon(), new SequenceChance());
+
+        expect(countersOf(lost)).toEqual({
+            verdict: 'failure',
+            turnsTotal: 6,
+            turnsCompleted: 4,
+            failedTurn: { index: 4, kind: DungeonTurnKind.exploration },
+            stagesCleared: 2,
+            stagesTotal: 3,
+        });
+        expect(lost.participants.map((effects) => effects.hpAfter)).toEqual([
+            700, 1000,
+        ]);
+        expect(countersOf(cleared)).toEqual({
+            verdict: 'success',
+            turnsTotal: 6,
+            turnsCompleted: 6,
+            failedTurn: null,
+            stagesCleared: 3,
+            stagesTotal: 3,
+        });
+        expect(combat.contexts).toHaveLength(5);
+    });
+
+    it('rejects a turn the dungeon does not have or past the saved one (C-IN-05)', () => {
+        const port = (index: number) =>
+            new TurnFailingDungeonResolver(
+                new PlaceholderDungeonResolver(new StagedCombatResolver([])),
+                [index],
+            );
+        const missing = port(6);
+        const pastSaved = port(3);
+
+        expect(() => missing.explore(dungeon(), new SequenceChance())).toThrow(
+            'Turn 6 is not a turn of this dungeon',
+        );
+        expect(() =>
+            pastSaved.explore(
+                { ...dungeon(), lastTurnIndex: 2 },
+                new SequenceChance(),
+            ),
+        ).toThrow('Turn 3 is past the last turn 2');
     });
 });

@@ -43,6 +43,15 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 - [x] **BE-FOODP-04**: L'imboscata setta la fame esatta al suo km (e il cibo se oltre il confine) prima del combattimento; in vittoria il viaggio prosegue con lo stesso piano; l'arrivo setta la fame fino a fine percorso e il cibo nella transazione del completamento; i totali a fine viaggio coincidono con quelli della Phase 14
 - [x] **BE-FOODP-05**: Unit (funzione pura, km dal tempo, selezione parziale), integration con orologio finto (partenza, sweep prima/dopo il confine, pozione fra due sweep, imboscata, sconfitta pro-rata, arrivo, teleport, legacy), boot reale con SDL identico, handoff `BACKEND-NOTES.md` con la semantica nuova e il piano di UAT su device
 
+### Rank Prizes and Rescues (BE-RANKP) — Phase 21, aggiunta 2026-11-12
+
+- [x] **BE-RANKP-01**: Le quest di gruppo (worldMission, boss, aid nate da un gruppo) portano un blocco premio per ogni titolo dei posti (monete, xp, loot, pet, cura, magia), così nessuno ottiene un premio troppo forte per il suo rango; nessun posto a titolo null in una quest di gruppo (contenuto non valido → rifiuto o report); le quest in solitaria tengono il premio unico calcolato sul `minTitle`
+- [x] **BE-RANKP-02**: Alla risoluzione ogni partecipante riceve il blocco del **proprio titolo** (non quello del posto); la magia (premio fisso e sorteggio della study) si insegna solo ai titoli ≥ mage (`isSpellCaster`) in ogni percorso, solitaria compresa; i blocchi sotto mage non portano magia
+- [x] **BE-RANKP-03**: Il generatore crea boss misti a caso con posti anche del titolo inferiore (mai superiore) dentro la formula dei posti esistente e scrive un blocco per ogni titolo con le tabelle (moltiplicatori, `LOOT_POOLS`, pet sorteggiato con la regola della Phase 19 una volta per blocco; cure e magie solo nelle solitarie heal/magic); le quest scritte a mano hanno i blocchi scritti dall'utente, nessuna semina; il viewer legge sul filo il blocco del proprio titolo (forma decisa nel plan, schema `noEffect`)
+- [x] **BE-RANKP-04**: L'aid nasce solo da enemy, boss, hunt, dungeon e aid perse; clona i blocchi per titolo con i posti; aid persa invariata (D-09 della Phase 9); la crime resta com'è (arresto 10 h, nessuna aid)
+- [x] **BE-RANKP-05**: Dungeon a turni (esplorazione → scontro → …): la sconfitta, anche in un turno di esplorazione, salva sull'aid il turno (indice e tipo); l'aid di una dungeon percorre i turni fino a quello e il soccorritore deve completarlo per salvare il ferito, poi l'aid finisce; premio del soccorritore in proporzione ai turni completati; struttura + segnaposto, il motore a turni è dell'utente
+- [x] **BE-RANKP-06**: L'archiviatore che conclude un'aid libera corsie e PendingQuest dei soccorritori iscritti come il timeout (RED prima); unit + integration, SDL al boot reale, handoff `BACKEND-NOTES.md` per la FE Phase 20
+
 ## Future Requirements
 
 Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
@@ -94,8 +103,14 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-FOODP-03 | Phase 20 | Complete |
 | BE-FOODP-04 | Phase 20 | Complete |
 | BE-FOODP-05 | Phase 20 | Complete |
+| BE-RANKP-01 | Phase 21 | Complete |
+| BE-RANKP-02 | Phase 21 | Complete |
+| BE-RANKP-03 | Phase 21 | Complete |
+| BE-RANKP-04 | Phase 21 | Complete |
+| BE-RANKP-05 | Phase 21 | Complete |
+| BE-RANKP-06 | Phase 21 | Complete |
 
-**Coverage:** 26 / 26 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20). Nessun orfano, nessun duplicato.
+**Coverage:** 32 / 32 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21). Nessun orfano, nessun duplicato.
 
 ---
 

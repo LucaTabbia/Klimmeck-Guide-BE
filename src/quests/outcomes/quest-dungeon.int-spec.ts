@@ -11,7 +11,12 @@ import {
     registerDevice,
 } from '../../../test/quests/outcome-world';
 import { ScriptedCombatResolver } from '../../../test/quests/scripted-combat-resolver';
+import { turnsOf } from '../../../test/quests/dungeon-turns.fixture';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
+import { SwappableDungeonResolver } from '../../../test/quests/swappable-dungeon-resolver';
+import { TurnFailingDungeonResolver } from '../../../test/quests/turn-failing-dungeon-resolver';
+import { DungeonResolver } from './dungeon/dungeon-resolver';
+import { PlaceholderDungeonResolver } from './dungeon/placeholder-dungeon-resolver';
 import { QuestResolutionService } from './quest-resolution.service';
 
 const NOW = new Date('2026-11-04T12:00:00.000Z');
@@ -37,9 +42,17 @@ describe('QuestResolutionService.resolveStandard (individual) with a staged dung
     const clock = new FixedClock(NOW);
     const chance = new SequenceChance();
     const scripted = new ScriptedCombatResolver();
+    const dungeon = new SwappableDungeonResolver(
+        new PlaceholderDungeonResolver(scripted),
+    );
 
     beforeAll(async () => {
-        world = await createOutcomeHarness({ clock, chance, combat: scripted });
+        world = await createOutcomeHarness({
+            clock,
+            chance,
+            combat: scripted,
+            overrides: [{ token: DungeonResolver, useValue: dungeon }],
+        });
         service = world.harness.app.get(QuestResolutionService);
     });
 
@@ -47,6 +60,7 @@ describe('QuestResolutionService.resolveStandard (individual) with a staged dung
         await world.reset();
         chance.load([]);
         scripted.reset();
+        dungeon.reset();
         jest.spyOn(Logger.prototype, 'warn').mockImplementation(
             () => undefined,
         );
@@ -238,6 +252,74 @@ describe('QuestResolutionService.resolveStandard (individual) with a staged dung
         expect(character.status.unlockedLore).toEqual([]);
         expect(character.status.knownEnemies).toEqual([]);
         expect(result.loreUnlocked).toEqual([]);
+        expect(aid.rescue.turn).toEqual({ index: 3, kind: 'fight', total: 6 });
+    });
+
+    const aidOf = async (subject: Quester) => {
+        const character = await characterOf(subject);
+        return questOf(character.status.awaitingAid.aidQuest);
+    };
+
+    it('saves the fight turn of the defeat on the aid (D-12)', async () => {
+        const [ghoul, rat] = await threeStages();
+        const subject = await explorer('dungeon', [ghoul, rat]);
+        losingFrom(2);
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        const aid = await aidOf(subject);
+        expect(aid.rescue.turn).toEqual({ index: 3, kind: 'fight', total: 4 });
+        const result = await resultOf(subject);
+        expect(turnsOf(result)).toEqual({
+            turnsTotal: 4,
+            turnsCompleted: 3,
+            lastTurn: 4,
+            lastTurnKind: 'fight',
+        });
+        expect(result).toMatchObject({ stagesCleared: 1, stagesTotal: 2 });
+    });
+
+    it('saves an exploration turn of the defeat on the aid (D-12, D-13)', async () => {
+        const stages = await threeStages();
+        const wraith = await enemy('Spettro del pozzo', 40);
+        const subject = await explorer('dungeon', [
+            ...stages,
+            { enemy: wraith._id, quantity: 1 },
+        ]);
+        dungeon.use(new TurnFailingDungeonResolver(dungeon.placeholder, [4]));
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(scripted.contexts).toHaveLength(2);
+        const aid = await aidOf(subject);
+        expect(aid.rescue.turn).toEqual({
+            index: 4,
+            kind: 'exploration',
+            total: 8,
+        });
+        const result = await resultOf(subject);
+        expect(result.outcome).toBe('failure');
+        expect(turnsOf(result)).toEqual({
+            turnsTotal: 8,
+            turnsCompleted: 4,
+            lastTurn: 5,
+            lastTurnKind: 'exploration',
+        });
+        expect(result).toMatchObject({ stagesCleared: 2, stagesTotal: 4 });
+    });
+
+    it('writes the turn counters of a cleared dungeon (D-21)', async () => {
+        const enemies = await threeStages();
+        const subject = await explorer('dungeon', enemies);
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(turnsOf(await resultOf(subject))).toEqual({
+            turnsTotal: 6,
+            turnsCompleted: 6,
+            lastTurn: 6,
+            lastTurnKind: 'fight',
+        });
     });
 
     it('starts the second stage from the hp left by the first (D-12)', async () => {
@@ -268,6 +350,20 @@ describe('QuestResolutionService.resolveStandard (individual) with a staged dung
             outcome: 'success',
             stagesCleared: null,
             stagesTotal: null,
+        });
+    });
+
+    it('keeps the turn counters null for an enemy quest (D-21)', async () => {
+        const [first] = await threeStages();
+        const subject = await explorer('enemy', [first]);
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(turnsOf(await resultOf(subject))).toEqual({
+            turnsTotal: null,
+            turnsCompleted: null,
+            lastTurn: null,
+            lastTurnKind: null,
         });
     });
 });

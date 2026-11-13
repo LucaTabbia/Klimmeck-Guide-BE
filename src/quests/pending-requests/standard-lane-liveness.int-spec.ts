@@ -62,7 +62,7 @@ const bossQuest = {
     infos: { ...buildQuest().infos, type: 'boss' },
     requirements: {
         ...buildQuest().requirements,
-        requiredAdventurers: [{ title: null, count: 3 }],
+        requiredAdventurers: [{ title: 'rookie', count: 3 }],
     },
 };
 

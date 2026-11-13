@@ -32,13 +32,18 @@ interface VitalsCharacter {
     };
 }
 
-// vita e ferite del viewer per Quest.noEffect (Phase 18 D-25): una lettura per viewer per richiesta HTTP e per evento WS;
+// titolo del personaggio corrente del viewer, per il blocco premio di Quest.prizes (D-18)
+export interface ViewerSubject extends HealSubject {
+    title: TitleType;
+}
+
+// vita, ferite e titolo del viewer per Quest.noEffect (Phase 18 D-25) e Quest.prizes (D-07): una lettura per viewer per richiesta HTTP e per evento WS;
 // il payload di un evento è lo stesso oggetto per ogni subscriber, quindi la memo è SEMPRE per viewer dentro la chiave dell'evento (trappola Phase 16)
 @Injectable()
 export class ViewerVitalsService {
     private readonly cache = new WeakMap<
         object,
-        Map<string, Promise<HealSubject | null>>
+        Map<string, Promise<ViewerSubject | null>>
     >();
 
     constructor(
@@ -51,7 +56,7 @@ export class ViewerVitalsService {
         identity: AuthIdentity | undefined,
         context: object,
         info?: { rootValue?: unknown },
-    ): Promise<HealSubject | null> {
+    ): Promise<ViewerSubject | null> {
         const viewers = this.viewersOf(viewerCacheKeyOf(context, info));
         const viewer = `${identity?.role ?? ''}:${identity?.userId ?? ''}`;
         const cached = viewers.get(viewer);
@@ -61,10 +66,10 @@ export class ViewerVitalsService {
         return read;
     }
 
-    private viewersOf(key: object): Map<string, Promise<HealSubject | null>> {
+    private viewersOf(key: object): Map<string, Promise<ViewerSubject | null>> {
         const known = this.cache.get(key);
         if (known) return known;
-        const viewers = new Map<string, Promise<HealSubject | null>>();
+        const viewers = new Map<string, Promise<ViewerSubject | null>>();
         this.cache.set(key, viewers);
         return viewers;
     }
@@ -72,7 +77,7 @@ export class ViewerVitalsService {
     // nessun ramo sul ruolo: l'oste col proprio personaggio è giudicato come chiunque, come in acceptQuest
     private async read(
         identity: AuthIdentity | undefined,
-    ): Promise<HealSubject | null> {
+    ): Promise<ViewerSubject | null> {
         if (!identity) return null;
         const userId = objectIdFromHex(identity.userId);
         if (userId === null) return null;
@@ -89,6 +94,7 @@ export class ViewerVitalsService {
         if (character === null) return null;
         const { currentLifePoints, maxLifePoints } = statusFactsOf(character);
         return {
+            title: character.status.title,
             currentLifePoints,
             maxLifePoints,
             injuries: character.status.injuries ?? [],
