@@ -28,7 +28,7 @@ Questo file è parte del contesto di OGNI piano `21-NN-PLAN.md` (citato con `@` 
 
 ## Contratto e nomi fissati
 
-**Questa fase CAMBIA lo SDL** (blocco premio del viewer e contatori dei turni: forma decisa dalla ricerca e fissata nel CONTEXT, D-07). `src/schema.gql` si rigenera solo col boot reale di test (`npx jest test/app.int-spec.ts --selectProjects integration --runInBand`) e si committa nello stesso piano che cambia i decoratori; nessun campo esistente cambia nome o tipo se non è scritto nel CONTEXT; ogni cambio non additivo è elencato nel handoff per la FE Phase 20 (FE gated sulla merge). Nomi di bozza dell'orchestratore (la ricerca può proporre una correzione motivata, che decide l'orchestratore):
+**Lo SDL di questa fase è solo additivo** (D-22, vedi «Completato dopo la ricerca»). `src/schema.gql` si rigenera solo col boot reale di test (`npx jest test/app.int-spec.ts --selectProjects integration --runInBand`) e si committa nello stesso piano che cambia i decoratori. Nomi di bozza dell'orchestratore (la ricerca può proporre una correzione motivata, che decide l'orchestratore):
 
 | Cosa | Nome di bozza | Note |
 |------|---------------|------|
@@ -53,4 +53,23 @@ Questo file è parte del contesto di OGNI piano `21-NN-PLAN.md` (citato con `@` 
 
 ## Completato dopo la ricerca
 
-(da completare dopo `21-RESEARCH.md`)
+Scritto il 13 novembre 2026. Dove questa sezione e il resto del file divergono, vince questa sezione. Riferimenti file:riga in `21-RESEARCH.md`; ruling in `21-CONTEXT.md` D-18..D-30.
+
+### Il filo è additivo (D-22)
+
+- `Quest.prizes` tiene nome e tipo (`QuestPrizes!`) e diventa un campo risolto per viewer; si AGGIUNGONO `Quest.rankPrizes`, `type QuestRankPrizes`, `enum DungeonTurnKind` e i quattro campi nullable dei turni su `QuestResult`. `type QuestPrizes` non cambia, `stagesCleared` / `stagesTotal` non cambiano, nessun argomento nuovo su `quests`. Lo SDL atteso è quello VERBATIM di `21-RESEARCH.md` §Q7: a fine del piano del filo `git diff develop -- src/schema.gql` mostra solo aggiunte.
+- `test/app.int-spec.ts` pinna le stringhe esatte di `Quest`, `QuestPrizes` e `QuestResult`: si aggiorna PRIMA (RED) nel piano che cambia i decoratori. Fino al piano del filo `git diff --exit-code src/schema.gql` resta vuoto a fine di ogni piano.
+
+### Nomi (dalla ricerca, accettati)
+
+`prizes.rankPrizes: QuestRankPrize[]` (solo Mongoose, ref popolati: aggiungere i percorsi a `QUEST_CATALOG_POPULATE` e alla sanificazione); `prizeBlocksOf(quest)`, `prizeBlockFor(quest, title)` in `src/quests/prizes/rank-prizes.ts`; `GROUP_PRIZE_TYPES`; `opensAid(type)` / `AID_OPENING_TYPES`; `DungeonTurnKind`, `dungeonTurnsOf`, `DungeonResolution.failedTurn`, `rescue.turn { index, kind, total }`; `rescueShareOf(turn)`, `proportionalPrizesOf(prizes, share)`; `MIXED_BOSS_SHARE`, `lowerRankOf(rank)`, `mixedSeatsOf(seats, chance)`; `releaseRegisteredWithin(models, questId, session)`, `archiveWithinReporting`.
+
+### Regole dure
+
+- **Una sola funzione** sceglie il blocco per foglio e risoluzione (D-18): mai una seconda copia della regola di ripiego.
+- **Tiri a seme fisso:** nessun tiro nuovo prima di quelli esistenti; i tiri dei boss misti in coda alla quest e solo per i boss; l'esplorazione del segnaposto non consuma tiri (D-29); la quota dell'aid scala le soglie, non aggiunge tiri (D-20). Le spec che pinnano l'ordine sono elencate in `21-RESEARCH.md` §Q3 e nei Pitfall.
+- **Magia:** il cancello sta in `canLearnSpell` / `drawLearnableSpell` e usa il titolo dopo l'esito (D-25); le spec con un rookie che oggi impara una magia passano a un mage nel piano della magia (RED lì).
+- **Sconfitta senza aid (D-19):** piano d'esito dedicato; `planParticipant` oggi lancia su una sconfitta senza aid.
+- **Nessun migratore (D-28).** Il report del boot (D-24) è di sola lettura e logga solo id e conteggi.
+- **Push dell'archiviatore (D-27):** dopo il commit, dai chiamanti; mai dentro la transazione.
+- Ordine dei piani consigliato dalla ricerca: magia → blocchi → D-24 → aid per tipo → archiviatore → generatore → dungeon a turni → quota → filo/SDL → gate → chiusura e handoff.
