@@ -101,4 +101,14 @@ describe('rollLoot', () => {
         expect(rollLoot(rares, chance)).toBeNull();
         expect(chance.drawn).toHaveLength(1);
     });
+
+    it('scales the drop chance by the share with the same draws (D-20)', () => {
+        const rare = candidate(FIRST_RARE_ID, RarityType.rare);
+        const halved = new SequenceChance([0.1]);
+        const full = new SequenceChance([0.1]);
+
+        expect(rollLoot([rare], halved, 0.5)).toBeNull();
+        expect(rollLoot([rare], full, 1)).toBe(rare);
+        expect(halved.drawn).toEqual(full.drawn);
+    });
 });

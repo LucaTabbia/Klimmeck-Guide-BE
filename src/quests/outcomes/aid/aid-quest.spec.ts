@@ -350,6 +350,99 @@ describe('buildAidQuest rank blocks', () => {
     });
 });
 
+describe('buildAidQuest proportional prize', () => {
+    const dungeon: AidSourceQuest = {
+        ...original,
+        infos: { ...original.infos, type: QuestType.dungeon },
+        requirements: { minTitle: TitleType.rookie },
+        prizes: {
+            prizeCoins: { gold: 1, silver: 0, copper: 1 },
+            xpPrize: 101,
+            prizeItem: lootEntry,
+            randomLoot: [lootEntry],
+            spell: null,
+            pet: PET_ID,
+        },
+    };
+    const turnOf = (index: number) => ({
+        index,
+        kind:
+            index % 2 === 0
+                ? DungeonTurnKind.exploration
+                : DungeonTurnKind.fight,
+        total: 8,
+    });
+
+    it('writes the shared prize on a dungeon aid at birth (D-20)', () => {
+        const { prizes } = buildAidQuest(
+            dungeon,
+            [INJURED_ID],
+            AID_ID,
+            turnOf(3),
+        );
+
+        expect(prizes.xpPrize).toBe(50);
+        expect(prizes.prizeCoins).toEqual({ gold: 0, silver: 50, copper: 0 });
+        expect(prizes.prizeItem).toBeNull();
+        expect(prizes.randomLoot).toEqual([lootEntry]);
+        expect(prizes.pet).toEqual(PET_ID);
+    });
+
+    it('shares again from the original in a chain (D-20)', () => {
+        const first = buildAidQuest(dungeon, [INJURED_ID], AID_ID, turnOf(3));
+        const second = buildAidQuest(
+            dungeon,
+            [RESCUER_ID],
+            NEXT_AID_ID,
+            turnOf(1),
+        );
+
+        expect(first.prizes.xpPrize).toBe(50);
+        expect(second.prizes.xpPrize).toBe(25);
+        expect(second.prizes.prizeCoins).toEqual({
+            gold: 0,
+            silver: 25,
+            copper: 0,
+        });
+    });
+
+    it('rescales an already shared aid by the ratio of the shares (D-20)', () => {
+        const sharedAid: AidSourceQuest = {
+            ...dungeon,
+            _id: AID_ID,
+            prizes: { ...dungeon.prizes, xpPrize: 50 },
+            rescue: { failedQuest: ORIGINAL_ID, turn: turnOf(3) },
+        };
+
+        const { prizes } = buildAidQuest(
+            sharedAid,
+            [RESCUER_ID],
+            NEXT_AID_ID,
+            turnOf(1),
+        );
+
+        expect(prizes.xpPrize).toBe(25);
+    });
+
+    it('keeps the full prize on an aid without a turn (D-14)', () => {
+        const hunt: AidSourceQuest = {
+            ...dungeon,
+            infos: { ...dungeon.infos, type: QuestType.hunt },
+        };
+
+        const { prizes } = buildAidQuest(hunt, [INJURED_ID], AID_ID);
+
+        expect(prizes).toEqual({
+            prizeCoins: { gold: 1, silver: 0, copper: 1 },
+            xpPrize: 101,
+            prizeItem: lootEntry,
+            randomLoot: [lootEntry],
+            spell: null,
+            pet: PET_ID,
+        });
+    });
+});
+
 describe('aidSlotsOf', () => {
     it.each([
         ['a single rank slot', [{ title: TitleType.hero, count: 5 }]],

@@ -398,6 +398,30 @@ describe('drawRewards with a pet prize', () => {
         expect(rewards.pet).toBeNull();
         expect(chance.drawn).toEqual([0.1, 0.2, 0.7]);
     });
+
+    it('scales the pet chance by the share with the same draws (D-20)', () => {
+        const halved = new SequenceChance([0.9, 0.2, 0.7, 0.15]);
+        const full = new SequenceChance([0.9, 0.2, 0.7, 0.15]);
+
+        const shared = drawRewards(petPrizes(), petCatalog, halved, 0.5);
+        const whole = drawRewards(petPrizes(), petCatalog, full, 1);
+
+        expect(shared.pet).toBeNull();
+        expect(whole.pet).toEqual(PET_ID);
+        expect(halved.drawn).toEqual(full.drawn);
+    });
+
+    it('draws as today without a share (D-14)', () => {
+        const chance = new SequenceChance([0.1, 0.2, 0.7, 0.15]);
+
+        const rewards = drawRewards(petPrizes(), petCatalog, chance);
+
+        expect(rewards.pet).toEqual(PET_ID);
+        expect(rewards.items).toEqual([
+            { itemType: 'LootItem', item: BONE_ID, quantity: 1 },
+        ]);
+        expect(chance.drawn).toEqual([0.1, 0.2, 0.7, 0.15]);
+    });
 });
 
 describe('drawRewards with a study lore pool', () => {
