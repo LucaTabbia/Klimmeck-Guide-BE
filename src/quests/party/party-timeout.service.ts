@@ -191,6 +191,7 @@ export class PartyTimeoutService {
             this.push,
             questId,
             characterIds,
+            this.logger,
         );
     }
 

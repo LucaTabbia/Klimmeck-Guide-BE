@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { AuthException } from 'src/auth/auth.exception';
@@ -21,6 +21,8 @@ interface LinkedUser {
 
 @Injectable()
 export class CharacterDeletionService {
+    private readonly logger = new Logger(CharacterDeletionService.name);
+
     constructor(
         @InjectConnection() private readonly connection: Connection,
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
@@ -80,6 +82,7 @@ export class CharacterDeletionService {
                 this.push,
                 questId,
                 characterIds,
+                this.logger,
             );
         }
     }

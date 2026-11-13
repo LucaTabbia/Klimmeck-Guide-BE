@@ -9,6 +9,7 @@ import type { PendingQuestDocument } from 'src/models/pending-quest.model';
 import type { QuestDocument } from 'src/models/quest/quest.model';
 import type { UserDocument } from 'src/models/user.model';
 import { idForms, refIdOf } from 'src/mongo/document-id';
+import { describeError } from 'src/mongo/mongo-errors';
 import { ownersOf } from 'src/mongo/owners-of';
 import { questCancelled } from 'src/push/push-events';
 import type { PushService } from 'src/push/push.service';
@@ -112,16 +113,24 @@ export async function releaseRegisteredWithin(
     return released;
 }
 
+// best-effort dopo il commit (B-IN-04): un errore non annulla mai lo scioglimento, la morte o la cancellazione già scritti
 export async function notifyQuestCancelled(
     userModel: Model<UserDocument>,
     push: Pick<PushService, 'sendToUser'>,
     questId: Types.ObjectId,
     characterIds: readonly Types.ObjectId[],
+    logger: WarnLogger,
 ): Promise<void> {
     if (characterIds.length === 0) return;
-    const owners = await ownersOf(userModel, characterIds);
-    const message = questCancelled(questId.toHexString());
-    for (const ownerId of owners.values()) {
-        await push.sendToUser(ownerId, message);
+    try {
+        const owners = await ownersOf(userModel, characterIds);
+        const message = questCancelled(questId.toHexString());
+        for (const ownerId of owners.values()) {
+            await push.sendToUser(ownerId, message);
+        }
+    } catch (error) {
+        logger.warn(
+            `Push questCancelled della missione ${questId.toHexString()} non inviata: ${describeError(error)}`,
+        );
     }
 }
