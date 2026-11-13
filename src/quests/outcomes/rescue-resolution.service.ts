@@ -26,8 +26,22 @@ import {
     isAidTimeoutDue,
 } from './aid/aid-timeout';
 import { ChanceSource } from './chance-source';
-import { CombatResolver } from './combat/combat-resolver';
-import { battleOf, combatContextOf, planCombatant } from './combatant-plan';
+import { type CombatContext, CombatResolver } from './combat/combat-resolver';
+import {
+    battleOf,
+    type CombatantBattle,
+    combatContextOf,
+    dungeonBattleOf,
+    planCombatant,
+} from './combatant-plan';
+import { buildDungeonContext } from './dungeon/dungeon-context';
+import { DungeonResolver } from './dungeon/dungeon-resolver';
+import {
+    facedEnemyCountOf,
+    nextRescueTurnOf,
+    type RescueTurn,
+    rescueTurnOf,
+} from './dungeon/dungeon-turns';
 import {
     fightersOf,
     type GroupRoster,
@@ -152,6 +166,14 @@ type WoundedResult = CommittedOutcome['results'][number];
 interface RescueFight {
     committed: CommittedOutcome;
     fallen: Types.ObjectId[];
+    // turno da salvare sulla nuova aid se i soccorritori cadono in una dungeon (D-26)
+    nextTurn: RescueTurn | null;
+}
+
+// battaglia per posto e turno della caduta: un'aid di dungeon percorre i turni, le altre combattono una volta
+interface RescueBattle {
+    battleOf(characterId: Types.ObjectId): CombatantBattle | null;
+    nextTurn: RescueTurn | null;
 }
 
 type WoundedSettlement = Pick<CommittedOutcome, 'results' | 'aids'>;
@@ -176,6 +198,7 @@ export class RescueResolutionService {
         private readonly writer: OutcomeWriter,
         private readonly archiver: CharacterArchiver,
         private readonly combat: CombatResolver,
+        private readonly dungeon: DungeonResolver,
         private readonly chance: ChanceSource,
         private readonly partyTimeout: PartyTimeoutService,
         private readonly clock: Clock,
@@ -369,7 +392,7 @@ export class RescueResolutionService {
         released: ReleasedRescuers[],
     ): Promise<CommittedOutcome> {
         const wounded = await this.woundedInSession(context, session, notes);
-        const { committed, fallen } = await this.fightRescuers(
+        const { committed, fallen, nextTurn } = await this.fightRescuers(
             context,
             session,
             rescuableOf(wounded),
@@ -377,6 +400,7 @@ export class RescueResolutionService {
         const settled = await this.settleWounded(
             { context, wounded, session, notes, released },
             fallen,
+            nextTurn,
         );
         committed.results.push(...settled.results);
         committed.aids.push(...settled.aids);
@@ -412,13 +436,22 @@ export class RescueResolutionService {
                 ),
             );
         }
-        const combatContext = combatContextOf(aid, catalog, [
-            ...rescuers,
-            ...holders,
-        ]);
-        const resolution = combatContext
-            ? this.combat.resolve(combatContext, this.chance)
-            : null;
+        const participants = [...rescuers, ...holders];
+        const turn = rescueTurnOf(aid.rescue?.turn);
+        const combatContext = combatContextOf(aid, catalog, participants);
+        const battle = this.rescueBattleOf(
+            aid,
+            combatContext,
+            participants,
+            turn,
+        );
+        // xp e conoscenze dei soli gruppi affrontati fino al turno salvato (D-12)
+        const faced = turn
+            ? {
+                  ...catalog,
+                  enemies: catalog.enemies.slice(0, facedEnemyCountOf(turn)),
+              }
+            : catalog;
         const committed = emptyCommitted();
         const verdicts: Parameters<typeof questUpdateOf>[0]['verdicts'] = [];
         const fallen: Types.ObjectId[] = [];
@@ -430,9 +463,9 @@ export class RescueResolutionService {
                 aid: nextAid,
             } = planCombatant({
                 quest: aid,
-                catalog,
+                catalog: faced,
                 snapshot,
-                battle: battleOf(resolution, snapshot._id),
+                battle: battle.battleOf(snapshot._id),
                 resultId: seat.resultId,
                 aidQuestId: context.nextAidId,
                 pendingQuestId: seat.pendingQuestId,
@@ -472,13 +505,46 @@ export class RescueResolutionService {
             session,
             'claim',
         );
-        return { committed, fallen };
+        return { committed, fallen, nextTurn: battle.nextTurn };
+    }
+
+    // stessa porta della dungeon fino al turno salvato (D-12, D-13); senza turno salvato il combattimento unico di sempre
+    private rescueBattleOf(
+        aid: ResolutionQuest,
+        combatContext: CombatContext | null,
+        participants: readonly ResolutionCharacter[],
+        turn: RescueTurn | null,
+    ): RescueBattle {
+        if (!combatContext) return { battleOf: () => null, nextTurn: null };
+        if (!turn) {
+            const resolution = this.combat.resolve(combatContext, this.chance);
+            return {
+                battleOf: (id) => battleOf(resolution, id),
+                nextTurn: null,
+            };
+        }
+        const resolution = this.dungeon.explore(
+            {
+                ...buildDungeonContext({
+                    combat: combatContext,
+                    recommendedLoot: aid.requirements?.recommendedLoot,
+                    participants,
+                }),
+                lastTurnIndex: turn.index,
+            },
+            this.chance,
+        );
+        return {
+            battleOf: (id) => dungeonBattleOf(resolution, id),
+            nextTurn: nextRescueTurnOf(resolution, turn),
+        };
     }
 
     // un solo verdetto per tutti i feriti: liberati se nessun soccorritore è caduto, altrimenti morti e una nuova aid per i caduti
     private async settleWounded(
         step: WoundedStep,
         fallen: readonly Types.ObjectId[],
+        nextTurn: RescueTurn | null,
     ): Promise<WoundedSettlement> {
         if (fallen.length === 0) {
             return { results: await this.liberate(step), aids: [] };
@@ -490,6 +556,7 @@ export class RescueResolutionService {
                 context.original ?? context.loaded.quest,
                 fallen,
                 context.nextAidId,
+                nextTurn,
             ),
             session,
         );
@@ -596,6 +663,7 @@ export class RescueResolutionService {
                 quest: aid,
                 userId: owner,
                 now,
+                turn: rescueTurnOf(aid.rescue?.turn),
             }),
             session,
         );
