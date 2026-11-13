@@ -1,5 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
+import { CharacterArchiver } from 'src/characters/deletion/character-archiver';
+import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import { createPlayer } from '../../../test/authz/player-fixture';
 import {
@@ -454,6 +456,86 @@ describe('RescueResolutionService on a dungeon aid (replSet)', () => {
         const result = await resultOf(rescuer.characterId);
         expect(result.outcome).toBe('success');
         expect(turnsOf(result)).toEqual(NO_TURNS);
+    });
+
+    // il ferito cancella il personaggio a countdown partito: l'archivio conclude l'aid avviata e lascia il soccorritore in corsia
+    describe('a dungeon aid left without wounded after the start', () => {
+        async function emptiedAidWorld() {
+            const built = await dungeonAidWorld();
+            const rescuer = await rescuerOn(built.aid);
+            await world.harness.connection.transaction((session) =>
+                world.harness.app
+                    .get(CharacterArchiver)
+                    .archiveWithinReporting(session, {
+                        userId: built.wounded.player.user._id as Types.ObjectId,
+                        characterId: built.wounded.characterId,
+                        reason: DeletionReason.user_request,
+                        now: NOW,
+                    }),
+            );
+            const emptied = await questOf(built.aid._id);
+            expect(emptied.rescue.characters).toEqual([]);
+            expect(emptied.rescue.turn).toEqual(SAVED_TURN);
+            return { ...built, rescuer };
+        }
+
+        it('walks the rescuer through the turns up to the saved one (C-WR-01, D-12, D-21)', async () => {
+            const { enemies, aid, rescuer } = await emptiedAidWorld();
+
+            await expect(resolve(rescuer)).resolves.toBe('resolved');
+
+            expect(
+                dungeon.contexts.map((context) => context.lastTurnIndex),
+            ).toEqual([4]);
+            expect(scripted.contexts).toHaveLength(2);
+            const result = await resultOf(rescuer.characterId);
+            expect(result.outcome).toBe('success');
+            expect(turnsOf(result)).toEqual({
+                turnsTotal: 8,
+                turnsCompleted: 5,
+                lastTurn: 5,
+                lastTurnKind: 'exploration',
+            });
+            expect(result).toMatchObject({ stagesCleared: 2, stagesTotal: 4 });
+            expect(asStrings(result.enemies)).toEqual(
+                asStrings(enemies.slice(0, 2)),
+            );
+            expect(result.xpGained).toBe(aid.prizes.xpPrize + 20 + 2 * 5);
+        });
+
+        // 50 xp × 5/8 = 31 sull'aid; la nuova aid riscala col rapporto delle quote: 31 × 2/5 = 12, come 50 × 2/8
+        it('saves the turn of the rescuer who falls on the next aid (C-WR-01, D-20, D-26)', async () => {
+            const { wounded, aid, rescuer } = await emptiedAidWorld();
+            expect(aid.prizes.xpPrize).toBe(31);
+            scripted.willEnd('failure');
+
+            await expect(resolve(rescuer)).resolves.toBe('resolved');
+
+            expect(
+                dungeon.contexts.map((context) => context.lastTurnIndex),
+            ).toEqual([4]);
+            const fallen = await resultOf(rescuer.characterId);
+            expect(fallen.outcome).toBe('failure');
+            expect(turnsOf(fallen)).toEqual({
+                turnsTotal: 8,
+                turnsCompleted: 1,
+                lastTurn: 2,
+                lastTurnKind: 'fight',
+            });
+            const rescuerAfter = await characterOf(rescuer.characterId);
+            const chained = await questOf(
+                rescuerAfter.status.awaitingAid.aidQuest,
+            );
+            expect(chained.rescue.turn).toEqual({
+                index: 1,
+                kind: 'fight',
+                total: 8,
+            });
+            expect(String(chained.rescue.failedQuest)).toBe(
+                String(wounded.quest._id),
+            );
+            expect(chained.prizes.xpPrize).toBe(12);
+        });
     });
 
     describe('the shared prize of the rescuer', () => {
