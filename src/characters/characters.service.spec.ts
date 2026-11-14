@@ -45,6 +45,7 @@ const mockCharacterModel = {
 };
 const mockSpellModel = { findById: jest.fn() };
 const missionLock = { assertFree: jest.fn().mockResolvedValue(undefined) };
+const mockPetModel = { find: jest.fn() };
 const connection = { transaction: jest.fn() };
 const NOW = new Date('2026-10-27T10:00:00.000Z');
 
@@ -88,7 +89,7 @@ describe('CharactersService (unit — spell mutations)', () => {
                     provide: getModelToken(Spell.name),
                     useValue: mockSpellModel,
                 },
-                { provide: getModelToken(Pet.name), useValue: {} },
+                { provide: getModelToken(Pet.name), useValue: mockPetModel },
                 { provide: getConnectionToken(), useValue: connection },
                 {
                     provide: getQueueToken('spell-recovery'),
@@ -679,6 +680,57 @@ describe('CharactersService (unit — spell mutations)', () => {
                 }),
             ).rejects.toMatchObject({ code: 'PET_NOT_OWNED' });
             expect(connection.transaction).not.toHaveBeenCalled();
+        });
+
+        it('refuses to rename through a malformed pet id with PET_NOT_OWNED before the transaction (D-21)', async () => {
+            await expect(
+                service.renamePet({
+                    id: new Types.ObjectId().toHexString(),
+                    petId: 'abc',
+                    name: 'Fenrir',
+                }),
+            ).rejects.toMatchObject({ code: 'PET_NOT_OWNED' });
+            expect(connection.transaction).not.toHaveBeenCalled();
+        });
+
+        it('answers PET_NOT_OWNED when the slot-guarded write matches nothing (D-04)', async () => {
+            const id = new Types.ObjectId();
+            const petId = new Types.ObjectId();
+            const session = {};
+            connection.transaction.mockImplementationOnce(
+                (work: (s: unknown) => Promise<unknown>) => work(session),
+            );
+            mockCharacterModel.findOne.mockReturnValueOnce({
+                session: jest.fn().mockReturnThis(),
+                ...asLeanQuery({
+                    _id: id,
+                    assets: {
+                        pet: null,
+                        ownedPets: [
+                            {
+                                pet: petId,
+                                xp: 0,
+                                currentLifePoints: 10,
+                                level: 1,
+                            },
+                        ],
+                    },
+                }),
+            });
+            mockPetModel.find.mockReturnValueOnce({
+                session: jest.fn().mockReturnThis(),
+                ...asLeanQuery([{ _id: petId, maxLifePoints: 10 }]),
+            });
+            mockCharacterModel.updateOne.mockReturnValueOnce(asUpdate(0));
+
+            await expect(
+                service.renamePet({
+                    id: id.toHexString(),
+                    petId: petId.toHexString(),
+                    name: 'Fenrir',
+                }),
+            ).rejects.toMatchObject({ code: 'PET_NOT_OWNED' });
+            expect(mockCharacterModel.updateOne).toHaveBeenCalledTimes(1);
         });
     });
 
