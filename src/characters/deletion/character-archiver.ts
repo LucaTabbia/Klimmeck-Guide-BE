@@ -19,8 +19,16 @@ import {
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
-import { idForms } from 'src/mongo/document-id';
+import { idForms, isObjectId, refIdOf } from 'src/mongo/document-id';
+import { GM_LANES, GmLane } from 'src/quests/acceptance/quest-lanes';
 import { releaseRegisteredWithin } from 'src/quests/party/registered-release';
+
+const GM_LANES_FREED = Object.fromEntries(
+    GM_LANES.map((lane) => [`quests.${lane}`, null]),
+);
+const GM_LANES_PROJECTION = Object.fromEntries(
+    GM_LANES.map((lane) => [`quests.${lane}`, 1]),
+);
 
 export type ArchiveOutcome = 'archived' | 'unlinked' | 'not-linked';
 
@@ -67,20 +75,43 @@ export class CharacterArchiver {
             : await this.unlinkOf(userId, characterId, session);
         if (!linked) return { outcome: 'not-linked', released: [] };
         const archived = await this.characterModel
-            .updateOne(
+            .findOneAndUpdate(
                 activeCharacterById(characterId),
-                { $set: { deletedAt: now, deletionReason: reason } },
-                { session },
+                {
+                    $set: {
+                        deletedAt: now,
+                        deletionReason: reason,
+                        ...GM_LANES_FREED,
+                    },
+                },
+                { session, projection: GM_LANES_PROJECTION },
             )
+            .lean<{ quests?: Partial<Record<GmLane, unknown>> | null }>()
             .exec();
-        if (archived.matchedCount === 0) {
+        if (archived === null) {
             const outcome = dying
                 ? this.deathAlreadyRecorded(userId, characterId)
                 : await this.unlinkedAnyway(userId, characterId, session);
             return { outcome, released: [] };
         }
+        await this.deleteGmRequestsOf(archived.quests, session);
         const released = await this.releaseQuestsOf(characterId, now, session);
         return { outcome: 'archived', released };
+    }
+
+    // nessun oste completerà la story o la worldMission di un archiviato: la richiesta sparisce con lui (utente 2026-11-14);
+    // la corsia standard resta, la chiude la risoluzione della quest (segnaposto, D-21)
+    private async deleteGmRequestsOf(
+        quests: Partial<Record<GmLane, unknown>> | null | undefined,
+        session: ClientSession,
+    ): Promise<void> {
+        const requestIds = GM_LANES.map((lane) =>
+            refIdOf(quests?.[lane]),
+        ).filter(isObjectId);
+        if (requestIds.length === 0) return;
+        await this.pendingQuestModel
+            .deleteMany({ _id: { $in: requestIds } }, { session })
+            .exec();
     }
 
     // la morte non stacca il personaggio corrente: lo stacca la conferma del suo foglio (D-12); solo verifica in sessione

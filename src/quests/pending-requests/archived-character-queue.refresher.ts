@@ -10,7 +10,7 @@ import { ChangeStreamPublisher } from 'src/mongo/change-stream-publisher';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { PendingRequestsPublisher } from './pending-requests.publisher';
 
-// l'archivio non tocca le PendingQuest: senza questo osservatore la voce di un archiviato resterebbe in coda fino al ricalcolo successivo (D-23)
+// l'archivio cancella le richieste dell'archiviato nella sua transazione: questo osservatore ricalcola la coda subito dopo (D-23)
 const ARCHIVED_CHARACTER_CHANGES = {
     pipeline: [
         {

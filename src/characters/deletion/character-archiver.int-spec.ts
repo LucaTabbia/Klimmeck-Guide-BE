@@ -10,6 +10,10 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
+import {
+    PendingQuest,
+    PendingQuestDocument,
+} from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import {
@@ -37,6 +41,7 @@ describe('CharacterArchiver.archiveWithinReporting (replSet)', () => {
     let users: Model<UserDocument>;
     let characters: Model<CharacterDocument>;
     let quests: Model<QuestDocument>;
+    let pendingQuests: Model<PendingQuestDocument>;
 
     beforeAll(async () => {
         harness = await createAuthTestApp({
@@ -48,8 +53,16 @@ describe('CharacterArchiver.archiveWithinReporting (replSet)', () => {
             Character.name,
         );
         quests = harness.connection.model<QuestDocument>(Quest.name);
+        pendingQuests = harness.connection.model<PendingQuestDocument>(
+            PendingQuest.name,
+        );
         // collection pronte prima delle transazioni (Pitfall 9)
-        await Promise.all([users.init(), characters.init(), quests.init()]);
+        await Promise.all([
+            users.init(),
+            characters.init(),
+            quests.init(),
+            pendingQuests.init(),
+        ]);
     });
 
     afterEach(async () => {
@@ -756,6 +769,139 @@ describe('CharacterArchiver.archiveWithinReporting (replSet)', () => {
         expect(outcome).toBe('archived');
         expect((await rawUser(scene.userId))?.currentCharacter).toBeNull();
         expect((await rawCharacter(scene.characterId))?.deletedAt).toEqual(NOW);
+    });
+
+    describe('requests waiting for the innkeeper (utente 2026-11-14)', () => {
+        interface Lanes {
+            story: Types.ObjectId;
+            worldMission: Types.ObjectId;
+            standard: Types.ObjectId;
+        }
+
+        async function persistPendingQuest(): Promise<Types.ObjectId> {
+            const quest = await persistQuest(quests, {});
+            const pending = await pendingQuests.create({
+                quest: quest._id,
+                startDate: YESTERDAY,
+                waitingTime: 0,
+            });
+            return pending._id as Types.ObjectId;
+        }
+
+        async function holdLanes(characterId: Types.ObjectId): Promise<Lanes> {
+            const lanes = {
+                story: await persistPendingQuest(),
+                worldMission: await persistPendingQuest(),
+                standard: await persistPendingQuest(),
+            };
+            await characters.collection.updateOne(
+                { _id: characterId },
+                {
+                    $set: {
+                        'quests.activeStoryQuest': lanes.story,
+                        'quests.activeWorldMissionQuest': lanes.worldMission,
+                        'quests.pendingQuest': lanes.standard,
+                    },
+                },
+            );
+            return lanes;
+        }
+
+        function livePendingQuests(): Promise<string[]> {
+            return pendingQuests.collection
+                .find({}, { projection: { _id: 1 } })
+                .toArray()
+                .then((found) => found.map(({ _id }) => String(_id)).sort());
+        }
+
+        it('deletes the story and world mission requests of the archived character and frees its lanes', async () => {
+            const scene = await persistScene();
+            const lanes = await holdLanes(scene.characterId);
+            const others = await holdLanes(scene.other);
+
+            await archiveInTransaction(scene.userId, scene.characterId);
+
+            expect(await livePendingQuests()).toEqual(
+                [
+                    lanes.standard,
+                    others.story,
+                    others.worldMission,
+                    others.standard,
+                ]
+                    .map(String)
+                    .sort(),
+            );
+            const archived = await rawCharacter(scene.characterId);
+            expect(archived?.quests.activeStoryQuest).toBeNull();
+            expect(archived?.quests.activeWorldMissionQuest).toBeNull();
+            expect(archived?.quests.pendingQuest).toEqual(lanes.standard);
+        });
+
+        it('deletes the requests of a character archived by death', async () => {
+            const scene = await persistScene();
+            const lanes = await holdLanes(scene.characterId);
+
+            await archiveInTransaction(
+                scene.userId,
+                scene.characterId,
+                DeletionReason.death,
+            );
+
+            expect(await livePendingQuests()).toEqual([String(lanes.standard)]);
+        });
+
+        it('deletes a request saved as a hex string (D-17d)', async () => {
+            const scene = await persistScene();
+            const story = await persistPendingQuest();
+            await characters.collection.updateOne(
+                { _id: scene.characterId },
+                { $set: { 'quests.activeStoryQuest': story.toHexString() } },
+            );
+
+            await archiveInTransaction(scene.userId, scene.characterId);
+
+            expect(await livePendingQuests()).toEqual([]);
+        });
+
+        it('keeps the requests when the caller transaction aborts', async () => {
+            const scene = await persistScene();
+            const lanes = await holdLanes(scene.characterId);
+
+            await expect(
+                harness.connection.transaction(async (session) => {
+                    await archiver.archiveWithinReporting(session, {
+                        userId: scene.userId,
+                        characterId: scene.characterId,
+                        reason: DeletionReason.user_request,
+                        now: NOW,
+                    });
+                    throw new Error('abort');
+                }),
+            ).rejects.toThrow('abort');
+
+            expect(await livePendingQuests()).toHaveLength(3);
+            expect(
+                (await rawCharacter(scene.characterId))?.quests
+                    .activeStoryQuest,
+            ).toEqual(lanes.story);
+        });
+
+        it('keeps the requests of a character it does not archive', async () => {
+            const scene = await persistScene();
+            await holdLanes(scene.characterId);
+            const stranger = await persistUser(users, {
+                twitchId: 'twitch-stranger',
+                currentCharacter: scene.other,
+            });
+
+            const outcome = await archiveInTransaction(
+                stranger._id as Types.ObjectId,
+                scene.characterId,
+            );
+
+            expect(outcome).toBe('not-linked');
+            expect(await livePendingQuests()).toHaveLength(3);
+        });
     });
 
     it('writes nothing when the caller transaction aborts after archiving', async () => {
