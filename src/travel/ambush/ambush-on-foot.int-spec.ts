@@ -1,4 +1,6 @@
 import type { Types } from 'mongoose';
+import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
+import { TitleType } from 'src/models/enums/title-type.enum';
 import { QuestResultsModule } from 'src/quests/results/quest-results.module';
 import { RoadsService } from 'src/roads/roads.service';
 import { foodPlanOf, planTravelFood } from 'src/travel/food/travel-food';
@@ -6,9 +8,10 @@ import { TravelCompletionService } from 'src/travel/travel-completion.service';
 import { travelJobId } from 'src/travel/travel-job';
 import { TravelModule } from 'src/travel/travel.module';
 import { TravelScheduler } from 'src/travel/travel-scheduler.service';
+import { BASE_SPEED, durationMsOf } from 'src/travel/travel-timing';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
-import { persistPet } from '../../../test/fixtures';
+import { buildQuest, persistPet, persistQuest } from '../../../test/fixtures';
 import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
     createOutcomeHarness,
@@ -60,6 +63,8 @@ const RIDE_FOOD = {
 // 73 cibi: 3 allo stop, 70 (1400 power) per i 1480 della strada a piedi → 20 km scoperti, fame 210
 const PANTRY = 73;
 const AFTER_STOP = PANTRY - 3;
+// sotto la fame della strada a piedi (210): con questa vita il personaggio non arriverebbe vivo (D-16)
+const STARVING_HP = 150;
 
 describe('the residual road on foot (replica set)', () => {
     const clock = new FixedClock(START);
@@ -95,6 +100,7 @@ describe('the residual road on foot (replica set)', () => {
     // a cavallo sul compagno Fenrir, che cade nell'imboscata vinta; mount null = viaggio partito prima della fase
     const riderWith = async (
         mount: 'horse' | null,
+        hp?: number,
     ): Promise<{ subject: Traveller; horse: Types.ObjectId }> => {
         seq += 1;
         const horse = (
@@ -112,6 +118,7 @@ describe('the residual road on foot (replica set)', () => {
             distanceKm: ROAD_KM,
             durationMs: RIDE_MS,
             food: RIDE_FOOD,
+            hp,
             characterOverrides: {
                 assets: {
                     pet: horse,
@@ -154,6 +161,52 @@ describe('the residual road on foot (replica set)', () => {
         combat
             .willEnd('success')
             .willResolve(subject.characterId, { companionLifeAfter: 1 });
+    };
+
+    const ambushLostWith = (
+        subject: Traveller,
+        companionLifeAfter: number,
+    ): void => {
+        chance.load([...SINGLE_FIRST_CANDIDATE]);
+        combat.willEnd('failure').willResolve(subject.characterId, {
+            hpAfter: 0,
+            companionLifeAfter,
+        });
+    };
+
+    // in viaggio verso una quest della corsia standard col posto occupato
+    const onQuestLane = async (
+        subject: Traveller,
+    ): Promise<{ quest: Types.ObjectId; pending: Types.ObjectId }> => {
+        const quest = await persistQuest(
+            world.models.quests,
+            buildQuest({
+                registeredAdventurers: [
+                    { character: subject.characterId, title: TitleType.rookie },
+                ],
+            }),
+        );
+        const pending = await world.models.pendingQuests.create({
+            startDate: null,
+            arrivedAt: null,
+            waitingTime: 0,
+            pointsSpent: 0,
+            quest: quest._id,
+        });
+        await world.models.characters.updateOne(
+            { _id: subject.characterId },
+            {
+                $set: {
+                    'quests.pendingQuest': pending._id,
+                    'status.activeTravel.kind': 'quest',
+                    'status.activeTravel.to': map.questPoi,
+                },
+            },
+        );
+        return {
+            quest: quest._id as Types.ObjectId,
+            pending: pending._id as Types.ObjectId,
+        };
     };
 
     const walkFoodOf = (hpBefore: number) =>
@@ -314,5 +367,147 @@ describe('the residual road on foot (replica set)', () => {
         expect(raw.status.activeTravel).toBeNull();
         expect(raw.status.currentLifePoints).toBe(lifeAfterFight - walk.hpLost);
         expect(raw.assets.ownedItems).toEqual([]);
+    });
+    describe('the hunger redirection (Phase 23)', () => {
+        it('redirects to the nearest city and abandons the quest when the food no longer suffices (D-16)', async () => {
+            const { subject } = await riderWith('horse', STARVING_HP);
+            const { quest, pending } = await onQuestLane(subject);
+            const { at } = subject.identity;
+            ambushFallsTheMount(subject, null);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+
+            const raw = await rawOf(subject);
+            const { activeTravel } = raw.status;
+            expect(activeTravel.to).toEqual(map.markers.alba);
+            expect(activeTravel.kind).toBe('free');
+            expect(activeTravel.startTime).toEqual(at);
+            expect(activeTravel.duration).toBe(
+                durationMsOf(activeTravel.road.distance, BASE_SPEED),
+            );
+            expect(Object.keys(activeTravel)).not.toContain('food');
+            expect(Object.keys(activeTravel)).not.toContain('ambush');
+            expect(raw.assets.ownedItems).toEqual([
+                foodStack(food, AFTER_STOP),
+            ]);
+            expect(raw.quests.pendingQuest).toBeNull();
+            expect(
+                await world.models.pendingQuests.countDocuments({
+                    _id: pending,
+                }),
+            ).toBe(0);
+            expect(
+                (await world.models.quests.findById(quest).lean<any>().exec())
+                    .registeredAdventurers,
+            ).toEqual([]);
+            const result = await ambushResultOf(subject);
+            expect(result.outcome).toBe(QuestOutcome.success);
+            expect(result.ambush.reachedCity).toEqual(
+                expect.objectContaining({ name: 'Alba' }),
+            );
+            expect(result.ambush.onFoot).toBe(true);
+        });
+
+        it('moves the jobs to the redirected travel and plans no ambush (D-16, Pitfall 5)', async () => {
+            const { subject } = await riderWith('horse', STARVING_HP);
+            const { at, characterId } = subject.identity;
+            await world.harness.app.get(TravelScheduler).schedule(characterId, {
+                startTime: START,
+                endTime: new Date(START.getTime() + RIDE_MS),
+            });
+            travelQueue.added.length = 0;
+            ambushFallsTheMount(subject, NEXT_KM);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+
+            const { activeTravel } = (await rawOf(subject)).status;
+            expect(Object.keys(activeTravel)).not.toContain('ambush');
+            expect(travelQueue.removed).toEqual([
+                travelJobId(characterId, START),
+            ]);
+            expect(
+                travelQueue.added.map(({ name, options }) => [
+                    name,
+                    options.jobId,
+                ]),
+            ).toEqual([['complete', travelJobId(characterId, at)]]);
+            expect(travelQueue.added[0].data).toEqual({
+                characterId: characterId.toHexString(),
+                startTime: at.getTime(),
+                endTime: activeTravel.endTime.getTime(),
+            });
+        });
+
+        it('tells the hunger redirection in the push (D-14, D-16)', async () => {
+            const { subject } = await riderWith('horse', STARVING_HP);
+            await registerDevice(world.harness, subject.player);
+            ambushFallsTheMount(subject, null);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+
+            expect(world.push.sent).toHaveLength(1);
+            expect(world.push.sent[0].message.body).toMatch(
+                /: Fenrir è stato sconfitto, prosegui a piedi; la fame ti porta verso Alba$/,
+            );
+        });
+
+        it('walks the detour of a lost ambush whose companion falls (D-16, C-11)', async () => {
+            const { subject } = await riderWith('horse');
+            ambushLostWith(subject, 1);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const raw = await rawOf(subject);
+            const { activeTravel } = raw.status;
+            const walked = durationMsOf(activeTravel.road.distance, BASE_SPEED);
+            expect(activeTravel.to).toEqual(map.markers.alba);
+            expect(activeTravel.duration).toBe(walked);
+            expect(activeTravel.endTime).toEqual(
+                new Date(subject.identity.at.getTime() + walked),
+            );
+            expect(raw.assets.pet).toBeNull();
+            expect((await ambushResultOf(subject)).ambush.onFoot).toBe(true);
+        });
+
+        it('rides the detour of a lost ambush whose companion stands (D-29, C-11)', async () => {
+            const { subject } = await riderWith('horse');
+            ambushLostWith(subject, 4);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const { activeTravel } = (await rawOf(subject)).status;
+            expect(activeTravel.duration).toBe(
+                durationMsOf(activeTravel.road.distance, BASE_SPEED * FACTOR),
+            );
+            expect((await ambushResultOf(subject)).ambush.onFoot).toBe(false);
+        });
+
+        it('goes on foot to the goal when the food is enough (D-13)', async () => {
+            const { subject } = await riderWith('horse');
+            const { pending } = await onQuestLane(subject);
+            ambushFallsTheMount(subject, null);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+
+            const raw = await rawOf(subject);
+            expect(raw.status.activeTravel.to).toEqual(map.questPoi);
+            expect(raw.status.activeTravel.duration).toBe(WALK_MS);
+            expect(raw.quests.pendingQuest).toEqual(pending);
+            const result = await ambushResultOf(subject);
+            expect(result.ambush.reachedCity).toBeNull();
+            expect(result.ambush.onFoot).toBe(true);
+        });
     });
 });
