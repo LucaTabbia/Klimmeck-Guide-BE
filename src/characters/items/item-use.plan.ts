@@ -61,6 +61,7 @@ export interface ItemUsePlanInput {
     itemId: Types.ObjectId;
     item: ItemUseCatalogSnapshot | null;
     now: Date;
+    missionInProgress: boolean;
 }
 
 export interface ItemUseOutcome {
@@ -130,6 +131,10 @@ function refuseWhileAwaitingAid(snapshot: ItemUseCharacterSnapshot): void {
     if (snapshot.status.awaitingAid != null) {
         throw GameRuleException.awaitingAid();
     }
+}
+
+function refuseWhileOnMission(onMission: boolean): void {
+    if (onMission) throw GameRuleException.missionInProgress();
 }
 
 function refuseUnlessOwned(
@@ -228,6 +233,8 @@ function writeGuardOf(
 export function planItemUse(input: ItemUsePlanInput): ItemUsePlan {
     const { snapshot, itemId, now } = input;
     refuseWhileAwaitingAid(snapshot);
+    // D-12: dopo il soccorso, prima di possesso, ricarica ed effetto (D-23)
+    refuseWhileOnMission(input.missionInProgress);
     refuseUnlessOwned(snapshot.assets, itemId);
     const potion = usablePotionOf(input.item);
     refuseWhileRecovering(snapshot.status.potionRecoveryUntil, now);
