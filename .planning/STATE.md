@@ -58,7 +58,7 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 
 ## Open Questions / Blockers
 
-- **PendingQuest orfane delle corsie GM (D-27, fuori scope della Phase 22):** le PendingQuest story/worldMission dei personaggi archiviati non vengono mai cancellate (`archived-character-queue.refresher.ts`, `gm-completion.service.ts`); trovato dalla ricerca della Phase 22, da decidere in una fase o quick successiva.
+- **PendingQuest orfane delle corsie GM (D-27) — CHIUSO il 2026-11-14** su `fix/archived-character-requests`: l'archivio cancella nella sua transazione le PendingQuest story/worldMission dell'archiviato e libera le due corsie (utente: «Le richieste dei personaggi archiviati vanno eliminate»); la corsia standard resta alla risoluzione della quest. A DB non c'era nessuna richiesta orfana da pulire.
 
 - **Durata dei viaggi** (UAT della Phase 20, 2026-11-13): lo `speedFactor` della strada vale come km/h del terreno (valori a DB da 3 a 7), non come moltiplicatore dei 10 km/h di base; l'utente se lo aspettava diverso e ha deciso «Per adesso teniamo com'è». Se cambia: riscalare gli `speedFactor` a DB, nessun cambio di codice.
 
