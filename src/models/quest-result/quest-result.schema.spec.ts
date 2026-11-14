@@ -41,6 +41,24 @@ const ambushResultDoc = () => ({
 describe('quest result schema', () => {
     const Result = model('QuestResultProbe', QuestResultSchema);
 
+    it('stores the companion outcome of a fight and defaults to null (D-10, D-27)', () => {
+        const companion = {
+            name: 'Fenrir',
+            lifeBefore: 60,
+            lifePoints: 1,
+            maxLifePoints: 100,
+            defeated: true,
+            fullLifeAt: new Date('2026-11-14T11:00:00.000Z'),
+        };
+
+        const without = new Result(validResultDoc());
+        const withCompanion = new Result({ ...validResultDoc(), companion });
+
+        expect(without.companion).toBeNull();
+        expect(withCompanion.validateSync()).toBeUndefined();
+        expect(withCompanion.toObject().companion).toEqual(companion);
+    });
+
     it('reads a legacy result without kind as a quest (D-14)', () => {
         const legacy = Result.hydrate({
             _id: new Types.ObjectId(),
