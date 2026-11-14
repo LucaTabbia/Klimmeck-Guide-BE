@@ -184,7 +184,10 @@ describe('GuidedMissionResolver (wire)', () => {
                 first.player.bearer,
             );
 
-            expect(body.data ?? null).toBeNull();
+            // la query è nullable: il rifiuto arriva come data { missionDraft: null }
+            expect(Object.values(body.data ?? {})).not.toContainEqual(
+                expect.anything(),
+            );
             expect(
                 body.errors?.map(({ extensions }) => extensions.code),
             ).toEqual(['FORBIDDEN']);

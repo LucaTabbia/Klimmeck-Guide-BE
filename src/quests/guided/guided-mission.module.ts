@@ -5,11 +5,14 @@ import {
     Character,
     CharacterSchema,
 } from 'src/models/character/character.model';
+import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import {
     PendingQuest,
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
 import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
+import { GuidedMissionResolver } from './guided-mission.resolver';
+import { MissionDraftPresenter } from './mission-draft.mapper';
 import { MissionDraft, MissionDraftSchema } from './mission-draft.model';
 import { MissionDraftService } from './mission-draft.service';
 
@@ -20,10 +23,16 @@ import { MissionDraftService } from './mission-draft.service';
             { name: MissionDraft.name, schema: MissionDraftSchema },
             { name: PendingQuest.name, schema: PendingQuestSchema },
             { name: Character.name, schema: CharacterSchema },
+            { name: Enemy.name, schema: EnemySchema },
         ]),
         QuestOutcomesModule,
     ],
-    providers: [MissionDraftService, { provide: Clock, useClass: SystemClock }],
+    providers: [
+        MissionDraftService,
+        MissionDraftPresenter,
+        GuidedMissionResolver,
+        { provide: Clock, useClass: SystemClock },
+    ],
     exports: [MissionDraftService],
 })
 export class GuidedMissionModule {}

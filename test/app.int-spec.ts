@@ -690,7 +690,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema.match(/type QuestRegistration \{[^}]*\}/)?.[0]).toBe(
             'type QuestRegistration {\n  character: ID!\n  registeredAt: DateTime\n  title: String!\n}',
         );
-        expect(schema).not.toMatch(
+        // MissionDraft.startedAt è l'avvio della bozza dell'oste (D-17), non un campo dell'esito della quest
+        const outsideMissionDraft = schema.replace(
+            /type MissionDraft \{[^}]*\}/,
+            '',
+        );
+        expect(outsideMissionDraft).not.toMatch(
             /concludedAt|startedAt|archivedAt|\brescue\b|\bgrade\b/,
         );
     });

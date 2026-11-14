@@ -406,6 +406,92 @@ type Lore {
   type: String!
 }
 
+type MissionDraft {
+  fights: [MissionFight!]!
+  id: ID!
+  participants: [MissionParticipant!]!
+  place: ID
+  prizes: [MissionPrize!]!
+  quest: ID!
+  questType: String!
+  startedAt: DateTime!
+  step: MissionDraftStep!
+  updatedAt: DateTime!
+}
+
+enum MissionDraftStep {
+  fights
+  prizes
+  recap
+  teleport
+}
+
+type MissionFight {
+  enemies: [MissionFightEnemy!]!
+  outcomes: [MissionFightOutcome!]!
+  verdict: MissionFightVerdict
+}
+
+type MissionFightEffects {
+  consumablesUsed: [MissionItemUsage!]!
+  hpAfter: Int!
+  injuriesAdded: [InjuryType!]!
+  spellsUsed: [MissionSpellUsage!]!
+}
+
+type MissionFightEnemy {
+  enemy: Enemy!
+  quantity: Int!
+}
+
+type MissionFightOutcome {
+  character: ID!
+  consumablesAvailable: [MissionItemUsage!]!
+  corrected: MissionFightEffects
+  hpBefore: Int!
+  injuriesBefore: [InjuryType!]!
+  simulated: MissionFightEffects
+  spellsAvailable: [MissionSpellUsage!]!
+}
+
+enum MissionFightVerdict {
+  failure
+  success
+}
+
+type MissionItemUsage {
+  item: ID!
+  quantity: Int!
+}
+
+type MissionParticipant {
+  character: ID!
+  maxLifePoints: Int!
+  name: String!
+  pendingQuest: ID!
+  title: String!
+}
+
+type MissionPrize {
+  character: ID!
+  coins: Coins!
+  cure: QuestCure
+  items: [MissionPrizeItem!]!
+  pet: ID
+  spell: ID
+  xp: Int!
+}
+
+type MissionPrizeItem {
+  item: ID!
+  quantity: Int!
+}
+
+type MissionSpellUsage {
+  spell: ID!
+  usages: Int!
+}
+
 type Mutation {
   abandonQuest(request: AbandonQuestRequest!): CommonResponse!
   acceptQuest(request: AcceptQuestRequest!): CommonResponse!
@@ -413,6 +499,7 @@ type Mutation {
   completePendingRequest(input: CompletePendingRequestInput!): [QuestResult!]!
   createCharacter(input: CreateCharacterInput!): User!
   deleteCharacter: User!
+  discardMissionDraft(pendingQuestId: ID!): CommonResponse!
   doTransaction(request: TransactionRequest!): CommonResponse!
   equipItem(request: EquipItemRequest!): CommonResponse!
   equipPet(request: EquipPetRequest!): CommonResponse!
@@ -423,6 +510,7 @@ type Mutation {
   refreshSession(refreshToken: String!): AuthSession!
   registerPushDevice(input: RegisterPushDeviceInput!): Boolean!
   sendTestPush(input: SendTestPushInput!): PushDeliveryReport!
+  startMissionDraft(pendingQuestId: ID!): MissionDraft!
   startTravel(request: TravelRequest!): CommonResponse!
   teleportCharacter(request: TravelRequest!): CommonResponse!
   unequipPet(request: UnequipPetRequest!): CommonResponse!
@@ -595,6 +683,7 @@ type Query {
   lore(id: String!): Lore!
   lores: [Lore!]!
   me: User!
+  missionDraft(pendingQuestId: ID!): MissionDraft
   pendingQuest(id: String!): PendingQuest!
   pendingQuests: [PendingQuest!]!
   pendingRequests: [PendingRequest!]!
