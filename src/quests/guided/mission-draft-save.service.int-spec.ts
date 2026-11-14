@@ -8,8 +8,12 @@ import type { ParticipantOverrideInput } from 'src/models/request/complete-pendi
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
+    buildEquipmentItem,
+    buildLootItem,
+    buildPet,
     buildPoi,
     buildQuest,
+    buildSpell,
     persistEnemy,
     persistLootItem,
     persistSpell,
@@ -26,6 +30,7 @@ import { SequenceChance } from '../../../test/quests/sequence-chance';
 import { GuidedMissionModule } from './guided-mission.module';
 import type {
     MissionFightInput,
+    MissionPrizeInput,
     SaveMissionDraftInput,
 } from './mission-draft.inputs';
 import {
@@ -33,6 +38,7 @@ import {
     type MissionDraftRecord,
     MissionDraftStep,
     type MissionFightRecord,
+    type MissionPrizeRecord,
 } from './mission-draft.model';
 import { MissionDraftSaveService } from './mission-draft-save.service';
 import { MissionDraftService } from './mission-draft.service';
@@ -467,6 +473,310 @@ describe('MissionDraftSaveService (replSet)', () => {
             expect(
                 outcomeOf(saved.fights[0], second)!.simulated,
             ).not.toBeNull();
+        });
+    });
+
+    describe('prizes', () => {
+        interface PrizeCatalogue {
+            commonLoot: string;
+            rareLoot: string;
+            legendarySword: string;
+            blockSword: string;
+            rarePet: string;
+            legendaryPet: string;
+            learnable: string;
+            blockSpell: string;
+        }
+
+        const idOf = (document: { _id: unknown }) => String(document._id);
+
+        async function prizeCatalogue(): Promise<PrizeCatalogue> {
+            const { equipmentItems, lootItems, pets, spells } = world.models;
+            const equipment = (name: string, rarity: string) =>
+                equipmentItems.create(buildEquipmentItem({ name, rarity }));
+            const loot = (name: string, rarity: string) =>
+                lootItems.create(buildLootItem({ name, rarity }));
+            return {
+                commonLoot: idOf(await loot('Pozione comune', 'common')),
+                rareLoot: idOf(await loot('Pozione rara', 'rare')),
+                legendarySword: idOf(
+                    await equipment('Spada leggendaria', 'legendary'),
+                ),
+                blockSword: idOf(await equipment('Spada del re', 'legendary')),
+                rarePet: idOf(
+                    await pets.create(
+                        buildPet({ name: 'Lupo', rarity: 'rare' }),
+                    ),
+                ),
+                legendaryPet: idOf(
+                    await pets.create(
+                        buildPet({ name: 'Fenice', rarity: 'legendary' }),
+                    ),
+                ),
+                learnable: idOf(
+                    await spells.create(
+                        buildSpell({ name: 'Scintilla', minXpToLearn: 100 }),
+                    ),
+                ),
+                blockSpell: idOf(
+                    await spells.create(
+                        buildSpell({ name: 'Benedizione', minXpToLearn: 0 }),
+                    ),
+                ),
+            };
+        }
+
+        // mage col solo oggetto del blocco (o il pool indicato), paladin con la magia e la cura del blocco
+        async function mageAndPaladin(
+            catalogue: PrizeCatalogue,
+            mageLoot: Types.ObjectId[] = [],
+        ) {
+            const mage = await quester({
+                characterOverrides: { status: { title: 'mage', xp: 20000 } },
+                questOverrides: {
+                    infos: {
+                        ...buildQuest().infos,
+                        type: 'worldMission',
+                        title: 'Il tesoro del re',
+                    },
+                    requirements: {
+                        ...buildQuest().requirements,
+                        minTitle: 'paladin',
+                        requiredAdventurers: [
+                            { title: 'mage', count: 1 },
+                            { title: 'paladin', count: 1 },
+                        ],
+                    },
+                    prizes: {
+                        ...buildQuest().prizes,
+                        rankPrizes: [
+                            {
+                                title: 'mage',
+                                xpPrize: 700,
+                                prizeItem: {
+                                    itemType: 'EquipmentItem',
+                                    item: new Types.ObjectId(
+                                        catalogue.blockSword,
+                                    ),
+                                    quantity: 1,
+                                },
+                                randomLoot: mageLoot.map((item) => ({
+                                    itemType: 'LootItem',
+                                    item,
+                                    quantity: 1,
+                                })),
+                            },
+                            {
+                                title: 'paladin',
+                                xpPrize: 400,
+                                randomLoot: [],
+                                spell: new Types.ObjectId(catalogue.blockSpell),
+                                cure: {
+                                    lifePointsShare: 0.5,
+                                    canHeal: [InjuryType.deepCut],
+                                },
+                            },
+                        ],
+                    },
+                },
+            });
+            const paladin = await quester({
+                quest: mage.quest,
+                characterOverrides: { status: { title: 'paladin', xp: 20000 } },
+            });
+            await drafts.start(hexOf(mage), null);
+            return { mage, paladin };
+        }
+
+        const prizeOf = (
+            subject: Quester,
+            overrides: Partial<MissionPrizeInput> = {},
+        ): MissionPrizeInput => ({
+            characterId: String(subject.characterId),
+            coins: { gold: 0, silver: 0, copper: 0 },
+            cure: false,
+            items: [],
+            pet: null,
+            spell: null,
+            xp: 0,
+            ...overrides,
+        });
+
+        const prizeIn = (
+            prizes: readonly MissionPrizeRecord[],
+            subject: Quester,
+        ) =>
+            prizes.find(
+                ({ character }) =>
+                    String(character) === String(subject.characterId),
+            );
+
+        it('saves a prize inside the rank filter with free coins and xp (D-07, D-15)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage, paladin } = await mageAndPaladin(catalogue);
+
+            const saved = await save(paladin, {
+                prizes: [
+                    prizeOf(mage, {
+                        coins: { gold: 5000, silver: 7, copper: 3 },
+                        xp: 99999,
+                        items: [
+                            { item: catalogue.rareLoot, quantity: 99 },
+                            { item: catalogue.blockSword, quantity: 1 },
+                        ],
+                        pet: catalogue.rarePet,
+                        spell: catalogue.learnable,
+                    }),
+                ],
+            });
+
+            expect(prizeIn(saved.prizes, mage)).toEqual({
+                character: mage.characterId,
+                coins: { gold: 5000, silver: 7, copper: 3 },
+                xp: 99999,
+                items: [
+                    {
+                        itemType: 'LootItem',
+                        item: new Types.ObjectId(catalogue.rareLoot),
+                        quantity: 99,
+                    },
+                    {
+                        itemType: 'EquipmentItem',
+                        item: new Types.ObjectId(catalogue.blockSword),
+                        quantity: 1,
+                    },
+                ],
+                pet: new Types.ObjectId(catalogue.rarePet),
+                spell: new Types.ObjectId(catalogue.learnable),
+                cure: null,
+            });
+        });
+
+        it('refuses a prize outside the rank filter (D-07, D-22)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage, paladin } = await mageAndPaladin(catalogue);
+            const before = await storedDraft();
+
+            for (const prize of [
+                prizeOf(mage, {
+                    items: [{ item: catalogue.legendarySword, quantity: 1 }],
+                }),
+                prizeOf(mage, { pet: catalogue.legendaryPet }),
+                prizeOf(paladin, { spell: catalogue.learnable }),
+                prizeOf(mage, {
+                    items: [
+                        { item: String(new Types.ObjectId()), quantity: 1 },
+                    ],
+                }),
+            ]) {
+                await expect(
+                    save(mage, { prizes: [prize] }),
+                ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+            }
+            expect(await storedDraft()).toEqual(before);
+        });
+
+        it('refuses a cure the block does not have and a quantity over 99 (D-15, D-22)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage, paladin } = await mageAndPaladin(catalogue);
+            const before = await storedDraft();
+
+            for (const prize of [
+                prizeOf(mage, { cure: true }),
+                prizeOf(mage, {
+                    items: [{ item: catalogue.commonLoot, quantity: 100 }],
+                }),
+                prizeOf(mage, {
+                    items: [
+                        { item: catalogue.commonLoot, quantity: 1 },
+                        { item: catalogue.commonLoot, quantity: 2 },
+                    ],
+                }),
+                prizeOf(mage, { xp: -1 }),
+            ]) {
+                await expect(
+                    save(mage, { prizes: [prize] }),
+                ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+            }
+            expect(await storedDraft()).toEqual(before);
+
+            const saved = await save(mage, {
+                prizes: [prizeOf(paladin, { cure: true })],
+            });
+            expect(prizeIn(saved.prizes, paladin)!.cure).toEqual({
+                lifePointsShare: 0.5,
+                canHeal: [InjuryType.deepCut],
+            });
+        });
+
+        it('replaces the prize of the listed character only (D-18)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage, paladin } = await mageAndPaladin(catalogue);
+            const paladinBefore = prizeIn(
+                (await storedDraft())!.prizes,
+                paladin,
+            );
+
+            const saved = await save(mage, {
+                prizes: [prizeOf(mage, { xp: 10 })],
+            });
+
+            expect(saved.prizes).toHaveLength(2);
+            expect(prizeIn(saved.prizes, mage)!.xp).toBe(10);
+            expect(prizeIn(saved.prizes, mage)!.items).toEqual([]);
+            expect(prizeIn(saved.prizes, paladin)).toEqual(paladinBefore);
+        });
+
+        it('saves unchanged a prefilled block with more than 50 distinct items (D-22)', async () => {
+            const catalogue = await prizeCatalogue();
+            const pool = await world.models.lootItems.insertMany(
+                Array.from({ length: 60 }, (_, index) =>
+                    buildLootItem({
+                        name: `Gemma ${index}`,
+                        rarity: 'legendary',
+                    }),
+                ),
+            );
+            const { mage } = await mageAndPaladin(
+                catalogue,
+                pool.map(({ _id }) => _id as Types.ObjectId),
+            );
+            const prefilled = prizeIn((await storedDraft())!.prizes, mage)!;
+            expect(prefilled.items).toHaveLength(61);
+
+            const saved = await save(mage, {
+                prizes: [
+                    {
+                        characterId: String(mage.characterId),
+                        coins: prefilled.coins,
+                        cure: prefilled.cure !== null,
+                        items: prefilled.items.map(({ item, quantity }) => ({
+                            item: String(item),
+                            quantity,
+                        })),
+                        pet: prefilled.pet ? String(prefilled.pet) : null,
+                        spell: prefilled.spell ? String(prefilled.spell) : null,
+                        xp: prefilled.xp,
+                    },
+                ],
+            });
+
+            expect(prizeIn(saved.prizes, mage)).toEqual(prefilled);
+        });
+
+        it('refuses a prize for a character outside the draft or listed twice (D-07)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage } = await mageAndPaladin(catalogue);
+            const stranger = await quester({ questOverrides: gmQuest() });
+            const before = await storedDraft();
+
+            await expect(
+                save(mage, { prizes: [prizeOf(stranger)] }),
+            ).rejects.toMatchObject(OUTCOME_NOT_PARTICIPANT);
+            await expect(
+                save(mage, { prizes: [prizeOf(mage), prizeOf(mage)] }),
+            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+            expect(await storedDraft()).toEqual(before);
         });
     });
 });
