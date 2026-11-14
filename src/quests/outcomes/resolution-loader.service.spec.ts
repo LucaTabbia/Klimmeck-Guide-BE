@@ -299,4 +299,41 @@ describe('ResolutionLoader reward catalog', () => {
             [S2.toHexString()]: { minXpToLearn: 300, maxUsages: 1 },
         });
     });
+
+    it('reads the reward catalogue of arbitrary refs without a quest (D-22)', async () => {
+        const L1 = new Types.ObjectId();
+        const E1 = new Types.ObjectId();
+        const S1 = new Types.ObjectId();
+        const P1 = new Types.ObjectId();
+        const loader = rewardLoaderWith({
+            loot: [{ _id: L1, rarity: RarityType.uncommon }],
+            equipment: [{ _id: E1, rarity: RarityType.rare }],
+            spells: [{ _id: S1, minXpToLearn: 200, maxUsages: 3 }],
+            pets: [{ _id: P1, maxLifePoints: 40, relatedLore: [] }],
+        });
+
+        const rewards = await loader.readRewardCatalogFor(
+            {
+                items: [
+                    { itemType: 'LootItem', item: L1 },
+                    { itemType: 'EquipmentItem', item: E1 },
+                ],
+                spellIds: [S1],
+                petIds: [P1],
+            },
+            null,
+        );
+
+        expect(Object.fromEntries(rewards.rarities)).toEqual({
+            [`LootItem:${L1.toHexString()}`]: RarityType.uncommon,
+            [`EquipmentItem:${E1.toHexString()}`]: RarityType.rare,
+        });
+        expect(Object.fromEntries(rewards.spells)).toEqual({
+            [S1.toHexString()]: { minXpToLearn: 200, maxUsages: 3 },
+        });
+        expect(Object.fromEntries(rewards.pets)).toEqual({
+            [P1.toHexString()]: 40,
+        });
+        expect(rewards.spellPool).toEqual([]);
+    });
 });
