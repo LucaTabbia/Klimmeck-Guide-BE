@@ -121,6 +121,45 @@ describe('guided outcome', () => {
         });
     });
 
+    it('aggregates the companion life of the last fight that had it (D-17, D-26)', () => {
+        const fightsWith = (...lives: (number | null)[]) =>
+            lives.map((companionLifeAfter, index) =>
+                fightOf(enemiesOf([WOLF_ID, 1]), [
+                    outcomeOf(
+                        HERO_ID,
+                        effects(900 - index * 100, { companionLifeAfter }),
+                    ),
+                ]),
+            );
+
+        expect(
+            aggregateEffectsOf(fightsWith(40, null), HERO)?.companionLifeAfter,
+        ).toBe(40);
+        expect(
+            aggregateEffectsOf(fightsWith(40, 1), HERO)?.companionLifeAfter,
+        ).toBe(1);
+        expect(
+            aggregateEffectsOf(
+                [
+                    fightOf(enemiesOf([WOLF_ID, 1]), [
+                        outcomeOf(
+                            HERO_ID,
+                            effects(900),
+                            effects(800, { companionLifeAfter: 30 }),
+                        ),
+                    ]),
+                ],
+                HERO,
+            )?.companionLifeAfter,
+        ).toBe(30);
+        expect(
+            aggregateEffectsOf(fightsWith(null, null), HERO),
+        ).not.toHaveProperty('companionLifeAfter');
+        expect(aggregateEffectsOf(twoFights(), HERO)).not.toHaveProperty(
+            'companionLifeAfter',
+        );
+    });
+
     it('has no battle without fights (D-24)', () => {
         expect(aggregateEffectsOf([], HERO)).toBeNull();
         expect(mergedEnemiesOf([])).toEqual([]);

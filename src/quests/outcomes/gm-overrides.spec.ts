@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import type { OwnedPetEntry } from 'src/characters/pets/owned-pet-entry';
 import type { ParticipantOverrideInput } from 'src/models/request/complete-pending-request.model';
 import {
     MAX_OVERRIDE_ENTRIES,
@@ -17,12 +18,18 @@ const POTION_ID = new Types.ObjectId('64b0000000000000000000d1');
 const OTHER_ITEM_ID = new Types.ObjectId('64b0000000000000000000d2');
 const S1_ID = new Types.ObjectId('64b0000000000000000000e1');
 const INACTIVE_SPELL_ID = new Types.ObjectId('64b0000000000000000000e2');
+const WOLF_ID = new Types.ObjectId('64b0000000000000000000f1');
 
 const A = A_ID.toHexString();
 const B = B_ID.toHexString();
 const POTION = POTION_ID.toHexString();
 const S1 = S1_ID.toHexString();
 const INACTIVE_SPELL = INACTIVE_SPELL_ID.toHexString();
+
+const NO_PETS = new Map<string, { maxLifePoints?: unknown; maxXp?: unknown }>();
+const PET_CATALOG = new Map([
+    [WOLF_ID.toHexString(), { name: 'Lupo', maxLifePoints: 100, maxXp: 100 }],
+]);
 
 const participants: OverrideParticipant[] = [
     {
@@ -31,6 +38,7 @@ const participants: OverrideParticipant[] = [
         maxLifePoints: 1000,
         ownedLoot: new Map([[POTION, 2]]),
         activeSpells: new Map([[S1, 2]]),
+        companion: { lifeBefore: 60, maxLifePoints: 100 },
     },
     {
         characterId: B_ID,
@@ -38,6 +46,7 @@ const participants: OverrideParticipant[] = [
         maxLifePoints: 1200,
         ownedLoot: new Map(),
         activeSpells: new Map(),
+        companion: null,
     },
 ];
 
@@ -260,37 +269,45 @@ describe('validateOverrides', () => {
 
 describe('overrideParticipantOf', () => {
     it('reads the limits from the outcome snapshot', () => {
-        const participant = overrideParticipantOf({
-            _id: A_ID,
-            status: {
-                xp: 0,
-                title: TitleType.rookie,
-                currentLifePoints: 600,
-                maxLifePoints: 1000,
-                spellStates: [
-                    { spell: S1_ID, usages: 2, recoveries: [], active: true },
-                    {
-                        spell: 'not-an-id',
-                        usages: 4,
-                        recoveries: [],
-                        active: true,
-                    },
-                ],
+        const participant = overrideParticipantOf(
+            {
+                _id: A_ID,
+                status: {
+                    xp: 0,
+                    title: TitleType.rookie,
+                    currentLifePoints: 600,
+                    maxLifePoints: 1000,
+                    spellStates: [
+                        {
+                            spell: S1_ID,
+                            usages: 2,
+                            recoveries: [],
+                            active: true,
+                        },
+                        {
+                            spell: 'not-an-id',
+                            usages: 4,
+                            recoveries: [],
+                            active: true,
+                        },
+                    ],
+                },
+                assets: {
+                    ownedItems: [
+                        { itemType: 'LootItem', item: POTION_ID, quantity: 1 },
+                        { itemType: 'LootItem', item: POTION, quantity: 1 },
+                    ],
+                    ownedEquipments: [
+                        {
+                            itemType: 'EquipmentItem',
+                            item: OTHER_ITEM_ID,
+                            quantity: 1,
+                        },
+                    ],
+                },
             },
-            assets: {
-                ownedItems: [
-                    { itemType: 'LootItem', item: POTION_ID, quantity: 1 },
-                    { itemType: 'LootItem', item: POTION, quantity: 1 },
-                ],
-                ownedEquipments: [
-                    {
-                        itemType: 'EquipmentItem',
-                        item: OTHER_ITEM_ID,
-                        quantity: 1,
-                    },
-                ],
-            },
-        });
+            NO_PETS,
+        );
 
         expect(participant.characterId).toBe(A_ID);
         expect(participant.currentLifePoints).toBe(600);
@@ -320,7 +337,7 @@ describe('overrideParticipantOf', () => {
         (): ReturnType<typeof validateOverrides> =>
             validateOverrides(
                 [overrideOf({ spellsUsed: [{ spell, usages }] })],
-                [overrideParticipantOf(knowingSnapshot())],
+                [overrideParticipantOf(knowingSnapshot(), NO_PETS)],
             );
     const invalidOverride = expect.objectContaining({
         code: GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
@@ -328,52 +345,71 @@ describe('overrideParticipantOf', () => {
     });
 
     it('reads the override limits of the spells from the active spell states (D-07)', () => {
-        const participant = overrideParticipantOf(knowingSnapshot());
+        const participant = overrideParticipantOf(knowingSnapshot(), NO_PETS);
 
         expect([...participant.activeSpells.entries()]).toEqual([[S1, 1]]);
     });
 
     it('reads a spell state stored without the flag as not active (D-07)', () => {
-        const participant = overrideParticipantOf({
-            _id: A_ID,
-            status: {
-                xp: 0,
-                title: TitleType.rookie,
-                spellStates: [{ spell: S1_ID, usages: 2, recoveries: [] }],
+        const participant = overrideParticipantOf(
+            {
+                _id: A_ID,
+                status: {
+                    xp: 0,
+                    title: TitleType.rookie,
+                    spellStates: [{ spell: S1_ID, usages: 2, recoveries: [] }],
+                },
             },
-        });
+            NO_PETS,
+        );
 
         expect(participant.activeSpells.size).toBe(0);
     });
 
     it('skips an empty entry next to one without the flag and keeps the active one (D-07)', () => {
-        const participant = overrideParticipantOf({
-            _id: A_ID,
-            status: {
-                xp: 0,
-                title: TitleType.rookie,
-                spellStates: [
-                    null,
-                    { spell: INACTIVE_SPELL_ID, usages: 2, recoveries: [] },
-                    { spell: S1_ID, usages: 1, recoveries: [], active: true },
-                ] as never,
+        const participant = overrideParticipantOf(
+            {
+                _id: A_ID,
+                status: {
+                    xp: 0,
+                    title: TitleType.rookie,
+                    spellStates: [
+                        null,
+                        { spell: INACTIVE_SPELL_ID, usages: 2, recoveries: [] },
+                        {
+                            spell: S1_ID,
+                            usages: 1,
+                            recoveries: [],
+                            active: true,
+                        },
+                    ] as never,
+                },
             },
-        });
+            NO_PETS,
+        );
 
         expect([...participant.activeSpells.entries()]).toEqual([[S1, 1]]);
     });
 
     it('never reads a negative limit from an active spell state (D-07)', () => {
-        const participant = overrideParticipantOf({
-            _id: A_ID,
-            status: {
-                xp: 0,
-                title: TitleType.rookie,
-                spellStates: [
-                    { spell: S1_ID, usages: -3, recoveries: [], active: true },
-                ],
+        const participant = overrideParticipantOf(
+            {
+                _id: A_ID,
+                status: {
+                    xp: 0,
+                    title: TitleType.rookie,
+                    spellStates: [
+                        {
+                            spell: S1_ID,
+                            usages: -3,
+                            recoveries: [],
+                            active: true,
+                        },
+                    ],
+                },
             },
-        });
+            NO_PETS,
+        );
 
         expect([...participant.activeSpells.entries()]).toEqual([[S1, 0]]);
     });
@@ -391,14 +427,129 @@ describe('overrideParticipantOf', () => {
     });
 
     it('falls back to the level table for a legacy snapshot', () => {
-        const participant = overrideParticipantOf({
-            _id: B_ID,
-            status: { title: TitleType.rookie },
-        });
+        const participant = overrideParticipantOf(
+            {
+                _id: B_ID,
+                status: { title: TitleType.rookie },
+            },
+            NO_PETS,
+        );
 
         expect(participant.maxLifePoints).toBeGreaterThan(0);
         expect(participant.currentLifePoints).toBe(participant.maxLifePoints);
         expect(participant.ownedLoot.size).toBe(0);
         expect(participant.activeSpells.size).toBe(0);
+    });
+
+    describe('the companion life correction', () => {
+        const snapshotWith = (entry: OwnedPetEntry | null) => ({
+            _id: A_ID,
+            status: {
+                xp: 0,
+                title: TitleType.rookie,
+                currentLifePoints: 600,
+                maxLifePoints: 1000,
+            },
+            assets: entry ? { pet: WOLF_ID, ownedPets: [entry] } : {},
+        });
+        const fenrirAt = (life: number): OwnedPetEntry => ({
+            pet: WOLF_ID,
+            xp: 0,
+            currentLifePoints: life,
+            level: 1,
+        });
+        const correcting = (
+            entry: OwnedPetEntry | null,
+            companionLifeAfter: number,
+        ) =>
+            validateOverrides(
+                [overrideOf({ companionLifeAfter })],
+                [overrideParticipantOf(snapshotWith(entry), PET_CATALOG)],
+            );
+
+        it('serves the companion bounds of a participant (D-17)', () => {
+            expect(
+                overrideParticipantOf(snapshotWith(fenrirAt(60)), PET_CATALOG)
+                    .companion,
+            ).toEqual({ lifeBefore: 60, maxLifePoints: 100 });
+            expect(
+                overrideParticipantOf(snapshotWith(null), PET_CATALOG)
+                    .companion,
+            ).toBeNull();
+            expect(
+                overrideParticipantOf(snapshotWith(fenrirAt(60)), NO_PETS)
+                    .companion,
+            ).toBeNull();
+        });
+
+        it.each([1, 100])(
+            'accepts a companion life from 1 to its maximum, 1 meaning defeated (D-17, D-26): %p',
+            (companionLifeAfter) => {
+                expect(
+                    correcting(fenrirAt(60), companionLifeAfter).get(A)
+                        ?.companionLifeAfter,
+                ).toBe(companionLifeAfter);
+            },
+        );
+
+        it('bounds the correction by the maximum of the companion level (D-38)', () => {
+            const veteran: OwnedPetEntry = {
+                pet: WOLF_ID,
+                xp: 100,
+                currentLifePoints: 150,
+                level: 10,
+            };
+
+            expect(
+                overrideParticipantOf(snapshotWith(veteran), PET_CATALOG)
+                    .companion,
+            ).toEqual({ lifeBefore: 150, maxLifePoints: 200 });
+            expect(correcting(veteran, 150).get(A)?.companionLifeAfter).toBe(
+                150,
+            );
+            expect(codeOf(() => correcting(veteran, 201))).toBe(
+                GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+            );
+        });
+
+        it.each([0, 101, 1.5, -1])(
+            'refuses a companion life outside its range (D-33): %p',
+            (companionLifeAfter) => {
+                expect(
+                    codeOf(() => correcting(fenrirAt(60), companionLifeAfter)),
+                ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
+            },
+        );
+
+        it('refuses a companion life for a participant without a companion (D-33)', () => {
+            expect(codeOf(() => correcting(null, 1))).toBe(
+                GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+            );
+            expect(
+                codeOf(() =>
+                    validateOverrides(
+                        [overrideOf({ characterId: B, companionLifeAfter: 1 })],
+                        participants,
+                    ),
+                ),
+            ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
+        });
+
+        it('leaves the companion life out when it is not given (D-17)', () => {
+            const effects = validateOverrides(
+                [overrideOf({ hpAfter: 300, companionLifeAfter: null })],
+                [
+                    overrideParticipantOf(
+                        snapshotWith(fenrirAt(60)),
+                        PET_CATALOG,
+                    ),
+                ],
+            );
+
+            expect(effects.get(A)).not.toHaveProperty('companionLifeAfter');
+            expect(
+                validateOverrides([overrideOf()], participants).get(A),
+            ).not.toHaveProperty('companionLifeAfter');
+        });
     });
 });
