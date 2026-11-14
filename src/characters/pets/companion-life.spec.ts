@@ -47,6 +47,15 @@ describe('companion life clock', () => {
         });
     });
 
+    it('regains nothing while the anchor is still ahead of now, never below the anchor life nor 0 (D-04, D-03)', () => {
+        expect(
+            companionLifeAt(input({ lifePoints: 1, now: at(-5_000) })),
+        ).toEqual({ lifePoints: 1, fullLifeAt: at(T) });
+        expect(companionLifeAt(input({ lifePoints: 20, now: at(-T) }))).toEqual(
+            { lifePoints: 20, fullLifeAt: at(Math.ceil((80 * T) / 99)) },
+        );
+    });
+
     it('never recovers the equipped companion (D-04)', () => {
         expect(
             companionLifeAt(input({ resting: false, now: at(T * 2) })),
