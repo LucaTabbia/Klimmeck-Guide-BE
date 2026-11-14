@@ -335,4 +335,12 @@ export class GameRuleException extends BadRequestException {
             { recoveryUntil: until.toISOString() },
         );
     }
+
+    // stesse regole di forma del nome del personaggio (Phase 23 D-31)
+    static petNameInvalid(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.PET_NAME_INVALID,
+            'Nome del compagno non valido: da 2 a 20 caratteri tra lettere, spazi, apostrofi e trattini, con almeno una lettera',
+        );
+    }
 }
