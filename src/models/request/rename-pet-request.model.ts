@@ -1,5 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsString, MaxLength, ValidateIf } from 'class-validator';
 import { IsObjectIdHex } from 'src/validation/is-object-id-hex.decorator';
 
 // tetto di forma sul filo contro i payload enormi: la regola vera del nome è nel dominio (D-31)
@@ -11,8 +11,9 @@ export class RenamePetRequest {
     @IsObjectIdHex()
     id: string;
 
+    // solo un null esplicito toglie il nome (D-31): omesso è un errore di forma, non una cancellazione
     @Field(() => String, { nullable: true })
-    @IsOptional()
+    @ValidateIf((_request: RenamePetRequest, name: unknown) => name !== null)
     @IsString()
     @MaxLength(RENAME_PET_NAME_WIRE_MAX_LENGTH)
     name?: string | null;
