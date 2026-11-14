@@ -34,8 +34,10 @@ import {
     participantEffectsOf,
     stateBeforeFight,
 } from './fight-state';
+import { hexOf } from './ids';
 import { MAX_PRIZE_ITEM_QUANTITY } from './mission-draft-prefill';
 import {
+    enemiesWithinCaps,
     MAX_MISSION_FIGHTS,
     MAX_PRIZE_AMOUNT,
     MAX_PRIZE_ITEMS,
@@ -63,9 +65,6 @@ import {
     assertPrizeAllowed,
     type MissionPrizeAllowance,
 } from './mission-prizes';
-import { enemiesWithinCaps } from './mission-simulation.service';
-
-const hexOf = (id: Types.ObjectId): string => id.toHexString();
 
 // difesa in profondità dei tetti dell'input (D-31)
 function assertFightsWithinCaps(fights: readonly MissionFightInput[]): void {
@@ -99,12 +98,10 @@ const sameCorrections = (
             effectsKeyOf(outcome.corrected) === effectsKeyOf(corrected[index]),
     );
 
-const invalid = () => GameRuleException.outcomeOverrideInvalid();
-
 // difesa in profondità del tetto tecnico dell'input (D-31)
 const amountOf = (value: unknown): number => {
     if (!isNonNegativeInteger(value) || value > MAX_PRIZE_AMOUNT)
-        throw invalid();
+        throw GameRuleException.outcomeOverrideInvalid();
     return value;
 };
 
@@ -119,7 +116,7 @@ const coinsOf = (
 function optionalRefOf(hex: string | null | undefined): Types.ObjectId | null {
     if (hex == null) return null;
     const id = objectIdFromHex(hex);
-    if (!id) throw invalid();
+    if (!id) throw GameRuleException.outcomeOverrideInvalid();
     return id;
 }
 
@@ -129,7 +126,7 @@ function itemTypeOf(
 ): MissionPrizeItemRecord['itemType'] {
     if (allowance.equipmentIds.includes(hex)) return 'EquipmentItem';
     if (allowance.lootIds.includes(hex)) return 'LootItem';
-    throw invalid();
+    throw GameRuleException.outcomeOverrideInvalid();
 }
 
 const isPrizeQuantity = (quantity: unknown): boolean =>
@@ -142,12 +139,13 @@ function prizeItemsOf(
     items: readonly MissionPrizeItemInput[],
     allowance: MissionPrizeAllowance,
 ): MissionPrizeItemRecord[] {
-    if (items.length > MAX_PRIZE_ITEMS) throw invalid();
+    if (items.length > MAX_PRIZE_ITEMS)
+        throw GameRuleException.outcomeOverrideInvalid();
     const seen = new Set<string>();
     return items.map(({ item, quantity }) => {
         const id = objectIdFromHex(item);
         if (!id || !isPrizeQuantity(quantity) || seen.has(hexOf(id)))
-            throw invalid();
+            throw GameRuleException.outcomeOverrideInvalid();
         seen.add(hexOf(id));
         return {
             itemType: itemTypeOf(hexOf(id), allowance),
@@ -165,7 +163,7 @@ function cureFor(
     const cure = cureOf(
         prizeBlockFor(request.quest, character.status.title)?.cure,
     );
-    if (!cure) throw invalid();
+    if (!cure) throw GameRuleException.outcomeOverrideInvalid();
     return cure;
 }
 
@@ -285,7 +283,8 @@ export class MissionDraftSaveService {
         for (const prize of incoming) {
             const character = participantIn(characters, prize.characterId);
             const key = hexOf(character._id);
-            if (chosen.has(key)) throw invalid();
+            if (chosen.has(key))
+                throw GameRuleException.outcomeOverrideInvalid();
             const allowance = this.prizeOptions.allowanceFor(
                 request,
                 character,

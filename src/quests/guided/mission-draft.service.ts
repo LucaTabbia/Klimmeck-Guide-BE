@@ -22,6 +22,7 @@ import {
 import { ResolutionLoader } from 'src/quests/outcomes/resolution-loader.service';
 import { rewardRefsOf } from 'src/quests/outcomes/rewards/quest-rewards';
 import { prizeBlockFor } from 'src/quests/prizes/rank-prizes';
+import { hexOf } from './ids';
 import { prefilledPrizeOf } from './mission-draft-prefill';
 import {
     MissionDraft,
@@ -40,8 +41,6 @@ interface NamedCharacter {
 
 const pendingQuestIdsOf = (request: GmRequest): Types.ObjectId[] =>
     request.seats.map(({ pendingQuestId }) => pendingQuestId);
-
-const hexOf = (id: Types.ObjectId): string => id.toHexString();
 
 // la bozza del flusso guidato vive nel BE (D-09, D-18): il marcatore sulle PendingQuest nasce e muore con lei nella stessa transazione
 @Injectable()

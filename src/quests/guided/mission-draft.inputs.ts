@@ -43,6 +43,19 @@ export class MissionEnemyInput {
     quantity: number;
 }
 
+// difesa in profondità dei tetti di uno scontro (D-31), condivisa da simulazione e salvataggio
+export const enemiesWithinCaps = (
+    enemies: readonly MissionEnemyInput[],
+): boolean =>
+    enemies.length >= 1 &&
+    enemies.length <= MAX_FIGHT_ENEMIES &&
+    enemies.every(
+        ({ quantity }) =>
+            Number.isInteger(quantity) &&
+            quantity >= 1 &&
+            quantity <= MAX_ENEMY_QUANTITY,
+    );
+
 @InputType()
 export class SimulateMissionFightInput {
     @Field(() => ID)

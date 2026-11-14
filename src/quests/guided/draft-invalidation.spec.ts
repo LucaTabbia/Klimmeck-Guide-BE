@@ -5,8 +5,6 @@ import {
     previousEffectsOf,
     reconcileFights,
     resetFrom,
-    sameEnemies,
-    unsimulated,
 } from 'src/quests/guided/draft-invalidation';
 import {
     type MissionFightEffectsRecord,
@@ -57,6 +55,10 @@ const simulatedFight = (
     verdict: MissionFightVerdict.success,
     outcomes,
 });
+
+const unsimulated = (
+    enemies: MissionFightEnemyRecord[],
+): MissionFightRecord => ({ enemies, verdict: null, outcomes: [] });
 
 const wolves = enemiesOf([WOLF_ID, 2]);
 const bear = enemiesOf([BEAR_ID, 1]);
@@ -118,22 +120,30 @@ describe('previousEffectsOf', () => {
     });
 });
 
-describe('sameEnemies', () => {
-    it('compares the enemies by order, id and quantity (D-24)', () => {
-        expect(sameEnemies(wolves, enemiesOf([WOLF_ID, 2]))).toBe(true);
-        expect(sameEnemies(wolves, enemiesOf([WOLF_ID, 3]))).toBe(false);
-        expect(sameEnemies(wolves, bear)).toBe(false);
-        expect(
-            sameEnemies(
-                enemiesOf([WOLF_ID, 2], [BEAR_ID, 1]),
-                enemiesOf([BEAR_ID, 1], [WOLF_ID, 2]),
-            ),
-        ).toBe(false);
-        expect(sameEnemies(wolves, [...wolves, ...bear])).toBe(false);
-    });
-});
-
 describe('reconcileFights', () => {
+    it('compares the enemies of a fight by order, id and quantity (D-24)', () => {
+        const existing = [
+            simulatedFight(enemiesOf([WOLF_ID, 2], [BEAR_ID, 1]), [
+                outcomeOf(HERO_ID, effects(900)),
+            ]),
+        ];
+
+        expect(
+            reconcileFights(existing, [enemiesOf([WOLF_ID, 2], [BEAR_ID, 1])]),
+        ).toEqual(existing);
+        for (const changed of [
+            enemiesOf([WOLF_ID, 3], [BEAR_ID, 1]),
+            enemiesOf([TROLL_ID, 2], [BEAR_ID, 1]),
+            enemiesOf([BEAR_ID, 1], [WOLF_ID, 2]),
+            enemiesOf([WOLF_ID, 2], [BEAR_ID, 1], [TROLL_ID, 1]),
+            enemiesOf([WOLF_ID, 2]),
+        ]) {
+            expect(reconcileFights(existing, [changed])).toEqual([
+                unsimulated(changed),
+            ]);
+        }
+    });
+
     it('keeps the identical prefix of the fights (D-24)', () => {
         const existing = threeFights();
 
@@ -212,10 +222,5 @@ describe('resetFrom', () => {
             unsimulated(bear),
             unsimulated(troll),
         ]);
-        expect(unsimulated(bear)).toEqual({
-            enemies: bear,
-            verdict: null,
-            outcomes: [],
-        });
     });
 });

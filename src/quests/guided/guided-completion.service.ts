@@ -41,6 +41,7 @@ import {
     mergedEnemiesOf,
     overrideInputOf,
 } from './guided-outcome';
+import { hexOf, presentIds, uniqueIds } from './ids';
 import {
     MissionDraft,
     type MissionDraftRecord,
@@ -53,16 +54,6 @@ import {
     type ChosenPrizeRefs,
     type MissionPrizeCatalogue,
 } from './mission-prizes';
-
-const hexOf = (id: Types.ObjectId): string => id.toHexString();
-
-const uniqueIds = (ids: readonly Types.ObjectId[]): Types.ObjectId[] =>
-    [...new Set(ids.map(hexOf))].map((hex) => new Types.ObjectId(hex));
-
-const presentIds = (
-    ids: readonly (Types.ObjectId | null)[],
-): Types.ObjectId[] =>
-    uniqueIds(ids.filter((id): id is Types.ObjectId => id !== null));
 
 function rewardRefsOfPrizes(prizes: readonly MissionPrizeRecord[]): RewardRefs {
     return {

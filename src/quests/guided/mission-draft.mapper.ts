@@ -15,6 +15,7 @@ import {
     MissionPrizeRecord,
     MissionSpellUsageRecord,
 } from './mission-draft.model';
+import { hexOf } from './ids';
 import {
     MissionDraftView,
     MissionFight,
@@ -29,12 +30,8 @@ import {
 
 type Bestiary = ReadonlyMap<string, Enemy>;
 
-function hexOf(id: Types.ObjectId): string {
-    return id.toHexString();
-}
-
 function nullableHexOf(id: Types.ObjectId | null | undefined): string | null {
-    return id ? id.toHexString() : null;
+    return id ? hexOf(id) : null;
 }
 
 function itemUsageOf(usage: MissionItemUsageRecord): MissionItemUsage {

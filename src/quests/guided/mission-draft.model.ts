@@ -306,8 +306,8 @@ export class MissionDraft {
 export type MissionDraftRecord = MissionDraft & { _id: Types.ObjectId };
 export const MissionDraftSchema = SchemaFactory.createForClass(MissionDraft);
 
-export const MISSION_DRAFT_PENDING_QUEST_INDEX = 'mission_draft_pending_quest';
-export const MISSION_DRAFT_CHARACTER_INDEX = 'mission_draft_character';
+const MISSION_DRAFT_PENDING_QUEST_INDEX = 'mission_draft_pending_quest';
+const MISSION_DRAFT_CHARACTER_INDEX = 'mission_draft_character';
 
 // una bozza per richiesta o per gruppo della stessa worldMission: due avvii collidono su qualunque PendingQuest condivisa (D-18)
 MissionDraftSchema.index(

@@ -17,8 +17,7 @@ import {
 import { previousEffectsOf, resetFrom } from './draft-invalidation';
 import { effectsRecordOf, fightStartOf, stateBeforeFight } from './fight-state';
 import {
-    MAX_ENEMY_QUANTITY,
-    MAX_FIGHT_ENEMIES,
+    enemiesWithinCaps,
     MAX_MISSION_FIGHTS,
     type MissionEnemyInput,
     type SimulateMissionFightInput,
@@ -31,18 +30,6 @@ import {
 } from './mission-draft.model';
 import { MissionDraftService } from './mission-draft.service';
 import { MissionSimulationChance } from './mission-simulation.chance';
-
-export const enemiesWithinCaps = (
-    enemies: readonly MissionEnemyInput[],
-): boolean =>
-    enemies.length >= 1 &&
-    enemies.length <= MAX_FIGHT_ENEMIES &&
-    enemies.every(
-        ({ quantity }) =>
-            Number.isInteger(quantity) &&
-            quantity >= 1 &&
-            quantity <= MAX_ENEMY_QUANTITY,
-    );
 
 // D-24: k solo in coda o dentro la lista, e solo dopo un k-1 simulato
 function assertSimulable(

@@ -12,6 +12,7 @@ import {
     woundsAfter,
 } from 'src/quests/outcomes/outcome-plan';
 import type { ResolutionCharacter } from 'src/quests/outcomes/resolution-loader.service';
+import { presentOnly } from './ids';
 import type { MissionFightEffectsRecord } from './mission-draft.model';
 
 // stato all'inizio di uno scontro e suoi limiti: gli stessi di validateOverrides (D-06, D-17)
@@ -96,22 +97,19 @@ export function assertAddsOnlyNewInjuries(
         throw GameRuleException.outcomeOverrideInvalid();
 }
 
-const presentIds = <T>(entries: readonly (T | null)[]): T[] =>
-    entries.filter((entry): entry is T => entry !== null);
-
 export function effectsRecordOf(
     effects: ParticipantEffects,
 ): MissionFightEffectsRecord {
     return {
         hpAfter: effects.hpAfter,
         injuriesAdded: [...effects.injuriesAdded],
-        consumablesUsed: presentIds(
+        consumablesUsed: presentOnly(
             effects.consumablesUsed.map(({ itemId, quantity }) => {
                 const item = objectIdFromHex(itemId);
                 return item ? { item, quantity } : null;
             }),
         ),
-        spellsUsed: presentIds(
+        spellsUsed: presentOnly(
             effects.spellsUsed.map(({ spellId, usages }) => {
                 const spell = objectIdFromHex(spellId);
                 return spell ? { spell, usages } : null;

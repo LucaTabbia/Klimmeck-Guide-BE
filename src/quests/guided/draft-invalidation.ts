@@ -1,5 +1,6 @@
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
 import { participantEffectsOf } from './fight-state';
+import { hexOf } from './ids';
 import type {
     MissionFightEffectsRecord,
     MissionFightEnemyRecord,
@@ -23,7 +24,7 @@ export function previousEffectsOf(
     const previous: ParticipantEffects[] = [];
     for (const fight of fights.slice(0, index)) {
         const outcome = fight.outcomes.find(
-            (entry) => entry.character.toHexString() === characterHex,
+            (entry) => hexOf(entry.character) === characterHex,
         );
         const effects = outcome ? effectiveEffectsOf(outcome) : null;
         if (effects) previous.push(participantEffectsOf(characterHex, effects));
@@ -31,7 +32,7 @@ export function previousEffectsOf(
     return previous;
 }
 
-export function sameEnemies(
+function sameEnemies(
     a: readonly MissionFightEnemyRecord[],
     b: readonly MissionFightEnemyRecord[],
 ): boolean {
@@ -39,15 +40,13 @@ export function sameEnemies(
         a.length === b.length &&
         a.every(
             (entry, index) =>
-                entry.enemy.toHexString() === b[index].enemy.toHexString() &&
+                hexOf(entry.enemy) === hexOf(b[index].enemy) &&
                 entry.quantity === b[index].quantity,
         )
     );
 }
 
-export function unsimulated(
-    enemies: MissionFightEnemyRecord[],
-): MissionFightRecord {
+function unsimulated(enemies: MissionFightEnemyRecord[]): MissionFightRecord {
     return { enemies, verdict: null, outcomes: [] };
 }
 

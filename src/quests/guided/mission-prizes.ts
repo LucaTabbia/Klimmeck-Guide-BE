@@ -81,7 +81,7 @@ function rankOf(title: TitleType | null | undefined): GeneratedRank {
 const sortedUnique = (ids: readonly string[]): string[] =>
     [...new Set(ids)].sort();
 
-const hexOf = (value: unknown): string[] => {
+const refHexesOf = (value: unknown): string[] => {
     const id = refIdOf(value);
     return id ? [id.toHexString()] : [];
 };
@@ -144,11 +144,11 @@ export function missionPrizeOptionsOf(
             ...underCap(catalogue.loot, maxRarity),
         ]),
         petIds: sortedUnique([
-            ...hexOf(block?.pet),
+            ...refHexesOf(block?.pet),
             ...underCap(catalogue.pets, maxRarity),
         ]),
         spellIds: sortedUnique([
-            ...hexOf(block?.spell),
+            ...refHexesOf(block?.spell),
             ...learnableSpells(input),
         ]),
     };
