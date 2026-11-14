@@ -86,6 +86,14 @@ export const HANDLER_FIXTURES: Record<ProtectedHandler, HandlerFixture> = {
             'query MissionPrizeOptions($characterId: ID!, $pendingQuestId: ID!) { missionPrizeOptions(characterId: $characterId, pendingQuestId: $pendingQuestId) { character } }',
         variables: () => ({ characterId: ANY, pendingQuestId: ANY }),
     },
+    'GuidedMissionResolver.saveMissionDraft': {
+        kind: 'mutation',
+        field: 'saveMissionDraft',
+        target: 'none',
+        document:
+            'mutation SaveMissionDraft($input: SaveMissionDraftInput!) { saveMissionDraft(input: $input) { id } }',
+        variables: () => ({ input: { pendingQuestId: ANY } }),
+    },
     'GuidedMissionResolver.simulateMissionFight': {
         kind: 'mutation',
         field: 'simulateMissionFight',

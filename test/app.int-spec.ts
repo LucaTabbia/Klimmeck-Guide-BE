@@ -949,6 +949,29 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('adds the guided mission draft save to the schema (D-17)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+        const inputs: Record<string, string> = {
+            MissionFightInput:
+                'input MissionFightInput {\n  corrections: [ParticipantOverrideInput!]\n  enemies: [MissionEnemyInput!]!\n}',
+            MissionPrizeInput:
+                'input MissionPrizeInput {\n  characterId: ID!\n  coins: CoinsInput!\n  cure: Boolean!\n  items: [MissionPrizeItemInput!]!\n  pet: ID\n  spell: ID\n  xp: Int!\n}',
+            MissionPrizeItemInput:
+                'input MissionPrizeItemInput {\n  item: ID!\n  quantity: Int!\n}',
+            SaveMissionDraftInput:
+                'input SaveMissionDraftInput {\n  fights: [MissionFightInput!]\n  pendingQuestId: ID!\n  place: ID\n  prizes: [MissionPrizeInput!]\n  step: MissionDraftStep\n}',
+        };
+
+        for (const [name, block] of Object.entries(inputs)) {
+            expect(
+                schema.match(new RegExp(`input ${name} \\{[^}]*\\}`))?.[0],
+            ).toBe(block);
+        }
+        expect(schema).toContain(
+            '  saveMissionDraft(input: SaveMissionDraftInput!): MissionDraft!\n',
+        );
+    });
+
     it('writes the game master completion into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 

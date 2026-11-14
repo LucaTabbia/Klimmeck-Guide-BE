@@ -5,6 +5,7 @@ export const EXPECTED_INNKEEPER_HANDLERS = [
     'GuidedMissionResolver.missionDraft',
     'GuidedMissionResolver.missionEnemies',
     'GuidedMissionResolver.missionPrizeOptions',
+    'GuidedMissionResolver.saveMissionDraft',
     'GuidedMissionResolver.simulateMissionFight',
     'GuidedMissionResolver.startMissionDraft',
     'PendingQuestsResolver.pendingQuests',

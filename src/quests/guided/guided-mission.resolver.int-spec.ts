@@ -922,4 +922,136 @@ describe('GuidedMissionResolver (wire)', () => {
             expect(await audits.find({}).lean().exec()).toEqual([]);
         });
     });
+
+    describe('mission draft save', () => {
+        const SIMULATE_FIRST =
+            'mutation SimulateMissionFight($input: SimulateMissionFightInput!) { simulateMissionFight(input: $input) { id } }';
+        const SAVE =
+            'mutation SaveMissionDraft($input: SaveMissionDraftInput!) { saveMissionDraft(input: $input) { id fights { outcomes { character corrected { hpAfter } } } prizes { character xp } } }';
+
+        interface SaveBody {
+            data?: {
+                saveMissionDraft?: {
+                    id: string;
+                    fights: {
+                        outcomes: {
+                            character: string;
+                            corrected: { hpAfter: number } | null;
+                        }[];
+                    }[];
+                    prizes: { character: string; xp: number }[];
+                } | null;
+            } | null;
+            errors?: { message: string; extensions: Record<string, unknown> }[];
+        }
+
+        async function simulatedPair() {
+            const [first, second] = await worldMissionPair();
+            const oste = await innkeeper();
+            await send(START, hexOf(first), oste.bearer);
+            const enemy = String(
+                (await world.models.enemies.create(buildEnemy()))._id,
+            );
+            await graphqlRequest(
+                world.harness.app,
+                SIMULATE_FIRST,
+                {
+                    input: {
+                        pendingQuestId: hexOf(first),
+                        fightIndex: 0,
+                        enemies: [{ enemy, quantity: 1 }],
+                    },
+                },
+                oste.bearer,
+            );
+            return { first, second, oste, enemy };
+        }
+
+        async function saveDraft(
+            input: Record<string, unknown>,
+            bearer: string,
+        ): Promise<SaveBody> {
+            const response = await graphqlRequest(
+                world.harness.app,
+                SAVE,
+                { input },
+                bearer,
+            );
+            return response.body as SaveBody;
+        }
+
+        const correctedInput = (first: Quester, enemy: string) => ({
+            pendingQuestId: hexOf(first),
+            fights: [
+                {
+                    enemies: [{ enemy, quantity: 1 }],
+                    corrections: [
+                        { characterId: String(first.characterId), hpAfter: 1 },
+                    ],
+                },
+            ],
+            prizes: [
+                {
+                    characterId: String(first.characterId),
+                    coins: { gold: 1, silver: 2, copper: 3 },
+                    cure: false,
+                    items: [],
+                    xp: 1234,
+                },
+            ],
+        });
+
+        it('saves a correction and a prize over the wire (D-06, D-07)', async () => {
+            const { first, oste, enemy } = await simulatedPair();
+
+            const body = await saveDraft(
+                correctedInput(first, enemy),
+                oste.bearer,
+            );
+
+            expect(body.errors).toBeUndefined();
+            const draft = body.data!.saveMissionDraft!;
+            const firstHex = String(first.characterId);
+            expect(
+                draft.fights[0].outcomes.find(
+                    ({ character }) => character === firstHex,
+                ),
+            ).toEqual({ character: firstHex, corrected: { hpAfter: 1 } });
+            expect(
+                draft.prizes.find(({ character }) => character === firstHex),
+            ).toEqual({ character: firstHex, xp: 1234 });
+        });
+
+        it('refuses an adventurer (D-10)', async () => {
+            const { first, enemy } = await simulatedPair();
+
+            const body = await saveDraft(
+                correctedInput(first, enemy),
+                first.player.bearer,
+            );
+
+            expect(body.data ?? null).toBeNull();
+            expect(
+                body.errors?.map(({ extensions }) => extensions.code),
+            ).toEqual(['FORBIDDEN']);
+        });
+
+        it('audits the save (D-26)', async () => {
+            const { first, oste, enemy } = await simulatedPair();
+            const input = correctedInput(first, enemy);
+
+            await saveDraft(input, oste.bearer);
+
+            const records = await audits
+                .find({ action: 'saveMissionDraft' })
+                .lean()
+                .exec();
+            expect(records).toHaveLength(1);
+            expect(records[0]).toMatchObject({
+                actor: { userId: String(oste.user._id), role: 'innkeeper' },
+                target: { type: 'PendingQuest', id: input.pendingQuestId },
+                outcome: AUDIT_OUTCOME_OK,
+            });
+        });
+    });
 });
