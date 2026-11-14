@@ -9,6 +9,7 @@ import { CharactersService } from 'src/characters/characters.service';
 import { MissionDraftLockPublisher } from 'src/characters/mission-lock/mission-draft-lock.publisher';
 import { MissionLockModule } from 'src/characters/mission-lock/mission-lock.module';
 import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
+import { OwnedPetResolver } from 'src/characters/pets/owned-pet.resolver';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { EconomyModule } from 'src/economy/economy.module';
 import {
@@ -66,6 +67,7 @@ export async function createCharactersTestApp(
             CharactersService,
             CharactersResolver,
             CharacterStatusResolver,
+            OwnedPetResolver,
             CharacterUpdatesPublisher,
             PendingQuestStartPublisher,
             MissionDraftLockPublisher,

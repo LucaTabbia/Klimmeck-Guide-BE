@@ -155,6 +155,8 @@ export class CharactersService {
         );
         character.assets.ownedPets = ownedPetsOnTheWire(
             character.assets.ownedPets,
+            character.assets.pet,
+            this.clock.now(),
         );
 
         return character;

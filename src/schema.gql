@@ -561,7 +561,14 @@ type Mutation {
 
 type OwnedPet {
   currentLifePoints: Int!
+  defeated: Boolean!
+  fullLifeAt: DateTime
+  level: Int!
+  lifeAsOf: DateTime
+  maxLifePoints: Int!
+  name: String
   pet: Pet!
+  potionRecoveryUntil: DateTime
   xp: Int!
 }
 
@@ -630,6 +637,7 @@ type Pet {
   maxXp: Int!
   name: String!
   rarity: RarityType
+  recoveryTime: Int
   relatedLore: [Lore!]!
   sellPrice: Coins!
   sellable: Boolean

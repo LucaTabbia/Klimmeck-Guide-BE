@@ -24,15 +24,18 @@ export class OwnedPet {
     currentLifePoints: number;
 
     // riposo, sconfitta e livello salvato (D-23, D-24, D-39): ancora currentLifePoints @ lifeAsOf; senza level né lifeAsOf la voce è legacy e si legge piena
+    @Field(() => String, { nullable: true })
     @Prop({ type: String })
     name?: string | null;
 
+    @Field(() => Date, { nullable: true })
     @Prop({ type: Date })
     lifeAsOf?: Date | null;
 
     @Prop({ type: Date })
     defeatedUntil?: Date | null;
 
+    @Field(() => Date, { nullable: true })
     @Prop({ type: Date })
     potionRecoveryUntil?: Date | null;
 
