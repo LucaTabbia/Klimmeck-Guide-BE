@@ -495,7 +495,8 @@ export class AmbushResolutionService {
                     plan.update,
                     session,
                 );
-                if (battle.verdict === 'failure') {
+                // la deviazione per fame lascia la quest come una sconfitta (D-16)
+                if (battle.verdict === 'failure' || plan.redirected) {
                     await this.abandonLane(inSession, session);
                 }
                 // il risultato nasce all'istante dell'imboscata; questResultReceived parte dal change stream dopo il commit (D-15, D-28)
@@ -549,8 +550,14 @@ export class AmbushResolutionService {
                 now,
             );
         }
-        this.logger.log(`Imboscata ${jobId} risolta: won`);
+        this.logger.log(this.wonMessageOf(fight, outcome.plan));
         return 'won';
+    }
+
+    private wonMessageOf(fight: Fight, plan: AmbushOutcomePlan): string {
+        const won = `Imboscata ${fight.jobId} risolta: won`;
+        if (!plan.redirected) return won;
+        return `${won}, ridiretto verso ${fight.detour.reachedCity.name}`;
     }
 
     // D-11: abandonQuest non vale in viaggio (il suo filtro vuole arrivedAt); party sciolto = corsia già vuota, niente da fare
