@@ -30,7 +30,10 @@ const isPoolable = (enemy: EnemyCandidate, options: PoolOptions): boolean =>
 const byId = (a: EnemyCandidate, b: EnemyCandidate): number =>
     a.id.localeCompare(b.id);
 
-function livesIn(enemy: EnemyCandidate, poiTypes: readonly string[]): boolean {
+export function livesIn(
+    enemy: Pick<EnemyCandidate, 'locations'>,
+    poiTypes: readonly string[],
+): boolean {
     return enemy.locations.some(
         (location) =>
             location === CITY_HABITAT ||
@@ -38,8 +41,9 @@ function livesIn(enemy: EnemyCandidate, poiTypes: readonly string[]): boolean {
     );
 }
 
-const livesAnywhere = (enemy: EnemyCandidate): boolean =>
-    enemy.locations.includes(ANYWHERE);
+export const livesAnywhere = (
+    enemy: Pick<EnemyCandidate, 'locations'>,
+): boolean => enemy.locations.includes(ANYWHERE);
 
 // D-08: «nei dintorni della città» = zone del POI + habitat city
 export function zonePoolOf(
