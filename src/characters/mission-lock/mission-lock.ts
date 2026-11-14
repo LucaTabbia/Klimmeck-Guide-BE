@@ -1,3 +1,5 @@
+import { Types } from 'mongoose';
+
 export interface LockLane {
     startDate?: Date | null;
     missionDraftStartedAt?: Date | null;
@@ -27,4 +29,63 @@ export function missionInProgressOf(
         lanes?.pendingQuest?.startDate != null ||
         guidedMissionInProgressOf(lanes)
     );
+}
+
+export type LaneResolution = LockLanes | 'unresolved' | null;
+
+type LaneName = keyof LockLanes;
+
+const LANE_NAMES: readonly LaneName[] = [
+    'pendingQuest',
+    'activeStoryQuest',
+    'activeWorldMissionQuest',
+];
+
+interface FieldReader {
+    get?: (path: string) => unknown;
+}
+
+const isLaneId = (lane: unknown): boolean =>
+    lane instanceof Types.ObjectId || typeof lane === 'string';
+
+// un documento idratato espone i campi come getter del prototipo: solo `in` e `.get`, mai l'elenco delle chiavi (ruling I3)
+const isPopulatedLane = (lane: unknown): lane is object =>
+    typeof lane === 'object' &&
+    lane !== null &&
+    !(lane instanceof Types.ObjectId) &&
+    ('startDate' in lane || 'missionDraftStartedAt' in lane || 'quest' in lane);
+
+function fieldOf(lane: object, path: keyof LockLane): Date | null {
+    const reader = lane as FieldReader & LockLane;
+    const value =
+        typeof reader.get === 'function' ? reader.get(path) : reader[path];
+    return (value as Date | null | undefined) ?? null;
+}
+
+function laneDatesOf(lane: object): LockLane {
+    return {
+        startDate: fieldOf(lane, 'startDate'),
+        missionDraftStartedAt: fieldOf(lane, 'missionDraftStartedAt'),
+    };
+}
+
+// corsie popolate (findOne, payload di characterUpdated) → nessuna lettura; un id o una forma ignota → il reader (D-16)
+export function lockLanesOf(
+    character: { quests?: Record<string, unknown> | null } | null | undefined,
+): LaneResolution {
+    const quests = character?.quests;
+    if (!quests) return null;
+
+    const lanes: LockLanes = {};
+    for (const name of LANE_NAMES) {
+        const lane = quests[name];
+        if (lane == null) {
+            lanes[name] = null;
+        } else if (isLaneId(lane) || !isPopulatedLane(lane)) {
+            return 'unresolved';
+        } else {
+            lanes[name] = laneDatesOf(lane);
+        }
+    }
+    return lanes;
 }
