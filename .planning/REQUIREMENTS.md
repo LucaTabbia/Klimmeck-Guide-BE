@@ -66,20 +66,20 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 
 ### Companion Defeat and Recovery (BE-PET) — Phase 23, aggiunta 2026-11-14
 
-- [ ] **BE-PET-01**: Orologio di riposo lineare pigro (una funzione pura, velocità `(max − 1) / T`, arrotondamento al più vicino, minimo 1), predicato unico «sconfitto» sulla data `defeatedUntil`, campi nuovi della voce posseduta conservati da ogni riscrittura dell'array, dati esistenti letti senza migratore (chiave = id del pet a catalogo)
-- [ ] **BE-PET-02**: `Pet.recoveryTime` (millisecondi, annullabile, curato a DB; non curato = recupero istantaneo e conteggio in WARN al boot) e stato del compagno su `OwnedPet` (`name`, `defeated`, `currentLifePoints` all'ancora, `lifeAsOf`, `fullLifeAt`, `potionRecoveryUntil`)
-- [ ] **BE-PET-03**: `equipPet`/`unequipPet` assestano la vita in transazione; `PET_DEFEATED` per il compagno sconfitto prima della data di vita piena; il ferito si riequipaggia con la vita raggiunta
-- [ ] **BE-PET-04**: Porta `CombatResolver` estesa con `companionLifeAfter`; il segnaposto danneggia il compagno senza tiri nuovi; dungeon e scontri in sequenza: lo sconfitto è fuori dagli scontri seguenti
-- [ ] **BE-PET-05**: Regola della sconfitta (vita 1 a fine scontro, anche se entrato a 1) in quest, boss, dungeon, soccorsi, guardia, crime, sconfitta senza soccorso e completamento GM; slot svuotato; `QuestResult.companion` servito ogni volta che un compagno ha combattuto
-- [ ] **BE-PET-06**: Pozione sul compagno con `useItem(itemId, petId)`: attesa propria del compagno, rifiuti `PET_DEFEATED`, `PET_POTION_RECOVERING` (con `extensions.recoveryUntil`), `ITEM_NO_EFFECT`, `AWAITING_AID`, `MISSION_IN_PROGRESS`
-- [ ] **BE-PET-07**: `renamePet` del solo proprietario con le regole di forma del nome del personaggio, codice `PET_NAME_INVALID`, `null` toglie il nome, non bloccata dalla missione in corso
-- [ ] **BE-PET-08**: Push `petRecovered` quando un compagno sconfitto torna a vita piena (sweeper con claim atomico, una sola push, nessuna dopo la vendita)
-- [ ] **BE-PET-09**: Imboscate: esito del compagno, `QuestResult` scritto all'istante (report leggibili in viaggio, «visto» = conferma), push `ambush` per ogni imboscata col nome mostrato; `ambushDefeat` non più inviato
-- [ ] **BE-PET-10**: Cavalcatura della partenza (campo interno `activeTravel.mount`) sconfitta in un'imboscata vinta: strada residua ricalcolata a piedi (arrivo, cibo, prossima imboscata rimappata senza tiri, job), `AmbushReport.onFoot`
-- [ ] **BE-PET-11**: Dopo il ricalcolo, ridirezionamento alla città più vicina per strada se non arriverebbe vivo, quest abbandonata; deviazione a piedi se la cavalcatura cade in una sconfitta
-- [ ] **BE-PET-12**: Flusso guidato: `MissionFightOutcome.companion`, `MissionFightEffects.companionLifeAfter`, correzione `ParticipantOverrideInput.companionLifeAfter` (1..max, 1 = sconfitto, accettata anche dal legacy), aggregato e completamento con le stesse regole
-- [ ] **BE-PET-13**: Gate (tsc, suite, SDL solo additivo al boot reale) e handoff `BACKEND-NOTES.md` per la FE Phase 22 con la descrizione della tabella dei tempi di recupero
-- [ ] **BE-PET-14**: Livelli del compagno: 10 livelli sul tetto di xp (`Pet.maxXp`), vita massima dalla base del catalogo al doppio, serviti sul filo (`OwnedPet.level`, `OwnedPet.maxLifePoints`) e letti da ogni regola che usa il massimo del compagno
+- [x] **BE-PET-01**: Orologio di riposo lineare pigro (una funzione pura, velocità `(max − 1) / T`, arrotondamento al più vicino, minimo 1), predicato unico «sconfitto» sulla data `defeatedUntil`, campi nuovi della voce posseduta conservati da ogni riscrittura dell'array, dati esistenti letti senza migratore (chiave = id del pet a catalogo)
+- [x] **BE-PET-02**: `Pet.recoveryTime` (millisecondi, annullabile, curato a DB; non curato = recupero istantaneo e conteggio in WARN al boot) e stato del compagno su `OwnedPet` (`name`, `defeated`, `currentLifePoints` all'ancora, `lifeAsOf`, `fullLifeAt`, `potionRecoveryUntil`)
+- [x] **BE-PET-03**: `equipPet`/`unequipPet` assestano la vita in transazione; `PET_DEFEATED` per il compagno sconfitto prima della data di vita piena; il ferito si riequipaggia con la vita raggiunta
+- [x] **BE-PET-04**: Porta `CombatResolver` estesa con `companionLifeAfter`; il segnaposto danneggia il compagno senza tiri nuovi; dungeon e scontri in sequenza: lo sconfitto è fuori dagli scontri seguenti
+- [x] **BE-PET-05**: Regola della sconfitta (vita 1 a fine scontro, anche se entrato a 1) in quest, boss, dungeon, soccorsi, guardia, crime, sconfitta senza soccorso e completamento GM; slot svuotato; `QuestResult.companion` servito ogni volta che un compagno ha combattuto
+- [x] **BE-PET-06**: Pozione sul compagno con `useItem(itemId, petId)`: attesa propria del compagno, rifiuti `PET_DEFEATED`, `PET_POTION_RECOVERING` (con `extensions.recoveryUntil`), `ITEM_NO_EFFECT`, `AWAITING_AID`, `MISSION_IN_PROGRESS`
+- [x] **BE-PET-07**: `renamePet` del solo proprietario con le regole di forma del nome del personaggio, codice `PET_NAME_INVALID`, `null` toglie il nome, non bloccata dalla missione in corso
+- [x] **BE-PET-08**: Push `petRecovered` quando un compagno sconfitto torna a vita piena (sweeper con claim atomico, una sola push, nessuna dopo la vendita)
+- [x] **BE-PET-09**: Imboscate: esito del compagno, `QuestResult` scritto all'istante (report leggibili in viaggio, «visto» = conferma), push `ambush` per ogni imboscata col nome mostrato; `ambushDefeat` non più inviato
+- [x] **BE-PET-10**: Cavalcatura della partenza (campo interno `activeTravel.mount`) sconfitta in un'imboscata vinta: strada residua ricalcolata a piedi (arrivo, cibo, prossima imboscata rimappata senza tiri, job), `AmbushReport.onFoot`
+- [x] **BE-PET-11**: Dopo il ricalcolo, ridirezionamento alla città più vicina per strada se non arriverebbe vivo, quest abbandonata; deviazione a piedi se la cavalcatura cade in una sconfitta
+- [x] **BE-PET-12**: Flusso guidato: `MissionFightOutcome.companion`, `MissionFightEffects.companionLifeAfter`, correzione `ParticipantOverrideInput.companionLifeAfter` (1..max, 1 = sconfitto, accettata anche dal legacy), aggregato e completamento con le stesse regole
+- [x] **BE-PET-13**: Gate (tsc, suite, SDL solo additivo al boot reale) e handoff `BACKEND-NOTES.md` per la FE Phase 22 con la descrizione della tabella dei tempi di recupero
+- [x] **BE-PET-14**: Livelli del compagno: 10 livelli sul tetto di xp (`Pet.maxXp`), vita massima dalla base del catalogo al doppio, serviti sul filo (`OwnedPet.level`, `OwnedPet.maxLifePoints`) e letti da ogni regola che usa il massimo del compagno
 
 ## Future Requirements
 
@@ -147,20 +147,20 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-GMFLOW-07 | Phase 22 | Complete |
 | BE-GMFLOW-08 | Phase 22 | Complete |
 | BE-GMFLOW-09 | Phase 22 | Complete |
-| BE-PET-01 | Phase 23 | Pending |
-| BE-PET-02 | Phase 23 | Pending |
-| BE-PET-03 | Phase 23 | Pending |
-| BE-PET-04 | Phase 23 | Pending |
-| BE-PET-05 | Phase 23 | Pending |
-| BE-PET-06 | Phase 23 | Pending |
-| BE-PET-07 | Phase 23 | Pending |
-| BE-PET-08 | Phase 23 | Pending |
-| BE-PET-09 | Phase 23 | Pending |
-| BE-PET-10 | Phase 23 | Pending |
-| BE-PET-11 | Phase 23 | Pending |
-| BE-PET-12 | Phase 23 | Pending |
-| BE-PET-13 | Phase 23 | Pending |
-| BE-PET-14 | Phase 23 | Pending |
+| BE-PET-01 | Phase 23 | Complete |
+| BE-PET-02 | Phase 23 | Complete |
+| BE-PET-03 | Phase 23 | Complete |
+| BE-PET-04 | Phase 23 | Complete |
+| BE-PET-05 | Phase 23 | Complete |
+| BE-PET-06 | Phase 23 | Complete |
+| BE-PET-07 | Phase 23 | Complete |
+| BE-PET-08 | Phase 23 | Complete |
+| BE-PET-09 | Phase 23 | Complete |
+| BE-PET-10 | Phase 23 | Complete |
+| BE-PET-11 | Phase 23 | Complete |
+| BE-PET-12 | Phase 23 | Complete |
+| BE-PET-13 | Phase 23 | Complete |
+| BE-PET-14 | Phase 23 | Complete |
 
 **Coverage:** 55 / 55 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21, 9 BE-GMFLOW → Phase 22, 14 BE-PET → Phase 23). Nessun orfano, nessun duplicato.
 
