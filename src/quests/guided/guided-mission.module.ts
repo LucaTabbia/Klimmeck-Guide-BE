@@ -20,6 +20,8 @@ import { MissionDraftPresenter } from './mission-draft.mapper';
 import { MissionDraft, MissionDraftSchema } from './mission-draft.model';
 import { MissionDraftService } from './mission-draft.service';
 import { MissionEnemiesService } from './mission-enemies.service';
+import { MISSION_SIMULATION_CHANCE_PROVIDER } from './mission-simulation.chance';
+import { MissionSimulationService } from './mission-simulation.service';
 
 // flusso guidato dell'oste (Phase 22): bozza, poi lista nemici, simulazione, premi e completamento
 @Module({
@@ -37,6 +39,8 @@ import { MissionEnemiesService } from './mission-enemies.service';
         MissionDraftService,
         MissionDraftPresenter,
         MissionEnemiesService,
+        MISSION_SIMULATION_CHANCE_PROVIDER,
+        MissionSimulationService,
         GuidedMissionResolver,
         { provide: Clock, useClass: SystemClock },
     ],
