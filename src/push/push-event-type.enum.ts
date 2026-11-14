@@ -13,6 +13,8 @@ export enum PushEventType {
     prisonRelease = 'prisonRelease',
     // l'oste avvia il flusso guidato di una story o worldMission (utente 2026-11-14): personale, id = personaggio
     missionStart = 'missionStart',
+    // compagno sconfitto di nuovo a vita piena (D-11): personale, id = pet a catalogo
+    petRecovered = 'petRecovered',
 }
 
 registerEnumType(PushEventType, { name: 'PushEventType' });

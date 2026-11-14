@@ -49,6 +49,12 @@ const CATALOG: Record<PushEventType, CatalogEntry> = {
         body: "L'oste ha dato inizio alla tua missione",
         ttlSeconds: PERSONAL_TTL_SECONDS,
     },
+    [PushEventType.petRecovered]: {
+        type: PushEventType.petRecovered,
+        title: 'Di nuovo in forze',
+        body: 'Il tuo compagno è di nuovo in forze.',
+        ttlSeconds: PERSONAL_TTL_SECONDS,
+    },
 };
 
 const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
@@ -58,6 +64,7 @@ const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
     PushEventType.ambushDefeat,
     PushEventType.prisonRelease,
     PushEventType.missionStart,
+    PushEventType.petRecovered,
 ]);
 
 // Phase 8 (fine viaggio), Phase 9 (esiti delle missioni, OutcomeWriter), Phase 6 (stream.online) chiamano PushService con questi builder (D-12)
@@ -102,6 +109,16 @@ export const missionStart = (
     ...CATALOG[PushEventType.missionStart],
     id: characterId,
     body: `L'oste ha dato inizio a «${questTitle}»`,
+});
+
+// compagno sconfitto di nuovo a vita piena (D-11): id = pet a catalogo, così due compagni dello stesso personaggio danno due notifiche; corpo col nome mostrato (D-20)
+export const petRecovered = (
+    petId: string,
+    companionName: string,
+): PushMessage => ({
+    ...CATALOG[PushEventType.petRecovered],
+    id: petId,
+    body: `${companionName} è di nuovo in forze`,
 });
 
 export const streamerLive = (): PushMessage => ({
