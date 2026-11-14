@@ -50,6 +50,7 @@ import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholde
 import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
 import { PrisonReleaseSweeper } from 'src/characters/imprisonment/prison-release.sweeper';
+import { PetRecoverySweeper } from 'src/characters/pets/pet-recovery.sweeper';
 import { QuestResultMaintenance } from 'src/quests/results/quest-result-maintenance';
 import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
 import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
@@ -1087,6 +1088,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(PrisonReleaseSweeper)).toBeInstanceOf(
             PrisonReleaseSweeper,
         );
+        // push «in forze» (D-24): stesso intervallo della prigione
+        expect(app.get(PetRecoverySweeper)).toBeInstanceOf(PetRecoverySweeper);
         expect(app.get(getQueueToken(QUEST_RESOLUTION_QUEUE))).toBeDefined();
         expect(app.get<QuestConfig>(QUEST_CONFIG)).toEqual({
             sweepIntervalMs: 0,
