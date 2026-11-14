@@ -426,6 +426,11 @@ enum MissionDraftStep {
   teleport
 }
 
+input MissionEnemyInput {
+  enemy: ID!
+  quantity: Int!
+}
+
 type MissionFight {
   enemies: [MissionFightEnemy!]!
   outcomes: [MissionFightOutcome!]!
@@ -510,6 +515,7 @@ type Mutation {
   refreshSession(refreshToken: String!): AuthSession!
   registerPushDevice(input: RegisterPushDeviceInput!): Boolean!
   sendTestPush(input: SendTestPushInput!): PushDeliveryReport!
+  simulateMissionFight(input: SimulateMissionFightInput!): MissionDraft!
   startMissionDraft(pendingQuestId: ID!): MissionDraft!
   startTravel(request: TravelRequest!): CommonResponse!
   teleportCharacter(request: TravelRequest!): CommonResponse!
@@ -902,6 +908,12 @@ type ShopPoolReportItem {
   id: ID!
   name: String
   rarity: String
+}
+
+input SimulateMissionFightInput {
+  enemies: [MissionEnemyInput!]!
+  fightIndex: Int!
+  pendingQuestId: ID!
 }
 
 enum SlotType {

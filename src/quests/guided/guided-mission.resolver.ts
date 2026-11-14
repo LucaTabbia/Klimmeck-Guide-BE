@@ -6,13 +6,18 @@ import { Roles } from 'src/authz/roles/roles.decorator';
 import { CommonResponse } from 'src/models/common/common-response.model';
 import { Enemy } from 'src/models/enemy.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { SimulateMissionFightInput } from './mission-draft.inputs';
 import { MissionDraftPresenter } from './mission-draft.mapper';
-import { MissionEnemiesService } from './mission-enemies.service';
 import { MissionDraftService } from './mission-draft.service';
 import { MissionDraftView } from './mission-draft.wire';
+import { MissionEnemiesService } from './mission-enemies.service';
+import { MissionSimulationService } from './mission-simulation.service';
 
 const pendingQuestTarget = ({ pendingQuestId }: Record<string, unknown>) =>
     pendingQuestId;
+
+const inputPendingQuestTarget = ({ input }: Record<string, unknown>) =>
+    (input as { pendingQuestId?: unknown } | undefined)?.pendingQuestId;
 
 // la bozza è solo dell'oste (D-10): ogni handler è @Roles(innkeeper); le mutation entrano nel log di audit, la lettura no (D-26)
 @Resolver()
@@ -21,6 +26,7 @@ export class GuidedMissionResolver {
         private readonly drafts: MissionDraftService,
         private readonly presenter: MissionDraftPresenter,
         private readonly enemies: MissionEnemiesService,
+        private readonly simulation: MissionSimulationService,
     ) {}
 
     @Roles(RoleType.innkeeper)
@@ -58,6 +64,16 @@ export class GuidedMissionResolver {
         showAll: boolean,
     ): Promise<Enemy[]> {
         return this.enemies.list(pendingQuestId, showAll);
+    }
+
+    @Roles(RoleType.innkeeper)
+    @AuditTarget('PendingQuest', inputPendingQuestTarget)
+    @Mutation(() => MissionDraftView)
+    async simulateMissionFight(
+        @Args('input', { type: () => SimulateMissionFightInput })
+        input: SimulateMissionFightInput,
+    ): Promise<MissionDraftView> {
+        return this.presenter.present(await this.simulation.simulate(input));
     }
 
     @Roles(RoleType.innkeeper)
