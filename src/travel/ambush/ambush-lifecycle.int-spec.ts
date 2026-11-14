@@ -595,6 +595,7 @@ describe('ambush lifecycle (replSet)', () => {
             (await unacknowledgedOf(player)).map(({ kind }) => kind),
         ).toEqual(['ambush']);
         expect(world.push.sent.map(({ message }) => message.type)).toEqual([
+            PushEventType.ambush,
             PushEventType.travelEnd,
         ]);
     });
@@ -754,7 +755,7 @@ describe('ambush lifecycle (replSet)', () => {
             );
             expect(world.push.sent.map(({ message }) => message)).toEqual([
                 expect.objectContaining({
-                    type: PushEventType.ambushDefeat,
+                    type: PushEventType.ambush,
                     body: defeatBody('Crocevia'),
                 }),
             ]);
@@ -774,7 +775,7 @@ describe('ambush lifecycle (replSet)', () => {
                 String(map.markers.crocevia),
             );
             expect(pushTypesOf()).toEqual([
-                PushEventType.ambushDefeat,
+                PushEventType.ambush,
                 PushEventType.travelEnd,
             ]);
         });
@@ -831,13 +832,13 @@ describe('ambush lifecycle (replSet)', () => {
             );
             expect(world.push.sent.map(({ message }) => message)).toEqual([
                 expect.objectContaining({
-                    type: PushEventType.ambushDefeat,
+                    type: PushEventType.ambush,
                     body: defeatBody('Borgo'),
                 }),
             ]);
         });
 
-        it('pushes every defeat and never a victory (D-12)', async () => {
+        it('pushes every ambush, won or lost (D-14)', async () => {
             const player = await departingPlayer();
             loadTwoVictories();
             let fights = 0;
@@ -845,16 +846,20 @@ describe('ambush lifecycle (replSet)', () => {
             await startTravel(player);
 
             await resolvePendingAmbush(player);
-            expect(pushTypesOf()).toEqual([]);
+            expect(pushTypesOf()).toEqual([PushEventType.ambush]);
             await resolvePendingAmbush(player);
-            expect(pushTypesOf()).toEqual([PushEventType.ambushDefeat]);
+            expect(pushTypesOf()).toEqual([
+                PushEventType.ambush,
+                PushEventType.ambush,
+            ]);
             await arrive(player);
 
             expect(
                 (await unacknowledgedOf(player)).map(({ outcome }) => outcome),
             ).toEqual(['success', 'failure']);
             expect(pushTypesOf()).toEqual([
-                PushEventType.ambushDefeat,
+                PushEventType.ambush,
+                PushEventType.ambush,
                 PushEventType.travelEnd,
             ]);
         });

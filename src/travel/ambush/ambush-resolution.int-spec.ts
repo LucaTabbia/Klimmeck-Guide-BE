@@ -661,12 +661,64 @@ describe('AmbushResolutionService (replica set)', () => {
         ]);
     });
 
-    it('never pushes on a victory (D-12)', async () => {
+    it('pushes a won ambush to the owner after the commit with the result id (D-14, D-30)', async () => {
         const subject = await traveller({ km: 10 });
         await registerDevice(world.harness, subject.player);
         chance.load([0, 0]);
 
         await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        const result = await ambushResultOf(subject);
+        expect(world.push.sent).toHaveLength(1);
+        expect(world.push.sent[0].message).toEqual({
+            type: 'ambush',
+            id: result._id.toHexString(),
+            title: 'Imboscata!',
+            body: 'Imboscata presso Crocevia: hai respinto gli assalitori',
+            ttlSeconds: 3600,
+        });
+    });
+
+    it('names the fallen companion in the push (D-14, D-20)', async () => {
+        const { subject, companion } = await travellerWithCompanion();
+        await world.models.pets.updateOne(
+            { _id: companion },
+            { $set: { recoveryTime: COMPANION_RECOVERY_MS } },
+        );
+        await world.models.characters.updateOne(
+            { _id: subject.characterId },
+            { $set: { 'assets.ownedPets.1.name': 'Fenrir' } },
+        );
+        await registerDevice(world.harness, subject.player);
+        chance.load([0, 0]);
+        combat.willResolve(subject.characterId, { companionLifeAfter: 1 });
+
+        await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        expect(world.push.sent).toHaveLength(1);
+        expect(world.push.sent[0].message).toMatchObject({
+            type: 'ambush',
+            id: (await ambushResultOf(subject))._id.toHexString(),
+            body: 'Imboscata presso Crocevia: Fenrir è stato sconfitto',
+        });
+    });
+
+    it('sends no push for a skipped or stale ambush (D-14)', async () => {
+        const skipped = await traveller({ km: 10, xp: LEVEL_TWENTY_XP });
+        await registerDevice(world.harness, skipped.player);
+        await expect(service.resolve(skipped.identity)).resolves.toBe(
+            'skipped',
+        );
+        const stale = await traveller({ km: 10 });
+        await registerDevice(world.harness, stale.player);
+        chance.load([0, 0]);
+
+        await expect(
+            service.resolve({
+                ...stale.identity,
+                at: new Date(stale.identity.at.getTime() + 1),
+            }),
+        ).resolves.toBe('stale');
 
         expect(world.push.sent).toEqual([]);
     });
@@ -891,7 +943,7 @@ describe('AmbushResolutionService (replica set)', () => {
             });
         });
 
-        it('pushes every defeat to the owner after the commit (D-12)', async () => {
+        it('pushes a lost ambush as an ambush, never as ambushDefeat (D-14, D-30)', async () => {
             const subject = await traveller({ km: 10 });
             await registerDevice(world.harness, subject.player);
             defeatOf(subject);
@@ -901,11 +953,12 @@ describe('AmbushResolutionService (replica set)', () => {
             );
 
             expect(world.push.sent).toHaveLength(1);
-            expect(world.push.sent[0].message).toMatchObject({
-                type: 'ambushDefeat',
-                id: subject.characterId.toHexString(),
+            expect(world.push.sent[0].message).toEqual({
+                type: 'ambush',
+                id: (await ambushResultOf(subject))._id.toHexString(),
                 title: 'Imboscata!',
                 body: 'Sei stato sconfitto: la via torna verso Crocevia',
+                ttlSeconds: 3600,
             });
         });
 
