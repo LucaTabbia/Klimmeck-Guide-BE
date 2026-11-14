@@ -420,3 +420,11 @@ Lettura della collection `missiondrafts` (bozza per gruppo, `fights`, `prizes`),
 - Invariante D-25 sulla spec di `gm-completion.service.int-spec.ts`: una riga tolta è l'import di mongoose riscritto, nessuna asserzione rimossa (falso positivo del gate).
 
 **Domande per la FE:** nessuna.
+
+## Note dopo la verifica e l'audit (2026-11-14)
+
+- Ogni scontro salvato o simulato deve avere **almeno un nemico** (lista vuota → `OUTCOME_OVERRIDE_INVALID`); la missione può invece avere zero scontri (D-24).
+- Corsa accettata (`22-SECURITY.md` UF-22-02): un'iscrizione a una worldMission arrivata nello stesso istante di `startMissionDraft` può lasciare un iscritto fuori dalla bozza; `completeGuidedMission` rifiuta con `OUTCOME_OVERRIDE_INVALID` senza scritture finché l'oste non scarta la bozza e la riavvia.
+- Una bozza rimasta orfana dopo l'abbandono della quest da parte di un giocatore si cancella alla prima lettura (`missionDraft`).
+- Il log di audit registra gli argomenti completi delle cinque mutation (anche l'intero `SaveMissionDraftInput`): nessun segreto, ma cresce a ogni salvataggio (UF-22-01).
+- Suite completa con coverage sul ramo dopo le correzioni della review: 449 suite, 6278 test, uscita 0 (2026-11-14).
