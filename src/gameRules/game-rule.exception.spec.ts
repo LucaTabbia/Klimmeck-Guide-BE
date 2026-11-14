@@ -230,6 +230,12 @@ describe('GameRuleException', () => {
             GameRuleErrorCode.MISSION_IN_PROGRESS,
             'Missione in corso: azione non disponibile fino al risultato',
         ],
+        [
+            'petDefeated',
+            () => GameRuleException.petDefeated(),
+            GameRuleErrorCode.PET_DEFEATED,
+            'Il compagno è stato sconfitto: deve riposare finché non torna in forze',
+        ],
     ];
 
     it.each(cases)(
@@ -304,6 +310,12 @@ describe('GameRuleException', () => {
     it('refuses a locked character with its own code and no extra extensions (D-11, D-23)', () => {
         expect(GameRuleException.missionInProgress().extensions).toEqual({
             code: 'MISSION_IN_PROGRESS',
+        });
+    });
+
+    it('refuses a defeated companion with its own code and no extra extensions (D-02)', () => {
+        expect(GameRuleException.petDefeated().extensions).toEqual({
+            code: 'PET_DEFEATED',
         });
     });
 
