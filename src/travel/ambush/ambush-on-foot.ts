@@ -27,6 +27,8 @@ export interface OnFootTravelInput {
     segment: number;
     // la prossima imboscata già sorteggiata sul viaggio di prima, km assoluto
     next: DrawnAmbush | null;
+    // quanto le ferite nuove dello scontro allungano la strada (≥ 1), come sulla deviazione (D-11, D-13)
+    woundsSlowdown: number;
 }
 
 export interface OnFootTravel {
@@ -68,7 +70,9 @@ export function onFootTravelOf(input: OnFootTravelInput): OnFootTravel {
     const { at } = travel.ambush;
     const road = residualRoadOf(travel, point, segment);
     const mountedMs = Math.max(0, travel.endTime.getTime() - at.getTime());
-    const duration = Math.round(mountedMs * paceFactorOf(travel.mount));
+    const duration = Math.round(
+        mountedMs * paceFactorOf(travel.mount) * input.woundsSlowdown,
+    );
     return {
         road,
         startTime: at,

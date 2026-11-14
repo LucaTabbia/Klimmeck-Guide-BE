@@ -343,16 +343,28 @@ function companionFell(fought: FoughtOutcome): boolean {
     return fought.companion.outcome?.defeated === true;
 }
 
+// la strada residua ha già le ferite della partenza: le nuove dello scontro la allungano come la deviazione (D-11, D-13)
+function woundsSlowdownOf(
+    input: AmbushPlanInput,
+    fought: FoughtOutcome,
+): number {
+    return (
+        travelSpeedFactorOf(input.snapshot.status.injuries) /
+        travelSpeedFactorOf(fought.wounds.injuries)
+    );
+}
+
 // ripiego sulla strada residua: durata della cavalcatura della partenza, allungata a piedi se è caduta (C-11)
 function residualDurationOf(
     input: AmbushPlanInput,
     detour: DetourDraft,
     fought: FoughtOutcome,
 ): number {
-    const residual = detour.residualMs ?? 0;
-    if (!mountFallenIn(input, fought)) return residual;
+    const pace = mountFallenIn(input, fought)
+        ? paceFactorOf(input.snapshot.status.activeTravel.mount)
+        : 1;
     return Math.round(
-        residual * paceFactorOf(input.snapshot.status.activeTravel.mount),
+        (detour.residualMs ?? 0) * pace * woundsSlowdownOf(input, fought),
     );
 }
 
@@ -514,6 +526,7 @@ function onFootPlanOf(
         point: input.ambushPoint.point,
         segment: input.ambushPoint.segment,
         next: input.nextAmbush,
+        woundsSlowdown: woundsSlowdownOf(input, fought),
     });
     const meal = input.food
         ? onFootFoodOf({

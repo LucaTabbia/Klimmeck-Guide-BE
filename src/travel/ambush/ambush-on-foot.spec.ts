@@ -48,6 +48,7 @@ const onFootWith = (overrides: Partial<OnFootTravelInput> = {}) =>
         point: POINT,
         segment: 1,
         next: null,
+        woundsSlowdown: 1,
         ...overrides,
     });
 
