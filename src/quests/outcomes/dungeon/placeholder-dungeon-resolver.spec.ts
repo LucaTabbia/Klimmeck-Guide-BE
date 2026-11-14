@@ -82,6 +82,7 @@ const participant = (characterId: string): CombatParticipant => ({
     consumables: [
         { itemId: POTION, quantity: 1, effect: EffectType.heal, power: 300 },
     ],
+    companion: null,
 });
 
 const dungeon = (): DungeonContext => ({

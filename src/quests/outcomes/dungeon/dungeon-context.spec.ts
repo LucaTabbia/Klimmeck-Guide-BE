@@ -40,6 +40,7 @@ const combat = (): CombatContext => ({
             equipment: [],
             activeSpells: [],
             consumables: [],
+            companion: null,
         },
     ],
 });

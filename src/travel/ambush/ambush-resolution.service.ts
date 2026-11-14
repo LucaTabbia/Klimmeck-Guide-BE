@@ -459,6 +459,7 @@ export class AmbushResolutionService {
                     equipment: catalog.equipment,
                     spells: catalog.spells,
                     loot: catalog.loot,
+                    pets: catalog.pets,
                 });
                 const battle = battleOf(
                     this.combat.resolve(context, this.chance),
