@@ -50,6 +50,7 @@ const byAmbushInstant = (a: AmbushReportDraft, b: AmbushReportDraft): number =>
     compareIds(a.resultId.toHexString(), b.resultId.toHexString());
 
 // report → QuestResult kind ambush (D-13, D-14): resolvedAt = at, i report precedono i risultati di quest dello stesso arrivo
+// dopo la Phase 23 l'imboscata scrive subito il risultato: questa consegna serve solo ai viaggi in volo al deploy (Pitfall 9)
 export function ambushResultDraftsOf(
     reports: readonly AmbushReportDraft[],
     characterId: Types.ObjectId,

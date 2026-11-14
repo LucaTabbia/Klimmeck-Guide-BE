@@ -73,6 +73,7 @@ import {
 import { AmbushPlanner } from './ambush-planner.service';
 import { nearestPoi, pointAtFraction } from './ambush-point';
 import { composeAmbushEnemies } from './ambush-enemies';
+import { ambushResultDraftsOf } from './ambush-results';
 import { ambushFilter, ambushSkipUpdate } from './ambush.updates';
 
 export type AmbushOutcome = 'won' | 'lost' | 'skipped' | 'stale';
@@ -492,6 +493,14 @@ export class AmbushResolutionService {
                 if (battle.verdict === 'failure') {
                     await this.abandonLane(inSession, session);
                 }
+                // il risultato nasce all'istante dell'imboscata; questResultReceived parte dal change stream dopo il commit (D-15, D-28)
+                await this.writer.writeResult(
+                    ambushResultDraftsOf(
+                        [plan.report],
+                        identity.characterId,
+                    )[0],
+                    session,
+                );
                 if (plan.coinsDelta > 0) {
                     await this.wallet.applyCharacterCoinsDelta(
                         identity.characterId,

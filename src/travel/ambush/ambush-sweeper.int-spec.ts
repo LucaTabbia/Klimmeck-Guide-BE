@@ -60,9 +60,12 @@ describe('AmbushSweeper (replica set)', () => {
             .lean<any>()
             .exec();
 
-    const reportsOf = async (subject: Traveller): Promise<unknown[]> =>
-        ((await rawOf(subject)).status.activeTravel.ambushReports ??
-            []) as unknown[];
+    // il risultato dell'imboscata nasce nella transazione della risoluzione (D-28)
+    const reportsOf = (subject: Traveller): Promise<unknown[]> =>
+        world.models.questResults
+            .find({ character: subject.characterId, kind: 'ambush' })
+            .lean<unknown[]>()
+            .exec();
 
     const failEveryCombat = (): void => {
         combat.willEndBy(() => {
