@@ -33,6 +33,7 @@ type AmbushCity {
 type AmbushReport {
   at: DateTime!
   nearCity: AmbushCity!
+  onFoot: Boolean!
   reachedCity: AmbushCity
 }
 

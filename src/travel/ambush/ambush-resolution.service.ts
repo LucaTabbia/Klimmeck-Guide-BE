@@ -540,11 +540,15 @@ export class AmbushResolutionService {
             return this.afterDefeat(fight, outcome.plan);
         }
         await this.notifyAmbush(fight.userId, outcome.plan.report);
-        await this.afterCommit(
-            identity.characterId,
-            outcome.plan.travelAfter,
-            now,
-        );
+        if (outcome.plan.travelAfter.rewritten) {
+            await this.moveTravelJobs(identity, outcome.plan.travelAfter);
+        } else {
+            await this.afterCommit(
+                identity.characterId,
+                outcome.plan.travelAfter,
+                now,
+            );
+        }
         this.logger.log(`Imboscata ${jobId} risolta: won`);
         return 'won';
     }
@@ -585,6 +589,22 @@ export class AmbushResolutionService {
             `Imboscata ${jobId} risolta: lost verso ${detour.reachedCity.name}`,
         );
         return 'lost';
+    }
+
+    // viaggio riscritto a piedi con un startTime nuovo: i job del vecchio sono stantii (D-13, Pitfall 5)
+    private async moveTravelJobs(
+        identity: AmbushIdentity,
+        travel: AmbushOutcomePlan['travelAfter'],
+    ): Promise<void> {
+        await this.scheduler.cancel(identity.characterId, identity.startTime);
+        await this.scheduler.schedule(identity.characterId, travel);
+        if (travel.ambush) {
+            await this.scheduler.scheduleAmbush(
+                identity.characterId,
+                travel.startTime,
+                travel.ambush.at,
+            );
+        }
     }
 
     // ogni imboscata risolta, vinta o persa, al solo proprietario e dopo il commit (D-14, D-30)
