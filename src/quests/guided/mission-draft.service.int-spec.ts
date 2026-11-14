@@ -1,4 +1,6 @@
 import { type Model, Types } from 'mongoose';
+import { PushEventType } from 'src/push/push-event-type.enum';
+import { PushService } from 'src/push/push.service';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
@@ -241,6 +243,70 @@ describe('MissionDraftService (replSet)', () => {
 
         expect(String(one._id)).toBe(String(two._id));
         expect(await draftCount()).toBe(1);
+    });
+
+    describe('push to the participants (utente 2026-11-14)', () => {
+        const pushSpy = () =>
+            jest
+                .spyOn(world.harness.app.get(PushService), 'sendToUser')
+                .mockResolvedValue({ sent: 0, failed: 0, pruned: 0 } as never);
+
+        afterEach(() => jest.restoreAllMocks());
+
+        it('tells every participant once that the mission starts', async () => {
+            const { first, second } = await worldMissionPair();
+            const push = pushSpy();
+
+            await service.start(hexOf(first), null);
+            await service.start(hexOf(second), null);
+
+            const sent = push.mock.calls.map(([userId, message]) => ({
+                userId: String(userId),
+                message,
+            }));
+            expect(sent).toHaveLength(2);
+            expect(sent).toEqual(
+                expect.arrayContaining(
+                    [first, second].map((subject) => ({
+                        userId: String(subject.player.user._id),
+                        message: {
+                            type: PushEventType.missionStart,
+                            id: String(subject.characterId),
+                            title: 'La missione comincia',
+                            body: "L'oste ha dato inizio a «La corte del re»",
+                            ttlSeconds: 3600,
+                        },
+                    })),
+                ),
+            );
+        });
+
+        it('sends one push per participant under two concurrent starts', async () => {
+            const { first, second } = await worldMissionPair();
+            const push = pushSpy();
+
+            await Promise.all([
+                service.start(hexOf(first), null),
+                service.start(hexOf(second), null),
+            ]);
+
+            expect(push).toHaveBeenCalledTimes(2);
+        });
+
+        it('sends nothing when the start is refused', async () => {
+            const subject = await storyQuester();
+            await world.models.characters.collection.updateOne(
+                { _id: subject.characterId },
+                { $set: { 'quests.pendingQuest': new Types.ObjectId() } },
+            );
+            const push = pushSpy();
+
+            await expect(
+                service.start(hexOf(subject), null),
+            ).rejects.toMatchObject(QUEST_IN_PROGRESS);
+
+            expect(push).not.toHaveBeenCalled();
+        });
     });
 
     it('refuses to start while a participant has a busy standard lane (D-23)', async () => {

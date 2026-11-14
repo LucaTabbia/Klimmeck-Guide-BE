@@ -66,6 +66,7 @@ describe('PushException', () => {
             'questCancelled',
             'ambushDefeat',
             'prisonRelease',
+            'missionStart',
         ]);
     });
 });
