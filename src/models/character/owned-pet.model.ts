@@ -1,6 +1,7 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Schema as MongooseSchema, Types } from 'mongoose';
+import { COMPANION_LEVELS } from 'src/characters/pets/companion-level';
 import { Pet } from '../pet.model';
 
 // lo stato di un pet vive sulla voce del personaggio; il catalogo tiene le basi (Phase 19 D-03)
@@ -39,7 +40,7 @@ export class OwnedPet {
     @Prop({ type: Date })
     potionRecoveryUntil?: Date | null;
 
-    @Prop({ type: Number, min: 1, max: 10 })
+    @Prop({ type: Number, min: 1, max: COMPANION_LEVELS })
     level?: number;
 }
 

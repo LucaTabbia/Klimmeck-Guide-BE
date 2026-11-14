@@ -1,4 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
+import {
+    CHARACTER_NAME_MAX_LENGTH,
+    CHARACTER_NAME_MIN_LENGTH,
+} from 'src/characters/creation/character-name';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 
 export interface GameRuleExtensions {
@@ -340,7 +344,7 @@ export class GameRuleException extends BadRequestException {
     static petNameInvalid(): GameRuleException {
         return new GameRuleException(
             GameRuleErrorCode.PET_NAME_INVALID,
-            'Nome del compagno non valido: da 2 a 20 caratteri tra lettere, spazi, apostrofi e trattini, con almeno una lettera',
+            `Nome del compagno non valido: da ${CHARACTER_NAME_MIN_LENGTH} a ${CHARACTER_NAME_MAX_LENGTH} caratteri tra lettere, spazi, apostrofi e trattini, con almeno una lettera`,
         );
     }
 }
