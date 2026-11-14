@@ -546,7 +546,7 @@ describe('pet potion plan', () => {
         lifeAsOf: T0,
         potionRecoveryUntil: new Date(AT.getTime() + 5 * MINUTE),
     };
-    const OWNED_ITEMS = [
+    const OWNED_ITEMS: InventorySnapshot['ownedItems'] = [
         { itemType: 'LootItem', item: POTION_ID, quantity: 2 },
         { itemType: 'LootItem', item: OTHER_ID, quantity: 1 },
     ];
@@ -732,7 +732,7 @@ describe('pet potion plan', () => {
     });
 
     it('refuses a pet not owned after the potion checks (D-32)', () => {
-        const withoutPotion = [
+        const withoutPotion: InventorySnapshot['ownedItems'] = [
             { itemType: 'LootItem', item: OTHER_ID, quantity: 1 },
         ];
 

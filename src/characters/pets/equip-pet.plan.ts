@@ -60,7 +60,8 @@ const factsOf = (
 ): PetCatalogFacts | undefined => catalog.get(petId.toHexString());
 
 // la guardia sullo slot letto rende la scrittura condizionale anche fuori dalla transazione (D-23); null corrisponde anche al campo assente
-function slotGuardOf(slot: unknown): unknown {
+// lo slot come letto: ref nelle due forme salvate, null o il valore illeggibile stesso
+export function petSlotGuardOf(slot: unknown): unknown {
     const slotId = refIdOf(slot);
     if (slotId) return { $in: idForms(slotId) };
     return slot ?? null;
@@ -69,7 +70,7 @@ function slotGuardOf(slot: unknown): unknown {
 function slotFilterOf(snapshot: PetSlotSnapshot): Record<string, unknown> {
     return {
         ...activeCharacterById(snapshot._id),
-        'assets.pet': slotGuardOf(snapshot.assets?.pet),
+        'assets.pet': petSlotGuardOf(snapshot.assets?.pet),
     };
 }
 

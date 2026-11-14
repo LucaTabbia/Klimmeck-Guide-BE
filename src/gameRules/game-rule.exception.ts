@@ -326,4 +326,13 @@ export class GameRuleException extends BadRequestException {
             'Il compagno è stato sconfitto: deve riposare finché non torna in forze',
         );
     }
+
+    // attesa del solo compagno che ha bevuto (Phase 23 D-05, D-32): la data di fine viaggia solo nelle extensions
+    static petPotionRecovering(until: Date): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.PET_POTION_RECOVERING,
+            "Il compagno non reggerebbe un'altra pozione: aspetta che la prima si sia posata",
+            { recoveryUntil: until.toISOString() },
+        );
+    }
 }
