@@ -449,6 +449,11 @@ type MissionFightEnemy {
   quantity: Int!
 }
 
+input MissionFightInput {
+  corrections: [ParticipantOverrideInput!]
+  enemies: [MissionEnemyInput!]!
+}
+
 type MissionFightOutcome {
   character: ID!
   consumablesAvailable: [MissionItemUsage!]!
@@ -487,7 +492,22 @@ type MissionPrize {
   xp: Int!
 }
 
+input MissionPrizeInput {
+  characterId: ID!
+  coins: CoinsInput!
+  cure: Boolean!
+  items: [MissionPrizeItemInput!]!
+  pet: ID
+  spell: ID
+  xp: Int!
+}
+
 type MissionPrizeItem {
+  item: ID!
+  quantity: Int!
+}
+
+input MissionPrizeItemInput {
   item: ID!
   quantity: Int!
 }
@@ -525,6 +545,7 @@ type Mutation {
   logout: Boolean!
   refreshSession(refreshToken: String!): AuthSession!
   registerPushDevice(input: RegisterPushDeviceInput!): Boolean!
+  saveMissionDraft(input: SaveMissionDraftInput!): MissionDraft!
   sendTestPush(input: SendTestPushInput!): PushDeliveryReport!
   simulateMissionFight(input: SimulateMissionFightInput!): MissionDraft!
   startMissionDraft(pendingQuestId: ID!): MissionDraft!
@@ -893,6 +914,14 @@ enum RoleType {
   adventurer
   guard
   innkeeper
+}
+
+input SaveMissionDraftInput {
+  fights: [MissionFightInput!]
+  pendingQuestId: ID!
+  place: ID
+  prizes: [MissionPrizeInput!]
+  step: MissionDraftStep
 }
 
 input SendTestPushInput {

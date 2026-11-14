@@ -6,7 +6,11 @@ import { Roles } from 'src/authz/roles/roles.decorator';
 import { CommonResponse } from 'src/models/common/common-response.model';
 import { Enemy } from 'src/models/enemy.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
-import { SimulateMissionFightInput } from './mission-draft.inputs';
+import {
+    SaveMissionDraftInput,
+    SimulateMissionFightInput,
+} from './mission-draft.inputs';
+import { MissionDraftSaveService } from './mission-draft-save.service';
 import { MissionDraftPresenter } from './mission-draft.mapper';
 import { MissionDraftService } from './mission-draft.service';
 import {
@@ -32,6 +36,7 @@ export class GuidedMissionResolver {
         private readonly enemies: MissionEnemiesService,
         private readonly simulation: MissionSimulationService,
         private readonly prizeOptions: MissionPrizeOptionsService,
+        private readonly save: MissionDraftSaveService,
     ) {}
 
     @Roles(RoleType.innkeeper)
@@ -88,6 +93,16 @@ export class GuidedMissionResolver {
         input: SimulateMissionFightInput,
     ): Promise<MissionDraftView> {
         return this.presenter.present(await this.simulation.simulate(input));
+    }
+
+    @Roles(RoleType.innkeeper)
+    @AuditTarget('PendingQuest', inputPendingQuestTarget)
+    @Mutation(() => MissionDraftView)
+    async saveMissionDraft(
+        @Args('input', { type: () => SaveMissionDraftInput })
+        input: SaveMissionDraftInput,
+    ): Promise<MissionDraftView> {
+        return this.presenter.present(await this.save.save(input));
     }
 
     @Roles(RoleType.innkeeper)
