@@ -66,7 +66,9 @@ export function companionLifeAt(input: CompanionLifeInput): CompanionLife {
     );
     const now = input.now.getTime();
     if (now >= fullLifeAt.getTime()) return settled(max);
-    const regained = Math.round(((now - asOf) * (max - 1)) / recoveryTime);
+    // un'ancora più avanti dell'orologio non toglie vita: si recupera solo dal suo istante in poi
+    const elapsed = Math.max(0, now - asOf);
+    const regained = Math.round((elapsed * (max - 1)) / recoveryTime);
     return { lifePoints: Math.min(max - 1, life + regained), fullLifeAt };
 }
 
