@@ -29,7 +29,7 @@ key-files:
     - test/authz/authorization-matrix.int-spec.ts
     - src/schema.gql
 decisions:
-  - "Sezioni assenti o null = invariate (anche step e place); last-write-wins con un solo $set per salvataggio"
+  - "Sezioni assenti o null = invariate (anche step e place); last-write-wins con un solo `$set` per salvataggio"
   - "Correzioni applicate per indice crescente sulla lista già riconciliata: correggere k (con effetto diverso) azzera i successivi, quindi correzioni di k+1 nello stesso salvataggio vengono rifiutate"
   - "Confronto delle correzioni per valore con la forma esadecimale di participantEffectsOf: la stessa correzione ripetuta non azzera nulla a valle"
   - "Premi: itemType ricavato dall'appartenenza a equipmentIds / lootIds dell'allowance; id assente da entrambe → OUTCOME_OVERRIDE_INVALID; voci doppie dello stesso oggetto rifiutate"
