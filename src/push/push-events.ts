@@ -43,6 +43,12 @@ const CATALOG: Record<PushEventType, CatalogEntry> = {
         body: "La prigionia è finita: torna all'avventura.",
         ttlSeconds: PERSONAL_TTL_SECONDS,
     },
+    [PushEventType.missionStart]: {
+        type: PushEventType.missionStart,
+        title: 'La missione comincia',
+        body: "L'oste ha dato inizio alla tua missione",
+        ttlSeconds: PERSONAL_TTL_SECONDS,
+    },
 };
 
 const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
@@ -51,6 +57,7 @@ const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
     PushEventType.questCancelled,
     PushEventType.ambushDefeat,
     PushEventType.prisonRelease,
+    PushEventType.missionStart,
 ]);
 
 // Phase 8 (fine viaggio), Phase 9 (esiti delle missioni, OutcomeWriter), Phase 6 (stream.online) chiamano PushService con questi builder (D-12)
@@ -85,6 +92,16 @@ export const ambushDefeat = (
 export const prisonRelease = (characterId: string): PushMessage => ({
     ...CATALOG[PushEventType.prisonRelease],
     id: characterId,
+});
+
+// avvio del flusso guidato dell'oste (utente 2026-11-14): id = personaggio, corpo col titolo della missione composto dal BE
+export const missionStart = (
+    characterId: string,
+    questTitle: string,
+): PushMessage => ({
+    ...CATALOG[PushEventType.missionStart],
+    id: characterId,
+    body: `L'oste ha dato inizio a «${questTitle}»`,
 });
 
 export const streamerLive = (): PushMessage => ({
