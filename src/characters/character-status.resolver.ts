@@ -16,12 +16,6 @@ interface StatusParent {
     quests?: Record<string, unknown> | null;
 }
 
-type LanePredicate = (lanes: LockLanes) => boolean;
-type LaneQuery = (
-    reader: MissionLockReader,
-    characterId: Types.ObjectId,
-) => Promise<boolean>;
-
 // campo di sola visualizzazione (D-16): l'autorità è la guardia; il PubSub in memoria passa il documento per riferimento (RESEARCH §Q7 (e))
 @Resolver(() => CharacterStatus)
 export class CharacterStatusResolver {
@@ -33,35 +27,33 @@ export class CharacterStatusResolver {
     }
 
     @ResolveField('missionInProgress', () => Boolean)
-    missionInProgress(@Parent() status: CharacterStatus): Promise<boolean> {
-        return this.flagOf(status, missionInProgressOf, (reader, id) =>
-            reader.isLocked(id),
-        );
+    async missionInProgress(
+        @Parent() status: CharacterStatus,
+    ): Promise<boolean> {
+        const source = this.lanesOrIdOf(status);
+        return source instanceof Types.ObjectId
+            ? this.missionLock.isLocked(source)
+            : missionInProgressOf(source);
     }
 
     @ResolveField('guidedMissionInProgress', () => Boolean)
-    guidedMissionInProgress(
+    async guidedMissionInProgress(
         @Parent() status: CharacterStatus,
     ): Promise<boolean> {
-        return this.flagOf(status, guidedMissionInProgressOf, (reader, id) =>
-            reader.isGuidedLocked(id),
-        );
+        const source = this.lanesOrIdOf(status);
+        return source instanceof Types.ObjectId
+            ? this.missionLock.isGuidedLocked(source)
+            : guidedMissionInProgressOf(source);
     }
 
-    private async flagOf(
+    // corsie popolate → predicato puro senza letture; corsie come id → l'id del personaggio per il reader; nessun genitore → null
+    private lanesOrIdOf(
         status: CharacterStatus,
-        predicate: LanePredicate,
-        query: LaneQuery,
-    ): Promise<boolean> {
+    ): LockLanes | Types.ObjectId | null {
         const parent = this.parentOf(status);
-        if (!parent) return false;
-
+        if (!parent) return null;
         const lanes = lockLanesOf(parent);
-        if (lanes === null) return false;
-        if (lanes !== 'unresolved') return predicate(lanes);
-
-        const characterId = refIdOf(parent._id);
-        return characterId ? query(this.missionLock, characterId) : false;
+        return lanes === 'unresolved' ? refIdOf(parent._id) : lanes;
     }
 
     private parentOf(status: CharacterStatus): StatusParent | null {
