@@ -113,4 +113,61 @@ describe('owned pet entry', () => {
         expect(normalisedOwnedPets(undefined)).toEqual([]);
         expect(normalisedOwnedPets(null)).toEqual([]);
     });
+
+    describe('companion fields', () => {
+        const lifeAsOf = new Date('2026-11-14T10:00:00.000Z');
+        const defeatedUntil = new Date('2026-11-14T11:00:00.000Z');
+        const potionRecoveryUntil = new Date('2026-11-14T10:30:00.000Z');
+
+        it('keeps name, anchor, dates and level when the array is rewritten (D-23, D-39)', () => {
+            const entry = {
+                pet: camel,
+                xp: 5,
+                currentLifePoints: 20,
+                name: 'Fenrir',
+                lifeAsOf,
+                defeatedUntil,
+                potionRecoveryUntil,
+                level: 3,
+            };
+
+            expect(normalisedOwnedPets([entry])).toEqual([entry]);
+        });
+
+        it.each([
+            { name: '' },
+            { name: 5 },
+            { lifeAsOf: 'x' },
+            { defeatedUntil: new Date('x') },
+            { potionRecoveryUntil: null },
+            { level: 0 },
+            { level: 11 },
+            { level: 2.5 },
+        ])(
+            'drops a blank name, an unreadable date and an invalid level instead of writing them (D-23): %p',
+            (field) => {
+                const [normalised] = normalisedOwnedPets([
+                    { pet: camel, xp: 1, currentLifePoints: 2, ...field },
+                ]);
+
+                expect(Object.keys(normalised).sort()).toEqual([
+                    'currentLifePoints',
+                    'pet',
+                    'xp',
+                ]);
+            },
+        );
+
+        it('keeps the three-key shape of an entry without the new fields (D-23)', () => {
+            const [normalised] = normalisedOwnedPets([
+                { pet: camel, xp: 1, currentLifePoints: 2 },
+            ]);
+
+            expect(Object.keys(normalised).sort()).toEqual([
+                'currentLifePoints',
+                'pet',
+                'xp',
+            ]);
+        });
+    });
 });

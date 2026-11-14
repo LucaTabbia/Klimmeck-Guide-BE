@@ -219,4 +219,39 @@ describe('companionXpAward', () => {
             ),
         ).toEqual(NO_CHANGE);
     });
+
+    it('keeps the name, the dates and the level of the companion when it earns xp (D-23, D-39)', () => {
+        const fields = {
+            name: 'Fenrir',
+            lifeAsOf: new Date('2026-11-14T10:00:00.000Z'),
+            defeatedUntil: new Date('2026-11-14T11:00:00.000Z'),
+            potionRecoveryUntil: new Date('2026-11-14T10:30:00.000Z'),
+            level: 2,
+        };
+
+        const award = companionXpAward(
+            {
+                pet: wolf,
+                ownedPets: [
+                    { pet: wolf, xp: 0, currentLifePoints: 3, ...fields },
+                    {
+                        pet: hawk,
+                        xp: 40,
+                        currentLifePoints: 7,
+                        name: 'Kestrel',
+                    },
+                ],
+            },
+            100,
+            capsOf([wolf, 1000], [hawk, 1000]),
+        );
+
+        expect(award).toEqual({
+            ownedPets: [
+                { pet: wolf, xp: 10, currentLifePoints: 3, ...fields },
+                { pet: hawk, xp: 40, currentLifePoints: 7, name: 'Kestrel' },
+            ],
+            gained: 10,
+        });
+    });
 });
