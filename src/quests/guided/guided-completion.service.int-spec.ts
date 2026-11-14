@@ -646,6 +646,119 @@ describe('GuidedCompletionService (replSet)', () => {
         expect((await resultOf(first)).outcome).toBe(QuestOutcome.gmCompleted);
     });
 
+    // una correzione valida al salvataggio può non esserlo più al completamento: la si scrive diretta nella bozza
+    const persistCorrection = (
+        fightIndex: number,
+        subject: Quester,
+        corrected: {
+            hpAfter: number;
+            injuriesAdded?: InjuryType[];
+            consumablesUsed?: { item: Types.ObjectId; quantity: number }[];
+            spellsUsed?: { spell: Types.ObjectId; usages: number }[];
+        },
+    ) =>
+        world.harness.connection.collection('missiondrafts').updateOne(
+            {},
+            {
+                $set: {
+                    [`fights.${fightIndex}.outcomes.$[seat].corrected`]: {
+                        injuriesAdded: [],
+                        consumablesUsed: [],
+                        spellsUsed: [],
+                        ...corrected,
+                    },
+                },
+            },
+            { arrayFilters: [{ 'seat.character': subject.characterId }] },
+        );
+
+    async function expectRefusedWithoutWriting(subject: Quester) {
+        const before = await rawDocuments();
+        await expect(service.complete(hexOf(subject))).rejects.toMatchObject(
+            OUTCOME_OVERRIDE_INVALID,
+        );
+        expect(await rawDocuments()).toEqual(before);
+        expect(world.push.sent).toHaveLength(0);
+    }
+
+    it('refuses a corrected effect that adds an injury owned before the fight (D-14, D-31)', async () => {
+        const { first, wolf } = await guidedWorldMission();
+        await simulate(first, 0, [wolf, 1]);
+        await persistCorrection(0, first, {
+            hpAfter: 800,
+            injuriesAdded: [InjuryType.deepCut],
+        });
+
+        await expectRefusedWithoutWriting(first);
+    });
+
+    it('refuses a corrected consumable usage over what the previous fight leaves (D-06, D-24)', async () => {
+        const { first, potion, wolf } = await guidedWorldMission();
+        combat.willResolve(first.characterId, {
+            consumablesUsed: [{ itemId: String(potion), quantity: 2 }],
+        });
+        await simulate(first, 0, [wolf, 1]);
+        combat.willResolve(first.characterId, {});
+        await simulate(first, 1, [wolf, 1]);
+        await persistCorrection(1, first, {
+            hpAfter: 800,
+            consumablesUsed: [{ item: potion, quantity: 2 }],
+        });
+
+        await expectRefusedWithoutWriting(first);
+    });
+
+    it('refuses a corrected spell usage over what the previous fight leaves (D-06, D-24)', async () => {
+        const { first, spell, wolf } = await guidedWorldMission();
+        combat.willResolve(first.characterId, {
+            spellsUsed: [{ spellId: String(spell), usages: 3 }],
+        });
+        await simulate(first, 0, [wolf, 1]);
+        combat.willResolve(first.characterId, {});
+        await simulate(first, 1, [wolf, 1]);
+        await persistCorrection(1, first, {
+            hpAfter: 800,
+            spellsUsed: [{ spell, usages: 3 }],
+        });
+
+        await expectRefusedWithoutWriting(first);
+    });
+
+    it('refuses a corrected life above the maximum (D-06)', async () => {
+        const { first, wolf } = await guidedWorldMission();
+        await simulate(first, 0, [wolf, 1]);
+        await persistCorrection(0, first, { hpAfter: 1001 });
+
+        await expectRefusedWithoutWriting(first);
+    });
+
+    it('lets one of two concurrent completions win, with one result per seat (D-08, D-25)', async () => {
+        const { first, second } = await guidedWorldMission();
+
+        const settled = await Promise.allSettled([
+            service.complete(hexOf(first)),
+            service.complete(hexOf(second)),
+        ]);
+
+        expect(
+            settled
+                .map(({ status }) => status)
+                .sort((a, b) => a.localeCompare(b)),
+        ).toEqual(['fulfilled', 'rejected']);
+        const lost = settled.find(
+            (outcome): outcome is PromiseRejectedResult =>
+                outcome.status === 'rejected',
+        );
+        expect(lost?.reason).toMatchObject(NOT_FOUND);
+        for (const subject of [first, second]) {
+            expect((await resultOf(subject)).outcome).toBe(
+                QuestOutcome.gmCompleted,
+            );
+        }
+        expect(await draftModel.countDocuments()).toBe(0);
+        expect(questEndPushes()).toHaveLength(2);
+    });
+
     it('delivers the result sheet as today (D-08)', async () => {
         const { first } = await guidedWorldMission();
 
