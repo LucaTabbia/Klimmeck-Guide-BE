@@ -43,7 +43,8 @@ export class PetRecoveryService {
         private readonly clock: Clock,
     ) {}
 
-    // ogni claim è un update condizionale indipendente, nessuna transazione: le push partono dopo le scritture
+    // ogni claim è un update condizionale indipendente, nessuna transazione: le push partono dopo le scritture.
+    // Proprietario e specie si leggono PRIMA dei claim: una lettura fallita lascia il marcatore e lo sweep seguente riprova
     async release(characterId: Types.ObjectId): Promise<Types.ObjectId[]> {
         const now = this.clock.now();
         const character = await this.characterModel
@@ -53,16 +54,20 @@ export class PetRecoveryService {
             )
             .lean<OwnedPetsSnapshot | null>()
             .exec();
+        const due = duePetsOf(character?.assets?.ownedPets, now);
+        if (due.length === 0) return [];
+        const ownerId = await this.ownerIdOf(characterId);
+        const species = await this.speciesNamesOf(due);
         const claimed: DuePetRecovery[] = [];
-        for (const due of duePetsOf(character?.assets?.ownedPets, now)) {
-            if (await this.claim(characterId, due.petId, now))
-                claimed.push(due);
+        for (const recovery of due) {
+            if (await this.claim(characterId, recovery.petId, now))
+                claimed.push(recovery);
         }
         if (claimed.length === 0) return [];
         this.logger.log(
             `Personaggio ${characterId.toHexString()}: ${claimed.length} compagni di nuovo in forze`,
         );
-        await this.notifyOwner(characterId, claimed);
+        if (ownerId) await this.notifyOwner(ownerId, claimed, species);
         return claimed.map(({ petId }) => petId);
     }
 
@@ -82,11 +87,10 @@ export class PetRecoveryService {
         return result.modifiedCount === 1;
     }
 
-    // best-effort dopo la scrittura, come la prigione: un personaggio che nessuno gioca più non riceve push
-    private async notifyOwner(
+    // come la prigione: un personaggio che nessuno gioca più non riceve push
+    private async ownerIdOf(
         characterId: Types.ObjectId,
-        claimed: readonly DuePetRecovery[],
-    ): Promise<void> {
+    ): Promise<Types.ObjectId | null> {
         const owner = await this.userModel
             .findOne(
                 { currentCharacter: { $in: idForms(characterId) } },
@@ -94,11 +98,18 @@ export class PetRecoveryService {
             )
             .lean<{ _id: Types.ObjectId } | null>()
             .exec();
-        if (!owner) return;
-        const species = await this.speciesNamesOf(claimed);
+        return owner?._id ?? null;
+    }
+
+    // best-effort dopo la scrittura: sendToUser inghiotte i propri errori
+    private async notifyOwner(
+        ownerId: Types.ObjectId,
+        claimed: readonly DuePetRecovery[],
+        species: ReadonlyMap<string, unknown>,
+    ): Promise<void> {
         for (const { petId, name } of claimed) {
             await this.push.sendToUser(
-                owner._id,
+                ownerId,
                 petRecovered(
                     petId.toHexString(),
                     companionDisplayName(
@@ -111,13 +122,10 @@ export class PetRecoveryService {
     }
 
     private async speciesNamesOf(
-        claimed: readonly DuePetRecovery[],
+        due: readonly DuePetRecovery[],
     ): Promise<Map<string, unknown>> {
         const pets = await this.petModel
-            .find(
-                { _id: { $in: claimed.map(({ petId }) => petId) } },
-                { name: 1 },
-            )
+            .find({ _id: { $in: due.map(({ petId }) => petId) } }, { name: 1 })
             .lean<SpeciesName[]>()
             .exec();
         return new Map(pets.map((pet) => [pet._id.toHexString(), pet.name]));
