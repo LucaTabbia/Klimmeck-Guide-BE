@@ -652,7 +652,7 @@ describe('ambush defeat plan', () => {
         expect(defeat.report.hpAfter).toBe(1);
     });
 
-    it('rewrites the travel from the ambush point towards the reached city (D-11)', () => {
+    it('rewrites the travel from the ambush point towards the reached city, a new travel identity (D-11, Pitfall 5)', () => {
         const defeat = planAmbushOutcome(defeatWith());
         const duration = durationMsOf(4.434, 10);
         const endTime = new Date(AT.getTime() + duration);
@@ -669,7 +669,7 @@ describe('ambush defeat plan', () => {
             startTime: AT,
             endTime,
             ambush: null,
-            rewritten: false,
+            rewritten: true,
         });
         expect(defeat.report.reachedCity).toEqual(reachedCity);
     });
