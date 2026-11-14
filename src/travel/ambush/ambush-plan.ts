@@ -536,8 +536,10 @@ function onFootPlanOf(
               stacks: stacksOf(walker.inventory.ownedItems, input.food.catalog),
           })
         : null;
-    if (input.detour && meal && !meal.plan.arrivesAlive) {
-        return redirectPlanOf(input, input.detour, walker, learned, report);
+    // senza una città raggiungibile per strada la deviazione è la stessa meta: si prosegue a piedi con la quest (D-16, D-25)
+    const reachable = input.detour?.baseHours != null ? input.detour : null;
+    if (reachable && meal && !meal.plan.arrivesAlive) {
+        return redirectPlanOf(input, reachable, walker, learned, report);
     }
     const held = travel.ambushReports ?? [];
     return {
