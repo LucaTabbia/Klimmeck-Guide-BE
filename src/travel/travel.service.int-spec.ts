@@ -1,6 +1,7 @@
 import { getQueueToken } from '@nestjs/bull';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { CharactersService } from 'src/characters/characters.service';
 import { PUSH_CONFIG } from 'src/config/push-config';
 import {
     applyTradeToInventory,
@@ -49,6 +50,7 @@ import {
     persistLootItem,
     persistPet,
 } from '../../test/fixtures';
+import { buildOwnedPet } from '../../test/fixtures/owned-pet.fixture';
 import { FakePushTransport } from '../../test/push/fake-push-transport';
 import { SequenceChance } from '../../test/quests/sequence-chance';
 import {
@@ -795,6 +797,40 @@ describe('TravelService ambush at departure (Phase 15)', () => {
         await travel.preview(id, world.markers.borgo);
 
         expect(chance.drawn.length).toBe(0);
+    });
+
+    it('keeps the departure mount when the companion changes during the travel (D-29, Pitfall 4)', async () => {
+        const pets = harness.app.get<Model<any>>(getModelToken(Pet.name));
+        const horse = await persistPet(pets, { speedModifier: 2 });
+        const fox = await persistPet(pets, { speedModifier: 3 });
+        const player = await playerAtAlba();
+        await harness.connection.collection('characters').updateOne(
+            { _id: idOf(player) },
+            {
+                $set: {
+                    'assets.pet': horse._id,
+                    'assets.ownedPets': [
+                        buildOwnedPet(horse._id, { level: 1 }),
+                        buildOwnedPet(fox._id, { level: 1 }),
+                    ],
+                },
+            },
+        );
+        await travel.startTravel(idOf(player), world.markers.erta);
+
+        await harness.app.get(CharactersService).equipPet({
+            id: idOf(player).toHexString(),
+            petId: (fox._id as Types.ObjectId).toHexString(),
+        });
+
+        const raw = await harness.connection
+            .collection('characters')
+            .findOne({ _id: idOf(player) });
+        expect(raw?.assets.pet).toEqual(fox._id);
+        expect(raw?.status.activeTravel.mount).toEqual({
+            pet: horse._id,
+            factor: 2,
+        });
     });
 });
 
