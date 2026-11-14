@@ -356,7 +356,7 @@ function companionHealOf(
         recoveryTimeMs: pet?.recoveryTime,
         now,
     });
-    const hpAfter = Math.min(maxLifePoints, lifePoints + power);
+    const hpAfter = Math.min(maxLifePoints, Math.floor(lifePoints + power));
     if (hpAfter === lifePoints) throw GameRuleException.itemNoEffect();
     return {
         hpBefore: lifePoints,
