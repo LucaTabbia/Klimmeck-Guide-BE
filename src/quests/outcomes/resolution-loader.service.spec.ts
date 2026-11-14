@@ -161,7 +161,9 @@ describe('ResolutionLoader enemy read', () => {
                 [dragon.toHexString(), 2350],
             ]),
         );
-        expect(petModel.find.mock.calls).toEqual([[{}, { maxXp: 1 }]]);
+        expect(petModel.find.mock.calls).toEqual([
+            [{}, { maxXp: 1, attack: 1, defense: 1, maxLifePoints: 1 }],
+        ]);
     });
 
     it('leaves a pet without a valid cap out of the caps (D-17)', async () => {
@@ -200,6 +202,68 @@ describe('ResolutionLoader enemy read', () => {
 
         expect(catalog.enemies).toEqual([]);
         expect(catalog.petMaxXp).toEqual(new Map([[wolf.toHexString(), 100]]));
+    });
+
+    it('reads the combat stats of the pet catalogue in the same read (D-20)', async () => {
+        const wolf = new Types.ObjectId();
+        const cat = new Types.ObjectId();
+        const wolfAttack = { base: [{ type: 'slashing', power: 4 }] };
+        const wolfDefense = { base: [{ type: 'piercing', power: 1 }] };
+        const petModel = fakeModel([
+            {
+                _id: wolf,
+                maxXp: 100,
+                attack: wolfAttack,
+                defense: wolfDefense,
+                maxLifePoints: 50,
+            },
+            { _id: cat, maxLifePoints: 20 },
+        ]);
+        const enemy = { _id: new Types.ObjectId(), name: 'Lupo', xp: 5 };
+        const loader = loaderWith(fakeModel([enemy]), petModel);
+
+        const catalog = await loader.readCombatCatalog(
+            [{ enemy: enemy._id, quantity: 1 }],
+            [],
+            AMBUSH_SUBJECT,
+        );
+
+        expect(catalog.pets).toEqual(
+            new Map([
+                [
+                    wolf.toHexString(),
+                    {
+                        attack: wolfAttack,
+                        defense: wolfDefense,
+                        maxLifePoints: 50,
+                    },
+                ],
+                [cat.toHexString(), { maxLifePoints: 20 }],
+            ]),
+        );
+        expect(catalog.petMaxXp).toEqual(new Map([[wolf.toHexString(), 100]]));
+        expect(petModel.find.mock.calls).toEqual([
+            [{}, { maxXp: 1, attack: 1, defense: 1, maxLifePoints: 1 }],
+        ]);
+    });
+
+    it('serves the pets even without enemies (D-20)', async () => {
+        const wolf = new Types.ObjectId();
+        const petModel = fakeModel([
+            { _id: wolf, maxXp: 100, maxLifePoints: 50 },
+        ]);
+        const loader = loaderWith(fakeModel(), petModel);
+
+        const catalog = await loader.readCombatCatalog(
+            [],
+            [],
+            'della missione x',
+        );
+
+        expect(catalog.pets).toEqual(
+            new Map([[wolf.toHexString(), { maxLifePoints: 50 }]]),
+        );
+        expect(petModel.find).toHaveBeenCalledTimes(1);
     });
 });
 
