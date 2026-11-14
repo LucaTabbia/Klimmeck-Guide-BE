@@ -938,6 +938,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('adds the mission prize options to the schema (D-17)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type MissionPrizeOptions \{[^}]*\}/)?.[0]).toBe(
+            'type MissionPrizeOptions {\n  block: QuestPrizes!\n  character: ID!\n  equipment: [EquipmentItem!]!\n  loot: [LootItem!]!\n  maxRarity: RarityType!\n  pets: [Pet!]!\n  spells: [Spell!]!\n  title: String!\n}',
+        );
+        expect(schema).toContain(
+            '  missionPrizeOptions(characterId: ID!, pendingQuestId: ID!): MissionPrizeOptions!\n',
+        );
+    });
+
     it('writes the game master completion into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 

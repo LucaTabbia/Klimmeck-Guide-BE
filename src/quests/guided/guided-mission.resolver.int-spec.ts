@@ -16,7 +16,15 @@ import {
     createPlayer,
     type TestPlayer,
 } from '../../../test/authz/player-fixture';
-import { buildEnemy, buildQuest } from '../../../test/fixtures';
+import {
+    buildEnemy,
+    buildEquipmentItem,
+    buildLootItem,
+    buildPet,
+    buildQuest,
+    buildSpell,
+    spellStatesOf,
+} from '../../../test/fixtures';
 import {
     createOutcomeHarness,
     type OutcomeHarness,
@@ -613,6 +621,305 @@ describe('GuidedMissionResolver (wire)', () => {
                 body.errors?.map(({ extensions }) => extensions.code),
             ).toEqual(['BAD_USER_INPUT']);
             expect(await storedFights()).toEqual([]);
+        });
+    });
+    describe('mission prize options', () => {
+        const OPTIONS =
+            'query MissionPrizeOptions($characterId: ID!, $pendingQuestId: ID!) { missionPrizeOptions(characterId: $characterId, pendingQuestId: $pendingQuestId) { character title maxRarity block { xpPrize prizeItem { item { ... on EquipmentItem { id } } } pet { id } spell { id } } equipment { id } loot { id } pets { id } spells { id } } }';
+
+        interface WireOptions {
+            character: string;
+            title: string;
+            maxRarity: string;
+            block: {
+                xpPrize: number | null;
+                prizeItem: { item: { id: string } } | null;
+                pet: { id: string } | null;
+                spell: { id: string } | null;
+            };
+            equipment: { id: string }[];
+            loot: { id: string }[];
+            pets: { id: string }[];
+            spells: { id: string }[];
+        }
+
+        interface OptionsBody {
+            data?: { missionPrizeOptions?: WireOptions | null } | null;
+            errors?: { message: string; extensions: Record<string, unknown> }[];
+        }
+
+        interface PrizeCatalogue {
+            equipment: Record<string, string>;
+            blockSword: string;
+            loot: Record<string, string>;
+            rarePet: string;
+            legendaryPet: string;
+            learnable: string;
+            costly: string;
+            known: string;
+            blockSpell: string;
+        }
+
+        const RARITIES = [
+            'common',
+            'uncommon',
+            'rare',
+            'ultrarare',
+            'legendary',
+        ] as const;
+
+        const idOf = (document: { _id: unknown }) => String(document._id);
+
+        async function byRarity(
+            create: (rarity: string) => Promise<{ _id: unknown }>,
+        ): Promise<Record<string, string>> {
+            const entries: [string, string][] = [];
+            for (const rarity of RARITIES) {
+                entries.push([rarity, idOf(await create(rarity))]);
+            }
+            return Object.fromEntries(entries);
+        }
+
+        async function prizeCatalogue(): Promise<PrizeCatalogue> {
+            const { equipmentItems, lootItems, pets, spells } = world.models;
+            return {
+                equipment: await byRarity((rarity) =>
+                    equipmentItems.create(
+                        buildEquipmentItem({ name: `Spada ${rarity}`, rarity }),
+                    ),
+                ),
+                blockSword: idOf(
+                    await equipmentItems.create(
+                        buildEquipmentItem({
+                            name: 'Spada del re',
+                            rarity: 'legendary',
+                        }),
+                    ),
+                ),
+                loot: await byRarity((rarity) =>
+                    lootItems.create(
+                        buildLootItem({ name: `Pozione ${rarity}`, rarity }),
+                    ),
+                ),
+                rarePet: idOf(
+                    await pets.create(
+                        buildPet({ name: 'Lupo', rarity: 'rare' }),
+                    ),
+                ),
+                legendaryPet: idOf(
+                    await pets.create(
+                        buildPet({ name: 'Fenice', rarity: 'legendary' }),
+                    ),
+                ),
+                learnable: idOf(
+                    await spells.create(
+                        buildSpell({ name: 'Scintilla', minXpToLearn: 100 }),
+                    ),
+                ),
+                costly: idOf(
+                    await spells.create(
+                        buildSpell({ name: 'Meteora', minXpToLearn: 999999 }),
+                    ),
+                ),
+                known: idOf(
+                    await spells.create(
+                        buildSpell({ name: 'Lampo', minXpToLearn: 100 }),
+                    ),
+                ),
+                blockSpell: idOf(
+                    await spells.create(
+                        buildSpell({ name: 'Benedizione', minXpToLearn: 0 }),
+                    ),
+                ),
+            };
+        }
+
+        async function mageAndPaladin(catalogue: PrizeCatalogue) {
+            seq += 2;
+            const mage = await persistQuester(world.harness, {
+                twitchId: `tw-gm-prizes-${seq}a`,
+                lane: QuestLane.worldMission,
+                characterOverrides: {
+                    status: {
+                        title: 'mage',
+                        xp: 20000,
+                        spellStates: spellStatesOf([
+                            { spell: catalogue.known, usages: 3 },
+                        ]),
+                    },
+                },
+                questOverrides: {
+                    infos: {
+                        ...buildQuest().infos,
+                        type: 'worldMission',
+                        title: 'Il tesoro del re',
+                    },
+                    requirements: {
+                        ...buildQuest().requirements,
+                        minTitle: 'paladin',
+                        requiredAdventurers: [
+                            { title: 'mage', count: 1 },
+                            { title: 'paladin', count: 1 },
+                        ],
+                    },
+                    prizes: {
+                        ...buildQuest().prizes,
+                        rankPrizes: [
+                            {
+                                title: 'mage',
+                                xpPrize: 700,
+                                prizeItem: {
+                                    itemType: 'EquipmentItem',
+                                    item: new Types.ObjectId(
+                                        catalogue.blockSword,
+                                    ),
+                                    quantity: 1,
+                                },
+                                randomLoot: [],
+                            },
+                            {
+                                title: 'paladin',
+                                xpPrize: 400,
+                                randomLoot: [],
+                                spell: new Types.ObjectId(catalogue.blockSpell),
+                            },
+                        ],
+                    },
+                },
+            });
+            const paladin = await persistQuester(world.harness, {
+                twitchId: `tw-gm-prizes-${seq}b`,
+                lane: QuestLane.worldMission,
+                characterOverrides: { status: { title: 'paladin', xp: 20000 } },
+                quest: mage.quest,
+            });
+            return { mage, paladin };
+        }
+
+        async function optionsOf(
+            pendingQuestId: string,
+            characterId: string,
+            bearer: string,
+        ): Promise<OptionsBody> {
+            const response = await graphqlRequest(
+                world.harness.app,
+                OPTIONS,
+                { pendingQuestId, characterId },
+                bearer,
+            );
+            return response.body as OptionsBody;
+        }
+
+        const idsOf = (entries: { id: string }[] | undefined) =>
+            (entries ?? []).map(({ id }) => id).sort();
+
+        it('serves the block and the filtered catalogue of a mage (D-07, D-22)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage, paladin } = await mageAndPaladin(catalogue);
+            const oste = await innkeeper();
+
+            const body = await optionsOf(
+                hexOf(paladin),
+                String(mage.characterId),
+                oste.bearer,
+            );
+
+            expect(body.errors).toBeUndefined();
+            const options = body.data!.missionPrizeOptions!;
+            expect(options.character).toBe(String(mage.characterId));
+            expect(options.title).toBe('mage');
+            expect(options.maxRarity).toBe('ultrarare');
+            expect(options.block).toEqual({
+                xpPrize: 700,
+                prizeItem: { item: { id: catalogue.blockSword } },
+                pet: null,
+                spell: null,
+            });
+            const { equipment, loot } = catalogue;
+            expect(idsOf(options.equipment)).toEqual(
+                [
+                    equipment.common,
+                    equipment.uncommon,
+                    equipment.rare,
+                    equipment.ultrarare,
+                    catalogue.blockSword,
+                ].sort(),
+            );
+            expect(idsOf(options.loot)).toEqual(
+                [loot.common, loot.uncommon, loot.rare, loot.ultrarare].sort(),
+            );
+            expect(idsOf(options.pets)).toEqual([catalogue.rarePet]);
+            expect(idsOf(options.spells)).toEqual(
+                [catalogue.learnable, catalogue.blockSpell].sort(),
+            );
+        });
+
+        it('serves no catalogue spell to a paladin (D-07)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage, paladin } = await mageAndPaladin(catalogue);
+            const oste = await innkeeper();
+
+            const body = await optionsOf(
+                hexOf(mage),
+                String(paladin.characterId),
+                oste.bearer,
+            );
+
+            expect(body.errors).toBeUndefined();
+            const options = body.data!.missionPrizeOptions!;
+            expect(options.title).toBe('paladin');
+            expect(options.maxRarity).toBe('rare');
+            expect(options.block.spell).toEqual({ id: catalogue.blockSpell });
+            expect(idsOf(options.spells)).toEqual([catalogue.blockSpell]);
+        });
+
+        it('refuses a character outside the request (D-07)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage } = await mageAndPaladin(catalogue);
+            const [stranger] = await worldMissionPair();
+            const oste = await innkeeper();
+
+            const body = await optionsOf(
+                hexOf(mage),
+                String(stranger.characterId),
+                oste.bearer,
+            );
+
+            expect(body.data ?? null).toBeNull();
+            expect(
+                body.errors?.map(({ extensions }) => extensions.code),
+            ).toEqual(['OUTCOME_NOT_PARTICIPANT']);
+        });
+
+        it('refuses an adventurer (D-10)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage } = await mageAndPaladin(catalogue);
+
+            const body = await optionsOf(
+                hexOf(mage),
+                String(mage.characterId),
+                mage.player.bearer,
+            );
+
+            expect(body.data ?? null).toBeNull();
+            expect(
+                body.errors?.map(({ extensions }) => extensions.code),
+            ).toEqual(['FORBIDDEN']);
+        });
+
+        it('does not audit the query (D-26)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage } = await mageAndPaladin(catalogue);
+            const oste = await innkeeper();
+
+            const body = await optionsOf(
+                hexOf(mage),
+                String(mage.characterId),
+                oste.bearer,
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(await audits.find({}).lean().exec()).toEqual([]);
         });
     });
 });
