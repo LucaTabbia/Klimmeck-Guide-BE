@@ -3,10 +3,13 @@ import {
     companionDisplayName,
     companionLifeAt,
     CompanionLifeInput,
+    companionStoredLifeOf,
     defeatedUntilOf,
+    isLegacyCompanionEntry,
     isPetDefeated,
     petRecoveryTimeOf,
 } from './companion-life';
+import { companionMaxLifeOf } from './companion-level';
 
 const T = 6_000_000;
 const MINUTE = 60_000;
@@ -122,5 +125,59 @@ describe('companion life clock', () => {
         expect(companionDisplayName('   ', 'Worg')).toBe('Worg');
         expect(companionDisplayName(null, 'Worg')).toBe('Worg');
         expect(companionDisplayName(null, null)).toBe('Compagno');
+    });
+
+    describe('entries written before the phase', () => {
+        const pet = { maxXp: 100, maxLifePoints: 100 };
+        const legacyEntry = { xp: 22, currentLifePoints: 100 };
+
+        it.each([true, false])(
+            'reads an entry never touched by the phase at full life at the companion maximum (D-23, D-38): resting %p',
+            (resting) => {
+                const max = companionMaxLifeOf(legacyEntry, pet);
+                expect(max).toBe(122);
+                expect(isLegacyCompanionEntry(legacyEntry)).toBe(true);
+                const lifePoints = companionStoredLifeOf(legacyEntry, max);
+                expect(lifePoints).toBe(122);
+                expect(
+                    companionLifeAt(
+                        input({
+                            lifePoints,
+                            lifeAsOf: undefined,
+                            resting,
+                            maxLifePoints: max,
+                        }),
+                    ),
+                ).toEqual({ lifePoints: 122, fullLifeAt: null });
+            },
+        );
+
+        it('stops reading the entry as legacy once it has a saved level (D-23, D-38)', () => {
+            const entry = { ...legacyEntry, level: 5 };
+            const max = companionMaxLifeOf(entry, pet);
+            expect(isLegacyCompanionEntry(entry)).toBe(false);
+            expect(max).toBe(122);
+            expect(companionStoredLifeOf(entry, max)).toBe(100);
+        });
+
+        it('keeps the saved life of an entry with a level and no anchor (D-23, D-38)', () => {
+            const entry = { level: 3, currentLifePoints: 40 };
+            const max = companionMaxLifeOf(entry, pet);
+            const lifePoints = companionStoredLifeOf(entry, max);
+            expect(lifePoints).toBe(40);
+            expect(
+                companionLifeAt(
+                    input({ lifePoints, resting: false, maxLifePoints: max }),
+                ),
+            ).toEqual({ lifePoints: 40, fullLifeAt: null });
+        });
+
+        it('treats an entry with an anchor as not legacy (D-23)', () => {
+            const entry = { xp: 22, currentLifePoints: 30, lifeAsOf: t0 };
+            expect(isLegacyCompanionEntry(entry)).toBe(false);
+            expect(
+                companionStoredLifeOf(entry, companionMaxLifeOf(entry, pet)),
+            ).toBe(30);
+        });
     });
 });
