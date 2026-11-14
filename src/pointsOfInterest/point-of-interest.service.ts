@@ -14,8 +14,9 @@ export class PointOfInterestsService {
         private pointOfInterestModel: Model<PointOfInterestDocument>,
     ) {}
 
+    // la lista serve la città di ogni luogo (FE Phase 21 D-29): senza populate il ref arriverebbe come id grezzo e `city { id }` fallirebbe; città orfana = null
     async findAll(): Promise<PointOfInterest[]> {
-        return await this.pointOfInterestModel.find().exec();
+        return await this.pointOfInterestModel.find().populate('city').exec();
     }
 
     async findOne(id: string): Promise<PointOfInterest> {

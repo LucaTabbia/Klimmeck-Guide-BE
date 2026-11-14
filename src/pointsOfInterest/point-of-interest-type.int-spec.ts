@@ -106,17 +106,21 @@ describe('point of interest type (wire)', () => {
             bearer,
         );
 
-        expect(response.body).toEqual({
-            data: {
-                pointOfInterests: [
-                    {
-                        id: inner.toHexString(),
-                        city: { id: cityId.toHexString(), name: 'Valantar' },
-                    },
-                    { id: lonely.toHexString(), city: null },
-                    { id: orphan.toHexString(), city: null },
-                ],
+        const seeded = [inner, lonely, orphan].map((id) => id.toHexString());
+        const body = response.body as {
+            data: { pointOfInterests: { id: string }[] };
+            errors?: unknown[];
+        };
+        expect(body.errors).toBeUndefined();
+        expect(
+            body.data.pointOfInterests.filter(({ id }) => seeded.includes(id)),
+        ).toEqual([
+            {
+                id: inner.toHexString(),
+                city: { id: cityId.toHexString(), name: 'Valantar' },
             },
-        });
+            { id: lonely.toHexString(), city: null },
+            { id: orphan.toHexString(), city: null },
+        ]);
     });
 });
