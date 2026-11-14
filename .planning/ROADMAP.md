@@ -7,7 +7,7 @@
 ## Milestones
 
 - ✅ **v1.0 Core Loop (BE)** — Phases 1–17 con le inserite 2.1, 3.1, 9.1, 9.2, 13.1 (consegnata il 2026-11-10) — [archivio roadmap](milestones/v1.0-ROADMAP.md) · [archivio requisiti](milestones/v1.0-REQUIREMENTS.md) · [riepilogo](MILESTONES.md)
-- 🚧 **v1.1 Cura e modelli** — Phases 18–22 (aperta il 2026-11-10; Phases 21–22 aggiunte il 2026-11-12) — quest heal per taglia con le pozioni dal Diario (↔ FE Phase 18), revisione dei modelli (↔ FE Phase 19), cibo e vita progressivi in viaggio (solo BE)
+- 🚧 **v1.1 Cura e modelli** — Phases 18–23 (aperta il 2026-11-10; Phases 21–22 aggiunte il 2026-11-12, Phase 23 il 2026-11-14) — quest heal per taglia con le pozioni dal Diario (↔ FE Phase 18), revisione dei modelli (↔ FE Phase 19), cibo e vita progressivi in viaggio (solo BE)
 
 ## Phases
 
@@ -50,6 +50,7 @@ Ordine seguito: numerico, con le inserite subito dopo la fase madre; ogni contra
 - [x] **Phase 20: Cibo e vita progressivi in viaggio** - Il piano del cibo si calcola alla partenza come oggi (stessa selezione, anteprima e rifiuto) ma si paga lungo la strada: vita scalata dallo sweep ogni minuto solo nel tratto scoperto come perdita incrementale (esatta all'imboscata e all'arrivo, mai sotto 1), cibo tolto in blocco in tre momenti (fine dei km coperti, arrivo, sconfitta con la selezione a scarto minimo sui soli km percorsi); deviazione senza cibo né fame; nessun cambio SDL, nessuna companion FE _(aggiunta 2026-11-09, dopo la Phase 19; supera la Phase 14 D-04)_
 - [x] **Phase 21: Premi per rango e soccorsi** - Le quest di gruppo portano un blocco premio per titolo (monete, xp, loot, pet, cura e magia per titolo; pet sorteggiato una volta per blocco, magia solo da mage in su), risolto sul titolo del personaggio; solitarie col premio unico sul `minTitle`; boss generati misti col titolo inferiore; aid solo da enemy/boss/hunt/dungeon/aid, aid della dungeon a turni fino al turno della sconfitta con premio proporzionale, archiviatore che libera le corsie _(aggiunta 2026-11-12 nel discuss della FE Phase 20)_
 - [ ] **Phase 22: Completamento guidato delle missioni** - L'oste completa story/worldMission con un flusso guidato: teleport (città e POI interni) → uno o più scontri con nemici da una lista filtrata per tipo di POI e fascia del titolo (leggendari per le worldMission, «mostra tutti») → simulazione a secco col `CombatResolver` → correzioni → premi dal blocco del titolo con aggiunte dal catalogo filtrato e rivalidate → completamento in una transazione, sempre `gmCompleted`; bozza salvata nel BE, invisibile ai giocatori, che restano bloccati con l'avviso «Missione in corso» fino al risultato; lo stesso blocco vale per ogni missione dall'inizio effettivo all'esito _(aggiunta 2026-11-12 nel discuss della FE Phase 21)_
+- [ ] **Phase 23: Sconfitta, riposo e recupero dei compagni** - Il compagno equipaggiato che scende a 0 di vita in uno scontro viene tolto a fine scontro e torna usabile solo a vita piena, dopo un'attesa proporzionata a rarità e potere; il compagno ferito si può mettere a riposo (recupera vita in proporzione al tempo di riposo) o curare con le pozioni (stessa regola e stessa attesa delle pozioni del personaggio) _(aggiunta 2026-11-14, ↔ FE Phase 22)_
 
 **Ordine di esecuzione:** 18 → 19 → 20. Ogni contratto consumato dalla FE arriva su `develop` prima dei piani gated della fase FE gemella. Requisiti: [REQUIREMENTS.md](REQUIREMENTS.md).
 
@@ -238,6 +239,13 @@ Plans:
 
 **Stato (2026-11-14)**: 18/18 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, riavvio del BE dal ramo, semina dei dati UAT e UAT su device (BACKEND-NOTES.md §6, da eseguire) a cura dell'orchestratore
 
+### Phase 23: Sconfitta, riposo e recupero dei compagni
+**Goal**: I compagni (pet) equipaggiati possono essere sconfitti, messi a riposo e curati, con il BE come unica fonte di verità. Regole dette dall'utente il 2026-11-14: (1) «Gli animali che hai equipaggiato, se vengono sconfitti durante uno scontro (raggiungono 0 di vita), vengono automaticamente disequipaggiati alla fine dello scontro e perché possano essere riusati bisogna attendere una quantità di tempo (proporzionata alla rarità e al potere del pet)»; «Se sconfitto non si può riequipaggiare finché non torna full vita». (2) «Se invece il pet viene solo ferito si può decidere di disequipaggiarlo e metterlo a riposo (a quel punto il tempo di recupero è proporzionale alla quantità di vita da recuperare)»; «Mettere a riposo il pet gli fa recuperare la vita per il tempo in cui resta a riposo. Se il pet ci mette 100 minuti per recuperare da 1 a 100 la vita e ha 20 di vita quando messo a riposo, se viene lasciato a riposo per 20 minuti, quando riequipaggiato avrà 40 di vita». (3) Oppure «curarlo con delle pozioni (stesso funzionamento delle pozioni sul personaggio, ovvero con tempo di attesa)».
+**Depends on**: Phase 9 (motore degli scontri, esiti), Phase 15 (imboscate), Phase 18 (pozioni e loro attesa), Phase 19 (modello del compagno, xp, `ownedPets`), Phase 22 (simulazione e completamento guidato scrivono lo stato dei compagni)
+**Scope**: da fissare nel discuss (interattivo). Punti da portare: vita corrente del compagno sul modello e sul filo, formula dell'attesa dopo la sconfitta (rarità, potere), velocità di recupero a riposo, pozioni sul compagno e loro attesa, tutti i punti in cui uno scontro si risolve (quest, boss, dungeon, imboscate, soccorsi, flusso guidato dell'oste), compagno sconfitto a metà di un dungeon o di più scontri, rifiuto dell'equip di un compagno non recuperato, eventuale push al recupero completato.
+**Requirements**: TBD (definiti al plan)
+**Plans**: TBD
+
 ## Backend ↔ Frontend alignment (v1.1)
 
 | Vincolo FE | Fase BE che lo soddisfa | Nota |
@@ -247,6 +255,7 @@ Plans:
 | (nessuna fase FE) | Phase 20 (BE-FOODP) | Nessun cambio sul filo: vita e dispensa arrivano dallo stream durante il viaggio; la nota «inventario e HP cambiano solo via subscription» della FE Phase 15 resta vera (discuss 2026-11-09) |
 | FE Phase 20 (rank-specific prizes for group quests) | Phase 21 (BE-RANKP) | Blocchi premio per titolo, blocco del viewer sul filo, contatori dei turni nell'aid di dungeon; forma SDL decisa nel plan (discuss 2026-11-12) |
 | FE Phase 21 (innkeeper mission completion flow) | Phase 22 (BE-GMFLOW) | Lista nemici, simulazione a secco, bozza, completamento con premi per personaggio; forma SDL decisa nel plan (discuss 2026-11-12) |
+| FE Phase 22 (companion defeat, rest and recovery) | Phase 23 | Sconfitta, riposo e pozioni dei compagni; forma SDL decisa nel plan (aggiunta 2026-11-14) |
 
 La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md).
 
@@ -281,6 +290,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | In Progress | - |
+| 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 0/0 | Not started | - |
 
 ---
 
