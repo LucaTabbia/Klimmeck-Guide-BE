@@ -234,6 +234,33 @@ describe('Character quest lanes (wire)', () => {
         });
     });
 
+    // la pedina dice cosa sta facendo il personaggio («Cacciando…», FE Phase 21, utente 2026-11-14): serve il tipo della quest in corsia
+    it('serves the type of the quest of a lane', async () => {
+        const alice = await createAliceWithFullLanes();
+
+        const response = await graphqlRequest(
+            harness.app,
+            'query Lanes($id: String!) { character(id: $id) { quests { pendingQuest { quest { id infos { type } } } } } }',
+            { id: String(alice.character?._id) },
+            alice.bearer,
+        );
+
+        expect(response.body).toEqual({
+            data: {
+                character: {
+                    quests: {
+                        pendingQuest: {
+                            quest: {
+                                id: seeded.hunt.id,
+                                infos: { type: seeded.hunt.infos.type },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    });
+
     it('turns a dangling lane into null and drops a dangling completed quest without errors', async () => {
         const alice = await createAliceWith({
             completedQuests: [new Types.ObjectId(), seeded.done._id],
