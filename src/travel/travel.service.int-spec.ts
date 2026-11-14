@@ -12,11 +12,16 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { LootItem } from 'src/models/loot-item.model';
+import {
+    PendingQuest,
+    PendingQuestDocument,
+} from 'src/models/pending-quest.model';
 import { Pet } from 'src/models/pet.model';
 import { Road } from 'src/models/road.model';
 import type { RoadRoute } from 'src/roads/road-route';
 import { RoadsService } from 'src/roads/roads.service';
 import { PushTransport } from 'src/push/transport/push-transport';
+import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
@@ -72,6 +77,7 @@ describe('TravelService (replSet)', () => {
     let planner: TravelPlanner;
     let roads: RoadsService;
     let characters: Model<CharacterDocument>;
+    let pendingQuests: Model<PendingQuestDocument>;
     let world: TravelWorld;
     let seq = 0;
     const queue = new FakeTravelQueue();
@@ -97,6 +103,9 @@ describe('TravelService (replSet)', () => {
         roads = harness.app.get(RoadsService);
         characters = harness.app.get<Model<CharacterDocument>>(
             getModelToken(Character.name),
+        );
+        pendingQuests = harness.app.get<Model<PendingQuestDocument>>(
+            getModelToken(PendingQuest.name),
         );
         await characters.init();
     });
@@ -124,6 +133,7 @@ describe('TravelService (replSet)', () => {
             ownedItems?: unknown[];
             pet?: unknown;
             injuries?: string[];
+            quests?: Record<string, unknown>;
         } = {},
     ): Promise<Types.ObjectId> {
         seq += 1;
@@ -133,6 +143,7 @@ describe('TravelService (replSet)', () => {
             twitchId: `tw-travel-start-${seq}`,
             characterOverrides: {
                 infos: { ...base.infos, name: `Viandante ${seq}` },
+                quests: { ...base.quests, ...options.quests },
                 status: {
                     ...base.status,
                     location,
@@ -149,6 +160,20 @@ describe('TravelService (replSet)', () => {
             },
         });
         return player.character!._id as Types.ObjectId;
+    }
+
+    async function laneOf(
+        lane: QuestLane,
+        dates: { startDate?: Date | null; missionDraftStartedAt?: Date | null },
+    ): Promise<Record<string, Types.ObjectId>> {
+        const pendingQuest = await pendingQuests.create({
+            startDate: null,
+            waitingTime: 60_000,
+            pointsSpent: 0,
+            quest: new Types.ObjectId(),
+            ...dates,
+        });
+        return { [lane]: pendingQuest._id as Types.ObjectId };
     }
 
     function rawCharacter(id: Types.ObjectId) {
@@ -289,6 +314,63 @@ describe('TravelService (replSet)', () => {
             expect((await rawCharacter(id))?.status.activeTravel).toBeNull();
         },
     );
+
+    describe('mission lock', () => {
+        it('refuses to start a travel during a guided draft without writing (D-11)', async () => {
+            const id = await characterAt(world.markerA, {
+                quests: await laneOf(QuestLane.story, {
+                    missionDraftStartedAt: STARTED_AT,
+                }),
+            });
+
+            await expect(
+                travel.startTravel(id, world.markerB),
+            ).rejects.toMatchObject({ code: 'MISSION_IN_PROGRESS' });
+            expect((await rawCharacter(id))?.status.activeTravel).toBeNull();
+            expect(queue.added).toEqual([]);
+        });
+
+        it('refuses the travel preview during a guided draft (D-23)', async () => {
+            const id = await characterAt(world.markerA, {
+                quests: await laneOf(QuestLane.story, {
+                    missionDraftStartedAt: STARTED_AT,
+                }),
+            });
+
+            await expect(
+                travel.preview(id, world.markerB),
+            ).rejects.toMatchObject({ code: 'MISSION_IN_PROGRESS' });
+        });
+
+        it('keeps the busy standard lane code first (D-23)', async () => {
+            const id = await characterAt(world.markerA, {
+                quests: await laneOf(QuestLane.standard, {
+                    startDate: STARTED_AT,
+                }),
+            });
+
+            await expect(
+                travel.startTravel(id, world.markerB),
+            ).rejects.toMatchObject({ code: 'QUEST_IN_PROGRESS' });
+            await expect(
+                travel.preview(id, world.markerB),
+            ).rejects.toMatchObject({ code: 'QUEST_IN_PROGRESS' });
+            expect(queue.added).toEqual([]);
+        });
+
+        it('lets a character with a story and no draft travel (D-11)', async () => {
+            const id = await characterAt(world.markerA, {
+                quests: await laneOf(QuestLane.story, {}),
+            });
+
+            await expect(
+                travel.startTravel(id, world.markerB),
+            ).resolves.toBeUndefined();
+            expect((await rawCharacter(id))?.status.activeTravel).toMatchObject(
+                { to: world.markerB },
+            );
+        });
+    });
 
     it('keeps the travel when the queue is unavailable', async () => {
         const id = await characterAt(world.markerA);

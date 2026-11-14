@@ -12,6 +12,10 @@ import {
 } from 'src/models/character/character.model';
 import { LootItem } from 'src/models/loot-item.model';
 import {
+    PendingQuest,
+    PendingQuestDocument,
+} from 'src/models/pending-quest.model';
+import {
     QuestResult,
     QuestResultDocument,
 } from 'src/models/quest-result/quest-result.model';
@@ -741,6 +745,39 @@ describe('teleportCharacter', () => {
             const raw = await rawCharacter(alice);
             expect(raw?.status.location).toEqual(world.markerB);
             expect(raw?.status.awaitingAid).toEqual(awaitingAid);
+        });
+
+        it('teleports a participant of an open guided draft (D-01, D-23)', async () => {
+            const draft = await harness.connection
+                .model<PendingQuestDocument>(PendingQuest.name)
+                .create({
+                    startDate: null,
+                    waitingTime: 60_000,
+                    pointsSpent: 0,
+                    quest: new Types.ObjectId(),
+                    missionDraftStartedAt: STARTED_AT,
+                });
+            const alice = await playerAt(world.markerA, {
+                activeWorldMissionQuest: draft._id as Types.ObjectId,
+            });
+            const oste = await innkeeper();
+
+            const body = await teleportOnWire(
+                {
+                    id: characterIdOf(alice).toHexString(),
+                    poiId: world.questPoi.toHexString(),
+                },
+                oste.bearer,
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.teleportCharacter).toEqual({
+                response: 'Personaggio teletrasportato',
+                successful: true,
+            });
+            expect((await rawCharacter(alice))?.status.location).toEqual(
+                world.questPoi,
+            );
         });
 
         it('answers the teleport even when the job removal hangs', async () => {
