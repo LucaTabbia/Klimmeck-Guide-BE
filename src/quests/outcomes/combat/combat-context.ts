@@ -73,6 +73,9 @@ export interface CombatPetSnapshot {
     defense?: unknown;
     maxLifePoints?: unknown;
     maxXp?: unknown;
+    // nome della specie e tempo di recupero, letti per l'esito del compagno (D-20, D-26)
+    name?: unknown;
+    recoveryTime?: unknown;
 }
 
 export interface CombatHydration {

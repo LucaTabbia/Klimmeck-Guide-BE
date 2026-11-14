@@ -27,7 +27,12 @@ import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
 import type { KnowledgeAddition } from 'src/lore/knowledge-addition';
-import { idForms, objectIdFromHex, sameId } from 'src/mongo/document-id';
+import {
+    idForms,
+    objectIdFromHex,
+    refIdOf,
+    sameId,
+} from 'src/mongo/document-id';
 import {
     isGmLane,
     lanePathOf,
@@ -42,7 +47,12 @@ import { isPositiveInteger } from './outcome-numbers';
 import { lifePointsWithin, progressionAfter } from './progression/level-table';
 import { statusFactsOf } from './progression/status-facts';
 import { nextTitleAfterStory } from './progression/title-progression';
-import { companionXpAward } from './pets/companion-xp';
+import {
+    type CompanionAfterFight,
+    companionAfterFight,
+    type CompanionCatalogEntry,
+    type CompanionOutcomeDraft,
+} from './pets/companion-after-fight';
 import {
     canLearnSpell,
     type DrawnRewards,
@@ -152,6 +162,8 @@ export interface QuestResultDraft extends DungeonTurnFields {
     arrested: boolean;
     coinsLost: CoinPurse | null;
     guardEncounter: boolean;
+    // il compagno che ha combattuto (D-10, D-27): opzionale per i draft che non passano dai piani degli esiti
+    companion?: CompanionOutcomeDraft | null;
 }
 
 export type PlanVerdict =
@@ -205,6 +217,8 @@ export interface ParticipantPlanInput {
     spellRecoveryTimes: ReadonlyMap<string, number>;
     // tetti di xp dei pet a catalogo, per esadecimale (Phase 19 D-17)
     petMaxXp: ReadonlyMap<string, number>;
+    // nome, vita base, tetto di xp e tempo di recupero dei pet a catalogo, per esadecimale (D-03, D-26)
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>;
     rescuedCharacters?: readonly Types.ObjectId[];
     // le dungeon a tappe e i soccorritori di un'aid di dungeon (D-12, D-21): null altrove
     stages?: DungeonStages | null;
@@ -370,6 +384,22 @@ function ownedPetsAfterOutcome(
     return [...(awarded ?? normalisedOwnedPets(owned)), petWon];
 }
 
+// lo sconfitto esce dallo slot (D-26); la guardia ripete lo slot letto in sessione (T-23-13)
+export function companionSlotSet(
+    companion: CompanionAfterFight,
+): Record<string, unknown> {
+    return companion.unequip ? { 'assets.pet': null } : {};
+}
+
+export function companionSlotFilter(
+    assets: OutcomeCharacterSnapshot['assets'],
+    companion: CompanionAfterFight,
+): Record<string, unknown> {
+    const slot = refIdOf(assets?.pet);
+    if (!companion.unequip || !slot) return {};
+    return { 'assets.pet': { $in: idForms(slot) } };
+}
+
 // riusato dai piani senza premio (quick 261110-cgd)
 export function participantFilter(
     input: Pick<ParticipantPlanInput, 'snapshot' | 'pendingQuestId' | 'lane'>,
@@ -471,11 +501,14 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     const coinsDelta = won ? rewards.coinsCopper : 0;
     const petWon = petWonBy(snapshot, won, rewards.pet, rewards.petLifePoints);
     // la quota del compagno viene dai soli nemici, mai dal premio della quest (Phase 19 D-04, D-18)
-    const companion = companionXpAward(
-        snapshot.assets,
+    const companion = companionAfterFight({
+        assets: snapshot.assets,
+        effects: battle,
         enemiesXp,
-        input.petMaxXp,
-    );
+        petMaxXp: input.petMaxXp,
+        petCatalog: input.petCatalog,
+        at: input.now,
+    });
     const ownedPetsAfter = ownedPetsAfterOutcome(
         snapshot.assets?.ownedPets,
         companion.ownedPets,
@@ -516,6 +549,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             ? { 'quests.completedQuests': completedQuests }
             : {}),
         ...(ownedPetsAfter ? { 'assets.ownedPets': ownedPetsAfter } : {}),
+        ...companionSlotSet(companion),
         // il fallimento aspetta il soccorso sul marker della quest (D-07, D-08)
         ...(!won && aid
             ? {
@@ -529,7 +563,10 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     };
 
     return {
-        filter: participantFilter(input, lanePath),
+        filter: {
+            ...participantFilter(input, lanePath),
+            ...companionSlotFilter(snapshot.assets, companion),
+        },
         // la conoscenza si scrive nello stesso update del piano, solo se c'è qualcosa da imparare (Phase 16 D-06, D-14)
         update: { $set, ...learned.addition },
         coinsDelta,
@@ -575,6 +612,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             arrested: false,
             coinsLost: null,
             guardEncounter: false,
+            companion: companion.outcome,
         },
         spellRecoveries: spells.recoveries,
     };

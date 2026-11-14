@@ -5,6 +5,8 @@ import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { lanePathOf, QuestLane } from 'src/quests/acceptance/quest-lanes';
 import type { ParticipantEffects } from './combat/combat-resolver';
 import {
+    companionSlotFilter,
+    companionSlotSet,
     consumablesSpent,
     type EnemyFacts,
     NO_TURN_COUNTERS,
@@ -18,6 +20,10 @@ import {
     spellsSpent,
     woundsAfter,
 } from './outcome-plan';
+import {
+    companionAfterFight,
+    type CompanionCatalogEntry,
+} from './pets/companion-after-fight';
 import { lifePointsWithin } from './progression/level-table';
 import { statusFactsOf } from './progression/status-facts';
 
@@ -30,6 +36,7 @@ export interface UnrewardedPlanInput {
     battle: ParticipantEffects | null;
     enemies: EnemyFacts | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>;
     now: Date;
 }
 
@@ -42,6 +49,9 @@ export interface UnrewardedConclusion {
 }
 
 const NO_COINS = { gold: 0, silver: 0, copper: 0 };
+
+// nessun xp senza premio: il compagno ferito o sconfitto si scrive comunque (Pitfall 8)
+const NO_PET_XP: ReadonlyMap<string, number> = new Map();
 
 // corsia standard liberata, effetti del combattimento tenuti, nessun xp, oggetto, magia, lore, completedQuests né awaitingAid
 export function planUnrewarded(
@@ -76,10 +86,21 @@ export function planUnrewarded(
         input.spellRecoveryTimes,
         input.now,
     );
+    const companion = companionAfterFight({
+        assets: snapshot.assets,
+        effects: battle,
+        enemiesXp: 0,
+        petMaxXp: NO_PET_XP,
+        petCatalog: input.petCatalog,
+        at: input.now,
+    });
     const lane = QuestLane.standard;
     const lanePath = lanePathOf(lane);
     return {
-        filter: participantFilter({ ...input, lane }, lanePath),
+        filter: {
+            ...participantFilter({ ...input, lane }, lanePath),
+            ...companionSlotFilter(snapshot.assets, companion),
+        },
         update: {
             $set: {
                 'status.currentLifePoints': hpAfter,
@@ -90,6 +111,10 @@ export function planUnrewarded(
                 ...(spells.spellStates
                     ? { 'status.spellStates': spells.spellStates }
                     : {}),
+                ...(companion.ownedPets
+                    ? { 'assets.ownedPets': companion.ownedPets }
+                    : {}),
+                ...companionSlotSet(companion),
                 ...conclusion.extraSet,
             },
         },
@@ -124,6 +149,7 @@ export function planUnrewarded(
             stagesTotal: null,
             ...NO_TURN_COUNTERS,
             rescuedCharacters: [],
+            companion: companion.outcome,
             ...conclusion.result,
         },
         spellRecoveries: spells.recoveries,

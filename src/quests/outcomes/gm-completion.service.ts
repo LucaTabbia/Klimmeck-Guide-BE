@@ -30,6 +30,7 @@ import {
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
+import type { CompanionCatalogEntry } from './pets/companion-after-fight';
 import { questUpdateOf } from './quest-outcome-plan';
 import {
     type ResolutionCharacter,
@@ -51,6 +52,7 @@ export interface GmCommitPlan {
     request: GmRequest;
     recoveryTimes: ReadonlyMap<string, number>;
     petMaxXp: ReadonlyMap<string, number>;
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>;
     now: Date;
     // in sessione, sugli snapshot riletti nell'ordine dei posti; un errore abortisce la transazione
     outcomesOf(
@@ -113,6 +115,7 @@ export class GmCompletionService {
             request,
             recoveryTimes,
             petMaxXp: catalog.petMaxXp,
+            petCatalog: catalog.pets,
             now: this.clock.now(),
             outcomesOf: (snapshots) => {
                 const battles = validateOverrides(
@@ -218,6 +221,7 @@ export class GmCompletionService {
                         aid: null,
                         spellRecoveryTimes: plan.recoveryTimes,
                         petMaxXp: plan.petMaxXp,
+                        petCatalog: plan.petCatalog,
                         now: plan.now,
                     });
                     await this.writer.writeParticipant(participant, session);

@@ -146,6 +146,7 @@ export class GuidedCompletionService {
                 this.spellsUsedBy(draft, characterHexes),
             ),
             petMaxXp: combat.petMaxXp,
+            petCatalog: combat.pets,
             now: this.clock.now(),
             outcomesOf: (snapshots) =>
                 this.outcomesOf(request, draft, catalogs, snapshots),

@@ -35,6 +35,7 @@ const unrewardedInputOf = (
     pendingQuestId: input.pendingQuestId,
     userId: input.userId,
     spellRecoveryTimes: input.catalog.recoveryTimes,
+    petCatalog: input.catalog.pets,
     now: input.now,
     ...overrides,
 });

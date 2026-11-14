@@ -505,7 +505,17 @@ export class ResolutionLoader {
         pets: Map<string, CombatPetSnapshot>;
     }> {
         const entries = await this.petModel
-            .find({}, { maxXp: 1, attack: 1, defense: 1, maxLifePoints: 1 })
+            .find(
+                {},
+                {
+                    maxXp: 1,
+                    attack: 1,
+                    defense: 1,
+                    maxLifePoints: 1,
+                    name: 1,
+                    recoveryTime: 1,
+                },
+            )
             .lean<CatalogEntry<{ maxXp?: unknown } & CombatPetSnapshot>[]>()
             .exec();
         return {
@@ -518,9 +528,24 @@ export class ResolutionLoader {
             ),
             pets: new Map(
                 entries.map(
-                    ({ _id, attack, defense, maxLifePoints, maxXp }) => [
+                    ({
+                        _id,
+                        attack,
+                        defense,
+                        maxLifePoints,
+                        maxXp,
+                        name,
+                        recoveryTime,
+                    }) => [
                         _id.toHexString(),
-                        { attack, defense, maxLifePoints, maxXp },
+                        {
+                            attack,
+                            defense,
+                            maxLifePoints,
+                            maxXp,
+                            name,
+                            recoveryTime,
+                        },
                     ],
                 ),
             ),
