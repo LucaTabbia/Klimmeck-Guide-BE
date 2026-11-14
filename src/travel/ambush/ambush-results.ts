@@ -8,6 +8,7 @@ import type {
     ConsumableUsage,
     QuestEnemyDraft,
 } from 'src/quests/outcomes/outcome-plan';
+import type { CompanionOutcomeDraft } from 'src/quests/outcomes/pets/companion-after-fight';
 import type { AmbushCity, AmbushReportDraft } from './ambush-plan';
 
 export interface AmbushResultDraft {
@@ -41,6 +42,7 @@ export interface AmbushResultDraft {
     stagesCleared: null;
     stagesTotal: null;
     rescuedCharacters: [];
+    companion: CompanionOutcomeDraft | null;
 }
 
 const byAmbushInstant = (a: AmbushReportDraft, b: AmbushReportDraft): number =>
@@ -98,5 +100,7 @@ function resultDraftOf(
         stagesCleared: null,
         stagesTotal: null,
         rescuedCharacters: [],
+        // i report trattenuti prima della Phase 23 non hanno il campo (Pitfall 9)
+        companion: report.companion ?? null,
     };
 }

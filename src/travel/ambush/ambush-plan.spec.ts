@@ -635,7 +635,7 @@ describe('ambush defeat plan', () => {
             'status.spellStates',
             'status.xp',
         ]);
-        expect(defeat.update.$push).toBeUndefined();
+        expect(Object.keys(defeat.update)).toEqual(['$set']);
         expect(defeat.report.outcome).toBe(QuestOutcome.failure);
         expect(defeat.report.coins).toEqual(fromCopper(0));
         expect(defeat.report.xpGained).toBe(0);

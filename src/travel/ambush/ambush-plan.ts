@@ -11,6 +11,8 @@ import type {
     ParticipantEffects,
 } from 'src/quests/outcomes/combat/combat-resolver';
 import {
+    companionSlotFilter,
+    companionSlotSet,
     type ConsumableUsage,
     consumablesSpent,
     type EnemyFacts,
@@ -24,9 +26,11 @@ import {
 } from 'src/quests/outcomes/outcome-plan';
 import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
 import {
-    type CompanionXpAward,
-    companionXpAward,
-} from 'src/quests/outcomes/pets/companion-xp';
+    type CompanionAfterFight,
+    companionAfterFight,
+    type CompanionCatalogEntry,
+    type CompanionOutcomeDraft,
+} from 'src/quests/outcomes/pets/companion-after-fight';
 import type { KnowledgeAddition } from 'src/lore/knowledge-addition';
 import {
     lifePointsWithin,
@@ -106,6 +110,8 @@ export interface AmbushReportDraft {
     loreUnlocked?: Types.ObjectId[];
     // il piano lo scrive sempre; assente nei report trattenuti prima della Phase 19
     petXpGained?: number;
+    // il piano lo scrive sempre; assente nei report trattenuti prima della Phase 23
+    companion?: CompanionOutcomeDraft | null;
 }
 
 // deviazione verso la città più vicina dopo una sconfitta (D-11); ripiego sulla strada residua verso la meta (D-25)
@@ -135,6 +141,7 @@ export interface AmbushPlanInput {
     detour: DetourDraft | null;
     spellRecoveryTimes: ReadonlyMap<string, number>;
     petMaxXp: ReadonlyMap<string, number>;
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>;
     now: Date;
     // passo «cibo»: lo snapshot arriva già assestato al km dell'imboscata (Phase 20 D-07, D-18); null = viaggio senza piano
     food?: AmbushFood | null;
@@ -144,7 +151,6 @@ export interface AmbushOutcomePlan {
     filter: Record<string, unknown>;
     update: {
         $set: Record<string, unknown>;
-        $push?: Record<string, unknown>;
         $addToSet?: KnowledgeAddition['$addToSet'];
     };
     coinsDelta: number;
@@ -160,11 +166,9 @@ interface FoughtOutcome {
     consumables: ConsumableUsage[];
     inventory: ReturnType<typeof applyTradeToInventory>;
     spells: SpellsSpent;
-    companion: CompanionXpAward;
+    companion: CompanionAfterFight;
     coinsDelta: number;
 }
-
-const REPORT_PATH = 'status.activeTravel.ambushReports';
 
 function foughtOutcomeOf(input: AmbushPlanInput, won: boolean): FoughtOutcome {
     const { snapshot, effects } = input;
@@ -203,12 +207,15 @@ function foughtOutcomeOf(input: AmbushPlanInput, won: boolean): FoughtOutcome {
             input.spellRecoveryTimes,
             input.identity.at,
         ),
-        // quota sugli xp grezzi dei nemici, non sul premio di grado (Phase 19 D-04)
-        companion: companionXpAward(
-            snapshot.assets,
-            won ? input.enemies.xp : 0,
-            input.petMaxXp,
-        ),
+        // quota sugli xp grezzi dei nemici, non sul premio di grado (Phase 19 D-04); vita e sconfitta all'istante dell'imboscata (D-03, D-26)
+        companion: companionAfterFight({
+            assets: snapshot.assets,
+            effects,
+            enemiesXp: won ? input.enemies.xp : 0,
+            petMaxXp: input.petMaxXp,
+            petCatalog: input.petCatalog,
+            at: input.identity.at,
+        }),
         coinsDelta: won ? prizes.copper : 0,
     };
 }
@@ -230,6 +237,7 @@ function commonSetOf(fought: FoughtOutcome): Record<string, unknown> {
         ...(companion.ownedPets
             ? { 'assets.ownedPets': companion.ownedPets }
             : {}),
+        ...companionSlotSet(companion),
     };
 }
 
@@ -264,15 +272,15 @@ function reportOf(
         titleAfter: before.title,
         loreUnlocked: learned.fresh,
         petXpGained: fought.companion.gained,
+        companion: fought.companion.outcome,
     };
 }
 
-// viaggio invariato (D-02): solo la prossima imboscata e il report trattenuto (D-13)
+// viaggio invariato (D-02): solo la prossima imboscata; il report si scrive subito come risultato (D-28)
 function victoryUpdateOf(
     input: AmbushPlanInput,
     fought: FoughtOutcome,
     learned: KnowledgeUpdate,
-    report: AmbushReportDraft,
 ): AmbushOutcomePlan['update'] {
     return {
         $set: {
@@ -283,7 +291,6 @@ function victoryUpdateOf(
                 ? foodProgressSetOf(input.food.progress)
                 : {}),
         },
-        $push: { [REPORT_PATH]: report },
         ...learned.addition,
     };
 }
@@ -291,24 +298,25 @@ function victoryUpdateOf(
 // l'unica lista di guardie viene dal cibo: il filtro dell'imboscata non ne ha (Phase 20 D-14, Pitfall 9)
 function filterOf(
     input: AmbushPlanInput,
+    fought: FoughtOutcome,
     guarded: FoodSettlement | null,
 ): Record<string, unknown> {
     const { xp } = input.snapshot.status;
     return {
         ...ambushFilter(input.identity, input.now),
         ...(typeof xp === 'number' ? { 'status.xp': xp } : {}),
+        ...companionSlotFilter(input.snapshot.assets, fought.companion),
         ...(input.food
             ? settlementGuardsOf(input.food.food, guarded, input.food.hpRaw)
             : {}),
     };
 }
 
-// D-11: viaggio riscritto dal punto, corsia standard liberata; D-03: nessun sorteggio sulla deviazione
+// D-11: viaggio riscritto dal punto, corsia standard liberata; D-03: nessun sorteggio sulla deviazione; porta solo i report trattenuti prima della Phase 23 (Pitfall 9)
 function defeatTravelOf(
     input: AmbushPlanInput,
     detour: DetourDraft,
     fought: FoughtOutcome,
-    report: AmbushReportDraft,
 ): { travel: Record<string, unknown>; endTime: Date } {
     const at = input.identity.at;
     const speed = detour.petSpeed * travelSpeedFactorOf(fought.wounds.injuries);
@@ -327,7 +335,7 @@ function defeatTravelOf(
             duration,
             to: detour.to,
             kind: TravelKind.free,
-            ambushReports: [...held, report],
+            ambushReports: held,
         },
     };
 }
@@ -338,7 +346,7 @@ function defeatPlanOf(
     fought: FoughtOutcome,
     report: AmbushReportDraft,
 ): AmbushOutcomePlan {
-    const { travel, endTime } = defeatTravelOf(input, detour, fought, report);
+    const { travel, endTime } = defeatTravelOf(input, detour, fought);
     const lane = input.snapshot.quests?.pendingQuest
         ? { 'quests.pendingQuest': null }
         : {};
@@ -346,6 +354,7 @@ function defeatPlanOf(
     return {
         filter: filterOf(
             input,
+            fought,
             input.food ? defeatSettlementOf(input.food) : null,
         ),
         update: {
@@ -381,8 +390,8 @@ export function planAmbushOutcome(input: AmbushPlanInput): AmbushOutcomePlan {
     }
     const travel = input.snapshot.status.activeTravel;
     return {
-        filter: filterOf(input, input.food?.progress ?? null),
-        update: victoryUpdateOf(input, fought, learned, report),
+        filter: filterOf(input, fought, input.food?.progress ?? null),
+        update: victoryUpdateOf(input, fought, learned),
         coinsDelta: fought.coinsDelta,
         report,
         spellRecoveries: fought.spells.recoveries,
