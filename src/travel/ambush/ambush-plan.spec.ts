@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { fromCopper } from 'src/economy/coins';
 import { TravelKind } from 'src/models/character/active-travel.model';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
+import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms } from 'src/mongo/document-id';
@@ -1250,6 +1251,44 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
             expect(walking.redirected).toBe(false);
             expect(walking.report.reachedCity).toBeNull();
             expect(walking.onFootFood?.arrivesAlive).toBe(true);
+        });
+
+        it('slows the walk on foot and the residual fallback with the new wounds, as the detour (D-13, D-11)', () => {
+            const lamed = {
+                ...unhurt(1),
+                injuriesAdded: [InjuryType.brokenLeftLeg],
+            };
+            const slowdown =
+                1 / travelSpeedFactorOf([InjuryType.brokenLeftLeg]);
+            const walking = planAmbushOutcome(
+                mountInputWith(rawWith(FOOD_RIDE, 200), {
+                    effects: lamed,
+                    detour: nearestDetour,
+                }),
+            );
+            const lost = planAmbushOutcome(
+                mountInputWith(rawWith(FOOD_RIDE), {
+                    verdict: 'failure',
+                    effects: { ...lamed, hpAfter: 0 },
+                    detour: {
+                        ...nearestDetour,
+                        to: TO_ID,
+                        baseHours: null,
+                        residualMs: 6 * 3_600_000,
+                    },
+                }),
+            );
+            const walked = Math.round(WALK_MS * slowdown);
+
+            expect(slowdown).toBeGreaterThan(1);
+            expect(walking.redirected).toBe(false);
+            expect(rewrittenTravelOf(walking).duration).toBe(walked);
+            expect(walking.travelAfter.endTime).toEqual(
+                new Date(ambushAt.getTime() + walked),
+            );
+            expect(rewrittenTravelOf(lost).duration).toBe(
+                Math.round(12 * 3_600_000 * slowdown),
+            );
         });
 
         it('checks no hunger on a travel without a food plan (D-16)', () => {
