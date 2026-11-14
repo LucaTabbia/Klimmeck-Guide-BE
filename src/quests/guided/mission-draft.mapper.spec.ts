@@ -100,6 +100,23 @@ function draftWith(fights: MissionFightRecord[]): MissionDraftRecord {
     };
 }
 
+function fightWithCompanion(): MissionFightRecord {
+    const fight = simulatedFight();
+    return {
+        ...fight,
+        outcomes: fight.outcomes.map((outcome) => ({
+            ...outcome,
+            companion: {
+                pet: PET_ID,
+                name: 'Fenrir',
+                lifeBefore: 60,
+                maxLifePoints: 100,
+            },
+            simulated: { ...outcome.simulated!, companionLifeAfter: 35 },
+        })),
+    };
+}
+
 describe('toMissionDraftWire', () => {
     it('maps a draft record to the wire with hex ids (D-17)', () => {
         expect(
@@ -149,7 +166,9 @@ describe('toMissionDraftWire', () => {
                                         usages: 1,
                                     },
                                 ],
+                                companionLifeAfter: null,
                             },
+                            companion: null,
                             corrected: null,
                         },
                     ],
@@ -175,6 +194,37 @@ describe('toMissionDraftWire', () => {
             startedAt: STARTED_AT,
             updatedAt: UPDATED_AT,
         });
+    });
+
+    it('serves the companion of a participant and its simulated life (D-17, D-33)', () => {
+        const wire = toMissionDraftWire(
+            draftWith([fightWithCompanion()]),
+            BESTIARY,
+        );
+
+        const [outcome] = wire.fights[0].outcomes;
+        expect(outcome.companion).toEqual({
+            pet: PET_ID.toHexString(),
+            name: 'Fenrir',
+            lifeBefore: 60,
+            maxLifePoints: 100,
+        });
+        expect(outcome.simulated!.companionLifeAfter).toBe(35);
+    });
+
+    it('reads a draft opened before the deploy without companion data (D-33)', () => {
+        const wire = toMissionDraftWire(
+            draftWith([simulatedFight()]),
+            BESTIARY,
+        );
+
+        const [outcome] = wire.fights[0].outcomes;
+        expect(simulatedFight().outcomes[0]).not.toHaveProperty('companion');
+        expect(simulatedFight().outcomes[0].simulated).not.toHaveProperty(
+            'companionLifeAfter',
+        );
+        expect(outcome.companion).toBeNull();
+        expect(outcome.simulated!.companionLifeAfter).toBeNull();
     });
 
     it('drops a fight enemy missing from the bestiary (D-17)', () => {
