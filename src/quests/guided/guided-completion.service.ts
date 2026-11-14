@@ -18,6 +18,7 @@ import {
     GmRequestReader,
 } from 'src/quests/outcomes/gm-request.reader';
 import type { QuestResultDraft } from 'src/quests/outcomes/outcome-plan';
+import type { CompanionCatalogEntry } from 'src/quests/outcomes/pets/companion-after-fight';
 import {
     type ResolutionCharacter,
     ResolutionLoader,
@@ -78,12 +79,14 @@ const chosenRefsOf = (prize: MissionPrizeRecord): ChosenPrizeRefs => ({
 function assertSequenceAllowed(
     snapshot: ResolutionCharacter,
     sequence: readonly EffectiveFight[],
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
 ): void {
     const characterHex = hexOf(snapshot._id);
     sequence.forEach(({ effects, corrected }, index) => {
         const overlay = stateBeforeFight(
             snapshot,
             sequence.slice(0, index).map((fight) => fight.effects),
+            petCatalog,
         );
         validateOverrides(
             [overrideInputOf(characterHex, effects)],
@@ -91,7 +94,7 @@ function assertSequenceAllowed(
         );
         if (corrected)
             assertAddsOnlyNewInjuries(
-                fightStartOf(overlay).injuriesBefore,
+                fightStartOf(overlay, petCatalog).injuriesBefore,
                 effects.injuriesAdded,
             );
     });
@@ -99,6 +102,7 @@ function assertSequenceAllowed(
 
 interface GuidedCatalogs {
     seatBase: Pick<GmSeatOutcome, 'enemies' | 'victory'>;
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>;
     prizeCatalogue: MissionPrizeCatalogue;
     rewardCatalog: RewardCatalog;
 }
@@ -134,6 +138,7 @@ export class GuidedCompletionService {
                 enemies: enemyFactsOf(combat),
                 victory: victoryKnowledgeOf(combat),
             },
+            petCatalog: combat.pets,
             prizeCatalogue: await this.prizeOptions.readCatalogue(),
             rewardCatalog: await this.loader.readRewardCatalogFor(
                 rewardRefsOfPrizes(draft.prizes),
@@ -200,6 +205,7 @@ export class GuidedCompletionService {
         assertSequenceAllowed(
             snapshot,
             effectiveSequenceOf(draft.fights, characterHex),
+            catalogs.petCatalog,
         );
         const prize =
             draft.prizes.find(({ character }) =>

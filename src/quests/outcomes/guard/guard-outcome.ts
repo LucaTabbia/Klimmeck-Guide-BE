@@ -53,12 +53,12 @@ export function doubledCoinPrizes<
     };
 }
 
-// D-12, D-26: il compagno entra con la vita lasciata dalla quest, col livello scritto perché la voce non si legga più piena (D-23); a 1 resta fuori
-function companionAssetsAfter(
-    assets: OutcomeCharacterSnapshot['assets'],
+// D-12, D-26: il compagno entra nello scontro seguente con la vita lasciata dal precedente, col livello scritto perché la voce non si legga più piena (D-23); a 1 resta fuori
+export function companionAssetsAfter<S extends OutcomeCharacterSnapshot>(
+    assets: S['assets'],
     companionLifeAfter: number | undefined,
     pets: ReadonlyMap<string, { maxXp?: unknown }>,
-): Pick<OutcomeCharacterSnapshot, 'assets'> | Record<string, never> {
+): Pick<S, 'assets'> | Record<string, never> {
     const petId = refOf(assets?.pet);
     if (!assets || !petId || companionLifeAfter === undefined) return {};
     const hex = petId.toHexString();

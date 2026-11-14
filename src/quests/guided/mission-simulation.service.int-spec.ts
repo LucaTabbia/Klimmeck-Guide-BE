@@ -228,11 +228,13 @@ describe('MissionSimulationService (replSet)', () => {
             injuriesBefore: [InjuryType.deepCut],
             consumablesAvailable: [{ item: potion, quantity: 3 }],
             spellsAvailable: [{ spell, usages: 5 }],
+            companion: null,
             simulated: {
                 hpAfter: expect.any(Number),
                 injuriesAdded: [],
                 consumablesUsed: [],
                 spellsUsed: [{ spell, usages: 1 }],
+                companionLifeAfter: null,
             },
             corrected: null,
         });
@@ -242,11 +244,13 @@ describe('MissionSimulationService (replSet)', () => {
             injuriesBefore: [],
             consumablesAvailable: [],
             spellsAvailable: [],
+            companion: null,
             simulated: {
                 hpAfter: expect.any(Number),
                 injuriesAdded: [],
                 consumablesUsed: [],
                 spellsUsed: [],
+                companionLifeAfter: null,
             },
             corrected: null,
         });

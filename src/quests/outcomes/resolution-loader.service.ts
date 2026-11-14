@@ -499,6 +499,11 @@ export class ResolutionLoader {
         };
     }
 
+    // il catalogo dei pet da solo: lo stato sovrapposto della bozza guidata ne legge i livelli (D-26)
+    async readPetCatalog(): Promise<ReadonlyMap<string, CombatPetSnapshot>> {
+        return (await this.readCombatPets()).pets;
+    }
+
     // tetti e statistiche dell'intero catalogo (piccolo) in una lettura: il compagno equipaggiato può cambiare fra questa lettura e lo snapshot in sessione
     private async readCombatPets(): Promise<{
         petMaxXp: Map<string, number>;

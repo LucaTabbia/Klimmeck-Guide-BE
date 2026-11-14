@@ -313,12 +313,14 @@ describe('MissionDraftSaveService (replSet)', () => {
                 injuriesAdded: [InjuryType.fracturedRib],
                 consumablesUsed: [{ item: potion, quantity: 3 }],
                 spellsUsed: [{ spell, usages: 5 }],
+                companionLifeAfter: null,
             });
             expect(outcomeOf(highest.fights[0], first)!.corrected).toEqual({
                 hpAfter: 1000,
                 injuriesAdded: [],
                 consumablesUsed: [],
                 spellsUsed: [],
+                companionLifeAfter: null,
             });
         });
 

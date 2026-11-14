@@ -20,7 +20,11 @@ import {
     type GmRequest,
     GmRequestReader,
 } from 'src/quests/outcomes/gm-request.reader';
-import type { ResolutionCharacter } from 'src/quests/outcomes/resolution-loader.service';
+import type { CompanionCatalogEntry } from 'src/quests/outcomes/pets/companion-after-fight';
+import {
+    type ResolutionCharacter,
+    ResolutionLoader,
+} from 'src/quests/outcomes/resolution-loader.service';
 import { isNonNegativeInteger } from 'src/quests/outcomes/rewards/quest-rewards';
 import { prizeBlockFor } from 'src/quests/prizes/rank-prizes';
 import {
@@ -222,6 +226,11 @@ function mergedPrizes(
     ];
 }
 
+interface DraftParticipants {
+    characters: readonly ResolutionCharacter[];
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>;
+}
+
 @Injectable()
 export class MissionDraftSaveService {
     constructor(
@@ -232,6 +241,7 @@ export class MissionDraftSaveService {
         @InjectModel(Enemy.name)
         private readonly enemyModel: Model<EnemyDocument>,
         private readonly prizeOptions: MissionPrizeOptionsService,
+        private readonly loader: ResolutionLoader,
     ) {}
 
     async save(input: SaveMissionDraftInput): Promise<MissionDraftRecord> {
@@ -264,9 +274,13 @@ export class MissionDraftSaveService {
         await this.assertEnemiesExist(enemies);
         let fights = reconcileFights(draft.fights, enemies);
         const characters = this.draftCharactersOf(request, draft);
+        const petCatalog = await this.loader.readPetCatalog();
         incoming.forEach(({ corrections }, index) => {
             if (corrections == null) return;
-            fights = this.corrected(fights, index, corrections, characters);
+            fights = this.corrected(fights, index, corrections, {
+                characters,
+                petCatalog,
+            });
         });
         return fights;
     }
@@ -328,7 +342,7 @@ export class MissionDraftSaveService {
         fights: MissionFightRecord[],
         index: number,
         corrections: readonly ParticipantOverrideInput[],
-        characters: readonly ResolutionCharacter[],
+        { characters, petCatalog }: DraftParticipants,
     ): MissionFightRecord[] {
         const fight = fights[index];
         if (fight.verdict == null)
@@ -337,6 +351,7 @@ export class MissionDraftSaveService {
             stateBeforeFight(
                 character,
                 previousEffectsOf(fights, index, hexOf(character._id)),
+                petCatalog,
             ),
         );
         const effects = validateOverrides(
