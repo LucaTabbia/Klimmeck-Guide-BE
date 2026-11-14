@@ -99,7 +99,7 @@ describe('renamePet (wire)', () => {
     async function rename(
         characterId: string,
         petId: Types.ObjectId,
-        name: string | null,
+        name: string | null | undefined,
         bearer: string,
     ): Promise<WireBody> {
         const response: request.Response = await graphqlRequest(
@@ -220,6 +220,27 @@ describe('renamePet (wire)', () => {
         );
 
         expect(codeOf(body)).toBe('PET_NAME_INVALID');
+        expect(await rawCharacter(victim)).toEqual(before);
+    });
+
+    it('refuses an omitted name with BAD_USER_INPUT and keeps the name; only an explicit null clears it (D-31)', async () => {
+        const victim = await ownerOf('twitch-rename-omitted', [
+            buildOwnedPet(worgId, {
+                currentLifePoints: 100,
+                level: 1,
+                name: 'Fenrir',
+            }),
+        ]);
+        const before = await rawCharacter(victim);
+
+        const body = await rename(
+            idOf(victim),
+            worgId,
+            undefined,
+            victim.bearer,
+        );
+
+        expect(codeOf(body)).toBe('BAD_USER_INPUT');
         expect(await rawCharacter(victim)).toEqual(before);
     });
 
