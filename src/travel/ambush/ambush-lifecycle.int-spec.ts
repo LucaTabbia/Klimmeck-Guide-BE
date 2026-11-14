@@ -48,6 +48,7 @@ import {
     rollsHittingKm,
     SINGLE_FIRST_CANDIDATE,
 } from '../../../test/travel/ambush-world';
+import { buildAmbushReport } from '../../../test/travel/ambush-report.fixture';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 import { HARDY_LIFE_POINTS } from '../../../test/travel/travel-food.fixture';
 import {
@@ -186,6 +187,28 @@ describe('ambush lifecycle (replSet)', () => {
                 .lean<any>()
                 .exec()
         ).status.activeTravel;
+
+    // risultati d'imboscata scritti all'istante dell'imboscata (D-28)
+    const ambushResultsOf = async (player: TestPlayer): Promise<any[]> =>
+        world.models.questResults
+            .find({ character: player.character!._id, kind: 'ambush' })
+            .sort({ resolvedAt: 1, _id: 1 })
+            .lean<any[]>()
+            .exec();
+
+    // report trattenuto nel viaggio da un'imboscata risolta prima della Phase 23 (Pitfall 9)
+    const holdLegacyReport = async (player: TestPlayer) => {
+        const travel = await rawTravelOf(player);
+        const report = buildAmbushReport({
+            user: player.user._id as never,
+            at: oneMinuteAfter(travel.startTime as Date),
+        });
+        await world.models.characters.updateOne(
+            { _id: player.character!._id },
+            { $set: { 'status.activeTravel.ambushReports': [report] } },
+        );
+        return report;
+    };
 
     const identityOf = async (player: TestPlayer): Promise<AmbushIdentity> => {
         const travel = await rawTravelOf(player);
@@ -335,13 +358,24 @@ describe('ambush lifecycle (replSet)', () => {
         await world.harness.close();
     });
 
-    it('wins two ambushes on one travel and delivers both reports at arrival in order (D-02, D-13)', async () => {
+    it('writes two ambush results during the travel in order and none at arrival (D-15, D-28)', async () => {
         const player = await departingPlayer();
         await travelWithTwoVictories(player);
         const travel = await rawTravelOf(player);
         expect(travel.ambush ?? null).toBeNull();
-        expect(travel.ambushReports).toHaveLength(2);
-        const [first, second] = travel.ambushReports as { at: Date }[];
+        expect(travel.ambushReports ?? []).toEqual([]);
+        const written = await ambushResultsOf(player);
+        expect(written).toHaveLength(2);
+        const [first, second] = written.map(({ ambush }) => ambush) as {
+            at: Date;
+        }[];
+        expect(written.map(({ resolvedAt }) => resolvedAt)).toEqual([
+            first.at,
+            second.at,
+        ]);
+        expect(
+            (await unacknowledgedOf(player)).map(({ kind }) => kind),
+        ).toEqual(['ambush', 'ambush']);
         const later = await persistQuestResult(world.models.questResults, {
             character: player.character!._id,
             user: player.user._id,
@@ -382,10 +416,10 @@ describe('ambush lifecycle (replSet)', () => {
             }),
         ]);
         expect(await rawTravelOf(player)).toBeNull();
-        const delivered = await world.models.questResults
-            .find({ character: player.character!._id, kind: 'ambush' })
-            .sort({ resolvedAt: 1 })
-            .lean<any[]>();
+        const delivered = await ambushResultsOf(player);
+        expect(delivered.map(({ _id }) => String(_id))).toEqual(
+            written.map(({ _id }) => String(_id)),
+        );
         // il bandito al km 3 non ha pagine, il lupo al km 9 apre il Bestiario della strada
         const wolf = await world.models.enemies
             .findOne({ name: 'Lupo della strada' })
@@ -395,7 +429,7 @@ describe('ambush lifecycle (replSet)', () => {
         ).toEqual([[], wolf.relatedLore.map(String)]);
     });
 
-    it('delivers the companion xp of the ambush in the result created at arrival (D-19)', async () => {
+    it('writes the companion xp in the ambush result at once (D-19, D-28)', async () => {
         const player = await departingPlayer();
         const companion = (await persistPet(world.models.pets, { maxXp: 100 }))
             ._id;
@@ -412,29 +446,26 @@ describe('ambush lifecycle (replSet)', () => {
         chance.load([...rollsHittingKm(3), ...SINGLE_FIRST_CANDIDATE]);
         await startTravel(player);
         await resolvePendingAmbush(player);
-        const [held] = (await rawTravelOf(player)).ambushReports as {
-            petXpGained: number;
-        }[];
-        expect(held.petXpGained).toBe(1);
-        expect(await world.models.questResults.countDocuments()).toBe(0);
+        const [written] = await ambushResultsOf(player);
+        expect(written.petXpGained).toBe(1);
+        expect((await rawTravelOf(player)).ambushReports ?? []).toEqual([]);
 
         await arrive(player);
 
-        const delivered = await world.models.questResults
-            .find({ character: player.character!._id, kind: 'ambush' })
-            .lean<any[]>();
+        const delivered = await ambushResultsOf(player);
         expect(delivered.map(({ petXpGained }) => petXpGained)).toEqual([
-            held.petXpGained,
+            written.petXpGained,
         ]);
         const arrived = await world.models.characters
             .findById(player.character!._id)
             .lean<any>();
+        // la voce mai toccata dalla fase esce piena al massimo e col livello (D-23, D-38)
         expect(arrived.assets.ownedPets).toEqual([
-            { ...buildOwnedPet(companion), xp: 1 },
+            { ...buildOwnedPet(companion), xp: 1, level: 1 },
         ]);
     });
 
-    it('shows the victory effects at once and holds the report until arrival (D-17)', async () => {
+    it('shows the victory effects and the result at once (D-17, D-28)', async () => {
         const player = await departingPlayer();
         chance.load([...rollsHittingKm(3), ...SINGLE_FIRST_CANDIDATE]);
         combat.willResolve(player.character!._id as never, {
@@ -451,8 +482,10 @@ describe('ambush lifecycle (replSet)', () => {
         expect(toCopper(after.coins) - toCopper(before.coins)).toBe(
             RANK_COPPER,
         );
-        expect(await unacknowledgedOf(player)).toEqual([]);
-        expect((await rawTravelOf(player)).ambushReports).toHaveLength(1);
+        expect(await unacknowledgedOf(player)).toEqual([
+            expect.objectContaining({ kind: 'ambush', outcome: 'success' }),
+        ]);
+        expect((await rawTravelOf(player)).ambushReports ?? []).toEqual([]);
     });
 
     it('keeps the wire travel identical across the journey (D-15)', async () => {
@@ -541,6 +574,9 @@ describe('ambush lifecycle (replSet)', () => {
         expect((await rawTravelOf(player)).ambush.km).toBe(16);
 
         expect(await sweepAmbushes()).toBe(1);
+        expect(
+            (await unacknowledgedOf(player)).map(({ kind }) => kind),
+        ).toEqual(['ambush']);
         expect(travelQueue.added).toEqual([
             expect.objectContaining({
                 name: 'complete',
@@ -552,7 +588,6 @@ describe('ambush lifecycle (replSet)', () => {
                 }),
             }),
         ]);
-        expect(await unacknowledgedOf(player)).toEqual([]);
 
         expect(await sweepTravels()).toBe(1);
         expect(await rawTravelOf(player)).toBeNull();
@@ -583,7 +618,7 @@ describe('ambush lifecycle (replSet)', () => {
         ]);
 
         expect([...outcomes].sort()).toEqual(['stale', 'won']);
-        expect((await rawTravelOf(player)).ambushReports).toHaveLength(1);
+        expect(await ambushResultsOf(player)).toHaveLength(1);
         expect(toCopper((await statusOf(player)).coins)).toBe(
             toCopper(before.coins) + RANK_COPPER,
         );
@@ -869,7 +904,7 @@ describe('ambush lifecycle (replSet)', () => {
 
             const travel = await rawTravelOf(long);
             expect(travel.ambush).toBeNull();
-            expect(travel.ambushReports).toHaveLength(1);
+            expect(await ambushResultsOf(long)).toHaveLength(1);
             expect(chance.drawn).toHaveLength(
                 departure.length + SINGLE_FIRST_CANDIDATE.length,
             );
@@ -890,7 +925,7 @@ describe('ambush lifecycle (replSet)', () => {
             await runJob(departureJob);
             const travel = await rawTravelOf(player);
             expect(travel.ambush.km).toBe(9);
-            expect(travel.ambushReports).toHaveLength(1);
+            expect(await ambushResultsOf(player)).toHaveLength(1);
 
             const [, redrawnJob] = ambushJobsAdded();
             await teleportByGm(player);
@@ -915,9 +950,7 @@ describe('ambush lifecycle (replSet)', () => {
 
             expect(
                 await waitFor(
-                    async () =>
-                        ((await rawTravelOf(atBoot)).ambushReports ?? [])
-                            .length === 1,
+                    async () => (await ambushResultsOf(atBoot)).length === 1,
                 ),
             ).toBe(true);
             // il reconciler non si attende: lo sweep successivo parte dopo la sua fine (single-flight)
@@ -929,28 +962,55 @@ describe('ambush lifecycle (replSet)', () => {
             moveClockTo(oneMinuteAfter((await identityOf(onSweep)).at));
 
             expect(await sweeper.sweep()).toBe(1);
-            expect((await rawTravelOf(onSweep)).ambushReports).toHaveLength(1);
+            expect(await ambushResultsOf(onSweep)).toHaveLength(1);
             expect(travelQueue.process).not.toHaveBeenCalled();
         });
 
-        it('cancels the pending ambush and delivers the reports on teleport (D-02, D-13)', async () => {
+        it('still delivers the reports held before the deploy on teleport (D-02, Pitfall 9)', async () => {
             const player = await departingPlayer();
             loadTwoVictories();
             await startTravel(player);
             await resolvePendingAmbush(player);
             const pending = await identityOf(player);
+            const held = await holdLegacyReport(player);
+            expect(await ambushResultsOf(player)).toHaveLength(1);
 
             await teleportByGm(player);
 
             expect(
                 (await unacknowledgedOf(player)).map(({ kind }) => kind),
-            ).toEqual(['ambush']);
+            ).toEqual(['ambush', 'ambush']);
+            expect(
+                (await ambushResultsOf(player)).map(({ _id }) => String(_id)),
+            ).toContain(String(held.resultId));
             expect(travelQueue.removed).toContain(
                 ambushJobId(pending.characterId, pending.startTime, pending.at),
             );
             moveClockTo(oneMinuteAfter(pending.at));
             expect(await sweepAmbushes()).toBe(0);
-            expect(await world.models.questResults.countDocuments()).toBe(1);
+            expect(await world.models.questResults.countDocuments()).toBe(2);
+        });
+
+        it('still delivers the reports held before the deploy at arrival (Pitfall 9)', async () => {
+            const player = await departingPlayer();
+            await startTravel(player);
+            expect((await rawTravelOf(player)).ambush ?? null).toBeNull();
+            const held = await holdLegacyReport(player);
+            expect(await ambushResultsOf(player)).toEqual([]);
+
+            await arrive(player);
+
+            const delivered = await ambushResultsOf(player);
+            expect(delivered.map(({ _id }) => String(_id))).toEqual([
+                String(held.resultId),
+            ]);
+            expect(delivered[0].companion ?? null).toBeNull();
+            expect(await unacknowledgedOf(player)).toEqual([
+                expect.objectContaining({
+                    kind: 'ambush',
+                    resolvedAt: held.at.toISOString(),
+                }),
+            ]);
         });
 
         it('skips an ambush without composable enemies (D-08)', async () => {
