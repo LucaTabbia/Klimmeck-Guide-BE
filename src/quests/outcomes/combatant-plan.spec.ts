@@ -85,6 +85,33 @@ describe('combatContextOf', () => {
             { enemyId: CAPO_ID.toHexString(), quantity: 1 },
         ]);
     });
+
+    it('passes the companion of the participant to the engine (D-20)', () => {
+        const tamer = {
+            ...hero,
+            assets: {
+                pet: COMPANION_ID,
+                ownedPets: [buildOwnedPet(COMPANION_ID, { xp: 5 })],
+            },
+        } as ResolutionCharacter;
+        const catalog = {
+            ...catalogWith([goblins]),
+            pets: new Map([
+                [COMPANION_ID.toHexString(), { maxLifePoints: 10 }],
+            ]),
+        };
+
+        const context = combatContextOf(quest, catalog, [tamer]);
+
+        expect(context?.participants[0].companion).toEqual({
+            petId: COMPANION_ID.toHexString(),
+            attack: { base: [], energy: [] },
+            defense: { base: [], energy: [] },
+            currentLifePoints: 10,
+            maxLifePoints: 10,
+            xp: 5,
+        });
+    });
 });
 
 describe('enemyFactsOf', () => {

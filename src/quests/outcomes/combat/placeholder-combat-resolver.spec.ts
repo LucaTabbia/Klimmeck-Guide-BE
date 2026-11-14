@@ -53,6 +53,7 @@ const participant = (
     equipment: [],
     activeSpells: [],
     consumables: [],
+    companion: null,
     ...overrides,
 });
 
@@ -276,6 +277,30 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
 
         expect(second).toEqual(first);
         expect(context).toEqual(pristine);
+    });
+
+    it('ignores the companion and draws the same sequence (D-20)', () => {
+        const hero = participant({ equipment: [weapon(300)] });
+        const companion = {
+            petId: hex('61'),
+            attack: { base: [{ type: 'cut', power: 900 }], energy: [] },
+            defense: { base: [{ type: 'blunt', power: 50 }], energy: [] },
+            currentLifePoints: 30,
+            maxLifePoints: 50,
+            xp: 40,
+        };
+        const values = [0.2, 0.1, 0.5, 0.7];
+        const alone = new SequenceChance(values);
+        const together = new SequenceChance(values);
+
+        const withoutCompanion = resolver.resolve(contextOf([hero]), alone);
+        const withCompanion = resolver.resolve(
+            contextOf([{ ...hero, companion }]),
+            together,
+        );
+
+        expect(withCompanion).toEqual(withoutCompanion);
+        expect(together.drawn).toEqual(alone.drawn);
     });
 
     it('keeps hpAfter within [1, maxLifePoints] on 50 seeded sequences (D-07)', () => {
