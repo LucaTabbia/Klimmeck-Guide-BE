@@ -56,9 +56,9 @@ created: 2026-11-14
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 22-01-01 | 01 | 1 | BE-GMFLOW-08, 09 | T-22-01 / T-22-03 | predicato unico; marcatore senza `@Field`; codice senza chiavi extra | unit | `npx jest src/gameRules src/characters/mission-lock --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 22-01-02 | 01 | 1 | BE-GMFLOW-08, 09 | T-22-01 / T-22-02 | il reader decide col predicato, anche in sessione; archiviato libero | integration | `npx jest src/characters/mission-lock --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
-| 22-01-03 | 01 | 1 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 22-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 22-01-01 | 01 | 1 | BE-GMFLOW-08, 09 | T-22-01 / T-22-03 | predicato unico; marcatore senza `@Field`; codice senza chiavi extra | unit | `npx jest src/gameRules src/characters/mission-lock --selectProjects unit` | ✅ | ✅ green |
+| 22-01-02 | 01 | 1 | BE-GMFLOW-08, 09 | T-22-01 / T-22-02 | il reader decide col predicato, anche in sessione; archiviato libero | integration | `npx jest src/characters/mission-lock --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 22-01-03 | 01 | 1 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 22-01-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 22-02-01 | 02 | 2 | BE-GMFLOW-08, 09 | T-22-04 | equip e compagno rifiutati in missione, liberi in viaggio; bypass dell'oste bloccato | unit + integration | `npx jest src/characters/characters.service.spec.ts --selectProjects unit && npx jest src/characters/mission-lock/character-mutations-lock.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 22-02-02 | 02 | 2 | BE-GMFLOW-08, 09 | T-22-04 / T-22-05 | magie e `useSpell` rifiutati in missione; sei guardie esatte | unit + integration | `npx jest src/characters --selectProjects unit && npx jest src/characters/mission-lock/character-mutations-lock.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 22-02-03 | 02 | 2 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 22-02-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
@@ -119,8 +119,8 @@ created: 2026-11-14
 
 Pianificata: ogni casella si spunta nel piano che crea il file (task indicato, RED prima del codice); `wave_0_complete` lo porta a `true` il piano 18.
 
-- [ ] `src/characters/mission-lock/mission-lock.spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 01: 22-01-01, esteso in 22-05-01)
-- [ ] `src/characters/mission-lock/mission-lock.reader.int-spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 01: 22-01-02)
+- [x] `src/characters/mission-lock/mission-lock.spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 01: 22-01-01, esteso in 22-05-01)
+- [x] `src/characters/mission-lock/mission-lock.reader.int-spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 01: 22-01-02)
 - [ ] `src/characters/mission-lock/character-mutations-lock.int-spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 02: 22-02-01)
 - [ ] `src/characters/mission-lock/mission-draft-lock.publisher.spec.ts` — BE-GMFLOW-08 (pianificato nel piano 05: 22-05-02)
 - [ ] `src/characters/mission-in-progress.int-spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 05: 22-05-02)
