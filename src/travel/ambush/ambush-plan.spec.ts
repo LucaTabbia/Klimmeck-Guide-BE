@@ -5,7 +5,7 @@ import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { idForms } from 'src/mongo/document-id';
-import { durationMsOf } from 'src/travel/travel-timing';
+import { BASE_SPEED, durationMsOf } from 'src/travel/travel-timing';
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
 import { stacksOf } from '../food/travel-pantry.reader';
 import { foodPlanOf, planTravelFood } from '../food/travel-food';
@@ -1129,7 +1129,7 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
                 effects: effectsWith({
                     hpAfter: 0,
                     consumablesUsed: [],
-                    companionLifeAfter: 1,
+                    companionLifeAfter: 4,
                 }),
                 detour: lostDetourOnFoot,
             }),
@@ -1140,6 +1140,7 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
             expect(outcome.report.onFoot).toBe(false);
             expect(outcome.travelAfter.rewritten).toBe(false);
             expect(outcome.onFootFood).toBeNull();
+            expect(outcome.redirected).toBe(false);
         }
     });
 
@@ -1165,4 +1166,153 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
         residualMs: null,
         petSpeed: 10,
     };
+
+    describe('the hunger redirection and the detour on foot', () => {
+        const DETOUR_HOURS = 3;
+        const MOUNT_SPEED = BASE_SPEED * FACTOR;
+        const reachedCity = { id: CROCEVIA_ID, name: 'Crocevia' };
+        const detourRoad = {
+            coordinates: [POINT, [1, 0.6]] as [number, number][],
+            distance: 12,
+        };
+        const nearestDetour: DetourDraft = {
+            road: detourRoad,
+            to: CROCEVIA_ID,
+            reachedCity,
+            baseHours: DETOUR_HOURS,
+            residualMs: null,
+            petSpeed: MOUNT_SPEED,
+        };
+        const unhurt = (companionLifeAfter: number, hpAfter = 600) =>
+            effectsWith({
+                hpAfter,
+                injuriesAdded: [],
+                consumablesUsed: [],
+                companionLifeAfter,
+            });
+        const onQuest = (raw: AmbushCharacterSnapshot) => ({
+            ...raw,
+            quests: { completedQuests: [], pendingQuest: PENDING_ID },
+        });
+
+        it('redirects to the nearest city when the food no longer suffices on foot (D-16)', () => {
+            const redirected = planAmbushOutcome(
+                mountInputWith(onQuest(rawWith(FOOD_RIDE)), {
+                    effects: unhurt(1),
+                    detour: nearestDetour,
+                }),
+            );
+            const duration = durationMsOf(DETOUR_HOURS, BASE_SPEED);
+            const endTime = new Date(ambushAt.getTime() + duration);
+
+            expect(rewrittenTravelOf(redirected)).toEqual({
+                road: detourRoad,
+                startTime: ambushAt,
+                endTime,
+                duration,
+                to: CROCEVIA_ID,
+                kind: TravelKind.free,
+                ambushReports: [],
+            });
+            expect(redirected.update.$set['quests.pendingQuest']).toBeNull();
+            expect(redirected.update.$set['assets.ownedItems']).toEqual([
+                f20(25),
+            ]);
+            expect(redirected.redirected).toBe(true);
+            expect(redirected.coinsDelta).toBeGreaterThan(0);
+            expect(redirected.report.outcome).toBe(QuestOutcome.success);
+            expect(redirected.report.reachedCity).toEqual(reachedCity);
+            expect(redirected.report.onFoot).toBe(true);
+            expect(redirected.travelAfter).toEqual({
+                startTime: ambushAt,
+                endTime,
+                ambush: null,
+                rewritten: true,
+            });
+        });
+
+        it('goes on foot to the goal when the food suffices (D-13, D-16)', () => {
+            const walking = planAmbushOutcome(
+                mountInputWith(onQuest(rawWith(FOOD_RIDE, 200)), {
+                    effects: unhurt(1),
+                    detour: nearestDetour,
+                }),
+            );
+
+            expect(rewrittenTravelOf(walking).to).toEqual(TO_ID);
+            expect(rewrittenTravelOf(walking).duration).toBe(WALK_MS);
+            expect(Object.keys(walking.update.$set)).not.toContain(
+                'quests.pendingQuest',
+            );
+            expect(walking.redirected).toBe(false);
+            expect(walking.report.reachedCity).toBeNull();
+            expect(walking.onFootFood?.arrivesAlive).toBe(true);
+        });
+
+        it('checks no hunger on a travel without a food plan (D-16)', () => {
+            const walking = planAmbushOutcome(
+                mountInputWith(onQuest(rawWith({ mount: MOUNT }, 1)), {
+                    effects: unhurt(1),
+                    detour: nearestDetour,
+                }),
+            );
+
+            expect(rewrittenTravelOf(walking).to).toEqual(TO_ID);
+            expect(walking.onFootFood).toBeNull();
+            expect(walking.redirected).toBe(false);
+            expect(walking.report.reachedCity).toBeNull();
+        });
+
+        it('walks the detour of a lost ambush when the companion falls (D-16, C-11)', () => {
+            const lost = planAmbushOutcome(
+                mountInputWith(rawWith(FOOD_RIDE), {
+                    verdict: 'failure',
+                    effects: unhurt(1, 0),
+                    detour: nearestDetour,
+                }),
+            );
+
+            expect(rewrittenTravelOf(lost).duration).toBe(
+                durationMsOf(DETOUR_HOURS, BASE_SPEED),
+            );
+            expect(lost.update.$set['assets.pet']).toBeNull();
+            expect(lost.report.onFoot).toBe(true);
+            expect(lost.redirected).toBe(false);
+        });
+
+        it('stretches the residual fallback when the departure mount falls in a defeat (C-11)', () => {
+            const lost = planAmbushOutcome(
+                mountInputWith(rawWith(FOOD_RIDE), {
+                    verdict: 'failure',
+                    effects: unhurt(1, 0),
+                    detour: {
+                        ...nearestDetour,
+                        to: TO_ID,
+                        baseHours: null,
+                        residualMs: 6 * 3_600_000,
+                    },
+                }),
+            );
+
+            expect(rewrittenTravelOf(lost).duration).toBe(12 * 3_600_000);
+            expect(rewrittenTravelOf(lost).endTime).toEqual(
+                new Date(ambushAt.getTime() + 12 * 3_600_000),
+            );
+        });
+
+        it('keeps the pet speed on a detour when the companion survives (D-29)', () => {
+            const lost = planAmbushOutcome(
+                mountInputWith(rawWith(FOOD_RIDE), {
+                    verdict: 'failure',
+                    effects: unhurt(4, 0),
+                    detour: nearestDetour,
+                }),
+            );
+
+            expect(rewrittenTravelOf(lost).duration).toBe(
+                durationMsOf(DETOUR_HOURS, MOUNT_SPEED),
+            );
+            expect(lost.report.onFoot).toBe(false);
+        });
+    });
 });
