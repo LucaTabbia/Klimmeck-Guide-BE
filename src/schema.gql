@@ -532,6 +532,7 @@ type Mutation {
   abandonQuest(request: AbandonQuestRequest!): CommonResponse!
   acceptQuest(request: AcceptQuestRequest!): CommonResponse!
   acknowledgeQuestResult(id: String!): CommonResponse!
+  completeGuidedMission(pendingQuestId: ID!): [QuestResult!]!
   completePendingRequest(input: CompletePendingRequestInput!): [QuestResult!]!
   createCharacter(input: CreateCharacterInput!): User!
   deleteCharacter: User!

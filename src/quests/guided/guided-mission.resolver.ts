@@ -6,6 +6,9 @@ import { Roles } from 'src/authz/roles/roles.decorator';
 import { CommonResponse } from 'src/models/common/common-response.model';
 import { Enemy } from 'src/models/enemy.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { QuestResult } from 'src/models/quest-result/quest-result.model';
+import { QuestResultsService } from 'src/quests/results/quest-results.service';
+import { GuidedCompletionService } from './guided-completion.service';
 import {
     SaveMissionDraftInput,
     SimulateMissionFightInput,
@@ -37,6 +40,8 @@ export class GuidedMissionResolver {
         private readonly simulation: MissionSimulationService,
         private readonly prizeOptions: MissionPrizeOptionsService,
         private readonly save: MissionDraftSaveService,
+        private readonly completion: GuidedCompletionService,
+        private readonly results: QuestResultsService,
     ) {}
 
     @Roles(RoleType.innkeeper)
@@ -103,6 +108,18 @@ export class GuidedMissionResolver {
         input: SaveMissionDraftInput,
     ): Promise<MissionDraftView> {
         return this.presenter.present(await this.save.save(input));
+    }
+
+    // D-08, D-25: la bozza diventa l'esito; i risultati tornano dalle bozze committate (WR-03)
+    @Roles(RoleType.innkeeper)
+    @AuditTarget('PendingQuest', pendingQuestTarget)
+    @Mutation(() => [QuestResult])
+    async completeGuidedMission(
+        @Args('pendingQuestId', { type: () => ID }) pendingQuestId: string,
+    ): Promise<QuestResult[]> {
+        return this.results.readCommitted(
+            await this.completion.complete(pendingQuestId),
+        );
     }
 
     @Roles(RoleType.innkeeper)
