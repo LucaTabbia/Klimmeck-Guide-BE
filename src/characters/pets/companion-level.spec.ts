@@ -61,6 +61,23 @@ describe('companion levels', () => {
         },
     );
 
+    it.each([1, 5, 10, 22, 23])(
+        'starts at level 1, never goes down, never passes 10 and reaches 10 at a small cap (D-37): %p',
+        (maxXp) => {
+            const levels = Array.from(
+                { length: maxXp + 1 },
+                (_, xp) => companionLevelOf(xp, maxXp, 100).level,
+            );
+
+            expect(levels[0]).toBe(1);
+            expect(levels[maxXp]).toBe(10);
+            levels.slice(1).forEach((level, index) => {
+                expect(level).toBeGreaterThanOrEqual(levels[index]);
+                expect(level).toBeLessThanOrEqual(10);
+            });
+        },
+    );
+
     it.each([null, 0, -1, 1.5])(
         'keeps level 1 and the base life with an invalid cap (D-38): %p',
         (maxXp) => {
