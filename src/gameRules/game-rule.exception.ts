@@ -310,4 +310,12 @@ export class GameRuleException extends BadRequestException {
             { imprisonedUntil: until.toISOString() },
         );
     }
+
+    // D-23: esce solo dopo i cinque codici di D-23, dove l'azione oggi passerebbe
+    static missionInProgress(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.MISSION_IN_PROGRESS,
+            'Missione in corso: azione non disponibile fino al risultato',
+        );
+    }
 }

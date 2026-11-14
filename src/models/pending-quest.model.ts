@@ -31,6 +31,10 @@ export class PendingQuest {
     @Field(() => Quest)
     @Prop({ type: MongooseSchema.Types.ObjectId, ref: Quest.name })
     quest: Quest;
+
+    // marcatore del flusso guidato (D-18): solo Mongoose, il filo espone campi risolti; si azzera con un set a null (mai unset: il change stream lo vede, RESEARCH sonda 3)
+    @Prop({ type: Date, default: null })
+    missionDraftStartedAt: Date | null;
 }
 
 export type PendingQuestDocument = PendingQuest & Document;
