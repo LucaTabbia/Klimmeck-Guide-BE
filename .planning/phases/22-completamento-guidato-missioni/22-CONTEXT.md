@@ -52,6 +52,9 @@ Stessa numerazione nella FE (`21-CONTEXT.md`; D-28..D-30 riguardano solo la FE).
 - **D-26 (C-3, P-7):** nel log di audit entrano le **mutation** nuove; le query dell'oste no, come `pendingRequests`. `Quest.rankPrizes` resta leggibile da ogni utente autenticato (nota N-21-01 chiusa).
 - **D-27 (fuori scope):** bug latente trovato dalla ricerca — le PendingQuest delle corsie GM dei personaggi archiviati non vengono mai cancellate (`archived-character-queue.refresher.ts:13`, `gm-completion.service.ts:215-234`): annotato in STATE, non si corregge in questa fase.
 
+**Ruling dopo il controllo dei piani (2026-11-14):**
+- **D-31:** anche `questTravelPreview` rifiuta con `MISSION_IN_PROGRESS` (estende D-23). Tetti tecnici accettati: al massimo 10 scontri per missione, 10 voci di nemico per scontro, quantità di nemici `1..20`, correzioni ≤ 50 per scontro, voci di oggetti dei premi ≤ 500 (un blocco precompilato si salva sempre invariato). Scontro fuori ordine o fuori intervallo → `OUTCOME_OVERRIDE_INVALID` (nessun codice nuovo). Lista dei nemici: zona vuota → ripiego sui nemici che vivono ovunque. `cure` assegnabile solo se il blocco del titolo la prevede. Il controllo di D-14 vale solo sugli effetti corretti dall'oste (gli effetti simulati non corretti passano sempre). Il blocco delle ferite è per scontro: una ferita aggiunta dallo scontro k-1 si toglie correggendo lo scontro k-1 (che annulla i successivi, D-24).
+
 ### Claude's Discretion
 - Forma SDL (query `missionEnemies`, mutation di simulazione, documento bozza vs campo sulla PendingQuest, completamento esteso vs mutation nuova), rimozione o convivenza del vecchio `completePendingRequest` con override (consiglio: il nuovo flusso lo sostituisce, FE gated).
 - Invalidazione delle simulazioni a valle quando cambiano i nemici di uno scontro.
