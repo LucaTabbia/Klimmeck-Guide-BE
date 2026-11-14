@@ -1,20 +1,15 @@
 import {
     normalisedOwnedPets,
     type NewOwnedPetEntry,
-    type OwnedPetEntry,
 } from 'src/characters/pets/owned-pet-entry';
 import { refIdOf } from 'src/mongo/document-id';
+import type { CompanionAssets } from 'src/quests/outcomes/pets/companion-after-fight';
 import { petXpAward } from 'src/quests/outcomes/pets/pet-xp';
 
 export interface CompanionXpAward {
     // array intero nuovo, mai un path posizionale: nell'esito convive col pet in premio (Phase 19 Pitfall 4)
     ownedPets: NewOwnedPetEntry[] | null;
     gained: number;
-}
-
-export interface CompanionAssets {
-    pet?: unknown;
-    ownedPets?: readonly OwnedPetEntry[] | null;
 }
 
 const NO_AWARD: CompanionXpAward = { ownedPets: null, gained: 0 };
