@@ -533,14 +533,9 @@ export class AmbushResolutionService {
                 ),
             );
         }
-        await this.writer.deliver({
-            ...emptyCommitted(),
-            spellRecoveries: outcome.plan.spellRecoveries,
-        });
         if (outcome.plan.report.outcome === QuestOutcome.failure) {
             return this.afterDefeat(fight, outcome.plan);
         }
-        await this.notifyAmbush(fight.userId, outcome.plan.report);
         if (outcome.plan.travelAfter.rewritten) {
             await this.moveTravelJobs(identity, outcome.plan.travelAfter);
         } else {
@@ -550,8 +545,21 @@ export class AmbushResolutionService {
                 now,
             );
         }
+        await this.deliverAndNotify(fight, outcome.plan);
         this.logger.log(this.wonMessageOf(fight, outcome.plan));
         return 'won';
+    }
+
+    // consegna e push dopo i job del viaggio: un invio lento non trattiene il percorso di correttezza (D-14, D-30)
+    private async deliverAndNotify(
+        fight: Fight,
+        plan: AmbushOutcomePlan,
+    ): Promise<void> {
+        await this.writer.deliver({
+            ...emptyCommitted(),
+            spellRecoveries: plan.spellRecoveries,
+        });
+        await this.notifyAmbush(fight.userId, plan.report);
     }
 
     private wonMessageOf(fight: Fight, plan: AmbushOutcomePlan): string {
@@ -589,9 +597,9 @@ export class AmbushResolutionService {
         plan: AmbushOutcomePlan,
     ): Promise<AmbushOutcome> {
         const { identity, jobId, detour } = fight;
-        await this.notifyAmbush(fight.userId, plan.report);
         await this.scheduler.cancel(identity.characterId, identity.startTime);
         await this.scheduler.schedule(identity.characterId, plan.travelAfter);
+        await this.deliverAndNotify(fight, plan);
         this.logger.log(
             `Imboscata ${jobId} risolta: lost verso ${detour.reachedCity.name}`,
         );

@@ -145,8 +145,9 @@ describe('AmbushResolutionService (replica set)', () => {
             },
         );
         jest.spyOn(world.push, 'sendToTokens').mockImplementationOnce(
-            (tokens) =>
+            (tokens, message) =>
                 new Promise((resolve) => {
+                    world.push.sent.push({ tokens: [...tokens], message });
                     started({
                         added: travelQueue.added.map(({ options }) =>
                             String(options.jobId),
