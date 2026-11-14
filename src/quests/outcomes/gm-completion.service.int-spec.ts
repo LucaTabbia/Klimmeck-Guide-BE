@@ -1,10 +1,14 @@
-import { Types } from 'mongoose';
+import { type Model, Types } from 'mongoose';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import type { CompletePendingRequestInput } from 'src/models/request/complete-pending-request.model';
 import { PushEventType } from 'src/push/push-event-type.enum';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
+import {
+    MissionDraft,
+    MissionDraftSchema,
+} from 'src/quests/guided/mission-draft.model';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildQuest,
@@ -61,6 +65,7 @@ const RAW_COLLECTIONS = [
 describe('GmCompletionService.complete (replSet)', () => {
     let world: OutcomeHarness;
     let service: GmCompletionService;
+    let missionDrafts: Model<any>;
     let seq = 0;
     const clock = new FixedClock(NOW);
     const chance = new SequenceChance();
@@ -68,6 +73,11 @@ describe('GmCompletionService.complete (replSet)', () => {
     beforeAll(async () => {
         world = await createOutcomeHarness({ clock, chance });
         service = world.harness.app.get(GmCompletionService);
+        const { connection } = world.harness;
+        missionDrafts =
+            connection.models[MissionDraft.name] ??
+            connection.model(MissionDraft.name, MissionDraftSchema);
+        await missionDrafts.init();
     });
 
     beforeEach(async () => {
@@ -322,6 +332,48 @@ describe('GmCompletionService.complete (replSet)', () => {
             .lean<any>();
         expect(quest.concludedAt).toEqual(NOW);
         expect(questEndPushes()).toHaveLength(3);
+    });
+
+    it('deletes the guided draft of the request in its transaction (D-25)', async () => {
+        const first = await quester({
+            lane: QuestLane.worldMission,
+            questOverrides: gmQuest('worldMission', { xpPrize: 100 }),
+        });
+        const second = await quester({
+            lane: QuestLane.worldMission,
+            quest: first.quest,
+        });
+        const subjects = [first, second];
+        await world.models.pendingQuests.collection.updateMany(
+            {
+                _id: {
+                    $in: subjects.map(({ pendingQuest }) => pendingQuest._id),
+                },
+            },
+            { $set: { missionDraftStartedAt: NOW } },
+        );
+        await missionDrafts.create({
+            quest: first.quest._id,
+            questType: 'worldMission',
+            participants: subjects.map((subject) => ({
+                character: subject.characterId,
+                pendingQuest: subject.pendingQuest._id,
+                name: subject.player.character!.infos.name,
+                title: 'rookie',
+                maxLifePoints: 1000,
+            })),
+            startedAt: NOW,
+            updatedAt: NOW,
+        });
+
+        const drafts = await service.complete(inputOf(second));
+
+        expect(drafts).toHaveLength(2);
+        for (const subject of subjects) {
+            expect(await resultsOf(subject)).toHaveLength(1);
+            expect(await pendingQuestExists(subject)).toBe(false);
+        }
+        expect(await missionDrafts.countDocuments()).toBe(0);
     });
 
     describe('the prize block of each title', () => {

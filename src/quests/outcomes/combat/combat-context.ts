@@ -14,6 +14,7 @@ import { refIdOf } from 'src/mongo/document-id';
 import type { SpellStateEntry } from 'src/characters/spells/spell-state.snapshot';
 import { statusFactsOf } from '../progression/status-facts';
 import {
+    CombatCompanion,
     CombatContext,
     CombatDamages,
     CombatEnemy,
@@ -36,6 +37,12 @@ export interface CombatCharacterSnapshot {
         wornEquipment?: Partial<Record<SlotType, unknown>> | null;
         ownedEquipments?: { item?: unknown; quantity?: number }[];
         ownedItems?: { itemType?: string; item?: unknown; quantity?: number }[];
+        pet?: unknown;
+        ownedPets?: {
+            pet?: unknown;
+            xp?: number;
+            currentLifePoints?: number;
+        }[];
     } | null;
 }
 
@@ -56,6 +63,13 @@ export interface CombatEquipmentSnapshot {
     accessoryUseTypes?: unknown;
 }
 
+// statistiche di combattimento del catalogo dei pet (D-20): normalizzate nel contesto
+export interface CombatPetSnapshot {
+    attack?: unknown;
+    defense?: unknown;
+    maxLifePoints?: unknown;
+}
+
 export interface CombatHydration {
     quest: { _id: Types.ObjectId; infos: { type: QuestType; title: string } };
     enemies: readonly { snapshot: CombatEnemySnapshot; quantity: number }[];
@@ -63,6 +77,7 @@ export interface CombatHydration {
     equipment: ReadonlyMap<string, CombatEquipmentSnapshot>;
     spells: ReadonlyMap<string, { energyDamage?: unknown }>;
     loot: ReadonlyMap<string, { effect?: unknown; power?: unknown }>;
+    pets: ReadonlyMap<string, CombatPetSnapshot>;
 }
 
 export interface CombatCatalogRefs {
@@ -171,6 +186,30 @@ const accessoryUseTypesOf = (value: unknown): AccessoryUseType[] | null =>
           )
         : null;
 
+// fail-closed (D-20): senza compagno equipaggiato, voce posseduta o voce del catalogo nessun compagno
+export function companionOf(
+    snapshot: CombatCharacterSnapshot,
+    pets: ReadonlyMap<string, CombatPetSnapshot>,
+): CombatCompanion | null {
+    const petId = refOf(snapshot.assets?.pet);
+    if (!petId) return null;
+    const hex = petId.toHexString();
+    const owned = (snapshot.assets?.ownedPets ?? []).find(
+        (entry) => refOf(entry?.pet)?.toHexString() === hex,
+    );
+    const catalogued = pets.get(hex);
+    if (!owned || !catalogued) return null;
+    const maxLifePoints = numberOr(catalogued.maxLifePoints, 0);
+    return {
+        petId: hex,
+        attack: normalizeDamages(catalogued.attack),
+        defense: normalizeDamages(catalogued.defense),
+        currentLifePoints: numberOr(owned.currentLifePoints, maxLifePoints),
+        maxLifePoints,
+        xp: numberOr(owned.xp, 0),
+    };
+}
+
 // HP e livello dagli stessi fatti del piano esiti (WR-01): il resolver vede gli stessi "prima" del foglio
 const participantOf = (
     snapshot: CombatCharacterSnapshot,
@@ -227,6 +266,7 @@ const participantOf = (
                   ]
                 : [];
         }),
+        companion: companionOf(snapshot, hydration.pets),
     };
 };
 

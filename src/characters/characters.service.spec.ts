@@ -4,6 +4,7 @@ import { getQueueToken } from '@nestjs/bull';
 import { Test } from '@nestjs/testing';
 import { Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
+import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { Character } from 'src/models/character/character.model';
 import { SlotType } from 'src/models/enums/slot-type.enum';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
@@ -14,6 +15,7 @@ import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { FixedClock } from '../../test/auth/fixed-clock';
 import { CHARACTER_QUESTS_POPULATE } from './character-quests.populate';
 import { CharactersService } from './characters.service';
+import { MissionLockReader } from './mission-lock/mission-lock.reader';
 import { equipPetFilter, equipPetUpdate } from './pets/equip-pet.updates';
 import {
     ACTIVE_SPELL_SNAPSHOT_PROJECTION,
@@ -44,6 +46,7 @@ const mockCharacterModel = {
     exists: jest.fn(),
 };
 const mockSpellModel = { findById: jest.fn() };
+const missionLock = { assertFree: jest.fn().mockResolvedValue(undefined) };
 const NOW = new Date('2026-10-27T10:00:00.000Z');
 
 /** Mongoose findOne(...).exec() shape. */
@@ -73,6 +76,7 @@ describe('CharactersService (unit — spell mutations)', () => {
 
     beforeEach(async () => {
         jest.clearAllMocks();
+        missionLock.assertFree.mockResolvedValue(undefined);
 
         const moduleRef = await Test.createTestingModule({
             providers: [
@@ -91,6 +95,7 @@ describe('CharactersService (unit — spell mutations)', () => {
                 },
                 { provide: Clock, useValue: new FixedClock(NOW) },
                 { provide: QUEUE_CALL_TIMEOUT, useValue: 50 },
+                { provide: MissionLockReader, useValue: missionLock },
             ],
         }).compile();
 
@@ -735,5 +740,80 @@ describe('CharactersService (unit — spell mutations)', () => {
                 code: 'NOT_FOUND',
             });
         });
+    });
+
+    describe('mission lock', () => {
+        const c = new Types.ObjectId().toHexString();
+        const target = new Types.ObjectId().toHexString();
+
+        it.each([
+            {
+                name: 'equipItem',
+                call: () =>
+                    service.equipItem({
+                        id: c,
+                        itemId: target,
+                        slotType: SlotType.head,
+                    }),
+            },
+            {
+                name: 'equipPet',
+                call: () => service.equipPet({ id: c, petId: target }),
+            },
+            {
+                name: 'unequipPet',
+                call: () => service.unequipPet({ id: c }),
+            },
+        ])(
+            '$name refuses equipment and companion changes during a mission without writing (D-11, D-12)',
+            async ({ call }) => {
+                missionLock.assertFree.mockRejectedValueOnce(
+                    GameRuleException.missionInProgress(),
+                );
+
+                await expect(call()).rejects.toMatchObject({
+                    code: 'MISSION_IN_PROGRESS',
+                });
+                expect(missionLock.assertFree).toHaveBeenCalledWith(
+                    new Types.ObjectId(c),
+                );
+                expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
+            },
+        );
+
+        it.each([
+            {
+                name: 'equipSpell',
+                call: () =>
+                    service.equipSpell({ id: c, spellId: target, usages: 1 }),
+            },
+            {
+                name: 'unequipSpell',
+                call: () =>
+                    service.unequipSpell({ id: c, spellId: target, usages: 1 }),
+            },
+            {
+                name: 'useSpell',
+                call: () =>
+                    service.useSpell({ characterId: c, spellId: target }),
+            },
+        ])(
+            '$name refuses spell changes and spell use during a mission without writing (D-11, D-12)',
+            async ({ call }) => {
+                missionLock.assertFree.mockRejectedValueOnce(
+                    GameRuleException.missionInProgress(),
+                );
+
+                await expect(call()).rejects.toMatchObject({
+                    code: 'MISSION_IN_PROGRESS',
+                });
+                expect(missionLock.assertFree).toHaveBeenCalledWith(
+                    new Types.ObjectId(c),
+                );
+                expect(mockSpellModel.findById).not.toHaveBeenCalled();
+                expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
+                expect(mockQueue.add).not.toHaveBeenCalled();
+            },
+        );
     });
 });

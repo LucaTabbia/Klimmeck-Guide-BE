@@ -16,6 +16,7 @@ import { User, UserSchema } from 'src/models/user.model';
 import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
 import { QuestResultsReadModule } from 'src/quests/results/quest-results-read.module';
 import { ArchivedCharacterQueueRefresher } from './archived-character-queue.refresher';
+import { MissionDraftQueueRefresher } from './mission-draft-queue.refresher';
 import { PendingRequestsPublisher } from './pending-requests.publisher';
 import { PendingRequestsResolver } from './pending-requests.resolver';
 import { PendingRequestsService } from './pending-requests.service';
@@ -38,6 +39,7 @@ import { PendingRequestsService } from './pending-requests.service';
         PendingRequestsService,
         PendingRequestsPublisher,
         ArchivedCharacterQueueRefresher,
+        MissionDraftQueueRefresher,
         PendingRequestsResolver,
     ],
     exports: [PendingRequestsService],

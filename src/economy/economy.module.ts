@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
+import { MissionLockModule } from 'src/characters/mission-lock/mission-lock.module';
 import { CatalogPricesReader } from 'src/economy/trade/catalog-prices.reader';
 import { ShopTransactionService } from 'src/economy/trade/shop-transaction.service';
 import { WalletService } from 'src/economy/wallet.service';
@@ -28,6 +29,7 @@ import { User, UserSchema } from 'src/models/user.model';
             { name: City.name, schema: CitySchema },
             { name: Pet.name, schema: PetSchema },
         ]),
+        MissionLockModule,
     ],
     providers: [
         { provide: Clock, useClass: SystemClock },

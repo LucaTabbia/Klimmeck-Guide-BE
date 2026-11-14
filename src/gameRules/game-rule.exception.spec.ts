@@ -224,6 +224,12 @@ describe('GameRuleException', () => {
             GameRuleErrorCode.QUEST_NO_EFFECT,
             'Queste cure non ti servirebbero adesso',
         ],
+        [
+            'missionInProgress',
+            () => GameRuleException.missionInProgress(),
+            GameRuleErrorCode.MISSION_IN_PROGRESS,
+            'Missione in corso: azione non disponibile fino al risultato',
+        ],
     ];
 
     it.each(cases)(
@@ -292,6 +298,12 @@ describe('GameRuleException', () => {
             error: 'Bad Request',
             message: 'Il tuo personaggio è in prigione',
             code: 'CHARACTER_IMPRISONED',
+        });
+    });
+
+    it('refuses a locked character with its own code and no extra extensions (D-11, D-23)', () => {
+        expect(GameRuleException.missionInProgress().extensions).toEqual({
+            code: 'MISSION_IN_PROGRESS',
         });
     });
 

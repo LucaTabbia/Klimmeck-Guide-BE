@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { ItemUseResolver } from 'src/characters/items/item-use.resolver';
 import { ItemUseService } from 'src/characters/items/item-use.service';
+import { MissionLockModule } from 'src/characters/mission-lock/mission-lock.module';
 import {
     Character,
     CharacterSchema,
@@ -20,6 +21,7 @@ import { User, UserSchema } from 'src/models/user.model';
             { name: LootItem.name, schema: LootItemSchema },
             { name: Lore.name, schema: LoreSchema },
         ]),
+        MissionLockModule,
     ],
     providers: [
         ItemUseService,

@@ -87,6 +87,7 @@ describe('ResolutionLoader enemy read', () => {
             loot: new Map(),
             recoveryTimes: new Map(),
             petMaxXp: new Map(),
+            pets: new Map(),
         });
     });
 
@@ -110,6 +111,7 @@ describe('ResolutionLoader enemy read', () => {
             'equipment',
             'loot',
             'petMaxXp',
+            'pets',
             'recoveryTimes',
             'spells',
         ];
@@ -161,7 +163,9 @@ describe('ResolutionLoader enemy read', () => {
                 [dragon.toHexString(), 2350],
             ]),
         );
-        expect(petModel.find.mock.calls).toEqual([[{}, { maxXp: 1 }]]);
+        expect(petModel.find.mock.calls).toEqual([
+            [{}, { maxXp: 1, attack: 1, defense: 1, maxLifePoints: 1 }],
+        ]);
     });
 
     it('leaves a pet without a valid cap out of the caps (D-17)', async () => {
@@ -200,6 +204,68 @@ describe('ResolutionLoader enemy read', () => {
 
         expect(catalog.enemies).toEqual([]);
         expect(catalog.petMaxXp).toEqual(new Map([[wolf.toHexString(), 100]]));
+    });
+
+    it('reads the combat stats of the pet catalogue in the same read (D-20)', async () => {
+        const wolf = new Types.ObjectId();
+        const cat = new Types.ObjectId();
+        const wolfAttack = { base: [{ type: 'slashing', power: 4 }] };
+        const wolfDefense = { base: [{ type: 'piercing', power: 1 }] };
+        const petModel = fakeModel([
+            {
+                _id: wolf,
+                maxXp: 100,
+                attack: wolfAttack,
+                defense: wolfDefense,
+                maxLifePoints: 50,
+            },
+            { _id: cat, maxLifePoints: 20 },
+        ]);
+        const enemy = { _id: new Types.ObjectId(), name: 'Lupo', xp: 5 };
+        const loader = loaderWith(fakeModel([enemy]), petModel);
+
+        const catalog = await loader.readCombatCatalog(
+            [{ enemy: enemy._id, quantity: 1 }],
+            [],
+            AMBUSH_SUBJECT,
+        );
+
+        expect(catalog.pets).toEqual(
+            new Map([
+                [
+                    wolf.toHexString(),
+                    {
+                        attack: wolfAttack,
+                        defense: wolfDefense,
+                        maxLifePoints: 50,
+                    },
+                ],
+                [cat.toHexString(), { maxLifePoints: 20 }],
+            ]),
+        );
+        expect(catalog.petMaxXp).toEqual(new Map([[wolf.toHexString(), 100]]));
+        expect(petModel.find.mock.calls).toEqual([
+            [{}, { maxXp: 1, attack: 1, defense: 1, maxLifePoints: 1 }],
+        ]);
+    });
+
+    it('serves the pets even without enemies (D-20)', async () => {
+        const wolf = new Types.ObjectId();
+        const petModel = fakeModel([
+            { _id: wolf, maxXp: 100, maxLifePoints: 50 },
+        ]);
+        const loader = loaderWith(fakeModel(), petModel);
+
+        const catalog = await loader.readCombatCatalog(
+            [],
+            [],
+            'della missione x',
+        );
+
+        expect(catalog.pets).toEqual(
+            new Map([[wolf.toHexString(), { maxLifePoints: 50 }]]),
+        );
+        expect(petModel.find).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -298,5 +364,42 @@ describe('ResolutionLoader reward catalog', () => {
             [S1.toHexString()]: { minXpToLearn: 100, maxUsages: 2 },
             [S2.toHexString()]: { minXpToLearn: 300, maxUsages: 1 },
         });
+    });
+
+    it('reads the reward catalogue of arbitrary refs without a quest (D-22)', async () => {
+        const L1 = new Types.ObjectId();
+        const E1 = new Types.ObjectId();
+        const S1 = new Types.ObjectId();
+        const P1 = new Types.ObjectId();
+        const loader = rewardLoaderWith({
+            loot: [{ _id: L1, rarity: RarityType.uncommon }],
+            equipment: [{ _id: E1, rarity: RarityType.rare }],
+            spells: [{ _id: S1, minXpToLearn: 200, maxUsages: 3 }],
+            pets: [{ _id: P1, maxLifePoints: 40, relatedLore: [] }],
+        });
+
+        const rewards = await loader.readRewardCatalogFor(
+            {
+                items: [
+                    { itemType: 'LootItem', item: L1 },
+                    { itemType: 'EquipmentItem', item: E1 },
+                ],
+                spellIds: [S1],
+                petIds: [P1],
+            },
+            null,
+        );
+
+        expect(Object.fromEntries(rewards.rarities)).toEqual({
+            [`LootItem:${L1.toHexString()}`]: RarityType.uncommon,
+            [`EquipmentItem:${E1.toHexString()}`]: RarityType.rare,
+        });
+        expect(Object.fromEntries(rewards.spells)).toEqual({
+            [S1.toHexString()]: { minXpToLearn: 200, maxUsages: 3 },
+        });
+        expect(Object.fromEntries(rewards.pets)).toEqual({
+            [P1.toHexString()]: 40,
+        });
+        expect(rewards.spellPool).toEqual([]);
     });
 });

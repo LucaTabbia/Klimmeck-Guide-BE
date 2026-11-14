@@ -65,6 +65,10 @@ export class PendingRequest {
     @Field(() => Date, { nullable: true })
     startDate: Date | null;
 
+    // la carta dell'oste riprende il flusso su ogni dispositivo (D-17, D-18)
+    @Field(() => Date, { nullable: true })
+    missionDraftStartedAt: Date | null;
+
     @Field(() => Int)
     pointsSpent: number;
 

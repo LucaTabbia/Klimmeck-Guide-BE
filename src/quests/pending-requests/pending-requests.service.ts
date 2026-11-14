@@ -79,7 +79,12 @@ export class PendingRequestsService {
                         ),
                     },
                 },
-                { startDate: 1, pointsSpent: 1, quest: 1 },
+                {
+                    startDate: 1,
+                    missionDraftStartedAt: 1,
+                    pointsSpent: 1,
+                    quest: 1,
+                },
             )
             .lean<RequestPendingQuestSnapshot[]>();
         const quests = await this.questModel

@@ -29,6 +29,7 @@ export interface RequestCharacterSnapshot {
 export interface RequestPendingQuestSnapshot {
     _id: Types.ObjectId;
     startDate?: Date | null;
+    missionDraftStartedAt?: Date | null;
     pointsSpent?: number;
     quest?: unknown;
 }
@@ -145,6 +146,7 @@ export function buildPendingRequests(
         requests.push({
             id: pendingQuest._id.toHexString(),
             startDate: pendingQuest.startDate ?? null,
+            missionDraftStartedAt: pendingQuest.missionDraftStartedAt ?? null,
             pointsSpent: pendingQuest.pointsSpent ?? 0,
             quest: {
                 id: quest._id.toHexString(),

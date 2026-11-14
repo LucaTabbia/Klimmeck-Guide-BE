@@ -8,6 +8,11 @@ import {
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { LootItem } from 'src/models/loot-item.model';
 import { Lore } from 'src/models/lore.model';
+import {
+    PendingQuest,
+    PendingQuestDocument,
+} from 'src/models/pending-quest.model';
+import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
@@ -25,6 +30,8 @@ const POTION_RECOVERY =
 const NOW = new Date('2026-11-10T12:00:00.000Z');
 const FIRST_RECOVERY_END = '2026-11-10T12:30:00.000Z';
 const LORE_NAME = 'Il limite del corpo';
+const STARTED = new Date('2026-11-10T11:00:00.000Z');
+const HOUR_MS = 3_600_000;
 
 interface WireBody {
     data?: Record<string, unknown> | null;
@@ -56,6 +63,12 @@ interface PlayerShape {
     role?: RoleType;
     status?: Record<string, unknown>;
     ownedItems?: RawStack[];
+    quests?: Record<string, unknown>;
+}
+
+interface LaneDates {
+    startDate?: Date | null;
+    missionDraftStartedAt?: Date | null;
 }
 
 function codeOf(body: WireBody): unknown {
@@ -68,6 +81,7 @@ describe('useItem (wire)', () => {
     let characters: Model<CharacterDocument>;
     let lootItems: Model<any>;
     let lores: Model<any>;
+    let pendingQuests: Model<PendingQuestDocument>;
 
     function stackOf(item: Types.ObjectId, quantity = 2): RawStack {
         return { item, quantity };
@@ -93,8 +107,23 @@ describe('useItem (wire)', () => {
                         ...stack,
                     })),
                 },
+                quests: { ...base.quests, ...shape.quests },
             },
         });
+    }
+
+    async function laneOf(
+        lane: QuestLane,
+        dates: LaneDates,
+    ): Promise<Record<string, Types.ObjectId>> {
+        const pendingQuest = await pendingQuests.create({
+            startDate: null,
+            waitingTime: HOUR_MS,
+            pointsSpent: 0,
+            quest: new Types.ObjectId(),
+            ...dates,
+        });
+        return { [lane]: pendingQuest._id as Types.ObjectId };
     }
 
     async function potionWith(
@@ -161,6 +190,9 @@ describe('useItem (wire)', () => {
         );
         lootItems = harness.connection.model(LootItem.name);
         lores = harness.connection.model(Lore.name);
+        pendingQuests = harness.connection.model<PendingQuestDocument>(
+            PendingQuest.name,
+        );
     });
 
     beforeEach(() => {
@@ -302,6 +334,56 @@ describe('useItem (wire)', () => {
             twitchId: 'twitch-drink-imprisoned',
             status: { imprisonedUntil: new Date('2026-11-10T22:00:00.000Z') },
             ownedItems: [stackOf(potion._id)],
+        });
+
+        const body = await drink(player, potion.id);
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.useItem).toMatchObject({
+            hpBefore: 400,
+            hpAfter: 700,
+        });
+    });
+
+    it('refuses a potion while the hunt waits on the marker (D-12)', async () => {
+        const { potion } = await potionWith();
+        const player = await playerWith({
+            twitchId: 'twitch-drink-hunt-started',
+            ownedItems: [stackOf(potion._id)],
+            quests: await laneOf(QuestLane.standard, { startDate: STARTED }),
+        });
+        const before = await rawCharacter(player);
+
+        const body = await drink(player, potion.id);
+
+        expect(codeOf(body)).toBe('MISSION_IN_PROGRESS');
+        expect(await rawCharacter(player)).toEqual(before);
+    });
+
+    it('refuses a potion during a guided draft (D-11)', async () => {
+        const { potion } = await potionWith();
+        const player = await playerWith({
+            twitchId: 'twitch-drink-guided-draft',
+            ownedItems: [stackOf(potion._id)],
+            quests: await laneOf(QuestLane.worldMission, {
+                startDate: STARTED,
+                missionDraftStartedAt: NOW,
+            }),
+        });
+        const before = await rawCharacter(player);
+
+        const body = await drink(player, potion.id);
+
+        expect(codeOf(body)).toBe('MISSION_IN_PROGRESS');
+        expect(await rawCharacter(player)).toEqual(before);
+    });
+
+    it('allows a potion while travelling to the quest (D-12)', async () => {
+        const { potion } = await potionWith();
+        const player = await playerWith({
+            twitchId: 'twitch-drink-to-the-quest',
+            ownedItems: [stackOf(potion._id)],
+            quests: await laneOf(QuestLane.standard, { startDate: null }),
         });
 
         const body = await drink(player, potion.id);

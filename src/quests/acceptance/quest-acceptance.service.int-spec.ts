@@ -473,20 +473,24 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect((await pendingOf(pqId))?.waitingTime).toBe(0);
         });
 
-        it('runs a story in parallel with a pending standard quest', async () => {
+        // un boss a due posti col solo personaggio iscritto: party in attesa, corsia standard non avviata
+        it('runs a story in parallel with a standard quest not started yet (D-13)', async () => {
             const ownerId = await ownerWith(6000);
             const charId = await characterAt(world.cityMarker);
-            const huntId = await questOf('hunt');
+            const bossId = await questOf('boss', {
+                requiredAdventurers: [{ title: 'rookie', count: 2 }],
+            });
             const storyId = await questOf('story', {
                 requiredPoints: 1000,
                 minTitle: 'rookie',
             });
 
-            const huntPq = await accept(ownerId, charId, huntId);
+            const bossPq = await accept(ownerId, charId, bossId);
             const storyPq = await accept(ownerId, charId, storyId);
 
             const character = await raw(charId);
-            expect(character?.quests.pendingQuest).toEqual(huntPq);
+            expect((await pendingOf(bossPq))?.startDate).toBeNull();
+            expect(character?.quests.pendingQuest).toEqual(bossPq);
             expect(character?.quests.activeStoryQuest).toEqual(storyPq);
             expect(await pendingCount()).toBe(2);
         });
@@ -1074,6 +1078,200 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect((await raw(charId))?.quests.pendingQuest).toBeNull();
             expect(await pendingCount()).toBe(0);
             expect(await pointsOf(ownerId)).toBe(6000);
+        });
+    });
+
+    // bozza guidata aperta sulla corsia: il marcatore della PendingQuest (Phase 22 D-18)
+    async function draftLane(
+        lane: 'activeStoryQuest' | 'activeWorldMissionQuest',
+    ): Promise<Record<string, Types.ObjectId>> {
+        const pendingQuest = await pendingQuests.create({
+            startDate: ACCEPTED_AT,
+            waitingTime: 0,
+            pointsSpent: 0,
+            quest: new Types.ObjectId(),
+            missionDraftStartedAt: ACCEPTED_AT,
+        });
+        return { [lane]: pendingQuest._id as Types.ObjectId };
+    }
+
+    function markDraft(pendingQuestId: Types.ObjectId, at: Date | null) {
+        return pendingQuests.collection.updateOne(
+            { _id: pendingQuestId },
+            { $set: { missionDraftStartedAt: at } },
+        );
+    }
+
+    describe('mission lock (Phase 22)', () => {
+        const storyRequirements = { requiredPoints: 1000, minTitle: 'rookie' };
+        const worldMissionRequirements = {
+            requiredPoints: 1000,
+            requiredAdventurers: THREE_ROOKIES,
+        };
+
+        it('refuses a story while the standard quest has started (D-13)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+            const huntId = await questOf('hunt');
+            const storyId = await questOf('story', storyRequirements);
+            const huntPq = await accept(ownerId, charId, huntId);
+            expect((await pendingOf(huntPq))?.startDate).toEqual(ACCEPTED_AT);
+
+            await expect(
+                accept(ownerId, charId, storyId),
+            ).rejects.toMatchObject({ code: 'MISSION_IN_PROGRESS' });
+
+            expect((await raw(charId))?.quests.activeStoryQuest).toBeNull();
+            expect(await pendingCount()).toBe(1);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('refuses a world mission registration during a guided draft of a story (D-13)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(
+                world.cityMarker,
+                'rookie',
+                await draftLane('activeStoryQuest'),
+            );
+            const questId = await questOf(
+                'worldMission',
+                worldMissionRequirements,
+            );
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'MISSION_IN_PROGRESS' });
+
+            expect(
+                (await raw(charId))?.quests.activeWorldMissionQuest ?? null,
+            ).toBeNull();
+            expect((await rawQuest(questId))?.registeredAdventurers).toEqual(
+                [],
+            );
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('refuses a standard quest during a guided draft of a world mission (D-13)', async () => {
+            const ownerId = await ownerWith(0);
+            const charId = await characterAt(
+                world.cityMarker,
+                'rookie',
+                await draftLane('activeWorldMissionQuest'),
+            );
+            const huntId = await questOf('hunt');
+
+            await expect(accept(ownerId, charId, huntId)).rejects.toMatchObject(
+                { code: 'MISSION_IN_PROGRESS' },
+            );
+
+            expect((await raw(charId))?.quests.pendingQuest).toBeNull();
+        });
+
+        it('keeps the existing refusals first (D-23)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(
+                world.cityMarker,
+                'rookie',
+                await draftLane('activeStoryQuest'),
+            );
+            const storyId = await questOf('story', storyRequirements);
+            const huntId = await questOf('hunt');
+
+            await expect(
+                accept(ownerId, charId, storyId),
+            ).rejects.toMatchObject({ code: 'QUEST_SLOT_BUSY' });
+            await startTravel(charId);
+            await expect(accept(ownerId, charId, huntId)).rejects.toMatchObject(
+                { code: 'TRAVEL_IN_PROGRESS' },
+            );
+
+            expect(await pendingCount()).toBe(1);
+            expect(await pointsOf(ownerId)).toBe(6000);
+        });
+
+        it('refuses a new registration to a world mission with an open draft (D-23)', async () => {
+            const questId = await questOf(
+                'worldMission',
+                worldMissionRequirements,
+            );
+            const firstPq = await accept(
+                await ownerWith(6000),
+                await characterAt(world.cityMarker),
+                questId,
+            );
+            await markDraft(firstPq, ACCEPTED_AT);
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+
+            await expect(
+                accept(ownerId, charId, questId),
+            ).rejects.toMatchObject({ code: 'QUEST_NOT_ACCEPTABLE' });
+
+            expect(
+                (await raw(charId))?.quests.activeWorldMissionQuest ?? null,
+            ).toBeNull();
+            expect(
+                (await rawQuest(questId))?.registeredAdventurers,
+            ).toHaveLength(1);
+            expect(await pointsOf(ownerId)).toBe(6000);
+            expect(await pendingCount()).toBe(1);
+        });
+
+        it('accepts the world mission again once the draft is discarded (D-23)', async () => {
+            const questId = await questOf(
+                'worldMission',
+                worldMissionRequirements,
+            );
+            const firstPq = await accept(
+                await ownerWith(6000),
+                await characterAt(world.cityMarker),
+                questId,
+            );
+            await markDraft(firstPq, ACCEPTED_AT);
+            await markDraft(firstPq, null);
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(world.cityMarker);
+
+            const pqId = await accept(ownerId, charId, questId);
+
+            expect((await raw(charId))?.quests.activeWorldMissionQuest).toEqual(
+                pqId,
+            );
+            expect(
+                (await rawQuest(questId))?.registeredAdventurers,
+            ).toHaveLength(2);
+            expect(await pointsOf(ownerId)).toBe(5000);
+        });
+
+        it('refuses the quest travel preview during a mission (D-23)', async () => {
+            const lanes = await draftLane('activeStoryQuest');
+            const lockedId = await characterAt(
+                world.cityMarker,
+                'rookie',
+                lanes,
+            );
+            const strangerId = await characterAt(
+                await otherCityMarker(),
+                'rookie',
+                await draftLane('activeStoryQuest'),
+            );
+            const freeId = await characterAt(world.cityMarker);
+            const huntId = await questOf('hunt');
+            const storyId = await questOf('story', storyRequirements);
+            const worldMissionId = await questOf(
+                'worldMission',
+                worldMissionRequirements,
+            );
+
+            for (const questId of [huntId, storyId, worldMissionId])
+                await expect(
+                    acceptance.previewTravel(lockedId, questId),
+                ).rejects.toMatchObject({ code: 'MISSION_IN_PROGRESS' });
+            await expect(
+                acceptance.previewTravel(strangerId, huntId),
+            ).rejects.toMatchObject({ code: 'QUEST_NOT_IN_CITY' });
+            expect(await acceptance.previewTravel(freeId, huntId)).toBeNull();
+            expect(await acceptance.previewTravel(freeId, storyId)).toBeNull();
         });
     });
 

@@ -67,6 +67,11 @@ describe('ResourceNotFoundException', () => {
             () => ResourceNotFoundException.equipmentItem(),
             'Equipaggiamento non trovato',
         ],
+        [
+            'missionDraft',
+            () => ResourceNotFoundException.missionDraft(),
+            'Bozza della missione non trovata',
+        ],
     ])(
         'codes a missing %s as NOT_FOUND without echoing the id (F2)',
         (_name, factory, message) => {

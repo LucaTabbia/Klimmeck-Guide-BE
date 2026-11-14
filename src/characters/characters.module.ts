@@ -25,6 +25,8 @@ import { CharactersResolver } from './characters.resolver';
 import { PendingQuestStartPublisher } from './pending-quest-start.publisher';
 import { CharactersService } from './characters.service';
 import { ItemUseModule } from './items/item-use.module';
+import { MissionDraftLockPublisher } from './mission-lock/mission-draft-lock.publisher';
+import { MissionLockModule } from './mission-lock/mission-lock.module';
 import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
 
 @Module({
@@ -41,6 +43,7 @@ import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
         EconomyModule,
         // bevuta dal Diario (Phase 18): modulo sibling senza Bull
         ItemUseModule,
+        MissionLockModule,
     ],
     providers: [
         CharactersService,
@@ -48,6 +51,7 @@ import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
         CharacterStatusResolver,
         CharacterUpdatesPublisher,
         PendingQuestStartPublisher,
+        MissionDraftLockPublisher,
         { provide: Clock, useClass: SystemClock },
         { provide: QUEUE_CALL_TIMEOUT, useValue: QUEUE_CALL_TIMEOUT_MS },
     ],

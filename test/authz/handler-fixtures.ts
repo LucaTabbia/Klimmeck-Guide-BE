@@ -54,6 +54,76 @@ export const HANDLER_FIXTURES: Record<ProtectedHandler, HandlerFixture> = {
         document: 'query Characters { characters { id } }',
         variables: NO_VARIABLES,
     },
+    'GuidedMissionResolver.completeGuidedMission': {
+        kind: 'mutation',
+        field: 'completeGuidedMission',
+        target: 'none',
+        document:
+            'mutation CompleteGuidedMission($pendingQuestId: ID!) { completeGuidedMission(pendingQuestId: $pendingQuestId) { id } }',
+        variables: () => ({ pendingQuestId: ANY }),
+    },
+    'GuidedMissionResolver.discardMissionDraft': {
+        kind: 'mutation',
+        field: 'discardMissionDraft',
+        target: 'none',
+        document:
+            'mutation DiscardMissionDraft($pendingQuestId: ID!) { discardMissionDraft(pendingQuestId: $pendingQuestId) { successful } }',
+        variables: () => ({ pendingQuestId: ANY }),
+    },
+    'GuidedMissionResolver.missionDraft': {
+        kind: 'query',
+        field: 'missionDraft',
+        target: 'none',
+        document:
+            'query MissionDraft($pendingQuestId: ID!) { missionDraft(pendingQuestId: $pendingQuestId) { id } }',
+        variables: () => ({ pendingQuestId: ANY }),
+    },
+    'GuidedMissionResolver.missionEnemies': {
+        kind: 'query',
+        field: 'missionEnemies',
+        target: 'none',
+        document:
+            'query MissionEnemies($pendingQuestId: ID!) { missionEnemies(pendingQuestId: $pendingQuestId) { id } }',
+        variables: () => ({ pendingQuestId: ANY }),
+    },
+    'GuidedMissionResolver.missionPrizeOptions': {
+        kind: 'query',
+        field: 'missionPrizeOptions',
+        target: 'none',
+        document:
+            'query MissionPrizeOptions($characterId: ID!, $pendingQuestId: ID!) { missionPrizeOptions(characterId: $characterId, pendingQuestId: $pendingQuestId) { character } }',
+        variables: () => ({ characterId: ANY, pendingQuestId: ANY }),
+    },
+    'GuidedMissionResolver.saveMissionDraft': {
+        kind: 'mutation',
+        field: 'saveMissionDraft',
+        target: 'none',
+        document:
+            'mutation SaveMissionDraft($input: SaveMissionDraftInput!) { saveMissionDraft(input: $input) { id } }',
+        variables: () => ({ input: { pendingQuestId: ANY } }),
+    },
+    'GuidedMissionResolver.simulateMissionFight': {
+        kind: 'mutation',
+        field: 'simulateMissionFight',
+        target: 'none',
+        document:
+            'mutation SimulateMissionFight($input: SimulateMissionFightInput!) { simulateMissionFight(input: $input) { id } }',
+        variables: () => ({
+            input: {
+                pendingQuestId: ANY,
+                fightIndex: 0,
+                enemies: [{ enemy: ANY, quantity: 1 }],
+            },
+        }),
+    },
+    'GuidedMissionResolver.startMissionDraft': {
+        kind: 'mutation',
+        field: 'startMissionDraft',
+        target: 'none',
+        document:
+            'mutation StartMissionDraft($pendingQuestId: ID!) { startMissionDraft(pendingQuestId: $pendingQuestId) { id } }',
+        variables: () => ({ pendingQuestId: ANY }),
+    },
     'PendingQuestsResolver.pendingQuests': {
         kind: 'query',
         field: 'pendingQuests',

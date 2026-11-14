@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { AuthzModule } from 'src/authz/authz.module';
+import { MissionLockModule } from 'src/characters/mission-lock/mission-lock.module';
 import { travelConfigProvider } from 'src/config/travel-config';
 import { LoreGeographyModule } from 'src/lore/lore-geography.module';
 import {
@@ -50,6 +51,8 @@ import { TravelService } from './travel.service';
         LoreGeographyModule,
         // avvio all'arrivo (utente 2026-10-25): PartyModule accoda la scadenza, nessun ciclo con viaggio o accettazione
         PartyModule,
+        // partenze e anteprime rifiutate in missione (Phase 22 D-11)
+        MissionLockModule,
     ],
     providers: [
         travelConfigProvider,

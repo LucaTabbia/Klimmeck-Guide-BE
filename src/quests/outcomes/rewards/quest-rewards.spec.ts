@@ -13,6 +13,7 @@ import {
     drawRewards,
     drawStudyLore,
     rewardRefsOf,
+    validRewardItems,
 } from 'src/quests/outcomes/rewards/quest-rewards';
 import { SequenceChance } from '../../../../test/quests/sequence-chance';
 
@@ -783,5 +784,27 @@ describe('rewardRefsOf', () => {
 
         expect(rewardRefsOf([])).toEqual(none);
         expect(rewardRefsOf([null])).toEqual(none);
+    });
+});
+
+describe('validRewardItems', () => {
+    it('lists the valid entries of a prize block in order (D-22)', () => {
+        const prizes = prizesWith({
+            prizeItem: {
+                itemType: 'EquipmentItem',
+                item: POTION_ID,
+                quantity: 1,
+            },
+            randomLoot: [
+                { itemType: 'LootItem', item: BONE_ID, quantity: 3 },
+                { itemType: 'LootItem', item: ORPHAN_ID, quantity: 0 },
+                { itemType: 'Pet', item: ORPHAN_ID, quantity: 1 },
+            ],
+        });
+
+        expect(validRewardItems(prizes)).toEqual([
+            { itemType: 'EquipmentItem', item: POTION_ID, quantity: 1 },
+            { itemType: 'LootItem', item: BONE_ID, quantity: 3 },
+        ]);
     });
 });

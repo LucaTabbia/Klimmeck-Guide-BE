@@ -1,38 +1,26 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { Connection, Model, Types } from 'mongoose';
+import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
-import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
-import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
-import {
-    Character,
-    CharacterDocument,
-} from 'src/models/character/character.model';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
-import {
-    PendingQuest,
-    PendingQuestDocument,
-} from 'src/models/pending-quest.model';
 import type {
     CompletePendingRequestInput,
     ParticipantOverrideInput,
 } from 'src/models/request/complete-pending-request.model';
-import { idForms, objectIdFromHex, refIdOf } from 'src/mongo/document-id';
-import {
-    GM_LANES,
-    type GmLane,
-    isGmLane,
-    isStandardLaneBusy,
-    laneOf,
-    lanePathOf,
-    QuestLane,
-} from 'src/quests/acceptance/quest-lanes';
+import { objectIdFromHex } from 'src/mongo/document-id';
+import { MissionDraft } from 'src/quests/guided/mission-draft.model';
 import { ChanceSource } from './chance-source';
+import type { ParticipantEffects } from './combat/combat-resolver';
 import { enemyFactsOf } from './combatant-plan';
+import {
+    assertNoBusyParticipant,
+    type GmRequest,
+    GmRequestReader,
+} from './gm-request.reader';
 import { overrideParticipantOf, validateOverrides } from './gm-overrides';
 import {
-    OUTCOME_CHARACTER_PROJECTION,
+    type EnemyFacts,
     planParticipant,
     type QuestResultDraft,
 } from './outcome-plan';
@@ -44,43 +32,37 @@ import {
 } from './outcome-writer.service';
 import { questUpdateOf } from './quest-outcome-plan';
 import {
-    type PendingQuestSnapshot,
-    type LaneCharacter,
-    type ResolutionCatalog,
     type ResolutionCharacter,
     ResolutionLoader,
-    type ResolutionQuest,
 } from './resolution-loader.service';
 import { prizeBlockFor } from '../prizes/rank-prizes';
-import { drawRewards } from './rewards/quest-rewards';
-import { victoryKnowledgeOf } from './victory-knowledge';
+import { type DrawnRewards, drawRewards } from './rewards/quest-rewards';
+import { type VictoryKnowledge, victoryKnowledgeOf } from './victory-knowledge';
 
-type GmLaneCharacter = LaneCharacter<GmLane>;
-
-interface GmSeat {
-    character: ResolutionCharacter;
-    pendingQuestId: Types.ObjectId;
-    ownerId: Types.ObjectId;
-    resultId: Types.ObjectId;
+export interface GmSeatOutcome {
+    battle: ParticipantEffects | null;
+    enemies: EnemyFacts | null;
+    victory: VictoryKnowledge | null;
+    rewards: DrawnRewards;
 }
 
-interface GmRequest {
-    quest: ResolutionQuest;
-    lane: GmLane;
-    seats: GmSeat[];
+// cosa scrive il ciclo condiviso dei completamenti del GM (D-08, D-25): un esito per posto, calcolato sugli snapshot in sessione
+export interface GmCommitPlan {
+    request: GmRequest;
+    recoveryTimes: ReadonlyMap<string, number>;
+    petMaxXp: ReadonlyMap<string, number>;
+    now: Date;
+    // in sessione, sugli snapshot riletti nell'ordine dei posti; un errore abortisce la transazione
+    outcomesOf(
+        snapshots: readonly ResolutionCharacter[],
+    ): ReadonlyMap<string, GmSeatOutcome>;
+    // scritture in più nella stessa transazione, dopo i posti e la quest
+    afterSeats?(session: ClientSession): Promise<void>;
 }
 
 interface GmCommit {
     outcome: CommittedOutcome;
     drafts: QuestResultDraft[];
-}
-
-interface GmCompletion {
-    request: GmRequest;
-    overrides: CompletePendingRequestInput['outcomes'];
-    catalog: ResolutionCatalog;
-    recoveryTimes: ReadonlyMap<string, number>;
-    now: Date;
 }
 
 const spellIdsOf = (
@@ -90,40 +72,25 @@ const spellIdsOf = (
         (spellsUsed ?? []).flatMap(({ spell }) => objectIdFromHex(spell) ?? []),
     );
 
-interface StandardLaneHolder {
-    quests?: { pendingQuest?: unknown } | null;
-}
-
-// un partecipante con la corsia standard occupata blocca l'intera richiesta (D-24): nessun esito parziale
-function assertNoBusyParticipant(
-    characters: readonly StandardLaneHolder[],
-): void {
-    if (characters.some(({ quests }) => isStandardLaneBusy(quests)))
-        throw GameRuleException.participantQuestInProgress();
-}
-
 // D-03/D-04: solo esito positivo, nessun reject né rimborso; una chiamata chiude la worldMission per tutti i registrati, un risultato ciascuno
 @Injectable()
 export class GmCompletionService {
-    private readonly logger = new Logger(GmCompletionService.name);
-
     constructor(
         @InjectConnection() private readonly connection: Connection,
-        @InjectModel(Character.name)
-        private readonly characterModel: Model<CharacterDocument>,
-        @InjectModel(PendingQuest.name)
-        private readonly pendingQuestModel: Model<PendingQuestDocument>,
+        private readonly requests: GmRequestReader,
         private readonly loader: ResolutionLoader,
         private readonly writer: OutcomeWriter,
         private readonly chance: ChanceSource,
         private readonly clock: Clock,
+        @InjectModel(MissionDraft.name)
+        private readonly draftModel: Model<MissionDraft>,
     ) {}
 
     // i risultati committati tornano dalle bozze scritte in transazione: la risposta non dipende da una rilettura (WR-03)
     async complete(
         input: CompletePendingRequestInput,
     ): Promise<QuestResultDraft[]> {
-        const request = await this.readRequest(input.pendingQuestId);
+        const request = await this.requests.read(input.pendingQuestId);
         assertNoBusyParticipant(
             request.seats.map(({ character }) => character),
         );
@@ -142,135 +109,69 @@ export class GmCompletionService {
             ...catalog.recoveryTimes,
             ...(await this.loader.recoveryTimesOf(spellIdsOf(input.outcomes))),
         ]);
-        const committed = await this.commit({
+        return this.completeWith({
             request,
-            overrides: input.outcomes,
-            catalog,
             recoveryTimes,
+            petMaxXp: catalog.petMaxXp,
             now: this.clock.now(),
+            outcomesOf: (snapshots) => {
+                const battles = validateOverrides(
+                    input.outcomes,
+                    snapshots.map(overrideParticipantOf),
+                );
+                // un tiro dei premi per posto, nell'ordine dei posti: le spec a seme fisso pinnano la sequenza
+                return new Map(
+                    snapshots.map((snapshot) => [
+                        snapshot._id.toHexString(),
+                        {
+                            battle:
+                                battles.get(snapshot._id.toHexString()) ?? null,
+                            enemies: enemyFactsOf(catalog),
+                            // gmCompleted con nemici insegna come un success (Phase 16 D-06, C-1): stesso predicato dell'xp dei nemici
+                            victory: victoryKnowledgeOf(catalog),
+                            // il blocco del titolo del partecipante letto in sessione (D-04, D-18)
+                            rewards: drawRewards(
+                                prizeBlockFor(
+                                    request.quest,
+                                    snapshot.status.title,
+                                ),
+                                catalog.rewards,
+                                this.chance,
+                            ),
+                        },
+                    ]),
+                );
+            },
+            // D-25: il vecchio completamento convive e chiude la bozza
+            afterSeats: (session) =>
+                this.draftModel
+                    .deleteMany(
+                        {
+                            'participants.pendingQuest': {
+                                $in: request.seats.map(
+                                    ({ pendingQuestId }) => pendingQuestId,
+                                ),
+                            },
+                        },
+                        { session },
+                    )
+                    .exec()
+                    .then(() => undefined),
         });
-        if (!committed) throw await this.lostCompletionError(request);
+    }
+
+    // commit, errore del perdente e consegna condivisi dai completamenti del GM (D-08)
+    async completeWith(plan: GmCommitPlan): Promise<QuestResultDraft[]> {
+        const committed = await this.commit(plan);
+        if (!committed)
+            throw await this.requests.lostCompletionError(plan.request);
         await this.writer.deliver(committed.outcome);
         return committed.drafts;
     }
 
-    // completamento concorrente già committato: il perdente vede la richiesta sparita (T-09-76)
-    // il perdente di una gara con un'accettazione standard non vede NOT_FOUND (D-24)
-    private async lostCompletionError(request: GmRequest): Promise<Error> {
-        const participants = await this.characterModel
-            .find(
-                {
-                    ...ACTIVE_CHARACTER_FILTER,
-                    _id: {
-                        $in: request.seats.map(
-                            ({ character }) => character._id,
-                        ),
-                    },
-                },
-                { 'quests.pendingQuest': 1 },
-            )
-            .lean<StandardLaneHolder[]>()
-            .exec();
-        return participants.some(({ quests }) => isStandardLaneBusy(quests))
-            ? GameRuleException.participantQuestInProgress()
-            : ResourceNotFoundException.pendingQuest();
-    }
-
-    // solo le corsie del GM: una PendingQuest standard, inesistente o malformata è NOT_FOUND (T-09-77)
-    private async readRequest(pendingQuestHex: string): Promise<GmRequest> {
-        const pendingQuestId = objectIdFromHex(pendingQuestHex);
-        if (!pendingQuestId) throw ResourceNotFoundException.pendingQuest();
-        const pendingQuest = await this.pendingQuestModel
-            .findById(pendingQuestId, { quest: 1 })
-            .lean<PendingQuestSnapshot | null>()
-            .exec();
-        if (!pendingQuest) throw ResourceNotFoundException.pendingQuest();
-        const holder = await this.characterModel
-            .findOne(
-                {
-                    ...ACTIVE_CHARACTER_FILTER,
-                    $or: GM_LANES.map((lane) => ({
-                        [lanePathOf(lane)]: { $in: idForms(pendingQuestId) },
-                    })),
-                },
-                OUTCOME_CHARACTER_PROJECTION,
-            )
-            .lean<GmLaneCharacter | null>()
-            .exec();
-        if (!holder) throw ResourceNotFoundException.pendingQuest();
-        const quest = await this.loader.readQuest(pendingQuest);
-        const lane = quest ? laneOf(quest.infos.type) : QuestLane.standard;
-        if (!quest || !isGmLane(lane))
-            throw ResourceNotFoundException.pendingQuest();
-        const holders =
-            lane === QuestLane.worldMission
-                ? await this.worldMissionHolders(quest._id)
-                : [holder];
-        const seats = await this.seatsOf(holders, lane);
-        if (seats.length === 0) throw ResourceNotFoundException.pendingQuest();
-        return { quest, lane, seats };
-    }
-
-    // tutti i personaggi attivi con una PendingQuest di questa worldMission nella propria corsia (D-04, D-06)
-    private async worldMissionHolders(
-        questId: Types.ObjectId,
-    ): Promise<GmLaneCharacter[]> {
-        const pendingQuests = await this.pendingQuestModel
-            .find({ quest: { $in: idForms(questId) } }, { _id: 1 })
-            .lean<{ _id: Types.ObjectId }[]>()
-            .exec();
-        return this.characterModel
-            .find(
-                {
-                    ...ACTIVE_CHARACTER_FILTER,
-                    [lanePathOf(QuestLane.worldMission)]: {
-                        $in: pendingQuests.flatMap(({ _id }) => idForms(_id)),
-                    },
-                },
-                OUTCOME_CHARACTER_PROJECTION,
-            )
-            .lean<GmLaneCharacter[]>()
-            .exec();
-    }
-
-    // un partecipante senza proprietario non ha a chi consegnare il risultato: escluso con un WARN di soli id
-    private async seatsOf(
-        holders: readonly GmLaneCharacter[],
-        lane: GmLane,
-    ): Promise<GmSeat[]> {
-        const owners = await this.loader.ownersOf(
-            holders.map(({ _id }) => _id),
-        );
-        return holders.flatMap((character) => {
-            const pendingQuestId = refIdOf(character.quests?.[lane]);
-            const ownerId = owners.get(character._id.toHexString());
-            if (!pendingQuestId) return [];
-            if (!ownerId) {
-                this.logger.warn(
-                    `Personaggio ${character._id.toHexString()} della missione in attesa ${pendingQuestId.toHexString()} senza proprietario: escluso dal completamento`,
-                );
-                return [];
-            }
-            return [
-                {
-                    character,
-                    pendingQuestId,
-                    ownerId,
-                    resultId: new Types.ObjectId(),
-                },
-            ];
-        });
-    }
-
-    // una transazione per l'intera richiesta (D-21): override rivalidati sugli snapshot in sessione, un errore tipizzato abortisce
-    private async commit({
-        request,
-        overrides,
-        catalog,
-        recoveryTimes,
-        now,
-    }: GmCompletion): Promise<GmCommit | null> {
-        const { quest, lane, seats } = request;
+    // una transazione per l'intera richiesta (D-21): esiti calcolati sugli snapshot in sessione, un errore tipizzato abortisce
+    private async commit(plan: GmCommitPlan): Promise<GmCommit | null> {
+        const { quest, lane, seats } = plan.request;
         const state: { committed: GmCommit | null } = {
             committed: null,
         };
@@ -290,10 +191,7 @@ export class GmCompletionService {
                     );
                 }
                 assertNoBusyParticipant(snapshots);
-                const battles = validateOverrides(
-                    overrides,
-                    snapshots.map(overrideParticipantOf),
-                );
+                const outcomes = plan.outcomesOf(snapshots);
                 const committed = emptyCommitted();
                 const drafts: QuestResultDraft[] = [];
                 const verdicts: Parameters<
@@ -301,7 +199,11 @@ export class GmCompletionService {
                 >[0]['verdicts'] = [];
                 for (const [index, seat] of seats.entries()) {
                     const snapshot = snapshots[index];
-                    const plan = planParticipant({
+                    const outcome = outcomes.get(snapshot._id.toHexString());
+                    // un posto senza esito non si scrive a metà: l'intera richiesta si rifiuta
+                    if (!outcome)
+                        throw GameRuleException.outcomeOverrideInvalid();
+                    const participant = planParticipant({
                         resultId: seat.resultId,
                         snapshot,
                         quest,
@@ -309,22 +211,16 @@ export class GmCompletionService {
                         pendingQuestId: seat.pendingQuestId,
                         userId: seat.ownerId,
                         verdict: QuestOutcome.gmCompleted,
-                        battle: battles.get(snapshot._id.toHexString()) ?? null,
-                        enemies: enemyFactsOf(catalog),
-                        // gmCompleted con nemici insegna come un success (Phase 16 D-06, C-1): stesso predicato dell'xp dei nemici
-                        victory: victoryKnowledgeOf(catalog),
-                        // il blocco del titolo del partecipante letto in sessione (D-04, D-18)
-                        rewards: drawRewards(
-                            prizeBlockFor(quest, snapshot.status.title),
-                            catalog.rewards,
-                            this.chance,
-                        ),
+                        battle: outcome.battle,
+                        enemies: outcome.enemies,
+                        victory: outcome.victory,
+                        rewards: outcome.rewards,
                         aid: null,
-                        spellRecoveryTimes: recoveryTimes,
-                        petMaxXp: catalog.petMaxXp,
-                        now,
+                        spellRecoveryTimes: plan.recoveryTimes,
+                        petMaxXp: plan.petMaxXp,
+                        now: plan.now,
                     });
-                    await this.writer.writeParticipant(plan, session);
+                    await this.writer.writeParticipant(participant, session);
                     await this.writer.deletePendingQuest(
                         seat.pendingQuestId,
                         session,
@@ -337,16 +233,23 @@ export class GmCompletionService {
                         resultId: seat.resultId,
                         userId: seat.ownerId,
                     });
-                    committed.spellRecoveries.push(...plan.spellRecoveries);
-                    drafts.push(plan.result);
+                    committed.spellRecoveries.push(
+                        ...participant.spellRecoveries,
+                    );
+                    drafts.push(participant.result);
                 }
                 // la worldMission sparisce per tutti (D-06); la story non è registrata e non ha nulla da aggiornare
                 await this.writer.updateQuest(
                     { _id: quest._id },
-                    questUpdateOf({ type: quest.infos.type, verdicts, now }),
+                    questUpdateOf({
+                        type: quest.infos.type,
+                        verdicts,
+                        now: plan.now,
+                    }),
                     session,
                     'bestEffort',
                 );
+                await plan.afterSeats?.(session);
                 state.committed = { outcome: committed, drafts };
             });
         } catch (error) {

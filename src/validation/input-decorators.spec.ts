@@ -26,6 +26,14 @@ import { TransactionRequest } from 'src/models/request/transaction-request.model
 import { TravelRequest } from 'src/models/request/travel-request.model';
 import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
+import {
+    MissionEnemyInput,
+    MissionFightInput,
+    MissionPrizeInput,
+    MissionPrizeItemInput,
+    SaveMissionDraftInput,
+    SimulateMissionFightInput,
+} from 'src/quests/guided/mission-draft.inputs';
 import { RegisterPushDeviceInput } from 'src/push/dto/register-push-device.input';
 import { SendTestPushInput } from 'src/push/dto/send-test-push.input';
 
@@ -42,9 +50,15 @@ const VALIDATED_INPUTS: Record<string, InputClass> = {
     EquipPetRequest,
     EquipSpellRequest,
     ItemUsageInput,
+    MissionEnemyInput,
+    MissionFightInput,
+    MissionPrizeInput,
+    MissionPrizeItemInput,
     ParticipantOverrideInput,
     RegisterPushDeviceInput,
+    SaveMissionDraftInput,
     SendTestPushInput,
+    SimulateMissionFightInput,
     SpellUsageInput,
     TransactionItems,
     TransactionRequest,

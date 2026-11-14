@@ -103,12 +103,14 @@ type CharacterStatus {
   awaitingAid: AwaitingAid
   coins: Coins!
   currentLifePoints: Int!
+  guidedMissionInProgress: Boolean!
   imprisonedUntil: DateTime
   injuries: [InjuryType!]!
   level: Int!
   location: PointOfInterest!
   maxActiveSpells: Int!
   maxLifePoints: Int!
+  missionInProgress: Boolean!
   potionRecoveryUntil: DateTime
   spellStates: [SpellState!]!
   title: String!
@@ -404,13 +406,137 @@ type Lore {
   type: String!
 }
 
+type MissionDraft {
+  fights: [MissionFight!]!
+  id: ID!
+  participants: [MissionParticipant!]!
+  place: ID
+  prizes: [MissionPrize!]!
+  quest: ID!
+  questType: String!
+  startedAt: DateTime!
+  step: MissionDraftStep!
+  updatedAt: DateTime!
+}
+
+enum MissionDraftStep {
+  fights
+  prizes
+  recap
+  teleport
+}
+
+input MissionEnemyInput {
+  enemy: ID!
+  quantity: Int!
+}
+
+type MissionFight {
+  enemies: [MissionFightEnemy!]!
+  outcomes: [MissionFightOutcome!]!
+  verdict: MissionFightVerdict
+}
+
+type MissionFightEffects {
+  consumablesUsed: [MissionItemUsage!]!
+  hpAfter: Int!
+  injuriesAdded: [InjuryType!]!
+  spellsUsed: [MissionSpellUsage!]!
+}
+
+type MissionFightEnemy {
+  enemy: Enemy!
+  quantity: Int!
+}
+
+input MissionFightInput {
+  corrections: [ParticipantOverrideInput!]
+  enemies: [MissionEnemyInput!]!
+}
+
+type MissionFightOutcome {
+  character: ID!
+  consumablesAvailable: [MissionItemUsage!]!
+  corrected: MissionFightEffects
+  hpBefore: Int!
+  injuriesBefore: [InjuryType!]!
+  simulated: MissionFightEffects
+  spellsAvailable: [MissionSpellUsage!]!
+}
+
+enum MissionFightVerdict {
+  failure
+  success
+}
+
+type MissionItemUsage {
+  item: ID!
+  quantity: Int!
+}
+
+type MissionParticipant {
+  character: ID!
+  maxLifePoints: Int!
+  name: String!
+  pendingQuest: ID!
+  title: String!
+}
+
+type MissionPrize {
+  character: ID!
+  coins: Coins!
+  cure: QuestCure
+  items: [MissionPrizeItem!]!
+  pet: ID
+  spell: ID
+  xp: Int!
+}
+
+input MissionPrizeInput {
+  characterId: ID!
+  coins: CoinsInput!
+  cure: Boolean!
+  items: [MissionPrizeItemInput!]!
+  pet: ID
+  spell: ID
+  xp: Int!
+}
+
+type MissionPrizeItem {
+  item: ID!
+  quantity: Int!
+}
+
+input MissionPrizeItemInput {
+  item: ID!
+  quantity: Int!
+}
+
+type MissionPrizeOptions {
+  block: QuestPrizes!
+  character: ID!
+  equipment: [EquipmentItem!]!
+  loot: [LootItem!]!
+  maxRarity: RarityType!
+  pets: [Pet!]!
+  spells: [Spell!]!
+  title: String!
+}
+
+type MissionSpellUsage {
+  spell: ID!
+  usages: Int!
+}
+
 type Mutation {
   abandonQuest(request: AbandonQuestRequest!): CommonResponse!
   acceptQuest(request: AcceptQuestRequest!): CommonResponse!
   acknowledgeQuestResult(id: String!): CommonResponse!
+  completeGuidedMission(pendingQuestId: ID!): [QuestResult!]!
   completePendingRequest(input: CompletePendingRequestInput!): [QuestResult!]!
   createCharacter(input: CreateCharacterInput!): User!
   deleteCharacter: User!
+  discardMissionDraft(pendingQuestId: ID!): CommonResponse!
   doTransaction(request: TransactionRequest!): CommonResponse!
   equipItem(request: EquipItemRequest!): CommonResponse!
   equipPet(request: EquipPetRequest!): CommonResponse!
@@ -420,7 +546,10 @@ type Mutation {
   logout: Boolean!
   refreshSession(refreshToken: String!): AuthSession!
   registerPushDevice(input: RegisterPushDeviceInput!): Boolean!
+  saveMissionDraft(input: SaveMissionDraftInput!): MissionDraft!
   sendTestPush(input: SendTestPushInput!): PushDeliveryReport!
+  simulateMissionFight(input: SimulateMissionFightInput!): MissionDraft!
+  startMissionDraft(pendingQuestId: ID!): MissionDraft!
   startTravel(request: TravelRequest!): CommonResponse!
   teleportCharacter(request: TravelRequest!): CommonResponse!
   unequipPet(request: UnequipPetRequest!): CommonResponse!
@@ -461,6 +590,7 @@ type PendingQuest {
 type PendingRequest {
   character: PendingRequestCharacter!
   id: ID!
+  missionDraftStartedAt: DateTime
   pointsSpent: Int!
   quest: PendingRequestQuest!
   startDate: DateTime
@@ -593,6 +723,9 @@ type Query {
   lore(id: String!): Lore!
   lores: [Lore!]!
   me: User!
+  missionDraft(pendingQuestId: ID!): MissionDraft
+  missionEnemies(pendingQuestId: ID!, showAll: Boolean = false): [Enemy!]!
+  missionPrizeOptions(characterId: ID!, pendingQuestId: ID!): MissionPrizeOptions!
   pendingQuest(id: String!): PendingQuest!
   pendingQuests: [PendingQuest!]!
   pendingRequests: [PendingRequest!]!
@@ -784,6 +917,14 @@ enum RoleType {
   innkeeper
 }
 
+input SaveMissionDraftInput {
+  fights: [MissionFightInput!]
+  pendingQuestId: ID!
+  place: ID
+  prizes: [MissionPrizeInput!]
+  step: MissionDraftStep
+}
+
 input SendTestPushInput {
   id: String
   targetUserId: ID
@@ -809,6 +950,12 @@ type ShopPoolReportItem {
   id: ID!
   name: String
   rarity: String
+}
+
+input SimulateMissionFightInput {
+  enemies: [MissionEnemyInput!]!
+  fightIndex: Int!
+  pendingQuestId: ID!
 }
 
 enum SlotType {

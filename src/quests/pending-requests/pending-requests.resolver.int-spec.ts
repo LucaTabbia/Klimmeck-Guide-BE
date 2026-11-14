@@ -40,7 +40,7 @@ import {
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 
 const REQUEST_FIELDS =
-    'id startDate pointsSpent quest { id type title requiredAdventurers { title count } registeredAdventurers { character title } } character { id name title location activeTravel { endTime } awaitingAid { aidQuest } } user { id twitchId }';
+    'id startDate missionDraftStartedAt pointsSpent quest { id type title requiredAdventurers { title count } registeredAdventurers { character title } } character { id name title location activeTravel { endTime } awaitingAid { aidQuest } } user { id twitchId }';
 const PENDING_REQUESTS = `{ pendingRequests { ${REQUEST_FIELDS} } }`;
 const PENDING_REQUESTS_UPDATED = `subscription { pendingRequestsUpdated { ${REQUEST_FIELDS} } }`;
 const STARTED_AT = new Date('2026-10-01T10:00:00.000Z');
@@ -51,6 +51,7 @@ const EXPECTED_WITHIN_MS = 5000;
 interface WireRequest {
     id: string;
     startDate: string | null;
+    missionDraftStartedAt: string | null;
     pointsSpent: number;
     quest: {
         id: string;
@@ -326,6 +327,7 @@ describe('pendingRequests / pendingRequestsUpdated (wire)', () => {
             ).toEqual({
                 id: String(missionPq._id),
                 startDate: STARTED_AT.toISOString(),
+                missionDraftStartedAt: null,
                 pointsSpent: 300,
                 quest: {
                     id: String(missionQuest._id),
@@ -476,6 +478,37 @@ describe('pendingRequests / pendingRequestsUpdated (wire)', () => {
             });
 
             expect(await lastListBeforeSilence(subscription)).toEqual([]);
+        });
+
+        it('sends the queue again when a guided draft starts and is discarded (D-17, D-23)', async () => {
+            const draftStartedAt = new Date('2026-10-01T11:00:00.000Z');
+            const markerOf = (requests: WireRequest[]) =>
+                requests.find((entry) => entry.id === String(storyPq._id))
+                    ?.missionDraftStartedAt;
+            const subscription = subscribe(oste.bearer);
+            expect(markerOf(await nextList(subscription))).toBeNull();
+
+            await pendingQuests.updateOne(
+                { _id: storyPq._id },
+                { $set: { missionDraftStartedAt: draftStartedAt } },
+            );
+            const started = await listMatching(
+                subscription,
+                (list) => markerOf(list) === draftStartedAt.toISOString(),
+            );
+            await pendingQuests.updateOne(
+                { _id: storyPq._id },
+                { $set: { missionDraftStartedAt: null } },
+            );
+            const discarded = await listMatching(
+                subscription,
+                (list) => markerOf(list) === null,
+            );
+
+            expect(idsOf(started)).toEqual(
+                [String(storyPq._id), String(missionPq._id)].sort(),
+            );
+            expect(idsOf(discarded)).toEqual(idsOf(started));
         });
     });
 });

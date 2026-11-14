@@ -8,6 +8,7 @@ import {
     notImprisonedAt,
     refusalWhileImprisoned,
 } from 'src/characters/imprisonment/imprisonment';
+import { MissionLockReader } from 'src/characters/mission-lock/mission-lock.reader';
 import { toCopper, type CoinPurse } from 'src/economy/coins';
 import { WalletService } from 'src/economy/wallet.service';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
@@ -133,7 +134,7 @@ function inventoryChanges(
     };
 }
 
-// ordine dei rifiuti: id e quantità (puro) → catalogo → cross-check del totale → personaggio → città (D-18) → pool della città (D-19) → doppione pet (D-14) → possesso → fondi
+// ordine dei rifiuti: id e quantità (puro) → catalogo → cross-check del totale → personaggio → prigione → missione in corso (Phase 22 D-12) → città (D-18) → pool della città (D-19) → doppione pet (D-14) → possesso → fondi
 @Injectable()
 export class ShopTransactionService {
     constructor(
@@ -145,6 +146,7 @@ export class ShopTransactionService {
         private readonly catalogPrices: CatalogPricesReader,
         private readonly wallet: WalletService,
         private readonly clock: Clock,
+        private readonly missionLock: MissionLockReader,
     ) {}
 
     // fattibilità prima della scrittura, inventario + coins in un'unica transazione (04 D-07); il prezzo lo decide il catalogo (D-06)
@@ -194,11 +196,12 @@ export class ShopTransactionService {
             .lean<TradeSnapshot | null>()
             .exec();
         if (!snapshot) throw ResourceNotFoundException.character();
-        await this.shopOrReject(snapshot, now, null);
+        await this.shopOrReject(characterId, snapshot, now, null);
     }
 
     // negozio solo sul marker di una città, fuori dal viaggio e dal soccorso (D-18); la stessa lettura porta il pool (D-19, D-23); session null per lo scambio vuoto
     private async shopOrReject(
+        characterId: Types.ObjectId,
         snapshot: TradeSnapshot,
         now: Date,
         session: ClientSession | null,
@@ -206,6 +209,8 @@ export class ShopTransactionService {
         // in prigione il negozio è chiuso col codice della prigione (quick 261110-cgd)
         const imprisoned = refusalWhileImprisoned(snapshot.status, now);
         if (imprisoned) throw imprisoned;
+        // D-12: dopo la prigione, prima della città (D-23)
+        await this.missionLock.assertFree(characterId, session);
         const location = refIdOf(snapshot.status?.location);
         if (
             !location ||
@@ -249,6 +254,7 @@ export class ShopTransactionService {
             .exec();
         if (!snapshot) throw ResourceNotFoundException.character();
         const { location, pool } = await this.shopOrReject(
+            characterId,
             snapshot,
             now,
             session,

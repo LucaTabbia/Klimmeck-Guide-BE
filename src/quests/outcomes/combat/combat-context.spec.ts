@@ -88,6 +88,7 @@ const hydration = (): CombatHydration => ({
         [potionId.toHexString(), { effect: 'heal', power: 200 }],
         [herbId.toHexString(), { effect: 'heal', power: 50 }],
     ]),
+    pets: new Map(),
 });
 
 describe('normalizeDamages', () => {
@@ -250,6 +251,7 @@ describe('buildCombatContext', () => {
                     power: 200,
                 },
             ],
+            companion: null,
         });
     });
 
@@ -305,6 +307,7 @@ describe('buildCombatContext', () => {
             equipment: [],
             activeSpells: [],
             consumables: [],
+            companion: null,
         });
         expect(context.enemies).toEqual([
             {
@@ -599,5 +602,69 @@ describe('jewel use types in the combat context', () => {
                 accessoryUseTypes: ['defense'],
             }),
         ]);
+    });
+});
+
+describe('the companion in the combat context', () => {
+    const wolfId = id('61');
+    const wolfStats = {
+        attack: { base: { type: 'cut', power: 30 } },
+        defense: { base: [{ type: 'blunt', power: 5 }], energy: null },
+        maxLifePoints: 50,
+    };
+
+    const companionWith = (
+        assets: CombatCharacterSnapshot['assets'],
+        pets: CombatHydration['pets'] = new Map([
+            [wolfId.toHexString(), wolfStats],
+        ]),
+    ) => {
+        const source = hydration();
+        source.participants = [
+            { _id: id('a6'), status: { title: TitleType.rookie }, assets },
+        ];
+        source.pets = pets;
+        return buildCombatContext(source).participants[0].companion;
+    };
+
+    it('carries the equipped companion into the context (D-20)', () => {
+        expect(
+            companionWith({
+                pet: wolfId,
+                ownedPets: [{ pet: wolfId, xp: 40, currentLifePoints: 30 }],
+            }),
+        ).toEqual({
+            petId: wolfId.toHexString(),
+            attack: { base: [{ type: 'cut', power: 30 }], energy: [] },
+            defense: { base: [{ type: 'blunt', power: 5 }], energy: [] },
+            currentLifePoints: 30,
+            maxLifePoints: 50,
+            xp: 40,
+        });
+    });
+
+    it('has no companion without an equipped pet (D-20)', () => {
+        expect(
+            companionWith({
+                pet: null,
+                ownedPets: [{ pet: wolfId, xp: 40, currentLifePoints: 30 }],
+            }),
+        ).toBeNull();
+        expect(companionWith(null)).toBeNull();
+    });
+
+    it('drops a companion missing from the catalogue or not owned (D-20)', () => {
+        const owned = {
+            pet: wolfId,
+            ownedPets: [{ pet: wolfId, xp: 40, currentLifePoints: 30 }],
+        };
+
+        expect(companionWith(owned, new Map())).toBeNull();
+        expect(
+            companionWith({
+                pet: wolfId,
+                ownedPets: [{ pet: id('62'), xp: 1, currentLifePoints: 1 }],
+            }),
+        ).toBeNull();
     });
 });

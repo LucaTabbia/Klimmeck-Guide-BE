@@ -67,4 +67,10 @@ export class ResourceNotFoundException extends NotFoundException {
     static equipmentItem(): ResourceNotFoundException {
         return new ResourceNotFoundException('Equipaggiamento non trovato');
     }
+
+    static missionDraft(): ResourceNotFoundException {
+        return new ResourceNotFoundException(
+            'Bozza della missione non trovata',
+        );
+    }
 }

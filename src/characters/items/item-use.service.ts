@@ -12,6 +12,7 @@ import {
     planItemUse,
 } from 'src/characters/items/item-use.plan';
 import type { UseItemResult } from 'src/characters/items/use-item-result.model';
+import { MissionLockReader } from 'src/characters/mission-lock/mission-lock.reader';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
 import {
@@ -39,6 +40,7 @@ export class ItemUseService {
         private readonly lootItemModel: Model<LootItemDocument>,
         @InjectModel(Lore.name) private readonly loreModel: Model<LoreDocument>,
         private readonly clock: Clock,
+        private readonly missionLock: MissionLockReader,
     ) {}
 
     async useItem(userId: string, itemId: string): Promise<UseItemResult> {
@@ -84,11 +86,16 @@ export class ItemUseService {
             .lean<ItemUseCharacterSnapshot | null>()
             .exec();
         if (!snapshot) throw ResourceNotFoundException.character();
+        const missionInProgress = await this.missionLock.isLocked(
+            characterId,
+            session,
+        );
         const plan = planItemUse({
             snapshot,
             itemId,
             item,
             now: this.clock.now(),
+            missionInProgress,
         });
         const written = await this.characterModel
             .updateOne(plan.filter, plan.update, { session })

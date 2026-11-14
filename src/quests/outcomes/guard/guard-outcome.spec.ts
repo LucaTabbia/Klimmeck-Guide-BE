@@ -196,6 +196,7 @@ describe('guard outcome (quick 261110-cgd)', () => {
             loot: new Map(),
             recoveryTimes: new Map(),
             petMaxXp: new Map(),
+            pets: new Map(),
         };
         const questCatalog: ResolutionCatalog = {
             ...combat,
