@@ -1,6 +1,7 @@
 import {
     ambushDefeat,
     missionStart,
+    petRecovered,
     prisonRelease,
     questCancelled,
     questEnd,
@@ -19,6 +20,7 @@ const BUILDERS: Record<PushEventType, (id: string) => PushMessage> = {
     [PushEventType.ambushDefeat]: (id) => ambushDefeat(id, 'Crocevia'),
     [PushEventType.prisonRelease]: prisonRelease,
     [PushEventType.missionStart]: (id) => missionStart(id, 'La corte del re'),
+    [PushEventType.petRecovered]: (id) => petRecovered(id, 'Fenrir'),
 };
 const IDENTIFIED_TYPES = [
     PushEventType.travelEnd,
@@ -27,11 +29,13 @@ const IDENTIFIED_TYPES = [
     PushEventType.ambushDefeat,
     PushEventType.prisonRelease,
     PushEventType.missionStart,
+    PushEventType.petRecovered,
 ];
 // il builder compone il corpo con la città (D-12): il push di prova tiene quello generico del catalogo
 const COMPOSED_BODY_TYPES = [
     PushEventType.ambushDefeat,
     PushEventType.missionStart,
+    PushEventType.petRecovered,
 ];
 
 describe('push event catalog', () => {
@@ -111,6 +115,17 @@ describe('push event catalog', () => {
         });
     });
 
+    // compagno sconfitto di nuovo a vita piena (D-11): id = pet a catalogo, corpo col nome mostrato (D-20)
+    it('builds the companion recovery push with the shown name (D-11, D-20)', () => {
+        expect(petRecovered('64b0000000000000000000a1', 'Fenrir')).toEqual({
+            type: PushEventType.petRecovered,
+            title: 'Di nuovo in forze',
+            body: 'Fenrir è di nuovo in forze',
+            ttlSeconds: 3600,
+            id: '64b0000000000000000000a1',
+        });
+    });
+
     it('builds streamerLive without an id and a 15 min ttl', () => {
         expect(streamerLive()).toEqual({
             type: PushEventType.streamerLive,
@@ -186,6 +201,11 @@ describe('push event catalog', () => {
         [
             'prisonRelease',
             prisonRelease('a'),
+            ['body', 'id', 'title', 'ttlSeconds', 'type'],
+        ],
+        [
+            'petRecovered',
+            petRecovered('a', 'Fenrir'),
             ['body', 'id', 'title', 'ttlSeconds', 'type'],
         ],
         [
