@@ -243,8 +243,28 @@ Plans:
 **Goal**: I compagni (pet) equipaggiati possono essere sconfitti, messi a riposo e curati, con il BE come unica fonte di verità. Regole dette dall'utente il 2026-11-14: (1) «Gli animali che hai equipaggiato, se vengono sconfitti durante uno scontro (raggiungono 0 di vita), vengono automaticamente disequipaggiati alla fine dello scontro e perché possano essere riusati bisogna attendere una quantità di tempo (proporzionata alla rarità e al potere del pet)»; «Se sconfitto non si può riequipaggiare finché non torna full vita». (2) «Se invece il pet viene solo ferito si può decidere di disequipaggiarlo e metterlo a riposo (a quel punto il tempo di recupero è proporzionale alla quantità di vita da recuperare)»; «Mettere a riposo il pet gli fa recuperare la vita per il tempo in cui resta a riposo. Se il pet ci mette 100 minuti per recuperare da 1 a 100 la vita e ha 20 di vita quando messo a riposo, se viene lasciato a riposo per 20 minuti, quando riequipaggiato avrà 40 di vita». (3) Oppure «curarlo con delle pozioni (stesso funzionamento delle pozioni sul personaggio, ovvero con tempo di attesa)».
 **Depends on**: Phase 9 (motore degli scontri, esiti), Phase 15 (imboscate), Phase 18 (pozioni e loro attesa), Phase 19 (modello del compagno, xp, `ownedPets`), Phase 22 (simulazione e completamento guidato scrivono lo stato dei compagni)
 **Scope**: da fissare nel discuss (interattivo). Punti da portare: vita corrente del compagno sul modello e sul filo, formula dell'attesa dopo la sconfitta (rarità, potere), velocità di recupero a riposo, pozioni sul compagno e loro attesa, tutti i punti in cui uno scontro si risolve (quest, boss, dungeon, imboscate, soccorsi, flusso guidato dell'oste), compagno sconfitto a metà di un dungeon o di più scontri, rifiuto dell'equip di un compagno non recuperato, eventuale push al recupero completato.
-**Requirements**: TBD (definiti al plan)
-**Plans**: TBD
+**Requirements**: BE-PET-01, BE-PET-02, BE-PET-03, BE-PET-04, BE-PET-05, BE-PET-06, BE-PET-07, BE-PET-08, BE-PET-09, BE-PET-10, BE-PET-11, BE-PET-12, BE-PET-13, BE-PET-14
+**Plans**: 18 plans
+
+Plans:
+- [ ] 23-01-PLAN.md — Modello e orologio del compagno
+- [ ] 23-02-PLAN.md — Catalogo e filo del compagno
+- [ ] 23-03-PLAN.md — Equip e riposo con assestamento, `PET_DEFEATED`
+- [ ] 23-04-PLAN.md — Porta del combattimento: vita del compagno dopo lo scontro
+- [ ] 23-05-PLAN.md — Esiti: `companionAfterFight` e `QuestResult.companion`
+- [ ] 23-06-PLAN.md — Copertura dei percorsi di combattimento
+- [ ] 23-07-PLAN.md — Pozione sul compagno
+- [ ] 23-08-PLAN.md — Nome del compagno: `renamePet`
+- [ ] 23-09-PLAN.md — Push «in forze» del compagno sconfitto
+- [ ] 23-10-PLAN.md — Imboscate: compagno e `QuestResult` immediato
+- [ ] 23-11-PLAN.md — Push `ambush` per ogni imboscata
+- [ ] 23-12-PLAN.md — Cavalcatura fotografata alla partenza
+- [ ] 23-13-PLAN.md — Strada residua a piedi
+- [ ] 23-14-PLAN.md — Fame dopo il ricalcolo e deviazione a piedi
+- [ ] 23-15-PLAN.md — Flusso guidato: proposta della vita del compagno
+- [ ] 23-16-PLAN.md — Flusso guidato: correzione e completamento
+- [ ] 23-17-PLAN.md — Gate della fase
+- [ ] 23-18-PLAN.md — Chiusura della fase e handoff
 
 ## Backend ↔ Frontend alignment (v1.1)
 
