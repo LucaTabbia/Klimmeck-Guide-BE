@@ -99,16 +99,6 @@ export const ambush = (resultId: string, body: string): PushMessage => ({
     body,
 });
 
-// TEMPORANEO (piano 23-11 Task 1): l'invio passa ad ambushPushOf nel Task 2, poi il builder si toglie
-export const ambushDefeat = (
-    characterId: string,
-    cityName: string,
-): PushMessage => ({
-    ...CATALOG[PushEventType.ambushDefeat],
-    id: characterId,
-    body: `Sei stato sconfitto: la via torna verso ${cityName}`,
-});
-
 // fine della prigione (quick 261110-prp): id = personaggio, come travelEnd
 export const prisonRelease = (characterId: string): PushMessage => ({
     ...CATALOG[PushEventType.prisonRelease],

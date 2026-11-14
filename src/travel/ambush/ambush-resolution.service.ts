@@ -25,7 +25,6 @@ import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { sameId } from 'src/mongo/document-id';
 import { ownersOf } from 'src/mongo/owners-of';
-import { ambushDefeat } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
 import { readEnemyCandidates } from 'src/quests/generation/enemy-candidate';
 import type { ComposedEnemy } from 'src/quests/generation/quest-composition';
@@ -66,6 +65,7 @@ import {
     type AmbushCharacterSnapshot,
     type AmbushCity,
     type AmbushOutcomePlan,
+    type AmbushReportDraft,
     type AmbushTravelSnapshot,
     type DetourDraft,
     planAmbushOutcome,
@@ -73,6 +73,7 @@ import {
 import { AmbushPlanner } from './ambush-planner.service';
 import { nearestPoi, pointAtFraction } from './ambush-point';
 import { composeAmbushEnemies } from './ambush-enemies';
+import { ambushPushFactsOf, ambushPushOf } from './ambush-push';
 import { ambushResultDraftsOf } from './ambush-results';
 import { ambushFilter, ambushSkipUpdate } from './ambush.updates';
 
@@ -534,6 +535,7 @@ export class AmbushResolutionService {
         if (outcome.plan.report.outcome === QuestOutcome.failure) {
             return this.afterDefeat(fight, outcome.plan);
         }
+        await this.notifyAmbush(fight.userId, outcome.plan.report);
         await this.afterCommit(
             identity.characterId,
             outcome.plan.travelAfter,
@@ -572,19 +574,24 @@ export class AmbushResolutionService {
         plan: AmbushOutcomePlan,
     ): Promise<AmbushOutcome> {
         const { identity, jobId, detour } = fight;
-        await this.push.sendToUser(
-            fight.userId,
-            ambushDefeat(
-                identity.characterId.toHexString(),
-                detour.reachedCity.name,
-            ),
-        );
+        await this.notifyAmbush(fight.userId, plan.report);
         await this.scheduler.cancel(identity.characterId, identity.startTime);
         await this.scheduler.schedule(identity.characterId, plan.travelAfter);
         this.logger.log(
             `Imboscata ${jobId} risolta: lost verso ${detour.reachedCity.name}`,
         );
         return 'lost';
+    }
+
+    // ogni imboscata risolta, vinta o persa, al solo proprietario e dopo il commit (D-14, D-30)
+    private async notifyAmbush(
+        userId: Types.ObjectId,
+        report: AmbushReportDraft,
+    ): Promise<void> {
+        await this.push.sendToUser(
+            userId,
+            ambushPushOf(ambushPushFactsOf(report)),
+        );
     }
 
     // la prossima imboscata, oppure il completamento già scaduto che il filtro aveva fatto aspettare (Pitfall 1)

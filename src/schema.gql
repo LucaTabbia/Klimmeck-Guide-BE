@@ -707,6 +707,7 @@ type PushDeliveryReport {
 }
 
 enum PushEventType {
+  ambush
   ambushDefeat
   missionStart
   petRecovered
