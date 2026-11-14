@@ -144,6 +144,36 @@ describe('companion recovery push (replSet)', () => {
         ]);
     });
 
+    it.each([
+        ['owner', () => world.models.users, 'findOne'],
+        ['species', () => world.models.pets, 'find'],
+    ] as const)(
+        'keeps the defeat to retry when the %s read fails, so the push is never lost (D-11, D-24)',
+        async (_read, modelOf, read) => {
+            const worg = await catalogued();
+            const { user, characterId } = await ownerWith([
+                buildOwnedPet(worg, DEFEATED_FENRIR),
+            ]);
+            jest.spyOn(modelOf(), read).mockImplementationOnce(() => {
+                throw new Error('read failed');
+            });
+            jest.spyOn(Logger.prototype, 'error').mockImplementation(
+                () => undefined,
+            );
+
+            await expect(sweeper.sweep()).resolves.toBe(0);
+            expect(world.push.sent).toEqual([]);
+            expect(await ownedPetsOf(characterId)).toEqual([
+                buildOwnedPet(worg, DEFEATED_FENRIR),
+            ]);
+
+            await expect(sweeper.sweep()).resolves.toBe(1);
+            expect(world.push.sent).toEqual([
+                recoveryPush(user, worg, 'Fenrir è di nuovo in forze'),
+            ]);
+        },
+    );
+
     it('does not push before the full-life date (D-11)', async () => {
         const worg = await catalogued();
         const { characterId } = await ownerWith([
