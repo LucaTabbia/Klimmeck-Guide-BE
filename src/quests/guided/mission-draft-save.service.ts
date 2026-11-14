@@ -37,6 +37,7 @@ import {
 import { MAX_PRIZE_ITEM_QUANTITY } from './mission-draft-prefill';
 import {
     MAX_MISSION_FIGHTS,
+    MAX_PRIZE_AMOUNT,
     MAX_PRIZE_ITEMS,
     type MissionFightInput,
     type MissionPrizeInput,
@@ -100,8 +101,10 @@ const sameCorrections = (
 
 const invalid = () => GameRuleException.outcomeOverrideInvalid();
 
+// difesa in profondità del tetto tecnico dell'input (D-31)
 const amountOf = (value: unknown): number => {
-    if (!isNonNegativeInteger(value)) throw invalid();
+    if (!isNonNegativeInteger(value) || value > MAX_PRIZE_AMOUNT)
+        throw invalid();
     return value;
 };
 

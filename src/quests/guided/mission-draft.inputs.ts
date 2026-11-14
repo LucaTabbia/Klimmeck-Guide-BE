@@ -27,6 +27,8 @@ export const MAX_FIGHT_ENEMIES = 10;
 export const MAX_ENEMY_QUANTITY = 20;
 // tetto tecnico largo: un blocco precompilato si salva sempre invariato (D-22)
 export const MAX_PRIZE_ITEMS = 500;
+// tetto tecnico, non di prodotto (D-15 resta «liberi»): il portafoglio non esce dall'Int del filo
+export const MAX_PRIZE_AMOUNT = 9_999_999;
 
 @InputType()
 export class MissionEnemyInput {
@@ -93,7 +95,19 @@ export class MissionPrizeItemInput {
     quantity: number;
 }
 
-// monete e xp liberi (D-15); oggetti, pet e magie rivalidati col filtro del titolo (D-07)
+// solo validazione: sul filo resta CoinsInput (SDL invariato) e il negozio non eredita il tetto dei premi
+class MissionPrizeCoinsInput extends CoinsInput {
+    @Max(MAX_PRIZE_AMOUNT)
+    declare gold: number;
+
+    @Max(MAX_PRIZE_AMOUNT)
+    declare silver: number;
+
+    @Max(MAX_PRIZE_AMOUNT)
+    declare copper: number;
+}
+
+// monete e xp liberi entro il tetto tecnico (D-15, D-31); oggetti, pet e magie rivalidati col filtro del titolo (D-07)
 @InputType()
 export class MissionPrizeInput {
     @Field(() => ID)
@@ -102,7 +116,7 @@ export class MissionPrizeInput {
 
     @Field(() => CoinsInput)
     @ValidateNested()
-    @Type(() => CoinsInput)
+    @Type(() => MissionPrizeCoinsInput)
     coins: CoinsInput;
 
     @Field(() => Boolean)
@@ -129,6 +143,7 @@ export class MissionPrizeInput {
     @Field(() => Int)
     @IsInt()
     @Min(0)
+    @Max(MAX_PRIZE_AMOUNT)
     xp: number;
 }
 
