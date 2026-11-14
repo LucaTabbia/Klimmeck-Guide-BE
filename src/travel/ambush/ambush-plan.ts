@@ -472,6 +472,18 @@ function mountFallenIn(input: AmbushPlanInput, fought: FoughtOutcome): boolean {
     });
 }
 
+// in una sconfitta: la cavalcatura della partenza oppure, sui viaggi senza mount, un compagno più veloce del passo (D-13, D-29)
+function mountFallenInDefeat(
+    input: AmbushPlanInput,
+    fought: FoughtOutcome,
+): boolean {
+    if (!companionFell(fought)) return false;
+    if (input.snapshot.status.activeTravel.mount != null) {
+        return mountFallenIn(input, fought);
+    }
+    return (input.detour?.petSpeed ?? BASE_SPEED) > BASE_SPEED;
+}
+
 // arrivare al punto è uno stop: si mangia il cibo dei km percorsi prima di ripartire a piedi (D-13, Phase 20 D-03)
 function eatenAtStop(
     fought: FoughtOutcome,
@@ -564,7 +576,9 @@ export function planAmbushOutcome(input: AmbushPlanInput): AmbushOutcomePlan {
         victory?.loreIds ?? [],
         victory?.enemyIds ?? [],
     );
-    const onFoot = won ? mountFallenIn(input, fought) : companionFell(fought);
+    const onFoot = won
+        ? mountFallenIn(input, fought)
+        : mountFallenInDefeat(input, fought);
     const report = reportOf(input, fought, learned, won, onFoot);
     if (!won) {
         if (!input.detour) {
