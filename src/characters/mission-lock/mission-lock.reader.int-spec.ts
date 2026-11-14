@@ -120,7 +120,7 @@ describe('MissionLockReader (replSet)', () => {
     });
 
     it.each([QuestLane.worldMission, QuestLane.story])(
-        'locks every participant of an open guided draft (D-11, D-16): %s',
+        'locks every participant of an open guided draft (D-16, D-11): %s',
         async (lane) => {
             const questId = new Types.ObjectId();
             const participants = [
