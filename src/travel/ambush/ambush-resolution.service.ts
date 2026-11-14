@@ -597,8 +597,7 @@ export class AmbushResolutionService {
         plan: AmbushOutcomePlan,
     ): Promise<AmbushOutcome> {
         const { identity, jobId, detour } = fight;
-        await this.scheduler.cancel(identity.characterId, identity.startTime);
-        await this.scheduler.schedule(identity.characterId, plan.travelAfter);
+        await this.moveTravelJobs(identity, plan.travelAfter);
         await this.deliverAndNotify(fight, plan);
         this.logger.log(
             `Imboscata ${jobId} risolta: lost verso ${detour.reachedCity.name}`,

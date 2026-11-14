@@ -1138,7 +1138,10 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
         for (const input of others) {
             const outcome = planAmbushOutcome(input);
             expect(outcome.report.onFoot).toBe(false);
-            expect(outcome.travelAfter.rewritten).toBe(false);
+            // la sconfitta riscrive sempre il viaggio verso la deviazione (Pitfall 5)
+            expect(outcome.travelAfter.rewritten).toBe(
+                input.verdict === 'failure',
+            );
             expect(outcome.onFootFood).toBeNull();
             expect(outcome.redirected).toBe(false);
         }

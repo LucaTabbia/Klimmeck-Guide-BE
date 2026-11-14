@@ -431,7 +431,7 @@ function defeatPlanOf(
             startTime: input.identity.at,
             endTime,
             ambush: null,
-            rewritten: false,
+            rewritten: true,
         },
         onFootFood: null,
         redirected: false,
