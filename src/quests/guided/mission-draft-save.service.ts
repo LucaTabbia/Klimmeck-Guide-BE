@@ -11,6 +11,7 @@ import {
 } from 'src/models/point-of-interest.model';
 import type { ParticipantOverrideInput } from 'src/models/request/complete-pending-request.model';
 import { objectIdFromHex } from 'src/mongo/document-id';
+import { cureOf } from 'src/quests/outcomes/injuries/quest-cure';
 import {
     overrideParticipantOf,
     validateOverrides,
@@ -20,6 +21,8 @@ import {
     GmRequestReader,
 } from 'src/quests/outcomes/gm-request.reader';
 import type { ResolutionCharacter } from 'src/quests/outcomes/resolution-loader.service';
+import { isNonNegativeInteger } from 'src/quests/outcomes/rewards/quest-rewards';
+import { prizeBlockFor } from 'src/quests/prizes/rank-prizes';
 import {
     previousEffectsOf,
     reconcileFights,
@@ -31,9 +34,13 @@ import {
     participantEffectsOf,
     stateBeforeFight,
 } from './fight-state';
+import { MAX_PRIZE_ITEM_QUANTITY } from './mission-draft-prefill';
 import {
     MAX_MISSION_FIGHTS,
+    MAX_PRIZE_ITEMS,
     type MissionFightInput,
+    type MissionPrizeInput,
+    type MissionPrizeItemInput,
     type SaveMissionDraftInput,
 } from './mission-draft.inputs';
 import type {
@@ -41,11 +48,20 @@ import type {
     MissionFightEffectsRecord,
     MissionFightEnemyRecord,
     MissionFightRecord,
+    MissionPrizeCoinsRecord,
+    MissionPrizeCureRecord,
+    MissionPrizeItemRecord,
+    MissionPrizeRecord,
 } from './mission-draft.model';
 import {
     type MissionDraftSections,
     MissionDraftService,
 } from './mission-draft.service';
+import { MissionPrizeOptionsService } from './mission-prize-options.service';
+import {
+    assertPrizeAllowed,
+    type MissionPrizeAllowance,
+} from './mission-prizes';
 import { enemiesWithinCaps } from './mission-simulation.service';
 
 const hexOf = (id: Types.ObjectId): string => id.toHexString();
@@ -82,6 +98,129 @@ const sameCorrections = (
             effectsKeyOf(outcome.corrected) === effectsKeyOf(corrected[index]),
     );
 
+const invalid = () => GameRuleException.outcomeOverrideInvalid();
+
+const amountOf = (value: unknown): number => {
+    if (!isNonNegativeInteger(value)) throw invalid();
+    return value;
+};
+
+const coinsOf = (
+    coins: MissionPrizeInput['coins'],
+): MissionPrizeCoinsRecord => ({
+    gold: amountOf(coins?.gold),
+    silver: amountOf(coins?.silver),
+    copper: amountOf(coins?.copper),
+});
+
+function optionalRefOf(hex: string | null | undefined): Types.ObjectId | null {
+    if (hex == null) return null;
+    const id = objectIdFromHex(hex);
+    if (!id) throw invalid();
+    return id;
+}
+
+function itemTypeOf(
+    hex: string,
+    allowance: MissionPrizeAllowance,
+): MissionPrizeItemRecord['itemType'] {
+    if (allowance.equipmentIds.includes(hex)) return 'EquipmentItem';
+    if (allowance.lootIds.includes(hex)) return 'LootItem';
+    throw invalid();
+}
+
+const isPrizeQuantity = (quantity: unknown): boolean =>
+    isNonNegativeInteger(quantity) &&
+    quantity >= 1 &&
+    quantity <= MAX_PRIZE_ITEM_QUANTITY;
+
+// una voce per oggetto, quantità 1..99, voci ≤ 500 (D-31): difesa in profondità della validazione dell'input
+function prizeItemsOf(
+    items: readonly MissionPrizeItemInput[],
+    allowance: MissionPrizeAllowance,
+): MissionPrizeItemRecord[] {
+    if (items.length > MAX_PRIZE_ITEMS) throw invalid();
+    const seen = new Set<string>();
+    return items.map(({ item, quantity }) => {
+        const id = objectIdFromHex(item);
+        if (!id || !isPrizeQuantity(quantity) || seen.has(hexOf(id)))
+            throw invalid();
+        seen.add(hexOf(id));
+        return {
+            itemType: itemTypeOf(hexOf(id), allowance),
+            item: id,
+            quantity,
+        };
+    });
+}
+
+// cura solo quella del blocco del titolo (D-31)
+function cureFor(
+    request: GmRequest,
+    character: ResolutionCharacter,
+): MissionPrizeCureRecord {
+    const cure = cureOf(
+        prizeBlockFor(request.quest, character.status.title)?.cure,
+    );
+    if (!cure) throw invalid();
+    return cure;
+}
+
+function prizeRecordOf(
+    prize: MissionPrizeInput,
+    character: ResolutionCharacter,
+    allowance: MissionPrizeAllowance,
+    request: GmRequest,
+): MissionPrizeRecord {
+    const items = prizeItemsOf(prize.items ?? [], allowance);
+    const pet = optionalRefOf(prize.pet);
+    const spell = optionalRefOf(prize.spell);
+    assertPrizeAllowed(
+        {
+            items: items.map(({ itemType, item }) => ({
+                itemType,
+                item: hexOf(item),
+            })),
+            pet: pet && hexOf(pet),
+            spell: spell && hexOf(spell),
+        },
+        allowance,
+    );
+    return {
+        character: character._id,
+        coins: coinsOf(prize.coins),
+        xp: amountOf(prize.xp),
+        items,
+        pet,
+        spell,
+        cure: prize.cure ? cureFor(request, character) : null,
+    };
+}
+
+function participantIn(
+    characters: readonly ResolutionCharacter[],
+    characterHex: string,
+): ResolutionCharacter {
+    const id = objectIdFromHex(characterHex);
+    const character = id && characters.find(({ _id }) => _id.equals(id));
+    if (!character) throw GameRuleException.outcomeNotParticipant();
+    return character;
+}
+
+// ogni voce sostituisce il premio di quel personaggio, gli altri restano (D-18)
+function mergedPrizes(
+    saved: readonly MissionPrizeRecord[],
+    chosen: ReadonlyMap<string, MissionPrizeRecord>,
+): MissionPrizeRecord[] {
+    const savedKeys = new Set(saved.map(({ character }) => hexOf(character)));
+    return [
+        ...saved.map((prize) => chosen.get(hexOf(prize.character)) ?? prize),
+        ...[...chosen]
+            .filter(([key]) => !savedKeys.has(key))
+            .map(([, prize]) => prize),
+    ];
+}
+
 @Injectable()
 export class MissionDraftSaveService {
     constructor(
@@ -91,6 +230,7 @@ export class MissionDraftSaveService {
         private readonly poiModel: Model<PointOfInterestDocument>,
         @InjectModel(Enemy.name)
         private readonly enemyModel: Model<EnemyDocument>,
+        private readonly prizeOptions: MissionPrizeOptionsService,
     ) {}
 
     async save(input: SaveMissionDraftInput): Promise<MissionDraftRecord> {
@@ -101,6 +241,8 @@ export class MissionDraftSaveService {
         if (input.place != null) set.place = await this.placeOf(input.place);
         if (input.fights != null)
             set.fights = await this.fightsOf(request, draft, input.fights);
+        if (input.prizes != null)
+            set.prizes = await this.prizesOf(request, draft, input.prizes);
         return this.drafts.write(draft._id, set);
     }
 
@@ -126,6 +268,32 @@ export class MissionDraftSaveService {
             fights = this.corrected(fights, index, corrections, characters);
         });
         return fights;
+    }
+
+    // D-07, D-15: premi rivalidati con la regola delle opzioni; il blocco precompilato si salva sempre (D-22)
+    private async prizesOf(
+        request: GmRequest,
+        draft: MissionDraftRecord,
+        incoming: readonly MissionPrizeInput[],
+    ): Promise<MissionPrizeRecord[]> {
+        const catalogue = await this.prizeOptions.readCatalogue();
+        const characters = this.draftCharactersOf(request, draft);
+        const chosen = new Map<string, MissionPrizeRecord>();
+        for (const prize of incoming) {
+            const character = participantIn(characters, prize.characterId);
+            const key = hexOf(character._id);
+            if (chosen.has(key)) throw invalid();
+            const allowance = this.prizeOptions.allowanceFor(
+                request,
+                character,
+                catalogue,
+            );
+            chosen.set(
+                key,
+                prizeRecordOf(prize, character, allowance, request),
+            );
+        }
+        return mergedPrizes(draft.prizes, chosen);
     }
 
     private async assertEnemiesExist(

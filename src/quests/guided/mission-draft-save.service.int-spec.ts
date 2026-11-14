@@ -692,7 +692,6 @@ describe('MissionDraftSaveService (replSet)', () => {
                         { item: catalogue.commonLoot, quantity: 2 },
                     ],
                 }),
-                prizeOf(mage, { xp: -1 }),
             ]) {
                 await expect(
                     save(mage, { prizes: [prize] }),
@@ -707,6 +706,24 @@ describe('MissionDraftSaveService (replSet)', () => {
                 lifePointsShare: 0.5,
                 canHeal: [InjuryType.deepCut],
             });
+        });
+
+        it('refuses coins and xp that are not whole numbers from zero up (D-15)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage } = await mageAndPaladin(catalogue);
+            const before = await storedDraft();
+
+            for (const prize of [
+                prizeOf(mage, { xp: -1 }),
+                prizeOf(mage, { xp: 1.5 }),
+                prizeOf(mage, { coins: { gold: -1, silver: 0, copper: 0 } }),
+                prizeOf(mage, { coins: { gold: 0, silver: 0.5, copper: 0 } }),
+            ]) {
+                await expect(
+                    save(mage, { prizes: [prize] }),
+                ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+            }
+            expect(await storedDraft()).toEqual(before);
         });
 
         it('replaces the prize of the listed character only (D-18)', async () => {

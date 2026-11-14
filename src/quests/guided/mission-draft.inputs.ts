@@ -4,6 +4,7 @@ import {
     ArrayMaxSize,
     ArrayMinSize,
     IsArray,
+    IsBoolean,
     IsEnum,
     IsInt,
     IsOptional,
@@ -11,17 +12,21 @@ import {
     Min,
     ValidateNested,
 } from 'class-validator';
+import { CoinsInput } from 'src/models/common/coins.model';
 import {
     MAX_OVERRIDE_ENTRIES,
     ParticipantOverrideInput,
 } from 'src/models/request/complete-pending-request.model';
 import { IsObjectIdHex } from 'src/validation/is-object-id-hex.decorator';
+import { MAX_PRIZE_ITEM_QUANTITY } from './mission-draft-prefill';
 import { MissionDraftStep } from './mission-draft.model';
 
 // tetti tecnici del flusso guidato (D-31): una bozza enorme non arriva mai al motore
 export const MAX_MISSION_FIGHTS = 10;
 export const MAX_FIGHT_ENEMIES = 10;
 export const MAX_ENEMY_QUANTITY = 20;
+// tetto tecnico largo: un blocco precompilato si salva sempre invariato (D-22)
+export const MAX_PRIZE_ITEMS = 500;
 
 @InputType()
 export class MissionEnemyInput {
@@ -75,6 +80,58 @@ export class MissionFightInput {
     corrections?: ParticipantOverrideInput[] | null;
 }
 
+@InputType()
+export class MissionPrizeItemInput {
+    @Field(() => ID)
+    @IsObjectIdHex()
+    item: string;
+
+    @Field(() => Int)
+    @IsInt()
+    @Min(1)
+    @Max(MAX_PRIZE_ITEM_QUANTITY)
+    quantity: number;
+}
+
+// monete e xp liberi (D-15); oggetti, pet e magie rivalidati col filtro del titolo (D-07)
+@InputType()
+export class MissionPrizeInput {
+    @Field(() => ID)
+    @IsObjectIdHex()
+    characterId: string;
+
+    @Field(() => CoinsInput)
+    @ValidateNested()
+    @Type(() => CoinsInput)
+    coins: CoinsInput;
+
+    @Field(() => Boolean)
+    @IsBoolean()
+    cure: boolean;
+
+    @Field(() => [MissionPrizeItemInput])
+    @IsArray()
+    @ArrayMaxSize(MAX_PRIZE_ITEMS)
+    @ValidateNested({ each: true })
+    @Type(() => MissionPrizeItemInput)
+    items: MissionPrizeItemInput[];
+
+    @Field(() => ID, { nullable: true })
+    @IsOptional()
+    @IsObjectIdHex()
+    pet?: string | null;
+
+    @Field(() => ID, { nullable: true })
+    @IsOptional()
+    @IsObjectIdHex()
+    spell?: string | null;
+
+    @Field(() => Int)
+    @IsInt()
+    @Min(0)
+    xp: number;
+}
+
 // sezioni presenti sostituiscono quelle salvate, nessun ordine dei passi (D-18)
 @InputType()
 export class SaveMissionDraftInput {
@@ -99,4 +156,12 @@ export class SaveMissionDraftInput {
     @ValidateNested({ each: true })
     @Type(() => MissionFightInput)
     fights?: MissionFightInput[] | null;
+
+    // limitata dai partecipanti della bozza, nessun tetto di lista (D-22)
+    @Field(() => [MissionPrizeInput], { nullable: true })
+    @IsOptional()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => MissionPrizeInput)
+    prizes?: MissionPrizeInput[] | null;
 }
