@@ -177,8 +177,6 @@ export interface AmbushOutcomePlan {
         ambush: DrawnAmbush | null;
         rewritten: boolean;
     };
-    // solo sulla strada a piedi con un piano del cibo: il ridirezionamento per fame lo legge (D-16)
-    onFootFood: { arrivesAlive: boolean } | null;
     // vinta a piedi senza cibo per arrivare vivi: deviazione verso la città più vicina, corsia abbandonata (D-16)
     redirected: boolean;
 }
@@ -445,7 +443,6 @@ function defeatPlanOf(
             ambush: null,
             rewritten: true,
         },
-        onFootFood: null,
         redirected: false,
     };
 }
@@ -471,7 +468,6 @@ function redirectPlanOf(
             ambush: null,
             rewritten: true,
         },
-        onFootFood: { arrivesAlive: false },
         redirected: true,
     };
 }
@@ -576,7 +572,6 @@ function onFootPlanOf(
             ambush: walk.next,
             rewritten: true,
         },
-        onFootFood: meal ? { arrivesAlive: meal.plan.arrivesAlive } : null,
         redirected: false,
     };
 }
@@ -615,7 +610,6 @@ export function planAmbushOutcome(input: AmbushPlanInput): AmbushOutcomePlan {
             ambush: input.nextAmbush,
             rewritten: false,
         },
-        onFootFood: null,
         redirected: false,
     };
 }

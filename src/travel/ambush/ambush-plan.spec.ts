@@ -1052,7 +1052,6 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
             'startTime',
             'to',
         ]);
-        expect(won.onFootFood).toBeNull();
         expect(won.travelAfter.ambush).toBeNull();
         expect(won.report.onFoot).toBe(true);
     });
@@ -1091,7 +1090,6 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
         expect(won.update.$set['assets.ownedItems']).toEqual([f20(28)]);
         expect(won.report.onFoot).toBe(false);
         expect(won.travelAfter.rewritten).toBe(false);
-        expect(won.onFootFood).toBeNull();
     });
 
     it('keeps the travel of a journey started before the deploy (D-29)', () => {
@@ -1143,23 +1141,22 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
             expect(outcome.travelAfter.rewritten).toBe(
                 input.verdict === 'failure',
             );
-            expect(outcome.onFootFood).toBeNull();
             expect(outcome.redirected).toBe(false);
         }
     });
 
-    it('exposes whether the character would arrive alive on foot (D-16)', () => {
+    it('writes the food plan of the walk whether it suffices or not, without a detour (D-16)', () => {
         const hungry = planAmbushOutcome(mountInputWith(rawWith(FOOD_RIDE)));
         const fed = planAmbushOutcome(mountInputWith(rawWith(FOOD_RIDE, 200)));
 
-        expect(hungry.onFootFood).toEqual({
-            arrivesAlive: walkFoodOf(hungry, 25).arrivesAlive,
-        });
-        expect(hungry.onFootFood?.arrivesAlive).toBe(false);
-        expect(fed.onFootFood).toEqual({
-            arrivesAlive: walkFoodOf(fed, 197).arrivesAlive,
-        });
-        expect(fed.onFootFood?.arrivesAlive).toBe(true);
+        expect(walkFoodOf(hungry, 25).arrivesAlive).toBe(false);
+        expect(rewrittenTravelOf(hungry).food).toEqual(
+            foodPlanOf(walkFoodOf(hungry, 25), RESIDUAL_KM),
+        );
+        expect(walkFoodOf(fed, 197).arrivesAlive).toBe(true);
+        expect(rewrittenTravelOf(fed).food).toEqual(
+            foodPlanOf(walkFoodOf(fed, 197), RESIDUAL_KM),
+        );
     });
 
     const lostDetourOnFoot: DetourDraft = {
@@ -1250,7 +1247,6 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
             );
             expect(walking.redirected).toBe(false);
             expect(walking.report.reachedCity).toBeNull();
-            expect(walking.onFootFood?.arrivesAlive).toBe(true);
         });
 
         it('slows the walk on foot and the residual fallback with the new wounds, as the detour (D-13, D-11)', () => {
@@ -1323,7 +1319,6 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
             );
 
             expect(rewrittenTravelOf(walking).to).toEqual(TO_ID);
-            expect(walking.onFootFood).toBeNull();
             expect(walking.redirected).toBe(false);
             expect(walking.report.reachedCity).toBeNull();
         });
