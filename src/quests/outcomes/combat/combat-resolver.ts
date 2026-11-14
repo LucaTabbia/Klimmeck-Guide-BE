@@ -94,6 +94,16 @@ export interface ParticipantEffects {
     companionLifeAfter?: number;
 }
 
+// effetti fusi di scontri in sequenza (D-12): vale la vita del compagno dell'ultimo scontro in cui c'era
+export function lastCompanionLifeOf(
+    earlier: ParticipantEffects,
+    later: ParticipantEffects,
+): Pick<ParticipantEffects, 'companionLifeAfter'> {
+    const companionLifeAfter =
+        later.companionLifeAfter ?? earlier.companionLifeAfter;
+    return companionLifeAfter === undefined ? {} : { companionLifeAfter };
+}
+
 // un solo verdetto per combattimento (A3, utente 2026-10-25): chi combatte insieme vince o perde insieme; gli effetti restano per partecipante
 export interface CombatResolution {
     verdict: CombatVerdict;

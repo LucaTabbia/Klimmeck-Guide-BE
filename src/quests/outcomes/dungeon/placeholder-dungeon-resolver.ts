@@ -1,10 +1,13 @@
 // PROVVISORIO (D-10, D-29): l'algoritmo di esplorazione dell'utente sostituisce questo segnaposto via DI; il turno di esplorazione fra gli scontri è sempre superato e non costa nulla
 import { Injectable } from '@nestjs/common';
+import { COMPANION_LIFE_FLOOR } from 'src/characters/pets/companion-life';
 import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import {
+    CombatCompanion,
     CombatParticipant,
     CombatResolver,
+    lastCompanionLifeOf,
     ParticipantEffects,
 } from '../combat/combat-resolver';
 import {
@@ -62,6 +65,17 @@ const noEffects = (participant: CombatParticipant): ParticipantEffects => ({
     spellsUsed: [],
 });
 
+// D-12, D-26: il compagno arrivato a 1 su una tappa è fuori dalle tappe seguenti
+const companionAfterStage = (
+    companion: CombatCompanion | null,
+    companionLifeAfter: number | undefined,
+): CombatCompanion | null => {
+    if (!companion || companionLifeAfter === undefined) return companion;
+    return companionLifeAfter <= COMPANION_LIFE_FLOOR
+        ? null
+        : { ...companion, currentLifePoints: companionLifeAfter };
+};
+
 // T-13-08: consumi e usi scalati fra le tappe, mai sotto 0
 const afterStage = (
     participant: CombatParticipant,
@@ -85,6 +99,10 @@ const afterStage = (
             ...spell,
             usages: Math.max(0, spell.usages - (cast.get(spell.spellId) ?? 0)),
         })),
+        companion: companionAfterStage(
+            participant.companion,
+            effects.companionLifeAfter,
+        ),
     };
 };
 
@@ -101,6 +119,7 @@ const mergeEffects = (
     spellsUsed: [...castOf([...merged.spellsUsed, ...stage.spellsUsed])].map(
         ([spellId, usages]) => ({ spellId, usages }),
     ),
+    ...lastCompanionLifeOf(merged, stage),
 });
 
 @Injectable()

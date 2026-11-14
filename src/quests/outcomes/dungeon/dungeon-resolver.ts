@@ -37,6 +37,7 @@ export interface DungeonResolution extends CombatResolution {
     failedTurn: FailedTurn | null;
 }
 
+// il compagno arrivato a 1 su una tappa è fuori dalle tappe seguenti (D-12): il motore dell'utente rispetta lo stesso contratto; companionLifeAfter degli effetti = ultima tappa in cui c'era
 // la porta (D-10, D-12, D-13): contesto puro idratato, nessun I/O; l'algoritmo di esplorazione e il motore sono dell'utente e sostituiscono il segnaposto via DI; i turni alternano un'esplorazione e lo scontro con ogni voce di `enemies` nell'ordine della quest, e si può cadere in qualunque turno, anche di esplorazione (`failedTurn`)
 export abstract class DungeonResolver {
     abstract explore(

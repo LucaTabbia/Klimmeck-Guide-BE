@@ -69,7 +69,13 @@ function planGuardEncounter(
             buildCombatContext({
                 quest: input.quest,
                 enemies: encounter.enemies,
-                participants: [foughtSnapshotOf(input.snapshot, questEffects)],
+                participants: [
+                    foughtSnapshotOf(
+                        input.snapshot,
+                        questEffects,
+                        encounter.pets,
+                    ),
+                ],
                 equipment: encounter.equipment,
                 spells: encounter.spells,
                 loot: encounter.loot,
