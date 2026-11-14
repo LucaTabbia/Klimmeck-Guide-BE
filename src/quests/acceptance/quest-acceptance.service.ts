@@ -3,6 +3,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
+import { MissionLockReader } from 'src/characters/mission-lock/mission-lock.reader';
 import { WalletService } from 'src/economy/wallet.service';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { LoreGeographyReader } from 'src/lore/lore-geography.reader';
@@ -181,6 +182,7 @@ export class QuestAcceptanceService {
         private readonly pantry: TravelPantryReader,
         private readonly ambushPlanner: AmbushPlanner,
         private readonly geography: LoreGeographyReader,
+        private readonly missionLock: MissionLockReader,
     ) {}
 
     // pre-letture lean → regole pure → una transazione con le guard riaffermate nel filtro (07 D-18): un rifiuto non scrive nulla
@@ -200,6 +202,13 @@ export class QuestAcceptanceService {
             refusalWhileImprisoned(character.status, now) ??
             classifyEligibility(quest, character, lane, rule);
         if (rejection) throw rejection;
+        // D-13: ogni corsia dopo i rifiuti esistenti; D-23: nessun iscritto nuovo a bozza aperta
+        await this.missionLock.assertFree(characterId);
+        if (
+            lane === QuestLane.worldMission &&
+            (await this.missionLock.hasOpenDraft(quest._id))
+        )
+            throw GameRuleException.questNotAcceptable();
         // una heal senza effetto non si accetta (Phase 18 D-25): dopo l'eleggibilità, prima di città, movimento, fame e transazione; solo il tipo heal
         this.effectiveOrReject(quest, character);
         // solo la story si accetta da qualunque città: standard e worldMission sono legate alla città del marker (D-26 emendata 2026-10-22)
@@ -319,8 +328,13 @@ export class QuestAcceptanceService {
         const quest = await this.readQuest(questId);
         const character = await this.readCharacter(characterId);
         const lane = laneOf(quest.infos.type);
-        if (lane === QuestLane.story) return null;
+        // D-23: dopo i rifiuti esistenti, come l'accettazione (D-13)
+        if (lane === QuestLane.story) {
+            await this.missionLock.assertFree(characterId);
+            return null;
+        }
         const location = await this.locationInQuestCity(quest, character);
+        await this.missionLock.assertFree(characterId);
         if (lane !== QuestLane.standard) return null;
         const request = this.autoRequestOf(
             quest,

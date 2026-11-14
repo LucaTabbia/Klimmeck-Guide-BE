@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { AuthzModule } from 'src/authz/authz.module';
+import { MissionLockModule } from 'src/characters/mission-lock/mission-lock.module';
 import { EconomyModule } from 'src/economy/economy.module';
 import { LoreGeographyModule } from 'src/lore/lore-geography.module';
 import {
@@ -39,6 +40,8 @@ import { TravelPlanningModule } from 'src/travel/travel-planning.module';
         PartyModule,
         // geografia della città sul salto istantaneo (Phase 16 D-05, D-14)
         LoreGeographyModule,
+        // accettazioni e anteprime rifiutate in missione (Phase 22 D-13)
+        MissionLockModule,
     ],
     providers: [
         QuestAcceptanceService,
