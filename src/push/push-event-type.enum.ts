@@ -11,6 +11,8 @@ export enum PushEventType {
     ambushDefeat = 'ambushDefeat',
     // fine della prigione dopo l'arresto (quick 261110-prp): personale, id = personaggio
     prisonRelease = 'prisonRelease',
+    // l'oste avvia il flusso guidato di una story o worldMission (utente 2026-11-14): personale, id = personaggio
+    missionStart = 'missionStart',
 }
 
 registerEnumType(PushEventType, { name: 'PushEventType' });

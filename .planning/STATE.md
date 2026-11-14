@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Phase 22 eseguita (18/18, 2026-11-14), review, verifica e audit chiusi — in attesa di riavvio reale e UAT su device con la FE Phase 21"
+stopped_at: "Phase 22 completa (2026-11-14): PR #39 e #40 fuse, UAT su device con la FE Phase 21 superata; PR #41 (push di avvio missione, lista dei luoghi con la città, tipo della quest in corsia) da fondere prima della PR della FE"
 last_updated: "2026-11-14T02:06:20.000Z"
 last_activity: 2026-11-14 -- Phase 22 eseguita (18/18), review, verifica, audit e test:cov chiusi; PR draft aperta
 progress:
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 22 di 22 (Completamento guidato delle missioni) — PIANIFICATA il 2026-11-14 su `feat/22-completamento-guidato-missioni` (da `develop` `c6079ca3`): contesto del 2026-11-12 (D-01..D-12) emendato il 2026-11-14 dopo la ricerca e le risposte dell'utente (D-13..D-27), `22-REPO-RULES.md`, `22-RESEARCH.md`, `22-VALIDATION.md`, 18 piani in wave sequenziali; FE Phase 21 pianificata nella stessa sessione
 Plan: 18 of 18
-Status: Phase 22 in verifying — 18/18 piani, review per aree con 11 correzioni (`22-REVIEW-FIX.md`), verifica 43/43 senza gap (`22-VERIFICATION.md`, human_needed: boot reale e UAT su device), audit `22-SECURITY.md` (44 mitigati, 2 parziali su prove di test, 1 accettato), `test:cov` 449 suite / 6278 test verde; PR draft verso `develop`
+Status: Phase 22 COMPLETA il 2026-11-14 — 18/18 piani, PR #39 fusa su `develop`, boot reale dal ramo senza migratori, UAT su device superata insieme alla FE Phase 21 (passi 1–11 pass, passo 12 non eseguito per scelta dell'utente; registro in FE `21-HUMAN-UAT.md`). Dalla UAT: PR #40 (fusa) cancella le richieste story/worldMission degli archiviati; PR #41 aggiunge la push `missionStart` all'avvio della bozza, corregge `pointOfInterests { city }` (città non popolata) e serve `infos.type` della quest in corsia. «Rilancia» col motore segnaposto dà gli stessi numeri: accettato dall'utente, il motore vero verrà dopo.
 Last activity: 2026-11-14 -- Phase 22 eseguita (18/18), review, verifica, audit e test:cov chiusi; PR draft aperta
-Next step: Phase 22 eseguita (18/18); a cura dell'orchestratore: `npm run test:cov`, verifica e audit di sicurezza, build e riavvio del BE dal ramo, semina dei dati UAT (`BACKEND-NOTES.md` §6, script fuori dal repo), UAT su device con la FE Phase 21 (da eseguire), PR verso `develop`. Dopo la merge della FE Phase 21: rimozione di `completePendingRequest` con gli override (D-25).
+Next step: fondere la PR #41 PRIMA della PR della FE `feat/21-innkeeper-mission-completion` (la FE seleziona `pendingQuest.quest.infos.type` e `pointOfInterests.city`); poi discuss della Phase 23 «Sconfitta, riposo e recupero dei compagni» (↔ FE Phase 22), interattivo; rimozione di `completePendingRequest` (nessun documento della FE lo usa più) in una quick o nella prossima fase.
 
 ## Current Milestone
 

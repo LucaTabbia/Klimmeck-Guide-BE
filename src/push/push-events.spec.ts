@@ -1,5 +1,6 @@
 import {
     ambushDefeat,
+    missionStart,
     prisonRelease,
     questCancelled,
     questEnd,
@@ -17,6 +18,7 @@ const BUILDERS: Record<PushEventType, (id: string) => PushMessage> = {
     [PushEventType.questCancelled]: questCancelled,
     [PushEventType.ambushDefeat]: (id) => ambushDefeat(id, 'Crocevia'),
     [PushEventType.prisonRelease]: prisonRelease,
+    [PushEventType.missionStart]: (id) => missionStart(id, 'La corte del re'),
 };
 const IDENTIFIED_TYPES = [
     PushEventType.travelEnd,
@@ -24,9 +26,13 @@ const IDENTIFIED_TYPES = [
     PushEventType.questCancelled,
     PushEventType.ambushDefeat,
     PushEventType.prisonRelease,
+    PushEventType.missionStart,
 ];
 // il builder compone il corpo con la città (D-12): il push di prova tiene quello generico del catalogo
-const COMPOSED_BODY_TYPES = [PushEventType.ambushDefeat];
+const COMPOSED_BODY_TYPES = [
+    PushEventType.ambushDefeat,
+    PushEventType.missionStart,
+];
 
 describe('push event catalog', () => {
     it('builds travelEnd with the character id and a 1 h ttl', () => {
@@ -88,6 +94,19 @@ describe('push event catalog', () => {
             id: '64b0000000000000000000c1',
             title: 'Di nuovo libero',
             body: "La prigionia è finita: torna all'avventura.",
+            ttlSeconds: 3600,
+        });
+    });
+
+    // avvio del flusso guidato dell'oste (utente 2026-11-14): personale, id = personaggio, corpo col titolo della missione
+    it('builds missionStart with the character id, the mission title and a 1 h ttl', () => {
+        expect(
+            missionStart('64b0000000000000000000c1', 'La corte del re'),
+        ).toEqual({
+            type: PushEventType.missionStart,
+            id: '64b0000000000000000000c1',
+            title: 'La missione comincia',
+            body: "L'oste ha dato inizio a «La corte del re»",
             ttlSeconds: 3600,
         });
     });

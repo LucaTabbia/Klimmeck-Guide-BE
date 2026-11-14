@@ -428,3 +428,17 @@ Lettura della collection `missiondrafts` (bozza per gruppo, `fights`, `prizes`),
 - Una bozza rimasta orfana dopo l'abbandono della quest da parte di un giocatore si cancella alla prima lettura (`missionDraft`).
 - Il log di audit registra gli argomenti completi delle cinque mutation (anche l'intero `SaveMissionDraftInput`): nessun segreto, ma cresce a ogni salvataggio (UF-22-01).
 - Suite completa con coverage sul ramo dopo le correzioni della review: 449 suite, 6278 test, uscita 0 (2026-11-14).
+
+---
+
+## 8. Esito della UAT su device (2026-11-14)
+
+Eseguita dall'utente sul telefono con la FE Phase 21, BE avviato dal ramo `feat/mission-start-push` (PR #41 = `develop` + le tre modifiche sotto), nessun migratore. Registro completo nel repo FE: `21-HUMAN-UAT.md`.
+
+- Passi 1–11 superati; passo 12 (secondo dispositivo) non eseguito per scelta dell'utente.
+- Verifiche a DB: rifiuti `MISSION_IN_PROGRESS` del secondo personaggio su viaggio, accettazione, negozio, equip e pozione; lo scontro 2 parte dallo stato corretto dello scontro 1; completamento con due esiti `gmCompleted` e i nemici fusi dei due scontri; bozza e richieste sparite; scarto che azzera il marcatore.
+- Difetti del BE trovati e corretti: `pointOfInterests { city { id name } }` falliva (città non popolata) → PR #41; richieste degli archiviati mai cancellate (D-27) → PR #40.
+- Aggiunte chieste dall'utente: push `missionStart` ai partecipanti all'avvio della bozza; `infos.type` della quest nelle corsie del personaggio (la pedina dice cosa sta facendo) → PR #41.
+- Accettato dall'utente: «Rilancia» col motore segnaposto restituisce gli stessi numeri (il caso decide solo vittoria/sconfitta e ferita); il motore vero verrà dopo.
+- Ordine di merge: PR #41 prima della PR della FE.
+

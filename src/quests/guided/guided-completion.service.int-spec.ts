@@ -541,7 +541,7 @@ describe('GuidedCompletionService (replSet)', () => {
             OUTCOME_OVERRIDE_INVALID,
         );
         expect(await rawDocuments()).toEqual(before);
-        expect(world.push.sent).toHaveLength(0);
+        expect(questEndPushes()).toHaveLength(0);
     });
 
     it('refuses a prize no longer allowed without writing (D-07)', async () => {
@@ -613,7 +613,7 @@ describe('GuidedCompletionService (replSet)', () => {
             spy.mockRestore();
         }
         expect(await rawDocuments()).toEqual(state.saved);
-        expect(world.push.sent).toHaveLength(0);
+        expect(questEndPushes()).toHaveLength(0);
     });
 
     it('passes through a simulated injury the character already owns (D-14)', async () => {
@@ -678,7 +678,7 @@ describe('GuidedCompletionService (replSet)', () => {
             OUTCOME_OVERRIDE_INVALID,
         );
         expect(await rawDocuments()).toEqual(before);
-        expect(world.push.sent).toHaveLength(0);
+        expect(questEndPushes()).toHaveLength(0);
     }
 
     it('refuses a corrected effect that adds an injury owned before the fight (D-14, D-31)', async () => {

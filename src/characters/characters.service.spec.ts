@@ -509,7 +509,7 @@ describe('CharactersService (unit — spell mutations)', () => {
             const questIdOnly = {
                 path: 'quest',
                 model: 'Quest',
-                select: '_id',
+                select: '_id infos.type',
             };
             expect(CHARACTER_QUESTS_POPULATE).toEqual([
                 {

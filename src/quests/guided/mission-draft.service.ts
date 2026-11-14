@@ -12,6 +12,8 @@ import {
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
 import { objectIdFromHex } from 'src/mongo/document-id';
+import { missionStart } from 'src/push/push-events';
+import { PushService } from 'src/push/push.service';
 import { isDuplicateKeyError } from 'src/mongo/mongo-errors';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import {
@@ -58,6 +60,7 @@ export class MissionDraftService {
         private readonly requests: GmRequestReader,
         private readonly loader: ResolutionLoader,
         private readonly clock: Clock,
+        private readonly push: PushService,
     ) {}
 
     // idempotente (D-18): da qualunque PendingQuest del gruppo, anche con due avvii concorrenti
@@ -73,6 +76,7 @@ export class MissionDraftService {
             request.seats.map(({ character }) => character),
         );
         const draft = await this.draftDocumentOf(request, startedBy);
+        let created = true;
         try {
             await this.connection.transaction(async (session) => {
                 await this.draftModel.create([draft], { session });
@@ -87,13 +91,28 @@ export class MissionDraftService {
             });
         } catch (error) {
             if (!isDuplicateKeyError(error)) throw error;
+            created = false;
         }
         const started = await this.draftOf(ids);
         if (!started) throw ResourceNotFoundException.missionDraft();
+        if (created) await this.notifyParticipants(request);
         this.logger.log(
             `Bozza ${hexOf(started._id)} avviata per ${started.participants.length} partecipanti`,
         );
         return started;
+    }
+
+    // solo l'avvio che crea la bozza avvisa, dopo il commit e best-effort (utente 2026-11-14): riprese e avvii concorrenti tacciono
+    private async notifyParticipants(request: GmRequest): Promise<void> {
+        const title = request.quest.infos?.title ?? '';
+        await Promise.all(
+            request.seats.map(({ ownerId, character }) =>
+                this.push.sendToUser(
+                    ownerId,
+                    missionStart(character._id.toHexString(), title),
+                ),
+            ),
+        );
     }
 
     // una bozza senza PendingQuest vive è orfana: si cancella alla lettura (D-09, Pitfall 2)

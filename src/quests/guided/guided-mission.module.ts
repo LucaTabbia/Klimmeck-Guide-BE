@@ -22,6 +22,7 @@ import {
 import { Pet, PetSchema } from 'src/models/pet.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
+import { PushModule } from 'src/push/push.module';
 import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
 import { QuestResultsReadModule } from 'src/quests/results/quest-results-read.module';
 import { GuidedCompletionService } from './guided-completion.service';
@@ -52,6 +53,7 @@ import { MissionSimulationService } from './mission-simulation.service';
         ]),
         QuestOutcomesModule,
         QuestResultsReadModule,
+        PushModule,
     ],
     providers: [
         MissionDraftService,
