@@ -10,7 +10,7 @@ import { Enemy, EnemyDocument } from 'src/models/enemy.model';
 import { Spell } from 'src/models/spell.model';
 
 // Enemy.spells è [Spell!]!: un ObjectId grezzo annullerebbe il nemico sul filo; il populate di una lista scarta da sé i ref pendenti (Phase 19 D-02)
-const ENEMY_WIRE_POPULATE: PopulateOptions[] = [
+export const ENEMY_WIRE_POPULATE: PopulateOptions[] = [
     RELATED_LORE_POPULATE,
     { path: 'spells', model: Spell.name },
 ];
