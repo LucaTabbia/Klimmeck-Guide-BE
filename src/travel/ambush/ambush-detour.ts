@@ -26,13 +26,7 @@ export function residualDetourOf(input: {
 }): DetourDraft {
     const { travel, point, segment } = input;
     return {
-        road: {
-            coordinates: collapsePoints([
-                point,
-                ...travel.road.coordinates.slice(Math.max(segment, 1)),
-            ]),
-            distance: Math.max(0, travel.road.distance - travel.ambush.km),
-        },
+        road: residualRoadOf(travel, point, segment),
         to: travel.to,
         reachedCity: input.reachedCity,
         baseHours: null,
@@ -41,5 +35,20 @@ export function residualDetourOf(input: {
             travel.endTime.getTime() - travel.ambush.at.getTime(),
         ),
         petSpeed: input.petSpeed,
+    };
+}
+
+// strada dal punto dell'imboscata verso la meta: ripiego della deviazione (D-25) e resto della strada a piedi (D-13)
+export function residualRoadOf(
+    travel: Pick<AmbushTravelSnapshot, 'road' | 'ambush'>,
+    point: LonLat,
+    segment: number,
+): { coordinates: LonLat[]; distance: number } {
+    return {
+        coordinates: collapsePoints([
+            point,
+            ...travel.road.coordinates.slice(Math.max(segment, 1)),
+        ]),
+        distance: Math.max(0, travel.road.distance - travel.ambush.km),
     };
 }
