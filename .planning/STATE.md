@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 23 di 23 (Sconfitta, riposo e recupero dei compagni) — PIANIFICATA il 2026-11-14 su `feat/23-sconfitta-riposo-recupero-compagni` (riportato su `develop` `2c462cbe`): contesto D-01..D-21 emendato dopo la ricerca e le risposte dell'utente (D-23..D-33) e con i livelli del compagno (D-37..D-39), `23-REPO-RULES.md`, `23-RESEARCH.md`, `23-VALIDATION.md`, 18 piani in wave sequenziali; FE Phase 22 pianificata nella stessa sessione (17 piani)
-Plan: 13 of 18
+Plan: 14 of 18
 Status: Phase 23 in esecuzione — executing, piani 01–18 sequenziali
 Last activity: 2026-11-14 -- 23-09 eseguito (push «in forze»: `PushEventType.petRecovered`, sweeper con claim per voce e `arrayFilters`, id = pet a catalogo)
 Next step: eseguire i 18 piani (executor sequenziali), poi review, verifica, audit, PR draft; la tabella dei tempi di recupero dei 44 pet attende la revisione dell'utente prima della scrittura a DB (prima della UAT su device con la FE Phase 22).

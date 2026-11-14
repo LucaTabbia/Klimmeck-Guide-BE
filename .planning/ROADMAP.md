@@ -260,7 +260,7 @@ Plans:
 - [x] 23-11-PLAN.md — Push `ambush` per ogni imboscata
 - [x] 23-12-PLAN.md — Cavalcatura fotografata alla partenza
 - [x] 23-13-PLAN.md — Strada residua a piedi
-- [ ] 23-14-PLAN.md — Fame dopo il ricalcolo e deviazione a piedi
+- [x] 23-14-PLAN.md — Fame dopo il ricalcolo e deviazione a piedi
 - [ ] 23-15-PLAN.md — Flusso guidato: proposta della vita del compagno
 - [ ] 23-16-PLAN.md — Flusso guidato: correzione e completamento
 - [ ] 23-17-PLAN.md — Gate della fase
@@ -310,7 +310,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
-| 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 13/18 | In Progress | - |
+| 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 14/18 | In Progress | - |
 
 ---
 
