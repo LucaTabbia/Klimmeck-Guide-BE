@@ -10,12 +10,18 @@ import {
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
 import { Pet, PetDocument } from 'src/models/pet.model';
+import { Spell, SpellDocument } from 'src/models/spell.model';
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
-import { buildCharacter, persistPet } from '../../../test/fixtures';
+import {
+    buildCharacter,
+    persistPet,
+    persistSpell,
+    spellStatesOf,
+} from '../../../test/fixtures';
 import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 
 const NOW = new Date('2026-11-14T12:00:00.000Z');
@@ -28,6 +34,12 @@ const EQUIP_PET =
     'mutation($request: EquipPetRequest!) { equipPet(request: $request) { successful } }';
 const UNEQUIP_PET =
     'mutation($request: UnequipPetRequest!) { unequipPet(request: $request) { successful } }';
+const EQUIP_SPELL =
+    'mutation($request: EquipSpellRequest!) { equipSpell(request: $request) { successful } }';
+const UNEQUIP_SPELL =
+    'mutation($request: EquipSpellRequest!) { unequipSpell(request: $request) { successful } }';
+const USE_SPELL =
+    'mutation($request: UseSpellRequest!) { useSpell(request: $request) { successful } }';
 
 interface WireBody {
     data?: Record<string, unknown> | null;
@@ -48,6 +60,7 @@ describe('Character mutations under the mission lock (wire)', () => {
     let characters: Model<CharacterDocument>;
     let pendingQuests: Model<PendingQuestDocument>;
     let pets: Model<PetDocument>;
+    let spells: Model<SpellDocument>;
     const sword = new Types.ObjectId();
 
     beforeAll(async () => {
@@ -59,6 +72,7 @@ describe('Character mutations under the mission lock (wire)', () => {
             PendingQuest.name,
         );
         pets = harness.connection.model<PetDocument>(Pet.name);
+        spells = harness.connection.model<SpellDocument>(Spell.name);
     });
 
     afterEach(async () => {
@@ -256,5 +270,100 @@ describe('Character mutations under the mission lock (wire)', () => {
             'code',
         ]);
         expect(codeOf(body)).toBe('MISSION_IN_PROGRESS');
+    });
+
+    interface SpellBook {
+        player: TestPlayer;
+        resting: string;
+        active: string;
+    }
+
+    async function mageOn(
+        twitchId: string,
+        lane: QuestLane,
+        dates: LaneDates,
+    ): Promise<SpellBook> {
+        const resting = await persistSpell(spells, {
+            name: `Dardo ${twitchId}`,
+        });
+        const active = await persistSpell(spells, {
+            name: `Scudo ${twitchId}`,
+        });
+        const player = await heroOn(twitchId, lane, dates, {
+            status: {
+                ...buildCharacter().status,
+                title: 'mage',
+                xp: 25000,
+                spellStates: spellStatesOf([
+                    { spell: resting._id, usages: 3 },
+                    { spell: active._id, usages: 1, active: true },
+                ]),
+            },
+        });
+        return {
+            player,
+            resting: String(resting._id),
+            active: String(active._id),
+        };
+    }
+
+    function equipSpell({ player, resting }: SpellBook) {
+        return send(
+            EQUIP_SPELL,
+            { request: { id: idOf(player), spellId: resting } },
+            player.bearer,
+        );
+    }
+
+    function unequipSpell({ player, active }: SpellBook) {
+        return send(
+            UNEQUIP_SPELL,
+            { request: { id: idOf(player), spellId: active } },
+            player.bearer,
+        );
+    }
+
+    function useSpell({ player, active }: SpellBook) {
+        return send(
+            USE_SPELL,
+            { request: { characterId: idOf(player), spellId: active } },
+            player.bearer,
+        );
+    }
+
+    it('refuses to swap or use spells while the boss party has started (D-12)', async () => {
+        const book = await mageOn('twitch-lock-boss', QuestLane.standard, {
+            startDate: STARTED,
+        });
+        const before = await rawCharacter(book.player);
+
+        const bodies = [
+            await equipSpell(book),
+            await unequipSpell(book),
+            await useSpell(book),
+        ];
+
+        expect(bodies.map(codeOf)).toEqual([
+            'MISSION_IN_PROGRESS',
+            'MISSION_IN_PROGRESS',
+            'MISSION_IN_PROGRESS',
+        ]);
+        expect(await rawCharacter(book.player)).toEqual(before);
+    });
+
+    it('allows spells again once the mission is over (D-11)', async () => {
+        const book = await mageOn('twitch-lock-over', QuestLane.standard, {
+            startDate: STARTED,
+        });
+        expect(codeOf(await equipSpell(book))).toBe('MISSION_IN_PROGRESS');
+        await characters.updateOne(
+            { _id: book.player.character?._id },
+            { 'quests.pendingQuest': null },
+        );
+
+        const body = await equipSpell(book);
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.equipSpell).toEqual({ successful: true });
     });
 });

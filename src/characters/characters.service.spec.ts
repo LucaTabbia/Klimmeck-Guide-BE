@@ -780,5 +780,40 @@ describe('CharactersService (unit — spell mutations)', () => {
                 expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
             },
         );
+
+        it.each([
+            {
+                name: 'equipSpell',
+                call: () =>
+                    service.equipSpell({ id: c, spellId: target, usages: 1 }),
+            },
+            {
+                name: 'unequipSpell',
+                call: () =>
+                    service.unequipSpell({ id: c, spellId: target, usages: 1 }),
+            },
+            {
+                name: 'useSpell',
+                call: () =>
+                    service.useSpell({ characterId: c, spellId: target }),
+            },
+        ])(
+            '$name refuses spell changes and spell use during a mission without writing (D-11, D-12)',
+            async ({ call }) => {
+                missionLock.assertFree.mockRejectedValueOnce(
+                    GameRuleException.missionInProgress(),
+                );
+
+                await expect(call()).rejects.toMatchObject({
+                    code: 'MISSION_IN_PROGRESS',
+                });
+                expect(missionLock.assertFree).toHaveBeenCalledWith(
+                    new Types.ObjectId(c),
+                );
+                expect(mockSpellModel.findById).not.toHaveBeenCalled();
+                expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
+                expect(mockQueue.add).not.toHaveBeenCalled();
+            },
+        );
     });
 });
