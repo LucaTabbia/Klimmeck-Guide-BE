@@ -25,6 +25,8 @@ const CATALOGUE_PATHS = [
     'maxXp',
     'name',
     'rarity',
+    // regola del catalogo, non stato del compagno (D-25)
+    'recoveryTime',
     'relatedLore',
     'sellPrice',
     'sellable',
@@ -108,6 +110,27 @@ describe('catalogue pet schema', () => {
             'rarity',
         ]);
     });
+
+    it('leaves the recovery time of a pet null until it is curated (D-25)', () => {
+        const uncurated = new PetProbe(STORED_WITHOUT_ATTACK_AND_DEFENSE);
+        const curated = new PetProbe(buildPet({ recoveryTime: 3_600_000 }));
+
+        expect(uncurated.validateSync()).toBeUndefined();
+        expect(uncurated.toObject().recoveryTime).toBeNull();
+        expect(curated.validateSync()).toBeUndefined();
+        expect(curated.toObject().recoveryTime).toBe(3_600_000);
+    });
+
+    it.each([-1, 1.5])(
+        'rejects a negative or fractional recovery time (D-01): %p',
+        (recoveryTime) => {
+            const pet = new PetProbe(buildPet({ recoveryTime }));
+
+            expect(Object.keys(pet.validateSync()?.errors ?? {})).toEqual([
+                'recoveryTime',
+            ]);
+        },
+    );
 
     it('declares no state on the catalogue pet (D-03)', () => {
         expect(Object.keys(PetSchema.paths).sort()).toEqual(CATALOGUE_PATHS);
