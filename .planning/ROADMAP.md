@@ -221,7 +221,7 @@ Plans:
 - [x] 22-02-PLAN.md — Guardie delle mutation del personaggio (equipaggiamento, compagno, magie)
 - [x] 22-03-PLAN.md — Guardie di `useItem` e del negozio
 - [x] 22-04-PLAN.md — Guardie di viaggio, anteprima e accettazione
-- [ ] 22-05-PLAN.md — Campi risolti della missione in corso, publisher del marcatore, SDL
+- [x] 22-05-PLAN.md — Campi risolti della missione in corso, publisher del marcatore, SDL
 - [ ] 22-06-PLAN.md — Refactor: lettore della richiesta, commit parametrico, catalogo dei premi
 - [ ] 22-07-PLAN.md — Bozza nel BE: modello, precompilazione dei premi, avvio, lettura, scarto
 - [ ] 22-08-PLAN.md — Bozza sul filo: tipi, resolver, matrice, SDL
@@ -278,7 +278,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
-| 22. Completamento guidato delle missioni | v1.1 | 4/18 | In Progress | - |
+| 22. Completamento guidato delle missioni | v1.1 | 5/18 | In Progress | - |
 
 ---
 

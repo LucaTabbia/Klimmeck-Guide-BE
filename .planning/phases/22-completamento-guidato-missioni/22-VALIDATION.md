@@ -68,9 +68,9 @@ created: 2026-11-14
 | 22-04-01 | 04 | 4 | BE-GMFLOW-08 | T-22-08 / T-22-10 | viaggio e anteprima rifiutati dalla bozza; teleport dell'oste libero | integration | `npx jest src/travel/travel.service.int-spec.ts src/travel/teleport.resolver.int-spec.ts --selectProjects integration --runInBand` | ✅ (casi nuovi) | ✅ green |
 | 22-04-02 | 04 | 4 | BE-GMFLOW-08, 09 | T-22-08 / T-22-09 | ogni accettazione e `questTravelPreview` rifiutate in missione (F7 riscritta); worldMission con bozza `QUEST_NOT_ACCEPTABLE` | integration | `npx jest src/quests/acceptance --selectProjects integration --runInBand` | ✅ (F7 RED) | ✅ green |
 | 22-04-03 | 04 | 4 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 22-04-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 22-05-01 | 05 | 5 | BE-GMFLOW-07, 08, 09 | T-22-11 / T-22-13 | due booleani risolti dalla regola unica; SDL verbatim; marcatore fuori dal filo | unit + integration | `npx jest src/characters --selectProjects unit && npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
-| 22-05-02 | 05 | 5 | BE-GMFLOW-08, 09 | T-22-12 | `characterUpdated` ad avvio da solo, avvio del party, avvio e scarto della bozza | unit + integration | `npx jest src/characters/mission-lock --selectProjects unit && npx jest src/characters/mission-in-progress.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
-| 22-05-03 | 05 | 5 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 22-05-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 22-05-01 | 05 | 5 | BE-GMFLOW-07, 08, 09 | T-22-11 / T-22-13 | due booleani risolti dalla regola unica; SDL verbatim; marcatore fuori dal filo | unit + integration | `npx jest src/characters --selectProjects unit && npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ (casi nuovi) | ✅ green |
+| 22-05-02 | 05 | 5 | BE-GMFLOW-08, 09 | T-22-12 | `characterUpdated` ad avvio da solo, avvio del party, avvio e scarto della bozza | unit + integration | `npx jest src/characters/mission-lock --selectProjects unit && npx jest src/characters/mission-in-progress.int-spec.ts --selectProjects integration --runInBand` | ✅ (casi nuovi) | ✅ green |
+| 22-05-03 | 05 | 5 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 22-05-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 22-06-01 | 06 | 6 | BE-GMFLOW-06 | T-22-14 / T-22-15 | refactor senza cambi osservabili: guardie del completamento verdi e invariate | integration | `npx jest src/quests/outcomes/gm-completion.service.int-spec.ts src/quests/pending-requests/complete-pending-request.resolver.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 22-06-02 | 06 | 6 | BE-GMFLOW-06 | T-22-14 | catalogo dei premi di ref arbitrari; voci valide di un blocco | unit | `npx jest src/quests/outcomes --selectProjects unit` | ✅ (casi nuovi) | ⬜ pending |
 | 22-06-03 | 06 | 6 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 22-06-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
@@ -122,8 +122,8 @@ Pianificata: ogni casella si spunta nel piano che crea il file (task indicato, R
 - [x] `src/characters/mission-lock/mission-lock.spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 01: 22-01-01, esteso in 22-05-01)
 - [x] `src/characters/mission-lock/mission-lock.reader.int-spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 01: 22-01-02)
 - [ ] `src/characters/mission-lock/character-mutations-lock.int-spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 02: 22-02-01)
-- [ ] `src/characters/mission-lock/mission-draft-lock.publisher.spec.ts` — BE-GMFLOW-08 (pianificato nel piano 05: 22-05-02)
-- [ ] `src/characters/mission-in-progress.int-spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 05: 22-05-02)
+- [x] `src/characters/mission-lock/mission-draft-lock.publisher.spec.ts` — BE-GMFLOW-08 (pianificato nel piano 05: 22-05-02)
+- [x] `src/characters/mission-in-progress.int-spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 05: 22-05-02)
 - [ ] `src/quests/guided/*.spec.ts` (pianificati nei piani 07, 08, 10, 12, 14, 16: precompilazione 22-07-01, filo 22-08-01, pool 22-10-01, sovrapposizione e porta del caso 22-12-01, invalidazione 22-12-02, premi e premi scelti 22-14-01, esito aggregato 22-16-01) — BE-GMFLOW-01/02/04/05/06
 - [ ] `src/quests/guided/*.int-spec.ts` (pianificati nei piani 07, 08, 13, 15, 16: bozza 22-07-02, resolver 22-08-02, simulazione 22-13-01, salvataggio 22-15-01 e 22-15-02, completamento 22-16-01) — BE-GMFLOW-01..06
 - [ ] `src/quests/pending-requests/mission-draft-queue.refresher.spec.ts` — BE-GMFLOW-03 (pianificato nel piano 09: 22-09-02)
