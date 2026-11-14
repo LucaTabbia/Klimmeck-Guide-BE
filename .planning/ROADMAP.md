@@ -230,7 +230,7 @@ Plans:
 - [x] 22-11-PLAN.md — Compagno nel contesto del combattimento
 - [x] 22-12-PLAN.md — Regole pure degli scontri e porta del caso dedicata
 - [x] 22-13-PLAN.md — Simulazione a secco di uno scontro
-- [ ] 22-14-PLAN.md — Catalogo dei premi per titolo e rivalidazione
+- [x] 22-14-PLAN.md — Catalogo dei premi per titolo e rivalidazione
 - [ ] 22-15-PLAN.md — Salvataggio della bozza: scontri, correzioni, premi
 - [ ] 22-16-PLAN.md — Completamento guidato in una transazione
 - [ ] 22-17-PLAN.md — Gate della fase
@@ -278,7 +278,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
-| 22. Completamento guidato delle missioni | v1.1 | 13/18 | In Progress | - |
+| 22. Completamento guidato delle missioni | v1.1 | 14/18 | In Progress | - |
 
 ---
 
