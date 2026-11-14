@@ -312,6 +312,7 @@ describe('AmbushResolutionService (replica set)', () => {
                 ambush: {
                     at: subject.identity.at,
                     nearCity: { id: map.cities.crocevia, name: 'Crocevia' },
+                    onFoot: false,
                     reachedCity: null,
                 },
                 user: subject.player.user._id,

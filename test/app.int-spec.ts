@@ -793,7 +793,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type AmbushCity {\n  id: ID!\n  name: String!\n}',
         );
         expect(schema.match(/type AmbushReport \{[^}]*\}/)?.[0]).toBe(
-            'type AmbushReport {\n  at: DateTime!\n  nearCity: AmbushCity!\n  reachedCity: AmbushCity\n}',
+            'type AmbushReport {\n  at: DateTime!\n  nearCity: AmbushCity!\n  onFoot: Boolean!\n  reachedCity: AmbushCity\n}',
         );
         expect(schema.match(/enum QuestResultKind \{[^}]*\}/)?.[0]).toBe(
             'enum QuestResultKind {\n  ambush\n  quest\n}',
