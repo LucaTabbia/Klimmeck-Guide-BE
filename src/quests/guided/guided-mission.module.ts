@@ -24,6 +24,7 @@ import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
 import { GuidedMissionResolver } from './guided-mission.resolver';
+import { MissionDraftSaveService } from './mission-draft-save.service';
 import { MissionDraftPresenter } from './mission-draft.mapper';
 import { MissionDraft, MissionDraftSchema } from './mission-draft.model';
 import { MissionDraftService } from './mission-draft.service';
@@ -56,6 +57,7 @@ import { MissionSimulationService } from './mission-simulation.service';
         MISSION_SIMULATION_CHANCE_PROVIDER,
         MissionSimulationService,
         MissionPrizeOptionsService,
+        MissionDraftSaveService,
         GuidedMissionResolver,
         { provide: Clock, useClass: SystemClock },
     ],

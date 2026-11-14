@@ -32,7 +32,9 @@ import {
 import { MissionDraftService } from './mission-draft.service';
 import { MissionSimulationChance } from './mission-simulation.chance';
 
-const withinCaps = (enemies: readonly MissionEnemyInput[]): boolean =>
+export const enemiesWithinCaps = (
+    enemies: readonly MissionEnemyInput[],
+): boolean =>
     enemies.length >= 1 &&
     enemies.length <= MAX_FIGHT_ENEMIES &&
     enemies.every(
@@ -55,7 +57,7 @@ function assertSimulable(
         k < MAX_MISSION_FIGHTS;
     if (!inRange || (k > 0 && fights[k - 1].verdict == null))
         throw GameRuleException.outcomeOverrideInvalid();
-    if (!withinCaps(input.enemies))
+    if (!enemiesWithinCaps(input.enemies))
         throw GameRuleException.outcomeOverrideInvalid();
 }
 
