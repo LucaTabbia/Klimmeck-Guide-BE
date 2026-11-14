@@ -726,6 +726,48 @@ describe('MissionDraftSaveService (replSet)', () => {
             expect(await storedDraft()).toEqual(before);
         });
 
+        it('caps every coin and the xp at the technical ceiling (D-15, D-31)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage } = await mageAndPaladin(catalogue);
+            const ceiling = 9_999_999;
+            const before = await storedDraft();
+
+            for (const prize of [
+                prizeOf(mage, { xp: ceiling + 1 }),
+                prizeOf(mage, {
+                    coins: { gold: ceiling + 1, silver: 0, copper: 0 },
+                }),
+                prizeOf(mage, {
+                    coins: { gold: 0, silver: ceiling + 1, copper: 0 },
+                }),
+                prizeOf(mage, {
+                    coins: { gold: 0, silver: 0, copper: ceiling + 1 },
+                }),
+            ]) {
+                await expect(
+                    save(mage, { prizes: [prize] }),
+                ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+            }
+            expect(await storedDraft()).toEqual(before);
+
+            const saved = await save(mage, {
+                prizes: [
+                    prizeOf(mage, {
+                        coins: {
+                            gold: ceiling,
+                            silver: ceiling,
+                            copper: ceiling,
+                        },
+                        xp: ceiling,
+                    }),
+                ],
+            });
+            expect(prizeIn(saved.prizes, mage)).toMatchObject({
+                coins: { gold: ceiling, silver: ceiling, copper: ceiling },
+                xp: ceiling,
+            });
+        });
+
         it('replaces the prize of the listed character only (D-18)', async () => {
             const catalogue = await prizeCatalogue();
             const { mage, paladin } = await mageAndPaladin(catalogue);
