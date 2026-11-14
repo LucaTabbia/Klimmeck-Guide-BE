@@ -80,9 +80,9 @@ created: 2026-11-14
 | 22-08-01 | 08 | 8 | BE-GMFLOW-03 | T-22-22 | forma del filo; nemico cancellato scartato, mai null su `Enemy!` | unit | `npx jest src/quests/guided src/enemies --selectProjects unit` | ✅ | ✅ green |
 | 22-08-02 | 08 | 8 | BE-GMFLOW-03, 07 | T-22-20 / T-22-21 | tre handler `innkeeper`, FORBIDDEN all'adventurer, audit delle mutation, SDL additivo, 14 handler | integration | `npx jest test/app.int-spec.ts test/authz/authorization-matrix.int-spec.ts src/quests/guided --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 22-08-03 | 08 | 8 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 22-08-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
-| 22-09-01 | 09 | 9 | BE-GMFLOW-03, 07 | T-22-23 / T-22-24 | data di avvio sulla voce della coda, SDL additivo (F2, F8) | unit + integration | `npx jest src/quests/pending-requests --selectProjects unit && npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ (F2, F8 RED) | ⬜ pending |
-| 22-09-02 | 09 | 9 | BE-GMFLOW-03 | T-22-24 | coda riemessa ad avvio e scarto, pipeline pinnata intatta | unit + integration | `npx jest src/quests/pending-requests --selectProjects unit && npx jest src/quests/pending-requests/pending-requests.resolver.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
-| 22-09-03 | 09 | 9 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 22-09-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
+| 22-09-01 | 09 | 9 | BE-GMFLOW-03, 07 | T-22-23 / T-22-24 | data di avvio sulla voce della coda, SDL additivo (F2, F8) | unit + integration | `npx jest src/quests/pending-requests --selectProjects unit && npx jest test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ (F2, F8 RED) | ✅ green |
+| 22-09-02 | 09 | 9 | BE-GMFLOW-03 | T-22-24 | coda riemessa ad avvio e scarto, pipeline pinnata intatta | unit + integration | `npx jest src/quests/pending-requests --selectProjects unit && npx jest src/quests/pending-requests/pending-requests.resolver.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ✅ green |
+| 22-09-03 | 09 | 9 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 22-09-PLAN.md" .planning/ROADMAP.md` | ✅ | ✅ green |
 | 22-10-01 | 10 | 10 | BE-GMFLOW-01 | — | regola della lista: zona, `city`, fascia, leggendari solo worldMission, ripiego, ordinamento | unit | `npx jest src/quests/guided src/quests/generation --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 22-10-02 | 10 | 10 | BE-GMFLOW-01, 07 | T-22-25 / T-22-26 | `missionEnemies` sul filo, FORBIDDEN all'adventurer, 15 handler, SDL additivo | integration | `npx jest test/app.int-spec.ts test/authz/authorization-matrix.int-spec.ts src/quests/guided/guided-mission.resolver.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 22-10-03 | 10 | 10 | — | — | bookkeeping | doc | `grep -qF -- "- [x] 22-10-PLAN.md" .planning/ROADMAP.md` | ✅ | ⬜ pending |
@@ -126,7 +126,7 @@ Pianificata: ogni casella si spunta nel piano che crea il file (task indicato, R
 - [x] `src/characters/mission-in-progress.int-spec.ts` — BE-GMFLOW-08/09 (pianificato nel piano 05: 22-05-02)
 - [ ] `src/quests/guided/*.spec.ts` (pianificati nei piani 07, 08, 10, 12, 14, 16: precompilazione 22-07-01, filo 22-08-01, pool 22-10-01, sovrapposizione e porta del caso 22-12-01, invalidazione 22-12-02, premi e premi scelti 22-14-01, esito aggregato 22-16-01) — BE-GMFLOW-01/02/04/05/06
 - [ ] `src/quests/guided/*.int-spec.ts` (pianificati nei piani 07, 08, 13, 15, 16: bozza 22-07-02, resolver 22-08-02, simulazione 22-13-01, salvataggio 22-15-01 e 22-15-02, completamento 22-16-01) — BE-GMFLOW-01..06
-- [ ] `src/quests/pending-requests/mission-draft-queue.refresher.spec.ts` — BE-GMFLOW-03 (pianificato nel piano 09: 22-09-02)
+- [x] `src/quests/pending-requests/mission-draft-queue.refresher.spec.ts` — BE-GMFLOW-03 (pianificato nel piano 09: 22-09-02)
 - Asserzioni esistenti che vanno RED prima del codice (tabella F della ricerca): F1 22-05-01, F2 22-09-01, F3/F4 22-08-02 (e ogni piano con handler nuovi: 22-10-02, 22-13-02, 22-14-02, 22-15-03, 22-16-02), F5 22-01-01, F6 22-02-01, F7 22-04-02, F8 22-09-01, F9 22-11-02 e 22-11-03.
 - Nessuna installazione: framework presente.
 
