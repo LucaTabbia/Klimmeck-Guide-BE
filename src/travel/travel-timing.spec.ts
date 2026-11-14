@@ -4,6 +4,7 @@ import {
     BASE_SPEED,
     buildActiveTravel,
     durationMsOf,
+    mountOf,
     speedOf,
     travelKmAt,
 } from './travel-timing';
@@ -114,6 +115,53 @@ describe('travel timing', () => {
             expect(travel.endTime).toEqual(
                 new Date('2026-10-21T12:00:00.000Z'),
             );
+        });
+    });
+
+    describe('the departure mount', () => {
+        const to = new Types.ObjectId();
+        const pet = new Types.ObjectId();
+        const departure = {
+            route: {
+                coordinates: [
+                    [0, 0],
+                    [0, 0.2],
+                ] as [number, number][],
+                distanceKm: 0.44,
+                baseHours: 2,
+            },
+            speed: 20,
+            now: new Date('2026-10-21T10:00:00.000Z'),
+            to,
+            kind: TravelKind.free,
+        };
+
+        it('photographs the mount of the departure (D-29)', () => {
+            const travel = buildActiveTravel({
+                ...departure,
+                mount: { pet, factor: 2 },
+            });
+
+            expect(travel.mount).toEqual({ pet, factor: 2 });
+            expect(travel.duration).toBe(buildActiveTravel(departure).duration);
+            expect(travel.endTime).toEqual(
+                buildActiveTravel(departure).endTime,
+            );
+        });
+
+        it('writes no mount key without a mount (D-29)', () => {
+            expect(
+                Object.keys(buildActiveTravel({ ...departure, mount: null })),
+            ).not.toContain('mount');
+        });
+
+        it('takes a valid speed modifier as the mount factor (D-29)', () => {
+            expect(mountOf(pet, 1.5)).toEqual({ pet, factor: 1.5 });
+            expect(mountOf(pet, null)).toBeNull();
+            expect(mountOf(pet, 0)).toBeNull();
+            expect(mountOf(pet, 'x')).toBeNull();
+            expect(mountOf(pet, Infinity)).toBeNull();
+            expect(mountOf(null, 2)).toBeNull();
         });
     });
 

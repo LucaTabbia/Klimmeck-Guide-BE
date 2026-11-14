@@ -140,6 +140,26 @@ describe('active travel schemas', () => {
         ).toEqual(['duration', 'endTime', 'kind', 'road', 'startTime', 'to']);
     });
 
+    it('keeps the departure mount as an internal subdocument (D-29)', () => {
+        const Travel = model('ActiveTravelMountProbe', ActiveTravelSchema);
+        const pet = new Types.ObjectId();
+        const travel = new Travel({
+            ...AMBUSH_TRAVEL,
+            mount: { pet, factor: 1.5 },
+        });
+
+        expect(travel.validateSync()).toBeUndefined();
+        expect(travel.toObject().mount).toEqual({ pet, factor: 1.5 });
+    });
+
+    it('writes no mount on a travel without one (D-29)', () => {
+        const Travel = model('ActiveTravelNoMountProbe', ActiveTravelSchema);
+
+        expect(Object.keys(new Travel(AMBUSH_TRAVEL).toObject())).not.toContain(
+            'mount',
+        );
+    });
+
     it('casts a drawn ambush with zero attempts (D-05, D-18)', () => {
         const Travel = model('ActiveTravelAmbushProbe', ActiveTravelSchema);
         const at = new Date('2026-07-01T11:00:00.000Z');
