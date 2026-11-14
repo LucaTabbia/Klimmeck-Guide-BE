@@ -914,6 +914,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         }
     });
 
+    it('adds the mission enemy list to the schema (D-17)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            '  missionEnemies(pendingQuestId: ID!, showAll: Boolean = false): [Enemy!]!\n',
+        );
+    });
+
     it('writes the game master completion into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 

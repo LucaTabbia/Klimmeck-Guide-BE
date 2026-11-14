@@ -70,6 +70,14 @@ export const HANDLER_FIXTURES: Record<ProtectedHandler, HandlerFixture> = {
             'query MissionDraft($pendingQuestId: ID!) { missionDraft(pendingQuestId: $pendingQuestId) { id } }',
         variables: () => ({ pendingQuestId: ANY }),
     },
+    'GuidedMissionResolver.missionEnemies': {
+        kind: 'query',
+        field: 'missionEnemies',
+        target: 'none',
+        document:
+            'query MissionEnemies($pendingQuestId: ID!) { missionEnemies(pendingQuestId: $pendingQuestId) { id } }',
+        variables: () => ({ pendingQuestId: ANY }),
+    },
     'GuidedMissionResolver.startMissionDraft': {
         kind: 'mutation',
         field: 'startMissionDraft',
