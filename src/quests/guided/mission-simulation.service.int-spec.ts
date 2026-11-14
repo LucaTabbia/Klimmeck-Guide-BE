@@ -364,7 +364,9 @@ describe('MissionSimulationService (replSet)', () => {
             ._id as Types.ObjectId;
         const { first, second, enemy } = await startedWorldMission({
             pet: companion,
-            ownedPets: [buildOwnedPet(companion, { currentLifePoints: 40 })],
+            ownedPets: [
+                buildOwnedPet(companion, { currentLifePoints: 7, level: 1 }),
+            ],
         });
         const scripted = new ScriptedCombatResolver();
         combat.current = scripted;
@@ -378,7 +380,7 @@ describe('MissionSimulationService (replSet)', () => {
             );
         expect(participantOf(second)!.companion).toMatchObject({
             petId: String(companion),
-            currentLifePoints: 40,
+            currentLifePoints: 7,
         });
         expect(participantOf(first)!.companion).toBeNull();
     });

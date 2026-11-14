@@ -60,7 +60,7 @@ export interface CombatParticipant {
     equipment: CombatEquipment[];
     activeSpells: CombatSpell[];
     consumables: CombatConsumable[];
-    // il compagno equipaggiato (D-20): il segnaposto lo ignora, il motore dell'utente lo userà
+    // il compagno equipaggiato (D-20): entra con la vita di companion-life.ts, esce con companionLifeAfter (D-03)
     companion: CombatCompanion | null;
 }
 
@@ -90,6 +90,8 @@ export interface ParticipantEffects {
     injuriesAdded: InjuryType[];
     consumablesUsed: { itemId: string; quantity: number }[];
     spellsUsed: { spellId: string; usages: number }[];
+    // vita del compagno equipaggiato dopo lo scontro, in [1, maxLifePoints] (D-03); assente = nessun compagno nello scontro
+    companionLifeAfter?: number;
 }
 
 // un solo verdetto per combattimento (A3, utente 2026-10-25): chi combatte insieme vince o perde insieme; gli effetti restano per partecipante

@@ -42,7 +42,10 @@ export function petRecoveryTimeOf(value: unknown): number | null {
 }
 
 // regole 1-2: minimo 1 senza un massimo leggibile, vita legacy (0 o non numerica) = piena, tetto al massimo
-function companionLifeNow(lifePoints: unknown, maxLifePoints: unknown): number {
+export function companionLifeNow(
+    lifePoints: unknown,
+    maxLifePoints: unknown,
+): number {
     const stored = storedLifeOf(lifePoints);
     const max = positiveIntegerOrNull(maxLifePoints);
     if (max === null) return Math.max(COMPANION_LIFE_FLOOR, stored);

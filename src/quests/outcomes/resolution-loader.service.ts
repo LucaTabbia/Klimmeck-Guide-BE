@@ -517,10 +517,12 @@ export class ResolutionLoader {
                 ),
             ),
             pets: new Map(
-                entries.map(({ _id, attack, defense, maxLifePoints }) => [
-                    _id.toHexString(),
-                    { attack, defense, maxLifePoints },
-                ]),
+                entries.map(
+                    ({ _id, attack, defense, maxLifePoints, maxXp }) => [
+                        _id.toHexString(),
+                        { attack, defense, maxLifePoints, maxXp },
+                    ],
+                ),
             ),
         };
     }

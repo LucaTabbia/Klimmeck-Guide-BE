@@ -129,7 +129,10 @@ describe('AmbushResolutionService (replica set)', () => {
             ._id;
         const ownedPets = [
             buildOwnedPet(other, { xp: 12 }),
-            buildOwnedPet(companion, { currentLifePoints: COMPANION_LIFE }),
+            buildOwnedPet(companion, {
+                currentLifePoints: COMPANION_LIFE,
+                level: 1,
+            }),
         ];
         await world.models.enemies.updateOne(
             { _id: enemies.wolf },
@@ -306,6 +309,7 @@ describe('AmbushResolutionService (replica set)', () => {
                 pet: companion,
                 xp: COMPANION_SHARE,
                 currentLifePoints: COMPANION_LIFE,
+                level: 1,
             },
         ]);
         expect(raw.status.xp).toBe(40 + COMPANION_WOLF_XP);

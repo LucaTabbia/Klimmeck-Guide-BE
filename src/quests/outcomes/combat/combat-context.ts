@@ -11,6 +11,8 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { SlotType } from 'src/models/enums/slot-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
+import { companionMaxLifeOf } from 'src/characters/pets/companion-level';
+import { companionStoredLifeOf } from 'src/characters/pets/companion-life';
 import type { SpellStateEntry } from 'src/characters/spells/spell-state.snapshot';
 import { statusFactsOf } from '../progression/status-facts';
 import {
@@ -42,6 +44,8 @@ export interface CombatCharacterSnapshot {
             pet?: unknown;
             xp?: number;
             currentLifePoints?: number;
+            level?: unknown;
+            lifeAsOf?: unknown;
         }[];
     } | null;
 }
@@ -68,6 +72,7 @@ export interface CombatPetSnapshot {
     attack?: unknown;
     defense?: unknown;
     maxLifePoints?: unknown;
+    maxXp?: unknown;
 }
 
 export interface CombatHydration {
@@ -199,12 +204,14 @@ export function companionOf(
     );
     const catalogued = pets.get(hex);
     if (!owned || !catalogued) return null;
-    const maxLifePoints = numberOr(catalogued.maxLifePoints, 0);
+    // massimo del compagno (D-38): livello salvato o ricalcolato dall'xp, sulla base del catalogo
+    const maxLifePoints = companionMaxLifeOf(owned, catalogued) ?? 0;
     return {
         petId: hex,
         attack: normalizeDamages(catalogued.attack),
         defense: normalizeDamages(catalogued.defense),
-        currentLifePoints: numberOr(owned.currentLifePoints, maxLifePoints),
+        // una voce mai toccata dalla fase entra a vita piena al massimo del compagno (D-23, D-38)
+        currentLifePoints: companionStoredLifeOf(owned, maxLifePoints),
         maxLifePoints,
         xp: numberOr(owned.xp, 0),
     };

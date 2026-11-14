@@ -238,6 +238,7 @@ describe('ResolutionLoader enemy read', () => {
                         attack: wolfAttack,
                         defense: wolfDefense,
                         maxLifePoints: 50,
+                        maxXp: 100,
                     },
                 ],
                 [cat.toHexString(), { maxLifePoints: 20 }],
@@ -263,7 +264,7 @@ describe('ResolutionLoader enemy read', () => {
         );
 
         expect(catalog.pets).toEqual(
-            new Map([[wolf.toHexString(), { maxLifePoints: 50 }]]),
+            new Map([[wolf.toHexString(), { maxLifePoints: 50, maxXp: 100 }]]),
         );
         expect(petModel.find).toHaveBeenCalledTimes(1);
     });
