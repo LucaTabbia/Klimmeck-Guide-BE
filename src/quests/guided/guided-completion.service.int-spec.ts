@@ -583,6 +583,39 @@ describe('GuidedCompletionService (replSet)', () => {
         expect(await rawDocuments()).toEqual(before);
     });
 
+    it('refuses a draft saved after the completion read it, without writing (D-18, D-25)', async () => {
+        const { first, second } = await guidedWorldMission();
+        const readDraft = drafts.requireFor.bind(drafts);
+        const state: { saved: Record<string, unknown> | null } = {
+            saved: null,
+        };
+        const spy = jest
+            .spyOn(drafts, 'requireFor')
+            .mockImplementationOnce(async (request) => {
+                const stale = await readDraft(request);
+                await saver.save({
+                    pendingQuestId: hexOf(second),
+                    prizes: [
+                        prizeOf(second, {
+                            coins: { gold: 7, silver: 0, copper: 0 },
+                        }),
+                    ],
+                });
+                state.saved = await rawDocuments();
+                return stale;
+            });
+
+        try {
+            await expect(service.complete(hexOf(first))).rejects.toMatchObject(
+                OUTCOME_OVERRIDE_INVALID,
+            );
+        } finally {
+            spy.mockRestore();
+        }
+        expect(await rawDocuments()).toEqual(state.saved);
+        expect(world.push.sent).toHaveLength(0);
+    });
+
     it('passes through a simulated injury the character already owns (D-14)', async () => {
         const { first, wolf } = await guidedWorldMission();
         combat.willResolve(first.characterId, {
