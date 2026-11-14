@@ -77,6 +77,10 @@ describe('MissionLockReader (replSet)', () => {
         extra: Record<string, unknown> = {},
     ): Promise<Types.ObjectId> {
         const character = await persistCharacter(characters, {
+            infos: {
+                ...buildCharacter().infos,
+                name: `Locked Hero ${String(pendingQuestId)}`,
+            },
             quests: { ...buildCharacter().quests, [lane]: pendingQuestId },
             ...extra,
         });
