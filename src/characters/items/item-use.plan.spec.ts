@@ -64,12 +64,14 @@ const potionWith = (
 const planWith = (
     snapshotOverrides: SnapshotOverrides = {},
     itemOverrides: ItemUseCatalogSnapshot | null = {},
+    missionInProgress = false,
 ): ItemUsePlan =>
     planItemUse({
         snapshot: snapshotWith(snapshotOverrides),
         itemId: POTION_ID,
         item: itemOverrides === null ? null : potionWith(itemOverrides),
         now: NOW,
+        missionInProgress,
     });
 
 describe('recoveryTimeOf', () => {
@@ -330,9 +332,10 @@ describe('planItemUse — refusals', () => {
     const refusalOf = (
         snapshotOverrides: SnapshotOverrides = {},
         itemOverrides: ItemUseCatalogSnapshot | null = {},
+        missionInProgress = false,
     ): unknown => {
         try {
-            planWith(snapshotOverrides, itemOverrides);
+            planWith(snapshotOverrides, itemOverrides, missionInProgress);
         } catch (error) {
             if (error instanceof GameRuleException) return error.extensions;
             throw error;
@@ -344,6 +347,24 @@ describe('planItemUse — refusals', () => {
         expect(
             refusalOf({ status: AWAITING, assets: WITHOUT_POTION }, null),
         ).toEqual({ code: 'AWAITING_AID' });
+    });
+
+    it('refuses a potion during a mission with its own code (D-11, D-12)', () => {
+        expect(refusalOf({}, {}, true)).toEqual({
+            code: 'MISSION_IN_PROGRESS',
+        });
+    });
+
+    it('keeps the aid refusal first (D-23)', () => {
+        expect(refusalOf({ status: AWAITING }, {}, true)).toEqual({
+            code: 'AWAITING_AID',
+        });
+    });
+
+    it('refuses a mission before ownership and recovery (D-23)', () => {
+        expect(
+            refusalOf({ status: FUTURE, assets: WITHOUT_POTION }, null, true),
+        ).toEqual({ code: 'MISSION_IN_PROGRESS' });
     });
 
     it.each<[string, string, SnapshotOverrides, ItemUseCatalogSnapshot]>([
