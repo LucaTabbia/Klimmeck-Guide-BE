@@ -7,6 +7,7 @@ import {
     notImprisonedAt,
     refusalWhileImprisoned,
 } from 'src/characters/imprisonment/imprisonment';
+import { MissionLockReader } from 'src/characters/mission-lock/mission-lock.reader';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { LoreGeographyReader } from 'src/lore/lore-geography.reader';
 import { activeCharacterById } from 'src/models/character/active-character.filter';
@@ -104,6 +105,7 @@ export class TravelService {
         private readonly ambushPlanner: AmbushPlanner,
         private readonly geography: LoreGeographyReader,
         private readonly clock: Clock,
+        private readonly missionLock: MissionLockReader,
     ) {}
 
     // stesse letture e stessi codici dell'avvio, nessuna scrittura (Phase 8 D-11); cibo e vita coi numeri, mai il codice di fame (Phase 14 D-09)
@@ -112,6 +114,8 @@ export class TravelService {
         poiId: Types.ObjectId,
     ): Promise<TravelPreview> {
         const { travel } = await this.planner.planFree(characterId, poiId);
+        // D-11: dopo i codici di planFree (D-23); il teleport dell'oste resta libero (D-01)
+        await this.missionLock.assertFree(characterId);
         return this.pantry.previewOf(characterId, travel);
     }
 
@@ -121,6 +125,8 @@ export class TravelService {
         poiId: Types.ObjectId,
     ): Promise<void> {
         const planned = await this.planner.planFree(characterId, poiId);
+        // D-11: dopo i codici di planFree (D-23); il teleport dell'oste resta libero (D-01)
+        await this.missionLock.assertFree(characterId);
         // fuori dal callback: un retry per WriteConflict riscrive la stessa imboscata (Phase 15 D-05, Pitfall 10)
         const plan = {
             ...planned,
