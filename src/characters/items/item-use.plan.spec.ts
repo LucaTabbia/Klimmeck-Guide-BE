@@ -701,6 +701,23 @@ describe('pet potion plan', () => {
         ).toEqual({ code: 'ITEM_NO_EFFECT' });
     });
 
+    it('rounds a fractional potion down like the character one, life always whole (D-07)', () => {
+        const equippedAt50: PetCase = {
+            slot: PET_ID,
+            ownedPets: [
+                { pet: PET_ID, xp: 0, currentLifePoints: 50, level: 1 },
+            ],
+        };
+
+        const plan = petPlanWith({ ...equippedAt50, item: { power: 12.5 } });
+
+        expect(plan.outcome).toMatchObject({ hpBefore: 50, hpAfter: 62 });
+        expect(writtenEntryOf(plan)).toMatchObject({ currentLifePoints: 62 });
+        expect(petRefusalOf({ ...equippedAt50, item: { power: 0.5 } })).toEqual(
+            { code: 'ITEM_NO_EFFECT' },
+        );
+    });
+
     it('heals up to the maximum of the companion level, not the species base (D-38)', () => {
         const levelled = (currentLifePoints: number): PetCase => ({
             slot: PET_ID,
