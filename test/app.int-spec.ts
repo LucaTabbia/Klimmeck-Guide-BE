@@ -78,11 +78,11 @@ const SCHEMA_FILE = join(process.cwd(), 'src/schema.gql');
 // l'unico kind sul filo è quello dei risultati (Phase 15 D-14): il kind interno del viaggio resta fuori
 const ONLY_RESULT_KIND = ['  kind: QuestResultKind!'];
 const CATALOGUE_PET_BLOCK =
-    'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  rarity: RarityType\n  relatedLore: [Lore!]!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
+    'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  rarity: RarityType\n  recoveryTime: Int\n  relatedLore: [Lore!]!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
 const RARITY_TYPE_BLOCK =
     'enum RarityType {\n  common\n  legendary\n  rare\n  ultrarare\n  uncommon\n}';
 const OWNED_PET_BLOCK =
-    'type OwnedPet {\n  currentLifePoints: Int!\n  pet: Pet!\n  xp: Int!\n}';
+    'type OwnedPet {\n  currentLifePoints: Int!\n  defeated: Boolean!\n  fullLifeAt: DateTime\n  level: Int!\n  lifeAsOf: DateTime\n  maxLifePoints: Int!\n  name: String\n  pet: Pet!\n  potionRecoveryUntil: DateTime\n  xp: Int!\n}';
 const CHARACTER_STATUS_BLOCK =
     'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  guidedMissionInProgress: Boolean!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  missionInProgress: Boolean!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}';
 const CHARACTER_ASSETS_BLOCK =
