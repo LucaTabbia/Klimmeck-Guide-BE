@@ -236,6 +236,7 @@ export class CharactersService {
 
     async equipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.id);
+        await this.missionLock.assertFree(characterId);
         const spellId = objectIdFromHex(request.spellId);
         if (!spellId) throw GameRuleException.spellNotKnown();
 
@@ -270,6 +271,7 @@ export class CharactersService {
 
     async unequipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.id);
+        await this.missionLock.assertFree(characterId);
         const spellId = objectIdFromHex(request.spellId);
         if (!spellId) throw GameRuleException.spellNotActive();
 
@@ -321,6 +323,7 @@ export class CharactersService {
 
     async useSpell(request: UseSpellRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.characterId);
+        await this.missionLock.assertFree(characterId);
         const spellId = objectIdFromHex(request.spellId);
         if (!spellId) throw GameRuleException.spellNotActive();
 
