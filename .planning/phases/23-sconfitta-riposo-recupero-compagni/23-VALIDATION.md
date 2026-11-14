@@ -38,7 +38,7 @@ created: 2026-11-14
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 23-01-01 | 01 | 1 | BE-PET-01 | — | N/A (documenti) | docs | `grep -cE "BE-PET-(0[1-9]\|1[0-3]) \| Phase 23 \| Pending" .planning/REQUIREMENTS.md` (= 13) e `grep -cE "^- \[ \] 23-[0-9]{2}-PLAN.md" .planning/ROADMAP.md` (= 18) | — | ⬜ pending |
+| 23-01-01 | 01 | 1 | BE-PET-01 | — | N/A (documenti) | docs | `grep -cE "BE-PET-(0[1-9]|1[0-3]) .*Phase 23 .*Pending" .planning/REQUIREMENTS.md` (= 13) e `grep -cE "^- \[ \] 23-[0-9]{2}-PLAN.md" .planning/ROADMAP.md` (= 18) | — | ⬜ pending |
 | 23-01-02 | 01 | 1 | BE-PET-01 | T-23-01 | vita a riposo da una sola funzione; dati legacy indulgenti | unit | `npx jest src/characters/pets/companion-life.spec.ts --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ❌ W0 | ⬜ pending |
 | 23-01-03 | 01 | 1 | BE-PET-01 | T-23-01, T-23-02 | campi nuovi validi o assenti, nessuna chiave inventata; nessun campo interno sul filo | unit + int | `npx jest src/characters/pets src/economy/trade src/quests/outcomes/pets --selectProjects unit && npx jest src/characters/pets/owned-pet-fields.int-spec.ts --selectProjects integration --runInBand && npx tsc --noEmit -p tsconfig.json` | ❌ W0 (int-spec dei campi) | ⬜ pending |
 | 23-01-04 | 01 | 1 | BE-PET-01 | — | N/A | docs | `grep -qF -- "- [x] 23-01-PLAN.md" .planning/ROADMAP.md && grep -q "Plan: 01 of 18" .planning/STATE.md` | — | ⬜ pending |
@@ -92,7 +92,7 @@ created: 2026-11-14
 | 23-17-01 | 17 | 17 | BE-PET-01..13 | T-23-46, T-23-47, T-23-48 | SDL additivo, liste e guardie contate, nessun segreto | gate | `npx tsc --noEmit -p tsconfig.json && npx jest --selectProjects unit && npx jest test/app.int-spec.ts test/authz/authorization-matrix.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 23-17-02 | 17 | 17 | BE-PET-01..13 | — | N/A | docs | `grep -qF -- "- [x] 23-17-PLAN.md" .planning/ROADMAP.md && grep -q "Plan: 17 of 18" .planning/STATE.md` | — | ⬜ pending |
 | 23-18-01 | 18 | 18 | BE-PET-13 | T-23-49 | handoff senza segreti | docs | `F=.planning/phases/23-sconfitta-riposo-recupero-compagni/BACKEND-NOTES.md && test "$(grep -cE '^## [0-7]\.' $F)" = 8` | — | ⬜ pending |
-| 23-18-02 | 18 | 18 | BE-PET-13 | T-23-50 | `mark-complete` solo dopo il gate | docs | `test "$(grep -cE '\- \[x\] \*\*BE-PET-(0[1-9]\|1[0-3])\*\*' .planning/REQUIREMENTS.md)" = 13 && grep -q "nyquist_compliant: true" .planning/phases/23-sconfitta-riposo-recupero-compagni/23-VALIDATION.md` | — | ⬜ pending |
+| 23-18-02 | 18 | 18 | BE-PET-13 | T-23-50 | `mark-complete` solo dopo il gate | docs | `test "$(grep -cE '\- \[x\] \*\*BE-PET-(0[1-9]|1[0-3])\*\*' .planning/REQUIREMENTS.md)" = 13 && grep -q "nyquist_compliant: true" .planning/phases/23-sconfitta-riposo-recupero-compagni/23-VALIDATION.md` | — | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
