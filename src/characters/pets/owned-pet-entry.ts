@@ -83,6 +83,7 @@ function startingLifePoints(maxLifePoints: unknown): number {
         : 0;
 }
 
+// nascita (acquisto, premio) a livello 1 (D-39): vita = base = massimo del livello 1, voce coerente e non legacy
 export function newOwnedPetEntry(
     petId: Types.ObjectId,
     maxLifePoints: unknown,
@@ -91,6 +92,7 @@ export function newOwnedPetEntry(
         pet: petId,
         xp: 0,
         currentLifePoints: startingLifePoints(maxLifePoints),
+        level: 1,
     };
 }
 
