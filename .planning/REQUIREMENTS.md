@@ -54,15 +54,15 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 
 ### Guided Mission Completion (BE-GMFLOW) — Phase 22, aggiunta 2026-11-12
 
-- [ ] **BE-GMFLOW-01**: Query solo innkeeper della lista nemici per una richiesta: tipi del POI + habitat `city` nella fascia xp del titolo della missione, leggendari ammessi per le worldMission, opzione «mostra tutti»
-- [ ] **BE-GMFLOW-02**: Simulazione a secco di uno scontro (uno o più nemici con quantità) col `CombatResolver` sullo stato corrente o su quello lasciato dallo scontro precedente; nessuna scrittura su personaggi, quest o risultati; esito, HP, ferite, consumabili e magie per personaggio
-- [ ] **BE-GMFLOW-03**: Bozza del flusso salvata sulla richiesta (passo, luogo, scontri, simulazioni, correzioni, premi), ripresa da qualunque dispositivo dell'oste, invisibile ai giocatori, invalidata se la richiesta sparisce
-- [ ] **BE-GMFLOW-04**: Correzioni per personaggio (ferite tolte o aggiunte, vita 1..max, consumabili e magie usati) validate come gli override di oggi
-- [ ] **BE-GMFLOW-05**: Premi per personaggio dal blocco del titolo (Phase 21) con aggiunte/rimozioni dal catalogo filtrato per titolo, rivalidati nel BE (tetto di rarità, pet, magie solo `isSpellCaster` e con `minXpToLearn`)
-- [ ] **BE-GMFLOW-06**: Completamento in una transazione: stato finale, nemici in `QuestResult.enemies`, xp dei nemici e del compagno, conoscenza e lore di vittoria, premi scelti; sempre `gmCompleted`, nessuna aid
-- [ ] **BE-GMFLOW-08**: Dall'avvio del flusso al risultato i partecipanti espongono lo stato «missione in corso» e non possono partire, accettare quest, comprare o vendere, cambiare equipaggiamento, compagno o magie equipaggiate, né bere pozioni (codice di rifiuto proprio); sblocco al completamento o allo scarto della bozza
-- [ ] **BE-GMFLOW-09**: Lo stesso blocco vale per ogni missione dall'inizio effettivo (arrivo alla quest della corsia standard, `startedAt` delle registrate) all'esito: `equipItem`, `equipPet`, `unequipPet`, `equipSpell`, `unequipSpell`, `useSpell`, `useItem` e le transazioni del negozio rifiutate con lo stesso codice; stato «missione in corso» esposto sul personaggio
-- [ ] **BE-GMFLOW-07**: Ruolo innkeeper e audit su ogni mutation nuova (le query dell'oste non si registrano, come oggi); unit + integration; SDL al boot reale; handoff `BACKEND-NOTES.md` per la FE Phase 21 con una worldMission e una story d'esempio per l'UAT
+- [x] **BE-GMFLOW-01**: Query solo innkeeper della lista nemici per una richiesta: tipi del POI + habitat `city` nella fascia xp del titolo della missione, leggendari ammessi per le worldMission, opzione «mostra tutti»
+- [x] **BE-GMFLOW-02**: Simulazione a secco di uno scontro (uno o più nemici con quantità) col `CombatResolver` sullo stato corrente o su quello lasciato dallo scontro precedente; nessuna scrittura su personaggi, quest o risultati; esito, HP, ferite, consumabili e magie per personaggio
+- [x] **BE-GMFLOW-03**: Bozza del flusso salvata sulla richiesta (passo, luogo, scontri, simulazioni, correzioni, premi), ripresa da qualunque dispositivo dell'oste, invisibile ai giocatori, invalidata se la richiesta sparisce
+- [x] **BE-GMFLOW-04**: Correzioni per personaggio (ferite tolte o aggiunte, vita 1..max, consumabili e magie usati) validate come gli override di oggi
+- [x] **BE-GMFLOW-05**: Premi per personaggio dal blocco del titolo (Phase 21) con aggiunte/rimozioni dal catalogo filtrato per titolo, rivalidati nel BE (tetto di rarità, pet, magie solo `isSpellCaster` e con `minXpToLearn`)
+- [x] **BE-GMFLOW-06**: Completamento in una transazione: stato finale, nemici in `QuestResult.enemies`, xp dei nemici e del compagno, conoscenza e lore di vittoria, premi scelti; sempre `gmCompleted`, nessuna aid
+- [x] **BE-GMFLOW-08**: Dall'avvio del flusso al risultato i partecipanti espongono lo stato «missione in corso» e non possono partire, accettare quest, comprare o vendere, cambiare equipaggiamento, compagno o magie equipaggiate, né bere pozioni (codice di rifiuto proprio); sblocco al completamento o allo scarto della bozza
+- [x] **BE-GMFLOW-09**: Lo stesso blocco vale per ogni missione dall'inizio effettivo (arrivo alla quest della corsia standard, `startedAt` delle registrate) all'esito: `equipItem`, `equipPet`, `unequipPet`, `equipSpell`, `unequipSpell`, `useSpell`, `useItem` e le transazioni del negozio rifiutate con lo stesso codice; stato «missione in corso» esposto sul personaggio
+- [x] **BE-GMFLOW-07**: Ruolo innkeeper e audit su ogni mutation nuova (le query dell'oste non si registrano, come oggi); unit + integration; SDL al boot reale; handoff `BACKEND-NOTES.md` per la FE Phase 21 con una worldMission e una story d'esempio per l'UAT
 
 ## Future Requirements
 
@@ -121,15 +121,15 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-RANKP-04 | Phase 21 | Complete |
 | BE-RANKP-05 | Phase 21 | Complete |
 | BE-RANKP-06 | Phase 21 | Complete |
-| BE-GMFLOW-01 | Phase 22 | Pending |
-| BE-GMFLOW-02 | Phase 22 | Pending |
-| BE-GMFLOW-03 | Phase 22 | Pending |
-| BE-GMFLOW-04 | Phase 22 | Pending |
-| BE-GMFLOW-05 | Phase 22 | Pending |
-| BE-GMFLOW-06 | Phase 22 | Pending |
-| BE-GMFLOW-07 | Phase 22 | Pending |
-| BE-GMFLOW-08 | Phase 22 | Pending |
-| BE-GMFLOW-09 | Phase 22 | Pending |
+| BE-GMFLOW-01 | Phase 22 | Complete |
+| BE-GMFLOW-02 | Phase 22 | Complete |
+| BE-GMFLOW-03 | Phase 22 | Complete |
+| BE-GMFLOW-04 | Phase 22 | Complete |
+| BE-GMFLOW-05 | Phase 22 | Complete |
+| BE-GMFLOW-06 | Phase 22 | Complete |
+| BE-GMFLOW-07 | Phase 22 | Complete |
+| BE-GMFLOW-08 | Phase 22 | Complete |
+| BE-GMFLOW-09 | Phase 22 | Complete |
 
 **Coverage:** 41 / 41 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21, 9 BE-GMFLOW → Phase 22). Nessun orfano, nessun duplicato.
 

@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Phase 22 pianificata (18 piani, 2026-11-14) — prossima: esecuzione in wave sequenziali"
+stopped_at: "Phase 22 eseguita (18/18, 2026-11-14) — restano all'orchestratore test:cov, verifica, audit, riavvio, semina UAT, UAT su device e PR"
 last_updated: "2026-11-14T02:06:20.000Z"
-last_activity: 2026-11-14 -- Phase 22 pianificata (ricerca, regole di repo, validazione, 18 piani)
+last_activity: 2026-11-14 -- Phase 22 eseguita (18/18): handoff BACKEND-NOTES.md, VALIDATION firmata, BE-GMFLOW-01..09 chiusi
 progress:
   total_phases: 5
   completed_phases: 4
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 22 — Completamento guidato delle missioni (↔ FE Phase 21) — PIANIFICATA il 2026-11-14 su `feat/22-completamento-guidato-missioni`: 18 piani in wave sequenziali, ricerca, REPO-RULES e VALIDATION registrati; prossimo passo l'esecuzione.
+**Current focus:** Phase 22 — Completamento guidato delle missioni (↔ FE Phase 21) — ESEGUITA il 2026-11-14 su `feat/22-completamento-guidato-missioni` (18/18): gate verde, review corretta, handoff `BACKEND-NOTES.md`; test:cov, verifica e audit, PR, riavvio, semina dei dati UAT e UAT su device con la FE Phase 21 a cura dell'orchestratore.
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 22 di 22 (Completamento guidato delle missioni) — PIANIFICATA il 2026-11-14 su `feat/22-completamento-guidato-missioni` (da `develop` `c6079ca3`): contesto del 2026-11-12 (D-01..D-12) emendato il 2026-11-14 dopo la ricerca e le risposte dell'utente (D-13..D-27), `22-REPO-RULES.md`, `22-RESEARCH.md`, `22-VALIDATION.md`, 18 piani in wave sequenziali; FE Phase 21 pianificata nella stessa sessione
-Plan: 17 of 18
-Status: Phase 22 executing — 18 piani sequenziali (controllo dei piani: 0 blocker, 6 avvisi chiusi con D-31); nessun migratore, SDL solo additivo
-Last activity: 2026-11-14 -- Phase 22: piano 16 completato (completeGuidedMission: la bozza diventa l'esito in una transazione col ciclo condiviso di GmCompletionService, scontri e premi rivalidati in sessione, nemici fusi in QuestResult.enemies, nessun tiro, bozza cancellata e blocco rilasciato; 19 handler pinnati, matrice 18 righe HTTP; SDL +1 mutation, solo additivo)
-Next step: pianificare la Phase 22 (contesto sul ramo `feat/22-completamento-guidato-missioni`, da riallineare a `develop`) con la FE Phase 21. Aperto per l'utente: `Quest.rankPrizes` è leggibile da ogni utente autenticato (decidere con la fase dell'oste). Il BE locale gira da `dist/` di `develop` sulla porta 3001.
+Plan: 18 of 18
+Status: Phase 22 eseguita (18/18) — gate verde, BE-GMFLOW-01..09 chiusi, VALIDATION firmata; nessun migratore, SDL solo additivo (+147, -0 da `c6079ca3`); UAT su device da eseguire
+Last activity: 2026-11-14 -- Phase 22 eseguita (18/18): piano 18 di chiusura (handoff `BACKEND-NOTES.md` per la FE Phase 21 con SDL verbatim, semantica, blocco, subscription, comportamenti provati, dati e piano della UAT su device; VALIDATION firmata; BE-GMFLOW-01..09 chiusi)
+Next step: Phase 22 eseguita (18/18); a cura dell'orchestratore: `npm run test:cov`, verifica e audit di sicurezza, build e riavvio del BE dal ramo, semina dei dati UAT (`BACKEND-NOTES.md` §6, script fuori dal repo), UAT su device con la FE Phase 21 (da eseguire), PR verso `develop`. Dopo la merge della FE Phase 21: rimozione di `completePendingRequest` con gli override (D-25).
 
 ## Current Milestone
 
@@ -57,6 +57,8 @@ v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..09, ↔ FE 18) 
 Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per piano delle fasi v1.0 sono nei `NN-CONTEXT.md` e nei SUMMARY delle fasi.
 
 ## Open Questions / Blockers
+
+- **PendingQuest orfane delle corsie GM (D-27, fuori scope della Phase 22):** le PendingQuest story/worldMission dei personaggi archiviati non vengono mai cancellate (`archived-character-queue.refresher.ts`, `gm-completion.service.ts`); trovato dalla ricerca della Phase 22, da decidere in una fase o quick successiva.
 
 - **Durata dei viaggi** (UAT della Phase 20, 2026-11-13): lo `speedFactor` della strada vale come km/h del terreno (valori a DB da 3 a 7), non come moltiplicatore dei 10 km/h di base; l'utente se lo aspettava diverso e ha deciso «Per adesso teniamo com'è». Se cambia: riscalare gli `speedFactor` a DB, nessun cambio di codice.
 
