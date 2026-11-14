@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Phase 22 completa (2026-11-14): PR #39 e #40 fuse, UAT su device con la FE Phase 21 superata; PR #41 (push di avvio missione, lista dei luoghi con la città, tipo della quest in corsia) da fondere prima della PR della FE"
-last_updated: "2026-11-14T02:06:20.000Z"
-last_activity: 2026-11-14 -- Phase 22 eseguita (18/18), review, verifica, audit e test:cov chiusi; PR draft aperta
+stopped_at: "Phase 23 pianificata (18 piani)"
+last_updated: "2026-11-14T17:38:39.269Z"
+last_activity: 2026-11-14 -- Phase 23 planning complete
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 77
+  total_phases: 6
+  completed_phases: 5
+  total_plans: 95
   completed_plans: 77
-  percent: 100
+  percent: 81
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 22 — Completamento guidato delle missioni (↔ FE Phase 21) — ESEGUITA il 2026-11-14 su `feat/22-completamento-guidato-missioni` (18/18): gate verde, review corretta, handoff `BACKEND-NOTES.md`; test:cov, verifica e audit, PR, riavvio, semina dei dati UAT e UAT su device con la FE Phase 21 a cura dell'orchestratore.
+**Current focus:** Phase 23 — Sconfitta, riposo e recupero dei compagni (↔ FE Phase 22) — PIANIFICATA il 2026-11-14 su `feat/23-sconfitta-riposo-recupero-compagni` (18 piani sequenziali); pronta per l'esecuzione
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
-Phase: 22 di 22 (Completamento guidato delle missioni) — PIANIFICATA il 2026-11-14 su `feat/22-completamento-guidato-missioni` (da `develop` `c6079ca3`): contesto del 2026-11-12 (D-01..D-12) emendato il 2026-11-14 dopo la ricerca e le risposte dell'utente (D-13..D-27), `22-REPO-RULES.md`, `22-RESEARCH.md`, `22-VALIDATION.md`, 18 piani in wave sequenziali; FE Phase 21 pianificata nella stessa sessione
-Plan: 18 of 18
-Status: Phase 22 COMPLETA il 2026-11-14 — 18/18 piani, PR #39 fusa su `develop`, boot reale dal ramo senza migratori, UAT su device superata insieme alla FE Phase 21 (passi 1–11 pass, passo 12 non eseguito per scelta dell'utente; registro in FE `21-HUMAN-UAT.md`). Dalla UAT: PR #40 (fusa) cancella le richieste story/worldMission degli archiviati; PR #41 aggiunge la push `missionStart` all'avvio della bozza, corregge `pointOfInterests { city }` (città non popolata) e serve `infos.type` della quest in corsia. «Rilancia» col motore segnaposto dà gli stessi numeri: accettato dall'utente, il motore vero verrà dopo.
-Last activity: 2026-11-14 -- Phase 22 eseguita (18/18), review, verifica, audit e test:cov chiusi; PR draft aperta
-Next step: fondere la PR #41 PRIMA della PR della FE `feat/21-innkeeper-mission-completion` (la FE seleziona `pendingQuest.quest.infos.type` e `pointOfInterests.city`); poi discuss della Phase 23 «Sconfitta, riposo e recupero dei compagni» (↔ FE Phase 22), interattivo; rimozione di `completePendingRequest` (nessun documento della FE lo usa più) in una quick o nella prossima fase.
+Phase: 23 di 23 (Sconfitta, riposo e recupero dei compagni) — PIANIFICATA il 2026-11-14 su `feat/23-sconfitta-riposo-recupero-compagni` (riportato su `develop` `2c462cbe`): contesto D-01..D-21 emendato dopo la ricerca e le risposte dell'utente (D-23..D-33) e con i livelli del compagno (D-37..D-39), `23-REPO-RULES.md`, `23-RESEARCH.md`, `23-VALIDATION.md`, 18 piani in wave sequenziali; FE Phase 22 pianificata nella stessa sessione (17 piani)
+Plan: 0 of 18
+Status: Phase 23 pianificata — ready to execute
+Last activity: 2026-11-14 -- Phase 23 planning complete
+Next step: eseguire i 18 piani (executor sequenziali), poi review, verifica, audit, PR draft; la tabella dei tempi di recupero dei 44 pet attende la revisione dell'utente prima della scrittura a DB (prima della UAT su device con la FE Phase 22).
 
 ## Current Milestone
 
