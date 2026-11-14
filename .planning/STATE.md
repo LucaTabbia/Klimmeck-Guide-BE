@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 22 di 22 (Completamento guidato delle missioni) — PIANIFICATA il 2026-11-14 su `feat/22-completamento-guidato-missioni` (da `develop` `c6079ca3`): contesto del 2026-11-12 (D-01..D-12) emendato il 2026-11-14 dopo la ricerca e le risposte dell'utente (D-13..D-27), `22-REPO-RULES.md`, `22-RESEARCH.md`, `22-VALIDATION.md`, 18 piani in wave sequenziali; FE Phase 21 pianificata nella stessa sessione
-Plan: 15 of 18
+Plan: 16 of 18
 Status: Phase 22 executing — 18 piani sequenziali (controllo dei piani: 0 blocker, 6 avvisi chiusi con D-31); nessun migratore, SDL solo additivo
-Last activity: 2026-11-14 -- Phase 22: piano 14 completato (catalogo dei premi per titolo: regola pura missionPrizeOptionsOf con tetto dalla tabella boss per la worldMission e enemy per la story, voci del blocco sempre ammesse, assertPrizeAllowed per la rivalidazione; chosenRewardsOf senza tiri; query missionPrizeOptions innkeeper fuori dall'audit, 17 handler pinnati, matrice 16 righe HTTP; SDL +1 tipo e 1 query, solo additivo)
+Last activity: 2026-11-14 -- Phase 22: piano 16 completato (completeGuidedMission: la bozza diventa l'esito in una transazione col ciclo condiviso di GmCompletionService, scontri e premi rivalidati in sessione, nemici fusi in QuestResult.enemies, nessun tiro, bozza cancellata e blocco rilasciato; 19 handler pinnati, matrice 18 righe HTTP; SDL +1 mutation, solo additivo)
 Next step: pianificare la Phase 22 (contesto sul ramo `feat/22-completamento-guidato-missioni`, da riallineare a `develop`) con la FE Phase 21. Aperto per l'utente: `Quest.rankPrizes` è leggibile da ogni utente autenticato (decidere con la fase dell'oste). Il BE locale gira da `dist/` di `develop` sulla porta 3001.
 
 ## Current Milestone
