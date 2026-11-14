@@ -22,6 +22,22 @@ export class OwnedPet {
     @Field(() => Int)
     @Prop({ type: Number, required: true })
     currentLifePoints: number;
+
+    // riposo, sconfitta e livello salvato (D-23, D-24, D-39): ancora currentLifePoints @ lifeAsOf; senza level né lifeAsOf la voce è legacy e si legge piena
+    @Prop({ type: String })
+    name?: string | null;
+
+    @Prop({ type: Date })
+    lifeAsOf?: Date | null;
+
+    @Prop({ type: Date })
+    defeatedUntil?: Date | null;
+
+    @Prop({ type: Date })
+    potionRecoveryUntil?: Date | null;
+
+    @Prop({ type: Number, min: 1, max: 10 })
+    level?: number;
 }
 
 export const OwnedPetSchema = SchemaFactory.createForClass(OwnedPet);
