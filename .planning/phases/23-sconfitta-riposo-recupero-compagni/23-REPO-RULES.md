@@ -58,4 +58,24 @@ Fase con **SDL nuovo**, solo aggiunte (campi, un argomento, operazioni, codici, 
 
 ## Completato dopo la ricerca
 
-_Da scrivere a cura dell'orchestratore dopo `23-RESEARCH.md` e la FE `22-RESEARCH.md` (filo definitivo, regole dure, ordine dei piani)._
+Scritto il 14 novembre 2026. Dove questa sezione e il resto del file divergono, vince questa sezione. Riferimenti file:riga in `23-RESEARCH.md`; ruling in `23-CONTEXT.md` D-23..D-33.
+
+### Il filo (D-23..D-33)
+
+- Lo SDL atteso è quello VERBATIM di `23-RESEARCH.md` §Q12 **più** `CompanionOutcome.lifeBefore: Int!` (in ordine alfabetico, dopo `fullLifeAt`); `QuestResult.companion` è valorizzato ogni volta che un compagno ha combattuto (D-27). Solo aggiunte: a fine del piano che cambia i decoratori `git diff develop -- src/schema.gql` non mostra righe tolte.
+- La tabella di bozza qui sopra si legge così: nessun `OwnedPet.id` né `ownedPetId` (chiave = id del pet a catalogo); `useItem(itemId: ID!, petId: ID)`; `RenamePetRequest { id: String!, name: String, petId: String! }`; `Pet.recoveryTime: Int` annullabile in millisecondi; niente `AmbushReport.companion`, in più `AmbushReport.onFoot: Boolean!`; guidato = `MissionCompanion` + `MissionFightEffects.companionLifeAfter` + `ParticipantOverrideInput.companionLifeAfter`; codici `PET_DEFEATED`, `PET_POTION_RECOVERING` (con `extensions.recoveryUntil`, allowlist estesa), `PET_NAME_INVALID`; vita piena = `ITEM_NO_EFFECT`.
+- Blocchi di `test/app.int-spec.ts` e voci di `test/authz/expected-handlers.ts` da aggiornare PRIMA (RED): elenco in §Q12. Nessun campo nuovo contiene la parola `kind`; `activeTravel.mount` non arriva mai sul filo.
+
+### Regole dure
+
+- **Conservare i campi (Pitfall 1):** `normalisedOwnedPets`, `NewOwnedPetEntry` e lo schema della voce conservano i campi nuovi a ogni riscrittura dell'array (negozio, xp, premi): è il piano 01, con una spec che riscrive l'array e ritrova nome, ancora e date.
+- **Una funzione pura** per la vita a riposo (`(max − 1) / T`, arrotondamento al più vicino, minimo 1) e **un predicato** «sconfitto» (data `defeatedUntil` futura), usati da ogni lettura e scrittura; l'ora dalla porta `Clock`. `equipPet` giudica con la data, mai con lo sweeper (Pitfall 6).
+- **Nessun tiro nuovo (Pitfall 3):** il segnaposto danneggia il compagno senza consumare la `ChanceSource`; la rimappa della prossima imboscata è per km, senza tiri; le spec a seme fisso restano verdi senza toccare le sequenze.
+- **Sconfitta (D-26):** vita 1 a fine scontro = sconfitto, fuori dallo slot a fine scontro (a fine missione nei dungeon e negli scontri guidati, fuori dagli scontri seguenti).
+- **Imboscate (D-28, D-29, Pitfall 5, Pitfall 9):** `QuestResult` scritto all'istante; i report già trattenuti dei viaggi in volo si consegnano all'arrivo come oggi; l'identità del viaggio cambia con `startTime`: i job e le chiavi che la usano vanno riallineati nello stesso piano.
+- **Push (D-30, D-24):** `ambush` per ogni imboscata con `id` = id del `QuestResult`; `ambushDefeat` resta nell'enum, nessun invio; «in forze» da sweeper + claim con `arrayFilters` (sonda P2), dopo il commit, insieme a `characterUpdated`.
+- **Nome (D-31):** stesse regole di forma di `character-name.ts`, una sola funzione condivisa; nessun filtro di parole.
+- **`planUnrewarded` (Pitfall 8)** passa anch'esso da `companionAfterFight`. Una spec unitaria non importa mai `AppModule` (Pitfall 10).
+- **Tabella dei tempi (D-25):** nessun dato nel repo; il reporter d'avvio conta i pet senza `recoveryTime` (solo il numero nel log).
+- Requisiti BE-PET-01..13 di `23-RESEARCH.md` §Phase Requirements: il primo piano li scrive in `.planning/REQUIREMENTS.md` e nella ROADMAP. Le spec che andranno RED sono la tabella di §Q14; la Wave 0 è in `23-VALIDATION.md`.
+- Ordine dei piani: i 18 di §Q15 (modello e orologio → catalogo e filo → equip → porta del combattimento → esiti → copertura dei percorsi → pozione → rinomina → push «in forze» → imboscate e `QuestResult` immediato → push `ambush` → cavalcatura fotografata → strada a piedi → fame e deviazione → guidato proposta → guidato correzione e completamento → gate → handoff).

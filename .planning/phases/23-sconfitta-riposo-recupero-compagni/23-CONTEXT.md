@@ -2,6 +2,7 @@
 
 **Gathered:** 2026-11-14 (discuss interattivo fatto nella FE Phase 22, `Klimmeck-Guide/.planning/phases/22-companion-defeat-rest-and-recovery/22-CONTEXT.md`, stessa numerazione D-01..D-21: dove serve il verbatim dell'utente vale quel file)
 **Status:** Ready for planning — ramo `feat/23-sconfitta-riposo-recupero-compagni` impilato su `feat/mission-start-push` (PR #41)
+**Amended:** 2026-11-14 dopo la ricerca e le risposte dell'utente (D-23..D-33; D-21 emendata da D-31; la bozza del filo di `23-REPO-RULES.md` è sostituita dalla sua ultima sezione)
 
 <domain>
 ## Phase Boundary
@@ -42,6 +43,22 @@ Fuori ambito: il motore di combattimento vero e il motore a piani delle dungeon 
 - **D-21 (utente):** stesse regole del nome del personaggio: lunghezza, caratteri, stesso filtro dei contenuti; rifiuto con codice proprio.
 
 (D-08 e D-09 sono solo FE: foglio della pozione, vita che sale dal vivo interpolata fra le date servite dal BE.)
+
+### Aggiunte dopo la ricerca (2026-11-14) — ruling dell'orchestratore e risposte dell'utente
+
+Evidenze in `23-RESEARCH.md` e nella FE `22-RESEARCH.md`. Stessa numerazione della FE `22-CONTEXT.md` (D-23..D-35; D-34 e D-35 sono solo FE). Dove queste e le decisioni sopra divergono, vincono queste.
+
+- **D-23 (ricerca, C-2):** il compagno si identifica ovunque con l'**id del pet a catalogo** (`equipPet`, `useItem(itemId, petId)`, `RenamePetRequest { id, name, petId }`); una voce per specie resta un invariante. Nessun id di voce, nessun migratore: default indulgenti (una vita ≤ 0 si legge come vita piena). `normalisedOwnedPets` e lo schema della voce devono CONSERVARE i campi nuovi a ogni riscrittura dell'array (Pitfall 1, sonde P1 e P3): è il primo piano.
+- **D-24 (ricerca, C-3, C-14):** vita a riposo calcolata a lettura/scrittura da un'ancora salvata (`currentLifePoints` alla data `lifeAsOf`) con UNA funzione pura; velocità `(max − 1) / T`, arrotondamento al più vicino. Marcatore interno della sconfitta: la data `defeatedUntil`; `defeated` sul filo è risolto a lettura (vero finché la data di vita piena è futura) e `equipPet` giudica con la stessa regola (mai con lo sweeper). Al recupero di uno sconfitto: push e `characterUpdated`, da uno sweeper con claim (ritardo massimo 60 s accettato, precedente della prigione); nessuna push se il compagno è stato venduto.
+- **D-25 (ricerca, C-4, C-16):** `Pet.recoveryTime: Int` annullabile, in millisecondi; pet non curato = recupero istantaneo e WARN al boot. La tabella dei 44 pet (nessuno con rarità o vita nulle) la rivede l'utente su un file fuori dal repo; la scrive a DB l'orchestratore prima della UAT.
+- **D-26 (ricerca, C-13, C-15; default tecnico):** un compagno che esce da uno scontro a 1 è sconfitto, anche se era entrato a 1; D-12 vale anche per gli scontri in sequenza della missione guidata.
+- **D-27 (ricerca + FE W-5):** `QuestResult.companion: CompanionOutcome` servito **ogni volta che un compagno ha combattuto** (nullo altrimenti), con `lifeBefore: Int!` in più rispetto a §Q12: `defeated`, `fullLifeAt`, `lifeBefore`, `lifePoints`, `maxLifePoints`, `name` (nome mostrato).
+- **D-28 (ricerca, C-5, C-9):** il report d'imboscata è un `QuestResult` scritto all'istante dell'imboscata (non più trattenuto fino all'arrivo); «visto» = `acknowledgedAt`; nessuno SDL nuovo per D-15. La FE di oggi li mostrerà già a viaggio in corso: accettato. `AmbushReport.onFoot: Boolean!` (default dell'orchestratore, l'utente può vetare la riga «Prosegui a piedi»). Niente `AmbushReport.companion`.
+- **D-29 (ricerca, C-7, C-8, C-11):** campo interno `activeTravel.mount` scritto alla partenza (mai sul filo); viaggio ricalcolato con la forma della deviazione di oggi (strada dal punto dell'imboscata, `startTime` = istante dell'imboscata); `reachedCity` valorizzato anche nel ridirezionamento dopo un'imboscata vinta; prossima imboscata rimappata per km senza tiri nuovi; deviazione a piedi se la cavalcatura è caduta; viaggi in volo al deploy senza ricalcolo.
+- **D-30 (utente, «Una categoria «Imboscate»», C-10):** `PushEventType.ambush` per ogni imboscata, vinta o persa; `ambushDefeat` resta nell'enum ma non parte più. `id` della push = id del `QuestResult`; testi col nome mostrato quando il compagno cade.
+- **D-31 (utente, «Solo regole di forma», C-1; emenda D-21):** il nome del compagno segue le stesse regole di forma del nome del personaggio (nessun filtro di parole: non esiste nemmeno per il personaggio). Codice `PET_NAME_INVALID`. Rinomina NON bloccata da «Missione in corso» (C-12); `name: null` toglie il nome.
+- **D-32 (ricerca + FE W-4):** pozione sul compagno: vita piena → `ITEM_NO_EFFECT`; attesa del compagno → `PET_POTION_RECOVERING` con `extensions.recoveryUntil` (allowlist estesa); sconfitto → `PET_DEFEATED`; `UseItemResult` porta i valori del bersaglio (`injuriesHealed` vuoto); le lore si sbloccano al personaggio; `MISSION_IN_PROGRESS` e `AWAITING_AID` valgono come per il personaggio.
+- **D-33 (ricerca, C-6):** `MissionFightOutcome.companion: MissionCompanion`, `MissionFightEffects.companionLifeAfter`, `ParticipantOverrideInput.companionLifeAfter` (1..max; lo accetta anche il legacy `completePendingRequest`); bozze aperte al deploy lette senza i campi nuovi.
 
 ### Claude's Discretion
 - Forma sul filo (campi di `OwnedPet` e `Pet`, bersaglio di `useItem`, voci del compagno in `QuestResult` / report d'imboscata / bozza della missione, codici), decisa nel plan e riportata in `BACKEND-NOTES.md`.
