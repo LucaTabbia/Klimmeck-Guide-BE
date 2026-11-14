@@ -3,6 +3,7 @@ import {
     companionDisplayName,
     companionLifeAt,
     CompanionLifeInput,
+    companionLifeNow,
     companionStoredLifeOf,
     defeatedUntilOf,
     isLegacyCompanionEntry,
@@ -125,6 +126,20 @@ describe('companion life clock', () => {
         expect(companionDisplayName('   ', 'Worg')).toBe('Worg');
         expect(companionDisplayName(null, 'Worg')).toBe('Worg');
         expect(companionDisplayName(null, null)).toBe('Compagno');
+    });
+
+    it('reads the life of an equipped companion with the same floor and legacy rules (D-03, D-23)', () => {
+        expect(companionLifeNow(40, 80)).toBe(40);
+        expect(companionLifeNow(250, 80)).toBe(80);
+        expect(companionLifeNow(0, 80)).toBe(80);
+        expect(companionLifeNow('x', 80)).toBe(80);
+        expect(companionLifeNow(0, null)).toBe(1);
+        expect(companionLifeNow(40, null)).toBe(40);
+        expect(companionLifeNow(40, 80)).toBe(
+            companionLifeAt(
+                input({ lifePoints: 40, resting: false, maxLifePoints: 80 }),
+            ).lifePoints,
+        );
     });
 
     describe('entries written before the phase', () => {

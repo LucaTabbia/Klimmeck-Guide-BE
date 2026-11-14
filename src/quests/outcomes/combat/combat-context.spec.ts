@@ -6,6 +6,7 @@ import {
     buildCombatContext,
     CombatCharacterSnapshot,
     CombatHydration,
+    CombatPetSnapshot,
     combatCatalogRefsOf,
     normalizeDamages,
 } from './combat-context';
@@ -631,7 +632,9 @@ describe('the companion in the combat context', () => {
         expect(
             companionWith({
                 pet: wolfId,
-                ownedPets: [{ pet: wolfId, xp: 40, currentLifePoints: 30 }],
+                ownedPets: [
+                    { pet: wolfId, xp: 40, currentLifePoints: 30, level: 1 },
+                ],
             }),
         ).toEqual({
             petId: wolfId.toHexString(),
@@ -666,5 +669,79 @@ describe('the companion in the combat context', () => {
                 ownedPets: [{ pet: id('62'), xp: 1, currentLifePoints: 1 }],
             }),
         ).toBeNull();
+    });
+
+    const fox = id('63');
+    const foxStats = { maxLifePoints: 80, maxXp: 100 };
+    const foxCompanion = (
+        entry: Omit<
+            NonNullable<
+                NonNullable<CombatCharacterSnapshot['assets']>['ownedPets']
+            >[number],
+            'pet'
+        >,
+        stats: CombatPetSnapshot = { maxLifePoints: 80 },
+    ) =>
+        companionWith(
+            { pet: fox, ownedPets: [{ pet: fox, ...entry }] },
+            new Map([[fox.toHexString(), stats]]),
+        );
+
+    it('reads a legacy companion life of zero as full life (D-23)', () => {
+        expect(
+            foxCompanion({ xp: 0, currentLifePoints: 0 })?.currentLifePoints,
+        ).toBe(80);
+    });
+
+    it('clamps the companion life between 1 and its maximum (D-03)', () => {
+        expect(
+            foxCompanion({ xp: 0, currentLifePoints: 250, level: 1 })
+                ?.currentLifePoints,
+        ).toBe(80);
+        expect(
+            foxCompanion({ xp: 0, currentLifePoints: 250 })?.currentLifePoints,
+        ).toBe(80);
+        expect(
+            foxCompanion({ xp: 0, currentLifePoints: 7, level: 1 }, {})
+                ?.currentLifePoints,
+        ).toBe(7);
+        expect(
+            foxCompanion({ xp: 0, currentLifePoints: 0, level: 1 }, {})
+                ?.currentLifePoints,
+        ).toBe(1);
+    });
+
+    it('brings the companion into the fight with the maximum of its level (D-38)', () => {
+        expect(
+            foxCompanion(
+                { xp: 100, currentLifePoints: 40, level: 10 },
+                foxStats,
+            )?.maxLifePoints,
+        ).toBe(160);
+        expect(
+            foxCompanion({ xp: 100, currentLifePoints: 40 }, foxStats)
+                ?.maxLifePoints,
+        ).toBe(160);
+        expect(
+            foxCompanion({ xp: 0, currentLifePoints: 40, level: 3 }, foxStats)
+                ?.maxLifePoints,
+        ).toBe(85);
+        expect(
+            foxCompanion({ xp: 100, currentLifePoints: 0 }, foxStats)
+                ?.currentLifePoints,
+        ).toBe(160);
+    });
+
+    it('brings a companion never touched by the phase into the fight at full life (D-23, D-38)', () => {
+        expect(
+            foxCompanion({ xp: 100, currentLifePoints: 80 }, foxStats)
+                ?.currentLifePoints,
+        ).toBe(160);
+        expect(
+            foxCompanion(
+                { xp: 100, currentLifePoints: 80, level: 10 },
+                foxStats,
+            )?.currentLifePoints,
+        ).toBe(80);
     });
 });
