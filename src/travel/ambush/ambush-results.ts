@@ -17,7 +17,12 @@ export interface AmbushResultDraft {
     user: Types.ObjectId;
     kind: QuestResultKind.ambush;
     quest: null;
-    ambush: { at: Date; nearCity: AmbushCity; reachedCity: AmbushCity | null };
+    ambush: {
+        at: Date;
+        nearCity: AmbushCity;
+        onFoot: boolean;
+        reachedCity: AmbushCity | null;
+    };
     outcome: AmbushReportDraft['outcome'];
     resolvedAt: Date;
     acknowledgedAt: null;
@@ -73,6 +78,8 @@ function resultDraftOf(
         ambush: {
             at: report.at,
             nearCity: report.nearCity,
+            // i report trattenuti prima della Phase 23 non lo portano (D-28)
+            onFoot: report.onFoot ?? false,
             reachedCity: report.reachedCity,
         },
         outcome: report.outcome,

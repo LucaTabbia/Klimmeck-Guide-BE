@@ -46,6 +46,7 @@ import {
     knowledgeUpdateOf,
     type VictoryKnowledge,
 } from 'src/quests/outcomes/victory-knowledge';
+import { refIdOf } from 'src/mongo/document-id';
 import type { LonLat } from 'src/roads/road-route';
 import {
     type FoodSettlement,
@@ -53,10 +54,12 @@ import {
     settlementGuardsOf,
 } from 'src/travel/food/travel-food-settlement';
 import { mealLinesOf } from 'src/travel/food/travel-food.updates';
+import { stacksOf } from 'src/travel/food/travel-pantry.reader';
 import { durationMsOf } from 'src/travel/travel-timing';
 import { type AmbushFood, defeatSettlementOf } from './ambush-food';
 import type { DrawnAmbush } from './ambush-draw';
 import type { AmbushIdentity } from './ambush-job';
+import { isMountFallen, onFootFoodOf, onFootTravelOf } from './ambush-on-foot';
 import { ambushPrizesOf } from './ambush-rules';
 import { ambushFilter, nextAmbushEntry } from './ambush.updates';
 
@@ -76,6 +79,8 @@ export interface AmbushTravelSnapshot {
     ambushReports?: AmbushReportDraft[];
     // piano del cibo salvato alla partenza, validato da foodLegOf (Phase 20 D-05)
     food?: unknown;
+    // cavalcatura fotografata alla partenza, interna; assente sui viaggi partiti prima della Phase 23 (D-29)
+    mount?: unknown;
 }
 
 export type AmbushCharacterSnapshot = OutcomeCharacterSnapshot & {
@@ -112,6 +117,8 @@ export interface AmbushReportDraft {
     petXpGained?: number;
     // il piano lo scrive sempre; assente nei report trattenuti prima della Phase 23
     companion?: CompanionOutcomeDraft | null;
+    // il piano lo scrive sempre; assente nei report trattenuti prima della Phase 23 (D-28)
+    onFoot?: boolean;
 }
 
 // deviazione verso la città più vicina dopo una sconfitta (D-11); ripiego sulla strada residua verso la meta (D-25)
@@ -139,6 +146,8 @@ export interface AmbushPlanInput {
     nearCity: AmbushCity;
     nextAmbush: DrawnAmbush | null;
     detour: DetourDraft | null;
+    // punto dell'imboscata sulla polilinea: da lì riparte la strada a piedi (D-13)
+    ambushPoint: { point: LonLat; segment: number };
     spellRecoveryTimes: ReadonlyMap<string, number>;
     petMaxXp: ReadonlyMap<string, number>;
     petCatalog: ReadonlyMap<string, CompanionCatalogEntry>;
@@ -156,7 +165,15 @@ export interface AmbushOutcomePlan {
     coinsDelta: number;
     report: AmbushReportDraft;
     spellRecoveries: SpellRecovery[];
-    travelAfter: { startTime: Date; endTime: Date; ambush: DrawnAmbush | null };
+    // rewritten = viaggio riscritto con un startTime nuovo: i job vanno riallineati (Pitfall 5)
+    travelAfter: {
+        startTime: Date;
+        endTime: Date;
+        ambush: DrawnAmbush | null;
+        rewritten: boolean;
+    };
+    // solo sulla strada a piedi con un piano del cibo: il ridirezionamento per fame lo legge (D-16)
+    onFootFood: { arrivesAlive: boolean } | null;
 }
 
 interface FoughtOutcome {
@@ -246,6 +263,7 @@ function reportOf(
     fought: FoughtOutcome,
     learned: KnowledgeUpdate,
     won: boolean,
+    onFoot: boolean,
 ): AmbushReportDraft {
     const { before, progression } = fought;
     return {
@@ -273,6 +291,7 @@ function reportOf(
         loreUnlocked: learned.fresh,
         petXpGained: fought.companion.gained,
         companion: fought.companion.outcome,
+        onFoot,
     };
 }
 
@@ -367,7 +386,99 @@ function defeatPlanOf(
         coinsDelta: fought.coinsDelta,
         report,
         spellRecoveries: fought.spells.recoveries,
-        travelAfter: { startTime: input.identity.at, endTime, ambush: null },
+        travelAfter: {
+            startTime: input.identity.at,
+            endTime,
+            ambush: null,
+            rewritten: false,
+        },
+        onFootFood: null,
+    };
+}
+
+// la cavalcatura della partenza sconfitta in questo scontro (D-13, D-29)
+function mountFallenIn(input: AmbushPlanInput, fought: FoughtOutcome): boolean {
+    return isMountFallen(input.snapshot.status.activeTravel.mount, {
+        petId: refIdOf(input.snapshot.assets?.pet),
+        defeated: fought.companion.outcome?.defeated ?? false,
+    });
+}
+
+// arrivare al punto è uno stop: si mangia il cibo dei km percorsi prima di ripartire a piedi (D-13, Phase 20 D-03)
+function eatenAtStop(
+    fought: FoughtOutcome,
+    food: AmbushFood | null | undefined,
+): FoughtOutcome {
+    const meal = mealLinesOf(food?.defeat?.consumed ?? []);
+    if (meal.length === 0) return fought;
+    return {
+        ...fought,
+        inventory: {
+            ...applyTradeToInventory(fought.inventory, meal),
+            vacatedSlots: fought.inventory.vacatedSlots,
+        },
+    };
+}
+
+// D-13: viaggio riscritto dal punto all'istante dell'imboscata, senza mount; piano del cibo nuovo solo se il viaggio ne aveva uno valido
+function onFootPlanOf(
+    input: AmbushPlanInput,
+    fought: FoughtOutcome,
+    learned: KnowledgeUpdate,
+    report: AmbushReportDraft,
+): AmbushOutcomePlan {
+    const travel = input.snapshot.status.activeTravel;
+    const walker = eatenAtStop(fought, input.food);
+    const walk = onFootTravelOf({
+        travel,
+        point: input.ambushPoint.point,
+        segment: input.ambushPoint.segment,
+        next: input.nextAmbush,
+    });
+    const meal = input.food
+        ? onFootFoodOf({
+              durationMs: walk.duration,
+              distanceKm: walk.road.distance,
+              hpBefore: walker.progression.currentLifePoints,
+              stacks: stacksOf(walker.inventory.ownedItems, input.food.catalog),
+          })
+        : null;
+    const held = travel.ambushReports ?? [];
+    return {
+        filter: filterOf(
+            input,
+            walker,
+            input.food ? defeatSettlementOf(input.food) : null,
+        ),
+        update: {
+            $set: {
+                ...commonSetOf(walker),
+                'status.activeTravel': {
+                    road: walk.road,
+                    startTime: walk.startTime,
+                    endTime: walk.endTime,
+                    duration: walk.duration,
+                    to: walk.to,
+                    kind: walk.kind,
+                    ...(walk.next
+                        ? { ambush: nextAmbushEntry(walk.next) }
+                        : {}),
+                    ...(meal ? { food: meal.food } : {}),
+                    ...(held.length > 0 ? { ambushReports: held } : {}),
+                },
+            },
+            ...learned.addition,
+        },
+        coinsDelta: walker.coinsDelta,
+        report,
+        spellRecoveries: walker.spells.recoveries,
+        travelAfter: {
+            startTime: walk.startTime,
+            endTime: walk.endTime,
+            ambush: walk.next,
+            rewritten: true,
+        },
+        onFootFood: meal ? { arrivesAlive: meal.plan.arrivesAlive } : null,
     };
 }
 
@@ -381,13 +492,15 @@ export function planAmbushOutcome(input: AmbushPlanInput): AmbushOutcomePlan {
         victory?.loreIds ?? [],
         victory?.enemyIds ?? [],
     );
-    const report = reportOf(input, fought, learned, won);
+    const onFoot = won && mountFallenIn(input, fought);
+    const report = reportOf(input, fought, learned, won, onFoot);
     if (!won) {
         if (!input.detour) {
             throw new Error('ambush defeat needs the reached city');
         }
         return defeatPlanOf(input, input.detour, fought, report);
     }
+    if (onFoot) return onFootPlanOf(input, fought, learned, report);
     const travel = input.snapshot.status.activeTravel;
     return {
         filter: filterOf(input, fought, input.food?.progress ?? null),
@@ -399,6 +512,8 @@ export function planAmbushOutcome(input: AmbushPlanInput): AmbushOutcomePlan {
             startTime: travel.startTime,
             endTime: travel.endTime,
             ambush: input.nextAmbush,
+            rewritten: false,
         },
+        onFootFood: null,
     };
 }

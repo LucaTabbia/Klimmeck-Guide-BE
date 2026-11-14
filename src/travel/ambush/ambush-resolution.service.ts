@@ -65,6 +65,7 @@ import {
     type AmbushCharacterSnapshot,
     type AmbushCity,
     type AmbushOutcomePlan,
+    type AmbushPlanInput,
     type AmbushReportDraft,
     type AmbushTravelSnapshot,
     type DetourDraft,
@@ -112,6 +113,7 @@ interface Fight {
     nearCity: AmbushCity;
     next: DrawnAmbush | null;
     detour: DetourDraft;
+    ambushPoint: AmbushPlanInput['ambushPoint'];
     userId: Types.ObjectId;
     now: Date;
 }
@@ -292,6 +294,7 @@ export class AmbushResolutionService {
             nearCity: place.nearCity,
             next,
             detour: await this.detourOf(snapshot, place, place.nearCity, jobId),
+            ambushPoint: { point: place.point, segment: place.segment },
             userId,
             now,
         });
@@ -481,6 +484,7 @@ export class AmbushResolutionService {
                     nearCity: fight.nearCity,
                     nextAmbush: fight.next,
                     detour: fight.detour,
+                    ambushPoint: fight.ambushPoint,
                     spellRecoveryTimes: catalog.recoveryTimes,
                     petMaxXp: catalog.petMaxXp,
                     petCatalog: catalog.pets,
@@ -597,7 +601,10 @@ export class AmbushResolutionService {
     // la prossima imboscata, oppure il completamento già scaduto che il filtro aveva fatto aspettare (Pitfall 1)
     private async afterCommit(
         characterId: Types.ObjectId,
-        travel: AmbushOutcomePlan['travelAfter'],
+        travel: Pick<
+            AmbushOutcomePlan['travelAfter'],
+            'startTime' | 'endTime' | 'ambush'
+        >,
         now: Date,
     ): Promise<void> {
         if (travel.ambush) {

@@ -66,6 +66,11 @@ export class AmbushReport {
     @Prop({ type: AmbushCitySchema, required: true })
     nearCity: AmbushCity;
 
+    // il resto della strada è a piedi: la cavalcatura è caduta (D-13, D-28)
+    @Field(() => Boolean)
+    @Prop({ type: Boolean, default: false })
+    onFoot: boolean;
+
     @Field(() => AmbushCity, { nullable: true })
     @Prop({ type: AmbushCitySchema, default: null })
     reachedCity: AmbushCity | null;
