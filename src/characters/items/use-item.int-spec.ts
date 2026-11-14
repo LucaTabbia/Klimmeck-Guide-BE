@@ -8,6 +8,7 @@ import {
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { LootItem } from 'src/models/loot-item.model';
 import { Lore } from 'src/models/lore.model';
+import { Pet } from 'src/models/pet.model';
 import {
     PendingQuest,
     PendingQuestDocument,
@@ -21,10 +22,17 @@ import {
     buildCharacter,
     persistLootItem,
     persistLore,
+    persistPet,
 } from '../../../test/fixtures';
+import {
+    buildOwnedPet,
+    type OwnedPetSeed,
+} from '../../../test/fixtures/owned-pet.fixture';
 
 const USE_ITEM =
     'mutation UseItem($itemId: ID!) { useItem(itemId: $itemId) { hpBefore hpAfter injuriesHealed quantityLeft recoveryUntil loreUnlocked { id name type } } }';
+const USE_ITEM_ON_PET =
+    'mutation UseItem($itemId: ID!, $petId: ID) { useItem(itemId: $itemId, petId: $petId) { hpBefore hpAfter injuriesHealed quantityLeft recoveryUntil loreUnlocked { id name type } } }';
 const POTION_RECOVERY =
     'query($id: String!) { character(id: $id) { status { potionRecoveryUntil } } }';
 const NOW = new Date('2026-11-10T12:00:00.000Z');
@@ -50,7 +58,7 @@ interface RawCharacter {
         potionRecoveryUntil?: Date | null;
         unlockedLore?: unknown[];
     };
-    assets: { ownedItems: RawStack[] };
+    assets: { ownedItems: RawStack[]; ownedPets?: unknown[] };
 }
 
 interface Persisted {
@@ -64,6 +72,8 @@ interface PlayerShape {
     status?: Record<string, unknown>;
     ownedItems?: RawStack[];
     quests?: Record<string, unknown>;
+    ownedPets?: OwnedPetSeed[];
+    pet?: Types.ObjectId | null;
 }
 
 interface LaneDates {
@@ -81,6 +91,7 @@ describe('useItem (wire)', () => {
     let characters: Model<CharacterDocument>;
     let lootItems: Model<any>;
     let lores: Model<any>;
+    let pets: Model<any>;
     let pendingQuests: Model<PendingQuestDocument>;
 
     function stackOf(item: Types.ObjectId, quantity = 2): RawStack {
@@ -106,6 +117,8 @@ describe('useItem (wire)', () => {
                         itemType: 'LootItem',
                         ...stack,
                     })),
+                    ownedPets: shape.ownedPets ?? [],
+                    pet: shape.pet ?? null,
                 },
                 quests: { ...base.quests, ...shape.quests },
             },
@@ -190,6 +203,7 @@ describe('useItem (wire)', () => {
         );
         lootItems = harness.connection.model(LootItem.name);
         lores = harness.connection.model(Lore.name);
+        pets = harness.connection.model(Pet.name);
         pendingQuests = harness.connection.model<PendingQuestDocument>(
             PendingQuest.name,
         );
@@ -598,5 +612,301 @@ describe('useItem (wire)', () => {
         expect(await recoveryOf()).toBeNull();
         await drink(player, potion.id);
         expect(await recoveryOf()).toBe(FIRST_RECOVERY_END);
+    });
+
+    describe('on a companion', () => {
+        const MINUTE_MS = 60_000;
+        const PET_RECOVERY_END = '2026-11-10T12:10:00.000Z';
+        const minutesFromNow = (minutes: number): Date =>
+            new Date(NOW.getTime() + minutes * MINUTE_MS);
+
+        async function speciesId(): Promise<Types.ObjectId> {
+            const pet = await persistPet(pets, {
+                maxLifePoints: 100,
+                maxXp: 100,
+                recoveryTime: 100 * MINUTE_MS,
+            });
+            return pet._id as Types.ObjectId;
+        }
+
+        async function companionPotion(): Promise<{
+            potion: Persisted;
+            lore: Persisted;
+        }> {
+            return potionWith({
+                power: 30,
+                canHeal: [],
+                recovery: { time: 10 * MINUTE_MS, turns: 0 },
+            });
+        }
+
+        // ferito a riposo da 20 minuti: 20 + round(20 × 99 / 100) = 40 adesso (D-04, D-24)
+        const wounded = (pet: Types.ObjectId, overrides = {}): OwnedPetSeed =>
+            buildOwnedPet(pet, {
+                currentLifePoints: 20,
+                level: 1,
+                lifeAsOf: minutesFromNow(-20),
+                ...overrides,
+            });
+
+        async function give(
+            player: TestPlayer,
+            itemId: string,
+            petId: string,
+        ): Promise<WireBody> {
+            const response: request.Response = await graphqlRequest(
+                harness.app,
+                USE_ITEM_ON_PET,
+                { itemId, petId },
+                player.bearer,
+            );
+            return response.body as WireBody;
+        }
+
+        it('gives a potion to a resting companion and starts its own wait (D-05, D-07)', async () => {
+            const { potion, lore } = await companionPotion();
+            const pet = await speciesId();
+            const player = await playerWith({
+                twitchId: 'twitch-pet-potion-resting',
+                ownedItems: [stackOf(potion._id)],
+                ownedPets: [wounded(pet)],
+            });
+            const before = await rawCharacter(player);
+
+            const body = await give(player, potion.id, pet.toHexString());
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.useItem).toEqual({
+                hpBefore: 40,
+                hpAfter: 70,
+                injuriesHealed: [],
+                quantityLeft: 1,
+                recoveryUntil: PET_RECOVERY_END,
+                loreUnlocked: [wireLore(lore)],
+            });
+            const after = await rawCharacter(player);
+            expect(after.assets.ownedPets).toEqual([
+                {
+                    pet,
+                    xp: 0,
+                    currentLifePoints: 70,
+                    level: 1,
+                    lifeAsOf: NOW,
+                    potionRecoveryUntil: new Date(PET_RECOVERY_END),
+                },
+            ]);
+            expect(after.status.potionRecoveryUntil).toEqual(
+                before.status.potionRecoveryUntil,
+            );
+            expect(after.status.currentLifePoints).toBe(400);
+            expect(after.status.unlockedLore).toEqual([lore._id]);
+            expect(stackQuantity(after, potion._id)).toBe(1);
+        });
+
+        it('lets the character drink while the companion waits and the other way round (D-05)', async () => {
+            const { potion } = await companionPotion();
+            const first = await speciesId();
+            const second = await speciesId();
+            const player = await playerWith({
+                twitchId: 'twitch-pet-potion-independent',
+                ownedItems: [stackOf(potion._id, 5)],
+                ownedPets: [wounded(first), wounded(second)],
+            });
+
+            const character = await drink(player, potion.id);
+            const firstCompanion = await give(
+                player,
+                potion.id,
+                first.toHexString(),
+            );
+            const secondCompanion = await give(
+                player,
+                potion.id,
+                second.toHexString(),
+            );
+            const firstAgain = await give(
+                player,
+                potion.id,
+                first.toHexString(),
+            );
+            const characterAgain = await drink(player, potion.id);
+
+            expect(character.errors).toBeUndefined();
+            expect(firstCompanion.errors).toBeUndefined();
+            expect(secondCompanion.errors).toBeUndefined();
+            expect(codeOf(firstAgain)).toBe('PET_POTION_RECOVERING');
+            expect(codeOf(characterAgain)).toBe('POTION_RECOVERING');
+            expect(stackQuantity(await rawCharacter(player), potion._id)).toBe(
+                2,
+            );
+        });
+
+        it('refuses a defeated companion with PET_DEFEATED and consumes nothing (D-06)', async () => {
+            const { potion } = await companionPotion();
+            const pet = await speciesId();
+            const player = await playerWith({
+                twitchId: 'twitch-pet-potion-defeated',
+                ownedItems: [stackOf(potion._id)],
+                ownedPets: [
+                    wounded(pet, {
+                        currentLifePoints: 1,
+                        lifeAsOf: NOW,
+                        defeatedUntil: minutesFromNow(100),
+                    }),
+                ],
+            });
+            const before = await rawCharacter(player);
+
+            const body = await give(player, potion.id, pet.toHexString());
+
+            expect(codeOf(body)).toBe('PET_DEFEATED');
+            expect(await rawCharacter(player)).toEqual(before);
+        });
+
+        it('refuses a companion in its wait with PET_POTION_RECOVERING and the ISO date in the extensions (D-32)', async () => {
+            const { potion } = await companionPotion();
+            const pet = await speciesId();
+            const player = await playerWith({
+                twitchId: 'twitch-pet-potion-waiting',
+                ownedItems: [stackOf(potion._id)],
+                ownedPets: [
+                    wounded(pet, { potionRecoveryUntil: minutesFromNow(5) }),
+                ],
+            });
+            const before = await rawCharacter(player);
+
+            const body = await give(player, potion.id, pet.toHexString());
+
+            expect(body.errors?.[0]?.extensions).toEqual({
+                code: 'PET_POTION_RECOVERING',
+                recoveryUntil: '2026-11-10T12:05:00.000Z',
+            });
+            expect(body.data).toBeNull();
+            expect(await rawCharacter(player)).toEqual(before);
+        });
+
+        it('refuses a full-life companion with ITEM_NO_EFFECT (D-07, D-32)', async () => {
+            const { potion } = await companionPotion();
+            const pet = await speciesId();
+            const player = await playerWith({
+                twitchId: 'twitch-pet-potion-full',
+                ownedItems: [stackOf(potion._id)],
+                ownedPets: [
+                    buildOwnedPet(pet, { currentLifePoints: 100, level: 1 }),
+                ],
+                pet,
+            });
+            const before = await rawCharacter(player);
+
+            const body = await give(player, potion.id, pet.toHexString());
+
+            expect(codeOf(body)).toBe('ITEM_NO_EFFECT');
+            expect(await rawCharacter(player)).toEqual(before);
+        });
+
+        it('refuses a pet the character does not own with PET_NOT_OWNED (D-23)', async () => {
+            const { potion } = await companionPotion();
+            const pet = await speciesId();
+            const attacker = await playerWith({
+                twitchId: 'twitch-pet-potion-attacker',
+                ownedItems: [stackOf(potion._id)],
+            });
+            const owner = await playerWith({
+                twitchId: 'twitch-pet-potion-owner',
+                ownedItems: [stackOf(potion._id)],
+                ownedPets: [wounded(pet)],
+            });
+            const attackerBefore = await rawCharacter(attacker);
+            const ownerBefore = await rawCharacter(owner);
+
+            const body = await give(attacker, potion.id, pet.toHexString());
+
+            expect(codeOf(body)).toBe('PET_NOT_OWNED');
+            expect(await rawCharacter(attacker)).toEqual(attackerBefore);
+            expect(await rawCharacter(owner)).toEqual(ownerBefore);
+        });
+
+        it('refuses a companion potion during a mission (D-32)', async () => {
+            const { potion } = await companionPotion();
+            const pet = await speciesId();
+            const player = await playerWith({
+                twitchId: 'twitch-pet-potion-mission',
+                ownedItems: [stackOf(potion._id)],
+                ownedPets: [wounded(pet)],
+                quests: await laneOf(QuestLane.standard, {
+                    startDate: STARTED,
+                }),
+            });
+            const before = await rawCharacter(player);
+
+            const body = await give(player, potion.id, pet.toHexString());
+
+            expect(codeOf(body)).toBe('MISSION_IN_PROGRESS');
+            expect(await rawCharacter(player)).toEqual(before);
+        });
+
+        it('serialises two concurrent potions on one companion (D-05)', async () => {
+            const { potion } = await companionPotion();
+            const pet = await speciesId();
+            const player = await playerWith({
+                twitchId: 'twitch-pet-potion-concurrent',
+                ownedItems: [stackOf(potion._id)],
+                ownedPets: [wounded(pet)],
+            });
+
+            const bodies = await Promise.all([
+                give(player, potion.id, pet.toHexString()),
+                give(player, potion.id, pet.toHexString()),
+            ]);
+
+            expect(bodies.map(codeOf).sort()).toEqual([
+                'PET_POTION_RECOVERING',
+                undefined,
+            ]);
+            const after = await rawCharacter(player);
+            expect(stackQuantity(after, potion._id)).toBe(1);
+            expect(after.assets.ownedPets).toEqual([
+                expect.objectContaining({ currentLifePoints: 70 }),
+            ]);
+        });
+
+        it('keeps the character drink unchanged without petId (D-05)', async () => {
+            const { potion, lore } = await potionWith();
+            const pet = await speciesId();
+            const player = await playerWith({
+                twitchId: 'twitch-pet-potion-character',
+                ownedItems: [stackOf(potion._id)],
+                ownedPets: [wounded(pet)],
+            });
+            const before = await rawCharacter(player);
+
+            const body = await drink(player, potion.id);
+
+            expect(body.data?.useItem).toEqual({
+                hpBefore: 400,
+                hpAfter: 700,
+                injuriesHealed: ['deepCut'],
+                quantityLeft: 1,
+                recoveryUntil: FIRST_RECOVERY_END,
+                loreUnlocked: [wireLore(lore)],
+            });
+            expect((await rawCharacter(player)).assets.ownedPets).toEqual(
+                before.assets.ownedPets,
+            );
+        });
+
+        it('rejects a malformed pet id with BAD_USER_INPUT (D-32)', async () => {
+            const { potion } = await companionPotion();
+            const player = await playerWith({
+                twitchId: 'twitch-pet-potion-bad-id',
+                ownedItems: [stackOf(potion._id)],
+            });
+            const before = await rawCharacter(player);
+
+            const body = await give(player, potion.id, 'nope');
+
+            expect(codeOf(body)).toBe('BAD_USER_INPUT');
+            expect(await rawCharacter(player)).toEqual(before);
+        });
     });
 });

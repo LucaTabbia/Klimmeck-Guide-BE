@@ -724,7 +724,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     it('writes the useItem contract of the FE Phase 18 into the generated schema (D-17, D-21)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
-        expect(schema).toContain('  useItem(itemId: ID!): UseItemResult!\n');
+        expect(schema).toContain(
+            '  useItem(itemId: ID!, petId: ID): UseItemResult!\n',
+        );
         expect(schema.match(/type UseItemResult \{[^}]*\}/)?.[0]).toBe(
             'type UseItemResult {\n  hpAfter: Int!\n  hpBefore: Int!\n  injuriesHealed: [InjuryType!]!\n  loreUnlocked: [Lore!]!\n  quantityLeft: Int!\n  recoveryUntil: DateTime!\n}',
         );
