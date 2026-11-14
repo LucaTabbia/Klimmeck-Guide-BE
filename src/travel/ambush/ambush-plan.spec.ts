@@ -1291,6 +1291,29 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
             );
         });
 
+        it('walks on to the goal with the quest when no city is reachable by road, even starving (D-16, D-25)', () => {
+            const walking = planAmbushOutcome(
+                mountInputWith(onQuest(rawWith(FOOD_RIDE)), {
+                    effects: unhurt(1),
+                    detour: {
+                        ...nearestDetour,
+                        to: TO_ID,
+                        baseHours: null,
+                        residualMs: 6 * 3_600_000,
+                    },
+                }),
+            );
+
+            expect(rewrittenTravelOf(walking).to).toEqual(TO_ID);
+            expect(rewrittenTravelOf(walking).duration).toBe(WALK_MS);
+            expect(Object.keys(walking.update.$set)).not.toContain(
+                'quests.pendingQuest',
+            );
+            expect(walking.redirected).toBe(false);
+            expect(walking.report.reachedCity).toBeNull();
+            expect(walking.report.onFoot).toBe(true);
+        });
+
         it('checks no hunger on a travel without a food plan (D-16)', () => {
             const walking = planAmbushOutcome(
                 mountInputWith(onQuest(rawWith({ mount: MOUNT }, 1)), {

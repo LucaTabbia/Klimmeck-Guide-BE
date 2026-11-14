@@ -410,6 +410,39 @@ describe('the residual road on foot (replica set)', () => {
             expect(result.ambush.onFoot).toBe(true);
         });
 
+        it('keeps the quest and walks to the goal when no city is reachable by road, even starving (D-16, D-25)', async () => {
+            const { subject } = await riderWith('horse', STARVING_HP);
+            await registerDevice(world.harness, subject.player);
+            const { quest, pending } = await onQuestLane(subject);
+            await world.harness.connection.collection('roads').deleteMany({});
+            await world.harness.app.get(RoadsService).buildGraph();
+            ambushFallsTheMount(subject, null);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+
+            const raw = await rawOf(subject);
+            expect(raw.status.activeTravel.to).toEqual(map.questPoi);
+            expect(raw.status.activeTravel.duration).toBe(WALK_MS);
+            expect(raw.quests.pendingQuest).toEqual(pending);
+            expect(
+                await world.models.pendingQuests.countDocuments({
+                    _id: pending,
+                }),
+            ).toBe(1);
+            expect(
+                (await world.models.quests.findById(quest).lean<any>().exec())
+                    .registeredAdventurers,
+            ).toHaveLength(1);
+            expect(
+                (await ambushResultOf(subject)).ambush.reachedCity,
+            ).toBeNull();
+            expect(world.push.sent[0].message.body).toMatch(
+                /: Fenrir è stato sconfitto, prosegui a piedi$/,
+            );
+        });
+
         it('moves the jobs to the redirected travel and plans no ambush (D-16, Pitfall 5)', async () => {
             const { subject } = await riderWith('horse', STARVING_HP);
             const { at, characterId } = subject.identity;
