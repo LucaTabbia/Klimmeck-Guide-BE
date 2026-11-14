@@ -102,7 +102,8 @@ function remappedNextOf(
     };
 }
 
-function paceFactorOf(mount: unknown): number {
+// quanto la cavalcatura della partenza accorciava la strada: a piedi la durata si moltiplica per questo (D-13, C-11)
+export function paceFactorOf(mount: unknown): number {
     if (!isRecord(mount)) return MOUNTED_PACE;
     const { factor } = mount;
     return typeof factor === 'number' && Number.isFinite(factor) && factor > 0
