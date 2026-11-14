@@ -280,6 +280,7 @@ describe('GuidedCompletionService (replSet)', () => {
                 hpAfter: 500,
                 injuriesAdded: [InjuryType.blackEye],
                 consumablesUsed: [{ itemId: String(potion), quantity: 1 }],
+                spellsUsed: [{ spellId: String(spell), usages: 1 }],
             })
             .willResolve(second.characterId, { hpAfter: 800 });
         await simulate(first, 1, [orc, 1], [wolf, 1]);

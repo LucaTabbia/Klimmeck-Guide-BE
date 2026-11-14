@@ -23,6 +23,8 @@ import { Pet, PetSchema } from 'src/models/pet.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
+import { QuestResultsReadModule } from 'src/quests/results/quest-results-read.module';
+import { GuidedCompletionService } from './guided-completion.service';
 import { GuidedMissionResolver } from './guided-mission.resolver';
 import { MissionDraftSaveService } from './mission-draft-save.service';
 import { MissionDraftPresenter } from './mission-draft.mapper';
@@ -49,6 +51,7 @@ import { MissionSimulationService } from './mission-simulation.service';
             { name: Spell.name, schema: SpellSchema },
         ]),
         QuestOutcomesModule,
+        QuestResultsReadModule,
     ],
     providers: [
         MissionDraftService,
@@ -58,6 +61,7 @@ import { MissionSimulationService } from './mission-simulation.service';
         MissionSimulationService,
         MissionPrizeOptionsService,
         MissionDraftSaveService,
+        GuidedCompletionService,
         GuidedMissionResolver,
         { provide: Clock, useClass: SystemClock },
     ],
