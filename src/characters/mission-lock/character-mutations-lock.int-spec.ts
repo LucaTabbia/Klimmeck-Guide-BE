@@ -238,6 +238,33 @@ describe('Character mutations under the mission lock (wire)', () => {
         expect(equippedPet.data?.equipPet).toEqual({ successful: true });
     });
 
+    it('allows a wounded character awaiting aid to change the equipment (D-23)', async () => {
+        const player = await createPlayer(harness, {
+            twitchId: 'twitch-lock-wounded',
+            characterOverrides: {
+                status: {
+                    ...buildCharacter().status,
+                    awaitingAid: {
+                        quest: new Types.ObjectId(),
+                        aidQuest: new Types.ObjectId(),
+                        since: STARTED,
+                    },
+                },
+                assets: {
+                    ...buildCharacter().assets,
+                    ownedEquipments: [
+                        { itemType: 'EquipmentItem', item: sword, quantity: 1 },
+                    ],
+                },
+            },
+        });
+
+        const body = await equipSword(player);
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.equipItem).toEqual({ successful: true });
+    });
+
     it('refuses the innkeeper bypass too (D-12)', async () => {
         const { player } = await armedHero(
             'twitch-lock-bypass',

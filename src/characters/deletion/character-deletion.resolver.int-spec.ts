@@ -3,6 +3,7 @@ import type { PubSub } from '@graphql-yoga/subscription';
 import { Model, Types } from 'mongoose';
 import { CharacterCreationModule } from 'src/characters/creation/character-creation.module';
 import { CharacterDeletionModule } from 'src/characters/deletion/character-deletion.module';
+import { MissionLockReader } from 'src/characters/mission-lock/mission-lock.reader';
 import {
     Character,
     CharacterDocument,
@@ -434,6 +435,42 @@ describe('deleteCharacter (wire)', () => {
 
         const raw = await rawCharacter(String(alice.character?._id));
         expect(raw?.quests.pendingQuest).toEqual(pq);
+    });
+
+    it('archives a character locked by a mission in progress (D-23)', async () => {
+        const pendingQuestOf = async (
+            dates: Record<string, Date>,
+        ): Promise<Types.ObjectId> =>
+            (
+                await pendingQuests.create({
+                    arrivedAt: null,
+                    waitingTime: 0,
+                    pointsSpent: 0,
+                    quest: new Types.ObjectId(),
+                    ...dates,
+                })
+            )._id;
+        const alice = await createPlayer(harness, {
+            twitchId: 'twitch-del-locked',
+            characterOverrides: {
+                quests: {
+                    ...buildCharacter().quests,
+                    pendingQuest: await pendingQuestOf({ startDate: NOW }),
+                    activeStoryQuest: await pendingQuestOf({
+                        startDate: NOW,
+                        missionDraftStartedAt: NOW,
+                    }),
+                },
+            },
+        });
+        const locks = harness.app.get(MissionLockReader, { strict: false });
+        const characterId = alice.character?._id as Types.ObjectId;
+        expect(await locks.isGuidedLocked(characterId)).toBe(true);
+
+        const body = await deleteAs(alice.bearer);
+
+        expect(deletedUserOf(body).currentCharacter).toBeNull();
+        expect((await rawCharacter(characterId))?.deletedAt).toEqual(NOW);
     });
 
     it('frees the name for a new character of the same user', async () => {

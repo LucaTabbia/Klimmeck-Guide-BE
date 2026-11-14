@@ -91,6 +91,7 @@ describe('mission in progress flags (wire)', () => {
     async function pendingQuestOf(
         quest: Types.ObjectId,
         startDate: Date | null,
+        extra: { arrivedAt?: Date } = {},
     ): Promise<Types.ObjectId> {
         const pendingQuest = await pendingQuests.create({
             startDate,
@@ -98,6 +99,7 @@ describe('mission in progress flags (wire)', () => {
             waitingTime: HOUR_MS,
             pointsSpent: 0,
             quest,
+            ...extra,
         });
         return pendingQuest._id as Types.ObjectId;
     }
@@ -166,28 +168,47 @@ describe('mission in progress flags (wire)', () => {
         return response.body;
     }
 
+    // stessa scrittura di QuestStartService.startSingle: solo la PendingQuest cambia, il personaggio no
     it('emits the lock when a solo quest starts on arrival (D-16)', async () => {
-        const hero = await heroOn('tw-solo-arrival');
+        const pendingQuestId = await pendingQuestOf(
+            new Types.ObjectId(),
+            null,
+            {
+                arrivedAt: STARTED_AT,
+            },
+        );
+        const hero = await heroOn('tw-solo-arrival', {
+            pendingQuest: pendingQuestId,
+        });
         const subscription = subscribeTo(hero);
         expect(await nextFlags(subscription)).toEqual(FREE);
 
-        const pendingQuestId = await pendingQuestOf(
-            new Types.ObjectId(),
-            STARTED_AT,
-        );
-        await characters.updateOne(
-            { _id: hero.character?._id },
-            {
-                $set: {
-                    'quests.pendingQuest': pendingQuestId,
-                    'status.location': hero.character?.status.location,
-                },
-            },
+        await pendingQuests.updateOne(
+            { _id: pendingQuestId, startDate: null },
+            [{ $set: { startDate: '$arrivedAt' } }],
         );
 
         expect(await flagsUntil(subscription, STANDARD_STARTED)).toEqual(
             STANDARD_STARTED,
         );
+    });
+
+    it('emits the release when a normal mission ends (D-23)', async () => {
+        const hero = await heroOn('tw-mission-end', {
+            pendingQuest: await pendingQuestOf(
+                new Types.ObjectId(),
+                STARTED_AT,
+            ),
+        });
+        const subscription = subscribeTo(hero);
+        expect(await nextFlags(subscription)).toEqual(STANDARD_STARTED);
+
+        await characters.updateOne(
+            { _id: hero.character?._id },
+            { $set: { 'quests.pendingQuest': null } },
+        );
+
+        expect(await flagsUntil(subscription, FREE)).toEqual(FREE);
     });
 
     it('emits the lock when the party starts (D-16)', async () => {
@@ -240,6 +261,26 @@ describe('mission in progress flags (wire)', () => {
         for (const subscription of subscriptions) {
             expect(await flagsUntil(subscription, FREE)).toEqual(FREE);
         }
+    });
+
+    it('answers free for a wounded character awaiting aid (D-23)', async () => {
+        const wounded = await createPlayer(harness, {
+            twitchId: 'tw-query-wounded',
+            characterOverrides: {
+                status: {
+                    ...buildCharacter().status,
+                    awaitingAid: {
+                        quest: new Types.ObjectId(),
+                        aidQuest: new Types.ObjectId(),
+                        since: ACCEPTED_AT,
+                    },
+                },
+            },
+        });
+
+        expect(await queriedFlags(wounded)).toEqual({
+            data: { character: { status: FREE } },
+        });
     });
 
     it('answers the flags on the character query (D-16)', async () => {

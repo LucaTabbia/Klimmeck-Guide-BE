@@ -118,6 +118,36 @@ describe('lanes of a character', () => {
         });
     });
 
+    it('leaves free a wounded character awaiting aid, whose lane the outcome emptied (D-23)', () => {
+        const wounded = new CharacterModel({
+            ...buildCharacter(),
+            status: {
+                ...buildCharacter().status,
+                awaitingAid: {
+                    quest: new Types.ObjectId(),
+                    aidQuest: new Types.ObjectId(),
+                    since: STARTED,
+                },
+            },
+            quests: {
+                completedQuests: [],
+                pendingQuest: null,
+                activeStoryQuest: null,
+                activeWorldMissionQuest: null,
+            },
+        });
+
+        const lanes = lockLanesOf(wounded);
+
+        expect(lanes).toEqual({
+            pendingQuest: null,
+            activeStoryQuest: null,
+            activeWorldMissionQuest: null,
+        });
+        expect(missionInProgressOf(lanes as LockLanes)).toBe(false);
+        expect(guidedMissionInProgressOf(lanes as LockLanes)).toBe(false);
+    });
+
     it('reads plain populated lanes too (D-16)', () => {
         expect(
             lockLanesOf({
