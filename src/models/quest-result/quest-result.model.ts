@@ -6,6 +6,10 @@ import {
     assetQuantitySchemaAt,
 } from '../common/asset-quantity.model';
 import { Coins, CoinsSchema } from '../common/coins.model';
+import {
+    CompanionOutcome,
+    CompanionOutcomeSchema,
+} from './companion-outcome.model';
 import { DungeonTurnKind } from '../enums/dungeon-turn-kind.enum';
 import { InjuryType } from '../enums/injury-type.enum';
 import { Lore } from '../lore.model';
@@ -305,6 +309,11 @@ export class QuestResult {
     @Field(() => Coins, { nullable: true })
     @Prop({ type: CoinsSchema, default: null })
     coinsLost?: Coins | null;
+
+    // il compagno che ha combattuto (D-10, D-27): fotografia al momento dell'esito, nome mostrato compreso
+    @Field(() => CompanionOutcome, { nullable: true })
+    @Prop({ type: CompanionOutcomeSchema, default: null })
+    companion?: CompanionOutcome | null;
 
     // guard con lo scontro casuale (quick 261110-cgd): i nemici dello scontro stanno in enemies
     @Field(() => Boolean)

@@ -211,6 +211,15 @@ type CommonResponse {
   successful: Boolean!
 }
 
+type CompanionOutcome {
+  defeated: Boolean!
+  fullLifeAt: DateTime
+  lifeBefore: Int!
+  lifePoints: Int!
+  maxLifePoints: Int!
+  name: String!
+}
+
 input CompletePendingRequestInput {
   outcomes: [ParticipantOverrideInput!]
   pendingQuestId: ID!
@@ -836,6 +845,7 @@ type QuestResult {
   arrested: Boolean!
   character: ID!
   coinsLost: Coins
+  companion: CompanionOutcome
   consumablesUsed: [AssetQuantity!]!
   enemies: [QuestEnemy!]!
   guardEncounter: Boolean!
