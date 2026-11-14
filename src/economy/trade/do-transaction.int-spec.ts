@@ -11,7 +11,12 @@ import {
     EquipmentItemDocument,
 } from 'src/models/equipment-item.model';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
+import {
+    PendingQuest,
+    PendingQuestDocument,
+} from 'src/models/pending-quest.model';
 import { Pet, PetDocument } from 'src/models/pet.model';
+import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
@@ -268,6 +273,7 @@ describe('doTransaction (wire)', () => {
     let equipment: Model<EquipmentItemDocument>;
     let loot: Model<LootItemDocument>;
     let pets: Model<PetDocument>;
+    let pendingQuests: Model<PendingQuestDocument>;
     let catalog: Catalog;
 
     function playerOutsideCity(
@@ -362,6 +368,9 @@ describe('doTransaction (wire)', () => {
         );
         loot = harness.connection.model<LootItemDocument>(LootItem.name);
         pets = harness.connection.model<PetDocument>(Pet.name);
+        pendingQuests = harness.connection.model<PendingQuestDocument>(
+            PendingQuest.name,
+        );
         // collection pronte prima delle transazioni (Pitfall 9)
         await Promise.all([
             characters.init(),
@@ -665,6 +674,123 @@ describe('doTransaction (wire)', () => {
             });
         });
     });
+
+    describe('mission lock', () => {
+        const STARTED = new Date('2026-11-14T11:00:00.000Z');
+        const DRAFTED = new Date('2026-11-14T11:30:00.000Z');
+
+        const buySword = (): TradeInput => ({
+            buyEquip: [asset(catalog.sword)],
+            total: coins(0, 1, 50),
+            isTotalPositive: false,
+        });
+
+        async function putOnLane(
+            player: TestPlayer,
+            lane: QuestLane,
+            dates: {
+                startDate?: Date | null;
+                missionDraftStartedAt?: Date | null;
+            },
+        ): Promise<void> {
+            const pendingQuest = await pendingQuests.create({
+                startDate: null,
+                waitingTime: 3_600_000,
+                pointsSpent: 0,
+                quest: new Types.ObjectId(),
+                ...dates,
+            });
+            await characters.collection.updateOne(
+                { _id: characterIdOf(player) },
+                { $set: { [`quests.${lane}`]: pendingQuest._id } },
+            );
+        }
+
+        async function expectRefusal(
+            player: TestPlayer,
+            trade: TradeInput,
+            code: string,
+        ): Promise<void> {
+            const before = await raw(player);
+
+            const body = await doTransaction(player, trade);
+
+            expect(body.data?.doTransaction ?? null).toBeNull();
+            expect(codeOf(body)).toBe(code);
+            expect(await raw(player)).toEqual(before);
+        }
+
+        it('refuses a purchase while the hunt waits on the city marker (D-12)', async () => {
+            const player = await playerWith(
+                'twitch-shop-hunt-started',
+                coins(0, 5, 0),
+            );
+            await putOnLane(player, QuestLane.standard, { startDate: STARTED });
+
+            await expectRefusal(player, buySword(), 'MISSION_IN_PROGRESS');
+        });
+
+        it('refuses an empty trade during a guided draft (D-11)', async () => {
+            const player = await playerWith(
+                'twitch-shop-empty-draft',
+                coins(0, 5, 0),
+            );
+            await putOnLane(player, QuestLane.story, {
+                startDate: STARTED,
+                missionDraftStartedAt: DRAFTED,
+            });
+
+            await expectRefusal(
+                player,
+                { total: coins(0, 0, 0), isTotalPositive: false },
+                'MISSION_IN_PROGRESS',
+            );
+        });
+
+        it('keeps the prison refusal first (D-23)', async () => {
+            const player = await playerWith(
+                'twitch-shop-prison-mission',
+                coins(0, 5, 0),
+                {},
+                { imprisonedUntil: new Date('2099-01-01T00:00:00.000Z') },
+            );
+            await putOnLane(player, QuestLane.standard, { startDate: STARTED });
+
+            await expectRefusal(player, buySword(), 'CHARACTER_IMPRISONED');
+        });
+
+        it('refuses a mission before the city check (D-23)', async () => {
+            const player = await playerOutsideCity(
+                'twitch-shop-district-mission',
+                coins(0, 5, 0),
+            );
+            await persistCity(cityModelOf(harness), {
+                name: 'Borgo della Missione',
+                markerLocation: new Types.ObjectId(),
+                pointsOfInterest: [player.character!.status.location],
+            });
+            await putOnLane(player, QuestLane.standard, { startDate: STARTED });
+
+            await expectRefusal(player, buySword(), 'MISSION_IN_PROGRESS');
+        });
+
+        it('keeps the shop open to a character with a story accepted and no draft (D-12)', async () => {
+            const player = await playerWith(
+                'twitch-shop-story-no-draft',
+                coins(0, 5, 0),
+            );
+            await putOnLane(player, QuestLane.story, { startDate: STARTED });
+
+            const body = await doTransaction(player, buySword());
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.doTransaction).toEqual(SUCCESS);
+            expect((await raw(player))?.assets.ownedEquipments).toEqual([
+                owned('EquipmentItem', catalog.sword, 1),
+            ]);
+        });
+    });
+
     describe('pets', () => {
         let horse: CatalogDocument;
 
