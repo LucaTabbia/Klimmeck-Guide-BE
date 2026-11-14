@@ -52,12 +52,14 @@ describe('ambushResultDraftsOf', () => {
             stagesCleared: null,
             stagesTotal: null,
             rescuedCharacters: [],
+            companion: null,
         });
         expect(Object.keys(draft).sort()).toEqual([
             '_id',
             'acknowledgedAt',
             'ambush',
             'character',
+            'companion',
             'consumablesUsed',
             'enemies',
             'hpAfter',
@@ -111,6 +113,28 @@ describe('ambushResultDraftsOf', () => {
         const [draft] = ambushResultDraftsOf([old], characterId);
 
         expect(draft.petXpGained).toBe(0);
+    });
+
+    it('carries the companion outcome into the ambush result and null for older held reports (D-10, Pitfall 9)', () => {
+        const companion = {
+            name: 'Fenrir',
+            lifeBefore: 60,
+            lifePoints: 1,
+            maxLifePoints: 100,
+            defeated: true,
+            fullLifeAt: new Date('2026-10-21T09:30:00.000Z'),
+        };
+        const old = buildAmbushReport();
+        expect(Object.keys(old)).not.toContain('companion');
+
+        const [fresh] = ambushResultDraftsOf(
+            [buildAmbushReport({ companion })],
+            characterId,
+        );
+        const [held] = ambushResultDraftsOf([old], characterId);
+
+        expect(fresh.companion).toEqual(companion);
+        expect(held.companion).toBeNull();
     });
 
     it('keeps the reached city of a defeat (D-13, D-14)', () => {

@@ -427,3 +427,120 @@ describe('companionAfterFight', () => {
         });
     });
 });
+
+describe('the companion xp after a fight (ex companion-xp, D-39)', () => {
+    const capped = (maxXp: number): CompanionCatalogEntry => ({
+        ...WORG,
+        maxXp,
+    });
+
+    it('caps the gain of the companion at the catalogue maximum (D-04)', () => {
+        const after = companionAfterFight(
+            fightOf({
+                catalog: capped(100),
+                entry: fenrir({ xp: 95, level: 9 }),
+                enemiesXp: 500,
+            }),
+        );
+
+        expect(after.gained).toBe(5);
+        expect(after.ownedPets?.[0]).toEqual(
+            expect.objectContaining({ xp: 100, level: 10 }),
+        );
+    });
+
+    it('changes nothing when the companion is already at its cap (D-17)', () => {
+        const after = companionAfterFight(
+            fightOf({
+                catalog: capped(100),
+                entry: fenrir({ xp: 100, level: 10 }),
+                enemiesXp: 500,
+            }),
+        );
+
+        expect(after.gained).toBe(0);
+        expect(after.ownedPets).toBeNull();
+    });
+
+    it('awards no xp when the catalogue has no valid cap for the companion (D-17)', () => {
+        const after = companionAfterFight(fightOf({ enemiesXp: 130 }));
+
+        expect(after.gained).toBe(0);
+        expect(after.ownedPets).toBeNull();
+    });
+
+    it('changes nothing when the equipped companion has no entry (D-04)', () => {
+        const after = companionAfterFight(
+            fightOf({
+                assets: {
+                    pet: hawk,
+                    ownedPets: [fenrir()],
+                },
+                lifeAfter: 1,
+                enemiesXp: 130,
+            }),
+        );
+
+        expect(after).toEqual({
+            ownedPets: null,
+            unequip: false,
+            outcome: null,
+            gained: 0,
+        });
+    });
+
+    it('finds the companion stored as a legacy string reference (D-04)', () => {
+        const after = companionAfterFight(
+            fightOf({
+                catalog: capped(1000),
+                assets: {
+                    pet: worg.toHexString(),
+                    ownedPets: [
+                        { ...fenrir({ xp: 40 }), pet: worg.toHexString() },
+                    ] as never,
+                },
+                enemiesXp: 130,
+            }),
+        );
+
+        expect(after.gained).toBe(13);
+        expect(after.ownedPets?.[0]).toEqual(
+            expect.objectContaining({ pet: worg, xp: 53 }),
+        );
+    });
+
+    it('heals the broken entries of the list it rewrites and leaves out an unreadable one (D-03)', () => {
+        const after = companionAfterFight(
+            fightOf({
+                catalog: capped(1000),
+                assets: {
+                    pet: worg,
+                    ownedPets: [
+                        { pet: 'not-an-id', xp: 1, currentLifePoints: 1 },
+                        { pet: hawk, xp: null, currentLifePoints: 12.5 },
+                        fenrir({ xp: 40 }),
+                    ] as never,
+                },
+                enemiesXp: 130,
+            }),
+        );
+
+        expect(after.ownedPets).toEqual([
+            { pet: hawk, xp: 0, currentLifePoints: 12 },
+            expect.objectContaining({ pet: worg, xp: 53 }),
+        ]);
+    });
+
+    it('floors a fractional stored experience and never writes below its integer part (D-04)', () => {
+        const after = companionAfterFight(
+            fightOf({
+                catalog: capped(1000),
+                entry: fenrir({ xp: 120.5 }),
+                enemiesXp: 40,
+            }),
+        );
+
+        expect(after.gained).toBe(4);
+        expect(after.ownedPets?.[0].xp).toBe(124);
+    });
+});

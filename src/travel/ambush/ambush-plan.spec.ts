@@ -4,6 +4,7 @@ import { TravelKind } from 'src/models/character/active-travel.model';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { idForms } from 'src/mongo/document-id';
 import { durationMsOf } from 'src/travel/travel-timing';
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
 import { ambushFoodOf, withFoodSettlement } from './ambush-food';
@@ -32,6 +33,19 @@ const OTHER_PET_ID = new Types.ObjectId('64b0000000000000000000bc');
 const IDLE_SPELL_ID = new Types.ObjectId('64b0000000000000000000bd');
 const COMPANION_MAX_XP = 1000;
 const COMPANION_LIFE = 7;
+const COMPANION_BASE_LIFE = 100;
+const COMPANION_RECOVERY_MS = 3_600_000;
+const COMPANION_CATALOG = new Map([
+    [
+        COMPANION_ID.toHexString(),
+        {
+            name: 'Lupo',
+            maxLifePoints: COMPANION_BASE_LIFE,
+            maxXp: COMPANION_MAX_XP,
+            recoveryTime: COMPANION_RECOVERY_MS,
+        },
+    ],
+]);
 
 const START = new Date('2026-10-21T10:00:00.000Z');
 const DURATION = 20 * 3_600_000;
@@ -100,7 +114,12 @@ const companionSnapshot = (xp: number): AmbushCharacterSnapshot =>
             pet: COMPANION_ID,
             ownedPets: [
                 otherPet,
-                { pet: COMPANION_ID, xp, currentLifePoints: COMPANION_LIFE },
+                {
+                    pet: COMPANION_ID,
+                    xp,
+                    currentLifePoints: COMPANION_LIFE,
+                    level: 1,
+                },
             ],
         },
     );
@@ -131,6 +150,7 @@ const inputWith = (
     detour: null,
     spellRecoveryTimes: new Map([[SPELL_ID.toHexString(), RECOVERY_MS]]),
     petMaxXp: new Map(),
+    petCatalog: new Map(),
     now: NOW,
     ...overrides,
 });
@@ -143,6 +163,7 @@ const companionInput = (
         snapshot: companionSnapshot(xp),
         enemies: { entries: [{ enemy: ENEMY_ID, quantity: 1 }], xp: 300 },
         petMaxXp: new Map([[COMPANION_ID.toHexString(), COMPANION_MAX_XP]]),
+        petCatalog: COMPANION_CATALOG,
         ...overrides,
     });
 
@@ -269,10 +290,8 @@ describe('ambush outcome plan', () => {
         expect(travelKeys).toEqual(['status.activeTravel.ambush']);
     });
 
-    it('holds the report in the travel with the owner and no reached city (D-13)', () => {
-        expect(plan.update.$push).toEqual({
-            'status.activeTravel.ambushReports': plan.report,
-        });
+    it('returns the report with the owner and no reached city, held nowhere (D-28)', () => {
+        expect(Object.keys(plan.update)).toEqual(['$set']);
         expect(plan.report).toEqual({
             resultId: RESULT_ID,
             user: USER_ID,
@@ -299,6 +318,7 @@ describe('ambush outcome plan', () => {
             titleAfter: TitleType.rookie,
             loreUnlocked: [],
             petXpGained: 0,
+            companion: null,
         });
     });
 
@@ -316,14 +336,7 @@ describe('ambush outcome plan', () => {
             'status.knownEnemies': { $each: [ENEMY_ID] },
         });
         expect(won.report.loreUnlocked).toEqual([fresh]);
-        expect(Object.keys(won.update).sort()).toEqual([
-            '$addToSet',
-            '$push',
-            '$set',
-        ]);
-        expect(won.update.$push).toEqual({
-            'status.activeTravel.ambushReports': won.report,
-        });
+        expect(Object.keys(won.update).sort()).toEqual(['$addToSet', '$set']);
         expect(won.update.$set).toEqual(plan.update.$set);
     });
 
@@ -351,12 +364,15 @@ describe('the companion xp of an ambush', () => {
 
         expect(won.update.$set['assets.ownedPets']).toEqual([
             otherPet,
-            { pet: COMPANION_ID, xp: 30, currentLifePoints: COMPANION_LIFE },
+            {
+                pet: COMPANION_ID,
+                xp: 30,
+                currentLifePoints: COMPANION_LIFE,
+                level: 2,
+            },
         ]);
         expect(won.report.petXpGained).toBe(30);
-        expect(won.update.$push).toEqual({
-            'status.activeTravel.ambushReports': won.report,
-        });
+        expect(Object.keys(won.update)).toEqual(['$set']);
     });
 
     it('shares the raw enemies xp, not the rank prize of the character (D-04)', () => {
@@ -375,6 +391,7 @@ describe('the companion xp of an ambush', () => {
                 pet: COMPANION_ID,
                 xp: COMPANION_MAX_XP,
                 currentLifePoints: COMPANION_LIFE,
+                level: 10,
             },
         ]);
         expect(won.report.petXpGained).toBe(10);
@@ -424,8 +441,128 @@ describe('the companion xp of an ambush', () => {
         ]);
         expect(input.snapshot.assets?.ownedPets).toEqual([
             otherPet,
-            { pet: COMPANION_ID, xp: 0, currentLifePoints: COMPANION_LIFE },
+            {
+                pet: COMPANION_ID,
+                xp: 0,
+                currentLifePoints: COMPANION_LIFE,
+                level: 1,
+            },
         ]);
+    });
+});
+
+describe('the companion in an ambush (Phase 23)', () => {
+    const backAt = new Date(AT.getTime() + COMPANION_RECOVERY_MS);
+    const lostDetour: DetourDraft = {
+        road: { coordinates: [[0, 4.5]], distance: 0 },
+        to: CROCEVIA_ID,
+        reachedCity: { id: CROCEVIA_ID, name: 'Crocevia' },
+        baseHours: 0,
+        residualMs: null,
+        petSpeed: 10,
+    };
+    const companionEntryOf = (outcome: AmbushOutcomePlan) =>
+        (
+            outcome.update.$set['assets.ownedPets'] as {
+                pet: Types.ObjectId;
+            }[]
+        ).find((entry) => entry.pet.equals(COMPANION_ID));
+
+    it('writes the wounded companion of a won ambush and keeps it equipped (D-03, D-10)', () => {
+        const won = planAmbushOutcome(
+            companionInput(0, {
+                effects: effectsWith({ companionLifeAfter: 4 }),
+            }),
+        );
+
+        expect(companionEntryOf(won)).toEqual({
+            pet: COMPANION_ID,
+            xp: 30,
+            currentLifePoints: 4,
+            level: 2,
+        });
+        expect(Object.keys(won.update.$set)).not.toContain('assets.pet');
+        expect(Object.keys(won.filter)).not.toContain('assets.pet');
+        expect(won.report.companion).toEqual({
+            name: 'Lupo',
+            lifeBefore: COMPANION_LIFE,
+            lifePoints: 4,
+            maxLifePoints: 102,
+            defeated: false,
+            fullLifeAt: null,
+        });
+    });
+
+    it('unequips a companion defeated in an ambush and dates its return from the ambush instant (D-03, D-26)', () => {
+        const won = planAmbushOutcome(
+            companionInput(0, {
+                effects: effectsWith({ companionLifeAfter: 1 }),
+            }),
+        );
+
+        expect(won.update.$set['assets.pet']).toBeNull();
+        expect(won.filter['assets.pet']).toEqual({
+            $in: idForms(COMPANION_ID),
+        });
+        expect(companionEntryOf(won)).toEqual({
+            pet: COMPANION_ID,
+            xp: 30,
+            currentLifePoints: 1,
+            level: 2,
+            lifeAsOf: AT,
+            defeatedUntil: backAt,
+        });
+        expect(won.report.companion?.defeated).toBe(true);
+        expect(won.report.companion?.fullLifeAt).toEqual(backAt);
+    });
+
+    it('defeats the companion in a lost ambush too (D-26)', () => {
+        const lost = planAmbushOutcome(
+            companionInput(0, {
+                verdict: 'failure',
+                effects: effectsWith({ hpAfter: 0, companionLifeAfter: 1 }),
+                detour: lostDetour,
+            }),
+        );
+
+        expect(lost.update.$set['assets.pet']).toBeNull();
+        expect(companionEntryOf(lost)).toEqual({
+            pet: COMPANION_ID,
+            xp: 0,
+            currentLifePoints: 1,
+            level: 1,
+            lifeAsOf: AT,
+            defeatedUntil: backAt,
+        });
+        expect(lost.report.companion?.defeated).toBe(true);
+        expect(lost.report.petXpGained).toBe(0);
+    });
+
+    it('no longer holds the report in the travel on a victory (D-28)', () => {
+        const won = planAmbushOutcome(
+            companionInput(0, {
+                effects: effectsWith({ companionLifeAfter: 4 }),
+            }),
+        );
+
+        expect(Object.keys(won.update)).toEqual(['$set']);
+        const travelKeys = Object.keys(won.update.$set).filter((key) =>
+            key.startsWith('status.activeTravel'),
+        );
+        expect(travelKeys).toEqual(['status.activeTravel.ambush']);
+    });
+
+    it('returns the report of the ambush to be written at once (D-15)', () => {
+        const input = companionInput(0, {
+            effects: effectsWith({ companionLifeAfter: 4 }),
+        });
+
+        const won = planAmbushOutcome(input);
+
+        expect(won.report.resultId).toBe(input.resultId);
+        expect(won.report.companion).toEqual(
+            expect.objectContaining({ name: 'Lupo', lifePoints: 4 }),
+        );
     });
 });
 
@@ -516,7 +653,7 @@ describe('ambush defeat plan', () => {
             duration,
             to: CROCEVIA_ID,
             kind: TravelKind.free,
-            ambushReports: [defeat.report],
+            ambushReports: [],
         });
         expect(defeat.travelAfter).toEqual({
             startTime: AT,
@@ -568,7 +705,7 @@ describe('ambush defeat plan', () => {
         expect(rewrittenOf(defeat).to).toEqual(TO_ID);
     });
 
-    it('carries the held reports into the rewritten travel (D-13)', () => {
+    it('keeps only the held reports in the rewritten travel of a defeat (Pitfall 9, D-28)', () => {
         const held = planAmbushOutcome(inputWith()).report;
         const defeat = planAmbushOutcome(
             defeatWith({
@@ -578,7 +715,7 @@ describe('ambush defeat plan', () => {
             }),
         );
         const reports = rewrittenOf(defeat).ambushReports as unknown[];
-        expect(reports).toEqual([held, defeat.report]);
+        expect(reports).toEqual([held]);
         expect(defeat.report.reachedCity).toEqual(reachedCity);
     });
 
