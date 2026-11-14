@@ -56,4 +56,21 @@ Fase con **SDL nuovo** (operazioni e tipi aggiunti; nessuna rimozione finché la
 
 ## Completato dopo la ricerca
 
-Da scrivere dopo `22-RESEARCH.md`. Dove questa sezione e il resto del file divergono, vince questa sezione.
+Scritto il 14 novembre 2026. Dove questa sezione e il resto del file divergono, vince questa sezione. Riferimenti file:riga in `22-RESEARCH.md`; ruling in `22-CONTEXT.md` D-13..D-27.
+
+### Il filo (D-17)
+
+- Lo SDL atteso è quello VERBATIM di `22-RESEARCH.md` §Q9 **più** quattro aggiunte: `CharacterStatus.guidedMissionInProgress: Boolean!` (dopo `currentLifePoints`, in ordine alfabetico) e, su `type MissionFightOutcome`, `consumablesAvailable: [MissionItemUsage!]!`, `injuriesBefore: [InjuryType!]!`, `spellsAvailable: [MissionSpellUsage!]!`. Solo aggiunte: a fine del piano che cambia i decoratori `git diff develop -- src/schema.gql` non mostra righe tolte.
+- La tabella dei nomi di bozza qui sopra si legge così: `missionPrizeOptions` ritorna `MissionPrizeOptions!`; `showAll: Boolean = false`; si aggiungono la query `missionDraft(pendingQuestId: ID!): MissionDraft` e `PendingRequest.missionDraftStartedAt: DateTime`; «tutto il nuovo nel log di audit» vale per le sole mutation (D-26).
+- `test/app.int-spec.ts` pinna `CHARACTER_STATUS_BLOCK` e `type PendingRequest` (§Q9): si aggiornano PRIMA (RED) nel piano che cambia i decoratori. Resolver nuovo `GuidedMissionResolver` (`src/quests/guided/guided-mission.resolver.ts`): 8 voci nuove in `EXPECTED_INNKEEPER_HANDLERS` (11 → 19) e una fixture per handler in `HANDLER_FIXTURES` nello stesso piano che crea l'handler.
+
+### Regole dure
+
+- **Un solo predicato** «personaggio bloccato» (D-12, D-13, D-23) condiviso da ogni mutation della tabella §Q7; `MISSION_IN_PROGRESS` esce DOPO i codici esistenti; nessuna chiave extra nelle `extensions`.
+- **Simulazione:** porta del caso dedicata (`MissionSimulationChance`, Pattern 1 della ricerca): la `ChanceSource` condivisa fa zero tiri e nessuna collection cambia (prova con `toEqual` prima/dopo, come la sonda 1). Nessun `Math.random`, nessun `Date.now`.
+- **Premi (D-15, D-22):** monete e xp liberi (interi ≥ 0); oggetti, pet e magie passano dalla stessa funzione per opzioni e rivalidazione; quantità `1..99`; precompilazione nel BE all'avvio della bozza.
+- **Ferite (D-14):** una correzione non può togliere una ferita presente in `injuriesBefore`.
+- **Bozza (D-18):** marcatore `PendingQuest.missionDraftStartedAt` solo Mongoose; bozza orfana cancellata con la richiesta; mai esposta a un handler senza `@Roles(innkeeper)`.
+- **Emissione (D-23):** publisher gemello sul marcatore (Pattern 2); il push e le emissioni dopo il commit, mai dentro la transazione.
+- Le spec che andranno RED sono la tabella F di §Q10 (F1–F9); la Wave 0 è in `22-VALIDATION.md`.
+- Ordine dei piani consigliato dalla ricerca (§Q13): fondazione del blocco → guardie su personaggio, `useItem` e negozio → guardie su viaggio e accettazione → campi risolti, publisher, SDL → refactor (`GmRequestReader`, commit parametrico, `readRewardCatalogFor`) → bozza → `missionEnemies` → simulazione → catalogo dei premi → `saveMissionDraft` → `completeGuidedMission` → compagno nel contesto (D-20) → gate → chiusura e handoff.

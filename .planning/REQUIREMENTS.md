@@ -62,7 +62,7 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 - [ ] **BE-GMFLOW-06**: Completamento in una transazione: stato finale, nemici in `QuestResult.enemies`, xp dei nemici e del compagno, conoscenza e lore di vittoria, premi scelti; sempre `gmCompleted`, nessuna aid
 - [ ] **BE-GMFLOW-08**: Dall'avvio del flusso al risultato i partecipanti espongono lo stato «missione in corso» e non possono partire, accettare quest, comprare o vendere, cambiare equipaggiamento, compagno o magie equipaggiate, né bere pozioni (codice di rifiuto proprio); sblocco al completamento o allo scarto della bozza
 - [ ] **BE-GMFLOW-09**: Lo stesso blocco vale per ogni missione dall'inizio effettivo (arrivo alla quest della corsia standard, `startedAt` delle registrate) all'esito: `equipItem`, `equipPet`, `unequipPet`, `equipSpell`, `unequipSpell`, `useSpell`, `useItem` e le transazioni del negozio rifiutate con lo stesso codice; stato «missione in corso» esposto sul personaggio
-- [ ] **BE-GMFLOW-07**: Ruolo innkeeper e audit su ogni operazione nuova; unit + integration; SDL al boot reale; handoff `BACKEND-NOTES.md` per la FE Phase 21 con una worldMission e una story d'esempio per l'UAT
+- [ ] **BE-GMFLOW-07**: Ruolo innkeeper e audit su ogni mutation nuova (le query dell'oste non si registrano, come oggi); unit + integration; SDL al boot reale; handoff `BACKEND-NOTES.md` per la FE Phase 21 con una worldMission e una story d'esempio per l'UAT
 
 ## Future Requirements
 
