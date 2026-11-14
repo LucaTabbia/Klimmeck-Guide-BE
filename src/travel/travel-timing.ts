@@ -51,12 +51,17 @@ function isSpeedModifier(modifier: unknown): modifier is number {
     );
 }
 
+// cavalcatura = più veloce del passo: un pet a velocità 1 o più lento non accorcia nulla e non si perde (D-29)
+export function isMountFactor(factor: unknown): factor is number {
+    return isSpeedModifier(factor) && factor > 1;
+}
+
 // stessa validazione di speedOf, ma il modificatore nullo non è una cavalcatura (D-29)
 export function mountOf(
     petId: Types.ObjectId | null,
     modifier: unknown,
 ): ActiveTravelMountDraft | null {
-    if (!petId || !isSpeedModifier(modifier)) return null;
+    if (!petId || !isMountFactor(modifier)) return null;
     return { pet: petId, factor: modifier };
 }
 

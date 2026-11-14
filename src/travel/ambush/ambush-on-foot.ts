@@ -3,6 +3,7 @@ import type { Types } from 'mongoose';
 import type { TravelKind } from 'src/models/character/active-travel.model';
 import { sameId } from 'src/mongo/document-id';
 import type { LonLat } from 'src/roads/road-route';
+import { isMountFactor } from '../travel-timing';
 import {
     type ActiveTravelFoodDraft,
     foodPlanOf,
@@ -45,7 +46,7 @@ export interface OnFootFood {
     food: ActiveTravelFoodDraft;
 }
 
-// un modificatore illeggibile non allunga la strada
+// un modificatore illeggibile o non più veloce del passo non allunga la strada
 const MOUNTED_PACE = 1;
 
 // solo la cavalcatura fotografata alla partenza, sconfitta in questo scontro (D-13, D-29, Pitfall 4)
@@ -54,7 +55,11 @@ export function isMountFallen(
     companion: FallenCompanion | null,
 ): boolean {
     if (!companion?.defeated || !companion.petId) return false;
-    return isRecord(mount) && sameId(mount.pet, companion.petId);
+    return (
+        isRecord(mount) &&
+        isMountFactor(mount.factor) &&
+        sameId(mount.pet, companion.petId)
+    );
 }
 
 // la pedina riparte dal punto all'istante dell'imboscata: allungare solo l'arrivo la farebbe tornare indietro (D-13)
@@ -106,9 +111,7 @@ function remappedNextOf(
 export function paceFactorOf(mount: unknown): number {
     if (!isRecord(mount)) return MOUNTED_PACE;
     const { factor } = mount;
-    return typeof factor === 'number' && Number.isFinite(factor) && factor > 0
-        ? factor
-        : MOUNTED_PACE;
+    return isMountFactor(factor) ? factor : MOUNTED_PACE;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
