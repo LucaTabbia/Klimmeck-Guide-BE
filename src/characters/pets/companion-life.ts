@@ -1,5 +1,6 @@
 // una sola regola per la vita del compagno (D-24): ogni lettura e scrittura passa da qui, l'ora arriva dalla porta Clock del chiamante
 import { MAX_RECOVERY_VALUE } from 'src/models/loot-item.model';
+import { isSavedCompanionLevel } from './companion-level';
 
 export const COMPANION_LIFE_FLOOR = 1;
 
@@ -40,12 +41,20 @@ export function petRecoveryTimeOf(value: unknown): number | null {
     return time !== null && time <= MAX_RECOVERY_VALUE ? time : null;
 }
 
+// regole 1-2: minimo 1 senza un massimo leggibile, vita legacy (0 o non numerica) = piena, tetto al massimo
+function companionLifeNow(lifePoints: unknown, maxLifePoints: unknown): number {
+    const stored = storedLifeOf(lifePoints);
+    const max = positiveIntegerOrNull(maxLifePoints);
+    if (max === null) return Math.max(COMPANION_LIFE_FLOOR, stored);
+    return stored <= 0 ? max : Math.min(max, stored);
+}
+
 export function companionLifeAt(input: CompanionLifeInput): CompanionLife {
-    const stored = storedLifeOf(input.lifePoints);
+    const life = companionLifeNow(input.lifePoints, input.maxLifePoints);
     const max = positiveIntegerOrNull(input.maxLifePoints);
-    if (max === null) return settled(Math.max(COMPANION_LIFE_FLOOR, stored));
-    const life = stored <= 0 ? max : Math.min(max, stored);
-    if (!input.resting || !isValidDate(input.lifeAsOf)) return settled(life);
+    if (max === null || !input.resting || !isValidDate(input.lifeAsOf)) {
+        return settled(life);
+    }
     const recoveryTime = petRecoveryTimeOf(input.recoveryTimeMs);
     if (recoveryTime === null || life >= max || max === 1) return settled(max);
     const asOf = input.lifeAsOf.getTime();
@@ -86,4 +95,25 @@ export function companionDisplayName(
     if (isFilledString(name)) return name;
     if (isFilledString(speciesName)) return speciesName;
     return FALLBACK_COMPANION_NAME;
+}
+
+export function isLegacyCompanionEntry(
+    entry: { level?: unknown; lifeAsOf?: unknown } | null | undefined,
+): boolean {
+    return (
+        !isSavedCompanionLevel(entry?.level) && !isValidDate(entry?.lifeAsOf)
+    );
+}
+
+// voce mai toccata dalla fase (D-23, D-38): piena al massimo del compagno; la regola si spegne alla prima scrittura
+export function companionStoredLifeOf(
+    entry:
+        | { currentLifePoints?: unknown; level?: unknown; lifeAsOf?: unknown }
+        | null
+        | undefined,
+    maxLifePoints: unknown,
+): number {
+    const max = positiveIntegerOrNull(maxLifePoints);
+    if (max !== null && isLegacyCompanionEntry(entry)) return max;
+    return companionLifeNow(entry?.currentLifePoints, maxLifePoints);
 }

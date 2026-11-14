@@ -129,7 +129,11 @@ describe('companion life clock', () => {
 
     describe('entries written before the phase', () => {
         const pet = { maxXp: 100, maxLifePoints: 100 };
-        const legacyEntry = { xp: 22, currentLifePoints: 100 };
+        const legacyEntry: {
+            xp: number;
+            currentLifePoints: number;
+            level?: number;
+        } = { xp: 22, currentLifePoints: 100 };
 
         it.each([true, false])(
             'reads an entry never touched by the phase at full life at the companion maximum (D-23, D-38): resting %p',
