@@ -128,6 +128,7 @@ describe('buildPendingRequests', () => {
             {
                 id: hex(storyPq._id),
                 startDate: EARLY,
+                missionDraftStartedAt: null,
                 pointsSpent: 250,
                 quest: {
                     id: hex(story._id),
@@ -381,5 +382,36 @@ describe('buildPendingRequests', () => {
             awaitingAid: null,
             pendingQuest: null,
         });
+    });
+
+    it('carries the guided draft start of the pending quest (D-17, D-18)', () => {
+        const story = quest('story', 'The king');
+        const draftedPq = {
+            ...pendingQuest(story._id),
+            missionDraftStartedAt: LATE,
+        };
+        const plainPq = pendingQuest(story._id, LATE);
+        const drafted = character('Aria', { story: draftedPq._id });
+        const plain = character('Bram', { story: plainPq._id });
+
+        const { requests } = buildPendingRequests({
+            characters: [drafted, plain],
+            pendingQuests: [draftedPq, plainPq],
+            quests: [story],
+            users: [
+                userOf(drafted, 'twitch-aria'),
+                userOf(plain, 'twitch-bram'),
+            ],
+        });
+
+        expect(
+            requests.map((request) => [
+                request.id,
+                request.missionDraftStartedAt,
+            ]),
+        ).toEqual([
+            [hex(draftedPq._id), LATE],
+            [hex(plainPq._id), null],
+        ]);
     });
 });

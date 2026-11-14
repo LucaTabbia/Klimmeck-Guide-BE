@@ -871,7 +871,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type PendingRequest \{[^}]*\}/)?.[0]).toBe(
-            'type PendingRequest {\n  character: PendingRequestCharacter!\n  id: ID!\n  pointsSpent: Int!\n  quest: PendingRequestQuest!\n  startDate: DateTime\n  user: PendingRequestUser!\n}',
+            'type PendingRequest {\n  character: PendingRequestCharacter!\n  id: ID!\n  missionDraftStartedAt: DateTime\n  pointsSpent: Int!\n  quest: PendingRequestQuest!\n  startDate: DateTime\n  user: PendingRequestUser!\n}',
         );
         expect(
             schema.match(/type PendingRequestCharacter \{[^}]*\}/)?.[0],

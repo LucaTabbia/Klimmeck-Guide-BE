@@ -238,4 +238,34 @@ describe('PendingRequestsService (replSet)', () => {
         expect(freeLaneIds).toEqual([String(storyPq._id)]);
         expect(busyLaneIds).toEqual(freeLaneIds);
     });
+
+    it('lists the draft start of each world mission entry (D-18)', async () => {
+        const draftStartedAt = new Date('2026-10-01T11:00:00.000Z');
+        const ariaPq = await pendingQuestFor('worldMission', 'The siege');
+        const bramPq = await pendingQuests.create({
+            startDate: STARTED_AT,
+            waitingTime: 0,
+            pointsSpent: 300,
+            quest: ariaPq.quest,
+        });
+        await pendingQuests.updateMany(
+            { _id: { $in: [ariaPq._id, bramPq._id] } },
+            { $set: { missionDraftStartedAt: draftStartedAt } },
+        );
+        await playerOnLane('Aria', 'activeWorldMissionQuest', ariaPq._id);
+        await playerOnLane('Bram', 'activeWorldMissionQuest', bramPq._id);
+
+        const requests = await service.list();
+
+        expect(
+            requests
+                .map((request) => [request.id, request.missionDraftStartedAt])
+                .sort(([a], [b]) => String(a).localeCompare(String(b))),
+        ).toEqual(
+            [
+                [String(ariaPq._id), draftStartedAt],
+                [String(bramPq._id), draftStartedAt],
+            ].sort(([a], [b]) => String(a).localeCompare(String(b))),
+        );
+    });
 });
