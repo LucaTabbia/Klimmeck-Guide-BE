@@ -236,6 +236,12 @@ describe('GameRuleException', () => {
             GameRuleErrorCode.PET_DEFEATED,
             'Il compagno è stato sconfitto: deve riposare finché non torna in forze',
         ],
+        [
+            'petNameInvalid',
+            () => GameRuleException.petNameInvalid(),
+            GameRuleErrorCode.PET_NAME_INVALID,
+            'Nome del compagno non valido: da 2 a 20 caratteri tra lettere, spazi, apostrofi e trattini, con almeno una lettera',
+        ],
     ];
 
     it.each(cases)(
