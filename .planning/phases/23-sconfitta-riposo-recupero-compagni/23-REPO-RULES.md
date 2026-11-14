@@ -82,5 +82,5 @@ Scritto il 14 novembre 2026. Dove questa sezione e il resto del file divergono, 
 
 ### Livelli del compagno (D-37, D-38 — aggiunta del 14 novembre 2026 a esecuzione avviata)
 
-- Aggiunte al filo su `OwnedPet`: `level: Int!`, `maxLifePoints: Int!` (massimo del compagno), risolti a lettura; nessun campo a DB.
+- Aggiunte al filo su `OwnedPet`: `level: Int!`, `maxLifePoints: Int!` (massimo del compagno). **Il livello si salva a DB sulla voce posseduta (D-39)**: scritto dalla funzione pura a ogni cambio di xp e alla nascita della voce, conservato a ogni riscrittura dell'array, letto indulgente (assente → ricalcolato dall'xp), nessun migratore; la vita massima si deriva da livello salvato e base a catalogo, mai salvata.
 - UNA funzione pura (xp, tetto di xp, vita base → livello, vita massima), accanto a quella della vita a riposo; ogni lettura del massimo del compagno nella fase passa da lì (mai `pet.maxLifePoints` diretto per un compagno posseduto): riposo, pozioni, esiti (`CompanionOutcome.maxLifePoints`), guidato (`MissionCompanion.maxLifePoints`, limiti di `companionLifeAfter`), contesto dello scontro. Nessun tiro nuovo. Requisito BE-PET-14.
