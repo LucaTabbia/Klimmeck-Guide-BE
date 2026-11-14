@@ -24,8 +24,10 @@ import { RoadsService } from 'src/roads/roads.service';
 import { classifyFreeTravel } from './travel-rules';
 import {
     ActiveTravelDraft,
+    ActiveTravelMountDraft,
     BASE_SPEED,
     buildActiveTravel,
+    mountOf,
     speedOf,
 } from './travel-timing';
 
@@ -62,6 +64,13 @@ interface PoiLocationSnapshot {
 interface PetSpeedSnapshot {
     speedModifier?: unknown;
 }
+
+interface Ride {
+    speed: number;
+    mount: ActiveTravelMountDraft | null;
+}
+
+const ON_FOOT: Ride = { speed: BASE_SPEED, mount: null };
 
 // della polilinea del viaggio basta la presenza: endTime evita di leggere le coordinate
 const CHARACTER_PROJECTION = {
@@ -126,13 +135,13 @@ export class TravelPlanner {
             hasRoute: route !== null,
         });
         if (rejection) throw rejection;
-        const speed = await this.speedOfCharacter(
+        const ride = await this.rideOf(
             character.assets?.pet,
             character.status?.injuries,
         );
         const travel = buildActiveTravel({
             route: route as RoadRoute,
-            speed,
+            ...ride,
             now,
             to: poiId,
             kind: TravelKind.free,
@@ -163,7 +172,7 @@ export class TravelPlanner {
         if (!route) return null;
         return buildActiveTravel({
             route,
-            speed: await this.speedOfCharacter(request.pet, request.injuries),
+            ...(await this.rideOf(request.pet, request.injuries)),
             now: this.clock.now(),
             to: request.to,
             kind: TravelKind.quest,
@@ -206,23 +215,35 @@ export class TravelPlanner {
         pet: unknown,
         injuries: readonly unknown[] | null | undefined,
     ): Promise<number> {
-        return (await this.petSpeedOf(pet)) * travelSpeedFactorOf(injuries);
+        return (await this.rideOf(pet, injuries)).speed;
     }
 
-    // pet assente o non trovato ⇒ velocità base
-    private async petSpeedOf(pet: unknown): Promise<number> {
+    // una sola lettura del catalogo per velocità e cavalcatura della partenza (D-29)
+    private async rideOf(
+        pet: unknown,
+        injuries: readonly unknown[] | null | undefined,
+    ): Promise<Ride> {
+        const mounted = await this.mountedRideOf(pet);
+        return {
+            speed: mounted.speed * travelSpeedFactorOf(injuries),
+            mount: mounted.mount,
+        };
+    }
+
+    // pet assente o non trovato ⇒ velocità base, nessuna cavalcatura
+    private async mountedRideOf(pet: unknown): Promise<Ride> {
         const petId = refIdOf(pet);
-        if (!petId) return BASE_SPEED;
+        if (!petId) return ON_FOOT;
         const document = await this.petModel
             .findById(petId, { speedModifier: 1 })
             .lean<PetSpeedSnapshot>()
             .exec();
-        if (!document) return BASE_SPEED;
+        if (!document) return ON_FOOT;
         const { speed, invalid } = speedOf(document.speedModifier);
         if (invalid)
             this.logger.warn(
                 `Pet ${petId.toHexString()} con speedModifier non valido: velocità base`,
             );
-        return speed;
+        return { speed, mount: mountOf(petId, document.speedModifier) };
     }
 }
