@@ -1054,4 +1054,189 @@ describe('GuidedMissionResolver (wire)', () => {
             });
         });
     });
+
+    describe('guided mission completion', () => {
+        const SIMULATE_FIGHT =
+            'mutation SimulateMissionFight($input: SimulateMissionFightInput!) { simulateMissionFight(input: $input) { id } }';
+        const SAVE_DRAFT =
+            'mutation SaveMissionDraft($input: SaveMissionDraftInput!) { saveMissionDraft(input: $input) { id } }';
+        const COMPLETE =
+            'mutation CompleteGuidedMission($pendingQuestId: ID!) { completeGuidedMission(pendingQuestId: $pendingQuestId) { id character outcome hpAfter enemies { enemy { id } quantity } } }';
+
+        interface CompletionBody {
+            data?: {
+                completeGuidedMission?:
+                    | {
+                          id: string;
+                          character: string;
+                          outcome: string;
+                          hpAfter: number;
+                          enemies: {
+                              enemy: { id: string };
+                              quantity: number;
+                          }[];
+                      }[]
+                    | null;
+            } | null;
+            errors?: { message: string; extensions: Record<string, unknown> }[];
+        }
+
+        async function sendInput(
+            document: string,
+            input: Record<string, unknown>,
+            bearer: string,
+        ): Promise<WireBody> {
+            const response = await graphqlRequest(
+                world.harness.app,
+                document,
+                { input },
+                bearer,
+            );
+            return response.body as WireBody;
+        }
+
+        // bozza avviata con due scontri simulati, l'ultimo corretto, e un premio salvato
+        async function playedPair() {
+            const [first, second] = await worldMissionPair();
+            const oste = await innkeeper();
+            await send(START, hexOf(first), oste.bearer);
+            const wolf = String(
+                (
+                    await world.models.enemies.create(
+                        buildEnemy({ name: 'Lupo' }),
+                    )
+                )._id,
+            );
+            const orc = String(
+                (
+                    await world.models.enemies.create(
+                        buildEnemy({ name: 'Orco' }),
+                    )
+                )._id,
+            );
+            const fights = [
+                [{ enemy: wolf, quantity: 2 }],
+                [
+                    { enemy: orc, quantity: 1 },
+                    { enemy: wolf, quantity: 1 },
+                ],
+            ];
+            for (const [fightIndex, enemies] of fights.entries()) {
+                const simulated = await sendInput(
+                    SIMULATE_FIGHT,
+                    { pendingQuestId: hexOf(first), fightIndex, enemies },
+                    oste.bearer,
+                );
+                expect(simulated.errors).toBeUndefined();
+            }
+            const saved = await sendInput(
+                SAVE_DRAFT,
+                {
+                    pendingQuestId: hexOf(second),
+                    fights: [
+                        { enemies: fights[0] },
+                        {
+                            enemies: fights[1],
+                            corrections: [
+                                {
+                                    characterId: String(first.characterId),
+                                    hpAfter: 1,
+                                },
+                            ],
+                        },
+                    ],
+                    prizes: [
+                        {
+                            characterId: String(first.characterId),
+                            coins: { gold: 1, silver: 0, copper: 0 },
+                            cure: false,
+                            items: [],
+                            xp: 0,
+                        },
+                    ],
+                },
+                oste.bearer,
+            );
+            expect(saved.errors).toBeUndefined();
+            return { first, second, oste, wolf, orc };
+        }
+
+        async function complete(
+            pendingQuestId: string,
+            bearer: string,
+        ): Promise<CompletionBody> {
+            const response = await graphqlRequest(
+                world.harness.app,
+                COMPLETE,
+                { pendingQuestId },
+                bearer,
+            );
+            return response.body as CompletionBody;
+        }
+
+        it('completes the whole guided flow over the wire (D-08, D-25)', async () => {
+            const { first, second, oste, wolf, orc } = await playedPair();
+
+            const body = await complete(hexOf(second), oste.bearer);
+
+            expect(body.errors).toBeUndefined();
+            const results = body.data!.completeGuidedMission!;
+            expect(results.map(({ character }) => character).sort()).toEqual(
+                [first, second]
+                    .map(({ characterId }) => String(characterId))
+                    .sort(),
+            );
+            for (const result of results) {
+                expect(result.outcome).toBe('gmCompleted');
+                expect(result.enemies).toEqual([
+                    { enemy: { id: wolf }, quantity: 3 },
+                    { enemy: { id: orc }, quantity: 1 },
+                ]);
+            }
+            expect(
+                results.find(
+                    ({ character }) => character === String(first.characterId),
+                )!.hpAfter,
+            ).toBe(1);
+            const read = await send(READ, hexOf(first), oste.bearer);
+            expect(
+                read.errors?.map(({ extensions }) => extensions.code),
+            ).toEqual(['NOT_FOUND']);
+        });
+
+        it('refuses an adventurer (D-10)', async () => {
+            const { first } = await playedPair();
+
+            const body = await complete(hexOf(first), first.player.bearer);
+
+            expect(body.data ?? null).toBeNull();
+            expect(
+                body.errors?.map(({ extensions }) => extensions.code),
+            ).toEqual(['FORBIDDEN']);
+            expect(
+                await world.harness.connection
+                    .model(MissionDraft.name)
+                    .countDocuments(),
+            ).toBe(1);
+        });
+
+        it('audits the completion (D-26)', async () => {
+            const { first, oste } = await playedPair();
+            const pendingQuestId = hexOf(first);
+
+            await complete(pendingQuestId, oste.bearer);
+
+            const records = await audits
+                .find({ action: 'completeGuidedMission' })
+                .lean()
+                .exec();
+            expect(records).toHaveLength(1);
+            expect(records[0]).toMatchObject({
+                actor: { userId: String(oste.user._id), role: 'innkeeper' },
+                target: { type: 'PendingQuest', id: pendingQuestId },
+                args: { pendingQuestId },
+                outcome: AUDIT_OUTCOME_OK,
+            });
+        });
+    });
 });

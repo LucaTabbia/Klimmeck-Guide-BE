@@ -972,6 +972,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('adds the guided mission completion to the schema (D-17)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            '  completeGuidedMission(pendingQuestId: ID!): [QuestResult!]!\n',
+        );
+    });
+
     it('writes the game master completion into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 

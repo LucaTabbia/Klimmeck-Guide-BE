@@ -1,6 +1,7 @@
 // whitelist enumerate (D-15): ogni nuova operazione admin o sul personaggio deve passare da qui
 export const EXPECTED_INNKEEPER_HANDLERS = [
     'CharactersResolver.characters',
+    'GuidedMissionResolver.completeGuidedMission',
     'GuidedMissionResolver.discardMissionDraft',
     'GuidedMissionResolver.missionDraft',
     'GuidedMissionResolver.missionEnemies',

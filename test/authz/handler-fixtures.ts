@@ -54,6 +54,14 @@ export const HANDLER_FIXTURES: Record<ProtectedHandler, HandlerFixture> = {
         document: 'query Characters { characters { id } }',
         variables: NO_VARIABLES,
     },
+    'GuidedMissionResolver.completeGuidedMission': {
+        kind: 'mutation',
+        field: 'completeGuidedMission',
+        target: 'none',
+        document:
+            'mutation CompleteGuidedMission($pendingQuestId: ID!) { completeGuidedMission(pendingQuestId: $pendingQuestId) { id } }',
+        variables: () => ({ pendingQuestId: ANY }),
+    },
     'GuidedMissionResolver.discardMissionDraft': {
         kind: 'mutation',
         field: 'discardMissionDraft',
