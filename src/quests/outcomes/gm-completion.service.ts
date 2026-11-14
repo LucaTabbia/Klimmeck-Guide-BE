@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { InjectConnection } from '@nestjs/mongoose';
-import { ClientSession, Connection, Types } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
@@ -9,6 +9,7 @@ import type {
     ParticipantOverrideInput,
 } from 'src/models/request/complete-pending-request.model';
 import { objectIdFromHex } from 'src/mongo/document-id';
+import { MissionDraft } from 'src/quests/guided/mission-draft.model';
 import { ChanceSource } from './chance-source';
 import type { ParticipantEffects } from './combat/combat-resolver';
 import { enemyFactsOf } from './combatant-plan';
@@ -81,6 +82,8 @@ export class GmCompletionService {
         private readonly writer: OutcomeWriter,
         private readonly chance: ChanceSource,
         private readonly clock: Clock,
+        @InjectModel(MissionDraft.name)
+        private readonly draftModel: Model<MissionDraft>,
     ) {}
 
     // i risultati committati tornano dalle bozze scritte in transazione: la risposta non dipende da una rilettura (WR-03)
@@ -139,6 +142,21 @@ export class GmCompletionService {
                     ]),
                 );
             },
+            // D-25: il vecchio completamento convive e chiude la bozza
+            afterSeats: (session) =>
+                this.draftModel
+                    .deleteMany(
+                        {
+                            'participants.pendingQuest': {
+                                $in: request.seats.map(
+                                    ({ pendingQuestId }) => pendingQuestId,
+                                ),
+                            },
+                        },
+                        { session },
+                    )
+                    .exec()
+                    .then(() => undefined),
         });
     }
 

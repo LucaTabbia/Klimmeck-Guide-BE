@@ -42,7 +42,8 @@ export class MissionDraftParticipant {
     })
     pendingQuest: Types.ObjectId;
 
-    @Prop({ type: String, required: true })
+    // fotografato all'avvio; vuoto ammesso (un required rifiuterebbe la stringa vuota)
+    @Prop({ type: String, default: '' })
     name: string;
 
     @Prop({ type: String, required: true })

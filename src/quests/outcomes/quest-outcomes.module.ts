@@ -34,6 +34,10 @@ import {
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { User, UserSchema } from 'src/models/user.model';
+import {
+    MissionDraft,
+    MissionDraftSchema,
+} from 'src/quests/guided/mission-draft.model';
 import { PushModule } from 'src/push/push.module';
 import { QuestGenerationTriggerModule } from 'src/quests/generation/quest-generation-trigger.module';
 import { PartyLifecycleModule } from 'src/quests/party/party-lifecycle.module';
@@ -75,6 +79,8 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
             { name: Spell.name, schema: SpellSchema },
             { name: Pet.name, schema: PetSchema },
             { name: Lore.name, schema: LoreSchema },
+            // la bozza del flusso guidato si chiude anche col vecchio completamento (D-25)
+            { name: MissionDraft.name, schema: MissionDraftSchema },
         ]),
         EconomyModule,
         // geografia della città del ritorno di un soccorso (Phase 16 D-05)

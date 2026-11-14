@@ -30,6 +30,7 @@ import { QuestGenerationModule } from './quests/generation/quest-generation.modu
 import { QuestResultsModule } from './quests/results/quest-results.module';
 import { PartyLifecycleModule } from './quests/party/party-lifecycle.module';
 import { PendingRequestsModule } from './quests/pending-requests/pending-requests.module';
+import { GuidedMissionModule } from './quests/guided/guided-mission.module';
 import { SpellsModule } from './spells/spells.module';
 import { ServerTimeModule } from './time/server-time.module';
 import { AppService } from './app.service';
@@ -117,6 +118,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         PartyLifecycleModule,
         QuestResultsModule,
         PendingRequestsModule,
+        GuidedMissionModule,
         ServerTimeModule,
         PushModule,
         EventSubModule,
