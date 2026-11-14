@@ -551,6 +551,7 @@ type PendingQuest {
 type PendingRequest {
   character: PendingRequestCharacter!
   id: ID!
+  missionDraftStartedAt: DateTime
   pointsSpent: Int!
   quest: PendingRequestQuest!
   startDate: DateTime
