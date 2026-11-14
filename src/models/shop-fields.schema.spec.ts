@@ -104,7 +104,12 @@ describe('character owned pets', () => {
         });
         expect(Object.keys(entry?.paths ?? {}).sort()).toEqual([
             'currentLifePoints',
+            'defeatedUntil',
+            'level',
+            'lifeAsOf',
+            'name',
             'pet',
+            'potionRecoveryUntil',
             'xp',
         ]);
     });

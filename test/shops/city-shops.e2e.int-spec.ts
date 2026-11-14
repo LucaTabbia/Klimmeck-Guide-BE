@@ -364,7 +364,9 @@ describe('city shops end to end on a curated world (BE-SHOP-05)', () => {
 
         expect(bought.errors).toBeUndefined();
         const afterBuy = await raw(player);
-        expect(afterBuy?.assets.ownedPets).toEqual([buildOwnedPet(horse)]);
+        expect(afterBuy?.assets.ownedPets).toEqual([
+            buildOwnedPet(horse, { level: 1 }),
+        ]);
         expect(afterBuy?.assets.pet).toBeNull();
 
         const equipped = await send(

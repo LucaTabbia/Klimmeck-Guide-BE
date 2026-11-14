@@ -832,7 +832,7 @@ describe('doTransaction (wire)', () => {
             expect(bought.data?.doTransaction).toEqual(SUCCESS);
             const afterBuy = await raw(player);
             expect(afterBuy?.assets.ownedPets).toEqual([
-                buildOwnedPet(idOf(horse)),
+                buildOwnedPet(idOf(horse), { level: 1 }),
             ]);
             expect(afterBuy?.assets.pet).toBeNull();
             expect(afterBuy?.status.coins).toEqual(coins(0, 0, 0));

@@ -286,7 +286,9 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
             _id: subject.characterId,
         });
         expect(raw?.status.unlockedLore).toEqual([known, page]);
-        expect(raw?.assets.ownedPets).toEqual([buildOwnedPet(pet._id)]);
+        expect(raw?.assets.ownedPets).toEqual([
+            buildOwnedPet(pet._id, { level: 1 }),
+        ]);
         expect((await resultOf(subject)).loreUnlocked).toEqual([page]);
     });
 
