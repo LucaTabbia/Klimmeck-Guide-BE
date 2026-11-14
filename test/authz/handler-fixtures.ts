@@ -54,6 +54,30 @@ export const HANDLER_FIXTURES: Record<ProtectedHandler, HandlerFixture> = {
         document: 'query Characters { characters { id } }',
         variables: NO_VARIABLES,
     },
+    'GuidedMissionResolver.discardMissionDraft': {
+        kind: 'mutation',
+        field: 'discardMissionDraft',
+        target: 'none',
+        document:
+            'mutation DiscardMissionDraft($pendingQuestId: ID!) { discardMissionDraft(pendingQuestId: $pendingQuestId) { successful } }',
+        variables: () => ({ pendingQuestId: ANY }),
+    },
+    'GuidedMissionResolver.missionDraft': {
+        kind: 'query',
+        field: 'missionDraft',
+        target: 'none',
+        document:
+            'query MissionDraft($pendingQuestId: ID!) { missionDraft(pendingQuestId: $pendingQuestId) { id } }',
+        variables: () => ({ pendingQuestId: ANY }),
+    },
+    'GuidedMissionResolver.startMissionDraft': {
+        kind: 'mutation',
+        field: 'startMissionDraft',
+        target: 'none',
+        document:
+            'mutation StartMissionDraft($pendingQuestId: ID!) { startMissionDraft(pendingQuestId: $pendingQuestId) { id } }',
+        variables: () => ({ pendingQuestId: ANY }),
+    },
     'PendingQuestsResolver.pendingQuests': {
         kind: 'query',
         field: 'pendingQuests',

@@ -91,6 +91,38 @@ const EQUIPMENT_BLOCK =
     'type Equipment {\n  arms: EquipmentItem\n  chest: EquipmentItem\n  feet: EquipmentItem\n  firstAccessory: EquipmentItem\n  head: EquipmentItem\n  leftHand: EquipmentItem\n  legs: EquipmentItem\n  rightHand: EquipmentItem\n  secondAccessory: EquipmentItem\n}';
 const SLOT_TYPE_BLOCK =
     'enum SlotType {\n  arms\n  chest\n  feet\n  firstAccessory\n  head\n  leftHand\n  legs\n  rightHand\n  secondAccessory\n}';
+// SDL della bozza guidata (RESEARCH §Q9 + D-17): blocchi verbatim
+const MISSION_DRAFT_BLOCKS: Record<string, string> = {
+    'type MissionDraft':
+        'type MissionDraft {\n  fights: [MissionFight!]!\n  id: ID!\n  participants: [MissionParticipant!]!\n  place: ID\n  prizes: [MissionPrize!]!\n  quest: ID!\n  questType: String!\n  startedAt: DateTime!\n  step: MissionDraftStep!\n  updatedAt: DateTime!\n}',
+    'enum MissionDraftStep':
+        'enum MissionDraftStep {\n  fights\n  prizes\n  recap\n  teleport\n}',
+    'type MissionFight':
+        'type MissionFight {\n  enemies: [MissionFightEnemy!]!\n  outcomes: [MissionFightOutcome!]!\n  verdict: MissionFightVerdict\n}',
+    'type MissionFightEffects':
+        'type MissionFightEffects {\n  consumablesUsed: [MissionItemUsage!]!\n  hpAfter: Int!\n  injuriesAdded: [InjuryType!]!\n  spellsUsed: [MissionSpellUsage!]!\n}',
+    'type MissionFightEnemy':
+        'type MissionFightEnemy {\n  enemy: Enemy!\n  quantity: Int!\n}',
+    'type MissionFightOutcome':
+        'type MissionFightOutcome {\n  character: ID!\n  consumablesAvailable: [MissionItemUsage!]!\n  corrected: MissionFightEffects\n  hpBefore: Int!\n  injuriesBefore: [InjuryType!]!\n  simulated: MissionFightEffects\n  spellsAvailable: [MissionSpellUsage!]!\n}',
+    'enum MissionFightVerdict':
+        'enum MissionFightVerdict {\n  failure\n  success\n}',
+    'type MissionItemUsage':
+        'type MissionItemUsage {\n  item: ID!\n  quantity: Int!\n}',
+    'type MissionParticipant':
+        'type MissionParticipant {\n  character: ID!\n  maxLifePoints: Int!\n  name: String!\n  pendingQuest: ID!\n  title: String!\n}',
+    'type MissionPrize':
+        'type MissionPrize {\n  character: ID!\n  coins: Coins!\n  cure: QuestCure\n  items: [MissionPrizeItem!]!\n  pet: ID\n  spell: ID\n  xp: Int!\n}',
+    'type MissionPrizeItem':
+        'type MissionPrizeItem {\n  item: ID!\n  quantity: Int!\n}',
+    'type MissionSpellUsage':
+        'type MissionSpellUsage {\n  spell: ID!\n  usages: Int!\n}',
+};
+const MISSION_DRAFT_OPERATIONS = [
+    '  discardMissionDraft(pendingQuestId: ID!): CommonResponse!\n',
+    '  startMissionDraft(pendingQuestId: ID!): MissionDraft!\n',
+    '  missionDraft(pendingQuestId: ID!): MissionDraft\n',
+];
 const kindLinesOf = (schema: string): string[] =>
     schema.match(/^.*\bkind\b.*$/gm) ?? [];
 const INTRUDER_MUTATION =
@@ -863,6 +895,18 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
         expect(pendingQuestType).toBeDefined();
         expect(pendingQuestType).not.toContain('missionDraftStartedAt');
+    });
+
+    it('adds the guided mission draft to the schema (D-17)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        for (const [head, block] of Object.entries(MISSION_DRAFT_BLOCKS)) {
+            const pattern = new RegExp(`${head} \\{[^}]*\\}`);
+            expect(schema.match(pattern)?.[0]).toBe(block);
+        }
+        for (const operation of MISSION_DRAFT_OPERATIONS) {
+            expect(schema).toContain(operation);
+        }
     });
 
     it('writes the game master completion into the generated schema', () => {
