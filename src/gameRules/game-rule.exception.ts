@@ -318,4 +318,12 @@ export class GameRuleException extends BadRequestException {
             'Missione in corso: azione non disponibile fino al risultato',
         );
     }
+
+    // lo sconfitto torna nello slot solo a vita piena (Phase 23 D-02): la data la FE la legge da OwnedPet.fullLifeAt
+    static petDefeated(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.PET_DEFEATED,
+            'Il compagno è stato sconfitto: deve riposare finché non torna in forze',
+        );
+    }
 }
