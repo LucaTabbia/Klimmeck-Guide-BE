@@ -594,6 +594,7 @@ type OwnedPet {
 
 input ParticipantOverrideInput {
   characterId: ID!
+  companionLifeAfter: Int
   consumablesUsed: [ItemUsageInput!]
   hpAfter: Int
   injuries: [InjuryType!]
