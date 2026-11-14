@@ -1,5 +1,5 @@
 import {
-    ambushDefeat,
+    ambush,
     missionStart,
     petRecovered,
     prisonRelease,
@@ -17,10 +17,13 @@ const BUILDERS: Record<PushEventType, (id: string) => PushMessage> = {
     [PushEventType.questEnd]: questEnd,
     [PushEventType.streamerLive]: () => streamerLive(),
     [PushEventType.questCancelled]: questCancelled,
-    [PushEventType.ambushDefeat]: (id) => ambushDefeat(id, 'Crocevia'),
+    [PushEventType.ambushDefeat]: (id) =>
+        testPushMessage(PushEventType.ambushDefeat, id),
     [PushEventType.prisonRelease]: prisonRelease,
     [PushEventType.missionStart]: (id) => missionStart(id, 'La corte del re'),
     [PushEventType.petRecovered]: (id) => petRecovered(id, 'Fenrir'),
+    [PushEventType.ambush]: (id) =>
+        ambush(id, 'Imboscata presso Crocevia: hai respinto gli assalitori'),
 };
 const IDENTIFIED_TYPES = [
     PushEventType.travelEnd,
@@ -30,12 +33,13 @@ const IDENTIFIED_TYPES = [
     PushEventType.prisonRelease,
     PushEventType.missionStart,
     PushEventType.petRecovered,
+    PushEventType.ambush,
 ];
 // il builder compone il corpo con la città (D-12): il push di prova tiene quello generico del catalogo
 const COMPOSED_BODY_TYPES = [
-    PushEventType.ambushDefeat,
     PushEventType.missionStart,
     PushEventType.petRecovered,
+    PushEventType.ambush,
 ];
 
 describe('push event catalog', () => {
@@ -70,13 +74,28 @@ describe('push event catalog', () => {
         });
     });
 
-    // sconfitta in imboscata (Phase 15 D-12): il BE compone il corpo con la città raggiunta
-    it('builds the ambush defeat push with the reached city (D-12)', () => {
-        expect(ambushDefeat('64b0000000000000000000c1', 'Crocevia')).toEqual({
-            type: PushEventType.ambushDefeat,
-            id: '64b0000000000000000000c1',
+    // ogni imboscata subita, vinta o persa (D-14, D-30): id = QuestResult dell'imboscata, corpo composto dal BE
+    it('builds the ambush push with the result id (D-30)', () => {
+        expect(
+            ambush(
+                '64b0000000000000000000f1',
+                'Imboscata presso Crocevia: hai respinto gli assalitori',
+            ),
+        ).toEqual({
+            type: PushEventType.ambush,
+            id: '64b0000000000000000000f1',
             title: 'Imboscata!',
-            body: 'Sei stato sconfitto: la via torna verso Crocevia',
+            body: 'Imboscata presso Crocevia: hai respinto gli assalitori',
+            ttlSeconds: 3600,
+        });
+    });
+
+    it('keeps a generic ambush body for the test push (D-30)', () => {
+        expect(testPushMessage(PushEventType.ambush, 'a')).toEqual({
+            type: 'ambush',
+            id: 'a',
+            title: 'Imboscata!',
+            body: "Hai subito un'imboscata.",
             ttlSeconds: 3600,
         });
     });
@@ -194,8 +213,11 @@ describe('push event catalog', () => {
             ['body', 'id', 'title', 'ttlSeconds', 'type'],
         ],
         [
-            'ambushDefeat',
-            ambushDefeat('a', 'Crocevia'),
+            'ambush',
+            ambush(
+                'a',
+                'Imboscata presso Crocevia: hai respinto gli assalitori',
+            ),
             ['body', 'id', 'title', 'ttlSeconds', 'type'],
         ],
         [

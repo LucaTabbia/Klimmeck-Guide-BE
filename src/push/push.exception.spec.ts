@@ -68,6 +68,7 @@ describe('PushException', () => {
             'prisonRelease',
             'missionStart',
             'petRecovered',
+            'ambush',
         ]);
     });
 });
