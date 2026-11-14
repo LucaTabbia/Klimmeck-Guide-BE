@@ -416,6 +416,13 @@ type Lore {
   type: String!
 }
 
+type MissionCompanion {
+  lifeBefore: Int!
+  maxLifePoints: Int!
+  name: String!
+  pet: ID!
+}
+
 type MissionDraft {
   fights: [MissionFight!]!
   id: ID!
@@ -448,6 +455,7 @@ type MissionFight {
 }
 
 type MissionFightEffects {
+  companionLifeAfter: Int
   consumablesUsed: [MissionItemUsage!]!
   hpAfter: Int!
   injuriesAdded: [InjuryType!]!
@@ -466,6 +474,7 @@ input MissionFightInput {
 
 type MissionFightOutcome {
   character: ID!
+  companion: MissionCompanion
   consumablesAvailable: [MissionItemUsage!]!
   corrected: MissionFightEffects
   hpBefore: Int!

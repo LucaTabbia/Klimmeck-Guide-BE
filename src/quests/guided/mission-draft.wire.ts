@@ -48,6 +48,26 @@ export class MissionFightEffects {
 
     @Field(() => [MissionSpellUsage])
     spellsUsed: MissionSpellUsage[];
+
+    // vita simulata del compagno (D-17); null = nessun compagno nello scontro o bozza aperta prima della fase (D-33)
+    @Field(() => Int, { nullable: true })
+    companionLifeAfter: number | null;
+}
+
+// compagno a inizio scontro (D-17, D-20): massimo del suo livello e nome mostrato
+@ObjectType()
+export class MissionCompanion {
+    @Field(() => Int)
+    lifeBefore: number;
+
+    @Field(() => Int)
+    maxLifePoints: number;
+
+    @Field(() => String)
+    name: string;
+
+    @Field(() => ID)
+    pet: string;
 }
 
 @ObjectType()
@@ -75,6 +95,10 @@ export class MissionFightOutcome {
 
     @Field(() => [MissionSpellUsage])
     spellsAvailable: MissionSpellUsage[];
+
+    // null = nessun compagno in questo scontro, anche dopo una sconfitta in uno precedente (D-12, D-26)
+    @Field(() => MissionCompanion, { nullable: true })
+    companion: MissionCompanion | null;
 
     @Field(() => MissionFightEffects, { nullable: true })
     simulated: MissionFightEffects | null;

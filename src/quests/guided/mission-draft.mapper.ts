@@ -5,6 +5,7 @@ import { ENEMY_WIRE_POPULATE } from 'src/enemies/enemies.service';
 import { withoutOrphanRelatedLore } from 'src/lore/related-lore';
 import { Enemy, EnemyDocument } from 'src/models/enemy.model';
 import {
+    MissionCompanionRecord,
     MissionDraftParticipant,
     MissionDraftRecord,
     MissionFightEffectsRecord,
@@ -17,6 +18,7 @@ import {
 } from './mission-draft.model';
 import { hexOf } from './ids';
 import {
+    MissionCompanion,
     MissionDraftView,
     MissionFight,
     MissionFightEffects,
@@ -51,6 +53,19 @@ function effectsOf(
         injuriesAdded: [...effects.injuriesAdded],
         consumablesUsed: effects.consumablesUsed.map(itemUsageOf),
         spellsUsed: effects.spellsUsed.map(spellUsageOf),
+        companionLifeAfter: effects.companionLifeAfter ?? null,
+    };
+}
+
+function companionOf(
+    companion: MissionCompanionRecord | null | undefined,
+): MissionCompanion | null {
+    if (!companion) return null;
+    return {
+        lifeBefore: companion.lifeBefore,
+        maxLifePoints: companion.maxLifePoints,
+        name: companion.name,
+        pet: hexOf(companion.pet),
     };
 }
 
@@ -61,6 +76,7 @@ function outcomeOf(outcome: MissionFightOutcomeRecord): MissionFightOutcome {
         injuriesBefore: [...outcome.injuriesBefore],
         consumablesAvailable: outcome.consumablesAvailable.map(itemUsageOf),
         spellsAvailable: outcome.spellsAvailable.map(spellUsageOf),
+        companion: companionOf(outcome.companion),
         simulated: effectsOf(outcome.simulated),
         corrected: effectsOf(outcome.corrected),
     };
