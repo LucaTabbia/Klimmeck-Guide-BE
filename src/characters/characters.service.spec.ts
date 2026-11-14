@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { getModelToken } from '@nestjs/mongoose';
+import { getConnectionToken, getModelToken } from '@nestjs/mongoose';
 import { getQueueToken } from '@nestjs/bull';
 import { Test } from '@nestjs/testing';
 import { Types } from 'mongoose';
@@ -8,15 +8,13 @@ import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { Character } from 'src/models/character/character.model';
 import { SlotType } from 'src/models/enums/slot-type.enum';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
-import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
-import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
+import { Pet } from 'src/models/pet.model';
 import { Spell } from 'src/models/spell.model';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { FixedClock } from '../../test/auth/fixed-clock';
 import { CHARACTER_QUESTS_POPULATE } from './character-quests.populate';
 import { CharactersService } from './characters.service';
 import { MissionLockReader } from './mission-lock/mission-lock.reader';
-import { equipPetFilter, equipPetUpdate } from './pets/equip-pet.updates';
 import {
     ACTIVE_SPELL_SNAPSHOT_PROJECTION,
     equipSpellFilter,
@@ -47,6 +45,7 @@ const mockCharacterModel = {
 };
 const mockSpellModel = { findById: jest.fn() };
 const missionLock = { assertFree: jest.fn().mockResolvedValue(undefined) };
+const connection = { transaction: jest.fn() };
 const NOW = new Date('2026-10-27T10:00:00.000Z');
 
 /** Mongoose findOne(...).exec() shape. */
@@ -89,6 +88,8 @@ describe('CharactersService (unit — spell mutations)', () => {
                     provide: getModelToken(Spell.name),
                     useValue: mockSpellModel,
                 },
+                { provide: getModelToken(Pet.name), useValue: {} },
+                { provide: getConnectionToken(), useValue: connection },
                 {
                     provide: getQueueToken('spell-recovery'),
                     useValue: mockQueue,
@@ -670,75 +671,14 @@ describe('CharactersService (unit — spell mutations)', () => {
         });
     });
     describe('companion', () => {
-        const c = new Types.ObjectId();
-        const p = new Types.ObjectId();
-        const equip = (petId = p.toHexString()): EquipPetRequest => ({
-            id: c.toHexString(),
-            petId,
-        });
-        const unequip = (): UnequipPetRequest => ({ id: c.toHexString() });
-
-        it('equips an owned pet as the companion (D-15)', async () => {
-            mockCharacterModel.updateOne.mockReturnValue(asUpdate(1));
-
-            await expect(service.equipPet(equip())).resolves.toMatchObject({
-                successful: true,
-            });
-            expect(mockCharacterModel.updateOne).toHaveBeenCalledTimes(1);
-            expect(mockCharacterModel.updateOne).toHaveBeenCalledWith(
-                equipPetFilter(c, p),
-                equipPetUpdate(p),
-            );
-            expect(mockCharacterModel.exists).not.toHaveBeenCalled();
-        });
-
-        it('refuses a pet not owned with PET_NOT_OWNED (D-15)', async () => {
-            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
-            mockCharacterModel.exists.mockReturnValue(asQuery({ _id: c }));
-
-            await expect(service.equipPet(equip())).rejects.toMatchObject({
-                code: 'PET_NOT_OWNED',
-            });
-            expect(mockCharacterModel.exists).toHaveBeenCalledWith({
-                _id: c,
-                deletedAt: null,
-            });
-        });
-
-        it('answers NOT_FOUND for a missing character when equipping (D-15)', async () => {
-            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
-            mockCharacterModel.exists.mockReturnValue(asQuery(null));
-
-            await expect(service.equipPet(equip())).rejects.toMatchObject({
-                code: 'NOT_FOUND',
-            });
-        });
-
-        it('refuses a malformed pet id with PET_NOT_OWNED (D-15)', async () => {
-            await expect(service.equipPet(equip('abc'))).rejects.toMatchObject({
-                code: 'PET_NOT_OWNED',
-            });
-            expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
-        });
-
-        it('unequips the companion (D-15)', async () => {
-            mockCharacterModel.updateOne.mockReturnValue(asUpdate(1));
-
-            await expect(service.unequipPet(unequip())).resolves.toMatchObject({
-                successful: true,
-            });
-            expect(mockCharacterModel.updateOne).toHaveBeenCalledWith(
-                { _id: c, deletedAt: null },
-                equipPetUpdate(null),
-            );
-        });
-
-        it('answers NOT_FOUND for a missing character when unequipping (D-15)', async () => {
-            mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
-
-            await expect(service.unequipPet(unequip())).rejects.toMatchObject({
-                code: 'NOT_FOUND',
-            });
+        it('refuses a malformed pet id with PET_NOT_OWNED before the transaction (D-15)', async () => {
+            await expect(
+                service.equipPet({
+                    id: new Types.ObjectId().toHexString(),
+                    petId: 'abc',
+                }),
+            ).rejects.toMatchObject({ code: 'PET_NOT_OWNED' });
+            expect(connection.transaction).not.toHaveBeenCalled();
         });
     });
 
@@ -777,6 +717,7 @@ describe('CharactersService (unit — spell mutations)', () => {
                 expect(missionLock.assertFree).toHaveBeenCalledWith(
                     new Types.ObjectId(c),
                 );
+                expect(connection.transaction).not.toHaveBeenCalled();
                 expect(mockCharacterModel.updateOne).not.toHaveBeenCalled();
             },
         );

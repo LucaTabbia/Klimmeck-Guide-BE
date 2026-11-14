@@ -29,6 +29,7 @@ import {
     PendingQuest,
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
+import { Pet, PetSchema } from 'src/models/pet.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import {
@@ -56,6 +57,7 @@ export async function createCharactersTestApp(
                 { name: PointOfInterest.name, schema: PointOfInterestSchema },
                 { name: PendingQuest.name, schema: PendingQuestSchema },
                 { name: Quest.name, schema: QuestSchema },
+                { name: Pet.name, schema: PetSchema },
             ]),
             EconomyModule,
             AuthzModule,

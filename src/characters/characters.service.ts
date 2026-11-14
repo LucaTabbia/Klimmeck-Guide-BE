@@ -1,8 +1,8 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
-import { Model, Types } from 'mongoose';
+import { ClientSession, Connection, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import {
@@ -22,10 +22,11 @@ import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model'
 import { SlotType } from 'src/models/enums/slot-type.enum';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
+import { Pet, PetDocument } from 'src/models/pet.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { CHARACTER_QUESTS_POPULATE } from './character-quests.populate';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
-import { objectIdFromHex } from 'src/mongo/document-id';
+import { isObjectId, objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 import { enqueueTrigger } from 'src/queues/enqueue-trigger';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { requireCharacterObjectId } from './character-id';
@@ -36,10 +37,13 @@ import {
     equipItemUpdate,
 } from './equipment/equip-item.updates';
 import {
-    classifyEquipPetFailure,
-    equipPetFilter,
-    equipPetUpdate,
-} from './pets/equip-pet.updates';
+    PET_SLOT_PROJECTION,
+    PetCatalogFacts,
+    PetSlotPlan,
+    PetSlotSnapshot,
+    planEquipPet,
+    planUnequipPet,
+} from './pets/equip-pet.plan';
 import {
     ACTIVE_SPELL_SNAPSHOT_PROJECTION,
     ActiveSpellSnapshot,
@@ -69,6 +73,28 @@ import {
 
 const SPELL_FAILURE_CLASSIFICATION_READS = 2;
 
+type PetSlotPlanner = (
+    snapshot: PetSlotSnapshot,
+    catalog: ReadonlyMap<string, PetCatalogFacts>,
+    now: Date,
+) => PetSlotPlan;
+
+const PET_CATALOG_PROJECTION = {
+    maxLifePoints: 1,
+    maxXp: 1,
+    recoveryTime: 1,
+} as const;
+
+interface PetSlotWrite {
+    characterId: Types.ObjectId;
+    chosenPetId: Types.ObjectId | null;
+    session: ClientSession;
+}
+
+interface PetCatalogRow extends PetCatalogFacts {
+    _id: Types.ObjectId;
+}
+
 interface SpellRecoveryRule {
     maxUsages: number;
     recoveryTime: number;
@@ -82,6 +108,8 @@ export class CharactersService {
         @InjectModel(Character.name)
         private characterModel: Model<CharacterDocument>,
         @InjectModel(Spell.name) private spellModel: Model<SpellDocument>,
+        @InjectModel(Pet.name) private readonly petModel: Model<PetDocument>,
+        @InjectConnection() private readonly connection: Connection,
         @InjectQueue(SPELL_RECOVERY_QUEUE)
         private spellRecoveryQueue: Queue<SpellRecoveryJobData>,
         private readonly clock: Clock,
@@ -202,38 +230,73 @@ export class CharactersService {
         };
     }
 
-    // idempotente; ammesso anche in viaggio: la velocità è fotografata alla partenza (D-15); speedModifier null = compagno non da sella
+    // idempotente; ammesso anche in viaggio: la velocità della partenza è fotografata (D-15); speedModifier null = compagno non da sella
     async equipPet(request: EquipPetRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.id);
         await this.missionLock.assertFree(characterId);
         const petId = objectIdFromHex(request.petId);
         if (!petId) throw GameRuleException.petNotOwned();
 
-        const equipped = await this.characterModel
-            .updateOne(
-                equipPetFilter(characterId, petId),
-                equipPetUpdate(petId),
-            )
-            .exec();
-        if (equipped.matchedCount === 0) {
-            const characterExists =
-                (await this.characterModel
-                    .exists(activeCharacterById(characterId))
-                    .exec()) !== null;
-            throw classifyEquipPetFailure(characterExists);
-        }
+        await this.connection.transaction((session) =>
+            this.writePetSlot(
+                { characterId, chosenPetId: petId, session },
+                (snapshot, catalog, now) =>
+                    planEquipPet({ snapshot, petId, catalog, now }),
+            ),
+        );
         return { response: 'Compagno equipaggiato', successful: true };
     }
 
     async unequipPet(request: UnequipPetRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.id);
         await this.missionLock.assertFree(characterId);
-        const unequipped = await this.characterModel
-            .updateOne(activeCharacterById(characterId), equipPetUpdate(null))
-            .exec();
-        if (unequipped.matchedCount === 0)
-            throw ResourceNotFoundException.character();
+        await this.connection.transaction((session) =>
+            this.writePetSlot(
+                { characterId, chosenPetId: null, session },
+                (snapshot, catalog, now) =>
+                    planUnequipPet({ snapshot, catalog, now }),
+            ),
+        );
         return { response: 'Compagno lasciato a riposo', successful: true };
+    }
+
+    // rieseguibile dal driver sui WriteConflict: snapshot in sessione, piano puro, una scrittura guardata sullo slot letto (D-04, D-23)
+    private async writePetSlot(
+        { characterId, chosenPetId, session }: PetSlotWrite,
+        plan: PetSlotPlanner,
+    ): Promise<void> {
+        const snapshot = await this.characterModel
+            .findOne(activeCharacterById(characterId), PET_SLOT_PROJECTION)
+            .session(session)
+            .lean<PetSlotSnapshot | null>()
+            .exec();
+        if (!snapshot) throw ResourceNotFoundException.character();
+        const catalog = await this.petCatalogOf(
+            [chosenPetId, refIdOf(snapshot.assets?.pet)],
+            session,
+        );
+        const { filter, update } = plan(snapshot, catalog, this.clock.now());
+        if (!update) return;
+        const written = await this.characterModel
+            .updateOne(filter, update, { session })
+            .exec();
+        // quasi irraggiungibile dentro la transazione: un codice stabile invece di un esito a metà
+        if (written.matchedCount === 0) throw GameRuleException.petNotOwned();
+    }
+
+    // il catalogo del compagno scelto e di quello nello slot letto, nella stessa sessione dello snapshot
+    private async petCatalogOf(
+        petIds: (Types.ObjectId | null)[],
+        session: ClientSession,
+    ): Promise<Map<string, PetCatalogFacts>> {
+        const ids = petIds.filter(isObjectId);
+        if (ids.length === 0) return new Map();
+        const rows = await this.petModel
+            .find({ _id: { $in: ids } }, PET_CATALOG_PROJECTION)
+            .session(session)
+            .lean<PetCatalogRow[]>()
+            .exec();
+        return new Map(rows.map((row) => [row._id.toHexString(), row]));
     }
 
     async equipSpell(request: EquipSpellRequest): Promise<CommonResponse> {
