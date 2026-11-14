@@ -1283,6 +1283,34 @@ describe('the departure mount falling in an ambush (Phase 23)', () => {
             expect(lost.redirected).toBe(false);
         });
 
+        it('lights onFoot in a defeat only when the fallen companion is a mount (D-13, D-29)', () => {
+            const lostWith = (
+                extra: Record<string, unknown>,
+                petSpeed: number,
+            ) =>
+                planAmbushOutcome(
+                    mountInputWith(rawWith(extra), {
+                        verdict: 'failure',
+                        effects: unhurt(1, 0),
+                        detour: { ...nearestDetour, petSpeed },
+                    }),
+                );
+            const otherMount = {
+                mount: { pet: OTHER_PET_ID, factor: FACTOR },
+                food: FOOD_PLAN,
+            };
+            const noMount = { food: FOOD_PLAN };
+            const walker = lostWith(noMount, BASE_SPEED);
+
+            expect(lostWith(FOOD_RIDE, MOUNT_SPEED).report.onFoot).toBe(true);
+            expect(lostWith(otherMount, MOUNT_SPEED).report.onFoot).toBe(false);
+            expect(lostWith(noMount, MOUNT_SPEED).report.onFoot).toBe(true);
+            expect(walker.report.onFoot).toBe(false);
+            expect(rewrittenTravelOf(walker).duration).toBe(
+                durationMsOf(DETOUR_HOURS, BASE_SPEED),
+            );
+        });
+
         it('stretches the residual fallback when the departure mount falls in a defeat (C-11)', () => {
             const lost = planAmbushOutcome(
                 mountInputWith(rawWith(FOOD_RIDE), {
