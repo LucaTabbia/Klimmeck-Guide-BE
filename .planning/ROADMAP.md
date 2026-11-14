@@ -264,7 +264,7 @@ Plans:
 - [x] 23-15-PLAN.md — Flusso guidato: proposta della vita del compagno
 - [x] 23-16-PLAN.md — Flusso guidato: correzione e completamento
 - [x] 23-17-PLAN.md — Gate della fase
-- [ ] 23-18-PLAN.md — Chiusura della fase e handoff
+- [x] 23-18-PLAN.md — Chiusura della fase e handoff
 
 **Stato (2026-11-14)**: 18/18 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, tabella dei tempi a DB, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §6, da eseguire) a cura dell'orchestratore
 
@@ -312,7 +312,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
-| 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 17/18 | In Progress | - |
+| 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
 
 ---
 

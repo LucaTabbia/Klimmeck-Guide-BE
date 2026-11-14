@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 23 di 23 (Sconfitta, riposo e recupero dei compagni) — PIANIFICATA il 2026-11-14 su `feat/23-sconfitta-riposo-recupero-compagni` (riportato su `develop` `2c462cbe`): contesto D-01..D-21 emendato dopo la ricerca e le risposte dell'utente (D-23..D-33) e con i livelli del compagno (D-37..D-39), `23-REPO-RULES.md`, `23-RESEARCH.md`, `23-VALIDATION.md`, 18 piani in wave sequenziali; FE Phase 22 pianificata nella stessa sessione (17 piani)
-Plan: 17 of 18
+Plan: 18 of 18
 Status: Phase 23 — 18/18 eseguiti — verifica, audit, PR e UAT a cura dell'orchestratore (gate 23-17 verde, correzioni della review applicate, handoff `BACKEND-NOTES.md` scritto, BE-PET-01..14 chiusi)
 Last activity: 2026-11-14 -- 23-18 eseguito (handoff `BACKEND-NOTES.md` per la FE Phase 22 e piano di UAT, VALIDATION firmata, BE-PET-01..14 chiusi)
 Next step: a cura dell'orchestratore: esito di `npm run test:cov`, verifica e audit, PR verso `develop`, scrittura a DB della tabella dei tempi di recupero rivista dall'utente (`pets.recoveryTime`, script fuori dal repo), riavvio del BE dal ramo e UAT su device con la FE Phase 22 (`BACKEND-NOTES.md` §6, da eseguire).
