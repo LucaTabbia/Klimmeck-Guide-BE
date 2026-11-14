@@ -236,6 +236,11 @@ export const HANDLER_FIXTURES: Record<ProtectedHandler, HandlerFixture> = {
         'EquipPetRequest!',
         (v) => ({ request: { id: C(v), petId: ANY } }),
     ),
+    'CharactersResolver.renamePet': requestMutation(
+        'renamePet',
+        'RenamePetRequest!',
+        (v) => ({ request: { id: C(v), petId: ANY, name: 'Fenrir' } }),
+    ),
     'CharactersResolver.equipSpell': requestMutation(
         'equipSpell',
         'EquipSpellRequest!',

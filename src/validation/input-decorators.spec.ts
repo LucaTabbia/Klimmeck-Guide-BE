@@ -21,6 +21,7 @@ import { CreateCharacterInput } from 'src/models/request/create-character-reques
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
+import { RenamePetRequest } from 'src/models/request/rename-pet-request.model';
 import { TransactionItems } from 'src/models/request/transaction-items.model';
 import { TransactionRequest } from 'src/models/request/transaction-request.model';
 import { TravelRequest } from 'src/models/request/travel-request.model';
@@ -56,6 +57,7 @@ const VALIDATED_INPUTS: Record<string, InputClass> = {
     MissionPrizeItemInput,
     ParticipantOverrideInput,
     RegisterPushDeviceInput,
+    RenamePetRequest,
     SaveMissionDraftInput,
     SendTestPushInput,
     SimulateMissionFightInput,

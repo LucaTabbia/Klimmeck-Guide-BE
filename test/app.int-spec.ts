@@ -732,6 +732,17 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the companion name contract of the BE Phase 23 into the generated schema (D-19, D-31)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            '  renamePet(request: RenamePetRequest!): CommonResponse!\n',
+        );
+        expect(schema.match(/input RenamePetRequest \{[^}]*\}/)?.[0]).toBe(
+            'input RenamePetRequest {\n  id: String!\n  name: String\n  petId: String!\n}',
+        );
+    });
+
     it('writes the no-effect heal flag of the FE Phase 18 into the generated schema (D-25)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 

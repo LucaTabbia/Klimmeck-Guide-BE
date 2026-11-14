@@ -28,6 +28,7 @@ export const EXPECTED_OWNERSHIP_HANDLERS = [
     'CharactersResolver.equipPet',
     'CharactersResolver.equipSpell',
     'CharactersResolver.equipment',
+    'CharactersResolver.renamePet',
     'CharactersResolver.unequipPet',
     'CharactersResolver.unequipSpell',
     'CharactersResolver.useSpell',
@@ -43,6 +44,7 @@ export const EXPECTED_OWNERSHIP_HANDLERS = [
 ] as const;
 // nessun bypass innkeeper (07 D-11): ogni handler owner-only deve passare da qui
 export const EXPECTED_OWNER_ONLY_HANDLERS = [
+    'CharactersResolver.renamePet',
     'PartyResolver.abandonQuest',
     'QuestAcceptanceResolver.acceptQuest',
     'QuestAcceptanceResolver.questTravelPreview',

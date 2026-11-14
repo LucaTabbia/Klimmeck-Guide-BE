@@ -7,6 +7,7 @@ import {
     type PetSlotPlan,
     type PetSlotSnapshot,
     planEquipPet,
+    planRenamePet,
     planUnequipPet,
 } from './equip-pet.plan';
 
@@ -351,5 +352,136 @@ describe('planUnequipPet', () => {
         });
 
         expect(plan.update).toBeNull();
+    });
+});
+
+describe('planRenamePet', () => {
+    it('names the companion and rewrites only the owned companions (D-19, D-31)', () => {
+        const other: OwnedPetEntry = {
+            pet: Y,
+            xp: 0,
+            currentLifePoints: 70,
+            name: 'Brina',
+            lifeAsOf: t0,
+            level: 1,
+        };
+
+        const plan = planRenamePet({
+            snapshot: snapshotOf(Y, [
+                { pet: X, xp: 0, currentLifePoints: 100, level: 1 },
+                other,
+            ]),
+            petId: X,
+            name: 'Fenrir',
+            catalog,
+        });
+
+        expect(Object.keys(plan.update?.$set ?? {})).toEqual([
+            'assets.ownedPets',
+        ]);
+        expect(writtenEntries(plan)).toEqual([
+            {
+                pet: X,
+                xp: 0,
+                currentLifePoints: 100,
+                level: 1,
+                name: 'Fenrir',
+            },
+            other,
+        ]);
+    });
+
+    it('clears the name of a companion with null (D-31)', () => {
+        const plan = planRenamePet({
+            snapshot: snapshotOf(null, [
+                {
+                    pet: X,
+                    xp: 0,
+                    currentLifePoints: 100,
+                    name: 'Fenrir',
+                    level: 1,
+                },
+            ]),
+            petId: X,
+            name: null,
+            catalog,
+        });
+
+        expect(writtenEntries(plan)).toEqual([
+            { pet: X, xp: 0, currentLifePoints: 100, level: 1 },
+        ]);
+    });
+
+    it('writes the level and the full life of a companion never touched by the phase (D-23, D-38)', () => {
+        const plan = planRenamePet({
+            snapshot: snapshotOf(null, [
+                { pet: X, xp: 22, currentLifePoints: 100 },
+            ]),
+            petId: X,
+            name: 'Fenrir',
+            catalog,
+        });
+
+        expect(writtenEntryOf(plan, X)).toEqual({
+            pet: X,
+            xp: 22,
+            currentLifePoints: 122,
+            level: 5,
+            name: 'Fenrir',
+        });
+    });
+
+    it('keeps the life, the rest anchor and the defeat of a hurt companion (D-23, D-31)', () => {
+        const hurt: OwnedPetEntry = {
+            pet: X,
+            xp: 0,
+            currentLifePoints: 1,
+            lifeAsOf: t0,
+            defeatedUntil: at(100),
+            potionRecoveryUntil: at(5),
+            level: 1,
+        };
+
+        const plan = planRenamePet({
+            snapshot: snapshotOf(null, [hurt]),
+            petId: X,
+            name: 'Fenrir',
+            catalog,
+        });
+
+        expect(writtenEntryOf(plan, X)).toEqual({ ...hurt, name: 'Fenrir' });
+    });
+
+    it('refuses a pet not owned with PET_NOT_OWNED (D-23)', () => {
+        const code = refusalOf(() =>
+            planRenamePet({
+                snapshot: snapshotOf(null, [
+                    { pet: Y, xp: 0, currentLifePoints: 100, level: 1 },
+                ]),
+                petId: X,
+                name: 'Fenrir',
+                catalog,
+            }),
+        );
+
+        expect(code).toBe(GameRuleErrorCode.PET_NOT_OWNED);
+    });
+
+    it('guards the write on the slot as read (D-23)', () => {
+        const plan = planRenamePet({
+            snapshot: snapshotOf(Y, [
+                { pet: X, xp: 0, currentLifePoints: 100, level: 1 },
+                { pet: Y, xp: 0, currentLifePoints: 100, level: 1 },
+            ]),
+            petId: X,
+            name: 'Fenrir',
+            catalog,
+        });
+
+        expect(plan.filter).toEqual({
+            _id: characterId,
+            deletedAt: null,
+            'assets.pet': { $in: idForms(Y) },
+        });
     });
 });
