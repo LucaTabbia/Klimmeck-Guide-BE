@@ -55,6 +55,12 @@ const CATALOG: Record<PushEventType, CatalogEntry> = {
         body: 'Il tuo compagno è di nuovo in forze.',
         ttlSeconds: PERSONAL_TTL_SECONDS,
     },
+    [PushEventType.ambush]: {
+        type: PushEventType.ambush,
+        title: 'Imboscata!',
+        body: "Hai subito un'imboscata.",
+        ttlSeconds: PERSONAL_TTL_SECONDS,
+    },
 };
 
 const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
@@ -65,6 +71,7 @@ const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
     PushEventType.prisonRelease,
     PushEventType.missionStart,
     PushEventType.petRecovered,
+    PushEventType.ambush,
 ]);
 
 // Phase 8 (fine viaggio), Phase 9 (esiti delle missioni, OutcomeWriter), Phase 6 (stream.online) chiamano PushService con questi builder (D-12)
@@ -85,7 +92,14 @@ export const questCancelled = (questId: string): PushMessage => ({
     id: questId,
 });
 
-// sconfitta in imboscata (Phase 15 D-12): id = personaggio, corpo con la città raggiunta composto dal BE
+// ogni imboscata subita, vinta o persa (D-14, D-30): id = QuestResult dell'imboscata, corpo composto da ambushPushOf
+export const ambush = (resultId: string, body: string): PushMessage => ({
+    ...CATALOG[PushEventType.ambush],
+    id: resultId,
+    body,
+});
+
+// TEMPORANEO (piano 23-11 Task 1): l'invio passa ad ambushPushOf nel Task 2, poi il builder si toglie
 export const ambushDefeat = (
     characterId: string,
     cityName: string,

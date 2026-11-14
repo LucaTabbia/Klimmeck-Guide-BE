@@ -7,7 +7,7 @@ export enum PushEventType {
     streamerLive = 'streamerLive',
     // party sciolto dopo 24 ore senza posti pieni (utente 2026-10-25)
     questCancelled = 'questCancelled',
-    // sconfitta in imboscata (Phase 15 D-12): personale, id = personaggio
+    // sconfitta in imboscata (Phase 15 D-12): non parte più dalla Phase 23 (D-30), resta per sendTestPush
     ambushDefeat = 'ambushDefeat',
     // fine della prigione dopo l'arresto (quick 261110-prp): personale, id = personaggio
     prisonRelease = 'prisonRelease',
@@ -15,6 +15,8 @@ export enum PushEventType {
     missionStart = 'missionStart',
     // compagno sconfitto di nuovo a vita piena (D-11): personale, id = pet a catalogo
     petRecovered = 'petRecovered',
+    // ogni imboscata subita, vinta o persa (D-14, D-30); ambushDefeat resta nell'enum ma non parte più
+    ambush = 'ambush',
 }
 
 registerEnumType(PushEventType, { name: 'PushEventType' });
