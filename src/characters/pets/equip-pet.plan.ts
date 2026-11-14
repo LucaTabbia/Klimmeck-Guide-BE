@@ -54,6 +54,13 @@ interface UnequipPetInput {
     now: Date;
 }
 
+interface RenamePetInput {
+    snapshot: PetSlotSnapshot;
+    petId: Types.ObjectId;
+    name: string | null;
+    catalog: PetCatalog;
+}
+
 const factsOf = (
     catalog: PetCatalog,
     petId: Types.ObjectId,
@@ -158,4 +165,38 @@ export function planUnequipPet(input: UnequipPetInput): PetSlotPlan {
                 : entry,
     );
     return { filter, update: slotUpdate(null, ownedPets) };
+}
+
+// il nome cambia solo la voce scelta, senza toccare slot, ancora né sconfitta; null toglie la chiave (D-19, D-31)
+function renamedEntry(
+    entry: NewOwnedPetEntry,
+    facts: PetCatalogFacts | undefined,
+    name: string | null,
+): NewOwnedPetEntry {
+    const { storedLife, level } = settledFields(entry, facts);
+    const renamed: NewOwnedPetEntry = {
+        ...entry,
+        currentLifePoints: storedLife,
+        level,
+    };
+    if (name === null) delete renamed.name;
+    else renamed.name = name;
+    return renamed;
+}
+
+export function planRenamePet(input: RenamePetInput): PetSlotPlan {
+    const { snapshot, petId, name, catalog } = input;
+    const entries = snapshot.assets?.ownedPets ?? [];
+    if (!entries.some((entry) => sameId(entry?.pet, petId))) {
+        throw GameRuleException.petNotOwned();
+    }
+    const ownedPets = normalisedOwnedPets(entries).map((entry) =>
+        entry.pet.equals(petId)
+            ? renamedEntry(entry, factsOf(catalog, petId), name)
+            : entry,
+    );
+    return {
+        filter: slotFilterOf(snapshot),
+        update: { $set: { 'assets.ownedPets': ownedPets } },
+    };
 }

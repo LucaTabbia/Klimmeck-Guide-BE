@@ -20,6 +20,7 @@ import { TransactionRequest } from 'src/models/request/transaction-request.model
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
 import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
+import { RenamePetRequest } from 'src/models/request/rename-pet-request.model';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 
@@ -86,6 +87,18 @@ export class CharactersResolver {
         request: UnequipPetRequest,
     ): Promise<CommonResponse> {
         return this.charactersService.unequipPet(request);
+    }
+
+    // solo il proprietario (D-19, D-31): cosmetica, non bloccata dalla missione in corso
+    @OwnsCharacter<{ request: RenamePetRequest }>(({ request }) => request.id, {
+        ownerOnly: true,
+    })
+    @Mutation(() => CommonResponse)
+    async renamePet(
+        @Args('request', { type: () => RenamePetRequest })
+        request: RenamePetRequest,
+    ): Promise<CommonResponse> {
+        return this.charactersService.renamePet(request);
     }
 
     @OwnsCharacter<{ request: EquipSpellRequest }>(({ request }) => request.id)

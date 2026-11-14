@@ -555,6 +555,7 @@ type Mutation {
   logout: Boolean!
   refreshSession(refreshToken: String!): AuthSession!
   registerPushDevice(input: RegisterPushDeviceInput!): Boolean!
+  renamePet(request: RenamePetRequest!): CommonResponse!
   saveMissionDraft(input: SaveMissionDraftInput!): MissionDraft!
   sendTestPush(input: SendTestPushInput!): PushDeliveryReport!
   simulateMissionFight(input: SimulateMissionFightInput!): MissionDraft!
@@ -928,6 +929,12 @@ input RegisterPushDeviceInput {
   deviceId: String!
   platform: PushPlatform!
   token: String!
+}
+
+input RenamePetRequest {
+  id: String!
+  name: String
+  petId: String!
 }
 
 enum RoleType {

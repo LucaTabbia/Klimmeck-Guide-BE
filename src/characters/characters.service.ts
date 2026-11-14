@@ -19,6 +19,7 @@ import { EquipmentItem } from 'src/models/equipment-item.model';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
 import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
+import { RenamePetRequest } from 'src/models/request/rename-pet-request.model';
 import { SlotType } from 'src/models/enums/slot-type.enum';
 import { EquipSpellRequest } from 'src/models/request/equip-spell-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
@@ -42,8 +43,10 @@ import {
     PetSlotPlan,
     PetSlotSnapshot,
     planEquipPet,
+    planRenamePet,
     planUnequipPet,
 } from './pets/equip-pet.plan';
+import { petNameOf } from './pets/pet-name';
 import {
     ACTIVE_SPELL_SNAPSHOT_PROJECTION,
     ActiveSpellSnapshot,
@@ -258,6 +261,23 @@ export class CharactersService {
             ),
         );
         return { response: 'Compagno lasciato a riposo', successful: true };
+    }
+
+    // cosmetica: nessun lucchetto della missione (D-31); è anche la prima scrittura di una voce legacy (D-23, D-38)
+    async renamePet(request: RenamePetRequest): Promise<CommonResponse> {
+        const characterId = requireCharacterObjectId(request.id);
+        const petId = objectIdFromHex(request.petId);
+        if (!petId) throw GameRuleException.petNotOwned();
+        const name = petNameOf(request.name);
+
+        await this.connection.transaction((session) =>
+            this.writePetSlot(
+                { characterId, chosenPetId: petId, session },
+                (snapshot, catalog) =>
+                    planRenamePet({ snapshot, petId, name, catalog }),
+            ),
+        );
+        return { response: 'Nome del compagno aggiornato', successful: true };
     }
 
     // rieseguibile dal driver sui WriteConflict: snapshot in sessione, piano puro, una scrittura guardata sullo slot letto (D-04, D-23)
