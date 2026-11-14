@@ -79,3 +79,8 @@ Scritto il 14 novembre 2026. Dove questa sezione e il resto del file divergono, 
 - **Tabella dei tempi (D-25):** nessun dato nel repo; il reporter d'avvio conta i pet senza `recoveryTime` (solo il numero nel log).
 - Requisiti BE-PET-01..13 di `23-RESEARCH.md` §Phase Requirements: il primo piano li scrive in `.planning/REQUIREMENTS.md` e nella ROADMAP. Le spec che andranno RED sono la tabella di §Q14; la Wave 0 è in `23-VALIDATION.md`.
 - Ordine dei piani: i 18 di §Q15 (modello e orologio → catalogo e filo → equip → porta del combattimento → esiti → copertura dei percorsi → pozione → rinomina → push «in forze» → imboscate e `QuestResult` immediato → push `ambush` → cavalcatura fotografata → strada a piedi → fame e deviazione → guidato proposta → guidato correzione e completamento → gate → handoff).
+
+### Livelli del compagno (D-37, D-38 — aggiunta del 14 novembre 2026 a esecuzione avviata)
+
+- Aggiunte al filo su `OwnedPet`: `level: Int!`, `maxLifePoints: Int!` (massimo del compagno), risolti a lettura; nessun campo a DB.
+- UNA funzione pura (xp, tetto di xp, vita base → livello, vita massima), accanto a quella della vita a riposo; ogni lettura del massimo del compagno nella fase passa da lì (mai `pet.maxLifePoints` diretto per un compagno posseduto): riposo, pozioni, esiti (`CompanionOutcome.maxLifePoints`), guidato (`MissionCompanion.maxLifePoints`, limiti di `companionLifeAfter`), contesto dello scontro. Nessun tiro nuovo. Requisito BE-PET-14.
