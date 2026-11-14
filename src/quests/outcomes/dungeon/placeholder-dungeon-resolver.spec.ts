@@ -49,6 +49,9 @@ class StagedCombatResolver extends CombatResolver {
                     injuriesAdded: script.injuriesAdded ?? [],
                     consumablesUsed: script.consumablesUsed ?? [],
                     spellsUsed: script.spellsUsed ?? [],
+                    ...(script.companionLifeAfter === undefined
+                        ? {}
+                        : { companionLifeAfter: script.companionLifeAfter }),
                 };
             }),
         };
@@ -257,6 +260,98 @@ describe('PlaceholderDungeonResolver', () => {
                 spellsUsed: [],
             },
         ]);
+    });
+
+    describe('the companion across the stages', () => {
+        const wolf = {
+            petId: '61'.padStart(24, '0'),
+            attack: { base: [], energy: [] },
+            defense: { base: [], energy: [] },
+            currentLifePoints: 50,
+            maxLifePoints: 80,
+            xp: 40,
+        };
+        const withCompanion = (): DungeonContext => ({
+            ...dungeon(),
+            participants: [
+                participant(MAGE),
+                { ...participant(HERO), companion: wolf },
+            ],
+        });
+        const heroIn = (context: CombatContext) =>
+            context.participants.find(
+                ({ characterId }) => characterId === HERO,
+            );
+        const heroEffectsOf = (resolution: DungeonResolution) =>
+            resolution.participants.find(
+                ({ characterId }) => characterId === HERO,
+            );
+
+        it('starts each stage from the companion life left by the previous one (D-12)', () => {
+            const { combat } = explore(
+                [
+                    {
+                        verdict: 'success',
+                        effects: { [HERO]: { companionLifeAfter: 30 } },
+                    },
+                ],
+                new SequenceChance(),
+                withCompanion(),
+            );
+
+            expect(heroIn(combat.contexts[0])?.companion).toEqual(wolf);
+            expect(heroIn(combat.contexts[1])?.companion).toEqual({
+                ...wolf,
+                currentLifePoints: 30,
+            });
+        });
+
+        it('leaves a companion defeated on a stage out of the following stages (D-12, D-26)', () => {
+            const { combat, resolution } = explore(
+                [
+                    {
+                        verdict: 'success',
+                        effects: { [HERO]: { companionLifeAfter: 1 } },
+                    },
+                ],
+                new SequenceChance(),
+                withCompanion(),
+            );
+
+            expect(heroIn(combat.contexts[1])?.companion).toBeNull();
+            expect(heroIn(combat.contexts[2])?.companion).toBeNull();
+            expect(heroEffectsOf(resolution)?.companionLifeAfter).toBe(1);
+        });
+
+        it('keeps the companion life of the last stage it fought in the merged effects (D-12)', () => {
+            const { resolution } = explore(
+                [
+                    {
+                        verdict: 'success',
+                        effects: { [HERO]: { companionLifeAfter: 40 } },
+                    },
+                    {
+                        verdict: 'success',
+                        effects: { [HERO]: { companionLifeAfter: 25 } },
+                    },
+                    { verdict: 'success' },
+                ],
+                new SequenceChance(),
+                withCompanion(),
+            );
+
+            expect(heroEffectsOf(resolution)?.companionLifeAfter).toBe(25);
+            const mage = resolution.participants.find(
+                ({ characterId }) => characterId === MAGE,
+            );
+            expect(Object.keys(mage ?? {}).sort()).toEqual([
+                'characterId',
+                'consumablesUsed',
+                'hpAfter',
+                'injuriesAdded',
+                'spellsUsed',
+            ]);
+        });
     });
 
     it('adds no chance draw of its own (D-10)', () => {

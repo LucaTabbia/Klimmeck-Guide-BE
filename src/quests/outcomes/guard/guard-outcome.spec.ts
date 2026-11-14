@@ -17,6 +17,7 @@ import {
     planGuardDefeat,
 } from './guard-outcome';
 import { ChanceSource } from '../chance-source';
+import { companionOf } from '../combat/combat-context';
 import { planCombatant } from '../combatant-plan';
 import type {
     CombatCatalog,
@@ -116,12 +117,101 @@ describe('guard outcome (quick 261110-cgd)', () => {
     it('enters the encounter with the life and the wounds left by the quest fight (quick 261110-cgd)', () => {
         const snapshot = unrewardedSnapshot();
 
-        expect(foughtSnapshotOf(snapshot, unrewardedBattle()).status).toEqual({
+        expect(
+            foughtSnapshotOf(snapshot, unrewardedBattle(), new Map()).status,
+        ).toEqual({
             ...snapshot.status,
             currentLifePoints: 400,
             injuries: [InjuryType.sprain, InjuryType.deepCut],
         });
-        expect(foughtSnapshotOf(snapshot, null)).toBe(snapshot);
+        expect(foughtSnapshotOf(snapshot, null, new Map())).toBe(snapshot);
+    });
+
+    describe('the companion between the quest fight and the guard', () => {
+        const pets = new Map([
+            [COMPANION.toHexString(), { maxLifePoints: 80, maxXp: 100 }],
+        ]);
+        const other = new Types.ObjectId('64c0000000000000000000b5');
+        const withCompanion = () => {
+            const snapshot = unrewardedSnapshot();
+            return {
+                ...snapshot,
+                assets: {
+                    ...snapshot.assets!,
+                    pet: COMPANION,
+                    ownedPets: [
+                        buildOwnedPet(other, { xp: 4 }),
+                        buildOwnedPet(COMPANION, { xp: 0, name: 'Zanna' }),
+                    ],
+                },
+            };
+        };
+
+        it('starts the guard fight from the companion life left by the quest (D-26)', () => {
+            const snapshot = withCompanion();
+
+            const fought = foughtSnapshotOf(
+                snapshot,
+                unrewardedBattle({ companionLifeAfter: 30 }),
+                pets,
+            );
+
+            expect(fought.assets?.pet).toBe(COMPANION);
+            expect(fought.assets?.ownedPets).toEqual([
+                snapshot.assets.ownedPets[0],
+                {
+                    ...snapshot.assets.ownedPets[1],
+                    currentLifePoints: 30,
+                    level: 1,
+                },
+            ]);
+            expect(companionOf(fought, pets)?.currentLifePoints).toBe(30);
+        });
+
+        it('fights the guard without a companion defeated by the quest (D-12, D-26)', () => {
+            const fought = foughtSnapshotOf(
+                withCompanion(),
+                unrewardedBattle({ companionLifeAfter: 1 }),
+                pets,
+            );
+
+            expect(fought.assets?.pet).toBeNull();
+            expect(companionOf(fought, pets)).toBeNull();
+        });
+
+        it('leaves the companion untouched by a quest fight without it (D-26)', () => {
+            const snapshot = withCompanion();
+
+            expect(
+                foughtSnapshotOf(snapshot, unrewardedBattle(), pets).assets,
+            ).toBe(snapshot.assets);
+        });
+
+        it('merges the companion life of the last fight that had it (D-12)', () => {
+            expect(
+                mergedEffects(
+                    unrewardedBattle({ companionLifeAfter: 1 }),
+                    unrewardedBattle(),
+                ).companionLifeAfter,
+            ).toBe(1);
+            expect(
+                mergedEffects(
+                    unrewardedBattle({ companionLifeAfter: 40 }),
+                    unrewardedBattle({ companionLifeAfter: 25 }),
+                ).companionLifeAfter,
+            ).toBe(25);
+            expect(
+                Object.keys(
+                    mergedEffects(unrewardedBattle(), unrewardedBattle()),
+                ).sort(),
+            ).toEqual([
+                'characterId',
+                'consumablesUsed',
+                'hpAfter',
+                'injuriesAdded',
+                'spellsUsed',
+            ]);
+        });
     });
 
     it('sums the effects of the quest fight and of the encounter (quick 261110-cgd)', () => {
