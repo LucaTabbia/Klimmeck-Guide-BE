@@ -132,6 +132,36 @@ describe('AmbushResolutionService (replica set)', () => {
     const ambushJobs = () =>
         travelQueue.added.filter((job) => job.name === 'ambush');
 
+    // trasporto FCM che non risponde finché il test non lo lascia andare: fotografa la coda dei viaggi all'invio (B-01)
+    const holdPush = () => {
+        let release: () => void = () => undefined;
+        let started: (queue: {
+            added: string[];
+            removed: string[];
+        }) => void = () => undefined;
+        const queueAtPush = new Promise<{ added: string[]; removed: string[] }>(
+            (resolve) => {
+                started = resolve;
+            },
+        );
+        jest.spyOn(world.push, 'sendToTokens').mockImplementationOnce(
+            (tokens) =>
+                new Promise((resolve) => {
+                    started({
+                        added: travelQueue.added.map(({ options }) =>
+                            String(options.jobId),
+                        ),
+                        removed: [...travelQueue.removed],
+                    });
+                    release = () =>
+                        resolve(
+                            tokens.map((token) => ({ token, delivered: true })),
+                        );
+                }),
+        );
+        return { queueAtPush, release: () => release() };
+    };
+
     const defeatOf = (
         subject: Traveller,
         injuriesAdded: InjuryType[] = [],
@@ -680,6 +710,24 @@ describe('AmbushResolutionService (replica set)', () => {
         });
     });
 
+    it('realigns the travel jobs before a slow push of a won ambush (D-14, D-30)', async () => {
+        const subject = await traveller({ km: 10 });
+        await registerDevice(world.harness, subject.player);
+        chance.load([0, 0, 0]);
+        const push = holdPush();
+
+        const resolving = service.resolve(subject.identity);
+        const queue = await push.queueAtPush;
+        push.release();
+
+        await expect(resolving).resolves.toBe('won');
+        const { activeTravel } = (await rawOf(subject)).status;
+        expect(queue.added).toEqual([
+            ambushJobId(subject.characterId, START, activeTravel.ambush.at),
+        ]);
+        expect(world.push.sent).toHaveLength(1);
+    });
+
     it('names the fallen companion in the push (D-14, D-20)', async () => {
         const { subject, companion } = await travellerWithCompanion();
         await world.models.pets.updateOne(
@@ -961,6 +1009,27 @@ describe('AmbushResolutionService (replica set)', () => {
                 body: 'Sei stato sconfitto: la via torna verso Crocevia',
                 ttlSeconds: 3600,
             });
+        });
+
+        it('realigns the travel jobs before a slow push of a lost ambush (D-14, D-30)', async () => {
+            const subject = await traveller({ km: 10 });
+            await registerDevice(world.harness, subject.player);
+            const oldJob = travelJobId(subject.characterId, START);
+            await travelQueue.add('complete', {}, { jobId: oldJob });
+            travelQueue.added.length = 0;
+            defeatOf(subject);
+            const push = holdPush();
+
+            const resolving = service.resolve(subject.identity);
+            const queue = await push.queueAtPush;
+            push.release();
+
+            await expect(resolving).resolves.toBe('lost');
+            expect(queue).toEqual({
+                added: [travelJobId(subject.characterId, subject.identity.at)],
+                removed: [oldJob],
+            });
+            expect(world.push.sent).toHaveLength(1);
         });
 
         it('never draws an ambush on the detour (D-03)', async () => {
