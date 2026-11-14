@@ -111,6 +111,61 @@ describe('MissionDraftLockPublisher', () => {
         },
     );
 
+    const loseHistory = () =>
+        stream.emit(
+            'error',
+            Object.assign(new Error('history lost'), { code: 286 }),
+        );
+
+    it('republishes every active holder of a GM lane after a lost history (D-23)', async () => {
+        jest.spyOn(Logger.prototype, 'warn').mockImplementation(
+            () => undefined,
+        );
+        const first = new Types.ObjectId();
+        const second = new Types.ObjectId();
+        holders.mockResolvedValueOnce([{ _id: first }, { _id: second }]);
+
+        loseHistory();
+        await settle();
+
+        expect(find.mock.calls).toEqual([
+            [
+                {
+                    deletedAt: null,
+                    $or: [
+                        { 'quests.activeStoryQuest': { $ne: null } },
+                        { 'quests.activeWorldMissionQuest': { $ne: null } },
+                    ],
+                },
+                { _id: 1 },
+            ],
+        ]);
+        expect(requestPublish.mock.calls).toEqual([
+            [first.toHexString()],
+            [second.toHexString()],
+        ]);
+    });
+
+    it('logs only the code of a failed recovery after a lost history (D-23)', async () => {
+        jest.spyOn(Logger.prototype, 'warn').mockImplementation(
+            () => undefined,
+        );
+        const error = jest
+            .spyOn(Logger.prototype, 'error')
+            .mockImplementation(() => undefined);
+        holders.mockRejectedValueOnce(
+            Object.assign(new Error('raw driver message'), { code: 112 }),
+        );
+
+        loseHistory();
+        await settle();
+
+        expect(requestPublish).not.toHaveBeenCalled();
+        expect(error.mock.calls.map(([value]) => String(value))).toEqual([
+            'Ripubblicazione dei personaggi del flusso guidato dopo la storia persa fallita: Error, code 112',
+        ]);
+    });
+
     it('ignores an event without a document key', async () => {
         stream.emit('change', { operationType: 'update' });
         await settle();
