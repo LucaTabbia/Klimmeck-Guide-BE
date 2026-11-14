@@ -314,6 +314,23 @@ describe('AmbushResolutionService (replica set)', () => {
         );
     });
 
+    it('hands the equipped companion to the engine in an ambush (D-20)', async () => {
+        const { subject, companion } = await travellerWithCompanion();
+        chance.load([0, 0]);
+
+        await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        expect(
+            combat.contexts.map(
+                ({ participants }) => participants[0].companion?.petId,
+            ),
+        ).toEqual([companion.toHexString()]);
+        expect(combat.contexts[0].participants[0].companion).toMatchObject({
+            currentLifePoints: COMPANION_LIFE,
+            xp: 0,
+        });
+    });
+
     it('stops redrawing with less than ten km left and re-enqueues the arrival (D-03, D-13)', async () => {
         const subject = await traveller({ km: 15 });
         moveClockTo(new Date(subject.travel.endTime as Date));
