@@ -104,6 +104,20 @@ describe('CharacterStatusResolver', () => {
         expect(missionLock.isGuidedLocked.mock.calls).toEqual([[characterId]]);
     });
 
+    it('asks the reader for a parent read without its lanes (D-16)', async () => {
+        const characterId = new Types.ObjectId();
+        const status = statusWithParent({ _id: characterId });
+        missionLock.isLocked.mockResolvedValue(true);
+        missionLock.isGuidedLocked.mockResolvedValue(true);
+
+        await expect(resolver.missionInProgress(status)).resolves.toBe(true);
+        await expect(resolver.guidedMissionInProgress(status)).resolves.toBe(
+            true,
+        );
+        expect(missionLock.isLocked.mock.calls).toEqual([[characterId]]);
+        expect(missionLock.isGuidedLocked.mock.calls).toEqual([[characterId]]);
+    });
+
     it('answers false for a plain status without parent (D-16)', async () => {
         const status = statusOf({ xp: 0 });
 

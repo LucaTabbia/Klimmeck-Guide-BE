@@ -147,10 +147,17 @@ describe('lanes of a character', () => {
         ).toBe('unresolved');
     });
 
-    it.each([{}, { quests: null }, null, undefined])(
-        'answers no lanes without quests (D-16): %p',
+    it.each([null, undefined])(
+        'answers no lanes without a character (D-16): %p',
         (character) => {
             expect(lockLanesOf(character)).toBeNull();
+        },
+    );
+
+    it.each([{}, { quests: null }])(
+        'asks the reader for a character read without its lanes (D-16): %p',
+        (character) => {
+            expect(lockLanesOf(character)).toBe('unresolved');
         },
     );
 });
