@@ -4,8 +4,10 @@ import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { AuditTarget } from 'src/authz/audit/audit-target.decorator';
 import { Roles } from 'src/authz/roles/roles.decorator';
 import { CommonResponse } from 'src/models/common/common-response.model';
+import { Enemy } from 'src/models/enemy.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { MissionDraftPresenter } from './mission-draft.mapper';
+import { MissionEnemiesService } from './mission-enemies.service';
 import { MissionDraftService } from './mission-draft.service';
 import { MissionDraftView } from './mission-draft.wire';
 
@@ -18,6 +20,7 @@ export class GuidedMissionResolver {
     constructor(
         private readonly drafts: MissionDraftService,
         private readonly presenter: MissionDraftPresenter,
+        private readonly enemies: MissionEnemiesService,
     ) {}
 
     @Roles(RoleType.innkeeper)
@@ -41,6 +44,20 @@ export class GuidedMissionResolver {
     ): Promise<MissionDraftView | null> {
         const draft = await this.drafts.read(pendingQuestId);
         return draft ? this.presenter.present(draft) : null;
+    }
+
+    @Roles(RoleType.innkeeper)
+    @Query(() => [Enemy])
+    missionEnemies(
+        @Args('pendingQuestId', { type: () => ID }) pendingQuestId: string,
+        @Args('showAll', {
+            type: () => Boolean,
+            nullable: true,
+            defaultValue: false,
+        })
+        showAll: boolean,
+    ): Promise<Enemy[]> {
+        return this.enemies.list(pendingQuestId, showAll);
     }
 
     @Roles(RoleType.innkeeper)

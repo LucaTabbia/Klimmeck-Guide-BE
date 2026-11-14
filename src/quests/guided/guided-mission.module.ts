@@ -10,11 +10,16 @@ import {
     PendingQuest,
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
+import {
+    PointOfInterest,
+    PointOfInterestSchema,
+} from 'src/models/point-of-interest.model';
 import { QuestOutcomesModule } from 'src/quests/outcomes/quest-outcomes.module';
 import { GuidedMissionResolver } from './guided-mission.resolver';
 import { MissionDraftPresenter } from './mission-draft.mapper';
 import { MissionDraft, MissionDraftSchema } from './mission-draft.model';
 import { MissionDraftService } from './mission-draft.service';
+import { MissionEnemiesService } from './mission-enemies.service';
 
 // flusso guidato dell'oste (Phase 22): bozza, poi lista nemici, simulazione, premi e completamento
 @Module({
@@ -24,12 +29,14 @@ import { MissionDraftService } from './mission-draft.service';
             { name: PendingQuest.name, schema: PendingQuestSchema },
             { name: Character.name, schema: CharacterSchema },
             { name: Enemy.name, schema: EnemySchema },
+            { name: PointOfInterest.name, schema: PointOfInterestSchema },
         ]),
         QuestOutcomesModule,
     ],
     providers: [
         MissionDraftService,
         MissionDraftPresenter,
+        MissionEnemiesService,
         GuidedMissionResolver,
         { provide: Clock, useClass: SystemClock },
     ],

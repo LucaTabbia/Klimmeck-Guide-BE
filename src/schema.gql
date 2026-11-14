@@ -685,6 +685,7 @@ type Query {
   lores: [Lore!]!
   me: User!
   missionDraft(pendingQuestId: ID!): MissionDraft
+  missionEnemies(pendingQuestId: ID!, showAll: Boolean = false): [Enemy!]!
   pendingQuest(id: String!): PendingQuest!
   pendingQuests: [PendingQuest!]!
   pendingRequests: [PendingRequest!]!
