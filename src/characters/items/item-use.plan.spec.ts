@@ -4,8 +4,10 @@ import {
     ItemUseCharacterSnapshot,
     ItemUsePlan,
     planItemUse,
+    planPetPotion,
     recoveryTimeOf,
 } from 'src/characters/items/item-use.plan';
+import type { OwnedPetEntry } from 'src/characters/pets/owned-pet-entry';
 import type { InventorySnapshot } from 'src/economy/trade/trade-inventory';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
@@ -518,5 +520,325 @@ describe('planItemUse — refusals', () => {
                 },
             }).outcome.hpAfter,
         ).toBe(1000);
+    });
+});
+
+describe('pet potion plan', () => {
+    const MINUTE = 60_000;
+    const T0 = NOW;
+    const AT = new Date(T0.getTime() + 20 * MINUTE);
+    const PET_ID = new Types.ObjectId('64b000000000000000000a06');
+    const OTHER_PET_ID = new Types.ObjectId('64b000000000000000000a07');
+    const PET_RECOVERY_UNTIL = new Date(AT.getTime() + 10 * MINUTE);
+    const SPECIES = { maxLifePoints: 100, recoveryTime: 100 * MINUTE };
+    const RESTING: OwnedPetEntry = {
+        pet: PET_ID,
+        xp: 0,
+        currentLifePoints: 20,
+        lifeAsOf: T0,
+    };
+    const OTHER: OwnedPetEntry = {
+        pet: OTHER_PET_ID,
+        xp: 5,
+        currentLifePoints: 30,
+        level: 1,
+        name: 'Ombra',
+        lifeAsOf: T0,
+        potionRecoveryUntil: new Date(AT.getTime() + 5 * MINUTE),
+    };
+    const OWNED_ITEMS = [
+        { itemType: 'LootItem', item: POTION_ID, quantity: 2 },
+        { itemType: 'LootItem', item: OTHER_ID, quantity: 1 },
+    ];
+
+    interface PetCase {
+        status?: Partial<ItemUseCharacterSnapshot['status']>;
+        slot?: unknown;
+        ownedPets?: OwnedPetEntry[];
+        ownedItems?: typeof OWNED_ITEMS;
+        pet?: {
+            maxLifePoints?: unknown;
+            maxXp?: unknown;
+            recoveryTime?: unknown;
+        } | null;
+        item?: ItemUseCatalogSnapshot | null;
+        missionInProgress?: boolean;
+    }
+
+    const petPlanWith = (petCase: PetCase = {}): ItemUsePlan =>
+        planPetPotion({
+            snapshot: {
+                ...snapshotWith({ status: petCase.status }),
+                assets: {
+                    ownedItems: petCase.ownedItems ?? OWNED_ITEMS,
+                    ownedEquipments: [],
+                    pet: petCase.slot ?? null,
+                    ownedPets: petCase.ownedPets ?? [RESTING, OTHER],
+                },
+            },
+            itemId: POTION_ID,
+            item:
+                petCase.item === null
+                    ? null
+                    : potionWith({
+                          power: 30,
+                          recovery: { time: 10 * MINUTE },
+                          ...petCase.item,
+                      }),
+            now: AT,
+            missionInProgress: petCase.missionInProgress ?? false,
+            petId: PET_ID,
+            pet: petCase.pet === undefined ? SPECIES : petCase.pet,
+        });
+
+    const petRefusalOf = (petCase: PetCase): unknown => {
+        try {
+            petPlanWith(petCase);
+        } catch (error) {
+            if (error instanceof GameRuleException) return error.extensions;
+            throw error;
+        }
+        throw new Error('the potion was not refused');
+    };
+
+    const writtenEntryOf = (plan: ItemUsePlan): unknown =>
+        (plan.update.$set['assets.ownedPets'] as unknown[])[0];
+
+    it('heals a resting companion from the life it reached and anchors the rest at now (D-07, D-05)', () => {
+        const plan = petPlanWith();
+
+        expect(plan.outcome).toEqual({
+            hpBefore: 40,
+            hpAfter: 70,
+            injuriesHealed: [],
+            quantityLeft: 1,
+            recoveryUntil: PET_RECOVERY_UNTIL,
+            loreUnlocked: [NEW_LORE_ID],
+        });
+        expect(writtenEntryOf(plan)).toEqual({
+            pet: PET_ID,
+            xp: 0,
+            currentLifePoints: 70,
+            level: 1,
+            lifeAsOf: AT,
+            potionRecoveryUntil: PET_RECOVERY_UNTIL,
+        });
+        expect(plan.update.$set['assets.ownedItems']).toEqual([
+            { itemType: 'LootItem', item: POTION_ID, quantity: 1 },
+            { itemType: 'LootItem', item: OTHER_ID, quantity: 1 },
+        ]);
+    });
+
+    it('heals the equipped companion without a rest anchor (D-07)', () => {
+        const plan = petPlanWith({
+            slot: PET_ID,
+            ownedPets: [
+                { pet: PET_ID, xp: 0, currentLifePoints: 50, level: 1 },
+                OTHER,
+            ],
+        });
+
+        expect(plan.outcome.hpBefore).toBe(50);
+        expect(plan.outcome.hpAfter).toBe(80);
+        expect(writtenEntryOf(plan)).toEqual({
+            pet: PET_ID,
+            xp: 0,
+            currentLifePoints: 80,
+            level: 1,
+            potionRecoveryUntil: PET_RECOVERY_UNTIL,
+        });
+    });
+
+    it('refuses a defeated companion before its wait (D-06)', () => {
+        expect(
+            petRefusalOf({
+                ownedPets: [
+                    {
+                        ...RESTING,
+                        defeatedUntil: new Date(AT.getTime() + 60 * MINUTE),
+                        potionRecoveryUntil: new Date(AT.getTime() + MINUTE),
+                    },
+                ],
+            }),
+        ).toEqual({ code: 'PET_DEFEATED' });
+    });
+
+    it('refuses a companion in its own potion wait with the date (D-32, D-05)', () => {
+        const until = new Date(AT.getTime() + 5 * MINUTE);
+
+        expect(
+            petRefusalOf({
+                ownedPets: [{ ...RESTING, potionRecoveryUntil: until }],
+            }),
+        ).toEqual({
+            code: 'PET_POTION_RECOVERING',
+            recoveryUntil: until.toISOString(),
+        });
+    });
+
+    it("ignores the character's potion wait for the companion (D-05)", () => {
+        const plan = petPlanWith({
+            status: { potionRecoveryUntil: new Date(AT.getTime() + MINUTE) },
+        });
+
+        expect(plan.outcome.hpAfter).toBe(70);
+        expect(Object.keys(plan.update.$set).sort()).toEqual([
+            'assets.ownedItems',
+            'assets.ownedPets',
+        ]);
+        expect(Object.keys(plan.filter)).not.toContain(
+            'status.potionRecoveryUntil',
+        );
+    });
+
+    it('refuses a full-life companion without consuming the potion (D-07, D-32)', () => {
+        expect(
+            petRefusalOf({
+                ownedPets: [
+                    { pet: PET_ID, xp: 0, currentLifePoints: 100, level: 1 },
+                ],
+            }),
+        ).toEqual({ code: 'ITEM_NO_EFFECT' });
+    });
+
+    it('heals up to the maximum of the companion level, not the species base (D-38)', () => {
+        const levelled = (currentLifePoints: number): PetCase => ({
+            slot: PET_ID,
+            pet: { maxLifePoints: 100, maxXp: 100 },
+            ownedPets: [{ pet: PET_ID, xp: 100, level: 10, currentLifePoints }],
+        });
+
+        expect(petPlanWith(levelled(150)).outcome.hpAfter).toBe(180);
+        expect(petPlanWith(levelled(190)).outcome.hpAfter).toBe(200);
+        expect(petPlanWith(levelled(100)).outcome).toMatchObject({
+            hpBefore: 100,
+            hpAfter: 130,
+        });
+    });
+
+    it('refuses a potion on a companion never touched by the phase, read at full life (D-23, D-38)', () => {
+        expect(
+            petRefusalOf({
+                pet: { maxLifePoints: 100, maxXp: 100 },
+                ownedPets: [{ pet: PET_ID, xp: 22, currentLifePoints: 100 }],
+            }),
+        ).toEqual({ code: 'ITEM_NO_EFFECT' });
+    });
+
+    it('refuses a companion whose species has no readable life (D-38)', () => {
+        expect(petRefusalOf({ pet: null })).toEqual({
+            code: 'ITEM_NO_EFFECT',
+        });
+    });
+
+    it('refuses a pet not owned after the potion checks (D-32)', () => {
+        const withoutPotion = [
+            { itemType: 'LootItem', item: OTHER_ID, quantity: 1 },
+        ];
+
+        expect(petRefusalOf({ ownedPets: [OTHER] })).toEqual({
+            code: 'PET_NOT_OWNED',
+        });
+        expect(
+            petRefusalOf({ ownedPets: [OTHER], ownedItems: withoutPotion }),
+        ).toEqual({ code: 'ITEM_NOT_OWNED' });
+        expect(
+            petRefusalOf({ ownedPets: [OTHER], item: { effect: 'hunger' } }),
+        ).toEqual({ code: 'ITEM_NOT_USABLE' });
+    });
+
+    it('keeps the mission lock and the awaiting aid before everything (D-32)', () => {
+        const defeated = [
+            {
+                ...RESTING,
+                defeatedUntil: new Date(AT.getTime() + 60 * MINUTE),
+            },
+        ];
+
+        expect(
+            petRefusalOf({
+                status: { awaitingAid: { since: NOW } },
+                missionInProgress: true,
+                ownedPets: defeated,
+            }),
+        ).toEqual({ code: 'AWAITING_AID' });
+        expect(
+            petRefusalOf({
+                missionInProgress: true,
+                ownedPets: defeated,
+                item: null,
+            }),
+        ).toEqual({ code: 'MISSION_IN_PROGRESS' });
+    });
+
+    it('unlocks the potion lore to the character (D-32)', () => {
+        const plan = petPlanWith();
+
+        expect(plan.outcome.loreUnlocked).toEqual([NEW_LORE_ID]);
+        expect(plan.update.$addToSet).toEqual(planWith().update.$addToSet);
+    });
+
+    it('guards the write on the companion as read (D-23)', () => {
+        expect(petPlanWith().filter).toEqual({
+            _id: CHARACTER_ID,
+            deletedAt: null,
+            'status.awaitingAid': null,
+            'assets.pet': null,
+            'assets.ownedPets': {
+                $elemMatch: {
+                    pet: { $in: [PET_ID, PET_ID.toHexString()] },
+                    currentLifePoints: 20,
+                    lifeAsOf: T0,
+                    potionRecoveryUntil: null,
+                    defeatedUntil: null,
+                },
+            },
+            $and: [
+                {
+                    'assets.ownedItems': {
+                        $elemMatch: {
+                            item: { $in: [POTION_ID, POTION_ID.toHexString()] },
+                            quantity: { $gte: 1 },
+                        },
+                    },
+                },
+            ],
+        });
+    });
+
+    it('guards the slot and the ended dates of the companion as read (D-23)', () => {
+        const ended = new Date(AT.getTime() - MINUTE);
+        const { filter } = petPlanWith({
+            slot: PET_ID.toHexString(),
+            ownedPets: [
+                {
+                    pet: PET_ID,
+                    xp: 0,
+                    currentLifePoints: 50,
+                    level: 1,
+                    potionRecoveryUntil: ended,
+                    defeatedUntil: 'soon',
+                },
+            ],
+        });
+
+        expect(filter['assets.pet']).toEqual({
+            $in: [PET_ID, PET_ID.toHexString()],
+        });
+        expect(filter['assets.ownedPets']).toEqual({
+            $elemMatch: {
+                pet: { $in: [PET_ID, PET_ID.toHexString()] },
+                currentLifePoints: 50,
+                lifeAsOf: null,
+                potionRecoveryUntil: ended,
+                defeatedUntil: { $not: { $type: 'date' } },
+            },
+        });
+    });
+
+    it('keeps the name and dates of the other companions (D-23)', () => {
+        expect(
+            (petPlanWith().update.$set['assets.ownedPets'] as unknown[])[1],
+        ).toEqual(OTHER);
     });
 });

@@ -261,6 +261,7 @@ describe('GameRuleException', () => {
             ...cases.map(([, factory]) => factory().code),
             GameRuleException.potionRecovering(UNTIL).code,
             GameRuleException.characterImprisoned(UNTIL).code,
+            GameRuleException.petPotionRecovering(UNTIL).code,
         ].sort();
 
         expect(producedCodes).toEqual(Object.values(GameRuleErrorCode).sort());
@@ -316,6 +317,24 @@ describe('GameRuleException', () => {
     it('refuses a defeated companion with its own code and no extra extensions (D-02)', () => {
         expect(GameRuleException.petDefeated().extensions).toEqual({
             code: 'PET_DEFEATED',
+        });
+    });
+
+    it('carries the companion wait as an ISO instant (D-32)', () => {
+        const exception = GameRuleException.petPotionRecovering(UNTIL);
+
+        expect(exception).toBeInstanceOf(BadRequestException);
+        expect(exception.getStatus()).toBe(400);
+        expect(exception.extensions).toEqual({
+            code: 'PET_POTION_RECOVERING',
+            recoveryUntil: '2026-11-10T12:30:00.000Z',
+        });
+        expect(exception.getResponse()).toEqual({
+            statusCode: 400,
+            error: 'Bad Request',
+            message:
+                "Il compagno non reggerebbe un'altra pozione: aspetta che la prima si sia posata",
+            code: 'PET_POTION_RECOVERING',
         });
     });
 
