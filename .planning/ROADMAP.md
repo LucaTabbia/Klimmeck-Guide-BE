@@ -251,7 +251,7 @@ Plans:
 - [x] 23-02-PLAN.md — Catalogo e filo del compagno
 - [x] 23-03-PLAN.md — Equip e riposo con assestamento, `PET_DEFEATED`
 - [x] 23-04-PLAN.md — Porta del combattimento: vita del compagno dopo lo scontro
-- [ ] 23-05-PLAN.md — Esiti: `companionAfterFight` e `QuestResult.companion`
+- [x] 23-05-PLAN.md — Esiti: `companionAfterFight` e `QuestResult.companion`
 - [ ] 23-06-PLAN.md — Copertura dei percorsi di combattimento
 - [ ] 23-07-PLAN.md — Pozione sul compagno
 - [ ] 23-08-PLAN.md — Nome del compagno: `renamePet`
@@ -310,7 +310,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
-| 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 4/18 | In Progress | - |
+| 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 5/18 | In Progress | - |
 
 ---
 
