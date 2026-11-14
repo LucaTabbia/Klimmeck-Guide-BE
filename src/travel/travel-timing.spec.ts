@@ -163,6 +163,12 @@ describe('travel timing', () => {
             expect(mountOf(pet, Infinity)).toBeNull();
             expect(mountOf(null, 2)).toBeNull();
         });
+
+        it('takes no mount from a pet not faster than walking (D-29)', () => {
+            expect(mountOf(pet, 1)).toBeNull();
+            expect(mountOf(pet, 0.5)).toBeNull();
+            expect(mountOf(pet, 1.01)).toEqual({ pet, factor: 1.01 });
+        });
     });
 
     describe('travelKmAt', () => {

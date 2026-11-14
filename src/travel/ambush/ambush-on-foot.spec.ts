@@ -88,7 +88,7 @@ describe('the residual road on foot (Phase 23)', () => {
         expect(onFootWith({ next: null }).next).toBeNull();
     });
 
-    it('falls only when the defeated companion is the departure mount (D-13, D-29)', () => {
+    it('falls only when the defeated companion is the departure mount faster than walking (D-13, D-29)', () => {
         const mount = { pet: HORSE, factor: 2 };
         expect(isMountFallen(mount, { petId: HORSE, defeated: true })).toBe(
             true,
@@ -103,6 +103,14 @@ describe('the residual road on foot (Phase 23)', () => {
             false,
         );
         expect(isMountFallen(mount, null)).toBe(false);
+        for (const factor of [1, 0.5]) {
+            expect(
+                isMountFallen(
+                    { pet: HORSE, factor },
+                    { petId: HORSE, defeated: true },
+                ),
+            ).toBe(false);
+        }
         for (const missing of [undefined, null, {}]) {
             expect(
                 isMountFallen(missing, { petId: HORSE, defeated: true }),
