@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { QUEST_LANES } from 'src/quests/acceptance/quest-lanes';
 
 export interface LockLane {
     startDate?: Date | null;
@@ -33,14 +34,6 @@ export function missionInProgressOf(
 
 export type LaneResolution = LockLanes | 'unresolved' | null;
 
-type LaneName = keyof LockLanes;
-
-const LANE_NAMES: readonly LaneName[] = [
-    'pendingQuest',
-    'activeStoryQuest',
-    'activeWorldMissionQuest',
-];
-
 interface FieldReader {
     get?: (path: string) => unknown;
 }
@@ -69,15 +62,16 @@ function laneDatesOf(lane: object): LockLane {
     };
 }
 
-// corsie popolate (findOne, payload di characterUpdated) → nessuna lettura; un id o una forma ignota → il reader (D-16)
+// corsie popolate (findOne, payload di characterUpdated) → nessuna lettura; un id, una forma ignota o le corsie non lette → il reader (D-16)
 export function lockLanesOf(
     character: { quests?: Record<string, unknown> | null } | null | undefined,
 ): LaneResolution {
-    const quests = character?.quests;
-    if (!quests) return null;
+    if (!character) return null;
+    const quests = character.quests;
+    if (!quests) return 'unresolved';
 
     const lanes: LockLanes = {};
-    for (const name of LANE_NAMES) {
+    for (const name of QUEST_LANES) {
         const lane = quests[name];
         if (lane == null) {
             lanes[name] = null;
