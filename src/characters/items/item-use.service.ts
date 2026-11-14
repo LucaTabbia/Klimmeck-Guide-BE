@@ -9,8 +9,13 @@ import {
     type ItemUseCatalogSnapshot,
     type ItemUseCharacterSnapshot,
     type ItemUseOutcome,
+    type ItemUsePlan,
+    type ItemUsePlanInput,
+    PET_POTION_CATALOG_PROJECTION,
     planItemUse,
+    planPetPotion,
 } from 'src/characters/items/item-use.plan';
+import type { PetCatalogFacts } from 'src/characters/pets/equip-pet.plan';
 import type { UseItemResult } from 'src/characters/items/use-item-result.model';
 import { MissionLockReader } from 'src/characters/mission-lock/mission-lock.reader';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
@@ -21,12 +26,16 @@ import {
 } from 'src/models/character/character.model';
 import { LootItem, LootItemDocument } from 'src/models/loot-item.model';
 import { Lore, LoreDocument } from 'src/models/lore.model';
+import { Pet, PetDocument } from 'src/models/pet.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 
 interface LinkedUser {
     currentCharacter: unknown;
 }
+
+// a chi va la pozione: il personaggio (planItemUse) o un suo compagno (planPetPotion, Phase 23 D-05)
+type DrinkPlanner = (input: ItemUsePlanInput) => ItemUsePlan;
 
 // una transazione, snapshot in sessione, una sola scrittura (Phase 18 D-22); nessuna emissione a mano: il change stream riemette characterUpdated
 @Injectable()
@@ -39,11 +48,16 @@ export class ItemUseService {
         @InjectModel(LootItem.name)
         private readonly lootItemModel: Model<LootItemDocument>,
         @InjectModel(Lore.name) private readonly loreModel: Model<LoreDocument>,
+        @InjectModel(Pet.name) private readonly petModel: Model<PetDocument>,
         private readonly clock: Clock,
         private readonly missionLock: MissionLockReader,
     ) {}
 
-    async useItem(userId: string, itemId: string): Promise<UseItemResult> {
+    async useItem(
+        userId: string,
+        itemId: string,
+        petId?: string | null,
+    ): Promise<UseItemResult> {
         const characterId = await this.currentCharacterOf(userId);
         const catalogId = new Types.ObjectId(itemId);
         // il catalogo non cambia con la bevuta: letto una volta, l'ordine dei rifiuti lo decide il piano puro
@@ -51,13 +65,24 @@ export class ItemUseService {
             .findById(catalogId, ITEM_USE_CATALOG_PROJECTION)
             .lean<ItemUseCatalogSnapshot | null>()
             .exec();
+        const planner = petId ? await this.petPlannerOf(petId) : planItemUse;
         const outcome = await this.connection.transaction((session) =>
-            this.drinkWithin(characterId, catalogId, item, session),
+            this.drinkWithin(characterId, catalogId, item, session, planner),
         );
         return {
             ...outcome,
             loreUnlocked: await this.loreInOrder(outcome.loreUnlocked),
         };
+    }
+
+    // come la pozione, il catalogo del pet si legge una volta fuori dalla transazione (Phase 23 D-05)
+    private async petPlannerOf(petId: string): Promise<DrinkPlanner> {
+        const catalogPetId = new Types.ObjectId(petId);
+        const pet = await this.petModel
+            .findById(catalogPetId, PET_POTION_CATALOG_PROJECTION)
+            .lean<PetCatalogFacts | null>()
+            .exec();
+        return (input) => planPetPotion({ ...input, petId: catalogPetId, pet });
     }
 
     private async currentCharacterOf(userId: string): Promise<Types.ObjectId> {
@@ -76,6 +101,7 @@ export class ItemUseService {
         itemId: Types.ObjectId,
         item: ItemUseCatalogSnapshot | null,
         session: ClientSession,
+        planner: DrinkPlanner,
     ): Promise<ItemUseOutcome> {
         const snapshot = await this.characterModel
             .findOne(
@@ -90,7 +116,7 @@ export class ItemUseService {
             characterId,
             session,
         );
-        const plan = planItemUse({
+        const plan = planner({
             snapshot,
             itemId,
             item,

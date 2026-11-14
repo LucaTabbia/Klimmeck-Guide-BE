@@ -10,6 +10,7 @@ import {
 } from 'src/models/character/character.model';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
+import { Pet, PetSchema } from 'src/models/pet.model';
 import { User, UserSchema } from 'src/models/user.model';
 
 // bevuta dal Diario (Phase 18): modulo sibling della cancellazione, senza Bull
@@ -20,6 +21,7 @@ import { User, UserSchema } from 'src/models/user.model';
             { name: Character.name, schema: CharacterSchema },
             { name: LootItem.name, schema: LootItemSchema },
             { name: Lore.name, schema: LoreSchema },
+            { name: Pet.name, schema: PetSchema },
         ]),
         MissionLockModule,
     ],

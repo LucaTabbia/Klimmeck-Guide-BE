@@ -564,7 +564,7 @@ type Mutation {
   unequipPet(request: UnequipPetRequest!): CommonResponse!
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
   unregisterPushDevice(deviceId: String!): Boolean!
-  useItem(itemId: ID!): UseItemResult!
+  useItem(itemId: ID!, petId: ID): UseItemResult!
   useSpell(request: UseSpellRequest!): CommonResponse!
 }
 
