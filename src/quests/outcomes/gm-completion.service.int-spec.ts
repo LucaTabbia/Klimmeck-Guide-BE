@@ -757,7 +757,8 @@ describe('GmCompletionService.complete (replSet)', () => {
             _id: subject.characterId,
         });
         expect(raw?.assets.ownedPets).toEqual([
-            { pet: pet._id, xp: 35, currentLifePoints: 4 },
+            // senza scontro solo l'xp: voce legacy scritta piena al suo massimo e col livello (D-23, D-39)
+            { pet: pet._id, xp: 35, currentLifePoints: 10, level: 2 },
         ]);
         const result = await world.models.questResults
             .findById(draft._id)

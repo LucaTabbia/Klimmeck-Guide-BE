@@ -78,6 +78,7 @@ export function unrewardedInput(
         battle: null,
         enemies: null,
         spellRecoveryTimes: new Map(),
+        petCatalog: new Map(),
         now: UNREWARDED_NOW,
         ...overrides,
     };

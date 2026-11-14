@@ -341,7 +341,7 @@ describe('guard outcome (quick 261110-cgd)', () => {
         expect(plan.result.xpGained).toBe(200);
         expect(plan.result.petXpGained).toBe(20);
         expect(plan.update.$set['assets.ownedPets']).toEqual([
-            { pet: COMPANION, xp: 35, currentLifePoints: 10 },
+            { pet: COMPANION, xp: 35, currentLifePoints: 10, level: 2 },
         ]);
     });
 });

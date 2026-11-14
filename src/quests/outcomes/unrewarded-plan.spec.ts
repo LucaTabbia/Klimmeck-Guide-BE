@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { QuestType } from 'src/models/enums/quest-type.enum';
+import { idForms } from 'src/mongo/document-id';
 import {
     UNREWARDED_IDS,
     UNREWARDED_NOW,
@@ -9,6 +10,7 @@ import {
 } from '../../../test/quests/unrewarded-plan-input';
 import { planUnrewarded, type UnrewardedConclusion } from './unrewarded-plan';
 
+const COMPANION = new Types.ObjectId('64c0000000000000000000b3');
 const ACTIVE_SPELL = new Types.ObjectId('64c0000000000000000000b1');
 const IDLE_SPELL = new Types.ObjectId('64c0000000000000000000b2');
 const RECOVERY_MS = 60_000;
@@ -99,5 +101,69 @@ describe('unrewarded outcome plan', () => {
         ]);
         expect(plan.result.spellsUsed).toEqual([]);
         expect(plan.spellRecoveries).toEqual([]);
+    });
+
+    it('writes the companion hurt or defeated in a defeat without a prize (D-03, Pitfall 8)', () => {
+        const base = unrewardedSnapshot();
+        const plan = planUnrewarded(
+            unrewardedInput(QuestType.guard, {
+                snapshot: {
+                    ...base,
+                    assets: {
+                        ...base.assets,
+                        pet: COMPANION,
+                        ownedPets: [
+                            {
+                                pet: COMPANION,
+                                xp: 5,
+                                currentLifePoints: 40,
+                                level: 1,
+                            },
+                        ],
+                    },
+                },
+                battle: unrewardedBattle({ companionLifeAfter: 1 }),
+                enemies: {
+                    entries: [{ enemy: UNREWARDED_IDS.enemy, quantity: 2 }],
+                    xp: 500,
+                },
+                petCatalog: new Map([
+                    [
+                        COMPANION.toHexString(),
+                        {
+                            name: 'Volpe',
+                            maxLifePoints: 50,
+                            maxXp: 100,
+                            recoveryTime: RECOVERY_MS,
+                        },
+                    ],
+                ]),
+            }),
+            conclusion,
+        );
+
+        expect(plan.update.$set['assets.pet']).toBeNull();
+        expect(plan.update.$set['assets.ownedPets']).toEqual([
+            {
+                pet: COMPANION,
+                xp: 5,
+                currentLifePoints: 1,
+                level: 1,
+                lifeAsOf: UNREWARDED_NOW,
+                defeatedUntil: DUE,
+            },
+        ]);
+        expect(plan.filter['assets.pet']).toEqual({
+            $in: idForms(COMPANION),
+        });
+        expect(plan.result.companion).toEqual({
+            name: 'Volpe',
+            lifeBefore: 40,
+            lifePoints: 1,
+            maxLifePoints: 50,
+            defeated: true,
+            fullLifeAt: DUE,
+        });
+        expect(plan.result.petXpGained).toBe(0);
     });
 });

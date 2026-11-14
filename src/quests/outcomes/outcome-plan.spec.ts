@@ -21,7 +21,10 @@ import {
     DrawnRewards,
     NO_REWARDS,
 } from 'src/quests/outcomes/rewards/quest-rewards';
-import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
+import {
+    buildOwnedPet,
+    type OwnedPetOverrides,
+} from '../../../test/fixtures/owned-pet.fixture';
 import { NO_TURNS } from '../../../test/quests/dungeon-turns.fixture';
 
 const NOW = new Date('2026-10-24T10:00:00.000Z');
@@ -120,6 +123,7 @@ const inputWith = (
     aid: null,
     spellRecoveryTimes: new Map(),
     petMaxXp: new Map(),
+    petCatalog: new Map(),
     now: NOW,
     ...overrides,
 });
@@ -233,6 +237,7 @@ describe('planParticipant', () => {
                 arrested: false,
                 coinsLost: null,
                 guardEncounter: false,
+                companion: null,
             });
         });
     });
@@ -678,7 +683,7 @@ describe('planParticipant', () => {
             );
 
             expect(plan.update.$set['assets.ownedPets']).toEqual([
-                { pet: COMPANION_ID, xp: 30, currentLifePoints: 10 },
+                { pet: COMPANION_ID, xp: 30, currentLifePoints: 10, level: 2 },
             ]);
             expect(plan.result.petXpGained).toBe(20);
         });
@@ -694,7 +699,7 @@ describe('planParticipant', () => {
 
             expect(plan.update.$set['assets.ownedPets']).toEqual([
                 first,
-                { pet: COMPANION_ID, xp: 30, currentLifePoints: 10 },
+                { pet: COMPANION_ID, xp: 30, currentLifePoints: 10, level: 2 },
                 last,
             ]);
         });
@@ -705,7 +710,12 @@ describe('planParticipant', () => {
             ]);
 
             expect(plan.update.$set['assets.ownedPets']).toEqual([
-                { pet: COMPANION_ID, xp: 1000, currentLifePoints: 10 },
+                {
+                    pet: COMPANION_ID,
+                    xp: 1000,
+                    currentLifePoints: 10,
+                    level: 10,
+                },
             ]);
             expect(plan.result.petXpGained).toBe(10);
         });
@@ -761,7 +771,7 @@ describe('planParticipant', () => {
             });
 
             expect(plan.update.$set['assets.ownedPets']).toEqual([
-                { pet: COMPANION_ID, xp: 20, currentLifePoints: 10 },
+                { pet: COMPANION_ID, xp: 20, currentLifePoints: 10, level: 1 },
             ]);
             expect(plan.result.petXpGained).toBe(20);
         });
@@ -783,7 +793,7 @@ describe('planParticipant', () => {
 
             expect(plan.update.$set['assets.ownedPets']).toEqual([
                 other,
-                { pet: COMPANION_ID, xp: 30, currentLifePoints: 10 },
+                { pet: COMPANION_ID, xp: 30, currentLifePoints: 10, level: 2 },
                 { pet: PET_ID, xp: 0, currentLifePoints: 450, level: 1 },
             ]);
             expect(plan.result.petXpGained).toBe(20);
@@ -796,7 +806,7 @@ describe('planParticipant', () => {
             ]);
 
             expect(plan.update.$set['assets.ownedPets']).toEqual([
-                { pet: COMPANION_ID, xp: 20, currentLifePoints: 3 },
+                { pet: COMPANION_ID, xp: 20, currentLifePoints: 3, level: 1 },
             ]);
         });
 
@@ -810,6 +820,118 @@ describe('planParticipant', () => {
                 xp: 10,
                 currentLifePoints: 10,
             });
+        });
+    });
+
+    describe('the companion after the fight', () => {
+        const COMPANION_ID = OWNED_PET_ID;
+        const RECOVERY_MS = 60 * 60 * 1000;
+        const BACK_AT = new Date(NOW.getTime() + RECOVERY_MS);
+        const petCatalog = new Map([
+            [
+                COMPANION_ID.toHexString(),
+                {
+                    name: 'Lupo',
+                    maxLifePoints: 100,
+                    maxXp: 1000,
+                    recoveryTime: RECOVERY_MS,
+                },
+            ],
+        ]);
+        const wounded = (overrides: OwnedPetOverrides = {}) =>
+            buildOwnedPet(COMPANION_ID, {
+                currentLifePoints: 60,
+                level: 1,
+                ...overrides,
+            });
+        const foughtWith = (
+            companionLifeAfter: number,
+            overrides: Partial<ParticipantPlanInput> = {},
+        ) =>
+            planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.enemy),
+                    snapshot: snapshotWith({
+                        assets: {
+                            ownedItems: [],
+                            ownedEquipments: [],
+                            pet: COMPANION_ID,
+                            ownedPets: [wounded()],
+                        },
+                    }),
+                    battle: battleWith({ hpAfter: 700, companionLifeAfter }),
+                    enemies: {
+                        entries: [{ enemy: ENEMY_ID, quantity: 2 }],
+                        xp: 200,
+                    },
+                    petMaxXp: new Map([[COMPANION_ID.toHexString(), 1000]]),
+                    petCatalog,
+                    ...overrides,
+                }),
+            );
+
+        it('writes the wounded companion and keeps it equipped (D-03, D-10)', () => {
+            const plan = foughtWith(35);
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                { pet: COMPANION_ID, xp: 20, currentLifePoints: 35, level: 1 },
+            ]);
+            expect(Object.keys(plan.update.$set)).not.toContain('assets.pet');
+            expect(Object.keys(plan.filter)).not.toContain('assets.pet');
+            expect(plan.result.companion).toEqual({
+                name: 'Lupo',
+                lifeBefore: 60,
+                lifePoints: 35,
+                maxLifePoints: 100,
+                defeated: false,
+                fullLifeAt: null,
+            });
+        });
+
+        it('unequips a companion defeated in the fight and dates its return (D-03, D-26)', () => {
+            const plan = foughtWith(1);
+
+            expect(plan.update.$set['assets.pet']).toBeNull();
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                {
+                    pet: COMPANION_ID,
+                    xp: 20,
+                    currentLifePoints: 1,
+                    level: 1,
+                    lifeAsOf: NOW,
+                    defeatedUntil: BACK_AT,
+                },
+            ]);
+            expect(plan.result.companion?.defeated).toBe(true);
+            expect(plan.result.companion?.fullLifeAt).toEqual(BACK_AT);
+            expect(plan.filter['assets.pet']).toEqual({
+                $in: idForms(COMPANION_ID),
+            });
+        });
+
+        it('writes the companion life and the pet won in the same array (D-10)', () => {
+            const plan = foughtWith(35, {
+                rewards: rewardsWith({ pet: PET_ID, petLifePoints: 450 }),
+            });
+
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                { pet: COMPANION_ID, xp: 20, currentLifePoints: 35, level: 1 },
+                { pet: PET_ID, xp: 0, currentLifePoints: 450, level: 1 },
+            ]);
+            expect(plan.result.rewards.pet).toEqual(PET_ID);
+        });
+
+        it('leaves the result companion null for a quest without a fight (D-27)', () => {
+            const plan = foughtWith(35, {
+                battle: null,
+                enemies: null,
+                rewards: rewardsWith({ xpPrize: 300 }),
+            });
+
+            expect(plan.result.companion).toBeNull();
+            expect(Object.keys(plan.update.$set)).not.toContain(
+                'assets.ownedPets',
+            );
         });
     });
 

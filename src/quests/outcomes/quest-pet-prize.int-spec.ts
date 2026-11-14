@@ -210,7 +210,8 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
         await expect(resolve(subject)).resolves.toBe('resolved');
 
         expect(await rawOwnedPetsOf(subject)).toEqual([
-            { pet: companion._id, xp: 40, currentLifePoints: 7 },
+            // voce legacy: letta piena al massimo del livello di partenza, poi scritta col livello (D-23, D-38)
+            { pet: companion._id, xp: 40, currentLifePoints: 12, level: 6 },
             { pet: pet._id, xp: 0, currentLifePoints: 450, level: 1 },
         ]);
         expect(String((await characterOf(subject)).assets.pet)).toBe(
@@ -243,7 +244,7 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
 
         expect(await rawOwnedPetsOf(subject)).toEqual([
             { pet: other._id, xp: 2, currentLifePoints: 10 },
-            { pet: companion._id, xp: 35, currentLifePoints: 7 },
+            { pet: companion._id, xp: 35, currentLifePoints: 18, level: 10 },
             { pet: pet._id, xp: 0, currentLifePoints: 450, level: 1 },
         ]);
         const result = await resultOf(subject);
