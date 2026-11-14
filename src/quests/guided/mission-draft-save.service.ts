@@ -356,7 +356,9 @@ export class MissionDraftSaveService {
         );
         const effects = validateOverrides(
             corrections,
-            overlays.map(overrideParticipantOf),
+            overlays.map((overlay) =>
+                overrideParticipantOf(overlay, petCatalog),
+            ),
         );
         const corrected = fight.outcomes.map((outcome) => {
             const entry = effects.get(hexOf(outcome.character)) ?? null;

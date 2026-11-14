@@ -1,15 +1,14 @@
 import { Types } from 'mongoose';
-import { companionMaxLifeOf } from 'src/characters/pets/companion-level';
-import {
-    companionDisplayName,
-    companionStoredLifeOf,
-} from 'src/characters/pets/companion-life';
+import { companionDisplayName } from 'src/characters/pets/companion-life';
 import { applyTradeToInventory } from 'src/economy/trade/trade-inventory';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import { objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
-import { overrideParticipantOf } from 'src/quests/outcomes/gm-overrides';
+import {
+    type OverrideCompanion,
+    overrideParticipantOf,
+} from 'src/quests/outcomes/gm-overrides';
 import { companionAssetsAfter } from 'src/quests/outcomes/guard/guard-outcome';
 import {
     consumablesSpent,
@@ -102,25 +101,24 @@ export function stateBeforeFight(
 const byHex = (totals: ReadonlyMap<string, number>) =>
     [...totals.entries()].sort(([left], [right]) => left.localeCompare(right));
 
-// massimo non servibile (pet senza maxLifePoints valido) = nessun compagno, come in companionAfterFight
+// limiti del compagno dalla regola delle correzioni (D-17, D-38); nome mostrato fotografato alla simulazione
 function fightCompanionOf(
     state: ResolutionCharacter,
+    bounds: OverrideCompanion | null,
     petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
 ): FightCompanion | null {
     const pet = refIdOf(state.assets?.pet);
-    if (!pet) return null;
+    if (!bounds || !pet) return null;
     const entry = state.assets?.ownedPets?.find((owned) =>
         refIdOf(owned.pet)?.equals(pet),
     );
-    if (!entry) return null;
-    const species = petCatalog.get(pet.toHexString());
-    const maxLifePoints = companionMaxLifeOf(entry, species);
-    if (maxLifePoints === null) return null;
     return {
         pet,
-        name: companionDisplayName(entry.name, species?.name),
-        lifeBefore: companionStoredLifeOf(entry, maxLifePoints),
-        maxLifePoints,
+        name: companionDisplayName(
+            entry?.name,
+            petCatalog.get(pet.toHexString())?.name,
+        ),
+        ...bounds,
     };
 }
 
@@ -128,7 +126,7 @@ export function fightStartOf(
     state: ResolutionCharacter,
     petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
 ): FightStart {
-    const bounds = overrideParticipantOf(state);
+    const bounds = overrideParticipantOf(state, petCatalog);
     return {
         hpBefore: bounds.currentLifePoints,
         injuriesBefore: [...(state.status.injuries ?? [])],
@@ -139,7 +137,7 @@ export function fightStartOf(
             spell: new Types.ObjectId(hex),
             usages,
         })),
-        companion: fightCompanionOf(state, petCatalog),
+        companion: fightCompanionOf(state, bounds.companion, petCatalog),
     };
 }
 

@@ -53,6 +53,13 @@ export class ParticipantOverrideInput {
     @Min(0)
     hpAfter?: number | null;
 
+    // vita del compagno dopo lo scontro: i limiti 1..massimo li controlla il dominio (D-17, D-33)
+    @Field(() => Int, { nullable: true })
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    companionLifeAfter?: number | null;
+
     @Field(() => [InjuryType], { nullable: true })
     @IsOptional()
     @IsArray()

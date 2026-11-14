@@ -1,4 +1,9 @@
 import type { Types } from 'mongoose';
+import { companionMaxLifeOf } from 'src/characters/pets/companion-level';
+import {
+    COMPANION_LIFE_FLOOR,
+    companionStoredLifeOf,
+} from 'src/characters/pets/companion-life';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { MAX_OVERRIDE_ENTRIES } from 'src/models/request/complete-pending-request.model';
@@ -13,6 +18,7 @@ import { isInjuryType } from './injuries/injury-rules';
 import { isPositiveInteger } from './outcome-numbers';
 import { MIN_LIFE_POINTS } from './progression/level-table';
 import type { OutcomeCharacterSnapshot } from './outcome-plan';
+import type { CompanionCatalogEntry } from './pets/companion-after-fight';
 import { statusFactsOf } from './progression/status-facts';
 
 // limiti di un partecipante letti dallo snapshot (Open Q 14): chiavi esadecimali
@@ -22,6 +28,13 @@ export interface OverrideParticipant {
     maxLifePoints: number;
     ownedLoot: ReadonlyMap<string, number>;
     activeSpells: ReadonlyMap<string, number>;
+    // compagno equipaggiato a inizio scontro: massimo del suo livello (D-17, D-38)
+    companion: OverrideCompanion | null;
+}
+
+export interface OverrideCompanion {
+    lifeBefore: number;
+    maxLifePoints: number;
 }
 
 // difesa in profondità: il tetto vive nel modello dell'input (C5)
@@ -39,8 +52,31 @@ function addTo(totals: Map<string, number>, key: string, amount: number) {
     totals.set(key, (totals.get(key) ?? 0) + amount);
 }
 
+// massimo non servibile (pet senza maxLifePoints valido) = nessun compagno, come in companionAfterFight
+function overrideCompanionOf(
+    snapshot: OutcomeCharacterSnapshot,
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
+): OverrideCompanion | null {
+    const pet = refIdOf(snapshot.assets?.pet);
+    if (!pet) return null;
+    const entry = snapshot.assets?.ownedPets?.find((owned) =>
+        refIdOf(owned.pet)?.equals(pet),
+    );
+    if (!entry) return null;
+    const maxLifePoints = companionMaxLifeOf(
+        entry,
+        petCatalog.get(pet.toHexString()),
+    );
+    if (maxLifePoints === null) return null;
+    return {
+        lifeBefore: companionStoredLifeOf(entry, maxLifePoints),
+        maxLifePoints,
+    };
+}
+
 export function overrideParticipantOf(
     snapshot: OutcomeCharacterSnapshot,
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
 ): OverrideParticipant {
     const facts = statusFactsOf(snapshot);
     const ownedLoot = new Map<string, number>();
@@ -62,6 +98,7 @@ export function overrideParticipantOf(
         maxLifePoints: facts.maxLifePoints,
         ownedLoot,
         activeSpells,
+        companion: overrideCompanionOf(snapshot, petCatalog),
     };
 }
 
@@ -78,6 +115,25 @@ function hpAfterOf(
     if (hpAfter < MIN_LIFE_POINTS || hpAfter > participant.maxLifePoints)
         throw GameRuleException.outcomeOverrideInvalid();
     return hpAfter;
+}
+
+// vita del compagno fra 1 (sconfitto) e il suo massimo; omessa = vita d'inizio scontro, chiave assente (D-17, D-26, D-33)
+function companionLifeAfterOf(
+    override: ParticipantOverrideInput,
+    participant: OverrideParticipant,
+): Pick<ParticipantEffects, 'companionLifeAfter'> {
+    const { companionLifeAfter } = override;
+    if (companionLifeAfter === undefined || companionLifeAfter === null)
+        return {};
+    const { companion } = participant;
+    if (!companion || !Number.isSafeInteger(companionLifeAfter))
+        throw GameRuleException.outcomeOverrideInvalid();
+    if (
+        companionLifeAfter < COMPANION_LIFE_FLOOR ||
+        companionLifeAfter > companion.maxLifePoints
+    )
+        throw GameRuleException.outcomeOverrideInvalid();
+    return { companionLifeAfter };
 }
 
 function injuriesOf(override: ParticipantOverrideInput): InjuryType[] {
@@ -139,6 +195,7 @@ function effectsOf(
             participant,
         ),
         spellsUsed: spellsOf(override.spellsUsed ?? [], participant),
+        ...companionLifeAfterOf(override, participant),
     };
 }
 

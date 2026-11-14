@@ -90,7 +90,7 @@ function assertSequenceAllowed(
         );
         validateOverrides(
             [overrideInputOf(characterHex, effects)],
-            [overrideParticipantOf(overlay)],
+            [overrideParticipantOf(overlay, petCatalog)],
         );
         if (corrected)
             assertAddsOnlyNewInjuries(

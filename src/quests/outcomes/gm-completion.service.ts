@@ -96,16 +96,16 @@ export class GmCompletionService {
         assertNoBusyParticipant(
             request.seats.map(({ character }) => character),
         );
-        // override validati prima di ogni scrittura: un rifiuto non lascia side effect (T-09-74)
-        validateOverrides(
-            input.outcomes,
-            request.seats.map(({ character }) =>
-                overrideParticipantOf(character),
-            ),
-        );
         const catalog = await this.loader.readCatalog(
             request.quest,
             request.seats.map(({ character }) => character),
+        );
+        // override validati prima di ogni scrittura: un rifiuto non lascia side effect (T-09-74); i limiti del compagno vengono dal catalogo dei pet (D-33)
+        validateOverrides(
+            input.outcomes,
+            request.seats.map(({ character }) =>
+                overrideParticipantOf(character, catalog.pets),
+            ),
         );
         const recoveryTimes = new Map([
             ...catalog.recoveryTimes,
@@ -120,7 +120,9 @@ export class GmCompletionService {
             outcomesOf: (snapshots) => {
                 const battles = validateOverrides(
                     input.outcomes,
-                    snapshots.map(overrideParticipantOf),
+                    snapshots.map((snapshot) =>
+                        overrideParticipantOf(snapshot, catalog.pets),
+                    ),
                 );
                 // un tiro dei premi per posto, nell'ordine dei posti: le spec a seme fisso pinnano la sequenza
                 return new Map(
