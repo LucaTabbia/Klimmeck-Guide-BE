@@ -56,6 +56,13 @@ export interface CombatEquipmentSnapshot {
     accessoryUseTypes?: unknown;
 }
 
+// statistiche di combattimento del catalogo dei pet (D-20): normalizzate nel contesto
+export interface CombatPetSnapshot {
+    attack?: unknown;
+    defense?: unknown;
+    maxLifePoints?: unknown;
+}
+
 export interface CombatHydration {
     quest: { _id: Types.ObjectId; infos: { type: QuestType; title: string } };
     enemies: readonly { snapshot: CombatEnemySnapshot; quantity: number }[];

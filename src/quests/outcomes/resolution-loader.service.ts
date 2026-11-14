@@ -47,6 +47,7 @@ import {
     combatCatalogRefsOf,
     type CombatEnemySnapshot,
     type CombatEquipmentSnapshot,
+    type CombatPetSnapshot,
 } from './combat/combat-context';
 import {
     OUTCOME_CHARACTER_PROJECTION,
@@ -126,6 +127,8 @@ export interface ResolutionCatalog {
     recoveryTimes: ReadonlyMap<string, number>;
     // tetti di xp dell'intero catalogo dei pet: solo quelli validi (Phase 19 D-17)
     petMaxXp: ReadonlyMap<string, number>;
+    // statistiche di combattimento dell'intero catalogo dei pet, dalla stessa lettura dei tetti (D-20)
+    pets: ReadonlyMap<string, CombatPetSnapshot>;
 }
 
 // il catalogo del combattimento senza i premi: quest e imboscate (Phase 15 D-09)
@@ -449,7 +452,7 @@ export class ResolutionLoader {
         subject: string,
     ): Promise<CombatCatalog> {
         const enemies = await this.readEnemies(entries, subject);
-        const petMaxXp = await this.readPetMaxXp();
+        const { petMaxXp, pets } = await this.readCombatPets();
         if (enemies.length === 0) {
             return {
                 enemies,
@@ -458,6 +461,7 @@ export class ResolutionLoader {
                 loot: new Map(),
                 recoveryTimes: new Map(),
                 petMaxXp,
+                pets,
             };
         }
         const refs = combatCatalogRefsOf(participants);
@@ -491,20 +495,34 @@ export class ResolutionLoader {
             loot: byHex(loot),
             recoveryTimes: recoveryTimesFrom(spells),
             petMaxXp,
+            pets,
         };
     }
 
-    // tetti dell'intero catalogo (piccolo): il compagno equipaggiato può cambiare fra questa lettura e lo snapshot in sessione
-    private async readPetMaxXp(): Promise<Map<string, number>> {
-        const pets = await this.petModel
-            .find({}, { maxXp: 1 })
-            .lean<CatalogEntry<{ maxXp?: unknown }>[]>()
+    // tetti e statistiche dell'intero catalogo (piccolo) in una lettura: il compagno equipaggiato può cambiare fra questa lettura e lo snapshot in sessione
+    private async readCombatPets(): Promise<{
+        petMaxXp: Map<string, number>;
+        pets: Map<string, CombatPetSnapshot>;
+    }> {
+        const entries = await this.petModel
+            .find({}, { maxXp: 1, attack: 1, defense: 1, maxLifePoints: 1 })
+            .lean<CatalogEntry<{ maxXp?: unknown } & CombatPetSnapshot>[]>()
             .exec();
-        return new Map(
-            pets.flatMap(({ _id, maxXp }) =>
-                isPetXpCap(maxXp) ? [[_id.toHexString(), maxXp] as const] : [],
+        return {
+            petMaxXp: new Map(
+                entries.flatMap(({ _id, maxXp }) =>
+                    isPetXpCap(maxXp)
+                        ? [[_id.toHexString(), maxXp] as const]
+                        : [],
+                ),
             ),
-        );
+            pets: new Map(
+                entries.map(({ _id, attack, defense, maxLifePoints }) => [
+                    _id.toHexString(),
+                    { attack, defense, maxLifePoints },
+                ]),
+            ),
+        };
     }
 
     // tempi di recupero delle magie usate fuori dal combattimento (consumi riportati dal GM): un job per uso come useSpell

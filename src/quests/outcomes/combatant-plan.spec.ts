@@ -59,6 +59,7 @@ const catalogWith = (
     loot: new Map(),
     recoveryTimes: new Map(),
     petMaxXp: new Map(),
+    pets: new Map(),
 });
 
 const goblins = { snapshot: { _id: GOBLIN_ID, xp: 10 }, quantity: 3 };

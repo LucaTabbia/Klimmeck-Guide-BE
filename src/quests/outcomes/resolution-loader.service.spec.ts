@@ -87,6 +87,7 @@ describe('ResolutionLoader enemy read', () => {
             loot: new Map(),
             recoveryTimes: new Map(),
             petMaxXp: new Map(),
+            pets: new Map(),
         });
     });
 
@@ -110,6 +111,7 @@ describe('ResolutionLoader enemy read', () => {
             'equipment',
             'loot',
             'petMaxXp',
+            'pets',
             'recoveryTimes',
             'spells',
         ];
