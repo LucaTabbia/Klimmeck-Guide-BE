@@ -288,7 +288,7 @@ describe('Authorization matrix (real boot)', () => {
                 ...wsRows(EXPECTED_OWNERSHIP_HANDLERS),
             ]);
 
-            expect(httpRows(EXPECTED_INNKEEPER_HANDLERS)).toHaveLength(10);
+            expect(httpRows(EXPECTED_INNKEEPER_HANDLERS)).toHaveLength(13);
             expect(httpRows(EXPECTED_OWNERSHIP_HANDLERS)).toHaveLength(17);
             expect(httpRows(EXPECTED_OWNER_ONLY_HANDLERS)).toHaveLength(7);
             expect([...subscriptions]).toHaveLength(3);
