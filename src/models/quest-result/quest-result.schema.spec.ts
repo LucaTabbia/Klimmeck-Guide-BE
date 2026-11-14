@@ -90,6 +90,22 @@ describe('quest result schema', () => {
         ).toBeUndefined();
     });
 
+    it('says whether the rest of the road is on foot, false by default (D-13, D-28)', () => {
+        const held = Result.hydrate({
+            _id: new Types.ObjectId(),
+            ...ambushResultDoc(),
+        });
+        const onFoot = new Result({
+            ...ambushResultDoc(),
+            ambush: { ...ambushBlock(), onFoot: true },
+        });
+
+        expect(new Result(ambushResultDoc()).ambush?.onFoot).toBe(false);
+        expect(held.ambush?.onFoot).toBe(false);
+        expect(onFoot.validateSync()).toBeUndefined();
+        expect(onFoot.ambush?.onFoot).toBe(true);
+    });
+
     it('knows the stable outcomes', () => {
         expect(Object.values(QuestOutcome)).toEqual([
             'success',

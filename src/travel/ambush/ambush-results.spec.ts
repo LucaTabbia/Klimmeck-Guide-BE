@@ -26,6 +26,7 @@ describe('ambushResultDraftsOf', () => {
             ambush: {
                 at: report.at,
                 nearCity: report.nearCity,
+                onFoot: false,
                 reachedCity: null,
             },
             outcome: 'success',
@@ -148,6 +149,22 @@ describe('ambushResultDraftsOf', () => {
 
         expect(draft.outcome).toBe('failure');
         expect(draft.ambush.reachedCity).toEqual(reachedCity);
+    });
+
+    it('says the rest of the road is on foot, false for the held reports (D-13, D-28)', () => {
+        const [onFoot, held] = ambushResultDraftsOf(
+            [
+                buildAmbushReport({
+                    at: new Date('2026-10-21T09:00:00.000Z'),
+                    onFoot: true,
+                }),
+                buildAmbushReport({ at: new Date('2026-10-21T12:00:00.000Z') }),
+            ],
+            characterId,
+        );
+
+        expect(onFoot.ambush.onFoot).toBe(true);
+        expect(held.ambush.onFoot).toBe(false);
     });
 
     it('orders the drafts by ambush instant (D-13)', () => {
