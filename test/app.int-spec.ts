@@ -922,6 +922,22 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('adds the guided fight simulation to the schema (D-17)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/input MissionEnemyInput \{[^}]*\}/)?.[0]).toBe(
+            'input MissionEnemyInput {\n  enemy: ID!\n  quantity: Int!\n}',
+        );
+        expect(
+            schema.match(/input SimulateMissionFightInput \{[^}]*\}/)?.[0],
+        ).toBe(
+            'input SimulateMissionFightInput {\n  enemies: [MissionEnemyInput!]!\n  fightIndex: Int!\n  pendingQuestId: ID!\n}',
+        );
+        expect(schema).toContain(
+            '  simulateMissionFight(input: SimulateMissionFightInput!): MissionDraft!\n',
+        );
+    });
+
     it('writes the game master completion into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 

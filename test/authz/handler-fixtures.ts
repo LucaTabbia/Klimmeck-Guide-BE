@@ -78,6 +78,20 @@ export const HANDLER_FIXTURES: Record<ProtectedHandler, HandlerFixture> = {
             'query MissionEnemies($pendingQuestId: ID!) { missionEnemies(pendingQuestId: $pendingQuestId) { id } }',
         variables: () => ({ pendingQuestId: ANY }),
     },
+    'GuidedMissionResolver.simulateMissionFight': {
+        kind: 'mutation',
+        field: 'simulateMissionFight',
+        target: 'none',
+        document:
+            'mutation SimulateMissionFight($input: SimulateMissionFightInput!) { simulateMissionFight(input: $input) { id } }',
+        variables: () => ({
+            input: {
+                pendingQuestId: ANY,
+                fightIndex: 0,
+                enemies: [{ enemy: ANY, quantity: 1 }],
+            },
+        }),
+    },
     'GuidedMissionResolver.startMissionDraft': {
         kind: 'mutation',
         field: 'startMissionDraft',

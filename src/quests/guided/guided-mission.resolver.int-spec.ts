@@ -470,4 +470,149 @@ describe('GuidedMissionResolver (wire)', () => {
             ).toEqual(['FORBIDDEN']);
         });
     });
+
+    describe('mission fight simulation', () => {
+        const SIMULATE =
+            'mutation SimulateMissionFight($input: SimulateMissionFightInput!) { simulateMissionFight(input: $input) { id fights { verdict enemies { enemy { id } quantity } outcomes { character hpBefore injuriesBefore consumablesAvailable { item quantity } spellsAvailable { spell usages } simulated { hpAfter } corrected { hpAfter } } } } }';
+
+        interface WireOutcome {
+            character: string;
+            hpBefore: number;
+            injuriesBefore: string[];
+            consumablesAvailable: { item: string; quantity: number }[];
+            spellsAvailable: { spell: string; usages: number }[];
+            simulated: { hpAfter: number } | null;
+            corrected: { hpAfter: number } | null;
+        }
+
+        interface SimulationBody {
+            data?: {
+                simulateMissionFight?: {
+                    id: string;
+                    fights: {
+                        verdict: string | null;
+                        enemies: { enemy: { id: string }; quantity: number }[];
+                        outcomes: WireOutcome[];
+                    }[];
+                } | null;
+            } | null;
+            errors?: { message: string; extensions: Record<string, unknown> }[];
+        }
+
+        async function startedPair() {
+            const [first, second] = await worldMissionPair();
+            const oste = await innkeeper();
+            await send(START, hexOf(first), oste.bearer);
+            const enemy = String(
+                (await world.models.enemies.create(buildEnemy()))._id,
+            );
+            return { first, second, oste, enemy };
+        }
+
+        async function simulate(
+            pendingQuestId: string,
+            enemy: string,
+            bearer: string,
+            quantity = 1,
+        ): Promise<SimulationBody> {
+            const response = await graphqlRequest(
+                world.harness.app,
+                SIMULATE,
+                {
+                    input: {
+                        pendingQuestId,
+                        fightIndex: 0,
+                        enemies: [{ enemy, quantity }],
+                    },
+                },
+                bearer,
+            );
+            return response.body as SimulationBody;
+        }
+
+        const storedFights = async () =>
+            (
+                await world.harness.connection
+                    .model(MissionDraft.name)
+                    .findOne()
+                    .lean<{ fights: unknown[] }>()
+                    .exec()
+            )?.fights;
+
+        it('simulates the first fight over the wire (D-04)', async () => {
+            const { first, second, oste, enemy } = await startedPair();
+
+            const body = await simulate(hexOf(second), enemy, oste.bearer, 2);
+
+            expect(body.errors).toBeUndefined();
+            const [fight] = body.data!.simulateMissionFight!.fights;
+            expect(fight.verdict).not.toBeNull();
+            expect(fight.enemies).toEqual([
+                { enemy: { id: enemy }, quantity: 2 },
+            ]);
+            const byCharacter = [...fight.outcomes].sort((a, b) =>
+                a.character.localeCompare(b.character),
+            );
+            const expected = [first, second]
+                .map((subject) => ({
+                    character: String(subject.characterId),
+                    hpBefore:
+                        subject.player.character!.status.currentLifePoints,
+                    injuriesBefore: [],
+                    consumablesAvailable: [],
+                    spellsAvailable: [],
+                    simulated: { hpAfter: expect.any(Number) },
+                    corrected: null,
+                }))
+                .sort((a, b) => a.character.localeCompare(b.character));
+            expect(byCharacter).toEqual(expected);
+            expect(await storedFights()).toHaveLength(1);
+        });
+
+        it('refuses an adventurer (D-10)', async () => {
+            const { first, enemy } = await startedPair();
+
+            const body = await simulate(
+                hexOf(first),
+                enemy,
+                first.player.bearer,
+            );
+
+            expect(body.data ?? null).toBeNull();
+            expect(
+                body.errors?.map(({ extensions }) => extensions.code),
+            ).toEqual(['FORBIDDEN']);
+            expect(await storedFights()).toEqual([]);
+        });
+
+        it('audits the simulation (D-26)', async () => {
+            const { first, oste, enemy } = await startedPair();
+            const pendingQuestId = hexOf(first);
+
+            await simulate(pendingQuestId, enemy, oste.bearer);
+
+            const records = await audits
+                .find({ action: 'simulateMissionFight' })
+                .lean()
+                .exec();
+            expect(records).toHaveLength(1);
+            expect(records[0]).toMatchObject({
+                actor: { userId: String(oste.user._id), role: 'innkeeper' },
+                target: { type: 'PendingQuest', id: pendingQuestId },
+                outcome: AUDIT_OUTCOME_OK,
+            });
+        });
+
+        it('rejects an enemy quantity over the cap (D-24)', async () => {
+            const { first, oste, enemy } = await startedPair();
+
+            const body = await simulate(hexOf(first), enemy, oste.bearer, 21);
+
+            expect(body.data ?? null).toBeNull();
+            expect(
+                body.errors?.map(({ extensions }) => extensions.code),
+            ).toEqual(['BAD_USER_INPUT']);
+            expect(await storedFights()).toEqual([]);
+        });
+    });
 });
