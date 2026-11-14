@@ -6,6 +6,7 @@ import { CharacterStatusResolver } from 'src/characters/character-status.resolve
 import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
 import { CharactersResolver } from 'src/characters/characters.resolver';
 import { CharactersService } from 'src/characters/characters.service';
+import { MissionLockModule } from 'src/characters/mission-lock/mission-lock.module';
 import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { EconomyModule } from 'src/economy/economy.module';
@@ -56,6 +57,8 @@ export async function createCharactersTestApp(
             ]),
             EconomyModule,
             AuthzModule,
+            // guardia del blocco di CharactersService (D-12)
+            MissionLockModule,
             ...(options.imports ?? []),
         ],
         providers: [

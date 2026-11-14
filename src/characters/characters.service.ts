@@ -29,6 +29,7 @@ import { objectIdFromHex } from 'src/mongo/document-id';
 import { enqueueTrigger } from 'src/queues/enqueue-trigger';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { requireCharacterObjectId } from './character-id';
+import { MissionLockReader } from './mission-lock/mission-lock.reader';
 import {
     classifyEquipItemFailure,
     equipItemFilter,
@@ -85,6 +86,7 @@ export class CharactersService {
         private spellRecoveryQueue: Queue<SpellRecoveryJobData>,
         private readonly clock: Clock,
         @Inject(QUEUE_CALL_TIMEOUT) private readonly timeoutMs: number,
+        private readonly missionLock: MissionLockReader,
     ) {}
 
     // letture di gioco solo sugli attivi (03.1 D-06): un archiviato risponde NOT_FOUND come un id inesistente
@@ -173,6 +175,7 @@ export class CharactersService {
 
     async equipItem(request: EquipItemRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.id);
+        await this.missionLock.assertFree(characterId);
         const itemId =
             request.itemId == null ? null : objectIdFromHex(request.itemId);
         if (request.itemId != null && !itemId)
@@ -200,6 +203,7 @@ export class CharactersService {
     // idempotente; ammesso anche in viaggio: la velocità è fotografata alla partenza (D-15); speedModifier null = compagno non da sella
     async equipPet(request: EquipPetRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.id);
+        await this.missionLock.assertFree(characterId);
         const petId = objectIdFromHex(request.petId);
         if (!petId) throw GameRuleException.petNotOwned();
 
@@ -221,6 +225,7 @@ export class CharactersService {
 
     async unequipPet(request: UnequipPetRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.id);
+        await this.missionLock.assertFree(characterId);
         const unequipped = await this.characterModel
             .updateOne(activeCharacterById(characterId), equipPetUpdate(null))
             .exec();
