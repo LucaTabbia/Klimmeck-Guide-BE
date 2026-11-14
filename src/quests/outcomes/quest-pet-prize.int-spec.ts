@@ -135,12 +135,28 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
         await expect(resolve(subject)).resolves.toBe('resolved');
 
         const character = await characterOf(subject);
-        expect(character.assets.ownedPets).toEqual([buildOwnedPet(pet._id)]);
+        expect(character.assets.ownedPets).toEqual([
+            buildOwnedPet(pet._id, { level: 1 }),
+        ]);
         expect(character.assets.pet ?? null).toBeNull();
         expect(String((await resultOf(subject)).rewards.pet)).toBe(
             String(pet._id),
         );
         expect(chance.drawn).toEqual([LUCKY_ROLL]);
+    });
+
+    it('wins a companion at level 1 (D-39)', async () => {
+        const pet = await questPet({ maxLifePoints: 450 });
+        const subject = await quester({
+            questOverrides: await petQuest('enemy', pet._id, ONE_SEAT),
+        });
+        chance.load([LUCKY_ROLL]);
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(await rawOwnedPetsOf(subject)).toEqual([
+            { pet: pet._id, xp: 0, currentLifePoints: 450, level: 1 },
+        ]);
     });
 
     it('leaves a winner without the pet on an unlucky roll (D-21)', async () => {
@@ -195,7 +211,7 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
 
         expect(await rawOwnedPetsOf(subject)).toEqual([
             { pet: companion._id, xp: 40, currentLifePoints: 7 },
-            { pet: pet._id, xp: 0, currentLifePoints: 450 },
+            { pet: pet._id, xp: 0, currentLifePoints: 450, level: 1 },
         ]);
         expect(String((await characterOf(subject)).assets.pet)).toBe(
             String(companion._id),
@@ -228,7 +244,7 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
         expect(await rawOwnedPetsOf(subject)).toEqual([
             { pet: other._id, xp: 2, currentLifePoints: 10 },
             { pet: companion._id, xp: 35, currentLifePoints: 7 },
-            { pet: pet._id, xp: 0, currentLifePoints: 450 },
+            { pet: pet._id, xp: 0, currentLifePoints: 450, level: 1 },
         ]);
         const result = await resultOf(subject);
         expect(result.petXpGained).toBe(5);
@@ -250,7 +266,7 @@ describe('QuestResolutionService.resolveStandard with a pet prize (replSet)', ()
         await expect(resolve(subject)).resolves.toBe('resolved');
 
         expect(await rawOwnedPetsOf(subject)).toEqual([
-            { pet: petId, xp: 0, currentLifePoints: 0 },
+            { pet: petId, xp: 0, currentLifePoints: 0, level: 1 },
         ]);
     });
 

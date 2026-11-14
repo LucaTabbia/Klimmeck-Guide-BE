@@ -474,7 +474,7 @@ describe('planParticipant', () => {
 
             expect(plan.update.$set['assets.ownedPets']).toEqual([
                 { pet: OWNED_PET_ID, xp: 30, currentLifePoints: 7 },
-                { pet: PET_ID, xp: 0, currentLifePoints: 450 },
+                { pet: PET_ID, xp: 0, currentLifePoints: 450, level: 1 },
             ]);
             expect(plan.result.rewards.pet).toEqual(PET_ID);
         });
@@ -526,7 +526,7 @@ describe('planParticipant', () => {
             );
 
             expect(plan.update.$set['assets.ownedPets']).toEqual([
-                { pet: PET_ID, xp: 0, currentLifePoints: 450 },
+                { pet: PET_ID, xp: 0, currentLifePoints: 450, level: 1 },
             ]);
         });
 
@@ -540,7 +540,7 @@ describe('planParticipant', () => {
                 );
 
                 expect(plan.update.$set['assets.ownedPets']).toEqual([
-                    { pet: PET_ID, xp: 0, currentLifePoints: 0 },
+                    { pet: PET_ID, xp: 0, currentLifePoints: 0, level: 1 },
                 ]);
                 expect(plan.result.rewards.pet).toEqual(PET_ID);
             },
@@ -561,7 +561,7 @@ describe('planParticipant', () => {
 
             expect(plan.update.$set['assets.ownedPets']).toEqual([
                 { pet: OWNED_PET_ID, xp: 0, currentLifePoints: 0 },
-                { pet: PET_ID, xp: 0, currentLifePoints: 450 },
+                { pet: PET_ID, xp: 0, currentLifePoints: 450, level: 1 },
             ]);
         });
     });
@@ -604,7 +604,7 @@ describe('planParticipant', () => {
                 PET_PAGE_ID,
             ]);
             expect(plan.update.$set['assets.ownedPets']).toEqual([
-                { pet: PET_ID, xp: 0, currentLifePoints: 450 },
+                { pet: PET_ID, xp: 0, currentLifePoints: 450, level: 1 },
             ]);
         });
 
@@ -784,7 +784,7 @@ describe('planParticipant', () => {
             expect(plan.update.$set['assets.ownedPets']).toEqual([
                 other,
                 { pet: COMPANION_ID, xp: 30, currentLifePoints: 10 },
-                { pet: PET_ID, xp: 0, currentLifePoints: 450 },
+                { pet: PET_ID, xp: 0, currentLifePoints: 450, level: 1 },
             ]);
             expect(plan.result.petXpGained).toBe(20);
             expect(plan.result.rewards.pet).toEqual(PET_ID);

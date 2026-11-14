@@ -99,7 +99,7 @@ describe('trade pets', () => {
             ).toEqual({
                 ownedPets: [
                     { pet: camel, xp: 40, currentLifePoints: 6 },
-                    { pet: horse, xp: 0, currentLifePoints: 300 },
+                    { pet: horse, xp: 0, currentLifePoints: 300, level: 1 },
                 ],
                 unequip: false,
             });
@@ -110,9 +110,45 @@ describe('trade pets', () => {
                     NO_LIFE_POINTS,
                 ),
             ).toEqual({
-                ownedPets: [{ pet: horse, xp: 0, currentLifePoints: 0 }],
+                ownedPets: [
+                    { pet: horse, xp: 0, currentLifePoints: 0, level: 1 },
+                ],
                 unequip: false,
             });
+        });
+
+        it('buys a companion at level 1 (D-39)', () => {
+            expect(
+                applyTradeToPets(
+                    { ownedPets: [], pet: null },
+                    [line('buy', 'Pet', horse)],
+                    lifePoints([horse, 300]),
+                )?.ownedPets,
+            ).toEqual([
+                { pet: horse, xp: 0, currentLifePoints: 300, level: 1 },
+            ]);
+        });
+
+        it('keeps the fields of the companions already owned when a pet is bought (D-23)', () => {
+            const owned = {
+                pet: camel,
+                xp: 40,
+                currentLifePoints: 6,
+                name: 'Gobbo',
+                lifeAsOf: new Date('2026-11-14T10:00:00.000Z'),
+                level: 4,
+            };
+
+            expect(
+                applyTradeToPets(
+                    { ownedPets: [owned], pet: null },
+                    [line('buy', 'Pet', horse)],
+                    lifePoints([horse, 300]),
+                )?.ownedPets,
+            ).toEqual([
+                owned,
+                { pet: horse, xp: 0, currentLifePoints: 300, level: 1 },
+            ]);
         });
 
         it('heals the broken entries of the list it rewrites and leaves out an unreadable one (D-03)', () => {
@@ -131,7 +167,7 @@ describe('trade pets', () => {
             ).toEqual({
                 ownedPets: [
                     { pet: camel, xp: 0, currentLifePoints: 6 },
-                    { pet: horse, xp: 0, currentLifePoints: 300 },
+                    { pet: horse, xp: 0, currentLifePoints: 300, level: 1 },
                 ],
                 unequip: false,
             });

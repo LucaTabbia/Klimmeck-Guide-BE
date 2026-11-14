@@ -15,6 +15,7 @@ describe('owned pet entry', () => {
             pet: horse,
             xp: 0,
             currentLifePoints: 300,
+            level: 1,
         });
         expect(newOwnedPetEntry(horse, 0).currentLifePoints).toBe(0);
     });
@@ -26,6 +27,7 @@ describe('owned pet entry', () => {
                 pet: horse,
                 xp: 0,
                 currentLifePoints: 0,
+                level: 1,
             });
         },
     );
@@ -112,6 +114,17 @@ describe('owned pet entry', () => {
     it('reads a missing list as empty (D-03)', () => {
         expect(normalisedOwnedPets(undefined)).toEqual([]);
         expect(normalisedOwnedPets(null)).toEqual([]);
+    });
+
+    it('starts a new companion at level 1, without a name and not resting (D-18, D-39)', () => {
+        const id = new Types.ObjectId();
+
+        expect(newOwnedPetEntry(id, 100)).toEqual({
+            pet: id,
+            xp: 0,
+            currentLifePoints: 100,
+            level: 1,
+        });
     });
 
     describe('companion fields', () => {

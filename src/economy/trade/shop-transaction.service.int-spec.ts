@@ -1336,7 +1336,12 @@ describe('ShopTransactionService (replSet)', () => {
 
             expect((await raw(id))?.assets.ownedPets).toEqual([
                 { pet: idOf(camel), xp: 40, currentLifePoints: 6 },
-                { pet: idOf(drake), xp: 0, currentLifePoints: 300 },
+                {
+                    pet: idOf(drake),
+                    xp: 0,
+                    currentLifePoints: 300,
+                    level: 1,
+                },
             ]);
         });
 
