@@ -96,6 +96,7 @@ function draftWith(fights: MissionFightRecord[]): MissionDraftRecord {
         startedBy: null,
         startedAt: STARTED_AT,
         updatedAt: UPDATED_AT,
+        rev: 3,
     };
 }
 

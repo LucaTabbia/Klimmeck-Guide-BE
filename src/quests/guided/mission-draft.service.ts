@@ -149,7 +149,10 @@ export class MissionDraftService {
         const written = await this.draftModel
             .findOneAndUpdate(
                 { _id: draftId },
-                { $set: { ...set, updatedAt: this.clock.now() } },
+                {
+                    $set: { ...set, updatedAt: this.clock.now() },
+                    $inc: { rev: 1 },
+                },
                 { new: true },
             )
             .lean<MissionDraftRecord | null>()
@@ -198,6 +201,7 @@ export class MissionDraftService {
             startedBy: objectIdFromHex(startedBy),
             startedAt: now,
             updatedAt: now,
+            rev: 0,
         };
     }
 

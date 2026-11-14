@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
+import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { enemyFactsOf } from 'src/quests/outcomes/combatant-plan';
 import {
     GmCompletionService,
@@ -157,12 +158,24 @@ export class GuidedCompletionService {
             now: this.clock.now(),
             outcomesOf: (snapshots) =>
                 this.outcomesOf(request, draft, catalogs, snapshots),
-            afterSeats: (session) =>
-                this.draftModel
-                    .deleteOne({ _id: draft._id }, { session })
-                    .exec()
-                    .then(() => undefined),
+            afterSeats: (session) => this.deleteReadRevision(draft, session),
         });
+    }
+
+    // B-01: un salvataggio o una simulazione arrivati dopo la lettura cambiano la revisione e annullano la transazione
+    private async deleteReadRevision(
+        draft: MissionDraftRecord,
+        session: ClientSession,
+    ): Promise<void> {
+        const { deletedCount } = await this.draftModel
+            .deleteOne(
+                // una bozza scritta prima del contatore non ha revisione: il filtro a null la trova solo se nessuno l'ha più scritta
+                { _id: draft._id, rev: draft.rev ?? null },
+                { session },
+            )
+            .exec();
+        if (deletedCount === 0)
+            throw GameRuleException.outcomeOverrideInvalid();
     }
 
     // un posto senza voce nella bozza resta senza esito: il ciclo condiviso rifiuta l'intera richiesta

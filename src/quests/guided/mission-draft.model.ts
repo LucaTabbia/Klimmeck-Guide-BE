@@ -297,6 +297,10 @@ export class MissionDraft {
 
     @Prop({ type: Date, required: true })
     updatedAt: Date;
+
+    // solo Mongoose: ogni scrittura lo incrementa, il completamento cancella solo la revisione che ha letto (B-01)
+    @Prop({ type: Number, default: 0 })
+    rev: number;
 }
 
 export type MissionDraftRecord = MissionDraft & { _id: Types.ObjectId };
