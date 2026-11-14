@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
-status: completed
-stopped_at: "Phase 21 completa (14/14, UAT su device passata il 2026-11-13) e quick 261113-aql in develop — prossima: Phase 22 da pianificare con la FE Phase 21"
-last_updated: "2026-11-12T23:01:28.000Z"
-last_activity: 2026-11-13 -- Phase 21 completa (PR #36), quick 261113-aql in develop (PR #37), UAT su device passata
+status: executing
+stopped_at: "Phase 22 pianificata (18 piani, 2026-11-14) — prossima: esecuzione in wave sequenziali"
+last_updated: "2026-11-14T02:06:20.000Z"
+last_activity: 2026-11-14 -- Phase 22 pianificata (ricerca, regole di repo, validazione, 18 piani)
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 59
-  completed_plans: 45
-  percent: 76
+  completed_phases: 4
+  total_plans: 77
+  completed_plans: 59
+  percent: 77
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 21 — Premi per rango e soccorsi (↔ FE Phase 20) — COMPLETA il 13 novembre 2026: in `develop` (PR #36) con il quick 261113-aql (PR #37); UAT su device passata (`21-HUMAN-UAT.md`). Prossima: Phase 22 Completamento guidato delle missioni (↔ FE Phase 21), contesto sul ramo `feat/22-…` da riallineare
+**Current focus:** Phase 22 — Completamento guidato delle missioni (↔ FE Phase 21) — PIANIFICATA il 2026-11-14 su `feat/22-completamento-guidato-missioni`: 18 piani in wave sequenziali, ricerca, REPO-RULES e VALIDATION registrati; prossimo passo l'esecuzione.
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
-Phase: 21 di 22 (Premi per rango e soccorsi) — contesto del 2026-11-12 (D-01..D-17) emendato il 2026-11-13 dopo la ricerca e le risposte dell'utente (D-18..D-30), `21-REPO-RULES.md`, `21-RESEARCH.md`, `21-VALIDATION.md`, 14 piani scritti il 2026-11-13
-Plan: 14 of 14
-Status: Phase 21 complete — 14/14, review, verifica, audit, riavvio reale e UAT su device chiusi; quick 261113-aql (blocco della quest d'origine, nemici e durata dell'aid di dungeon, report dell'ordine delle dungeon) in `develop`
-Last activity: 2026-11-13 -- Phase 21 completa (PR #36), quick 261113-aql in develop (PR #37), UAT su device passata
+Phase: 22 di 22 (Completamento guidato delle missioni) — PIANIFICATA il 2026-11-14 su `feat/22-completamento-guidato-missioni` (da `develop` `c6079ca3`): contesto del 2026-11-12 (D-01..D-12) emendato il 2026-11-14 dopo la ricerca e le risposte dell'utente (D-13..D-27), `22-REPO-RULES.md`, `22-RESEARCH.md`, `22-VALIDATION.md`, 18 piani in wave sequenziali; FE Phase 21 pianificata nella stessa sessione
+Plan: 0 of 18
+Status: Phase 22 planned — ready to execute (18 piani sequenziali); nessun migratore, SDL solo additivo; dati della UAT scritti a DB dall'orchestratore dopo la merge
+Last activity: 2026-11-14 -- Phase 22 pianificata (ricerca, regole di repo, validazione, 18 piani)
 Next step: pianificare la Phase 22 (contesto sul ramo `feat/22-completamento-guidato-missioni`, da riallineare a `develop`) con la FE Phase 21. Aperto per l'utente: `Quest.rankPrizes` è leggibile da ogni utente autenticato (decidere con la fase dell'oste). Il BE locale gira da `dist/` di `develop` sulla porta 3001.
 
 ## Current Milestone

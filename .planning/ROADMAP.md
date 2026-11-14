@@ -212,8 +212,29 @@ Plans:
   7. SDL al boot reale; handoff per la FE Phase 21.
 **Decisioni del discuss (2026-11-12, `22-CONTEXT.md` D-01..D-10)**: discuss fatto nella FE (`21-CONTEXT.md`).
 **Unblocks (FE)**: FE Phase 21.
-**Branch**: `feat/22-completamento-guidato-missioni` impilato su `feat/21-premi-per-rango-e-soccorsi`.
-**Plans**: TBD
+**Branch**: `feat/22-completamento-guidato-missioni` da `develop` (`c6079ca3`).
+**Decisioni dopo la ricerca (2026-11-14, `22-CONTEXT.md` D-13..D-27)**: ogni accettazione rifiutata a missione in corso, ferite toglibili solo se della missione, monete e xp liberi, due campi risolti per l'avviso, SDL additivo, bozza per gruppo, nessun migratore.
+**Plans**: 18 plans
+
+Plans:
+- [ ] 22-01-PLAN.md — Fondazione del blocco: codice, marcatore, predicato unico, lettore
+- [ ] 22-02-PLAN.md — Guardie delle mutation del personaggio (equipaggiamento, compagno, magie)
+- [ ] 22-03-PLAN.md — Guardie di `useItem` e del negozio
+- [ ] 22-04-PLAN.md — Guardie di viaggio, anteprima e accettazione
+- [ ] 22-05-PLAN.md — Campi risolti della missione in corso, publisher del marcatore, SDL
+- [ ] 22-06-PLAN.md — Refactor: lettore della richiesta, commit parametrico, catalogo dei premi
+- [ ] 22-07-PLAN.md — Bozza nel BE: modello, precompilazione dei premi, avvio, lettura, scarto
+- [ ] 22-08-PLAN.md — Bozza sul filo: tipi, resolver, matrice, SDL
+- [ ] 22-09-PLAN.md — Coda dell'oste: bozza avviata sulla richiesta e refresher
+- [ ] 22-10-PLAN.md — Lista dei nemici della missione
+- [ ] 22-11-PLAN.md — Compagno nel contesto del combattimento
+- [ ] 22-12-PLAN.md — Regole pure degli scontri e porta del caso dedicata
+- [ ] 22-13-PLAN.md — Simulazione a secco di uno scontro
+- [ ] 22-14-PLAN.md — Catalogo dei premi per titolo e rivalidazione
+- [ ] 22-15-PLAN.md — Salvataggio della bozza: scontri, correzioni, premi
+- [ ] 22-16-PLAN.md — Completamento guidato in una transazione
+- [ ] 22-17-PLAN.md — Gate della fase
+- [ ] 22-18-PLAN.md — Chiusura della fase e handoff
 
 ## Backend ↔ Frontend alignment (v1.1)
 
@@ -257,7 +278,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 19. Revisione dei modelli | v1.1 | 23/23 | Complete | 2026-11-11 |
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
-| 22. Completamento guidato delle missioni | v1.1 | 0/0 | Not started | - |
+| 22. Completamento guidato delle missioni | v1.1 | 0/18 | Planned | - |
 
 ---
 
