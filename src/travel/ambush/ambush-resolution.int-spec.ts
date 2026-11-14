@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { toCopper } from 'src/economy/coins';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
+import { OutcomeWriter } from 'src/quests/outcomes/outcome-writer.service';
 import { ResolutionLoader } from 'src/quests/outcomes/resolution-loader.service';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
@@ -727,6 +728,32 @@ describe('AmbushResolutionService (replica set)', () => {
             ambushJobId(subject.characterId, START, activeTravel.ambush.at),
         ]);
         expect(world.push.sent).toHaveLength(1);
+    });
+
+    // una scrittura rivale fra lo snapshot in sessione e la scrittura dell'esito: WriteConflict, il driver riesegue il callback (Pitfall 5)
+    it('pushes once and writes one result when a write conflict replays the resolution (D-14, Pitfall 5)', async () => {
+        const subject = await traveller({ km: 10 });
+        await registerDevice(world.harness, subject.player);
+        chance.load([0, 0]);
+        const writer = world.harness.app.get(OutcomeWriter);
+        const original = writer.writeCharacterUpdate.bind(writer);
+        const write = jest
+            .spyOn(writer, 'writeCharacterUpdate')
+            .mockImplementationOnce(async (filter, update, session) => {
+                await world.models.characters.collection.updateOne(
+                    { _id: subject.characterId },
+                    { $set: { rivalWrite: true } },
+                );
+                return original(filter, update, session);
+            });
+
+        await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        expect(write).toHaveBeenCalledTimes(2);
+        expect(world.push.sent).toHaveLength(1);
+        expect(world.push.sent[0].message.id).toBe(
+            (await ambushResultOf(subject))._id.toHexString(),
+        );
     });
 
     it('names the fallen companion in the push (D-14, D-20)', async () => {

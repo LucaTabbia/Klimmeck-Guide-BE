@@ -368,6 +368,61 @@ describe('the residual road on foot (replica set)', () => {
         expect(raw.status.currentLifePoints).toBe(lifeAfterFight - walk.hpLost);
         expect(raw.assets.ownedItems).toEqual([]);
     });
+    describe('the travel identity after the walk on foot (Pitfall 5)', () => {
+        it('turns the completion job of the ridden travel into a no-op without a travel end push (D-13, Pitfall 5)', async () => {
+            const { subject } = await riderWith('horse');
+            await registerDevice(world.harness, subject.player);
+            const { characterId } = subject.identity;
+            ambushFallsTheMount(subject, null);
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+            const ridden = new Date(START.getTime() + RIDE_MS);
+            moveClockTo(ridden);
+
+            await expect(
+                world.harness.app.get(TravelCompletionService).complete({
+                    characterId,
+                    startTime: START,
+                    endTime: ridden,
+                }),
+            ).resolves.toBe('stale');
+
+            expect(world.push.sent.map(({ message }) => message.type)).toEqual([
+                'ambush',
+            ]);
+            expect(
+                (await rawOf(subject)).status.activeTravel.startTime,
+            ).toEqual(subject.identity.at);
+        });
+
+        it('turns the completion job of the walk into a no-op once the traveller is moved off the road (D-13, Pitfall 5)', async () => {
+            const { subject } = await riderWith('horse');
+            await registerDevice(world.harness, subject.player);
+            const { at, characterId } = subject.identity;
+            ambushFallsTheMount(subject, null);
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+            await world.models.characters.updateOne(
+                { _id: characterId },
+                { $set: { 'status.activeTravel': null } },
+            );
+            const walked = new Date(at.getTime() + WALK_MS);
+            moveClockTo(walked);
+
+            await expect(
+                world.harness.app
+                    .get(TravelCompletionService)
+                    .complete({ characterId, startTime: at, endTime: walked }),
+            ).resolves.toBe('stale');
+
+            expect(world.push.sent.map(({ message }) => message.type)).toEqual([
+                'ambush',
+            ]);
+        });
+    });
+
     describe('the hunger redirection (Phase 23)', () => {
         it('redirects to the nearest city and abandons the quest when the food no longer suffices (D-16)', async () => {
             const { subject } = await riderWith('horse', STARVING_HP);
