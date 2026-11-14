@@ -41,6 +41,15 @@ export interface CombatConsumable {
     power: number;
 }
 
+export interface CombatCompanion {
+    petId: string;
+    attack: CombatDamages;
+    defense: CombatDamages;
+    currentLifePoints: number;
+    maxLifePoints: number;
+    xp: number;
+}
+
 export interface CombatParticipant {
     characterId: string;
     title: TitleType;
@@ -51,6 +60,8 @@ export interface CombatParticipant {
     equipment: CombatEquipment[];
     activeSpells: CombatSpell[];
     consumables: CombatConsumable[];
+    // il compagno equipaggiato (D-20): il segnaposto lo ignora, il motore dell'utente lo userà
+    companion: CombatCompanion | null;
 }
 
 export interface CombatEnemy {

@@ -73,6 +73,7 @@ export function combatContextOf(
         equipment: catalog.equipment,
         spells: catalog.spells,
         loot: catalog.loot,
+        pets: catalog.pets,
     });
 }
 

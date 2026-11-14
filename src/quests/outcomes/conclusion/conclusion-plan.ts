@@ -73,6 +73,7 @@ function planGuardEncounter(
                 equipment: encounter.equipment,
                 spells: encounter.spells,
                 loot: encounter.loot,
+                pets: encounter.pets,
             }),
             chance,
         ),
