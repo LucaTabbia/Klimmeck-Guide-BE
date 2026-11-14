@@ -136,7 +136,8 @@ function rewardItemOf(
     };
 }
 
-function validRewardItems(prizes: PrizesSnapshot): RewardItem[] {
+// le voci formalmente valide di un blocco, nell'ordine: precompilazione dei premi della missione guidata (D-22)
+export function validRewardItems(prizes: PrizesSnapshot): RewardItem[] {
     return [prizes.prizeItem, ...(prizes.randomLoot ?? [])]
         .map(rewardItemOf)
         .filter((entry): entry is RewardItem => entry !== null);

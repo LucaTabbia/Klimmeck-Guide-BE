@@ -60,6 +60,7 @@ import { type QuestEnemyRef, validQuestEnemiesOf } from './quest-enemies';
 import {
     type PrizesSnapshot,
     type RewardCatalog,
+    type RewardRefs,
     rewardRefsOf,
     type SpellCandidate,
 } from './rewards/quest-rewards';
@@ -566,7 +567,17 @@ export class ResolutionLoader {
     private async readRewardCatalog(
         quest: ResolutionQuest,
     ): Promise<RewardCatalog> {
-        const refs = rewardRefsOf(prizeBlocksOf(quest));
+        return this.readRewardCatalogFor(
+            rewardRefsOf(prizeBlocksOf(quest)),
+            quest.prizes,
+        );
+    }
+
+    // catalogo dei premi di ref arbitrari (D-22): una sorgente del pool nulla lascia vuoto il sorteggio delle magie
+    async readRewardCatalogFor(
+        refs: RewardRefs,
+        spellPoolSource: PrizesSnapshot | null | undefined,
+    ): Promise<RewardCatalog> {
         const idsOf = (itemType: string) =>
             refs.items
                 .filter((entry) => entry.itemType === itemType)
@@ -595,7 +606,7 @@ export class ResolutionLoader {
                 ),
             ]),
             spells: await this.readFixedSpells(refs.spellIds),
-            spellPool: await this.readSpellPool(quest.prizes),
+            spellPool: await this.readSpellPool(spellPoolSource),
             ...(await this.readPrizePets(refs.petIds)),
         };
     }
