@@ -9,8 +9,12 @@ import { RoleType } from 'src/models/enums/role-type.enum';
 import { SimulateMissionFightInput } from './mission-draft.inputs';
 import { MissionDraftPresenter } from './mission-draft.mapper';
 import { MissionDraftService } from './mission-draft.service';
-import { MissionDraftView } from './mission-draft.wire';
+import {
+    MissionDraftView,
+    MissionPrizeOptionsView,
+} from './mission-draft.wire';
 import { MissionEnemiesService } from './mission-enemies.service';
+import { MissionPrizeOptionsService } from './mission-prize-options.service';
 import { MissionSimulationService } from './mission-simulation.service';
 
 const pendingQuestTarget = ({ pendingQuestId }: Record<string, unknown>) =>
@@ -27,6 +31,7 @@ export class GuidedMissionResolver {
         private readonly presenter: MissionDraftPresenter,
         private readonly enemies: MissionEnemiesService,
         private readonly simulation: MissionSimulationService,
+        private readonly prizeOptions: MissionPrizeOptionsService,
     ) {}
 
     @Roles(RoleType.innkeeper)
@@ -64,6 +69,15 @@ export class GuidedMissionResolver {
         showAll: boolean,
     ): Promise<Enemy[]> {
         return this.enemies.list(pendingQuestId, showAll);
+    }
+
+    @Roles(RoleType.innkeeper)
+    @Query(() => MissionPrizeOptionsView)
+    missionPrizeOptions(
+        @Args('characterId', { type: () => ID }) characterId: string,
+        @Args('pendingQuestId', { type: () => ID }) pendingQuestId: string,
+    ): Promise<MissionPrizeOptionsView> {
+        return this.prizeOptions.optionsFor(pendingQuestId, characterId);
     }
 
     @Roles(RoleType.innkeeper)

@@ -1,8 +1,15 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { Coins } from 'src/models/common/coins.model';
 import { Enemy } from 'src/models/enemy.model';
+import { EquipmentItem } from 'src/models/equipment-item.model';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
+import { RarityType } from 'src/models/enums/rarity-type.enum';
+import { LootItem } from 'src/models/loot-item.model';
+import { Pet } from 'src/models/pet.model';
 import { QuestCure } from 'src/models/quest/quest-cure.model';
+import { QuestPrizes } from 'src/models/quest/quest-prizes.model';
+import { Spell } from 'src/models/spell.model';
+import type { PrizesSnapshot } from 'src/quests/outcomes/rewards/quest-rewards';
 import { MissionDraftStep, MissionFightVerdict } from './mission-draft.model';
 
 // filo della bozza (D-17): classi distinte dallo schema Mongoose, id esadecimali e nemici popolati
@@ -170,4 +177,32 @@ export class MissionDraftView {
 
     @Field(() => Date)
     updatedAt: Date;
+}
+
+// premi ammessi per un partecipante (D-07, D-22): blocco del titolo com'è, catalogo filtrato dalla stessa regola della rivalidazione
+@ObjectType('MissionPrizeOptions')
+export class MissionPrizeOptionsView {
+    @Field(() => QuestPrizes)
+    block: PrizesSnapshot;
+
+    @Field(() => ID)
+    character: string;
+
+    @Field(() => [EquipmentItem])
+    equipment: EquipmentItem[];
+
+    @Field(() => [LootItem])
+    loot: LootItem[];
+
+    @Field(() => RarityType)
+    maxRarity: RarityType;
+
+    @Field(() => [Pet])
+    pets: Pet[];
+
+    @Field(() => [Spell])
+    spells: Spell[];
+
+    @Field(() => String)
+    title: string;
 }

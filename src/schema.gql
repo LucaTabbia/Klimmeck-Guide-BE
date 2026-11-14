@@ -492,6 +492,17 @@ type MissionPrizeItem {
   quantity: Int!
 }
 
+type MissionPrizeOptions {
+  block: QuestPrizes!
+  character: ID!
+  equipment: [EquipmentItem!]!
+  loot: [LootItem!]!
+  maxRarity: RarityType!
+  pets: [Pet!]!
+  spells: [Spell!]!
+  title: String!
+}
+
 type MissionSpellUsage {
   spell: ID!
   usages: Int!
@@ -692,6 +703,7 @@ type Query {
   me: User!
   missionDraft(pendingQuestId: ID!): MissionDraft
   missionEnemies(pendingQuestId: ID!, showAll: Boolean = false): [Enemy!]!
+  missionPrizeOptions(characterId: ID!, pendingQuestId: ID!): MissionPrizeOptions!
   pendingQuest(id: String!): PendingQuest!
   pendingQuests: [PendingQuest!]!
   pendingRequests: [PendingRequest!]!
