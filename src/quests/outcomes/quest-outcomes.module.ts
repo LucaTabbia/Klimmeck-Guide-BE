@@ -47,6 +47,7 @@ import { ChanceSource, MathChanceSource } from './chance-source';
 import { CombatResolver } from './combat/combat-resolver';
 import { ConclusionEventDrawer } from './conclusion/conclusion-event.drawer';
 import { GmCompletionService } from './gm-completion.service';
+import { GmRequestReader } from './gm-request.reader';
 import { PlaceholderCombatResolver } from './combat/placeholder-combat-resolver';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
 import { PlaceholderDungeonResolver } from './dungeon/placeholder-dungeon-resolver';
@@ -104,6 +105,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         questConfigProvider,
         loreConfigProvider,
         QuestResolutionSweeper,
+        GmRequestReader,
         GmCompletionService,
         // la prigione nasce dall'arresto di una crime (quick 261110-cgd): liberazione e push accanto agli sweep delle missioni (quick 261110-prp)
         PrisonReleaseService,
@@ -115,6 +117,7 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         OutcomeWriter,
         QuestResolutionService,
         QuestResolutionSweeper,
+        GmRequestReader,
         GmCompletionService,
         CombatResolver,
         ChanceSource,
