@@ -27,10 +27,14 @@ const xpOf = (value: unknown): number =>
 const isBaseLife = (value: unknown): value is number =>
     typeof value === 'number' && Number.isInteger(value) && value >= 1;
 
+// dal livello 2 serve almeno 1 xp: con un tetto piccolo le soglie arrotondate a 0 non alzano un compagno senza xp
 export function companionLevelThresholds(maxXp: number): number[] {
-    return LEVELS.map((level) =>
-        Math.round((maxXp * levelSteps(level)) / LAST_LEVEL_STEPS),
-    );
+    return LEVELS.map((level) => {
+        const threshold = Math.round(
+            (maxXp * levelSteps(level)) / LAST_LEVEL_STEPS,
+        );
+        return level === 1 ? threshold : Math.max(1, threshold);
+    });
 }
 
 export function isSavedCompanionLevel(value: unknown): value is number {
