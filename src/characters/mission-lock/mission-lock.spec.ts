@@ -1,8 +1,19 @@
+import mongoose, { Model, Types } from 'mongoose';
 import {
     guidedMissionInProgressOf,
     LockLanes,
+    lockLanesOf,
     missionInProgressOf,
 } from 'src/characters/mission-lock/mission-lock';
+import {
+    Character,
+    CharacterSchema,
+} from 'src/models/character/character.model';
+import {
+    PendingQuest,
+    PendingQuestSchema,
+} from 'src/models/pending-quest.model';
+import { buildCharacter } from '../../../test/fixtures';
 
 const STARTED = new Date('2026-11-14T10:00:00.000Z');
 
@@ -62,4 +73,84 @@ describe('mission lock predicate', () => {
         expect(missionInProgressOf(lanes)).toBe(false);
         expect(guidedMissionInProgressOf(lanes)).toBe(false);
     });
+});
+
+describe('lanes of a character', () => {
+    // nessuna connessione: new Model lavora in memoria e un documento assegnato a un ref resta popolato
+    const CharacterModel: Model<any> =
+        mongoose.models[Character.name] ||
+        mongoose.model(Character.name, CharacterSchema);
+    const PendingQuestModel: Model<any> =
+        mongoose.models[PendingQuest.name] ||
+        mongoose.model(PendingQuest.name, PendingQuestSchema);
+
+    it('reads populated lanes without a second read (D-16)', () => {
+        const standard = new PendingQuestModel({
+            startDate: STARTED,
+            waitingTime: 0,
+            pointsSpent: 0,
+            quest: new Types.ObjectId(),
+        });
+        const worldMission = new PendingQuestModel({
+            startDate: null,
+            missionDraftStartedAt: STARTED,
+            waitingTime: 0,
+            pointsSpent: 0,
+            quest: new Types.ObjectId(),
+        });
+        const character = new CharacterModel({
+            ...buildCharacter(),
+            quests: {
+                completedQuests: [],
+                pendingQuest: standard,
+                activeStoryQuest: null,
+                activeWorldMissionQuest: worldMission,
+            },
+        });
+
+        expect(lockLanesOf(character)).toEqual({
+            pendingQuest: { startDate: STARTED, missionDraftStartedAt: null },
+            activeStoryQuest: null,
+            activeWorldMissionQuest: {
+                startDate: null,
+                missionDraftStartedAt: STARTED,
+            },
+        });
+    });
+
+    it('reads plain populated lanes too (D-16)', () => {
+        expect(
+            lockLanesOf({
+                quests: {
+                    pendingQuest: { startDate: STARTED },
+                    activeStoryQuest: null,
+                },
+            }),
+        ).toEqual({
+            pendingQuest: { startDate: STARTED, missionDraftStartedAt: null },
+            activeStoryQuest: null,
+            activeWorldMissionQuest: null,
+        });
+    });
+
+    it.each([
+        ['an ObjectId', new Types.ObjectId()],
+        ['a hex string', new Types.ObjectId().toHexString()],
+    ])('asks the reader when a lane is only an id (D-16): %s', (_, id) => {
+        expect(
+            lockLanesOf({
+                quests: {
+                    pendingQuest: { startDate: STARTED },
+                    activeWorldMissionQuest: id,
+                },
+            }),
+        ).toBe('unresolved');
+    });
+
+    it.each([{}, { quests: null }, null, undefined])(
+        'answers no lanes without quests (D-16): %p',
+        (character) => {
+            expect(lockLanesOf(character)).toBeNull();
+        },
+    );
 });

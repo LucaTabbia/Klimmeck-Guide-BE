@@ -84,7 +84,7 @@ const RARITY_TYPE_BLOCK =
 const OWNED_PET_BLOCK =
     'type OwnedPet {\n  currentLifePoints: Int!\n  pet: Pet!\n  xp: Int!\n}';
 const CHARACTER_STATUS_BLOCK =
-    'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}';
+    'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  guidedMissionInProgress: Boolean!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  missionInProgress: Boolean!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}';
 const CHARACTER_ASSETS_BLOCK =
     'type CharacterAssets {\n  ownedEquipments: [AssetQuantity!]!\n  ownedItems: [AssetQuantity!]!\n  ownedPets: [OwnedPet!]!\n  pet: Pet\n  wornEquipment: Equipment!\n}';
 const EQUIPMENT_BLOCK =
@@ -853,6 +853,16 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
         expect(schema).not.toMatch(/\bgrade\b|TravelKind/);
         expect(kindLinesOf(schema)).toEqual(ONLY_RESULT_KIND);
+    });
+
+    it('keeps the guided draft marker off the pending quest type (D-18)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+        const pendingQuestType = schema.match(
+            /type PendingQuest \{[^}]*\}/,
+        )?.[0];
+
+        expect(pendingQuestType).toBeDefined();
+        expect(pendingQuestType).not.toContain('missionDraftStartedAt');
     });
 
     it('writes the game master completion into the generated schema', () => {
