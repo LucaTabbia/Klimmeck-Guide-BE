@@ -190,7 +190,7 @@ describe('SpellFieldsStep (replSet)', () => {
         });
         expect(warnSpy.mock.calls).toEqual([
             [
-                `Origini delle magie, magie: magia ${String(spell._id)} cambiata durante il passo, scrittura non applicata`,
+                `Origini delle magie, magie: magia ${String(spell._id)}, scrittura non applicata perché il documento è cambiato durante il passo`,
             ],
         ]);
     });

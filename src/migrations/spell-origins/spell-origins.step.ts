@@ -53,5 +53,5 @@ export function writeNotAppliedLine(
     subject: string,
     id: string,
 ): string {
-    return `${SPELL_ORIGINS_LOG_PREFIX}${label}: ${subject} ${id} cambiato durante il passo, scrittura non applicata`;
+    return `${SPELL_ORIGINS_LOG_PREFIX}${label}: ${subject} ${id}, scrittura non applicata perché il documento è cambiato durante il passo`;
 }
