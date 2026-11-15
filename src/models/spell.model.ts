@@ -2,7 +2,11 @@ import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { UseType } from './enums/use-type.enum';
-import { EnergyDamage, EnergyDamageInput, EnergyDamageSchema } from './common/energy-damage';
+import {
+    EnergyDamage,
+    EnergyDamageInput,
+    EnergyDamageSchema,
+} from './common/energy-damage';
 
 @ObjectType()
 @Schema()
@@ -46,7 +50,6 @@ export class Spell {
 export type SpellDocument = Spell & Document;
 export const SpellSchema = SchemaFactory.createForClass(Spell);
 
-
 @InputType()
 export class SpellInput {
     @Field(() => ID, { nullable: true })
@@ -76,4 +79,3 @@ export class SpellInput {
     @Field(() => Int)
     maxUsages: number;
 }
-
