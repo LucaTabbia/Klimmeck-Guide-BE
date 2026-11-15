@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 24 di 24 (Origini delle magie, quest void e shamanic) — in esecuzione su `feat/24-origini-magie-quest-void-shamanic`
-Plan: 01 of 12
+Plan: 02 of 12
 Status: Phase 23 — 18/18 piani eseguiti, in verifying: review corretta (14 corretti, 2 confermati, 3 rinviati), verifica `passed_with_gaps` (14/14 requisiti; G-1 LOW: manca la spec che fissa «`companionLifeAfter` omesso = vita d'inizio scontro»), audit `secured` (0 aperte), `npm run test:cov` 464 suite / 6 657 test verdi. PR #42 (draft) verso `develop` aperta dall'orchestratore; restano boot reale dal ramo, scrittura a DB dei tempi di recupero (dopo l'approvazione dell'utente) e UAT su device con la FE Phase 22.
 Last activity: 2026-11-14 -- 23-18 eseguito (handoff `BACKEND-NOTES.md` per la FE Phase 22 e piano di UAT, VALIDATION firmata, BE-PET-01..14 chiusi)
 Next step: l'utente approva la tabella dei tempi di recupero e fonde la PR della Phase 23; poi FE 22-16 (gate di schema) e 22-17 (UAT su device, 9 passi). Domande aperte per l'utente in `BACKEND-NOTES.md` §7 (xp nel dungeon del compagno sconfitto, riga «Prosegui a piedi», testi delle push, contratto delle correzioni dell'oste).
