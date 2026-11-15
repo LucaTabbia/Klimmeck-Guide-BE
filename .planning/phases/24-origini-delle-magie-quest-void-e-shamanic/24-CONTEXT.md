@@ -15,3 +15,10 @@ Il contesto autorevole per entrambe le fasi è nel repo FE:
 - D-11, D-12: `void` solo a Necrorian; `shamanic` nelle due capitali nuove, da mage in su; il generatore non crea quest di Necrorian con titolo minimo sotto mage.
 - D-15, D-16: tipi di città `aarakocraCapital`, `dragonbornCapital` (taglia `capital`), `dragonbornVillage` (villaggio); le tre città a DB hanno già il tipo nuovo e restano senza taglia finché il BE non li conosce.
 - D-18: città di nascita: dragonborn → `dragonbornCapital`, aarakocra → `aarakocraCapital`; solo personaggi nuovi.
+
+## Emendamenti del 2026-11-15 (vincono sul testo sopra)
+
+- D-20: anche il tipo di quest `magic` diventa `arcane` (tipi di scuola: `arcane`, `shamanic`, `void`); i dati a DB con `magic` si migrano.
+- D-22: heal e negozi di Murnborim e Thengran da città, non da capitale (contenuto a DB); la taglia resta `capital`.
+- D-23: lore delle tre città cambiate riscritta (contenuto a DB).
+- D-24: la prima magia imparata di un'origine sblocca la lore di quell'origine: `Spell.relatedLore`, sbloccata a ogni magia imparata.
