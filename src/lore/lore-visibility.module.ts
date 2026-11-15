@@ -7,6 +7,7 @@ import {
 import { Lore, LoreSchema } from 'src/models/lore.model';
 import { User, UserSchema } from 'src/models/user.model';
 import { KnownEnemiesResolver } from './known-enemies.resolver';
+import { KnownPetsResolver } from './known-pets.resolver';
 import {
     CityRelatedLoreResolver,
     EnemyRelatedLoreResolver,
@@ -34,6 +35,7 @@ import { ViewerKnowledgeService } from './viewer-knowledge.service';
         LootItemRelatedLoreResolver,
         PetRelatedLoreResolver,
         KnownEnemiesResolver,
+        KnownPetsResolver,
     ],
     exports: [ViewerKnowledgeService],
 })
