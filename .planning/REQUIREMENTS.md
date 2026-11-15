@@ -83,18 +83,18 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 
 ### Spell Origins and Schools (BE-ORIGIN) — Phase 24, aggiunta 2026-11-15
 
-- [ ] **BE-ORIGIN-01**: Tipi di città `aarakocraCapital`, `dragonbornCapital` (taglia `capital`) e `dragonbornVillage` (villaggio) nell'enum, nella tabella esaustiva delle taglie e sul filo; le tre città già a DB tornano servibili da `cities` e `city`; il report dei negozi giudica le due capitali nuove con la fascia `city` (la taglia resta `capital`)
-- [ ] **BE-ORIGIN-02**: Città di nascita: dragonborn → `dragonbornCapital`, aarakocra → `aarakocraCapital`, solo per i personaggi nuovi
-- [ ] **BE-ORIGIN-03**: Enum `SpellOrigin` (`void`, `arcane`, `shamanic`) e `Spell.origin: String!` su schema Mongoose (validazione enum) e filo; nessun effetto sul combattimento, sugli slot né su chi può imparare una magia
-- [ ] **BE-ORIGIN-04**: `Spell.minLevelToLearn: Int!` al posto di `minXpToLearn` su schema e filo (cambio SDL non additivo dichiarato nel handoff); `SpellInput` morto rimosso; conteggio al boot delle magie senza origine o livello validi
-- [ ] **BE-ORIGIN-05**: Cancello a livello (livello dopo l'esito, dalla tabella unica) nel premio fisso, nei premi per titolo e nel sorteggio delle quest; una magia senza livello intero ≥ 1 non si insegna
-- [ ] **BE-ORIGIN-06**: Cancello a livello nelle opzioni dei premi dell'oste e nella loro rivalidazione a salvataggio e completamento, con il livello derivato dall'xp nella tabella unica
-- [ ] **BE-ORIGIN-07**: Tipi di quest di scuola `arcane` (il vecchio `magic`, rinominato), `shamanic` e `void`, identici fra loro: ripetibili, senza registrazione, corsia standard, avvio all'arrivo, pool dello studio, nessun soccorso; nessun cambio SDL, nessun lettore tollera più `magic`
-- [ ] **BE-ORIGIN-08**: Il sorteggio di una quest `arcane` / `shamanic` / `void` prende solo le magie dell'origine con lo stesso nome (tabella tipo → origine esplicita); ogni altro tipo con `spellDraw` pesca dall'intero catalogo come oggi; nessun tiro aggiunto o spostato
-- [ ] **BE-ORIGIN-09**: Il generatore non crea mai su un POI di una città `necrorianCity` una quest con `minTitle` sotto mage (pavimento per tipo di città, boss misti compresi)
-- [ ] **BE-ORIGIN-10**: Migratore una tantum idempotente prima di ogni hook: `minLevelToLearn` da `minXpToLearn` con la tabella dei livelli e `origin: arcane` dove manca (lascia `minXpToLearn` a DB); riscrive il tipo `magic` in `arcane` nelle quest e in ogni copia persistita del tipo; esce dal repo dopo il boot reale
-- [ ] **BE-ORIGIN-11**: Gate (tsc, suite unit e integration, SDL rigenerato al boot reale di test) e handoff `BACKEND-NOTES.md` per la FE Phase 23 con il diff SDL, la finestra FE, il log del boot del migratore e i compiti di contenuto dell'orchestratore
-- [ ] **BE-ORIGIN-12**: Lore dell'origine: `Spell.relatedLore: [Lore!]!` (additivo, filtrata per viewer) sbloccata a ogni magia imparata per qualunque via (sorteggio, premio fisso, premio per titolo, premio dell'oste) con il meccanismo degli altri sblocchi; la prima magia di un'origine sblocca la lore dell'origine, le successive non cambiano nulla
+- [x] **BE-ORIGIN-01**: Tipi di città `aarakocraCapital`, `dragonbornCapital` (taglia `capital`) e `dragonbornVillage` (villaggio) nell'enum, nella tabella esaustiva delle taglie e sul filo; le tre città già a DB tornano servibili da `cities` e `city`; il report dei negozi giudica le due capitali nuove con la fascia `city` (la taglia resta `capital`)
+- [x] **BE-ORIGIN-02**: Città di nascita: dragonborn → `dragonbornCapital`, aarakocra → `aarakocraCapital`, solo per i personaggi nuovi
+- [x] **BE-ORIGIN-03**: Enum `SpellOrigin` (`void`, `arcane`, `shamanic`) e `Spell.origin: String!` su schema Mongoose (validazione enum) e filo; nessun effetto sul combattimento, sugli slot né su chi può imparare una magia
+- [x] **BE-ORIGIN-04**: `Spell.minLevelToLearn: Int!` al posto di `minXpToLearn` su schema e filo (cambio SDL non additivo dichiarato nel handoff); `SpellInput` morto rimosso; conteggio al boot delle magie senza origine o livello validi
+- [x] **BE-ORIGIN-05**: Cancello a livello (livello dopo l'esito, dalla tabella unica) nel premio fisso, nei premi per titolo e nel sorteggio delle quest; una magia senza livello intero ≥ 1 non si insegna
+- [x] **BE-ORIGIN-06**: Cancello a livello nelle opzioni dei premi dell'oste e nella loro rivalidazione a salvataggio e completamento, con il livello derivato dall'xp nella tabella unica
+- [x] **BE-ORIGIN-07**: Tipi di quest di scuola `arcane` (il vecchio `magic`, rinominato), `shamanic` e `void`, identici fra loro: ripetibili, senza registrazione, corsia standard, avvio all'arrivo, pool dello studio, nessun soccorso; nessun cambio SDL, nessun lettore tollera più `magic`
+- [x] **BE-ORIGIN-08**: Il sorteggio di una quest `arcane` / `shamanic` / `void` prende solo le magie dell'origine con lo stesso nome (tabella tipo → origine esplicita); ogni altro tipo con `spellDraw` pesca dall'intero catalogo come oggi; nessun tiro aggiunto o spostato
+- [x] **BE-ORIGIN-09**: Il generatore non crea mai su un POI di una città `necrorianCity` una quest con `minTitle` sotto mage (pavimento per tipo di città, boss misti compresi)
+- [x] **BE-ORIGIN-10**: Migratore una tantum idempotente prima di ogni hook: `minLevelToLearn` da `minXpToLearn` con la tabella dei livelli e `origin: arcane` dove manca (lascia `minXpToLearn` a DB); riscrive il tipo `magic` in `arcane` nelle quest e in ogni copia persistita del tipo; esce dal repo dopo il boot reale
+- [x] **BE-ORIGIN-11**: Gate (tsc, suite unit e integration, SDL rigenerato al boot reale di test) e handoff `BACKEND-NOTES.md` per la FE Phase 23 con il diff SDL, la finestra FE, il log del boot del migratore e i compiti di contenuto dell'orchestratore
+- [x] **BE-ORIGIN-12**: Lore dell'origine: `Spell.relatedLore: [Lore!]!` (additivo, filtrata per viewer) sbloccata a ogni magia imparata per qualunque via (sorteggio, premio fisso, premio per titolo, premio dell'oste) con il meccanismo degli altri sblocchi; la prima magia di un'origine sblocca la lore dell'origine, le successive non cambiano nulla
 
 ## Future Requirements
 
@@ -176,18 +176,18 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-PET-12 | Phase 23 | Complete |
 | BE-PET-13 | Phase 23 | Complete |
 | BE-PET-14 | Phase 23 | Complete |
-| BE-ORIGIN-01 | Phase 24 | Pending |
-| BE-ORIGIN-02 | Phase 24 | Pending |
-| BE-ORIGIN-03 | Phase 24 | Pending |
-| BE-ORIGIN-04 | Phase 24 | Pending |
-| BE-ORIGIN-05 | Phase 24 | Pending |
-| BE-ORIGIN-06 | Phase 24 | Pending |
-| BE-ORIGIN-07 | Phase 24 | Pending |
-| BE-ORIGIN-08 | Phase 24 | Pending |
-| BE-ORIGIN-09 | Phase 24 | Pending |
-| BE-ORIGIN-10 | Phase 24 | Pending |
-| BE-ORIGIN-11 | Phase 24 | Pending |
-| BE-ORIGIN-12 | Phase 24 | Pending |
+| BE-ORIGIN-01 | Phase 24 | Complete |
+| BE-ORIGIN-02 | Phase 24 | Complete |
+| BE-ORIGIN-03 | Phase 24 | Complete |
+| BE-ORIGIN-04 | Phase 24 | Complete |
+| BE-ORIGIN-05 | Phase 24 | Complete |
+| BE-ORIGIN-06 | Phase 24 | Complete |
+| BE-ORIGIN-07 | Phase 24 | Complete |
+| BE-ORIGIN-08 | Phase 24 | Complete |
+| BE-ORIGIN-09 | Phase 24 | Complete |
+| BE-ORIGIN-10 | Phase 24 | Complete |
+| BE-ORIGIN-11 | Phase 24 | Complete |
+| BE-ORIGIN-12 | Phase 24 | Complete |
 
 **Coverage:** 67 / 67 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21, 9 BE-GMFLOW → Phase 22, 14 BE-PET → Phase 23, 12 BE-ORIGIN → Phase 24). Nessun orfano, nessun duplicato.
 

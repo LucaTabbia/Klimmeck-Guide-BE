@@ -290,6 +290,8 @@ Plans:
 - [x] 24-11-PLAN.md — Gate della fase
 - [ ] 24-12-PLAN.md — Chiusura della fase e handoff
 
+**Stato (2026-11-15)**: 12/12 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, boot reale col migratore e sua rimozione, contenuto a DB e UAT su device (BACKEND-NOTES.md §4, §5, §7, da eseguire) a cura dell'orchestratore
+
 ## Backend ↔ Frontend alignment (v1.1)
 
 | Vincolo FE | Fase BE che lo soddisfa | Nota |

@@ -1,9 +1,9 @@
 ---
 phase: 24
 slug: origini-delle-magie-quest-void-e-shamanic
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-15
 ---
 
@@ -73,8 +73,8 @@ Ogni comando gira dalla radice del repo BE; a ogni task si aggiunge il controllo
 | 24-10-05 | 10 | 10 | BE-ORIGIN-10 | — | N/A | docs | `grep -qF -- "- [x] 24-10-PLAN.md" .planning/ROADMAP.md && grep -q "Plan: 10 of 12" .planning/STATE.md` | ✅ | ✅ green |
 | 24-11-01 | 11 | 11 | BE-ORIGIN-01..12 | T-24-34, T-24-35, T-24-36, T-24-37 | SDL rigenerato e confrontato, handler invariati, nessun segreto | unit + int (gate) | `npx tsc --noEmit -p tsconfig.json && npx jest --selectProjects unit && npx jest test/app.int-spec.ts test/authz/authorization-matrix.int-spec.ts --selectProjects integration --runInBand && git diff --exit-code src/schema.gql && test "$(git diff a208ad3d -- src/schema.gql | grep -E '^-[^-]' | grep -vcF -- '-  minXpToLearn: Int!')" = 0 && test "$(git diff a208ad3d -- src/schema.gql | grep -cE '^\+[^+]')" = 6 && test "$(grep -c 'minXpToLearn' src/schema.gql)" = 0` | ✅ | ✅ green |
 | 24-11-02 | 11 | 11 | BE-ORIGIN-11 | — | N/A | docs | `grep -qF -- "- [x] 24-11-PLAN.md" .planning/ROADMAP.md && grep -q "Plan: 11 of 12" .planning/STATE.md` | ✅ | ✅ green |
-| 24-12-01 | 12 | 12 | BE-ORIGIN-11 | T-24-38, T-24-40 | handoff senza segreti né valori reali | docs | `F=.planning/phases/24-origini-delle-magie-quest-void-e-shamanic/BACKEND-NOTES.md && test "$(grep -cE '^## [0-7]\.' $F)" = 8 && grep -q "type Spell {" $F && grep -q "minLevelToLearn: Int!" $F && grep -q "dragonbornCapital" $F && grep -q "DA COMPILARE DALL'ORCHESTRATORE" $F && grep -q "schema.gql" $F && test "$(grep -ciE 'mongo(db)?(\+srv)?:/{2}' $F)" = 0` | ⬜ | ⬜ pending |
-| 24-12-02 | 12 | 12 | BE-ORIGIN-01..12 | T-24-39 | requisiti chiusi solo dopo il gate verde | docs | `test "$(grep -cE '\- \[x\] \*\*BE-ORIGIN-(0[1-9]|1[0-2])\*\*' .planning/REQUIREMENTS.md)" = 12 && grep -q "nyquist_compliant: true" .planning/phases/24-origini-delle-magie-quest-void-e-shamanic/24-VALIDATION.md && grep -qF -- "- [x] 24-12-PLAN.md" .planning/ROADMAP.md && grep -q "Plan: 12 of 12" .planning/STATE.md` | ⬜ | ⬜ pending |
+| 24-12-01 | 12 | 12 | BE-ORIGIN-11 | T-24-38, T-24-40 | handoff senza segreti né valori reali | docs | `F=.planning/phases/24-origini-delle-magie-quest-void-e-shamanic/BACKEND-NOTES.md && test "$(grep -cE '^## [0-7]\.' $F)" = 8 && grep -q "type Spell {" $F && grep -q "minLevelToLearn: Int!" $F && grep -q "dragonbornCapital" $F && grep -q "DA COMPILARE DALL'ORCHESTRATORE" $F && grep -q "schema.gql" $F && test "$(grep -ciE 'mongo(db)?(\+srv)?:/{2}' $F)" = 0` | ✅ | ✅ green |
+| 24-12-02 | 12 | 12 | BE-ORIGIN-01..12 | T-24-39 | requisiti chiusi solo dopo il gate verde | docs | `test "$(grep -cE '\- \[x\] \*\*BE-ORIGIN-(0[1-9]|1[0-2])\*\*' .planning/REQUIREMENTS.md)" = 12 && grep -q "nyquist_compliant: true" .planning/phases/24-origini-delle-magie-quest-void-e-shamanic/24-VALIDATION.md && grep -qF -- "- [x] 24-12-PLAN.md" .planning/ROADMAP.md && grep -q "Plan: 12 of 12" .planning/STATE.md` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -84,14 +84,14 @@ Ogni comando gira dalla radice del repo BE; a ogni task si aggiunge il controllo
 
 Nessun framework da installare; mancano solo le spec e gli appoggi nuovi, ognuno creato (RED) dal task che lo usa (RESEARCH «Validation Architecture», più gli emendamenti del 2026-11-15):
 
-- [ ] `src/models/enums/spell-origin.enum.spec.ts` — valori sul filo delle tre origini (BE-ORIGIN-03, task 24-02-01)
-- [ ] `src/spells/spell-fields.int-spec.ts` — lo schema conserva e valida origine, livello minimo e lore; il filo li serve (BE-ORIGIN-03/04/12, task 24-02-02, 24-05-01, 24-08-01)
-- [ ] `test/fixtures/spell.fixture.ts` — `origin`, `minLevelToLearn` (condiviso, task 24-02-02; via `minXpToLearn` nel task 24-05-01)
-- [ ] `src/spells/spell-catalogue.reporter.spec.ts` — reporter d'avvio delle magie non servibili (BE-ORIGIN-04, task 24-05-02)
-- [ ] `src/quests/spell-schools.spec.ts` — tabella tipo → origine (BE-ORIGIN-07, task 24-06-01)
-- [ ] `test/quests/generation-world.ts` — opzione `cityTypes` per una città `necrorianCity` (BE-ORIGIN-09, task 24-09-02)
-- [ ] `src/migrations/spell-origins/spell-origins.boot.spec.ts` e `spell-fields.step.spec.ts` — boot e regola pura del migratore (BE-ORIGIN-10, task 24-10-01)
-- [ ] `src/migrations/spell-origins/spell-fields.step.int-spec.ts` e `quest-type.step.int-spec.ts` — passi del migratore sul `MongoMemoryReplSet` (BE-ORIGIN-10, task 24-10-02, 24-10-03)
+- [x] `src/models/enums/spell-origin.enum.spec.ts` — valori sul filo delle tre origini (BE-ORIGIN-03, task 24-02-01)
+- [x] `src/spells/spell-fields.int-spec.ts` — lo schema conserva e valida origine, livello minimo e lore; il filo li serve (BE-ORIGIN-03/04/12, task 24-02-02, 24-05-01, 24-08-01)
+- [x] `test/fixtures/spell.fixture.ts` — `origin`, `minLevelToLearn` (condiviso, task 24-02-02; via `minXpToLearn` nel task 24-05-01)
+- [x] `src/spells/spell-catalogue.reporter.spec.ts` — reporter d'avvio delle magie non servibili (BE-ORIGIN-04, task 24-05-02)
+- [x] `src/quests/spell-schools.spec.ts` — tabella tipo → origine (BE-ORIGIN-07, task 24-06-01)
+- [x] `test/quests/generation-world.ts` — opzione `cityTypes` per una città `necrorianCity` (BE-ORIGIN-09, task 24-09-02)
+- [x] `src/migrations/spell-origins/spell-origins.boot.spec.ts` e `spell-fields.step.spec.ts` — boot e regola pura del migratore (BE-ORIGIN-10, task 24-10-01)
+- [x] `src/migrations/spell-origins/spell-fields.step.int-spec.ts` e `quest-type.step.int-spec.ts` — passi del migratore sul `MongoMemoryReplSet` (BE-ORIGIN-10, task 24-10-02, 24-10-03)
 
 Spec esistenti che vanno RED per scelta e si riscrivono nel piano che cambia il comportamento (RESEARCH §Q2, §Q3, §Q5): `cities/city-size.spec.ts` (conteggi 14 / 9 / 13), `characters/creation/race-traits.spec.ts`, `starting-cities.reporter.spec.ts`, `starting-location.service.int-spec.ts`, `character-creation.resolver.int-spec.ts` (24-01); le spec che citano `minXpToLearn` (24-03, 24-04, 24-05); le tabelle esaustive `quest-lanes.spec.ts` e `quest-eligibility.spec.ts` e ogni spec col tipo `magic` (24-06).
 
@@ -111,11 +111,11 @@ Stato delle tre verifiche manuali: **da eseguire** (a cura dell'orchestratore do
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 180s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 180s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-11-15
