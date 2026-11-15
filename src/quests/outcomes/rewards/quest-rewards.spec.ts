@@ -12,9 +12,11 @@ import {
     drawLearnableSpell,
     drawRewards,
     drawStudyLore,
+    isLearnLevel,
     rewardRefsOf,
     validRewardItems,
 } from 'src/quests/outcomes/rewards/quest-rewards';
+import { MAX_LEVEL } from 'src/quests/outcomes/progression/level-table';
 import { SequenceChance } from '../../../../test/quests/sequence-chance';
 
 const POTION_ID = new Types.ObjectId('64b0000000000000000000b1');
@@ -664,6 +666,22 @@ describe('drawLearnableSpell', () => {
             SPELL_D,
         );
     });
+});
+
+describe('isLearnLevel', () => {
+    it.each([[1], [MAX_LEVEL]])(
+        'accepts an integer minimum level from one to the top of the level table (D-07, WR-03): %p',
+        (level) => {
+            expect(isLearnLevel(level)).toBe(true);
+        },
+    );
+
+    it.each([[MAX_LEVEL + 1], [4000]])(
+        'refuses a minimum level above the top of the level table (D-07, WR-03): %p',
+        (level) => {
+            expect(isLearnLevel(level)).toBe(false);
+        },
+    );
 });
 
 describe('canLearnSpell', () => {

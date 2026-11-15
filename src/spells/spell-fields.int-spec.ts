@@ -1,5 +1,6 @@
 import { type Model, Types } from 'mongoose';
 import { Spell } from 'src/models/spell.model';
+import { MAX_LEVEL } from 'src/quests/outcomes/progression/level-table';
 import {
     AuthTestApp,
     createAuthTestApp,
@@ -75,6 +76,15 @@ describe('Spell origin and minimum level', () => {
         await expect(
             persistSpell(spells, { minLevelToLearn: 0 }),
         ).rejects.toMatchObject({ name: 'ValidationError' });
+    });
+
+    it('refuses a minimum level above the top of the level table (D-07, WR-03)', async () => {
+        await expect(
+            persistSpell(spells, { minLevelToLearn: MAX_LEVEL + 1 }),
+        ).rejects.toMatchObject({ name: 'ValidationError' });
+        await expect(
+            persistSpell(spells, { minLevelToLearn: MAX_LEVEL }),
+        ).resolves.toBeDefined();
     });
 
     it('serves the origin and the minimum level of every spell on the wire (D-01, D-07)', async () => {

@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { SpellDocument } from 'src/models/spell.model';
+import { MAX_LEVEL } from 'src/quests/outcomes/progression/level-table';
 import {
     isServableSpell,
     SpellCatalogueReporter,
@@ -42,6 +43,15 @@ describe('isServableSpell', () => {
 
     it.each([[undefined], [null], [0], [2.5], ['6']])(
         'counts as unservable a spell without a valid minimum level (D-07): %p',
+        (minLevelToLearn) => {
+            expect(isServableSpell({ origin: 'void', minLevelToLearn })).toBe(
+                false,
+            );
+        },
+    );
+
+    it.each([[MAX_LEVEL + 1], [4000]])(
+        'counts as unservable a spell whose minimum level is above the top of the level table (D-07, WR-03): %p',
         (minLevelToLearn) => {
             expect(isServableSpell({ origin: 'void', minLevelToLearn })).toBe(
                 false,

@@ -3,6 +3,7 @@ import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { MAX_LEVEL } from 'src/quests/outcomes/progression/level-table';
 import type { PrizesSnapshot } from 'src/quests/outcomes/rewards/quest-rewards';
 import {
     assertPrizeAllowed,
@@ -180,8 +181,8 @@ describe('mission prize options', () => {
         expect(optionsOf({ level: 5 }).spellIds).not.toContain(SPELL.exact);
     });
 
-    it.each([['2'], [0], [2.5], [null], [undefined], [NaN]])(
-        'never offers a spell whose minimum level is not an integer of at least one (D-08): %p',
+    it.each([['2'], [0], [2.5], [null], [undefined], [NaN], [MAX_LEVEL + 1]])(
+        'never offers a spell whose minimum level is not an integer from one to the top of the level table (D-08, WR-03): %p',
         (minLevelToLearn) => {
             const dirty = '64f1000000000000000000d7';
             const options = missionPrizeOptionsOf({

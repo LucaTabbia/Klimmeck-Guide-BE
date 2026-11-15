@@ -4,6 +4,7 @@ import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { SpellOrigin } from 'src/models/enums/spell-origin.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { MAX_LEVEL } from './progression/level-table';
 import { ResolutionLoader } from './resolution-loader.service';
 
 const AMBUSH_SUBJECT = "dell'imboscata x";
@@ -475,8 +476,18 @@ describe('ResolutionLoader reward catalog', () => {
         }
     });
 
-    it.each([[0], [-1], [2.5], ['6'], [null], [undefined], [NaN]])(
-        'leaves a spell without an integer minimum level of at least one out of the catalogue (D-07): %p',
+    it.each([
+        [0],
+        [-1],
+        [2.5],
+        ['6'],
+        [null],
+        [undefined],
+        [NaN],
+        [MAX_LEVEL + 1],
+        [4000],
+    ])(
+        'leaves a spell without an integer minimum level from one to the top of the level table out of the catalogue (D-07, WR-03): %p',
         async (minLevelToLearn) => {
             const valid = new Types.ObjectId('64b0000000000000000000f1');
             const dirty = new Types.ObjectId('64b0000000000000000000f2');
